@@ -52,12 +52,19 @@ struct post_process {
     shader_glsl query_shader;
     GLuint query_vao;
     GLuint query_vbo;
+    GLuint lens_ghost_vao;
+    GLuint lens_ghost_vbo;
     shader_glsl alpha_layer_shader;
     int32_t texture_counter;
+    GLuint lens_shaft_query[3];
+    GLuint lens_flare_query[3];
+    GLuint lens_shaft_query_data[3];
+    GLuint lens_flare_query_data[3];
+    int32_t lens_flare_query_index;
     GLuint lens_flare_texture;
     GLuint lens_shaft_texture;
     GLuint lens_ghost_texture;
-    int32_t lens_flare_count;
+    int32_t lens_ghost_count;
     vec3 lens_flare_pos;
     float_t lens_shaft_scale;
     float_t lens_shaft_inv_scale;
@@ -86,6 +93,8 @@ struct post_process {
 
     void apply(camera* cam, texture* light_proj_tex, int32_t npr_param);
     void ctrl(camera* cam);
+    void draw_lens_flare(camera* cam);
+    void draw_lens_ghost(render_texture* rt);
     void draw_query_samples(GLuint query, float_t scale, mat4& mat);
     void init_fbo(int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);

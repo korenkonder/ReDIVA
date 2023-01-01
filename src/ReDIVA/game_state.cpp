@@ -11,6 +11,7 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/stage_test.hpp"
+#include "data_edit.hpp"
 #include "data_initialize.hpp"
 #include "pv_game.hpp"
 #include "system_startup.hpp"
@@ -130,6 +131,20 @@ GameStateData game_state_data_array[] = {
         GAME_STATE_ADVERTISE,
         SUB_GAME_STATE_MAX,
     },
+#if DATA_EDIT
+    { // Added
+        GAME_STATE_DATA_EDIT,
+        GameState::DataEdit::Init,
+        GameState::DataEdit::Ctrl,
+        GameState::DataEdit::Dest,
+        {
+            SUB_GAME_STATE_DATA_EDIT,
+            SUB_GAME_STATE_MAX,
+        },
+        GAME_STATE_ADVERTISE,
+        SUB_GAME_STATE_MAX,
+    },
+#endif
     {
         GAME_STATE_APP_ERROR,
         GameState::AppError::Init,
@@ -425,6 +440,15 @@ SubGameStateData sub_game_state_data_array[] = {
         SubGameState::DataTestModeMain::Ctrl,
         SubGameState::DataTestModeMain::Dest,
     },
+#if DATA_EDIT
+    { // Added
+        SUB_GAME_STATE_DATA_EDIT,
+        0,
+        SubGameState::DataEdit::Init,
+        SubGameState::DataEdit::Ctrl,
+        SubGameState::DataEdit::Dest,
+    },
+#endif
     {
         SUB_GAME_STATE_APP_ERROR,
         0,
@@ -440,6 +464,9 @@ const char* game_state_names[] = {
     "GAME",
     "DATA_TEST",
     "TEST_MODE",
+#if DATA_EDIT
+    "DATA_EDIT",
+#endif
     "APP_ERROR",
     "MAX",
 };
@@ -485,6 +512,9 @@ const char* sub_game_state_names[] = {
     "DATA_TEST_GRAPHICS",
     "DATA_TEST_COLLECTION_CARD",
     "TEST_MODE_MAIN",
+#if DATA_EDIT
+    "DATA_EDIT",
+#endif
     "APP_ERROR",
     "MAX",
 };
@@ -554,32 +584,6 @@ bool GameState::Game::Dest() {
     return true;
 }
 
-bool GameState::TestMode::Init() {
-    test_mode_set(true);
-    return true;
-}
-
-bool GameState::TestMode::Ctrl() {
-    return false;
-}
-
-bool GameState::TestMode::Dest() {
-    test_mode_set(false);
-    return true;
-}
-
-bool GameState::AppError::Init() {
-    return true;
-}
-
-bool GameState::AppError::Ctrl() {
-    return false;
-}
-
-bool GameState::AppError::Dest() {
-    return true;
-}
-
 bool GameState::DataTest::Init() {
     task_rob_manager_append_task();
     return true;
@@ -597,6 +601,46 @@ bool GameState::DataTest::Ctrl() {
 
 bool GameState::DataTest::Dest() {
     task_rob_manager_free_task();
+    return true;
+}
+
+bool GameState::TestMode::Init() {
+    test_mode_set(true);
+    return true;
+}
+
+bool GameState::TestMode::Ctrl() {
+    return false;
+}
+
+bool GameState::TestMode::Dest() {
+    test_mode_set(false);
+    return true;
+}
+
+#if DATA_EDIT
+bool GameState::DataEdit::Init() { // Added
+    return true;
+}
+
+bool GameState::DataEdit::Ctrl() { // Added
+    return false;
+}
+
+bool GameState::DataEdit::Dest() { // Added
+    return true;
+}
+#endif
+
+bool GameState::AppError::Init() {
+    return true;
+}
+
+bool GameState::AppError::Ctrl() {
+    return false;
+}
+
+bool GameState::AppError::Dest() {
     return true;
 }
 
@@ -1142,6 +1186,22 @@ bool SubGameState::DataTestModeMain::Ctrl() {
 bool SubGameState::DataTestModeMain::Dest() {
     return true;
 }
+
+#if DATA_EDIT
+bool SubGameState::DataEdit::Init() { // Added
+    app::TaskWork::AppendTask(&data_edit, "DATA EDIT", 0);
+    return true;
+}
+
+bool SubGameState::DataEdit::Ctrl() { // Added
+    return false;
+}
+
+bool SubGameState::DataEdit::Dest() { // Added
+    data_edit.SetDest();
+    return true;
+}
+#endif
 
 bool SubGameState::DataTestAppError::Init() {
     return true;

@@ -17,6 +17,7 @@
 #include "../KKdLib/dds.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/msgpack.hpp"
+#include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 
 static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* handler);
@@ -1687,14 +1688,15 @@ GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
     size_t length = handler->tex_id_data.size();
     size_t temp;
     while (length > 0)
-        if (tex_id < texture[temp = length / 2].first)
+        if (tex_id <= texture[temp = length / 2].first)
             length /= 2;
         else {
             texture += temp + 1;
             length -= temp + 1;
         }
 
-    if (texture != handler->tex_id_data.data() + handler->tex_id_data.size())
+    if (texture != handler->tex_id_data.data() + handler->tex_id_data.size()
+        && tex_id == texture->first)
         return (*textures)[texture->second];
     return -1;
 }
@@ -1812,6 +1814,12 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     return 0;
 }
 
+static int32_t obj_set_obj_id_data_sort(void const* src1, void const* src2) {
+    std::pair<uint32_t, uint32_t>* p1 = (std::pair<uint32_t, uint32_t>*)src1;
+    std::pair<uint32_t, uint32_t>* p2 = (std::pair<uint32_t, uint32_t>*)src2;
+    return (int32_t)(p1->first - p2->first);
+}
+
 bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     object_database* obj_db, texture_database* tex_db) {
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
@@ -1838,6 +1846,9 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             handler->obj_id_data.reserve(set->obj_num);
             for (uint32_t i = 0; i < set->obj_num; i++)
                 handler->obj_id_data.push_back({ set->obj_data[i].id, i });
+
+            quicksort_custom(handler->obj_id_data.data(), handler->obj_id_data.size(),
+                sizeof(std::pair<uint32_t, uint32_t>), obj_set_obj_id_data_sort);
 
             if (!obj_set_handler_vertex_buffer_load(handler)
                 || !obj_set_handler_index_buffer_load(handler))
@@ -2157,7 +2168,7 @@ static void obj_set_handler_index_buffer_free(obj_set_handler* handler) {
 static int32_t obj_set_tex_id_data_sort(void const* src1, void const* src2) {
     std::pair<uint32_t, uint32_t>* p1 = (std::pair<uint32_t, uint32_t>*)src1;
     std::pair<uint32_t, uint32_t>* p2 = (std::pair<uint32_t, uint32_t>*)src2;
-    return p1->first - p2->first;
+    return (int32_t)(p1->first - p2->first);
 }
 
 static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian) {
@@ -2183,6 +2194,9 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
         handler->tex_id_data.push_back({ tex_id_data[i], i });
         handler->gentex.push_back(tex_data[i]->tex);
     }
+
+    quicksort_custom(handler->tex_id_data.data(), handler->tex_id_data.size(),
+        sizeof(std::pair<uint32_t, uint32_t>), obj_set_tex_id_data_sort);
     return false;
 }
 

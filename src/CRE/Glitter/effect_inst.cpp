@@ -403,7 +403,7 @@ namespace Glitter {
             mat4 temp;
             mat4* obj_mat = 0;
             if (ext_anim->a3da_id != -1)
-                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
                     ext_anim->object_index, ext_anim->object_is_hrc, &temp);
 
             if (!obj_mat) {
@@ -413,14 +413,14 @@ namespace Glitter {
                     return;
 
                 ext_anim->mesh_index = -1;
-                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
                     ext_anim->object_index, ext_anim->object_is_hrc, &temp);
                 if (!obj_mat)
                     return;
             }
 
             mat = mat4_identity;
-            chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
+            chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
@@ -929,7 +929,7 @@ namespace Glitter {
             ext_anim_scale.z = 0.0f;
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
 
-            if (rob_chr->get_visibility() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
+            if (rob_chr->is_visible() || !(data.ext_anim_x->flags & EFFECT_EXT_ANIM_NO_DRAW_IF_NO_DATA))
                 set_flags = true;
             else
                 set_flags = false;
@@ -947,7 +947,7 @@ namespace Glitter {
             mat4 temp;
             mat4* obj_mat = 0;
             if (ext_anim->a3da_id != -1)
-                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
                     ext_anim->object_index, ext_anim->object_is_hrc, &temp);
 
             if (!obj_mat) {
@@ -958,7 +958,7 @@ namespace Glitter {
                     return;
 
                 ext_anim->mesh_index = -1;
-                obj_mat = auth_3d_data_get_auth_3d_object_mat(ext_anim->a3da_id,
+                obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
                     ext_anim->object_index, ext_anim->object_is_hrc, &temp);
                 if (!obj_mat)
                     return;
@@ -966,7 +966,7 @@ namespace Glitter {
 
             const mat4* mat = &mat4_identity;
 
-            int32_t chara_id = auth_3d_data_get_chara_id(ext_anim->a3da_id);
+            int32_t chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {

@@ -78,7 +78,7 @@ public:
 struct struc_621 {
     uint32_t stage_hash; // Added
     int32_t stage_index;
-    std::vector<int32_t> auth_3d_ids;
+    std::vector<auth_3d_id> auth_3d_ids;
 
     struc_621();
     ~struc_621();
@@ -89,8 +89,8 @@ public:
     struct Stage {
         size_t count;
         size_t max_count;
-        int32_t* auth_3d_ids_ptr;
-        int32_t auth_3d_ids[TASK_STAGE_STAGE_COUNT];
+        auth_3d_id* auth_3d_ids_ptr;
+        auth_3d_id auth_3d_ids[TASK_STAGE_STAGE_COUNT];
 
         Stage();
     } stage;

@@ -9,19 +9,6 @@
 #include "../KKdLib/pv_exp.hpp"
 #include "file_handler.hpp"
 
-struct pv_expression_file {
-    p_file_handler file_handler;
-    pv_exp* data;
-    prj::shared_ptr<alloc_data> alloc_handler;
-    int32_t load_count;
-    uint32_t hash;
-
-    pv_expression_file();
-    ~pv_expression_file();
-
-    static void load_file(pv_expression_file* handler, const void* data, size_t size);
-};
-
 extern void pv_expression_array_ctrl(void* rob_chr);
 extern void pv_expression_array_reset();
 extern bool pv_expression_array_reset_data(size_t chara_id, void* rob_chr, float_t frame_speed);

@@ -950,7 +950,7 @@ static void draw_pass_3d(render_context* rctx, draw_pass* a1) {
     if (a1->npr_param == 1)
         draw_pass_3d_contour(rctx, a1);
 
-    //post_process_draw_lens_flare(pp);
+    rctx->post_process.draw_lens_flare(rctx->camera);
     //star_catalog_data.draw();
 
     draw_task_draw_objects_by_type_translucent(rctx,

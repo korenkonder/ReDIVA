@@ -9,30 +9,28 @@
 #include "../post_process.hpp"
 #include "../shader_ft.hpp"
 
-static void post_process_aa_calculate_area_texture_data(uint8_t* a1, int32_t a2, int32_t a3);
-static void post_process_aa_calculate_area_texture_data_sub(float_t* a1,
-    float_t* a2, int32_t a3, int32_t a4, int32_t a5, int32_t a6);
-static float_t post_process_aa_calculate_area_texture_data_sub_sub(int32_t a1, int32_t a2);
+static void post_process_aa_generate_area_texture(post_process_aa* aa);
+static void post_process_aa_calculate_area_texture_data(uint8_t* data, int32_t cross1, int32_t cross2);
+static void post_process_aa_calculate_area_texture_data_area(float_t* val_left,
+    float_t* val_right, int32_t cross1, int32_t cross2, int32_t dleft, int32_t dright);
+static float_t calc_area_tex_val(int32_t a1, int32_t a2);
 
+#define MAX_EDGE_DETECTION_LEN (3)
+#define GRID_SIDE_LEN (2 * MAX_EDGE_DETECTION_LEN + 1)
+#define SIDE_LEN (5 * GRID_SIDE_LEN)
 
 post_process_aa::post_process_aa() : width(), height(), mlaa_area_texture() {
-    uint8_t pixels[35 * 35 * 2];
-    for (int32_t i = 0; i < 5; i++)
-        for (int32_t j = 0; j < 5; j++)
-            post_process_aa_calculate_area_texture_data(pixels, j, i);
-
-    glGenTextures(1, &mlaa_area_texture);
-    gl_state_bind_texture_2d(mlaa_area_texture);
-    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, 35, 35, 0, GL_RG, GL_UNSIGNED_BYTE, pixels);
-    gl_state_bind_texture_2d(0);
+    post_process_aa_generate_area_texture(this);
 }
 
 post_process_aa::~post_process_aa() {
     if (!this)
         return;
 
-    glDeleteTextures(1, &mlaa_area_texture);
+    if (mlaa_area_texture) {
+        glDeleteTextures(1, &mlaa_area_texture);
+        mlaa_area_texture = 0;
+    }
 }
 
 void post_process_aa::apply_mlaa(render_texture* rt,
@@ -54,7 +52,7 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     //uniform_value[U_MLAA_SEARCH] = 2;
     //uniform_value[U_MLAA] = 1;
     //shaders_ft.set(SHADER_FT_MLAA);
-    uniform_value[U_MLAA_SEARCH] = 2;
+    uniform_value[U_MLAA_SEARCH] = 4;
     shaders_ft.set(SHADER_FT_MLAA_AREA);
     render_texture::draw_params(&shaders_ft, width, height);
 
@@ -88,172 +86,211 @@ void post_process_aa::init_fbo(int32_t width, int32_t height) {
     mlaa_buffer[1].init(this->width, this->height, 0, GL_RGBA8, 0);
 }
 
-static void post_process_aa_calculate_area_texture_data(uint8_t* a1, int32_t a2, int32_t a3) {
-    uint8_t* v7 = &a1[7 * 7 * 10 * a3 + 14 * a2];
-    for (int32_t i = 0; i < 7; i++) {
-        for (int32_t j = 0; j < 7; j++) {
-            float_t v11 = 0.0f;
-            float_t v12 = 0.0f;
-            post_process_aa_calculate_area_texture_data_sub(&v11, &v12, a2, a3, j, i);
-            v7[0] = (uint8_t)(v11 * 255.89999f);
-            v7[1] = (uint8_t)(v12 * 255.89999f);
-            v7 += 2;
+static void post_process_aa_generate_area_texture(post_process_aa* aa) {
+    if (aa->mlaa_area_texture) {
+        glDeleteTextures(1, &aa->mlaa_area_texture);
+        aa->mlaa_area_texture = 0;
+    }
+
+    uint8_t* data = (uint8_t*)malloc(SIDE_LEN * SIDE_LEN * 2);
+    if (!data)
+        return;
+
+    for (int32_t cross2 = 0; cross2 < 5; cross2++)
+        for (int32_t cross1 = 0; cross1 < 5; cross1++)
+            post_process_aa_calculate_area_texture_data(data, cross1, cross2);
+
+    glGenTextures(1, &aa->mlaa_area_texture);
+    gl_state_bind_texture_2d(aa->mlaa_area_texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, SIDE_LEN, SIDE_LEN, 0, GL_RG, GL_UNSIGNED_BYTE, data);
+    gl_state_bind_texture_2d(0);
+    free(data);
+}
+
+static void post_process_aa_calculate_area_texture_data(uint8_t* data, int32_t cross1, int32_t cross2) {
+    uint8_t* _data = &data[(SIDE_LEN * GRID_SIDE_LEN * cross2 + GRID_SIDE_LEN * cross1) * 2];
+    for (int32_t dright = 0; dright < GRID_SIDE_LEN; dright++) {
+        for (int32_t dleft = 0; dleft < GRID_SIDE_LEN; dleft++) {
+            float_t val_left = 0.0f;
+            float_t val_right = 0.0f;
+            post_process_aa_calculate_area_texture_data_area(&val_left, &val_right, cross1, cross2, dleft, dright);
+            _data[0] = (uint8_t)(val_left  * 255.9f);
+            _data[1] = (uint8_t)(val_right * 255.9f);
+            _data += 2;
         }
-        v7 += 28 * 2;
+        _data += GRID_SIDE_LEN * 4 * 2;
     }
 }
-static void post_process_aa_calculate_area_texture_data_sub(float_t* a2,
-    float_t* a3, int32_t a4, int32_t a5, int32_t a6, int32_t a7) {
-    float_t v8 = 0.0f;
-    float_t v10 = 0.0f;
-    int32_t v11 = a6 + a7 + 1;
-    v11 = min_def(v11, 7);
 
-    int32_t v12;
-    if (((a6 + a7 + 1) & 1) != 0)
-        v12 = (a6 + a7) / 2 + 1;
-    else
-        v12 = (a6 + a7 + 1) / 2;
-
-    float_t v14;
-    int32_t v15;
-    switch (a5) {
+static void post_process_aa_calculate_area_texture_data_area(float_t* val_left,
+    float_t* val_right, int32_t cross1, int32_t cross2, int32_t dleft, int32_t dright) {
+    int32_t dist = dleft + dright + 1;
+    float_t _val_left = 0.0f;
+    float_t _val_right = 0.0f;
+    switch (cross2) {
     case 0:
-        if (a4 == 1)
-            v10 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v11);
-        else if (a4 == 3)
-            v8 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v11);
+        switch (cross1) {
+        case 1:
+            _val_right = calc_area_tex_val(dleft, min_def(dist, GRID_SIDE_LEN));
+            break;
+        case 3:
+            _val_left = calc_area_tex_val(dleft, min_def(dist, GRID_SIDE_LEN));
+            break;
+        }
         break;
     case 1:
-        if (a4 == 0)
-            v10 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v11);
-        else if (a4 == 1) {
-            if (((a6 + a7 + 1) & 1) == 0) {
-                v14 = -0.5f / (float_t)v12;
-                if (a6 >= v12)
-                    v10 = ((float_t)(a7 * 2 + 1) * v14 + 1.0f) * 0.5f;
+        switch (cross1) {
+        case 0:
+            _val_right = calc_area_tex_val(dright, min_def(dist, GRID_SIDE_LEN));
+            break;
+        case 1:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_right = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_right = calc_area_tex_val(dright, v12);
                 else
-                    v10 = ((float_t)(a6 * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    _val_right = calc_area_tex_val(v15, v12) * 2.0f;
             }
             else {
-                v15 = v12 - 1;
-                if (a6 < v15)
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v12);
-                else if (a7 < v15)
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v12);
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft >= v12)
+                    _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
                 else
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(v15, v12) * 2.0f;
+                    _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
             }
-        }
-        else if (a4 == 3 || a4 == 4) {
-            if (((a6 + a7 + 1) & 1) == 0) {
-                v14 = -0.5f / (float_t)v12;
-                if (a6 < v12)
-                    v8 = ((float_t)(a6 * 2 + 1) * v14 + 1.0f) * 0.5f;
+            break;
+        case 3:
+        case 4:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_left = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_right = calc_area_tex_val(dright, v12);
                 else
-                    v10 = ((float_t)(a7 * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
             }
             else {
-                v15 = v12 - 1;
-                if (a6 < v15)
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v12);
-                else if (a7 < v15)
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v12);
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
                 else
-                    v8 = v10 = post_process_aa_calculate_area_texture_data_sub_sub(v15, v12);
+                    _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
             }
+            break;
         }
         break;
     case 3:
-        if (a4 == 0)
-            v8 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v11);
-        else if (a4 == 1 || a4 == 4) {
-            if (((a6 + a7 + 1) & 1) == 0) {
-                v14 = -0.5f / (float_t)v12;
-                if (a6 < v12)
-                    v10 = ((float_t)(a6 * 2 + 1) * v14 + 1.0f) * 0.5f;
+        switch (cross1) {
+        case 0:
+            _val_left = calc_area_tex_val(dright, min_def(dist, GRID_SIDE_LEN));
+            break;
+        case 1:
+        case 4:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_right = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_left = calc_area_tex_val(dright, v12);
                 else
-                    v8 = ((float_t)(a7 * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
             }
             else {
-                v15 = v12 - 1;
-                if (a6 < v15)
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v12);
-                else if (a7 < v15)
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v12);
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
                 else
-                    v8 = v10 = post_process_aa_calculate_area_texture_data_sub_sub(v15, v12);
+                    _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
             }
-        }
-        else if (a4 == 3) {
-            if (((a6 + a7 + 1) & 1) == 0) {
-                v14 = -0.5f / (float_t)v12;
-                if (a6 < v12)
-                    v8 = ((float_t)(a6 * 2 + 1) * v14 + 1.0f) * 0.5f;
+            break;
+        case 3:
+            if (dist % 2){
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_left = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_left = calc_area_tex_val(dright, v12);
                 else
-                    v8 = ((float_t)(a7 * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    _val_left = calc_area_tex_val(v15, v12) * 2.0f;
             }
-            else {
-                v15 = v12 - 1;
-                if (a6 < v15)
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v12);
-                else if (a7 < v15)
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v12);
+            else  {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
                 else
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(v15, v12) * 2.0f;
+                    _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
             }
+            break;
         }
         break;
     case 4:
-        if (a4 == 1) {
-            if (((a6 + a7 + 1) & 1) == 0) {
-                v14 = -0.5f / (float_t)v12;
-                if (a6 < v12)
-                    v10 = ((float_t)(a6 * 2 + 1) * v14 + 1.0f) * 0.5f;
+        switch (cross1) {
+        case 1:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_right = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_left = calc_area_tex_val(dright, v12);
                 else
-                    v8 = ((float_t)(a7 * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
             }
             else {
-                v15 = v12 - 1;
-                if (a6 < v15)
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v12);
-                else if (a7 < v15)
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v12);
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
                 else
-                    v8 = v10 = post_process_aa_calculate_area_texture_data_sub_sub(v15, v12);
+                    _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
             }
-        }
-        else if (a4 == 3) {
-            if (((a6 + a7 + 1) & 1) == 0) {
-                v14 = -0.5f / (float_t)v12;
-                if (a6 < v12)
-                    v8 = ((float_t)(a6 * 2 + 1) * v14 + 1.0f) * 0.5f;
+            break;
+        case 3:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_left = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_right = calc_area_tex_val(dright, v12);
                 else
-                    v10 = ((float_t)(a7 * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
             }
             else {
-                v15 = v12 - 1;
-                if (a6 < v15)
-                    v8 = post_process_aa_calculate_area_texture_data_sub_sub(a6, v12);
-                else if (a7 < v15)
-                    v10 = post_process_aa_calculate_area_texture_data_sub_sub(a7, v12);
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
                 else
-                    v8 = v10 = post_process_aa_calculate_area_texture_data_sub_sub(v15, v12);
+                    _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
             }
+            break;
         }
         break;
     }
 
-    *a2 = v8;
-    *a3 = v10;
+    *val_left = _val_left;
+    *val_right = _val_right;
     return;
 }
 
-static float_t post_process_aa_calculate_area_texture_data_sub_sub(int32_t a1, int32_t a2) {
-    float_t v2 = -0.5f / ((float_t)a2 - 0.5f);
+static float_t calc_area_tex_val(int32_t a1, int32_t a2) {
+    float_t v2 = (float_t)(-0.5 / ((float_t)a2 - 0.5));
     float_t v3 = (float_t)a1 * v2 + 0.5f;
     if (a1 >= a2 - 1)
         return (v3 * 0.5f) * 0.5f;
     else
-        return ((float_t)(a1 + 1) * v2 + v3 + 0.5f) * 0.5f;
+        return ((float_t)(a1 + 1) * v2 + 0.5f + v3) * 0.5f;
 }

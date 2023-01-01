@@ -16,7 +16,7 @@ struct osage_setting {
     ~osage_setting();
 
     void parse(key_val* kv);
-    rob_osage_parts parse_parts_string(std::string* s);
+    rob_osage_parts parse_parts_string(std::string& s);
 };
 
 struct exp_func_op1 {
@@ -74,6 +74,8 @@ static float_t exp_sqrt(float_t v1);
 static float_t exp_sub(float_t v1, float_t v2);
 static float_t exp_tan(float_t v1);
 
+static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& p1, const OsageCollision::Work* cls);
+
 static const osage_setting_osg_cat* osage_setting_data_get_cat_value(
     object_info* obj_info, const char* root_node);
 
@@ -100,14 +102,6 @@ static void sub_140482180(RobOsageNode* node, float_t a2);
 static void sub_140482300(vec3* a1, vec3* a2, vec3* a3, float_t osage_gravity_const, float_t weight);
 static void sub_140482490(RobOsageNode* node, float_t step, float_t a3);
 static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length);
-static int32_t sub_140483B30(vec3* a1, vec3* a2, osage_coli* a3, float_t radius);
-static int32_t sub_140483DE0(vec3* a1, vec3* a2, vec3* a3, float_t radius);
-static int32_t sub_140483EA0(vec3* a1, vec3* a2, osage_coli* a3, float_t radius);
-static int32_t sub_140484540(vec3* a1, vec3* a2, osage_coli* coli, float_t radius);
-static int32_t sub_140484780(vec3* a1, vec3* a2, vec3* a3, vec3* a4, float_t radius);
-static int32_t sub_140485180(osage_coli* a1, vec3* a2, float_t& coli_r);
-static int32_t sub_1404851C0(vec3* a1, float_t& coli_r, std::vector<osage_coli>* a3, float_t* a4);
-static int32_t sub_140485220(vec3* a1, float_t& coli_r, osage_coli* a3, float_t* a4);
 static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool a5);
 static void sub_14047C750(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, float_t step);
 static void sub_14047C770(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool a5);
@@ -118,12 +112,6 @@ static void sub_140480260(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
 static void sub_140482100(struc_476* a1, opd_blend_data* a2, struc_477* a3);
 static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend);
 static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order);
-static int32_t sub_140484450(vec3* a1, vec3* a2, vec3* a3, vec3* a4, float_t radius);
-static int32_t sub_1404844A0(vec3* a1, vec3* a2, vec3* a3, osage_coli* a4, float_t radius);
-static int32_t sub_1404844F0(vec3* a1, vec3* a2, vec3* a3, osage_coli* a4, float_t radius);
-static void sub_140484850(vec3* a1, vec3* a2, vec3* a3, osage_coli* coli);
-static void sub_140484E10(vec3* a1, vec3* a2, vec3* a3, vec3* a4);
-static int32_t sub_140485000(vec3* a1, vec3* a2, skin_param_osage_node* a3, osage_coli* a4);
 static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2);
 static bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,
     vec3* u_trans, vec3* d_trans, vec3* a5, vec3* a6, vec3* a7);
@@ -374,8 +362,10 @@ struc_476::struc_476() {
 }
 
 RobOsageNode::RobOsageNode() : length(), trans(), trans_orig(), trans_diff(), field_28(),
-child_length(), bone_node_ptr(), bone_node_mat(), sibling_node(), max_distance(), field_94(),
-reset_data(), field_C8(), field_CC(1.0f), external_force(), force(1.0f), mat(), field_1B0() {
+child_length(), bone_node_ptr(), bone_node_mat(), sibling_node(), max_distance(),
+field_94(), reset_data(), field_C8(), external_force(), mat(), field_1B0() {
+    field_CC = 1.0f;
+    force = 1.0f;
     data_ptr = &data;
     opd_data.resize(3);
 }
@@ -411,12 +401,11 @@ void RobOsageNode::Reset() {
     mat = mat4_null;
 }
 
-skin_param_osage_root_coli::skin_param_osage_root_coli() : type(),
-bone0_index(), bone1_index(), radius(0.2f), bone0_pos(), bone1_pos() {
-
+SkinParam::CollisionParam::CollisionParam() : type(), node_idx(), pos() {
+    radius = 0.2f;
 }
 
-skin_param_osage_root_coli::~skin_param_osage_root_coli() {
+SkinParam::CollisionParam::~CollisionParam() {
 
 }
 
@@ -436,9 +425,15 @@ skin_param_osage_root_boc::~skin_param_osage_root_boc() {
 
 }
 
-skin_param_osage_root::skin_param_osage_root() : field_0(), force(), force_gain(), air_res(0.5f),
-rot_y(), rot_z(), init_rot_y(), init_rot_z(), hinge_y(90.0f), hinge_z(90.0f), name("NO-PARAM"),
-coli_r(), friction(1.0f), wind_afc(0.5f), yz_order(), coli_type(), stiffness(), move_cancel(-0.01f) {
+skin_param_osage_root::skin_param_osage_root() : field_0(), force(), force_gain(),
+rot_y(), rot_z(), init_rot_y(), init_rot_z(), coli_r(), yz_order(), coli_type(), stiffness() {
+    air_res = 0.5f;
+    hinge_y = 90.0f;
+    hinge_z = 90.0f;
+    name ="NO-PARAM";
+    friction = 1.0f;
+    wind_afc = 0.5f;
+    move_cancel = -0.01f;
     coli.resize(13);
 }
 
@@ -455,61 +450,364 @@ skin_param::~skin_param() {
 
 }
 
-osage_coli::osage_coli() : type(), radius(), bone0_pos(), bone1_pos(),
-bone_pos_diff(), bone_pos_diff_length(), bone_pos_diff_length_squared(), field_34() {
+OsageCollision::Work::Work() : type(), radius(), pos(),
+vec_center(), vec_center_length(), vec_center_length_squared(), friction() {
 
 }
 
-osage_coli::~osage_coli() {
+OsageCollision::Work::~Work() {
 
 }
+// 0x140484FE0
+int32_t OsageCollision::Work::osage_capsule_cls(vec3& p0, vec3& p1, const float_t& cls_r) {
+    return OsageCollision::osage_capsule_cls(p0, p1, cls_r, this);
+}
 
-void osage_coli::set(osage_coli* coli, skin_param_osage_root_coli* skp_root_coli, mat4* mats) {
-    coli->type = (skin_param_osage_root_coli_type)0;
-    if (!skp_root_coli || !mats)
+// 0x140485180
+int32_t OsageCollision::Work::osage_cls(vec3& p, const float_t& cls_r) {
+    return OsageCollision::osage_cls(p, cls_r, this, 0);
+}
+
+void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
+    SkinParam::CollisionParam* cls_param, mat4* transform) {
+    cls->type = SkinParam::CollisionTypeEnd;
+    if (!cls_param || !transform)
         return;
 
-    for (; skp_root_coli->type; coli++, skp_root_coli++) {
-        coli->type = skp_root_coli->type;
-        coli->radius = skp_root_coli->radius;
-        mat4_mult_vec3_trans(&mats[skp_root_coli->bone0_index],
-            &skp_root_coli->bone0_pos, &coli->bone0_pos);
-        if (skp_root_coli->type == SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER
-            || skp_root_coli->type == SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE) {
-            mat4_mult_vec3_trans(&mats[skp_root_coli->bone1_index],
-                &skp_root_coli->bone1_pos, &coli->bone1_pos);
-            vec3_sub(coli->bone1_pos, coli->bone0_pos, coli->bone_pos_diff);
-            vec3_length_squared(coli->bone_pos_diff, coli->bone_pos_diff_length_squared);
-            coli->bone_pos_diff_length = sqrtf(coli->bone_pos_diff_length_squared);
-            if (coli->bone_pos_diff_length < 0.01f)
-                coli->type = SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL;
+    for (; cls_param->type; cls++, cls_param++) {
+        cls->type = cls_param->type;
+        cls->radius = cls_param->radius;
+        mat4_mult_vec3_trans(&transform[cls_param->node_idx[0]],
+            &cls_param->pos[0], &cls->pos[0]);
+
+        switch (cls->type) {
+        case SkinParam::CollisionTypeBall:
+            mat4_mult_vec3(&transform[cls_param->node_idx[1]],
+                &cls_param->pos[1], &cls->pos[1]);
+            break;
+        case SkinParam::CollisionTypeCapsulle:
+        case SkinParam::CollisionTypeEllipse:
+            mat4_mult_vec3_trans(&transform[cls_param->node_idx[1]],
+                &cls_param->pos[1], &cls->pos[1]);
+            cls->vec_center = cls->pos[1] - cls->pos[0];
+            cls->vec_center_length_squared = vec3::length_squared(cls->vec_center);
+            cls->vec_center_length = sqrtf(cls->vec_center_length_squared);
+            if (cls->vec_center_length < 0.01f)
+                cls->type = SkinParam::CollisionTypeBall;
+            break;
         }
-        else if (skp_root_coli->type == SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE)
-            mat4_mult_vec3(&mats[skp_root_coli->bone0_index],
-                &skp_root_coli->bone1_pos, &coli->bone1_pos);
     }
-    coli->type = (skin_param_osage_root_coli_type)0;
+    cls->type = SkinParam::CollisionTypeEnd;
 }
 
-void osage_coli::ring_set(osage_coli* coli,
-    std::vector<skin_param_osage_root_coli>& vec_skp_root_coli, mat4* mats) {
-    if (!vec_skp_root_coli.size()) {
-        coli->type = (skin_param_osage_root_coli_type)0;
-        coli->radius = 0.0f;
-        coli->bone0_pos = 0.0f;
-        coli->bone1_pos = 0.0f;
-        coli->bone_pos_diff = 0.0f;
-        coli->bone_pos_diff_length = 0.0f;
-        coli->bone_pos_diff_length_squared = 0.0f;
-        coli->field_34 = 1.0f;
+void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
+    std::vector<SkinParam::CollisionParam>& cls_list, mat4* mats) {
+    if (cls_list.size()) {
+        cls->type = SkinParam::CollisionTypeEnd;
+        cls->radius = 0.0f;
+        cls->pos[0] = 0.0f;
+        cls->pos[1] = 0.0f;
+        cls->vec_center = 0.0f;
+        cls->vec_center_length = 0.0f;
+        cls->vec_center_length_squared = 0.0f;
+        cls->friction = 1.0f;
     }
     else
-        set(coli, vec_skp_root_coli.data(), mats);
+        update_cls_work(cls, cls_list.data(), mats);
 }
 
-osage_ring_data::osage_ring_data() : ring_rectangle_x(0.0f), ring_rectangle_y(0.0f), ring_rectangle_width(0.0f),
-ring_rectangle_height(0.0f), ring_height(-1000.0f), ring_out_height(-1000.0f), field_18() {
 
+OsageCollision::OsageCollision() {
+
+}
+
+OsageCollision::~OsageCollision() {
+
+}
+
+// 0x140483B30
+int32_t OsageCollision::cls_aabb_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r) {
+    vec3 v29;
+    vec3 v30;
+    for (int32_t i = 0; i < 3; i++) {
+        float_t v13 = ((float_t*)&p)[i];
+        float_t v14 = ((float_t*)&cls->pos[0])[i] - v13;
+        ((float_t*)&v30)[i] = v14;
+        if (v14 > r)
+            return 0;
+
+        float_t v15 = v13 - (((float_t*)&cls->pos[0])[i] + ((float_t*)&cls->pos[1])[i]);
+        ((float_t*)&v29)[i] = v15;
+        if (v15 > r)
+            return 0;
+    }
+
+    vec3 v28 = 0.0f;
+    vec3 v32 = 0.0f;
+    vec3 v27 = 1.0f;
+
+    float_t v16 = 0.0f;
+    for (int32_t i = 0; i < 3; i++) {
+        float_t v18 = ((float_t*)&v30)[i];
+        float_t v19 = ((float_t*)&v29)[i];
+        if (fabsf(v18) >= fabsf(v19)) {
+            ((float_t*)&v28)[i] = v19;
+            ((float_t*)&v27)[i] = 1.0f;
+            v18 = v19;
+        }
+        else {
+            ((float_t*)&v28)[i] = v18;
+            ((float_t*)&v27)[i] = -1.0f;
+        }
+
+        if (v18 > 0.0f) {
+            float_t v20 = v18 * v18;
+            ((float_t*)&v32)[i] = v20;
+            v16 += v20;
+        }
+    }
+
+    if (v16 > r * r)
+        return 0;
+
+    if (v16 > 0.0f)
+        vec = v27 * v32 * (1.0f / v16) * (r - sqrtf(v16));
+    else {
+        float_t v25 = ((float_t*)&v28)[0];
+        int32_t v26 = 0;
+        for (int32_t i = 0; i < 3; i++) {
+            if (v25 < ((float_t*)&v28)[i]) {
+                v25 = ((float_t*)&v28)[i];
+                v26 = i;
+            }
+        }
+        ((float_t*)&vec)[v26] -= ((float_t*)&v27)[v26] * (v25 - r);
+    }
+    return 1;
+}
+
+// 0x140483DE0
+int32_t OsageCollision::cls_ball_oidashi(vec3& vec, const vec3& p, const vec3& center, const float_t r) {
+    float_t length = vec3::distance_squared(p, center);
+    if (length > 0.000001f && length < r * r) {
+        vec = (p - center) * (r / sqrtf(length) - 1.0f);
+        return 1;
+    }
+    return 0;
+}
+
+// 0x140484540
+int32_t OsageCollision::cls_capsule_oidashi(vec3& vec, const vec3& p, const  OsageCollision::Work* cls, const float_t r) {
+    vec3 v11 = p - cls->pos[0];
+
+    float_t v17 = vec3::dot(v11, cls->vec_center);
+    if (v17 < 0.0f)
+        return OsageCollision::cls_ball_oidashi(vec, p, cls->pos[0], r);
+
+    float_t v19 = cls->vec_center_length_squared;
+    if (fabsf(v19) <= 0.000001f)
+        return OsageCollision::cls_ball_oidashi(vec, p, cls->pos[0], r);
+    if (v17 > v19)
+        return OsageCollision::cls_ball_oidashi(vec, p, cls->pos[1], r);
+
+    float_t v20 = vec3::length_squared(v11);
+    float_t v22 = fabsf(v20 - v17 * v17 / v19);
+    if (v22 <= 0.000001f || v22 >= r * r)
+        return 0;
+
+    vec = (v11 - cls->vec_center * (v17 / v19)) * (r / sqrtf(v22) - 1.0f);
+    return 1;
+}
+
+// 0x140483EA0
+int32_t OsageCollision::cls_ellipse_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r) {
+    if (cls->vec_center_length <= 0.000001f)
+        return OsageCollision::cls_ball_oidashi(vec, p, cls->pos[0], r);
+
+    float_t v61 = cls->vec_center_length * 0.5f;
+    float_t v13 = sqrtf(r * r + v61 * v61);
+
+    vec3 v54 = p - cls->pos[0];
+    float_t v20 = vec3::length(v54);
+
+    vec3 v57 = p - cls->pos[1];
+    float_t v21 = vec3::length(v57);
+
+    if (v20 <= 0.000001f || v21 <= 0.000001f)
+        return 0;
+
+    if (v20 != 0.0f)
+        v54 *= 1.0f / v20;
+
+    if (v21 != 0.0f)
+        v57 *= 1.0f / v21;
+
+    float_t v22 = v20 + v21;
+    if (v21 + v20 >= v13 * 2.0f)
+        return 0;
+
+    float_t v25 = 1.0f / cls->vec_center_length;
+
+    vec3 v63 = p - (cls->pos[0] + cls->pos[1]) * 0.5f;
+
+    float_t v58 = vec3::length(v63);
+    if (v58 != 0.0f)
+        v63 *= 1.0f / v58;
+
+    float_t v36 = vec3::dot(v63, cls->vec_center) * v25;
+    float_t v37 = v36 * v36;
+    v37 = min_def(v37, 1.0f);
+    v22 *= 0.5f;
+    float_t v38 = v22 * v22 - v61;
+    if (v38 < 0.0f)
+        return 0;
+
+    float_t v39 = sqrtf(v38);
+    if (v39 <= 0.000001f)
+        return 0;
+
+    float_t v42 = sqrtf(1.0f - v37);
+    v22 = (v13 / v22 - 1.0f) * v36 * v58;
+    v42 = (r / v39 - 1.0f) * v42 * v58;
+    float_t v43 = sqrtf(v42 * v42 + v22 * v22);
+
+    vec = vec3::normalize(v54 + v57) * v43;
+    return 1;
+}
+
+// 0x140484450
+int32_t OsageCollision::cls_line2ball_oidashi(vec3& vec,
+    const vec3& p0, const vec3& p1, const vec3& q, const float_t r) {
+    vec3 _vec;
+    OsageCollision::get_nearest_line2point(_vec, p0, p1, q);
+    return OsageCollision::cls_ball_oidashi(vec, _vec, q, r);
+}
+
+// 0x1404844A0
+int32_t OsageCollision::cls_line2capsule_oidashi(vec3& vec,
+    const vec3& p0, const vec3& p1, const OsageCollision::Work* cls, const float_t r) {
+    vec3 _vec;
+    closest_pt_segment_segment(_vec, p0, p1, cls);
+    return OsageCollision::cls_capsule_oidashi(vec, _vec, cls, r);
+}
+
+// 0x1404844F0
+int32_t OsageCollision::cls_line2ellipse_oidashi(vec3& vec,
+    const vec3& p0, const vec3& p1, const OsageCollision::Work* cls, const float_t r) {
+    vec3 _vec;
+    closest_pt_segment_segment(_vec, p0, p1, cls);
+    return OsageCollision::cls_ellipse_oidashi(vec, _vec, cls, r);
+}
+
+// 0x140484780
+int32_t OsageCollision::cls_plane_oidashi(vec3& vec, const vec3& p, const vec3& p1, const vec3& p2, const float_t r) {
+    float_t v5 = vec3::dot(p, p2) - vec3::dot(p1, p2) - r;
+    if (v5 >= 0.0f)
+        return 0;
+
+    vec = p2 * -v5;
+    return 1;
+}
+
+// 0x140484E10
+void OsageCollision::get_nearest_line2point(vec3& nearest, const vec3& p0, const vec3& p1, const vec3& q) {
+    vec3 v6 = p1 - p0;
+    vec3 v7 = q - p0;
+
+    float_t v8 = vec3::dot(v7, v6);
+    if (v8 < 0.0f) {
+        nearest = p0;
+        return;
+    }
+
+    float_t v9 = vec3::length_squared(v6);
+    if (v9 <= 0.000001f)
+        nearest = p0;
+    else if (v8 <= v9)
+        nearest = p0 + v6 * (v8 / v9);
+    else
+        nearest = p1;
+}
+
+// 0x140485000
+int32_t OsageCollision::osage_capsule_cls(vec3& p0, vec3& p1, const float_t& cls_r, const OsageCollision::Work* cls) {
+    if (!cls)
+        return 0;
+
+    int32_t v8 = 0;
+    while (cls->type) {
+        int32_t type = cls->type;
+        vec3 vec = 0.0f;
+        switch (cls->type) {
+        case SkinParam::CollisionTypeBall:
+            v8 += OsageCollision::cls_line2ball_oidashi(vec, p0, p1, cls->pos[0], cls_r + cls->radius);
+            break;
+        case SkinParam::CollisionTypeCapsulle:
+            v8 += OsageCollision::cls_line2capsule_oidashi(vec, p0, p1, cls, cls_r + cls->radius);
+            break;
+        case SkinParam::CollisionTypeEllipse:
+            v8 += OsageCollision::cls_line2ellipse_oidashi(vec, p0, p1, cls, cls_r + cls->radius);
+            break;
+        }
+
+        if (v8 > 0) {
+            p0 += vec;
+            p1 += vec;
+        }
+        cls++;
+    }
+    return v8;
+}
+
+// 0x140485220
+int32_t OsageCollision::osage_cls(vec3& p, const float_t& cls_r, const OsageCollision::Work* cls, float_t* fric) {
+    if (!cls)
+        return 0;
+
+    int32_t v8 = 0;
+    while (cls->type != SkinParam::CollisionTypeEnd) {
+        int32_t v11 = 0;
+        vec3 vec = 0.0f;
+        switch (cls->type) {
+        case SkinParam::CollisionTypeBall:
+            v11 = OsageCollision::cls_ball_oidashi(vec, p, cls->pos[0], cls->radius + cls_r);
+            break;
+        case SkinParam::CollisionTypeCapsulle:
+            v11 = OsageCollision::cls_capsule_oidashi(vec, p, cls, cls->radius + cls_r);
+            break;
+        case SkinParam::CollisionTypePlane:
+            v11 = OsageCollision::cls_plane_oidashi(vec, p, cls->pos[0], cls->pos[1], cls_r);
+            break;
+        case SkinParam::CollisionTypeEllipse:
+            v11 = OsageCollision::cls_ellipse_oidashi(vec, p, cls, cls->radius + cls_r);
+            break;
+        case SkinParam::CollisionTypeAABB:
+            v11 = OsageCollision::cls_aabb_oidashi(vec, p, cls, cls_r);
+            break;
+        }
+
+        if (fric && v11 > 0) {
+            if (*fric > cls->friction)
+                *fric = cls->friction;
+        }
+        cls++;
+        v8 += v11;
+        p += vec;
+    }
+    return v8;
+}
+
+// 0x1404851C0
+int32_t OsageCollision::osage_cls_work_list(vec3& p, const float_t& cls_r, const OsageCollision& coli, float_t* fric) {
+    if (coli.work_list.size() && coli.work_list.back().type != SkinParam::CollisionTypeEnd)
+        return OsageCollision::osage_cls(p, cls_r, coli.work_list.data(), fric);
+    return 0;
+}
+
+osage_ring_data::osage_ring_data() : ring_rectangle_x(), ring_rectangle_y(),
+ring_rectangle_width(), ring_rectangle_height(), field_18() {
+    ring_height = -1000.0f;
+    ring_out_height = -1000.0f;
 }
 
 osage_ring_data::~osage_ring_data() {
@@ -669,8 +967,8 @@ void RobCloth::AddMotionResetData(int32_t motion_id, float_t frame) {
 
 void RobCloth::ColiSet(mat4* mats) {
     if (skin_param_ptr->coli.size())
-        osage_coli::set(coli, skin_param_ptr->coli.data(), mats);
-    osage_coli::ring_set(coli_ring, ring.skp_root_coli, mats);
+        OsageCollision::Work::update_cls_work(coli, skin_param_ptr->coli.data(), mats);
+    OsageCollision::Work::update_cls_work(coli_ring, ring.skp_root_coli, mats);
 }
 
 void RobCloth::Disp(mat4* mat, render_context* rctx) {
@@ -1358,8 +1656,8 @@ bool RobOsage::CheckPartsBits(rob_osage_parts_bit parts_bits) {
 
 void RobOsage::ColiSet(mat4* mats) {
     if (skin_param_ptr->coli.size())
-        osage_coli::set(coli, skin_param_ptr->coli.data(), mats);
-    osage_coli::ring_set(coli_ring, ring.skp_root_coli, mats);
+        OsageCollision::Work::update_cls_work(coli, skin_param_ptr->coli.data(), mats);
+    OsageCollision::Work::update_cls_work(coli_ring, ring.skp_root_coli, mats);
 }
 
 RobOsageNode* RobOsage::GetNode(size_t index) {
@@ -2655,19 +2953,19 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
     int32_t count;
     if (_kv->read("coli", "length", count)) {
-        std::vector<skin_param_osage_root_coli>& vc = skp_root.coli;
+        std::vector<SkinParam::CollisionParam>& vc = skp_root.coli;
         for (int32_t i = 0; i < count; i++) {
             if (!_kv->open_scope_fmt(i))
                 continue;
 
-            skin_param_osage_root_coli* c = &vc[i];
+            SkinParam::CollisionParam* c = &vc[i];
 
             int32_t type = 0;
             if (!_kv->read("type", type)) {
                 _kv->close_scope();
                 break;
             }
-            c->type = (skin_param_osage_root_coli_type)type;
+            c->type = (SkinParam::CollisionType)type;
 
             float_t radius = 0;
             if (!_kv->read("radius", radius)) {
@@ -2682,7 +2980,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                 break;
             }
 
-            c->bone0_index = bone_data->get_skeleton_object_bone_index(
+            c->node_idx[0] = bone_data->get_skeleton_object_bone_index(
                 bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone0_name);
 
             vec3 bone0_pos = 0.0f;
@@ -2693,11 +2991,11 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                 break;
             }
 
-            c->bone0_pos = bone0_pos;
+            c->pos[0] = bone0_pos;
 
             const char* bone1_name;
             if (_kv->read("bone.1.name", bone1_name)) {
-                c->bone1_index = bone_data->get_skeleton_object_bone_index(
+                c->node_idx[1] = bone_data->get_skeleton_object_bone_index(
                     bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
 
                 vec3 bone1_pos = 0.0f;
@@ -2708,7 +3006,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                     break;
                 }
 
-                c->bone1_pos = bone1_pos;
+                c->pos[1] = bone1_pos;
             }
             _kv->close_scope();
         }
@@ -2733,7 +3031,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                 && ed_node < node_length) {
                 skin_param_osage_root_boc b;
                 b.st_node = st_node;
-                b.ed_root = ed_root;
+                b.ed_root.assign(ed_root);
                 b.ed_node = ed_node;
                 vb->push_back(b);
             }
@@ -2744,7 +3042,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
     std::string colli_tgt_osg;
     if (_kv->read("colli_tgt_osg", colli_tgt_osg))
-        skp_root.colli_tgt_osg = colli_tgt_osg;
+        skp_root.colli_tgt_osg.assign(colli_tgt_osg);
 
     if (_kv->read("normal_ref", "length", count)) {
         std::vector<skin_param_osage_root_normal_ref>* vnr = &skp_root.normal_ref;
@@ -2757,7 +3055,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
             std::string n;
             if (_kv->read("N", n)) {
                 skin_param_osage_root_normal_ref nr;
-                nr.n = n;
+                nr.n.assign(n);
                 _kv->read("U", nr.u);
                 _kv->read("D", nr.d);
                 _kv->read("L", nr.l);
@@ -2812,7 +3110,7 @@ void osage_setting::parse(key_val* kv) {
                         elem = cat.insert({ key, {} }).first;
 
                     elem->second.exf = exf;
-                    elem->second.parts = parse_parts_string(&parts);
+                    elem->second.parts = parse_parts_string(parts);
                     kv->close_scope();
                 }
                 kv->close_scope();
@@ -2843,14 +3141,14 @@ void osage_setting::parse(key_val* kv) {
     }
 }
 
-rob_osage_parts osage_setting::parse_parts_string(std::string* s) {
+rob_osage_parts osage_setting::parse_parts_string(std::string& s) {
     static const char* parts_string_array[] = {
         "LEFT", "RIGHT", "CENTER", "LONG_C", "SHORT_L", "SHORT_R",
         "APPEND_L", "APPEND_R", "MUFFLER", "WHITE_ONE_L", "PONY", "ANGEL_L", "ANGEL_R",
     };
 
     for (const char*& i : parts_string_array)
-        if (!s->compare(i))
+        if (!s.compare(i))
             return (rob_osage_parts)(&i - parts_string_array);
     return ROB_OSAGE_PARTS_NONE;
 }
@@ -3055,6 +3353,61 @@ static float_t exp_tan(float_t v1) {
     return tanf(fmodf(v1, 360.0f) * DEG_TO_RAD_FLOAT);
 }
 
+// 0x140484850
+static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& p1, const OsageCollision::Work* cls) {
+    vec3 v56 = p1 - p0;
+    vec3 v60 = vec3::cross(v56, cls->vec_center);
+    float_t v46 = vec3::length_squared(v60);
+    if (v46 <= 0.000001f) {
+        vec3 v56;
+        vec3 v57;
+        vec3 v58;
+        vec3 v59;
+        OsageCollision::get_nearest_line2point(v59, cls->pos[0], cls->pos[1], p0);
+        OsageCollision::get_nearest_line2point(v58, cls->pos[0], cls->pos[1], p1);
+        OsageCollision::get_nearest_line2point(v57, p0, p1, cls->pos[0]);
+        OsageCollision::get_nearest_line2point(v56, p0, p1, cls->pos[1]);
+
+        float_t v48 = vec3::distance_squared(p1, cls->pos[0]);
+        float_t v51 = vec3::distance_squared(cls->pos[0], v57);
+        float_t v52 = vec3::distance_squared(cls->pos[1], v56);
+        float_t v55 = vec3::distance_squared(p0, v59);
+
+        vec = p0;
+
+        if (v55 > v48) {
+            vec = p1;
+            v55 = v48;
+        }
+
+        if (v55 > v51) {
+            vec = v57;
+            v55 = v51;
+        }
+
+        if (v55 > v52)
+            vec = v56;
+    }
+    else {
+        float_t v25 = vec3::length(v56);
+        if (v25 != 0.0f)
+            v56 *= 1.0f / v25;
+
+        float_t v30 = 1.0f / cls->vec_center_length;
+        vec3 v61 = cls->vec_center * v30;
+        float_t v34 = vec3::dot(v61, v56);
+        float_t v35 = vec3::dot(v61 * v34 - v56, cls->pos[0] - p0)
+            / (v34 * v34 - 1.0f);
+        if (v35 < 0.0f)
+            vec = p0;
+        else if (v35 <= v25)
+            vec = p0 + v56 * v35;
+        else
+            vec = p1;
+
+    }
+}
+
 static const osage_setting_osg_cat* osage_setting_data_get_cat_value(
     object_info* obj_info, const char* root_node) {
     auto elem_obj = osage_setting_data.obj.find(*obj_info);
@@ -3087,11 +3440,7 @@ static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3) {
             for (size_t j = 1; j < nodes_count; j++, node += root_count) {
                 vec3 v19;
                 mat4_mult_vec3_trans(&mat, &node->reset_data.trans, &v19);
-
-                vec3 v20;
-                vec3_sub(v19, node->trans, v20);
-                vec3_mult_scalar(v20, move_cancel, v20);
-                vec3_add(node->trans, v20, node->trans);
+                node->trans += (v19 - node->trans) * move_cancel;
             }
         }
     }
@@ -3408,7 +3757,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
 
     for (size_t i = 1; i < nodes_count; i++) {
         for (ssize_t j = 0; j < root_count; j++, node++) {
-            float_t v71 = (1.0f - rob_cls->field_44) * rob_cls->skin_param_ptr->friction;
+            float_t fric = (1.0f - rob_cls->field_44) * rob_cls->skin_param_ptr->friction;
             if (step != 1.0f) {
                 vec3 v60;
                 vec3_sub(node->trans, node->field_1C, v60);
@@ -3423,9 +3772,10 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             }
             sub_140482F30(&node[0].trans, &node[-root_count].trans, node[0].dist_top);
 
-            int32_t v39 = sub_1404851C0(&node->trans, rob_cls->skin_param_ptr->coli_r, &rob_cls->ring.coli, &v71);
-            v39 += sub_140485180(rob_cls->coli_ring, &node->trans, rob_cls->skin_param_ptr->coli_r);
-            v39 += sub_140485180(rob_cls->coli, &node->trans, rob_cls->skin_param_ptr->coli_r);
+            int32_t v39 = OsageCollision::osage_cls_work_list(node->trans,
+                rob_cls->skin_param_ptr->coli_r, rob_cls->ring.coli, &fric);
+            v39 += rob_cls->coli_ring->osage_cls(node->trans, rob_cls->skin_param_ptr->coli_r);
+            v39 += rob_cls->coli->osage_cls(node->trans, rob_cls->skin_param_ptr->coli_r);
 
             if (v19 > node->trans.y && v19 < 1001.0) {
                 node->trans.y = v19;
@@ -3447,7 +3797,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             mat4_get_translation(&mat, &node->trans);
 
             if (v39)
-                vec3_mult_scalar(node->trans_diff, v71, node->trans_diff);
+                vec3_mult_scalar(node->trans_diff, fric, node->trans_diff);
 
             vec3 v44;
             vec3_sub(node->trans, node->field_1C, v44);
@@ -3496,9 +3846,10 @@ static void sub_14021D480(RobCloth* rob_cls) {
             vec3_mult_scalar(v38, node->dist_top, v38);
             vec3_add(node[-root_count].trans, v38, node[0].trans);
 
-            sub_1404851C0(&node->trans, rob_cls->skin_param_ptr->coli_r, &rob_cls->ring.coli, 0);
-            sub_140485180(rob_cls->coli_ring, &node->trans, rob_cls->skin_param_ptr->coli_r);
-            sub_140485180(rob_cls->coli, &node->trans, rob_cls->skin_param_ptr->coli_r);
+            OsageCollision::osage_cls_work_list(node->trans,
+                rob_cls->skin_param_ptr->coli_r, rob_cls->ring.coli);
+            rob_cls->coli_ring->osage_cls(node->trans, rob_cls->skin_param_ptr->coli_r);
+            rob_cls->coli->osage_cls(node->trans, rob_cls->skin_param_ptr->coli_r);
 
             if (v10 > node->trans.y && v10 < 1001.0f)
                 node->trans.y = v10;
@@ -3784,15 +4135,10 @@ static void sub_1404803B0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, bool
             RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
             RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
             for (RobOsageNode* i = i_begin; i != i_end; i++) {
-                mat4 parent_mat;
                 vec3 v46;
-                parent_mat = rob_osg->parent_mat;
-                mat4_mult_vec3_inv_trans(&parent_mat, &i->trans, &v46);
-                parent_mat = *rob_osg->parent_mat_ptr;
-                mat4_mult_vec3_trans(&parent_mat, &v46, &v46);
-                vec3_sub(v46, i->trans, v46);
-                vec3_mult_scalar(v46, move_cancel, v46);
-                vec3_add(i->trans, v46, i->trans);
+                mat4_mult_vec3_inv_trans(&rob_osg->parent_mat, &i->trans, &v46);
+                mat4_mult_vec3_trans(rob_osg->parent_mat_ptr, &v46, &v46);
+                i->trans += (v46 - i->trans) * move_cancel;
             }
         }
     }
@@ -3892,246 +4238,13 @@ static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length) {
     }
 }
 
-static int32_t sub_140483B30(vec3* a1, vec3* a2, osage_coli* a3, float_t radius) {
-    vec3 bone_pos_diff;
-    vec3_add(a3->bone0_pos, a3->bone1_pos, bone_pos_diff);
-
-    vec3 v29;
-    vec3 v30;
-    for (int32_t i = 0; i < 3; i++) {
-        float_t v13 = ((float_t*)a2)[i];
-        float_t v14 = ((float_t*)&a3->bone0_pos)[i] - v13;
-        ((float_t*)&v30)[i] = v14;
-        if (v14 > radius)
-            return 0;
-
-        v14 = v13 - ((float_t*)&bone_pos_diff)[i];
-        ((float_t*)&v29)[i] = v14;
-        if (v14 > radius)
-            return 0;
-    }
-
-    vec3 v28 = 0.0f;
-    vec3 v32 = 0.0f;
-    vec3 v27 = 1.0f;
-
-    float_t v16 = 0.0f;
-    for (int32_t i = 0; i < 3; i++) {
-        float_t v18 = ((float_t*)&v30)[i];
-        float_t v19 = ((float_t*)&v29)[i];
-        if (fabsf(v18) >= fabsf(v19)) {
-            ((float_t*)&v28)[i] = v19;
-            ((float_t*)&v27)[i] = 1.0f;
-            v18 = v19;
-        }
-        else {
-            ((float_t*)&v28)[i] = v18;
-            ((float_t*)&v27)[i] = -1.0f;
-        }
-
-        if (v18 > 0.0f) {
-            float_t v20 = v18 * v18;
-            ((float_t*)&v32)[i] = v20;
-            v16 += v20;
-        }
-    }
-
-    if (v16 > radius * radius)
-        return 0;
-
-    if (v16 > 0.0f) {
-        vec3_mult(v27, v32, v32);
-        vec3_mult_scalar(v32, 1.0f / v16, v32);
-        vec3_mult_scalar(v32, radius - sqrtf(v16), *a1);
-    }
-    else {
-        float_t v25 = ((float_t*)&v28)[0];
-        int32_t v26 = 0;
-        for (int32_t i = 0; i < 3; i++) {
-            if (((float_t*)&v28)[i] > v25) {
-                v25 = ((float_t*)&v28)[i];
-                v26 = i;
-            }
-        }
-        ((float_t*)a1)[v26] -= ((float_t*)&v27)[v26] * (v25 - radius);
-    }
-    return 1;
-}
-
-static int32_t sub_140483DE0(vec3* a1, vec3* a2, vec3* a3, float_t radius) {
-    vec3 v5;
-    float_t length;
-    vec3_sub(*a2, *a3, v5);
-    vec3_length_squared(v5, length);
-    if (length > 0.000001f && length < radius * radius) {
-        vec3_mult_scalar(v5, radius / sqrtf(length) - 1.0f, *a1);
-        return 1;
-    }
-    return 0;
-}
-
-static int32_t sub_140483EA0(vec3* a1, vec3* a2, osage_coli* a3, float_t radius) {
-    if (a3->bone_pos_diff_length <= 0.000001f)
-        return sub_140483DE0(a1, a2, &a3->bone0_pos, radius);
-
-    float_t v61 = a3->bone_pos_diff_length * 0.5f;
-    float_t v13 = sqrtf(radius * radius + v61 * v61);
-
-    float_t v20;
-    vec3 v54;
-    vec3_sub(*a2, a3->bone0_pos, v54);
-    vec3_length(v54, v20);
-
-    float_t v21;
-    vec3 v57;
-    vec3_sub(*a2, a3->bone1_pos, v57);
-    vec3_length(v57, v21);
-
-    if (v20 <= 0.000001f || v21 <= 0.000001f)
-        return 0;
-
-    float_t v22 = v20 + v21;
-    if (v21 + v20 >= v13 * 2.0f)
-        return 0;
-
-    float_t v25 = 1.0f / a3->bone_pos_diff_length;
-
-    vec3 v63;
-    vec3_add(a3->bone0_pos, a3->bone1_pos, v63);
-    vec3_mult_scalar(v63, 0.5f, v63);
-    vec3_sub(*a2, v63, v63);
-
-    float_t v58;
-    vec3_length(v63, v58);
-    if (v58 != 0.0f)
-        vec3_mult_scalar(v63, 1.0f / v58, v63);
-
-    float_t v36;
-    vec3_dot(v63, a3->bone_pos_diff, v36);
-    v36 *= v25;
-    float_t v37 = v36 * v36;
-    v37 = min_def(v37, 1.0f);
-    v22 *= 0.5f;
-    float_t v38 = v22 * v22 - v61;
-    if (v38 < 0.0f)
-        return 0;
-
-    float_t v39 = sqrtf(v38);
-    if (v39 <= 0.000001f)
-        return 0;
-
-    float_t v42 = sqrtf(1.0f - v37);
-    v22 = (v13 / v22 - 1.0f) * v36 * v58;
-    v42 = (radius / v39 - 1.0f) * v42 * v58;
-    float_t v43 = sqrtf(v42 * v42 + v22 * v22);
-    if (v20 != 0.0f)
-        vec3_mult_scalar(v54, 1.0f / v20, v54);
-
-    if (v21 != 0.0f)
-        vec3_mult_scalar(v57, 1.0f / v21, v57);
-
-    vec3 v48;
-    vec3_add(v54, v57, v48);
-    vec3_normalize(v48, v48);
-    vec3_mult_scalar(v48, v43, *a1);
-    return 1;
-}
-
-static int32_t sub_140484540(vec3* a1, vec3* a2, osage_coli* coli, float_t radius) {
-    vec3 v11;
-    vec3_sub(*a2, coli->bone0_pos, v11);
-
-    float_t v17;
-    vec3_dot(v11, coli->bone_pos_diff, v17);
-    if (v17 < 0.0f)
-        return sub_140483DE0(a1, a2, &coli->bone0_pos, radius);
-
-    float_t v19 = coli->bone_pos_diff_length_squared;
-    if (fabsf(v19) <= 0.000001f)
-        return sub_140483DE0(a1, a2, &coli->bone0_pos, radius);
-    if (v17 > v19)
-        return sub_140483DE0(a1, a2, &coli->bone1_pos, radius);
-
-    float_t v20;
-    vec3_length_squared(v11, v20);
-    float_t v22 = fabsf(v20 - v17 * v17 / v19);
-    if (v22 <= 0.000001f || v22 >= radius * radius)
-        return 0;
-
-    vec3 v29;
-    vec3_mult_scalar(coli->bone_pos_diff, v17 / v19, v29);
-    vec3_sub(v11, v29, v29);
-    vec3_mult_scalar(v29, radius / sqrtf(v22) - 1.0f, *a1);
-    return 1;
-}
-
-static int32_t sub_140484780(vec3* a1, vec3* a2, vec3* a3, vec3* a4, float_t radius) {
-    float_t v3;
-    vec3_dot(*a2, *a4, v3);
-    float_t v4;
-    vec3_dot(*a3, *a4, v4);
-    float_t v5 = v3 - v4 - radius;
-    if (v5 >= 0.0f)
-        return 0;
-
-    vec3_mult_scalar(*a4, -v5, *a1);
-    return 1;
-}
-
-static int32_t sub_140485180(osage_coli* a1, vec3* a2, float_t& coli_r) {
-    return sub_140485220(a2, coli_r, a1, 0);
-}
-
-static int32_t sub_1404851C0(vec3* a1, float_t& coli_r, std::vector<osage_coli>* a3, float_t* a4) {
-    if (!a3->size() || a3->back().type)
-        return 0;
-    return sub_140485220(a1, coli_r, a3->data(), a4);
-}
-
-static int32_t sub_140485220(vec3* a1, float_t& coli_r, osage_coli* a3, float_t* a4) {
-    if (!a3)
-        return 0;
-
-    int32_t v8 = 0;
-    while (a3->type) {
-        int32_t v11 = 0;
-        vec3 v31 = 0.0f;
-        switch (a3->type) {
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL:
-            v11 = sub_140483DE0(&v31, a1, &a3->bone0_pos, a3->radius + coli_r);
-            break;
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER:
-            v11 = sub_140484540(&v31, a1, a3, a3->radius + coli_r);
-            break;
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE:
-            v11 = sub_140484780(&v31, a1, &a3->bone0_pos, &a3->bone1_pos, coli_r);
-            break;
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE:
-            v11 = sub_140483EA0(&v31, a1, a3, a3->radius + coli_r);
-            break;
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_5:
-            v11 = sub_140483B30(&v31, a1, a3, coli_r);
-            break;
-        }
-
-        if (a4 && v11 > 0) {
-            if (a3->field_34 < *a4)
-                *a4 = a3->field_34;
-        }
-        a3++;
-        v8 += v11;
-        vec3_add(*a1, v31, *a1);
-    }
-    return v8;
-}
-
 static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool a5) {
     if (!rob_osg->osage_reset && step <= 0.0f)
         return;
 
-    osage_coli* coli = rob_osg->coli;
-    osage_coli* coli_ring = rob_osg->coli_ring;
-    std::vector<osage_coli>* vec_ring_coli = &rob_osg->ring.coli;
+    OsageCollision::Work* coli = rob_osg->coli;
+    OsageCollision::Work* coli_ring = rob_osg->coli_ring;
+    OsageCollision& vec_ring_coli = rob_osg->ring.coli;
 
     float_t v9 = 0.0f;
     if (step > 0.0f)
@@ -4179,7 +4292,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
             RobOsageNode* v30_begin = v24->data() + 1;
             RobOsageNode* v30_end = v24->data() + v24->size();
             for (RobOsageNode* v30 = v30_begin; v30 != v30_end; v30++)
-                sub_140483DE0(&v62, &v27->trans, &v30->trans,
+                OsageCollision::cls_ball_oidashi(v62, v27->trans, v30->trans,
                     v27->data_ptr->skp_osg_node.coli_r + v30->data_ptr->skp_osg_node.coli_r);
             vec3_add(v27->trans, v62, v27->trans);
         }
@@ -4192,11 +4305,11 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
         float_t v37 = (1.0f - rob_osg->field_1EB4) * rob_osg->skin_param_ptr->friction;
         if (a5) {
             sub_140482490(&v35[0], step, parent_scale->x);
-            v35->field_C8 = (float_t)sub_1404851C0(&v35->trans,
+            v35->field_C8 = (float_t)OsageCollision::osage_cls_work_list(v35->trans,
                 skp_osg_node->coli_r, vec_ring_coli, &v35->field_CC);
             if (!rob_osg->field_1F0F) {
-                v35->field_C8 += (float_t)sub_140485180(coli_ring, &v35->trans, skp_osg_node->coli_r);
-                v35->field_C8 += (float_t)sub_140485180(coli, &v35->trans, skp_osg_node->coli_r);
+                v35->field_C8 += (float_t)coli_ring->osage_cls(v35->trans, skp_osg_node->coli_r);
+                v35->field_C8 += (float_t)coli->osage_cls(v35->trans, skp_osg_node->coli_r);
             }
             sub_140482180(&v35[0], v60);
         }
@@ -4236,7 +4349,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, floa
         vec3_mult_scalar(v62, v9, v35->trans_diff);
 
         if (v35->field_C8 > 0.0f) {
-            if (v35->field_CC < v37)
+            if (v37 > v35->field_CC)
                 v37 = v35->field_CC;
             vec3_mult_scalar(v35->trans_diff, v37, v35->trans_diff);
         }
@@ -4276,8 +4389,8 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
 
     std::vector<RobOsageNode>& nodes = rob_osg->nodes;
     vec3 v7 = nodes.data()[0].trans;
-    osage_coli* coli = rob_osg->coli;
-    osage_coli* coli_ring = rob_osg->coli_ring;
+    OsageCollision::Work* coli = rob_osg->coli;
+    OsageCollision::Work* coli_ring = rob_osg->coli_ring;
     int32_t coli_type = rob_osg->skin_param_ptr->coli_type;
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
@@ -4285,16 +4398,16 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
         RobOsageNodeData* data = i->data_ptr;
         for (RobOsageNode*& j : data->boc) {
             float_t v17 = (float_t)(
-                sub_140485000(&i->trans, &j->trans, &data->skp_osg_node, coli)
-                + sub_140485000(&i->trans, &j->trans, &data->skp_osg_node, coli_ring));
+                coli->osage_capsule_cls(i->trans, j->trans, data->skp_osg_node.coli_r)
+                + coli_ring->osage_capsule_cls(i->trans, j->trans, data->skp_osg_node.coli_r));
             i->field_C8 += v17;
             j->field_C8 += v17;
         }
 
         if (coli_type && (coli_type != 1 || i != i_begin)) {
             float_t v20 = (float_t)(
-                sub_140485000(&i[0].trans, &i[-1].trans, &data->skp_osg_node, coli)
-                + sub_140485000(&i[0].trans, &i[-1].trans, &data->skp_osg_node, coli_ring));
+                coli->osage_capsule_cls(i[0].trans, i[-1].trans, data->skp_osg_node.coli_r)
+                + coli_ring->osage_capsule_cls(i[0].trans, i[-1].trans, data->skp_osg_node.coli_r));
             i[0].field_C8 += v20;
             i[-1].field_C8 += v20;
         }
@@ -4306,25 +4419,26 @@ static void sub_14047ECA0(RobOsage* rob_osg, float_t step) {
     if (step <= 0.0f)
         return;
 
-    std::vector<osage_coli>* vec_coli = &rob_osg->ring.coli;
-    osage_coli* coli_ring = rob_osg->coli_ring;
-    osage_coli* coli = rob_osg->coli;
+    OsageCollision& vec_coli = rob_osg->ring.coli;
+    OsageCollision::Work* coli_ring = rob_osg->coli_ring;
+    OsageCollision::Work* coli = rob_osg->coli;
     bool v11 = rob_osg->field_1F0F;
     RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
         RobOsageNodeData* data = i->data_ptr;
-        i->field_C8 += (float_t)sub_1404851C0(&i->trans, data->skp_osg_node.coli_r, vec_coli, &i->field_CC);
+        i->field_C8 += (float_t)OsageCollision::osage_cls_work_list(i->trans,
+            data->skp_osg_node.coli_r, vec_coli, &i->field_CC);
         if (v11)
             continue;
 
         for (RobOsageNode*& j : data->boc) {
-            j->field_C8 += (float_t)sub_140485180(coli_ring, &j->trans, data->skp_osg_node.coli_r);
-            j->field_C8 += (float_t)sub_140485180(coli, &j->trans, data->skp_osg_node.coli_r);
+            j->field_C8 += (float_t)coli_ring->osage_cls(j->trans, data->skp_osg_node.coli_r);
+            j->field_C8 += (float_t)coli->osage_cls(j->trans, data->skp_osg_node.coli_r);
         }
 
-        i->field_C8 += (float_t)sub_140485180(coli_ring, &i->trans, data->skp_osg_node.coli_r);
-        i->field_C8 += (float_t)sub_140485180(coli, &i->trans, data->skp_osg_node.coli_r);
+        i->field_C8 += (float_t)coli_ring->osage_cls(i->trans, data->skp_osg_node.coli_r);
+        i->field_C8 += (float_t)coli->osage_cls(i->trans, data->skp_osg_node.coli_r);
     }
 }
 
@@ -4357,8 +4471,8 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* parent_scale, bool 
     vec3 v60 = { 1.0f, 0.0f, 0.0f };
     mat4_mult_vec3(&v78, &v60, &v60);
 
-    osage_coli* coli_ring = rob_osg->coli_ring;
-    osage_coli* coli = rob_osg->coli;
+    OsageCollision::Work* coli_ring = rob_osg->coli_ring;
+    OsageCollision::Work* coli = rob_osg->coli;
     float_t v25 = ring_height + coli_r;
     float_t v16 = parent_scale->x;
     RobOsageNode* i = rob_osg->nodes.data();
@@ -4372,8 +4486,8 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* parent_scale, bool 
             sub_140482F30(&v74, &j->sibling_node->trans, j->max_distance);
 
         skin_param_osage_node* v38 = &j->data_ptr->skp_osg_node;
-        sub_140485180(coli_ring, &v74, v38->coli_r);
-        sub_140485180(coli, &v74, v38->coli_r);
+        coli_ring->osage_cls(v74, v38->coli_r);
+        coli->osage_cls(v74, v38->coli_r);
 
         float_t v39 = v25 + v38->coli_r;
         if (v74.y < v39 && v39 < 1001.0f) {
@@ -4454,12 +4568,6 @@ static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, floa
     vec3_lerp_scalar(src0->rotation, src1->rotation, dst->rotation, blend);
 }
 
-static int32_t sub_140484450(vec3* a1, vec3* a2, vec3* a3, vec3* a4, float_t radius) {
-    vec3 v8;
-    sub_140484E10(&v8, a2, a3, a4);
-    return sub_140483DE0(a1, &v8, a4, radius);
-}
-
 static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order) {
     bool clipped = false;
     float_t z_rot;
@@ -4524,145 +4632,6 @@ static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3*
         rot->z = z_rot;
     }
     return clipped;
-}
-
-static int32_t sub_1404844A0(vec3* a1, vec3* a2, vec3* a3, osage_coli* a4, float_t radius) {
-    vec3 v8;
-    sub_140484850(&v8, a2, a3, a4);
-    return sub_140484540(a1, &v8, a4, radius);
-}
-
-static int32_t sub_1404844F0(vec3* a1, vec3* a2, vec3* a3, osage_coli* a4, float_t radius) {
-    vec3 v8;
-    sub_140484850(&v8, a2, a3, a4);
-    return sub_140483EA0(a1, &v8, a4, radius);
-}
-
-static void sub_140484850(vec3* a1, vec3* a2, vec3* a3, osage_coli* coli) {
-    vec3 v56;
-    vec3_sub(*a3, *a2, v56);
-
-    vec3 v60;
-    vec3_cross(v56, coli->bone_pos_diff, v60);
-
-    float_t v46;
-    vec3_length_squared(v60, v46);
-    if (v46 <= 0.000001f) {
-        vec3 v56;
-        vec3 v57;
-        vec3 v58;
-        vec3 v59;
-        sub_140484E10(&v59, &coli->bone0_pos, &coli->bone1_pos, a2);
-        sub_140484E10(&v58, &coli->bone0_pos, &coli->bone1_pos, a3);
-        sub_140484E10(&v57, a2, a3, &coli->bone0_pos);
-        sub_140484E10(&v56, a2, a3, &coli->bone1_pos);
-
-        float_t v48;
-        float_t v51;
-        float_t v52;
-        float_t v55;
-        vec3_distance_squared(*a3, coli->bone0_pos, v48);
-        vec3_distance_squared(coli->bone0_pos, v57, v51);
-        vec3_distance_squared(coli->bone1_pos, v56, v52);
-        vec3_distance_squared(*a2, v59, v55);
-        *a1 = *a2;
-
-        if (v55 > v48) {
-            *a1 = *a3;
-            v55 = v48;
-        }
-
-        if (v55 > v51) {
-            *a1 = v57;
-            v55 = v51;
-        }
-
-        if (v55 > v52)
-            *a1 = v56;
-    }
-    else {
-        float_t v25;
-        vec3_length(v56, v25);
-        if (v25 != 0.0f)
-            vec3_mult_scalar(v56, 1.0f / v25, v56);
-
-        float_t v30 = 1.0f / coli->bone_pos_diff_length;
-        vec3 v61;
-        float_t v34;
-        vec3_mult_scalar(coli->bone_pos_diff, v30, v61);
-        vec3_dot(v61, v56, v34);
-        vec3_mult_scalar(v61, v34, v61);
-        vec3_sub(v61, v56, v61);
-        vec3_sub(coli->bone0_pos, *a2, v60);
-        float_t v35;
-        vec3_dot(v61, v60, v35);
-        v35 /= (v34 * v34 - 1.0f);
-        if (v35 < 0.0f)
-            *a1 = *a2;
-        else if (v35 <= v25) {
-            vec3_mult_scalar(v56, v35, v56);
-            vec3_add(*a2, v56, *a1);
-        }
-        else
-            *a1 = *a3;
-
-    }
-}
-
-static void sub_140484E10(vec3* a1, vec3* a2, vec3* a3, vec3* a4) {
-    vec3 v6;
-    vec3_sub(*a3, *a2, v6);
-
-    vec3 v7;
-    vec3_sub(*a4, *a2, v7);
-
-    float_t v8;
-    vec3_dot(v7, v6, v8);
-    if (v8 < 0.0f) {
-        *a1 = *a2;
-        return;
-    }
-
-    float_t v9;
-    vec3_length_squared(v6, v9);
-    if (v9 <= 0.000001f)
-        *a1 = *a2;
-    else if (v8 <= v9) {
-        float_t v10 = v8 / v9;
-        vec3_mult_scalar(v6, v8 / v9, v6);
-        vec3_add(*a2, v6, *a1);
-    }
-    else
-        *a1 = *a3;
-}
-
-static int32_t sub_140485000(vec3* a1, vec3* a2, skin_param_osage_node* a3, osage_coli* a4) {
-    if (!a4)
-        return 0;
-
-    int32_t v8 = 0;
-    while (a4->type) {
-        int32_t type = a4->type;
-        vec3 v21 = 0.0f;
-        switch (a4->type) {
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL:
-            v8 += sub_140484450(&v21, a1, a2, &a4->bone0_pos, a3->coli_r + a4->radius);
-            break;
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER:
-            v8 += sub_1404844A0(&v21, a1, a2, a4, a3->coli_r + a4->radius);
-            break;
-        case SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE:
-            v8 += sub_1404844F0(&v21, a1, a2, a4, a3->coli_r + a4->radius);
-            break;
-        }
-
-        if (v8 > 0) {
-            vec3_add(*a1, v21, *a1);
-            vec3_add(*a2, v21, *a2);
-        }
-        a4++;
-    }
-    return v8;
 }
 
 static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2) {

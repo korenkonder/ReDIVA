@@ -451,12 +451,12 @@ static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_
         return true;
     }
 
-    for (int32_t& i : s->auth_3d_ids) {
-        auth_3d_data_set_repeat(i, true);
-        auth_3d_data_set_paused(i, false);
-        auth_3d_data_set_enable(i, true);
-        auth_3d_data_set_visibility(i, s->effect_display);
-        auth_3d_data_set_frame_rate(i, 0);
+    for (auth_3d_id& i : s->auth_3d_ids) {
+        i.set_repeat(true);
+        i.set_paused(false);
+        i.set_enable(true);
+        i.set_visibility(s->effect_display);
+        i.set_frame_rate(0);
     }
     return false;
 }
@@ -617,8 +617,8 @@ static void stage_modern_reset(stage_modern* s) {
     s->rot_y = 0.0;
     s->obj_set_hash = hash_murmurhash_empty;
 
-    for (int32_t& i : s->auth_3d_ids)
-        auth_3d_data_unload_id(i, rctx_ptr);
+    for (auth_3d_id& i : s->auth_3d_ids)
+        i.unload_id(rctx_ptr);
     s->auth_3d_ids.clear();
     s->auth_3d_ids.shrink_to_fit();
     s->effect_display = true;

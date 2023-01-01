@@ -57,7 +57,7 @@ struct post_process_tone_map {
 
     void apply(render_texture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
         render_texture* rt, render_texture* buf_rt,/* render_texture* contour_rt,*/
-        GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param);
+        GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param, void* pp);
     void init_fbo();
     void initialize_data(float_t exposure, bool auto_exposure,
         float_t gamma, int32_t saturate_power, float_t saturate_coeff,
@@ -78,6 +78,10 @@ struct post_process_tone_map {
     void set_gamma_rate(float_t value);
     float_t get_lens_flare();
     void set_lens_flare(float_t value);
+    float_t get_lens_flare_appear_power();
+    void set_lens_flare_appear_power(float_t value);
+    float_t get_lens_flare_power();
+    void set_lens_flare_power(float_t value);
     float_t get_lens_ghost();
     void set_lens_ghost(float_t value);
     float_t get_lens_shaft();

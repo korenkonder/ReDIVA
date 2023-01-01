@@ -31,9 +31,14 @@ post_process_tone_map::~post_process_tone_map() {
 
 void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
     render_texture* rt, render_texture* buf_rt,/* render_texture* contour_rt,*/
-    GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param) {
+    GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param, void* pp_data) {
     if (!this)
         return;
+
+    post_process* pp = (post_process*)pp_data;
+
+    set_lens_flare_power(pp->lens_flare_power);
+    set_lens_flare_appear_power(pp->lens_flare_appear_power);
 
     if (data.update) {
         post_process_tone_map_calculate_data(this);
@@ -55,13 +60,6 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
         data.update_tex = false;
     }
 
-    mat4 lens_flare_mat;
-    mat4 lens_shaft_mat;
-    mat4_scale(1.0f, (float_t)rt->color_texture->height
-        / (float_t)rt->color_texture->width, 1.0f, &lens_flare_mat);
-    mat4_scale(1.0f, (float_t)rt->color_texture->height
-        / (float_t)rt->color_texture->width, 1.0f, &lens_shaft_mat);
-
     uniform_value[U_TONE_MAP] = (int32_t)data.tone_map_method;
     uniform_value[U_FLARE] = 0;
     uniform_value[U_SCENE_FADE] = data.scene_fade.w > 0.009999999f ? 1 : 0;
@@ -69,18 +67,6 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     uniform_value[U_LIGHT_PROJ] = 0;
     //uniform_value[U25] = 0;
 
-    glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
-    buf_rt->bind();
-    shaders_ft.set(SHADER_FT_TONEMAP);
-    shaders_ft.state_matrix_set_texture(4, lens_flare_mat);
-    shaders_ft.state_matrix_set_texture(5, lens_shaft_mat);
-    shaders_ft.local_vert_set(1, shader_data.p_exposure);
-    shaders_ft.local_frag_set(1, shader_data.p_flare_coef);
-    shaders_ft.local_frag_set(2, shader_data.p_fade_color);
-    shaders_ft.local_frag_set(4, shader_data.p_tone_scale);
-    shaders_ft.local_frag_set(5, shader_data.p_tone_offset);
-    shaders_ft.local_frag_set(6, shader_data.p_fade_func);
-    shaders_ft.local_frag_set(7, shader_data.p_inv_tone);
     gl_state_active_bind_texture_2d(0, in_tex->color_texture->tex);
     gl_state_active_bind_texture_2d(1, in_tex_0);
     gl_state_active_bind_texture_2d(2, tone_map);
@@ -96,6 +82,45 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
         uniform_value[U_LIGHT_PROJ] = 1;
     }
 
+    if (pp->lens_flare_texture) {
+        static const vec4 border_color = 0.0f;
+
+        const float_t aspect = (float_t)pp->render_height / (float_t)pp->render_width;
+
+        uniform_value[U_FLARE] = 1;
+        gl_state_active_bind_texture_2d(4, pp->lens_flare_texture);
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        mat4 mat;
+        mat4_translate(0.5f, 0.5f, 0.0f, &mat);
+        mat4_scale_rot(&mat, 0.75f, 0.75f, 1.0f, &mat);
+        mat4_rotate_z_mult(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
+            * 25.0f * DEG_TO_RAD_FLOAT, &mat);
+        mat4_translate_mult(&mat, -((1.0f / (float_t)pp->render_width) * pp->lens_flare_pos.x),
+            (pp->lens_flare_pos.y - (float_t)pp->render_height)
+                * (1.0f / (float_t)pp->render_width), 0.0f, &mat);
+        mat4_scale_rot(&mat, 1.0f, aspect, 1.0f, &mat);
+        shaders_ft.state_matrix_set_texture(4, mat);
+
+        if (pp->lens_shaft_scale < 50.0f) {
+            uniform_value[U_FLARE] = 2;
+            gl_state_active_bind_texture_2d(5, pp->lens_shaft_texture);
+            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            mat4_translate(0.5f, 0.5f, 0.0f, &mat);
+            mat4_scale_rot(&mat, pp->lens_shaft_scale, pp->lens_shaft_scale, 1.0f, &mat);
+            mat4_rotate_z_mult(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
+                * 60.0f * DEG_TO_RAD_FLOAT, &mat);
+            mat4_translate_mult(&mat, -((1.0f / (float_t)pp->render_width) * pp->lens_flare_pos.x),
+                (pp->lens_flare_pos.y - (float_t)pp->render_height)
+                    * (1.0f / (float_t)pp->render_width), 0.0f, &mat);
+            mat4_scale_rot(&mat, 1.0f, aspect, 1.0f, &mat);
+            shaders_ft.state_matrix_set_texture(5, mat);
+        }
+    }
+
     if (npr_param == 1) {
         /*gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -107,6 +132,17 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
+    
+    glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
+    buf_rt->bind();
+    shaders_ft.set(SHADER_FT_TONEMAP);
+    shaders_ft.local_vert_set(1, shader_data.p_exposure);
+    shaders_ft.local_frag_set(1, shader_data.p_flare_coef);
+    shaders_ft.local_frag_set(2, shader_data.p_fade_color);
+    shaders_ft.local_frag_set(4, shader_data.p_tone_scale);
+    shaders_ft.local_frag_set(5, shader_data.p_tone_offset);
+    shaders_ft.local_frag_set(6, shader_data.p_fade_func);
+    shaders_ft.local_frag_set(7, shader_data.p_inv_tone);
     render_texture::draw_custom(&shaders_ft);
     gl_state_active_bind_texture_2d(2, 0);
 
@@ -234,9 +270,31 @@ float_t post_process_tone_map::get_lens_flare() {
 }
 
 void post_process_tone_map::set_lens_flare(float_t value) {
-    value = clamp_def(value, 0.0f, 1.0f);
     if (value != data.lens_flare) {
         data.lens_flare = value;
+        data.update = true;
+    }
+}
+
+float_t post_process_tone_map::get_lens_flare_appear_power() {
+    return data.lens_flare_appear_power;
+}
+
+void post_process_tone_map::set_lens_flare_appear_power(float_t value) {
+    if (value != data.lens_flare_appear_power) {
+        data.lens_flare_appear_power = value;
+        data.update = true;
+    }
+}
+
+float_t post_process_tone_map::get_lens_flare_power() {
+    return data.lens_flare_power;
+}
+
+
+void post_process_tone_map::set_lens_flare_power(float_t value) {
+    if (value != data.lens_flare_power) {
+        data.lens_flare_power = value;
         data.update = true;
     }
 }
@@ -246,7 +304,7 @@ float_t post_process_tone_map::get_lens_ghost() {
 }
 
 void post_process_tone_map::set_lens_ghost(float_t value) {
-    data.lens_ghost = clamp_def(value, 0.0f, 1.0f);
+    data.lens_ghost = value;
 }
 
 float_t post_process_tone_map::get_lens_shaft() {

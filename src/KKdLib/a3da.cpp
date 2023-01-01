@@ -2304,7 +2304,7 @@ static bool key_val_read(key_val* kv,
         }
 
         switch (type) {
-        case 0: {
+        case KEY_FRAME_TYPE_0: {
             float_t f;
             if (sscanf_s(data, "%g", &f) == 1)
                 k = { f, 0.0f, 0.0f, 0.0f };
@@ -2312,7 +2312,7 @@ static bool key_val_read(key_val* kv,
                 k = { 0.0f, 0.0f, 0.0f, 0.0f };
             value.keys.push_back(k);
         } break;
-        case 1: {
+        case KEY_FRAME_TYPE_1: {
             float_t f;
             float_t v;
             if (sscanf_s(data, "(%g,%g)", &f, &v) == 2)
@@ -2321,7 +2321,7 @@ static bool key_val_read(key_val* kv,
                 k = { 0.0f, 0.0f, 0.0f, 0.0f };
             value.keys.push_back(k);
         } break;
-        case 2: {
+        case KEY_FRAME_TYPE_2: {
             float_t f;
             float_t v;
             float_t t;
@@ -2331,7 +2331,7 @@ static bool key_val_read(key_val* kv,
                 k = { 0.0f, 0.0f, 0.0f, 0.0f };
             value.keys.push_back(k);
         } break;
-        case 3: {
+        case KEY_FRAME_TYPE_3: {
             float_t f;
             float_t v;
             float_t t1;

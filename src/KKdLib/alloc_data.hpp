@@ -35,7 +35,10 @@ struct alloc_data {
         if (!size)
             return 0;
 
-        return new((T*)allocate(sizeof(T) * size)) T;
+        T* arr = (T*)allocate(sizeof(T) * size);
+        for (size_t i = 0; i < size; i++)
+            new(&arr[i]) T();
+        return arr;
     }
 
     template <typename T>

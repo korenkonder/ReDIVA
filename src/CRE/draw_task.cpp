@@ -160,7 +160,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                 task->data.preprocess.func(rctx, task->data.preprocess.data);
             } break;
             case DRAW_TASK_OBJECT_TRANSLUCENT: {
-                for (int32_t j = 0; j < task->data.object_translucent.count; j++)
+                for (uint32_t j = 0; j < task->data.object_translucent.count; j++)
                     draw_object_draw(rctx, task->data.object_translucent.objects[j],
                         &task->mat, draw_object_func, show_vector);
             } break;
@@ -179,7 +179,7 @@ void draw_task_draw_objects_by_type(render_context* rctx, draw_object_type type,
                 }
             } break;
             case DRAW_TASK_OBJECT_TRANSLUCENT: {
-                for (int32_t j = 0; j < task->data.object_translucent.count; j++) {
+                for (uint32_t j = 0; j < task->data.object_translucent.count; j++) {
                     draw_object* object = task->data.object_translucent.objects[j];
                     int32_t a = (int32_t)(object->blend_color.w * 255.0f);
                     a = clamp_def(a, 0, 255);

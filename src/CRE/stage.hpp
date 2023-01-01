@@ -27,7 +27,7 @@ struct stage {
     uint32_t obj_set;
 
     // Temp
-    std::vector<int32_t> auth_3d_ids;
+    std::vector<auth_3d_id> auth_3d_ids;
     bool effect_display;
 
     stage();

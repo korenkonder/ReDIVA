@@ -161,13 +161,13 @@ void Auth3dTestWindow::Window() {
         return;
     }
 
-    auth_3d* auth = auth_3d_data_get_auth_3d(auth_3d_test_task->auth_3d_id);
+    auth_3d* auth = auth_3d_test_task->auth_3d_id.get_auth_3d();
     if (auth)
         last_frame = auth->play_control.size;
 
-    if (auth_3d_data_check_id_not_empty(auth_3d_test_task->auth_3d_id)) {
-        enable = auth_3d_data_get_enable(auth_3d_test_task->auth_3d_id);
-        frame = auth_3d_data_get_frame(auth_3d_test_task->auth_3d_id);
+    if (auth_3d_test_task->auth_3d_id.check_not_empty()) {
+        enable = auth_3d_test_task->auth_3d_id.get_enable();
+        frame = auth_3d_test_task->auth_3d_id.get_frame();
         frame_changed = false;
     }
 
@@ -365,16 +365,16 @@ void Auth3dTestWindow::Window() {
 
     ImGui::Checkbox("Link Stage Change", &auth_3d_test_task->window.stage_link_change);
 
-    if (auth_3d_data_check_id_not_empty(auth_3d_test_task->auth_3d_id)) {
-        auth_3d_data_set_enable(auth_3d_test_task->auth_3d_id, enable);
-        auth_3d_data_set_repeat(auth_3d_test_task->auth_3d_id, auth_3d_test_task->repeat);
-        auth_3d_data_set_left_right_reverse(auth_3d_test_task->auth_3d_id, auth_3d_test_task->left_right_reverse);
+    if (auth_3d_test_task->auth_3d_id.check_not_empty()) {
+        auth_3d_test_task->auth_3d_id.set_enable(enable);
+        auth_3d_test_task->auth_3d_id.set_repeat(auth_3d_test_task->repeat);
+        auth_3d_test_task->auth_3d_id.set_left_right_reverse(auth_3d_test_task->left_right_reverse);
         if (frame_changed) {
-            auth_3d_data_set_req_frame(auth_3d_test_task->auth_3d_id, frame);
+            auth_3d_test_task->auth_3d_id.set_req_frame(frame);
             frame_changed = false;
         }
-        auth_3d_data_set_paused(auth_3d_test_task->auth_3d_id, paused);
-        auth_3d_data_set_frame_rate(auth_3d_test_task->auth_3d_id, 0);
+        auth_3d_test_task->auth_3d_id.set_paused(paused);
+        auth_3d_test_task->auth_3d_id.set_frame_rate(0);
     }
     ImGui::End();
 }

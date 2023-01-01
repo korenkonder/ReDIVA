@@ -407,7 +407,7 @@ struct draw_task_preprocess {
 };
 
 struct draw_task_object_translucent {
-    int32_t count;
+    uint32_t count;
     draw_object* objects[40];
 };
 

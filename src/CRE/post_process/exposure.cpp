@@ -46,7 +46,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
         float_t v20 = powf(tanf((float_t)(cam->fov_rad * 0.5f)) * 3.4f, 2.0f);
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, v6++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
-            if (!rob_chr || !rob_chr->get_visibility())
+            if (!rob_chr || !rob_chr->is_visible())
                 continue;
 
             vec4 v34 = { 0.05f, 0.0f, -0.04f, 1.0f };
@@ -176,20 +176,22 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     render_texture::draw_params(&shaders_ft, 1, 1);
 }
 
-void post_process_exposure::get_exposure_chara_data(void* pp, camera* cam) {
+void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) {
     shader::unbind();
+
+    post_process* pp = (post_process*)pp_data;
 
     gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_disable_cull_face();
 
-    post_process_exposure_chara_data* v3 = chara_data;
-    int32_t v4 = (query_index + 1) % 3;
-    query_index = v4;
-    int32_t v7 = (v4 + 2) % 3;
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, v3++) {
+    post_process_exposure_chara_data* chara = chara_data;
+    int32_t query_index = (this->query_index + 1) % 3;
+    this->query_index = query_index;
+    int32_t next_query_index = (query_index + 2) % 3;
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara++) {
         rob_chara* rob_chr = rob_chara_array_get(i);
-        if (!rob_chr || !rob_chr->get_visibility())
+        if (!rob_chr || !rob_chr->is_visible())
             continue;
 
         float_t max_face_depth = rob_chr->get_max_face_depth();
@@ -201,18 +203,18 @@ void post_process_exposure::get_exposure_chara_data(void* pp, camera* cam) {
         mat4_clear_rot(&mat, &mat);
         mat4_mult(&mat, &cam->projection, &mat);
 
-        ((post_process*)pp)->draw_query_samples(v3->query[v7], 0.0035f, mat);
+        pp->draw_query_samples(chara->query[next_query_index], 0.0035f, mat);
 
-        if (v3->query_data[v7] == -1)
-            v3->query_data[v7] = 0;
+        if (chara->query_data[next_query_index] == -1)
+            chara->query_data[next_query_index] = 0;
 
-        if (v3->query_data[v4] != -1) {
-            int32_t v14 = 0;
-            glGetQueryObjectiv(v3->query[v4], GL_QUERY_RESULT_AVAILABLE, &v14);
-            if (v14)
-                glGetQueryObjectuiv(v3->query[v4], GL_QUERY_RESULT, v3->query_data);
+        if (chara->query_data[query_index] != -1) {
+            int32_t res = 0;
+            glGetQueryObjectiv(chara->query[query_index], GL_QUERY_RESULT_AVAILABLE, &res);
+            if (res)
+                glGetQueryObjectuiv(chara->query[query_index], GL_QUERY_RESULT, chara->query_data);
             else
-                v3->query_data[v4] = 0;
+                chara->query_data[query_index] = 0;
         }
     }
 

@@ -799,15 +799,6 @@ enum rob_osage_parts_bit {
     ROB_OSAGE_PARTS_ANGEL_R_BIT     = 0x1000,
 };
 
-enum skin_param_osage_root_coli_type {
-    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_NONE     = 0x00,
-    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_BALL     = 0x01,
-    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_CYLINDER = 0x02,
-    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_PLANE    = 0x03,
-    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_ELLIPSE  = 0x04,
-    SKIN_PARAM_OSAGE_ROOT_COLI_TYPE_5        = 0x05,
-};
-
 enum ExNodeType {
     EX_NONE       = 0x00,
     EX_OSAGE      = 0x01,
@@ -835,6 +826,18 @@ enum SubActParamType  {
     SUB_ACTION_PARAM_LAUGH       = 0x5,
     SUB_ACTION_PARAM_COUNT_NUM   = 0x6,
 };
+
+namespace SkinParam {
+    enum CollisionType {
+        CollisionTypeEnd      = 0x0,
+        CollisionTypeBall     = 0x1,
+        CollisionTypeCapsulle = 0x2,
+        CollisionTypePlane    = 0x3,
+        CollisionTypeEllipse  = 0x4,
+        CollisionTypeAABB     = 0x5,
+        CollisionTypeMax      = 0x6,
+    };
+}
 
 struct rob_chara;
 struct rob_chara_bone_data;
@@ -1561,16 +1564,16 @@ struct RobOsageNode {
     void Reset();
 };
 
-struct skin_param_osage_root_coli {
-    skin_param_osage_root_coli_type type;
-    int32_t bone0_index;
-    int32_t bone1_index;
-    float_t radius;
-    vec3 bone0_pos;
-    vec3 bone1_pos;
+namespace SkinParam {
+    struct CollisionParam {
+        CollisionType type;
+        int32_t node_idx[2];
+        float_t radius;
+        vec3 pos[2];
 
-    skin_param_osage_root_coli();
-    ~skin_param_osage_root_coli();
+        CollisionParam();
+        ~CollisionParam();
+    };
 };
 
 struct skin_param_osage_root_normal_ref {
@@ -1605,7 +1608,7 @@ struct skin_param_osage_root {
     float_t hinge_y;
     float_t hinge_z;
     const char* name;
-    std::vector<skin_param_osage_root_coli> coli;
+    std::vector<SkinParam::CollisionParam> coli;
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
@@ -1622,7 +1625,7 @@ struct skin_param_osage_root {
 };
 
 struct skin_param {
-    std::vector<skin_param_osage_root_coli> coli;
+    std::vector<SkinParam::CollisionParam> coli;
     float_t friction;
     float_t wind_afc;
     float_t air_res;
@@ -1659,22 +1662,48 @@ struct skin_param {
     }
 };
 
-struct osage_coli {
-    skin_param_osage_root_coli_type type;
-    float_t radius;
-    vec3 bone0_pos;
-    vec3 bone1_pos;
-    vec3 bone_pos_diff;
-    float_t bone_pos_diff_length;
-    float_t bone_pos_diff_length_squared;
-    float_t field_34;
+struct OsageCollision {
+    struct Work {
+        SkinParam::CollisionType type;
+        float_t radius;
+        vec3 pos[2];
+        vec3 vec_center;
+        float_t vec_center_length;
+        float_t vec_center_length_squared;
+        float_t friction;
 
-    osage_coli();
-    ~osage_coli();
+        Work();
+        ~Work();
 
-    static void set(osage_coli* coli, skin_param_osage_root_coli* skp_root_coli, mat4* mats);
-    static void ring_set(osage_coli* coli,
-        std::vector<skin_param_osage_root_coli>& vec_skp_root_coli, mat4* mats);
+        int32_t osage_capsule_cls(vec3& p0, vec3& p1, const float_t& cls_r);
+        int32_t osage_cls(vec3& p, const float_t& cls_r);
+
+        static void update_cls_work(OsageCollision::Work* cls,
+            SkinParam::CollisionParam* cls_param, mat4* tranform);
+        static void update_cls_work(OsageCollision::Work* cls,
+            std::vector<SkinParam::CollisionParam>& cls_list, mat4* tranform);
+    };
+
+    std::vector<Work> work_list;
+
+    OsageCollision();
+    ~OsageCollision();
+
+    static int32_t cls_aabb_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_ball_oidashi(vec3& vec, const vec3& p, const vec3& center, const float_t r);
+    static int32_t cls_capsule_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* coli, const float_t r);
+    static int32_t cls_ellipse_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_line2ball_oidashi(vec3& vec,
+        const vec3& p0, const vec3& p1, const vec3& q, const float_t r);
+    static int32_t cls_line2capsule_oidashi(vec3& vec,
+        const vec3& p0, const vec3& p1, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_line2ellipse_oidashi(vec3& vec,
+        const vec3& p0, const vec3& p1, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_plane_oidashi(vec3& vec, const vec3& p, const vec3& p1, const vec3& p2, const float_t r);
+    static void get_nearest_line2point(vec3& nearest, const vec3& p0, const vec3& p1, const vec3& q);
+    static int32_t osage_capsule_cls(vec3& p0, vec3& p1, const float_t& cls_r, const OsageCollision::Work* cls);
+    static int32_t osage_cls(vec3& p, const float_t& cls_r, const OsageCollision::Work* cls, float_t* fric = 0);
+    static int32_t osage_cls_work_list(vec3& p, const float_t& cls_r, const OsageCollision& coli, float_t* fric = 0);
 };
 
 struct osage_ring_data {
@@ -1685,8 +1714,8 @@ struct osage_ring_data {
     float_t ring_height;
     float_t ring_out_height;
     bool field_18;
-    std::vector<osage_coli> coli;
-    std::vector<skin_param_osage_root_coli> skp_root_coli;
+    OsageCollision coli;
+    std::vector<SkinParam::CollisionParam> skp_root_coli;
 
     osage_ring_data();
     ~osage_ring_data();
@@ -1739,8 +1768,8 @@ struct CLOTH {
     std::vector<struc_341> field_58;
     skin_param* skin_param_ptr;
     skin_param skin_param;
-    osage_coli coli[64];
-    osage_coli coli_ring[64];
+    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_ring[64];
     osage_ring_data ring;
     mat4* mats;
 
@@ -1887,8 +1916,8 @@ struct RobOsage {
     bool field_2A0;
     bool field_2A1;
     float_t field_2A4;
-    osage_coli coli[64];
-    osage_coli coli_ring[64];
+    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_ring[64];
     vec3 wind_direction;
     float_t field_1EB4;
     int32_t yz_order;
@@ -2509,7 +2538,7 @@ struct RobSubAction {
     struct Data {
         SubActExec* field_0;
         SubActExec* field_8;
-        SubActParam* field_10;
+        SubActParam* param;
         SubActExec* field_18;
         SubActExecCry cry;
         SubActExecShakeHand shake_hand;
@@ -2526,6 +2555,7 @@ struct RobSubAction {
     ~RobSubAction();
 
     void Reset();
+    void SetSubActParam(SubActParam* value);
 };
 
 struct struc_389 {
@@ -2630,6 +2660,7 @@ public:
     virtual void Reset() override;
 };
 
+template <typename T>
 struct struc_405 {
     RobFaceMotion face;
     RobHandMotion hand_l;
@@ -2641,13 +2672,31 @@ struct struc_405 {
     object_info hand_l_object;
     object_info hand_r_object;
     object_info face_object;
-    int32_t field_1C0;
+    T field_1C0;
     float_t time;
 
-    struc_405();
-    ~struc_405();
+    struc_405() : field_1C0(), time() {
 
-    void Reset();
+    }
+
+    ~struc_405() {
+
+    }
+
+    void Reset() {
+        face.Reset();
+        hand_l.Reset();
+        hand_r.Reset();
+        mouth.Reset();
+        eyes.Reset();
+        eyelid.Reset();
+        head_object = object_info();
+        hand_l_object = object_info();
+        hand_r_object = object_info();
+        face_object = object_info();
+        field_1C0 = {};
+        time = 0.0f;
+    }
 };
 
 struct rob_chara_data_adjust {
@@ -2732,13 +2781,13 @@ struct rob_chara_motion {
     float_t field_13C;
     vec3 field_140;
     int32_t field_14C;
-    struc_405 field_150;
+    struc_405<int32_t> field_150;
     float_t field_314;
     RobHandMotion hand_l;
     RobHandMotion hand_r;
     object_info hand_l_object;
     object_info hand_r_object;
-    struc_405 field_3B0;
+    struc_405<float_t> field_3B0;
     rob_chara_data_adjust parts_adjust[ROB_OSAGE_PARTS_MAX];
     rob_chara_data_adjust parts_adjust_prev[ROB_OSAGE_PARTS_MAX];
     rob_chara_data_adjust adjust_global;
@@ -3082,11 +3131,13 @@ struct struc_195 {
     struc_195();
 };
 
-struct struc_210 {
-    vec2 field_0;
+struct pos_scale {
+    vec2 pos;
     float_t scale;
 
-    struc_210();
+    pos_scale();
+
+    void get_screen_pos_scale(mat4& mat, vec3& trans, bool apply_offset);
 };
 
 struct struc_267 {
@@ -3133,7 +3184,7 @@ struct struc_209 {
     struc_195 field_DF8[27];
     struc_195 field_1230[27];
     struc_195 field_1668[27];
-    struc_210 field_1AA0[27];
+    pos_scale field_1AA0[27];
     float_t field_1BE4[27];
     std::vector<std::pair<int64_t, float_t>> field_1C50;
     int64_t field_1C68;
@@ -3304,7 +3355,7 @@ struct rob_chara {
     float_t get_frame_count();
     float_t get_max_face_depth();
     int32_t get_rob_cmn_mottbl_motion_id(int32_t id);
-    bool get_visibility();
+    bool is_visible();
     void load_motion(int32_t motion_id, bool a3, float_t frame,
         MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
     void reset_data(rob_chara_pv_data* pv_data,

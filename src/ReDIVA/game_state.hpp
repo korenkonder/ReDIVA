@@ -5,6 +5,7 @@
 
 #pragma once
 
+#include "config.hpp"
 #include "../KKdLib/default.hpp"
 
 enum GameStateEnum {
@@ -13,6 +14,9 @@ enum GameStateEnum {
     GAME_STATE_GAME,
     GAME_STATE_DATA_TEST,
     GAME_STATE_TEST_MODE,
+#if DATA_EDIT
+    GAME_STATE_DATA_EDIT, // Added
+#endif
     GAME_STATE_APP_ERROR,
     GAME_STATE_MAX,
 };
@@ -58,6 +62,9 @@ enum SubGameStateEnum {
     SUB_GAME_STATE_DATA_TEST_GRAPHICS,
     SUB_GAME_STATE_DATA_TEST_COLLECTION_CARD,
     SUB_GAME_STATE_TEST_MODE_MAIN,
+#if DATA_EDIT
+    SUB_GAME_STATE_DATA_EDIT, // Added
+#endif
     SUB_GAME_STATE_APP_ERROR,
     SUB_GAME_STATE_MAX,
 };
@@ -88,19 +95,27 @@ struct GameState {
         static bool Dest();
     };
 
+    struct DataTest {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
     struct TestMode {
         static bool Init();
         static bool Ctrl();
         static bool Dest();
     };
 
-    struct AppError {
+#if DATA_EDIT
+    struct DataEdit { // Added
         static bool Init();
         static bool Ctrl();
         static bool Dest();
     };
+#endif
 
-    struct DataTest {
+    struct AppError {
         static bool Init();
         static bool Ctrl();
         static bool Dest();
@@ -363,6 +378,14 @@ struct SubGameState {
         static bool Ctrl();
         static bool Dest();
     };
+
+#if DATA_EDIT
+    struct DataEdit { // Added
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+#endif
 
     struct DataTestAppError {
         static bool Init();

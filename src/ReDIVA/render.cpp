@@ -6,6 +6,7 @@
 */
 
 #include "render.hpp"
+#include "config.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/camera.hpp"
@@ -57,7 +58,7 @@
 #include <timeapi.h>
 
 #if defined(DEBUG)
-#define OPENGL_DEBUG 1
+#define OPENGL_DEBUG 0
 #endif
 
 #define CUBE_LINE_SIZE (0.0025f)
@@ -1004,15 +1005,15 @@ static render_context* render_load() {
 
     cam->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y);
-    //cam->set_position(cam, { 1.35542f, 1.41634f, 1.27852f });
-    //cam->rotate(cam, { -45.0, -32.5 });
-    //cam->set_position(cam, { -6.67555f, 4.68882f, -3.67537f });
-    //cam->rotate(cam, { 136.5, -20.5 });
+    //cam->set_position({ 1.35542f, 1.41634f, 1.27852f });
+    //cam->rotate({ -45.0, -32.5 });
+    //cam->set_position({ -6.67555f, 4.68882f, -3.67537f });
+    //cam->rotate({ 136.5, -20.5 });
     cam->set_view_point({ 0.0f, 1.0f, 3.45f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
-    //cam->set_fov(cam, 70.0);
-    cam->set_view_point({ 0.0f, 1.375f, 1.0f });
-    cam->set_interest({ 0.0f, 1.375f, 0.0f });
+    //cam->set_fov(70.0);
+    cam->set_view_point({ 0.0f, 1.4f, 1.0f });
+    cam->set_interest({ 0.0f, 1.4f, 0.0f });
 
     imgui_context = ImGui::CreateContext();
     imgui_context_lock = new lock_cs;
@@ -1180,6 +1181,8 @@ static void render_ctrl(render_context* rctx) {
             cam->set_interest({ 0.0f, 1.0f, 0.0f });
             //cam->set_fov(70.0);
             cam->set_fast_change_hist0(true);
+            cam->set_view_point({ 0.0f, 1.4f, 1.0f });
+            cam->set_interest({ 0.0f, 1.4f, 0.0f });
         }
         else {
             cam->rotate(input_rotate_x, input_rotate_y);
@@ -1200,6 +1203,10 @@ static void render_ctrl(render_context* rctx) {
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
     else if (Input::IsKeyTapped(GLFW_KEY_F8))
+#if DATA_EDIT
+        game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
+    else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
+#endif
         game_state_set_game_state_next(GAME_STATE_APP_ERROR);
 
     classes_process_ctrl(classes, classes_count);
@@ -1337,7 +1344,7 @@ static void render_disp(render_context* rctx) {
                 continue;
 
             rob_chara* rob_chr = &rob_chara_array[i];
-            if (!rob_chr->get_visibility())
+            if (!rob_chr->is_visible())
                 continue;
 
             gl_state_bind_vertex_array(cube_line_vao);
@@ -1478,7 +1485,7 @@ static void render_disp(render_context* rctx) {
                 continue;
 
             rob_chara* rob_chr = &rob_chara_array[i];
-            if (!rob_chr->get_visibility())
+            if (!rob_chr->is_visible())
                 continue;
 
             std::vector<std::pair<vec3, float_t>> cube_line_points;
@@ -1757,19 +1764,19 @@ static void render_imgui_context_menu(classes_data* classes,
 #pragma warning(disable:26117)
     for (size_t i = 0; i < classes_count; i++) {
         classes_data* c = &classes[i];
-        if (!c->name || ~c->flags & CLASSES_IN_CONTEXT_MENU)
+        if (!c->name || !(c->flags & CLASSES_IN_CONTEXT_MENU))
             continue;
 
         if (c->sub_classes && c->sub_classes_count) {
-            if (ImGui::BeginMenu(c->name, ~c->data.flags & CLASS_HIDDEN)) {
+            if (ImGui::BeginMenu(c->name, !(c->data.flags & CLASS_HIDDEN))) {
                 render_imgui_context_menu(c->sub_classes, c->sub_classes_count, rctx);
                 ImGui::EndMenu();
             }
         }
-        else if (~c->data.flags & CLASS_HIDDEN)
+        else if (!(c->data.flags & CLASS_HIDDEN))
             ImGui::MenuItem(c->name, 0, false, false);
         else if (ImGui::MenuItem(c->name, 0)) {
-            if (~c->data.flags & CLASS_INIT) {
+            if (!(c->data.flags & CLASS_INIT)) {
                 c->data.lock = new lock_cs;
                 if (c->data.lock->check_init() && c->init) {
                     lock_lock(c->data.lock);

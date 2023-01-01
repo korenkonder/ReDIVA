@@ -405,8 +405,8 @@ pv_game_old::pv_game_old() : state(), frame(), frame_float(), time(), rob_chara_
 dsc_time(), dsc_data_ptr(), dsc_data_ptr_end(), play(), success(), chara_id(),
 pv_end(), playdata(), scene_rot_y(), branch_mode(), pause(), step_frame() {
     pv_id = -1;
-    light_auth_3d_id = -1;
-    camera_auth_3d_id = -1;
+    light_auth_3d_id = {};
+    camera_auth_3d_id = {};
     target_anim_fps = 60.0f;
     anim_frame_speed = 1.0f;
     scene_rot_mat = mat4_identity;
@@ -480,32 +480,29 @@ bool pv_game_old::Ctrl() {
             }
         }
 
-        light_auth_3d_id = -1;
+        light_auth_3d_id = {};
         {
-            data_struct* aft_data = &data_list[DATA_AFT];
-            auth_3d_database* auth_3d_db = &aft_data->data_ft.auth_3d_db;
-
             char buf[0x200];
             sprintf_s(buf, sizeof(buf), "STGPV%03d_EFF_LT_000", pv_id);
             uint32_t light_auth_3d_uid = auth_3d_db->get_uid(buf);
             if (light_auth_3d_uid != -1) {
                 light_auth_3d_id = auth_3d_data_load_uid(light_auth_3d_uid, auth_3d_db);
-                auth_3d_data_read_file(light_auth_3d_id, auth_3d_db);
-                auth_3d_data_set_enable(light_auth_3d_id, false);
-                auth_3d_data_set_visibility(light_auth_3d_id, false);
+                light_auth_3d_id.read_file(auth_3d_db);
+                light_auth_3d_id.set_enable(false);
+                light_auth_3d_id.set_visibility(false);
                 break;
             }
         }
 
-        camera_auth_3d_id = -1;
+        camera_auth_3d_id = {};
         {
             char buf[0x200];
             sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE", pv_id);
             uint32_t camera_auth_3d_uid = auth_3d_db->get_uid(buf);
             camera_auth_3d_id = auth_3d_data_load_uid(camera_auth_3d_uid, auth_3d_db);
-            auth_3d_data_read_file_modern(camera_auth_3d_id);
-            auth_3d_data_set_enable(camera_auth_3d_id, false);
-            auth_3d_data_set_visibility(camera_auth_3d_id, false);
+            camera_auth_3d_id.read_file(auth_3d_db);
+            camera_auth_3d_id.set_enable(false);
+            camera_auth_3d_id.set_visibility(false);
         }
 
         state = 7;
@@ -514,13 +511,13 @@ bool pv_game_old::Ctrl() {
         bool wait_load = false;
 
         for (auto i : pv_auth_3d_ids)
-            if (!auth_3d_data_check_id_loaded(i.second))
+            if (!i.second.check_loaded())
                 wait_load = true;
 
-        if (!auth_3d_data_check_id_loaded(light_auth_3d_id))
+        if (!light_auth_3d_id.check_loaded())
             wait_load = true;
 
-        if (!auth_3d_data_check_id_loaded(camera_auth_3d_id))
+        if (!camera_auth_3d_id.check_loaded())
             wait_load = true;
 
         if (!wait_load)
@@ -621,17 +618,17 @@ bool pv_game_old::Ctrl() {
             && pv_game_dsc_process(this, this->time))
             dsc_data_ptr++;
 
-        auth_3d_data_set_enable(light_auth_3d_id, true);
-        auth_3d_data_set_camera_root_update(light_auth_3d_id, false);
-        auth_3d_data_set_paused(light_auth_3d_id, false);
-        auth_3d_data_set_repeat(light_auth_3d_id, false);
-        auth_3d_data_set_visibility(light_auth_3d_id, true);
+        light_auth_3d_id.set_enable(true);
+        light_auth_3d_id.set_camera_root_update(false);
+        light_auth_3d_id.set_paused(false);
+        light_auth_3d_id.set_repeat(false);
+        light_auth_3d_id.set_visibility(true);
 
-        auth_3d_data_set_enable(camera_auth_3d_id, true);
-        auth_3d_data_set_camera_root_update(camera_auth_3d_id, true);
-        auth_3d_data_set_paused(camera_auth_3d_id, false);
-        auth_3d_data_set_repeat(camera_auth_3d_id, false);
-        auth_3d_data_set_visibility(camera_auth_3d_id, true);
+        camera_auth_3d_id.set_enable(true);
+        camera_auth_3d_id.set_camera_root_update(true);
+        camera_auth_3d_id.set_paused(false);
+        camera_auth_3d_id.set_repeat(false);
+        camera_auth_3d_id.set_visibility(true);
 
         pause = true;
     } break;
@@ -862,14 +859,14 @@ void pv_game_old::Unload() {
         }
 
     for (auto& i : pv_auth_3d_ids)
-        auth_3d_data_unload_id(i.second, rctx_ptr);
+        i.second.unload_id(rctx_ptr);
 
-    auth_3d_data_unload_id(light_auth_3d_id, rctx_ptr);
-    auth_3d_data_unload_id(camera_auth_3d_id, rctx_ptr);
+    light_auth_3d_id.unload_id(rctx_ptr);
+    camera_auth_3d_id.unload_id(rctx_ptr);
 
     pv_auth_3d_ids.clear();
-    light_auth_3d_id = -1;
-    camera_auth_3d_id = -1;
+    light_auth_3d_id = {};
+    camera_auth_3d_id = {};
 
     for (std::string& i : category_load)
         auth_3d_data_unload_category(i.c_str());

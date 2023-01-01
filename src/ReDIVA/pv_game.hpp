@@ -611,9 +611,9 @@ public:
 
     std::vector<std::string> category_load;
 
-    std::map<uint32_t, int32_t> pv_auth_3d_ids;
-    int32_t light_auth_3d_id;
-    int32_t camera_auth_3d_id;
+    std::map<uint32_t, auth_3d_id> pv_auth_3d_ids;
+    auth_3d_id light_auth_3d_id;
+    auth_3d_id camera_auth_3d_id;
 
     dsc dsc_m;
     dsc_data* dsc_data_ptr;

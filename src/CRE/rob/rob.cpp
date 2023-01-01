@@ -4379,7 +4379,7 @@ static void bone_data_parent_load_bone_indices_from_mot(bone_data_parent* a1,
     const char* skeleton_type_string = bone_database_skeleton_type_to_string(skeleton_type);
     std::string* bone_names = mot_db->bone_name.data();
 
-    const mot_bone_info* bone_info = a2->bone_info.data();
+    const mot_bone_info* bone_info = a2->bone_info_array;
     for (size_t key_set_offset = 0, i = 0; key_set_offset < key_set_count; i++) {
         motion_bone_index bone_index = (motion_bone_index)bone_data->get_skeleton_bone_index(
             skeleton_type_string, bone_names[bone_info[i].index].c_str());
@@ -4688,17 +4688,17 @@ static bool mot_load_file(mot* a1, const mot_data* a2) {
     a1->key_set_count = key_set_count;
     a1->field_4 = a2->info & 0x8000;
 
-    const mot_key_set_data* key_set_file = a2->key_set.data();
+    const mot_key_set_data* key_set_file = a2->key_set_array;
     mot_key_set* key_set = a1->key_sets;
 
     for (int32_t i = 0; i < key_set_count; i++, key_set++, key_set_file++) {
         key_set->type = key_set_file->type;
         if (key_set->type == MOT_KEY_SET_STATIC)
-            key_set->values = key_set_file->values.data();
+            key_set->values = key_set_file->values;
         else if (key_set->type != MOT_KEY_SET_NONE) {
             uint16_t keys_count = key_set_file->keys_count;
-            key_set->frames = key_set_file->frames.data();
-            key_set->values = key_set_file->values.data();
+            key_set->frames = key_set_file->frames;
+            key_set->values = key_set_file->values;
 
             key_set->keys_count = keys_count;
             key_set->current_key = 0;
@@ -6791,7 +6791,7 @@ static void sub_14054BC70(RobSubAction* a1) {
     }
 
     if (a1->data.field_0)
-        a1->data.field_0->Field_10(a1->data.field_10);
+        a1->data.field_0->Field_10(a1->data.param);
 
     if (a1->data.field_18)
         delete a1->data.field_18;
@@ -7598,12 +7598,12 @@ static void sub_140504710(rob_chara* rob_chr, motion_database* mot_db,
     sub_14041CA10(rob_chr->bone_data, &rob_chr->data.motion.field_140);
     sub_14041DA00(rob_chr->bone_data);
 
-    struc_405* v2 = &rob_chr->data.motion.field_150;
+    RobFaceMotion* v2 = &rob_chr->data.motion.field_150.face;
     if ((rob_chr->data.motion.field_29 & 0x04))
-        v2 = &rob_chr->data.motion.field_3B0;
-    sub_14053F2C0(&v2->face);
-    rob_chara_bone_data_set_face_frame(rob_chr->bone_data, v2->face.data.frame);
-    rob_chara_bone_data_set_face_play_frame_step(rob_chr->bone_data, v2->face.data.play_frame_step);
+        v2 = &rob_chr->data.motion.field_3B0.face;
+    sub_14053F2C0(v2);
+    rob_chara_bone_data_set_face_frame(rob_chr->bone_data, v2->data.frame);
+    rob_chara_bone_data_set_face_play_frame_step(rob_chr->bone_data, v2->data.play_frame_step);
 
     RobHandMotion* v3 = &rob_chr->data.motion.field_150.hand_l;
     if (rob_chr->data.motion.field_29 & 0x08)
@@ -10654,7 +10654,7 @@ static void sub_140505FB0(struc_209* a1) {
     for (struc_195& i : a1->field_1668)
         i = {};
 
-    for (struc_210& i : a1->field_1AA0)
+    for (pos_scale& i : a1->field_1AA0)
         i = {};
 
     for (float_t& i : a1->field_1BE4)
@@ -11971,7 +11971,7 @@ static bool task_rob_load_check_load_req_data() {
 
 bool rob_chara_array_check_visibility(int32_t chara_id) {
     if (rob_chara_pv_data_array_check_chara_id(chara_id))
-        return rob_chara_array[chara_id].get_visibility();
+        return rob_chara_array[chara_id].is_visible();
     return false;
 }
 
@@ -12093,7 +12093,7 @@ int32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
     return -1;
 }
 
-bool rob_chara::get_visibility() {
+bool rob_chara::is_visible() {
     return !!(data.field_0 & 0x01);
 }
 
@@ -13863,7 +13863,7 @@ void SubActExecShakeHand::Field_20(rob_chara* rob_chr) {
 
 };
 
-RobSubAction::Data::Data() : field_0(), field_8(), field_10(), field_18() {
+RobSubAction::Data::Data() : field_0(), field_8(), param(), field_18() {
 
 }
 
@@ -13882,13 +13882,24 @@ RobSubAction::~RobSubAction() {
 void RobSubAction::Reset() {
     data.field_0 = 0;
     data.field_8 = 0;
-    data.field_10 = 0;
+    data.param = 0;
     data.field_18 = 0;
     data.cry.Field_8();
     data.shake_hand.Field_8();
     data.embarrassed.Field_8();
     data.angry.Field_8();
     data.laugh.Field_8();
+}
+
+void RobSubAction::SetSubActParam(SubActParam* value) {
+    if (!value)
+        return;
+
+    if (data.param) {
+        delete data.param;
+        data.param = 0;
+    }
+    data.param = value;
 }
 
 RobPartialMotion::RobPartialMotion()  {
@@ -13957,29 +13968,6 @@ RobEyelidMotion::~RobEyelidMotion() {
 
 void RobEyelidMotion::Reset() {
     data.Reset();
-}
-
-struc_405::struc_405() : field_1C0(), time() {
-
-}
-
-struc_405::~struc_405() {
-
-}
-
-void struc_405::Reset() {
-    face.Reset();
-    hand_l.Reset();
-    hand_r.Reset();
-    mouth.Reset();
-    eyes.Reset();
-    eyelid.Reset();
-    head_object = object_info();
-    hand_l_object = object_info();
-    hand_r_object = object_info();
-    face_object = object_info();
-    field_1C0 = 0;
-    time = 0.0f;
 }
 
 rob_chara_data_adjust::rob_chara_data_adjust() : enable(), frame(), transition_frame(),
@@ -14423,8 +14411,36 @@ struc_195::struc_195() : scale(), field_1C(), field_20(), field_24() {
 
 }
 
-struc_210::struc_210() : scale() {
+pos_scale::pos_scale() : scale() {
 
+}
+
+void pos_scale::get_screen_pos_scale(mat4& mat, vec3& trans, bool apply_offset) {
+    vec4 v15;
+    *(vec3*)&v15 = trans;
+    v15.w = 1.0f;
+    mat4_mult_vec(&mat, &v15, &v15);
+
+    if (fabsf(v15.w) >= 1.0e-10f) {
+        post_process* pp = &rctx_ptr->post_process;
+        if (apply_offset) {
+            float_t v11 = (1.0f + v15.x * (1.0f / v15.w)) * 0.5f * (float_t)pp->screen_width;
+            float_t v12 = (1.0f - v15.y * (1.0f / v15.w)) * 0.5f * (float_t)pp->screen_height;
+            v11 += (float_t)pp->screen_x_offset;
+            v12 += (float_t)pp->screen_y_offset;
+            pos = { v11, v12 };
+        }
+        else{
+            float_t v11 = (1.0f + v15.x * (1.0f / v15.w)) * 0.5f * (float_t)pp->render_width;
+            float_t v12 = (1.0f - v15.y * (1.0f / v15.w)) * 0.5f * (float_t)pp->render_height;
+            pos = { v11, v12 };
+        }
+        scale = -v15.w;
+    }
+    else {
+        pos = 0.0f;
+        scale = 0.0f;
+    }
 }
 
 struc_209::struc_209() : field_0(), field_4(), field_8(), field_C(), field_10(), field_14(), field_18(),
@@ -14536,7 +14552,7 @@ inline const mot_data* motion_storage_get_mot_data(uint32_t motion_id, motion_da
 
     auto elem = motion_storage_data.find(set_id);
     if (elem != motion_storage_data.end())
-        return &elem->second.mot_set->vec[motion_index];
+        return &elem->second.mot_set->mot_data[motion_index];
     return 0;
 }
 
@@ -14689,10 +14705,8 @@ bool MotFile::CheckNotReady() {
 
 void MotFile::FreeData() {
     mot_set_info = 0;
-    if (mot_set) {
-        delete mot_set;
-        mot_set = 0;
-    }
+    alloc_handler.reset();
+    mot_set = 0;
     file_handler.reset();
     load_count = 0;
 }
@@ -14728,8 +14742,12 @@ void MotFile::LoadFile(std::string* mdata_dir, uint32_t set) {
 }
 
 void MotFile::ParseFile(const void* data, size_t size) {
-    mot_set = new ::mot_set;
-    mot_set->unpack_file(data, size, false);
+    prj::shared_ptr<alloc_data>& alloc = alloc_handler;
+    alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+
+    ::mot_set* set = alloc->allocate<::mot_set>();
+    mot_set = set;
+    set->unpack_file(alloc, data, size, false);
 }
 
 bool MotFile::Unload() {
@@ -17487,7 +17505,7 @@ void TaskRobDisp::Disp() {
         if (pv_osage_manager_array_get_disp(&chara_id))
             continue;
 
-        if (i->get_visibility() && i->data.field_3 >= 0)
+        if (i->is_visible() && i->data.field_3 >= 0)
             rob_disp_rob_chara_disp(i);
     }
 }

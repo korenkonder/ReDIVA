@@ -30,7 +30,7 @@ static const char* dof_vert_shader =
 
 static const char* dof_frag_shader_version = "#version 430 core\n";
 
-static const char* dof_frag_shader_render_tiles_part_2 =
+static const char* dof_frag_shader_render_tile_part_2 =
 "#version 430 core\n"
 "layout(binding = 0) uniform sampler2D g_tile; //r=min_depth_m, g=max_coc_pixel\n"
 "\n"
@@ -150,7 +150,7 @@ static const char* dof_frag_shader_shared =
 "}\n"
 "\n";
 
-static const char* dof_frag_shader_render_tiles_part_1 =
+static const char* dof_frag_shader_render_tile_part_1 =
 "layout(binding = 0) uniform sampler2D g_depth;\n"
 "\n"
 "layout(location = 0) out vec4 result; //r=min_depth_m, g=max_coc_pixel\n"
@@ -610,7 +610,7 @@ namespace renderer {
             GLuint depth_texture, float_t min_distance, float_t max_distance,
             float_t focus, float_t focal_length, float_t fov, float_t f_number);
 
-        static void render_tiles(post_process_dof* dof,
+        static void render_tile(post_process_dof* dof,
             GLuint* samplers, GLuint depth_texture, bool f2);
         static void downsample(post_process_dof* dof,
             GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
@@ -663,7 +663,7 @@ void post_process_dof::apply(render_texture* rt, render_texture* buf, GLuint* sa
                     rob_chara* rob_chr = 0;
                     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
                         rob_chara* rob_chr = rob_chara_array_get(i);
-                        if (!rob_chr->get_visibility())
+                        if (!rob_chr->is_visible())
                             continue;
 
                         mat4 mat;
@@ -852,7 +852,7 @@ static void post_process_dof_free_fbo(post_process_dof* dof) {
 
 static void post_process_dof_load_shaders(post_process_dof* dof) {
     char* frag_shader_string[9];
-    frag_shader_string[0] = str_utils_copy(dof_frag_shader_render_tiles_part_2);
+    frag_shader_string[0] = str_utils_copy(dof_frag_shader_render_tile_part_2);
     for (int32_t i = 0; i < 2; i++) {
         char* t0;
         char* t1;
@@ -861,7 +861,7 @@ static void post_process_dof_load_shaders(post_process_dof* dof) {
 
         t0 = str_utils_copy(dof_frag_shader_version);
         t1 = str_utils_add(t0, shared);
-        frag_shader_string[1 + i * 4] = str_utils_add(t1, dof_frag_shader_render_tiles_part_1);
+        frag_shader_string[1 + i * 4] = str_utils_add(t1, dof_frag_shader_render_tile_part_1);
         free_def(t0);
         free_def(t1);
 
@@ -952,7 +952,7 @@ namespace renderer {
             fov, focus, 0.0f, 1.0f, focus_range, fuzzing_range, ratio);
 
         gl_state_bind_vertex_array(dof->vao);
-        render_tiles(dof, samplers, depth_texture, true);
+        render_tile(dof, samplers, depth_texture, true);
         downsample(dof, samplers, color_texture, depth_texture, true);
         apply_main_filter(dof, samplers, true);
         upsample(dof, rt, buf, samplers, color_texture, depth_texture, true);
@@ -976,7 +976,7 @@ namespace renderer {
             fov, focus, focal_length, f_number, 0.0f, 0.1f, 0.0f);
 
         gl_state_bind_vertex_array(dof->vao);
-        render_tiles(dof, samplers, depth_texture, false);
+        render_tile(dof, samplers, depth_texture, false);
         downsample(dof, samplers, color_texture, depth_texture, false);
         apply_main_filter(dof, samplers, false);
         upsample(dof, rt, buf, samplers, color_texture, depth_texture, false);
@@ -989,7 +989,7 @@ namespace renderer {
         gl_state_bind_vertex_array(0);
     }
 
-    void DOF3::render_tiles(post_process_dof* dof,
+    void DOF3::render_tile(post_process_dof* dof,
         GLuint* samplers, GLuint depth_texture, bool f2) {
         gl_state_bind_framebuffer(dof->fbo[0].buffer);
         glViewport(0, 0, dof->fbo[0].width, dof->fbo[0].height);

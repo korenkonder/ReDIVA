@@ -122,8 +122,6 @@ struct data_struct {
 
 extern data_struct* data_list;
 
-#define DATA_LOAD_FILE_FUNC(f)
-
 extern void data_struct_init();
 extern void data_struct_load(const char* path);
 extern void data_struct_load(const wchar_t* path);

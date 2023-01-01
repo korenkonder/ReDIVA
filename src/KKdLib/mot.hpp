@@ -7,6 +7,8 @@
 
 #include <string>
 #include <vector>
+#include "prj/shared_ptr.hpp"
+#include "alloc_data.hpp"
 #include "default.hpp"
 #include "vec.hpp"
 
@@ -23,22 +25,20 @@ enum mot_key_set_data_type {
 };
 
 struct mot_bone_info {
-    std::string name;
+    const char* name;
     uint16_t index;
 
     mot_bone_info();
-    ~mot_bone_info();
 };
 
 struct mot_key_set_data {
     mot_key_set_type type;
-    std::vector<uint16_t> frames;
-    std::vector<float_t> values;
+    uint16_t* frames;
+    float_t* values;
     uint16_t keys_count : 16;
     mot_key_set_data_type data_type : 16;
 
     mot_key_set_data();
-    ~mot_key_set_data();
 };
 
 struct mot_data {
@@ -56,12 +56,11 @@ struct mot_data {
     uint32_t murmurhash;
     uint16_t div_frames;
     uint8_t div_count;
-    std::string name;
-    std::vector<mot_bone_info> bone_info;
-    std::vector<mot_key_set_data> key_set;
+    const char* name;
+    mot_bone_info* bone_info_array;
+    mot_key_set_data* key_set_array;
 
     mot_data();
-    ~mot_data();
 };
 
 struct mot_set {
@@ -70,15 +69,17 @@ struct mot_set {
     bool big_endian;
     bool is_x;
 
-    std::string name;
-    std::vector<mot_data> vec;
+    const char* name;
+    mot_data* mot_data;
+    uint32_t mot_num;
 
     mot_set();
-    ~mot_set();
 
     void pack_file(void** data, size_t* size);
-    void unpack_file(const void* data, size_t size, bool modern);
+    void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
 
+    static mot_key_set_type fit_keys_into_curve(std::vector<float_t>& values_src,
+        prj::shared_ptr<alloc_data> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count);
     static mot_key_set_type fit_keys_into_curve(std::vector<float_t>& values_src,
         std::vector<uint16_t>& frames, std::vector<float_t>& values);
 };

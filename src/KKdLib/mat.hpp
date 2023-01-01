@@ -180,6 +180,10 @@ inline void mat3_scale(const vec3* s, mat3* d) {
     mat3_scale(s->x, s->y, s->z, d);
 }
 
+inline void mat3_scale_mult(const mat3* s, float_t y, mat3* d) {
+    mat3_scale_mult(s, y, y, y, d);
+}
+
 inline void mat3_scale_mult(const mat3* s, const vec3* y, mat3* d) {
     mat3_scale_mult(s, y->x, y->y, y->z, d);
 }
@@ -196,8 +200,16 @@ inline void mat4_scale(const vec3* s, mat4* d) {
     mat4_scale(s->x, s->y, s->z, d);
 }
 
-inline void mat4_scale_mult(const mat4* s, const vec4* y, mat4* d) {
+inline void mat4_scale_mult(const mat4* s, float_t y, mat4* d) {
+    mat4_scale_mult(s, y, y, y, y, d);
+}
+
+inline void mat4_scale_mult(const mat4* s, vec4* y, mat4* d) {
     mat4_scale_mult(s, y->x, y->y, y->z, y->w, d);
+}
+
+inline void mat4_scale_rot(const mat4* s, const float_t y, mat4* d) {
+    mat4_scale_rot(s, y, y, y, d);
 }
 
 inline void mat4_scale_rot(const mat4* s, const vec3* y, mat4* d) {
