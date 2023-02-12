@@ -5,6 +5,7 @@
 
 #if defined(ReDIVA_DEV)
 #include "data_edit.hpp"
+#include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/ogg_vorbis.hpp"
 #include "../CRE/sound.hpp"

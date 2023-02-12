@@ -6691,16 +6691,16 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 obj_vertex_data* vertex = mesh->vertex_array;
                 for (uint32_t l = 0; l < num_vertex; l++, vertex++) {
                     if (vertex->bone_index.x != -1)
-                        bone_indices.insert(vertex->bone_index.x / 3);
+                        bone_indices.insert(vertex->bone_index.x);
 
                     if (vertex->bone_index.y != -1)
-                        bone_indices.insert(vertex->bone_index.y / 3);
+                        bone_indices.insert(vertex->bone_index.y);
 
                     if (vertex->bone_index.z != -1)
-                        bone_indices.insert(vertex->bone_index.z / 3);
+                        bone_indices.insert(vertex->bone_index.z);
 
                     if (vertex->bone_index.w != -1)
-                        bone_indices.insert(vertex->bone_index.w / 3);
+                        bone_indices.insert(vertex->bone_index.w);
                 }
             }
 
@@ -6736,8 +6736,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     for (uint32_t m = 0; m < num_submesh; m++, sub_mesh++) {
                         x_pv_game_split_auth_3d_hrc_obj_sub_mesh& bone_vertices_sub_mesh
                             = bone_vertices_mesh.sub_meshes[m];
+                        bone_vertices_mesh.vertices.reserve(sub_mesh->num_index);
                     }
-                    bone_vertices_mesh.vertices.reserve(sub_mesh->num_index);
                 }
             }
 
@@ -6755,7 +6755,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     uint32_t num_index = sub_mesh->num_index;
                     for (uint32_t m = 0; m < num_index; m++, index++) {
                         obj_vertex_data vertex = vertex_array[*index];
-                        int32_t bone_index = bone_index_array[vertex.bone_index.x / 3];
+                        int32_t bone_index = bone_index_array[vertex.bone_index.x];
                         x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh
                             = bones_vertices[bone_index].meshes[k];
                         x_pv_game_split_auth_3d_hrc_obj_sub_mesh& bone_vertices_sub_mesh
@@ -6832,13 +6832,23 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
             obj_mesh* mesh_array = src_obj->mesh_array;
             uint32_t num_mesh = src_obj->num_mesh;
-            obj_mesh* mesh_array_new = alloc->allocate<obj_mesh>(num_mesh);
+            uint32_t act_num_mesh = 0;
             for (uint32_t k = 0; k < num_mesh; k++) {
                 x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh
                     = bone_vertices.meshes[k];
+                if (bone_vertices_mesh.vertices.size())
+                    act_num_mesh++;
+            }
+
+            obj_mesh* mesh_array_new = alloc->allocate<obj_mesh>(act_num_mesh);
+            for (uint32_t k = 0, k1 = 0; k < num_mesh; k++) {
+                x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh
+                    = bone_vertices.meshes[k];
+                if (!bone_vertices_mesh.vertices.size())
+                    continue;
 
                 obj_mesh* src_mesh = &mesh_array[k];
-                obj_mesh* dst_mesh = &mesh_array_new[k];
+                obj_mesh* dst_mesh = &mesh_array_new[k1++];
 
                 dst_mesh->flags = src_mesh->flags;
 
@@ -6887,12 +6897,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     aabb_max_mesh = vec3::max(aabb_max_mesh, aabb_max_submesh);
 
                     vec3 center = (aabb_max_submesh + aabb_min_submesh) * 0.5f;
-                    vec3 size = aabb_max_submesh - center;
-
                     dst_submesh->bounding_sphere.center = center;
-                    dst_submesh->bounding_sphere.radius = max_def(size.x, max_def(size.y, size.z)) * (float_t)(M_SQRT2 / 2.0);
+                    dst_submesh->bounding_sphere.radius = vec3::length(aabb_max_submesh - aabb_min_submesh) * 0.5f;
                     dst_submesh->axis_aligned_bounding_box.center = center;
-                    dst_submesh->axis_aligned_bounding_box.size = size;
+                    dst_submesh->axis_aligned_bounding_box.size = aabb_max_submesh - center;
 
 
                     dst_submesh->first_index = 0;
@@ -6908,8 +6916,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 vec3 center = (aabb_max_mesh + aabb_min_mesh) * 0.5f;
                 vec3 size = aabb_max_mesh - center;
 
-                dst_mesh->bounding_sphere.center = center;
-                dst_mesh->bounding_sphere.radius = max_def(size.x, max_def(size.y, size.z)) * (float_t)(M_SQRT2 / 2.0);
+                dst_mesh->bounding_sphere.center = (aabb_max_mesh + aabb_min_mesh) * 0.5f;
+                dst_mesh->bounding_sphere.radius = vec3::length(aabb_max_mesh - aabb_min_mesh) * 0.5f;
 
                 dst_mesh->vertex_format = src_mesh->vertex_format;
                 if (src_mesh->vertex_format & OBJ_VERTEX_BONE_DATA) {
@@ -6930,13 +6938,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 memcpy(dst_mesh->name, src_mesh->name, 0x40);
             }
             dst_obj->mesh_array = mesh_array_new;
-            dst_obj->num_mesh = num_mesh;
+            dst_obj->num_mesh = act_num_mesh;
 
-            vec3 center = (aabb_max_obj + aabb_min_obj) * 0.5f;
-            vec3 size = aabb_max_obj - center;
-
-            dst_obj->bounding_sphere.center = center;
-            dst_obj->bounding_sphere.radius = max_def(size.x, max_def(size.y, size.z)) * (float_t)(M_SQRT2 / 2.0);
+            dst_obj->bounding_sphere.center = (aabb_max_obj + aabb_min_obj) * 0.5f;
+            dst_obj->bounding_sphere.radius = vec3::length(aabb_max_obj - aabb_min_obj) * 0.5f;
 
             obj_material_data* material_array = src_obj->material_array;
             uint32_t num_material = src_obj->num_material;

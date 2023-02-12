@@ -107,15 +107,9 @@ namespace mdl {
 
     enum ObjType {
         OBJ_TYPE_OPAQUE = 0,
-        OBJ_TYPE_OPAQUE_LITPROJ_0,                // Added
-        OBJ_TYPE_OPAQUE_LITPROJ_1,                // Added
         OBJ_TYPE_TRANSLUCENT,
-        OBJ_TYPE_TRANSLUCENT_LITPROJ_0,           // Added
-        OBJ_TYPE_TRANSLUCENT_LITPROJ_1,           // Added
         OBJ_TYPE_TRANSLUCENT_NO_SHADOW,
         OBJ_TYPE_TRANSPARENT,
-        OBJ_TYPE_TRANSPARENT_LITPROJ_0,           // Added
-        OBJ_TYPE_TRANSPARENT_LITPROJ_1,           // Added
         OBJ_TYPE_SHADOW_CHARA,
         OBJ_TYPE_SHADOW_STAGE,
         OBJ_TYPE_TYPE_6,
@@ -273,15 +267,15 @@ namespace mdl {
         int32_t mat_count;
         const mat4* mats;
         GLuint vertex_array;
-        GLuint array_buffer;
-        GLuint element_array_buffer;
+        GLuint vertex_buffer;
+        GLuint index_buffer;
         bool set_blend_color;
         bool chara_color;
         vec4 blend_color;
         vec4 emission;
         bool self_shadow;
         shadow_type_enum shadow;
-        GLuint morph_array_buffer;
+        GLuint morph_vertex_buffer;
         float_t morph_weight;
         int32_t texture_pattern_count;
         texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
@@ -393,8 +387,8 @@ namespace mdl {
 
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat,
             float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
-            std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint array_buffer,
-            GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
+            std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
+            GLuint index_buffer, vec4* blend_color, vec4* emission, int32_t morph_vertex_buffer,
             int32_t instances_count, mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
         void init_translucent(const mat4* mat, ObjTranslucentArgs* translucent);
         void init_user(const mat4* mat, UserArgsFunc func, void* data);
@@ -451,9 +445,9 @@ namespace mdl {
 
     struct DispManager {
         struct vertex_array {
-            GLuint array_buffer;
-            GLuint morph_array_buffer;
-            GLuint element_array_buffer;
+            GLuint vertex_buffer;
+            GLuint morph_vertex_buffer;
+            GLuint index_buffer;
             int32_t alive_time;
             GLuint vertex_array;
             bool vertex_attrib_array[16];

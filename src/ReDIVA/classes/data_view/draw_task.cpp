@@ -11,15 +11,9 @@
 
 static const char* draw_object_type_name[] = {
     "Opaque",
-    "Opaque                  [Show Vector]",
-    "Opaque                  [Show Vector]",
     "Translucent",
-    "Translucent             [Show Vector]",
-    "Translucent             [Show Vector]",
     "Translucent (No Shadow)",
     "Transparent",
-    "Transparent             [Show Vector]",
-    "Transparent             [Show Vector]",
     "Shadow Chara",
     "Shadow Stage",
     "Type 6",

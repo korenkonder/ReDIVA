@@ -163,9 +163,9 @@ namespace rndr {
         if (rctx->litproj->set(rctx)) {
             rctx->obj_scene_ubo.WriteMapMemory(rctx->obj_scene);
 
-            rctx->disp_manager.draw(mdl::OBJ_TYPE_OPAQUE_LITPROJ_0);
-            rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSPARENT_LITPROJ_0);
-            rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSLUCENT_LITPROJ_0);
+            rctx->disp_manager.draw(mdl::OBJ_TYPE_OPAQUE);
+            rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSPARENT);
+            rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSLUCENT);
 
             rctx->draw_state.shader_index = -1;
             uniform_value[U0A] = 0;
@@ -180,12 +180,12 @@ namespace rndr {
 
                 rctx->obj_scene_ubo.WriteMapMemory(rctx->obj_scene);
 
-                rctx->disp_manager.draw(mdl::OBJ_TYPE_OPAQUE_LITPROJ_1);
-                rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSPARENT_LITPROJ_1);
-                rctx->disp_manager.obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_LITPROJ_1, 1);
+                rctx->disp_manager.draw(mdl::OBJ_TYPE_OPAQUE);
+                rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSPARENT);
+                rctx->disp_manager.obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT, 1);
                 gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
                 gl_state_enable_blend();
-                rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSLUCENT_LITPROJ_1);
+                rctx->disp_manager.draw(mdl::OBJ_TYPE_TRANSLUCENT);
                 gl_state_disable_blend();
                 rctx->draw_state.shader_index = -1;
                 gl_state_bind_framebuffer(0);

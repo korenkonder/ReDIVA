@@ -384,7 +384,7 @@ void post_process::draw_lens_flare(camera* cam) {
     sun_quad_ubo.WriteMapMemory(shader_data);
 
     glBeginQuery(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
-    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glEndQuery(GL_SAMPLES_PASSED);
 
     mat4_translate_mult(&cam->view, (vec3*)&v44, &mat);
@@ -399,7 +399,7 @@ void post_process::draw_lens_flare(camera* cam) {
     sun_quad_ubo.WriteMapMemory(shader_data);
 
     glBeginQuery(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
-    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glEndQuery(GL_SAMPLES_PASSED);
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);

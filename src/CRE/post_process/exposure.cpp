@@ -231,7 +231,7 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
         pp->sun_quad_ubo.WriteMapMemory(shader_data);
 
         glBeginQuery(GL_SAMPLES_PASSED, chara->query[next_query_index]);
-        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
         glEndQuery(GL_SAMPLES_PASSED);
 
         if (chara->query_data[next_query_index] == -1)

@@ -156,8 +156,8 @@ texture_transform_struct::texture_transform_struct(uint32_t id, mat4& mat) : id(
 namespace mdl {
     void ObjData::init_sub_mesh(DispManager* disp_manager, const mat4* mat,
         float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
-        std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint array_buffer,
-        GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
+        std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
+        GLuint index_buffer, vec4* blend_color, vec4* emission, int32_t morph_vertex_buffer,
         int32_t instances_count, mat4* instances_mat, void(*func)(const ObjSubMeshArgs*)) {
         kind = mdl::OBJ_KIND_NORMAL;
         this->mat = *mat;
@@ -171,9 +171,9 @@ namespace mdl {
         args->textures = textures;
         args->mat_count = mat_count;
         args->mats = mats;
-        args->array_buffer = array_buffer;
-        args->element_array_buffer = element_array_buffer;
-        args->morph_array_buffer = morph_array_buffer;
+        args->vertex_buffer = vertex_buffer;
+        args->index_buffer = index_buffer;
+        args->morph_vertex_buffer = morph_vertex_buffer;
 
         args->texture_pattern_count = disp_manager->texture_pattern_count;
         for (int32_t i = 0; i < disp_manager->texture_pattern_count && i < TEXTURE_PATTERN_COUNT; i++)
@@ -355,9 +355,9 @@ namespace mdl {
         const obj_sub_mesh* sub_mesh = args->sub_mesh;
         const obj_material_data* material = args->material;
 
-        GLuint array_buffer = args->array_buffer;
-        GLuint morph_array_buffer = args->morph_array_buffer;
-        GLuint element_array_buffer = args->element_array_buffer;
+        GLuint vertex_buffer = args->vertex_buffer;
+        GLuint morph_vertex_buffer = args->morph_vertex_buffer;
+        GLuint index_buffer = args->index_buffer;
 
         int32_t texcoord_array[2] = { -1, -1 };
         int32_t color_tex_index = 0;
@@ -386,8 +386,9 @@ namespace mdl {
 
         DispManager::vertex_array* vertex_array = 0;
         for (DispManager::vertex_array& i : vertex_array_cache)
-            if (i.alive_time >= 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer
-                && i.element_array_buffer == element_array_buffer && i.vertex_format == vertex_format
+            if (i.alive_time >= 0 && i.vertex_buffer == vertex_buffer
+                && i.morph_vertex_buffer == morph_vertex_buffer
+                && i.index_buffer == index_buffer && i.vertex_format == vertex_format
                 && i.size_vertex == size_vertex && i.compressed == compressed
                 && !memcmp(i.vertex_attrib_buffer_binding,
                     vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
@@ -436,9 +437,9 @@ namespace mdl {
             glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
         }
 
-        vertex_array->array_buffer = array_buffer;
-        vertex_array->morph_array_buffer = morph_array_buffer;
-        vertex_array->element_array_buffer = element_array_buffer;
+        vertex_array->vertex_buffer = vertex_buffer;
+        vertex_array->morph_vertex_buffer = morph_vertex_buffer;
+        vertex_array->index_buffer = index_buffer;
         vertex_array->alive_time = 60;
         vertex_array->vertex_format = vertex_format;
         vertex_array->size_vertex = size_vertex;
@@ -448,9 +449,9 @@ namespace mdl {
             vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
 
         gl_state_bind_vertex_array(vertex_array->vertex_array);
-        gl_state_bind_array_buffer(array_buffer);
-        if (element_array_buffer)
-            gl_state_bind_element_array_buffer(element_array_buffer, true);
+        gl_state_bind_array_buffer(vertex_buffer);
+        if (index_buffer)
+            gl_state_bind_element_array_buffer(index_buffer, true);
 
         size_t offset = 0;
         if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -639,8 +640,8 @@ namespace mdl {
             vertex_array->vertex_attrib_array[UNKNOWN_INDEX] = false;
         }
 
-        if (morph_array_buffer) {
-            gl_state_bind_array_buffer(morph_array_buffer);
+        if (morph_vertex_buffer) {
+            gl_state_bind_array_buffer(morph_vertex_buffer);
 
             offset = 0;
             if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -835,7 +836,7 @@ namespace mdl {
 
         gl_state_bind_array_buffer(0);
         gl_state_bind_vertex_array(0);
-        if (element_array_buffer)
+        if (index_buffer)
             gl_state_bind_element_array_buffer(0);
     }
 
@@ -893,8 +894,8 @@ namespace mdl {
     void DispManager::check_vertex_arrays() {
         for (DispManager::vertex_array& i : vertex_array_cache)
             if (i.alive_time > 0 && --i.alive_time <= 0) {
-                i.array_buffer = 0;
-                i.morph_array_buffer = 0;
+                i.vertex_buffer = 0;
+                i.morph_vertex_buffer = 0;
             }
     }
 
@@ -1240,6 +1241,12 @@ namespace mdl {
         std::vector<texture*>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
         obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
         mat4* instances_mat, void(*func)(const ObjSubMeshArgs*), bool enable_bone_mat, bool local) {
+        if (!obj_vertex_buf || !obj_index_buf) {
+            printf_debug("mdl::DispManager::entry_obj: no vertex or index object buffer to draw;\n");
+            printf_debug("    Object: %s\n", object->name);
+            return false;
+        }
+
         ::camera* cam = rctx_ptr->camera;
         cam->update_data();
 
@@ -1347,17 +1354,23 @@ namespace mdl {
                 if (!data)
                     continue;
 
-                GLuint morph_array_buffer = 0;
+                GLuint morph_vertex_buffer = 0;
                 if (obj_morph_vertex_buf)
-                    morph_array_buffer = obj_morph_vertex_buf[i].get_buffer();
+                    morph_vertex_buffer = obj_morph_vertex_buf[i].get_buffer();
 
-                GLuint element_array_buffer = 0;
+                GLuint index_buffer = 0;
                 if (obj_index_buf)
-                    element_array_buffer = obj_index_buf[i].buffer;
+                    index_buffer = obj_index_buf[i].buffer;
 
-                GLuint array_buffer = 0;
+                GLuint vertex_buffer = 0;
                 if (obj_vertex_buf)
-                    array_buffer = obj_vertex_buf[i].get_buffer();
+                    vertex_buffer = obj_vertex_buf[i].get_buffer();
+
+                if (!vertex_buffer || !index_buffer || obj_morph_vertex_buf && !morph_vertex_buffer) {
+                    printf_debug("mdl::DispManager::entry_obj: no vertex or index mesh buffer to draw;\n");
+                    printf_debug("    Object: %s; Mesh: %s; Sub Mesh: %d\n", object->name, mesh->name, j);
+                    continue;
+                }
 
                 uint32_t material_hash = hash_utf8_murmurhash(material->material.name);
 
@@ -1431,8 +1444,8 @@ namespace mdl {
                 }
 
                 data->init_sub_mesh(this, mat, object->bounding_sphere.radius, sub_mesh,
-                    mesh, material, textures, num_bone_index, mats, array_buffer, element_array_buffer,
-                    &_blend_color, &_emission, morph_array_buffer, instances_count, instances_mat, func);
+                    mesh, material, textures, num_bone_index, mats, vertex_buffer, index_buffer,
+                    &_blend_color, &_emission, morph_vertex_buffer, instances_count, instances_mat, func);
 
                 if (obj_flags & mdl::OBJ_SHADOW_OBJECT) {
                     entry_list((ObjType)(OBJ_TYPE_SHADOW_OBJECT_CHARA
@@ -1535,11 +1548,8 @@ namespace mdl {
                                 || obj_flags & mdl::OBJ_TRANSLUCENT_NO_SHADOW) {
                                 entry_list(OBJ_TYPE_TRANSLUCENT_NO_SHADOW, data);
                             }
-                            else {
+                            else
                                 entry_list(OBJ_TYPE_TRANSLUCENT, data);
-                                entry_list(OBJ_TYPE_TRANSLUCENT_LITPROJ_0, data);
-                                entry_list(OBJ_TYPE_TRANSLUCENT_LITPROJ_1, data);
-                            }
                         else if (translucent_priority_count < 40)
                             translucent_priority[translucent_priority_count++] = &data->args.sub_mesh;
                     }
@@ -1729,9 +1739,9 @@ namespace mdl {
         const obj_sub_mesh* sub_mesh = args->sub_mesh;
         const obj_material_data* material = args->material;
 
-        GLuint array_buffer = args->array_buffer;
-        GLuint morph_array_buffer = args->morph_array_buffer;
-        GLuint element_array_buffer = args->element_array_buffer;
+        GLuint vertex_buffer = args->vertex_buffer;
+        GLuint morph_vertex_buffer = args->morph_vertex_buffer;
+        GLuint index_buffer = args->index_buffer;
 
         int32_t texcoord_array[2] = { -1, -1 };
         int32_t color_tex_index = 0;
@@ -1760,8 +1770,9 @@ namespace mdl {
 
         DispManager::vertex_array* vertex_array = 0;
         for (DispManager::vertex_array& i : vertex_array_cache)
-            if (i.alive_time > 0 && i.array_buffer == array_buffer && i.morph_array_buffer == morph_array_buffer
-                && i.element_array_buffer == element_array_buffer && i.vertex_format == vertex_format
+            if (i.alive_time > 0 && i.vertex_buffer == vertex_buffer
+                && i.morph_vertex_buffer == morph_vertex_buffer
+                && i.index_buffer == index_buffer && i.vertex_format == vertex_format
                 && i.size_vertex == size_vertex && i.compressed == compressed
                 && !memcmp(i.vertex_attrib_buffer_binding,
                     vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
@@ -2975,51 +2986,51 @@ static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshA
     const obj_mesh* mesh = args->mesh;
     const obj_sub_mesh* sub_mesh = args->sub_mesh;
 
-    GLuint array_buffer = args->array_buffer;
-    GLuint morph_array_buffer = args->morph_array_buffer;
+    GLuint vertex_buffer = args->vertex_buffer;
+    GLuint morph_vertex_buffer = args->morph_vertex_buffer;
 
     bool compressed = mesh->attrib.m.compressed;
     GLsizei size_vertex = (GLsizei)mesh->size_vertex;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
     if (vertex_format & OBJ_VERTEX_POSITION)
-        vertex_attrib_buffer_binding[POSITION_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[POSITION_INDEX] = vertex_buffer;
     if (vertex_format & OBJ_VERTEX_NORMAL)
-        vertex_attrib_buffer_binding[NORMAL_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[NORMAL_INDEX] = vertex_buffer;
     if (vertex_format & OBJ_VERTEX_TANGENT)
-        vertex_attrib_buffer_binding[TANGENT_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[TANGENT_INDEX] = vertex_buffer;
 
     for (int32_t i = 0; i < 2; i++) {
         int32_t texcoord_index = texcoord_array[i];
         if (texcoord_index >= 0)
             if (vertex_format & (OBJ_VERTEX_TEXCOORD0 << texcoord_index))
-                vertex_attrib_buffer_binding[TEXCOORD0_INDEX + i] = array_buffer;
+                vertex_attrib_buffer_binding[TEXCOORD0_INDEX + i] = vertex_buffer;
     }
 
     if (vertex_format & OBJ_VERTEX_COLOR0)
-        vertex_attrib_buffer_binding[COLOR0_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[COLOR0_INDEX] = vertex_buffer;
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-        vertex_attrib_buffer_binding[BONE_WEIGHT_INDEX] = array_buffer;
-        vertex_attrib_buffer_binding[BONE_INDEX_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[BONE_WEIGHT_INDEX] = vertex_buffer;
+        vertex_attrib_buffer_binding[BONE_INDEX_INDEX] = vertex_buffer;
     }
 
     if (!compressed && vertex_format & OBJ_VERTEX_UNKNOWN)
-        vertex_attrib_buffer_binding[UNKNOWN_INDEX] = array_buffer;
+        vertex_attrib_buffer_binding[UNKNOWN_INDEX] = vertex_buffer;
 
-    if (args->morph_array_buffer) {
+    if (args->morph_vertex_buffer) {
         if (vertex_format & OBJ_VERTEX_POSITION)
-            vertex_attrib_buffer_binding[MORPH_POSITION_INDEX] = morph_array_buffer;
+            vertex_attrib_buffer_binding[MORPH_POSITION_INDEX] = morph_vertex_buffer;
         if (vertex_format & OBJ_VERTEX_NORMAL)
-            vertex_attrib_buffer_binding[MORPH_NORMAL_INDEX] = morph_array_buffer;
+            vertex_attrib_buffer_binding[MORPH_NORMAL_INDEX] = morph_vertex_buffer;
         if (vertex_format & OBJ_VERTEX_TANGENT)
-            vertex_attrib_buffer_binding[MORPH_TANGENT_INDEX] = morph_array_buffer;
+            vertex_attrib_buffer_binding[MORPH_TANGENT_INDEX] = morph_vertex_buffer;
         if (vertex_format & OBJ_VERTEX_TEXCOORD0)
-            vertex_attrib_buffer_binding[MORPH_TEXCOORD0_INDEX] = morph_array_buffer;
+            vertex_attrib_buffer_binding[MORPH_TEXCOORD0_INDEX] = morph_vertex_buffer;
         if (vertex_format & OBJ_VERTEX_TEXCOORD1)
-            vertex_attrib_buffer_binding[MORPH_TEXCOORD1_INDEX] = morph_array_buffer;
+            vertex_attrib_buffer_binding[MORPH_TEXCOORD1_INDEX] = morph_vertex_buffer;
         if (vertex_format & OBJ_VERTEX_COLOR0)
-            vertex_attrib_buffer_binding[MORPH_COLOR_INDEX] = morph_array_buffer;
+            vertex_attrib_buffer_binding[MORPH_COLOR_INDEX] = morph_vertex_buffer;
     }
 }
 

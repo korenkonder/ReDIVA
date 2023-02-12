@@ -897,7 +897,7 @@ static void draw_object_vertex_attrib_reset_default(const mdl::ObjSubMeshArgs* a
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
-    if (args->morph_array_buffer) {
+    if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 0;
         uniform_value[U_MORPH_COLOR] = 0;
     }
@@ -915,7 +915,7 @@ static void draw_object_vertex_attrib_reset_reflect(const mdl::ObjSubMeshArgs* a
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
         uniform_value[U_BONE_MAT] = 0;
 
-    if (args->morph_array_buffer) {
+    if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 0;
         uniform_value[U_MORPH_COLOR] = 0;
     }
@@ -965,7 +965,7 @@ static void draw_object_vertex_attrib_set_default(render_context* rctx, const md
     else
         uniform_value[U_BONE_MAT] = 0;
 
-    if (args->morph_array_buffer) {
+    if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
@@ -1010,7 +1010,7 @@ static void draw_object_vertex_attrib_set_reflect(render_context* rctx, const md
     else
         uniform_value[U_BONE_MAT] = 0;
 
-    if (args->morph_array_buffer) {
+    if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 1;
 
         if (vertex_format & OBJ_VERTEX_COLOR0)
