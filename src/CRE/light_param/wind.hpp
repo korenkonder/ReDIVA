@@ -31,17 +31,17 @@ struct wind {
     wind();
     ~wind();
 
-    float_t get_scale();
+    float_t get_scale() const;
     void set_scale(float_t value);
-    float_t get_cycle();
+    float_t get_cycle() const;
     void set_cycle(float_t value);
-    void get_rot(vec2* value);
+    void get_rot(vec2* value) const;
     void set_rot(vec2* value);
-    float_t get_rot_y();
+    float_t get_rot_y() const;
     void set_rot_y(float_t value);
-    float_t get_rot_z();
+    float_t get_rot_z() const;
     void set_rot_z(float_t value);
-    float_t get_bias();
+    float_t get_bias() const;
     void set_bias(float_t value);
     void reset();
 };

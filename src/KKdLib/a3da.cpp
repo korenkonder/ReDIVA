@@ -90,102 +90,6 @@ static void a3dc_write_a3da_vec3(stream& s, a3da_vec3& value);
 static void a3dc_read_a3da_vec3_f16(void* data, size_t size, a3da_vec3* value, a3da_compress_f16 f16);
 static void a3dc_write_a3da_vec3_f16(stream& s, a3da_vec3& value, a3da_compress_f16 f16);
 
-a3da::a3da() : ready(), compressed(), format(), _compress_f16(),
-_file_name(), _property_version(), _converter_version() {
-
-}
-
-a3da::~a3da() {
-
-}
-
-void a3da::read(const char* path) {
-    if (!path)
-        return;
-
-    char* path_a3da = str_utils_add(path, (char*)".a3da");
-    if (path_check_file_exists(path_a3da)) {
-        file_stream s;
-        s.open(path_a3da, "rb");
-        if (s.check_not_null())
-            a3da_read_inner(this, s);
-    }
-    free_def(path_a3da);
-}
-
-void a3da::read(const wchar_t* path) {
-    if (!path)
-        return;
-
-    wchar_t* path_a3da = str_utils_add(path, (wchar_t*)L".a3da");
-    if (path_check_file_exists(path_a3da)) {
-        file_stream s;
-        s.open(path_a3da, L"rb");
-        if (s.check_not_null())
-            a3da_read_inner(this, s);
-    }
-    free_def(path_a3da);
-}
-
-void a3da::read(const void* data, size_t size) {
-    if (!data || !size)
-        return;
-
-    memory_stream s;
-    s.open(data, size);
-    a3da_read_inner(this, s);
-}
-
-void a3da::write(const char* path) {
-    if (!path || !ready)
-        return;
-
-    char* path_a3da = str_utils_add(path, ".a3da");
-    file_stream s;
-    s.open(path_a3da, "wb");
-    if (s.check_not_null())
-        a3da_write_inner(this, s);
-    free_def(path_a3da);
-}
-
-void a3da::write(const wchar_t* path) {
-    if (!path || !ready)
-        return;
-
-    wchar_t* path_a3da = str_utils_add(path, L".a3da");
-    file_stream s;
-    s.open(path_a3da, L"wb");
-    if (s.check_not_null())
-        a3da_write_inner(this, s);
-    free_def(path_a3da);
-}
-
-void a3da::write(void** data, size_t* size) {
-    if (!data || !size || !ready)
-        return;
-
-    memory_stream s;
-    a3da_write_inner(this, s);
-    s.copy(data, size);
-}
-
-bool a3da::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    size_t file_len = utf8_length(file);
-
-    const char* t = strrchr(file, '.');
-    if (t)
-        file_len = t - file;
-
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
-
-    a3da* a = (a3da*)data;
-    a->read(s.c_str());
-
-    return a->ready;
-}
-
 a3da_key::a3da_key() : flags(), bin_offset(), type(), ep_type_pre(), ep_type_post(), max_frame(),
 raw_data(), raw_data_binary(), raw_data_value_list_size(), raw_data_value_list_offset(), value() {
 }
@@ -386,6 +290,102 @@ a3da_post_process::a3da_post_process() : flags() {
 
 a3da_post_process::~a3da_post_process() {
 
+}
+
+a3da::a3da() : ready(), compressed(), format(), _compress_f16(),
+_file_name(), _property_version(), _converter_version() {
+
+}
+
+a3da::~a3da() {
+
+}
+
+void a3da::read(const char* path) {
+    if (!path)
+        return;
+
+    char* path_a3da = str_utils_add(path, (char*)".a3da");
+    if (path_check_file_exists(path_a3da)) {
+        file_stream s;
+        s.open(path_a3da, "rb");
+        if (s.check_not_null())
+            a3da_read_inner(this, s);
+    }
+    free_def(path_a3da);
+}
+
+void a3da::read(const wchar_t* path) {
+    if (!path)
+        return;
+
+    wchar_t* path_a3da = str_utils_add(path, (wchar_t*)L".a3da");
+    if (path_check_file_exists(path_a3da)) {
+        file_stream s;
+        s.open(path_a3da, L"rb");
+        if (s.check_not_null())
+            a3da_read_inner(this, s);
+    }
+    free_def(path_a3da);
+}
+
+void a3da::read(const void* data, size_t size) {
+    if (!data || !size)
+        return;
+
+    memory_stream s;
+    s.open(data, size);
+    a3da_read_inner(this, s);
+}
+
+void a3da::write(const char* path) {
+    if (!path || !ready)
+        return;
+
+    char* path_a3da = str_utils_add(path, ".a3da");
+    file_stream s;
+    s.open(path_a3da, "wb");
+    if (s.check_not_null())
+        a3da_write_inner(this, s);
+    free_def(path_a3da);
+}
+
+void a3da::write(const wchar_t* path) {
+    if (!path || !ready)
+        return;
+
+    wchar_t* path_a3da = str_utils_add(path, L".a3da");
+    file_stream s;
+    s.open(path_a3da, L"wb");
+    if (s.check_not_null())
+        a3da_write_inner(this, s);
+    free_def(path_a3da);
+}
+
+void a3da::write(void** data, size_t* size) {
+    if (!data || !size || !ready)
+        return;
+
+    memory_stream s;
+    a3da_write_inner(this, s);
+    s.copy(data, size);
+}
+
+bool a3da::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+    size_t file_len = utf8_length(file);
+
+    const char* t = strrchr(file, '.');
+    if (t)
+        file_len = t - file;
+
+    std::string s;
+    s.assign(path);
+    s.append(file, file_len);
+
+    a3da* a = (a3da*)data;
+    a->read(s.c_str());
+
+    return a->ready;
 }
 
 static void a3da_read_inner(a3da* a, stream& s) {
@@ -618,9 +618,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
 
     int32_t count;
     if (kv.read("ambient", "length", count)) {
-        std::vector<a3da_ambient>& va = a->ambient;
-
-        va.resize(count);
+        a->ambient.resize(count);
+        a3da_ambient* va = a->ambient.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -638,9 +637,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("auth_2d", "length", count)) {
-        std::vector<std::string>& va2 = a->auth_2d;
-
-        va2.resize(count);
+        a->auth_2d.resize(count);
+        std::string* va2 = a->auth_2d.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -652,9 +650,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("camera_root", "length", count)) {
-        std::vector<a3da_camera_root>& vcr = a->camera_root;
-
-        vcr.resize(count);
+        a->camera_root.resize(count);
+        a3da_camera_root* vcr = a->camera_root.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -693,9 +690,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("chara", "length", count)) {
-        std::vector<a3da_chara>& vc = a->chara;
-
-        vc.resize(count);
+        a->chara.resize(count);
+        a3da_chara* vc = a->chara.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -710,9 +706,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("curve", "length", count)) {
-        std::vector<a3da_curve>& vc = a->curve;
-
-        vc.resize(count);
+        a->curve.resize(count);
+        a3da_curve* vc = a->curve.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -727,9 +722,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("event", "length", count)) {
-        std::vector<a3da_event>& ve = a->event;
-
-        ve.resize(count);
+        a->event.resize(count);
+        a3da_event* ve = a->event.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -754,9 +748,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("fog", "length", count)) {
-        std::vector<a3da_fog>& vf = a->fog;
-
-        vf.resize(count);
+        a->fog.resize(count);
+        a3da_fog* vf = a->fog.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -790,9 +783,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("light", "length", count)) {
-        std::vector<a3da_light>& vl = a->light;
-
-        vl.resize(count);
+        a->light.resize(count);
+        a3da_light* vl = a->light.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -837,9 +829,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("m_objhrc", "length", count)) {
-        std::vector<a3da_m_object_hrc>& vmoh = a->m_object_hrc;
-
-        vmoh.resize(count);
+        a->m_object_hrc.resize(count);
+        a3da_m_object_hrc* vmoh = a->m_object_hrc.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -847,9 +838,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
             a3da_m_object_hrc* moh = &vmoh[i];
             int32_t count;
             if (kv.read("instance", "length", count)) {
-                std::vector<a3da_object_instance>& voi = moh->instance;
-
-                voi.resize(count);
+                moh->instance.resize(count);
+                a3da_object_instance* voi = moh->instance.data();
                 for (int32_t j = 0; j < count; j++) {
                     if (!kv.open_scope_fmt(j))
                         continue;
@@ -869,9 +859,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
             kv.read("name", moh->name);
 
             if (kv.read("node", "length", count)) {
-                std::vector<a3da_object_node>& von = moh->node;
-
-                von.resize(count);
+                moh->node.resize(count);
+                a3da_object_node* von = moh->node.data();
                 for (int32_t j = 0; j < count; j++) {
                     if (!kv.open_scope_fmt(j))
                         continue;
@@ -894,9 +883,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("m_objhrc_list", "length", count)) {
-        std::vector<std::string>& vmohl = a->m_object_hrc_list;
-
-        vmohl.resize(count);
+        a->m_object_hrc_list.resize(count);
+        std::string* vmohl = a->m_object_hrc_list.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -908,9 +896,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("material_list", "length", count)) {
-        std::vector<a3da_material_list>& vml = a->material_list;
-
-        vml.resize(count);
+        a->material_list.resize(count);
+        a3da_material_list* vml = a->material_list.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -930,9 +917,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("motion", "length", count)) {
-        std::vector<std::string>& vm = a->motion;
-
-        vm.resize(count);
+        a->motion.resize(count);
+        std::string* vm = a->motion.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -944,9 +930,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("object", "length", count)) {
-        std::vector<a3da_object>& vo = a->object;
-
-        vo.resize(count);
+        a->object.resize(count);
+        a3da_object* vo = a->object.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -963,9 +948,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
 
             int32_t count;
             if (kv.read("tex_pat", "length", count)) {
-                std::vector<a3da_object_texture_pattern>& votp = o->texture_pattern;
-
-                votp.resize(count);
+                o->texture_pattern.resize(count);
+                a3da_object_texture_pattern* votp = o->texture_pattern.data();
                 for (int32_t j = 0; j < count; j++) {
                     if (!kv.open_scope_fmt(j))
                         continue;
@@ -981,9 +965,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
             }
 
             if (kv.read("tex_transform", "length", count)) {
-                std::vector<a3da_object_texture_transform>& vott = o->texture_transform;
-
-                vott.resize(count);
+                o->texture_transform.resize(count);
+                a3da_object_texture_transform* vott = o->texture_transform.data();
                 for (int32_t j = 0; j < count; j++) {
                     if (!kv.open_scope_fmt(j))
                         continue;
@@ -1024,9 +1007,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("object_list", "length", count)) {
-        std::vector<std::string>& vol = a->object_list;
-
-        vol.resize(count);
+        a->object_list.resize(count);
+        std::string* vol = a->object_list.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -1038,9 +1020,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("objhrc", "length", count)) {
-        std::vector<a3da_object_hrc>& voh = a->object_hrc;
-
-        voh.resize(count);
+        a->object_hrc.resize(count);
+        a3da_object_hrc* voh = a->object_hrc.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -1050,9 +1031,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
 
             int32_t count;
             if (kv.read("node", "length", count)) {
-                std::vector<a3da_object_node>& vohn = oh->node;
-
-                vohn.resize(count);
+                oh->node.resize(count);
+                a3da_object_node* vohn = oh->node.data();
                 for (int32_t j = 0; j < count; j++) {
                     if (!kv.open_scope_fmt(j))
                         continue;
@@ -1080,9 +1060,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("objhrc_list", "length", count)) {
-        std::vector<std::string>& vohl = a->object_hrc_list;
-
-        vohl.resize(count);
+        a->object_hrc_list.resize(count);
+        std::string* vohl = a->object_hrc_list.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -1094,9 +1073,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
     }
 
     if (kv.read("point", "length", count)) {
-        std::vector<a3da_point>& vp = a->point;
-
-        vp.resize(count);
+        a->point.resize(count);
+        a3da_point* vp = a->point.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -1144,14 +1122,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->ambient.size() && a->format == A3DA_FORMAT_MGF) {
         kv.open_scope("ambient");
 
-        std::vector<a3da_ambient>& va = a->ambient;
-        int32_t count = (int32_t)va.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->ambient.size();
+        a3da_ambient* va = a->ambient.data();
 
-            a3da_ambient* a = &va[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_ambient* a = &va[sort_index_data[i]];
             if (a->flags & A3DA_AMBIENT_LIGHT_DIFFUSE)
                 key_val_out_write(&kv, s, "light.Diffuse", a->light_diffuse);
             kv.write(s, "name", a->name);
@@ -1168,13 +1148,15 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->auth_2d.size()) {
         kv.open_scope("auth_2d");
 
-        std::vector<std::string>& va2 = a->auth_2d;
-        int32_t count = (int32_t)va2.size();
+        int32_t count = (int32_t)a->auth_2d.size();
+        std::string* va2 = a->auth_2d.data();
+
         std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
-            kv.write(s, "name", va2[sort_index[i]]);
+            kv.open_scope_fmt(sort_index_data[i]);
+            kv.write(s, "name", va2[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1211,14 +1193,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->camera_root.size() > 0) {
         kv.open_scope("camera_root");
 
-        std::vector<a3da_camera_root>& vcr = a->camera_root;
-        int32_t count = (int32_t)vcr.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->camera_root.size();
+        a3da_camera_root* vcr = a->camera_root.data();
 
-            a3da_camera_root* cr = &vcr[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_camera_root* cr = &vcr[sort_index_data[i]];
             key_val_out_write(&kv, s, "interest", cr->interest, 0x1F);
             key_val_out_write(&kv, s, "", cr->model_transform, 0x1E);
 
@@ -1256,14 +1240,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->chara.size() > 0) {
         kv.open_scope("chara");
 
-        std::vector<a3da_chara>& vc = a->chara;
-        int32_t count = (int32_t)vc.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->chara.size();
+        a3da_chara* vc = a->chara.data();
 
-            a3da_chara* c = &vc[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_chara* c = &vc[sort_index_data[i]];
             kv.write(s, "name", c->name);
             key_val_out_write(&kv, s, "", c->model_transform);
 
@@ -1277,14 +1263,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->curve.size() > 0) {
         kv.open_scope("curve");
 
-        std::vector<a3da_curve>& vc = a->curve;
-        int32_t count = (int32_t)vc.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->curve.size();
+        a3da_curve* vc = a->curve.data();
 
-            a3da_curve* c = &vc[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_curve* c = &vc[sort_index_data[i]];
             key_val_out_write(&kv, s, "cv", c->curve);
             kv.write(s, "name", c->name);
 
@@ -1308,14 +1296,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->event.size() > 0) {
         kv.open_scope("event");
 
-        std::vector<a3da_event>& ve = a->event;
-        int32_t count = (int32_t)ve.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->event.size();
+        a3da_event* ve = a->event.data();
 
-            a3da_event* e = &ve[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_event* e = &ve[sort_index_data[i]];
             kv.write(s, "begin", e->begin);
             kv.write(s, "clip_begin", e->clip_begin);
             kv.write(s, "clip_en", e->clip_end);
@@ -1336,14 +1326,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->fog.size() > 0) {
         kv.open_scope("fog");
 
-        std::vector<a3da_fog>& vf = a->fog;
-        int32_t count = (int32_t)vf.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->fog.size();
+        a3da_fog* vf = a->fog.data();
 
-            a3da_fog* f = &vf[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_fog* f = &vf[sort_index_data[i]];
             if (f->flags & A3DA_FOG_COLOR)
                 key_val_out_write(&kv, s, "Diffuse", f->color);
             if (f->flags & A3DA_FOG_DENSITY)
@@ -1366,14 +1358,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
 
         bool xhd = a->format == A3DA_FORMAT_XHD;
 
-        std::vector<a3da_light>& vl = a->light;
-        int32_t count = (int32_t)vl.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->light.size();
+        a3da_light* vl = a->light.data();
 
-            a3da_light* l = &vl[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_light* l = &vl[sort_index_data[i]];
             if (l->flags & A3DA_LIGHT_AMBIENT)
                 key_val_out_write(&kv, s, "Ambient", l->ambient);
             if (l->flags & A3DA_LIGHT_CONSTANT && xhd)
@@ -1435,25 +1429,29 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->m_object_hrc.size() > 0) {
         kv.open_scope("m_objhrc");
 
-        std::vector<a3da_m_object_hrc>& vmoh = a->m_object_hrc;
-        int32_t count = (int32_t)vmoh.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->m_object_hrc.size();
+        a3da_m_object_hrc* vmoh = a->m_object_hrc.data();
 
-            a3da_m_object_hrc* moh = &vmoh[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_m_object_hrc* moh = &vmoh[sort_index_data[i]];
             if (moh->instance.size()) {
                 kv.open_scope("instance");
 
-                std::vector<a3da_object_instance>& voi = moh->instance;
-                int32_t count = (int32_t)voi.size();
-                std::vector<int32_t> sort_index;
-                key_val_out::get_lexicographic_order(&sort_index, count);
-                for (int32_t j = 0; j < count; j++) {
-                    kv.open_scope_fmt(sort_index[j]);
+                int32_t count = (int32_t)moh->instance.size();
+                a3da_object_instance* voi = moh->instance.data();
 
-                    a3da_object_instance* oi = &voi[sort_index[j]];
+                std::vector<int32_t> sort_index;
+                key_val_out::get_lexicographic_order(sort_index, count);
+                int32_t* sort_index_data = sort_index.data();
+                for (int32_t j = 0; j < count; j++) {
+                    kv.open_scope_fmt(sort_index_data[j]);
+
+                    a3da_object_instance* oi = &voi[sort_index_data[j]];
                     key_val_out_write(&kv, s, "", oi->model_transform, 0x10);
                     kv.write(s, "name", oi->name);
                     key_val_out_write(&kv, s, "", oi->model_transform, 0x0C);
@@ -1475,14 +1473,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             if (moh->node.size()) {
                 kv.open_scope("node");
 
-                std::vector<a3da_object_node>& von = moh->node;
-                int32_t count = (int32_t)von.size();
-                std::vector<int32_t> sort_index;
-                key_val_out::get_lexicographic_order(&sort_index, count);
-                for (int32_t j = 0; j < count; j++) {
-                    kv.open_scope_fmt(sort_index[j]);
+                int32_t count = (int32_t)moh->node.size();
+                a3da_object_node* von = moh->node.data();
 
-                    a3da_object_node* on = &von[sort_index[j]];
+                std::vector<int32_t> sort_index;
+                key_val_out::get_lexicographic_order(sort_index, count);
+                int32_t* sort_index_data = sort_index.data();
+                for (int32_t j = 0; j < count; j++) {
+                    kv.open_scope_fmt(sort_index_data[j]);
+
+                    a3da_object_node* on = &von[sort_index_data[j]];
                     key_val_out_write(&kv, s, "", on->model_transform, 0x10);
                     if (on->flags & A3DA_OBJECT_NODE_JOINT_ORIENT)
                         kv.write(s, "joint_orient", on->joint_orient);
@@ -1509,13 +1509,15 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->m_object_hrc_list.size()) {
         kv.open_scope("m_objhrc_list");
 
-        std::vector<std::string>& vmohl = a->m_object_hrc_list;
-        int32_t count = (int32_t)vmohl.size();
+        int32_t count = (int32_t)a->m_object_hrc_list.size();
+        std::string* vmohl = a->m_object_hrc_list.data();
+
         std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
-            kv.write(s, "name", vmohl[sort_index[i]]);
+            kv.open_scope_fmt(sort_index_data[i]);
+            kv.write(s, "name", vmohl[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1526,14 +1528,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->material_list.size() > 0 && (a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD)) {
         kv.open_scope("material_list");
 
-        std::vector<a3da_material_list>& vml = a->material_list;
-        int32_t count = (int32_t)vml.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->material_list.size();
+        a3da_material_list* vml = a->material_list.data();
 
-            a3da_material_list* ml = &vml[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_material_list* ml = &vml[sort_index_data[i]];
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_out_write(&kv, s, "blend_color", ml->blend_color);
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
@@ -1553,13 +1557,15 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->motion.size()) {
         kv.open_scope("motion");
 
-        std::vector<std::string>& vm = a->motion;
-        int32_t count = (int32_t)vm.size();
+        int32_t count = (int32_t)a->motion.size();
+        std::string* vm = a->motion.data();
+
         std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
-            kv.write(s, "name", vm[sort_index[i]]);
+            kv.open_scope_fmt(sort_index_data[i]);
+            kv.write(s, "name", vm[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1570,14 +1576,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->object.size() > 0) {
         kv.open_scope("object");
 
-        std::vector<a3da_object>& vo = a->object;
-        int32_t count = (int32_t)vo.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->object.size();
+        a3da_object* vo = a->object.data();
 
-            a3da_object* o = &vo[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_object* o = &vo[sort_index_data[i]];
             key_val_out_write(&kv, s, "", o->model_transform, 0x10);
             if (o->morph.size()) {
                 kv.write(s, "morph", o->morph);
@@ -1595,14 +1603,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             if (o->texture_pattern.size()) {
                 kv.open_scope("tex_pat");
 
-                std::vector<a3da_object_texture_pattern>& votp = o->texture_pattern;
-                int32_t count = (int32_t)votp.size();
-                std::vector<int32_t> sort_index;
-                key_val_out::get_lexicographic_order(&sort_index, count);
-                for (int32_t j = 0; j < count; j++) {
-                    kv.open_scope_fmt(sort_index[j]);
+                int32_t count = (int32_t)o->texture_pattern.size();
+                a3da_object_texture_pattern* votp = o->texture_pattern.data();
 
-                    a3da_object_texture_pattern* otp = &votp[sort_index[j]];
+                std::vector<int32_t> sort_index;
+                key_val_out::get_lexicographic_order(sort_index, count);
+                int32_t* sort_index_data = sort_index.data();
+                for (int32_t j = 0; j < count; j++) {
+                    kv.open_scope_fmt(sort_index_data[j]);
+
+                    a3da_object_texture_pattern* otp = &votp[sort_index_data[j]];
                     kv.write(s, "name", otp->name);
                     if (otp->pattern.size()) {
                         kv.write(s, "pat", otp->pattern);
@@ -1619,14 +1629,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             if (o->texture_transform.size()) {
                 kv.open_scope("tex_transform");
 
-                std::vector<a3da_object_texture_transform>& vott = o->texture_transform;
-                int32_t count = (int32_t)vott.size();
-                std::vector<int32_t> sort_index;
-                key_val_out::get_lexicographic_order(&sort_index, count);
-                for (int32_t j = 0; j < count; j++) {
-                    kv.open_scope_fmt(sort_index[j]);
+                int32_t count = (int32_t)o->texture_transform.size();
+                a3da_object_texture_transform* vott = o->texture_transform.data();
 
-                    a3da_object_texture_transform* ott = &vott[sort_index[j]];
+                std::vector<int32_t> sort_index;
+                key_val_out::get_lexicographic_order(sort_index, count);
+                int32_t* sort_index_data = sort_index.data();
+                for (int32_t j = 0; j < count; j++) {
+                    kv.open_scope_fmt(sort_index_data[j]);
+
+                    a3da_object_texture_transform* ott = &vott[sort_index_data[j]];
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U)
                         key_val_out_write(&kv, s, "coverageU", ott->coverage_u);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V)
@@ -1670,13 +1682,15 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->object_list.size()) {
         kv.open_scope("object_list");
 
-        std::vector<std::string>& vol = a->object_list;
-        int32_t count = (int32_t)vol.size();
+        int32_t count = (int32_t)a->object_list.size();
+        std::string* vol = a->object_list.data();
+
         std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
-            kv.write(s, "name", vol[sort_index[i]]);
+            kv.open_scope_fmt(sort_index_data[i]);
+            kv.write(s, "name", vol[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1687,27 +1701,31 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->object_hrc.size() > 0) {
         kv.open_scope("objhrc");
 
-        std::vector<a3da_object_hrc>& voh = a->object_hrc;
-        int32_t count = (int32_t)voh.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->object_hrc.size();
+        a3da_object_hrc* voh = a->object_hrc.data();
 
-            a3da_object_hrc* oh = &voh[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_object_hrc* oh = &voh[sort_index_data[i]];
             kv.write(s, "name", oh->name);
 
             if (oh->node.size()) {
                 kv.open_scope("node");
 
-                std::vector<a3da_object_node>& vohn = oh->node;
-                int32_t count = (int32_t)vohn.size();
-                std::vector<int32_t> sort_index;
-                key_val_out::get_lexicographic_order(&sort_index, count);
-                for (int32_t j = 0; j < count; j++) {
-                    kv.open_scope_fmt(sort_index[j]);
+                int32_t count = (int32_t)oh->node.size();
+                a3da_object_node* vohn = oh->node.data();
 
-                    a3da_object_node* ohn = &vohn[sort_index[j]];
+                std::vector<int32_t> sort_index;
+                key_val_out::get_lexicographic_order(sort_index, count);
+                int32_t* sort_index_data = sort_index.data();
+                for (int32_t j = 0; j < count; j++) {
+                    kv.open_scope_fmt(sort_index_data[j]);
+
+                    a3da_object_node* ohn = &vohn[sort_index_data[j]];
                     key_val_out_write(&kv, s, "", ohn->model_transform, 0x10);
                     if (ohn->flags & A3DA_OBJECT_NODE_JOINT_ORIENT)
                         kv.write(s, "joint_orient", ohn->joint_orient);
@@ -1737,13 +1755,15 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->object_hrc_list.size()) {
         kv.open_scope("objhrc_list");
 
-        std::vector<std::string>& vohl = a->object_hrc_list;
-        int32_t count = (int32_t)vohl.size();
+        int32_t count = (int32_t)a->object_hrc_list.size();
+        std::string* vohl = a->object_hrc_list.data();
+
         std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
-            kv.write(s, "name", vohl[sort_index[i]]);
+            kv.open_scope_fmt(sort_index_data[i]);
+            kv.write(s, "name", vohl[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1796,14 +1816,16 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     if (a->point.size() > 0) {
         kv.open_scope("point");
 
-        std::vector<a3da_point>& vp = a->point;
-        int32_t count = (int32_t)vp.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)a->point.size();
+        a3da_point* vp = a->point.data();
 
-            a3da_point* p = &vp[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            a3da_point* p = &vp[sort_index_data[i]];
             kv.write(s, "name", p->name);
             key_val_out_write(&kv, s, "", p->model_transform);
 
@@ -2289,10 +2311,11 @@ static bool key_val_read(key_val* kv,
         return false;
     }
 
-    value.keys.reserve(length);
+    int32_t act_length = length;
+    value.keys.resize(length);
+    kft3* keys = value.keys.data();
 
-    kft3 k = { 0.0f, 0.0f, 0.0f, 0.0f };
-    for (int32_t i = 0; i < length; i++) {
+    for (int32_t i = 0, j = 0; i < length; i++) {
         if (!kv->open_scope_fmt(i))
             continue;
 
@@ -2307,29 +2330,20 @@ static bool key_val_read(key_val* kv,
         case KEY_FRAME_TYPE_0: {
             float_t f;
             if (sscanf_s(data, "%g", &f) == 1)
-                k = { f, 0.0f, 0.0f, 0.0f };
-            else
-                k = { 0.0f, 0.0f, 0.0f, 0.0f };
-            value.keys.push_back(k);
+                keys[j++] = { f, 0.0f, 0.0f, 0.0f };
         } break;
         case KEY_FRAME_TYPE_1: {
             float_t f;
             float_t v;
             if (sscanf_s(data, "(%g,%g)", &f, &v) == 2)
-                k = { f, v, 0.0f, 0.0f };
-            else
-                k = { 0.0f, 0.0f, 0.0f, 0.0f };
-            value.keys.push_back(k);
+                keys[j++] = { f, v, 0.0f, 0.0f };
         } break;
         case KEY_FRAME_TYPE_2: {
             float_t f;
             float_t v;
             float_t t;
             if (sscanf_s(data, "(%g,%g,%g)", &f, &v, &t) == 3)
-                k = { f, v, t, t };
-            else
-                k = { 0.0f, 0.0f, 0.0f, 0.0f };
-            value.keys.push_back(k);
+                keys[j++] = { f, v, t, t };
         } break;
         case KEY_FRAME_TYPE_3: {
             float_t f;
@@ -2337,19 +2351,16 @@ static bool key_val_read(key_val* kv,
             float_t t1;
             float_t t2;
             if (sscanf_s(data, "(%g,%g,%g,%g)", &f, &v, &t1, &t2) == 4)
-                k = { f, v, t1, t2 };
-            else
-                k = { 0.0f, 0.0f, 0.0f, 0.0f };
-            value.keys.push_back(k);
+                keys[j++] = { f, v, t1, t2 };
         } break;
-        default: {
-            k = { 0.0f, 0.0f, 0.0f, 0.0f };
-            value.keys.push_back(k);
-        } break;
+        default:
+            keys[j++] = {};
+            break;
         }
 
         kv->close_scope();
     }
+    value.keys.resize(act_length);
 
     kv->close_scope();
     kv->close_scope();
@@ -2395,11 +2406,12 @@ static void key_val_out_write(key_val_out* kv, stream& s,
     int32_t length = (int32_t)value.keys.size();
 
     std::vector<int32_t> sort_index;
-    key_val_out::get_lexicographic_order(&sort_index, length);
+    key_val_out::get_lexicographic_order(sort_index, length);
+    int32_t* sort_index_data = sort_index.data();
     for (int32_t i = 0; i < length; i++) {
-        kv->open_scope_fmt(sort_index[i]);
+        kv->open_scope_fmt(sort_index_data[i]);
 
-        kft3 k = value.keys[sort_index[i]];
+        kft3 k = value.keys[sort_index_data[i]];
         kf_type kt = KEY_FRAME_TYPE_3;
         kft_check(&k, kt, &k, &kt);
 
@@ -2494,48 +2506,34 @@ static bool key_val_read_raw_data(key_val* kv,
 
     switch (key_type) {
     case 0: {
-        kft3 k = { 0.0f, 0.0f, 0.0f, 0.0f };
-        value.keys.reserve(c);
-        for (size_t i = 0; i < c; i++) {
-            k.frame = *fs++;
-            value.keys.push_back(k);
-        }
+        value.keys.resize(c);
+        kft3* keys = value.keys.data();
+        for (size_t i = 0; i < c; i++, fs++)
+            keys[i] = { fs[0], 0.0f, 0.0f, 0.0f };
         fs -= c;
     } break;
     case 1: {
-        kft3 k = { 0.0f, 0.0f, 0.0f, 0.0f };
         c /= 2;
-        value.keys.reserve(c);
-        for (size_t i = 0; i < c; i++) {
-            k.frame = *fs++;
-            k.value = *fs++;
-            value.keys.push_back(k);
-        }
+        value.keys.resize(c);
+        kft3* keys = value.keys.data();
+        for (size_t i = 0; i < c; i++, fs += 2)
+            keys[i] = { fs[0], fs[1], 0.0f, 0.0f };
         fs -= c * 2;
     } break;
     case 2: {
-        kft3 k = { 0.0f, 0.0f, 0.0f, 0.0f };
         c /= 3;
-        value.keys.reserve(c);
-        for (size_t i = 0; i < c; i++) {
-            k.frame = *fs++;
-            k.value = *fs++;
-            k.tangent1 = k.tangent2 = *fs++;
-            value.keys.push_back(k);
-        }
+        value.keys.resize(c);
+        kft3* keys = value.keys.data();
+        for (size_t i = 0; i < c; i++, fs += 3)
+            keys[i] = { fs[0], fs[1], fs[2], fs[2] };
         fs -= c * 3;
     } break;
     case 3: {
-        kft3 k = { 0.0f, 0.0f, 0.0f, 0.0f };
         c /= 4;
-        value.keys.reserve(c);
-        for (size_t i = 0; i < c; i++) {
-            k.frame = *fs++;
-            k.value = *fs++;
-            k.tangent1 = *fs++;
-            k.tangent2 = *fs++;
-            value.keys.push_back(k);
-        }
+        value.keys.resize(c);
+        kft3* keys = value.keys.data();
+        for (size_t i = 0; i < c; i++, fs += 4)
+            keys[i] = { fs[0], fs[1], fs[2], fs[3] };
         fs -= c * 4;
     } break;
     default:
@@ -2564,9 +2562,11 @@ static void key_val_out_write_raw_data(key_val_out* kv, stream& s,
         return;
     }
 
+    kft3* keys = value.keys.data();
+
     kf_type key_type = KEY_FRAME_TYPE_0;
     for (int32_t i = 0; i < length; i++) {
-        kft3 k = value.keys[i];
+        kft3 k = keys[i];
         kf_type kt = KEY_FRAME_TYPE_3;
         kft_check(&k, kt, &k, &kt);
         if (key_type < kt)
@@ -2584,7 +2584,7 @@ static void key_val_out_write_raw_data(key_val_out* kv, stream& s,
     switch (key_type) {
     case KEY_FRAME_TYPE_0:
         for (int32_t i = 0; i < length; i++) {
-            kft3 k = value.keys[i];
+            kft3 k = keys[i];
             sprintf_s(data_buf, sizeof(data_buf), "%g",
                 k.frame);
             s.write_utf8_string(data_buf);
@@ -2594,7 +2594,7 @@ static void key_val_out_write_raw_data(key_val_out* kv, stream& s,
         break;
     case KEY_FRAME_TYPE_1:
         for (int32_t i = 0; i < length; i++) {
-            kft3 k = value.keys[i];
+            kft3 k = keys[i];
             sprintf_s(data_buf, sizeof(data_buf), "%g,%g",
                 k.frame, k.value);
             s.write_utf8_string(data_buf);
@@ -2604,7 +2604,7 @@ static void key_val_out_write_raw_data(key_val_out* kv, stream& s,
         break;
     case KEY_FRAME_TYPE_2:
         for (int32_t i = 0; i < length; i++) {
-            kft3 k = value.keys[i];
+            kft3 k = keys[i];
             sprintf_s(data_buf, sizeof(data_buf), "%g,%g,%g",
                 k.frame, k.value, k.tangent1);
             s.write_utf8_string(data_buf);
@@ -2614,7 +2614,7 @@ static void key_val_out_write_raw_data(key_val_out* kv, stream& s,
         break;
     case KEY_FRAME_TYPE_3:
         for (int32_t i = 0; i < length; i++) {
-            kft3 k = value.keys[i];
+            kft3 k = keys[i];
             sprintf_s(data_buf, sizeof(data_buf), "%g,%g,%g,%g",
                 k.frame, k.value, k.tangent1, k.tangent2);
             s.write_utf8_string(data_buf);
@@ -2757,14 +2757,14 @@ static void a3dc_read_a3da_key_f16(void* data, size_t size, a3da_key* value, a3d
         value->raw_data_value_list_offset = 0;
 
         int32_t len = value->raw_data_value_list_size / 4;
-        value->keys.reserve(size);
+        value->keys.resize(size);
+        kft3* keys = value->keys.data();
         for (int32_t i = 0; i < len; i++) {
-            kft3 k;
+            kft3& k = keys[i];
             k.frame = *(float_t*)_d;
             k.value = *(float_t*)(_d + 4);
             k.tangent1 = *(float_t*)(_d + 8);
             k.tangent2 = *(float_t*)(_d + 12);
-            value->keys.push_back(k);
             _d += 16;
         }
         return;
@@ -2794,38 +2794,37 @@ static void a3dc_read_a3da_key_f16(void* data, size_t size, a3da_key* value, a3d
     value->max_frame = head->max_frame;
     uint32_t len = head->length;
 
-    value->keys.reserve(len);
+    value->keys.resize(len);
+    kft3* keys = value->keys.data();
     switch (f16) {
     case A3DA_COMPRESS_F32F32F32F32:
+    default:
         for (uint32_t i = 0; i < len; i++) {
-            kft3 k;
+            kft3& k = keys[i];
             k.frame = *(float_t*)d;
             k.value = *(float_t*)(d + 4);
             k.tangent1 = *(float_t*)(d + 8);
             k.tangent2 = *(float_t*)(d + 12);
-            value->keys.push_back(k);
             d += 16;
         }
         break;
     case A3DA_COMPRESS_I16F16F32F32:
         for (uint32_t i = 0; i < len; i++) {
-            kft3 k;
+            kft3& k = keys[i];
             k.frame = (float_t)*(int16_t*)d;
             k.value = half_to_float(*(half_t*)(d + 2));
             k.tangent1 = *(float_t*)(d + 4);
             k.tangent2 = *(float_t*)(d + 8);
-            value->keys.push_back(k);
             d += 12;
         }
         break;
     case A3DA_COMPRESS_I16F16F16F16:
         for (uint32_t i = 0; i < len; i++) {
-            kft3 k;
+            kft3& k = keys[i];
             k.frame = (float_t)*(int16_t*)d;
             k.value = half_to_float(*(half_t*)(d + 2));
             k.tangent1 = half_to_float(*(half_t*)(d + 4));
             k.tangent2 = half_to_float(*(half_t*)(d + 6));
-            value->keys.push_back(k);
             d += 8;
         }
         break;
@@ -2856,9 +2855,10 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
         value.raw_data_value_list_offset = (int32_t)s.get_position();
 
         int32_t len = (int32_t)value.keys.size();
+        kft3* keys = value.keys.data();
         value.raw_data_value_list_size = len * 4;
         for (int32_t i = 0; i < len; i++) {
-            kft3* k = &value.keys[i];
+            kft3* k = &keys[i];
             s.write_float_t(k->frame);
             s.write_float_t(k->value);
             s.write_float_t(k->tangent1);
@@ -2882,6 +2882,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
     }
 
     uint32_t len = (uint32_t)value.keys.size();
+    kft3* keys = value.keys.data();
 
     a3dc_key_header head = {};
     head.type = value.type;
@@ -2893,8 +2894,9 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
 
     switch (f16) {
     case A3DA_COMPRESS_F32F32F32F32:
+    default:
         for (uint32_t i = 0; i < len; i++) {
-            kft3* k = &value.keys[i];
+            kft3* k = &keys[i];
             s.write_float_t(k->frame);
             s.write_float_t(k->value);
             s.write_float_t(k->tangent1);
@@ -2903,7 +2905,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
         break;
     case A3DA_COMPRESS_I16F16F32F32:
         for (uint32_t i = 0; i < len; i++) {
-            kft3* k = &value.keys[i];
+            kft3* k = &keys[i];
             s.write_int16_t((int16_t)roundf(k->frame));
             s.write_half_t(float_to_half(k->value));
             s.write_float_t(k->tangent1);
@@ -2912,7 +2914,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
         break;
     case A3DA_COMPRESS_I16F16F16F16:
         for (uint32_t i = 0; i < len; i++) {
-            kft3* k = &value.keys[i];
+            kft3* k = &keys[i];
             s.write_int16_t((int16_t)roundf(k->frame));
             s.write_half_t(float_to_half(k->value));
             s.write_half_t(float_to_half(k->tangent1));

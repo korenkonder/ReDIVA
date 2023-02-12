@@ -17,12 +17,11 @@
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/camera.hpp"
 #include "../../CRE/data.hpp"
-#include "../../CRE/draw_task.hpp"
 #include "../../CRE/gl_state.hpp"
 #include "../../CRE/render_context.hpp"
-#include "../../CRE/shader_glsl.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/static_var.hpp"
+#include "../data_test/stage_test.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
 #include <windows.h>
@@ -232,7 +231,7 @@ static void glitter_editor_property_emitter(GlitterEditor* glt_edt, class_data* 
 static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data* data);
 static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
     class_data* data, const char* label, char** items, Glitter::Particle* particle,
-    int32_t* tex, uint64_t* tex_hash, int32_t tex_idx, bool* tex_anim,
+    GLuint* tex, uint64_t* tex_hash, int32_t tex_idx, bool* tex_anim,
     int32_t* tex_frame, int32_t* tex_index, int32_t* tex_tex);
 
 static void glitter_editor_popups(GlitterEditor* glt_edt, class_data* data);
@@ -2164,22 +2163,22 @@ static void glitter_editor_test_window(GlitterEditor* glt_edt, class_data* data)
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Play (T)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_T))
+        if (ImGui::ButtonEnterKeyPressed("Play (T)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_T))
             glt_edt->input_play = true;
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Reload (Y)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_Y))
+        if (ImGui::ButtonEnterKeyPressed("Reload (Y)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_Y))
             glt_edt->input_reload = true;
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Pause (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
+        if (ImGui::ButtonEnterKeyPressed("Pause (F)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_F))
             glt_edt->input_pause = true;
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Reset (G)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_G))
+        if (ImGui::ButtonEnterKeyPressed("Reset (G)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_G))
             glt_edt->input_reset = true;
         ImGui::EndTable();
     }
@@ -2821,22 +2820,22 @@ static void glitter_editor_play_manager(GlitterEditor* glt_edt) {
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Play (T)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_T))
+        if (ImGui::ButtonEnterKeyPressed("Play (T)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_T))
             glt_edt->input_play = true;
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Reload (Y)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_Y))
+        if (ImGui::ButtonEnterKeyPressed("Reload (Y)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_Y))
             glt_edt->input_reload = true;
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Pause (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
+        if (ImGui::ButtonEnterKeyPressed("Pause (F)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_F))
             glt_edt->input_pause = true;
 
         ImGui::TableNextColumn();
         w = ImGui::GetContentRegionAvailWidth();
-        if (ImGui::ButtonEnterKeyPressed("Reset (G)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_G))
+        if (ImGui::ButtonEnterKeyPressed("Reset (G)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_G))
             glt_edt->input_reset = true;
         ImGui::EndTable();
     }
@@ -4196,7 +4195,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
 
             ImGui::PushID(-1);
             if (ImGui::Selectable("None", !handler)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true))
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter))
                 set_index = -1;
             ImGui::PopID();
 
@@ -4207,7 +4206,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
 
                 ImGui::PushID((int32_t)i);
                 if (ImGui::Selectable(handler->name.c_str(), handler->set_id == set_id)
-                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && handler->set_id != set_id))
                     set_index = i;
                 ImGui::PopID();
@@ -4253,7 +4252,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
 
                 ImGui::PushID(-1);
                 if (ImGui::Selectable("None", !obj)
-                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && obj))
                     obj_index = -1;
                 ImGui::PopID();
@@ -4262,7 +4261,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
                     ImGui::PushID(i);
                     ::obj* obj = &set->obj_data[i];
                     if (ImGui::Selectable(obj->name, obj->id == obj_id)
-                        || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                         || (ImGui::IsItemFocused() && obj->id != obj_id))
                         obj_index = i;
                     ImGui::PopID();
@@ -4312,7 +4311,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
 
 static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
     class_data* data, const char* label, char** items, Glitter::Particle* particle,
-    int32_t* tex, uint64_t* tex_hash, int32_t tex_idx, bool* tex_anim,
+    GLuint* tex, uint64_t* tex_hash, int32_t tex_idx, bool* tex_anim,
     int32_t* tex_frame, int32_t* tex_index, int32_t* tex_tex) {
     Glitter::EffectGroup* eg = glt_edt->effect_group;
     size_t rc = eg->resources_count;
@@ -4395,7 +4394,7 @@ static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
         for (int32_t n = 0; n <= rc; n++) {
             ImGui::PushID(n);
             if (ImGui::Selectable(items[n], tex_idx == n)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && tex_idx != n))
                 tex_idx = n;
 
@@ -5818,13 +5817,13 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         glitter_editor_curve_editor_key_manager(glt_edt, keys, &add_key, &del_key);
 
     if (ImGui::IsWindowFocused()) {
-        if (add_key && ImGui::IsKeyPressed(GLFW_KEY_INSERT))
+        if (add_key && ImGui::IsKeyPressed(ImGuiKey_Insert))
             crv_edt->add_key = true;
-        else if (del_key && ImGui::IsKeyPressed(GLFW_KEY_DELETE))
+        else if (del_key && ImGui::IsKeyPressed(ImGuiKey_Delete))
             crv_edt->del_key = true;
-        else if (ImGui::IsKeyPressed(GLFW_KEY_RIGHT))
+        else if (ImGui::IsKeyPressed(ImGuiKey_RightArrow))
             crv_edt->frame++;
-        else if (ImGui::IsKeyPressed(GLFW_KEY_LEFT))
+        else if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow))
             crv_edt->frame--;
 
         if (curve)
@@ -6032,7 +6031,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
     if (hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left, false))
         can_drag = true;
 
-    if (can_drag && (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))) {
+    if (can_drag && (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))) {
         crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt, curve);
         crv_edt->frame = crv_edt->key->frame;
     }
@@ -6471,8 +6470,8 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
 
             static int32_t base_frame;
             static float_t base_y;
-            if ((ImGui::IsKeyPressed(GLFW_KEY_LEFT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                || (ImGui::IsKeyPressed(GLFW_KEY_RIGHT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT))) {
+            if ((ImGui::IsKeyPressed(ImGuiKey_LeftShift, false) && !ImGui::IsKeyDown(ImGuiKey_RightShift))
+                || (ImGui::IsKeyPressed(ImGuiKey_RightShift, false) && !ImGui::IsKeyDown(ImGuiKey_LeftShift))) {
                 base_frame = i->frame;
                 base_y = base_value;
             }
@@ -6489,15 +6488,15 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             }
 
             static float_t mouse_delta_history;
-            if ((ImGui::IsKeyPressed(GLFW_KEY_LEFT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                || (ImGui::IsKeyPressed(GLFW_KEY_RIGHT_SHIFT, false) && !ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT)))
+            if ((ImGui::IsKeyPressed(ImGuiKey_LeftShift, false) && !ImGui::IsKeyDown(ImGuiKey_RightShift))
+                || (ImGui::IsKeyPressed(ImGuiKey_RightShift, false) && !ImGui::IsKeyDown(ImGuiKey_LeftShift)))
                 mouse_delta_history = io.MouseDelta.y;
-            else if ((ImGui::IsKeyReleased(GLFW_KEY_LEFT_SHIFT) && !ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
-                || ImGui::IsKeyReleased(GLFW_KEY_RIGHT_SHIFT) && !ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT)) {
+            else if ((ImGui::IsKeyReleased(ImGuiKey_LeftShift) && !ImGui::IsKeyDown(ImGuiKey_RightShift))
+                || ImGui::IsKeyReleased(ImGuiKey_RightShift) && !ImGui::IsKeyDown(ImGuiKey_LeftShift)) {
                 y += mouse_delta_history;
                 y += io.MouseDelta.y;
             }
-            else if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+            else if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))
                 mouse_delta_history += io.MouseDelta.y;
             else
                 y += io.MouseDelta.y;
@@ -6595,7 +6594,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
     if (!crv_edt->key_edit && can_drag && ImGui::IsMouseDown(ImGuiMouseButton_Left) && (!holding_tan || dragged)) {
         int32_t frame = (int32_t)roundf((io.MousePos.x - canvas_pos.x) / frame_width);
         crv_edt->frame = clamp_def(frame + start_time, start_time, end_time);
-        if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT)) {
+        if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
             crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt, curve);
             crv_edt->frame = crv_edt->key->frame;
         }
@@ -6622,7 +6621,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
     draw_list->PopClipRect();
 
     if (hovered)
-        if (ImGui::IsKeyDown(GLFW_KEY_LEFT_SHIFT) || ImGui::IsKeyDown(GLFW_KEY_RIGHT_SHIFT))
+        if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift))
             crv_edt->timeline_pos -= io.MouseWheel * 25.0f * 4.0f;
         else
             crv_edt->timeline_pos -= io.MouseWheel * 25.0f;

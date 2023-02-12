@@ -59,7 +59,7 @@ enum uniform_name {
     U_BONE_MAT      = 0x30,
     U_SNOW_PARTICLE = 0x31,
     U_SPECULAR_IBL  = 0x32,
-    U_SPRITE_BLEND  = 0x33,
+    U_COMBINER      = 0x33,
     U_TEX_0_TYPE    = 0x34,
     U_TEX_1_TYPE    = 0x35,
     U_SSS_FILTER    = 0x36,

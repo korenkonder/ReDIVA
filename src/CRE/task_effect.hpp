@@ -234,7 +234,6 @@ public:
         FrameRateControl* frame_rate_control;
         GLuint vao;
         GLuint vbo;
-        GLuint ebo;
 
         Data();
         ~Data();

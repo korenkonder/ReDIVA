@@ -115,76 +115,77 @@ static bool obj_material_texture_enrs_table_initialized;
 static void obj_material_texture_enrs_table_init();
 static void obj_material_texture_enrs_table_free(void);
 
-static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i& bone_index, int32_t index, float_t weight);
+static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i16& bone_index, int16_t index, float_t weight);
 static void obj_vertex_generate_tangents(obj_mesh* mesh);
-static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index);
+static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i16& bone_index);
 
 static void obj_move_data(obj* obj_dst, const obj* obj_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_mesh(obj_mesh* mesh_dst, const obj_mesh* mesh_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_sub_mesh(obj_sub_mesh* sub_mesh_dst, const obj_sub_mesh* sub_mesh_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin* obj_move_data_skin(const obj_skin* sk_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_skin_bone(obj_skin_bone* bone_dst, const obj_skin_bone* bone_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_ex_data* obj_move_data_skin_ex_data(const obj_skin_ex_data* ex_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_block_cloth* obj_move_data_skin_block_cloth(const obj_skin_block_cloth* cls_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root_dst,
     const obj_skin_block_cloth_root* cloth_root_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight_dst,
     const obj_skin_block_cloth_root_bone_weight* bone_weight_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_block_constraint* obj_move_data_skin_block_constraint(const obj_skin_block_constraint* cns_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector_dst,
     const obj_skin_block_constraint_up_vector* up_vector_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_block_expression* obj_move_data_skin_block_expression(const obj_skin_block_expression* exp_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_block_motion* obj_move_data_skin_block_motion(const obj_skin_block_motion* mot_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static void obj_move_data_skin_block_node(obj_skin_block_node* node_dst, const obj_skin_block_node* node_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_block_osage* obj_move_data_skin_block_osage(const obj_skin_block_osage* osg_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 static obj_skin_skin_param* obj_move_data_skin_param(const obj_skin_skin_param* skp_src,
-    prj::shared_ptr<alloc_data> alloc);
+    prj::shared_ptr<prj::stack_allocator> alloc);
 
-static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<alloc_data>& alloc, stream& s);
+static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void obj_set_classic_write_inner(obj_set* set, stream& s);
-static void obj_classic_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<alloc_data> alloc, stream& s);
+static void obj_classic_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<prj::stack_allocator> alloc, stream& s);
 static void obj_classic_write_index(obj_sub_mesh* sub_mesh, stream& s);
-static void obj_classic_read_model(obj* obj, prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset);
+static void obj_classic_read_model(obj* obj, prj::shared_ptr<prj::stack_allocator> alloc,
+    stream& s, int64_t base_offset);
 static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset);
 static void obj_classic_read_model_mesh(obj_mesh* mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset);
 static void obj_classic_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset);
-static obj_skin* obj_classic_read_skin(prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset);
+static obj_skin* obj_classic_read_skin(prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset);
 static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset);
-static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<alloc_data> alloc,
+static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t base_offset);
 static obj_skin_block_cloth* obj_classic_read_skin_block_cloth(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* cls,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     int64_t* mat_array_offset, int64_t* root_array_offset, int64_t* node_array_offset,
     int64_t* mesh_index_array_offset, int64_t* backface_mesh_index_array_offset);
 static void obj_classic_read_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static obj_skin_block_constraint* obj_classic_read_skin_block_constraint(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_constraint(obj_skin_block_constraint* cns,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     const char** bone_name_array, int64_t* offsets);
@@ -193,74 +194,75 @@ static void obj_classic_read_skin_block_constraint_attach_point(obj_skin_block_c
 static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* attach_point,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static obj_skin_block_expression* obj_classic_read_skin_block_expression(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_expression(obj_skin_block_expression* exp,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     const char** bone_name_array);
 static obj_skin_block_motion* obj_classic_read_skin_block_motion(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_motion(obj_skin_block_motion* mot,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     const char** bone_name_array, int64_t* bone_name_array_offset, int64_t* bone_matrix_array_offset);
 static void obj_classic_read_skin_block_node(obj_skin_block_node* node,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_node(obj_skin_block_node* node,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static obj_skin_block_osage* obj_classic_read_skin_block_osage(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_block_osage(obj_skin_block_osage* osg,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, int64_t* node_array_offset);
 static obj_skin_skin_param* obj_classic_read_skin_param(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str);
 static void obj_classic_write_skin_param(obj_skin_skin_param* skp,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets);
 static void obj_classic_read_vertex(obj_mesh* mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t* vertex, int64_t base_offset, uint32_t num_vertex,
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t* vertex, int64_t base_offset, uint32_t num_vertex,
     obj_vertex_format_file vertex_format_file);
 static void obj_classic_write_vertex(obj_mesh* mesh,
     stream& s, int64_t* vertex, int64_t base_offset, uint32_t* num_vertex,
     obj_vertex_format_file* vertex_format_file, uint32_t* size_vertex);
 
-static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<alloc_data>& alloc, stream& s);
+static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void obj_set_modern_write_inner(obj_set* set, stream& s);
-static void obj_modern_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<alloc_data> alloc, stream& s);
+static void obj_modern_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<prj::stack_allocator> alloc, stream& s);
 static void obj_modern_write_index(obj_sub_mesh* sub_mesh, stream& s, bool is_x, f2_struct* ovtx);
-static void obj_modern_read_model(obj* obj, prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset,
+static void obj_modern_read_model(obj* obj, prj::shared_ptr<prj::stack_allocator> alloc,
+    stream& s, int64_t base_offset,
     uint32_t header_length, bool is_x, stream* s_oidx, stream* s_ovtx);
 static void obj_modern_write_model(obj* obj, stream& s,
     int64_t base_offset, bool is_x, f2_struct* omdl);
 static void obj_modern_read_model_mesh(obj_mesh* mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset,
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset,
     uint32_t header_length, bool is_x, stream* s_oidx, stream* s_ovtx);
 static void obj_modern_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset,
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset,
     uint32_t header_length, bool is_x, stream* s_oidx);
-static obj_skin* obj_modern_read_skin(prj::shared_ptr<alloc_data> alloc,
+static obj_skin* obj_modern_read_skin(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t base_offset, uint32_t header_length, bool is_x);
 static void obj_modern_write_skin(obj_skin* sk, stream& s,
     int64_t base_offset, bool is_x, f2_struct* oskn);
-static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<alloc_data> alloc,
+static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t base_offset, uint32_t header_length, bool is_x);
 static obj_skin_block_cloth* obj_modern_read_skin_block_cloth(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* cls,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x,
     int64_t* mat_array_offset, int64_t* root_array_offset, int64_t* node_array_offset,
     int64_t* mesh_index_array_offset, int64_t* backface_mesh_index_array_offset);
 static void obj_modern_read_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static obj_skin_block_constraint* obj_modern_read_skin_block_constraint(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint(obj_skin_block_constraint* cns,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, const char** bone_name_array,
     bool is_x, int64_t* offsets);
@@ -269,37 +271,37 @@ static void obj_modern_read_skin_block_constraint_attach_point(obj_skin_block_co
 static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_constraint_attach_point* attach_point,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static void obj_modern_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static obj_skin_block_expression* obj_modern_read_skin_block_expression(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_expression(obj_skin_block_expression* exp,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets,
     const char** bone_name_array, bool is_x);
 static obj_skin_block_motion* obj_modern_read_skin_block_motion(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_motion(obj_skin_block_motion* mot,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x,
     const char** bone_name_array, int64_t* bone_name_array_offset, int64_t* bone_matrix_array_offset);
 static void obj_modern_read_skin_block_node(obj_skin_block_node* node,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_node(obj_skin_block_node* node,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
 static obj_skin_block_osage* obj_modern_read_skin_block_osage(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x);
 static void obj_modern_write_skin_block_osage(obj_skin_block_osage* osg,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x);
-static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<alloc_data> alloc, stream& s,
+static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     int64_t* vertex, const uint32_t vertex_format_index, uint32_t num_vertex, uint32_t size_vertex);
 static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
     uint32_t* vertex_format_index, uint32_t* num_vertex, uint32_t* size_vertex, f2_struct* ovtx);
 
 static const char* obj_move_data_string(const char* str,
-    prj::shared_ptr<alloc_data>& alloc);
+    prj::shared_ptr<prj::stack_allocator>& alloc);
 
 static const char* obj_read_utf8_string_null_terminated_offset(
-    prj::shared_ptr<alloc_data>& alloc, stream& s, int64_t offset);
+    prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset);
 
 static uint32_t obj_skin_strings_get_string_index(std::vector<string_hash>& vec, const char* str);
 static int64_t obj_skin_strings_get_string_offset(std::vector<string_hash>& vec,
@@ -322,7 +324,7 @@ obj_bounding_sphere::obj_bounding_sphere() : radius() {
 
 }
 
-obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type() {
+obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type() const {
     if (!m.is_lgt_diffuse && !m.is_lgt_specular)
         return OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT;
     else if (!m.is_lgt_specular)
@@ -331,7 +333,7 @@ obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type(
         return OBJ_MATERIAL_SHADER_LIGHTING_PHONG;
 }
 
-int32_t obj_texture_attrib::get_blend() {
+int32_t obj_texture_attrib::get_blend() const {
     switch (m.blend) {
     case 4:
         return 2;
@@ -509,7 +511,7 @@ obj_num(), tex_id_data(), tex_id_num(), reserved() {
 
 }
 
-void obj_set::move_data(obj_set* set_src, prj::shared_ptr<alloc_data> alloc) {
+void obj_set::move_data(obj_set* set_src, prj::shared_ptr<prj::stack_allocator> alloc) {
     if (!set_src->ready) {
         ready = false;
         modern = false;
@@ -554,7 +556,7 @@ void obj_set::pack_file(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-void obj_set::unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern) {
+void obj_set::unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern) {
     if (!data || !size)
         return;
 
@@ -583,7 +585,7 @@ static void obj_material_texture_enrs_table_free(void) {
     obj_material_texture_enrs_table_initialized = false;
 }
 
-static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i& bone_index, int32_t index, float_t weight) {
+static void obj_vertex_add_bone_weight(vec4& bone_weight, vec4i16& bone_index, int16_t index, float_t weight) {
     if (bone_index.x < 0) {
         bone_index.x = index;
         bone_weight.x = weight;
@@ -761,20 +763,20 @@ static void obj_vertex_generate_tangents(obj_mesh* mesh) {
     enum_or(mesh->vertex_format, OBJ_VERTEX_TANGENT);
 }
 
-static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index) {
+static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i16& bone_index) {
     vec4 _bone_weight = { 0.0f, 0.0f, 0.0f, 0.0f };
-    vec4i _bone_index = { -1, -1, -1, -1 };
+    vec4i16 _bone_index = { -1, -1, -1, -1 };
 
-    if (bone_weight.x > 0)
+    if (bone_index.x >= 0 && bone_weight.x > 0.0f)
         obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.x, bone_weight.x);
 
-    if (bone_weight.y > 0)
+    if (bone_index.y >= 0 && bone_weight.y > 0.0f)
         obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.y, bone_weight.y);
 
-    if (bone_weight.z > 0)
+    if (bone_index.z >= 0 && bone_weight.z > 0.0f)
         obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.z, bone_weight.z);
 
-    if (bone_weight.w > 0)
+    if (bone_index.w >= 0 && bone_weight.w > 0.0f)
         obj_vertex_add_bone_weight(_bone_weight, _bone_index, bone_index.w, bone_weight.w);
 
     float_t sum = _bone_weight.x + _bone_weight.y + _bone_weight.z + _bone_weight.w;
@@ -786,7 +788,7 @@ static void obj_vertex_validate_bone_data(vec4& bone_weight, vec4i& bone_index) 
 }
 
 static void obj_move_data(obj* obj_dst, const obj* obj_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_dst->bounding_sphere = obj_src->bounding_sphere;
 
     uint32_t num_mesh = obj_src->num_mesh;
@@ -814,7 +816,7 @@ static void obj_move_data(obj* obj_dst, const obj* obj_src,
 }
 
 static void obj_move_data_mesh(obj_mesh* mesh_dst, const obj_mesh* mesh_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     mesh_dst->flags = mesh_src->flags;
     mesh_dst->bounding_sphere = mesh_src->bounding_sphere;
 
@@ -841,7 +843,7 @@ static void obj_move_data_mesh(obj_mesh* mesh_dst, const obj_mesh* mesh_src,
 }
 
 static void obj_move_data_sub_mesh(obj_sub_mesh* sub_mesh_dst, const obj_sub_mesh* sub_mesh_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     sub_mesh_dst->flags = sub_mesh_src->flags;
     sub_mesh_dst->bounding_sphere = sub_mesh_src->bounding_sphere;
     sub_mesh_dst->material_index = sub_mesh_src->material_index;
@@ -868,7 +870,7 @@ static void obj_move_data_sub_mesh(obj_sub_mesh* sub_mesh_dst, const obj_sub_mes
 }
 
 static obj_skin* obj_move_data_skin(const obj_skin* sk_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     if (!sk_src)
         return 0;
 
@@ -889,7 +891,7 @@ static obj_skin* obj_move_data_skin(const obj_skin* sk_src,
 }
 
 static void obj_move_data_skin_bone(obj_skin_bone* bone_dst, const obj_skin_bone* bone_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     bone_dst->id = bone_src->id;
     bone_dst->parent = bone_src->parent;
     bone_dst->inv_bind_pose_mat = bone_src->inv_bind_pose_mat;
@@ -897,7 +899,7 @@ static void obj_move_data_skin_bone(obj_skin_bone* bone_dst, const obj_skin_bone
 }
 
 static obj_skin_ex_data* obj_move_data_skin_ex_data(const obj_skin_ex_data* ex_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_skin_ex_data* ex_dst = alloc->allocate<obj_skin_ex_data>();
 
     uint32_t num_osage_node = ex_src->num_osage_node;
@@ -963,7 +965,7 @@ static obj_skin_ex_data* obj_move_data_skin_ex_data(const obj_skin_ex_data* ex_s
 }
 
 static obj_skin_block_cloth* obj_move_data_skin_block_cloth(const obj_skin_block_cloth* cls_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_skin_block_cloth* cls_dst = alloc->allocate<obj_skin_block_cloth>();
     cls_dst->mesh_name = obj_move_data_string(cls_src->mesh_name, alloc);
     cls_dst->backface_mesh_name = obj_move_data_string(cls_src->backface_mesh_name, alloc);
@@ -1007,7 +1009,7 @@ static obj_skin_block_cloth* obj_move_data_skin_block_cloth(const obj_skin_block
 
 static void obj_move_data_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root_dst,
     const obj_skin_block_cloth_root* cloth_root_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     cloth_root_dst->trans = cloth_root_src->trans;
     cloth_root_dst->normal = cloth_root_src->normal;
     cloth_root_dst->field_18 = cloth_root_src->field_18;
@@ -1022,7 +1024,7 @@ static void obj_move_data_skin_block_cloth_root(obj_skin_block_cloth_root* cloth
 
 static void obj_move_data_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight_dst,
     const obj_skin_block_cloth_root_bone_weight* bone_weight_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     bone_weight_dst->bone_name = obj_move_data_string(bone_weight_src->bone_name, alloc);
     bone_weight_dst->weight = bone_weight_src->weight;
     bone_weight_dst->matrix_index = bone_weight_src->matrix_index;
@@ -1030,7 +1032,7 @@ static void obj_move_data_skin_block_cloth_root_bone_weight(obj_skin_block_cloth
 }
 
 static obj_skin_block_constraint* obj_move_data_skin_block_constraint(const obj_skin_block_constraint* cns_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_skin_block_constraint* cns_dst = alloc->allocate<obj_skin_block_constraint>();
     obj_move_data_skin_block_node(&cns_dst->node, &cns_src->node, alloc);
     cns_dst->name_index = cns_src->name_index;
@@ -1093,7 +1095,7 @@ static obj_skin_block_constraint* obj_move_data_skin_block_constraint(const obj_
 
 static void obj_move_data_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector_dst,
     const obj_skin_block_constraint_up_vector* up_vector_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     up_vector_dst->active = up_vector_src->active;
     up_vector_dst->roll = up_vector_src->roll;
     up_vector_dst->affected_axis = up_vector_src->affected_axis;
@@ -1102,7 +1104,7 @@ static void obj_move_data_skin_block_constraint_up_vector(obj_skin_block_constra
 }
 
 static obj_skin_block_expression* obj_move_data_skin_block_expression(const obj_skin_block_expression* exp_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_skin_block_expression* exp_dst = alloc->allocate<obj_skin_block_expression>();
     obj_move_data_skin_block_node(&exp_dst->node, &exp_src->node, alloc);
     exp_dst->name_index = exp_src->name_index;
@@ -1119,7 +1121,7 @@ static obj_skin_block_expression* obj_move_data_skin_block_expression(const obj_
 }
 
 static obj_skin_block_motion* obj_move_data_skin_block_motion(const obj_skin_block_motion* mot_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_skin_block_motion* mot_dst = alloc->allocate<obj_skin_block_motion>();
     obj_move_data_skin_block_node(&mot_dst->node, &mot_src->node, alloc);
 
@@ -1136,7 +1138,7 @@ static obj_skin_block_motion* obj_move_data_skin_block_motion(const obj_skin_blo
 }
 
 static void obj_move_data_skin_block_node(obj_skin_block_node* node_dst, const obj_skin_block_node* node_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     node_dst->parent_name = obj_move_data_string(node_src->parent_name, alloc);
     node_dst->position = node_src->position;
     node_dst->rotation = node_src->rotation;
@@ -1144,7 +1146,7 @@ static void obj_move_data_skin_block_node(obj_skin_block_node* node_dst, const o
 }
 
 static obj_skin_block_osage* obj_move_data_skin_block_osage(const obj_skin_block_osage* osg_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     obj_skin_block_osage* osg_dst = alloc->allocate<obj_skin_block_osage>();
     obj_move_data_skin_block_node(&osg_dst->node, &osg_src->node, alloc);
     osg_dst->start_index = osg_src->start_index;
@@ -1162,7 +1164,7 @@ static obj_skin_block_osage* obj_move_data_skin_block_osage(const obj_skin_block
 }
 
 static obj_skin_skin_param* obj_move_data_skin_param(const obj_skin_skin_param* skp_src,
-    prj::shared_ptr<alloc_data> alloc) {
+    prj::shared_ptr<prj::stack_allocator> alloc) {
     if (!skp_src)
         return 0;
 
@@ -1188,7 +1190,7 @@ static obj_skin_skin_param* obj_move_data_skin_param(const obj_skin_skin_param* 
     return skp_dst;
 }
 
-static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<alloc_data>& alloc, stream& s) {
+static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
     uint32_t version = s.read_uint32_t();
     if (version != 0x05062500) {
         set->ready = false;
@@ -1385,7 +1387,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
     s.position_pop();
 }
 
-static void obj_classic_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<alloc_data> alloc, stream& s) {
+static void obj_classic_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<prj::stack_allocator> alloc, stream& s) {
     bool tri_strip = sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP;
     uint32_t num_index = sub_mesh->num_index;
     uint32_t* index_array = alloc->allocate<uint32_t>(num_index);
@@ -1430,7 +1432,8 @@ static void obj_classic_write_index(obj_sub_mesh* sub_mesh, stream& s) {
     s.align_write(0x04);
 }
 
-static void obj_classic_read_model(obj* obj, prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset) {
+static void obj_classic_read_model(obj* obj, prj::shared_ptr<prj::stack_allocator> alloc,
+    stream& s, int64_t base_offset) {
     const size_t mesh_size = 0xD8;
 
     s.set_position(base_offset, SEEK_SET);
@@ -1673,7 +1676,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
 }
 
 static void obj_classic_read_model_mesh(obj_mesh* mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset) {
     const size_t sub_mesh_size = 0x5C;
 
     obj_mesh_header mh = {};
@@ -1718,7 +1721,7 @@ static void obj_classic_read_model_mesh(obj_mesh* mesh,
 }
 
 static void obj_classic_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset) {
     obj_sub_mesh_header smh = {};
     sub_mesh->flags = s.read_uint32_t();
     sub_mesh->bounding_sphere.center.x = s.read_float_t();
@@ -1752,7 +1755,7 @@ static void obj_classic_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
     obj_classic_read_index(sub_mesh, alloc, s);
 }
 
-static obj_skin* obj_classic_read_skin(prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset) {
+static obj_skin* obj_classic_read_skin(prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset) {
     obj_skin* sk = alloc->allocate<obj_skin>();
     s.set_position(base_offset, SEEK_SET);
 
@@ -2522,7 +2525,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
     s.position_pop();
 }
 
-static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<alloc_data> alloc,
+static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t base_offset) {
     obj_skin_ex_data* ex = alloc->allocate<obj_skin_ex_data>();
     s.set_position(base_offset, SEEK_SET);
@@ -2687,7 +2690,7 @@ static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<alloc_dat
 }
 
 static obj_skin_block_cloth* obj_classic_read_skin_block_cloth(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     obj_skin_block_cloth* cls = alloc->allocate<obj_skin_block_cloth>();
     uint32_t mesh_name_offset = s.read_uint32_t();
     uint32_t backface_mesh_name_offset = s.read_uint32_t();
@@ -2907,7 +2910,7 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* cls,
 }
 
 static void obj_classic_read_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     cloth_root->trans.x = s.read_float_t();
     cloth_root->trans.y = s.read_float_t();
     cloth_root->trans.z = s.read_float_t();
@@ -2943,7 +2946,7 @@ static void obj_classic_write_skin_block_cloth_root(obj_skin_block_cloth_root* c
 }
 
 static void obj_classic_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     int32_t bone_name_offset = s.read_uint32_t();
     bone_weight->bone_name = obj_read_utf8_string_null_terminated_offset(alloc, s, bone_name_offset);
     bone_weight->weight = s.read_float_t();
@@ -2962,7 +2965,7 @@ static void obj_classic_write_skin_block_cloth_root_bone_weight(obj_skin_block_c
 }
 
 static obj_skin_block_constraint* obj_classic_read_skin_block_constraint(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     obj_skin_block_constraint* cns = alloc->allocate<obj_skin_block_constraint>();
     obj_classic_read_skin_block_node(&cns->node, alloc, s, str);
 
@@ -3132,7 +3135,7 @@ static void obj_classic_write_skin_block_constraint_attach_point(obj_skin_block_
 }
 
 static void obj_classic_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     up_vector->active = !!s.read_int32_t();
     up_vector->roll = s.read_float_t();
     up_vector->affected_axis.x = s.read_float_t();
@@ -3163,7 +3166,7 @@ static void obj_classic_write_skin_block_constraint_up_vector(obj_skin_block_con
 }
 
 static obj_skin_block_expression* obj_classic_read_skin_block_expression(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     obj_skin_block_expression* exp = alloc->allocate<obj_skin_block_expression>();
     obj_classic_read_skin_block_node(&exp->node, alloc, s, str);
 
@@ -3216,7 +3219,7 @@ static void obj_classic_write_skin_block_expression(obj_skin_block_expression* e
 }
 
 static obj_skin_block_motion* obj_classic_read_skin_block_motion(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     obj_skin_block_motion* mot = alloc->allocate<obj_skin_block_motion>();
     obj_classic_read_skin_block_node(&mot->node, alloc, s, str);
 
@@ -3320,7 +3323,7 @@ static void obj_classic_write_skin_block_motion(obj_skin_block_motion* mot,
 }
 
 static void obj_classic_read_skin_block_node(obj_skin_block_node* node,
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     uint32_t parent_name_offset = s.read_uint32_t();
     node->parent_name = obj_read_utf8_string_null_terminated_offset(alloc, s, parent_name_offset);
 
@@ -3353,7 +3356,7 @@ static void obj_classic_write_skin_block_node(obj_skin_block_node* node,
 }
 
 static obj_skin_block_osage* obj_classic_read_skin_block_osage(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     obj_skin_block_osage* osg = alloc->allocate<obj_skin_block_osage>();
     obj_classic_read_skin_block_node(&osg->node, alloc, s, str);
 
@@ -3428,7 +3431,7 @@ static void obj_classic_write_skin_block_osage(obj_skin_block_osage* osg,
 }
 
 static obj_skin_skin_param* obj_classic_read_skin_param(
-    prj::shared_ptr<alloc_data> alloc, stream& s, const char** str) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
     obj_skin_skin_param* skp = alloc->allocate<obj_skin_skin_param>();
     skp->coli = 0;
     skp->coli_count = 0;
@@ -3521,7 +3524,7 @@ static void obj_classic_write_skin_param(obj_skin_skin_param* skp,
 }
 
 static void obj_classic_read_vertex(obj_mesh* mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t* vertex, int64_t base_offset, uint32_t num_vertex,
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t* vertex, int64_t base_offset, uint32_t num_vertex,
     obj_vertex_format_file vertex_format_file) {
     obj_vertex_format vertex_format = OBJ_VERTEX_NONE;
     if (vertex_format_file & OBJ_VERTEX_FILE_POSITION)
@@ -3650,10 +3653,14 @@ static void obj_classic_read_vertex(obj_mesh* mesh,
             break;
         case OBJ_VERTEX_FILE_BONE_INDEX:
             for (uint32_t j = 0; j < num_vertex; j++) {
-                vtx[j].bone_index.x = (int32_t)s.read_float_t();
-                vtx[j].bone_index.y = (int32_t)s.read_float_t();
-                vtx[j].bone_index.z = (int32_t)s.read_float_t();
-                vtx[j].bone_index.w = (int32_t)s.read_float_t();
+                int32_t bone_index_x = (int32_t)s.read_float_t();
+                int32_t bone_index_y = (int32_t)s.read_float_t();
+                int32_t bone_index_z = (int32_t)s.read_float_t();
+                int32_t bone_index_w = (int32_t)s.read_float_t();
+                vtx[j].bone_index.x = (int16_t)(bone_index_x >= 0 ? bone_index_x / 3 : -1);
+                vtx[j].bone_index.y = (int16_t)(bone_index_y >= 0 ? bone_index_y / 3 : -1);
+                vtx[j].bone_index.z = (int16_t)(bone_index_z >= 0 ? bone_index_z / 3 : -1);
+                vtx[j].bone_index.w = (int16_t)(bone_index_w >= 0 ? bone_index_w / 3 : -1);
             }
             break;
         case OBJ_VERTEX_FILE_UNKNOWN:
@@ -3868,7 +3875,7 @@ static void obj_classic_write_vertex(obj_mesh* mesh,
     }
 }
 
-static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<alloc_data>& alloc, stream& s) {
+static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
     f2_struct st;
     st.read(s);
     if (st.header.signature != reverse_endianness_uint32_t('MOSD') || !st.data.size())
@@ -4300,7 +4307,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
     st.write(s, true, set->is_x);
 }
 
-static void obj_modern_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<alloc_data> alloc, stream& s) {
+static void obj_modern_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<prj::stack_allocator> alloc, stream& s) {
     bool tri_strip = sub_mesh->primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP;
     uint32_t* index_array = alloc->allocate<uint32_t>(sub_mesh->num_index);
     uint32_t num_index = sub_mesh->num_index;
@@ -4382,7 +4389,8 @@ static void obj_modern_write_index(obj_sub_mesh* sub_mesh,
     s.align_write(0x04);
 }
 
-static void obj_modern_read_model(obj* obj, prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset,
+static void obj_modern_read_model(obj* obj, prj::shared_ptr<prj::stack_allocator> alloc,
+    stream& s, int64_t base_offset,
     uint32_t header_length, bool is_x, stream* s_oidx, stream* s_ovtx) {
     const size_t mesh_size = is_x ? 0x130 : 0xD8;
 
@@ -4942,7 +4950,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
 }
 
 static void obj_modern_read_model_mesh(obj_mesh* mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset,
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset,
     uint32_t header_length, bool is_x, stream* s_oidx, stream* s_ovtx) {
     const size_t sub_mesh_size = is_x ? 0x80 : 0x70;
 
@@ -4992,7 +5000,7 @@ static void obj_modern_read_model_mesh(obj_mesh* mesh,
 }
 
 static void obj_modern_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
-    prj::shared_ptr<alloc_data> alloc, stream& s, int64_t base_offset,
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, int64_t base_offset,
     uint32_t header_length, bool is_x, stream* s_oidx) {
     obj_sub_mesh_header smh = {};
     sub_mesh->flags = s.read_uint32_t_reverse_endianness();
@@ -5038,7 +5046,7 @@ static void obj_modern_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
     obj_modern_read_index(sub_mesh, alloc, *s_oidx);
 }
 
-static obj_skin* obj_modern_read_skin(prj::shared_ptr<alloc_data> alloc,
+static obj_skin* obj_modern_read_skin(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t base_offset, uint32_t header_length, bool is_x) {
     obj_skin* sk = alloc->allocate<obj_skin>();
     s.set_position(base_offset, SEEK_SET);
@@ -6540,7 +6548,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
     oskn->pof = pof;
 }
 
-static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<alloc_data> alloc,
+static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t base_offset, uint32_t header_length, bool is_x) {
     obj_skin_ex_data* ex = alloc->allocate<obj_skin_ex_data>();
     s.set_position(base_offset, SEEK_SET);
@@ -6727,7 +6735,7 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<alloc_data
 }
 
 static obj_skin_block_cloth* obj_modern_read_skin_block_cloth(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     obj_skin_block_cloth* cls = alloc->allocate<obj_skin_block_cloth>();
     int64_t mesh_name_offset = s.read_offset(header_length, is_x);
     int64_t backface_mesh_name_offset = s.read_offset(header_length, is_x);
@@ -6981,7 +6989,7 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* cls,
 }
 
 static void obj_modern_read_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     cloth_root->trans.x = s.read_float_t();
     cloth_root->trans.y = s.read_float_t();
     cloth_root->trans.z = s.read_float_t();
@@ -7017,7 +7025,7 @@ static void obj_modern_write_skin_block_cloth_root(obj_skin_block_cloth_root* cl
 }
 
 static void obj_modern_read_skin_block_cloth_root_bone_weight(obj_skin_block_cloth_root_bone_weight* bone_weight,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     int64_t bone_name_offset = s.read_offset(header_length, is_x);
     bone_weight->bone_name = obj_read_utf8_string_null_terminated_offset(alloc, s, bone_name_offset);
     bone_weight->weight = s.read_float_t_reverse_endianness();
@@ -7040,7 +7048,7 @@ static void obj_modern_write_skin_block_cloth_root_bone_weight(obj_skin_block_cl
 }
 
 static obj_skin_block_constraint* obj_modern_read_skin_block_constraint(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     obj_skin_block_constraint* cns = alloc->allocate<obj_skin_block_constraint>();
     obj_modern_read_skin_block_node(&cns->node, alloc, s, header_length, str, is_x);
 
@@ -7210,7 +7218,7 @@ static void obj_modern_write_skin_block_constraint_attach_point(obj_skin_block_c
 }
 
 static void obj_modern_read_skin_block_constraint_up_vector(obj_skin_block_constraint_up_vector* up_vector,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     up_vector->active = !!s.read_int32_t_reverse_endianness();
     up_vector->roll = s.read_float_t_reverse_endianness();
     up_vector->affected_axis.x = s.read_float_t_reverse_endianness();
@@ -7241,7 +7249,7 @@ static void obj_modern_write_skin_block_constraint_up_vector(obj_skin_block_cons
 }
 
 static obj_skin_block_expression* obj_modern_read_skin_block_expression(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     obj_skin_block_expression* exp = alloc->allocate<obj_skin_block_expression>();
     obj_modern_read_skin_block_node(&exp->node, alloc, s, header_length, str, is_x);
 
@@ -7314,7 +7322,7 @@ static void obj_modern_write_skin_block_expression(obj_skin_block_expression* ex
 }
 
 static obj_skin_block_motion* obj_modern_read_skin_block_motion(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     obj_skin_block_motion* mot = alloc->allocate<obj_skin_block_motion>();
     obj_modern_read_skin_block_node(&mot->node, alloc, s, header_length, str, is_x);
 
@@ -7426,7 +7434,7 @@ static void obj_modern_write_skin_block_motion(obj_skin_block_motion* mot,
 }
 
 static void obj_modern_read_skin_block_node(obj_skin_block_node* node,
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     int64_t parent_name = s.read_offset(header_length, is_x);
     node->parent_name = obj_read_utf8_string_null_terminated_offset(alloc, s, parent_name);
 
@@ -7463,7 +7471,7 @@ static void obj_modern_write_skin_block_node(obj_skin_block_node* node,
 }
 
 static obj_skin_block_osage* obj_modern_read_skin_block_osage(
-    prj::shared_ptr<alloc_data> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
     obj_skin_block_osage* osg = alloc->allocate<obj_skin_block_osage>();
     obj_modern_read_skin_block_node(&osg->node, alloc, s, header_length, str, is_x);
 
@@ -7512,7 +7520,7 @@ static int32_t vtx_fmt_map[] = {
      20
 };
 
-static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<alloc_data> alloc, stream& s,
+static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     int64_t* vertex, const uint32_t vertex_format_index, uint32_t num_vertex, uint32_t size_vertex) {
     int32_t vtx_fmt = vertex_format_index >= 0 && vertex_format_index <= 20
         ? vtx_fmt_map[vertex_format_index] : -1;
@@ -7659,19 +7667,15 @@ static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<alloc_data> a
             bone_weight.w = (float_t)s.read_int16_t_reverse_endianness();
             bone_weight = vec4::div_min_max(bone_weight, -32768.0f, 32767.0f);
 
-            vec4i bone_index;
-            bone_index.x = (int32_t)s.read_uint8_t();
-            bone_index.y = (int32_t)s.read_uint8_t();
-            bone_index.z = (int32_t)s.read_uint8_t();
-            bone_index.w = (int32_t)s.read_uint8_t();
-            if (bone_index.x == 0xFF)
-                bone_index.x = -1;
-            if (bone_index.y == 0xFF)
-                bone_index.y = -1;
-            if (bone_index.z == 0xFF)
-                bone_index.z = -1;
-            if (bone_index.w == 0xFF)
-                bone_index.w = -1;
+            vec4i16 bone_index;
+            bone_index.x = s.read_uint8_t();
+            bone_index.y = s.read_uint8_t();
+            bone_index.z = s.read_uint8_t();
+            bone_index.w = s.read_uint8_t();
+            bone_index.x = bone_index.x != 0xFF ? bone_index.x / 3 : -1;
+            bone_index.y = bone_index.y != 0xFF ? bone_index.y / 3 : -1;
+            bone_index.z = bone_index.z != 0xFF ? bone_index.z / 3 : -1;
+            bone_index.w = bone_index.w != 0xFF ? bone_index.w / 3 : -1;
 
             obj_vertex_validate_bone_data(bone_weight, bone_index);
 
@@ -7689,6 +7693,7 @@ static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<alloc_data> a
     mesh->vertex_array = vtx;
     mesh->num_vertex = num_vertex;
     mesh->vertex_format = vertex_format;
+    mesh->attrib.m.compressed = 1;
 }
 
 static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
@@ -7816,12 +7821,10 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
             s.write_int16_t_reverse_endianness((int16_t)bone_weight.z);
             s.write_int16_t_reverse_endianness((int16_t)bone_weight.w);
 
-            vec4u8 bone_index;
-            vec4i_to_vec4u8(vtx[i].bone_index, bone_index);
-            s.write_uint8_t(bone_index.x);
-            s.write_uint8_t(bone_index.y);
-            s.write_uint8_t(bone_index.z);
-            s.write_uint8_t(bone_index.w);
+            s.write_uint8_t((uint8_t)vtx[i].bone_index.x);
+            s.write_uint8_t((uint8_t)vtx[i].bone_index.y);
+            s.write_uint8_t((uint8_t)vtx[i].bone_index.z);
+            s.write_uint8_t((uint8_t)vtx[i].bone_index.w);
         }
     }
 
@@ -7831,14 +7834,14 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
 }
 
 inline static const char* obj_move_data_string(const char* str,
-    prj::shared_ptr<alloc_data>& alloc) {
+    prj::shared_ptr<prj::stack_allocator>& alloc) {
     if (str)
         return alloc->allocate<char>(str, utf8_length(str) + 1);
     return 0;
 }
 
 inline static const char* obj_read_utf8_string_null_terminated_offset(
-    prj::shared_ptr<alloc_data>& alloc, stream& s, int64_t offset) {
+    prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset) {
     size_t len = s.read_utf8_string_null_terminated_offset_length(offset);
     char* str = alloc->allocate<char>(len + 1);
     s.position_push(offset, SEEK_SET);

@@ -10,12 +10,338 @@
 #include "../CRE/task.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
+#include "data_test/motion_test.hpp"
 #include "data_test/stage_test.hpp"
 #include "data_edit.hpp"
 #include "data_initialize.hpp"
 #include "pv_game.hpp"
 #include "system_startup.hpp"
 #include "x_pv_game.hpp"
+
+enum GameStateMode {
+    GAME_STATE_MODE_INIT = 0,
+    GAME_STATE_MODE_CTRL,
+    GAME_STATE_MODE_DEST,
+    GAME_STATE_MODE_MAX,
+};
+
+struct GameState {
+    struct Startup {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Advertise {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Game {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTest {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct TestMode {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+#if DATA_EDIT
+    struct DataEdit { // Added
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+#endif
+
+    struct AppError {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    GameStateEnum game_state;
+    GameStateEnum game_state_next;
+    GameStateEnum game_state_prev;
+    GameStateMode mode;
+    bool set_game_state_next;
+    bool next_sub_game_state;
+    int32_t call_count;
+    int32_t advertise_state;
+    SubGameStateEnum sub_game_state;
+    SubGameStateEnum sub_game_state_next;
+    SubGameStateEnum sub_game_state_prev;
+    GameStateMode sub_mode;
+    bool set_sub_game_state_next;
+    bool next_game_state;
+    int32_t sub_call_count;
+};
+
+struct SubGameState {
+    struct DataInitialize {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct SystemStartup {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct SystemStartupError {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Warning {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Logo {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Rating {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Demo {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Title {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Ranking {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct ScoreRanking {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct CM {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct PhotoModeDemo {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct Selector {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct GameMain {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct GameSel {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct StageResult {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct ScreenShotSel {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct ScreenShotResult {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct GameOver {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestMain {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestMisc {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestObj {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestStg {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestMot {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestCollision {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestSpr {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestAet {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestAuth3d {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestChr {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestItem {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestPerf {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestPvScript {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestPrint {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestCard {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestOpd {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestSlider {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestGlitter {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestGraphics {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestCollectionCard {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+    struct DataTestModeMain {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+#if DATA_EDIT
+    struct DataEdit { // Added
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+#endif
+
+    struct DataTestAppError {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+};
 
 struct GameStateData {
     GameStateEnum game_state;
@@ -530,6 +856,7 @@ bool test_mode;
 GameStateEnum data_test_game_state_prev;
 
 static bool game_state_call_sub(GameState* game_state);
+static GameState* game_state_get();
 static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state);
 
 static GameStateData* game_state_data_array_get(GameStateEnum state);
@@ -569,7 +896,7 @@ bool GameState::Advertise::Dest() {
 }
 
 bool GameState::Game::Init() {
-    task_rob_manager_append_task();
+    task_rob_manager_add_task();
     return true;
 }
 
@@ -578,14 +905,14 @@ bool GameState::Game::Ctrl() {
 }
 
 bool GameState::Game::Dest() {
-    if (!task_pv_game_free_task() || !task_rob_manager_free_task())
+    if (!task_pv_game_del_task() || !task_rob_manager_del_task())
         return false;
 
     return true;
 }
 
 bool GameState::DataTest::Init() {
-    task_rob_manager_append_task();
+    task_rob_manager_add_task();
     return true;
 }
 
@@ -600,7 +927,7 @@ bool GameState::DataTest::Ctrl() {
 }
 
 bool GameState::DataTest::Dest() {
-    task_rob_manager_free_task();
+    task_rob_manager_del_task();
     return true;
 }
 
@@ -645,9 +972,10 @@ bool GameState::AppError::Dest() {
 }
 
 bool SubGameState::DataInitialize::Init() {
-    task_data_init_append_task();
-    task_auth_3d_append_task();
-    //task_auth_2d_append_task();
+    task_data_init_add_task();
+    task_auth_3d_add_task();
+    //task_auth_2d_add_task();
+    //no_good_add_task();
     return true;
 }
 
@@ -656,13 +984,13 @@ bool SubGameState::DataInitialize::Ctrl() {
 }
 
 bool SubGameState::DataInitialize::Dest() {
-    task_data_init_free_task();
+    task_data_init_del_task();
     return true;
 }
 
 bool SubGameState::SystemStartup::Init() {
-    task_system_startup_append_task();
-    task_pv_db_append_task();
+    task_system_startup_add_task();
+    task_pv_db_add_task();
     return true;
 }
 
@@ -671,7 +999,7 @@ bool SubGameState::SystemStartup::Ctrl() {
 }
 
 bool SubGameState::SystemStartup::Dest() {
-    task_system_startup_free_task();
+    task_system_startup_del_task();
     game_state_set_sub_game_state_next(SUB_GAME_STATE_WARNING);
     return true;
 }
@@ -806,7 +1134,7 @@ bool SubGameState::PhotoModeDemo::Dest() {
 }
 
 bool SubGameState::Selector::Init() {
-    app::TaskWork::AppendTask(&x_pv_game_selector, "X PVGAME SELECTOR", 0);
+    app::TaskWork::AddTask(&x_pv_game_selector, "X PVGAME SELECTOR", 0);
     return true;
 }
 
@@ -814,7 +1142,7 @@ bool SubGameState::Selector::Ctrl() {
     if (x_pv_game_selector.exit) {
         if (x_pv_game_selector.start && x_pv_game_init()) {
             XPVGameSelector& sel = x_pv_game_selector;
-            app::TaskWork::AppendTask(x_pv_game_ptr, "X PVGAME", 0);
+            app::TaskWork::AddTask(x_pv_game_ptr, "X PVGAME", 0);
             x_pv_game_ptr->Load(sel.pv_id, sel.stage_id, sel.charas, sel.modules);
             game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
         }
@@ -826,7 +1154,7 @@ bool SubGameState::Selector::Ctrl() {
 }
 
 bool SubGameState::Selector::Dest() {
-    x_pv_game_selector.SetDest();
+    x_pv_game_selector.DelTask();
     return true;
 }
 
@@ -953,9 +1281,8 @@ bool SubGameState::DataTestStg::Init() {
     cam->set_view_point({ 0.0f, 0.88f, 4.3f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
 
-    app::TaskWork::AppendTask(dtm_stg, "DATA_TEST_STAGE");
-    app::TaskWork::AppendTask(dtw_stg, "DATA_TEST_STAGE WINDOW");
-    dtw_stg->ShowWindow();
+    app::TaskWork::AddTask(dtm_stg, "DATA_TEST_STAGE");
+    dtw_stg_init();
     return true;
 }
 
@@ -966,20 +1293,26 @@ bool SubGameState::DataTestStg::Ctrl() {
 bool SubGameState::DataTestStg::Dest() {
     clear_color = { 0x00, 0x00, 0x00, 0xFF };
 
-    dtm_stg->SetDest();
-    dtw_stg->SetDest();
+    dtw_stg_free();
+    dtm_stg->DelTask();
     return true;
 }
 
 bool SubGameState::DataTestMot::Init() {
+    app::TaskWork::AddTask(data_test_mot, "TASK_DATA_TEST_MOT");
+    dtm_stg_load(0);
+    dtw_stg_load(true);
     return true;
 }
 
 bool SubGameState::DataTestMot::Ctrl() {
-    return false;
+    return task_data_init_check_state();
 }
 
 bool SubGameState::DataTestMot::Dest() {
+    data_test_mot->DelTask();
+    dtm_stg_unload();
+    dtw_stg_unload();
     return true;
 }
 
@@ -1020,8 +1353,8 @@ bool SubGameState::DataTestAet::Dest() {
 }
 
 bool SubGameState::DataTestAuth3d::Init() {
-    app::TaskWork::AppendTask(auth_3d_test_task, "AUTH3DTEST");
-    app::TaskWork::AppendTask(auth_3d_test_window, "AUTH3DTEST WINDOW");
+    app::TaskWork::AddTask(auth_3d_test_task, "AUTH3DTEST");
+    app::TaskWork::AddTask(auth_3d_test_window, "AUTH3DTEST WINDOW");
     return true;
 }
 
@@ -1030,8 +1363,8 @@ bool SubGameState::DataTestAuth3d::Ctrl() {
 }
 
 bool SubGameState::DataTestAuth3d::Dest() {
-    auth_3d_test_task->SetDest();
-    auth_3d_test_window->SetDest();
+    auth_3d_test_task->DelTask();
+    auth_3d_test_window->DelTask();
     return true;
 }
 
@@ -1132,7 +1465,7 @@ bool SubGameState::DataTestSlider::Dest() {
 }
 
 bool SubGameState::DataTestGlitter::Init() {
-    app::TaskWork::AppendTask(task_data_test_glitter_particle, "DATA_TEST_PARTICLE");
+    app::TaskWork::AddTask(task_data_test_glitter_particle, "DATA_TEST_PARTICLE");
     dtm_stg_load(0);
     dtw_stg_load(true);
     return true;
@@ -1146,8 +1479,8 @@ bool SubGameState::DataTestGlitter::Dest() {
     dtw_stg_unload();
     dtm_stg_unload();
     //if (data_test_chr->CheckTaskReady())
-    //    data_test_chr->SetDest();
-    task_data_test_glitter_particle->SetDest();
+    //    data_test_chr->DelTask();
+    task_data_test_glitter_particle->DelTask();
     return true;
 }
 
@@ -1189,7 +1522,7 @@ bool SubGameState::DataTestModeMain::Dest() {
 
 #if DATA_EDIT
 bool SubGameState::DataEdit::Init() { // Added
-    app::TaskWork::AppendTask(&data_edit, "DATA EDIT", 0);
+    app::TaskWork::AddTask(&data_edit, "DATA EDIT", 0);
     return true;
 }
 
@@ -1198,7 +1531,7 @@ bool SubGameState::DataEdit::Ctrl() { // Added
 }
 
 bool SubGameState::DataEdit::Dest() { // Added
-    data_edit.SetDest();
+    data_edit.DelTask();
     return true;
 }
 #endif
@@ -1302,10 +1635,6 @@ void game_state_ctrl() {
     game_state->call_count++;
 }
 
-GameState* game_state_get() {
-    return &game_state;
-}
-
 size_t game_state_print(char* buf, size_t buf_size) {
     GameState* game_state = game_state_get();
     const char* game_state_name = game_state_names[game_state->game_state];
@@ -1373,6 +1702,9 @@ static bool game_state_call_sub(GameState* game_state) {
     return false;
 }
 
+static GameState* game_state_get() {
+    return &game_state;
+}
 
 static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state) {
     GameState* game_state = game_state_get();

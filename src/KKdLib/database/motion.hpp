@@ -73,16 +73,16 @@ struct motion_database {
 
     void add(motion_database_file* mot_db_file);
 
-    motion_set_info* get_motion_set_by_id(uint32_t id);
-    motion_set_info* get_motion_set_by_name(const char* name);
-    motion_set_info* get_motion_set_by_motion_id(uint32_t id);
-    motion_set_info* get_motion_set_by_motion_name(const char* name);
-    uint32_t get_motion_set_id_by_motion_id(uint32_t id);
-    uint32_t get_motion_set_id_by_motion_name(const char* name);
-    uint32_t get_motion_set_id(const char* name);
-    const char* get_motion_set_name(uint32_t id);
-    motion_info* get_motion_by_id(uint32_t id);
-    motion_info* get_motion_by_name(const char* name);
-    uint32_t get_motion_id(const char* name);
-    const char* get_motion_name(uint32_t id);
+    const motion_set_info* get_motion_set_by_id(uint32_t id) const;
+    const motion_set_info* get_motion_set_by_name(const char* name) const;
+    const motion_set_info* get_motion_set_by_motion_id(uint32_t id) const;
+    const motion_set_info* get_motion_set_by_motion_name(const char* name) const;
+    uint32_t get_motion_set_id_by_motion_id(uint32_t id) const;
+    uint32_t get_motion_set_id_by_motion_name(const char* name) const;
+    uint32_t get_motion_set_id(const char* name) const;
+    const char* get_motion_set_name(uint32_t id) const;
+    const motion_info* get_motion_by_id(uint32_t id) const;
+    const motion_info* get_motion_by_name(const char* name) const;
+    uint32_t get_motion_id(const char* name) const;
+    const char* get_motion_name(uint32_t id) const;
 };

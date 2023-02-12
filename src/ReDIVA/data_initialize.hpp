@@ -24,6 +24,6 @@ public:
     virtual void Disp() override;
 };
 
-extern bool task_data_init_append_task();
+extern bool task_data_init_add_task();
 extern bool task_data_init_check_state();
-extern bool task_data_init_free_task();
+extern bool task_data_init_del_task();

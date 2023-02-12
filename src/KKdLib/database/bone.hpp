@@ -79,21 +79,28 @@ struct bone_database {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
-    bool get_skeleton(const char* name, bone_database_skeleton** skeleton);
-    int32_t get_skeleton_bone_index(const char* name, const char* bone_name);
-    bool get_skeleton_bones(const char* name, std::vector<bone_database_bone>** bone);
-    bool get_skeleton_positions(const char* name, std::vector<vec3>** positions);
-    int32_t get_skeleton_object_bone_index(const char* name, const char* bone_name);
-    bool get_skeleton_object_bones(const char* name, std::vector<std::string>** object_bones);
-    int32_t get_skeleton_motion_bone_index(const char* name, const char* bone_name);
-    bool get_skeleton_motion_bones(const char* name, std::vector<std::string>** motion_bones);
-    bool get_skeleton_parent_indices(const char* name, std::vector<uint16_t>** parent_indices);
-    bool get_skeleton_heel_height(const char* name, float_t** unknown_value);
+    bool get_skeleton(const char* name,
+        const bone_database_skeleton** skeleton) const;
+    int32_t get_skeleton_bone_index(const char* name, const char* bone_name) const;
+    bool get_skeleton_bones(const char* name,
+        const std::vector<bone_database_bone>** bone) const;
+    bool get_skeleton_positions(const char* name,
+        const std::vector<vec3>** positions) const;
+    int32_t get_skeleton_object_bone_index(const char* name, const char* bone_name) const;
+    bool get_skeleton_object_bones(const char* name,
+        const std::vector<std::string>** object_bones) const;
+    int32_t get_skeleton_motion_bone_index(const char* name, const char* bone_name) const;
+    bool get_skeleton_motion_bones(const char* name,
+        const std::vector<std::string>** motion_bones) const;
+    bool get_skeleton_parent_indices(const char* name,
+        const std::vector<uint16_t>** parent_indices) const;
+    bool get_skeleton_heel_height(const char* name, const float_t** unknown_value) const;
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };
 
-extern void bone_database_bones_calculate_count(std::vector<bone_database_bone>* bones, size_t* object_bone_count,
-    size_t* motion_bone_count, size_t* total_bone_count, size_t* ik_bone_count, size_t* chain_pos);
+extern void bone_database_bones_calculate_count(const std::vector<bone_database_bone>* bones,
+    size_t* object_bone_count, size_t* motion_bone_count,
+    size_t* total_bone_count, size_t* ik_bone_count, size_t* chain_pos);
 
 extern const char* bone_database_skeleton_type_to_string(bone_database_skeleton_type type);

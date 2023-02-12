@@ -4,10 +4,11 @@
 */
 
 #include "task_effect.hpp"
+#include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/hash.hpp"
+#include "GL/uniform_buffer.hpp"
 #include "auth_3d.hpp"
 #include "data.hpp"
-#include "draw_task.hpp"
 #include "random.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
@@ -29,6 +30,16 @@ struct leaf_particle_data {
     int32_t type;
 
     void init();
+};
+
+struct leaf_particle_scene_shader_data {
+    vec4 g_transform[4];
+    vec4 g_view_pos;
+    vec4 g_color;
+    vec4 g_light_env_stage_diffuse;
+    vec4 g_light_env_stage_specular;
+    vec4 g_lit_dir;
+    vec4 g_lit_luce;
 };
 
 struct leaf_particle_vertex_data {
@@ -71,6 +82,19 @@ struct rain_particle_data {
     int32_t field_3C;
 
     rain_particle_data();
+};
+
+struct rain_particle_scene_shader_data {
+    vec4 g_view[4];
+    vec4 g_proj[4];
+    vec4 g_range_scale;
+    vec4 g_range_offset;
+};
+
+struct rain_particle_batch_shader_data {
+    vec4 g_pos_offset;
+    vec4 g_tangent;
+    vec4 g_color;
 };
 
 struct struc_608 {
@@ -141,9 +165,6 @@ static void leaf_particle_ctrl();
 static int32_t leaf_particle_disp();
 static void leaf_particle_free();
 
-static void litproj_textures_init();
-static void litproj_textures_free();
-
 static void particle_init(vec3* offset);
 static void particle_ctrl();
 static int32_t particle_disp(particle_vertex_data* vtx_data, particle_data* data, int32_t count);
@@ -194,6 +215,7 @@ static leaf_particle_data* leaf_ptcl_data;
 static GLuint leaf_ptcl_vao;
 static GLuint leaf_ptcl_vbo;
 static GLuint leaf_ptcl_ebo;
+static GL::UniformBuffer leaf_particle_scene_ubo;
 static const size_t leaf_ptcl_count = 0x800;
 
 static bool light_proj_enable;
@@ -216,7 +238,8 @@ static uint32_t rain_particle_tex_id;
 static rain_particle_data rain_ptcl_data[8];
 static GLuint rain_ptcl_vao;
 static GLuint rain_ptcl_vbo;
-static GLuint rain_ptcl_ebo;
+static GL::UniformBuffer rain_particle_scene_ubo;
+static GL::UniformBuffer rain_particle_batch_ubo;
 static const size_t rain_ptcl_count = 0x8000;
 
 static TaskEffect** task_effect_data_array[] = {
@@ -268,6 +291,8 @@ static const char* task_effect_name_array[] = {
 };
 
 extern render_context* rctx_ptr;
+extern int32_t width;
+extern int32_t height;
 
 TaskEffect::TaskEffect() {
 
@@ -382,7 +407,7 @@ TaskEffectAuth3D::~TaskEffectAuth3D() {
 
 bool TaskEffectAuth3D::Init() {
     if (!task_auth_3d_check_task_ready()) {
-        SetDest();
+        DelTask();
         return true;
     }
 
@@ -450,33 +475,28 @@ void TaskEffectAuth3D::SetStageHashes(std::vector<uint32_t>& stage_hashes, void*
     this->stage_hashes.assign(stage_hashes.begin(), stage_hashes.end());
     stage_indices.clear();
     for (uint32_t i : this->stage_hashes) {
-        stage_data_modern* stg_data = stage_data->get_stage_data_modern(i);
+        const stage_data_modern* stg_data = stage_data->get_stage_data_modern(i);
         if (!stg_data || !stg_data->auth_3d_ids.size())
             continue;
 
         struc_621 v30;
         v30.stage_hash = i;
 
-        if (stage.count != stage.max_count) {
-            auth_3d_id id = {};
+        if (stage.count != stage.max_count)
             for (uint32_t j : stg_data->auth_3d_ids) {
-                id = {};
                 if (stage.count == stage.max_count)
                     break;
 
-                id = auth_3d_data_load_hash(j, data, obj_db, tex_db);
-                if (id.check_not_empty())
+                auth_3d_id id = auth_3d_data_load_hash(j, data, obj_db, tex_db);
+                if (!id.check_not_empty())
                     break;
-            }
 
-            if (id.not_null()) {
                 id.read_file_modern();
                 id.set_visibility(false);
                 if (stage.count + 1 <= stage.max_count)
                     stage.auth_3d_ids_ptr[stage.count++] = id;
                 v30.auth_3d_ids.push_back(id);
             }
-        }
 
         field_120.push_back(v30);
     }
@@ -490,33 +510,28 @@ void TaskEffectAuth3D::SetStageIndices(std::vector<int32_t>& stage_indices) {
         auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
         stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-        stage_data* stage_data = aft_stage_data->get_stage_data(i);
+        const stage_data* stage_data = aft_stage_data->get_stage_data(i);
         if (!stage_data || !stage_data->auth_3d_ids.size())
             continue;
 
         struc_621 v30;
         v30.stage_index = i;
 
-        if (stage.count != stage.max_count) {
-            auth_3d_id id = -1;
+        if (stage.count != stage.max_count)
             for (int32_t j : stage_data->auth_3d_ids) {
-                id = -1;
                 if (stage.count == stage.max_count)
                     break;
 
-                id = auth_3d_data_load_uid(j, aft_auth_3d_db);
-                if (id.check_not_empty())
+                auth_3d_id id = auth_3d_data_load_uid(j, aft_auth_3d_db);
+                if (!id.check_not_empty())
                     break;
-            }
 
-            if (id.not_null()) {
                 id.read_file(aft_auth_3d_db);
                 id.set_visibility(false);
                 if (stage.count + 1 <= stage.max_count)
                     stage.auth_3d_ids_ptr[stage.count++] = id;
                 v30.auth_3d_ids.push_back(id);
             }
-        }
 
         field_120.push_back(v30);
     }
@@ -734,7 +749,7 @@ struc_573::struc_573() : chara_index(), bone_index() {
 
 TaskEffectFogRing::Data::Data() : enable(), delta_frame(), field_8(), ring_size(), tex_id(),
 ptcl_size(), max_ptcls(), num_ptcls(), density(), density_offset(), ptcl_data(), num_vtx(),
-field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control(), vao(), vbo(), ebo() {
+field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control(), vao(), vbo() {
     current_stage_index = -1;
 }
 
@@ -830,7 +845,7 @@ void TaskEffectFogRing::Data::CalcVert() {
     }
 
     vec4 color = this->color;
-    for (int32_t i = num_ptcls; i > 0; i--, ptcl_data++, ptcl_vtx_data += 4) {
+    for (int32_t i = num_ptcls; i > 0; i--, ptcl_data++, ptcl_vtx_data += 6) {
         float_t size = ptcl_data->size * (float_t)((1.0 / 128.0 + 1.0 / 256.0) / 2.0);
         color.w = ptcl_data->density * density;
 
@@ -841,10 +856,14 @@ void TaskEffectFogRing::Data::CalcVert() {
         ptcl_vtx_data[0].color = color;
         ptcl_vtx_data[1].position = position + vec2(-size, -size);
         ptcl_vtx_data[1].color = color;
-        ptcl_vtx_data[2].position = position + vec2( size, -size);
+        ptcl_vtx_data[2].position = position + vec2( size,  size);
         ptcl_vtx_data[2].color = color;
-        ptcl_vtx_data[3].position = position + vec2( size,  size);
+        ptcl_vtx_data[3].position = position + vec2( size, -size);
         ptcl_vtx_data[3].color = color;
+        ptcl_vtx_data[4].position = position + vec2( size,  size);
+        ptcl_vtx_data[4].color = color;
+        ptcl_vtx_data[5].position = position + vec2(-size, -size);
+        ptcl_vtx_data[5].color = color;
     }
 
     if (GLAD_GL_VERSION_4_5)
@@ -854,7 +873,7 @@ void TaskEffectFogRing::Data::CalcVert() {
         gl_state_bind_array_buffer(0);
     }
 
-    num_vtx = (int32_t)(num_ptcls * 4LL);
+    num_vtx = (int32_t)(num_ptcls * 6LL);
 }
 
 void TaskEffectFogRing::Data::Ctrl() {
@@ -892,20 +911,15 @@ void TaskEffectFogRing::Data::Dest() {
         vbo = 0;
     }
 
-    if (ebo) {
-        glDeleteBuffers(1, &ebo);
-        ebo = 0;
-    }
-
-    rctx_ptr->draw_pass.set_enable(DRAW_PASS_PRE_PROCESS, false);
-    rctx_ptr->draw_pass.clear_preprocess(0);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
+    rctx_ptr->render_manager.clear_user(0);
     rctx_ptr->draw_state.set_fog_height(false);
 }
 
 void TaskEffectFogRing::Data::Disp() {
     if (enable && disp)
-        draw_task_add_draw_preprocess(rctx_ptr, &mat4_identity,
-            (void(*)(render_context * rctx, void* data))draw_fog_particle, this, DRAW_OBJECT_PREPROCESS);
+        rctx_ptr->disp_manager.entry_obj_user(&mat4_identity,
+            (mdl::UserArgsFunc)draw_fog_particle, this, mdl::OBJ_TYPE_USER);
 }
 
 void TaskEffectFogRing::Data::Draw() {
@@ -916,17 +930,17 @@ void TaskEffectFogRing::Data::Draw() {
         return;
 
     rctx->draw_state.set_fog_height(true);
-    render_texture& rt = rctx->draw_pass.get_render_texture(8);
+    render_texture& rt = rctx->render_manager.get_render_texture(8);
     rt.bind();
     glViewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
     glClearColor(density_offset, density_offset, density_offset, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (draw_task_get_count(rctx, DRAW_OBJECT_PREPROCESS))
-        draw_task_draw_objects_by_type(rctx, DRAW_OBJECT_PREPROCESS, 0, 0, true);
+    if (rctx->disp_manager.get_obj_count(mdl::OBJ_TYPE_USER))
+        rctx->disp_manager.draw(mdl::OBJ_TYPE_USER);
     gl_state_bind_framebuffer(0);
-    rctx->draw_pass.set_effect_texture(rt.color_texture);
+    rctx->render_manager.set_effect_texture(rt.color_texture);
     glGetError();
 }
 
@@ -972,8 +986,8 @@ void TaskEffectFogRing::Data::Reset() {
 }
 
 void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    rctx_ptr->draw_pass.clear_preprocess(0);
-    rctx_ptr->draw_pass.set_enable(DRAW_PASS_PRE_PROCESS, false);
+    rctx_ptr->render_manager.clear_user(0);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
     disp = false;
     current_stage_index = -1;
     this->stage_indices.clear();
@@ -1042,7 +1056,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
         v3[4].position = 0.0f;
     }
 
-    const size_t max_ptcls_vtx_count = max_ptcls * 0x04ULL;
+    const size_t max_ptcls_vtx_count = (size_t)max_ptcls * 0x06;
 
     ptcl_data = force_malloc_s(fog_ring_data, max_ptcls);
     ptcl_data = new (ptcl_data) fog_ring_data[max_ptcls];
@@ -1068,42 +1082,17 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
     gl_state_bind_vertex_array(vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(for_ring_vertex_data, position)); // Pos
-    glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(for_ring_vertex_data, color));    // Color0
-
-    size_t ebo_count = max_ptcls_vtx_count / 4 * 6;
-    uint32_t* ebo_data = force_malloc_s(uint32_t, ebo_count);
-    for (size_t i = 0, j = 0; i < max_ptcls; i += 6, j += 4) {
-        ebo_data[i + 0] = (uint32_t)(j + 0);
-        ebo_data[i + 1] = (uint32_t)(j + 1);
-        ebo_data[i + 2] = (uint32_t)(j + 2);
-        ebo_data[i + 3] = (uint32_t)(j + 0);
-        ebo_data[i + 4] = (uint32_t)(j + 2);
-        ebo_data[i + 5] = (uint32_t)(j + 3);
-    }
-
-    if (!ebo)
-        glGenBuffers(1, &ebo);
-
-    gl_state_bind_element_array_buffer(ebo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint32_t) * ebo_count), ebo_data, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint32_t) * ebo_count), ebo_data, GL_STATIC_DRAW);
-    free_def(ebo_data);
-
+        (void*)offsetof(for_ring_vertex_data, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(for_ring_vertex_data, color));
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
-    gl_state_bind_element_array_buffer(0);
 
     InitParticleData();
 
-    rctx_ptr->draw_pass.set_enable(DRAW_PASS_PRE_PROCESS, true);
-    rctx_ptr->draw_pass.add_preprocess(0, TaskEffectFogRing::Data::DrawStatic, this);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, true);
+    rctx_ptr->render_manager.add_user(0, TaskEffectFogRing::Data::DrawStatic, this);
 }
 
 void TaskEffectFogRing::Data::DrawStatic(void* data) {
@@ -1446,7 +1435,8 @@ bool TaskEffectLitproj::Ctrl() {
 }
 
 bool TaskEffectLitproj::Dest() {
-    litproj_textures_free();
+    delete rctx_ptr->litproj;
+    rctx_ptr->litproj = 0;
     stage_param_data_litproj_current = 0;
     stage_param_data_litproj_storage_clear();
     return true;
@@ -1483,8 +1473,15 @@ void TaskEffectLitproj::SetStageIndices(std::vector<int32_t>& stage_indices) {
         current_stage_index = stage_index;
         stage_param_litproj* litproj = stage_param_data_litproj_storage_get_value(stage_index);
         if (litproj) {
+            data_struct* aft_data = &data_list[DATA_AFT];
+            texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+
             stage_param_data_litproj_current = litproj;
-            litproj_textures_init();
+            
+            light_proj* _litproj = new light_proj(width, height);
+            rctx_ptr->litproj = _litproj;
+            _litproj->enable = true;
+            _litproj->texture_id = aft_tex_db->get_texture_id(litproj->tex_name.c_str());
             stage_param_data_litproj_set = true;
         }
     }
@@ -1762,10 +1759,26 @@ void leaf_particle_draw() {
     if (!count)
         return;
 
+    const light_data& light_stage = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_STAGE];
+
+    leaf_particle_scene_shader_data shader_data = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->vp_mat, &temp);
+    shader_data.g_transform[0] = temp.row0;
+    shader_data.g_transform[1] = temp.row1;
+    shader_data.g_transform[2] = temp.row2;
+    shader_data.g_transform[3] = temp.row3;
+    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
+    shader_data.g_color = stage_param_data_leaf_current->color;
+    light_stage.get_diffuse(shader_data.g_light_env_stage_diffuse);
+    light_stage.get_specular(shader_data.g_light_env_stage_specular);
+    shader_data.g_lit_dir = rctx_ptr->obj_scene.g_light_chara_dir;
+    shader_data.g_lit_luce = rctx_ptr->obj_scene.g_light_chara_luce;
+    leaf_particle_scene_ubo.WriteMapMemory(shader_data);
+
     gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set(SHADER_FT_LEAF_PT);
-    shaders_ft.local_frag_set(0, stage_param_data_leaf_current->color);
-    shaders_ft.state_material_set_shininess(false, 1.0f);
+    shaders_ft.set_opengl_shader(SHADER_FT_LEAF_PT);
+    leaf_particle_scene_ubo.Bind(0);
     gl_state_bind_vertex_array(leaf_ptcl_vao);
     shaders_ft.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
     gl_state_bind_vertex_array(0);
@@ -1779,39 +1792,59 @@ void rain_particle_draw() {
     if (!tex)
         return;
 
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set(SHADER_FT_RAIN);
-
     stage_param_rain* rain = stage_param_data_rain_current;
-    float_t tangent_sign = -rain->psize.x;
-    float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
-
-    int32_t first = 0;
-    int32_t count = min_def(rain->num_rain, rain_ptcl_count) / 2;
-
     vec3 range = rain->range;
     vec3 range_scale = rain->range;
     vec3 range_offset = rain->offset;
     range_offset.x -= range.x * 0.5f;
     range_offset.z -= range.z * 0.5f;
+
+    rain_particle_scene_shader_data scene_shader_data = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->view_mat, &temp);
+    scene_shader_data.g_view[0] = temp.row0;
+    scene_shader_data.g_view[1] = temp.row1;
+    scene_shader_data.g_view[2] = temp.row2;
+    scene_shader_data.g_view[3] = temp.row3;
+    mat4_transpose(&rctx_ptr->proj_mat, &temp);
+    scene_shader_data.g_proj[0] = temp.row0;
+    scene_shader_data.g_proj[1] = temp.row1;
+    scene_shader_data.g_proj[2] = temp.row2;
+    scene_shader_data.g_proj[3] = temp.row3;
+    scene_shader_data.g_range_scale = { range_scale.x, range_scale.y, range_scale.z, 0.0f };
+    scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
+    rain_particle_scene_ubo.WriteMapMemory(scene_shader_data);
+
+    gl_state_enable_blend();
+    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_state_enable_depth_test();
+    gl_state_set_depth_mask(GL_FALSE);
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    shaders_ft.set_opengl_shader(SHADER_FT_RAIN);
+
+    float_t tangent_sign = -rain->psize.x;
+    float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
+
+    int32_t first = 0;
+    int32_t count = min_def(rain->num_rain, rain_ptcl_count) / 2 / 4 * 6;
+
     vec4 color = rain->color;
     float_t color_a = color.w;
-    shaders_ft.local_vert_set(1, range_offset.x, range_offset.y, range_offset.z, 0.0f);
-    shaders_ft.local_vert_set(2, range_scale.x, range_scale.y, range_scale.z, 0.0f);
     gl_state_bind_vertex_array(rain_ptcl_vao);
+    rain_particle_scene_ubo.Bind(0);
+    rain_particle_batch_ubo.Bind(1);
     for (int32_t i = 0; i < 8; i++, first += count) {
         rain_particle_data& data = rain_ptcl_data[i];
         vec3 pos_offset = data.position / range;
         vec3 tangent = data.velocity * tangent_size;
         color.w = color_a * data.alpha;
-        shaders_ft.local_vert_set(0, pos_offset.x, pos_offset.y, pos_offset.z, 0.075f);
-        shaders_ft.local_vert_set(3, tangent.x, tangent.y, tangent.z, tangent_sign);
-        shaders_ft.local_frag_set(0, color);
-        shaders_ft.draw_range_elements(GL_TRIANGLES, first, count, count / 4 * 6, GL_UNSIGNED_INT, 0);
+
+        rain_particle_batch_shader_data batch_shader_data = {};
+        batch_shader_data.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.075f };
+        batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
+        batch_shader_data.g_color = color;
+        rain_particle_batch_ubo.WriteMapMemory(batch_shader_data);
+        shaders_ft.draw_arrays(GL_TRIANGLES, first, count);
     }
     gl_state_bind_vertex_array(0);
     gl_state_active_bind_texture_2d(0, 0);
@@ -1853,7 +1886,7 @@ void particle_draw() {
         return;
 
     gl_state_bind_vertex_array(ptcl_vao);
-    shaders_ft.set(SHADER_FT_PARTICL);
+    shaders_ft.set_opengl_shader(SHADER_FT_PARTICL);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
     gl_state_bind_vertex_array(0);
 }
@@ -2048,7 +2081,7 @@ static std::string task_effect_array_get_stage_param_file_path(
     if (dev_ram)
         path.assign("dev_ram/stage_param/");
     else
-        path.assign("./rom/stage_param/");
+        path.assign("rom/stage_param/");
 
     if (a4)
         return path;
@@ -2206,7 +2239,7 @@ std::pair<TaskEffectType, TaskEffect*> TaskEffectParent::AddTaskEffectTypePtr(Ta
         const char* name = 0;
         TaskEffect* t = task_effect_array_get(type, &name);
         if (t) {
-            app::TaskWork::AppendTask(t, name);
+            app::TaskWork::AddTask(t, name);
             return { type, t };
         }
     }
@@ -2232,7 +2265,7 @@ void TaskEffectParent::Dest() {
         state = 4;
     else if (state >= 2 && state <= 3) {
         for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-            i.second->SetDest();
+            i.second->DelTask();
         state = 4;
     }
 }
@@ -2405,7 +2438,7 @@ void TaskEffectParent::SetStageHashes(std::vector<uint32_t>& stage_hashes) {
     modern = true;
 
     for (uint32_t i : stage_hashes) {
-        ::stage_data_modern* stage_data = this->stage_data->get_stage_data_modern(i);
+        const ::stage_data_modern* stage_data = this->stage_data->get_stage_data_modern(i);
         if (!stage_data)
             continue;
 
@@ -2414,21 +2447,15 @@ void TaskEffectParent::SetStageHashes(std::vector<uint32_t>& stage_hashes) {
 
         field_68.push_back({ i, struc_608(effects) });
 
-        for (uint32_t j : effects->field_0) {
+        for (uint32_t j : effects->field_0)
             if (j == hash_murmurhash_empty || j == hash_murmurhash_null || j == -1)
                 break;
-
-            bool found = false;
-            for (uint32_t k : obj_set_ids)
-                if (k == j) {
-                    found = true;
-                    break;
-                }
-
-            if (!found)
+            else
                 obj_set_ids.push_back(j);
-        }
     }
+
+    prj::sort(obj_set_ids);
+    prj::unique(obj_set_ids);
 
     for (uint32_t i : obj_set_ids)
         object_storage_load_set_hash(data, i);
@@ -2446,7 +2473,7 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
     for (int32_t i : stage_indices) {
-        ::stage_data* stage_data = aft_stage_data->get_stage_data(i);
+        const ::stage_data* stage_data = aft_stage_data->get_stage_data(i);
         if (!stage_data)
             continue;
 
@@ -2455,22 +2482,16 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
 
         field_68.push_back({ i, struc_608(effects) });
 
-        for (int32_t j : effects->field_0) {
+        for (int32_t j : effects->field_0)
             if (j == -1)
                 break;
-
-            bool found = false;
-            for (uint32_t k : obj_set_ids)
-                if (k == j) {
-                    found = true;
-                    break;
-                }
-
-            if (!found)
+            else
                 obj_set_ids.push_back(j);
-        }
     }
 
+    prj::sort(obj_set_ids);
+    prj::unique(obj_set_ids);
+    
     for (uint32_t i : obj_set_ids)
         object_storage_load_set(aft_data, aft_obj_db, i);
     state = 1;
@@ -2497,16 +2518,13 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     if (!data->num_vtx)
         return;
 
-    shaders_ft.set(SHADER_FT_FOGPTCL);
+    shaders_ft.set_opengl_shader(SHADER_FT_FOGPTCL);
     gl_state_enable_blend();
-    glEnable(GL_PROGRAM_POINT_SIZE);
-    glPointParameteri(GL_POINT_SPRITE_COORD_ORIGIN, GL_LOWER_LEFT);
     texture* tex = texture_storage_get_texture(data->tex_id);
     if (tex)
         gl_state_active_bind_texture_2d(0, tex->tex);
     gl_state_bind_vertex_array(data->vao);
-    shaders_ft.draw_elements(GL_TRIANGLES, data->num_vtx / 4 * 6, GL_UNSIGNED_INT, 0);
-    glDisable(GL_PROGRAM_POINT_SIZE);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);
     gl_state_disable_blend();
 }
 
@@ -2553,13 +2571,13 @@ static void leaf_particle_init(bool change_stage) {
     gl_state_bind_vertex_array(leaf_ptcl_vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(leaf_particle_vertex_data, position)); // Pos
+        (void*)offsetof(leaf_particle_vertex_data, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(leaf_particle_vertex_data, texcoord));
     glEnableVertexAttribArray(2);
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(leaf_particle_vertex_data, normal));   // Normal
-    glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(leaf_particle_vertex_data, texcoord)); // TexCoords
+        (void*)offsetof(leaf_particle_vertex_data, normal));
 
     size_t ebo_count = leaf_ptcl_vtx_count / 4 * 6;
     uint32_t* ebo_data = force_malloc_s(uint32_t, ebo_count);
@@ -2587,6 +2605,7 @@ static void leaf_particle_init(bool change_stage) {
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
     gl_state_bind_element_array_buffer(0);
+    leaf_particle_scene_ubo.Create(sizeof(leaf_particle_scene_shader_data));
 }
 
 static float_t sub_14034C960(vec3 x) {
@@ -2732,30 +2751,22 @@ static int32_t leaf_particle_disp() {
         data[0].normal = t0;
 
         if (split_tex) {
-            float_t u = 0.0f;
-            float_t v = 0.0f;
-            if (i & 0x01)
-                u = 1.0f;
-            if (i & 0x02)
-                v = 1.0f;
+            const float_t u = i & 0x01 ? 1.0f : 0.0f;
+            const float_t v = i & 0x02 ? 1.0f : 0.0f;
 
             float_t u0 = u * 0.5f;
             float_t v0 = v * 0.5f;
             float_t u1 = (u + 1.0f) * 0.5f;
             float_t v1 = (v + 1.0f) * 0.5f;
 
-            vtx_data[0].texcoord.x = u0;
-            vtx_data[0].texcoord.y = v0;
-            vtx_data[1].texcoord.x = u1;
-            vtx_data[1].texcoord.y = v0;
-            vtx_data[2].texcoord.x = u1;
-            vtx_data[2].texcoord.y = v1;
-            vtx_data[3].texcoord.x = u0;
-            vtx_data[3].texcoord.y = v1;
+            vtx_data[0].texcoord = vec2(u0, v0);
+            vtx_data[1].texcoord = vec2(u1, v0);
+            vtx_data[2].texcoord = vec2(u1, v1);
+            vtx_data[3].texcoord = vec2(u0, v1);
         }
         else {
             vtx_data[0].texcoord = 0.0f;
-            vtx_data[1].texcoord = 1.0f;
+            vtx_data[1].texcoord = vec2(1.0f, 0.0f);
             vtx_data[2].texcoord = 1.0f;
             vtx_data[3].texcoord = vec2(0.0f, 1.0f);
         }
@@ -2807,18 +2818,8 @@ static void leaf_particle_free() {
         glDeleteBuffers(1, &leaf_ptcl_ebo);
         leaf_ptcl_ebo = 0;
     }
-}
 
-static void litproj_textures_init() {
-    litproj_shadow[0].init(2048, 512, 0, GL_R32F, GL_DEPTH_COMPONENT24);
-    litproj_shadow[1].init(2048, 512, 0, GL_R32F, GL_ZERO);
-    litproj_texture.init(1280, 720, 0, GL_RGBA8, GL_DEPTH_COMPONENT24);
-}
-
-static void litproj_textures_free() {
-    litproj_shadow[0].free();
-    litproj_shadow[1].free();
-    litproj_texture.free();
+    leaf_particle_scene_ubo.Destroy();
 }
 
 static void particle_init(vec3* offset) {
@@ -2862,16 +2863,16 @@ static void particle_init(vec3* offset) {
     gl_state_bind_vertex_array(ptcl_vao);
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(particle_vertex_data, position)); // Pos
+        (void*)offsetof(particle_vertex_data, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(particle_vertex_data, color));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(particle_vertex_data, normal));   // Normal
+    glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(particle_vertex_data, texcoord));
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(particle_vertex_data, color));    // Color0
-    glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(particle_vertex_data, texcoord)); // TexCoords
+    glVertexAttribPointer(3, 3, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(particle_vertex_data, normal));
 
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
@@ -3083,7 +3084,7 @@ static void rain_particle_init(bool change_stage) {
     vec3 velocity = stage_param_data_rain_current->velocity;
     vec3 vel_range = stage_param_data_rain_current->vel_range;
 
-    const size_t rain_ptcl_vtx_count = rain_ptcl_count * 0x04;
+    const size_t rain_ptcl_vtx_count = rain_ptcl_count * 0x06;
 
     for (int32_t i = 0; i < 8; i++) {
         rain_particle_data& data = rain_ptcl_data[i];
@@ -3114,7 +3115,7 @@ static void rain_particle_init(bool change_stage) {
         glGenBuffers(1, &rain_ptcl_vbo);
 
     vec3* vtx_data = force_malloc_s(vec3, rain_ptcl_vtx_count);
-    for (int32_t i = 0; i < rain_ptcl_count; i++, vtx_data += 4) {
+    for (int32_t i = 0; i < rain_ptcl_count; i++, vtx_data += 6) {
         vec3 position;
         position.x = rand_state_array_get_float(4);
         position.y = rand_state_array_get_float(4);
@@ -3123,6 +3124,8 @@ static void rain_particle_init(bool change_stage) {
         vtx_data[1] = position;
         vtx_data[2] = position;
         vtx_data[3] = position;
+        vtx_data[4] = position;
+        vtx_data[5] = position;
     }
     vtx_data -= rain_ptcl_vtx_count;
 
@@ -3139,34 +3142,12 @@ static void rain_particle_init(bool change_stage) {
 
     gl_state_bind_vertex_array(rain_ptcl_vao);
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size, 0); // Pos
-
-    size_t ebo_count = rain_ptcl_vtx_count / 4 * 6;
-    uint32_t* ebo_data = force_malloc_s(uint32_t, ebo_count);
-    for (size_t i = 0, j = 0; i < ebo_count; i += 6, j += 4) {
-        ebo_data[i + 0] = (uint32_t)(j + 0);
-        ebo_data[i + 1] = (uint32_t)(j + 1);
-        ebo_data[i + 2] = (uint32_t)(j + 2);
-        ebo_data[i + 3] = (uint32_t)(j + 0);
-        ebo_data[i + 4] = (uint32_t)(j + 2);
-        ebo_data[i + 5] = (uint32_t)(j + 3);
-    }
-
-    if (!rain_ptcl_ebo)
-        glGenBuffers(1, &rain_ptcl_ebo);
-
-    gl_state_bind_element_array_buffer(rain_ptcl_ebo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint32_t) * ebo_count), ebo_data, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint32_t) * ebo_count), ebo_data, GL_STATIC_DRAW);
-    free_def(ebo_data);
-
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size, 0);
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
-    gl_state_bind_element_array_buffer(0);
+
+    rain_particle_scene_ubo.Create(sizeof(rain_particle_scene_shader_data));
+    rain_particle_batch_ubo.Create(sizeof(rain_particle_batch_shader_data));
 }
 
 static void rain_particle_ctrl() {
@@ -3202,8 +3183,6 @@ static void rain_particle_free() {
         rain_ptcl_vbo = 0;
     }
 
-    if (rain_ptcl_ebo) {
-        glDeleteBuffers(1, &rain_ptcl_ebo);
-        rain_ptcl_ebo = 0;
-    }
+    rain_particle_scene_ubo.Destroy();
+    rain_particle_batch_ubo.Destroy();
 }

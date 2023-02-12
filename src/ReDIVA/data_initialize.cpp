@@ -5,6 +5,8 @@
 
 #include "data_initialize.hpp"
 #include "../CRE/data.hpp"
+#include "../CRE/hand_item.hpp"
+#include "../CRE/item_table.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/sound.hpp"
 #include "game_state.hpp"
@@ -89,7 +91,7 @@ bool TaskDataInit::Ctrl() {
     case 8:
         object_storage_load_set(aft_data, aft_obj_db, dbg_set_id);
         //bone_database_read();
-        //item_table_handler_array_read();
+        item_table_handler_array_read();
         sound_work_read_farc("rom/sound/se.farc");
         sound_work_read_farc("rom/sound/button.farc");
         sound_work_read_farc("rom/sound/se_cmn.farc");
@@ -116,7 +118,7 @@ bool TaskDataInit::Ctrl() {
         //sub_1403847B0();
         //sub_1403882D0();
         //sub_140388560();
-        //hand_item_data_read_file();
+        hand_item_handler_data_read();
         //rob_sleeve_data_read_file();
         //sub_140542F80();
         state = 9;
@@ -124,7 +126,7 @@ bool TaskDataInit::Ctrl() {
     case 9:
         if (!object_storage_load_obj_set_check_not_read(dbg_set_id)
             //&& !bone_database_load()
-            //&& !item_table_handler_array_load()
+            && !item_table_handler_array_load()
             && !sound_work_load_farc("rom/sound/se.farc")
             && !sound_work_load_farc("rom/sound/button.farc")
             && !sound_work_load_farc("rom/sound/se_cmn.farc")
@@ -142,7 +144,7 @@ bool TaskDataInit::Ctrl() {
             //&& !sub_14038F630()
             //&& !sub_140385220()
             //&& !sub_140388A50()
-            //&& !hand_item_data_parse_file()
+            && !hand_item_handler_data_load()
             //&& !rob_sleeve_data_parse_file()
             ) {
             //sub_14037F680();
@@ -178,14 +180,14 @@ void TaskDataInit::Disp() {
 
 }
 
-bool task_data_init_append_task() {
-    return app::TaskWork::AppendTask(&task_data_init, "DATA_INITIALIZE");
+bool task_data_init_add_task() {
+    return app::TaskWork::AddTask(&task_data_init, "DATA_INITIALIZE");
 }
 
 bool task_data_init_check_state() {
     return task_data_init.state == 12;
 }
 
-bool task_data_init_free_task() {
-    return task_data_init.SetDest();
+bool task_data_init_del_task() {
+    return task_data_init.DelTask();
 }

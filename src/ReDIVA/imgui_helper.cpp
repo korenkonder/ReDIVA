@@ -99,7 +99,7 @@ namespace ImGui {
         ResetIsItemAccum();
         ButtonEx("<", { button_size, button_size }, ImGuiButtonFlags_Repeat);
         GetIsItemAccum();
-        bool l = IsItemActive() && (IsKeyPressed(VK_RETURN, true)
+        bool l = IsItemActive() && (IsKeyPressed(ImGuiKey_Enter)
             || IsMouseClicked(ImGuiMouseButton_Left, true));
         SameLine(0.0f, 0.0f);
         SetNextItemWidth(w - button_size * 2.0f);
@@ -108,7 +108,7 @@ namespace ImGui {
         SameLine(0.0f, 0.0f);
         ButtonEx(">", { button_size, button_size }, ImGuiButtonFlags_Repeat);
         GetIsItemAccum();
-        bool r = IsItemActive() && (IsKeyPressed(VK_RETURN, true)
+        bool r = IsItemActive() && (IsKeyPressed(ImGuiKey_Enter)
             || IsMouseClicked(ImGuiMouseButton_Left, true));
         PopButtonRepeat();
         EndGroup();
@@ -153,7 +153,7 @@ namespace ImGui {
         ResetIsItemAccum();
         ButtonEx("<", { button_size, button_size }, ImGuiButtonFlags_Repeat);
         GetIsItemAccum();
-        bool l = IsItemActive() && (IsKeyPressed(VK_RETURN, true)
+        bool l = IsItemActive() && (IsKeyPressed(ImGuiKey_Enter)
             || IsMouseClicked(ImGuiMouseButton_Left, true));
         SameLine(0.0f, 0.0f);
         SetNextItemWidth(w - button_size * 2.0f);
@@ -163,7 +163,7 @@ namespace ImGui {
         SameLine(0.0f, 0.0f);
         ButtonEx(">", { button_size, button_size }, ImGuiButtonFlags_Repeat);
         GetIsItemAccum();
-        bool r = IsItemActive() && (IsKeyPressed(VK_RETURN, true)
+        bool r = IsItemActive() && (IsKeyPressed(ImGuiKey_Enter)
             || IsMouseClicked(ImGuiMouseButton_Left, true));
         PopButtonRepeat();
         EndGroup();
@@ -192,20 +192,20 @@ namespace ImGui {
         ResetIsItemAccum();
         bool res = Button(label, size);
         GetIsItemAccum();
-        return res || ItemKeyPressed(GLFW_KEY_ENTER, true);
+        return res || ItemKeyPressed(ImGuiKey_Enter);
     }
 
     bool ButtonExEnterKeyPressed(const char* label, const ImVec2& size, ImGuiButtonFlags flags) {
         ResetIsItemAccum();
         bool res = ButtonEx(label, size, flags);
         GetIsItemAccum();
-        return res || ItemKeyPressed(GLFW_KEY_ENTER, true);
+        return res || ItemKeyPressed(ImGuiKey_Enter);
     }
 
     bool CheckboxEnterKeyPressed(const char* label, bool* v) {
         if (Checkbox(label, v))
             return true;
-        else if (ItemKeyPressed(GLFW_KEY_ENTER, true)) {
+        else if (ItemKeyPressed(ImGuiKey_Enter)) {
             v[0] ^= true;
             return true;
         }
@@ -216,7 +216,7 @@ namespace ImGui {
     bool CheckboxFlagsEnterKeyPressed(const char* label, int* flags, int flags_value) {
         if (CheckboxFlags(label, flags, flags_value))
             return true;
-        else if (ItemKeyPressed(GLFW_KEY_ENTER, true)) {
+        else if (ItemKeyPressed(ImGuiKey_Enter)) {
             *flags ^= flags_value;
             return true;
         }
@@ -227,7 +227,7 @@ namespace ImGui {
     bool CheckboxFlagsEnterKeyPressed(const char* label, unsigned int* flags, unsigned int flags_value) {
         if (CheckboxFlags(label, flags, flags_value))
             return true;
-        else if (ItemKeyPressed(GLFW_KEY_ENTER, true)) {
+        else if (ItemKeyPressed(ImGuiKey_Enter)) {
             *flags ^= flags_value;
             return true;
         }
@@ -345,7 +345,7 @@ namespace ImGui {
                 for (size_t n = 0; n <= size; n++) {
                     PushID((int32_t)n);
                     if (Selectable(items[n], *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = (int32_t)n;
                     PopID();
@@ -357,7 +357,7 @@ namespace ImGui {
                 for (size_t n = 0; n < size; n++) {
                     PushID((int32_t)n);
                     if (Selectable(items[n], *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = (int32_t)n;
                     PopID();
@@ -393,7 +393,7 @@ namespace ImGui {
                 for (size_t n = 0; n <= size; n++) {
                     PushID((void*)n);
                     if (Selectable(items[n], *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = n;
                     PopID();
@@ -405,7 +405,7 @@ namespace ImGui {
                 for (size_t n = 0; n < size; n++) {
                     PushID((void*)n);
                     if (Selectable(items[n], *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = n;
                     PopID();
@@ -441,7 +441,7 @@ namespace ImGui {
                 for (size_t n = 0; n <= size; n++) {
                     PushID((int32_t)n);
                     if (Selectable(items[n].c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = (int32_t)n;
                     PopID();
@@ -453,7 +453,7 @@ namespace ImGui {
                 for (size_t n = 0; n < size; n++) {
                     PushID((int32_t)n);
                     if (Selectable(items[n].c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = (int32_t)n;
                     PopID();
@@ -489,7 +489,7 @@ namespace ImGui {
                 for (size_t n = 0; n <= size; n++) {
                     PushID((void*)n);
                     if (Selectable(items[n].c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = n;
                     PopID();
@@ -501,7 +501,7 @@ namespace ImGui {
                 for (size_t n = 0; n < size; n++) {
                     PushID((void*)n);
                     if (Selectable(items[n].c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = n;
                     PopID();
@@ -538,7 +538,7 @@ namespace ImGui {
                 for (size_t n = 0; n <= size; n++) {
                     PushID((int32_t)n);
                     if (Selectable(items_ds[n].name.c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = (int32_t)n;
                     PopID();
@@ -550,7 +550,7 @@ namespace ImGui {
                 for (size_t n = 0; n < size; n++) {
                     PushID((int32_t)n);
                     if (Selectable(items_ds[n].name.c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = (int32_t)n;
                     PopID();
@@ -587,7 +587,7 @@ namespace ImGui {
                 for (size_t n = 0; n <= size; n++) {
                     PushID((void*)n);
                     if (Selectable(items_ds[n].name.c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = n;
                     PopID();
@@ -599,7 +599,7 @@ namespace ImGui {
                 for (size_t n = 0; n < size; n++) {
                     PushID((void*)n);
                     if (Selectable(items_ds[n].name.c_str(), *selected_idx == n)
-                        || ItemKeyPressed(GLFW_KEY_ENTER, true)
+                        || ItemKeyPressed(ImGuiKey_Enter)
                         || (IsItemFocused() && *selected_idx != n))
                         *selected_idx = n;
                     PopID();
@@ -1939,11 +1939,11 @@ namespace ImGui {
         // Calculate bounds
         const float_t grab_padding = 2.0f; // FIXME: Should be part of style.
         const float_t slider_sz = (bb.Max[axis] - bb.Min[axis]) - grab_padding * 2.0f;
-        float_t grab_sz = style.GrabMinSize;
+        float_t grab_sz = style.GrabMinSize * 1.5f;
         // v_range < 0 may happen on integer overflows
         if (!is_floating_point && v_range >= 0)
             // For integer sliders: if possible have the grab size represent 1 unit
-            grab_sz = ImMax((float_t)(slider_sz / (v_range + 1)), style.GrabMinSize);
+            grab_sz = ImMax((float_t)(slider_sz / (v_range + 1)), style.GrabMinSize * 1.5f);
         grab_sz = ImMin(grab_sz, slider_sz);
         const float_t slider_usable_sz = slider_sz - grab_sz;
         const float_t slider_usable_pos_min = bb.Min[axis] + grab_padding + grab_sz * 0.5f;
@@ -1958,23 +1958,6 @@ namespace ImGui {
             const int decimal_precision = is_floating_point ? ImParseFormatPrecision(format, 3) : 1;
             logarithmic_zero_epsilon = ImPow(0.1f, (float_t)decimal_precision);
             zero_deadzone_halfsize = (style.LogSliderDeadzone * 0.5f) / ImMax(slider_usable_sz, 1.0f);
-        }
-
-        if (slider_sz < 1.0f)
-            *out_grab_bb = ImRect(bb.Min, bb.Min);
-        else {
-            // Output grab position so it can be displayed by the caller
-            float_t grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type,
-                *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
-            if (axis == ImGuiAxis_Y)
-                grab_t = 1.0f - grab_t;
-            const float_t grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);
-            if (axis == ImGuiAxis_X)
-                *out_grab_bb = ImRect(grab_pos - grab_sz * 0.5f, bb.Min.y + grab_padding,
-                    grab_pos + grab_sz * 0.5f, bb.Max.y - grab_padding);
-            else
-                *out_grab_bb = ImRect(bb.Min.x + grab_padding, grab_pos - grab_sz * 0.5f,
-                    bb.Max.x - grab_padding, grab_pos + grab_sz * 0.5f);
         }
 
         // Process interacting with the slider
@@ -2001,20 +1984,31 @@ namespace ImGui {
                             && is_floating_point) ? mouse_abs_pos - grab_pos : 0.0f;
                     }
 
+                    ImRect out_grab_bb;
+                    if (slider_sz < 1.0f) {
+                        out_grab_bb = ImRect(bb.Min, bb.Min);
+                    }
+                    else {
+                        float_t grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type,
+                            *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+                        if (axis == ImGuiAxis_Y)
+                            grab_t = 1.0f - grab_t;
+                        const float_t grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);
+                        if (axis == ImGuiAxis_X)
+                            out_grab_bb = ImRect(grab_pos - grab_sz * 0.5f, bb.Min.y + grab_padding, grab_pos + grab_sz * 0.5f, bb.Max.y - grab_padding);
+                        else
+                            out_grab_bb = ImRect(bb.Min.x + grab_padding, grab_pos - grab_sz * 0.5f, bb.Max.x - grab_padding, grab_pos + grab_sz * 0.5f);
+                    }
+
                     if (slider_usable_sz > 0.0f)
                         clicked_t = ImSaturate((mouse_abs_pos - g.SliderGrabClickOffset
                             - slider_usable_pos_min) / slider_usable_sz);
                     if (axis == ImGuiAxis_Y)
                         clicked_t = 1.0f - clicked_t;
-
-                    float_t diff1 = g.IO.MousePosPrev[axis] - out_grab_bb->Min[axis];
-                    float_t diff2 = out_grab_bb->Max[axis] - g.IO.MousePosPrev[axis];
-                    if (diff1 >= -grab_sz && diff2 >= -grab_sz) {
-                        set_new_value = true;
+                    set_new_value = true;
+                    if (out_grab_bb.Min[axis] <= g.IO.MousePosPrev[axis]
+                        && g.IO.MousePosPrev[axis] <= out_grab_bb.Max[axis])
                         continuos_value_change = true;
-                    }
-                    else
-                        set_new_value = IsMouseClicked(ImGuiMouseButton_Left, true);
                 }
             }
             else if (g.ActiveIdSource == ImGuiInputSource_Nav) {
@@ -2023,24 +2017,27 @@ namespace ImGui {
                     g.SliderCurrentAccumDirty = false;
                 }
 
-                const ImVec2 input_delta2 = GetNavInputAmount2d(ImGuiNavDirSourceFlags_Keyboard
-                    | ImGuiNavDirSourceFlags_PadDPad, ImGuiNavReadMode_RepeatFast, 0.0f, 0.0f);
-                float_t input_delta = (axis == ImGuiAxis_X) ? input_delta2.x : -input_delta2.y;
+                float_t input_delta = (axis == ImGuiAxis_X) ? GetNavTweakPressedAmount(axis)
+                    : -GetNavTweakPressedAmount(axis);
                 if (input_delta != 0.0f) {
+                    const bool tweak_slow = IsKeyDown((g.NavInputSource == ImGuiInputSource_Gamepad)
+                        ? ImGuiKey_NavGamepadTweakSlow : ImGuiKey_NavKeyboardTweakSlow);
+                    const bool tweak_fast = IsKeyDown((g.NavInputSource == ImGuiInputSource_Gamepad)
+                        ? ImGuiKey_NavGamepadTweakFast : ImGuiKey_NavKeyboardTweakFast);
                     const int decimal_precision = is_floating_point ? ImParseFormatPrecision(format, 3) : 0;
                     if (decimal_precision > 0) {
                         // Gamepad/keyboard tweak speeds in % of slider bounds
                         input_delta /= 100.0f;
-                        if (IsNavInputDown(ImGuiNavInput_TweakSlow))
+                        if (tweak_slow)
                             input_delta /= 10.0f;
                     }
-                    else if ((v_range >= -100.0f && v_range <= 100.0f) || IsNavInputDown(ImGuiNavInput_TweakSlow))
+                    else if ((v_range >= -100.0f && v_range <= 100.0f) || tweak_slow)
                         // Gamepad/keyboard tweak speeds in integer steps
                         input_delta = ((input_delta < 0.0f) ? -1.0f : +1.0f) / (float_t)v_range;
                     else
                         input_delta /= 100.0f;
 
-                    if (IsNavInputDown(ImGuiNavInput_TweakFast))
+                    if (tweak_fast)
                         input_delta *= 10.0f;
 
                     g.SliderCurrentAccum += input_delta;
@@ -2109,6 +2106,21 @@ namespace ImGui {
                     value_changed = true;
                 }
             }
+        }
+
+        if (slider_sz < 1.0f) {
+            *out_grab_bb = ImRect(bb.Min, bb.Min);
+        }
+        else {
+            // Output grab position so it can be displayed by the caller
+            float_t grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type, *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
+            if (axis == ImGuiAxis_Y)
+                grab_t = 1.0f - grab_t;
+            const float_t grab_pos = ImLerp(slider_usable_pos_min, slider_usable_pos_max, grab_t);
+            if (axis == ImGuiAxis_X)
+                *out_grab_bb = ImRect(grab_pos - grab_sz * 0.5f, bb.Min.y + grab_padding, grab_pos + grab_sz * 0.5f, bb.Max.y - grab_padding);
+            else
+                *out_grab_bb = ImRect(bb.Min.x + grab_padding, grab_pos - grab_sz * 0.5f, bb.Max.x - grab_padding, grab_pos + grab_sz * 0.5f);
         }
 
         return value_changed;

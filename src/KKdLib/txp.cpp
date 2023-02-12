@@ -42,27 +42,27 @@ uint32_t txp::get_size(txp_format format, uint32_t width, uint32_t height) {
         return size;
     case TXP_L8A8:
         return size * 2;
-    case TXP_DXT1:
-    case TXP_DXT1a:
-    case TXP_DXT3:
-    case TXP_DXT5:
-    case TXP_ATI1:
-    case TXP_ATI2:
+    case TXP_BC1:
+    case TXP_BC1a:
+    case TXP_BC2:
+    case TXP_BC3:
+    case TXP_BC4:
+    case TXP_BC5:
         width = align_val(width, 4);
         height = align_val(height, 4);
         size = width * height;
         switch (format) {
-        case TXP_DXT1:
+        case TXP_BC1:
             return size / 2;
-        case TXP_DXT1a:
+        case TXP_BC1a:
             return size / 2;
-        case TXP_DXT3:
+        case TXP_BC2:
             return size;
-        case TXP_DXT5:
+        case TXP_BC3:
             return size;
-        case TXP_ATI1:
+        case TXP_BC4:
             return size / 2;
-        case TXP_ATI2:
+        case TXP_BC5:
             return size;
         }
         break;

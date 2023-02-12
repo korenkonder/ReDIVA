@@ -24,10 +24,12 @@ namespace Glitter {
         draw_all_mesh = true;
         scenes.reserve(0x100);
         file_readers.reserve(0x100);
+        batch_ubo.Create(sizeof(BatchShaderData));
     }
 
     GltParticleManager::~GltParticleManager() {
         FreeEffects();
+        batch_ubo.Destroy();
     }
 
     bool GltParticleManager::Init() {
@@ -291,6 +293,11 @@ namespace Glitter {
     #endif
             i->Disp(this, disp_type);
         }
+
+        gl_state_bind_vertex_array(0);
+        gl_state_disable_blend();
+        gl_state_enable_cull_face();
+        gl_state_disable_depth_test();
     }
 
     void GltParticleManager::FreeEffects() {
@@ -703,11 +710,11 @@ namespace Glitter {
         return counter;
     }
 
-    SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash, bool appear_now) {
+    SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash, bool appear_now, uint8_t load_flags) {
         if (hash == hash_fnv1a64m_empty || hash == hash_murmurhash_empty)
             return 0;
 
-        if (scenes.size())
+        if (!(load_flags & 0x02) && scenes.size())
             for (Scene*& i : scenes)
                 if (i && i->ResetEffect(this, hash)) {
                     CheckSceneHasLocalEffect(i);
@@ -747,26 +754,27 @@ namespace Glitter {
             if (v8->not_loaded)
                 return 0;
 
-            for (Scene*& j : scenes)
-                if (j && j->hash == i.first) {
-                    size_t id = 1;
-                    for (Effect*& k : v8->effects) {
-                        if (!j)
-                            continue;
+            if (!(load_flags & 0x02))
+                for (Scene*& j : scenes)
+                    if (j && j->hash == i.first) {
+                        size_t id = 1;
+                        for (Effect*& k : v8->effects) {
+                            if (!j)
+                                continue;
 
-                        if (k->data.name_hash == hash) {
-                            j->InitEffect(this, k, id, appear_now);
-                            break;
+                            if (k->data.name_hash == hash) {
+                                j->InitEffect(this, k, id, appear_now, load_flags);
+                                break;
+                            }
+                            id++;
                         }
-                        id++;
-                    }
-                    CheckSceneHasLocalEffect(j);
+                        CheckSceneHasLocalEffect(j);
 
-                    SceneCounter counter = j->counter;
-                    if (j->type == Glitter::X)
-                        counter.index = (uint8_t)id;
-                    return counter;
-                }
+                        SceneCounter counter = j->counter;
+                        if (j->type == Glitter::X)
+                            counter.index = (uint8_t)id;
+                        return counter;
+                    }
 
             SceneCounter counter = GetSceneCounter();
             if (!counter)
@@ -797,15 +805,16 @@ namespace Glitter {
         return 0;
     }
 
-    SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash, const char* name, bool appear_now) {
-        SceneCounter counter = LoadSceneEffect(hash, appear_now);
+    SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash,
+        const char* name, bool appear_now, uint8_t load_flags) {
+        SceneCounter counter = LoadSceneEffect(hash, appear_now, load_flags);
         for (Scene*& i : scenes) {
             if (!i || i->counter.counter != counter.counter)
                 continue;
 
             for (SceneEffect& j : i->effects)
                 if (j.ptr && j.disp && j.ptr->id == counter.index) {
-                    j.ptr->name = name;
+                    j.ptr->name.assign(name);
                     break;
                 }
             break;
@@ -970,12 +979,12 @@ namespace Glitter {
         glt_particle_manager = new GltParticleManager;
     }
 
-    bool glt_particle_manager_append_task() {
-        return app::TaskWork::AppendTask(glt_particle_manager, "GLITTER_TASK", 2);
+    bool glt_particle_manager_add_task() {
+        return app::TaskWork::AddTask(glt_particle_manager, "GLITTER_TASK", 2);
     }
 
-    bool glt_particle_manager_free_task() {
-        return glt_particle_manager->SetDest();
+    bool glt_particle_manager_del_task() {
+        return glt_particle_manager->DelTask();
     }
 
     void glt_particle_manager_free() {

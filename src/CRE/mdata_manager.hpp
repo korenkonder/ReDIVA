@@ -26,8 +26,9 @@ public:
     virtual void Basic() override;
 
     void Log(const char* fmt, ...);
+    const std::list<std::string>& GetPrefixes();
 };
 
-extern bool mdata_manager_append_task();
-extern bool mdata_manager_free_task();
+extern bool mdata_manager_add_task();
+extern bool mdata_manager_del_task();
 extern MdataMgr* mdata_manager_get();

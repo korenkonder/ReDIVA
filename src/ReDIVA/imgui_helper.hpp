@@ -28,15 +28,15 @@ namespace ImGui {
 
     extern float_t ColumnSpace;
 
-    inline bool ItemKeyDown(int32_t key) {
+    inline bool ItemKeyDown(ImGuiKey key) {
         return IsItemFocused() && IsKeyDown(key);
     }
 
-    inline bool ItemKeyPressed(int32_t key, bool repeat) {
+    inline bool ItemKeyPressed(ImGuiKey key, bool repeat = true) {
         return IsItemFocused() && IsKeyPressed(key, repeat);
     }
 
-    inline bool ItemKeyReleased(int32_t key) {
+    inline bool ItemKeyReleased(ImGuiKey key) {
         return IsItemFocused() && IsKeyReleased(key);
     }
 

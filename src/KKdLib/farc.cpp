@@ -337,9 +337,8 @@ void farc::write(const wchar_t* path, farc_compress_mode mode, bool get_files) {
     if (!path)
         return;
 
-    if (get_files) {
+    if (get_files)
         files.clear();
-    }
 
     wchar_t full_path_buf[MAX_PATH];
     wchar_t* full_path = _wfullpath(full_path_buf, path, MAX_PATH);
@@ -677,8 +676,14 @@ static errno_t farc_read_header(farc* f, stream& s) {
 
     s.set_position(0, SEEK_SET);
     f->signature = (farc_signature)s.read_uint32_t_reverse_endianness(true);
-    if (f->signature != FARC_FArc && f->signature != FARC_FArC && f->signature != FARC_FARC)
+    switch (f->signature) {
+    case FARC_FArc:
+    case FARC_FArC:
+    case FARC_FARC:
+        break;
+    default:
         return -2;
+    }
 
     f->ft = false;
 
@@ -728,12 +733,13 @@ static errno_t farc_read_header(farc* f, stream& s) {
                 length++;
 
             farc_file ff;
-            ff.name = std::string((const char*)dt, length);
+            ff.name.assign((const char*)dt, length);
             dt += length + 1;
             ff.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
             ff.size_compressed = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
             ff.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 8));
             ff.flags = (farc_flags)load_reverse_endianness_uint32_t((void*)(dt + 12));
+            f->files.push_back(ff);
             dt += entry_size;
             files_count--;
         }
@@ -783,7 +789,7 @@ static errno_t farc_read_header(farc* f, stream& s) {
             size_t length = 0;
             while (dt[length])
                 length++;
-            i.name = std::string((const char*)dt, length);
+            i.name.assign((const char*)dt, length);
             dt += length + 1;
             i.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
             i.size_compressed = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
@@ -797,7 +803,7 @@ static errno_t farc_read_header(farc* f, stream& s) {
             size_t length = 0;
             while (dt[length])
                 length++;
-            i.name = std::string((const char*)dt, length);
+            i.name.assign((const char*)dt, length);
             dt += length + 1;
             i.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
             i.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
@@ -880,11 +886,11 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
         void* temp = force_malloc(temp_s);
         s.read(temp, temp_s);
 
-        void* t = temp;
+        size_t t = (size_t)temp;
         if (ff->flags & FARC_AES)
             if (f->ft) {
                 temp_s -= 0x10;
-                t = (void*)((uint64_t)t + 0x10);
+                t += 0x10;
 
                 aes128_ctx ctx;
                 aes128_init_ctx_iv(&ctx, key_ft, (uint8_t*)temp);
@@ -900,14 +906,14 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
 
         if (ff->flags & FARC_GZIP) {
             ff->data_compressed = force_malloc(ff->size_compressed);
-            memcpy(ff->data_compressed, t, ff->size_compressed);
+            memcpy(ff->data_compressed, (void*)t, ff->size_compressed);
             deflate::decompress(ff->data_compressed, ff->size_compressed,
                 &ff->data, &ff->size, deflate::MODE_GZIP);
         }
         else {
             ff->data_compressed = 0;
             ff->data = force_malloc(ff->size);
-            memcpy(ff->data, t, ff->size);
+            memcpy(ff->data, (void*)t, ff->size);
         }
         free_def(temp);
     }

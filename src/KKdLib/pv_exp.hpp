@@ -9,7 +9,7 @@
 #include <vector>
 #include "default.hpp"
 #include "prj/shared_ptr.hpp"
-#include "alloc_data.hpp"
+#include "prj/stack_allocator.hpp"
 
 struct pv_exp_data {
     float_t frame;
@@ -39,7 +39,7 @@ struct pv_exp {
 
     pv_exp();
 
-    void move_data(pv_exp* exp_src, prj::shared_ptr<alloc_data> alloc);
+    void move_data(pv_exp* exp_src, prj::shared_ptr<prj::stack_allocator> alloc);
     void pack_file(void** data, size_t* size);
-    void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
+    void unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern);
 };

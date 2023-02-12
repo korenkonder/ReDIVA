@@ -7,6 +7,7 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../GL/uniform_buffer.hpp"
 #include "../camera.hpp"
 #include "../fbo.hpp"
 #include "../render_texture.hpp"
@@ -51,8 +52,8 @@ struct post_process_dof {
     GLuint textures[6];
     fbo fbo[4];
     GLuint vao;
-    GLuint program[9];
-    GLuint ubo[2];
+    GL::UniformBuffer common_ubo;
+    GL::UniformBuffer texcoords_ubo;
 
     post_process_dof();
     ~post_process_dof();
@@ -62,7 +63,7 @@ struct post_process_dof {
     void initialize_data(dof_debug* debug, dof_pv* pv);
 
     void get_dof_debug(dof_debug* debug);
-    void set_dof_debug(dof_debug* debug);
+    void set_dof_debug(dof_debug* debug = 0);
     void get_dof_pv(dof_pv* pv);
-    void set_dof_pv(dof_pv* pv);
+    void set_dof_pv(dof_pv* pv = 0);
 };

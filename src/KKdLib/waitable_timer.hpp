@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.hpp"
+#include "default.hpp"
 
 struct waitable_timer {
     HANDLE handle;

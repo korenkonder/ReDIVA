@@ -7,10 +7,10 @@
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/key_val.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
 #include "data.hpp"
 #include "ogg_vorbis.hpp"
-#include "timer.hpp"
 #include <functiondiscoverykeys_devpkey.h>
 #include <timeapi.h>
 

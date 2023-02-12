@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "prj/shared_ptr.hpp"
-#include "alloc_data.hpp"
+#include "prj/stack_allocator.hpp"
 #include "default.hpp"
 #include "vec.hpp"
 
@@ -76,10 +76,10 @@ struct mot_set {
     mot_set();
 
     void pack_file(void** data, size_t* size);
-    void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
+    void unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern);
 
     static mot_key_set_type fit_keys_into_curve(std::vector<float_t>& values_src,
-        prj::shared_ptr<alloc_data> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count);
+        prj::shared_ptr<prj::stack_allocator> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count);
     static mot_key_set_type fit_keys_into_curve(std::vector<float_t>& values_src,
         std::vector<uint16_t>& frames, std::vector<float_t>& values);
 };

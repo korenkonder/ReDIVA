@@ -5,6 +5,7 @@
 
 #include "fog.hpp"
 #include "../shader_ft.hpp"
+#include "../render_context.hpp"
 
 fog::fog() {
     type = FOG_NONE;
@@ -15,7 +16,7 @@ fog::fog() {
     color = { 1.0f, 1.0f, 1.0f, 0.0f };
 }
 
-fog_type fog::get_type() {
+fog_type fog::get_type() const {
     return type;
 }
 
@@ -23,7 +24,7 @@ void fog::set_type(fog_type value) {
     type = value;
 }
 
-float_t fog::get_density() {
+float_t fog::get_density() const {
     return density;
 }
 
@@ -31,7 +32,7 @@ void fog::set_density(float_t value) {
     density = value;
 }
 
-float_t fog::get_start() {
+float_t fog::get_start() const {
     return start;
 }
 
@@ -39,7 +40,7 @@ void fog::set_start(float_t value) {
     start = value;
 }
 
-float_t fog::get_end() {
+float_t fog::get_end() const {
     return end;
 }
 
@@ -47,7 +48,7 @@ void fog::set_end(float_t value) {
     end = value;
 }
 
-int32_t fog::get_index() {
+int32_t fog::get_index() const {
     return index;
 }
 
@@ -55,15 +56,15 @@ void fog::set_index(int32_t value) {
     index = value;
 }
 
-void fog::get_color(vec4& value) {
+void fog::get_color(vec4& value) const {
     value = color;
 }
 
-void fog::set_color(vec4& value) {
+void fog::set_color(const vec4& value) {
     color = value;
 }
 
-void fog::set_color(vec4&& value) {
+void fog::set_color(const vec4&& value) {
     color = value;
 }
 
@@ -84,25 +85,19 @@ void fog::data_set(fog_id id) {
     params.z = end;
     params.w = 1.0f / (end - start);
 
-    switch (id) {
-    case FOG_DEPTH: {
-        vec4 color;
-        get_color(color);
-        shaders_ft.env_vert_set(29, color);
-        shaders_ft.env_frag_set(4, color);
+    extern render_context* rctx_ptr;
 
-        shaders_ft.state_fog_set_color(color * (float_t)(1.0 / 8.0));
-        shaders_ft.state_fog_set_params(params);
-    } break;
-    case FOG_HEIGHT: {
-        vec4 color;
-        get_color(color);
-        shaders_ft.env_vert_set(30, color);
-        shaders_ft.env_frag_set(11, color);
-        shaders_ft.env_vert_set(14, params);
-    } break;
-    case FOG_BUMP: {
-        shaders_ft.env_vert_set(19, params);
-    } break;
+    switch (id) {
+    case FOG_DEPTH:
+        get_color(rctx_ptr->obj_scene.g_fog_depth_color);
+        rctx_ptr->obj_scene.g_fog_state_params = params;
+        break;
+    case FOG_HEIGHT:
+        get_color(rctx_ptr->obj_scene.g_fog_height_color);
+        rctx_ptr->obj_scene.g_fog_height_params = params;
+        break;
+    case FOG_BUMP:
+        rctx_ptr->obj_scene.g_fog_bump_params = params;
+        break;
     }
 }

@@ -1,14 +1,15 @@
 ﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
-
-    Some code is from LearnOpenGL
 */
 
 #if defined(ReDIVA_DEV)
 #include "x_pv_game.hpp"
 #include "../CRE/light_param/light.hpp"
 #include "../CRE/light_param.hpp"
+#include "../CRE/rob/rob.hpp"
+#include "../CRE/rob/motion.hpp"
+#include "../CRE/rob/skin_param.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/item_table.hpp"
 #include "../CRE/object.hpp"
@@ -2715,7 +2716,8 @@ void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
         if (i.name.hash_murmurhash == hash_murmurhash_empty)
             continue;
 
-        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash_murmurhash, i.name.c_str());
+        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(
+            i.name.hash_murmurhash, i.name.c_str(), 0x01);
         if (!i.scene_counter)
             continue;
 
@@ -2798,7 +2800,8 @@ void x_pv_game_stage::set_stage_effect_glitter_frame(int32_t stage_effect, float
 
     std::vector<x_pv_game_stage_effect_glitter>& glitter = effect[stage_effect - 1ULL].glitter;
     for (x_pv_game_stage_effect_glitter& i : glitter) {
-        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(i.name.hash_murmurhash, i.name.c_str());
+        i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(
+            i.name.hash_murmurhash, i.name.c_str(), 0x01);
         if (!i.scene_counter)
             continue;
 
@@ -2982,7 +2985,7 @@ x_pv_game::~x_pv_game() {
 }
 
 bool x_pv_game::Init() {
-    task_rob_manager_append_task();
+    task_rob_manager_add_task();
     return true;
 }
 
@@ -3207,7 +3210,7 @@ bool x_pv_game::Ctrl() {
 
         x_pv_game_dsc_data& dsc_data = pv_data[pv_index].dsc_data;
 
-        app::TaskWork::AppendTask(&pv_param_task::post_process_task, "PV POST PROCESS TASK");
+        app::TaskWork::AddTask(&pv_param_task::post_process_task, "PV POST PROCESS TASK");
         {
             data_struct* x_data = &data_list[DATA_X];
 
@@ -3777,7 +3780,7 @@ bool x_pv_game::Ctrl() {
             break;
 
         Glitter::glt_particle_manager->FreeScenes();
-        SetDest();
+        DelTask();
     } break;
     }
     return false;
@@ -3787,15 +3790,15 @@ bool x_pv_game::Dest() {
     if (!Unload())
         return false;
 
-    task_rob_manager_free_task();
+    task_rob_manager_del_task();
 
     light_param_data_storage_data_reset();
     rctx_ptr->post_process.tone_map->set_saturate_coeff(1.0f);
     rctx_ptr->post_process.tone_map->set_scene_fade(0.0f);
     rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(0);
     rctx_ptr->post_process.dof->data.pv.enable = false;
-    rctx_ptr->object_data.object_culling = true;
-    rctx_ptr->draw_pass.shadow_ptr->range = 1.0f;
+    rctx_ptr->disp_manager.object_culling = true;
+    rctx_ptr->render_manager.shadow_ptr->range = 1.0f;
 
     Glitter::glt_particle_manager->SetPause(false);
     extern float_t frame_speed;
@@ -3875,44 +3878,41 @@ void x_pv_game::Basic() {
     frame_speed = pause ? 0.0f : 1.0f;
 
 #if BAKE_PV826
-    if (get_delta_frame() != 0.0f && frame > 0)
-        for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
-            rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i.first]);
-            x_pv_game_a3da_to_mot& a2m = i.second;
+    for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
+        rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i.first]);
+        x_pv_game_a3da_to_mot& a2m = i.second;
 
-            rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
+        rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
 
-            bone_database_skeleton_type skeleton_type = rob_bone_data->base_skeleton_type;
-            motion_blend_mot* mot = rob_bone_data->motion_loaded.front();
-            std::vector<bone_data>* bones = &mot->bone_data.bones;
-            std::vector<uint16_t>* bone_indices = &mot->bone_data.bone_indices;
+        bone_database_skeleton_type skeleton_type = rob_bone_data->base_skeleton_type;
+        motion_blend_mot* mot = rob_bone_data->motion_loaded.front();
+        std::vector<bone_data>* bones = &mot->bone_data.bones;
+        std::vector<uint16_t>* bone_indices = &mot->bone_data.bone_indices;
 
-            bone_data* bones_data = bones->data();
-            for (uint16_t& i : *bone_indices) {
-                bone_data* data = &bones_data[i];
-                ::motion_bone_index motion_bone_index = (::motion_bone_index)data->motion_bone_index;
-                if (motion_bone_index >= MOTION_BONE_N_HITO_L_EX
-                    && motion_bone_index <= MOTION_BONE_NL_OYA_C_L_WJ) {
-                    auto elem = a2m.bone_keys.find(motion_bone_index);
-                    if (elem == a2m.bone_keys.end())
-                        elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
+        bone_data* bones_data = bones->data();
+        for (uint16_t& i : *bone_indices) {
+            bone_data* data = &bones_data[i];
+            ::motion_bone_index motion_bone_index = (::motion_bone_index)data->motion_bone_index;
+            if (!(motion_bone_index >= MOTION_BONE_N_HITO_L_EX
+                && motion_bone_index <= MOTION_BONE_NL_OYA_C_L_WJ
+                || motion_bone_index >= MOTION_BONE_N_HITO_R_EX
+                && motion_bone_index <= MOTION_BONE_NL_OYA_C_R_WJ))
+                continue;
 
-                    elem->second.x.push_back(data->rotation.x);
-                    elem->second.y.push_back(data->rotation.y);
-                    elem->second.z.push_back(data->rotation.z);
-                }
-                else if (motion_bone_index >= MOTION_BONE_N_HITO_R_EX
-                    && motion_bone_index <= MOTION_BONE_NL_OYA_C_R_WJ) {
-                    auto elem = a2m.bone_keys.find(motion_bone_index);
-                    if (elem == a2m.bone_keys.end())
-                        elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
+            auto elem = a2m.bone_keys.find(motion_bone_index);
+            if (elem == a2m.bone_keys.end())
+                elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
 
-                    elem->second.x.push_back(data->rotation.x);
-                    elem->second.y.push_back(data->rotation.y);
-                    elem->second.z.push_back(data->rotation.z);
-                }
-            }
+            vec3 rotation;
+            mat4_get_rotation(&data->rot_mat[0], &rotation);
+            if (elem->second.x.size() == frame)
+                elem->second.x.push_back(rotation.x);
+            if (elem->second.y.size() == frame)
+                elem->second.y.push_back(rotation.y);
+            if (elem->second.z.size() == frame)
+                elem->second.z.push_back(rotation.z);
         }
+    }
 #endif
 
 #if BAKE_VIDEO
@@ -4254,13 +4254,13 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
 
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "PV%03d", xpvgm->pv_id);
-    motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
+    const motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
     if (!set_info)
         return true;
 
     std::string mot_file = "mot_" + set_info->name + ".bin";
 
-    prj::shared_ptr<alloc_data> alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+    prj::shared_ptr<prj::stack_allocator> alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
     ::mot_set* mot_set = alloc->allocate<::mot_set>();
     {
@@ -4288,7 +4288,7 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
         int32_t motion_id = aft_mot_db->get_motion_id(buf);
 
         size_t motion_index = -1;
-        for (motion_info& j : set_info->motion)
+        for (const motion_info& j : set_info->motion)
             if (j.id == motion_id) {
                 motion_index = &j - set_info->motion.data();
                 break;
@@ -4302,7 +4302,7 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
 
         const char* name = bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON);
         std::string* bone_names = aft_mot_db->bone_name.data();
-        std::vector<bone_database_bone>* bones = 0;
+        const std::vector<bone_database_bone>* bones = 0;
         if (!aft_bone_data->get_skeleton_bones(name, &bones))
             continue;
 
@@ -4319,7 +4319,7 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
                     break;
             }
 
-            bone_database_bone* bone = &(*bones)[bone_index];
+            const bone_database_bone* bone = &(*bones)[bone_index];
 
             auto elem = a2m.bone_keys.find(bone_index);
             if (elem != a2m.bone_keys.end()) {
@@ -4471,51 +4471,21 @@ bool x_pv_game::Unload() {
 
 #if BAKE_PV826
     if (pv_data[pv_index].pv_id == 826) {
-        for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
-            rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i.first]);
-            x_pv_game_a3da_to_mot& a2m = i.second;
-
-            bone_node* node = rob_chr->bone_data->nodes.data();
-
-            for (int32_t j = MOTION_BONE_N_HITO_L_EX; j <= MOTION_BONE_NL_OYA_C_L_WJ; j++) {
-                ::motion_bone_index motion_bone_index = (::motion_bone_index)j;
-
-                auto elem = a2m.bone_keys.find(motion_bone_index);
-                if (elem == a2m.bone_keys.end())
-                    elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
-
-                vec3& rotation = node[j - MOTION_BONE_N_HITO_L_EX + ROB_BONE_N_HITO_L_EX].exp_data.rotation;
-                elem->second.x.push_back(rotation.x);
-                elem->second.y.push_back(rotation.y);
-                elem->second.z.push_back(rotation.z);
-            }
-
-            for (int32_t j = MOTION_BONE_N_HITO_R_EX; j <= MOTION_BONE_NL_OYA_C_R_WJ; j++) {
-                ::motion_bone_index motion_bone_index = (::motion_bone_index)j;
-
-                auto elem = a2m.bone_keys.find(motion_bone_index);
-                if (elem == a2m.bone_keys.end())
-                    elem = a2m.bone_keys.insert({ motion_bone_index, {} }).first;
-
-                vec3& rotation = node[j - MOTION_BONE_N_HITO_R_EX + ROB_BONE_N_HITO_R_EX].exp_data.rotation;
-                elem->second.x.push_back(rotation.x);
-                elem->second.y.push_back(rotation.y);
-                elem->second.z.push_back(rotation.z);
-            }
-        }
-
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         char buf[0x200];
         sprintf_s(buf, sizeof(buf), "PV%03d", pv_data[pv_index].pv_id);
-        motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
+        const motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
         if (set_info) {
             std::string farc_file = "mot_" + set_info->name + ".farc";
             aft_data->load_file(this, "rom/rob/", farc_file.c_str(), mot_write_motion);
         }
     }
 #endif
+
+    for (int32_t& i : rob_chara_ids)
+        skin_param_manager_reset(i);
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
@@ -4584,7 +4554,7 @@ bool x_pv_game::Unload() {
         i = 0;
 
     Glitter::glt_particle_manager->draw_all = true;
-    pv_param_task::post_process_task.SetDest();
+    pv_param_task::post_process_task.DelTask();
     return true;
 }
 
@@ -4656,7 +4626,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
             if (!pv_data->state)
                 pv_data->state = 20;
             else if (pv_data->state == 10)
-                field_1C |= 0x08;
+                pv_data->field_1C |= 0x08;
         }
         state = 20;
     }
@@ -4691,8 +4661,8 @@ void x_pv_game::unload() {
 }
 
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
-    pv_id = 0;
-    stage_id = 0;
+    pv_id = 823;
+    stage_id = 23;
 
     for (chara_index& i : charas)
         i = CHARA_MIKU;
@@ -4863,7 +4833,7 @@ void XPVGameSelector::Window() {
     }
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        item_table* itm_tbl = item_table_array_get_table(charas[i]);
+        const item_table* itm_tbl = item_table_handler_array_get_table(charas[i]);
         sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
         sprintf_s(buf1, sizeof(buf1), "%d", modules[i]);
 
@@ -4876,7 +4846,7 @@ void XPVGameSelector::Window() {
                 ImGui::PushID(&j);
                 sprintf_s(buf1, sizeof(buf1), "%d", j.first);
                 if (ImGui::Selectable(buf1, modules[i] == j.first)
-                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && modules[i] != j.first))
                     modules[i] = j.first;
                 ImGui::PopID();
@@ -5910,7 +5880,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chr->set_osage_step(osage_step_outer);
+        rob_chr->set_step(osage_step_outer);
     } break;
     case DSC_X_OSAGE_MV_CCL: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -6125,7 +6095,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t index = (int32_t)data[1];
         int32_t unk2 = (int32_t)data[2];
 
-        if (unk2 && !(a1->field_1C & 0x10))
+        if (unk2 && !(a1->pv_data->field_1C & 0x10))
             break;
 
         if (enable) {
@@ -6829,7 +6799,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 sizeof(x_pv_game_split_auth_3d_hrc_obj_bone), x_pv_game_split_auth_3d_hrc_obj_bone_compare_func);
         }
 
-        prj::shared_ptr<alloc_data>& alloc = handler->alloc_handler;
+        prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
 
         uint32_t obj_num_new = (uint32_t)(obj_num + bones_vertices.size());
         obj* obj_data_new = alloc->allocate<::obj>(obj_num_new);
@@ -6990,9 +6960,9 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             dst_obj->hash = hash;
 
             object_set_info* set_info;
-            if (obj_db.get_object_set_info(i.first.set_id, &set_info)) {
+            if (obj_db.get_object_set_info(i.first.set_id, (const object_set_info**)&set_info)) {
                 object_info_data* info;
-                if (!obj_db.get_object_info_data_by_murmurhash(hash, &info)) {
+                if (!obj_db.get_object_info_data_by_murmurhash(hash, (const object_info_data**)&info)) {
                     set_info->object.push_back({});
                     info = &set_info->object.back();
                     info->id = hash;
@@ -7426,6 +7396,27 @@ static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm) {
             if (motion_id != -1)
                 set_motion.push_back({ motion_id, { v61, -1 } });
         }
+    }
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (i < 0 || i >= play_param->chara.size())
+            continue;
+
+        rob_chara* rob_chr = rob_chara_array_get(i);
+        int32_t pv_id = xpvgm->pv_data[xpvgm->pv_index].pv_id;
+
+        std::vector<pv_data_set_motion>& set_motion = xpvgm->set_motion[i];
+        std::vector<osage_init_data> vec;
+        vec.reserve(set_motion.size());
+        for (pv_data_set_motion& j : set_motion) {
+            osage_init_data osage_init;
+            osage_init.rob_chr = rob_chr;
+            osage_init.pv_id = pv_id;
+            osage_init.motion_id = j.motion_id;
+            osage_init.frame = (int32_t)j.frame_stage_index.first;
+            vec.push_back(osage_init);
+        }
+        skin_param_manager_add_task(i, vec);
     }
 }
 

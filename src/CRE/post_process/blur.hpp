@@ -7,6 +7,7 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../GL/uniform_buffer.hpp"
 #include "../shared.hpp"
 #include "../render_texture.hpp"
 
@@ -27,6 +28,7 @@ struct post_process_blur {
     int32_t* height_down;
     render_texture* tex_down;
     int32_t count_down;
+    GL::UniformBuffer gaussian_coef_ubo;
 
     post_process_blur();
     ~post_process_blur();

@@ -4026,9 +4026,9 @@ vector_old(ex_data_name_bone_index)
 
 struct texture_data_struct {
     int32_t field_0;
-    vec3 texture_color_coeff;
+    vec3 texture_color_coefficients;
     vec3 texture_color_offset;
-    vec3 texture_specular_coeff;
+    vec3 texture_specular_coefficients;
     vec3 texture_specular_offset;
 };
 
@@ -4084,7 +4084,7 @@ struct rob_chara_item_equip {
     item_id field_D4;
     bool disable_update;
     int32_t field_DC;
-    vec4 texture_color_coeff;
+    vec4 texture_color_coefficients;
     float_t wet;
     float_t wind_strength;
     bool chara_color;
@@ -4122,15 +4122,6 @@ struct rob_chara_item_equip {
     bool parts_append;
     bool parts_white_one_l;
 };
-
-extern void bone_data_mult_ik(bone_data* a1, int32_t a2);
-extern void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik);
-extern void bone_data_mult_2(rob_chara_bone_data* a1, mat4* a2);
-extern void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data,
-    int32_t motion_id, MotionBlendType blend_type);
-extern void rob_chara_bone_data_interpolate(rob_chara_bone_data* a1);
-extern void rob_chara_bone_data_update(rob_chara_bone_data* a1, mat4* a2);
-extern void rob_chara_reset_data(rob_chara* a1, rob_chara_pv_data* a2);
 
 extern void ExNodeBlock__Field_10(ExNodeBlock* node);
 

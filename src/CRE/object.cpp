@@ -209,8 +209,8 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
                 if (vertex_format & OBJ_VERTEX_BONE_DATA) {
                     *(vec4*)d = vtx->bone_weight;
                     d += 16;
-                    *(vec4i*)d = vtx->bone_index;
-                    d += 16;
+                    *(vec4i16*)d = vtx->bone_index;
+                    d += 8;
                 }
 
                 if (vertex_format & OBJ_VERTEX_UNKNOWN) {
@@ -270,8 +270,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
                     vec4_to_vec4u16(bone_weight, *(vec4u16*)d);
                     d += 8;
 
-                    vec4i bone_index = vtx->bone_index;
-                    vec4i_to_vec4u16(bone_index, *(vec4u16*)d);
+                    *(vec4i16*)d = vtx->bone_index;
                     d += 8;
                 }
             }
@@ -848,6 +847,8 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     if (msg.type != MSGPACK_MAP)
         return;
 
+    obj_set* set = handler->obj_set;
+
     msgpack* add = msg.read_array("Add");
     if (add) {
         std::vector<uint32_t> ids;
@@ -901,7 +902,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             while (index / tex->mipmaps_count < tex->array_size);
         }
 
-        obj_set* set = handler->obj_set;
+        tex_db->sort();
 
         size_t tex_id_num = txp_set->textures.size();
         if (set->tex_id_num != tex_id_num) {
@@ -935,10 +936,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
             uint32_t id = hash_string_murmurhash(name);
 
+            uint32_t* tex_id_data = set->tex_id_data;
+            uint32_t tex_id_num = set->tex_id_num;
+
             txp* tex = 0;
-            for (texture_info& info : tex_db->texture)
-                if (id == info.id) {
-                    tex = &txp_set->textures[&info - tex_db->texture.data()];
+            for (uint32_t i = 0; i < tex_id_num; i++)
+                if (id == tex_id_data[i]) {
+                    tex = &txp_set->textures[i];
                     break;
                 }
 
@@ -949,7 +953,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             tex->has_cube_map = d.has_cube_map;
             tex->mipmaps_count = d.mipmaps_count;
 
-            tex->mipmaps.resize(0);
+            tex->mipmaps.clear();
             tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
             int32_t index = 0;
             do
@@ -1675,14 +1679,14 @@ inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_
     return 0;
 }
 
-GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
-    std::vector<GLuint>* textures = object_storage_get_obj_set_textures(set);
+texture* obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
+    std::vector<texture*>* textures = object_storage_get_obj_set_textures(set);
     if (!textures)
-        return -1;
+        return 0;
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(set);
     if (!handler)
-        return -1;
+        return 0;
 
     std::pair<uint32_t, uint32_t>* texture = handler->tex_id_data.data();
     size_t length = handler->tex_id_data.size();
@@ -1698,10 +1702,10 @@ GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
     if (texture != handler->tex_id_data.data() + handler->tex_id_data.size()
         && tex_id == texture->first)
         return (*textures)[texture->second];
-    return -1;
+    return 0;
 }
 
-inline std::vector<GLuint>* object_storage_get_obj_set_textures(int32_t set) {
+inline std::vector<texture*>* object_storage_get_obj_set_textures(int32_t set) {
     obj_set_handler* handler = object_storage_get_obj_set_handler(set);
     if (handler)
         return &handler->gentex;
@@ -1709,7 +1713,7 @@ inline std::vector<GLuint>* object_storage_get_obj_set_textures(int32_t set) {
 }
 
 int32_t object_storage_load_set(void* data, object_database* obj_db, const char* name) {
-    object_set_info* set_info = 0;
+    const object_set_info* set_info = 0;
     if (!obj_db->get_object_set_info(name, &set_info))
         return 1;
 
@@ -1722,9 +1726,9 @@ int32_t object_storage_load_set(void* data, object_database* obj_db, const char*
         return 1;
     }
 
-    std::string& archive_file_name = set_info->archive_file_name;
-    std::string& object_file_name = set_info->object_file_name;
-    std::string& texture_file_name = set_info->texture_file_name;
+    const std::string& archive_file_name = set_info->archive_file_name;
+    const std::string& object_file_name = set_info->object_file_name;
+    const std::string& texture_file_name = set_info->texture_file_name;
     if (!object_file_name.size() || !texture_file_name.size())
         return 1;
 
@@ -1746,7 +1750,7 @@ int32_t object_storage_load_set(void* data, object_database* obj_db, const char*
 }
 
 int32_t object_storage_load_set(void* data, object_database* obj_db, uint32_t set_id) {
-    object_set_info* set_info = 0;
+    const object_set_info* set_info = 0;
     if (!obj_db->get_object_set_info(set_id, &set_info))
         return 1;
 
@@ -1761,9 +1765,9 @@ int32_t object_storage_load_set(void* data, object_database* obj_db, uint32_t se
 
     handler->modern = false;
 
-    std::string& archive_file_name = set_info->archive_file_name;
-    std::string& object_file_name = set_info->object_file_name;
-    std::string& texture_file_name = set_info->texture_file_name;
+    const std::string& archive_file_name = set_info->archive_file_name;
+    const std::string& object_file_name = set_info->object_file_name;
+    const std::string& texture_file_name = set_info->texture_file_name;
     if (!object_file_name.size() || !texture_file_name.size())
         return 1;
 
@@ -1833,8 +1837,8 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             if (!data || !size)
                 return false;
 
-            prj::shared_ptr<alloc_data>& alloc = handler->alloc_handler;
-            alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+            prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+            alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
             obj_set* set = alloc->allocate<obj_set>();
             handler->obj_set = set;
@@ -1950,8 +1954,8 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 
         handler->name = name;
 
-        prj::shared_ptr<alloc_data>& alloc = handler->alloc_handler;
-        alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+        prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+        alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
         obj_set* set = alloc->allocate<obj_set>();
         handler->obj_set = set;
@@ -1987,7 +1991,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 }
 
 inline void object_storage_unload_set(object_database* obj_db, const char* name) {
-    object_set_info* set_info = 0;
+    const object_set_info* set_info = 0;
     if (!obj_db->get_object_set_info(name, &set_info))
         return;
 
@@ -2125,7 +2129,7 @@ static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* hand
 
                 obj_material_texture_data& texture = k;
                 uint32_t texture_id = texture.tex_index;
-                texture.tex_index = 0;
+                texture.tex_index = -1;
                 texture.texture_index = 0;
 
                 std::pair<uint32_t, uint32_t>* tex_id_data = handler->tex_id_data.data();
@@ -2165,10 +2169,8 @@ static void obj_set_handler_index_buffer_free(obj_set_handler* handler) {
     handler->index_buffer_num = 0;
 }
 
-static int32_t obj_set_tex_id_data_sort(void const* src1, void const* src2) {
-    std::pair<uint32_t, uint32_t>* p1 = (std::pair<uint32_t, uint32_t>*)src1;
-    std::pair<uint32_t, uint32_t>* p2 = (std::pair<uint32_t, uint32_t>*)src2;
-    return (int32_t)(p1->first - p2->first);
+static size_t obj_set_tex_id_radix_index_func_id(std::pair<uint32_t, uint32_t>* data, size_t index) {
+    return *(uint32_t*)&data[index].first;
 }
 
 static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian) {
@@ -2192,11 +2194,12 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
     texture** tex_data = handler->tex_data;
     for (int32_t i = 0; i < tex_num; i++) {
         handler->tex_id_data.push_back({ tex_id_data[i], i });
-        handler->gentex.push_back(tex_data[i]->tex);
+        handler->gentex.push_back(tex_data[i]);
     }
 
-    quicksort_custom(handler->tex_id_data.data(), handler->tex_id_data.size(),
-        sizeof(std::pair<uint32_t, uint32_t>), obj_set_tex_id_data_sort);
+    radix_sort_custom(handler->tex_id_data.data(), handler->tex_id_data.size(),
+        sizeof(std::pair<uint32_t, uint32_t>), sizeof(uint32_t),
+        (radix_index_func)obj_set_tex_id_radix_index_func_id);
     return false;
 }
 
@@ -2223,8 +2226,12 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
     texture** tex_data = handler->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
         handler->tex_id_data.push_back({ tex_id_data[i], i });
-        handler->gentex.push_back(tex_data[i]->tex);
+        handler->gentex.push_back(tex_data[i]);
     }
+
+    radix_sort_custom(handler->tex_id_data.data(), handler->tex_id_data.size(),
+        sizeof(std::pair<uint32_t, uint32_t>), sizeof(uint32_t),
+        (radix_index_func)obj_set_tex_id_radix_index_func_id);
     return false;
 }
 
@@ -2275,7 +2282,7 @@ inline static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format)
     if (format & OBJ_VERTEX_COLOR1)
         size += 16;
     if (format & OBJ_VERTEX_BONE_DATA)
-        size += 32;
+        size += 24;
     if (format & OBJ_VERTEX_UNKNOWN)
         size += 16;
     return size;

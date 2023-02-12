@@ -71,6 +71,7 @@ struct camera {
     double_t get_roll();
     void set_roll(double_t value);
     void get_view_point(vec3& value);
+    void get_view_point(vec4& value);
     void set_view_point(const vec3& value);
     void set_view_point(const vec3&& value);
     void get_interest(vec3& value);

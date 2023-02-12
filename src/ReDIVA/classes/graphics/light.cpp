@@ -110,7 +110,7 @@ void graphics_light_imgui(class_data* data) {
 
             ImGui::PushID(&i);
             if (ImGui::Selectable(i.name.c_str(), _stage_index == stage_idx)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && _stage_index != stage_idx)) {
                 stage_index = -1;
                 _stage_index = stage_idx;

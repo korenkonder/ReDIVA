@@ -7,6 +7,7 @@
 #include "../io/file_stream.hpp"
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
+#include "../prj/algorithm.hpp"
 #include "../key_val.hpp"
 #include "../hash.hpp"
 #include "../sort.hpp"
@@ -21,6 +22,31 @@ static void auth_3d_database_file_read_inner(auth_3d_database_file* auth_3d_db_f
 static void auth_3d_database_file_write_inner(auth_3d_database_file* auth_3d_db_file, stream& s);
 static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_file, void* data, size_t size);
 static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_file, void** data, size_t* size);
+
+auth_3d_database_uid::auth_3d_database_uid() : enabled(), org_uid(), size() {
+    category_hash = hash_murmurhash_empty;
+    name_hash = hash_murmurhash_empty;
+}
+
+auth_3d_database_uid::~auth_3d_database_uid() {
+
+}
+
+auth_3d_database_uid_file::auth_3d_database_uid_file() : flags(), org_uid(), size() {
+
+}
+
+auth_3d_database_uid_file::~auth_3d_database_uid_file() {
+
+}
+
+auth_3d_database_category::auth_3d_database_category() {
+    name_hash = hash_murmurhash_empty;
+}
+
+auth_3d_database_category::~auth_3d_database_category() {
+
+}
 
 auth_3d_database_file::auth_3d_database_file() : ready(), uid_max(-1) {
 
@@ -134,56 +160,31 @@ void auth_3d_database::add(auth_3d_database_file* auth_3d_db_file, bool mdata) {
     auth_3d_database_load_uids(this, auth_3d_db_file, mdata);
 }
 
-int32_t auth_3d_database::get_category_index(const char* name) {
+int32_t auth_3d_database::get_category_index(const char* name) const {
     uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (auth_3d_database_category i : category)
+    for (const auth_3d_database_category i : category)
         if (i.name_hash == name_hash)
             return (int32_t)(&i - category.data());
     return -1;
 }
 
-void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>& uid) {
+void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>& uid) const {
     uid.clear();
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (auth_3d_database_category& i : category)
+    for (const auth_3d_database_category& i : category)
         if (i.name_hash == name_hash) {
             uid = i.uid;
             return;
         }
 }
 
-int32_t auth_3d_database::get_uid(const char* name) {
+int32_t auth_3d_database::get_uid(const char* name) const {
     uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (auth_3d_database_uid& i : uid)
+    for (const auth_3d_database_uid& i : uid)
         if (i.name_hash == name_hash)
             return (int32_t)(&i - uid.data());
     return -1;
-}
-
-auth_3d_database_uid::auth_3d_database_uid() : enabled(), org_uid(), size() {
-    category_hash = hash_murmurhash_empty;
-    name_hash = hash_murmurhash_empty;
-}
-
-auth_3d_database_uid::~auth_3d_database_uid() {
-
-}
-
-auth_3d_database_uid_file::auth_3d_database_uid_file() : flags(), org_uid(), size() {
-
-}
-
-auth_3d_database_uid_file::~auth_3d_database_uid_file() {
-
-}
-
-auth_3d_database_category::auth_3d_database_category() {
-    name_hash = hash_murmurhash_empty;
-}
-
-auth_3d_database_category::~auth_3d_database_category() {
-
 }
 
 static void auth_3d_database_load_categories(auth_3d_database* auth_3d_db,
@@ -196,11 +197,11 @@ static void auth_3d_database_load_categories(auth_3d_database* auth_3d_db,
         category.reserve(count_file);
 
     for (int32_t i = 0; i < count_file; i++) {
-        uint32_t name_hash = hash_string_murmurhash(category_file[i]);
+        std::string& cat_file = category_file[i];
 
         auth_3d_database_category* cat = 0;
         for (auth_3d_database_category& j : category)
-            if (name_hash == j.name_hash) {
+            if (!cat_file.compare(j.name)) {
                 cat = &j;
                 break;
             }
@@ -265,22 +266,11 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
             uid_file->category = uid->category;
 
             if (uid->category.size() > 0) {
-                uint32_t category_hash = hash_string_murmurhash(uid->category);
+                std::string& cat_file = uid->category;
 
-                for (auth_3d_database_category& j : category) {
-                    if (category_hash != j.name_hash)
-                        continue;
-
-                    bool found = false;
-                    for (int32_t& k : j.uid)
-                        if (k == org_uid) {
-                            found = true;
-                            break;
-                        }
-
-                    if (!found)
+                for (auth_3d_database_category& j : category)
+                    if (!cat_file.compare(j.name))
                         j.uid.push_back(org_uid);
-                }
             }
         }
 
@@ -288,6 +278,11 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
             uid->size = uid_file->size;
         else
             uid->size = -1.0f;
+    }
+
+    for (auth_3d_database_category& i : category) {
+        prj::sort(i.uid);
+        prj::unique(i.uid);
     }
 }
 
@@ -327,9 +322,8 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
     auth_3d_db_file->category.clear();
     int32_t count;
     if (kv.read("category", "length", count)) {
-        std::vector<std::string>& vc = auth_3d_db_file->category;
-
-        vc.resize(count);
+        auth_3d_db_file->category.resize(count);
+        std::string* vc = auth_3d_db_file->category.data();
         for (int32_t i = 0; i < count; i++) {
             if (!kv.open_scope_fmt(i))
                 continue;
@@ -347,9 +341,8 @@ static void auth_3d_database_file_read_text(auth_3d_database_file* auth_3d_db_fi
 
         int32_t count;
         if (kv.read("length", count)) {
-            std::vector<auth_3d_database_uid_file>& vu = auth_3d_db_file->uid;
-
-            vu.resize(count);
+            auth_3d_db_file->uid.resize(count);
+            auth_3d_database_uid_file* vu = auth_3d_db_file->uid.data();
             for (int32_t i = 0; i < count; i++) {
                 if (!kv.open_scope_fmt(i))
                     continue;
@@ -380,13 +373,15 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
     if (auth_3d_db_file->category.size() > 0) {
         kv.open_scope("category");
 
-        std::vector<std::string>& vc = auth_3d_db_file->category;
-        int32_t count = (int32_t)vc.size();
+        int32_t count = (int32_t)auth_3d_db_file->category.size();
+        std::string* vc = auth_3d_db_file->category.data();
+
         std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
-            kv.write(s, "value", vc[sort_index[i]]);
+            kv.open_scope_fmt(sort_index_data[i]);
+            kv.write(s, "value", vc[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -398,14 +393,16 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
         kv.open_scope("uid");
 
         int32_t uid_max = -1;
-        std::vector<auth_3d_database_uid_file>& vu = auth_3d_db_file->uid;
-        int32_t count = (int32_t)vu.size();
-        std::vector<int32_t> sort_index;
-        key_val_out::get_lexicographic_order(&sort_index, count);
-        for (int32_t i = 0; i < count; i++) {
-            kv.open_scope_fmt(sort_index[i]);
+        int32_t count = (int32_t)auth_3d_db_file->uid.size();
+        auth_3d_database_uid_file* vu = auth_3d_db_file->uid.data();
 
-            auth_3d_database_uid_file* u = &vu[sort_index[i]];
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            auth_3d_database_uid_file* u = &vu[sort_index_data[i]];
 
             kv.write(s, "category", u->category);
             if ((int32_t)(u->flags & AUTH_3D_DATABASE_UID_ORG_UID))

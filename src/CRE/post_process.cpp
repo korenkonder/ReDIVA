@@ -18,67 +18,14 @@ extern bool task_stage_is_modern;
 
 extern render_context* rctx_ptr;
 
-post_process::post_process() : ssaa(), mlaa(), ss_alpha_mask(), aet_back_tex(), render_textures_data(),
-movie_textures_data(), texture_counter(), lens_shaft_query(), lens_flare_query(), lens_shaft_query_data(),
-lens_flare_query_data(), lens_flare_query_index(), lens_flare_texture(), lens_shaft_texture(),
-lens_ghost_texture(), lens_ghost_count(), lens_flare_pos(), lens_shaft_scale(), lens_shaft_inv_scale(),
-lens_flare_power(), field_A10(), lens_flare_appear_power(), render_width(), render_height(), view_point(),
+post_process::post_process() : ssaa(), mlaa(), ss_alpha_mask(), aet_back_tex(),
+render_textures_data(), movie_textures_data(), aet_back(), texture_counter(), lens_shaft_query(),
+lens_flare_query(), lens_shaft_query_data(), lens_flare_query_data(), lens_flare_query_index(),
+lens_flare_texture(), lens_shaft_texture(), lens_ghost_texture(), lens_ghost_count(),
+lens_flare_pos(), lens_shaft_scale(), lens_shaft_inv_scale(), lens_flare_power(),
+field_A10(), lens_flare_appear_power(), render_width(), render_height(), view_point(),
 interest(), view_point_prev(), interest_prev(), reset_exposure(), sprite_width(), sprite_height(),
 screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filter() {
-    static const char* query_vert_shader =
-        "#version 430 core\n"
-        "layout(location = 0) in vec4 a_position;\n"
-        "\n"
-        "uniform mat4 mat;\n"
-        "uniform float scale;\n"
-        "\n"
-        "void main() {\n"
-        "    vec4 pos = a_position;\n"
-        "    pos.xy *= scale;\n"
-        "    gl_Position = mat * pos;\n"
-        "}\n";
-
-    static const char* query_frag_shader =
-        "#version 430 core\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "void main() {\n"
-        "    result = vec4(0.0);\n"
-        "}\n";
-
-    static const char* alpha_layer_vert_shader =
-        "#version 430 core\n"
-        "out VertexData {\n"
-        "    vec2 texcoord;\n"
-        "} result;\n"
-        "\n"
-        "void main() {\n"
-        "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
-        "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
-        "    gl_Position.z = 0.0;\n"
-        "    gl_Position.w = 1.0;\n"
-        "    result.texcoord = gl_Position.xy * 0.5 + 0.5;\n"
-        "}\n";
-
-    static const char* alpha_layer_frag_shader =
-        "#version 430\n"
-        "layout(binding = 0) uniform sampler2D g_layerd_color;\n"
-        "layout(binding = 1) uniform sampler2D g_base_color;\n"
-        "\n"
-        "layout(location = 0) uniform float g_opacity;\n"
-        "\n"
-        "in VertexData{\n"
-        "    vec2 texcoord;\n"
-        "}frg;\n"
-        "\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "void main(){\n"
-        "    vec4 cl = textureLod(g_layerd_color, frg.texcoord, 0.f);\n"
-        "    vec4 cb = textureLod(g_base_color, frg.texcoord, 0.f);\n"
-        "    result = mix(cb, cl, g_opacity.x);\n"
-        "}\n";
-
     aa = new post_process_aa();
     blur = new post_process_blur();
     dof = new post_process_dof();
@@ -124,31 +71,13 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     glGenVertexArrays(1, &lens_ghost_vao);
     gl_state_bind_vertex_array(lens_ghost_vao);
 
-    const float_t lens_ghost_verts[] = {
-        -0.5f, -0.5f, 0.0f, 0.0f,
-         0.5f, -0.5f, 0.5f, 0.0f,
-        -0.5f,  0.5f, 0.0f, 0.5f,
-         0.5f,  0.5f, 0.5f, 0.5f,
-        -0.5f, -0.5f, 0.5f, 0.0f,
-         0.5f, -0.5f, 1.0f, 0.0f,
-        -0.5f,  0.5f, 0.5f, 0.5f,
-         0.5f,  0.5f, 1.0f, 0.5f,
-        -0.5f, -0.5f, 0.0f, 0.5f,
-         0.5f, -0.5f, 0.5f, 0.5f,
-        -0.5f,  0.5f, 0.0f, 1.0f,
-         0.5f,  0.5f, 0.5f, 1.0f,
-        -0.5f, -0.5f, 0.5f, 0.5f,
-         0.5f, -0.5f, 1.0f, 0.5f,
-        -0.5f,  0.5f, 0.5f, 1.0f,
-         0.5f,  0.5f, 1.0f, 1.0f,
-    };
-
     glGenBuffers(1, &lens_ghost_vbo);
     gl_state_bind_array_buffer(lens_ghost_vbo, true);
     if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(lens_ghost_verts), lens_ghost_verts, 0);
+        glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t) * 5 * (6 * 16),
+            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
     else
-        glBufferData(GL_ARRAY_BUFFER, sizeof(lens_ghost_verts), lens_ghost_verts, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 5 * (6 * 16), 0, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void*)0);  // Pos
@@ -159,21 +88,13 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
-    shader_glsl_param param = {};
-    param.name = "Exposure Chara";
-    query_shader.load(query_vert_shader,
-        query_frag_shader, 0, &param);
-
-    param = {};
-    param.name = "Alpha Layer";
-    alpha_layer_shader.load(alpha_layer_vert_shader,
-        alpha_layer_frag_shader, 0, &param);
-
     if (!lens_shaft_query[0])
         glGenQueries(3, lens_shaft_query);
 
     if (!lens_flare_query[0])
         glGenQueries(3, lens_flare_query);
+
+    sun_quad_ubo.Create(sizeof(sun_quad_shader_data));
 
     reset();
 }
@@ -232,9 +153,6 @@ post_process::~post_process() {
         lens_ghost_vbo = 0;
     }
 
-    query_shader.unload();
-    alpha_layer_shader.unload();
-
     if (lens_shaft_query[0]) {
         glDeleteQueries(3, lens_shaft_query);
         lens_shaft_query[0] = 0;
@@ -244,6 +162,8 @@ post_process::~post_process() {
         glDeleteQueries(3, lens_flare_query);
         lens_flare_query[0] = 0;
     }
+
+    sun_quad_ubo.Destroy();
 }
 
 void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param) {
@@ -257,8 +177,6 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
     dof->apply(&rend_texture, &buf_texture, samplers, cam);
 
     draw_lens_ghost(&rend_texture);
-
-    shaders_ft.state_matrix_set_mvp(mat4_identity, mat4_identity, mat4_identity);
 
     blur->get_blur(&rend_texture);
     exposure->get_exposure(cam, render_width, render_height, reset_exposure,
@@ -285,8 +203,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         glViewport(0, 0, t->width, t->height);
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, samplers[0]);
-        shaders_ft.set(SHADER_FT_REDUCE);
-        render_texture::draw_params(&shaders_ft, render_width, render_height);
+        shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+        render_texture::draw_quad(&shaders_ft, render_width, render_height);
     }
 
     fbo::blit(rend_texture.fbos[0], post_texture.fbos[0],
@@ -300,8 +218,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         gl_state_bind_sampler(0, samplers[0]);
         uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
-        shaders_ft.set(SHADER_FT_REDUCE);
-        render_texture::draw_params(&shaders_ft, render_width, render_height);
+        shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+        render_texture::draw_quad(&shaders_ft, render_width, render_height);
         uniform_value[U_ALPHA_MASK] = 0;
     }
     else {
@@ -314,21 +232,27 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         switch (mag_filter) {
         case POST_PROCESS_MAG_FILTER_NEAREST:
         case POST_PROCESS_MAG_FILTER_BILINEAR:
-        case POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP:
-        case POST_PROCESS_MAG_FILTER_SHARPEN_4_TAP:
-        case POST_PROCESS_MAG_FILTER_CONE_4_TAP:
-        case POST_PROCESS_MAG_FILTER_CONE_2_TAP:
-            uniform_value[U_MAGNIFY] = mag_filter;
-            break;
         default:
             uniform_value[U_MAGNIFY] = 0;
             break;
+        case POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP:
+            uniform_value[U_MAGNIFY] = 2;
+            break;
+        case POST_PROCESS_MAG_FILTER_SHARPEN_4_TAP:
+            uniform_value[U_MAGNIFY] = 3;
+            break;
+        case POST_PROCESS_MAG_FILTER_CONE_4_TAP:
+            uniform_value[U_MAGNIFY] = 4;
+            break;
+        case POST_PROCESS_MAG_FILTER_CONE_2_TAP:
+            uniform_value[U_MAGNIFY] = 5;
+            break;
         }
 
-        shaders_ft.set(SHADER_FT_MAGNIFY);
-        render_texture::draw_params(&shaders_ft, render_width, render_height);
+        shaders_ft.set_opengl_shader(SHADER_FT_MAGNIFY);
+        render_texture::draw_quad(&shaders_ft, render_width, render_height);
     }
-    shader::unbind();
+    shader_opengl::unbind();
 
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
@@ -374,8 +298,8 @@ void post_process::draw_lens_flare(camera* cam) {
     if (!lens_flare_texture)
         return;
 
-    GLuint tex = obj_database_get_obj_set_texture(5, 4549);
-    if (tex == -1)
+    texture* tex = obj_database_get_obj_set_texture(5, 4549);
+    if (!tex)
         return;
 
     float_t v5 = tanf((float_t)(cam->get_fov() * DEG_TO_RAD) * 0.5f);
@@ -383,18 +307,18 @@ void post_process::draw_lens_flare(camera* cam) {
     light_data* data = &set->lights[LIGHT_SUN];
 
     vec3 position;
-    vec4 v51;
+    vec4 emission;
     if (data->get_type() == LIGHT_PARALLEL) {
         data->get_position(position);
-        data->get_diffuse(v51);
+        data->get_diffuse(emission);
     }
     else {
         set->lights[LIGHT_STAGE].get_position(position);
         position = vec3::normalize(position) * 500.0f;
-        set->lights[LIGHT_STAGE].get_ibl_specular(v51);
+        set->lights[LIGHT_STAGE].get_ibl_color0(emission);
         data->set_type(LIGHT_PARALLEL);
         data->set_position(position);
-        data->set_diffuse(v51);
+        data->set_diffuse(emission);
     }
 
     vec4 v44;
@@ -423,12 +347,15 @@ void post_process::draw_lens_flare(camera* cam) {
     float_t v23 = ((float_t)render_width * (flt_1411ACB8C / v5)) * (v22 * v22 * 0.5f)
         * ((float_t)render_height * (flt_1411ACB8C / v5));
     float_t v24 = vec3::distance(position, view_point) * flt_1411ACB84;
-    v51 *= 1.0f / (float_t)(1.0f - cosf((float_t)(3.0 * DEG_TO_RAD)));
+    emission *= 1.0f / (float_t)(1.0f - cosf((float_t)(3.0 * DEG_TO_RAD)));
 
-    shaders_ft.state_material_set_emission(false, v51);
-    gl_state_active_bind_texture_2d(0, tex);
-    shaders_ft.set(SHADER_FT_SUN);
+    sun_quad_shader_data shader_data = {};
+    shader_data.g_emission = emission;
+
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    shaders_ft.set_opengl_shader(SHADER_FT_SUN);
     gl_state_bind_vertex_array(query_vao);
+    sun_quad_ubo.Bind(0);
 
     int32_t query_index = (lens_flare_query_index + 1) % 3;
     lens_flare_query_index = query_index;
@@ -449,8 +376,14 @@ void post_process::draw_lens_flare(camera* cam) {
     mat4_clear_rot(&mat, &mat);
     mat4_scale_rot(&mat, v24 * 0.2f, &mat);
 
+    mat4_transpose(&mat, &mat);
+    shader_data.g_transform[0] = mat.row0;
+    shader_data.g_transform[1] = mat.row1;
+    shader_data.g_transform[2] = mat.row2;
+    shader_data.g_transform[3] = mat.row3;
+    sun_quad_ubo.WriteMapMemory(shader_data);
+
     glBeginQuery(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
-    shaders_ft.state_matrix_set_modelview(mat, true);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
     glEndQuery(GL_SAMPLES_PASSED);
 
@@ -458,8 +391,14 @@ void post_process::draw_lens_flare(camera* cam) {
     mat4_clear_rot(&mat, &mat);
     mat4_scale_rot(&mat, v24 * 2.0f, &mat);
 
+    mat4_transpose(&mat, &mat);
+    shader_data.g_transform[0] = mat.row0;
+    shader_data.g_transform[1] = mat.row1;
+    shader_data.g_transform[2] = mat.row2;
+    shader_data.g_transform[3] = mat.row3;
+    sun_quad_ubo.WriteMapMemory(shader_data);
+
     glBeginQuery(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
-    shaders_ft.state_matrix_set_modelview(mat, true);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
     glEndQuery(GL_SAMPLES_PASSED);
 
@@ -481,7 +420,7 @@ void post_process::draw_lens_flare(camera* cam) {
             glGetQueryObjectuiv(lens_flare_query[query_index], GL_QUERY_RESULT, &lens_flare_query_data[query_index]);
     }
 
-    if (v51.y + v51.x + v51.z > 0.0f) {
+    if (emission.x + emission.y + emission.z > 0.0f) {
         gl_state_enable_blend();
         gl_state_set_blend_func(GL_ONE, GL_ONE);
         gl_state_set_depth_mask(GL_FALSE);
@@ -490,7 +429,6 @@ void post_process::draw_lens_flare(camera* cam) {
         mat4_clear_rot(&mat, &mat);
         mat4_scale_rot(&mat, v24 * 1.1f, &mat);
 
-        shaders_ft.state_matrix_set_modelview(mat, true);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         gl_state_disable_blend();
@@ -543,6 +481,36 @@ void post_process::draw_lens_flare(camera* cam) {
     }
 }
 
+static void make_ghost_quad(uint8_t flags, float_t opacity, mat4* mat, float_t*& data) {
+    const float_t x0 = flags & 0x01 ? 0.5f : 0.0f;
+    const float_t x1 = flags & 0x01 ? 1.0f : 0.5f;
+    const float_t y0 = flags & 0x02 ? 0.5f : 0.0f;
+    const float_t y1 = flags & 0x02 ? 1.0f : 0.5f;
+
+    vec4 p0 = { -0.5f, -0.5f, x0, y0 };
+    vec4 p1 = {  0.5f, -0.5f, x1, y0 };
+    vec4 p2 = { -0.5f,  0.5f, x0, y1 };
+    vec4 p3 = {  0.5f,  0.5f, x1, y1 };
+    mat4_mult_vec2_trans(mat, (vec2*)&p0, (vec2*)&p0);
+    mat4_mult_vec2_trans(mat, (vec2*)&p1, (vec2*)&p1);
+    mat4_mult_vec2_trans(mat, (vec2*)&p2, (vec2*)&p2);
+    mat4_mult_vec2_trans(mat, (vec2*)&p3, (vec2*)&p3);
+
+    *(vec4*)&data[0] = p0;
+    data[4] = opacity;
+    *(vec4*)&data[5] = p1;
+    data[9] = opacity;
+    *(vec4*)&data[10] = p2;
+    data[14] = opacity;
+    *(vec4*)&data[15] = p1;
+    data[19] = opacity;
+    *(vec4*)&data[20] = p2;
+    data[24] = opacity;
+    *(vec4*)&data[25] = p3;
+    data[29] = opacity;
+    data += 30;
+}
+
 void post_process::draw_lens_ghost(render_texture* rt) {
     static const float_t v13[16] = {
         -0.70f, -0.30f,  0.35f,  0.50f,
@@ -585,24 +553,28 @@ void post_process::draw_lens_ghost(render_texture* rt) {
     const float_t angle_sin = sinf(angle);
     const float_t angle_cos = cosf(angle);
 
-    glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
-    rt->bind();
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_ONE, GL_ONE);
-    uniform_value[U_REDUCE] = 4;
-    shaders_ft.set(SHADER_FT_REDUCE);
+    float_t* data;
+    if (GLAD_GL_VERSION_4_5) {
+        data = (float_t*)glMapNamedBuffer(lens_ghost_vbo, GL_WRITE_ONLY);
+        if (!data) {
+            glUnmapNamedBuffer(lens_ghost_vbo);
+            return;
+        }
+    }
+    else {
+        gl_state_bind_array_buffer(lens_ghost_vbo);
+        data = (float_t*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
+        if (!data) {
+            glUnmapBuffer(GL_ARRAY_BUFFER);
+            gl_state_bind_array_buffer(0);
+            return;
+        }
+    }
 
-    mat4 proj;
-    mat4_ortho(0.0, 1.0, 0.0, 1.0, 0.0, 1.0, &proj);
-    shaders_ft.state_matrix_set_projection(proj, false);
-
-    gl_state_active_bind_texture_2d(0, lens_ghost_texture);
-
-    gl_state_bind_vertex_array(lens_ghost_vao);
     const float_t lens_ghost = tone_map->data.lens_ghost;
     const int32_t lens_ghost_count = this->lens_ghost_count;
     for (int32_t i = 0; i < lens_ghost_count; i++) {
-        shaders_ft.local_frag_set(3, 0.0f, 0.0f, 0.0f, v9 * v14[i] * lens_ghost);
+        float_t opacity = v9 * v14[i] * lens_ghost;
 
         float_t scale = (v9a * 0.03f + 0.02f) * v15[i];
 
@@ -610,24 +582,30 @@ void post_process::draw_lens_ghost(render_texture* rt) {
         mat4_translate(v13[i] * v7 + 0.5f, v13[i] * v8 + 0.5f, 0.0f, &mat);
         mat4_scale_rot(&mat, scale, scale * aspect, 1.0f, &mat);
         mat4_rotate_z_mult_sin_cos(&mat, angle_sin, angle_cos, &mat);
-        shaders_ft.state_matrix_set_modelview(mat, true);
-        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i % 4 * 4, 4);
+        make_ghost_quad((uint8_t)(i & 0x03), opacity, &mat, data);
     }
+
+    if (GLAD_GL_VERSION_4_5)
+        glUnmapNamedBuffer(lens_ghost_vbo);
+    else {
+        glUnmapBuffer(GL_ARRAY_BUFFER);
+        gl_state_bind_array_buffer(0);
+    }
+
+    glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
+    rt->bind();
+    gl_state_enable_blend();
+    gl_state_set_blend_func(GL_ONE, GL_ONE);
+
+    uniform_value[U_REDUCE] = 4;
+    shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+    gl_state_active_bind_texture_2d(0, lens_ghost_texture->tex);
+    gl_state_bind_vertex_array(lens_ghost_vao);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, (GLsizei)(lens_ghost_count * 6LL));
     gl_state_bind_vertex_array(0);
 
     gl_state_disable_blend();
     gl_state_set_blend_func(GL_ONE, GL_ZERO);
-}
-
-void post_process::draw_query_samples(GLuint query, float_t scale, mat4& mat) {
-    glBeginQuery(GL_SAMPLES_PASSED, query);
-    gl_state_bind_vertex_array(query_vao);
-    query_shader.use();
-    query_shader.set("mat", false, mat);
-    query_shader.set("scale", scale);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_bind_vertex_array(0);
-    glEndQuery(GL_SAMPLES_PASSED);
 }
 
 void post_process::init_fbo(int32_t render_width, int32_t render_height,
@@ -651,7 +629,7 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
         aet_back_texture.set_color_depth_textures(aet_back_tex->tex, 0, rend_texture.depth_texture->tex);
         pre_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
         post_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
-        alpha_layer_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
+        transparency_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         gl_state_bind_texture_2d(rend_texture.depth_texture->tex);
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);

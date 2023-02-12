@@ -231,6 +231,8 @@ void graphics_post_process_imgui(class_data* data) {
     if (ImGui::ButtonEnterKeyPressed("Reset Post Process", { 0, 0 })) {
         stage* stg = task_stage_get_current_stage();
         light_param_data_storage_data_set_stage(stg->index);
+        dof->set_dof_debug();
+        dof->set_dof_pv();
     }
 
     data->imgui_focus |= ImGui::IsWindowFocused();

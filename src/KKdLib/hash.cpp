@@ -175,21 +175,18 @@ uint32_t hash_murmurhash(const void* data, size_t size,
                     hash ^= hash >> r;
                 }
 
-            if (size > 0) {
-                if (size > 1) {
-                    if (size > 2) {
-                        b = d[2];
-                        if (b > 0x60 && b < 0x7B)
-                            b -= 0x20;
-                        hash += b << 16;
-                    }
-
-                    b = d[1];
-                    if (b > 0x60 && b < 0x7B)
-                        b -= 0x20;
-                    hash += b << 8;
-                }
-
+            switch (size) {
+            case 3:
+                b = d[2];
+                if (b > 0x60 && b < 0x7B)
+                    b -= 0x20;
+                hash += b << 16;
+            case 2:
+                b = d[1];
+                if (b > 0x60 && b < 0x7B)
+                    b -= 0x20;
+                hash += b << 8;
+            case 1:
                 b = d[0];
                 if (b > 0x60 && b < 0x7B)
                     b -= 0x20;
@@ -197,6 +194,7 @@ uint32_t hash_murmurhash(const void* data, size_t size,
 
                 hash *= m;
                 hash ^= hash >> r;
+                break;
             }
         }
 

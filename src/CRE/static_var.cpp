@@ -4,7 +4,7 @@
 */
 
 #include "static_var.hpp"
-#include "timer.hpp"
+#include "../KKdLib/timer.hpp"
 
 extern timer* render_timer;
 

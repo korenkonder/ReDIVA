@@ -20,18 +20,18 @@ struct fog {
 
     fog();
 
-    fog_type get_type();
+    fog_type get_type() const;
     void set_type(fog_type value);
-    float_t get_density();
+    float_t get_density() const;
     void set_density(float_t value);
-    float_t get_start();
+    float_t get_start() const;
     void set_start(float_t value);
-    float_t get_end();
+    float_t get_end() const;
     void set_end(float_t value);
-    int32_t get_index();
+    int32_t get_index() const;
     void set_index(int32_t value);
-    void get_color(vec4& value);
-    void set_color(vec4& value);
-    void set_color(vec4&& value);
+    void get_color(vec4& value) const;
+    void set_color(const vec4& value);
+    void set_color(const vec4&& value);
     void data_set(fog_id id);
 };

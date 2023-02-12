@@ -273,11 +273,11 @@ struct stage_database {
 
     void add(stage_database_file* stage_data_file);
 
-    ::stage_data* get_stage_data(int32_t stage_index);
-    ::stage_data_modern* get_stage_data_modern(uint32_t stage_hash);
-    int32_t get_stage_index(const char* name);
-    const char* get_stage_name(int32_t stage_index);
-    const char* get_stage_name_modern(uint32_t stage_hash);
+    const ::stage_data* get_stage_data(int32_t stage_index) const;
+    const ::stage_data_modern* get_stage_data_modern(uint32_t stage_hash) const;
+    int32_t get_stage_index(const char* name) const;
+    const char* get_stage_name(int32_t stage_index) const;
+    const char* get_stage_name_modern(uint32_t stage_hash) const;
 };
 
 extern const stage_effects stage_effects_default;

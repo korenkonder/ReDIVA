@@ -1,8 +1,6 @@
 ﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
-
-    Some code is from LearnOpenGL
 */
 
 #if defined(ReDIVA_DEV)
@@ -367,7 +365,7 @@ DataEdit::~DataEdit() {
 
 bool DataEdit::Init() {
     Reset();
-    task_rob_manager_append_task();
+    task_rob_manager_add_task();
     return true;
 }
 
@@ -491,7 +489,7 @@ bool DataEdit::Ctrl() {
 
 bool DataEdit::Dest() {
     rob_chara_array_free_chara_id(chara_id);
-    task_rob_manager_free_task();
+    task_rob_manager_del_task();
     Reset();
     return true;
 }

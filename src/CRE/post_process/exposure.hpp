@@ -7,13 +7,14 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../GL/uniform_buffer.hpp"
 #include "../camera.hpp"
 #include "../render_texture.hpp"
 #include "../shared.hpp"
 
 struct post_process_exposure_chara_data {
-    vec4 field_0[8];
-    float_t field_80;
+    vec4 spot_coefficients[8];
+    float_t spot_weight;
     GLuint query[3];
     GLuint query_data[3];
 
@@ -26,6 +27,7 @@ struct post_process_exposure {
     int32_t exposure_history_counter;
     post_process_exposure_chara_data* chara_data;
     int32_t query_index;
+    GL::UniformBuffer exposure_measure_ubo;
 
     post_process_exposure();
     ~post_process_exposure();

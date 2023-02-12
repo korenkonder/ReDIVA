@@ -8,7 +8,6 @@
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
 #include "rob/rob.hpp"
-#include "draw_task.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
 #include "task_effect.hpp"
@@ -32,9 +31,9 @@ namespace stage_detail {
     static void TaskStageModern_Unload(stage_detail::TaskStageModern* a1);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, camera* cam, mat4* mat);
-static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, camera* cam);
-static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, camera* cam);
+static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat);
+static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view);
+static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view);
 
 static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_db, texture_database* tex_db);
 static void stage_modern_disp(stage_modern* s);
@@ -53,9 +52,60 @@ extern render_context* rctx_ptr;
 extern bool task_stage_is_modern;
 
 extern bool light_chara_ambient;
-extern vec4 npr_spec_color;
+extern vec4 npr_cloth_spec_color;
 
 static uint16_t stage_counter;
+
+stage_modern::stage_modern() : counter(), state(), stage_data(),
+stage_display(), ground(), sky(), auth_3d_loaded(), mat(), rot_y() {
+    hash = hash_murmurhash_empty;
+    obj_set_hash = hash_murmurhash_empty;
+}
+
+stage_detail::TaskStageModern::TaskStageModern() : state(), current_stage(), stage_display(), field_FB1(),
+field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8(), data(), obj_db(), tex_db(), stage_data() {
+
+}
+
+stage_detail::TaskStageModern:: ~TaskStageModern() {
+
+}
+
+bool stage_detail::TaskStageModern::Init() {
+    return true;
+}
+
+bool stage_detail::TaskStageModern::Ctrl() {
+    stage_detail::TaskStageModern_CtrlInner(this);
+
+    for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
+        if (stages[i].hash != -1 && stages[i].hash != hash_murmurhash_empty
+            && stage_modern_ctrl(&stages[i], data, obj_db, tex_db))
+            break;
+    return false;
+}
+
+bool stage_detail::TaskStageModern::Dest() {
+    stage_detail::TaskStageModern_Unload(this);
+    if (state)
+        return false;
+    stage_detail::TaskStageModern_Reset(this);
+    return true;
+}
+
+void stage_detail::TaskStageModern::Disp() {
+    if (state != 6 || !stage_display)
+        return;
+
+    stage_modern* s = stage_detail::TaskStageModern_GetCurrentStage(this);
+    if (s)
+        stage_modern_disp(s);
+}
+
+task_stage_modern_info::task_stage_modern_info() {
+    load_index = -1;
+    load_counter = 0;
+}
 
 void task_stage_modern_init() {
     task_stage_modern = new stage_detail::TaskStageModern;
@@ -67,13 +117,6 @@ bool task_stage_modern_check_not_loaded() {
 
 bool task_stage_modern_check_task_ready() {
     return app::TaskWork::CheckTaskReady(task_stage_modern);
-}
-
-void task_stage_modern_current_set_effect_display(bool value) {
-    task_stage_modern_info stg_info;
-    task_stage_modern_get_current_stage_info(&stg_info);
-    if (task_stage_modern_has_stage_info(&stg_info))
-        task_stage_modern_set_effect_display(&stg_info, value);
 }
 
 void task_stage_modern_current_set_ground(bool value) {
@@ -149,12 +192,6 @@ void task_stage_modern_set_data(void* data,
     task_stage_modern->stage_data = stage_data;
 }
 
-void task_stage_modern_set_effect_display(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->effect_display = value;
-}
-
 void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value) {
     stage_modern* stg = task_stage_modern_get_stage(*stg_info);
     if (stg)
@@ -205,7 +242,7 @@ void task_stage_modern_set_stage_hashes(std::vector<uint32_t>& stage_hashes,
 }
 
 bool task_stage_modern_unload_task() {
-    return task_stage_modern->SetDest();
+    return task_stage_modern->DelTask();
 }
 
 void task_stage_modern_free() {
@@ -325,14 +362,14 @@ static void stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1
 }
 
 static bool stage_detail::TaskStageModern_LoadTask(stage_detail::TaskStageModern* a1, const char* name) {
-    if (app::TaskWork::AppendTask(a1, name)) {
+    if (app::TaskWork::AddTask(a1, name)) {
         stage_detail::TaskStageModern_Reset(a1);
         stage_detail::TaskStageModern_TaskWindAppend(a1);
         return false;
     }
     else {
         if (!app::TaskWork::HasTaskDest(a1))
-            a1->SetDest();
+            a1->DelTask();
         return true;
     }
 }
@@ -363,7 +400,7 @@ static void stage_detail::TaskStageModern_SetStage(stage_detail::TaskStageModern
 }
 
 static void stage_detail::TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1) {
-    app::TaskWork::AppendTask(task_wind, a1, "CHARA WIND");
+    app::TaskWork::AddTask(task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* a1) {
@@ -409,36 +446,36 @@ static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* 
     }
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, camera* cam, mat4* mat) {
+static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat) {
     vec3 center;
     mat4_mult_vec3_trans(mat, &sphere->center, &center);
-    mat4_mult_vec3_trans(&cam->view, &center, &center);
+    mat4_mult_vec3_trans(view, &center, &center);
     float_t radius = sphere->radius;
 
-    shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
-    float_t v9 = shad->view_region * shad->range;
-    if ((center.x + radius) < -v9
-        || (center.x - radius) > v9
-        || (center.y + radius) < -v9
-        || (center.y - radius) > v9
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    float_t view_region = shad->view_region * shad->range;
+    if ((center.x + radius) < -view_region
+        || (center.x - radius) > view_region
+        || (center.y + radius) < -view_region
+        || (center.y - radius) > view_region
         || (center.z - radius) > -shad->z_near
         || (center.z + radius) < -shad->z_far)
         return false;
     return true;
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, camera* cam) {
+static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, cam, &mat);
+    return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, camera* cam) {
+static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, cam, &mat);
+    return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
 static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_db, texture_database* tex_db) {
@@ -450,14 +487,6 @@ static bool stage_modern_ctrl(stage_modern* s, void* data, object_database* obj_
         stage_modern_free(s);
         return true;
     }
-
-    for (auth_3d_id& i : s->auth_3d_ids) {
-        i.set_repeat(true);
-        i.set_paused(false);
-        i.set_enable(true);
-        i.set_visibility(s->effect_display);
-        i.set_frame_rate(0);
-    }
     return false;
 }
 
@@ -465,36 +494,32 @@ static void stage_modern_disp(stage_modern* s) {
     if (s->state != 6 || !s->stage_display)
         return;
 
-    object_data* object_data = &rctx_ptr->object_data;
+    mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
 
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
 
     if (s->stage_data->object_ground.not_null_modern() && s->ground)
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_ground, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_ground);
 
     if (s->stage_data->object_reflect.not_null_modern()) {
-        object_data->set_draw_task_flags(
+        disp_manager.set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_reflect, 0, 0, 0, 0, 0, 0);
-        object_data->set_draw_task_flags();
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_reflect);
+        disp_manager.set_draw_task_flags();
     }
 
     if (s->stage_data->object_refract.not_null_modern()) {
-        object_data->set_draw_task_flags(
+        disp_manager.set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_refract, 0, 0, 0, 0, 0, 0);
-        object_data->set_draw_task_flags();
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_refract);
+        disp_manager.set_draw_task_flags();
     }
 
     if (s->stage_data->object_sky.not_null_modern() && s->sky) {
         mat4 t = s->mat;
         mat4_mult(&t, &mat, &t);
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &t, s->stage_data->object_sky, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(&t, s->stage_data->object_sky);
     }
 }
 
@@ -509,21 +534,21 @@ static void stage_modern_disp_shadow(stage_modern* s) {
 }
 
 static void stage_modern_disp_shadow_object(object_info object, mat4* mat) {
-    object_data* object_data = &rctx_ptr->object_data;
+    mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
 
     for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
-        object_data->set_shadow_type((shadow_type_enum)i);
-        object_data->set_object_bounding_sphere_check_func(i == SHADOW_CHARA
+        disp_manager.set_shadow_type((shadow_type_enum)i);
+        disp_manager.set_culling_finc(i == SHADOW_CHARA
             ? object_bounding_sphere_check_visibility_shadow_chara
             : object_bounding_sphere_check_visibility_shadow_stage);
-        object_data->set_draw_task_flags(
+        disp_manager.set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_SHADOW_OBJECT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr, mat, object, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(mat, object);
     }
 
-    object_data->set_draw_task_flags();
-    object_data->set_object_bounding_sphere_check_func();
-    object_data->set_shadow_type();
+    disp_manager.set_draw_task_flags();
+    disp_manager.set_culling_finc();
+    disp_manager.set_shadow_type();
 }
 
 static void stage_modern_free(stage_modern* s) {
@@ -536,7 +561,7 @@ static void stage_modern_free(stage_modern* s) {
     if (s->state < 7 || s->state > 9)
         return;
 
-    draw_pass* draw_pass = &rctx_ptr->draw_pass;
+    rndr::RenderManager* render_manager = &rctx_ptr->render_manager;
     if (s->stage_data->render_texture != -1 && s->stage_data->render_texture != hash_murmurhash_empty)
         rctx_ptr->post_process.render_texture_free(
             texture_storage_get_texture(s->stage_data->render_texture), 0);
@@ -545,14 +570,14 @@ static void stage_modern_free(stage_modern* s) {
         rctx_ptr->post_process.movie_texture_free(
             texture_storage_get_texture(s->stage_data->movie_texture));
 
-    draw_pass->set_shadow_true();
+    render_manager->set_shadow_true();
     //rctx_ptr->post_process.field_14 = 0;
     //rctx_ptr->post_process.field_ED8 = 1;
-    npr_spec_color.w = 1.0f;
-    draw_pass->field_31D = 0;
-    draw_pass->field_31E = 0;
-    draw_pass->field_31F = false;
-    draw_pass->field_320 = 0;
+    npr_cloth_spec_color.w = 1.0f;
+    render_manager->field_31D = false;
+    render_manager->field_31E = false;
+    render_manager->field_31F = false;
+    render_manager->field_320 = false;
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
@@ -616,41 +641,35 @@ static void stage_modern_reset(stage_modern* s) {
     s->mat = mat4_identity;
     s->rot_y = 0.0;
     s->obj_set_hash = hash_murmurhash_empty;
-
-    for (auth_3d_id& i : s->auth_3d_ids)
-        i.unload_id(rctx_ptr);
-    s->auth_3d_ids.clear();
-    s->auth_3d_ids.shrink_to_fit();
-    s->effect_display = true;
 }
 
 static void stage_modern_set(stage_modern* s, stage_modern* other) {
     if (other && s == other)
         return;
 
-    draw_pass* draw_pass = &rctx_ptr->draw_pass;
+    rndr::RenderManager* render_manager = &rctx_ptr->render_manager;
     if (s) {
         //flt_14CC925C0 = 0.0;
         //flt_140CB3704 = -1001.0;
-        draw_pass->set_enable(DRAW_PASS_REFLECT, false);
-        draw_pass->set_reflect(false);
-        draw_pass->set_enable(DRAW_PASS_REFRACT, false);
-        draw_pass->set_refract(true);
-        draw_pass->field_31D = false;
-        draw_pass->field_31E = false;
-        draw_pass->field_31F = false;
-        draw_pass->field_320 = false;
-        draw_pass->set_shadow_true();
+        render_manager->set_pass_sw(rndr::RND_PASSID_REFLECT, false);
+        render_manager->set_reflect(false);
+        render_manager->set_pass_sw(rndr::RND_PASSID_REFRACT, false);
+        render_manager->set_refract(true);
+        render_manager->field_31D = false;
+        render_manager->field_31E = false;
+        render_manager->field_31F = false;
+        render_manager->field_320 = false;
+        render_manager->set_shadow_true();
         //rctx_ptr->post_process.field_14 = 0;
         //rctx_ptr->post_process.field_ED8 = 1;
-        npr_spec_color.w = 1.0f;
-        draw_pass->set_npr_param(0);
+        npr_cloth_spec_color.w = 1.0f;
+        render_manager->set_npr_param(0);
         light_chara_ambient = false;
     }
 
     if (other) {
         //if (stru_14CC92630.pv_id == 421)
-            //draw_pass->field_31F = true;
+            //render_manager->field_31F = true;
         //sub_14064DC10();
         task_effect_parent_set_current_stage_hash(other->hash);
     }
@@ -700,59 +719,4 @@ static void stage_modern_set_by_stage_hash(stage_modern* s, int32_t stage_hash,
     s->obj_set_hash = hash_murmurhash_empty;
     if (set_name[0])
         s->obj_set_hash = hash_utf8_murmurhash(set_name);
-}
-
-stage_modern::stage_modern() : counter(), state(), stage_data(), stage_display(),
-ground(), sky(), auth_3d_loaded(), mat(), rot_y(), effect_display() {
-    hash = hash_murmurhash_empty;
-    obj_set_hash = hash_murmurhash_empty;
-}
-
-stage_modern::~stage_modern() {
-
-}
-
-stage_detail::TaskStageModern::TaskStageModern() : state(), current_stage(), stage_display(), field_FB1(),
-field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8(), data(), obj_db(), tex_db(), stage_data() {
-
-}
-
-stage_detail::TaskStageModern:: ~TaskStageModern() {
-
-}
-
-bool stage_detail::TaskStageModern::Init() {
-    return true;
-}
-
-bool stage_detail::TaskStageModern::Ctrl() {
-    stage_detail::TaskStageModern_CtrlInner(this);
-
-    for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
-        if (stages[i].hash != -1 && stages[i].hash != hash_murmurhash_empty
-            && stage_modern_ctrl(&stages[i], data, obj_db, tex_db))
-            break;
-    return false;
-}
-
-bool stage_detail::TaskStageModern::Dest() {
-    stage_detail::TaskStageModern_Unload(this);
-    if (state)
-        return false;
-    stage_detail::TaskStageModern_Reset(this);
-    return true;
-}
-
-void stage_detail::TaskStageModern::Disp() {
-    if (state != 6 || !stage_display)
-        return;
-
-    stage_modern* s = stage_detail::TaskStageModern_GetCurrentStage(this);
-    if (s)
-        stage_modern_disp(s);
-}
-
-task_stage_modern_info::task_stage_modern_info() {
-    load_index = -1;
-    load_counter = 0;
 }

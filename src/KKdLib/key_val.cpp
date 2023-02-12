@@ -1015,18 +1015,18 @@ void key_val_out::write(stream& s, std::string& key, vec3&& value) {
     write(s, key, *(vec3*)&value);
 }
 
-void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t length) {
-    vec->clear();
+void key_val_out::get_lexicographic_order(std::vector<int32_t>& vec, int32_t length) {
+    vec.clear();
 
     int32_t i, j, m;
 
     if (length < 1)
         return;
 
-    vec->reserve(length);
+    vec.reserve(length);
 
     j = 0;
-    vec->push_back(j);
+    vec.push_back(j);
     i = 1;
     j = 1;
 
@@ -1036,7 +1036,7 @@ void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t len
 
     while (i < length) {
         if (j * 10 < m) {
-            vec->push_back(j);
+            vec.push_back(j);
             i++;
             j *= 10;
         }
@@ -1048,7 +1048,7 @@ void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t len
             j++;
         }
         else if (j % 10 != 9) {
-            vec->push_back(j);
+            vec.push_back(j);
             i++;
             j++;
         }
@@ -1062,7 +1062,7 @@ void key_val_out::get_lexicographic_order(std::vector<int32_t>* vec, int32_t len
                 j++;
             }
             else if (j < length && j % 10 == 9) {
-                vec->push_back(j);
+                vec.push_back(j);
                 i++;
                 while (j % 10 == 9)
                     j /= 10;
@@ -1088,8 +1088,12 @@ static int64_t key_val_find_first_key(key_val* kv, int64_t low, int64_t high,
             full = true;
         }
         else {
-            res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
-            if (!res && s[l->length - offset])
+            if (l->length >= offset) {
+                res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
+                if (!res && s[l->length - offset])
+                    res = 1;
+            }
+            else
                 res = 1;
             full = false;
         }
@@ -1124,8 +1128,12 @@ static int64_t key_val_find_last_key(key_val* kv, int64_t low, int64_t high,
             full = true;
         }
         else {
-            res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
-            if (!res && s[l->length - offset])
+            if (l->length >= offset) {
+                res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
+                if (!res && s[l->length - offset])
+                    res = 1;
+            }
+            else
                 res = 1;
             full = false;
         }

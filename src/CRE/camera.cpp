@@ -146,6 +146,11 @@ void camera::get_view_point(vec3& value) {
     value = view_point;
 }
 
+void camera::get_view_point(vec4& value) {
+    *(vec3*)&value = view_point;
+    value.w = 0.0f;
+}
+
 void camera::set_view_point(const vec3& value) {
     if (value != view_point) {
         view_point = value;

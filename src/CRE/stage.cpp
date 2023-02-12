@@ -8,7 +8,6 @@
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
 #include "rob/rob.hpp"
-#include "draw_task.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
 #include "task_effect.hpp"
@@ -32,9 +31,9 @@ namespace stage_detail {
     static void TaskStage_Unload(stage_detail::TaskStage* a1);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, camera* cam, mat4* mat);
-static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, camera* cam);
-static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, camera* cam);
+static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat);
+static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view);
+static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view);
 
 static bool stage_ctrl(stage* s);
 static void stage_disp(stage* s);
@@ -47,40 +46,62 @@ static void stage_set(stage* s, stage* other);
 static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t stage_counter);
 
 stage_detail::TaskStage* task_stage;
-DtmStg* dtm_stg;
 
 extern render_context* rctx_ptr;
 extern bool task_stage_is_modern;
 
 extern bool light_chara_ambient;
-extern vec4 npr_spec_color;
+extern vec4 npr_cloth_spec_color;
 
 static uint16_t stage_counter;
 
-void dtm_stg_init() {
-    dtm_stg = new DtmStg;
+stage::stage() : index(), counter(), state(), stage_data(), stage_display(),
+lens_flare(), ground(), ring(), sky(), auth_3d_loaded(), mat(), rot_y(), obj_set() {
+
 }
 
-void dtm_stg_load(int32_t stage_index) {
-    if (app::TaskWork::CheckTaskReady(dtm_stg))
+stage_detail::TaskStage::TaskStage() : state(), current_stage(), stage_display(),
+field_FB1(), field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8() {
+
+}
+
+stage_detail::TaskStage:: ~TaskStage() {
+
+}
+
+bool stage_detail::TaskStage::Init() {
+    return true;
+}
+
+bool stage_detail::TaskStage::Ctrl() {
+    stage_detail::TaskStage_CtrlInner(this);
+
+    for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
+        if (stages[i].index != -1 && stage_ctrl(&stages[i]))
+            break;
+    return false;
+}
+
+bool stage_detail::TaskStage::Dest() {
+    stage_detail::TaskStage_Unload(this);
+    if (state)
+        return false;
+    stage_detail::TaskStage_Reset(this);
+    return true;
+}
+
+void stage_detail::TaskStage::Disp() {
+    if (state != 6 || !stage_display)
         return;
 
-    if (app::TaskWork::CheckTaskReady(dtm_stg)) {
-        dtm_stg->stage_index = stage_index;
-        dtm_stg->load_stage_index = stage_index;
-    }
-    app::TaskWork::AppendTask(dtm_stg, "DATA_TEST_STAGE");
+    stage* s = stage_detail::TaskStage_GetCurrentStage(this);
+    if (s)
+        stage_disp(s);
 }
 
-bool dtm_stg_unload() {
-    return dtm_stg->SetDest();
-}
-
-void dtm_stg_free() {
-    if (dtm_stg) {
-        delete dtm_stg;
-        dtm_stg = 0;
-    }
+task_stage_info::task_stage_info() {
+    load_index = -1;
+    load_counter = 0;
 }
 
 void task_stage_init() {
@@ -89,13 +110,6 @@ void task_stage_init() {
 
 bool task_stage_check_not_loaded() {
     return task_stage->load_stage_indices.size() || task_stage->state != 6;
-}
-
-void task_stage_current_set_effect_display(bool value) {
-    task_stage_info stg_info;
-    task_stage_get_current_stage_info(&stg_info);
-    if (task_stage_has_stage_info(&stg_info))
-        task_stage_set_effect_display(&stg_info, value);
 }
 
 void task_stage_current_set_ground(bool value) {
@@ -170,12 +184,6 @@ bool task_stage_load_task(const char* name) {
     return stage_detail::TaskStage_LoadTask(task_stage, name);
 }
 
-void task_stage_set_effect_display(task_stage_info* stg_info, bool value) {
-    stage* stg = task_stage_get_stage(*stg_info);
-    if (stg)
-        stg->effect_display = value;
-}
-
 void task_stage_set_ground(task_stage_info* stg_info, bool value) {
     stage* stg = task_stage_get_stage(*stg_info);
     if (stg)
@@ -230,7 +238,7 @@ void task_stage_set_stage_indices(std::vector<int32_t>& stage_indices) {
 }
 
 bool task_stage_unload_task() {
-    return task_stage->SetDest();
+    return task_stage->DelTask();
 }
 
 void task_stage_free() {
@@ -346,14 +354,14 @@ static void stage_detail::TaskStage_Load(stage_detail::TaskStage* a1) {
 }
 
 static bool stage_detail::TaskStage_LoadTask(stage_detail::TaskStage* a1, const char* name) {
-    if (app::TaskWork::AppendTask(a1, name)) {
+    if (app::TaskWork::AddTask(a1, name)) {
         stage_detail::TaskStage_Reset(a1);
         stage_detail::TaskStage_TaskWindAppend(a1);
         return false;
     }
     else {
         if (!app::TaskWork::HasTaskDest(a1))
-            a1->SetDest();
+            a1->DelTask();
         return true;
     }
 }
@@ -383,7 +391,7 @@ static void stage_detail::TaskStage_SetStage(stage_detail::TaskStage* a1, task_s
 }
 
 static void stage_detail::TaskStage_TaskWindAppend(stage_detail::TaskStage* a1) {
-    app::TaskWork::AppendTask(task_wind, a1, "CHARA WIND");
+    app::TaskWork::AddTask(task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
@@ -429,13 +437,13 @@ static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
     }
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, camera* cam, mat4* mat) {
+static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat) {
     vec3 center;
     mat4_mult_vec3_trans(mat, &sphere->center, &center);
-    mat4_mult_vec3_trans(&cam->view, &center, &center);
+    mat4_mult_vec3_trans(view, &center, &center);
     float_t radius = sphere->radius;
 
-    shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     float_t v9 = shad->view_region * shad->range;
     if ((center.x + radius) < -v9
         || (center.x - radius) > v9
@@ -447,18 +455,18 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
     return true;
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, camera* cam) {
+static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, cam, &mat);
+    return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, camera* cam) {
+static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    shadow* shad = rctx_ptr->draw_pass.shadow_ptr;
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
-    return object_bounding_sphere_check_visibility_shadow(sphere, cam, &mat);
+    return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
 static bool stage_ctrl(stage* s) {
@@ -470,14 +478,6 @@ static bool stage_ctrl(stage* s) {
         stage_free(s);
         return true;
     }
-
-    for (auth_3d_id& i : s->auth_3d_ids) {
-        i.set_repeat(true);
-        i.set_paused(false);
-        i.set_enable(true);
-        i.set_visibility(s->effect_display);
-        i.set_frame_rate(0);
-    }
     return false;
 }
 
@@ -485,40 +485,35 @@ static void stage_disp(stage* s) {
     if (s->state != 6 || !s->stage_display)
         return;
 
-    object_data* object_data = &rctx_ptr->object_data;
+    mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
 
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
 
     if (s->stage_data->object_ground.not_null() && s->ground)
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_ground, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_ground);
 
     if (s->stage_data->object_ring.not_null() && s->ring)
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_ring, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_ring);
 
     if (s->stage_data->object_reflect.not_null()) {
-        object_data->set_draw_task_flags(
+        disp_manager.set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFLECT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_reflect, 0, 0, 0, 0, 0, 0);
-        object_data->set_draw_task_flags();
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_reflect);
+        disp_manager.set_draw_task_flags();
     }
 
     if (s->stage_data->object_refract.not_null()) {
-        object_data->set_draw_task_flags(
+        disp_manager.set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &mat, s->stage_data->object_refract, 0, 0, 0, 0, 0, 0);
-        object_data->set_draw_task_flags();
+        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_refract);
+        disp_manager.set_draw_task_flags();
     }
 
     if (s->stage_data->object_sky.not_null() && s->sky) {
         mat4 t = s->mat;
         mat4_mult(&t, &mat, &t);
-        draw_task_add_draw_object_by_object_info(rctx_ptr,
-            &t, s->stage_data->object_sky, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(&t, s->stage_data->object_sky);
     }
 
     if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
@@ -546,21 +541,21 @@ static void stage_disp_shadow(stage* s) {
 }
 
 static void stage_disp_shadow_object(object_info object, mat4* mat) {
-    object_data* object_data = &rctx_ptr->object_data;
+    mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
 
     for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
-        object_data->set_shadow_type((shadow_type_enum)i);
-        object_data->set_object_bounding_sphere_check_func(i == SHADOW_CHARA
+        disp_manager.set_shadow_type((shadow_type_enum)i);
+        disp_manager.set_culling_finc(i == SHADOW_CHARA
             ? object_bounding_sphere_check_visibility_shadow_chara
             : object_bounding_sphere_check_visibility_shadow_stage);
-        object_data->set_draw_task_flags(
+        disp_manager.set_draw_task_flags(
             (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_SHADOW_OBJECT));
-        draw_task_add_draw_object_by_object_info(rctx_ptr, mat, object, 0, 0, 0, 0, 0, 0);
+        disp_manager.entry_obj_by_object_info(mat, object);
     }
 
-    object_data->set_draw_task_flags();
-    object_data->set_object_bounding_sphere_check_func();
-    object_data->set_shadow_type();
+    disp_manager.set_draw_task_flags();
+    disp_manager.set_culling_finc();
+    disp_manager.set_shadow_type();
 }
 
 static void stage_free(stage* s) {
@@ -573,7 +568,7 @@ static void stage_free(stage* s) {
     if (s->state < 7 || s->state > 9)
         return;
 
-    draw_pass* draw_pass = &rctx_ptr->draw_pass;
+    rndr::RenderManager* render_manager = &rctx_ptr->render_manager;
     if (s->stage_data->render_texture != -1)
         rctx_ptr->post_process.render_texture_free(
             texture_storage_get_texture(s->stage_data->render_texture), 0);
@@ -582,14 +577,14 @@ static void stage_free(stage* s) {
         rctx_ptr->post_process.movie_texture_free(
             texture_storage_get_texture(s->stage_data->movie_texture));
 
-    draw_pass->set_shadow_true();
+    render_manager->set_shadow_true();
     //rctx_ptr->post_process.field_14 = 0;
     //rctx_ptr->post_process.field_ED8 = 1;
-    npr_spec_color.w = 1.0f;
-    draw_pass->field_31D = 0;
-    draw_pass->field_31E = 0;
-    draw_pass->field_31F = false;
-    draw_pass->field_320 = 0;
+    npr_cloth_spec_color.w = 1.0f;
+    render_manager->field_31D = false;
+    render_manager->field_31E = false;
+    render_manager->field_31F = false;
+    render_manager->field_320 = false;
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
@@ -660,71 +655,65 @@ static void stage_reset(stage* s) {
     s->mat = mat4_identity;
     s->rot_y = 0.0;
     s->obj_set = -1;
-
-    for (auth_3d_id& i : s->auth_3d_ids)
-        i.unload_id(rctx_ptr);
-    s->auth_3d_ids.clear();
-    s->auth_3d_ids.shrink_to_fit();
-    s->effect_display = true;
 }
 
 static void stage_set(stage* s, stage* other) {
     if (other && s == other)
         return;
 
-    draw_pass* draw_pass = &rctx_ptr->draw_pass;
+    rndr::RenderManager* render_manager = &rctx_ptr->render_manager;
     if (s) {
         //flt_14CC925C0 = 0.0;
         //flt_140CB3704 = -1001.0;
-        draw_pass->set_enable(DRAW_PASS_REFLECT, false);
-        draw_pass->set_reflect(false);
-        draw_pass->set_enable(DRAW_PASS_REFRACT, false);
-        draw_pass->set_refract(true);
-        draw_pass->field_31D = false;
-        draw_pass->field_31E = false;
-        draw_pass->field_31F = false;
-        draw_pass->field_320 = false;
-        draw_pass->set_shadow_true();
+        render_manager->set_pass_sw(rndr::RND_PASSID_REFLECT, false);
+        render_manager->set_reflect(false);
+        render_manager->set_pass_sw(rndr::RND_PASSID_REFRACT, false);
+        render_manager->set_refract(true);
+        render_manager->field_31D = false;
+        render_manager->field_31E = false;
+        render_manager->field_31F = false;
+        render_manager->field_320 = false;
+        render_manager->set_shadow_true();
         //rctx_ptr->post_process.field_14 = 0;
         //rctx_ptr->post_process.field_ED8 = 1;
-        npr_spec_color.w = 1.0f;
-        draw_pass->set_npr_param(0);
+        npr_cloth_spec_color.w = 1.0f;
+        render_manager->set_npr_param(0);
         light_chara_ambient = false;
     }
 
     if (other) {
         rctx_ptr->chara_reflect = other->stage_data->reflect_type != STAGE_DATA_REFLECT_DISABLE;
-        draw_pass->set_reflect_type(other->stage_data->reflect_type);
+        render_manager->set_reflect_type(other->stage_data->reflect_type);
         rctx_ptr->chara_refract = other->stage_data->refract_enable;
 
         if (other->stage_data->reflect) {
             stage_data_reflect* reflect = &other->stage_data->reflect_data;
-            draw_pass->set_enable(DRAW_PASS_REFLECT, true);
-            draw_pass->set_reflect_blur(reflect->blur_num, (blur_filter_mode)reflect->blur_filter);
-            draw_pass->set_reflect(true);
+            render_manager->set_pass_sw(rndr::RND_PASSID_REFLECT, true);
+            render_manager->set_reflect_blur(reflect->blur_num, (blur_filter_mode)reflect->blur_filter);
+            render_manager->set_reflect(true);
             reflect_refract_resolution_mode reflect_resolution_mode = REFLECT_REFRACT_RESOLUTION_512x512;
             if (other->stage_data->reflect_type != STAGE_DATA_REFLECT_REFLECT_MAP)
                 reflect_resolution_mode = (reflect_refract_resolution_mode)reflect->mode;
-            draw_pass->set_refract_resolution_mode(reflect_resolution_mode);
+            render_manager->set_refract_resolution_mode(reflect_resolution_mode);
         }
 
         if (other->stage_data->refract) {
             stage_data_refract* refract = &other->stage_data->refract_data;
-            draw_pass->set_enable(DRAW_PASS_REFRACT, true);
-            draw_pass->set_refract_resolution_mode((reflect_refract_resolution_mode)refract->mode);
-            draw_pass->set_refract(true);
+            render_manager->set_pass_sw(rndr::RND_PASSID_REFRACT, true);
+            render_manager->set_refract_resolution_mode((reflect_refract_resolution_mode)refract->mode);
+            render_manager->set_refract(true);
         }
 
         if (other->stage_data->flags & STAGE_DATA_FLAG_1)
-            draw_pass->field_31D = true;
+            render_manager->field_31D = true;
         if (other->stage_data->flags & STAGE_DATA_FLAG_4)
-            draw_pass->field_31E = true;
+            render_manager->field_31E = true;
         if (other->stage_data->flags & STAGE_DATA_FLAG_8)
-            draw_pass->field_320 = true;
+            render_manager->field_320 = true;
         if (other->stage_data->flags & STAGE_DATA_LIGHT_CHARA_AMBIENT)
             light_chara_ambient = true;
         //if (stru_14CC92630.pv_id == 421)
-            //draw_pass->field_31F = true;
+            //render_manager->field_31F = true;
         //sub_14064DC10();
         task_effect_parent_set_current_stage_index(other->index);
     }
@@ -782,88 +771,4 @@ static void stage_set_by_stage_index(stage* s, int32_t stage_index, uint16_t sta
     s->obj_set = -1;
     if (set_name[0])
         s->obj_set = aft_obj_db->get_object_set_id(set_name);
-}
-
-stage::stage() : index(), counter(), state(), stage_data(), stage_display(), lens_flare(),
-ground(), ring(), sky(), auth_3d_loaded(), mat(), rot_y(), obj_set(), effect_display() {
-
-}
-
-stage::~stage() {
-
-}
-
-stage_detail::TaskStage::TaskStage() : state(), current_stage(), stage_display(),
-field_FB1(), field_FB2(), field_FB3(), field_FB4(), mat(), field_FF8() {
-
-}
-
-stage_detail::TaskStage:: ~TaskStage() {
-
-}
-
-bool stage_detail::TaskStage::Init() {
-    return true;
-}
-
-bool stage_detail::TaskStage::Ctrl() {
-    stage_detail::TaskStage_CtrlInner(this);
-
-    for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
-        if (stages[i].index != -1 && stage_ctrl(&stages[i]))
-            break;
-    return false;
-}
-
-bool stage_detail::TaskStage::Dest() {
-    stage_detail::TaskStage_Unload(this);
-    if (state)
-        return false;
-    stage_detail::TaskStage_Reset(this);
-    return true;
-}
-
-void stage_detail::TaskStage::Disp() {
-    if (state != 6 || !stage_display)
-        return;
-
-    stage* s = stage_detail::TaskStage_GetCurrentStage(this);
-    if (s)
-        stage_disp(s);
-}
-
-task_stage_info::task_stage_info() {
-    load_index = -1;
-    load_counter = 0;
-}
-
-DtmStg::DtmStg() : stage_index(), load_stage_index() {
-
-}
-
-DtmStg::~DtmStg() {
-
-}
-
-bool DtmStg::Init() {
-    task_stage_load_task("DATA_TEST_STG_STAGE");
-    task_stage_set_stage_index(stage_index);
-    return true;
-}
-
-bool DtmStg::Ctrl() {
-    if (task_stage_check_not_loaded())
-        return false;
-
-    if (load_stage_index != stage_index) {
-        task_stage_set_stage_index(load_stage_index);
-        stage_index = load_stage_index;
-        return false;
-    }
-    return false;
-}
-
-bool DtmStg::Dest() {
-    task_stage_unload_task();
-    return true;
 }

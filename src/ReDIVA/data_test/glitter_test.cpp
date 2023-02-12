@@ -163,25 +163,25 @@ void TaskDataTestGlitterParticle::Window() {
         input_reset = true;
 
     w = ImGui::GetContentRegionAvailWidth();
-    if (ImGui::ButtonEnterKeyPressed("Play (F)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_F))
+    if (ImGui::ButtonEnterKeyPressed("Play (F)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_F))
         input_play = true;
 
     w = ImGui::GetContentRegionAvailWidth();
-    if (ImGui::ButtonEnterKeyPressed("Stop (V)", { w, 0.0f }) || ImGui::IsKeyPressed(GLFW_KEY_V))
+    if (ImGui::ButtonEnterKeyPressed("Stop (V)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_V))
         input_stop = true;
 
     bool pause = Glitter::glt_particle_manager->GetPause();
     ImGui::CheckboxEnterKeyPressed("Pause (G)", &pause);
-    if (ImGui::IsKeyPressed(GLFW_KEY_G))
+    if (ImGui::IsKeyPressed(ImGuiKey_G))
         pause ^= true;
     Glitter::glt_particle_manager->SetPause(pause);
 
     ImGui::CheckboxEnterKeyPressed("Auto (T)", &auto_and_repeat);
-    if (ImGui::IsKeyPressed(GLFW_KEY_T))
+    if (ImGui::IsKeyPressed(ImGuiKey_T))
         auto_and_repeat ^= true;
 
     ImGui::CheckboxEnterKeyPressed("PV Mode (P)", &pv_mode);
-    if (ImGui::IsKeyPressed(GLFW_KEY_P))
+    if (ImGui::IsKeyPressed(ImGuiKey_P))
         pv_mode ^= true;
 
     ImGui::Separator();

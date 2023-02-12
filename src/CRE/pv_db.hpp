@@ -529,9 +529,9 @@ namespace pv_db {
 
 extern void task_pv_db_init();
 extern void task_pv_db_add_paths();
-extern bool task_pv_db_append_task();
+extern bool task_pv_db_add_task();
 extern void task_pv_db_free_pv_data();
-extern bool task_pv_db_free_task();
+extern bool task_pv_db_del_task();
 extern pv_db::TaskPvDB* task_pv_db_get();
 extern uint32_t task_pv_db_get_paths_count();
 extern pv_db_pv* task_pv_db_get_pv(int32_t pv_id);

@@ -593,61 +593,6 @@ public:
     virtual void Disp() override;
 };
 
-class pv_game_old : public app::TaskWindow {
-public:
-    int32_t pv_id;
-
-    std::vector<uint32_t> objset_load;
-
-    int32_t state;
-    int32_t frame;
-    double_t frame_float;
-    int64_t time;
-    int32_t rob_chara_ids[ROB_CHARA_COUNT];
-
-    std::string pv_category;
-    std::string stage_category;
-    std::string camera_category;
-
-    std::vector<std::string> category_load;
-
-    std::map<uint32_t, auth_3d_id> pv_auth_3d_ids;
-    auth_3d_id light_auth_3d_id;
-    auth_3d_id camera_auth_3d_id;
-
-    dsc dsc_m;
-    dsc_data* dsc_data_ptr;
-    dsc_data* dsc_data_ptr_end;
-
-    bool play;
-    bool success;
-    int32_t chara_id;
-    float_t target_anim_fps;
-    float_t anim_frame_speed;
-    int64_t dsc_time;
-    bool pv_end;
-    pv_play_data playdata[ROB_CHARA_COUNT];
-    float_t scene_rot_y;
-    mat4 scene_rot_mat;
-    int32_t branch_mode;
-
-    bool pause;
-    bool step_frame;
-
-    pv_game_old();
-    virtual ~pv_game_old() override;
-
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
-    virtual void Window() override;
-
-    void Load(int32_t pv_id, chara_index charas[6], int32_t modules[6]);
-    void Unload();
-};
-
-bool task_pv_game_append_task(TaskPvGame::InitData* init_data);
+bool task_pv_game_add_task(TaskPvGame::InitData* init_data);
 bool task_pv_game_check_task_ready();
-bool task_pv_game_free_task();
+bool task_pv_game_del_task();

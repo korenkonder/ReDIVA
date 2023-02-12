@@ -20,7 +20,7 @@ wind::~wind() {
 
 }
 
-float_t wind::get_scale() {
+float_t wind::get_scale() const {
     return scale;
 }
 
@@ -28,7 +28,7 @@ void wind::set_scale(float_t value) {
     scale = value;
 }
 
-float_t wind::get_cycle() {
+float_t wind::get_cycle() const {
     return cycle;
 }
 
@@ -36,7 +36,7 @@ void wind::set_cycle(float_t value) {
     cycle = value;
 }
 
-void wind::get_rot(vec2* value) {
+void wind::get_rot(vec2* value) const {
     value->x = rot_y;
     value->y = rot_z;
 }
@@ -46,7 +46,7 @@ void wind::set_rot(vec2* value) {
     rot_z = value->y;
 }
 
-float_t wind::get_rot_y() {
+float_t wind::get_rot_y() const {
     return rot_y;
 }
 
@@ -54,7 +54,7 @@ void wind::set_rot_y(float_t value) {
     rot_y = value;
 }
 
-float_t wind::get_rot_z() {
+float_t wind::get_rot_z() const {
     return rot_z;
 }
 
@@ -62,7 +62,7 @@ void wind::set_rot_z(float_t value) {
     rot_z = value;
 }
 
-float_t wind::get_bias() {
+float_t wind::get_bias() const {
     return bias;
 }
 

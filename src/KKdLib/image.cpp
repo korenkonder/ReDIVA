@@ -5,9 +5,9 @@
 
 #include "image.hpp"
 
-static rgb565 rgb565_apply_color_tone(rgb565 col, color_tone* col_tone);
+static rgb565 rgb565_apply_color_tone(rgb565 col, const color_tone* col_tone);
 static void rgb_to_ycc(vec3& rgb, vec3& ycc);
-static void ycc_apply_col_tone_hue(vec3& ycc, color_tone* col_tone);
+static void ycc_apply_col_tone_hue(vec3& ycc, const color_tone* col_tone);
 static void ycc_to_rgb(vec3& ycc, vec3& rgb);
 
 color_tone::color_tone() : hue(), saturation(), value(), contrast(), inverse() {
@@ -15,7 +15,7 @@ color_tone::color_tone() : hue(), saturation(), value(), contrast(), inverse() {
 }
 
 void dxt1_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, dxt1_block* data, color_tone* col_tone) {
+    int32_t size, dxt1_block* data, const color_tone* col_tone) {
     if (size <= 0)
         return;
 
@@ -30,7 +30,7 @@ void dxt1_image_apply_color_tone(int32_t width, int32_t height,
 }
 
 void dxt5_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, dxt5_block* data, color_tone* col_tone) {
+    int32_t size, dxt5_block* data, const color_tone* col_tone) {
     if (size <= 0)
         return;
 
@@ -45,12 +45,12 @@ void dxt5_image_apply_color_tone(int32_t width, int32_t height,
 }
 
 void rgb565_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, rgb565* data, color_tone* col_tone) {
+    int32_t size, rgb565* data, const color_tone* col_tone) {
     for (size_t i = (size - 1ULL) / sizeof(uint16_t) + 1; i; i--, data++)
         *data = rgb565_apply_color_tone(*data, col_tone);
 }
 
-static rgb565 rgb565_apply_color_tone(rgb565 col, color_tone* col_tone) {
+static rgb565 rgb565_apply_color_tone(rgb565 col, const color_tone* col_tone) {
     const vec3 scale = {
         (float_t)((1 << 5) - 1),
         (float_t)((1 << 6) - 1),
@@ -106,7 +106,7 @@ inline static void rgb_to_ycc(vec3& rgb, vec3& ycc) {
     ycc.z = vec3::dot(rgb, _cr_coef_601);
 }
 
-inline static void ycc_apply_col_tone_hue(vec3& ycc, color_tone* col_tone) {
+inline static void ycc_apply_col_tone_hue(vec3& ycc, const color_tone* col_tone) {
     float_t hue = col_tone->hue * DEG_TO_RAD_FLOAT;
     float_t cos = cosf(hue);
     float_t sin = sinf(hue);

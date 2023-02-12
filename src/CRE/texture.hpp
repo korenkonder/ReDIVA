@@ -18,8 +18,16 @@ struct texture_id {
     uint32_t index;
     uint8_t id;
 
-    texture_id();
-    texture_id(uint8_t id, uint32_t index);
+    inline texture_id() {
+        id = 0;
+        index = 0;
+    }
+
+    inline texture_id(uint8_t id, uint32_t index) {
+        this->id = id;
+        this->index = index;
+    }
+
 };
 
 inline bool operator >(const texture_id& left, const texture_id& right) {
@@ -66,7 +74,7 @@ struct texture {
 
 extern texture* texture_init(texture_id id);
 extern void texture_apply_color_tone(texture* chg_tex,
-    texture* org_tex, color_tone* col_tone);
+    texture* org_tex, const color_tone* col_tone);
 extern texture* texture_copy(texture_id id, texture* org_tex);
 extern texture* texture_load_tex_2d(texture_id id, GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);

@@ -10,14 +10,14 @@
 #include "io/path.hpp"
 #include "str_utils.hpp"
 
-static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<alloc_data>& alloc, stream& s);
+static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void pv_exp_classic_write_inner(pv_exp* exp, stream& s);
 
-static void pv_exp_modern_read_inner(pv_exp* exp, prj::shared_ptr<alloc_data>& alloc, stream& s, uint32_t header_length);
+static void pv_exp_modern_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, uint32_t header_length);
 static void pv_exp_modern_write_inner(pv_exp* exp, stream& s);
 
 static const char* pv_exp_read_utf8_string_null_terminated_offset(
-    prj::shared_ptr<alloc_data>& alloc, stream& s, int64_t offset);
+    prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset);
 
 pv_exp_mot::pv_exp_mot() : face_data(), face_cl_data(), name() {
 
@@ -39,7 +39,7 @@ pv_exp::pv_exp() : ready(), modern(), big_endian(), is_x(), motion_data(), motio
 
 }
 
-void pv_exp::move_data(pv_exp* exp_src, prj::shared_ptr<alloc_data> alloc) {
+void pv_exp::move_data(pv_exp* exp_src, prj::shared_ptr<prj::stack_allocator> alloc) {
     if (!exp_src->ready) {
         ready = false;
         modern = false;
@@ -98,7 +98,7 @@ void pv_exp::pack_file(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-void pv_exp::unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern) {
+void pv_exp::unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern) {
     if (!data || !size)
         return;
 
@@ -119,7 +119,7 @@ void pv_exp::unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, si
     }
 }
 
-static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<alloc_data>& alloc, stream& s) {
+static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
     if (s.read_uint32_t() != 0x64) {
         exp->ready = false;
         exp->modern = false;
@@ -301,7 +301,7 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
     s.write_uint32_t((uint32_t)name_offsets_offset);
 }
 
-static void pv_exp_modern_read_inner(pv_exp* exp, prj::shared_ptr<alloc_data>& alloc, stream& s, uint32_t header_length) {
+static void pv_exp_modern_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, uint32_t header_length) {
     if (s.read_uint32_t() != 0x64) {
         exp->ready = false;
         exp->modern = false;
@@ -537,7 +537,7 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
 }
 
 inline static const char* pv_exp_read_utf8_string_null_terminated_offset(
-    prj::shared_ptr<alloc_data>& alloc, stream& s, int64_t offset) {
+    prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset) {
     size_t len = s.read_utf8_string_null_terminated_offset_length(offset);
     char* str = alloc->allocate<char>(len + 1);
     s.position_push(offset, SEEK_SET);

@@ -4,7 +4,6 @@
 */
 
 #include "glitter.hpp"
-#include "../draw_task.hpp"
 #include "../gl_state.hpp"
 #include "../render_context.hpp"
 #include "../shader.hpp"
@@ -219,7 +218,8 @@ namespace Glitter {
                 for (LocusHistory::Data& hist_data : hist->data) {
                     vec3& pos = hist_data.translation;
                     buf->position = pos + (pos - elem->base_translation) * scale;
-                    buf->uv = 0.0f;
+                    buf->uv[0] = 0.0f;
+                    buf->uv[1] = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -227,7 +227,8 @@ namespace Glitter {
             else
                 for (LocusHistory::Data& hist_data : hist->data) {
                     buf->position = hist_data.translation;
-                    buf->uv = 0.0f;
+                    buf->uv[0] = 0.0f;
+                    buf->uv[1] = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -354,13 +355,15 @@ namespace Glitter {
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
-                    buf[0].uv.x = uv_u;
-                    buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[0].x = uv_u;
+                    buf[0].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[1] = buf[0].uv[0];
                     buf[0].color = hist_data.color;
 
                     buf[1].position = pos + x_vec * v01;
-                    buf[1].uv.x = uv_u_2nd;
-                    buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[0].x = uv_u_2nd;
+                    buf[1].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[1] = buf[1].uv[0];
                     buf[1].color = hist_data.color;
                     j++;
                     buf += 2;
@@ -376,13 +379,15 @@ namespace Glitter {
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
-                    buf[0].uv.x = uv_u;
-                    buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[0].x = uv_u;
+                    buf[0].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[1] = buf[0].uv[0];
                     buf[0].color = hist_data.color;
 
                     buf[1].position = pos + x_vec * v01;
-                    buf[1].uv.x = uv_u_2nd;
-                    buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[0].x = uv_u_2nd;
+                    buf[1].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[1] = buf[1].uv[0];
                     buf[1].color = hist_data.color;
                     j++;
                     buf += 2;
@@ -589,7 +594,8 @@ namespace Glitter {
                     vec3 x_vec_rot = x_vec * (pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin);
                     vec3 y_vec_rot = y_vec * (pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos);
                     buf->position = pos + (x_vec_rot + y_vec_rot);
-                    buf->uv = uv + uv_add[k];
+                    buf->uv[0] = uv + uv_add[k];
+                    buf->uv[1] = buf->uv[0];
                     buf->color = elem->color;
                 }
                 disp++;
@@ -753,7 +759,8 @@ namespace Glitter {
                         xy_vec_rot.z = 0.0f;
                         mat3_mult_vec(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
                         buf->position = pos + xy_vec_rot;
-                        buf->uv = uv + uv_add[k];
+                        buf->uv[0] = uv + uv_add[k];
+                        buf->uv[1] = buf->uv[0];
                         buf->color = elem->color;
                     }
                     disp++;
@@ -825,7 +832,8 @@ namespace Glitter {
                         vec3 x_vec_rot = x_vec * (rot_z_cos * pos_add[k].x - rot_z_sin * pos_add[k].y);
                         vec3 y_vec_rot = y_vec * (rot_z_sin * pos_add[k].x + rot_z_cos * pos_add[k].y);
                         buf->position = pos + (x_vec_rot + y_vec_rot);
-                        buf->uv = uv + uv_add[k];
+                        buf->uv[0] = uv + uv_add[k];
+                        buf->uv[1] = buf->uv[0];
                         buf->color = elem->color;
                     }
                     disp++;
@@ -944,24 +952,48 @@ namespace Glitter {
         if (rend_group->disp < 1)
             return;
 
-        gl_state_enable_blend();
+        mat4 mat;
+        mat4_mult(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
+        mat4_mult(&mat, &GPM_VAL->cam.projection, &mat);
+
+        float_t emission = 1.0f;
+        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
+            emission = rend_group->emission;
+
+        BatchShaderData shader_data = {};
+        mat4_transpose(&mat, &mat);
+        shader_data.g_mvp[0] = mat.row0;
+        shader_data.g_mvp[1] = mat.row1;
+        shader_data.g_mvp[2] = mat.row2;
+        shader_data.g_mvp[3] = mat.row3;
+        shader_data.g_glitter_blend_color = 1.0f;
+        shader_data.g_state_material_diffuse = 0.0f;
+        shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
+        GPM_VAL->batch_ubo.WriteMapMemory(shader_data);
+
+        GLenum blend_src = GL_SRC_ALPHA;
+        GLenum blend_dst = GL_ONE_MINUS_SRC_ALPHA;
         switch (rend_group->blend_mode) {
         case PARTICLE_BLEND_ADD:
-            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE);
+            blend_src = GL_SRC_ALPHA;
+            blend_dst = GL_ONE;
             break;
         case PARTICLE_BLEND_MULTIPLY:
-            gl_state_set_blend_func(GL_ZERO, GL_SRC_COLOR);
-            break;
-        default:
-            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            blend_src = GL_ZERO;
+            blend_dst = GL_SRC_COLOR;
             break;
         }
+
+        gl_state_enable_blend();
+        gl_state_set_blend_func(blend_src, blend_dst);
         gl_state_set_blend_equation(GL_FUNC_ADD);
 
+        GLuint texture = 0;
+        GLuint mask_texture = 0;
         if (rend_group->type != PARTICLE_LINE && rend_group->texture) {
-            gl_state_active_bind_texture_2d(0, rend_group->texture);
+            texture = rend_group->texture;
             if (rend_group->mask_texture) {
-                gl_state_active_bind_texture_2d(1, rend_group->mask_texture);
+                mask_texture = rend_group->mask_texture;
 
                 uniform_value[U_TEXTURE_COUNT] = 2;
                 switch (rend_group->mask_blend_mode) {
@@ -977,17 +1009,17 @@ namespace Glitter {
                 }
             }
             else {
-                gl_state_active_bind_texture_2d(1, 0);
                 uniform_value[U_TEXTURE_COUNT] = 1;
                 uniform_value[U_TEXTURE_BLEND] = 0;
             }
         }
         else {
-            gl_state_active_bind_texture_2d(0, 0);
-            gl_state_active_bind_texture_2d(1, 0);
             uniform_value[U_TEXTURE_COUNT] = 0;
             uniform_value[U_TEXTURE_BLEND] = 0;
         }
+
+        gl_state_active_bind_texture_2d(0, texture);
+        gl_state_active_bind_texture_2d(1, mask_texture);
 
         switch (rend_group->type) {
         case PARTICLE_QUAD:
@@ -1040,40 +1072,26 @@ namespace Glitter {
             break;
         }
 
-        float_t emission = 1.0f;
-        if (rend_group->flags & PARTICLE_EMISSION
-            || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
-            emission = rend_group->emission;
-
-        shaders_ft.state_material_set_emission(false, emission, emission, emission, 1.0f);
-        shaders_ft.state_matrix_set_mvp(rend_group->mat_draw, GPM_VAL->cam.view, GPM_VAL->cam.projection);
-        shaders_ft.state_matrix_set_texture(0, mat4_identity);
-        shaders_ft.state_matrix_set_texture(1, mat4_identity);
-        shaders_ft.env_vert_set(3, 1.0f);
-
-        shaders_ft.set(SHADER_FT_GLITTER_PT);
+        shaders_ft.set_opengl_shader(SHADER_FT_GLITTER_PT);
+        GPM_VAL->batch_ubo.Bind(2);
         switch (rend_group->type) {
-        case PARTICLE_QUAD: {
+        case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
-            shaders_ft.set_primitive_restart_index(0xFFFFFFFF);
             shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             shaders_ft.disable_primitive_restart();
-            gl_state_bind_vertex_array(0);
-
-        } break;
+            break;
         case PARTICLE_LINE:
-        case PARTICLE_LOCUS: {
+        case PARTICLE_LOCUS:
             gl_state_bind_vertex_array(rend_group->vao);
-            const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
-            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shaders_ft.draw_arrays(mode, i.first, i.second);
-
-        } break;
+            if (rend_group->type == PARTICLE_LINE)
+                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                    shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
+            else
+                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
+            break;
         }
-        gl_state_disable_blend();
-        gl_state_enable_cull_face();
-        gl_state_disable_depth_test();
     }
 
     XRenderScene::XRenderScene() {
@@ -1213,7 +1231,8 @@ namespace Glitter {
                 for (LocusHistory::Data& hist_data : hist->data) {
                     vec3& pos = hist_data.translation;
                     buf->position = pos + (pos - elem->base_translation) * scale;
-                    buf->uv = 0.0f;
+                    buf->uv[0] = 0.0f;
+                    buf->uv[1] = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -1221,7 +1240,8 @@ namespace Glitter {
             else
                 for (LocusHistory::Data& hist_data : hist->data) {
                     buf->position = hist_data.translation;
-                    buf->uv = 0.0f;
+                    buf->uv[0] = 0.0f;
+                    buf->uv[1] = 0.0f;
                     buf->color = hist_data.color;
                     j++;
                     buf++;
@@ -1346,13 +1366,15 @@ namespace Glitter {
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
-                    buf[0].uv.x = uv_u;
-                    buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[0].x = uv_u;
+                    buf[0].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[1] = buf[0].uv[0];
                     buf[0].color = hist_data.color;
 
                     buf[1].position = pos + x_vec * v01;
-                    buf[1].uv.x = uv_u_2nd;
-                    buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[0].x = uv_u_2nd;
+                    buf[1].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[1] = buf[1].uv[0];
                     buf[1].color = hist_data.color;
                     j++;
                     buf += 2;
@@ -1368,13 +1390,15 @@ namespace Glitter {
                         v00, v01);
 
                     buf[0].position = pos + x_vec * v00;
-                    buf[0].uv.x = uv_u;
-                    buf[0].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[0].x = uv_u;
+                    buf[0].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[0].uv[1] = buf[0].uv[0];
                     buf[0].color = hist_data.color;
 
                     buf[1].position = pos + x_vec * v01;
-                    buf[1].uv.x = uv_u_2nd;
-                    buf[1].uv.y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[0].x = uv_u_2nd;
+                    buf[1].uv[0].y = uv_v_2nd + (float_t)j * uv_v_scale;
+                    buf[1].uv[1] = buf[1].uv[0];
                     buf[1].color = hist_data.color;
                     j++;
                     buf += 2;
@@ -1514,8 +1538,8 @@ namespace Glitter {
                 emit_scale += ext_anim_scale;
         }
 
-        object_data* object_data = &rctx_ptr->object_data;
-        object_data->set_texture_pattern(0, 0);
+        mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
+        disp_manager.set_texture_pattern(0, 0);
 
         RenderElement* elem = rend_group->elements;
         size_t disp = 0;
@@ -1570,20 +1594,20 @@ namespace Glitter {
                 mat4_set_translation(&tex_trans[0].mat, &uv_scroll);
                 mat4_set_translation(&tex_trans[1].mat, &uv_scroll_2nd);
 
-                object_data->set_texture_transform(tex_trans_count, tex_trans);
+                disp_manager.set_texture_transform(tex_trans_count, tex_trans);
 
                 if (local)
                     mat4_mult(&mat, &GPM_VAL->cam.inv_view, &mat);
 
-                if (draw_task_add_draw_object_by_object_info(rctx_ptr,
+                if (disp_manager.entry_obj_by_object_info(
                     &mat, object_info, &elem->color, 0, local))
                     disp++;
                 elem->mat_draw = mat;
 
-                object_data->set_texture_transform(0, 0);
+                disp_manager.set_texture_transform(0, 0);
             }
         }
-        object_data->set_texture_pattern(0, 0);
+        disp_manager.set_texture_pattern(0, 0);
         rend_group->disp = disp;
     }
 
@@ -1767,7 +1791,8 @@ namespace Glitter {
                     vec3 x_vec_rot = x_vec * (pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin);
                     vec3 y_vec_rot = y_vec * (pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos);
                     buf->position = pos + (x_vec_rot + y_vec_rot);
-                    buf->uv = uv + uv_add[k];
+                    buf->uv[0] = uv + uv_add[k];
+                    buf->uv[1] = buf->uv[0];
                     buf->color = elem->color;
                 }
                 disp++;
@@ -1925,7 +1950,8 @@ namespace Glitter {
                         xy_vec_rot.z = 0.0f;
                         mat3_mult_vec(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
                         buf->position = pos + xy_vec_rot;
-                        buf->uv = uv + uv_add[k];
+                        buf->uv[0] = uv + uv_add[k];
+                        buf->uv[1] = buf->uv[0];
                         buf->color = elem->color;
                     }
                     disp++;
@@ -1992,7 +2018,8 @@ namespace Glitter {
                         vec3 x_vec_rot = x_vec * (rot_z_cos * pos_add[k].x - rot_z_sin * pos_add[k].y);
                         vec3 y_vec_rot = y_vec * (rot_z_sin * pos_add[k].x + rot_z_cos * pos_add[k].y);
                         buf->position = pos + (x_vec_rot + y_vec_rot);
-                        buf->uv = uv + uv_add[k];
+                        buf->uv[0] = uv + uv_add[k];
+                        buf->uv[1] = buf->uv[0];
                         buf->color = elem->color;
                     }
                     disp++;
@@ -2119,24 +2146,48 @@ namespace Glitter {
         if (rend_group->disp < 1)
             return;
 
-        gl_state_enable_blend();
+        mat4 mat;
+        mat4_mult(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
+        mat4_mult(&mat, &GPM_VAL->cam.projection, &mat);
+
+        float_t emission = 1.0f;
+        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
+            emission = rend_group->emission;
+
+        BatchShaderData shader_data = {};
+        mat4_transpose(&mat, &mat);
+        shader_data.g_mvp[0] = mat.row0;
+        shader_data.g_mvp[1] = mat.row1;
+        shader_data.g_mvp[2] = mat.row2;
+        shader_data.g_mvp[3] = mat.row3;
+        shader_data.g_glitter_blend_color = 1.0f;
+        shader_data.g_state_material_diffuse = 0.0f;
+        shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
+        GPM_VAL->batch_ubo.WriteMapMemory(shader_data);
+
+        GLenum blend_src = GL_SRC_ALPHA;
+        GLenum blend_dst = GL_ONE_MINUS_SRC_ALPHA;
         switch (rend_group->blend_mode) {
         case PARTICLE_BLEND_ADD:
-            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE);
+            blend_src = GL_SRC_ALPHA;
+            blend_dst = GL_ONE;
             break;
         case PARTICLE_BLEND_MULTIPLY:
-            gl_state_set_blend_func(GL_ZERO, GL_SRC_COLOR);
-            break;
-        default:
-            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            blend_src = GL_ZERO;
+            blend_dst = GL_SRC_COLOR;
             break;
         }
+
+        gl_state_enable_blend();
+        gl_state_set_blend_func(blend_src, blend_dst);
         gl_state_set_blend_equation(GL_FUNC_ADD);
 
+        GLuint texture = 0;
+        GLuint mask_texture = 0;
         if (rend_group->type != PARTICLE_LINE && rend_group->texture) {
-            gl_state_active_bind_texture_2d(0, rend_group->texture);
+            texture = rend_group->texture;
             if (rend_group->mask_texture) {
-                gl_state_active_bind_texture_2d(1, rend_group->mask_texture);
+                mask_texture = rend_group->mask_texture;
 
                 uniform_value[U_TEXTURE_COUNT] = 2;
                 switch (rend_group->mask_blend_mode) {
@@ -2152,17 +2203,17 @@ namespace Glitter {
                 }
             }
             else {
-                gl_state_active_bind_texture_2d(1, 0);
                 uniform_value[U_TEXTURE_COUNT] = 1;
                 uniform_value[U_TEXTURE_BLEND] = 0;
             }
         }
         else {
-            gl_state_active_bind_texture_2d(0, 0);
-            gl_state_active_bind_texture_2d(1, 0);
             uniform_value[U_TEXTURE_COUNT] = 0;
             uniform_value[U_TEXTURE_BLEND] = 0;
         }
+
+        gl_state_active_bind_texture_2d(0, texture);
+        gl_state_active_bind_texture_2d(1, mask_texture);
 
         switch (rend_group->fog_type) {
         default:
@@ -2198,37 +2249,25 @@ namespace Glitter {
         else
             gl_state_disable_cull_face();
 
-        float_t emission = 1.0f;
-        if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
-            emission = rend_group->emission;
-
-        shaders_ft.state_material_set_emission(false, emission, emission, emission, 1.0f);
-        shaders_ft.state_matrix_set_mvp(rend_group->mat_draw, GPM_VAL->cam.view, GPM_VAL->cam.projection);
-        shaders_ft.state_matrix_set_texture(0, mat4_identity);
-        shaders_ft.state_matrix_set_texture(1, mat4_identity);
-        shaders_ft.env_vert_set(3, 1.0f);
-
-        shaders_ft.set(SHADER_FT_GLITTER_PT);
+        shaders_ft.set_opengl_shader(SHADER_FT_GLITTER_PT);
+        GPM_VAL->batch_ubo.Bind(2);
         switch (rend_group->type) {
-        case PARTICLE_QUAD: {
+        case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
-            shaders_ft.set_primitive_restart_index(0xFFFFFFFF);
             shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             shaders_ft.disable_primitive_restart();
-            gl_state_bind_vertex_array(0);
-        } break;
+            break;
         case PARTICLE_LINE:
-        case PARTICLE_LOCUS: {
+        case PARTICLE_LOCUS:
             gl_state_bind_vertex_array(rend_group->vao);
-            const GLenum mode = rend_group->type == PARTICLE_LINE ? GL_LINE_STRIP : GL_TRIANGLE_STRIP;
-            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shaders_ft.draw_arrays(mode, i.first, i.second);
-            gl_state_bind_vertex_array(0);
-        } break;
+            if (rend_group->type == PARTICLE_LINE)
+                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                    shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
+            else
+                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
+            break;
         }
-        gl_state_disable_blend();
-        gl_state_enable_cull_face();
-        gl_state_disable_depth_test();
     }
 }

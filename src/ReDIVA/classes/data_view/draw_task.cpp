@@ -11,9 +11,15 @@
 
 static const char* draw_object_type_name[] = {
     "Opaque",
+    "Opaque                  [Show Vector]",
+    "Opaque                  [Show Vector]",
     "Translucent",
+    "Translucent             [Show Vector]",
+    "Translucent             [Show Vector]",
     "Translucent (No Shadow)",
     "Transparent",
+    "Transparent             [Show Vector]",
+    "Transparent             [Show Vector]",
     "Shadow Chara",
     "Shadow Stage",
     "Type 6",
@@ -48,18 +54,18 @@ static const char* draw_object_type_name[] = {
     "[Local] Translucent (Alpha Order 2)",
 };
 
-static const char* draw_task_type_name[] = {
-    "Object",
-    "Primitive",
+static const char* mdl_obj_kind_name[] = {
+    "Normal",
+    "Etc",
     "Preprocess",
-    "Object Translucent",
+    "User",
 };
 
-typedef std::pair<draw_task*, uint32_t> draw_task_sort;
+typedef std::pair<mdl::ObjData*, uint32_t> mdl_obj_data_sort;
 
 struct data_view_draw_task {
     render_context* rctx;
-    std::vector<draw_task_sort> draw_tasks;
+    std::vector<mdl_obj_data_sort> obj_data;
 
     data_view_draw_task();
     ~data_view_draw_task();
@@ -70,7 +76,7 @@ extern int32_t height;
 
 const char* data_view_draw_task_window_title = "Draw Task##Data Viewer";
 
-static void data_view_draw_task_imgui_draw_object(draw_object* object);
+static void data_view_draw_task_imgui_sub_mesh_args(mdl::ObjSubMeshArgs* args);
 
 bool data_view_draw_task_init(class_data* data, render_context* rctx) {
     data_view_draw_task* data_view = new data_view_draw_task;
@@ -111,8 +117,8 @@ void data_view_draw_task_imgui(class_data* data) {
     }
 
     render_context* rctx = data_view->rctx;
-    std::vector<draw_task*>* draw_task_array = rctx->object_data.draw_task_array;
-    std::vector<draw_task_sort>& draw_tasks_sort = data_view->draw_tasks;
+    std::vector<mdl::ObjData*>* obj = rctx->disp_manager.obj;
+    std::vector<mdl_obj_data_sort>& obj_data = data_view->obj_data;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -121,12 +127,11 @@ void data_view_draw_task_imgui(class_data* data) {
 
     ImGuiTreeNodeFlags tree_node_flags;
 
-    for (int32_t i = DRAW_OBJECT_OPAQUE; i < DRAW_OBJECT_MAX; i++) {
-        bool translucent_no_shadow = i == DRAW_OBJECT_TRANSLUCENT_NO_SHADOW;
+    for (int32_t i = mdl::OBJ_TYPE_OPAQUE; i < mdl::OBJ_TYPE_MAX; i++) {
         tree_node_flags = tree_node_base_flags;
 
         ImGui::PushID(i);
-        std::vector<draw_task*>& draw_tasks = draw_task_array[i];
+        std::vector<mdl::ObjData*>& draw_tasks = obj[i];
         size_t count = draw_tasks.size();
         bool enable = count > 0;
         ImGui::DisableElementPush(enable);
@@ -137,61 +142,57 @@ void data_view_draw_task_imgui(class_data* data) {
             continue;
         }
 
-        draw_tasks_sort.reserve(count);
-        for (draw_task*& j : draw_tasks) {
-            draw_task_sort draw_task;
-            draw_task.first = j;
-            draw_task.second = hash_murmurhash(&j, 8, 0, true);
-            draw_tasks_sort.push_back(draw_task);
-        }
+        obj_data.reserve(count);
+        for (mdl::ObjData*& j : draw_tasks)
+            obj_data.push_back({ j, hash_murmurhash(&j, 8, 0, true) });
 
         ImGui::Text("       Hash; Type");
 
-        for (draw_task_sort& j : draw_tasks_sort) {
-            draw_task* task = j.first;
-            if (task->type < DRAW_TASK_OBJECT || task->type > DRAW_TASK_OBJECT_TRANSLUCENT)
+        for (mdl_obj_data_sort& j : obj_data) {
+            mdl::ObjData* data = j.first;
+            if (data->kind < mdl::OBJ_KIND_NORMAL || data->kind > mdl::OBJ_KIND_TRANSLUCENT)
                 continue;
 
-            ImGui::PushID(task);
+            ImGui::PushID(data);
             if (!ImGui::TreeNodeEx("", tree_node_flags, "%08x; %s",
-                j.second, draw_task_type_name[task->type])) {
+                j.second, mdl_obj_kind_name[data->kind])) {
                 ImGui::PopID();
                 continue;
             }
 
+            mat4& mat = data->mat;
+
             vec3 trans;
-            mat4_get_translation(&task->mat, &trans);
-
             vec3 rot;
-            mat4_get_rotation(&task->mat, &rot);
-            rot *= RAD_TO_DEG_FLOAT;
-
             vec3 scale;
-            mat4_get_scale(&task->mat, &scale);
+            mat4_get_translation(&mat, &trans);
+            mat4_get_rotation(&mat, &rot);
+            mat4_get_scale(&mat, &scale);
+            rot *= RAD_TO_DEG_FLOAT;
 
             ImGui::Text("Trans: %9.4f %9.4f %9.4f", trans.x, trans.y, trans.z);
             ImGui::Text("  Rot: %9.4f %9.4f %9.4f", rot.x, rot.y, rot.z);
             ImGui::Text("Scale: %9.4f %9.4f %9.4f", scale.x, scale.y, scale.z);
 
-            switch (task->type) {
-            case DRAW_TASK_OBJECT: {
+            switch (data->kind) {
+            case mdl::OBJ_KIND_NORMAL: {
                 if (ImGui::TreeNodeEx("Data", ImGuiTreeNodeFlags_DefaultOpen)) {
-                    data_view_draw_task_imgui_draw_object(&task->data.object);
+                    data_view_draw_task_imgui_sub_mesh_args(&data->args.sub_mesh);
                     ImGui::TreePop();
                 }
             } break;
-            case DRAW_TASK_OBJECT_PRIMITIVE: {
+            case mdl::OBJ_KIND_ETC: {
 
             } break;
-            case DRAW_TASK_OBJECT_PREPROCESS: {
+            case mdl::OBJ_KIND_USER: {
 
             } break;
-            case DRAW_TASK_OBJECT_TRANSLUCENT: {
-                draw_task_object_translucent* object_translucent = &task->data.object_translucent;
-                for (uint32_t l = 0; l < 40 && l < object_translucent->count; l++) {
+            case mdl::OBJ_KIND_TRANSLUCENT: {
+                mdl::ObjTranslucentArgs* translucent = &data->args.translucent;
+                for (uint32_t l = 0; l < 40 && l < translucent->count; l++) {
                     ImGui::PushID(l);
                     if (ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen, "Data %2d", l)) {
-                        data_view_draw_task_imgui_draw_object(object_translucent->objects[l]);
+                        data_view_draw_task_imgui_sub_mesh_args(translucent->sub_mesh[l]);
                         ImGui::TreePop();
                     }
                     ImGui::PopID();
@@ -202,7 +203,7 @@ void data_view_draw_task_imgui(class_data* data) {
             ImGui::TreePop();
             ImGui::PopID();
         }
-        draw_tasks_sort.clear();
+        obj_data.clear();
 
         ImGui::TreePop();
         ImGui::DisableElementPop(enable);
@@ -230,7 +231,7 @@ data_view_draw_task::~data_view_draw_task() {
 
 }
 
-static void data_view_draw_task_imgui_draw_object(draw_object* object) {
-    ImGui::Text("Mesh Name: %s", object->mesh->name);
-    ImGui::Text("Sub Mesh Index: %lld", object->sub_mesh - object->mesh->submesh_array);
+static void data_view_draw_task_imgui_sub_mesh_args(mdl::ObjSubMeshArgs* args) {
+    ImGui::Text("Mesh Name: %s", args->mesh->name);
+    ImGui::Text("Sub Mesh Index: %lld", args->sub_mesh - args->mesh->submesh_array);
 }

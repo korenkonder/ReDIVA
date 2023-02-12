@@ -140,5 +140,5 @@ struct key_val_out {
     void write(stream& s, const char* key, vec3&& value);
     void write(stream& s, std::string& key, vec3&& value);
 
-    static void get_lexicographic_order(std::vector<int32_t>* vec, int32_t length);
+    static void get_lexicographic_order(std::vector<int32_t>& vec, int32_t length);
 };

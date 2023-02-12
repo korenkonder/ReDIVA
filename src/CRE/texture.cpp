@@ -24,17 +24,9 @@ static texture* texture_load_tex(texture_id id, GLenum target,
     GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
 static void texture_set_params(GLuint texture, GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
-static GLenum texture_txp_get_internal_format(txp* t);
+static GLenum texture_txp_get_gl_internal_format(txp* t);
 
 std::vector<texture*> texture_storage;
-
-texture_id::texture_id() : id(0), index(0) {
-
-}
-
-texture_id::texture_id(uint8_t id, uint32_t index) : id(id), index(index) {
-
-}
 
 texture::texture() : init_count(), flags(), width(), height(),
 tex(), target(), internal_format(), max_mipmap_level(), size() {
@@ -62,7 +54,7 @@ texture* texture_init(texture_id id) {
 }
 
 void texture_apply_color_tone(texture* chg_tex,
-    texture* org_tex, color_tone* col_tone) {
+    texture* org_tex, const color_tone* col_tone) {
     if (!chg_tex || !org_tex || !col_tone
         || chg_tex->internal_format != org_tex->internal_format
         || chg_tex->width != org_tex->width
@@ -164,7 +156,7 @@ texture* texture_txp_load(txp* t, texture_id id) {
         for (uint32_t j = 0; j < t->mipmaps_count; j++, k++)
             data_ptr[k] = t->mipmaps[k].data.data();
 
-    GLenum internal_format = texture_txp_get_internal_format(t);
+    GLenum internal_format = texture_txp_get_gl_internal_format(t);
     int32_t width = t->mipmaps[0].width;
     int32_t height = t->mipmaps[0].height;
     int32_t max_mipmap_level = t->mipmaps_count - 1;
@@ -649,7 +641,7 @@ static void texture_set_params(GLuint texture, GLenum target, int32_t max_mipmap
     glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
 }
 
-static GLenum texture_txp_get_internal_format(txp* t) {
+static GLenum texture_txp_get_gl_internal_format(txp* t) {
     if (!t || !t->mipmaps.size())
         return GL_ZERO;
 
@@ -666,17 +658,17 @@ static GLenum texture_txp_get_internal_format(txp* t) {
         return GL_RGB5_A1;
     case TXP_RGBA4:
         return GL_RGBA4;
-    case TXP_DXT1:
+    case TXP_BC1:
         return GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-    case TXP_DXT1a:
+    case TXP_BC1a:
         return GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-    case TXP_DXT3:
+    case TXP_BC2:
         return GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-    case TXP_DXT5:
+    case TXP_BC3:
         return GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-    case TXP_ATI1:
+    case TXP_BC4:
         return GL_COMPRESSED_RED_RGTC1_EXT;
-    case TXP_ATI2:
+    case TXP_BC5:
         return GL_COMPRESSED_RED_GREEN_RGTC2_EXT;
     case TXP_L8:
         return GL_LUMINANCE8;

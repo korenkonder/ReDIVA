@@ -14,33 +14,36 @@ struct object_info {
     uint32_t id;
     uint32_t set_id;
 
-    object_info();
-    object_info(uint32_t id, uint32_t set_id);
-    bool is_null();
-    bool not_null();
-    bool is_null_modern();
-    bool not_null_modern();
+    inline object_info() {
+        this->id = (uint32_t)-1;
+        this->set_id = (uint32_t)-1;
+    }
+
+    inline object_info(uint32_t id, uint32_t set_id) {
+        this->id = id;
+        this->set_id = set_id;
+    }
+
+    inline bool is_null() const {
+        return id == (uint32_t)-1 && set_id == (uint32_t)-1;
+    }
+
+    inline bool not_null() const {
+        return id != (uint32_t)-1 || set_id != (uint32_t)-1;
+    }
+
+    inline bool is_null_modern() const {
+        return id == (uint32_t)-1 && set_id == (uint32_t)-1
+            || id == hash_murmurhash_empty || id == hash_murmurhash_null
+            || set_id == hash_murmurhash_empty || set_id == hash_murmurhash_null;
+    }
+
+    inline bool not_null_modern() const {
+        return id != (uint32_t)-1 || set_id != (uint32_t)-1
+            || (id != hash_murmurhash_empty && id != hash_murmurhash_null
+                && set_id != hash_murmurhash_empty && set_id != hash_murmurhash_null);
+    }
 };
-
-inline bool object_info::is_null() {
-    return id == (uint32_t)-1 && set_id == (uint32_t)-1;
-}
-
-inline bool object_info::not_null() {
-    return id != (uint32_t)-1 || set_id != (uint32_t)-1;
-}
-
-inline bool object_info::is_null_modern() {
-    return id == (uint32_t)-1 && set_id == (uint32_t)-1
-        || id == hash_murmurhash_empty || id == hash_murmurhash_null
-        || set_id == hash_murmurhash_empty || set_id == hash_murmurhash_null;
-}
-
-inline bool object_info::not_null_modern() {
-    return id != (uint32_t)-1 || set_id != (uint32_t)-1
-        || (id != hash_murmurhash_empty && id != hash_murmurhash_null
-        && set_id != hash_murmurhash_empty && set_id != hash_murmurhash_null);
-}
 
 inline bool operator >(const object_info& left, const object_info& right) {
     return left.set_id > right.set_id && left.id > right.id;
@@ -139,14 +142,17 @@ struct object_database {
 
     void add(object_database_file* obj_db_file);
 
-    bool get_object_set_info(const char* name, object_set_info** set_info);
-    bool get_object_set_info(uint32_t set_id, object_set_info** set_info);
-    bool get_object_info_data(const char* name, object_info_data** info);
-    bool get_object_info_data_by_fnv1a64m_hash(uint64_t hash, object_info_data** info);
-    bool get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash, object_info_data** info);
-    bool get_object_info_data_by_murmurhash(uint32_t hash, object_info_data** info);
-    uint32_t get_object_set_id(const char* name);
-    const char* get_object_set_name(uint32_t set_id);
-    object_info get_object_info(const char* name);
-    const char* get_object_name(object_info obj_info);
+    bool get_object_set_info(const char* name, const object_set_info** set_info) const;
+    bool get_object_set_info(uint32_t set_id, const object_set_info** set_info) const;
+    bool get_object_info_data(const char* name, const object_info_data** info) const;
+    bool get_object_info_data_by_fnv1a64m_hash(
+        uint64_t hash, const object_info_data** info) const;
+    bool get_object_info_data_by_fnv1a64m_hash_upper(
+        uint64_t hash, const object_info_data** info) const;
+    bool get_object_info_data_by_murmurhash(
+        uint32_t hash, const object_info_data** info) const;
+    uint32_t get_object_set_id(const char* name) const;
+    const char* get_object_set_name(uint32_t set_id) const;
+    object_info get_object_info(const char* name) const;
+    const char* get_object_name(object_info obj_info) const;
 };

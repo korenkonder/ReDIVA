@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
+#include "../dw.hpp"
 #include "../task_window.hpp"
 
 struct stage_test_stage_pv {
@@ -16,31 +17,50 @@ struct stage_test_stage_pv {
     ~stage_test_stage_pv();
 };
 
-class DtwStg : public app::TaskWindow {
+class DtmStg : public app::Task {
 public:
-    int32_t pv_id;
-    int32_t pv_index;
-    int32_t ns_index;
-    int32_t other_index;
     int32_t stage_index;
+    int32_t load_stage_index;
 
-    int32_t stage_index_load;
-    bool stage_load;
-
-    std::vector<stage_test_stage_pv> stage_pv;
-    std::vector<std::int32_t> stage_ns;
-    std::vector<std::int32_t> stage_other;
-
-    DtwStg();
-    virtual ~DtwStg() override;
+    DtmStg();
+    virtual ~DtmStg() override;
 
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
-    virtual void Window() override;
 };
 
+class DtwStg : public dw::Shell {
+public:
+    std::map<std::string, std::vector<std::string>> pv_stage;
+    dw::ListBox* stage;
+    dw::ListBox* ns;
+    dw::ListBox* pv;
+    dw::ListBox* pv_id;
+    dw::ListBox* other;
+    dw::Button* stage_display;
+    dw::Button* ground;
+    dw::Button* ring;
+    dw::Button* sky;
+    dw::Button* effect_display;
+
+    DtwStg();
+    virtual ~DtwStg() override;
+
+    virtual void Hide() override;
+
+    static void PvIdCallback(dw::Widget* data);
+    static void StageCallback(dw::Widget* data);
+};
+
+extern DtmStg* dtm_stg;
+
 extern DtwStg* dtw_stg;
+
+extern void dtm_stg_init();
+extern void dtm_stg_load(int32_t stage_index);
+extern bool dtm_stg_unload();
+extern void dtm_stg_free();
 
 extern void dtw_stg_init();
 extern void dtw_stg_load(bool hide);

@@ -51,7 +51,7 @@ namespace system_startup_detail {
             system_startup.state = 2;
             break;
         case 2:
-            mdata_manager_append_task();
+            mdata_manager_add_task();
             system_startup.state = 3;
             break;
         case 3:
@@ -59,7 +59,7 @@ namespace system_startup_detail {
                 system_startup.state = 4;
             break;
         case 4:
-            rctx_ptr->draw_pass.set_enable(DRAW_PASS_3D, false);
+            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, false);
             task_pv_game_init_test_pv();
             system_startup.state = 5;
             break;
@@ -76,7 +76,7 @@ namespace system_startup_detail {
                 system_startup.state = 8;
             break;
         case 8:
-            rctx_ptr->draw_pass.set_enable(DRAW_PASS_3D, true);
+            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, true);
             system_startup_ready = 1;
             break;
         }
@@ -87,26 +87,26 @@ namespace system_startup_detail {
         if (task_pv_game_check_task_ready() && !system_startup_check_ready())
             return false;
 
-        opd_make_manager_task_free();
-        mdata_manager_free_task();
+        opd_make_manager_del_task();
+        mdata_manager_del_task();
         return true;
     }
 }
 
-bool task_system_startup_append_task() {
-    return app::TaskWork::AppendTask(&task_system_startup, "SYSTEM_STARTUP");
+bool task_system_startup_add_task() {
+    return app::TaskWork::AddTask(&task_system_startup, "SYSTEM_STARTUP");
 }
 
-bool task_system_startup_free_task() {
-    return task_system_startup.SetDest();
+bool task_system_startup_del_task() {
+    return task_system_startup.DelTask();
 }
 
 static bool system_startup_check_ready() {
     if (test_mode_get() || system_startup.ready)
         return true;
 
-    task_pv_game_free_task();
-    if (!task_pv_game_check_task_ready() && task_rob_manager_free_task())
+    task_pv_game_del_task();
+    if (!task_pv_game_check_task_ready() && task_rob_manager_del_task())
         system_startup.ready = true;
     return system_startup.ready;
 }
@@ -115,7 +115,7 @@ static void task_pv_game_init_test_pv() {
     if (test_mode_get())
         return;
 
-    task_rob_manager_append_task();
+    task_rob_manager_add_task();
     TaskPvGame::InitData init_data;
     init_data.data.pv_id = 999;
     init_data.data.difficulty = 1;
@@ -130,5 +130,5 @@ static void task_pv_game_init_test_pv() {
     init_data.field_194 = true;
     init_data.field_195 = true;
     init_data.field_198 = true;
-    task_pv_game_append_task(&init_data);
+    task_pv_game_add_task(&init_data);
 }

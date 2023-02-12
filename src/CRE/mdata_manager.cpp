@@ -81,12 +81,16 @@ void MdataMgr::Log(const char* fmt, ...) {
     log.append(1, '\n');
 }
 
-bool mdata_manager_append_task() {
-    return app::TaskWork::AppendTask(mdata_manager_get(), 0, "M_DATA_MANAGER");
+const std::list<std::string>& MdataMgr::GetPrefixes() {
+    return prefixes;
 }
 
-bool mdata_manager_free_task() {
-    return mdata_manager_get()->SetDest();
+bool mdata_manager_add_task() {
+    return app::TaskWork::AddTask(mdata_manager_get(), 0, "M_DATA_MANAGER");
+}
+
+bool mdata_manager_del_task() {
+    return mdata_manager_get()->DelTask();
 }
 
 MdataMgr* mdata_manager_get() {

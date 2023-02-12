@@ -119,16 +119,16 @@ namespace Glitter {
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, position)); // Pos
+            (void*)offsetof(Buffer, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv[0]));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv[1]));
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, color));    // Color0
-        glEnableVertexAttribArray(8);
-        glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv));       // TexCoord0
-        glEnableVertexAttribArray(9);
-        glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv));       // TexCoord1
+            (void*)offsetof(Buffer, color));
 
         gl_state_bind_array_buffer(0);
         gl_state_bind_vertex_array(0);
@@ -465,16 +465,16 @@ namespace Glitter {
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, position)); // Pos
+            (void*)offsetof(Buffer, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv[0]));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv[1]));
         glEnableVertexAttribArray(3);
         glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, color));    // Color0
-        glEnableVertexAttribArray(8);
-        glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv));       // TexCoord0
-        glEnableVertexAttribArray(9);
-        glVertexAttribPointer(9, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv));       // TexCoord1
+            (void*)offsetof(Buffer, color));
 
         gl_state_bind_array_buffer(0);
         gl_state_bind_vertex_array(0);

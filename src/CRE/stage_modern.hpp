@@ -24,12 +24,7 @@ struct stage_modern {
     float_t rot_y;
     uint32_t obj_set_hash;
 
-    // Temp
-    std::vector<auth_3d_id> auth_3d_ids;
-    bool effect_display;
-
     stage_modern();
-    ~stage_modern();
 };
 
 #define TASK_STAGE_STAGE_COUNT 37
@@ -76,7 +71,6 @@ struct task_stage_modern_info {
 extern void task_stage_modern_init();
 extern bool task_stage_modern_check_not_loaded();
 extern bool task_stage_modern_check_task_ready();
-extern void task_stage_modern_current_set_effect_display(bool value);
 extern void task_stage_modern_current_set_ground(bool value);
 extern void task_stage_modern_current_set_sky(bool value);
 extern void task_stage_modern_current_set_stage_display(bool value, bool effect_enable);
@@ -91,7 +85,6 @@ extern bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info);
 extern bool task_stage_modern_load_task(const char* name);
 extern void task_stage_modern_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data);
-extern void task_stage_modern_set_effect_display(task_stage_modern_info* stg_info, bool value);
 extern void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value);
 extern void task_stage_modern_set_mat(mat4* mat);
 extern void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value);

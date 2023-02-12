@@ -1,14 +1,25 @@
 /*
     by korenkonder
     GitHub/GitLab: korenkonder
-
-    Some code is from LearnOpenGL
 */
 
+#define GLFW_INCLUDE_VULKAN
+#define GLFW_EXPOSE_NATIVE_WIN32
+#define VMA_IMPLEMENTATION
+#define VMA_VULKAN_VERSION 1000000
 #include "render.hpp"
 #include "config.hpp"
+#include "../CRE/GL/uniform_buffer.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/rob/rob.hpp"
+#include "../CRE/rob/motion.hpp"
+#include "../CRE/rob/skin_param.hpp"
+#include "../CRE/Vulkan/command_buffer.hpp"
+#include "../CRE/Vulkan/fence.hpp"
+#include "../CRE/Vulkan/framebuffer.hpp"
+#include "../CRE/Vulkan/image.hpp"
+#include "../CRE/Vulkan/image_view.hpp"
+#include "../CRE/Vulkan/semaphore.hpp"
 #include "../CRE/camera.hpp"
 #include "../CRE/clear_color.hpp"
 #include "../CRE/data.hpp"
@@ -25,7 +36,6 @@
 #include "../CRE/random.hpp"
 #include "../CRE/shader.hpp"
 #include "../CRE/shader_ft.hpp"
-#include "../CRE/shader_glsl.hpp"
 #include "../CRE/stage.hpp"
 #include "../CRE/stage_modern.hpp"
 #include "../CRE/stage_param.hpp"
@@ -33,9 +43,9 @@
 #include "../CRE/task.hpp"
 #include "../CRE/task_effect.hpp"
 #include "../CRE/texture.hpp"
-#include "../CRE/timer.hpp"
 #include "../CRE/post_process.hpp"
 #include "../KKdLib/database/item_table.hpp"
+#include "../KKdLib/timer.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data_test/auth_3d_test.hpp"
@@ -48,27 +58,23 @@
 #include "pv_game.hpp"
 #include "x_pv_game.hpp"
 #include <glad/glad.h>
+#include <vulkan/vulkan.h>
+#include <vk_mem_alloc.h>
 #include <GLFW/glfw3.h>
-#define GLFW_EXPOSE_NATIVE_WIN32
 #include <GLFW/glfw3native.h>
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_opengl3.h>
+#include <imgui/imgui_impl_vulkan.h>
 #include <timeapi.h>
 
 #if defined(DEBUG)
-#define OPENGL_DEBUG 0
+#define RENDER_DEBUG 1
 #endif
 
 #define CUBE_LINE_SIZE (0.0025f)
 #define CUBE_LINE_POINT_SIZE (CUBE_LINE_SIZE * 1.5f)
-
-#define DRAW_PASS_TIME_DISP 0
-
-shader_glsl* cube_line_shader;
-shader_glsl* cube_line_point_shader;
-shader_glsl* grid_shader;
 
 timer* render_timer;
 
@@ -76,15 +82,128 @@ timer* render_timer;
 #define grid_spacing 1.0f
 size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
 
-GLuint cube_line_vao;
-GLuint cube_line_vbo;
-GLuint cube_line_point_vao;
-GLuint cube_line_point_instance_vbo;
-GLuint grid_vao;
-GLuint grid_vbo;
-static GLuint common_data_ubo = 0;
+struct common_data_struct {
+    vec4 res; //x=width, y=height, z=1/width, w=1/height
+    mat4 vp;
+    mat4 view;
+    mat4 projection;
+    vec3 view_pos;
+};
 
-#define COMMON_DATA_SIZE (int32_t)(sizeof(vec4) + sizeof(mat4) * 3 + sizeof(vec4))
+struct render_opengl_data {
+    GLuint grid_vao;
+    GLuint grid_vbo;
+    GL::UniformBuffer common_data_ubo;
+
+    render_opengl_data();
+    ~render_opengl_data();
+
+    bool load();
+    void unload();
+
+    void load_common_data();
+    void unload_common_data();
+    void update_common_data(common_data_struct* common_data, camera* cam);
+};
+
+struct render_vulkan_data {
+    struct swapchain_support_details {
+        VkSurfaceCapabilitiesKHR capabilities;
+        std::vector<VkSurfaceFormatKHR> formats;
+        std::vector<VkPresentModeKHR> present_modes;
+
+        swapchain_support_details();
+        ~swapchain_support_details();
+    };
+
+    struct pipeline_builder_data {
+        VkPipelineShaderStageCreateInfo shader_stages[2];
+        VkPipelineVertexInputStateCreateInfo vertex_input;
+        VkPipelineInputAssemblyStateCreateInfo input_assembly;
+        VkPipelineRasterizationStateCreateInfo rasterizer;
+        VkPipelineColorBlendAttachmentState color_blend_attachment;
+        VkPipelineMultisampleStateCreateInfo multisampling;
+        VkPipelineLayout pipeline_layout;
+        VkPipelineDepthStencilStateCreateInfo depth_stencil;
+
+        pipeline_builder_data();
+
+        VkResult build_pipeline(VkDevice device, VkRenderPass render_pass, VkPipeline& pipeline);
+    };
+
+    VkInstance instance;
+#if RENDER_DEBUG
+    VkDebugUtilsMessengerEXT debug_messenger;
+#endif
+    VkSurfaceKHR surface;
+
+    VkPhysicalDevice physical_device;
+    VkDevice device;
+
+    VkQueue graphics_queue;
+    uint32_t graphics_queue_family;
+
+    VkQueue present_queue;
+    uint32_t present_queue_family;
+
+    VkSwapchainKHR swapchain;
+    VkExtent2D swapchain_extent;
+    VkFormat swapchain_image_format;
+    std::vector<VkImage> swapchain_images;
+    std::vector<Vulkan::ImageView> swapchain_image_views;
+
+    VkRenderPass render_pass;
+
+    std::vector<Vulkan::Framebuffer> swapchain_framebuffers;
+
+    VkCommandPool command_pool;
+    Vulkan::CommandBuffer main_command_buffer;
+
+    Vulkan::Semaphore present_semaphore;
+    Vulkan::Semaphore render_semaphore;
+    Vulkan::Fence render_fence;
+
+    VmaAllocator allocator;
+
+    pipeline_builder_data pipeline_builder;
+
+    VkPipelineLayout triangle_pipeline_layout;
+
+    VkPipeline triangle_pipeline;
+
+    render_vulkan_data();
+    ~render_vulkan_data();
+
+    bool load();
+    void unload();
+
+    void load_common_data();
+    void unload_common_data();
+    void update_common_data(common_data_struct* common_data, camera* cam);
+
+    static bool check_device_extension_support(VkPhysicalDevice device);
+    static VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities);
+    static VkPresentModeKHR choose_swap_present_mode(
+        const std::vector<VkPresentModeKHR>& available_present_modes);
+    static VkSurfaceFormatKHR choose_swap_surface_format(
+        const std::vector<VkSurfaceFormatKHR>& available_formats);
+    static std::pair<uint32_t, uint32_t> find_queue_families(
+        VkPhysicalDevice device, VkSurfaceKHR surface);
+    static bool is_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface);
+    static swapchain_support_details query_swapchain_support(
+        VkPhysicalDevice device, VkSurfaceKHR surface);
+
+#if RENDER_DEBUG
+    static VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
+        VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+        const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData);
+#endif
+};
+
+common_data_struct common_data;
+
+render_opengl_data* render_opengl;
+render_vulkan_data* render_vulkan;
 
 bool draw_imgui   = true;
 bool draw_grid_3d = false;
@@ -107,6 +226,30 @@ const double_t render_scale_table[] = {
      8.0 / 4.0, // 200%
 };
 
+#if RENDER_DEBUG
+static const char* render_vulkan_validation_layers[] = {
+    "VK_LAYER_KHRONOS_validation",
+};
+#endif
+
+static const char* render_vulkan_device_extensions[] = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+};
+
+#if defined(DEBUG)
+#if defined(ReDIVA_DEV)
+static const char* application_name = "ReDIVADev Debug";
+#else
+static const char* application_name = "ReDIVA Debug";
+#endif
+#else
+#if defined(ReDIVA_DEV)
+static const char* application_name = "ReDIVADev";
+#else
+static const char* application_name = "ReDIVA";
+#endif
+#endif
+
 static int32_t old_scale_index;
 static int32_t scale_index;
 
@@ -122,24 +265,28 @@ int32_t height;
 static const double_t aspect = 16.0 / 9.0;
 
 bool light_chara_ambient;
-vec4 npr_spec_color;
+vec4 npr_cloth_spec_color;
 
 uint32_t cmn_set_id;
 uint32_t dbg_set_id;
 
-#if DRAW_PASS_TIME_DISP
-static std::vector<float_t> draw_pass_cpu_time[DRAW_PASS_MAX];
-static std::vector<float_t> draw_pass_gpu_time[DRAW_PASS_MAX];
-#endif
+static bool render_init(render_init_struct* ris);
+static void render_main_loop(render_context* rctx);
+static void render_free();
 
-static render_context* render_load();
-static void render_ctrl(render_context* rctx);
-static void render_disp(render_context* rctx);
-static void render_dispose(render_context* rctx);
+static render_context* render_context_load();
+static void render_context_ctrl(render_context* rctx);
+static void render_context_disp(render_context* rctx);
+static void render_context_imgui(render_context* rctx);
+static void render_context_dispose(render_context* rctx);
 
-static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash);
+static void render_opengl_shaders_load();
+static void render_opengl_shaders_free();
+static void render_vulkan_shaders_load();
+static void render_vulkan_shaders_free();
 
-static void render_imgui(render_context* rctx);
+static bool render_opengl_load_shaders(void* data, const char* path, const char* file, uint32_t hash);
+static bool render_vulkan_load_shaders(void* data, const char* path, const char* file, uint32_t hash);
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
@@ -147,12 +294,16 @@ static void render_resize_fb(render_context* rctx, bool change_fb);
 
 static void render_imgui_context_menu(classes_data* classes,
     const size_t classes_count, render_context* rctx);
-static void render_shaders_load();
-static void render_shaders_free();
 
-#if defined(DEBUG) && OPENGL_DEBUG
+#if RENDER_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
     GLenum severity, GLsizei length, const char* message, const void* userParam);
+
+static VkResult vkGetInstanceProcAddrCreateDebugUtilsMessengerEXT(VkInstance instance,
+    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
+static void vkGetInstanceProcAddrDestroyDebugUtilsMessengerEXT(VkInstance instance,
+    VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
 #endif
 
 bool close;
@@ -166,15 +317,9 @@ bool global_context_menu;
 extern size_t frame_counter;
 render_context* rctx_ptr;
 bool task_stage_is_modern;
-
-render_init_struct::render_init_struct() : scale_index() {
-
-}
+bool vulkan_render;
 
 int32_t render_main(render_init_struct* ris) {
-    SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_TIME_CRITICAL);
-    timeBeginPeriod(1);
-
     render_lock = new lock_cs;
     if (!render_lock)
         return 0;
@@ -183,198 +328,87 @@ int32_t render_main(render_init_struct* ris) {
 
     window_handle = 0;
 
-#pragma region GLFW Init
     if (!glfwInit())
         return -1;
 
-    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
-    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    width = ris->res.x > 0 && ris->res.x < 8192 ? ris->res.x : mode->width;
-    height = ris->res.y > 0 && ris->res.y < 8192 ? ris->res.y : mode->height;
-
-    width = (int32_t)(width / 2.0f);
-    height = (int32_t)(height / 2.0f);
-
+    if (render_init(ris)) {
+        window_handle = glfwGetWin32Window(window);
+        glfwShowWindow(window);
+        glfwFocusWindow(window);
+        glfwSetDropCallback(window, (GLFWdropfun)render_drop_glfw);
+        glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)render_resize_fb_glfw);
+        glfwSetWindowSize(window, width, height);
+        glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
 #if BAKE_PNG || BAKE_VIDEO
-    width = 1920;
-    height = 1080;
-#endif
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
-    //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
-#if defined(DEBUG) && OPENGL_DEBUG
-    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
-#endif
-
-    glfwWindowHint(GLFW_RED_BITS, mode->redBits);
-    glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
-    glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
-    glfwWindowHint(GLFW_DEPTH_BITS, 0);
-
-#if BAKE_PNG || BAKE_VIDEO
-    bool maximized = false;
+        glfwSetWindowPos(window, 0, 0);
+        glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_FALSE);
 #else
-    bool maximized = mode->width == width && mode->height == height;
-#endif
-    glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
-
-    int32_t minor = 6;
-    window = 0;
-    while (!window || minor < 3) {
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor--);
-
-        const char* glfw_titlelabel;
-#if defined(DEBUG)
-#if defined(ReDIVA_DEV)
-        glfw_titlelabel = "ReDIVADev Debug";
-#else
-        glfw_titlelabel = "ReDIVA Debug";
-#endif
-#else
-#if defined(ReDIVA_DEV)
-        glfw_titlelabel = "ReDIVADev";
-#else
-        glfw_titlelabel = "ReDIVA";
-#endif
-#endif
-        window = glfwCreateWindow(width, height, glfw_titlelabel, maximized ? monitor : 0, 0);
-    }
-
-    if (!window) {
-        glfwTerminate();
-        return -2;
-    }
-
-    glfwMakeContextCurrent(window);
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        glfwDestroyWindow(window);
-        glfwTerminate();
-        return -3;
-    }
-
-    glGetError();
-    glViewport(0, 0, width, height);
-
-    window_handle = glfwGetWin32Window(window);
-    glfwShowWindow(window);
-    glfwFocusWindow(window);
-    glfwSetDropCallback(window, (GLFWdropfun)render_drop_glfw);
-    glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)render_resize_fb_glfw);
-    glfwSetWindowSize(window, width, height);
-    glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
-#if BAKE_PNG || BAKE_VIDEO
-    glfwSetWindowPos(window, 0, 0);
-    glfwSetWindowAttrib(window, GLFW_DECORATED, GLFW_FALSE);
-#else
-    glfwSetWindowPos(window, 8, 31);
+        glfwSetWindowPos(window, 8, 31);
 #endif
 
-    Input::SetInputs(window);
+        Input::SetInputs(window);
 
-    RECT window_rect;
-    GetClientRect(window_handle, &window_rect);
+        RECT window_rect;
+        GetClientRect(window_handle, &window_rect);
 #if !(BAKE_PNG || BAKE_VIDEO)
-    width = window_rect.right;
-    height = window_rect.bottom;
+        width = window_rect.right;
+        height = window_rect.bottom;
 #endif
 
-    scale_index = ris->scale_index > 0 && ris->scale_index < RENDER_SCALE_MAX
-        ? ris->scale_index : RENDER_SCALE_100;
-    old_scale_index = scale_index;
-#pragma endregion
+        scale_index = ris->scale_index > 0 && ris->scale_index < RENDER_SCALE_MAX
+            ? ris->scale_index : RENDER_SCALE_100;
+        old_scale_index = scale_index;
 
-#if defined(DEBUG) && OPENGL_DEBUG
-    glEnable(GL_DEBUG_OUTPUT);
-    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-    glDebugMessageCallback(render_debug_output, 0);
-    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+        if (!vulkan_render) {
+#if RENDER_DEBUG
+            glEnable(GL_DEBUG_OUTPUT);
+            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+            glDebugMessageCallback(render_debug_output, 0);
+            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
 #endif
-
-    glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &sv_max_texture_buffer_size);
-    glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
-    glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
-    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-    glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-
-#if DRAW_PASS_TIME_DISP
-    for (std::vector<float_t>& i : draw_pass_cpu_time)
-        i.resize(240, 0.0f);
-
-    for (std::vector<float_t>& i : draw_pass_gpu_time)
-        i.resize(240, 0.0f);
-#endif
-
-    do {
-        close = false;
-        reload_render = false;
-
-        render_context* rctx = 0;
-        lock_lock(render_lock);
-        rctx = render_load();
-        lock_unlock(render_lock);
-
-        //sound_work_play_stream(1, "rom/sound/bgm/selector_verB_a_lp.ogg");
-
-        frame_counter = 0;
-
-#pragma region GL Init
-#if !(BAKE_PNG || BAKE_VIDEO)
-        glfwGetFramebufferSize(window, &width, &height);
-#endif
-        glViewport(0, 0, width, height);
-        glfwSwapInterval(0);
-
-        gl_state_disable_blend();
-        gl_state_disable_depth_test();
-        gl_state_set_depth_mask(GL_FALSE);
-        gl_state_disable_cull_face();
-        gl_state_disable_stencil_test();
-#pragma endregion
-        render_timer->reset();
-        while (!close && !reload_render) {
-            render_timer->start_of_cycle();
-            glfwPollEvents();
-            ImGui_ImplGlfw_NewFrame();
-            ImGui_ImplOpenGL3_NewFrame();
-            ImGui::NewFrame();
-            Input::NewFrame();
-            lock_lock(render_lock);
-            render_ctrl(rctx);
-            lock_unlock(render_lock);
-            render_disp(rctx);
-            close |= !!glfwWindowShouldClose(window);
-            frame_counter++;
-            Input::EndFrame();
-            glfwSwapBuffers(window);
-            render_timer->end_of_cycle();
+            glGetIntegerv(GL_MAX_UNIFORM_BUFFER_BINDINGS, &sv_max_texture_buffer_size);
+            glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
+            glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
+            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
+            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         }
 
-        //sound_work_release_stream(1);
+        do {
+            close = false;
+            reload_render = false;
 
-        lock_lock(render_lock);
-        render_dispose(rctx);
-        lock_unlock(render_lock);
-    } while (reload_render);
+            render_context* rctx = 0;
+            lock_lock(render_lock);
+            rctx = render_context_load();
+            lock_unlock(render_lock);
 
-#if DRAW_PASS_TIME_DISP
-    for (std::vector<float_t>& i : draw_pass_cpu_time) {
-        i.clear();
-        i.shrink_to_fit();
-    }
+            frame_counter = 0;
 
-    for (std::vector<float_t>& i : draw_pass_gpu_time) {
-        i.clear();
-        i.shrink_to_fit();
-    }
+#if !(BAKE_PNG || BAKE_VIDEO)
+            glfwGetFramebufferSize(window, &width, &height);
 #endif
+            if (!vulkan_render) {
+                glViewport(0, 0, width, height);
+                gl_state_disable_blend();
+                gl_state_disable_depth_test();
+                gl_state_set_depth_mask(GL_FALSE);
+                gl_state_disable_cull_face();
+                gl_state_disable_stencil_test();
+            }
 
-#pragma region GLFW Dispose
-    glfwDestroyWindow(window);
+            glfwSwapInterval(0);
+
+            render_main_loop(rctx);
+
+            lock_lock(render_lock);
+            render_context_dispose(rctx);
+            lock_unlock(render_lock);
+        } while (reload_render);
+    }
+
+    render_free();
     glfwTerminate();
-#pragma endregion
+
     delete render_lock;
     render_lock = 0;
     delete render_timer;
@@ -394,9 +428,890 @@ void render_set_scale_index(int32_t index) {
     scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
 }
 
+void draw_pass_3d_grid(render_context* rctx) {
+    rctx->camera->update_data();
+
+    if (!vulkan_render) {
+        gl_state_enable_blend();
+        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        gl_state_set_blend_equation(GL_FUNC_ADD);
+        gl_state_enable_depth_test();
+        gl_state_set_depth_mask(GL_TRUE);
+
+        shaders_ft.set_opengl_shader(SHADER_FT_GRID);
+        render_opengl->common_data_ubo.Bind(0);
+        gl_state_bind_vertex_array(render_opengl->grid_vao);
+        glDrawArrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
+        gl_state_use_program(0);
+
+        gl_state_disable_depth_test();
+        gl_state_set_depth_mask(GL_FALSE);
+        gl_state_disable_blend();
+    }
+}
+
 float_t rob_frame = 0.0f;
 
-static render_context* render_load() {
+render_opengl_data::render_opengl_data() : grid_vao(), grid_vbo(), common_data_ubo() {
+
+}
+
+render_opengl_data::~render_opengl_data() {
+
+}
+
+bool render_opengl_data::load() {
+    glfwMakeContextCurrent(window);
+
+    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+        return false;
+
+    glGetError();
+    glViewport(0, 0, width, height);
+    return true;
+}
+
+void render_opengl_data::unload() {
+
+}
+
+void render_opengl_data::load_common_data() {
+    common_data_ubo.Create(sizeof(common_data_struct));
+
+    float_t* grid_verts = force_malloc_s(float_t, 3 * grid_vertex_count);
+
+    size_t v = 0;
+    for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {
+        int32_t x_color_index;
+        int32_t z_color_index;
+        if (x == 0) {
+            x_color_index = 0;
+            z_color_index = 1;
+        }
+        else {
+            x_color_index = 2;
+            z_color_index = 2;
+        }
+
+        grid_verts[v++] = x;
+        grid_verts[v++] = -grid_size;
+        *(int32_t*)&grid_verts[v++] = x_color_index;
+
+        grid_verts[v++] = x;
+        grid_verts[v++] = grid_size;
+        *(int32_t*)&grid_verts[v++] = x_color_index;
+
+        grid_verts[v++] = -grid_size;
+        grid_verts[v++] = x;
+        *(int32_t*)&grid_verts[v++] = z_color_index;
+
+        grid_verts[v++] = grid_size;
+        grid_verts[v++] = x;
+        *(int32_t*)&grid_verts[v++] = z_color_index;
+    }
+
+    glGenVertexArrays(1, &grid_vao);
+    gl_state_bind_vertex_array(grid_vao);
+
+    glGenBuffers(1, &grid_vbo);
+    gl_state_bind_array_buffer(grid_vbo);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t) * 3
+            * grid_vertex_count, grid_verts, 0);
+    else
+        glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 3
+            * grid_vertex_count, grid_verts, GL_STATIC_DRAW);
+
+    glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
+    glVertexAttribI1i(1, 2);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
+        sizeof(float_t) * 3, (void*)0);                     // Pos
+    glEnableVertexAttribArray(1);
+    glVertexAttribIPointer(1, 1, GL_INT,
+        sizeof(float_t) * 3, (void*)(sizeof(float_t) * 2)); // Color
+
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_vertex_array(0);
+
+    free(grid_verts);
+}
+
+void render_opengl_data::unload_common_data() {
+    common_data_ubo.Destroy();
+    
+    if (grid_vbo) {
+        glDeleteBuffers(1, &grid_vbo);
+        grid_vbo = 0;
+    }
+    
+    if (grid_vao) {
+        glDeleteVertexArrays(1, &grid_vao);
+        grid_vao = 0;
+    }
+}
+
+void render_opengl_data::update_common_data(common_data_struct* common_data, camera* cam) {
+    common_data_ubo.WriteMapMemory(*common_data);
+}
+
+render_vulkan_data::swapchain_support_details::swapchain_support_details() : capabilities() {
+
+}
+
+render_vulkan_data::swapchain_support_details::~swapchain_support_details() {
+
+}
+
+render_vulkan_data::pipeline_builder_data::pipeline_builder_data() : shader_stages(),
+vertex_input(), input_assembly(), rasterizer(), color_blend_attachment(),
+multisampling(), pipeline_layout(), depth_stencil() {
+
+}
+
+VkResult render_vulkan_data::pipeline_builder_data::build_pipeline(VkDevice device,
+    VkRenderPass render_pass, VkPipeline& pipeline) {
+    VkPipelineViewportStateCreateInfo viewport_state_create_info = {};
+    viewport_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewport_state_create_info.viewportCount = 1;
+    viewport_state_create_info.scissorCount = 1;
+
+    VkPipelineColorBlendStateCreateInfo color_blending_create_info = {};
+    color_blending_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    color_blending_create_info.logicOpEnable = VK_FALSE;
+    color_blending_create_info.logicOp = VK_LOGIC_OP_COPY;
+    color_blending_create_info.attachmentCount = 1;
+    color_blending_create_info.pAttachments = &color_blend_attachment;
+
+    const VkDynamicState dynamic_states[] = {
+        VK_DYNAMIC_STATE_VIEWPORT,
+        VK_DYNAMIC_STATE_SCISSOR,
+    };
+
+    VkPipelineDynamicStateCreateInfo dynamic_state_create_info = {};
+    dynamic_state_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamic_state_create_info.dynamicStateCount = 2;
+    dynamic_state_create_info.pDynamicStates = dynamic_states;
+
+    VkGraphicsPipelineCreateInfo pipeline_info_create_info = {};
+    pipeline_info_create_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipeline_info_create_info.stageCount = 2;
+    pipeline_info_create_info.pStages = shader_stages;
+    pipeline_info_create_info.pVertexInputState = &vertex_input;
+    pipeline_info_create_info.pInputAssemblyState = &input_assembly;
+    pipeline_info_create_info.pViewportState = &viewport_state_create_info;
+    pipeline_info_create_info.pRasterizationState = &rasterizer;
+    pipeline_info_create_info.pMultisampleState = &multisampling;
+    pipeline_info_create_info.pDepthStencilState = &depth_stencil;
+    pipeline_info_create_info.pColorBlendState = &color_blending_create_info;
+    pipeline_info_create_info.pDynamicState = &dynamic_state_create_info;
+    pipeline_info_create_info.layout = pipeline_layout;
+    pipeline_info_create_info.renderPass = render_pass;
+
+    return vkCreateGraphicsPipelines(device, 0, 1, &pipeline_info_create_info, 0, &pipeline);
+}
+
+render_vulkan_data::render_vulkan_data() : instance(), surface(), physical_device(), device(),
+graphics_queue(), present_queue(), swapchain(), swapchain_extent(), swapchain_image_format(),
+render_pass(), command_pool(), triangle_pipeline_layout(), triangle_pipeline(), allocator() {
+#if RENDER_DEBUG
+    debug_messenger = 0;
+#endif
+    graphics_queue_family = -1;
+    present_queue_family = -1;
+}
+
+render_vulkan_data::~render_vulkan_data() {
+
+}
+
+bool render_vulkan_data::load() {
+#pragma region Vulkan Validation Layers Support
+#if RENDER_DEBUG
+    uint32_t layer_count;
+    vkEnumerateInstanceLayerProperties(&layer_count, 0);
+
+    std::vector<VkLayerProperties> available_layers;
+    available_layers.resize(layer_count);
+    vkEnumerateInstanceLayerProperties(&layer_count, available_layers.data());
+
+    for (const char* i : render_vulkan_validation_layers) {
+        bool found = false;
+        for (const VkLayerProperties& j : available_layers)
+            if (!strcmp(i, j.layerName)) {
+                found = true;
+                break;
+            }
+
+        if (!found)
+            return false;
+    }
+#endif
+#pragma endregion
+
+#pragma region Vulkan Instance
+    VkApplicationInfo application_info = {};
+    application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
+    application_info.pApplicationName = application_name;
+    application_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    application_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    application_info.apiVersion = VK_API_VERSION_1_0;
+
+    VkInstanceCreateInfo instance_create_info = {};
+    instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    instance_create_info.pApplicationInfo = &application_info;
+
+    uint32_t glfw_extension_count = 0;
+    const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
+
+    std::vector<const char*> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
+#if RENDER_DEBUG
+    extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+#endif
+
+    instance_create_info.enabledExtensionCount = (uint32_t)extensions.size();
+    instance_create_info.ppEnabledExtensionNames = extensions.data();
+
+#if RENDER_DEBUG
+    instance_create_info.enabledLayerCount = (uint32_t)(
+        sizeof(render_vulkan_validation_layers) / sizeof(const char*));
+    instance_create_info.ppEnabledLayerNames = render_vulkan_validation_layers;
+
+    VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {};
+    debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    debug_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT
+        | VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+    debug_create_info.pfnUserCallback = render_vulkan_data::debug_callback;
+
+    instance_create_info.pNext = &debug_create_info;
+#else
+    instance_create_info.enabledLayerCount = 0;
+    instance_create_info.pNext = 0;
+#endif
+
+    if (vkCreateInstance(&instance_create_info, 0, &instance) != VK_SUCCESS)
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Debug
+#if RENDER_DEBUG
+    if (vkGetInstanceProcAddrCreateDebugUtilsMessengerEXT(instance,
+        &debug_create_info, 0, &debug_messenger) != VK_SUCCESS)
+        return false;
+#endif
+#pragma endregion
+
+#pragma region Vulkan Surface
+    if (glfwCreateWindowSurface(instance, window, 0, &surface) != VK_SUCCESS)
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Physical Device
+    uint32_t device_count = 0;
+    vkEnumeratePhysicalDevices(instance, &device_count, 0);
+
+    if (!device_count)
+        return false;
+
+    std::vector<VkPhysicalDevice> devices;
+    devices.resize(device_count);
+    vkEnumeratePhysicalDevices(instance, &device_count, devices.data());
+
+    for (const VkPhysicalDevice& i : devices)
+        if (render_vulkan_data::is_device_suitable(i, surface)) {
+            physical_device = i;
+            break;
+        }
+
+    if (!physical_device)
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Device
+    std::pair<uint32_t, uint32_t> indices = find_queue_families(physical_device, surface);
+    if (indices.first == -1 || indices.second == -1)
+        return false;
+
+    std::set<uint32_t> unique_queue_families;
+    unique_queue_families.insert(indices.first);
+    unique_queue_families.insert(indices.second);
+
+    std::vector<VkDeviceQueueCreateInfo> queue_create_infos;
+    queue_create_infos.reserve(unique_queue_families.size());
+
+    float_t queue_priority = 1.0f;
+    for (uint32_t i : unique_queue_families) {
+        VkDeviceQueueCreateInfo queue_create_info = {};
+        queue_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        queue_create_info.queueFamilyIndex = i;
+        queue_create_info.queueCount = 1;
+        queue_create_info.pQueuePriorities = &queue_priority;
+        queue_create_infos.push_back(queue_create_info);
+    }
+
+    VkPhysicalDeviceFeatures device_features = {};
+    device_features.samplerAnisotropy = VK_TRUE;
+
+    VkDeviceCreateInfo device_create_info = {};
+    device_create_info.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+
+    device_create_info.queueCreateInfoCount = (uint32_t)queue_create_infos.size();
+    device_create_info.pQueueCreateInfos = queue_create_infos.data();
+
+    device_create_info.pEnabledFeatures = &device_features;
+
+    device_create_info.enabledExtensionCount = (uint32_t)(sizeof(render_vulkan_device_extensions) / sizeof(const char*));
+    device_create_info.ppEnabledExtensionNames = render_vulkan_device_extensions;
+
+#if RENDER_DEBUG
+    device_create_info.enabledLayerCount = (uint32_t)(
+        sizeof(render_vulkan_validation_layers) / sizeof(const char*));
+    device_create_info.ppEnabledLayerNames = render_vulkan_validation_layers;
+#else
+    device_create_info.enabledLayerCount = 0;
+#endif
+
+    if (vkCreateDevice(physical_device, &device_create_info, 0, &device) != VK_SUCCESS)
+        return false;
+
+    graphics_queue_family = indices.first;
+    vkGetDeviceQueue(device, indices.first, 0, &graphics_queue);
+
+    present_queue_family = indices.second;
+    vkGetDeviceQueue(device, indices.second, 0, &present_queue);
+#pragma endregion
+
+#pragma region Vulkan Swapchain
+    swapchain_support_details swapchain_support = query_swapchain_support(physical_device, surface);
+
+    VkSurfaceFormatKHR surface_format = choose_swap_surface_format(swapchain_support.formats);
+    VkPresentModeKHR present_mode = choose_swap_present_mode(swapchain_support.present_modes);
+    VkExtent2D extent = choose_swap_extent(swapchain_support.capabilities);
+
+    uint32_t image_count = swapchain_support.capabilities.minImageCount + 1;
+    if (swapchain_support.capabilities.maxImageCount > 0
+        && image_count > swapchain_support.capabilities.maxImageCount)
+        image_count = swapchain_support.capabilities.maxImageCount;
+
+    VkSwapchainCreateInfoKHR swapchain_create_info = {};
+    swapchain_create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    swapchain_create_info.surface = surface;
+
+    swapchain_create_info.minImageCount = image_count;
+    swapchain_create_info.imageFormat = surface_format.format;
+    swapchain_create_info.imageColorSpace = surface_format.colorSpace;
+    swapchain_create_info.imageExtent = extent;
+    swapchain_create_info.imageArrayLayers = 1;
+    swapchain_create_info.imageUsage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    uint32_t queue_family_indices[2];
+    queue_family_indices[0] = graphics_queue_family;
+    queue_family_indices[1] = present_queue_family;
+
+    if (graphics_queue_family != present_queue_family) {
+        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        swapchain_create_info.queueFamilyIndexCount = sizeof(queue_family_indices) / sizeof(uint32_t);
+        swapchain_create_info.pQueueFamilyIndices = queue_family_indices;
+    }
+    else
+        swapchain_create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    swapchain_create_info.preTransform = swapchain_support.capabilities.currentTransform;
+    swapchain_create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    swapchain_create_info.presentMode = present_mode;
+    swapchain_create_info.clipped = VK_TRUE;
+
+    swapchain_create_info.oldSwapchain = 0;
+
+    if (vkCreateSwapchainKHR(device, &swapchain_create_info, 0, &swapchain) != VK_SUCCESS)
+        return false;
+
+    vkGetSwapchainImagesKHR(device, swapchain, &image_count, 0);
+
+    swapchain_images.resize(image_count);
+    vkGetSwapchainImagesKHR(device, swapchain, &image_count, swapchain_images.data());
+
+    swapchain_image_format = surface_format.format;
+    swapchain_extent = extent;
+
+    size_t swapchain_image_count = swapchain_images.size();
+    swapchain_image_views.resize(swapchain_image_count);
+
+    VkComponentMapping components;
+    components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+    components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+    components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+    components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+    VkImageSubresourceRange sub_resource_range;
+    sub_resource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    sub_resource_range.baseMipLevel = 0;
+    sub_resource_range.levelCount = 1;
+    sub_resource_range.baseArrayLayer = 0;
+    sub_resource_range.layerCount = 1;
+
+    for (size_t i = 0; i < swapchain_image_count; i++)
+        if (!swapchain_image_views[i].Create(device, 0, swapchain_images[i],
+            VK_IMAGE_VIEW_TYPE_2D, swapchain_image_format, components, sub_resource_range))
+            return false;
+#pragma endregion
+
+#pragma region Vulkan Render Pass
+    VkAttachmentDescription color_attachment = {};
+    color_attachment.format = swapchain_image_format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+    VkAttachmentReference color_attachment_ref = {};
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass_description = {};
+    subpass_description.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass_description.colorAttachmentCount = 1;
+    subpass_description.pColorAttachments = &color_attachment_ref;
+
+    VkRenderPassCreateInfo render_pass_create_info = {};
+    render_pass_create_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_create_info.attachmentCount = 1;
+    render_pass_create_info.pAttachments = &color_attachment;
+    render_pass_create_info.subpassCount = 1;
+    render_pass_create_info.pSubpasses = &subpass_description;
+
+    if (vkCreateRenderPass(device, &render_pass_create_info, 0, &render_pass) != VK_SUCCESS)
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Framebuffers
+    size_t swapchain_image_view_count = swapchain_image_views.size();
+    swapchain_framebuffers.resize(swapchain_image_view_count);
+
+    for (size_t i = 0; i < swapchain_image_view_count; i++)
+        if (!swapchain_framebuffers[i].Create(device, 0, render_pass, 1,
+            &swapchain_image_views[i].data, swapchain_extent.width, swapchain_extent.height, 1))
+            return false;
+#pragma endregion
+
+#pragma region Vulkan Command Pool
+    VkCommandPoolCreateInfo command_pool_create_info = {};
+    command_pool_create_info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    command_pool_create_info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
+    command_pool_create_info.queueFamilyIndex = graphics_queue_family;
+
+    if (vkCreateCommandPool(device, &command_pool_create_info, nullptr, &command_pool) != VK_SUCCESS)
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Main Command Buffer
+    if (main_command_buffer.Allocate(device, command_pool))
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Sync
+    if (!present_semaphore.Create(device)
+        || !render_semaphore.Create(device)
+        || !render_fence.Create(device, VK_FENCE_CREATE_SIGNALED_BIT))
+        return false;
+#pragma endregion
+
+#pragma region Vulkan Allocator
+    VmaAllocatorCreateInfo allocator_create_info = {};
+    allocator_create_info.vulkanApiVersion = VK_API_VERSION_1_0;
+    allocator_create_info.physicalDevice = physical_device;
+    allocator_create_info.device = device;
+    allocator_create_info.instance = instance;
+
+    if (vmaCreateAllocator(&allocator_create_info, &allocator) != VK_SUCCESS)
+        return false;
+#pragma endregion
+    return true;
+}
+
+void render_vulkan_data::unload() {
+    vkDeviceWaitIdle(device);
+
+#pragma region Vulkan Allocator
+    if (allocator) {
+        vmaDestroyAllocator(allocator);
+        allocator = 0;
+    }
+#pragma endregion
+
+#pragma region Vulkan Sync
+    render_fence.Destroy();
+    render_semaphore.Destroy();
+    present_semaphore.Destroy();
+#pragma endregion
+
+#pragma region Vulkan Main Command Buffer
+    main_command_buffer.Free();
+#pragma endregion
+
+#pragma region Vulkan Command Pool
+    if (command_pool) {
+        vkDestroyCommandPool(device, command_pool, 0);
+        command_pool = 0;
+    }
+#pragma endregion
+
+#pragma region Vulkan Framebuffers
+    for (Vulkan::Framebuffer& i : swapchain_framebuffers)
+        i.Destroy();
+    swapchain_framebuffers.clear();
+#pragma endregion
+
+#pragma region Vulkan Render Pass
+    if (render_pass) {
+        vkDestroyRenderPass(device, render_pass, 0);
+        render_pass = 0;
+    }
+#pragma endregion
+
+#pragma region Vulkan Swapchain
+    for (Vulkan::ImageView& i : swapchain_image_views)
+        i.Destroy();
+
+    swapchain_images.clear();
+
+    if (swapchain) {
+        vkDestroySwapchainKHR(device, swapchain, 0);
+        swapchain = 0;
+    }
+#pragma endregion
+
+#pragma region Vulkan Device
+    present_queue_family = -1;
+    present_queue = 0;
+
+    graphics_queue_family = -1;
+    graphics_queue = 0;
+
+    if (device) {
+        vkDestroyDevice(device, 0);
+        device = 0;
+    }
+#pragma endregion
+
+#pragma region Vulkan Physical Device
+    physical_device = 0;
+#pragma endregion
+
+#pragma region Vulkan Surface
+    if (surface) {
+        vkDestroySurfaceKHR(instance, surface, 0);
+        surface = 0;
+    }
+#pragma endregion
+
+#pragma region Vulkan Debug
+#if RENDER_DEBUG
+    if (debug_messenger) {
+        vkGetInstanceProcAddrDestroyDebugUtilsMessengerEXT(instance, debug_messenger, 0);
+        debug_messenger = 0;
+    }
+#endif
+#pragma endregion
+
+#pragma region Vulkan Instance
+    if (instance) {
+        vkDestroyInstance(instance, 0);
+        instance = 0;
+    }
+#pragma endregion
+}
+
+void render_vulkan_data::load_common_data() {
+
+}
+
+void render_vulkan_data::unload_common_data() {
+
+}
+
+void render_vulkan_data::update_common_data(common_data_struct* common_data, camera* cam) {
+
+}
+
+bool render_vulkan_data::check_device_extension_support(VkPhysicalDevice device) {
+    uint32_t extension_count = 0;
+    vkEnumerateDeviceExtensionProperties(device, 0, &extension_count, 0);
+
+    if (!extension_count)
+        return true;
+
+    std::vector<VkExtensionProperties> available_extensions;
+    available_extensions.resize(extension_count);
+    vkEnumerateDeviceExtensionProperties(device, 0, &extension_count, available_extensions.data());
+
+    std::set<std::string> required_extensions(render_vulkan_device_extensions,
+        render_vulkan_device_extensions + sizeof(render_vulkan_device_extensions) / sizeof(const char*));
+    for (const VkExtensionProperties& i : available_extensions)
+        required_extensions.erase(i.extensionName);
+    return !required_extensions.size();
+}
+
+VkExtent2D render_vulkan_data::choose_swap_extent(const VkSurfaceCapabilitiesKHR& capabilities) {
+    if (capabilities.currentExtent.width != UINT32_MAX)
+        return capabilities.currentExtent;
+
+    int32_t width, height;
+    glfwGetFramebufferSize(window, &width, &height);
+
+    VkExtent2D actual_extent{ (uint32_t)width, (uint32_t)height, };
+
+    actual_extent.width = clamp_def(actual_extent.width,
+        capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    actual_extent.height = clamp_def(actual_extent.height,
+        capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+
+    return actual_extent;
+}
+
+VkPresentModeKHR render_vulkan_data::choose_swap_present_mode(
+    const std::vector<VkPresentModeKHR>& available_present_modes) {
+    for (const VkPresentModeKHR& i : available_present_modes) // It'll uncap framerates
+        if (i == VK_PRESENT_MODE_MAILBOX_KHR)
+            return i;
+    return VK_PRESENT_MODE_FIFO_KHR;
+}
+
+VkSurfaceFormatKHR render_vulkan_data::choose_swap_surface_format(
+    const std::vector<VkSurfaceFormatKHR>& available_formats) {
+    for (const VkSurfaceFormatKHR& i : available_formats)
+        if (i.format == VK_FORMAT_B8G8R8A8_UNORM
+            && i.colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR)
+            return i;
+    return available_formats[0];
+}
+
+std::pair<uint32_t, uint32_t> render_vulkan_data::find_queue_families(
+    VkPhysicalDevice device, VkSurfaceKHR surface) {
+    uint32_t queue_family_count = 0;
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, 0);
+
+    std::vector<VkQueueFamilyProperties> queue_families;
+    queue_families.resize(queue_family_count);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_families.data());
+
+    int32_t j = 0;
+    std::pair<uint32_t, uint32_t> indices = { -1, -1 };
+    for (const VkQueueFamilyProperties& i : queue_families) {
+        if (i.queueFlags & VK_QUEUE_GRAPHICS_BIT)
+            indices.first = j;
+
+        VkBool32 present_support = false;
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, j, surface, &present_support);
+
+        if (present_support)
+            indices.second = j;
+
+        if (indices.first != -1 && indices.second != -1)
+            return indices;
+        j++;
+    }
+    return { -1, -1 };
+}
+
+bool render_vulkan_data::is_device_suitable(VkPhysicalDevice device, VkSurfaceKHR surface) {
+    std::pair<uint32_t, uint32_t> indices = find_queue_families(device, surface);
+
+    bool extensions_supported = check_device_extension_support(device);
+
+    bool swapchain_adequate = false;
+    if (extensions_supported) {
+        swapchain_support_details swapchain_support = query_swapchain_support(device, surface);
+        swapchain_adequate = swapchain_support.formats.size() && swapchain_support.present_modes.size();
+    }
+
+    VkPhysicalDeviceFeatures supported_features;
+    vkGetPhysicalDeviceFeatures(device, &supported_features);
+
+    return indices.first != -1 && indices.second != -1 && extensions_supported
+        && swapchain_adequate && supported_features.samplerAnisotropy;
+}
+
+render_vulkan_data::swapchain_support_details render_vulkan_data::query_swapchain_support(
+    VkPhysicalDevice device, VkSurfaceKHR surface) {
+    swapchain_support_details details;
+
+    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &details.capabilities);
+
+    uint32_t format_count;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, 0);
+
+    if (format_count) {
+        details.formats.resize(format_count);
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &format_count, details.formats.data());
+    }
+
+    uint32_t present_mode_count;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &present_mode_count, 0);
+
+    if (present_mode_count) {
+        details.present_modes.resize(present_mode_count);
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface,
+            &present_mode_count, details.present_modes.data());
+    }
+
+    return details;
+}
+
+#if RENDER_DEBUG
+VKAPI_ATTR VkBool32 VKAPI_CALL render_vulkan_data::debug_callback(
+    VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity, VkDebugUtilsMessageTypeFlagsEXT messageType,
+    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData) {
+    if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) {
+        HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(console, &csbi);
+        SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED
+            | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_RED);
+        printf_debug("validation layer error: %s\n\n", pCallbackData->pMessage);
+        SetConsoleTextAttribute(console, csbi.wAttributes);
+    }
+    else
+        printf_debug("validation layer msg:   %s\n", pCallbackData->pMessage);
+    return VK_FALSE;
+}
+#endif
+
+static bool render_init(render_init_struct* ris) {
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+    width = ris->res.x > 0 && ris->res.x < 8192 ? ris->res.x : mode->width;
+    height = ris->res.y > 0 && ris->res.y < 8192 ? ris->res.y : mode->height;
+
+    vulkan_render = ris->vulkan_render;
+
+    width = (int32_t)(width / 2.0f);
+    height = (int32_t)(height / 2.0f);
+
+#if BAKE_PNG || BAKE_VIDEO
+    width = 1920;
+    height = 1080;
+#endif
+    if (vulkan_render)
+        glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    else
+        glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_FOCUSED, GLFW_TRUE);
+    //glfwWindowHint(GLFW_TRANSPARENT_FRAMEBUFFER, GLFW_TRUE);
+#if RENDER_DEBUG
+    if (!vulkan_render)
+        glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, true);
+#endif
+
+    glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+    glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+    glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+    glfwWindowHint(GLFW_DEPTH_BITS, 0);
+
+#if BAKE_PNG || BAKE_VIDEO
+    bool maximized = false;
+#else
+    bool maximized = mode->width == width && mode->height == height;
+#endif
+    glfwWindowHint(GLFW_MAXIMIZED, maximized ? GLFW_TRUE : GLFW_FALSE);
+
+    if (vulkan_render)
+        window = glfwCreateWindow(width, height, application_name, maximized ? monitor : 0, 0);
+    else {
+        int32_t minor = 6;
+        window = 0;
+        while (!window || minor < 3) {
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
+            glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor--);
+
+            window = glfwCreateWindow(width, height, application_name, maximized ? monitor : 0, 0);
+        }
+    }
+
+    if (!window)
+        return false;
+
+    if (vulkan_render) {
+        render_vulkan = new render_vulkan_data;
+        if (!render_vulkan->load()) {
+            glfwDestroyWindow(window);
+            return false;
+        }
+    }
+    else {
+        render_opengl = new render_opengl_data;
+        if (!render_opengl->load()) {
+            glfwDestroyWindow(window);
+            return false;
+        }
+    }
+    return true;
+}
+
+static void render_main_loop(render_context* rctx) {
+    render_timer->reset();
+    while (!close && !reload_render) {
+        render_timer->start_of_cycle();
+        glfwPollEvents();
+
+        if (!vulkan_render) ImGui_ImplGlfw_NewFrame();
+        if (vulkan_render);
+            //ImGui_ImplVulkan_NewFrame();
+        else
+            ImGui_ImplOpenGL3_NewFrame();
+        if (!vulkan_render) ImGui::NewFrame();
+
+        Input::NewFrame();
+
+        lock_lock(render_lock);
+        if (!vulkan_render) render_context_ctrl(rctx);
+        lock_unlock(render_lock);
+        render_context_disp(rctx);
+
+        close |= !!glfwWindowShouldClose(window);
+        frame_counter++;
+
+        Input::EndFrame();
+
+        if (!vulkan_render)
+            glfwSwapBuffers(window);
+        render_timer->end_of_cycle();
+    }
+}
+
+static void render_free() {
+    if (vulkan_render) {
+        render_vulkan->unload();
+        delete render_vulkan;
+    }
+    else {
+        render_opengl->unload();
+        delete render_opengl;
+    }
+
+    glfwDestroyWindow(window);
+}
+
+static render_context* render_context_load() {
+    data_struct_init();
+    data_struct_load("ReDIVA_data.txt");
+    data_struct_load_db();
+
+    if (vulkan_render)
+        render_vulkan_shaders_load();
+    else
+        render_opengl_shaders_load();
+
     texture_storage_init();
 
     file_handler_storage_init();
@@ -404,18 +1319,13 @@ static render_context* render_load() {
     render_context* rctx = new render_context;
     rctx_ptr = rctx;
 
-    gl_state_get();
-    render_texture_data_init();
-
-    motion_storage_init();
-    mothead_storage_init();
-    osage_setting_data_init();
-
-    game_state_init();
-
-    data_struct_init();
-    data_struct_load("ReDIVA_data.txt");
-    data_struct_load_db();
+    if (vulkan_render)
+        render_texture_vulkan_data_init(render_vulkan->device,
+            render_vulkan->allocator, render_vulkan->command_pool, render_vulkan->graphics_queue);
+    else {
+        gl_state_get();
+        render_texture_opengl_data_init();
+    }
 
     data_struct* aft_data = &data_list[DATA_AFT];
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
@@ -425,13 +1335,15 @@ static render_context* render_load() {
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-    for (std::string& i : mdata_manager_get()->prefixes) {
-        std::string osage_setting_file = i + "osage_setting.txt";
-        aft_data->load_file(aft_data, "rom/skin_param/",
-            osage_setting_file.c_str(), osage_setting_data_load_file);
-    }
+    if (!vulkan_render) { app::task_work_init();
+    motion_init();
+    mothead_storage_init();
+    skin_param_data_init();
 
-    render_shaders_load();
+    game_state_init();
+
+    skin_param_data_load();
+
     sound_init();
     wave_audio_storage_init();
     ogg_file_handler_storage_init();
@@ -439,10 +1351,8 @@ static render_context* render_load() {
     object_storage_init(aft_obj_db);
     stage_param_data_storage_init();
     pv_expression_file_storage_init();
-    item_table_array_init();
+    item_table_handler_array_init();
     rand_state_array_init();
-
-    app::task_work_init();
 
     rob_init();
     task_wind_init();
@@ -464,10 +1374,6 @@ static render_context* render_load() {
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
 
     if (false) {
-        data_struct* aft_data = &data_list[DATA_AFT];
-        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-
         data_struct* x_data = &data_list[DATA_X];
         data_struct* xhd_data = &data_list[DATA_XHD];
 
@@ -477,7 +1383,7 @@ static render_context* render_load() {
         for (int32_t i = 800; i <= 831; i++) {
             sprintf_s(buf, sizeof(buf), i == 815 ? "EFFPV%03d" : "ITMPV%03d", i);
 
-            object_set_info* effpv_set_info;
+            const object_set_info* effpv_set_info;
             if (aft_obj_db->get_object_set_info(buf, &effpv_set_info)) {
                 obj_set_ids.push_back(effpv_set_info->id);
                 obj_set_id_name.insert({ effpv_set_info->id, buf });
@@ -485,7 +1391,7 @@ static render_context* render_load() {
 
             sprintf_s(buf, sizeof(buf), "STGPV%03d", i);
 
-            object_set_info* stgpv_set_info;
+            const object_set_info* stgpv_set_info;
             if (aft_obj_db->get_object_set_info(buf, &stgpv_set_info)) {
                 obj_set_ids.push_back(stgpv_set_info->id);
                 obj_set_id_name.insert({ stgpv_set_info->id, buf });
@@ -493,14 +1399,14 @@ static render_context* render_load() {
 
             sprintf_s(buf, sizeof(buf), "STGPV%03dHRC", i);
 
-            object_set_info* stgpvhrc_set_info;
+            const object_set_info* stgpvhrc_set_info;
             if (aft_obj_db->get_object_set_info(buf, &stgpvhrc_set_info)) {
                 obj_set_ids.push_back(stgpvhrc_set_info->id);
                 obj_set_id_name.insert({ stgpvhrc_set_info->id, buf });
             }
 
             for (uint32_t& i : obj_set_ids) {
-                object_set_info* set_info;
+                const object_set_info* set_info;
                 if (!aft_obj_db->get_object_set_info(i, &set_info))
                     continue;
 
@@ -516,7 +1422,7 @@ static render_context* render_load() {
                 if (!tex_ff)
                     continue;
 
-                prj::shared_ptr<alloc_data> alloc(new alloc_data);
+                prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
 
                 obj_set obj_set;
                 obj_set.unpack_file(alloc, obj_ff->data, obj_ff->size, false);
@@ -593,7 +1499,7 @@ static render_context* render_load() {
                 if (!txi)
                     continue;
 
-                prj::shared_ptr<alloc_data> alloc(new alloc_data);
+                prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
 
                 obj_set obj_set;
                 obj_set.unpack_file(alloc, osd->data, osd->size, true);
@@ -686,7 +1592,7 @@ static render_context* render_load() {
                 if (!txi)
                     continue;
 
-                prj::shared_ptr<alloc_data> alloc(new alloc_data);
+                prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
 
                 obj_set obj_set;
                 obj_set.unpack_file(alloc, osd->data, osd->size, true);
@@ -722,184 +1628,18 @@ static render_context* render_load() {
         }
     }
 
-    glGenBuffers(1, &common_data_ubo);
-
-    gl_state_bind_uniform_buffer(common_data_ubo);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_UNIFORM_BUFFER, COMMON_DATA_SIZE, 0, GL_DYNAMIC_STORAGE_BIT);
-    else
-        glBufferData(GL_UNIFORM_BUFFER, COMMON_DATA_SIZE, 0, GL_STREAM_DRAW);
-    glBindBufferRange(GL_UNIFORM_BUFFER, 0, common_data_ubo, 0, COMMON_DATA_SIZE);
-    gl_state_bind_uniform_buffer(0);
-
-    uniform_value[U16] = 1;
-
-    const char* cube_line_vert_shader =
-        "#version 430 core\n"
-        "layout(location = 0) in vec4 a_position;\n"
-        "\n"
-        "out VertexData {\n"
-        "    vec4 color;\n"
-        "} result;\n"
-        "\n"
-        "uniform mat4 vp;\n"
-        "uniform vec4 color;\n"
-        "\n"
-        "void main() {\n"
-        "    gl_Position = vp * a_position;\n"
-        "    result.color = color;\n"
-        "}\n";
-
-    const char* cube_line_frag_shader =
-        "#version 430 core\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "in VertexData {\n"
-        "    vec4 color;\n"
-        "} frg;\n"
-        "\n"
-        "void main() {\n"
-        "    result = frg.color;\n"
-        "}\n";
-
-    const char* cube_line_point_vert_shader =
-        "#version 430 core\n"
-        "layout(location = 0) in vec3 i_trans;\n"
-        "\n"
-        "out VertexData {\n"
-        "    vec2 uv;\n"
-        "} result;\n"
-        "\n"
-        "uniform mat4 vp;\n"
-        "uniform vec3 trans[4];\n"
-        "\n"
-        "void main() {\n"
-        "    vec4 pos;\n"
-        "    pos.xyz = trans[gl_VertexID] + i_trans;\n"
-        "    pos.w = 1.0;\n"
-        "    gl_Position = vp * pos;\n"
-        "    vec2 uv;\n"
-        "    uv.x = float(gl_VertexID / 2);\n"
-        "    uv.y = float(gl_VertexID % 2);\n"
-        "    result.uv = uv;\n"
-        "}\n";
-
-    const char* cube_line_point_frag_shader =
-        "#version 430 core\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "in VertexData {\n"
-        "    vec2 uv;\n"
-        "} frg;\n"
-        "\n"
-        "uniform float border_end;\n"
-        "uniform float border_start;\n"
-        "uniform vec3 border_color;"
-        "uniform vec3 center_color;"
-        "\n"
-        "void main() {\n"
-        "    float blend = step(border_end, frg.uv.x) * (1.0 - step(border_start, frg.uv.x))"
-        " * step(border_end, frg.uv.y) * (1.0 - step(border_start, frg.uv.y));\n"
-        "    result = vec4(mix(border_color, center_color, blend), 1.0);\n"
-        "}\n";
-
-    const char* grid_vert_shader =
-        "#version 430 core\n"
-        "layout(location = 0) in vec4 a_position;\n"
-        "layout(location = 1) in int a_color_index;\n"
-        "\n"
-        "out VertexData {\n"
-        "    vec4 color;\n"
-        "} result;\n"
-        "\n"
-        "uniform mat4 vp;\n"
-        "\n"
-        "const vec4 colors[] = {\n"
-        "    vec4(1.0, 0.0, 0.0, 1.0),\n"
-        "    vec4(0.0, 1.0, 0.0, 1.0),\n"
-        "    vec4(0.2, 0.2, 0.2, 1.0),\n"
-        "};\n"
-        "\n"
-        "void main() {\n"
-        "    gl_Position = vp * a_position.xzyw;\n"
-        "    result.color = colors[a_color_index];\n"
-        "}\n";
-
-    const char* grid_frag_shader =
-        "#version 430 core\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "in VertexData {\n"
-        "    vec4 color;\n"
-        "} frg;\n"
-        "\n"
-        "void main() {\n"
-        "    result = frg.color;\n"
-        "}\n";
-
-    const char* fbo_render_vert_shader =
-        "#version 430 core\n"
-        "void main() {\n"
-        "    gl_Position.x = -1.0 + float(gl_VertexID / 2) * 4.0;\n"
-        "    gl_Position.y = 1.0 - float(gl_VertexID % 2) * 4.0;\n"
-        "    gl_Position.z = 0.0;\n"
-        "    gl_Position.w = 1.0;\n"
-        "}\n";
-
-    const char* fbo_render_color_frag_shader =
-        "#version 430 core\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "layout(binding = 0) uniform sampler2D g_color;\n"
-        "\n"
-        "void main() {\n"
-        "    result = texelFetch(g_color, ivec2(gl_FragCoord.xy), 0);\n"
-        "}\n";
-
-    const char* fbo_render_depth_frag_shader =
-        "#version 430 core\n"
-        "layout(location = 0) out vec4 result;\n"
-        "\n"
-        "layout(binding = 0) uniform sampler2D g_color;\n"
-        "layout(binding = 1) uniform sampler2D g_depth;\n"
-        "\n"
-        "void main() {\n"
-        "    result = texelFetch(g_color, ivec2(gl_FragCoord.xy), 0);\n"
-        "    gl_FragDepth = texelFetch(g_depth, ivec2(gl_FragCoord.xy), 0).r;\n"
-        "}\n";
-
-    cube_line_shader = new shader_glsl;
-    shader_glsl_param param = {};
-    param.name = "Cube Line";
-    cube_line_shader->load(cube_line_vert_shader, cube_line_frag_shader, 0, &param);
-
-    cube_line_point_shader = new shader_glsl;
-    param = {};
-    param.name = "Cube Line Point";
-    cube_line_point_shader->load(cube_line_point_vert_shader, cube_line_point_frag_shader, 0, &param);
-
-    grid_shader = new shader_glsl;
-    param = {};
-    param.name = "Grid";
-    grid_shader->load(grid_vert_shader, grid_frag_shader, 0, &param);
-
     render_resize_fb(rctx, false);
 
     rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
-    rctx->draw_pass.resize(internal_2d_res.x, internal_2d_res.y);
+    rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
 
     render_resize_fb(rctx, true);
 
-    Glitter::glt_particle_manager_append_task();
-    //app::TaskWork::AppendTask(&pv_game_data, "PVGAME", 0);
+    Glitter::glt_particle_manager_add_task();
+    //app::TaskWork::AddTask(&pv_game_data, "PVGAME", 0);
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         rob_chara_pv_data_array[i].type = ROB_CHARA_TYPE_NONE;
-
-    for (std::string& i : mdata_manager_get()->prefixes) {
-        std::string chritm_prop_file = i + "chritm_prop.farc";
-        aft_data->load_file(aft_data, "rom/", chritm_prop_file.c_str(), item_table_array_load_file);
-    }
 
     light_param_data_storage::load(aft_data);
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
@@ -920,87 +1660,6 @@ static render_context* render_load() {
         render_timer->end_of_cycle();
     }
 
-    glGenVertexArrays(1, &cube_line_vao);
-    glGenBuffers(1, &cube_line_vbo);
-    gl_state_bind_vertex_array(cube_line_vao);
-    gl_state_bind_array_buffer(cube_line_vbo);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(vec3) * 4, 0, 0);
-    else
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vec3) * 4, 0, GL_STREAM_DRAW);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(vec3), 0);
-    gl_state_bind_array_buffer(0);
-
-    glGenVertexArrays(1, &cube_line_point_vao);
-    glGenBuffers(1, &cube_line_point_instance_vbo);
-    gl_state_bind_vertex_array(cube_line_point_vao);
-    gl_state_bind_array_buffer(cube_line_point_instance_vbo);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(std::pair<vec3, float_t>), 0);
-    glVertexAttribDivisor(0, 1);
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_vertex_array(0);
-
-    float_t* grid_verts = force_malloc_s(float_t, 3 * grid_vertex_count);
-
-    size_t v = 0;
-    for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {
-        int32_t x_color_index;
-        int32_t z_color_index;
-        if (x == 0) {
-            x_color_index = 0;
-            z_color_index = 1;
-        }
-        else {
-            x_color_index = 2;
-            z_color_index = 2;
-        }
-
-        grid_verts[v++] = x;
-        grid_verts[v++] = -grid_size;
-        *(int32_t*)&grid_verts[v++] = x_color_index;
-
-        grid_verts[v++] = x;
-        grid_verts[v++] = grid_size;
-        *(int32_t*)&grid_verts[v++] = x_color_index;
-
-        grid_verts[v++] = -grid_size;
-        grid_verts[v++] = x;
-        *(int32_t*)&grid_verts[v++] = z_color_index;
-
-        grid_verts[v++] = grid_size;
-        grid_verts[v++] = x;
-        *(int32_t*)&grid_verts[v++] = z_color_index;
-    }
-
-    glGenVertexArrays(1, &grid_vao);
-    gl_state_bind_vertex_array(grid_vao);
-
-    glGenBuffers(1, &grid_vbo);
-    gl_state_bind_array_buffer(grid_vbo);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t) * 3
-            * grid_vertex_count, grid_verts, 0);
-    else
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 3
-            * grid_vertex_count, grid_verts, GL_STATIC_DRAW);
-
-    glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-    glVertexAttribI1i(1, 2);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-        sizeof(float_t) * 3, (void*)0);                     // Pos
-    glEnableVertexAttribArray(1);
-    glVertexAttribIPointer(1, 1, GL_INT,
-        sizeof(float_t) * 3, (void*)(sizeof(float_t) * 2)); // Color
-
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_vertex_array(0);
-
-    free(grid_verts);
-
     camera* cam = rctx->camera;
 
     cam->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
@@ -1013,21 +1672,128 @@ static render_context* render_load() {
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
     //cam->set_fov(70.0);
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
-    cam->set_interest({ 0.0f, 1.4f, 0.0f });
+    cam->set_interest({ 0.0f, 1.4f, 0.0f }); }
 
-    imgui_context = ImGui::CreateContext();
+    if (vulkan_render)
+        render_vulkan->load_common_data();
+    else
+        render_opengl->load_common_data();
+
+    uniform_value[U16] = 1;
+
+    if (vulkan_render) {
+#pragma region Vulkan Pipeline Layout
+        VkPipelineLayoutCreateInfo triangle_pipeline_layout_create_info = {};
+        triangle_pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+
+        vkCreatePipelineLayout(render_vulkan->device, &triangle_pipeline_layout_create_info,
+            0, &render_vulkan->triangle_pipeline_layout);
+#pragma endregion
+
+#pragma region Vulkan Pipeline
+        shader_vulkan_pair shader_sun_no_textured = shaders_ft.get_vulkan_shader(SHADER_FT_SUN_NO_TEXTURED);
+
+        render_vulkan_data::pipeline_builder_data& pipeline_builder = render_vulkan->pipeline_builder;
+
+        VkPipelineShaderStageCreateInfo& shader_stage_vert = pipeline_builder.shader_stages[0];
+        shader_stage_vert = {};
+        shader_stage_vert.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shader_stage_vert.stage = VK_SHADER_STAGE_VERTEX_BIT;
+        shader_stage_vert.module = shader_sun_no_textured.first;
+        shader_stage_vert.pName = "main";
+
+        VkPipelineShaderStageCreateInfo& shader_stage_frag = pipeline_builder.shader_stages[1];
+        shader_stage_frag = {};
+        shader_stage_frag.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shader_stage_frag.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        shader_stage_frag.module = shader_sun_no_textured.second;
+        shader_stage_frag.pName = "main";
+
+        VkPipelineVertexInputStateCreateInfo& vertex_input = pipeline_builder.vertex_input;
+        vertex_input = {};
+        vertex_input.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
+        render_texture_vulkan_data_get_vertex_input_binding_descriptions(
+            vertex_input.pVertexBindingDescriptions,
+            vertex_input.vertexBindingDescriptionCount);
+        render_texture_vulkan_data_get_vertex_input_attribute_descriptions(
+            vertex_input.pVertexAttributeDescriptions,
+            vertex_input.vertexAttributeDescriptionCount);
+
+        VkPipelineInputAssemblyStateCreateInfo& input_assembly = pipeline_builder.input_assembly;
+        input_assembly = {};
+        input_assembly.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+        input_assembly.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        input_assembly.primitiveRestartEnable = VK_FALSE;
+
+        VkPipelineRasterizationStateCreateInfo& rasterizer = pipeline_builder.rasterizer;
+        rasterizer = {};
+        rasterizer.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+        rasterizer.depthClampEnable = VK_FALSE;
+        rasterizer.rasterizerDiscardEnable = VK_FALSE;
+        rasterizer.polygonMode = VK_POLYGON_MODE_FILL;
+        rasterizer.lineWidth = 1.0f;
+        rasterizer.cullMode = VK_CULL_MODE_BACK_BIT;
+        rasterizer.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
+        rasterizer.depthBiasEnable = VK_FALSE;
+
+        VkPipelineColorBlendAttachmentState& color_blend_attachment = pipeline_builder.color_blend_attachment;
+        color_blend_attachment = {};
+        color_blend_attachment.colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT
+            | VK_COLOR_COMPONENT_G_BIT
+            | VK_COLOR_COMPONENT_B_BIT
+            | VK_COLOR_COMPONENT_A_BIT;
+        color_blend_attachment.blendEnable = VK_TRUE;
+        color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        color_blend_attachment.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+        color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+        color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+
+        VkPipelineMultisampleStateCreateInfo& multisampling = pipeline_builder.multisampling;
+        multisampling = {};
+        multisampling.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+        multisampling.sampleShadingEnable = VK_FALSE;
+        multisampling.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+
+        VkPipelineDepthStencilStateCreateInfo& depth_stencil = pipeline_builder.depth_stencil;
+        depth_stencil = {};
+        depth_stencil.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+
+        render_vulkan->pipeline_builder.build_pipeline(render_vulkan->device,
+            render_vulkan->render_pass, render_vulkan->triangle_pipeline);
+#pragma endregion
+    }
+
     imgui_context_lock = new lock_cs;
-
     lock_lock(imgui_context_lock);
+    imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = 0;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
     lock_unlock(imgui_context_lock);
 
-    ImGui::StyleColorsDark(0);
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 430");
+    ImGui::StyleColorsDark();
+    if (vulkan_render) {
+        /*ImGui_ImplVulkan_InitInfo init_info = {};
+        init_info.Instance = render_vulkan->instance;
+        init_info.PhysicalDevice = render_vulkan->physical_device;
+        init_info.Device = render_vulkan->device;
+        init_info.Queue = render_vulkan->graphics_queue;
+        init_info.DescriptorPool = render_vulkan->descriptor_pool;
+        init_info.MinImageCount = 3;
+        init_info.ImageCount = 3;
+        init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+
+        ImGui_ImplGlfw_InitForVulkan(window, true);
+        ImGui_ImplVulkan_Init(&init_info, render_vulkan->render_pass);*/
+    }
+    else {
+        ImGui_ImplGlfw_InitForOpenGL(window, true);
+        ImGui_ImplOpenGL3_Init("#version 430");
+    }
 
     clear_color = { 0x60, 0x60, 0x60, 0xFF };
     set_clear_color = true;
@@ -1050,8 +1816,8 @@ static render_context* render_load() {
     modules[5] = 0;//31;
     //pv_game_data.Load(739, charas, modules);
 
-    shaders_ft.env_vert_set(3, 1.0f);
-    shaders_ft.env_vert_set(4, 0.0f);
+    rctx->obj_batch.g_blend_color = 1.0f;
+    rctx->obj_batch.g_offset_color = 0.0f;
     classes_process_init(classes, classes_count, rctx);
     return rctx;
 }
@@ -1063,7 +1829,7 @@ extern double_t input_rotate_y;
 extern double_t input_roll;
 extern bool input_reset;
 
-static void render_ctrl(render_context* rctx) {
+static void render_context_ctrl(render_context* rctx) {
     camera* cam = rctx->camera;
 
     for (int32_t i = 0; i < 32; i++) {
@@ -1080,72 +1846,6 @@ static void render_ctrl(render_context* rctx) {
     ImGui::SetCurrentContext(imgui_context);
     app::TaskWork_Window();
     classes_process_imgui(classes, classes_count);
-
-#if DRAW_PASS_TIME_DISP
-    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
-    ImGui::SetNextWindowSize({ 1280, 636 }, ImGuiCond_Appearing);
-
-    if (ImGui::Begin("CPU/GPU Time")) {
-        static const char* draw_pass_names[] = {
-            "Shadow",
-            "SS SSS",
-            "Pass 2",
-            "Reflect",
-            "Refract",
-            "Pre Process",
-            "Clear",
-            "Pre Sprite",
-            "3D",
-            "Show Vector",
-            "Post Process",
-            "Sprite",
-            "Pass 12",
-        };
-
-        char buf[0x200];
-        for (int32_t i = 0; i < DRAW_PASS_MAX; i++) {
-            float_t cpu_min = FLT_MAX;
-            float_t cpu_max = 0.0f;
-            double_t cpu_avg = 0.0f;
-            float_t gpu_min = FLT_MAX;
-            float_t gpu_max = 0.0f;
-            double_t gpu_avg = 0.0f;
-
-            for (float_t& j : draw_pass_cpu_time[i]) {
-                if (cpu_min > j)
-                    cpu_min = j;
-                else if (cpu_max < j)
-                    cpu_max = j;
-                cpu_avg += j;
-            }
-
-            size_t cpu_time_count = draw_pass_cpu_time[i].size();
-            if (cpu_time_count)
-                cpu_avg /= (double_t)cpu_time_count;
-
-            for (float_t& j : draw_pass_gpu_time[i]) {
-                if (gpu_min > j)
-                    gpu_min = j;
-                else if (gpu_max < j)
-                    gpu_max = j;
-                gpu_avg += j;
-            }
-
-            size_t gpu_time_count = draw_pass_gpu_time[i].size();
-            if (gpu_time_count)
-                gpu_avg /= (double_t)gpu_time_count;
-
-            sprintf_s(buf, sizeof(buf), "CPU Draw Pass % 12s; Min: % 3.4f; Max: % 3.4f; Avg: % 3.4lf",
-                draw_pass_names[i], cpu_min, cpu_max, cpu_avg);
-            ImGui::PlotLines(buf, draw_pass_cpu_time[i].data(), (int32_t)draw_pass_cpu_time[i].size());
-            sprintf_s(buf, sizeof(buf), "GPU Draw Pass % 12s; Min: % 3.4f; Max: % 3.4f; Avg: % 3.4lf",
-                draw_pass_names[i], gpu_min, gpu_max, gpu_avg);
-            ImGui::PlotLines(buf, draw_pass_gpu_time[i].data(), (int32_t)draw_pass_gpu_time[i].size());
-        }
-        ImGui::End();
-    }
-#endif
-
     lock_unlock(imgui_context_lock);
 
     if (old_width != width || old_height != height || old_scale_index != scale_index) {
@@ -1221,13 +1921,7 @@ static void render_ctrl(render_context* rctx) {
 
     ImGui::Render();
 
-    struct common_data_struct {
-        vec4 res; //x=width, y=height, z=1/width, w=1/height
-        mat4 vp;
-        mat4 view;
-        mat4 projection;
-        vec3 view_pos;
-    } common_data;
+    common_data_struct common_data;
 
     common_data.res.x = (float_t)internal_3d_res.x;
     common_data.res.y = (float_t)internal_3d_res.y;
@@ -1238,345 +1932,218 @@ static void render_ctrl(render_context* rctx) {
     common_data.projection = cam->projection;
     common_data.view_pos = cam->view_point;
 
-    gl_state_bind_uniform_buffer(common_data_ubo);
-    glBufferSubData(GL_UNIFORM_BUFFER, 0, COMMON_DATA_SIZE, &common_data);
-    gl_state_bind_uniform_buffer(0);
-
-    cube_line_shader->set("vp", false, cam->view_projection);
-    cube_line_point_shader->set("vp", false, cam->view_projection);
+    if (vulkan_render)
+        render_vulkan->update_common_data(&common_data, cam);
+    else
+        render_opengl->update_common_data(&common_data, cam);
 }
 
-static void cube_line_disp(shader_glsl* shader, camera* cam, vec3* trans, float_t line_size, vec4* color) {
-    mat4 mat[2];
-    mat4_translate(&trans[0], &mat[0]);
-    mat4_translate(&trans[1], &mat[1]);
-    mat4_mult(&cam->view, &mat[0], &mat[0]);
-    mat4_mult(&cam->view, &mat[1], &mat[1]);
+static void render_context_disp(render_context* rctx) {
+    //camera* cam = rctx->camera;
 
-    vec3 t[2];
-    mat4_get_translation(&mat[0], &t[0]);
-    mat4_get_translation(&mat[1], &t[1]);
+    if (vulkan_render) {
+        render_vulkan->render_fence.WaitFor();
+        render_vulkan->render_fence.Reset();
 
-    vec3 d;
-    *(vec2*)&d = vec2::normalize(*(vec2*)&t[1] - *(vec2*)&t[0]) * line_size;
-    d.z = 0.0f;
+        uint32_t swapchain_image_index;
+        VkResult result = vkAcquireNextImageKHR(render_vulkan->device, render_vulkan->swapchain,
+            UINT64_MAX, render_vulkan->present_semaphore.data, 0, &swapchain_image_index);
 
-    vec3 norm[2];
-    norm[0] = { -d.y, d.x, 0.0f };
-    norm[1] = { d.y, -d.x, 0.0f };
-    mat4_mult_vec3(&cam->inv_view_rot, &norm[0], &norm[0]);
-    mat4_mult_vec3(&cam->inv_view_rot, &norm[1], &norm[1]);
-
-    vec3 vert_trans[4];
-    vert_trans[0] = trans[0] + norm[0];
-    vert_trans[1] = trans[0] + norm[1];
-    vert_trans[2] = trans[1] + norm[0];
-    vert_trans[3] = trans[1] + norm[1];
-
-    shader->set("color", *color);
-
-    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vert_trans), vert_trans);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-static int cube_line_points_sort(void const* src1, void const* src2) {
-    float_t d1 = ((std::pair<vec3, float_t>*)src1)->second;
-    float_t d2 = ((std::pair<vec3, float_t>*)src2)->second;
-    return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
-}
-
-static bool auth_3d_disp = false;
-static bool rob_disp = false;
-
-static void render_disp(render_context* rctx) {
-    static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
-    static const GLfloat depth_clear = 1.0f;
-    static const GLint stencil_clear = 0;
-
-    camera* cam = rctx->camera;
-
-    for (int32_t i = 0; i < 32; i++) {
-        if (!gl_state_check_texture_binding_2d(i) && !gl_state_check_texture_binding_cube_map(i))
-            continue;
-
-        gl_state_active_bind_texture_2d(i, 0);
-        gl_state_active_bind_texture_cube_map(i, 0);
-        gl_state_bind_sampler(i, 0);
-    }
-
-    gl_state_bind_framebuffer(0);
-    gl_state_set_depth_mask(GL_TRUE);
-    gl_state_set_stencil_mask(0xFF);
-    glClearBufferfv(GL_COLOR, 0, color_clear);
-    glClearDepthf(depth_clear);
-    gl_state_set_stencil_mask(0x00);
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_bind_uniform_buffer_base(0, common_data_ubo);
-
-    glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
-
-    rctx->post_process.rend_texture.bind();
-    gl_state_set_depth_mask(GL_TRUE);
-    glClearBufferfv(GL_COLOR, 0, color_clear);
-    glClearBufferfv(GL_DEPTH, 0, &depth_clear);
-    gl_state_set_depth_mask(GL_FALSE);
-
-    cam->update();
-
-    rctx->disp();
-
-    int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
-    int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
-    glViewport(screen_x_offset, screen_y_offset, internal_2d_res.x, internal_2d_res.y);
-    rctx->post_process.screen_texture.bind();
-    gl_state_bind_uniform_buffer_base(0, common_data_ubo);
-    classes_process_disp(classes, classes_count);
-
-    gl_state_disable_cull_face();
-    vec4 bone_color = { 1.0f, 0.0f, 0.0f, 1.0f };
-    vec4 cns_color = { 1.0f, 1.0f, 0.0f, 1.0f };
-    vec4 exp_color = { 0.0f, 1.0f, 0.0f, 1.0f };
-    vec4 osg_color = { 0.0f, 0.0f, 1.0f, 1.0f };
-    vec4 osg_node_color = { 1.0f, 0.0f, 1.0f, 1.0f };
-    if (rob_disp)
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-            if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
-                continue;
-
-            rob_chara* rob_chr = &rob_chara_array[i];
-            if (!rob_chr->is_visible())
-                continue;
-
-            gl_state_bind_vertex_array(cube_line_vao);
-            gl_state_bind_array_buffer(cube_line_vbo);
-            rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
-            size_t object_bone_count = rob_bone_data->object_bone_count;
-            size_t total_bone_count = rob_bone_data->total_bone_count;
-            size_t ik_bone_count = rob_bone_data->ik_bone_count;
-            cube_line_shader->use();
-            for (bone_node& j : rob_bone_data->nodes) {
-                if (!j.parent)
-                    continue;
-
-                vec3 trans[2];
-                mat4_get_translation(j.parent->mat, &trans[0]);
-                mat4_get_translation(j.mat, &trans[1]);
-
-                if (trans[0] != trans[1])
-                    cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &bone_color);
-            }
-            gl_state_bind_array_buffer(0);
-
-            std::vector<std::pair<vec3, float_t>> cube_line_points;
-            for (bone_node& j : rob_bone_data->nodes) {
-                vec3 trans;
-                vec3 vp_trans;
-                mat4_get_translation(j.mat, &trans);
-                mat4_mult_vec3(&cam->view_projection, &trans, &vp_trans);
-                cube_line_points.push_back({ trans, vp_trans.z });
-            }
-
-            quicksort_custom(cube_line_points.data(), cube_line_points.size(),
-                sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
-
-            gl_state_bind_array_buffer(cube_line_point_instance_vbo);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
-                * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
-            gl_state_bind_array_buffer(0);
-
-            vec3 trans[4];
-            trans[0] = { -CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
-            trans[1] = {  CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
-            trans[2] = { -CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
-            trans[3] = {  CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
-
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
-
-            gl_state_bind_vertex_array(cube_line_point_vao);
-            cube_line_point_shader->use();
-            cube_line_point_shader->set("trans", 4, trans);
-            cube_line_point_shader->set("border_end",
-                ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
-            cube_line_point_shader->set("border_start",
-                (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
-            cube_line_point_shader->set("border_color", 0.0f, 0.0f, 0.0f);
-            cube_line_point_shader->set("center_color", 1.0f, 1.0f, 1.0f);
-            glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
-            gl_state_bind_vertex_array(0);
-            cube_line_points.clear();
-            cube_line_points.shrink_to_fit();
+        if (result == VK_ERROR_OUT_OF_DATE_KHR) {
+            //vulkanTestRecreateSwapChain();
+            return;
         }
+        else if (result != VK_SUCCESS && result != VK_SUBOPTIMAL_KHR)
+            return;
 
-    if (auth_3d_disp)
-        for (auth_3d& i : auth_3d_data->data) {
-            if (i.id == -1 || !i.visible)
-                continue;
+        VkCommandBuffer cmd = render_vulkan->main_command_buffer.data;
 
-            for (auth_3d_object_hrc& j : i.object_hrc) {
-                if (!j.node[0].model_transform.visible)
-                    continue;
+        vkResetCommandBuffer(cmd, 0);
 
-                gl_state_bind_vertex_array(cube_line_vao);
-                gl_state_bind_array_buffer(cube_line_vbo);
-                cube_line_shader->use();
-                for (auth_3d_object_node& k : j.node) {
-                    if (k.parent == -1 )
-                        continue;
+        VkCommandBufferBeginInfo command_buffer_begin_info = {};
+        command_buffer_begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        //command_buffer_begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
-                    vec3 trans[2];
-                    mat4_get_translation(&j.node[k.parent].model_transform.mat, &trans[0]);
-                    mat4_get_translation(&k.model_transform.mat, &trans[1]);
+        if (vkBeginCommandBuffer(cmd, &command_buffer_begin_info) != VK_SUCCESS)
+            return;
 
-                    if (trans[0] != trans[1])
-                        cube_line_disp(cube_line_shader, cam, trans, CUBE_LINE_SIZE, &osg_color);
-                }
-                gl_state_bind_array_buffer(0);
+        VkClearValue clear_value;
+        float_t flash = (float_t)abs(sin(frame_counter / 120.0));
+        clear_value.color = { { 0.0f, 0.0f, flash, 1.0f } };
 
-                std::vector<std::pair<vec3, float_t>> cube_line_points;
-                for (auth_3d_object_node& k : j.node) {
-                    vec3 trans;
-                    vec3 vp_trans;
-                    mat4_get_translation(&k.model_transform.mat, &trans);
-                    mat4_mult_vec3(&cam->view_projection, &trans, &vp_trans);
-                    cube_line_points.push_back({ trans, vp_trans.z });
-                }
+        VkRenderPassBeginInfo render_pass_begin_info = {};
+        render_pass_begin_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 
-                quicksort_custom(cube_line_points.data(), cube_line_points.size(),
-                    sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
+        render_pass_begin_info.renderPass = render_vulkan->render_pass;
+        render_pass_begin_info.renderArea.offset.x = 0;
+        render_pass_begin_info.renderArea.offset.y = 0;
+        render_pass_begin_info.renderArea.extent = render_vulkan->swapchain_extent;
+        render_pass_begin_info.framebuffer = render_vulkan->swapchain_framebuffers[swapchain_image_index].data;
 
-                gl_state_bind_array_buffer(cube_line_point_instance_vbo);
-                glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
-                    * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
-                gl_state_bind_array_buffer(0);
+        render_pass_begin_info.clearValueCount = 1;
+        render_pass_begin_info.pClearValues = &clear_value;
 
-                vec3 trans[4];
-                trans[0] = { -CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
-                trans[1] = {  CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
-                trans[2] = { -CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
-                trans[3] = {  CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+        vkCmdBeginRenderPass(cmd, &render_pass_begin_info, VK_SUBPASS_CONTENTS_INLINE);
 
-                mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
-                mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
-                mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
-                mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
+        vkCmdBindPipeline(cmd, VK_PIPELINE_BIND_POINT_GRAPHICS, render_vulkan->triangle_pipeline);
 
-                gl_state_bind_vertex_array(cube_line_point_vao);
-                cube_line_point_shader->use();
-                cube_line_point_shader->set("trans", 4, trans);
-                cube_line_point_shader->set("border_end",
-                    ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
-                cube_line_point_shader->set("border_start",
-                    (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
-                cube_line_point_shader->set("border_color", 0.0f, 0.0f, 0.0f);
-                cube_line_point_shader->set("center_color", 1.0f, 1.0f, 1.0f);
-                glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
-                gl_state_bind_vertex_array(0);
-                cube_line_points.clear();
-                cube_line_points.shrink_to_fit();
-            }
-        }
+        VkViewport viewport;
+        viewport.x = 0.0f;
+        viewport.y = 0.0f;
+        viewport.width = (float_t)render_vulkan->swapchain_extent.width;
+        viewport.height = (float_t)render_vulkan->swapchain_extent.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+        vkCmdSetViewport(cmd, 0, 1, &viewport);
 
-    if (rob_disp)
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-            if (rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
-                continue;
+        VkRect2D scissor;
+        scissor.offset = { 0, 0 };
+        scissor.extent = render_vulkan->swapchain_extent;
+        vkCmdSetScissor(cmd, 0, 1, &scissor);
 
-            rob_chara* rob_chr = &rob_chara_array[i];
-            if (!rob_chr->is_visible())
-                continue;
+        vkCmdDraw(cmd, 3, 1, 0, 0);
 
-            std::vector<std::pair<vec3, float_t>> cube_line_points;
-            motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
-            mot_key_set* key_set = mot->mot_key_data.mot.key_sets;
-            for (bone_data& j : mot->bone_data.bones)
-                if (j.type >= BONE_DATABASE_BONE_HEAD_IK_ROTATION
-                    && j.type <= BONE_DATABASE_BONE_LEGS_IK_ROTATION) {
-                    vec3 trans;
-                    mat4_mult_vec3(&cam->view_projection, &j.ik_target, &trans);
-                    cube_line_points.push_back({ j.ik_target, trans.z });
-                }
+        vkCmdEndRenderPass(cmd);
+        vkEndCommandBuffer(cmd);
 
-            quicksort_custom(cube_line_points.data(), cube_line_points.size(),
-                sizeof(std::pair<vec3, float_t>), cube_line_points_sort);
+        VkSubmitInfo submit_info = {};
+        submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submit_info.pNext = nullptr;
 
-            gl_state_bind_array_buffer(cube_line_point_instance_vbo);
-            glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(sizeof(std::pair<vec3, float_t>)
-                * cube_line_points.size()), cube_line_points.data(), GL_STREAM_DRAW);
-            gl_state_bind_array_buffer(0);
+        VkPipelineStageFlags wait_stage_flags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-            vec3 trans[4];
-            trans[0] = { -CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
-            trans[1] = {  CUBE_LINE_POINT_SIZE,  CUBE_LINE_POINT_SIZE, 0.0f };
-            trans[2] = { -CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
-            trans[3] = {  CUBE_LINE_POINT_SIZE, -CUBE_LINE_POINT_SIZE, 0.0f };
+        submit_info.pWaitDstStageMask = &wait_stage_flags;
 
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[0], &trans[0]);
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[1], &trans[1]);
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[2], &trans[2]);
-            mat4_mult_vec3(&cam->inv_view_rot, &trans[3], &trans[3]);
+        submit_info.waitSemaphoreCount = 1;
+        submit_info.pWaitSemaphores = &render_vulkan->present_semaphore.data;
 
-            gl_state_bind_vertex_array(cube_line_point_vao);
-            cube_line_point_shader->use();
-            cube_line_point_shader->set("trans", 4, trans);
-            cube_line_point_shader->set("border_end",
-                ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE)));
-            cube_line_point_shader->set("border_start",
-                (1.0f - ((CUBE_LINE_POINT_SIZE - (CUBE_LINE_SIZE * 1.125f)) / (2.0f * CUBE_LINE_POINT_SIZE))));
-            cube_line_point_shader->set("border_color", 0.0f, 0.0f, 0.0f);
-            cube_line_point_shader->set("center_color", 0.0f, 1.0f, 0.0f);
-            glDrawArraysInstanced(GL_TRIANGLE_STRIP, 0, 4, (GLsizei)cube_line_points.size());
-            gl_state_bind_vertex_array(0);
-            cube_line_points.clear();
-            cube_line_points.shrink_to_fit();
-        }
+        submit_info.signalSemaphoreCount = 1;
+        submit_info.pSignalSemaphores = &render_vulkan->render_semaphore.data;
 
-    gl_state_bind_vertex_array(0);
-    gl_state_enable_cull_face();
-    gl_state_bind_framebuffer(0);
+        submit_info.commandBufferCount = 1;
+        submit_info.pCommandBuffers = &cmd;
 
-    if (rctx->draw_pass.enable[DRAW_PASS_POST_PROCESS])
-        fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
-            0, 0, width, height,
-            0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        if (vkQueueSubmit(render_vulkan->graphics_queue, 1,
+            &submit_info, render_vulkan->render_fence.data) == VK_SUCCESS) {
+            VkPresentInfoKHR present_info = {};
+            present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+            present_info.pNext = nullptr;
 
-#if DRAW_PASS_TIME_DISP
-    for (int32_t i = 0; i < DRAW_PASS_MAX; i++) {
-        float_t* cpu_time = draw_pass_cpu_time[i].data();
-        size_t cpu_time_count = draw_pass_cpu_time[i].size();
-        if (cpu_time_count) {
-            memmove(cpu_time, cpu_time + 1, sizeof(float_t) * (cpu_time_count - 1));
-            cpu_time[cpu_time_count - 1] = (float_t)rctx->draw_pass.cpu_time[i];
-        }
+            present_info.pSwapchains = &render_vulkan->swapchain;
+            present_info.swapchainCount = 1;
 
-        float_t* gpu_time = draw_pass_gpu_time[i].data();
-        size_t gpu_time_count = draw_pass_gpu_time[i].size();
-        if (gpu_time_count) {
-            memmove(gpu_time, gpu_time + 1, sizeof(float_t) * (gpu_time_count - 1));
-            gpu_time[gpu_time_count - 1] = (float_t)rctx->draw_pass.gpu_time[i];
+            present_info.pWaitSemaphores = &render_vulkan->render_semaphore.data;
+            present_info.waitSemaphoreCount = 1;
+
+            present_info.pImageIndices = &swapchain_image_index;
+
+            vkQueuePresentKHR(render_vulkan->graphics_queue, &present_info);
         }
     }
-#endif
+    else {
+        camera* cam = rctx->camera;
 
-    if (draw_imgui)
-        render_imgui(rctx);
+        static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+        static const GLfloat depth_clear = 1.0f;
+        static const GLint stencil_clear = 0;
+
+        for (int32_t i = 0; i < 32; i++) {
+            if (!gl_state_check_texture_binding_2d(i) && !gl_state_check_texture_binding_cube_map(i))
+                continue;
+
+            gl_state_active_bind_texture_2d(i, 0);
+            gl_state_active_bind_texture_cube_map(i, 0);
+            gl_state_bind_sampler(i, 0);
+        }
+
+        gl_state_bind_framebuffer(0);
+        gl_state_set_depth_mask(GL_TRUE);
+        gl_state_set_stencil_mask(0xFF);
+        glClearBufferfv(GL_COLOR, 0, color_clear);
+        glClearDepthf(depth_clear);
+        gl_state_set_stencil_mask(0x00);
+        gl_state_set_depth_mask(GL_FALSE);
+
+        glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
+
+        rctx->post_process.rend_texture.bind();
+        gl_state_set_depth_mask(GL_TRUE);
+        glClearBufferfv(GL_COLOR, 0, color_clear);
+        glClearBufferfv(GL_DEPTH, 0, &depth_clear);
+        gl_state_set_depth_mask(GL_FALSE);
+        
+        cam->update();
+
+        rctx->disp();
+
+        int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
+        int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
+        glViewport(screen_x_offset, screen_y_offset, internal_2d_res.x, internal_2d_res.y);
+        rctx->post_process.screen_texture.bind();
+        classes_process_disp(classes, classes_count);
+        gl_state_bind_framebuffer(0);
+
+        if (rctx->render_manager.pass_sw[rndr::RND_PASSID_POSTPROCESS])
+            fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
+                0, 0, width, height,
+                0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+        if (draw_imgui)
+            render_context_imgui(rctx);
+    }
 }
 
-static void render_dispose(render_context* rctx) {
+static void render_context_imgui(render_context* rctx) {
+    lock_lock(imgui_context_lock);
+    ImGui::SetCurrentContext(imgui_context);
+    if (vulkan_render);
+        //ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), render_vulkan->main_command_buffer);
+    else
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    lock_unlock(imgui_context_lock);
+}
+
+static void render_context_dispose(render_context* rctx) {
     classes_process_dispose(classes, classes_count);
 
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
+    if (vulkan_render);
+        //ImGui_ImplVulkan_Shutdown();
+    else
+        ImGui_ImplOpenGL3_Shutdown();
+    if (!vulkan_render) ImGui_ImplGlfw_Shutdown();
+    lock_lock(imgui_context_lock);
     ImGui::DestroyContext(imgui_context);
+    lock_unlock(imgui_context_lock);
     delete imgui_context_lock;
     imgui_context_lock = 0;
 
-    //pv_game_data.SetDest();
-    Glitter::glt_particle_manager_free_task();
-    task_auth_3d_free_task();
-    task_pv_db_free_task();
+    if (vulkan_render) {
+#pragma region Vulkan Pipeline
+        if (render_vulkan->triangle_pipeline) {
+            vkDestroyPipeline(render_vulkan->device,
+                render_vulkan->triangle_pipeline, 0);
+            render_vulkan->triangle_pipeline = 0;
+        }
+#pragma endregion
+
+#pragma region Vulkan Pipeline Layout
+        if (render_vulkan->triangle_pipeline_layout) {
+            vkDestroyPipelineLayout(render_vulkan->device,
+                render_vulkan->triangle_pipeline_layout, 0);
+            render_vulkan->triangle_pipeline_layout = 0;
+        }
+#pragma endregion
+    }
+
+    if (vulkan_render)
+        render_vulkan->unload_common_data();
+    else
+        render_opengl->unload_common_data();
+
+    //pv_game_data.DelTask();
+    if (!vulkan_render) { Glitter::glt_particle_manager_del_task();
+    task_auth_3d_del_task();
+    task_pv_db_del_task();
 
     app::TaskWork::Dest();
 
@@ -1607,21 +2174,6 @@ static void render_dispose(render_context* rctx) {
 
     light_param_data_storage::unload();
 
-    if (grid_shader) {
-        delete grid_shader;
-        grid_shader = 0;
-    }
-
-    if (cube_line_point_shader) {
-        delete cube_line_point_shader;
-        cube_line_point_shader = 0;
-    }
-
-    if (cube_line_shader) {
-        delete cube_line_shader;
-        cube_line_shader = 0;
-    }
-
     task_data_test_glitter_particle_free();
     dtw_stg_free();
     auth_3d_test_window_free();
@@ -1639,18 +2191,8 @@ static void render_dispose(render_context* rctx) {
     task_wind_free();
     rob_free();
 
-    glDeleteBuffers(1, &common_data_ubo);
-    glDeleteBuffers(1, &grid_vbo);
-    glDeleteVertexArrays(1, &grid_vao);
-    glDeleteBuffers(1, &cube_line_point_instance_vbo);
-    glDeleteVertexArrays(1, &cube_line_point_vao);
-    glDeleteBuffers(1, &cube_line_vbo);
-    glDeleteVertexArrays(1, &cube_line_vao);
-
-    app::task_work_free();
-
     rand_state_array_free();
-    item_table_array_free();
+    item_table_handler_array_free();
     pv_expression_file_storage_free();
     stage_param_data_storage_free();
     object_storage_free();
@@ -1658,28 +2200,49 @@ static void render_dispose(render_context* rctx) {
     ogg_file_handler_storage_free();
     wave_audio_storage_free();
     sound_free();
-    render_shaders_free();
 
-    data_struct_free();
-
-    osage_setting_data_free();
+    skin_param_data_free();
     mothead_storage_free();
-    motion_storage_free();
+    motion_free();
 
-    render_texture_data_free();
+    app::task_work_free();}
+
+    if (vulkan_render)
+        render_texture_vulkan_data_free(render_vulkan->device, render_vulkan->allocator);
+    else
+        render_texture_opengl_data_free();
+
+    delete rctx;
 
     file_handler_storage_free();
-    delete rctx;
+
+    texture_storage_free();
+
+    if (vulkan_render)
+        render_vulkan_shaders_free();
+    else
+        render_opengl_shaders_free();
+
+    data_struct_free();
 }
 
-static void render_imgui(render_context* rctx) {
-    lock_lock(imgui_context_lock);
-    ImGui::SetCurrentContext(imgui_context);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    lock_unlock(imgui_context_lock);
+static void render_opengl_shaders_load() {
+    data_list[DATA_AFT].load_file(&shaders_ft, "rom/", "ft_shaders.farc", render_opengl_load_shaders);
 }
 
-static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
+static void render_opengl_shaders_free() {
+    shaders_ft.unload_opengl();
+}
+
+static void render_vulkan_shaders_load() {
+    data_list[DATA_AFT].load_file(&shaders_ft, "rom/", "ft_shaders_spirv.farc", render_vulkan_load_shaders);
+}
+
+static void render_vulkan_shaders_free() {
+    shaders_ft.unload_vulkan();
+}
+
+static bool render_opengl_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
     shader_set_data* set = (shader_set_data*)data;
     std::string s;
     s.assign(path);
@@ -1687,9 +2250,24 @@ static bool render_load_shaders(void* data, const char* path, const char* file, 
 
     farc f;
     f.read(s.c_str(), true, false);
-    set->load(&f, false, "ft", shader_ft_table, shader_ft_table_size,
-        shader_ft_bind_func_table, shader_ft_bind_func_table_size);
+    set->load_opengl(&f, false, "ft", shader_ft_table, shader_ft_table_size,
+        shader_ft_opengl_bind_func_table, shader_ft_opengl_bind_func_table_size,
+        shader_ft_get_index_by_name);
+    return true;
+}
 
+static bool render_vulkan_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
+    shader_set_data* set = (shader_set_data*)data;
+    std::string s;
+    s.assign(path);
+    s.append(file);
+
+    farc f;
+    f.read(s.c_str(), true, false);
+    set->load_vulkan(render_vulkan->device, render_vulkan->allocator,
+        &f, shader_ft_table, shader_ft_table_size,
+        shader_ft_vulkan_get_func_table, shader_ft_vulkan_get_func_table_size,
+        shader_ft_get_index_by_name);
     return true;
 }
 
@@ -1709,8 +2287,10 @@ static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
 }
 
 static void render_resize_fb(render_context* rctx, bool change_fb) {
-    if (internal_3d_res.x < 20) internal_3d_res.x = 20;
-    if (internal_3d_res.y < 20) internal_3d_res.y = 20;
+    if (internal_3d_res.x < 20)
+        internal_3d_res.x = 20;
+    if (internal_3d_res.y < 20)
+        internal_3d_res.y = 20;
 
     double_t res_width = (double_t)width;
     double_t res_height = (double_t)height;
@@ -1753,7 +2333,7 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     if (fb_changed && change_fb) {
         rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
-        rctx->draw_pass.resize(internal_2d_res.x, internal_2d_res.y);
+        rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
         rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
     }
 }
@@ -1798,15 +2378,7 @@ static void render_imgui_context_menu(classes_data* classes,
     }
 }
 
-static void render_shaders_load() {
-    data_list[DATA_AFT].load_file(&shaders_ft, "rom/", "ft_shaders.farc", render_load_shaders);
-}
-
-static void render_shaders_free() {
-    shaders_ft.unload();
-}
-
-#if defined(DEBUG) && OPENGL_DEBUG
+#if RENDER_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
     GLenum severity, GLsizei length, const char* message, const void* userParam) {
     if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
@@ -1881,5 +2453,27 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 
     printf_debug("Debug message (%d): %s\n", id, message);
     printf_debug("########################################\n\n");
+}
+
+static VkResult vkGetInstanceProcAddrCreateDebugUtilsMessengerEXT(VkInstance instance,
+    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
+    static PFN_vkCreateDebugUtilsMessengerEXT _vkCreateDebugUtilsMessengerEXT;
+    if (!_vkCreateDebugUtilsMessengerEXT)
+        _vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
+        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
+    if (_vkCreateDebugUtilsMessengerEXT)
+        return _vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
+    return VK_ERROR_EXTENSION_NOT_PRESENT;
+}
+
+static void vkGetInstanceProcAddrDestroyDebugUtilsMessengerEXT(VkInstance instance,
+    VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator) {
+    static PFN_vkDestroyDebugUtilsMessengerEXT _vkDestroyDebugUtilsMessengerEXT;
+    if (!_vkDestroyDebugUtilsMessengerEXT)
+        _vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
+        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
+    if (_vkDestroyDebugUtilsMessengerEXT)
+        _vkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
 }
 #endif

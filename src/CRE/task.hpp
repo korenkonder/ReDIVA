@@ -23,21 +23,37 @@ namespace app {
 
     class Task : public TaskInterface {
     public:
-        enum class Enum {
-            None = 0x00,
-            Init = 0x01,
-            Ctrl = 0x02,
-            Dest = 0x03,
-            Max = 0x04,
+        enum class Op {
+            None = 0,
+            Init,
+            Ctrl,
+            Dest,
+            Max,
+        };
+
+        enum class Request {
+            None = 0,
+            Init,
+            Dest,
+            Suspend,
+            Hide,
+            Run,
+        };
+        
+        enum class State {
+            None = 0,
+            Running,
+            Suspended,
+            Hidden,
         };
 
         int32_t priority;
         Task* parent_task;
-        Enum field_18;
-        uint32_t field_1C;
-        uint32_t field_20;
-        Enum field_24;
-        uint32_t field_28;
+        Op op;
+        State state;
+        Request request;
+        Op next_op;
+        State next_state;
         bool field_2C;
         bool is_frame_dependent;
         char name[32];
@@ -58,12 +74,13 @@ namespace app {
         uint32_t GetDispTimeMax();
         char* GetName();
 
-        bool SetDest();
+        bool DelTask();
+        bool HideTask();
+        bool RunTask();
+        bool SuspendTask();
+
         void SetName(const char* name);
         void SetPriority(int32_t priority);
-
-        bool sub_14019C3B0();
-        bool sub_14019C540();
     };
 
     struct TaskWork;
@@ -78,9 +95,9 @@ namespace app {
         TaskWork();
         ~TaskWork();
 
-        static bool AppendTask(Task* t,
+        static bool AddTask(Task* t,
             const char* name = "(unknown)", int32_t priority = 1);
-        static bool AppendTask(Task* t, Task* parent_task,
+        static bool AddTask(Task* t, Task* parent_task,
             const char* name = "(unknown)", int32_t priority = 1);
         static void Basic();
         static bool CheckTaskCtrl(Task* t);

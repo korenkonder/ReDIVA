@@ -6,7 +6,9 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
+#include "GL/uniform_buffer.hpp"
 #include "light_param/face.hpp"
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
@@ -19,7 +21,6 @@
 #include "post_process.hpp"
 #include "render_texture.hpp"
 #include "task.hpp"
-#include "time.hpp"
 #include "static_var.hpp"
 
 #define MATRIX_BUFFER_COUNT 320
@@ -28,67 +29,11 @@
 #define TEXTURE_TRANSFORM_COUNT 24
 
 enum blur_filter_mode {
-    BLUR_FILTER_4  = 0x00,
-    BLUR_FILTER_9  = 0x01,
-    BLUR_FILTER_16 = 0x02,
-    BLUR_FILTER_32 = 0x03,
-};
-
-enum draw_object_type {
-    DRAW_OBJECT_OPAQUE                          = 0x00,
-    DRAW_OBJECT_TRANSLUCENT                     = 0x01,
-    DRAW_OBJECT_TRANSLUCENT_NO_SHADOW           = 0x02,
-    DRAW_OBJECT_TRANSPARENT                     = 0x03,
-    DRAW_OBJECT_SHADOW_CHARA                    = 0x04,
-    DRAW_OBJECT_SHADOW_STAGE                    = 0x05,
-    DRAW_OBJECT_TYPE_6                          = 0x06,
-    DRAW_OBJECT_TYPE_7                          = 0x07,
-    DRAW_OBJECT_SHADOW_OBJECT_CHARA             = 0x08,
-    DRAW_OBJECT_SHADOW_OBJECT_STAGE             = 0x09,
-    DRAW_OBJECT_REFLECT_CHARA_OPAQUE            = 0x0A,
-    DRAW_OBJECT_REFLECT_CHARA_TRANSLUCENT       = 0x0B,
-    DRAW_OBJECT_REFLECT_CHARA_TRANSPARENT       = 0x0C,
-    DRAW_OBJECT_REFLECT_OPAQUE                  = 0x0D,
-    DRAW_OBJECT_REFLECT_TRANSLUCENT             = 0x0E,
-    DRAW_OBJECT_REFLECT_TRANSPARENT             = 0x0F,
-    DRAW_OBJECT_REFRACT_OPAQUE                  = 0x10,
-    DRAW_OBJECT_REFRACT_TRANSLUCENT             = 0x11,
-    DRAW_OBJECT_REFRACT_TRANSPARENT             = 0x12,
-    DRAW_OBJECT_SSS                             = 0x13,
-    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_1            = 0x14,
-    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_1       = 0x15,
-    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_1       = 0x16,
-    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2            = 0x17,
-    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2       = 0x18,
-    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2       = 0x19,
-    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_3            = 0x1A,
-    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_3       = 0x1B,
-    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_3       = 0x1C,
-    DRAW_OBJECT_PREPROCESS                     = 0x1D,
-    DRAW_OBJECT_OPAQUE_LOCAL                    = 0x1E, // X
-    DRAW_OBJECT_TRANSLUCENT_LOCAL               = 0x1F,
-    DRAW_OBJECT_TRANSPARENT_LOCAL               = 0x20,
-    DRAW_OBJECT_OPAQUE_ALPHA_ORDER_2_LOCAL      = 0x21,
-    DRAW_OBJECT_TRANSPARENT_ALPHA_ORDER_2_LOCAL = 0x22,
-    DRAW_OBJECT_TRANSLUCENT_ALPHA_ORDER_2_LOCAL = 0x23,
-    DRAW_OBJECT_MAX                             = 0x24,
-};
-
-enum draw_pass_type {
-    DRAW_PASS_SHADOW       = 0x00,
-    DRAW_PASS_SS_SSS       = 0x01,
-    DRAW_PASS_TYPE_2       = 0x02,
-    DRAW_PASS_REFLECT      = 0x03,
-    DRAW_PASS_REFRACT      = 0x04,
-    DRAW_PASS_PRE_PROCESS  = 0x05,
-    DRAW_PASS_CLEAR        = 0x06,
-    DRAW_PASS_PRE_SPRITE   = 0x07,
-    DRAW_PASS_3D           = 0x08,
-    DRAW_PASS_SHOW_VECTOR  = 0x09,
-    DRAW_PASS_POST_PROCESS = 0x0A,
-    DRAW_PASS_SPRITE       = 0x0B,
-    DRAW_PASS_TYPE_12      = 0x0C,
-    DRAW_PASS_MAX          = 0x0D,
+    BLUR_FILTER_4 = 0,
+    BLUR_FILTER_9,
+    BLUR_FILTER_16,
+    BLUR_FILTER_32,
+    BLUR_FILTER_MAX,
 };
 
 enum draw_task_flags : uint32_t {
@@ -116,7 +61,7 @@ enum draw_task_flags : uint32_t {
     DRAW_TASK_200000                = 0x00200000,
     DRAW_TASK_400000                = 0x00400000,
     DRAW_TASK_800000                = 0x00800000,
-    DRAW_TASK_PREPROCESS           = 0x01000000,
+    DRAW_TASK_USER                  = 0x01000000,
     DRAW_TASK_2000000               = 0x02000000,
     DRAW_TASK_4000000               = 0x04000000,
     DRAW_TASK_8000000               = 0x08000000,
@@ -126,24 +71,105 @@ enum draw_task_flags : uint32_t {
     DRAW_TASK_NO_TRANSLUCENCY       = 0x80000000,
 };
 
-enum draw_task_type {
-    DRAW_TASK_OBJECT             = 0x00,
-    DRAW_TASK_OBJECT_PRIMITIVE   = 0x01,
-    DRAW_TASK_OBJECT_PREPROCESS = 0x02,
-    DRAW_TASK_OBJECT_TRANSLUCENT = 0x03,
-};
-
 enum reflect_refract_resolution_mode {
-    REFLECT_REFRACT_RESOLUTION_256x256 = 0x00,
-    REFLECT_REFRACT_RESOLUTION_512x256 = 0x01,
-    REFLECT_REFRACT_RESOLUTION_512x512 = 0x02,
+    REFLECT_REFRACT_RESOLUTION_256x256 = 0,
+    REFLECT_REFRACT_RESOLUTION_512x256,
+    REFLECT_REFRACT_RESOLUTION_512x512,
+    REFLECT_REFRACT_RESOLUTION_MAX,
 };
 
 enum shadow_type_enum {
-    SHADOW_CHARA = 0x00,
-    SHADOW_STAGE = 0x01,
-    SHADOW_MAX   = 0x02,
+    SHADOW_CHARA = 0,
+    SHADOW_STAGE,
+    SHADOW_MAX,
 };
+
+namespace mdl {
+    enum EtcObjType {
+        ETC_OBJ_TEAPOT = 0,
+        ETC_OBJ_GRID,
+        ETC_OBJ_CUBE,
+        ETC_OBJ_SPHERE,
+        ETC_OBJ_PLANE,
+        ETC_OBJ_CONE,
+        ETC_OBJ_LINE,
+        ETC_OBJ_CROSS,
+        ETC_OBJ_MAX,
+    };
+
+    enum ObjKind {
+        OBJ_KIND_NORMAL = 0,
+        OBJ_KIND_ETC,
+        OBJ_KIND_USER,
+        OBJ_KIND_TRANSLUCENT,
+        OBJ_KIND_MAX,
+    };
+    
+    enum ObjType {
+        OBJ_TYPE_OPAQUE = 0,
+        OBJ_TYPE_OPAQUE_LITPROJ_0,                // Added
+        OBJ_TYPE_OPAQUE_LITPROJ_1,                // Added
+        OBJ_TYPE_TRANSLUCENT,
+        OBJ_TYPE_TRANSLUCENT_LITPROJ_0,           // Added
+        OBJ_TYPE_TRANSLUCENT_LITPROJ_1,           // Added
+        OBJ_TYPE_TRANSLUCENT_NO_SHADOW,
+        OBJ_TYPE_TRANSPARENT,
+        OBJ_TYPE_TRANSPARENT_LITPROJ_0,           // Added
+        OBJ_TYPE_TRANSPARENT_LITPROJ_1,           // Added
+        OBJ_TYPE_SHADOW_CHARA,
+        OBJ_TYPE_SHADOW_STAGE,
+        OBJ_TYPE_TYPE_6,
+        OBJ_TYPE_TYPE_7,
+        OBJ_TYPE_SHADOW_OBJECT_CHARA,
+        OBJ_TYPE_SHADOW_OBJECT_STAGE,
+        OBJ_TYPE_REFLECT_CHARA_OPAQUE,
+        OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT,
+        OBJ_TYPE_REFLECT_CHARA_TRANSPARENT,
+        OBJ_TYPE_REFLECT_OPAQUE,
+        OBJ_TYPE_REFLECT_TRANSLUCENT,
+        OBJ_TYPE_REFLECT_TRANSPARENT,
+        OBJ_TYPE_REFRACT_OPAQUE,
+        OBJ_TYPE_REFRACT_TRANSLUCENT,
+        OBJ_TYPE_REFRACT_TRANSPARENT,
+        OBJ_TYPE_SSS,
+        OBJ_TYPE_OPAQUE_ALPHA_ORDER_1,
+        OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1,
+        OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1,
+        OBJ_TYPE_OPAQUE_ALPHA_ORDER_2,
+        OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2,
+        OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2,
+        OBJ_TYPE_OPAQUE_ALPHA_ORDER_3,
+        OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3,
+        OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3,
+        OBJ_TYPE_USER,
+        OBJ_TYPE_OPAQUE_LOCAL,                    // X
+        OBJ_TYPE_TRANSLUCENT_LOCAL,
+        OBJ_TYPE_TRANSPARENT_LOCAL,
+        OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL,
+        OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL,
+        OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL,
+        OBJ_TYPE_MAX,
+    };
+}
+
+namespace rndr {
+    enum RenderPassID {
+        RND_PASSID_SHADOWMAP = 0,
+        RND_PASSID_SS_SSS,
+        RND_PASSID_2,
+        RND_PASSID_REFLECT,
+        RND_PASSID_REFRACT,
+        RND_PASSID_USER,
+        RND_PASSID_CLEAR,
+        RND_PASSID_SPRITE_BG,
+        RND_PASSID_ALL_3D,
+        RND_PASSID_SHOW_VECTOR,
+        RND_PASSID_POSTPROCESS,
+        RND_PASSID_SPRITE_FG,
+        RND_PASSID_12,
+        RND_PASSID_NUM,
+    };
+}
 
 struct render_context;
 struct shadow;
@@ -174,70 +200,6 @@ struct sss_data {
     ~sss_data();
 };
 
-struct draw_preprocess {
-    int32_t type;
-    void(*func)(void*);
-    void* data;
-};
-
-struct draw_pass {
-    bool enable[DRAW_PASS_MAX];
-    shadow* shadow_ptr;
-    bool reflect;
-    bool refract;
-    int32_t reflect_blur_num;
-    blur_filter_mode reflect_blur_filter;
-    bool wait_for_gpu;
-    double_t cpu_time[DRAW_PASS_MAX];
-    double_t gpu_time[DRAW_PASS_MAX];
-    time_struct time;
-    bool shadow;
-    bool opaque_z_sort;
-    bool alpha_z_sort;
-    bool draw_pass_3d[DRAW_PASS_3D_MAX];
-    stage_data_reflect_type reflect_type;
-    int32_t tex_index[11];
-    render_texture render_textures[8];
-    GLuint multisample_framebuffer;
-    GLuint multisample_renderbuffer;
-    bool multisample;
-    int32_t show_vector_flags;
-    float_t show_vector_length;
-    float_t show_vector_z_offset;
-    bool field_2F8;
-    std::list<draw_preprocess> preprocess;
-    texture* effect_texture;
-    int32_t npr_param;
-    bool field_31C;
-    bool field_31D;
-    bool field_31E;
-    bool field_31F;
-    bool field_320;
-    bool npr;
-    sss_data sss_data;
-    GLuint samplers[18];
-
-    draw_pass();
-    ~draw_pass();
-
-    void add_preprocess(int32_t type, void(*func)(void*), void* data);
-    void clear_preprocess(int32_t type);
-    render_texture& get_render_texture(int32_t index);
-    void resize(int32_t width, int32_t height);
-    void set_enable(draw_pass_type type, bool value);
-    void set_effect_texture(texture* value);
-    void set_multisample(bool value);
-    void set_npr_param(int32_t value);
-    void set_reflect(bool value);
-    void set_reflect_blur(int32_t reflect_blur_num, blur_filter_mode reflect_blur_filter);
-    void set_reflect_resolution_mode(reflect_refract_resolution_mode mode);
-    void set_reflect_type(stage_data_reflect_type type);
-    void set_refract(bool value);
-    void set_refract_resolution_mode(reflect_refract_resolution_mode mode);
-    void set_shadow_false();
-    void set_shadow_true();
-};
-
 struct draw_state {
     draw_state_stats stats;
     draw_state_stats stats_prev;
@@ -263,6 +225,12 @@ struct draw_state {
     draw_state();
 
     void set_fog_height(bool value);
+};
+
+struct draw_user {
+    int32_t type;
+    void(*func)(void*);
+    void* data;
 };
 
 struct material_list_struct {
@@ -293,138 +261,145 @@ struct texture_transform_struct {
     texture_transform_struct(uint32_t id, mat4& mat);
 };
 
-struct draw_object;
+namespace mdl {
+    struct DispManager;
+    struct ObjSubMeshArgs;
 
-struct draw_object {
-    obj_sub_mesh* sub_mesh;
-    obj_mesh* mesh;
-    obj_material_data* material;
-    std::vector<GLuint>* textures;
-    int32_t mat_count;
-    mat4* mats;
-    GLuint vertex_array;
-    GLuint array_buffer;
-    GLuint element_array_buffer;
-    bool set_blend_color;
-    bool chara_color;
-    vec4 blend_color;
-    vec4 emission;
-    bool self_shadow;
-    shadow_type_enum shadow;
-    GLuint morph_array_buffer;
-    float_t morph_value;
-    int32_t texture_pattern_count;
-    texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
-    vec4 texture_color_coeff;
-    vec4 texture_color_offset;
-    vec4 texture_specular_coeff;
-    vec4 texture_specular_offset;
-    int32_t texture_transform_count;
-    texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
-    int32_t instances_count;
-    mat4* instances_mat;
-    void(*draw_object_func)(draw_object*);
-    bool vertex_attrib_array[16];
-};
+    struct ObjSubMeshArgs {
+        const obj_sub_mesh* sub_mesh;
+        const obj_mesh* mesh;
+        const obj_material_data* material;
+        const std::vector<texture*>* textures;
+        int32_t mat_count;
+        const mat4* mats;
+        GLuint vertex_array;
+        GLuint array_buffer;
+        GLuint element_array_buffer;
+        bool set_blend_color;
+        bool chara_color;
+        vec4 blend_color;
+        vec4 emission;
+        bool self_shadow;
+        shadow_type_enum shadow;
+        GLuint morph_array_buffer;
+        float_t morph_weight;
+        int32_t texture_pattern_count;
+        texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
+        vec4 texture_color_coefficients;
+        vec4 texture_color_offset;
+        vec4 texture_specular_coefficients;
+        vec4 texture_specular_offset;
+        int32_t texture_transform_count;
+        texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
+        int32_t instances_count;
+        const mat4* instances_mat;
+        void(*func)(const mdl::ObjSubMeshArgs*);
+    };
 
-enum draw_primitive_type {
-    DRAW_PRIMITIVE_TEAPOT = 0x00,
-    DRAW_PRIMITIVE_TYPE_1 = 0x01,
-    DRAW_PRIMITIVE_CUBE   = 0x02,
-    DRAW_PRIMITIVE_SPHERE = 0x03,
-    DRAW_PRIMITIVE_TYPE_4 = 0x04,
-    DRAW_PRIMITIVE_CONE   = 0x05,
-    DRAW_PRIMITIVE_LINE   = 0x06,
-    DRAW_PRIMITIVE_TYPE_7 = 0x07,
-};
+    struct EtcObjTeapot {
+        float_t size;
+    };
 
-struct draw_primitive_teapot {
-    float_t size;
-};
+    struct EtcObjGrid {
+        int32_t w;
+        int32_t h;
+        int32_t ws;
+        int32_t hs;
+    };
 
-struct draw_primitive_type_1 {
-    int32_t field_0;
-    int32_t field_4;
-    int32_t field_8;
-    int32_t field_C;
-};
+    struct EtcObjCube {
+        float_t size_x;
+        float_t size_y;
+        float_t size_z;
+        bool wire;
+    };
 
-struct draw_primitive_cube {
-    vec3 size;
-    bool wireframe;
-};
+    struct EtcObjSphere {
+        float_t radius;
+        int32_t slices;
+        int32_t stacks;
+        bool wire;
+    };
 
-struct draw_primitive_sphere {
-    float_t radius;
-    int32_t slices;
-    int32_t stacks;
-    bool wireframe;
-};
+    struct EtcObjPlane {
+        int32_t w;
+        int32_t h;
+    };
 
-struct draw_primitive_type_4 {
-    int32_t field_0;
-    int32_t field_4;
-};
+    struct EtcObjCone {
+        float_t base;
+        float_t height;
+        int32_t slices;
+        int32_t stacks;
+        bool wire;
+    };
 
-struct draw_primitive_cone {
-    float_t base;
-    float_t height;
-    int32_t slices;
-    int32_t stacks;
-    bool wireframe;
-};
+    struct EtcObjLine {
+        float_t x0;
+        float_t y0;
+        float_t z0;
+        float_t x1;
+        float_t y1;
+        float_t z1;
+    };
 
-struct draw_primitive_line {
-    vec3 v0;
-    vec3 v1;
-};
+    struct EtcObjCross {
+        float_t size;
+    };
 
-struct draw_primitive_type_7 {
-    float_t size;
-};
+    struct EtcObj {
+        union Data {
+            EtcObjTeapot teapot;
+            EtcObjGrid grid;
+            EtcObjCube cube;
+            EtcObjSphere sphere;
+            EtcObjPlane plane;
+            EtcObjCone cone;
+            EtcObjLine line;
+            EtcObjCross cross;
+        };
 
-union draw_primitive_union {
-    draw_primitive_teapot teapot;
-    draw_primitive_type_1 field_1;
-    draw_primitive_cube cube;
-    draw_primitive_sphere sphere;
-    draw_primitive_type_4 type_4;
-    draw_primitive_cone cone;
-    draw_primitive_line line;
-    draw_primitive_type_7 type_7;
-};
+        EtcObjType type;
+        vec4 color;
+        bool fog;
+        Data data;
+    };
+    
+    typedef void(*UserArgsFunc)(render_context* rctx, void* data);
 
-struct draw_primitive {
-    draw_primitive_type type;
-    bool fog;
-    vec4 color;
-    draw_primitive_union data;
-};
+    struct UserArgs {
+        UserArgsFunc func;
+        void* data;
+    };
 
-struct draw_task_preprocess {
-    void(*func)(render_context* rctx, void* data);
-    void* data;
-};
+    struct ObjTranslucentArgs {
+        uint32_t count;
+        ObjSubMeshArgs* sub_mesh[40];
+    };
+    
+    struct ObjData {
+        union Args {
+            ObjSubMeshArgs sub_mesh;
+            EtcObj::Data etc;
+            UserArgs user;
+            ObjTranslucentArgs translucent;
+        };
 
-struct draw_task_object_translucent {
-    uint32_t count;
-    draw_object* objects[40];
-};
+        ObjKind kind;
+        mat4 mat;
+        float_t view_z;
+        float_t radius;
+        Args args;
 
-union draw_task_union {
-    draw_object object;
-    draw_primitive primitive;
-    draw_task_preprocess preprocess;
-    draw_task_object_translucent object_translucent;
-};
-
-struct draw_task {
-    draw_task_type type;
-    mat4 mat;
-    float_t depth;
-    float_t bounding_radius;
-    draw_task_union data;
-};
+        void init_sub_mesh(DispManager* disp_manager, const mat4* mat,
+            float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
+            std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint array_buffer,
+            GLuint element_array_buffer, vec4* blend_color, vec4* emission, int32_t morph_array_buffer,
+            int32_t instances_count, mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
+        void init_translucent(const mat4* mat, ObjTranslucentArgs* translucent);
+        void init_user(const mat4* mat, UserArgsFunc func, void* data);
+    };
+}
 
 struct light_proj {
     bool enable;
@@ -438,122 +413,396 @@ struct light_proj {
     void resize(int32_t width, int32_t height);
     bool set(render_context* rctx);
 
-    static void get_proj_mat(vec3* view_point, vec3* interest, float_t fov, mat4* mat);
     static bool set_mat(render_context* rctx, bool set_mat);
 };
 
 struct morph_struct {
     object_info object;
-    float_t value;
+    float_t weight;
 
     morph_struct();
 };
 
-struct object_data_buffer {
-    int32_t offset;
-    int32_t max_offset;
-    int32_t size; //0x300000
-    void* data;
+struct texture_data_struct {
+    int32_t field_0;
+    vec3 texture_color_coefficients;
+    vec3 texture_color_offset;
+    vec3 texture_specular_coefficients;
+    vec3 texture_specular_offset;
 
-    object_data_buffer();
-    ~object_data_buffer();
-
-    draw_task* add_draw_task(draw_task_type type);
-    mat4* add_mat4(int32_t count);
-    void reset();
+    texture_data_struct();
 };
 
-struct object_data_culling_info {
-    int32_t objects;
-    int32_t meshes;
-    int32_t submesh_array;
+namespace mdl {
+    struct CullingCheck {
+        struct Info {
+            int32_t objects;
+            int32_t meshes;
+            int32_t submesh_array;
+        };
+
+        Info passed;
+        Info culled;
+        Info passed_prev;
+        Info culled_prev;
+
+        bool(*func)(obj_bounding_sphere*, mat4*);
+    };
+
+    struct DispManager {
+        struct vertex_array {
+            GLuint array_buffer;
+            GLuint morph_array_buffer;
+            GLuint element_array_buffer;
+            int32_t alive_time;
+            GLuint vertex_array;
+            bool vertex_attrib_array[16];
+            obj_vertex_format vertex_format;
+            GLsizei size_vertex;
+            bool compressed;
+            GLuint vertex_attrib_buffer_binding[16];
+            int32_t texcoord_array[2];
+        };
+
+        draw_task_flags draw_task_flags;
+        shadow_type_enum shadow_type;
+        int32_t field_8;
+        int32_t field_C;
+        std::vector<mdl::ObjData*> obj[mdl::OBJ_TYPE_MAX];
+        mdl::CullingCheck culling;
+        mat4 culling_mat;
+        int32_t field_230;
+        bool show_alpha_center;
+        bool show_mat_center;
+        bool object_culling;
+        bool object_sort;
+        bool chara_color;
+        int32_t buff_size;
+        int32_t buff_max;
+        int32_t buff_offset;
+        void* buff;
+        morph_struct morph;
+        int32_t texture_pattern_count;
+        texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
+        vec4 texture_color_coefficients;
+        vec4 texture_color_offset;
+        vec4 texture_specular_coefficients;
+        vec4 texture_specular_offset;
+        float_t wet_param;
+        int32_t texture_transform_count;
+        texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
+        int32_t material_list_count;
+        material_list_struct material_list_array[MATERIAL_LIST_COUNT];
+        std::vector<vertex_array> vertex_array_cache;
+
+        DispManager();
+        ~DispManager();
+
+        void add_vertex_array(const ObjSubMeshArgs* args);
+        ObjData* alloc_data(ObjKind kind);
+        mat4* alloc_data(int32_t count);
+        void buffer_reset();
+        void check_vertex_arrays();
+        void draw(mdl::ObjType type, int32_t depth_mask = 0, bool a4 = true);
+        void draw_translucent(mdl::ObjType type, int32_t alpha);
+        /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
+        void entry_list(ObjType type, ObjData* data);
+        bool entry_obj(::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
+            obj_mesh_index_buffer* obj_index_buf, const mat4* mat,
+            std::vector<texture*>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
+            obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
+            mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*), bool enable_bone_mat, bool local = false);
+        void entry_obj_by_obj(const mat4* mat,
+            ::obj* obj, std::vector<texture*>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
+            obj_mesh_index_buffer* obj_index_buf, mat4* bone_mat, float_t alpha);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, mat4* bone_mat = 0);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
+            vec4* blend_color, mat4* bone_mat, int32_t instances_count,
+            mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*), bool enable_bone_mat, bool local = false);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, float_t alpha, mat4* bone_mat = 0);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
+            float_t r, float_t g, float_t b, float_t a, mat4* bone_mat = 0, bool local = false);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
+            vec4* blend_color, mat4* bone_mat = 0, bool local = false);
+        void entry_obj_by_object_info_object_skin(object_info obj_info,
+            std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
+            mat4* matrices, mat4* ex_data_matrices, const mat4* mat, const mat4* global_mat);
+        void entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type);
+        GLuint get_vertex_array(const ObjSubMeshArgs* args);
+        bool get_chara_color();
+        ::draw_task_flags get_draw_task_flags();
+        void get_material_list(int32_t& count, material_list_struct*& value);
+        void get_morph(object_info& object, float_t& weight);
+        int32_t get_obj_count(ObjType type);
+        shadow_type_enum get_shadow_type();
+        void get_texture_color_coeff(vec4& value);
+        void get_texture_color_offset(vec4& value);
+        void get_texture_pattern(int32_t& count, texture_pattern_struct*& value);
+        void get_texture_specular_coeff(vec4& value);
+        void get_texture_specular_offset(vec4& value);
+        void get_texture_transform(int32_t& count, texture_transform_struct*& value);
+        float_t get_wet_param();
+        void obj_sort(mat4* view, ObjType type, int32_t compare_func);
+        void refresh();
+        void set_chara_color(bool value = false);
+        void set_draw_task_flags(::draw_task_flags flags = (::draw_task_flags)0);
+        void set_material_list(int32_t count = 0, material_list_struct* value = 0);
+        void set_morph(object_info object = {}, float_t weight = 0.0f);
+        void set_culling_finc(bool(*func)(obj_bounding_sphere*, mat4*) = 0);
+        void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);
+        void set_texture_color_coefficients(vec4& value);
+        void set_texture_color_offset(vec4& value);
+        void set_texture_pattern(int32_t count = 0, texture_pattern_struct* value = 0);
+        void set_texture_specular_coefficients(vec4& value);
+        void set_texture_specular_offset(vec4& value);
+        void set_texture_transform(int32_t count = 0, texture_transform_struct* value = 0);
+        void set_wet_param(float_t value = 0.0f);
+    };
+}
+
+namespace rndr {
+    struct RenderManager {
+        bool pass_sw[rndr::RND_PASSID_NUM];
+        shadow* shadow_ptr;
+        bool reflect;
+        bool refract;
+        int32_t reflect_blur_num;
+        blur_filter_mode reflect_blur_filter;
+        bool sync_gpu;
+        double_t cpu_time[rndr::RND_PASSID_NUM];
+        double_t gpu_time[rndr::RND_PASSID_NUM];
+        time_struct time;
+        bool shadow;
+        bool opaque_z_sort;
+        bool alpha_z_sort;
+        bool draw_pass_3d[DRAW_PASS_3D_MAX];
+        stage_data_reflect_type reflect_type;
+        int32_t tex_index[12]; // Extra for buf
+        render_texture render_textures[9]; // Extra for buf
+        GLuint multisample_framebuffer;
+        GLuint multisample_renderbuffer;
+        bool multisample;
+        int32_t show_vector_flags;
+        float_t show_vector_length;
+        float_t show_vector_z_offset;
+        bool field_2F8;
+        std::list<draw_user> user;
+        texture* effect_texture;
+        int32_t npr_param;
+        bool field_31C;
+        bool field_31D;
+        bool field_31E;
+        bool field_31F;
+        bool field_320;
+        bool npr;
+        sss_data sss_data;
+        GLuint samplers[18];
+
+        RenderManager();
+        ~RenderManager();
+
+        void add_user(int32_t type, void(*func)(void*), void* data);
+        void clear_user(int32_t type);
+        render_texture& get_render_texture(int32_t index);
+        void resize(int32_t width, int32_t height);
+        void set_effect_texture(texture* value);
+        void set_multisample(bool value);
+        void set_npr_param(int32_t value);
+        void set_pass_sw(rndr::RenderPassID id, bool value);
+        void set_reflect(bool value);
+        void set_reflect_blur(int32_t reflect_blur_num, blur_filter_mode reflect_blur_filter);
+        void set_reflect_resolution_mode(reflect_refract_resolution_mode mode);
+        void set_reflect_type(stage_data_reflect_type type);
+        void set_refract(bool value);
+        void set_refract_resolution_mode(reflect_refract_resolution_mode mode);
+        void set_shadow_false();
+        void set_shadow_true();
+
+        void render_all(render_context* rctx);
+
+        void render_single_pass(rndr::RenderPassID id, render_context* rctx);
+
+        void render_pass_begin();
+        void render_pass_end(rndr::RenderPassID id);
+
+        void pass_shadowmap(render_context* rctx);
+        void pass_ss_sss(render_context* rctx);
+        void pass_reflect(render_context* rctx);
+        void pass_refract(render_context* rctx);
+        void pass_user(render_context* rctx);
+        void pass_clear(render_context* rctx);
+        void pass_sprite_bg(render_context* rctx);
+        void pass_all_3d(render_context* rctx);
+        void pass_show_vector(render_context* rctx);
+        void pass_postprocess(render_context* rctx);
+        void pass_sprite_fg(render_context* rctx);
+
+        void pass_3d_contour(render_context* rctx);
+        void pass_sprite_fg_surf(render_context* rctx);
+    };
+}
+
+struct contour_coef_shader_data {
+    vec4 g_contour;
+    vec4 g_near_far;
 };
 
-struct object_data_vertex_array {
-    GLuint array_buffer;
-    GLuint morph_array_buffer;
-    GLuint element_array_buffer;
-    int32_t alive_time;
-    GLuint vertex_array;
-    bool vertex_attrib_array[16];
-    obj_vertex_format vertex_format;
-    GLsizei size_vertex;
-    bool compressed;
-    GLuint vertex_attrib_buffer_binding[16];
-    int32_t texcoord_array[2];
+struct contour_params_shader_data {
+    vec4 g_near_far;
 };
 
-struct object_data {
-    draw_task_flags draw_task_flags;
-    shadow_type_enum shadow_type;
-    int32_t field_8;
-    int32_t field_C;
-    std::vector<draw_task*> draw_task_array[DRAW_OBJECT_MAX];
-    object_data_culling_info passed;
-    object_data_culling_info culled;
-    object_data_culling_info passed_prev;
-    object_data_culling_info culled_prev;
-    int32_t field_230;
-    bool show_alpha_center;
-    bool show_mat_center;
-    bool object_culling;
-    bool object_sort;
-    bool chara_color;
-    object_data_buffer buffer;
-    morph_struct morph;
-    int32_t texture_pattern_count;
-    texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
-    vec4 texture_color_coeff;
-    vec4 texture_color_offset;
-    vec4 texture_specular_coeff;
-    vec4 texture_specular_offset;
-    float_t wet_param;
-    int32_t texture_transform_count;
-    texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
-    int32_t material_list_count;
-    material_list_struct material_list_array[MATERIAL_LIST_COUNT];
-    bool(*object_bounding_sphere_check_func)(obj_bounding_sphere*, camera*);
-    std::vector<object_data_vertex_array> vertex_array_cache;
+struct filter_scene_shader_data {
+    vec4 g_transform;
+    vec4 g_texcoord;
+};
 
-    object_data();
-    ~object_data();
+struct esm_filter_batch_shader_data {
+    vec4 g_params;
+    vec4 g_gauss[2];
+};
 
-    void add_vertex_array(draw_object* draw);
-    void check_vertex_arrays();
-    GLuint get_vertex_array(draw_object* draw);
-    bool get_chara_color();
-    ::draw_task_flags get_draw_task_flags();
-    void get_material_list(int32_t& count, material_list_struct*& value);
-    void get_morph(object_info* object, float_t* value);
-    shadow_type_enum get_shadow_type();
-    void get_texture_color_coeff(vec4& value);
-    void get_texture_color_offset(vec4& value);
-    void get_texture_pattern(int32_t& count, texture_pattern_struct*& value);
-    void get_texture_specular_coeff(vec4& value);
-    void get_texture_specular_offset(vec4& value);
-    void get_texture_transform(int32_t& count, texture_transform_struct*& value);
-    float_t get_wet_param();
-    void reset();
-    void set_chara_color(bool value = false);
-    void set_draw_task_flags(::draw_task_flags flags = (::draw_task_flags)0);
-    void set_material_list(int32_t count = 0, material_list_struct* value = 0);
-    void set_morph(object_info object = {}, float_t value = 0.0f);
-    void set_object_bounding_sphere_check_func(bool(*func)(obj_bounding_sphere*, camera*) = 0);
-    void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);
-    void set_texture_color_coeff(vec4& value);
-    void set_texture_color_offset(vec4& value);
-    void set_texture_pattern(int32_t count = 0, texture_pattern_struct* value = 0);
-    void set_texture_specular_coeff(vec4& value);
-    void set_texture_specular_offset(vec4& value);
-    void set_texture_transform(int32_t count = 0, texture_transform_struct* value = 0);
-    void set_wet_param(float_t value = 0.0f);
+struct imgfilter_batch_shader_data {
+    vec4 g_texture_lod;
+    vec4 g_color_scale;
+    vec4 g_color_offset;
+};
+
+struct glass_eye_batch_shader_data {
+    vec4 g_ellipsoid_radius;
+    vec4 g_ellipsoid_scale;
+    vec4 g_tex_model_param;
+    vec4 g_tex_offset;
+    vec4 g_eb_radius;
+    vec4 g_eb_tex_model_param;
+    vec4 g_fresnel;
+    vec4 g_refract1;
+    vec4 g_refract2;
+    vec4 g_iris_radius;
+    vec4 g_cornea_radius;
+    vec4 g_pupil_radius;
+    vec4 g_tex_scale;
+};
+
+struct obj_scene_shader_data {
+    vec4 g_irradiance_r_transforms[4];
+    vec4 g_irradiance_g_transforms[4];
+    vec4 g_irradiance_b_transforms[4];
+    vec4 g_light_env_stage_diffuse;
+    vec4 g_light_env_stage_specular;
+    vec4 g_light_env_chara_diffuse;
+    vec4 g_light_env_chara_ambient;
+    vec4 g_light_env_chara_specular;
+    vec4 g_light_env_reflect_diffuse;
+    vec4 g_light_env_reflect_ambient;
+    vec4 g_light_env_proj_diffuse;
+    vec4 g_light_env_proj_specular;
+    vec4 g_light_env_proj_position;
+    vec4 g_light_stage_dir;
+    vec4 g_light_stage_diff;
+    vec4 g_light_stage_spec;
+    vec4 g_light_chara_dir;
+    vec4 g_light_chara_spec;
+    vec4 g_light_chara_luce;
+    vec4 g_light_chara_back;
+    vec4 g_light_face_diff;
+    vec4 g_chara_color_rim;
+    vec4 g_chara_color0;
+    vec4 g_chara_color1;
+    vec4 g_chara_f_dir;
+    vec4 g_chara_f_ambient;
+    vec4 g_chara_f_diffuse;
+    vec4 g_chara_tc_param;
+    vec4 g_fog_depth_color;
+    vec4 g_fog_height_params; //x=density, y=start, z=end, w=1/(end-start)
+    vec4 g_fog_height_color;
+    vec4 g_fog_bump_params; //x=density, y=start, z=end, w=1/(end-start)
+    vec4 g_fog_state_params; //x=density, y=start, z=end, w=1/(end-start)
+    vec4 g_normal_tangent_transforms[3];
+    vec4 g_esm_param;
+    vec4 g_self_shadow_receivers[6];
+    vec4 g_shadow_ambient;
+    vec4 g_shadow_ambient1;
+    vec4 g_framebuffer_size;
+    vec4 g_light_reflect_dir;
+    vec4 g_clip_plane;
+    vec4 g_npr_cloth_spec_color;
+    vec4 g_view[3];
+    vec4 g_view_inverse[3];
+    vec4 g_projection_view[4];
+    vec4 g_view_position;
+    vec4 g_light_projection[4];
+
+    void set_g_irradiance_r_transforms(const mat4& mat);
+    void set_g_irradiance_g_transforms(const mat4& mat);
+    void set_g_irradiance_b_transforms(const mat4& mat);
+    void set_g_normal_tangent_transforms(const mat4& mat);
+    void set_g_self_shadow_receivers(int32_t index, const mat4& mat);
+    void set_g_light_projection(const mat4& mat);
+
+    void set_projection_view(const mat4& view, const mat4& proj);
+};
+
+struct obj_batch_shader_data {
+    vec4 g_transforms[4];
+    vec4 g_worlds[3];
+    vec4 g_worlds_invtrans[3];
+    vec4 g_worldview[3];
+    vec4 g_worldview_inverse[3];
+    vec4 g_joint[3];
+    vec4 g_joint_inverse[3];
+    vec4 g_texcoord_transforms[4];
+    vec4 g_blend_color;
+    vec4 g_offset_color;
+    vec4 g_material_state_diffuse;
+    vec4 g_material_state_ambient;
+    vec4 g_material_state_emission;
+    vec4 g_material_state_shininess;
+    vec4 g_material_state_specular;
+    vec4 g_fresnel_coefficients;
+    vec4 g_texture_color_coefficients;
+    vec4 g_texture_color_offset;
+    vec4 g_texture_specular_coefficients;
+    vec4 g_texture_specular_offset;
+    vec4 g_shininess;
+    vec4 g_max_alpha;
+    vec4 g_morph_weight;
+    vec4 g_sss_param;
+    vec4 g_bump_depth;
+    vec4 g_intensity;
+    vec4 g_reflect_uv_scale;
+    vec4 g_texture_blend;
+
+    void set_g_joint(const mat4& mat);
+    void set_g_texcoord_transforms(int32_t index, const mat4& mat);
+
+    void set_transforms(const mat4& model, const mat4& view, const mat4& proj);
+};
+
+struct obj_skinning_shader_data {
+    vec4 g_joint_transforms[768];
+};
+
+struct transparency_batch_shader_data {
+    vec4 g_opacity;
+};
+
+struct quad_shader_data {
+    vec4 g_texcoord_modifier;
+    vec4 g_texel_size;
+    vec4 g_color;
+    vec4 g_texture_lod;
+};
+
+struct sss_filter_gaussian_coef_shader_data {
+    vec4 g_param;
+    vec4 g_coef[64];
 };
 
 struct render_context {
     ::camera* camera;
     draw_state draw_state;
-    object_data object_data;
-    draw_pass draw_pass;
+    mdl::DispManager disp_manager;
+    rndr::RenderManager render_manager;
 
     face face;
     fog fog[FOG_MAX];
@@ -565,7 +814,31 @@ struct render_context {
     bool chara_refract;
 
     mat4 view_mat;
+    mat4 proj_mat;
+    mat4 vp_mat;
+    vec4 g_near_far;
+
     mat4 matrix_buffer[MATRIX_BUFFER_COUNT];
+
+    GLuint box_vao;
+    GLuint box_vbo;
+
+    GL::UniformBuffer contour_coef_ubo;
+    GL::UniformBuffer contour_params_ubo;
+    GL::UniformBuffer filter_scene_ubo;
+    GL::UniformBuffer esm_filter_batch_ubo;
+    GL::UniformBuffer imgfilter_batch_ubo;
+    GL::UniformBuffer glass_eye_batch_ubo;
+    GL::UniformBuffer quad_ubo;
+    GL::UniformBuffer sss_filter_gaussian_coef_ubo;
+    GL::UniformBuffer transparency_batch_ubo;
+
+    obj_scene_shader_data obj_scene;
+    obj_batch_shader_data obj_batch;
+    obj_skinning_shader_data obj_skinning;
+    GL::UniformBuffer obj_scene_ubo;
+    GL::UniformBuffer obj_batch_ubo;
+    GL::UniformBuffer obj_skinning_ubo;
 
     render_context();
     ~render_context();
@@ -581,8 +854,8 @@ struct render_context {
 };
 
 struct shadow {
-    render_texture field_8[7];
-    render_texture* field_158[3];
+    render_texture field_8[8]; // Extra for buf
+    render_texture* field_158[4]; // Extra for buf
     float_t view_region;
     float_t range;
     vec3 view_point[2];

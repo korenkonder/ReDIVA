@@ -18,6 +18,23 @@ namespace Glitter {
 
     }
 
+    Curve::Key::Key(KeyType type, int32_t frame, float_t value, float_t random_range) : tangent1(), tangent2() {
+        this->type = type;
+        this->frame = frame;
+        this->value = value;
+        this->random_range = random_range;
+    }
+    
+    Curve::Key::Key(KeyType type, int32_t frame, float_t value,
+        float_t tangent1, float_t tangent2, float_t random_range) {
+        this->type = type;
+        this->frame = frame;
+        this->value = value;
+        this->tangent1 = tangent1;
+        this->tangent2 = tangent2;
+        this->random_range = random_range;
+    }
+
     Curve::Curve(GLT) : type(), repeat(),
         start_time(), end_time(), flags(), random_range() {
         version = GLT_VAL == Glitter::X ? 0x02 : 0x01;
@@ -265,13 +282,7 @@ namespace Glitter {
             if (left_count < reverse_min_count) {
                 Curve::Key key;
                 if (left_count == 1) {
-                    key.type = KEY_CONSTANT;
-                    key.frame = frame;
-                    key.value = a[0];
-                    key.tangent1 = t2_old;
-                    key.tangent2 = 0.0f;
-                    key.random_range = b[0];
-                    keys_rev.push_back(key);
+                    keys_rev.push_back(Curve::Key(KEY_CONSTANT, frame, a[0], t2_old, 0.0f, b[0]));
                     t2_old = 0.0f;
                 }
                 else {
@@ -396,14 +407,8 @@ namespace Glitter {
             left_count -= c;
         }
 
-        Curve::Key key;
-        key.type = KEY_CONSTANT;
-        key.frame = (int32_t)(start_time + (count - 1) * step);
-        key.value = arr_a[count - 1];
-        key.tangent1 = t2_old;
-        key.tangent2 = 0.0f;
-        key.random_range = arr_b[count - 1];
-        keys_rev.push_back(key);
+        keys_rev.push_back(Curve::Key(KEY_CONSTANT, (int32_t)(start_time + (count - 1) * step),
+            arr_a[count - 1], t2_old, 0.0f, arr_b[count - 1]));
         free_def(arr_a);
         free_def(arr_b);
 
@@ -436,41 +441,33 @@ namespace Glitter {
         Curve::Key first_key = keys_rev.data()[0];
         Curve::Key last_key = keys_rev.data()[keys_count - 1];
 
-        Curve::Key key;
         keys.reserve(count);
         for (size_t i = 0; i < count; i++) {
             int32_t frame = start_time + (int32_t)(i * step);
 
             if (frame <= first_key.frame) {
-                key.type = KEY_CONSTANT;
-                key.frame = frame;
-                key.value = first_key.value;
-                key.random_range = first_key.random_range;
-                keys.push_back(key);
+                keys.push_back(Curve::Key(KEY_CONSTANT, frame, first_key.value, first_key.random_range));
                 continue;
             }
             else if (frame >= last_key.frame) {
-                key.type = KEY_CONSTANT;
-                key.frame = frame;
-                key.value = last_key.value;
-                key.random_range = last_key.random_range;
-                keys.push_back(key);
+                keys.push_back(Curve::Key(KEY_CONSTANT, frame, last_key.value, last_key.random_range));
                 continue;
             }
 
-            size_t key_idx = 0;
+            Curve::Key* key = keys_rev.data();
+
             size_t length = keys_count;
             size_t temp;
             while (length > 0)
-                if (frame > keys_rev.data()[key_idx + (temp = length >> 1)].frame) {
-                    key_idx += temp + 1;
+                if (frame < key[temp = length / 2].frame)
+                    length = temp;
+                else {
+                    key += temp + 1;
                     length -= temp + 1;
                 }
-                else
-                    length = temp;
 
-            Curve::Key* curr_key = &keys_rev.data()[key_idx - 1];
-            Curve::Key* next_key = &keys_rev.data()[key_idx];
+            Curve::Key* curr_key = key - 1;
+            Curve::Key* next_key = key;
 
             float_t val;
             float_t rand_range;
@@ -497,11 +494,7 @@ namespace Glitter {
                     (float_t)curr_key->frame, (float_t)next_key->frame, (float_t)frame);
             }
 
-            key.type = KEY_CONSTANT;
-            key.frame = frame;
-            key.value = val;
-            key.random_range = rand_range;
-            keys.push_back(key);
+            keys.push_back(Curve::Key(KEY_CONSTANT, frame, val, 0.0f, 0.0f, rand_range));
         }
     }
 #endif
@@ -639,48 +632,20 @@ namespace Glitter {
         bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
         const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
         std::vector<Curve::Key>* keys_rev) {
-        Curve::Key key;
         if (has_error && has_error_lerp && has_error_hermite) {
-            float_t _t2 = t2_old;
-            for (size_t j = 0; j < i; j++) {
-                key.type = KEY_CONSTANT;
-                key.frame = (int32_t)(frame + j * step);
-                key.value = a[j];
-                key.tangent1 = _t2;
-                key.tangent2 = 0.0f;
-                key.random_range = b[j];
-                keys_rev->push_back(key);
-                _t2 = 0.0f;
-            }
+            keys_rev->reserve(i);
+            keys_rev->push_back(Curve::Key(KEY_CONSTANT, frame, a[0], t2_old, 0.0f, b[0]));
+            for (size_t j = 1; j < i; j++)
+                keys_rev->push_back(Curve::Key(KEY_CONSTANT, (int32_t)(frame + j * step), a[j], b[j]));
         }
         else if (has_error && has_error_lerp) {
-            key.type = KEY_HERMITE;
-            key.frame = frame;
-            key.value = a[0];
-            key.tangent1 = t2_old;
-            key.tangent2 = t1;
-            key.random_range = b[0];
-            keys_rev->push_back(key);
+            keys_rev->push_back(Curve::Key(KEY_HERMITE, frame, a[0], t2_old, t1, b[0]));
             return t2;
         }
-        else if (has_error || (i > 1 && b[0] != b[1])) {
-            key.type = KEY_LINEAR;
-            key.frame = frame;
-            key.value = a[0];
-            key.tangent1 = 0.0f;
-            key.tangent2 = 0.0f;
-            key.random_range = b[0];
-            keys_rev->push_back(key);
-        }
-        else {
-            key.type = KEY_CONSTANT;
-            key.frame = frame;
-            key.value = a[0];
-            key.tangent1 = 0.0f;
-            key.tangent2 = 0.0f;
-            key.random_range = b[0];
-            keys_rev->push_back(key);
-        }
+        else if (has_error || (i > 1 && b[0] != b[1]))
+            keys_rev->push_back(Curve::Key(KEY_LINEAR, frame, a[0], b[0]));
+        else
+            keys_rev->push_back(Curve::Key(KEY_CONSTANT, frame, a[0], b[0]));
         return 0.0f;
     }
 #endif

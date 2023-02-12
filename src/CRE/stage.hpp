@@ -26,12 +26,7 @@ struct stage {
     float_t rot_y;
     uint32_t obj_set;
 
-    // Temp
-    std::vector<auth_3d_id> auth_3d_ids;
-    bool effect_display;
-
     stage();
-    ~stage();
 };
 
 #define TASK_STAGE_STAGE_COUNT 37
@@ -69,29 +64,8 @@ struct task_stage_info {
     task_stage_info();
 };
 
-class DtmStg : public app::Task {
-public:
-    int32_t stage_index;
-    int32_t load_stage_index;
-
-    DtmStg();
-    virtual ~DtmStg() override;
-
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-};
-
-extern DtmStg* dtm_stg;
-
-extern void dtm_stg_init();
-extern void dtm_stg_load(int32_t stage_index);
-extern bool dtm_stg_unload();
-extern void dtm_stg_free();
-
 extern void task_stage_init();
 extern bool task_stage_check_not_loaded();
-extern void task_stage_current_set_effect_display(bool value);
 extern void task_stage_current_set_ground(bool value);
 extern void task_stage_current_set_ring(bool value);
 extern void task_stage_current_set_sky(bool value);
@@ -105,7 +79,6 @@ extern stage* task_stage_get_stage(task_stage_info stg_info);
 int32_t task_stage_get_stage_index(task_stage_info* stg_info);
 extern bool task_stage_has_stage_info(task_stage_info* stg_info);
 extern bool task_stage_load_task(const char* name);
-extern void task_stage_set_effect_display(task_stage_info* stg_info, bool value);
 extern void task_stage_set_ground(task_stage_info* stg_info, bool value);
 extern void task_stage_set_mat(mat4* mat);
 extern void task_stage_set_ring(task_stage_info* stg_info, bool value);

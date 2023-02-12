@@ -67,10 +67,8 @@ namespace Glitter {
             return -1;
 
         bone_database* bone_data = (bone_database*)GPM_VAL->bone_data;
-        std::vector<std::string>* motion_bone_names = 0;
-        if (!bone_data || bone_data->skeleton.size() < 1
-            || !bone_data->get_skeleton_motion_bones(
-                bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), &motion_bone_names))
+        const std::vector<std::string>* motion_bone_names = 0;
+        if (!bone_data || bone_data->skeleton.size() < 1)
             return -1;
 
         static const char* bone_names[] = {
@@ -94,11 +92,8 @@ namespace Glitter {
             "kl_toe_r_wj"
         };
 
-        uint64_t bone_name_hash = hash_utf8_fnv1a64m(bone_names[node]);
-        for (std::string& i : *motion_bone_names)
-            if (bone_name_hash == hash_string_fnv1a64m(i))
-                return (int32_t)(&i - motion_bone_names->data());
-        return -1;
+        return bone_data->get_skeleton_motion_bone_index(
+            bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone_names[node]);
     }
 
     F2EffectInst::ExtAnim::ExtAnim() {
@@ -610,13 +605,18 @@ namespace Glitter {
     }
 
     XEffectInst::XEffectInst(GPM, Effect* eff,
-        size_t id, float_t emission, bool appear_now)
+        size_t id, float_t emission, bool appear_now, uint8_t load_flags)
         : EffectInst(GPM_VAL, Glitter::X, eff, id, emission, appear_now) {
         mat_rot = mat4_identity;
         mat_rot_eff_rot = mat4_identity;
         random_shared.XReset();
         ext_anim = 0;
         render_scene = {};
+
+        GPM_VAL->CounterIncrement();
+
+        if (load_flags & 0x01)
+            enum_or(flags, EFFECT_INST_FLAG_23);
 
         if (data.flags & EFFECT_USE_SEED)
             random = data.seed;

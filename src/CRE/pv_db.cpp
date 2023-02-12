@@ -4,10 +4,11 @@
 */
 
 #include "pv_db.hpp"
-#include "mdata_manager.hpp"
-#include "render_context.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "hand_item.hpp"
+#include "mdata_manager.hpp"
+#include "render_context.hpp"
 
 extern render_context* rctx_ptr;
 
@@ -1283,7 +1284,7 @@ namespace pv_db {
 
                                 pv_db_pv_hand_item hand_item;
                                 hand_item.index = (int32_t)k;
-                                hand_item.id = -1;
+                                hand_item.id = hand_item_handler_data_get_hand_item_uid(name.c_str());
                                 hand_item.name = name;
                                 d.hand_item.push_back(hand_item);
                                 kv.close_scope();
@@ -2002,28 +2003,31 @@ void task_pv_db_init() {
 
 void task_pv_db_add_paths() {
     pv_db::TaskPvDB* task_pv_db = task_pv_db_get();
-    std::list<std::string>& prefixes = mdata_manager_get()->prefixes;
-    for (std::string& i : prefixes) {
-        std::string pv_db_file = i + "pv_db.txt";
+    for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+        std::string pv_db_file;
+        pv_db_file.assign(i);
+        pv_db_file.append("pv_db.txt");
         if (data_list[DATA_AFT].check_file_exists("rom/", pv_db_file.c_str()))
             task_pv_db->paths.push_back({ "rom/", pv_db_file });
 
-        std::string pv_field_file = i + "pv_field.txt";
+        std::string pv_field_file;
+        pv_field_file.assign(i);
+        pv_field_file.append("pv_field.txt");
         if (data_list[DATA_AFT].check_file_exists("rom/", pv_field_file.c_str()))
             task_pv_db->paths.push_back({ "rom/", pv_field_file });
     }
 }
 
-bool task_pv_db_append_task() {
-    return app::TaskWork::AppendTask(task_pv_db_get(), "PV DB");
+bool task_pv_db_add_task() {
+    return app::TaskWork::AddTask(task_pv_db_get(), "PV DB");
 }
 
 void task_pv_db_free_pv_data() {
     task_pv_db_get()->pv_data.clear();
 }
 
-bool task_pv_db_free_task() {
-    return task_pv_db_get()->SetDest();
+bool task_pv_db_del_task() {
+    return task_pv_db_get()->DelTask();
 }
 
 pv_db::TaskPvDB* task_pv_db_get() {

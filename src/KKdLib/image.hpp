@@ -42,8 +42,8 @@ struct dxt5_block {
 };
 
 extern void dxt1_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, dxt1_block* data, color_tone* col_tone);
+    int32_t size, dxt1_block* data, const color_tone* col_tone);
 extern void dxt5_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, dxt5_block* data, color_tone* col_tone);
+    int32_t size, dxt5_block* data, const color_tone* col_tone);
 extern void rgb565_image_apply_color_tone(int32_t width, int32_t height,
-    int32_t size, rgb565* data, color_tone* col_tone);
+    int32_t size, rgb565* data, const color_tone* col_tone);

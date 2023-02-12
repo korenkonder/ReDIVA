@@ -10,9 +10,14 @@
 #include "../post_process.hpp"
 #include "../shader_ft.hpp"
 
+struct exposure_measure_shader_data {
+    vec4 g_spot_weight;
+    vec4 g_spot_coefficients[32];
+};
+
 static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
 
-post_process_exposure_chara_data::post_process_exposure_chara_data() : field_80(), query(), query_data() {
+post_process_exposure_chara_data::post_process_exposure_chara_data() : spot_weight(), query(), query_data() {
     for (GLuint& i : query_data)
         i = -1;
 }
@@ -20,11 +25,14 @@ post_process_exposure_chara_data::post_process_exposure_chara_data() : field_80(
 post_process_exposure::post_process_exposure() : exposure_history_counter(),
 chara_data(), query_index() {
     chara_data = new post_process_exposure_chara_data[ROB_CHARA_COUNT];
+    exposure_measure_ubo.Create(sizeof(exposure_measure_shader_data));
 }
 
 post_process_exposure::~post_process_exposure() {
     if (!this)
         return;
+
+    exposure_measure_ubo.Destroy();
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         glDeleteQueries(3, chara_data[i].query);
@@ -37,8 +45,9 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     bool v2 = false;
     if (!reset_exposure) {
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-            memset(&chara_data[i].field_0, 0, sizeof(chara_data[i].field_0));
-            chara_data[i].field_80 = 0.0f;
+            memset(&chara_data[i].spot_coefficients,
+                0, sizeof(chara_data[i].spot_coefficients));
+            chara_data[i].spot_weight = 0.0f;
         }
 
         post_process_exposure_chara_data* v6 = chara_data;
@@ -107,83 +116,91 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
             else
                 v22 = 1.0f;
 
-            v6->field_0[0].x = (v13 + v21 * 0.0f * v18 + 1.0f) * 0.5f;
-            v6->field_0[0].y = (v14 + v21 * 0.1f + 1.0f) * 0.5f;
-            v6->field_0[0].z = 0.0f;
-            v6->field_0[0].w = 4.0f;
-            v6->field_0[1].x = (v13 + v21 * 0.0f * v18 + 1.0f) * 0.5f;
-            v6->field_0[1].y = (v14 - v21 * 0.3f + 1.0f) * 0.5f;
-            v6->field_0[1].z = 0.0f;
-            v6->field_0[1].w = 4.0f;
-            v6->field_0[2].x = (v13 + v21 * -0.5f * v18 + 1.0f) * 0.5f;
-            v6->field_0[2].y = (v14 + v21 * -0.5f + 1.0f) * 0.5f;
-            v6->field_0[2].z = 0.0f;
-            v6->field_0[2].w = 3.0f;
-            v6->field_0[3].x = (v13 - v21 * 0.6f * v18 + 1.0f) * 0.5f;
-            v6->field_0[3].y = (v14 - v21 * 0.1f + 1.0f) * 0.5f;
-            v6->field_0[3].z = 0.0f;
-            v6->field_0[3].w = 2.0f;
-            v6->field_0[4].x = (v13 + v21 * 0.6f * v18 + 1.0f) * 0.5f;
-            v6->field_0[4].y = (v14 - v21 * 0.1f + 1.0f) * 0.5f;
-            v6->field_0[4].z = 0.0f;
-            v6->field_0[4].w = 2.0f;
-            v6->field_0[5].x = (v13 + v21 * 0.5f * v18 + 1.0f) * 0.5f;
-            v6->field_0[5].y = (v14 + v21 * -0.5f + 1.0f) * 0.5f;
-            v6->field_0[5].z = 0.0f;
-            v6->field_0[5].w = 3.0f;
-            v6->field_0[6].x = (v13 + v21 * 0.0f * v18 + 1.0f) * 0.5f;
-            v6->field_0[6].y = (v14 - v21 * 0.8f + 1.0f) * 0.5f;
-            v6->field_0[6].z = 0.0f;
-            v6->field_0[6].w = 3.0f;
-            v6->field_80 = v16 * 1.6f * v17 * v22;
-            if (v6->field_80 > 0.0f && !v6->query_data[query_index])
+            v6->spot_coefficients[0].x = (v13 + v21 * 0.0f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[0].y = (v14 + v21 * 0.1f + 1.0f) * 0.5f;
+            v6->spot_coefficients[0].z = 0.0f;
+            v6->spot_coefficients[0].w = 4.0f;
+            v6->spot_coefficients[1].x = (v13 + v21 * 0.0f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[1].y = (v14 - v21 * 0.3f + 1.0f) * 0.5f;
+            v6->spot_coefficients[1].z = 0.0f;
+            v6->spot_coefficients[1].w = 4.0f;
+            v6->spot_coefficients[2].x = (v13 + v21 * -0.5f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[2].y = (v14 + v21 * -0.5f + 1.0f) * 0.5f;
+            v6->spot_coefficients[2].z = 0.0f;
+            v6->spot_coefficients[2].w = 3.0f;
+            v6->spot_coefficients[3].x = (v13 - v21 * 0.6f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[3].y = (v14 - v21 * 0.1f + 1.0f) * 0.5f;
+            v6->spot_coefficients[3].z = 0.0f;
+            v6->spot_coefficients[3].w = 2.0f;
+            v6->spot_coefficients[4].x = (v13 + v21 * 0.6f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[4].y = (v14 - v21 * 0.1f + 1.0f) * 0.5f;
+            v6->spot_coefficients[4].z = 0.0f;
+            v6->spot_coefficients[4].w = 2.0f;
+            v6->spot_coefficients[5].x = (v13 + v21 * 0.5f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[5].y = (v14 + v21 * -0.5f + 1.0f) * 0.5f;
+            v6->spot_coefficients[5].z = 0.0f;
+            v6->spot_coefficients[5].w = 3.0f;
+            v6->spot_coefficients[6].x = (v13 + v21 * 0.0f * v18 + 1.0f) * 0.5f;
+            v6->spot_coefficients[6].y = (v14 - v21 * 0.8f + 1.0f) * 0.5f;
+            v6->spot_coefficients[6].z = 0.0f;
+            v6->spot_coefficients[6].w = 3.0f;
+            v6->spot_weight = v16 * 1.6f * v17 * v22;
+            if (v6->spot_weight > 0.0f && !v6->query_data[query_index])
                 v2 = true;
         }
     }
 
     if (!v2 || reset_exposure) {
-        //uniform_value[U_EXPOSURE] = 1;
-        //shaders_ft.set(SHADER_FT_EXPOSURE);
-        shaders_ft.set(SHADER_FT_EXPOSURE_MEASURE);
-        shaders_ft.local_frag_set(1,
-            chara_data[0].field_80,
-            chara_data[1].field_80,
-            chara_data[2].field_80,
-            chara_data[3].field_80);
+        exposure_measure_shader_data exposure_measure = {};
+        exposure_measure.g_spot_weight = {
+            chara_data[0].spot_weight,
+            chara_data[1].spot_weight,
+            chara_data[2].spot_weight,
+            chara_data[3].spot_weight
+        };
 
-        post_process_exposure_chara_data* v27 = chara_data;
-        for (int32_t i = 0; i < 4 && i < ROB_CHARA_COUNT; i++, v27++)
-            shaders_ft.local_frag_set(4ULL + (size_t)i * 8, 8, v27->field_0);
+        post_process_exposure_chara_data* chara_data = this->chara_data;
+        for (int32_t i = 0; i < 4 && i < ROB_CHARA_COUNT; i++, chara_data++)
+            for (int32_t j = 0; j < 8; j++)
+                exposure_measure.g_spot_coefficients[i * 8 + j] = chara_data->spot_coefficients[j];
+        exposure_measure_ubo.WriteMapMemory(exposure_measure);
 
         if (reset_exposure)
             glViewport(0, 0, 32, 1);
         else
             glViewport(exposure_history_counter, 0, 1, 1);
         exposure_history.bind();
+
+        uniform_value[U_EXPOSURE] = 1;
+        shaders_ft.set_opengl_shader(SHADER_FT_EXPOSURE);
+        exposure_measure_ubo.Bind(1);
         gl_state_active_bind_texture_2d(0, in_tex_0);
         gl_state_active_bind_texture_2d(1, in_tex_1);
-        render_texture::draw_params(&shaders_ft, reset_exposure ? 32 : 1, 1);
+        render_texture::draw_quad(&shaders_ft, reset_exposure ? 32 : 1, 1);
         exposure_history_counter++;
         exposure_history_counter %= 32;
     }
 
     glViewport(0, 0, 1, 1);
     exposure.bind();
+    uniform_value[U_EXPOSURE] = 2;
+    shaders_ft.set_opengl_shader(SHADER_FT_EXPOSURE);
     gl_state_active_bind_texture_2d(0, exposure_history.color_texture->tex);
-    //uniform_value[U_EXPOSURE] = 2;
-    //shaders_ft.set(SHADER_FT_EXPOSURE);
-    shaders_ft.set(SHADER_FT_EXPOSURE_AVERAGE);
-    render_texture::draw_params(&shaders_ft, 1, 1);
+    render_texture::draw_quad(&shaders_ft, 1, 1);
 }
 
 void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) {
-    shader::unbind();
+    shader_opengl::unbind();
 
     post_process* pp = (post_process*)pp_data;
 
     gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_disable_cull_face();
+
+    shaders_ft.set_opengl_shader(SHADER_FT_SUN_NO_TEXTURED);
+    gl_state_bind_vertex_array(pp->query_vao);
+    pp->sun_quad_ubo.Bind(0);
 
     post_process_exposure_chara_data* chara = chara_data;
     int32_t query_index = (this->query_index + 1) % 3;
@@ -201,9 +218,21 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
         mat4_mult(&mat, &cam->view, &mat);
         mat4_translate_mult(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
         mat4_clear_rot(&mat, &mat);
+        mat4_scale_rot(&mat, 0.0035f, &mat);
         mat4_mult(&mat, &cam->projection, &mat);
 
-        pp->draw_query_samples(chara->query[next_query_index], 0.0035f, mat);
+        sun_quad_shader_data shader_data = {};
+        mat4_transpose(&mat, &mat);
+        shader_data.g_transform[0] = mat.row0;
+        shader_data.g_transform[1] = mat.row1;
+        shader_data.g_transform[2] = mat.row2;
+        shader_data.g_transform[3] = mat.row3;
+        shader_data.g_emission = 0.0f;
+        pp->sun_quad_ubo.WriteMapMemory(shader_data);
+
+        glBeginQuery(GL_SAMPLES_PASSED, chara->query[next_query_index]);
+        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+        glEndQuery(GL_SAMPLES_PASSED);
 
         if (chara->query_data[next_query_index] == -1)
             chara->query_data[next_query_index] = 0;
@@ -217,6 +246,8 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
                 chara->query_data[query_index] = 0;
         }
     }
+
+    gl_state_bind_vertex_array(0);
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     gl_state_set_depth_mask(GL_TRUE);

@@ -30,12 +30,12 @@ struct mot_header_modern {
     int32_t bone_info_count;
 };
 
-static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<alloc_data>& alloc, stream& s);
+static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void mot_classic_write_inner(mot_set* ms, stream& s);
-static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<alloc_data>& alloc, stream& s);
+static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void mot_modern_write_inner(mot_set* ms, stream& s);
 static const char* mot_read_utf8_string_null_terminated_offset(
-    prj::shared_ptr<alloc_data>& alloc, stream& s, int64_t offset);
+    prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset);
 
 mot_bone_info::mot_bone_info() : name(), index() {
 
@@ -67,7 +67,7 @@ void mot_set::pack_file(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-void mot_set::unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern) {
+void mot_set::unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern) {
     if (!data || !size)
         return;
 
@@ -143,7 +143,7 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
 }
 
 mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
-    prj::shared_ptr<alloc_data> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count) {
+    prj::shared_ptr<prj::stack_allocator> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count) {
     std::vector<uint16_t> _frames;
     std::vector<float_t> _values;
     mot_key_set_type type = mot_set::fit_keys_into_curve(values_src, _frames, _values);
@@ -331,7 +331,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
     return MOT_KEY_SET_HERMITE;
 }
 
-static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<alloc_data>& alloc, stream& s) {
+static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
     size_t count = 0;
     while (s.read_uint64_t() != 0) {
         s.read_uint64_t();
@@ -519,7 +519,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
     free_def(mh);
 }
 
-static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<alloc_data>& alloc, stream& s) {
+static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
     f2_struct st;
     st.read(s);
     if (st.header.signature != reverse_endianness_uint32_t('MOTC') || !st.data.size()) {
@@ -959,7 +959,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 }
 
 inline static const char* mot_read_utf8_string_null_terminated_offset(
-    prj::shared_ptr<alloc_data>& alloc, stream& s, int64_t offset) {
+    prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset) {
     size_t len = s.read_utf8_string_null_terminated_offset_length(offset);
     char* str = alloc->allocate<char>(len + 1);
     s.position_push(offset, SEEK_SET);

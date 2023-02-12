@@ -7,6 +7,7 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
+#include "GL/uniform_buffer.hpp"
 #include "post_process/aa.hpp"
 #include "post_process/blur.hpp"
 #include "post_process/dof.hpp"
@@ -24,6 +25,11 @@ enum post_process_mag_filter_type {
     POST_PROCESS_MAG_FILTER_MAX           = 6,
 };
 
+struct sun_quad_shader_data {
+    vec4 g_transform[4];
+    vec4 g_emission;
+};
+
 struct post_process {
     bool ssaa;
     bool mlaa;
@@ -36,7 +42,7 @@ struct post_process {
     render_texture pre_texture;
     render_texture post_texture;
     render_texture fbo_texture;
-    render_texture alpha_layer_texture;
+    render_texture transparency_texture;
     render_texture screen_texture;
     texture* render_textures_data[16];
     render_texture render_textures[16];
@@ -49,21 +55,20 @@ struct post_process {
     post_process_exposure* exposure;
     post_process_tone_map* tone_map;
     GLuint samplers[2];
-    shader_glsl query_shader;
     GLuint query_vao;
     GLuint query_vbo;
     GLuint lens_ghost_vao;
     GLuint lens_ghost_vbo;
-    shader_glsl alpha_layer_shader;
+    GL::UniformBuffer sun_quad_ubo;
     int32_t texture_counter;
     GLuint lens_shaft_query[3];
     GLuint lens_flare_query[3];
     GLuint lens_shaft_query_data[3];
     GLuint lens_flare_query_data[3];
     int32_t lens_flare_query_index;
-    GLuint lens_flare_texture;
-    GLuint lens_shaft_texture;
-    GLuint lens_ghost_texture;
+    texture* lens_flare_texture;
+    texture* lens_shaft_texture;
+    texture* lens_ghost_texture;
     int32_t lens_ghost_count;
     vec3 lens_flare_pos;
     float_t lens_shaft_scale;
@@ -95,7 +100,6 @@ struct post_process {
     void ctrl(camera* cam);
     void draw_lens_flare(camera* cam);
     void draw_lens_ghost(render_texture* rt);
-    void draw_query_samples(GLuint query, float_t scale, mat4& mat);
     void init_fbo(int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
     int32_t movie_texture_set(texture* movie_texture);

@@ -145,7 +145,7 @@ DDSCONST DDS_PIXELFORMAT DDSPF_L8A8 =
 DDSCONST DDS_PIXELFORMAT DDSPF_A8 =
 { sizeof(DDS_PIXELFORMAT), DDS_ALPHA, 0, 8, 0, 0, 0, 0xff };
 
-static void dds_reverse_rgb(txp_format format, int64_t size, uint8_t* data);
+static void dds_reverse_rgb(txp_format format, size_t size, uint8_t* data);
 static bool dds_check_is_dxt1a(int64_t size, uint8_t* data);
 
 dds::dds() : format(), width(), height(), mipmaps_count(), has_cube_map() {
@@ -235,19 +235,17 @@ void dds::read(const wchar_t* path) {
         else if (!memcmp(&dds_h.ddspf, &DDSPF_A4B4G4R4, sizeof(DDS_PIXELFORMAT)))
             format = TXP_RGBA4;
         else if (!memcmp(&dds_h.ddspf, &DDSPF_DXT1, sizeof(uint32_t) * 3))
-            format = TXP_DXT1;
+            format = TXP_BC1;
         else if (!memcmp(&dds_h.ddspf, &DDSPF_DXT3, sizeof(uint32_t) * 3))
-            format = TXP_DXT3;
+            format = TXP_BC2;
         else if (!memcmp(&dds_h.ddspf, &DDSPF_DXT5, sizeof(uint32_t) * 3))
-            format = TXP_DXT5;
-        else if (!memcmp(&dds_h.ddspf, &DDSPF_ATI1, sizeof(uint32_t) * 3))
-            format = TXP_ATI1;
-        else if (!memcmp(&dds_h.ddspf, &DDSPF_BC4_UNORM, sizeof(uint32_t) * 3))
-            format = TXP_ATI1;
-        else if (!memcmp(&dds_h.ddspf, &DDSPF_ATI2, sizeof(uint32_t) * 3))
-            format = TXP_ATI2;
-        else if (!memcmp(&dds_h.ddspf, &DDSPF_BC5_UNORM, sizeof(uint32_t) * 3))
-            format = TXP_ATI2;
+            format = TXP_BC3;
+        else if (!memcmp(&dds_h.ddspf, &DDSPF_ATI1, sizeof(uint32_t) * 3)
+            || !memcmp(&dds_h.ddspf, &DDSPF_BC4_UNORM, sizeof(uint32_t) * 3))
+            format = TXP_BC4;
+        else if (!memcmp(&dds_h.ddspf, &DDSPF_ATI2, sizeof(uint32_t) * 3)
+            || !memcmp(&dds_h.ddspf, &DDSPF_BC5_UNORM, sizeof(uint32_t) * 3))
+            format = TXP_BC5;
         else if (!memcmp(&dds_h.ddspf, &DDSPF_L8, sizeof(DDS_PIXELFORMAT)))
             format = TXP_L8;
         else if (!memcmp(&dds_h.ddspf, &DDSPF_L8A8, sizeof(DDS_PIXELFORMAT))) {
@@ -275,8 +273,8 @@ void dds::read(const wchar_t* path) {
                 s.read(data, size);
                 if (reverse)
                     dds_reverse_rgb(format, size, (uint8_t*)data);
-                else if (format == TXP_DXT1 && dds_check_is_dxt1a(size, (uint8_t*)data))
-                    format = TXP_DXT1a;
+                else if (format == TXP_BC1 && dds_check_is_dxt1a(size, (uint8_t*)data))
+                    format = TXP_BC1a;
                 this->data.push_back(data);
             }
         while (has_cube_map && data.size() / mipmaps_count < 6);
@@ -298,72 +296,74 @@ void dds::write(const wchar_t* path) {
     if (!this || !path || data.size() < 1)
         return;
 
+    DDS_HEADER dds_h = {};
+    dds_h.size = sizeof(DDS_HEADER);
+    dds_h.flags = DDS_HEADER_FLAGS_TEXTURE | DDSD_LINEARSIZE;
+    if (mipmaps_count > 1)
+        dds_h.flags |= DDSD_MIPMAPCOUNT;
+    dds_h.height = height;
+    dds_h.width = width;
+    dds_h.pitchOrLinearSize = txp::get_size(format, width, height);
+    dds_h.mipMapCount = mipmaps_count;
+    dds_h.caps |= DDS_SURFACE_FLAGS_TEXTURE;
+    if (has_cube_map)
+        dds_h.caps |= DDS_SURFACE_FLAGS_cube_map;
+
+    if (mipmaps_count > 1)
+        dds_h.caps |= DDS_SURFACE_FLAGS_MIPMAP;
+
+    if (has_cube_map)
+        dds_h.caps2 |= DDS_CUBE_MAP_ALLFACES;
+
+    switch (format) {
+    case TXP_A8:
+        dds_h.ddspf = DDSPF_A8;
+        break;
+    case TXP_RGB8:
+        dds_h.ddspf = DDSPF_R8G8B8;
+        break;
+    case TXP_RGBA8:
+        dds_h.ddspf = DDSPF_A8R8G8B8;
+        break;
+    case TXP_RGB5:
+        dds_h.ddspf = DDSPF_R5G6B5;
+        break;
+    case TXP_RGB5A1:
+        dds_h.ddspf = DDSPF_A1R5G5B5;
+        break;
+    case TXP_RGBA4:
+        dds_h.ddspf = DDSPF_A4R4G4B4;
+        break;
+    case TXP_BC1:
+    case TXP_BC1a:
+        dds_h.ddspf = DDSPF_DXT1;
+        break;
+    case TXP_BC2:
+        dds_h.ddspf = DDSPF_DXT3;
+        break;
+    case TXP_BC3:
+        dds_h.ddspf = DDSPF_DXT5;
+        break;
+    case TXP_BC4:
+        dds_h.ddspf = DDSPF_ATI1;
+        break;
+    case TXP_BC5:
+        dds_h.ddspf = DDSPF_ATI2;
+        break;
+    case TXP_L8:
+        dds_h.ddspf = DDSPF_L8;
+        break;
+    case TXP_L8A8:
+        dds_h.ddspf = DDSPF_L8A8;
+        break;
+    default:
+        return;
+    }
+
     wchar_t* path_dds = str_utils_add(path, L".dds");
     file_stream s;
     s.open(path_dds, L"wb");
     if (s.check_not_null()) {
-        DDS_HEADER dds_h = {};
-        dds_h.size = sizeof(DDS_HEADER);
-        dds_h.flags = DDS_HEADER_FLAGS_TEXTURE | DDSD_LINEARSIZE;
-        if (mipmaps_count > 1)
-            dds_h.flags |= DDSD_MIPMAPCOUNT;
-        dds_h.height = height;
-        dds_h.width = width;
-        dds_h.pitchOrLinearSize = txp::get_size(format, width, height);
-        dds_h.mipMapCount = mipmaps_count;
-        dds_h.caps |= DDS_SURFACE_FLAGS_TEXTURE;
-        if (has_cube_map)
-            dds_h.caps |= DDS_SURFACE_FLAGS_cube_map;
-
-        if (mipmaps_count > 1)
-            dds_h.caps |= DDS_SURFACE_FLAGS_MIPMAP;
-
-        if (has_cube_map)
-            dds_h.caps2 |= DDS_CUBE_MAP_ALLFACES;
-
-        switch (format) {
-        case TXP_A8:
-            dds_h.ddspf = DDSPF_A8;
-            break;
-        case TXP_RGB8:
-            dds_h.ddspf = DDSPF_R8G8B8;
-            break;
-        case TXP_RGBA8:
-            dds_h.ddspf = DDSPF_A8R8G8B8;
-            break;
-        case TXP_RGB5:
-            dds_h.ddspf = DDSPF_R5G6B5;
-            break;
-        case TXP_RGB5A1:
-            dds_h.ddspf = DDSPF_A1R5G5B5;
-            break;
-        case TXP_RGBA4:
-            dds_h.ddspf = DDSPF_A4R4G4B4;
-            break;
-        case TXP_DXT1:
-        case TXP_DXT1a:
-            dds_h.ddspf = DDSPF_DXT1;
-            break;
-        case TXP_DXT3:
-            dds_h.ddspf = DDSPF_DXT3;
-            break;
-        case TXP_DXT5:
-            dds_h.ddspf = DDSPF_DXT5;
-            break;
-        case TXP_ATI1:
-            dds_h.ddspf = DDSPF_ATI1;
-            break;
-        case TXP_ATI2:
-            dds_h.ddspf = DDSPF_ATI2;
-            break;
-        case TXP_L8:
-            dds_h.ddspf = DDSPF_L8;
-            break;
-        case TXP_L8A8:
-            dds_h.ddspf = DDSPF_L8A8;
-            break;
-        }
-
         s.write_uint32_t_reverse_endianness(DDS_MAGIC, true);
         s.write(&dds_h, sizeof(DDS_HEADER));
 
@@ -384,7 +384,7 @@ void dds::write(const wchar_t* path) {
     free_def(path_dds);
 }
 
-static void dds_reverse_rgb(txp_format format, int64_t size, uint8_t* data) {
+static void dds_reverse_rgb(txp_format format, size_t size, uint8_t* data) {
     uint8_t l, r, g, b, a;
     switch (format) {
     case TXP_RGB8:

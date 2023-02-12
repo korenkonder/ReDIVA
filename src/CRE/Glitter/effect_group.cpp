@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../../KKdLib/prj/algorithm.hpp"
 #include "../object.hpp"
 #include "../texture.hpp"
 
@@ -88,19 +89,14 @@ namespace Glitter {
                         continue;
 
                     has_model = true;
-                    uint32_t object_set_hash = (uint32_t)k->data.mesh.object_set_name_hash;
-                    bool found = false;
-                    for (uint32_t& l : object_set_ids)
-                        if (l == object_set_hash) {
-                            found = true;
-                            break;
-                        }
-
-                    if (!found)
-                        object_set_ids.push_back(object_set_hash);
+                    object_set_ids.push_back((uint32_t)k->data.mesh.object_set_name_hash);
                 }
             }
         }
+
+        prj::sort(object_set_ids);
+        prj::unique(object_set_ids);
+
         return has_model;
     }
 

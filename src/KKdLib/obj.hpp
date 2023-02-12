@@ -7,7 +7,7 @@
 
 #include "default.hpp"
 #include "prj/shared_ptr.hpp"
-#include "alloc_data.hpp"
+#include "prj/stack_allocator.hpp"
 #include "mat.hpp"
 #include "vec.hpp"
 
@@ -213,7 +213,7 @@ union obj_material_shader_attrib {
     obj_material_shader_attrib_member m;
     uint32_t w;
 
-    obj_material_shader_lighting_type get_lighting_type();
+    obj_material_shader_lighting_type get_lighting_type() const;
 };
 
 struct obj_texture_attrib_member {
@@ -237,7 +237,7 @@ union obj_texture_attrib {
     obj_texture_attrib_member m;
     uint32_t w;
 
-    int32_t get_blend();
+    int32_t get_blend() const;
 };
 
 struct obj_texture_shader_attrib_member {
@@ -377,7 +377,7 @@ struct obj_vertex_data {
     vec4 color0;
     vec4 color1;
     vec4 bone_weight;
-    vec4i bone_index;
+    vec4i16 bone_index;
     vec4 unknown;
 
     obj_vertex_data();
@@ -709,7 +709,7 @@ struct obj_set {
 
     obj_set();
 
-    void move_data(obj_set* set_src, prj::shared_ptr<alloc_data> alloc);
+    void move_data(obj_set* set_src, prj::shared_ptr<prj::stack_allocator> alloc);
     void pack_file(void** data, size_t* size);
-    void unpack_file(prj::shared_ptr<alloc_data> alloc, const void* data, size_t size, bool modern);
+    void unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern);
 };

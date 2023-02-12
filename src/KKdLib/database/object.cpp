@@ -20,16 +20,6 @@ static int64_t object_database_strings_get_string_offset(std::vector<std::string
     std::vector<int64_t>& vec_off, std::string& str);
 static void object_database_strings_push_back_check(std::vector<std::string>& vec, std::string& str);
 
-object_info::object_info() {
-    this->id = (uint32_t)-1;
-    this->set_id = (uint32_t)-1;
-}
-
-object_info::object_info(uint32_t id, uint32_t set_id) {
-    this->id = id;
-    this->set_id = set_id;
-}
-
 object_set_info_file::object_set_info_file() : id() {
 
 }
@@ -290,7 +280,7 @@ void object_database::add(object_database_file* obj_db_file) {
     }
 }
 
-bool object_database::get_object_set_info(const char* name, object_set_info** set_info) {
+bool object_database::get_object_set_info(const char* name, const object_set_info** set_info) const {
     if (!set_info)
         return false;
     *set_info = 0;
@@ -300,7 +290,7 @@ bool object_database::get_object_set_info(const char* name, object_set_info** se
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
 
-    for (object_set_info& i : object_set)
+    for (const object_set_info& i : object_set)
         if (name_hash == i.name_hash) {
             *set_info = &i;
             return true;
@@ -308,7 +298,7 @@ bool object_database::get_object_set_info(const char* name, object_set_info** se
     return false;
 }
 
-bool object_database::get_object_set_info(uint32_t set_id, object_set_info** set_info) {
+bool object_database::get_object_set_info(uint32_t set_id, const object_set_info** set_info) const {
     if (!set_info)
         return false;
     *set_info = 0;
@@ -316,7 +306,7 @@ bool object_database::get_object_set_info(uint32_t set_id, object_set_info** set
     if (set_id == -1)
         return false;
 
-    for (object_set_info& i : object_set)
+    for (const object_set_info& i : object_set)
         if (set_id == i.id) {
             *set_info = &i;
             return true;
@@ -324,7 +314,7 @@ bool object_database::get_object_set_info(uint32_t set_id, object_set_info** set
     return false;
 }
 
-bool object_database::get_object_info_data(const char* name, object_info_data** info) {
+bool object_database::get_object_info_data(const char* name, const object_info_data** info) const {
     if (!info)
         return false;
     *info = 0;
@@ -334,8 +324,8 @@ bool object_database::get_object_info_data(const char* name, object_info_data** 
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
 
-    for (object_set_info& i : object_set)
-        for (object_info_data& j : i.object)
+    for (const object_set_info& i : object_set)
+        for (const object_info_data& j : i.object)
             if (name_hash == j.name_hash_murmurhash) {
                 *info = &j;
                 return true;
@@ -343,7 +333,8 @@ bool object_database::get_object_info_data(const char* name, object_info_data** 
     return false;
 }
 
-bool object_database::get_object_info_data_by_fnv1a64m_hash(uint64_t hash, object_info_data** info) {
+bool object_database::get_object_info_data_by_fnv1a64m_hash(
+    uint64_t hash, const object_info_data** info) const {
     if (!info)
         return false;
     *info = 0;
@@ -351,8 +342,8 @@ bool object_database::get_object_info_data_by_fnv1a64m_hash(uint64_t hash, objec
     if (hash == hash_fnv1a64m_empty)
         return false;
 
-    for (object_set_info& i : object_set)
-        for (object_info_data& j : i.object)
+    for (const object_set_info& i : object_set)
+        for (const object_info_data& j : i.object)
             if (hash == j.name_hash_fnv1a64m) {
                 *info = &j;
                 return true;
@@ -360,7 +351,8 @@ bool object_database::get_object_info_data_by_fnv1a64m_hash(uint64_t hash, objec
     return false;
 }
 
-bool object_database::get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash, object_info_data** info) {
+bool object_database::get_object_info_data_by_fnv1a64m_hash_upper(
+    uint64_t hash, const object_info_data** info) const {
     if (!info)
         return false;
     *info = 0;
@@ -368,8 +360,8 @@ bool object_database::get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash,
     if (hash == hash_fnv1a64m_empty)
         return false;
 
-    for (object_set_info& i : object_set)
-        for (object_info_data& j : i.object)
+    for (const object_set_info& i : object_set)
+        for (const object_info_data& j : i.object)
             if (hash == j.name_hash_fnv1a64m_upper) {
                 *info = &j;
                 return true;
@@ -377,7 +369,8 @@ bool object_database::get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash,
     return false;
 }
 
-bool object_database::get_object_info_data_by_murmurhash(uint32_t hash, object_info_data** info) {
+bool object_database::get_object_info_data_by_murmurhash(
+    uint32_t hash, const  object_info_data** info) const {
     if (!info)
         return false;
     *info = 0;
@@ -385,8 +378,8 @@ bool object_database::get_object_info_data_by_murmurhash(uint32_t hash, object_i
     if (hash == hash_murmurhash_empty)
         return false;
 
-    for (object_set_info& i : object_set)
-        for (object_info_data& j : i.object)
+    for (const object_set_info& i : object_set)
+        for (const object_info_data& j : i.object)
             if (hash == j.name_hash_murmurhash) {
                 *info = &j;
                 return true;
@@ -394,7 +387,7 @@ bool object_database::get_object_info_data_by_murmurhash(uint32_t hash, object_i
     return false;
 }
 
-uint32_t object_database::get_object_set_id(const char* name) {
+uint32_t object_database::get_object_set_id(const char* name) const {
     if (!name)
         return (uint32_t)-1;
 
@@ -406,25 +399,25 @@ uint32_t object_database::get_object_set_id(const char* name) {
     if (name_hash == hash_murmurhash_empty)
         return (uint32_t)-1;
 
-    for (object_set_info& i : object_set)
+    for (const object_set_info& i : object_set)
         if (name_hash == i.name_hash)
             return i.id;
 
     return (uint32_t)-1;
 }
 
-const char* object_database::get_object_set_name(uint32_t set_id) {
+const char* object_database::get_object_set_name(uint32_t set_id) const {
     if (set_id == -1)
         return 0;
 
-    for (object_set_info& i : object_set)
+    for (const object_set_info& i : object_set)
         if (set_id == i.id)
             return i.name.c_str();
 
     return 0;
 }
 
-object_info object_database::get_object_info(const char* name) {
+object_info object_database::get_object_info(const char* name) const {
     if (!name)
         return object_info();
 
@@ -436,21 +429,21 @@ object_info object_database::get_object_info(const char* name) {
     if (name_hash == hash_murmurhash_empty)
         return object_info();
 
-    for (object_set_info& i : object_set)
-        for (object_info_data& j : i.object)
+    for (const object_set_info& i : object_set)
+        for (const object_info_data& j : i.object)
             if (name_hash == j.name_hash_murmurhash)
                 return { j.id, i.id };
 
     return object_info();
 }
 
-const char* object_database::get_object_name(object_info obj_info) {
+const char* object_database::get_object_name(object_info obj_info) const {
     if (obj_info.is_null())
         return 0;
 
-    for (object_set_info& i : object_set)
+    for (const object_set_info& i : object_set)
         if (obj_info.set_id == i.id)
-            for (object_info_data& j : i.object)
+            for (const object_info_data& j : i.object)
                 if (obj_info.id == j.id)
                     return j.name.c_str();
 

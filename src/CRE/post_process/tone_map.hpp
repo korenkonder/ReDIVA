@@ -8,23 +8,23 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/light_param/glow.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../GL/uniform_buffer.hpp"
 #include "../shared.hpp"
 #include "../render_texture.hpp"
 
 #define POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES 32
 
 struct post_process_tone_map_shader_data {
-    vec4 p_exposure;
-    vec4 p_flare_coef;
-    vec4 p_fade_color;
-    vec4 p_tone_scale;
-    vec4 p_tone_offset;
-    vec4 p_fade_func;
-    vec4 p_inv_tone;
+    vec4 g_exposure;
+    vec4 g_flare_coef;
+    vec4 g_fade_color;
+    vec4 g_tone_scale; //xyz=tone_scale, w=fade_func
+    vec4 g_tone_offset; //xyz=tone_offset, w=inv_tone
+    vec4 g_texcoord_transforms[8];
 };
 
 struct post_process_tone_map_data {
-    vec2 tex[16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES];
+    vec2 tex_data[16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES];
     float_t exposure;
     bool auto_exposure;
     float_t gamma;
@@ -50,7 +50,8 @@ struct post_process_tone_map_data {
 struct post_process_tone_map {
     post_process_tone_map_data data;
     post_process_tone_map_shader_data shader_data;
-    GLuint tone_map;
+    GL::UniformBuffer tone_map_ubo;
+    GLuint tone_map_tex;
 
     post_process_tone_map();
     ~post_process_tone_map();

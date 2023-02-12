@@ -227,44 +227,78 @@ void texture_database::add(texture_database_file* tex_db_file) {
 
     texture.reserve(tex_db_file->texture.size());
 
+    size_t src_size = texture.size();
+    size_t dst_size = src_size;
+
     for (texture_info_file& i : tex_db_file->texture) {
         uint32_t id = i.id;
 
-        texture_info* info = 0;
-        for (texture_info& j : texture)
-            if (id == j.id) {
-                info = &j;
-                break;
-            }
+        texture_info* info = texture.data();
+        if (info) {
+            size_t length = src_size;
+            size_t temp;
+            while (length > 0)
+                if (id <= info[temp = length / 2].id)
+                    length /= 2;
+                else {
+                    info += temp + 1;
+                    length -= temp + 1;
+                }
+
+            if (info == texture.data() + src_size || id != info->id)
+                info = 0;
+        }
+
+        if (!info) {
+            texture_info* j_begin = texture.data() + src_size;
+            texture_info* j_end = texture.data() + dst_size;
+            for (texture_info* j = j_begin; j != j_end; j++)
+                if (id == j->id) {
+                    info = j;
+                    break;
+                }
+        }
 
         if (!info) {
             texture.push_back({});
             info = &texture.back();
+            dst_size++;
         }
 
         info->id = i.id;
         info->name.assign(i.name);
         info->name_hash = hash_string_murmurhash(info->name);
     }
+
+    sort();
 }
 
-uint32_t texture_database::get_texture_id(const char* name) {
+static size_t texture_info_radix_index_func_id(texture_info* data, size_t index) {
+    return data[index].id;
+}
+
+void texture_database::sort() {
+    radix_sort_custom(texture.data(), texture.size(), sizeof(texture_info),
+        sizeof(uint32_t), (radix_index_func)texture_info_radix_index_func_id);
+}
+
+uint32_t texture_database::get_texture_id(const char* name) const {
     if (!name)
         return -1;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
 
-    for (texture_info& i : texture)
+    for (const texture_info& i : texture)
         if (name_hash == i.name_hash)
             return i.id;
     return -1;
 }
 
-const char* texture_database::get_texture_name(uint32_t id) {
+const char* texture_database::get_texture_name(uint32_t id) const {
     if (id == -1)
         return 0;
 
-    for (texture_info& i : texture)
+    for (const texture_info& i : texture)
         if (id == i.id)
             return i.name.c_str();
     return 0;

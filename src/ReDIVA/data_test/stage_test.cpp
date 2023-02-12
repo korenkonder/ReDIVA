@@ -10,6 +10,7 @@
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
+#include "../../CRE/task_effect.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
 #include "../task_window.hpp"
@@ -17,6 +18,7 @@
 extern int32_t width;
 extern int32_t height;
 
+DtmStg* dtm_stg;
 DtwStg* dtw_stg;
 
 static int stage_test_stage_pv_quicksort_compare_func(void const* src1, void const* src2);
@@ -29,139 +31,148 @@ stage_test_stage_pv::~stage_test_stage_pv() {
 
 }
 
-DtwStg::DtwStg() : pv_id(), pv_index(), ns_index(),
-other_index(), stage_index(), stage_index_load(), stage_load() {
+DtmStg::DtmStg() : stage_index(), load_stage_index() {
+
+}
+
+DtmStg::~DtmStg() {
+
+}
+
+bool DtmStg::Init() {
+    task_stage_load_task("DATA_TEST_STG_STAGE");
+    task_stage_set_stage_index(stage_index);
+    return true;
+}
+
+bool DtmStg::Ctrl() {
+    if (task_stage_check_not_loaded())
+        return false;
+
+    if (load_stage_index != stage_index) {
+        task_stage_set_stage_index(load_stage_index);
+        stage_index = load_stage_index;
+        return false;
+    }
+
+    task_stage_current_set_stage_display(dtw_stg->stage_display->value, 1);
+    task_stage_current_set_ground(dtw_stg->ground->value);
+    task_stage_current_set_ring(dtw_stg->ring->value);
+    task_stage_current_set_sky(dtw_stg->sky->value);
+    task_effect_parent_set_enable(dtw_stg->effect_display->value);
+    return false;
+}
+
+bool DtmStg::Dest() {
+    task_stage_unload_task();
+    return true;
+}
+
+DtwStg::DtwStg() : Shell(0) {
     data_struct* aft_data = &data_list[DATA_AFT];
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
     std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
 
-    pv_id = -1;
-    pv_index = -1;
-    ns_index = -1;
-    other_index = -1;
-    stage_index = -1;
+    dw::Widget::SetName("STAGE TEST");
 
-    stage_index_load = -1;
-    stage_load = false;
+    dw::Composite* pv_comp = new dw::Composite(this);
+    pv_comp->SetLayout(new dw::RowLayout);
 
-    size_t stg_pv_count = 0;
-    size_t stg_ns_count = 0;
-    size_t stg_other_count = 0;
-    for (stage_data& i : stg_data) {
-        bool stgpv = false;
-        bool stgd2pv = false;
-        bool stgns = false;
-        bool stgd2ns = false;
-        if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGPV", 5))
-            stg_pv_count++;
-        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2PV", 7))
-            stg_pv_count++;
-        else if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGNS", 5))
-            stg_ns_count++;
-        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2NS", 7))
-            stg_ns_count++;
+    (new dw::Label(pv_comp))->SetName("PV:");
+
+    pv_id = new dw::ListBox(pv_comp);
+    pv = new dw::ListBox(pv_comp);
+
+    dw::Composite* ns_comp = new dw::Composite(this);
+    ns_comp->SetLayout(new dw::RowLayout);
+
+    (new dw::Label(ns_comp))->SetName("NS:");
+
+    ns = new dw::ListBox(ns_comp);
+
+    dw::Composite* other_comp = new dw::Composite(this);
+    other_comp->SetLayout(new dw::RowLayout);
+
+    (new dw::Label(other_comp))->SetName("Other:");
+
+    other = new dw::ListBox(other_comp);
+
+    stage = new dw::ListBox(this);
+
+    for (const stage_data& i : aft_stage_data->stage_data) {
+        const std::string& name = i.name;
+        stage->AddItem(name);
+
+        std::string pv_id;
+        if (name.size() >= 8 && !name.find("STGPV"))
+            pv_id.assign(name, 5, 3);
+        else if (name.size() >= 10 && !name.find("STGD2PV"))
+            pv_id.assign(name, 7, 3);
+
+        if (pv_id.size()) {
+            auto elem = pv_stage.find(pv_id);
+            if (elem == pv_stage.end())
+                elem = pv_stage.insert({ pv_id, {} }).first;
+            elem->second.push_back(name);
+        }
+        else if (!name.find("STGNS") || !name.find("STGD2NS"))
+            ns->AddItem(name);
         else
-            stg_other_count++;
+            other->AddItem(name);
     }
 
-    stage_pv.reserve(stg_pv_count);
-    stage_ns.reserve(stg_ns_count);
-    stage_other.reserve(stg_other_count);
+    for (auto& i : pv_stage)
+        pv_id->AddItem(i.first);
 
-    for (stage_data& i : stg_data) {
-        bool stgpv = false;
-        bool stgd2pv = false;
-        bool stgns = false;
-        bool stgd2ns = false;
-        if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGPV", 5))
-            stgpv = true;
-        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2PV", 7))
-            stgd2pv = true;
-        else if (i.name.size() >= 8 && !memcmp(i.name.c_str(), "STGNS", 5))
-            stgns = true;
-        else if (i.name.size() >= 10 && !memcmp(i.name.c_str(), "STGD2NS", 7))
-            stgd2ns = true;
+    //dw::List::sub_1402F9930(this->pv_id->list, 30);
+    pv_id->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::PvIdCallback));
 
-        if (stgpv || stgd2pv) {
-            int32_t pv_id = 0;
-            int32_t ret;
-            if (stgpv)
-                ret = sscanf_s(i.name.c_str() + 5, "%03d", &pv_id);
-            else
-                ret = sscanf_s(i.name.c_str() + 7, "%03d", &pv_id);
+    //dw::List::sub_1402F9930(this->pv->list, 30);
+    pv->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
-            if (ret != 1)
-                continue;
+    //dw::List::sub_1402F9930(this->ns->list, 30);
+    ns->list->hovered_item = 0;
+    ns->list->selected_item = 0;
+    ns->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
-            std::vector<stage_test_stage_pv>::iterator stg_pv = stage_pv.begin();
-            while (stg_pv != stage_pv.end())
-                if (pv_id == (stg_pv++)->pv_id)
-                    break;
+    //dw::List::sub_1402F9930(this->stage->list, 30);
+    stage->list->hovered_item = 0;
+    stage->list->selected_item = 0;
+    stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
-            if (stg_pv == stage_pv.end()) {
-                stage_pv.push_back(stage_test_stage_pv(pv_id));
-                stg_pv = stage_pv.end() - 1;
-            }
+    stage_display = new dw::Button(this, WIDGET_CHECKBOX);
+    stage_display->SetName("Stage display");
+    stage_display->SetValue(true);
 
-            stg_pv->stage.push_back((int32_t)(&i - stg_data.data()));
-        }
-        else if (stgns || stgd2ns) {
-            int32_t ns_id = 0;
-            int32_t ret;
-            if (stgns)
-                ret = sscanf_s(i.name.c_str() + 5, "%03d", &ns_id);
-            else
-                ret = sscanf_s(i.name.c_str() + 7, "%03d", &ns_id);
+    ring = new dw::Button(this, WIDGET_CHECKBOX);
+    ring->SetName("[Ring]");
+    ring->SetValue(true);
 
-            if (ret != 1)
-                continue;
+    ground = new dw::Button(this, WIDGET_CHECKBOX);
+    ground->SetName("[Ground]");
+    ground->SetValue(true);
 
-            stage_ns.push_back((int32_t)(&i - stg_data.data()));
-        }
-        else
-            stage_other.push_back((int32_t)(&i - stg_data.data()));
-    }
+    sky = new dw::Button(this, WIDGET_CHECKBOX);
+    sky->SetName("[Sky]");
+    sky->SetValue(true);
 
-    if (stage_pv.size())
-        quicksort_custom(stage_pv.data(), stage_pv.size(),
-            sizeof(stage_test_stage_pv),
-            stage_test_stage_pv_quicksort_compare_func);
+    effect_display = new dw::Button(this, WIDGET_CHECKBOX);
+    effect_display->SetName("Effects display");
+    effect_display->SetValue(true);
 
-    if (stage_pv.size())
-        pv_id = stage_pv[0].pv_id;
-
-    stage_pv = stage_pv;
-    stage_ns = stage_ns;
-    stage_other = stage_other;
-
-    stage_index = 0;
-    stage_load = false;
-    stage_index_load = 0;
+    //GetSetSize();
 }
 
 DtwStg::~DtwStg() {
 
 }
 
-bool DtwStg::Init() {
-    return true;
+void DtwStg::Hide() {
+    SetDisp(false);
 }
 
-bool DtwStg::Ctrl() {
-    if (stage_load) {
-        task_stage_set_stage_index(stage_index_load);
-        stage_load = false;
-    }
-    return false;
-}
-
-bool DtwStg::Dest() {
-    return true;
-}
-
-void DtwStg::Window() {
-
+/*void DtwStg::Window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
@@ -186,7 +197,7 @@ void DtwStg::Window() {
 
     std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
 
-    int32_t _pv_id = pv_id;
+    int32_t _pv_id = this->_pv_id;
 
     char buf[0x100];
     sprintf_s(buf, sizeof(buf), "%03d", _pv_id);
@@ -199,8 +210,8 @@ void DtwStg::Window() {
             ImGui::PushID(&i);
             sprintf_s(buf, sizeof(buf), "%03d", i.pv_id);
             if (ImGui::Selectable(buf, _pv_id == i.pv_id)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
-                || (ImGui::IsItemFocused() && pv_id != i.pv_id))
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
+                || (ImGui::IsItemFocused() && _pv_id != i.pv_id))
                 _pv_id = i.pv_id;
             ImGui::PopID();
 
@@ -212,9 +223,9 @@ void DtwStg::Window() {
         ImGui::EndCombo();
     }
 
-    if (_pv_id != pv_id) {
+    if (_pv_id != this->_pv_id) {
         pv_index = -1;
-        pv_id = _pv_id;
+        this->_pv_id = _pv_id;
     }
 
     int32_t _pv_index = pv_index;
@@ -223,7 +234,7 @@ void DtwStg::Window() {
     ImGui::SetNextItemWidth(160.0f);
     bool pv_id_found = false;
     for (stage_test_stage_pv& i : stage_pv) {
-        if (pv_id != i.pv_id)
+        if (_pv_id != i.pv_id)
             continue;
 
         if (ImGui::BeginCombo("##PV Index", pv_index > -1
@@ -233,7 +244,7 @@ void DtwStg::Window() {
 
                 ImGui::PushID(j);
                 if (ImGui::Selectable(stg_data[j].name.c_str(), _pv_index == pv_idx)
-                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && _pv_index != pv_idx)) {
                     pv_index = -1;
                     _pv_index = pv_idx;
@@ -248,8 +259,8 @@ void DtwStg::Window() {
         }
 
         if (_pv_index != pv_index) {
-            stage_load = true;
-            stage_index_load = i.stage[_pv_index];
+            //stage_load = true;
+            //stage_index_load = i.stage[_pv_index];
             pv_index = _pv_index;
         }
         pv_id_found = true;
@@ -273,7 +284,7 @@ void DtwStg::Window() {
 
             ImGui::PushID(i);
             if (ImGui::Selectable(stg_data[stage_ns[i]].name.c_str(), _ns_index == ns_idx)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && _ns_index != ns_idx)) {
                 ns_index = -1;
                 _ns_index = ns_idx;
@@ -289,8 +300,8 @@ void DtwStg::Window() {
     }
 
     if (_ns_index != ns_index) {
-        stage_load = true;
-        stage_index_load = stage_ns[_ns_index];
+        //stage_load = true;
+        //stage_index_load = stage_ns[_ns_index];
         ns_index = _ns_index;
     }
 
@@ -306,7 +317,7 @@ void DtwStg::Window() {
 
             ImGui::PushID(i);
             if (ImGui::Selectable(stg_data[i].name.c_str(), _other_index == other_idx)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && _other_index != other_idx)) {
                 other_index = -1;
                 _other_index = other_idx;
@@ -322,8 +333,8 @@ void DtwStg::Window() {
     }
 
     if (_other_index != other_index) {
-        stage_load = true;
-        stage_index_load = stage_other[_other_index];
+        //stage_load = true;
+        //stage_index_load = stage_other[_other_index];
         other_index = _other_index;
     }
 
@@ -337,7 +348,7 @@ void DtwStg::Window() {
 
             ImGui::PushID(&i);
             if (ImGui::Selectable(i.name.c_str(), _stage_index == stage_idx)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && _stage_index != stage_idx)) {
                 stage_index = -1;
                 _stage_index = stage_idx;
@@ -353,19 +364,20 @@ void DtwStg::Window() {
     }
 
     if (_stage_index != stage_index) {
-        stage_load = true;
-        stage_index_load = _stage_index;
+        //stage_load = true;
+        //stage_index_load = _stage_index;
         stage_index = _stage_index;
     }
 
-    stage* stg = task_stage_get_current_stage();
+    ::stage* stg = task_stage_get_current_stage();
     if (stg) {
         ImGui::Checkbox("Stage display", &stg->stage_display);
         ImGui::Checkbox("[Ring]", &stg->ring);
         ImGui::Checkbox("[Ground]", &stg->ground);
         ImGui::Checkbox("[Sky]", &stg->sky);
-        ImGui::Checkbox("Effects display", &stg->effect_display);
-
+        //ImGui::Checkbox("Effects display", &stg->effect_display);
+        bool effects_display = true;
+        ImGui::Checkbox("Effects display", &effects_display);
     }
     else {
         bool stage_display = true;
@@ -382,19 +394,73 @@ void DtwStg::Window() {
 
     window_focus |= ImGui::IsWindowFocused();
     ImGui::End();
+}*/
+
+void DtwStg::PvIdCallback(dw::Widget* data) {
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    if (list_box) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+        std::string name = list_box->GetItem(list_box->list->selected_item);
+
+        dw::ListBox* pv_list_box = dtw_stg->pv;
+        pv_list_box->ClearItems();
+        auto elem = dtw_stg->pv_stage.find(name);
+        if (elem != dtw_stg->pv_stage.end())
+            for (std::string& i : elem->second)
+                pv_list_box->AddItem(i);
+    }
+}
+
+void DtwStg::StageCallback(dw::Widget* data) {
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    if (list_box) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+        std::string name = list_box->GetItem(list_box->list->selected_item);
+        dtm_stg->load_stage_index = aft_stage_data->get_stage_index(name.c_str());
+    }
+}
+
+void dtm_stg_init() {
+    dtm_stg = new DtmStg;
+}
+
+void dtm_stg_load(int32_t stage_index) {
+    if (app::TaskWork::CheckTaskReady(dtm_stg))
+        return;
+
+    if (app::TaskWork::CheckTaskReady(dtm_stg)) {
+        dtm_stg->stage_index = stage_index;
+        dtm_stg->load_stage_index = stage_index;
+    }
+    app::TaskWork::AddTask(dtm_stg, "DATA_TEST_STAGE");
+}
+
+bool dtm_stg_unload() {
+    return dtm_stg->DelTask();
+}
+
+void dtm_stg_free() {
+    if (dtm_stg) {
+        delete dtm_stg;
+        dtm_stg = 0;
+    }
 }
 
 void dtw_stg_init() {
     dtw_stg = new DtwStg;
+    dtw_stg->Disp();
 }
 
 void dtw_stg_load(bool hide) {
-    if (hide)
-        dtw_stg->HideWindow();
+    dtw_stg->SetDisp(!hide);
 }
 
 void dtw_stg_unload() {
-
+    dtw_stg->Hide();
 }
 
 void dtw_stg_free() {

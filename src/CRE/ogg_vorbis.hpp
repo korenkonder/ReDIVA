@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
-#include "../CRE/waitable_timer.hpp"
+#include "../KKdLib/waitable_timer.hpp"
 #include "lock.hpp"
 #include "sound.hpp"
 #include <mutex>

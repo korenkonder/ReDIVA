@@ -16,6 +16,7 @@
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../GL/uniform_buffer.hpp"
 #include "../file_handler.hpp"
 #include "../frame_rate_control.hpp"
 #include "../static_var.hpp"
@@ -423,8 +424,9 @@ namespace Glitter {
     class F2RenderScene;
     class XRenderScene;
 
+    struct BatchShaderData;
+    class Scene;
     class GltParticleManager;
-    struct Scene;
 
 #define GPM Glitter::GltParticleManager* glt_particle_manager
 #define GPM_VAL (glt_particle_manager)
@@ -487,7 +489,7 @@ namespace Glitter {
 
     struct Buffer {
         vec3 position;
-        vec2 uv;
+        vec2 uv[2];
         vec4 color;
     };
 
@@ -512,6 +514,9 @@ namespace Glitter {
             float_t random_range;
 
             Key();
+            Key(KeyType type, int32_t frame, float_t value, float_t random_range);
+            Key(KeyType type, int32_t frame, float_t value,
+                float_t tangent1, float_t tangent2, float_t random_range);
         };
 
         CurveType type;
@@ -713,8 +718,8 @@ namespace Glitter {
         size_t count;
         size_t ctrl;
         size_t disp;
-        int32_t texture;
-        int32_t mask_texture;
+        GLuint texture;
+        GLuint mask_texture;
         float_t frame;
         mat4 mat;
         mat4 mat_rot;
@@ -929,7 +934,7 @@ namespace Glitter {
         ExtAnim* ext_anim;
         XRenderScene render_scene;
 
-        XEffectInst(GPM, Effect* eff, size_t id, float_t emission, bool appear_now);
+        XEffectInst(GPM, Effect* eff, size_t id, float_t emission, bool appear_now, uint8_t load_flags = 0);
         virtual ~XEffectInst() override;
 
         virtual void Copy(EffectInst* dst, float_t emission) override;
@@ -1246,8 +1251,8 @@ namespace Glitter {
             float_t emission;
             uint64_t tex_hash;
             uint64_t mask_tex_hash;
-            int32_t texture;
-            int32_t mask_texture;
+            GLuint texture;
+            GLuint mask_texture;
             int32_t unk0;
             int32_t unk1;
             Particle::Mesh mesh;
@@ -1463,7 +1468,15 @@ namespace Glitter {
         operator uint32_t() const { return (counter << 8) || index; }
     };
 
-    struct Scene {
+    struct BatchShaderData {
+        vec4 g_mvp[4];
+        vec4 g_glitter_blend_color;
+        vec4 g_state_material_diffuse;
+        vec4 g_state_material_emission;
+    };
+
+    class Scene {
+    public:
 #if defined(CRE_DEV) || defined(ReDIVA_DEV)
         std::string name;
 #endif
@@ -1500,7 +1513,7 @@ namespace Glitter {
         bool FreeEffectByID(GPM, size_t id, bool free);
         bool HasEnded(bool a2);
         bool HasEnded(size_t id, bool a3);
-        void InitEffect(GPM, Effect* eff, size_t id, bool appear_now);
+        void InitEffect(GPM, Effect* eff, size_t id, bool appear_now, uint8_t load_flags = 0);
         bool ResetEffect(GPM, uint64_t effect_hash, size_t* id = 0);
         bool SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
         bool SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a);
@@ -1532,6 +1545,7 @@ namespace Glitter {
         bool draw_all;
         bool draw_all_mesh;
         bool draw_selected;
+        GL::UniformBuffer batch_ubo;
 
         GltParticleManager();
         virtual ~GltParticleManager() override;
@@ -1580,8 +1594,9 @@ namespace Glitter {
         uint64_t LoadFile(GLT, void* data, const char* file, const char* path,
             float_t emission, bool init_scene, object_database* obj_db);
         SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
-        SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true);
-        SceneCounter LoadSceneEffect(uint64_t hash, const char* name, bool appear_now = true);
+        SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true, uint8_t load_flags = 0);
+        SceneCounter LoadSceneEffect(uint64_t hash, const char* name,
+            bool appear_now = true, uint8_t load_flags = 0);
         bool SceneHasNotEnded(SceneCounter load_counter);
 #if defined(CRE_DEV) || defined(ReDIVA_DEV)
         void SetFrame(EffectGroup* effect_group,
@@ -1606,7 +1621,7 @@ namespace Glitter {
     extern void axis_angle_from_vectors(vec3* axis, float_t* angle, const vec3* vec0, const vec3* vec1);
 
     extern void glt_particle_manager_init();
-    extern bool glt_particle_manager_append_task();
-    extern bool glt_particle_manager_free_task();
+    extern bool glt_particle_manager_add_task();
+    extern bool glt_particle_manager_del_task();
     extern void glt_particle_manager_free();
 }

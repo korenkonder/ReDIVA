@@ -974,60 +974,7 @@ struct auth_3d_data_struct {
     ~auth_3d_data_struct();
 };
 
-class Auth3dTestTask : public app::Task {
-public:
-    int32_t field_1C0;
-    int32_t field_1C4;
-    int32_t field_1C8;
-    int32_t field_1CC;
-    bool field_1D0;
-    int32_t field_1D4;
-    ::auth_3d_id auth_3d_id;
-    int32_t auth_3d_uid;
-    bool repeat;
-    bool left_right_reverse;
-    bool field_1E3;
-    int32_t field_1E4;
-    bool field_1E8;
-    bool field_1E9;
-    bool black_mask_listener;
-    bool field_1EB;
-    int32_t field_1EC;
-    uint32_t effcmn_obj_set;
-    int32_t field_210;
-    bool field_328;
-    bool field_329;
-    bool field_32A;
-    int32_t stage_index;
-    int32_t load_stage_index;
-    vec3 trans_value;
-    float_t rot_y_value;
-    std::vector<std::pair<std::string, std::string>> field_348;
-    bool field_388;
-    int32_t field_38C;
-    bool field_390;
-    int32_t field_394;
-    std::string category;
-    std::string load_category;
-    std::vector<uint32_t> obj_sets;
-
-    struct Window {
-        bool stage_link_change;
-        bool obj_link;
-
-        Window();
-    } window;
-
-    Auth3dTestTask();
-    virtual ~Auth3dTestTask() override;
-
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-};
-
 extern auth_3d_data_struct* auth_3d_data;
-extern Auth3dTestTask* auth_3d_test_task;
 
 extern void auth_3d_data_init();
 extern bool auth_3d_data_check_category_loaded(const char* category_name);
@@ -1049,11 +996,8 @@ extern void auth_3d_data_unload_category(const char* category_name);
 extern void auth_3d_data_unload_category(uint32_t category_hash);
 extern void auth_3d_data_free();
 
-extern void auth_3d_test_task_init();
-extern void auth_3d_test_task_free();
-
 extern void task_auth_3d_init();
-extern bool task_auth_3d_append_task();
+extern bool task_auth_3d_add_task();
 extern bool task_auth_3d_check_task_ready();
-extern bool task_auth_3d_free_task();
+extern bool task_auth_3d_del_task();
 extern void task_auth_3d_free();

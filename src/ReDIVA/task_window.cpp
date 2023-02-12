@@ -46,8 +46,8 @@ namespace app {
     }
 
     static void TaskWindow_do_disp(TaskWindow* t) {
-        if ((t->field_1C == 1 || t->field_1C == 2)
-            && t->field_18 != Task::Enum::Init && t->field_18 != Task::Enum::Dest) {
+        if ((t->state == Task::State::Running || t->state == Task::State::Suspended)
+            && t->op != Task::Op::Init && t->op != Task::Op::Dest) {
             t->Window();
             t->first_show = false;
         }

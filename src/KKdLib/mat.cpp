@@ -76,6 +76,21 @@ inline void mat3_mult(const mat3* x, const mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
+inline void mat3_mult_vec2(const mat3* x, const vec2* y, vec2* z) {
+    __m128 xt;
+    __m128 yt;
+    __m128 zt;
+    __m128 zt0;
+    __m128 zt1;
+    *(vec2*)&yt = *y;
+    *(vec3*)&xt = x->row0;
+    zt0 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x00));
+    *(vec3*)&xt = x->row1;
+    zt1 = _mm_mul_ps(xt, _mm_shuffle_ps(yt, yt, 0x55));
+    zt = _mm_add_ps(zt0, zt1);
+    *z = *(vec2*)&zt;
+}
+
 inline void mat3_mult_vec(const mat3* x, const vec3* y, vec3* z) {
     __m128 xt;
     __m128 yt;
@@ -593,10 +608,57 @@ inline void mat3_from_quat(const quat* quat, mat3* mat) {
 }
 
 inline void mat3_from_axis_angle(const vec3* axis, float_t angle, mat3* mat) {
-    quat quat;
+    float_t angle_sin;
+    float_t angle_cos;
+    float_t angle_cos_1;
+    vec3 _axis;
+    vec3 _axis_sin;
+    vec3 temp;
 
-    quat_from_axis_angle(axis, angle, &quat);
-    mat3_from_quat(&quat, mat);
+    angle_sin = sinf(angle);
+    angle_cos = cosf(angle);
+    angle_cos_1 = 1.0f - angle_cos;
+
+    _axis = vec3::normalize(*axis);
+
+    _axis_sin = _axis * angle_sin;
+    temp = _axis * (_axis.x * angle_cos_1);
+    mat->row0.x = temp.x + angle_cos;
+    mat->row1.x = temp.y - _axis_sin.z;
+    mat->row2.x = temp.z + _axis_sin.y;
+    temp = _axis * (_axis.y * angle_cos_1);
+    mat->row0.y = temp.x + _axis_sin.z;
+    mat->row1.y = temp.y + angle_cos;
+    mat->row2.y = temp.z - _axis_sin.x;
+    temp = _axis * (_axis.z * angle_cos_1);
+    mat->row0.z = temp.x - _axis_sin.y;
+    mat->row1.z = temp.y + _axis_sin.x;
+    mat->row2.z = temp.z + angle_cos;
+}
+
+inline void mat3_from_axis_angle_sin_cos(const vec3* axis, float_t sin_val, float_t cos_val, mat3* mat) {
+    float_t cos_val_1;
+    vec3 _axis;
+    vec3 _axis_sin;
+    vec3 temp;
+
+    cos_val_1 = 1.0f - cos_val;
+
+    _axis = vec3::normalize(*axis);
+
+    _axis_sin = _axis * sin_val;
+    temp = _axis * (_axis.x * cos_val_1);
+    mat->row0.x = temp.x + cos_val;
+    mat->row1.x = temp.y - _axis_sin.z;
+    mat->row2.x = temp.z + _axis_sin.y;
+    temp = _axis * (_axis.y * cos_val_1);
+    mat->row0.y = temp.x + _axis_sin.z;
+    mat->row1.y = temp.y + cos_val;
+    mat->row2.y = temp.z - _axis_sin.x;
+    temp = _axis * (_axis.z * cos_val_1);
+    mat->row0.z = temp.x - _axis_sin.y;
+    mat->row1.z = temp.y + _axis_sin.x;
+    mat->row2.z = temp.z + cos_val;
 }
 
 inline void mat3_from_mat4(const mat4* x, mat3* z) {
@@ -720,6 +782,32 @@ inline void mat4_mult(const mat4* x, const mat4* y, mat4* z) {
     t2 = _mm_mul_ps(y2, _mm_shuffle_ps(xt, xt, 0xAA));
     t3 = _mm_mul_ps(y3, _mm_shuffle_ps(xt, xt, 0xFF));
     z->row3 = vec4::store_xmm(_mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
+}
+
+inline void mat4_mult_vec2(const mat4* x, const vec2* y, vec2* z) {
+    __m128 yt;
+    __m128 zt;
+    __m128 zt0;
+    __m128 zt1;
+    *(vec2*)&yt = *y;
+    zt0 = _mm_mul_ps(vec4::load_xmm(x->row0), _mm_shuffle_ps(yt, yt, 0x00));
+    zt1 = _mm_mul_ps(vec4::load_xmm(x->row1), _mm_shuffle_ps(yt, yt, 0x55));
+    zt = _mm_add_ps(zt0, zt1);
+    *z = *(vec2*)&zt;
+}
+
+inline void mat4_mult_vec2_trans(const mat4* x, const vec2* y, vec2* z) {
+    __m128 yt;
+    __m128 zt;
+    __m128 zt0;
+    __m128 zt1;
+    __m128 zt2;
+    *(vec2*)&yt = *y;
+    zt0 = _mm_mul_ps(vec4::load_xmm(x->row0), _mm_shuffle_ps(yt, yt, 0x00));
+    zt1 = _mm_mul_ps(vec4::load_xmm(x->row1), _mm_shuffle_ps(yt, yt, 0x55));
+    zt2 = vec4::load_xmm(x->row3);
+    zt = _mm_add_ps(_mm_add_ps(zt0, zt1), zt2);
+    *z = *(vec2*)&zt;
 }
 
 inline void mat4_mult_vec3(const mat4* x, const vec3* y, vec3* z) {
@@ -1607,6 +1695,35 @@ inline void mat4_from_axis_angle(const vec3* axis, float_t angle, mat4* mat) {
     mat->row0.z = temp.x - _axis_sin.y;
     mat->row1.z = temp.y + _axis_sin.x;
     mat->row2.z = temp.z + angle_cos;
+    mat->row0.w = 0.0f;
+    mat->row1.w = 0.0f;
+    mat->row2.w = 0.0f;
+    mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
+}
+
+inline void mat4_from_axis_angle_sin_cos(const vec3* axis, float_t sin_val, float_t cos_val, mat4* mat) {
+    float_t cos_val_1;
+    vec3 _axis;
+    vec3 _axis_sin;
+    vec3 temp;
+
+    cos_val_1 = 1.0f - cos_val;
+
+    _axis = vec3::normalize(*axis);
+
+    _axis_sin = _axis * sin_val;
+    temp = _axis * (_axis.x * cos_val_1);
+    mat->row0.x = temp.x + cos_val;
+    mat->row1.x = temp.y - _axis_sin.z;
+    mat->row2.x = temp.z + _axis_sin.y;
+    temp = _axis * (_axis.y * cos_val_1);
+    mat->row0.y = temp.x + _axis_sin.z;
+    mat->row1.y = temp.y + cos_val;
+    mat->row2.y = temp.z - _axis_sin.x;
+    temp = _axis * (_axis.z * cos_val_1);
+    mat->row0.z = temp.x - _axis_sin.y;
+    mat->row1.z = temp.y + _axis_sin.x;
+    mat->row2.z = temp.z + cos_val;
     mat->row0.w = 0.0f;
     mat->row1.w = 0.0f;
     mat->row2.w = 0.0f;

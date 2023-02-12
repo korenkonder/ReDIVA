@@ -388,35 +388,35 @@ void stage_database::add(stage_database_file* stage_data_file) {
     }
 }
 
-::stage_data* stage_database::get_stage_data(int32_t stage_index) {
+const ::stage_data* stage_database::get_stage_data(int32_t stage_index) const {
     if (stage_index >= 0 && stage_index < stage_data.size())
         return &stage_data[stage_index];
     return 0;
 }
 
-::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) {
-    for (::stage_data_modern& i : stage_modern)
+const ::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) const {
+    for (const ::stage_data_modern& i : stage_modern)
         if (i.hash == stage_hash)
             return &i;
     return 0;
 }
 
-int32_t stage_database::get_stage_index(const char* name) {
+int32_t stage_database::get_stage_index(const char* name) const {
     uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (::stage_data& i : stage_data)
+    for (const ::stage_data& i : stage_data)
         if (name_hash == i.name_hash)
             return (int32_t)(&i - stage_data.data());
     return -1;
 }
 
-const char* stage_database::get_stage_name(int32_t stage_index) {
+const char* stage_database::get_stage_name(int32_t stage_index) const {
     if (stage_index >= 0 && stage_index < stage_data.size())
         return stage_data[stage_index].name.c_str();
     return 0;
 }
 
-const char* stage_database::get_stage_name_modern(uint32_t stage_hash) {
-    for (::stage_data_modern& i : stage_modern)
+const char* stage_database::get_stage_name_modern(uint32_t stage_hash) const {
+    for (const ::stage_data_modern& i : stage_modern)
         if (i.hash == stage_hash)
             return i.name.c_str();
     return 0;

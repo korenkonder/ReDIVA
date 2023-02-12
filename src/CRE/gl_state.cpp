@@ -84,56 +84,58 @@ void gl_state_bind_element_array_buffer(GLuint buffer, bool force) {
 }
 
 void gl_state_bind_uniform_buffer(GLuint buffer, bool force) {
-    gl_state_bind_uniform_buffer_base(gl_state.uniform_buffer_index, buffer);
+    if (gl_state.uniform_buffer_binding != buffer || force) {
+        glBindBuffer(GL_UNIFORM_BUFFER, buffer);
+        gl_state.uniform_buffer_binding = buffer;
+    }
 }
 
 void gl_state_bind_uniform_buffer_base(GLuint index, GLuint buffer, bool force) {
-    if (gl_state.uniform_buffer_binding[index] != buffer) {
+    if (gl_state.uniform_buffer_bindings[index] != buffer || force) {
         glBindBufferBase(GL_UNIFORM_BUFFER, index, buffer);
-        gl_state.uniform_buffer_binding[index] = buffer;
-        gl_state.uniform_buffer_offset[index] = 0;
-        gl_state.uniform_buffer_size[index] = -1;
-        gl_state.uniform_buffer_index = index;
+        gl_state.uniform_buffer_bindings[index] = buffer;
+        gl_state.uniform_buffer_offsets[index] = 0;
+        gl_state.uniform_buffer_sizes[index] = -1;
     }
 }
 
 void gl_state_bind_uniform_buffer_range(GLuint index,
     GLuint buffer, GLintptr offset, GLsizeiptr size, bool force) {
-    if (gl_state.uniform_buffer_binding[index] != buffer
-        || gl_state.uniform_buffer_offset[index] != offset
-        || gl_state.uniform_buffer_size[index] != size) {
+    if (gl_state.uniform_buffer_bindings[index] != buffer
+        || gl_state.uniform_buffer_offsets[index] != offset
+        || gl_state.uniform_buffer_sizes[index] != size || force) {
         glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer, offset, size);
-        gl_state.uniform_buffer_binding[index] = buffer;
-        gl_state.uniform_buffer_offset[index] = offset;
-        gl_state.uniform_buffer_size[index] = size;
-        gl_state.uniform_buffer_index = index;
+        gl_state.uniform_buffer_bindings[index] = buffer;
+        gl_state.uniform_buffer_offsets[index] = offset;
+        gl_state.uniform_buffer_sizes[index] = size;
     }
 }
 
 void gl_state_bind_shader_storage_buffer(GLuint buffer, bool force) {
-    gl_state_bind_shader_storage_buffer_base(gl_state.shader_storage_buffer_index, buffer);
+    if (gl_state.shader_storage_buffer_binding != buffer || force) {
+        glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
+        gl_state.shader_storage_buffer_binding = buffer;
+    }
 }
 
 void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool force) {
-    if (gl_state.shader_storage_buffer_binding[index] != buffer) {
+    if (gl_state.shader_storage_buffer_bindings[index] != buffer || force) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer);
-        gl_state.shader_storage_buffer_binding[index] = buffer;
-        gl_state.shader_storage_buffer_offset[index] = 0;
-        gl_state.shader_storage_buffer_size[index] = -1;
-        gl_state.shader_storage_buffer_index = index;
+        gl_state.shader_storage_buffer_bindings[index] = buffer;
+        gl_state.shader_storage_buffer_offsets[index] = 0;
+        gl_state.shader_storage_buffer_sizes[index] = -1;
     }
 }
 
 void gl_state_bind_shader_storage_buffer_range(GLuint index,
     GLuint buffer, GLintptr offset, GLsizeiptr size, bool force) {
-    if (gl_state.shader_storage_buffer_binding[index] != buffer
-        || gl_state.shader_storage_buffer_offset[index] != offset
-        || gl_state.shader_storage_buffer_size[index] != size) {
+    if (gl_state.shader_storage_buffer_bindings[index] != buffer
+        || gl_state.shader_storage_buffer_offsets[index] != offset
+        || gl_state.shader_storage_buffer_sizes[index] != size || force) {
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer, offset, size);
-        gl_state.shader_storage_buffer_binding[index] = buffer;
-        gl_state.shader_storage_buffer_offset[index] = offset;
-        gl_state.shader_storage_buffer_size[index] = size;
-        gl_state.shader_storage_buffer_index = index;
+        gl_state.shader_storage_buffer_bindings[index] = buffer;
+        gl_state.shader_storage_buffer_offsets[index] = offset;
+        gl_state.shader_storage_buffer_sizes[index] = size;
     }
 }
 
@@ -159,19 +161,19 @@ void gl_state_bind_sampler(int32_t index, GLuint sampler) {
 }
 
 bool gl_state_check_uniform_buffer_binding() {
-    return gl_state.uniform_buffer_binding[gl_state.uniform_buffer_index] != 0;
+    return gl_state.uniform_buffer_binding != 0;
 }
 
 bool gl_state_check_uniform_buffer_binding_base(size_t index) {
-    return gl_state.uniform_buffer_binding[index] != 0;
+    return gl_state.uniform_buffer_bindings[index] != 0;
 }
 
 bool gl_state_check_shader_storage_buffer_binding() {
-    return gl_state.shader_storage_buffer_binding[gl_state.shader_storage_buffer_index] != 0;
+    return gl_state.shader_storage_buffer_binding != 0;
 }
 
 bool gl_state_check_shader_storage_buffer_binding_base(size_t index) {
-    return gl_state.shader_storage_buffer_binding[index] != 0;
+    return gl_state.shader_storage_buffer_bindings[index] != 0;
 }
 
 bool gl_state_check_texture_binding_2d(size_t index) {
@@ -310,24 +312,18 @@ void gl_state_get() {
     glGetIntegerv(GL_ARRAY_BUFFER_BINDING, (GLint*)&gl_state.array_buffer_binding);
     glGetIntegerv(GL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint*)&gl_state.element_array_buffer_binding);
 
-    GLuint uniform_buffer_binding;
-    glGetIntegerv(GL_UNIFORM_BUFFER_BINDING, (GLint*)&uniform_buffer_binding);
+    glGetIntegerv(GL_UNIFORM_BUFFER_BINDING, (GLint*)&gl_state.uniform_buffer_binding);
     for (GLuint i = 0; i < 14; i++) {
-        glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, i, (GLint*)&gl_state.uniform_buffer_binding[i]);
-        glGetIntegeri_v(GL_UNIFORM_BUFFER_START, i, (GLint*)&gl_state.uniform_buffer_offset[i]);
-        glGetIntegeri_v(GL_UNIFORM_BUFFER_SIZE, i, (GLint*)&gl_state.uniform_buffer_size[i]);
-        if (uniform_buffer_binding == gl_state.uniform_buffer_binding[i])
-            gl_state.uniform_buffer_index = i;
+        glGetIntegeri_v(GL_UNIFORM_BUFFER_BINDING, i, (GLint*)&gl_state.uniform_buffer_bindings[i]);
+        glGetIntegeri_v(GL_UNIFORM_BUFFER_START, i, (GLint*)&gl_state.uniform_buffer_offsets[i]);
+        glGetIntegeri_v(GL_UNIFORM_BUFFER_SIZE, i, (GLint*)&gl_state.uniform_buffer_sizes[i]);
     }
 
-    GLuint shader_storage_buffer_binding;
-    glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&shader_storage_buffer_binding);
+    glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, (GLint*)&gl_state.shader_storage_buffer_binding);
     for (GLuint i = 0; i < 14; i++) {
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&gl_state.shader_storage_buffer_binding[i]);
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint*)&gl_state.shader_storage_buffer_offset[i]);
-        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint*)&gl_state.shader_storage_buffer_size[i]);
-        if (shader_storage_buffer_binding == gl_state.shader_storage_buffer_binding[i])
-            gl_state.shader_storage_buffer_index = i;
+        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint*)&gl_state.shader_storage_buffer_bindings[i]);
+        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_START, i, (GLint*)&gl_state.shader_storage_buffer_offsets[i]);
+        glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_SIZE, i, (GLint*)&gl_state.shader_storage_buffer_sizes[i]);
     }
 
     glGetBooleanv(GL_COLOR_WRITEMASK, gl_state.color_mask);

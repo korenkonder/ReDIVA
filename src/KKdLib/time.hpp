@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.hpp"
+#include "default.hpp"
 
 struct time_struct {
     LARGE_INTEGER timestamp;

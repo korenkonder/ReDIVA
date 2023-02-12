@@ -7,8 +7,8 @@
 
 #include "input.hpp"
 #include <map>
+#include "../KKdLib/timer.hpp"
 #include "../KKdLib/vec.hpp"
-#include "../CRE/timer.hpp"
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <timeapi.h>
 
@@ -179,8 +179,8 @@ namespace Input {
     }
 
     void EndFrame() {
-        keys_prev = keys;
-        mouse_buttons_prev = mouse_buttons;
+        keys_prev.assign(keys.begin(), keys.end());
+        mouse_buttons_prev.assign(mouse_buttons.begin(), mouse_buttons.end());
     }
 
     void NewFrame() {

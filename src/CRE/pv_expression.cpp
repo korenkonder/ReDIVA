@@ -14,7 +14,7 @@
 struct pv_expression_file {
     p_file_handler file_handler;
     pv_exp* data;
-    prj::shared_ptr<alloc_data> alloc_handler;
+    prj::shared_ptr<prj::stack_allocator> alloc_handler;
     int32_t load_count;
     uint32_t hash;
 
@@ -66,8 +66,8 @@ pv_expression_file::~pv_expression_file() {
 }
 
 void pv_expression_file::load_file(pv_expression_file* exp_file, const void* data, size_t size) {
-    prj::shared_ptr<alloc_data>& alloc = exp_file->alloc_handler;
-    alloc = prj::shared_ptr<alloc_data>(new alloc_data);
+    prj::shared_ptr<prj::stack_allocator>& alloc = exp_file->alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
     exp_file->data->unpack_file(alloc, data, size, exp_file->data->modern);
 }

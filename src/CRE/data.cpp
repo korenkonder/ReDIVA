@@ -60,10 +60,10 @@ void data_struct_load_db() {
         data_struct* ds = &data_list[DATA_AFT];
         data_ft* d = &ds->data_ft;
 
-        std::list<std::string>& prefixes = mdata_manager_get()->prefixes;
-
-        for (std::string& i : prefixes) {
-            std::string file = i + "auth_3d_db.bin";
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
+            file.append("auth_3d_db.bin");
 
             auth_3d_database_file auth_3d_db_file;
             ds->load_file(&auth_3d_db_file, "rom/auth_3d/", file.c_str(),
@@ -79,8 +79,10 @@ void data_struct_load_db() {
                 "bone_data.bin", bone_database::load_file);
         }
 
-        for (std::string& i : prefixes) {
-            std::string file = i + "mot_db.farc";
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
+            file.append("mot_db.farc");
 
             motion_database_file mot_db_file;
             ds->load_file(&mot_db_file, "rom/rob/", file.c_str(),
@@ -88,8 +90,10 @@ void data_struct_load_db() {
             d->mot_db.add(&mot_db_file);
         }
 
-        for (std::string& i : prefixes) {
-            std::string file = i + "obj_db.bin";
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
+            file.append("obj_db.bin");
 
             object_database_file obj_db_file;
             obj_db_file.modern = false;
@@ -98,8 +102,10 @@ void data_struct_load_db() {
             d->obj_db.add(&obj_db_file);
         }
 
-        for (std::string& i : prefixes) {
-            std::string file = i + "spr_db.bin";
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
+            file.append("spr_db.bin");
 
             sprite_database_file spr_db_file;
             spr_db_file.modern = false;
@@ -108,8 +114,10 @@ void data_struct_load_db() {
             d->spr_db.add(&spr_db_file);
         }
 
-        for (std::string& i : prefixes) {
-            std::string file = i + "stage_data.bin";
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
+            file.append("stage_data.bin");
 
             stage_database_file stage_data_file;
             stage_data_file.modern = false;
@@ -118,8 +126,10 @@ void data_struct_load_db() {
             d->stage_data.add(&stage_data_file);
         }
 
-        for (std::string& i : prefixes) {
-            std::string file = i + "tex_db.bin";
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
+            file.append("tex_db.bin");
 
             texture_database_file tex_db_file;
             tex_db_file.modern = false;

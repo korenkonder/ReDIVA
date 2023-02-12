@@ -4,7 +4,7 @@
 */
 
 #include "task.hpp"
-#include "time.hpp"
+#include "../KKdLib/time.hpp"
 
 extern float_t get_delta_frame();
 extern uint32_t get_frame_counter();
@@ -21,9 +21,9 @@ namespace app {
     static void Task_set_base_calc_time(Task* t, uint32_t value);
     static void Task_set_calc_time(Task* t);
     static void Task_set_disp_time(Task* t, uint32_t value);
-    static bool Task_sub_14019B810(Task* t, int32_t a2);
-    static void Task_sub_14019C480(Task* t, uint32_t a2);
-    static void Task_sub_14019C5A0(Task* t);
+    static bool Task_check_request(Task* t, Task::Request request);
+    static void Task_set_request(Task* t, Task::Request request);
+    static void Task_update_op_state(Task* t);
 
     TaskWork* task_work;
 
@@ -58,11 +58,11 @@ namespace app {
     Task::Task() {
         priority = 1;
         parent_task = 0;
-        field_18 = Task::Enum::None;
-        field_1C = 0;
-        field_20 = 0;
-        field_24 = Task::Enum::None;
-        field_28 = 0;
+        op = Task::Op::None;
+        state = Task::State::None;
+        request = Task::Request::None;
+        next_op = Task::Op::None;
+        next_state = Task::State::None;
         field_2C = false;
         is_frame_dependent = false;
         SetName("(unknown)");
@@ -99,11 +99,35 @@ namespace app {
         return name;
     }
 
-    bool Task::SetDest() {
-        if (!TaskWork::HasTask(this) || !Task_sub_14019B810(this, 2))
+    bool Task::DelTask() {
+        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Dest))
             return false;
 
-        Task_sub_14019C480(this, 2);
+        Task_set_request(this, Task::Request::Dest);
+        return true;
+    }
+
+    bool Task::HideTask() {
+        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Hide))
+            return false;
+
+        Task_set_request(this, Task::Request::Hide);
+        return true;
+    }
+
+    bool Task::RunTask() {
+        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Run))
+            return false;
+
+        Task_set_request(this, Task::Request::Run);
+        return true;
+    }
+    
+    bool Task::SuspendTask() {
+        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Suspend))
+            return false;
+
+        Task_set_request(this, Task::Request::Suspend);
         return true;
     }
 
@@ -123,29 +147,13 @@ namespace app {
         this->priority = priority;
     }
 
-    bool Task::sub_14019C3B0() {
-        if (!TaskWork::HasTask(this) || !Task_sub_14019B810(this, 5))
-            return false;
-
-        Task_sub_14019C480(this, 5);
-        return true;
-    }
-
-    bool Task::sub_14019C540() {
-        if (!TaskWork::HasTask(this) || !Task_sub_14019B810(this, 4))
-            return false;
-
-        Task_sub_14019C480(this, 4);
-        return true;
-    }
-
     TaskWork::TaskWork() : current(), disp() {
 
     }
 
     TaskWork::~TaskWork() {
         for (Task* i : tasks)
-            i->SetDest();
+            i->DelTask();
 
         while (tasks.size()) {
             Ctrl();
@@ -153,24 +161,24 @@ namespace app {
         }
     }
 
-    bool TaskWork::AppendTask(Task* t, const char* name, int32_t priority) {
-        return TaskWork::AppendTask(t, task_work->current, name, priority);
+    bool TaskWork::AddTask(Task* t, const char* name, int32_t priority) {
+        return TaskWork::AddTask(t, task_work->current, name, priority);
     }
 
-    bool TaskWork::AppendTask(Task* t, Task* parent_task, const char* name, int32_t priority) {
-        Task_sub_14019C480(t, 0);
-        if (TaskWork::HasTask(t) || !Task_sub_14019B810(t, 1))
+    bool TaskWork::AddTask(Task* t, Task* parent_task, const char* name, int32_t priority) {
+        Task_set_request(t, Task::Request::None);
+        if (TaskWork::HasTask(t) || !Task_check_request(t, Task::Request::Init))
             return false;
 
         t->SetPriority(priority);
         t->parent_task = parent_task;
-        t->field_18 = Task::Enum::None;
-        t->field_1C = 0;
-        t->field_24 = Task::Enum::None;
-        t->field_28 = 0;
+        t->op = Task::Op::None;
+        t->state = Task::State::None;
+        t->next_op = Task::Op::None;
+        t->next_state = Task::State::None;
         t->SetName(name);
-        Task_sub_14019C480(t, 1);
-        Task_sub_14019C5A0(t);
+        Task_set_request(t, Task::Request::Init);
+        Task_update_op_state(t);
         task_work->tasks.push_back(t);
         return true;
     }
@@ -183,16 +191,16 @@ namespace app {
     }
 
     bool TaskWork::CheckTaskCtrl(Task* t) {
-        return app::TaskWork::HasTask(t) && t->field_1C == 1 && t->field_18 == Task::Enum::Ctrl;
+        return app::TaskWork::HasTask(t) && t->state == Task::State::Running && t->op == Task::Op::Ctrl;
     }
 
     bool TaskWork::CheckTaskReady(Task* t) {
-        return TaskWork::HasTask(t) && (t->field_18 == Task::Enum::None || t->field_1C);
+        return TaskWork::HasTask(t) && (t->op == Task::Op::None || t->state != Task::State::None);
     }
 
     void TaskWork::Ctrl() {
         for (Task*& i : task_work->tasks) {
-            Task_sub_14019C5A0(i);
+            Task_update_op_state(i);
             Task_set_base_calc_time(i, 0);
         }
 
@@ -231,7 +239,7 @@ namespace app {
 
     void TaskWork::Dest() {
         for (Task*& i : task_work->tasks)
-            i->SetDest();
+            i->DelTask();
     }
 
     void TaskWork::Disp() {
@@ -260,7 +268,9 @@ namespace app {
     }
 
     bool TaskWork::HasTask(Task* t) {
-        std::list<Task*>* tasks = &task_work->tasks;
+        if (!task_work->tasks.size())
+            return false;
+
         for (Task*& i : task_work->tasks)
             if (i == t)
                 return true;
@@ -269,21 +279,21 @@ namespace app {
 
     bool TaskWork::HasTaskInit(Task* t) {
         if (TaskWork::HasTask(t))
-            return t->field_18 == Task::Enum::Init;
+            return t->op == Task::Op::Init;
         else
             return false;
     }
 
     bool TaskWork::HasTaskCtrl(Task* t) {
         if (TaskWork::HasTask(t))
-            return t->field_18 == Task::Enum::Ctrl;
+            return t->op == Task::Op::Ctrl;
         else
             return false;
     }
 
     bool TaskWork::HasTaskDest(Task* t) {
         if (TaskWork::HasTask(t))
-            return t->field_18 == Task::Enum::Dest;
+            return t->op == Task::Op::Dest;
         else
             return false;
     }
@@ -308,29 +318,29 @@ namespace app {
     }
 
     static void Task_do_basic(Task* t) {
-        if ((t->field_1C == 1 || t->field_1C == 2)
-            && t->field_18 != Task::Enum::Init && t->field_18 != Task::Enum::Dest)
+        if ((t->state == Task::State::Running || t->state == Task::State::Suspended)
+            && t->op != Task::Op::Init && t->op != Task::Op::Dest)
             t->Basic();
     }
 
     static void Task_do_ctrl(Task* t) {
-        if (t->field_1C != 1)
+        if (t->state != Task::State::Running)
             return;
 
-        if (t->field_18 == Task::Enum::Init && t->Init()) {
-            t->field_24 = Task::Enum::Ctrl;
-            t->field_18 = Task::Enum::Ctrl;
+        if (t->op == Task::Op::Init && t->Init()) {
+            t->next_op = Task::Op::Ctrl;
+            t->op = Task::Op::Ctrl;
         }
 
-        if (t->field_18 == Task::Enum::Ctrl && t->Ctrl()) {
-            t->field_24 = Task::Enum::Dest;
-            t->field_18 = Task::Enum::Dest;
+        if (t->op == Task::Op::Ctrl && t->Ctrl()) {
+            t->next_op = Task::Op::Dest;
+            t->op = Task::Op::Dest;
         }
 
-        if (t->field_18 == Task::Enum::Dest && t->Dest()) {
-            t->field_28 = 0;
-            t->field_24 = Task::Enum::Max;
-            t->field_20 = 0;
+        if (t->op == Task::Op::Dest && t->Dest()) {
+            t->next_state = Task::State::None;
+            t->next_op = Task::Op::Max;
+            t->request = Task::Request::None;
         }
     }
 
@@ -357,8 +367,8 @@ namespace app {
     }
 
     static void Task_do_disp(Task* t) {
-        if ((t->field_1C == 1 || t->field_1C == 2)
-            && t->field_18 != Task::Enum::Init && t->field_18 != Task::Enum::Dest)
+        if ((t->state == Task::State::Running || t->state == Task::State::Suspended)
+            && t->op != Task::Op::Init && t->op != Task::Op::Dest)
             t->Disp();
     }
 
@@ -382,57 +392,59 @@ namespace app {
         t->disp_time = max_def(t->disp_time, t->disp_time_max);
     }
 
-    static bool Task_sub_14019B810(Task* t, int32_t a2) {
+    static bool Task_check_request(Task* t, Task::Request request) {
         if (task_work->disp)
             return false;
 
-        if (a2 == 1)
+        switch (request) {
+        case Task::Request::Init:
             return true;
-        else if (a2 == 2)
-            return t->field_1C != 0;
-        else if (a2 == 3)
-            return t->field_1C == 1 || t->field_1C == 3;
-        else if (a2 == 4)
-            return t->field_1C == 1 || t->field_1C == 2;
-        else if (a2 == 5)
-            return t->field_1C == 2 || t->field_1C == 3;
+        case Task::Request::Dest:
+            return t->state != Task::State::None;
+        case Task::Request::Suspend:
+            return t->state == Task::State::Running || t->state == Task::State::Hidden;
+        case Task::Request::Hide:
+            return t->state == Task::State::Running || t->state == Task::State::Suspended;
+        case Task::Request::Run:
+            return t->state == Task::State::Suspended || t->state == Task::State::Hidden;
+        }
         return false;
     }
 
-    static void Task_sub_14019C480(Task* t, uint32_t a2) {
-        if (a2 > 1)
+    static void Task_set_request(Task* t, Task::Request request) {
+        if (request > Task::Request::Init)
             for (Task*& i : task_work->tasks)
                 if (i->parent_task == t)
-                    Task_sub_14019C480(i, a2);
-        t->field_20 = a2;
+                    Task_set_request(i, request);
+        t->request = request;
     }
 
-    static void Task_sub_14019C5A0(Task* t) {
-        if (t->field_18 != Task::Enum::Init && t->field_18 != Task::Enum::Dest
-            && Task_sub_14019B810(t, t->field_20)) {
-            switch (t->field_20) {
-            case 1:
-                t->field_24 = Task::Enum::Init;
-                t->field_28 = 1;
+    static void Task_update_op_state(Task* t) {
+        if (t->op != Task::Op::Init && t->op != Task::Op::Dest
+            && Task_check_request(t, t->request)) {
+            switch (t->request) {
+            case Task::Request::Init:
+                t->next_op = Task::Op::Init;
+                t->next_state = Task::State::Running;
                 break;
-            case 2:
-                t->field_24 = Task::Enum::Dest;
-                t->field_28 = 1;
+            case Task::Request::Dest:
+                t->next_op = Task::Op::Dest;
+                t->next_state = Task::State::Running;
                 break;
-            case 3:
-                t->field_28 = 2;
+            case Task::Request::Suspend:
+                t->next_state = Task::State::Suspended;
                 break;
-            case 4:
-                t->field_28 = 3;
+            case Task::Request::Hide:
+                t->next_state = Task::State::Hidden;
                 break;
-            case 5:
-                t->field_28 = 1;
+            case Task::Request::Run:
+                t->next_state = Task::State::Running;
                 break;
             }
-            t->field_20 = 0;
+            t->request = Task::Request::None;
         }
 
-        t->field_18 = t->field_24;
-        t->field_1C = t->field_28;
+        t->op = t->next_op;
+        t->state = t->next_state;
     }
 }

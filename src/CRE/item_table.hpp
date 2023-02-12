@@ -117,14 +117,18 @@ struct item_table {
 
     item_table();
     ~item_table();
+
+    const item_table_item* get_item(int32_t item_no);
 };
 
-extern void item_table_array_init();
-extern item_cos_data* item_table_array_get_item_cos_data_by_module_index(
+extern void item_table_handler_array_init();
+extern const item_cos_data* item_table_handler_array_get_item_cos_data_by_module_index(
     chara_index chara_index, int32_t module_index);
-extern item_table_item* item_table_array_get_item(chara_index chara_index, int32_t item_no);
-extern void item_table_array_get_item_objset(chara_index chara_index,
-    int32_t item_no, std::vector<uint32_t>** objset);
-extern item_table* item_table_array_get_table(chara_index chara_index);
-extern bool item_table_array_load_file(void* data, const char* path, const char* file, uint32_t hash);
-extern void item_table_array_free();
+extern const item_table_item* item_table_handler_array_get_item(
+    chara_index chara_index, int32_t item_no);
+extern const std::vector<uint32_t>* item_table_handler_array_get_item_objset(
+    chara_index chara_index, int32_t item_no);
+extern const item_table* item_table_handler_array_get_table(chara_index chara_index);
+extern bool item_table_handler_array_load();
+extern void item_table_handler_array_read();
+extern void item_table_handler_array_free();

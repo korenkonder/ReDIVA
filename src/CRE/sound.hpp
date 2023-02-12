@@ -6,10 +6,10 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/time.hpp"
 #include "../KKdLib/farc.hpp"
 #include "file_handler.hpp"
 #include "lock.hpp"
-#include "time.hpp"
 #include <map>
 #include <mutex>
 #include <string>

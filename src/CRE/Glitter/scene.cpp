@@ -267,7 +267,7 @@ namespace Glitter {
         return true;
     }
 
-    void Scene::InitEffect(GPM, Effect* eff, size_t id, bool appear_now) {
+    void Scene::InitEffect(GPM, Effect* eff, size_t id, bool appear_now, uint8_t load_flags) {
         if (!eff)
             return;
 
@@ -281,7 +281,7 @@ namespace Glitter {
         if (type != Glitter::X)
             effect.ptr = new F2EffectInst(GPM_VAL, type, eff, id, emission, appear_now);
         else
-            effect.ptr = new XEffectInst(GPM_VAL, eff, id, emission, appear_now);
+            effect.ptr = new XEffectInst(GPM_VAL, eff, id, emission, appear_now, load_flags);
         effect.disp = true;
         effects.push_back(effect);
 

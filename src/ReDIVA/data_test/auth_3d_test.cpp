@@ -16,14 +16,276 @@
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
 
+static int auth_3d_test_window_uid_quicksort_compare_func(void const* src1, void const* src2);
+
 extern int32_t width;
 extern int32_t height;
 extern float_t frame_speed;
 extern render_context* rctx_ptr;
 
+Auth3dTestTask* auth_3d_test_task;
 Auth3dTestWindow* auth_3d_test_window;
 
-static int auth_3d_test_window_uid_quicksort_compare_func(void const* src1, void const* src2);
+Auth3dTestTask::Auth3dTestTask::Window::Window() {
+    stage_link_change = true;
+    obj_link = true;
+}
+
+Auth3dTestTask::Auth3dTestTask() {
+    field_1C0 = 10;
+    field_1C4 = 10;
+    field_1C8 = 10;
+    field_1CC = 10;
+    field_1D0 = false;
+    field_1D4 = 0;
+    auth_3d_id = {};
+    auth_3d_uid = -1;
+    repeat = true;
+    left_right_reverse = false;
+    field_1E3 = false;
+    field_1E4 = 0;
+    field_1E8 = false;
+    field_1E9 = false;
+    black_mask_listener = false;
+    field_1EB = true;
+    field_1EC = 1;
+    effcmn_obj_set = -1;
+    field_210 = 1;
+    field_328 = false;
+    field_329 = true;
+    field_32A = true;
+    stage_index = -1;
+    load_stage_index = 0;
+    trans_value = 0.0f;
+    rot_y_value = 0.0f;
+    field_388 = false;
+    field_38C = 0;
+    field_390 = false;
+    field_394 = 0;
+}
+
+Auth3dTestTask:: ~Auth3dTestTask() {
+
+}
+
+bool Auth3dTestTask::Init() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+
+    field_1D0 = false;
+    field_1D4 = 0;
+    auth_3d_id = {};
+    auth_3d_uid = -1;
+    repeat = true;
+    left_right_reverse = false;
+    field_1E3 = false;
+    field_1E4 = 0;
+    field_1E8 = false;
+    field_1E9 = false;
+    black_mask_listener = false;
+    field_1EC = 1;
+    effcmn_obj_set = aft_obj_db->get_object_set_id("EFFCMN");
+    field_210 = 1;
+    field_328 = false;
+    field_329 = true;
+    field_32A = true;
+    stage_index = -1;
+    load_stage_index = 0;
+    trans_value = 0.0f;
+    rot_y_value = 0.0f;
+    field_390 = true;
+    field_394 = 0;
+    category.clear();
+    category.shrink_to_fit();
+    load_category.clear();
+    load_category.shrink_to_fit();
+    obj_sets.clear();
+    obj_sets.shrink_to_fit();
+
+    rctx_ptr->render_manager.shadow_ptr->self_shadow = true;
+    clear_color = { 0x99, 0x99, 0x99, 0x00 };
+    task_stage_load_task("A3D_STAGE");
+    object_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
+    return true;
+}
+
+bool Auth3dTestTask::Ctrl() {
+    SetStage();
+    SetAuth3dId();
+
+    if (field_1EC == 1 && !object_storage_load_obj_set_check_not_read(effcmn_obj_set))
+        field_1EC = 4;
+
+    if (field_1D4 == 1 && auth_3d_id.check_loaded())
+        field_1D4 = 2;
+
+    if (field_1D4 == 2) {
+        auth_3d_id.set_enable(true);
+        auth_3d_id.set_paused(false);
+        auth_3d_id.set_repeat(repeat);
+        auth_3d_id.set_left_right_reverse(left_right_reverse);
+        field_1D4 = 4;
+    }
+
+    if (auth_3d_id.check_not_empty()) {
+        mat4 mat;
+        mat4_translate(&trans_value, &mat);
+        mat4_rotate_y_mult(&mat, rot_y_value * DEG_TO_RAD_FLOAT, &mat);
+        auth_3d_id.set_mat(mat);
+    }
+    return false;
+}
+
+bool Auth3dTestTask::Dest() {
+    auth_3d_id.unload_id(rctx_ptr);
+    object_storage_unload_set(effcmn_obj_set);
+    task_stage_unload_task();
+    clear_color = color_black;
+    rctx_ptr->render_manager.shadow_ptr->self_shadow = true;
+    if (category.size())
+        auth_3d_data_unload_category(category.c_str());
+    category.clear();
+    category.shrink_to_fit();
+    load_category.clear();
+    load_category.shrink_to_fit();
+    for (uint32_t& i : obj_sets)
+        object_storage_unload_set(i);
+    obj_sets.clear();
+    obj_sets.shrink_to_fit();
+    return true;
+}
+
+void Auth3dTestTask::DispAuth3dChara(::auth_3d_id& id) {
+    id.get_uid(); // ???
+    rob_chara_item_equip* rob_itm_equip = rob_chara_array_get_item_equip(0);
+    if (!rob_itm_equip)
+        return;
+
+    for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++)
+        rob_itm_equip->set_disp((item_id)i, true);
+}
+
+void Auth3dTestTask::DispChara() {
+    if (auth_3d_id.check_not_empty())
+        Auth3dTestTask::DispAuth3dChara(auth_3d_id);
+}
+
+void Auth3dTestTask::SetAuth3dId() {
+    if (task_stage_check_not_loaded() || auth_3d_uid == -1
+        || !load_category.size() || auth_3d_uid == auth_3d_id.get_uid())
+        return;
+
+    if (load_category.compare(category)) {
+        if (category.size()) {
+            auth_3d_data_unload_category(category.c_str());
+            for (uint32_t& i : obj_sets)
+                object_storage_unload_set(i);
+            obj_sets.clear();
+        }
+        auth_3d_data_load_category(load_category.c_str());
+        category.assign(load_category);
+        if (window.obj_link)
+            field_394 = 1;
+    }
+
+    if (!auth_3d_data_check_category_loaded(category.c_str()))
+        return;
+
+    if (field_394 == 1) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+
+        auth_3d_data_get_obj_sets_from_category(category, obj_sets, aft_auth_3d_db, aft_obj_db);
+
+        for (uint32_t& i : obj_sets)
+            object_storage_load_set(aft_data, aft_obj_db, i);
+        field_394 = 2;
+    }
+    else if (field_394 == 2) {
+        bool wait_load = false;
+        for (uint32_t& i : obj_sets)
+            if (object_storage_load_obj_set_check_not_read(i))
+                wait_load = true;
+
+        if (!wait_load)
+            field_394 = 0;
+    }
+
+    if (!field_394) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+
+        auth_3d_id.unload_id(rctx_ptr);
+        auth_3d_id = auth_3d_data_load_uid(auth_3d_uid, aft_auth_3d_db);
+        if (auth_3d_id.check_not_empty()) {
+            auth_3d_id.set_enable(false);
+            auth_3d_id.read_file(aft_auth_3d_db);
+            field_1D4 = 1;
+        }
+        auth_3d_uid = -1;
+        return;
+    }
+}
+
+void Auth3dTestTask::SetStage() {
+    if (window.stage_link_change) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+        stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
+
+        const char* name = auth_3d_data_get_uid_name(auth_3d_uid, aft_auth_3d_db);
+        size_t name_length = utf8_length(name);
+        if (name && name_length >= 3) {
+            size_t v5 = name_length - 2;
+            const char* v6 = name;
+            while (v5) {
+                const char* v7 = (const char*)memchr(v6, 'S', v5);
+                if (!v7)
+                    break;
+
+                if (memcmp(v7, "STG", min_def(v5, 3))) {
+                    v5 += v6 - v7 - 1;
+                    v6 = v7 + 1;
+                    continue;
+                }
+
+                size_t v16 = v7 - name;
+                if (v16 == -1 || v16 >= name_length || name_length == v16)
+                    break;
+
+                size_t v17 = name_length - v16;
+                for (const char* i = name + v16; v17; ) {
+                    const char* v20 = (const char*)memchr(i, '_', v17);
+                    if (!v20)
+                        break;
+
+                    if (*v20 != '_') {
+                        v17 += i - v20 - 1;
+                        i = v20 + 1;
+                        continue;
+                    }
+
+                    size_t v24 = v20 - name;
+                    if (v24 != -1) {
+                        std::string v30 = std::string(name + v16, v24 - v16);
+                        int32_t stage_index = aft_stage_data->get_stage_index(v30.c_str());
+                        if (this->stage_index != stage_index)
+                            load_stage_index = stage_index;
+                    }
+                    break;
+                }
+                break;
+            }
+        }
+    }
+
+    if (load_stage_index != -1 && load_stage_index != stage_index) {
+        task_stage_set_stage_index(load_stage_index);
+        stage_index = load_stage_index;
+        load_stage_index = -1;
+    }
+}
 
 auth_3d_test_window_category::auth_3d_test_window_category() : name(), index() {
 
@@ -185,7 +447,7 @@ void Auth3dTestWindow::Window() {
 
             ImGui::PushID(&i);
             if (ImGui::Selectable(i.name->c_str(), _auth_3d_category_index == auth_3d_category_idx)
-                || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && _auth_3d_category_index != auth_3d_category_idx)) {
                 auth_3d_category_index = -1;
                 _auth_3d_category_index = auth_3d_category_idx;
@@ -238,7 +500,7 @@ void Auth3dTestWindow::Window() {
 
                 ImGui::PushID(&j);
                 if (ImGui::Selectable(j.name->c_str(), _auth_3d_index == auth_3d_idx)
-                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && _auth_3d_index != auth_3d_idx)) {
                     auth_3d_index = -1;
                     _auth_3d_index = auth_3d_idx;
@@ -344,7 +606,7 @@ void Auth3dTestWindow::Window() {
 
                 ImGui::PushID(i);
                 if (ImGui::Selectable(i, stage_index == stage_idx)
-                    || ImGui::ItemKeyPressed(GLFW_KEY_ENTER, true)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && stage_index != stage_idx))
                     stage_index = stage_idx;
                 ImGui::PopID();
@@ -377,6 +639,21 @@ void Auth3dTestWindow::Window() {
         auth_3d_test_task->auth_3d_id.set_frame_rate(0);
     }
     ImGui::End();
+}
+
+void auth_3d_test_task_init() {
+    auth_3d_test_task = new Auth3dTestTask;
+}
+
+void auth_3d_test_task_disp_chara() {
+    auth_3d_test_task->DispChara();
+}
+
+void auth_3d_test_task_free() {
+    if (auth_3d_test_task) {
+        delete auth_3d_test_task;
+        auth_3d_test_task = 0;
+    }
 }
 
 void auth_3d_test_window_init() {
