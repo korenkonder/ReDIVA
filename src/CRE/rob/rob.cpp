@@ -10988,12 +10988,12 @@ void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id) {
     rob_itm_equip->field_A0 = 5;
 }
 
-void rob_chara_array_set_alpha_draw_task_flags(int32_t chara_id, float_t alpha, draw_task_flags flags) {
+void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags) {
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
     if (!rob_chr)
         return;
 
-    rob_chr->item_equip->set_alpha_draw_task_flags(alpha, flags);
+    rob_chr->item_equip->set_alpha_obj_flags(alpha, flags);
 
     /*if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
         sub_140543120(chara_id, 1, alpha);
@@ -11927,7 +11927,7 @@ rob_chara_pv_data::~rob_chara_pv_data() {
 
 rob_chara_item_equip_object::rob_chara_item_equip_object() : index(), mats(),
 obj_info(), field_14(), texture_data(), null_blocks_data_set(), alpha(),
-draw_task_flags(), can_disp(), field_A4(), mat(), osage_iterations(), bone_nodes(),
+obj_flags(), can_disp(), field_A4(), mat(), osage_iterations(), bone_nodes(),
 field_138(), field_1B8(), osage_nodes_count(), use_opd(), skin_ex_data(), skin(), item_equip() {
     init_members(0x12345678);
 }
@@ -12003,13 +12003,13 @@ void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
     if (obj_info.is_null())
         return;
 
-    ::draw_task_flags v2 = rctx->disp_manager.get_draw_task_flags();
-    ::draw_task_flags v4 = v2;
+    mdl::ObjFlags v2 = rctx->disp_manager.get_obj_flags();
+    mdl::ObjFlags v4 = v2;
     if (fabsf(alpha - 1.0f) > 0.000001f)
-        enum_or(v4, draw_task_flags);
+        enum_or(v4, obj_flags);
     else
-        enum_and(v4, ~(DRAW_TASK_ALPHA_ORDER_3 | DRAW_TASK_ALPHA_ORDER_2 | DRAW_TASK_ALPHA_ORDER_1));
-    rctx->disp_manager.set_draw_task_flags(v4);
+        enum_and(v4, ~(mdl::OBJ_ALPHA_ORDER_3 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_1));
+    rctx->disp_manager.set_obj_flags(v4);
     if (can_disp) {
         rctx->disp_manager.entry_obj_by_object_info_object_skin(obj_info,
             &texture_pattern, &texture_data, alpha, mats, ex_data_block_mats.data(), 0, mat);
@@ -12017,7 +12017,7 @@ void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
         for (ExNodeBlock*& i : node_blocks)
             i->Disp(mat, rctx);
     }
-    rctx->disp_manager.set_draw_task_flags(v2);
+    rctx->disp_manager.set_obj_flags(v2);
 }
 
 int32_t rob_chara_item_equip_object::get_bone_index(const char* name, bone_database* bone_data) {
@@ -12118,7 +12118,7 @@ void rob_chara_item_equip_object::init_members(size_t index) {
     texture_data.texture_specular_coefficients = 1.0f;
     texture_data.texture_specular_offset = 0.0f;
     alpha = 1.0f;
-    draw_task_flags = DRAW_TASK_ALPHA_ORDER_1;
+    obj_flags = mdl::OBJ_ALPHA_ORDER_1;
     null_blocks_data_set = 0;
     can_disp = true;
     field_A4 = 0;
@@ -12350,8 +12350,8 @@ void rob_chara_item_equip_object::reset_external_force() {
         i->rob.ResetExtrenalForce();
 }
 
-void rob_chara_item_equip_object::set_alpha_draw_task_flags(float_t alpha, int32_t flags) {
-    draw_task_flags = (::draw_task_flags)flags;
+void rob_chara_item_equip_object::set_alpha_obj_flags(float_t alpha, int32_t flags) {
+    obj_flags = (mdl::ObjFlags)flags;
     this->alpha = clamp_def(alpha, 0.0f, 1.0f);
 }
 
@@ -12638,11 +12638,11 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
 }
 
 void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
-    draw_task_flags v2 = (draw_task_flags)0;
+    mdl::ObjFlags flags = (mdl::ObjFlags)0;
     if (rctx->chara_reflect)
-        enum_or(v2, DRAW_TASK_CHARA_REFLECT);
+        enum_or(flags, mdl::OBJ_CHARA_REFLECT);
     if (rctx->chara_refract)
-        enum_or(v2, DRAW_TASK_REFRACT);
+        enum_or(flags, mdl::OBJ_REFRACT);
 
     mdl::DispManager& disp_manager = rctx->disp_manager;
     shadow* shad = rctx->render_manager.shadow_ptr;
@@ -12659,13 +12659,13 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
                 v9 = 0.05f;
             rctx->render_manager.shadow_ptr->field_1C0[shadow_type] = v9;
             disp_manager.set_shadow_type(shadow_type);
-            enum_or(v2, DRAW_TASK_SHADOW);
+            enum_or(flags, mdl::OBJ_SHADOW);
         }
 
         if (field_A0 & 1)
-            enum_or(v2, DRAW_TASK_4);
+            enum_or(flags, mdl::OBJ_4);
     }
-    disp_manager.set_draw_task_flags(v2);
+    disp_manager.set_obj_flags(flags);
     disp_manager.set_chara_color(chara_color);
 
     vec4 temp_texture_color_coeff;
@@ -12682,29 +12682,29 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
             item_equip_object[i].disp(&mat, rctx);
     else {
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++) {
-            draw_task_flags v18 = (draw_task_flags)0;
+            mdl::ObjFlags v18 = (mdl::ObjFlags)0;
             if (field_18[i] == 0) {
                 if (rctx->chara_reflect)
-                    enum_or(v18, DRAW_TASK_CHARA_REFLECT);
+                    enum_or(v18, mdl::OBJ_CHARA_REFLECT);
                 if (rctx->chara_refract)
-                    enum_or(v18, DRAW_TASK_REFRACT);
+                    enum_or(v18, mdl::OBJ_REFRACT);
             }
 
-            draw_task_flags v19 = (draw_task_flags)(DRAW_TASK_4 | DRAW_TASK_SHADOW);
-            if (i == 8)
-                v19 = (draw_task_flags)0;
+            mdl::ObjFlags v19 = (mdl::ObjFlags)(mdl::OBJ_4 | mdl::OBJ_SHADOW);
+            if (i == ITEM_HARA)
+                v19 = (mdl::ObjFlags)0;
 
             if (!(field_A0 & 0x04))
-                enum_and(v19, ~DRAW_TASK_SHADOW);
+                enum_and(v19, ~mdl::OBJ_SHADOW);
 
-            disp_manager.set_draw_task_flags((draw_task_flags)(v18 | v19 | DRAW_TASK_SSS));
+            disp_manager.set_obj_flags((mdl::ObjFlags)(v18 | v19 | mdl::OBJ_SSS));
             item_equip_object[i].disp(&mat, rctx);
         }
     }
     disp_manager.set_texture_color_coefficients(temp_texture_color_coeff);
     disp_manager.set_wet_param();
     disp_manager.set_chara_color();
-    disp_manager.set_draw_task_flags();
+    disp_manager.set_obj_flags();
     disp_manager.set_shadow_type();
 }
 
@@ -12784,13 +12784,13 @@ void rob_chara_item_equip::reset_init_data(bone_node* bone_nodes) {
     mat = mat4_identity;
 }
 
-void rob_chara_item_equip::set_alpha_draw_task_flags(float_t alpha, draw_task_flags flags) {
+void rob_chara_item_equip::set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags) {
     if (item_equip_range)
         for (int32_t i = first_item_equip_object; i < max_item_equip_object; i++)
-            item_equip_object[i].set_alpha_draw_task_flags(alpha, flags);
+            item_equip_object[i].set_alpha_obj_flags(alpha, flags);
     else
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++)
-            item_equip_object[i].set_alpha_draw_task_flags(alpha, flags);
+            item_equip_object[i].set_alpha_obj_flags(alpha, flags);
 }
 
 void rob_chara_item_equip::set_disp(item_id id, bool value) {

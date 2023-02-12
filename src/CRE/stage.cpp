@@ -497,17 +497,15 @@ static void stage_disp(stage* s) {
         disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_ring);
 
     if (s->stage_data->object_reflect.not_null()) {
-        disp_manager.set_draw_task_flags(
-            (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFLECT));
+        disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFLECT));
         disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_reflect);
-        disp_manager.set_draw_task_flags();
+        disp_manager.set_obj_flags();
     }
 
     if (s->stage_data->object_refract.not_null()) {
-        disp_manager.set_draw_task_flags(
-            (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT));
+        disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFRACT));
         disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_refract);
-        disp_manager.set_draw_task_flags();
+        disp_manager.set_obj_flags();
     }
 
     if (s->stage_data->object_sky.not_null() && s->sky) {
@@ -548,12 +546,11 @@ static void stage_disp_shadow_object(object_info object, mat4* mat) {
         disp_manager.set_culling_finc(i == SHADOW_CHARA
             ? object_bounding_sphere_check_visibility_shadow_chara
             : object_bounding_sphere_check_visibility_shadow_stage);
-        disp_manager.set_draw_task_flags(
-            (draw_task_flags)(DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_SHADOW_OBJECT));
+        disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_SHADOW_OBJECT));
         disp_manager.entry_obj_by_object_info(mat, object);
     }
 
-    disp_manager.set_draw_task_flags();
+    disp_manager.set_obj_flags();
     disp_manager.set_culling_finc();
     disp_manager.set_shadow_type();
 }

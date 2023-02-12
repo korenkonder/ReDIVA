@@ -2132,7 +2132,7 @@ struct rob_chara_item_equip_object {
     bool null_blocks_data_set;
     bone_node_expression_data exp_data;
     float_t alpha;
-    draw_task_flags draw_task_flags;
+    mdl::ObjFlags obj_flags;
     bool can_disp;
     int32_t field_A4;
     mat4* mat;
@@ -2175,7 +2175,7 @@ struct rob_chara_item_equip_object {
     void load_object_info_ex_data(object_info object_info, bone_node* bone_nodes,
         bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
     void reset_external_force();
-    void set_alpha_draw_task_flags(float_t alpha, int32_t flags);
+    void set_alpha_obj_flags(float_t alpha, int32_t flags);
     bool set_boc(skin_param_osage_root& skp_root, ExOsageBlock* osg);
     void set_collision_target_osage(skin_param_osage_root& skp_root, skin_param* skp);
     void set_motion_reset_data(int32_t motion_id, float_t frame);
@@ -2263,7 +2263,7 @@ struct rob_chara_item_equip {
     void reset();
     void reset_external_force();
     void reset_init_data(bone_node* bone_nodes);
-    void set_alpha_draw_task_flags(float_t alpha, draw_task_flags flags);
+    void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags);
     void set_disp(item_id id, bool value);
     void set_item_equip_range(bool value);
     void set_motion_reset_data(int32_t motion_id, float_t frame);
@@ -3510,7 +3510,7 @@ extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default);
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
 extern void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id);
-extern void rob_chara_array_set_alpha_draw_task_flags(int32_t chara_id, float_t alpha, draw_task_flags flags);
+extern void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags);
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 

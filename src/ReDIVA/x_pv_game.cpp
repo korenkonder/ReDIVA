@@ -4935,17 +4935,17 @@ static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, in
     if (chara_id < 0 || chara_id >= pv_data.play_param->chara.size())
         return;
 
-    draw_task_flags draw_task_flags;
+    mdl::ObjFlags flags;
     switch (type) {
     case 0:
     default:
-        draw_task_flags = DRAW_TASK_ALPHA_ORDER_1;
+        flags = mdl::OBJ_ALPHA_ORDER_1;
         break;
     case 1:
-        draw_task_flags = DRAW_TASK_ALPHA_ORDER_2;
+        flags = mdl::OBJ_ALPHA_ORDER_2;
         break;
     case 2:
-        draw_task_flags = DRAW_TASK_ALPHA_ORDER_3;
+        flags = mdl::OBJ_ALPHA_ORDER_3;
         break;
     }
 
@@ -4954,7 +4954,7 @@ static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, in
             continue;
 
         for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
-            j.id.set_draw_task_flags_alpha(draw_task_flags, alpha);
+            j.id.set_obj_flags_alpha(flags, alpha);
 
         for (x_pv_game_song_effect_glitter& j : i.glitter)
             Glitter::glt_particle_manager->SetSceneEffectExtColor(j.scene_counter,

@@ -53,7 +53,7 @@ enum chara_index {
     CHARA_MAX    = 10,
 };
 
-enum draw_task_flags {
+enum obj_flags {
     DRAW_TASK_SHADOW                = 0x00000001,
     DRAW_TASK_2                     = 0x00000002,
     DRAW_TASK_4                     = 0x00000004,
@@ -4042,7 +4042,7 @@ struct rob_chara_item_equip_object {
     bool null_blocks_data_set;
     bone_node_expression_data exp_data;
     float_t alpha;
-    draw_task_flags draw_task_flags;
+    obj_flags obj_flags;
     bool disp;
     int32_t field_A4;
     mat4* mat;

@@ -706,7 +706,7 @@ void auth_3d::reset() {
     once = false;
     mat = mat4_identity;
     alpha = 1.0f;
-    draw_task_flags = DRAW_TASK_ALPHA_ORDER_1;
+    obj_flags = mdl::OBJ_ALPHA_ORDER_1;
     chara_id = -1;
     chara_item = false;
     shadow = false;
@@ -2403,11 +2403,11 @@ void auth_3d_id::set_chara_item(bool value) {
     }
 }
 
-void auth_3d_id::set_draw_task_flags_alpha(draw_task_flags draw_task_flags, float_t alpha) {
+void auth_3d_id::set_obj_flags_alpha(mdl::ObjFlags obj_flags, float_t alpha) {
     if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
         if (auth->id == id) {
-            auth->draw_task_flags = draw_task_flags;
+            auth->obj_flags = obj_flags;
             auth->alpha = alpha;
         }
     }
@@ -3836,20 +3836,20 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         if (!i.model_transform.visible)
             return;
 
-        draw_task_flags flags = DRAW_TASK_SSS;
+        mdl::ObjFlags flags = mdl::OBJ_SSS;
         shadow_type_enum shadow_type = SHADOW_CHARA;
         if (auth->shadow || i.shadow) {
-            enum_or(flags, DRAW_TASK_4 | DRAW_TASK_SHADOW);
+            enum_or(flags, mdl::OBJ_4 | mdl::OBJ_SHADOW);
             shadow_type = SHADOW_STAGE;
         }
         if (auth->alpha < 1.0f)
-            enum_or(flags, auth->draw_task_flags);
+            enum_or(flags, auth->obj_flags);
 
-        disp_manager.set_draw_task_flags((draw_task_flags)flags);
+        disp_manager.set_obj_flags(flags);
         disp_manager.set_shadow_type(shadow_type);
 
         shadow* shad = rctx->render_manager.shadow_ptr;
-        if (shad && flags & DRAW_TASK_SHADOW) {
+        if (shad && flags & mdl::OBJ_SHADOW) {
             disp_manager.set_shadow_type(SHADOW_STAGE);
 
             mat4* m = &moh->model_transform.mat;
@@ -3873,7 +3873,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
                 i.object_info, 0, 0, auth->alpha, i.mats.data(), 0, 0, &i.model_transform.mat);
     }
 
-    disp_manager.set_draw_task_flags();
+    disp_manager.set_obj_flags();
     disp_manager.set_shadow_type(SHADOW_CHARA);
 }
 
@@ -5436,15 +5436,15 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
             disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
 
-    draw_task_flags flags = (draw_task_flags)0;
+    mdl::ObjFlags flags = (mdl::ObjFlags)0;
     if (auth->shadow)
-        enum_or(flags, DRAW_TASK_4 | DRAW_TASK_SHADOW);
+        enum_or(flags, mdl::OBJ_4 | mdl::OBJ_SHADOW);
     if (o->reflect)
-        enum_or(flags, DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFLECT);
+        enum_or(flags, mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFLECT);
     if (o->refract)
-        enum_or(flags, DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT);
+        enum_or(flags, mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFRACT);
 
-    disp_manager.set_draw_task_flags((draw_task_flags)flags);
+    disp_manager.set_obj_flags(flags);
 
     char buf[0x80];
     int32_t tex_pat_count = 0;
@@ -5536,7 +5536,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
 
     disp_manager.set_texture_transform();
     disp_manager.set_texture_pattern();
-    disp_manager.set_draw_task_flags();
+    disp_manager.set_obj_flags();
 
     for (auth_3d_object*& i : o->children_object)
         auth_3d_object_disp(i, auth, rctx);
@@ -5597,17 +5597,17 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     object_database* obj_db = auth->obj_db;
     texture_database* tex_db = auth->tex_db;
 
-    draw_task_flags flags = DRAW_TASK_SSS;
+    mdl::ObjFlags flags = mdl::OBJ_SSS;
     if (auth->shadow | oh->shadow)
-        enum_or(flags, DRAW_TASK_4 | DRAW_TASK_SHADOW);
+        enum_or(flags, mdl::OBJ_4 | mdl::OBJ_SHADOW);
     if (oh->reflect)
-        enum_or(flags, DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFLECT);
+        enum_or(flags, mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFLECT);
     if (oh->refract)
-        enum_or(flags, DRAW_TASK_NO_TRANSLUCENCY | DRAW_TASK_REFRACT);
+        enum_or(flags, mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFRACT);
     if (auth->alpha < 1.0f)
-        enum_or(flags, auth->draw_task_flags);
+        enum_or(flags, auth->obj_flags);
 
-    disp_manager.set_draw_task_flags(flags);
+    disp_manager.set_obj_flags(flags);
     disp_manager.set_shadow_type(SHADOW_CHARA);
 
     mat4 mat = mat4_identity;
@@ -5622,7 +5622,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
                 disp_manager.set_shadow_type(SHADOW_STAGE);
         }
     }
-    else if (flags & DRAW_TASK_SHADOW) {
+    else if (flags & mdl::OBJ_SHADOW) {
         disp_manager.set_shadow_type(SHADOW_STAGE);
 
         mat4* m = &oh->node.front().model_transform.mat;
@@ -5644,7 +5644,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
         disp_manager.entry_obj_by_object_info_object_skin(
             oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, &mat);
 
-    disp_manager.set_draw_task_flags();
+    disp_manager.set_obj_flags();
     disp_manager.set_shadow_type(SHADOW_CHARA);
 
     for (auth_3d_object*& i : oh->children_object)

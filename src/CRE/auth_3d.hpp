@@ -832,7 +832,7 @@ struct auth_3d_id {
     void set_camera_root_update(bool value);
     void set_chara_id(int32_t value);
     void set_chara_item(bool value);
-    void set_draw_task_flags_alpha(draw_task_flags draw_task_flags, float_t alpha);
+    void set_obj_flags_alpha(mdl::ObjFlags obj_flags, float_t alpha);
     void set_enable(bool value);
     void set_frame_rate(FrameRateControl* value);
     void set_last_frame(float_t value);
@@ -860,7 +860,7 @@ struct auth_3d {
     bool once;
     mat4 mat;
     float_t alpha;
-    draw_task_flags draw_task_flags;
+    mdl::ObjFlags obj_flags;
     int32_t chara_id;
     bool chara_item;
     bool shadow;

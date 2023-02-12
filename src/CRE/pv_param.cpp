@@ -589,21 +589,21 @@ namespace pv_param_task {
             else
                 value = lerp_def(i.prev_alpha, i.alpha, i.frame / i.duration);
 
-            draw_task_flags draw_task_flags;
+            mdl::ObjFlags obj_flags;
             switch (i.type) {
             case 0:
             default:
-                draw_task_flags = DRAW_TASK_ALPHA_ORDER_1;
+                obj_flags = mdl::OBJ_ALPHA_ORDER_1;
                 break;
             case 1:
-                draw_task_flags = DRAW_TASK_ALPHA_ORDER_2;
+                obj_flags = mdl::OBJ_ALPHA_ORDER_2;
                 break;
             case 2:
-                draw_task_flags = DRAW_TASK_ALPHA_ORDER_3;
+                obj_flags = mdl::OBJ_ALPHA_ORDER_3;
                 break;
             }
 
-            rob_chara_array_set_alpha_draw_task_flags(index, value, draw_task_flags);
+            rob_chara_array_set_alpha_obj_flags(index, value, obj_flags);
 
             i.frame += get_delta_frame();
             if (i.frame > i.duration) {

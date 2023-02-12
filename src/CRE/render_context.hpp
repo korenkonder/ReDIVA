@@ -36,41 +36,6 @@ enum blur_filter_mode {
     BLUR_FILTER_MAX,
 };
 
-enum draw_task_flags : uint32_t {
-    DRAW_TASK_SHADOW                = 0x00000001,
-    DRAW_TASK_2                     = 0x00000002,
-    DRAW_TASK_4                     = 0x00000004,
-    DRAW_TASK_8                     = 0x00000008,
-    DRAW_TASK_10                    = 0x00000010,
-    DRAW_TASK_20                    = 0x00000020,
-    DRAW_TASK_40                    = 0x00000040,
-    DRAW_TASK_SHADOW_OBJECT         = 0x00000080,
-    DRAW_TASK_CHARA_REFLECT         = 0x00000100,
-    DRAW_TASK_REFLECT               = 0x00000200,
-    DRAW_TASK_REFRACT               = 0x00000400,
-    DRAW_TASK_800                   = 0x00000800,
-    DRAW_TASK_TRANSLUCENT_NO_SHADOW = 0x00001000,
-    DRAW_TASK_SSS                   = 0x00002000,
-    DRAW_TASK_4000                  = 0x00004000,
-    DRAW_TASK_8000                  = 0x00008000,
-    DRAW_TASK_ALPHA_ORDER_1         = 0x00010000,
-    DRAW_TASK_ALPHA_ORDER_2         = 0x00020000,
-    DRAW_TASK_ALPHA_ORDER_3         = 0x00040000,
-    DRAW_TASK_80000                 = 0x00080000,
-    DRAW_TASK_100000                = 0x00100000,
-    DRAW_TASK_200000                = 0x00200000,
-    DRAW_TASK_400000                = 0x00400000,
-    DRAW_TASK_800000                = 0x00800000,
-    DRAW_TASK_USER                  = 0x01000000,
-    DRAW_TASK_2000000               = 0x02000000,
-    DRAW_TASK_4000000               = 0x04000000,
-    DRAW_TASK_8000000               = 0x08000000,
-    DRAW_TASK_10000000              = 0x10000000,
-    DRAW_TASK_20000000              = 0x20000000,
-    DRAW_TASK_40000000              = 0x40000000,
-    DRAW_TASK_NO_TRANSLUCENCY       = 0x80000000,
-};
-
 enum reflect_refract_resolution_mode {
     REFLECT_REFRACT_RESOLUTION_256x256 = 0,
     REFLECT_REFRACT_RESOLUTION_512x256,
@@ -105,6 +70,41 @@ namespace mdl {
         OBJ_KIND_MAX,
     };
     
+    enum ObjFlags : uint32_t {
+        OBJ_SHADOW                = 0x00000001,
+        OBJ_2                     = 0x00000002,
+        OBJ_4                     = 0x00000004,
+        OBJ_8                     = 0x00000008,
+        OBJ_10                    = 0x00000010,
+        OBJ_20                    = 0x00000020,
+        OBJ_40                    = 0x00000040,
+        OBJ_SHADOW_OBJECT         = 0x00000080,
+        OBJ_CHARA_REFLECT         = 0x00000100,
+        OBJ_REFLECT               = 0x00000200,
+        OBJ_REFRACT               = 0x00000400,
+        OBJ_800                   = 0x00000800,
+        OBJ_TRANSLUCENT_NO_SHADOW = 0x00001000,
+        OBJ_SSS                   = 0x00002000,
+        OBJ_4000                  = 0x00004000,
+        OBJ_8000                  = 0x00008000,
+        OBJ_ALPHA_ORDER_1         = 0x00010000,
+        OBJ_ALPHA_ORDER_2         = 0x00020000,
+        OBJ_ALPHA_ORDER_3         = 0x00040000,
+        OBJ_80000                 = 0x00080000,
+        OBJ_100000                = 0x00100000,
+        OBJ_200000                = 0x00200000,
+        OBJ_400000                = 0x00400000,
+        OBJ_800000                = 0x00800000,
+        OBJ_USER                  = 0x01000000,
+        OBJ_2000000               = 0x02000000,
+        OBJ_4000000               = 0x04000000,
+        OBJ_8000000               = 0x08000000,
+        OBJ_10000000              = 0x10000000,
+        OBJ_20000000              = 0x20000000,
+        OBJ_40000000              = 0x40000000,
+        OBJ_NO_TRANSLUCENCY       = 0x80000000,
+    };
+
     enum ObjType {
         OBJ_TYPE_OPAQUE = 0,
         OBJ_TYPE_OPAQUE_LITPROJ_0,                // Added
@@ -464,7 +464,7 @@ namespace mdl {
             int32_t texcoord_array[2];
         };
 
-        draw_task_flags draw_task_flags;
+        mdl::ObjFlags obj_flags;
         shadow_type_enum shadow_type;
         int32_t field_8;
         int32_t field_C;
@@ -530,7 +530,7 @@ namespace mdl {
         void entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type);
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
         bool get_chara_color();
-        ::draw_task_flags get_draw_task_flags();
+        ObjFlags get_obj_flags();
         void get_material_list(int32_t& count, material_list_struct*& value);
         void get_morph(object_info& object, float_t& weight);
         int32_t get_obj_count(ObjType type);
@@ -545,7 +545,7 @@ namespace mdl {
         void obj_sort(mat4* view, ObjType type, int32_t compare_func);
         void refresh();
         void set_chara_color(bool value = false);
-        void set_draw_task_flags(::draw_task_flags flags = (::draw_task_flags)0);
+        void set_obj_flags(ObjFlags flags = (ObjFlags)0);
         void set_material_list(int32_t count = 0, material_list_struct* value = 0);
         void set_morph(object_info object = {}, float_t weight = 0.0f);
         void set_culling_finc(bool(*func)(obj_bounding_sphere*, mat4*) = 0);

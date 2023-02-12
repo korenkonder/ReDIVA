@@ -195,7 +195,7 @@ namespace mdl {
         args->emission = *emission;
 
         args->chara_color = disp_manager->chara_color;
-        args->self_shadow = disp_manager->draw_task_flags & (DRAW_TASK_8 | DRAW_TASK_4) ? 1 : 0;
+        args->self_shadow = disp_manager->obj_flags & (mdl::OBJ_8 | mdl::OBJ_4) ? 1 : 0;
         args->shadow = disp_manager->shadow_type;
         args->texture_color_coefficients = disp_manager->texture_color_coefficients;
         args->texture_color_coefficients.w = disp_manager->wet_param;
@@ -325,7 +325,7 @@ texture_data_struct::texture_data_struct() : field_0() {
 }
 
 namespace mdl {
-    DispManager::DispManager() : draw_task_flags(), shadow_type(), field_8(), field_C(),
+    DispManager::DispManager() : obj_flags(), shadow_type(), field_8(), field_C(),
         culling(), show_alpha_center(), show_mat_center(),  texture_pattern_count(),
         texture_pattern_array(), wet_param(), texture_transform_count(),
         texture_transform_array(), material_list_count(), material_list_array() {
@@ -1434,47 +1434,47 @@ namespace mdl {
                     mesh, material, textures, num_bone_index, mats, array_buffer, element_array_buffer,
                     &_blend_color, &_emission, morph_array_buffer, instances_count, instances_mat, func);
 
-                if (draw_task_flags & DRAW_TASK_SHADOW_OBJECT) {
+                if (obj_flags & mdl::OBJ_SHADOW_OBJECT) {
                     entry_list((ObjType)(OBJ_TYPE_SHADOW_OBJECT_CHARA
                         + shadow_type), data);
-                    if (draw_task_flags & DRAW_TASK_USER)
+                    if (obj_flags & mdl::OBJ_USER)
                         entry_list(OBJ_TYPE_USER, data);
                     continue;
                 }
 
                 obj_material_attrib_member attrib = material->material.attrib.m;
-                if (draw_task_flags & (DRAW_TASK_ALPHA_ORDER_1 | DRAW_TASK_ALPHA_ORDER_2 | DRAW_TASK_ALPHA_ORDER_3)
+                if (obj_flags & (mdl::OBJ_ALPHA_ORDER_1 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_3)
                     && data->args.sub_mesh.blend_color.w < 1.0f) {
-                    if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)) {
+                    if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
                         if (attrib.flag_28 || (attrib.punch_through
                             || !(attrib.alpha_texture | attrib.alpha_material))
                             && !sub_mesh->attrib.m.transparent) {
                             if (!attrib.punch_through) {
-                                if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                                     entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_1, data);
-                                else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
                                     entry_list(local ? OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL
                                         : OBJ_TYPE_OPAQUE_ALPHA_ORDER_2, data);
                                 else
                                     entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_3, data);
                             }
                             else {
-                                if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+                                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                                     entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1, data);
-                                else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+                                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
                                     entry_list(local ? OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL
                                         : OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2, data);
                                 else
                                     entry_list(OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3, data);
                             }
 
-                            if (draw_task_flags & DRAW_TASK_SSS)
+                            if (obj_flags & mdl::OBJ_SSS)
                                 entry_list(OBJ_TYPE_SSS, data);
                         }
 
-                        if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+                        if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                             entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-                        else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+                        else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
                             entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
                                 : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
                         else
@@ -1485,54 +1485,54 @@ namespace mdl {
                     if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
                         && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
                         && !sub_mesh->attrib.m.transparent) {
-                        if (draw_task_flags & DRAW_TASK_SHADOW)
+                        if (obj_flags & mdl::OBJ_SHADOW)
                             entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
 
-                        if (draw_task_flags & DRAW_TASK_SSS)
+                        if (obj_flags & mdl::OBJ_SSS)
                             entry_list(OBJ_TYPE_SSS, data);
 
                         if (attrib.punch_through) {
-                            if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY))
+                            if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
                                 entry_list(local ? OBJ_TYPE_TRANSPARENT_LOCAL
                                     : OBJ_TYPE_TRANSPARENT, data);
 
-                            if (draw_task_flags & DRAW_TASK_CHARA_REFLECT)
+                            if (obj_flags & mdl::OBJ_CHARA_REFLECT)
                                 entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
 
-                            if (draw_task_flags & DRAW_TASK_REFLECT)
+                            if (obj_flags & mdl::OBJ_REFLECT)
                                 entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
 
-                            if (draw_task_flags & DRAW_TASK_REFRACT)
+                            if (obj_flags & mdl::OBJ_REFRACT)
                                 entry_list(OBJ_TYPE_REFRACT_TRANSPARENT, data);
                         }
                         else {
-                            if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY))
+                            if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
                                 entry_list(local ? OBJ_TYPE_OPAQUE_LOCAL
                                     : OBJ_TYPE_OPAQUE, data);
 
-                            if (draw_task_flags & DRAW_TASK_20)
+                            if (obj_flags & mdl::OBJ_20)
                                 entry_list(OBJ_TYPE_TYPE_6, data);
 
-                            if (draw_task_flags & DRAW_TASK_CHARA_REFLECT)
+                            if (obj_flags & mdl::OBJ_CHARA_REFLECT)
                                 entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
 
-                            if (draw_task_flags & DRAW_TASK_REFLECT)
+                            if (obj_flags & mdl::OBJ_REFLECT)
                                 entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
 
-                            if (draw_task_flags & DRAW_TASK_REFRACT)
+                            if (obj_flags & mdl::OBJ_REFRACT)
                                 entry_list(OBJ_TYPE_REFRACT_OPAQUE, data);
                         }
 
-                        if (draw_task_flags & DRAW_TASK_USER)
+                        if (obj_flags & mdl::OBJ_USER)
                             entry_list(OBJ_TYPE_USER, data);
                         continue;
                     }
-                    else if (!(draw_task_flags & DRAW_TASK_NO_TRANSLUCENCY)) {
+                    else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
                         if (!attrib.translucent_priority)
                             if (local)
                                 entry_list(OBJ_TYPE_TRANSLUCENT_LOCAL, data);
                             else if (mesh->attrib.m.translucent_no_shadow
-                                || draw_task_flags & DRAW_TASK_TRANSLUCENT_NO_SHADOW) {
+                                || obj_flags & mdl::OBJ_TRANSLUCENT_NO_SHADOW) {
                                 entry_list(OBJ_TYPE_TRANSLUCENT_NO_SHADOW, data);
                             }
                             else {
@@ -1545,22 +1545,22 @@ namespace mdl {
                     }
                 }
 
-                if (draw_task_flags & DRAW_TASK_SHADOW)
+                if (obj_flags & mdl::OBJ_SHADOW)
                     entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA
                         + shadow_type), data);
-                if (draw_task_flags & DRAW_TASK_40)
+                if (obj_flags & mdl::OBJ_40)
                     entry_list(OBJ_TYPE_TYPE_7, data);
-                if (draw_task_flags & DRAW_TASK_CHARA_REFLECT)
+                if (obj_flags & mdl::OBJ_CHARA_REFLECT)
                     entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
-                if (draw_task_flags & DRAW_TASK_REFLECT) {
+                if (obj_flags & mdl::OBJ_REFLECT) {
                     if (rctx_ptr->render_manager.reflect_type != STAGE_DATA_REFLECT_REFLECT_MAP)
                         entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
                     else
                         entry_list(OBJ_TYPE_REFLECT_TRANSLUCENT, data);
                 }
-                if (draw_task_flags & DRAW_TASK_REFRACT)
+                if (obj_flags & mdl::OBJ_REFRACT)
                     entry_list(OBJ_TYPE_REFRACT_TRANSLUCENT, data);
-                if (draw_task_flags & DRAW_TASK_USER)
+                if (obj_flags & mdl::OBJ_USER)
                     entry_list(OBJ_TYPE_USER, data);
             }
 
@@ -1584,12 +1584,12 @@ namespace mdl {
                 continue;
 
             data->init_translucent(mat, &translucent_args);
-            if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_1)
+            if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                 entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-            else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_2)
+            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
                 entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
                     : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
-            else if (draw_task_flags & DRAW_TASK_ALPHA_ORDER_3)
+            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_3)
                 entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
             else
                 entry_list(local ? OBJ_TYPE_TRANSLUCENT_LOCAL
@@ -1774,8 +1774,8 @@ namespace mdl {
         return chara_color;
     }
 
-    ::draw_task_flags DispManager::get_draw_task_flags() {
-        return draw_task_flags;
+    ObjFlags DispManager::get_obj_flags() {
+        return obj_flags;
     }
 
     void DispManager::get_material_list(int32_t& count, material_list_struct*& value) {
@@ -1906,7 +1906,7 @@ namespace mdl {
         culling.passed = {};
         culling.culled = {};
 
-        draw_task_flags = (::draw_task_flags)0;
+        obj_flags = (::mdl::ObjFlags)0;
         field_8 = 0;
         field_C = 0;
 
@@ -1929,8 +1929,8 @@ namespace mdl {
         chara_color = value;
     }
 
-    void DispManager::set_draw_task_flags(::draw_task_flags flags) {
-        draw_task_flags = flags;
+    void DispManager::set_obj_flags(ObjFlags flags) {
+        obj_flags = flags;
     }
 
     void DispManager::set_material_list(int32_t count, material_list_struct* value) {
@@ -2429,31 +2429,6 @@ void render_context::ctrl() {
     else if (1.0f - delta_frame_history < 0.001f)
         delta_frame_history_int++;
 
-    /*for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (!task_rob_manager_check_chara_loaded(rob_chara_array[i].chara_id)
-            || rob_chara_pv_data_array[i].type == ROB_CHARA_TYPE_NONE)
-            continue;
-
-        float_t frame = rob_chara_get_frame(&rob_chara_array[i]);
-        float_t frame_count = rob_chara_get_frame_count(&rob_chara_array[i]);
-        frame += get_delta_frame();
-        if (frame >= frame_count) {
-            frame = 0.0f;
-            rob_chara_item_equip* rob_item_equip = rob_chara_array[i].item_equip;
-            for (int32_t j = rob_item_equip->first_item_equip_object;
-                j < rob_item_equip->max_item_equip_object; j++) {
-                rob_chara_item_equip_object* itm_eq_obj = &rob_item_equip->item_equip_object[j];
-                itm_eq_obj->osage_iterations = 60;
-                for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
-                    if (i)
-                        i->rob.osage_reset = true;
-            }
-        }
-        //rob_chara_set_frame(&rob_chara_array[i], frame);
-        rob_chara_set_frame(&rob_chara_array[i], rob_frame);
-        rob_chara_array[i].item_equip->shadow_type = SHADOW_CHARA;
-    }*/
-
     rctx_ptr = this;
     app::TaskWork::Ctrl();
     sound_ctrl();
@@ -2666,10 +2641,10 @@ void render_context::light_param_data_wind_set(light_param_wind* w) {
 }
 
 void render_context::light_param_data_face_set(light_param_face* face) {
-    this->face.offset = face->offset;
-    this->face.scale = face->scale;
-    this->face.position = face->position;
-    this->face.direction = face->direction;
+    this->face.set_offset(face->offset);
+    this->face.set_scale(face->scale);
+    this->face.set_position(face->position);
+    this->face.set_direction(face->direction);
 }
 
 shadow::shadow() : field_8(), field_158(), view_point(), interest(),
