@@ -224,7 +224,7 @@ namespace mdl {
             uniform_value[U37] = 1;
         }
         else {
-            vec4& sss_param = rctx->render_manager.sss_data.param;
+            const vec4& sss_param = rctx->render_manager.sss_data.param;
             rctx->obj_batch.g_sss_param = { sss_param.x, sss_param.y, sss_param.z, 0.5f };
             uniform_value[U37] = 0;
         }

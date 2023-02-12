@@ -1214,7 +1214,15 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     if (v31 < 0.25f)
         v31 = 0.25f;
     float_t v32 = v31 * v29;
+    float_t v33 = 0.6f;
     float_t v34 = 1.0f / clamp_def(v32, 0.25f, 100.0f);
+    if (v34 < 0.145) {
+        float_t v36 = v34 - 0.02f;
+        if (v34 < 0.0f)
+            v36 = 0.0f;
+        v33 = (v36 * 8.0f) * 0.6f;
+    }
+    rctx->obj_batch.g_sss_param = { v33, 0.0f, 0.0f, 0.0f };
 
     gl_state_active_texture(0);
     if (a1->npr_contour) {
