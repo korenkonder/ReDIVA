@@ -3,7 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
-#if CRE_DEV
+#if defined(CRE_DEV)
 #include "shader_dev.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "gl_state.hpp"

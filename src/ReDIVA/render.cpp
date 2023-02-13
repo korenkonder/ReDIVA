@@ -179,12 +179,6 @@ static void render_imgui_context_menu(classes_data* classes,
 #if RENDER_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
     GLenum severity, GLsizei length, const char* message, const void* userParam);
-
-static VkResult vkGetInstanceProcAddrCreateDebugUtilsMessengerEXT(VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger);
-static void vkGetInstanceProcAddrDestroyDebugUtilsMessengerEXT(VkInstance instance,
-    VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator);
 #endif
 
 bool close;
@@ -1405,27 +1399,5 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 
     printf_debug("Debug message (%d): %s\n", id, message);
     printf_debug("########################################\n\n");
-}
-
-static VkResult vkGetInstanceProcAddrCreateDebugUtilsMessengerEXT(VkInstance instance,
-    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-    const VkAllocationCallbacks* pAllocator, VkDebugUtilsMessengerEXT* pDebugMessenger) {
-    static PFN_vkCreateDebugUtilsMessengerEXT _vkCreateDebugUtilsMessengerEXT;
-    if (!_vkCreateDebugUtilsMessengerEXT)
-        _vkCreateDebugUtilsMessengerEXT = (PFN_vkCreateDebugUtilsMessengerEXT)
-        vkGetInstanceProcAddr(instance, "vkCreateDebugUtilsMessengerEXT");
-    if (_vkCreateDebugUtilsMessengerEXT)
-        return _vkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pDebugMessenger);
-    return VK_ERROR_EXTENSION_NOT_PRESENT;
-}
-
-static void vkGetInstanceProcAddrDestroyDebugUtilsMessengerEXT(VkInstance instance,
-    VkDebugUtilsMessengerEXT messenger, const VkAllocationCallbacks* pAllocator) {
-    static PFN_vkDestroyDebugUtilsMessengerEXT _vkDestroyDebugUtilsMessengerEXT;
-    if (!_vkDestroyDebugUtilsMessengerEXT)
-        _vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
-        vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
-    if (_vkDestroyDebugUtilsMessengerEXT)
-        _vkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
 }
 #endif

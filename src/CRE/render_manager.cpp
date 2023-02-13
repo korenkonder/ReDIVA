@@ -653,6 +653,7 @@ namespace rndr {
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1);
 
+#if defined(CRE_DEV)
         if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
             camera* cam = rctx->camera;
             double_t fov = cam->get_fov();
@@ -681,6 +682,7 @@ namespace rndr {
             cam->set_fov(fov);
             draw_pass_set_camera(rctx);
         }
+#endif
 
         if (effect_texture)
             gl_state_active_bind_texture_2d(14, 0);

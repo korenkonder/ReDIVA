@@ -165,9 +165,11 @@ namespace Glitter {
         return hash_utf8_fnv1a64m(str);
     }
 
+#if defined(CRE_DEV)
     bool GltParticleManager::CheckHasLocalEffect() {
         return!!(flags & PARTICLE_MANAGER_LOCAL);
     }
+#endif
 
     bool GltParticleManager::CheckHasFileReader(uint64_t hash) {
         for (FileReader*& i : file_readers)

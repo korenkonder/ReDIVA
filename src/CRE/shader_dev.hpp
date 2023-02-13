@@ -5,7 +5,7 @@
 
 #pragma once
 
-#if CRE_DEV
+#if defined(CRE_DEV)
 #include "../KKdLib/default.hpp"
 #include "shader.hpp"
 
