@@ -39,7 +39,7 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 0;
-    shaders_ft.set_opengl_shader(SHADER_FT_MLAA);
+    shaders_ft.set(SHADER_FT_MLAA);
     render_texture::draw_quad(&shaders_ft, width, height);
 
     temp_buffer.bind();
@@ -49,7 +49,7 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     gl_state_bind_sampler(1, samplers[1]);
     uniform_value[U_MLAA] = 1;
     uniform_value[U_MLAA_SEARCH] = 2;
-    shaders_ft.set_opengl_shader(SHADER_FT_MLAA);
+    shaders_ft.set(SHADER_FT_MLAA);
     render_texture::draw_quad(&shaders_ft, width, height);
 
     buf_rt->bind();
@@ -58,7 +58,7 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 2;
     uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
-    shaders_ft.set_opengl_shader(SHADER_FT_MLAA);
+    shaders_ft.set(SHADER_FT_MLAA);
     render_texture::draw_quad(&shaders_ft, width, height);
     uniform_value[U_ALPHA_MASK] = 0;
     gl_state_active_bind_texture_2d(0, 0);

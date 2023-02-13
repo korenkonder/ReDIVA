@@ -691,7 +691,7 @@ namespace rndr {
             gl_state_active_bind_texture_2d(15, 0);
         if (shadow)
             draw_pass_3d_shadow_reset(rctx);
-        shader_opengl::unbind();
+        shader::unbind();
         pass_sprite_fg_surf(rctx);
         gl_state_bind_framebuffer(0);
     }
@@ -791,7 +791,7 @@ namespace rndr {
         shader_data.g_near_far = rctx->g_near_far;
         rctx->contour_params_ubo.WriteMapMemory(shader_data);
 
-        shaders_ft.set_opengl_shader(SHADER_FT_CONTOUR_NPR);
+        shaders_ft.set(SHADER_FT_CONTOUR_NPR);
         gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -843,7 +843,7 @@ void image_filter_scale(render_context* rctx, GLuint dst, GLuint src, const vec4
     rctx->imgfilter_batch_ubo.WriteMapMemory(imgfilter_batch);
 
     uniform_value[U_IMAGE_FILTER] = 5;
-    shaders_ft.set_opengl_shader(SHADER_FT_IMGFILT);
+    shaders_ft.set(SHADER_FT_IMGFILT);
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
     gl_state_active_bind_texture_2d(0, src);
@@ -975,7 +975,7 @@ static void draw_pass_shadow_filter(render_context* rctx, render_texture* a1, re
         ((float_t*)esm_filter_batch.g_gauss)[i] = (float_t)(exp((double_t)((ssize_t)i * i) * v8) * v6);
 
     uniform_value[U_LIGHT_PROJ] = enable_lit_proj ? 1 : 0;
-    shaders_ft.set_opengl_shader(SHADER_FT_ESMGAUSS);
+    shaders_ft.set(SHADER_FT_ESMGAUSS);
     rctx->filter_scene_ubo.Bind(0);
     rctx->esm_filter_batch_ubo.Bind(1);
 
@@ -1001,7 +1001,7 @@ static void draw_pass_shadow_filter(render_context* rctx, render_texture* a1, re
 
     gl_state_active_bind_texture_2d(0, v9);
     render_texture::draw_custom();
-    shader_opengl::unbind();
+    shader::unbind();
     texture_params_restore(&tex_params[0], &tex_params[1], 0);
 }
 
@@ -1034,7 +1034,7 @@ static void draw_pass_shadow_esm_filter(render_context* rctx,
     rctx->esm_filter_batch_ubo.WriteMapMemory(esm_filter_batch);
 
     uniform_value[U_ESM_FILTER] = 0;
-    shaders_ft.set_opengl_shader(SHADER_FT_ESMFILT);
+    shaders_ft.set(SHADER_FT_ESMFILT);
     gl_state_active_bind_texture_2d(0, src_tex);
     render_texture::draw(&shaders_ft);
 
@@ -1044,7 +1044,7 @@ static void draw_pass_shadow_esm_filter(render_context* rctx,
     rctx->esm_filter_batch_ubo.WriteMapMemory(esm_filter_batch);
 
     uniform_value[U_ESM_FILTER] = 1;
-    shaders_ft.set_opengl_shader(SHADER_FT_ESMFILT);
+    shaders_ft.set(SHADER_FT_ESMFILT);
     gl_state_active_bind_texture_2d(0, buf_tex);
     render_texture::draw(&shaders_ft);
     texture_params_restore(&tex_params[0], &tex_params[1], &tex_params[2]);
@@ -1122,7 +1122,7 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     shader_data.g_near_far = rctx->g_near_far;
     rctx->contour_coef_ubo.WriteMapMemory(shader_data);
 
-    shaders_ft.set_opengl_shader(SHADER_FT_CONTOUR);
+    shaders_ft.set(SHADER_FT_CONTOUR);
     rctx->contour_coef_ubo.Bind(2);
     render_texture::draw_quad(&shaders_ft, pp->render_width, pp->render_height);
 }
@@ -1216,7 +1216,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     float_t v32 = v31 * v29;
     float_t v33 = 0.6f;
     float_t v34 = 1.0f / clamp_def(v32, 0.25f, 100.0f);
-    if (v34 < 0.145) {
+    if (v34 < 0.145f) {
         float_t v36 = v34 - 0.02f;
         if (v34 < 0.0f)
             v36 = 0.0f;
@@ -1230,14 +1230,14 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
         glViewport(0, 0, 640, 360);
         post_process* pp = &rctx->post_process;
         uniform_value[U_REDUCE] = 0;
-        shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+        shaders_ft.set(SHADER_FT_REDUCE);
         gl_state_bind_texture_2d(pp->rend_texture.color_texture->tex);
         render_texture::draw_quad(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
     a1->textures[2].bind();
     glViewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 0;
-    shaders_ft.set_opengl_shader(SHADER_FT_SSS_FILT);
+    shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(a1->textures[0].color_texture->tex);
     render_texture::draw_quad(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
@@ -1254,7 +1254,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     a1->textures[1].bind();
     glViewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 3;
-    shaders_ft.set_opengl_shader(SHADER_FT_SSS_FILT);
+    shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(a1->textures[2].color_texture->tex);
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
     render_texture::draw_quad(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
@@ -1416,7 +1416,7 @@ static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
         rctx->transparency_batch_ubo.WriteMapMemory(shader_data);
 
         pp->buf_texture.bind();
-        shaders_ft.set_opengl_shader(SHADER_FT_TRANSPARENCY);
+        shaders_ft.set(SHADER_FT_TRANSPARENCY);
         rctx->transparency_batch_ubo.Bind(0);
         gl_state_active_bind_texture_2d(0, pp->transparency_texture.color_texture->tex);
         gl_state_active_bind_texture_2d(1, pp->rend_texture.color_texture->tex);
@@ -1543,7 +1543,7 @@ static void blur_filter_apply(render_context* rctx, GLuint dst, GLuint src,
 
     uniform_value[U_IMAGE_FILTER] = filter == BLUR_FILTER_32 ? 1 : 0;
     gl_state_bind_vertex_array(rctx->box_vao);
-    shaders_ft.set_opengl_shader(SHADER_FT_IMGFILT);
+    shaders_ft.set(SHADER_FT_IMGFILT);
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
     gl_state_active_bind_texture_2d(0, src);

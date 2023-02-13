@@ -285,7 +285,7 @@ namespace renderer {
         main_filter(dof, samplers, true);
         upsample(dof, rt, buf, samplers, color_texture, depth_texture, true);
 
-        shader_opengl::unbind();
+        shader::unbind();
         for (int32_t i = 0; i < 8; i++) {
             gl_state_bind_sampler(i, 0);
             gl_state_active_bind_texture_2d(i, 0);
@@ -311,7 +311,7 @@ namespace renderer {
         main_filter(dof, samplers, false);
         upsample(dof, rt, buf, samplers, color_texture, depth_texture, false);
 
-        shader_opengl::unbind();
+        shader::unbind();
         for (int32_t i = 0; i < 8; i++) {
             gl_state_bind_sampler(i, 0);
             gl_state_active_bind_texture_2d(i, 0);
@@ -324,7 +324,7 @@ namespace renderer {
         gl_state_bind_framebuffer(dof->fbo[0].buffer);
         glViewport(0, 0, dof->fbo[0].width, dof->fbo[0].height);
         uniform_value[U_DOF_STAGE] = 0;
-        shaders_ft.set_opengl_shader(SHADER_FT_DOF);
+        shaders_ft.set(SHADER_FT_DOF);
         dof->common_ubo.Bind(0);
         gl_state_active_bind_texture_2d(0, depth_texture);
         gl_state_bind_sampler(0, samplers[1]);
@@ -333,7 +333,7 @@ namespace renderer {
         gl_state_bind_framebuffer(dof->fbo[1].buffer);
         glViewport(0, 0, dof->fbo[1].width, dof->fbo[1].height);
         uniform_value[U_DOF_STAGE] = 1;
-        shaders_ft.set_opengl_shader(SHADER_FT_DOF);
+        shaders_ft.set(SHADER_FT_DOF);
         gl_state_active_bind_texture_2d(0, dof->textures[0]);
         gl_state_bind_sampler(0, samplers[1]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -345,7 +345,7 @@ namespace renderer {
         gl_state_bind_framebuffer(dof->fbo[2].buffer);
         glViewport(0, 0, dof->fbo[2].width, dof->fbo[2].height);
         uniform_value[U_DOF_STAGE] = 2;
-        shaders_ft.set_opengl_shader(SHADER_FT_DOF);
+        shaders_ft.set(SHADER_FT_DOF);
         dof->common_ubo.Bind(0);
         gl_state_active_bind_texture_2d(0, depth_texture);
         gl_state_bind_sampler(0, samplers[1]);
@@ -360,7 +360,7 @@ namespace renderer {
         gl_state_bind_framebuffer(dof->fbo[3].buffer);
         glViewport(0, 0, dof->fbo[3].width, dof->fbo[3].height);
         uniform_value[U_DOF_STAGE] = 3;
-        shaders_ft.set_opengl_shader(SHADER_FT_DOF);
+        shaders_ft.set(SHADER_FT_DOF);
         dof->common_ubo.Bind(0);
         dof->texcoords_ubo.Bind(1);
         gl_state_active_bind_texture_2d(0, dof->textures[3]);
@@ -377,7 +377,7 @@ namespace renderer {
         buf->bind();
         glViewport(0, 0, dof->width, dof->height);
         uniform_value[U_DOF_STAGE] = 4;
-        shaders_ft.set_opengl_shader(SHADER_FT_DOF);
+        shaders_ft.set(SHADER_FT_DOF);
         dof->common_ubo.Bind(0);
         gl_state_active_bind_texture_2d(0, dof->textures[4]);
         gl_state_bind_sampler(0, samplers[1]);

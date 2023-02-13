@@ -157,7 +157,7 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
 
     glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
     buf_rt->bind();
-    shaders_ft.set_opengl_shader(SHADER_FT_TONEMAP);
+    shaders_ft.set(SHADER_FT_TONEMAP);
     tone_map_ubo.Bind(1);
     render_texture::draw(&shaders_ft);
     gl_state_active_bind_texture_2d(2, 0);

@@ -1045,7 +1045,7 @@ namespace mdl {
         }
 
         uniform_value_reset();
-        shader_opengl::unbind();
+        shader::unbind();
         gl_state_set_blend_func(GL_ONE, GL_ZERO);
     }
 
@@ -1121,7 +1121,7 @@ namespace mdl {
         }
 
         uniform_value_reset();
-        shader_opengl::unbind();
+        shader::unbind();
         gl_state_set_blend_func(GL_ONE, GL_ZERO);
     }
 

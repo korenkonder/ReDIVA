@@ -203,7 +203,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         glViewport(0, 0, t->width, t->height);
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, samplers[0]);
-        shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+        shaders_ft.set(SHADER_FT_REDUCE);
         render_texture::draw_quad(&shaders_ft, render_width, render_height);
     }
 
@@ -218,7 +218,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         gl_state_bind_sampler(0, samplers[0]);
         uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
-        shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+        shaders_ft.set(SHADER_FT_REDUCE);
         render_texture::draw_quad(&shaders_ft, render_width, render_height);
         uniform_value[U_ALPHA_MASK] = 0;
     }
@@ -249,10 +249,10 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
             break;
         }
 
-        shaders_ft.set_opengl_shader(SHADER_FT_MAGNIFY);
+        shaders_ft.set(SHADER_FT_MAGNIFY);
         render_texture::draw_quad(&shaders_ft, render_width, render_height);
     }
-    shader_opengl::unbind();
+    shader::unbind();
 
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
@@ -353,7 +353,7 @@ void post_process::draw_lens_flare(camera* cam) {
     shader_data.g_emission = emission;
 
     gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set_opengl_shader(SHADER_FT_SUN);
+    shaders_ft.set(SHADER_FT_SUN);
     gl_state_bind_vertex_array(query_vao);
     sun_quad_ubo.Bind(0);
 
@@ -598,7 +598,7 @@ void post_process::draw_lens_ghost(render_texture* rt) {
     gl_state_set_blend_func(GL_ONE, GL_ONE);
 
     uniform_value[U_REDUCE] = 4;
-    shaders_ft.set_opengl_shader(SHADER_FT_REDUCE);
+    shaders_ft.set(SHADER_FT_REDUCE);
     gl_state_active_bind_texture_2d(0, lens_ghost_texture->tex);
     gl_state_bind_vertex_array(lens_ghost_vao);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, (GLsizei)(lens_ghost_count * 6LL));

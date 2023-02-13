@@ -1777,7 +1777,7 @@ void leaf_particle_draw() {
     leaf_particle_scene_ubo.WriteMapMemory(shader_data);
 
     gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set_opengl_shader(SHADER_FT_LEAF_PT);
+    shaders_ft.set(SHADER_FT_LEAF_PT);
     leaf_particle_scene_ubo.Bind(0);
     gl_state_bind_vertex_array(leaf_ptcl_vao);
     shaders_ft.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
@@ -1820,7 +1820,7 @@ void rain_particle_draw() {
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set_opengl_shader(SHADER_FT_RAIN);
+    shaders_ft.set(SHADER_FT_RAIN);
 
     float_t tangent_sign = -rain->psize.x;
     float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
@@ -1886,7 +1886,7 @@ void particle_draw() {
         return;
 
     gl_state_bind_vertex_array(ptcl_vao);
-    shaders_ft.set_opengl_shader(SHADER_FT_PARTICL);
+    shaders_ft.set(SHADER_FT_PARTICL);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
     gl_state_bind_vertex_array(0);
 }
@@ -2518,7 +2518,7 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     if (!data->num_vtx)
         return;
 
-    shaders_ft.set_opengl_shader(SHADER_FT_FOGPTCL);
+    shaders_ft.set(SHADER_FT_FOGPTCL);
     gl_state_enable_blend();
     texture* tex = texture_storage_get_texture(data->tex_id);
     if (tex)

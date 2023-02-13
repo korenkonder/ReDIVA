@@ -35,13 +35,5 @@ struct render_texture {
         float_t param_x = 1.0f, float_t param_y = 1.0f, float_t param_z = 1.0f, float_t param_w = 1.0f);
 };
 
-extern void render_texture_opengl_data_init();
-extern void render_texture_opengl_data_free();
-
-extern void render_texture_vulkan_data_init(VkDevice device,
-    VmaAllocator allocator, VkCommandPool command_pool, VkQueue queue);
-extern void render_texture_vulkan_data_get_vertex_input_attribute_descriptions(
-    const VkVertexInputAttributeDescription*& attribute_descriptions, uint32_t& attribute_description_count);
-extern void render_texture_vulkan_data_get_vertex_input_binding_descriptions(
-    const VkVertexInputBindingDescription*& binding_descriptions, uint32_t& binding_description_count);
-extern void render_texture_vulkan_data_free(VkDevice device, VmaAllocator allocator);
+extern void render_texture_data_init();
+extern void render_texture_data_free();

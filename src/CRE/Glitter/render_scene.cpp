@@ -1072,7 +1072,7 @@ namespace Glitter {
             break;
         }
 
-        shaders_ft.set_opengl_shader(SHADER_FT_GLITTER_PT);
+        shaders_ft.set(SHADER_FT_GLITTER_PT);
         GPM_VAL->batch_ubo.Bind(2);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
@@ -2249,7 +2249,7 @@ namespace Glitter {
         else
             gl_state_disable_cull_face();
 
-        shaders_ft.set_opengl_shader(SHADER_FT_GLITTER_PT);
+        shaders_ft.set(SHADER_FT_GLITTER_PT);
         GPM_VAL->batch_ubo.Bind(2);
         switch (rend_group->type) {
         case PARTICLE_QUAD:

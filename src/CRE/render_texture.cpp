@@ -4,17 +4,11 @@
 */
 
 #include "render_texture.hpp"
-#include "Vulkan/buffer.hpp"
 #include "gl_state.hpp"
 #include "render_context.hpp"
 #include "texture.hpp"
 
 static GLuint render_texture_vao;
-
-static VkVertexInputAttributeDescription render_texture_vertex_input_attribute_descriptions[16];
-static VkVertexInputBindingDescription render_texture_vertex_input_binding_descriptions[2];
-static Vulkan::Buffer render_texture_vertex_data;
-static Vulkan::Buffer render_texture_dummy_data;
 
 static bool render_texture_data_initialized;
 static uint32_t render_texture_counter;
@@ -179,7 +173,7 @@ void render_texture::draw_quad(shader_set_data* set, int32_t width, int32_t heig
     set->draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void render_texture_opengl_data_init() {
+void render_texture_data_init() {
     if (render_texture_data_initialized)
         return;
 
@@ -188,145 +182,11 @@ void render_texture_opengl_data_init() {
     render_texture_data_initialized = true;
 }
 
-void render_texture_opengl_data_free() {
+void render_texture_data_free() {
     if (!render_texture_data_initialized)
         return;
 
     glDeleteVertexArrays(1, &render_texture_vao);
-
-    render_texture_data_initialized = false;
-}
-
-void render_texture_vulkan_data_init(VkDevice device,
-    VmaAllocator allocator, VkCommandPool command_pool, VkQueue queue) {
-    if (render_texture_data_initialized)
-        return;
-
-    const float_t vertex_data[] = {
-        -1.0f,  1.0f,  0.0f,  1.0f,
-        -1.0f, -3.0f,  0.0f, -1.0f,
-         3.0f,  1.0f,  2.0f,  1.0f,
-    };
-    
-    const float_t dummy_data[] = {
-        0.0f, 0.0f, 0.0f, 0.0f,
-        0.0f, 0.0f, 0.0f, 1.0f,
-        1.0f, 1.0f, 1.0f, 1.0f,
-    };
-
-    const size_t vertex_data_size = sizeof(vertex_data);
-    const size_t dummy_data_size = sizeof(dummy_data);
-
-    VkVertexInputAttributeDescription* attribute_descriptions = render_texture_vertex_input_attribute_descriptions;
-    attribute_descriptions[0] = { 0, 0, VK_FORMAT_R32G32_SFLOAT, 0 };
-    attribute_descriptions[1] = { 1, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[2] = { 2, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[3] = { 3, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 8 };
-    attribute_descriptions[4] = { 4, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 8 };
-    attribute_descriptions[5] = { 5, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[6] = { 6, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[7] = { 7, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[8] = { 8, 0, VK_FORMAT_R32G32_SFLOAT, 0 };
-    attribute_descriptions[9] = { 9, 0, VK_FORMAT_R32G32_SFLOAT, 0 };
-    attribute_descriptions[10] = { 10, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[11] = { 11, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[12] = { 12, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[13] = { 13, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[14] = { 14, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-    attribute_descriptions[15] = { 15, 1, VK_FORMAT_R32G32B32A32_SFLOAT, sizeof(float_t) * 4 };
-
-    VkVertexInputBindingDescription* binding_descriptions = render_texture_vertex_input_binding_descriptions;
-    binding_descriptions[0] = { 0, sizeof(float_t) * 4, VK_VERTEX_INPUT_RATE_VERTEX };
-    binding_descriptions[1] = { 1, sizeof(float_t) * 4, VK_VERTEX_INPUT_RATE_INSTANCE };
-
-    render_texture_vertex_data.Create(allocator, vertex_data_size,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT
-        | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VMA_MEMORY_USAGE_AUTO,
-        VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT);
-    
-    render_texture_dummy_data.Create(allocator, dummy_data_size,
-        VK_BUFFER_USAGE_TRANSFER_DST_BIT
-        | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
-        VMA_MEMORY_USAGE_AUTO,
-        VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT);
-
-    VkCommandBufferAllocateInfo alloc_info = {};
-    alloc_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.commandPool = command_pool;
-    alloc_info.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    alloc_info.commandBufferCount = 1;
-
-    VkCommandBuffer command_buffer;
-    vkAllocateCommandBuffers(device, &alloc_info, &command_buffer);
-
-    VkCommandBufferBeginInfo begin_info = {};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    Vulkan::Buffer staging_buffer;
-    staging_buffer.Create(allocator, max_def(vertex_data_size, dummy_data_size),
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        VMA_MEMORY_USAGE_AUTO,
-        VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT |
-        VMA_ALLOCATION_CREATE_MAPPED_BIT);
-
-    vkBeginCommandBuffer(command_buffer, &begin_info);
-
-    staging_buffer.WriteMapMemory(vertex_data, 0, vertex_data_size);
-
-    VkBufferCopy copy_region = {};
-    copy_region.size = vertex_data_size;
-    vkCmdCopyBuffer(command_buffer, staging_buffer.data, render_texture_vertex_data.data, 1, &copy_region);
-
-    staging_buffer.WriteMapMemory(dummy_data, 0, dummy_data_size);
-
-    copy_region = {};
-    copy_region.size = dummy_data_size;
-    vkCmdCopyBuffer(command_buffer, staging_buffer.data, render_texture_dummy_data.data, 1, &copy_region);
-
-    vkEndCommandBuffer(command_buffer);
-
-    staging_buffer.Destroy();
-
-    VkSubmitInfo submit_info = {};
-    submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &command_buffer;
-
-    vkQueueSubmit(queue, 1, &submit_info, 0);
-    vkQueueWaitIdle(queue);
-
-    vkFreeCommandBuffers(device, command_pool, 1, &command_buffer);
-
-    render_texture_data_initialized = true;
-}
-
-void render_texture_vulkan_data_get_vertex_input_attribute_descriptions(
-    const VkVertexInputAttributeDescription*& attribute_descriptions, uint32_t& attribute_description_count) {
-    attribute_descriptions = render_texture_vertex_input_attribute_descriptions;
-    attribute_description_count = sizeof(render_texture_vertex_input_attribute_descriptions)
-        / sizeof(VkVertexInputAttributeDescription);
-}
-
-void render_texture_vulkan_data_get_vertex_input_binding_descriptions(
-    const VkVertexInputBindingDescription*& binding_descriptions, uint32_t& binding_description_count) {
-    binding_descriptions = render_texture_vertex_input_binding_descriptions;
-    binding_description_count = sizeof(render_texture_vertex_input_binding_descriptions)
-        / sizeof(VkVertexInputBindingDescription);
-}
-
-void render_texture_vulkan_data_free(VkDevice device, VmaAllocator allocator) {
-    if (!render_texture_data_initialized)
-        return;
-
-    render_texture_dummy_data.Destroy();
-    render_texture_vertex_data.Destroy();
-
-    memset(render_texture_vertex_input_binding_descriptions,
-        0, sizeof(render_texture_vertex_input_binding_descriptions));
-    memset(render_texture_vertex_input_attribute_descriptions,
-        0, sizeof(render_texture_vertex_input_attribute_descriptions));
 
     render_texture_data_initialized = false;
 }

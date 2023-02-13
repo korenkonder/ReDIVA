@@ -31,19 +31,18 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
 static bool shader_load_binary_shader(program_binary* bin, GLuint* program);
 static void shader_update_data(shader_set_data* set);
 
-int32_t shader_opengl::bind(shader_set_data* set, uint32_t sub_index) {
-    shader_opengl_data* opengl_data = set->opengl_data;
-    opengl_data->curr_shader = 0;
+int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
+    set->curr_shader = 0;
 
     if (num_sub < 1)
         return -1;
 
     int32_t sub_shader_index = 0;
-    for (shader_opengl_sub* i = sub; i->sub_index != sub_index; i++)
+    for (shader_sub* i = sub; i->sub_index != sub_index; i++)
         if (++sub_shader_index >= num_sub)
             return -1;
 
-    shader_opengl_sub* sub_shader = &sub[sub_shader_index];
+    shader_sub* sub_shader = &sub[sub_shader_index];
 
     int32_t unival_shad_curr = 1;
     int32_t unival_shad = 0;
@@ -65,8 +64,8 @@ int32_t shader_opengl::bind(shader_set_data* set, uint32_t sub_index) {
         }
     }
 
-    shader_opengl_sub_shader* shader = &sub_shader->shaders[unival_shad];
-    opengl_data->curr_shader = shader;
+    shader_sub_shader* shader = &sub_shader->shaders[unival_shad];
+    set->curr_shader = shader;
 
     gl_state_use_program(shader->program);
     if (memcmp(shader->uniform_val, uniform_val, sizeof(uniform_val))) {
@@ -76,7 +75,7 @@ int32_t shader_opengl::bind(shader_set_data* set, uint32_t sub_index) {
     return 0;
 }
 
-bool shader_opengl::parse_define(const char* data, char** temp, size_t* temp_size) {
+bool shader::parse_define(const char* data, char** temp, size_t* temp_size) {
     if (!data)
         return false;
 
@@ -118,7 +117,7 @@ bool shader_opengl::parse_define(const char* data, char** temp, size_t* temp_siz
     return true;
 }
 
-bool shader_opengl::parse_define(const char* data, int32_t num_uniform,
+bool shader::parse_define(const char* data, int32_t num_uniform,
     int32_t* uniform_value, char** temp, size_t* temp_size) {
     if (!data)
         return false;
@@ -177,7 +176,7 @@ bool shader_opengl::parse_define(const char* data, int32_t num_uniform,
     return true;
 }
 
-char* shader_opengl::parse_include(char* data, farc* f) {
+char* shader::parse_include(char* data, farc* f) {
     if (!data || !f)
         return data;
 
@@ -288,15 +287,118 @@ char* shader_opengl::parse_include(char* data, farc* f) {
     return temp_data;
 }
 
-void shader_opengl::unbind() {
+void shader::unbind() {
     gl_state_use_program(0);
 }
 
-shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
+shader_set_data::shader_set_data() : size(), shaders(), curr_shader(),
+primitive_restart(), primitive_restart_index(), get_index_by_name_func() {
+
+}
+
+void shader_set_data::disable_primitive_restart() {
+    primitive_restart = false;
+}
+
+void shader_set_data::draw_arrays(GLenum mode, GLint first, GLsizei count) {
+    shader_update_data(this);
+    glDrawArrays(mode, first, count);
+}
+
+void shader_set_data::draw_elements(GLenum mode,
+    GLsizei count, GLenum type, const void* indices) {
+    switch (mode) {
+    case GL_TRIANGLE_STRIP:
+        uint32_t index;
+        switch (type) {
+        case GL_UNSIGNED_BYTE:
+            index = 0xFF;
+            break;
+        case GL_UNSIGNED_SHORT:
+            index = 0xFFFF;
+            break;
+        case GL_UNSIGNED_INT:
+        default:
+            index = 0xFFFFFFFF;
+            break;
+        }
+
+        enable_primitive_restart();
+
+        if (primitive_restart_index != index)
+            primitive_restart_index = index;
+        break;
+    }
+
+    shader_update_data(this);
+    glDrawElements(mode, count, type, indices);
+
+    switch (mode) {
+    case GL_TRIANGLE_STRIP:
+        disable_primitive_restart();
+        break;
+    }
+}
+
+void shader_set_data::draw_range_elements(GLenum mode,
+    GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices) {
+    switch (mode) {
+    case GL_TRIANGLE_STRIP:
+        uint32_t index;
+        switch (type) {
+        case GL_UNSIGNED_BYTE:
+            index = 0xFF;
+            break;
+        case GL_UNSIGNED_SHORT:
+            index = 0xFFFF;
+            break;
+        case GL_UNSIGNED_INT:
+        default:
+            index = 0xFFFFFFFF;
+            break;
+        }
+
+        enable_primitive_restart();
+
+        if (primitive_restart_index != index)
+            primitive_restart_index = index;
+        break;
+    }
+
+    shader_update_data(this);
+    glDrawRangeElements(mode, start, end, count, type, indices);
+
+    switch (mode) {
+    case GL_TRIANGLE_STRIP:
+        disable_primitive_restart();
+        break;
+    }
+}
+
+void shader_set_data::enable_primitive_restart() {
+    primitive_restart = true;
+}
+
+int32_t shader_set_data::get_index_by_name(const char* name) {
+    if (get_index_by_name_func) {
+        int32_t index = get_index_by_name_func(name);
+        if (index != -1)
+            return index;
+    }
+
+    for (size_t i = 0; i < size; i++)
+        if (!str_utils_compare(shaders[i].name, name))
+            return (int32_t)shaders[i].name_index;
+    return -1;
+}
+
+void shader_set_data::load(farc* f, bool ignore_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
-    const shader_opengl_bind_func* bind_func_table, const size_t bind_func_table_size,
-    PFNSHADERGETINDEXFUNCPROC get_index_by_name) : size(), shaders(),
-    curr_shader(), primitive_restart(), primitive_restart_index(), get_index_by_name() {
+    const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
+    PFNSHADERGETINDEXFUNCPROC get_index_by_name) {
+    if (!this || !f || !shaders_table || !size)
+        return;
+
     wchar_t temp_buf[MAX_PATH];
     if (FAILED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf)))
         return;
@@ -328,22 +430,22 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
     std::vector<int32_t> vec_vert;
     std::vector<int32_t> vec_frag;
     std::vector<program_binary> program_data_binary;
-    shader_opengl* shaders = force_malloc_s(shader_opengl, size);
+    shader* shaders = force_malloc_s(shader, size);
     this->shaders = shaders;
     this->size = size;
     for (size_t i = 0; i < size; i++) {
-        shader_opengl* shader = &shaders[i];
+        shader* shader = &shaders[i];
         shader->name = shaders_table[i].name;
         shader->name_index = shaders_table[i].name_index;
         shader->num_sub = shaders_table[i].num_sub;
-        shader->sub = force_malloc_s(shader_opengl_sub, shader->num_sub);
+        shader->sub = force_malloc_s(shader_sub, shader->num_sub);
         shader->num_uniform = shaders_table[i].num_uniform;
         shader->use_uniform = shaders_table[i].use_uniform;
         shader->use_permut = shaders_table[i].use_permut;
 
         int32_t num_sub = shader->num_sub;
         const shader_sub_table* sub_table = shaders_table[i].sub;
-        shader_opengl_sub* sub = shader->sub;
+        shader_sub* sub = shader->sub;
         vec_vert.resize(shader->num_uniform);
         vec_frag.resize(shader->num_uniform);
         int32_t* vec_vert_data = vec_vert.data();
@@ -403,8 +505,8 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
             }
             strcat_s(shader_cache_file_name, sizeof(shader_cache_file_name), ".bin");
 
-            vert_data = shader_opengl::parse_include(vert_data, f);
-            frag_data = shader_opengl::parse_include(frag_data, f);
+            vert_data = shader::parse_include(vert_data, f);
+            frag_data = shader::parse_include(frag_data, f);
             uint64_t vert_data_hash = hash_utf8_fnv1a64m(vert_data);
             uint64_t frag_data_hash = hash_utf8_fnv1a64m(frag_data);
 
@@ -436,7 +538,7 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
 
                 if (!ignore_cache)
                     program_data_binary.reserve(unival_shad_count);
-                shader_opengl_sub_shader* shaders = force_malloc_s(shader_opengl_sub_shader, unival_shad_count);
+                shader_sub_shader* shaders = force_malloc_s(shader_sub_shader, unival_shad_count);
                 sub->shaders = shaders;
                 if (shaders) {
                     strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
@@ -473,9 +575,9 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
                         }
 
                         if (!bin || !shader_load_binary_shader(bin, &shaders[k].program)) {
-                            bool vert_succ = shader_opengl::parse_define(vert_data, num_uniform,
+                            bool vert_succ = shader::parse_define(vert_data, num_uniform,
                                 vec_vert_data, &temp_vert, &temp_vert_size);
-                            bool frag_succ = shader_opengl::parse_define(frag_data, num_uniform,
+                            bool frag_succ = shader::parse_define(frag_data, num_uniform,
                                 vec_frag_data, &temp_frag, &temp_frag_size);
 
                             if (ignore_cache)
@@ -505,7 +607,7 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
             }
             else {
                 program_data_binary.reserve(1);
-                shader_opengl_sub_shader* shaders = force_malloc_s(shader_opengl_sub_shader, 1);
+                shader_sub_shader* shaders = force_malloc_s(shader_sub_shader, 1);
                 sub->shaders = shaders;
                 if (shaders) {
                     strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
@@ -514,8 +616,8 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
                     strcat_s(frag_buf, sizeof(vert_buf), "..frag");
 
                     if (!bin || !shader_load_binary_shader(bin, &shaders[0].program)) {
-                        bool vert_succ = shader_opengl::parse_define(vert_data, &temp_vert, &temp_vert_size);
-                        bool frag_succ = shader_opengl::parse_define(frag_data, &temp_frag, &temp_frag_size);
+                        bool vert_succ = shader::parse_define(vert_data, &temp_vert, &temp_vert_size);
+                        bool frag_succ = shader::parse_define(frag_data, &temp_frag, &temp_frag_size);
 
                         if (ignore_cache)
                             shaders[0].program = shader_compile(vert_succ ? temp_vert : 0,
@@ -595,16 +697,28 @@ shader_opengl_data::shader_opengl_data(farc* f, bool ignore_cache,
     if (shader_cache_changed)
         shader_cache_farc.write(temp_buf, FARC_COMPRESS_FArC, false);
 
-    this->get_index_by_name = get_index_by_name;
+    this->get_index_by_name_func = get_index_by_name;
 }
 
-shader_opengl_data::~shader_opengl_data() {
+void shader_set_data::set(uint32_t index) {
+    if (this && index && index != -1) {
+        shader* shader = &shaders[index];
+        if (shader->bind_func)
+            shader->bind_func(this, shader);
+        else
+            shader->bind(this, shader->sub[0].sub_index);
+    }
+    else
+        shader::unbind();
+}
+
+void shader_set_data::unload() {
     size_t size = this->size;
-    shader_opengl* shaders = this->shaders;
+    shader* shaders = this->shaders;
     for (size_t i = 0; i < size; i++) {
-        shader_opengl* shader = &shaders[i];
+        shader* shader = &shaders[i];
         int32_t num_sub = shader->num_sub;
-        shader_opengl_sub* sub = shader->sub;
+        shader_sub* sub = shader->sub;
         for (size_t j = 0; j < num_sub; j++, sub++) {
             int32_t unival_shad_count = 1;
             if (shader->num_uniform > 0) {
@@ -621,7 +735,7 @@ shader_opengl_data::~shader_opengl_data() {
             }
 
             if (sub->shaders) {
-                shader_opengl_sub_shader* shaders = sub->shaders;
+                shader_sub_shader* shaders = sub->shaders;
                 for (size_t k = 0; k < unival_shad_count; k++)
                     glDeleteProgram(shaders[k].program);
                 free(shaders);
@@ -632,416 +746,8 @@ shader_opengl_data::~shader_opengl_data() {
     }
     free_def(shaders);
     this->shaders = 0;
-}
 
-shader_vulkan_pair shader_vulkan::get(shader_set_data* set, uint32_t sub_index) {
-    shader_vulkan_data* vulkan_data = set->vulkan_data;
-    vulkan_data->curr_vp = 0;
-    vulkan_data->curr_fp = 0;
-
-    if (num_sub < 1)
-        return {};
-
-    int32_t sub_shader_index = 0;
-    for (shader_vulkan_sub* i = sub; i->sub_index != sub_index; i++)
-        if (++sub_shader_index >= num_sub)
-            return {};
-
-    shader_vulkan_sub* sub_shader = &sub[sub_shader_index];
-
-    int32_t unival_vp_curr = 1;
-    int32_t unival_fp_curr = 1;
-    int32_t unival_vp = 0;
-    int32_t unival_fp = 0;
-    int32_t uniform_val[SHADER_MAX_UNIFORM_VALUES] = {};
-    if (num_uniform > 0) {
-        const int32_t* vp_unival_max = sub_shader->vp_unival_max;
-        const int32_t* fp_unival_max = sub_shader->fp_unival_max;
-
-        int32_t i = 0;
-        for (i = 0; i < num_uniform && i < sizeof(uniform_val) / sizeof(int32_t); i++) {
-            const int32_t unival = uniform_value[use_uniform[i]];
-            const int32_t unival_vp_max = use_permut[i] ? vp_unival_max[i] : 0;
-            const int32_t unival_fp_max = use_permut[i] ? fp_unival_max[i] : 0;
-            unival_vp += unival_vp_curr * min_def(unival, unival_vp_max);
-            unival_fp += unival_fp_curr * min_def(unival, unival_fp_max);
-            unival_vp_curr *= unival_vp_max + 1;
-            unival_fp_curr *= unival_fp_max + 1;
-
-            int32_t unival_max_spv = max_def(vp_unival_max[i], fp_unival_max[i]);
-            uniform_val[i] = min_def(unival, unival_max_spv);
-        }
-    }
-
-    shader_vulkan_sub_shader* shader_vert = &sub_shader->vp[unival_vp];
-    shader_vulkan_sub_shader* shader_frag = &sub_shader->fp[unival_fp];
-    vulkan_data->curr_vp = shader_vert;
-    vulkan_data->curr_fp = shader_frag;
-    return { shader_vert->shader_module, shader_frag->shader_module };
-}
-
-shader_vulkan_data::shader_vulkan_data(VkDevice device, VmaAllocator allocator, farc* f,
-    const shader_table* shaders_table, const size_t size,
-    const shader_vulkan_get_func* get_func_table, const size_t get_func_table_size,
-    PFNSHADERGETINDEXFUNCPROC get_index_by_name) : size(), shaders(), curr_vp(), curr_fp(),
-    primitive_restart(), uniform_val(), device(), allocator(), get_index_by_name() {
-    wchar_t temp_buf[MAX_PATH];
-    if (FAILED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf)))
-        return;
-
-    char vert_buf[MAX_PATH];
-    char frag_buf[MAX_PATH];
-
-    shader_vulkan* shaders = force_malloc_s(shader_vulkan, size);
-    this->shaders = shaders;
-    this->size = size;
-    for (size_t i = 0; i < size; i++) {
-        shader_vulkan* shader = &shaders[i];
-        shader->name = shaders_table[i].name;
-        shader->name_index = shaders_table[i].name_index;
-        shader->num_sub = shaders_table[i].num_sub;
-        shader->sub = force_malloc_s(shader_vulkan_sub, shader->num_sub);
-        shader->num_uniform = shaders_table[i].num_uniform;
-        shader->use_uniform = shaders_table[i].use_uniform;
-        shader->use_permut = shaders_table[i].use_permut;
-
-        int32_t num_sub = shader->num_sub;
-        const shader_sub_table* sub_table = shaders_table[i].sub;
-        shader_vulkan_sub* sub = shader->sub;
-        for (size_t j = 0; j < num_sub; j++, sub++, sub_table++) {
-            sub->sub_index = sub_table->sub_index;
-            sub->vp_unival_max = sub_table->vp_unival_max;
-            sub->fp_unival_max = sub_table->fp_unival_max;
-
-            int32_t unival_vp_count = 1;
-            int32_t unival_fp_count = 1;
-            if (shader->num_uniform > 0
-                && (sub_table->vp_unival_max[0] != -1 || sub_table->fp_unival_max[0] != -1)) {
-                int32_t num_uniform = shader->num_uniform;
-                int32_t unival_vp_curr = 1;
-                int32_t unival_fp_curr = 1;
-                const int32_t* vp_unival_max = sub_table->vp_unival_max;
-                const int32_t* fp_unival_max = sub_table->fp_unival_max;
-                for (size_t k = 0; k < num_uniform; k++) {
-                    const int32_t unival_vp_max = shader->use_permut[k] ? vp_unival_max[k] : 0;
-                    const int32_t unival_fp_max = shader->use_permut[k] ? fp_unival_max[k] : 0;
-                    unival_vp_count += unival_vp_curr * unival_vp_max;
-                    unival_fp_count += unival_fp_curr * unival_fp_max;
-                    unival_vp_curr *= unival_vp_max + 1;
-                    unival_fp_curr *= unival_fp_max + 1;
-                }
-            }
-
-            shader_vulkan_sub_shader* vp = force_malloc_s(shader_vulkan_sub_shader, unival_vp_count);
-            shader_vulkan_sub_shader* fp = force_malloc_s(shader_vulkan_sub_shader, unival_fp_count);
-            sub->vp = vp;
-            sub->fp = fp;
-
-            VkBufferCreateInfo buffer_create_info = {};
-            buffer_create_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-            buffer_create_info.size = sizeof(vec4) * SHADER_MAX_PROGRAM_LOCAL_PARAMETERS;
-            buffer_create_info.usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-            buffer_create_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-            VmaAllocationCreateInfo allocation_create_info = {};
-            allocation_create_info.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
-            allocation_create_info.flags = 0;
-
-            strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
-            strcat_s(vert_buf, sizeof(vert_buf), ".vert.bin");
-
-            farc_file* shader_vert_file = f->read_file(vert_buf);
-            program_spv* vert_spv = (program_spv*)shader_vert_file->data;
-            size_t vert_spv_data_base = (size_t)shader_vert_file->data;
-            for (size_t k = 0; k < unival_vp_count; k++, vert_spv++) {
-                VkShaderModuleCreateInfo create_info = {};
-                create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                create_info.codeSize = vert_spv->size;
-                create_info.pCode = (uint32_t*)(vert_spv_data_base + vert_spv->spv);
-                if (!vert_spv->size || vkCreateShaderModule(device,
-                    &create_info, 0, &vp[k].shader_module) != VK_SUCCESS) {
-                    vp[k].shader_module = 0;
-                }
-            }
-
-            strcpy_s(frag_buf, sizeof(frag_buf), sub_table->fp);
-            strcat_s(frag_buf, sizeof(frag_buf), ".frag.bin");
-
-            farc_file* shader_frag_file = f->read_file(frag_buf);
-            program_spv* frag_spv = (program_spv*)shader_frag_file->data;
-            size_t frag_spv_data_base = (size_t)shader_frag_file->data;
-            for (size_t k = 0; k < unival_fp_count; k++, frag_spv++) {
-                VkShaderModuleCreateInfo create_info = {};
-                create_info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-                create_info.codeSize = frag_spv->size;
-                create_info.pCode = (uint32_t*)(frag_spv_data_base + frag_spv->spv);
-                if (!vert_spv->size || vkCreateShaderModule(device,
-                    &create_info, 0, &fp[k].shader_module) != VK_SUCCESS) {
-                    fp[k].shader_module = 0;
-                }
-            }
-        }
-
-        for (size_t j = 0; j < get_func_table_size; j++)
-            if (shader->name_index == get_func_table[j].name_index) {
-                shader->get_func = get_func_table[j].get_func;
-                break;
-            }
-    }
-
-    this->device = device;
-    this->allocator = allocator;
-
-    this->get_index_by_name = get_index_by_name;
-}
-
-shader_vulkan_data::~shader_vulkan_data() {    
-    size_t size = this->size;
-    shader_vulkan* shaders = this->shaders;
-    for (size_t i = 0; i < size; i++) {
-        shader_vulkan* shader = &shaders[i];
-        int32_t num_sub = shader->num_sub;
-        shader_vulkan_sub* sub = shader->sub;
-        for (size_t j = 0; j < num_sub; j++, sub++) {
-            int32_t unival_vp_count = 1;
-            int32_t unival_fp_count = 1;
-            if (shader->num_uniform > 0) {
-                int32_t num_uniform = shader->num_uniform;
-                int32_t unival_vp_curr = 1;
-                int32_t unival_fp_curr = 1;
-                const int32_t* vp_unival_max = sub->vp_unival_max;
-                const int32_t* fp_unival_max = sub->fp_unival_max;
-                for (size_t k = 0; k < num_uniform; k++) {
-                    const int32_t unival_vp_max = shader->use_permut[k] ? vp_unival_max[k] : 0;
-                    const int32_t unival_fp_max = shader->use_permut[k] ? fp_unival_max[k] : 0;
-                    unival_vp_count += unival_vp_curr * unival_vp_max;
-                    unival_fp_count += unival_fp_curr * unival_fp_max;
-                    unival_vp_curr *= unival_vp_max + 1;
-                    unival_fp_curr *= unival_fp_max + 1;
-                }
-            }
-
-            if (sub->vp) {
-                shader_vulkan_sub_shader* vp = sub->vp;
-                for (size_t k = 0; k < unival_vp_count; k++)
-                    if (vp[k].shader_module)
-                        vkDestroyShaderModule(device, vp[k].shader_module, 0);
-                free(vp);
-                sub->vp = 0;
-            }
-
-            if (sub->fp) {
-                shader_vulkan_sub_shader* fp = sub->fp;
-                for (size_t k = 0; k < unival_fp_count; k++)
-                    if (fp[k].shader_module)
-                        vkDestroyShaderModule(device, fp[k].shader_module, 0);
-                free(fp);
-                sub->fp = 0;
-            }
-        }
-        free_def(shader->sub);
-    }
-    free_def(shaders);
-    this->shaders = 0;
-
-    device = 0;
-    allocator = 0;
-}
-
-shader_set_data::shader_set_data() : opengl_data(), vulkan_data() {
-
-}
-
-void shader_set_data::disable_primitive_restart() {
-    if (vulkan_render)
-        vulkan_data->primitive_restart = false;
-    else
-        opengl_data->primitive_restart = false;
-}
-
-void shader_set_data::draw_arrays(GLenum mode, GLint first, GLsizei count) {
-    shader_update_data(this);
-    glDrawArrays(mode, first, count);
-}
-
-void shader_set_data::draw_elements(GLenum mode,
-    GLsizei count, GLenum type, const void* indices) {
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        uint32_t index;
-        switch (type) {
-        case GL_UNSIGNED_BYTE:
-            index = 0xFF;
-            break;
-        case GL_UNSIGNED_SHORT:
-            index = 0xFFFF;
-            break;
-        case GL_UNSIGNED_INT:
-        default:
-            index = 0xFFFFFFFF;
-            break;
-        }
-
-        enable_primitive_restart();
-
-        if (!vulkan_render && opengl_data->primitive_restart_index != index)
-            opengl_data->primitive_restart_index = index;
-        break;
-    }
-
-    shader_update_data(this);
-    glDrawElements(mode, count, type, indices);
-
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        disable_primitive_restart();
-        break;
-    }
-}
-
-void shader_set_data::draw_range_elements(GLenum mode,
-    GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices) {
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        uint32_t index;
-        switch (type) {
-        case GL_UNSIGNED_BYTE:
-            index = 0xFF;
-            break;
-        case GL_UNSIGNED_SHORT:
-            index = 0xFFFF;
-            break;
-        case GL_UNSIGNED_INT:
-        default:
-            index = 0xFFFFFFFF;
-            break;
-        }
-
-        enable_primitive_restart();
-
-        if (!vulkan_render && opengl_data->primitive_restart_index != index)
-            opengl_data->primitive_restart_index = index;
-        break;
-    }
-
-    shader_update_data(this);
-    glDrawRangeElements(mode, start, end, count, type, indices);
-
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        disable_primitive_restart();
-        break;
-    }
-}
-
-void shader_set_data::enable_primitive_restart() {
-    if (vulkan_render)
-        vulkan_data->primitive_restart = true;
-    else
-        opengl_data->primitive_restart = true;
-}
-
-int32_t shader_set_data::get_index_by_name(const char* name) {
-    if (vulkan_render) {
-        size_t size = vulkan_data->size;
-        shader_vulkan* shaders = vulkan_data->shaders;
-
-        if (vulkan_data->get_index_by_name) {
-            int32_t index = vulkan_data->get_index_by_name(name);
-            if (index != -1)
-                return index;
-        }
-
-        for (size_t i = 0; i < size; i++)
-            if (!str_utils_compare(shaders[i].name, name))
-                return (int32_t)shaders[i].name_index;
-    }
-    else {
-        size_t size = opengl_data->size;
-        shader_opengl* shaders = opengl_data->shaders;
-
-        if (opengl_data->get_index_by_name) {
-            int32_t index = opengl_data->get_index_by_name(name);
-            if (index != -1)
-                return index;
-        }
-
-        for (size_t i = 0; i < size; i++)
-            if (!str_utils_compare(shaders[i].name, name))
-                return (int32_t)shaders[i].name_index;
-    }
-    return -1;
-}
-
-void shader_set_data::load_opengl(farc* f, bool ignore_cache,
-    const char* name, const shader_table* shaders_table, const size_t size,
-    const shader_opengl_bind_func* bind_func_table, const size_t bind_func_table_size,
-    PFNSHADERGETINDEXFUNCPROC get_index_by_name) {
-    if (!this || !f || !shaders_table || !size)
-        return;
-
-    opengl_data = new shader_opengl_data(f, ignore_cache, name,
-        shaders_table, size, bind_func_table, bind_func_table_size, get_index_by_name);
-    vulkan_data = 0;
-}
-
-void shader_set_data::load_vulkan(VkDevice device, VmaAllocator allocator, farc* f,
-    const shader_table* shaders_table, const size_t size,
-    const shader_vulkan_get_func* get_func_table, const size_t get_func_table_size,
-    PFNSHADERGETINDEXFUNCPROC get_index_by_name) {
-    if (!this || !device || !allocator || !f || !shaders_table || !size)
-        return;
-
-    opengl_data = 0;
-    vulkan_data = new shader_vulkan_data(device, allocator, f,
-        shaders_table, size, get_func_table, get_func_table_size, get_index_by_name);
-}
-
-void shader_set_data::set_opengl_shader(uint32_t index) {
-    if (vulkan_render || !opengl_data)
-        return;
-
-    if (this && index && index != -1) {
-        shader_opengl* shader = &opengl_data->shaders[index];
-        if (shader->bind_func)
-            shader->bind_func(this, shader);
-        else
-            shader->bind(this, shader->sub[0].sub_index);
-    }
-    else
-        shader_opengl::unbind();
-}
-
-std::pair<VkShaderModule, VkShaderModule> shader_set_data::get_vulkan_shader(uint32_t index) {
-    if (!vulkan_render || !vulkan_data)
-        return {};
-
-    if (this && index && index != -1) {
-        shader_vulkan* shader = &vulkan_data->shaders[index];
-        if (shader->get_func)
-            return shader->get_func(this, shader);
-        else
-            return shader->get(this, shader->sub[0].sub_index);
-    }
-    else {
-        vulkan_data->curr_vp = 0;
-        vulkan_data->curr_fp = 0;
-        return {};
-    }
-}
-
-void shader_set_data::unload_opengl() {
-    if (opengl_data) {
-        delete opengl_data;
-        opengl_data = 0;
-    }
-}
-
-void shader_set_data::unload_vulkan() {
-    if (vulkan_data) {
-        delete vulkan_data;
-        vulkan_data = 0;
-    }
+    get_index_by_name_func = 0;
 }
 
 static GLuint shader_compile_shader(GLenum type, const char* data, const char* file) {
@@ -1263,20 +969,18 @@ static void shader_update_data(shader_set_data* set) {
     if (!set)
         return;
 
-    shader_opengl_data* opengl_data = set->opengl_data;
-
-    if (opengl_data->curr_shader) {
-        shader_opengl_sub_shader* shader = opengl_data->curr_shader;
+    if (set->curr_shader) {
+        shader_sub_shader* shader = set->curr_shader;
         if (shader->uniform_val_update) {
             glUniform1iv(0, SHADER_MAX_UNIFORM_VALUES, (GLint*)shader->uniform_val);
             shader->uniform_val_update = false;
         }
     }
 
-    if (opengl_data->primitive_restart)
+    if (set->primitive_restart)
         gl_state_enable_primitive_restart();
     else
         gl_state_disable_primitive_restart();
 
-    gl_state_set_primitive_restart_index(opengl_data->primitive_restart_index);
+    gl_state_set_primitive_restart_index(set->primitive_restart_index);
 }

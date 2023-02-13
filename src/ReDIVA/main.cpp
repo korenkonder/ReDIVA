@@ -311,7 +311,7 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     st.write(buf, true, false);
 }
 
-#if defined(ReDIVA_DEV)
+/*#if defined(ReDIVA_DEV)
 struct program_spv {
     size_t size;
     size_t spv;
@@ -396,11 +396,11 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                 continue;
             }
 
-            vert_data = shader_opengl::parse_include(vert_data, f);
-            frag_data = shader_opengl::parse_include(frag_data, f);
+            vert_data = shader::parse_include(vert_data, f);
+            frag_data = shader::parse_include(frag_data, f);
 
-            vert_data = shader_opengl::parse_include(vert_data, f);
-            frag_data = shader_opengl::parse_include(frag_data, f);
+            vert_data = shader::parse_include(vert_data, f);
+            frag_data = shader::parse_include(frag_data, f);
 
             wchar_t cmd_temp[0x800];
             char vert_buf[MAX_PATH];
@@ -459,7 +459,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                             vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert_data[l]);
                         }
 
-                        shader_opengl::parse_define(vert_data, num_uniform,
+                        shader::parse_define(vert_data, num_uniform,
                             vec_vert_data, &temp_vert, &temp_vert_size);
 
                         swprintf_s(glsl_vert_file_buf, sizeof(glsl_vert_file_buf)
@@ -528,7 +528,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                             m /= unival_max;
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag_data[l]);
                         }
-                        shader_opengl::parse_define(frag_data, num_uniform,
+                        shader::parse_define(frag_data, num_uniform,
                             vec_frag_data, &temp_frag, &temp_frag_size);
 
                         swprintf_s(glsl_frag_file_buf, sizeof(glsl_frag_file_buf)
@@ -586,7 +586,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     strcat_s(vert_buf, sizeof(vert_buf), "..vert.spv");
                     int32_t vert_buf_len = (int32_t)utf8_length(vert_buf);
 
-                    shader_opengl::parse_define(vert_data, &temp_vert, &temp_vert_size);
+                    shader::parse_define(vert_data, &temp_vert, &temp_vert_size);
 
                     swprintf_s(glsl_vert_file_buf, sizeof(glsl_vert_file_buf)
                         / sizeof(wchar_t), L"%s%.*S", temp_path, vert_buf_len - 4, vert_buf);
@@ -641,7 +641,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     strcat_s(frag_buf, sizeof(frag_buf), "..frag.spv");
                     int32_t frag_buf_len = (int32_t)utf8_length(frag_buf);
 
-                    shader_opengl::parse_define(frag_data, &temp_frag, &temp_frag_size);
+                    shader::parse_define(frag_data, &temp_frag, &temp_frag_size);
 
                     swprintf_s(glsl_frag_file_buf, sizeof(glsl_frag_file_buf)
                         / sizeof(wchar_t), L"%s%.*S", temp_path, frag_buf_len - 4, frag_buf);
@@ -761,15 +761,15 @@ void compile_all_shaders(bool debug) {
     compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
     of.write("rom\\ft_shaders_spirv", FARC_COMPRESS_FArC, false);
 }
-#endif
+#endif*/
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
-#if defined(ReDIVA_DEV)
+/*#if defined(ReDIVA_DEV)
     if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
         compile_all_shaders(argc >= 3 && !wcscmp(argv[2], L"-d"));
         return 0;
     }
-#endif
+#endif*/
 
     //ShowWindow(GetConsoleWindow(), SW_HIDE);
     timeBeginPeriod(1);
@@ -856,8 +856,6 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     //a3da_to_dft_dsc(269);
 
     render_init_struct ris;
-    //ris.vulkan_render = true;
-    ris.vulkan_render = false;
 
     render_main(&ris);
 

@@ -342,7 +342,7 @@ namespace Glitter {
         PARTICLE_MANAGER_NOT_DISP            = 0x02,
         PARTICLE_MANAGER_RESET_SCENE_COUNTER = 0x04,
         PARTICLE_MANAGER_READ_FILES          = 0x08,
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         PARTICLE_MANAGER_LOCAL               = 0x20,
 #endif
     };
@@ -377,7 +377,7 @@ namespace Glitter {
         SCENE_FLAG_1   = 0x01,
         SCENE_NOT_DISP = 0x02,
         SCENE_FLAG_3   = 0x04,
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         SCENE_ENDED    = 0x08,
         SCENE_EDITOR   = 0x80,
 #endif
@@ -480,7 +480,7 @@ namespace Glitter {
         Animation();
         ~Animation();
 
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void AddValue(GLT, float_t val, CurveTypeFlags flags);
 #endif
 
@@ -526,7 +526,7 @@ namespace Glitter {
         CurveFlag flags;
         float_t random_range;
         std::vector<Key> keys;
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         std::vector<Key> keys_rev;
 #endif
         uint32_t version;
@@ -535,7 +535,7 @@ namespace Glitter {
         Curve(GLT);
         virtual ~Curve();
 
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void AddValue(GLT, float_t val);
 #endif
         bool F2GetValue(GLT, float_t frame,
@@ -544,7 +544,7 @@ namespace Glitter {
             Curve::Key* next, KeyType key_type, Random* random);
         float_t F2Randomize(GLT, float_t value, Random* random);
         float_t F2RandomizeKey(GLT, Curve::Key* key, Random* random);
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void FitKeysIntoCurve(GLT);
         void Recalculate(GLT);
 #endif
@@ -656,7 +656,7 @@ namespace Glitter {
         std::vector<uint64_t> resource_hashes;
         txp_set resources_tex;
         texture** resources;
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         std::vector<uint32_t> object_set_ids;
         std::string name;
 #endif
@@ -668,7 +668,7 @@ namespace Glitter {
         EffectGroup(GLT);
         virtual ~EffectGroup();
 
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         bool CheckLoadModel();
         bool CheckModel();
         void FreeModel();
@@ -808,7 +808,7 @@ namespace Glitter {
 
     class EffectInst {
     public:
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         std::string name;
 #endif
         Effect* effect;
@@ -824,7 +824,7 @@ namespace Glitter {
         EffectInstFlag flags;
         size_t id;
         uint32_t random;
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         float_t req_frame;
 #endif
         vec4 ext_color;
@@ -1477,7 +1477,7 @@ namespace Glitter {
 
     class Scene {
     public:
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         std::string name;
 #endif
         std::vector<SceneEffect> effects;
@@ -1487,7 +1487,7 @@ namespace Glitter {
         float_t emission;
         Type type;
         EffectGroup* effect_group;
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         float_t fade_frame;
         float_t fade_frame_left;
         float_t delta_frame_history;
@@ -1498,7 +1498,7 @@ namespace Glitter {
         Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool a5);
         virtual ~Scene();
 
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void CalcDisp(GPM);
         bool CanDisp(DispType disp_type, bool a3);
 #endif
@@ -1517,7 +1517,7 @@ namespace Glitter {
         bool ResetEffect(GPM, uint64_t effect_hash, size_t* id = 0);
         bool SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
         bool SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a);
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void SetFrameRate(FrameRateControl* frame_rate);
         void SetReqFrame(size_t id, float_t req_frame);
 #endif
@@ -1553,7 +1553,7 @@ namespace Glitter {
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual bool Dest() override;
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         virtual void Disp() override;
 #endif
         virtual void Basic() override;
@@ -1598,14 +1598,14 @@ namespace Glitter {
         SceneCounter LoadSceneEffect(uint64_t hash, const char* name,
             bool appear_now = true, uint8_t load_flags = 0);
         bool SceneHasNotEnded(SceneCounter load_counter);
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void SetFrame(EffectGroup* effect_group,
             Scene** scene, float_t curr_frame, float_t prev_frame,
             uint32_t counter, Random* random, bool reset);
 #endif
         void SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
             uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
-#if defined(CRE_DEV) || defined(ReDIVA_DEV)
+#if defined(CRE_DEV)
         void SetSceneEffectName(uint64_t effect_group_hash, uint64_t effect_hash, const char* name);
         void SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame);
         void SetSceneFrameRate(SceneCounter scene_counter, FrameRateControl* frame_rate);

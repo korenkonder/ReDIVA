@@ -301,7 +301,7 @@ namespace mdl {
             if (material->material.attrib.m.alpha_texture)
                 uniform_value[U_TEXTURE_COUNT] = 0;
             rctx->obj_batch.g_texture_blend = { (float_t)uniform_value[U_TEXTURE_BLEND], 0.0f, 0.0f, 0.0f };
-            shaders_ft.set_opengl_shader(rctx->draw_state.shader_index);
+            shaders_ft.set(rctx->draw_state.shader_index);
         }
 
         draw_object_vertex_attrib_set_default(rctx, args);
@@ -662,21 +662,21 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
         line_light = 0.0;
 
     if (!use_shader)
-        shaders_ft.set_opengl_shader(SHADER_FT_SIMPLE);
+        shaders_ft.set(SHADER_FT_SIMPLE);
     else if (rctx->draw_state.shader_index != -1)
-        shaders_ft.set_opengl_shader(rctx->draw_state.shader_index);
+        shaders_ft.set(rctx->draw_state.shader_index);
     else if (material->material.shader.index != -1) {
         if (material->material.shader.index != SHADER_FT_BLINN)
-            shaders_ft.set_opengl_shader(material->material.shader.index);
+            shaders_ft.set(material->material.shader.index);
         else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_LAMBERT)
-            shaders_ft.set_opengl_shader(SHADER_FT_LAMBERT);
+            shaders_ft.set(SHADER_FT_LAMBERT);
         else if (lighting_type == OBJ_MATERIAL_SHADER_LIGHTING_PHONG)
-            shaders_ft.set_opengl_shader(SHADER_FT_BLINN);
+            shaders_ft.set(SHADER_FT_BLINN);
         else
-            shaders_ft.set_opengl_shader(SHADER_FT_CONSTANT);
+            shaders_ft.set(SHADER_FT_CONSTANT);
     }
     else
-        shaders_ft.set_opengl_shader(SHADER_FT_CONSTANT);
+        shaders_ft.set(SHADER_FT_CONSTANT);
 
     rctx->obj_batch.g_texture_blend = { (float_t)uniform_value[U_TEXTURE_BLEND], 0.0f, 0.0f, 0.0f };
     if (lighting_type != OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT) {
@@ -829,7 +829,7 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
 
     draw_object_material_set_uniform(material, true);
     rctx->obj_batch.g_texture_blend = { (float_t)uniform_value[U_TEXTURE_BLEND], 0.0f, 0.0f, 0.0f };
-    shaders_ft.set_opengl_shader(rctx->draw_state.shader_index);
+    shaders_ft.set(rctx->draw_state.shader_index);
     rctx->obj_batch.g_material_state_ambient = ambient;
     rctx->obj_batch.g_material_state_diffuse = diffuse;
     rctx->obj_batch.g_material_state_emission = emission;

@@ -3141,180 +3141,93 @@ const size_t shader_ft_table_size =
 
 static void glass_eye_calc(glass_eye_struct* glass_eye);
 static void glass_eye_set(glass_eye_struct* glass_eye);
-static void shader_opengl_bind_blinn(shader_set_data* set, shader_opengl* shad);
-static void shader_opengl_bind_cloth(shader_set_data* set, shader_opengl* shad);
-static void shader_opengl_bind_hair(shader_set_data* set, shader_opengl* shad);
-static void shader_opengl_bind_eye_ball(shader_set_data* set, shader_opengl* shad);
-static void shader_opengl_bind_tone_map(shader_set_data* set, shader_opengl* shad);
-static void shader_opengl_bind_sss_filter(shader_set_data* set, shader_opengl* shad);    // Added
-static void shader_opengl_bind_esm_filter(shader_set_data* set, shader_opengl* shad);    // Added
-static void shader_opengl_bind_reduce_tex(shader_set_data* set, shader_opengl* shad);    // Added
-static void shader_opengl_bind_magnify(shader_set_data* set, shader_opengl* shad);       // Added
-static void shader_opengl_bind_mlaa(shader_set_data* set, shader_opengl* shad);          // Added
-static void shader_opengl_bind_exposure(shader_set_data* set, shader_opengl* shad);      // Added
-static void shader_opengl_bind_gauss(shader_set_data* set, shader_opengl* shad);         // Added
-static void shader_opengl_bind_snow_particle(shader_set_data* set, shader_opengl* shad); // Added
-static void shader_opengl_bind_star(shader_set_data* set, shader_opengl* shad);          // Added
-static void shader_opengl_bind_imgfilter(shader_set_data* set, shader_opengl* shad);     // Added
-static void shader_opengl_bind_dof(shader_set_data* set, shader_opengl* shad);           // Added
-static shader_vulkan_pair shader_vulkan_get_blinn(shader_set_data* set, shader_vulkan* shad);
-static shader_vulkan_pair shader_vulkan_get_cloth(shader_set_data* set, shader_vulkan* shad);
-static shader_vulkan_pair shader_vulkan_get_hair(shader_set_data* set, shader_vulkan* shad);
-static shader_vulkan_pair shader_vulkan_get_eye_ball(shader_set_data* set, shader_vulkan* shad);
-static shader_vulkan_pair shader_vulkan_get_tone_map(shader_set_data* set, shader_vulkan* shad);
-static shader_vulkan_pair shader_vulkan_get_sss_filter(shader_set_data* set, shader_vulkan* shad);    // Added
-static shader_vulkan_pair shader_vulkan_get_esm_filter(shader_set_data* set, shader_vulkan* shad);    // Added
-static shader_vulkan_pair shader_vulkan_get_reduce_tex(shader_set_data* set, shader_vulkan* shad);    // Added
-static shader_vulkan_pair shader_vulkan_get_magnify(shader_set_data* set, shader_vulkan* shad);       // Added
-static shader_vulkan_pair shader_vulkan_get_mlaa(shader_set_data* set, shader_vulkan* shad);          // Added
-static shader_vulkan_pair shader_vulkan_get_exposure(shader_set_data* set, shader_vulkan* shad);      // Added
-static shader_vulkan_pair shader_vulkan_get_gauss(shader_set_data* set, shader_vulkan* shad);         // Added
-static shader_vulkan_pair shader_vulkan_get_snow_particle(shader_set_data* set, shader_vulkan* shad); // Added
-static shader_vulkan_pair shader_vulkan_get_star(shader_set_data* set, shader_vulkan* shad);          // Added
-static shader_vulkan_pair shader_vulkan_get_imgfilter(shader_set_data* set, shader_vulkan* shad);     // Added
-static shader_vulkan_pair shader_vulkan_get_dof(shader_set_data* set, shader_vulkan* shad);           // Added
+static void shader_bind_blinn(shader_set_data* set, shader* shad);
+static void shader_bind_cloth(shader_set_data* set, shader* shad);
+static void shader_bind_hair(shader_set_data* set, shader* shad);
+static void shader_bind_eye_ball(shader_set_data* set, shader* shad);
+static void shader_bind_tone_map(shader_set_data* set, shader* shad);
+static void shader_bind_sss_filter(shader_set_data* set, shader* shad);    // Added
+static void shader_bind_esm_filter(shader_set_data* set, shader* shad);    // Added
+static void shader_bind_reduce_tex(shader_set_data* set, shader* shad);    // Added
+static void shader_bind_magnify(shader_set_data* set, shader* shad);       // Added
+static void shader_bind_mlaa(shader_set_data* set, shader* shad);          // Added
+static void shader_bind_exposure(shader_set_data* set, shader* shad);      // Added
+static void shader_bind_gauss(shader_set_data* set, shader* shad);         // Added
+static void shader_bind_snow_particle(shader_set_data* set, shader* shad); // Added
+static void shader_bind_star(shader_set_data* set, shader* shad);          // Added
+static void shader_bind_imgfilter(shader_set_data* set, shader* shad);     // Added
+static void shader_bind_dof(shader_set_data* set, shader* shad);           // Added
 
-const shader_opengl_bind_func shader_ft_opengl_bind_func_table[] = {
+const shader_bind_func shader_ft_bind_func_table[] = {
     {
         SHADER_FT_BLINN,
-        shader_opengl_bind_blinn,
+        shader_bind_blinn,
     },
     {
         SHADER_FT_CLOTH,
-        shader_opengl_bind_cloth,
+        shader_bind_cloth,
     },
     {
         SHADER_FT_HAIR,
-        shader_opengl_bind_hair,
+        shader_bind_hair,
     },
     {
         //SHADER_FT_EYEBALL,
         SHADER_FT_GLASEYE,
-        shader_opengl_bind_eye_ball,
+        shader_bind_eye_ball,
     },
     {
         SHADER_FT_TONEMAP,
-        shader_opengl_bind_tone_map,
+        shader_bind_tone_map,
     },
     { // Added
         SHADER_FT_SSS_FILT,
-        shader_opengl_bind_sss_filter,
+        shader_bind_sss_filter,
     },
     { // Added
         SHADER_FT_ESMFILT,
-        shader_opengl_bind_esm_filter,
+        shader_bind_esm_filter,
     },
     { // Added
         SHADER_FT_REDUCE,
-        shader_opengl_bind_reduce_tex,
+        shader_bind_reduce_tex,
     },
     { // Added
         SHADER_FT_MAGNIFY,
-        shader_opengl_bind_magnify,
+        shader_bind_magnify,
     },
     { // Added
         SHADER_FT_MLAA,
-        shader_opengl_bind_mlaa,
+        shader_bind_mlaa,
     },
     { // Added
         SHADER_FT_EXPOSURE,
-        shader_opengl_bind_exposure,
+        shader_bind_exposure,
     },
     { // Added
         SHADER_FT_GAUSS,
-        shader_opengl_bind_gauss,
+        shader_bind_gauss,
     },
     { // Added
         SHADER_FT_SNOW_PT,
-        shader_opengl_bind_snow_particle,
+        shader_bind_snow_particle,
     },
     { // Added
         SHADER_FT_STAR,
-        shader_opengl_bind_star,
+        shader_bind_star,
     },
     { // Added
         SHADER_FT_IMGFILT,
-        shader_opengl_bind_imgfilter,
+        shader_bind_imgfilter,
     },
     { // Added
         SHADER_FT_DOF,
-        shader_opengl_bind_dof,
+        shader_bind_dof,
     },
 };
 
-const size_t shader_ft_opengl_bind_func_table_size =
-    sizeof(shader_ft_opengl_bind_func_table) / sizeof(shader_opengl_bind_func);
-
-const shader_vulkan_get_func shader_ft_vulkan_get_func_table[] = {
-    {
-        SHADER_FT_BLINN,
-        shader_vulkan_get_blinn,
-    },
-    {
-        SHADER_FT_CLOTH,
-        shader_vulkan_get_cloth,
-    },
-    {
-        SHADER_FT_HAIR,
-        shader_vulkan_get_hair,
-    },
-    {
-        //SHADER_FT_EYEBALL,
-        SHADER_FT_GLASEYE,
-        shader_vulkan_get_eye_ball,
-    },
-    {
-        SHADER_FT_TONEMAP,
-        shader_vulkan_get_tone_map,
-    },
-    { // Added
-        SHADER_FT_SSS_FILT,
-        shader_vulkan_get_sss_filter,
-    },
-    { // Added
-        SHADER_FT_ESMFILT,
-        shader_vulkan_get_esm_filter,
-    },
-    { // Added
-        SHADER_FT_REDUCE,
-        shader_vulkan_get_reduce_tex,
-    },
-    { // Added
-        SHADER_FT_MAGNIFY,
-        shader_vulkan_get_magnify,
-    },
-    { // Added
-        SHADER_FT_MLAA,
-        shader_vulkan_get_mlaa,
-    },
-    { // Added
-        SHADER_FT_EXPOSURE,
-        shader_vulkan_get_exposure,
-    },
-    { // Added
-        SHADER_FT_GAUSS,
-        shader_vulkan_get_gauss,
-    },
-    { // Added
-        SHADER_FT_SNOW_PT,
-        shader_vulkan_get_snow_particle,
-    },
-    { // Added
-        SHADER_FT_STAR,
-        shader_vulkan_get_star,
-    },
-    { // Added
-        SHADER_FT_IMGFILT,
-        shader_vulkan_get_imgfilter,
-    },
-    { // Added
-        SHADER_FT_DOF,
-        shader_vulkan_get_dof,
-    },
-};
-
-const size_t shader_ft_vulkan_get_func_table_size =
-    sizeof(shader_ft_vulkan_get_func_table) / sizeof(shader_vulkan_get_func);
+const size_t shader_ft_bind_func_table_size =
+    sizeof(shader_ft_bind_func_table) / sizeof(shader_bind_func);
 
 shader_set_data shaders_ft;
 
@@ -3442,34 +3355,34 @@ static void glass_eye_set(glass_eye_struct* glass_eye) {
     rctx_ptr->glass_eye_batch_ubo.Bind(4);
 }
 
-static void shader_opengl_bind_blinn(shader_set_data* set, shader_opengl* shad) {
+static void shader_bind_blinn(shader_set_data* set, shader* shad) {
     shad->bind(set, uniform_value[U_NORMAL]
         ? SHADER_FT_SUB_BLINN_FRAG : SHADER_FT_SUB_BLINN_VERT);
 }
 
-static void shader_opengl_bind_cloth(shader_set_data* set, shader_opengl* shad) {
+static void shader_bind_cloth(shader_set_data* set, shader* shad) {
     shad->bind(set, uniform_value[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
         : (uniform_value[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
 }
 
-static void shader_opengl_bind_hair(shader_set_data* set, shader_opengl* shad) {
+static void shader_bind_hair(shader_set_data* set, shader* shad) {
     shad->bind(set, uniform_value[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1 : SHADER_FT_SUB_HAIR_DEFAULT);
 }
 
-static void shader_opengl_bind_eye_ball(shader_set_data* set, shader_opengl* shad) {
+static void shader_bind_eye_ball(shader_set_data* set, shader* shad) {
     uniform_value[U18] = 0;
-    if (set->opengl_data->shaders[SHADER_FT_GLASEYE].bind(set, SHADER_FT_SUB_GLASS_EYE) >= 0) {
+    if (set->shaders[SHADER_FT_GLASEYE].bind(set, SHADER_FT_SUB_GLASS_EYE) >= 0) {
         glass_eye_calc(&glass_eye);
         glass_eye_set(&glass_eye);
     }
 }
 
-static void shader_opengl_bind_tone_map(shader_set_data* set, shader_opengl* shad) {
+static void shader_bind_tone_map(shader_set_data* set, shader* shad) {
     shad->bind(set, uniform_value[U_NPR] == 1
         ? SHADER_FT_SUB_TONEMAP_NPR1 : SHADER_FT_SUB_TONEMAP);
 }
 
-static void shader_opengl_bind_sss_filter(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_sss_filter(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_SSS_FILTER]) {
     case 0:
         shad->bind(set, uniform_value[U_NPR]
@@ -3481,7 +3394,7 @@ static void shader_opengl_bind_sss_filter(shader_set_data* set, shader_opengl* s
     }
 }
 
-static void shader_opengl_bind_esm_filter(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_esm_filter(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_ESM_FILTER]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_ESM_FILTER_MIN);
@@ -3492,7 +3405,7 @@ static void shader_opengl_bind_esm_filter(shader_set_data* set, shader_opengl* s
     }
 }
 
-static void shader_opengl_bind_reduce_tex(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_reduce_tex(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_REDUCE]) {
     case 0:
         switch (uniform_value[U_ALPHA_MASK]) {
@@ -3549,7 +3462,7 @@ static void shader_opengl_bind_reduce_tex(shader_set_data* set, shader_opengl* s
     }
 }
 
-static void shader_opengl_bind_magnify(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_magnify(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_MAGNIFY]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_MAGNIFY_LINEAR);
@@ -3569,7 +3482,7 @@ static void shader_opengl_bind_magnify(shader_set_data* set, shader_opengl* shad
     }
 }
 
-static void shader_opengl_bind_mlaa(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_mlaa(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_MLAA]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_MLAA_EDGE);
@@ -3583,7 +3496,7 @@ static void shader_opengl_bind_mlaa(shader_set_data* set, shader_opengl* shad) {
     }
 }
 
-static void shader_opengl_bind_exposure(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_exposure(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_EXPOSURE]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_EXPOSURE_MINIFY);
@@ -3597,7 +3510,7 @@ static void shader_opengl_bind_exposure(shader_set_data* set, shader_opengl* sha
     }
 }
 
-static void shader_opengl_bind_gauss(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_gauss(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_GAUSS]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_PP_GAUSS_USUAL);
@@ -3608,7 +3521,7 @@ static void shader_opengl_bind_gauss(shader_set_data* set, shader_opengl* shad) 
     }
 }
 
-static void shader_opengl_bind_snow_particle(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_snow_particle(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_SNOW_PARTICLE]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_SNOW_PARTICLE_CPU);
@@ -3619,7 +3532,7 @@ static void shader_opengl_bind_snow_particle(shader_set_data* set, shader_opengl
     }
 }
 
-static void shader_opengl_bind_star(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_star(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_STAR]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_STAR);
@@ -3630,7 +3543,7 @@ static void shader_opengl_bind_star(shader_set_data* set, shader_opengl* shad) {
     }
 }
 
-static void shader_opengl_bind_imgfilter(shader_set_data* set, shader_opengl* shad) {
+static void shader_bind_imgfilter(shader_set_data* set, shader* shad) {
     switch (uniform_value[U_IMAGE_FILTER]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_BOX4);
@@ -3644,7 +3557,7 @@ static void shader_opengl_bind_imgfilter(shader_set_data* set, shader_opengl* sh
     }
 }
 
-static void shader_opengl_bind_dof(shader_set_data* set, shader_opengl* shad) { // Added
+static void shader_bind_dof(shader_set_data* set, shader* shad) { // Added
     switch (uniform_value[U_DOF_STAGE]) {
     case 0:
         shad->bind(set, SHADER_FT_SUB_DOF_RENDER_TILE);
@@ -3662,203 +3575,4 @@ static void shader_opengl_bind_dof(shader_set_data* set, shader_opengl* shad) { 
         shad->bind(set, SHADER_FT_SUB_DOF_UPSAMPLE);
         break;
     }
-}
-
-static shader_vulkan_pair shader_vulkan_get_blinn(shader_set_data* set, shader_vulkan* shad) {
-    return shad->get(set, uniform_value[U_NORMAL]
-        ? SHADER_FT_SUB_BLINN_FRAG : SHADER_FT_SUB_BLINN_VERT);
-}
-
-static shader_vulkan_pair shader_vulkan_get_cloth(shader_set_data* set, shader_vulkan* shad) {
-    return shad->get(set, uniform_value[U_NPR] ? SHADER_FT_SUB_CLOTH_NPR1
-        : (uniform_value[U_ANISO] ? SHADER_FT_SUB_CLOTH_ANISO : SHADER_FT_SUB_CLOTH_DEFAULT));
-}
-
-static shader_vulkan_pair shader_vulkan_get_hair(shader_set_data* set, shader_vulkan* shad) {
-    return shad->get(set, uniform_value[U_NPR] ? SHADER_FT_SUB_HAIR_NPR1 : SHADER_FT_SUB_HAIR_DEFAULT);
-}
-
-static shader_vulkan_pair shader_vulkan_get_eye_ball(shader_set_data* set, shader_vulkan* shad) {
-    uniform_value[U18] = 0;
-    shader_vulkan_pair shad_pair = set->vulkan_data->shaders[SHADER_FT_GLASEYE].get(set, SHADER_FT_SUB_GLASS_EYE);
-    if (!shad_pair.first)
-        return {};
-
-    glass_eye_calc(&glass_eye);
-    glass_eye_set(&glass_eye);
-    return shad_pair;
-}
-
-static shader_vulkan_pair shader_vulkan_get_tone_map(shader_set_data* set, shader_vulkan* shad) {
-    return shad->get(set, uniform_value[U_NPR] == 1
-        ? SHADER_FT_SUB_TONEMAP_NPR1 : SHADER_FT_SUB_TONEMAP);
-}
-
-static shader_vulkan_pair shader_vulkan_get_sss_filter(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_SSS_FILTER]) {
-    case 0:
-        return shad->get(set, uniform_value[U_NPR]
-            ? SHADER_FT_SUB_SSS_FILTER_MIN_NPR : SHADER_FT_SUB_SSS_FILTER_MIN);
-    case 3:
-        return shad->get(set, SHADER_FT_SUB_SSS_FILTER_GAUSS_2D);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_esm_filter(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_ESM_FILTER]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_ESM_FILTER_MIN);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_ESM_FILTER_EROSION);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_reduce_tex(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_REDUCE]) {
-    case 0:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_2);
-        default:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_2_ALPHAMASK);
-        }
-        break;
-    case 1:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_4);
-        }
-        break;
-    case 3:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_4_EXTRACT);
-        }
-        break;
-    case 4:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_GHOST);
-        }
-        break;
-    case 5:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_2);
-        }
-        break;
-    case 6:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_BLUR);
-        }
-        break;
-    case 7:
-        switch (uniform_value[U_ALPHA_MASK]) {
-        case 0:
-            return shad->get(set, SHADER_FT_SUB_REDUCE_TEX_REDUCE_COMPOSITE_4);
-        }
-        break;
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_magnify(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_MAGNIFY]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_MAGNIFY_LINEAR);
-    case 2:
-        return shad->get(set, SHADER_FT_SUB_MAGNIFY_DIFF);
-    case 3:
-        return shad->get(set, SHADER_FT_SUB_MAGNIFY_DIFF2);
-    case 4:
-        return shad->get(set, SHADER_FT_SUB_MAGNIFY_CONE);
-    case 5:
-        return shad->get(set, SHADER_FT_SUB_MAGNIFY_CONE2);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_mlaa(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_MLAA]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_MLAA_EDGE);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_MLAA_AREA);
-    case 2:
-        return shad->get(set, SHADER_FT_SUB_MLAA_BLEND);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_exposure(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_EXPOSURE]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_EXPOSURE_MINIFY);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_EXPOSURE_MEASURE);
-    case 2:
-        return shad->get(set, SHADER_FT_SUB_EXPOSURE_AVERAGE);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_gauss(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_GAUSS]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_PP_GAUSS_USUAL);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_PP_GAUSS_CONE);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_snow_particle(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_SNOW_PARTICLE]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_SNOW_PARTICLE_CPU);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_SNOW_PARTICLE);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_star(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_STAR]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_STAR);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_STAR_MILKY_WAY);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_imgfilter(shader_set_data* set, shader_vulkan* shad) {
-    switch (uniform_value[U_IMAGE_FILTER]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_BOX4);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_BOX8);
-    case 5:
-        return shad->get(set, SHADER_FT_SUB_COPY);
-    }
-    return {};
-}
-
-static shader_vulkan_pair shader_vulkan_get_dof(shader_set_data* set, shader_vulkan* shad) { // Added
-    switch (uniform_value[U_DOF_STAGE]) {
-    case 0:
-        return shad->get(set, SHADER_FT_SUB_DOF_RENDER_TILE);
-    case 1:
-        return shad->get(set, SHADER_FT_SUB_DOF_GATHER_TILE);
-    case 2:
-        return shad->get(set, SHADER_FT_SUB_DOF_DOWNSAMPLE);
-    case 3:
-        return shad->get(set, SHADER_FT_SUB_DOF_MAIN_FILTER);
-    case 4:
-        return shad->get(set, SHADER_FT_SUB_DOF_UPSAMPLE);
-    }
-    return {};
 }

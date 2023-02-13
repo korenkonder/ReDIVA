@@ -30,9 +30,8 @@ enum render_scale {
 struct render_init_struct {
     vec2i res;
     int32_t scale_index;
-    bool vulkan_render;
 
-    inline render_init_struct() : scale_index(), vulkan_render() {
+    inline render_init_struct() : scale_index() {
 
     }
 };

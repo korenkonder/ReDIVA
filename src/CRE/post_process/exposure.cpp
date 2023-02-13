@@ -172,7 +172,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
         exposure_history.bind();
 
         uniform_value[U_EXPOSURE] = 1;
-        shaders_ft.set_opengl_shader(SHADER_FT_EXPOSURE);
+        shaders_ft.set(SHADER_FT_EXPOSURE);
         exposure_measure_ubo.Bind(1);
         gl_state_active_bind_texture_2d(0, in_tex_0);
         gl_state_active_bind_texture_2d(1, in_tex_1);
@@ -184,13 +184,13 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     glViewport(0, 0, 1, 1);
     exposure.bind();
     uniform_value[U_EXPOSURE] = 2;
-    shaders_ft.set_opengl_shader(SHADER_FT_EXPOSURE);
+    shaders_ft.set(SHADER_FT_EXPOSURE);
     gl_state_active_bind_texture_2d(0, exposure_history.color_texture->tex);
     render_texture::draw_quad(&shaders_ft, 1, 1);
 }
 
 void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) {
-    shader_opengl::unbind();
+    shader::unbind();
 
     post_process* pp = (post_process*)pp_data;
 
@@ -198,7 +198,7 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_disable_cull_face();
 
-    shaders_ft.set_opengl_shader(SHADER_FT_SUN_NO_TEXTURED);
+    shaders_ft.set(SHADER_FT_SUN_NO_TEXTURED);
     gl_state_bind_vertex_array(pp->query_vao);
     pp->sun_quad_ubo.Bind(0);
 
