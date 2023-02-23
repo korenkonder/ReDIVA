@@ -269,9 +269,12 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
         itm.sub_id = (item_sub_id)i.sub_id;
 
         for (itm_table_item_data_obj& j : i.data.obj) {
-            object_info obj_info = aft_obj_db->get_object_info(j.uid.c_str());
-            if (obj_info.is_null())
-                continue;
+            object_info obj_info;
+            if (j.uid.compare("NULL")) {
+                obj_info = aft_obj_db->get_object_info(j.uid.c_str());
+                if (obj_info.is_null())
+                    continue;
+            }
 
             item_table_item_data_obj obj;
             obj.obj_info = obj_info;

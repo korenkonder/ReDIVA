@@ -5055,10 +5055,10 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         if (disp == 1) {
             rob_chr->set_visibility(true);
-            /*if (rob_chara::check_for_ageageagain_module(chara_index, module_index)) {
-                sub_1405430F0(chara_id, 1);
-                sub_1405430F0(chara_id, 2);
-            }*/
+            if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
+                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+            }
 
             //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, true);
             for (x_pv_play_data_set_motion& i : playdata->set_motion) {
@@ -5821,10 +5821,10 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         mat4_mult_vec3_trans(&a1->scene_rot_mat, &pos, &pos);
         rob_chr->set_chara_pos_adjust(&pos);
 
-        /*if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
-            sub_1405430F0(rob_chr->chara_id, 1);
-            sub_1405430F0(rob_chr->chara_id, 2);
-        }*/
+        if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
+            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+        }
     } break;
     case DSC_X_SCENE_ROT: {
         float_t scene_rot_y = (float_t)(int32_t)data[0] * 0.001f;
@@ -6964,10 +6964,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             dst_obj->id = hash;
             dst_obj->hash = hash;
 
-            object_set_info* set_info;
-            if (obj_db.get_object_set_info(i.first.set_id, (const object_set_info**)&set_info)) {
-                object_info_data* info;
-                if (!obj_db.get_object_info_data_by_murmurhash(hash, (const object_info_data**)&info)) {
+            object_set_info* set_info = (object_set_info*)obj_db.get_object_set_info(i.first.set_id);
+            if (set_info) {
+                object_info_data* info = (object_info_data*)obj_db.get_object_info_data_by_murmurhash(hash);
+                if (!info) {
                     set_info->object.push_back({});
                     info = &set_info->object.back();
                     info->id = hash;

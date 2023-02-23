@@ -165,6 +165,7 @@ struct obj_bounding_sphere {
     float_t radius;
 
     obj_bounding_sphere();
+    obj_bounding_sphere(vec3 center, float_t radius);
 };
 
 struct obj_shader_compo_member {

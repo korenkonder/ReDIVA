@@ -7,8 +7,8 @@
 #include "../KKdLib/sort.hpp"
 #include "Glitter/glitter.hpp"
 #include "rob/rob.hpp"
-#include "render_manager.hpp"
 #include "file_handler.hpp"
+#include "render_manager.hpp"
 #include "shader_ft.hpp"
 #include "sound.hpp"
 #include "stage.hpp"
@@ -98,7 +98,7 @@ sss_data::sss_data() : init(), enable(), npr_contour(), param() {
     enable = true;
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    textures[0].init(640, 360, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
+    textures[0].init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
     textures[1].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
     textures[2].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
     textures[3].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
@@ -154,6 +154,63 @@ texture_transform_struct::texture_transform_struct(uint32_t id, mat4& mat) : id(
 }
 
 namespace mdl {
+    void EtcObj::init(EtcObjType type) {
+        this->type = type;
+        color = 1.0f;
+        fog = false;
+        switch (type) {
+        case ETC_OBJ_TEAPOT:
+            data.teapot.size = 1.0f;
+            break;
+        case ETC_OBJ_GRID:
+            data.grid.w = 10;
+            data.grid.h = 10;
+            data.grid.ws = 20;
+            data.grid.hs = 20;
+            break;
+        case ETC_OBJ_CUBE:
+            data.cube.size_x = 0.0f;
+            data.cube.size_y = 0.0f;
+            data.cube.size_z = 0.0f;
+            data.cube.wire = 0;
+            break;
+        case ETC_OBJ_SPHERE:
+            data.sphere.radius = 1.0f;
+            data.sphere.slices = 8;
+            data.sphere.stacks = 8;
+            data.sphere.wire = 0;
+            break;
+        case ETC_OBJ_PLANE:
+            data.plane.w = 10;
+            data.plane.h = 10;
+            break;
+        case ETC_OBJ_CONE:
+            data.cone.base = 1.0f;
+            data.cone.height = 1.0f;
+            data.cone.slices = 8;
+            data.cone.stacks = 8;
+            data.cone.wire = 0;
+            break;
+        case ETC_OBJ_LINE:
+            data.line.x0 = 0.0f;
+            data.line.y0 = 0.0f;
+            data.line.y1 = 0.0f;
+            data.line.z1 = 1.0f;
+            break;
+        case ETC_OBJ_CROSS:
+            data.cross.size = 0.1f;
+            break;
+        default:
+            return;
+        }
+    }
+
+    void ObjData::init_etc(const mat4* mat, mdl::EtcObj* etc) {
+        kind = mdl::OBJ_KIND_ETC;
+        this->mat = *mat;
+        args.etc = *etc;
+    }
+
     void ObjData::init_sub_mesh(DispManager* disp_manager, const mat4* mat,
         float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
         std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
@@ -1011,7 +1068,7 @@ namespace mdl {
             } break;
             case OBJ_KIND_ETC: {
                 draw_object_model_mat_load(rctx_ptr, i->mat);
-                //draw_primitive_draw(&i->data.primitive);
+                draw_etc_obj(rctx_ptr, &i->args.etc);
             } break;
             case OBJ_KIND_USER: {
                 draw_object_model_mat_load(rctx_ptr, i->mat);
@@ -1726,6 +1783,21 @@ namespace mdl {
         }
     }
 
+    void DispManager::entry_obj_etc(const mat4* mat, EtcObj* etc) {
+        ObjData* data = alloc_data(mdl::OBJ_KIND_ETC);
+        if (!data)
+            return;
+
+        data->init_etc(mat, etc);
+        if (etc->color.w == 1.0f) {
+            if ((obj_flags & OBJ_SHADOW) != 0)
+                mdl::DispManager::entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
+            mdl::DispManager::entry_list(OBJ_TYPE_OPAQUE, data);
+        }
+        else
+            mdl::DispManager::entry_list(OBJ_TYPE_TRANSLUCENT, data);
+    }
+
     void DispManager::entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type) {
         ObjData* _data = alloc_data(OBJ_KIND_USER);
         if (_data) {
@@ -2063,6 +2135,7 @@ namespace rndr {
             glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER,
                 i % 2 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
             glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
 
             GLuint wrap_s;
             switch (i / 2 % 3) {
@@ -2977,7 +3050,7 @@ int32_t shadow::init_data() {
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
     gl_state_bind_texture_2d(0);
-    glGetError();
+    gl_state_get_error();
     return 0;
 }
 

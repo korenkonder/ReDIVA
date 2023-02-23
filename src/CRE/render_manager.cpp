@@ -97,7 +97,7 @@ namespace rndr {
         cpu_time[id] = 0.0;
         gpu_time[id] = 0.0;
         if (!pass_sw[id]) {
-            glGetError();
+            gl_state_get_error();
             return;
         }
 
@@ -138,7 +138,7 @@ namespace rndr {
             break;
         }
         render_pass_end(id);
-        glGetError();
+        gl_state_get_error();
     }
 
     void RenderManager::render_pass_begin() {
@@ -253,14 +253,14 @@ namespace rndr {
         //if (pp->render_width > 1280.0)
         //    sss->npr_contour = false;
 
-        if (sss->npr_contour) {
+        //if (sss->npr_contour) {
             pp->rend_texture.bind();
             glViewport(0, 0, pp->render_width, pp->render_height);
-        }
-        else {
-            sss->textures[0].bind();
-            glViewport(0, 0, 640, 360);
-        }
+        //}
+        //else {
+        //    sss->textures[0].bind();
+        //    glViewport(0, 0, 640, 360);
+        //}
 
         glClearColor(sss->param.x, sss->param.y, sss->param.z, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -308,6 +308,30 @@ namespace rndr {
                 draw_pass_sss_contour(rctx, pp);
             }
         }
+
+        if (!sss->npr_contour) {
+            sss->textures[0].bind();
+            glViewport(0, 0, 640, 360);
+
+            filter_scene_shader_data filter_scene = {};
+            filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
+            filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
+            rctx->filter_scene_ubo.WriteMapMemory(filter_scene);
+
+            imgfilter_batch_shader_data imgfilter_batch = {};
+            imgfilter_batch.g_color_scale = 1.0f;
+            imgfilter_batch.g_color_offset = 0.0f;
+            imgfilter_batch.g_texture_lod = 0.0f;
+            rctx->imgfilter_batch_ubo.WriteMapMemory(imgfilter_batch);
+
+            uniform_value[U_IMAGE_FILTER] = 5;
+            shaders_ft.set(SHADER_FT_IMGFILT);
+            rctx->filter_scene_ubo.Bind(0);
+            rctx->imgfilter_batch_ubo.Bind(1);
+            gl_state_active_bind_texture_2d(0, pp->rend_texture.color_texture->tex);
+            render_texture::draw_custom();
+        }
+
         draw_pass_sss_filter(rctx, sss);
         gl_state_bind_framebuffer(0);
     }
@@ -488,7 +512,7 @@ namespace rndr {
                 gl_state_bind_framebuffer(0);
             }
         }
-        glGetError();
+        gl_state_get_error();
     }
 
     void RenderManager::pass_sprite_bg(render_context* rctx) {
@@ -510,7 +534,7 @@ namespace rndr {
         gl_state_enable_depth_test();
         gl_state_set_depth_mask(GL_TRUE);
         gl_state_bind_framebuffer(0);
-        glGetError();
+        gl_state_get_error();
     }
 
     void RenderManager::pass_all_3d(render_context* rctx) {
@@ -777,7 +801,7 @@ namespace rndr {
                 0, 0, pp->sprite_width, pp->sprite_height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             gl_state_bind_read_framebuffer(0);
         }
-        glGetError();
+        gl_state_get_error();
     }
 
     void RenderManager::pass_3d_contour(render_context* rctx) {

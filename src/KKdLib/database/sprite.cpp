@@ -20,52 +20,39 @@ static int64_t sprite_database_file_strings_get_string_offset(std::vector<string
     std::vector<int64_t>& vec_off, std::string& str);
 static bool sprite_database_file_strings_push_back_check(std::vector<string_hash>& vec, std::string& str);
 
-sprite_info_file::sprite_info_file() : id(), index() {
+const spr_db_spr_set spr_db_spr_set_null;
+const spr_db_spr spr_db_spr_null;
+
+spr_db_spr_file::spr_db_spr_file() : id(), index(), texture() {
 
 }
 
-sprite_info_file::~sprite_info_file() {
+spr_db_spr_file::~spr_db_spr_file() {
 
 }
 
-sprite_info::sprite_info() : id(), index() {
+spr_db_spr::spr_db_spr() : id() {
     name_hash = hash_murmurhash_empty;
 }
 
-sprite_info::~sprite_info() {
+spr_db_spr::~spr_db_spr() {
 
 }
 
-sprite_texture_info_file::sprite_texture_info_file() : id(), index() {
+spr_db_spr_set_file::spr_db_spr_set_file() : id(), index(){
 
 }
 
-sprite_texture_info_file::~sprite_texture_info_file() {
+spr_db_spr_set_file::~spr_db_spr_set_file() {
 
 }
 
-sprite_texture_info::sprite_texture_info() : id(), index() {
-    name_hash = hash_murmurhash_empty;
-}
-
-sprite_texture_info::~sprite_texture_info() {
-
-}
-
-sprite_set_file::sprite_set_file() : id(), index(){
-
-}
-
-sprite_set_file::~sprite_set_file() {
-
-}
-
-sprite_set::sprite_set() : id(), index() {
+spr_db_spr_set::spr_db_spr_set() : id(), index() {
     name_hash = hash_murmurhash_empty;
     file_name_hash = hash_murmurhash_empty;
 }
 
-sprite_set::~sprite_set() {
+spr_db_spr_set::~spr_db_spr_set() {
 
 }
 
@@ -256,58 +243,115 @@ sprite_database::~sprite_database() {
 void sprite_database::add(sprite_database_file* spr_db_file) {
     if (!spr_db_file || !spr_db_file->ready)
         return;
+        return;
 
-    sprite_set_file* sprite_set = spr_db_file->sprite_set.data();
+    size_t sprite_sets_count = this->spr_ids.size();
 
-    size_t sprite_sets_count = this->sprite_set.size();
+    spr_set_ids.reserve(spr_db_file->sprite_set.size());
+    spr_set_indices.reserve(spr_db_file->sprite_set.size());
+    spr_set_names.reserve(spr_db_file->sprite_set.size());
 
-    this->sprite_set.reserve(spr_db_file->sprite_set.size());
+    for (spr_db_spr_set_file& i : spr_db_file->sprite_set) {
+        spr_db_spr_set spr_set;
+        spr_set.id = i.id;
+        spr_set.name.assign(i.name);
+        spr_set.name_hash = hash_string_murmurhash(spr_set.name);
+        spr_set.file_name.assign(i.file_name);
+        spr_set.file_name_hash = hash_string_murmurhash(spr_set.file_name);
+        spr_set.index = (uint16_t)(sprite_sets_count + i.index);
 
-    for (sprite_set_file& i : spr_db_file->sprite_set) {
-        uint32_t id = i.id;
+        spr_set_ids.push_back({ spr_set.id, spr_set });
+        spr_set_indices.push_back({ spr_set.index, spr_set });
+        spr_set_names.push_back({ spr_set.name, spr_set });
 
-        ::sprite_set* set_info = 0;
-        for (::sprite_set& j : this->sprite_set)
-            if (id == j.id) {
-                set_info = &j;
-                break;
-            }
+        spr_ids.reserve(i.sprite.size());
+        spr_names.reserve(i.sprite.size());
+        spr_indices.reserve(i.sprite.size());
 
-        if (!set_info) {
-            this->sprite_set.push_back({});
-            set_info = &this->sprite_set.back();
+        for (spr_db_spr_file& j : i.sprite) {
+            spr_db_spr spr;
+            spr.id = j.id;
+            spr.name.assign(j.name);
+            spr.name_hash = hash_string_murmurhash(spr.name);
+            spr.info = { j.index, (uint16_t)((j.texture ? 0x1000 : 0x0000) | spr_set.index) };
+
+            spr_ids.push_back({ spr.id, spr });
+            spr_names.push_back({ spr.name, spr });
+            spr_indices.push_back({ spr.info, spr });
         }
-
-        set_info->id = i.id;
-        set_info->name.assign(i.name);
-        set_info->name_hash = hash_string_murmurhash(set_info->name);
-        set_info->file_name.assign(i.file_name);
-        set_info->file_name_hash = hash_string_murmurhash(set_info->file_name);
-
-        set_info->sprite.clear();
-        set_info->sprite.reserve(i.sprite.size());
-
-        for (sprite_info_file& j : i.sprite) {
-            set_info->sprite.push_back({});
-            sprite_info& info = set_info->sprite.back();
-            info.id = j.id;
-            info.name.assign(j.name);
-            info.name_hash = hash_string_murmurhash(info.name);
-        }
-
-        set_info->texture.clear();
-        set_info->texture.reserve(i.texture.size());
-
-        for (sprite_texture_info_file& j : i.texture) {
-            set_info->texture.push_back({});
-            sprite_texture_info& info = set_info->texture.back();
-            info.id = j.id;
-            info.name.assign(j.name);
-            info.name_hash = hash_string_murmurhash(info.name);
-        }
-
-        set_info->index = (uint32_t)(sprite_sets_count + i.index);
     }
+
+    spr_set_ids.sort_unique();
+    spr_set_indices.sort_unique();
+    spr_set_names.sort_unique();
+    spr_ids.sort_unique();
+    spr_names.sort_unique();
+    spr_indices.sort_unique();
+}
+
+const spr_db_spr_set* sprite_database::get_spr_set_by_name(const char* name) const {
+    auto elem = spr_set_names.find(std::string(name));
+    if (elem != spr_set_names.end())
+        return &elem->second;
+    return &spr_db_spr_set_null;
+}
+
+const spr_db_spr_set* sprite_database::get_spr_set_by_id(uint32_t set_id) const {
+    auto elem = spr_set_ids.find(set_id);
+    if (elem != spr_set_ids.end())
+        return &elem->second;
+    return &spr_db_spr_set_null;
+}
+
+const spr_db_spr_set* sprite_database::get_spr_set_by_index(uint32_t index) const {
+    auto elem = spr_set_indices.find(index);
+    if (elem != spr_set_indices.end())
+        return &elem->second;
+    return &spr_db_spr_set_null;
+}
+
+const spr_db_spr* sprite_database::get_spr_by_name(const char* name) const {
+    auto elem = spr_names.find(std::string(name));
+    if (elem != spr_names.end())
+        return &elem->second;
+    return &spr_db_spr_null;
+}
+
+const spr_db_spr* sprite_database::get_spr_by_id(uint32_t id) const {
+    auto elem = spr_ids.find(id);
+    if (elem != spr_ids.end())
+        return &elem->second;
+    return &spr_db_spr_null;
+}
+
+const spr_db_spr* sprite_database::get_spr_by_set_id_index(uint32_t set_id, uint32_t index) const {
+    auto elem = spr_indices.find({ (uint16_t)index, get_spr_set_by_id(set_id)->index });
+    if (elem != spr_indices.end())
+        return &elem->second;
+    return &spr_db_spr_null;
+}
+
+const spr_db_spr* sprite_database::get_tex_by_set_id_index(uint32_t set_id, uint32_t index) const {
+    auto elem = spr_indices.find({ (uint16_t)index, (uint16_t)(0x1000 | get_spr_set_by_id(set_id)->index) });
+    if (elem != spr_indices.end())
+        return &elem->second;
+    return &spr_db_spr_null;
+}
+
+const char* sprite_database::get_spr_set_file_name(uint32_t set_id) const {
+    return get_spr_set_by_id(set_id)->file_name.c_str();
+}
+
+uint32_t sprite_database::get_spr_set_id_by_name(const char* name) const {
+    return get_spr_set_by_name(name)->id;
+}
+
+uint32_t sprite_database::get_spr_set_id_by_index(uint32_t index) const {
+    return spr_ids[index].first;
+}
+
+const char* sprite_database::get_spr_set_name(uint32_t set_id) const {
+    return get_spr_set_by_id(set_id)->name.c_str();
 }
 
 static void sprite_database_file_classic_read_inner(sprite_database_file* spr_db, stream& s) {
@@ -318,15 +362,15 @@ static void sprite_database_file_classic_read_inner(sprite_database_file* spr_db
 
     spr_db->sprite_set.resize(sprite_sets_count);
 
-    sprite_set_file* sprite_set = spr_db->sprite_set.data();
+    spr_db_spr_set_file* spr_db_spr_set = spr_db->sprite_set.data();
 
     s.position_push(sprite_sets_offset, SEEK_SET);
     for (uint32_t i = 0; i < sprite_sets_count; i++) {
-        sprite_set_file& set_info = sprite_set[i];
-        set_info.id = s.read_uint32_t();
-        set_info.name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        set_info.file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        set_info.index = s.read_uint32_t();
+        spr_db_spr_set_file& spr_set = spr_db_spr_set[i];
+        spr_set.id = s.read_uint32_t();
+        spr_set.name = s.read_string_null_terminated_offset(s.read_uint32_t());
+        spr_set.file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
+        spr_set.index = s.read_uint32_t();
     }
     s.position_pop();
 
@@ -338,23 +382,16 @@ static void sprite_database_file_classic_read_inner(sprite_database_file* spr_db
 
         uint16_t index = (uint16_t)(info & 0xFFFF);
         uint16_t set_index = (uint16_t)((info >> 16) & 0x0FFF);
+        bool texture = !!((info >> 16) & 0x1000);
 
-        sprite_set_file& set_info = sprite_set[set_index];
+        spr_db_spr_set_file& spr_set = spr_db_spr_set[set_index];
 
-        if ((info >> 16) & 0x1000) {
-            set_info.texture.push_back({});
-            sprite_texture_info_file& info = set_info.texture.back();
-            info.id = id;
-            info.name.assign(s.read_string_null_terminated_offset(name_offset));
-            info.index = index;
-        }
-        else {
-            set_info.sprite.push_back({});
-            sprite_info_file& info = set_info.sprite.back();
-            info.id = id;
-            info.name.assign(s.read_string_null_terminated_offset(name_offset));
-            info.index = index;
-        }
+        spr_set.sprite.push_back({});
+        spr_db_spr_file& spr = spr_set.sprite.back();
+        spr.id = id;
+        spr.name.assign(s.read_string_null_terminated_offset(name_offset));
+        spr.index = index;
+        spr.texture = texture;
     }
     s.position_pop();
 
@@ -378,8 +415,8 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
     size_t sprite_sets_count = spr_db->sprite_set.size();
 
     size_t sprites_count = 0;
-    for (sprite_set_file& i : spr_db->sprite_set)
-        sprites_count += i.sprite.size() + i.texture.size();
+    for (spr_db_spr_set_file& i : spr_db->sprite_set)
+        sprites_count += i.sprite.size();
 
     int64_t sprites_offset = s.get_position();
     s.write(0x0C * sprites_count);
@@ -394,22 +431,22 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
 
     strings.reserve(sprite_sets_count + sprites_count);
 
-    for (sprite_set_file& i : spr_db->sprite_set) {
-        for (sprite_texture_info_file& j : i.texture)
-            if (sprite_database_file_strings_push_back_check(strings, j.name)) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
+        for (spr_db_spr_file& j : i.sprite)
+            if (j.texture && sprite_database_file_strings_push_back_check(strings, j.name)) {
                 string_offsets.push_back(s.get_position());
                 s.write_string_null_terminated(j.name);
             }
 
-        for (sprite_info_file& j : i.sprite)
-            if (sprite_database_file_strings_push_back_check(strings, j.name)) {
+        for (spr_db_spr_file& j : i.sprite)
+            if (!j.texture && sprite_database_file_strings_push_back_check(strings, j.name)) {
                 string_offsets.push_back(s.get_position());
                 s.write_string_null_terminated(j.name);
             }
     }
     s.align_write(0x04);
 
-    for (sprite_set_file& i : spr_db->sprite_set) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         if (sprite_database_file_strings_push_back_check(strings, i.name)) {
             string_offsets.push_back(s.get_position());
             s.write_string_null_terminated(i.name);
@@ -423,17 +460,23 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
     s.align_write(0x04);
 
     s.position_push(sprites_offset, SEEK_SET);
-    for (sprite_set_file& i : spr_db->sprite_set) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         uint16_t sprite_set_index = (uint16_t)(i.index & 0x0FFF);
 
-        for (sprite_texture_info_file& j : i.texture) {
+        for (spr_db_spr_file& j : i.sprite) {
+            if (j.texture)
+                continue;
+
             s.write_uint32_t(j.id);
             s.write_uint32_t((uint32_t)sprite_database_file_strings_get_string_offset(strings,
                 string_offsets, j.name));
             s.write_uint32_t(((0x1000 | sprite_set_index) << 16) | j.index);
         }
 
-        for (sprite_info_file& j : i.sprite) {
+        for (spr_db_spr_file& j : i.sprite) {
+            if (!j.texture)
+                continue;
+
             s.write_uint32_t(j.id);
             s.write_uint32_t((uint32_t)sprite_database_file_strings_get_string_offset(strings,
                 string_offsets, j.name));
@@ -443,7 +486,7 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
     s.position_pop();
 
     s.position_push(sprite_sets_offset, SEEK_SET);
-    for (sprite_set_file& i : spr_db->sprite_set) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         s.write_uint32_t(i.id);
         s.write_uint32_t((uint32_t)sprite_database_file_strings_get_string_offset(strings,
             string_offsets, i.name));
@@ -477,24 +520,24 @@ static void sprite_database_file_modern_read_inner(sprite_database_file* spr_db,
 
     spr_db->sprite_set.resize(sprite_sets_count);
 
-    sprite_set_file* sprite_set = spr_db->sprite_set.data();
+    spr_db_spr_set_file* spr_db_spr_set = spr_db->sprite_set.data();
 
     s.position_push(sprite_sets_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < sprite_sets_count; i++) {
-            sprite_set_file& set_info = sprite_set[i];
-            set_info.id = s.read_uint32_t_reverse_endianness();
-            set_info.name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            set_info.file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            set_info.index = s.read_uint32_t_reverse_endianness();
+            spr_db_spr_set_file& spr_set = spr_db_spr_set[i];
+            spr_set.id = s.read_uint32_t_reverse_endianness();
+            spr_set.name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
+            spr_set.file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
+            spr_set.index = s.read_uint32_t_reverse_endianness();
         }
     else
         for (uint32_t i = 0; i < sprite_sets_count; i++) {
-            sprite_set_file& set_info = sprite_set[i];
-            set_info.id = s.read_uint32_t_reverse_endianness();
-            set_info.name = s.read_string_null_terminated_offset(s.read_offset_x());
-            set_info.file_name = s.read_string_null_terminated_offset(s.read_offset_x());
-            set_info.index = s.read_uint32_t_reverse_endianness();
+            spr_db_spr_set_file& spr_set = spr_db_spr_set[i];
+            spr_set.id = s.read_uint32_t_reverse_endianness();
+            spr_set.name = s.read_string_null_terminated_offset(s.read_offset_x());
+            spr_set.file_name = s.read_string_null_terminated_offset(s.read_offset_x());
+            spr_set.index = s.read_uint32_t_reverse_endianness();
             s.align_read(0x08);
         }
     s.position_pop();
@@ -508,23 +551,16 @@ static void sprite_database_file_modern_read_inner(sprite_database_file* spr_db,
 
             uint16_t index = (uint16_t)(info & 0xFFFF);
             uint16_t set_index = (uint16_t)((info >> 16) & 0x0FFF);
+            bool texture = !!((info >> 16) & 0x1000);
 
-            sprite_set_file& set_info = sprite_set[set_index];
+            spr_db_spr_set_file& spr_set = spr_db_spr_set[set_index];
 
-            if ((info >> 16) & 0x1000) {
-                set_info.texture.push_back({});
-                sprite_texture_info_file& info = set_info.texture.back();
-                info.id = id;
-                info.name.assign(s.read_string_null_terminated_offset(name_offset));
-                info.index = index;
-            }
-            else {
-                set_info.sprite.push_back({});
-                sprite_info_file& info = set_info.sprite.back();
-                info.id = id;
-                info.name.assign(s.read_string_null_terminated_offset(name_offset));
-                info.index = index;
-            }
+            spr_set.sprite.push_back({});
+            spr_db_spr_file& spr = spr_set.sprite.back();
+            spr.id = id;
+            spr.name.assign(s.read_string_null_terminated_offset(name_offset));
+            spr.index = index;
+            spr.texture = texture;
         }
     else
         for (uint32_t i = 0; i < sprites_count; i++) {
@@ -535,23 +571,16 @@ static void sprite_database_file_modern_read_inner(sprite_database_file* spr_db,
 
             uint16_t index = (uint16_t)(info & 0xFFFF);
             uint16_t set_index = (uint16_t)((info >> 16) & 0x0FFF);
+            bool texture = !!((info >> 16) & 0x1000);
 
-            sprite_set_file& set_info = sprite_set[set_index];
+            spr_db_spr_set_file& spr_set = spr_db_spr_set[set_index];
 
-            if ((info >> 16) & 0x1000) {
-                set_info.texture.push_back({});
-                sprite_texture_info_file& info = set_info.texture.back();
-                info.id = id;
-                info.name.assign(s.read_string_null_terminated_offset(name_offset));
-                info.index = index;
-            }
-            else {
-                set_info.sprite.push_back({});
-                sprite_info_file& info = set_info.sprite.back();
-                info.id = id;
-                info.name.assign(s.read_string_null_terminated_offset(name_offset));
-                info.index = index;
-            }
+            spr_set.sprite.push_back({});
+            spr_db_spr_file& spr = spr_set.sprite.back();
+            spr.id = id;
+            spr.name.assign(s.read_string_null_terminated_offset(name_offset));
+            spr.index = index;
+            spr.texture = texture;
         }
     s.position_pop();
 
@@ -577,8 +606,8 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
     size_t sprite_sets_count = spr_db->sprite_set.size();
 
     size_t sprites_count = 0;
-    for (sprite_set_file& i : spr_db->sprite_set)
-        sprites_count += i.sprite.size() + i.texture.size();
+    for (spr_db_spr_set_file& i : spr_db->sprite_set)
+        sprites_count += i.sprite.size();
 
     if (!is_x) {
         ee = { 0, 1, 16, 1 };
@@ -642,7 +671,7 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
 
     strings.reserve(sprite_sets_count + sprites_count);
 
-    for (sprite_set_file& i : spr_db->sprite_set) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         if (sprite_database_file_strings_push_back_check(strings, i.name)) {
             string_offsets.push_back(s_spdb.get_position());
             s_spdb.write_string_null_terminated(i.name);
@@ -654,15 +683,15 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
         }
     }
 
-    for (sprite_set_file& i : spr_db->sprite_set) {
-        for (sprite_texture_info_file& j : i.texture)
-            if (sprite_database_file_strings_push_back_check(strings, j.name)) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
+        for (spr_db_spr_file& j : i.sprite)
+            if (j.texture && sprite_database_file_strings_push_back_check(strings, j.name)) {
                 string_offsets.push_back(s_spdb.get_position());
                 s_spdb.write_string_null_terminated(j.name);
             }
 
-        for (sprite_info_file& j : i.sprite)
-            if (sprite_database_file_strings_push_back_check(strings, j.name)) {
+        for (spr_db_spr_file& j : i.sprite)
+            if (!j.texture && sprite_database_file_strings_push_back_check(strings, j.name)) {
                 string_offsets.push_back(s_spdb.get_position());
                 s_spdb.write_string_null_terminated(j.name);
             }
@@ -678,7 +707,7 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
 
     s_spdb.position_push(sprite_sets_offset, SEEK_SET);
     if (!is_x)
-        for (sprite_set_file& i : spr_db->sprite_set) {
+        for (spr_db_spr_set_file& i : spr_db->sprite_set) {
             s_spdb.write_uint32_t_reverse_endianness(i.id);
             io_write_offset_f2_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
                 string_offsets, i.name), 0x20, &pof);
@@ -687,7 +716,7 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
             s_spdb.write_uint32_t_reverse_endianness(i.index);
         }
     else
-        for (sprite_set_file& i : spr_db->sprite_set) {
+        for (spr_db_spr_set_file& i : spr_db->sprite_set) {
             s_spdb.write_uint32_t_reverse_endianness(i.id);
             io_write_offset_x_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
                 string_offsets, i.name), &pof);
@@ -698,18 +727,35 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
     s_spdb.position_pop();
 
     s_spdb.position_push(sprites_offset, SEEK_SET);
-    for (sprite_set_file& i : spr_db->sprite_set) {
+    for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         uint16_t sprite_set_index = (uint16_t)(i.index & 0x0FFF);
 
-        if (!is_x)
-            for (sprite_texture_info_file& j : i.texture) {
+        if (!is_x) {
+            for (spr_db_spr_file& j : i.sprite) {
+                if (!j.texture)
+                    continue;
+
                 s_spdb.write_uint32_t_reverse_endianness(j.id);
                 io_write_offset_f2_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
                     string_offsets, j.name), 0x20, &pof);
                 s_spdb.write_uint32_t_reverse_endianness(((0x1000 | sprite_set_index) << 16) | j.index);
             }
-        else
-            for (sprite_texture_info_file& j : i.texture) {
+
+            for (spr_db_spr_file& j : i.sprite) {
+                if (j.texture)
+                    continue;
+
+                s_spdb.write_uint32_t_reverse_endianness(j.id);
+                io_write_offset_f2_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
+                    string_offsets, j.name), 0x20, &pof);
+                s_spdb.write_uint32_t_reverse_endianness((sprite_set_index << 16) | j.index);
+            }
+        }
+        else {
+            for (spr_db_spr_file& j : i.sprite) {
+                if (!j.texture)
+                    continue;
+
                 s_spdb.write_uint32_t_reverse_endianness(j.id);
                 io_write_offset_x_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
                     string_offsets, j.name), &pof);
@@ -717,21 +763,17 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
                 s_spdb.align_write(0x08);
             }
 
-        if (!is_x)
-            for (sprite_info_file& j : i.sprite) {
-                s_spdb.write_uint32_t_reverse_endianness(j.id);
-                io_write_offset_f2_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
-                    string_offsets, j.name), 0x20, &pof);
-                s_spdb.write_uint32_t_reverse_endianness((sprite_set_index << 16) | j.index);
-            }
-        else
-            for (sprite_info_file& j : i.sprite) {
+            for (spr_db_spr_file& j : i.sprite) {
+                if (j.texture)
+                    continue;
+
                 s_spdb.write_uint32_t_reverse_endianness(j.id);
                 io_write_offset_x_pof_add(s_spdb, sprite_database_file_strings_get_string_offset(strings,
                     string_offsets, j.name), &pof);
                 s_spdb.write_uint32_t_reverse_endianness((sprite_set_index << 16) | j.index);
                 s_spdb.align_write(0x08);
             }
+        }
     }
     s_spdb.position_pop();
 

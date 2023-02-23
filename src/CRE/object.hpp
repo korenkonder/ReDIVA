@@ -8,6 +8,7 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/texture.hpp"
+#include "../KKdLib/prj/vector_pair.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/obj.hpp"
 #include "../KKdLib/txp.hpp"
@@ -76,10 +77,10 @@ struct obj_set_handler {
     bool tex_loaded;
     prj::shared_ptr<prj::stack_allocator> alloc_handler;
     obj_set* obj_set;
-    std::vector<std::pair<uint32_t, uint32_t>> obj_id_data;
+    prj::vector_pair<uint32_t, uint32_t> obj_id_data;
     uint32_t tex_num;
     std::vector<texture*> gentex;
-    std::vector<std::pair<uint32_t, uint32_t>> tex_id_data;
+    prj::vector_pair<uint32_t, uint32_t> tex_id_data;
     texture** tex_data;
     int32_t set_id;
     uint32_t vertex_buffer_num;

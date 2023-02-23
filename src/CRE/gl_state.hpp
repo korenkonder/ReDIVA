@@ -96,6 +96,7 @@ extern void gl_state_enable_scissor_test();
 extern void gl_state_enable_stencil_test();
 extern void gl_state_get();
 extern void gl_state_get_all_gl_errors();
+extern GLenum gl_state_get_error();
 extern GLuint gl_state_get_program();
 extern void gl_state_set_blend_func(GLenum src, GLenum dst);
 extern void gl_state_set_blend_func_separate(GLenum src_rgb, GLenum dst_rgb,

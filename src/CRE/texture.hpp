@@ -83,6 +83,8 @@ extern texture* texture_load_tex_cube_map(texture_id id, GLenum internal_format,
 extern texture* texture_txp_load(txp* t, texture_id id);
 extern void texture_free(texture* tex);
 
+extern void texture_array_free(texture** arr);
+
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids);
 

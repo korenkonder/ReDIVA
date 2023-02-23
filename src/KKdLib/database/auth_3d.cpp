@@ -280,10 +280,8 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
             uid->size = -1.0f;
     }
 
-    for (auth_3d_database_category& i : category) {
-        prj::sort(i.uid);
-        prj::unique(i.uid);
-    }
+    for (auth_3d_database_category& i : category)
+        prj::sort_unique(i.uid);
 }
 
 static void auth_3d_database_file_read_inner(auth_3d_database_file* auth_3d_db_file, stream& s) {

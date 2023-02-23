@@ -17,6 +17,7 @@
 #include "../CRE/fbo.hpp"
 #include "../CRE/file_handler.hpp"
 #include "../CRE/gl_state.hpp"
+#include "../CRE/hand_item.hpp"
 #include "../CRE/light_param.hpp"
 #include "../CRE/lock.hpp"
 #include "../CRE/mdata_manager.hpp"
@@ -28,6 +29,7 @@
 #include "../CRE/shader.hpp"
 #include "../CRE/shader_dev.hpp"
 #include "../CRE/shader_ft.hpp"
+#include "../CRE/sprite.hpp"
 #include "../CRE/stage.hpp"
 #include "../CRE/stage_modern.hpp"
 #include "../CRE/stage_param.hpp"
@@ -334,7 +336,7 @@ bool render_data::load() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         return false;
 
-    glGetError();
+    gl_state_get_error();
     glViewport(0, 0, width, height);
     return true;
 }
@@ -584,31 +586,31 @@ static render_context* render_context_load() {
         for (int32_t i = 800; i <= 831; i++) {
             sprintf_s(buf, sizeof(buf), i == 815 ? "EFFPV%03d" : "ITMPV%03d", i);
 
-            const object_set_info* effpv_set_info;
-            if (aft_obj_db->get_object_set_info(buf, &effpv_set_info)) {
+            const object_set_info* effpv_set_info = aft_obj_db->get_object_set_info(buf);
+            if (effpv_set_info) {
                 obj_set_ids.push_back(effpv_set_info->id);
                 obj_set_id_name.insert({ effpv_set_info->id, buf });
             }
 
             sprintf_s(buf, sizeof(buf), "STGPV%03d", i);
 
-            const object_set_info* stgpv_set_info;
-            if (aft_obj_db->get_object_set_info(buf, &stgpv_set_info)) {
+            const object_set_info* stgpv_set_info = aft_obj_db->get_object_set_info(buf);
+            if (stgpv_set_info) {
                 obj_set_ids.push_back(stgpv_set_info->id);
                 obj_set_id_name.insert({ stgpv_set_info->id, buf });
             }
 
             sprintf_s(buf, sizeof(buf), "STGPV%03dHRC", i);
 
-            const object_set_info* stgpvhrc_set_info;
-            if (aft_obj_db->get_object_set_info(buf, &stgpvhrc_set_info)) {
+            const object_set_info* stgpvhrc_set_info = aft_obj_db->get_object_set_info(buf);
+            if (stgpvhrc_set_info) {
                 obj_set_ids.push_back(stgpvhrc_set_info->id);
                 obj_set_id_name.insert({ stgpvhrc_set_info->id, buf });
             }
 
             for (uint32_t& i : obj_set_ids) {
-                const object_set_info* set_info;
-                if (!aft_obj_db->get_object_set_info(i, &set_info))
+                const object_set_info* set_info = aft_obj_db->get_object_set_info(i);
+                if (!set_info)
                     continue;
 
                 farc f;
@@ -847,6 +849,10 @@ static render_context* render_context_load() {
 
     cmn_set_id = aft_mot_db->get_motion_set_id("CMN");
     dbg_set_id = aft_obj_db->get_object_set_id("DBG");
+
+    hand_item_handler_data_init();
+    //rob_sleeve_data_init();
+    sprite_manager_init();
 
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
@@ -1119,6 +1125,16 @@ static void render_context_dispose(render_context* rctx) {
     sound_work_unload_farc("rom/sound/slide_long.farc");
 
     object_storage_unload_set(dbg_set_id);
+    //AetUnloadSet(26);
+    //SprUnloadSet(32);
+    //AetUnloadSet(35);
+    //SprUnloadSet(34);
+    //SprUnloadSet(4);
+    //SprUnloadSet(472);
+    //SprUnloadSet(43);
+    hand_item_handler_data_free();
+    //rob_sleeve_data_free();
+    sprite_manager_free();
 
     //rob_chara_array_free_chara_id(0);
     render_timer->reset();

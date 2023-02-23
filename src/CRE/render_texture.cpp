@@ -34,7 +34,7 @@ int32_t render_texture::bind(int32_t index) {
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         return -1;
 
-    glGetError();
+    gl_state_get_error();
     return 0;
 }
 
@@ -193,7 +193,7 @@ void render_texture_data_free() {
 
 static int32_t render_texture_framebuffer_init(render_texture* rt, int32_t max_level) {
     glGenFramebuffers(max_level + 1, rt->fbos);
-    return -(glGetError() != GL_ZERO);
+    return -(gl_state_get_error() != GL_ZERO);
 }
 
 static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
@@ -202,21 +202,21 @@ static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
         return -1;
 
     gl_state_bind_framebuffer(rt->fbos[level]);
-    glGetError();
+    gl_state_get_error();
 
     if (color_texture) {
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, color_texture, level);
-        glGetError();
+        gl_state_get_error();
         glDrawBuffer(GL_COLOR_ATTACHMENT0);
         glReadBuffer(GL_COLOR_ATTACHMENT0);
     }
     else {
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, 0, 0);
-        glGetError();
+        gl_state_get_error();
         glDrawBuffer(GL_ZERO);
         glReadBuffer(GL_ZERO);
     }
-    glGetError();
+    gl_state_get_error();
 
     if (level == 0) {
         if (stencil) {
@@ -245,13 +245,13 @@ static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
                 glFramebufferTexture(GL_FRAMEBUFFER,
                     GL_DEPTH_ATTACHMENT, 0, 0);
         }
-        glGetError();
+        gl_state_get_error();
     }
 
     int32_t ret = 0;
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         ret = -1;
     gl_state_bind_framebuffer(0);
-    glGetError();
+    gl_state_get_error();
     return ret;
 }

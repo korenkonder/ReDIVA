@@ -941,7 +941,7 @@ void TaskEffectFogRing::Data::Draw() {
         rctx->disp_manager.draw(mdl::OBJ_TYPE_USER);
     gl_state_bind_framebuffer(0);
     rctx->render_manager.set_effect_texture(rt.color_texture);
-    glGetError();
+    gl_state_get_error();
 }
 
 void TaskEffectFogRing::Data::InitParticleData() {
@@ -2454,8 +2454,7 @@ void TaskEffectParent::SetStageHashes(std::vector<uint32_t>& stage_hashes) {
                 obj_set_ids.push_back(j);
     }
 
-    prj::sort(obj_set_ids);
-    prj::unique(obj_set_ids);
+    prj::sort_unique(obj_set_ids);
 
     for (uint32_t i : obj_set_ids)
         object_storage_load_set_hash(data, i);
@@ -2489,8 +2488,7 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
                 obj_set_ids.push_back(j);
     }
 
-    prj::sort(obj_set_ids);
-    prj::unique(obj_set_ids);
+    prj::sort_unique(obj_set_ids);
     
     for (uint32_t i : obj_set_ids)
         object_storage_load_set(aft_data, aft_obj_db, i);

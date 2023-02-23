@@ -95,7 +95,7 @@ void texture_apply_color_tone(texture* chg_tex,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
         glBindTexture(org_tex->target, 0);
-        glGetError();
+        gl_state_get_error();
         free_def(data);
     }
 }
@@ -121,7 +121,7 @@ texture* texture_copy(texture_id id, texture* org_tex) {
             glGetTexImage(org_tex->target, i, format, type, data);
         }
         glBindTexture(org_tex->target, 0);
-        glGetError();
+        gl_state_get_error();
         vec_data.push_back(data);
     }
 
@@ -172,6 +172,15 @@ texture* texture_txp_load(txp* t, texture_id id) {
 
 void texture_free(texture* tex) {
     texture_storage_delete_texture(tex->id);
+}
+
+void texture_array_free(texture** arr) {
+    if (!arr)
+        return;
+
+    for (texture** i = arr; *i; i++)
+        texture_free(*i);
+    free_def(arr);
 }
 
 bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
@@ -477,7 +486,7 @@ static int32_t texture_load(GLenum target, GLenum internal_format,
         glTexImage2D(target, level, internal_format, width, height, 0, format, type, data);
     } break;
     }
-    return -(glGetError() != GL_ZERO);
+    return -(gl_state_get_error() != GL_ZERO);
 }
 
 static texture* texture_load_tex(texture_id id, GLenum target,

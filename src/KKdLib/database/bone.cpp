@@ -205,22 +205,15 @@ void bone_database::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool bone_database::get_skeleton(const char* name,
-    const bone_database_skeleton** skeleton) const {
-    if (!skeleton)
-        return false;
-
-    *skeleton = 0;
-    if ( !name)
-        return false;
+const bone_database_skeleton* bone_database::get_skeleton(const char* name) const {
+    if (!name)
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : this->skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *skeleton = &i;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i;
+    return 0;
 }
 
 int32_t bone_database::get_skeleton_bone_index(const char* name, const char* bone_name) const {
@@ -239,39 +232,26 @@ int32_t bone_database::get_skeleton_bone_index(const char* name, const char* bon
     return -1;
 }
 
-bool bone_database::get_skeleton_bones(const char* name,
-    const std::vector<bone_database_bone>** bone) const {
-    if (!bone)
-        return false;
-
-    *bone = 0;
+const std::vector<bone_database_bone>* bone_database::get_skeleton_bones(const char* name) const {
     if (!name)
-        return false;
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *bone = &i.bone;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i.bone;
+    return 0;
 }
 
-bool bone_database::get_skeleton_positions(const char* name, const std::vector<vec3>** positions)const {
-    if (!positions)
-        return false;
-
-    *positions = 0;
+const std::vector<vec3>* bone_database::get_skeleton_positions(const char* name) const {
     if (!name)
-        return false;
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *positions = &i.position;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i.position;
+    return 0;
 }
 
 int32_t bone_database::get_skeleton_object_bone_index(const char* name, const char* bone_name) const {
@@ -290,22 +270,15 @@ int32_t bone_database::get_skeleton_object_bone_index(const char* name, const ch
     return -1;
 }
 
-bool bone_database::get_skeleton_object_bones(const char* name,
-    const std::vector<std::string>** object_bones) const {
-    if (!object_bones)
-        return false;
-
-    *object_bones = 0;
+const std::vector<std::string>* bone_database::get_skeleton_object_bones(const char* name) const {
     if (!name)
-        return false;
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *object_bones = &i.object_bone;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i.object_bone;
+    return 0;
 }
 
 int32_t bone_database::get_skeleton_motion_bone_index(const char* name, const char* bone_name) const {
@@ -324,57 +297,37 @@ int32_t bone_database::get_skeleton_motion_bone_index(const char* name, const ch
     return -1;
 }
 
-bool bone_database::get_skeleton_motion_bones(const char* name,
-    const std::vector<std::string>** motion_bones) const {
-    if (!motion_bones)
-        return false;
-
-    *motion_bones = 0;
+const std::vector<std::string>* bone_database::get_skeleton_motion_bones(const char* name) const {
     if (!name)
-        return false;
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *motion_bones = &i.motion_bone;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i.motion_bone;
+    return 0;
 }
 
-bool bone_database::get_skeleton_parent_indices(const char* name,
-    const  std::vector<std::uint16_t>** parent_indices) const {
-    if (!parent_indices)
-        return false;
-
-    *parent_indices = 0;
+const std::vector<std::uint16_t>* bone_database::get_skeleton_parent_indices(const char* name) const {
     if (!name)
-        return false;
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *parent_indices = &i.parent_index;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i.parent_index;
+    return 0;
 }
 
-bool bone_database::get_skeleton_heel_height(const char* name, const float_t** unknown_value) const {
-    if (!unknown_value)
-        return false;
-
-    *unknown_value = 0;
+const float_t* bone_database::get_skeleton_heel_height(const char* name) const {
     if (!name)
-        return false;
+        return 0;
 
     uint32_t name_hash = hash_utf8_murmurhash(name);
     for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            *unknown_value = &i.heel_height;
-            return true;
-        }
-    return false;
+        if (hash_string_murmurhash(i.name) == name_hash)
+            return &i.heel_height;
+    return 0;
 }
 
 bool bone_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {

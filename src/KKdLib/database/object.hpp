@@ -142,15 +142,12 @@ struct object_database {
 
     void add(object_database_file* obj_db_file);
 
-    bool get_object_set_info(const char* name, const object_set_info** set_info) const;
-    bool get_object_set_info(uint32_t set_id, const object_set_info** set_info) const;
-    bool get_object_info_data(const char* name, const object_info_data** info) const;
-    bool get_object_info_data_by_fnv1a64m_hash(
-        uint64_t hash, const object_info_data** info) const;
-    bool get_object_info_data_by_fnv1a64m_hash_upper(
-        uint64_t hash, const object_info_data** info) const;
-    bool get_object_info_data_by_murmurhash(
-        uint32_t hash, const object_info_data** info) const;
+    const object_set_info* get_object_set_info(const char* name) const;
+    const object_set_info* get_object_set_info(uint32_t set_id) const;
+    const object_info_data* get_object_info_data(const char* name) const;
+    const object_info_data* get_object_info_data_by_fnv1a64m_hash(uint64_t hash) const;
+    const object_info_data* get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash) const;
+    const object_info_data* get_object_info_data_by_murmurhash(uint32_t hash) const;
     uint32_t get_object_set_id(const char* name) const;
     const char* get_object_set_name(uint32_t set_id) const;
     object_info get_object_info(const char* name) const;

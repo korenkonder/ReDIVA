@@ -133,6 +133,19 @@ bool TaskDataTestGlitterParticle::Dest() {
     return true;
 }
 
+void TaskDataTestGlitterParticle::Disp() {
+    if (show_grid) {
+        mdl::EtcObj etc = {};
+        etc.init(mdl::ETC_OBJ_GRID);
+        etc.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+        etc.data.grid.w = 50;
+        etc.data.grid.h = 50;
+        etc.data.grid.ws = 50;
+        etc.data.grid.hs = 50;
+        rctx_ptr->disp_manager.entry_obj_etc(&mat4_identity, &etc);
+    }
+}
+
 void TaskDataTestGlitterParticle::Window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();

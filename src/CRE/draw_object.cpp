@@ -63,6 +63,10 @@ namespace mdl {
             rctx->draw_state.stats.draw_triangle_count += count - 2;
     }
 
+    void draw_etc_obj(render_context* rctx, mdl::EtcObj* etc) {
+
+    }
+
     void draw_sub_mesh(render_context* rctx, const ObjSubMeshArgs* args, const mat4* model,
         void(*func)(render_context* rctx, const ObjSubMeshArgs* args)) {
         GLuint vao = rctx->disp_manager.get_vertex_array(args);

@@ -17,7 +17,6 @@
 #include "../KKdLib/dds.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/msgpack.hpp"
-#include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 
 static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* handler);
@@ -373,9 +372,10 @@ index_buffer_num(), index_buffer_data(), load_count(), modern() {
 }
 
 obj_set_handler::~obj_set_handler() {
-    for (uint32_t i = 0; i < tex_num; i++)
-        texture_free(tex_data[i]);
-    free_def(tex_data);
+    if (tex_data) {
+        texture_array_free(tex_data);
+        tex_data = 0;
+    }
 
     obj_set_handler_index_buffer_free(this);
     obj_set_handler_vertex_buffer_free(this);
@@ -1713,8 +1713,8 @@ inline std::vector<texture*>* object_storage_get_obj_set_textures(int32_t set) {
 }
 
 int32_t object_storage_load_set(void* data, object_database* obj_db, const char* name) {
-    const object_set_info* set_info = 0;
-    if (!obj_db->get_object_set_info(name, &set_info))
+    const object_set_info* set_info = obj_db->get_object_set_info(name);
+    if (!set_info)
         return 1;
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_info->id);
@@ -1750,8 +1750,8 @@ int32_t object_storage_load_set(void* data, object_database* obj_db, const char*
 }
 
 int32_t object_storage_load_set(void* data, object_database* obj_db, uint32_t set_id) {
-    const object_set_info* set_info = 0;
-    if (!obj_db->get_object_set_info(set_id, &set_info))
+    const object_set_info* set_info = obj_db->get_object_set_info(set_id);
+    if (!set_info)
         return 1;
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
@@ -1818,12 +1818,6 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     return 0;
 }
 
-static int32_t obj_set_obj_id_data_sort(void const* src1, void const* src2) {
-    std::pair<uint32_t, uint32_t>* p1 = (std::pair<uint32_t, uint32_t>*)src1;
-    std::pair<uint32_t, uint32_t>* p2 = (std::pair<uint32_t, uint32_t>*)src2;
-    return (int32_t)(p1->first - p2->first);
-}
-
 bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     object_database* obj_db, texture_database* tex_db) {
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
@@ -1850,9 +1844,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             handler->obj_id_data.reserve(set->obj_num);
             for (uint32_t i = 0; i < set->obj_num; i++)
                 handler->obj_id_data.push_back({ set->obj_data[i].id, i });
-
-            quicksort_custom(handler->obj_id_data.data(), handler->obj_id_data.size(),
-                sizeof(std::pair<uint32_t, uint32_t>), obj_set_obj_id_data_sort);
+            handler->obj_id_data.sort();
 
             if (!obj_set_handler_vertex_buffer_load(handler)
                 || !obj_set_handler_index_buffer_load(handler))
@@ -1991,8 +1983,8 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
 }
 
 inline void object_storage_unload_set(object_database* obj_db, const char* name) {
-    const object_set_info* set_info = 0;
-    if (!obj_db->get_object_set_info(name, &set_info))
+    const object_set_info* set_info = obj_db->get_object_set_info(name);
+    if (!set_info)
         return;
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(set_info->id);
@@ -2006,11 +1998,7 @@ inline void object_storage_unload_set(object_database* obj_db, const char* name)
     handler->tex_id_data.clear();
     handler->gentex.clear();
 
-    texture** tex_data = handler->tex_data;
-    int32_t tex_num = handler->tex_num;
-    for (int32_t i = 0; i < tex_num; i++)
-        texture_free(tex_data[i]);
-    free_def(tex_data);
+    texture_array_free(handler->tex_data);
     handler->tex_data = 0;
     handler->tex_num = 0;
 
@@ -2038,11 +2026,7 @@ inline void object_storage_unload_set(uint32_t set_id) {
     handler->tex_id_data.clear();
     handler->gentex.clear();
 
-    texture** tex_data = handler->tex_data;
-    int32_t tex_num = handler->tex_num;
-    for (int32_t i = 0; i < tex_num; i++)
-        texture_free(tex_data[i]);
-    free_def(tex_data);
+    texture_array_free(handler->tex_data);
     handler->tex_data = 0;
     handler->tex_num = 0;
 
@@ -2169,10 +2153,6 @@ static void obj_set_handler_index_buffer_free(obj_set_handler* handler) {
     handler->index_buffer_num = 0;
 }
 
-static size_t obj_set_tex_id_radix_index_func_id(std::pair<uint32_t, uint32_t>* data, size_t index) {
-    return *(uint32_t*)&data[index].first;
-}
-
 static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian) {
     obj_set* set = handler->obj_set;
     if (!set || !data)
@@ -2190,16 +2170,13 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
     handler->tex_id_data.reserve(handler->tex_num);
     handler->gentex.reserve(handler->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
-    int32_t tex_num = handler->tex_num;
+    uint32_t tex_num = handler->tex_num;
     texture** tex_data = handler->tex_data;
-    for (int32_t i = 0; i < tex_num; i++) {
+    for (uint32_t i = 0; i < tex_num; i++) {
         handler->tex_id_data.push_back({ tex_id_data[i], i });
         handler->gentex.push_back(tex_data[i]);
     }
-
-    radix_sort_custom(handler->tex_id_data.data(), handler->tex_id_data.size(),
-        sizeof(std::pair<uint32_t, uint32_t>), sizeof(uint32_t),
-        (radix_index_func)obj_set_tex_id_radix_index_func_id);
+    handler->tex_id_data.sort();
     return false;
 }
 
@@ -2228,10 +2205,7 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
         handler->tex_id_data.push_back({ tex_id_data[i], i });
         handler->gentex.push_back(tex_data[i]);
     }
-
-    radix_sort_custom(handler->tex_id_data.data(), handler->tex_id_data.size(),
-        sizeof(std::pair<uint32_t, uint32_t>), sizeof(uint32_t),
-        (radix_index_func)obj_set_tex_id_radix_index_func_id);
+    handler->tex_id_data.sort();
     return false;
 }
 

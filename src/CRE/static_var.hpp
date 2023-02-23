@@ -10,7 +10,6 @@
 #include "../KKdLib/light_param/light.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
-#include "../KKdLib/vec.hpp"
 #include <glad/glad.h>
 
 enum draw_pass_3d_type {

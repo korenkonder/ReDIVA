@@ -14,6 +14,7 @@
 namespace mdl {
     extern void draw(render_context* rctx, obj_primitive_type primitive_type, uint32_t count,
         uint16_t start, uint16_t end, obj_index_format index_format, size_t indices);
+    extern void draw_etc_obj(render_context* rctx, mdl::EtcObj* etc);
     extern void draw_sub_mesh(render_context* rctx, const ObjSubMeshArgs* args, const mat4* model,
         void(*func)(render_context* rctx, const ObjSubMeshArgs* args));
     /*extern void draw_sub_mesh_show_vector(render_context* rctx,

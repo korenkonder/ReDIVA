@@ -350,6 +350,13 @@ void gl_state_get_all_gl_errors() {
         printf_debug("GL Error: 0x%04X\n", error);
 }
 
+GLenum gl_state_get_error() {
+    GLenum error = glGetError();
+    if (error)
+        printf_debug("GL Error: 0x%04X\n", error);
+    return error;
+}
+
 GLuint gl_state_get_program() {
     return gl_state.program;
 }

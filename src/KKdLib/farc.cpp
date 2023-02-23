@@ -818,7 +818,7 @@ static errno_t farc_read_header(farc* f, stream& s) {
 }
 
 static void farc_unpack_files(farc* f, stream& s, bool save) {
-    if (!f || s.check_null())
+    if (!f || s.check_null() || !f->files.size())
         return;
 
     size_t max_path_len = 0;

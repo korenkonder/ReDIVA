@@ -42,6 +42,7 @@ public:
     virtual bool Init() override;
     virtual bool Ctrl() override;
     virtual bool Dest() override;
+    virtual void Disp() override;
     virtual void Window() override;
 
     void LoadFile(const char* file);

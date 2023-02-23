@@ -47,10 +47,6 @@ void hand_item_handler_data_init() {
     hand_item_handler_data = {};
 }
 
-void hand_item_handler_data_clear() {
-    hand_item_handler_data.clear();
-}
-
 const hand_item* hand_item_handler_data_get_hand_item(int32_t uid, chara_index chara_index) {
     if (uid >= 0)
         return hand_item_handler_data.get_hand_item(uid, chara_index);

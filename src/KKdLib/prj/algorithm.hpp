@@ -37,4 +37,10 @@ namespace prj {
         if (vec.size() != end - begin)
             vec.resize(end - begin);
     }
+
+    template <class T>
+    void sort_unique(std::vector<T>& vec) {
+        sort(vec);
+        unique(vec);
+    }
 }

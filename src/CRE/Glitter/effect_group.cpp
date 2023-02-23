@@ -22,9 +22,7 @@ namespace Glitter {
 #endif
 
         if (resources) {
-            for (texture** i = resources; *i; i++)
-                texture_free(*i);
-            free_def(resources);
+            texture_array_free(resources);
             resources = 0;
         }
 
@@ -94,9 +92,7 @@ namespace Glitter {
             }
         }
 
-        prj::sort(object_set_ids);
-        prj::unique(object_set_ids);
-
+        prj::sort_unique(object_set_ids);
         return has_model;
     }
 

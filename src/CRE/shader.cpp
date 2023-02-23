@@ -717,6 +717,9 @@ void shader_set_data::unload() {
     shader* shaders = this->shaders;
     for (size_t i = 0; i < size; i++) {
         shader* shader = &shaders[i];
+        if (!shader->sub)
+            continue;
+
         int32_t num_sub = shader->num_sub;
         shader_sub* sub = shader->sub;
         for (size_t j = 0; j < num_sub; j++, sub++) {
@@ -742,7 +745,8 @@ void shader_set_data::unload() {
                 sub->shaders = 0;
             }
         }
-        free_def(shader->sub);
+        free(shader->sub);
+        shader->sub = 0;
     }
     free_def(shaders);
     this->shaders = 0;
@@ -935,7 +939,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         GLsizei length = 0;
         while (*buffer_size < 0x7FFFFFF) {
             glGetProgramBinary(program, *buffer_size, &length, &binary_format, *binary);
-            if (!glGetError())
+            if (!gl_state_get_error())
                 break;
 
             free_def(*binary);

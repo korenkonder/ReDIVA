@@ -766,8 +766,7 @@ static void motion_test_objset_load() {
             motion_test_objset.push_back(hnd_itm.obj_right.set_id);
     }
 
-    prj::sort(motion_test_objset);
-    prj::unique(motion_test_objset);
+    prj::sort_unique(motion_test_objset);
 
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;

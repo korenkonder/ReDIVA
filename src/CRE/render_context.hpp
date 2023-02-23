@@ -357,6 +357,8 @@ namespace mdl {
         vec4 color;
         bool fog;
         Data data;
+   
+        void init(EtcObjType type);
     };
     
     typedef void(*UserArgsFunc)(render_context* rctx, void* data);
@@ -374,7 +376,7 @@ namespace mdl {
     struct ObjData {
         union Args {
             ObjSubMeshArgs sub_mesh;
-            EtcObj::Data etc;
+            EtcObj etc;
             UserArgs user;
             ObjTranslucentArgs translucent;
         };
@@ -385,6 +387,7 @@ namespace mdl {
         float_t radius;
         Args args;
 
+        void init_etc(const mat4* mat, mdl::EtcObj* etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat,
             float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
             std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
@@ -521,6 +524,7 @@ namespace mdl {
         void entry_obj_by_object_info_object_skin(object_info obj_info,
             std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
             mat4* matrices, mat4* ex_data_matrices, const mat4* mat, const mat4* global_mat);
+        void entry_obj_etc(const mat4* mat, EtcObj* etc);
         void entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type);
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
         bool get_chara_color();

@@ -9,6 +9,7 @@
 #include "../CRE/item_table.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/sound.hpp"
+#include "../CRE/sprite.hpp"
 #include "game_state.hpp"
 
 extern uint32_t dbg_set_id;
@@ -35,21 +36,16 @@ bool TaskDataInit::Ctrl() {
 
     switch (state) {
     case 0: {
-        //sub_14063FB20();
-
-        std::string v10 = {};
-        //sub_140640E10(4, &v10);
-
-        std::string v14 = {};
-        //sub_140640E10(472, &v14);
-
-        std::string v12 = {};
-        //sub_140640E10(43, &v12);
+        sprite_manager_reset_res_data();
+        //sprite_manager_load_set(4, "");
+        //sprite_manager_load_set(472, "");
+        //sprite_manager_load_set(43, "");
         //fontmap_data_read_file();
         state = 1;
     } break;
     case 1:
-        //if (!SprLoadSetFile(4) && !SprLoadSetFile(472) && !SprLoadSetFile(43) && !fontmap_data_parse_file())
+        //if (!sprite_manager_load_file(4) && !sprite_manager_load_file(472)
+        //    && !sprite_manager_load_file(43) && !fontmap_data_parse_file())
             state = field_6C ? 2 : 4;
         break;
     case 2:
@@ -61,21 +57,15 @@ bool TaskDataInit::Ctrl() {
             state = 4;
         break;
     case 4: {
-        std::string v9 = {};
-        //sub_140640E10(32, &v9);
-
-        std::string v11 = {};
-        //sub_14019D650(26, &v11);
-
-        std::string v13 = {};
-        //sub_140640E10(34, &v13);
-
-        std::string v15 = {};
-        //sub_14019D650(35, &v15);
+        //sprite_manager_load_set(32, "");
+        //aet_manager_load_set(26, "");
+        //sprite_manager_load_set(34, "");
+        //aet_manager_load_set(35, "");
         state = 5;
     } break;
     case 5:
-        //if (SprLoadSetFile(32) || AetLoadSetFile(26) || SprLoadSetFile(34) || AetLoadSetFile(35))
+        //if (!sprite_manager_load_file(32) && !aet_manager_load_file(26)
+        //    && !sprite_manager_load_file(34) && !aet_manager_load_file(35))
         //    break;
 
         state = 6;

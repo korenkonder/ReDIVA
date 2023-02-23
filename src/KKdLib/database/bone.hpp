@@ -79,22 +79,16 @@ struct bone_database {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
-    bool get_skeleton(const char* name,
-        const bone_database_skeleton** skeleton) const;
+    const bone_database_skeleton* get_skeleton(const char* name) const;
     int32_t get_skeleton_bone_index(const char* name, const char* bone_name) const;
-    bool get_skeleton_bones(const char* name,
-        const std::vector<bone_database_bone>** bone) const;
-    bool get_skeleton_positions(const char* name,
-        const std::vector<vec3>** positions) const;
+    const std::vector<bone_database_bone>* get_skeleton_bones(const char* name) const;
+    const std::vector<vec3>* get_skeleton_positions(const char* name) const;
     int32_t get_skeleton_object_bone_index(const char* name, const char* bone_name) const;
-    bool get_skeleton_object_bones(const char* name,
-        const std::vector<std::string>** object_bones) const;
+    const std::vector<std::string>* get_skeleton_object_bones(const char* name) const;
     int32_t get_skeleton_motion_bone_index(const char* name, const char* bone_name) const;
-    bool get_skeleton_motion_bones(const char* name,
-        const std::vector<std::string>** motion_bones) const;
-    bool get_skeleton_parent_indices(const char* name,
-        const std::vector<uint16_t>** parent_indices) const;
-    bool get_skeleton_heel_height(const char* name, const float_t** unknown_value) const;
+    const std::vector<std::string>* get_skeleton_motion_bones(const char* name) const;
+    const std::vector<uint16_t>* get_skeleton_parent_indices(const char* name) const;
+    const float_t* get_skeleton_heel_height(const char* name) const;
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };

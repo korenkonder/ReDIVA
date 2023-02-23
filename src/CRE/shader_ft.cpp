@@ -2774,9 +2774,10 @@ static const bool CONSTANT_permut[] = {
     //true, // 0th removed
     true,
     false,
-    true,
-    true,
     false,
+    true,
+    true,
+    false, // 6th added
 };
 
 /*static const bool PEEL_permut[] = {

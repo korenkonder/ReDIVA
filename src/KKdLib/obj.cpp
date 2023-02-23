@@ -324,6 +324,11 @@ obj_bounding_sphere::obj_bounding_sphere() : radius() {
 
 }
 
+obj_bounding_sphere::obj_bounding_sphere(vec3 center, float_t radius) {
+    this->center = center;
+    this->radius = radius;
+}
+
 obj_material_shader_lighting_type obj_material_shader_attrib::get_lighting_type() const {
     if (!m.is_lgt_diffuse && !m.is_lgt_specular)
         return OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT;
