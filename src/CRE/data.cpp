@@ -63,6 +63,18 @@ void data_struct_load_db() {
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
             std::string file;
             file.assign(i);
+            file.append("aet_db.bin");
+
+            aet_database_file aet_db_file;
+            aet_db_file.modern = false;
+            ds->load_file(&aet_db_file, "rom/2d/", file.c_str(),
+                aet_database_file::load_file);
+            d->aet_db.add(&aet_db_file);
+        }
+
+        for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+            std::string file;
+            file.assign(i);
             file.append("auth_3d_db.bin");
 
             auth_3d_database_file auth_3d_db_file;
@@ -563,7 +575,7 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
 }
 
 bool data_struct::load_file(void* data, const char* path,
-    bool (*load_func)(void* data, const char* path, const  char* file, uint32_t hash)) {
+    bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
     const char* t = strrchr(path, '/');
     if (t) {
         std::string dir = std::string(path, t - path + 1);

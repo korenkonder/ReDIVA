@@ -6657,7 +6657,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
     const ImU32     random_range_color = ImGui::GetColorU32({ 0.5f, 0.5f, 0.0f, 0.25f });
     const ImU32 key_random_range_color = ImGui::GetColorU32({ 0.5f, 0.0f, 0.5f, 0.25f });
 
-    const  std::vector<Glitter::Curve::Key>* keys = &curve->keys_rev;
+    const std::vector<Glitter::Curve::Key>* keys = &curve->keys_rev;
     if (!keys->size())
         return;
 

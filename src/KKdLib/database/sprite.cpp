@@ -243,9 +243,8 @@ sprite_database::~sprite_database() {
 void sprite_database::add(sprite_database_file* spr_db_file) {
     if (!spr_db_file || !spr_db_file->ready)
         return;
-        return;
 
-    size_t sprite_sets_count = this->spr_ids.size();
+    size_t sprite_sets_count = this->spr_set_ids.size();
 
     spr_set_ids.reserve(spr_db_file->sprite_set.size());
     spr_set_indices.reserve(spr_db_file->sprite_set.size());
@@ -281,12 +280,12 @@ void sprite_database::add(sprite_database_file* spr_db_file) {
         }
     }
 
-    spr_set_ids.sort_unique();
-    spr_set_indices.sort_unique();
-    spr_set_names.sort_unique();
-    spr_ids.sort_unique();
-    spr_names.sort_unique();
-    spr_indices.sort_unique();
+    spr_set_ids.combine();
+    spr_set_indices.combine();
+    spr_set_names.combine();
+    spr_ids.combine();
+    spr_names.combine();
+    spr_indices.combine();
 }
 
 const spr_db_spr_set* sprite_database::get_spr_set_by_name(const char* name) const {
@@ -346,8 +345,8 @@ uint32_t sprite_database::get_spr_set_id_by_name(const char* name) const {
     return get_spr_set_by_name(name)->id;
 }
 
-uint32_t sprite_database::get_spr_set_id_by_index(uint32_t index) const {
-    return spr_ids[index].first;
+uint32_t sprite_database::get_spr_set_id_by_name_index(uint32_t index) const {
+    return spr_set_names[index].second.id;
 }
 
 const char* sprite_database::get_spr_set_name(uint32_t set_id) const {
@@ -370,7 +369,7 @@ static void sprite_database_file_classic_read_inner(sprite_database_file* spr_db
         spr_set.id = s.read_uint32_t();
         spr_set.name = s.read_string_null_terminated_offset(s.read_uint32_t());
         spr_set.file_name = s.read_string_null_terminated_offset(s.read_uint32_t());
-        spr_set.index = s.read_uint32_t();
+        spr_set.index = (uint16_t)s.read_uint32_t();
     }
     s.position_pop();
 
@@ -529,7 +528,7 @@ static void sprite_database_file_modern_read_inner(sprite_database_file* spr_db,
             spr_set.id = s.read_uint32_t_reverse_endianness();
             spr_set.name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
             spr_set.file_name = s.read_string_null_terminated_offset(s.read_offset_f2(header_length));
-            spr_set.index = s.read_uint32_t_reverse_endianness();
+            spr_set.index = (uint16_t)s.read_uint32_t_reverse_endianness();
         }
     else
         for (uint32_t i = 0; i < sprite_sets_count; i++) {
@@ -537,7 +536,7 @@ static void sprite_database_file_modern_read_inner(sprite_database_file* spr_db,
             spr_set.id = s.read_uint32_t_reverse_endianness();
             spr_set.name = s.read_string_null_terminated_offset(s.read_offset_x());
             spr_set.file_name = s.read_string_null_terminated_offset(s.read_offset_x());
-            spr_set.index = s.read_uint32_t_reverse_endianness();
+            spr_set.index = (uint16_t)s.read_uint32_t_reverse_endianness();
             s.align_read(0x08);
         }
     s.position_pop();

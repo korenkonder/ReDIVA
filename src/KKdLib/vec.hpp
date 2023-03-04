@@ -1642,324 +1642,324 @@ inline vec4i vec4i::clamp(const vec4i& left, const int32_t min, const int32_t ma
         vec4i::load_xmm(min)), vec4i::load_xmm(max)));
 }
 
-inline void vec2i8_to_vec2(vec2i8& src, vec2& dst) {
+inline void vec2i8_to_vec2(const vec2i8& src, vec2& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
 }
 
-inline void vec3i8_to_vec3(vec3i8& src, vec3& dst) {
+inline void vec3i8_to_vec3(const vec3i8& src, vec3& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
 }
 
-inline void vec4i8_to_vec4(vec4i8& src, vec4& dst) {
+inline void vec4i8_to_vec4(const vec4i8& src, vec4& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
     dst.w = (float_t)src.w;
 }
 
-inline void vec2_to_vec2i8(vec2& src, vec2i8& dst) {
+inline void vec2_to_vec2i8(const vec2& src, vec2i8& dst) {
     dst.x = (int8_t)src.x;
     dst.y = (int8_t)src.y;
 }
 
-inline void vec3_to_vec3i8(vec3& src, vec3i8& dst) {
+inline void vec3_to_vec3i8(const vec3& src, vec3i8& dst) {
     dst.x = (int8_t)src.x;
     dst.y = (int8_t)src.y;
     dst.z = (int8_t)src.z;
 }
 
-inline void vec4_to_vec4i8(vec4& src, vec4i8& dst) {
+inline void vec4_to_vec4i8(const vec4& src, vec4i8& dst) {
     dst.x = (int8_t)src.x;
     dst.y = (int8_t)src.y;
     dst.z = (int8_t)src.z;
     dst.w = (int8_t)src.w;
 }
 
-inline void vec2u8_to_vec2(vec2u8& src, vec2& dst) {
+inline void vec2u8_to_vec2(const vec2u8& src, vec2& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
 }
 
-inline void vec3u8_to_vec3(vec3u8& src, vec3& dst) {
+inline void vec3u8_to_vec3(const vec3u8& src, vec3& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
 }
 
-inline void vec4u8_to_vec4(vec4u8& src, vec4& dst) {
+inline void vec4u8_to_vec4(const vec4u8& src, vec4& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
     dst.w = (float_t)src.w;
 }
 
-inline void vec2_to_vec2u8(vec2& src, vec2u8& dst) {
+inline void vec2_to_vec2u8(const vec2& src, vec2u8& dst) {
     dst.x = (uint8_t)src.x;
     dst.y = (uint8_t)src.y;
 }
 
-inline void vec3_to_vec3u8(vec3& src, vec3u8& dst) {
+inline void vec3_to_vec3u8(const vec3& src, vec3u8& dst) {
     dst.x = (uint8_t)src.x;
     dst.y = (uint8_t)src.y;
     dst.z = (uint8_t)src.z;
 }
 
-inline void vec4_to_vec4u8(vec4& src, vec4u8& dst) {
+inline void vec4_to_vec4u8(const vec4& src, vec4u8& dst) {
     dst.x = (uint8_t)src.x;
     dst.y = (uint8_t)src.y;
     dst.z = (uint8_t)src.z;
     dst.w = (uint8_t)src.w;
 }
 
-inline void vec2i16_to_vec2(vec2i16& src, vec2& dst) {
+inline void vec2i16_to_vec2(const vec2i16& src, vec2& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
 }
 
-inline void vec3i16_to_vec3(vec3i16& src, vec3& dst) {
+inline void vec3i16_to_vec3(const vec3i16& src, vec3& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
 }
 
-inline void vec4i16_to_vec4(vec4i16& src, vec4& dst) {
+inline void vec4i16_to_vec4(const vec4i16& src, vec4& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
     dst.w = (float_t)src.w;
 }
 
-inline void vec2_to_vec2i16(vec2& src, vec2i16& dst) {
+inline void vec2_to_vec2i16(const vec2& src, vec2i16& dst) {
     dst.x = (int16_t)src.x;
     dst.y = (int16_t)src.y;
 }
 
-inline void vec3_to_vec3i16(vec3& src, vec3i16& dst) {
+inline void vec3_to_vec3i16(const vec3& src, vec3i16& dst) {
     dst.x = (int16_t)src.x;
     dst.y = (int16_t)src.y;
     dst.z = (int16_t)src.z;
 }
 
-inline void vec4_to_vec4i16(vec4& src, vec4i16& dst) {
+inline void vec4_to_vec4i16(const vec4& src, vec4i16& dst) {
     dst.x = (int16_t)src.x;
     dst.y = (int16_t)src.y;
     dst.z = (int16_t)src.z;
     dst.w = (int16_t)src.w;
 }
 
-inline void vec2u16_to_vec2(vec2u16& src, vec2& dst) {
+inline void vec2u16_to_vec2(const vec2u16& src, vec2& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
 }
 
-inline void vec3u16_to_vec3(vec3u16& src, vec3& dst) {
+inline void vec3u16_to_vec3(const vec3u16& src, vec3& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
 }
 
-inline void vec4u16_to_vec4(vec4u16& src, vec4& dst) {
+inline void vec4u16_to_vec4(const vec4u16& src, vec4& dst) {
     dst.x = (float_t)src.x;
     dst.y = (float_t)src.y;
     dst.z = (float_t)src.z;
     dst.w = (float_t)src.w;
 }
 
-inline void vec2_to_vec2u16(vec2& src, vec2u16& dst) {
+inline void vec2_to_vec2u16(const vec2& src, vec2u16& dst) {
     dst.x = (uint16_t)src.x;
     dst.y = (uint16_t)src.y;
 }
 
-inline void vec3_to_vec3u16(vec3& src, vec3u16& dst) {
+inline void vec3_to_vec3u16(const vec3& src, vec3u16& dst) {
     dst.x = (uint16_t)src.x;
     dst.y = (uint16_t)src.y;
     dst.z = (uint16_t)src.z;
 }
 
-inline void vec4_to_vec4u16(vec4& src, vec4u16& dst) {
+inline void vec4_to_vec4u16(const vec4& src, vec4u16& dst) {
     dst.x = (uint16_t)src.x;
     dst.y = (uint16_t)src.y;
     dst.z = (uint16_t)src.z;
     dst.w = (uint16_t)src.w;
 }
 
-inline void vec2h_to_vec2(vec2h& src, vec2& dst) {
+inline void vec2h_to_vec2(const vec2h& src, vec2& dst) {
     dst.x = half_to_float(src.x);
     dst.y = half_to_float(src.y);
 }
 
-inline void vec3h_to_vec3(vec3h& src, vec3& dst) {
+inline void vec3h_to_vec3(const vec3h& src, vec3& dst) {
     dst.x = half_to_float(src.x);
     dst.y = half_to_float(src.y);
     dst.z = half_to_float(src.z);
 }
 
-inline void vec4h_to_vec4(vec4h& src, vec4& dst) {
+inline void vec4h_to_vec4(const vec4h& src, vec4& dst) {
     dst.x = half_to_float(src.x);
     dst.y = half_to_float(src.y);
     dst.z = half_to_float(src.z);
     dst.w = half_to_float(src.w);
 }
 
-inline void vec2_to_vec2h(vec2& src, vec2h& dst) {
+inline void vec2_to_vec2h(const vec2& src, vec2h& dst) {
     dst.x = float_to_half(src.x);
     dst.y = float_to_half(src.y);
 }
 
-inline void vec3_to_vec3h(vec3& src, vec3h& dst) {
+inline void vec3_to_vec3h(const vec3& src, vec3h& dst) {
     dst.x = float_to_half(src.x);
     dst.y = float_to_half(src.y);
     dst.z = float_to_half(src.z);
 }
 
-inline void vec4_to_vec4h(vec4& src, vec4h& dst) {
+inline void vec4_to_vec4h(const vec4& src, vec4h& dst) {
     dst.x = float_to_half(src.x);
     dst.y = float_to_half(src.y);
     dst.z = float_to_half(src.z);
     dst.w = float_to_half(src.w);
 }
 
-inline void vec2i8_to_vec2i(vec2i8& src, vec2i& dst) {
+inline void vec2i8_to_vec2i(const vec2i8& src, vec2i& dst) {
     dst.x = src.x;
     dst.y = src.y;
 }
 
-inline void vec3i8_to_vec3i(vec3i8& src, vec3i& dst) {
+inline void vec3i8_to_vec3i(const vec3i8& src, vec3i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
 }
 
-inline void vec4i8_to_vec4i(vec4i8& src, vec4i& dst) {
+inline void vec4i8_to_vec4i(const vec4i8& src, vec4i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
     dst.w = src.w;
 }
 
-inline void vec2i_to_vec2i8(vec2i& src, vec2i8& dst) {
+inline void vec2i_to_vec2i8(const vec2i& src, vec2i8& dst) {
     dst.x = (int8_t)src.x;
     dst.y = (int8_t)src.y;
 }
 
-inline void vec3i_to_vec3i8(vec3i& src, vec3i8& dst) {
+inline void vec3i_to_vec3i8(const vec3i& src, vec3i8& dst) {
     dst.x = (int8_t)src.x;
     dst.y = (int8_t)src.y;
     dst.z = (int8_t)src.z;
 }
 
-inline void vec4i_to_vec4i8(vec4i& src, vec4i8& dst) {
+inline void vec4i_to_vec4i8(const vec4i& src, vec4i8& dst) {
     dst.x = (int8_t)src.x;
     dst.y = (int8_t)src.y;
     dst.z = (int8_t)src.z;
     dst.w = (int8_t)src.w;
 }
 
-inline void vec2u8_to_vec2i(vec2u8& src, vec2i& dst) {
+inline void vec2u8_to_vec2i(const vec2u8& src, vec2i& dst) {
     dst.x = src.x;
     dst.y = src.y;
 }
 
-inline void vec3u8_to_vec4i(vec3u8& src, vec3i& dst) {
+inline void vec3u8_to_vec4i(const vec3u8& src, vec3i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
 }
 
-inline void vec4u8_to_vec4i(vec4u8& src, vec4i& dst) {
+inline void vec4u8_to_vec4i(const vec4u8& src, vec4i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
     dst.w = src.w;
 }
 
-inline void vec2i_to_vec2u8(vec2i& src, vec2u8& dst) {
+inline void vec2i_to_vec2u8(const vec2i& src, vec2u8& dst) {
     dst.x = (uint8_t)src.x;
     dst.y = (uint8_t)src.y;
 }
 
-inline void vec3i_to_vec3u8(vec3i& src, vec3u8& dst) {
+inline void vec3i_to_vec3u8(const vec3i& src, vec3u8& dst) {
     dst.x = (uint8_t)src.x;
     dst.y = (uint8_t)src.y;
     dst.z = (uint8_t)src.z;
 }
 
-inline void vec4i_to_vec4u8(vec4i& src, vec4u8& dst) {
+inline void vec4i_to_vec4u8(const vec4i& src, vec4u8& dst) {
     dst.x = (uint8_t)src.x;
     dst.y = (uint8_t)src.y;
     dst.z = (uint8_t)src.z;
     dst.w = (uint8_t)src.w;
 }
 
-inline void vec2i16_to_vec2i(vec2i16& src, vec2i& dst) {
+inline void vec2i16_to_vec2i(const vec2i16& src, vec2i& dst) {
     dst.x = src.x;
     dst.y = src.y;
 }
 
-inline void vec3i16_to_vec4i(vec3i16& src, vec3i& dst) {
+inline void vec3i16_to_vec4i(const vec3i16& src, vec3i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
 }
 
-inline void vec4i16_to_vec4i(vec4i16& src, vec4i& dst) {
+inline void vec4i16_to_vec4i(const vec4i16& src, vec4i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
     dst.w = src.w;
 }
 
-inline void vec2i_to_vec2i16(vec2i& src, vec2i16& dst) {
+inline void vec2i_to_vec2i16(const vec2i& src, vec2i16& dst) {
     dst.x = (int16_t)src.x;
     dst.y = (int16_t)src.y;
 }
 
-inline void vec3i_to_vec3i16(vec3i& src, vec3i16& dst) {
+inline void vec3i_to_vec3i16(const vec3i& src, vec3i16& dst) {
     dst.x = (int16_t)src.x;
     dst.y = (int16_t)src.y;
     dst.z = (int16_t)src.z;
 }
 
-inline void vec4i_to_vec4i16(vec4i& src, vec4i16& dst) {
+inline void vec4i_to_vec4i16(const vec4i& src, vec4i16& dst) {
     dst.x = (int16_t)src.x;
     dst.y = (int16_t)src.y;
     dst.z = (int16_t)src.z;
     dst.w = (int16_t)src.w;
 }
 
-inline void vec2u16_to_vec2i(vec2u16& src, vec2i& dst) {
+inline void vec2u16_to_vec2i(const vec2u16& src, vec2i& dst) {
     dst.x = src.x;
     dst.y = src.y;
 }
 
-inline void vec3u16_to_vec4i(vec3u16& src, vec3i& dst) {
+inline void vec3u16_to_vec4i(const vec3u16& src, vec3i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
 }
 
-inline void vec4u16_to_vec4i(vec4u16& src, vec4i& dst) {
+inline void vec4u16_to_vec4i(const vec4u16& src, vec4i& dst) {
     dst.x = src.x;
     dst.y = src.y;
     dst.z = src.z;
     dst.w = src.w;
 }
 
-inline void vec2i_to_vec2u16(vec2i& src, vec2u16& dst) {
+inline void vec2i_to_vec2u16(const vec2i& src, vec2u16& dst) {
     dst.x = (uint16_t)src.x;
     dst.y = (uint16_t)src.y;
 }
 
-inline void vec3i_to_vec3u16(vec3i& src, vec3u16& dst) {
+inline void vec3i_to_vec3u16(const vec3i& src, vec3u16& dst) {
     dst.x = (uint16_t)src.x;
     dst.y = (uint16_t)src.y;
     dst.z = (uint16_t)src.z;
 }
 
-inline void vec4i_to_vec4u16(vec4i& src, vec4u16& dst) {
+inline void vec4i_to_vec4u16(const vec4i& src, vec4u16& dst) {
     dst.x = (uint16_t)src.x;
     dst.y = (uint16_t)src.y;
     dst.z = (uint16_t)src.z;

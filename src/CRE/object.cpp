@@ -1688,20 +1688,9 @@ texture* obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
     if (!handler)
         return 0;
 
-    std::pair<uint32_t, uint32_t>* texture = handler->tex_id_data.data();
-    size_t length = handler->tex_id_data.size();
-    size_t temp;
-    while (length > 0)
-        if (tex_id <= texture[temp = length / 2].first)
-            length /= 2;
-        else {
-            texture += temp + 1;
-            length -= temp + 1;
-        }
-
-    if (texture != handler->tex_id_data.data() + handler->tex_id_data.size()
-        && tex_id == texture->first)
-        return (*textures)[texture->second];
+    auto elem = handler->tex_id_data.find(tex_id);
+    if (elem != handler->tex_id_data.end())
+        return (*textures)[elem->second];
     return 0;
 }
 

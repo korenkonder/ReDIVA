@@ -258,8 +258,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         gl_state_bind_sampler(i, 0);
 
     fbo::blit(screen_texture.fbos[0], fbo_texture.fbos[0],
-        screen_x_offset, screen_y_offset, sprite_width, sprite_height,
-        0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        0, 0, screen_width, screen_height,
+        0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void post_process::ctrl(camera* cam) {

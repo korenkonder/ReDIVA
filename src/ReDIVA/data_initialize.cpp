@@ -4,6 +4,7 @@
 */
 
 #include "data_initialize.hpp"
+#include "../CRE/auth_2d.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/hand_item.hpp"
 #include "../CRE/item_table.hpp"
@@ -32,20 +33,24 @@ bool TaskDataInit::Init() {
 
 bool TaskDataInit::Ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     switch (state) {
     case 0: {
         sprite_manager_reset_res_data();
-        //sprite_manager_load_set(4, "");
-        //sprite_manager_load_set(472, "");
-        //sprite_manager_load_set(43, "");
+        sprite_manager_read_file(4, "", aft_data, aft_spr_db);
+        sprite_manager_read_file(472, "", aft_data, aft_spr_db);
+        sprite_manager_read_file(43, "", aft_data, aft_spr_db);
         //fontmap_data_read_file();
         state = 1;
     } break;
     case 1:
-        //if (!sprite_manager_load_file(4) && !sprite_manager_load_file(472)
-        //    && !sprite_manager_load_file(43) && !fontmap_data_parse_file())
+        if (sprite_manager_load_file(4, aft_spr_db)
+            || sprite_manager_load_file(472, aft_spr_db)
+            || sprite_manager_load_file(43, aft_spr_db)
+            /* || fontmap_data_parse_file()*/)
             state = field_6C ? 2 : 4;
         break;
     case 2:
@@ -57,23 +62,25 @@ bool TaskDataInit::Ctrl() {
             state = 4;
         break;
     case 4: {
-        //sprite_manager_load_set(32, "");
-        //aet_manager_load_set(26, "");
-        //sprite_manager_load_set(34, "");
-        //aet_manager_load_set(35, "");
+        sprite_manager_read_file(32, "", aft_data, aft_spr_db);
+        aet_manager_read_file(26, "", aft_data, aft_aet_db);
+        sprite_manager_read_file(34, "", aft_data, aft_spr_db);
+        aet_manager_read_file(35, "", aft_data, aft_aet_db);
         state = 5;
     } break;
     case 5:
-        //if (!sprite_manager_load_file(32) && !aet_manager_load_file(26)
-        //    && !sprite_manager_load_file(34) && !aet_manager_load_file(35))
-        //    break;
+        if (sprite_manager_load_file(32, aft_spr_db)
+            || aet_manager_load_file(26, aft_aet_db)
+            || sprite_manager_load_file(34, aft_spr_db)
+            || aet_manager_load_file(35, aft_aet_db))
+            break;
 
         state = 6;
     case 6:
         //auth_3d_database_read_file();
         //stage_database_read_file();
         state = 7;
-        break;
+        //break;
     case 7:
         //if (auth_3d_database_load_file() || stage_database_load_file())
         //    break;

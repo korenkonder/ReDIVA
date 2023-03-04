@@ -595,6 +595,7 @@ namespace rndr {
         bool npr;
         sss_data sss_data;
         GLuint samplers[18];
+        GLuint sprite_samplers[3];
 
         RenderManager();
         ~RenderManager();
@@ -791,6 +792,11 @@ struct quad_shader_data {
     vec4 g_texture_lod;
 };
 
+struct sprite_scene_shader_data {
+    mat4 g_transform;
+    vec4 g_framebuffer_size;
+};
+
 struct sss_filter_gaussian_coef_shader_data {
     vec4 g_param;
     vec4 g_coef[64];
@@ -828,6 +834,7 @@ struct render_context {
     GL::UniformBuffer imgfilter_batch_ubo;
     GL::UniformBuffer glass_eye_batch_ubo;
     GL::UniformBuffer quad_ubo;
+    GL::UniformBuffer sprite_scene_ubo;
     GL::UniformBuffer sss_filter_gaussian_coef_ubo;
     GL::UniformBuffer transparency_batch_ubo;
 

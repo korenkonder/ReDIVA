@@ -375,12 +375,12 @@ namespace pv_param {
     }
 
     bool post_process_data_load_files(int32_t pv_id) {
-        std::string path = "rom/pv_param/";
-
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "pv%03d/", pv_id);
 
-        path += buf;
+        std::string path;
+        path.assign("rom/pv_param/");
+        path.append(buf);
 
         if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
             return post_process_data.load_files(path);
@@ -388,17 +388,19 @@ namespace pv_param {
     }
 
     bool post_process_data_load_files(int32_t pv_id, std::string& mdata_dir) {
-        std::string path = "rom/pv_param/";
-
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "pv%03d/", pv_id);
 
-        path += buf;
+        std::string path;
+        path.assign("rom/pv_param/");
+        path.append(buf);
 
         if (mdata_dir.size()) {
-            std::string temp_path = mdata_dir + path;
+            std::string temp_path;
+            temp_path.assign(mdata_dir);
+            temp_path.append(path);
             if (data_list[DATA_AFT].check_directory_exists(temp_path.c_str()))
-                path = temp_path;
+                path.assign(temp_path);
         }
 
         if (data_list[DATA_AFT].check_directory_exists(path.c_str()))

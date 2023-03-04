@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
-#include "../prj/vector_pair.hpp"
+#include "../prj/vector_pair_combine.hpp"
 #include "../hash.hpp"
 
 struct spr_info {
@@ -32,38 +32,30 @@ struct spr_info {
     inline bool not_null() const {
         return index != (uint16_t)-1 || set_index != (uint16_t)-1;
     }
-
-    inline bool is_null_modern() const {
-        return index == (uint16_t)-1 && set_index == (uint16_t)-1;
-    }
-
-    inline bool not_null_modern() const {
-        return index != (uint16_t)-1 || set_index != (uint16_t)-1;
-    }
 };
 
 inline bool operator >(const spr_info& left, const spr_info& right) {
-    return left.set_index > right.set_index && left.index > right.index;
+    return *(uint32_t*)&left > *(uint32_t*)&right;
 }
 
 inline bool operator <(const spr_info& left, const spr_info& right) {
-    return left.set_index < right.set_index&& left.index < right.index;
+    return *(uint32_t*)&left < *(uint32_t*)&right;
 }
 
 inline bool operator >=(const spr_info& left, const spr_info& right) {
-    return left.set_index >= right.set_index && left.index >= right.index;
+    return *(uint32_t*)&left >= *(uint32_t*)&right;
 }
 
 inline bool operator <=(const spr_info& left, const spr_info& right) {
-    return left.set_index <= right.set_index && left.index <= right.index;
+    return *(uint32_t*)&left <= *(uint32_t*)&right;
 }
 
 inline bool operator ==(const spr_info& left, const spr_info& right) {
-    return left.set_index == right.set_index && left.index == right.index;
+    return *(uint32_t*)&left == *(uint32_t*)&right;
 }
 
 inline bool operator !=(const spr_info& left, const spr_info& right) {
-    return left.set_index != right.set_index || left.index != right.index;
+    return *(uint32_t*)&left != *(uint32_t*)&right;
 }
 
 struct spr_db_spr_file {
@@ -131,12 +123,12 @@ struct sprite_database_file {
 };
 
 struct sprite_database {
-    prj::vector_pair<uint32_t, spr_db_spr_set> spr_set_ids;
-    prj::vector_pair<uint32_t, spr_db_spr_set> spr_set_indices;
-    prj::vector_pair<std::string, spr_db_spr_set> spr_set_names;
-    prj::vector_pair<uint32_t, spr_db_spr> spr_ids;
-    prj::vector_pair<std::string, spr_db_spr> spr_names;
-    prj::vector_pair<spr_info, spr_db_spr> spr_indices;
+    prj::vector_pair_combine<uint32_t, spr_db_spr_set> spr_set_ids;
+    prj::vector_pair_combine<uint32_t, spr_db_spr_set> spr_set_indices;
+    prj::vector_pair_combine<std::string, spr_db_spr_set> spr_set_names;
+    prj::vector_pair_combine<uint32_t, spr_db_spr> spr_ids;
+    prj::vector_pair_combine<std::string, spr_db_spr> spr_names;
+    prj::vector_pair_combine<spr_info, spr_db_spr> spr_indices;
 
     sprite_database();
     ~sprite_database();
@@ -152,6 +144,6 @@ struct sprite_database {
     const spr_db_spr* get_tex_by_set_id_index(uint32_t set_id, uint32_t index) const;
     const char* get_spr_set_file_name(uint32_t set_id) const;
     uint32_t get_spr_set_id_by_name(const char* name) const;
-    uint32_t get_spr_set_id_by_index(uint32_t index) const;
+    uint32_t get_spr_set_id_by_name_index(uint32_t index) const;
     const char* get_spr_set_name(uint32_t set_id) const;
 };

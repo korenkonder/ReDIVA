@@ -5,14 +5,6 @@
 
 #include "resolution_mode.hpp"
 
-struct resolution_mode_scale_data {
-    vec2 scale;
-    vec2 src_res;
-    vec2 dst_res;
-    resolution_mode src_mode;
-    resolution_mode dst_mode;
-};
-
 const resolution_table_struct resolution_table[] = {
     {  320,  240, 0, 0,   0,  320,  225 }, // QVGA
     {  640,  480, 0, 0,  60,  640,  360 }, // VGA
@@ -87,6 +79,24 @@ resolution_struct::resolution_struct(::resolution_mode mode) {
         height = resolution_table[mode].height_full;
         aspect = (double_t)width / (double_t)height;
         field_20 = resolution_table[mode].field_8;
+    }
+}
+
+resolution_mode_scale_data::resolution_mode_scale_data(
+    resolution_mode src_mode, resolution_mode dst_mode) {
+    scale = 1.0f;
+    src_res = 0.0f;
+    dst_res = 0.0f;
+    this->src_mode = src_mode;
+    this->dst_mode = dst_mode;
+    scale = resolution_mode_get_scale(dst_mode, src_mode);
+    if (dst_mode != RESOLUTION_MODE_MAX && src_mode != RESOLUTION_MODE_MAX
+        && dst_mode >= RESOLUTION_MODE_QVGA && src_mode >= RESOLUTION_MODE_MAX
+        && dst_mode < RESOLUTION_MODE_MAX && src_mode < RESOLUTION_MODE_MAX) {
+        src_res.x = (float_t)resolution_table[src_mode].width_full * 0.5f;
+        src_res.y = (float_t)resolution_table[src_mode].height_full * 0.5f;
+        dst_res.x = (float_t)resolution_table[dst_mode].width_full * 0.5f;
+        dst_res.y = (float_t)resolution_table[dst_mode].height_full * 0.5f;
     }
 }
 

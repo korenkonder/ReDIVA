@@ -22,6 +22,7 @@ public:
     int32_t auth_3d_uid;
     bool repeat;
     bool left_right_reverse;
+    bool pos;
     bool field_1E3;
     int32_t field_1E4;
     bool field_1E8;

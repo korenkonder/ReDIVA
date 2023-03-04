@@ -10,6 +10,7 @@
 #include "file_handler.hpp"
 #include "render_manager.hpp"
 #include "shader_ft.hpp"
+#include "sprite.hpp"
 #include "sound.hpp"
 #include "stage.hpp"
 
@@ -17,6 +18,8 @@ float_t delta_frame_history = 0;
 int32_t delta_frame_history_int = 0;
 
 extern render_context* rctx_ptr;
+
+//extern void dw_gui_ctrl_disp();
 
 static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshArgs* args,
     int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]);
@@ -2098,7 +2101,7 @@ namespace rndr {
         cpu_time(), gpu_time(), time(), draw_pass_3d(), reflect_type(), tex_index(),
         multisample_framebuffer(), multisample_renderbuffer(), multisample(), show_vector_flags(),
         show_vector_length(), show_vector_z_offset(), field_2F8(), effect_texture(), npr_param(),
-        field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr(), samplers() {
+        field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr(), samplers(), sprite_samplers() {
         for (bool& i : pass_sw)
             i = true;
         reflect = true;
@@ -2126,11 +2129,12 @@ namespace rndr {
         }
         gl_state_bind_framebuffer(0);
 
+        static const vec4 border_color = 0.0f;
+
         glCreateSamplers(18, samplers);
         for (int32_t i = 0; i < 18; i++) {
             GLuint sampler = samplers[i];
 
-            static const vec4 border_color = 0.0f;
             glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
             glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER,
                 i % 2 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
@@ -2165,9 +2169,36 @@ namespace rndr {
             }
             glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, wrap_t);
         }
+
+        GLuint sampler;
+        glCreateSamplers(3, sprite_samplers);
+        sampler = sprite_samplers[0];
+        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+        sampler = sprite_samplers[1];
+        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+        sampler = sprite_samplers[2];
+        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
     }
 
     RenderManager::~RenderManager() {
+        glDeleteSamplers(3, sprite_samplers);
         glDeleteSamplers(18, samplers);
 
         if (multisample_framebuffer) {
@@ -2468,6 +2499,7 @@ chara_refract(), view_mat(), matrix_buffer(), box_vao(), box_vbo() {
     imgfilter_batch_ubo.Create(sizeof(imgfilter_batch_shader_data));
     glass_eye_batch_ubo.Create(sizeof(glass_eye_batch_shader_data));
     quad_ubo.Create(sizeof(quad_shader_data));
+    sprite_scene_ubo.Create(sizeof(sprite_scene_shader_data));
     sss_filter_gaussian_coef_ubo.Create(sizeof(sss_filter_gaussian_coef_shader_data));
     transparency_batch_ubo.Create(sizeof(transparency_batch_shader_data));
 
@@ -2486,6 +2518,7 @@ render_context::~render_context() {
 
     transparency_batch_ubo.Destroy();
     sss_filter_gaussian_coef_ubo.Destroy();
+    sprite_scene_ubo.Destroy();
     quad_ubo.Destroy();
     glass_eye_batch_ubo.Destroy();
     imgfilter_batch_ubo.Destroy();
@@ -2522,10 +2555,15 @@ void render_context::ctrl() {
 void render_context::disp() {
     rctx_ptr = this;
     disp_manager.refresh();
+    sprite_manager_reset_req_list();
     draw_state.stats_prev = draw_state.stats;
     draw_state.stats.reset();
     app::TaskWork::Disp();
     render_manager.shadow_ptr->ctrl(this);
+    int32_t sprite_index = sprite_manager_get_index();
+    sprite_manager_set_index(3);
+    //dw_gui_ctrl_disp();
+    sprite_manager_set_index(sprite_index);
     post_process.ctrl(camera);
     render_manager.render_all(this);
     app::TaskWork::Basic();

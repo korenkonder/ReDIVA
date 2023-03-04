@@ -541,7 +541,7 @@ int32_t OsageCollision::cls_ball_oidashi(vec3& vec, const vec3& p, const vec3& c
 }
 
 // 0x140484540
-int32_t OsageCollision::cls_capsule_oidashi(vec3& vec, const vec3& p, const  OsageCollision::Work* cls, const float_t r) {
+int32_t OsageCollision::cls_capsule_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r) {
     vec3 v11 = p - cls->pos[0];
 
     float_t v17 = vec3::dot(v11, cls->vec_center);

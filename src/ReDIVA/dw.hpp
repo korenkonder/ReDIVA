@@ -15,10 +15,16 @@ namespace dw {
         typedef void(*Callback)(Widget* data);
 
         enum Flags {
-            WIDGET_RADIOBUTTON  = 0x10,
-            WIDGET_CHECKBOX     = 0x20,
-            WIDGET_CLOSE_BUTTON = 0x40,
+            WIDGET_4            = 0x004,
+            WIDGET_RADIOBUTTON  = 0x010,
+            WIDGET_CHECKBOX     = 0x020,
+            WIDGET_CLOSE_BUTTON = 0x040,
+            WIDGET_SCROLL_H     = 0x100,
+            WIDGET_SCROLL_V     = 0x200,
+            WIDGET_800          = 0x800,
         };
+
+        bool free;
 
         union {
             int8_t i8;
@@ -32,6 +38,7 @@ namespace dw {
             void* v64;
         } callback_data;
 
+        Callback free_callback;
         std::string name;
         vec2 position;
         vec2 size;
@@ -48,19 +55,27 @@ namespace dw {
         virtual void SetSize(vec2 value);
         virtual vec2 GetPos();
 
+        void Free();
         void SetName(std::string&& str);
+        void UpdateDraw();
     };
 
     class SelectionListener {
     public:
         SelectionListener();
         virtual ~SelectionListener();
+
+        virtual void Field_8(Widget* data) = 0;
+        virtual void Field_10(Widget* data) = 0;
     };
 
     class SelectionAdapter : public SelectionListener {
     public:
         SelectionAdapter();
         virtual ~SelectionAdapter() override;
+
+        virtual void Field_8(Widget* data) override;
+        virtual void Field_10(Widget* data) override;
     };
 
     class SelectionListenerOnHook : public SelectionAdapter {
@@ -70,6 +85,8 @@ namespace dw {
         SelectionListenerOnHook();
         SelectionListenerOnHook(Widget::Callback callback);
         virtual ~SelectionListenerOnHook() override;
+
+        virtual void Field_8(Widget* data) override;
     };
 
     class Composite;
@@ -96,8 +113,60 @@ namespace dw {
         virtual void Draw() override;
     };
 
+    class ScrollBar : public Widget {
+    public:
+        Control* field_68;
+        std::vector<SelectionListener*> selection_listeners;
+        float_t value;
+        float_t min;
+        float_t max;
+        float_t field_94;
+        float_t step;
+        float_t step_fast;
+        int field_A0;
+        bool round;
+        char field_A5;
+        char field_A6;
+        __int64 field_A8;
+        __int64 field_B0;
+        __int64 field_B8;
+        __int64 field_C0;
+        __int64 field_C8;
+        __int64 field_D0;
+        __int64 field_D8;
+        __int64 field_E0;
+        __int64 field_E8;
+        __int64 field_F0;
+        __int64 field_F8;
+        __int64 field_100;
+        __int64 field_108;
+        __int64 field_110;
+        __int64 field_118;
+        __int64 field_120;
+        __int64 field_128;
+        __int64 field_130;
+        __int64 field_138;
+        __int64 field_140;
+        __int64 field_148;
+        __int64 field_150;
+        __int64 field_158;
+        __int64 field_160;
+
+        ScrollBar(Control* parent, Widget::Flags flags);
+        virtual ~ScrollBar() override;
+
+        virtual void Draw() override;
+        virtual void SetSize(vec2 value) override;
+
+        void SetParams(float_t value, float_t min, float_t max,
+            float_t a5, float_t step, float_t step_fast);
+    };
+
     class Scrollable : public Control {
     public:
+        ScrollBar* h_bar;
+        ScrollBar* v_bar;
+
         Scrollable(Composite* parent = 0, Flags flags = (Flags)0);
         virtual ~Scrollable() override;
 
@@ -110,8 +179,8 @@ namespace dw {
         Layout();
         virtual ~Layout();
 
-        virtual vec2 GetSize(dw::Composite* comp) = 0;
-        virtual void SetSize(dw::Composite* comp) = 0;
+        virtual vec2 GetSize(Composite* comp) = 0;
+        virtual void SetSize(Composite* comp) = 0;
     };
 
     class FillLayout : public Layout {
@@ -121,8 +190,8 @@ namespace dw {
         FillLayout(int32_t a2 = 512);
         virtual ~FillLayout() override;
 
-        virtual vec2 GetSize(dw::Composite* comp) override;
-        virtual void SetSize(dw::Composite* comp) override;
+        virtual vec2 GetSize(Composite* comp) override;
+        virtual void SetSize(Composite* comp) override;
     };
 
     class GraphLayout : public Layout {
@@ -132,8 +201,8 @@ namespace dw {
         GraphLayout(int32_t a2 = 512);
         virtual ~GraphLayout() override;
 
-        virtual vec2 GetSize(dw::Composite* comp) override;
-        virtual void SetSize(dw::Composite* comp) override;
+        virtual vec2 GetSize(Composite* comp) override;
+        virtual void SetSize(Composite* comp) override;
     };
 
     class GridLayout : public Layout {
@@ -152,8 +221,8 @@ namespace dw {
         GridLayout(size_t a2 = 2);
         virtual ~GridLayout() override;
 
-        virtual vec2 GetSize(dw::Composite* comp) override;
-        virtual void SetSize(dw::Composite* comp) override;
+        virtual vec2 GetSize(Composite* comp) override;
+        virtual void SetSize(Composite* comp) override;
     };
 
     class RowLayout : public Layout {
@@ -164,14 +233,14 @@ namespace dw {
         RowLayout(int32_t a2 = 256);
         virtual ~RowLayout() override;
 
-        virtual vec2 GetSize(dw::Composite* comp) override;
-        virtual void SetSize(dw::Composite* comp) override;
+        virtual vec2 GetSize(Composite* comp) override;
+        virtual void SetSize(Composite* comp) override;
     };
 
     class Composite : public Scrollable {
     public:
-        dw::Layout* layout;
-        std::vector<dw::Control*> controls;
+        Layout* layout;
+        std::vector<Control*> controls;
 
         Composite(Composite* parent = 0, Flags flags = (Flags)0);
         virtual ~Composite() override;
@@ -179,7 +248,7 @@ namespace dw {
         virtual void Draw() override;
         virtual void Reset() override;
 
-        void SetLayout(dw::Layout* value);
+        void SetLayout(Layout* value);
     };
 
     class Button : public Control {
@@ -196,15 +265,34 @@ namespace dw {
         void SetValue(bool value);
     };
 
+    class ShellCloseButton : public Button {
+    public:
+        ShellCloseButton(dw::Shell* parent);
+        virtual ~ShellCloseButton() override;
+
+        virtual void Draw() override;
+        
+        static void Callback(dw::Widget* data);
+    };
+
     class Shell : public Composite {
     public:
-        bool disp;
+        typedef void(*Callback)(Shell* data);
 
-        Shell(Composite* parent = 0, Flags flags
-            = (dw::Widget::Flags)(0x480 | WIDGET_CLOSE_BUTTON | WIDGET_CHECKBOX | WIDGET_RADIOBUTTON));
+        bool disp;
+        Callback disp_callback;
+        Callback hide_callback;
+        bool destroy;
+        ShellCloseButton* close_button;
+        std::vector<Widget*> children;
+        //std::vector<Menu*> menus;
+
+        Shell(Shell* parent = 0, Flags flags
+            = (Widget::Flags)(0x480 | WIDGET_CLOSE_BUTTON | WIDGET_CHECKBOX | WIDGET_RADIOBUTTON));
         virtual ~Shell() override;
 
         virtual void Draw() override;
+        virtual void Reset() override;
 
         virtual void Hide();
 
@@ -216,6 +304,7 @@ namespace dw {
     class List : public Scrollable {
     public:
         std::vector<std::string> items;
+        std::vector<int32_t> selections;
         size_t hovered_item;
         size_t selected_item;
         std::vector<SelectionListener*> selection_listeners;
@@ -231,11 +320,14 @@ namespace dw {
         void AddSelectionListener(SelectionListener* value);
         void ClearItems();
         std::string GetItem(size_t index) const;
+        void ResetSelectedItem();
+        void ResetSetSelectedItem(size_t index);
+        void SetSelectedItem(size_t index);
     };
     
     class ListBox : public Composite {
     public:
-        dw::List* list;
+        List* list;
 
         ListBox(Composite* parent = 0, Flags flags = (Flags)0x204);
         virtual ~ListBox() override;
@@ -249,4 +341,28 @@ namespace dw {
         void ClearItems();
         std::string GetItem(size_t index) const;
     };
+
+    class Slider : public Control {
+    public:
+        const char* format;
+        std::vector<SelectionListener*> selection_listeners;
+        ScrollBar* scroll_bar;
+
+        Slider(Composite* parent, Widget::Flags flags);
+        virtual ~Slider();
+
+        virtual void Draw() override;
+        virtual void Reset() override;
+        virtual void SetSize(vec2 value) override;
+
+        void AddSelectionListener(SelectionListener* value);
+
+        static Slider* make(Composite* parent, Widget::Flags flags,
+            float_t x, float_t y, float_t width, float_t height, const char* name);
+    };
 }
+
+extern void dw_gui_detail_display_init();
+extern void dw_gui_detail_display_free();
+
+extern void dw_gui_ctrl_disp();

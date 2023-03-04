@@ -14,7 +14,6 @@
 #include "../KKdLib/kf.hpp"
 #include "frame_rate_control.hpp"
 #include "render_context.hpp"
-#include "task.hpp"
 
 enum auth_3d_ambient_flags {
     AUTH_3D_AMBIENT_LIGHT_DIFFUSE     = 0x01,
@@ -840,6 +839,7 @@ struct auth_3d_id {
     void set_mat(const mat4& value);
     void set_max_frame(float_t value);
     void set_paused(bool value);
+    void set_pos(int32_t value);
     void set_repeat(bool value);
     void set_req_frame(float_t value);
     void set_shadow(bool value);
@@ -866,6 +866,7 @@ struct auth_3d {
     bool shadow;
     int32_t src_chara;
     int32_t dst_chara;
+    int32_t pos;
     FrameRateControl* frame_rate;
     float_t frame;
     float_t req_frame;

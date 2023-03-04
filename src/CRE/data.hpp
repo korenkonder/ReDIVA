@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/database/aet.hpp"
 #include "../KKdLib/database/auth_3d.hpp"
 #include "../KKdLib/database/bone.hpp"
 #include "../KKdLib/database/motion.hpp"
@@ -65,6 +66,7 @@ struct data_f2 {
 #endif
 
 struct data_ft {
+    aet_database aet_db;
     auth_3d_database auth_3d_db;
     bone_database bone_data;
     motion_database mot_db;

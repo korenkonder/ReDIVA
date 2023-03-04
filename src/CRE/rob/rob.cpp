@@ -11315,6 +11315,10 @@ void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::O
     }
 }
 
+void rob_chara_array_set_visibility(int32_t chara_id, bool value) {
+    rob_chara_array[chara_id].set_visibility(value);
+}
+
 bool pv_osage_manager_array_get_disp() {
     bool disp = false;
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)

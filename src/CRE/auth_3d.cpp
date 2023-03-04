@@ -16,8 +16,10 @@
 #include "clear_color.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"
+#include "task.hpp"
 #include "task_effect.hpp"
 #include "sound.hpp"
+#include "sprite.hpp"
 #include "stage.hpp"
 
 namespace auth_3d_detail {
@@ -100,7 +102,7 @@ static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t f
 static void auth_3d_camera_root_load(auth_3d* auth, auth_3d_camera_root* cr, auth_3d_camera_root_file* crf);
 static void auth_3d_camera_root_view_point_load(auth_3d* auth, auth_3d_camera_root_view_point* crvp,
     auth_3d_camera_root_view_point_file* crvpf);
-static void auth_3d_chara_disp(auth_3d_chara* c, mat4* parent_mat, render_context* rctx);
+static void auth_3d_chara_disp(auth_3d_chara* c, auth_3d* auth, render_context* rctx);
 static void auth_3d_chara_load(auth_3d* auth, auth_3d_chara* c, auth_3d_chara_file* cf);
 static void auth_3d_curve_load(auth_3d* auth, auth_3d_curve* c, auth_3d_curve_file* cf);
 static void auth_3d_dof_load(auth_3d* auth, auth_3d_dof* d, auth_3d_dof_file* df);
@@ -142,7 +144,7 @@ static void auth_3d_object_texture_pattern_load(auth_3d* auth, auth_3d_object_te
 static void auth_3d_object_texture_transform_load(auth_3d* auth, auth_3d_object_texture_transform* ott,
     auth_3d_object_texture_transform_file* ottf, texture_database* tex_db);
 static void auth_3d_play_control_load(auth_3d* auth, auth_3d_play_control_file* pcf);
-static void auth_3d_point_disp(auth_3d_point* p, mat4* parent_mat, render_context* rctx);
+static void auth_3d_point_disp(auth_3d_point* p, auth_3d* auth, render_context* rctx);
 static void auth_3d_point_load(auth_3d* auth, auth_3d_point* p, auth_3d_point_file* pf);
 static void auth_3d_post_process_load(auth_3d* auth, auth_3d_post_process* pp, auth_3d_post_process_file* ppf);
 static void auth_3d_post_process_restore_prev_value(auth_3d_post_process* pp, render_context* rctx);
@@ -193,7 +195,7 @@ static auth_3d_detail::FrameRateTimeStop frame_rate_time_stop;
 extern render_context* rctx_ptr;
 
 auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(), ended(),
-left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), frame_rate(), frame(),
+left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), pos(), frame_rate(), frame(),
 req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused(), event_time_next() {
     hash = hash_murmurhash_empty;
     src_chara = CHARA_MAX;
@@ -412,13 +414,16 @@ void auth_3d::disp(render_context* rctx) {
     if (state != 2 || !enable)
         return;
 
+    if (pos)
+        spr::put_rgb_cross(mat);
+
     auth_3d_set_material_list(this, rctx);
 
     for (auth_3d_point& i : point)
-        auth_3d_point_disp(&i, &mat, rctx);
+        auth_3d_point_disp(&i, this, rctx);
 
     for (auth_3d_chara& i : chara)
-        auth_3d_chara_disp(&i, &mat, rctx);
+        auth_3d_chara_disp(&i, this, rctx);
 
     for (auth_3d_object*& i : object_list)
         auth_3d_object_disp(i, this, rctx);
@@ -712,6 +717,7 @@ void auth_3d::reset() {
     shadow = false;
     src_chara = CHARA_MAX;
     dst_chara = CHARA_MAX;
+    pos = 0;
     frame_rate = &sys_frame_rate;
     frame = 0.0f;
     req_frame = 0.0f;
@@ -2472,6 +2478,14 @@ void auth_3d_id::set_paused(bool value) {
     }
 }
 
+void auth_3d_id::set_pos(int32_t value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            auth->pos = value;
+    }
+}
+
 void auth_3d_id::set_repeat(bool value) {
     if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
@@ -2545,7 +2559,8 @@ auth_3d_data_struct::~auth_3d_data_struct() {
 }
 
 void auth_3d_data_init() {
-    auth_3d_data = new auth_3d_data_struct;
+    if (!auth_3d_data)
+        auth_3d_data = new auth_3d_data_struct;
 }
 
 bool auth_3d_data_check_category_loaded(const char* category_name) {
@@ -2827,11 +2842,15 @@ void auth_3d_data_unload_category(uint32_t category_hash) {
 }
 
 void auth_3d_data_free() {
-    delete auth_3d_data;
+    if (auth_3d_data) {
+        delete auth_3d_data;
+        auth_3d_data = 0;
+    }
 }
 
 void task_auth_3d_init() {
-    task_auth_3d = new auth_3d_detail::TaskAuth3d;
+    if (!task_auth_3d)
+        task_auth_3d = new auth_3d_detail::TaskAuth3d;
 }
 
 bool task_auth_3d_add_task() {
@@ -3459,8 +3478,14 @@ static void auth_3d_camera_root_view_point_load(auth_3d* auth, auth_3d_camera_ro
     }
 }
 
-static void auth_3d_chara_disp(auth_3d_chara* c, mat4* parent_mat, render_context* rctx) {
+static void auth_3d_chara_disp(auth_3d_chara* c, auth_3d* auth, render_context* rctx) {
+    if (c->index <= ROB_CHARA_COUNT)
+        rob_chara_array_set_visibility(c->index, c->model_transform.visible);
 
+    if (auth->pos) {
+        c->model_transform.set_mat(&auth->mat);
+        spr::put_rgb_cross(c->model_transform.mat);
+    }
 }
 
 static void auth_3d_chara_load(auth_3d* auth, auth_3d_chara* c, auth_3d_chara_file* cf) {
@@ -5411,6 +5436,9 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
         return;
 
     if (!auth->visible) {
+        if (auth->pos)
+            spr::put_rgb_cross(o->model_transform.mat);
+
         for (auth_3d_object*& i : o->children_object)
             auth_3d_object_disp(i, auth, rctx);
         for (auth_3d_object_hrc*& i : o->children_object_hrc)
@@ -5537,6 +5565,9 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     disp_manager.set_texture_transform();
     disp_manager.set_texture_pattern();
     disp_manager.set_obj_flags();
+
+    if (auth->pos)
+        spr::put_rgb_cross(o->model_transform.mat);
 
     for (auth_3d_object*& i : o->children_object)
         auth_3d_object_disp(i, auth, rctx);
@@ -5907,8 +5938,11 @@ static void auth_3d_play_control_load(auth_3d* auth, auth_3d_play_control_file* 
     pc->size = pcf->size;
 }
 
-static void auth_3d_point_disp(auth_3d_point* p, mat4* parent_mat, render_context* rctx) {
-
+static void auth_3d_point_disp(auth_3d_point* p, auth_3d* auth, render_context* rctx) {
+    if (auth->pos) {
+        p->model_transform.set_mat(&auth->mat);
+        spr::put_rgb_cross(p->model_transform.mat);
+    }
 }
 
 static void auth_3d_point_load(auth_3d* auth, auth_3d_point* p, auth_3d_point_file* pf) {

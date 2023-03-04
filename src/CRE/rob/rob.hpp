@@ -3529,6 +3529,7 @@ extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
 extern void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id);
 extern void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags);
+extern void rob_chara_array_set_visibility(int32_t chara_id, bool value);
 
 extern bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t module_index);
 

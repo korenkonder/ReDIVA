@@ -133,12 +133,12 @@ DtwStg::DtwStg() : Shell(0) {
 
     //dw::List::sub_1402F9930(this->ns->list, 30);
     ns->list->hovered_item = 0;
-    ns->list->selected_item = 0;
+    ns->list->ResetSetSelectedItem(0);
     ns->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     //dw::List::sub_1402F9930(this->stage->list, 30);
     stage->list->hovered_item = 0;
-    stage->list->selected_item = 0;
+    stage->list->ResetSetSelectedItem(0);
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     stage_display = new dw::Button(this, WIDGET_CHECKBOX);
@@ -444,6 +444,11 @@ bool dtm_stg_unload() {
 }
 
 void dtm_stg_free() {
+    if (dtw_stg) {
+        delete dtw_stg;
+        dtw_stg = 0;
+    }
+
     if (dtm_stg) {
         delete dtm_stg;
         dtm_stg = 0;
@@ -451,23 +456,19 @@ void dtm_stg_free() {
 }
 
 void dtw_stg_init() {
-    dtw_stg = new DtwStg;
+    if (!dtw_stg)
+        dtw_stg = new DtwStg;
     dtw_stg->Disp();
 }
 
 void dtw_stg_load(bool hide) {
-    dtw_stg->SetDisp(!hide);
+    dtw_stg_init();
+    if (hide)
+        dtw_stg->SetDisp(false);
 }
 
 void dtw_stg_unload() {
     dtw_stg->Hide();
-}
-
-void dtw_stg_free() {
-    if (dtw_stg) {
-        delete dtw_stg;
-        dtw_stg = 0;
-    }
 }
 
 static int stage_test_stage_pv_quicksort_compare_func(void const* src1, void const* src2) {

@@ -42,6 +42,7 @@ Auth3dTestTask::Auth3dTestTask() {
     auth_3d_uid = -1;
     repeat = true;
     left_right_reverse = false;
+    pos = false;
     field_1E3 = false;
     field_1E4 = 0;
     field_1E8 = false;
@@ -78,6 +79,7 @@ bool Auth3dTestTask::Init() {
     auth_3d_uid = -1;
     repeat = true;
     left_right_reverse = false;
+    pos = false;
     field_1E3 = false;
     field_1E4 = 0;
     field_1E8 = false;
@@ -124,6 +126,7 @@ bool Auth3dTestTask::Ctrl() {
         auth_3d_id.set_paused(false);
         auth_3d_id.set_repeat(repeat);
         auth_3d_id.set_left_right_reverse(left_right_reverse);
+        auth_3d_id.set_pos(pos ? 1 : 0);
         field_1D4 = 4;
     }
 
@@ -409,7 +412,7 @@ void Auth3dTestWindow::Window() {
     ImFont* font = ImGui::GetFont();
 
     float_t w = min_def((float_t)width, 280.0f);
-    float_t h = min_def((float_t)height, 324.0f);
+    float_t h = min_def((float_t)height, 344.0f);
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -552,6 +555,8 @@ void Auth3dTestWindow::Window() {
 
     if (ImGui::Checkbox("Left Right Reverse", &auth_3d_test_task->left_right_reverse))
         _frame = 0.0f;
+    
+    ImGui::Checkbox("pos", &auth_3d_test_task->pos);
 
     if (_frame != frame) {
         frame_changed = true;
@@ -631,6 +636,7 @@ void Auth3dTestWindow::Window() {
         auth_3d_test_task->auth_3d_id.set_enable(enable);
         auth_3d_test_task->auth_3d_id.set_repeat(auth_3d_test_task->repeat);
         auth_3d_test_task->auth_3d_id.set_left_right_reverse(auth_3d_test_task->left_right_reverse);
+        auth_3d_test_task->auth_3d_id.set_pos(auth_3d_test_task->pos ? 1 : 0);
         if (frame_changed) {
             auth_3d_test_task->auth_3d_id.set_req_frame(frame);
             frame_changed = false;

@@ -19,6 +19,7 @@ namespace system_startup_detail {
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual bool Dest() override;
+        virtual void Disp() override;
     };
 }
 

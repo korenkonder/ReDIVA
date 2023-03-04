@@ -14,6 +14,7 @@
 #include "post_process.hpp"
 #include "render_texture.hpp"
 #include "shader_ft.hpp"
+#include "sprite.hpp"
 #include "static_var.hpp"
 #include "task_effect.hpp"
 #include "texture.hpp"
@@ -478,7 +479,7 @@ namespace rndr {
         if (!sss_data.enable || !sss_data.npr_contour) {
             pp->set_render_texture();
 
-            if (false/*sprite_manager_get_reqlist_count(2)*/) {
+            if (sprite_manager_get_reqlist_count(2)) {
                 glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
                 glClearDepth(1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -495,7 +496,7 @@ namespace rndr {
             gl_state_bind_framebuffer(0);
         }
         else {
-            if (false/*sprite_manager_get_reqlist_count(2)*/) {
+            if (sprite_manager_get_reqlist_count(2)) {
                 pp->set_render_texture();
 
                 vec4 clear_color = 0.0f;
@@ -516,19 +517,19 @@ namespace rndr {
     }
 
     void RenderManager::pass_sprite_bg(render_context* rctx) {
-        if (!(false/*sprite_manager_get_reqlist_count(2)*/))
+        if (!sprite_manager_get_reqlist_count(2))
             return;
 
         post_process* pp = &rctx->post_process;
         pp->set_render_texture(true);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT);
-        //rctx->camera->projection_aet_3d;
         gl_state_set_depth_mask(GL_FALSE);
         gl_state_disable_depth_test();
         gl_state_enable_blend();
         gl_state_disable_cull_face();
-        //sprite_manager_draw(2, 1, pp->aa->mlaa_buffer[1].color_texture->tex);
+        sprite_manager_draw(rctx, 2, true,
+            pp->aa->temp_buffer.color_texture, rctx->camera->projection_aet_3d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();
         gl_state_enable_depth_test();
@@ -774,7 +775,11 @@ namespace rndr {
     }
 
     void RenderManager::pass_sprite_fg(render_context* rctx) {
+        if (!sprite_manager_get_reqlist_count(0))
+            return;
+
         post_process* pp = &rctx->post_process;
+        glViewport(0, 0, pp->screen_width, pp->screen_height);
 
         if (multisample && multisample_framebuffer) {
             glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
@@ -782,13 +787,14 @@ namespace rndr {
             glClearColor(0.0, 0.0, 0.0, 0.0);
             glClear(GL_COLOR_BUFFER_BIT);
         }
-
-        //rctx->camera->projection_aet_2d;
+        else
+            rctx->post_process.fbo_texture.bind();
 
         gl_state_disable_depth_test();
         gl_state_enable_blend();
         gl_state_disable_cull_face();
-        //sprite_manager_draw(0, 1, pp->aa->mlaa_buffer[1].color_texture->tex);
+        sprite_manager_draw(rctx, 0, true,
+            pp->aa->temp_buffer.color_texture, rctx->camera->projection_aet_2d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();
         gl_state_enable_depth_test();
@@ -837,16 +843,18 @@ namespace rndr {
     }
     
     void RenderManager::pass_sprite_fg_surf(render_context* rctx) {
-        if (!(false/*sprite_manager_get_reqlist_count(1)*/))
+        if (!sprite_manager_get_reqlist_count(1))
             return;
 
-        //rctx->camera->projection_aet_2d;
+        post_process* pp = &rctx->post_process;
+
         gl_state_set_depth_mask(GL_FALSE);
         gl_state_disable_depth_test();
         gl_state_disable_depth_test();
         gl_state_enable_blend();
         gl_state_disable_cull_face();
-        //sprite_manager_draw(1, 1, rctx->post_process.aa->temp_buffer.color_texture);
+        sprite_manager_draw(rctx, 1, true,
+            pp->aa->temp_buffer.color_texture, rctx->camera->projection_aet_2d);
     }
 }
 
@@ -1285,16 +1293,6 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
     render_texture::draw_quad(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     gl_state_bind_texture_2d(0);
-}
-
-void sub_1404A9350(post_process* a1, bool a2) {
-    if (a2) {
-        a1->aet_back_texture.bind();
-        a1->aet_back = 1;
-    }
-    else
-        a1->rend_texture.bind();
-    glViewport(0, 0, a1->render_width, a1->render_height);
 }
 
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {

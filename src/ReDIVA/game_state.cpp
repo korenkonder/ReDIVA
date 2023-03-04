@@ -5,9 +5,12 @@
 
 #include "game_state.hpp"
 #include "../CRE/rob/rob.hpp"
+#include "../CRE/auth_2d.hpp"
+#include "../CRE/auth_3d.hpp"
 #include "../CRE/clear_color.hpp"
 #include "../CRE/pv_db.hpp"
 #include "../CRE/task.hpp"
+#include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
@@ -974,7 +977,7 @@ bool GameState::AppError::Dest() {
 bool SubGameState::DataInitialize::Init() {
     task_data_init_add_task();
     task_auth_3d_add_task();
-    //task_auth_2d_add_task();
+    aet_manager_add_task();
     //no_good_add_task();
     return true;
 }
@@ -1293,7 +1296,7 @@ bool SubGameState::DataTestStg::Ctrl() {
 bool SubGameState::DataTestStg::Dest() {
     clear_color = { 0x00, 0x00, 0x00, 0xFF };
 
-    dtw_stg_free();
+    dtw_stg->Hide();
     dtm_stg->DelTask();
     return true;
 }
@@ -1341,6 +1344,8 @@ bool SubGameState::DataTestSpr::Dest() {
 }
 
 bool SubGameState::DataTestAet::Init() {
+    clear_color = { 0x60, 0x60, 0x60, 0xFF };
+    dtm_aet_load();
     return true;
 }
 
@@ -1349,6 +1354,8 @@ bool SubGameState::DataTestAet::Ctrl() {
 }
 
 bool SubGameState::DataTestAet::Dest() {
+    clear_color = { 0x00, 0x00, 0x00, 0xFF };
+    dtm_aet_unload();
     return true;
 }
 

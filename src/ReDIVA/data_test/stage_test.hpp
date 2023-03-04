@@ -65,4 +65,3 @@ extern void dtm_stg_free();
 extern void dtw_stg_init();
 extern void dtw_stg_load(bool hide);
 extern void dtw_stg_unload();
-extern void dtw_stg_free();

@@ -11,6 +11,8 @@
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/skin_param.hpp"
+#include "../CRE/auth_2d.hpp"
+#include "../CRE/auth_3d.hpp"
 #include "../CRE/camera.hpp"
 #include "../CRE/clear_color.hpp"
 #include "../CRE/data.hpp"
@@ -42,6 +44,7 @@
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/stage_test.hpp"
@@ -435,6 +438,8 @@ static bool render_init(render_init_struct* ris) {
     width = (int32_t)(width / 2.0f);
     height = (int32_t)(height / 2.0f);
 
+    res_window_set(RESOLUTION_MODE_HD);
+
 #if BAKE_PNG || BAKE_VIDEO
     width = 1920;
     height = 1080;
@@ -531,10 +536,12 @@ static render_context* render_context_load() {
     render_texture_data_init();
 
     data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
@@ -559,19 +566,23 @@ static render_context* render_context_load() {
 
     rob_init();
     task_wind_init();
+    aet_manager_init();
+    sprite_manager_init();
     auth_3d_data_init();
     auth_3d_test_task_init();
     task_auth_3d_init();
     task_stage_init();
-    dtm_stg_init();
     task_stage_modern_init();
     light_param_data_storage_data_init();
     task_effect_init();
     task_pv_db_init();
     Glitter::glt_particle_manager_init();
 
+    dw_gui_detail_display_init();
+
     auth_3d_test_window_init();
-    dtw_stg_init();
+    dtm_aet_init();
+    dtm_stg_init();
     task_data_test_glitter_particle_init();
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
@@ -835,7 +846,8 @@ static render_context* render_context_load() {
 
     rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
-    rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
+    rctx->render_manager.resize(width, height);
+    rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
 
     render_resize_fb(rctx, true);
 
@@ -852,7 +864,11 @@ static render_context* render_context_load() {
 
     hand_item_handler_data_init();
     //rob_sleeve_data_init();
-    sprite_manager_init();
+
+    aet_manager_add_aet_sets(aft_aet_db, false);
+    sprite_manager_add_spr_sets(aft_spr_db, false);
+
+    sprite_manager_set_res((double_t)width / (double_t)height, width, height);
 
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
@@ -869,8 +885,9 @@ static render_context* render_context_load() {
 
     camera* cam = rctx->camera;
 
+    resolution_struct* res_wind = res_window_get();
     cam->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
-        internal_2d_res.x, internal_2d_res.y);
+        res_wind->width, res_wind->height);
     //cam->set_position({ 1.35542f, 1.41634f, 1.27852f });
     //cam->rotate({ -45.0, -32.5 });
     //cam->set_position({ -6.67555f, 4.68882f, -3.67537f });
@@ -947,14 +964,16 @@ static void render_context_ctrl(render_context* rctx) {
     global_context_menu = true;
     lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
+    dw_gui_ctrl_disp();
     app::TaskWork_Window();
     classes_process_imgui(classes, classes_count);
     lock_unlock(imgui_context_lock);
 
     if (old_width != width || old_height != height || old_scale_index != scale_index) {
         render_resize_fb(rctx, true);
+        resolution_struct* res_wind = res_window_get();
         cam->set_res(internal_3d_res.x, internal_3d_res.y,
-            internal_2d_res.x, internal_2d_res.y);
+            res_wind->width, res_wind->height);
     }
     old_width = width;
     old_height = height;
@@ -1001,7 +1020,7 @@ static void render_context_ctrl(render_context* rctx) {
         game_state_set_game_state_next(GAME_STATE_GAME);
     else if (Input::IsKeyTapped(GLFW_KEY_F6)) {
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AUTH_3D);
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AET);
     }
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
@@ -1075,12 +1094,12 @@ static void render_context_disp(render_context* rctx) {
     int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
     int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
     glViewport(screen_x_offset, screen_y_offset, internal_2d_res.x, internal_2d_res.y);
-    rctx->post_process.screen_texture.bind();
+    rctx->post_process.fbo_texture.bind();
     classes_process_disp(classes, classes_count);
     gl_state_bind_framebuffer(0);
 
     if (rctx->render_manager.pass_sw[rndr::RND_PASSID_POSTPROCESS])
-        fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
+        fbo::blit(rctx->post_process.fbo_texture.fbos[0], 0,
             0, 0, width, height,
             0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
@@ -1111,6 +1130,7 @@ static void render_context_dispose(render_context* rctx) {
     //pv_game_data.DelTask();
     Glitter::glt_particle_manager_del_task();
     task_auth_3d_del_task();
+    aet_manager_del_task();
     task_pv_db_del_task();
 
     app::TaskWork::Dest();
@@ -1124,17 +1144,24 @@ static void render_context_dispose(render_context* rctx) {
     sound_work_unload_farc("rom/sound/slide_se.farc");
     sound_work_unload_farc("rom/sound/slide_long.farc");
 
+    data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+
     object_storage_unload_set(dbg_set_id);
-    //AetUnloadSet(26);
-    //SprUnloadSet(32);
-    //AetUnloadSet(35);
-    //SprUnloadSet(34);
-    //SprUnloadSet(4);
-    //SprUnloadSet(472);
-    //SprUnloadSet(43);
+    aet_manager_unload_set(26, aft_aet_db);
+    sprite_manager_unload_set(32, aft_spr_db);
+    aet_manager_unload_set(35, aft_aet_db);
+    sprite_manager_unload_set(34, aft_spr_db);
+    sprite_manager_unload_set(4, aft_spr_db);
+    sprite_manager_unload_set(472, aft_spr_db);
+    sprite_manager_unload_set(43, aft_spr_db);
+
+    sprite_manager_remove_spr_sets(aft_spr_db, false);
+    aet_manager_remove_aet_sets(aft_aet_db, false);
+
     hand_item_handler_data_free();
     //rob_sleeve_data_free();
-    sprite_manager_free();
 
     //rob_chara_array_free_chara_id(0);
     render_timer->reset();
@@ -1153,19 +1180,23 @@ static void render_context_dispose(render_context* rctx) {
     light_param_data_storage::unload();
 
     task_data_test_glitter_particle_free();
-    dtw_stg_free();
+    dtm_stg_free();
+    dtm_aet_free();
     auth_3d_test_window_free();
+
+    dw_gui_detail_display_free();
 
     Glitter::glt_particle_manager_free();
     task_pv_db_free();
     task_effect_free();
     light_param_data_storage_data_free();
     task_stage_modern_free();
-    dtm_stg_free();
     task_stage_free();
     task_auth_3d_free();
     auth_3d_test_task_free();
     auth_3d_data_free();
+    sprite_manager_free();
+    aet_manager_free();
     task_wind_free();
     rob_free();
 
@@ -1295,8 +1326,9 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     if (fb_changed && change_fb) {
         rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
-        rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
+        rctx->render_manager.resize(width, height);
         rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
+        sprite_manager_set_res((double_t)width / (double_t)height, width, height);
     }
 }
 

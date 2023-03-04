@@ -92,6 +92,16 @@ struct resolution_struct {
     resolution_struct(::resolution_mode mode);
 };
 
+struct resolution_mode_scale_data {
+    vec2 scale;
+    vec2 src_res;
+    vec2 dst_res;
+    resolution_mode src_mode;
+    resolution_mode dst_mode;
+
+    resolution_mode_scale_data(resolution_mode src_mode, resolution_mode dst_mode);
+};
+
 extern const resolution_table_struct resolution_table[];
 
 extern resolution_struct* res_window_get();

@@ -46,27 +46,27 @@ struct object_info {
 };
 
 inline bool operator >(const object_info& left, const object_info& right) {
-    return left.set_id > right.set_id && left.id > right.id;
+    return *(uint64_t*)&left > *(uint64_t*)&right;
 }
 
 inline bool operator <(const object_info& left, const object_info& right) {
-    return left.set_id < right.set_id&& left.id < right.id;
+    return *(uint64_t*)&left < *(uint64_t*)&right;
 }
 
 inline bool operator >=(const object_info& left, const object_info& right) {
-    return left.set_id >= right.set_id && left.id >= right.id;
+    return *(uint64_t*)&left >= *(uint64_t*)&right;
 }
 
 inline bool operator <=(const object_info& left, const object_info& right) {
-    return left.set_id <= right.set_id && left.id <= right.id;
+    return *(uint64_t*)&left <= *(uint64_t*)&right;
 }
 
 inline bool operator ==(const object_info& left, const object_info& right) {
-    return left.set_id == right.set_id && left.id == right.id;
+    return *(uint64_t*)&left == *(uint64_t*)&right;
 }
 
 inline bool operator !=(const object_info& left, const object_info& right) {
-    return left.set_id != right.set_id || left.id != right.id;
+    return *(uint64_t*)&left != *(uint64_t*)&right;
 }
 
 struct object_info_data_file {

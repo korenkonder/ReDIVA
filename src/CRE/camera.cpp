@@ -10,10 +10,11 @@ static void camera_calculate_projection_aet(camera* c);
 static void camera_calculate_view(camera* c);
 static void camera_calculate_forward(camera* c);
 
-camera::camera() : forward(), rotation(), view_point(), interest(), render_width(), render_height(),
-sprite_width(), sprite_height(), field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(),
-pitch(), roll(), aspect(), fov(), fov_rad(), max_distance(), min_distance(), changed_view(),
-changed_proj(), changed_proj_aet(), fast_change(), fast_change_hist0(), fast_change_hist1() {
+camera::camera() : forward(), rotation(), view_point(), interest(), fov_correct_height(),
+aet_depth(), render_width(), render_height(), sprite_width(), sprite_height(),
+field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(),
+fov(), fov_rad(), max_distance(), min_distance(), changed_view(), changed_proj(),
+changed_proj_aet(), fast_change(), fast_change_hist0(), fast_change_hist1() {
 
 }
 
@@ -25,6 +26,8 @@ void camera::initialize(double_t aspect, int32_t render_width,
     int32_t render_height, int32_t sprite_width, int32_t sprite_height) {
     this->aspect = aspect;
     fov = 0.0;
+    fov_correct_height = 0.0f;
+    aet_depth = 0.0f;
     forward = { 0.0f, 0.0f, -1.0f };
     rotation = { 0.0f, 0.0f, 0.0f };
     view_point = { 0.0, 0.0f, 0.0f };
@@ -335,6 +338,7 @@ static void camera_calculate_projection(camera* c) {
     mat4_inverse(&c->projection, &c->inv_projection);
 
     float_t fov_correct_height = (float_t)(((double_t)c->render_height * 0.5) / tan(c->fov_rad * 0.5));
+
     float_t height = (float_t)c->render_height * 0.5f;
     float_t width = (float_t)c->render_height * (float_t)c->aspect * 0.5f;
 
@@ -363,6 +367,10 @@ static void camera_calculate_projection_aet(camera* c) {
     float_t render_half_height = (float_t)c->render_height * 0.5f;
 
     float_t aet_depth = sprite_half_height / (tanf(0.34557518363f) * 0.75f);
+    c->aet_depth = aet_depth;
+
+    float_t fov_correct_height = (float_t)(sprite_half_height / tan(c->fov_rad * 0.5));
+    c->fov_correct_height = fov_correct_height;
 
     float_t v8a = (float_t)c->min_distance / aet_depth * sprite_half_width;
     float_t v8b = (float_t)c->min_distance / aet_depth * sprite_half_height;
