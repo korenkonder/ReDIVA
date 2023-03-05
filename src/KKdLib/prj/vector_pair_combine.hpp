@@ -99,7 +99,7 @@ namespace prj {
         inline typename auto begin() {
             return data.begin();
         }
-        
+
         inline typename auto begin() const {
             return data.begin();
         }
@@ -111,7 +111,7 @@ namespace prj {
         inline typename auto end() {
             return data.end();
         }
-        
+
         inline typename auto end() const {
             return data.end();
         }
@@ -123,7 +123,7 @@ namespace prj {
         inline typename auto rbegin() {
             return data.rbegin();
         }
-        
+
         inline typename auto rbegin() const  {
             return data.rbegin();
         }
@@ -135,7 +135,7 @@ namespace prj {
         inline typename auto rend() {
             return data.rend();
         }
-        
+
         inline typename auto rend() const {
             return data.rend();
         }

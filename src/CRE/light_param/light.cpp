@@ -345,7 +345,7 @@ void light_set::data_set(face& face, light_set_id id) {
     lights[LIGHT_CHARA].get_diffuse(obj_scene.g_light_env_chara_diffuse);
     lights[LIGHT_CHARA].get_ambient(obj_scene.g_light_env_chara_ambient);
     lights[LIGHT_CHARA].get_specular(obj_scene.g_light_env_chara_specular);
-    
+
     lights[LIGHT_REFLECT].get_diffuse(obj_scene.g_light_env_reflect_diffuse);
     lights[LIGHT_REFLECT].get_ambient(obj_scene.g_light_env_reflect_ambient);
 

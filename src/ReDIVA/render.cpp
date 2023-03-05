@@ -413,12 +413,12 @@ void render_data::load_common_data() {
 
 void render_data::unload_common_data() {
     common_data_ubo.Destroy();
-    
+
     if (grid_vbo) {
         glDeleteBuffers(1, &grid_vbo);
         grid_vbo = 0;
     }
-    
+
     if (grid_vao) {
         glDeleteVertexArrays(1, &grid_vao);
         grid_vao = 0;

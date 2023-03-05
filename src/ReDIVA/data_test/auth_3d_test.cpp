@@ -555,7 +555,7 @@ void Auth3dTestWindow::Window() {
 
     if (ImGui::Checkbox("Left Right Reverse", &auth_3d_test_task->left_right_reverse))
         _frame = 0.0f;
-    
+
     ImGui::Checkbox("pos", &auth_3d_test_task->pos);
 
     if (_frame != frame) {

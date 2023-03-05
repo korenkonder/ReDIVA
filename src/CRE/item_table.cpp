@@ -135,7 +135,7 @@ bool item_table_handler_array_load() {
     bool ret = false;
     for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
         ret |= item_table_handler_array[i].load();
-    return ret;    
+    return ret;
 }
 
 void item_table_handler_array_read() {
@@ -187,7 +187,7 @@ bool item_table_handler::load() {
         i = 0;
     }
     file_handlers.clear();
-    
+
     loaded = true;
     return false;
 }

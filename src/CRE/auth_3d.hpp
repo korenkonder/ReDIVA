@@ -796,7 +796,7 @@ struct auth_3d_id {
     inline auth_3d_id() {
         id = -1;
     }
-    
+
     inline auth_3d_id(int32_t id) {
         this->id = id;
     }
@@ -804,7 +804,7 @@ struct auth_3d_id {
     inline bool is_null() {
         return id == -1;
     }
-    
+
     inline bool not_null() {
         return id != -1;
     }

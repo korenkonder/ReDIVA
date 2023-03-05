@@ -868,14 +868,14 @@ namespace spr {
         if (set)
             set->ReadFile(file, mdata_dir, data);
     }
-    
+
     void SpriteManager::ReadFile(int32_t index,
         const char* file, std::string&& mdata_dir, void* data) {
         SprSet* set = GetSet(index);
         if (set)
             set->ReadFile(file, mdata_dir, data);
     }
-    
+
     void SpriteManager::ResetIndex() {
         index = 0;
     }

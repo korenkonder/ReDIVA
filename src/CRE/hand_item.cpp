@@ -131,7 +131,7 @@ bool hand_item_handler::load() {
         i = 0;
     }
     file_handlers.clear();
-    
+
     loaded = true;
     return false;
 }

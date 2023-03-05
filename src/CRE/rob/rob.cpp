@@ -329,7 +329,7 @@ struct rob_chara_age_age_object {
     void load(object_info obj_info, int32_t count);
     void reset();
     void update(rob_chara_age_age_data* data, int32_t count, float_t alpha);
-    
+
     static obj_bounding_sphere combine_bounding_spheres(
         obj_bounding_sphere* src0, obj_bounding_sphere* src1);
 };
@@ -2263,7 +2263,7 @@ void rob_free() {
         delete[] rob_chara_age_age_array;
         rob_chara_age_age_array = 0;
     }
-    
+
     if (pv_osage_manager_array) {
         delete[] pv_osage_manager_array;
         pv_osage_manager_array = 0;
@@ -6937,19 +6937,22 @@ static void sub_1405077D0(rob_chara* rob_chr, bone_database* bone_data, motion_d
     }
 }
 
-static bool sub_140419E90(rob_chara_bone_data* rob_bone_data) {
-    mot_play_data* v2 = &rob_bone_data->motion_loaded.front()->mot_play_data;
-    if (v2->loop_frames_enabled)
-        return v2->loop_frames <= 0.0f;
-    else if (v2->frame_data.loop_state >= MOT_PLAY_FRAME_DATA_LOOP_ONCE
-        && v2->frame_data.loop_state <= MOT_PLAY_FRAME_DATA_LOOP_REVERSE)
+static bool sub_140413710(mot_play_data* a1) {
+    if (a1->loop_frames_enabled)
+        return a1->loop_frames <= 0.0f;
+    else if (a1->frame_data.loop_state >= MOT_PLAY_FRAME_DATA_LOOP_ONCE
+        && a1->frame_data.loop_state <= MOT_PLAY_FRAME_DATA_LOOP_REVERSE)
         return false;
-    else if (v2->frame_data.playback_state == MOT_PLAY_FRAME_DATA_PLAYBACK_FORWARD)
-        return v2->frame_data.last_frame < v2->frame_data.frame;
-    else if (v2->frame_data.playback_state == MOT_PLAY_FRAME_DATA_PLAYBACK_BACKWARD)
-        return v2->frame_data.frame < 0.0f;
+    else if (a1->frame_data.playback_state == MOT_PLAY_FRAME_DATA_PLAYBACK_FORWARD)
+        return a1->frame_data.last_frame < a1->frame_data.frame;
+    else if (a1->frame_data.playback_state == MOT_PLAY_FRAME_DATA_PLAYBACK_BACKWARD)
+        return a1->frame_data.frame < 0.0f;
     else
         return false;
+}
+
+static bool sub_140419E90(rob_chara_bone_data* rob_bone_data) {
+    return sub_140413710(&rob_bone_data->motion_loaded.front()->mot_play_data);
 }
 
 static void sub_140505310(rob_chara* rob_chr, bone_database* bone_data, motion_database* mot_db) {
@@ -9826,6 +9829,7 @@ static void sub_14041B1C0(struc_313* a1) {
 
     for (uint32_t i = MOTION_BONE_N_EYELID_L_A; i <= MOTION_BONE_TL_EYELID_R_B_WJ; i++)
         bitfield[i >> 5] &= ~(1 << (i & 0x1F));
+    sub_14041B440(a1);
 }
 
 static void sub_14041B6B0(struc_313* a1) {

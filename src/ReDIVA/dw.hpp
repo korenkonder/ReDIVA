@@ -310,7 +310,7 @@ namespace dw {
         virtual ~ShellCloseButton() override;
 
         virtual void Draw() override;
-        
+
         static void Callback(dw::Widget* data);
     };
 
@@ -363,7 +363,7 @@ namespace dw {
         void ResetSetSelectedItem(size_t index);
         void SetSelectedItem(size_t index);
     };
-    
+
     class ListBox : public Composite {
     public:
         List* list;

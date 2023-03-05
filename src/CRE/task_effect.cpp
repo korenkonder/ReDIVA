@@ -1477,7 +1477,7 @@ void TaskEffectLitproj::SetStageIndices(std::vector<int32_t>& stage_indices) {
             texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
             stage_param_data_litproj_current = litproj;
-            
+
             light_proj* _litproj = new light_proj(width, height);
             rctx_ptr->litproj = _litproj;
             _litproj->enable = true;
@@ -2491,7 +2491,7 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 
     prj::sort_unique(obj_set_ids);
-    
+
     for (uint32_t i : obj_set_ids)
         object_storage_load_set(aft_data, aft_obj_db, i);
     state = 1;

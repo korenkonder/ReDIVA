@@ -253,7 +253,7 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
     }
 
     values.push_back({ (float_t)(int32_t)(start_time + (count - 1)), arr[count - 1], t2_old, 0.0f });
-    
+
     kft3* keys = values.data();
     size_t length = values.size();
     for (size_t i = 0; i < count; i++) {

@@ -402,15 +402,15 @@ DtwAet::DtwAet() : Shell(0) {
     frame->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::FrameCallback));
 
     (new dw::Label(this))->SetName("SWITCH");
-    
+
     dw::Button* lock = new dw::Button(this, dw::CHECKBOX);
     lock->SetName("LOCK");
     lock->callback = DtwAet::LockCallback;
-    
+
     dw::Button* loop = new dw::Button(this, dw::CHECKBOX);
     loop->SetName("LOOP");
     loop->callback = DtwAet::LoopCallback;
-    
+
     dw::Button* centering = new dw::Button(this, dw::CHECKBOX);
     centering->SetName("CENTERING");
     centering->callback = DtwAet::CenteringCallback;

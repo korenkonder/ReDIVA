@@ -916,7 +916,7 @@ void AetObj::Init(AetArgs& args, const aet_scene* scene, const aet_comp* comp, c
     const aet_marker* start_marker, const aet_marker* end_marker, resolution_mode mode) {
     start_time = scene->start_time;
     end_time = scene->end_time - 1.0f;
-    
+
     if (layer) {
         start_time = layer->start_time;
         end_time = layer->end_time - 1.0f;
@@ -1196,7 +1196,7 @@ void AetObj::CtrlLayer(const aet_layer* layer, float_t frame) {
 
     if (frame != 0.0f)
         return;
-    
+
     std::string file(layer->name);
     auto elem = sound_replace.find(file);
     if (elem != sound_replace.end())
@@ -1505,7 +1505,7 @@ AetLyo::~AetLyo() {
 }
 
 void AetLyo::CtrlLayer(const aet_layer* layer, float_t frame) {
-    
+
 }
 
 void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,

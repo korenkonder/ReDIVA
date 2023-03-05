@@ -206,8 +206,8 @@ namespace Glitter {
         rend_elem->rot_z_sin = 0.0f;
         rend_elem->rotation.z = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_random.z)
             + ptcl_inst_data->data.rotation.z;
-        rend_elem->rotation_add.z = random->F2GetFloat(GLT_VAL,
-            ptcl_inst_data->data.rotation_add_random.z) + ptcl_inst_data->data.rotation_add.z;
+        rend_elem->rotation_add.z = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_add_random.z)
+            + ptcl_inst_data->data.rotation_add.z;
         rend_elem->uv_scroll = 0.0f;
         rend_elem->uv_scroll_2nd = 0.0f;
         rend_elem->scale = 1.0f;
@@ -220,7 +220,7 @@ namespace Glitter {
             rend_elem->scale_particle.y = rend_elem->scale_particle.x;
         else
             rend_elem->scale_particle.y = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.scale_random.y)
-            + ptcl_inst_data->data.scale.y;
+                + ptcl_inst_data->data.scale.y;
 
         int32_t max_uv = ptcl_inst_data->data.split_u * ptcl_inst_data->data.split_v;
         if (max_uv > 1 && ptcl_inst_data->data.uv_index_count > 1) {
@@ -693,7 +693,7 @@ namespace Glitter {
         }
         else
             rend_elem->scale_particle.y = random->XGetFloat(ptcl_inst_data->data.scale_random.y)
-            + ptcl_inst_data->data.scale.y;
+                + ptcl_inst_data->data.scale.y;
 
         int32_t max_uv = ptcl_inst_data->data.split_u * ptcl_inst_data->data.split_v;
         if (max_uv > 1 && ptcl_inst_data->data.uv_index_count > 1) {

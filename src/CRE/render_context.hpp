@@ -69,7 +69,7 @@ namespace mdl {
         OBJ_KIND_TRANSLUCENT,
         OBJ_KIND_MAX,
     };
-    
+
     enum ObjFlags : uint32_t {
         OBJ_SHADOW                = 0x00000001,
         OBJ_2                     = 0x00000002,
@@ -357,10 +357,10 @@ namespace mdl {
         vec4 color;
         bool fog;
         Data data;
-   
+
         void init(EtcObjType type);
     };
-    
+
     typedef void(*UserArgsFunc)(render_context* rctx, void* data);
 
     struct UserArgs {
@@ -372,7 +372,7 @@ namespace mdl {
         uint32_t count;
         ObjSubMeshArgs* sub_mesh[40];
     };
-    
+
     struct ObjData {
         union Args {
             ObjSubMeshArgs sub_mesh;

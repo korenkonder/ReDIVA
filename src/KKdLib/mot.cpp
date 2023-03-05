@@ -598,7 +598,7 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
     uint32_t key_set_count = m->key_set_count;
     mot_key_set_data* key_set_array = alloc->allocate<mot_key_set_data>(key_set_count);
     m->key_set_array = key_set_array;
-    
+
     s_motc.set_position(mh.key_set_types_offset, SEEK_SET);
     for (uint32_t j = 0, b = 0; j < key_set_count; j++) {
         if (j % 8 == 0)

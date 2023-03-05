@@ -24,7 +24,7 @@ namespace Glitter {
         this->value = value;
         this->random_range = random_range;
     }
-    
+
     Curve::Key::Key(KeyType type, int32_t frame, float_t value,
         float_t tangent1, float_t tangent2, float_t random_range) {
         this->type = type;

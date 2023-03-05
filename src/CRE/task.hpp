@@ -39,7 +39,7 @@ namespace app {
             Hide,
             Run,
         };
-        
+
         enum class State {
             None = 0,
             Running,

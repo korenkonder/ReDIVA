@@ -417,7 +417,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
             strcpy_s(frag_bin_buf, sizeof(frag_bin_buf), sub_table->fp);
             strcat_s(frag_bin_buf, sizeof(frag_bin_buf), ".frag.bin");
-            
+
             bool has_vert_bin = of->has_file(vert_bin_buf);
             bool has_frag_bin = of->has_file(frag_bin_buf);
 

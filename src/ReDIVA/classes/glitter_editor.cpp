@@ -4345,9 +4345,11 @@ static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
                 case Glitter::UV_INDEX_INITIAL_RANDOM_REVERSE: {
                     LARGE_INTEGER time;
                     QueryPerformanceCounter(&time);
-                    uv_index += time.LowPart % particle->data.uv_index_count;
+                    uv_index = particle->data.uv_index_start
+                        + time.LowPart % particle->data.uv_index_count;
                 } break;
                 }
+                uv_index = min_def(uv_index, particle->data.uv_index_end);
             }
         }
         else if (particle->data.uv_index_type == Glitter::UV_INDEX_INITIAL_RANDOM_FIXED) {

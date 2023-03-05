@@ -46,7 +46,7 @@ namespace prj {
             sort();
             unique();
         }
-        
+
         inline typename auto find(T key) {
             auto k = this->begin();
             size_t l = this->size();

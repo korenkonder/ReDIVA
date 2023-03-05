@@ -44,7 +44,7 @@ namespace GL {
             }
 
         }
-        
+
         inline void Create(size_t size, const void* data) {
             if (buffer)
                 return;

@@ -841,7 +841,7 @@ namespace rndr {
         gl_state_enable_depth_test();
         gl_state_disable_blend();
     }
-    
+
     void RenderManager::pass_sprite_fg_surf(render_context* rctx) {
         if (!sprite_manager_get_reqlist_count(1))
             return;
@@ -1555,7 +1555,7 @@ static void blur_filter_apply(render_context* rctx, GLuint dst, GLuint src,
     filter_scene.g_transform = { w, h, 0.0f, 0.0f };
     filter_scene.g_texcoord = { 1.0f, 1.0f, 0.0f, 0.0f };
     rctx->filter_scene_ubo.WriteMapMemory(filter_scene);
-    
+
     imgfilter_batch_shader_data imgfilter_batch = {};
     if (filter == BLUR_FILTER_32)
         imgfilter_batch.g_color_scale = scale * (float_t)(1.0 / 8.0);

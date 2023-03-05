@@ -41,7 +41,7 @@ namespace dw_gui_detail {
 
         Display();
         ~Display();
-        
+
         void AddShell(dw::Shell* value);
         void CheckShells();
         void Ctrl();
@@ -128,15 +128,15 @@ namespace dw {
     SelectionListener::SelectionListener() {
 
     }
-    
+
     SelectionListener::~SelectionListener() {
 
     }
-    
+
     SelectionAdapter::SelectionAdapter() {
 
     }
-    
+
     SelectionAdapter::~SelectionAdapter() {
 
     }
@@ -152,11 +152,11 @@ namespace dw {
     SelectionListenerOnHook::SelectionListenerOnHook() : callback() {
 
     }
-    
+
     SelectionListenerOnHook::SelectionListenerOnHook(Widget::Callback callback) {
         this->callback = callback;
     }
-    
+
     SelectionListenerOnHook::~SelectionListenerOnHook() {
 
     }
@@ -169,7 +169,7 @@ namespace dw {
         callback_data(), free_callback(), parent() {
         this->flags = flags;
     }
-    
+
     Widget::~Widget() {
 
     }
@@ -232,7 +232,7 @@ namespace dw {
             parent_shell = parent->parent_shell;
         }
     }
-    
+
     Control::~Control() {
 
     }
@@ -307,7 +307,7 @@ namespace dw {
             v_bar->SetName("v_bar");
         }
     }
-    
+
     Scrollable::~Scrollable() {
 
     }
@@ -328,7 +328,7 @@ namespace dw {
     Layout::~Layout() {
 
     }
-    
+
     FillLayout::FillLayout(int32_t a2) {
         field_8 = a2;
     }
@@ -490,7 +490,7 @@ namespace dw {
     Composite::Composite(Composite* parent, Flags flags) : Scrollable(parent, flags), layout() {
 
     }
-    
+
     Composite::~Composite() {
 
     }
@@ -528,7 +528,7 @@ namespace dw {
     Button::Button(Composite* parent, Flags flags) : Control(parent, flags),  value(), callback() {
 
     }
-    
+
     Button::~Button() {
 
     }
@@ -635,7 +635,7 @@ namespace dw {
 
         for (Widget* i : vec)
             i->Free();
-        
+
         /*for (Menu* i : menus)
             i->Free();
         menus.clear();*/

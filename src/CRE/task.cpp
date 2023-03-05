@@ -122,7 +122,7 @@ namespace app {
         Task_set_request(this, Task::Request::Run);
         return true;
     }
-    
+
     bool Task::SuspendTask() {
         if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Suspend))
             return false;
