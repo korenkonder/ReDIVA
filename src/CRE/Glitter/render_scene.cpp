@@ -751,7 +751,7 @@ namespace Glitter {
                     }
 
                     mat3 ptc_rot;
-                    mat3_rotate(elem->rotation.x, elem->rotation.y, elem->rotation.z, &ptc_rot);
+                    mat3_rotate_zyx(elem->rotation.x, elem->rotation.y, elem->rotation.z, &ptc_rot);
                     for (int32_t k = 0; k < 4; k++, buf++) {
                         vec3 xy_vec_rot;
                         xy_vec_rot.x = x_vec.x * pos_add[k].x;
@@ -1578,7 +1578,7 @@ namespace Glitter {
                     mat = dir_mat;
 
                 mat4_set_translation(&mat, &trans);
-                mat4_rotate_mult(&mat, &rot, &mat);
+                mat4_rotate_zyx_mult(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &mat);
 
 
@@ -1942,7 +1942,7 @@ namespace Glitter {
                     }
 
                     mat3 ptc_rot;
-                    mat3_rotate(elem->rotation.x, elem->rotation.y, elem->rotation.z, &ptc_rot);
+                    mat3_rotate_zyx(elem->rotation.x, elem->rotation.y, elem->rotation.z, &ptc_rot);
                     for (int32_t k = 0; k < 4; k++, buf++) {
                         vec3 xy_vec_rot;
                         xy_vec_rot.x = x_vec.x * pos_add[k].x;

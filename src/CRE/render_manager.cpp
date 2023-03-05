@@ -779,7 +779,7 @@ namespace rndr {
             return;
 
         post_process* pp = &rctx->post_process;
-        glViewport(0, 0, pp->screen_width, pp->screen_height);
+        glViewport(0, 0, pp->sprite_width, pp->sprite_height);
 
         if (multisample && multisample_framebuffer) {
             glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
@@ -788,7 +788,7 @@ namespace rndr {
             glClear(GL_COLOR_BUFFER_BIT);
         }
         else
-            rctx->post_process.fbo_texture.bind();
+            rctx->post_process.screen_texture.bind();
 
         gl_state_disable_depth_test();
         gl_state_enable_blend();

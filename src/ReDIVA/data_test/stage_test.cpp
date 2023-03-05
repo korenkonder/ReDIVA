@@ -55,7 +55,7 @@ bool DtmStg::Ctrl() {
         return false;
     }
 
-    task_stage_current_set_stage_display(dtw_stg->stage_display->value, 1);
+    task_stage_current_set_stage_display(dtw_stg->stage_display->value, true);
     task_stage_current_set_ground(dtw_stg->ground->value);
     task_stage_current_set_ring(dtw_stg->ring->value);
     task_stage_current_set_sky(dtw_stg->sky->value);
@@ -74,29 +74,37 @@ DtwStg::DtwStg() : Shell(0) {
 
     std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
 
+    position = { 0.0f, 0.0f };
+    size = { 250.0f, 240.0f };
+
     dw::Widget::SetName("STAGE TEST");
 
     dw::Composite* pv_comp = new dw::Composite(this);
-    pv_comp->SetLayout(new dw::RowLayout);
+    pv_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(pv_comp))->SetName("PV:");
+    (new dw::Label(pv_comp, dw::LABEL_SIZE))->SetName("PV:");
 
     pv_id = new dw::ListBox(pv_comp);
+    pv_id->SetSize({ 48.0f, 0.0f });
+
     pv = new dw::ListBox(pv_comp);
+    pv->SetSize({ 160.0f, 0.0f });
 
     dw::Composite* ns_comp = new dw::Composite(this);
-    ns_comp->SetLayout(new dw::RowLayout);
+    ns_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(ns_comp))->SetName("NS:");
+    (new dw::Label(ns_comp, dw::LABEL_SIZE))->SetName("NS:");
 
     ns = new dw::ListBox(ns_comp);
+    ns->SetSize({ 160.0f, 0.0f });
 
     dw::Composite* other_comp = new dw::Composite(this);
-    other_comp->SetLayout(new dw::RowLayout);
+    other_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(other_comp))->SetName("Other:");
+    (new dw::Label(other_comp, dw::LABEL_SIZE))->SetName("Other:");
 
     other = new dw::ListBox(other_comp);
+    other->SetSize({ 160.0f, 0.0f });
 
     stage = new dw::ListBox(this);
 
@@ -141,23 +149,23 @@ DtwStg::DtwStg() : Shell(0) {
     stage->list->ResetSetSelectedItem(0);
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
-    stage_display = new dw::Button(this, WIDGET_CHECKBOX);
+    stage_display = new dw::Button(this, dw::CHECKBOX);
     stage_display->SetName("Stage display");
     stage_display->SetValue(true);
 
-    ring = new dw::Button(this, WIDGET_CHECKBOX);
+    ring = new dw::Button(this, dw::CHECKBOX);
     ring->SetName("[Ring]");
     ring->SetValue(true);
 
-    ground = new dw::Button(this, WIDGET_CHECKBOX);
+    ground = new dw::Button(this, dw::CHECKBOX);
     ground->SetName("[Ground]");
     ground->SetValue(true);
 
-    sky = new dw::Button(this, WIDGET_CHECKBOX);
+    sky = new dw::Button(this, dw::CHECKBOX);
     sky->SetName("[Sky]");
     sky->SetValue(true);
 
-    effect_display = new dw::Button(this, WIDGET_CHECKBOX);
+    effect_display = new dw::Button(this, dw::CHECKBOX);
     effect_display->SetName("Effects display");
     effect_display->SetValue(true);
 
@@ -171,230 +179,6 @@ DtwStg::~DtwStg() {
 void DtwStg::Hide() {
     SetDisp(false);
 }
-
-/*void DtwStg::Window() {
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuiStyle& style = ImGui::GetStyle();
-    ImFont* font = ImGui::GetFont();
-
-    float_t w = min_def((float_t)width, 240.0f);
-    float_t h = min_def((float_t)height, 240.0f);
-
-    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
-    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
-
-    ImGuiWindowFlags window_flags = 0;
-    window_flags |= ImGuiWindowFlags_NoResize;
-
-    window_focus = false;
-    if (!ImGui::Begin("Stage Test##Data Test", 0, window_flags)) {
-        ImGui::End();
-        return;
-    }
-
-    data_struct* aft_data = &data_list[DATA_AFT];
-    stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
-
-    std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
-
-    int32_t _pv_id = this->_pv_id;
-
-    char buf[0x100];
-    sprintf_s(buf, sizeof(buf), "%03d", _pv_id);
-
-    ImGui::Text("PV:");
-    ImGui::SameLine(0.0f, 1.0f);
-    ImGui::SetNextItemWidth(48.0f);
-    if (ImGui::BeginCombo("##PV:", buf, 0)) {
-        for (stage_test_stage_pv& i : stage_pv) {
-            ImGui::PushID(&i);
-            sprintf_s(buf, sizeof(buf), "%03d", i.pv_id);
-            if (ImGui::Selectable(buf, _pv_id == i.pv_id)
-                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                || (ImGui::IsItemFocused() && _pv_id != i.pv_id))
-                _pv_id = i.pv_id;
-            ImGui::PopID();
-
-            if (_pv_id == i.pv_id)
-                ImGui::SetItemDefaultFocus();
-        }
-
-        window_focus |= ImGui::IsWindowFocused();
-        ImGui::EndCombo();
-    }
-
-    if (_pv_id != this->_pv_id) {
-        pv_index = -1;
-        this->_pv_id = _pv_id;
-    }
-
-    int32_t _pv_index = pv_index;
-
-    ImGui::SameLine(0.0f, 1.0f);
-    ImGui::SetNextItemWidth(160.0f);
-    bool pv_id_found = false;
-    for (stage_test_stage_pv& i : stage_pv) {
-        if (_pv_id != i.pv_id)
-            continue;
-
-        if (ImGui::BeginCombo("##PV Index", pv_index > -1
-            ? stg_data[i.stage[pv_index]].name.c_str() : "", 0)) {
-            for (int32_t& j : i.stage) {
-                int32_t pv_idx = (int32_t)(&j - i.stage.data());
-
-                ImGui::PushID(j);
-                if (ImGui::Selectable(stg_data[j].name.c_str(), _pv_index == pv_idx)
-                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                    || (ImGui::IsItemFocused() && _pv_index != pv_idx)) {
-                    pv_index = -1;
-                    _pv_index = pv_idx;
-                }
-                ImGui::PopID();
-
-                if (_pv_index == pv_idx)
-                    ImGui::SetItemDefaultFocus();
-            }
-            window_focus |= ImGui::IsWindowFocused();
-            ImGui::EndCombo();
-        }
-
-        if (_pv_index != pv_index) {
-            //stage_load = true;
-            //stage_index_load = i.stage[_pv_index];
-            pv_index = _pv_index;
-        }
-        pv_id_found = true;
-        break;
-    }
-
-    if (!pv_id_found && ImGui::BeginCombo("##PV Index", "", 0)) {
-        window_focus |= ImGui::IsWindowFocused();
-        ImGui::EndCombo();
-    }
-
-    int32_t _ns_index = ns_index;
-
-    ImGui::Text("NS:");
-    ImGui::SameLine(0.0f, 1.0f);
-    ImGui::SetNextItemWidth(160.0f);
-    if (ImGui::BeginCombo("##NS Index", _ns_index > -1
-        ? stg_data[(stage_ns)[_ns_index]].name.c_str() : "", 0)) {
-        for (int32_t& i : stage_ns) {
-            int32_t ns_idx = (int32_t)(&i - stage_ns.data());
-
-            ImGui::PushID(i);
-            if (ImGui::Selectable(stg_data[stage_ns[i]].name.c_str(), _ns_index == ns_idx)
-                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                || (ImGui::IsItemFocused() && _ns_index != ns_idx)) {
-                ns_index = -1;
-                _ns_index = ns_idx;
-            }
-            ImGui::PopID();
-
-            if (_ns_index == ns_idx)
-                ImGui::SetItemDefaultFocus();
-        }
-
-        window_focus |= ImGui::IsWindowFocused();
-        ImGui::EndCombo();
-    }
-
-    if (_ns_index != ns_index) {
-        //stage_load = true;
-        //stage_index_load = stage_ns[_ns_index];
-        ns_index = _ns_index;
-    }
-
-    int32_t _other_index = other_index;
-
-    ImGui::Text("Other:");
-    ImGui::SameLine(0.0f, 1.0f);
-    ImGui::SetNextItemWidth(160.0f);
-    if (ImGui::BeginCombo("##Other Index", _other_index > -1
-        ? stg_data[stage_other[_other_index]].name.c_str() : "", 0)) {
-        for (int32_t& i : stage_other) {
-            int32_t other_idx = (int32_t)(&i - stage_other.data());
-
-            ImGui::PushID(i);
-            if (ImGui::Selectable(stg_data[i].name.c_str(), _other_index == other_idx)
-                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                || (ImGui::IsItemFocused() && _other_index != other_idx)) {
-                other_index = -1;
-                _other_index = other_idx;
-            }
-            ImGui::PopID();
-
-            if (_other_index == other_idx)
-                ImGui::SetItemDefaultFocus();
-        }
-
-        window_focus |= ImGui::IsWindowFocused();
-        ImGui::EndCombo();
-    }
-
-    if (_other_index != other_index) {
-        //stage_load = true;
-        //stage_index_load = stage_other[_other_index];
-        other_index = _other_index;
-    }
-
-    int32_t _stage_index = stage_index;
-
-    ImGui::GetContentRegionAvailSetNextItemWidth();
-    if (ImGui::BeginCombo("##Stage Index", _stage_index > -1
-        ? stg_data[_stage_index].name.c_str() : "", 0)) {
-        for (stage_data& i : stg_data) {
-            int32_t stage_idx = (int32_t)(&i - stg_data.data());
-
-            ImGui::PushID(&i);
-            if (ImGui::Selectable(i.name.c_str(), _stage_index == stage_idx)
-                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                || (ImGui::IsItemFocused() && _stage_index != stage_idx)) {
-                stage_index = -1;
-                _stage_index = stage_idx;
-            }
-            ImGui::PopID();
-
-            if (_stage_index == stage_idx)
-                ImGui::SetItemDefaultFocus();
-        }
-
-        window_focus |= ImGui::IsWindowFocused();
-        ImGui::EndCombo();
-    }
-
-    if (_stage_index != stage_index) {
-        //stage_load = true;
-        //stage_index_load = _stage_index;
-        stage_index = _stage_index;
-    }
-
-    ::stage* stg = task_stage_get_current_stage();
-    if (stg) {
-        ImGui::Checkbox("Stage display", &stg->stage_display);
-        ImGui::Checkbox("[Ring]", &stg->ring);
-        ImGui::Checkbox("[Ground]", &stg->ground);
-        ImGui::Checkbox("[Sky]", &stg->sky);
-        //ImGui::Checkbox("Effects display", &stg->effect_display);
-        bool effects_display = true;
-        ImGui::Checkbox("Effects display", &effects_display);
-    }
-    else {
-        bool stage_display = true;
-        ImGui::Checkbox("Stage display", &stage_display);
-        bool ring = true;
-        ImGui::Checkbox("[Ring]", &ring);
-        bool ground = true;
-        ImGui::Checkbox("[Ground]", &ground);
-        bool sky = true;
-        ImGui::Checkbox("[Sky]", &sky);
-        bool effects_display = true;
-        ImGui::Checkbox("Effects display", &effects_display);
-    }
-
-    window_focus |= ImGui::IsWindowFocused();
-    ImGui::End();
-}*/
 
 void DtwStg::PvIdCallback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);

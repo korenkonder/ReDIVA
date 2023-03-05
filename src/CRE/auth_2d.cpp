@@ -497,7 +497,6 @@ public:
 class AetMgr : public app::Task {
 public:
     std::map<int32_t, AetSet> sets;
-    std::map<uint32_t, AetSet> sets_modern;
     std::map<uint32_t, AetObj> objects;
     std::list<std::map<uint32_t, AetObj>::iterator> free_objects;
     uint32_t load_counter;
@@ -511,7 +510,7 @@ public:
     virtual void Disp() override;
     virtual void Basic() override;
 
-    void AddAetSets(const aet_database* aet_db, bool modern);
+    void AddAetSets(const aet_database* aet_db);
     void FreeAetObject(uint32_t id);
     void FreeAetObject(std::map<uint32_t, AetObj>::iterator it);
     void FreeAetSetObjects(uint32_t set_index);
@@ -535,7 +534,7 @@ public:
     uint32_t InitAetObject(AetArgs& args);
     bool LoadFile(int32_t index);
     void ReadFile(int32_t index, const char* file, std::string& mdata_dir, void* data);
-    void RemoveAetSets(const aet_database* aet_db, bool modern);
+    void RemoveAetSets(const aet_database* aet_db);
     void SetObjAlpha(uint32_t id, float_t value);
     void SetObjColor(uint32_t id, const vec4& value);
     void SetObjEndTime(uint32_t id, float_t value);
@@ -604,8 +603,8 @@ void aet_manager_init() {
         aet_manager = new AetMgr;
 }
 
-void aet_manager_add_aet_sets(const aet_database* aet_db, bool modern) {
-    aet_manager->AddAetSets(aet_db, modern);
+void aet_manager_add_aet_sets(const aet_database* aet_db) {
+    aet_manager->AddAetSets(aet_db);
 }
 
 bool aet_manager_add_task() {
@@ -781,8 +780,8 @@ void aet_manager_read_file(uint32_t set_id,
     aet_manager->ReadFile(set->index, set->file_name.c_str(), mdata_dir, data);
 }
 
-void aet_manager_remove_aet_sets(const aet_database* aet_db, bool modern) {
-    aet_manager->RemoveAetSets(aet_db, modern);
+void aet_manager_remove_aet_sets(const aet_database* aet_db) {
+    aet_manager->RemoveAetSets(aet_db);
 }
 
 void aet_manager_set_obj_alpha(uint32_t id, float_t value) {
@@ -1028,9 +1027,7 @@ void AetObj::Disp() {
 
     mat4 mat;
     mat4_translate(&pos, &mat);
-    mat4_rotate_x_mult(&mat, rot.x, &mat);
-    mat4_rotate_y_mult(&mat, rot.y, &mat);
-    mat4_rotate_z_mult(&mat, rot.z * scale_size.x * scale_size.y, &mat);
+    mat4_rotate_xyz_mult(&mat, rot.x, rot.y, rot.z * scale_size.x * scale_size.y, &mat);
     mat4_scale_rot(&mat, scale.x * scale_size.x, scale.y * scale_size.y, scale.z, &mat);
     mat4_translate_mult(&mat, -anchor.x, -anchor.y, -anchor.z, &mat);
 
@@ -1316,7 +1313,7 @@ void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
     color.w *= opacity;
 
     spr::SprArgs args;
-    args.id.index = elem->second;
+    args.id.id = elem->second;
     args.mat = mat;
     args.index = index;
     args.layer = layer_index;
@@ -1747,13 +1744,9 @@ void AetMgr::Basic() {
     }
 }
 
-void AetMgr::AddAetSets(const aet_database* aet_db, bool modern) {
-    if (modern)
-        for (auto& i : aet_db->aet_set_ids)
-            sets_modern.insert({ i.first, AetSet(i.first) });
-    else
-        for (auto& i : aet_db->aet_set_indices)
-            sets.insert({ i.first, AetSet(i.first) });
+void AetMgr::AddAetSets(const aet_database* aet_db) {
+    for (auto& i : aet_db->aet_set_indices)
+        sets.insert({ i.first, AetSet(i.first) });
 }
 
 void AetMgr::FreeAetObject(uint32_t id) {
@@ -1942,13 +1935,9 @@ void AetMgr::ReadFile(int32_t index, const char* file, std::string& mdata_dir, v
         set->ReadFile(dir, file, data);
 }
 
-void AetMgr::RemoveAetSets(const aet_database* aet_db, bool modern) {
-    if (modern)
-        for (auto& i : aet_db->aet_set_ids)
-            sets_modern.erase(i.first);
-    else
-        for (auto& i : aet_db->aet_set_indices)
-            sets.erase(i.first);
+void AetMgr::RemoveAetSets(const aet_database* aet_db) {
+    for (auto& i : aet_db->aet_set_indices)
+        sets.erase(i.first);
 }
 
 void AetMgr::SetObjAlpha(uint32_t id, float_t value) {

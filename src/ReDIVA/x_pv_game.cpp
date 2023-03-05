@@ -6122,7 +6122,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_SET_STAGE_EFFECT_ENV: {
-
+        printf_debug("Env: % 3d; Trans: %3d\n", (int32_t)data[0], (int32_t)data[1]);
     } break;
     case DSC_X_RESERVE2: {
 

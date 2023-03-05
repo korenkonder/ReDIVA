@@ -1305,7 +1305,7 @@ void auth_3d_model_transform::reset() {
 void auth_3d_model_transform::set_mat(const mat4* parent_mat) {
     mat4 mat;
     mat4_translate_mult(parent_mat, &translation_value, &mat);
-    mat4_rotate_mult(&mat, &rotation_value, &mat);
+    mat4_rotate_zyx_mult(&mat, &rotation_value, &mat);
     mat4_scale_rot(&mat, &scale_value, &this->mat);
 }
 
@@ -1913,7 +1913,7 @@ void auth_3d_object_model_transform::interpolate(float_t frame) {
         if (has_visibility)
             visible = visibility.interpolate(frame) >= 0.99900001f;
 
-        mat4_rotate(&rotation_value, &mat_rot);
+        mat4_rotate_zyx(&rotation_value, &mat_rot);
         this->frame = frame;
         has_rotation = false;
         has_translation = false;
@@ -5841,7 +5841,7 @@ static void auth_3d_object_node_load(auth_3d* auth,
     auth_3d_object_node* on, auth_3d_object_node_file* onf) {
     if (onf->flags & A3DA_OBJECT_NODE_JOINT_ORIENT) {
         on->joint_orient = onf->joint_orient;
-        mat4_rotate(&on->joint_orient, &on->joint_orient_mat);
+        mat4_rotate_zyx(&on->joint_orient, &on->joint_orient_mat);
         enum_or(on->flags, AUTH_3D_OBJECT_NODE_JOINT_ORIENT);
     }
     else {

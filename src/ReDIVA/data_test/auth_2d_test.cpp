@@ -332,11 +332,14 @@ DtwAet::DtwAet() : Shell(0) {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
 
+    position = { 0.0f, 0.0f };
+    size = { 220.0f, 380.0f };
+
     dw::Widget::SetName("2DAUTH TEST");
 
     (new dw::Label(this))->SetName("SET");
 
-    set = new dw::ListBox(this, (dw::Widget::Flags)(WIDGET_SCROLL_V | WIDGET_4));
+    set = new dw::ListBox(this);
 
     for (size_t i = aft_aet_db->aet_set_ids.size(), j = 0; i; i--, j++) {
         uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index((uint32_t)j);
@@ -352,14 +355,14 @@ DtwAet::DtwAet() : Shell(0) {
 
     (new dw::Label(this))->SetName("ID");
 
-    id = new dw::ListBox(this, (dw::Widget::Flags)(WIDGET_SCROLL_V | WIDGET_4));
+    id = new dw::ListBox(this);
     //id->list->sub_1402F9930(20);
 
     id->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::IdCallback));
 
     (new dw::Label(this))->SetName("LAYER");
 
-    layer = new dw::ListBox(this, (dw::Widget::Flags)(WIDGET_SCROLL_V | WIDGET_4));
+    layer = new dw::ListBox(this);
     layer->AddItem("ROOT");
     //layer->list->sub_1402F9930(20);
 
@@ -367,7 +370,7 @@ DtwAet::DtwAet() : Shell(0) {
 
     (new dw::Label(this))->SetName("MARKER");
 
-    marker = new dw::ListBox(this, (dw::Widget::Flags)(WIDGET_SCROLL_V | WIDGET_4));
+    marker = new dw::ListBox(this);
     marker->AddItem("NOMARKER");
     //marker->list->sub_1402F9930(20);
 
@@ -378,7 +381,7 @@ DtwAet::DtwAet() : Shell(0) {
 
     (new dw::Label(this))->SetName("TYPE");
 
-    type = new dw::ListBox(this, (dw::Widget::Flags)(WIDGET_SCROLL_V | WIDGET_4));
+    type = new dw::ListBox(this);
     type->AddItem("DRAW");
     type->AddItem("LAYOUT");
 
@@ -389,7 +392,7 @@ DtwAet::DtwAet() : Shell(0) {
 
     (new dw::Label(this))->SetName("FRAME");
 
-    frame = dw::Slider::make(this, (dw::Widget::Flags)(WIDGET_800 | WIDGET_SCROLL_H),
+    frame = dw::Slider::make(this, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 128.0f, 20.0f, "slider");
     frame->SetName("FRAME");
     frame->format = "%4.0f";
@@ -400,15 +403,15 @@ DtwAet::DtwAet() : Shell(0) {
 
     (new dw::Label(this))->SetName("SWITCH");
     
-    dw::Button* lock = new dw::Button(this, WIDGET_CHECKBOX);
+    dw::Button* lock = new dw::Button(this, dw::CHECKBOX);
     lock->SetName("LOCK");
     lock->callback = DtwAet::LockCallback;
     
-    dw::Button* loop = new dw::Button(this, WIDGET_CHECKBOX);
+    dw::Button* loop = new dw::Button(this, dw::CHECKBOX);
     loop->SetName("LOOP");
     loop->callback = DtwAet::LoopCallback;
     
-    dw::Button* centering = new dw::Button(this, WIDGET_CHECKBOX);
+    dw::Button* centering = new dw::Button(this, dw::CHECKBOX);
     centering->SetName("CENTERING");
     centering->callback = DtwAet::CenteringCallback;
 

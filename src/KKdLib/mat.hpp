@@ -58,11 +58,21 @@ extern void mat3_inverse_normalized(const mat3* x, mat3* z);
 extern void mat3_normalize(const mat3* x, mat3* z);
 extern void mat3_normalize_rotation(const mat3* x, mat3* z);
 extern float_t mat3_determinant(const mat3* x);
-extern void mat3_rotate(float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_xyz(float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_xzy(float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_yxz(float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_yzx(float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_zxy(float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_zyx(float_t x, float_t y, float_t z, mat3* d);
 extern void mat3_rotate_x(float_t x, mat3* y);
 extern void mat3_rotate_y(float_t x, mat3* y);
 extern void mat3_rotate_z(float_t x, mat3* y);
-extern void mat3_rotate_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_xyz_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_xzy_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_yxz_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_yzx_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_zxy_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
+extern void mat3_rotate_zyx_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d);
 extern void mat3_rotate_x_mult(const mat3* x, float_t y, mat3* z);
 extern void mat3_rotate_y_mult(const mat3* x, float_t y, mat3* z);
 extern void mat3_rotate_z_mult(const mat3* x, float_t y, mat3* z);
@@ -110,11 +120,21 @@ extern void mat4_invrot_normalized(const mat4* x, mat4* z);
 extern void mat4_normalize(const mat4* x, mat4* z);
 extern void mat4_normalize_rotation(const mat4* x, mat4* z);
 extern float_t mat4_determinant(const mat4* x);
-extern void mat4_rotate(float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_xyz(float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_xzy(float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_yxz(float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_yzx(float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_zxy(float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_zyx(float_t x, float_t y, float_t z, mat4* d);
 extern void mat4_rotate_x(float_t x, mat4* y);
 extern void mat4_rotate_y(float_t x, mat4* y);
 extern void mat4_rotate_z(float_t x, mat4* y);
-extern void mat4_rotate_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_xyz_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_xzy_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_yxz_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_yzx_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_zxy_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
+extern void mat4_rotate_zyx_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d);
 extern void mat4_rotate_x_mult(const mat4* x, float_t y, mat4* z);
 extern void mat4_rotate_y_mult(const mat4* x, float_t y, mat4* z);
 extern void mat4_rotate_z_mult(const mat4* x, float_t y, mat4* z);
@@ -173,12 +193,52 @@ extern void mat4_persp(double_t fov_y, double_t aspect, double_t z_near, double_
 extern void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, mat4* mat);
 extern void mat4_look_at(const vec3* eye, const vec3* target, mat4* mat);
 
-inline void mat3_rotate(const vec3* s, mat3* d) {
-    mat3_rotate(s->x, s->y, s->z, d);
+inline void mat3_rotate_xyz(const vec3* s, mat3* d) {
+    mat3_rotate_xyz(s->x, s->y, s->z, d);
 }
 
-inline void mat3_rotate_mult(const mat3* s, const vec3* y, mat3* d) {
-    mat3_rotate_mult(s, y->x, y->y, y->z, d);
+inline void mat3_rotate_xzy(const vec3* s, mat3* d) {
+    mat3_rotate_xzy(s->x, s->y, s->z, d);
+}
+
+inline void mat3_rotate_yxz(const vec3* s, mat3* d) {
+    mat3_rotate_yxz(s->x, s->y, s->z, d);
+}
+
+inline void mat3_rotate_yzx(const vec3* s, mat3* d) {
+    mat3_rotate_yzx(s->x, s->y, s->z, d);
+}
+
+inline void mat3_rotate_zxy(const vec3* s, mat3* d) {
+    mat3_rotate_zxy(s->x, s->y, s->z, d);
+}
+
+inline void mat3_rotate_zyx(const vec3* s, mat3* d) {
+    mat3_rotate_zyx(s->x, s->y, s->z, d);
+}
+
+inline void mat3_rotate_xyz_mult(const mat3* s, const vec3* y, mat3* d) {
+    mat3_rotate_xyz_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat3_rotate_xzy_mult(const mat3* s, const vec3* y, mat3* d) {
+    mat3_rotate_xzy_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat3_rotate_yxz_mult(const mat3* s, const vec3* y, mat3* d) {
+    mat3_rotate_yxz_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat3_rotate_yzx_mult(const mat3* s, const vec3* y, mat3* d) {
+    mat3_rotate_yzx_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat3_rotate_zxy_mult(const mat3* s, const vec3* y, mat3* d) {
+    mat3_rotate_zxy_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat3_rotate_zyx_mult(const mat3* s, const vec3* y, mat3* d) {
+    mat3_rotate_zyx_mult(s, y->x, y->y, y->z, d);
 }
 
 inline void mat3_scale(const vec3* s, mat3* d) {
@@ -193,12 +253,52 @@ inline void mat3_scale_mult(const mat3* s, const vec3* y, mat3* d) {
     mat3_scale_mult(s, y->x, y->y, y->z, d);
 }
 
-inline void mat4_rotate(const vec3* s, mat4* d) {
-    mat4_rotate(s->x, s->y, s->z, d);
+inline void mat4_rotate_xyz(const vec3* s, mat4* d) {
+    mat4_rotate_xyz(s->x, s->y, s->z, d);
 }
 
-inline void mat4_rotate_mult(const mat4* s, const vec3* y, mat4* d) {
-    mat4_rotate_mult(s, y->x, y->y, y->z, d);
+inline void mat4_rotate_xzy(const vec3* s, mat4* d) {
+    mat4_rotate_xzy(s->x, s->y, s->z, d);
+}
+
+inline void mat4_rotate_yxz(const vec3* s, mat4* d) {
+    mat4_rotate_yxz(s->x, s->y, s->z, d);
+}
+
+inline void mat4_rotate_yzx(const vec3* s, mat4* d) {
+    mat4_rotate_yzx(s->x, s->y, s->z, d);
+}
+
+inline void mat4_rotate_zxy(const vec3* s, mat4* d) {
+    mat4_rotate_zxy(s->x, s->y, s->z, d);
+}
+
+inline void mat4_rotate_zyx(const vec3* s, mat4* d) {
+    mat4_rotate_zyx(s->x, s->y, s->z, d);
+}
+
+inline void mat4_rotate_xyz_mult(const mat4* s, const vec3* y, mat4* d) {
+    mat4_rotate_xyz_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat4_rotate_xzy_mult(const mat4* s, const vec3* y, mat4* d) {
+    mat4_rotate_xzy_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat4_rotate_yxz_mult(const mat4* s, const vec3* y, mat4* d) {
+    mat4_rotate_yxz_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat4_rotate_yzx_mult(const mat4* s, const vec3* y, mat4* d) {
+    mat4_rotate_yzx_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat4_rotate_zxy_mult(const mat4* s, const vec3* y, mat4* d) {
+    mat4_rotate_zxy_mult(s, y->x, y->y, y->z, d);
+}
+
+inline void mat4_rotate_zyx_mult(const mat4* s, const vec3* y, mat4* d) {
+    mat4_rotate_zyx_mult(s, y->x, y->y, y->z, d);
 }
 
 inline void mat4_scale(const vec3* s, mat4* d) {

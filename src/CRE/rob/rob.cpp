@@ -3828,18 +3828,6 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
         a1->rot_mat[0] = mat4_identity;
     }
     else {
-        mat4 rot_mat;
-        if (a1->type == BONE_DATABASE_BONE_POSITION_ROTATION) {
-            rot_mat = a1->rot_mat[0];
-            mat4_rotate_z_mult(&rot_mat, a1->rotation.z, &rot_mat);
-        }
-        else {
-            a1->trans = a1->base_translation[skeleton_select];
-            mat4_rotate_z(a1->rotation.z, &rot_mat);
-        }
-
-        mat4_rotate_y_mult(&rot_mat, a1->rotation.y, &rot_mat);
-
         if (a1->motion_bone_index == MOTION_BONE_KL_EYE_L
             || a1->motion_bone_index == MOTION_BONE_KL_EYE_R) {
             if (a1->rotation.x > 0.0f)
@@ -3848,7 +3836,14 @@ static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
                 a1->rotation.x *= a1->eyes_xrot_adjust_neg;
         }
 
-        mat4_rotate_x_mult(&rot_mat, a1->rotation.x, &rot_mat);
+        mat4 rot_mat;
+        if (a1->type == BONE_DATABASE_BONE_POSITION_ROTATION)
+            mat4_rotate_zyx_mult(&a1->rot_mat[0], &a1->rotation, &rot_mat);
+        else {
+            a1->trans = a1->base_translation[skeleton_select];
+            mat4_rotate_zyx(&a1->rotation, &rot_mat);
+        }
+
         mat4_translate_mult(&mat, &a1->trans, &mat);
         mat4_mult(&rot_mat, &mat, &mat);
         a1->rot_mat[0] = rot_mat;
@@ -3876,7 +3871,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
             if (!a1->disable_mot_anim)
                 mat4_get_rotation(&a1->rot_mat[0], &a1->node[0].exp_data.rotation);
             else if (bone_data_mult_1_exp_data(a1, &a1->node[0].exp_data, a3))
-                mat4_rotate(&a1->node[0].exp_data.rotation, &a1->rot_mat[0]);
+                mat4_rotate_zyx(&a1->node[0].exp_data.rotation, &a1->rot_mat[0]);
             else {
                 *a1->node[0].mat = mat;
 
@@ -6121,7 +6116,7 @@ static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     mat4 mat;
     mat4_rotate_y(rot_y, &mat);
     mat4_translate_mult(&mat, &global_trans, &mat);
-    mat4_rotate_mult(&mat, &global_rotation, &mat);
+    mat4_rotate_zyx_mult(&mat, &global_rotation, &mat);
     for (bone_data& i : a1->bone_data.bones)
         switch (i.type) {
         case BONE_DATABASE_BONE_TYPE_1:
@@ -11451,7 +11446,7 @@ bone_node_expression_data::bone_node_expression_data() {
 void bone_node_expression_data::mat_set(vec3& parent_scale, mat4& ex_data_mat, mat4& mat) {
     vec3 position = this->position * parent_scale;
     mat4_translate_mult(&ex_data_mat, &position, &ex_data_mat);
-    mat4_rotate_mult(&ex_data_mat, &rotation, &ex_data_mat);
+    mat4_rotate_zyx_mult(&ex_data_mat, &rotation, &ex_data_mat);
     this->parent_scale = scale * parent_scale;
     mat = ex_data_mat;
     mat4_scale_rot(&mat, &this->parent_scale, &mat);
@@ -12944,12 +12939,12 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
     if (rob_itm_equip->field_DC == 1) {
         name = "kl_te_r_wj";
         mat4_translate(0.0f, 0.0f, 0.082f, &mat);
-        mat4_rotate_mult(&mat, (float_t)(-90.9 * DEG_TO_RAD), 0.0f, (float_t)(-179.5 * DEG_TO_RAD), &mat);
+        mat4_rotate_zyx_mult(&mat, (float_t)(-90.9 * DEG_TO_RAD), 0.0f, (float_t)(-179.5 * DEG_TO_RAD), &mat);
     }
     if (rob_itm_equip->field_DC == 2) {
         name = "kl_te_l_wj";
         mat4_translate(0.0f, 0.0015f, -0.0812f, &mat);
-        mat4_rotate_mult(&mat, (float_t)(-34.5 * DEG_TO_RAD), 0.0f, (float_t)(-179.5 * DEG_TO_RAD), &mat);
+        mat4_rotate_zyx_mult(&mat, (float_t)(-34.5 * DEG_TO_RAD), 0.0f, (float_t)(-179.5 * DEG_TO_RAD), &mat);
     }
     else
         name = "j_1_hyoutan_000wj";

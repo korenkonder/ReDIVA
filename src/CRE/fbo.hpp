@@ -27,6 +27,6 @@ struct fbo {
     void free_data();
 
     static void blit(GLuint src_fbo, GLuint dst_fbo,
-        GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,
-        GLint dst_x0, GLint dst_y0, GLint dst_x1, GLint dst_y1, GLbitfield mask, GLenum filter);
+        GLint src_x, GLint src_y, GLint src_width, GLint src_height,
+        GLint dst_x, GLint dst_y, GLint dst_width, GLint dst_height, GLbitfield mask, GLenum filter);
 };

@@ -1449,7 +1449,7 @@ void sound_init() {
     if (!sound_wasapi_system_data)
         sound_wasapi_system_data = new sound::wasapi::System;
 
-    sound_wasapi_system_data->Init(32, 4);
+    sound_wasapi_system_data->Init(SOUND_WORK_SE_CHANNELS_COUNT, SOUND_WORK_STREAMING_CHANNELS_COUNT);
 
     sound::wasapi::Mixer* mixer = sound_wasapi_system_data->mixer;
     if (mixer) {

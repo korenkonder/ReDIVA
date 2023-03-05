@@ -265,7 +265,107 @@ inline float_t mat3_determinant(const mat3* x) {
     return b00 + b01 + b02 - b03 - b04 - b05;
 }
 
-inline void mat3_rotate(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_xyz(float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = mat3_identity;
+    if (x != 0.0f)
+        mat3_rotate_x(x, &dt);
+
+    if (y != 0.0f)
+        if (x != 0.0f)
+            mat3_rotate_y_mult(&dt, y, &dt);
+        else
+            mat3_rotate_y(y, &dt);
+
+    if (z != 0.0f)
+        if (y != 0.0f || x != 0.0f)
+            mat3_rotate_z_mult(&dt, z, &dt);
+        else
+            mat3_rotate_z(z, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_xzy(float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = mat3_identity;
+    if (x != 0.0f)
+        mat3_rotate_x(x, &dt);
+
+    if (z != 0.0f)
+        if (x != 0.0f)
+            mat3_rotate_z_mult(&dt, z, &dt);
+        else
+            mat3_rotate_z(z, &dt);
+
+    if (y != 0.0f)
+        if (z != 0.0f || x != 0.0f)
+            mat3_rotate_y_mult(&dt, y, &dt);
+        else
+            mat3_rotate_y(y, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_yxz(float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = mat3_identity;
+    if (y != 0.0f)
+        mat3_rotate_y(y, &dt);
+
+    if (x != 0.0f)
+        if (y != 0.0f)
+            mat3_rotate_x_mult(&dt, x, &dt);
+        else
+            mat3_rotate_x(x, &dt);
+
+    if (z != 0.0f)
+        if (x != 0.0f || y != 0.0f)
+            mat3_rotate_z_mult(&dt, z, &dt);
+        else
+            mat3_rotate_z(z, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_yzx(float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = mat3_identity;
+    if (y != 0.0f)
+        mat3_rotate_y(y, &dt);
+
+    if (z != 0.0f)
+        if (y != 0.0f)
+            mat3_rotate_z_mult(&dt, z, &dt);
+        else
+            mat3_rotate_z(z, &dt);
+
+    if (x != 0.0f)
+        if (z != 0.0f || y != 0.0f)
+            mat3_rotate_x_mult(&dt, x, &dt);
+        else
+            mat3_rotate_x(x, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_zxy(float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = mat3_identity;
+    if (z != 0.0f)
+        mat3_rotate_z(z, &dt);
+
+    if (x != 0.0f)
+        if (z != 0.0f)
+            mat3_rotate_x_mult(&dt, x, &dt);
+        else
+            mat3_rotate_x(x, &dt);
+
+    if (y != 0.0f)
+        if (x != 0.0f || z != 0.0f)
+            mat3_rotate_y_mult(&dt, y, &dt);
+        else
+            mat3_rotate_y(y, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_zyx(float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = mat3_identity;
     if (z != 0.0f)
@@ -414,7 +514,67 @@ inline void mat3_rotate_z(float_t x, mat3* y) {
     *y = yt;
 }
 
-inline void mat3_rotate_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_xyz_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = *s;
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    if (z != 0.0f)
+        mat3_rotate_z_mult(&dt, z, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_xzy_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = *s;
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
+    if (z != 0.0f)
+        mat3_rotate_z_mult(&dt, z, &dt);
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_yxz_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = *s;
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
+    if (z != 0.0f)
+        mat3_rotate_z_mult(&dt, z, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_yzx_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = *s;
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    if (z != 0.0f)
+        mat3_rotate_z_mult(&dt, z, &dt);
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_zxy_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+    mat3 dt;
+    dt = *s;
+    if (z != 0.0f)
+        mat3_rotate_z_mult(&dt, z, &dt);
+    if (x != 0.0f)
+        mat3_rotate_x_mult(&dt, x, &dt);
+    if (y != 0.0f)
+        mat3_rotate_y_mult(&dt, y, &dt);
+    *d = dt;
+}
+
+inline void mat3_rotate_zyx_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
     mat3 dt;
     dt = *s;
     if (z != 0.0f)
@@ -1096,7 +1256,107 @@ inline float_t mat4_determinant(const mat4* x) {
     return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 }
 
-inline void mat4_rotate(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_xyz(float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = mat4_identity;
+    if (x != 0.0f)
+        mat4_rotate_x(x, &dt);
+
+    if (y != 0.0f)
+        if (x != 0.0f)
+            mat4_rotate_y_mult(&dt, y, &dt);
+        else
+            mat4_rotate_y(y, &dt);
+
+    if (z != 0.0f)
+        if (y != 0.0f || x != 0.0f)
+            mat4_rotate_z_mult(&dt, z, &dt);
+        else
+            mat4_rotate_z(z, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_xzy(float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = mat4_identity;
+    if (x != 0.0f)
+        mat4_rotate_x(x, &dt);
+
+    if (z != 0.0f)
+        if (x != 0.0f)
+            mat4_rotate_z_mult(&dt, z, &dt);
+        else
+            mat4_rotate_z(z, &dt);
+
+    if (y != 0.0f)
+        if (z != 0.0f || x != 0.0f)
+            mat4_rotate_y_mult(&dt, y, &dt);
+        else
+            mat4_rotate_y(y, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_yxz(float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = mat4_identity;
+    if (y != 0.0f)
+        mat4_rotate_y(y, &dt);
+
+    if (x != 0.0f)
+        if (y != 0.0f)
+            mat4_rotate_x_mult(&dt, x, &dt);
+        else
+            mat4_rotate_x(x, &dt);
+
+    if (z != 0.0f)
+        if (x != 0.0f || y != 0.0f)
+            mat4_rotate_z_mult(&dt, z, &dt);
+        else
+            mat4_rotate_z(z, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_yzx(float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = mat4_identity;
+    if (y != 0.0f)
+        mat4_rotate_y(y, &dt);
+
+    if (z != 0.0f)
+        if (y != 0.0f)
+            mat4_rotate_z_mult(&dt, z, &dt);
+        else
+            mat4_rotate_z(z, &dt);
+
+    if (x != 0.0f)
+        if (z != 0.0f || y != 0.0f)
+            mat4_rotate_x_mult(&dt, x, &dt);
+        else
+            mat4_rotate_x(x, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_zxy(float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = mat4_identity;
+    if (z != 0.0f)
+        mat4_rotate_z(z, &dt);
+
+    if (x != 0.0f)
+        if (z != 0.0f)
+            mat4_rotate_x_mult(&dt, x, &dt);
+        else
+            mat4_rotate_x(x, &dt);
+
+    if (y != 0.0f)
+        if (x != 0.0f || z != 0.0f)
+            mat4_rotate_y_mult(&dt, y, &dt);
+        else
+            mat4_rotate_y(y, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_zyx(float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = mat4_identity;
     if (z != 0.0f)
@@ -1152,7 +1412,67 @@ inline void mat4_rotate_z(float_t x, mat4* y) {
     *y = yt;
 }
 
-inline void mat4_rotate_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_xyz_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = *s;
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    if (z != 0.0f)
+        mat4_rotate_z_mult(&dt, z, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_xzy_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = *s;
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
+    if (z != 0.0f)
+        mat4_rotate_z_mult(&dt, z, &dt);
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_yxz_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = *s;
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
+    if (z != 0.0f)
+        mat4_rotate_z_mult(&dt, z, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_yzx_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = *s;
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    if (z != 0.0f)
+        mat4_rotate_z_mult(&dt, z, &dt);
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_zxy_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+    mat4 dt;
+    dt = *s;
+    if (z != 0.0f)
+        mat4_rotate_z_mult(&dt, z, &dt);
+    if (x != 0.0f)
+        mat4_rotate_x_mult(&dt, x, &dt);
+    if (y != 0.0f)
+        mat4_rotate_y_mult(&dt, y, &dt);
+    *d = dt;
+}
+
+inline void mat4_rotate_zyx_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
     mat4 dt;
     dt = *s;
     if (z != 0.0f)

@@ -845,6 +845,18 @@ enum rob_osage_parts {
     ROB_OSAGE_PARTS_MAX         = 0x0D,
 };
 
+namespace SkinParam {
+    enum CollisionType {
+        CollisionTypeEnd      = 0x0,
+        CollisionTypeBall     = 0x1,
+        CollisionTypeCapsulle = 0x2,
+        CollisionTypePlane    = 0x3,
+        CollisionTypeEllipse  = 0x4,
+        CollisionTypeAABB     = 0x5,
+        CollisionTypeMax      = 0x6,
+    };
+}
+
 enum shadow_type_enum {
     SHADOW_CHARA = 0x00,
     SHADOW_STAGE = 0x01,
@@ -3050,16 +3062,14 @@ struct obj_skin_block_cloth_node {
     float_t dist_left;
 };
 
-struct skin_param_osage_root_coli {
-    int32_t type;
-    int32_t bone0_index;
-    int32_t bone1_index;
+struct SkinParam__CollisionParam {
+    SkinParam::CollisionType type;
+    int32_t node_idx[2];
     float_t radius;
-    vec3 bone0_pos;
-    vec3 bone1_pos;
+    vec3 pos[2];
 };
 
-vector_old(skin_param_osage_root_coli)
+vector_old(SkinParam__CollisionParam)
 
 struct skin_param_osage_root_boc {
     int32_t ed_node;
@@ -3091,7 +3101,7 @@ struct skin_param_osage_root {
     float_t hinge_y;
     float_t hinge_z;
     const char* name;
-    vector_old_skin_param_osage_root_coli coli;
+    vector_old_SkinParam__CollisionParam coli;
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
@@ -3213,7 +3223,7 @@ struct ExNodeBlock {
     rob_chara_item_equip_object* item_equip_object;
     bool field_58;
     bool field_59;
-    bool field_5A;
+    bool has_children_node;
 };
 
 struct ExNullBlock {
@@ -3293,7 +3303,7 @@ struct rob_osage_node {
     mat4* bone_node_mat;
     mat4 mat;
     rob_osage_node* sibling_node;
-    float_t distance;
+    float_t max_distance;
     vec3 field_94;
     RobOsageNodeResetData reset_data;
     float_t field_C8;
@@ -3309,7 +3319,7 @@ struct rob_osage_node {
 vector_old(rob_osage_node)
 
 struct skin_param {
-    vector_old_skin_param_osage_root_coli coli;
+    vector_old_SkinParam__CollisionParam coli;
     float_t friction;
     float_t wind_afc;
     float_t air_res;
@@ -3325,18 +3335,21 @@ struct skin_param {
     vector_old_rob_osage_node* colli_tgt_osg;
 };
 
-struct osage_coli {
-    int32_t type;
+struct OsageCollision__Work {
+    SkinParam::CollisionType type;
     float_t radius;
-    vec3 bone0_pos;
-    vec3 bone1_pos;
-    vec3 bone_pos_diff;
-    float_t bone_pos_diff_length;
-    float_t bone_pos_diff_length_squared;
-    float_t field_34;
+    vec3 pos[2];
+    vec3 vec_center;
+    float_t vec_center_length;
+    float_t vec_center_length_squared;
+    float_t friction;
 };
 
-vector_old(osage_coli)
+vector_old(OsageCollision__Work)
+
+struct OsageCollision {
+    vector_old_OsageCollision__Work work_list;
+};
 
 struct osage_ring_data {
     float_t ring_rectangle_x;
@@ -3345,9 +3358,9 @@ struct osage_ring_data {
     float_t ring_rectangle_height;
     float_t ring_height;
     float_t ring_out_height;
-    bool field_18;
-    vector_old_osage_coli coli;
-    vector_old_skin_param_osage_root_coli skp_root_coli;
+    bool init;
+    OsageCollision coli;
+    vector_old_SkinParam__CollisionParam skp_root_coli;
 };
 
 struct pair_int32_t_int32_t {
@@ -3381,8 +3394,8 @@ struct rob_osage {
     bool field_2A0;
     bool field_2A1;
     float_t field_2A4;
-    osage_coli coli[64];
-    osage_coli coli_ring[64];
+    OsageCollision__Work coli[64];
+    OsageCollision__Work coli_ring[64];
     vec3 wind_direction;
     float_t field_1EB4;
     int32_t yz_order;
@@ -3581,8 +3594,8 @@ struct CLOTH {
     vector_old_struc_341 field_58;
     skin_param* skin_param_ptr;
     skin_param skin_param;
-    osage_coli coli[64];
-    osage_coli coli_ring[64];
+    OsageCollision__Work coli[64];
+    OsageCollision__Work coli_ring[64];
     osage_ring_data ring;
     mat4* mats;
 };

@@ -97,7 +97,7 @@ namespace system_startup_detail {
     void TaskSystemStartup::Disp() {
         resolution_struct* res_wind = res_window_get();
         spr::put_sprite_rect({ 0.0f, 0.0f, (float_t)res_wind->width, (float_t)res_wind->height },
-            res_wind->resolution_mode, spr::SPR_PRIO_25, { 0x00, 0x00, 0x00, 0xFF }, 0);
+            res_wind->resolution_mode, spr::SPR_PRIO_25, color_black, 0);
     }
 }
 

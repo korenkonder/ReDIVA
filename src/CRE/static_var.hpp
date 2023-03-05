@@ -109,6 +109,22 @@ extern const vec3 sv_rgb_to_luma;
 extern const mat3 sv_rgb_to_ypbpr;
 extern const mat3 sv_ypbpr_to_rgb;
 
+extern const vec4u8 color_black;
+extern const vec4u8 color_grey;
+extern const vec4u8 color_white;
+extern const vec4u8 color_red;
+extern const vec4u8 color_green;
+extern const vec4u8 color_blue;
+extern const vec4u8 color_cyan;
+extern const vec4u8 color_magenta;
+extern const vec4u8 color_yellow;
+extern const vec4u8 color_dark_red;
+extern const vec4u8 color_dark_green;
+extern const vec4u8 color_dark_blue;
+extern const vec4u8 color_dark_cyan;
+extern const vec4u8 color_dark_magenta;
+extern const vec4u8 color_dark_yellow;
+
 extern void sv_anisotropy_set(int32_t value);
 extern float_t get_anim_frame_speed();
 extern float_t get_delta_frame();

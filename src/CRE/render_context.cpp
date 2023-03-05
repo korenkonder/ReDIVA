@@ -2175,7 +2175,7 @@ namespace rndr {
         sampler = sprite_samplers[0];
         glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
@@ -2183,7 +2183,7 @@ namespace rndr {
         sampler = sprite_samplers[1];
         glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
         glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
@@ -2191,7 +2191,7 @@ namespace rndr {
         sampler = sprite_samplers[2];
         glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
@@ -2566,6 +2566,9 @@ void render_context::disp() {
     sprite_manager_set_index(sprite_index);
     post_process.ctrl(camera);
     render_manager.render_all(this);
+    post_process.lens_flare_texture = 0;
+    post_process.aet_back = 0;
+    render_manager.field_31C = false;
     app::TaskWork::Basic();
 }
 

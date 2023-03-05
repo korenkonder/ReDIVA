@@ -846,7 +846,7 @@ static render_context* render_context_load() {
 
     rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
-    rctx->render_manager.resize(width, height);
+    rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
     rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
 
     render_resize_fb(rctx, true);
@@ -865,10 +865,8 @@ static render_context* render_context_load() {
     hand_item_handler_data_init();
     //rob_sleeve_data_init();
 
-    aet_manager_add_aet_sets(aft_aet_db, false);
-    sprite_manager_add_spr_sets(aft_spr_db, false);
-
-    sprite_manager_set_res((double_t)width / (double_t)height, width, height);
+    aet_manager_add_aet_sets(aft_aet_db);
+    sprite_manager_add_spr_sets(aft_spr_db);
 
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
@@ -1020,7 +1018,7 @@ static void render_context_ctrl(render_context* rctx) {
         game_state_set_game_state_next(GAME_STATE_GAME);
     else if (Input::IsKeyTapped(GLFW_KEY_F6)) {
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AET);
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_STG);
     }
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
@@ -1091,17 +1089,13 @@ static void render_context_disp(render_context* rctx) {
 
     rctx->disp();
 
-    int32_t screen_x_offset = (width - internal_2d_res.x) / 2 + (width - internal_2d_res.x) % 2;
-    int32_t screen_y_offset = (height - internal_2d_res.y) / 2 + (width - internal_2d_res.x) % 2;
-    glViewport(screen_x_offset, screen_y_offset, internal_2d_res.x, internal_2d_res.y);
-    rctx->post_process.fbo_texture.bind();
-    classes_process_disp(classes, classes_count);
-    gl_state_bind_framebuffer(0);
+    fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
+        0, 0, rctx->post_process.sprite_width, rctx->post_process.sprite_height,
+        rctx->post_process.screen_x_offset, rctx->post_process.screen_y_offset,
+        rctx->post_process.sprite_width, rctx->post_process.sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-    if (rctx->render_manager.pass_sw[rndr::RND_PASSID_POSTPROCESS])
-        fbo::blit(rctx->post_process.fbo_texture.fbos[0], 0,
-            0, 0, width, height,
-            0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glViewport(0, 0, rctx->post_process.screen_width, rctx->post_process.screen_height);
+    classes_process_disp(classes, classes_count);
 
     if (draw_imgui)
         render_context_imgui(rctx);
@@ -1157,8 +1151,8 @@ static void render_context_dispose(render_context* rctx) {
     sprite_manager_unload_set(472, aft_spr_db);
     sprite_manager_unload_set(43, aft_spr_db);
 
-    sprite_manager_remove_spr_sets(aft_spr_db, false);
-    aet_manager_remove_aet_sets(aft_aet_db, false);
+    sprite_manager_remove_spr_sets(aft_spr_db);
+    aet_manager_remove_aet_sets(aft_aet_db);
 
     hand_item_handler_data_free();
     //rob_sleeve_data_free();
@@ -1326,9 +1320,10 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     if (fb_changed && change_fb) {
         rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
-        rctx->render_manager.resize(width, height);
+        rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
         rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
-        sprite_manager_set_res((double_t)width / (double_t)height, width, height);
+        sprite_manager_set_res((double_t)internal_2d_res.x / (double_t)internal_2d_res.y,
+            internal_2d_res.x, internal_2d_res.y);
     }
 }
 

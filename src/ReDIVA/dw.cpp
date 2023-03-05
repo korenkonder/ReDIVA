@@ -119,6 +119,8 @@ static dw_gui_colors dw_gui_colors_default = {
 
 dw_gui_detail::Display* dw_gui_detail_display;
 
+extern bool input_locked;
+
 static bool dw_gui_get_ctrl();
 static bool dw_gui_get_disp();
 
@@ -186,6 +188,10 @@ namespace dw {
 
     void Widget::SetName(std::string& str) {
         name.assign(str);
+        if (flags & LABEL_SIZE) {
+            ImVec2 size = ImGui::CalcTextSize(name.c_str(), 0, true);
+            this->size = { size.x, size.y };
+        }
     }
 
     void Widget::SetSize(vec2 value) {
@@ -249,10 +255,15 @@ namespace dw {
     }
 
     void Label::Draw() {
-        ImGui::Text(name.c_str());
+        ImGui::PushID(this);
+        if (size != 0.0f)
+            ImGui::Text(name.c_str());
+        else
+            ImGui::TextCentered(name.c_str());
+        ImGui::PopID();
     }
 
-    ScrollBar::ScrollBar(Control* parent, Widget::Flags flags) : Widget(parent, flags),
+    ScrollBar::ScrollBar(Control* parent, Flags flags) : Widget(parent, flags),
         value(), min(), field_A0(), field_A5(), field_A6() {
         field_68 = parent;
         max = 100.0f;
@@ -286,13 +297,13 @@ namespace dw {
     }
 
     Scrollable::Scrollable(Composite* parent, Flags flags) : Control(parent, flags), h_bar(), v_bar() {
-        if (flags & WIDGET_SCROLL_H) {
-            h_bar = new ScrollBar(parent, WIDGET_SCROLL_H);
+        if (flags & HORIZONTAL) {
+            h_bar = new ScrollBar(parent, HORIZONTAL);
             h_bar->SetName("h_bar");
         }
 
-        if (flags & WIDGET_SCROLL_V) {
-            v_bar = new ScrollBar(parent, WIDGET_SCROLL_V);
+        if (flags & VERTICAL) {
+            v_bar = new ScrollBar(parent, VERTICAL);
             v_bar->SetName("v_bar");
         }
     }
@@ -338,7 +349,19 @@ namespace dw {
             i->SetSize(size);
         }
     }
-    
+
+    void FillLayout::Begin() {
+
+    }
+
+    void FillLayout::Next() {
+
+    }
+
+    void FillLayout::End() {
+
+    }
+
     GraphLayout::GraphLayout(int32_t a2) {
         field_8 = a2;
     }
@@ -358,6 +381,18 @@ namespace dw {
             i->position = position;
             i->SetSize(size);
         }
+    }
+
+    void GraphLayout::Begin() {
+
+    }
+
+    void GraphLayout::Next() {
+
+    }
+
+    void GraphLayout::End() {
+
     }
 
     GridLayout::GridLayout(size_t a2) : field_8(), field_10(),
@@ -384,9 +419,22 @@ namespace dw {
         }
     }
 
-    RowLayout::RowLayout(int32_t a2) {
-        field_8 = 512;
-        field_C = 2.0f;
+    void GridLayout::Begin() {
+
+    }
+
+    void GridLayout::Next() {
+
+    }
+
+    void GridLayout::End() {
+
+    }
+
+    RowLayout::RowLayout(Flags flags) : imgui_curr_line_size(),
+        imgui_curr_line_text_base_offset() {
+        this->flags = flags;
+        spacing = 2.0f;
     }
 
     RowLayout::~RowLayout() {
@@ -406,6 +454,39 @@ namespace dw {
         }
     }
 
+    void RowLayout::Begin() {
+
+    }
+
+    void RowLayout::Next() {
+        if (flags == HORIZONTAL) {
+            ImGuiWindow* window = GImGui->CurrentWindow;
+            if (!window->SkipItems && !window->DC.IsSameLine) {
+                imgui_cursor_pos.x = window->DC.CursorPos.x;
+                imgui_cursor_pos.y = window->DC.CursorPos.y;
+                imgui_curr_line_size.x = window->DC.CurrLineSize.x;
+                imgui_curr_line_size.y = window->DC.CurrLineSize.y;
+                imgui_curr_line_text_base_offset = window->DC.CurrLineTextBaseOffset;
+            }
+
+            ImGui::SameLine(0.0f, spacing);
+        }
+    }
+
+    void RowLayout::End() {
+        if (flags == HORIZONTAL) {
+            ImGuiWindow* window = GImGui->CurrentWindow;
+            if (!window->SkipItems) {
+                window->DC.CursorPos.x = imgui_cursor_pos.x;
+                window->DC.CursorPos.y = imgui_cursor_pos.y;
+                window->DC.CurrLineSize.x = imgui_curr_line_size.x;
+                window->DC.CurrLineSize.y = imgui_curr_line_size.y;
+                window->DC.CurrLineTextBaseOffset = imgui_curr_line_text_base_offset;
+                window->DC.IsSameLine = false;
+            }
+        }
+    }
+
     Composite::Composite(Composite* parent, Flags flags) : Scrollable(parent, flags), layout() {
 
     }
@@ -415,8 +496,21 @@ namespace dw {
     }
 
     void Composite::Draw() {
-        for (Control* i : controls)
+        ImGui::PushID(this);
+        if (layout)
+            layout->Begin();
+
+        for (Control*& i : controls) {
+            if (i->size != 0.0f)
+                ImGui::SetNextItemWidth(i->size.x);
             i->Draw();
+            if (layout)
+                layout->Next();
+        }
+
+        if (layout)
+            layout->End();
+        ImGui::PopID();
     }
 
     void Composite::Reset() {
@@ -440,11 +534,12 @@ namespace dw {
     }
 
     void Button::Draw() {
-        if (flags & WIDGET_CHECKBOX) {
+        ImGui::PushID(this);
+        if (flags & CHECKBOX) {
             if (ImGui::Checkbox(name.c_str(), &value) && callback)
                 callback(this);
         }
-        else if (flags & WIDGET_RADIOBUTTON) {
+        else if (flags & RADIOBUTTON) {
             if (ImGui::RadioButton(name.c_str(), value)) {
                 if (callback)
                     callback(this);
@@ -454,16 +549,17 @@ namespace dw {
         else
             if (ImGui::Button(name.c_str()) && callback)
                 callback(this);
+        ImGui::PopID();
     }
 
     void Button::SetValue(bool value) {
         this->value = value;
-        if (!(flags & WIDGET_RADIOBUTTON))
+        if (!(flags & RADIOBUTTON))
             return;
 
         for (Control* i : parent_comp->controls) {
             Button* button = (Button*)dynamic_cast<Button*>(i);
-            if (button && button != this && button->flags & WIDGET_RADIOBUTTON)
+            if (button && button != this && button->flags & RADIOBUTTON)
                 button->value = false;
         }
     }
@@ -494,7 +590,7 @@ namespace dw {
         disp(), disp_callback(), hide_callback(), destroy(), close_button() {
         parent_shell = this;
 
-        if (flags & WIDGET_CLOSE_BUTTON) {
+        if (flags & CLOSE_BUTTON) {
             close_button = new ShellCloseButton(this);
             if (controls.size())
                 controls.pop_back();
@@ -516,10 +612,20 @@ namespace dw {
         if (!GetDisp())
             return;
 
-        if (ImGui::Begin(name.c_str())) {
+        ImGui::SetNextWindowPos({ position.x, position.y }, ImGuiCond_Appearing);
+        if (size != 0.0f)
+            ImGui::SetNextWindowSize({ size.x, size.y }, ImGuiCond_Appearing);
+
+        bool open = true;
+        ImGui::PushID(this);
+        if (ImGui::Begin(name.c_str(), close_button ? &open : 0))
             Composite::Draw();
-            ImGui::End();
-        }
+        input_locked |= ImGui::IsWindowFocused();
+        ImGui::End();
+        ImGui::PopID();
+
+        if (close_button && !open)
+            close_button->callback(close_button);
     }
 
     void Shell::Reset() {
@@ -630,7 +736,7 @@ namespace dw {
     }
 
     void List::ResetSelectedItem() {
-        if (flags & WIDGET_4)
+        if (flags & MULTISELECT)
             selected_item = -1;
         else
             for (int32_t& i : selections)
@@ -644,7 +750,7 @@ namespace dw {
 
     void List::SetSelectedItem(size_t index) {
         if (index < items.size())
-            if (flags & WIDGET_4)
+            if (flags & MULTISELECT)
                 selected_item = index;
             else
                 selections[index] = 1;
@@ -664,7 +770,8 @@ namespace dw {
         std::vector<std::string>& items = list->items;
         size_t hovered_item = list->selected_item;
         size_t selected_item = list->selected_item;
-        ImGui::GetContentRegionAvailSetNextItemWidth();
+        if (size == 0.0f)
+            ImGui::GetContentRegionAvailSetNextItemWidth();
         ImGui::PushID(this);
         if (ImGui::BeginCombo("##", selected_item != -1
             && items.size() ? items[selected_item].c_str() : "", 0)) {
@@ -699,6 +806,8 @@ namespace dw {
                 i->Field_8(this);
         }
         ImGui::PopID();
+
+        input_locked |= window_focus;
     }
 
     void ListBox::Reset() {
@@ -725,9 +834,9 @@ namespace dw {
         return list->GetItem(index);
     }
 
-    Slider::Slider(Composite* parent, Widget::Flags flags) : Control(parent, flags) {
+    Slider::Slider(Composite* parent, Flags flags) : Control(parent, flags) {
         format = "%f";
-        scroll_bar = new ScrollBar(this, (Widget::Flags)(flags & (WIDGET_SCROLL_H | WIDGET_SCROLL_V)));
+        scroll_bar = new ScrollBar(this, (Flags)(flags & (HORIZONTAL | VERTICAL)));
         scroll_bar->parent = this;
     }
 
@@ -737,8 +846,11 @@ namespace dw {
 
     void Slider::Draw() {
         ScrollBar* scroll_bar = this->scroll_bar;
-        if (ImGui::ColumnSliderFloatButton(name.c_str(), &scroll_bar->value,
-            scroll_bar->step, scroll_bar->min, scroll_bar->max, scroll_bar->step_fast, format, 0))
+        ImGui::PushID(this);
+        bool ret = ImGui::ColumnSliderFloatButton(name.c_str(), &scroll_bar->value,
+            scroll_bar->step, scroll_bar->min, scroll_bar->max, scroll_bar->step_fast, format, 0);
+        ImGui::PopID();
+        if (ret)
             for (SelectionListener*& i : selection_listeners)
                 i->Field_8(this);
     }
@@ -762,7 +874,7 @@ namespace dw {
         selection_listeners.push_back(value);
     }
 
-    Slider* Slider::make(Composite* parent, Widget::Flags flags,
+    Slider* Slider::make(Composite* parent, Flags flags,
         float_t x, float_t y, float_t width, float_t height, const char* name) {
         Slider* slider = new Slider(parent, flags);
         ScrollBar* scroll_bar = slider->scroll_bar;
@@ -773,7 +885,7 @@ namespace dw {
         std::string v13 = slider->GetName();
         float_t v15;
         float_t v17;
-        if (flags & WIDGET_100) {
+        if (flags & HORIZONTAL) {
             vec2 v21;
             vec2 v22;
             sub_140302A70(qword_1411900C8, &v22, v13);

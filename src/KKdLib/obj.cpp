@@ -2662,13 +2662,11 @@ static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stac
             obj_skin_osage_sibling_info>(ex->num_osage_sibling_info);
         ex->osage_sibling_info_array = osi;
         s.set_position(exh.osage_sibling_info_array_offset, SEEK_SET);
-        for (uint32_t i = 0; i < ex->num_osage_sibling_info; i++) {
+        for (uint32_t i = 0; i < ex->num_osage_sibling_info; i++, osi++) {
             osi->name_index = s.read_uint32_t();
             osi->sibling_name_index = s.read_uint32_t();
             osi->max_distance = s.read_float_t();
         }
-
-        s.set_position(exh.osage_sibling_info_array_offset, SEEK_SET);
     }
 
     for (uint32_t i = 0; i < ex->num_block; i++) {
@@ -6727,14 +6725,12 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack
         obj_skin_osage_sibling_info* osi = alloc->allocate<
             obj_skin_osage_sibling_info>(ex->num_osage_sibling_info);
         ex->osage_sibling_info_array = osi;
-        s.set_position(exh.block_array_offset, SEEK_SET);
+        s.set_position(exh.osage_sibling_info_array_offset, SEEK_SET);
         for (uint32_t i = 0; i < ex->num_osage_sibling_info; i++, osi++) {
             osi->name_index = s.read_uint32_t_reverse_endianness();
             osi->sibling_name_index = s.read_uint32_t_reverse_endianness();
             osi->max_distance = s.read_float_t_reverse_endianness();
         }
-
-        s.set_position(exh.osage_sibling_info_array_offset, SEEK_SET);
     }
     return ex;
 }

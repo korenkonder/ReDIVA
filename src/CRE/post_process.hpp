@@ -41,7 +41,6 @@ struct post_process {
     render_texture aet_back_texture;
     render_texture pre_texture;
     render_texture post_texture;
-    render_texture fbo_texture;
     render_texture transparency_texture;
     render_texture screen_texture;
     texture* render_textures_data[16];
@@ -56,7 +55,6 @@ struct post_process {
     post_process_tone_map* tone_map;
     GLuint samplers[2];
     GLuint query_vao;
-    GLuint query_vbo;
     GLuint lens_ghost_vao;
     GLuint lens_ghost_vbo;
     GL::UniformBuffer sun_quad_ubo;

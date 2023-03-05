@@ -273,7 +273,7 @@ void camera::set(const vec3& view_point, const vec3& interest,
 
     mat4 cam;
     mat4_translate(&trans, &cam);
-    mat4_rotate_mult(&cam, &rot, &cam);
+    mat4_rotate_zyx_mult(&cam, &rot, &cam);
     mat4_scale_rot(&cam, &scale, &cam);
     mat4_mult_vec3_trans(&cam, &_vp, &_vp);
     mat4_mult_vec3_trans(&cam, &_int, &_int);

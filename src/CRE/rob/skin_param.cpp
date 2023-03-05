@@ -98,10 +98,6 @@ SkinParam::CollisionParam::CollisionParam() : type(), node_idx(), pos() {
     radius = 0.2f;
 }
 
-SkinParam::CollisionParam::~CollisionParam() {
-
-}
-
 skin_param_osage_root_normal_ref::skin_param_osage_root_normal_ref() {
 
 }

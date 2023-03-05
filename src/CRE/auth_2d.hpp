@@ -83,7 +83,7 @@ struct aet_layer_object_data {
 };
 
 extern void aet_manager_init();
-extern void aet_manager_add_aet_sets(const aet_database* aet_db, bool modern);
+extern void aet_manager_add_aet_sets(const aet_database* aet_db);
 extern bool aet_manager_add_task();
 extern bool aet_manager_check_task_ready();
 extern bool aet_manager_del_task();
@@ -125,7 +125,7 @@ extern void aet_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const aet_database* aet_db);
 extern void aet_manager_read_file(uint32_t set_id,
     std::string&& mdata_dir, void* data, const aet_database* aet_db);
-extern void aet_manager_remove_aet_sets(const aet_database* aet_db, bool modern);
+extern void aet_manager_remove_aet_sets(const aet_database* aet_db);
 extern void aet_manager_set_obj_alpha(uint32_t id, float_t value);
 extern void aet_manager_set_obj_color(uint32_t id, const vec4& value);
 extern void aet_manager_set_obj_end_time(uint32_t id, float_t value);

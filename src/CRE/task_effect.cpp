@@ -2471,6 +2471,8 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
+    obj_set_ids.push_back(aft_obj_db->get_object_set_id("EFFCMN"));
+
     for (int32_t i : stage_indices) {
         const ::stage_data* stage_data = aft_stage_data->get_stage_data(i);
         if (!stage_data)
@@ -2718,12 +2720,9 @@ static int32_t leaf_particle_disp() {
             continue;
 
         vec3 pos = data->position;
-        vec3 rot = data->rotation;
 
         mat3 mat;
-        mat3_rotate_x(rot.x, &mat);
-        mat3_rotate_y_mult(&mat, rot.y, &mat);
-        mat3_rotate_z_mult(&mat, rot.z, &mat);
+        mat3_rotate_xyz(&data->rotation, &mat);
 
         vec3 t0;
         vec3 t1;
@@ -2907,12 +2906,9 @@ static int32_t particle_disp(particle_vertex_data* vtx_data, particle_data* data
             continue;
 
         vec3 pos = data->position;
-        vec3 rot = data->rotation;
 
         mat3 mat;
-        mat3_rotate_x(rot.x, &mat);
-        mat3_rotate_y_mult(&mat, rot.y, &mat);
-        mat3_rotate_z_mult(&mat, rot.z, &mat);
+        mat3_rotate_xyz(&data->rotation, &mat);
 
         float_t size = data->size;
 

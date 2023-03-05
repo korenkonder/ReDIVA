@@ -167,7 +167,6 @@ namespace spr {
 
         SprKind kind;
         IDUnion id;
-        bool modern;
         vec4u8 color;
         SprAttr attr;
         int32_t blend;
@@ -257,7 +256,7 @@ namespace spr {
 }
 
 extern void sprite_manager_init();
-extern void sprite_manager_add_spr_sets(const sprite_database* spr_db, bool modern);
+extern void sprite_manager_add_spr_sets(const sprite_database* spr_db);
 extern void sprite_manager_clear();
 extern void sprite_manager_draw(render_context* rctx,
     int32_t index, bool font, texture* tex, const mat4& proj);
@@ -274,7 +273,7 @@ extern void sprite_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const sprite_database* spr_db);
 extern void sprite_manager_read_file(uint32_t set_id,
     std::string&& mdata_dir, void* data, const sprite_database* spr_db);
-extern void sprite_manager_remove_spr_sets(const sprite_database* spr_db, bool modern);
+extern void sprite_manager_remove_spr_sets(const sprite_database* spr_db);
 extern void sprite_manager_reset_req_list();
 extern void sprite_manager_reset_res_data();
 extern void sprite_manager_set_index(int32_t value);

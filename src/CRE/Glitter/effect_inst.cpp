@@ -199,7 +199,7 @@ namespace Glitter {
         vec3 rot = rotation;
         vec3 scale = this->scale * scale_all;
 
-        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
 
         for (F2EmitterInst*& i : emitters)
@@ -299,7 +299,7 @@ namespace Glitter {
                 vec3 rot = rotation;
                 vec3 scale = this->scale * scale_all;
 
-                mat4_rotate_mult(&mat, &rot, &mat);
+                mat4_rotate_zyx_mult(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &mat);
                 for (F2EmitterInst*& i : emitters)
                     if (i)
@@ -336,7 +336,7 @@ namespace Glitter {
 
         mat4 mat;
         mat4_translate(&trans, &mat);
-        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
@@ -719,21 +719,21 @@ namespace Glitter {
             mat4_clear_trans(&mat_rot, &mat_rot);
 
             mat_rot_eff_rot = mat_rot;
-            mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
+            mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
 
             mat4_translate_mult(&mat, &translation, &mat);
         }
         else {
             mat_rot = mat4_identity;
             mat_rot_eff_rot = mat4_identity;
-            mat4_rotate(&rot, &mat_rot);
+            mat4_rotate_zyx(&rot, &mat_rot);
 
             mat4_translate(&translation, &mat);
         }
 
         vec3 scale = this->scale * scale_all;
 
-        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
 
         for (XEmitterInst*& i : emitters)
@@ -845,7 +845,7 @@ namespace Glitter {
 
                 mat4 mat;
                 mat4_translate(&trans, &mat);
-                mat4_rotate_mult(&mat, &rot, &mat);
+                mat4_rotate_zyx_mult(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &mat);
                 for (XEmitterInst*& i : emitters)
                     if (i)
@@ -882,7 +882,7 @@ namespace Glitter {
 
         mat4 mat;
         mat4_translate(&trans, &mat);
-        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 

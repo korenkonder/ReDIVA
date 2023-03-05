@@ -1577,7 +1577,6 @@ namespace SkinParam {
         vec3 pos[2];
 
         CollisionParam();
-        ~CollisionParam();
     };
 };
 

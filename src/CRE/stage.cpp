@@ -519,12 +519,14 @@ static void stage_disp(stage* s) {
         post_process* pp = &rctx_ptr->post_process;
         pp->lens_flare_texture = obj_database_get_obj_set_texture(
             object_set_id, s->stage_data->lens_flare_texture);
-        pp->lens_shaft_texture = obj_database_get_obj_set_texture(
-            object_set_id, s->stage_data->lens_shaft_texture);
-        pp->lens_ghost_texture = obj_database_get_obj_set_texture(
-            object_set_id, s->stage_data->lens_ghost_texture);
-        pp->lens_ghost_count = 16;
-        pp->lens_shaft_inv_scale = s->stage_data->lens_shaft_inv_scale;
+        if (pp->lens_flare_texture) {
+            pp->lens_shaft_texture = obj_database_get_obj_set_texture(
+                object_set_id, s->stage_data->lens_shaft_texture);
+            pp->lens_ghost_texture = obj_database_get_obj_set_texture(
+                object_set_id, s->stage_data->lens_ghost_texture);
+            pp->lens_ghost_count = 16;
+            pp->lens_shaft_inv_scale = s->stage_data->lens_shaft_inv_scale;
+        }
     }
 }
 

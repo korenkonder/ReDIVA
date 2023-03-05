@@ -44,29 +44,7 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 
-    const float_t query_verts[] = {
-        -1.0f, -1.0f, 0.15f, 0.15f,
-         1.0f, -1.0f, 0.85f, 0.15f,
-        -1.0f,  1.0f, 0.15f, 0.85f,
-         1.0f,  1.0f, 0.85f, 0.85f,
-    };
-
     glGenVertexArrays(1, &query_vao);
-    gl_state_bind_vertex_array(query_vao);
-
-    glGenBuffers(1, &query_vbo);
-    gl_state_bind_array_buffer(query_vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(query_verts), query_verts, 0);
-    else
-        glBufferData(GL_ARRAY_BUFFER, sizeof(query_verts), query_verts, GL_STATIC_DRAW);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void*)0);  // Pos
-    glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color0
-    glVertexAttrib4f(4, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color1
-    glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord0
 
     glGenVertexArrays(1, &lens_ghost_vao);
     gl_state_bind_vertex_array(lens_ghost_vao);
@@ -80,11 +58,9 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
         glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 5 * (6 * 16), 0, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 16, (void*)0);  // Pos
-    glVertexAttrib4f(3, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color0
-    glVertexAttrib4f(4, 1.0f, 1.0f, 1.0f, 1.0f);                    // Color1
-    glEnableVertexAttribArray(8);
-    glVertexAttribPointer(8, 2, GL_FLOAT, GL_FALSE, 16, (void*)8);  // TexCoord0
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 20, (void*)0);
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 20, (void*)8);
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
@@ -95,6 +71,12 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
         glGenQueries(3, lens_flare_query);
 
     sun_quad_ubo.Create(sizeof(sun_quad_shader_data));
+
+    for (GLuint& i : lens_shaft_query_data)
+        i = -1;
+
+    for (GLuint& i : lens_flare_query_data)
+        i = -1;
 
     reset();
 }
@@ -136,11 +118,6 @@ post_process::~post_process() {
     if (query_vao) {
         glDeleteVertexArrays(1, &query_vao);
         query_vao = 0;
-    }
-
-    if (query_vbo) {
-        glDeleteBuffers(1, &query_vbo);
-        query_vbo = 0;
     }
 
     if (lens_ghost_vao) {
@@ -212,7 +189,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     screen_texture.bind();
-    glViewport(screen_x_offset, screen_y_offset, sprite_width, sprite_height);
+    glViewport(0, 0, sprite_width, sprite_height);
     if (ssaa) {
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, samplers[0]);
@@ -256,10 +233,6 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
-
-    fbo::blit(screen_texture.fbos[0], fbo_texture.fbos[0],
-        0, 0, screen_width, screen_height,
-        0, 0, screen_width, screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 }
 
 void post_process::ctrl(camera* cam) {
@@ -375,6 +348,7 @@ void post_process::draw_lens_flare(camera* cam) {
     mat4_translate_mult(&cam->view, &position, &mat);
     mat4_clear_rot(&mat, &mat);
     mat4_scale_rot(&mat, v24 * 0.2f, &mat);
+    mat4_mult(&mat, &cam->projection, &mat);
 
     mat4_transpose(&mat, &mat);
     shader_data.g_transform[0] = mat.row0;
@@ -390,6 +364,7 @@ void post_process::draw_lens_flare(camera* cam) {
     mat4_translate_mult(&cam->view, (vec3*)&v44, &mat);
     mat4_clear_rot(&mat, &mat);
     mat4_scale_rot(&mat, v24 * 2.0f, &mat);
+    mat4_mult(&mat, &cam->projection, &mat);
 
     mat4_transpose(&mat, &mat);
     shader_data.g_transform[0] = mat.row0;
@@ -428,8 +403,16 @@ void post_process::draw_lens_flare(camera* cam) {
         mat4_translate_mult(&cam->view, &position, &mat);
         mat4_clear_rot(&mat, &mat);
         mat4_scale_rot(&mat, v24 * 1.1f, &mat);
+        mat4_mult(&mat, &cam->projection, &mat);
 
-        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+        mat4_transpose(&mat, &mat);
+        shader_data.g_transform[0] = mat.row0;
+        shader_data.g_transform[1] = mat.row1;
+        shader_data.g_transform[2] = mat.row2;
+        shader_data.g_transform[3] = mat.row3;
+        sun_quad_ubo.WriteMapMemory(shader_data);
+
+        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         gl_state_disable_blend();
         gl_state_set_blend_func(GL_ONE, GL_ZERO);
@@ -502,9 +485,9 @@ static void make_ghost_quad(uint8_t flags, float_t opacity, mat4* mat, float_t*&
     data[9] = opacity;
     *(vec4*)&data[10] = p2;
     data[14] = opacity;
-    *(vec4*)&data[15] = p1;
+    *(vec4*)&data[15] = p2;
     data[19] = opacity;
-    *(vec4*)&data[20] = p2;
+    *(vec4*)&data[20] = p1;
     data[24] = opacity;
     *(vec4*)&data[25] = p3;
     data[29] = opacity;
@@ -640,18 +623,17 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
         this->render_height = render_height;
     }
 
-    this->sprite_width = sprite_width;
-    this->sprite_height = sprite_height;
+    if (this->sprite_width != sprite_width || this->sprite_height != sprite_height) {
+        screen_texture.init(screen_width, sprite_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
+        this->sprite_width = sprite_width;
+        this->sprite_height = sprite_height;
+    }
 
     screen_x_offset = (screen_width - sprite_width) / 2 + (screen_width - sprite_width) % 2;
     screen_y_offset = (screen_height - sprite_height) / 2 + (screen_height - sprite_height) % 2;
 
-    if (this->screen_width != screen_width || this->screen_height != screen_height) {
-        fbo_texture.init(screen_width, screen_height, 0, GL_RGBA16F, 0);
-        screen_texture.init(screen_width, screen_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
-        this->screen_width = screen_width;
-        this->screen_height = screen_height;
-    }
+    this->screen_width = screen_width;
+    this->screen_height = screen_height;
 }
 
 int32_t post_process::movie_texture_set(texture* movie_texture) {

@@ -303,6 +303,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
 
         glt_edt->Reset();
         dtm_stg_load(0);
+        dtw_stg_load(true);
     }
     data->data = glt_edt;
 
@@ -1175,6 +1176,7 @@ void glitter_editor_input(class_data* data) {
 bool glitter_editor_dispose(class_data* data) {
     GlitterEditor* glt_edt = (GlitterEditor*)data->data;
     if (glt_edt) {
+        dtw_stg_unload();
         dtm_stg_unload();
         Glitter::glt_particle_manager->FreeSceneEffect(glt_edt->scene_counter);
         Glitter::glt_particle_manager->UnloadEffectGroup(glt_edt->hash);

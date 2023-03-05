@@ -103,8 +103,7 @@ struct sprite_draw_param {
 namespace spr {
     struct SpriteManager {
         std::map<int32_t, SprSet> sets;
-        std::map<uint32_t, SprSet> sets_modern;
-        std::list<SprArgs> reqlist[4][SPR_PRIO_MAX * 2];
+        std::list<SprArgs> reqlist[4][2][SPR_PRIO_MAX];
         float_t aspect[2];
         std::pair<resolution_mode, rectangle> field_1018[2];
         int32_t index;
@@ -121,37 +120,26 @@ namespace spr {
         SpriteManager();
         ~SpriteManager();
 
-        void AddSprSets(const sprite_database* spr_db, bool modern);
+        void AddSprSets(const sprite_database* spr_db);
         void Clear();
         void Draw(render_context* rctx,
             int32_t index, bool font, texture* tex, const mat4& proj);
         SprSet* GetSet(int32_t index);
-        SprSet* GetSetModern(uint32_t set_id);
         bool GetSetReady(int32_t index);
-        bool GetSetReadyModern(uint32_t set_id);
         uint32_t GetSetSpriteNum(int32_t index);
-        uint32_t GetSetSpriteNumModern(uint32_t set_id);
         uint32_t GetSetTextureNum(int32_t index);
-        uint32_t GetSetTextureNumModern(uint32_t set_id);
         const char* GetSprName(spr_info info);
-        const char* GetSprNameModern(uint32_t set_id, spr_info info);
         rectangle GetSprRectangle(spr_info info);
-        rectangle GetSprRectangleModern(uint32_t set_id, spr_info info);
         texture* GetSprTexture(spr_info info);
-        texture* GetSprTextureModern(uint32_t set_id, spr_info info);
         bool LoadFile(int32_t index);
-        bool LoadFileModern(uint32_t id);
         SprArgs* PutSprite(const SprArgs& args, const sprite_database* spr_db);
         void ReadFile(int32_t index, const char* file, std::string& mdata_dir, void* data);
         void ReadFile(int32_t index, const char* file, std::string&& mdata_dir, void* data);
-        void ReadFileModern(uint32_t id,  const char* file, std::string& mdata_dir, void* data);
-        void ReadFileModern(uint32_t id, const char* file, std::string&& mdata_dir, void* data);
-        void RemoveSprSets(const sprite_database* spr_db, bool modern);
+        void RemoveSprSets(const sprite_database* spr_db);
         void ResetIndex();
         void ResetReqList();
         void ResetResData();
         void UnloadSet(int32_t index);
-        void UnloadSetModern(uint32_t set_id);
     };
 
     static void calc_sprite_vertex(spr::SprArgs* args, vec3* vtx, mat4* mat, bool font);
@@ -184,7 +172,7 @@ const GLenum spr_blend_param[6][4] = {
 };
 
 namespace spr {
-    SprArgs::SprArgs() : kind(), modern(), attr(), blend(), index(), layer(),
+    SprArgs::SprArgs() : kind(), attr(), blend(), index(), layer(),
         prio(), resolution_mode_screen(), resolution_mode_sprite(), texture(),
         shader(), vertex_array(), num_vertex(), flags(), field_CC(), next() {
         Reset();
@@ -300,10 +288,7 @@ namespace spr {
     }
 
     void put_rgb_cross(const mat4& mat) {
-        spr::put_cross(mat,
-            { 0xFF, 0x00, 0x00, 0xFF },
-            { 0x00, 0xFF, 0x00, 0xFF },
-            { 0x00, 0x00, 0xFF, 0xFF });
+        spr::put_cross(mat, color_red, color_green, color_blue);
     }
 
     spr::SprArgs* put_sprite(const spr::SprArgs& args, const sprite_database* spr_db) {
@@ -386,8 +371,8 @@ void sprite_manager_init() {
         sprite_manager = new spr::SpriteManager;
 }
 
-void sprite_manager_add_spr_sets(const sprite_database* spr_db, bool modern) {
-    sprite_manager->AddSprSets(spr_db, modern);
+void sprite_manager_add_spr_sets(const sprite_database* spr_db) {
+    sprite_manager->AddSprSets(spr_db);
 }
 
 void sprite_manager_clear() {
@@ -406,7 +391,8 @@ int32_t sprite_manager_get_index() {
 size_t sprite_manager_get_reqlist_count(int32_t index) {
     size_t count = 0;
     for (const auto& i : sprite_manager->reqlist[index])
-        count += i.size();
+        for (const auto& j : i)
+            count += j.size();
     return count;
 }
 
@@ -450,8 +436,8 @@ void sprite_manager_read_file(uint32_t set_id,
     sprite_manager->ReadFile(spr_set->index, spr_set->file_name.c_str(), mdata_dir, data);
 }
 
-void sprite_manager_remove_spr_sets(const sprite_database* spr_db, bool modern) {
-    sprite_manager->RemoveSprSets(spr_db, modern);
+void sprite_manager_remove_spr_sets(const sprite_database* spr_db) {
+    sprite_manager->RemoveSprSets(spr_db);
 }
 
 void sprite_manager_reset_req_list() {
@@ -553,19 +539,16 @@ namespace spr {
         }
     }
 
-    void SpriteManager::AddSprSets(const sprite_database* spr_db, bool modern) {
-        if (modern)
-            for (auto& i : spr_db->spr_set_ids)
-                sets_modern.insert({ i.first, SprSet(i.first) });
-        else
-            for (auto& i : spr_db->spr_set_indices)
-                sets.insert({ i.first, SprSet(i.first) });
+    void SpriteManager::AddSprSets(const sprite_database* spr_db) {
+        for (auto& i : spr_db->spr_set_indices)
+            sets.insert({ i.first, SprSet(i.first) });
     }
 
     void SpriteManager::Clear() {
         for (int32_t i = 0; i < 4; i++)
-            for (int32_t j = 0; j < 64; j++)
-                reqlist[i][j].clear();
+            for (int32_t j = 0; j < 2; j++)
+            for (int32_t k = 0; k < SPR_PRIO_MAX; k++)
+                reqlist[i][j][k].clear();
 
         for (auto i : sets)
             i.second.Unload();
@@ -586,8 +569,8 @@ namespace spr {
         GLint v43[4];
         glGetIntegerv(GL_VIEWPORT, v43);
 
-        auto reqlist = this->reqlist[index];
         for (int32_t i = 0; i < 2; i++) {
+            auto reqlist = this->reqlist[index][i];
             int32_t x_min;
             int32_t y_min;
             int32_t x_max;
@@ -787,22 +770,8 @@ namespace spr {
         return 0;
     }
 
-    SprSet* SpriteManager::GetSetModern(uint32_t set_id) {
-        auto elem = sets_modern.find(set_id);
-        if (elem != sets_modern.end())
-            return &elem->second;
-        return 0;
-    }
-
     bool SpriteManager::GetSetReady(int32_t index) {
         SprSet* set = GetSet(index);
-        if (set)
-            return set->ready;
-        return false;
-    }
-
-    bool SpriteManager::GetSetReadyModern(uint32_t set_id) {
-        SprSet* set = GetSetModern(set_id);
         if (set)
             return set->ready;
         return false;
@@ -815,22 +784,8 @@ namespace spr {
         return 0;
     }
 
-    uint32_t SpriteManager::GetSetSpriteNumModern(uint32_t set_id) {
-        SprSet* set = GetSetModern(set_id);
-        if (set)
-            return set->header->num_of_sprite;
-        return 0;
-    }
-
     uint32_t SpriteManager::GetSetTextureNum(int32_t index) {
         SprSet* set = GetSet(index);
-        if (set)
-            return set->header->num_of_texture;
-        return 0;
-    }
-
-    uint32_t SpriteManager::GetSetTextureNumModern(uint32_t set_id) {
-        SprSet* set = GetSetModern(set_id);
         if (set)
             return set->header->num_of_texture;
         return 0;
@@ -843,22 +798,8 @@ namespace spr {
         return "(null)";
     }
 
-    const char* SpriteManager::GetSprNameModern(uint32_t set_id, spr_info info) {
-        SprSet* set = GetSetModern(set_id);
-        if (set)
-            return set->GetName(info);
-        return "(null)";
-    }
-
     rectangle SpriteManager::GetSprRectangle(spr_info info) {
         SprSet* set = GetSet(info.set_index & 0x0FFF);
-        if (set)
-            return set->GetRectangle(info);
-        return {};
-    }
-
-    rectangle SpriteManager::GetSprRectangleModern(uint32_t set_id, spr_info info) {
-        SprSet* set = GetSetModern(set_id);
         if (set)
             return set->GetRectangle(info);
         return {};
@@ -871,22 +812,8 @@ namespace spr {
         return 0;
     }
 
-    texture* SpriteManager::GetSprTextureModern(uint32_t set_id, spr_info info) {
-        SprSet* set = GetSetModern(set_id);
-        if (set)
-            return set->GetTexture(info);
-        return 0;
-    }
-
     bool SpriteManager::LoadFile(int32_t index) {
         SprSet* set = GetSet(index);
-        if (set)
-            return set->LoadFile();
-        return false;
-    }
-    
-    bool SpriteManager::LoadFileModern(uint32_t set_id) {
-        SprSet* set = GetSetModern(set_id);
         if (set)
             return set->LoadFile();
         return false;
@@ -897,10 +824,10 @@ namespace spr {
         if (index == -1)
             index = this->index;
 
-        auto reqlist = &this->reqlist[index][args.layer * SPR_PRIO_MAX + args.prio];
+        auto reqlist = &this->reqlist[index][args.layer][args.prio];
         spr_info info = args.id.info;
         if (args.kind == SPR_KIND_NORMAL)
-            info = spr_db->get_spr_by_id(args.id.index)->info;
+            info = spr_db->get_spr_by_id(args.id.id)->info;
 
         if (info.not_null()) {
             SprSet* set = GetSet(info.set_index & 0x0FFF);
@@ -908,30 +835,30 @@ namespace spr {
                 return 0;
 
             reqlist->push_back(args);
-            SprArgs& v13 = reqlist->back();
-            v13.id.info = info;
-            v13.texture = set->GetTexture(info);
+            SprArgs& _args = reqlist->back();
+            _args.id.info = info;
+            _args.texture = set->GetTexture(info);
             rectangle rect = set->GetRectangle(info);
-            v13.SetSpriteSize({ rect.size.x, rect.size.y });
-            v13.SetTexturePosSize(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
-            if (v13.resolution_mode_sprite != RESOLUTION_MODE_MAX)
-                v13.resolution_mode_sprite = set->GetResolutionMode(v13.id.info);
-            return &v13;
+            _args.SetSpriteSize({ rect.size.x, rect.size.y });
+            _args.SetTexturePosSize(rect.pos.x, rect.pos.y, rect.size.x, rect.size.y);
+            if (_args.resolution_mode_sprite != RESOLUTION_MODE_MAX)
+                _args.resolution_mode_sprite = set->GetResolutionMode(_args.id.info);
+            return &_args;
         }
 
         if (args.texture) {
             reqlist->push_back(args);
-            SprArgs& v16 = reqlist->back();
-            v16.id.index = -1;
-            v16.SetSpriteSize({ (float_t)v16.texture->width, (float_t)v16.texture->height });
-            v16.SetTexturePosSize(0.0, 0.0, (float_t)v16.texture->width, (float_t)v16.texture->height);
-            return &v16;
+            SprArgs& _args = reqlist->back();
+            _args.id.index = -1;
+            _args.SetSpriteSize({ (float_t)_args.texture->width, (float_t)_args.texture->height });
+            _args.SetTexturePosSize(0.0, 0.0, (float_t)_args.texture->width, (float_t)_args.texture->height);
+            return &_args;
         }
         else {
             reqlist->push_back(args);
-            SprArgs& v18 = reqlist->back();
-            v18.id.index = -1;
-            return &v18;
+            SprArgs& _args = reqlist->back();
+            _args.id.index = -1;
+            return &_args;
         }
     }
 
@@ -949,37 +876,20 @@ namespace spr {
             set->ReadFile(file, mdata_dir, data);
     }
     
-    void SpriteManager::ReadFileModern(uint32_t set_id,
-        const char* file, std::string& mdata_dir, void* data) {
-        SprSet* set = GetSetModern(index);
-        if (set)
-            set->ReadFile(file, mdata_dir, data);
-    }
-    
-    void SpriteManager::ReadFileModern(uint32_t set_id,
-        const char* file, std::string&& mdata_dir, void* data) {
-        SprSet* set = GetSetModern(index);
-        if (set)
-            set->ReadFile(file, mdata_dir, data);
-    }
-
     void SpriteManager::ResetIndex() {
         index = 0;
     }
 
-    void SpriteManager::RemoveSprSets(const sprite_database* spr_db, bool modern) {
-        if (modern)
-            for (auto& i : spr_db->spr_set_ids)
-                sets_modern.erase(i.first);
-        else
-            for (auto& i : spr_db->spr_set_indices)
-                sets.erase(i.first);
+    void SpriteManager::RemoveSprSets(const sprite_database* spr_db) {
+        for (auto& i : spr_db->spr_set_indices)
+            sets.erase(i.first);
     }
 
     void SpriteManager::ResetReqList() {
         for (auto& i : reqlist)
             for (auto& j : i)
-                j.clear();
+                for (auto& k : j)
+                    k.clear();
         ResetIndex();
         sprite_vertex_array_count = 0;
     }
@@ -1003,12 +913,6 @@ namespace spr {
 
     void SpriteManager::UnloadSet(int32_t index) {
         SprSet* set = GetSet(index);
-        if (set)
-            set->Unload();
-    }
-
-    void SpriteManager::UnloadSetModern(uint32_t set_id) {
-        SprSet* set = GetSetModern(set_id);
         if (set)
             set->Unload();
     }

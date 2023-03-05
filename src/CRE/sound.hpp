@@ -286,11 +286,13 @@ struct WaveAudio {
 
 #define SOUND_WORK_SE_QUEUE_COUNT 5
 #define SOUND_WORK_STREAM_COUNT 3
+#define SOUND_WORK_SE_CHANNELS_COUNT 32
+#define SOUND_WORK_STREAMING_CHANNELS_COUNT 4
 
 struct SoundWork {
     std::map<std::string, sound_db_property> properties;
     sound_db_farc farcs[16];
-    SoundCue cues[32];
+    SoundCue cues[SOUND_WORK_SE_CHANNELS_COUNT];
     int32_t counter;
     std::vector<std::string> names_list;
     bool se_queue_enable[SOUND_WORK_SE_QUEUE_COUNT];

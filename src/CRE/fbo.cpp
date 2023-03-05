@@ -72,10 +72,10 @@ void fbo::free_data() {
 }
 
 void fbo::blit(GLuint src_fbo, GLuint dst_fbo,
-    GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,
-    GLint dst_x0, GLint dst_y0, GLint dst_x1, GLint dst_y1, GLbitfield mask, GLenum filter) {
+    GLint src_x, GLint src_y, GLint src_width, GLint src_height,
+    GLint dst_x, GLint dst_y, GLint dst_width, GLint dst_height, GLbitfield mask, GLenum filter) {
     gl_state_bind_read_framebuffer(src_fbo);
     gl_state_bind_draw_framebuffer(dst_fbo);
-    glBlitFramebuffer(src_x0, src_y0, src_x1, src_y1,
-        dst_x0, dst_y0, dst_x1, dst_y1, mask, filter);
+    glBlitFramebuffer(src_x, src_y, src_x + src_width, src_y + src_height,
+        dst_x, dst_y, dst_x + dst_width, dst_y + dst_height, mask, filter);
 }

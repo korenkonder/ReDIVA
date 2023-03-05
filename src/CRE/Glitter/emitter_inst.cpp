@@ -164,7 +164,7 @@ namespace Glitter {
         mat4_normalize_rotation(&mat, &mat);
         if (mult)
             mat4_mult(&dir_mat, &mat, &mat);
-        mat4_rotate_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
         mat4_clear_trans(&mat, &mat_rot);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
@@ -530,8 +530,8 @@ namespace Glitter {
             mat4_mult(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rotate_mult(&mat, &rot, &mat);
-        mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;
@@ -594,8 +594,8 @@ namespace Glitter {
             vec3 rot = rotation;
             mat = eff_inst->mat;
             mat4_translate_mult(&mat, &trans, &mat);
-            mat4_rotate_mult(&mat, &rot, &mat);
-            mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
+            mat4_rotate_zyx_mult(&mat, &rot, &mat);
+            mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
             this->mat = mat;
             this->mat_rot = mat_rot;
 
@@ -647,8 +647,8 @@ namespace Glitter {
             mat4_mult(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rotate_mult(&mat, &rot, &mat);
-        mat4_rotate_mult(&mat_rot, &rot, &mat_rot);
+        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+        mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;

@@ -10,19 +10,28 @@
 #include <vector>
 
 namespace dw {
+    enum Flags {
+        FLAG_1       = 0x001,
+        FLAG_2       = 0x002,
+        MULTISELECT  = 0x004,
+        FLAG_8       = 0x008,
+        RADIOBUTTON  = 0x010,
+        CHECKBOX     = 0x020,
+        CLOSE_BUTTON = 0x040,
+        FLAG_80      = 0x080,
+        HORIZONTAL   = 0x100,
+        VERTICAL     = 0x200,
+        FLAG_400     = 0x400,
+        FLAG_800     = 0x800,
+
+        // Added
+        LABEL_SIZE   = 0x8000,
+    };
+
     class Widget {
     public:
         typedef void(*Callback)(Widget* data);
 
-        enum Flags {
-            WIDGET_4            = 0x004,
-            WIDGET_RADIOBUTTON  = 0x010,
-            WIDGET_CHECKBOX     = 0x020,
-            WIDGET_CLOSE_BUTTON = 0x040,
-            WIDGET_SCROLL_H     = 0x100,
-            WIDGET_SCROLL_V     = 0x200,
-            WIDGET_800          = 0x800,
-        };
 
         bool free;
 
@@ -152,7 +161,7 @@ namespace dw {
         __int64 field_158;
         __int64 field_160;
 
-        ScrollBar(Control* parent, Widget::Flags flags);
+        ScrollBar(Control* parent, Flags flags);
         virtual ~ScrollBar() override;
 
         virtual void Draw() override;
@@ -181,6 +190,11 @@ namespace dw {
 
         virtual vec2 GetSize(Composite* comp) = 0;
         virtual void SetSize(Composite* comp) = 0;
+
+        // Added
+        virtual void Begin() = 0;
+        virtual void Next() = 0;
+        virtual void End() = 0;
     };
 
     class FillLayout : public Layout {
@@ -192,6 +206,11 @@ namespace dw {
 
         virtual vec2 GetSize(Composite* comp) override;
         virtual void SetSize(Composite* comp) override;
+
+        // Added
+        virtual void Begin() override;
+        virtual void Next() override;
+        virtual void End() override;
     };
 
     class GraphLayout : public Layout {
@@ -203,6 +222,11 @@ namespace dw {
 
         virtual vec2 GetSize(Composite* comp) override;
         virtual void SetSize(Composite* comp) override;
+
+        // Added
+        virtual void Begin() override;
+        virtual void Next() override;
+        virtual void End() override;
     };
 
     class GridLayout : public Layout {
@@ -223,18 +247,33 @@ namespace dw {
 
         virtual vec2 GetSize(Composite* comp) override;
         virtual void SetSize(Composite* comp) override;
+
+        // Added
+        virtual void Begin() override;
+        virtual void Next() override;
+        virtual void End() override;
     };
 
     class RowLayout : public Layout {
     public:
-        int32_t field_8;
-        float_t field_C;
+        Flags flags;
+        float_t spacing;
 
-        RowLayout(int32_t a2 = 256);
+        // Added
+        vec2 imgui_cursor_pos;
+        vec2 imgui_curr_line_size;
+        float_t imgui_curr_line_text_base_offset;
+
+        RowLayout(Flags flags = VERTICAL);
         virtual ~RowLayout() override;
 
         virtual vec2 GetSize(Composite* comp) override;
         virtual void SetSize(Composite* comp) override;
+
+        // Added
+        virtual void Begin() override;
+        virtual void Next() override;
+        virtual void End() override;
     };
 
     class Composite : public Scrollable {
@@ -288,7 +327,7 @@ namespace dw {
         //std::vector<Menu*> menus;
 
         Shell(Shell* parent = 0, Flags flags
-            = (Widget::Flags)(0x480 | WIDGET_CLOSE_BUTTON | WIDGET_CHECKBOX | WIDGET_RADIOBUTTON));
+            = (Flags)(FLAG_400 | FLAG_80 | CLOSE_BUTTON | CHECKBOX | RADIOBUTTON));
         virtual ~Shell() override;
 
         virtual void Draw() override;
@@ -329,7 +368,7 @@ namespace dw {
     public:
         List* list;
 
-        ListBox(Composite* parent = 0, Flags flags = (Flags)0x204);
+        ListBox(Composite* parent = 0, Flags flags = (Flags)(VERTICAL | MULTISELECT));
         virtual ~ListBox() override;
 
         virtual void Draw() override;
@@ -348,7 +387,7 @@ namespace dw {
         std::vector<SelectionListener*> selection_listeners;
         ScrollBar* scroll_bar;
 
-        Slider(Composite* parent, Widget::Flags flags);
+        Slider(Composite* parent, Flags flags);
         virtual ~Slider();
 
         virtual void Draw() override;
@@ -357,7 +396,7 @@ namespace dw {
 
         void AddSelectionListener(SelectionListener* value);
 
-        static Slider* make(Composite* parent, Widget::Flags flags,
+        static Slider* make(Composite* parent, Flags flags,
             float_t x, float_t y, float_t width, float_t height, const char* name);
     };
 }
