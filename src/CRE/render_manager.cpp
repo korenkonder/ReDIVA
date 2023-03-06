@@ -819,9 +819,13 @@ namespace rndr {
         gl_state_set_blend_equation(GL_FUNC_ADD);
         gl_state_disable_depth_test();
 
-        contour_params_shader_data shader_data = {};
-        shader_data.g_near_far = rctx->g_near_far;
-        rctx->contour_params_ubo.WriteMapMemory(shader_data);
+        quad_shader_data quad_data = {};
+        quad_data.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f };
+        rctx->quad_ubo.WriteMapMemory(quad_data);
+        
+        contour_params_shader_data contour_params_data = {};
+        contour_params_data.g_near_far = rctx->g_near_far;
+        rctx->contour_params_ubo.WriteMapMemory(contour_params_data);
 
         shaders_ft.set(SHADER_FT_CONTOUR_NPR);
         gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
@@ -833,6 +837,7 @@ namespace rndr {
         gl_state_active_bind_texture_2d(14, rt->depth_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        rctx->quad_ubo.Bind(0);
         rctx->contour_params_ubo.Bind(2);
         render_texture::draw(&shaders_ft);
 

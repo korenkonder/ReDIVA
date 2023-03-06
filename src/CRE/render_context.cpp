@@ -99,6 +99,7 @@ void draw_state_stats::reset() {
 sss_data::sss_data() : init(), enable(), npr_contour(), param() {
     init = true;
     enable = true;
+    npr_contour = true;
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
 
     textures[0].init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
@@ -2173,7 +2174,6 @@ namespace rndr {
         GLuint sampler;
         glCreateSamplers(3, sprite_samplers);
         sampler = sprite_samplers[0];
-        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
         glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -2181,7 +2181,6 @@ namespace rndr {
         glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
 
         sampler = sprite_samplers[1];
-        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
         glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
