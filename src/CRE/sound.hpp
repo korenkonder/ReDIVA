@@ -336,6 +336,8 @@ extern void sound_free();
 extern float_t sound_cue_queue_volume_array_get_max(int32_t queue_index);
 extern float_t sound_cue_queue_volume_array_get_min(int32_t queue_index);
 
+extern void sound_stream_array_reset();
+
 extern bool sound_work_check_stream_state(int32_t index);
 extern bool sound_work_cue_release(int32_t queue_index, const char* name, bool force_release = true);
 extern SoundCue* sound_work_get_cue(int32_t queue_index, const char* name);

@@ -504,7 +504,7 @@ namespace rndr {
                 glClear(GL_COLOR_BUFFER_BIT);
                 gl_state_bind_framebuffer(0);
             }
-            else if (false/*field_128*/) {
+            else if (true/*field_128*/) {
                 pp->set_render_texture();
 
                 vec4 clear_color = get_clear_color();

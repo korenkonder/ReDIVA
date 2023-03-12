@@ -22,7 +22,7 @@ public:
     uint32_t marker_index;
     uint8_t type;
     std::vector<std::string> comp_layers;
-    std::map<std::string, aet_layer_object_data> data;
+    AetComp comp;
     std::vector<std::string> markers;
     float_t frame;
     float_t start_time;

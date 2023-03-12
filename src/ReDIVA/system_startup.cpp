@@ -10,7 +10,7 @@
 #include "game_state.hpp"
 #include "pv_game.hpp"
 
-system_startup_detail::TaskSystemStartup task_system_startup;
+system_startup_detail::TaskSystemStartup* task_system_startup;
 
 struct system_startup_struct {
     int32_t state;
@@ -101,12 +101,24 @@ namespace system_startup_detail {
     }
 }
 
+void task_system_startup_init() {
+    if (!task_system_startup)
+        task_system_startup = new system_startup_detail::TaskSystemStartup;
+}
+
 bool task_system_startup_add_task() {
-    return app::TaskWork::AddTask(&task_system_startup, "SYSTEM_STARTUP");
+    return app::TaskWork::AddTask(task_system_startup, "SYSTEM_STARTUP");
 }
 
 bool task_system_startup_del_task() {
-    return task_system_startup.DelTask();
+    return task_system_startup->DelTask();
+}
+
+void task_system_startup_free() {
+    if (task_system_startup) {
+        delete task_system_startup;
+        task_system_startup = 0;
+    }
 }
 
 static bool system_startup_check_ready() {
@@ -124,19 +136,19 @@ static void task_pv_game_init_test_pv() {
         return;
 
     task_rob_manager_add_task();
-    TaskPvGame::InitData init_data;
-    init_data.data.pv_id = 999;
-    init_data.data.difficulty = 1;
-    init_data.data.field_C = 0;
-    init_data.data.score_percentage_clear = 50;
-    init_data.data.life_gauge_safety_time = 40;
-    init_data.data.life_gauge_border = 30;
-    init_data.field_190 = false;
-    init_data.field_191 = false;
-    init_data.no_fail = false;
-    init_data.field_193 = true;
-    init_data.field_194 = true;
-    init_data.field_195 = true;
-    init_data.field_198 = true;
-    task_pv_game_add_task(&init_data);
+    TaskPvGame::Args args;
+    args.init_data.pv_id = 999;
+    args.init_data.difficulty = 1;
+    args.init_data.field_C = 0;
+    args.init_data.score_percentage_clear = 50;
+    args.init_data.life_gauge_safety_time = 40;
+    args.init_data.life_gauge_border = 30;
+    args.field_190 = false;
+    args.field_191 = false;
+    args.no_fail = false;
+    args.field_193 = true;
+    args.field_194 = true;
+    args.field_195 = true;
+    args.test_pv = true;
+    task_pv_game_add_task(args);
 }

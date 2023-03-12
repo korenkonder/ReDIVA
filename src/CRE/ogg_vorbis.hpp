@@ -143,6 +143,7 @@ struct OggFileHandler {
     void ReadBuffer(sound_buffer_data* buffer, size_t samples_count);
     void ReadBufferProt(sound_buffer_data* buffer, size_t samples_count);
     void Reset(bool reset = false);
+    void SetChannelPairVolume(size_t channel_pair, int32_t value);
     void SetChannelPairVolumePan(size_t src_channel_pair,
         int32_t src_channel, int32_t dst_channel, int32_t value);
     void SetFileState(OggFileHandlerFileState state);
@@ -169,6 +170,7 @@ struct p_OggFileHandler {
     OggFileHandlerFileState GetFileState();
     OggFileHandlerPauseState GetPauseState();
     float_t GetTime();
+    void SetChannelPairVolume(size_t channel_pair, int32_t value);
     void SetChannelPairVolumePan(size_t src_channel_pair,
         int32_t src_channel, int32_t dst_channel, int32_t value);
     void SetLoadTimeSeek(float_t value);
@@ -194,6 +196,7 @@ struct OggPlayback {
     OggFileHandlerPauseState GetPauseState();
     float_t GetTime();
     void Reset();
+    void SetChannelPairVolume(size_t channel_pair, int32_t value);
     void SetChannelPairVolumePan(size_t src_channel_pair,
         int32_t src_channel, int32_t dst_channel, int32_t value);
     void SetLoadTimeSeek(float_t value);
@@ -202,6 +205,7 @@ struct OggPlayback {
     void SetPath(std::string&& path);
     void SetPauseState(OggFileHandlerPauseState value);
     void SetPlaybackState(OggFileHandlerPlaybackState value);
+    void Stop();
 
     static bool LoadFile(void* data, const char* path, const char* file, uint32_t hash);
     static void SetChannelPairVolumePan(OggPlayback* op);

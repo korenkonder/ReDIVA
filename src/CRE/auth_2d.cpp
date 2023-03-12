@@ -454,9 +454,9 @@ public:
 
 class AetLyo : public AetObj {
 public:
-    std::map<std::string, aet_layer_object_data>* data;
+    AetComp* comp;
 
-    AetLyo(std::map<std::string, aet_layer_object_data>* data);
+    AetLyo(AetComp* comp);
     virtual ~AetLyo() override;
 
     virtual void CtrlLayer(const aet_layer* layer, float_t frame) override;
@@ -482,7 +482,7 @@ public:
     virtual void Unload();
     virtual bool Load();
 
-    const aet_marker* GetLayerMarker(const aet_layer* layer, const char* name);
+    const aet_marker* GetLayerMarker(const aet_layer* layer, const char* marker_name);
     void GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer* layer);
     const aet_scene* GetSceneByInfo(aet_info info);
     void GetSceneCompLayerNames(std::vector<std::string>& vec, const aet_scene* scene);
@@ -529,7 +529,7 @@ public:
     const char* GetSetSceneName(aet_info info);
     float_t GetSetSceneStartTime(aet_info info);
     uint32_t GetSetScenesCount(int32_t index);
-    void InitAetLayout(std::map<std::string, aet_layer_object_data>* data, AetArgs& args);
+    void InitAetLayout(AetComp* comp, AetArgs& args);
     bool InitAetObj(AetObj& obj, AetArgs& args);
     uint32_t InitAetObject(AetArgs& args);
     bool LoadFile(int32_t index);
@@ -591,7 +591,26 @@ AetArgs::~AetArgs() {
 
 }
 
-aet_layer_object_data::aet_layer_object_data() : width(), height() {
+AetComp::AetComp() {
+
+}
+
+AetComp::~AetComp() {
+
+}
+
+void AetComp::Add(const char* name, aet_layout_data& data) {
+    this->data.insert({ name, data });
+}
+
+aet_layout_data* AetComp::Find(const char* name) {
+    auto elem = data.find(name);
+    if (elem != data.end())
+        return &elem->second;
+    return 0;
+}
+
+aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;
     color = { 0xFF, 0xFF, 0xFF, 0xFF };
@@ -692,13 +711,13 @@ bool aet_manager_get_set_ready(uint32_t set_id, const aet_database* aet_db) {
     return aet_manager->GetSetReady(aet_db->get_aet_set_by_id(set_id)->index);
 };
 
-void aet_manager_init_aet_layout(std::map<std::string, aet_layer_object_data>* data,
+void aet_manager_init_aet_layout(AetComp* comp,
     AetArgs args, const aet_database* aet_db) {
     args.id.info = aet_db->get_aet_by_id(args.id.id)->info;
-    aet_manager->InitAetLayout(data, args);
+    aet_manager->InitAetLayout(comp, args);
 }
 
-void aet_manager_init_aet_layout(std::map<std::string, aet_layer_object_data>* data,
+void aet_manager_init_aet_layout(AetComp* comp,
     uint32_t aet_id, const char* layer_name, AetFlags flags, resolution_mode mode,
     const char* start_marker, float_t start_time, const aet_database* aet_db) {
     AetArgs args;
@@ -708,7 +727,7 @@ void aet_manager_init_aet_layout(std::map<std::string, aet_layer_object_data>* d
     args.mode = mode;
     args.start_marker = start_marker;
     args.start_time = start_time;
-    aet_manager->InitAetLayout(data, args);
+    aet_manager->InitAetLayout(comp, args);
 }
 
 uint32_t aet_manager_init_aet_object(AetArgs args, const aet_database* aet_db) {
@@ -796,8 +815,8 @@ void aet_manager_set_obj_end_time(uint32_t id, float_t value) {
     aet_manager->SetObjEndTime(id, value);
 }
 
-void aet_manager_set_obj_frame(uint32_t id, float_t frame) {
-    aet_manager->SetObjFrame(id, frame);
+void aet_manager_set_obj_frame(uint32_t id, float_t value) {
+    aet_manager->SetObjFrame(id, value);
 }
 
 void aet_manager_set_obj_play(uint32_t id, bool value) {
@@ -808,8 +827,8 @@ void aet_manager_set_obj_position(uint32_t id, const vec3& value) {
     aet_manager->SetObjPosition(id, value);
 }
 
-void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio prio) {
-    aet_manager->SetObjPrio(id, prio);
+void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio value) {
+    aet_manager->SetObjPrio(id, value);
 }
 
 void aet_manager_set_obj_rotation(uint32_t id, const vec3& value) {
@@ -1496,8 +1515,8 @@ void AetObj::CalcMat(mat4& mat, const aet_layer* layer, float_t frame) {
     mat4_translate_mult(&mat, -anchor_x, -anchor_y, -anchor_z, &mat);
 }
 
-AetLyo::AetLyo(std::map<std::string, aet_layer_object_data>* data) {
-    this->data = data;
+AetLyo::AetLyo(AetComp* comp) {
+    this->comp = comp;
 }
 
 AetLyo::~AetLyo() {
@@ -1524,25 +1543,25 @@ void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
     frame = (frame - layer->start_time) * layer->time_scale + layer->offset_time;
 
     if (layer->item_type == AET_ITEM_TYPE_VIDEO) {
-        aet_layer_object_data obj_data;
+        aet_layout_data data;
         const aet_layer_video* layer_video = layer->video;
-        obj_data.anchor.x = layer_video->anchor_x.interpolate(frame);
-        obj_data.anchor.y = layer_video->anchor_y.interpolate(frame);
+        data.anchor.x = layer_video->anchor_x.interpolate(frame);
+        data.anchor.y = layer_video->anchor_y.interpolate(frame);
         const aet_layer_video_3d* layer_video_3d = layer_video->_3d;
         if (layer_video_3d)
-            obj_data.anchor.z = layer_video_3d->anchor_z.interpolate(frame);
-        obj_data.mat = m;
-        mat4_mult_vec3_trans(&m, &obj_data.anchor, &obj_data.position);
+            data.anchor.z = layer_video_3d->anchor_z.interpolate(frame);
+        data.mat = m;
+        mat4_mult_vec3_trans(&m, &data.anchor, &data.position);
 
         const aet_video* video = layer->item.video;
-        obj_data.width = (float_t)video->width;
-        obj_data.height = (float_t)video->height;
-        obj_data.color.x = video->color[0];
-        obj_data.color.y = video->color[1];
-        obj_data.color.z = video->color[2];;
-        obj_data.opacity = opacity;
-        obj_data.mode = dst_mode;
-        data->insert({ layer->name, obj_data });
+        data.width = (float_t)video->width;
+        data.height = (float_t)video->height;
+        data.color.x = video->color[0];
+        data.color.y = video->color[1];
+        data.color.z = video->color[2];;
+        data.opacity = opacity;
+        data.mode = dst_mode;
+        comp->Add(layer->name, data);
     }
     else if (layer->item_type == AET_ITEM_TYPE_COMPOSITION)
         DispComp(m, layer->item.comp, frame, opacity, spr_db);
@@ -1626,13 +1645,13 @@ void AetSet::Unload() {
     load_count = 0;
 }
 
-const aet_marker* AetSet::GetLayerMarker(const aet_layer* layer, const char* name) {
+const aet_marker* AetSet::GetLayerMarker(const aet_layer* layer, const char* marker_name) {
     if (!layer->markers_count)
         return 0;
 
     const aet_marker* marker = layer->markers;
     for (uint32_t i = layer->markers_count; i; i--, marker++)
-        if (!str_utils_compare(marker->name, name))
+        if (!str_utils_compare(marker->name, marker_name))
             return marker;
     return 0;
 }
@@ -1865,8 +1884,8 @@ float_t AetMgr::GetSetSceneStartTime(aet_info info) {
     return GetSet(info.set_index)->GetSceneStartTime(info.index);
 }
 
-void AetMgr::InitAetLayout(std::map<std::string, aet_layer_object_data>* data, AetArgs& args) {
-    AetLyo layout(data);
+void AetMgr::InitAetLayout(AetComp* comp, AetArgs& args) {
+    AetLyo layout(comp);
     InitAetObj(layout, args);
     layout.Disp();
 }

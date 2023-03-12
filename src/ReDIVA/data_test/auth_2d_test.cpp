@@ -185,8 +185,8 @@ bool DtmAet::Ctrl() {
             layer_name = comp_layers[layer_index - 1].c_str();
 
         if (type) {
-            data.clear();
-            aet_manager_init_aet_layout(&data, aet_id, layer_name,
+            comp.data.clear();
+            aet_manager_init_aet_layout(&comp, aet_id, layer_name,
                 (AetFlags)0, RESOLUTION_MODE_HD, 0, frame, aft_aet_db);
         }
         else {

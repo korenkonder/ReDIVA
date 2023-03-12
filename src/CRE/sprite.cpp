@@ -203,7 +203,7 @@ namespace spr {
         sprite_size = 0.0f;
         field_CC = 0;
         texture_pos = 0.0f;
-        texture_size = 0.0f;
+        texture_size = 1.0f;
         next = 0;
     }
 
@@ -496,7 +496,7 @@ namespace spr {
         glGenBuffers(1, &vbo);
         gl_state_bind_array_buffer(vbo, true);
 
-        vbo_vertex_count = 1024;
+        vbo_vertex_count = 4096;
 
         static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
 
@@ -702,21 +702,6 @@ namespace spr {
             gl_state_active_bind_texture_2d(7, tex->tex);
 
             gl_state_bind_vertex_array(vao);
-            gl_state_bind_array_buffer(vbo);
-
-            glEnableVertexAttribArray(0);
-            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, pos));
-            glEnableVertexAttribArray(1);
-            glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, color));
-            glEnableVertexAttribArray(2);
-            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, uv[0]));
-            glEnableVertexAttribArray(3);
-            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                (void*)offsetof(sprite_draw_vertex, uv[1]));
-
             for (sprite_draw_param& j : draw_param_buffer) {
                 if (j.blend) {
                     gl_state_enable_blend();
@@ -753,7 +738,6 @@ namespace spr {
                 shaders_ft.set(j.shader);
                 shaders_ft.draw_arrays(j.mode, j.first, j.count);
             }
-            gl_state_bind_vertex_array(0);
             gl_state_bind_array_buffer(0);
         }
 
@@ -1572,11 +1556,18 @@ namespace spr {
     static void draw_sprite_begin() {
         gl_state_disable_blend();
         gl_state_active_bind_texture_2d(0, 0);
+        gl_state_bind_sampler(0, 0);
+        gl_state_active_bind_texture_2d(1, 0);
+        gl_state_bind_sampler(1, 0);
         gl_state_set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
     }
 
     static void draw_sprite_end() {
+        gl_state_disable_blend();
         gl_state_active_bind_texture_2d(0, 0);
+        gl_state_bind_sampler(0, 0);
+        gl_state_active_bind_texture_2d(1, 0);
+        gl_state_bind_sampler(1, 0);
         gl_state_set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
         shader::unbind();
     }

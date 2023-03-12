@@ -491,8 +491,10 @@ struct pv_game_data {
     ~pv_game_data();
 };
 
-struct struc_653 {
-    bool field_0[4];
+struct pv_game_item_mask {
+    bool arr[4];
+
+    pv_game_item_mask();
 };
 
 struct pv_game {
@@ -507,7 +509,7 @@ struct pv_game {
     int32_t field_14;
     int32_t modules[6];
     rob_chara_pv_data_item items[6];
-    struc_653 field_90[6];
+    pv_game_item_mask items_mask[6];
     pv_game_data data;
 
     pv_game();
@@ -524,22 +526,24 @@ struct pv_game_init_data {
     int32_t field_18;
     int32_t modules[6];
     rob_chara_pv_data_item items[6];
-    struc_653 field_94[6];
+    pv_game_item_mask items_mask[6];
 
+    pv_game_init_data();
+    
     void reset();
 };
 
 class TaskPvGame : public app::Task {
 public:
-    struct InitData {
-        pv_game_init_data data;
-        std::string field_B0;
-        std::string field_D0;
-        std::string field_F0;
-        std::string field_110;
-        std::string field_130;
-        std::string field_150;
-        std::string field_170;
+    struct Args {
+        pv_game_init_data init_data;
+        std::string se_name;
+        std::string slide_se_name;
+        std::string chainslide_first_name;
+        std::string chainslide_sub_name;
+        std::string chainslide_success_name;
+        std::string chainslide_failure_name;
+        std::string slidertouch_name;
         bool field_190;
         bool field_191;
         bool no_fail;
@@ -548,11 +552,11 @@ public:
         bool field_195;
         bool field_196;
         bool field_197;
-        bool field_198;
-        int32_t field_19C;
+        bool test_pv;
+        int32_t option;
 
-        InitData();
-        ~InitData();
+        Args();
+        ~Args();
 
         void Clear();
         void Reset();
@@ -560,14 +564,14 @@ public:
 
     struct Data {
         int32_t field_0;
-        pv_game_init_data data;
-        std::string field_B0;
-        std::string field_D0;
-        std::string field_F0;
-        std::string field_110;
-        std::string field_130;
-        std::string field_150;
-        std::string field_170;
+        pv_game_init_data init_data;
+        std::string se_name;
+        std::string slide_se_name;
+        std::string chainslide_first_name;
+        std::string chainslide_sub_name;
+        std::string chainslide_success_name;
+        std::string chainslide_failure_name;
+        std::string slidertouch_name;
         bool field_190;
         bool field_191;
         bool no_fail;
@@ -575,7 +579,7 @@ public:
         bool field_194;
         bool field_195;
         bool field_196;
-        int32_t field_198;
+        int32_t option;
 
         Data();
         ~Data();
@@ -593,6 +597,6 @@ public:
     virtual void Disp() override;
 };
 
-bool task_pv_game_add_task(TaskPvGame::InitData* init_data);
+bool task_pv_game_add_task(TaskPvGame::Args& args);
 bool task_pv_game_check_task_ready();
 bool task_pv_game_del_task();

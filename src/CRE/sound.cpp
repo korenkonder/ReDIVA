@@ -63,7 +63,6 @@ struct sound_stream {
 static void sound_stream_array_init();
 static void sound_stream_array_ctrl();
 static sound_stream* sound_stream_array_get(int32_t index);
-static void sound_stream_array_reset();
 static void sound_stream_array_free();
 
 SoundWork* sound_work;
@@ -1535,6 +1534,11 @@ void sound_free() {
     }
 }
 
+void sound_stream_array_reset() {
+    for (size_t i = 0; i < SOUND_WORK_STREAM_COUNT; i++)
+        sound_stream_array[i].reset();
+}
+
 bool sound_work_check_stream_state(int32_t index) {
     if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
         return false;
@@ -2117,7 +2121,7 @@ bool sound_stream::stop_playback() {
     if (!ogg_playback)
         return false;
 
-    ogg_playback->SetPlaybackState(OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD);
+    ogg_playback->Stop();
     ogg_playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
     return true;
 }
@@ -2136,11 +2140,6 @@ static sound_stream* sound_stream_array_get(int32_t index) {
     if (index >= 0 && index < SOUND_WORK_STREAM_COUNT)
         return &sound_stream_array[index];
     return 0;
-}
-
-static void sound_stream_array_reset() {
-    for (size_t i = 0; i < SOUND_WORK_STREAM_COUNT; i++)
-        sound_stream_array[i].reset();
 }
 
 static void sound_stream_array_free() {

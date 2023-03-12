@@ -69,7 +69,7 @@ struct AetArgs {
     ~AetArgs();
 };
 
-struct aet_layer_object_data {
+struct aet_layout_data {
     mat4 mat;
     vec3 position;
     vec3 anchor;
@@ -79,7 +79,17 @@ struct aet_layer_object_data {
     vec4u8 color;
     resolution_mode mode;
 
-    aet_layer_object_data();
+    aet_layout_data();
+};
+
+struct AetComp {
+    std::map<std::string, aet_layout_data> data;
+
+    AetComp();
+    ~AetComp();
+
+    void Add(const char* name, aet_layout_data& data);
+    aet_layout_data* Find(const char* name);
 };
 
 extern void aet_manager_init();
@@ -108,9 +118,9 @@ extern const char* aet_manager_get_scene_name(uint32_t aet_id, const aet_databas
 extern float_t aet_manager_get_scene_start_time(uint32_t aet_id, const aet_database* aet_db);
 extern uint32_t aet_manager_get_scenes_count(uint32_t set_id, const aet_database* aet_db);
 extern bool aet_manager_get_set_ready(uint32_t set_id, const aet_database* aet_db);
-extern void aet_manager_init_aet_layout(std::map<std::string, aet_layer_object_data>* data,
+extern void aet_manager_init_aet_layout(AetComp* composition,
     AetArgs args, const aet_database* aet_db);
-extern void aet_manager_init_aet_layout(std::map<std::string, aet_layer_object_data>* data,
+extern void aet_manager_init_aet_layout(AetComp* composition,
     uint32_t aet_id, const char* layer_name, AetFlags flags, resolution_mode mode,
     const char* start_marker, float_t start_time, const aet_database* aet_db);
 extern uint32_t aet_manager_init_aet_object(AetArgs args, const aet_database* aet_db);
@@ -129,10 +139,10 @@ extern void aet_manager_remove_aet_sets(const aet_database* aet_db);
 extern void aet_manager_set_obj_alpha(uint32_t id, float_t value);
 extern void aet_manager_set_obj_color(uint32_t id, const vec4& value);
 extern void aet_manager_set_obj_end_time(uint32_t id, float_t value);
-extern void aet_manager_set_obj_frame(uint32_t id, float_t frame);
+extern void aet_manager_set_obj_frame(uint32_t id, float_t value);
 extern void aet_manager_set_obj_play(uint32_t id, bool value);
 extern void aet_manager_set_obj_position(uint32_t id, const vec3& value);
-extern void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio prio);
+extern void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio value);
 extern void aet_manager_set_obj_rotation(uint32_t id, const vec3& value);
 extern void aet_manager_set_obj_scale(uint32_t id, const vec3& value);
 extern void aet_manager_set_obj_sprite_discard(uint32_t id, std::map<uint32_t, uint32_t>& value);

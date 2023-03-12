@@ -537,6 +537,16 @@ void OggFileHandler::Reset(bool reset) {
     }
 }
 
+void OggFileHandler::SetChannelPairVolume(size_t channel_pair, int32_t value) {
+    if (channel_pair < 0 || channel_pair >= 4)
+        return;
+
+    value = clamp_def(value, -10000, 0);
+
+    std::unique_lock<std::mutex> u_lock(volume_mtx);
+    channel_pair_volume[channel_pair] = value;
+}
+
 void OggFileHandler::SetChannelPairVolumePan(size_t src_channel_pair,
     int32_t src_channel, int32_t dst_channel, int32_t value) {
     if (src_channel_pair < 0 || src_channel_pair >= 4 || src_channel < 0
@@ -673,6 +683,11 @@ float_t p_OggFileHandler::GetTime() {
     return 0.0f;
 }
 
+void p_OggFileHandler::SetChannelPairVolume(size_t channel_pair, int32_t value) {
+    if (ptr)
+        ptr->SetChannelPairVolume(channel_pair, value);
+}
+
 void p_OggFileHandler::SetChannelPairVolumePan(size_t src_channel_pair,
     int32_t src_channel, int32_t dst_channel, int32_t value) {
     if (ptr)
@@ -754,6 +769,13 @@ void OggPlayback::Reset() {
     ogg_file_handler = 0;
 }
 
+void OggPlayback::SetChannelPairVolume(size_t channel_pair, int32_t value) {
+    if (state != 1 || !ogg_file_handler)
+        return;
+
+    ogg_file_handler->SetChannelPairVolume(channel_pair, value);
+}
+
 void OggPlayback::SetChannelPairVolumePan(size_t src_channel_pair,
     int32_t src_channel, int32_t dst_channel, int32_t value) {
     if (state != 1 || !ogg_file_handler)
@@ -806,6 +828,11 @@ void OggPlayback::SetPauseState(OggFileHandlerPauseState value) {
 void OggPlayback::SetPlaybackState(OggFileHandlerPlaybackState value) {
     if (state == 1 && ogg_file_handler)
         ogg_file_handler->SetPlaybackState(value);
+}
+
+void OggPlayback::Stop() {
+    if (state == 1 && ogg_file_handler && ogg_file_handler->ptr)
+        ogg_file_handler->SetPlaybackState(OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD);
 }
 
 bool OggPlayback::LoadFile(void* data, const char* path, const char* file, uint32_t hash) {

@@ -992,6 +992,7 @@ bool SubGameState::DataInitialize::Dest() {
 }
 
 bool SubGameState::SystemStartup::Init() {
+    task_system_startup_init();
     task_system_startup_add_task();
     task_pv_db_add_task();
     return true;
@@ -1003,6 +1004,7 @@ bool SubGameState::SystemStartup::Ctrl() {
 
 bool SubGameState::SystemStartup::Dest() {
     task_system_startup_del_task();
+    task_system_startup_free();
     game_state_set_sub_game_state_next(SUB_GAME_STATE_WARNING);
     return true;
 }

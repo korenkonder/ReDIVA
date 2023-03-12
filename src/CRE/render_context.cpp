@@ -54,14 +54,14 @@ struct struc_189 {
 };
 
 static const struc_189 stru_140A24420[] = {
-    { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA8, GL_DEPTH_COMPONENT24 },
+    { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA8  , GL_DEPTH_COMPONENT24 },
     { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24 },
-    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8, GL_ZERO },
-    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8, GL_ZERO },
-    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8, GL_ZERO },
-    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
+    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
+    { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
+    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA8  , GL_ZERO },
     { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA32F, GL_ZERO },
-    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA8, GL_ZERO },
+    { GL_TEXTURE_2D, 0x100, 0x100, 0, GL_RGBA8  , GL_ZERO },
     { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_ZERO }, // Extra for buf
 };
 
@@ -3069,10 +3069,10 @@ int32_t shadow::init_data() {
         { 0x800, 0x800, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F },
         { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
         { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO },
-        { 0x800, 0x800, 0, GL_R32F, GL_ZERO },
-        { 0x800, 0x800, 0, GL_R32F, GL_ZERO },
-        { 0x200, 0x200, 0, GL_R32F, GL_ZERO },
-        { 0x200, 0x200, 0, GL_R32F, GL_ZERO },
+        { 0x800, 0x800, 0, GL_R32F , GL_ZERO },
+        { 0x800, 0x800, 0, GL_R32F , GL_ZERO },
+        { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
+        { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
         { 0x200, 0x200, 3, GL_RGBA8, GL_ZERO }, // Extra for buf
     };
 

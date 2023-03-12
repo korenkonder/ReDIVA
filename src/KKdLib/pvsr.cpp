@@ -11,15 +11,16 @@
 #include "str_utils.hpp"
 
 static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s);
-static void pvsr_auth_2d_read(pvsr_auth_2d* aet_entry, stream& s);
+static void pvsr_auth_2d_read(pvsr_auth_2d* a2d, stream& s);
 static void pvsr_effect_read(pvsr_effect* eff, stream& s);
 static void pvsr_glitter_read(pvsr_glitter* glt, stream& s);
 static void pvsr_read_inner(pvsr* sr, stream& s);
 static void pvsr_stage_change_effect_read(pvsr_stage_change_effect* stg_chg_eff, stream& s);
 static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream& s);
-static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, int32_t x00);
-static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1, stream& s, int64_t offset);
-static bool pvsr_stage_effect_env_sub2_read(pvsr_stage_effect_env_sub2* aet_sub2, stream& s, int64_t offset);
+static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* env, stream& s, int32_t x00);
+static bool pvsr_stage_effect_env_light_read(pvsr_stage_effect_env_light* env_light, stream& s, int64_t offset);
+static bool pvsr_stage_effect_env_post_process_read(
+    pvsr_stage_effect_env_post_process* env_post_process, stream& s, int64_t offset);
 
 pvsr_auth_2d::pvsr_auth_2d() {
     bright_scale = 1.0f;
@@ -69,18 +70,29 @@ pvsr_stage_effect::~pvsr_stage_effect() {
 
 }
 
-pvsr_stage_effect_env_sub1::pvsr_stage_effect_env_sub1() : stage_light() {
+pvsr_stage_effect_env_light::pvsr_stage_effect_env_light() : stage_light() {
 
 }
 
-pvsr_stage_effect_env_sub1::~pvsr_stage_effect_env_sub1() {
+pvsr_stage_effect_env_light::~pvsr_stage_effect_env_light() {
 
 }
 
-pvsr_stage_effect_env::pvsr_stage_effect_env() : u48(), u4a(), u4c(), u4e(), u50(), u52(), u54(), u56(), u58(), u5a(),
-u5c(), u5e(), u60(), sub1_data(), sub1_data_init(), sub2a_data(), sub2a_data_init(),
-sub2b_data(), sub2b_data_init(), sub2c_data(), sub2c_data_init(), sub2d_data(), sub2d_data_init() {
-
+pvsr_stage_effect_env::pvsr_stage_effect_env() : light(), light_init(), fog(),
+fog_init(), bloom(), bloom_init(), cct(), cct_init(), shimmer(), shimmer_init() {
+    chara_light = -1;
+    chara_shadow_light = -1;
+    shadow_light = -1;
+    item_light = -1;
+    common_light = -1;
+    u52 = -1;
+    ibl_color_light = -1;
+    u56 = -1;
+    cat = -1;
+    u5a = -1;
+    u5c = -1;
+    reflection = -1;
+    effect_light = -1;
 }
 
 pvsr_stage_effect_env::~pvsr_stage_effect_env() {
@@ -149,10 +161,10 @@ bool pvsr::load_file(void* data, const char* path, const char* file, uint32_t ha
     return sr->ready;
 }
 
-static void pvsr_auth_2d_read(pvsr_auth_2d* aet_entry, stream& s) {
-    aet_entry->name = s.read_string_null_terminated_offset(s.read_offset_x());
+static void pvsr_auth_2d_read(pvsr_auth_2d* a2d, stream& s) {
+    a2d->name = s.read_string_null_terminated_offset(s.read_offset_x());
     s.read_uint32_t_reverse_endianness();
-    aet_entry->bright_scale = s.read_float_t_reverse_endianness();
+    a2d->bright_scale = s.read_float_t_reverse_endianness();
 }
 
 static void pvsr_auth_3d_read(pvsr_auth_3d* a3d, stream& s) {
@@ -354,29 +366,29 @@ static void pvsr_stage_effect_read(pvsr_stage_effect* stg_eff, stream& s) {
     }
 }
 
-static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, int32_t x00) {
+static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* env, stream& s, int32_t x00) {
     int64_t set_name_offset = s.read_offset_x();
     int64_t aet_front_offset = s.read_offset_x();
     int64_t aet_front_low_offset = s.read_offset_x();
     int64_t aet_back_offset = s.read_offset_x();
-    int64_t sub1_offset = s.read_offset_x();
-    int64_t sub2a_offset = s.read_offset_x();
-    int64_t sub2b_offset = s.read_offset_x();
-    int64_t sub2c_offset = s.read_offset_x();
-    int64_t sub2d_offset = s.read_offset_x();
-    aet->u48 = s.read_uint16_t_reverse_endianness();
-    aet->u4a = s.read_uint16_t_reverse_endianness();
-    aet->u4c = s.read_uint16_t_reverse_endianness();
-    aet->u4e = s.read_uint16_t_reverse_endianness();
-    aet->u50 = s.read_uint16_t_reverse_endianness();
-    aet->u52 = s.read_uint16_t_reverse_endianness();
-    aet->u54 = s.read_uint16_t_reverse_endianness();
-    aet->u56 = s.read_uint16_t_reverse_endianness();
-    aet->u58 = s.read_uint16_t_reverse_endianness();
-    aet->u5a = s.read_uint16_t_reverse_endianness();
-    aet->u5c = s.read_uint16_t_reverse_endianness();
-    aet->u5e = s.read_uint16_t_reverse_endianness();
-    aet->u60 = s.read_uint16_t_reverse_endianness();
+    int64_t light_offset = s.read_offset_x();
+    int64_t fog_offset = s.read_offset_x();
+    int64_t bloom_offset = s.read_offset_x();
+    int64_t cct_offset = s.read_offset_x();
+    int64_t shimmer_offset = s.read_offset_x();
+    env->chara_light = s.read_int16_t_reverse_endianness();
+    env->chara_shadow_light = s.read_int16_t_reverse_endianness();
+    env->shadow_light = s.read_int16_t_reverse_endianness();
+    env->item_light = s.read_int16_t_reverse_endianness();
+    env->common_light = s.read_int16_t_reverse_endianness();
+    env->u52 = s.read_int16_t_reverse_endianness();
+    env->ibl_color_light = s.read_int16_t_reverse_endianness();
+    env->u56 = s.read_int16_t_reverse_endianness();
+    env->cat = s.read_int16_t_reverse_endianness();
+    env->u5a = s.read_int16_t_reverse_endianness();
+    env->u5c = s.read_int16_t_reverse_endianness();
+    env->reflection = s.read_int16_t_reverse_endianness();
+    env->effect_light = s.read_int16_t_reverse_endianness();
     int8_t aet_front_count = s.read_int8_t();
     int8_t aet_front_low_count = s.read_int8_t();
     int8_t aet_back_count = s.read_int8_t();
@@ -393,87 +405,89 @@ static void pvsr_stage_effect_env_read(pvsr_stage_effect_env* aet, stream& s, in
         s.align_read(0x08);
     }
 
-    aet->set_name = s.read_string_null_terminated_offset(set_name_offset);
+    env->set_name = s.read_string_null_terminated_offset(set_name_offset);
 
     if (aet_front_offset > 0) {
-        aet->aet_front.resize(aet_front_count);
+        env->aet_front.resize(aet_front_count);
 
         s.position_push(aet_front_offset, SEEK_SET);
-        for (pvsr_auth_2d& i : aet->aet_front)
+        for (pvsr_auth_2d& i : env->aet_front)
             pvsr_auth_2d_read(&i, s);
         s.position_pop();
     }
 
     if (aet_front_low_offset > 0) {
-        aet->aet_front_low.resize(aet_front_low_count);
+        env->aet_front_low.resize(aet_front_low_count);
 
         s.position_push(aet_front_low_offset, SEEK_SET);
-        for (pvsr_auth_2d& i : aet->aet_front_low)
+        for (pvsr_auth_2d& i : env->aet_front_low)
             pvsr_auth_2d_read(&i, s);
         s.position_pop();
     }
 
     if (aet_back_offset > 0) {
-        aet->aet_back.resize(aet_back_count);
+        env->aet_back.resize(aet_back_count);
 
         s.position_push(aet_back_offset, SEEK_SET);
-        for (pvsr_auth_2d& i : aet->aet_back)
+        for (pvsr_auth_2d& i : env->aet_back)
             pvsr_auth_2d_read(&i, s);
         s.position_pop();
     }
 
-    aet->sub1_data_init = pvsr_stage_effect_env_sub1_read(&aet->sub1_data, s, sub1_offset);
-    aet->sub2a_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2a_data, s, sub2a_offset);
-    aet->sub2b_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2b_data, s, sub2b_offset);
-    aet->sub2c_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2c_data, s, sub2c_offset);
-    aet->sub2d_data_init = pvsr_stage_effect_env_sub2_read(&aet->sub2d_data, s, sub2d_offset);
+    env->light_init = pvsr_stage_effect_env_light_read(&env->light, s, light_offset);
+    env->fog_init = pvsr_stage_effect_env_post_process_read(&env->fog, s, fog_offset);
+    env->bloom_init = pvsr_stage_effect_env_post_process_read(&env->bloom, s, bloom_offset);
+    env->cct_init = pvsr_stage_effect_env_post_process_read(&env->cct, s, cct_offset);
+    env->shimmer_init = pvsr_stage_effect_env_post_process_read(&env->shimmer, s, shimmer_offset);
 
     if (x00 & 0x100) {
-        if (aet_back_offset > 0) {
-            aet->unk03.resize(u78);
+        if (o68 > 0) {
+            env->unk03.resize(u78);
 
             s.position_push(o68, SEEK_SET);
-            for (pvsr_auth_2d& i : aet->unk03)
+            for (pvsr_auth_2d& i : env->unk03)
                 pvsr_auth_2d_read(&i, s);
             s.position_pop();
         }
 
         if (o70 > 0) {
-            aet->unk04.resize(u79);
+            env->unk04.resize(u79);
 
             s.position_push(o70, SEEK_SET);
-            for (pvsr_auth_2d& i : aet->unk04)
+            for (pvsr_auth_2d& i : env->unk04)
                 pvsr_auth_2d_read(&i, s);
             s.position_pop();
         }
     }
 }
 
-static bool pvsr_stage_effect_env_sub1_read(pvsr_stage_effect_env_sub1* aet_sub1, stream& s, int64_t offset) {
+static bool pvsr_stage_effect_env_light_read(
+    pvsr_stage_effect_env_light* env_light, stream& s, int64_t offset) {
     if (offset <= 0)
         return false;
 
     s.position_push(offset, SEEK_SET);
-    aet_sub1->name = s.read_string_null_terminated_offset(s.read_offset_x());
+    env_light->auth_3d_name = s.read_string_null_terminated_offset(s.read_offset_x());
     s.read_uint32_t_reverse_endianness();
-    aet_sub1->stage_light = s.read_uint16_t_reverse_endianness();
+    env_light->stage_light = s.read_int16_t_reverse_endianness();
     s.align_read(0x08);
     s.position_pop();
     return true;
 }
 
-static bool pvsr_stage_effect_env_sub2_read(pvsr_stage_effect_env_sub2* aet_sub2, stream& s, int64_t offset) {
+static bool pvsr_stage_effect_env_post_process_read(
+    pvsr_stage_effect_env_post_process* env_post_process, stream& s, int64_t offset) {
     if (offset <= 0)
         return false;
 
     s.position_push(offset, SEEK_SET);
-    aet_sub2->u00 = s.read_uint16_t_reverse_endianness();
-    aet_sub2->u02 = s.read_uint16_t_reverse_endianness();
-    aet_sub2->u04 = s.read_uint16_t_reverse_endianness();
-    aet_sub2->u06 = s.read_uint16_t_reverse_endianness();
-    aet_sub2->u08 = s.read_uint16_t_reverse_endianness();
-    aet_sub2->u0a = s.read_uint16_t_reverse_endianness();
-    aet_sub2->u0c = s.read_uint16_t_reverse_endianness();
+    env_post_process->index0 = s.read_int16_t_reverse_endianness();
+    env_post_process->start0 = s.read_int16_t_reverse_endianness();
+    env_post_process->trans0 = s.read_int16_t_reverse_endianness();
+    env_post_process->index1 = s.read_int16_t_reverse_endianness();
+    env_post_process->start1 = s.read_int16_t_reverse_endianness();
+    env_post_process->trans1 = s.read_int16_t_reverse_endianness();
+    env_post_process->index2 = s.read_int16_t_reverse_endianness();
     s.align_read(0x08);
     s.position_pop();
     return true;
