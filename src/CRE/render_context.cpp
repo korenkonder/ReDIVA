@@ -2689,7 +2689,7 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
 }
 
 void render_context::light_param_data_ibl_set(
-    light_param_ibl * ibl, light_param_data_storage* storage) {
+    light_param_ibl* ibl, light_param_data_storage* storage) {
     if (!ibl->ready)
         return;
 

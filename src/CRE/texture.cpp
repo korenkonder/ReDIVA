@@ -109,6 +109,7 @@ texture* texture_copy(texture_id id, texture* org_tex) {
         void* data = force_malloc(texture_get_size_mip_level(org_tex, i));
         if (!data)
             break;
+
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
             glBindTexture(org_tex->target, org_tex->tex);
             glGetCompressedTexImage(org_tex->target, i, data);

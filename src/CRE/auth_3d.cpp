@@ -108,7 +108,7 @@ static void auth_3d_curve_load(auth_3d* auth, auth_3d_curve* c, auth_3d_curve_fi
 static void auth_3d_dof_load(auth_3d* auth, auth_3d_dof* d, auth_3d_dof_file* df);
 static void auth_3d_dof_restore_prev_value(auth_3d_dof* d, render_context* rctx);
 static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx);
-static auth_3d_detail::Event* auth_3d_event_load(auth_3d * auth, auth_3d_event_file * ef);
+static auth_3d_detail::Event* auth_3d_event_load(auth_3d* auth, auth_3d_event_file* ef);
 static const char* auth_3d_event_type_string(auth_3d_detail::Event::Type type);
 static void auth_3d_fog_load(auth_3d* auth, auth_3d_fog* e, auth_3d_fog_file* ff);
 static void auth_3d_fog_restore_prev_value(auth_3d_fog* f, render_context* rctx);

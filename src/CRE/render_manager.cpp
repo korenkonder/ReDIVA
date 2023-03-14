@@ -220,9 +220,9 @@ namespace rndr {
                 draw_pass_shadow_begin_make_shadowmap(rctx, shad, v11[i], j);
                 rctx->disp_manager.draw((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + v11[i]));
                 if (rctx->disp_manager.get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + v11[i])) > 0) {
-                    glColorMask(field_2F8 ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+                    gl_state_set_color_mask(field_2F8 ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                     rctx->disp_manager.draw((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + i));
-                    glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+                    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 }
                 draw_pass_shadow_end_make_shadowmap(rctx, shad, v11[i], j);
                 j++;
