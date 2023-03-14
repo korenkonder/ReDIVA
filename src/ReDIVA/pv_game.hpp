@@ -529,7 +529,7 @@ struct pv_game_init_data {
     pv_game_item_mask items_mask[6];
 
     pv_game_init_data();
-    
+
     void reset();
 };
 

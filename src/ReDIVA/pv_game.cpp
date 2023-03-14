@@ -226,7 +226,7 @@ struct pv_game_music {
     void set_args(int32_t type, std::string& file_path, float_t start, bool a5);
     int32_t set_channel_pair_volume(int32_t channel_pair, int32_t value);
     int32_t set_channel_pair_volume_map(int32_t channel_pair, int32_t value);
-    int32_t set_fade_out(float_t fadeout_time, uint8_t stop);
+    int32_t set_fade_out(float_t time, uint8_t stop);
     int32_t set_master_volume(int32_t value);
     int32_t set_ogg_args(std::string& file_path, float_t start, bool wait_load);
     int32_t set_ogg_pause_state(uint8_t pause_state);
@@ -634,7 +634,7 @@ void pv_game_music::ctrl(float_t delta_time) {
         else
             fade_in_end();
     }
-    
+
     if (fade_out.enable && !pause) {
         fade_out.remain -= delta_time;
         if (fade_out.remain > 0.0f) {
@@ -800,18 +800,20 @@ int32_t pv_game_music::ogg_load(std::string& file_path, float_t start) {
 
     start = max_def(start, 0.0f);
 
-    OggFileHandlerFileState file_state = ogg->playback->GetFileState();
-    OggFileHandlerPauseState pause_state = ogg->playback->GetPauseState();
+    OggPlayback* playback = ogg->playback;
+
+    OggFileHandlerFileState file_state = playback->GetFileState();
+    OggFileHandlerPauseState pause_state = playback->GetPauseState();
 
     if (!check_args(4, file_path, start)
         || file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
         || pause_state != OGG_FILE_HANDLER_PAUSE_STATE_PAUSE) {
-        ogg->playback->Stop();
-        ogg->playback->SetLoadTimeSeek(start);
-        ogg->playback->SetPath(file_path);;
+        playback->Stop();
+        playback->SetLoadTimeSeek(start);
+        playback->SetPath(file_path);;
     }
 
-    ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
     ogg->file_path.assign(file_path);
     loaded = true;
     return 0;
@@ -918,17 +920,17 @@ int32_t pv_game_music::set_channel_pair_volume_map(int32_t channel_pair, int32_t
     return 0;
 }
 
-int32_t pv_game_music::set_fade_out(float_t fadeout_time, uint8_t stop) {
+int32_t pv_game_music::set_fade_out(float_t time, uint8_t stop) {
     reset();
-    if (fadeout_time == 0.0f) {
+    if (time == 0.0f) {
         this->stop();
         return 0;
     }
 
     fade_out.start = get_volume(0);
     fade_out.value = 0;
-    fade_out.time = fadeout_time;
-    fade_out.remain = fadeout_time;
+    fade_out.time = time;
+    fade_out.remain = time;
     fade_out.action = stop ? PV_GAME_MUSIC_ACTION_STOP : PV_GAME_MUSIC_ACTION_PAUSE;
     fade_out.enable = true;
     return 0;
@@ -948,25 +950,26 @@ int32_t pv_game_music::set_ogg_args(std::string& file_path, float_t start, bool 
 
     start = max_def(start, 0.0f);
 
-    OggFileHandlerFileState file_state = ogg->playback->GetFileState();
-    OggFileHandlerPauseState pause_state = ogg->playback->GetPauseState();
+    OggPlayback* playback = ogg->playback;
+
+    OggFileHandlerFileState file_state = playback->GetFileState();
+    OggFileHandlerPauseState pause_state = playback->GetPauseState();
 
     if (!check_args(4, file_path, start)
         || file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
         || pause_state != OGG_FILE_HANDLER_PAUSE_STATE_PAUSE) {
-        ogg->playback->Stop();
-        ogg->playback->SetLoadTimeSeek(start);
-        ogg->playback->SetPath(file_path);
-        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PAUSE);
+        playback->Stop();
+        playback->SetLoadTimeSeek(start);
+        playback->SetPath(file_path);
+        playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PAUSE);
         ogg->file_path.assign(file_path);
 
         if (wait_load) {
-            OggFileHandlerFileState file_state = ogg->playback->GetFileState();
-            do {
-                if ((unsigned int)(file_state - 5) <= 1)
-                    break;
-                file_state = ogg->playback->GetFileState();
-            } while (file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING);
+            OggFileHandlerFileState file_state = playback->GetFileState();
+            while (!(file_state == OGG_FILE_HANDLER_FILE_STATE_PLAYING
+                    || file_state == OGG_FILE_HANDLER_FILE_STATE_STOPPED
+                    || file_state == OGG_FILE_HANDLER_FILE_STATE_MAX))
+                file_state = playback->GetFileState();
         }
     }
     return 0;

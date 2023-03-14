@@ -822,7 +822,7 @@ namespace rndr {
         quad_shader_data quad_data = {};
         quad_data.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f };
         rctx->quad_ubo.WriteMapMemory(quad_data);
-        
+
         contour_params_shader_data contour_params_data = {};
         contour_params_data.g_near_far = rctx->g_near_far;
         rctx->contour_params_ubo.WriteMapMemory(contour_params_data);

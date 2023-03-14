@@ -50,6 +50,7 @@ void pv_db_pv_performer::set_pv_costume(int32_t pv_costume, int32_t difficulty) 
     else if (difficulty >= 0 && difficulty < PV_DIFFICULTY_MAX)
         this->pv_costume[difficulty] = pv_costume;
 }
+
 pv_db_pv_attribute::pv_db_pv_attribute() : type() {
     reset();
 }
