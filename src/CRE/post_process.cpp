@@ -624,7 +624,7 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
     }
 
     if (this->sprite_width != sprite_width || this->sprite_height != sprite_height) {
-        screen_texture.init(screen_width, sprite_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
+        screen_texture.init(sprite_width, sprite_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
         this->sprite_width = sprite_width;
         this->sprite_height = sprite_height;
     }

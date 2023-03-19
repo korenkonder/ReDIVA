@@ -6,372 +6,12 @@
 #include <map>
 #include <vector>
 #include "auth_2d.hpp"
+#include "../KKdLib/aet.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include "sound.hpp"
 #include "task.hpp"
-
-enum aet_blend_mode : uint8_t {
-    AET_BLEND_MODE_NONE = 0,
-    AET_BLEND_MODE_COPY,
-    AET_BLEND_MODE_BEHIND,
-    AET_BLEND_MODE_NORMAL,
-    AET_BLEND_MODE_DISSOLVE,
-    AET_BLEND_MODE_ADD,
-    AET_BLEND_MODE_MULTIPLY,
-    AET_BLEND_MODE_SCREEN,
-    AET_BLEND_MODE_OVERLAY,
-    AET_BLEND_MODE_SOFT_LIGHT,
-    AET_BLEND_MODE_HARD_LIGHT,
-    AET_BLEND_MODE_DARKEN,
-    AET_BLEND_MODE_LIGHTEN,
-    AET_BLEND_MODE_CLASSIC_DIFFERENCE,
-    AET_BLEND_MODE_HUE,
-    AET_BLEND_MODE_SATURATION,
-    AET_BLEND_MODE_COLOR,
-    AET_BLEND_MODE_LUMINOSITY,
-    AET_BLEND_MODE_STENCIL_ALPHA,
-    AET_BLEND_MODE_STENCIL_LUMA,
-    AET_BLEND_MODE_SILHOUETTE_ALPHA,
-    AET_BLEND_MODE_SILHOUETTE_LUMA,
-    AET_BLEND_MODE_LUMINESCENT_PREMUL,
-    AET_BLEND_MODE_ALPHA_ADD,
-    AET_BLEND_MODE_CLASSIC_COLOR_DODGE,
-    AET_BLEND_MODE_CLASSIC_COLOR_BURN,
-    AET_BLEND_MODE_EXCLUSION,
-    AET_BLEND_MODE_DIFFERENCE,
-    AET_BLEND_MODE_COLOR_DODGE,
-    AET_BLEND_MODE_COLOR_BURN,
-    AET_BLEND_MODE_LINEAR_DODGE,
-    AET_BLEND_MODE_LINEAR_BURN,
-    AET_BLEND_MODE_LINEAR_LIGHT,
-    AET_BLEND_MODE_VIVID_LIGHT,
-    AET_BLEND_MODE_PIN_LIGHT,
-    AET_BLEND_MODE_HARD_MIX,
-    AET_BLEND_MODE_LIGHTER_COLOR,
-    AET_BLEND_MODE_DARKER_COLOR,
-    AET_BLEND_MODE_SUBTRACT,
-    AET_BLEND_MODE_DIVIDE,
-};
-
-enum aet_layer_quality : uint8_t {
-    AET_LAYER_QUALITY_NONE = 0,
-    AET_LAYER_QUALITY_WIREFRAME,
-    AET_LAYER_QUALITY_DRAFT,
-    AET_LAYER_QUALITY_BEST,
-};
-
-enum aet_item_type : uint8_t {
-    AET_ITEM_TYPE_NONE = 0,
-    AET_ITEM_TYPE_VIDEO,
-    AET_ITEM_TYPE_AUDIO,
-    AET_ITEM_TYPE_COMPOSITION,
-};
-
-struct aet_layer_flag {
-    uint16_t video_active : 1;
-    uint16_t audio_active : 1;
-    uint16_t effects_active : 1;
-    uint16_t motion_blur : 1;
-    uint16_t frame_blending : 1;
-    uint16_t locked : 1;
-    uint16_t shy : 1;
-    uint16_t collapse : 1;
-    uint16_t auto_orient_rotation : 1;
-    uint16_t adjustment_layer : 1;
-    uint16_t time_remapping : 1;
-    uint16_t layer_is_3d : 1;
-    uint16_t look_at_camera : 1;
-    uint16_t look_at_point_of_interest : 1;
-    uint16_t solo : 1;
-    uint16_t markers_locked : 1;
-    //uint16_t null_layer : 1;
-    //uint16_t hide_locked_masks : 1;
-    //uint16_t guide_layer : 1;
-    //uint16_t advanced_frame_blending : 1;
-    //uint16_t sub_layers_render_separately : 1;
-    //uint16_t environment_layer : 1;
-};
-
-struct aet_fcurve {
-    uint32_t keys_count;
-    const float_t* keys;
-
-    float_t interpolate(float_t frame) const;
-};
-
-struct aet_fcurve_file {
-    uint32_t keys_count;
-    uint32_t keys_offset;
-};
-
-struct aet_layer_video_3d {
-    aet_fcurve anchor_z;
-    aet_fcurve pos_z;
-    aet_fcurve dir_x;
-    aet_fcurve dir_y;
-    aet_fcurve dir_z;
-    aet_fcurve rot_x;
-    aet_fcurve rot_y;
-    aet_fcurve scale_z;
-};
-
-struct aet_layer_video_3d_file {
-    aet_fcurve_file anchor_z;
-    aet_fcurve_file pos_z;
-    aet_fcurve_file dir_x;
-    aet_fcurve_file dir_y;
-    aet_fcurve_file dir_z;
-    aet_fcurve_file rot_x;
-    aet_fcurve_file rot_y;
-    aet_fcurve_file scale_z;
-};
-
-struct aet_transfer_mode {
-    aet_blend_mode mode;
-    uint8_t flag;
-    uint8_t matte;
-};
-
-struct aet_layer_video {
-    aet_transfer_mode transfer_mode;
-    aet_fcurve anchor_x;
-    aet_fcurve anchor_y;
-    aet_fcurve pos_x;
-    aet_fcurve pos_y;
-    aet_fcurve rot_z;
-    aet_fcurve scale_x;
-    aet_fcurve scale_y;
-    aet_fcurve opacity;
-    const aet_layer_video_3d* _3d;
-};
-
-struct aet_layer_video_file {
-    aet_transfer_mode transfer_mode;
-    aet_fcurve_file anchor_x;
-    aet_fcurve_file anchor_y;
-    aet_fcurve_file pos_x;
-    aet_fcurve_file pos_y;
-    aet_fcurve_file rot_z;
-    aet_fcurve_file scale_x;
-    aet_fcurve_file scale_y;
-    aet_fcurve_file opacity;
-    uint32_t _3d_offset;
-};
-
-struct aet_layer_audio {
-    aet_fcurve volume_l;
-    aet_fcurve volume_r;
-    aet_fcurve pan_l;
-    aet_fcurve pan_r;
-};
-
-struct aet_layer_audio_file {
-    aet_fcurve_file volume_l;
-    aet_fcurve_file volume_r;
-    aet_fcurve_file pan_l;
-    aet_fcurve_file pan_r;
-};
-
-struct aet_camera {
-    aet_fcurve eye_x;
-    aet_fcurve eye_y;
-    aet_fcurve eye_z;
-    aet_fcurve pos_x;
-    aet_fcurve pos_y;
-    aet_fcurve pos_z;
-    aet_fcurve dir_x;
-    aet_fcurve dir_y;
-    aet_fcurve dir_z;
-    aet_fcurve rot_x;
-    aet_fcurve rot_y;
-    aet_fcurve rot_z;
-    aet_fcurve zoom;
-};
-
-struct aet_camera_file {
-    aet_fcurve_file eye_x;
-    aet_fcurve_file eye_y;
-    aet_fcurve_file eye_z;
-    aet_fcurve_file pos_x;
-    aet_fcurve_file pos_y;
-    aet_fcurve_file pos_z;
-    aet_fcurve_file dir_x;
-    aet_fcurve_file dir_y;
-    aet_fcurve_file dir_z;
-    aet_fcurve_file rot_x;
-    aet_fcurve_file rot_y;
-    aet_fcurve_file rot_z;
-    aet_fcurve_file zoom;
-};
-
-struct aet_video_src {
-    const char* sprite_name;
-    int32_t sprite_index;
-};
-
-struct aet_video_src_file {
-    uint32_t sprite_name_offset;
-    int32_t sprite_index;
-};
-
-struct aet_video {
-    uint8_t color[3];
-    uint16_t width;
-    uint16_t height;
-    float_t fpf;
-    uint32_t sources_count;
-    const aet_video_src* sources;
-};
-
-struct aet_video_file {
-    uint8_t color[3];
-    uint16_t width;
-    uint16_t height;
-    float_t fpf;
-    uint32_t sources_count;
-    uint32_t sources_offset;
-};
-
-struct aet_audio {
-    uint32_t sound_index;
-};
-
-struct aet_comp;
-
-union aet_item {
-    const void* none;
-    uint32_t offset;
-    const aet_video* video;
-    const aet_audio* audio;
-    const aet_comp* comp;
-
-    inline aet_item() : none() {
-
-    }
-
-    inline aet_item(aet_video* video) {
-        this->video = video;
-    }
-
-    inline aet_item(aet_audio* audio) {
-        this->audio = audio;
-    }
-
-    inline aet_item(aet_comp* comp) {
-        this->comp = comp;
-    }
-};
-
-struct aet_marker {
-    float_t time;
-    const char* name;
-};
-
-struct aet_marker_file {
-    float_t time;
-    uint32_t name_offset;
-};
-
-#pragma warning(push)
-#pragma warning(disable: 26495)
-struct aet_layer {
-    const char* name;
-    float_t start_time;
-    float_t end_time;
-    float_t offset_time;
-    float_t time_scale;
-    aet_layer_flag flags;
-    aet_layer_quality quality;
-    aet_item_type item_type;
-    aet_item item;
-    union {
-        const aet_layer* parent;
-        uint32_t parent_offset;
-    };
-    uint32_t markers_count;
-    const aet_marker* markers;
-    const aet_layer_video* video;
-    const aet_layer_audio* audio;
-};
-#pragma warning(pop)
-
-struct aet_layer_file {
-    uint32_t name_offset;
-    float_t start_time;
-    float_t end_time;
-    float_t offset_time;
-    float_t time_scale;
-    aet_layer_flag flags;
-    aet_layer_quality quality;
-    aet_item_type item_type;
-    uint32_t item_offset;
-    uint32_t parent_offset;
-    uint32_t markers_count;
-    uint32_t markers_offset;
-    uint32_t video_offset;
-    uint32_t audio_offset;
-};
-
-struct aet_comp {
-    uint32_t layers_count;
-    const aet_layer* layers;
-};
-
-struct aet_comp_file {
-    uint32_t layers_count;
-    uint32_t layers_offset;
-};
-
-struct aet_scene {
-    const char* name;
-    float_t start_time;
-    float_t end_time;
-    float_t fps;
-    uint8_t color[3];
-    uint32_t width;
-    uint32_t height;
-    const aet_camera* camera;
-    uint32_t comp_count;
-    const aet_comp* comp;
-    uint32_t video_count;
-    const aet_video* video;
-    uint32_t audio_count;
-    const aet_audio* audio;
-};
-
-struct aet_scene_file {
-    uint32_t name_offset;
-    float_t start_time;
-    float_t end_time;
-    float_t fps;
-    uint8_t color[3];
-    uint32_t width;
-    uint32_t height;
-    uint32_t camera_offset;
-    uint32_t comp_count;
-    uint32_t comp_offset;
-    uint32_t video_count;
-    uint32_t video_offset;
-    uint32_t audio_count;
-    uint32_t audio_offset;
-};
-
-struct aet_set_file {
-#pragma warning(suppress: 4200)
-    uint32_t scene_offsets[];
-};
-
-struct aet_set_load_data {
-    prj::shared_ptr<prj::stack_allocator> alloc_handler;
-    size_t data;
-    std::map<uint32_t, aet_layer*> layers;
-    std::map<uint32_t, aet_item> items;
-
-    aet_set_load_data(prj::shared_ptr<prj::stack_allocator> alloc_handler, size_t data);
-    ~aet_set_load_data();
-};
 
 class AetObj {
 public:
@@ -431,6 +71,7 @@ public:
     virtual void SetColor(const vec4& value);
     virtual void SetEndTime(float_t value);
     virtual void SetFrame(float_t value);
+    virtual void SetFrameRateControl(FrameRateControl* value);
     virtual void SetPrio(spr::SprPrio value);
     virtual aet_info GetInfo();
     virtual bool GetPlay();
@@ -467,12 +108,15 @@ public:
 class AetSet {
 public:
     uint32_t index;
-    const aet_scene** scenes;
-    uint32_t scenes_count;
+    ::aet_set* aet_set;
     int32_t load_count;
     p_file_handler file_handler;
     bool ready;
     prj::shared_ptr<prj::stack_allocator> alloc_handler;
+
+    std::string name;
+    std::vector<uint32_t> aet_ids;
+    uint32_t hash;
 
     AetSet(uint32_t index);
     virtual ~AetSet();
@@ -481,6 +125,11 @@ public:
     virtual bool LoadFile();
     virtual void Unload();
     virtual bool Load();
+
+    virtual void ReadFileModern(uint32_t set_hash, void* data);
+    virtual bool LoadFileModern(aet_database* aet_db);
+    virtual void UnloadModern(aet_database* aet_db);
+    virtual bool LoadModern(aet_database* aet_db);
 
     const aet_marker* GetLayerMarker(const aet_layer* layer, const char* marker_name);
     void GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer* layer);
@@ -496,10 +145,12 @@ public:
 
 class AetMgr : public app::Task {
 public:
-    std::map<int32_t, AetSet> sets;
+    std::map<uint32_t, AetSet> sets;
     std::map<uint32_t, AetObj> objects;
     std::list<std::map<uint32_t, AetObj>::iterator> free_objects;
     uint32_t load_counter;
+
+    uint32_t set_counter;
 
     AetMgr();
     virtual ~AetMgr();
@@ -510,6 +161,7 @@ public:
     virtual void Disp() override;
     virtual void Basic() override;
 
+    uint32_t AddSetModern();
     void AddAetSets(const aet_database* aet_db);
     void FreeAetObject(uint32_t id);
     void FreeAetObject(std::map<uint32_t, AetObj>::iterator it);
@@ -518,8 +170,8 @@ public:
     bool GetObjDisp(uint32_t id);
     float_t GetObjFrame(uint32_t id);
     bool GetObjVisible(uint32_t id);
-    AetSet* GetSet(int32_t index);
-    bool GetSetReady(int32_t index);
+    AetSet* GetSet(uint32_t index);
+    bool GetSetReady(uint32_t index);
     void GetSetSceneCompLayerNames(std::vector<std::string>& vec, aet_info info);
     float_t GetSetSceneEndTime(aet_info info);
     float GetSetSceneLayerEndTime(aet_info info, const char* layer_name);
@@ -528,17 +180,20 @@ public:
     float_t GetSetSceneLayerStartTime(aet_info info, const char* layer_name);
     const char* GetSetSceneName(aet_info info);
     float_t GetSetSceneStartTime(aet_info info);
-    uint32_t GetSetScenesCount(int32_t index);
+    uint32_t GetSetScenesCount(uint32_t index);
     void InitAetLayout(AetComp* comp, AetArgs& args);
     bool InitAetObj(AetObj& obj, AetArgs& args);
     uint32_t InitAetObject(AetArgs& args);
-    bool LoadFile(int32_t index);
-    void ReadFile(int32_t index, const char* file, std::string& mdata_dir, void* data);
+    bool LoadFile(uint32_t index);
+    bool LoadFileModern(uint32_t index, aet_database* aet_db);
+    void ReadFile(uint32_t index, const char* file, std::string& mdata_dir, void* data);
+    void ReadFileModern(uint32_t index, uint32_t set_hash, void* data, aet_database* aet_db);
     void RemoveAetSets(const aet_database* aet_db);
     void SetObjAlpha(uint32_t id, float_t value);
     void SetObjColor(uint32_t id, const vec4& value);
     void SetObjEndTime(uint32_t id, float_t value);
     void SetObjFrame(uint32_t id, float_t value);
+    void SetObjFrameRateControl(uint32_t id, FrameRateControl* value);
     void SetObjPlay(uint32_t id, bool value);
     void SetObjPosition(uint32_t id, const vec3& value);
     void SetObjPrio(uint32_t id, spr::SprPrio value);
@@ -548,32 +203,11 @@ public:
     void SetObjSpriteReplace(uint32_t id, std::map<uint32_t, uint32_t>& value);
     void SetObjSpriteTexture(uint32_t id, std::map<uint32_t, texture*>& value);
     void SetObjVisible(uint32_t id, bool value);
-    void UnloadSet(int32_t index);
+    void UnloadSet(uint32_t index);
+    void UnloadSetModern(uint32_t index, aet_database* aet_db);
 };
 
 AetMgr* aet_manager;
-
-static aet_camera* aet_camera_load(aet_set_load_data& load_data, const aet_camera_file* cam_file);
-static void aet_comp_set_item_parent(aet_set_load_data& load_data, const aet_comp* comp);
-static aet_comp* aet_comps_load(aet_set_load_data& load_data,
-    size_t comp_count, const aet_comp_file* comps_file);
-static void aet_fcurve_load(aet_set_load_data& load_data,
-    aet_fcurve& fcurve, const aet_fcurve_file& fcurve_file);
-static aet_layer* aet_layer_load(aet_set_load_data& load_data,
-    aet_layer* layer, const aet_layer_file* layer_file);
-static aet_layer_audio* aet_layer_audio_load(
-    aet_set_load_data& load_data, const aet_layer_audio_file* layer_audio_file);
-static aet_layer_video* aet_layer_video_load(
-    aet_set_load_data& load_data, const aet_layer_video_file* layer_video_file);
-static aet_layer_video_3d* aet_layer_video_3d_load(
-    aet_set_load_data& load_data, const aet_layer_video_3d_file* layer_video_3d_file);
-static aet_marker* aet_markers_load(aet_set_load_data& load_data,
-    size_t markers_count, const aet_marker_file* markers_file);
-static const aet_comp* aet_scene_get_root_comp(const aet_scene* scene);
-static aet_scene* aet_scene_load(aet_set_load_data& load_data,
-    aet_scene* scene, const aet_scene_file* scene_file);
-static aet_video* aet_video_load(aet_set_load_data& load_data,
-    aet_video* video, const aet_video_file* video_file);
 
 AetArgs::AetArgs() : layer_name(), start_marker(), end_marker(), flags(),
 index(), layer(), frame_rate_control(), sound_voice(), spr_db() {
@@ -787,6 +421,10 @@ bool aet_manager_load_file(uint32_t set_id, const aet_database* aet_db) {
     return aet_manager->LoadFile(aet_db->get_aet_set_by_id(set_id)->index);
 }
 
+bool aet_manager_load_file_modern(uint32_t set_hash, aet_database* aet_db) {
+    return aet_manager->LoadFileModern(aet_db->get_aet_set_by_id(set_hash)->index, aet_db);
+}
+
 void aet_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const aet_database* aet_db) {
     const aet_db_aet_set* set = aet_db->get_aet_set_by_id(set_id);
@@ -797,6 +435,11 @@ void aet_manager_read_file(uint32_t set_id,
     std::string&& mdata_dir, void* data, const aet_database* aet_db) {
     const aet_db_aet_set* set = aet_db->get_aet_set_by_id(set_id);
     aet_manager->ReadFile(set->index, set->file_name.c_str(), mdata_dir, data);
+}
+
+void aet_manager_read_file_modern(uint32_t set_hash, void* data, aet_database* aet_db) {
+    const aet_db_aet_set* aet_set = aet_db->get_aet_set_by_id(set_hash);
+    aet_manager->ReadFileModern(aet_set->index, set_hash, data, aet_db);
 }
 
 void aet_manager_remove_aet_sets(const aet_database* aet_db) {
@@ -817,6 +460,10 @@ void aet_manager_set_obj_end_time(uint32_t id, float_t value) {
 
 void aet_manager_set_obj_frame(uint32_t id, float_t value) {
     aet_manager->SetObjFrame(id, value);
+}
+
+void aet_manager_set_obj_frame_rate_control(uint32_t id, FrameRateControl* value) {
+    aet_manager->SetObjFrameRateControl(id, value);
 }
 
 void aet_manager_set_obj_play(uint32_t id, bool value) {
@@ -859,50 +506,15 @@ void aet_manager_unload_set(uint32_t set_id, const aet_database* aet_db) {
     aet_manager->UnloadSet(aet_db->get_aet_set_by_id(set_id)->index);
 }
 
+void aet_manager_unload_set_modern(uint32_t set_hash, aet_database* aet_db) {
+    aet_manager->UnloadSetModern(aet_db->get_aet_set_by_id(set_hash)->index, aet_db);
+}
+
 void aet_manager_free() {
     if (aet_manager) {
         delete aet_manager;
         aet_manager = 0;
     }
-}
-
-float_t aet_fcurve::interpolate(float_t frame) const {
-    if (!keys_count)
-        return 0.0f;
-    else if (keys_count == 1)
-        return keys[0];
-
-    size_t keys_count = this->keys_count;
-    const float_t* keys = this->keys;
-    const float_t* values = &keys[keys_count];
-    if (frame <= keys[0])
-        return values[0];
-
-    const float_t* v6 = keys;
-    const float_t* v7 = &keys[keys_count];
-    if (frame >= keys[keys_count - 1])
-        return values[(keys_count - 1) * 2];
-
-    const float_t* v8 = &keys[keys_count / 2];
-    while (v6 < v8) {
-        if (frame >= *v8)
-            v6 = v8;
-        else
-            v7 = v8;
-        v8 = &v6[(v7 - v6) / 2];
-    }
-
-    if (values - 1 <= v8)
-        return values[(keys_count - 1) * 2];
-
-    size_t v9 = (v8 - keys) * 2;
-
-    float_t df = v8[1] - v8[0];
-    float_t t = (frame - v8[0]) / df;
-    float_t t_1 = t - 1.0f;
-    return (t_1 * values[v9 + 1] + t * values[v9 + 3]) * t * t_1 * df
-        + t * t * (3.0f - 2.0f * t) * values[v9 + 2]
-        + (1.0f + 2.0f * t) * ((1.0f - t) * (1.0f - t)) * values[v9];
 }
 
 AetObj::AetObj() : scene(), comp(), layer(), start_time(), end_time(),
@@ -918,16 +530,6 @@ frame_rate_control(), sound_voice(), use_float(), spr_db() {
 }
 
 AetObj::~AetObj() {
-
-}
-
-aet_set_load_data::aet_set_load_data(
-    prj::shared_ptr<prj::stack_allocator> alloc_handler, size_t data) {
-    this->alloc_handler = alloc_handler;
-    this->data = data;
-}
-
-aet_set_load_data::~aet_set_load_data() {
 
 }
 
@@ -1157,6 +759,10 @@ void AetObj::SetEndTime(float_t value) {
 
 void AetObj::SetFrame(float_t value) {
     frame = value;
+}
+
+void AetObj::SetFrameRateControl(FrameRateControl* value) {
+    frame_rate_control = value;
 }
 
 void AetObj::SetPrio(spr::SprPrio value) {
@@ -1567,8 +1173,9 @@ void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
         DispComp(m, layer->item.comp, frame, opacity, spr_db);
 }
 
-AetSet::AetSet(uint32_t index) : scenes(), scenes_count(), load_count(), ready() {
+AetSet::AetSet(uint32_t index) : aet_set(), load_count(), ready() {
     this->index = index;
+    hash = hash_murmurhash_empty;
 }
 
 AetSet::~AetSet() {
@@ -1584,6 +1191,7 @@ void AetSet::ReadFile(const char* dir, const char* file, void* data) {
     load_count = 1;
     file_handler.read_file(data, dir, file);
     ready = false;
+    aet_set = 0;
 }
 
 bool AetSet::LoadFile() {
@@ -1598,39 +1206,6 @@ bool AetSet::LoadFile() {
     return true;
 }
 
-bool AetSet::Load() {
-    size_t data = (size_t)file_handler.get_data();
-    if (!data) {
-        scenes = 0;
-        return false;
-    }
-
-    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
-    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
-
-    uint32_t scenes_count = 0;
-    const aet_set_file* set_file = (const aet_set_file*)data;
-    while (set_file->scene_offsets[scenes_count])
-        scenes_count++;
-    this->scenes_count = scenes_count;
-
-    aet_set_load_data load_data(alloc, data);
-    aet_scene** scenes = alloc->allocate<aet_scene*>(scenes_count);
-    this->scenes = (const aet_scene**)scenes;
-
-    for (uint32_t i = scenes_count, j = 0; i; i--, j++)
-        scenes[j] = aet_scene_load(load_data, alloc->allocate<aet_scene>(),
-            (aet_scene_file*)(data + set_file->scene_offsets[j]));
-
-    for (uint32_t i = scenes_count, j = 0; i; i--, j++) {
-        aet_scene* scene = scenes[j];
-        const aet_comp* comp = scene->comp;
-        for (uint32_t k = scene->comp_count; k; k--, comp++)
-            aet_comp_set_item_parent(load_data, comp);
-    }
-    return true;
-}
-
 void AetSet::Unload() {
     if (load_count > 1) {
         load_count--;
@@ -1639,10 +1214,149 @@ void AetSet::Unload() {
 
     alloc_handler.reset();
     file_handler.reset();
+    aet_set = 0;
 
-    scenes = 0;
     ready = false;
     load_count = 0;
+}
+
+bool AetSet::Load() {
+    const void* data = file_handler.get_data();
+    size_t size = file_handler.get_size();
+    if (!data || !size)
+        return false;
+
+    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
+
+    ::aet_set* set = alloc->allocate<::aet_set>();
+    this->aet_set = set;
+    set->unpack_file(alloc_handler, data, size, false);
+    if (!set->ready)
+        return false;
+
+    file_handler.reset();
+    return true;
+}
+
+void AetSet::ReadFileModern(uint32_t set_hash, void* data) {
+    if (load_count > 1) {
+        load_count++;
+        return;
+    }
+
+    std::string file;
+    if (((data_struct*)data)->get_file("root+/2d/", set_hash, ".farc", file))
+        file_handler.read_file(data, "root+/2d/", file.c_str());
+    this->hash = set_hash;
+    ready = false;
+    aet_set = 0;
+}
+
+bool AetSet::LoadFileModern(aet_database* aet_db) {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
+    else if (!LoadModern(aet_db))
+        return false;
+
+    ready = true;
+    return true;
+}
+
+void AetSet::UnloadModern(aet_database* aet_db) {
+    if (load_count > 1) {
+        load_count--;
+        return;
+    }
+
+    aet_db->remove_aet_set(hash, index, name.c_str(), aet_ids);
+
+    if (load_count > 1) {
+        load_count--;
+        return;
+    }
+
+    alloc_handler.reset();
+    file_handler.reset();
+    aet_set = 0;
+
+    ready = false;
+    load_count = 0;
+
+    hash = hash_murmurhash_empty;
+    name.clear();
+    aet_ids.clear();
+}
+
+bool AetSet::LoadModern(aet_database* aet_db) {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
+
+    const void* data = file_handler.get_data();
+    size_t size = file_handler.get_size();
+    if (!data || !size)
+        return false;
+
+    farc f;
+    f.read(data, size, true);
+
+    std::string& file = file_handler.ptr->file;
+
+    size_t file_len = file.size();
+    if (file_len >= 0x100 - 4)
+        return false;
+
+    const char* t = strrchr(file.c_str(), '.');
+    if (t)
+        file_len = t - file.c_str();
+
+    char buf[0x100];
+    memcpy(buf, file.c_str(), file_len);
+    char* ext = buf + file_len;
+    size_t ext_len = sizeof(buf) - file_len;
+
+    memcpy_s(ext, ext_len, ".aec", 5);
+    farc_file* aec = f.read_file(buf);
+    if (!aec)
+        return false;
+
+    memcpy_s(ext, ext_len, ".aei", 5);
+    farc_file* aei = f.read_file(buf);
+    if (!aei)
+        return false;
+
+    aet_database_file aet_db_file;
+    aet_db_file.read(aei->data, aei->size, true);
+
+    aet_db_aet_set_file* aet_set_file = 0;
+    if (aet_db_file.ready)
+        for (aet_db_aet_set_file& m : aet_db_file.aet_set)
+            if (m.id == hash) {
+                aet_set_file = &m;
+                break;
+            }
+
+    if (!aet_set_file)
+        return false;
+
+    if (aet_db_file.ready)
+        aet_db->parse(aet_set_file, name, aet_ids);
+
+    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
+
+    ::aet_set* set = alloc->allocate<::aet_set>();
+    this->aet_set = set;
+    set->unpack_file(alloc_handler, aec->data, aec->size, true);
+    if (!set->ready)
+        return false;
+
+    file_handler.reset();
+    return true;
 }
 
 const aet_marker* AetSet::GetLayerMarker(const aet_layer* layer, const char* marker_name) {
@@ -1664,8 +1378,8 @@ void AetSet::GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer*
 }
 
 const aet_scene* AetSet::GetSceneByInfo(aet_info info) {
-    if (index == info.set_index && ready && info.index < scenes_count)
-        return scenes[info.index];
+    if (index == info.set_index && ready && info.index < aet_set->scenes_count)
+        return aet_set->scenes[info.index];
     return 0;
 }
 
@@ -1680,7 +1394,7 @@ void AetSet::GetSceneCompLayerNames(std::vector<std::string>& vec, const aet_sce
 }
 
 float_t AetSet::GetSceneEndTime(uint16_t index) {
-    return scenes[index]->end_time;
+    return aet_set->scenes[index]->end_time;
 }
 
 const aet_layer* AetSet::GetSceneLayer(const aet_scene* scene, const char* layer_name) {
@@ -1698,7 +1412,7 @@ const aet_layer* AetSet::GetSceneLayer(const aet_scene* scene, const char* layer
 }
 
 const char* AetSet::GetSceneName(uint16_t index) {
-    return scenes[index]->name;
+    return aet_set->scenes[index]->name;
 }
 
 resolution_mode AetSet::GetSceneResolutionMode(const aet_scene* scene) {
@@ -1711,14 +1425,14 @@ resolution_mode AetSet::GetSceneResolutionMode(const aet_scene* scene) {
 }
 
 float_t AetSet::GetSceneStartTime(uint16_t index) {
-    return scenes[index]->start_time;
+    return aet_set->scenes[index]->start_time;
 }
 
 uint32_t AetSet::GetScenesCount() {
-    return scenes_count;
+    return aet_set->scenes_count;
 }
 
-AetMgr::AetMgr() : load_counter() {
+AetMgr::AetMgr() : load_counter(), set_counter() {
 
 }
 
@@ -1761,6 +1475,32 @@ void AetMgr::Basic() {
             FreeAetObject(i);
         i++;
     }
+}
+
+uint32_t AetMgr::AddSetModern() {
+    uint32_t index = this->set_counter;
+    for (; index <= 0x0FFF; index++) {
+        auto elem = sets.find(0x8000 | index);
+        if (elem == sets.end())
+            break;
+    }
+
+    if (!index || index > 0x0FFF) {
+        for (index = 1; index <= 0x0FFF; index++) {
+            auto elem = sets.find(0x8000 | index);
+            if (elem == sets.end())
+                break;
+        }
+
+        if (!index || index > 0x0FFF)
+            return 0x8000;
+    }
+
+    sets.insert({ 0x8000 | index, AetSet(0x8000 | index) });
+    set_counter = index + 1;
+    if (index + 1 > 0x0FFF)
+        set_counter = 1;
+    return 0x8000 | index;
 }
 
 void AetMgr::AddAetSets(const aet_database* aet_db) {
@@ -1832,14 +1572,14 @@ bool AetMgr::GetObjVisible(uint32_t id) {
     return false;
 }
 
-AetSet* AetMgr::GetSet(int32_t index) {
+AetSet* AetMgr::GetSet(uint32_t index) {
     auto elem = sets.find(index);
     if (elem != sets.end())
         return &elem->second;
     return 0;
 }
 
-bool AetMgr::GetSetReady(int32_t index) {
+bool AetMgr::GetSetReady(uint32_t index) {
     return GetSet(index)->ready;
 }
 
@@ -1848,7 +1588,7 @@ void AetMgr::GetSetSceneCompLayerNames(std::vector<std::string>& vec, aet_info i
     set->GetSceneCompLayerNames(vec, set->GetSceneByInfo(info));
 }
 
-uint32_t AetMgr::GetSetScenesCount(int32_t index) {
+uint32_t AetMgr::GetSetScenesCount(uint32_t index) {
     return GetSet(index)->GetScenesCount();
 }
 
@@ -1899,7 +1639,7 @@ bool AetMgr::InitAetObj(AetObj& obj, AetArgs& args) {
     if (!scene)
         return false;
 
-    const aet_comp* comp = aet_scene_get_root_comp(scene);
+    const aet_comp* comp = aet_scene::get_root_comp(scene);
     if (!comp)
         return false;
 
@@ -1937,14 +1677,21 @@ uint32_t AetMgr::InitAetObject(AetArgs& args) {
     return load_counter;
 }
 
-bool AetMgr::LoadFile(int32_t index) {
+bool AetMgr::LoadFile(uint32_t index) {
     AetSet* set = GetSet(index);
     if (set)
         return set->LoadFile();
     return false;
 }
 
-void AetMgr::ReadFile(int32_t index, const char* file, std::string& mdata_dir, void* data) {
+bool AetMgr::LoadFileModern(uint32_t index, aet_database* aet_db) {
+    AetSet* set = GetSet(index);
+    if (set)
+        return set->LoadFileModern(aet_db);
+    return false;
+}
+
+void AetMgr::ReadFile(uint32_t index, const char* file, std::string& mdata_dir, void* data) {
     const char* dir = "./rom/2d/";
     if (mdata_dir.size() && ((data_struct*)data)->check_directory_exists(mdata_dir.c_str()))
         dir = mdata_dir.c_str();
@@ -1952,6 +1699,18 @@ void AetMgr::ReadFile(int32_t index, const char* file, std::string& mdata_dir, v
     AetSet* set = GetSet(index);
     if (set && ((data_struct*)data)->check_file_exists(dir, file))
         set->ReadFile(dir, file, data);
+}
+
+void AetMgr::ReadFileModern(uint32_t index,
+    uint32_t set_hash, void* data, aet_database* aet_db) {
+    if (index == -1) {
+        index = AddSetModern();
+        aet_db->add_aet_set(set_hash, index);
+    }
+
+    AetSet* set = GetSet(index);
+    if (set)
+        set->ReadFileModern(set_hash, data);
 }
 
 void AetMgr::RemoveAetSets(const aet_database* aet_db) {
@@ -1981,6 +1740,12 @@ void AetMgr::SetObjFrame(uint32_t id, float_t value) {
     AetObj* obj = GetObj(id);
     if (obj)
         obj->SetFrame(value);
+}
+
+void AetMgr::SetObjFrameRateControl(uint32_t id, FrameRateControl* value) {
+    AetObj* obj = GetObj(id);
+    if (obj)
+        obj->SetFrameRateControl(value);
 }
 
 void AetMgr::SetObjPlay(uint32_t id, bool value) {
@@ -2037,279 +1802,20 @@ void AetMgr::SetObjVisible(uint32_t id, bool value) {
         obj->SetVisible(value);
 }
 
-void AetMgr::UnloadSet(int32_t index) {
+void AetMgr::UnloadSet(uint32_t index) {
     AetSet* set = GetSet(index);
     if (set)
         set->Unload();
 }
 
-static aet_camera* aet_camera_load(aet_set_load_data& load_data, const aet_camera_file* cam_file) {
-    aet_camera* cam = load_data.alloc_handler->allocate<aet_camera>();
-    aet_fcurve_load(load_data, cam->eye_x, cam_file->eye_x);
-    aet_fcurve_load(load_data, cam->eye_y, cam_file->eye_y);
-    aet_fcurve_load(load_data, cam->eye_z, cam_file->eye_z);
-    aet_fcurve_load(load_data, cam->pos_x, cam_file->pos_x);
-    aet_fcurve_load(load_data, cam->pos_y, cam_file->pos_y);
-    aet_fcurve_load(load_data, cam->pos_z, cam_file->pos_z);
-    aet_fcurve_load(load_data, cam->dir_x, cam_file->dir_x);
-    aet_fcurve_load(load_data, cam->dir_y, cam_file->dir_y);
-    aet_fcurve_load(load_data, cam->dir_z, cam_file->dir_z);
-    aet_fcurve_load(load_data, cam->rot_x, cam_file->rot_x);
-    aet_fcurve_load(load_data, cam->rot_y, cam_file->rot_y);
-    aet_fcurve_load(load_data, cam->rot_z, cam_file->rot_z);
-    aet_fcurve_load(load_data, cam->zoom, cam_file->zoom);
-    return cam;
-}
-
-static void aet_comp_set_item_parent(aet_set_load_data& load_data, const aet_comp* comp) {
-    aet_layer* layer = (aet_layer*)comp->layers;
-    for (uint32_t i = comp->layers_count; i; i--, layer++) {
-        if (layer->item_type == AET_ITEM_TYPE_VIDEO
-            || layer->item_type == AET_ITEM_TYPE_COMPOSITION) {
-            uint32_t item_offset = layer->item.offset;
-            layer->item.none = 0;
-
-            if (item_offset) {
-                auto elem = load_data.items.find(item_offset);
-                if (elem != load_data.items.end())
-                    layer->item = elem->second;
-            }
-        }
-
-        uint32_t parent_offset = layer->parent_offset;
-        layer->parent = 0;
-
-        if (parent_offset) {
-            auto elem = load_data.layers.find(parent_offset);
-            if (elem != load_data.layers.end())
-                layer->parent = elem->second;
+void AetMgr::UnloadSetModern(uint32_t index, aet_database* aet_db) {
+    AetSet* set = GetSet(index);
+    if (set) {
+        set->UnloadModern(aet_db);
+        if (set->load_count <= 0) {
+            auto elem = sets.find(index);
+            if (elem != sets.end())
+                sets.erase(elem);
         }
     }
-}
-
-static aet_comp* aet_comps_load(aet_set_load_data& load_data,
-    size_t comp_count, const aet_comp_file* comps_file) {
-    aet_comp* comps = load_data.alloc_handler->allocate<aet_comp>(comp_count);
-
-    aet_comp* comp = comps;
-    const aet_comp_file* comp_file = comps_file;
-
-    for (size_t i = comp_count; i; i--, comp++, comp_file++) {
-        load_data.items.insert_or_assign((uint32_t)((size_t)comp_file - load_data.data), comp);
-
-        comp->layers_count = comp_file->layers_count;
-        if (comp_file->layers_offset) {
-            const aet_layer_file* layer_file = (const aet_layer_file*)(load_data.data + comp_file->layers_offset);
-
-            aet_layer* layer = load_data.alloc_handler->allocate<aet_layer>(comp_file->layers_count);
-            comp->layers = layer;
-
-            for (uint32_t i = comp_file->layers_count; i; i--, layer++, layer_file++)
-                aet_layer_load(load_data, layer, layer_file);
-        }
-        else
-            comp->layers = 0;
-    }
-    return comps;
-}
-
-inline static void aet_fcurve_load(aet_set_load_data& load_data,
-    aet_fcurve& fcurve, const aet_fcurve_file& fcurve_file) {
-    fcurve.keys_count = fcurve_file.keys_count;
-    if (fcurve_file.keys_offset)
-        fcurve.keys = (const float_t*)(load_data.data + fcurve_file.keys_offset);
-    else
-        fcurve.keys = 0;
-}
-
-static aet_layer* aet_layer_load(aet_set_load_data& load_data,
-    aet_layer* layer, const aet_layer_file* layer_file) {
-    load_data.layers.insert_or_assign((uint32_t)((size_t)layer_file - load_data.data), layer);
-
-    if (layer_file->name_offset)
-        layer->name = (const char*)(load_data.data + layer_file->name_offset);
-    else
-        layer->name = 0;
-
-    layer->start_time = layer_file->start_time;
-    layer->end_time = layer_file->end_time;
-    layer->offset_time = layer_file->offset_time;
-    layer->time_scale = layer_file->time_scale;
-    layer->flags = layer_file->flags;
-    layer->quality = layer_file->quality;
-    layer->item.none = 0;
-    layer->item_type = layer_file->item_type;
-    if ((layer_file->item_type == AET_ITEM_TYPE_VIDEO
-        || layer_file->item_type == AET_ITEM_TYPE_COMPOSITION)
-        && layer_file->item_offset)
-        layer->item.offset = layer_file->item_offset;
-
-    layer->parent = 0;
-    if (layer_file->parent_offset)
-        layer->parent_offset = layer_file->parent_offset;
-
-    layer->markers_count = layer_file->markers_count;
-    if (layer_file->markers_offset)
-        layer->markers = aet_markers_load(load_data, layer_file->markers_count,
-            (const aet_marker_file*)(load_data.data + layer_file->markers_offset));
-    else
-        layer->markers = 0;
-
-    if (layer_file->video_offset)
-        layer->video = aet_layer_video_load(load_data,
-            (const aet_layer_video_file*)(load_data.data + layer_file->video_offset));
-    else
-        layer->video = 0;
-
-    if (layer_file->audio_offset)
-        layer->audio = aet_layer_audio_load(load_data,
-            (const aet_layer_audio_file*)(load_data.data + layer_file->audio_offset));
-    else
-        layer->audio = 0;
-    return layer;
-}
-
-static aet_layer_audio* aet_layer_audio_load(
-    aet_set_load_data& load_data, const aet_layer_audio_file* layer_audio_file) {
-    aet_layer_audio* layer_audio = load_data.alloc_handler->allocate<aet_layer_audio>();
-    aet_fcurve_load(load_data, layer_audio->volume_l, layer_audio_file->volume_l);
-    aet_fcurve_load(load_data, layer_audio->volume_r, layer_audio_file->volume_r);
-    aet_fcurve_load(load_data, layer_audio->pan_l, layer_audio_file->pan_l);
-    aet_fcurve_load(load_data, layer_audio->pan_r, layer_audio_file->pan_r);
-    return layer_audio;
-}
-
-static aet_layer_video* aet_layer_video_load(
-    aet_set_load_data& load_data, const aet_layer_video_file* layer_video_file) {
-    aet_layer_video* layer_video = load_data.alloc_handler->allocate<aet_layer_video>();
-    layer_video->transfer_mode = layer_video_file->transfer_mode;
-    aet_fcurve_load(load_data, layer_video->anchor_x, layer_video_file->anchor_x);
-    aet_fcurve_load(load_data, layer_video->anchor_y, layer_video_file->anchor_y);
-    aet_fcurve_load(load_data, layer_video->pos_x, layer_video_file->pos_x);
-    aet_fcurve_load(load_data, layer_video->pos_y, layer_video_file->pos_y);
-    aet_fcurve_load(load_data, layer_video->rot_z, layer_video_file->rot_z);
-    aet_fcurve_load(load_data, layer_video->scale_x, layer_video_file->scale_x);
-    aet_fcurve_load(load_data, layer_video->scale_y, layer_video_file->scale_y);
-    aet_fcurve_load(load_data, layer_video->opacity, layer_video_file->opacity);
-    if (layer_video_file->_3d_offset)
-        layer_video->_3d = aet_layer_video_3d_load(load_data,
-            (const aet_layer_video_3d_file*)(load_data.data + layer_video_file->_3d_offset));
-    return layer_video;
-}
-
-static aet_layer_video_3d* aet_layer_video_3d_load(
-    aet_set_load_data& load_data, const aet_layer_video_3d_file* layer_video_3d_file) {
-    aet_layer_video_3d* layer_video_3d = load_data.alloc_handler->allocate<aet_layer_video_3d>();
-    aet_fcurve_load(load_data, layer_video_3d->anchor_z, layer_video_3d_file->anchor_z);
-    aet_fcurve_load(load_data, layer_video_3d->pos_z, layer_video_3d_file->pos_z);
-    aet_fcurve_load(load_data, layer_video_3d->dir_x, layer_video_3d_file->dir_x);
-    aet_fcurve_load(load_data, layer_video_3d->dir_y, layer_video_3d_file->dir_y);
-    aet_fcurve_load(load_data, layer_video_3d->dir_z, layer_video_3d_file->dir_z);
-    aet_fcurve_load(load_data, layer_video_3d->rot_x, layer_video_3d_file->rot_x);
-    aet_fcurve_load(load_data, layer_video_3d->rot_y, layer_video_3d_file->rot_y);
-    aet_fcurve_load(load_data, layer_video_3d->scale_z, layer_video_3d_file->scale_z);
-    return layer_video_3d;
-}
-
-static aet_marker* aet_markers_load(aet_set_load_data& load_data,
-    size_t markers_count, const aet_marker_file* markers_file) {
-    aet_marker* markers = load_data.alloc_handler->allocate<aet_marker>(markers_count);
-
-    aet_marker* marker = markers;
-    const aet_marker_file* marker_file = markers_file;
-
-    for (size_t i = markers_count; i; i--, marker++, marker_file++) {
-        marker->time = marker_file->time;
-        if (marker_file->name_offset)
-            marker->name = (const char*)(load_data.data + marker_file->name_offset);
-        else
-            marker->name = 0;
-    }
-    return markers;
-}
-
-static const aet_comp* aet_scene_get_root_comp(const aet_scene* scene) {
-    if (scene && scene->comp_count)
-        return &scene->comp[scene->comp_count - 1];
-    return 0;
-}
-
-static aet_scene* aet_scene_load(aet_set_load_data& load_data,
-    aet_scene* scene, const aet_scene_file* scene_file) {
-    if (scene_file->name_offset)
-        scene->name = (const char*)(load_data.data + scene_file->name_offset);
-    else
-        scene->name = 0;
-
-    scene->start_time = scene_file->start_time;
-    scene->end_time = scene_file->end_time;
-    scene->fps = scene_file->fps;
-    scene->color[0] = scene_file->color[0];
-    scene->color[1] = scene_file->color[1];
-    scene->color[2] = scene_file->color[2];
-    scene->width = scene_file->width;
-    scene->height = scene_file->height;
-
-    if (scene_file->camera_offset)
-        scene->camera = aet_camera_load(load_data,
-            (const aet_camera_file*)(load_data.data + scene_file->camera_offset));
-    else
-        scene->camera = 0;
-
-    scene->comp_count = scene_file->comp_count;
-    if (scene_file->comp_offset)
-        scene->comp = aet_comps_load(load_data, scene_file->comp_count,
-            (const aet_comp_file*)(load_data.data + scene_file->comp_offset));
-    else
-        scene->comp = 0;
-
-    scene->video_count = scene_file->video_count;
-    const aet_video_file* video_file;
-    if (scene_file->video_offset)
-        video_file = (const aet_video_file*)(load_data.data + scene_file->video_offset);
-    else
-        video_file = 0;
-
-    aet_video* video = load_data.alloc_handler->allocate<aet_video>(scene_file->video_count);
-    scene->video = video;
-    for (uint32_t i = scene_file->video_count; i; i--, video++, video_file++)
-        aet_video_load(load_data, video, video_file);
-
-    scene->audio_count = scene_file->audio_count;
-    if (scene_file->audio_offset)
-        scene->audio = (aet_audio*)(load_data.data + scene_file->audio_offset);
-    else
-        scene->audio = 0;
-    return scene;
-}
-
-static aet_video* aet_video_load(aet_set_load_data& load_data,
-    aet_video* video, const aet_video_file* video_file) {
-    load_data.items.insert_or_assign((uint32_t)((size_t)video_file - load_data.data), video);
-    video->color[0] = video_file->color[0];
-    video->color[1] = video_file->color[1];
-    video->color[2] = video_file->color[2];
-    video->width = video_file->width;
-    video->height = video_file->height;
-    video->fpf = video_file->fpf;
-    video->sources_count = video_file->sources_count;
-
-    if (video_file->sources_offset) {
-        const aet_video_src_file* source_file
-            = (const aet_video_src_file*)(load_data.data + video_file->sources_offset);
-
-        aet_video_src* source = load_data.alloc_handler->allocate<aet_video_src>(video_file->sources_count);
-        video->sources = source;
-
-        for (uint32_t i = video_file->sources_count; i; i--, source++, source_file++) {
-            if (source_file->sprite_name_offset)
-                source->sprite_name = (const char*)(load_data.data + source_file->sprite_name_offset);
-            else
-                source->sprite_name = 0;
-            source->sprite_index = source_file->sprite_index;
-        }
-    }
-    else
-        video->sources = 0;
-    return video;
 }

@@ -202,19 +202,6 @@ namespace spr {
         static void SetNext(SprArgs* args, SprArgs* next);
     };
 
-    struct SprInfo {
-        uint32_t texid;
-        int32_t rotate;
-        float_t su;
-        float_t sv;
-        float_t eu;
-        float_t ev;
-        float_t px;
-        float_t py;
-        float_t width;
-        float_t height;
-    };
-
     struct TexCoord {
         struct UV {
             float_t u;
@@ -251,7 +238,7 @@ namespace spr {
     void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer);
     void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer);
     void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer);
-    void put_sprite_triangles(SpriteVertex* vert, size_t size, resolution_mode mode,
+    void put_sprite_triangles(SpriteVertex* vert, size_t num, resolution_mode mode,
         SprPrio prio, int32_t spr_id, int32_t layer, const sprite_database* spr_db);
 }
 
@@ -262,6 +249,7 @@ extern void sprite_manager_draw(render_context* rctx,
     int32_t index, bool font, texture* tex, const mat4& proj);
 extern int32_t sprite_manager_get_index();
 extern size_t sprite_manager_get_reqlist_count(int32_t index);
+extern ::spr_set* sprite_manager_get_set(uint32_t set_id, const sprite_database* spr_db);
 extern bool sprite_manager_get_set_ready(uint32_t set_id, const sprite_database* spr_db);
 extern uint32_t sprite_manager_get_set_sprite_num(uint32_t set_id, const sprite_database* spr_db);
 extern uint32_t sprite_manager_get_set_texture_num(uint32_t set_id, const sprite_database* spr_db);
@@ -269,14 +257,17 @@ extern const char* sprite_manager_get_spr_name(uint32_t spr_id, const sprite_dat
 extern rectangle sprite_manager_get_spr_rectangle(uint32_t spr_id, const sprite_database* spr_db);
 extern texture* sprite_manager_get_spr_texture(uint32_t spr_id, const sprite_database* spr_db);
 extern bool sprite_manager_load_file(uint32_t set_id, const sprite_database* spr_db);
+extern bool sprite_manager_load_file_modern(uint32_t set_hash, sprite_database* spr_db);
 extern void sprite_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const sprite_database* spr_db);
 extern void sprite_manager_read_file(uint32_t set_id,
     std::string&& mdata_dir, void* data, const sprite_database* spr_db);
+extern void sprite_manager_read_file_modern(uint32_t set_hash, void* data, sprite_database* spr_db);
 extern void sprite_manager_remove_spr_sets(const sprite_database* spr_db);
 extern void sprite_manager_reset_req_list();
 extern void sprite_manager_reset_res_data();
 extern void sprite_manager_set_index(int32_t value);
 extern void sprite_manager_set_res(double_t aspect, int32_t width, int32_t height);
 extern void sprite_manager_unload_set(uint32_t set_id, const sprite_database* spr_db);
+extern void sprite_manager_unload_set_modern(uint32_t set_hash, sprite_database* spr_db);
 extern void sprite_manager_free();

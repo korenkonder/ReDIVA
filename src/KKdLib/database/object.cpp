@@ -241,7 +241,7 @@ void object_database::add(object_database_file* obj_db_file) {
     if (!obj_db_file || !obj_db_file->ready)
         return;
 
-    object_set.reserve(obj_db_file->object_set.size());
+    object_set.reserve(obj_db_file->object_set.size());;
 
     for (object_set_info_file& i : obj_db_file->object_set) {
         uint32_t name_hash = hash_string_murmurhash(i.name);
@@ -278,60 +278,116 @@ void object_database::add(object_database_file* obj_db_file) {
             info.name_hash_murmurhash = hash_string_murmurhash(info.name);
         }
     }
+
+    update();
+}
+
+void object_database::clear() {
+    object_set.clear();
+    object_set.shrink_to_fit();
+    obj_set_ids.clear();
+    obj_set_ids.shrink_to_fit();
+    obj_set_murmurhashes.clear();
+    obj_set_murmurhashes.shrink_to_fit();
+    obj_infos.clear();
+    obj_infos.shrink_to_fit();
+    obj_fnv1a64m_hashes.clear();
+    obj_fnv1a64m_hashes.shrink_to_fit();
+    obj_fnv1a64m_hashes_upper.clear();
+    obj_fnv1a64m_hashes_upper.shrink_to_fit();
+    obj_murmurhashes.clear();
+    obj_murmurhashes.shrink_to_fit();
+    obj_info_murmurhashes.clear();
+    obj_info_murmurhashes.shrink_to_fit();
+}
+
+void object_database::update() {
+    obj_set_ids.clear();
+    obj_set_murmurhashes.clear();
+    obj_infos.clear();
+    obj_fnv1a64m_hashes.clear();
+    obj_fnv1a64m_hashes_upper.clear();
+    obj_murmurhashes.clear();
+    obj_info_murmurhashes.clear();
+
+    obj_set_ids.reserve(object_set.size());
+    obj_set_murmurhashes.reserve(object_set.size());
+
+    for (object_set_info& i : object_set) {
+        obj_set_ids.push_back({ i.id, &i });
+        obj_set_murmurhashes.push_back({ i.name_hash, &i });
+
+        obj_infos.reserve(i.object.size());
+        obj_fnv1a64m_hashes.reserve(i.object.size());
+        obj_fnv1a64m_hashes_upper.reserve(i.object.size());
+        obj_murmurhashes.reserve(i.object.size());
+        obj_info_murmurhashes.reserve(i.object.size());
+
+        for (object_info_data& j : i.object) {
+            obj_infos.push_back({ { j.id, i.id }, &j });
+            obj_fnv1a64m_hashes.push_back({ j.name_hash_fnv1a64m, &j });
+            obj_fnv1a64m_hashes_upper.push_back({ j.name_hash_fnv1a64m_upper, &j });
+            obj_murmurhashes.push_back({ j.name_hash_murmurhash, &j });
+            obj_info_murmurhashes.push_back({ j.name_hash_murmurhash, { j.id, i.id } });
+        }
+    }
+
+    obj_set_ids.sort_unique();
+    obj_set_murmurhashes.sort_unique();
+    obj_infos.sort_unique();
+    obj_fnv1a64m_hashes.sort_unique();
+    obj_fnv1a64m_hashes_upper.sort_unique();
+    obj_murmurhashes.sort_unique();
+    obj_info_murmurhashes.sort_unique();
 }
 
 const object_set_info* object_database::get_object_set_info(const char* name) const {
-    if (!name)
+    if (!name || !*name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const object_set_info& i : object_set)
-        if (name_hash == i.name_hash)
-            return &i;
+    auto elem = obj_set_murmurhashes.find(hash_utf8_murmurhash(name));
+    if (elem != obj_set_murmurhashes.end())
+        return elem->second;
     return 0;
 }
 
 const object_set_info* object_database::get_object_set_info(uint32_t set_id) const {
-    if (set_id == -1)
+    if (set_id == -1 || set_id == hash_murmurhash_empty || set_id == hash_murmurhash_null)
         return 0;
 
-    for (const object_set_info& i : object_set)
-        if (set_id == i.id)
-            return &i;
+    auto elem = obj_set_ids.find(set_id);
+    if (elem != obj_set_ids.end())
+        return elem->second;
     return 0;
 }
 
 const object_info_data* object_database::get_object_info_data(const char* name) const {
-    if (!name)
+    if (!name || !*name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const object_set_info& i : object_set)
-        for (const object_info_data& j : i.object)
-            if (name_hash == j.name_hash_murmurhash)
-                return &j;
+    auto elem = obj_murmurhashes.find(hash_utf8_murmurhash(name));
+    if (elem != obj_murmurhashes.end())
+        return elem->second;
     return 0;
 }
 
 const object_info_data* object_database::get_object_info_data_by_fnv1a64m_hash(uint64_t hash) const {
-    if (hash == hash_fnv1a64m_empty)
+    if (hash == -1 || hash == hash_fnv1a64m_empty)
         return 0;
 
-    for (const object_set_info& i : object_set)
-        for (const object_info_data& j : i.object)
-            if (hash == j.name_hash_fnv1a64m)
-                return &j;
+    auto elem = obj_fnv1a64m_hashes.find(hash);
+    if (elem != obj_fnv1a64m_hashes.end())
+        return elem->second;
     return 0;
 }
 
 const object_info_data* object_database::get_object_info_data_by_fnv1a64m_hash_upper(uint64_t hash) const {
-    if (hash == hash_fnv1a64m_empty)
+    if (hash == -1 || hash == hash_fnv1a64m_empty)
         return 0;
 
-    for (const object_set_info& i : object_set)
-        for (const object_info_data& j : i.object)
-            if (hash == j.name_hash_fnv1a64m_upper)
-                return &j;
+    auto elem = obj_fnv1a64m_hashes_upper.find(hash);
+    if (elem != obj_fnv1a64m_hashes_upper.end())
+        return elem->second;
     return 0;
 }
 
@@ -339,25 +395,23 @@ const object_info_data* object_database::get_object_info_data_by_murmurhash(uint
     if (hash == -1 || hash == hash_murmurhash_empty || hash == hash_murmurhash_null)
         return 0;
 
-    for (const object_set_info& i : object_set)
-        for (const object_info_data& j : i.object)
-            if (hash == j.name_hash_murmurhash)
-                return &j;
+    auto elem = obj_murmurhashes.find(hash);
+    if (elem != obj_murmurhashes.end())
+        return elem->second;
     return 0;
 }
 
 uint32_t object_database::get_object_set_id(const char* name) const {
-    if (!name)
+    if (!name || !*name)
         return (uint32_t)-1;
 
     size_t name_len = utf8_length(name);
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return (uint32_t)-1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const object_set_info& i : object_set)
-        if (name_hash == i.name_hash)
-            return i.id;
+    auto elem = obj_set_murmurhashes.find(hash_utf8_murmurhash(name));
+    if (elem != obj_set_murmurhashes.end())
+        return elem->second->id;
     return (uint32_t)-1;
 }
 
@@ -365,9 +419,9 @@ const char* object_database::get_object_set_name(uint32_t set_id) const {
     if (set_id == -1)
         return 0;
 
-    for (const object_set_info& i : object_set)
-        if (set_id == i.id)
-            return i.name.c_str();
+    auto elem = obj_set_ids.find(set_id);
+    if (elem != obj_set_ids.end())
+        return elem->second->name.c_str();
     return 0;
 }
 
@@ -379,11 +433,9 @@ object_info object_database::get_object_info(const char* name) const {
     if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return object_info();
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const object_set_info& i : object_set)
-        for (const object_info_data& j : i.object)
-            if (name_hash == j.name_hash_murmurhash)
-                return { j.id, i.id };
+    auto elem = obj_info_murmurhashes.find(hash_utf8_murmurhash(name));
+    if (elem != obj_info_murmurhashes.end())
+        return elem->second;
     return object_info();
 }
 
@@ -391,11 +443,9 @@ const char* object_database::get_object_name(object_info obj_info) const {
     if (obj_info.is_null())
         return 0;
 
-    for (const object_set_info& i : object_set)
-        if (obj_info.set_id == i.id)
-            for (const object_info_data& j : i.object)
-                if (obj_info.id == j.id)
-                    return j.name.c_str();
+    auto elem = obj_infos.find(obj_info);
+    if (elem != obj_infos.end())
+        return elem->second->name.c_str();
     return 0;
 }
 

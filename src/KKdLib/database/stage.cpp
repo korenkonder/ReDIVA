@@ -388,6 +388,13 @@ void stage_database::add(stage_database_file* stage_data_file) {
     }
 }
 
+void stage_database::clear() {
+    stage_data.clear();
+    stage_data.shrink_to_fit();
+    stage_modern.clear();
+    stage_modern.shrink_to_fit();
+}
+
 const ::stage_data* stage_database::get_stage_data(int32_t stage_index) const {
     if (stage_index >= 0 && stage_index < stage_data.size())
         return &stage_data[stage_index];

@@ -16,7 +16,7 @@ inline static bool pof_length_get_size(uint32_t* length, size_t val);
 static size_t pof_read_offsets_count(stream& s);
 inline static bool pof_write_packed_value(stream& s, size_t val);
 
-pof::pof() {
+pof::pof() : shift_x() {
 
 }
 
@@ -28,7 +28,7 @@ void pof::add(stream& s, int64_t offset) {
     vec.push_back(s.get_position() + offset);
 }
 
-void pof::read(stream& s, bool shift_x) {
+void pof::read(stream& s) {
     vec.clear();
 
     size_t length = pof_read_offsets_count(s);
@@ -64,12 +64,12 @@ void pof::read(stream& s, bool shift_x) {
     }
 }
 
-void pof::write(stream& s, bool shift_x) {
+void pof::write(stream& s) {
     size_t j = 0;
     size_t o = 0;
     uint8_t bit_shift = (uint8_t)(shift_x ? 3 : 2);
     size_t v = ((size_t)1 << bit_shift) - 1;
-    size_t l = length(shift_x);
+    size_t l = length();
     if (shift_x)
         s.write_uint32_t((uint32_t)l);
     else
@@ -96,7 +96,7 @@ void pof::write(stream& s, bool shift_x) {
         s.write_uint8_t(0);
 }
 
-uint32_t pof::length(bool shift_x) {
+uint32_t pof::length() {
     uint32_t l = 4;
     size_t j = 0;
     uint8_t bit_shift = (uint8_t)(shift_x ? 3 : 2);

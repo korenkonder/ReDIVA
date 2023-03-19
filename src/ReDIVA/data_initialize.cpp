@@ -47,9 +47,9 @@ bool TaskDataInit::Ctrl() {
         state = 1;
     } break;
     case 1:
-        if (sprite_manager_load_file(4, aft_spr_db)
-            || sprite_manager_load_file(472, aft_spr_db)
-            || sprite_manager_load_file(43, aft_spr_db)
+        if (!sprite_manager_load_file(4, aft_spr_db)
+            && !sprite_manager_load_file(472, aft_spr_db)
+            && !sprite_manager_load_file(43, aft_spr_db)
             /* || fontmap_data_parse_file()*/)
             state = field_6C ? 2 : 4;
         break;

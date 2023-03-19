@@ -91,7 +91,9 @@ inline float_t interpolate_chs_value(const float_t p1, const float_t p2,
     float_t df = f - f1;
     float_t t = df / (f2 - f1);
     float_t t_1 = t - 1.0f;
-    return (t_1 * t1 + t * t2) * df * t_1 + t * t * (3.0f - 2.0f * t) * (p2 - p1) + p1;
+    return (t_1 * t1 + t * t2) * df * t_1
+        + t * t * (3.0f - 2.0f * t) * p2
+        + (1.0f + 2.0f * t) * (t_1 * t_1) * p1;
 }
 
 inline vec2 interpolate_chs_value(const vec2 p1, const vec2 p2,
@@ -119,9 +121,10 @@ inline vec2 interpolate_chs_value(const vec2 p1, const vec2 p2,
     __m128 t = _mm_div_ps(df, _mm_sub_ps(_f2, _f1));
     __m128 t_1 = _mm_sub_ps(t, _1);
 
-    __m128 delta = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _mm_sub_ps(_p2, _p1));
+    _p1 = _mm_mul_ps(_mm_mul_ps(_mm_add_ps(_1, _mm_mul_ps(_2, t)), _mm_mul_ps(t_1, t_1)), _p1);
+    _p2 = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _p2);
     __m128 tangent = _mm_mul_ps(_mm_add_ps(_mm_mul_ps(t_1, _t1), _mm_mul_ps(t, _t2)), _mm_mul_ps(df, t_1));
-    return vec2::store_xmm(_mm_add_ps(_mm_add_ps(tangent, delta), _p1));
+    return vec2::store_xmm(_mm_add_ps(_mm_add_ps(tangent, _p2), _p1));
 }
 
 inline vec3 interpolate_chs_value(const vec3 p1, const vec3 p2,
@@ -149,9 +152,10 @@ inline vec3 interpolate_chs_value(const vec3 p1, const vec3 p2,
     __m128 t = _mm_div_ps(df, _mm_sub_ps(_f2, _f1));
     __m128 t_1 = _mm_sub_ps(t, _1);
 
-    __m128 delta = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _mm_sub_ps(_p2, _p1));
+    _p1 = _mm_mul_ps(_mm_mul_ps(_mm_add_ps(_1, _mm_mul_ps(_2, t)), _mm_mul_ps(t_1, t_1)), _p1);
+    _p2 = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _p2);
     __m128 tangent = _mm_mul_ps(_mm_add_ps(_mm_mul_ps(t_1, _t1), _mm_mul_ps(t, _t2)), _mm_mul_ps(df, t_1));
-    return vec3::store_xmm(_mm_add_ps(_mm_add_ps(tangent, delta), _p1));
+    return vec3::store_xmm(_mm_add_ps(_mm_add_ps(tangent, _p2), _p1));
 }
 
 inline vec4 interpolate_chs_value(const vec4 p1, const vec4 p2,
@@ -179,9 +183,10 @@ inline vec4 interpolate_chs_value(const vec4 p1, const vec4 p2,
     __m128 t = _mm_div_ps(df, _mm_sub_ps(_f2, _f1));
     __m128 t_1 = _mm_sub_ps(t, _1);
 
-    __m128 delta = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _mm_sub_ps(_p2, _p1));
+    _p1 = _mm_mul_ps(_mm_mul_ps(_mm_add_ps(_1, _mm_mul_ps(_2, t)), _mm_mul_ps(t_1, t_1)), _p1);
+    _p2 = _mm_mul_ps(_mm_mul_ps(_mm_mul_ps(t, t), _mm_sub_ps(_3, _mm_mul_ps(_2, t))), _p2);
     __m128 tangent = _mm_mul_ps(_mm_add_ps(_mm_mul_ps(t_1, _t1), _mm_mul_ps(t, _t2)), _mm_mul_ps(df, t_1));
-    return vec4::store_xmm(_mm_add_ps(_mm_add_ps(tangent, delta), _p1));
+    return vec4::store_xmm(_mm_add_ps(_mm_add_ps(tangent, _p2), _p1));
 }
 
 inline std::vector<float_t> interpolate_chs(const float_t p1, const float_t p2,

@@ -277,6 +277,11 @@ static size_t texture_info_radix_index_func_id(texture_info* data, size_t index)
     return data[index].id;
 }
 
+void texture_database::clear() {
+    texture.clear();
+    texture.shrink_to_fit();
+}
+
 void texture_database::sort() {
     radix_sort_custom(texture.data(), texture.size(), sizeof(texture_info),
         sizeof(uint32_t), (radix_index_func)texture_info_radix_index_func_id);

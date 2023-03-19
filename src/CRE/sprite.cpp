@@ -13,45 +13,21 @@
 #include "texture.hpp"
 #include <glad/glad.h>
 
-struct SpriteHeaderFile {
-    uint32_t flag;
-    uint32_t texofs;
-    int32_t num_of_texture;
-    int32_t num_of_sprite;
-    uint32_t sprinfo_offset;
-    uint32_t texname_offset;
-    uint32_t sprname_offset;
-    uint32_t sprdata_offset;
-};
-
-struct SpriteData {
-    uint32_t attr;
-    resolution_mode resolution_mode;
-};
-
-struct SpriteHeader {
-    uint32_t flag;
-    uint32_t texofs;
-    int32_t num_of_texture;
-    int32_t num_of_sprite;
-    spr::SprInfo* sprinfo;
-    const char** texname;
-    const char** sprname;
-    SpriteData* sprdata;
-};
-
 class SprSet {
 public:
     int32_t flag;
     uint32_t index;
-    const SpriteHeaderFile* header_file;
-    const SpriteHeader* header;
+    ::spr_set* spr_set;
     texture** textures;
     int32_t load_count;
     p_file_handler file_handler;
     bool ready;
     prj::shared_ptr<prj::stack_allocator> alloc_handler;
     std::string file;
+
+    std::string name;
+    std::vector<uint32_t> sprite_ids;
+    uint32_t hash;
 
     SprSet(uint32_t index);
     virtual ~SprSet();
@@ -61,10 +37,15 @@ public:
     resolution_mode GetResolutionMode(spr_info info);
     texture* GetTexture(spr_info info);
     bool LoadData();
+    bool LoadDataModern(const void* data, size_t size);
     bool LoadFile();
+    bool LoadFileModern(sprite_database* spr_db);
     bool LoadTexture();
+    bool LoadTextureModern(const void* data, size_t size);
     void ReadFile(const char* file, std::string& mdata_dir, void* data);
+    void ReadFileModern(uint32_t set_hash, void* data);
     void Unload();
+    void UnloadModern(sprite_database* spr_db);
     bool UnloadTexture();
 };
 
@@ -102,7 +83,7 @@ struct sprite_draw_param {
 
 namespace spr {
     struct SpriteManager {
-        std::map<int32_t, SprSet> sets;
+        std::map<uint32_t, SprSet> sets;
         std::list<SprArgs> reqlist[4][2][SPR_PRIO_MAX];
         float_t aspect[2];
         std::pair<resolution_mode, rectangle> field_1018[2];
@@ -110,6 +91,8 @@ namespace spr {
         mat4 projection;
         mat4 mat;
         resolution_mode resolution_mode;
+
+        uint32_t set_counter;
 
         std::vector<sprite_draw_param> draw_param_buffer;
         std::vector<sprite_draw_vertex> vertex_buffer;
@@ -120,26 +103,29 @@ namespace spr {
         SpriteManager();
         ~SpriteManager();
 
+        uint32_t AddSetModern();
         void AddSprSets(const sprite_database* spr_db);
         void Clear();
         void Draw(render_context* rctx,
             int32_t index, bool font, texture* tex, const mat4& proj);
-        SprSet* GetSet(int32_t index);
-        bool GetSetReady(int32_t index);
-        uint32_t GetSetSpriteNum(int32_t index);
-        uint32_t GetSetTextureNum(int32_t index);
+        SprSet* GetSet(uint32_t index);
+        bool GetSetReady(uint32_t index);
+        uint32_t GetSetSpriteNum(uint32_t index);
+        uint32_t GetSetTextureNum(uint32_t index);
         const char* GetSprName(spr_info info);
         rectangle GetSprRectangle(spr_info info);
         texture* GetSprTexture(spr_info info);
-        bool LoadFile(int32_t index);
+        bool LoadFile(uint32_t index);
+        bool LoadFileModern(uint32_t index, sprite_database* spr_db);
         SprArgs* PutSprite(const SprArgs& args, const sprite_database* spr_db);
-        void ReadFile(int32_t index, const char* file, std::string& mdata_dir, void* data);
-        void ReadFile(int32_t index, const char* file, std::string&& mdata_dir, void* data);
+        void ReadFile(uint32_t index, const char* file, std::string& mdata_dir, void* data);
+        void ReadFileModern(uint32_t index, uint32_t set_hash, void* data, sprite_database* spr_db);
         void RemoveSprSets(const sprite_database* spr_db);
         void ResetIndex();
         void ResetReqList();
         void ResetResData();
-        void UnloadSet(int32_t index);
+        void UnloadSet(uint32_t index);
+        void UnloadSetModern(uint32_t index, sprite_database* spr_db);
     };
 
     static void calc_sprite_vertex(spr::SprArgs* args, vec3* vtx, mat4* mat, bool font);
@@ -349,7 +335,7 @@ namespace spr {
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_triangles(SpriteVertex* vert, size_t size, resolution_mode mode,
+    void put_sprite_triangles(SpriteVertex* vert, size_t num, resolution_mode mode,
         SprPrio prio, int32_t spr_id, int32_t layer, const sprite_database* spr_db) {
         spr::SprArgs args;
         args.layer = layer;
@@ -361,7 +347,7 @@ namespace spr {
         if (spr_id != -1)
             args.id.info = spr_db->get_spr_by_id(spr_id)->info;
         enum_or(args.attr, SPR_ATTR_MATRIX);
-        args.SetVertexArray(vert, size);
+        args.SetVertexArray(vert, num);
         sprite_manager->PutSprite(args, spr_db);
     }
 }
@@ -396,6 +382,13 @@ size_t sprite_manager_get_reqlist_count(int32_t index) {
     return count;
 }
 
+::spr_set* sprite_manager_get_set(uint32_t spr_id, const sprite_database* spr_db) {
+    SprSet* set = sprite_manager->GetSet(spr_db->get_spr_set_by_id(spr_id)->index);
+    if (set)
+        return set->spr_set;
+    return 0;
+}
+
 bool sprite_manager_get_set_ready(uint32_t set_id, const sprite_database* spr_db) {
     return sprite_manager->GetSetReady(spr_db->get_spr_set_by_id(set_id)->index);
 }
@@ -424,6 +417,10 @@ bool sprite_manager_load_file(uint32_t set_id, const sprite_database* spr_db) {
     return sprite_manager->LoadFile(spr_db->get_spr_set_by_id(set_id)->index);
 }
 
+bool sprite_manager_load_file_modern(uint32_t set_hash, sprite_database* spr_db) {
+    return sprite_manager->LoadFileModern(spr_db->get_spr_set_by_id(set_hash)->index, spr_db);
+}
+
 void sprite_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const sprite_database* spr_db) {
     const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_id(set_id);
@@ -434,6 +431,11 @@ void sprite_manager_read_file(uint32_t set_id,
     std::string&& mdata_dir, void* data, const sprite_database* spr_db) {
     const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_id(set_id);
     sprite_manager->ReadFile(spr_set->index, spr_set->file_name.c_str(), mdata_dir, data);
+}
+
+void sprite_manager_read_file_modern(uint32_t set_hash, void* data, sprite_database* spr_db) {
+    const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_id(set_hash);
+    sprite_manager->ReadFileModern(spr_set->index, set_hash, data, spr_db);
 }
 
 void sprite_manager_remove_spr_sets(const sprite_database* spr_db) {
@@ -466,6 +468,10 @@ void sprite_manager_unload_set(uint32_t set_id, const sprite_database* spr_db) {
     sprite_manager->UnloadSet(spr_db->get_spr_set_by_id(set_id)->index);
 }
 
+void sprite_manager_unload_set_modern(uint32_t set_hash, sprite_database* spr_db) {
+    sprite_manager->UnloadSetModern(spr_db->get_spr_set_by_id(set_hash)->index, spr_db);
+}
+
 void sprite_manager_free() {
     if (sprite_manager) {
         delete sprite_manager;
@@ -474,7 +480,7 @@ void sprite_manager_free() {
 }
 
 namespace spr {
-    SpriteManager::SpriteManager() : aspect(), index() {
+    SpriteManager::SpriteManager() : aspect(), index(), set_counter() {
         ResetIndex();
         resolution_mode = RESOLUTION_MODE_MAX;
 
@@ -537,6 +543,32 @@ namespace spr {
             glDeleteVertexArrays(1, &vao);
             vao = 0;
         }
+    }
+
+    uint32_t SpriteManager::AddSetModern() {
+        uint32_t index = this->set_counter;
+        for (; index <= 0x0FFF; index++) {
+            auto elem = sets.find(0x8000 | index);
+            if (elem == sets.end())
+                break;
+        }
+
+        if (!index || index > 0x0FFF) {
+            for (index = 1; index <= 0x0FFF; index++) {
+                auto elem = sets.find(0x8000 | index);
+                if (elem == sets.end())
+                    break;
+            }
+
+            if (!index || index > 0x0FFF)
+                return 0x8000;
+        }
+
+        sets.insert({ 0x8000 | index, SprSet(0x8000 | index) });
+        set_counter = index + 1;
+        if (index + 1 > 0x0FFF)
+            set_counter = 1;
+        return 0x8000 | index;
     }
 
     void SpriteManager::AddSprSets(const sprite_database* spr_db) {
@@ -747,59 +779,66 @@ namespace spr {
         draw_sprite_end();
     }
 
-    SprSet* SpriteManager::GetSet(int32_t index) {
+    SprSet* SpriteManager::GetSet(uint32_t index) {
         auto elem = sets.find(index);
         if (elem != sets.end())
             return &elem->second;
         return 0;
     }
 
-    bool SpriteManager::GetSetReady(int32_t index) {
+    bool SpriteManager::GetSetReady(uint32_t index) {
         SprSet* set = GetSet(index);
         if (set)
             return set->ready;
         return false;
     }
 
-    uint32_t SpriteManager::GetSetSpriteNum(int32_t index) {
+    uint32_t SpriteManager::GetSetSpriteNum(uint32_t index) {
         SprSet* set = GetSet(index);
         if (set)
-            return set->header->num_of_sprite;
+            return set->spr_set->num_of_sprite;
         return 0;
     }
 
-    uint32_t SpriteManager::GetSetTextureNum(int32_t index) {
+    uint32_t SpriteManager::GetSetTextureNum(uint32_t index) {
         SprSet* set = GetSet(index);
         if (set)
-            return set->header->num_of_texture;
+            return set->spr_set->num_of_texture;
         return 0;
     }
 
     const char* SpriteManager::GetSprName(spr_info info) {
-        SprSet* set = GetSet(info.set_index & 0x0FFF);
+        SprSet* set = GetSet(info.set_index & 0x8FFF);
         if (set)
             return set->GetName(info);
         return "(null)";
     }
 
     rectangle SpriteManager::GetSprRectangle(spr_info info) {
-        SprSet* set = GetSet(info.set_index & 0x0FFF);
+        SprSet* set = GetSet(info.set_index & 0x8FFF);
         if (set)
             return set->GetRectangle(info);
         return {};
     }
 
     texture* SpriteManager::GetSprTexture(spr_info info) {
-        SprSet* set = GetSet(info.set_index & 0x0FFF);
+        SprSet* set = GetSet(info.set_index & 0x8FFF);
         if (set)
             return set->GetTexture(info);
         return 0;
     }
 
-    bool SpriteManager::LoadFile(int32_t index) {
+    bool SpriteManager::LoadFile(uint32_t index) {
         SprSet* set = GetSet(index);
         if (set)
             return set->LoadFile();
+        return false;
+    }
+
+    bool SpriteManager::LoadFileModern(uint32_t index, sprite_database* spr_db) {
+        SprSet* set = GetSet(index);
+        if (set)
+            return set->LoadFileModern(spr_db);
         return false;
     }
 
@@ -814,7 +853,7 @@ namespace spr {
             info = spr_db->get_spr_by_id(args.id.id)->info;
 
         if (info.not_null()) {
-            SprSet* set = GetSet(info.set_index & 0x0FFF);
+            SprSet* set = GetSet(info.set_index & 0x8FFF);
             if (!set || !set->ready)
                 return 0;
 
@@ -846,18 +885,23 @@ namespace spr {
         }
     }
 
-    void SpriteManager::ReadFile(int32_t index,
+    void SpriteManager::ReadFile(uint32_t index,
         const char* file, std::string& mdata_dir, void* data) {
         SprSet* set = GetSet(index);
         if (set)
             set->ReadFile(file, mdata_dir, data);
     }
 
-    void SpriteManager::ReadFile(int32_t index,
-        const char* file, std::string&& mdata_dir, void* data) {
+    void SpriteManager::ReadFileModern(uint32_t index,
+        uint32_t set_hash, void* data, sprite_database* spr_db) {
+        if (index == -1) {
+            index = AddSetModern();
+            spr_db->add_spr_set(set_hash, index);
+        }
+
         SprSet* set = GetSet(index);
         if (set)
-            set->ReadFile(file, mdata_dir, data);
+            set->ReadFileModern(set_hash, data);
     }
 
     void SpriteManager::ResetIndex() {
@@ -895,10 +939,22 @@ namespace spr {
         mat = mat4_identity;
     }
 
-    void SpriteManager::UnloadSet(int32_t index) {
+    void SpriteManager::UnloadSet(uint32_t index) {
         SprSet* set = GetSet(index);
         if (set)
             set->Unload();
+    }
+
+    void SpriteManager::UnloadSetModern(uint32_t index, sprite_database* spr_db) {
+        SprSet* set = GetSet(index);
+        if (set) {
+            set->UnloadModern(spr_db);
+            if (set->load_count <= 0) {
+                auto elem = sets.find(index);
+                if (elem != sets.end())
+                    sets.erase(elem);
+            }
+        }
     }
 
     static void calc_sprite_vertex(spr::SprArgs* args, vec3* vtx, mat4* mat, bool font) {
@@ -1606,9 +1662,10 @@ namespace spr {
     }
 }
 
-SprSet::SprSet(uint32_t index) : flag(), header_file(),
-header(), textures(), load_count(), ready() {
+SprSet::SprSet(uint32_t index) : flag(), spr_set(),
+textures(), load_count(), ready() {
     this->index = index;
+    hash = hash_murmurhash_empty;
 }
 
 SprSet::~SprSet() {
@@ -1616,74 +1673,63 @@ SprSet::~SprSet() {
 }
 
 const char* SprSet::GetName(spr_info info) {
-    if ((info.set_index & 0xF000) == 0x1000)
-        return header->texname[info.index];
+    if (info.set_index & 0x1000)
+        return spr_set->texname[info.index];
     else
-        return header->sprname[info.index];
+        return spr_set->sprname[info.index];
 }
 
 rectangle SprSet::GetRectangle(spr_info info) {
-    if ((info.set_index & 0xF000) == 0x1000) {
+    if (info.set_index & 0x1000) {
         texture* tex = textures[info.index];
         return { 0.0f, 0.0f, (float_t)tex->width, (float_t)tex->height };
     }
 
-    spr::SprInfo* sprinfo = &header->sprinfo[info.index];
+    spr::SprInfo* sprinfo = &spr_set->sprinfo[info.index];
     return { (float_t)(int32_t)sprinfo->px, (float_t)(int32_t)sprinfo->py,
         (float_t)(int32_t)sprinfo->width, (float_t)(int32_t)sprinfo->height };
 }
 
 resolution_mode SprSet::GetResolutionMode(spr_info info) {
-    if ((info.set_index & 0xF000) == 0x1000)
+    if (info.set_index & 0x1000)
         return RESOLUTION_MODE_HD;
     else
-        return header->sprdata[info.index].resolution_mode;
+        return spr_set->sprdata[info.index].resolution_mode;
 }
 
 texture* SprSet::GetTexture(spr_info info) {
-    if ((info.set_index & 0xF000) == 0x1000)
+    if (info.set_index & 0x1000)
         return textures[info.index];
     else
-        return textures[header->sprinfo[info.index].texid];
+        return textures[spr_set->sprinfo[info.index].texid];
 }
 
 bool SprSet::LoadData() {
     const void* data = file_handler.get_data();
-    if (!data) {
-        header_file = 0;
-        header = 0;
+    size_t size = file_handler.get_size();
+    if (!data || !size)
         return false;
-    }
 
     prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
     alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
-    header_file = (SpriteHeaderFile*)alloc->allocate<uint8_t>(
-        (uint8_t*)data, ((const SpriteHeaderFile*)data)->texofs);
+    ::spr_set* set = alloc->allocate<::spr_set>();
+    this->spr_set = set;
+    set->unpack_file(alloc, data, size, false);
+    return true;
+}
 
-    SpriteHeader* header = alloc->allocate<SpriteHeader>();
-    header->flag = header_file->flag;
-    header->texofs = header_file->texofs;
-    header->num_of_texture = header_file->num_of_texture;
-    header->num_of_sprite = header_file->num_of_sprite;
-    header->sprinfo = (spr::SprInfo*)((char*)header_file + header_file->sprinfo_offset);
+bool SprSet::LoadDataModern(const void* data, size_t size) {
+    if (!data || !size)
+        return false;
 
-    const char** texname = alloc->allocate<const char*>(header->num_of_texture);
-    header->texname = texname;
+    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
-    uint32_t* texname_offset = (uint32_t*)((size_t)header_file + header_file->texname_offset);
-    for (uint32_t i = header->num_of_texture; i; i--, texname++, texname_offset++)
-        *texname = (const char*)((size_t)header_file + *texname_offset);
-
-    const char** sprname = alloc->allocate<const char*>(header->num_of_sprite);
-    header->sprname = sprname;
-
-    uint32_t* sprname_offset = (uint32_t*)((size_t)header_file + header_file->sprname_offset);
-    for (uint32_t i = header->num_of_sprite; i; i--, sprname++, sprname_offset++)
-        *sprname = (const char*)((size_t)header_file + *sprname_offset);
-
-    header->sprdata = (SpriteData*)((size_t)header_file + header_file->sprdata_offset);
-    this->header = header;
+    ::spr_set* set = alloc->allocate<::spr_set>();
+    this->spr_set = set;
+    set->unpack_file(alloc, data, size, true);
+    file_handler.reset();
     return true;
 }
 
@@ -1700,21 +1746,98 @@ bool SprSet::LoadFile() {
     return true;
 }
 
+bool SprSet::LoadFileModern(sprite_database* spr_db) {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
+
+    const void* data = file_handler.get_data();
+    size_t size = file_handler.get_size();
+    if (!data || !size)
+        return false;
+
+    farc f;
+    f.read(data, size, true);
+
+    std::string& file = file_handler.ptr->file;
+
+    size_t file_len = file.size();
+    if (file_len >= 0x100 - 4)
+        return false;
+
+    const char* t = strrchr(file.c_str(), '.');
+    if (t)
+        file_len = t - file.c_str();
+
+    char buf[0x100];
+    memcpy(buf, file.c_str(), file_len);
+    char* ext = buf + file_len;
+    size_t ext_len = sizeof(buf) - file_len;
+
+    memcpy_s(ext, ext_len, ".spr", 5);
+    farc_file* spr = f.read_file(buf);
+    if (!spr)
+        return false;
+
+    memcpy_s(ext, ext_len, ".spi", 5);
+    farc_file* spi = f.read_file(buf);
+    if (!spi)
+        return false;
+
+    sprite_database_file spr_db_file;
+    spr_db_file.read(spi->data, spi->size, true);
+
+    spr_db_spr_set_file* spr_set_file = 0;
+    if (spr_db_file.ready)
+        for (spr_db_spr_set_file& m : spr_db_file.sprite_set)
+            if (m.id == hash) {
+                spr_set_file = &m;
+                break;
+            }
+
+    if (!spr_set_file)
+        return false;
+
+    if (spr_db_file.ready)
+        spr_db->parse(spr_set_file, name, sprite_ids);
+
+    if (!LoadDataModern(spr->data, spr->size) || !LoadTextureModern(spr->data, spr->size))
+        return false;
+
+    file_handler.reset();
+    ready = true;
+    return true;
+}
+
 bool SprSet::LoadTexture() {
     size_t data = (size_t)file_handler.get_data();
     if (!data)
         return false;
 
-    const SpriteHeaderFile* header_file = (const SpriteHeaderFile*)data;
-
-    std::vector<uint32_t> ids(header_file->num_of_texture);
+    std::vector<uint32_t> ids(spr_set->num_of_texture);
     uint32_t set_index = (uint32_t)(0x1000 | index & 0x0FFF);
     uint32_t index = 0;
     for (uint32_t& i : ids)
         i = (set_index << 16) | index++;
-    txp_set txp;
-    txp.unpack_file((const void*)(data + header_file->texofs), false);
-    texture_txp_set_load(&txp, &textures, ids.data());
+    texture_txp_set_load(spr_set->txp, &textures, ids.data());
+    delete spr_set->txp;
+    spr_set->txp = 0;
+    return !!textures;
+}
+
+bool SprSet::LoadTextureModern(const void* data, size_t size) {
+    if (!data || !size)
+        return false;
+
+    std::vector<uint32_t> ids(spr_set->num_of_texture);
+    uint32_t set_index = (uint32_t)(0x8000 | 0x1000 | index & 0x0FFF);
+    uint32_t index = 0;
+    for (uint32_t& i : ids)
+        i = (set_index << 16) | index++;
+    texture_txp_set_load(spr_set->txp, &textures, ids.data());
+    delete spr_set->txp;
+    spr_set->txp = 0;
     return !!textures;
 }
 
@@ -1741,6 +1864,19 @@ void SprSet::ReadFile(const char* file, std::string& mdata_dir, void* data) {
     ready = false;
 }
 
+void SprSet::ReadFileModern(uint32_t set_hash, void* data) {
+    if (load_count > 1) {
+        load_count++;
+        return;
+    }
+
+    std::string file;
+    if (((data_struct*)data)->get_file("root+/2d/", set_hash, ".farc", file))
+        file_handler.read_file(data, "root+/2d/", file.c_str());
+    this->hash = set_hash;
+    ready = false;
+}
+
 void SprSet::Unload() {
     if (load_count > 1) {
         load_count--;
@@ -1751,11 +1887,32 @@ void SprSet::Unload() {
     UnloadTexture();
     alloc_handler.reset();
 
-    header_file = 0;
-    header = 0;
+    spr_set = 0;
     file.clear();
     ready = false;
     load_count = 0;
+}
+
+void SprSet::UnloadModern(sprite_database* spr_db) {
+    if (load_count > 1) {
+        load_count--;
+        return;
+    }
+
+    spr_db->remove_spr_set(hash, index, name.c_str(), sprite_ids);
+
+    file_handler.reset();
+    UnloadTexture();
+    alloc_handler.reset();
+
+    spr_set = 0;
+    file.clear();
+    ready = false;
+    load_count = 0;
+
+    hash = hash_murmurhash_empty;
+    name.clear();
+    sprite_ids.clear();
 }
 
 bool SprSet::UnloadTexture() {

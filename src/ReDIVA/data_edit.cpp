@@ -348,10 +348,8 @@ void DataEdit::Auth3D::Reset() {
     object_set.clear();
     id = -1;
 
-    obj_db.object_set.clear();
-    obj_db.object_set.shrink_to_fit();
-    tex_db.texture.clear();
-    tex_db.texture.shrink_to_fit();
+    obj_db.clear();
+    tex_db.clear();
 }
 
 DataEdit::DataEdit() : state(), play(), sound_play(), frame(), frame_count() {

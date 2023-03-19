@@ -16,10 +16,12 @@ namespace prj {
     class vector_pair_combine {
     public:
         using value_pair = std::pair<T, U>;
+        using iterator = typename std::vector<value_pair>::iterator;
+        using const_iterator = typename std::vector<value_pair>::const_iterator;
         std::vector<value_pair> data;
         std::vector<value_pair> new_data;
 
-        inline typename auto find(T key) {
+        inline auto find(T& key) {
             auto k = data.begin();
             size_t l = data.size();
             size_t temp;
@@ -36,7 +38,7 @@ namespace prj {
             return k;
         }
 
-        inline typename auto find(T key) const {
+        inline auto find(const T& key) const {
             auto k = data.begin();
             size_t l = data.size();
             size_t temp;
@@ -53,14 +55,46 @@ namespace prj {
             return k;
         }
 
+        inline auto find(T&& key) {
+            auto k = data.begin();
+            size_t l = data.size();
+            size_t temp;
+            while (l > 0) {
+                if (k[temp = l / 2].first >= key)
+                    l /= 2;
+                else {
+                    k += temp + 1;
+                    l -= temp + 1;
+                }
+            }
+            if (k == data.end() || key < k->first)
+                return data.end();
+            return k;
+        }
+
+        inline auto find(T&& key) const {
+            auto k = data.begin();
+            size_t l = data.size();
+            size_t temp;
+            while (l > 0) {
+                if (k[temp = l / 2].first >= key)
+                    l /= 2;
+                else {
+                    k += temp + 1;
+                    l -= temp + 1;
+                }
+            }
+            if (k == data.end() || key < k->first)
+                return data.end();
+            return k;
+        }
+        
         inline void combine() {
-            if (new_data.size() <= 1)
-                return;
-
-            std::sort(data.begin(), data.end(),
-                [](const value_pair& a, const value_pair& b) {
-                    return a.first < b.first;
-                });
+            if (data.size() > 1)
+                std::sort(data.begin(), data.end(),
+                    [](const value_pair& a, const value_pair& b) {
+                        return a.first < b.first;
+                    });
 
             for (auto& i : new_data) {
                 auto elem = find(i.first);
@@ -72,75 +106,74 @@ namespace prj {
 
             new_data.clear();
 
-            if (data.size() <= 1)
-                return;
+            if (data.size() > 1) {
+                std::sort(data.begin(), data.end(),
+                    [](const value_pair& a, const value_pair& b) {
+                        return a.first < b.first;
+                    });
 
-            std::sort(data.begin(), data.end(),
-                [](const value_pair& a, const value_pair& b) {
-                    return a.first < b.first;
-                });
+                auto begin = data.begin();
+                auto end = data.end();
+                for (auto i = begin, j = begin + 1; i != end && j != end; )
+                    if (i->first == j->first) {
+                        std::move(j + 1, end, j);
+                        end--;
+                    }
+                    else {
+                        i++;
+                        j++;
+                    }
 
-            auto begin = data.begin();
-            auto end = data.end();
-            for (auto i = begin, j = begin + 1; i != end && j != end; )
-                if (i->first == j->first) {
-                    std::move(j + 1, end, j);
-                    end--;
-                }
-                else {
-                    i++;
-                    j++;
-                }
-
-            if (data.size() != end - begin)
-                data.resize(end - begin);
+                if (data.size() != end - begin)
+                    data.resize(end - begin);
+            }
         }
 
-        inline typename auto begin() {
+        inline auto begin() {
             return data.begin();
         }
 
-        inline typename auto begin() const {
+        inline auto begin() const {
             return data.begin();
         }
 
-        inline typename auto cbegin() const {
+        inline auto cbegin() const {
             return data.cbegin();
         }
 
-        inline typename auto end() {
+        inline auto end() {
             return data.end();
         }
 
-        inline typename auto end() const {
+        inline auto end() const {
             return data.end();
         }
 
-        inline typename auto cend() const {
+        inline auto cend() const {
             return data.cend();
         }
 
-        inline typename auto rbegin() {
+        inline auto rbegin() {
             return data.rbegin();
         }
 
-        inline typename auto rbegin() const  {
+        inline auto rbegin() const  {
             return data.rbegin();
         }
 
-        inline typename auto crbegin() const {
+        inline auto crbegin() const {
             return data.crbegin();
         }
 
-        inline typename auto rend() {
+        inline auto rend() {
             return data.rend();
         }
 
-        inline typename auto rend() const {
+        inline auto rend() const {
             return data.rend();
         }
 
-        inline typename auto crend() const {
+        inline auto crend() const {
             return data.crend();
         }
 
@@ -152,6 +185,24 @@ namespace prj {
             new_data.push_back(value);
         }
 
+        inline auto erase(const_iterator where) noexcept  {
+            return data.erase(where);
+        }
+
+        inline auto erase(const_iterator first, const_iterator last) noexcept {
+            return data.erase(first, last);
+        }
+
+        inline void clear() noexcept {
+            data.clear();
+            new_data.clear();
+        }
+        
+        inline void shrink_to_fit() noexcept {
+            data.shrink_to_fit();
+            new_data.shrink_to_fit();
+        }
+
         inline void reserve(size_t new_capacity) {
             new_data.reserve(new_capacity);
         }
@@ -160,12 +211,36 @@ namespace prj {
             return data.size();
         }
 
-        value_pair& operator[](const size_t pos) noexcept {
+        inline value_pair& operator[](const size_t pos) noexcept {
             return data[pos];
         }
 
-        const value_pair& operator[](const size_t pos) const noexcept {
+        inline const value_pair& operator[](const size_t pos) const noexcept {
             return data[pos];
+        }
+
+        inline value_pair& at(const size_t pos) {
+            return data.at(pos);
+        }
+
+        inline const value_pair& at(const size_t pos) const {
+            return data.at(pos);
+        }
+
+        inline value_pair& front() noexcept {
+            return data.front();
+        }
+
+        inline const value_pair& front() const noexcept  {
+            return data.front();
+        }
+
+        inline value_pair& back() noexcept  {
+            return data.back();
+        }
+
+        inline const value_pair& back() const noexcept {
+            return data.back();
         }
     };
 }

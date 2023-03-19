@@ -54,6 +54,7 @@ struct texture_database {
     ~texture_database();
 
     void add(texture_database_file* tex_db_file);
+    void clear();
     void sort();
 
     uint32_t get_texture_id(const char* name) const;

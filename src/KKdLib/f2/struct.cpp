@@ -143,7 +143,8 @@ static void f2_struct_get_length(f2_struct* s, bool shift_x) {
     }
 
     if (has_pof) {
-        uint32_t len = s->pof.length(shift_x);
+        s->pof.shift_x = shift_x;
+        uint32_t len = s->pof.length();
         l += 0x20 + align_val(len, 0x10);
     }
 
@@ -186,7 +187,8 @@ static void f2_struct_read_data(stream& s, f2_struct* st, f2_header* h) {
         }
         else if ((sig & 0xFFFFFFF0) == 'POF0') {
             size_t pos = s.get_position();
-            st->pof.read(s, sig == 'POF1');
+            st->pof.shift_x = sig == 'POF1';
+            st->pof.read(s);
             s.set_position(pos + l, SEEK_SET);
         }
         else {
@@ -219,7 +221,8 @@ static void f2_struct_write_inner(stream& s, f2_struct* st, uint32_t depth, bool
 }
 
 static void f2_struct_write_pof(stream& s, pof* pof, uint32_t depth, bool shift_x) {
-    size_t len = pof->length(shift_x);
+    pof->shift_x = shift_x;
+    size_t len = pof->length();
     f2_header h = {};
     h.signature = shift_x ? reverse_endianness_uint32_t('POF1') : reverse_endianness_uint32_t('POF0');
     h.length = 0x20;
@@ -227,7 +230,7 @@ static void f2_struct_write_pof(stream& s, pof* pof, uint32_t depth, bool shift_
     h.use_section_size = true;
     h.data_size = h.section_size = (uint32_t)align_val(len, 0x10);
     f2_header_write(s, &h, false);
-    pof->write(s, shift_x);
+    pof->write(s);
 }
 
 static void f2_struct_write_enrs(stream& s, enrs* enrs, uint32_t depth) {

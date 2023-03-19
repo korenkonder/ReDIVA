@@ -11,14 +11,15 @@
 
 struct pof {
     std::vector<int64_t> vec;
+    bool shift_x;
 
     pof();
     ~pof();
 
     void add(stream& s, int64_t offset);
-    void read(stream& s, bool shift_x = false);
-    void write(stream& s, bool shift_x = false);
-    uint32_t length(bool shift_x = false);
+    void read(stream& s);
+    void write(stream& s);
+    uint32_t length();
 };
 
 extern void io_write_offset_pof_add(stream& s, int64_t val,

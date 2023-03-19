@@ -511,7 +511,9 @@ void TaskPvGame::Disp() {
 }
 
 bool task_pv_game_add_task(TaskPvGame::Args& args) {
-    task_pv_game->data.Reset();
+    return true;
+    if (!task_pv_game)
+        task_pv_game = new TaskPvGame;
 
     task_pv_game->data.field_0 = 1;
     task_pv_game->data.init_data = args.init_data;
@@ -547,8 +549,12 @@ bool task_pv_game_check_task_ready() {
 }
 
 bool task_pv_game_del_task() {
-    if (!app::TaskWork::CheckTaskReady(task_pv_game))
+    return true;
+    if (!app::TaskWork::CheckTaskReady(task_pv_game)) {
+        delete task_pv_game;
+        task_pv_game = 0;
         return true;
+    }
 
     task_pv_game->DelTask();
     return false;

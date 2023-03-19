@@ -47,7 +47,24 @@ namespace prj {
             unique();
         }
 
-        inline typename auto find(T key) {
+        inline typename auto find(T& key) {
+            auto k = this->begin();
+            size_t l = this->size();
+            size_t temp;
+            while (l > 0) {
+                if (k[temp = l / 2].first >= key)
+                    l /= 2;
+                else {
+                    k += temp + 1;
+                    l -= temp + 1;
+                }
+            }
+            if (k == this->end() || key < k->first)
+                return this->end();
+            return k;
+        }
+        
+        inline typename auto find(T& key) const {
             auto k = this->begin();
             size_t l = this->size();
             size_t temp;
@@ -64,7 +81,24 @@ namespace prj {
             return k;
         }
 
-        inline typename auto find(T key) const {
+        inline typename auto find(T&& key) {
+            auto k = this->begin();
+            size_t l = this->size();
+            size_t temp;
+            while (l > 0) {
+                if (k[temp = l / 2].first >= key)
+                    l /= 2;
+                else {
+                    k += temp + 1;
+                    l -= temp + 1;
+                }
+            }
+            if (k == this->end() || key < k->first)
+                return this->end();
+            return k;
+        }
+
+        inline typename auto find(T&& key) const {
             auto k = this->begin();
             size_t l = this->size();
             size_t temp;

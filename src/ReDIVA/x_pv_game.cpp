@@ -17,8 +17,10 @@
 #include "../CRE/pv_param.hpp"
 #include "../CRE/random.hpp"
 #include "../CRE/sound.hpp"
+#include "../CRE/sprite.hpp"
 #include "../CRE/task_effect.hpp"
 #include "../KKdLib/io/file_stream.hpp"
+#include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/sort.hpp"
@@ -217,6 +219,8 @@ struct dof_cam {
 };
 #endif
 
+static int32_t aet_index_table[] = { 0, 1, 2, 6, 5 };
+
 #if DOF_BAKE
 dof_cam dof_cam_data;
 #endif
@@ -224,6 +228,8 @@ x_pv_game* x_pv_game_ptr;
 XPVGameSelector x_pv_game_selector;
 
 extern render_context* rctx_ptr;
+
+static vec4 bright_scale_get(int32_t index, float_t value);
 
 static float_t dsc_time_to_frame(int64_t time);
 static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
@@ -1912,10 +1918,8 @@ void x_pv_game_data::reset() {
     exp_file.clear();
     //dof = {};
     stage = 0;
-    obj_db.object_set.clear();
-    obj_db.object_set.shrink_to_fit();
-    tex_db.texture.clear();
-    tex_db.texture.shrink_to_fit();
+    obj_db.clear();
+    tex_db.clear();
 
     sound_work_release_stream(0);
 }
@@ -1923,6 +1927,7 @@ void x_pv_game_data::reset() {
 void x_pv_game_data::stop() {
     camera.stop();
     stage->reset_stage_effect();
+    stage->reset_stage_env();
     effect.stop();
     chara_effect.stop();
     dsc_data.reset();
@@ -1940,10 +1945,8 @@ void x_pv_game_data::unload() {
     //dof = {};
     dsc_data.unload();
     pv_expression_file_unload(exp_file.hash_murmurhash);
-    obj_db.object_set.clear();
-    obj_db.object_set.shrink_to_fit();
-    tex_db.texture.clear();
-    tex_db.texture.shrink_to_fit();
+    obj_db.clear();
+    tex_db.clear();
     state = 40;
 }
 
@@ -1951,6 +1954,497 @@ void x_pv_game_data::unload_if_state_is_0() {
     if (!state)
         unload();
 }
+
+PVStageFrameRateControl::PVStageFrameRateControl() {
+    delta_frame = 1.0f;
+}
+
+PVStageFrameRateControl::~PVStageFrameRateControl() {
+
+}
+
+float_t PVStageFrameRateControl::GetDeltaFrame() {
+    return delta_frame;
+}
+
+aet_obj_data::aet_obj_data() : field_20(), loop(), hidden(), field_2A(), frame_rate_control() {
+    hash = hash_murmurhash_empty;
+
+    reset();
+}
+
+aet_obj_data::~aet_obj_data() {
+    reset();
+}
+
+bool aet_obj_data::check_disp() {
+    return aet_manager_get_obj_disp(id);
+}
+
+uint32_t aet_obj_data::init(AetArgs& args, const aet_database* aet_db) {
+    reset();
+
+    hash = args.id.id;
+    layer_name.assign(args.layer_name);
+    id = aet_manager_init_aet_object(args, aet_db);
+    if (!id)
+        return 0;
+
+    aet_manager_set_obj_frame_rate_control(id, frame_rate_control);
+    aet_manager_set_obj_visible(id, !hidden);
+    field_2A = true;
+    loop = !!(args.flags & AET_LOOP);
+    return id;
+}
+
+void aet_obj_data::reset() {
+    field_2A = false;
+
+    if (id) {
+        aet_manager_free_aet_object(id);
+        id = 0;
+    }
+
+    hash = hash_murmurhash_empty;
+    layer_name.clear();
+    layer_name.shrink_to_fit();
+
+    if (field_20) {
+        delete field_20;
+        field_20 = 0;
+    }
+}
+
+x_pv_game_stage_env_data::x_pv_game_stage_env_data() {
+
+}
+
+x_pv_game_stage_env_aet::x_pv_game_stage_env_aet() : state(), prev(), next() {
+    duration = 1.0f;
+}
+
+x_pv_game_stage_env::x_pv_game_stage_env() : flags(),
+state(), stage_resource(), trans_duration(), trans_remain() {
+    env_index = -1;
+    aet_gam_stgpv_id_hash = hash_murmurhash_empty;
+    spr_gam_stgpv_id_hash = hash_murmurhash_empty;
+    aet_gam_stgpv_id_main_hash = hash_murmurhash_empty;
+
+    for (auto& i : data)
+        for (auto& j : i.data)
+            for (auto& k : j)
+                k.frame_rate_control = &frame_rate_control;
+}
+
+x_pv_game_stage_env::~x_pv_game_stage_env() {
+
+}
+
+void x_pv_game_stage_env::ctrl(float_t delta_time) {
+    frame_rate_control.delta_frame = delta_time * 60.0f;
+
+    switch (state) {
+    case 10:
+        state = 11;
+    case 11:
+        if ((aet_gam_stgpv_id_hash == hash_murmurhash_empty
+            || !aet_manager_load_file_modern(aet_gam_stgpv_id_hash, &aet_db))
+            && (spr_gam_stgpv_id_hash == hash_murmurhash_empty
+                || !sprite_manager_load_file_modern(spr_gam_stgpv_id_hash, &spr_db))) {
+            spr_set* set = sprite_manager_get_set(spr_gam_stgpv_id_hash, &spr_db);
+            if (set) {
+                SpriteData* sprdata = set->sprdata;
+                for (uint32_t i = set->num_of_sprite; i; i--, sprdata++)
+                    sprdata->resolution_mode = RESOLUTION_MODE_HD;
+            }
+            state = 20;
+        }
+        break;
+    case 20:
+        if (env_index != -1 && !sub_810EE198(delta_time))
+            sub_810EE03E();
+        break;
+    }
+}
+
+pvsr_auth_2d* x_pv_game_stage_env::get_aet(int32_t env_index, int32_t type, int32_t index) {
+    if (env_index < 0 || env_index >= stage_resource->stage_effect_env.size())
+        return 0;
+
+    pvsr_stage_effect_env* env = &stage_resource->stage_effect_env[env_index];
+
+    switch (type)  {
+    case 0:
+    default:
+        if (index < env->aet_front.size())
+            return &env->aet_front[index];
+        break;
+    case 1:
+        if (index < env->aet_front_low.size())
+            return &env->aet_front_low[index];
+        break;
+    case 2:
+        if (index < env->aet_back.size())
+            return &env->aet_back[index];
+        break;
+    case 3:
+        if (index < env->unk03.size())
+            return &env->unk03[index];
+        break;
+    case 4:
+        if (index < env->unk04.size())
+            return &env->unk04[index];
+        break;
+    }
+    return 0;
+}
+
+void x_pv_game_stage_env::load(int32_t stage_id, pvsr* stage_resource) {
+    if (this->stage_resource || !stage_resource || stage_resource->stage_effect_env.size() > 64)
+        return;
+
+    this->stage_resource = stage_resource;
+
+    bool aet = false;
+    for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env)
+        if (i.aet_front.size() || i.aet_front_low.size()
+            || i.aet_back.size() || i.unk03.size() || i.unk04.size()) {
+            aet = true;
+            break;
+        }
+
+    if (aet) {
+        char buf[0x40];
+        sprintf_s(buf, sizeof(buf), "AET_GAM_STGPV%03d", stage_id);
+        aet_gam_stgpv_id_hash = hash_utf8_murmurhash(buf);
+
+        sprintf_s(buf, sizeof(buf), "SPR_GAM_STGPV%03d", stage_id);
+        spr_gam_stgpv_id_hash = hash_utf8_murmurhash(buf);
+
+        aet_manager_read_file_modern(aet_gam_stgpv_id_hash, &data_list[DATA_X], &aet_db);
+        sprite_manager_read_file_modern(spr_gam_stgpv_id_hash, &data_list[DATA_X], &spr_db);
+
+        sprintf_s(buf, sizeof(buf), "AET_GAM_STGPV%03d_MAIN", stage_id);
+        aet_gam_stgpv_id_main_hash = hash_utf8_murmurhash(buf);
+    }
+
+    state = 10;
+}
+
+void x_pv_game_stage_env::reset() {
+    flags = 0;
+    state = 0;
+    stage_resource = 0;
+    env_index = -1;
+    aet_gam_stgpv_id_hash = hash_murmurhash_empty;
+    spr_gam_stgpv_id_hash = hash_murmurhash_empty;
+    aet_gam_stgpv_id_main_hash = hash_murmurhash_empty;
+    frame_rate_control.delta_frame = 1.0f;
+
+    aet_db.clear();
+    spr_db.clear();
+}
+
+void x_pv_game_stage_env::reset_env() {
+    if (env_index == -1)
+        return;
+
+    for (auto& i : data[env_index].data)
+        for (auto& j : i)
+            j.reset();
+
+    trans_duration = 0.0f;
+    trans_remain = 0.0f;
+    aet = {};
+    env_index = -1;
+}
+
+static const float env_aet_opacity = 0.65f;
+
+#pragma warning(push)
+#pragma warning(disable: 6385)
+void x_pv_game_stage_env::set(int32_t env_index, float_t end_time, float_t start_time) {
+    if (!stage_resource || env_index < 0 || env_index >= 64
+        || env_index >= stage_resource->stage_effect_env.size() || this->env_index == env_index)
+        return;
+
+    float_t duration = max_def(end_time - start_time, 0.0f);
+    if (trans_duration > 0.0f) {
+        if (fabsf(end_time) > 0.000001f)
+            return;
+
+        trans_duration = 0.0f;
+        trans_remain = 0.0f;
+        aet = {};
+    }
+
+    if (this->env_index == -1 || fabsf(duration) <= 0.000001f) {
+        float_t frame = start_time * 60.0f;
+        if (this->env_index != -1)
+            for (auto& i : data[this->env_index].data)
+                for (auto& j : i)
+                    j.reset();
+
+        if (!(flags & 0x04))
+            for (int32_t type = 0; type < 5; type++)
+                for (int32_t index = 0; index < 8; index++) {
+                    pvsr_auth_2d* aet = get_aet(env_index, type, index);
+                    if (!aet)
+                        break;
+
+                    aet_obj_data& aet_obj = data[env_index].data[type][index];
+
+                    AetArgs args;
+                    args.id.id = aet_gam_stgpv_id_main_hash;
+                    args.layer_name = aet->name.c_str();
+                    args.mode = RESOLUTION_MODE_HD;
+                    args.flags = AET_PLAY_ONCE;
+                    switch (type) {
+                    case 0:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_01;
+                        break;
+                    case 1:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 2:
+                        args.index = 2;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 3:
+                        args.index = 1;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 4:
+                        args.index = 1;
+                        args.prio = spr::SPR_PRIO_01;
+                        break;
+                    }
+                    args.start_marker = 0;
+                    args.end_marker = 0;
+                    //args.color = bright_scale_get(aet_index_table[type], aet->bright_scale);
+                    args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                    args.spr_db = &spr_db;
+                    aet_obj.init(args, &aet_db);
+
+                    if (aet_obj.id)
+                        aet_manager_set_obj_frame(aet_obj.id, frame);
+                }
+    }
+    else {
+        trans_duration = duration;
+        trans_remain = duration;
+
+        bool has_prev = false;
+        for (int32_t type = 0; type < 5; type++)
+            for (int32_t index = 0; index < 8; index++)
+                if (data[this->env_index].data[type][index].id) {
+                    aet.prev[type][index] = &data[this->env_index].data[type][index];
+                    has_prev = true;
+                }
+                else
+                    break;
+
+        for (int32_t type = 0; type < 5; type++)
+            for (int32_t index = 0; index < 8; index++)
+                if (get_aet(env_index, type, index))
+                    aet.next[type][index] = &data[env_index].data[type][index];
+                else
+                    break;
+
+        if (has_prev) {
+            aet.state = 1;
+            aet.duration = duration * 0.5f;
+        }
+        else {
+            aet.state = 2;
+            aet.duration = duration;
+        }
+    }
+
+    this->env_index = env_index;
+}
+
+void x_pv_game_stage_env::unload() {
+    if (!state)
+        return;
+
+    if (aet_gam_stgpv_id_hash != hash_murmurhash_empty) {
+        aet_manager_unload_set_modern(aet_gam_stgpv_id_hash, &aet_db);
+        aet_gam_stgpv_id_hash = hash_murmurhash_empty;
+    }
+
+    if (spr_gam_stgpv_id_hash != hash_murmurhash_empty) {
+        sprite_manager_unload_set_modern(spr_gam_stgpv_id_hash, &spr_db);
+        spr_gam_stgpv_id_hash = hash_murmurhash_empty;
+    }
+
+    aet_gam_stgpv_id_main_hash = hash_murmurhash_empty;
+
+    state = 0;
+    stage_resource = 0;
+
+    aet_db.clear();
+    spr_db.clear();
+}
+
+void x_pv_game_stage_env::sub_810EE03E() {
+    if (env_index < 0 || env_index >= 64)
+        return;
+
+    for (int32_t type = 0; type < 5; type++)
+        for (int32_t index = 0; index < 8; index++) {
+            aet_obj_data& aet_obj = data[env_index].data[type][index];
+            if (!aet_obj.id || !aet_obj.check_disp())
+                continue;
+
+            AetArgs args;
+            if (stage_resource && env_index >= 0 && env_index < 64) {
+                pvsr_auth_2d* aet = get_aet(env_index, type, index);
+                if (aet) {
+                    args.id.id = aet_gam_stgpv_id_main_hash;
+                    args.layer_name = aet->name.c_str();
+                    args.mode = RESOLUTION_MODE_HD;
+                    args.flags = AET_PLAY_ONCE;
+                    switch (type) {
+                    case 0:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_01;
+                        break;
+                    case 1:
+                        args.index = 0;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 2:
+                        args.index = 2;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 3:
+                        args.index = 1;
+                        args.prio = spr::SPR_PRIO_00;
+                        break;
+                    case 4:
+                        args.index = 1;
+                        args.prio = spr::SPR_PRIO_01;
+                        break;
+                    }
+                    args.start_marker = 0;
+                    args.end_marker = 0;
+                    //args.color = bright_scale_get(aet_index_table[type], aet->bright_scale);
+                    args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                }
+            }
+            args.spr_db = &spr_db;
+            aet_obj.init(args, &aet_db);
+        }
+}
+
+bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
+    if (trans_remain <= 0.0f)
+        return false;
+
+    trans_remain = max_def(trans_remain - delta_time, 0.0f);
+
+    float_t t = 1.0f - trans_remain / trans_duration;
+    switch (aet.state) {
+    case 1: {
+        float_t alpha = 1.0f - t * 2.0f;
+        if (alpha > 0.0f) {
+            for (int32_t type = 0; type < 5; type++)
+                for (int32_t index = 0; index < 8; index++) {
+                    aet_obj_data* aet_obj = aet.prev[type][index];
+                    if (!aet_obj)
+                        break;
+                    
+                    aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
+                }
+            break;
+        }
+
+        for (int32_t type = 0; type < 5; type++)
+            for (int32_t index = 0; index < 8; index++) {
+                aet_obj_data* aet_obj = aet.prev[type][index];
+                if (!aet_obj)
+                    break;
+                
+                aet_obj->reset();
+            }
+
+        aet.state = 2;
+    }
+    case 2: {
+        for (int32_t type = 0; type < 5; type++)
+            for (int32_t index = 0; index < 8; index++) {
+                aet_obj_data* aet_obj = aet.next[type][index];
+                if (!aet_obj)
+                    break;
+
+                AetArgs args;
+                if (stage_resource && env_index >= 0 && env_index < 64) {
+                    pvsr_auth_2d* aet = get_aet(env_index, type, index);
+                    if (aet) {
+                        args.id.id = aet_gam_stgpv_id_main_hash;
+                        args.layer_name = aet->name.c_str();
+                        args.mode = RESOLUTION_MODE_HD;
+                        args.flags = AET_PLAY_ONCE;
+                        switch (type) {
+                        case 0:
+                            args.index = 0;
+                            args.prio = spr::SPR_PRIO_01;
+                            break;
+                        case 1:
+                            args.index = 0;
+                            args.prio = spr::SPR_PRIO_00;
+                            break;
+                        case 2:
+                            args.index = 2;
+                            args.prio = spr::SPR_PRIO_00;
+                            break;
+                        case 3:
+                            args.index = 1;
+                            args.prio = spr::SPR_PRIO_00;
+                            break;
+                        case 4:
+                            args.index = 1;
+                            args.prio = spr::SPR_PRIO_01;
+                            break;
+                        }
+                        args.start_marker = 0;
+                        args.end_marker = 0;
+                        //args.color = bright_scale_get(aet_index_table[type], aet->bright_scale);
+                        args.color = vec4(1.0f, 1.0f, 1.0f, env_aet_opacity);
+                    }
+                }
+                args.spr_db = &spr_db;
+                aet_obj->init(args, &aet_db);
+
+                aet_manager_set_obj_alpha(aet_obj->id, 0.0f);
+            }
+
+        aet.state = 3;
+    } break;
+    case 3: {
+        float_t alpha = 1.0f - trans_remain / aet.duration;
+        for (int32_t type = 0; type < 5; type++)
+            for (int32_t index = 0; index < 8; index++) {
+                aet_obj_data* aet_obj = aet.next[type][index];
+                if (!aet_obj)
+                    break;
+
+                aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
+            }
+    } break;
+    }
+
+    if (trans_remain <= 0.0f) {
+        trans_duration = 0.0f;
+        trans_remain = 0.0f;
+        aet = {};
+    }
+    return false;
+}
+#pragma warning(pop)
 
 x_pv_game_stage_effect_auth_3d::x_pv_game_stage_effect_auth_3d() : repeat(), field_1(), id() {
     reset();
@@ -2103,10 +2597,7 @@ void x_pv_game_stage_data::reset() {
     flags = 0x04;
     state = 0;
     file_handler.reset();
-    stg_db.stage_data.clear();
-    stg_db.stage_data.shrink_to_fit();
-    stg_db.stage_modern.clear();
-    stg_db.stage_modern.shrink_to_fit();
+    stg_db.clear();
     frame_rate_control = 0;
     obj_hash.clear();
     obj_hash.shrink_to_fit();
@@ -2162,13 +2653,6 @@ void x_pv_game_stage_data::unload() {
     stage_info.shrink_to_fit();
     objhrc_hash.clear();
     objhrc_hash.shrink_to_fit();
-}
-
-void x_pv_game_stage_data::unload_stage_database() {
-    stg_db.stage_data.clear();
-    stg_db.stage_data.shrink_to_fit();
-    stg_db.stage_modern.clear();
-    stg_db.stage_modern.shrink_to_fit();
 }
 
 x_pv_game_stage::x_pv_game_stage() : flags(), stage_id(), field_8(), state(), stage_resource(),
@@ -2248,6 +2732,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         for (string_hash& i : stage_auth_3d)
             auth_3d_data_load_category(x_data, i.c_str(), i.hash_murmurhash);
 
+        env.load(stage_id, stage_resource);
         state = 11;
     } break;
     case 11: {
@@ -2349,6 +2834,9 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         state = 12;
     }
     case 12: {
+        if (env.state && env.state != 20)
+            break;
+
         bool wait_load = false;
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
             x_pv_game_stage_effect& eff = effect[i];
@@ -2381,13 +2869,14 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         break;
     case 30:
         if (!task_stage_modern_check_task_ready()) {
-            stage_data.unload_stage_database();
+            stage_data.stg_db.clear();
             state = 0;
         }
         break;
     }
 
     stage_data.ctrl(&obj_db, &tex_db);
+    env.ctrl(delta_time);
 }
 
 void x_pv_game_stage::ctrl_inner() {
@@ -2636,10 +3125,8 @@ void x_pv_game_stage::reset() {
         for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++)
             change_effect[i][j].reset();
 
-    obj_db.object_set.clear();
-    obj_db.object_set.shrink_to_fit();
-    tex_db.texture.clear();
-    tex_db.texture.shrink_to_fit();
+    obj_db.clear();
+    tex_db.clear();
     auth_3d_ids.clear();
 }
 
@@ -2656,6 +3143,10 @@ void x_pv_game_stage::reset_stage_effect() {
 
     for (uint32_t& i : stage_glitter)
         Glitter::glt_particle_manager->FreeScene(i);
+}
+
+void x_pv_game_stage::reset_stage_env() {
+    env.reset_env();
 }
 
 bool x_pv_game_stage::set_change_effect_frame_part_1() {
@@ -2724,6 +3215,10 @@ void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
         Glitter::glt_particle_manager->SetSceneFrameRate(i.scene_counter, &bpm_frame_rate_control);
         Glitter::glt_particle_manager->SetSceneEffectReqFrame(i.scene_counter, frame);
     }
+}
+
+void x_pv_game_stage::set_env(int32_t env_index, float_t end_time, float_t start_time) {
+    env.set(env_index, end_time, start_time);
 }
 
 void x_pv_game_stage::set_stage_effect(int32_t stage_effect) {
@@ -2954,8 +3449,14 @@ void x_pv_game_stage::unload() {
         Glitter::glt_particle_manager->UnloadEffectGroup(i);
     }
 
+    stage_glitter.clear();
+
     for (string_hash& i : stage_auth_3d)
         auth_3d_data_unload_category(i.hash_murmurhash);
+
+    stage_auth_3d.clear();
+
+    env.unload();
 
     delete stage_resource;
     stage_resource = 0;
@@ -4575,9 +5076,8 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
         break;
     case 30: {
         bool v38 = true;
-        x_pv_game_data* pv_data = this->pv_data;
-        for (int32_t i = 0; i < pv_count; i++, pv_data++)
-            if (pv_data->state == 10 || pv_data->state == 20) {
+        for (int32_t i = 0; i < pv_count; i++)
+            if (pv_data[i].state == 10 || pv_data[i].state == 20) {
                 v38 = false;
                 break;
             }
@@ -4593,9 +5093,8 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
     } break;
     case 40: {
         bool v19 = true;
-        x_pv_game_data* pv_data = this->pv_data;
-        for (int32_t i = 0; i < pv_count; i++, pv_data++)
-            if (pv_data->state == 10 || pv_data->state == 20) {
+        for (int32_t i = 0; i < pv_count; i++)
+            if (pv_data[i].state == 10 || pv_data[i].state == 20) {
                 v19 = false;
                 break;
             }
@@ -4605,7 +5104,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
 
         stop_current_pv();
 
-        pv_data = this->pv_data;
+        x_pv_game_data* pv_data = this->pv_data;
         for (int32_t i = 0; i < pv_count; i++, pv_data++) {
             if (!pv_data->state) {
                 rctx_ptr->camera->reset();
@@ -4919,6 +5418,16 @@ void dof_cam::reset() {
     enable = false;
 }
 #endif
+
+static vec4 bright_scale_get(int32_t index, float_t value) {
+    static const float_t bright_scale_table[] = {
+        1.0f, 1.176f, 0.85f, 1.0f,
+        1.0f, 1.176f, 1.176f, 1.176f
+    };
+
+    value = bright_scale_table[index] * value;
+    return { value, value, value, 1.0f };
+}
 
 static float_t dsc_time_to_frame(int64_t time) {
     return (float_t)time / 1000000000.0f * 60.0f;
@@ -6122,7 +6631,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_SET_STAGE_EFFECT_ENV: {
-        printf_debug("Env: % 3d; Trans: %3d\n", (int32_t)data[0], (int32_t)data[1]);
+        int32_t env_index = (int32_t)data[0];
+        int32_t trans = (int32_t)data[1];
+        a1->stage_data.set_env(env_index, (float_t)trans * (float_t)(1.0f / 60.0f), 0.0f);
+        printf_debug("Time: %8d; Env: %2d; Trans: %3d\n",
+            (int32_t)(curr_time / 10000), env_index, trans);
     } break;
     case DSC_X_RESERVE2: {
 
@@ -6603,7 +7116,7 @@ static int x_pv_game_split_auth_3d_hrc_obj_bone_compare_func(void const* src1, v
 }
 
 static std::string x_pv_game_split_auth_3d_get_object_name(
-    std::string& str1, const char* str2, object_database& obj_db, bool uid_name = false) {
+    const std::string& str1, const char* str2, const object_database& obj_db, bool uid_name = false) {
     if (!str1.size())
         return {};
 
@@ -6979,6 +7492,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             }
         }
 
+        obj_db.update();
+
         handler->obj_id_data.reserve(set->obj_num);
         for (uint32_t j = 0; j < obj_num_new; j++)
             handler->obj_id_data.push_back({ obj_data_new[j].id, obj_num + j });
@@ -7012,7 +7527,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             if (!skin)
                 continue;
 
-            std::map<int32_t, std::string> hrc_nodes;
+            std::set<std::string> hrc_nodes;
 
             obj_skin_bone* bone_array = skin->bone_array;
             uint32_t num_bone = skin->num_bone;
@@ -7050,7 +7565,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                         if (!node->name.compare("BONE"))
                             continue;
 
-                        hrc_nodes.insert({ _node_index, node->name });
+                        hrc_nodes.insert(node->name);
                     }
                 }
             }
@@ -7072,10 +7587,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
                 size_t object_base = (size_t)auth->object.data();
 
-                for (std::pair<int32_t, std::string> l : hrc_nodes) {
+                for (const std::string& l : hrc_nodes) {
                     auth->object.push_back({});
                     auth_3d_object& object = auth->object.back();
-                    object.name.assign(l.second);
+                    object.name.assign(l);
                 }
 
                 size_t object_new_base = (size_t)auth->object.data();
@@ -7099,21 +7614,29 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 if (!obj_hrc)
                     continue;
 
-                for (std::pair<int32_t, std::string> m : hrc_nodes)
+                for (const std::string& m : hrc_nodes)
                     for (auth_3d_object& n : auth->object) {
-                        if (n.name.compare(m.second) || m.first < 0)
+                        if (n.name.compare(m))
                             continue;
 
-                        auth_3d_object_node* node = &obj_hrc->node[m.first];
+                        auth_3d_object_node* node = 0;
+                        for (auth_3d_object_node& o : obj_hrc->node)
+                            if (!o.name.compare(m)) {
+                                node = &o;
+                                break;
+                            }
 
-                        if (!str_utils_compare_length(m.second.c_str(), m.second.size(), "OBJHRC_", 7))
+                        if (!node)
+                            continue;
+
+                        if (!str_utils_compare_length(m.c_str(), m.size(), "OBJHRC_", 7))
                             auth->object_list.push_back(&n);
 
                         std::string name = x_pv_game_split_auth_3d_get_object_name(
-                            m.second, obj->name, obj_db);
+                            m, obj->name, obj_db);
                         std::string parent_name;
                         std::string uid_name = x_pv_game_split_auth_3d_get_object_name(
-                            m.second, obj->name, obj_db, true);
+                            m, obj->name, obj_db, true);
 
                         auth_3d_object_node* _node = node;
                         int32_t parent = _node->parent;

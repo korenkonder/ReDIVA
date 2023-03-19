@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../prj/vector_pair.hpp"
 #include "../hash.hpp"
 
 struct object_info {
@@ -136,11 +137,20 @@ struct object_database_file {
 
 struct object_database {
     std::vector<object_set_info> object_set;
+    prj::vector_pair<uint32_t, object_set_info*> obj_set_ids;
+    prj::vector_pair<uint32_t, object_set_info*> obj_set_murmurhashes;
+    prj::vector_pair<object_info, object_info_data*> obj_infos;
+    prj::vector_pair<uint64_t, object_info_data*> obj_fnv1a64m_hashes;
+    prj::vector_pair<uint64_t, object_info_data*> obj_fnv1a64m_hashes_upper;
+    prj::vector_pair<uint32_t, object_info_data*> obj_murmurhashes;
+    prj::vector_pair<uint32_t, object_info> obj_info_murmurhashes;
 
     object_database();
     ~object_database();
 
     void add(object_database_file* obj_db_file);
+    void clear();
+    void update();
 
     const object_set_info* get_object_set_info(const char* name) const;
     const object_set_info* get_object_set_info(uint32_t set_id) const;

@@ -272,6 +272,7 @@ struct stage_database {
     ~stage_database();
 
     void add(stage_database_file* stage_data_file);
+    void clear();
 
     const ::stage_data* get_stage_data(int32_t stage_index) const;
     const ::stage_data_modern* get_stage_data_modern(uint32_t stage_hash) const;

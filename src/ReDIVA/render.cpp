@@ -721,7 +721,7 @@ static render_context* render_context_load() {
                     continue;
 
                 txp_set txp_set;
-                if (!txp_set.unpack_file_modern(txd->data, txd->size))
+                if (!txp_set.unpack_file_modern(txd->data, txd->size, 'MTXD'))
                     continue;
 
                 object_database_file obj_db_file;
@@ -814,7 +814,7 @@ static render_context* render_context_load() {
                     continue;
 
                 txp_set txp_set;
-                if (!txp_set.unpack_file_modern(txd->data, txd->size))
+                if (!txp_set.unpack_file_modern(txd->data, txd->size, 'MTXD'))
                     continue;
 
                 object_database_file obj_db_file;
@@ -1018,7 +1018,7 @@ static void render_context_ctrl(render_context* rctx) {
         game_state_set_game_state_next(GAME_STATE_GAME);
     else if (Input::IsKeyTapped(GLFW_KEY_F6)) {
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_STG);
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AUTH_3D);
     }
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);

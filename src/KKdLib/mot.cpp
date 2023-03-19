@@ -34,6 +34,12 @@ static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloc
 static void mot_classic_write_inner(mot_set* ms, stream& s);
 static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void mot_modern_write_inner(mot_set* ms, stream& s);
+
+static const char* mot_move_data_string(const char* str,
+    prj::shared_ptr<prj::stack_allocator>& alloc);
+static void mot_data_move_data(mot_data* mot_dst, const mot_data* mot_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+
 static const char* mot_read_utf8_string_null_terminated_offset(
     prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset);
 
@@ -52,6 +58,33 @@ div_frames(), div_count(), name(), bone_info_array(), key_set_array() {
 
 mot_set::mot_set() : ready(), modern(), big_endian(), is_x(), name(), mot_data(), mot_num() {
 
+}
+
+void mot_set::move_data(mot_set* set_src, prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!set_src->ready) {
+        ready = false;
+        modern = false;
+        big_endian = false;
+        is_x = false;
+        return;
+    }
+
+    ready = true;
+    modern = set_src->modern;
+    big_endian = set_src->big_endian;
+    is_x = set_src->is_x;
+
+    name = mot_move_data_string(set_src->name, alloc);
+
+    uint32_t mot_num = set_src->mot_num;
+    ::mot_data* mot_data_src = set_src->mot_data;
+    ::mot_data* mot_data_dst = alloc->allocate<::mot_data>(mot_num);
+
+    for (uint32_t i = 0; i < mot_num; i++)
+        mot_data_move_data(&mot_data_dst[i], &mot_data_src[i], alloc);
+
+    this->mot_data = mot_data_dst;
+    this->mot_num = mot_num;
 }
 
 void mot_set::pack_file(void** data, size_t* size) {
@@ -101,8 +134,10 @@ inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     float_t t1_1 = _t1 - 1.0f;
     float_t t2_1 = _t2 - 1.0f;
 
-    float_t t1_t2_1 = arr[f] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
-    float_t t1_t2_2 = arr[f + 1] - arr[f1] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (arr[f1] - arr[f2]);
+    float_t t1_t2_1 = arr[f] - (1.0f + 2.0f * _t1) * (t1_1 * t1_1) * arr[f1]
+        - _t1 * _t1 * (3.0f - 2.0f * _t1) * arr[f2];
+    float_t t1_t2_2 = arr[f + 1] - (1.0f + 2.0f * _t2) * (t2_1 * t2_1) * arr[f1]
+        - _t2 * _t2 * (3.0f - 2.0f * _t2) * arr[f2];
     t1_t2_1 /= df_1 * t1_1;
     t1_t2_2 /= df_2 * t2_1;
 
@@ -530,14 +565,13 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
         return;
     }
 
+    uint32_t header_length = st.header.length;
     bool big_endian = st.header.use_big_endian;
+    bool is_x = st.pof.shift_x;
 
     memory_stream s_motc;
     s_motc.open(st.data);
     s_motc.big_endian = big_endian;
-
-    s_motc.set_position(0x0C, SEEK_SET);
-    bool is_x = s_motc.read_uint32_t_reverse_endianness() == 0;
 
     ::mot_data* mot_data = alloc->allocate<::mot_data>();
     ms->mot_data = mot_data;
@@ -547,12 +581,12 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
     mot_header_modern mh = {};
     if (!is_x) {
         mh.hash = (uint32_t)s_motc.read_uint64_t_reverse_endianness();
-        mh.name_offset = s_motc.read_offset_f2(st.header.length);
-        mh.key_set_info_offset = s_motc.read_offset_f2(st.header.length);
-        mh.key_set_types_offset = s_motc.read_offset_f2(st.header.length);
-        mh.key_set_offset = s_motc.read_offset_f2(st.header.length);
-        mh.bone_info_offset = s_motc.read_offset_f2(st.header.length);
-        mh.bone_hash_offset = s_motc.read_offset_f2(st.header.length);
+        mh.name_offset = s_motc.read_offset_f2(header_length);
+        mh.key_set_info_offset = s_motc.read_offset_f2(header_length);
+        mh.key_set_types_offset = s_motc.read_offset_f2(header_length);
+        mh.key_set_offset = s_motc.read_offset_f2(header_length);
+        mh.bone_info_offset = s_motc.read_offset_f2(header_length);
+        mh.bone_hash_offset = s_motc.read_offset_f2(header_length);
         mh.bone_info_count = s_motc.read_int32_t_reverse_endianness();
     }
     else {
@@ -581,7 +615,7 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
     if (!is_x)
         for (size_t j = 0; j < mh.bone_info_count; j++)
             bone_info_array[j].name = mot_read_utf8_string_null_terminated_offset(alloc,
-                s_motc, s_motc.read_offset_f2(st.header.length));
+                s_motc, s_motc.read_offset_f2(header_length));
     else
         for (size_t j = 0; j < mh.bone_info_count; j++)
             bone_info_array[j].name = mot_read_utf8_string_null_terminated_offset(alloc,
@@ -956,6 +990,76 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
     st.header.inner_signature = 0xFF010008;
 
     st.write(s, true, is_x);
+}
+
+inline static const char* mot_move_data_string(const char* str,
+    prj::shared_ptr<prj::stack_allocator>& alloc) {
+    if (str)
+        return alloc->allocate<char>(str, utf8_length(str) + 1);
+    return 0;
+}
+
+static void mot_data_move_data(mot_data* mot_dst, const mot_data* mot_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    mot_dst->info = mot_src->info;
+    mot_dst->frame_count = mot_src->frame_count;
+    mot_dst->bone_info_count = mot_src->bone_info_count;
+
+    mot_dst->murmurhash = mot_src->murmurhash;
+    mot_dst->div_frames = mot_src->div_frames;
+    mot_dst->div_count = mot_src->div_count;
+
+    mot_dst->name = mot_move_data_string(mot_src->name, alloc);
+
+    uint32_t bone_info_count = mot_src->bone_info_count;
+    mot_bone_info* bone_info_array_src = mot_src->bone_info_array;
+    mot_bone_info* bone_info_array_dst = alloc->allocate<mot_bone_info>(bone_info_count);
+
+    for (uint32_t i = 0; i < bone_info_count; i++) {
+        mot_bone_info* bone_info_src = &bone_info_array_src[i];
+        mot_bone_info* bone_info_dst = &bone_info_array_dst[i];
+        bone_info_dst->name = mot_move_data_string(bone_info_src->name, alloc);
+        bone_info_dst->index = bone_info_src->index;
+    }
+
+    mot_dst->bone_info_array = bone_info_array_dst;
+    
+    uint32_t key_set_count = mot_src->key_set_count;
+    mot_key_set_data* key_set_array_src = mot_src->key_set_array;
+    mot_key_set_data* key_set_array_dst = alloc->allocate<mot_key_set_data>(key_set_count);
+
+    for (uint32_t i = 0; i < key_set_count; i++) {
+        mot_key_set_data* key_set_src = &key_set_array_src[i];
+        mot_key_set_data* key_set_dst = &key_set_array_dst[i];
+
+        mot_key_set_type type = key_set_src->type;
+        uint16_t keys_count = key_set_src->keys_count;
+
+        switch (type) {
+        case MOT_KEY_SET_NONE:
+            key_set_dst->frames = 0;
+            key_set_dst->values = 0;
+            break;
+        case MOT_KEY_SET_STATIC:
+            key_set_dst->frames = 0;
+            key_set_dst->values = alloc->allocate<float_t>(key_set_src->values, 1);
+            break;
+        case MOT_KEY_SET_HERMITE:
+            key_set_dst->frames = alloc->allocate<uint16_t>(key_set_src->frames, keys_count);
+            key_set_dst->values = alloc->allocate<float_t>(key_set_src->values, keys_count);
+            break;
+        case MOT_KEY_SET_HERMITE_TANGENT:
+            key_set_dst->frames = alloc->allocate<uint16_t>(key_set_src->frames, keys_count);
+            key_set_dst->values = alloc->allocate<float_t>(key_set_src->values, keys_count * 2ULL);
+            break;
+        }
+
+        key_set_dst->type = type;
+        key_set_dst->keys_count = keys_count;
+        key_set_dst->data_type = key_set_src->data_type;
+    }
+
+    mot_dst->key_set_array = key_set_array_dst;
 }
 
 inline static const char* mot_read_utf8_string_null_terminated_offset(

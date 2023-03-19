@@ -75,6 +75,7 @@ struct mot_set {
 
     mot_set();
 
+    void move_data(mot_set* set_src, prj::shared_ptr<prj::stack_allocator> alloc);
     void pack_file(void** data, size_t* size);
     void unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern);
 

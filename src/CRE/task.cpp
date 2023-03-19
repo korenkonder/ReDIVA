@@ -191,11 +191,11 @@ namespace app {
     }
 
     bool TaskWork::CheckTaskCtrl(Task* t) {
-        return app::TaskWork::HasTask(t) && t->state == Task::State::Running && t->op == Task::Op::Ctrl;
+        return t && app::TaskWork::HasTask(t) && t->state == Task::State::Running && t->op == Task::Op::Ctrl;
     }
 
     bool TaskWork::CheckTaskReady(Task* t) {
-        return TaskWork::HasTask(t) && (t->op == Task::Op::None || t->state != Task::State::None);
+        return t && TaskWork::HasTask(t) && (t->op == Task::Op::None || t->state != Task::State::None);
     }
 
     void TaskWork::Ctrl() {
@@ -278,21 +278,21 @@ namespace app {
     }
 
     bool TaskWork::HasTaskInit(Task* t) {
-        if (TaskWork::HasTask(t))
+        if (t && TaskWork::HasTask(t))
             return t->op == Task::Op::Init;
         else
             return false;
     }
 
     bool TaskWork::HasTaskCtrl(Task* t) {
-        if (TaskWork::HasTask(t))
+        if (t && TaskWork::HasTask(t))
             return t->op == Task::Op::Ctrl;
         else
             return false;
     }
 
     bool TaskWork::HasTaskDest(Task* t) {
-        if (TaskWork::HasTask(t))
+        if (t && TaskWork::HasTask(t))
             return t->op == Task::Op::Dest;
         else
             return false;

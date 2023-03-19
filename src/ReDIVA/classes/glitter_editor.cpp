@@ -6084,6 +6084,14 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         }
     }
 
+    float_t scale;
+    if (curve->type >= Glitter::CURVE_ROTATION_X && curve->type <= Glitter::CURVE_ROTATION_Z)
+        scale = RAD_TO_DEG_FLOAT;
+    else if (curve->type >= Glitter::CURVE_COLOR_R && curve->type <= Glitter::CURVE_COLOR_RGB_SCALE_2ND)
+        scale = 255.0f;
+    else
+        scale = 1.0f;
+
     float_t max = crv_edt->range * (1.0f / crv_edt->zoom_value);
     float_t min;
     if (curve->type == Glitter::CURVE_EMISSION_INTERVAL) {
@@ -6419,7 +6427,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             draw_list->AddLine({ x_pos, y_pos },
                 { x_pos + canvas_size.x, y_pos }, line_color, 0.80f);
 
-        float_t val = max - j * 0.25f * (max - min);
+        float_t val = (max - j * 0.25f * (max - min)) * scale;
         char buf[0x20];
         snprintf(buf, sizeof(buf), "%.2f", val);
         draw_list->AddText({ x_pos + 2, y_pos + (last ? -16 : -2) },

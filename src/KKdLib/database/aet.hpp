@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include <list>
 #include <string>
 #include <vector>
 #include "../default.hpp"
 #include "../prj/vector_pair_combine.hpp"
-#include "../hash.hpp"
 
 struct aet_info {
     uint16_t index;
@@ -72,6 +72,7 @@ struct aet_db_aet {
     std::string name;
     uint32_t name_hash;
     aet_info info;
+    int32_t load_count;
 
     aet_db_aet();
     ~aet_db_aet();
@@ -82,7 +83,7 @@ struct aet_db_aet_set_file {
     std::string name;
     std::string file_name;
     std::vector<aet_db_aet_file> aet;
-    uint16_t index;
+    uint32_t index;
     uint32_t sprite_set_id;
 
     aet_db_aet_set_file();
@@ -95,7 +96,7 @@ struct aet_db_aet_set {
     uint32_t name_hash;
     std::string file_name;
     uint32_t file_name_hash;
-    uint16_t index;
+    uint32_t index;
     uint32_t sprite_set_id;
 
     aet_db_aet_set();
@@ -124,17 +125,26 @@ struct aet_database_file {
 };
 
 struct aet_database {
-    prj::vector_pair_combine<uint32_t, aet_db_aet_set> aet_set_ids;
-    prj::vector_pair_combine<uint32_t, aet_db_aet_set> aet_set_indices;
-    prj::vector_pair_combine<std::string, aet_db_aet_set> aet_set_names;
-    prj::vector_pair_combine<uint32_t, aet_db_aet> aet_ids;
-    prj::vector_pair_combine<std::string, aet_db_aet> aet_names;
-    prj::vector_pair_combine<aet_info, aet_db_aet> aet_indices;
+    std::list<aet_db_aet_set> aet_sets;
+    prj::vector_pair_combine<uint32_t, aet_db_aet_set*> aet_set_ids;
+    prj::vector_pair_combine<uint32_t, aet_db_aet_set*> aet_set_indices;
+    prj::vector_pair_combine<std::string, aet_db_aet_set*> aet_set_names;
+    std::list<aet_db_aet> aets;
+    prj::vector_pair_combine<uint32_t, aet_db_aet*> aet_ids;
+    prj::vector_pair_combine<std::string, aet_db_aet*> aet_names;
+    prj::vector_pair_combine<aet_info, aet_db_aet*> aet_indices;
 
     aet_database();
     ~aet_database();
 
     void add(aet_database_file* aet_db_file);
+    void clear();
+
+    void add_aet_set(uint32_t set_id, uint32_t index);
+    void parse(const aet_db_aet_set_file* set_file,
+        std::string& set_name, std::vector<uint32_t>& aet_ids);
+    void remove_aet_set(uint32_t set_id, uint32_t index,
+        const char* set_name, std::vector<uint32_t>& aet_ids);
 
     const aet_db_aet_set* get_aet_set_by_name(const char* name) const;
     const aet_db_aet_set* get_aet_set_by_id(uint32_t set_id) const;
@@ -142,7 +152,6 @@ struct aet_database {
     const aet_db_aet* get_aet_by_name(const char* name) const;
     const aet_db_aet* get_aet_by_id(uint32_t id) const;
     const aet_db_aet* get_aet_by_set_id_index(uint32_t set_id, uint32_t index) const;
-    const aet_db_aet* get_tex_by_set_id_index(uint32_t set_id, uint32_t index) const;
     const char* get_aet_set_file_name(uint32_t set_id) const;
     uint32_t get_aet_set_id_by_name(const char* name) const;
     uint32_t get_aet_set_id_by_name_index(uint32_t index) const;

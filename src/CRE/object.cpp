@@ -873,7 +873,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
             tex_db->texture.push_back({});
             texture_info* info = &tex_db->texture.back();
-            info->name = name;
+            info->name.assign(name);
             info->name_hash = hash_string_murmurhash(info->name);
             info->id = id;
 
@@ -1302,7 +1302,7 @@ inline void object_storage_init(object_database* obj_db) {
     object_storage_data.resize(count);
     for (size_t i = 0; i < count; i++) {
         object_storage_data[i].set_id = obj_set[i].id;
-        object_storage_data[i].name = obj_set[i].name;
+        object_storage_data[i].name.assign(obj_set[i].name);
     }
     object_storage_data_modern.clear();
 }
@@ -1908,13 +1908,16 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         texture_database_file tex_db_file;
         tex_db_file.read(txi->data, txi->size, true);
 
-        std::string name;
+        object_set_info_file* set_info_file = 0;
         if (obj_db_file.ready)
             for (object_set_info_file& m : obj_db_file.object_set)
                 if (m.id == handler->set_id) {
-                    name = m.name;
+                    set_info_file = &m;
                     break;
                 }
+
+        if (!set_info_file)
+            return false;
 
         object_database local_obj_db;
         if (obj_db_file.ready) {
@@ -1930,10 +1933,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             local_tex_db.add(&tex_db_file);
         }
 
-        if (!name.size())
-            return false;
-
-        handler->name = name;
+        handler->name.assign(set_info_file->name);
 
         prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
         alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
@@ -2179,7 +2179,7 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
 
     {
         txp_set txp;
-        txp.unpack_file_modern(data, size);
+        txp.unpack_file_modern(data, size, 'MTXD');
         handler->tex_num = (int32_t)txp.textures.size();
         object_material_msgpack_read("patch\\AFT\\objset", file, &txp, tex_db, handler);
         texture_txp_set_load(&txp, &handler->tex_data, set->tex_id_data);

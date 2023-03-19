@@ -16,6 +16,7 @@
 #include "config.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/rob/rob.hpp"
+#include "../CRE/auth_2d.hpp"
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/frame_rate_control.hpp"
 #include "../CRE/stage_modern.hpp"
@@ -412,6 +413,82 @@ struct x_pv_game_data {
     void unload_if_state_is_0();
 };
 
+class PVStageFrameRateControl : public FrameRateControl {
+public:
+    float_t delta_frame;
+
+    PVStageFrameRateControl();
+    virtual ~PVStageFrameRateControl() override;
+
+    virtual float_t GetDeltaFrame() override;
+};
+
+struct aet_obj_data {
+    uint32_t hash;
+    std::string layer_name;
+    void* field_20;
+    uint32_t id;
+    bool loop;
+    bool hidden;
+    bool field_2A;
+    FrameRateControl* frame_rate_control;
+
+    aet_obj_data();
+    ~aet_obj_data();
+
+    bool check_disp();
+    uint32_t init(AetArgs& args, const aet_database* aet_db);
+    void reset();
+};
+
+struct x_pv_game_stage_env_data {
+    auth_3d_id light_auth_3d_id;
+    aet_obj_data data[5][8];
+
+    x_pv_game_stage_env_data();
+};
+
+struct x_pv_game_stage_env_aet {
+    int32_t state;
+    float_t duration;
+    aet_obj_data* prev[5][8];
+    aet_obj_data* next[5][8];
+
+    x_pv_game_stage_env_aet();
+};
+
+struct x_pv_game_stage_env {
+    int32_t flags;
+    int32_t state;
+    pvsr* stage_resource;
+    int32_t env_index;
+    x_pv_game_stage_env_data data[64];
+    uint32_t aet_gam_stgpv_id_hash;
+    uint32_t spr_gam_stgpv_id_hash;
+    uint32_t aet_gam_stgpv_id_main_hash;
+    PVStageFrameRateControl frame_rate_control;
+    float_t trans_duration;
+    float_t trans_remain;
+    x_pv_game_stage_env_aet aet;
+
+    aet_database aet_db;
+    sprite_database spr_db;
+
+    x_pv_game_stage_env();
+    ~x_pv_game_stage_env();
+
+    void ctrl(float_t delta_time);
+    pvsr_auth_2d* get_aet(int32_t env_index, int32_t type, int32_t index);
+    void load(int32_t stage_id, pvsr* stage_resource);
+    void reset();
+    void reset_env();
+    void set(int32_t env_index, float_t trans_time, float_t a4);
+    void unload();
+
+    void sub_810EE03E();
+    bool sub_810EE198(float_t delta_time);
+};
+
 struct x_pv_game_stage_effect_auth_3d {
     bool repeat;
     bool field_1;
@@ -483,7 +560,6 @@ struct x_pv_game_stage_data {
     void set_default_stage();
     void set_stage(uint32_t hash);
     void unload();
-    void unload_stage_database();
 };
 
 struct x_pv_game_stage {
@@ -494,7 +570,7 @@ struct x_pv_game_stage {
     //int32_t field_10;
     p_file_handler stage_resource_file_handler;
     pvsr* stage_resource;
-    //pv_game_stage_env env;
+    x_pv_game_stage_env env;
     BPMFrameRateControl bpm_frame_rate_control;
     x_pv_game_stage_data stage_data;
     std::vector<string_hash> stage_auth_3d;
@@ -524,8 +600,10 @@ struct x_pv_game_stage {
     void load_change_effect(int32_t curr_stage_effect, int32_t next_stage_effect);
     void reset();
     void reset_stage_effect();
+    void reset_stage_env();
     bool set_change_effect_frame_part_1();
     void set_change_effect_frame_part_2(float_t frame);
+    void set_env(int32_t env_index, float_t end_time, float_t start_time);
     void set_stage_effect(int32_t stage_effect);
     void set_stage_effect_auth_3d_frame(int32_t stage_effect, float_t frame);
     void set_stage_effect_glitter_frame(int32_t stage_effect, float_t frame);

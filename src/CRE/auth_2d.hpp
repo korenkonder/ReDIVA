@@ -131,15 +131,18 @@ extern uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio,
     const char* start_marker, const char* end_marker, float_t start_time, float_t end_time,
     const vec2* scale, FrameRateControl* frame_rate_control, const aet_database* aet_db);
 extern bool aet_manager_load_file(uint32_t set_id, const aet_database* aet_db);
+extern bool aet_manager_load_file_modern(uint32_t set_hash, aet_database* aet_db);
 extern void aet_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const aet_database* aet_db);
 extern void aet_manager_read_file(uint32_t set_id,
     std::string&& mdata_dir, void* data, const aet_database* aet_db);
+extern void aet_manager_read_file_modern(uint32_t set_hash, void* data, aet_database* aet_db);
 extern void aet_manager_remove_aet_sets(const aet_database* aet_db);
 extern void aet_manager_set_obj_alpha(uint32_t id, float_t value);
 extern void aet_manager_set_obj_color(uint32_t id, const vec4& value);
 extern void aet_manager_set_obj_end_time(uint32_t id, float_t value);
 extern void aet_manager_set_obj_frame(uint32_t id, float_t value);
+extern void aet_manager_set_obj_frame_rate_control(uint32_t id, FrameRateControl* value);
 extern void aet_manager_set_obj_play(uint32_t id, bool value);
 extern void aet_manager_set_obj_position(uint32_t id, const vec3& value);
 extern void aet_manager_set_obj_prio(uint32_t id, spr::SprPrio value);
@@ -150,4 +153,5 @@ extern void aet_manager_set_obj_sprite_replace(uint32_t id, std::map<uint32_t, u
 extern void aet_manager_set_obj_sprite_texture(uint32_t id, std::map<uint32_t, texture*>& value);
 extern void aet_manager_set_obj_visible(uint32_t id, bool value);
 extern void aet_manager_unload_set(uint32_t set_id, const aet_database* aet_db);
+extern void aet_manager_unload_set_modern(uint32_t set_hash, aet_database* aet_db);
 extern void aet_manager_free();

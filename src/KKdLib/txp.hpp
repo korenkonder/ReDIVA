@@ -57,8 +57,8 @@ struct txp_set {
 
     bool pack_file(void** data, size_t* size, bool big_endian);
     bool pack_file(std::vector<uint8_t>& data, bool big_endian);
-    bool pack_file_modern(void** data, size_t* size, bool big_endian);
+    bool pack_file_modern(void** data, size_t* size, bool big_endian, uint32_t signature);
     bool produce_enrs(enrs* enrs);
     bool unpack_file(const void* data, bool big_endian);
-    bool unpack_file_modern(const void* data, size_t size);
+    bool unpack_file_modern(const void* data, size_t size, uint32_t signature);
 };

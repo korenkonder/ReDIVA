@@ -101,17 +101,22 @@ namespace system_startup_detail {
     }
 }
 
-void task_system_startup_init() {
+bool task_system_startup_add_task() {
     if (!task_system_startup)
         task_system_startup = new system_startup_detail::TaskSystemStartup;
-}
 
-bool task_system_startup_add_task() {
     return app::TaskWork::AddTask(task_system_startup, "SYSTEM_STARTUP");
 }
 
 bool task_system_startup_del_task() {
-    return task_system_startup->DelTask();
+    if (!app::TaskWork::CheckTaskReady(task_system_startup)) {
+        delete task_system_startup;
+        task_system_startup = 0;
+        return true;
+    }
+
+    task_system_startup->DelTask();
+    return false;
 }
 
 void task_system_startup_free() {

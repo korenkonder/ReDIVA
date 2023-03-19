@@ -341,7 +341,7 @@ DtwAet::DtwAet() : Shell(0) {
 
     set = new dw::ListBox(this);
 
-    for (size_t i = aft_aet_db->aet_set_ids.size(), j = 0; i; i--, j++) {
+    for (size_t i = aft_aet_db->aet_set_names.size(), j = 0; i; i--, j++) {
         uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index((uint32_t)j);
         const aet_db_aet_set* set = aft_aet_db->get_aet_set_by_id(set_id);
         this->set->list->AddItem(set->name);

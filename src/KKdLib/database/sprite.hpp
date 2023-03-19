@@ -5,11 +5,11 @@
 
 #pragma once
 
+#include <list>
 #include <string>
 #include <vector>
 #include "../default.hpp"
 #include "../prj/vector_pair_combine.hpp"
-#include "../hash.hpp"
 
 struct spr_info {
     uint16_t index;
@@ -73,6 +73,7 @@ struct spr_db_spr {
     std::string name;
     uint32_t name_hash;
     spr_info info;
+    int32_t load_count;
 
     spr_db_spr();
     ~spr_db_spr();
@@ -83,7 +84,7 @@ struct spr_db_spr_set_file {
     std::string name;
     std::string file_name;
     std::vector<spr_db_spr_file> sprite;
-    uint16_t index;
+    uint32_t index;
 
     spr_db_spr_set_file();
     ~spr_db_spr_set_file();
@@ -95,7 +96,7 @@ struct spr_db_spr_set {
     uint32_t name_hash;
     std::string file_name;
     uint32_t file_name_hash;
-    uint16_t index;
+    uint32_t index;
 
     spr_db_spr_set();
     ~spr_db_spr_set();
@@ -123,17 +124,26 @@ struct sprite_database_file {
 };
 
 struct sprite_database {
-    prj::vector_pair_combine<uint32_t, spr_db_spr_set> spr_set_ids;
-    prj::vector_pair_combine<uint32_t, spr_db_spr_set> spr_set_indices;
-    prj::vector_pair_combine<std::string, spr_db_spr_set> spr_set_names;
-    prj::vector_pair_combine<uint32_t, spr_db_spr> spr_ids;
-    prj::vector_pair_combine<std::string, spr_db_spr> spr_names;
-    prj::vector_pair_combine<spr_info, spr_db_spr> spr_indices;
+    std::list<spr_db_spr_set> spr_sets;
+    prj::vector_pair_combine<uint32_t, spr_db_spr_set*> spr_set_ids;
+    prj::vector_pair_combine<uint32_t, spr_db_spr_set*> spr_set_indices;
+    prj::vector_pair_combine<std::string, spr_db_spr_set*> spr_set_names;
+    std::list<spr_db_spr> sprs;
+    prj::vector_pair_combine<uint32_t, spr_db_spr*> spr_ids;
+    prj::vector_pair_combine<std::string, spr_db_spr*> spr_names;
+    prj::vector_pair_combine<spr_info, spr_db_spr*> spr_indices;
 
     sprite_database();
     ~sprite_database();
 
     void add(sprite_database_file* spr_db_file);
+    void clear();
+
+    void add_spr_set(uint32_t set_id, uint32_t index);
+    void parse(const spr_db_spr_set_file* set_file,
+        std::string& set_name, std::vector<uint32_t>& sprite_ids);
+    void remove_spr_set(uint32_t set_id, uint32_t index,
+        const char* set_name, std::vector<uint32_t>& sprite_ids);
 
     const spr_db_spr_set* get_spr_set_by_name(const char* name) const;
     const spr_db_spr_set* get_spr_set_by_id(uint32_t set_id) const;
