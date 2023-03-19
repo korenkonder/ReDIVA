@@ -134,10 +134,8 @@ inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     float_t t1_1 = _t1 - 1.0f;
     float_t t2_1 = _t2 - 1.0f;
 
-    float_t t1_t2_1 = arr[f] - (1.0f + 2.0f * _t1) * (t1_1 * t1_1) * arr[f1]
-        - _t1 * _t1 * (3.0f - 2.0f * _t1) * arr[f2];
-    float_t t1_t2_2 = arr[f + 1] - (1.0f + 2.0f * _t2) * (t2_1 * t2_1) * arr[f1]
-        - _t2 * _t2 * (3.0f - 2.0f * _t2) * arr[f2];
+    float_t t1_t2_1 = arr[f] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
+    float_t t1_t2_2 = arr[f + 1] - arr[f1] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (arr[f1] - arr[f2]);
     t1_t2_1 /= df_1 * t1_1;
     t1_t2_2 /= df_2 * t2_1;
 
