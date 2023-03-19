@@ -4803,8 +4803,8 @@ bool mot_write_motion(void* data, const char* path, const char* file, uint32_t h
 
         const char* name = bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON);
         std::string* bone_names = aft_mot_db->bone_name.data();
-        const std::vector<bone_database_bone>* bones = 0;
-        if (!aft_bone_data->get_skeleton_bones(name, &bones))
+        const std::vector<bone_database_bone>* bones = aft_bone_data->get_skeleton_bones(name);
+        if (!bones)
             continue;
 
         x_pv_game_a3da_to_mot& a2m = i.second;
