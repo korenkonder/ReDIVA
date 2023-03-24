@@ -247,6 +247,22 @@ namespace Glitter {
         end_time = start_time + (int32_t)((count - 1) * step);
         float_t* arr_a = force_malloc_s(float_t, count);
         float_t* arr_b = force_malloc_s(float_t, count);
+        if (!arr_a || !arr_b) {
+            free_def(arr_a);
+            free_def(arr_b);
+            if (!(flags & CURVE_BAKED)) {
+                keys_rev.insert(keys_rev.end(), keys.begin(), keys.end());
+                return;
+            }
+            else if (count == 1) {
+                keys.data()[0].frame = start_time;
+                keys_rev.push_back(keys.data()[0]);
+                return;
+            }
+            else
+                return;
+        }
+
         Curve::Key* keys_data = keys.data();
         for (size_t i = 0; i < count; i++) {
             keys_data[i].frame = start_time + (int32_t)(i * step);
@@ -324,11 +340,20 @@ namespace Glitter {
                 double_t tt1 = 0.0;
                 double_t tt2 = 0.0;
                 for (size_t j = 1; j < i - 1; j++) {
-                    float_t _t1 = 0.0f;
-                    float_t _t2 = 0.0f;
-                    interpolate_chs_reverse_step_value(a, left_count, _t1, _t2, 0, i, j, step);
-                    tt1 += _t1;
-                    tt2 += _t2;
+                    float_t df_1 = (float_t)(j * step);
+                    float_t df_2 = (float_t)((j + 1) * step);
+                    float_t _t1 = df_1 / (float_t)(i * step);
+                    float_t _t2 = df_2 / (float_t)(i * step);
+                    float_t t1_1 = _t1 - 1.0f;
+                    float_t t2_1 = _t2 - 1.0f;
+
+                    float_t t1_t2_1 = a[j] - a[0] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (a[0] - a[i]);
+                    float_t t1_t2_2 = a[j + 1] - a[0] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (a[0] - a[i]);
+                    t1_t2_1 /= df_1 * t1_1;
+                    t1_t2_2 /= df_2 * t2_1;
+
+                    tt1 += (t1_t2_1 * _t2 - t1_t2_2 * _t1) / (_t1 - _t2);
+                    tt2 += (-t1_t2_1 * t2_1 + t1_t2_2 * t1_1) / (_t1 - _t2);
                 }
                 t1 = (float_t)(tt1 / (double_t)(i - 2));
                 t2 = (float_t)(tt2 / (double_t)(i - 2));
