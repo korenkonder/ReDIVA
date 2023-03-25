@@ -340,7 +340,7 @@ void light_set::data_set(face& face, light_set_id id) {
     obj_scene_shader_data& obj_scene = rctx_ptr->obj_scene;
 
     lights[LIGHT_STAGE].get_diffuse(obj_scene.g_light_env_stage_diffuse);
-    lights[LIGHT_STAGE].get_ambient(obj_scene.g_light_env_stage_specular);
+    lights[LIGHT_STAGE].get_specular(obj_scene.g_light_env_stage_specular);
 
     lights[LIGHT_CHARA].get_diffuse(obj_scene.g_light_env_chara_diffuse);
     lights[LIGHT_CHARA].get_ambient(obj_scene.g_light_env_chara_ambient);

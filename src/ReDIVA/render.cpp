@@ -1089,10 +1089,16 @@ static void render_context_disp(render_context* rctx) {
 
     rctx->disp();
 
+#if BAKE_PNG || BAKE_VIDEO
+    fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
+        0, 0, rctx->post_process.sprite_width, rctx->post_process.sprite_height,
+        0, 0, rctx->post_process.screen_width, rctx->post_process.screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+#else
     fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
         0, 0, rctx->post_process.sprite_width, rctx->post_process.sprite_height,
         rctx->post_process.screen_x_offset, rctx->post_process.screen_y_offset,
         rctx->post_process.sprite_width, rctx->post_process.sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+#endif
 
     glViewport(0, 0, rctx->post_process.screen_width, rctx->post_process.screen_height);
     classes_process_disp(classes, classes_count);
@@ -1299,11 +1305,13 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     internal_res.x = (int32_t)res_width;
     internal_res.y = (int32_t)res_height;
 
-    internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
 #if BAKE_PNG || BAKE_VIDEO
+    internal_2d_res.x = clamp_def(internal_res.x * 2, 1, sv_max_texture_size);
+    internal_2d_res.y = clamp_def(internal_res.y * 2, 1, sv_max_texture_size);
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * 2));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * 2));
 #else
+    internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * render_scale_table[scale_index]));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * render_scale_table[scale_index]));
 #endif

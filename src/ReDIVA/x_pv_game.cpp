@@ -3530,7 +3530,97 @@ static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
 }
 #endif
 
+#if BAKE_PNG || BAKE_VIDEO
+static int32_t frame_prev = -1;
+#endif
+
 bool x_pv_game::Ctrl() {
+#if BAKE_VIDEO
+    if (img_write && frame_prev != frame) {
+        texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
+        size_t width = tex->width;
+        size_t height = tex->height;
+
+        const size_t pixel_size = 3;
+
+        std::vector<uint8_t> temp_pixels;
+        temp_pixels.resize(width * height * pixel_size);
+        gl_state_bind_texture_2d(tex->tex);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, temp_pixels.data());
+        gl_state_bind_texture_2d(0);
+
+        std::vector<uint8_t> pixels;
+        pixels.resize(width * height * pixel_size);
+
+        uint8_t* src = (uint8_t*)temp_pixels.data();
+        uint8_t* dst = (uint8_t*)pixels.data();
+        for (size_t y = 0; y < height; y++) {
+            uint8_t* src1 = &src[y * width * pixel_size];
+            uint8_t* dst1 = &dst[(height - y - 1) * width * pixel_size];
+            memcpy(dst1, src1, width * pixel_size);
+        }
+
+        temp_pixels.clear();
+        temp_pixels.shrink_to_fit();
+
+        fwrite(pixels.data(), 1, width * height * pixel_size, pipe);
+        fflush(pipe);
+
+        frame_prev = frame;
+        img_write = false;
+    }
+#endif
+
+#if BAKE_PNG
+    if (img_write && frame_prev != frame) {
+        texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
+        uint32_t width = tex->width;
+        uint32_t height = tex->height;
+
+        std::vector<uint8_t> temp_pixels;
+        temp_pixels.resize(width * height * 4 * sizeof(uint8_t));
+        gl_state_bind_texture_2d(tex->tex);
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
+        gl_state_bind_texture_2d(0);
+
+        std::vector<uint8_t> pixels;
+        pixels.resize(width * height * 4 * sizeof(uint8_t));
+
+        uint8_t* src = (uint8_t*)temp_pixels.data();
+        uint8_t* dst = (uint8_t*)pixels.data();
+        for (size_t y = 0; y < height; y++) {
+            uint8_t* src1 = &src[y * width * 4];
+            uint8_t* dst1 = &dst[(height - y - 1) * width * 4];
+            for (size_t x = 0; x < width; x++) {
+                *dst1++ = *src1++;
+                *dst1++ = *src1++;
+                *dst1++ = *src1++;
+                *dst1++ = *src1++;
+                //*dst1++ = reverse_endianness_uint16_t(*src1++);
+                //*dst1++ = reverse_endianness_uint16_t(*src1++);
+                //*dst1++ = reverse_endianness_uint16_t(*src1++);
+                //*dst1++ = reverse_endianness_uint16_t(*src1++);
+            }
+        }
+
+        temp_pixels.clear();
+        temp_pixels.shrink_to_fit();
+
+        std::vector<uint8_t> png;
+        uint32_t error = lodepng::encode(png, pixels, (uint32_t)width, (uint32_t)height, LCT_RGBA, 8);
+        if (!error) {
+            char buf[0x200];
+            sprintf_s(buf, sizeof(buf), "E:\\Rinku\\X\\pv%03d", pv_data[pv_index].pv_id);
+            CreateDirectoryA(buf, 0);
+
+            sprintf_s(buf, sizeof(buf), "E:\\Rinku\\X\\pv%03d\\%05d.png", pv_data[pv_index].pv_id, frame);
+            lodepng::save_file(png, buf);
+        }
+        frame_prev = frame;
+        img_write = false;
+    }
+#endif
+
     if (state_old == 20)
         ctrl((float_t)((frame_float + get_delta_frame()) * (1.0 / 60.0)), get_delta_frame() * (float_t)(1.0 / 60.0));
     else
@@ -4162,9 +4252,9 @@ bool x_pv_game::Ctrl() {
 
 #if BAKE_VIDEO
         char buf[0x400];
-        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb24 -s %dx%d -r 60"
-            " -i - -c:v h264_nvenc -gpu 0 -profile:v high -qp 22 -i_qfactor 1.00 -b_qfactor 1.00"
-            " -bf 4 -me_range 24 -color_range 2 -colorspace bt709 -pix_fmt yuv420p"
+        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb24 -s %dx%d -r 60 -i -"
+            " -c:v h264_nvenc -gpu 0 -profile:v high -b_ref_mode 1 -rc constqp -qp 21"
+            " -color_range pc -color_primaries bt709 -color_trc bt709 -colorspace bt709 -pix_fmt yuv420p"
             " H:\\C\\Videos\\ReDIVA_pv%03d.264", 3840, 2160, pv_data[pv_index].pv_id);
         pipe = _popen(buf, "wb");
 #endif
@@ -4316,10 +4406,6 @@ void x_pv_game::Disp() {
 
 }
 
-#if BAKE_PNG || BAKE_VIDEO
-static int32_t frame_prev = -1;
-#endif
-
 void x_pv_game::Basic() {
     if (state_old != 20)
         return;
@@ -4413,90 +4499,6 @@ void x_pv_game::Basic() {
             if (elem->second.z.size() == frame)
                 elem->second.z.push_back(rotation.z);
         }
-    }
-#endif
-
-#if BAKE_VIDEO
-    if (img_write && frame_prev != frame) {
-        texture* rend_texture = rctx_ptr->post_process.rend_texture.color_texture;
-        size_t width = rend_texture->width;
-        size_t height = rend_texture->height;
-
-        std::vector<uint8_t> temp_pixels;
-        temp_pixels.resize(width * height * 3);
-        gl_state_bind_texture_2d(rend_texture->tex);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, temp_pixels.data());
-        gl_state_bind_texture_2d(0);
-
-        std::vector<uint8_t> pixels;
-        pixels.resize(width * height * 3);
-
-        uint8_t* src = (uint8_t*)temp_pixels.data();
-        uint8_t* dst = (uint8_t*)pixels.data();
-        for (size_t y = 0; y < height; y++) {
-            uint8_t* src1 = &src[y * width * 3];
-            uint8_t* dst1 = &dst[(height - y - 1) * width * 3];
-            memcpy(dst1, src1, width * 3);
-        }
-
-        temp_pixels.clear();
-        temp_pixels.shrink_to_fit();
-
-        fwrite(pixels.data(), 1, width * height * 3, pipe);
-        fflush(pipe);
-
-        frame_prev = frame;
-        img_write = false;
-    }
-#endif
-
-#if BAKE_PNG
-    if (img_write && frame_prev != frame) {
-        texture* rend_texture = rctx_ptr->post_process.rend_texture.color_texture;
-        uint32_t width = rend_texture->width;
-        uint32_t height = rend_texture->height;
-
-        std::vector<uint8_t> temp_pixels;
-        temp_pixels.resize(width * height * 4 * sizeof(uint8_t));
-        gl_state_bind_texture_2d(rend_texture->tex);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
-        gl_state_bind_texture_2d(0);
-
-        std::vector<uint8_t> pixels;
-        pixels.resize(width * height * 4 * sizeof(uint8_t));
-
-        uint8_t* src = (uint8_t*)temp_pixels.data();
-        uint8_t* dst = (uint8_t*)pixels.data();
-        for (size_t y = 0; y < height; y++) {
-            uint8_t* src1 = &src[y * width * 4];
-            uint8_t* dst1 = &dst[(height - y - 1) * width * 4];
-            for (size_t x = 0; x < width; x++) {
-                *dst1++ = *src1++;
-                *dst1++ = *src1++;
-                *dst1++ = *src1++;
-                *dst1++ = *src1++;
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-            }
-        }
-
-        temp_pixels.clear();
-        temp_pixels.shrink_to_fit();
-
-        std::vector<uint8_t> png;
-        uint32_t error = lodepng::encode(png, pixels, (uint32_t)width, (uint32_t)height, LCT_RGBA, 8);
-        if (!error) {
-            char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "E:\\Rinku\\X\\pv%03d", pv_data[pv_index].pv_id);
-            CreateDirectoryA(buf, 0);
-
-            sprintf_s(buf, sizeof(buf), "E:\\Rinku\\X\\pv%03d\\%05d.png", pv_data[pv_index].pv_id, frame);
-            lodepng::save_file(png, buf);
-        }
-        frame_prev = frame;
-        img_write = false;
     }
 #endif
 }
