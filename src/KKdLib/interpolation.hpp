@@ -88,6 +88,8 @@ inline std::vector<float_t> interpolate_linear(float_t p1, float_t p2, size_t f1
 
 inline float_t interpolate_chs_value(const float_t p1, const float_t p2,
     const float_t t1, const float_t t2, const float_t f1, const float_t f2, const float_t f) {
+    if (p1 == p2 && fabsf(t1) == 0.0f && fabsf(t2) == 0.0f)
+        return p1;
     float_t df = f - f1;
     float_t t = df / (f2 - f1);
     float_t t_1 = t - 1.0f;
@@ -98,6 +100,8 @@ inline float_t interpolate_chs_value(const float_t p1, const float_t p2,
 
 inline vec2 interpolate_chs_value(const vec2 p1, const vec2 p2,
     const vec2 t1, const vec2 t2, const vec2 f1, const vec2 f2, const vec2 f) {
+    if (p1 == p2 && vec2::abs(t1) == 0.0f && vec2::abs(t2) == 0.0f)
+        return p1;
     __m128 _p1;
     __m128 _p2;
     __m128 _t1;
@@ -129,6 +133,8 @@ inline vec2 interpolate_chs_value(const vec2 p1, const vec2 p2,
 
 inline vec3 interpolate_chs_value(const vec3 p1, const vec3 p2,
     const vec3 t1, const vec3 t2, const vec3 f1, const vec3 f2, const vec3 f) {
+    if (p1 == p2 && vec3::abs(t1) == 0.0f && vec3::abs(t2) == 0.0f)
+        return p1;
     __m128 _p1;
     __m128 _p2;
     __m128 _t1;
@@ -160,6 +166,8 @@ inline vec3 interpolate_chs_value(const vec3 p1, const vec3 p2,
 
 inline vec4 interpolate_chs_value(const vec4 p1, const vec4 p2,
     const vec4 t1, const vec4 t2, const vec4 f1, const vec4 f2, const vec4 f) {
+    if (p1 == p2 && vec4::abs(t1) == 0.0f && vec4::abs(t2) == 0.0f)
+        return p1;
     __m128 _p1;
     __m128 _p2;
     __m128 _t1;
@@ -204,8 +212,4 @@ extern void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f);
 extern void interpolate_chs_reverse(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2);
-extern void interpolate_chs_reverse_step_value(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f, uint8_t step);
-extern void interpolate_chs_reverse_step(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2, uint8_t step);
 extern int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::vector<kft3>& values);

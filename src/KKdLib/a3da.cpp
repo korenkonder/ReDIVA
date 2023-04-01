@@ -907,8 +907,8 @@ static void a3da_read_text(a3da* a, void* data, size_t size) {
                 enum_or(ml->flags, A3DA_MATERIAL_LIST_BLEND_COLOR);
             if (key_val_read(&kv, "glow_intensity", ml->glow_intensity))
                 enum_or(ml->flags, A3DA_MATERIAL_LIST_GLOW_INTENSITY);
-            if (key_val_read(&kv, "incandescence", ml->incandescence))
-                enum_or(ml->flags, A3DA_MATERIAL_LIST_INCANDESCENCE);
+            if (key_val_read(&kv, "incandescence", ml->emission))
+                enum_or(ml->flags, A3DA_MATERIAL_LIST_EMISSION);
             kv.read("name", ml->name);
 
             kv.close_scope();
@@ -1544,7 +1544,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
                 key_val_out_write(&kv, s, "glow_intensity", ml->glow_intensity);
             kv.write(s, "hash_name", hash_string_murmurhash(ml->name));
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
-                key_val_out_write(&kv, s, "incandescence", ml->incandescence);
+                key_val_out_write(&kv, s, "incandescence", ml->emission);
             kv.write(s, "name", ml->name);
 
             kv.close_scope();
@@ -1948,8 +1948,8 @@ static void a3da_read_data(a3da* a, void* data, size_t size) {
             a3dc_read_a3da_rgba(data, size, &i.blend_color);
         if (i.flags & A3DA_MATERIAL_LIST_GLOW_INTENSITY)
             a3dc_read_a3da_key(data, size, &i.glow_intensity);
-        if (i.flags & A3DA_MATERIAL_LIST_INCANDESCENCE)
-            a3dc_read_a3da_rgba(data, size, &i.incandescence);
+        if (i.flags & A3DA_MATERIAL_LIST_EMISSION)
+            a3dc_read_a3da_rgba(data, size, &i.emission);
     }
 
     for (a3da_object& i : a->object) {
@@ -2148,8 +2148,8 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_key(s, i.glow_intensity);
         if (i.flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
             a3dc_write_a3da_rgba(s, i.blend_color);
-        if (i.flags & A3DA_MATERIAL_LIST_INCANDESCENCE)
-            a3dc_write_a3da_rgba(s, i.incandescence);
+        if (i.flags & A3DA_MATERIAL_LIST_EMISSION)
+            a3dc_write_a3da_rgba(s, i.emission);
     }
 
     for (a3da_object& i : a->object) {

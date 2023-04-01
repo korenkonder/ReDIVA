@@ -17,12 +17,6 @@
 #include "static_var.hpp"
 #include "texture.hpp"
 
-struct material_change {
-    vec4 blend_color;
-    float_t glow_intensity;
-    vec4 incandescence;
-};
-
 struct obj_mesh_index_buffer {
     GLuint buffer;
     GLsizeiptr size;

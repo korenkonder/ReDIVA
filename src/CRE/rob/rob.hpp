@@ -1262,7 +1262,7 @@ struct struc_258 {
     struc_258();
 };
 
-struct sleeve_data {
+struct rob_sleeve_data {
     float_t radius;
     float_t cyofs;
     float_t czofs;
@@ -1277,8 +1277,8 @@ struct sleeve_data {
 };
 
 struct rob_chara_bone_data_sleeve_adjust {
-    sleeve_data sleeve_l;
-    sleeve_data sleeve_r;
+    rob_sleeve_data sleeve_l;
+    rob_sleeve_data sleeve_r;
     bool enable1;
     bool enable2;
     vec3 field_5C;
@@ -1357,8 +1357,8 @@ struct rob_chara_pv_data {
     vec3 field_8;
     int16_t rot_y_int16;
     int16_t field_16;
-    sleeve_data sleeve_l;
-    sleeve_data sleeve_r;
+    rob_sleeve_data sleeve_l;
+    rob_sleeve_data sleeve_r;
     int32_t field_70;
     int32_t motion_face_ids[10];
     int32_t chara_size_index;
@@ -3533,6 +3533,11 @@ extern void rob_chara_array_set_visibility(int32_t chara_id, bool value);
 extern bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t module_index);
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
+
+extern void rob_sleeve_handler_data_get_sleeve_data(
+    ::chara_index chara_index, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
+extern bool rob_sleeve_handler_data_load();
+extern void rob_sleeve_handler_data_read();
 
 extern bool pv_osage_manager_array_get_disp();
 extern void pv_osage_manager_array_set_not_reset_true();

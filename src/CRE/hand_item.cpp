@@ -14,7 +14,7 @@
 
 struct hand_item_handler {
     std::list<p_file_handler*> file_handlers;
-    bool loaded;
+    bool ready;
     std::map<std::pair<int32_t, chara_index>, hand_item> hand_items;
 
     hand_item_handler();
@@ -33,7 +33,7 @@ static void hand_item_load(data_struct* data,
 
 static int32_t mtp_hand_array_get_mottbl_index(const char* str);
 
-hand_item_handler hand_item_handler_data;
+hand_item_handler* hand_item_handler_data;
 
 hand_item::hand_item() : file_size(), hand_mottbl_index(), hand_scale(), uid() {
 
@@ -44,46 +44,51 @@ hand_item::~hand_item() {
 }
 
 void hand_item_handler_data_init() {
-    hand_item_handler_data = {};
+    if (!hand_item_handler_data)
+        hand_item_handler_data = new hand_item_handler;
 }
 
 const hand_item* hand_item_handler_data_get_hand_item(int32_t uid, chara_index chara_index) {
     if (uid >= 0)
-        return hand_item_handler_data.get_hand_item(uid, chara_index);
+        return hand_item_handler_data->get_hand_item(uid, chara_index);
     return 0;
 }
 
 const std::map<std::pair<int32_t, chara_index>, hand_item>& hand_item_handler_data_get_hand_items() {
-    return hand_item_handler_data.hand_items;
+    return hand_item_handler_data->hand_items;
 }
 
 int32_t hand_item_handler_data_get_hand_item_uid(const char* str) {
     if (str)
-        return hand_item_handler_data.get_hand_item_uid(str);
+        return hand_item_handler_data->get_hand_item_uid(str);
     return -1;
 }
 
 bool hand_item_handler_data_load() {
-    return hand_item_handler_data.load();
+    return hand_item_handler_data->load();
 }
 
 void hand_item_handler_data_read() {
-    hand_item_handler_data.read();
+    hand_item_handler_data->read();
 }
 
 void hand_item_handler_data_free() {
-    hand_item_handler_data.clear();
+    if (hand_item_handler_data) {
+        delete hand_item_handler_data;
+        hand_item_handler_data = 0;
+    }
 }
 
-hand_item_handler::hand_item_handler() : loaded() {
+hand_item_handler::hand_item_handler() : ready() {
 
 }
 
 hand_item_handler::~hand_item_handler() {
-
+    clear();
 }
+
 void hand_item_handler::clear() {
-    loaded = false;
+    ready = false;
     hand_items.clear();
 
     for (p_file_handler*& i : file_handlers)
@@ -114,7 +119,7 @@ int32_t hand_item_handler::get_hand_item_uid(const char* str) {
 }
 
 bool hand_item_handler::load() {
-    if (loaded)
+    if (ready)
         return false;
 
     for (p_file_handler*& i : file_handlers)
@@ -132,7 +137,7 @@ bool hand_item_handler::load() {
     }
     file_handlers.clear();
 
-    loaded = true;
+    ready = true;
     return false;
 }
 
@@ -144,7 +149,7 @@ void hand_item_handler::parse(p_file_handler* pfhndl) {
 }
 
 void hand_item_handler::read() {
-    loaded = false;
+    ready = false;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {

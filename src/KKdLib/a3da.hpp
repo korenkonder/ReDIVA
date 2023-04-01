@@ -103,7 +103,7 @@ enum a3da_light_flags {
 enum a3da_material_list_flags {
     A3DA_MATERIAL_LIST_BLEND_COLOR    = 0x01,
     A3DA_MATERIAL_LIST_GLOW_INTENSITY = 0x02,
-    A3DA_MATERIAL_LIST_INCANDESCENCE  = 0x04,
+    A3DA_MATERIAL_LIST_EMISSION       = 0x04,
 };
 
 enum a3da_model_transform_flags {
@@ -358,7 +358,7 @@ struct a3da_material_list {
     a3da_material_list_flags flags;
     a3da_rgba blend_color;
     a3da_key glow_intensity;
-    a3da_rgba incandescence;
+    a3da_rgba emission;
     std::string name;
 
     a3da_material_list();

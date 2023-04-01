@@ -836,7 +836,7 @@ namespace sound {
     }
 }
 
-sound_db_farc::sound_db_farc() : loaded() {
+sound_db_farc::sound_db_farc() : ready() {
 
 }
 
@@ -845,7 +845,7 @@ sound_db_farc::~sound_db_farc() {
 }
 
 bool sound_db_farc::load() {
-    if (loaded)
+    if (ready)
         return false;
     else if (file_handler.check_not_ready())
         return true;
@@ -853,12 +853,12 @@ bool sound_db_farc::load() {
 
     farc.read(file_handler.get_data(), file_handler.get_size());
     if (farc.files.size() && sound_work->ParseProperty(this))
-        loaded = true;
+        ready = true;
     return false;
 }
 
 bool sound_db_farc::read(const char* file_path) {
-    if (loaded)
+    if (ready)
         unload();
 
     this->file_path.assign(file_path);
@@ -871,7 +871,7 @@ bool sound_db_farc::unload() {
         return false;
 
     file_path.clear();
-    loaded = false;
+    ready = false;
     file_handler.reset();
     return true;
 }

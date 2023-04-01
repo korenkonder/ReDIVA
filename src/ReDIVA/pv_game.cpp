@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#include <set>
 #include "pv_game.hpp"
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/light_param/light.hpp"

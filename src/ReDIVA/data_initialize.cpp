@@ -4,6 +4,7 @@
 */
 
 #include "data_initialize.hpp"
+#include "../CRE/rob/rob.hpp"
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/hand_item.hpp"
@@ -116,8 +117,9 @@ bool TaskDataInit::Ctrl() {
         //sub_1403882D0();
         //sub_140388560();
         hand_item_handler_data_read();
-        //rob_sleeve_data_read_file();
-        //sub_140542F80();
+        rob_sleeve_handler_data_read();
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+            rob_chara_age_age_array_reset(i);
         state = 9;
         break;
     case 9:
@@ -142,8 +144,7 @@ bool TaskDataInit::Ctrl() {
             //&& !sub_140385220()
             //&& !sub_140388A50()
             && !hand_item_handler_data_load()
-            //&& !rob_sleeve_data_parse_file()
-            ) {
+            && !rob_sleeve_handler_data_load()) {
             //sub_14037F680();
             //sub_1403F98D0(sub_1403F8C30());
             //sub_140378060();

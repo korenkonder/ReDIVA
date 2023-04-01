@@ -95,7 +95,7 @@ enum auth_3d_light_flags {
 enum auth_3d_material_list_flags {
     AUTH_3D_MATERIAL_LIST_BLEND_COLOR    = 0x01,
     AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY = 0x02,
-    AUTH_3D_MATERIAL_LIST_INCANDESCENCE  = 0x04,
+    AUTH_3D_MATERIAL_LIST_EMISSION       = 0x04,
 };
 
 enum auth_3d_model_transform_flags {
@@ -585,7 +585,7 @@ struct auth_3d_material_list {
     auth_3d_material_list_flags flags;
     auth_3d_rgba blend_color;
     auth_3d_key glow_intensity;
-    auth_3d_rgba incandescence;
+    auth_3d_rgba emission;
     std::string name;
     uint32_t hash;
 

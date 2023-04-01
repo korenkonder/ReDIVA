@@ -52,53 +52,6 @@ void interpolate_chs_reverse(float_t* arr, size_t length,
     t2 = (float_t)(tt2 / (double_t)(f2 - f1 - 2));
 }
 
-void interpolate_chs_reverse_step_value(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f, uint8_t step) {
-    t1 = 0.0f;
-    t2 = 0.0f;
-
-    if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
-        return;
-
-    float_t df_1 = (float_t)((f - f1) * step);
-    float_t df_2 = (float_t)((f - f1 + 1) * step);
-    float_t _t1 = df_1 / (float_t)((f2 - f1) * step);
-    float_t _t2 = df_2 / (float_t)((f2 - f1) * step);
-    float_t t1_1 = _t1 - 1.0f;
-    float_t t2_1 = _t2 - 1.0f;
-
-    float_t t1_t2_1 = arr[f] - (1.0f + 2.0f * _t1) * (t1_1 * t1_1) * arr[f1]
-        - _t1 * _t1 * (3.0f - 2.0f * _t1) * arr[f2];
-    float_t t1_t2_2 = arr[f + 1] - (1.0f + 2.0f * _t2) * (t2_1 * t2_1) * arr[f1]
-        - _t2 * _t2 * (3.0f - 2.0f * _t2) * arr[f2];
-    t1_t2_1 /= df_1 * t1_1;
-    t1_t2_2 /= df_2 * t2_1;
-
-    t1 = (t1_t2_1 * _t2 - t1_t2_2 * _t1) / (_t1 - _t2);
-    t2 = (-t1_t2_1 * t2_1 + t1_t2_2 * t1_1) / (_t1 - _t2);
-}
-
-void interpolate_chs_reverse_step(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2, uint8_t step) {
-    t1 = 0.0f;
-    t2 = 0.0f;
-
-    if (f2 - f1 - 2 < 1)
-        return;
-
-    float_t _t1 = 0.0f;
-    float_t _t2 = 0.0f;
-    double_t tt1 = 0.0;
-    double_t tt2 = 0.0;
-    for (size_t i = f1 + 1; i < f2 - 1; i++) {
-        interpolate_chs_reverse_step_value(arr, length, _t1, _t2, f1, f2, i, step);
-        tt1 += _t1;
-        tt2 += _t2;
-    }
-    t1 = (float_t)(tt1 / (double_t)(f2 - f1 - 2));
-    t2 = (float_t)(tt2 / (double_t)(f2 - f1 - 2));
-}
-
 int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::vector<kft3>& values) {
     size_t count = values_src.size();
     if (!count)
@@ -127,9 +80,6 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
                 return 0;
     }
 
-    int32_t start_time = 0;
-    int32_t end_time = (int32_t)(count - 1);
-
     float_t* arr = values_src.data();
 
     const float_t reverse_bias = 0.0001f;
@@ -137,17 +87,15 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
 
     float_t* a = arr;
     size_t left_count = count;
-    int32_t frame = start_time;
-    int32_t prev_frame = start_time;
+    int32_t frame = 0;
+    int32_t prev_frame = 0;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
         if (left_count < reverse_min_count) {
             if (left_count > 1) {
-                float_t _t2 = t2_old;
-                for (size_t j = 0; j < left_count - 1; j++) {
-                    values.push_back({ (float_t)(int32_t)(frame + j), a[j], _t2, 0.0f });
-                    _t2 = 0.0f;
-                }
+                values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
+                for (size_t j = 1; j < left_count - 1; j++)
+                    values.push_back({ (float_t)(int32_t)(frame + j), a[j] });
                 t2_old = 0.0f;
             }
             break;
@@ -193,8 +141,8 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
                 i_prev = i;
                 t1_prev = t1;
                 t2_prev = t2;
+                has_prev_error = false;
                 has_prev_succeded = true;
-                has_prev_error = has_error;
                 if (i < left_count)
                     continue;
             }
@@ -203,44 +151,26 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
                 i = i_prev;
                 t1 = t1_prev;
                 t2 = t2_prev;
-                has_error = has_prev_error;
+                has_error = false;
+                has_prev_succeded = false;
             }
-
-            if (!has_error)
-                c = (int32_t)i;
-            else
-                c = 1;
-
-            if (has_error) {
-                values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
-                t2_old = 0.0f;
-            }
-            else {
-                values.push_back({ (float_t)frame, a[0], t2_old, t1 });
-                t2_old = t2;
-            }
-            has_prev_succeded = false;
-            break;
 
             if (!has_error) {
-                i_prev = i;
-                t1_prev = t1;
-                t2_prev = t2;
-                has_prev_succeded = true;
-                has_prev_error = has_error;
-                if (i < left_count)
-                    continue;
+                c = (int32_t)i;
+                values.push_back({ (float_t)frame, a[0], t2_old, t1 });
+                t2_old = t2;
+                has_prev_error = false;
+                break;
             }
-            break;
+
+            has_prev_error = true;
         }
 
         if (has_prev_succeded) {
             if (has_error) {
-                float_t _t2 = t2_old;
-                for (size_t j = 0; j < c; j++) {
-                    values.push_back({ (float_t)(frame + j), a[j], _t2, 0.0f });
-                    _t2 = 0.0f;
-                }
+                values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
+                for (size_t j = 1; j < c; j++)
+                    values.push_back({ (float_t)(int32_t)(frame + j), a[j] });
                 t2_old = 0.0f;
             }
             else {
@@ -249,6 +179,11 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
             }
             c = (int32_t)i;
         }
+        else if (has_prev_error) {
+            values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
+            t2_old = 0.0f;
+            c = 1;
+        }
 
         prev_frame = frame;
         frame += c;
@@ -256,7 +191,7 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
         left_count -= c;
     }
 
-    values.push_back({ (float_t)(int32_t)(start_time + (count - 1)), arr[count - 1], t2_old, 0.0f });
+    values.push_back({ (float_t)(int32_t)(count - 1), arr[count - 1], t2_old, 0.0f });
 
     kft3* keys = values.data();
     size_t length = values.size();

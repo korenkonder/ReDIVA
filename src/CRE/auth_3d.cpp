@@ -1686,15 +1686,15 @@ void auth_3d_material_list::interpolate(float_t frame) {
         blend_color.interpolate(frame);
     if (flags & AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY)
         glow_intensity_value = glow_intensity.interpolate(frame);
-    if (flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE)
-        incandescence.interpolate(frame);
+    if (flags & AUTH_3D_MATERIAL_LIST_EMISSION)
+        emission.interpolate(frame);
 }
 
 void auth_3d_material_list::reset() {
     flags = (auth_3d_material_list_flags)0;
     blend_color.reset();
     glow_intensity.reset();
-    incandescence.reset();
+    emission.reset();
     name.clear();
     name.shrink_to_fit();
     glow_intensity_value = 0.0f;
@@ -3315,22 +3315,22 @@ static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
             mat_list[mat_list_count].has_blend_color = {};
         }
 
-        if (i.incandescence.flags) {
+        if (i.emission.flags) {
             vec4& emission = mat_list[mat_list_count].emission;
             vec4u8& has_emission = mat_list[mat_list_count].has_emission;
 
-            emission = i.incandescence.value;
-            has_emission.x = !!(i.incandescence.flags & AUTH_3D_RGBA_R);
-            has_emission.y = !!(i.incandescence.flags & AUTH_3D_RGBA_B);
-            has_emission.z = !!(i.incandescence.flags & AUTH_3D_RGBA_G);
-            has_emission.w = !!(i.incandescence.flags & AUTH_3D_RGBA_A);
+            emission = i.emission.value;
+            has_emission.x = !!(i.emission.flags & AUTH_3D_RGBA_R);
+            has_emission.y = !!(i.emission.flags & AUTH_3D_RGBA_B);
+            has_emission.z = !!(i.emission.flags & AUTH_3D_RGBA_G);
+            has_emission.w = !!(i.emission.flags & AUTH_3D_RGBA_A);
         }
         else {
             mat_list[mat_list_count].emission = {};
             mat_list[mat_list_count].has_emission = {};
         }
 
-        if (!i.blend_color.flags && !i.incandescence.flags)
+        if (!i.blend_color.flags && !i.emission.flags)
             continue;
 
         mat_list[mat_list_count].hash = i.hash;
@@ -4661,14 +4661,14 @@ static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml,
         enum_or(ml->flags, AUTH_3D_MATERIAL_LIST_GLOW_INTENSITY);
     }
 
-    if (mlf->flags & A3DA_MATERIAL_LIST_INCANDESCENCE) {
-        auth_3d_rgba_load(auth, &ml->incandescence, &mlf->incandescence);
-        enum_or(ml->flags, AUTH_3D_MATERIAL_LIST_INCANDESCENCE);
+    if (mlf->flags & A3DA_MATERIAL_LIST_EMISSION) {
+        auth_3d_rgba_load(auth, &ml->emission, &mlf->emission);
+        enum_or(ml->flags, AUTH_3D_MATERIAL_LIST_EMISSION);
 
-        /*auth_3d_key& r = ml->incandescence.r;
-        auth_3d_key& g = ml->incandescence.g;
-        auth_3d_key& b = ml->incandescence.b;
-        auth_3d_key& a = ml->incandescence.a;
+        /*auth_3d_key& r = ml->emission.r;
+        auth_3d_key& g = ml->emission.g;
+        auth_3d_key& b = ml->emission.b;
+        auth_3d_key& a = ml->emission.a;
 
         switch (r.type) {
         case AUTH_3D_KEY_NONE:
@@ -5399,7 +5399,7 @@ static void auth_3d_material_list_load(auth_3d* auth, auth_3d_material_list* ml,
         }
     }
 
-    if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE) {
+    if (ml->flags & AUTH_3D_MATERIAL_LIST_EMISSION) {
         if ((ident[12] || ident[13] || ident[14] || ident[15] || ident[16] || ident[17])
             && (!ident[12] || !ident[13] || !ident[14] || !ident[15] || !ident[16] || !ident[17]))
             OutputDebugStringA("E\n");

@@ -14,7 +14,7 @@
 struct item_table_handler {
     chara_index chara_index;
     std::list<p_file_handler*> file_handlers;
-    bool loaded;
+    bool ready;
     const char* file;
     item_table table;
 
@@ -147,7 +147,7 @@ void item_table_handler_array_free() {
     delete[] item_table_handler_array;
 }
 
-item_table_handler::item_table_handler() : file(), loaded() {
+item_table_handler::item_table_handler() : file(), ready() {
     chara_index = CHARA_NONE;
 }
 
@@ -162,7 +162,7 @@ void item_table_handler::clear() {
             i = 0;
         }
     file_handlers.clear();
-    loaded = false;
+    ready = false;
 }
 
 const item_table_item* item_table_handler::get_item(int32_t item_no) {
@@ -170,7 +170,7 @@ const item_table_item* item_table_handler::get_item(int32_t item_no) {
 }
 
 bool item_table_handler::load() {
-    if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX || loaded || !file)
+    if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX || ready || !file)
         return false;
 
     for (p_file_handler*& i : file_handlers)
@@ -188,7 +188,7 @@ bool item_table_handler::load() {
     }
     file_handlers.clear();
 
-    loaded = true;
+    ready = true;
     return false;
 }
 
@@ -210,7 +210,7 @@ void item_table_handler::read() {
         }
     file_handlers.clear();
 
-    loaded = false;
+    ready = false;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {

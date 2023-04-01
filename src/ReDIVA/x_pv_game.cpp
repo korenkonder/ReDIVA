@@ -240,7 +240,9 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 #endif
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
 static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
-    std::set<object_info>& object_hrc, std::set<std::string>& material_list);
+    std::vector<object_info>& object_hrc, std::vector<std::string>& material_list);
+static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
+    std::vector<object_info>& object, std::vector<std::string>& material_list);
 
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id);
 static void pv_game_dsc_data_find_playdata_set_motion(x_pv_game* xpvgm, int32_t chara_id);
@@ -3678,6 +3680,8 @@ bool x_pv_game::Ctrl() {
                 if (i.motion.size() && rob_chara_ids[chara_index] == -1) {
                     rob_chara_pv_data pv_data;
                     pv_data.chara_size_index = chara_init_data_get_chara_size_index(charas[chara_index]);
+                    rob_sleeve_handler_data_get_sleeve_data(
+                        charas[chara_index], modules[chara_index] + 1, pv_data.sleeve_l, pv_data.sleeve_r);
                     int32_t chara_id = rob_chara_array_init_chara_index(
                         charas[chara_index], &pv_data, modules[chara_index], true);
                     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
@@ -4136,8 +4140,8 @@ bool x_pv_game::Ctrl() {
         state_old = 18;
     } break;
     case 18: {
-        std::set<object_info> object_hrc;
-        std::set<std::string> material_list;
+        std::vector<object_info> object_hrc;
+        std::vector<std::string> material_list;
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
             x_pv_game_stage_effect& eff = stage_data.effect[i];
             for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
@@ -4149,11 +4153,11 @@ bool x_pv_game::Ctrl() {
                     continue;
 
                 for (auth_3d_material_list& k : auth->material_list)
-                    if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_INCANDESCENCE))
-                        material_list.insert(k.name);
+                    if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
+                        material_list.push_back(k.name);
 
                 for (auth_3d_object_hrc& k : auth->object_hrc)
-                    object_hrc.insert(k.object_info);
+                    object_hrc.push_back(k.object_info);
             }
         }
 
@@ -4169,16 +4173,66 @@ bool x_pv_game::Ctrl() {
                         continue;
 
                     for (auth_3d_material_list& l : auth->material_list)
-                        if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_INCANDESCENCE))
-                            material_list.insert(l.name);
+                        if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
+                            material_list.push_back(l.name);
 
                     for (auth_3d_object_hrc& l : auth->object_hrc)
-                        object_hrc.insert(l.object_info);
+                        object_hrc.push_back(l.object_info);
                 }
             }
 
+        prj::sort_unique(object_hrc);
+        prj::sort_unique(material_list);
+
         if (material_list.size())
             x_pv_game_split_auth_3d_hrc_material_list(this, object_hrc, material_list);
+
+        std::vector<object_info> object;
+        material_list.clear();
+        for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
+            x_pv_game_stage_effect& eff = stage_data.effect[i];
+            for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
+                if (!j.id.check_not_empty() || !j.id.check_loaded())
+                    continue;
+
+                auth_3d* auth = j.id.get_auth_3d();
+                if (!auth || !auth->material_list.size() || !auth->object.size())
+                    continue;
+
+                for (auth_3d_material_list& k : auth->material_list)
+                    if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
+                        material_list.push_back(k.name);
+
+                for (auth_3d_object& k : auth->object)
+                    object.push_back(k.object_info);
+            }
+        }
+
+        for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
+                x_pv_game_stage_change_effect& chg_eff = stage_data.change_effect[i][j];
+                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
+                    if (!k.id.check_not_empty() || !k.id.check_loaded())
+                        continue;
+
+                    auth_3d* auth = k.id.get_auth_3d();
+                    if (!auth || !auth->material_list.size() || !auth->object.size())
+                        continue;
+
+                    for (auth_3d_material_list& l : auth->material_list)
+                        if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
+                            material_list.push_back(l.name);
+
+                    for (auth_3d_object& l : auth->object)
+                        object.push_back(l.object_info);
+                }
+            }
+
+        prj::sort_unique(object);
+
+        //if (material_list.size())
+        //    x_pv_game_split_auth_3d_material_list(this, object, material_list);
+
         state_old = 19;
     } break;
     case 19: {
@@ -5345,7 +5399,7 @@ void XPVGameSelector::Window() {
                     continue;
 
                 ImGui::PushID(&j);
-                sprintf_s(buf1, sizeof(buf1), "%d", j.first);
+                sprintf_s(buf1, sizeof(buf1), "%d", j.first + 1);
                 if (ImGui::Selectable(buf1, modules[i] == j.first)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && modules[i] != j.first))
@@ -7155,10 +7209,10 @@ static std::string x_pv_game_split_auth_3d_get_object_name(
 }
 
 static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
-    std::set<object_info>& object_hrc, std::set<std::string>& material_list) {
+    std::vector<object_info>& object_hrc, std::vector<std::string>& material_list) {
     object_database& obj_db = xpvgm->stage_data.obj_db;
     std::map<object_info, std::vector<std::string>> object_hrc_material_list;
-    for (object_info i : object_hrc) {
+    for (const object_info i : object_hrc) {
         obj* obj = object_storage_get_obj(i);
         if (!obj)
             continue;
@@ -7166,7 +7220,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
         uint32_t num_material = obj->num_material;
         for (uint32_t j = 0; j < num_material; j++) {
             obj_material* material = &obj->material_array[j].material;
-            for (std::string k : material_list) {
+            for (const std::string k : material_list) {
                 if (k.compare(material->name))
                     continue;
 
@@ -7178,7 +7232,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
         }
     }
 
-    for (auto i : object_hrc_material_list) {
+    for (auto& i : object_hrc_material_list)
+        prj::sort_unique(i.second);
+
+    for (auto& i : object_hrc_material_list) {
         obj_set_handler* handler = object_storage_get_obj_set_handler(i.first.set_id);
         if (!handler)
             continue;
@@ -7197,27 +7254,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             if (!skin)
                 continue;
 
-            std::set<int32_t> bone_indices;
-
             obj_mesh* mesh = obj->mesh_array;
             uint32_t num_mesh = obj->num_mesh;
-            for (uint32_t k = 0; k < num_mesh; k++, mesh++) {
-                uint32_t num_vertex = mesh->num_vertex;
-                obj_vertex_data* vertex = mesh->vertex_array;
-                for (uint32_t l = 0; l < num_vertex; l++, vertex++) {
-                    if (vertex->bone_index.x != -1)
-                        bone_indices.insert(vertex->bone_index.x);
-
-                    if (vertex->bone_index.y != -1)
-                        bone_indices.insert(vertex->bone_index.y);
-
-                    if (vertex->bone_index.z != -1)
-                        bone_indices.insert(vertex->bone_index.z);
-
-                    if (vertex->bone_index.w != -1)
-                        bone_indices.insert(vertex->bone_index.w);
-                }
-            }
 
             obj_skin_bone* bone_array = skin->bone_array;
             uint32_t num_bone = skin->num_bone;
@@ -7529,7 +7567,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             if (!skin)
                 continue;
 
-            std::set<std::string> hrc_nodes;
+            std::vector<std::string> hrc_nodes;
 
             obj_skin_bone* bone_array = skin->bone_array;
             uint32_t num_bone = skin->num_bone;
@@ -7567,10 +7605,12 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                         if (!node->name.compare("BONE"))
                             continue;
 
-                        hrc_nodes.insert(node->name);
+                        hrc_nodes.push_back(node->name);
                     }
                 }
             }
+
+            prj::sort_unique(hrc_nodes);
 
             for (std::pair<uint32_t, auth_3d_id> k : xpvgm->stage_data.auth_3d_ids) {
                 auth_3d* auth = k.second.get_auth_3d();
@@ -7747,6 +7787,404 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 }
         }
     }
+}
+
+static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, float_t play_control_size,
+    std::vector<std::pair<vec4, vec4>>& color, vec4u8& has_color, std::vector<kft3>& morph) {
+    size_t count = (size_t)(int32_t)play_control_size;
+
+    typedef std::pair<vec4, vec4> vec4_pair;
+
+    int32_t type = 0;
+
+    bool has_data[8];
+    has_data[0] = !!(ml.blend_color.flags & AUTH_3D_RGBA_R);
+    has_data[1] = !!(ml.blend_color.flags & AUTH_3D_RGBA_G);
+    has_data[2] = !!(ml.blend_color.flags & AUTH_3D_RGBA_B);
+    has_data[3] = !!(ml.blend_color.flags & AUTH_3D_RGBA_A);
+    has_data[4] = !!(ml.emission.flags & AUTH_3D_RGBA_R);
+    has_data[5] = !!(ml.emission.flags & AUTH_3D_RGBA_G);
+    has_data[6] = !!(ml.emission.flags & AUTH_3D_RGBA_B);
+    has_data[7] = !!(ml.emission.flags & AUTH_3D_RGBA_A);
+
+    const int32_t has_data_count
+        = (has_data[0] ? 1 : 0) + (has_data[1] ? 1 : 0) + (has_data[2] ? 1 : 0) + (has_data[3] ? 1 : 0)
+        + (has_data[4] ? 1 : 0) + (has_data[5] ? 1 : 0) + (has_data[6] ? 1 : 0) + (has_data[7] ? 1 : 0);
+
+    has_color.x = has_data[0] || has_data[4];
+    has_color.y = has_data[1] || has_data[5];
+    has_color.z = has_data[2] || has_data[6];
+    has_color.w = has_data[3] || has_data[7];
+
+
+    std::vector<vec4_pair> values(count);
+    vec4_pair* values_src = values.data();
+
+    if (has_data[0])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].first.x = ml.blend_color.r.interpolate((float_t)(int32_t)i);
+
+    if (has_data[1])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].first.y = ml.blend_color.g.interpolate((float_t)(int32_t)i);
+
+    if (has_data[2])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].first.z = ml.blend_color.b.interpolate((float_t)(int32_t)i);
+
+    if (has_data[3])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].first.w = ml.blend_color.a.interpolate((float_t)(int32_t)i);
+
+    if (has_data[4])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].second.x = ml.emission.r.interpolate((float_t)(int32_t)i);
+
+    if (has_data[5])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].second.y = ml.emission.g.interpolate((float_t)(int32_t)i);
+
+    if (has_data[6])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].second.z = ml.emission.b.interpolate((float_t)(int32_t)i);
+
+    if (has_data[7])
+        for (size_t i = 0; i < count; i++)
+            values_src[i].second.w = ml.emission.a.interpolate((float_t)(int32_t)i);
+
+    {
+        vec4_pair val = *(vec4_pair*)&values_src[0];
+        vec4_pair* arr = (vec4_pair*)&values_src[1];
+        for (size_t i = count - 1; i; i--)
+            if (val != *arr++)
+                break;
+
+        if (arr == (vec4_pair*)(values_src + count)) {
+            if (values_src[0].first != 0.0f || values_src[0].second != 0.0f) {
+                morph.push_back({ 0, (float_t)(int32_t)color.size() });
+                color.push_back(values_src[0]);
+                return 1;
+            }
+            else
+                return 0;
+        }
+    }
+
+
+    float_t* arr = force_malloc_s(float_t, count);
+    vec4_pair* val = values_src;
+
+    const float_t reverse_bias = 0.0001f;
+    const int32_t reverse_min_count = 4;
+
+    float_t* a = arr;
+    vec4_pair* v = val;
+    size_t left_count = count;
+    int32_t frame = 0;
+    int32_t prev_frame = 0;
+    float_t t2_old = 0.0f;
+    while (left_count > 0) {
+        if (left_count < reverse_min_count) {
+            if (left_count > 1) {
+                morph.push_back({ (float_t)(int32_t)frame,
+                    (float_t)(int32_t)color.size(), t2_old, 0.0f });
+                color.push_back(v[0]);
+                for (size_t j = 1; j < left_count - 1; j++) {
+                    morph.push_back({ (float_t)(int32_t)(frame + j),
+                        (float_t)(int32_t)color.size() });
+                    color.push_back(v[j]);
+                }
+                t2_old = 0.0f;
+            }
+            break;
+        }
+
+        size_t i = 0;
+        size_t i_prev = 0;
+        float_t t1 = 0.0f;
+        float_t t2 = 0.0f;
+        float_t t1_prev = 0.0f;
+        float_t t2_prev = 0.0f;
+        bool has_prev_succeded = false;
+        bool has_error = false;
+        bool has_prev_error = false;
+
+        int32_t c = 0;
+        for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
+            float_t start[8];
+            float_t end[8];
+            float_t _t1[8];
+            float_t _t2[8];
+            *(vec4_pair*)start = v[0];
+            *(vec4_pair*)end = v[i];
+            for (size_t o = 0; o < 8; o++) {
+                if (!has_data[o])
+                    continue;
+
+                float_t scale = fabsf(end[o] - start[o]) > 0.0f ? 1.0f / (end[o] - start[o]) : 0.0f;
+                float_t offset = -start[o];
+
+                for (size_t j = 0; j <= i; j++)
+                    a[j] = (((float_t*)&v[j])[o] - offset) * scale;
+
+                double_t tt1 = 0.0;
+                double_t tt2 = 0.0;
+                for (size_t j = 1; j < i; j++) {
+                    float_t _t1 = 0.0f;
+                    float_t _t2 = 0.0f;
+                    interpolate_chs_reverse_value(a, left_count, _t1, _t2, 0, i, j);
+                    tt1 += _t1;
+                    tt2 += _t2;
+                }
+                _t1[o] = (float_t)(tt1 / (double_t)(i - 2));
+                _t2[o] = (float_t)(tt2 / (double_t)(i - 2));
+            }
+
+            t1 = 0.0f;
+            t2 = 0.0f;
+            if (has_data[0]) {
+                t1 += _t1[0];
+                t2 += _t2[0];
+            }
+
+            if (has_data[1]) {
+                t1 += _t1[1];
+                t2 += _t2[1];
+            }
+
+            if (has_data[2]) {
+                t1 += _t1[2];
+                t2 += _t2[2];
+            }
+
+            if (has_data[3]) {
+                t1 += _t1[3];
+                t2 += _t2[3];
+            }
+
+            if (has_data[4]) {
+                t1 += _t1[4];
+                t2 += _t2[4];
+            }
+
+            if (has_data[5]) {
+                t1 += _t1[5];
+                t2 += _t2[5];
+            }
+
+            if (has_data[6]) {
+                t1 += _t1[6];
+                t2 += _t2[6];
+            }
+
+            if (has_data[7]) {
+                t1 += _t1[7];
+                t2 += _t2[7];
+            }
+
+            if (has_data_count) {
+                t1 /= (float_t)has_data_count;
+                t2 /= (float_t)has_data_count;
+            }
+
+            has_error = false;
+            for (size_t j = 1; j < i; j++) {
+                float_t val = interpolate_chs_value(0.0f, 1.0f, t1, t2, 0.0f, (float_t)i, (float_t)j);
+                vec4 v_first = vec4::abs(vec4::lerp(v[0].first, v[i].first, val) - v[j].first);
+                vec4 v_second = vec4::abs(vec4::lerp(v[0].second, v[i].second, val) - v[j].second);
+                if (has_data[0] && v_first.x > reverse_bias
+                    || has_data[1] && v_first.y > reverse_bias
+                    || has_data[2] && v_first.z > reverse_bias
+                    || has_data[3] && v_first.w > reverse_bias
+                    || has_data[4] && v_second.x > reverse_bias
+                    || has_data[5] && v_second.y > reverse_bias
+                    || has_data[6] && v_second.z > reverse_bias
+                    || has_data[7] && v_second.w > reverse_bias) {
+                    has_error = true;
+                    break;
+                }
+            }
+
+            if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
+                has_error = true;
+
+            if (!has_error) {
+                i_prev = i;
+                t1_prev = t1;
+                t2_prev = t2;
+                has_prev_error = false;
+                has_prev_succeded = true;
+                if (i < left_count)
+                    continue;
+            }
+
+            if (has_prev_succeded) {
+                i = i_prev;
+                t1 = t1_prev;
+                t2 = t2_prev;
+                has_error = false;
+                has_prev_succeded = false;
+            }
+
+            if (!has_error) {
+                c = (int32_t)i;
+                morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)color.size(), t2_old, t1 });
+                color.push_back(v[0]);
+                t2_old = t2;
+                has_prev_error = false;
+                break;
+            }
+            
+            has_prev_error = true;
+        }
+
+        if (has_prev_succeded) {
+            if (has_error) {
+                morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)color.size(), t2_old, 0.0f });
+                color.push_back(v[0]);
+                for (size_t j = 1; j < c; j++) {
+                    morph.push_back({ (float_t)(frame + j),
+                        (float_t)(int32_t)color.size() });
+                    color.push_back(v[j]);
+                }
+                t2_old = 0.0f;
+            }
+            else {
+                morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)color.size(), t2_old, t1_prev });
+                color.push_back(v[0]);
+                t2_old = t2_prev;
+            }
+            c = (int32_t)i;
+        }
+        else if (has_prev_error) {
+            morph.push_back({ (float_t)frame,
+                (float_t)(int32_t)color.size(), t2_old, 0.0f });
+            color.push_back(v[0]);
+            t2_old = 0.0f;
+            c = 1;
+        }
+
+        prev_frame = frame;
+        frame += c;
+        a += c;
+        v += c;
+        left_count -= c;
+    }
+
+    free_def(arr);
+
+    morph.push_back({ (float_t)(int32_t)(count - 1),
+        (float_t)(int32_t)color.size(), t2_old, 0.0f });
+    color.push_back(val[count - 1]);
+
+    kft3* keys = morph.data();
+    size_t length = morph.size();
+    for (size_t i = 0; i < count; i++) {
+        float_t frame = (float_t)(int32_t)i;
+
+        kft3* first_key = keys;
+        kft3* key = keys;
+        size_t _length = length;
+        size_t temp;
+        while (_length > 0)
+            if (frame < key[temp = _length / 2].frame)
+                _length = temp;
+            else {
+                key += temp + 1;
+                _length -= temp + 1;
+            }
+
+        if (key != first_key && key != &first_key[length]) {
+            float_t l_val = interpolate_linear_value(key[-1].value, key[0].value,
+                key[-1].frame, key[0].frame, frame);
+            float_t h_val = interpolate_chs_value(key[-1].value, key[0].value,
+                key[-1].tangent2, key[0].tangent1,
+                key[-1].frame, key[0].frame, frame);
+            if (fabsf(l_val - h_val) > reverse_bias)
+                return 3;
+        }
+    }
+    return 2;
+}
+
+static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
+    std::vector<object_info>& object, std::vector<std::string>& material_list) {
+    object_database& obj_db = xpvgm->stage_data.obj_db;
+    std::map<object_info, std::vector<std::string>> object_material_list;
+    for (const object_info i : object) {
+        obj* obj = object_storage_get_obj(i);
+        if (!obj)
+            continue;
+
+        uint32_t num_material = obj->num_material;
+        for (uint32_t j = 0; j < num_material; j++) {
+            obj_material* material = &obj->material_array[j].material;
+            for (const std::string k : material_list) {
+                if (k.compare(material->name))
+                    continue;
+
+                auto elem = object_material_list.find(i);
+                if (elem == object_material_list.end())
+                    elem = object_material_list.insert({ i, {} }).first;
+                elem->second.push_back(k);
+            }
+        }
+    }
+
+    for (auto& i : object_material_list)
+        prj::sort_unique(i.second);
+
+    for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
+        x_pv_game_stage_effect& eff = xpvgm->stage_data.effect[i];
+        for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
+            if (!j.id.check_not_empty() || !j.id.check_loaded())
+                continue;
+
+            auth_3d* auth = j.id.get_auth_3d();
+            if (!auth || !auth->material_list.size() || !auth->object.size())
+                continue;
+
+            printf_debug("%s\n", auth->file_name.c_str());
+
+            for (auth_3d_material_list& k : auth->material_list)
+                if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
+                    std::vector<std::pair<vec4, vec4>> color;
+                    vec4u8 has_color;
+                    std::vector<kft3> morph;
+                    int32_t type = x_pv_game_split_auth_3d_material_list(k,
+                        auth->play_control.size, color, has_color, morph);
+                    printf_debug("%d %s\n", type, k.name.c_str());
+                }
+        }
+    }
+
+    for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
+            x_pv_game_stage_change_effect& chg_eff = xpvgm->stage_data.change_effect[i][j];
+            for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
+                if (!k.id.check_not_empty() || !k.id.check_loaded())
+                    continue;
+
+                auth_3d* auth = k.id.get_auth_3d();
+                if (!auth || !auth->material_list.size() || !auth->object.size())
+                    continue;
+
+                printf_debug("%s\n", auth->file_name.c_str());
+
+                for (auth_3d_material_list& l : auth->material_list)
+                    if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
+                        std::vector<std::pair<vec4, vec4>> color;
+                        vec4u8 has_color;
+                        std::vector<kft3> morph;
+                        int32_t type = x_pv_game_split_auth_3d_material_list(l,
+                            auth->play_control.size, color, has_color, morph);
+                        printf_debug("%d %s\n", type, l.name.c_str());
+                    }
+            }
+        }
 }
 
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id) {

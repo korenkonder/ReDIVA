@@ -14,12 +14,20 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
 #include "../data.hpp"
+#include "../mdata_manager.hpp"
 #include "../pv_db.hpp"
 #include "../random.hpp"
 #include "../pv_expression.hpp"
 #include "../stage.hpp"
 #include "motion.hpp"
 #include "skin_param.hpp"
+
+enum rob_sleeve_type : uint8_t {
+    ROB_SLEEVE_L  = 0x01,
+    ROB_SLEEVE_R  = 0x02,
+
+    ROB_SLEEVE_LR = 0x03,
+};
 
 struct MhdFile {
     mothead* data;
@@ -367,6 +375,32 @@ struct rob_chara_age_age {
     void set_rot_speed(float_t value);
     void set_step(float_t value);
     void set_step_full();
+};
+
+struct rob_sleeve {
+    rob_sleeve_type type;
+    rob_sleeve_data* l;
+    rob_sleeve_data* r;
+
+    rob_sleeve();
+    ~rob_sleeve();
+};
+
+struct rob_sleeve_handler {
+    bool ready;
+    std::list<p_file_handler*> file_handlers;
+    std::map<std::pair<chara_index, int32_t>, rob_sleeve> sleeves;
+
+    rob_sleeve_handler();
+    ~rob_sleeve_handler();
+
+    void clear();
+    void get_sleeve_data(::chara_index chara_index,
+        int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r);
+    bool load();
+    void parse(p_file_handler* pfhndl);
+    void parse_sleeve_data(key_val& kv, rob_sleeve_data*& data);
+    void read();
 };
 
 struct osage_set_motion {
@@ -1053,6 +1087,7 @@ OpdMaker* opd_maker_array;
 PvOsageManager* pv_osage_manager_array;
 rob_cmn_mottbl_header* rob_cmn_mottbl_data;
 rob_chara_age_age* rob_chara_age_age_array;
+rob_sleeve_handler* rob_sleeve_handler_data;
 RobThreadHandler* rob_thread_handler;
 TaskRobLoad* task_rob_load;
 TaskRobManager* task_rob_manager;
@@ -2221,6 +2256,9 @@ void rob_init() {
         rob_mot_tbl_file_handler.reset();
     }
 
+    if (!rob_sleeve_handler_data)
+        rob_sleeve_handler_data = new rob_sleeve_handler;
+    
     if (!rob_thread_handler)
         rob_thread_handler = new RobThreadHandler;
 
@@ -2245,6 +2283,11 @@ void rob_free() {
     if (rob_thread_handler) {
         delete rob_thread_handler;
         rob_thread_handler = 0;
+    }
+
+    if (rob_sleeve_handler_data) {
+        delete rob_sleeve_handler_data;
+        rob_sleeve_handler_data = 0;
     }
 
     free_def(rob_cmn_mottbl_data);
@@ -2455,6 +2498,33 @@ float_t rob_chara::get_frame_count() {
 
 float_t rob_chara::get_max_face_depth() {
     return item_cos_data.get_max_face_depth();
+}
+
+int32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
+    if (id >= 0xD6 && id <= 0xDF)
+        return pv_data.motion_face_ids[id - 0xD6];
+    else if (id == 0xE0)
+        return data.motion.motion_id;
+    else if (id >= 0xE2 && id <= 0xEB)
+        return pv_data.motion_face_ids[id - 0xE2];
+
+    int32_t v2 = data.field_8.field_1A4;
+    if (rob_cmn_mottbl_data
+        && chara_index >= CHARA_MIKU
+        && chara_index >= 0 && chara_index < rob_cmn_mottbl_data->chara_count
+        && id >= 0 && id < rob_cmn_mottbl_data->mottbl_indices_count) {
+        rob_cmn_mottbl_sub_header* v4 = (rob_cmn_mottbl_sub_header*)((uint8_t*)rob_cmn_mottbl_data
+            + rob_cmn_mottbl_data->subheaders_offset);
+        if (v2 >= 0 && v2 < v4[chara_index].field_4)
+            return ((int32_t*)((uint8_t*)rob_cmn_mottbl_data
+                + *(int32_t*)((uint8_t*)rob_cmn_mottbl_data
+                    + v2 * sizeof(int32_t) + v4[chara_index].data_offset)))[id];
+    }
+    return -1;
+}
+
+bool rob_chara::is_visible() {
+    return !!(data.field_0 & 0x01);
 }
 
 static int16_t sub_14054FE90(rob_chara* rob_chr, bool a3) {
@@ -3077,6 +3147,10 @@ void rob_chara::reset_data(rob_chara_pv_data* pv_data,
     rob_chr_data->adjust_data.height_adjust = this->pv_data.height_adjust;
     rob_chr_data->adjust_data.pos_adjust_y = chara_pos_adjust_y_table_get_value(this->pv_data.chara_size_index);
     rob_chara_bone_data_eyes_xrot_adjust(this->bone_data, chara_some_data_array, &pv_data->eyes_adjust);
+    this->bone_data->sleeve_adjust.sleeve_l = pv_data->sleeve_l;
+    this->bone_data->sleeve_adjust.sleeve_r = pv_data->sleeve_r;
+    this->bone_data->sleeve_adjust.enable1 = true;
+    this->bone_data->sleeve_adjust.enable2 = false;
     rob_chara_bone_data_get_ik_scale(this->bone_data, bone_data);
     rob_chara_load_default_motion(this, bone_data, mot_db);
     rob_chr_data->field_8.field_4.field_0 = 1;
@@ -11352,31 +11426,17 @@ bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id) {
     return rob_chara_pv_data_array[chara_id].type != ROB_CHARA_TYPE_NONE;
 }
 
-int32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
-    if (id >= 0xD6 && id <= 0xDF)
-        return pv_data.motion_face_ids[id - 0xD6];
-    else if (id == 0xE0)
-        return data.motion.motion_id;
-    else if (id >= 0xE2 && id <= 0xEB)
-        return pv_data.motion_face_ids[id - 0xE2];
-
-    int32_t v2 = data.field_8.field_1A4;
-    if (rob_cmn_mottbl_data
-        && chara_index >= CHARA_MIKU
-        && chara_index >= 0 && chara_index < rob_cmn_mottbl_data->chara_count
-        && id >= 0 && id < rob_cmn_mottbl_data->mottbl_indices_count) {
-        rob_cmn_mottbl_sub_header* v4 = (rob_cmn_mottbl_sub_header*)((uint8_t*)rob_cmn_mottbl_data
-            + rob_cmn_mottbl_data->subheaders_offset);
-        if (v2 >= 0 && v2 < v4[chara_index].field_4)
-            return ((int32_t*)((uint8_t*)rob_cmn_mottbl_data
-                + *(int32_t*)((uint8_t*)rob_cmn_mottbl_data
-                    + v2 * sizeof(int32_t) + v4[chara_index].data_offset)))[id];
-    }
-    return -1;
+void rob_sleeve_handler_data_get_sleeve_data(
+    ::chara_index chara_index, int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r) {
+    rob_sleeve_handler_data->get_sleeve_data(chara_index, cos, l, r);
 }
 
-bool rob_chara::is_visible() {
-    return !!(data.field_0 & 0x01);
+bool rob_sleeve_handler_data_load() {
+    return rob_sleeve_handler_data->load();
+}
+
+void rob_sleeve_handler_data_read() {
+    rob_sleeve_handler_data->read();
 }
 
 bool task_rob_load_add_task() {
@@ -17169,6 +17229,174 @@ void rob_chara_age_age::set_step(float_t value) {
 
 void rob_chara_age_age::set_step_full() {
     step_full = true;
+}
+
+rob_sleeve::rob_sleeve() : type(), l(), r() {
+
+}
+
+rob_sleeve::~rob_sleeve() {
+
+}
+
+rob_sleeve_handler::rob_sleeve_handler() : ready() {
+
+}
+
+rob_sleeve_handler::~rob_sleeve_handler() {
+
+}
+
+void rob_sleeve_handler::clear() {
+    ready = false;
+    sleeves.clear();
+
+    for (p_file_handler*& i : file_handlers)
+        if (i) {
+            delete i;
+            i = 0;
+        }
+    file_handlers.clear();
+}
+
+void rob_sleeve_handler::get_sleeve_data(::chara_index chara_index,
+    int32_t cos, rob_sleeve_data& l, rob_sleeve_data& r) {
+    l = {};
+    r = {};
+
+    auto elem = sleeves.find({ chara_index, cos });
+    if (elem != sleeves.end()) {
+        if (elem->second.type & ROB_SLEEVE_L && elem->second.l)
+            l = *elem->second.l;
+
+        if (elem->second.type & ROB_SLEEVE_R && elem->second.r)
+            r = *elem->second.r;
+    }
+}
+
+bool rob_sleeve_handler::load() {
+    if (ready)
+        return false;
+
+    for (p_file_handler*& i : file_handlers)
+        if (i->check_not_ready())
+            return true;
+
+    for (p_file_handler*& i : file_handlers) {
+        if (!i)
+            continue;
+
+        parse(i);
+
+        delete i;
+        i = 0;
+    }
+    file_handlers.clear();
+
+    ready = true;
+    return false;
+}
+
+void rob_sleeve_handler::parse(p_file_handler* pfhndl) {
+    key_val kv;
+    kv.parse(pfhndl->get_data(), pfhndl->get_size());
+
+    int32_t count;
+    if (!kv.read("sleeve", "length", count))
+        return;
+
+    for (int32_t i = 0; i < count; i++) {
+        if (!kv.open_scope_fmt(i))
+            continue;
+
+        const char* chara;
+        int32_t cos;
+        const char* type_str;
+        kv.read("chara", chara);
+        kv.read("cos", cos);
+        kv.read("type", type_str);
+
+        rob_sleeve_type type = (rob_sleeve_type)0;
+        if (!str_utils_compare(type_str, "L"))
+            type = ROB_SLEEVE_L;
+        else if (!str_utils_compare(type_str, "R"))
+            type = ROB_SLEEVE_R;
+        else if (!str_utils_compare(type_str, "LR"))
+            type = ROB_SLEEVE_LR;
+
+        ::chara_index chara_index = chara_index_get_from_chara_name(chara);
+
+        rob_sleeve& sleeve = sleeves.insert({ { chara_index, cos }, {} }).first->second;
+        switch (type) {
+        case ROB_SLEEVE_L:
+            parse_sleeve_data(kv, sleeve.l);
+            break;
+        case ROB_SLEEVE_R:
+            parse_sleeve_data(kv, sleeve.r);
+            break;
+        case ROB_SLEEVE_LR:
+            parse_sleeve_data(kv, sleeve.l);
+            parse_sleeve_data(kv, sleeve.r);
+            if (sleeve.l) {
+                rob_sleeve_data* l = sleeve.l;
+                rob_sleeve_data* r = sleeve.r;
+                r->czofs = -l->czofs;
+                r->zmin = -l->zmax;
+                r->zmax = -l->zmin;
+            }
+            break;
+        }
+        sleeve.type = type;
+
+        kv.close_scope();
+    }
+
+    kv.close_scope();
+}
+
+void rob_sleeve_handler::parse_sleeve_data(key_val& kv, rob_sleeve_data*& data) {
+    if (data) {
+        delete data;
+        data = 0;
+    }
+
+    int32_t is_default;
+    kv.read("is_default", is_default);
+    if (is_default > 0)
+        return;
+
+    data = new rob_sleeve_data;
+    kv.read("radius", data->radius);
+    kv.read("cyofs", data->cyofs);
+    kv.read("czofs", data->czofs);
+    kv.read("ymin", data->ymin);
+    kv.read("ymax", data->ymax);
+    kv.read("zmin", data->zmin);
+    kv.read("zmax", data->zmax);
+    kv.read("mune_xofs", data->mune_xofs);
+    kv.read("mune_yofs", data->mune_yofs);
+    kv.read("mune_zofs", data->mune_zofs);
+    kv.read("mune_rad", data->mune_rad);
+}
+
+void rob_sleeve_handler::read() {
+    ready = false;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+        std::string dir;
+        dir.assign("rom/");
+        dir.append(i);
+
+        const char* file = "rob_sleeve_data.txt";
+
+        if (!aft_data->check_file_exists(dir.c_str(), file))
+            continue;
+
+        p_file_handler* pfhndl = new p_file_handler;
+        pfhndl->read_file(aft_data, dir.c_str(), file);
+        file_handlers.push_back(pfhndl);
+    }
 }
 
 osage_set_motion::osage_set_motion() {

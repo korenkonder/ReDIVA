@@ -653,8 +653,8 @@ static void data_view_auth_3d_imgui_auth_3d_material_list(auth_3d_material_list*
         data_view_auth_3d_imgui_auth_3d_key(&ml->glow_intensity, 0, false);
     }
 
-    if (ml->flags & AUTH_3D_MATERIAL_LIST_INCANDESCENCE)
-        data_view_auth_3d_imgui_auth_3d_rgba(&ml->incandescence, "Incandescence");
+    if (ml->flags & AUTH_3D_MATERIAL_LIST_EMISSION)
+        data_view_auth_3d_imgui_auth_3d_rgba(&ml->emission, "Emission");
     ImGui::TreePop();
 }
 

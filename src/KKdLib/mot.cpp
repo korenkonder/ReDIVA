@@ -154,10 +154,11 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
     size_t i, float_t t1, float_t t2, float_t t2_old,
     std::vector<uint16_t>& frames, std::vector<float_t>& values) {
     if (has_error) {
-        float_t _t2 = t2_old;
-        for (size_t j = 0; j < i; j++) {
-            mot_set_add_key((uint16_t)(frame + j), a[j], _t2, frames, values);
-            _t2 = 0.0f;
+        mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
+        if (t2_old == 0.0f)
+            mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
+        for (size_t j = 1; j < i; j++) {
+            mot_set_add_key((uint16_t)(frame + j), a[j], 0.0f, frames, values);
             mot_set_add_key((uint16_t)(frame + j), a[j], 0.0f, frames, values);
         }
         return 0.0f;
@@ -294,8 +295,8 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                 i_prev = i;
                 t1_prev = t1;
                 t2_prev = t2;
+                has_prev_error = false;
                 has_prev_succeded = true;
-                has_prev_error = has_error;
                 if (i < left_count)
                     continue;
             }
@@ -304,33 +305,27 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                 i = i_prev;
                 t1 = t1_prev;
                 t2 = t2_prev;
-                has_error = has_prev_error;
+                has_error = false;
+                has_prev_succeded = false;
             }
-
-            if (!has_error)
-                c = (int32_t)i;
-            else
-                c = 1;
-
-            t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
-            has_prev_succeded = false;
-            break;
 
             if (!has_error) {
-                i_prev = i;
-                t1_prev = t1;
-                t2_prev = t2;
-                has_prev_succeded = true;
-                has_prev_error = has_error;
-                if (i < left_count)
-                    continue;
+                c = (int32_t)i;
+                t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
+                has_prev_error = false;
+                break;
             }
-            break;
+
+            has_prev_error = true;
         }
 
         if (has_prev_succeded) {
             t2_old = mot_set_add_key(has_error, a, frame, c, t1_prev, t2_prev, t2_old, frames, values);
             c = (int32_t)i;
+        }
+        else if (has_prev_error) {
+            t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
+            c = 1;
         }
 
         prev_frame = frame;

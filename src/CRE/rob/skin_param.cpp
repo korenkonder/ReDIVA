@@ -19,7 +19,7 @@ struct osage_setting {
     void clear();
     const osage_setting_osg_cat* get_cat_value(
         object_info* obj_info, const char* root_node);
-    void load_file();
+    void load();
     void parse(key_val* kv);
     rob_osage_parts parse_parts_string(std::string& s);
 };
@@ -75,7 +75,7 @@ struct sp_skp_db {
     ~sp_skp_db();
 
     void clear();
-    void load_file();
+    void load();
     void parse(key_val* kv);
 
     int32_t get_ext_skp_file(const osage_init_data& osage_init,
@@ -89,8 +89,8 @@ static SkinParamManager* skin_param_manager_get(int32_t chara_id);
 
 static bool sp_skp_db_load_file(void* data, const char* path, const char* file, uint32_t hash);
 
-osage_setting osage_setting_data;
-sp_skp_db sp_skp_db_data;
+osage_setting* osage_setting_data;
+sp_skp_db* sp_skp_db_data;
 
 SkinParamManager* skin_param_manager;
 
@@ -175,24 +175,27 @@ osage_setting_osg_cat::osage_setting_osg_cat() : exf() {
 
 const osage_setting_osg_cat* osage_setting_data_get_cat_value(
     object_info* obj_info, const char* root_node) {
-    return osage_setting_data.get_cat_value(obj_info, root_node);
+    return osage_setting_data->get_cat_value(obj_info, root_node);
 }
 
 bool osage_setting_data_obj_has_key(object_info key) {
-    return osage_setting_data.obj.find(key) != osage_setting_data.obj.end();
+    return osage_setting_data->obj.find(key) != osage_setting_data->obj.end();
 }
 
 void skin_param_data_init() {
-    osage_setting_data = {};
-    sp_skp_db_data = {};
+    if (!osage_setting_data)
+        osage_setting_data = new osage_setting;
+
+    if (!sp_skp_db_data)
+        sp_skp_db_data = new sp_skp_db;
 
     if (!skin_param_manager)
         skin_param_manager = new SkinParamManager[ROB_CHARA_COUNT];
 }
 
 void skin_param_data_load() {
-    osage_setting_data.load_file();
-    sp_skp_db_data.load_file();
+    osage_setting_data->load();
+    sp_skp_db_data->load();
 }
 
 void skin_param_data_free() {
@@ -201,8 +204,15 @@ void skin_param_data_free() {
         skin_param_manager = 0;
     }
 
-    sp_skp_db_data.clear();
-    osage_setting_data.clear();
+    if (sp_skp_db_data) {
+        delete sp_skp_db_data;
+        sp_skp_db_data = 0;
+    }
+
+    if (osage_setting_data) {
+        delete osage_setting_data;
+        osage_setting_data = 0;
+    }
 }
 
 bool skin_param_manager_array_check_task_ready() {
@@ -507,18 +517,18 @@ void osage_setting::clear() {
 
 const osage_setting_osg_cat* osage_setting::get_cat_value(
     object_info* obj_info, const char* root_node) {
-    auto elem_obj = osage_setting_data.obj.find(*obj_info);
-    if (elem_obj == osage_setting_data.obj.end())
+    auto elem_obj = osage_setting_data->obj.find(*obj_info);
+    if (elem_obj == osage_setting_data->obj.end())
         return 0;
 
-    auto elem_cat = osage_setting_data.cat.find({ elem_obj->second, root_node });
-    if (elem_cat == osage_setting_data.cat.end())
+    auto elem_cat = osage_setting_data->cat.find({ elem_obj->second, root_node });
+    if (elem_cat == osage_setting_data->cat.end())
         return 0;
 
     return &elem_cat->second;
 }
 
-void osage_setting::load_file() {
+void osage_setting::load() {
     clear();
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -718,7 +728,7 @@ void SkinParamManager::AddFiles() {
 
             bool read_farc = false;
             if (skp_file->type == -1) {
-                skp_file->type = sp_skp_db_data.get_ext_skp_file(i,
+                skp_file->type = sp_skp_db_data->get_ext_skp_file(i,
                     obj_info, file, farc_file, aft_data, aft_mot_db, aft_obj_db);
                 if (skp_file->type == -1) {
                     delete skp_file;
@@ -994,7 +1004,7 @@ void sp_skp_db::clear() {
     farc_list_count = 0;
 }
 
-void sp_skp_db::load_file() {
+void sp_skp_db::load() {
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
         std::string file;

@@ -302,6 +302,7 @@ struct vec2 {
     static float_t length_squared(const vec2& left);
     static float_t distance(const vec2& left, const vec2& right);
     static float_t distance_squared(const vec2& left, const vec2& right);
+    static vec2 abs(const vec2& left);
     static vec2 lerp(const vec2& left, const vec2& right, const vec2& blend);
     static vec2 lerp(const vec2& left, const vec2& right, const float_t blend);
     static vec2 normalize(const vec2& left);
@@ -337,6 +338,7 @@ struct vec3 {
     static float_t length_squared(const vec3& left);
     static float_t distance(const vec3& left, const vec3& right);
     static float_t distance_squared(const vec3& left, const vec3& right);
+    static vec3 abs(const vec3& left);
     static vec3 lerp(const vec3& left, const vec3& right, const vec3& blend);
     static vec3 lerp(const vec3& left, const vec3& right, const float_t blend);
     static vec3 normalize(const vec3& left);
@@ -374,6 +376,7 @@ struct vec4 {
     static float_t length_squared(const vec4& left);
     static float_t distance(const vec4& left, const vec4& right);
     static float_t distance_squared(const vec4& left, const vec4& right);
+    static vec4 abs(const vec4& left);
     static vec4 lerp(const vec4& left, const vec4& right, const vec4& blend);
     static vec4 lerp(const vec4& left, const vec4& right, const float_t blend);
     static vec4 normalize(const vec4& left);
@@ -454,6 +457,10 @@ struct vec4i {
 extern const __m128 vec2_neg;
 extern const __m128 vec3_neg;
 extern const __m128 vec4_neg;
+
+extern const vec4i vec2_abs;
+extern const vec4i vec3_abs;
+extern const vec4i vec4_abs;
 
 extern const vec4i vec4_mask_vec2;
 extern const vec4i vec4_mask_vec3;
@@ -802,6 +809,10 @@ inline float_t vec2::distance_squared(const vec2& left, const vec2& right) {
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
 }
 
+inline vec2 vec2::abs(const vec2& left) {
+    return vec2::store_xmm(_mm_and_ps(vec2::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec2_abs))));
+}
+
 inline vec2 vec2::lerp(const vec2& left, const vec2& right, const vec2& blend) {
     __m128 b1;
     __m128 b2;
@@ -1092,6 +1103,10 @@ inline float_t vec3::distance_squared(const vec3& left, const vec3& right) {
     zt = _mm_mul_ps(zt, zt);
     zt = _mm_hadd_ps(zt, zt);
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline vec3 vec3::abs(const vec3& left) {
+    return vec3::store_xmm(_mm_and_ps(vec3::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec3_abs))));
 }
 
 inline vec3 vec3::lerp(const vec3& left, const vec3& right, const vec3& blend) {
@@ -1386,6 +1401,10 @@ inline float_t vec4::distance_squared(const vec4& left, const vec4& right) {
     zt = _mm_mul_ps(zt, zt);
     zt = _mm_hadd_ps(zt, zt);
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline vec4 vec4::abs(const vec4& left) {
+    return vec4::store_xmm(_mm_and_ps(vec4::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec4_abs))));
 }
 
 inline vec4 vec4::lerp(const vec4& left, const vec4& right, const vec4& blend) {

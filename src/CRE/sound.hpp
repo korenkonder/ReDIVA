@@ -163,7 +163,7 @@ enum WaveAudioDataFormat {
 
 struct sound_db_farc {
     std::string file_path;
-    bool loaded;
+    bool ready;
     p_file_handler file_handler;
     farc farc;
 

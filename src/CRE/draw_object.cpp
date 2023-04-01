@@ -336,7 +336,7 @@ namespace mdl {
                         }
                         break;
                     }
-                tex_index = 4;
+                tex_index = 3;
             }
 
             if (texture_id != -1) {
@@ -355,6 +355,26 @@ namespace mdl {
                     tex_id = 0;
 
                 gl_state_active_bind_texture_2d(tex_index, tex_id);
+
+                int32_t wrap_s;
+                if (texdata->attrib.m.mirror_u)
+                    wrap_s = 2;
+                else if (texdata->attrib.m.repeat_u)
+                    wrap_s = 1;
+                else
+                    wrap_s = 0;
+
+                int32_t wrap_t;
+                if (texdata->attrib.m.mirror_v)
+                    wrap_t = 2;
+                else if (texdata->attrib.m.repeat_v)
+                    wrap_t = 1;
+                else
+                    wrap_t = 0;
+
+                texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
+                gl_state_bind_sampler(tex_index, rctx->render_manager.samplers[(wrap_t * 3
+                    + wrap_s) * 2 + (tex->max_mipmap_level > 0 ? 1 : 0)]);
             }
         }
 

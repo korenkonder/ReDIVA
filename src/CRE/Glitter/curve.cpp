@@ -333,7 +333,6 @@ namespace Glitter {
             bool has_error_hermite = false;
             bool has_prev_error = false;
             bool has_prev_error_lerp = false;
-            bool has_prev_error_hermite = false;
 
             size_t i;
             for (i = reverse_min_count - 1; i < left_count; i++) {
@@ -358,7 +357,7 @@ namespace Glitter {
                 t1 = (float_t)(tt1 / (double_t)(i - 2));
                 t2 = (float_t)(tt2 / (double_t)(i - 2));
 
-                constant = false;
+                constant = true;
                 has_error = false;
                 has_error_lerp = false;
                 has_error_hermite = false;
@@ -377,8 +376,6 @@ namespace Glitter {
                             }
                         }
                     }
-                    else
-                        constant = true;
                 }
 
                 if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
@@ -391,7 +388,6 @@ namespace Glitter {
                     has_prev_succeded = true;
                     has_prev_error = has_error;
                     has_prev_error_lerp = has_error_lerp;
-                    has_prev_error_hermite = has_error_hermite;
                     if (i < left_count)
                         continue;
                 }
@@ -405,13 +401,12 @@ namespace Glitter {
                     t2 = t2_prev;
                     has_error = has_prev_error;
                     has_error_lerp = has_prev_error_lerp;
-                    has_error_hermite = has_prev_error_hermite;
+                    has_error_hermite = false;
                 }
-                else
-                    c = (int32_t)i;
-
-                if (has_error_hermite)
+                else if (has_error_hermite)
                     c = 1;
+                else
+                    c = (int32_t)i;                
 
                 t2_old = glitter_curve_add_key(has_error, has_error_lerp, has_error_hermite,
                     a, b, frame, step, c, t1, t2, t2_old, &keys_rev);
@@ -421,7 +416,7 @@ namespace Glitter {
             }
 
             if (has_prev_succeded) {
-                t2_old = glitter_curve_add_key(has_prev_error, has_prev_error_lerp, has_prev_error_hermite,
+                t2_old = glitter_curve_add_key(has_prev_error, has_prev_error_lerp, false,
                     a, b, frame, step, i, t1_prev, t2_prev, t2_old, &keys_rev);
                 c = (int32_t)i;
             }

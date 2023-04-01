@@ -863,7 +863,6 @@ static render_context* render_context_load() {
     dbg_set_id = aft_obj_db->get_object_set_id("DBG");
 
     hand_item_handler_data_init();
-    //rob_sleeve_data_init();
 
     aet_manager_add_aet_sets(aft_aet_db);
     sprite_manager_add_spr_sets(aft_spr_db);
@@ -1161,7 +1160,6 @@ static void render_context_dispose(render_context* rctx) {
     aet_manager_remove_aet_sets(aft_aet_db);
 
     hand_item_handler_data_free();
-    //rob_sleeve_data_free();
 
     //rob_chara_array_free_chara_id(0);
     render_timer->reset();
