@@ -270,7 +270,7 @@ void key_val::parse(const void* data, size_t size) {
 
     for (size_t i = 0, j = 0; i < count; i++) {
         char* s = lines[i];
-        if (*s == '#')
+        if (*s == '!' || *s == '#')
             continue;
 
         size_t len = utf8_length(s);
