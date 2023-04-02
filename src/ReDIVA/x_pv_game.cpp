@@ -6690,8 +6690,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t env_index = (int32_t)data[0];
         int32_t trans = (int32_t)data[1];
         a1->stage_data.set_env(env_index, (float_t)trans * (float_t)(1.0f / 60.0f), 0.0f);
-        printf_debug("Time: %8d; Env: %2d; Trans: %3d\n",
-            (int32_t)(curr_time / 10000), env_index, trans);
+        printf_debug("Time: %8d; Frame %5d; Env: %2d; Trans: %3d\n",
+            (int32_t)(curr_time / 10000), a1->frame, env_index, trans);
     } break;
     case DSC_X_RESERVE2: {
 

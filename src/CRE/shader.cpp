@@ -981,10 +981,10 @@ static void shader_update_data(shader_set_data* set) {
         }
     }
 
-    if (set->primitive_restart)
+    if (set->primitive_restart) {
         gl_state_enable_primitive_restart();
+        gl_state_set_primitive_restart_index(set->primitive_restart_index);
+    }
     else
         gl_state_disable_primitive_restart();
-
-    gl_state_set_primitive_restart_index(set->primitive_restart_index);
 }
