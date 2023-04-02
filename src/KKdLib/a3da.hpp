@@ -11,7 +11,6 @@
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
 #include "kf.hpp"
-#include "mat.hpp"
 #include "vec.hpp"
 
 enum a3da_ambient_flags {

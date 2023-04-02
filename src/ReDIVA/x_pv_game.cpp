@@ -5225,6 +5225,16 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     for (int32_t& i : modules)
         i = 0;
 
+    pv_id = 817;
+    stage_id = 17;
+
+    charas[0] = CHARA_MIKU;
+    charas[1] = CHARA_MIKU;
+    charas[2] = CHARA_MIKU;
+    modules[0] = 178;
+    modules[1] = 177;
+    modules[2] = 176;
+
 #if BAKE_PV826
     pv_id = 826;
     stage_id = 26;
@@ -5390,7 +5400,7 @@ void XPVGameSelector::Window() {
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
         const item_table* itm_tbl = item_table_handler_array_get_table(charas[i]);
         sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
-        sprintf_s(buf1, sizeof(buf1), "%d", modules[i]);
+        sprintf_s(buf1, sizeof(buf1), "%d", modules[i] + 1);
 
         ImGui::StartPropertyColumn(buf);
         if (ImGui::BeginCombo("", buf1, 0)) {

@@ -1841,6 +1841,7 @@ struct RobCloth : public CLOTH {
     virtual void ResetData() override;
 
     void AddMotionResetData(int32_t motion_id, float_t frame);
+    void ApplyResetData();
     void ColiSet(mat4* mats);
     void Disp(const mat4* mat, render_context* rctx);
     void InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,
@@ -1885,6 +1886,7 @@ public:
     virtual void Field_50() override;
 
     void AddMotionResetData(int32_t motion_id, float_t frame);
+    void ColiSet();
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_cloth* cls_data,
         skin_param_osage_root* skp_root, bone_database* bone_data);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
@@ -1944,6 +1946,7 @@ struct RobOsage {
     ~RobOsage();
 
     void AddMotionResetData(int32_t motion_id, float_t frame);
+    void ApplyResetData(mat4* mat);
     bool CheckPartsBits(rob_osage_parts_bit parts_bits);
     void ColiSet(mat4* mats);
     RobOsageNode* GetNode(size_t index);
