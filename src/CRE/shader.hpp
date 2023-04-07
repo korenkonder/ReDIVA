@@ -110,5 +110,4 @@ struct shader_set_data {
         PFNSHADERGETINDEXFUNCPROC get_index_by_name);
     void set(uint32_t index);
     void unload();
-    void unload_vulkan();
 };

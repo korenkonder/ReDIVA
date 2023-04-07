@@ -8412,15 +8412,10 @@ static void sub_140406FC0(struc_258* a1, bone_data* a2, mat4* a3,
     mat4 v25;
     mat4_lerp_rotation(&v25, &mat, &mat, a1->field_98);
 
-    mat4* v22;
     if (a7)
-        v22 = a2->rot_mat;
-    else {
-        a8 = a9;
-        v22 = a3;
-    }
-
-    mat4_lerp_rotation(v22, &mat, &mat, a8);
+        mat4_lerp_rotation(&a2->rot_mat[0], &mat, &mat, a8);
+    else
+        mat4_lerp_rotation(a3, &mat, &mat, a9);
 
     *a3 = mat;
     a2->rot_mat[0] = mat;
