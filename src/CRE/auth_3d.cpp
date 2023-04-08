@@ -3091,7 +3091,7 @@ static kft3* auth_3d_key_find_keyframe(auth_3d_key* data, float_t frame) {
     size_t length = data->length;
     size_t temp;
     while (length > 0)
-        if (frame < key[temp = length / 2].frame)
+        if (key[temp = length / 2].frame > frame)
             length = temp;
         else {
             key += temp + 1;

@@ -4726,7 +4726,7 @@ static void mot_key_frame_interpolate(mot* a1, float_t frame, float_t* value,
             size_t length = keys_count;
             size_t temp;
             while (length > 0)
-                if (frame_int < key[temp = length / 2])
+                if (key[temp = length / 2] > frame_int)
                     length /= 2;
                 else {
                     key += temp + 1;

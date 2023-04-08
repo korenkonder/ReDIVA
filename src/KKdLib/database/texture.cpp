@@ -238,7 +238,7 @@ void texture_database::add(texture_database_file* tex_db_file) {
             size_t length = src_size;
             size_t temp;
             while (length > 0)
-                if (id <= info[temp = length / 2].id)
+                if (info[temp = length / 2].id >= id)
                     length /= 2;
                 else {
                     info += temp + 1;

@@ -1140,7 +1140,7 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
         size_t length = change_fields->size();
         size_t temp;
         while (length > 0)
-            if (time < key[temp = length / 2])
+            if (key[temp = length / 2] > time)
                 length = temp;
             else {
                 key += temp + 1;
@@ -1501,7 +1501,7 @@ void x_pv_game_chara_effect::set_chara_effect(int32_t chara_id, int32_t index, i
         size_t length = change_fields->size();
         size_t temp;
         while (length > 0)
-            if (time < key[temp = length / 2])
+            if (key[temp = length / 2] > time)
                 length = temp;
             else {
                 key += temp + 1;
@@ -1663,7 +1663,7 @@ void x_pv_game_dsc_data::find_change_fields(std::vector<int64_t>& change_fields)
                 break;
         }
 
-        change_fields.push_back(time);
+        change_fields.push_back((int64_t)time * 10000);
         prev_time = time;
         i++;
     }
@@ -6660,7 +6660,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t index = (int32_t)data[1];
         int32_t unk2 = (int32_t)data[2];
 
-        if (unk2 && !(a1->pv_data->field_1C & 0x10))
+        if (unk2 && !(pv_data.field_1C & 0x10))
             break;
 
         if (enable) {

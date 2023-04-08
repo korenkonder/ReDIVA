@@ -479,7 +479,7 @@ namespace Glitter {
             size_t length = keys_count;
             size_t temp;
             while (length > 0)
-                if (frame < key[temp = length / 2].frame)
+                if (key[temp = length / 2].frame > frame)
                     length = temp;
                 else {
                     key += temp + 1;
