@@ -542,6 +542,10 @@ namespace Glitter {
             float_t* value, int32_t random_value, Random* random);
         float_t F2Interpolate(GLT, float_t frame, Curve::Key* curr,
             Curve::Key* next, KeyType key_type, Random* random);
+        float_t F2InterpolateHermite(GLT, Glitter::Curve::Key* curr,
+            Glitter::Curve::Key* next, float_t frame, Random* random);
+        float_t F2InterpolateLinear(GLT, Glitter::Curve::Key* curr,
+            Glitter::Curve::Key* next, float_t frame, Random* random);
         float_t F2Randomize(GLT, float_t value, Random* random);
         float_t F2RandomizeKey(GLT, Curve::Key* key, Random* random);
 #if defined(CRE_DEV)
@@ -552,11 +556,35 @@ namespace Glitter {
             float_t* value, int32_t random_value, Random* random);
         float_t XInterpolate(float_t frame, Curve::Key* curr,
             Curve::Key* next, KeyType key_type, Random* random);
+        float_t XInterpolateHermite(Glitter::Curve::Key* curr,
+            Glitter::Curve::Key* next, float_t frame, Random* random);
+        float_t XInterpolateLinear(Glitter::Curve::Key* curr,
+            Glitter::Curve::Key* next, float_t frame, Random* random);
         float_t XRandomize(float_t value, Random* random);
         float_t XRandomizeKey(Curve::Key* key, Random* random);
 
         static void GetKeyIndices(std::vector<Curve::Key>* keys,
             float_t frame, size_t* curr, size_t* next);
+
+        template <typename T>
+        inline static T InterpolateHermite(const T p, const T dv,
+            const T t1, const T t2, const T f1, const T f2, const T f) {
+            const T df = (f2 - f1);
+            const T t = (f - f1) / df;
+            const T t_2 = t * t;
+            const T t_3 = t_2 * t;
+            return p
+                + (t_3 - 2.0f * t_2 + t) * (t1 * df)
+                + (t_3 - t_2) * (t2 * df)
+                + (3.0f * t_2 - 2.0f * t_3) * dv;
+        };
+
+        template <typename T>
+        inline static T InterpolateLinear(const T p1, const T p2,
+            const T f1, const T f2, const T f) {
+            const T t = (f - f1) / (f2 - f1);
+            return (1.0f - t) * p1 + t * p2;
+        };
     };
 
     class ItemBase {

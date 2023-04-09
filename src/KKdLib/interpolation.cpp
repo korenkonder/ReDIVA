@@ -13,22 +13,34 @@ void interpolate_chs_reverse_value(float_t* arr, size_t length,
     if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
         return;
 
-    float_t df_1 = (float_t)(f - f1);
-    float_t df_2 = (float_t)(f - f1 + 1);
-    float_t _t1 = df_1 / (float_t)(f2 - f1);
-    float_t _t2 = df_2 / (float_t)(f2 - f1);
-    float_t t1_1 = _t1 - 1.0f;
-    float_t t2_1 = _t2 - 1.0f;
+    float_t _t1 = (float_t)(f - f1) / (float_t)(f2 - f1);
+    float_t _t2 = (float_t)(f - f1 + 1) / (float_t)(f2 - f1);
+    float_t t1_2 = _t1 * _t1;
+    float_t t2_2 = _t2 * _t2;
+    float_t t1_3 = t1_2 * _t1;
+    float_t t2_3 = t2_2 * _t2;
+    float_t t1_23 = 3.0f * t1_2;
+    float_t t2_23 = 3.0f * t2_2;
+    float_t t1_32 = 2.0f * t1_3;
+    float_t t2_32 = 2.0f * t2_3;
 
-    float_t t1_t2_1 = arr[f] - (1.0f + 2.0f * _t1) * (t1_1 * t1_1) * arr[f1]
-        - _t1 * _t1 * (3.0f - 2.0f * _t1) * arr[f2];
-    float_t t1_t2_2 = arr[f + 1] - (1.0f + 2.0f * _t2) * (t2_1 * t2_1) * arr[f1]
-        - _t2 * _t2 * (3.0f - 2.0f * _t2) * arr[f2];
-    t1_t2_1 /= df_1 * t1_1;
-    t1_t2_2 /= df_2 * t2_1;
+    float_t h00_1 = t1_32 - t1_23 + 1.0f;
+    float_t h00_2 = t2_32 - t2_23 + 1.0f;
+    float_t h01_1 = t1_23 - t1_32;
+    float_t h01_2 = t2_23 - t2_32;
+    float_t h10_1 = t1_3 - 2.0f * t1_2 + _t1;
+    float_t h10_2 = t2_3 - 2.0f * t2_2 + _t2;
+    float_t h11_1 = t1_3 - t1_2;
+    float_t h11_2 = t2_3 - t2_2;
 
-    t1 = (t1_t2_1 * _t2 - t1_t2_2 * _t1) / (_t1 - _t2);
-    t2 = (-t1_t2_1 * t2_1 + t1_t2_2 * t1_1) / (_t1 - _t2);
+    float_t t1_t2_1 = (arr[f] - h00_1 * arr[f1] - h01_1 * arr[f2]);
+    float_t t1_t2_2 = (arr[f + 1] - h00_2 * arr[f1] - h01_2 * arr[f2]);
+
+    t1_t2_1 /= (t1_2 - _t1) * (t2_2 - _t2);
+    t1_t2_2 /= (t1_2 - _t1) * (t2_2 - _t2);
+
+    t1 = -h11_2 * t1_t2_1 + h11_1 * t1_t2_2;
+    t2 = h10_2 * t1_t2_1 - h10_1 * t1_t2_2;
 }
 
 void interpolate_chs_reverse(float_t* arr, size_t length,

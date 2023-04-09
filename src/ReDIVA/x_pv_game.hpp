@@ -292,6 +292,7 @@ struct x_pv_game_effect {
     void set_song_effect(int32_t index, int64_t time);
     void set_song_effect_time(int32_t index, int64_t time, bool glitter);
     void set_song_effect_time_inner(int32_t index, int64_t time, bool glitter);
+    void set_time(int64_t time, bool glitter);
     void stop();
     void stop_song_effect(int32_t index, bool free_glitter);
     void unload();
@@ -336,6 +337,7 @@ struct x_pv_game_chara_effect {
     void reset();
     void set_chara_effect(int32_t chara_id, int32_t index, int64_t time);
     void set_chara_effect_time(int32_t chara_id, int32_t index, int64_t time);
+    void set_time(int64_t time);
     void stop();
     void stop_chara_effect(int32_t chara_id, int32_t index);
     void unload();

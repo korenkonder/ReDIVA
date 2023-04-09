@@ -7,7 +7,6 @@
 #include "f2/struct.hpp"
 #include "io/path.hpp"
 #include "io/memory_stream.hpp"
-#include "interpolation.hpp"
 #include "half_t.hpp"
 #include "hash.hpp"
 #include "str_utils.hpp"
@@ -117,7 +116,8 @@ inline static float_t interpolate_mot_value(float_t p1, float_t p2,
     float_t df = f - f1;
     float_t t = df / (f2 - f1);
     float_t t_1 = t - 1.0f;
-    return (t_1 * t1 + t * t2) * t_1 * df + (t * 2.0f - 3.0f) * (t * t) * (p1 - p2) + p1;
+    return (t_1 * t1 + t * t2) * t_1 * df
+        + (t * 2.0f - 3.0f) * (t * t) * (p1 - p2) + p1;
 }
 
 inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
@@ -127,20 +127,18 @@ inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
         return;
 
-    float_t df_1 = (float_t)(f - f1);
-    float_t df_2 = (float_t)(f - f1 + 1);
-    float_t _t1 = df_1 / (float_t)(f2 - f1);
-    float_t _t2 = df_2 / (float_t)(f2 - f1);
+    float_t _t1 = (float_t)(f - f1) / (float_t)(f2 - f1);
+    float_t _t2 = (float_t)(f - f1 + 1) / (float_t)(f2 - f1);
     float_t t1_1 = _t1 - 1.0f;
     float_t t2_1 = _t2 - 1.0f;
 
     float_t t1_t2_1 = arr[f] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
     float_t t1_t2_2 = arr[f + 1] - arr[f1] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (arr[f1] - arr[f2]);
-    t1_t2_1 /= df_1 * t1_1;
-    t1_t2_2 /= df_2 * t2_1;
+    t1_t2_1 /= t1_1 * _t1;
+    t1_t2_2 /= t2_1 * _t2;
 
-    *t1 = (t1_t2_1 * _t2 - t1_t2_2 * _t1) / (_t1 - _t2);
-    *t2 = (-t1_t2_1 * t2_1 + t1_t2_2 * t1_1) / (_t1 - _t2);
+    *t1 = -t1_t2_1 * _t2 + t1_t2_2 * _t1;
+    *t2 = t1_t2_1 * t2_1 - t1_t2_2 * t1_1;
 }
 
 inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
@@ -174,36 +172,6 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
         }
         return t2;
     }
-}
-
-mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
-    prj::shared_ptr<prj::stack_allocator> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count) {
-    std::vector<uint16_t> _frames;
-    std::vector<float_t> _values;
-    mot_key_set_type type = mot_set::fit_keys_into_curve(values_src, _frames, _values);
-    switch (type) {
-    case MOT_KEY_SET_NONE:
-        keys_count = 0;
-        frames = 0;
-        values = 0;
-        break;
-    case MOT_KEY_SET_STATIC:
-        keys_count = 1;
-        frames = 0;
-        values = alloc->allocate<float_t>(_values.data(), 1);
-        break;
-    case MOT_KEY_SET_HERMITE:
-        keys_count = _frames.size();
-        frames = alloc->allocate<uint16_t>(_frames.data(), keys_count);
-        values = alloc->allocate<float_t>(_values.data(), keys_count);
-        break;
-    case MOT_KEY_SET_HERMITE_TANGENT:
-        keys_count = _frames.size();
-        frames = alloc->allocate<uint16_t>(_frames.data(), keys_count);
-        values = alloc->allocate<float_t>(_values.data(), keys_count * 2);
-        break;
-    }
-    return type;
 }
 
 mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,

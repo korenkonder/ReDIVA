@@ -975,7 +975,8 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
         auto elem_replace = sprite_replace.find(sprite_index);
         if (elem_replace != sprite_replace.end() && elem_replace->second != -1) {
             const spr_db_spr* spr = spr_db->get_spr_by_id(elem_replace->second);
-            const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0xFFF);
+            //const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0x0FFF);
+            const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0x3FFF);
             if (sprite_manager_get_set_ready(spr_set->id, spr_db))
                 args.id.index = elem_replace->second;
         }
@@ -1479,26 +1480,31 @@ void AetMgr::Basic() {
 
 uint32_t AetMgr::AddSetModern() {
     uint32_t index = this->set_counter;
-    for (; index <= 0x0FFF; index++) {
+    //for (; index <= 0x0FFF; index++) {
+    for (; index <= 0x3FFF; index++) {
         auto elem = sets.find(0x8000 | index);
         if (elem == sets.end())
             break;
     }
 
-    if (!index || index > 0x0FFF) {
-        for (index = 1; index <= 0x0FFF; index++) {
+    //if (!index || index > 0x0FFF) {
+    if (!index || index > 0x3FFF) {
+        //for (index = 1; index <= 0x0FFF; index++) {
+        for (index = 1; index <= 0x3FFF; index++) {
             auto elem = sets.find(0x8000 | index);
             if (elem == sets.end())
                 break;
         }
 
-        if (!index || index > 0x0FFF)
+        //if (!index || index > 0x0FFF)
+        if (!index || index > 0x3FFF)
             return 0x8000;
     }
 
     sets.insert({ 0x8000 | index, AetSet(0x8000 | index) });
     set_counter = index + 1;
-    if (index + 1 > 0x0FFF)
+    //if (index + 1 > 0x0FFF)
+    if (index + 1 > 0x3FFF)
         set_counter = 1;
     return 0x8000 | index;
 }

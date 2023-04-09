@@ -547,26 +547,31 @@ namespace spr {
 
     uint32_t SpriteManager::AddSetModern() {
         uint32_t index = this->set_counter;
-        for (; index <= 0x0FFF; index++) {
+        //for (; index <= 0x0FFF; index++) {
+        for (; index <= 0x3FFF; index++) {
             auto elem = sets.find(0x8000 | index);
             if (elem == sets.end())
                 break;
         }
 
-        if (!index || index > 0x0FFF) {
-            for (index = 1; index <= 0x0FFF; index++) {
+        //if (!index || index >= 0x0FFF) {
+        if (!index || index > 0x3FFF) {
+            //for (index = 1; index <= 0x0FFF; index++) {
+            for (index = 1; index <= 0x3FFF; index++) {
                 auto elem = sets.find(0x8000 | index);
                 if (elem == sets.end())
                     break;
             }
 
-            if (!index || index > 0x0FFF)
+            //if (!index || index > 0x0FFF)
+            if (!index || index > 0x3FFF)
                 return 0x8000;
         }
 
         sets.insert({ 0x8000 | index, SprSet(0x8000 | index) });
         set_counter = index + 1;
-        if (index + 1 > 0x0FFF)
+        //if (index + 1 > 0x0FFF)
+        if (index + 1 > 0x3FFF)
             set_counter = 1;
         return 0x8000 | index;
     }
@@ -1673,14 +1678,16 @@ SprSet::~SprSet() {
 }
 
 const char* SprSet::GetName(spr_info info) {
-    if (info.set_index & 0x1000)
+    //if (info.set_index & 0x1000)
+    if (info.set_index & 0x4000)
         return spr_set->texname[info.index];
     else
         return spr_set->sprname[info.index];
 }
 
 rectangle SprSet::GetRectangle(spr_info info) {
-    if (info.set_index & 0x1000) {
+    //if (info.set_index & 0x1000) {
+    if (info.set_index & 0x4000) {
         texture* tex = textures[info.index];
         return { 0.0f, 0.0f, (float_t)tex->width, (float_t)tex->height };
     }
@@ -1691,14 +1698,16 @@ rectangle SprSet::GetRectangle(spr_info info) {
 }
 
 resolution_mode SprSet::GetResolutionMode(spr_info info) {
-    if (info.set_index & 0x1000)
+    //if (info.set_index & 0x1000)
+    if (info.set_index & 0x4000)
         return RESOLUTION_MODE_HD;
     else
         return spr_set->sprdata[info.index].resolution_mode;
 }
 
 texture* SprSet::GetTexture(spr_info info) {
-    if (info.set_index & 0x1000)
+    //if (info.set_index & 0x1000)
+    if (info.set_index & 0x4000)
         return textures[info.index];
     else
         return textures[spr_set->sprinfo[info.index].texid];
@@ -1816,7 +1825,8 @@ bool SprSet::LoadTexture() {
         return false;
 
     std::vector<uint32_t> ids(spr_set->num_of_texture);
-    uint32_t set_index = (uint32_t)(0x1000 | index & 0x0FFF);
+    //uint32_t set_index = (uint32_t)(0x1000 | index & 0x0FFF);
+    uint32_t set_index = (uint32_t)(0x4000 | index & 0x3FFF);
     uint32_t index = 0;
     for (uint32_t& i : ids)
         i = (set_index << 16) | index++;
@@ -1831,7 +1841,8 @@ bool SprSet::LoadTextureModern(const void* data, size_t size) {
         return false;
 
     std::vector<uint32_t> ids(spr_set->num_of_texture);
-    uint32_t set_index = (uint32_t)(0x8000 | 0x1000 | index & 0x0FFF);
+    //uint32_t set_index = (uint32_t)(0x8000 | 0x1000 | index & 0x0FFF);
+    uint32_t set_index = (uint32_t)(0x8000 | 0x4000 | index & 0x3FFF);
     uint32_t index = 0;
     for (uint32_t& i : ids)
         i = (set_index << 16) | index++;

@@ -2906,6 +2906,96 @@ namespace auth_3d_detail  {
     }
 }
 
+static void a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
+    if (msg->read_bool("remove")) {
+        key = {};
+        return;
+    }
+
+    if (msg->read_bool("ignore_tangents") && key.keys.size()) {
+        float_t ep_pre_val = key.keys.front().tangent1;
+        float_t ep_post_val = key.keys.back().tangent2;
+        for (kft3& i : key.keys) {
+            i.tangent1 = 0.0f;
+            i.tangent2 = 0.0f;
+        }
+        key.keys.front().tangent1 = ep_pre_val;
+        key.keys.back().tangent2 = ep_post_val;
+    }
+
+    msgpack* change_type = msg->read("change_type");
+    if (change_type) {
+        a3da_key_type type = (a3da_key_type)change_type->read_int32_t();
+        switch (type) {
+        case A3DA_KEY_NONE:
+            key.type = A3DA_KEY_NONE;
+            break;
+        case A3DA_KEY_LINEAR:
+        case A3DA_KEY_HERMITE:
+        case A3DA_KEY_HOLD:
+            switch (key.type) {
+            case A3DA_KEY_LINEAR:
+            case A3DA_KEY_HERMITE:
+            case A3DA_KEY_HOLD:
+                key.type = type;
+                break;
+            }
+            break;
+        }
+    }
+}
+
+static void a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
+    if (msg->read_bool("remove")) {
+        rgba = {};
+        return;
+    }
+
+    if (rgba.flags & A3DA_RGBA_R) {
+        msgpack* r = msg->read_map("r");
+        if (r)
+            a3da_msgpack_read_key(rgba.r, r);
+
+        if (rgba.r.type == A3DA_KEY_NONE) {
+            rgba.r = {};
+            enum_and(rgba.flags, ~A3DA_RGBA_R);
+        }
+    }
+    
+    if (rgba.flags & A3DA_RGBA_G) {
+        msgpack* g = msg->read_map("g");
+        if (g)
+            a3da_msgpack_read_key(rgba.g, g);
+
+        if (rgba.g.type == A3DA_KEY_NONE) {
+            rgba.g = {};
+            enum_and(rgba.flags, ~A3DA_RGBA_G);
+        }
+    }
+    
+    if (rgba.flags & A3DA_RGBA_B) {
+        msgpack* b = msg->read_map("b");
+        if (b)
+            a3da_msgpack_read_key(rgba.b, b);
+
+        if (rgba.b.type == A3DA_KEY_NONE) {
+            rgba.b = {};
+            enum_and(rgba.flags, ~A3DA_RGBA_B);
+        }
+    }
+    
+    if (rgba.flags & A3DA_RGBA_A) {
+        msgpack* a = msg->read_map("a");
+        if (a)
+            a3da_msgpack_read_key(rgba.a, a);
+
+        if (rgba.a.type == A3DA_KEY_NONE) {
+            rgba.a = {};
+            enum_and(rgba.flags, ~A3DA_RGBA_A);
+        }
+    }
+}
+
 static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_file) {
     if (!path_check_directory_exists(path))
         return;
@@ -2956,6 +3046,53 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
                             j.instance[index].shadow = instance.read_bool("shadow");
                     }
                 }
+                break;
+            }
+        }
+    }
+
+    msgpack* material_lists = msg.read_array("material_list");
+    if (material_lists) {
+        msgpack_array* ptr = material_lists->data.arr;
+        for (msgpack& i : *ptr) {
+            msgpack& material_list = i;
+
+            std::string name = material_list.read_string("name");
+            uint32_t name_hash = hash_string_murmurhash(name);
+
+            bool remove = material_list.read_bool("remove");
+
+            auto j_begin = auth_file->material_list.begin();
+            auto j_end = auth_file->material_list.end();
+            for (auto j = j_begin; j != j_end; j++) {
+                if (name_hash != hash_string_murmurhash(j->name))
+                    continue;
+
+                if (remove) {
+                    auth_file->material_list.erase(j);
+                    break;
+                }
+
+                if (j->flags & A3DA_MATERIAL_LIST_BLEND_COLOR) {
+                    msgpack* blend_color = material_list.read_map("blend_color");
+                    if (blend_color) {
+                        a3da_msgpack_read_rgba(j->blend_color, blend_color);
+                        if (!j->blend_color.flags)
+                            enum_and(j->flags, ~A3DA_MATERIAL_LIST_BLEND_COLOR);
+                    }
+                }
+
+                if (j->flags & A3DA_MATERIAL_LIST_EMISSION) {
+                    msgpack* emission = material_list.read_map("emission");
+                    if (emission) {
+                        a3da_msgpack_read_rgba(j->emission, emission);
+                        if (!j->emission.flags)
+                            enum_and(j->flags, ~A3DA_MATERIAL_LIST_EMISSION);
+                    }
+                }
+
+                if (!j->flags)
+                    auth_file->material_list.erase(j);
                 break;
             }
         }

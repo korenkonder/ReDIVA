@@ -278,7 +278,8 @@ void sprite_database::add(sprite_database_file* spr_db_file) {
             spr.id = j.id;
             spr.name.assign(j.name);
             spr.name_hash = hash_string_murmurhash(spr.name);
-            spr.info = { j.index, (uint16_t)((j.texture ? 0x1000 : 0x0000) | spr_set.index) };
+            //spr.info = { j.index, (uint16_t)((j.texture ? 0x1000 : 0x0000) | spr_set.index) };
+            spr.info = { j.index, (uint16_t)((j.texture ? 0x4000 : 0x0000) | spr_set.index) };
             spr.load_count = 1;
 
             spr_ids.push_back({ spr.id, &spr });
@@ -360,7 +361,8 @@ void sprite_database::parse(const spr_db_spr_set_file* set_file,
         spr->id = id;
         spr->name.assign(i.name);
         spr->name_hash = hash_string_murmurhash(spr->name);
-        spr->info = { i.index, (uint16_t)((i.texture ? 0x1000 : 0x0000) | set_index) };
+        //spr->info = { i.index, (uint16_t)((i.texture ? 0x1000 : 0x0000) | set_index) };
+        spr->info = { i.index, (uint16_t)((i.texture ? 0x4000 : 0x0000) | set_index) };
         spr->load_count++;
 
         spr_ids.push_back({ spr->id, spr });
@@ -473,7 +475,8 @@ const spr_db_spr* sprite_database::get_spr_by_set_id_index(uint32_t set_id, uint
 }
 
 const spr_db_spr* sprite_database::get_tex_by_set_id_index(uint32_t set_id, uint32_t index) const {
-    auto elem = spr_indices.find({ (uint16_t)index, (uint16_t)(0x1000 | get_spr_set_by_id(set_id)->index) });
+    //auto elem = spr_indices.find({ (uint16_t)index, (uint16_t)(0x1000 | get_spr_set_by_id(set_id)->index) });
+    auto elem = spr_indices.find({ (uint16_t)index, (uint16_t)(0x4000 | get_spr_set_by_id(set_id)->index) });
     if (elem != spr_indices.end())
         return elem->second;
     return &spr_db_spr_null;

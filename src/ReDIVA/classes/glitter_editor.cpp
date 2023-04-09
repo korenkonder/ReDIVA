@@ -5298,11 +5298,12 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt,
                 value = n->frame == crv_edt->frame ? n->value : c->value;
                 break;
             case Glitter::KEY_LINEAR:
-                value = interpolate_linear_value(c->value, n->value,
+                value = Glitter::Curve::InterpolateLinear(c->value, n->value,
                     (float_t)c->frame, (float_t)n->frame, (float_t)crv_edt->frame);
                 break;
             case Glitter::KEY_HERMITE:
-                value = interpolate_chs_value(c->value, n->value, c->tangent2, n->tangent1,
+                value = Glitter::Curve::InterpolateHermite(
+                    c->value, n->value - c->value, c->tangent2, n->tangent1,
                     (float_t)c->frame, (float_t)n->frame, (float_t)crv_edt->frame);
                 break;
             }
@@ -6810,13 +6811,13 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                         break;
                     case Glitter::KEY_LINEAR:
                     default:
-                        value = interpolate_linear_value(c_value_vec, n_value_vec,
-                            (float_t)c->frame, (float_t)n->frame, (float_t)start_time);
+                        value = Glitter::Curve::InterpolateLinear(c_value_vec, n_value_vec,
+                            vec3((float_t)c->frame), vec3((float_t)n->frame), vec3((float_t)start_time));
                         break;
                     case Glitter::KEY_HERMITE:
-                        value = interpolate_chs_value(c_value_vec, n_value_vec,
-                            (float_t)c->tangent2, (float_t)n->tangent1,
-                            (float_t)c->frame, (float_t)n->frame, (float_t)start_time);
+                        value = Glitter::Curve::InterpolateHermite(c_value_vec, n_value_vec - c_value_vec,
+                            vec3((float_t)c->tangent2), vec3((float_t)n->tangent1),
+                            vec3((float_t)c->frame), vec3((float_t)n->frame), vec3((float_t)start_time));
                         break;
                     }
                 else
@@ -6857,13 +6858,13 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                         break;
                     case Glitter::KEY_LINEAR:
                     default:
-                        value = interpolate_linear_value(c_value_vec, n_value_vec,
-                            (float_t)c->frame, (float_t)n->frame, (float_t)end_time);
+                        value = Glitter::Curve::InterpolateLinear(c_value_vec, n_value_vec,
+                            vec3((float_t)c->frame), vec3((float_t)n->frame), vec3((float_t)end_time));
                         break;
                     case Glitter::KEY_HERMITE:
-                        value = interpolate_chs_value(c_value_vec, n_value_vec,
-                            (float_t)c->tangent2, (float_t)n->tangent1,
-                            (float_t)c->frame, (float_t)n->frame, (float_t)end_time);
+                        value = Glitter::Curve::InterpolateHermite(c_value_vec, n_value_vec - c_value_vec,
+                            vec3((float_t)c->tangent2), vec3((float_t)n->tangent1),
+                            vec3((float_t)c->frame), vec3((float_t)n->frame), vec3((float_t)end_time));
                         break;
                     }
                 }
@@ -6923,9 +6924,9 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 const float_t x1 = canvas_pos.x + (float_t)(c_frame - base_start_time) * frame_width;
                 const float_t x2 = canvas_pos.x + (float_t)(n_frame - base_start_time) * frame_width;
 
-                const float_t _c_value = interpolate_linear_value(c_value, n_value,
+                const float_t _c_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
                     (float_t)c->frame, (float_t)n->frame, (float_t)c_frame);
-                const float_t _n_value = interpolate_linear_value(c_value, n_value,
+                const float_t _n_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
                     (float_t)c->frame, (float_t)n->frame, (float_t)n_frame);
 
                 const vec3 c_value_vec = { _c_value + c_random_range, _c_value, _c_value - c_random_range };
@@ -6953,27 +6954,27 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 const vec3 n_value_vec = { n_value + n_random_range, n_value, n_value - n_random_range };
                 const vec3 c_tangent2_vec = c_tangent2;
                 const vec3 n_tangent1_vec = n_tangent1;
-                const size_t frame_width_int = (size_t)roundf(frame_width);
-                for (size_t j = c->frame; j < n->frame; j++) {
+                const int32_t frame_width_int = (int32_t)roundf(frame_width);
+                for (int32_t j = c->frame; j < n->frame; j++) {
                     if (j < start_time)
                         continue;
                     else if (j >= end_time)
                         break;
 
-                    for (size_t k = 0; k < frame_width_int; k++) {
-                        const float_t frame = (float_t)(int32_t)j + (float_t)(int32_t)k / frame_width;
+                    for (int32_t k = 0; k < frame_width_int; k++) {
+                        const float_t frame = (float_t)j + (float_t)k / frame_width;
                         const vec3 frame_vec = frame;
 
-                        const vec3 value = interpolate_chs_value(c_value_vec, n_value_vec,
+                        const vec3 value = Glitter::Curve::InterpolateHermite(c_value_vec, n_value_vec - c_value_vec,
                             c_tangent2_vec, n_tangent1_vec, c_frame_vec, n_frame_vec, frame_vec);
                         const vec3 random = !random_range_mult
                             ? random_range : glt_type_ft
                             ? (random_range * value) : (random_range * value * 0.01f);
 
                         const float_t x1 = canvas_pos.x
-                            + (float_t)(int32_t)(j - base_start_time) * frame_width + (float_t)(int32_t)k;
+                            + (float_t)(j - base_start_time) * frame_width + (float_t)k;
                         const float_t x2 = canvas_pos.x
-                            + (float_t)(int32_t)(j - base_start_time) * frame_width + (float_t)(int32_t)(k + 1);
+                            + (float_t)(j - base_start_time) * frame_width + (float_t)(k + 1);
                         glitter_editor_curve_editor_window_draw_random_range(crv_edt, x1, x2,
                             value, random, min, max, random_range_negate,
                             canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
@@ -7008,11 +7009,11 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     break;
                 case Glitter::KEY_LINEAR:
                 default:
-                    value = interpolate_linear_value(c_value, n_value,
+                    value = Glitter::Curve::InterpolateLinear(c_value, n_value,
                         (float_t)c->frame, (float_t)n->frame, (float_t)start_time);
                     break;
                 case Glitter::KEY_HERMITE:
-                    value = interpolate_chs_value(c_value, n_value,
+                    value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
                         (float_t)c->tangent2, (float_t)n->tangent1,
                         (float_t)c->frame, (float_t)n->frame, (float_t)start_time);
                     break;
@@ -7051,11 +7052,11 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     break;
                 case Glitter::KEY_LINEAR:
                 default:
-                    value = interpolate_linear_value(c_value, n_value,
+                    value = Glitter::Curve::InterpolateLinear(c_value, n_value,
                         (float_t)c->frame, (float_t)n->frame, (float_t)end_time);
                     break;
                 case Glitter::KEY_HERMITE:
-                    value = interpolate_chs_value(c_value, n_value,
+                    value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
                         (float_t)c->tangent2, (float_t)n->tangent1,
                         (float_t)c->frame, (float_t)n->frame, (float_t)end_time);
                     break;
@@ -7115,9 +7116,9 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             const float_t x1 = canvas_pos.x + (float_t)(c_frame - base_start_time) * frame_width;
             const float_t x2 = canvas_pos.x + (float_t)(n_frame - base_start_time) * frame_width;
 
-            const float_t _c_value = interpolate_linear_value(c_value, n_value,
+            const float_t _c_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
                 (float_t)c->frame, (float_t)n->frame, (float_t)c_frame);
-            const float_t _n_value = interpolate_linear_value(c_value, n_value,
+            const float_t _n_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
                 (float_t)c->frame, (float_t)n->frame, (float_t)n_frame);
 
             const float_t y1 = convert_value_to_height(crv_edt, _c_value,
@@ -7139,7 +7140,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             const float_t c_tangent2 = (float_t)c->tangent2;
             const float_t n_tangent1 = (float_t)n->tangent1;
 
-            float_t value = interpolate_chs_value(c_value, n_value,
+            float_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
                 c_tangent2, n_tangent1,
                 c_frame, n_frame, (float_t)max_def(c->frame, start_time));
             float_t x = canvas_pos.x + (float_t)(max_def(c->frame, start_time)
@@ -7149,19 +7150,19 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             if (!points.size() || points.back().x < x || points.back().y != y)
                 points.push_back({ x, y });
 
-            const size_t frame_width_int = (size_t)roundf(frame_width);
-            for (size_t j = c->frame; j < n->frame; j++) {
+            const int32_t frame_width_int = (int32_t)roundf(frame_width);
+            for (int32_t j = c->frame; j < n->frame; j++) {
                 if (j < start_time)
                     continue;
                 else if (j >= end_time)
                     break;
 
-                for (size_t k = 0; k < frame_width_int; k++) {
-                    const float_t value = interpolate_chs_value(c_value, n_value, c_tangent2, n_tangent1,
-                        c_frame, n_frame, (float_t)(int32_t)j + (float_t)(int32_t)k / frame_width);
+                for (int32_t k = 0; k < frame_width_int; k++) {
+                    const float_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
+                        c_tangent2, n_tangent1, c_frame, n_frame, (float_t)j + (float_t)k / frame_width);
 
                     float_t x = canvas_pos.x
-                        + (float_t)(int32_t)(j - base_start_time) * frame_width + (float_t)(int32_t)k;
+                        + (float_t)(j - base_start_time) * frame_width + (float_t)k;
                     const float_t y = convert_value_to_height(crv_edt, value,
                         canvas_pos.y, canvas_size.y, min, max);
 

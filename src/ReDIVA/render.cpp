@@ -203,7 +203,7 @@ int32_t render_main(render_init_struct* ris) {
     if (!render_lock)
         return 0;
 
-    render_timer = new timer(60.0);
+    render_timer = new timer(600.0);
 
     window_handle = 0;
 

@@ -871,7 +871,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             uint32_t id = hash_string_murmurhash(name);
             ids.push_back(id);
 
-            tex_db->texture.push_back({});
+            tex_db->texture.emplace_back();
             texture_info* info = &tex_db->texture.back();
             info->name.assign(name);
             info->name_hash = hash_string_murmurhash(info->name);
