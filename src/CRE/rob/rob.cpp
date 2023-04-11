@@ -8653,9 +8653,8 @@ static void rob_chara_set_hands_adjust(rob_chara* rob_chr) {
 static void sub_14040AE10(mat4* mat, const vec3 a2) {
     vec3 v8;
     mat4_mult_vec3_inv_trans(mat, &a2, &v8);
-    float_t v3 = v8.x * v8.x + v8.y * v8.y;
-    float_t v5 = sqrtf(v3);
-    float_t v6 = sqrtf(v3 + (v8.z * v8.z));
+    float_t v5 = vec2::length(*(vec2*)&v8);
+    float_t v6 = vec3::length(v8);
     if (fabsf(v5) > 0.000001f && fabsf(v6) > 0.000001f) {
         float_t v7 = v5;
         v5 = 1.0f / v5;
