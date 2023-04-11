@@ -263,10 +263,9 @@ namespace Glitter {
     };
 
     void axis_angle_from_vectors(vec3* axis, float_t* angle, const vec3* vec1, const vec3* vec2) {
-        float_t t;
+        *axis = vec3::cross(*vec1, *vec2);
+        *angle = vec3::length(*axis);
 
-        vec3_cross(*vec1, *vec2, *axis);
-        vec3_length(*axis, *angle);
         if (*angle >= 0.000001f)
             *angle = asinf(min_def(*angle, 1.0f));
         else {
@@ -274,16 +273,14 @@ namespace Glitter {
             axis->x = vec1->z;
             axis->y = 0.0f;
             axis->z = vec1->x;
-            vec3_length(*axis, t);
-            if (t < 0.000001f) {
+            if (vec3::length(*axis) < 0.000001f) {
                 axis->x = -vec1->y;
                 axis->y = vec1->x;
                 axis->z = 0.0f;
             }
         }
 
-        vec3_dot(*vec1, *vec2, t);
-        if (t < 0.0f)
+        if (vec3::dot(*vec1, *vec2) < 0.0f)
             *angle = (float_t)M_PI - *angle;
     }
 }

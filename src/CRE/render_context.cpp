@@ -2481,13 +2481,13 @@ chara_refract(), view_mat(), matrix_buffer(), box_vao(), box_vbo() {
         glBufferData(GL_ARRAY_BUFFER, sizeof(box_texcoords), box_texcoords, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 64, (void*)0);
+    glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 64, (void*)16);
+    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)(sizeof(float_t) * 4));
     glEnableVertexAttribArray(2);
-    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, 64, (void*)32);
+    glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)(sizeof(float_t) * 8));
     glEnableVertexAttribArray(3);
-    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, 64, (void*)48);
+    glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)(sizeof(float_t) * 12));
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
@@ -2907,11 +2907,10 @@ void shadow::ctrl(render_context* rctx) {
         if (field_2EC >= 2) {
             vec3 v12 = field_1A8[0] - interest_shared;
             vec3 v14 = field_1A8[1] - interest_shared;
-            float_t v15 = vec3::dot(v12, direction);
 
-            vec3 v6 = direction * v15 - v12;
+            float_t v6 = vec3::length(direction * vec3::dot(v12, direction) - v12);
 
-            float_t v16 = vec3::length(v6) - 0.25f;
+            float_t v16 = v6 - 0.25f;
             if (v16 < 0.0f)
                 v16 = 0.0f;
 

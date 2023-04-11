@@ -58,9 +58,9 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
         glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 5 * (6 * 16), 0, GL_DYNAMIC_DRAW);
 
     glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 20, (void*)0);
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)0);
     glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 20, (void*)8);
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)(sizeof(float_t) * 2));
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 

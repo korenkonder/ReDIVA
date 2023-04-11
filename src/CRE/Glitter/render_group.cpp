@@ -121,13 +121,10 @@ namespace Glitter {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, position));
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv[0]));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv[1]));
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, color));
 
         gl_state_bind_array_buffer(0);
@@ -217,8 +214,10 @@ namespace Glitter {
         if (!particle || (particle->data.data.flags & PARTICLE_LOOP
             && particle->HasEnded(false)) || rend_elem->frame >= rend_elem->life_time) {
             rend_elem->alive = false;
-            delete rend_elem->locus_history;
-            rend_elem->locus_history = 0;
+            if (rend_elem->locus_history) {
+                delete rend_elem->locus_history;
+                rend_elem->locus_history = 0;
+            }
             ctrl--;
             return;
         }
@@ -467,13 +466,10 @@ namespace Glitter {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, position));
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv[0]));
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));
         glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv[1]));
-        glEnableVertexAttribArray(3);
-        glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, buffer_size,
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(Buffer, color));
 
         gl_state_bind_array_buffer(0);
@@ -567,8 +563,10 @@ namespace Glitter {
         if (!particle || (particle->data.data.flags & PARTICLE_LOOP
             && particle->HasEnded(false)) || rend_elem->frame >= rend_elem->life_time) {
             rend_elem->alive = false;
-            delete rend_elem->locus_history;
-            rend_elem->locus_history = 0;
+            if (rend_elem->locus_history) {
+                delete rend_elem->locus_history;
+                rend_elem->locus_history = 0;
+            }
             ctrl--;
             return;
         }
@@ -581,18 +579,16 @@ namespace Glitter {
         else
             rend_elem->rotation.z += rend_elem->rotation_add.z * delta_frame;
 
-        vec2 uv_scroll;
-        vec2_mult_scalar(particle->data.data.uv_scroll_add,
-            particle->data.data.uv_scroll_add_scale * delta_frame, uv_scroll);
+        vec2 uv_scroll = particle->data.data.uv_scroll_add
+            * (particle->data.data.uv_scroll_add_scale * delta_frame);
         if (uv_scroll.x != 0.0f)
             rend_elem->uv_scroll.x = fmodf(rend_elem->uv_scroll.x + uv_scroll.x, 1.0f);
         if (uv_scroll.y != 0.0f)
             rend_elem->uv_scroll.y = fmodf(rend_elem->uv_scroll.y + uv_scroll.y, 1.0f);
 
         if (particle->data.data.sub_flags & PARTICLE_SUB_UV_2ND_ADD) {
-            vec2 uv_scroll_2nd;
-            vec2_mult_scalar(particle->data.data.uv_scroll_2nd_add,
-                particle->data.data.uv_scroll_2nd_add_scale * delta_frame, uv_scroll_2nd);
+            vec2 uv_scroll_2nd = particle->data.data.uv_scroll_2nd_add
+                * (particle->data.data.uv_scroll_2nd_add_scale * delta_frame);
             if (uv_scroll_2nd.x != 0.0f)
                 rend_elem->uv_scroll_2nd.x = fmodf(rend_elem->uv_scroll_2nd.x + uv_scroll_2nd.x, 1.0f);
             if (uv_scroll_2nd.y != 0.0f)

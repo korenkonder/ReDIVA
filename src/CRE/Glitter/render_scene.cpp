@@ -783,11 +783,9 @@ namespace Glitter {
 
                     vec3 pos = elem->translation;
                     if (has_scale) {
-                        vec3 pos_diff;
-                        vec3_sub(pos, elem->base_translation, pos_diff);
-                        vec3_mult(pos_diff, scale, pos_diff);
+                        vec3 pos_diff = (pos - elem->base_translation) * scale;
                         mat4_mult_vec3(&inv_model_mat, &pos_diff, &pos_diff);
-                        vec3_add(pos, pos_diff, pos);
+                        pos += pos_diff;
                     }
 
                     float_t v00;

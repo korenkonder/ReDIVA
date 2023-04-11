@@ -2439,14 +2439,10 @@ static void sub_140509D30(rob_chara* rob_chr) {
 
         float_t chara_scale = rob_chr->data.adjust_data.scale;
 
-        vec3 v23;
-        vec3_mult_scalar(*(vec3*)&v42->row3, chara_scale, v23);
-        vec3_add(v23, rob_chr->data.adjust_data.trans, v23);
+        vec3 v23 = *(vec3*)&v42->row3 * chara_scale + rob_chr->data.adjust_data.trans;
         *(vec3*)&v42->row3 = v23;
 
-        vec3 v29;
-        vec3_mult_scalar(*(vec3*)&v43->row3, chara_scale, v23);
-        vec3_add(v23, rob_chr->data.adjust_data.trans, v29);
+        vec3 v29 = *(vec3*)&v43->row3 * chara_scale + rob_chr->data.adjust_data.trans;
         *(vec3*)&v43->row3 = v29;
 
         float_t v20 = v3->scale * chara_scale;
@@ -4054,14 +4050,14 @@ static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2) {
         v5 = a2[MOTION_BONE_CL_MOMO_L].node;
         mat4_get_translation(v5[2].mat, &v30);
         mat4_mult_vec3_inv_trans(a1->node[0].mat, &v30, &v30);
-        vec3_negate(v30, v30);
+        v30 = -v30;
         bone_data_mult_1_ik_legs(a1, &v30);
         break;
     case MOTION_BONE_N_MOMO_A_R_WJ_CD_EX:
         v5 = a2[MOTION_BONE_CL_MOMO_R].node;
         mat4_get_translation(v5[2].mat, &v30);
         mat4_mult_vec3_inv_trans(a1->node[0].mat, &v30, &v30);
-        vec3_negate(v30, v30);
+        v30 = -v30;
         bone_data_mult_1_ik_legs(a1, &v30);
         break;
     case MOTION_BONE_N_HARA_CD_EX:
@@ -4081,28 +4077,27 @@ static void bone_data_mult_1_ik_hands(bone_data* a1, vec3* a2) {
     mat4_mult_vec3_inv_trans(a1->node[0].mat, a2, &v15);
 
     float_t len;
-    vec3_length_squared(v15, len);
+    len = vec3::length_squared(v15);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        vec3_mult_scalar(v15, 1.0f / len, v15);
+        v15 *= 1.0f / len;
 
     vec3 v17;
     v17.x = -v15.z * v15.x - v15.z;
     v17.y = -v15.y * v15.z;
     v17.z = v15.x * v15.x + v15.y * v15.y + v15.x;
-    vec3_length_squared(v17, len);
+    len = vec3::length_squared(v17);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        vec3_mult_scalar(v17, 1.0f / len, v17);
+        v17 *= 1.0f / len;
 
-    vec3 v16;
-    vec3_cross(v17, v15, v16);
+    vec3 v16 = vec3::cross(v17, v15);
 
     mat4 rot_mat = mat4_identity;
     *(vec3*)&rot_mat.row0 = v15;
@@ -4113,16 +4108,15 @@ static void bone_data_mult_1_ik_hands(bone_data* a1, vec3* a2) {
 }
 
 static void bone_data_mult_1_ik_hands_2(bone_data* a1, vec3* a2, float_t a3) {
-    float_t len;
     vec3 v8;
-
     mat4_mult_vec3_inv_trans(a1->node[0].mat, a2, &v8);
     v8.x = 0.0f;
-    vec3_length(v8, len);
+
+    float_t len = vec3::length(v8);
     if (len <= 0.000001f)
         return;
 
-    vec3_mult_scalar(v8, 1.0f / len, v8);
+    v8 *= 1.0f / len;
     float_t angle = atan2f(v8.z, v8.y);
     mat4_rotate_x_mult(a1->node[0].mat, angle * a3, a1->node[0].mat);
 }
@@ -4131,29 +4125,28 @@ static void bone_data_mult_1_ik_legs(bone_data* a1, vec3* a2) {
     vec3 v9 = *a2;
 
     float_t len;
-    vec3_length_squared(v9, len);
+    len = vec3::length_squared(v9);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        vec3_mult_scalar(v9, 1.0f / len, v9);
+        v9 *= 1.0f / len;
 
     vec3 v8;
     v8.x = -v9.z * v9.x;
     v8.y = -v9.z * v9.y - v9.z;
     v8.z = v9.y * v9.y - v9.x * -v9.x + v9.y;
 
-    vec3_length_squared(v8, len);
+    len = vec3::length_squared(v8);
     if (len <= 0.000001f)
         return;
 
     len = sqrtf(len);
     if (len != 0.0f)
-        vec3_mult_scalar(v8, 1.0f / len, v8);
+        v8 *= 1.0f / len;
 
-    vec3 v10;
-    vec3_cross(v9, v8, v10);
+    vec3 v10 = vec3::cross(v9, v8);
 
     mat4 rot_mat = mat4_identity;
     *(vec3*)&rot_mat.row0 = v10;
@@ -4286,10 +4279,8 @@ static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
 
     vec3 v30;
     mat4_mult_vec3_inv_trans(&mat, &a1->ik_target, &v30);
-    float_t v6;
-    float_t v8;
-    vec2_length_squared(*(vec2*)&v30, v6);
-    vec3_length_squared(v30, v8);
+    float_t v6 = vec2::length_squared(*(vec2*)&v30);
+    float_t v8 = vec3::length_squared(v30);
     float_t v9 = sqrtf(v6);
     float_t v10 = sqrtf(v8);
     mat4 rot_mat;
@@ -4305,10 +4296,9 @@ static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select) {
         vec3 pole_target;
         mat4_get_translation(a1->pole_target_mat, &pole_target);
         mat4_mult_vec3_inv_trans(&mat, &pole_target, &pole_target);
-        float_t pole_target_length;
-        vec2_length(*(vec2*)&pole_target.y, pole_target_length);
+        float_t pole_target_length = vec2::length(*(vec2*)&pole_target.y);
         if (pole_target_length > 0.000001f) {
-            vec3_mult_scalar(pole_target, 1.0f / pole_target_length, pole_target);
+            pole_target *= 1.0f / pole_target_length;
             float_t rot_cos = pole_target.y;
             float_t rot_sin = pole_target.z;
             mat4_rotate_x_mult_sin_cos(&mat, rot_sin, rot_cos, &mat);
@@ -5189,7 +5179,7 @@ static void mothead_func_17(mothead_func_data* func_data,
         + (float_t)(v5->field_1588.field_330.field_20.y * v5->field_1588.field_330.field_20.y))
         + (float_t)(v5->field_1588.field_330.field_20.z * v5->field_1588.field_330.field_20.z);
     if (_mm_sqrt_ps(v29).m128_f32[0] > v18) {
-        vec3_normalize(&v5->field_1588.field_330.field_20);
+        vec3::normalize(&v5->field_1588.field_330.field_20);
         v30 = v18 * *v11;
         v31 = v18 * v5->field_1588.field_330.field_20.y;
         v5->field_1588.field_330.field_20.z = v18 * v5->field_1588.field_330.field_20.z;
@@ -6179,10 +6169,8 @@ static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     }
 
     keyframe_data = (vec3*)&a1->mot_key_data.key_set_data.data()[bone_key_set_count];
-    vec3 global_trans = keyframe_data[0];
+    vec3 global_trans = reverse ? -keyframe_data[0] : keyframe_data[0];
     vec3 global_rotation = keyframe_data[1];
-    if (reverse)
-        vec3_negate(global_trans, global_trans);
     a1->bone_data.global_trans = global_trans;
     a1->bone_data.global_rotation = global_rotation;
 
@@ -6411,7 +6399,7 @@ static void sub_140412E10(motion_blend_mot* a1, int32_t skeleton_select) {
             & a1->field_0.field_8.bitfield.data()[i.motion_bone_index >> 5]) {
             sub_1401EB1D0(&i, skeleton_select);
             if (i.type == BONE_DATABASE_BONE_POSITION_ROTATION && (a1->field_4F8.field_0 & 0x02))
-                vec3_add(i.trans_prev[skeleton_select], a1->field_4F8.field_90, i.trans_prev[skeleton_select]);
+                i.trans_prev[skeleton_select] += a1->field_4F8.field_90;
         }
 }
 
@@ -6580,8 +6568,8 @@ static void sub_140507F60(rob_chara* rob_chr) {
 
     mat4* v3 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, ROB_BONE_N_HARA);
     mat4_get_translation(v3, &rob_chr->data.miku_rot.field_24);
-    vec3_sub(rob_chr->data.miku_rot.field_24,
-        rob_chr->data.miku_rot.field_48, rob_chr->data.miku_rot.field_54);
+    rob_chr->data.miku_rot.field_54 = rob_chr->data.miku_rot.field_24
+        - rob_chr->data.miku_rot.field_48;
 
     mat4* v8 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, ROB_BONE_N_HARA_CP);
     vec3 v10 = { 0.0f, 0.0f, 1.0f };
@@ -6607,12 +6595,8 @@ void rob_chara_data_adjust_ctrl(rob_chara* rob_chr, rob_chara_data_adjust* adjus
         break;
     }
 
-    vec3 v8;
-    vec3 v9;
-    vec3_add_scalar(adjust->external_force_cycle, v7, v8);
-    vec3_mult(adjust->external_force, adjust->external_force_cycle_strength, v9);
-    vec3_mult(v8, v9, v9);
-    vec3_add(v9, adjust->external_force, adjust->curr_external_force);
+    adjust->curr_external_force = (adjust->external_force_cycle + v7)
+        * (adjust->external_force * adjust->external_force_cycle_strength) + adjust->external_force;
 
     if (adjust->type == 1) {
         mat4 mat = mat4_identity;
@@ -7804,8 +7788,7 @@ static void sub_140504AC0(rob_chara* rob_chr) {
     vec3 v4 = rob_chr->data.miku_rot.field_30;
     vec3 v20 = 0.0f;
     if (rob_chr->data.field_0 & 0x02) {
-        vec3_add(v4, rob_chr->data.miku_rot.field_3C, v20);
-        vec3_add(v20, rob_chr->data.field_8.field_B8.field_10, v20);
+        v20 = v4 + rob_chr->data.miku_rot.field_3C + rob_chr->data.field_8.field_B8.field_10;
         v4.y = rob_chr->data.field_8.field_B8.field_10.y
             - get_osage_gravity_const() * rob_chr->data.field_1588.field_0.field_200;
     }
@@ -7872,7 +7855,7 @@ static void sub_140504AC0(rob_chara* rob_chr) {
 
     rob_chr->data.miku_rot.field_30 = v4;
     rob_chr->data.miku_rot.field_3C = 0.0f;
-    vec3_add(v20, rob_chr->data.miku_rot.position, rob_chr->data.miku_rot.position);
+    rob_chr->data.miku_rot.position = v20 + rob_chr->data.miku_rot.position;
 }
 
 static void rob_base_rob_chara_ctrl_thread_main(rob_chara* rob_chr) {
@@ -8119,23 +8102,19 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
     vec3 v67;
     mat4_mult_vec3_inv_trans(v73, &a1->field_184, &v67);
 
-    float_t v26;
-    vec3_length(v67, v26);
-    if (v26 < 0.000001f)
+    if (vec3::length(v67) < 0.000001f)
         return;
 
     vec3 v68;
     mat4_mult_vec3_inv_trans(v73, &v69, &v68);
 
-    float_t v28;
-    vec3_length(v68, v28);
+    float_t v28 = vec3::length(v68);
     if (v28 < 0.000001f)
         return;
 
-    vec3_normalize(v67, v67);
-    vec3_mult_scalar(v67, v28, v68);
-    float_t v39;
-    vec2_length(*(vec2*)&v67, v39);
+    v67 = vec3::normalize(v67);
+    v68 = v67 * v28;
+    float_t v39 = vec2::length(*(vec2*)&v67);
 
     float_t v38;
     if (a1->field_1C8 == 3)
@@ -8143,8 +8122,7 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
     else
         v38 = (float_t)(75.0 * DEG_TO_RAD);
 
-    float_t v31;
-    vec3_length(v67, v31);
+    float_t v31 = vec3::length(v67);
 
     bool v36;
     float_t v40;
@@ -8275,7 +8253,7 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
     float_t v51 = (v48 - atan2f(-v68.x, v68.y)) * a1->field_198;
     vec3 v71 = *(vec3*&)v73->row2;
     v71.y += 1.0f;
-    vec3_mult_scalar(v71, 0.5f, v71);
+    v71 *= 0.5f;
 
     mat4 v72 = *v7[MOTION_BONE_CL_KAO].node[1].mat;
     mat4_mult_axis_angle(&v72, &v71, v51, &v72);
@@ -8285,7 +8263,7 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
     if (v36)
         v52 = a1->field_1A0;
     else
-        vec2_length(*(vec2*)&v67, v52);
+        v52 = vec2::length(*(vec2*)&v67);
 
     if (a1->field_190) {
         float_t v55 = fabsf(v49);
@@ -8473,15 +8451,13 @@ static void sub_140409170(struc_258* a1, mat4* a2, std::vector<bone_data>* a3, m
         mat4_get_translation(v19->data()[MOTION_BONE_KL_EYE_L].parent_mat, &v52);
         mat4_get_translation(v19->data()[MOTION_BONE_KL_EYE_R].parent_mat, &v54);
 
-        vec3_add(v52, v54, v52);
-        vec3_mult_scalar(v52, 0.5f, v54);
+        v54 = (v52 + v54) * 0.5f;
         mat4_set_translation(mat, &v54);
 
         vec3 v53;
         mat4_mult_vec3_inv_trans(mat, &a1->field_C0, &v53);
 
-        float_t v37;
-        vec3_length(v53, v37);
+        float_t v37 = vec3::length(v53);
         if (fabsf(v37) <= 0.000001f || v53.x * v53.x + v53.z * v53.z <= 0.01f) {
             v29 = 0.0f;
             v32 = 0.0f;
@@ -8489,7 +8465,7 @@ static void sub_140409170(struc_258* a1, mat4* a2, std::vector<bone_data>* a3, m
         else if (v37 < a1->field_B0) {
             v53.z = fabsf(v53.z);
 
-            vec3_mult_scalar(v53, a1->field_B0 / v37, v53);
+            v53 *= a1->field_B0 / v37;
             mat4_mult_vec3_trans(mat, &v53, &v53);
 
             vec3 v56;
@@ -8525,7 +8501,7 @@ static void sub_140409170(struc_258* a1, mat4* a2, std::vector<bone_data>* a3, m
 
     vec3 v58;
     mat4_mult_vec3_inv_trans(v19->data()[MOTION_BONE_KL_EYE_L].parent_mat, &a1->field_C0, &v58);
-    vec3_sub(v58, a1->field_48.field_20, v58);
+    v58 -= a1->field_48.field_20;
 
     vec3 v56;
     v56.x = v43;
@@ -8546,7 +8522,7 @@ static void sub_140409170(struc_258* a1, mat4* a2, std::vector<bone_data>* a3, m
     mat4_mult_vec3_inv_trans(v19->data()[MOTION_BONE_KL_EYE_R].parent_mat, &a1->field_C0, &v59);
     vec3 v60 = a1->field_48.field_20;
     v60.x = -v60.x;
-    vec3_sub(v59, v60, v59);
+    v59 -= v60;
 
     sub_140406FC0(a1, &v19->data()[MOTION_BONE_KL_EYE_R], &a1->field_10C, &v59, &v55, &v56, a7, v11, v15);
 
@@ -8674,9 +8650,9 @@ static void rob_chara_set_hands_adjust(rob_chara* rob_chr) {
             &rob_chr->data.motion.hand_adjust_prev[i]);
 }
 
-static void sub_14040AE10(mat4* mat, vec3* a2) {
+static void sub_14040AE10(mat4* mat, const vec3 a2) {
     vec3 v8;
-    mat4_mult_vec3_inv_trans(mat, a2, &v8);
+    mat4_mult_vec3_inv_trans(mat, &a2, &v8);
     float_t v3 = v8.x * v8.x + v8.y * v8.y;
     float_t v5 = sqrtf(v3);
     float_t v6 = sqrtf(v3 + (v8.z * v8.z));
@@ -8699,11 +8675,11 @@ static void sub_140406A70(vec3* a1, std::vector<bone_data>* bones, mat4* a3, vec
         mat4_get_translation(v14->pole_target_mat, &v36);
 
         mat4 v38 = *v14->node->mat;
-        sub_14040AE10(&v38, &v14->ik_target);
+        sub_14040AE10(&v38, v14->ik_target);
         mat4_mult_vec3_inv_trans(&v38, &v36, &v36);
 
         v38 = *v14->node->mat;
-        sub_14040AE10(&v38, a4);
+        sub_14040AE10(&v38, *a4);
 
         vec3 v37;
         mat4_mult_vec3_trans(&v38, &v36, &v37);
@@ -8776,8 +8752,7 @@ static bool sub_14053ACA0(rob_chara* rob_chr, int32_t hand) {
     mat4 v42;
     mat4_mult(v40, &adjust_data.mat, &v42);
 
-    vec3 v37;
-    vec3_mult_scalar(rob_chr->data.motion.hand_adjust[hand].offset, 1.0f - chara_scale / adjust_scale, v37);
+    vec3 v37 = rob_chr->data.motion.hand_adjust[hand].offset * (1.0f - chara_scale / adjust_scale);
 
     vec3 v38;
     mat4_mult_vec3_trans(&v42, &v37, &v38);
@@ -8790,13 +8765,12 @@ static bool sub_14053ACA0(rob_chara* rob_chr, int32_t hand) {
     if (rob_chr->data.motion.hand_adjust[hand].disable_z)
         v27.z = v40->row3.z - v38.z;
 
-    vec3 v39;
-    vec3_add(v38, v27, v39);
+    vec3 v39 = v38 + v27;
 
     vec3 v18 = 0.0f;
     if (v15 > 0) {
         mat4_mult_vec3_trans(&v42, &rob_chr->data.motion.hand_adjust[hand].offset, &v38);
-        vec3_add(v38, v27, v18);
+        v18 = v38 + v27;
     }
 
     sub_140418A00(rob_chr->bone_data, &v39, off_140C9E020[hand], rotation_blend,
@@ -8806,8 +8780,7 @@ static bool sub_14053ACA0(rob_chara* rob_chr, int32_t hand) {
         mat4* v40 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, rob_kl_te_bones[hand]);
         mat4_set_translation(v40, &v18);
 
-        vec3 v37;
-        vec3_negate(rob_chr->data.motion.hand_adjust[hand].offset, v37);
+        vec3 v37 = -rob_chr->data.motion.hand_adjust[hand].offset;
         mat4_mult_vec3_trans(v40, &v37, &v39);
         if (!--v15) {
             rotation_blend = 1.0f;
@@ -8883,38 +8856,38 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
         v45 = v0.field_10;
         break;
     case 16:
-        vec3_add(v0.field_10, v13, v45);
+        v45 = v0.field_10 + v13;
         break;
     case 10: {
         float_t ratio0 = ((rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28))->ik_scale.ratio0;
-        vec3_mult_scalar(v13, ratio0, v45);
+        v45 = v13 * ratio0;
     } break;
     case 11: {
         float_t ratio1 = ((rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28))->ik_scale.ratio1;
-        vec3_mult_scalar(v13, ratio1, v45);
+        v45 = v13 * ratio1;
     } break;
     case 12: {
         float_t ratio3 = ((rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28))->ik_scale.ratio3;
-        vec3_mult_scalar(v13, ratio3, v45);
+        v45 = v13 * ratio3;
     } break;
     case 13: {
         float_t ratio0 = rob_chr->bone_data->ik_scale.ratio0;
-        vec3_mult_scalar(v13, 1.0f / ratio0, v45);
+        v45 = v13 * (1.0f / ratio0);
     } break;
     case 14: {
         float_t ratio1 = rob_chr->bone_data->ik_scale.ratio1;
-        vec3_mult_scalar(v13, 1.0f / ratio1, v45);
+        v45 = v13 * (1.0f / ratio1);
     } break;
     case 15: {
         float_t ratio3 = rob_chr->bone_data->ik_scale.ratio3;
-        vec3_mult_scalar(v13, 1.0f / ratio3, v45);
+        v45 = v13 * (1.0f / ratio3);
     } break;
     default:
         if (v0.field_C < 16) {
             mat4* v26 = rob_chara_bone_data_get_mats_mat(
                 (rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28), dword_140A2DDD0[v0.field_C]);
             mat4_get_translation(v26, &v45);
-            vec3_add(v45, v0.field_10, v45);
+            v45 += v0.field_10;
         }
         else {
             mat4* v23 = rob_chara_bone_data_get_mats_mat(
@@ -8972,8 +8945,7 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
         break;
     }
 
-    vec3 v36;
-    vec3_sub(v48, v13, v36);
+    vec3 v36 = v48 - v13;
     if (v0.field_1C.x != 0.0f && v36.x < v0.field_1C.x)
         v48.x = v0.field_1C.x + v13.x;
     else if (v0.field_28.x != 0.0f && v36.x > v0.field_28.x)
@@ -9001,12 +8973,9 @@ static void sub_1403F9A40(vec3* a1, vec3* a2, mat4* a3, float_t a4, float_t a5) 
 }
 
 static bool sub_14040AC40(vec3* a1, vec3* a2, float_t a3, vec3* a4) {
-    vec3 v4;
-    vec3_negate(*a2, v4);
-    float_t v7;
-    vec3_dot(*a1, v4, v7);
-    float_t v8;
-    vec3_dot(v4, v4, v8);
+    vec3 v4 = -*a2;
+    float_t v7 = vec3::dot(*a1, v4);
+    float_t v8 = vec3::dot(v4, v4);
     v8 -= a3 * a3;
     if (v8 > 0.0f && v7 > 0.0f)
         return false;
@@ -9015,7 +8984,7 @@ static bool sub_14040AC40(vec3* a1, vec3* a2, float_t a3, vec3* a4) {
     if (v10 < 0.0f)
         return false;
 
-    vec3_mult_scalar(*a1, sqrtf(v10) - v7, *a4);
+    *a4 = *a1 * (sqrtf(v10) - v7);
     return true;
 }
 
@@ -9027,12 +8996,13 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
     mat4_mult_vec3_inv(a3, a1, &v16);
     v16.x = 0.0f;
 
-    float_t v18;
-    vec3_length_squared(v16, v18);
+    float_t v18 = vec3::length_squared(v16);
     if (fabsf(v18) <= 0.000001f)
         goto LABEL_66;
 
-    vec3_normalize(v16, v16);
+    v18 = sqrtf(v18);
+    if (v18 != 0.0f)
+        v16 *= 1.0f / v18;
 
     float_t v23;
     if (zmax - zmin >= ymax - ymin) {
@@ -9047,7 +9017,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
         v52.z = zmax - v23;
         if (fabsf(v16.y) <= 0.000001f) {
             if (fabsf(ymin) <= 0.000001f || fabsf(ymax) <= 0.000001f) {
-                vec3_mult_scalar(v16, a2, v16);
+                v16 *= a2;
                 if (v16.z < zmin + v23) {
                     v16.z = zmin + v23;
                     goto LABEL_66;
@@ -9072,7 +9042,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
                     v32 = a2;
                     v17 = false;
                 }
-                vec3_mult_scalar(v16, v32, v16);
+                v16 *= v32;
                 if (v17)
                     goto LABEL_66;
             }
@@ -9080,8 +9050,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
         else {
             v16.y = 0.0f;
             if (fabsf(v16.z) > 0.000001f) {
-                vec3_normalize(v16, v16);
-                vec3_mult_scalar(v16, a2, v16);
+                v16 = vec3::normalize(v16) * a2;
                 v16.z = clamp_def(v16.z, zmin, zmax);
             }
             goto LABEL_66;
@@ -9099,7 +9068,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
         v52.z = zmax - v23;
         if (fabsf(v16.z) <= 0.000001f) {
             if (fabsf(zmin) <= 0.000001f || fabsf(zmax) <= 0.000001f) {
-                vec3_mult_scalar(v16, a2, v16);
+                v16 *= a2;
                 if (v16.y < ymin + v23) {
                     v16.y = ymin + v23;
                     goto LABEL_66;
@@ -9124,7 +9093,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
                     v32 = a2;
                     v17 = false;
                 }
-                vec3_mult_scalar(v16, v32, v16);
+                v16 *= v32;
                 if (v17)
                     goto LABEL_66;
             }
@@ -9132,8 +9101,7 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
         else {
             v16.z = 0.0f;
             if (fabsf(v16.y) > 0.000001f) {
-                vec3_normalize(v16, v16);
-                vec3_mult_scalar(v16, a2, v16);
+                v16 = vec3::normalize(v16) * a2;
                 v16.y = clamp_def(v16.y, ymin, ymax);
             }
             goto LABEL_66;
@@ -9147,34 +9115,27 @@ static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
             goto LABEL_66;
         }
 
-        float_t v40;
-        vec3_length(v51, v40);
+        float_t v40 = vec3::length(v51);
         bool v17 = true;
         if (a2 < v40) {
             v40 = a2;
             v17 = false;
         }
-        vec3_mult_scalar(v16, v40, v16);
+        v16 *= v40;
         if (v17)
             goto LABEL_66;
     }
 
 LABEL_60:
-    {
-        float_t v20;
-        vec3_dot(*a8, v16, v20);
-        if (v20 != 0.0f) {
-            float_t v43;
-            vec3_length(*a8, v43);
-            float_t v44 = v43 + (v43 * 0.97f - v43) * step;
+    if (vec3::dot(*a8, v16) != 0.0f) {
+        float_t v43 = vec3::length(*a8);
+        float_t v44 = v43 + (v43 * 0.97f - v43) * step;
 
-            float_t v45;
-            vec3_length(v16, v45);
-            if (v45 < v44) {
-                if (v45 != 0.0f)
-                    vec3_mult_scalar(v16, 1.0f / v45, v16);
-                vec3_mult_scalar(v16, v44, v16);
-            }
+        float_t v45 = vec3::length(v16);
+        if (v45 < v44) {
+            if (v45 != 0.0f)
+                v16 *= 1.0f / v45;
+            v16 *= v44;
         }
     }
 
@@ -9197,14 +9158,9 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
     vec3 v40;
     sub_1403F9A40(&v40, &v43, v5, a1->sleeve_r.cyofs, a1->sleeve_r.czofs);
 
-    vec3 v45;
-    vec3_sub(v41, v40, v45);
-
-    vec3 v44;
-    vec3_sub(v40, v41, v44);
-
-    float_t v20;
-    vec3_distance(v41, v40, v20);
+    vec3 v45 = v41 - v40;
+    vec3 v44 = v40 - v41;
+    float_t v20 = vec3::distance(v41, v40);
 
     float_t v21 = (a1->sleeve_l.radius * a1->radius + a1->sleeve_r.radius - v20) * 0.5f;
     float_t v22 = (a1->sleeve_r.radius * a1->radius + a1->sleeve_l.radius - v20) * 0.5f;
@@ -9213,14 +9169,14 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
     bool v17 = false;
     if (v21 <= 0.0f) {
         v16 = false;
-        vec3_length(a1->field_5C, v21);
+        v21 = vec3::length(a1->field_5C);
         float_t v25 = (0.97f * v21 - v21) * a1->step + v21;
         if (v21 <= 0.001f || v25 <= 0.0f) {
             a1->field_5C = 0.0f;
             v45 = 0.0f;
         }
         else {
-            vec3_mult_scalar(a1->field_5C, v25 / v21, a1->field_5C);
+            a1->field_5C *= v25 / v21;
             mat4_mult_vec3(v4, &a1->field_5C, &v45);
             v17 = true;
         }
@@ -9230,14 +9186,14 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
     bool v18 = false;
     if (v22 <= 0.0f) {
         v19 = false;
-        vec3_length(a1->field_68, v22);
+        v22 = vec3::length(a1->field_68);
         float_t v31 = (0.97f * v22 - v22) * a1->step + v22;
         if (v22 <= 0.001f || v31 <= 0.0f) {
             a1->field_68 = 0.0f;
             v44 = 0.0f;
         }
         else {
-            vec3_mult_scalar(a1->field_68, v31 / v22, a1->field_68);
+            a1->field_68 *= v31 / v22;
             mat4_mult_vec3(v5, &a1->field_68, &v44);
             v18 = true;
         }
@@ -9251,15 +9207,11 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
         sub_1403FA040(&v44, v22, v5, a1->sleeve_r.ymin, a1->sleeve_r.ymax,
             a1->sleeve_r.zmin, a1->sleeve_r.zmax, &a1->field_68, a1->step);
 
-    if (v16 || v17) {
-        vec3_add(v42, v45, v42);
-        sub_14040AE10(a1->bones->data()[MOTION_BONE_C_KATA_L].node[2].mat, &v42);
-    }
+    if (v16 || v17)
+        sub_14040AE10(a1->bones->data()[MOTION_BONE_C_KATA_L].node[2].mat, v42 + v45);
 
-    if (v19 || v18) {
-        vec3_add(v43, v44, v43);
-        sub_14040AE10(a1->bones->data()[MOTION_BONE_C_KATA_R].node[2].mat, &v43);
-    }
+    if (v19 || v18)
+        sub_14040AE10(a1->bones->data()[MOTION_BONE_C_KATA_R].node[2].mat, v43 + v44);
 }
 
 static void sub_1403F9B20(rob_chara_bone_data_sleeve_adjust* a1, motion_bone_index motion_bone_index) {
@@ -9318,29 +9270,24 @@ static void sub_1403F9B20(rob_chara_bone_data_sleeve_adjust* a1, motion_bone_ind
     mat4* v23 = v15[MOTION_BONE_KL_MUNE_B_WJ].node->mat;
     mat4_mult_vec3_trans(v23, &sleeve_mune_ofs, &v40);
 
-    vec3 v41;
-    vec3_sub(v37, v40, v41);
+    vec3 v41 = v37 - v40;
 
-    float_t v24;
-    vec3_length(v41, v24);
-    float_t v26 = sleeve_radius * a1->radius + sleeve_mune_rad - v24;
+    float_t v26 = sleeve_radius * a1->radius + sleeve_mune_rad - vec3::length(v41);
     if (v26 > 0.0f)
         sub_1403FA040(&v41, v26, v19, sleeve_ymin, sleeve_ymax, sleeve_zmin, sleeve_zmax, v6, a1->step);
     else {
-        float_t v31;
-        vec3_length(*v6, v31);
+        float_t v31 = vec3::length(*v6);
         float_t v32 = (0.97f * v31 - v31) * a1->step + v31;
         if (v31 <= 0.001f || v32 <= 0.0f) {
             *v6 = 0.0f;
             return;
         }
-        vec3_mult_scalar(*v6, v32 / v31, *v6);
+        *v6 *= v32 / v31;
         mat4_mult_vec3(v19, v6, &v41);
     }
 
     mat4* v42 = v15[motion_bone_index].node[2].mat;
-    vec3_add(v39, v41, v39);
-    sub_14040AE10(v42, &v39);
+    sub_14040AE10(v42, v39 + v41);
 }
 
 static void sub_1403FAF30(rob_chara_bone_data_sleeve_adjust* a1, std::vector<bone_data>* bones, float_t step) {
@@ -9495,14 +9442,10 @@ static void rob_chara_bone_data_set_left_hand_scale(rob_chara_bone_data* rob_bon
 
     vec3 trans;
     mat4_get_translation(kl_te_wj_mat, &trans);
+    trans -= trans * scale;
 
     mat4 mat;
     mat4_scale(scale, scale, scale, &mat);
-
-    vec3 temp;
-    vec3_mult_scalar(trans, scale, temp);
-    vec3_sub(trans, temp, trans);
-
     mat4_set_translation(&mat, &trans);
 
     for (int32_t i = ROB_BONE_KL_TE_L_WJ; i <= ROB_BONE_NL_OYA_C_L_WJ; i++) {
@@ -9525,14 +9468,10 @@ static void rob_chara_bone_data_set_right_hand_scale(rob_chara_bone_data* rob_bo
 
     vec3 trans;
     mat4_get_translation(kl_te_wj_mat, &trans);
+    trans -= trans * scale;
 
     mat4 mat;
     mat4_scale(scale, scale, scale, &mat);
-
-    vec3 temp;
-    vec3_mult_scalar(trans, scale, temp);
-    vec3_sub(trans, temp, trans);
-
     mat4_set_translation(&mat, &trans);
 
     for (int32_t i = ROB_BONE_KL_TE_R_WJ; i <= ROB_BONE_NL_OYA_C_R_WJ; i++) {
@@ -10704,7 +10643,7 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
     v3->field_4F8.field_9C = v7->trans;
     if (sub_140413790(&v3->field_4F8)) { // WTF???
         v3->field_4F8.field_90 = v7->trans;
-        vec3_sub(v7->trans, v7->trans, v7->trans);
+        v7->trans -= v7->trans;
     }
 }
 

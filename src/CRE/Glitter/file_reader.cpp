@@ -1862,8 +1862,8 @@ namespace Glitter {
         ptcl->data.unk0 = unk0;
         ptcl->data.unk1 = unk1;
 
-        vec2_rcp(ptcl->data.split_uv, ptcl->data.split_uv);
-        vec4_mult_scalar(ptcl->data.color, (float_t)(1.0 / 255.0), ptcl->data.color);
+        ptcl->data.split_uv = vec2::rcp(ptcl->data.split_uv);
+        ptcl->data.color *= (float_t)(1.0 / 255.0);
 
         int32_t uv_max_count = (int32_t)(split_u * split_v);
         if (uv_max_count)

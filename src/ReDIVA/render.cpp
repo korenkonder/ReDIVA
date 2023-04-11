@@ -87,7 +87,6 @@ struct common_data_struct {
 struct render_data {
     GLuint grid_vao;
     GLuint grid_vbo;
-    GL::UniformBuffer common_data_ubo;
 
     render_data();
     ~render_data();
@@ -97,7 +96,6 @@ struct render_data {
 
     void load_common_data();
     void unload_common_data();
-    void update_common_data(common_data_struct* common_data, camera* cam);
 };
 
 common_data_struct common_data;
@@ -313,7 +311,7 @@ void draw_pass_3d_grid(render_context* rctx) {
     gl_state_set_depth_mask(GL_TRUE);
 
     shaders_ft.set(SHADER_FT_GRID);
-    render->common_data_ubo.Bind(0);
+    rctx->obj_scene_ubo.Bind(0);
     gl_state_bind_vertex_array(render->grid_vao);
     glDrawArrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
     gl_state_use_program(0);
@@ -325,7 +323,7 @@ void draw_pass_3d_grid(render_context* rctx) {
 
 float_t rob_frame = 0.0f;
 
-render_data::render_data() : grid_vao(), grid_vbo(), common_data_ubo() {
+render_data::render_data() : grid_vao(), grid_vbo() {
 
 }
 
@@ -349,8 +347,6 @@ void render_data::unload() {
 }
 
 void render_data::load_common_data() {
-    common_data_ubo.Create(sizeof(common_data_struct));
-
     float_t* grid_verts = force_malloc_s(float_t, 3 * grid_vertex_count);
 
     size_t v = 0;
@@ -400,10 +396,10 @@ void render_data::load_common_data() {
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-        sizeof(float_t) * 3, (void*)0);                     // Pos
+        sizeof(float_t) * 3, (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribIPointer(1, 1, GL_INT,
-        sizeof(float_t) * 3, (void*)(sizeof(float_t) * 2)); // Color
+        sizeof(float_t) * 3, (void*)(sizeof(float_t) * 2));
 
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
@@ -412,8 +408,6 @@ void render_data::load_common_data() {
 }
 
 void render_data::unload_common_data() {
-    common_data_ubo.Destroy();
-
     if (grid_vbo) {
         glDeleteBuffers(1, &grid_vbo);
         grid_vbo = 0;
@@ -423,10 +417,6 @@ void render_data::unload_common_data() {
         glDeleteVertexArrays(1, &grid_vao);
         grid_vao = 0;
     }
-}
-
-void render_data::update_common_data(common_data_struct* common_data, camera* cam) {
-    common_data_ubo.WriteMapMemory(*common_data);
 }
 
 static bool render_init(render_init_struct* ris) {
@@ -1039,17 +1029,6 @@ static void render_context_ctrl(render_context* rctx) {
     glfwSetWindowTitle(window, buf);
 
     ImGui::Render();
-
-    common_data_struct common_data = {};
-    common_data.res.x = (float_t)internal_3d_res.x;
-    common_data.res.y = (float_t)internal_3d_res.y;
-    common_data.res.z = 1.0f / (float_t)internal_3d_res.x;
-    common_data.res.w = 1.0f / (float_t)internal_3d_res.y;
-    common_data.vp = cam->view_projection;
-    common_data.view = cam->view;
-    common_data.projection = cam->projection;
-    common_data.view_pos = cam->view_point;
-    render->update_common_data(&common_data, cam);
 }
 
 static void render_context_disp(render_context* rctx) {
