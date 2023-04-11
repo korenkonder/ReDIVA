@@ -217,21 +217,6 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
     int32_t prev_frame = start_time;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
-        int32_t i_const = -1;
-        for (size_t i = 1; i < left_count; i++)
-            if (!memcmp(&a[0], &a[i], sizeof(float_t)))
-                i_const = (int32_t)i;
-            else
-                break;
-
-        if (i_const != -1) {
-            t2_old = mot_set_add_key(false, a, frame, left_count - 1, 0.0f, 0.0f, t2_old, frames, values);
-            prev_frame = frame;
-            frame += i_const;
-            a += i_const;
-            left_count -= i_const;
-            continue;
-        }
 
         if (left_count < reverse_min_count) {
             if (left_count > 1)
@@ -241,6 +226,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
 
         size_t i = 0;
         size_t i_prev = 0;
+        size_t j_begin = 1;
         float_t t1 = 0.0f;
         float_t t2 = 0.0f;
         float_t t1_prev = 0.0f;
@@ -251,9 +237,16 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
 
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
+            bool constant = true;
+            for (size_t j = 1; j <= i; j++)
+                if (memcmp(&a[0], &a[j], sizeof(float_t))) {
+                    constant = false;
+                    break;
+                }
+
             double_t tt1 = 0.0;
             double_t tt2 = 0.0;
-            for (size_t j = 1; j < i; j++) {
+            for (size_t j = j_begin; j < i; j++) {
                 float_t _t1 = 0.0f;
                 float_t _t2 = 0.0f;
                 interpolate_mot_reverse_value(a, left_count, &_t1, &_t2, 0, i, j);
@@ -264,7 +257,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
             t2 = (float_t)(tt2 / (double_t)(i - 2));
 
             has_error = false;
-            for (size_t j = 1; j < i; j++) {
+            for (size_t j = j_begin; j < i; j++) {
                 float_t val = interpolate_mot_value(a[0], a[i], t1, t2, 0.0f, (float_t)i, (float_t)j);
                 if (fabsf(val - a[j]) > reverse_bias) {
                     has_error = true;
@@ -294,6 +287,11 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
             }
 
             if (!has_error) {
+                if (constant) {
+                    t1 = 0.0f;
+                    t2 = 0.0f;
+                }
+
                 c = (int32_t)i;
                 t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
                 has_prev_error = false;

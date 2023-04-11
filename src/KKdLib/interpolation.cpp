@@ -103,23 +103,6 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
     int32_t prev_frame = 0;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
-        int32_t i_const = -1;
-        for (size_t i = 1; i < left_count; i++)
-            if (!memcmp(&a[0], &a[i], sizeof(float_t)))
-                i_const = (int32_t)i;
-            else
-                break;
-
-        if (i_const != -1) {
-            values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
-            t2_old = 0.0f;
-            prev_frame = frame;
-            frame += i_const;
-            a += i_const;
-            left_count -= i_const;
-            continue;
-        }
-
         if (left_count < reverse_min_count) {
             if (left_count > 1) {
                 values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
@@ -142,6 +125,13 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
 
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
+            bool constant = true;
+            for (size_t j = 1; j <= i; i++)
+                if (!memcmp(&a[0], &a[j], sizeof(float_t))) {
+                    constant = false;
+                    break;
+                }
+
             double_t tt1 = 0.0;
             double_t tt2 = 0.0;
             for (size_t j = 1; j < i; j++) {
@@ -185,6 +175,11 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
             }
 
             if (!has_error) {
+                if (constant) {
+                    t1 = 0.0f;
+                    t2 = 0.0f;
+                }
+
                 c = (int32_t)i;
                 values.push_back({ (float_t)frame, a[0], t2_old, t1 });
                 t2_old = t2;

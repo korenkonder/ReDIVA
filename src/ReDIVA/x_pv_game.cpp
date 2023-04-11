@@ -8076,25 +8076,6 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
     int32_t prev_frame = 0;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
-        int32_t i_const = -1;
-        for (size_t i = 1; i < left_count; i++)
-            if (!memcmp(&v[0], &v[i], sizeof(vec4_pair)))
-                i_const = (int32_t)i;
-            else
-                break;
-
-        if (i_const != -1) {
-            morph.push_back({ (float_t)frame,
-                (float_t)(int32_t)color.size(), t2_old, 0.0f });
-            color.push_back(v[0]);
-            t2_old = 0.0f;
-            prev_frame = frame;
-            frame += i_const;
-            a += i_const;
-            left_count -= i_const;
-            continue;
-        }
-
         if (left_count < reverse_min_count) {
             if (left_count > 1) {
                 morph.push_back({ (float_t)frame,
@@ -8122,6 +8103,13 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
 
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
+            bool constant = true;
+            for (size_t j = 1; j <= i; j++)
+                if (memcmp(&v[0], &v[j], sizeof(vec4_pair))) {
+                    constant = false;
+                    break;
+                }
+
             float_t start[8];
             float_t end[8];
             float_t _t1[8];
@@ -8238,6 +8226,11 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
             }
 
             if (!has_error) {
+                if (constant) {
+                    t1 = 0.0f;
+                    t2 = 0.0f;
+                }
+
                 c = (int32_t)i;
                 morph.push_back({ (float_t)frame,
                     (float_t)(int32_t)color.size(), t2_old, t1 });
