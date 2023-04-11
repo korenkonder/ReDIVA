@@ -217,6 +217,22 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
     int32_t prev_frame = start_time;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
+        int32_t i_const = -1;
+        for (size_t i = 1; i < left_count; i++)
+            if (!memcmp(&a[0], &a[i], sizeof(float_t)))
+                i_const = (int32_t)i;
+            else
+                break;
+
+        if (i_const != -1) {
+            t2_old = mot_set_add_key(false, a, frame, left_count - 1, 0.0f, 0.0f, t2_old, frames, values);
+            prev_frame = frame;
+            frame += i_const;
+            a += i_const;
+            left_count -= i_const;
+            continue;
+        }
+
         if (left_count < reverse_min_count) {
             if (left_count > 1)
                 t2_old = mot_set_add_key(true, a, frame, left_count - 1, 0.0f, 0.0f, t2_old, frames, values);

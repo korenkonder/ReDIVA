@@ -261,7 +261,24 @@ namespace Glitter {
         int32_t prev_frame = start_time;
         float_t t2_old = 0.0f;
         while (left_count > 0) {
-            int32_t c = 0;
+            int32_t i_const = -1;
+            for (size_t i = 1; i < left_count; i++)
+                if (!memcmp(&a[0], &a[i], sizeof(float_t)))
+                    i_const = (int32_t)i;
+                else
+                    break;
+
+            if (i_const != -1) {
+                keys_rev.push_back(Curve::Key(KEY_CONSTANT, frame, a[0], t2_old, 0.0f, b[0]));
+                t2_old = 0.0f;
+                prev_frame = frame;
+                frame += i_const * step;
+                a += i_const;
+                b += i_const;
+                left_count -= i_const;
+                continue;
+            }
+
             if (left_count < reverse_min_count) {
                 Curve::Key key;
                 if (left_count == 1) {
@@ -301,6 +318,7 @@ namespace Glitter {
             bool has_prev_error = false;
             bool has_prev_error_lerp = false;
 
+            int32_t c = 0;
             size_t i;
             for (i = reverse_min_count - 1; i < left_count; i++) {
                 double_t tt1 = 0.0;

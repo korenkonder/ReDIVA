@@ -5022,11 +5022,8 @@ void x_pv_game::Basic() {
         bool enable = false;
         if (pv.enable && pv.f2.ratio > 0.0f) {
             if (pv.f2.focus > 0.0f) {
-                vec3 direction;
-                vec3_sub(interest, view_point, direction);
-                vec3_normalize(direction, direction);
-                vec3_mult_scalar(direction, pv.f2.focus, direction);
-                vec3_add(direction, view_point, interest);
+                vec3 direction = vec3::normalize(interest - view_point);
+                interest = direction * pv.f2.focus + view_point;
             }
             else
                 interest = view_point;
@@ -7146,7 +7143,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         data[0] = { 0.0f, 0.945f, 0.0f };
         mat4_mult_vec3(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0], &data[1]);
         mat4_get_translation(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0]);
-        vec3_add(data[0], data[1], data[0]);
+        data[0] += data[1];
         data[1] = 0.0f;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_CL_MUNE, key_set, data, 2);
@@ -7166,7 +7163,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         data[0] = { 0.0f, 0.40f, 0.0f };
         mat4_mult_vec3(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0], &data[1]);
         mat4_get_translation(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0]);
-        vec3_add(data[0], data[1], data[0]);
+        data[0] += data[1];
         data[1] = oh->node[a2m.j_kao_wj].model_transform.rotation_value;
         data[1].x = -data[1].x;
         data[1].z = -data[1].z;
@@ -7203,25 +7200,17 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             mat4_get_translation(&oh->node[a2m.j_ude_l_wj].model_transform.mat, &pos_j_ude_l_wj);
             mat4_get_translation(&oh->node[a2m.j_te_l_wj].model_transform.mat, &pos_j_te_l_wj);
 
-            vec3 pos_middle;
-            vec3_lerp_scalar(pos_j_kata_l_wj, pos_j_te_l_wj, pos_middle, 0.5f);
-
-            vec3 tl_up_kata_dir;
-            vec3_sub(pos_j_ude_l_wj, pos_middle, tl_up_kata_dir);
-
-            float_t pos_middle_dist;
-            vec3_length(tl_up_kata_dir, pos_middle_dist);
+            vec3 tl_up_kata_dir = pos_j_ude_l_wj - vec3::lerp(pos_j_kata_l_wj, pos_j_te_l_wj, 0.5f);
+            float_t pos_middle_dist = vec3::length(tl_up_kata_dir);
             if (pos_middle_dist == 0.0f) {
                 mat4& mat = oh->node[a2m.j_kata_l_wj].model_transform.mat;
                 data[0] = { 0.0f, 0.3f, 0.0f };
                 mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
             }
             else
-                vec3_mult_scalar(tl_up_kata_dir, 0.3f / pos_middle_dist, tl_up_kata_dir);
+                tl_up_kata_dir *= 0.3f / pos_middle_dist;
 
-            vec3 tl_up_kata_pos;
-            vec3_add(tl_up_kata_dir, pos_j_ude_l_wj, tl_up_kata_pos);
-
+            vec3 tl_up_kata_pos = tl_up_kata_dir + pos_j_ude_l_wj;
             mat4& mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
             mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
             set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
@@ -7253,25 +7242,17 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             mat4_get_translation(&oh->node[a2m.j_ude_r_wj].model_transform.mat, &pos_j_ude_r_wj);
             mat4_get_translation(&oh->node[a2m.j_te_r_wj].model_transform.mat, &pos_j_te_r_wj);
 
-            vec3 pos_middle;
-            vec3_lerp_scalar(pos_j_kata_r_wj, pos_j_te_r_wj, pos_middle, 0.5f);
-
-            vec3 tl_up_kata_dir;
-            vec3_sub(pos_j_ude_r_wj, pos_middle, tl_up_kata_dir);
-
-            float_t pos_middle_dist;
-            vec3_length(tl_up_kata_dir, pos_middle_dist);
+            vec3 tl_up_kata_dir = pos_j_ude_r_wj - vec3::lerp(pos_j_kata_r_wj, pos_j_te_r_wj, 0.5f);
+            float_t pos_middle_dist = vec3::length(tl_up_kata_dir);
             if (pos_middle_dist == 0.0f) {
                 mat4& mat = oh->node[a2m.j_kata_r_wj].model_transform.mat;
                 data[0] = { 0.0f, 0.3f, 0.0f };
                 mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
             }
             else
-                vec3_mult_scalar(tl_up_kata_dir, 0.3f / pos_middle_dist, tl_up_kata_dir);
+                tl_up_kata_dir *= 0.3f / pos_middle_dist;
 
-            vec3 tl_up_kata_pos;
-            vec3_add(tl_up_kata_dir, pos_j_ude_r_wj, tl_up_kata_pos);
-
+            vec3 tl_up_kata_pos = tl_up_kata_dir + pos_j_ude_r_wj;
             mat4& mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
             mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
             set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
@@ -8095,9 +8076,28 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
     int32_t prev_frame = 0;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
+        int32_t i_const = -1;
+        for (size_t i = 1; i < left_count; i++)
+            if (!memcmp(&v[0], &v[i], sizeof(vec4_pair)))
+                i_const = (int32_t)i;
+            else
+                break;
+
+        if (i_const != -1) {
+            morph.push_back({ (float_t)frame,
+                (float_t)(int32_t)color.size(), t2_old, 0.0f });
+            color.push_back(v[0]);
+            t2_old = 0.0f;
+            prev_frame = frame;
+            frame += i_const;
+            a += i_const;
+            left_count -= i_const;
+            continue;
+        }
+
         if (left_count < reverse_min_count) {
             if (left_count > 1) {
-                morph.push_back({ (float_t)(int32_t)frame,
+                morph.push_back({ (float_t)frame,
                     (float_t)(int32_t)color.size(), t2_old, 0.0f });
                 color.push_back(v[0]);
                 for (size_t j = 1; j < left_count - 1; j++) {
