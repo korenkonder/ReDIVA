@@ -28,6 +28,9 @@
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
 #endif
+#if BAKE_PV826
+#include "../KKdLib/waitable_timer.hpp"
+#endif
 #include "imgui_helper.hpp"
 #include "input.hpp"
 
@@ -3553,442 +3556,6 @@ static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
 }
 #endif
 
-#if BAKE_PV826
-mot_key_set_type mot_fit_keys_into_curve(std::vector<float_t>& values_src,
-    std::vector<uint16_t>& frames, std::vector<float_t>& values) {
-    std::vector<kft3> value;
-    int32_t type = interpolate_chs_reverse_sequence(values_src, value);
-
-    frames.resize(0);
-    values.resize(0);
-
-    switch (type) {
-    case 0:
-    default:
-        return MOT_KEY_SET_NONE;
-    case 1:
-        values.push_back(value[0].value);
-        return MOT_KEY_SET_STATIC;
-    case 2:
-        break;
-    }
-
-    bool tangent = false;
-    for (kft3& i : value)
-        if (i.tangent1 != 0.0f || i.tangent2 != 0.0f) {
-            tangent = true;
-            break;
-        }
-
-    if (!tangent) {
-        frames.reserve(value.size() + value.size() / 2);
-        values.reserve((value.size() + value.size() / 2));
-
-        for (kft3& i : value) {
-            frames.push_back((uint16_t)i.frame);
-            values.push_back(i.value);
-            if (i.value == 0.0f) {
-                frames.push_back((uint16_t)i.frame);
-                values.push_back(i.value);
-            }
-        }
-        return MOT_KEY_SET_HERMITE;
-    }
-    else {
-        frames.reserve(value.size() + value.size() / 2);
-        values.reserve((value.size() + value.size() / 2) * 2);
-
-        for (kft3& i : value) {
-            frames.push_back((uint16_t)i.frame);
-            values.push_back(i.value);
-            values.push_back(i.tangent1);
-
-            if (i.value == 0.0f) {
-                frames.push_back((uint16_t)i.frame);
-                values.push_back(i.value);
-                values.push_back(i.tangent1);
-            }
-
-            if (i.tangent1 != i.tangent2) {
-                frames.push_back((uint16_t)i.frame);
-                values.push_back(i.value);
-                values.push_back(i.tangent2);
-
-                if (i.value == 0.0f) {
-                    frames.push_back((uint16_t)i.frame);
-                    values.push_back(i.value);
-                    values.push_back(i.tangent2);
-                }
-            }
-        }
-        return MOT_KEY_SET_HERMITE_TANGENT;
-    }
-}
-
-static void fix_rotation(std::vector<float_t>& vec) {
-    if (vec.size() < 2)
-        return;
-
-    const float_t half_pi = (float_t)(M_PI / 2.0);
-
-    int32_t curr_rot = 0;
-    float_t rot_fix = 0.0f;
-    float_t rot_prev = vec.data()[0];
-    float_t* i_begin = vec.data() + 1;
-    float_t* i_end = vec.data() + vec.size();
-    for (float_t* i = i_begin; i != i_end; i++) {
-        float_t rot = *i;
-        if (rot < -half_pi && rot_prev > half_pi && fabsf(rot - rot_prev) > half_pi) {
-            curr_rot++;
-            rot_fix = (float_t)(M_PI * 2.0 * (double_t)curr_rot);
-        }
-        else if (rot > half_pi && rot_prev < -half_pi && fabsf(rot - rot_prev) > half_pi) {
-            curr_rot--;
-            rot_fix = (float_t)(M_PI * 2.0 * (double_t)curr_rot);
-        }
-
-        if (curr_rot)
-            *i = rot + rot_fix;
-        rot_prev = rot;
-    }
-}
-
-struct mot_data_bake {
-    int32_t performer;
-    x_pv_game_a3da_to_mot* data;
-    lock<uint32_t> state;
-};
-
-const int32_t bake_pv826_threads_count = 2;
-
-const motion_set_info* bake_pv826_set_info;
-std::thread* bake_pv826_thread;
-mot_data_bake* bake_pv826_mot_data;
-int32_t bake_pv826_performer;
-std::mutex* bake_pv826_alloc_mutex;
-prj::shared_ptr<prj::stack_allocator>* bake_pv826_alloc;
-::mot_set* bake_pv826_mot_set;
-
-mot_key_set_type mot_write_motion_fit_keys_into_curve(std::vector<float_t>& values_src,
-    prj::shared_ptr<prj::stack_allocator> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count) {
-    std::vector<uint16_t> _frames;
-    std::vector<float_t> _values;
-    mot_key_set_type type = mot_set::fit_keys_into_curve(values_src, _frames, _values);
-    switch (type) {
-    case MOT_KEY_SET_NONE:
-        keys_count = 0;
-        frames = 0;
-        values = 0;
-        break;
-    case MOT_KEY_SET_STATIC:
-        keys_count = 1;
-        {
-            std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-            frames = 0;
-            values = (*bake_pv826_alloc)->allocate<float_t>(1);
-        }
-        memcpy(values, _values.data(), sizeof(float_t));
-        break;
-    case MOT_KEY_SET_HERMITE:
-        keys_count = _frames.size();
-        {
-            std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-            frames = (*bake_pv826_alloc)->allocate<uint16_t>(_frames.data(), keys_count);
-            values = (*bake_pv826_alloc)->allocate<float_t>(keys_count);
-        }
-        memcpy(frames, _frames.data(), sizeof(uint16_t) * keys_count);
-        memcpy(values, _values.data(), sizeof(float_t) * keys_count);
-        break;
-    case MOT_KEY_SET_HERMITE_TANGENT:
-        keys_count = _frames.size();
-        {
-            std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-            frames = (*bake_pv826_alloc)->allocate<uint16_t>(keys_count);
-            values = (*bake_pv826_alloc)->allocate<float_t>(keys_count * 2);
-        }
-        memcpy(frames, _frames.data(), sizeof(uint16_t) * keys_count);
-        memcpy(values, _values.data(), sizeof(float_t) * keys_count * 2);
-        break;
-    }
-    return type;
-}
-
-void mot_write_motion(mot_data_bake* bake) {
-    data_struct* aft_data = &data_list[DATA_AFT];
-    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-    char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", bake->performer);
-
-    int32_t motion_id = aft_mot_db->get_motion_id(buf);
-
-    size_t motion_index = -1;
-    const motion_set_info* set_info = bake_pv826_set_info;
-    for (const motion_info& j : set_info->motion)
-        if (j.id == motion_id) {
-            motion_index = &j - set_info->motion.data();
-            break;
-        }
-
-    mot_data* mot_data = &bake_pv826_mot_set->mot_data[motion_index];
-
-    uint16_t key_set_count = mot_data->key_set_count - 1;
-    if (!key_set_count)
-        return;
-
-    const char* name = bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON);
-    std::string* bone_names = aft_mot_db->bone_name.data();
-    const std::vector<bone_database_bone>* bones = aft_bone_data->get_skeleton_bones(name);
-    if (!bones)
-        return;
-
-    prj::shared_ptr<prj::stack_allocator>& alloc = *bake_pv826_alloc;
-    x_pv_game_a3da_to_mot& a2m = *bake->data;
-    const mot_bone_info* bone_info = mot_data->bone_info_array;
-    for (size_t key_set_offset = 0, i = 0; key_set_offset < key_set_count; i++) {
-        motion_bone_index bone_index = (motion_bone_index)aft_bone_data->get_skeleton_bone_index(
-            name, bone_names[bone_info[i].index].c_str());
-        if (bone_index == -1) {
-            i++;
-            bone_index = (motion_bone_index)aft_bone_data->get_skeleton_bone_index(
-                name, bone_names[bone_info[i].index].c_str());
-            if (bone_index == -1)
-                break;
-        }
-
-        const bone_database_bone* bone = &(*bones)[bone_index];
-
-        auto elem = a2m.bone_keys.find(bone_index);
-        if (elem != a2m.bone_keys.end()) {
-            x_pv_game_a3da_to_mot_keys& keys = elem->second;
-
-            if (bone->type == BONE_DATABASE_BONE_ROTATION) {
-                fix_rotation(keys.x);
-                fix_rotation(keys.y);
-                fix_rotation(keys.z);
-            }
-
-            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset];
-            key_set_data_x.frames = 0;
-            key_set_data_x.values = 0;
-            size_t keys_x_count = 0;
-            key_set_data_x.type = mot_write_motion_fit_keys_into_curve(keys.x, alloc,
-                key_set_data_x.frames, key_set_data_x.values, keys_x_count);
-            key_set_data_x.keys_count = (uint16_t)keys_x_count;
-            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 1];
-            key_set_data_y.frames = 0;
-            key_set_data_y.values = 0;
-            size_t keys_y_count = 0;
-            key_set_data_y.type = mot_write_motion_fit_keys_into_curve(keys.y, alloc,
-                key_set_data_y.frames, key_set_data_y.values, keys_y_count);
-            key_set_data_y.keys_count = (uint16_t)keys_y_count;
-            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 2];
-            key_set_data_z.frames = 0;
-            key_set_data_z.values = 0;
-            size_t keys_z_count = 0;
-            key_set_data_z.type = mot_write_motion_fit_keys_into_curve(keys.z, alloc,
-                key_set_data_z.frames, key_set_data_z.values, keys_z_count);
-            key_set_data_z.keys_count = (uint16_t)keys_z_count;
-            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
-        }
-
-        elem = a2m.sec_bone_keys.find(bone_index);
-        if (elem != a2m.sec_bone_keys.end()) {
-            x_pv_game_a3da_to_mot_keys& keys = elem->second;
-
-            fix_rotation(keys.x);
-            fix_rotation(keys.y);
-            fix_rotation(keys.z);
-
-            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset + 3];
-            key_set_data_x.frames = 0;
-            key_set_data_x.values = 0;
-            size_t keys_x_count = 0;
-            key_set_data_x.type = mot_write_motion_fit_keys_into_curve(keys.x, alloc,
-                key_set_data_x.frames, key_set_data_x.values, keys_x_count);
-            key_set_data_x.keys_count = (uint16_t)keys_x_count;
-            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 4];
-            key_set_data_y.frames = 0;
-            key_set_data_y.values = 0;
-            size_t keys_y_count = 0;
-            key_set_data_y.type = mot_write_motion_fit_keys_into_curve(keys.y, alloc,
-                key_set_data_y.frames, key_set_data_y.values, keys_x_count);
-            key_set_data_y.keys_count = (uint16_t)keys_y_count;
-            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 5];
-            key_set_data_z.frames = 0;
-            key_set_data_z.values = 0;
-            size_t keys_z_count = 0;
-            key_set_data_z.type = mot_write_motion_fit_keys_into_curve(keys.z, alloc,
-                key_set_data_z.frames, key_set_data_z.values, keys_z_count);
-            key_set_data_z.keys_count = (uint16_t)keys_z_count;
-            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
-        }
-
-        if (bone_index == MOTION_BONE_KL_AGO_WJ) {
-            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset];
-            key_set_data_x.frames = 0;
-            {
-                std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-                key_set_data_x.values = alloc->allocate<float_t>(1);
-                key_set_data_x.values[0] = 0.0491406508f;
-            }
-            key_set_data_x.type = MOT_KEY_SET_STATIC;
-            key_set_data_x.keys_count = 1;
-            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 1];
-            key_set_data_y.frames = 0;
-            key_set_data_y.values = 0;
-            key_set_data_y.type = MOT_KEY_SET_NONE;
-            key_set_data_y.keys_count = 0;
-            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 2];
-            key_set_data_z.frames = 0;
-            key_set_data_z.values = 0;
-            key_set_data_z.type = MOT_KEY_SET_NONE;
-            key_set_data_z.keys_count = 0;
-            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
-        }
-        else if (bone_index == MOTION_BONE_N_KUBI_WJ_EX) {
-            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset];
-            key_set_data_x.frames = 0;
-            key_set_data_x.values = 0;
-            key_set_data_x.type = MOT_KEY_SET_NONE;
-            key_set_data_x.keys_count = 1;
-            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 1];
-            key_set_data_y.frames = 0;
-            {
-                std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-                key_set_data_y.values = alloc->allocate<float_t>(1);
-                key_set_data_y.values[0] = 0.0331281610f;
-            }
-            key_set_data_y.type = MOT_KEY_SET_STATIC;
-            key_set_data_y.keys_count = 0;
-            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
-
-            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 2];
-            key_set_data_z.frames = 0;
-            key_set_data_z.values = 0;
-            key_set_data_z.type = MOT_KEY_SET_NONE;
-            key_set_data_z.keys_count = 0;
-            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
-        }
-
-        if (bone->type >= BONE_DATABASE_BONE_POSITION_ROTATION)
-            key_set_offset += 6;
-        else
-            key_set_offset += 3;
-    }
-
-    bake->state.set(0);
-}
-
-bool mot_write_motion_set(void* data, const char* path, const char* file, uint32_t hash) {
-    x_pv_game* xpvgm = (x_pv_game*)data;
-
-    data_struct* aft_data = &data_list[DATA_AFT];
-    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-    char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "PV%03d", xpvgm->pv_id);
-    bake_pv826_set_info = aft_mot_db->get_motion_set_by_name(buf);
-    if (!bake_pv826_set_info)
-        return true;
-
-    bake_pv826_alloc = new prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
-    bake_pv826_alloc_mutex = 0;
-    bake_pv826_thread = 0;
-    bake_pv826_mot_data = 0;
-    bake_pv826_performer = 1;
-
-    bake_pv826_mot_set = (*bake_pv826_alloc)->allocate<::mot_set>();
-    {
-        std::string mot_file;
-        mot_file.append("mot_");
-        mot_file.append(bake_pv826_set_info->name);
-        mot_file.append(".bin");
-
-        farc f;
-        farc::load_file(&f, path, file, hash);
-
-        farc_file* ff = f.read_file(mot_file.c_str());
-        if (!ff) {
-            delete bake_pv826_alloc;
-            bake_pv826_alloc = 0;
-            bake_pv826_mot_set = 0;
-            return true;
-        }
-
-        bake_pv826_mot_set->unpack_file(*bake_pv826_alloc, ff->data, ff->size, false);
-    }
-
-    if (!bake_pv826_mot_set->ready) {
-        delete bake_pv826_alloc;
-        bake_pv826_alloc = 0;
-        bake_pv826_mot_set = 0;
-        return true;
-    }
-
-    bake_pv826_alloc_mutex = new std::mutex;
-    bake_pv826_thread = new std::thread[bake_pv826_threads_count];
-    bake_pv826_mot_data = new mot_data_bake[bake_pv826_threads_count];
-    return true;
-}
-
-void mot_write_motion_set(x_pv_game* xpvgm) {
-    if (!bake_pv826_set_info)
-        return;
-
-    data_struct* aft_data = &data_list[DATA_AFT];
-    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-    {
-        std::string mot_file;
-        mot_file.append("mot_");
-        mot_file.append(bake_pv826_set_info->name);
-        mot_file.append(".bin");
-
-        farc f;
-
-        f.add_file(mot_file.c_str());
-        farc_file* ff = &f.files.back();
-        bake_pv826_mot_set->pack_file(&ff->data, &ff->size);
-
-        std::string mot_farc;
-        mot_farc.append("pv826\\mot_");
-        mot_farc.append(bake_pv826_set_info->name);
-        f.write(mot_farc.c_str(), FARC_COMPRESS_FArC, false);
-    }
-
-    delete[] bake_pv826_thread;
-    delete[] bake_pv826_mot_data;
-    delete bake_pv826_alloc_mutex;
-
-    delete bake_pv826_alloc;
-
-    bake_pv826_thread = 0;
-    bake_pv826_mot_data = 0;
-    bake_pv826_alloc_mutex = 0;
-    bake_pv826_mot_set = 0;
-    bake_pv826_alloc = 0;
-    bake_pv826_set_info = 0;
-}
-#endif
-
 #if BAKE_PNG || BAKE_VIDEO
 static int32_t frame_prev = -1;
 #endif
@@ -4884,91 +4451,8 @@ bool x_pv_game::Ctrl() {
 
         Glitter::glt_particle_manager->FreeScenes();
 
-#if BAKE_PV826
-        if (pv_data[pv_index].pv_id == 826) {
-            data_struct* aft_data = &data_list[DATA_AFT];
-            motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-            char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "PV%03d", pv_data[pv_index].pv_id);
-            const motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
-            if (set_info) {
-                std::string farc_file = "mot_" + set_info->name + ".farc";
-                aft_data->load_file(this, "rom/rob/", farc_file.c_str(), mot_write_motion_set);
-            }
-            state_old = 23;
-        }
-        else {
-            state_old = 24;
-            DelTask();
-        break;
-        }
-    }
-#else
         DelTask();
     } break;
-#endif
-#if BAKE_PV826
-    case 23: {
-        if (pv_data[pv_index].pv_id == 826 && bake_pv826_set_info) {
-            int32_t free_thread_count = 0;
-            for (int32_t i = 0; i < bake_pv826_threads_count; i++)
-                if (!bake_pv826_mot_data[i].state.get())
-                    free_thread_count++;
-
-            if (free_thread_count && bake_pv826_performer < 6)
-                for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
-                    if (!free_thread_count)
-                        break;
-                    else if (bake_pv826_performer != i.first)
-                        continue;
-
-                    std::thread* thread = 0;
-                    int32_t thread_index = -1;
-                    for (int32_t j = 0; j < bake_pv826_threads_count; j++)
-                        if (!bake_pv826_mot_data[j].state.get()) {
-                            thread = &bake_pv826_thread[j];
-                            thread_index = j;
-                            break;
-                        }
-
-                    if (!thread)
-                        break;
-
-                    mot_data_bake* bake = &bake_pv826_mot_data[thread_index];
-                    bake->performer = bake_pv826_performer + 1;
-                    bake->data = &i.second;
-                    bake->state.set(1);
-
-                    if (thread->joinable())
-                        thread->join();
-
-                    *thread = std::thread(mot_write_motion, bake);
-
-                    wchar_t buf[0x80];
-                    swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
-                        L"X PV GAME BAKE PV826 P%d", bake->performer);
-                    SetThreadDescription((HANDLE)thread->native_handle(), buf);
-
-                    bake_pv826_performer++;
-                    free_thread_count--;
-                }
-
-            if (free_thread_count != 2)
-                break;
-
-            for (int32_t i = 0; i < bake_pv826_threads_count; i++)
-                bake_pv826_thread[i].join();
-        }
-        state_old = 24;
-    }
-    case 24: {
-        if (pv_data[pv_index].pv_id == 826)
-            mot_write_motion_set(this);
-
-        DelTask();
-    } break;
-#endif
     }
     return false;
 }
@@ -5003,7 +4487,7 @@ void x_pv_game::Disp() {
 }
 
 void x_pv_game::Basic() {
-    if (state_old != 20)
+    if (state_old != 20 && state_old != 21)
         return;
 
 #if DOF_BAKE
@@ -5241,10 +4725,452 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     //sound_work_play_se(1, "load01_2", 1.0f);
 }
 
+#if BAKE_PV826
+static void fix_rotation(std::vector<float_t>& vec) {
+    if (vec.size() < 2)
+        return;
+
+    const float_t half_pi = (float_t)(M_PI / 2.0);
+
+    int32_t curr_rot = 0;
+    float_t rot_fix = 0.0f;
+    float_t rot_prev = vec.data()[0];
+    float_t* i_begin = vec.data() + 1;
+    float_t* i_end = vec.data() + vec.size();
+    for (float_t* i = i_begin; i != i_end; i++) {
+        float_t rot = *i;
+        if (rot < -half_pi && rot_prev > half_pi && fabsf(rot - rot_prev) > half_pi) {
+            curr_rot++;
+            rot_fix = (float_t)(M_PI * 2.0 * (double_t)curr_rot);
+        }
+        else if (rot > half_pi && rot_prev < -half_pi && fabsf(rot - rot_prev) > half_pi) {
+            curr_rot--;
+            rot_fix = (float_t)(M_PI * 2.0 * (double_t)curr_rot);
+        }
+
+        if (curr_rot)
+            *i = rot + rot_fix;
+        rot_prev = rot;
+    }
+}
+
+struct mot_data_bake {
+    int32_t performer;
+    x_pv_game_a3da_to_mot* data;
+    lock<uint32_t> state;
+
+    mot_data_bake() : performer(), data() {
+
+    }
+};
+
+const int32_t bake_pv826_threads_count = 2;
+
+const motion_set_info* bake_pv826_set_info;
+std::thread* bake_pv826_thread;
+mot_data_bake* bake_pv826_mot_data;
+int32_t bake_pv826_performer;
+std::mutex* bake_pv826_alloc_mutex;
+prj::shared_ptr<prj::stack_allocator>* bake_pv826_alloc;
+::mot_set* bake_pv826_mot_set;
+
+static mot_key_set_type mot_write_motion_fit_keys_into_curve(std::vector<float_t>& values_src,
+    prj::shared_ptr<prj::stack_allocator> alloc, uint16_t*& frames, float_t*& values, size_t& keys_count) {
+    std::vector<uint16_t> _frames;
+    std::vector<float_t> _values;
+    mot_key_set_type type = mot_set::fit_keys_into_curve(values_src, _frames, _values);
+    switch (type) {
+    case MOT_KEY_SET_NONE:
+        keys_count = 0;
+        frames = 0;
+        values = 0;
+        break;
+    case MOT_KEY_SET_STATIC:
+        keys_count = 1;
+        {
+            std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
+            frames = 0;
+            values = (*bake_pv826_alloc)->allocate<float_t>(1);
+        }
+        memcpy(values, _values.data(), sizeof(float_t));
+        break;
+    case MOT_KEY_SET_HERMITE:
+        keys_count = _frames.size();
+        {
+            std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
+            frames = (*bake_pv826_alloc)->allocate<uint16_t>(_frames.data(), keys_count);
+            values = (*bake_pv826_alloc)->allocate<float_t>(keys_count);
+        }
+        memcpy(frames, _frames.data(), sizeof(uint16_t) * keys_count);
+        memcpy(values, _values.data(), sizeof(float_t) * keys_count);
+        break;
+    case MOT_KEY_SET_HERMITE_TANGENT:
+        keys_count = _frames.size();
+        {
+            std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
+            frames = (*bake_pv826_alloc)->allocate<uint16_t>(keys_count);
+            values = (*bake_pv826_alloc)->allocate<float_t>(keys_count * 2);
+        }
+        memcpy(frames, _frames.data(), sizeof(uint16_t) * keys_count);
+        memcpy(values, _values.data(), sizeof(float_t) * keys_count * 2);
+        break;
+    }
+    return type;
+}
+
+static void mot_write_motion(mot_data_bake* bake) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", bake->performer);
+
+    int32_t motion_id = aft_mot_db->get_motion_id(buf);
+
+    size_t motion_index = -1;
+    const motion_set_info* set_info = bake_pv826_set_info;
+    for (const motion_info& j : set_info->motion)
+        if (j.id == motion_id) {
+            motion_index = &j - set_info->motion.data();
+            break;
+        }
+
+    mot_data* mot_data = &bake_pv826_mot_set->mot_data[motion_index];
+
+    uint16_t key_set_count = mot_data->key_set_count - 1;
+    if (!key_set_count)
+        return;
+
+    const char* name = bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON);
+    std::string* bone_names = aft_mot_db->bone_name.data();
+    const std::vector<bone_database_bone>* bones = aft_bone_data->get_skeleton_bones(name);
+    if (!bones)
+        return;
+
+    prj::shared_ptr<prj::stack_allocator>& alloc = *bake_pv826_alloc;
+    x_pv_game_a3da_to_mot& a2m = *bake->data;
+    const mot_bone_info* bone_info = mot_data->bone_info_array;
+    for (size_t key_set_offset = 0, i = 0; key_set_offset < key_set_count; i++) {
+        motion_bone_index bone_index = (motion_bone_index)aft_bone_data->get_skeleton_bone_index(
+            name, bone_names[bone_info[i].index].c_str());
+        if (bone_index == -1) {
+            i++;
+            bone_index = (motion_bone_index)aft_bone_data->get_skeleton_bone_index(
+                name, bone_names[bone_info[i].index].c_str());
+            if (bone_index == -1)
+                break;
+        }
+
+        const bone_database_bone* bone = &(*bones)[bone_index];
+
+        auto elem = a2m.bone_keys.find(bone_index);
+        if (elem != a2m.bone_keys.end()) {
+            x_pv_game_a3da_to_mot_keys& keys = elem->second;
+
+            if (bone->type == BONE_DATABASE_BONE_ROTATION) {
+                fix_rotation(keys.x);
+                fix_rotation(keys.y);
+                fix_rotation(keys.z);
+            }
+
+            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset];
+            key_set_data_x.frames = 0;
+            key_set_data_x.values = 0;
+            size_t keys_x_count = 0;
+            key_set_data_x.type = mot_write_motion_fit_keys_into_curve(keys.x, alloc,
+                key_set_data_x.frames, key_set_data_x.values, keys_x_count);
+            key_set_data_x.keys_count = (uint16_t)keys_x_count;
+            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 1];
+            key_set_data_y.frames = 0;
+            key_set_data_y.values = 0;
+            size_t keys_y_count = 0;
+            key_set_data_y.type = mot_write_motion_fit_keys_into_curve(keys.y, alloc,
+                key_set_data_y.frames, key_set_data_y.values, keys_y_count);
+            key_set_data_y.keys_count = (uint16_t)keys_y_count;
+            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 2];
+            key_set_data_z.frames = 0;
+            key_set_data_z.values = 0;
+            size_t keys_z_count = 0;
+            key_set_data_z.type = mot_write_motion_fit_keys_into_curve(keys.z, alloc,
+                key_set_data_z.frames, key_set_data_z.values, keys_z_count);
+            key_set_data_z.keys_count = (uint16_t)keys_z_count;
+            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+        }
+
+        elem = a2m.sec_bone_keys.find(bone_index);
+        if (elem != a2m.sec_bone_keys.end()) {
+            x_pv_game_a3da_to_mot_keys& keys = elem->second;
+
+            fix_rotation(keys.x);
+            fix_rotation(keys.y);
+            fix_rotation(keys.z);
+
+            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset + 3];
+            key_set_data_x.frames = 0;
+            key_set_data_x.values = 0;
+            size_t keys_x_count = 0;
+            key_set_data_x.type = mot_write_motion_fit_keys_into_curve(keys.x, alloc,
+                key_set_data_x.frames, key_set_data_x.values, keys_x_count);
+            key_set_data_x.keys_count = (uint16_t)keys_x_count;
+            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 4];
+            key_set_data_y.frames = 0;
+            key_set_data_y.values = 0;
+            size_t keys_y_count = 0;
+            key_set_data_y.type = mot_write_motion_fit_keys_into_curve(keys.y, alloc,
+                key_set_data_y.frames, key_set_data_y.values, keys_x_count);
+            key_set_data_y.keys_count = (uint16_t)keys_y_count;
+            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 5];
+            key_set_data_z.frames = 0;
+            key_set_data_z.values = 0;
+            size_t keys_z_count = 0;
+            key_set_data_z.type = mot_write_motion_fit_keys_into_curve(keys.z, alloc,
+                key_set_data_z.frames, key_set_data_z.values, keys_z_count);
+            key_set_data_z.keys_count = (uint16_t)keys_z_count;
+            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+        }
+
+        if (bone_index == MOTION_BONE_KL_AGO_WJ) {
+            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset];
+            key_set_data_x.frames = 0;
+            {
+                std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
+                key_set_data_x.values = alloc->allocate<float_t>(1);
+                key_set_data_x.values[0] = 0.0491406508f;
+            }
+            key_set_data_x.type = MOT_KEY_SET_STATIC;
+            key_set_data_x.keys_count = 1;
+            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 1];
+            key_set_data_y.frames = 0;
+            key_set_data_y.values = 0;
+            key_set_data_y.type = MOT_KEY_SET_NONE;
+            key_set_data_y.keys_count = 0;
+            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 2];
+            key_set_data_z.frames = 0;
+            key_set_data_z.values = 0;
+            key_set_data_z.type = MOT_KEY_SET_NONE;
+            key_set_data_z.keys_count = 0;
+            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+        }
+        else if (bone_index == MOTION_BONE_N_KUBI_WJ_EX) {
+            mot_key_set_data& key_set_data_x = mot_data->key_set_array[key_set_offset];
+            key_set_data_x.frames = 0;
+            key_set_data_x.values = 0;
+            key_set_data_x.type = MOT_KEY_SET_NONE;
+            key_set_data_x.keys_count = 1;
+            key_set_data_x.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_y = mot_data->key_set_array[key_set_offset + 1];
+            key_set_data_y.frames = 0;
+            {
+                std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
+                key_set_data_y.values = alloc->allocate<float_t>(1);
+                key_set_data_y.values[0] = 0.0331281610f;
+            }
+            key_set_data_y.type = MOT_KEY_SET_STATIC;
+            key_set_data_y.keys_count = 0;
+            key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
+
+            mot_key_set_data& key_set_data_z = mot_data->key_set_array[key_set_offset + 2];
+            key_set_data_z.frames = 0;
+            key_set_data_z.values = 0;
+            key_set_data_z.type = MOT_KEY_SET_NONE;
+            key_set_data_z.keys_count = 0;
+            key_set_data_z.data_type = MOT_KEY_SET_DATA_F32;
+        }
+
+        if (bone->type >= BONE_DATABASE_BONE_POSITION_ROTATION)
+            key_set_offset += 6;
+        else
+            key_set_offset += 3;
+    }
+
+    bake->state.set(0);
+}
+
+static bool mot_write_motion_set(void* data, const char* path, const char* file, uint32_t hash) {
+    x_pv_game* xpvgm = (x_pv_game*)data;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "PV%03d", xpvgm->pv_id);
+    bake_pv826_set_info = aft_mot_db->get_motion_set_by_name(buf);
+    if (!bake_pv826_set_info)
+        return true;
+
+    bake_pv826_alloc = new prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
+    bake_pv826_alloc_mutex = 0;
+    bake_pv826_thread = 0;
+    bake_pv826_mot_data = 0;
+    bake_pv826_performer = 1;
+
+    bake_pv826_mot_set = (*bake_pv826_alloc)->allocate<::mot_set>();
+    {
+        std::string mot_file;
+        mot_file.append("mot_");
+        mot_file.append(bake_pv826_set_info->name);
+        mot_file.append(".bin");
+
+        farc f;
+        farc::load_file(&f, path, file, hash);
+
+        farc_file* ff = f.read_file(mot_file.c_str());
+        if (!ff) {
+            delete bake_pv826_alloc;
+            bake_pv826_alloc = 0;
+            bake_pv826_mot_set = 0;
+            return true;
+        }
+
+        bake_pv826_mot_set->unpack_file(*bake_pv826_alloc, ff->data, ff->size, false);
+    }
+
+    if (!bake_pv826_mot_set->ready) {
+        delete bake_pv826_alloc;
+        bake_pv826_alloc = 0;
+        bake_pv826_mot_set = 0;
+        return true;
+    }
+
+    bake_pv826_alloc_mutex = new std::mutex;
+    bake_pv826_thread = new std::thread[bake_pv826_threads_count];
+    bake_pv826_mot_data = new mot_data_bake[bake_pv826_threads_count];
+    return true;
+}
+
+static void mot_write_motion_set(x_pv_game* xpvgm) {
+    if (!bake_pv826_set_info)
+        return;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    {
+        std::string mot_file;
+        mot_file.append("mot_");
+        mot_file.append(bake_pv826_set_info->name);
+        mot_file.append(".bin");
+
+        farc f;
+
+        f.add_file(mot_file.c_str());
+        farc_file* ff = &f.files.back();
+        bake_pv826_mot_set->pack_file(&ff->data, &ff->size);
+
+        std::string mot_farc;
+        mot_farc.append("pv826\\mot_");
+        mot_farc.append(bake_pv826_set_info->name);
+        f.write(mot_farc.c_str(), FARC_COMPRESS_FArC, false);
+    }
+
+    delete[] bake_pv826_thread;
+    delete[] bake_pv826_mot_data;
+    delete bake_pv826_alloc_mutex;
+
+    delete bake_pv826_alloc;
+
+    bake_pv826_thread = 0;
+    bake_pv826_mot_data = 0;
+    bake_pv826_alloc_mutex = 0;
+    bake_pv826_mot_set = 0;
+    bake_pv826_alloc = 0;
+    bake_pv826_set_info = 0;
+}
+#endif
+
 bool x_pv_game::Unload() {
     pv_osage_manager_array_set_not_reset_true();
     if (pv_osage_manager_array_get_disp())
         return false;
+
+#if BAKE_PV826
+    if (pv_data[pv_index].pv_id == 826) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "PV%03d", pv_data[pv_index].pv_id);
+        const motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
+        if (set_info) {
+            std::string farc_file = "mot_" + set_info->name + ".farc";
+            aft_data->load_file(this, "rom/rob/", farc_file.c_str(), mot_write_motion_set);
+        }
+
+        if (bake_pv826_set_info) {
+            waitable_timer timer;
+            while (true) {
+                int32_t free_thread_count = 0;
+                for (int32_t i = 0; i < bake_pv826_threads_count; i++)
+                    if (!bake_pv826_mot_data[i].state.get())
+                        free_thread_count++;
+
+                if (free_thread_count && bake_pv826_performer < 6)
+                    for (auto& i : effchrpv_auth_3d_rob_mot_ids) {
+                        if (!free_thread_count)
+                            break;
+                        else if (bake_pv826_performer != i.first)
+                            continue;
+
+                        std::thread* thread = 0;
+                        int32_t thread_index = -1;
+                        for (int32_t j = 0; j < bake_pv826_threads_count; j++)
+                            if (!bake_pv826_mot_data[j].state.get()) {
+                                thread = &bake_pv826_thread[j];
+                                thread_index = j;
+                                break;
+                            }
+
+                        if (!thread)
+                            break;
+
+                        mot_data_bake* bake = &bake_pv826_mot_data[thread_index];
+                        bake->performer = bake_pv826_performer + 1;
+                        bake->data = &i.second;
+                        bake->state.set(1);
+
+                        if (thread->joinable())
+                            thread->join();
+
+                        *thread = std::thread(mot_write_motion, bake);
+
+                        wchar_t buf[0x80];
+                        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
+                            L"X PV GAME BAKE PV826 P%d", bake->performer);
+                        SetThreadDescription((HANDLE)thread->native_handle(), buf);
+
+                        bake_pv826_performer++;
+                        free_thread_count--;
+                    }
+
+                if (free_thread_count == 2)
+                    break;
+
+                timer.sleep_float(1.0);
+            }
+
+            for (int32_t i = 0; i < bake_pv826_threads_count; i++)
+                bake_pv826_thread[i].join();
+
+            mot_write_motion_set(this);
+        }
+    }
+#endif
 
     for (int32_t& i : rob_chara_ids)
         skin_param_manager_reset(i);
@@ -8126,17 +8052,17 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 for (size_t j = 0; j <= i; j++)
                     a[j] = (((float_t*)&v[j])[o] - offset) * scale;
 
-                double_t tt1 = 0.0;
-                double_t tt2 = 0.0;
+                double_t t1_accum = 0.0;
+                double_t t2_accum = 0.0;
                 for (size_t j = 1; j < i; j++) {
-                    float_t _t1 = 0.0f;
-                    float_t _t2 = 0.0f;
-                    interpolate_chs_reverse_value(a, left_count, _t1, _t2, 0, i, j);
-                    tt1 += _t1;
-                    tt2 += _t2;
+                    float_t t1 = 0.0f;
+                    float_t t2 = 0.0f;
+                    interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
+                    t1_accum += t1;
+                    t2_accum += t2;
                 }
-                _t1[o] = (float_t)(tt1 / (double_t)(i - 2));
-                _t2[o] = (float_t)(tt2 / (double_t)(i - 2));
+                _t1[o] = (float_t)(t1_accum / (double_t)(i - 2));
+                _t2[o] = (float_t)(t2_accum / (double_t)(i - 2));
             }
 
             t1 = 0.0f;

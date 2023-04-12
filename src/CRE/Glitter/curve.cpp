@@ -303,8 +303,8 @@ namespace Glitter {
             int32_t c = 0;
             size_t i;
             for (i = reverse_min_count - 1; i < left_count; i++) {
-                double_t tt1 = 0.0;
-                double_t tt2 = 0.0;
+                double_t t1_accum = 0.0;
+                double_t t2_accum = 0.0;
                 for (size_t j = 1; j < i - 1; j++) {
                     float_t _t1 = (float_t)(j * step) / (float_t)(i * step);
                     float_t _t2 = (float_t)((j + 1) * step) / (float_t)(i * step);
@@ -319,11 +319,11 @@ namespace Glitter {
                     float_t t1 = -t1_t2_1 * _t2 + t1_t2_2 * _t1;
                     float_t t2 = t1_t2_1 * t2_1 - t1_t2_2 * t1_1;
 
-                    tt1 += t1;
-                    tt2 += t2;
+                    t1_accum += t1;
+                    t2_accum += t2;
                 }
-                t1 = (float_t)(tt1 / (double_t)(i - 2));
-                t2 = (float_t)(tt2 / (double_t)(i - 2));
+                t1 = (float_t)(t1_accum / (double_t)(i - 2));
+                t2 = (float_t)(t2_accum / (double_t)(i - 2));
 
                 constant = true;
                 has_error = false;

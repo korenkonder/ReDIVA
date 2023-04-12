@@ -127,22 +127,22 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
             bool constant = true;
             for (size_t j = 1; j <= i; i++)
-                if (!memcmp(&a[0], &a[j], sizeof(float_t))) {
+                if (memcmp(&a[0], &a[j], sizeof(float_t))) {
                     constant = false;
                     break;
                 }
 
-            double_t tt1 = 0.0;
-            double_t tt2 = 0.0;
+            double_t t1_accum = 0.0;
+            double_t t2_accum = 0.0;
             for (size_t j = 1; j < i; j++) {
-                float_t _t1 = 0.0f;
-                float_t _t2 = 0.0f;
-                interpolate_chs_reverse_value(a, left_count, _t1, _t2, 0, i, j);
-                tt1 += _t1;
-                tt2 += _t2;
+                float_t t1 = 0.0f;
+                float_t t2 = 0.0f;
+                interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
+                t1_accum += t1;
+                t2_accum += t2;
             }
-            t1 = (float_t)(tt1 / (double_t)(i - 2));
-            t2 = (float_t)(tt2 / (double_t)(i - 2));
+            t1 = (float_t)(t1_accum / (double_t)(i - 2));
+            t2 = (float_t)(t2_accum / (double_t)(i - 2));
 
             has_error = false;
             for (size_t j = 1; j < i; j++) {
