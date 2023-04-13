@@ -153,23 +153,19 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
     std::vector<uint16_t>& frames, std::vector<float_t>& values) {
     if (has_error) {
         mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
-        if (t2_old == 0.0f)
-            mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
-        for (size_t j = 1; j < i; j++) {
+        if (fabsf(t2) != 0.0f)
+            mot_set_add_key((uint16_t)frame, a[0], 0.0f, frames, values);
+        for (size_t j = 1; j < i; j++)
             mot_set_add_key((uint16_t)(frame + j), a[j], 0.0f, frames, values);
-            mot_set_add_key((uint16_t)(frame + j), a[j], 0.0f, frames, values);
-        }
         return 0.0f;
     }
     else {
-        mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
-        if (t2_old == 0.0f)
+        if (fabsf(t1 - t2_old) > 0.00001f) {
             mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
-        if (t1 != t2_old) {
             mot_set_add_key((uint16_t)frame, a[0], t1, frames, values);
-            if (t1 == 0.0f)
-                mot_set_add_key((uint16_t)frame, a[0], t1, frames, values);
         }
+        else
+            mot_set_add_key((uint16_t)frame, a[0], (t1 + t2_old) * 0.5f, frames, values);
         return t2;
     }
 }
@@ -203,18 +199,17 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                 return MOT_KEY_SET_NONE;
     }
 
-    int32_t start_time = 0;
-    int32_t end_time = (int32_t)(count - 1);
-
     float_t* arr = values_src.data();
 
     const float_t reverse_bias = 0.0001f;
     const int32_t reverse_min_count = 4;
 
+    mot_set_add_key(0, arr[0], 0.0f, frames, values);
+
     float_t* a = arr;
     size_t left_count = count;
-    int32_t frame = start_time;
-    int32_t prev_frame = start_time;
+    int32_t frame = 0;
+    int32_t prev_frame = 0;
     float_t t2_old = 0.0f;
     while (left_count > 0) {
         if (left_count < reverse_min_count) {
@@ -314,9 +309,9 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
         left_count -= c;
     }
 
-    mot_set_add_key((uint16_t)(start_time + (count - 1)), arr[count - 1], t2_old, frames, values);
-    if (t2_old != 0.0f)
-        mot_set_add_key((uint16_t)(start_time + (count - 1)), arr[count - 1], 0.0f, frames, values);
+    if (frames.back() != (uint16_t)(count - 1))
+        mot_set_add_key((uint16_t)(count - 1), arr[count - 1], t2_old, frames, values);
+    mot_set_add_key((uint16_t)(count - 1), arr[count - 1], 0.0f, frames, values);
 
 
     count = frames.size();

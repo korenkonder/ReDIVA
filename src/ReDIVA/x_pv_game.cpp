@@ -4338,6 +4338,10 @@ bool x_pv_game::Ctrl() {
         pipe = _popen(buf, "wb");
 #endif
 
+#if BAKE_PV826
+        x_pv_game_map_auth_3d_to_mot(this, true);
+#endif
+
         pause = true;
 
         state_old = 20;
@@ -4356,7 +4360,7 @@ bool x_pv_game::Ctrl() {
         sound_work_stream_set_pause(0, pause);
 
 #if BAKE_PV826
-        x_pv_game_map_auth_3d_to_mot(this, delta_frame != 0.0f && frame > 0);
+        x_pv_game_map_auth_3d_to_mot(this, delta_frame != 0.0f);
 #endif
 
 #if BAKE_PNG || BAKE_VIDEO
