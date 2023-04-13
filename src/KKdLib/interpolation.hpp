@@ -229,4 +229,5 @@ extern void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f);
 extern void interpolate_chs_reverse(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2);
-extern int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::vector<kft3>& values);
+extern int32_t interpolate_chs_reverse_sequence(
+    std::vector<float_t>& values_src, std::vector<kft3>& values, bool fast = false);

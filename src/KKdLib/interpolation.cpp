@@ -64,7 +64,8 @@ void interpolate_chs_reverse(float_t* arr, size_t length,
     t2 = (float_t)(tt2 / (double_t)(f2 - f1 - 2));
 }
 
-int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::vector<kft3>& values) {
+int32_t interpolate_chs_reverse_sequence(
+    std::vector<float_t>& values_src, std::vector<kft3>& values, bool fast) {
     size_t count = values_src.size();
     if (!count)
         return 0;
@@ -122,6 +123,7 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
         bool has_prev_succeded = false;
         bool has_error = false;
         bool has_prev_error = false;
+        bool constant_prev = false;
 
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
@@ -132,17 +134,21 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
                     break;
                 }
 
-            double_t t1_accum = 0.0;
-            double_t t2_accum = 0.0;
-            for (size_t j = 1; j < i; j++) {
-                float_t t1 = 0.0f;
-                float_t t2 = 0.0f;
-                interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
-                t1_accum += t1;
-                t2_accum += t2;
+            if (!fast) {
+                double_t t1_accum = 0.0;
+                double_t t2_accum = 0.0;
+                for (size_t j = 1; j < i; j++) {
+                    float_t t1 = 0.0f;
+                    float_t t2 = 0.0f;
+                    interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
+                    t1_accum += t1;
+                    t2_accum += t2;
+                }
+                t1 = (float_t)(t1_accum / (double_t)(i - 2));
+                t2 = (float_t)(t2_accum / (double_t)(i - 2));
             }
-            t1 = (float_t)(t1_accum / (double_t)(i - 2));
-            t2 = (float_t)(t2_accum / (double_t)(i - 2));
+            else
+                interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, 1);
 
             has_error = false;
             for (size_t j = 1; j < i; j++) {
@@ -160,6 +166,7 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
                 i_prev = i;
                 t1_prev = t1;
                 t2_prev = t2;
+                constant_prev = constant;
                 has_prev_error = false;
                 has_prev_succeded = true;
                 if (i < left_count)
@@ -170,6 +177,7 @@ int32_t interpolate_chs_reverse_sequence(std::vector<float_t>& values_src, std::
                 i = i_prev;
                 t1 = t1_prev;
                 t2 = t2_prev;
+                constant = constant_prev;
                 has_error = false;
                 has_prev_succeded = false;
             }

@@ -7912,7 +7912,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 }
 
 static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, float_t play_control_size,
-    std::vector<std::pair<vec4, vec4>>& color, vec4u8& has_color, std::vector<kft3>& morph) {
+    std::vector<std::pair<vec4, vec4>>& color, vec4u8& has_color, std::vector<kft3>& morph, bool fast = false) {
     size_t count = (size_t)(int32_t)play_control_size;
 
     typedef std::pair<vec4, vec4> vec4_pair;
@@ -8056,17 +8056,21 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 for (size_t j = 0; j <= i; j++)
                     a[j] = (((float_t*)&v[j])[o] - offset) * scale;
 
-                double_t t1_accum = 0.0;
-                double_t t2_accum = 0.0;
-                for (size_t j = 1; j < i; j++) {
-                    float_t t1 = 0.0f;
-                    float_t t2 = 0.0f;
-                    interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
-                    t1_accum += t1;
-                    t2_accum += t2;
+                if (!fast) {
+                    double_t t1_accum = 0.0;
+                    double_t t2_accum = 0.0;
+                    for (size_t j = 1; j < i; j++) {
+                        float_t t1 = 0.0f;
+                        float_t t2 = 0.0f;
+                        interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
+                        t1_accum += t1;
+                        t2_accum += t2;
+                    }
+                    _t1[o] = (float_t)(t1_accum / (double_t)(i - 2));
+                    _t2[o] = (float_t)(t2_accum / (double_t)(i - 2));
                 }
-                _t1[o] = (float_t)(t1_accum / (double_t)(i - 2));
-                _t2[o] = (float_t)(t2_accum / (double_t)(i - 2));
+                else
+                    interpolate_chs_reverse_value(a, left_count, _t1[o], _t2[o], 0, i, 1);
             }
 
             t1 = 0.0f;

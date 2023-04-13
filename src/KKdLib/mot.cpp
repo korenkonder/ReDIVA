@@ -121,8 +121,9 @@ inline static float_t interpolate_mot_value(float_t p1, float_t p2,
 }
 
 inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
-    float_t* t1, float_t* t2, size_t f1, size_t f2, size_t f) {
-    *t2 = 0.0f;
+    float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
+    t1 = 0.0f;
+    t2 = 0.0f;
 
     if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
         return;
@@ -137,8 +138,8 @@ inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     t1_t2_1 /= t1_1 * _t1;
     t1_t2_2 /= t2_1 * _t2;
 
-    *t1 = -t1_t2_1 * _t2 + t1_t2_2 * _t1;
-    *t2 = t1_t2_1 * t2_1 - t1_t2_2 * t1_1;
+    t1 = -t1_t2_1 * _t2 + t1_t2_2 * _t1;
+    t2 = t1_t2_1 * t2_1 - t1_t2_2 * t1_1;
 }
 
 inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
@@ -150,7 +151,7 @@ inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
 
 inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
     size_t i, float_t t1, float_t t2, float_t t2_old,
-    std::vector<uint16_t>& frames, std::vector<float_t>& values) {
+    std::vector<uint16_t>& frames, std::vector<float_t>& values, bool fast = false) {
     if (has_error) {
         mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
         if (fabsf(t2) != 0.0f)
@@ -160,7 +161,8 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
         return 0.0f;
     }
     else {
-        if (fabsf(t1 - t2_old) > 0.00001f) {
+        const float_t reverse_bias = fast ? 0.0001f : 0.00001f;
+        if (fabsf(t1 - t2_old) > reverse_bias) {
             mot_set_add_key((uint16_t)frame, a[0], t2_old, frames, values);
             mot_set_add_key((uint16_t)frame, a[0], t1, frames, values);
         }
@@ -171,7 +173,7 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
 }
 
 mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
-    std::vector<uint16_t>& frames, std::vector<float_t>& values) {
+    std::vector<uint16_t>& frames, std::vector<float_t>& values, bool fast) {
     size_t count = values_src.size();
     if (!count)
         return MOT_KEY_SET_NONE;
@@ -214,7 +216,8 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
     while (left_count > 0) {
         if (left_count < reverse_min_count) {
             if (left_count > 1)
-                t2_old = mot_set_add_key(true, a, frame, left_count - 1, 0.0f, 0.0f, t2_old, frames, values);
+                t2_old = mot_set_add_key(true, a, frame,
+                    left_count - 1, 0.0f, 0.0f, t2_old, frames, values);
             break;
         }
 
@@ -227,6 +230,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
         bool has_prev_succeded = false;
         bool has_error = false;
         bool has_prev_error = false;
+        bool constant_prev = false;
 
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
@@ -237,17 +241,21 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                     break;
                 }
 
-            double_t t1_accum = 0.0;
-            double_t t2_accum = 0.0;
-            for (size_t j = 1; j < i; j++) {
-                float_t t1 = 0.0f;
-                float_t t2 = 0.0f;
-                interpolate_mot_reverse_value(a, left_count, &t1, &t2, 0, i, j);
-                t1_accum += t1;
-                t2_accum += t2;
+            if (!fast) {
+                double_t t1_accum = 0.0;
+                double_t t2_accum = 0.0;
+                for (size_t j = 1; j < i; j++) {
+                    float_t t1 = 0.0f;
+                    float_t t2 = 0.0f;
+                    interpolate_mot_reverse_value(a, left_count, t1, t2, 0, i, j);
+                    t1_accum += t1;
+                    t2_accum += t2;
+                }
+                t1 = (float_t)(t1_accum / (double_t)(i - 2));
+                t2 = (float_t)(t2_accum / (double_t)(i - 2));
             }
-            t1 = (float_t)(t1_accum / (double_t)(i - 2));
-            t2 = (float_t)(t2_accum / (double_t)(i - 2));
+            else
+                interpolate_mot_reverse_value(a, left_count, t1, t2, 0, i, 1);
 
             has_error = false;
             for (size_t j = 1; j < i; j++) {
@@ -265,6 +273,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                 i_prev = i;
                 t1_prev = t1;
                 t2_prev = t2;
+                constant_prev = constant;
                 has_prev_error = false;
                 has_prev_succeded = true;
                 if (i < left_count)
@@ -275,6 +284,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                 i = i_prev;
                 t1 = t1_prev;
                 t2 = t2_prev;
+                constant = constant_prev;
                 has_error = false;
                 has_prev_succeded = false;
             }
@@ -286,7 +296,7 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
                 }
 
                 c = (int32_t)i;
-                t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
+                t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values, fast);
                 has_prev_error = false;
                 break;
             }
@@ -295,11 +305,11 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
         }
 
         if (has_prev_succeded) {
-            t2_old = mot_set_add_key(has_error, a, frame, c, t1_prev, t2_prev, t2_old, frames, values);
+            t2_old = mot_set_add_key(has_error, a, frame, c, t1_prev, t2_prev, t2_old, frames, values, fast);
             c = (int32_t)i;
         }
         else if (has_prev_error) {
-            t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values);
+            t2_old = mot_set_add_key(has_error, a, frame, c, t1, t2, t2_old, frames, values, fast);
             c = 1;
         }
 
