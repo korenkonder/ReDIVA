@@ -130,7 +130,7 @@ int32_t interpolate_chs_reverse_sequence(
             if (!fast) {
                 double_t t1_accum = 0.0;
                 double_t t2_accum = 0.0;
-                for (size_t j = 1; j < i; j++) {
+                for (size_t j = 1; j < i - 1; j++) {
                     float_t t1 = 0.0f;
                     float_t t2 = 0.0f;
                     interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
