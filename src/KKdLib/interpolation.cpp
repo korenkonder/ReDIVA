@@ -7,14 +7,8 @@
 
 void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
-    t1 = 0.0f;
-    t2 = 0.0f;
-
-    if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
-        return;
-
-    float_t _t1 = (float_t)(f - f1) / (float_t)(f2 - f1);
-    float_t _t2 = (float_t)(f - f1 + 1) / (float_t)(f2 - f1);
+    float_t _t1 = (float_t)(int32_t)(f - f1 + 0) / (float_t)(int32_t)(f2 - f1);
+    float_t _t2 = (float_t)(int32_t)(f - f1 + 1) / (float_t)(int32_t)(f2 - f1);
     float_t t1_2 = _t1 * _t1;
     float_t t2_2 = _t2 * _t2;
     float_t t1_3 = t1_2 * _t1;
@@ -33,9 +27,8 @@ void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t h11_1 = t1_3 - t1_2;
     float_t h11_2 = t2_3 - t2_2;
 
-    float_t t1_t2_1 = (arr[f] - h00_1 * arr[f1] - h01_1 * arr[f2]);
-    float_t t1_t2_2 = (arr[f + 1] - h00_2 * arr[f1] - h01_2 * arr[f2]);
-
+    float_t t1_t2_1 = arr[f + 0] - h00_1 * arr[f1] - h01_1 * arr[f2];
+    float_t t1_t2_2 = arr[f + 1] - h00_2 * arr[f1] - h01_2 * arr[f2];
     t1_t2_1 /= (t1_2 - _t1) * (t2_2 - _t2);
     t1_t2_2 /= (t1_2 - _t1) * (t2_2 - _t2);
 

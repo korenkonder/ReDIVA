@@ -111,7 +111,7 @@ void mot_set::unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const voi
         mot_modern_read_inner(this, alloc, s);
 }
 
-inline static float_t interpolate_mot_value(float_t p1, float_t p2,
+static float_t interpolate_mot_value(float_t p1, float_t p2,
     float_t t1, float_t t2, float_t f1, float_t f2, float_t f) {
     float_t df = f - f1;
     float_t t = df / (f2 - f1);
@@ -120,20 +120,14 @@ inline static float_t interpolate_mot_value(float_t p1, float_t p2,
         + (t * 2.0f - 3.0f) * (t * t) * (p1 - p2) + p1;
 }
 
-inline static void interpolate_mot_reverse_value(float_t* arr, size_t length,
+static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
-    t1 = 0.0f;
-    t2 = 0.0f;
-
-    if (!arr || length < 2 || f - f1 + 1 >= length || f < 1 || f < f1 || f + 2 > f2)
-        return;
-
-    float_t _t1 = (float_t)(f - f1) / (float_t)(f2 - f1);
-    float_t _t2 = (float_t)(f - f1 + 1) / (float_t)(f2 - f1);
+    float_t _t1 = (float_t)(int32_t)(f - f1 + 0) / (float_t)(int32_t)(f2 - f1);
+    float_t _t2 = (float_t)(int32_t)(f - f1 + 1) / (float_t)(int32_t)(f2 - f1);
     float_t t1_1 = _t1 - 1.0f;
     float_t t2_1 = _t2 - 1.0f;
 
-    float_t t1_t2_1 = arr[f] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
+    float_t t1_t2_1 = arr[f + 0] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
     float_t t1_t2_2 = arr[f + 1] - arr[f1] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (arr[f1] - arr[f2]);
     t1_t2_1 /= t1_1 * _t1;
     t1_t2_2 /= t2_1 * _t2;
