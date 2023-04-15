@@ -3567,12 +3567,12 @@ bool x_pv_game::Ctrl() {
         size_t width = tex->width;
         size_t height = tex->height;
 
-        const size_t pixel_size = 3;
+        const size_t pixel_size = 6;
 
         std::vector<uint8_t> temp_pixels;
         temp_pixels.resize(width * height * pixel_size);
         gl_state_bind_texture_2d(tex->tex);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_BYTE, temp_pixels.data());
+        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_SHORT, temp_pixels.data());
         gl_state_bind_texture_2d(0);
 
         std::vector<uint8_t> pixels;
@@ -4331,10 +4331,14 @@ bool x_pv_game::Ctrl() {
 
 #if BAKE_VIDEO
         char buf[0x400];
-        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb24 -s %dx%d -r 60 -i -"
-            " -c:v h264_nvenc -gpu 0 -profile:v high -b_ref_mode 1 -rc constqp -qp 21"
+        /*sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb48le -s %dx%d -r 60 -i -"
+            " -c:v h264_nvenc -gpu 0 -profile:v high -b_ref_mode 1 -rc constqp -qp 21 -preset p7"
             " -color_range pc -color_primaries bt709 -color_trc bt709 -colorspace bt709 -pix_fmt yuv420p"
-            " H:\\C\\Videos\\ReDIVA_pv%03d.264", 3840, 2160, pv_data[pv_index].pv_id);
+            " H:\\C\\Videos\\ReDIVA_pv%03d.264", 3840, 2160, pv_data[pv_index].pv_id);*/
+        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb48le -s %dx%d -r 60 -i -"
+            " -c:v hevc_nvenc -gpu 0 -profile:v main10 -rc constqp -qp 21 -preset p7"
+            " -color_range pc -color_primaries bt709 -color_trc bt709 -colorspace bt709 -pix_fmt p010le"
+            " H:\\C\\Videos\\ReDIVA_pv%03d.265", 3840, 2160, pv_data[pv_index].pv_id);
         pipe = _popen(buf, "wb");
 #endif
 
