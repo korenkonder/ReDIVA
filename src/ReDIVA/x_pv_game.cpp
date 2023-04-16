@@ -3541,10 +3541,6 @@ static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
         return;
     case 2:
         k.type = A3DA_KEY_LINEAR;
-        for (kft3& i : values) {
-            i.tangent1 = 0.0f;
-            i.tangent2 = 0.0f;
-        }
         break;
     case 3:
         k.type = A3DA_KEY_HERMITE;
@@ -7297,6 +7293,63 @@ static int x_pv_game_split_auth_3d_hrc_obj_bone_compare_func(void const* src1, v
     return bone1->dst_name.compare(bone2->dst_name);
 }
 
+static void auth_3d_key_rev(auth_3d_key& k, std::vector<float_t>& values_src) {
+    std::vector<kft3> values;
+    int32_t type = interpolate_chs_reverse_sequence(values_src, values);
+
+    k = {};
+    switch (type) {
+    case A3DA_KEY_NONE:
+        k.type = AUTH_3D_KEY_NONE;
+        k.value = 0.0f;
+        return;
+    case A3DA_KEY_STATIC:
+        k.type = values[0].value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+        k.value = values[0].value;
+        return;
+    case A3DA_KEY_LINEAR:
+        k.type = AUTH_3D_KEY_LINEAR;
+        break;
+    case A3DA_KEY_HERMITE:
+    default:
+        k.type = AUTH_3D_KEY_HERMITE;
+        break;
+    case A3DA_KEY_HOLD:
+        k.type = AUTH_3D_KEY_HOLD;
+        break;
+    }
+
+    k.max_frame = (float_t)(values_src.size() + 1);
+    k.frame_delta = k.max_frame;
+    k.value_delta = 0.0f;
+
+    size_t length = values.size();
+    if (length > 1) {
+        k.keys_vec.assign(values.begin(), values.end());
+        k.length = length;
+        k.keys = k.keys_vec.data();
+
+        kft3* first_key = &k.keys[0];
+        kft3* last_key = &k.keys[length - 1];
+        if (first_key->frame < last_key->frame
+            && last_key->frame > 0.0f && k.max_frame > first_key->frame) {
+            k.ep_type_pre = AUTH_3D_EP_NONE;
+            k.ep_type_post = AUTH_3D_EP_NONE;
+            k.frame_delta = last_key->frame - first_key->frame;
+            k.value_delta = last_key->value - first_key->value;
+        }
+    }
+    else if (length == 1) {
+        float_t value = values.front().value;
+        k.type = value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+        k.value = value;
+    }
+    else {
+        k.type = AUTH_3D_KEY_NONE;
+        k.value = 0.0f;
+    }
+}
+
 static std::string x_pv_game_split_auth_3d_get_object_name(
     const std::string& str1, const char* str2, const object_database& obj_db, bool uid_name = false) {
     if (!str1.size())
@@ -7430,10 +7483,14 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 uint32_t num_submesh = mesh->num_submesh;
                 for (uint32_t l = 0; l < num_submesh; l++, sub_mesh++) {
                     uint16_t* bone_index_array = sub_mesh->bone_index_array;
+                    uint16_t num_bone_index = sub_mesh->num_bone_index;
                     uint32_t* index = sub_mesh->index_array;
                     uint32_t num_index = sub_mesh->num_index;
                     for (uint32_t m = 0; m < num_index; m++, index++) {
                         obj_vertex_data vertex = vertex_array[*index];
+                        if (vertex.bone_index.x < 0 || vertex.bone_index.x >= num_bone_index)
+                            continue;
+
                         int32_t bone_index = bone_index_array[vertex.bone_index.x];
                         x_pv_game_split_auth_3d_hrc_obj_mesh& bone_vertices_mesh
                             = bones_vertices[bone_index].meshes[k];
@@ -7694,6 +7751,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 continue;
 
             std::vector<std::string> hrc_nodes;
+            prj::vector_pair<std::string, obj_skin_bone*> hrc_bones;
 
             obj_skin_bone* bone_array = skin->bone_array;
             uint32_t num_bone = skin->num_bone;
@@ -7723,6 +7781,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[l];
                     const char* bone_name = bone_array[bone_vertices.index].name;
 
+                    hrc_bones.push_back({ bone_name, &bone_array[bone_vertices.index] });
+
                     int32_t node_index = obj_hrc->get_node_index(bone_name);
                     while (node_index >= 0) {
                         auth_3d_object_node* node = &obj_hrc->node[node_index];
@@ -7737,6 +7797,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             }
 
             prj::sort_unique(hrc_nodes);
+            prj::sort_unique(hrc_bones);
 
             for (std::pair<uint32_t, auth_3d_id> k : xpvgm->stage_data.auth_3d_ids) {
                 auth_3d* auth = k.second.get_auth_3d();
@@ -7832,6 +7893,47 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                         n.uid_name.assign(uid_name);
                         n.object_info = obj_db.get_object_info(n.uid_name.c_str());
                         n.object_hash = hash_string_murmurhash(n.uid_name);
+
+                        auto hrc_bones_elem = hrc_bones.find(node->name);
+                        if (hrc_bones_elem == hrc_bones.end())
+                            break;
+                        //n.model_transform.rotation = {};
+                            break;
+
+                        obj_skin_bone* hrc_bone = hrc_bones_elem->second;
+                        mat4 rot_mat;
+                        mat4_clear_trans(&hrc_bone->inv_bind_pose_mat, &rot_mat);
+                        mat4_invrot(&rot_mat, &rot_mat);
+
+                        vec3 rot_mat_rot;
+                        mat4_get_rotation(&rot_mat, &rot_mat_rot);
+                        if (fabsf(rot_mat_rot.x) < 0.00001f
+                            && fabsf(rot_mat_rot.x) < 0.00001f
+                            && fabsf(rot_mat_rot.x) < 0.00001f)
+                            break;
+
+                        std::vector<float_t> rotation_x;
+                        std::vector<float_t> rotation_y;
+                        std::vector<float_t> rotation_z;
+
+                        float_t last_frame = auth->last_frame;
+                        for (float_t o = 0.0f; o < last_frame; o++) {
+                            node->interpolate(o);
+
+                            mat4 mat;
+                            mat4_mult(&node->model_transform.mat_inner, &node->joint_orient_mat, &mat);
+                            mat4_mult(&rot_mat, &mat, &mat);
+
+                            vec3 rotation;
+                            mat4_get_rotation(&mat, &rotation);
+                            rotation_x.push_back(rotation.x);
+                            rotation_y.push_back(rotation.y);
+                            rotation_z.push_back(rotation.z);
+                        }
+
+                        auth_3d_key_rev(n.model_transform.rotation.x, rotation_x);
+                        auth_3d_key_rev(n.model_transform.rotation.y, rotation_y);
+                        auth_3d_key_rev(n.model_transform.rotation.z, rotation_z);
                         break;
                     }
             }
@@ -8044,6 +8146,9 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                     break;
                 }
 
+            t1 = 0.0f;
+            t2 = 0.0f;
+
             float_t start[8];
             float_t end[8];
             float_t _t1[8];
@@ -8075,48 +8180,9 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 }
                 else
                     interpolate_chs_reverse_value(a, left_count, _t1[o], _t2[o], 0, i, 1);
-            }
 
-            t1 = 0.0f;
-            t2 = 0.0f;
-            if (has_data[0]) {
                 t1 += _t1[0];
                 t2 += _t2[0];
-            }
-
-            if (has_data[1]) {
-                t1 += _t1[1];
-                t2 += _t2[1];
-            }
-
-            if (has_data[2]) {
-                t1 += _t1[2];
-                t2 += _t2[2];
-            }
-
-            if (has_data[3]) {
-                t1 += _t1[3];
-                t2 += _t2[3];
-            }
-
-            if (has_data[4]) {
-                t1 += _t1[4];
-                t2 += _t2[4];
-            }
-
-            if (has_data[5]) {
-                t1 += _t1[5];
-                t2 += _t2[5];
-            }
-
-            if (has_data[6]) {
-                t1 += _t1[6];
-                t2 += _t2[6];
-            }
-
-            if (has_data[7]) {
-                t1 += _t1[7];
-                t2 += _t2[7];
             }
 
             if (has_data_count) {

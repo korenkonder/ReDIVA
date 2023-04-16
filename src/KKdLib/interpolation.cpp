@@ -121,7 +121,7 @@ int32_t interpolate_chs_reverse_sequence(
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
             bool constant = true;
-            for (size_t j = 1; j <= i; i++)
+            for (size_t j = 1; j <= i; j++)
                 if (memcmp(&a[0], &a[j], sizeof(float_t))) {
                     constant = false;
                     break;
@@ -246,6 +246,11 @@ int32_t interpolate_chs_reverse_sequence(
 
         if (fabsf(val - arr[i]) > reverse_bias)
             return 3;
+    }
+
+    for (kft3& i : values) {
+        i.tangent1 = 0.0f;
+        i.tangent2 = 0.0f;
     }
     return 2;
 }

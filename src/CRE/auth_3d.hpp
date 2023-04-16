@@ -308,6 +308,7 @@ struct auth_3d_key {
     float_t value_init;
 
     auth_3d_key();
+    auth_3d_key(const auth_3d_key& k);
     ~auth_3d_key();
 
     float_t interpolate(float_t frame);

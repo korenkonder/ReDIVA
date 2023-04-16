@@ -1120,6 +1120,11 @@ frame_delta(), value_delta(), length(), keys(), frame(), value_interp(), value_i
     reset();
 }
 
+auth_3d_key::auth_3d_key(const auth_3d_key& k) : type(), value(), max_frame(), ep_type_pre(),
+ep_type_post(), frame_delta(), value_delta(), length(), keys(), frame(), value_interp(), value_init() {
+    *this = k;
+}
+
 auth_3d_key::~auth_3d_key() {
     reset();
 }
@@ -1911,7 +1916,7 @@ void auth_3d_object_model_transform::interpolate(float_t frame) {
             scale_value = scale.interpolate(frame);
 
         if (has_visibility)
-            visible = visibility.interpolate(frame) >= 0.99900001f;
+            visible = visibility.interpolate(frame) >= 0.999f;
 
         mat4_rotate_zyx(&rotation_value, &mat_rot);
         this->frame = frame;
@@ -3254,7 +3259,6 @@ static void auth_3d_key_load(auth_3d* auth, auth_3d_key* k, auth_3d_key_file* kf
     k->frame_delta = k->max_frame;
     k->value_delta = 0.0f;
 
-    size_t length = kf->keys.size();
     switch (kf->type) {
     case A3DA_KEY_NONE:
         k->type = AUTH_3D_KEY_NONE;
@@ -3276,6 +3280,7 @@ static void auth_3d_key_load(auth_3d* auth, auth_3d_key* k, auth_3d_key_file* kf
         break;
     }
 
+    size_t length = kf->keys.size();
     if (length > 1) {
         k->keys_vec.assign(kf->keys.begin(), kf->keys.end());
         k->length = length;
@@ -5964,7 +5969,7 @@ static void auth_3d_object_model_transform_load(auth_3d* auth,
 
     if (omt->visibility.type == AUTH_3D_KEY_STATIC) {
         omt->has_visibility = false;
-        omt->visible = omt->visibility.value >= 0.99900001f;
+        omt->visible = omt->visibility.value >= 0.999f;
     }
     else
         omt->has_visibility = true;
