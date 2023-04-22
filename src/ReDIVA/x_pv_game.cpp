@@ -228,6 +228,7 @@ static int32_t aet_index_table[] = { 0, 1, 2, 6, 5 };
 dof_cam dof_cam_data;
 #endif
 x_pv_game* x_pv_game_ptr;
+x_pv_game_music* x_pv_game_music_ptr;
 XPVGameSelector x_pv_game_selector;
 
 extern render_context* rctx_ptr;
@@ -1598,6 +1599,435 @@ void x_pv_game_chara_effect::unload() {
     state = 0;
 }
 
+x_pv_game_music_args::x_pv_game_music_args() : type(), start(), field_2C() {
+
+}
+
+x_pv_game_music_args::~x_pv_game_music_args() {
+
+}
+
+x_pv_game_music_ogg::x_pv_game_music_ogg() {
+    playback = ogg_playback_data_get(0);
+}
+
+x_pv_game_music_ogg::~x_pv_game_music_ogg() {
+    if (playback) {
+        playback->Reset();
+        playback = 0;
+    }
+}
+
+x_pv_game_music::x_pv_game_music() : flags(), pause(), channel_pair_volume(), fade_in(),
+fade_out(), no_fade(), no_fade_remain(), fade_out_time_req(), fade_out_action_req(),
+type(), start(), end(), play_on_end(), fade_in_time(), field_9C(), loaded(), ogg() {
+    volume = 100;
+    master_volume = 100;
+    for (int32_t& i : channel_pair_volume)
+        i = 100;
+    fade_out_time = 3.0f;
+}
+
+x_pv_game_music::~x_pv_game_music() {
+
+}
+
+bool x_pv_game_music::check_args(int32_t type, std::string&& file_path, float_t start) {
+    return args.type == type && !args.file_path.compare(file_path) && args.start == start;
+}
+
+void x_pv_game_music::ctrl(float_t delta_time) {
+    if (no_fade && !pause) {
+        no_fade_remain -= delta_time;
+        if (no_fade_remain <= 0.0f) {
+            fade_out.enable = 1;
+            fade_out.start = get_volume(0);
+            fade_out.value = 0;
+            fade_out.time = fade_out_time_req;
+            fade_out.remain = fade_out_time_req;
+            fade_out.action = fade_out_action_req;
+
+            no_fade = false;
+            no_fade_remain = 0.0f;
+            fade_out_time_req = 0.0f;
+            fade_out_action_req = X_PV_GAME_MUSIC_ACTION_NONE;
+        }
+    }
+
+    if (fade_in.enable && !pause) {
+        fade_in.remain -= delta_time;
+        if (fade_in.remain > 0.0f) {
+            int32_t value = fade_in.value;
+            if (fade_in.time > 0.0)
+                value = (int32_t)(value - ((float_t)(value
+                    - fade_in.start) * (fade_in.remain / fade_in.time)));
+            set_volume_map(0, value);
+        }
+        else
+            fade_in_end();
+    }
+
+    if (fade_out.enable && !pause) {
+        fade_out.remain -= delta_time;
+        if (fade_out.remain > 0.0f) {
+            int32_t value = fade_out.value;
+            if (fade_out.time > 0.0f)
+                value = (int32_t)(value - ((float_t)(value
+                    - fade_out.start) * (fade_out.remain / fade_out.time)));
+            set_volume_map(0, value);
+        }
+        else
+            fade_out_end();
+    }
+
+    if (flags & X_PV_GAME_MUSIC_OGG) {
+        if (ogg->playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_STOPPED)
+            ogg->playback->Stop();
+        if (ogg->playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_STOPPED)
+            play_or_stop();
+        ogg->playback->SetChannelPairVolumePan(ogg->playback);
+    }
+}
+
+void x_pv_game_music::exclude_flags(x_pv_game_music_flags flags) {
+    if ((this->flags & X_PV_GAME_MUSIC_OGG) && (flags & X_PV_GAME_MUSIC_OGG))
+        ogg_free();
+    enum_and(this->flags, ~flags);
+}
+
+void x_pv_game_music::fade_in_end() {
+    if (!fade_in.enable)
+        return;
+
+    fade_in.enable = false;
+    fade_in.remain = 0.0f;
+    set_volume_map(0, fade_in.value);
+    switch (fade_in.action) {
+    case X_PV_GAME_MUSIC_ACTION_STOP:
+        stop();
+        break;
+    case X_PV_GAME_MUSIC_ACTION_PAUSE:
+        set_pause(1);
+        break;
+    case X_PV_GAME_MUSIC_ACTION_PLAY:
+        play();
+        break;
+    }
+}
+
+void x_pv_game_music::fade_out_end() {
+    if (!fade_out.enable)
+        return;
+
+    fade_out.enable = false;
+    fade_out.remain = 0.0f;
+    set_volume_map(0, fade_out.value);
+    switch (fade_out.action) {
+    case X_PV_GAME_MUSIC_ACTION_STOP:
+        stop();
+        break;
+    case X_PV_GAME_MUSIC_ACTION_PAUSE:
+        set_pause(1);
+        break;
+    case X_PV_GAME_MUSIC_ACTION_PLAY:
+        play();
+        break;
+    }
+}
+
+void x_pv_game_music::file_load(int32_t type, std::string&& file_path, bool play_on_end,
+    float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9) {
+    this->type = type;
+    this->file_path.assign(file_path);
+    this->start = start;
+    this->end = end;
+    this->play_on_end = play_on_end;
+    this->fade_out_time = fade_out_time;
+    this->fade_in_time = fade_in_time;
+    this->field_9C = a9;
+
+    if (fade_in_time > 0.0f) {
+        fade_in.start = 0;
+        fade_in.value = 100;
+        fade_in.time = fade_in_time;
+        fade_in.remain = fade_in_time;
+        fade_in.action = X_PV_GAME_MUSIC_ACTION_NONE;
+        fade_in.enable = true;
+    }
+
+    if (end <= 0.0f) {
+        fade_out.start = get_volume(0);
+        fade_out.value = 0;
+        fade_out.time = 0.0f;
+        fade_out.remain = 0.0;
+        fade_out.action = play_on_end
+            ? X_PV_GAME_MUSIC_ACTION_PLAY : X_PV_GAME_MUSIC_ACTION_STOP;
+    }
+    else {
+        no_fade = true;
+        no_fade_remain = end + fade_in_time;
+        fade_out_time_req = fade_out_time;
+        fade_out_action_req = play_on_end
+            ? X_PV_GAME_MUSIC_ACTION_PLAY : X_PV_GAME_MUSIC_ACTION_STOP;
+    }
+}
+
+int32_t x_pv_game_music::get_master_volume(int32_t index) {
+    if (!index)
+        return master_volume;
+    return 0;
+}
+
+int32_t x_pv_game_music::get_volume(int32_t index) {
+    if (!index)
+        return volume;
+}
+
+int32_t x_pv_game_music::include_flags(x_pv_game_music_flags flags) {
+    if (!((this->flags & X_PV_GAME_MUSIC_OGG) || !(flags & X_PV_GAME_MUSIC_OGG)))
+        ogg_init();
+    enum_or(this->flags, flags);
+    return 0;
+}
+
+int32_t x_pv_game_music::load(int32_t type, std::string&& file_path, bool wait_load, float_t time, bool a6) {
+    if (type == 4 && set_ogg_args(std::string(file_path), time, wait_load) < 0)
+        return -6;
+
+    reset();
+    reset_args();
+    set_args(type, std::string(file_path), time, a6);
+    pause = true;
+    return 0;
+}
+
+void x_pv_game_music::ogg_free() {
+    if (ogg) {
+        delete ogg;
+        ogg = 0;
+    }
+}
+
+int32_t x_pv_game_music::ogg_init() {
+    if (ogg)
+        return 0;
+
+    ogg = new x_pv_game_music_ogg;
+    return ogg->playback ? 0 : -1;
+}
+
+int32_t x_pv_game_music::ogg_load(std::string&& file_path, float_t start) {
+    if (!(flags & X_PV_GAME_MUSIC_OGG))
+        return -2;
+
+    start = max_def(start, 0.0f);
+
+    OggFileHandlerFileState file_state = ogg->playback->GetFileState();
+    OggFileHandlerPauseState pause_state = ogg->playback->GetPauseState();
+
+    if (!check_args(4, std::string(file_path), start)
+        || file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
+        || pause_state != OGG_FILE_HANDLER_PAUSE_STATE_PAUSE) {
+        ogg->playback->Stop();
+        ogg->playback->SetLoadTimeSeek(start);
+        ogg->playback->SetPath(file_path);
+        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    }
+    else
+        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    this->file_path.assign(file_path);
+    loaded = true;
+    return 0;
+}
+
+int32_t x_pv_game_music::ogg_reset() {
+    sound_stream_array_reset();
+    include_flags(X_PV_GAME_MUSIC_OGG);
+    return 0;
+}
+
+int32_t x_pv_game_music::ogg_stop() {
+    if (!(flags & X_PV_GAME_MUSIC_OGG))
+        return -2;
+
+    ogg->playback->Stop();
+    ogg->file_path.clear();
+    loaded = false;
+    return 0;
+}
+
+int32_t x_pv_game_music::play() {
+    return play(type, std::string(file_path), play_on_end, start, end, fade_in_time, fade_out_time, false);
+}
+
+int32_t x_pv_game_music::play(int32_t type, std::string&& file_path, bool play_on_end,
+    float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9) {
+    set_volume_map(0, 100);
+    if (type == 4 && ogg_load(std::string(file_path), start) < 0)
+        return -7;
+
+    reset();
+    reset_args();
+    file_load(type, std::string(file_path), play_on_end, start, end, fade_in_time, fade_out_time, a9);
+    pause = false;
+    return 0;
+}
+
+void x_pv_game_music::play_fade_in(int32_t type, std::string&& file_path, float_t start,
+    float_t end, bool play_on_end, bool a7, float_t fade_out_time, bool a10) {
+    play(type, std::string(file_path), play_on_end, start, end, 0.0f, fade_out_time, a10);
+}
+
+int32_t x_pv_game_music::play_or_stop() {
+    if (play_on_end)
+        return play();
+    else
+        return stop();
+}
+
+void x_pv_game_music::reset() {
+    fade_in = {};
+    fade_out = {};
+    no_fade = false;
+    no_fade_remain = 0.0f;
+    fade_out_time_req = 0.0f;
+    fade_out_action_req = X_PV_GAME_MUSIC_ACTION_NONE;
+    type = 0;
+    file_path.clear();
+    start = 0.0f;
+    end = 0.0f;
+    play_on_end = false;
+    fade_in_time = 0.0f;
+    fade_out_time = 3.0f;
+    field_9C = false;
+}
+
+void x_pv_game_music::reset_args() {
+    args.type = 0;
+    args.file_path.clear();
+    args.start = 0.0f;
+    args.field_2C = false;
+}
+
+void x_pv_game_music::set_args(int32_t type, std::string&& file_path, float_t start, bool a5) {
+    args.type = type;
+    args.file_path.assign(file_path);
+    args.start = start;
+    args.field_2C = a5;
+}
+
+int32_t x_pv_game_music::set_channel_pair_volume(int32_t channel_pair, int32_t value) {
+    if (!(flags & X_PV_GAME_MUSIC_OGG))
+        return -2;
+
+    ogg->playback->SetChannelPairVolume(channel_pair, ratio_to_db((float_t)value * 0.01f));
+    return 0;
+}
+
+int32_t x_pv_game_music::set_channel_pair_volume_map(int32_t channel_pair, int32_t value) {
+    if (channel_pair >= 0 && channel_pair <= 3) {
+        set_channel_pair_volume(channel_pair, value);
+        if (!channel_pair)
+            set_channel_pair_volume_map(2, value);
+        else if (channel_pair == 1)
+            set_channel_pair_volume_map(3, value);
+        channel_pair_volume[channel_pair] = value;
+        return 0;
+    }
+    return -1;
+}
+
+int32_t x_pv_game_music::set_fade_out(float_t time, bool stop) {
+    reset();
+    if (time == 0.0f)
+        x_pv_game_music::stop();
+    else {
+        fade_out.start = get_volume(0);
+        fade_out.value = 0;
+        fade_out.time = time;
+        fade_out.remain = time;
+        fade_out.enable = true;
+        fade_out.action = stop ? X_PV_GAME_MUSIC_ACTION_STOP
+            : X_PV_GAME_MUSIC_ACTION_PAUSE;
+    }
+    return 0;
+}
+
+int32_t x_pv_game_music::set_master_volume(int32_t value) {
+    if (!(flags & X_PV_GAME_MUSIC_OGG))
+        return -2;
+
+    ogg->playback->SetMasterVolume(ratio_to_db(
+        (float_t)(value * get_master_volume(0) / 100) * 0.01f));
+    return 0;
+}
+
+int32_t x_pv_game_music::set_ogg_args(std::string&& file_path, float_t start, bool wait_load) {
+    if (!(flags & X_PV_GAME_MUSIC_OGG))
+        return -2;
+
+    start = max_def(start, 0.0f);
+
+    OggFileHandlerFileState file_state = ogg->playback->GetFileState();
+    OggFileHandlerPauseState pause_state = ogg->playback->GetPauseState();
+
+    if (!check_args(4, std::string(file_path), start)
+        || file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
+        || pause_state != OGG_FILE_HANDLER_PAUSE_STATE_PAUSE) {
+        ogg->playback->Stop();
+        ogg->playback->SetLoadTimeSeek(start);
+        ogg->playback->SetPath(file_path);
+        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PAUSE);
+        ogg->file_path.assign(file_path);
+        if (wait_load) {
+            OggFileHandlerFileState file_state = ogg->playback->GetFileState();
+            while (file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
+                && file_state != OGG_FILE_HANDLER_FILE_STATE_STOPPED
+                && file_state != OGG_FILE_HANDLER_FILE_STATE_MAX)
+                file_state = ogg->playback->GetFileState();
+        }
+    }
+    return 0;
+}
+
+int32_t x_pv_game_music::set_ogg_pause_state(uint8_t pause_state) {
+    if (!(flags & X_PV_GAME_MUSIC_OGG))
+        return -2;
+
+    if (ogg->playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_PLAYING)
+        ogg->playback->SetPauseState((OggFileHandlerPauseState)pause_state);
+    return 0;
+}
+
+int32_t x_pv_game_music::set_pause(int32_t pause) {
+    if (flags & X_PV_GAME_MUSIC_OGG)
+        set_ogg_pause_state(pause != 0);
+    this->pause = pause == 1;
+    return 0;
+}
+
+void x_pv_game_music::set_volume_map(int32_t index, int32_t value) {
+    if (!index) {
+        if (flags & X_PV_GAME_MUSIC_OGG)
+            set_master_volume(value);
+        volume = value;
+    }
+}
+
+int32_t x_pv_game_music::stop() {
+    if (flags & X_PV_GAME_MUSIC_OGG)
+        ogg_stop();
+    reset();
+    reset_args();
+    pause = false;
+    return 0;
+}
+
+void x_pv_game_music::stop_reset_flags() {
+    stop();
+    exclude_flags(X_PV_GAME_MUSIC_ALL);
+}
+
 x_pv_game_dsc_data::x_pv_game_dsc_data() : dsc_data_ptr(), dsc_data_ptr_end(), time() {
     reset();
 }
@@ -1913,10 +2343,17 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
     camera.load(pv_id, stage->stage_id, frame_rate_control);
 
+    sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg", pv_id == 832 ? 800 : pv_id);
+    x_pv_game_music_ptr->ogg_reset();
+    x_pv_game_music_ptr->load(4, buf, true, 0.0f, false);
+
     state = 10;
 }
 
 void x_pv_game_data::reset() {
+    x_pv_game_music_ptr->stop();
+    x_pv_game_music_ptr->set_volume_map(0, 0);
+
     pv_id = 0;
     play_param_file_handler.reset();
     if (play_param) {
@@ -1946,8 +2383,6 @@ void x_pv_game_data::reset() {
     stage = 0;
     obj_db.clear();
     tex_db.clear();
-
-    sound_work_release_stream(0);
 }
 
 void x_pv_game_data::stop() {
@@ -1973,6 +2408,10 @@ void x_pv_game_data::unload() {
     pv_expression_file_unload(exp_file.hash_murmurhash);
     obj_db.clear();
     tex_db.clear();
+    x_pv_game_music_ptr->stop();
+    x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
+    x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
+    x_pv_game_music_ptr->exclude_flags(X_PV_GAME_MUSIC_OGG);
     state = 40;
 }
 
@@ -4157,7 +4596,7 @@ bool x_pv_game::Ctrl() {
         if (wait_load)
             break;
 
-        state_old = 19;
+        state_old = 18;
     } break;
     case 18: {
         std::vector<object_info> object_hrc;
@@ -4357,7 +4796,7 @@ bool x_pv_game::Ctrl() {
             && x_pv_game_dsc_process(this, time))
             pv_data[pv_index].dsc_data.dsc_data_ptr++;
 
-        sound_work_stream_set_pause(0, pause);
+        x_pv_game_music_ptr->set_pause(pause ? 1 : 0);
 
 #if BAKE_PV826
         x_pv_game_map_auth_3d_to_mot(this, delta_frame != 0.0f);
@@ -4678,8 +5117,8 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "PV%03d", pv_id);
     uint32_t mot_set = aft_mot_db->get_motion_set_id(buf);
-    motion_set_load_motion(mot_set, 0, aft_mot_db);
-    motion_set_load_mothead(mot_set, 0, aft_mot_db);
+    motion_set_load_motion(mot_set, "", aft_mot_db);
+    motion_set_load_mothead(mot_set, "", aft_mot_db);
 
     pv_param::post_process_data_load_files(pv_id);
 
@@ -5251,6 +5690,8 @@ bool x_pv_game::Unload() {
 }
 
 void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
+    x_pv_game_music_ptr->ctrl(delta_time);
+
 #if BAKE_PV826
     for (int32_t i = 0; i < pv_count; i++)
         pv_data[i].ctrl(curr_time, delta_time,
@@ -5359,6 +5800,13 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
 
     for (int32_t& i : modules)
         i = 0;
+
+    pv_id = 805;
+    stage_id = 5;
+
+    charas[0] = CHARA_RIN;
+
+    modules[0] = 0;
 
 #if BAKE_PV826
     pv_id = 826;
@@ -5561,6 +6009,7 @@ void XPVGameSelector::Window() {
 
 extern bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
+    x_pv_game_music_ptr = new x_pv_game_music;
     return true;
 }
 
@@ -5582,6 +6031,11 @@ extern bool x_pv_game_free() {
 
         delete x_pv_game_ptr;
         x_pv_game_ptr = 0;
+
+        x_pv_game_music_ptr->stop_reset_flags();
+
+        delete x_pv_game_music_ptr;
+        x_pv_game_music_ptr = 0;
     }
     return true;
 }
@@ -6250,7 +6704,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         char buf[0x200];
         sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
             a1->pv_data[a1->pv_index].pv_id == 832 ? 800 : a1->pv_data[a1->pv_index].pv_id);
-        sound_work_play_stream(0, buf, true);
+        x_pv_game_music_ptr->play(4, buf, false, 0.0f, 0.0f, 0.0f, 3.0f, false);
+        x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
+        x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
     } break;
     case DSC_X_MODE_SELECT: {
 
@@ -8023,62 +8479,42 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
 
     typedef std::pair<vec4, vec4> vec4_pair;
 
-    int32_t type = 0;
+    has_color.x = (ml.blend_color.flags & AUTH_3D_RGBA_R) || (ml.emission.flags & AUTH_3D_RGBA_R);
+    has_color.y = (ml.blend_color.flags & AUTH_3D_RGBA_G) || (ml.emission.flags & AUTH_3D_RGBA_G);
+    has_color.z = (ml.blend_color.flags & AUTH_3D_RGBA_B) || (ml.emission.flags & AUTH_3D_RGBA_B);
+    has_color.w = (ml.blend_color.flags & AUTH_3D_RGBA_A) || (ml.emission.flags & AUTH_3D_RGBA_A);
 
     bool has_data[8];
-    has_data[0] = !!(ml.blend_color.flags & AUTH_3D_RGBA_R);
-    has_data[1] = !!(ml.blend_color.flags & AUTH_3D_RGBA_G);
-    has_data[2] = !!(ml.blend_color.flags & AUTH_3D_RGBA_B);
-    has_data[3] = !!(ml.blend_color.flags & AUTH_3D_RGBA_A);
-    has_data[4] = !!(ml.emission.flags & AUTH_3D_RGBA_R);
-    has_data[5] = !!(ml.emission.flags & AUTH_3D_RGBA_G);
-    has_data[6] = !!(ml.emission.flags & AUTH_3D_RGBA_B);
-    has_data[7] = !!(ml.emission.flags & AUTH_3D_RGBA_A);
+    has_data[0] = (ml.blend_color.flags & AUTH_3D_RGBA_R)
+        && ml.blend_color.r.type >= AUTH_3D_KEY_LINEAR && ml.blend_color.r.type <= AUTH_3D_KEY_HOLD;
+    has_data[1] = (ml.blend_color.flags & AUTH_3D_RGBA_G)
+        && ml.blend_color.g.type >= AUTH_3D_KEY_LINEAR && ml.blend_color.g.type <= AUTH_3D_KEY_HOLD;
+    has_data[2] = (ml.blend_color.flags & AUTH_3D_RGBA_B)
+        && ml.blend_color.b.type >= AUTH_3D_KEY_LINEAR && ml.blend_color.b.type <= AUTH_3D_KEY_HOLD;
+    has_data[3] = (ml.blend_color.flags & AUTH_3D_RGBA_A)
+        && ml.blend_color.a.type >= AUTH_3D_KEY_LINEAR && ml.blend_color.a.type <= AUTH_3D_KEY_HOLD;
+    has_data[4] = (ml.emission.flags & AUTH_3D_RGBA_R)
+        && ml.emission.r.type >= AUTH_3D_KEY_LINEAR && ml.emission.r.type <= AUTH_3D_KEY_HOLD;
+    has_data[5] = (ml.emission.flags & AUTH_3D_RGBA_G)
+        && ml.emission.g.type >= AUTH_3D_KEY_LINEAR && ml.emission.g.type <= AUTH_3D_KEY_HOLD;
+    has_data[6] = (ml.emission.flags & AUTH_3D_RGBA_B)
+        && ml.emission.b.type >= AUTH_3D_KEY_LINEAR && ml.emission.b.type <= AUTH_3D_KEY_HOLD;
+    has_data[7] = (ml.emission.flags & AUTH_3D_RGBA_A)
+        && ml.emission.a.type >= AUTH_3D_KEY_LINEAR && ml.emission.a.type <= AUTH_3D_KEY_HOLD;
 
     const int32_t has_data_count
         = (has_data[0] ? 1 : 0) + (has_data[1] ? 1 : 0) + (has_data[2] ? 1 : 0) + (has_data[3] ? 1 : 0)
         + (has_data[4] ? 1 : 0) + (has_data[5] ? 1 : 0) + (has_data[6] ? 1 : 0) + (has_data[7] ? 1 : 0);
 
-    has_color.x = has_data[0] || has_data[4];
-    has_color.y = has_data[1] || has_data[5];
-    has_color.z = has_data[2] || has_data[6];
-    has_color.w = has_data[3] || has_data[7];
-
-
     std::vector<vec4_pair> values(count);
     vec4_pair* values_src = values.data();
 
-    if (has_data[0])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].first.x = ml.blend_color.r.interpolate((float_t)(int32_t)i);
-
-    if (has_data[1])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].first.y = ml.blend_color.g.interpolate((float_t)(int32_t)i);
-
-    if (has_data[2])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].first.z = ml.blend_color.b.interpolate((float_t)(int32_t)i);
-
-    if (has_data[3])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].first.w = ml.blend_color.a.interpolate((float_t)(int32_t)i);
-
-    if (has_data[4])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].second.x = ml.emission.r.interpolate((float_t)(int32_t)i);
-
-    if (has_data[5])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].second.y = ml.emission.g.interpolate((float_t)(int32_t)i);
-
-    if (has_data[6])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].second.z = ml.emission.b.interpolate((float_t)(int32_t)i);
-
-    if (has_data[7])
-        for (size_t i = 0; i < count; i++)
-            values_src[i].second.w = ml.emission.a.interpolate((float_t)(int32_t)i);
+    for (size_t i = 0; i < count; i++) {
+        ml.blend_color.interpolate((float_t)(int32_t)i);
+        ml.emission.interpolate((float_t)(int32_t)i);
+        values_src[i].first = ml.blend_color.value;
+        values_src[i].second = ml.emission.value;
+    }
 
     {
         vec4_pair val = *(vec4_pair*)&values_src[0];
@@ -8168,7 +8604,7 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 if (!fast) {
                     double_t t1_accum = 0.0;
                     double_t t2_accum = 0.0;
-                    for (size_t j = 1; j < i; j++) {
+                    for (size_t j = 1; j < i - 1; j++) {
                         float_t t1 = 0.0f;
                         float_t t2 = 0.0f;
                         interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
@@ -8181,8 +8617,8 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 else
                     interpolate_chs_reverse_value(a, left_count, _t1[o], _t2[o], 0, i, 1);
 
-                t1 += _t1[0];
-                t2 += _t2[0];
+                t1 += _t1[o];
+                t2 += _t2[o];
             }
 
             if (has_data_count) {
@@ -8288,6 +8724,8 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         (float_t)(int32_t)color.size(), t2_old, 0.0f });
     color.push_back(val[count - 1]);
 
+    int32_t type = 2;
+
     kft3* keys = morph.data();
     size_t length = morph.size();
     for (size_t i = 0; i < count; i++) {
@@ -8311,11 +8749,28 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
             float_t h_val = interpolate_chs_value(key[-1].value, key[0].value,
                 key[-1].tangent2, key[0].tangent1,
                 key[-1].frame, key[0].frame, frame);
-            if (fabsf(l_val - h_val) > reverse_bias)
-                return 3;
+            if (fabsf(l_val - h_val) > reverse_bias) {
+                type = 3;
+                break;
+            }
         }
     }
-    return 2;
+
+    if (color.size() > 1) {
+        auto i_begin = color.begin();
+        auto i_end = color.end() - 1;
+
+        for (auto i = i_begin; i != i_end;)
+            if (!memcmp(&i[0], &i[1], sizeof(vec4_pair))) {
+                for (size_t k = i - i_begin + 1; k < length; k++)
+                    keys[k].value -= 1.0f;
+                i = color.erase(i);
+                i_end = color.end() - 1;
+            }
+            else
+                i++;
+    }
+    return type;
 }
 
 static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
@@ -8345,54 +8800,65 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
     for (auto& i : object_material_list)
         prj::sort_unique(i.second);
 
+    std::vector<auth_3d_id> stage_data_effect_auth_3ds;
+    std::vector<auth_3d_id> stage_data_change_effect_auth_3ds;
+
     for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
         x_pv_game_stage_effect& eff = xpvgm->stage_data.effect[i];
-        for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
-            if (!j.id.check_not_empty() || !j.id.check_loaded())
-                continue;
-
-            auth_3d* auth = j.id.get_auth_3d();
-            if (!auth || !auth->material_list.size() || !auth->object.size())
-                continue;
-
-            printf_debug("%s\n", auth->file_name.c_str());
-
-            for (auth_3d_material_list& k : auth->material_list)
-                if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
-                    std::vector<std::pair<vec4, vec4>> color;
-                    vec4u8 has_color;
-                    std::vector<kft3> morph;
-                    int32_t type = x_pv_game_split_auth_3d_material_list(k,
-                        auth->play_control.size, color, has_color, morph);
-                    printf_debug("%d %s\n", type, k.name.c_str());
-                }
-        }
+        for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
+            if (j.id.check_not_empty() && j.id.check_loaded()) {
+                auth_3d* auth = j.id.get_auth_3d();
+                if (auth && auth->material_list.size() && auth->object.size())
+                    stage_data_effect_auth_3ds.push_back(j.id);
+            }
     }
 
     for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
         for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
             x_pv_game_stage_change_effect& chg_eff = xpvgm->stage_data.change_effect[i][j];
-            for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
-                if (!k.id.check_not_empty() || !k.id.check_loaded())
-                    continue;
-
-                auth_3d* auth = k.id.get_auth_3d();
-                if (!auth || !auth->material_list.size() || !auth->object.size())
-                    continue;
-
-                printf_debug("%s\n", auth->file_name.c_str());
-
-                for (auth_3d_material_list& l : auth->material_list)
-                    if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
-                        std::vector<std::pair<vec4, vec4>> color;
-                        vec4u8 has_color;
-                        std::vector<kft3> morph;
-                        int32_t type = x_pv_game_split_auth_3d_material_list(l,
-                            auth->play_control.size, color, has_color, morph);
-                        printf_debug("%d %s\n", type, l.name.c_str());
-                    }
-            }
+            for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
+                if (k.id.check_not_empty() && k.id.check_loaded()) {
+                    auth_3d* auth = k.id.get_auth_3d();
+                    if (auth && auth->material_list.size() && auth->object.size())
+                        stage_data_change_effect_auth_3ds.push_back(k.id);
+                }
         }
+
+    prj::sort_unique(stage_data_effect_auth_3ds);
+    prj::sort_unique(stage_data_change_effect_auth_3ds);
+
+    for (auth_3d_id& i : stage_data_effect_auth_3ds) {
+        auth_3d* auth = i.get_auth_3d();
+
+        printf_debug("%s\n", auth->file_name.c_str());
+
+        for (auth_3d_material_list& j : auth->material_list)
+            if (j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
+                std::vector<std::pair<vec4, vec4>> color;
+                vec4u8 has_color;
+                std::vector<kft3> morph;
+                int32_t type = x_pv_game_split_auth_3d_material_list(j,
+                    auth->play_control.size, color, has_color, morph);
+                printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
+            }
+    }
+
+
+    for (auth_3d_id& i : stage_data_change_effect_auth_3ds) {
+        auth_3d* auth = i.get_auth_3d();
+
+        printf_debug("%s\n", auth->file_name.c_str());
+
+        for (auth_3d_material_list& j : auth->material_list)
+            if (j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
+                std::vector<std::pair<vec4, vec4>> color;
+                vec4u8 has_color;
+                std::vector<kft3> morph;
+                int32_t type = x_pv_game_split_auth_3d_material_list(j,
+                    auth->play_control.size, color, has_color, morph);
+                printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
+            }
+    }
 }
 
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id) {

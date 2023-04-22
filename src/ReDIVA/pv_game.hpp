@@ -181,7 +181,7 @@ struct pv_game_dsc_data {
     int32_t chara_id;
     pv_game* pv_game;
     //struc_162* field_2BF80;
-    //struc_646* field_2BF88;
+    //pv_game_music* music;
     p_file_handler dsc_file_handler;
     float_t target_anim_fps;
     float_t anim_frame_speed;

@@ -18,6 +18,7 @@
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/frame_rate_control.hpp"
+#include "../CRE/ogg_vorbis.hpp"
 #include "../CRE/stage_modern.hpp"
 #include "../CRE/task.hpp"
 #include "../KKdLib/post_process_table/dof.hpp"
@@ -25,6 +26,27 @@
 #include "../KKdLib/pvpp.hpp"
 #include "../KKdLib/pvsr.hpp"
 #include "task_window.hpp"
+
+enum x_pv_game_music_action {
+    X_PV_GAME_MUSIC_ACTION_NONE = 0,
+    X_PV_GAME_MUSIC_ACTION_STOP,
+    X_PV_GAME_MUSIC_ACTION_PAUSE,
+    X_PV_GAME_MUSIC_ACTION_PLAY,
+    X_PV_GAME_MUSIC_ACTION_MAX,
+};
+
+enum x_pv_game_music_flags : uint8_t {
+    X_PV_GAME_MUSIC_FLAG_1  = 0x01,
+    X_PV_GAME_MUSIC_AIX     = 0x02,
+    X_PV_GAME_MUSIC_OGG     = 0x04,
+    X_PV_GAME_MUSIC_FLAG_8  = 0x08,
+    X_PV_GAME_MUSIC_FLAG_10 = 0x10,
+    X_PV_GAME_MUSIC_FLAG_20 = 0x20,
+    X_PV_GAME_MUSIC_FLAG_40 = 0x40,
+    X_PV_GAME_MUSIC_FLAG_80 = 0x80,
+
+    X_PV_GAME_MUSIC_ALL     = 0xFF,
+};
 
 struct x_pv_bar_beat_data {
     int32_t bar;
@@ -341,6 +363,97 @@ struct x_pv_game_chara_effect {
     void stop();
     void stop_chara_effect(int32_t chara_id, int32_t index);
     void unload();
+};
+
+struct x_pv_game_music_args {
+    int32_t type;
+    std::string file_path;
+    float_t start;
+    bool field_2C;
+
+    x_pv_game_music_args();
+    ~x_pv_game_music_args();
+};
+
+struct x_pv_game_music_fade {
+    int32_t start;
+    int32_t value;
+    float_t time;
+    float_t remain;
+    x_pv_game_music_action action;
+    bool enable;
+};
+
+struct x_pv_game_music_ogg {
+    OggPlayback* playback;
+    std::string file_path;
+
+    x_pv_game_music_ogg();
+    ~x_pv_game_music_ogg();
+};
+
+struct x_pv_game_music {
+    x_pv_game_music_flags flags;
+    bool pause;
+    int32_t volume;
+    int32_t master_volume;
+    int32_t channel_pair_volume[4];
+    x_pv_game_music_fade fade_in;
+    x_pv_game_music_fade fade_out;
+    bool no_fade;
+    float_t no_fade_remain;
+    float_t fade_out_time_req;
+    x_pv_game_music_action fade_out_action_req;
+    int32_t type;
+    std::string file_path;
+    float_t start;
+    float_t end;
+    bool play_on_end;
+    float_t fade_in_time;
+    float_t fade_out_time;
+    bool field_9C;
+    x_pv_game_music_args args;
+    bool loaded;
+    x_pv_game_music_ogg* ogg;
+
+    x_pv_game_music();
+    ~x_pv_game_music();
+
+    bool check_args(int32_t type, std::string&& file_path, float_t start);
+    void ctrl(float_t delta_time);
+    void exclude_flags(x_pv_game_music_flags flags);
+    void fade_in_end();
+    void fade_out_end();
+    void file_load(int32_t type, std::string&& file_path, bool play_on_end,
+        float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9);
+    int32_t get_master_volume(int32_t index);
+    int32_t get_volume(int32_t index);
+    int32_t include_flags(x_pv_game_music_flags flags);
+    int32_t load(int32_t type, std::string&& file_path, bool wait_load, float_t time, bool a6);
+    void ogg_free();
+    int32_t ogg_init();
+    int32_t ogg_load(std::string&& file_path, float_t start);
+    int32_t ogg_reset();
+    int32_t ogg_stop();
+    int32_t play();
+    int32_t play(int32_t type, std::string&& file_path, bool play_on_end,
+        float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9);
+    void play_fade_in(int32_t type, std::string&& file_path, float_t start,
+        float_t end, bool play_on_end, bool a7, float_t fade_out_time, bool a10);
+    int32_t play_or_stop();
+    void reset();
+    void reset_args();
+    void set_args(int32_t type, std::string&& file_path, float_t start, bool a5);
+    int32_t set_channel_pair_volume(int32_t channel_pair, int32_t value);
+    int32_t set_channel_pair_volume_map(int32_t channel_pair, int32_t value);
+    int32_t set_fade_out(float_t time, bool stop);
+    int32_t set_master_volume(int32_t value);
+    int32_t set_ogg_args(std::string&& file_path, float_t start, bool wait_load);
+    int32_t set_ogg_pause_state(uint8_t pause_state);
+    int32_t set_pause(int32_t pause);
+    void set_volume_map(int32_t index, int32_t value);
+    int32_t stop();
+    void stop_reset_flags();
 };
 
 struct x_pv_game_dsc_data {

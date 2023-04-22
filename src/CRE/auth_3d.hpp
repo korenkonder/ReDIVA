@@ -849,6 +849,30 @@ struct auth_3d_id {
     void unload_id(render_context* rctx);
 };
 
+inline bool operator >(const auth_3d_id& left, const auth_3d_id& right) {
+    return *(uint32_t*)&left > *(uint32_t*)&right;
+}
+
+inline bool operator <(const auth_3d_id& left, const auth_3d_id& right) {
+    return *(uint32_t*)&left < *(uint32_t*)&right;
+}
+
+inline bool operator >=(const auth_3d_id& left, const auth_3d_id& right) {
+    return *(uint32_t*)&left >= *(uint32_t*)&right;
+}
+
+inline bool operator <=(const auth_3d_id& left, const auth_3d_id& right) {
+    return *(uint32_t*)&left <= *(uint32_t*)&right;
+}
+
+inline bool operator ==(const auth_3d_id& left, const auth_3d_id& right) {
+    return *(uint32_t*)&left == *(uint32_t*)&right;
+}
+
+inline bool operator !=(const auth_3d_id& left, const auth_3d_id& right) {
+    return *(uint32_t*)&left != *(uint32_t*)&right;
+}
+
 struct auth_3d {
     int32_t uid;
     int32_t id;
