@@ -156,23 +156,24 @@ size_t OggFile::FillBufferData(OggFileBufferData* buffer_data, size_t samples_co
     OggFileBufferData* _buffer_data = buffer.data.data();
     size_t _buffer_size = buffer.data.size();
     size_t _samples_count = 0;
-    for (; samples_count && buffer.first_sample != buffer.last_sample;
+    size_t first_sample = buffer.first_sample;
+    size_t last_sample = buffer.last_sample;
+    for (; samples_count && first_sample != last_sample;
         samples_count--, buffer_data++, _samples_count++) {
         if (_buffer_size)
-            *buffer_data = _buffer_data[buffer.first_sample];
+            *buffer_data = _buffer_data[first_sample];
         else
             *buffer_data = {};
 
         if (_buffer_size) {
-            size_t first_sample = buffer.first_sample;
-            if (first_sample != buffer.last_sample) {
+            if (first_sample != last_sample) {
                 _buffer_data[first_sample++] = {};
                 if (first_sample >= buffer.size)
                     first_sample = 0;
-                buffer.first_sample = first_sample;
             }
         }
     }
+    buffer.first_sample = first_sample;
     return _samples_count;
 }
 
