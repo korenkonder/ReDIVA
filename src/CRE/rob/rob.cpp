@@ -2260,7 +2260,7 @@ void rob_init() {
 
     if (!rob_sleeve_handler_data)
         rob_sleeve_handler_data = new rob_sleeve_handler;
-    
+
     if (!rob_thread_handler)
         rob_thread_handler = new RobThreadHandler;
 
@@ -8991,158 +8991,143 @@ static bool sub_14040AC40(vec3* a1, vec3* a2, float_t a3, vec3* a4) {
 
 static void sub_1403FA040(vec3* a1, float_t a2, mat4* a3, float_t ymin,
     float_t ymax, float_t zmin, float_t zmax, vec3* a8, float_t step) {
-    vec3 v16;
+    vec3 v50;
+    vec3 v51;
     vec3 v52;
     vec3 v53;
-    mat4_mult_vec3_inv(a3, a1, &v16);
-    v16.x = 0.0f;
+    mat4_mult_vec3_inv(a3, a1, &v50);
 
-    float_t v18 = vec3::length_squared(v16);
-    if (fabsf(v18) <= 0.000001f)
+    v50.x = 0.0f;
+
+    float_t v23 = 0.0f;
+    float_t v40 = 0.0f;
+    if (vec3::length_squared(v50) <= 0.000001f)
         goto LABEL_66;
 
-    v18 = sqrtf(v18);
-    if (v18 != 0.0f)
-        v16 *= 1.0f / v18;
-
-    float_t v23;
+    v50 = vec3::normalize(v50);
     if (zmax - zmin >= ymax - ymin) {
         v23 = (ymax - ymin) * 0.5f;
-
-        v53.x = 0.0f;
-        v53.y = ymax - v23;
-        v53.z = zmin + v23;
-
         v52.x = 0.0f;
         v52.y = ymax - v23;
         v52.z = zmax - v23;
-        if (fabsf(v16.y) <= 0.000001f) {
+        v53.x = 0.0f;
+        v53.y = ymax - v23;
+        v53.z = zmin + v23;
+        if (fabsf(v50.y) <= 0.000001f) {
             if (fabsf(ymin) <= 0.000001f || fabsf(ymax) <= 0.000001f) {
-                v16 *= a2;
-                if (v16.z < zmin + v23) {
-                    v16.z = zmin + v23;
-                    goto LABEL_66;
+                v50 *= a2;
+                if (v50.z < zmin + v23)
+                    v50.z = zmin + v23;
+                else if (v50.z > zmax - v23)
+                    v50.z = zmax - v23;
+                else if (vec3::dot(*a8, v50) != 0.0f) {
+                    float_t v43 = vec3::length(*a8);
+                    float_t v44 = v43 + (v43 * 0.97f - v43) * step;
+                    if (vec3::length(v50) < v44)
+                        v50 = vec3::normalize(v50) * v44;
                 }
-                else if (v16.z > zmax - v23) {
-                    v16.z = zmax - v23;
-                    goto LABEL_66;
-                }
-                goto LABEL_60;
+                goto LABEL_66;
             }
         }
-        else if ((fabsf(ymin) > 0.000001f || v16.y >= 0.0f) && (fabsf(ymax) > 0.000001f || v16.y <= 0.0f)) {
-            float_t v22 = ymax;
-            if (v16.y * ymax <= 0.0f)
-                v22 = ymin;
-
-            float_t v31 = v22 * v16.z / v16.y;
+        else if ((fabsf(ymin) > 0.000001f || v50.y >= 0.0f)
+            && (fabsf(ymax) > 0.000001f || v50.y <= 0.0f)) {
+            float_t v21 = ymax;
+            if (v50.y * ymax <= 0.0f)
+                v21 = ymin;
+            float_t v31 = (v21 * v50.z) / v50.y;
             if (v31 >= zmin + v23 && v31 <= zmax - v23) {
-                float_t v32 = sqrtf(v31 * v31 + v22 * v22);
-                bool v17 = true;
-                if (a2 < v32) {
-                    v32 = a2;
-                    v17 = false;
-                }
-                v16 *= v32;
-                if (v17)
-                    goto LABEL_66;
+                v40 = sqrtf(v31 * v31 + v21 * v21);
+                goto LABEL_55;
             }
         }
         else {
-            v16.y = 0.0f;
-            if (fabsf(v16.z) > 0.000001f) {
-                v16 = vec3::normalize(v16) * a2;
-                v16.z = clamp_def(v16.z, zmin, zmax);
+            v50.y = 0.0f;
+            if (fabsf(v50.z) > 0.000001f) {
+                v50 = vec3::normalize(v50) * a2;
+                if (v50.z < zmin)
+                    v50.z = zmin;
+                else if (v50.z > zmax)
+                    v50.z = zmax;
             }
             goto LABEL_66;
         }
     }
     else {
         v23 = (zmax - zmin) * 0.5f;
-
-        v53.x = 0.0f;
-        v53.y = ymax - v23;
-        v53.z = zmax - v23;
-
         v52.x = 0.0f;
         v52.y = 0.0f;
         v52.z = zmax - v23;
-        if (fabsf(v16.z) <= 0.000001f) {
+        v53.x = 0.0f;
+        v53.y = ymax - v23;
+        v53.z = zmax - v23;
+        if (fabsf(v50.z) <= 0.000001f) {
             if (fabsf(zmin) <= 0.000001f || fabsf(zmax) <= 0.000001f) {
-                v16 *= a2;
-                if (v16.y < ymin + v23) {
-                    v16.y = ymin + v23;
-                    goto LABEL_66;
+                v50 *= a2;
+                if (v50.y < ymin + v23)
+                    v50.y = ymin + v23;
+                else if (v50.y > ymax - v23)
+                    v50.y = ymax - v23;
+                else if (vec3::dot(*a8, v50) != 0.0f) {
+                    float_t v43 = vec3::length(*a8);
+                    float_t v44 = v43 + (v43 * 0.97f - v43) * step;
+                    if (vec3::length(v50) < v44)
+                        v50 = vec3::normalize(v50) * v44;
                 }
-                else if (v16.y > ymax - v23) {
-                    v16.y = ymax - v23;
-                    goto LABEL_66;
-                }
-                goto LABEL_60;
+                goto LABEL_66;
             }
         }
-        else if ((fabsf(zmin) > 0.000001f || v16.z >= 0.0f) && (fabsf(zmax) > 0.000001f || v16.z <= 0.0f)) {
-            float_t v22 = zmax;
-            if (v16.z * zmax <= 0.0f)
-                v22 = zmin;
-
-            float_t v31 = v22 * v16.y / v16.z;
-            if (v31 >= ymin + v23 && v31 <= ymax - v23) {
-                float_t v32 = sqrtf(v31 * v31 + v22 * v22);
-                bool v17 = true;
-                if (a2 < v32) {
-                    v32 = a2;
-                    v17 = false;
-                }
-                v16 *= v32;
-                if (v17)
-                    goto LABEL_66;
+        else if ((fabsf(zmin) > 0.000001f || v50.z >= 0.0f)
+            && (fabsf(zmax) > 0.000001f || v50.z <= 0.0f)) {
+            float_t v20 = zmax;
+            if (v50.z * zmax <= 0.0f)
+                v20 = zmin;
+            float_t v38 = (v20 * v50.y) / v50.z;
+            if (v38 >= ymin + v23 && v38 <= ymax - v23) {
+                v40 = sqrtf(v38 * v38 + v20 * v20);
+                goto LABEL_55;
             }
         }
         else {
-            v16.z = 0.0f;
-            if (fabsf(v16.y) > 0.000001f) {
-                v16 = vec3::normalize(v16) * a2;
-                v16.y = clamp_def(v16.y, ymin, ymax);
+            v50.z = 0.0f;
+            if (fabsf(v50.y) > 0.000001f) {
+                v50 = vec3::normalize(v50) * a2;
+                if (v50.y < ymin)
+                    v50.y = ymin;
+                else if (v50.y > ymax)
+                    v50.y = ymax;
             }
             goto LABEL_66;
         }
     }
 
-    {
-        vec3 v51 = 0.0f;
-        if (!sub_14040AC40(&v16, &v53, v23, &v51) && !sub_14040AC40(&v16, &v52, v23, &v51)) {
-            v16 = 0.0f;
-            goto LABEL_66;
-        }
-
-        float_t v40 = vec3::length(v51);
-        bool v17 = true;
-        if (a2 < v40) {
-            v40 = a2;
-            v17 = false;
-        }
-        v16 *= v40;
-        if (v17)
-            goto LABEL_66;
+    v51 = 0.0f;
+    if (sub_14040AC40(&v50, &v53, v23, &v51)
+        || sub_14040AC40(&v50, &v52, v23, &v51)) {
+        v40 = vec3::length(v51);
+        goto LABEL_55;
+    }
+    else {
+        v50 = 0.0f;
+        goto LABEL_66;
     }
 
-LABEL_60:
-    if (vec3::dot(*a8, v16) != 0.0f) {
-        float_t v43 = vec3::length(*a8);
-        float_t v44 = v43 + (v43 * 0.97f - v43) * step;
-
-        float_t v45 = vec3::length(v16);
-        if (v45 < v44) {
-            if (v45 != 0.0f)
-                v16 *= 1.0f / v45;
-            v16 *= v44;
+LABEL_55:
+    if (v40 > a2) {
+        v50 *= a2;
+        if (vec3::dot(*a8, v50) != 0.0f) {
+            float_t v43 = vec3::length(*a8);
+            float_t v44 = v43 + (v43 * 0.97f - v43) * step;
+            if (vec3::length(v50) < v44)
+                v50 = vec3::normalize(v50) * v44;
         }
     }
+    else
+        v50 *= v40;
+    goto LABEL_66;
 
 LABEL_66:
-    mat4_mult_vec3(a3, &v16, a1);
-    *a8 = v16;
+    mat4_mult_vec3(a3, &v50, a1);
+    *a8 = v50;
 }
 
 static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
@@ -9161,8 +9146,8 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
 
     vec3 v45 = v41 - v40;
     vec3 v44 = v40 - v41;
-    float_t v20 = vec3::distance(v41, v40);
 
+    float_t v20 = vec3::distance(v41, v40);
     float_t v21 = (a1->sleeve_l.radius * a1->radius + a1->sleeve_r.radius - v20) * 0.5f;
     float_t v22 = (a1->sleeve_r.radius * a1->radius + a1->sleeve_l.radius - v20) * 0.5f;
 
@@ -9183,8 +9168,8 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
         }
     }
 
-    bool v19 = true;
     bool v18 = false;
+    bool v19 = true;
     if (v22 <= 0.0f) {
         v19 = false;
         v22 = vec3::length(a1->field_68);
@@ -9208,11 +9193,17 @@ static void sub_1403FA770(rob_chara_bone_data_sleeve_adjust* a1) {
         sub_1403FA040(&v44, v22, v5, a1->sleeve_r.ymin, a1->sleeve_r.ymax,
             a1->sleeve_r.zmin, a1->sleeve_r.zmax, &a1->field_68, a1->step);
 
-    if (v16 || v17)
-        sub_14040AE10(a1->bones->data()[MOTION_BONE_C_KATA_L].node[2].mat, v42 + v45);
+    if (v16 || v17) {
+        mat4 mat = *a1->bones->data()[MOTION_BONE_C_KATA_L].node[2].mat;
+        sub_14040AE10(&mat, v42 + v45);
+        *a1->bones->data()[MOTION_BONE_C_KATA_L].node[2].mat = mat;
+    }
 
-    if (v19 || v18)
-        sub_14040AE10(a1->bones->data()[MOTION_BONE_C_KATA_R].node[2].mat, v43 + v44);
+    if (v19 || v18) {
+        mat4 mat = *a1->bones->data()[MOTION_BONE_C_KATA_R].node[2].mat;
+        sub_14040AE10(&mat, v43 + v44);
+        *a1->bones->data()[MOTION_BONE_C_KATA_R].node[2].mat = mat;
+    }
 }
 
 static void sub_1403F9B20(rob_chara_bone_data_sleeve_adjust* a1, motion_bone_index motion_bone_index) {
@@ -9543,7 +9534,7 @@ static void rob_chara_age_age_load(rob_chara_age_age* arr,
     rob_chara_age_age_data data[10];
     for (rob_chara_age_age_data& i : data) {
         i.index = (int32_t)(&i - data);
-        i.remaining = -1.0;
+        i.remaining = -1.0f;
         i.part_id = part_id;
     }
 

@@ -118,7 +118,7 @@ static void spr_set_classic_read_inner(spr_set* ss,
         sprdata->resolution_mode = (resolution_mode)s.read_uint32_t();
     }
     s.close();
-    
+
     ss->txp = new txp_set;
     ss->txp->unpack_file((const void*)((size_t)data + texofs), false);
 

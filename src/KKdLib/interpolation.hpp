@@ -131,7 +131,7 @@ inline vec2 interpolate_chs_value(const vec2 p1, const vec2 p2,
     __m128 h01 = _mm_sub_ps(t_23, t_32);
     __m128 h10 = _mm_add_ps(_mm_sub_ps(t_3, _mm_mul_ps(_2, t_2)), t);
     __m128 h11 = _mm_sub_ps(t_3, t_2);
-   
+
     _p1 = _mm_mul_ps(h00, _p1);
     _p2 = _mm_mul_ps(h01, _p2);
     _t1 = _mm_mul_ps(h10, _mm_mul_ps(_t1, df));

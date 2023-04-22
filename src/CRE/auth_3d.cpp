@@ -2966,7 +2966,7 @@ static void a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
             enum_and(rgba.flags, ~A3DA_RGBA_R);
         }
     }
-    
+
     if (rgba.flags & A3DA_RGBA_G) {
         msgpack* g = msg->read_map("g");
         if (g)
@@ -2977,7 +2977,7 @@ static void a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
             enum_and(rgba.flags, ~A3DA_RGBA_G);
         }
     }
-    
+
     if (rgba.flags & A3DA_RGBA_B) {
         msgpack* b = msg->read_map("b");
         if (b)
@@ -2988,7 +2988,7 @@ static void a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
             enum_and(rgba.flags, ~A3DA_RGBA_B);
         }
     }
-    
+
     if (rgba.flags & A3DA_RGBA_A) {
         msgpack* a = msg->read_map("a");
         if (a)

@@ -995,7 +995,7 @@ static void mot_data_move_data(mot_data* mot_dst, const mot_data* mot_src,
     }
 
     mot_dst->bone_info_array = bone_info_array_dst;
-    
+
     uint32_t key_set_count = mot_src->key_set_count;
     mot_key_set_data* key_set_array_src = mot_src->key_set_array;
     mot_key_set_data* key_set_array_dst = alloc->allocate<mot_key_set_data>(key_set_count);

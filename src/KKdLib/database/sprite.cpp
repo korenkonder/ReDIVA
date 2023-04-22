@@ -357,7 +357,7 @@ void sprite_database::parse(const spr_db_spr_set_file* set_file,
         }
         else
             spr = &*j;
-        
+
         spr->id = id;
         spr->name.assign(i.name);
         spr->name_hash = hash_string_murmurhash(spr->name);
@@ -418,11 +418,11 @@ void sprite_database::remove_spr_set(uint32_t set_id, uint32_t index,
             auto elem_id = spr_ids.find(j->id);
             if (elem_id != spr_ids.end())
                 spr_ids.erase(elem_id);
-            
+
             auto elem_index = spr_indices.find(j->info);
             if (elem_index != spr_indices.end())
                 spr_indices.erase(elem_index);
-            
+
             auto elem_name = spr_names.find(j->name);
             if (elem_name != spr_names.end())
                 spr_names.erase(elem_name);

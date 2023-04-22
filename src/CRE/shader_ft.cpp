@@ -2919,7 +2919,7 @@ static const bool PUDDLE_permut[] = {
 static const bool S_REFL_permut[] = {
     //true, // 0th removed
     true,
-    false,
+    true,
     true,
     true,
     false,

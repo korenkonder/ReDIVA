@@ -155,7 +155,7 @@ namespace Glitter {
             next_val - curr_val, curr->tangent2, next->tangent1,
             (float_t)curr->frame, (float_t)next->frame, frame);
     }
-    
+
     float_t Curve::F2InterpolateLinear(GLT, Glitter::Curve::Key* curr,
         Glitter::Curve::Key* next, float_t frame, Random* random) {
         float_t df = (float_t)(next->frame - curr->frame);
@@ -374,7 +374,7 @@ namespace Glitter {
                 else if (has_error_hermite)
                     c = 1;
                 else
-                    c = (int32_t)i;                
+                    c = (int32_t)i;
 
                 t2_old = glitter_curve_add_key(has_error, has_error_lerp, has_error_hermite,
                     a, b, frame, step, c, t1, t2, t2_old, &keys_rev);

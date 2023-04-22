@@ -277,6 +277,7 @@ void graphics_light_imgui(class_data* data) {
         ImGui::ColumnSliderFloatButton("LINEAR", &attenuation.linear, 0.01f, 0.0f, 1.0f, 0.1f, "%8.4f", 0);
         ImGui::ColumnSliderFloatButton("QUADRATIC", &attenuation.quadratic, 0.01f, 0.0f, 1.0f, 0.1f, "%8.4f", 0);
         light_data->set_attenuation(attenuation);
+        ImGui::PopID();
     }
 
     if (_stage_index != stage_index && _stage_index != light->stage_index) {

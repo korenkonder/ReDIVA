@@ -428,7 +428,7 @@ static void aet_classic_read_fcurve(aet_fcurve* fcurve,
     else if (fcurve->keys_count) {
         float_t* key = alloc->allocate<float_t>();
         fcurve->keys = key;
-        
+
         *key = s.read_float_t();
     }
     else
@@ -472,7 +472,7 @@ static void aet_classic_read_layer(aet_layer* layer,
     }
     else
         layer->audio = 0;
-    
+
     layer->video = aet_classic_read_layer_video(alloc, s, alh.video_offset);
     layer->audio = aet_classic_read_layer_audio(alloc, s, alh.audio_offset);
 }
@@ -571,7 +571,7 @@ static aet_scene* aet_classic_read_scene(prj::shared_ptr<prj::stack_allocator> a
     scene->audio_count = s.read_uint32_t();
     ash.audio_offset = s.read_uint32_t();
     s.position_pop();
-    
+
     scene->camera = aet_classic_read_camera(alloc, s, ash.camera_offset);
 
     if (ash.comp_offset) {
@@ -597,7 +597,7 @@ static aet_scene* aet_classic_read_scene(prj::shared_ptr<prj::stack_allocator> a
     }
     else
         scene->video = 0;
-    
+
     if (ash.audio_offset) {
         aet_audio* audio = alloc->allocate<aet_audio>(scene->audio_count);
         scene->audio = audio;

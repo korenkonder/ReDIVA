@@ -2821,7 +2821,7 @@ bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
                     aet_obj_data* aet_obj = aet.prev[type][index];
                     if (!aet_obj)
                         break;
-                    
+
                     aet_manager_set_obj_alpha(aet_obj->id, alpha * env_aet_opacity);
                 }
             break;
@@ -2832,7 +2832,7 @@ bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
                 aet_obj_data* aet_obj = aet.prev[type][index];
                 if (!aet_obj)
                     break;
-                
+
                 aet_obj->reset();
             }
 
@@ -5801,13 +5801,6 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     for (int32_t& i : modules)
         i = 0;
 
-    pv_id = 805;
-    stage_id = 5;
-
-    charas[0] = CHARA_RIN;
-
-    modules[0] = 0;
-
 #if BAKE_PV826
     pv_id = 826;
     stage_id = 26;
@@ -8679,7 +8672,7 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 has_prev_error = false;
                 break;
             }
-            
+
             has_prev_error = true;
         }
 

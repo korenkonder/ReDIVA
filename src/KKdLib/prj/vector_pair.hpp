@@ -63,7 +63,7 @@ namespace prj {
                 return this->end();
             return k;
         }
-        
+
         inline typename auto find(T& key) const {
             auto k = this->begin();
             size_t l = this->size();

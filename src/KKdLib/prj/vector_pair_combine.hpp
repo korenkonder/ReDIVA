@@ -88,7 +88,7 @@ namespace prj {
                 return data.end();
             return k;
         }
-        
+
         inline void combine() {
             if (data.size() > 1)
                 std::sort(data.begin(), data.end(),
@@ -197,7 +197,7 @@ namespace prj {
             data.clear();
             new_data.clear();
         }
-        
+
         inline void shrink_to_fit() noexcept {
             data.shrink_to_fit();
             new_data.shrink_to_fit();
