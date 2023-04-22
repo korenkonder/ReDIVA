@@ -7,7 +7,7 @@
 
 #include "rob.hpp"
 
-extern void motion_set_load_motion(uint32_t set, std::string* mdata_dir, motion_database* mot_db);
+extern void motion_set_load_motion(uint32_t set, std::string&& mdata_dir, motion_database* mot_db);
 extern void motion_set_unload_motion(uint32_t set);
 
 extern bool motion_storage_check_mot_file_not_ready(uint32_t set_id);

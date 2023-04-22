@@ -3492,7 +3492,7 @@ extern bool check_module_index_is_501(int32_t module_index);
 
 extern const float_t get_osage_gravity_const();
 
-extern void motion_set_load_mothead(uint32_t set, std::string* mdata_dir, motion_database* mot_db);
+extern void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, motion_database* mot_db);
 extern void motion_set_unload_mothead(uint32_t set);
 
 extern bool opd_make_manager_del_task();

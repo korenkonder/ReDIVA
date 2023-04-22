@@ -2195,18 +2195,20 @@ const float_t get_osage_gravity_const() {
     return 0.00299444468691945f;
 }
 
-void motion_set_load_mothead(uint32_t set, std::string* mdata_dir, motion_database* mot_db) {
+void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, motion_database* mot_db) {
     const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
     if (!set_info)
         return;
 
-    std::string file = "mothead_";
-    file += set_info->name;
-    file += ".bin";
+    std::string file;
+    file.assign("mothead_");
+    file.append(set_info->name);
+    file.append(".bin");
 
-    std::string path = "rom/rob/";
-    if (mdata_dir && data_list[DATA_AFT].check_file_exists(mdata_dir->c_str(), file.c_str()))
-        path = *mdata_dir;
+    std::string path;
+    path.assign("rom/rob/");
+    if (data_list[DATA_AFT].check_file_exists(mdata_dir.c_str(), file.c_str()))
+        path.assign(mdata_dir);
 
     auto elem = mothead_storage_data.find(set);
     if (elem == mothead_storage_data.end())
@@ -16398,8 +16400,8 @@ bool OpdMakeManager::Ctrl() {
         prj::sort_unique(motion_set_ids);
 
         for (uint32_t& i : motion_set_ids) {
-            motion_set_load_motion(i, 0, aft_mot_db);
-            motion_set_load_mothead(i, 0, aft_mot_db);
+            motion_set_load_motion(i, "", aft_mot_db);
+            motion_set_load_mothead(i, "", aft_mot_db);
         }
         mode = 4;
         break;
@@ -18550,9 +18552,9 @@ void TaskRobLoad::LoadCharaObjSetMotionSet(chara_index chara_index,
     void* data, object_database* obj_db, motion_database* mot_db) {
     const chara_init_data* chr_init_data = chara_init_data_get(chara_index);
     object_storage_load_set(data, obj_db, chr_init_data->object_set);
-    motion_set_load_motion(cmn_set_id, 0, mot_db);
-    motion_set_load_mothead(cmn_set_id, 0, mot_db);
-    motion_set_load_motion(chr_init_data->motion_set, 0, mot_db);
+    motion_set_load_motion(cmn_set_id, "", mot_db);
+    motion_set_load_mothead(cmn_set_id, "", mot_db);
+    motion_set_load_motion(chr_init_data->motion_set, "", mot_db);
 }
 
 bool TaskRobLoad::LoadCharaObjSetMotionSetCheck(chara_index chara_index) {

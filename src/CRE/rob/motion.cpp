@@ -17,7 +17,7 @@ struct MotFile {
 
     bool CheckNotReady();
     void FreeData();
-    void LoadFile(std::string* mdata_dir, uint32_t set);
+    void LoadFile(std::string&& mdata_dir, uint32_t set);
     void ParseFile(const void* data, size_t size);
     bool Unload();
 
@@ -26,7 +26,7 @@ struct MotFile {
 
 std::map<uint32_t, MotFile> motion_storage_data;
 
-void motion_set_load_motion(uint32_t set, std::string* mdata_dir, motion_database* mot_db) {
+void motion_set_load_motion(uint32_t set, std::string&& mdata_dir, motion_database* mot_db) {
     const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
     if (!set_info)
         return;
@@ -36,7 +36,7 @@ void motion_set_load_motion(uint32_t set, std::string* mdata_dir, motion_databas
         elem = motion_storage_data.insert({ set, {} }).first;
 
     elem->second.mot_set_info = set_info;
-    elem->second.LoadFile(mdata_dir, set);
+    elem->second.LoadFile(std::string(mdata_dir), set);
 }
 
 void motion_set_unload_motion(uint32_t set) {
@@ -119,7 +119,7 @@ void MotFile::FreeData() {
     load_count = 0;
 }
 
-void MotFile::LoadFile(std::string* mdata_dir, uint32_t set) {
+void MotFile::LoadFile(std::string&& mdata_dir, uint32_t set) {
     if (load_count > 0) {
         load_count++;
         return;
@@ -127,17 +127,31 @@ void MotFile::LoadFile(std::string* mdata_dir, uint32_t set) {
 
     data_struct* aft_data = &data_list[DATA_AFT];
 
-    std::string rom_dir = "rom/";
-    std::string rob_dir = "rob/";
-    std::string farc_file = "mot_" + mot_set_info->name + ".farc";
-    std::string mot_file = "mot_" + mot_set_info->name + ".bin";
-    if (mdata_dir && mdata_dir->size())
-        if (aft_data->check_file_exists(mdata_dir->c_str(), farc_file.c_str())) {
-            rom_dir = *mdata_dir;
+    std::string rom_dir;
+    rom_dir.assign("rom/");
+
+    std::string rob_dir;
+    rob_dir.assign("rob/");
+
+    std::string farc_file;
+    farc_file.assign("mot_");
+    farc_file.append(mot_set_info->name);
+    farc_file.append(".farc");
+
+    std::string mot_file;
+    mot_file.assign("mot_");
+    mot_file.append(mot_set_info->name);
+    mot_file.append(".bin");
+
+    if (mdata_dir.size())
+        if (aft_data->check_file_exists(mdata_dir.c_str(), farc_file.c_str())) {
+            rom_dir.assign(mdata_dir);
             rob_dir.clear();
         }
 
-    std::string dir = rom_dir + rob_dir;
+    std::string dir;
+    dir.assign(rom_dir);
+    dir.append(rob_dir);
     if (aft_data->check_file_exists(dir.c_str(), farc_file.c_str())) {
         if (file_handler.read_file(aft_data, dir.c_str(), farc_file.c_str(), mot_file.c_str(), false))
             file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)ParseFileParent, this);
