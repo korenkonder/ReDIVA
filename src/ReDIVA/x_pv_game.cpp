@@ -1781,6 +1781,7 @@ int32_t x_pv_game_music::get_master_volume(int32_t index) {
 int32_t x_pv_game_music::get_volume(int32_t index) {
     if (!index)
         return volume;
+    return 0;
 }
 
 int32_t x_pv_game_music::include_flags(x_pv_game_music_flags flags) {
