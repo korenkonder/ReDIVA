@@ -205,7 +205,6 @@ struct struc_573 {
     struc_573();
 };
 
-
 struct TaskEffectFogRing : public TaskEffect {
 public:
     struct Data {

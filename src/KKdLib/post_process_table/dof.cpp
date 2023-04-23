@@ -62,7 +62,6 @@ void dof::read(const void* data, size_t size) {
     if (!data || !size)
         return;
 
-
     f2_struct st;
     st.read(data, size);
     if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {

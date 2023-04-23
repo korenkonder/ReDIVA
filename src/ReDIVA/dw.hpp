@@ -32,7 +32,6 @@ namespace dw {
     public:
         typedef void(*Callback)(Widget* data);
 
-
         bool free;
 
         union {

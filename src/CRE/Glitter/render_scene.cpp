@@ -1579,7 +1579,6 @@ namespace Glitter {
                 mat4_rotate_zyx_mult(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &mat);
 
-
                 vec3 uv_scroll;
                 vec3 uv_scroll_2nd;
                 uv_scroll.x = elem->uv_scroll.x;

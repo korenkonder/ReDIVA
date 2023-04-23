@@ -463,7 +463,6 @@ namespace mdl {
                     break;
                 }
 
-
         if (!vertex_array)
             for (DispManager::vertex_array& i : vertex_array_cache)
                 if (i.alive_time <= 0) {

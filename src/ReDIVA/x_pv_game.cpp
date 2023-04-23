@@ -2971,7 +2971,6 @@ void x_pv_game_stage_effect::reset() {
     set = false;
 }
 
-
 x_pv_game_stage_data::x_pv_game_stage_data() : flags(), state(), frame_rate_control() {
     reset();
 }
@@ -5752,7 +5751,6 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
                 pv_data->unload_if_state_is_0();
         }
 
-
         if (pv_index) {
             pv_index = 0;
             if (!pv_data->state)
@@ -8088,7 +8086,6 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     dst_submesh->axis_aligned_bounding_box.center = center;
                     dst_submesh->axis_aligned_bounding_box.size = aabb_max_submesh - center;
 
-
                     dst_submesh->first_index = 0;
                     dst_submesh->last_index = 0;
                     dst_submesh->index_offset = 0;
@@ -8467,11 +8464,11 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
     }
 }
 
-static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, float_t play_control_size,
-    std::vector<std::pair<vec4, vec4>>& color, vec4u8& has_color, std::vector<kft3>& morph, bool fast = false) {
-    size_t count = (size_t)(int32_t)play_control_size;
+typedef std::pair<vec4, vec4> material_list_color;
 
-    typedef std::pair<vec4, vec4> vec4_pair;
+static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, float_t play_control_size,
+    std::vector<material_list_color>& color, vec4u8& has_color, std::vector<kft3>& morph, bool fast = false) {
+    size_t count = (size_t)(int32_t)play_control_size;
 
     has_color.x = (ml.blend_color.flags & AUTH_3D_RGBA_R) || (ml.emission.flags & AUTH_3D_RGBA_R);
     has_color.y = (ml.blend_color.flags & AUTH_3D_RGBA_G) || (ml.emission.flags & AUTH_3D_RGBA_G);
@@ -8500,8 +8497,8 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         = (has_data[0] ? 1 : 0) + (has_data[1] ? 1 : 0) + (has_data[2] ? 1 : 0) + (has_data[3] ? 1 : 0)
         + (has_data[4] ? 1 : 0) + (has_data[5] ? 1 : 0) + (has_data[6] ? 1 : 0) + (has_data[7] ? 1 : 0);
 
-    std::vector<vec4_pair> values(count);
-    vec4_pair* values_src = values.data();
+    std::vector<material_list_color> values(count);
+    material_list_color* values_src = values.data();
 
     for (size_t i = 0; i < count; i++) {
         ml.blend_color.interpolate((float_t)(int32_t)i);
@@ -8511,13 +8508,13 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
     }
 
     {
-        vec4_pair val = *(vec4_pair*)&values_src[0];
-        vec4_pair* arr = (vec4_pair*)&values_src[1];
+        material_list_color val = *(material_list_color*)&values_src[0];
+        material_list_color* arr = (material_list_color*)&values_src[1];
         for (size_t i = count - 1; i; i--)
             if (val != *arr++)
                 break;
 
-        if (arr == (vec4_pair*)(values_src + count)) {
+        if (arr == (material_list_color*)(values_src + count)) {
             if (values_src[0].first != 0.0f || values_src[0].second != 0.0f) {
                 morph.push_back({ 0, (float_t)(int32_t)color.size() });
                 color.push_back(values_src[0]);
@@ -8528,15 +8525,14 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         }
     }
 
-
     float_t* arr = force_malloc_s(float_t, count);
-    vec4_pair* val = values_src;
+    material_list_color* val = values_src;
 
     const float_t reverse_bias = 0.0001f;
     const int32_t reverse_min_count = 4;
 
     float_t* a = arr;
-    vec4_pair* v = val;
+    material_list_color* v = val;
     size_t left_count = count;
     int32_t frame = 0;
     int32_t prev_frame = 0;
@@ -8571,7 +8567,7 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
             bool constant = true;
             for (size_t j = 1; j <= i; j++)
-                if (memcmp(&v[0], &v[j], sizeof(vec4_pair))) {
+                if (memcmp(&v[0], &v[j], sizeof(material_list_color))) {
                     constant = false;
                     break;
                 }
@@ -8583,8 +8579,8 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
             float_t end[8];
             float_t _t1[8];
             float_t _t2[8];
-            *(vec4_pair*)start = v[0];
-            *(vec4_pair*)end = v[i];
+            *(material_list_color*)start = v[0];
+            *(material_list_color*)end = v[i];
             for (size_t o = 0; o < 8; o++) {
                 if (!has_data[o])
                     continue;
@@ -8755,7 +8751,7 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         auto i_end = color.end() - 1;
 
         for (auto i = i_begin; i != i_end;)
-            if (!memcmp(&i[0], &i[1], sizeof(vec4_pair))) {
+            if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
                 for (size_t k = i - i_begin + 1; k < length; k++)
                     keys[k].value -= 1.0f;
                 i = color.erase(i);
@@ -8826,32 +8822,35 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
         printf_debug("%s\n", auth->file_name.c_str());
 
-        for (auth_3d_material_list& j : auth->material_list)
-            if (j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
-                std::vector<std::pair<vec4, vec4>> color;
-                vec4u8 has_color;
-                std::vector<kft3> morph;
-                int32_t type = x_pv_game_split_auth_3d_material_list(j,
-                    auth->play_control.size, color, has_color, morph);
-                printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
-            }
-    }
+        for (auth_3d_material_list& j : auth->material_list) {
+            if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
+                continue;
 
+            std::vector<material_list_color> color;
+            vec4u8 has_color;
+            std::vector<kft3> morph;
+            int32_t type = x_pv_game_split_auth_3d_material_list(j,
+                auth->play_control.size, color, has_color, morph);
+            printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
+        }
+    }
 
     for (auth_3d_id& i : stage_data_change_effect_auth_3ds) {
         auth_3d* auth = i.get_auth_3d();
 
         printf_debug("%s\n", auth->file_name.c_str());
 
-        for (auth_3d_material_list& j : auth->material_list)
-            if (j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)) {
-                std::vector<std::pair<vec4, vec4>> color;
-                vec4u8 has_color;
-                std::vector<kft3> morph;
-                int32_t type = x_pv_game_split_auth_3d_material_list(j,
-                    auth->play_control.size, color, has_color, morph);
-                printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
-            }
+        for (auth_3d_material_list& j : auth->material_list) {
+            if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
+                continue;
+
+            std::vector<material_list_color> color;
+            vec4u8 has_color;
+            std::vector<kft3> morph;
+            int32_t type = x_pv_game_split_auth_3d_material_list(j,
+                auth->play_control.size, color, has_color, morph);
+            printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
+        }
     }
 }
 

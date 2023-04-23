@@ -930,7 +930,6 @@ void RobCloth::ApplyResetData() {
         reset_data_list = 0;
     }
 
-
     RobClothRoot* root = this->root.data();
     for (size_t i = 0; i < root_count; i++, root++) {
         CLOTHNode* node = &nodes.data()[i + root_count];

@@ -347,7 +347,6 @@ Auth3dTestWindow::Auth3dTestWindow() {
         auth_3d_index = cat->index;
     }
 
-
     stage.reserve(aft_stage_data->stage_data.size());
     for (stage_data& i : aft_stage_data->stage_data)
         stage.push_back(i.name.c_str());

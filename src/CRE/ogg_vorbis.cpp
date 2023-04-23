@@ -633,7 +633,6 @@ void OggFileHandler::ThreadMain(OggFileHandler* ofh) {
     ofh->thread_state.set(0);
 }
 
-
 p_OggFileHandler::p_OggFileHandler(OggFileHandler* ptr) {
     this->ptr = ptr;
 }

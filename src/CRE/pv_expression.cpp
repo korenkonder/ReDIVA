@@ -118,7 +118,6 @@ bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, int32_t moti
     return false;
 }
 
-
 bool pv_expression_file_check_not_ready(const char* file) {
     uint32_t hash = hash_utf8_murmurhash(file);
     for (pv_expression_file*& i : pv_expression_file_storage)
@@ -195,12 +194,12 @@ void pv_expression_file_unload(const char* file) {
 
             i->file_handler.reset();
             i->alloc_handler.reset();
-        }
-        delete i;
+            delete i;
 
-        pv_expression_file_storage.erase(pv_expression_file_storage.begin()
-            + (&i - pv_expression_file_storage.data()));
-        return;
+            pv_expression_file_storage.erase(pv_expression_file_storage.begin()
+                + (&i - pv_expression_file_storage.data()));
+        }
+        break;
     }
 }
 
@@ -219,11 +218,12 @@ void pv_expression_file_unload(uint32_t hash) {
 
             i->file_handler.reset();
             i->alloc_handler.reset();
-        }
+            delete i;
 
-        pv_expression_file_storage.erase(pv_expression_file_storage.begin()
-            + (&i - pv_expression_file_storage.data()));
-        return;
+            pv_expression_file_storage.erase(pv_expression_file_storage.begin()
+                + (&i - pv_expression_file_storage.data()));
+        }
+        break;
     }
 }
 

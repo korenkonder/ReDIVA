@@ -744,7 +744,6 @@ void pv_game_music::file_load(int32_t type, std::string& file_path, bool play_on
     }
 }
 
-
 int32_t pv_game_music::get_master_volume(int32_t index) {
     if (index)
         return 0;

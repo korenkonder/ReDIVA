@@ -1768,7 +1768,6 @@ static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state
     }
 }
 
-
 static GameStateData* game_state_data_array_get(GameStateEnum state) {
     for (GameStateData& i : game_state_data_array)
         if (i.game_state == state)

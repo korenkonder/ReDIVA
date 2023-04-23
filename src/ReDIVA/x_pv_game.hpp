@@ -96,7 +96,6 @@ public:
     void Reset();
 };
 
-
 class XPVFrameRateControl : public FrameRateControl {
 public:
     XPVFrameRateControl();

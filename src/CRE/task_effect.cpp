@@ -815,7 +815,6 @@ void TaskEffectFogRing::Data::CalcPtcl(float_t delta_time) {
             v17 = min_def(v17, 1.0f);
         }
 
-
         ptcl_data->density = v17;
     }
 }

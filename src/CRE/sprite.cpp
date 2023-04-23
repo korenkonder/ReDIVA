@@ -755,7 +755,6 @@ namespace spr {
                 else
                     gl_state_disable_blend();
 
-
                 if (j.shader == SHADER_FT_SPRITE) {
                     uniform_value[U_TEX_0_TYPE] = j.tex_0_type;
                     uniform_value[U_TEX_1_TYPE] = j.tex_1_type;

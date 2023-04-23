@@ -850,7 +850,6 @@ bool sound_db_farc::load() {
     else if (file_handler.check_not_ready())
         return true;
 
-
     farc.read(file_handler.get_data(), file_handler.get_size());
     if (farc.files.size() && sound_work->ParseProperty(this))
         ready = true;

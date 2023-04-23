@@ -123,7 +123,6 @@ void f2_struct::write(stream& s, bool use_depth, bool shift_x) {
     if (s.check_null())
         return;
 
-
     f2_struct_get_length(this, shift_x);
     f2_struct_write_inner(s, this, 0, use_depth, shift_x);
 

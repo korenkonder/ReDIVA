@@ -307,7 +307,6 @@ float_t post_process_tone_map::get_lens_flare_power() {
     return data.lens_flare_power;
 }
 
-
 void post_process_tone_map::set_lens_flare_power(float_t value) {
     if (value != data.lens_flare_power) {
         data.lens_flare_power = value;

@@ -70,7 +70,6 @@ void aes128_ecb_decrypt_buffer(aes128_ctx* ctx, uint8_t* buf, size_t length);
 void aes192_ecb_decrypt_buffer(aes192_ctx* ctx, uint8_t* buf, size_t length);
 void aes256_ecb_decrypt_buffer(aes256_ctx* ctx, uint8_t* buf, size_t length);
 
-
 void aes128_cbc_encrypt(aes128_ctx* ctx, uint8_t buf[AES_BLOCKLEN]);
 void aes192_cbc_encrypt(aes192_ctx* ctx, uint8_t buf[AES_BLOCKLEN]);
 void aes256_cbc_encrypt(aes256_ctx* ctx, uint8_t buf[AES_BLOCKLEN]);
@@ -83,7 +82,6 @@ void aes256_cbc_encrypt_buffer(aes256_ctx* ctx, uint8_t* buf, size_t length);
 void aes128_cbc_decrypt_buffer(aes128_ctx* ctx, uint8_t* buf, size_t length);
 void aes192_cbc_decrypt_buffer(aes192_ctx* ctx, uint8_t* buf, size_t length);
 void aes256_cbc_decrypt_buffer(aes256_ctx* ctx, uint8_t* buf, size_t length);
-
 
 void aes128_ctr_xcrypt_buffer(aes128_ctx* ctx, uint8_t* buf, uint32_t length);
 void aes192_ctr_xcrypt_buffer(aes192_ctx* ctx, uint8_t* buf, uint32_t length);

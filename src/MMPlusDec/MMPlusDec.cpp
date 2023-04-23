@@ -77,7 +77,6 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
             std::wstring infile = indir + i;
             std::wstring outfile = outdir + i;
 
-
             file_stream in_file;
             file_stream out_file;
             in_file.open(infile.c_str(), L"rb");

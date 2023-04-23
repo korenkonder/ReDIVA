@@ -317,7 +317,6 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
         mot_set_add_key((uint16_t)(count - 1), arr[count - 1], t2_old, frames, values);
     mot_set_add_key((uint16_t)(count - 1), arr[count - 1], 0.0f, frames, values);
 
-
     count = frames.size();
     arr = values.data();
     for (size_t i = count; i; i--, arr += 2)

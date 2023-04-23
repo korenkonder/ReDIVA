@@ -3051,7 +3051,6 @@ struct obj_skin_block_cloth_root {
     obj_skin_block_cloth_root_bone_weight field_28[4];
 };
 
-
 struct obj_skin_block_cloth_node {
     uint32_t flags;
     vec3 trans;

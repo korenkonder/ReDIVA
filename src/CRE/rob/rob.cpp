@@ -15831,7 +15831,6 @@ void OpdMaker::Ctrl() {
     v22 = sprintf_s_string(&v60, "%s/%d", v62.c_str(), chara_id);
     v62 = v60;
 
-
     std::vector<std::string> v64;
     if (!sub_1400AC0B0(&v62, &v64)) {
         for (std::string& i : v64) {
@@ -16087,7 +16086,6 @@ static void sub_140479AA0(OpdMaker::Data* a1, rob_chara* rob_chr, std::vector<in
                 for (char* j = buf1; *j; j++)
                     if (*j >= 'A' && *j <= 'Z')
                         *j += 0x20;
-
 
                 for (char* j = buf2; *j; j++)
                     if (*j >= 'A' && *j <= 'Z')
@@ -17170,11 +17168,17 @@ rob_sleeve_handler::rob_sleeve_handler() : ready() {
 }
 
 rob_sleeve_handler::~rob_sleeve_handler() {
-
+    clear();
 }
 
 void rob_sleeve_handler::clear() {
     ready = false;
+    
+    for (auto& i : sleeves) {
+        delete i.second.l;
+        delete i.second.r;
+    }
+
     sleeves.clear();
 
     for (p_file_handler*& i : file_handlers)
@@ -17366,7 +17370,6 @@ motion_index(), pv(), thread(), disp(), not_reset(), exit(), field_D4() {
         std::unique_lock<std::mutex> u_lock(exit_mtx);
         exit = false;
     }
-
 
     thread = new std::thread(PvOsageManager::ThreadMain, this);
     if (thread) {
