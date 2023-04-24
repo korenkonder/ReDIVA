@@ -21,7 +21,7 @@ namespace prj {
         std::vector<value_pair> data;
         std::vector<value_pair> new_data;
 
-        inline auto find(T& key) {
+        inline auto find(const T& key) {
             auto k = data.begin();
             size_t l = data.size();
             size_t temp;

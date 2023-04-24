@@ -12689,9 +12689,9 @@ bool rob_chara_item_equip_object::set_boc(
                 || i.st_node + 1ULL >= j->rob.nodes.size())
                 continue;
 
-            RobOsageNode* v17 = rob_osg->GetNode(i.ed_node + 1LL);
-            RobOsageNode* v18 = j->rob.GetNode(i.st_node + 1LL);
-            v17->data_ptr->boc.push_back(v18);
+            RobOsageNode* ed_node = rob_osg->GetNode(i.ed_node + 1ULL);
+            RobOsageNode* st_node = j->rob.GetNode(i.st_node + 1ULL);
+            ed_node->data_ptr->boc.push_back(st_node);
             v6 = true;
             break;
         }

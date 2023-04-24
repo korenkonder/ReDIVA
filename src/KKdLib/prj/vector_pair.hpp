@@ -47,7 +47,7 @@ namespace prj {
             unique();
         }
 
-        inline typename auto find(T& key) {
+        inline typename auto find(const T& key) {
             auto k = this->begin();
             size_t l = this->size();
             size_t temp;
@@ -64,7 +64,7 @@ namespace prj {
             return k;
         }
 
-        inline typename auto find(T& key) const {
+        inline typename auto find(const T& key) const {
             auto k = this->begin();
             size_t l = this->size();
             size_t temp;

@@ -850,27 +850,27 @@ struct auth_3d_id {
 };
 
 inline bool operator >(const auth_3d_id& left, const auth_3d_id& right) {
-    return *(uint32_t*)&left > *(uint32_t*)&right;
+    return left.id > right.id;
 }
 
 inline bool operator <(const auth_3d_id& left, const auth_3d_id& right) {
-    return *(uint32_t*)&left < *(uint32_t*)&right;
+    return left.id < right.id;
 }
 
 inline bool operator >=(const auth_3d_id& left, const auth_3d_id& right) {
-    return *(uint32_t*)&left >= *(uint32_t*)&right;
+    return left.id >= right.id;
 }
 
 inline bool operator <=(const auth_3d_id& left, const auth_3d_id& right) {
-    return *(uint32_t*)&left <= *(uint32_t*)&right;
+    return left.id <= right.id;
 }
 
 inline bool operator ==(const auth_3d_id& left, const auth_3d_id& right) {
-    return *(uint32_t*)&left == *(uint32_t*)&right;
+    return left.id == right.id;
 }
 
 inline bool operator !=(const auth_3d_id& left, const auth_3d_id& right) {
-    return *(uint32_t*)&left != *(uint32_t*)&right;
+    return left.id != right.id;
 }
 
 struct auth_3d {
