@@ -12681,7 +12681,7 @@ bool rob_chara_item_equip_object::set_boc(
     for (RobOsageNode* i = i_begin; i != i_end; i++)
         i->data_ptr->boc.clear();
 
-    bool v6 = false;
+    bool has_boc_node = false;
     for (skin_param_osage_root_boc& i : skp_root.boc) {
         for (ExOsageBlock*& j : osage_blocks) {
             if (str_utils_compare(j->name, i.ed_root.c_str())
@@ -12692,11 +12692,11 @@ bool rob_chara_item_equip_object::set_boc(
             RobOsageNode* ed_node = rob_osg->GetNode(i.ed_node + 1ULL);
             RobOsageNode* st_node = j->rob.GetNode(i.st_node + 1ULL);
             ed_node->data_ptr->boc.push_back(st_node);
-            v6 = true;
+            has_boc_node = true;
             break;
         }
     }
-    return v6;
+    return has_boc_node;
 }
 
 void rob_chara_item_equip_object::set_collision_target_osage(
