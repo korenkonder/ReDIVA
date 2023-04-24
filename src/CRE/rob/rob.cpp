@@ -11505,6 +11505,21 @@ float_t* bone_node::get_exp_data_component(size_t index, ex_expression_block_sta
     }
 }
 
+void bone_node::set_name_mat_ex_data_mat(const char* name, mat4* mat, mat4* ex_data_mat) {
+    this->name = name;
+
+    this->mat = mat;
+    if (mat)
+        *mat = mat4_identity;
+
+    this->parent = 0;
+    exp_data = {};
+
+    this->ex_data_mat = ex_data_mat;
+    if (ex_data_mat)
+        *ex_data_mat = mat4_identity;
+}
+
 mot_key_data::mot_key_data() : key_sets_ready(), key_set_count(), key_set(),
 mot(), key_set_data(), mot_data(), skeleton_type(), skeleton_select(), field_68() {
     motion_id = -1;
@@ -12319,7 +12334,7 @@ void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
     rctx->disp_manager.set_obj_flags(v4);
     if (can_disp) {
         rctx->disp_manager.entry_obj_by_object_info_object_skin(obj_info,
-            &texture_pattern, &texture_data, alpha, mats, ex_data_block_mats.data(), 0, mat);
+            &texture_pattern, &texture_data, alpha, mats, ex_data_bone_mats.data(), 0, mat);
 
         for (ExNodeBlock*& i : node_blocks)
             i->Disp(mat, rctx);
@@ -12394,31 +12409,25 @@ void rob_chara_item_equip_object::get_parent_bone_nodes(bone_node* bone_nodes, b
 
 void rob_chara_item_equip_object::init_ex_data_bone_nodes(obj_skin_ex_data* ex_data) {
     ex_data_bone_nodes.clear();
+    ex_data_bone_mats.clear();
     ex_data_mats.clear();
-    ex_data_block_mats.clear();
 
     uint32_t num_bone_name = ex_data->num_bone_name;
     ex_data_bone_nodes.resize(num_bone_name);
+    ex_data_bone_mats.resize(num_bone_name);
     ex_data_mats.resize(num_bone_name);
-    ex_data_block_mats.resize(num_bone_name);
 
-    bone_node* v4 = ex_data_bone_nodes.data();
-    mat4* v5 = ex_data_mats.data();
-    mat4* v8 = ex_data_block_mats.data();
+    bone_node* bone_nodes = ex_data_bone_nodes.data();
+    mat4* bone_mats = ex_data_bone_mats.data();
+    mat4* mats = ex_data_mats.data();
     for (uint32_t i = 0; i < num_bone_name; i++)
-        v4[i].mat = &v5[i];
+        bone_nodes[i].mat = &bone_mats[i];
 
     if (ex_data->bone_name_array) {
         ex_bones.clear();
         const char** bone_name_array = ex_data->bone_name_array;
         for (uint32_t i = 0; i < num_bone_name; i++) {
-            bone_node* node = &v4[i];
-            node->name = bone_name_array[i];
-            node->mat = &v5[i];
-            *node->mat = mat4_identity;
-            node->ex_data_mat = &v8[i];
-            *node->ex_data_mat = mat4_identity;
-
+            bone_nodes[i].set_name_mat_ex_data_mat(bone_name_array[i], &bone_mats[i], &mats[i]);
             ex_bones.push_back({ bone_name_array[i], i });
         }
     }
@@ -12444,8 +12453,8 @@ void rob_chara_item_equip_object::init_members(size_t index) {
     bone_nodes = 0;
     clear_ex_data();
     ex_data_bone_nodes.clear();
+    ex_data_bone_mats.clear();
     ex_data_mats.clear();
-    ex_data_block_mats.clear();
     ex_bones.clear();
     field_1B8 = false;
     use_opd = false;
@@ -12636,7 +12645,7 @@ void rob_chara_item_equip_object::load_object_info_ex_data(object_info obj_info,
     mats = bone_nodes->mat;
     ex_data_bone_nodes.clear();
     ex_bones.clear();
-    ex_data_mats.clear();
+    ex_data_bone_mats.clear();
     clear_ex_data();
     obj_skin* skin = object_storage_get_obj_skin(this->obj_info);
     if (!skin)

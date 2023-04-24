@@ -868,7 +868,7 @@ struct bone_node {
     bone_node();
 
     float_t* get_exp_data_component(size_t index, ex_expression_block_stack_type& type);
-
+    void set_name_mat_ex_data_mat(const char* name, mat4* mat, mat4* ex_data_mat);
 };
 
 struct struc_314 {
@@ -2142,8 +2142,8 @@ struct rob_chara_item_equip_object {
     bone_node* bone_nodes;
     std::vector<ExNodeBlock*> node_blocks;
     std::vector<bone_node> ex_data_bone_nodes;
+    std::vector<mat4> ex_data_bone_mats;
     std::vector<mat4> ex_data_mats;
-    std::vector<mat4> ex_data_block_mats;
     std::vector<ex_data_name_bone_index> ex_bones;
     int64_t field_138;
     std::vector<ExNullBlock*> null_blocks;

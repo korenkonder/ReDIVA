@@ -1964,11 +1964,10 @@ void RobOsage::SetOsagePlayData(mat4* parent_mat,
         mat4_rotate_y_mult(&v85, rot_y, &v85);
         j->bone_node_ptr->exp_data.parent_scale = parent_scale;
         *j->bone_node_ptr->ex_data_mat = v85;
-        if (j->bone_node_mat) {
-            mat4 mat = v85;
-            mat4_scale_rot(&mat, &parent_scale, &mat);
-            *j->bone_node_mat = mat;
-        }
+
+        if (j->bone_node_mat)
+            mat4_scale_rot(&v85, &parent_scale, j->bone_node_mat);
+
         mat4_translate_mult(&v85, j->field_1B0.field_0.length, 0.0f, 0.0f, &v85);
         j->trans_orig = j->trans;
         mat4_get_translation(&v85, &j->trans);
@@ -3934,6 +3933,7 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* a2, vec3* parent_scale, bool 
             &j->reset_data.rotation, rob_osg->yz_order);
         j->bone_node_ptr->exp_data.parent_scale = *parent_scale;
         *j->bone_node_ptr->ex_data_mat = v78;
+
         if (j->bone_node_mat)
             mat4_scale_rot(&v78, parent_scale, j->bone_node_mat);
 
