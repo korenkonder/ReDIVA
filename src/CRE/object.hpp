@@ -29,7 +29,7 @@ struct obj_mesh_index_buffer {
     bool load_data(size_t size, const void* data);
     void unload();
 
-    static void* store_data(void* data, obj_mesh& mesh);
+    static void* fill_data(void* data, obj_mesh& mesh);
 };
 
 struct obj_mesh_vertex_buffer {
@@ -53,7 +53,7 @@ struct obj_mesh_vertex_buffer {
     bool load_data(size_t size, const void* data, int32_t count, bool dynamic);
     void unload();
 
-    static void* store_data(void* data, obj_mesh& mesh);
+    static void* fill_data(void* data, obj_mesh& mesh);
 };
 
 struct obj_index_buffer {
