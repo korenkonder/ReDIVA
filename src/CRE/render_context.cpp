@@ -2571,23 +2571,19 @@ matrix_buffer(), box_vao(), box_vbo(), empty_texture_2d(), empty_texture_cube_ma
         GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
     };
 
-    static const int32_t max_level = 2;
-
     glGenTextures(1, &empty_texture_2d);
     gl_state_bind_texture_2d(empty_texture_2d);
-    texture_set_params(empty_texture_2d, GL_TEXTURE_2D, max_level, false);
-    for (int32_t level = 0, size = 1 << max_level; level <= max_level; size /= 2, level++)
-        glCompressedTexImage2D(GL_TEXTURE_2D, level,
-            GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, size, size, 0, 8, empty_texture_data);
+    texture_set_params(empty_texture_2d, GL_TEXTURE_2D, 0, false);
+    glCompressedTexImage2D(GL_TEXTURE_2D, 0,
+        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, 8, empty_texture_data);
     gl_state_bind_texture_2d(0);
 
     glGenTextures(1, &empty_texture_cube_map);
     gl_state_bind_texture_cube_map(empty_texture_cube_map);
-    texture_set_params(empty_texture_cube_map, GL_TEXTURE_CUBE_MAP, max_level, false);
+    texture_set_params(empty_texture_cube_map, GL_TEXTURE_CUBE_MAP, 0, false);
     for (int32_t side = 0; side < 6; side++)
-        for (int32_t level = 0, size = 1 << max_level; level <= max_level; size /= 2, level++)
-            glCompressedTexImage2D(target_cube_map_array[side], level,
-                GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, size, size, 0, 8, empty_texture_data);
+        glCompressedTexImage2D(target_cube_map_array[side], 0,
+            GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, 8, empty_texture_data);
     gl_state_bind_texture_cube_map(0);
 }
 
