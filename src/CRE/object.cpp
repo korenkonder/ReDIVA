@@ -39,7 +39,7 @@ obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer(), size() {
 }
 
 bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
-    int32_t num_index = 0;
+    size_t num_index = 0;
     for (uint32_t i = 0; i < mesh.num_submesh; i++)
         num_index += mesh.submesh_array[i].num_index;
 
@@ -49,46 +49,9 @@ bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
     }
 
     uint16_t* indices = force_malloc_s(uint16_t, num_index);
-    uint16_t* _indices = indices;
-    for (uint32_t k = 0; k < mesh.num_submesh; k++) {
-        obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
-        uint32_t num_index = sub_mesh.num_index;
-        uint32_t* index = sub_mesh.index_array;
-        for (uint32_t l = 0; l < num_index; l++, index++)
-            *_indices++ = (uint16_t)*index;
-    }
+    obj_mesh_index_buffer::fill_data(indices, mesh);
 
-    _indices = indices;
-    for (uint32_t i = 0, offset = 0; i < mesh.num_submesh; i++) {
-        obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
-
-        sub_mesh.first_index = 0;
-        sub_mesh.last_index = 0;
-        sub_mesh.index_offset = 0;
-        if (sub_mesh.index_format != OBJ_INDEX_U16)
-            continue;
-
-        uint16_t first_index = 0xFFFF;
-        uint16_t last_index = 0;
-        uint32_t num_index = sub_mesh.num_index;
-        for (uint32_t j = 0; j < num_index; j++) {
-            uint16_t index = *_indices++;
-            if (index == 0xFFFF)
-                continue;
-
-            if (first_index > index)
-                first_index = index;
-            if (last_index < index)
-                last_index = index;
-        }
-
-        sub_mesh.first_index = first_index;
-        sub_mesh.last_index = last_index;
-        sub_mesh.index_offset = (int32_t)(sizeof(uint16_t) * offset);
-        offset += sub_mesh.num_index;
-    }
-
-    bool ret = load_data((size_t)num_index * sizeof(uint16_t), indices);
+    bool ret = load_data(num_index * sizeof(uint16_t), indices);
     free_def(indices);
     return ret;
 }
@@ -116,7 +79,52 @@ void obj_mesh_index_buffer::unload() {
     size = 0;
 }
 
+void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
+    uint16_t* indices = (uint16_t*)data;
+    for (uint32_t i = 0; i < mesh.num_submesh; i++) {
+        obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
+        uint32_t num_index = sub_mesh.num_index;
+        uint32_t* index = sub_mesh.index_array;
+        for (uint32_t j = num_index; j; j--, index++)
+            *indices++ = (uint16_t)*index;
+    }
+
+    indices = (uint16_t*)data;
+    for (uint32_t i = 0, offset = 0; i < mesh.num_submesh; i++) {
+        obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
+
+        sub_mesh.first_index = 0;
+        sub_mesh.last_index = 0;
+        sub_mesh.index_offset = 0;
+        if (sub_mesh.index_format != OBJ_INDEX_U16)
+            continue;
+
+        uint16_t first_index = 0xFFFF;
+        uint16_t last_index = 0;
+        for (uint32_t j = sub_mesh.num_index; j; j--) {
+            uint16_t index = *indices++;
+            if (index == 0xFFFF)
+                continue;
+
+            if (first_index > index)
+                first_index = index;
+            if (last_index < index)
+                last_index = index;
+        }
+
+        sub_mesh.first_index = first_index;
+        sub_mesh.last_index = last_index;
+        sub_mesh.index_offset = (int32_t)(offset * sizeof(uint16_t));
+        offset += sub_mesh.num_index;
+    }
+    return (void*)indices;
+}
+
+#if SHARED_OBJECT_BUFFER
+obj_mesh_vertex_buffer::obj_mesh_vertex_buffer() : count(), buffers(), size(), offset(), index() {
+#else
 obj_mesh_vertex_buffer::obj_mesh_vertex_buffer() : count(), buffers(), size(), index() {
+#endif
 
 }
 
@@ -130,6 +138,14 @@ GLuint obj_mesh_vertex_buffer::get_buffer() {
         return buffers[index];
     return 0;
 }
+
+#if SHARED_OBJECT_BUFFER
+size_t obj_mesh_vertex_buffer::get_offset() {
+    if (buffers[0])
+        return offset;
+    return 0;
+}
+#endif
 
 GLsizeiptr obj_mesh_vertex_buffer::get_size() {
     if (buffers[0])
@@ -148,133 +164,7 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
         size_vertex = obj_vertex_format_get_vertex_size_comp(mesh.vertex_format);
 
     void* vertex = force_malloc(size_vertex * mesh.num_vertex);
-    if (vertex) {
-        obj_vertex_format vertex_format = mesh.vertex_format;
-        obj_vertex_data* vtx = mesh.vertex_array;
-        int32_t num_vertex = mesh.num_vertex;
-        size_t d = (size_t)vertex;
-        if (!mesh.attrib.m.compressed) {
-            for (int32_t i = 0; i < num_vertex; i++, vtx++) {
-                if (vertex_format & OBJ_VERTEX_POSITION) {
-                    *(vec3*)d = vtx->position;
-                    d += 12;
-                }
-
-                if (vertex_format & OBJ_VERTEX_NORMAL) {
-                    *(vec3*)d = vtx->normal;
-                    d += 12;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TANGENT) {
-                    *(vec4*)d = vtx->tangent;
-                    d += 16;
-                }
-
-                if (vertex_format & OBJ_VERTEX_BINORMAL) {
-                    *(vec3*)d = vtx->binormal;
-                    d += 12;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                    *(vec2*)d = vtx->texcoord0;
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                    *(vec2*)d = vtx->texcoord1;
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                    *(vec2*)d = vtx->texcoord2;
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                    *(vec2*)d = vtx->texcoord3;
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_COLOR0) {
-                    *(vec4*)d = vtx->color0;
-                    d += 16;
-                }
-
-                if (vertex_format & OBJ_VERTEX_COLOR1) {
-                    *(vec4*)d = vtx->color1;
-                    d += 16;
-                }
-
-                if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                    *(vec4*)d = vtx->bone_weight;
-                    d += 16;
-                    *(vec4i16*)d = vtx->bone_index;
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_UNKNOWN) {
-                    *(vec4*)d = vtx->unknown;
-                    d += 16;
-                }
-            }
-        }
-        else {
-            for (int32_t i = 0; i < num_vertex; i++, vtx++) {
-                if (vertex_format & OBJ_VERTEX_POSITION) {
-                    *(vec3*)d = vtx->position;
-                    d += 12;
-                }
-
-                if (vertex_format & OBJ_VERTEX_NORMAL) {
-                    vec3 normal = vtx->normal * 32727.0f;
-                    vec3_to_vec3i16(normal, *(vec3i16*)d);
-                    *(int16_t*)(d + 6) = 0;
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TANGENT) {
-                    vec4 tangent = vtx->tangent * 32727.0f;
-                    vec4_to_vec4i16(tangent, *(vec4i16*)d);
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
-                    vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
-                    d += 4;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
-                    vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
-                    d += 4;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-                    vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
-                    d += 4;
-                }
-
-                if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
-                    vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
-                    d += 4;
-                }
-
-                if (vertex_format & OBJ_VERTEX_COLOR0) {
-                    vec4 color0 = vtx->color0;
-                    vec4_to_vec4h(color0, *(vec4h*)d);
-                    d += 8;
-                }
-
-                if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-                    vec4 bone_weight = vtx->bone_weight * 65535.0f;
-                    vec4_to_vec4u16(bone_weight, *(vec4u16*)d);
-                    d += 8;
-
-                    *(vec4i16*)d = vtx->bone_index;
-                    d += 8;
-                }
-            }
-        }
-    }
+    obj_mesh_vertex_buffer::fill_data(vertex, mesh);
     mesh.size_vertex = (int32_t)size_vertex;
 
     bool ret = load_data(size_vertex * mesh.num_vertex, vertex, mesh.attrib.m.double_buffer ? 2 : 1, dynamic);
@@ -288,6 +178,9 @@ bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t co
 
     this->count = count;
     this->size = (GLsizeiptr)size;
+#if SHARED_OBJECT_BUFFER
+    offset = 0;
+#endif
 
     glGenBuffers(count, buffers);
     for (int32_t i = 0; i < count; i++) {
@@ -309,11 +202,148 @@ void obj_mesh_vertex_buffer::unload() {
 
     count = 0;
     buffers[0] = 0;
+#if SHARED_OBJECT_BUFFER
+    offset = 0;
+#endif
     size = 0;
     index = 0;
 }
 
+void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
+    obj_vertex_format vertex_format = mesh.vertex_format;
+    obj_vertex_data* vtx = mesh.vertex_array;
+    uint32_t num_vertex = mesh.num_vertex;
+    size_t d = (size_t)data;
+    if (!mesh.attrib.m.compressed) {
+        size_t size = (size_t)num_vertex * mesh.size_vertex;
+        for (uint32_t i = num_vertex; i; i--, vtx++) {
+            if (vertex_format & OBJ_VERTEX_POSITION) {
+                *(vec3*)d = vtx->position;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_NORMAL) {
+                *(vec3*)d = vtx->normal;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TANGENT) {
+                *(vec4*)d = vtx->tangent;
+                d += 16;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BINORMAL) {
+                *(vec3*)d = vtx->binormal;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+                *(vec2*)d = vtx->texcoord0;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+                *(vec2*)d = vtx->texcoord1;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+                *(vec2*)d = vtx->texcoord2;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+                *(vec2*)d = vtx->texcoord3;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR0) {
+                *(vec4*)d = vtx->color0;
+                d += 16;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR1) {
+                *(vec4*)d = vtx->color1;
+                d += 16;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+                *(vec4*)d = vtx->bone_weight;
+                d += 16;
+                *(vec4i16*)d = vtx->bone_index;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_UNKNOWN) {
+                *(vec4*)d = vtx->unknown;
+                d += 16;
+            }
+        }
+    }
+    else {
+        for (uint32_t i = num_vertex; i; i--, vtx++) {
+            if (vertex_format & OBJ_VERTEX_POSITION) {
+                *(vec3*)d = vtx->position;
+                d += 12;
+            }
+
+            if (vertex_format & OBJ_VERTEX_NORMAL) {
+                vec3 normal = vtx->normal * 32727.0f;
+                vec3_to_vec3i16(normal, *(vec3i16*)d);
+                *(int16_t*)(d + 6) = 0;
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TANGENT) {
+                vec4 tangent = vtx->tangent * 32727.0f;
+                vec4_to_vec4i16(tangent, *(vec4i16*)d);
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+                vec2_to_vec2h(vtx->texcoord0, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+                vec2_to_vec2h(vtx->texcoord1, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+                vec2_to_vec2h(vtx->texcoord2, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+                vec2_to_vec2h(vtx->texcoord3, *(vec2h*)d);
+                d += 4;
+            }
+
+            if (vertex_format & OBJ_VERTEX_COLOR0) {
+                vec4 color0 = vtx->color0;
+                vec4_to_vec4h(color0, *(vec4h*)d);
+                d += 8;
+            }
+
+            if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+                vec4 bone_weight = vtx->bone_weight * 65535.0f;
+                vec4_to_vec4u16(bone_weight, *(vec4u16*)d);
+                d += 8;
+
+                *(vec4i16*)d = vtx->bone_index;
+                d += 8;
+            }
+        }
+    }
+    return (void*)d;
+}
+
+#if SHARED_OBJECT_BUFFER
+obj_index_buffer::obj_index_buffer() : mesh_num(), mesh_data(), buffer() {
+#else
 obj_index_buffer::obj_index_buffer() : mesh_num(), mesh_data() {
+#endif
 
 }
 
@@ -323,23 +353,73 @@ bool obj_index_buffer::load(obj& obj) {
     if (!mesh_data)
         return false;
 
+#if SHARED_OBJECT_BUFFER
+    size_t buffer_size = 0;
+    for (uint32_t i = 0; i < mesh_num; i++) {
+        obj_mesh& mesh = obj.mesh_array[i];
+        size_t num_index = 0;
+        for (uint32_t i = 0; i < mesh.num_submesh; i++)
+            num_index += mesh.submesh_array[i].num_index;
+        buffer_size += num_index * sizeof(uint16_t);
+    }
+
+    void* index = force_malloc(buffer_size);
+    if (index) {
+        void* data = index;
+        for (uint32_t i = 0; i < mesh_num; i++) {
+            mesh_data[i].size = (GLsizeiptr)buffer_size;
+
+            uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
+            data = obj_mesh_index_buffer::fill_data(data, obj.mesh_array[i]);
+
+            obj_mesh& mesh = obj.mesh_array[i];
+            for (uint32_t j = 0; j < mesh.num_submesh; j++)
+                mesh.submesh_array[j].index_offset += offset;
+        }
+    }
+
+    glGenBuffers(1, &buffer);
+    gl_state_bind_element_array_buffer(buffer, true);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)buffer_size, index, 0);
+    else
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)buffer_size, index, GL_STATIC_DRAW);
+    gl_state_bind_element_array_buffer(0);
+    free_def(index);
+
+    for (uint32_t i = 0; i < mesh_num; i++)
+        mesh_data[i].buffer = buffer;
+#else
     for (uint32_t i = 0; i < mesh_num; i++)
         if (!mesh_data[i].load(obj.mesh_array[i]))
             return false;
+#endif
     return true;
 }
 
 void obj_index_buffer::unload() {
     if (mesh_data) {
+#if SHARED_OBJECT_BUFFER
+        if (buffer)
+            glDeleteBuffers(1, &buffer);
+#else
         for (uint32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
+#endif
         delete[] mesh_data;
     }
     mesh_data = 0;
     mesh_num = 0;
+#if SHARED_OBJECT_BUFFER
+    buffer = 0;
+#endif
 }
 
+#if SHARED_OBJECT_BUFFER
+obj_vertex_buffer::obj_vertex_buffer() : mesh_num(), mesh_data(), buffers() {
+#else
 obj_vertex_buffer::obj_vertex_buffer() : mesh_num(), mesh_data() {
+#endif
 
 }
 
@@ -349,20 +429,79 @@ bool obj_vertex_buffer::load(obj& obj) {
     if (!mesh_data)
         return false;
 
+#if SHARED_OBJECT_BUFFER
+    size_t buffer_size = 0;
+    bool double_buffer = false;
+    for (uint32_t i = 0; i < mesh_num; i++) {
+        obj_mesh& mesh = obj.mesh_array[i];
+        if (!mesh.num_vertex || !mesh.vertex_array)
+            continue;
+
+        size_t size_vertex;
+        if (!mesh.attrib.m.compressed)
+            size_vertex = obj_vertex_format_get_vertex_size(mesh.vertex_format);
+        else
+            size_vertex = obj_vertex_format_get_vertex_size_comp(mesh.vertex_format);
+        mesh.size_vertex = (int32_t)size_vertex;
+
+        buffer_size += size_vertex * mesh.num_vertex;
+        double_buffer |= !!mesh.attrib.m.double_buffer;
+    }
+
+    uint32_t count = double_buffer ? 2 : 1;
+
+    void* vertex = force_malloc(buffer_size);
+    if (vertex) {
+        void* data = vertex;
+        for (uint32_t i = 0; i < mesh_num; i++) {
+            obj_mesh_vertex_buffer& mesh_buffer = mesh_data[i];
+            mesh_buffer.offset = (size_t)data - (size_t)vertex;
+            mesh_buffer.count = count;
+            mesh_buffer.size = (GLsizeiptr)buffer_size;
+
+            data = obj_mesh_vertex_buffer::fill_data(data, obj.mesh_array[i]);
+        }
+    }
+
+    glGenBuffers(count, buffers);
+    for (uint32_t i = 0; i < count; i++) {
+        gl_state_bind_array_buffer(buffers[i], true);
+        if (GLAD_GL_VERSION_4_4)
+            glBufferStorage(GL_ARRAY_BUFFER,
+                (GLsizeiptr)buffer_size, vertex, 0);
+        else
+            glBufferData(GL_ARRAY_BUFFER,
+                (GLsizeiptr)buffer_size, vertex, GL_STATIC_DRAW);
+    }
+    gl_state_bind_array_buffer(0);
+    free_def(vertex);
+
+    for (uint32_t i = 0; i < mesh_num; i++)
+        memcpy(mesh_data[i].buffers, buffers, count * sizeof(GLuint));
+#else
     for (uint32_t i = 0; i < mesh_num; i++)
         if (!mesh_data[i].load(obj.mesh_array[i]))
             return false;
+#endif
     return true;
 }
 
 void obj_vertex_buffer::unload() {
     if (mesh_data) {
+#if SHARED_OBJECT_BUFFER
+        if (buffers[0])
+            glDeleteBuffers(mesh_data[0].count, buffers);
+#else
         for (uint32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
+#endif
         delete[] mesh_data;
     }
     mesh_data = 0;
     mesh_num = 0;
+#if SHARED_OBJECT_BUFFER
+    buffers[0] = 0;
+#endif
 }
 
 obj_set_handler::obj_set_handler() : obj_loaded(), tex_loaded(), obj_set(),

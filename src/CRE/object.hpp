@@ -17,6 +17,8 @@
 #include "static_var.hpp"
 #include "texture.hpp"
 
+#define SHARED_OBJECT_BUFFER (1)
+
 struct obj_mesh_index_buffer {
     GLuint buffer;
     GLsizeiptr size;
@@ -26,27 +28,40 @@ struct obj_mesh_index_buffer {
     bool load(obj_mesh& mesh);
     bool load_data(size_t size, const void* data);
     void unload();
+
+    static void* store_data(void* data, obj_mesh& mesh);
 };
 
 struct obj_mesh_vertex_buffer {
     uint32_t count;
     GLuint buffers[3];
     GLsizeiptr size;
+#if SHARED_OBJECT_BUFFER
+    size_t offset;
+#endif
     uint32_t index;
 
     obj_mesh_vertex_buffer();
 
     void cycle_index();
     GLuint get_buffer();
+#if SHARED_OBJECT_BUFFER
+    size_t get_offset();
+#endif
     GLsizeiptr get_size();
     bool load(obj_mesh& mesh, bool dynamic = false);
     bool load_data(size_t size, const void* data, int32_t count, bool dynamic);
     void unload();
+
+    static void* store_data(void* data, obj_mesh& mesh);
 };
 
 struct obj_index_buffer {
     uint32_t mesh_num;
     obj_mesh_index_buffer* mesh_data;
+#if SHARED_OBJECT_BUFFER
+    GLuint buffer;
+#endif
 
     obj_index_buffer();
 
@@ -57,6 +72,9 @@ struct obj_index_buffer {
 struct obj_vertex_buffer {
     uint32_t mesh_num;
     obj_mesh_vertex_buffer* mesh_data;
+#if SHARED_OBJECT_BUFFER
+    GLuint buffers[3];
+#endif
 
     obj_vertex_buffer();
 

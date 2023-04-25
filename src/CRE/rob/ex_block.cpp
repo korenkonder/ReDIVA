@@ -894,8 +894,8 @@ void RobCloth::ResetData() {
     mesh[1] = {};
     vertex_buffer[0].unload();
     vertex_buffer[1].unload();
-    index_buffer[0].buffer = 0;
-    index_buffer[1].buffer = 0;
+    index_buffer[0] = {};
+    index_buffer[1] = {};
     motion_reset_data.clear();
     reset_data_list = 0;
 }
@@ -996,13 +996,13 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
     for (int32_t i = 0; i < 2; i++) {
         RobClothSubMeshArray& submesh = this->submesh[i];
         for (uint32_t j = 0; j < mesh[i].num_submesh; j++) {
-            obj_sub_mesh& v27 = submesh.arr[j];
-            v27 = mesh[i].submesh_array[j];
+            obj_sub_mesh& cloth_mesh = submesh.arr[j];
+            cloth_mesh = mesh[i].submesh_array[j];
+            cloth_mesh.attrib.m.cloth = 0;
+            cloth_mesh.bounding_sphere.radius = 1000.0f;
+            cloth_mesh.axis_aligned_bounding_box.center = 0.0f;
+            cloth_mesh.axis_aligned_bounding_box.size = { 1000.0f, 1000.0f, 1000.0f };
             mesh[i].submesh_array[j].attrib.m.cloth = 1;
-            v27.attrib.m.cloth = 0;
-            v27.bounding_sphere.radius = 1000.0f;
-            v27.axis_aligned_bounding_box.center = 0.0f;
-            v27.axis_aligned_bounding_box.size = { 1000.0f, 1000.0f, 1000.0f };
         }
         mesh[i].submesh_array = submesh.arr;
         mesh[i].bounding_sphere.radius = 1000.0f;

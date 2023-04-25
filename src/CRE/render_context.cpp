@@ -218,7 +218,10 @@ namespace mdl {
     void ObjData::init_sub_mesh(DispManager* disp_manager, const mat4* mat,
         float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
         std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
-        GLuint index_buffer, vec4* blend_color, vec4* emission, int32_t morph_vertex_buffer,
+        GLuint index_buffer, vec4* blend_color, vec4* emission, GLuint morph_vertex_buffer,
+#if SHARED_OBJECT_BUFFER
+        size_t vertex_buffer_offset, size_t morph_vertex_buffer_offset,
+#endif
         int32_t instances_count, mat4* instances_mat, void(*func)(const ObjSubMeshArgs*)) {
         kind = mdl::OBJ_KIND_NORMAL;
         this->mat = *mat;
@@ -235,6 +238,10 @@ namespace mdl {
         args->vertex_buffer = vertex_buffer;
         args->index_buffer = index_buffer;
         args->morph_vertex_buffer = morph_vertex_buffer;
+#if SHARED_OBJECT_BUFFER
+        args->vertex_buffer_offset = vertex_buffer_offset;
+        args->morph_vertex_buffer_offset = morph_vertex_buffer_offset;
+#endif
 
         args->texture_pattern_count = disp_manager->texture_pattern_count;
         for (int32_t i = 0; i < disp_manager->texture_pattern_count && i < TEXTURE_PATTERN_COUNT; i++)
@@ -418,6 +425,10 @@ namespace mdl {
 
         GLuint vertex_buffer = args->vertex_buffer;
         GLuint morph_vertex_buffer = args->morph_vertex_buffer;
+#if SHARED_OBJECT_BUFFER
+        size_t vertex_buffer_offset = args->vertex_buffer_offset;
+        size_t morph_vertex_buffer_offset = args->morph_vertex_buffer_offset;
+#endif
         GLuint index_buffer = args->index_buffer;
 
         int32_t texcoord_array[2] = { -1, -1 };
@@ -449,6 +460,10 @@ namespace mdl {
         for (DispManager::vertex_array& i : vertex_array_cache)
             if (i.alive_time >= 0 && i.vertex_buffer == vertex_buffer
                 && i.morph_vertex_buffer == morph_vertex_buffer
+#if SHARED_OBJECT_BUFFER
+                && i.vertex_buffer_offset == vertex_buffer_offset
+                && i.morph_vertex_buffer_offset == morph_vertex_buffer_offset
+#endif
                 && i.index_buffer == index_buffer && i.vertex_format == vertex_format
                 && i.size_vertex == size_vertex && i.compressed == compressed
                 && !memcmp(i.vertex_attrib_buffer_binding,
@@ -499,6 +514,10 @@ namespace mdl {
 
         vertex_array->vertex_buffer = vertex_buffer;
         vertex_array->morph_vertex_buffer = morph_vertex_buffer;
+#if SHARED_OBJECT_BUFFER
+        vertex_array->vertex_buffer_offset = vertex_buffer_offset;
+        vertex_array->morph_vertex_buffer_offset = morph_vertex_buffer_offset;
+#endif
         vertex_array->index_buffer = index_buffer;
         vertex_array->alive_time = 60;
         vertex_array->vertex_format = vertex_format;
@@ -513,7 +532,11 @@ namespace mdl {
         if (index_buffer)
             gl_state_bind_element_array_buffer(index_buffer, true);
 
+#if SHARED_OBJECT_BUFFER
+        size_t offset = vertex_buffer_offset;
+#else
         size_t offset = 0;
+#endif
         if (vertex_format & OBJ_VERTEX_POSITION) {
             if (!vertex_array->vertex_attrib_array[POSITION_INDEX]) {
                 glEnableVertexAttribArray(POSITION_INDEX);
@@ -703,7 +726,11 @@ namespace mdl {
         if (morph_vertex_buffer) {
             gl_state_bind_array_buffer(morph_vertex_buffer);
 
+#if SHARED_OBJECT_BUFFER
+            offset = morph_vertex_buffer_offset;
+#else
             offset = 0;
+#endif
             if (vertex_format & OBJ_VERTEX_POSITION) {
                 if (!vertex_array->vertex_attrib_array[MORPH_POSITION_INDEX]) {
                     glEnableVertexAttribArray(MORPH_POSITION_INDEX);
@@ -1426,6 +1453,16 @@ namespace mdl {
                 if (obj_vertex_buf)
                     vertex_buffer = obj_vertex_buf[i].get_buffer();
 
+#if SHARED_OBJECT_BUFFER
+                size_t morph_vertex_buffer_offset = 0;
+                if (obj_morph_vertex_buf)
+                    morph_vertex_buffer_offset = obj_morph_vertex_buf[i].get_offset();
+
+                size_t vertex_buffer_offset = 0;
+                if (obj_vertex_buf)
+                    vertex_buffer_offset = obj_vertex_buf[i].get_offset();
+#endif
+
                 if (!vertex_buffer || !index_buffer || obj_morph_vertex_buf && !morph_vertex_buffer) {
                     printf_debug("mdl::DispManager::entry_obj: no vertex or index mesh buffer to draw;\n");
                     printf_debug("    Object: %s; Mesh: %s; Sub Mesh: %d\n", object->name, mesh->name, j);
@@ -1505,7 +1542,12 @@ namespace mdl {
 
                 data->init_sub_mesh(this, mat, object->bounding_sphere.radius, sub_mesh,
                     mesh, material, textures, num_bone_index, mats, vertex_buffer, index_buffer,
+#if SHARED_OBJECT_BUFFER
+                    &_blend_color, &_emission, morph_vertex_buffer,
+                    vertex_buffer_offset, morph_vertex_buffer_offset, instances_count, instances_mat, func);
+#else
                     &_blend_color, &_emission, morph_vertex_buffer, instances_count, instances_mat, func);
+#endif
 
                 if (obj_flags & mdl::OBJ_SHADOW_OBJECT) {
                     entry_list((ObjType)(OBJ_TYPE_SHADOW_OBJECT_CHARA
@@ -1816,6 +1858,10 @@ namespace mdl {
 
         GLuint vertex_buffer = args->vertex_buffer;
         GLuint morph_vertex_buffer = args->morph_vertex_buffer;
+#if SHARED_OBJECT_BUFFER
+        size_t vertex_buffer_offset = args->vertex_buffer_offset;
+        size_t morph_vertex_buffer_offset = args->morph_vertex_buffer_offset;
+#endif
         GLuint index_buffer = args->index_buffer;
 
         int32_t texcoord_array[2] = { -1, -1 };
@@ -1847,6 +1893,10 @@ namespace mdl {
         for (DispManager::vertex_array& i : vertex_array_cache)
             if (i.alive_time > 0 && i.vertex_buffer == vertex_buffer
                 && i.morph_vertex_buffer == morph_vertex_buffer
+#if SHARED_OBJECT_BUFFER
+                && i.vertex_buffer_offset == vertex_buffer_offset
+                && i.morph_vertex_buffer_offset == morph_vertex_buffer_offset
+#endif
                 && i.index_buffer == index_buffer && i.vertex_format == vertex_format
                 && i.size_vertex == size_vertex && i.compressed == compressed
                 && !memcmp(i.vertex_attrib_buffer_binding,
