@@ -134,7 +134,7 @@ namespace spr {
     static void draw_sprite(render_context* rctx, SprArgs& args, bool font,
         const mat4& mat, int32_t x_min, int32_t y_min, int32_t x_max, int32_t y_max,
         std::vector<sprite_draw_param>& draw_param_buffer, std::vector<sprite_draw_vertex>& vertex_buffer);
-    static void draw_sprite_begin();
+    static void draw_sprite_begin(render_context* rctx);
     static void draw_sprite_end();
     static void draw_sprite_scale(spr::SprArgs* args);
 }
@@ -597,7 +597,7 @@ namespace spr {
 
     void SpriteManager::Draw(render_context* rctx,
         int32_t index, bool font, texture* tex, const mat4& proj) {
-        draw_sprite_begin();
+        draw_sprite_begin(rctx);
 
         ::resolution_mode mode = res_window_get()->resolution_mode;
         if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
@@ -769,6 +769,12 @@ namespace spr {
                         gl_state_active_bind_texture_2d(1, j.texture[1]);
                         gl_state_bind_sampler(1, j.sampler);
                     }
+                    else
+                        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
+                }
+                else {
+                    gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d);
+                    gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
                 }
 
                 shaders_ft.set(j.shader);
@@ -1613,11 +1619,11 @@ namespace spr {
         }
     }
 
-    static void draw_sprite_begin() {
+    static void draw_sprite_begin(render_context* rctx) {
         gl_state_disable_blend();
-        gl_state_active_bind_texture_2d(0, 0);
+        gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d);
         gl_state_bind_sampler(0, 0);
-        gl_state_active_bind_texture_2d(1, 0);
+        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
         gl_state_bind_sampler(1, 0);
         gl_state_set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
     }

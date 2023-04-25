@@ -564,13 +564,17 @@ namespace rndr {
             gl_state_active_bind_texture_2d(15, refl_tex.color_texture->tex);
             uniform_value[U_WATER_REFLECT] = 1;
         }
-        else
+        else {
+            gl_state_active_bind_texture_2d(15, rctx->empty_texture_2d);
             uniform_value[U_WATER_REFLECT] = 0;
+        }
 
         uniform_value[U12] = field_320 ? 1 : 0;
 
         if (effect_texture)
             gl_state_active_bind_texture_2d(14, effect_texture->tex);
+        else
+            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
 
         gl_state_active_bind_texture_2d(16, sss_data.textures[1].color_texture->tex);
         gl_state_active_texture(0);
@@ -709,13 +713,11 @@ namespace rndr {
         }
 #endif
 
-        if (effect_texture)
-            gl_state_active_bind_texture_2d(14, 0);
+        gl_state_active_bind_texture_2d(14, 0);
+        gl_state_active_bind_texture_2d(15, 0);
 
         gl_state_disable_depth_test();
 
-        if (pass_sw[RND_PASSID_REFLECT] && reflect)
-            gl_state_active_bind_texture_2d(15, 0);
         if (shadow)
             draw_pass_3d_shadow_reset(rctx);
         shader::unbind();
@@ -843,6 +845,8 @@ namespace rndr {
 
         if (effect_texture)
             gl_state_active_bind_texture_2d(14, effect_texture->tex);
+        else
+            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
         gl_state_enable_depth_test();
         gl_state_disable_blend();
     }
@@ -1374,8 +1378,10 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
         }
 
         for (int32_t i = 0, j = 0; i < 2; i++) {
-            if (!shad->field_2F0[i])
+            if (!shad->field_2F0[i]) {
+                gl_state_active_bind_texture_2d(6 + j, rctx->empty_texture_2d);
                 continue;
+            }
 
             gl_state_active_bind_texture_2d(6 + j, shad->field_158[1 + i]->color_texture->tex);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);

@@ -23,7 +23,6 @@ static int32_t texture_load(GLenum target, GLenum internal_format,
 static texture* texture_load_tex(texture_id id, GLenum target,
     GLenum internal_format, int32_t width, int32_t height,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
-static void texture_set_params(GLuint texture, GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
 static GLenum texture_txp_get_gl_internal_format(txp* t);
 
 std::vector<texture*> texture_storage;
@@ -182,6 +181,27 @@ void texture_array_free(texture** arr) {
     for (texture** i = arr; *i; i++)
         texture_free(*i);
     free_def(arr);
+}
+
+void texture_set_params(GLuint texture, GLenum target,
+    int32_t max_mipmap_level, bool use_high_anisotropy) {
+    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+    static const vec4 border_color = 0.0f;
+    glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_MIN_FILTER,
+        max_mipmap_level > 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+    glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
+    glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, max_mipmap_level);
+
+    float_t max_anisotropy;
+    if (use_high_anisotropy)
+        max_anisotropy = 16.0f;
+    else
+        max_anisotropy = 1.0f;
+    glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
 }
 
 bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
@@ -629,26 +649,6 @@ fail:
     }
     texture_free(tex);
     return 0;
-}
-
-static void texture_set_params(GLuint texture, GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy) {
-    glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
-    static const vec4 border_color = 0.0f;
-    glTexParameterfv(target, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-    glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(target, GL_TEXTURE_MIN_FILTER,
-        max_mipmap_level > 0 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-    glTexParameteri(target, GL_TEXTURE_BASE_LEVEL, 0);
-    glTexParameteri(target, GL_TEXTURE_MAX_LEVEL, max_mipmap_level);
-
-    float_t max_anisotropy;
-    if (use_high_anisotropy)
-        max_anisotropy = 16.0f;
-    else
-        max_anisotropy = 1.0f;
-    glTexParameterf(target, GL_TEXTURE_MAX_ANISOTROPY_EXT, max_anisotropy);
 }
 
 static GLenum texture_txp_get_gl_internal_format(txp* t) {

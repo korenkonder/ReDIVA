@@ -995,8 +995,9 @@ namespace mdl {
         bool reflect = uniform_value[U_REFLECT] == 1;
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
-        for (int32_t i = 0; i < 6; i++)
-            gl_state_active_bind_texture_2d(i, 0);
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_active_bind_texture_2d(i, rctx_ptr->empty_texture_2d);
+        gl_state_active_bind_texture_cube_map(5, rctx_ptr->empty_texture_cube_map);
         gl_state_active_texture(0);
         gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
@@ -1145,8 +1146,9 @@ namespace mdl {
         bool reflect = uniform_value[U_REFLECT] == 1;
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
-        for (int32_t i = 0; i < 6; i++)
-            gl_state_active_bind_texture_2d(i, 0);
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_active_bind_texture_2d(i, rctx_ptr->empty_texture_2d);
+        gl_state_active_bind_texture_cube_map(5, rctx_ptr->empty_texture_cube_map);
         gl_state_active_texture(0);
         gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
@@ -1216,8 +1218,9 @@ namespace mdl {
         if (get_obj_count(type) < 1)
             return;
 
-        for (int32_t i = 0; i < 6; i++)
-            gl_state_active_bind_texture_2d(i, 0);
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_active_bind_texture_2d(i, rctx_ptr->empty_texture_2d);
+        gl_state_active_bind_texture_cube_map(5, rctx_ptr->empty_texture_cube_map);
         gl_state_active_texture(0);
         gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
@@ -2480,8 +2483,8 @@ void obj_batch_shader_data::set_transforms(const mat4& model, const mat4& view, 
     g_transforms[3] = temp.row3;
 }
 
-render_context::render_context() : litproj(), chara_reflect(),
-chara_refract(), view_mat(), matrix_buffer(), box_vao(), box_vbo() {
+render_context::render_context() : litproj(), chara_reflect(), chara_refract(), view_mat(),
+matrix_buffer(), box_vao(), box_vbo(), empty_texture_2d(), empty_texture_cube_map() {
     camera = new ::camera;
 
     static const float_t box_texcoords[] = {
@@ -2557,9 +2560,41 @@ chara_refract(), view_mat(), matrix_buffer(), box_vao(), box_vbo() {
     obj_scene_ubo.Create(sizeof(obj_scene_shader_data));
     obj_batch_ubo.Create(sizeof(obj_batch_shader_data));
     obj_skinning_ubo.Create(sizeof(obj_skinning_shader_data));
+
+    static const uint8_t empty_texture_data[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+
+    static const GLenum target_cube_map_array[] = {
+        GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+        GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+        GL_TEXTURE_CUBE_MAP_POSITIVE_Z, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z
+    };
+
+    static const int32_t max_level = 2;
+
+    glGenTextures(1, &empty_texture_2d);
+    gl_state_bind_texture_2d(empty_texture_2d);
+    texture_set_params(empty_texture_2d, GL_TEXTURE_2D, max_level, false);
+    for (int32_t level = 0, size = 1 << max_level; level <= max_level; size /= 2, level++)
+        glCompressedTexImage2D(GL_TEXTURE_2D, level,
+            GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, size, size, 0, 8, empty_texture_data);
+    gl_state_bind_texture_2d(0);
+
+    glGenTextures(1, &empty_texture_cube_map);
+    gl_state_bind_texture_cube_map(empty_texture_cube_map);
+    texture_set_params(empty_texture_cube_map, GL_TEXTURE_CUBE_MAP, max_level, false);
+    for (int32_t side = 0; side < 6; side++)
+        for (int32_t level = 0, size = 1 << max_level; level <= max_level; size /= 2, level++)
+            glCompressedTexImage2D(target_cube_map_array[side], level,
+                GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, size, size, 0, 8, empty_texture_data);
+    gl_state_bind_texture_cube_map(0);
 }
 
 render_context::~render_context() {
+    glDeleteTextures(1, &empty_texture_cube_map);
+    glDeleteTextures(1, &empty_texture_2d);
+
     obj_skinning_ubo.Destroy();
     obj_batch_ubo.Destroy();
     obj_scene_ubo.Destroy();

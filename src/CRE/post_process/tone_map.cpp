@@ -7,10 +7,13 @@
 #include "../fbo.hpp"
 #include "../gl_state.hpp"
 #include "../post_process.hpp"
+#include "../render_context.hpp"
 #include "../shader_ft.hpp"
 
 static void post_process_tone_map_calculate_data(post_process_tone_map* tm);
 static void post_process_tone_map_calculate_tex(post_process_tone_map* tm);
+
+extern render_context* rctx_ptr;
 
 post_process_tone_map_data::post_process_tone_map_data() : tex_data(), exposure(), auto_exposure(), gamma(),
 gamma_rate(), saturate_power(), saturate_coeff(), scene_fade_blend_func(), tone_map_method(), lens_flare(),
@@ -72,6 +75,9 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     gl_state_active_bind_texture_2d(1, in_tex_0);
     gl_state_active_bind_texture_2d(2, tone_map_tex);
     gl_state_active_bind_texture_2d(3, in_tex_1);
+    gl_state_active_bind_texture_2d(4, rctx_ptr->empty_texture_2d);
+    gl_state_active_bind_texture_2d(5, rctx_ptr->empty_texture_2d);
+    gl_state_active_bind_texture_2d(6, rctx_ptr->empty_texture_2d);
 
     if (back_2d_tex) {
         gl_state_active_bind_texture_2d(6, back_2d_tex->tex);

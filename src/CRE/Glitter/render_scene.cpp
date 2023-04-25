@@ -986,8 +986,8 @@ namespace Glitter {
         gl_state_set_blend_func(blend_src, blend_dst);
         gl_state_set_blend_equation(GL_FUNC_ADD);
 
-        GLuint texture = 0;
-        GLuint mask_texture = 0;
+        GLuint texture = rctx_ptr->empty_texture_2d;
+        GLuint mask_texture = rctx_ptr->empty_texture_2d;
         if (rend_group->type != PARTICLE_LINE && rend_group->texture) {
             texture = rend_group->texture;
             if (rend_group->mask_texture) {
@@ -2179,8 +2179,8 @@ namespace Glitter {
         gl_state_set_blend_func(blend_src, blend_dst);
         gl_state_set_blend_equation(GL_FUNC_ADD);
 
-        GLuint texture = 0;
-        GLuint mask_texture = 0;
+        GLuint texture = rctx_ptr->empty_texture_2d;
+        GLuint mask_texture = rctx_ptr->empty_texture_2d;
         if (rend_group->type != PARTICLE_LINE && rend_group->texture) {
             texture = rend_group->texture;
             if (rend_group->mask_texture) {

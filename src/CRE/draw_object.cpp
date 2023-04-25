@@ -14,7 +14,7 @@ static bool draw_object_blend_set(render_context* rctx,
 static void draw_object_chara_color_fog_set(render_context* rctx,
     const mdl::ObjSubMeshArgs* args, bool disable_fog);
 static void draw_object_material_reset_default(const obj_material_data* mat_data);
-static void draw_object_material_reset_reflect();
+static void draw_object_material_reset_reflect(render_context* rctx);
 static void draw_object_material_set_default(render_context* rctx,
     const mdl::ObjSubMeshArgs* args, bool use_shader);
 static void draw_object_material_set_parameter(render_context* rctx,
@@ -254,7 +254,7 @@ namespace mdl {
                 sub_mesh->index_format,
                 sub_mesh->index_offset);
 
-        draw_object_material_reset_reflect();
+        draw_object_material_reset_reflect(rctx);
         draw_object_vertex_attrib_reset_reflect(args);
         uniform_value_reset();
 
@@ -275,7 +275,7 @@ namespace mdl {
                 sub_mesh->index_format,
                 sub_mesh->index_offset);
 
-        draw_object_material_reset_reflect();
+        draw_object_material_reset_reflect(rctx);
         draw_object_vertex_attrib_reset_reflect(args);
 
         rctx->draw_state.stats.object_reflect_draw_count++;
@@ -389,7 +389,7 @@ namespace mdl {
                 sub_mesh->index_offset);
 
         if (tex_id != -1)
-            gl_state_active_bind_texture_2d(tex_index, 0);
+            gl_state_active_bind_texture_2d(tex_index, rctx->empty_texture_2d);
 
         gl_state_enable_cull_face();
         draw_object_vertex_attrib_reset_default(args);
@@ -534,8 +534,8 @@ static void draw_object_material_reset_default(const obj_material_data* mat_data
     uniform_value_reset();
 }
 
-static void draw_object_material_reset_reflect() {
-    gl_state_active_bind_texture_2d(0, 0);
+static void draw_object_material_reset_reflect(render_context* rctx) {
+    gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d);
     gl_state_enable_cull_face();
     uniform_value_reset();
 }

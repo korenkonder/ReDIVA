@@ -85,6 +85,9 @@ extern void texture_free(texture* tex);
 
 extern void texture_array_free(texture** arr);
 
+extern void texture_set_params(GLuint texture, GLenum target,
+    int32_t max_mipmap_level, bool use_high_anisotropy);
+
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids);
 
