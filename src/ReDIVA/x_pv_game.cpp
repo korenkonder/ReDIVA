@@ -4644,7 +4644,7 @@ bool x_pv_game::Ctrl() {
         prj::sort_unique(material_list);
 
         if (material_list.size())
-            x_pv_game_split_auth_3d_hrc_material_list(this, object_hrc, material_list);
+            ;//x_pv_game_split_auth_3d_hrc_material_list(this, object_hrc, material_list);
 
         std::vector<object_info> object;
         material_list.clear();
@@ -4691,7 +4691,7 @@ bool x_pv_game::Ctrl() {
         prj::sort_unique(material_list);
 
         if (material_list.size())
-            x_pv_game_split_auth_3d_material_list(this, object, material_list);
+            ;//x_pv_game_split_auth_3d_material_list(this, object, material_list);
 
         state_old = 19;
     } break;
@@ -8466,14 +8466,35 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
 typedef std::pair<vec4, vec4> material_list_color;
 
-static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, float_t play_control_size,
-    std::vector<material_list_color>& color, vec4u8& has_color, std::vector<kft3>& morph, bool fast = false) {
-    size_t count = (size_t)(int32_t)play_control_size;
+struct material_list_data {
+    std::vector<material_list_color> color;
+    union {
+        uint16_t has_color;
+        struct {
+            uint8_t has_color_a : 4;
+            uint8_t has_color_b : 4;
+            uint8_t has_color_g : 4;
+            uint8_t has_color_r : 4;
+        };
+    };
+    std::vector<kft3> morph;
+    int32_t type;
 
-    has_color.x = (ml.blend_color.flags & AUTH_3D_RGBA_R) || (ml.emission.flags & AUTH_3D_RGBA_R);
-    has_color.y = (ml.blend_color.flags & AUTH_3D_RGBA_G) || (ml.emission.flags & AUTH_3D_RGBA_G);
-    has_color.z = (ml.blend_color.flags & AUTH_3D_RGBA_B) || (ml.emission.flags & AUTH_3D_RGBA_B);
-    has_color.w = (ml.blend_color.flags & AUTH_3D_RGBA_A) || (ml.emission.flags & AUTH_3D_RGBA_A);
+    inline material_list_data() : has_color(), type() {
+
+    }
+
+    inline ~material_list_data() {
+
+    }
+};
+
+static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
+    float_t play_control_size, material_list_data& data, bool fast = false) {
+    data.has_color_r = (ml.blend_color.flags | ml.emission.flags) & AUTH_3D_RGBA_R ? 1 : 0;
+    data.has_color_g = (ml.blend_color.flags | ml.emission.flags) & AUTH_3D_RGBA_G ? 1 : 0;
+    data.has_color_b = (ml.blend_color.flags | ml.emission.flags) & AUTH_3D_RGBA_B ? 1 : 0;
+    data.has_color_a = (ml.blend_color.flags | ml.emission.flags) & AUTH_3D_RGBA_A ? 1 : 0;
 
     bool has_data[8];
     has_data[0] = (ml.blend_color.flags & AUTH_3D_RGBA_R)
@@ -8492,6 +8513,106 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         && ml.emission.b.type >= AUTH_3D_KEY_LINEAR && ml.emission.b.type <= AUTH_3D_KEY_HOLD;
     has_data[7] = (ml.emission.flags & AUTH_3D_RGBA_A)
         && ml.emission.a.type >= AUTH_3D_KEY_LINEAR && ml.emission.a.type <= AUTH_3D_KEY_HOLD;
+
+    if (has_data[0])
+        play_control_size = max_def(play_control_size, ml.blend_color.r.max_frame);
+    if (has_data[1])
+        play_control_size = max_def(play_control_size, ml.blend_color.g.max_frame);
+    if (has_data[2])
+        play_control_size = max_def(play_control_size, ml.blend_color.b.max_frame);
+    if (has_data[3])
+        play_control_size = max_def(play_control_size, ml.blend_color.a.max_frame);
+    
+    if (has_data[4])
+        play_control_size = max_def(play_control_size, ml.emission.r.max_frame);
+    if (has_data[5])
+        play_control_size = max_def(play_control_size, ml.emission.g.max_frame);
+    if (has_data[6])
+        play_control_size = max_def(play_control_size, ml.emission.b.max_frame);
+    if (has_data[7])
+        play_control_size = max_def(play_control_size, ml.emission.a.max_frame);
+    
+    size_t count = (size_t)(int32_t)play_control_size;
+    
+    if (has_data[0] && (ml.blend_color.r.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.blend_color.r.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.blend_color.r.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[1] && (ml.blend_color.g.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.blend_color.g.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.blend_color.g.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[2] && (ml.blend_color.b.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.blend_color.b.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.blend_color.b.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[3] && (ml.blend_color.a.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.blend_color.a.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.blend_color.a.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[4] && (ml.emission.r.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.emission.r.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.emission.r.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[5] && (ml.emission.g.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.emission.g.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.emission.g.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[6] && (ml.emission.b.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.emission.b.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.emission.b.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
+    
+    if (has_data[7] && (ml.emission.a.ep_type_post == AUTH_3D_EP_CYCLE
+        || ml.emission.a.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
+        size_t _count = (size_t)ml.emission.a.keys_vec.back().frame;
+        if (_count + 1) {
+            while (_count + 1 < count)
+                _count *= 2;
+            count = _count + 1;
+        }
+    }
 
     const int32_t has_data_count
         = (has_data[0] ? 1 : 0) + (has_data[1] ? 1 : 0) + (has_data[2] ? 1 : 0) + (has_data[3] ? 1 : 0)
@@ -8516,12 +8637,13 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
 
         if (arr == (material_list_color*)(values_src + count)) {
             if (values_src[0].first != 0.0f || values_src[0].second != 0.0f) {
-                morph.push_back({ 0, (float_t)(int32_t)color.size() });
-                color.push_back(values_src[0]);
-                return 1;
+                data.morph.push_back({ 0, (float_t)(int32_t)data.color.size() });
+                data.color.push_back(values_src[0]);
+                data.type = 1;
             }
             else
-                return 0;
+                data.type = 0;
+            return;
         }
     }
 
@@ -8540,13 +8662,13 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
     while (left_count > 0) {
         if (left_count < reverse_min_count) {
             if (left_count > 1) {
-                morph.push_back({ (float_t)frame,
-                    (float_t)(int32_t)color.size(), t2_old, 0.0f });
-                color.push_back(v[0]);
+                data.morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)data.color.size(), t2_old, 0.0f });
+                data.color.push_back(v[0]);
                 for (size_t j = 1; j < left_count - 1; j++) {
-                    morph.push_back({ (float_t)(int32_t)(frame + j),
-                        (float_t)(int32_t)color.size() });
-                    color.push_back(v[j]);
+                    data.morph.push_back({ (float_t)(int32_t)(frame + j),
+                        (float_t)(int32_t)data.color.size() });
+                    data.color.push_back(v[j]);
                 }
                 t2_old = 0.0f;
             }
@@ -8621,7 +8743,8 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 float_t val = interpolate_chs_value(0.0f, 1.0f, t1, t2, 0.0f, (float_t)i, (float_t)j);
                 vec4 v_first = vec4::abs(vec4::lerp(v[0].first, v[i].first, val) - v[j].first);
                 vec4 v_second = vec4::abs(vec4::lerp(v[0].second, v[i].second, val) - v[j].second);
-                if (has_data[0] && v_first.x > reverse_bias
+                if (val < 0.0f || val > 1.0f
+                    || has_data[0] && v_first.x > reverse_bias
                     || has_data[1] && v_first.y > reverse_bias
                     || has_data[2] && v_first.z > reverse_bias
                     || has_data[3] && v_first.w > reverse_bias
@@ -8662,9 +8785,9 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
                 }
 
                 c = (int32_t)i;
-                morph.push_back({ (float_t)frame,
-                    (float_t)(int32_t)color.size(), t2_old, t1 });
-                color.push_back(v[0]);
+                data.morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)data.color.size(), t2_old, t1 });
+                data.color.push_back(v[0]);
                 t2_old = t2;
                 has_prev_error = false;
                 break;
@@ -8675,28 +8798,28 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
 
         if (has_prev_succeded) {
             if (has_error) {
-                morph.push_back({ (float_t)frame,
-                    (float_t)(int32_t)color.size(), t2_old, 0.0f });
-                color.push_back(v[0]);
+                data.morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)data.color.size(), t2_old, 0.0f });
+                data.color.push_back(v[0]);
                 for (size_t j = 1; j < c; j++) {
-                    morph.push_back({ (float_t)(frame + j),
-                        (float_t)(int32_t)color.size() });
-                    color.push_back(v[j]);
+                    data.morph.push_back({ (float_t)(frame + j),
+                        (float_t)(int32_t)data.color.size() });
+                    data.color.push_back(v[j]);
                 }
                 t2_old = 0.0f;
             }
             else {
-                morph.push_back({ (float_t)frame,
-                    (float_t)(int32_t)color.size(), t2_old, t1_prev });
-                color.push_back(v[0]);
+                data.morph.push_back({ (float_t)frame,
+                    (float_t)(int32_t)data.color.size(), t2_old, t1_prev });
+                data.color.push_back(v[0]);
                 t2_old = t2_prev;
             }
             c = (int32_t)i;
         }
         else if (has_prev_error) {
-            morph.push_back({ (float_t)frame,
-                (float_t)(int32_t)color.size(), t2_old, 0.0f });
-            color.push_back(v[0]);
+            data.morph.push_back({ (float_t)frame,
+                (float_t)(int32_t)data.color.size(), t2_old, 0.0f });
+            data.color.push_back(v[0]);
             t2_old = 0.0f;
             c = 1;
         }
@@ -8710,14 +8833,14 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
 
     free_def(arr);
 
-    morph.push_back({ (float_t)(int32_t)(count - 1),
-        (float_t)(int32_t)color.size(), t2_old, 0.0f });
-    color.push_back(val[count - 1]);
+    data.morph.push_back({ (float_t)(int32_t)(count - 1),
+        (float_t)(int32_t)data.color.size(), t2_old, 0.0f });
+    data.color.push_back(val[count - 1]);
 
     int32_t type = 2;
 
-    kft3* keys = morph.data();
-    size_t length = morph.size();
+    kft3* keys = data.morph.data();
+    size_t length = data.morph.size();
     for (size_t i = 0; i < count; i++) {
         float_t frame = (float_t)(int32_t)i;
 
@@ -8746,27 +8869,122 @@ static int32_t x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml, 
         }
     }
 
-    if (color.size() > 1) {
-        auto i_begin = color.begin();
-        auto i_end = color.end() - 1;
+    if (data.color.size() > 2)
+        for (size_t i = 0; i < length - 2; i++)
+            for (size_t j = i + 2; j < length; ) {
+                size_t count = j - i;
+                if (j + count >= length)
+                    break;
+
+                auto color = data.color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count; k <= count; k++, l++)
+                    if (memcmp(&color[(int32_t)keys[i + k].value],
+                        &color[(int32_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
+
+                if (!equal) {
+                    j++;
+                    continue;
+                }
+
+                data.morph.insert(data.morph.begin() + j, data.morph.data()[j]);
+                keys = data.morph.data();
+                length = data.morph.size();
+
+                float_t start_value = keys[j].value;
+                for (size_t k = j + 1; k < length; k++)
+                    keys[k].value -= start_value;
+
+                auto elem = data.color.begin() + ((size_t)(int32_t)start_value + 1);
+                data.color.erase(elem, elem + count);
+                break;
+            }
+
+    if (data.color.size() > 1) {
+        auto i_begin = data.color.begin();
+        auto i_end = data.color.end() - 1;
 
         for (auto i = i_begin; i != i_end;)
             if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
+                float_t value = (float_t)(int32_t)(i - i_begin + 1);
                 for (size_t k = i - i_begin + 1; k < length; k++)
-                    keys[k].value -= 1.0f;
-                i = color.erase(i);
-                i_end = color.end() - 1;
+                    if (keys[k].value >= value)
+                        keys[k].value -= 1.0f;
+                i = data.color.erase(i);
+                i_end = data.color.end() - 1;
             }
             else
                 i++;
     }
-    return type;
+
+    if (data.color.size() > 2)
+        for (size_t i = 0; i < length - 1; i++)
+            for (size_t j = i + 1; j < length; j++) {
+                size_t count = j - i;
+                if (j + count > length)
+                    break;
+
+                auto color = data.color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count * 2; k < count; k++, l--)
+                    if (memcmp(&color[(int32_t)keys[i + k].value],
+                        &color[(int32_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
+
+                if (!equal)
+                    continue;
+
+                float_t start_value = keys[i].value;
+                float_t end_value = keys[i + count * 2].value;
+
+                for (size_t k = 1, l = count - 1; k <= count; k++, l--) {
+                    keys[i + k + 0].tangent2 = -keys[i + k + 0].tangent2;
+                    keys[i + k + 1].value = (float_t)(int32_t)l + start_value;
+                    keys[i + k + 1].tangent1 = -keys[i + k + 1].tangent1;
+                }
+
+                if (i + count * 2 + 1 == length)
+                    data.color.erase(data.color.begin() + (int32_t)end_value);
+
+                i += count * 2;
+                break;
+            }
+
+    if (data.morph.size() > 1) {
+        auto i_begin = data.morph.begin();
+        auto i_end = data.morph.end() - 1;
+
+        for (auto i = i_begin; i != i_end;)
+            if (*(uint32_t*)&i[0].frame == *(uint32_t*)&i[1].frame
+                && *(uint32_t*)&i[0].value == *(uint32_t*)&i[1].value) {
+                i[1].tangent1 = i[0].tangent1;
+                i = data.morph.erase(i);
+                i_end = data.morph.end() - 1;
+            }
+            else
+                i++;
+    }
+
+    if (type == 2)
+        for (kft3& i : data.morph) {
+            i.tangent1 = 0.0f;
+            i.tangent2 = 0.0f;
+        }
+
+    data.type = type;
 }
 
 static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
     std::vector<object_info>& object, std::vector<std::string>& material_list) {
     object_database& obj_db = xpvgm->stage_data.obj_db;
-    std::map<object_info, std::vector<std::string>> object_material_list;
+    prj::vector_pair<object_info, std::vector<std::string>> object_material_list;
     for (const object_info i : object) {
         obj* obj = object_storage_get_obj(i);
         if (!obj)
@@ -8780,8 +8998,10 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                     continue;
 
                 auto elem = object_material_list.find(i);
-                if (elem == object_material_list.end())
-                    elem = object_material_list.insert({ i, {} }).first;
+                if (elem == object_material_list.end()) {
+                    object_material_list.push_back({ i, {} });
+                    elem = object_material_list.end() - 1;
+                }
                 elem->second.push_back(k);
             }
         }
@@ -8790,8 +9010,8 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
     for (auto& i : object_material_list)
         prj::sort_unique(i.second);
 
-    std::vector<auth_3d_id> stage_data_effect_auth_3ds;
-    std::vector<auth_3d_id> stage_data_change_effect_auth_3ds;
+    prj::vector_pair<auth_3d_id, prj::vector_pair<uint32_t, material_list_data>> stage_data_effect_auth_3ds;
+    prj::vector_pair<auth_3d_id, prj::vector_pair<uint32_t, material_list_data>> stage_data_change_effect_auth_3ds;
 
     for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
         x_pv_game_stage_effect& eff = xpvgm->stage_data.effect[i];
@@ -8799,7 +9019,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             if (j.id.check_not_empty() && j.id.check_loaded()) {
                 auth_3d* auth = j.id.get_auth_3d();
                 if (auth && auth->material_list.size() && auth->object.size())
-                    stage_data_effect_auth_3ds.push_back(j.id);
+                    stage_data_effect_auth_3ds.push_back({ j.id, {} });
             }
     }
 
@@ -8810,46 +9030,48 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                 if (k.id.check_not_empty() && k.id.check_loaded()) {
                     auth_3d* auth = k.id.get_auth_3d();
                     if (auth && auth->material_list.size() && auth->object.size())
-                        stage_data_change_effect_auth_3ds.push_back(k.id);
+                        stage_data_change_effect_auth_3ds.push_back({ k.id, {} });
                 }
         }
 
-    prj::sort_unique(stage_data_effect_auth_3ds);
-    prj::sort_unique(stage_data_change_effect_auth_3ds);
+    stage_data_effect_auth_3ds.sort_unique();
+    stage_data_change_effect_auth_3ds.sort_unique();
 
-    for (auth_3d_id& i : stage_data_effect_auth_3ds) {
-        auth_3d* auth = i.get_auth_3d();
+    for (auto& i : stage_data_effect_auth_3ds) {
+        auth_3d* auth = i.first.get_auth_3d();
 
         printf_debug("%s\n", auth->file_name.c_str());
 
+        i.second.reserve(auth->material_list.size());
         for (auth_3d_material_list& j : auth->material_list) {
             if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
                 continue;
 
-            std::vector<material_list_color> color;
-            vec4u8 has_color;
-            std::vector<kft3> morph;
-            int32_t type = x_pv_game_split_auth_3d_material_list(j,
-                auth->play_control.size, color, has_color, morph);
-            printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
+            i.second.push_back({ j.hash, {} });
+            material_list_data& data = i.second.back().second;
+
+            x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
+            printf_debug("%d %s %llu %llu\n", data.type,
+                j.name.c_str(), data.color.size(), data.morph.size());
         }
     }
 
-    for (auth_3d_id& i : stage_data_change_effect_auth_3ds) {
-        auth_3d* auth = i.get_auth_3d();
+    for (auto& i : stage_data_change_effect_auth_3ds) {
+        auth_3d* auth = i.first.get_auth_3d();
 
         printf_debug("%s\n", auth->file_name.c_str());
 
+        i.second.reserve(auth->material_list.size());
         for (auth_3d_material_list& j : auth->material_list) {
             if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
                 continue;
 
-            std::vector<material_list_color> color;
-            vec4u8 has_color;
-            std::vector<kft3> morph;
-            int32_t type = x_pv_game_split_auth_3d_material_list(j,
-                auth->play_control.size, color, has_color, morph);
-            printf_debug("%d %s %llu\n", type, j.name.c_str(), color.size());
+            i.second.push_back({ j.hash, {} });
+            material_list_data& data = i.second.back().second;
+
+            x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
+            printf_debug("    %d %20s %3llu %3llu\n", data.type,
+                j.name.c_str(), data.color.size(), data.morph.size());
         }
     }
 }
