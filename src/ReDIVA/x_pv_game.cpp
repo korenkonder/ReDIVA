@@ -8487,7 +8487,126 @@ struct material_list_data {
     inline ~material_list_data() {
 
     }
+
+    void optimize();
 };
+
+void material_list_data::optimize() {
+    if (type < 2)
+        return;
+
+    kft3* keys = morph.data();
+    size_t length = morph.size();
+
+    if (color.size() > 2)
+        for (size_t i = 0; i < length - 2; i++)
+            for (size_t j = i + 2; j < length; ) {
+                size_t count = j - i;
+                if (j + count >= length)
+                    break;
+
+                material_list_color* color_data = color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count; k <= count; k++, l++)
+                    if (memcmp(&color_data[(int32_t)keys[i + k].value],
+                        &color_data[(int32_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
+
+                if (!equal) {
+                    j++;
+                    continue;
+                }
+
+                morph.insert(morph.begin() + j, morph.data()[j]);
+                keys = morph.data();
+                length = morph.size();
+
+                float_t start_value = keys[j].value - keys[j - count].value;
+                for (size_t k = j + 1; k < length; k++)
+                    keys[k].value -= start_value;
+
+                auto elem = color.begin() + ((size_t)(int32_t)start_value + 1);
+                color.erase(elem, elem + count);
+                break;
+            }
+
+    if (color.size() > 1) {
+        auto i_begin = color.begin();
+        auto i_end = color.end() - 1;
+
+        for (auto i = i_begin; i != i_end;)
+            if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
+                float_t value = (float_t)(int32_t)(i - i_begin + 1);
+                for (size_t k = i - i_begin + 1; k < length; k++)
+                    if (keys[k].value >= value)
+                        keys[k].value -= 1.0f;
+                i = color.erase(i);
+                i_end = color.end() - 1;
+            }
+            else
+                i++;
+    }
+
+    if (color.size() > 2)
+        for (size_t i = 0; i < length - 1; i++)
+            for (size_t j = i + 1; j < length; j++) {
+                size_t count = j - i;
+                if (j + count > length || i + count * 2 >= length)
+                    break;
+
+                material_list_color* color_data = color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count * 2; k < count; k++, l--)
+                    if (memcmp(&color_data[(int32_t)keys[i + k].value],
+                        &color_data[(int32_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
+
+                if (!equal)
+                    continue;
+
+                float_t start_value = keys[i].value;
+                float_t end_value = keys[i + count * 2].value;
+
+                for (size_t k = 1, l = count - 1; k <= count; k++, l--) {
+                    keys[i + k + 0].tangent2 = -keys[i + k + 0].tangent2;
+                    keys[i + k + 1].value = (float_t)(int32_t)l + start_value;
+                    keys[i + k + 1].tangent1 = -keys[i + k + 1].tangent1;
+                }
+
+                if (i + count * 2 + 1 == length)
+                    color.erase(color.begin() + (int32_t)end_value);
+
+                i += count * 2;
+                break;
+            }
+
+    if (morph.size() > 1) {
+        auto i_begin = morph.begin();
+        auto i_end = morph.end() - 1;
+
+        for (auto i = i_begin; i != i_end;)
+            if (*(uint32_t*)&i[0].frame == *(uint32_t*)&i[1].frame
+                && *(uint32_t*)&i[0].value == *(uint32_t*)&i[1].value) {
+                i[1].tangent1 = i[0].tangent1;
+                i = morph.erase(i);
+                i_end = morph.end() - 1;
+            }
+            else
+                i++;
+    }
+
+    if (type == 2)
+        for (kft3& i : morph) {
+            i.tangent1 = 0.0f;
+            i.tangent2 = 0.0f;
+        }
+}
 
 static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     float_t play_control_size, material_list_data& data, bool fast = false) {
@@ -8614,10 +8733,6 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         }
     }
 
-    const int32_t has_data_count
-        = (has_data[0] ? 1 : 0) + (has_data[1] ? 1 : 0) + (has_data[2] ? 1 : 0) + (has_data[3] ? 1 : 0)
-        + (has_data[4] ? 1 : 0) + (has_data[5] ? 1 : 0) + (has_data[6] ? 1 : 0) + (has_data[7] ? 1 : 0);
-
     std::vector<material_list_color> values(count);
     material_list_color* values_src = values.data();
 
@@ -8687,12 +8802,26 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
 
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
-            bool constant = true;
-            for (size_t j = 1; j <= i; j++)
-                if (memcmp(&v[0], &v[j], sizeof(material_list_color))) {
-                    constant = false;
-                    break;
+            bool constant[8];
+            bool all_constant = true;
+            int32_t has_data_count = 0;
+
+            for (size_t o = 0; o < 8; o++) {
+                constant[o] = true;
+                if (!has_data[o])
+                    continue;
+
+                for (size_t j = 1; j <= i; j++)
+                    if (((uint32_t*)&v[0])[o] != ((uint32_t*)&v[j])[o]) {
+                        constant[o] = false;
+                        break;
+                    }
+
+                if (!constant[o]) {
+                    all_constant = false;
+                    has_data_count++;
                 }
+            }
 
             t1 = 0.0f;
             t2 = 0.0f;
@@ -8704,7 +8833,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             *(material_list_color*)start = v[0];
             *(material_list_color*)end = v[i];
             for (size_t o = 0; o < 8; o++) {
-                if (!has_data[o])
+                if (!has_data[o] || constant[o])
                     continue;
 
                 float_t scale = fabsf(end[o] - start[o]) > 0.0f ? 1.0f / (end[o] - start[o]) : 0.0f;
@@ -8779,7 +8908,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             }
 
             if (!has_error) {
-                if (constant) {
+                if (all_constant) {
                     t1 = 0.0f;
                     t2 = 0.0f;
                 }
@@ -8869,115 +8998,6 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         }
     }
 
-    if (data.color.size() > 2)
-        for (size_t i = 0; i < length - 2; i++)
-            for (size_t j = i + 2; j < length; ) {
-                size_t count = j - i;
-                if (j + count >= length)
-                    break;
-
-                auto color = data.color.data();
-                bool equal = true;
-                for (size_t k = 0, l = count; k <= count; k++, l++)
-                    if (memcmp(&color[(int32_t)keys[i + k].value],
-                        &color[(int32_t)keys[i + l].value],
-                        sizeof(material_list_color))) {
-                        equal = false;
-                        break;
-                    }
-
-                if (!equal) {
-                    j++;
-                    continue;
-                }
-
-                data.morph.insert(data.morph.begin() + j, data.morph.data()[j]);
-                keys = data.morph.data();
-                length = data.morph.size();
-
-                float_t start_value = keys[j].value;
-                for (size_t k = j + 1; k < length; k++)
-                    keys[k].value -= start_value;
-
-                auto elem = data.color.begin() + ((size_t)(int32_t)start_value + 1);
-                data.color.erase(elem, elem + count);
-                break;
-            }
-
-    if (data.color.size() > 1) {
-        auto i_begin = data.color.begin();
-        auto i_end = data.color.end() - 1;
-
-        for (auto i = i_begin; i != i_end;)
-            if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
-                float_t value = (float_t)(int32_t)(i - i_begin + 1);
-                for (size_t k = i - i_begin + 1; k < length; k++)
-                    if (keys[k].value >= value)
-                        keys[k].value -= 1.0f;
-                i = data.color.erase(i);
-                i_end = data.color.end() - 1;
-            }
-            else
-                i++;
-    }
-
-    if (data.color.size() > 2)
-        for (size_t i = 0; i < length - 1; i++)
-            for (size_t j = i + 1; j < length; j++) {
-                size_t count = j - i;
-                if (j + count > length)
-                    break;
-
-                auto color = data.color.data();
-                bool equal = true;
-                for (size_t k = 0, l = count * 2; k < count; k++, l--)
-                    if (memcmp(&color[(int32_t)keys[i + k].value],
-                        &color[(int32_t)keys[i + l].value],
-                        sizeof(material_list_color))) {
-                        equal = false;
-                        break;
-                    }
-
-                if (!equal)
-                    continue;
-
-                float_t start_value = keys[i].value;
-                float_t end_value = keys[i + count * 2].value;
-
-                for (size_t k = 1, l = count - 1; k <= count; k++, l--) {
-                    keys[i + k + 0].tangent2 = -keys[i + k + 0].tangent2;
-                    keys[i + k + 1].value = (float_t)(int32_t)l + start_value;
-                    keys[i + k + 1].tangent1 = -keys[i + k + 1].tangent1;
-                }
-
-                if (i + count * 2 + 1 == length)
-                    data.color.erase(data.color.begin() + (int32_t)end_value);
-
-                i += count * 2;
-                break;
-            }
-
-    if (data.morph.size() > 1) {
-        auto i_begin = data.morph.begin();
-        auto i_end = data.morph.end() - 1;
-
-        for (auto i = i_begin; i != i_end;)
-            if (*(uint32_t*)&i[0].frame == *(uint32_t*)&i[1].frame
-                && *(uint32_t*)&i[0].value == *(uint32_t*)&i[1].value) {
-                i[1].tangent1 = i[0].tangent1;
-                i = data.morph.erase(i);
-                i_end = data.morph.end() - 1;
-            }
-            else
-                i++;
-    }
-
-    if (type == 2)
-        for (kft3& i : data.morph) {
-            i.tangent1 = 0.0f;
-            i.tangent2 = 0.0f;
-        }
-
     data.type = type;
 }
 
@@ -9051,7 +9071,8 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             material_list_data& data = i.second.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
-            printf_debug("%d %s %llu %llu\n", data.type,
+            data.optimize();
+            printf_debug("    %d %20s %3llu %3llu\n", data.type,
                 j.name.c_str(), data.color.size(), data.morph.size());
         }
     }
@@ -9070,6 +9091,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             material_list_data& data = i.second.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
+            data.optimize();
             printf_debug("    %d %20s %3llu %3llu\n", data.type,
                 j.name.c_str(), data.color.size(), data.morph.size());
         }
