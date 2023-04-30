@@ -8550,7 +8550,8 @@ void material_list_data::optimize() {
                 i++;
     }
 
-    if (color.size() > 2)
+    while (color.size() > 2) {
+        bool optimized = false;
         for (size_t i = 0; i < length - 1; i++)
             for (size_t j = i + 1; j < length; j++) {
                 size_t count = j - i;
@@ -8583,8 +8584,55 @@ void material_list_data::optimize() {
                     color.erase(color.begin() + (int32_t)end_value);
 
                 i += count * 2;
+                optimized = true;
                 break;
             }
+
+        if (!optimized)
+            break;
+    }
+
+    while (color.size() > 2) {
+        bool optimized = false;
+        for (size_t i = 0; i < length - 1; i++)
+            for (size_t j = i + 1; j < length; j++) {
+                size_t count = j - i;
+                if (j + count > length || i + count * 2 + 1 >= length)
+                    break;
+
+                material_list_color* color_data = color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count * 2 + 1; k < count; k++, l--)
+                    if (memcmp(&color_data[(int32_t)keys[i + k].value],
+                        &color_data[(int32_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
+
+                if (!equal)
+                    continue;
+
+                float_t start_value = keys[i].value;
+                float_t end_value = keys[i + count * 2 + 1].value;
+
+                for (size_t k = 1, l = count - 1; k <= count; k++, l--) {
+                    keys[i + k + 1].tangent2 = -keys[i + k + 0].tangent2;
+                    keys[i + k + 2].value = (float_t)(int32_t)l + start_value;
+                    keys[i + k + 2].tangent1 = -keys[i + k + 1].tangent1;
+                }
+
+                if (i + count * 2 + 2 == length)
+                    color.erase(color.begin() + (int32_t)end_value);
+
+                i += count * 2;
+                optimized = true;
+                break;
+            }
+
+        if (!optimized)
+            break;
+    }
 
     if (morph.size() > 1) {
         auto i_begin = morph.begin();
