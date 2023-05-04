@@ -47,10 +47,11 @@ static const dsc_func dsc_ac101_func[] = {
     { 33, 2, u8"SHADOWPOS" },
     { 34, 2, u8"NEAR_CLIP" },
     { 35, 1, u8"CLOTH_WET" },
-    { 36, 6, u8"SCENE_FADE" },              // AC110
-    { 37, 6, u8"TONE_TRANS" },              // AC120
-    { 38, 1, u8"SATURATE" },
-    { 39, 1, u8"FADE_MODE" },
+    { 36, 3, u8"LIGHT_ROT" },
+    { 37, 6, u8"SCENE_FADE" },              // AC110
+    { 38, 6, u8"TONE_TRANS" },              // AC120
+    { 39, 1, u8"SATURATE" },
+    { 40, 1, u8"FADE_MODE" },
 };
 
 static const dsc_func_ac dsc_ac_func[] = {
