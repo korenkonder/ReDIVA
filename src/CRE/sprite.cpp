@@ -1654,8 +1654,8 @@ namespace spr {
             sprite_draw_param& draw_param_2 = draw_param_buffer.data()[draw_param_buffer.size() - 2];
             sprite_draw_param& draw_param_1 = draw_param_buffer.data()[draw_param_buffer.size() - 1];
 
-            if ((args.index == 0 || args.index == 3)
-                && (draw_param_2.mode == GL_LINES || draw_param_2.mode == GL_TRIANGLES)
+            if ((args.index == -1 || args.index == 0 || args.index == 3)
+                && draw_param_2.mode == draw_param_1.mode
                 && draw_param_2.blend == draw_param_1.blend
                 && draw_param_2.blend_src_rgb == draw_param_1.blend_src_rgb
                 && draw_param_2.blend_src_alpha == draw_param_1.blend_src_alpha
