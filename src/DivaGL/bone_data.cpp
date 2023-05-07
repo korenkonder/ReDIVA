@@ -204,7 +204,8 @@ void ExOsageBlock__Init(ExOsageBlock* osg) {
     osg->base.__vftable->Reset(&osg->base);
 }
 
-static void sub_14047EE90(rob_osage* rob_osg, mat4* mat) {
+// 0x14047EE90
+static void rob_osage_apply_reset_data(rob_osage* rob_osg, mat4* mat) {
     if (rob_osg->reset_data_list) {
         list_RobOsageNodeResetData_node* v5 = rob_osg->reset_data_list->head->next;
         for (rob_osage_node* v6 = rob_osg->nodes.begin + 1; v6 != rob_osg->nodes.end; v6++) {
@@ -305,15 +306,15 @@ static bool sub_140482FF0(mat4* mat, vec3* trans, skin_param_hinge* hinge, vec3*
     return clipped;
 }
 
-static void sub_1404803B0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, bool has_children_node) {
-    mat4 v47 = *mat;
+static void sub_1404803B0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_scale, bool has_children_node) {
+    mat4 v47 = *root_matrix;
     vec3 v45 = rob_osg->exp_data.position * *parent_scale;
     mat4_transpose(&v47, &v47);
     mat4_mult_vec3_trans(&v47, &v45, &rob_osg->nodes.begin[0].trans);
 
     if (rob_osg->osage_reset && !rob_osg->field_1F0E) {
         rob_osg->field_1F0E = true;
-        sub_14047EE90(rob_osg, mat);
+        rob_osage_apply_reset_data(rob_osg, root_matrix);
     }
 
     if (!rob_osg->field_1F0C) {
@@ -440,19 +441,19 @@ static void sub_140482180(rob_osage_node* node, float_t a2) {
     node->field_C8 += 1.0f;
 }
 
-static void sub_14047C800(rob_osage* rob_osg, mat4* mat, vec3* parent_scale,
+static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_scale,
     float_t step, bool disable_external_force, bool ring_coli, bool has_children_node) {
     if (!vector_old_length(rob_osg->nodes))
         return;
 
     const float_t osage_gravity_const = get_osage_gravity_const();
-    sub_1404803B0(rob_osg, mat, parent_scale, false);
+    sub_1404803B0(rob_osg, root_matrix, parent_scale, false);
 
     rob_osage_node* v17 = &rob_osg->nodes.begin[0];
     v17->trans_orig = v17->trans;
     vec3 v113 = rob_osg->exp_data.position * *parent_scale;
 
-    mat4 v130 = *mat;
+    mat4 v130 = *root_matrix;
     mat4_transpose(&v130, &v130);
     mat4_mult_vec3_trans(&v130, &v113, &v17->trans);
     v17->trans_diff = v17->trans - v17->trans_orig;
@@ -1057,7 +1058,7 @@ static void sub_14047D620(rob_osage* rob_osg, float_t step) {
     nodes->begin[0].trans = v7;
 }
 
-static void sub_14047D8C0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool a5) {
+static void sub_14047D8C0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_scale, float_t step, bool a5) {
     if (!rob_osg->osage_reset && step <= 0.0f)
         return;
 
@@ -1073,7 +1074,7 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
     if (a5)
         v64 = *rob_osg->nodes.begin[0].bone_node_mat;
     else {
-        v64 = *mat;
+        v64 = *root_matrix;
 
         vec3 trans = rob_osg->exp_data.position * *parent_scale;
         mat4_transpose(&v64, &v64);
@@ -1176,7 +1177,7 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, flo
             v35->trans_diff *= v23 / sqrtf(v55);
 
         mat4 v65;
-        mat4_transpose(mat, &v65);
+        mat4_transpose(root_matrix, &v65);
         mat4_mult_vec3_inv_trans(&v65, &v35->trans, &v35->reset_data.trans);
         mat4_mult_vec3_inv(&v65, &v35->trans_diff, &v35->reset_data.trans_diff);
     }
@@ -1228,7 +1229,7 @@ static void rob_osage_set_nodes_force(rob_osage* rob_osg, float_t force) {
         i->force = force;
 }
 
-static void sub_140480260(rob_osage* rob_osg, mat4* mat,
+static void sub_140480260(rob_osage* rob_osg, mat4* root_matrix,
     vec3* parent_scale, float_t step, bool disable_external_force) {
     if (!disable_external_force) {
         rob_osage_set_nodes_external_force(rob_osg, 0, 1.0f);
@@ -1261,17 +1262,17 @@ void ExOsageBlock__Field_18(ExOsageBlock* osg, int32_t stage, bool disable_exter
         step = 1.0f;
 
     bone_node* parent_node = osg->base.parent_bone_node;
-    mat4* parent_node_mat = parent_node->ex_data_mat;
+    mat4* root_matrix = parent_node->ex_data_mat;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
     switch (stage) {
     case 0:
-        sub_1404803B0(&osg->rob, parent_node_mat, &parent_scale, osg->base.has_children_node);
+        sub_1404803B0(&osg->rob, root_matrix, &parent_scale, osg->base.has_children_node);
         break;
     case 1:
     case 2:
         if ((stage == 1 && osg->base.field_58) || (stage == 2 && osg->rob.field_2A0)) {
             ExOsageBlock__SetWindDirection(osg);
-            sub_14047C800(&osg->rob, parent_node_mat,
+            sub_14047C800(&osg->rob, root_matrix,
                 &parent_scale, step, disable_external_force, true, osg->base.has_children_node);
         }
         break;
@@ -1283,21 +1284,22 @@ void ExOsageBlock__Field_18(ExOsageBlock* osg, int32_t stage, bool disable_exter
         sub_14047D620(&osg->rob, step);
         break;
     case 5:
-        sub_14047D8C0(&osg->rob, parent_node_mat, &parent_scale, step, false);
-        sub_140480260(&osg->rob, parent_node_mat, &parent_scale, step, disable_external_force);
+        sub_14047D8C0(&osg->rob, root_matrix, &parent_scale, step, false);
+        sub_140480260(&osg->rob, root_matrix, &parent_scale, step, disable_external_force);
         osg->base.field_59 = true;
         break;
     }
 }
 
-static void sub_14047C770(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, float_t step, bool a5) {
-    sub_14047C800(rob_osg, mat, parent_scale, step, a5, false, false);
-    sub_14047D8C0(rob_osg, mat, parent_scale, step, true);
-    sub_140480260(rob_osg, mat, parent_scale, step, a5);
+static void sub_14047C770(rob_osage* rob_osg, mat4* root_matrix,
+    vec3* parent_scale, float_t step, bool disable_external_force) {
+    sub_14047C800(rob_osg, root_matrix, parent_scale, step, disable_external_force, false, false);
+    sub_14047D8C0(rob_osg, root_matrix, parent_scale, step, true);
+    sub_140480260(rob_osg, root_matrix, parent_scale, step, disable_external_force);
 }
 
-static void sub_14047C750(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, float_t step) {
-    sub_14047C770(rob_osg, mat, parent_scale, step, 0);
+static void sub_14047C750(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_scale, float_t step) {
+    sub_14047C770(rob_osg, root_matrix, parent_scale, step, false);
 }
 
 void ExOsageBlock__Field_20(ExOsageBlock* osg) {
@@ -1515,7 +1517,7 @@ void ExOsageBlock__Field_50(ExOsageBlock* osg) {
     bone_node* parent_node = osg->base.parent_bone_node;
     vec3 parent_scale = parent_node->exp_data.parent_scale;
     rob_osage_coli_set(&osg->rob, osg->mat);
-    sub_14047C770(&osg->rob, parent_node->ex_data_mat, &parent_scale, osg->step, 1);
+    sub_14047C770(&osg->rob, parent_node->ex_data_mat, &parent_scale, osg->step, true);
     float_t step = 0.5f * osg->step;
     osg->step = max_def(step, 1.0f);
 }

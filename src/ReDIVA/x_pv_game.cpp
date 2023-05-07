@@ -1640,7 +1640,7 @@ void x_pv_game_music::ctrl(float_t delta_time) {
     if (no_fade && !pause) {
         no_fade_remain -= delta_time;
         if (no_fade_remain <= 0.0f) {
-            fade_out.enable = 1;
+            fade_out.enable = true;
             fade_out.start = get_volume(0);
             fade_out.value = 0;
             fade_out.time = fade_out_time_req;
@@ -1659,8 +1659,8 @@ void x_pv_game_music::ctrl(float_t delta_time) {
         if (fade_in.remain > 0.0f) {
             int32_t value = fade_in.value;
             if (fade_in.time > 0.0)
-                value = (int32_t)(value - ((float_t)(value
-                    - fade_in.start) * (fade_in.remain / fade_in.time)));
+                value = (int32_t)((float_t)value - (float_t)(value
+                    - fade_in.start) * (fade_in.remain / fade_in.time));
             set_volume_map(0, value);
         }
         else
@@ -1681,11 +1681,12 @@ void x_pv_game_music::ctrl(float_t delta_time) {
     }
 
     if (flags & X_PV_GAME_MUSIC_OGG) {
-        if (ogg->playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_STOPPED)
-            ogg->playback->Stop();
-        if (ogg->playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_STOPPED)
+        OggPlayback* playback = ogg->playback;
+        if (playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_STOPPED)
+            playback->Stop();
+        if (playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_STOPPED)
             play_or_stop();
-        ogg->playback->SetChannelPairVolumePan(ogg->playback);
+        OggPlayback::SetChannelPairVolumePan(playback);
     }
 }
 
@@ -1702,6 +1703,7 @@ void x_pv_game_music::fade_in_end() {
     fade_in.enable = false;
     fade_in.remain = 0.0f;
     set_volume_map(0, fade_in.value);
+
     switch (fade_in.action) {
     case X_PV_GAME_MUSIC_ACTION_STOP:
         stop();
@@ -1722,6 +1724,7 @@ void x_pv_game_music::fade_out_end() {
     fade_out.enable = false;
     fade_out.remain = 0.0f;
     set_volume_map(0, fade_out.value);
+
     switch (fade_out.action) {
     case X_PV_GAME_MUSIC_ACTION_STOP:
         stop();
@@ -1736,7 +1739,7 @@ void x_pv_game_music::fade_out_end() {
 }
 
 void x_pv_game_music::file_load(int32_t type, std::string&& file_path, bool play_on_end,
-    float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9) {
+    float_t start, float_t end, float_t fade_in_time, float_t fade_out_time, bool a9) {
     this->type = type;
     this->file_path.assign(file_path);
     this->start = start;
@@ -1823,20 +1826,21 @@ int32_t x_pv_game_music::ogg_load(std::string&& file_path, float_t start) {
 
     start = max_def(start, 0.0f);
 
-    OggFileHandlerFileState file_state = ogg->playback->GetFileState();
-    OggFileHandlerPauseState pause_state = ogg->playback->GetPauseState();
+    OggPlayback* playback = ogg->playback;
+
+    OggFileHandlerFileState file_state = playback->GetFileState();
+    OggFileHandlerPauseState pause_state = playback->GetPauseState();
 
     if (!check_args(4, std::string(file_path), start)
         || file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
         || pause_state != OGG_FILE_HANDLER_PAUSE_STATE_PAUSE) {
-        ogg->playback->Stop();
-        ogg->playback->SetLoadTimeSeek(start);
-        ogg->playback->SetPath(file_path);
-        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+        playback->Stop();
+        playback->SetLoadTimeSeek(start);
+        playback->SetPath(file_path);
     }
-    else
-        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
-    this->file_path.assign(file_path);
+
+    playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PLAY);
+    ogg->file_path.assign(file_path);
     loaded = true;
     return 0;
 }
@@ -1862,7 +1866,7 @@ int32_t x_pv_game_music::play() {
 }
 
 int32_t x_pv_game_music::play(int32_t type, std::string&& file_path, bool play_on_end,
-    float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9) {
+    float_t start, float_t end, float_t fade_in_time, float_t fade_out_time, bool a9) {
     set_volume_map(0, 100);
     if (type == 4 && ogg_load(std::string(file_path), start) < 0)
         return -7;
@@ -1969,23 +1973,26 @@ int32_t x_pv_game_music::set_ogg_args(std::string&& file_path, float_t start, bo
 
     start = max_def(start, 0.0f);
 
-    OggFileHandlerFileState file_state = ogg->playback->GetFileState();
-    OggFileHandlerPauseState pause_state = ogg->playback->GetPauseState();
+    OggPlayback* playback = ogg->playback;
+
+    OggFileHandlerFileState file_state = playback->GetFileState();
+    OggFileHandlerPauseState pause_state = playback->GetPauseState();
 
     if (!check_args(4, std::string(file_path), start)
         || file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
         || pause_state != OGG_FILE_HANDLER_PAUSE_STATE_PAUSE) {
-        ogg->playback->Stop();
-        ogg->playback->SetLoadTimeSeek(start);
-        ogg->playback->SetPath(file_path);
-        ogg->playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PAUSE);
+        playback->Stop();
+        playback->SetLoadTimeSeek(start);
+        playback->SetPath(file_path);
+        playback->SetPauseState(OGG_FILE_HANDLER_PAUSE_STATE_PAUSE);
         ogg->file_path.assign(file_path);
+
         if (wait_load) {
-            OggFileHandlerFileState file_state = ogg->playback->GetFileState();
+            OggFileHandlerFileState file_state = playback->GetFileState();
             while (file_state != OGG_FILE_HANDLER_FILE_STATE_PLAYING
                 && file_state != OGG_FILE_HANDLER_FILE_STATE_STOPPED
                 && file_state != OGG_FILE_HANDLER_FILE_STATE_MAX)
-                file_state = ogg->playback->GetFileState();
+                file_state = playback->GetFileState();
         }
     }
     return 0;
@@ -1995,8 +2002,9 @@ int32_t x_pv_game_music::set_ogg_pause_state(uint8_t pause_state) {
     if (!(flags & X_PV_GAME_MUSIC_OGG))
         return -2;
 
-    if (ogg->playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_PLAYING)
-        ogg->playback->SetPauseState((OggFileHandlerPauseState)pause_state);
+    OggPlayback* playback = ogg->playback;
+    if (playback->GetFileState() == OGG_FILE_HANDLER_FILE_STATE_PLAYING)
+        playback->SetPauseState((OggFileHandlerPauseState)pause_state);
     return 0;
 }
 
@@ -2625,7 +2633,7 @@ void x_pv_game_stage_env::reset_env() {
     env_index = -1;
 }
 
-static const float env_aet_opacity = 0.65f;
+static const float_t env_aet_opacity = 0.65f;
 
 #pragma warning(push)
 #pragma warning(disable: 6385)
@@ -4229,22 +4237,22 @@ bool x_pv_game::Ctrl() {
         light_auth_3d_id = {};
         {
             data_struct* aft_data = &data_list[DATA_AFT];
-            auth_3d_database* auth_3d_db = &aft_data->data_ft.auth_3d_db;
+            auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
 
             char buf[0x200];
             sprintf_s(buf, sizeof(buf), "STGPV%03d_EFF_LT_000",
                 pv_data[pv_index].pv_id == 832 ? 800 : pv_data[pv_index].pv_id);
             uint32_t light_auth_3d_hash = hash_utf8_murmurhash(buf);
-            for (auth_3d_database_uid& i : auth_3d_db->uid)
+            for (auth_3d_database_uid& i : aft_auth_3d_db->uid)
                 if (hash_string_murmurhash(i.name) == light_auth_3d_hash) {
                     light_auth_3d_id = auth_3d_data_load_uid(
-                        (int32_t)(&i - auth_3d_db->uid.data()), auth_3d_db);
+                        (int32_t)(&i - aft_auth_3d_db->uid.data()), aft_auth_3d_db);
                     if (!light_auth_3d_id.check_not_empty()) {
                         light_auth_3d_id = {};
                         break;
                     }
 
-                    light_auth_3d_id.read_file(auth_3d_db);
+                    light_auth_3d_id.read_file(aft_auth_3d_db);
                     light_auth_3d_id.set_enable(false);
                     light_auth_3d_id.set_visibility(false);
                     break;
@@ -4264,7 +4272,7 @@ bool x_pv_game::Ctrl() {
 
         x_pv_game_dsc_data& dsc_data = pv_data[pv_index].dsc_data;
 
-        app::TaskWork::AddTask(&pv_param_task::post_process_task, "PV POST PROCESS TASK");
+        pv_param_task::post_process_task_add_task();
         {
             data_struct* x_data = &data_list[DATA_X];
 
@@ -5685,7 +5693,7 @@ bool x_pv_game::Unload() {
         i = 0;
 
     Glitter::glt_particle_manager->draw_all = true;
-    pv_param_task::post_process_task.DelTask();
+    pv_param_task::post_process_task_del_task();
     return true;
 }
 
@@ -5799,6 +5807,13 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
 
     for (int32_t& i : modules)
         i = 0;
+
+    pv_id = 816;
+    stage_id = 16;
+
+    charas[0] = CHARA_LEN;
+
+    modules[0] = 0;
 
 #if BAKE_PV826
     pv_id = 826;
@@ -7117,29 +7132,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t id = (int32_t)data[0];
         float_t duration = (float_t)(int32_t)data[1];
 
-        pv_param::bloom& bloom_data = pv_param::post_process_data_get_bloom_data(id);
-
-        pv_param_task::PostProcessCtrlBloom& bloom
-            = pv_param_task::post_process_task.bloom;
-        bloom.frame = 0.0f;
-        bloom.duration = duration;
-        bloom.data.data = bloom_data;
+        pv_param_task::post_process_task_set_bloom_data(
+            pv_param::post_process_data_get_bloom_data(id), duration);
     } break;
     case DSC_X_COLOR_CORRECTION: {
         int32_t enable = (int32_t)data[0];
         int32_t id = (int32_t)data[1];
         float_t duration = (float_t)(int32_t)data[2];
 
-        if (enable == 1) {
-            pv_param::color_correction& cc_data
-                = pv_param::post_process_data_get_color_correction_data(id);
-
-            pv_param_task::PostProcessCtrlCC& cc
-                = pv_param_task::post_process_task.cc;
-            cc.frame = 0.0f;
-            cc.duration = duration;
-            cc.data.data = cc_data;
-        }
+        if (enable == 1)
+            pv_param_task::post_process_task_set_color_correction_data(
+                pv_param::post_process_data_get_color_correction_data(id), duration);
     } break;
     case DSC_X_DOF: {
         int32_t enable = (int32_t)data[0];
@@ -7147,15 +7150,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         float_t duration = (float_t)(int32_t)data[2];
 
         rctx_ptr->post_process.dof->data.pv.enable = enable == 1;
-        if (enable == 1) {
-            pv_param::dof& dof_data = pv_param::post_process_data_get_dof_data(id);
-
-            pv_param_task::PostProcessCtrlDof& dof
-                = pv_param_task::post_process_task.dof;
-            dof.frame = 0.0f;
-            dof.duration = duration;
-            dof.data.data = dof_data;
-        }
+        if (enable == 1)
+            pv_param_task::post_process_task_set_dof_data(
+                pv_param::post_process_data_get_dof_data(id), duration);
     } break;
     case DSC_X_CHARA_ALPHA: {
         a1->chara_id = (int32_t)data[0];
@@ -7164,16 +7161,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         float_t duration = (float_t)(int32_t)data[2];
         int32_t type = (int32_t)data[3];
 
-        if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
-            pv_param_task::PostProcessCtrlCharaAlpha& chara_alpha
-                = pv_param_task::post_process_task.chara_alpha;
-            pv_param::chara_alpha& chara_alpha_data = chara_alpha.data.data[a1->chara_id];
-            chara_alpha_data.type = type;
-            chara_alpha_data.frame = 0.0f;
-            chara_alpha_data.alpha = alpha;
-            chara_alpha_data.duration = duration * 2.0f;
-        }
-
+        if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT)
+            pv_param_task::post_process_task_set_chara_alpha(
+                a1->chara_id, type, alpha, duration * 2.0f);
     } break;
     case DSC_X_AUTO_CAPTURE_BEGIN: {
 
@@ -7195,17 +7185,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t type = (int32_t)data[3];
 
         if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
-            pv_param_task::PostProcessCtrlCharaItemAlpha& chara_item_alpha
-                = pv_param_task::post_process_task.chara_item_alpha;
-
-            pv_param::chara_alpha& chara_item_alpha_data = chara_item_alpha.data.data[a1->chara_id];
-            chara_item_alpha_data.type = type;
-            chara_item_alpha_data.frame = 0.0f;
-            chara_item_alpha_data.alpha = alpha;
-            chara_item_alpha_data.duration = duration * 2.0f;
-
-            chara_item_alpha.callback[a1->chara_id] = x_pv_game_chara_item_alpha_callback;
-            chara_item_alpha.callback_data[a1->chara_id] = a1;
+            pv_param_task::post_process_task_set_chara_item_alpha(
+                a1->chara_id, type, alpha, duration * 2.0f,
+                x_pv_game_chara_item_alpha_callback, a1);
         }
     } break;
     case DSC_X_MOVIE_CUT: {
@@ -8495,63 +8477,91 @@ void material_list_data::optimize() {
     if (type < 2)
         return;
 
-    kft3* keys = morph.data();
-    size_t length = morph.size();
+    while (true) {
+        std::vector<material_list_color> color(this->color);
+        std::vector<kft3> morph(this->morph);
 
-    if (color.size() > 2)
-        for (size_t i = 0; i < length - 2; i++)
-            for (size_t j = i + 2; j < length; ) {
-                size_t count = j - i;
-                if (j + count >= length)
-                    break;
+        kft3* keys = morph.data();
+        size_t length = morph.size();
+        if (color.size() > 1) {
+            auto i_begin = color.begin();
+            auto i_end = color.end() - 1;
 
-                material_list_color* color_data = color.data();
-                bool equal = true;
-                for (size_t k = 0, l = count; k <= count; k++, l++)
-                    if (memcmp(&color_data[(int32_t)keys[i + k].value],
-                        &color_data[(int32_t)keys[i + l].value],
-                        sizeof(material_list_color))) {
-                        equal = false;
-                        break;
-                    }
-
-                if (!equal) {
-                    j++;
-                    continue;
+            for (auto i = i_begin; i != i_end;)
+                if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
+                    float_t value = (float_t)(int32_t)(i - i_begin + 1);
+                    for (size_t k = i - i_begin + 1; k < length; k++)
+                        if (keys[k].value >= value)
+                            keys[k].value -= 1.0f;
+                    i = color.erase(i);
+                    i_begin = color.begin();
+                    i_end = color.end() - 1;
                 }
+                else
+                    i++;
+        }
 
-                morph.insert(morph.begin() + j, morph.data()[j]);
+        if (morph.size() > 1) {
+            if (length > 1 && *(uint32_t*)&keys[0].frame != *(uint32_t*)&keys[1].frame
+                && *(uint32_t*)&keys[0].value == *(uint32_t*)&keys[1].value) {
+                morph.erase(morph.begin());
                 keys = morph.data();
                 length = morph.size();
-
-                float_t start_value = keys[j].value - keys[j - count].value;
-                for (size_t k = j + 1; k < length; k++)
-                    keys[k].value -= start_value;
-
-                auto elem = color.begin() + ((size_t)(int32_t)start_value + 1);
-                color.erase(elem, elem + count);
-                break;
             }
 
-    if (color.size() > 1) {
-        auto i_begin = color.begin();
-        auto i_end = color.end() - 1;
-
-        for (auto i = i_begin; i != i_end;)
-            if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
-                float_t value = (float_t)(int32_t)(i - i_begin + 1);
-                for (size_t k = i - i_begin + 1; k < length; k++)
-                    if (keys[k].value >= value)
-                        keys[k].value -= 1.0f;
-                i = color.erase(i);
-                i_end = color.end() - 1;
+            if (length > 1 && *(uint32_t*)&keys[length - 2].frame != *(uint32_t*)&keys[length - 1].frame
+                && *(uint32_t*)&keys[length - 2].value == *(uint32_t*)&keys[length - 1].value) {
+                morph.erase(morph.end() - 1);
+                keys = morph.data();
+                length = morph.size();
             }
-            else
-                i++;
-    }
+        }
 
-    while (color.size() > 2) {
-        bool optimized = false;
+        if (color.size() > 2)
+            for (size_t i = 0; i < length - 2; i++)
+                for (size_t j = i + 2; j < length; ) {
+                    size_t count = j - i;
+                    if (j + count >= length)
+                        break;
+
+                    material_list_color* color_data = color.data();
+                    bool equal = true;
+                    for (size_t k = 0, l = count; k <= count; k++, l++)
+                        if (memcmp(&color_data[(int32_t)keys[i + k].value],
+                            &color_data[(int32_t)keys[i + l].value],
+                            sizeof(material_list_color))) {
+                            equal = false;
+                            break;
+                        }
+
+                    if (!equal) {
+                        j++;
+                        continue;
+                    }
+
+                    bool smaller_value = false;
+                    for (size_t k = 0; k < count * 2; k++)
+                        if (keys[i + k].value > keys[i + k + 1].value) {
+                            smaller_value = true;
+                            break;
+                        }
+
+                    if (smaller_value)
+                        break;
+
+                    morph.insert(morph.begin() + j, morph.data()[j]);
+                    keys = morph.data();
+                    length = morph.size();
+
+                    float_t start_value = keys[j].value - keys[j - count].value;
+                    for (size_t k = j + 1; k < length; k++)
+                        keys[k].value -= start_value;
+
+                    auto elem = color.begin() + ((size_t)(int32_t)start_value + 1);
+                    color.erase(elem, elem + count);
+                    break;
+                }
+
         for (size_t i = 0; i < length - 1; i++)
             for (size_t j = i + 1; j < length; j++) {
                 size_t count = j - i;
@@ -8574,26 +8584,25 @@ void material_list_data::optimize() {
                 float_t start_value = keys[i].value;
                 float_t end_value = keys[i + count * 2].value;
 
-                for (size_t k = 1, l = count - 1; k <= count; k++, l--) {
-                    keys[i + k + 0].tangent2 = -keys[i + k + 0].tangent2;
-                    keys[i + k + 1].value = (float_t)(int32_t)l + start_value;
-                    keys[i + k + 1].tangent1 = -keys[i + k + 1].tangent1;
+                if (*(uint32_t*)&start_value == *(uint32_t*)&end_value)
+                    break;
+                else if (i + count * 2 + 1 < length
+                    && *(uint32_t*)&keys[i + count * 2].frame != *(uint32_t*)&keys[i + count * 2 + 1].frame)
+                    break;
+
+                for (size_t k = count, l = count - 1; k < count * 2; k++, l--) {
+                    if (keys[i + k].value < keys[i + k + 1].value && keys[i + l + 1].value > keys[i + l].value
+                        || keys[i + k].value > keys[i + k + 1].value && keys[i + l + 1].value < keys[i + l].value) {
+                        keys[i + k + 0].tangent2 = -keys[i + k + 0].tangent2;
+                        keys[i + k + 1].tangent1 = -keys[i + k + 1].tangent1;
+                    }
+                    keys[i + k + 1].value = keys[i + l].value;
                 }
 
-                if (i + count * 2 + 1 == length)
-                    color.erase(color.begin() + (int32_t)end_value);
-
                 i += count * 2;
-                optimized = true;
                 break;
             }
 
-        if (!optimized)
-            break;
-    }
-
-    while (color.size() > 2) {
-        bool optimized = false;
         for (size_t i = 0; i < length - 1; i++)
             for (size_t j = i + 1; j < length; j++) {
                 size_t count = j - i;
@@ -8616,22 +8625,81 @@ void material_list_data::optimize() {
                 float_t start_value = keys[i].value;
                 float_t end_value = keys[i + count * 2 + 1].value;
 
-                for (size_t k = 1, l = count - 1; k <= count; k++, l--) {
-                    keys[i + k + 1].tangent2 = -keys[i + k + 0].tangent2;
-                    keys[i + k + 2].value = (float_t)(int32_t)l + start_value;
-                    keys[i + k + 2].tangent1 = -keys[i + k + 1].tangent1;
+                if (*(uint32_t*)&start_value == *(uint32_t*)&end_value)
+                    break;
+                else if (i + count * 2 + 2 < length
+                    && *(uint32_t*)&keys[i + count * 2 + 1].frame != *(uint32_t*)&keys[i + count * 2 + 2].frame)
+                    break;
+
+                for (size_t k = count, l = count - 1; k < count * 2; k++, l--) {
+                    if (keys[i + k].value < keys[i + k + 1].value && keys[i + l + 1].value > keys[i + l].value
+                        || keys[i + k].value > keys[i + k + 1].value && keys[i + l + 1].value < keys[i + l].value) {
+                        keys[i + k + 1].tangent2 = -keys[i + k + 1].tangent2;
+                        keys[i + k + 2].tangent1 = -keys[i + k + 2].tangent1;
+                    }
+                    keys[i + k + 2].value = keys[i + l].value;
                 }
 
-                if (i + count * 2 + 2 == length)
-                    color.erase(color.begin() + (int32_t)end_value);
-
                 i += count * 2;
-                optimized = true;
                 break;
             }
 
-        if (!optimized)
-            break;
+        int32_t max_value = 0;
+        for (kft3& i : morph)
+            max_value = max_def(max_value, (int32_t)i.value);
+        max_value++;
+
+        if (max_value < color.size())
+            color.resize(max_value);
+
+        if (color.size() < this->color.size() || morph.size() < this->morph.size()) {
+            this->color.assign(color.begin(), color.end());
+            this->morph.assign(morph.begin(), morph.end());
+            continue;
+        }
+        break;
+    }
+
+    if (color.size() > 2) {
+        material_list_color* color_data = color.data();
+        size_t color_length = color.size();
+
+        kft3* keys = morph.data();
+        size_t length = morph.size();
+        for (size_t i = 0, j = 2; j < color_length; i++, j++) {
+            if (memcmp(&color_data[i], &color_data[j], sizeof(material_list_color)))
+                continue;
+
+            float_t src_value = (float_t)(int32_t)j;
+            float_t dst_value = (float_t)(int32_t)i;
+            bool removed = false;
+            for (size_t k = 0, l = 1, m = 2; l < length; k++, l++, m++) {
+                if (*(uint32_t*)&keys[l].value != *(uint32_t*)&src_value)
+                    continue;
+
+                keys[k].tangent2 = -keys[k].tangent2;
+                keys[l].tangent1 = -keys[l].tangent1;
+                keys[l].value = dst_value;
+                if (m < length) {
+                    keys[l].tangent2 = -keys[l].tangent2;
+                    keys[m].tangent1 = -keys[m].tangent1;
+                }
+                removed = true;
+            }
+
+            if (removed) {
+                color.erase(color.begin() + (i + 2));
+                color_length = color.size();
+            }
+        }
+
+        int32_t max_value = 0;
+        for (kft3& i : morph)
+            max_value = max_def(max_value, (int32_t)i.value);
+        max_value++;
+
+        if (max_value < color.size())
+            color.resize(max_value);
     }
 
     if (morph.size() > 1) {
@@ -8643,6 +8711,7 @@ void material_list_data::optimize() {
                 && *(uint32_t*)&i[0].value == *(uint32_t*)&i[1].value) {
                 i[1].tangent1 = i[0].tangent1;
                 i = morph.erase(i);
+                i_begin = morph.begin();
                 i_end = morph.end() - 1;
             }
             else
@@ -9104,6 +9173,8 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
     stage_data_effect_auth_3ds.sort_unique();
     stage_data_change_effect_auth_3ds.sort_unique();
+
+    printf_debug("");
 
     for (auto& i : stage_data_effect_auth_3ds) {
         auth_3d* auth = i.first.get_auth_3d();

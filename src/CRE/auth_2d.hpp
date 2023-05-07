@@ -80,6 +80,10 @@ struct aet_layout_data {
     resolution_mode mode;
 
     aet_layout_data();
+
+    static void put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
+        vec2* pos, aet_layout_data* layout, const sprite_database* spr_db);
+    static void set_args(aet_layout_data* layout, spr::SprArgs* args);
 };
 
 struct AetComp {
@@ -90,6 +94,10 @@ struct AetComp {
 
     void Add(const char* name, aet_layout_data& data);
     aet_layout_data* Find(const char* name);
+
+    static void put_number_sprite(int32_t value, int32_t max_digits,
+        AetComp* comp, const char** names, const int32_t* spr_ids, spr::SprPrio prio,
+        vec2* pos, bool all_digits, const sprite_database* spr_db);
 };
 
 extern void aet_manager_init();

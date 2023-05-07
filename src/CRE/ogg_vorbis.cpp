@@ -253,7 +253,7 @@ bool OggFile::OpenFile(const char* path, double_t time_seek) {
         while (*user_comments) {
             std::string user_comment = *user_comments++;
             for (char& c : user_comment)
-                if (c > 0x40 && c < 0x5B)
+                if (c >= 'A' && c <= 'Z')
                     c += 0x20;
 
             if (user_comment.size() >= 10 && !memcmp(user_comment.c_str(), "loop_begin", 10)) {

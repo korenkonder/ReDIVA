@@ -2184,7 +2184,7 @@ namespace rndr {
 
         static const vec4 border_color = 0.0f;
 
-        glCreateSamplers(18, samplers);
+        glGenSamplers(18, samplers);
         for (int32_t i = 0; i < 18; i++) {
             GLuint sampler = samplers[i];
 
@@ -2224,7 +2224,7 @@ namespace rndr {
         }
 
         GLuint sampler;
-        glCreateSamplers(3, sprite_samplers);
+        glGenSamplers(3, sprite_samplers);
         sampler = sprite_samplers[0];
         glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
         glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -2573,14 +2573,14 @@ matrix_buffer(), box_vao(), box_vbo(), empty_texture_2d(), empty_texture_cube_ma
 
     glGenTextures(1, &empty_texture_2d);
     gl_state_bind_texture_2d(empty_texture_2d);
-    texture_set_params(empty_texture_2d, GL_TEXTURE_2D, 0, false);
+    texture_set_params(GL_TEXTURE_2D, 0, false);
     glCompressedTexImage2D(GL_TEXTURE_2D, 0,
         GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, 8, empty_texture_data);
     gl_state_bind_texture_2d(0);
 
     glGenTextures(1, &empty_texture_cube_map);
     gl_state_bind_texture_cube_map(empty_texture_cube_map);
-    texture_set_params(empty_texture_cube_map, GL_TEXTURE_CUBE_MAP, 0, false);
+    texture_set_params(GL_TEXTURE_CUBE_MAP, 0, false);
     for (int32_t side = 0; side < 6; side++)
         glCompressedTexImage2D(target_cube_map_array[side], 0,
             GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, 8, empty_texture_data);

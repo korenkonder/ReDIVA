@@ -1766,6 +1766,12 @@ bool sound_work_release_stream(int32_t index) {
     return stream->stop();
 }
 
+void sound_work_reset_all_se() {
+    for (SoundCue& i : sound_work->cues)
+        if ((!i.se_channel || i.property) && i.queue_index)
+            i.ReleaseProt(true);
+}
+
 bool sound_work_stream_set_pause(int32_t index, bool value) {
     if (index < 0 || index >= SOUND_WORK_STREAM_COUNT || !sound_work->stream_enable[index])
         return false;

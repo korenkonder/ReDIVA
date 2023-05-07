@@ -174,7 +174,7 @@ public:
     bool GetSetReady(uint32_t index);
     void GetSetSceneCompLayerNames(std::vector<std::string>& vec, aet_info info);
     float_t GetSetSceneEndTime(aet_info info);
-    float GetSetSceneLayerEndTime(aet_info info, const char* layer_name);
+    float_t GetSetSceneLayerEndTime(aet_info info, const char* layer_name);
     void GetSetSceneLayerMarkerNames(std::vector<std::string>& vec, aet_info info, const char* layer_name);
     float_t GetSetSceneLayerMarkerTime(aet_info info, const char* scene_name, const char* marker_name);
     float_t GetSetSceneLayerStartTime(aet_info info, const char* layer_name);
@@ -244,11 +244,58 @@ aet_layout_data* AetComp::Find(const char* name) {
     return 0;
 }
 
+void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
+    AetComp* comp, const char** names, const int32_t* spr_ids, spr::SprPrio prio,
+    vec2* pos, bool all_digits, const sprite_database* spr_db) {
+    if (!comp || !names || !spr_ids)
+        return;
+
+    for (int32_t i = 0; i < max_digits && (all_digits || value); i++) {
+        int32_t digit = value % 10;
+        value /= 10;
+
+        aet_layout_data* layout = comp->Find(names[i]);
+        if (layout)
+            aet_layout_data::put_sprite(spr_ids[digit],
+                spr::SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
+    }
+}
+        
+
 aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;
     color = { 0xFF, 0xFF, 0xFF, 0xFF };
     mode = RESOLUTION_MODE_HD;
+}
+
+
+void aet_layout_data::put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
+    vec2* pos, aet_layout_data* layout, const sprite_database* spr_db) {
+    if (!layout)
+        return;
+
+    spr::SprArgs args;
+    aet_layout_data::set_args(layout, &args);
+    args.id.id = spr_id;
+    args.attr = attr;
+    args.prio = prio;
+    if (pos) {
+        args.trans.x = args.trans.x + pos->x;
+        args.trans.y = args.trans.y + pos->y;
+    }
+    spr::put_sprite(args, spr_db);
+}
+
+void aet_layout_data::set_args(aet_layout_data* layout, spr::SprArgs* args) {
+    if (!layout || !args)
+        return;
+
+    args->trans = layout->position;
+    args->center = layout->anchor;
+    args->scale.x = layout->mat.row0.x;
+    args->scale.y = layout->mat.row1.y;
+    args->scale.z = layout->mat.row2.z;
 }
 
 void aet_manager_init() {
@@ -1602,7 +1649,7 @@ float_t AetMgr::GetSetSceneEndTime(aet_info info) {
     return GetSet(info.set_index)->GetSceneEndTime(info.index) - 1.0f;
 }
 
-float AetMgr::GetSetSceneLayerEndTime(aet_info info, const char* layer_name) {
+float_t AetMgr::GetSetSceneLayerEndTime(aet_info info, const char* layer_name) {
     AetSet* set = GetSet(info.set_index);
     return set->GetSceneLayer(set->GetSceneByInfo(info), layer_name)->end_time - 1.0f;
 }

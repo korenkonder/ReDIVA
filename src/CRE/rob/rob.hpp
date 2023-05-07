@@ -1451,7 +1451,7 @@ public:
     virtual void Field_50() override;
 
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
-        const char* cns_data_name, bone_database* bone_data);
+        const char* cns_data_name, const bone_database* bone_data);
 };
 
 struct RobOsageNode;
@@ -1846,11 +1846,11 @@ struct RobCloth : public CLOTH {
     void Disp(const mat4* mat, render_context* rctx);
     void InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,
         obj_skin_block_cloth_node* nodes, mat4* mats, int32_t a7,
-        rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data);
+        rob_chara_item_equip_object* itm_eq_obj, const bone_database* bone_data);
     void InitDataParent(obj_skin_block_cloth* cls_data,
-        rob_chara_item_equip_object* itm_eq_obj, bone_database* bone_data);
+        rob_chara_item_equip_object* itm_eq_obj, const bone_database* bone_data);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
-    void LoadSkinParam(void* kv, const char* name, bone_database* bone_data);
+    void LoadSkinParam(void* kv, const char* name, const bone_database* bone_data);
     void ResetExtrenalForce();
     void SetForceAirRes(float_t force, float_t force_gain, float_t air_res);
     void SetMotionResetData(int32_t motion_id, float_t frame);
@@ -1888,7 +1888,7 @@ public:
     void AddMotionResetData(int32_t motion_id, float_t frame);
     void ColiSet();
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_cloth* cls_data,
-        skin_param_osage_root* skp_root, bone_database* bone_data);
+        skin_param_osage_root* skp_root, const bone_database* bone_data);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void SetMotionResetData(int32_t motion_id, float_t frame);
     float_t* SetOsagePlayDataInit(float_t* opdi_data);
@@ -1929,8 +1929,8 @@ struct RobOsage {
     float_t field_1EB4;
     int32_t yz_order;
     int32_t field_1EBC;
-    mat4* parent_mat_ptr;
-    mat4 parent_mat;
+    mat4* root_matrix_ptr;
+    mat4 root_matrix;
     float_t move_cancel;
     bool field_1F0C;
     bool osage_reset;
@@ -1954,7 +1954,7 @@ struct RobOsage {
         bone_node* ex_data_bone_nodes, obj_skin* skin);
     float_t* LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count);
     void LoadSkinParam(void* kv, const char* name,
-        skin_param_osage_root& skp_root, object_info* obj_info, bone_database* bone_data);
+        skin_param_osage_root& skp_root, object_info* obj_info, const bone_database* bone_data);
     void Reset();
     void ResetExtrenalForce();
     void SetAirRes(float_t air_res);
@@ -2036,7 +2036,7 @@ public:
     void Calc();
     void DataSet();
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
-        const char* cns_data_name, bone_database* bone_data);
+        const char* cns_data_name, const bone_database* bone_data);
 
     static void sub_1405F10D0(mat4* mat, vec3* a2, float_t a3, float_t a4);
     static void sub_1401EB410(mat4* mat, vec3* a2, vec3* target_offset);
@@ -2114,7 +2114,7 @@ public:
     void Calc();
     void DataSet();
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_expression* exp_data,
-        const char* exp_data_name, object_info a4, size_t index, bone_database* bone_data);
+        const char* exp_data_name, object_info a4, size_t index, const bone_database* bone_data);
 };
 
 struct ex_data_name_bone_index {
@@ -2165,18 +2165,18 @@ struct rob_chara_item_equip_object {
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
     void clear_ex_data();
     void disp(const mat4* mat, render_context* rctx);
-    int32_t get_bone_index(const char* name, bone_database* bone_data);
+    int32_t get_bone_index(const char* name, const bone_database* bone_data);
     bone_node* get_bone_node(int32_t bone_index);
-    bone_node* get_bone_node(const char* name, bone_database* bone_data);
+    bone_node* get_bone_node(const char* name, const bone_database* bone_data);
     const mat4* get_ex_data_bone_node_mat(const char* name);
     RobOsageNode* get_normal_ref_osage_node(std::string& name, size_t* index);
-    void get_parent_bone_nodes(bone_node* bone_nodes, bone_database* bone_data);
+    void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
     void init_ex_data_bone_nodes(obj_skin_ex_data* ex_data);
     void init_members(size_t index = 0xDEADBEEF);
     void load_ex_data(obj_skin_ex_data* ex_data,
-        bone_database* bone_data, void* data, object_database* obj_db);
+        const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_object_info_ex_data(object_info object_info, bone_node* bone_nodes,
-        bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
+        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void reset_external_force();
     void set_alpha_obj_flags(float_t alpha, int32_t flags);
     bool set_boc(skin_param_osage_root& skp_root, ExOsageBlock* osg);
@@ -2188,11 +2188,11 @@ struct rob_chara_item_equip_object {
     void set_osage_reset();
     void set_osage_move_cancel(float_t value);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
-    void skp_load(void* kv, bone_database* bone_data);
+    void skp_load(void* kv, const bone_database* bone_data);
     void skp_load(skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
-        skin_param_file_data* skp_file_data, bone_database* bone_data);
+        skin_param_file_data* skp_file_data, const bone_database* bone_data);
     bool skp_load_boc(skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
-    void skp_load_file(void* data, bone_database* bone_data, object_database* obj_db);
+    void skp_load_file(void* data, const bone_database* bone_data, const object_database* obj_db);
     bool skp_load_normal_ref(skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
 };
 
@@ -2258,12 +2258,14 @@ struct rob_chara_item_equip {
     void disp(int32_t chara_id, render_context* rctx);
     rob_chara_item_equip_object* get_item_equip_object(item_id id);
     object_info get_object_info(item_id id);
-    void get_parent_bone_nodes(bone_node* bone_nodes, bone_database* bone_data);
+    void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
     const mat4* get_ex_data_bone_node_mat(item_id id, const char* name);
+    void load_body_parts_object_info(item_id id,
+        object_info obj_info, const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_object_info(object_info obj_info, item_id id,
-        bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
+        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_outfit_object_info(item_id id, object_info obj_info,
-        bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
+        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void reset();
     void reset_external_force();
     void reset_init_data(bone_node* bone_nodes);
@@ -2282,8 +2284,8 @@ struct rob_chara_item_equip {
     void set_shadow_type(int32_t chara_id);
     void set_step(float_t value);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
-    void skp_load(item_id id, skin_param_osage_root& skp_root,
-        std::vector<skin_param_osage_node>& vec, skin_param_file_data* skp_file_data, bone_database* bone_data);
+    void skp_load(item_id id, skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
+        skin_param_file_data* skp_file_data, const bone_database* bone_data);
 };
 
 struct item_cos_texture_change_tex {
@@ -2303,7 +2305,7 @@ struct rob_chara_item_cos_data {
     std::map<int32_t, std::vector<item_cos_texture_change_tex>> texture_change;
     std::map<int32_t, std::vector<uint32_t>> item_change;
     std::map<object_info, item_id> field_F0;
-    std::map<int32_t, int32_t > field_100;
+    std::map<int32_t, item_id> field_100;
     std::vector<texture_pattern_struct> texture_pattern[31];
     std::map<int32_t, object_info> head_replace;
 
@@ -2315,7 +2317,7 @@ struct rob_chara_item_cos_data {
     object_info get_head_object_replace(int32_t head_object_id);
     float_t get_max_face_depth();
     void reload_items(int32_t chara_id,
-        bone_database* bone_data, void* data, object_database* obj_db);
+        const bone_database* bone_data, void* data, const object_database* obj_db);
     void set_chara_index(::chara_index chara_index);
     void set_chara_index_item(::chara_index chara_index, int32_t item_no);
     void set_chara_index_item_nos(::chara_index chara_index, const int32_t* items);
@@ -3415,11 +3417,11 @@ struct rob_chara {
     int32_t get_rob_cmn_mottbl_motion_id(int32_t id);
     bool is_visible();
     void load_motion(int32_t motion_id, bool a3, float_t frame,
-        MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
+        MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
     void load_outfit_object_info(item_id id, object_info obj_info,
-        bool osage_reset, bone_database* bone_data, void* data, object_database* obj_db);
+        bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void reset_data(rob_chara_pv_data* pv_data,
-        bone_database* bone_data, motion_database* mot_db);
+        const bone_database* bone_data, const motion_database* mot_db);
     void reset_osage();
     void set_bone_data_frame(float_t frame);
     void set_chara_height_adjust(bool value);
@@ -3427,31 +3429,31 @@ struct rob_chara {
     void set_chara_pos_adjust_y(float_t value);
     void set_chara_size(float_t value);
     void set_eyelid_mottbl_motion_from_face(int32_t a2,
-        float_t blend_duration, float_t value, float_t blend_offset, motion_database* mot_db);
+        float_t blend_duration, float_t value, float_t blend_offset, const motion_database* mot_db);
     void set_eyelid_mottbl_motion(int32_t type,
         int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-        float_t a7, float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
+        float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
     void set_eyes_mottbl_motion(int32_t type,
         int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
-        float_t a7, float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
+        float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
     void set_face_mottbl_motion(int32_t type, int32_t mottbl_index,
         float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, bool a11, motion_database* mot_db);
+        float_t step, int32_t a9, float_t blend_offset, bool a11, const motion_database* mot_db);
     void set_frame(float_t frame);
     void set_hand_l_mottbl_motion(int32_t type, int32_t mottbl_index,
         float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
+        float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
     void set_hand_r_mottbl_motion(int32_t type, int32_t mottbl_index,
         float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
+        float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
     bool set_motion_id(int32_t motion_id, float_t frame,
         float_t blend_duration, bool a5, bool set_motion_reset_data,
-        MotionBlendType blend_type, bone_database* bone_data, motion_database* mot_db);
+        MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
     void set_motion_reset_data(int32_t motion_id, float_t frame);
     void set_motion_skin_param(int32_t motion_id, float_t frame);
     void set_mouth_mottbl_motion(int32_t type, int32_t mottbl_index,
         float_t value, int32_t state, float_t blend_duration, float_t a7,
-        float_t step, int32_t a9, float_t blend_offset, motion_database* mot_db);
+        float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
     void set_osage_move_cancel(uint8_t id, float_t value);
     void set_osage_reset();
     void set_parts_disp(item_id id, bool disp);
@@ -3492,7 +3494,7 @@ extern bool check_module_index_is_501(int32_t module_index);
 
 extern const float_t get_osage_gravity_const();
 
-extern void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, motion_database* mot_db);
+extern void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db);
 extern void motion_set_unload_mothead(uint32_t set);
 
 extern bool opd_make_manager_del_task();
@@ -3565,14 +3567,9 @@ extern bool task_rob_manager_del_task();
 
 extern void mothead_storage_init();
 extern bool mothead_storage_check_mhd_file_not_ready(uint32_t set_id);
-extern const mothead_mot* mothead_storage_get_mot_by_motion_id(uint32_t motion_id, motion_database* mot_db);
+extern const mothead_mot* mothead_storage_get_mot_by_motion_id(
+    uint32_t motion_id, const motion_database* mot_db);
 extern void mothead_storage_free();
-
-extern void skin_param_osage_node_parse(void* kv, const char* name,
-    std::vector<skin_param_osage_node>* a3, skin_param_osage_root& skp_root);
-
-extern void skin_param_osage_root_parse(void* kv, const char* name,
-    skin_param_osage_root& skp_root, bone_database* bone_data);
 
 extern int32_t expression_id_to_mottbl_index(int32_t expression_id);
 extern int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);

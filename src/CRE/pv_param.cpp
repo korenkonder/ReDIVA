@@ -881,4 +881,60 @@ namespace pv_param_task {
         chara_item_alpha.Reset();
         return true;
     }
+
+    bool post_process_task_add_task() {
+        return app::TaskWork::AddTask(&post_process_task, "PV POST PROCESS TASK");
+    }
+
+    void post_process_task_set_bloom_data(
+        pv_param::bloom& data, float_t duration) {
+        PostProcessCtrlBloom& bloom = post_process_task.bloom;
+        bloom.frame = 0.0f;
+        bloom.duration = duration;
+        bloom.data.data = data;
+    }
+
+    void post_process_task_set_color_correction_data(
+        pv_param::color_correction& data, float_t duration) {
+        PostProcessCtrlCC& cc = post_process_task.cc;
+        cc.frame = 0.0f;
+        cc.duration = duration;
+        cc.data.data = data;
+    }
+
+    void post_process_task_set_dof_data(
+        pv_param::dof& data, float_t duration) {
+        PostProcessCtrlDof& dof = post_process_task.dof;
+        dof.frame = 0.0f;
+        dof.duration = duration;
+        dof.data.data = data;
+    }
+
+    void post_process_task_set_chara_alpha(
+        int32_t chara_id, int32_t type, float_t alpha, float_t duration) {
+        PostProcessCtrlCharaAlpha& chara_alpha = post_process_task.chara_alpha;
+        pv_param::chara_alpha& chara_alpha_data = chara_alpha.data.data[chara_id];
+        chara_alpha_data.type = type;
+        chara_alpha_data.frame = 0.0f;
+        chara_alpha_data.alpha = alpha;
+        chara_alpha_data.duration = duration;
+    }
+
+    void post_process_task_set_chara_item_alpha(
+        int32_t chara_id, int32_t type, float_t alpha, float_t duration,
+        PostProcessCtrlCharaItemAlpha::Callback callback, void* callback_data) {
+        PostProcessCtrlCharaItemAlpha& chara_item_alpha = post_process_task.chara_item_alpha;
+        pv_param::chara_alpha& chara_item_alpha_data = chara_item_alpha.data.data[chara_id];
+        chara_item_alpha_data.type = type;
+        chara_item_alpha_data.frame = 0.0f;
+        chara_item_alpha_data.alpha = alpha;
+        chara_item_alpha_data.duration = duration;
+
+        chara_item_alpha.callback[chara_id] = callback;
+        chara_item_alpha.callback_data[chara_id] = callback_data;
+    }
+
+    bool post_process_task_del_task() {
+        return post_process_task.DelTask();
+    }
 }

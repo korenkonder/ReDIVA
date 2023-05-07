@@ -6,6 +6,7 @@
 #pragma once
 
 #include "rob.hpp"
+#include "../../KKdLib/key_val.hpp"
 
 extern const osage_setting_osg_cat* osage_setting_data_get_cat_value(
     object_info* obj_info, const char* root_node);
@@ -22,3 +23,14 @@ extern bool skin_param_manager_check_task_ready(int32_t chara_id);
 extern std::vector<skin_param_file_data>* skin_param_manager_get_skin_param_file_data(
     int32_t chara_id, object_info obj_info, int32_t motion_id, int32_t frame);
 extern void skin_param_manager_reset(int32_t chara_id);
+
+extern void skin_param_osage_node_parse(void* kv, const char* name,
+    std::vector<skin_param_osage_node>* a3, skin_param_osage_root& skp_root);
+
+extern void skin_param_osage_root_parse(void* kv, const char* name,
+    skin_param_osage_root& skp_root, const bone_database* bone_data);
+
+extern key_val* skin_param_storage_get_key_val(object_info obj_info);
+extern void skin_param_storage_load(std::vector<object_info>& obj_infos,
+    void* data, const object_database* obj_db);
+extern void skin_param_storage_reset();

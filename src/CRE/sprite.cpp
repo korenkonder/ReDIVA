@@ -82,7 +82,48 @@ struct sprite_draw_param {
 };
 
 namespace spr {
+    struct TexCoord {
+        struct UV {
+            float_t u;
+            float_t v;
+
+            inline UV() : u(), v() {
+
+            }
+        };
+
+        UV uv[4];
+
+        inline TexCoord() {
+
+        }
+    };
+
+    struct TexParam {
+        texture* texture;
+        TexCoord texcoord;
+        //int32_t pad[2];
+
+        inline TexParam() : texture()/*, pad()*/ {
+
+        }
+    };
+
     struct SpriteManager {
+        struct RenderData {
+            std::vector<sprite_draw_param> draw_param_buffer;
+            std::vector<sprite_draw_vertex> vertex_buffer;
+            GLuint vao;
+            GLuint vbo;
+            size_t vbo_vertex_count;
+
+            RenderData();
+            ~RenderData();
+
+            void Clear();
+            void Update();
+        };
+
         std::map<uint32_t, SprSet> sets;
         std::list<SprArgs> reqlist[4][2][SPR_PRIO_MAX];
         float_t aspect[2];
@@ -94,11 +135,7 @@ namespace spr {
 
         uint32_t set_counter;
 
-        std::vector<sprite_draw_param> draw_param_buffer;
-        std::vector<sprite_draw_vertex> vertex_buffer;
-        GLuint vao;
-        GLuint vbo;
-        size_t vbo_vertex_count;
+        RenderData render_data;
 
         SpriteManager();
         ~SpriteManager();
@@ -148,7 +185,7 @@ size_t sprite_vertex_array_count;
 
 extern render_context* rctx_ptr;
 
-const GLenum spr_blend_param[6][4] = {
+static const GLenum spr_blend_param[6][4] = {
     { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_ZERO, GL_ONE  },
     { GL_SRC_ALPHA, GL_ONE_MINUS_SRC_COLOR, GL_ZERO, GL_ONE  },
     { GL_SRC_ALPHA, GL_ONE,                 GL_ZERO, GL_ONE  },
@@ -480,22 +517,7 @@ void sprite_manager_free() {
 }
 
 namespace spr {
-    SpriteManager::SpriteManager() : aspect(), index(), set_counter() {
-        ResetIndex();
-        resolution_mode = RESOLUTION_MODE_MAX;
-
-        resolution_struct res = resolution_struct(RESOLUTION_MODE_HD);
-
-        aspect[0] = (float_t)res.aspect;
-        field_1018[0].first = res.resolution_mode;
-        field_1018[0].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
-
-        aspect[1] = (float_t)res.aspect;
-        field_1018[1].first = res.resolution_mode;
-        field_1018[1].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
-
-        mat = mat4_identity;
-
+    SpriteManager::RenderData::RenderData() {
         glGenVertexArrays(1, &vao);
         gl_state_bind_vertex_array(vao, true);
 
@@ -528,12 +550,9 @@ namespace spr {
 
         gl_state_bind_array_buffer(0);
         gl_state_bind_vertex_array(0);
-
     }
 
-    SpriteManager::~SpriteManager() {
-        Clear();
-
+    SpriteManager::RenderData::~RenderData() {
         if (vbo) {
             glDeleteBuffers(1, &vbo);
             vbo = 0;
@@ -543,6 +562,83 @@ namespace spr {
             glDeleteVertexArrays(1, &vao);
             vao = 0;
         }
+    }
+
+    void SpriteManager::RenderData::Clear() {
+        draw_param_buffer.clear();
+        vertex_buffer.clear();
+    }
+
+    void SpriteManager::RenderData::Update() {
+        static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
+
+        if (vbo_vertex_count < vertex_buffer.size()) {
+            while (vbo_vertex_count < vertex_buffer.size())
+                vbo_vertex_count *= 2;
+
+            glDeleteBuffers(1, &vbo);
+            glGenBuffers(1, &vbo);
+
+            gl_state_bind_vertex_array(vao, true);
+            gl_state_bind_array_buffer(vbo, true);
+
+            if (GLAD_GL_VERSION_4_4)
+                glBufferStorage(GL_ARRAY_BUFFER,
+                    (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_STORAGE_BIT);
+            else
+                glBufferData(GL_ARRAY_BUFFER,
+                    (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
+                * vertex_buffer.size()), vertex_buffer.data());
+
+            glEnableVertexAttribArray(0);
+            glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(sprite_draw_vertex, pos));
+            glEnableVertexAttribArray(1);
+            glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size,
+                (void*)offsetof(sprite_draw_vertex, color));
+            glEnableVertexAttribArray(2);
+            glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(sprite_draw_vertex, uv[0]));
+            glEnableVertexAttribArray(3);
+            glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size,
+                (void*)offsetof(sprite_draw_vertex, uv[1]));
+
+            gl_state_bind_array_buffer(0);
+            gl_state_bind_vertex_array(0);
+        }
+        else {
+            if (GLAD_GL_VERSION_4_5)
+                glNamedBufferSubData(vbo, 0, (GLsizeiptr)(buffer_size
+                    * vertex_buffer.size()), vertex_buffer.data());
+            else {
+                gl_state_bind_array_buffer(vbo);
+                glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
+                    * vertex_buffer.size()), vertex_buffer.data());
+                gl_state_bind_array_buffer(0);
+            }
+        }
+    }
+
+    SpriteManager::SpriteManager() : aspect(), index(), set_counter() {
+        ResetIndex();
+        resolution_mode = RESOLUTION_MODE_MAX;
+
+        resolution_struct res = resolution_struct(RESOLUTION_MODE_HD);
+
+        aspect[0] = (float_t)res.aspect;
+        field_1018[0].first = res.resolution_mode;
+        field_1018[0].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
+
+        aspect[1] = (float_t)res.aspect;
+        field_1018[1].first = res.resolution_mode;
+        field_1018[1].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
+
+        mat = mat4_identity;
+    }
+
+    SpriteManager::~SpriteManager() {
+        Clear();
     }
 
     uint32_t SpriteManager::AddSetModern() {
@@ -591,8 +687,7 @@ namespace spr {
             i.second.Unload();
         sets.clear();
 
-        draw_param_buffer.clear();
-        vertex_buffer.clear();
+        render_data.Clear();
     }
 
     void SpriteManager::Draw(render_context* rctx,
@@ -677,69 +772,21 @@ namespace spr {
             mat4_transpose(&projection, &shader_data.g_transform);
             rctx->sprite_scene_ubo.WriteMapMemory(shader_data);
 
-            draw_param_buffer.clear();
-            vertex_buffer.clear();
+            render_data.Clear();
 
             for (uint32_t j = SPR_PRIO_MAX; j; j--, reqlist++)
                 for (auto& k : *reqlist)
                     draw_sprite(rctx, k, font, mat, x_min, y_min, x_max, y_max,
-                        draw_param_buffer, vertex_buffer);
+                        render_data.draw_param_buffer, render_data.vertex_buffer);
 
-            static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
-
-            if (vbo_vertex_count < vertex_buffer.size()) {
-                while (vbo_vertex_count < vertex_buffer.size())
-                    vbo_vertex_count *= 2;
-
-                glDeleteBuffers(1, &vbo);
-                glGenBuffers(1, &vbo);
-
-                gl_state_bind_vertex_array(vao, true);
-                gl_state_bind_array_buffer(vbo, true);
-
-                if (GLAD_GL_VERSION_4_4)
-                    glBufferStorage(GL_ARRAY_BUFFER,
-                        (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_STORAGE_BIT);
-                else
-                    glBufferData(GL_ARRAY_BUFFER,
-                        (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_DRAW);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
-                    * vertex_buffer.size()), vertex_buffer.data());
-
-                glEnableVertexAttribArray(0);
-                glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                    (void*)offsetof(sprite_draw_vertex, pos));
-                glEnableVertexAttribArray(1);
-                glVertexAttribPointer(1, 4, GL_UNSIGNED_BYTE, GL_TRUE, buffer_size,
-                    (void*)offsetof(sprite_draw_vertex, color));
-                glEnableVertexAttribArray(2);
-                glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                    (void*)offsetof(sprite_draw_vertex, uv[0]));
-                glEnableVertexAttribArray(3);
-                glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size,
-                    (void*)offsetof(sprite_draw_vertex, uv[1]));
-
-                gl_state_bind_array_buffer(0);
-                gl_state_bind_vertex_array(0);
-            }
-            else {
-                if (GLAD_GL_VERSION_4_5)
-                    glNamedBufferSubData(vbo, 0, (GLsizeiptr)(buffer_size
-                        * vertex_buffer.size()), vertex_buffer.data());
-                else {
-                    gl_state_bind_array_buffer(vbo);
-                    glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
-                        * vertex_buffer.size()), vertex_buffer.data());
-                    gl_state_bind_array_buffer(0);
-                }
-            }
+            render_data.Update();
 
             rctx->sprite_scene_ubo.Bind(0);
 
             gl_state_active_bind_texture_2d(7, tex->tex);
 
-            gl_state_bind_vertex_array(vao);
-            for (sprite_draw_param& j : draw_param_buffer) {
+            gl_state_bind_vertex_array(render_data.vao);
+            for (sprite_draw_param& j : render_data.draw_param_buffer) {
                 if (j.blend) {
                     gl_state_enable_blend();
                     gl_state_set_blend_func_separate(
@@ -780,7 +827,7 @@ namespace spr {
                 shaders_ft.set(j.shader);
                 shaders_ft.draw_arrays(j.mode, j.first, j.count);
             }
-            gl_state_bind_array_buffer(0);
+            gl_state_bind_vertex_array(0);
         }
 
         if (index == 2 && resolution_mode != RESOLUTION_MODE_MAX)
@@ -1400,6 +1447,11 @@ namespace spr {
                 }
             } break;
             case SPR_KIND_ARROW_AB: {
+                if (!args.num_vertex) {
+                    draw_param_buffer.pop_back();
+                    return;
+                }
+
                 draw_param.mode = GL_LINE_STRIP;
                 draw_param.first = (GLint)vertex_buffer.size();
                 draw_param.count = (GLsizei)args.num_vertex;
@@ -1416,6 +1468,11 @@ namespace spr {
                 }
             } break;
             case SPR_KIND_TRIANGLE: {
+                if (!args.num_vertex) {
+                    draw_param_buffer.pop_back();
+                    return;
+                }
+
                 draw_param.mode = GL_TRIANGLE_STRIP;
                 draw_param.first = (GLint)vertex_buffer.size();
                 draw_param.count = (GLsizei)args.num_vertex;
@@ -1625,6 +1682,7 @@ namespace spr {
         gl_state_bind_sampler(0, 0);
         gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
         gl_state_bind_sampler(1, 0);
+        gl_state_bind_sampler(7, 0);
         gl_state_set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
     }
 
@@ -1634,6 +1692,8 @@ namespace spr {
         gl_state_bind_sampler(0, 0);
         gl_state_active_bind_texture_2d(1, 0);
         gl_state_bind_sampler(1, 0);
+        gl_state_active_bind_texture_2d(7, 0);
+        gl_state_bind_sampler(7, 0);
         gl_state_set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
         shader::unbind();
     }

@@ -424,7 +424,7 @@ struct x_pv_game_music {
     void fade_in_end();
     void fade_out_end();
     void file_load(int32_t type, std::string&& file_path, bool play_on_end,
-        float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9);
+        float_t start, float_t end, float_t fade_in_time, float_t fade_out_time, bool a9);
     int32_t get_master_volume(int32_t index);
     int32_t get_volume(int32_t index);
     int32_t include_flags(x_pv_game_music_flags flags);
@@ -436,7 +436,7 @@ struct x_pv_game_music {
     int32_t ogg_stop();
     int32_t play();
     int32_t play(int32_t type, std::string&& file_path, bool play_on_end,
-        float_t start, float end, float fade_in_time, float_t fade_out_time, bool a9);
+        float_t start, float_t end, float_t fade_in_time, float_t fade_out_time, bool a9);
     void play_fade_in(int32_t type, std::string&& file_path, float_t start,
         float_t end, bool play_on_end, bool a7, float_t fade_out_time, bool a10);
     int32_t play_or_stop();

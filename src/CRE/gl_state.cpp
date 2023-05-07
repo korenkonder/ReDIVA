@@ -7,9 +7,9 @@
 
 gl_state_struct gl_state;
 
-void gl_state_active_bind_texture_2d(int32_t index, GLuint texture) {
-    if (gl_state.texture_binding_2d[index] != texture) {
-        if (gl_state.active_texture_index != index) {
+void gl_state_active_bind_texture_2d(int32_t index, GLuint texture, bool force) {
+    if (force || gl_state.texture_binding_2d[index] != texture) {
+        if (force || gl_state.active_texture_index != index) {
             glActiveTexture((GLenum)(GL_TEXTURE0 + index));
             gl_state.active_texture = (GLenum)(GL_TEXTURE0 + index);
             gl_state.active_texture_index = (GLuint)index;
@@ -19,9 +19,9 @@ void gl_state_active_bind_texture_2d(int32_t index, GLuint texture) {
     }
 }
 
-void gl_state_active_bind_texture_cube_map(int32_t index, GLuint texture) {
-    if (gl_state.texture_binding_cube_map[index] != texture) {
-        if (gl_state.active_texture_index != index) {
+void gl_state_active_bind_texture_cube_map(int32_t index, GLuint texture, bool force) {
+    if (force || gl_state.texture_binding_cube_map[index] != texture) {
+        if (force || gl_state.active_texture_index != index) {
             glActiveTexture((GLenum)(GL_TEXTURE0 + index));
             gl_state.active_texture = (GLenum)(GL_TEXTURE0 + index);
             gl_state.active_texture_index = (GLuint)index;
@@ -31,16 +31,16 @@ void gl_state_active_bind_texture_cube_map(int32_t index, GLuint texture) {
     }
 }
 
-void gl_state_active_texture(size_t index) {
-    if (gl_state.active_texture_index != index) {
+void gl_state_active_texture(size_t index, bool force) {
+    if (force || gl_state.active_texture_index != index) {
         glActiveTexture((GLenum)(GL_TEXTURE0 + index));
         gl_state.active_texture = (GLenum)(GL_TEXTURE0 + index);
         gl_state.active_texture_index = (GLuint)index;
     }
 }
 
-void gl_state_bind_framebuffer(GLuint framebuffer) {
-    if (gl_state.read_framebuffer_binding != framebuffer
+void gl_state_bind_framebuffer(GLuint framebuffer, bool force) {
+    if (force || gl_state.read_framebuffer_binding != framebuffer
         || gl_state.draw_framebuffer_binding != framebuffer) {
         glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);
         gl_state.read_framebuffer_binding = framebuffer;
@@ -48,50 +48,50 @@ void gl_state_bind_framebuffer(GLuint framebuffer) {
     }
 }
 
-void gl_state_bind_read_framebuffer(GLuint framebuffer) {
-    if (gl_state.read_framebuffer_binding != framebuffer) {
+void gl_state_bind_read_framebuffer(GLuint framebuffer, bool force) {
+    if (force || gl_state.read_framebuffer_binding != framebuffer) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, framebuffer);
         gl_state.read_framebuffer_binding = framebuffer;
     }
 }
 
-void gl_state_bind_draw_framebuffer(GLuint framebuffer) {
-    if (gl_state.draw_framebuffer_binding != framebuffer) {
+void gl_state_bind_draw_framebuffer(GLuint framebuffer, bool force) {
+    if (force || gl_state.draw_framebuffer_binding != framebuffer) {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer);
         gl_state.draw_framebuffer_binding = framebuffer;
     }
 }
 
 void gl_state_bind_vertex_array(GLuint array, bool force) {
-    if (gl_state.vertex_array_binding != array || force) {
+    if (force || gl_state.vertex_array_binding != array) {
         glBindVertexArray(array);
         gl_state.vertex_array_binding = array;
     }
 }
 
 void gl_state_bind_array_buffer(GLuint buffer, bool force) {
-    if (gl_state.array_buffer_binding != buffer || force) {
+    if (force || gl_state.array_buffer_binding != buffer) {
         glBindBuffer(GL_ARRAY_BUFFER, buffer);
         gl_state.array_buffer_binding = buffer;
     }
 }
 
 void gl_state_bind_element_array_buffer(GLuint buffer, bool force) {
-    if (gl_state.element_array_buffer_binding != buffer || force) {
+    if (force || gl_state.element_array_buffer_binding != buffer) {
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
         gl_state.element_array_buffer_binding = buffer;
     }
 }
 
 void gl_state_bind_uniform_buffer(GLuint buffer, bool force) {
-    if (gl_state.uniform_buffer_binding != buffer || force) {
+    if (force || gl_state.uniform_buffer_binding != buffer) {
         glBindBuffer(GL_UNIFORM_BUFFER, buffer);
         gl_state.uniform_buffer_binding = buffer;
     }
 }
 
 void gl_state_bind_uniform_buffer_base(GLuint index, GLuint buffer, bool force) {
-    if (gl_state.uniform_buffer_bindings[index] != buffer || force) {
+    if (force || gl_state.uniform_buffer_bindings[index] != buffer) {
         glBindBufferBase(GL_UNIFORM_BUFFER, index, buffer);
         gl_state.uniform_buffer_bindings[index] = buffer;
         gl_state.uniform_buffer_offsets[index] = 0;
@@ -101,9 +101,9 @@ void gl_state_bind_uniform_buffer_base(GLuint index, GLuint buffer, bool force) 
 
 void gl_state_bind_uniform_buffer_range(GLuint index,
     GLuint buffer, GLintptr offset, GLsizeiptr size, bool force) {
-    if (gl_state.uniform_buffer_bindings[index] != buffer
+    if (force || gl_state.uniform_buffer_bindings[index] != buffer
         || gl_state.uniform_buffer_offsets[index] != offset
-        || gl_state.uniform_buffer_sizes[index] != size || force) {
+        || gl_state.uniform_buffer_sizes[index] != size) {
         glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer, offset, size);
         gl_state.uniform_buffer_bindings[index] = buffer;
         gl_state.uniform_buffer_offsets[index] = offset;
@@ -112,14 +112,14 @@ void gl_state_bind_uniform_buffer_range(GLuint index,
 }
 
 void gl_state_bind_shader_storage_buffer(GLuint buffer, bool force) {
-    if (gl_state.shader_storage_buffer_binding != buffer || force) {
+    if (force || gl_state.shader_storage_buffer_binding != buffer) {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer);
         gl_state.shader_storage_buffer_binding = buffer;
     }
 }
 
 void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool force) {
-    if (gl_state.shader_storage_buffer_bindings[index] != buffer || force) {
+    if (force || gl_state.shader_storage_buffer_bindings[index] != buffer) {
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer);
         gl_state.shader_storage_buffer_bindings[index] = buffer;
         gl_state.shader_storage_buffer_offsets[index] = 0;
@@ -129,9 +129,9 @@ void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool 
 
 void gl_state_bind_shader_storage_buffer_range(GLuint index,
     GLuint buffer, GLintptr offset, GLsizeiptr size, bool force) {
-    if (gl_state.shader_storage_buffer_bindings[index] != buffer
+    if (force || gl_state.shader_storage_buffer_bindings[index] != buffer
         || gl_state.shader_storage_buffer_offsets[index] != offset
-        || gl_state.shader_storage_buffer_sizes[index] != size || force) {
+        || gl_state.shader_storage_buffer_sizes[index] != size) {
         glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer, offset, size);
         gl_state.shader_storage_buffer_bindings[index] = buffer;
         gl_state.shader_storage_buffer_offsets[index] = offset;
@@ -139,22 +139,22 @@ void gl_state_bind_shader_storage_buffer_range(GLuint index,
     }
 }
 
-void gl_state_bind_texture_2d(GLuint texture) {
+void gl_state_bind_texture_2d(GLuint texture, bool force) {
     if (gl_state.texture_binding_2d[gl_state.active_texture_index] != texture) {
         glBindTexture(GL_TEXTURE_2D, texture);
         gl_state.texture_binding_2d[gl_state.active_texture_index] = texture;
     }
 }
 
-void gl_state_bind_texture_cube_map(GLuint texture) {
-    if (gl_state.texture_binding_cube_map[gl_state.active_texture_index] != texture) {
+void gl_state_bind_texture_cube_map(GLuint texture, bool force) {
+    if (force || gl_state.texture_binding_cube_map[gl_state.active_texture_index] != texture) {
         glBindTexture(GL_TEXTURE_CUBE_MAP, texture);
         gl_state.texture_binding_cube_map[gl_state.active_texture_index] = texture;
     }
 }
 
-void gl_state_bind_sampler(int32_t index, GLuint sampler) {
-    if (gl_state.sampler_binding[index] != sampler) {
+void gl_state_bind_sampler(int32_t index, GLuint sampler, bool force) {
+    if (force || gl_state.sampler_binding[index] != sampler) {
         glBindSampler(index, sampler);
         gl_state.sampler_binding[index] = sampler;
     }
@@ -188,99 +188,99 @@ bool gl_state_check_sampler_binding(int32_t index, GLuint sampler) {
     return gl_state.sampler_binding[index] != 0;
 }
 
-void gl_state_disable_blend() {
-    if (gl_state.blend) {
+void gl_state_disable_blend(bool force) {
+    if (force || gl_state.blend) {
         glDisable(GL_BLEND);
         gl_state.blend = GL_FALSE;
     }
 }
 
-void gl_state_disable_cull_face() {
-    if (gl_state.cull_face) {
+void gl_state_disable_cull_face(bool force) {
+    if (force || gl_state.cull_face) {
         glDisable(GL_CULL_FACE);
         gl_state.cull_face = GL_FALSE;
     }
 }
 
-void gl_state_disable_depth_test() {
-    if (gl_state.depth_test) {
+void gl_state_disable_depth_test(bool force) {
+    if (force || gl_state.depth_test) {
         glDisable(GL_DEPTH_TEST);
         gl_state.depth_test = GL_FALSE;
     }
 }
 
-void gl_state_disable_multisample() {
-    if (gl_state.multisample) {
+void gl_state_disable_multisample(bool force) {
+    if (force || gl_state.multisample) {
         glDisable(GL_MULTISAMPLE);
         gl_state.multisample = GL_FALSE;
     }
 }
 
-void gl_state_disable_primitive_restart() {
-    if (gl_state.primitive_restart) {
+void gl_state_disable_primitive_restart(bool force) {
+    if (force || gl_state.primitive_restart) {
         glDisable(GL_PRIMITIVE_RESTART);
         gl_state.primitive_restart = GL_FALSE;
     }
 }
 
-void gl_state_disable_scissor_test() {
-    if (gl_state.scissor_test) {
+void gl_state_disable_scissor_test(bool force) {
+    if (force || gl_state.scissor_test) {
         glDisable(GL_SCISSOR_TEST);
         gl_state.scissor_test = GL_FALSE;
     }
 }
 
-void gl_state_disable_stencil_test() {
-    if (gl_state.stencil_test) {
+void gl_state_disable_stencil_test(bool force) {
+    if (force || gl_state.stencil_test) {
         glDisable(GL_STENCIL_TEST);
         gl_state.stencil_test = GL_FALSE;
     }
 }
 
-void gl_state_enable_blend() {
-    if (!gl_state.blend) {
+void gl_state_enable_blend(bool force) {
+    if (force || !gl_state.blend) {
         glEnable(GL_BLEND);
         gl_state.blend = GL_TRUE;
     }
 }
 
-void gl_state_enable_cull_face() {
-    if (!gl_state.cull_face) {
+void gl_state_enable_cull_face(bool force) {
+    if (force || !gl_state.cull_face) {
         glEnable(GL_CULL_FACE);
         gl_state.cull_face = GL_TRUE;
     }
 }
 
-void gl_state_enable_depth_test() {
-    if (!gl_state.depth_test) {
+void gl_state_enable_depth_test(bool force) {
+    if (force || !gl_state.depth_test) {
         glEnable(GL_DEPTH_TEST);
         gl_state.depth_test = GL_TRUE;
     }
 }
 
-void gl_state_enable_multisample() {
-    if (!gl_state.multisample) {
+void gl_state_enable_multisample(bool force) {
+    if (force || !gl_state.multisample) {
         glEnable(GL_MULTISAMPLE);
         gl_state.multisample = GL_TRUE;
     }
 }
 
-void gl_state_enable_primitive_restart() {
-    if (!gl_state.primitive_restart) {
+void gl_state_enable_primitive_restart(bool force) {
+    if (force || !gl_state.primitive_restart) {
         glEnable(GL_PRIMITIVE_RESTART);
         gl_state.primitive_restart = GL_TRUE;
     }
 }
 
-void gl_state_enable_scissor_test() {
-    if (!gl_state.scissor_test) {
+void gl_state_enable_scissor_test(bool force) {
+    if (force || !gl_state.scissor_test) {
         glEnable(GL_SCISSOR_TEST);
         gl_state.scissor_test = GL_TRUE;
     }
 }
 
-void gl_state_enable_stencil_test() {
-    if (!gl_state.stencil_test) {
+void gl_state_enable_stencil_test(bool force) {
+    if (force || !gl_state.stencil_test) {
         glEnable(GL_STENCIL_TEST);
         gl_state.stencil_test = GL_TRUE;
     }
@@ -361,8 +361,8 @@ GLuint gl_state_get_program() {
     return gl_state.program;
 }
 
-void gl_state_set_blend_func(GLenum src, GLenum dst) {
-    if (gl_state.blend_src_rgb != src || gl_state.blend_dst_rgb != dst
+void gl_state_set_blend_func(GLenum src, GLenum dst, bool force) {
+    if (force || gl_state.blend_src_rgb != src || gl_state.blend_dst_rgb != dst
         || gl_state.blend_src_alpha != GL_ONE || gl_state.blend_dst_alpha != GL_ONE_MINUS_SRC_ALPHA) {
         glBlendFuncSeparate(src, dst, GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
         gl_state.blend_src_rgb = src;
@@ -373,8 +373,8 @@ void gl_state_set_blend_func(GLenum src, GLenum dst) {
 }
 
 void gl_state_set_blend_func_separate(GLenum src_rgb, GLenum dst_rgb,
-    GLenum src_alpha, GLenum dst_alpha) {
-    if (gl_state.blend_src_rgb != src_rgb || gl_state.blend_dst_rgb != dst_rgb
+    GLenum src_alpha, GLenum dst_alpha, bool force) {
+    if (force || gl_state.blend_src_rgb != src_rgb || gl_state.blend_dst_rgb != dst_rgb
         || gl_state.blend_src_alpha != src_alpha || gl_state.blend_dst_alpha != dst_alpha) {
         glBlendFuncSeparate(src_rgb, dst_rgb, src_alpha, dst_alpha);
         gl_state.blend_src_rgb = src_rgb;
@@ -384,24 +384,25 @@ void gl_state_set_blend_func_separate(GLenum src_rgb, GLenum dst_rgb,
     }
 }
 
-void gl_state_set_blend_equation(GLenum mode) {
-    if (gl_state.blend_mode_rgb != mode || gl_state.blend_mode_alpha != mode) {
+void gl_state_set_blend_equation(GLenum mode, bool force) {
+    if (force || gl_state.blend_mode_rgb != mode || gl_state.blend_mode_alpha != mode) {
         glBlendEquationSeparate(mode, mode);
         gl_state.blend_mode_rgb = mode;
         gl_state.blend_mode_alpha = mode;
     }
 }
 
-void gl_state_set_blend_equation_separate(GLenum mode_rgb, GLenum mode_alpha) {
-    if (gl_state.blend_mode_rgb != mode_rgb || gl_state.blend_mode_alpha != mode_alpha) {
+void gl_state_set_blend_equation_separate(GLenum mode_rgb, GLenum mode_alpha, bool force) {
+    if (force || gl_state.blend_mode_rgb != mode_rgb || gl_state.blend_mode_alpha != mode_alpha) {
         glBlendEquationSeparate(mode_rgb, mode_alpha);
         gl_state.blend_mode_rgb = mode_rgb;
         gl_state.blend_mode_alpha = mode_alpha;
     }
 }
 
-void gl_state_set_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
-    if (gl_state.color_mask[0] != red || gl_state.color_mask[1] != green
+void gl_state_set_color_mask(GLboolean red, GLboolean green,
+    GLboolean blue, GLboolean alpha, bool force) {
+    if (force || gl_state.color_mask[0] != red || gl_state.color_mask[1] != green
         || gl_state.color_mask[2] != blue || gl_state.color_mask[3] != alpha) {
         glColorMask(red, green, blue, alpha);
         gl_state.color_mask[0] = red;
@@ -411,43 +412,44 @@ void gl_state_set_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLb
     }
 }
 
-void gl_state_set_cull_face_mode(GLenum mode) {
-    if (gl_state.cull_face_mode != mode) {
+void gl_state_set_cull_face_mode(GLenum mode, bool force) {
+    if (force || gl_state.cull_face_mode != mode) {
         glCullFace(mode);
         gl_state.cull_face_mode = mode;
     }
 }
 
-void gl_state_set_depth_func(GLenum func) {
-    if (gl_state.depth_func != func) {
+void gl_state_set_depth_func(GLenum func, bool force) {
+    if (force || gl_state.depth_func != func) {
         glDepthFunc(func);
         gl_state.depth_func = func;
     }
 }
 
-void gl_state_set_depth_mask(GLboolean flag) {
-    if (gl_state.depth_mask != flag) {
+void gl_state_set_depth_mask(GLboolean flag, bool force) {
+    if (force || gl_state.depth_mask != flag) {
         glDepthMask(flag);
         gl_state.depth_mask = flag;
     }
 }
 
-void gl_state_set_polygon_mode(GLenum face, GLenum mode) {
+void gl_state_set_polygon_mode(GLenum face, GLenum mode, bool force) {
     switch (face) {
     case GL_FRONT:
-        if (gl_state.polygon_front_face_mode != mode) {
+        if (force || gl_state.polygon_front_face_mode != mode) {
             glPolygonMode(GL_FRONT, mode);
             gl_state.polygon_front_face_mode = mode;
         }
         break;
     case GL_BACK:
-        if (gl_state.polygon_back_face_mode != mode) {
+        if (force || gl_state.polygon_back_face_mode != mode) {
             glPolygonMode(GL_BACK, mode);
             gl_state.polygon_back_face_mode = mode;
         }
         break;
     case GL_FRONT_AND_BACK:
-        if (gl_state.polygon_front_face_mode != mode && gl_state.polygon_back_face_mode != mode) {
+        if (force || gl_state.polygon_front_face_mode != mode
+            && gl_state.polygon_back_face_mode != mode) {
             glPolygonMode(GL_FRONT_AND_BACK, mode);
             gl_state.polygon_front_face_mode = mode;
             gl_state.polygon_back_face_mode = mode;
@@ -464,22 +466,22 @@ void gl_state_set_polygon_mode(GLenum face, GLenum mode) {
     }
 }
 
-void gl_state_set_primitive_restart_index(GLuint index) {
-    if (gl_state.primitive_restart_index != index) {
+void gl_state_set_primitive_restart_index(GLuint index, bool force) {
+    if (force || gl_state.primitive_restart_index != index) {
         glPrimitiveRestartIndex(index);
         gl_state.primitive_restart_index = index;
     }
 }
 
-void gl_state_set_stencil_mask(GLuint mask) {
-    if (gl_state.stencil_mask != mask) {
+void gl_state_set_stencil_mask(GLuint mask, bool force) {
+    if (force || gl_state.stencil_mask != mask) {
         glStencilMask(mask);
         gl_state.stencil_mask = mask;
     }
 }
 
-void gl_state_use_program(GLuint program) {
-    if (gl_state.program != program) {
+void gl_state_use_program(GLuint program, bool force) {
+    if (force || gl_state.program != program) {
         glUseProgram(program);
         gl_state.program = program;
     }

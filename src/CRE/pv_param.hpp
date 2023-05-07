@@ -230,5 +230,17 @@ namespace pv_param_task {
         virtual bool Dest() override;
     };
 
-    extern PostProcessTask post_process_task;
+    extern bool post_process_task_add_task();
+    extern void post_process_task_set_bloom_data(
+        pv_param::bloom& data, float_t duration);
+    extern void post_process_task_set_color_correction_data(
+        pv_param::color_correction& data, float_t duration);
+    extern void post_process_task_set_dof_data(
+        pv_param::dof& data, float_t duration);
+    extern void post_process_task_set_chara_alpha(
+        int32_t chara_id, int32_t type, float_t alpha, float_t duration);
+    extern void post_process_task_set_chara_item_alpha(
+        int32_t chara_id, int32_t type, float_t alpha, float_t duration,
+        PostProcessCtrlCharaItemAlpha::Callback callback, void* callback_data);
+    extern bool post_process_task_del_task();
 }

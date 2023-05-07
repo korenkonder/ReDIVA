@@ -410,8 +410,8 @@ void pv_expression::face_set_data(float_t frame) {
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-        rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214 && mottbl_index <= 223 ? 1 : 0,
-            duration, 0.0f, 1.0f, -1, offset, false, aft_mot_db);
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
+            && mottbl_index <= 223 ? 1 : 0, duration, 0.0f, 1.0f, -1, offset, false, aft_mot_db);
     }
 
     face_data_prev = prev;

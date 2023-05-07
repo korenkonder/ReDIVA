@@ -1435,8 +1435,8 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
     }
 }
 
-inline void object_storage_init(object_database* obj_db) {
-    object_set_info* obj_set = obj_db->object_set.data();
+inline void object_storage_init(const object_database* obj_db) {
+    const object_set_info* obj_set = obj_db->object_set.data();
     size_t count = obj_db->object_set.size();
     object_storage_data.resize(count);
     for (size_t i = 0; i < count; i++) {
@@ -1840,7 +1840,7 @@ inline std::vector<texture*>* object_storage_get_obj_set_textures(int32_t set) {
     return 0;
 }
 
-int32_t object_storage_load_set(void* data, object_database* obj_db, const char* name) {
+int32_t object_storage_load_set(void* data, const object_database* obj_db, const char* name) {
     const object_set_info* set_info = obj_db->get_object_set_info(name);
     if (!set_info)
         return 1;
@@ -1877,7 +1877,7 @@ int32_t object_storage_load_set(void* data, object_database* obj_db, const char*
     return 0;
 }
 
-int32_t object_storage_load_set(void* data, object_database* obj_db, uint32_t set_id) {
+int32_t object_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id) {
     const object_set_info* set_info = obj_db->get_object_set_info(set_id);
     if (!set_info)
         return 1;
@@ -2110,7 +2110,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     return true;
 }
 
-inline void object_storage_unload_set(object_database* obj_db, const char* name) {
+inline void object_storage_unload_set(const object_database* obj_db, const char* name) {
     const object_set_info* set_info = obj_db->get_object_set_info(name);
     if (!set_info)
         return;

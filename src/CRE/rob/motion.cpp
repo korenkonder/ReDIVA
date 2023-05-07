@@ -26,7 +26,7 @@ struct MotFile {
 
 std::map<uint32_t, MotFile> motion_storage_data;
 
-void motion_set_load_motion(uint32_t set, std::string&& mdata_dir, motion_database* mot_db) {
+void motion_set_load_motion(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
     const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
     if (!set_info)
         return;
@@ -52,11 +52,11 @@ bool motion_storage_check_mot_file_not_ready(uint32_t set_id) {
     return false;
 }
 
-const mot_data* motion_storage_get_mot_data(uint32_t motion_id, motion_database* mot_db) {
+const mot_data* motion_storage_get_mot_data(uint32_t motion_id, const motion_database* mot_db) {
     uint32_t set_id = -1;
     size_t motion_index = -1;
-    for (motion_set_info& i : mot_db->motion_set) {
-        for (motion_info& j : i.motion)
+    for (const motion_set_info& i : mot_db->motion_set) {
+        for (const motion_info& j : i.motion)
             if (j.id == motion_id) {
                 set_id = i.id;
                 motion_index = &j - i.motion.data();
@@ -77,7 +77,7 @@ const mot_data* motion_storage_get_mot_data(uint32_t motion_id, motion_database*
     return 0;
 }
 
-float_t motion_storage_get_mot_data_frame_count(uint32_t motion_id, motion_database* mot_db) {
+float_t motion_storage_get_mot_data_frame_count(uint32_t motion_id, const motion_database* mot_db) {
     const mot_data* mot = motion_storage_get_mot_data(motion_id, mot_db);
     if (mot)
         return mot->frame_count;

@@ -4,7 +4,7 @@
 */
 
 #include "rob.hpp"
-#include "../../KKdLib/key_val.hpp"
+#include "../../KKdLib/prj/algorithm.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../mdata_manager.hpp"
 #include "skin_param.hpp"
@@ -93,6 +93,9 @@ osage_setting* osage_setting_data;
 sp_skp_db* sp_skp_db_data;
 
 SkinParamManager* skin_param_manager;
+
+std::map<object_info, prj::shared_ptr<key_val>> skin_param_storage;
+
 
 SkinParam::CollisionParam::CollisionParam() : type(), node_idx(), pos() {
     radius = 0.2f;
@@ -191,6 +194,8 @@ void skin_param_data_init() {
 
     if (!skin_param_manager)
         skin_param_manager = new SkinParamManager[ROB_CHARA_COUNT];
+
+    skin_param_storage = {};
 }
 
 void skin_param_data_load() {
@@ -199,6 +204,8 @@ void skin_param_data_load() {
 }
 
 void skin_param_data_free() {
+    skin_param_storage.clear();
+
     if (skin_param_manager) {
         delete[] skin_param_manager;
         skin_param_manager = 0;
@@ -306,7 +313,7 @@ void skin_param_osage_node_parse(void* kv, const char* name,
 }
 
 void skin_param_osage_root_parse(void* kv, const char* name,
-    skin_param_osage_root& skp_root, bone_database* bone_data) {
+    skin_param_osage_root& skp_root, const bone_database* bone_data) {
     key_val* _kv = (key_val*)kv;
     if (!_kv->open_scope(name))
         return;
@@ -427,17 +434,17 @@ void skin_param_osage_root_parse(void* kv, const char* name,
             const char* bone1_name;
             if (_kv->read("bone.1.name", bone1_name)) {
                 c->node_idx[1] = bone_data->get_skeleton_object_bone_index(
-                    bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
+bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
 
-                vec3 bone1_pos = 0.0f;
-                if (!_kv->read("bone.1.posx", bone1_pos.x)
-                    || !_kv->read("bone.1.posy", bone1_pos.y)
-                    || !_kv->read("bone.1.posz", bone1_pos.z)) {
-                    _kv->close_scope();
-                    break;
-                }
+vec3 bone1_pos = 0.0f;
+if (!_kv->read("bone.1.posx", bone1_pos.x)
+    || !_kv->read("bone.1.posy", bone1_pos.y)
+    || !_kv->read("bone.1.posz", bone1_pos.z)) {
+    _kv->close_scope();
+    break;
+}
 
-                c->pos[1] = bone1_pos;
+c->pos[1] = bone1_pos;
             }
             _kv->close_scope();
         }
@@ -500,6 +507,46 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
     _kv->close_scope();
     _kv->close_scope();
+}
+
+key_val* skin_param_storage_get_key_val(object_info obj_info) {
+    auto elem = skin_param_storage.find(obj_info);
+    if (elem != skin_param_storage.end())
+        return elem->second.get();
+    return 0;
+}
+
+void skin_param_storage_load(std::vector<object_info>& obj_infos,
+    void* data, const object_database* obj_db) {
+    prj::sort_unique(obj_infos);
+    for (const object_info& i : obj_infos) {
+        if (i.is_null())
+            continue;
+
+        const char* obj_name = obj_db->get_object_name(i);
+        if (!obj_name)
+            continue;
+
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "ext_skp_%s.txt", obj_name);
+
+        for (int32_t i = 0; buf[i]; i++) {
+            char c = buf[i];
+            if (c >= 'A' && c <= 'Z')
+                c += 0x20;
+            buf[i] = c;
+        }
+
+        if (((data_struct*)data)->check_file_exists("rom/skin_param/", buf)) {
+            prj::shared_ptr<key_val> kv = prj::shared_ptr<key_val>(new key_val);
+            ((data_struct*)data)->load_file(kv.get(), "rom/skin_param/", buf, key_val::load_file);
+            skin_param_storage.insert({ i, kv });
+        }
+    }
+}
+
+void skin_param_storage_reset() {
+    skin_param_storage.clear();
 }
 
 osage_setting::osage_setting() {

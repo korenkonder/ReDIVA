@@ -122,7 +122,7 @@ extern void object_material_msgpack_read(const char* path, const char* set_name,
 extern void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
     obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db);
 
-extern void object_storage_init(object_database* obj_db);
+extern void object_storage_init(const object_database* obj_db);
 extern obj* object_storage_get_obj(object_info obj_info);
 extern obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id);
 extern obj_set_handler* object_storage_get_obj_set_handler_by_index(size_t index);
@@ -145,11 +145,11 @@ extern obj_vertex_buffer* object_storage_get_obj_vertex_buffers(uint32_t set_id)
 extern obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_info obj_info);
 extern texture* obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id);
 extern std::vector<texture*>* object_storage_get_obj_set_textures(int32_t set);
-extern int32_t object_storage_load_set(void* data, object_database* obj_db, const char* name);
-extern int32_t object_storage_load_set(void* data, object_database* obj_db, uint32_t set_id);
+extern int32_t object_storage_load_set(void* data, const object_database* obj_db, const char* name);
+extern int32_t object_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id);
 extern int32_t object_storage_load_set_hash(void* data, uint32_t hash);
 extern bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     object_database* obj_db = 0, texture_database* tex_db = 0);
-extern void object_storage_unload_set(object_database* obj_db, const char* name);
+extern void object_storage_unload_set(const object_database* obj_db, const char* name);
 extern void object_storage_unload_set(uint32_t set_id);
 extern void object_storage_free();

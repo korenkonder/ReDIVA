@@ -357,6 +357,7 @@ extern void sound_work_release_farc_se(const char* file_path);
 extern bool sound_work_release_se(const char* name, bool force_release = true);
 extern bool sound_work_release_stream(int32_t index);
 extern bool sound_work_stream_set_pause(int32_t index, bool value);
+extern void sound_work_reset_all_se();
 extern float_t sound_cue_queue_volume_array_get_max(int32_t queue_index);
 extern float_t sound_cue_queue_volume_array_get_min(int32_t queue_index);
 extern sound::wasapi::System* sound_wasapi_system_data_get();

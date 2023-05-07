@@ -202,33 +202,6 @@ namespace spr {
         static void SetNext(SprArgs* args, SprArgs* next);
     };
 
-    struct TexCoord {
-        struct UV {
-            float_t u;
-            float_t v;
-
-            inline UV() : u(), v() {
-
-            }
-        };
-
-        UV uv[4];
-
-        inline TexCoord() {
-
-        }
-    };
-
-    struct TexParam {
-        texture* texture;
-        TexCoord texcoord;
-        //int32_t pad[2];
-
-        inline TexParam() : texture()/*, pad()*/ {
-
-        }
-    };
-
     vec2 proj_sprite_3d_line(vec3 vec, bool offset);
 
     void put_cross(const mat4& mat, vec4u8 color_x, vec4u8 color_y, vec4u8 color_z);

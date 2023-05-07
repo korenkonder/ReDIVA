@@ -183,8 +183,7 @@ void texture_array_free(texture** arr) {
     free_def(arr);
 }
 
-void texture_set_params(GLuint texture, GLenum target,
-    int32_t max_mipmap_level, bool use_high_anisotropy) {
+void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy) {
     glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(target, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
@@ -526,7 +525,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         gl_state_bind_texture_cube_map(tex->tex);
         break;
     }
-    texture_set_params(tex->tex, target, max_mipmap_level, use_high_anisotropy);
+    texture_set_params(target, max_mipmap_level, use_high_anisotropy);
 
     GLint swizzle[4];
     switch (internal_format) {
