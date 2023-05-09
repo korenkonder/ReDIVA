@@ -384,7 +384,7 @@ static void camera_calculate_projection_aet(camera* c) {
     mat4 spr_2d_view;
     mat4_look_at(&spr_2d_viewpoint, &spr_2d_interest, &spr_2d_up, &spr_2d_view);
 
-    mat4_mult(&spr_2d_view, &spr_2d_proj, &c->projection_aet_2d);
+    mat4_mult(&spr_2d_view, &spr_2d_proj, &c->view_projection_aet_2d);
 
     float_t v13a = (float_t)c->min_distance / aet_depth * render_half_width;
     float_t v13b = (float_t)c->min_distance / aet_depth * render_half_height;
@@ -398,7 +398,7 @@ static void camera_calculate_projection_aet(camera* c) {
     mat4 spr_3d_view;
     mat4_look_at(&spr_3d_viewpoint, &spr_3d_interest, &spr_3d_up, &spr_3d_view);
 
-    mat4_mult(&spr_3d_view, &spr_3d_proj, &c->projection_aet_3d);
+    mat4_mult(&spr_3d_view, &spr_3d_proj, &c->view_projection_aet_3d);
 }
 
 static void camera_calculate_view(camera* c) {

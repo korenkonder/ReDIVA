@@ -129,7 +129,7 @@ namespace spr {
         float_t aspect[2];
         std::pair<resolution_mode, rectangle> field_1018[2];
         int32_t index;
-        mat4 projection;
+        mat4 view_projection;
         mat4 mat;
         resolution_mode resolution_mode;
 
@@ -144,7 +144,7 @@ namespace spr {
         void AddSprSets(const sprite_database* spr_db);
         void Clear();
         void Draw(render_context* rctx,
-            int32_t index, bool font, texture* tex, const mat4& proj);
+            int32_t index, bool font, texture* tex, const mat4& vp);
         SprSet* GetSet(uint32_t index);
         bool GetSetReady(uint32_t index);
         uint32_t GetSetSpriteNum(uint32_t index);
@@ -403,8 +403,8 @@ void sprite_manager_clear() {
 }
 
 void sprite_manager_draw(render_context* rctx,
-    int32_t index, bool font, texture* tex, const mat4& proj) {
-    sprite_manager->Draw(rctx, index, font, tex, proj);
+    int32_t index, bool font, texture* tex, const mat4& vp) {
+    sprite_manager->Draw(rctx, index, font, tex, vp);
 }
 
 int32_t sprite_manager_get_index() {
@@ -634,6 +634,7 @@ namespace spr {
         field_1018[1].first = res.resolution_mode;
         field_1018[1].second = { 0.0f, 0.0f, (float_t)res.width, (float_t)res.height };
 
+        view_projection = mat4_identity;
         mat = mat4_identity;
     }
 
@@ -691,7 +692,7 @@ namespace spr {
     }
 
     void SpriteManager::Draw(render_context* rctx,
-        int32_t index, bool font, texture* tex, const mat4& proj) {
+        int32_t index, bool font, texture* tex, const mat4& vp) {
         draw_sprite_begin(rctx);
 
         ::resolution_mode mode = res_window_get()->resolution_mode;
@@ -727,7 +728,7 @@ namespace spr {
 
                 mat4 view;
                 mat4_look_at(&eye, &target, &up, &view);
-                mat4_mult(&view, &proj, &projection);
+                mat4_mult(&view, &proj, &view_projection);
 
                 vec2 min;
                 vec2 max;
@@ -741,7 +742,7 @@ namespace spr {
                 glViewport(x_min, y_min, x_max, y_max);
             }
             else {
-                projection = proj;
+                view_projection = vp;
 
                 x_min = v43[0];
                 y_min = v43[1];
@@ -754,22 +755,22 @@ namespace spr {
             float_t v25 = (float_t)y_max * 0.5f;
             float_t v26 = (float_t)y_min + v25;
 
-            mat = projection;
-            mat.row0.x = v23 * projection.row0.x + v24 * projection.row0.w;
-            mat.row1.x = v23 * projection.row1.x + v24 * projection.row1.w;
-            mat.row2.x = v23 * projection.row2.x + v24 * projection.row2.w;
-            mat.row3.x = v23 * projection.row3.x + v24 * projection.row3.w;
-            mat.row0.y = v25 * projection.row0.y + v26 * projection.row0.w;
-            mat.row1.y = v25 * projection.row1.y + v26 * projection.row1.w;
-            mat.row2.y = v25 * projection.row2.y + v26 * projection.row2.w;
-            mat.row3.y = v25 * projection.row3.y + v26 * projection.row3.w;
+            mat = view_projection;
+            mat.row0.x = v23 * view_projection.row0.x + v24 * view_projection.row0.w;
+            mat.row1.x = v23 * view_projection.row1.x + v24 * view_projection.row1.w;
+            mat.row2.x = v23 * view_projection.row2.x + v24 * view_projection.row2.w;
+            mat.row3.x = v23 * view_projection.row3.x + v24 * view_projection.row3.w;
+            mat.row0.y = v25 * view_projection.row0.y + v26 * view_projection.row0.w;
+            mat.row1.y = v25 * view_projection.row1.y + v26 * view_projection.row1.w;
+            mat.row2.y = v25 * view_projection.row2.y + v26 * view_projection.row2.w;
+            mat.row3.y = v25 * view_projection.row3.y + v26 * view_projection.row3.w;
 
             sprite_scene_shader_data shader_data = {};
             shader_data.g_framebuffer_size = {
                 1.0f / (float_t)tex->width,
                 1.0f / (float_t)tex->height, 0.0f, 0.0f
             };
-            mat4_transpose(&projection, &shader_data.g_transform);
+            mat4_transpose(&view_projection, &shader_data.g_transform);
             rctx->sprite_scene_ubo.WriteMapMemory(shader_data);
 
             render_data.Clear();
@@ -993,6 +994,7 @@ namespace spr {
         field_1018[1].first = res->resolution_mode;
         field_1018[1].second = { 0.0f, 0.0f, (float_t)res->width, (float_t)res->height };
 
+        view_projection = mat4_identity;
         mat = mat4_identity;
     }
 

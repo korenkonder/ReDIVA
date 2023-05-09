@@ -22,8 +22,8 @@ struct camera {
     mat3 inv_view_mat3;
     mat4 view_rot;
     mat4 inv_view_rot;
-    mat4 projection_aet_2d;
-    mat4 projection_aet_3d;
+    mat4 view_projection_aet_2d;
+    mat4 view_projection_aet_3d;
     float_t fov_correct_height;
     float_t aet_depth;
     vec3 forward;
