@@ -72,6 +72,11 @@ struct texture {
     uint32_t get_width_align_mip_level(uint8_t mip_level = 0);
 };
 
+struct texture_param {
+    GLint width;
+    GLint height;
+};
+
 extern texture* texture_init(texture_id id);
 extern void texture_apply_color_tone(texture* chg_tex,
     texture* org_tex, const color_tone* col_tone);
@@ -86,6 +91,11 @@ extern void texture_free(texture* tex);
 extern void texture_array_free(texture** arr);
 
 extern void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
+
+extern void texture_params_get(GLuint tex_0 = 0, texture_param* tex_0_param = 0,
+    GLuint tex_1 = 0, texture_param* tex_1_param = 0, GLuint tex_2 = 0, texture_param* tex_2_param = 0);
+extern void texture_params_restore(texture_param* tex_0_param = 0,
+    texture_param* tex_1_param = 0, texture_param* tex_2_param = 0);
 
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids);

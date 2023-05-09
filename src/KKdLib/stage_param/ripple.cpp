@@ -158,9 +158,9 @@ static void stage_param_ripple_read_inner(stage_param_ripple* ripple, stream& s)
 
             ripple->ripple_tex_name.assign(buf + 16);
         }
-        else if (!str_utils_compare_length(buf, sizeof(buf), "use_float_ripplemap", 4)) {
+        else if (!str_utils_compare_length(buf, sizeof(buf), "use_float_ripplemap", 19)) {
             int32_t use_float_ripplemap = 0;
-            if (buf[4] != ' ' || sscanf_s(buf + 5, "%d", &use_float_ripplemap) != 1)
+            if (buf[19] != ' ' || sscanf_s(buf + 20, "%d", &use_float_ripplemap) != 1)
                 goto End;
 
             ripple->use_float_ripplemap = !!use_float_ripplemap;

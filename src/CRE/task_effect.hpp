@@ -14,6 +14,7 @@
 #include "frame_rate_control.hpp"
 #include "render_texture.hpp"
 #include "stage.hpp"
+#include "stage_param.hpp"
 #include "task.hpp"
 
 enum TaskEffectType {
@@ -361,19 +362,12 @@ public:
     virtual void Reset() override;
 };
 
-struct color4u8 {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-    uint8_t a;
-};
-
 struct struc_101 {
     int32_t ripple_uniform;
     int32_t ripple_emit_uniform;
     int32_t count;
     vec3* vertex;
-    color4u8* color;
+    vec4u8* color;
     float_t size;
     int32_t field_24;
 };
@@ -381,21 +375,36 @@ struct struc_101 {
 struct ripple_emit_draw_data {
     struc_101 data;
     vec3 vertex[16];
-    color4u8 color[16];
+    vec4u8 color[16];
+
+    ripple_emit_draw_data();
 };
 
 struct struc_192 {
-    int32_t field_0;
-    vec3 field_4;
+    int32_t index;
+    vec3 trans;
+
+    struc_192();
 };
 
 struct struc_207 {
     struc_192 field_0[18];
+
+    struc_207();
+};
+
+struct ripple_emit_params {
+    float_t wake_attn;
+    float_t speed;
+    float_t field_8;
+    float_t field_C;
+
+    ripple_emit_params();
 };
 
 struct ripple_emit {
     float_t delta_frame;
-    int8_t field_4;
+    bool update;
     int32_t rain_ripple_num;
     float_t rain_ripple_min_value;
     float_t rain_ripple_max_value;
@@ -409,7 +418,7 @@ struct ripple_emit {
     int32_t field_30;
     float_t rob_emitter_size;
     size_t emitter_num;
-    vec3* emitter_list;
+    const vec3* emitter_list;
     float_t emitter_size;
     int32_t field_4C;
     ripple_emit_draw_data field_50;
@@ -420,15 +429,34 @@ struct ripple_emit {
     struc_207 field_4F4[6];
     int32_t field_BB4;
     render_texture field_BB8;
-    int32_t field_BE8;
+    int32_t counter;
     int8_t field_BEC;
-    float_t wake_attn;
-    float_t speed;
-    float_t field_BF8;
-    float_t field_BFC;
-    int8_t field_C00;
+    ripple_emit_params params;
+    bool stage_set;
     int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
+
+    ripple_emit();
+    ~ripple_emit();
+
+    void add_draw_ripple_emit(struc_101* data);
+    void clear_tex();
+    void ctrl();
+    void dest();
+    void disp();
+    void draw();
+    void reset();
+    void set_stage_index(int32_t stage_index);
+    void set_stage_indices(std::vector<int32_t>& stage_indices);
+    void set_stage_param(stage_param_ripple* ripple);
+
+    static void draw_static(void* data);
+
+    void sub_1403584A0(render_texture* rt);
+    void sub_140358690();
+    void sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_101& a5, struc_101& a6);
+    void sub_14035AAE0();
+    void sub_14035AED0();
 };
 
 struct TaskEffectRipple : public TaskEffect {
@@ -541,7 +569,7 @@ struct water_particle {
     int32_t tex_id;
     bool blink;
     std::vector<vec3> field_48;
-    std::vector<color4u8> field_60;
+    std::vector<vec4u8> field_60;
     struc_101 field_78;
     float_t ripple_emission;
 };

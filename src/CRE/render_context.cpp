@@ -1135,6 +1135,8 @@ namespace mdl {
         uniform_value_reset();
         shader::unbind();
         gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        for (int32_t i = 0; i < 5; i++)
+            gl_state_bind_sampler(i, 0);
     }
 
     void DispManager::draw_translucent(ObjType type, int32_t alpha) {
@@ -2157,11 +2159,17 @@ namespace rndr {
         field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr(), samplers(), sprite_samplers() {
         for (bool& i : pass_sw)
             i = true;
-        reflect = true;
-        refract = true;
+
+        set_pass_sw(RND_PASSID_2, false);
+        set_pass_sw(RND_PASSID_REFLECT, false);
+        set_pass_sw(RND_PASSID_REFRACT, false);
+        set_pass_sw(RND_PASSID_USER, false);
+        set_pass_sw(RND_PASSID_SHOW_VECTOR, false);
+
         shadow = true;
         opaque_z_sort = true;
         alpha_z_sort = true;
+
         for (bool& i : draw_pass_3d)
             i = true;
 
@@ -2265,11 +2273,11 @@ namespace rndr {
         delete shadow_ptr;
     }
 
-    void RenderManager::add_user(int32_t type, void(*func)(void*), void* data) {
+    void RenderManager::add_user_func(int32_t type, void(*func)(void*), void* data) {
         user.push_back({ type, func, data });
     }
 
-    void RenderManager::clear_user(int32_t type) {
+    void RenderManager::clear_user_func(int32_t type) {
         for (std::list<draw_user>::iterator i = user.begin(); i != user.end(); i++)
             if (i->type == type) {
                 user.erase(i);

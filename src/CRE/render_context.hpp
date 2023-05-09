@@ -614,8 +614,8 @@ namespace rndr {
         RenderManager();
         ~RenderManager();
 
-        void add_user(int32_t type, void(*func)(void*), void* data);
-        void clear_user(int32_t type);
+        void add_user_func(int32_t type, void(*func)(void*), void* data);
+        void clear_user_func(int32_t type);
         render_texture& get_render_texture(int32_t index);
         void resize(int32_t width, int32_t height);
         void set_effect_texture(texture* value);
@@ -795,10 +795,6 @@ struct obj_skinning_shader_data {
     vec4 g_joint_transforms[768];
 };
 
-struct transparency_batch_shader_data {
-    vec4 g_opacity;
-};
-
 struct quad_shader_data {
     vec4 g_texcoord_modifier;
     vec4 g_texel_size;
@@ -814,6 +810,10 @@ struct sprite_scene_shader_data {
 struct sss_filter_gaussian_coef_shader_data {
     vec4 g_param;
     vec4 g_coef[64];
+};
+
+struct transparency_batch_shader_data {
+    vec4 g_opacity;
 };
 
 struct render_context {
@@ -848,6 +848,8 @@ struct render_context {
     GL::UniformBuffer imgfilter_batch_ubo;
     GL::UniformBuffer glass_eye_batch_ubo;
     GL::UniformBuffer quad_ubo;
+    GL::UniformBuffer ripple_ubo;
+    GL::UniformBuffer ripple_emit_ubo;
     GL::UniformBuffer sprite_scene_ubo;
     GL::UniformBuffer sss_filter_gaussian_coef_ubo;
     GL::UniformBuffer transparency_batch_ubo;

@@ -11,3 +11,5 @@
 #include "render_context.hpp"
 
 extern void image_filter_scale(render_context* rctx, GLuint dst, GLuint src, const vec4 scale);
+
+extern void draw_pass_set_camera(render_context* rctx);

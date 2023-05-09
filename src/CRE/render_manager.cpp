@@ -19,11 +19,6 @@
 #include "task_effect.hpp"
 #include "texture.hpp"
 
-struct texture_param {
-    GLint width;
-    GLint height;
-};
-
 static void blur_filter_apply(render_context* rctx, GLuint tex_0, GLuint tex_1,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
@@ -47,11 +42,6 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     int32_t* alpha_array, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent);
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type);
-static void draw_pass_set_camera(render_context* rctx);
-static void texture_params_get(GLuint tex_0, texture_param* tex_0_param,
-    GLuint tex_1, texture_param* tex_1_param, GLuint tex_2, texture_param* tex_2_param);
-static void texture_params_restore(texture_param* tex_0_param,
-    texture_param* tex_1_param, texture_param* tex_2_param);
 
 extern bool draw_grid_3d;
 extern void draw_pass_3d_grid(render_context* rctx);
@@ -875,7 +865,7 @@ void image_filter_scale(render_context* rctx, GLuint dst, GLuint src, const vec4
         return;
 
     texture_param tex_params[2];
-    texture_params_get(dst, &tex_params[0], src, &tex_params[1], 0, 0);
+    texture_params_get(dst, &tex_params[0], src, &tex_params[1]);
 
     filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -894,7 +884,24 @@ void image_filter_scale(render_context* rctx, GLuint dst, GLuint src, const vec4
     rctx->imgfilter_batch_ubo.Bind(1);
     gl_state_active_bind_texture_2d(0, src);
     render_texture::draw_custom();
-    texture_params_restore(&tex_params[0], &tex_params[1], 0);
+
+    texture_params_restore(&tex_params[0], &tex_params[1]);
+}
+
+void draw_pass_set_camera(render_context* rctx) {
+    camera* cam = rctx->camera;
+    cam->update_data();
+    rctx->view_mat = cam->view;
+    rctx->proj_mat = cam->projection;
+    rctx->vp_mat = cam->view_projection;
+    rctx->obj_scene.set_projection_view(cam->view, cam->projection);
+    cam->get_view_point(rctx->obj_scene.g_view_position);
+
+    rctx->g_near_far = {
+        (float_t)(cam->max_distance / (cam->max_distance - cam->min_distance)),
+        (float_t)(-(cam->max_distance * cam->min_distance) / (cam->max_distance - cam->min_distance)),
+        0.0f, 0.0f
+    };
 }
 
 static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
@@ -1003,7 +1010,7 @@ static void draw_pass_shadow_filter(render_context* rctx, render_texture* a1, re
         return;
 
     texture_param tex_params[2];
-    texture_params_get(v7, &tex_params[0], v9, &tex_params[1], 0, 0);
+    texture_params_get(v7, &tex_params[0], v9, &tex_params[1]);
     if (tex_params[0].width != tex_params[1].width
         || tex_params[0].height != tex_params[1].height)
         return;
@@ -1048,7 +1055,8 @@ static void draw_pass_shadow_filter(render_context* rctx, render_texture* a1, re
     gl_state_active_bind_texture_2d(0, v9);
     render_texture::draw_custom();
     shader::unbind();
-    texture_params_restore(&tex_params[0], &tex_params[1], 0);
+
+    texture_params_restore(&tex_params[0], &tex_params[1]);
 }
 
 static void draw_pass_shadow_esm_filter(render_context* rctx,
@@ -1093,6 +1101,7 @@ static void draw_pass_shadow_esm_filter(render_context* rctx,
     shaders_ft.set(SHADER_FT_ESMFILT);
     gl_state_active_bind_texture_2d(0, buf_tex);
     render_texture::draw(&shaders_ft);
+
     texture_params_restore(&tex_params[0], &tex_params[1], &tex_params[2]);
 }
 
@@ -1342,8 +1351,12 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
         rctx->obj_scene.g_esm_param = { esm_param, 0.0f, 0.0f, 0.0f };
         rctx->draw_state.self_shadow = true;
     }
-    else
+    else {
+        gl_state_active_bind_texture_2d(19, rctx->empty_texture_2d);
+        gl_state_active_bind_texture_2d(20, rctx->empty_texture_2d);
+        gl_state_active_texture(0);
         rctx->draw_state.self_shadow = false;
+    }
 
     if (shad->field_2EC > 0) {
         rctx->draw_state.light = true;
@@ -1495,73 +1508,13 @@ static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr
         }
 }
 
-static void draw_pass_set_camera(render_context* rctx) {
-    camera* cam = rctx->camera;
-    cam->update_data();
-    rctx->view_mat = cam->view;
-    rctx->proj_mat = cam->projection;
-    rctx->vp_mat = cam->view_projection;
-    rctx->obj_scene.set_projection_view(cam->view, cam->projection);
-    cam->get_view_point(rctx->obj_scene.g_view_position);
-
-    rctx->g_near_far = {
-        (float_t)(cam->max_distance / (cam->max_distance - cam->min_distance)),
-        (float_t)(-(cam->max_distance * cam->min_distance) / (cam->max_distance - cam->min_distance)),
-        0.0f, 0.0f
-    };
-}
-
-static void texture_params_get(GLuint tex_0, texture_param* tex_0_param,
-    GLuint tex_1, texture_param* tex_1_param, GLuint tex_2, texture_param* tex_2_param) {
-    gl_state_disable_depth_test();
-    if (tex_0_param) {
-        tex_0_param->width = 0;
-        tex_0_param->height = 0;
-        if (tex_0) {
-            gl_state_bind_texture_2d(tex_0);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &tex_0_param->width);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &tex_0_param->height);
-        }
-    }
-
-    if (tex_1_param) {
-        tex_1_param->width = 0;
-        tex_1_param->height = 0;
-        if (tex_1) {
-            gl_state_bind_texture_2d(tex_1);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &tex_1_param->width);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &tex_1_param->height);
-        }
-    }
-
-    if (tex_2_param) {
-        tex_2_param->width = 0;
-        tex_2_param->height = 0;
-        if (tex_2) {
-            gl_state_bind_texture_2d(tex_2);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_WIDTH, &tex_2_param->width);
-            glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_HEIGHT, &tex_2_param->height);
-        }
-    }
-    gl_state_bind_texture_2d(0);
-
-    if (tex_0_param)
-        glViewport(0, 0, tex_0_param->width, tex_0_param->height);
-}
-
-static void texture_params_restore(texture_param* tex_0_param,
-    texture_param* tex_1_param, texture_param* tex_2_param) {
-    for (int32_t i = 0; i < 4; i++)
-        gl_state_active_bind_texture_2d(i, 0);
-}
-
 static void blur_filter_apply(render_context* rctx, GLuint dst, GLuint src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset) {
     if (!dst || !src)
         return;
 
     texture_param tex_params[2];
-    texture_params_get(dst, &tex_params[0], src, &tex_params[1], 0, 0);
+    texture_params_get(dst, &tex_params[0], src, &tex_params[1]);
 
     filter_scene_shader_data filter_scene = {};
     float_t w = res_scale.x / (float_t)tex_params[1].width;
@@ -1587,5 +1540,5 @@ static void blur_filter_apply(render_context* rctx, GLuint dst, GLuint src,
     gl_state_active_bind_texture_2d(0, src);
     glDrawArrays(GL_TRIANGLE_STRIP, (GLint)(filter * 4LL), 4);
 
-    texture_params_restore(&tex_params[0], &tex_params[1], 0);
+    texture_params_restore(&tex_params[0], &tex_params[1]);
 }

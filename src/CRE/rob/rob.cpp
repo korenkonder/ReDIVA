@@ -2407,13 +2407,6 @@ static void rob_chara_item_equip_ctrl(rob_chara_item_equip* rob_itm_equip) {
             rob_chara_item_equip_object_ctrl(&rob_itm_equip->item_equip_object[i]);
 }
 
-static float_t rob_chara_get_trans_scale(rob_chara* rob_chr, int32_t bone, vec3* trans) {
-    if (bone > 26)
-        return 0.0f;
-    *trans = rob_chr->data.field_1E68.field_DF8[bone].trans;
-    return rob_chr->data.field_1E68.field_DF8[bone].scale;
-}
-
 mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, size_t index) {
     if (index < rob_bone_data->mats.size())
         return &rob_bone_data->mats[index];
@@ -2520,6 +2513,13 @@ int32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
                     + v2 * sizeof(int32_t) + v4[chara_index].data_offset)))[id];
     }
     return -1;
+}
+
+float_t rob_chara::get_trans_scale(int32_t bone, vec3& trans) {
+    if (bone < 0 || bone > 26)
+        return 0.0f;
+    trans = data.field_1E68.field_DF8[bone].trans;
+    return data.field_1E68.field_DF8[bone].scale;
 }
 
 bool rob_chara::is_visible() {
@@ -7947,7 +7947,7 @@ static void rob_disp_rob_chara_ctrl_thread_main(rob_chara* rob_chr) {
     rob_chr->item_equip->set_opd_blend_data(&rob_chr->bone_data->motion_loaded);
 
     vec3 trans = 0.0f;
-    rob_chara_get_trans_scale(rob_chr, 0, &trans);
+    rob_chr->get_trans_scale(0, trans);
     rob_chr->item_equip->position = trans;
     rob_chara_item_equip_ctrl(rob_chr->item_equip);
     if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {

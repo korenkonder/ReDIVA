@@ -2764,9 +2764,9 @@ static const bool LAMBERT_permut[] = {
     false,
     false,
     false,
+    true,
+    true,
     false,
-    true,
-    true,
     false, // 8th added
 };
 

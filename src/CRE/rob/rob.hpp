@@ -3415,6 +3415,7 @@ struct rob_chara {
     float_t get_frame_count();
     float_t get_max_face_depth();
     int32_t get_rob_cmn_mottbl_motion_id(int32_t id);
+    float_t get_trans_scale(int32_t bone, vec3& trans);
     bool is_visible();
     void load_motion(int32_t motion_id, bool a3, float_t frame,
         MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);

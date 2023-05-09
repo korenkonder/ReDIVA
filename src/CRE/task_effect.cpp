@@ -9,10 +9,11 @@
 #include "GL/uniform_buffer.hpp"
 #include "auth_3d.hpp"
 #include "data.hpp"
+#include "gl_state.hpp"
 #include "random.hpp"
 #include "render_context.hpp"
+#include "render_manager.hpp"
 #include "shader_ft.hpp"
-#include "stage_param.hpp"
 #include "texture.hpp"
 
 struct for_ring_vertex_data {
@@ -97,6 +98,21 @@ struct rain_particle_batch_shader_data {
     vec4 g_color;
 };
 
+struct ripple_batch_shader_data {
+    vec4 g_params;
+};
+
+struct ripple_scene_shader_data {
+    vec4 g_transform;
+    vec4 g_texcoord;
+};
+
+struct ripple_emit_scene_shader_data {
+    vec4 g_size_in_projection;
+    vec4 g_transform;
+    vec4 g_framebuffer_size;
+};
+
 struct struc_608 {
     const stage_effects* stage_effects;
     const stage_effects_modern* stage_effects_modern;
@@ -160,6 +176,8 @@ static bool task_effect_array_parse_stage_param_data_star(stage_param_star* star
 
 static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* data);
 
+static void draw_ripple_emit(render_context* rctx, struc_101* data);
+
 static void leaf_particle_init(bool change_stage = false);
 static void leaf_particle_ctrl();
 static int32_t leaf_particle_disp();
@@ -177,6 +195,12 @@ static void rain_particle_init(bool change_stage);
 static void rain_particle_ctrl();
 static void rain_particle_free();
 
+static void ripple_emit_init();
+static void ripple_emit_free();
+
+static void sub_1403B6ED0(render_texture* a1, render_texture* a2, render_texture* a3, ripple_emit_params& params);
+static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
+
 static TaskEffectAuth3D* task_effect_auth_3d;
 static TaskEffectLeaf* task_effect_leaf;
 static TaskEffectSnow* task_effect_snow;
@@ -190,6 +214,8 @@ static TaskEffectLitproj* task_effect_litproj;
 static TaskEffectStar* task_effect_star;
 
 static TaskEffectParent* task_effect_parent;
+
+static ripple_emit* ripple_emit_data;
 
 static TaskEffectFogAnim::Data* task_effect_fog_anim_data;
 static TaskEffectFogRing::Data* task_effect_fog_ring_data;
@@ -242,6 +268,14 @@ static GL::UniformBuffer rain_particle_scene_ubo;
 static GL::UniformBuffer rain_particle_batch_ubo;
 static const size_t rain_ptcl_count = 0x8000;
 
+static GLuint ripple_vao;
+static GL::UniformBuffer ripple_batch_ubo;
+static GL::UniformBuffer ripple_scene_ubo;
+
+static GLuint ripple_emit_vao;
+static GLuint ripple_emit_vbo;
+static GL::UniformBuffer ripple_emit_scene_ubo;
+
 static TaskEffect** task_effect_data_array[] = {
     (TaskEffect**)&task_effect_auth_3d,
     0,
@@ -249,7 +283,7 @@ static TaskEffect** task_effect_data_array[] = {
     0,
     0/*(TaskEffect**)&task_effect_snow*/,
     0,
-    0/*(TaskEffect**)&task_effect_ripple*/,
+    (TaskEffect**)&task_effect_ripple,
     (TaskEffect**)&task_effect_rain,
     0,
     0,
@@ -911,7 +945,7 @@ void TaskEffectFogRing::Data::Dest() {
     }
 
     rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
-    rctx_ptr->render_manager.clear_user(0);
+    rctx_ptr->render_manager.clear_user_func(0);
     rctx_ptr->draw_state.set_fog_height(false);
 }
 
@@ -985,7 +1019,7 @@ void TaskEffectFogRing::Data::Reset() {
 }
 
 void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    rctx_ptr->render_manager.clear_user(0);
+    rctx_ptr->render_manager.clear_user_func(0);
     rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
     disp = false;
     current_stage_index = -1;
@@ -1091,7 +1125,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
     InitParticleData();
 
     rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, true);
-    rctx_ptr->render_manager.add_user(0, TaskEffectFogRing::Data::DrawStatic, this);
+    rctx_ptr->render_manager.add_user_func(0, TaskEffectFogRing::Data::DrawStatic, this);
 }
 
 void TaskEffectFogRing::Data::DrawStatic(void* data) {
@@ -1596,7 +1630,6 @@ bool TaskEffectRain::Ctrl() {
 bool TaskEffectRain::Dest() {
     if (stage_param_data_rain_current) {
         rain_particle_free();
-        rain_ptcl_vbo = 0;
         stage_param_data_rain_current = 0;
         stage_param_data_rain_storage_clear();
         stage_param_data_rain_set = false;
@@ -1689,6 +1722,473 @@ void TaskEffectRain::Reset() {
     }
 }
 
+ripple_emit_draw_data::ripple_emit_draw_data() : data() {
+
+}
+
+struc_192::struc_192() {
+    index = -1;
+}
+
+struc_207::struc_207() {
+
+}
+
+ripple_emit_params::ripple_emit_params() {
+    wake_attn = 0.56f;
+    speed = 1.0f;
+    field_8 = 0.0005f;
+    field_C = 0.9f;
+}
+
+ripple_emit::ripple_emit() : delta_frame(), update(), rain_ripple_num(),
+rain_ripple_min_value(), rain_ripple_max_value(), field_14(), emit_pos_scale(), emit_pos_ofs_x(),
+emit_pos_ofs_z(), ripple_tex_id(), use_float_ripplemap(), field_30(), rob_emitter_size(),
+emitter_num(), emitter_size(), field_4C(), field_50(), field_178(), field_2A0(), field_3C8(),
+field_4F0(), field_BB4(), counter(), field_BEC(), stage_set(), current_stage_index() {
+    ground_y = -1001.0f;
+    emitter_list = 0;
+}
+
+ripple_emit::~ripple_emit() {
+    ground_y = -1001.0f;
+}
+
+void ripple_emit::add_draw_ripple_emit(struc_101* data) {
+    if (data->count > 0)
+        rctx_ptr->disp_manager.entry_obj_user(&mat4_identity,
+            (mdl::UserArgsFunc)draw_ripple_emit, data, mdl::OBJ_TYPE_USER);
+}
+
+void ripple_emit::clear_tex() {
+    vec4 clear_color;
+    glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
+
+    for (int32_t i = 0, j = 5; i < 3; i++, j++) {
+        render_texture* rt;
+        float_t v5;
+        if (use_float_ripplemap) {
+            rt = &rctx_ptr->render_manager.get_render_texture(j - 3);
+            v5 = -0.3f;
+        }
+        else {
+            rt = &rctx_ptr->render_manager.get_render_texture(j);
+            v5 = 0.5f;
+        }
+
+        glClearColor(0.0f, 0.0f, 0.0f, v5);
+        rt->bind();
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        gl_state_bind_framebuffer(0);
+    }
+
+    glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+}
+
+void ripple_emit::ctrl() {
+    if (delta_frame > 0.0f)
+        update = true;
+}
+
+void ripple_emit::dest() {
+    stage_param_data_ripple_storage_clear();
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
+    rctx_ptr->render_manager.clear_user_func(0);
+    this->ground_y = -1001.0;
+}
+
+void ripple_emit::disp() {
+    if (!stage_set)
+        return;
+
+    if (use_float_ripplemap) {
+        if (field_30 == 60)
+            sub_140358690();
+        else
+            sub_14035AED0();
+        if (field_30 > 0)
+            field_30--;
+    }
+    else {
+        sub_14035AED0();
+        sub_14035AAE0();
+    }
+}
+
+void ripple_emit::draw() {
+    if (!stage_set)
+        return;
+
+    gl_state_disable_cull_face();
+
+    render_context* rctx = rctx_ptr;
+
+    render_texture* rt[3];
+    for (int32_t i = 0, j = 2; i < 3; i++, j++)
+        rt[i] = &rctx->render_manager.get_render_texture(
+            use_float_ripplemap ? j : (j + 3));
+
+    if (update) {
+        int32_t counter = this->counter + 1;
+        if (counter >= 3)
+            counter = 0;
+
+        rt[(counter + 1) % 3]->bind();
+
+        GLint v43[4];
+        glGetIntegerv(GL_VIEWPORT, v43);
+
+        int32_t width = rt[0]->color_texture->width;
+        int32_t height = rt[0]->color_texture->height;
+
+        glViewport(1, 1, width - 2, height - 2);
+
+        draw_pass_set_camera(rctx_ptr);
+        glClear(GL_DEPTH_BUFFER_BIT);
+        if (rctx->disp_manager.get_obj_count(mdl::OBJ_TYPE_USER)) {
+            gl_state_active_bind_texture_2d(7, rt[counter % 3]->color_texture->tex);
+            rctx->disp_manager.draw(mdl::OBJ_TYPE_USER, 0, true);
+            gl_state_active_bind_texture_2d(7, 0);
+        }
+
+        gl_state_bind_framebuffer(0);
+
+        params.field_8 = 0.0005f;
+        params.field_C = 0.97f;
+        if (field_30 > 0) {
+            params.field_8 = 0.00005f;
+            params.field_C = 0.999f;
+        }
+
+        sub_1403B6ED0(rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
+
+        glViewport(v43[0], v43[1], v43[2], v43[3]);
+
+        sub_1403584A0(rt[(counter + 2) % 3]);
+
+        this->counter = counter;
+    }
+
+    int32_t v11 = (counter + 2) % 3 + 2;
+    if (!use_float_ripplemap)
+        v11 += 3;
+
+    rctx->render_manager.set_effect_texture(
+        rctx->render_manager.get_render_texture(v11).color_texture);
+
+    update = false;
+
+    gl_state_enable_cull_face();
+}
+
+void ripple_emit::reset() {
+    field_4F0 = 18;
+    for (struc_207& i : field_4F4)
+        for (int32_t j = 0; j < field_4F0; j++)
+            i.field_0[j].trans = 0.0f;
+
+    field_30 = 60;
+
+    clear_tex();
+}
+
+void ripple_emit::set_stage_index(int32_t stage_index) {
+    if (current_stage_index == stage_index)
+        return;
+
+    current_stage_index = stage_index;
+    stage_set = false;
+    if (stage_index == -1)
+        return;
+
+    for (int32_t& i : stage_indices) {
+        if (i != stage_index)
+            continue;
+
+        stage_set = true;
+        set_stage_param(stage_param_data_ripple_storage_get_value(i));
+        clear_tex();
+        break;
+    }
+}
+
+void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
+    static const int32_t dword_1409E5330[] = {
+        0, 1, 2, 4, 10, 5, 12, 7, 14, 9, 21, 15, 23, 17, 25, 19, 26, 20
+    };
+
+    stage_set = false;
+    current_stage_index = -1;
+    this->stage_indices.clear();
+
+    stage_param_data_ripple_storage_clear();
+    for (int32_t& i : stage_indices) {
+        stage_param_ripple ripple;
+        if (task_effect_array_parse_stage_param_data_ripple(&ripple, i)) {
+            this->stage_indices.push_back(i);
+            stage_param_data_ripple_storage_set_stage_data(i, &ripple);
+        }
+    }
+
+    if (!this->stage_indices.size())
+        return;
+
+    current_stage_index = this->stage_indices.front();
+    stage_param_ripple* ripple = stage_param_data_ripple_storage_get_value(this->stage_indices.front());
+    if (!ripple)
+        return;
+
+    stage_set = true;
+    set_stage_param(ripple);
+
+    delta_frame = 1.0f;
+    counter = 0;
+    field_BEC = 0;
+
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, true);
+    rctx_ptr->render_manager.add_user_func(0, ripple_emit::draw_static, this);
+
+    field_4F0 = 18;
+    for (struc_207& i : field_4F4)
+        for (int32_t j = 0; j < field_4F0; j++) {
+            i.field_0[j].index = dword_1409E5330[j];
+            i.field_0[j].trans = 0.0f;
+        }
+
+    update = false;
+    field_30 = 60;
+
+    clear_tex();
+}
+
+void ripple_emit::set_stage_param(stage_param_ripple* ripple) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+
+    params.wake_attn = ripple->wake_attn;
+    params.speed = ripple->speed;
+    rain_ripple_num = (int32_t)ripple->rain_ripple_num;
+    rain_ripple_min_value = ripple->rain_ripple_min_value;
+    rain_ripple_max_value = ripple->rain_ripple_max_value;
+    ground_y = ripple->ground_y;
+    emit_pos_scale = ripple->emit_pos_scale;
+    emit_pos_ofs_x = ripple->emit_pos_ofs_x;
+    emit_pos_ofs_z = ripple->emit_pos_ofs_z;
+    ripple_tex_id = aft_tex_db->get_texture_id(ripple->ripple_tex_name.c_str());
+    use_float_ripplemap = ripple->use_float_ripplemap;
+    rob_emitter_size = ripple->rob_emitter_size;
+    emitter_num = ripple->emitter_num;
+    emitter_list = ripple->emitter_list.data();
+    emitter_size = ripple->emitter_size;
+}
+
+void ripple_emit::draw_static(void* data) {
+    ((ripple_emit*)data)->draw();
+}
+
+void ripple_emit::sub_1403584A0(render_texture* rt) {
+    if (ripple_tex_id == -1)
+        return;
+
+    texture* ripple_tex = texture_storage_get_texture(ripple_tex_id);
+    if (!ripple_tex)
+        return;
+
+    field_BB8.set_color_depth_textures(ripple_tex->tex, 0, 0);
+    field_BB8.bind(0);
+
+    image_filter_scale(rctx_ptr, ripple_tex->tex, rt->color_texture->tex, 1.0f);
+    gl_state_bind_framebuffer(0);
+}
+
+
+void ripple_emit::sub_140358690() {
+    ripple_emit_draw_data& v1 = field_178;
+    v1.data.vertex = field_50.vertex;
+    v1.data.color = field_50.color;
+
+    for (int32_t i = 0; i < 16; i++) {
+        v1.data.vertex[i].x = rand_state_array_get_float(4) * 1.8f - 0.9f;
+        v1.data.vertex[i].y = rand_state_array_get_float(4) * 1.8f - 0.9f;
+        rand_state_array_get_int(0x03, 0x07, 4);
+        v1.data.vertex[i].z = (float_t)rand_state_array_get_int(0x20, 0xA0, 4);
+    }
+
+    v1.data.count = 16;
+    v1.data.ripple_uniform = 1;
+    v1.data.ripple_emit_uniform = 1;
+
+    add_draw_ripple_emit(&v1.data);
+}
+
+void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_101& a5, struc_101& a6) {
+    vec3 v34 = a3 - a2;
+
+    float_t v17 = ground_y - (a2.y - a4);
+    int32_t v19 = 1 - (int32_t)(min_def(v17, a4) * -30.0f);
+    int32_t v20 = v19 + 3;
+
+    float_t v21 = sqrtf(v34.x * v34.x + v34.z * v34.z) * 0.8f;
+    if (v21 < 0.03f)
+        v21 = 0.0f;
+
+    if (a3.y - a4 > ground_y) {
+        v21 += (float_t)(v34.y * 3.0f);
+        v20 += (int32_t)(float_t)(v34.y * 30.0f);
+    }
+
+    float_t v23 = sqrtf(v34.x * v34.x + v34.z * v34.z);
+    if (v23 >= 0.01f)
+        v34 *= 1.0f / v23;
+    else
+        v34 = 0.0f;
+
+    float_t v24 = min_def(v21, 0.2f);
+    if (v23 > 0.5f) {
+        v23 = 0.01f;
+        v24 = 0.0f;
+    }
+    
+    int32_t v33 = v20 - (int32_t)(v23 * -20.0f);
+    int32_t v37 = (int32_t)(a4 * 60.0f);
+    int32_t v27 = v33 >= v37 ? v37 : v33;
+
+    vec4u8 v19a = { 0x08, 0x00, 0x00, (uint8_t)v19 };
+    vec4u8 v29 = { (uint8_t)v27, 0x00, 0x00, (uint8_t)(int32_t)(v24 * 1275.0f) };
+
+    for (float_t i = 0.0f; i < v23; i += 0.03f) {
+        if (v24 > 0.0f) {
+            int32_t count = a6.count;
+            if (count < 16) {
+                a6.vertex[count].x = (a2.x - v34.x * 0.2f + i * v34.x) * emit_pos_scale;
+                a6.vertex[count].y = 0.0;
+                a6.vertex[count].z = (a2.z - v34.z * 0.2f + i * v34.z) * emit_pos_scale;
+                a6.color[count] = v29;
+                a6.count++;
+            }
+        }
+
+        int32_t count = a5.count;
+        if (count < 16) {
+            a5.vertex[count].x = (a2.x + i * v34.x) * emit_pos_scale;
+            a5.vertex[count].y = 0.0f;
+            a5.vertex[count].z = (a2.z + i * v34.z) * emit_pos_scale;
+            a6.color[count] = v19a;
+            a5.count++;
+        }
+    }
+}
+
+void ripple_emit::sub_14035AAE0() {
+    ripple_emit_draw_data& v1 = field_3C8;
+
+    field_3C8.data.count = 0;
+    field_3C8.data.vertex = field_3C8.vertex;
+    field_3C8.data.color = field_3C8.color;
+    field_3C8.data.size = emitter_size;
+
+    if (!update)
+        return;
+
+    if (rain_ripple_num) {
+        int32_t min_value = (int32_t)(rain_ripple_min_value * 127.0f);
+        int32_t max_value = (int32_t)(rain_ripple_max_value * 127.0f - rain_ripple_min_value * 127.0f);
+
+        max_value = max_def(max_value, 1);
+        min_value = min_def(min_value, 126);
+
+        for (int32_t i = 0; i < rain_ripple_num; i++) {
+            v1.data.vertex[i].x = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
+            v1.data.vertex[i].y = 0.0f;
+            v1.data.vertex[i].y = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
+            v1.data.color[i] = { 0x00, 0x00, 0x00,
+                (uint8_t)(0x7F - rand_state_array_get_int(4) % max_value - min_value) };
+            v1.data.count++;
+        }
+    }
+
+    for (size_t i = 0; i < emitter_num; i++) {
+        float_t v10 = emitter_list[i].z;
+        v1.data.vertex[i].x = ((rand_state_array_get_float(4) - 0.5f)
+            * v10 + emitter_list[i].x) * emit_pos_scale;
+        v1.data.vertex[i].y = 0.0f;
+        v1.data.vertex[i].z = ((rand_state_array_get_float(4) - 0.5f)
+            * v10 + emitter_list[i].y) * emit_pos_scale;
+        v1.data.color[i] = rand_state_array_get_float(4) < 0.5f
+            ? vec4u8(0x00, 0x00, 0x00, 0xFF) : vec4u8(0x00, 0x00, 0x00, 0xFF);
+        v1.data.count++;
+    }
+
+    v1.data.ripple_uniform = use_float_ripplemap ? 1 : 0;
+    v1.data.ripple_emit_uniform = 0;
+
+    add_draw_ripple_emit(&v1.data);
+}
+
+void ripple_emit::sub_14035AED0() {
+    field_178.data.count = 0;
+    field_178.data.vertex = field_178.vertex;
+    field_178.data.color = field_178.color;
+    field_178.data.size = rob_emitter_size;
+
+    field_2A0.data.count = 0;
+    field_2A0.data.vertex = field_2A0.vertex;
+    field_2A0.data.color = field_2A0.color;
+    field_2A0.data.size = rob_emitter_size;
+
+    if (!update)
+        return;
+
+    ripple_emit_draw_data& v2 = field_178;
+    ripple_emit_draw_data& v3 = field_2A0;
+
+    int32_t chara_id = 0;
+    for (struc_207& i : field_4F4) {
+        if (!rob_chara_array_check_visibility(chara_id)) {
+            chara_id++;
+            continue;
+        }
+
+        rob_chara* rob_chr = rob_chara_array_get(chara_id);
+        if (!rob_chr) {
+            chara_id++;
+            continue;
+        }
+
+        for (int32_t j = 0; j < field_4F0; j++) {
+            struc_192& v4 = i.field_0[j];
+            vec3 trans = 0.0f;
+            float_t scale = rob_chr->get_trans_scale(v4.index, trans);
+            if (trans.y - ground_y < scale) {
+                if (use_float_ripplemap)
+                    sub_1403587C0(trans, v4.trans, scale, v2.data, v3.data);
+                else if (v2.data.count < 16) {
+                    v2.data.vertex[v2.data.count].x = ((rand_state_array_get_float(4) - 0.5f)
+                        * 0.02f + trans.x) * emit_pos_scale + emit_pos_ofs_x;
+                    v2.data.vertex[v2.data.count].y = trans.y;
+                    v2.data.vertex[v2.data.count].z = ((rand_state_array_get_float(4) - 0.5f)
+                        * 0.02f + trans.z) * emit_pos_scale + emit_pos_ofs_z;
+                    v2.data.color[v2.data.count] = { 0x00, 0x00, 0x00, 0x00 };
+                    v2.data.count++;
+                }
+            }
+            v4.trans = trans;
+        }
+
+        chara_id++;
+    }
+
+    if (use_float_ripplemap) {
+        v3.data.ripple_uniform = !!use_float_ripplemap;
+        v3.data.ripple_emit_uniform = 1;
+        add_draw_ripple_emit(&v3.data);
+    }
+
+    v2.data.ripple_uniform = !!use_float_ripplemap;
+    v2.data.ripple_emit_uniform = 0;
+    add_draw_ripple_emit(&v2.data);
+}
+
 TaskEffectRipple::TaskEffectRipple() : field_68(), frame_rate_control(), emit() {
 
 }
@@ -1698,24 +2198,26 @@ TaskEffectRipple::~TaskEffectRipple() {
 }
 
 bool TaskEffectRipple::Init() {
+    ripple_emit_init();
     //sub_1400DE640("TaskEffectRipple::init()\n");
     return true;
 }
 
 bool TaskEffectRipple::Ctrl() {
     emit->delta_frame = frame_rate_control->GetDeltaFrame();
-    //emit->ctrl();
+    emit->ctrl();
     return false;
 }
 
 bool TaskEffectRipple::Dest() {
-    //emit->dest();
+    emit->dest();
     //sub_1400DE640("TaskEffectRipple::dest()\n");
+    ripple_emit_free();
     return true;
 }
 
 void TaskEffectRipple::Disp() {
-    //emit->disp();
+    emit->disp();
 }
 
 void TaskEffectRipple::PreInit(int32_t stage_index) {
@@ -1724,12 +2226,12 @@ void TaskEffectRipple::PreInit(int32_t stage_index) {
 
 void TaskEffectRipple::SetStageIndices(std::vector<int32_t>& stage_indices) {
     SetFrameRateControl(0);
-    //emit = &ripple_emit_data;
-    //emit->set_stage_indices(stage_indices);
+    emit = ripple_emit_data;
+    emit->set_stage_indices(stage_indices);
 }
 
 void TaskEffectRipple::SetCurrentStageIndex(int32_t value) {
-    //emit->set_stage_index(value);
+    emit->set_stage_index(value);
 }
 
 void TaskEffectRipple::SetFrameRateControl(FrameRateControl* value) {
@@ -1740,9 +2242,9 @@ void TaskEffectRipple::SetFrameRateControl(FrameRateControl* value) {
 }
 
 void TaskEffectRipple::Reset() {
-    //if (!emit->use_float_ripplemap)
-    //    ripple_emit_data.clear_tex();
-    //ripple_emit_data.reset();
+    if (!emit->use_float_ripplemap)
+        ripple_emit_data->clear_tex();
+    ripple_emit_data->reset();
 }
 
 void leaf_particle_draw() {
@@ -1930,6 +2432,9 @@ void task_effect_init() {
 
     if (!task_effect_parent)
         task_effect_parent = new TaskEffectParent;
+    
+    if (!ripple_emit_data)
+        ripple_emit_data = new ripple_emit;
 
     task_effect_fog_anim_data = 0;
     task_effect_fog_ring_data = 0;
@@ -1995,6 +2500,11 @@ void task_effect_free() {
     if (task_effect_parent) {
         delete task_effect_parent;
         task_effect_parent = 0;
+    }
+
+    if (ripple_emit_data) {
+        delete ripple_emit_data;
+        ripple_emit_data = 0;
     }
 
     task_effect_fog_anim_data = 0;
@@ -2525,6 +3035,71 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     gl_state_bind_vertex_array(data->vao);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);
     gl_state_disable_blend();
+}
+
+static void draw_ripple_emit(render_context* rctx, struc_101* data) {
+    gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+
+    {
+        size_t count = data->count;
+        vec3* vertex = data->vertex;
+        vec4u8* color = data->color;
+
+        const size_t vtx_count = (size_t)count * 0x06;
+        vec3* vtx_data = force_malloc_s(vec3, vtx_count);
+
+        for (size_t i = count; i; i--, vtx_data += 6, vertex++, color++) {
+            vtx_data[0] = { vertex->x, vertex->z, (float_t)color->w };
+            vtx_data[1] = { vertex->x, vertex->z, (float_t)color->w };
+            vtx_data[2] = { vertex->x, vertex->z, (float_t)color->w };
+            vtx_data[3] = { vertex->x, vertex->z, (float_t)color->w };
+            vtx_data[4] = { vertex->x, vertex->z, (float_t)color->w };
+            vtx_data[5] = { vertex->x, vertex->z, (float_t)color->w };
+        }
+
+        vtx_data -= vtx_count;
+
+        if (GLAD_GL_VERSION_4_5)
+            glNamedBufferSubData(ripple_emit_vbo, 0, sizeof(vec3) * vtx_count, vtx_data);
+        else {
+            gl_state_bind_array_buffer(ripple_emit_vbo);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * vtx_count, vtx_data);
+            gl_state_bind_array_buffer(0);
+        }
+        free_def(vtx_data);
+    }
+
+    int32_t size = (int32_t)(data->size + 0.5f);
+
+    render_texture& rt = rctx->render_manager.get_render_texture(
+        ripple_emit_data->use_float_ripplemap ? 2 : 5);
+    int32_t width = rt.color_texture->width;
+    int32_t height = rt.color_texture->height;
+
+    ripple_emit_scene_shader_data shader_data = {};
+    shader_data.g_size_in_projection = {
+        (float_t)size / (float_t)width,
+        (float_t)size / (float_t)height,
+        0.0f, 0.0f
+    };
+    shader_data.g_transform.x = (float_t)width / (float_t)(width - 2);
+    shader_data.g_transform.y = (float_t)height / (float_t)(height - 2);
+    shader_data.g_transform.z = 0.0079498291f / (float_t)(width - 2);
+    shader_data.g_transform.w = -0.0079498291f / (float_t)(height - 2);
+    shader_data.g_framebuffer_size = {
+        1.0f / (float_t)width, 
+        1.0f / (float_t)height,
+        0.0f, 0.0f };
+    ripple_emit_scene_ubo.WriteMapMemory(shader_data);
+
+    uniform_value[U_RIPPLE] = data->ripple_uniform;
+    uniform_value[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
+    gl_state_bind_vertex_array(ripple_emit_vao);
+    shaders_ft.set(SHADER_FT_RIPEMIT);
+    ripple_emit_scene_ubo.Bind(0);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->count * 6);
+
+    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
 static void leaf_particle_init(bool change_stage) {
@@ -3178,4 +3753,118 @@ static void rain_particle_free() {
 
     rain_particle_scene_ubo.Destroy();
     rain_particle_batch_ubo.Destroy();
+}
+
+static void ripple_emit_init() {
+    if (!ripple_vao)
+        glGenVertexArrays(1, &ripple_vao);
+
+    ripple_batch_ubo.Create(sizeof(ripple_batch_shader_data));
+    ripple_scene_ubo.Create(sizeof(ripple_scene_shader_data));
+
+    if (!ripple_emit_vao)
+        glGenVertexArrays(1, &ripple_emit_vao);
+
+    if (!ripple_emit_vbo)
+        glGenBuffers(1, &ripple_emit_vbo);
+
+    size_t max_count = 16;
+
+    const size_t max_vtx_count = (size_t)max_count * 0x06;
+
+    static const GLsizei buffer_size = sizeof(vec3);
+
+    gl_state_bind_array_buffer(ripple_emit_vbo, true);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER,
+            (GLsizeiptr)(buffer_size * max_vtx_count),
+            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+    else
+        glBufferData(GL_ARRAY_BUFFER,
+            (GLsizeiptr)(buffer_size * max_vtx_count),
+            0, GL_DYNAMIC_DRAW);
+
+    gl_state_bind_vertex_array(ripple_emit_vao);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size, 0);
+
+    gl_state_bind_vertex_array(0);
+    gl_state_bind_array_buffer(0);
+
+    ripple_emit_scene_ubo.Create(sizeof(ripple_emit_scene_shader_data));
+}
+
+static void ripple_emit_free() {
+    if (ripple_vao) {
+        glDeleteVertexArrays(1, &ripple_vao);
+        ripple_vao = 0;
+    }
+
+    ripple_batch_ubo.Destroy();
+    ripple_scene_ubo.Destroy();
+
+    if (ripple_emit_vao) {
+        glDeleteVertexArrays(1, &ripple_emit_vao);
+        ripple_emit_vao = 0;
+    }
+
+    if (ripple_emit_vbo) {
+        glDeleteBuffers(1, &ripple_emit_vbo);
+        ripple_emit_vbo = 0;
+    }
+
+    ripple_emit_scene_ubo.Destroy();
+}
+
+static void sub_1403B6ED0(render_texture* a1, render_texture* a2, render_texture* a3, ripple_emit_params& params) {
+    a1->bind();
+    if (a1->color_texture->internal_format == GL_RGBA32F
+        || a1->color_texture->internal_format == GL_RGBA16F)
+        uniform_value[U_RIPPLE] = 1;
+    else
+        uniform_value[U_RIPPLE] = 0;
+    sub_1403B6F60(a1->color_texture->tex, a2->color_texture->tex, a3->color_texture->tex, params);
+    gl_state_bind_framebuffer(0);
+}
+
+static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params) {
+    if (!a1 || !a2 || !a3)
+        return;
+
+    texture_param tex_params[2];
+    texture_params_get(0, 0, a1, &tex_params[0], a2, &tex_params[1]);
+
+    int32_t width = tex_params[1].width;
+    int32_t height = tex_params[1].height;
+
+    GLint v43[4];
+    glGetIntegerv(GL_VIEWPORT, v43);
+    glViewport(1, 1, width - 2, height - 2);
+
+    ripple_scene_shader_data ripple_scene = {};
+    ripple_scene.g_transform = {
+        params.speed / (float_t)width, params.speed / (float_t)height,
+        (float_t)width / (float_t)(width - 2), (float_t)height / (float_t)(height - 2)
+    };
+    ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
+    ripple_scene_ubo.WriteMapMemory(ripple_scene);
+    
+    ripple_batch_shader_data ripple_batch = {};
+    ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
+    ripple_batch_ubo.WriteMapMemory(ripple_batch);
+
+    gl_state_bind_vertex_array(ripple_vao);
+    shaders_ft.set(SHADER_FT_RIPPLE);
+    ripple_scene_ubo.Bind(0);
+    ripple_batch_ubo.Bind(1);
+    gl_state_active_bind_texture_2d(0, a2);
+    gl_state_active_bind_texture_2d(1, a3);
+    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+    gl_state_active_bind_texture_2d(0, 0);
+    gl_state_active_bind_texture_2d(1, 0);
+    gl_state_active_texture(0);
+
+    glViewport(v43[0], v43[1], v43[2], v43[3]);
+
+    texture_params_restore(&tex_params[0], &tex_params[1]);
 }
