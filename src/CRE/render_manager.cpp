@@ -529,7 +529,8 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(rctx, 2, true,
-            pp->aa->temp_buffer.color_texture, rctx->camera->projection_aet_3d);
+            pp->aa->temp_buffer.color_texture,
+            rctx->camera->view_projection_aet_3d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();
         gl_state_enable_depth_test();
@@ -796,7 +797,8 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(rctx, 0, true,
-            pp->aa->temp_buffer.color_texture, rctx->camera->projection_aet_2d);
+            pp->aa->temp_buffer.color_texture,
+            rctx->camera->view_projection_aet_2d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();
         gl_state_enable_depth_test();
@@ -863,7 +865,8 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(rctx, 1, true,
-            pp->aa->temp_buffer.color_texture, rctx->camera->projection_aet_2d);
+            pp->aa->temp_buffer.color_texture,
+            rctx->camera->view_projection_aet_2d);
     }
 }
 
