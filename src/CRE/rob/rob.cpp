@@ -12377,7 +12377,7 @@ const mat4* rob_chara_item_equip_object::get_ex_data_bone_node_mat(const char* n
     return &mat4_identity;
 }
 
-RobOsageNode* rob_chara_item_equip_object::get_normal_ref_osage_node(std::string& name, size_t* index) {
+RobOsageNode* rob_chara_item_equip_object::get_normal_ref_osage_node(const std::string& name, size_t* index) {
     if (!name.size())
         return 0;
 
@@ -12684,7 +12684,7 @@ void rob_chara_item_equip_object::set_alpha_obj_flags(float_t alpha, int32_t fla
 }
 
 bool rob_chara_item_equip_object::set_boc(
-    skin_param_osage_root& skp_root, ExOsageBlock* osg) {
+    const skin_param_osage_root& skp_root, ExOsageBlock* osg) {
     RobOsage* rob_osg = &osg->rob;
     RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
@@ -12692,9 +12692,9 @@ bool rob_chara_item_equip_object::set_boc(
         i->data_ptr->boc.clear();
 
     bool has_boc_node = false;
-    for (skin_param_osage_root_boc& i : skp_root.boc) {
+    for (const skin_param_osage_root_boc& i : skp_root.boc) {
         for (ExOsageBlock*& j : osage_blocks) {
-            if (str_utils_compare(j->name, i.ed_root.c_str())
+            if (i.ed_root.compare(j->name)
                 || i.ed_node + 1ULL >= rob_osg->nodes.size()
                 || i.st_node + 1ULL >= j->rob.nodes.size())
                 continue;
@@ -12710,7 +12710,7 @@ bool rob_chara_item_equip_object::set_boc(
 }
 
 void rob_chara_item_equip_object::set_collision_target_osage(
-    skin_param_osage_root& skp_root, skin_param* skp) {
+    const skin_param_osage_root& skp_root, skin_param* skp) {
     if (!skp_root.colli_tgt_osg.size())
         return;
 
@@ -12822,7 +12822,7 @@ void rob_chara_item_equip_object::skp_load(void* kv, const bone_database* bone_d
     }
 }
 
-void rob_chara_item_equip_object::skp_load(skin_param_osage_root& skp_root,
+void rob_chara_item_equip_object::skp_load(const skin_param_osage_root& skp_root,
     std::vector<skin_param_osage_node>& vec, skin_param_file_data* skp_file_data, const bone_database* bone_data) {
     set_collision_target_osage(skp_root, &skp_file_data->skin_param);
     skp_file_data->field_88 |= skp_file_data->skin_param.coli_type > 0;
@@ -12837,21 +12837,18 @@ void rob_chara_item_equip_object::skp_load(skin_param_osage_root& skp_root,
 }
 
 bool rob_chara_item_equip_object::skp_load_boc(
-    skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data) {
-    if (!skp_root.boc.size())
-        return false;
-
-    bool ret = false;
+    const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data) {
+    bool has_boc_node = false;
     for (const skin_param_osage_root_boc& i : skp_root.boc)
         for (ExOsageBlock*& j : osage_blocks)
-            if (!i.ed_root.compare(j->name) && i.ed_node >= 0
-                && i.ed_node < node_data->size() && i.st_node >= 0
-                && i.st_node < j->rob.nodes.size()) {
+            if (i.ed_root.compare(j->name)
+                && i.ed_node >= 0 && i.ed_node < node_data->size()
+                && i.st_node >= 0 && i.st_node < j->rob.nodes.size()) {
                 node_data->data()[i.ed_node].boc.push_back(j->rob.GetNode(i.st_node + 1ULL));
-                ret = true;
+                has_boc_node = true;
                 break;
             }
-    return ret;
+    return has_boc_node;
 }
 
 void rob_chara_item_equip_object::skp_load_file(void* data,
@@ -12879,11 +12876,11 @@ void rob_chara_item_equip_object::skp_load_file(void* data,
 }
 
 bool rob_chara_item_equip_object::skp_load_normal_ref(
-    skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data) {
+    const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data) {
     if (!skp_root.normal_ref.size())
         return false;
 
-    for (skin_param_osage_root_normal_ref& i : skp_root.normal_ref) {
+    for (const skin_param_osage_root_normal_ref& i : skp_root.normal_ref) {
         size_t v12 = 0;
         RobOsageNode* v8 = get_normal_ref_osage_node(i.n, &v12);
         if (!v8)
@@ -13246,7 +13243,7 @@ void rob_chara_item_equip::set_texture_pattern(texture_pattern_struct* tex_pat, 
             texture_pattern.push_back(tex_pat[i]);
 }
 
-void rob_chara_item_equip::skp_load(item_id id, skin_param_osage_root& skp_root,
+void rob_chara_item_equip::skp_load(item_id id, const skin_param_osage_root& skp_root,
     std::vector<skin_param_osage_node>& vec, skin_param_file_data* skp_file_data, const bone_database* bone_data) {
     if (id >= ITEM_BODY && id < ITEM_MAX)
         item_equip_object[id].skp_load(skp_root, vec, skp_file_data, bone_data);

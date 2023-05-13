@@ -1516,7 +1516,7 @@ struct RobOsageNodeData {
     ~RobOsageNodeData();
 
     void Reset();
-    void SetForce(skin_param_osage_root& skp_root,
+    void SetForce(const skin_param_osage_root& skp_root,
         skin_param_osage_node* skp_osg_node, size_t index);
 };
 
@@ -1647,7 +1647,7 @@ struct skin_param {
     skin_param();
     ~skin_param();
 
-    void set_skin_param_osage_root(skin_param_osage_root& skp_root);
+    void set_skin_param_osage_root(const skin_param_osage_root& skp_root);
 
     inline void reset() {
         coli.clear();
@@ -1856,7 +1856,7 @@ struct RobCloth : public CLOTH {
     void SetMotionResetData(int32_t motion_id, float_t frame);
     void SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data);
     float_t* SetOsagePlayDataInit(float_t* opdi_data);
-    void SetSkinParamOsageRoot(skin_param_osage_root& skp_root);
+    void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
     void UpdateDisp();
     void UpdateNormals();
 
@@ -1969,7 +1969,7 @@ struct RobOsage {
         vec3& parent_scale, std::vector<opd_blend_data>& opd_blend_data);
     float_t* SetOsagePlayDataInit(float_t* opdi_data);
     void SetRot(float_t rot_y, float_t rot_z);
-    void SetSkinParamOsageRoot(skin_param_osage_root& skp_root);
+    void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
     void SetSkpOsgNodes(std::vector<skin_param_osage_node>* skp_osg_nodes);
     void SetYZOrder(int32_t yz_order);
 };
@@ -2169,7 +2169,7 @@ struct rob_chara_item_equip_object {
     bone_node* get_bone_node(int32_t bone_index);
     bone_node* get_bone_node(const char* name, const bone_database* bone_data);
     const mat4* get_ex_data_bone_node_mat(const char* name);
-    RobOsageNode* get_normal_ref_osage_node(std::string& name, size_t* index);
+    RobOsageNode* get_normal_ref_osage_node(const std::string& name, size_t* index);
     void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
     void init_ex_data_bone_nodes(obj_skin_ex_data* ex_data);
     void init_members(size_t index = 0xDEADBEEF);
@@ -2179,8 +2179,8 @@ struct rob_chara_item_equip_object {
         bool osage_reset, const bone_database* bone_data, void* data, const object_database* obj_db);
     void reset_external_force();
     void set_alpha_obj_flags(float_t alpha, int32_t flags);
-    bool set_boc(skin_param_osage_root& skp_root, ExOsageBlock* osg);
-    void set_collision_target_osage(skin_param_osage_root& skp_root, skin_param* skp);
+    bool set_boc(const skin_param_osage_root& skp_root, ExOsageBlock* osg);
+    void set_collision_target_osage(const skin_param_osage_root& skp_root, skin_param* skp);
     void set_motion_reset_data(int32_t motion_id, float_t frame);
     void set_motion_skin_param(int8_t chara_id, int32_t motion_id, int32_t frame);
     void set_null_blocks_expression_data(const vec3& position, const vec3& rotation, const vec3& scale);
@@ -2189,11 +2189,11 @@ struct rob_chara_item_equip_object {
     void set_osage_move_cancel(float_t value);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
     void skp_load(void* kv, const bone_database* bone_data);
-    void skp_load(skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
+    void skp_load(const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
-    bool skp_load_boc(skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
+    bool skp_load_boc(const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
     void skp_load_file(void* data, const bone_database* bone_data, const object_database* obj_db);
-    bool skp_load_normal_ref(skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
+    bool skp_load_normal_ref(const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data);
 };
 
 struct rob_chara_item_equip {
@@ -2284,7 +2284,7 @@ struct rob_chara_item_equip {
     void set_shadow_type(int32_t chara_id);
     void set_step(float_t value);
     void set_texture_pattern(texture_pattern_struct* tex_pat, size_t count);
-    void skp_load(item_id id, skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
+    void skp_load(item_id id, const skin_param_osage_root& skp_root, std::vector<skin_param_osage_node>& vec,
         skin_param_file_data* skp_file_data, const bone_database* bone_data);
 };
 

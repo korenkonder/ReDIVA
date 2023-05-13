@@ -337,7 +337,7 @@ void RobOsageNodeData::Reset() {
     skp_osg_node.hinge.limit();
 }
 
-void RobOsageNodeData::SetForce(skin_param_osage_root& skp_root,
+void RobOsageNodeData::SetForce(const skin_param_osage_root& skp_root,
     skin_param_osage_node* skp_osg_node, size_t index) {
     this->skp_osg_node = *skp_osg_node;
     this->skp_osg_node.hinge.limit();
@@ -1282,7 +1282,7 @@ float_t* RobCloth::SetOsagePlayDataInit(float_t* opdi_data) {
     return opdi_data;
 }
 
-void RobCloth::SetSkinParamOsageRoot(skin_param_osage_root& skp_root) {
+void RobCloth::SetSkinParamOsageRoot(const skin_param_osage_root& skp_root) {
     SetForceAirRes(skp_root.force, skp_root.force_gain, skp_root.air_res);
     SetSkinParamFriction(skp_root.friction);
     SetSkinParamWindAfc(skp_root.wind_afc);
@@ -2004,7 +2004,7 @@ void RobOsage::SetRot(float_t rot_y, float_t rot_z) {
     skin_param_ptr->rot.z = rot_z * DEG_TO_RAD_FLOAT;
 }
 
-void RobOsage::SetSkinParamOsageRoot(skin_param_osage_root& skp_root) {
+void RobOsage::SetSkinParamOsageRoot(const skin_param_osage_root& skp_root) {
     skin_param_ptr->reset();
     SetForce(skp_root.force, skp_root.force_gain);
     SetAirRes(skp_root.air_res);

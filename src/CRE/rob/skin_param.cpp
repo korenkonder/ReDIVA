@@ -142,7 +142,7 @@ skin_param::~skin_param() {
 
 }
 
-void skin_param::set_skin_param_osage_root(skin_param_osage_root& skp_root) {
+void skin_param::set_skin_param_osage_root(const skin_param_osage_root& skp_root) {
     coli.assign(skp_root.coli.begin(), skp_root.coli.end());
     friction = skp_root.friction;
     wind_afc = skp_root.wind_afc;
