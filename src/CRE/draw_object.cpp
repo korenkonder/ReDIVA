@@ -64,7 +64,102 @@ namespace mdl {
     }
 
     void draw_etc_obj(render_context* rctx, mdl::EtcObj* etc) {
+        switch (etc->type) {
+        case mdl::ETC_OBJ_TEAPOT:
+        case mdl::ETC_OBJ_GRID:
+        case mdl::ETC_OBJ_CUBE:
+        case mdl::ETC_OBJ_SPHERE:
+        case mdl::ETC_OBJ_PLANE:
+        case mdl::ETC_OBJ_CONE:
+        case mdl::ETC_OBJ_LINE:
+        case mdl::ETC_OBJ_CROSS:
+        case mdl::ETC_OBJ_CAPSULE: // Added
+            break;
+        default:
+            return;
+        }
 
+        if (!etc->count)
+            return;
+
+        GLuint vao = rctx->disp_manager.get_vertex_array(etc);
+        if (!vao)
+            return;
+       
+        vec4 g_material_state_diffuse = rctx->obj_batch.g_material_state_diffuse;
+        vec4 g_material_state_ambient = rctx->obj_batch.g_material_state_ambient;
+        vec4 g_material_state_specular = rctx->obj_batch.g_material_state_specular;
+        vec4 g_material_state_emission = rctx->obj_batch.g_material_state_emission;
+        vec4 g_material_state_shininess = rctx->obj_batch.g_material_state_shininess;
+
+        vec4 ambient;
+        *(vec3*)&ambient = *(vec3*)&etc->color * 0.5f;
+        ambient.w = etc->color.w;
+
+        rctx->obj_batch.g_material_state_diffuse = etc->color;
+        rctx->obj_batch.g_material_state_ambient = ambient;
+        rctx->obj_batch.g_material_state_specular = { 0.0f, 0.0f, 0.0f, 1.0f };
+        rctx->obj_batch.g_material_state_emission = etc->constant ? 1.0f : vec4(0.0f, 0.0f, 0.0f, 1.0f);
+        rctx->obj_batch.g_material_state_shininess = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+        rctx->obj_batch.g_blend_color = etc->color;
+
+        gl_state_bind_vertex_array(vao);
+        rctx->obj_batch_ubo.WriteMapMemory(rctx->obj_batch);
+
+        //shaders_ft.set(SHADER_FT_SIMPLE);
+        shaders_ft.set(etc->constant ? SHADER_FT_CONSTANT : SHADER_FT_SIMPLE);
+        switch (etc->type) {
+        case mdl::ETC_OBJ_TEAPOT:
+            shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+            break;
+        case mdl::ETC_OBJ_GRID:
+            shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
+            break;
+        case mdl::ETC_OBJ_CUBE:
+            if (etc->data.sphere.wire)
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+            else
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+            break;
+        case mdl::ETC_OBJ_SPHERE:
+            if (etc->data.sphere.wire)
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+            else
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+            break;
+        case mdl::ETC_OBJ_PLANE:
+            shaders_ft.draw_arrays(GL_TRIANGLES, 0, etc->count);
+            break;
+        case mdl::ETC_OBJ_CONE:
+            if (etc->data.cone.wire)
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+            else
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+            break;
+        case mdl::ETC_OBJ_LINE:
+            shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
+            break;
+        case mdl::ETC_OBJ_CROSS:
+            shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
+            break;
+        case mdl::ETC_OBJ_CAPSULE: // Added
+            if (etc->data.capsule.wire)
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+            else
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+            break;
+        }
+        shader::unbind();
+        uniform_value_reset();
+
+        rctx->obj_batch.g_material_state_diffuse = g_material_state_diffuse;
+        rctx->obj_batch.g_material_state_ambient = g_material_state_ambient;
+        rctx->obj_batch.g_material_state_specular = g_material_state_specular;
+        rctx->obj_batch.g_material_state_emission = g_material_state_emission;
+        rctx->obj_batch.g_material_state_shininess = g_material_state_shininess;
+
+        rctx->obj_batch.g_blend_color = 1.0f;
     }
 
     void draw_sub_mesh(render_context* rctx, const ObjSubMeshArgs* args, const mat4* model,

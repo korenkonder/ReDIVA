@@ -59,6 +59,7 @@ namespace mdl {
         ETC_OBJ_CONE,
         ETC_OBJ_LINE,
         ETC_OBJ_CROSS,
+        ETC_OBJ_CAPSULE, // Added
         ETC_OBJ_MAX,
     };
 
@@ -345,6 +346,19 @@ namespace mdl {
         float_t size;
     };
 
+    struct EtcObjCapsule { // Added
+        float_t radius;
+        int32_t slices;
+        int32_t stacks;
+        bool wire;
+        float_t x0;
+        float_t y0;
+        float_t z0;
+        float_t x1;
+        float_t y1;
+        float_t z1;
+    };
+
     struct EtcObj {
         union Data {
             EtcObjTeapot teapot;
@@ -355,12 +369,15 @@ namespace mdl {
             EtcObjCone cone;
             EtcObjLine line;
             EtcObjCross cross;
+            EtcObjCapsule capsule; // Added
         };
 
         EtcObjType type;
         vec4 color;
-        bool fog;
+        //bool fog;
+        bool constant; // Added
         Data data;
+        GLsizei count; // Added
 
         void init(EtcObjType type);
     };
@@ -391,7 +408,7 @@ namespace mdl {
         float_t radius;
         Args args;
 
-        void init_etc(const mat4* mat, mdl::EtcObj* etc);
+        void init_etc(DispManager* disp_manager, const mat4* mat, mdl::EtcObj* etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat,
             float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
             std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
@@ -475,6 +492,16 @@ namespace mdl {
             int32_t texcoord_array[2];
         };
 
+        struct etc_vertex_array {
+            GLuint vertex_buffer;
+            GLuint index_buffer;
+            int32_t alive_time;
+            GLuint vertex_array;
+            EtcObj::Data data;
+            EtcObjType type;
+            GLsizei count;
+        };
+
         mdl::ObjFlags obj_flags;
         shadow_type_enum shadow_type;
         int32_t field_8;
@@ -505,11 +532,13 @@ namespace mdl {
         int32_t material_list_count;
         material_list_struct material_list_array[MATERIAL_LIST_COUNT];
         std::vector<vertex_array> vertex_array_cache;
+        std::vector<etc_vertex_array> etc_vertex_array_cache;
 
         DispManager();
         ~DispManager();
 
-        void add_vertex_array(const ObjSubMeshArgs* args);
+        void add_vertex_array(ObjSubMeshArgs* args);
+        void add_vertex_array(EtcObj* etc);
         ObjData* alloc_data(ObjKind kind);
         mat4* alloc_data(int32_t count);
         void buffer_reset();
@@ -541,6 +570,7 @@ namespace mdl {
         void entry_obj_etc(const mat4* mat, EtcObj* etc);
         void entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type);
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
+        GLuint get_vertex_array(const EtcObj* etc);
         bool get_chara_color();
         ObjFlags get_obj_flags();
         void get_material_list(int32_t& count, material_list_struct*& value);
