@@ -8450,6 +8450,7 @@ typedef std::pair<vec4, vec4> material_list_color;
 
 struct material_list_data {
     std::vector<material_list_color> color;
+    std::vector<material_list_color> color_opt;
     union {
         uint16_t has_color;
         struct {
@@ -8460,6 +8461,7 @@ struct material_list_data {
         };
     };
     std::vector<kft3> morph;
+    std::vector<kft3> morph_opt;
     int32_t type;
 
     inline material_list_data() : has_color(), type() {
@@ -8474,12 +8476,15 @@ struct material_list_data {
 };
 
 void material_list_data::optimize() {
+    color_opt.assign(color.begin(), color.end());
+    morph_opt.assign(morph.begin(), morph.end());
+
     if (type < 2)
         return;
 
     while (true) {
-        std::vector<material_list_color> color(this->color);
-        std::vector<kft3> morph(this->morph);
+        std::vector<material_list_color> color(this->color_opt);
+        std::vector<kft3> morph(this->morph_opt);
 
         kft3* keys = morph.data();
         size_t length = morph.size();
@@ -8652,20 +8657,20 @@ void material_list_data::optimize() {
         if (max_value < color.size())
             color.resize(max_value);
 
-        if (color.size() < this->color.size() || morph.size() < this->morph.size()) {
-            this->color.assign(color.begin(), color.end());
-            this->morph.assign(morph.begin(), morph.end());
+        if (color.size() < this->color_opt.size() || morph.size() < this->morph_opt.size()) {
+            this->color_opt.assign(color.begin(), color.end());
+            this->morph_opt.assign(morph.begin(), morph.end());
             continue;
         }
         break;
     }
 
-    if (color.size() > 2) {
-        material_list_color* color_data = color.data();
-        size_t color_length = color.size();
+    if (color_opt.size() > 2) {
+        material_list_color* color_data = color_opt.data();
+        size_t color_length = color_opt.size();
 
-        kft3* keys = morph.data();
-        size_t length = morph.size();
+        kft3* keys = morph_opt.data();
+        size_t length = morph_opt.size();
         for (size_t i = 0, j = 2; j < color_length; i++, j++) {
             if (memcmp(&color_data[i], &color_data[j], sizeof(material_list_color)))
                 continue;
@@ -8688,38 +8693,38 @@ void material_list_data::optimize() {
             }
 
             if (removed) {
-                color.erase(color.begin() + (i + 2));
-                color_length = color.size();
+                color_opt.erase(color_opt.begin() + (i + 2));
+                color_length = color_opt.size();
             }
         }
 
         int32_t max_value = 0;
-        for (kft3& i : morph)
+        for (kft3& i : morph_opt)
             max_value = max_def(max_value, (int32_t)i.value);
         max_value++;
 
-        if (max_value < color.size())
-            color.resize(max_value);
+        if (max_value < color_opt.size())
+            color_opt.resize(max_value);
     }
 
-    if (morph.size() > 1) {
-        auto i_begin = morph.begin();
-        auto i_end = morph.end() - 1;
+    if (morph_opt.size() > 1) {
+        auto i_begin = morph_opt.begin();
+        auto i_end = morph_opt.end() - 1;
 
         for (auto i = i_begin; i != i_end;)
             if (*(uint32_t*)&i[0].frame == *(uint32_t*)&i[1].frame
                 && *(uint32_t*)&i[0].value == *(uint32_t*)&i[1].value) {
                 i[1].tangent1 = i[0].tangent1;
-                i = morph.erase(i);
-                i_begin = morph.begin();
-                i_end = morph.end() - 1;
+                i = morph_opt.erase(i);
+                i_begin = morph_opt.begin();
+                i_end = morph_opt.end() - 1;
             }
             else
                 i++;
     }
 
     if (type == 2)
-        for (kft3& i : morph) {
+        for (kft3& i : morph_opt) {
             i.tangent1 = 0.0f;
             i.tangent2 = 0.0f;
         }
@@ -9213,8 +9218,9 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
             data.optimize();
-            printf_debug("    %d %20s %3llu %3llu\n", data.type,
-                j.name.c_str(), data.color.size(), data.morph.size());
+            printf_debug("    %d %20s %3llu %3llu %3llu %3llu\n", data.type,
+                j.name.c_str(), data.color.size(), data.morph.size(),
+                data.color_opt.size(), data.morph_opt.size());
         }
     }
 
@@ -9233,8 +9239,9 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
             data.optimize();
-            printf_debug("    %d %20s %3llu %3llu\n", data.type,
-                j.name.c_str(), data.color.size(), data.morph.size());
+            printf_debug("    %d %20s %3llu %3llu %3llu %3llu\n", data.type,
+                j.name.c_str(), data.color.size(), data.morph.size(),
+                data.color_opt.size(), data.morph_opt.size());
         }
     }
 }
