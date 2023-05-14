@@ -4652,7 +4652,7 @@ bool x_pv_game::Ctrl() {
         prj::sort_unique(material_list);
 
         if (material_list.size())
-            ;//x_pv_game_split_auth_3d_hrc_material_list(this, object_hrc, material_list);
+            x_pv_game_split_auth_3d_hrc_material_list(this, object_hrc, material_list);
 
         std::vector<object_info> object;
         material_list.clear();
@@ -4699,7 +4699,7 @@ bool x_pv_game::Ctrl() {
         prj::sort_unique(material_list);
 
         if (material_list.size())
-            ;//x_pv_game_split_auth_3d_material_list(this, object, material_list);
+            x_pv_game_split_auth_3d_material_list(this, object, material_list);
 
         state_old = 19;
     } break;
@@ -8750,23 +8750,45 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     has_data[7] = (ml.emission.flags & AUTH_3D_RGBA_A)
         && ml.emission.a.type >= AUTH_3D_KEY_LINEAR && ml.emission.a.type <= AUTH_3D_KEY_HOLD;
 
-    if (has_data[0])
+    if (has_data[0]) {
         play_control_size = max_def(play_control_size, ml.blend_color.r.max_frame);
-    if (has_data[1])
+        play_control_size = max_def(play_control_size, ml.blend_color.r.keys_vec.back().frame + 1.0f);
+    }
+
+    if (has_data[1]) {
         play_control_size = max_def(play_control_size, ml.blend_color.g.max_frame);
-    if (has_data[2])
+        play_control_size = max_def(play_control_size, ml.blend_color.g.keys_vec.back().frame + 1.0f);
+    }
+
+    if (has_data[2]) {
         play_control_size = max_def(play_control_size, ml.blend_color.b.max_frame);
-    if (has_data[3])
+        play_control_size = max_def(play_control_size, ml.blend_color.b.keys_vec.back().frame + 1.0f);
+    }
+
+    if (has_data[3]) {
         play_control_size = max_def(play_control_size, ml.blend_color.a.max_frame);
+        play_control_size = max_def(play_control_size, ml.blend_color.a.keys_vec.back().frame + 1.0f);
+    }
     
-    if (has_data[4])
+    if (has_data[4]) {
         play_control_size = max_def(play_control_size, ml.emission.r.max_frame);
-    if (has_data[5])
+        play_control_size = max_def(play_control_size, ml.emission.r.keys_vec.back().frame + 1.0f);
+    }
+
+    if (has_data[5]) {
         play_control_size = max_def(play_control_size, ml.emission.g.max_frame);
-    if (has_data[6])
+        play_control_size = max_def(play_control_size, ml.emission.g.keys_vec.back().frame + 1.0f);
+    }
+
+    if (has_data[6]) {
         play_control_size = max_def(play_control_size, ml.emission.b.max_frame);
-    if (has_data[7])
+        play_control_size = max_def(play_control_size, ml.emission.b.keys_vec.back().frame + 1.0f);
+    }
+
+    if (has_data[7]) {
         play_control_size = max_def(play_control_size, ml.emission.a.max_frame);
+        play_control_size = max_def(play_control_size, ml.emission.a.keys_vec.back().frame + 1.0f);
+    }
     
     size_t count = (size_t)(int32_t)play_control_size;
     
