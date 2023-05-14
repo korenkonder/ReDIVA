@@ -18,7 +18,7 @@ void interpolate_chs_reverse_value(float_t* arr, size_t length,
 
     vec2 h00 = t_32 - t_23 + 1.0f;
     vec2 h01 = t_23 - t_32;
-    vec2 h10 = t_3 - 2.0f * t_2 + t.x;
+    vec2 h10 = t_3 - 2.0f * t_2 + t;
     vec2 h11 = t_3 - t_2;
 
     vec2 t1_t2 = *(vec2*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
