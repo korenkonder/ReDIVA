@@ -8472,15 +8472,15 @@ struct material_list_data {
 
     }
 
-    void optimize();
+    bool optimize();
 };
 
-void material_list_data::optimize() {
+bool material_list_data::optimize() {
     color_opt.assign(color.begin(), color.end());
     morph_opt.assign(morph.begin(), morph.end());
 
     if (type < 2)
-        return;
+        return true;
 
     while (true) {
         std::vector<material_list_color> color(this->color_opt);
@@ -8728,6 +8728,127 @@ void material_list_data::optimize() {
             i.tangent1 = 0.0f;
             i.tangent2 = 0.0f;
         }
+
+    size_t count = (size_t)(int32_t)morph.back().frame + 1;
+
+    auth_3d_key morph_key;
+    {
+        morph_key.max_frame = (float_t)(int32_t)count;
+        morph_key.frame_delta = morph_key.max_frame;
+        morph_key.value_delta = 0.0f;
+
+        switch (type) {
+        case A3DA_KEY_LINEAR:
+            morph_key.type = AUTH_3D_KEY_LINEAR;
+            break;
+        case A3DA_KEY_HERMITE:
+        default:
+            morph_key.type = AUTH_3D_KEY_HERMITE;
+            break;
+        }
+
+        size_t length = morph.size();
+        if (length > 1) {
+            morph_key.keys_vec.assign(morph.begin(), morph.end());
+            morph_key.length = length;
+            morph_key.keys = morph_key.keys_vec.data();
+
+            kft3* first_key = &morph_key.keys[0];
+            kft3* last_key = &morph_key.keys[length - 1];
+            if (first_key->frame < last_key->frame
+                && last_key->frame > 0.0f && morph_key.max_frame > first_key->frame) {
+                morph_key.frame_delta = last_key->frame - first_key->frame;
+                morph_key.value_delta = last_key->value - first_key->value;
+            }
+        }
+        else if (length == 1) {
+            float_t value = morph.front().value;
+            morph_key.type = value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+            morph_key.value = value;
+        }
+        else {
+            morph_key.type = AUTH_3D_KEY_NONE;
+            morph_key.value = 0.0f;
+        }
+    }
+
+    auth_3d_key morph_opt_key;
+    {
+        morph_opt_key.max_frame = (float_t)(int32_t)count;
+        morph_opt_key.frame_delta = morph_opt_key.max_frame;
+        morph_opt_key.value_delta = 0.0f;
+
+        switch (type) {
+        case A3DA_KEY_LINEAR:
+            morph_opt_key.type = AUTH_3D_KEY_LINEAR;
+            break;
+        case A3DA_KEY_HERMITE:
+        default:
+            morph_opt_key.type = AUTH_3D_KEY_HERMITE;
+            break;
+        }
+
+        size_t length = morph_opt.size();
+        if (length > 1) {
+            morph_opt_key.keys_vec.assign(morph_opt.begin(), morph_opt.end());
+            morph_opt_key.length = length;
+            morph_opt_key.keys = morph_opt_key.keys_vec.data();
+
+            kft3* first_key = &morph_opt_key.keys[0];
+            kft3* last_key = &morph_opt_key.keys[length - 1];
+            if (first_key->frame < last_key->frame
+                && last_key->frame > 0.0f && morph_opt_key.max_frame > first_key->frame) {
+                morph_opt_key.frame_delta = last_key->frame - first_key->frame;
+                morph_opt_key.value_delta = last_key->value - first_key->value;
+            }
+        }
+        else if (length == 1) {
+            float_t value = morph_opt.front().value;
+            morph_opt_key.type = value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+            morph_opt_key.value = value;
+        }
+        else {
+            morph_opt_key.type = AUTH_3D_KEY_NONE;
+            morph_opt_key.value = 0.0f;
+        }
+    }
+
+    material_list_color* color_data = color.data();
+    material_list_color* color_opt_data = color_opt.data();
+
+    const float_t reverse_bias = 0.0001f;
+
+    for (size_t i = 0; i < count; i++) {
+        float_t morph = morph_key.interpolate((float_t)(int32_t)i);
+        float_t morph_opt = morph_opt_key.interpolate((float_t)(int32_t)i);
+
+        int32_t morph_int = (int32_t)morph;
+        int32_t morph_int_opt = (int32_t)morph_opt;
+
+        morph = fmodf(morph, 1.0f);
+        morph_opt = fmodf(morph_opt, 1.0f);
+
+        vec4 v_first = vec4::abs(
+            (morph == 0.0f ? color_data[morph_int].first
+                : vec4::lerp(color_data[morph_int].first, color_data[morph_int + 1].first, morph))
+            - (morph_opt == 0.0f ? color_data[morph_int_opt].first
+                : vec4::lerp(color_data[morph_int_opt].first, color_data[morph_int_opt + 1].first, morph_opt)));
+        vec4 v_second = vec4::abs(
+            (morph == 0.0f ? color_data[morph_int].second
+                : vec4::lerp(color_data[morph_int].second, color_data[morph_int + 1].second, morph))
+            - (morph_opt == 0.0f ? color_data[morph_int_opt].second
+                : vec4::lerp(color_data[morph_int_opt].second, color_data[morph_int_opt + 1].second, morph_opt)));
+        if (v_first.x > reverse_bias
+            || v_first.y > reverse_bias
+            || v_first.z > reverse_bias
+            || v_first.w > reverse_bias
+            || v_second.x > reverse_bias
+            || v_second.y > reverse_bias
+            || v_second.z > reverse_bias
+            || v_second.w > reverse_bias)
+            return false;
+    }
+    return true;
 }
 
 static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
@@ -9217,10 +9338,10 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             material_list_data& data = i.second.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
-            data.optimize();
-            printf_debug("    %d %20s %3llu %3llu %3llu %3llu\n", data.type,
+            bool same = data.optimize();
+            printf_debug("    %d %20s %3llu %3llu %3llu %3llu%s\n", data.type,
                 j.name.c_str(), data.color.size(), data.morph.size(),
-                data.color_opt.size(), data.morph_opt.size());
+                data.color_opt.size(), data.morph_opt.size(), same ? ""  : " Not same");
         }
     }
 
@@ -9238,10 +9359,10 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             material_list_data& data = i.second.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
-            data.optimize();
+            bool same = data.optimize();
             printf_debug("    %d %20s %3llu %3llu %3llu %3llu\n", data.type,
                 j.name.c_str(), data.color.size(), data.morph.size(),
-                data.color_opt.size(), data.morph_opt.size());
+                data.color_opt.size(), data.morph_opt.size(), same ? "" : " Not same");
         }
     }
 }
