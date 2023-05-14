@@ -7,33 +7,25 @@
 
 void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
-    float_t _t1 = (float_t)(int32_t)(f - f1 + 0) / (float_t)(int32_t)(f2 - f1);
-    float_t _t2 = (float_t)(int32_t)(f - f1 + 1) / (float_t)(int32_t)(f2 - f1);
-    float_t t1_2 = _t1 * _t1;
-    float_t t2_2 = _t2 * _t2;
-    float_t t1_3 = t1_2 * _t1;
-    float_t t2_3 = t2_2 * _t2;
-    float_t t1_23 = 3.0f * t1_2;
-    float_t t2_23 = 3.0f * t2_2;
-    float_t t1_32 = 2.0f * t1_3;
-    float_t t2_32 = 2.0f * t2_3;
+    vec2 t = vec2(
+        (float_t)(int32_t)(f - f1 + 0),
+        (float_t)(int32_t)(f - f1 + 1)
+    ) / (float_t)(int32_t)(f2 - f1);
+    vec2 t_2 = t * t;
+    vec2 t_3 = t_2 * t;
+    vec2 t_23 = 3.0f * t_2;
+    vec2 t_32 = 2.0f * t_3;
 
-    float_t h00_1 = t1_32 - t1_23 + 1.0f;
-    float_t h00_2 = t2_32 - t2_23 + 1.0f;
-    float_t h01_1 = t1_23 - t1_32;
-    float_t h01_2 = t2_23 - t2_32;
-    float_t h10_1 = t1_3 - 2.0f * t1_2 + _t1;
-    float_t h10_2 = t2_3 - 2.0f * t2_2 + _t2;
-    float_t h11_1 = t1_3 - t1_2;
-    float_t h11_2 = t2_3 - t2_2;
+    vec2 h00 = t_32 - t_23 + 1.0f;
+    vec2 h01 = t_23 - t_32;
+    vec2 h10 = t_3 - 2.0f * t_2 + t.x;
+    vec2 h11 = t_3 - t_2;
 
-    float_t t1_t2_1 = arr[f + 0] - h00_1 * arr[f1] - h01_1 * arr[f2];
-    float_t t1_t2_2 = arr[f + 1] - h00_2 * arr[f1] - h01_2 * arr[f2];
-    t1_t2_1 /= (t1_2 - _t1) * (t2_2 - _t2);
-    t1_t2_2 /= (t1_2 - _t1) * (t2_2 - _t2);
+    vec2 t1_t2 = *(vec2*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
+    t1_t2 /= (t_2.x - t.x) * (t_2.y - t.y);
 
-    t1 = -h11_2 * t1_t2_1 + h11_1 * t1_t2_2;
-    t2 = h10_2 * t1_t2_1 - h10_1 * t1_t2_2;
+    t1 = -h11.y * t1_t2.x + h11.x * t1_t2.y;
+    t2 = h10.y * t1_t2.x - h10.x * t1_t2.y;
 }
 
 void interpolate_chs_reverse(float_t* arr, size_t length,
@@ -71,13 +63,13 @@ int32_t interpolate_chs_reverse_sequence(
             return 0;
     }
     else {
-        uint32_t val = *(uint32_t*)&values_src.data()[0];
-        uint32_t* arr = (uint32_t*)&values_src.data()[1];
+        float_t val = values_src.data()[0];
+        float_t* arr = &values_src.data()[1];
         for (size_t i = count - 1; i; i--)
             if (val != *arr++)
                 break;
 
-        if (arr == (uint32_t*)(values_src.data() + count))
+        if (arr == values_src.data() + count)
             if (values_src[0] != 0.0f) {
                 values.push_back({ 0, values_src[0] });
                 return 1;

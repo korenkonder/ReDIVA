@@ -122,18 +122,17 @@ static float_t interpolate_mot_value(float_t p1, float_t p2,
 
 static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
-    float_t _t1 = (float_t)(int32_t)(f - f1 + 0) / (float_t)(int32_t)(f2 - f1);
-    float_t _t2 = (float_t)(int32_t)(f - f1 + 1) / (float_t)(int32_t)(f2 - f1);
-    float_t t1_1 = _t1 - 1.0f;
-    float_t t2_1 = _t2 - 1.0f;
+    vec2 t = vec2(
+        (float_t)(int32_t)(f - f1 + 0),
+        (float_t)(int32_t)(f - f1 + 1)
+    ) / (float_t)(int32_t)(f2 - f1);
+    vec2 t_1 = t - 1.0f;
 
-    float_t t1_t2_1 = arr[f + 0] - arr[f1] - (_t1 * 2.0f - 3.0f) * (_t1 * _t1) * (arr[f1] - arr[f2]);
-    float_t t1_t2_2 = arr[f + 1] - arr[f1] - (_t2 * 2.0f - 3.0f) * (_t2 * _t2) * (arr[f1] - arr[f2]);
-    t1_t2_1 /= t1_1 * _t1;
-    t1_t2_2 /= t2_1 * _t2;
+    vec2 t1_t2 = *(vec2*)&arr[f] - arr[f1] - (t * 2.0f - 3.0f) * (t * t) * (arr[f1] - arr[f2]);
+    t1_t2 /= t_1 * t;
 
-    t1 = -t1_t2_1 * _t2 + t1_t2_2 * _t1;
-    t2 = t1_t2_1 * t2_1 - t1_t2_2 * t1_1;
+    t1 = -t1_t2.x * t.y + t1_t2.y * t.x;
+    t2 = t1_t2.x * t_1.y - t1_t2.y * t_1.x;
 }
 
 inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
@@ -180,13 +179,13 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
             return MOT_KEY_SET_NONE;
     }
     else {
-        uint32_t val = *(uint32_t*)&values_src.data()[0];
-        uint32_t* arr = (uint32_t*)&values_src.data()[1];
+        float_t val = values_src.data()[0];
+        float_t* arr = &values_src.data()[1];
         for (size_t i = count - 1; i; i--)
             if (val != *arr++)
                 break;
 
-        if (arr == (uint32_t*)(values_src.data() + count))
+        if (arr == values_src.data() + count)
             if (values_src[0] != 0.0f) {
                 values.push_back(values_src[0]);
                 return MOT_KEY_SET_STATIC;
