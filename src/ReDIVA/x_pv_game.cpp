@@ -9360,7 +9360,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
             bool same = data.optimize();
-            printf_debug("    %d %20s %3llu %3llu %3llu %3llu\n", data.type,
+            printf_debug("    %d %20s %3llu %3llu %3llu %3llu%s\n", data.type,
                 j.name.c_str(), data.color.size(), data.morph.size(),
                 data.color_opt.size(), data.morph_opt.size(), same ? "" : " Not same");
         }
