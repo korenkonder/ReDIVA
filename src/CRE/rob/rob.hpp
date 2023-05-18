@@ -829,13 +829,13 @@ enum SubActParamType  {
 
 namespace SkinParam {
     enum CollisionType {
-        CollisionTypeEnd      = 0x0,
-        CollisionTypeBall     = 0x1,
-        CollisionTypeCapsulle = 0x2,
-        CollisionTypePlane    = 0x3,
-        CollisionTypeEllipse  = 0x4,
-        CollisionTypeAABB     = 0x5,
-        CollisionTypeMax      = 0x6,
+        CollisionTypeEnd     = 0x0,
+        CollisionTypeBall    = 0x1,
+        CollisionTypeCapsule = 0x2,
+        CollisionTypePlane   = 0x3,
+        CollisionTypeEllipse = 0x4,
+        CollisionTypeAABB    = 0x5,
+        CollisionTypeMax     = 0x6,
     };
 }
 

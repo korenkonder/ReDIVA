@@ -426,7 +426,7 @@ void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
             mat4_mult_vec3(&transform[cls_param->node_idx[0]],
                 &cls_param->pos[1], &cls->pos[1]);
             break;
-        case SkinParam::CollisionTypeCapsulle:
+        case SkinParam::CollisionTypeCapsule:
         case SkinParam::CollisionTypeEllipse:
             mat4_mult_vec3_trans(&transform[cls_param->node_idx[1]],
                 &cls_param->pos[1], &cls->pos[1]);
@@ -689,7 +689,7 @@ int32_t OsageCollision::osage_capsule_cls(vec3& p0, vec3& p1, const float_t& cls
         case SkinParam::CollisionTypeBall:
             v8 += OsageCollision::cls_line2ball_oidashi(vec, p0, p1, cls->pos[0], cls_r + cls->radius);
             break;
-        case SkinParam::CollisionTypeCapsulle:
+        case SkinParam::CollisionTypeCapsule:
             v8 += OsageCollision::cls_line2capsule_oidashi(vec, p0, p1, cls, cls_r + cls->radius);
             break;
         case SkinParam::CollisionTypeEllipse:
@@ -724,7 +724,7 @@ int32_t OsageCollision::osage_cls(vec3& p, const float_t& cls_r, const OsageColl
         case SkinParam::CollisionTypeBall:
             v11 = OsageCollision::cls_ball_oidashi(vec, p, cls->pos[0], cls->radius + cls_r);
             break;
-        case SkinParam::CollisionTypeCapsulle:
+        case SkinParam::CollisionTypeCapsule:
             v11 = OsageCollision::cls_capsule_oidashi(vec, p, cls, cls->radius + cls_r);
             break;
         case SkinParam::CollisionTypePlane:
