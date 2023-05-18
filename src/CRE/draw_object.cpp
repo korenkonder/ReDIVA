@@ -92,17 +92,21 @@ namespace mdl {
         vec4 g_material_state_emission = rctx->obj_batch.g_material_state_emission;
         vec4 g_material_state_shininess = rctx->obj_batch.g_material_state_shininess;
 
-        vec4 ambient;
-        *(vec3*)&ambient = *(vec3*)&etc->color * 0.5f;
-        ambient.w = etc->color.w;
+        vec4 color;
+        vec4u8_to_vec4(etc->color, color);
+        color *= (float_t)(1.0 / 255.0);
 
-        rctx->obj_batch.g_material_state_diffuse = etc->color;
+        vec4 ambient;
+        *(vec3*)&ambient = *(vec3*)&color * 0.5f;
+        ambient.w = color.w;
+
+        rctx->obj_batch.g_material_state_diffuse = color;
         rctx->obj_batch.g_material_state_ambient = ambient;
         rctx->obj_batch.g_material_state_specular = { 0.0f, 0.0f, 0.0f, 1.0f };
         rctx->obj_batch.g_material_state_emission = etc->constant ? 1.0f : vec4(0.0f, 0.0f, 0.0f, 1.0f);
         rctx->obj_batch.g_material_state_shininess = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-        rctx->obj_batch.g_blend_color = etc->color;
+        rctx->obj_batch.g_blend_color = color;
 
         gl_state_bind_vertex_array(vao);
         rctx->obj_batch_ubo.WriteMapMemory(rctx->obj_batch);
@@ -118,24 +122,24 @@ namespace mdl {
             break;
         case mdl::ETC_OBJ_CUBE:
             if (etc->data.sphere.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_SPHERE:
             if (etc->data.sphere.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_PLANE:
             shaders_ft.draw_arrays(GL_TRIANGLES, 0, etc->count);
             break;
         case mdl::ETC_OBJ_CONE:
             if (etc->data.cone.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         case mdl::ETC_OBJ_LINE:
             shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
@@ -145,9 +149,9 @@ namespace mdl {
             break;
         case mdl::ETC_OBJ_CAPSULE: // Added
             if (etc->data.capsule.wire)
-                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
-                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
         }
         shader::unbind();

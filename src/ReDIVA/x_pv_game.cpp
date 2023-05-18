@@ -8637,8 +8637,8 @@ bool material_list_data::optimize() {
                     break;
 
                 for (size_t k = count, l = count - 1; k < count * 2; k++, l--) {
-                    if (keys[i + k].value < keys[i + k + 1].value && keys[i + l + 1].value > keys[i + l].value
-                        || keys[i + k].value > keys[i + k + 1].value && keys[i + l + 1].value < keys[i + l].value) {
+                    if (keys[i + k + 1].value < keys[i + k + 2].value && keys[i + l + 1].value > keys[i + l].value
+                        || keys[i + k + 1].value > keys[i + k + 2].value && keys[i + l + 1].value < keys[i + l].value) {
                         keys[i + k + 1].tangent2 = -keys[i + k + 1].tangent2;
                         keys[i + k + 2].tangent1 = -keys[i + k + 2].tangent1;
                     }
@@ -8830,14 +8830,18 @@ bool material_list_data::optimize() {
 
         vec4 v_first = vec4::abs(
             (morph == 0.0f ? color_data[morph_int].first
-                : vec4::lerp(color_data[morph_int].first, color_data[morph_int + 1].first, morph))
-            - (morph_opt == 0.0f ? color_data[morph_int_opt].first
-                : vec4::lerp(color_data[morph_int_opt].first, color_data[morph_int_opt + 1].first, morph_opt)));
+                : vec4::lerp(color_data[morph_int].first,
+                    color_data[morph_int + 1].first, morph))
+            - (morph_opt == 0.0f ? color_opt_data[morph_int_opt].first
+                : vec4::lerp(color_opt_data[morph_int_opt].first,
+                    color_opt_data[morph_int_opt + 1].first, morph_opt)));
         vec4 v_second = vec4::abs(
             (morph == 0.0f ? color_data[morph_int].second
-                : vec4::lerp(color_data[morph_int].second, color_data[morph_int + 1].second, morph))
-            - (morph_opt == 0.0f ? color_data[morph_int_opt].second
-                : vec4::lerp(color_data[morph_int_opt].second, color_data[morph_int_opt + 1].second, morph_opt)));
+                : vec4::lerp(color_data[morph_int].second,
+                    color_data[morph_int + 1].second, morph))
+            - (morph_opt == 0.0f ? color_opt_data[morph_int_opt].second
+                : vec4::lerp(color_opt_data[morph_int_opt].second,
+                    color_opt_data[morph_int_opt + 1].second, morph_opt)));
         if (v_first.x > reverse_bias
             || v_first.y > reverse_bias
             || v_first.z > reverse_bias
@@ -9321,6 +9325,12 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
     stage_data_effect_auth_3ds.sort_unique();
     stage_data_change_effect_auth_3ds.sort_unique();
+
+    for (auto& i : stage_data_effect_auth_3ds) {
+        auto elem = stage_data_change_effect_auth_3ds.find(i.first);
+        if (elem != stage_data_change_effect_auth_3ds.end())
+            stage_data_change_effect_auth_3ds.erase(elem);
+    }
 
     printf_debug("");
 

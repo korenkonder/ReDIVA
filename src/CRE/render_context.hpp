@@ -297,6 +297,8 @@ namespace mdl {
 
     struct EtcObjTeapot {
         float_t size;
+
+        EtcObjTeapot();
     };
 
     struct EtcObjGrid {
@@ -304,13 +306,15 @@ namespace mdl {
         int32_t h;
         int32_t ws;
         int32_t hs;
+
+        EtcObjGrid();
     };
 
     struct EtcObjCube {
-        float_t size_x;
-        float_t size_y;
-        float_t size_z;
+        vec3 size;
         bool wire;
+
+        EtcObjCube();
     };
 
     struct EtcObjSphere {
@@ -318,11 +322,15 @@ namespace mdl {
         int32_t slices;
         int32_t stacks;
         bool wire;
+
+        EtcObjSphere();
     };
 
     struct EtcObjPlane {
         int32_t w;
         int32_t h;
+
+        EtcObjPlane();
     };
 
     struct EtcObjCone {
@@ -331,19 +339,20 @@ namespace mdl {
         int32_t slices;
         int32_t stacks;
         bool wire;
+
+        EtcObjCone();
     };
 
     struct EtcObjLine {
-        float_t x0;
-        float_t y0;
-        float_t z0;
-        float_t x1;
-        float_t y1;
-        float_t z1;
+        vec3 pos[2];
+
+        EtcObjLine();
     };
 
     struct EtcObjCross {
         float_t size;
+
+        EtcObjCross();
     };
 
     struct EtcObjCapsule { // Added
@@ -351,12 +360,9 @@ namespace mdl {
         int32_t slices;
         int32_t stacks;
         bool wire;
-        float_t x0;
-        float_t y0;
-        float_t z0;
-        float_t x1;
-        float_t y1;
-        float_t z1;
+        vec3 pos[2];
+
+        EtcObjCapsule();
     };
 
     struct EtcObj {
@@ -370,15 +376,19 @@ namespace mdl {
             EtcObjLine line;
             EtcObjCross cross;
             EtcObjCapsule capsule; // Added
+
+            Data();
         };
 
         EtcObjType type;
-        vec4 color;
+        vec4u8 color;
         //bool fog;
         bool constant; // Added
         Data data;
         GLsizei count; // Added
+        size_t offset; // Added
 
+        EtcObj();
         void init(EtcObjType type);
     };
 
@@ -500,6 +510,11 @@ namespace mdl {
             EtcObj::Data data;
             EtcObjType type;
             GLsizei count;
+            size_t offset;
+            GLsizei wire_count;
+            size_t wire_offset;
+            size_t max_vtx;
+            size_t max_idx;
         };
 
         mdl::ObjFlags obj_flags;
@@ -538,7 +553,7 @@ namespace mdl {
         ~DispManager();
 
         void add_vertex_array(ObjSubMeshArgs* args);
-        void add_vertex_array(EtcObj* etc);
+        void add_vertex_array(EtcObj* etc, mat4& mat);
         ObjData* alloc_data(ObjKind kind);
         mat4* alloc_data(int32_t count);
         void buffer_reset();

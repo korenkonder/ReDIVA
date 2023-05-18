@@ -158,66 +158,96 @@ texture_transform_struct::texture_transform_struct(uint32_t id, mat4& mat) : id(
 }
 
 namespace mdl {
+    EtcObjTeapot::EtcObjTeapot() {
+        size = 1.0f;
+    }
+
+    EtcObjGrid::EtcObjGrid() {
+        w = 10;
+        h = 10;
+        ws = 20;
+        hs = 20;
+    }
+
+    EtcObjCube::EtcObjCube() : wire() {
+
+    }
+
+    EtcObjSphere::EtcObjSphere() : wire() {
+        radius = 1.0f;
+        slices = 8;
+        stacks = 8;
+    }
+
+    EtcObjPlane::EtcObjPlane() {
+        w = 10;
+        h = 10;
+    }
+
+    EtcObjCone::EtcObjCone() : wire() {
+        base = 1.0f;
+        height = 1.0f;
+        slices = 8;
+        stacks = 8;
+    }
+
+    EtcObjLine::EtcObjLine() {
+        pos[0] = { 0.0f, 0.0f, 0.0f };
+        pos[1] = { 0.0f, 0.0f, 1.0f };
+    }
+
+    EtcObjCross::EtcObjCross() {
+        size = 0.1f;
+    }
+
+    EtcObjCapsule::EtcObjCapsule() : wire() {
+        radius = 1.0f;
+        slices = 8;
+        stacks = 8;
+        pos[0] = { 0.0f, 0.0f, 0.0f };
+        pos[1] = { 0.0f, 0.0f, 1.0f };
+    }
+
+    EtcObj::Data::Data() : capsule() {
+
+    }
+
+    EtcObj::EtcObj() : type(), constant(), count(), offset() {
+
+    }
+
     void EtcObj::init(EtcObjType type) {
         this->type = type;
-        color = 1.0f;
+        color = { 0xFF, 0xFF, 0xFF, 0xFF };
         //fog = false;
         constant = false;
         switch (type) {
         case ETC_OBJ_TEAPOT:
-            data.teapot.size = 1.0f;
+            data.teapot = {};
             break;
         case ETC_OBJ_GRID:
-            data.grid.w = 10;
-            data.grid.h = 10;
-            data.grid.ws = 20;
-            data.grid.hs = 20;
+            data.grid = {};
             break;
         case ETC_OBJ_CUBE:
-            data.cube.size_x = 0.0f;
-            data.cube.size_y = 0.0f;
-            data.cube.size_z = 0.0f;
-            data.cube.wire = false;
+            data.cube = {};
             break;
         case ETC_OBJ_SPHERE:
-            data.sphere.radius = 1.0f;
-            data.sphere.slices = 8;
-            data.sphere.stacks = 8;
-            data.sphere.wire = false;
+            data.sphere = {};
             break;
         case ETC_OBJ_PLANE:
-            data.plane.w = 10;
-            data.plane.h = 10;
+            data.plane = {};
             break;
         case ETC_OBJ_CONE:
-            data.cone.base = 1.0f;
-            data.cone.height = 1.0f;
-            data.cone.slices = 8;
-            data.cone.stacks = 8;
-            data.cone.wire = false;
+            data.cone = {};
             break;
         case ETC_OBJ_LINE:
-            data.line.x0 = 0.0f;
-            data.line.y0 = 0.0f;
-            data.line.z0 = 0.0f;
-            data.line.x0 = 0.0f;
-            data.line.y1 = 0.0f;
-            data.line.z1 = 1.0f;
+            data.line = {};
             break;
         case ETC_OBJ_CROSS:
-            data.cross.size = 0.1f;
+            data.cross = {};
             break;
         case ETC_OBJ_CAPSULE: // Added
-            data.capsule.radius = 1.0f;
-            data.capsule.slices = 8;
-            data.capsule.stacks = 8;
-            data.capsule.wire = false;
-            data.capsule.x0 = 0.0f;
-            data.capsule.y0 = 0.0f;
-            data.capsule.z0 = 0.0f;
-            data.capsule.x1 = 0.0f;
-            data.capsule.y1 = 0.0f;
-            data.capsule.z1 = 1.0f;
+            data.capsule = {};
             break;
         }
     }
@@ -227,7 +257,7 @@ namespace mdl {
         this->mat = *mat;
         args.etc = *etc;
 
-        disp_manager->add_vertex_array(&args.etc);
+        disp_manager->add_vertex_array(&args.etc, this->mat);
     }
 
     void ObjData::init_sub_mesh(DispManager* disp_manager, const mat4* mat,
@@ -959,73 +989,366 @@ namespace mdl {
     }
 
     static void gen_sphere_vertices(std::vector<float_t>& data,
-        float_t radius, int32_t slices, int32_t stacks) {
-        float_t sector_step = (float_t)(M_PI * 2.0) / (float_t)slices;
-        float_t stack_step = (float_t)M_PI / (float_t)stacks;
+        int32_t slices, int32_t stacks, float_t radius) {
+        if (slices < 2 || stacks < 2)
+            return;
 
-        for (int32_t i = 0; i <= stacks; i++) {
-            float_t stack_angle = (float_t)(M_PI / 2.0) - (float_t)i * stack_step;
-            float_t xz = cosf(stack_angle);
-            float_t y = sinf(stack_angle);
+        data.reserve(sizeof(vec3) * 2);
 
-            for (int32_t j = 0; j <= slices; ++j) {
-                float_t sector_angle = (float_t)j * sector_step;
+        data.push_back(0.0f);
+        data.push_back(radius);
+        data.push_back(0.0f);
+
+        data.push_back(0.0f);
+        data.push_back(1.0f);
+        data.push_back(0.0f);
+
+        double_t sector_step = (M_PI * 2.0) / (double_t)slices;
+        double_t stack_step = M_PI / (double_t)stacks;
+
+        for (int32_t i = 1; i < stacks; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xz = cosf(stack_angle) * radius;
+            float_t y = sinf(stack_angle) * radius;
+
+            data.reserve(sizeof(vec3) * 2 * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t sector_angle = (float_t)((double_t)j * sector_step);
 
                 float_t x = xz * cosf(sector_angle);
                 float_t z = xz * sinf(sector_angle);
 
-                data.reserve(sizeof(vec3) * 2);
-
-                data.push_back(x * radius);
-                data.push_back(y * radius);
-                data.push_back(z * radius);
+                data.push_back(x);
+                data.push_back(y);
+                data.push_back(z);
 
                 data.push_back(x);
                 data.push_back(y);
                 data.push_back(z);
             }
         }
+
+        data.reserve(sizeof(vec3) * 2);
+
+        data.push_back(0.0f);
+        data.push_back(-radius);
+        data.push_back(0.0f);
+
+        data.push_back(0.0f);
+        data.push_back(-1.0f);
+        data.push_back(0.0f);
     }
 
-    static void gen_sphere_indices(std::vector<uint32_t>& indices,
-        float_t radius, int32_t slices, int32_t stacks, bool wire) {
-        if (!wire)
-            for (int32_t i = 0; i < stacks; ++i) {
-                int32_t k1 = i * (slices + 1);
-                int32_t k2 = k1 + slices + 1;
+    static size_t gen_sphere_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks) {
+        if (slices < 2 || stacks < 2)
+            return 0;
 
-                for (int32_t j = 0; j < slices; j++, k1++, k2++) {
-                    if (i != 0) {
-                        indices.push_back(k1);
-                        indices.push_back(k2);
-                        indices.push_back(k1 + 1);
-                    }
+        {
+            int32_t m1 = 0;
+            int32_t m2 = 1;
 
-                    if (i != stacks - 1) {
-                        indices.push_back(k1 + 1);
-                        indices.push_back(k2);
-                        indices.push_back(k2 + 1);
-                    }
-                }
+            indices.reserve(3LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(m1);
+                indices.push_back(j + m2);
+                indices.push_back(k + m2);
+
+                if (++k >= slices)
+                    k = 0;
             }
-        else
-            for (int32_t i = 0; i < stacks; ++i) {
-                int32_t k1 = i * (slices + 1);
-                int32_t k2 = k1 + slices + 1;
+        }
 
-                for (int32_t j = 0; j < slices; j++, k1++, k2++) {
-                    if (i != 0) {
-                        indices.push_back(k1);
-                        indices.push_back(k1 + 1);
-                    }
+        for (int32_t i = 1; i < stacks - 1; i++) {
+            int32_t m1 = (i - 1) * slices + 1;
+            int32_t m2 = m1 + slices;
 
-                    indices.push_back(k1);
-                    indices.push_back(k2);
-                }
+            indices.reserve(6LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(j + m2);
+                indices.push_back(k + m1);
+
+                indices.push_back(k + m1);
+                indices.push_back(j + m2);
+                indices.push_back(k + m2);
+
+                if (++k >= slices)
+                    k = 0;
             }
+        }
+
+        {
+            int32_t m1 = (stacks - 2) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(3LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(m2);
+                indices.push_back(k + m1);
+            }
+        }
+
+        size_t wire_offset = indices.size();
+
+        {
+            int32_t m1 = 0;
+            int32_t m2 = 1;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                indices.push_back(m1);
+                indices.push_back(j + m2);
+            }
+        }
+
+        for (int32_t i = 1; i < stacks - 1; i++) {
+            int32_t m1 = (i - 1) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(j + m2);
+            }
+        }
+
+        {
+            int32_t m1 = (stacks - 2) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(m2);
+            }
+        }
+
+        for (int32_t i = 1; i < stacks; i++) {
+            int32_t m = (i - 1) * slices + 1;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(j + m);
+                indices.push_back(k + m);
+
+                if (++k >= slices)
+                    k = 0;
+            }
+        }
+
+        return wire_offset;
     }
 
-    void DispManager::add_vertex_array(EtcObj* etc) {
+    static void gen_capsule_vertices(std::vector<float_t>& data,
+        int32_t slices, int32_t stacks, float_t length, float_t radius) {
+        if (slices < 2 || stacks < 2)
+            return;
+        else if (length < 0.00001f) {
+            gen_sphere_vertices(data, slices, stacks, radius);
+            return;
+        }
+
+        stacks = ((stacks + 1) >> 1) << 1;
+
+        data.reserve(sizeof(vec3) * 2);
+
+        length *= 0.5f;
+
+        data.push_back(0.0f);
+        data.push_back(radius + length);
+        data.push_back(0.0f);
+
+        data.push_back(0.0f);
+        data.push_back(1.0f);
+        data.push_back(0.0f);
+
+        double_t sector_step = (M_PI * 2.0) / (double_t)slices;
+        double_t stack_step = M_PI / (double_t)stacks;
+
+        for (int32_t i = 1; i <= stacks / 2; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xz = cosf(stack_angle) * radius;
+            float_t y = sinf(stack_angle) * radius;
+
+            data.reserve(sizeof(vec3) * 2 * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t sector_angle = (float_t)((double_t)j * sector_step);
+
+                float_t x = xz * cosf(sector_angle);
+                float_t z = xz * sinf(sector_angle);
+
+                data.push_back(x);
+                data.push_back(y + length);
+                data.push_back(z);
+
+                data.push_back(x);
+                data.push_back(y);
+                data.push_back(z);
+            }
+        }
+
+        for (int32_t i = stacks / 2; i < stacks; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xz = cosf(stack_angle) * radius;
+            float_t y = sinf(stack_angle) * radius;
+
+            data.reserve(sizeof(vec3) * 2 * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t sector_angle = (float_t)((double_t)j * sector_step);
+
+                float_t x = xz * cosf(sector_angle);
+                float_t z = xz * sinf(sector_angle);
+
+                data.push_back(x);
+                data.push_back(y - length);
+                data.push_back(z);
+
+                data.push_back(x);
+                data.push_back(y);
+                data.push_back(z);
+            }
+        }
+
+        data.reserve(sizeof(vec3) * 2);
+
+        data.push_back(0.0f);
+        data.push_back(-radius - length);
+        data.push_back(0.0f);
+
+        data.push_back(0.0f);
+        data.push_back(-1.0f);
+        data.push_back(0.0f);
+    }
+
+    static size_t gen_capsule_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, float_t length) {
+        if (slices < 2 || stacks < 2)
+            return 0;
+        else if (length < 0.00001f)
+            return gen_sphere_indices(indices, slices, stacks);
+
+        stacks = ((stacks + 1) >> 1) << 1;
+
+        {
+            int32_t m1 = 0;
+            int32_t m2 = 1;
+
+            indices.reserve(3LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(m1);
+                indices.push_back(j + m2);
+                indices.push_back(k + m2);
+
+                if (++k >= slices)
+                    k = 0;
+            }
+        }
+
+        for (int32_t i = 1; i < stacks; i++) {
+            int32_t m1 = (i - 1) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(6LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(j + m2);
+                indices.push_back(k + m1);
+
+                indices.push_back(k + m1);
+                indices.push_back(j + m2);
+                indices.push_back(k + m2);
+
+                if (++k >= slices)
+                    k = 0;
+            }
+        }
+
+        {
+            int32_t m1 = (stacks - 1) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(3LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(m2);
+                indices.push_back(k + m1);
+
+                if (++k >= slices)
+                    k = 0;
+            }
+        }
+
+        size_t wire_offset = indices.size();
+
+        {
+            int32_t m1 = 0;
+            int32_t m2 = 1;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                indices.push_back(m1);
+                indices.push_back(j + m2);
+            }
+        }
+
+        for (int32_t i = 1; i < stacks; i++) {
+            int32_t m1 = (i - 1) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(j + m2);
+            }
+        }
+
+        {
+            int32_t m1 = (stacks - 1) * slices + 1;
+            int32_t m2 = m1 + slices;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                indices.push_back(j + m1);
+                indices.push_back(m2);
+            }
+        }
+
+        for (int32_t i = 1; i <= stacks; i++) {
+            int32_t m = (i - 1) * slices + 1;
+
+            indices.reserve(2LL * slices);
+
+            for (int32_t j = 0, k = 1; j < slices; j++) {
+                indices.push_back(j + m);
+                indices.push_back(k + m);
+
+                if (++k >= slices)
+                    k = 0;
+            }
+        }
+
+        return wire_offset;
+    }
+
+    void DispManager::add_vertex_array(EtcObj* etc, mat4& mat) {
         EtcObjType type = etc->type;
         switch (type) {
         case mdl::ETC_OBJ_TEAPOT:
@@ -1042,32 +1365,109 @@ namespace mdl {
             return;
         }
 
+        bool indexed = false;
+        bool wire = false;
+        float_t length = 0.0f;
+
+        switch (type) {
+        case mdl::ETC_OBJ_TEAPOT: {
+            EtcObjTeapot& teapot = etc->data.teapot;
+
+            indexed = true;
+        } break;
+        case mdl::ETC_OBJ_GRID: {
+            EtcObjGrid& grid = etc->data.grid;
+
+        } break;
+        case mdl::ETC_OBJ_CUBE: {
+            EtcObjCube& cube = etc->data.cube;
+
+            indexed = true;
+            wire = cube.wire;
+        } break;
+        case mdl::ETC_OBJ_SPHERE: {
+            EtcObjSphere& sphere = etc->data.sphere;
+
+            indexed = true;
+            wire = sphere.wire;
+        } break;
+        case mdl::ETC_OBJ_PLANE: {
+            EtcObjPlane& plane = etc->data.plane;
+
+            mat4_scale_rot(&mat, (float_t)plane.w * 0.5f, 1.0f, (float_t)plane.h * 0.5f, &mat);
+        } break;
+        case mdl::ETC_OBJ_CONE: {
+            EtcObjCone& cone = etc->data.cone;
+
+            indexed = true;
+            wire = cone.wire;
+        } break;
+        case mdl::ETC_OBJ_LINE: {
+            EtcObjLine& line = etc->data.line;
+
+        } break;
+        case mdl::ETC_OBJ_CROSS: {
+            EtcObjCross& cross = etc->data.cross;
+
+            mat4_scale_rot(&mat, cross.size, &mat);
+        } break;
+        case mdl::ETC_OBJ_CAPSULE: { // Added
+            EtcObjCapsule& capsule = etc->data.capsule;
+
+            vec3 origin = (capsule.pos[0] + capsule.pos[1]) * 0.5f;
+            mat4_translate_add(&mat, &origin, &mat);
+
+            vec3 dir = vec3::normalize(capsule.pos[1] - capsule.pos[0]);
+            vec3 up = { 0.0f, 1.0f, 0.0f };
+            vec3 axis;
+            float_t angle;
+            Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
+            mat4 m;
+            mat4_mult_axis_angle(&mat4_identity, &axis, angle, &m);
+            mat4_mult(&m, &mat, &mat);
+
+            indexed = true;
+            wire = capsule.wire;
+            length = vec3::distance(capsule.pos[0], capsule.pos[1]);
+        } break;
+        }
+
         DispManager::etc_vertex_array* etc_vertex_array = 0;
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
             if (i.alive_time <= 0 || i.type != type || !i.vertex_buffer)
                 continue;
 
             if (type == mdl::ETC_OBJ_TEAPOT
-                && !memcmp(&i.data.teapot, &etc->data.teapot, sizeof(EtcObjTeapot))
                 || type == mdl::ETC_OBJ_GRID
                 && !memcmp(&i.data.grid, &etc->data.grid, sizeof(EtcObjGrid))
                 || type == mdl::ETC_OBJ_CUBE
-                && !memcmp(&i.data.cube, &etc->data.cube, sizeof(EtcObjCube))
                 || type == mdl::ETC_OBJ_SPHERE
-                && !memcmp(&i.data.sphere, &etc->data.sphere, sizeof(EtcObjSphere))
+                && i.data.sphere.slices == etc->data.sphere.slices
+                && i.data.sphere.stacks == etc->data.sphere.stacks
+                && fabsf(i.data.sphere.radius - etc->data.sphere.radius) < 0.00001f
                 || type == mdl::ETC_OBJ_PLANE
-                && !memcmp(&i.data.plane, &etc->data.plane, sizeof(EtcObjPlane))
                 || type == mdl::ETC_OBJ_CONE
-                && !memcmp(&i.data.cone, &etc->data.cone, sizeof(EtcObjCone))
+                && i.data.cone.slices == etc->data.cone.slices
+                && i.data.cone.stacks == etc->data.cone.stacks
+                && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
+                && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f
                 || type == mdl::ETC_OBJ_LINE
-                && !memcmp(&i.data.line, &etc->data.line, sizeof(EtcObjLine))
                 || type == mdl::ETC_OBJ_CROSS
-                && !memcmp(&i.data.cross, &etc->data.cross, sizeof(EtcObjCross))
                 || type == mdl::ETC_OBJ_CAPSULE // Added
-                && !memcmp(&i.data.capsule, &etc->data.capsule, sizeof(EtcObjCapsule)))
+                && i.data.capsule.slices == etc->data.capsule.slices
+                && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
+                && fabsf(i.data.capsule.radius - etc->data.capsule.radius) < 0.00001f
+                && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f)
                 if (i.vertex_array) {
                     i.alive_time = 2;
-                    etc->count = i.count;
+                    if (!wire) {
+                        etc->count = i.count;
+                        etc->offset = i.offset;
+                    }
+                    else {
+                        etc->count = i.wire_count;
+                        etc->offset = i.wire_offset;
+                    }
                     return;
                 }
                 else {
@@ -1116,88 +1516,132 @@ namespace mdl {
 
         std::vector<float_t> vtx_data;
         std::vector<uint32_t> vtx_indices;
-        bool indexed = false;
         switch (type) {
         case mdl::ETC_OBJ_TEAPOT: {
             EtcObjTeapot& teapot = etc->data.teapot;
 
-            indexed = true;
+            etc_vertex_array->count = (GLsizei)vtx_indices.size();
         } break;
         case mdl::ETC_OBJ_GRID: {
             EtcObjGrid& grid = etc->data.grid;
 
+            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
         } break;
         case mdl::ETC_OBJ_CUBE: {
             EtcObjCube& cube = etc->data.cube;
 
-            indexed = true;
+            etc_vertex_array->count = (GLsizei)vtx_indices.size();
         } break;
         case mdl::ETC_OBJ_SPHERE: {
             EtcObjSphere& sphere = etc->data.sphere;
 
-            gen_sphere_vertices(vtx_data, sphere.radius, sphere.slices, sphere.stacks);
-            gen_sphere_indices(vtx_indices, sphere.radius, sphere.slices, sphere.stacks, sphere.wire);
-            indexed = true;
+            gen_sphere_vertices(vtx_data, sphere.slices, sphere.stacks, sphere.radius);
+            size_t wire_offset = gen_sphere_indices(vtx_indices, sphere.slices, sphere.stacks);
+
+            etc_vertex_array->offset = 0;
+            etc_vertex_array->count = (GLsizei)wire_offset;
+            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
+            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
         } break;
         case mdl::ETC_OBJ_PLANE: {
             EtcObjPlane& plane = etc->data.plane;
 
+            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
         } break;
         case mdl::ETC_OBJ_CONE: {
             EtcObjCone& cone = etc->data.cone;
 
-            indexed = true;
+            etc_vertex_array->count = (GLsizei)vtx_indices.size();
         } break;
         case mdl::ETC_OBJ_LINE: {
             EtcObjLine& line = etc->data.line;
 
+            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
         } break;
         case mdl::ETC_OBJ_CROSS: {
             EtcObjCross& cross = etc->data.cross;
 
+            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
         } break;
         case mdl::ETC_OBJ_CAPSULE: { // Added
             EtcObjCapsule& capsule = etc->data.capsule;
 
-            indexed = true;
+            gen_capsule_vertices(vtx_data, capsule.slices, capsule.stacks, length, capsule.radius);
+            size_t wire_offset = gen_capsule_indices(vtx_indices, capsule.slices, capsule.stacks, length);
+
+            etc_vertex_array->offset = 0;
+            etc_vertex_array->count = (GLsizei)wire_offset;
+            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
+            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
         } break;
         }
 
-        uint32_t count;
-        if (indexed)
-            count = (GLuint)vtx_indices.size();
-        else
-            count = (GLuint)(vtx_data.size() / 6);
+        if (!wire) {
+            etc->count = etc_vertex_array->count;
+            etc->offset = etc_vertex_array->offset;
+        }
+        else {
+            etc->count = etc_vertex_array->wire_count;
+            etc->offset = etc_vertex_array->wire_offset;
+        }
 
-        etc_vertex_array->count = count;
-        etc->count = count;
-
-        if (!count)
+        if (!etc_vertex_array->count)
             return;
+
+        if (etc_vertex_array->max_vtx < vtx_data.size()) {
+            etc_vertex_array->max_vtx = vtx_data.size();
+
+            if (etc_vertex_array->vertex_buffer) {
+                glDeleteBuffers(1, &etc_vertex_array->vertex_buffer);
+                etc_vertex_array->vertex_buffer = 0;
+            }
+        }
+
+        if (etc_vertex_array->max_idx < vtx_indices.size()) {
+            etc_vertex_array->max_idx = vtx_indices.size();
+
+            if (etc_vertex_array->index_buffer) {
+                glDeleteBuffers(1, &etc_vertex_array->index_buffer);
+                etc_vertex_array->index_buffer = 0;
+            }
+        }
 
         GLsizei size_vertex = sizeof(vec3) * 2;
 
         gl_state_bind_vertex_array(etc_vertex_array->vertex_array);
 
-        glGenBuffers(1, &etc_vertex_array->vertex_buffer);
-        gl_state_bind_array_buffer(etc_vertex_array->vertex_buffer);
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t)
-                * vtx_data.size(), vtx_data.data(), 0);
-        else
-            glBufferData(GL_ARRAY_BUFFER, sizeof(float_t)
-                * vtx_data.size(), vtx_data.data(), GL_STATIC_DRAW);
-
-        if (indexed) {
-            glGenBuffers(1, &etc_vertex_array->index_buffer);
-            gl_state_bind_element_array_buffer(etc_vertex_array->index_buffer);
+        if (!etc_vertex_array->vertex_buffer) {
+            glGenBuffers(1, &etc_vertex_array->vertex_buffer);
+            gl_state_bind_array_buffer(etc_vertex_array->vertex_buffer);
             if (GLAD_GL_VERSION_4_4)
-                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)
-                    * vtx_indices.size(), vtx_indices.data(), 0);
+                glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t)
+                    * vtx_data.size(), vtx_data.data(), GL_DYNAMIC_STORAGE_BIT);
             else
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)
-                    * vtx_indices.size(), vtx_indices.data(), GL_STATIC_DRAW);
+                glBufferData(GL_ARRAY_BUFFER, sizeof(float_t)
+                    * vtx_data.size(), vtx_data.data(), GL_DYNAMIC_DRAW);
         }
+        else {
+            gl_state_bind_array_buffer(etc_vertex_array->vertex_buffer);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float_t)
+                * vtx_data.size(), vtx_data.data());
+        }
+
+        if (indexed)
+            if (!etc_vertex_array->index_buffer) {
+                glGenBuffers(1, &etc_vertex_array->index_buffer);
+                gl_state_bind_element_array_buffer(etc_vertex_array->index_buffer);
+                if (GLAD_GL_VERSION_4_4)
+                    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)
+                        * vtx_indices.size(), vtx_indices.data(), GL_DYNAMIC_STORAGE_BIT);
+                else
+                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)
+                        * vtx_indices.size(), vtx_indices.data(), GL_DYNAMIC_DRAW);
+            }
+            else {
+                gl_state_bind_element_array_buffer(etc_vertex_array->index_buffer);
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
+                    * vtx_indices.size(), vtx_indices.data());
+            }
 
         glEnableVertexAttribArray(POSITION_INDEX);
         glVertexAttribPointer(POSITION_INDEX,
@@ -1279,16 +1723,6 @@ namespace mdl {
                 gl_state_bind_array_buffer(0, true);
                 gl_state_bind_element_array_buffer(0, true);
                 gl_state_bind_vertex_array(0);
-
-                if (i.vertex_buffer) {
-                    glDeleteBuffers(1, &i.vertex_buffer);
-                    i.vertex_buffer = 0;
-                }
-
-                if (i.index_buffer) {
-                    glDeleteBuffers(1, &i.index_buffer);
-                    i.index_buffer = 0;
-                }
             }
     }
 
@@ -2146,7 +2580,7 @@ namespace mdl {
             return;
 
         data->init_etc(this, mat, etc);
-        if (etc->color.w == 1.0f) {
+        if (etc->color.w == 0xFF) {
             if ((obj_flags & OBJ_SHADOW) != 0)
                 mdl::DispManager::entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
             mdl::DispManager::entry_list(OBJ_TYPE_OPAQUE, data);
@@ -2219,6 +2653,7 @@ namespace mdl {
 
     GLuint DispManager::get_vertex_array(const EtcObj* etc) {
         EtcObjType type = etc->type;
+        float_t length = 0;
         switch (type) {
         case mdl::ETC_OBJ_TEAPOT:
         case mdl::ETC_OBJ_GRID:
@@ -2228,7 +2663,9 @@ namespace mdl {
         case mdl::ETC_OBJ_CONE:
         case mdl::ETC_OBJ_LINE:
         case mdl::ETC_OBJ_CROSS:
+            break;
         case mdl::ETC_OBJ_CAPSULE: // Added
+            length = vec3::distance(etc->data.capsule.pos[0], etc->data.capsule.pos[1]);
             break;
         default:
             return 0;
@@ -2240,39 +2677,37 @@ namespace mdl {
 
             switch (type) {
             case mdl::ETC_OBJ_TEAPOT:
-                if (!memcmp(&i.data.teapot, &etc->data.teapot, sizeof(EtcObjTeapot)))
-                    return i.vertex_array;
-                break;
+                return i.vertex_array;
             case mdl::ETC_OBJ_GRID:
                 if (!memcmp(&i.data.grid, &etc->data.grid, sizeof(EtcObjGrid)))
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_CUBE:
-                if (!memcmp(&i.data.cube, &etc->data.cube, sizeof(EtcObjCube)))
-                    return i.vertex_array;
-                break;
+                return i.vertex_array;
             case mdl::ETC_OBJ_SPHERE:
-                if (!memcmp(&i.data.sphere, &etc->data.sphere, sizeof(EtcObjSphere)))
+                if (i.data.sphere.slices == etc->data.sphere.slices
+                    && i.data.sphere.stacks == etc->data.sphere.stacks
+                    && fabsf(i.data.sphere.radius - etc->data.sphere.radius) < 0.00001f)
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_PLANE:
-                if (!memcmp(&i.data.plane, &etc->data.plane, sizeof(EtcObjPlane)))
-                    return i.vertex_array;
-                break;
+                return i.vertex_array;
             case mdl::ETC_OBJ_CONE:
-                if (!memcmp(&i.data.cone, &etc->data.cone, sizeof(EtcObjCone)))
+                if (i.data.cone.slices == etc->data.cone.slices
+                    && i.data.cone.stacks == etc->data.cone.stacks
+                    && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
+                    && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f)
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_LINE:
-                if (!memcmp(&i.data.line, &etc->data.line, sizeof(EtcObjLine)))
-                    return i.vertex_array;
-                break;
+                return i.vertex_array;
             case mdl::ETC_OBJ_CROSS:
-                if (!memcmp(&i.data.cross, &etc->data.cross, sizeof(EtcObjCross)))
-                    return i.vertex_array;
-                break;
+                return i.vertex_array;
             case mdl::ETC_OBJ_CAPSULE: // Added
-                if (!memcmp(&i.data.capsule, &etc->data.capsule, sizeof(EtcObjCapsule)))
+                if (i.data.capsule.slices == etc->data.capsule.slices
+                    && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
+                    && fabsf(i.data.capsule.radius - etc->data.capsule.radius) < 0.00001f
+                    && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f)
                     return i.vertex_array;
                 break;
             }
