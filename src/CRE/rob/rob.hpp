@@ -2768,7 +2768,7 @@ struct rob_chara_data_adjust {
     float_t curr_strength;
     int32_t motion_id;
     float_t set_frame;
-    float_t force_duration;
+    float_t transition_duration;
     int32_t type;
     int32_t cycle_type;
     bool ignore_gravity;

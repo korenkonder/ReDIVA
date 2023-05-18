@@ -5667,16 +5667,16 @@ static void mothead_func_62_rob_parts_adjust(mothead_func_data* func_data,
     rob_chara_data_adjust v16;
     v16.reset();
 
-    int8_t v5 = ((int8_t*)data)[5];
-    if (v5 >= 0 && v5 <= 6) {
+    int8_t type = ((int8_t*)data)[5];
+    if (type >= 0 && type <= 5) {
         float_t set_frame = (float_t)mhd_data->frame;
         v16.enable = true;
         v16.frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v16.transition_frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v16.motion_id = rob_chr->data.motion.motion_id;
         v16.set_frame = set_frame;
-        v16.force_duration = ((float_t*)data)[0];
-        v16.type = v5;
+        v16.transition_duration = (float_t)((int32_t*)data)[0];
+        v16.type = type;
         v16.cycle_type = ((int8_t*)data)[7];
         v16.ignore_gravity = !!((uint8_t*)data)[6];
         v16.external_force.x = ((float_t*)data)[2];
@@ -5692,7 +5692,7 @@ static void mothead_func_62_rob_parts_adjust(mothead_func_data* func_data,
         v16.force = ((float_t*)data)[13];
         v16.phase = ((float_t*)data)[12];
         v16.strength = ((float_t*)data)[14];
-        v16.strength_transition = ((float_t*)data)[15];
+        v16.strength_transition = (float_t)((int32_t*)data)[15];
     }
     rob_chara_set_parts_adjust_by_index(rob_chr, (rob_osage_parts)((uint8_t*)data)[4], &v16);
 }
@@ -5860,16 +5860,16 @@ static void mothead_func_75_rob_adjust_global(mothead_func_data* func_data,
     rob_chara_data_adjust v14;
     v14.reset();
 
-    int8_t v5 = ((int8_t*)data)[4];
-    if (v5 >= 0 && v5 <= 5) {
+    int8_t type = ((int8_t*)data)[4];
+    if (type >= 0 && type <= 5) {
         float_t set_frame = (float_t)mhd_data->frame;
         v14.enable = true;
         v14.frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v14.transition_frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v14.motion_id = rob_chr->data.motion.motion_id;
         v14.set_frame = set_frame;
-        v14.force_duration = ((float_t*)data)[0];
-        v14.type = v5;
+        v14.transition_duration = (float_t)((int32_t*)data)[0];
+        v14.type = type;
         v14.cycle_type = ((int8_t*)data)[5];
         v14.external_force.x = ((float_t*)data)[2];
         v14.external_force.y = ((float_t*)data)[3];
@@ -6637,10 +6637,10 @@ void rob_chara_data_adjust_ctrl(rob_chara* rob_chr, rob_chara_data_adjust* adjus
     adjust->curr_strength = adjust->strength;
 
     bool transition_frame_step = false;
-    if (adjust->force_duration > adjust->transition_frame
-        && fabsf(adjust->force_duration - adjust->transition_frame) > 0.000001f) {
+    if (adjust->transition_duration > adjust->transition_frame
+        && fabsf(adjust->transition_duration - adjust->transition_frame) > 0.000001f) {
         transition_frame_step = true;
-        float_t blend = (adjust->transition_frame + 1.0f) / (adjust->force_duration + 1.0f);
+        float_t blend = (adjust->transition_frame + 1.0f) / (adjust->transition_duration + 1.0f);
         adjust->curr_external_force = vec3::lerp(adjust_prev->curr_external_force,
             adjust->curr_external_force, blend);
         adjust->curr_force = lerp_def(adjust_prev->curr_force, adjust->curr_force, blend);
@@ -14268,7 +14268,7 @@ void RobEyelidMotion::Reset() {
 }
 
 rob_chara_data_adjust::rob_chara_data_adjust() : enable(), frame(), transition_frame(),
-curr_force(), curr_strength(), motion_id(), set_frame(), force_duration(), type(),
+curr_force(), curr_strength(), motion_id(), set_frame(), transition_duration(), type(),
 cycle_type(), ignore_gravity(), cycle(), phase(), force(), strength(), strength_transition() {
     reset();
 }
@@ -14282,7 +14282,7 @@ void rob_chara_data_adjust::reset() {
     curr_strength = 1.0f;
     motion_id = -1;
     set_frame = 0.0f;
-    force_duration = 0.0f;
+    transition_duration = 0.0f;
     type = 6;
     cycle_type = 0;
     ignore_gravity = true;
@@ -15401,16 +15401,16 @@ static void sub_14053E810(rob_chara* rob_chr, void* data) {
     rob_chara_data_adjust v16;
     v16.reset();
 
-    int8_t v5 = ((int8_t*)data)[5];
-    if (v5 >= 0 && v5 <= 6) {
+    int8_t type = ((int8_t*)data)[5];
+    if (type >= 0 && type <= 5) {
         float_t set_frame = (float_t)v16.set_frame;
         v16.enable = true;
         v16.frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v16.transition_frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v16.motion_id = rob_chr->data.motion.motion_id;
         v16.set_frame = set_frame;
-        v16.force_duration = ((float_t*)data)[0];
-        v16.type = v5;
+        v16.transition_duration = (float_t)((int32_t*)data)[0];
+        v16.type = type;
         v16.cycle_type = ((int8_t*)data)[7];
         v16.ignore_gravity = !!((uint8_t*)data)[6];
         v16.external_force.x = ((float_t*)data)[2];
@@ -15426,7 +15426,7 @@ static void sub_14053E810(rob_chara* rob_chr, void* data) {
         v16.force = ((float_t*)data)[13];
         v16.phase = ((float_t*)data)[12];
         v16.strength = ((float_t*)data)[14];
-        v16.strength_transition = ((float_t*)data)[15];
+        v16.strength_transition = (float_t)((int32_t*)data)[15];
     }
     rob_chara_set_parts_adjust_by_index(rob_chr, (rob_osage_parts)((uint8_t*)data)[4], &v16);
 }
@@ -15435,16 +15435,16 @@ static void sub_14053EA00(rob_chara* rob_chr, void* data) {
     rob_chara_data_adjust v14;
     v14.reset();
 
-    int8_t v5 = ((int8_t*)data)[4];
-    if (v5 >= 0 && v5 <= 5) {
+    int8_t type = ((int8_t*)data)[4];
+    if (type >= 0 && type <= 5) {
         float_t set_frame = (float_t)v14.set_frame;
         v14.enable = true;
         v14.frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v14.transition_frame = rob_chr->data.motion.frame_data.frame - set_frame;
         v14.motion_id = rob_chr->data.motion.motion_id;
         v14.set_frame = set_frame;
-        v14.force_duration = ((float_t*)data)[0];
-        v14.type = v5;
+        v14.transition_duration = (float_t)((int32_t*)data)[0];
+        v14.type = type;
         v14.cycle_type = ((int8_t*)data)[5];
         v14.external_force.x = ((float_t*)data)[2];
         v14.external_force.y = ((float_t*)data)[3];
