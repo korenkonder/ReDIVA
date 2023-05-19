@@ -237,6 +237,10 @@ void AetComp::Add(const char* name, aet_layout_data& data) {
     this->data.insert({ name, data });
 }
 
+void AetComp::Clear() {
+    data.clear();
+}
+
 aet_layout_data* AetComp::Find(const char* name) {
     auto elem = data.find(name);
     if (elem != data.end())

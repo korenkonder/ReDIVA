@@ -74,6 +74,7 @@ namespace mdl {
         case mdl::ETC_OBJ_LINE:
         case mdl::ETC_OBJ_CROSS:
         case mdl::ETC_OBJ_CAPSULE: // Added
+        case mdl::ETC_OBJ_ELLIPSE: // Added
             break;
         default:
             return;
@@ -149,6 +150,12 @@ namespace mdl {
             break;
         case mdl::ETC_OBJ_CAPSULE: // Added
             if (etc->data.capsule.wire)
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+            else
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+            break;
+        case mdl::ETC_OBJ_ELLIPSE: // Added
+            if (etc->data.ellipse.wire)
                 shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             else
                 shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);

@@ -93,6 +93,7 @@ struct AetComp {
     ~AetComp();
 
     void Add(const char* name, aet_layout_data& data);
+    void Clear();
     aet_layout_data* Find(const char* name);
 
     static void put_number_sprite(int32_t value, int32_t max_digits,

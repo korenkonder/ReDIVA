@@ -171,6 +171,13 @@ pv_play_data_motion_data::~pv_play_data_motion_data() {
 
 }
 
+void pv_play_data_motion_data::clear() {
+    set_motion.clear();
+    set_motion.shrink_to_fit();
+    set_item.clear();
+    set_item.shrink_to_fit();
+}
+
 void pv_play_data_motion_data::reset() {
     rob_chr = 0;
     current_time = 0.0f;
@@ -213,6 +220,10 @@ pv_disp2d::~pv_disp2d() {
 
 }
 
+pv_data_camera::pv_data_camera() : enable(), time() {
+    id = -1;
+}
+
 pv_game_pv_data::pv_game_pv_data() : field_0(), state(), play(), dsc_buffer(), dsc_buffer_counter(),
 field_2BF30(), field_2BF38(), curr_time(), curr_time_float(), prev_time_float(), field_2BF50(), field_2BF58(),
 field_2BF60(), field_2BF64(), field_2BF68(), chara_id(), pv_game()/*, field_2BF80()*/, music(),
@@ -229,12 +240,172 @@ pv_game_pv_data::~pv_game_pv_data() {
 
 }
 
-pv_game_play_data::pv_game_play_data() {
+void pv_game_pv_data::reset() {
+    pv_game = 0i64;
+    //field_2BF80 = 0;
+    music = 0i64;
+    dsc_file_handler.reset();
+    play = false;
+    field_2BF50 = false;
 
+    //if (sub_1400E7910(sub_14013C8C0()) >= 6)
+    //    field_2BF60 = false;
+
+    for (pv_play_data& i : playdata) {
+        i.rob_chr = 0;
+        i.set_motion.clear();
+        i.motion_data.clear();
+        pv_expression_array_reset_motion(&i - playdata);
+    }
+
+    data_camera_branch_fail.clear();
+    data_camera_branch_fail.shrink_to_fit();
+    data_camera_branch_success.clear();
+    data_camera_branch_success.shrink_to_fit();
+    change_field_branch_fail.clear();
+    change_field_branch_fail.shrink_to_fit();
+    change_field_branch_success.clear();
+    change_field_branch_success.shrink_to_fit();
+    change_field_branch_time = -1i64;
+    scene_fade_enable = false;
+    scene_fade_frame = 0.0f;
+    scene_fade_duration = 0.0f;
+    scene_fade_start_alpha = 0.0f;
+    scene_fade_end_alpha = 0.0f;
+    scene_fade_color = 0.0f;
+
+    reset_camera_post_process();
+
+    field_2C4E8.clear();
+    field_2C4E8.shrink_to_fit();
+    field_2C500 = 0;
+    field_0 = 0;
+}
+
+void pv_game_pv_data::reset_camera_post_process() {
+    camera* cam = rctx_ptr->camera;
+    //cam->set_ignore_min_dist(false);
+    cam->set_max_distance(0.05);
+    //cam->set_ignore_fov(0);
+    cam->set_fov(32.2673416137695);
+
+    post_process* pp = &rctx_ptr->post_process;
+    pp->tone_map->set_scene_fade_color(0.0f);
+    pp->tone_map->set_scene_fade_alpha(0.0f);
+    pp->tone_map->set_scene_fade_alpha(0);
+    pp->tone_map->set_tone_trans(0.0f, 1.0f);
+    pp->tone_map->set_saturate_coeff(1.0f);
+
+    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    if (shad)
+        for (bool& i : shad->blur_filter_enable)
+            i = true;
+
+    branch_mode = false;
+
+    for (pv_data_camera& i : data_camera)
+        i = {};
+}
+
+pv_game_play_data::pv_game_play_data() : pv_set(), aet_ids(), aet_ids_enable(), field_1C8(), field_1D0(),
+field_1D8(), field_1E0(), field_1E8(), field_1F0(), disp(), field_1FC(), field_204(), field_20C(),
+frame_state(), field_218(), fade_begin(), fade_end(), fade(), skin_danger_frame(), field_2FC(),
+chance_result(), chance_points(), field_310(), slide_points(), max_slide_points(), pv_spr_set_id(),
+pv_aet_set_id(), pv_main_aet_id(), stage_index(), field_33C(), field_350(), field_354(), value_text_spr_index(),
+not_clear(), spr_set_back_id(), loaded(), state(), field_36C(), score_preview_update(), field_374(),
+field_378(), field_37C(), score_preview_speed(), score_preview(), value_text_display(), field_38C(),
+value_text_index(), value_text_time_offset(), combo_state(), combo_count(), combo_disp_time(), field_3AC(),
+field_3B0(), field_3B4(), field_3B8(), field_3BC(),  aix(), ogg(), field_3C4(), field_5E8(), field_5EC(),
+option(), field_5F4(), lyric(), lyric_index(), field_64C(), field_650(), field_654(), field_658(), field_65C() {
+    chance_points_pos = 0;
+    slide_points_pos = 0;
+    max_slide_points_pos = 0;
+    reset();
+    state = 0;
 }
 
 pv_game_play_data::~pv_game_play_data() {
 
+}
+
+void pv_game_play_data::reset() {
+    loaded = false;
+    score_preview_update = false;
+    field_378 = false;
+    score_preview_speed = 0.04f;
+    field_36C = -1;
+    combo_state = 4;
+    pv_set = false;
+    stage_index = 0;
+    field_354 = false;
+    not_clear = false;
+    pv_spr_set_id = -1;
+    pv_aet_set_id = -1;
+    pv_main_aet_id = -1;
+
+    sub_1401362C0();
+}
+
+void pv_game_play_data::sub_1401362C0() {
+    for (int32_t i = 0; i < PV_GAME_AET_MAX; i++) {
+        aet_ids[i] = 0;
+        aet_ids_enable[i] = false;
+    }
+
+    for (int32_t i = 0; i < 2; i++) {
+        field_1C8[i] = 0.0f;
+        field_1D0[i] = 0.0f;
+        field_1D8[i] = 0.0f;
+        field_1E0[i] = 0.0f;
+        field_1E8[i] = 0.0f;
+        field_1F0[i] = 0.0f;
+        disp[i] = false;
+        field_1FC[i] = 0;
+    }
+
+    field_1C8[0] = 86.0f;
+    field_1C8[1] = 138.0f;
+    field_1D8[0] = 58.0f;
+    field_1D8[1] = 138.0f;
+    field_1E8[0] = 58.0f;
+    field_1E8[1] = -1.0f;
+    field_1F0[0] = 86.0f;
+    field_1F0[1] = -1.0f;
+    field_204[0] = 58.0f;
+    field_204[1] = 138.0f;
+    field_20C[0] = 86.0f;
+    field_20C[1] = 138.0f;
+
+    frame_state = 0;
+    field_218 = false;
+    fade_begin = false;
+    fade_end = false;
+    fade = PV_GAME_AET_WHITE_FADE;
+    skin_danger_frame = 0;
+    field_2FC = 0;
+    chance_result = 0;
+    chance_points = 0;
+    chance_points_pos = 0.0f;
+    field_310 = 0;
+    slide_points = 0;
+    slide_points_pos = 0.0f;
+    max_slide_points = 0;
+    max_slide_points_pos = 0.0f;
+    field_33C = 0;
+    comp.Clear();
+    field_350 = 0.0f;
+    value_text_spr_index = 0;
+    spr_set_back_id = -1;
+    field_374 = 0;
+    field_37C = 0.0f;
+    score_preview = 0;
+    value_text_display = 0;
+    field_38C = 0.0f;
+    value_text_index = 0;
+    value_text_time_offset = 0.0f;
+    combo_count = 0;
+    combo_disp_time = 0;
+    draw_pos = 0.0f;
 }
 
 pv_game_chara::pv_game_chara() : chara_index(), cos(), chara_id(), pv_data(), rob_chr() {
@@ -287,12 +458,12 @@ score_slide_chain_bonus(), slide_chain_length(), field_2CF98(), field_2CF9C(), f
 pv(), field_2CFB0(), chance_point(), reference_score(), field_2CFBC(), field_2CFC0(), field_2CFC4(),
 field_2CFE0(), field_2CFE4(), notes_passed(), field_2CFF0(), song_energy(), song_energy_base(),
 song_energy_border(), life_gauge_safety_time(), life_gauge_border(), stage_index(), field_2D00C(),
-no_fail(), field_2D00E(), changed_field(), challenge_time_start(), challenge_time_end(), max_time(),
-max_time_float(), current_time_float(), current_time(), current_time_float_dup(), field_2D03C(),
-score_hold_multi(), score_hold(), score_slide(), has_slide(), has_success_se(), pv_disp2d(),
-life_gauge_final(), hit_border(), field_2D05D(), field_2D05E(), field_2D05F(), title_image_init(),
-field_2D061(), field_2D062(), field_2D063(), has_auth_3d_frame(), has_light_frame(), has_aet_frame(),
-has_aet_list(), field_index(), edit_effect_index(), slidertouch_counter(), change_field_branch_success_counter(),
+no_fail(), changed_field(), challenge_time_start(), challenge_time_end(), max_time(), max_time_float(),
+current_time_float(), current_time(), current_time_float_dup(), field_2D03C(), score_hold_multi(),
+score_hold(), score_slide(), has_slide(), has_success_se(), pv_disp2d(), life_gauge_final(),
+hit_border(), field_2D05D(), field_2D05E(), field_2D05F(), title_image_init(), field_2D061(),
+field_2D062(), field_2D063(), has_auth_3d_frame(), has_light_frame(), has_aet_frame(), has_aet_list(),
+field_index(), edit_effect_index(), slidertouch_counter(), change_field_branch_success_counter(),
 field_2D080(), field_2D084(), life_gauge_bonus(), life_gauge_total_bonus(), field_2D090(), field_2D091(),
 field_2D092(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), success(), field_2D098(),
 field_2D09C(), use_osage_play_data(), pv_end_fadeout(), rival_percentage(), field_2D0A8(), field_2D0AC(),
@@ -300,7 +471,7 @@ field_2D0B0(), field_2D0BC(), next_stage(), field_2D0BE(), field_2D0BF(), field_
 field_2D7E8(), field_2D7EC(), field_2D808(), field_2D80C(), edit_effect(), camera_auth_3d_uid(),
 field_2D874(), task_effect_init(), field_2D87C(), current_field(), field_2D8A0(), field_2D8A4(),
 data_camera_id(), field_2D954(), field_2DAC8(), field_2DACC(), field_2DB28(), field_2DB2C(), field_2DB34() {
-
+    field_2D00E = true;
 }
 
 pv_game_data::~pv_game_data() {
@@ -316,7 +487,38 @@ pv_game_item_mask::pv_game_item_mask() {
 
 pv_game::pv_game() : loaded(), field_1(), field_2(), end_pv(),
 field_4(), state(), field_C(), pv_id(), field_14(), modules(), items() {
+    reset();
 
+    state = 0;
+    field_C = -1;
+    pv_id = -1;
+
+    for (int32_t& i : modules)
+        i = 0;
+
+    data.play_data.field_5EC = 0;
+    data.play_data.option = 0.0f;
+
+    data.field_2CF98 = 0;
+    data.song_energy_base = 0.0f;
+    data.life_gauge_safety_time = 0;
+    data.life_gauge_border = 0;
+    data.stage_index = 0;
+    data.field_2D00C = true;
+    data.challenge_time_start = -1;
+    data.challenge_time_end = -1;
+    data.field_2D061 = false;
+    data.field_2D062 = false;
+    data.field_2D063 = false;
+    data.field_2D0BC = false;
+    data.next_stage = false;
+    data.field_2D0BE = false;
+    data.field_2D0C0 = -1;
+    data.no_fail = true;
+    data.task_effect_init = false;
+
+    data.effect_rs_list_hashes.reserve(0x40);
+    data.effect_rs_list.reserve(0x40);
 }
 
 pv_game::~pv_game() {
@@ -624,7 +826,7 @@ bool pv_game::unload() {
             data.field_2D0BE = false;
         }
 
-        //data.pv_data->reset();
+        data.pv_data.reset();
 
         if (data.play_data.ogg)
             pv_game_music_get()->exclude_flags(PV_GAME_MUSIC_OGG);

@@ -3500,6 +3500,13 @@ extern void motion_set_unload_mothead(uint32_t set);
 
 extern bool opd_make_manager_del_task();
 
+extern bool osage_play_data_manager_add_task();
+extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, int32_t motion_id);
+extern bool osage_play_data_manager_check_task_ready();
+extern void osage_play_data_manager_get_opd_file_data(object_info obj_info,
+    int32_t motion_id, float_t*& data, uint32_t& count);
+extern void osage_play_data_manager_reset();
+
 extern void pv_osage_manager_array_reset(int32_t chara_id);
 
 extern void rob_init();

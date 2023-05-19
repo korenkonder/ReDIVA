@@ -207,6 +207,14 @@ namespace mdl {
         pos[0] = { 0.0f, 0.0f, 0.0f };
         pos[1] = { 0.0f, 0.0f, 1.0f };
     }
+    
+    EtcObjEllipse::EtcObjEllipse() : wire() {
+        radius = 1.0f;
+        slices = 8;
+        stacks = 8;
+        pos[0] = { 0.0f, 0.0f, 0.0f };
+        pos[1] = { 0.0f, 0.0f, 1.0f };
+    }
 
     EtcObj::Data::Data() : capsule() {
 
@@ -248,6 +256,9 @@ namespace mdl {
             break;
         case ETC_OBJ_CAPSULE: // Added
             data.capsule = {};
+            break;
+        case ETC_OBJ_ELLIPSE: // Added
+            data.ellipse = {};
             break;
         }
     }
@@ -1153,16 +1164,17 @@ namespace mdl {
         int32_t slices, int32_t stacks, float_t length, float_t radius) {
         if (slices < 2 || stacks < 2)
             return;
-        else if (length < 0.00001f) {
+
+        stacks = ((stacks + 1) >> 1) << 1;
+
+        if (length < 0.00001f) {
             gen_sphere_vertices(data, slices, stacks, radius);
             return;
         }
 
-        stacks = ((stacks + 1) >> 1) << 1;
+        length *= 0.5f;
 
         data.reserve(sizeof(vec3) * 2);
-
-        length *= 0.5f;
 
         data.push_back(0.0f);
         data.push_back(radius + length);
@@ -1236,10 +1248,11 @@ namespace mdl {
         int32_t slices, int32_t stacks, float_t length) {
         if (slices < 2 || stacks < 2)
             return 0;
-        else if (length < 0.00001f)
-            return gen_sphere_indices(indices, slices, stacks);
 
         stacks = ((stacks + 1) >> 1) << 1;
+
+        if (length < 0.00001f)
+            return gen_sphere_indices(indices, slices, stacks);
 
         {
             int32_t m1 = 0;
@@ -1348,6 +1361,76 @@ namespace mdl {
         return wire_offset;
     }
 
+    static void gen_ellipse_vertices(std::vector<float_t>& data,
+        int32_t slices, int32_t stacks, float_t length, float_t radius) {
+        if (slices < 2 || stacks < 2)
+            return;
+
+        stacks = ((stacks + 1) >> 1) << 1;
+
+        if (length < 0.00001f) {
+            gen_sphere_vertices(data, slices, stacks, radius);
+            return;
+        }
+
+        length *= 0.5f;
+
+        data.reserve(sizeof(vec3) * 2);
+
+        data.push_back(0.0f);
+        data.push_back(radius + length);
+        data.push_back(0.0f);
+
+        data.push_back(0.0f);
+        data.push_back(1.0f);
+        data.push_back(0.0f);
+
+        double_t sector_step = (M_PI * 2.0) / (double_t)slices;
+        double_t stack_step = M_PI / (double_t)stacks;
+
+        for (int32_t i = 1; i < stacks; i++) {
+            float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
+            float_t xz = cosf(stack_angle) * radius;
+            float_t y = sinf(stack_angle);
+            float_t y_n = y * radius;
+            y *= radius + length;
+
+            data.reserve(sizeof(vec3) * 2 * slices);
+
+            for (int32_t j = 0; j < slices; j++) {
+                float_t sector_angle = (float_t)((double_t)j * sector_step);
+
+                float_t x = xz * cosf(sector_angle);
+                float_t z = xz * sinf(sector_angle);
+
+                data.push_back(x);
+                data.push_back(y);
+                data.push_back(z);
+
+                data.push_back(x);
+                data.push_back(y_n);
+                data.push_back(z);
+            }
+        }
+
+        data.reserve(sizeof(vec3) * 2);
+
+        data.push_back(0.0f);
+        data.push_back(-radius - length);
+        data.push_back(0.0f);
+
+        data.push_back(0.0f);
+        data.push_back(-1.0f);
+        data.push_back(0.0f);
+    }
+
+    static size_t gen_ellipse_indices(std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, float_t length) {
+        stacks = ((stacks + 1) >> 1) << 1;
+
+        return gen_sphere_indices(indices, slices, stacks);
+    }
+
     void DispManager::add_vertex_array(EtcObj* etc, mat4& mat) {
         EtcObjType type = etc->type;
         switch (type) {
@@ -1360,6 +1443,7 @@ namespace mdl {
         case mdl::ETC_OBJ_LINE:
         case mdl::ETC_OBJ_CROSS:
         case mdl::ETC_OBJ_CAPSULE: // Added
+        case mdl::ETC_OBJ_ELLIPSE: // Added
             break;
         default:
             return;
@@ -1430,6 +1514,25 @@ namespace mdl {
             wire = capsule.wire;
             length = vec3::distance(capsule.pos[0], capsule.pos[1]);
         } break;
+        case mdl::ETC_OBJ_ELLIPSE: { // Added
+            EtcObjEllipse& ellipse = etc->data.ellipse;
+
+            vec3 origin = (ellipse.pos[0] + ellipse.pos[1]) * 0.5f;
+            mat4_translate_add(&mat, &origin, &mat);
+
+            vec3 dir = vec3::normalize(ellipse.pos[1] - ellipse.pos[0]);
+            vec3 up = { 0.0f, 1.0f, 0.0f };
+            vec3 axis;
+            float_t angle;
+            Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
+            mat4 m;
+            mat4_mult_axis_angle(&mat4_identity, &axis, angle, &m);
+            mat4_mult(&m, &mat, &mat);
+
+            indexed = true;
+            wire = ellipse.wire;
+            length = vec3::distance(ellipse.pos[0], ellipse.pos[1]);
+        } break;
         }
 
         DispManager::etc_vertex_array* etc_vertex_array = 0;
@@ -1457,7 +1560,12 @@ namespace mdl {
                 && i.data.capsule.slices == etc->data.capsule.slices
                 && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
                 && fabsf(i.data.capsule.radius - etc->data.capsule.radius) < 0.00001f
-                && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f)
+                && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f
+                || type == mdl::ETC_OBJ_ELLIPSE // Added
+                && i.data.ellipse.slices == etc->data.ellipse.slices
+                && ((i.data.ellipse.stacks + 1)) >> 1 == ((etc->data.ellipse.stacks + 1) >> 1)
+                && fabsf(i.data.ellipse.radius - etc->data.ellipse.radius) < 0.00001f
+                && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f)
                 if (i.vertex_array) {
                     i.alive_time = 2;
                     if (!wire) {
@@ -1568,6 +1676,17 @@ namespace mdl {
 
             gen_capsule_vertices(vtx_data, capsule.slices, capsule.stacks, length, capsule.radius);
             size_t wire_offset = gen_capsule_indices(vtx_indices, capsule.slices, capsule.stacks, length);
+
+            etc_vertex_array->offset = 0;
+            etc_vertex_array->count = (GLsizei)wire_offset;
+            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
+            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
+        } break;
+        case mdl::ETC_OBJ_ELLIPSE: { // Added
+            EtcObjEllipse& ellipse = etc->data.ellipse;
+
+            gen_ellipse_vertices(vtx_data, ellipse.slices, ellipse.stacks, length, ellipse.radius);
+            size_t wire_offset = gen_ellipse_indices(vtx_indices, ellipse.slices, ellipse.stacks, length);
 
             etc_vertex_array->offset = 0;
             etc_vertex_array->count = (GLsizei)wire_offset;
@@ -2667,6 +2786,9 @@ namespace mdl {
         case mdl::ETC_OBJ_CAPSULE: // Added
             length = vec3::distance(etc->data.capsule.pos[0], etc->data.capsule.pos[1]);
             break;
+        case mdl::ETC_OBJ_ELLIPSE: // Added
+            length = vec3::distance(etc->data.ellipse.pos[0], etc->data.ellipse.pos[1]);
+            break;
         default:
             return 0;
         }
@@ -2708,6 +2830,13 @@ namespace mdl {
                     && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
                     && fabsf(i.data.capsule.radius - etc->data.capsule.radius) < 0.00001f
                     && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f)
+                    return i.vertex_array;
+                break;
+            case mdl::ETC_OBJ_ELLIPSE: // Added
+                if (i.data.ellipse.slices == etc->data.ellipse.slices
+                    && ((i.data.ellipse.stacks + 1)) >> 1 == ((etc->data.ellipse.stacks + 1) >> 1)
+                    && fabsf(i.data.ellipse.radius - etc->data.ellipse.radius) < 0.00001f
+                    && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f)
                     return i.vertex_array;
                 break;
             }

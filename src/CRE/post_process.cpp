@@ -700,14 +700,9 @@ void post_process::reset() {
     mlaa = true;
     mag_filter = POST_PROCESS_MAG_FILTER_BILINEAR;
     dof->initialize_data(0, 0);
-    const vec3 radius = { 2.0f, 2.0f, 2.0f };
-    const vec3 intensity = { 1.0f, 1.0f, 1.0f };
-    blur->initialize_data(radius, intensity);
-    const vec3 scene_fade_color = { 1.0f, 1.0f, 1.0f };
-    const vec3 tone_trans_start = { 0.0f, 0.0f, 0.0f };
-    const vec3 tone_trans_end = { 1.0f, 1.0f, 1.0f };
-    tone_map->initialize_data(2.0f, true, 1.0f, 1, 1.0f, scene_fade_color, 0.0f,
-        0, tone_trans_start, tone_trans_end, TONE_MAP_YCC_EXPONENT);
+    blur->initialize_data(2.0f, 1.0f);
+    tone_map->initialize_data(2.0f, true, 1.0f, 1, 1.0f,
+        1.0f, 0.0f, 0, 0.0f, 1.0f, TONE_MAP_YCC_EXPONENT);
     reset_exposure = true;
 }
 

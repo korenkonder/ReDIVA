@@ -272,6 +272,7 @@ struct pv_play_data_motion_data {
     pv_play_data_motion_data();
     ~pv_play_data_motion_data();
 
+    void clear();
     void reset();
 };
 
@@ -312,6 +313,8 @@ struct pv_data_camera {
     bool enable;
     int32_t id;
     int64_t time;
+
+    pv_data_camera();
 };
 
 struct struc_540 {
@@ -376,9 +379,9 @@ struct pv_game_pv_data {
     int64_t curr_time;
     float_t curr_time_float;
     float_t prev_time_float;
-    int8_t field_2BF50;
+    bool field_2BF50;
     int64_t field_2BF58;
-    int8_t field_2BF60;
+    bool field_2BF60;
     int32_t field_2BF64;
     int64_t field_2BF68;
     int32_t chara_id;
@@ -433,6 +436,9 @@ struct pv_game_pv_data {
 
     pv_game_pv_data();
     ~pv_game_pv_data();
+
+    void reset();
+    void reset_camera_post_process();
 };
 
 struct pv_game_play_data {
@@ -450,7 +456,7 @@ struct pv_game_play_data {
     float_t field_204[2];
     float_t field_20C[2];
     int32_t frame_state;
-    int8_t field_218;
+    bool field_218;
     bool fade_begin;
     bool fade_end;
     pv_game_aet fade;
@@ -474,14 +480,14 @@ struct pv_game_play_data {
     float_t field_350;
     bool field_354;
     int32_t value_text_spr_index;
-    int8_t not_clear;
+    bool not_clear;
     int32_t spr_set_back_id;
     bool loaded;
     int32_t state;
     int32_t field_36C;
     bool score_preview_update;
     int32_t field_374;
-    int8_t field_378;
+    bool field_378;
     float_t field_37C;
     float_t score_preview_speed;
     uint32_t score_preview;
@@ -492,8 +498,7 @@ struct pv_game_play_data {
     int32_t combo_state;
     int32_t combo_count;
     float_t combo_disp_time;
-    float_t draw_x;
-    float_t draw_y;
+    vec2 draw_pos;
     int32_t field_3AC;
     int32_t field_3B0;
     int32_t field_3B4;
@@ -523,7 +528,7 @@ struct pv_game_play_data {
     float_t field_5EC;
     int32_t option;
     float_t field_5F4;
-    int8_t lyric[76];
+    char lyric[76];
     uint8_t lyric_index;
     vec4u8 lyrics_color;
     bool field_64C;
@@ -534,6 +539,10 @@ struct pv_game_play_data {
 
     pv_game_play_data();
     ~pv_game_play_data();
+
+    void reset();
+
+    void sub_1401362C0();
 };
 
 struct pv_game_chara {
@@ -673,7 +682,7 @@ struct pv_game_data {
     int32_t stage_index;
     bool field_2D00C;
     bool no_fail;
-    int8_t field_2D00E;
+    bool field_2D00E;
     bool changed_field;
     int64_t challenge_time_start;
     int64_t challenge_time_end;
@@ -695,8 +704,8 @@ struct pv_game_data {
     int8_t field_2D05E;
     int8_t field_2D05F;
     bool title_image_init;
-    int8_t field_2D061;
-    int8_t field_2D062;
+    bool field_2D061;
+    bool field_2D062;
     bool field_2D063;
     bool has_auth_3d_frame;
     bool has_light_frame;
