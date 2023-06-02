@@ -6,9 +6,11 @@
 #include "data_initialize.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/auth_2d.hpp"
+#include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/hand_item.hpp"
 #include "../CRE/item_table.hpp"
+#include "../CRE/module_table.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/sprite.hpp"
@@ -98,10 +100,8 @@ bool TaskDataInit::Ctrl() {
         sound_work_read_farc("rom/sound/pvchange.farc");
         sound_work_read_farc("rom/sound/slide_se.farc");
         sound_work_read_farc("rom/sound/slide_long.farc");
-        //sub_14037EF30();
-        //sub_14037F180();
-        //sub_140377A10();
-        //sub_140377C30();
+        module_table_handler_data_read();
+        customize_item_table_handler_data_read();
         //sub_1403926C0();
         //sub_1403928E0();
         //sub_1403740D0();
@@ -134,8 +134,8 @@ bool TaskDataInit::Ctrl() {
             && !sound_work_load_farc("rom/sound/pvchange.farc")
             && !sound_work_load_farc("rom/sound/slide_se.farc")
             && !sound_work_load_farc("rom/sound/slide_long.farc")
-            //&& !sub_14037FE80()
-            //&& !sub_1403785C0()
+            && !module_table_handler_data_load()
+            && !customize_item_table_handler_data_load()
             //&& !sub_1403933B0()
             //&& !sub_1403747D0()
             //&& !sub_140390AE0()
@@ -145,12 +145,10 @@ bool TaskDataInit::Ctrl() {
             //&& !sub_140388A50()
             && !hand_item_handler_data_load()
             && !rob_sleeve_handler_data_load()) {
-            //sub_14037F680();
-            //sub_1403F98D0(sub_1403F8C30());
-            //sub_140378060();
-            //sub_140234DE0(sub_140234860());
+            //sub_1403F8C30()->sub_1403F98D0();
+            //sub_140234860()->sub_140234DE0();
             //sub_140392D10();
-            //sub_140226A80(sub_140226760());
+            //sub_140226760()->sub_140226A80();
             //sub_140374650();
             //sub_140390960();
             //sub_140375FB0();

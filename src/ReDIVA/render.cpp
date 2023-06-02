@@ -15,6 +15,7 @@
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/camera.hpp"
 #include "../CRE/clear_color.hpp"
+#include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/fbo.hpp"
 #include "../CRE/file_handler.hpp"
@@ -23,6 +24,7 @@
 #include "../CRE/light_param.hpp"
 #include "../CRE/lock.hpp"
 #include "../CRE/mdata_manager.hpp"
+#include "../CRE/module_table.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/ogg_vorbis.hpp"
 #include "../CRE/pv_db.hpp"
@@ -48,11 +50,11 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/stage_test.hpp"
+#include "pv_game/pv_game.hpp"
 #include "game_state.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 #include "task_window.hpp"
-#include "pv_game.hpp"
 #include "x_pv_game.hpp"
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -853,6 +855,8 @@ static render_context* render_context_load() {
     dbg_set_id = aft_obj_db->get_object_set_id("DBG");
 
     hand_item_handler_data_init();
+    module_table_handler_data_init();
+    customize_item_table_handler_data_init();
 
     aet_manager_add_aet_sets(aft_aet_db);
     sprite_manager_add_spr_sets(aft_spr_db);
@@ -1007,7 +1011,7 @@ static void render_context_ctrl(render_context* rctx) {
         game_state_set_game_state_next(GAME_STATE_GAME);
     else if (Input::IsKeyTapped(GLFW_KEY_F6)) {
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AUTH_3D);
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AET);
     }
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
@@ -1138,6 +1142,8 @@ static void render_context_dispose(render_context* rctx) {
     sprite_manager_remove_spr_sets(aft_spr_db);
     aet_manager_remove_aet_sets(aft_aet_db);
 
+    customize_item_table_handler_data_free();
+    module_table_handler_data_free();
     hand_item_handler_data_free();
 
     //rob_chara_array_free_chara_id(0);

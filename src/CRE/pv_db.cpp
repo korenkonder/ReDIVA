@@ -24,7 +24,7 @@ pv_db_pv_lyric::~pv_db_pv_lyric() {
 
 pv_db_pv_performer::pv_db_pv_performer() {
     type = PV_PERFORMER_VOCAL;
-    chara = -1;
+    chara = (chara_index)-1;
     costume = -1;
     pv_costume[0] = -1;
     pv_costume[1] = -1;
@@ -244,6 +244,19 @@ pv_db_pv_difficulty::~pv_db_pv_difficulty() {
 
 }
 
+const pv_db_pv_motion& pv_db_pv_difficulty::get_motion_or_default(int32_t chara_id, int32_t index) const {
+    static const pv_db_pv_motion pv_db_pv_motion_null;
+
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return pv_db_pv_motion_null;
+
+    for (const pv_db_pv_motion& i : motion[chara_id])
+        if (i.index == index)
+            return i;
+
+    return pv_db_pv_motion_null;
+}
+
 void pv_db_pv_difficulty::reset() {
     difficulty = PV_DIFFICULTY_MAX;
     edition = -1;
@@ -279,7 +292,7 @@ void pv_db_pv_difficulty::reset() {
     hand_item.clear();
     hand_item.shrink_to_fit();
 
-    for (std::vector<pv_db_pv_motion>& i : motion) {
+    for (auto& i : field_228) {
         i.clear();
         i.shrink_to_fit();
     }
@@ -320,8 +333,8 @@ pv_db_pv_ex_song::~pv_db_pv_ex_song() {
 }
 
 void pv_db_pv_ex_song::reset() {
-    for (int32_t& i : chara)
-        i = -1;
+    for (chara_index& i : chara)
+        i = (chara_index)-1;
     file.clear();
     file.shrink_to_fit();
     name.clear();
@@ -468,23 +481,181 @@ pv_db_pv::~pv_db_pv() {
 
 }
 
-pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, pv_attribute_type attribute_type) {
+int32_t pv_db_pv::get_chrmot_motion_id(int32_t chara_id,
+    chara_index chara_index, const pv_db_pv_motion& motion) const {
+    if (!chrmot.size())
+        return motion.id;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    for (const pv_db_pv_chrmot& i : chrmot)
+        if (i.id == chara_id && chara_index_get_from_chara_name(i.chara.c_str())
+            == chara_index && !i.org_name.compare(motion.name)) {
+            int32_t motion_id = aft_mot_db->get_motion_id(i.name.c_str());
+            if (motion_id != -1)
+                return motion_id;
+            break;
+        }
+
+    return motion.id;
+}
+
+const pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, pv_attribute_type attribute_type) const {
     if (attribute_type == PV_ATTRIBUTE_END)
         return 0;
 
-    std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
-    for (pv_db_pv_difficulty& i : diff)
+    const std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
+    for (const pv_db_pv_difficulty& i : diff)
         if (i.attribute.type == attribute_type)
             return &i;
     return 0;
 }
 
-pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, int32_t edition) {
-    std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
-    for (pv_db_pv_difficulty& i : diff)
+const pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, int32_t edition) const {
+    const std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
+    for (const pv_db_pv_difficulty& i : diff)
         if (i.edition == edition)
             return &i;
     return 0;
+}
+
+chara_index pv_db_pv::get_performer_chara(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return CHARA_MIKU;
+
+    chara_index chara = this->performer[performer].chara;
+    pv_performer_type type = this->performer[performer].type;
+    if (type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA) {
+        performer = get_performer_pseudo_same_id(performer);
+        if (performer >= 0)
+            chara = this->performer[performer].chara;
+    }
+
+    if (chara < 0 || chara >= CHARA_MAX)
+        chara = CHARA_MIKU;
+
+    return chara;
+}
+
+int32_t pv_db_pv::get_performer_costume(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return -1;
+
+    int32_t costume = this->performer[performer].costume;
+    pv_performer_type type = this->performer[performer].type;
+    if (type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA) {
+        performer = pv_db_pv::get_performer_pseudo_same_id(performer);
+        if (performer >= 0) {
+            const pv_db_pv_performer* perf = &this->performer[performer];
+            costume = pv_db_pv::get_pseudo_costume(type, (chara_index)perf->chara, perf->costume);
+        }
+    }
+    return costume;
+}
+
+size_t pv_db_pv::get_performer_count() const {
+    if (performer.size())
+        return performer.size();
+    return 1;
+}
+
+int32_t pv_db_pv::get_performer_exclude(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return -1;
+
+    return this->performer[performer].exclude;
+}
+
+bool pv_db_pv::get_performer_fixed(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return false;
+
+    return this->performer[performer].fixed;
+}
+
+int32_t pv_db_pv::get_performer_item(int32_t performer, pv_performer_item item) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return -1;
+
+    if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)
+        return this->performer[performer].item[item];
+    return -1;
+}
+
+bool pv_db_pv::get_performer_pseudo_fixed(chara_index chara_index, int32_t performer, bool a4, bool a5) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT
+        || chara_index < 0 || chara_index >= CHARA_MAX || performer >= this->performer.size())
+        return false;
+
+    ::chara_index chara = this->performer[performer].chara;
+    pv_performer_type type = this->performer[performer].type;
+    bool v11 = (!a5 ? !a4 : false) || get_performer_fixed(performer);
+    if (type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA)
+        return true;
+    else if (chara < 0 || chara >= CHARA_MAX)
+        return false;
+    return v11;
+}
+
+int32_t pv_db_pv::get_performer_pseudo_same_id(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return -1;
+
+    pv_performer_type type = this->performer[performer].type;
+    if (type < PV_PERFORMER_PSEUDO_DEFAULT || type > PV_PERFORMER_PSEUDO_MYCHARA)
+        return -1;
+
+    if (type == PV_PERFORMER_PSEUDO_SAME) {
+        int32_t perf = this->performer[performer].pseudo_same_id;
+        if (perf != -1) {
+            if (perf >= 0 && perf < this->performer.size() && performer > perf)
+                return perf;
+            return -1;
+        }
+    }
+
+    while (--performer >= 0) {
+        if (this->performer[performer].type == PV_PERFORMER_VOCAL)
+            return performer;
+    }
+    return -1;
+}
+
+pv_performer_size pv_db_pv::get_performer_size(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return PV_PERFORMER_NORMAL;
+
+    pv_performer_size size = this->performer[performer].size;
+    pv_performer_type type = this->performer[performer].type;
+    if (type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA) {
+        performer = get_performer_pseudo_same_id(performer);
+        if (performer >= 0)
+            size = this->performer[performer].size;
+    }
+    return size;
+}
+
+pv_performer_type pv_db_pv::get_performer_type(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return PV_PERFORMER_VOCAL;
+
+    return this->performer[performer].type;
+}
+
+bool pv_db_pv::is_performer_type_pseudo(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return false;
+
+    pv_performer_type type = this->performer[performer].type;
+    return type >= PV_PERFORMER_PSEUDO_DEFAULT && type <= PV_PERFORMER_PSEUDO_MYCHARA;
+}
+
+bool pv_db_pv::is_performer_type_vocal(int32_t performer) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return false;
+
+    return this->performer[performer].type == PV_PERFORMER_VOCAL;
 }
 
 void pv_db_pv::reset() {
@@ -540,6 +711,21 @@ void pv_db_pv::reset() {
 
     auth_replace_by_module.clear();
     auth_replace_by_module.shrink_to_fit();
+}
+
+int32_t pv_db_pv::get_pseudo_costume(pv_performer_type type, chara_index chara_index, int32_t costume) {
+    switch (type) {
+    case PV_PERFORMER_PSEUDO_SAME:
+        return costume;
+    case PV_PERFORMER_PSEUDO_SWIM:
+        return chara_init_data_get_swim_costume(chara_index);
+    case PV_PERFORMER_PSEUDO_SWIM_S:
+        return chara_init_data_get_swim_s_costume(chara_index);
+    case PV_PERFORMER_PSEUDO_MYCHARA:
+        return -1;
+    default:
+        return 0;
+    }
 }
 
 namespace pv_db {
@@ -838,10 +1024,10 @@ namespace pv_db {
         pv->reset();
 
         pv->id = pv_id;
-        pv->song_name = song_name;
-        pv->song_name_reading = song_name_reading;
+        pv->song_name.assign(song_name);
+        pv->song_name_reading.assign(song_name_reading);
         pv->bpm = bpm;
-        pv->song_file_name = song_file_name;
+        pv->song_file_name.assign(song_file_name);
         pv->date = date;
 
         int32_t remix_parent;
@@ -966,15 +1152,15 @@ namespace pv_db {
 
                 std::string chara;
                 if (kv.read("chara", chara))
-                    chrcam.chara = chara;
+                    chrcam.chara.assign(chara);
 
                 std::string org_name;
                 if (kv.read("org_name", org_name))
-                    chrcam.org_name = org_name;
+                    chrcam.org_name.assign(org_name);
 
                 std::string name;
                 if (kv.read("name", name))
-                    chrcam.name = name;
+                    chrcam.name.assign(name);
 
                 kv.close_scope();
             }
@@ -995,15 +1181,15 @@ namespace pv_db {
 
                 std::string chara;
                 if (kv.read("chara", chara))
-                    chrmot.chara = chara;
+                    chrmot.chara.assign(chara);
 
                 std::string org_name;
                 if (kv.read("org_name", org_name))
-                    chrmot.org_name = org_name;
+                    chrmot.org_name.assign(org_name);
 
                 std::string name;
                 if (kv.read("name", name))
-                    chrmot.name = name;
+                    chrmot.name.assign(name);
 
                 kv.close_scope();
             }
@@ -1024,7 +1210,7 @@ namespace pv_db {
 
                 std::string name;
                 if (kv.read("name", name))
-                    chreff.name = name;
+                    chreff.name.assign(name);
 
                 int32_t count;
                 if (kv.read("data", "length", count)) {
@@ -1044,7 +1230,7 @@ namespace pv_db {
 
                         std::string name;
                         if (kv.read("name", name))
-                            chreff.name = name;
+                            chreff.name.assign(name);
 
                         kv.close_scope();
                     }
@@ -1182,7 +1368,7 @@ namespace pv_db {
                         continue;
                     }
 
-                    d.script_file_name = script_file_name;
+                    d.script_file_name.assign(script_file_name);
 
                     const char* level;
                     if (kv.read("level", level))
@@ -1202,39 +1388,39 @@ namespace pv_db {
 
                         std::string se_name;
                         if (kv.read("se_name", se_name))
-                            d.se_name = se_name;
+                            d.se_name.assign(se_name);
 
                         std::string pvbranch_success_se_name;
                         if (kv.read("pvbranch_success_se_name", pvbranch_success_se_name))
-                            d.pvbranch_success_se_name = pvbranch_success_se_name;
+                            d.pvbranch_success_se_name.assign(pvbranch_success_se_name);
 
                         std::string slide_name;
                         if (kv.read("slide_name", slide_name))
-                            d.slide_name = slide_name;
+                            d.slide_name.assign(slide_name);
 
                         std::string chainslide_first_name;
                         if (kv.read("chainslide_first_name", chainslide_first_name))
-                            d.chainslide_first_name = chainslide_first_name;
+                            d.chainslide_first_name.assign(chainslide_first_name);
 
                         std::string chainslide_sub_name;
                         if (kv.read("chainslide_sub_name", chainslide_sub_name))
-                            d.chainslide_sub_name = chainslide_sub_name;
+                            d.chainslide_sub_name.assign(chainslide_sub_name);
 
                         std::string chainslide_success_name;
                         if (kv.read("chainslide_success_name", chainslide_success_name))
-                            d.chainslide_success_name = chainslide_success_name;
+                            d.chainslide_success_name.assign(chainslide_success_name);
 
                         std::string chainslide_failure_name;
                         if (kv.read("chainslide_failure_name", chainslide_failure_name))
-                            d.chainslide_failure_name = chainslide_failure_name;
+                            d.chainslide_failure_name.assign(chainslide_failure_name);
 
                         std::string slidertouch_name;
                         if (kv.read("slidertouch_name", slidertouch_name))
-                            d.slidertouch_name = slidertouch_name;
+                            d.slidertouch_name.assign(slidertouch_name);
 
                         for (size_t l = 0; l < ROB_CHARA_COUNT; l++) {
                             if (l)
-                                sprintf_s(buf, sizeof(buf), "motion%zuP", l);
+                                sprintf_s(buf, sizeof(buf), "motion%zuP", l + 1);
 
                             if (!kv.open_scope_fmt(l ? buf : "motion"))
                                 continue;
@@ -1267,7 +1453,7 @@ namespace pv_db {
 
                                 pv_db_pv_item item;
                                 item.index = (int32_t)k;
-                                item.name = name;
+                                item.name.assign(name);
                                 d.pv_item.push_back(item);
                                 kv.close_scope();
                             }
@@ -1286,7 +1472,7 @@ namespace pv_db {
                                 pv_db_pv_hand_item hand_item;
                                 hand_item.index = (int32_t)k;
                                 hand_item.id = hand_item_handler_data_get_hand_item_uid(name.c_str());
-                                hand_item.name = name;
+                                hand_item.name.assign(name);
                                 d.hand_item.push_back(hand_item);
                                 kv.close_scope();
                             }
@@ -1304,7 +1490,7 @@ namespace pv_db {
 
                                 pv_db_pv_edit_effect edit_effect;
                                 edit_effect.index = atoi(name.c_str());
-                                edit_effect.name = name;
+                                edit_effect.name.assign(name);
                                 d.edit_effect.push_back(edit_effect);
                                 kv.close_scope();
                             }
@@ -1340,7 +1526,7 @@ namespace pv_db {
 
                             std::string aet_name;
                             if (kv.read("aet_name", aet_name))
-                                title_image.aet_name = aet_name;
+                                title_image.aet_name.assign(aet_name);
 
                             kv.close_scope();
                         }
@@ -1350,27 +1536,27 @@ namespace pv_db {
 
                             std::string music;
                             if (kv.read("music", music))
-                                songinfo.music = music;
+                                songinfo.music.assign(music);
 
                             std::string lyrics;
                             if (kv.read("lyrics", lyrics))
-                                songinfo.lyrics = lyrics;
+                                songinfo.lyrics.assign(lyrics);
 
                             std::string arranger;
                             if (kv.read("arranger", arranger))
-                                songinfo.arranger = arranger;
+                                songinfo.arranger.assign(arranger);
 
                             std::string manipulator;
                             if (kv.read("manipulator", manipulator))
-                                songinfo.manipulator = manipulator;
+                                songinfo.manipulator.assign(manipulator);
 
                             std::string pv_editor;
                             if (kv.read("pv_editor", pv_editor))
-                                songinfo.pv_editor = pv_editor;
+                                songinfo.pv_editor.assign(pv_editor);
 
                             std::string guitar_player;
                             if (kv.read("guitar_player", guitar_player))
-                                songinfo.guitar_player = guitar_player;
+                                songinfo.guitar_player.assign(guitar_player);
 
                             if (kv.open_scope("ex_info")) {
                                 std::pair<std::string, std::string>* ex_info = songinfo.ex_info;
@@ -1424,7 +1610,7 @@ namespace pv_db {
                         if (kv.read("movie_file_name", movie_file_name)) {
                             pv_db_pv_movie movie;
                             movie.index = 0;
-                            movie.name = movie_file_name;
+                            movie.name.assign(movie_file_name);
                             d.movie_list.push_back(movie);
                         }
 
@@ -1437,7 +1623,7 @@ namespace pv_db {
 
                         std::string effect_se_file_name;
                         if (kv.read("effect_se_file_name", effect_se_file_name))
-                            d.effect_se_file_name = effect_se_file_name;
+                            d.effect_se_file_name.assign(effect_se_file_name);
 
                         if (!k && kv.read("effect_se_name_list", "length", count)) {
                             d.effect_se_name_list.reserve(count);
@@ -1527,7 +1713,7 @@ namespace pv_db {
                 bool v533 = false;
 
                 for (size_t j = 1; j < ROB_CHARA_COUNT; j++) {
-                    sprintf_s(buf, sizeof(buf), "chara%zuP", j);
+                    sprintf_s(buf, sizeof(buf), "chara%zuP", j + 1);
 
                     const char* chara;
                     if (kv.read(buf, chara)) {
@@ -1539,8 +1725,8 @@ namespace pv_db {
                         v533 = true;
                 }
 
-                ex_song.file = file;
-                ex_song.name = name;
+                ex_song.file.assign(file);
+                ex_song.name.assign(name);
 
                 int32_t count;
                 if (kv.read("ex_auth", "length", count)) {
@@ -1552,10 +1738,10 @@ namespace pv_db {
                         std::string org_name;
                         std::string name;
                         if (kv.read("org_name", org_name)
-                            && kv.read("org_name", org_name)) {
+                            && kv.read("name", name)) {
                             pv_db_pv_ex_song_ex_auth ex_auth;
-                            ex_auth.org_name = org_name;
-                            ex_auth.name = name;
+                            ex_auth.org_name.assign(org_name);
+                            ex_auth.name.assign(name);
                             ex_song.ex_auth.push_back(ex_auth);
                         }
                         kv.close_scope();
@@ -1594,7 +1780,7 @@ namespace pv_db {
                     && kv.read("frame", frame)
                     && kv.read("stage", stage)) {
                     pv_db_pv_osage_init osage_init;
-                    osage_init.motion = motion;
+                    osage_init.motion.assign(motion);
                     osage_init.frame = frame;
                     osage_init.stage = aft_stage_data->get_stage_index(stage.c_str());
                     pv->osage_init.push_back(osage_init);
@@ -1627,11 +1813,11 @@ namespace pv_db {
 
                 std::string collision_file;
                 if (kv.read("collision_file", collision_file))
-                    stage_param.collision_file = collision_file;
+                    stage_param.collision_file.assign(collision_file);
 
                 std::string wind_file;
                 if (kv.read("collision_file", wind_file))
-                    stage_param.wind_file = wind_file;
+                    stage_param.wind_file.assign(wind_file);
 
                 pv->stage_param.push_back(stage_param);
 
@@ -1645,7 +1831,7 @@ namespace pv_db {
 
             std::string set_name;
             if (kv.read("set_name", set_name))
-                disp2d.set_name = set_name;
+                disp2d.set_name.assign(set_name);
 
             int32_t target_shadow_type;
             if (kv.read("target_shadow_type", target_shadow_type))
@@ -1677,7 +1863,7 @@ namespace pv_db {
 
             std::string title_2d_layer;
             if (kv.read("title_2d_layer", title_2d_layer))
-                disp2d.title_2d_layer = title_2d_layer;
+                disp2d.title_2d_layer.assign(title_2d_layer);
 
             kv.close_scope();
         }
@@ -1688,7 +1874,7 @@ namespace pv_db {
 
         std::string pv_expression_file_name;
         if (kv.read("pv_expression.file_name", pv_expression_file_name))
-            pv->pv_expression_file_name = pv_expression_file_name;
+            pv->pv_expression_file_name.assign(pv_expression_file_name);
 
         if (kv.read("another_song", "length", count)) {
             pv->another_song.reserve(count);
@@ -1700,11 +1886,11 @@ namespace pv_db {
 
                 std::string name;
                 if (kv.read("name", name))
-                    another_song.name = name;
+                    another_song.name.assign(name);
 
                 std::string song_file_name;
                 if (kv.read("song_file_name", song_file_name))
-                    another_song.song_file_name = song_file_name;
+                    another_song.song_file_name.assign(song_file_name);
 
                 pv->another_song.push_back(another_song);
 
@@ -1721,7 +1907,7 @@ namespace pv_db {
 
             std::string data;
             if (kv.read(frame_texture_names[i], data))
-                frame_texture.data = data;
+                frame_texture.data.assign(data);
 
             const char* type;
             if (kv.read(frame_texture_type_names[i], type)) {
@@ -1783,7 +1969,7 @@ namespace pv_db {
                 j.field.ex_stage_set = false;
 
                 j.field.data.reserve(count);
-                for (int32_t k = 0; k < count; k++) {
+                for (int32_t k = 0; k <= count; k++) {
                     if (!kv.open_scope_fmt("%02d", k))
                         continue;
 
@@ -1924,11 +2110,25 @@ namespace pv_db {
                         }
                     }
 
-                    kv.read("spr_set_back", field.spr_set_back);
-                    kv.read("stage_flag", field.stage_flag);
-                    kv.read("npr_type", field.npr_type);
-                    kv.read("cam_blur", field.cam_blur);
-                    kv.read("sdw_off", field.sdw_off);
+                    bool spr_set_back;
+                    if (kv.read("spr_set_back", spr_set_back))
+                        field.spr_set_back = spr_set_back;
+
+                    bool stage_flag;
+                    if (kv.read("stage_flag", stage_flag))
+                        field.stage_flag = stage_flag;
+
+                    bool npr_type;
+                    if (kv.read("npr_type", npr_type))
+                        field.npr_type = npr_type;
+
+                    bool cam_blur;
+                    if (kv.read("cam_blur", cam_blur))
+                        field.cam_blur = cam_blur;
+
+                    bool sdw_off;
+                    if (kv.read("sdw_off", sdw_off))
+                        field.sdw_off = sdw_off;
 
                     if (kv.read("play_eff_list", "length", count)) {
                         field.play_eff_list.reserve(count);
@@ -1998,6 +2198,26 @@ namespace pv_db {
     }
 }
 
+item_id pv_performer_item_to_item_id(pv_performer_item item) {
+    static const item_id pv_performer_item_id_to_item_id_table[] = {
+         ITEM_ZUJO, ITEM_MEGANE, ITEM_KUBI, ITEM_JOHA_USHIRO,
+    };
+
+    if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)
+        return pv_performer_item_id_to_item_id_table[item];
+    return ITEM_NONE;
+}
+
+item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item) {
+    static const item_sub_id pv_performer_item_id_to_item_sub_id_table[] = {
+         ITEM_SUB_ZUJO, ITEM_SUB_MEGANE, ITEM_SUB_KUBI, ITEM_SUB_L_UDE,
+    };
+
+    if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)
+        return pv_performer_item_id_to_item_sub_id_table[item];
+    return ITEM_SUB_NONE;
+}
+
 void task_pv_db_init() {
     task_pv_db = new pv_db::TaskPvDB;
 }
@@ -2047,22 +2267,20 @@ pv_db_pv* task_pv_db_get_pv(int32_t pv_id) {
     return 0;
 }
 
-pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
+const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     int32_t difficulty, pv_attribute_type attribute_type) {
     pv_db_pv* pv = task_pv_db_get_pv(pv_id);
-    if (!pv)
-        return 0;
-
-    return pv->get_difficulty(difficulty, attribute_type);
+    if (pv)
+        return pv->get_difficulty(difficulty, attribute_type);
+    return 0;
 }
 
-pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
+const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     int32_t difficulty, int32_t edition) {
     pv_db_pv* pv = task_pv_db_get_pv(pv_id);
-    if (!pv)
-        return 0;
-
-    return pv->get_difficulty(difficulty, edition);
+    if (pv)
+        return pv->get_difficulty(difficulty, edition);
+    return 0;
 }
 
 bool task_pv_db_is_paths_empty() {

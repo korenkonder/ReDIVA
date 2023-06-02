@@ -1848,17 +1848,8 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         return;
 
     if (!glt_edt->load_data_wait) {
-        object_database* obj_db = 0;
-        data_struct* ds = &data_list[glt_edt->load_data_type];
-        switch (ds->type) {
-        case DATA_AFT:
-        case DATA_FT:
-        case DATA_M39:
-            obj_db = &ds->data_ft.obj_db;
-            break;
-        }
         glt_edt->hash = Glitter::glt_particle_manager->LoadFile(glt_edt->load_glt_type,
-            &data_list[glt_edt->load_data_type], file, path, -1.0f, false, obj_db);
+            &data_list[glt_edt->load_data_type], file, path, -1.0f, false);
         glt_edt->load_data_wait = true;
     }
     else if (Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {

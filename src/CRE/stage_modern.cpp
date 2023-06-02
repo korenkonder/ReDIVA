@@ -16,17 +16,18 @@ namespace stage_detail {
     static void TaskStageModern_CtrlInner(stage_detail::TaskStageModern* a1);
     static void TaskStageModern_DispShadow(stage_detail::TaskStageModern* a1);
     static stage_modern* TaskStageModern_GetCurrentStage(stage_detail::TaskStageModern* a1);
-    static stage_modern* TaskStageModern_GetStage(stage_detail::TaskStageModern* a1, task_stage_modern_info stg_info);
-    static void TaskStageModern_GetTaskStageModernInfo(stage_detail::TaskStageModern* a1,
-        task_stage_modern_info* stg_info, size_t index);
-    static void TaskStageModern_GetCurrentStageInfo(stage_detail::TaskStageModern* a1,
-        task_stage_modern_info* stg_info);
+    static stage_modern* TaskStageModern_GetStage(
+        stage_detail::TaskStageModern* a1, const task_stage_modern_info stg_info);
+    static task_stage_modern_info TaskStageModern_GetTaskStageModernInfo(
+        stage_detail::TaskStageModern* a1, size_t index);
+    static task_stage_modern_info TaskStageModern_GetCurrentStageInfo(stage_detail::TaskStageModern* a1);
     static void TaskStageModern_GetLoadedStageInfos(stage_detail::TaskStageModern* a1,
-        std::vector<task_stage_modern_info>* vec);
+        std::vector<task_stage_modern_info>& vec);
     static void TaskStageModern_Load(stage_detail::TaskStageModern* a1);
     static bool TaskStageModern_LoadTask(stage_detail::TaskStageModern* a1, const char* name);
     static void TaskStageModern_Reset(stage_detail::TaskStageModern* a1);
-    static void TaskStageModern_SetStage(stage_detail::TaskStageModern* a1, task_stage_modern_info stg_info);
+    static void TaskStageModern_SetStage(
+        stage_detail::TaskStageModern* a1, const task_stage_modern_info stg_info);
     static void TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1);
     static void TaskStageModern_Unload(stage_detail::TaskStageModern* a1);
 }
@@ -107,6 +108,47 @@ task_stage_modern_info::task_stage_modern_info() {
     load_counter = 0;
 }
 
+task_stage_modern_info::task_stage_modern_info(int16_t load_index, uint16_t load_counter) {
+    this->load_index = load_index;
+    this->load_counter = load_counter;
+}
+
+bool task_stage_modern_info::check() const {
+    return task_stage_modern_get_stage(*this) != 0;
+}
+
+uint32_t task_stage_modern_info::get_stage_hash() const {
+    stage_modern* stg = task_stage_modern_get_stage(*this);
+    if (stg)
+        return stg->hash;
+    return -1;
+}
+
+void task_stage_modern_info::set_ground(bool value) const {
+    stage_modern* stg = task_stage_modern_get_stage(*this);
+    if (stg)
+        stg->ground = value;
+}
+
+void task_stage_modern_info::set_sky(bool value) const {
+    stage_modern* stg = task_stage_modern_get_stage(*this);
+    if (stg)
+        stg->sky = value;
+}
+
+void task_stage_modern_info::set_stage() const {
+    stage_detail::TaskStageModern_SetStage(task_stage_modern, *this);
+}
+
+void task_stage_modern_info::set_stage_display(bool value, bool effect_enable) const {
+    stage_modern* stg = task_stage_modern_get_stage(*this);
+    if (stg) {
+        stg->stage_display = value;
+        if (effect_enable)
+            task_effect_parent_set_enable(value);
+    }
+}
+
 void task_stage_modern_init() {
     task_stage_modern = new stage_detail::TaskStageModern;
 }
@@ -120,24 +162,21 @@ bool task_stage_modern_check_task_ready() {
 }
 
 void task_stage_modern_current_set_ground(bool value) {
-    task_stage_modern_info stg_info;
-    task_stage_modern_get_current_stage_info(&stg_info);
-    if (task_stage_modern_has_stage_info(&stg_info))
-        task_stage_modern_set_ground(&stg_info, value);
+    task_stage_modern_info stg_info = task_stage_modern_get_current_stage_info();
+    if (stg_info.check())
+        stg_info.set_ground(value);
 }
 
 void task_stage_modern_current_set_sky(bool value) {
-    task_stage_modern_info stg_info;
-    task_stage_modern_get_current_stage_info(&stg_info);
-    if (task_stage_modern_has_stage_info(&stg_info))
-        task_stage_modern_set_sky(&stg_info, value);
+    task_stage_modern_info stg_info = task_stage_modern_get_current_stage_info();
+    if (stg_info.check())
+        stg_info.set_sky(value);
 }
 
 void task_stage_modern_current_set_stage_display(bool value, bool effect_enable) {
-    task_stage_modern_info stg_info;
-    task_stage_modern_get_current_stage_info(&stg_info);
-    if (task_stage_modern_has_stage_info(&stg_info))
-        task_stage_modern_set_stage_display(&stg_info, value, effect_enable);
+    task_stage_modern_info stg_info = task_stage_modern_get_current_stage_info();
+    if (stg_info.check())
+        stg_info.set_stage_display(value, effect_enable);
 }
 
 void task_stage_modern_disp_shadow() {
@@ -149,34 +188,22 @@ stage_modern* task_stage_modern_get_current_stage() {
 }
 
 uint32_t task_stage_modern_get_current_stage_hash() {
-    task_stage_modern_info stg_info;
-    task_stage_modern_get_current_stage_info(&stg_info);
-    if (task_stage_modern_has_stage_info(&stg_info))
-        return task_stage_modern_get_stage_hash(&stg_info);
+    task_stage_modern_info stg_info = task_stage_modern_get_current_stage_info();
+    if (stg_info.check())
+        return stg_info.get_stage_hash();
     return hash_murmurhash_empty;
 }
 
-void task_stage_modern_get_current_stage_info(task_stage_modern_info* stg_info) {
-    stage_detail::TaskStageModern_GetCurrentStageInfo(task_stage_modern, stg_info);
+task_stage_modern_info task_stage_modern_get_current_stage_info() {
+    return stage_detail::TaskStageModern_GetCurrentStageInfo(task_stage_modern);
 }
 
-void task_stage_modern_get_loaded_stage_infos(std::vector<task_stage_modern_info>* vec) {
+void task_stage_modern_get_loaded_stage_infos(std::vector<task_stage_modern_info>& vec) {
     stage_detail::TaskStageModern_GetLoadedStageInfos(task_stage_modern, vec);
 }
 
-stage_modern* task_stage_modern_get_stage(task_stage_modern_info stg_info) {
+stage_modern* task_stage_modern_get_stage(const task_stage_modern_info stg_info) {
     return stage_detail::TaskStageModern_GetStage(task_stage_modern, stg_info);
-}
-
-uint32_t task_stage_modern_get_stage_hash(task_stage_modern_info* stg_info) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        return stg->hash;
-    return -1;
-}
-
-bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info) {
-    return task_stage_modern_get_stage(*stg_info) != 0;
 }
 
 bool task_stage_modern_load_task(const char* name) {
@@ -192,33 +219,8 @@ void task_stage_modern_set_data(void* data,
     task_stage_modern->stage_data = stage_data;
 }
 
-void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->ground = value;
-}
-
-void task_stage_modern_set_mat(mat4* mat) {
-    task_stage_modern->mat = *mat;
-}
-
-void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg)
-        stg->sky = value;
-}
-
-void task_stage_modern_set_stage(task_stage_modern_info* stg_info) {
-    stage_detail::TaskStageModern_SetStage(task_stage_modern, *stg_info);
-}
-
-void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value, bool effect_enable) {
-    stage_modern* stg = task_stage_modern_get_stage(*stg_info);
-    if (stg) {
-        stg->stage_display = value;
-        if (effect_enable)
-            task_effect_parent_set_enable(value);
-    }
+void task_stage_modern_set_mat(const mat4& mat) {
+    task_stage_modern->mat = mat;
 }
 
 void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data) {
@@ -286,7 +288,8 @@ static stage_modern* stage_detail::TaskStageModern_GetCurrentStage(stage_detail:
     return 0;
 }
 
-static stage_modern* stage_detail::TaskStageModern_GetStage(stage_detail::TaskStageModern* a1, task_stage_modern_info stg_info) {
+static stage_modern* stage_detail::TaskStageModern_GetStage(
+    stage_detail::TaskStageModern* a1, const task_stage_modern_info stg_info) {
     if (stg_info.load_index >= 0 && stg_info.load_index <= TASK_STAGE_STAGE_COUNT) {
         stage_modern* s = &a1->stages[stg_info.load_index];
         if (s->hash != -1 && s->hash != hash_murmurhash_empty
@@ -296,30 +299,24 @@ static stage_modern* stage_detail::TaskStageModern_GetStage(stage_detail::TaskSt
     return 0;
 }
 
-static void stage_detail::TaskStageModern_GetTaskStageModernInfo(stage_detail::TaskStageModern* a1,
-    task_stage_modern_info* stg_info, size_t index) {
-    *stg_info = {};
-    if (index >= 0 && index < TASK_STAGE_STAGE_COUNT) {
-        stg_info->load_index = (int16_t)index;
-        stg_info->load_counter = a1->stages[index].counter;
-    }
+static task_stage_modern_info stage_detail::TaskStageModern_GetTaskStageModernInfo(
+    stage_detail::TaskStageModern* a1, size_t index) {
+    if (index >= 0 && index < TASK_STAGE_STAGE_COUNT)
+        return { (int16_t)index, a1->stages[index].counter };
+    return {};
 }
 
-static void stage_detail::TaskStageModern_GetCurrentStageInfo(stage_detail::TaskStageModern* a1,
-    task_stage_modern_info* stg_info) {
-    stage_detail::TaskStageModern_GetTaskStageModernInfo(a1, stg_info, a1->current_stage);
+static task_stage_modern_info stage_detail::TaskStageModern_GetCurrentStageInfo(stage_detail::TaskStageModern* a1) {
+    return stage_detail::TaskStageModern_GetTaskStageModernInfo(a1, a1->current_stage);
 }
 
 static void stage_detail::TaskStageModern_GetLoadedStageInfos(stage_detail::TaskStageModern* a1,
-    std::vector<task_stage_modern_info>* vec) {
-    vec->clear();
-    vec->shrink_to_fit();
+    std::vector<task_stage_modern_info>& vec) {
+    vec.clear();
+    vec.shrink_to_fit();
     for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
-        if (a1->stages[i].hash != -1 && a1->stages[i].hash != hash_murmurhash_empty) {
-            task_stage_modern_info stg_info;
-            stage_detail::TaskStageModern_GetTaskStageModernInfo(a1, &stg_info, i);
-            vec->push_back(stg_info);
-        }
+        if (a1->stages[i].hash != -1 && a1->stages[i].hash != hash_murmurhash_empty)
+            vec.push_back(stage_detail::TaskStageModern_GetTaskStageModernInfo(a1, i));
 }
 
 static void stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1) {
@@ -353,9 +350,9 @@ static void stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1
             break;
 
         std::vector<task_stage_modern_info> vec;
-        stage_detail::TaskStageModern_GetLoadedStageInfos(a1, &vec);
+        stage_detail::TaskStageModern_GetLoadedStageInfos(a1, vec);
         if (vec.size())
-            stage_detail::TaskStageModern_SetStage(a1, vec[0]);
+            stage_detail::TaskStageModern_SetStage(a1, vec.front());
         a1->state = 6;
     } break;
     }
@@ -391,7 +388,8 @@ static void stage_detail::TaskStageModern_Reset(stage_detail::TaskStageModern* a
     a1->field_FF8 = 0.0f;
 }
 
-static void stage_detail::TaskStageModern_SetStage(stage_detail::TaskStageModern* a1, task_stage_modern_info stg_info) {
+static void stage_detail::TaskStageModern_SetStage(
+    stage_detail::TaskStageModern* a1, const task_stage_modern_info stg_info) {
     int16_t load_index = stg_info.load_index;
     stage_modern* s = stage_detail::TaskStageModern_GetStage(a1, stg_info);
     stage_modern* curr = stage_detail::TaskStageModern_GetCurrentStage(a1);

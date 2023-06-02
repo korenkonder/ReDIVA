@@ -1144,7 +1144,8 @@ namespace Glitter {
         FileReader(GLT, const wchar_t* path, const wchar_t* file, float_t emission);
         virtual ~FileReader();
 
-        bool LoadFarc(void* data, const char* path, const char* file, uint64_t hash, object_database* obj_db);
+        bool LoadFarc(void* data, const char* path, const char* file,
+            uint64_t hash, object_database* obj_db = 0);
         void ParseAnimation(f2_struct* st, Animation* anim);
         void ParseCurve(f2_struct* st, Animation* anim);
         bool ParseDivaEffect(GPM, f2_struct* st, object_database* obj_db);
@@ -1620,7 +1621,7 @@ namespace Glitter {
         SceneCounter GetSceneCounter(uint8_t index = 0);
         SceneCounter Load(uint64_t effect_group_hash, uint64_t effect_hash, bool use_existing);
         uint64_t LoadFile(GLT, void* data, const char* file, const char* path,
-            float_t emission, bool init_scene, object_database* obj_db);
+            float_t emission, bool init_scene, object_database* obj_db = 0);
         SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
         SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true, uint8_t load_flags = 0);
         SceneCounter LoadSceneEffect(uint64_t hash, const char* name,

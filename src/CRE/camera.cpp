@@ -11,10 +11,10 @@ static void camera_calculate_view(camera* c);
 static void camera_calculate_forward(camera* c);
 
 camera::camera() : forward(), rotation(), view_point(), interest(), fov_correct_height(),
-aet_depth(), render_width(), render_height(), sprite_width(), sprite_height(),
-field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(),
-fov(), fov_rad(), max_distance(), min_distance(), changed_view(), changed_proj(),
-changed_proj_aet(), fast_change(), fast_change_hist0(), fast_change_hist1() {
+aet_depth(), use_up(), render_width(), render_height(), sprite_width(), sprite_height(),
+field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(), fov(),
+fov_rad(), max_distance(), min_distance(), changed_view(), changed_proj(), changed_proj_aet(),
+fast_change(), fast_change_hist0(), fast_change_hist1(), ignore_fov(), ignore_min_dist() {
 
 }
 
@@ -30,8 +30,8 @@ void camera::initialize(double_t aspect, int32_t render_width,
     aet_depth = 0.0f;
     forward = { 0.0f, 0.0f, -1.0f };
     rotation = { 0.0f, 0.0f, 0.0f };
-    view_point = { 0.0, 0.0f, 0.0f };
-    interest = { 0.0f, 0.0f, -1.0f };
+    use_up = false;
+    up = { 0.0f, 1.0f, 0.0f };
     this->render_width = render_width;
     this->render_height = render_height;
     this->sprite_width = sprite_width;
@@ -44,14 +44,19 @@ void camera::initialize(double_t aspect, int32_t render_width,
     inv_view_projection = mat4_identity;
     view_projection_prev = mat4_identity;
     inv_view_projection_prev = mat4_identity;
-    min_distance = 0.05;
-    max_distance = 6000.0;
     changed_proj = true;
     changed_proj_aet = true;
     changed_view = true;
     fast_change = false;
     fast_change_hist0 = false;
     fast_change_hist1 = false;
+    ignore_fov = false;
+    ignore_min_dist = false;
+
+    set_view_point({ 0.0, 0.0f, 0.0f });
+    set_interest({ 0.0f, 0.0f, -1.0f });
+    set_min_distance(0.05);
+    set_max_distance(6000.0);
     set_pitch(0.0);
     set_yaw(0.0);
     set_roll(0.0);
@@ -66,7 +71,7 @@ double_t camera::get_min_distance() {
 }
 
 void camera::set_min_distance(double_t value) {
-    if (value != min_distance) {
+    if (!ignore_min_dist && min_distance != value) {
         min_distance = value;
         changed_proj = true;
         changed_proj_aet = true;
@@ -78,7 +83,7 @@ double_t camera::get_max_distance() {
 }
 
 void camera::set_max_distance(double_t value) {
-    if (value != max_distance) {
+    if (max_distance != value) {
         max_distance = value;
         changed_proj = true;
     }
@@ -89,7 +94,7 @@ double_t camera::get_aspect() {
 }
 
 void camera::set_aspect(double_t value) {
-    if (value != aspect) {
+    if (aspect != value) {
         aspect = value;
         changed_proj = true;
     }
@@ -101,7 +106,7 @@ double_t camera::get_fov() {
 
 void camera::set_fov(double_t value) {
     value = clamp_def(value, 1.0, 180.0);
-    if (value != fov) {
+    if (!ignore_fov && fov != value) {
         fov = value;
         fov_rad = value * DEG_TO_RAD;
         changed_proj = true;
@@ -155,14 +160,14 @@ void camera::get_view_point(vec4& value) {
 }
 
 void camera::set_view_point(const vec3& value) {
-    if (value != view_point) {
+    if (view_point != value) {
         view_point = value;
         changed_view = true;
     }
 }
 
 void camera::set_view_point(const vec3&& value) {
-    if (value != view_point) {
+    if (view_point != value) {
         view_point = value;
         changed_view = true;
     }
@@ -173,15 +178,44 @@ void camera::get_interest(vec3& value) {
 }
 
 void camera::set_interest(const vec3& value) {
-    if (value != interest) {
+    if (interest != value) {
         interest = value;
         changed_view = true;
     }
 }
 
 void camera::set_interest(const vec3&& value) {
-    if (value != interest) {
+    if (interest != value) {
         interest = value;
+        changed_view = true;
+    }
+}
+
+void camera::get_up(bool& use_up, vec3& value) {
+    use_up = this->use_up;
+    value = up;
+}
+
+void camera::set_up(bool use_up, const vec3& value) {
+    if (this->use_up != use_up) {
+        this->use_up = use_up;
+        changed_view = true;
+    }
+
+    if (up != value) {
+        up = value;
+        changed_view = true;
+    }
+}
+
+void camera::set_up(bool use_up, const vec3&& value) {
+    if (this->use_up != use_up) {
+        this->use_up = use_up;
+        changed_view = true;
+    }
+
+    if (up != value) {
+        up = value;
         changed_view = true;
     }
 }
@@ -219,6 +253,14 @@ void camera::set_fast_change_hist1(bool value) {
     fast_change_hist1 = value;
 }
 
+void camera::set_ignore_fov(bool value) {
+    ignore_fov = value;
+}
+
+void camera::set_ignore_min_dist(bool value) {
+    ignore_min_dist = value;
+}
+
 void camera::reset() {
     set_pitch(0.0);
     set_yaw(0.0);
@@ -229,6 +271,8 @@ void camera::reset() {
     fast_change = false;
     fast_change_hist0 = false;
     fast_change_hist1 = false;
+    use_up = false;
+    up = { 0.0f, 1.0f, 0.0f };
     camera_calculate_forward(this);
     set_position(0.0f);
     update_data();
@@ -402,24 +446,36 @@ static void camera_calculate_projection_aet(camera* c) {
 }
 
 static void camera_calculate_view(camera* c) {
-    vec3 direction = c->view_point - c->interest;
+    if (c->use_up) {
+        mat4_translate(&c->view_point, &c->inv_view);
+        vec3 z_axis = vec3::normalize(c->view_point - c->interest);
+        vec3 x_axis = vec3::normalize(vec3::cross(c->up, z_axis));
+        vec3 y_axis = vec3::normalize(vec3::cross(z_axis, x_axis));
 
-    vec3 rotation;
-    rotation.x = atan2f(-direction.y, sqrtf(direction.x * direction.x + direction.z * direction.z));
-    rotation.y = atan2f(direction.x, direction.z);
-    rotation.z = (float_t)(c->roll * DEG_TO_RAD);
+        *(vec3*)&c->inv_view.row0 = x_axis;
+        *(vec3*)&c->inv_view.row1 = y_axis;
+        *(vec3*)&c->inv_view.row2 = z_axis;
+        mat4_inverse(&c->inv_view, &c->view);
+        mat4_get_rotation(&c->inv_view, &c->rotation);
+    }
+    else {
+        vec3 direction = c->view_point - c->interest;
 
-    c->rotation = rotation;
-    rotation = -rotation;
+        vec3 rotation;
+        rotation.x = atan2f(-direction.y, sqrtf(direction.x * direction.x + direction.z * direction.z));
+        rotation.y = atan2f(direction.x, direction.z);
+        rotation.z = (float_t)(c->roll * DEG_TO_RAD);
 
-    vec3 view_point = -c->view_point;
+        c->rotation = rotation;
+        rotation = -rotation;
 
-    mat4_rotate_z(rotation.z, &c->view);
-    mat4_rotate_x_mult(&c->view, rotation.x, &c->view);
-    mat4_rotate_y_mult(&c->view, rotation.y, &c->view);
-    mat4_translate_mult(&c->view, &view_point, &c->view);
+        vec3 view_point = -c->view_point;
 
-    mat4_inverse(&c->view, &c->inv_view);
+        mat4_rotate_zxy(&rotation, &c->view);
+        mat4_translate_mult(&c->view, &view_point, &c->view);
+        mat4_inverse(&c->view, &c->inv_view);
+    }
+
     mat3_from_mat4(&c->view, &c->view_mat3);
     mat3_inverse(&c->view_mat3, &c->inv_view_mat3);
     mat4_from_mat3(&c->view_mat3, &c->view_rot);
@@ -431,4 +487,30 @@ static void camera_calculate_view(camera* c) {
         c->yaw = -c->rotation.y * RAD_TO_DEG;
         camera_calculate_forward(c);
     }
+}
+
+cam_struct::cam_struct() {
+    use_up = false;
+    view_point = { 0.0f, 1.0f, 6.0f };
+    interest = { 0.0f, 1.0f, 0.0f };
+    fov = (float_t)(32.2673416137695 * DEG_TO_RAD);
+    roll = 0.0f;
+    up = { 0.0f, 1.0f, 0.0f };
+    min_distance = 0.05f;
+}
+
+void cam_struct::get(camera* cam) {
+    cam->get_view_point(view_point);
+    cam->get_interest(interest);
+    fov = (float_t)cam->get_fov() * DEG_TO_RAD_FLOAT;
+    roll = (float_t)cam->get_roll() * DEG_TO_RAD_FLOAT;
+}
+
+void cam_struct::set(camera* cam) {
+    cam->set_view_point(view_point);
+    cam->set_interest(interest);
+    cam->set_fov(fov * RAD_TO_DEG);
+    cam->set_roll(roll * RAD_TO_DEG);
+    cam->set_up(use_up, up);
+    cam->set_min_distance(min_distance);
 }

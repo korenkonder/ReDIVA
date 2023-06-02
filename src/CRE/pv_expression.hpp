@@ -16,11 +16,11 @@ extern void pv_expression_array_reset_motion(size_t chara_id);
 extern bool pv_expression_array_set_motion(const char* file, size_t chara_id, int32_t motion_id);
 extern bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, int32_t motion_id);
 
-extern bool pv_expression_file_check_not_ready(const char* file);
+extern bool pv_expression_file_check_not_ready(const char* path);
 extern bool pv_expression_file_check_not_ready(uint32_t hash);
-extern void pv_expression_file_load(void* data, const char* path, const char* file);
+extern void pv_expression_file_load(void* data, const char* path);
 extern void pv_expression_file_load(void* data, const char* path, uint32_t hash);
-extern void pv_expression_file_unload(const char* file);
+extern void pv_expression_file_unload(const char* path);
 extern void pv_expression_file_unload(uint32_t hash);
 
 extern void pv_expression_file_storage_init();

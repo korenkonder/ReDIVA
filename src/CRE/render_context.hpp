@@ -365,7 +365,7 @@ namespace mdl {
 
         EtcObjCapsule();
     };
-    
+
     struct EtcObjEllipse { // Added
         float_t radius;
         int32_t slices;

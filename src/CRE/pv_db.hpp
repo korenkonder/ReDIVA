@@ -120,7 +120,7 @@ struct pv_db_pv_sabi {
 
 struct pv_db_pv_performer {
     pv_performer_type type;
-    int32_t chara;
+    chara_index chara;
     int32_t costume;
     int32_t pv_costume[PV_DIFFICULTY_MAX];
     bool fixed;
@@ -288,6 +288,7 @@ struct pv_db_pv_difficulty {
     pv_db_pv_field_parent field;
     std::vector<pv_db_pv_item> pv_item;
     std::vector<pv_db_pv_hand_item> hand_item;
+    prj::vector_pair<int32_t, std::pair<object_info, int32_t>> field_228[3];
     std::vector<pv_db_pv_edit_effect> edit_effect;
     pv_db_pv_title_image title_image;
     pv_db_pv_songinfo songinfo;
@@ -305,6 +306,7 @@ struct pv_db_pv_difficulty {
     pv_db_pv_difficulty();
     ~pv_db_pv_difficulty();
 
+    const pv_db_pv_motion& get_motion_or_default(int32_t chara_id, int32_t index) const;
     void reset();
 };
 
@@ -317,7 +319,7 @@ struct pv_db_pv_ex_song_ex_auth {
 };
 
 struct pv_db_pv_ex_song {
-    int32_t chara[ROB_CHARA_COUNT];
+    chara_index chara[ROB_CHARA_COUNT];
     std::string file;
     std::string name;
     std::vector<pv_db_pv_ex_song_ex_auth> ex_auth;
@@ -490,9 +492,25 @@ struct pv_db_pv {
     pv_db_pv();
     ~pv_db_pv();
 
-    pv_db_pv_difficulty* get_difficulty(int32_t difficulty, pv_attribute_type attribute_type);
-    pv_db_pv_difficulty* get_difficulty(int32_t difficulty, int32_t edition);
+    int32_t get_chrmot_motion_id(int32_t chara_id,
+        chara_index chara_index, const pv_db_pv_motion& motion) const;
+    const pv_db_pv_difficulty* get_difficulty(int32_t difficulty, pv_attribute_type attribute_type) const;
+    const pv_db_pv_difficulty* get_difficulty(int32_t difficulty, int32_t edition) const;
+    chara_index get_performer_chara(int32_t performer) const;
+    int32_t get_performer_costume(int32_t performer) const;
+    size_t get_performer_count() const;
+    int32_t get_performer_exclude(int32_t performer) const;
+    bool get_performer_fixed(int32_t performer) const;
+    int32_t get_performer_item(int32_t performer, pv_performer_item item) const;
+    bool get_performer_pseudo_fixed(chara_index chara_index, int32_t performer, bool a4, bool a5) const;
+    int32_t get_performer_pseudo_same_id(int32_t performer) const;
+    pv_performer_size get_performer_size(int32_t performer) const;
+    pv_performer_type get_performer_type(int32_t performer) const;
+    bool is_performer_type_pseudo(int32_t performer) const;
+    bool is_performer_type_vocal(int32_t performer) const;
     void reset();
+
+    static int32_t get_pseudo_costume(pv_performer_type type, chara_index chara_index, int32_t costume);
 };
 
 namespace pv_db {
@@ -527,6 +545,9 @@ namespace pv_db {
     };
 }
 
+extern item_id pv_performer_item_to_item_id(pv_performer_item item);
+extern item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item);
+
 extern void task_pv_db_init();
 extern void task_pv_db_add_paths();
 extern bool task_pv_db_add_task();
@@ -535,9 +556,9 @@ extern bool task_pv_db_del_task();
 extern pv_db::TaskPvDB* task_pv_db_get();
 extern uint32_t task_pv_db_get_paths_count();
 extern pv_db_pv* task_pv_db_get_pv(int32_t pv_id);
-extern pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
+extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     int32_t difficulty, pv_attribute_type attribute_type);
-extern pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
+extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     int32_t difficulty, int32_t edition);
 extern bool task_pv_db_is_paths_empty();
 extern void task_pv_db_free();

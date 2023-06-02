@@ -118,8 +118,14 @@ bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, int32_t moti
     return false;
 }
 
-bool pv_expression_file_check_not_ready(const char* file) {
-    uint32_t hash = hash_utf8_murmurhash(file);
+bool pv_expression_file_check_not_ready(const char* path) {
+    if (!path || !*path)
+        return false;
+
+    const char* file = strrchr(path, '/');
+    if (!file)
+        file = strrchr(path, '\\');
+    uint32_t hash = hash_utf8_murmurhash(file ? file : path);
     for (pv_expression_file*& i : pv_expression_file_storage)
         if (i && i->hash == hash)
             return i->file_handler.check_not_ready();
@@ -133,8 +139,15 @@ bool pv_expression_file_check_not_ready(uint32_t hash) {
     return true;
 }
 
-void pv_expression_file_load(void* data, const char* path, const char* file) {
-    uint32_t hash = hash_utf8_murmurhash(file);
+void pv_expression_file_load(void* data, const char* path) {
+    if (!path || !*path)
+        return;
+
+    const char* file = strrchr(path, '/');
+    if (!file)
+        file = strrchr(path, '\\');
+
+    uint32_t hash = hash_utf8_murmurhash(file ? file : path);
     for (pv_expression_file*& i : pv_expression_file_storage)
         if (i && i->hash == hash) {
             i->load_count++;
@@ -142,7 +155,7 @@ void pv_expression_file_load(void* data, const char* path, const char* file) {
         }
 
     pv_expression_file* pv_exp_file = new pv_expression_file;
-    if (pv_exp_file->file_handler.read_file(data, path, file)) {
+    if (pv_exp_file->file_handler.read_file(data, path)) {
         pv_exp_file->data = new pv_exp;
         pv_exp_file->data->modern = false;
 
@@ -178,8 +191,15 @@ void pv_expression_file_load(void* data, const char* path, uint32_t hash) {
     pv_expression_file_storage.push_back(pv_exp_file);
 }
 
-void pv_expression_file_unload(const char* file) {
-    uint32_t hash = hash_utf8_murmurhash(file);
+void pv_expression_file_unload(const char* path) {
+    if (!path || !*path)
+        return;
+
+    const char* file = strrchr(path, '/');
+    if (!file)
+        file = strrchr(path, '\\');
+
+    uint32_t hash = hash_utf8_murmurhash(file ? file : path);
     for (pv_expression_file*& i : pv_expression_file_storage) {
         if (!i || i->hash != hash)
             continue;

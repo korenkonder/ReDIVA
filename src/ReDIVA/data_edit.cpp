@@ -386,7 +386,7 @@ bool DataEdit::Ctrl() {
         if (chara_id == -1) {
             rob_chara_pv_data pv_data;
             pv_data.chara_size_index = chara_init_data_get_chara_size_index(CHARA_MIKU);
-            chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, &pv_data, 0, true);
+            chara_id = rob_chara_array_init_chara_index(CHARA_MIKU, pv_data, 0, true);
         }
 
         if (chara_id == -1 || !task_rob_manager_check_chara_loaded(chara_id))
@@ -461,7 +461,7 @@ bool DataEdit::Ctrl() {
 
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         rob_chr->set_frame((float_t)frame);
-        rob_chr->data.miku_rot.position = rob_trans;
+        rob_chr->set_data_miku_rot_position(rob_trans);
 
         if (!play && sound_play) {
             sound_work_release_stream(0);

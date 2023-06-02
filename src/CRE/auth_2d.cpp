@@ -77,7 +77,7 @@ public:
     virtual bool GetPlay();
     virtual bool GetVisible();
     virtual float_t GetFrame();
-    virtual bool GetDisp();
+    virtual bool GetEnd();
     virtual void CtrlComp(const aet_comp* comp, float_t frame);
     virtual void DispComp(const mat4& mat, const aet_comp* comp,
         float_t frame, float_t opacity, const sprite_database* spr_db);
@@ -167,7 +167,7 @@ public:
     void FreeAetObject(std::map<uint32_t, AetObj>::iterator it);
     void FreeAetSetObjects(uint32_t set_index);
     AetObj* GetObj(uint32_t id);
-    bool GetObjDisp(uint32_t id);
+    bool GetObjEnd(uint32_t id);
     float_t GetObjFrame(uint32_t id);
     bool GetObjVisible(uint32_t id);
     AetSet* GetSet(uint32_t index);
@@ -264,7 +264,7 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
                 spr::SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
     }
 }
-        
+
 
 aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
@@ -338,8 +338,8 @@ void aet_manager_free_aet_set_objects(uint32_t set_id, const aet_database* aet_d
     aet_manager->FreeAetSetObjects(aet_db->get_aet_set_by_id(set_id)->index);
 }
 
-bool aet_manager_get_obj_disp(uint32_t id) {
-    return aet_manager->GetObjDisp(id);
+bool aet_manager_get_obj_end(uint32_t id) {
+    return aet_manager->GetObjEnd(id);
 }
 
 float_t aet_manager_get_obj_frame(uint32_t id) {
@@ -396,15 +396,14 @@ bool aet_manager_get_set_ready(uint32_t set_id, const aet_database* aet_db) {
     return aet_manager->GetSetReady(aet_db->get_aet_set_by_id(set_id)->index);
 };
 
-void aet_manager_init_aet_layout(AetComp* comp,
-    AetArgs args, const aet_database* aet_db) {
+void aet_manager_init_aet_layout(AetComp* comp, AetArgs args, const aet_database* aet_db) {
     args.id.info = aet_db->get_aet_by_id(args.id.id)->info;
     aet_manager->InitAetLayout(comp, args);
 }
 
-void aet_manager_init_aet_layout(AetComp* comp,
-    uint32_t aet_id, const char* layer_name, AetFlags flags, resolution_mode mode,
-    const char* start_marker, float_t start_time, const aet_database* aet_db) {
+void aet_manager_init_aet_layout(AetComp* comp, uint32_t aet_id, const char* layer_name,
+    AetFlags flags, resolution_mode mode, const char* start_marker, float_t start_time,
+    const aet_database* aet_db, const sprite_database* spr_db) {
     AetArgs args;
     args.id.info = aet_db->get_aet_by_id(aet_id)->info;
     args.layer_name = layer_name;
@@ -412,6 +411,7 @@ void aet_manager_init_aet_layout(AetComp* comp,
     args.mode = mode;
     args.start_marker = start_marker;
     args.start_time = start_time;
+    args.spr_db = spr_db;
     aet_manager->InitAetLayout(comp, args);
 }
 
@@ -420,8 +420,9 @@ uint32_t aet_manager_init_aet_object(AetArgs args, const aet_database* aet_db) {
     return aet_manager->InitAetObject(args);
 }
 
-uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name, spr::SprPrio prio,
-    AetFlags flags, const char* start_marker, const char* end_marker, const aet_database* aet_db) {
+uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name,
+    spr::SprPrio prio, AetFlags flags, const char* start_marker, const char* end_marker,
+    const aet_database* aet_db, const sprite_database* spr_db) {
     AetArgs args;
     args.id.info = aet_db->get_aet_by_id(id)->info;
     args.layer_name = layer_name;
@@ -429,13 +430,14 @@ uint32_t aet_manager_init_aet_object(uint32_t id, const char* layer_name, spr::S
     args.flags = flags;
     args.start_marker = start_marker;
     args.end_marker = end_marker;
+    args.spr_db = spr_db;
     return aet_manager->InitAetObject(args);
 }
 
-uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio,
-    AetFlags flags, const char* layer_name, const vec2* pos, int32_t index,
-    const char* start_marker, const char* end_marker, float_t start_time, float_t end_time,
-    const vec2* scale, FrameRateControl* frame_rate_control, const aet_database* aet_db) {
+uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio, AetFlags flags,
+    const char* layer_name, const vec2* pos, int32_t index, const char* start_marker, const char* end_marker,
+    float_t start_time, float_t end_time, const vec2* scale, FrameRateControl* frame_rate_control,
+    const aet_database* aet_db, const sprite_database* spr_db) {
     AetArgs args;
     args.id.id = aet_id;
     args.prio = prio;
@@ -465,6 +467,8 @@ uint32_t aet_manager_init_aet_object(uint32_t aet_id, spr::SprPrio prio,
 
     if (frame_rate_control)
         args.frame_rate_control = frame_rate_control;
+
+    args.spr_db = spr_db;
     return aet_manager_init_aet_object(args, aet_db);
 }
 
@@ -736,7 +740,7 @@ bool AetObj::StepFrame() {
                 frame = start_time;
             else if (flags & AET_PLAY_ONCE) {
                 frame = end_time;
-                enum_or(flags, AET_DISP);
+                enum_or(flags, AET_END);
             }
             else
                 return true;
@@ -749,7 +753,7 @@ bool AetObj::StepFrame() {
                 frame = end_time;
             else if (flags & AET_PLAY_ONCE) {
                 frame = start_time;
-                enum_or(flags, AET_DISP);
+                enum_or(flags, AET_END);
             }
             else
                 return true;
@@ -836,8 +840,8 @@ float_t AetObj::GetFrame() {
     return frame;
 }
 
-bool AetObj::GetDisp() {
-    return !!(flags & AET_DISP);
+bool AetObj::GetEnd() {
+    return !!(flags & AET_END);
 }
 
 void AetObj::CtrlComp(const aet_comp* comp, float_t frame) {
@@ -1602,11 +1606,11 @@ AetObj* AetMgr::GetObj(uint32_t id) {
     return 0;
 }
 
-bool AetMgr::GetObjDisp(uint32_t id) {
+bool AetMgr::GetObjEnd(uint32_t id) {
     if (app::TaskWork::CheckTaskReady(this)) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
-            return obj->GetDisp();
+            return obj->GetEnd();
     }
     return true;
 }

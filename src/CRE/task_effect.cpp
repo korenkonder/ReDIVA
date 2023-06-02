@@ -484,7 +484,7 @@ bool TaskEffectAuth3D::Ctrl() {
             * (float_t)(2.0 / 512.0)) * M_PI)) * 0.015f, &mat);
         mat4_rotate_z_mult(&mat, sinf((float_t)((double_t)((float_t)(frame_int % 360)
             * (float_t)(2.0 / 360.0)) * M_PI)) * 0.015f, &mat);
-        task_stage_set_mat(&mat);
+        task_stage_set_mat(mat);
     }
     return false;
 }
@@ -1090,6 +1090,21 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
     }
 
     const size_t max_ptcls_vtx_count = (size_t)max_ptcls * 0x06;
+
+    if (ptcl_data) {
+        free(ptcl_data);
+        ptcl_data = 0;
+    }
+
+    if (vao) {
+        glDeleteVertexArrays(1, &vao);
+        vao = 0;
+    }
+
+    if (vbo) {
+        glDeleteBuffers(1, &vbo);
+        vbo = 0;
+    }
 
     ptcl_data = force_malloc_s(fog_ring_data, max_ptcls);
     ptcl_data = new (ptcl_data) fog_ring_data[max_ptcls];
@@ -2048,7 +2063,7 @@ void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_
         v23 = 0.01f;
         v24 = 0.0f;
     }
-    
+
     int32_t v33 = v20 - (int32_t)(v23 * -20.0f);
     int32_t v37 = (int32_t)(a4 * 60.0f);
     int32_t v27 = v33 >= v37 ? v37 : v33;
@@ -2432,7 +2447,7 @@ void task_effect_init() {
 
     if (!task_effect_parent)
         task_effect_parent = new TaskEffectParent;
-    
+
     if (!ripple_emit_data)
         ripple_emit_data = new ripple_emit;
 
@@ -3087,7 +3102,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
     shader_data.g_transform.z = 0.0079498291f / (float_t)(width - 2);
     shader_data.g_transform.w = -0.0079498291f / (float_t)(height - 2);
     shader_data.g_framebuffer_size = {
-        1.0f / (float_t)width, 
+        1.0f / (float_t)width,
         1.0f / (float_t)height,
         0.0f, 0.0f };
     ripple_emit_scene_ubo.WriteMapMemory(shader_data);
@@ -3394,8 +3409,7 @@ static void leaf_particle_free() {
 }
 
 static void particle_init(vec3* offset) {
-    if (ptcl_data)
-        delete[] ptcl_data;
+    particle_free();
 
     const size_t ptcl_vtx_count = ptcl_count * 0x06;
 
@@ -3676,6 +3690,8 @@ static void rain_particle_init(bool change_stage) {
     if (change_stage)
         return;
 
+    rain_particle_free();
+
     if (!rain_ptcl_vao)
         glGenVertexArrays(1, &rain_ptcl_vao);
 
@@ -3848,7 +3864,7 @@ static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& p
     };
     ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
     ripple_scene_ubo.WriteMapMemory(ripple_scene);
-    
+
     ripple_batch_shader_data ripple_batch = {};
     ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
     ripple_batch_ubo.WriteMapMemory(ripple_batch);

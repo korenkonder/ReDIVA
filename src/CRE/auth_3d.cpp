@@ -2390,6 +2390,16 @@ void auth_3d_id::read_file_modern() {
     }
 }
 
+void auth_3d_id::set_alpha_obj_flags(float_t alpha, mdl::ObjFlags obj_flags) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id) {
+            auth->alpha = alpha;
+            auth->obj_flags = obj_flags;
+        }
+    }
+}
+
 void auth_3d_id::set_camera_root_update(bool value) {
     if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
@@ -2411,16 +2421,6 @@ void auth_3d_id::set_chara_item(bool value) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
         if (auth->id == id)
             auth->chara_item = value;
-    }
-}
-
-void auth_3d_id::set_obj_flags_alpha(mdl::ObjFlags obj_flags, float_t alpha) {
-    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
-        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
-        if (auth->id == id) {
-            auth->obj_flags = obj_flags;
-            auth->alpha = alpha;
-        }
     }
 }
 

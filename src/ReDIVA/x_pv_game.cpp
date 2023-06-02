@@ -1040,7 +1040,7 @@ void x_pv_game_effect::load_data(int32_t pv_id) {
         char buf[0x200];
         size_t len = sprintf_s(buf, sizeof(buf), "eff_pv%03d_main", pv_id);
         uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
-            x_data, buf, 0, -1.0f, false, 0);
+            x_data, buf, 0, -1.0f, false);
         if (hash != hash_murmurhash_empty)
             pv_glitter.push_back(std::string(buf, len));
         break;
@@ -2115,11 +2115,7 @@ void x_pv_game_dsc_data::find_change_fields(std::vector<int64_t>& change_fields)
 
     ::dsc_data* i = dsc.data.data();
     ::dsc_data* i_end = dsc.data.data() + dsc.data.size();
-    while (true) {
-        i = find(DSC_X_CHANGE_FIELD, &time, &pv_branch_mode, i, i_end);
-        if (!i)
-            break;
-
+    while (i = find(DSC_X_CHANGE_FIELD, &time, &pv_branch_mode, i, i_end)) {
         if (time < 0) {
             time = prev_time;
             if (prev_time < 0)
@@ -2156,11 +2152,7 @@ void x_pv_game_dsc_data::find_stage_effects(std::vector<std::pair<int64_t, int32
 
     ::dsc_data* i = dsc.data.data();
     ::dsc_data* i_end = dsc.data.data() + dsc.data.size();
-    while (true) {
-        i = find(DSC_X_STAGE_EFFECT, &time, &pv_branch_mode, i, i_end);
-        if (!i)
-            break;
-
+    while (i = find(DSC_X_STAGE_EFFECT, &time, &pv_branch_mode, i, i_end)) {
         if (time < 0) {
             time = prev_time;
             if (prev_time < 0)
@@ -2452,7 +2444,7 @@ aet_obj_data::~aet_obj_data() {
 }
 
 bool aet_obj_data::check_disp() {
-    return aet_manager_get_obj_disp(id);
+    return aet_manager_get_obj_end(id);
 }
 
 uint32_t aet_obj_data::init(AetArgs& args, const aet_database* aet_db) {
@@ -3092,20 +3084,20 @@ void x_pv_game_stage_data::set_stage(uint32_t hash) {
         return;
 
     if (flags & 0x01) {
-        task_stage_modern_get_loaded_stage_infos(&stage_info);
+        task_stage_modern_get_loaded_stage_infos(stage_info);
         flags &= ~0x01;
     }
 
-    task_stage_modern_info stage_info;
-    for (task_stage_modern_info& i : this->stage_info)
-        if (task_stage_modern_has_stage_info(&i) && task_stage_modern_get_stage_hash(&i) == hash) {
-            stage_info = i;
+    task_stage_modern_info stg_info;
+    for (task_stage_modern_info& i : stage_info)
+        if (i.check() && i.get_stage_hash() == hash) {
+            stg_info = i;
             break;
         }
 
-    task_stage_modern_set_stage(&stage_info);
-    if (task_stage_modern_has_stage_info(&stage_info))
-        task_stage_modern_set_stage_display(&stage_info, !!(flags & 0x04), true);
+    stg_info.set_stage();
+    if (stg_info.check())
+        stg_info.set_stage_display(!!(flags & 0x04), true);
     else
         task_stage_modern_current_set_stage_display(false, true);
 }
@@ -3197,7 +3189,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
         for (pvsr_effect& i : sr->effect) {
             uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
-                x_data, i.name.c_str(), 0, i.emission, false, 0);
+                x_data, i.name.c_str(), 0, i.emission, false);
             if (hash != hash_murmurhash_empty)
                 stage_glitter.push_back(hash);
         }
@@ -4150,7 +4142,7 @@ bool x_pv_game::Ctrl() {
                     rob_sleeve_handler_data_get_sleeve_data(
                         charas[chara_index], modules[chara_index] + 1, pv_data.sleeve_l, pv_data.sleeve_r);
                     int32_t chara_id = rob_chara_array_init_chara_index(
-                        charas[chara_index], &pv_data, modules[chara_index], true);
+                        charas[chara_index], pv_data, modules[chara_index], true);
                     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
                         rob_chara_ids[chara_index] = chara_id;
                 }
@@ -4164,7 +4156,7 @@ bool x_pv_game::Ctrl() {
                 for (int32_t i = (int32_t)pv_data.play_param->chara.size(); i < ROB_CHARA_COUNT; i++) {
                     rob_chara_pv_data pv_data;
                     pv_data.chara_size_index = chara_init_data_get_chara_size_index(charas[i]);
-                    int32_t chara_id = rob_chara_array_init_chara_index(charas[i], &pv_data, modules[i], true);
+                    int32_t chara_id = rob_chara_array_init_chara_index(charas[i], pv_data, modules[i], true);
                     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
                         rob_chara_ids[i] = chara_id;
                     effchrpv_rob_mot_ids.push_back(chara_id);
@@ -5128,7 +5120,8 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     motion_set_load_motion(mot_set, "", aft_mot_db);
     motion_set_load_mothead(mot_set, "", aft_mot_db);
 
-    pv_param::post_process_data_load_files(pv_id);
+    pv_param::light_data_load_files(pv_id, "");
+    pv_param::post_process_data_load_files(pv_id, "");
 
     {
         dof d;
@@ -5629,6 +5622,7 @@ bool x_pv_game::Unload() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
+    pv_param::light_data_clear_data();
     pv_param::post_process_data_clear_data();
 
     char buf[0x200];
@@ -6115,7 +6109,7 @@ static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, in
             continue;
 
         for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
-            j.id.set_obj_flags_alpha(flags, alpha);
+            j.id.set_alpha_obj_flags(alpha, flags);
 
         for (x_pv_game_song_effect_glitter& j : i.glitter)
             Glitter::glt_particle_manager->SetSceneEffectExtColor(j.scene_counter,
@@ -6171,17 +6165,17 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         a1->chara_id = (int32_t)data[0];
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
-        vec3 trans;
-        trans.x = (float_t)(int32_t)data[1] * 0.001f;
-        trans.y = (float_t)(int32_t)data[2] * 0.001f;
-        trans.z = (float_t)(int32_t)data[3] * 0.001f;
+        vec3 pos;
+        pos.x = (float_t)(int32_t)data[1] * 0.001f;
+        pos.y = (float_t)(int32_t)data[2] * 0.001f;
+        pos.z = (float_t)(int32_t)data[3] * 0.001f;
 
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
             break;
 
-        mat4_mult_vec3_trans(&a1->scene_rot_mat,
-            &trans, &rob_chr->data.miku_rot.position);
+        mat4_mult_vec3_trans(&a1->scene_rot_mat, &pos, &pos);
+        rob_chr->set_data_miku_rot_position(pos);
         rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_ROT: {
@@ -6216,29 +6210,25 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         if (disp == 1) {
             rob_chr->set_visibility(true);
-            if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+            if (rob_chr->check_for_ageageagain_module()) {
                 rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
                 rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
             }
 
-            //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, true);
             for (x_pv_play_data_set_motion& i : playdata->set_motion) {
-                bool v45 = rob_chr->set_motion_id(i.motion_id, i.frame,
-                    i.blend_duration, i.field_10, false, i.blend_type, aft_bone_data, aft_mot_db);
+                bool set = rob_chr->set_motion_id(i.motion_id, i.frame, i.blend_duration,
+                    i.blend, false, i.blend_type, aft_bone_data, aft_mot_db);
                 rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
                 rob_chr->bone_data->disable_eye_motion = i.disable_eye_motion;
                 rob_chr->data.motion.step_data.step = i.frame_speed;
-                if (v45)
-                   pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, i.motion_id);
-                //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
-                    pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, i.motion_index, i.dsc_time);
+                if (set)
+                    pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, i.motion_id);
+                pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, i.motion_index, i.dsc_time);
             }
             playdata->set_motion.clear();
         }
-        else {
+        else
             rob_chr->set_visibility(false);
-            //pv_game::set_data_itmpv_visibility(a1->pv_game, a1->chara_id, false);
-        }
     } break;
     case DSC_X_MIKU_SHADOW: {
         a1->chara_id = data[0];
@@ -6283,21 +6273,21 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         float_t frame = 0.0f;
         float_t dsc_frame = 0.0f;
 
-        bool v11 = false;
-        x_pv_play_data_motion* v56 = 0;
+        bool blend = false;
+        x_pv_play_data_motion* motion = 0;
         for (x_pv_play_data_motion& i : playdata->motion)
             if (i.motion_index == motion_index) {
-                v56 = &i;
+                motion = &i;
                 break;
             }
 
-        if (v56 && v56->enable && (motion_index == v56->motion_index || !v56->motion_index)) {
-            if (pv_data.dsc_data.time != v56->time) {
-                frame = dsc_time_to_frame(curr_time - v56->time);
-                dsc_frame = roundf(dsc_time_to_frame(pv_data.dsc_data.time - v56->time));
+        if (motion && motion->enable && (motion_index == motion->motion_index || !motion->motion_index)) {
+            if (pv_data.dsc_data.time != motion->time) {
+                frame = dsc_time_to_frame(curr_time - motion->time);
+                dsc_frame = roundf(dsc_time_to_frame(pv_data.dsc_data.time - motion->time));
                 if (frame < dsc_frame)
                     frame = dsc_frame;
-                v11 = curr_time > v56->time;
+                blend = curr_time > motion->time;
             }
             else
                 frame = 0.0f;
@@ -6320,27 +6310,6 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
         }
 
-        /*pv_db_pv_difficulty* v64 = 0i64;
-        pv_db_pv* v65 = a1->pv_game->data.pv;
-        pv_db_pv_difficulty* v66 = v65->difficulty[sub_14013C8C0()->difficulty].begin;
-        pv_db_pv* v67 = a1->pv_game->data.pv;
-        if (v66 == v67->difficulty[sub_14013C8C0()->difficulty].end)
-            return 1;
-        do {
-            if (v66->edition == sub_14013C8C0()->edition)
-                v64 = v66;
-            ++v66;
-            pv_db_pv* v68 = a1->pv_game->data.pv;
-        } while (v66 != v68->difficulty[sub_14013C8C0()->difficulty].end);
-        if (!v64)
-            return 1;
-
-        int32_t motion_id = vector_pv_db_pv_motion_get_element_by_index_or_null(&v64->motion[a1->chara_id], v52)->id;
-        if (pv_game_data_get()->data.pv) {
-            pv_db_pv_motion* v76 = vector_pv_db_pv_motion_get_element_by_index_or_null(&v64->motion[a1->chara_id], v52);
-            motion_id = pv_game_data_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id, rob_chr->chara_index, v76);
-        }*/
-
         if (motion_index) {
             if (motion_id == -1)
                 motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
@@ -6351,7 +6320,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
         }
 
-        if (v11)
+        if (blend)
             blend_duration = 0.0f;
         else
             blend_duration /= a1->anim_frame_speed;
@@ -6361,26 +6330,23 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         set_motion.motion_id = motion_id;
         set_motion.frame = frame;
         set_motion.blend_duration = blend_duration;
-        set_motion.field_10 = v11;
+        set_motion.blend = blend;
         set_motion.blend_type = MOTION_BLEND_CROSS;
         set_motion.disable_eye_motion = true;
         set_motion.motion_index = motion_index;
-        set_motion.dsc_time = v56 ? v56->time : pv_data.dsc_data.time;
+        set_motion.dsc_time = motion ? motion->time : pv_data.dsc_data.time;
         set_motion.dsc_frame = dsc_frame;
 
-        //a1->field_2C560[a1->chara_id] = true;
-        //a1->field_2C568[a1->chara_id] = set_motion;
         if (playdata->disp) {
-            bool v84 = rob_chr->set_motion_id(motion_id, frame, blend_duration,
-                v11, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+            bool set = rob_chr->set_motion_id(motion_id, frame, blend_duration,
+                blend, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
             rob_chr->set_motion_reset_data(motion_id, dsc_frame);
             rob_chr->set_motion_skin_param(motion_id, dsc_frame);
             rob_chr->bone_data->disable_eye_motion = true;
             rob_chr->data.motion.step_data.step = set_motion.frame_speed;
-            if (v84)
+            if (set)
                 pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, motion_id);
-            //if (!a1->pv_game->data.pv->disable_calc_motfrm_limit)
-                pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, motion_index, v56 ? v56->time : 0);
+            pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, motion_index, motion ? motion->time : 0);
         }
         else {
             playdata->set_motion.clear();
@@ -6474,11 +6440,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         blend_duration /= a1->anim_frame_speed;
 
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
-
-        rob_chr->set_eyelid_mottbl_motion_from_face(v115, blend_duration, -1.0f, blend_offset, aft_mot_db);
+        rob_chr->set_eyelid_mottbl_motion_from_face(v115, blend_duration, -1.0f, 0.0f, aft_mot_db);
     } break;
     case DSC_X_MOUTH_ANIM: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -6547,15 +6509,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
         blend_duration /= a1->anim_frame_speed;
 
-        //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
-        //    value = 0.0f;
-
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
-
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
-            0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
+            0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
     } break;
     case DSC_X_HAND_ANIM: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -6594,18 +6549,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t mottbl_index = hand_anim_id_to_mottbl_index(hand_anim_id);
         blend_duration /= a1->anim_frame_speed;
 
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
-
         switch (hand_index) {
         case 0:
             rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value,
-                0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
+                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
             break;
         case 1:
             rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value,
-                0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
+                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
             break;
         }
     } break;
@@ -6645,12 +6596,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t mottbl_index = look_anim_id_to_mottbl_index(look_anim_id);
         blend_duration /= a1->anim_frame_speed;
 
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
-
         rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
-            mottbl_index == 224 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
+            mottbl_index == 224 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
         return 1;
     } break;
     case DSC_X_EXPRESSION: {
@@ -6689,16 +6636,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
         blend_duration /= a1->anim_frame_speed;
 
-        bool v168 = true;
-        //if (a1->has_perf_id && (a1->pv_game->data.pv->edit - 1) <= 1)
-        //    v168 = false;
-
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
-
         rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, blend_offset, v168, aft_mot_db);
+            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
 
     } break;
     case DSC_X_LOOK_CAMERA: {
@@ -6735,42 +6674,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
         int32_t expression_id = (int32_t)data[0];
 
-        float_t blend_duration = 0.0f;
-        //if (func == DSC_EDIT_EXPRESSION)
-        //    blend_duration = (float_t)(int32_t)data[1] * 0.001f * 60.0f;
-
-        int32_t v234 = -1;
-        //if (!a1->has_perf_id)
-        //    v234 = data[1];
-
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
             break;
 
         int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-        blend_duration /= a1->anim_frame_speed;
-
-        bool v237 = true;
-        //if (a1->has_perf_id)
-        //    v237 = (a1->pv_game->data.pv->edit - 1) > 1;
-
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
 
         rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, blend_offset, v237, aft_mot_db);
-
-        /*if (!a1->has_perf_id) {
-            int32_t mottbl_index = mouth_anim_id_to_mottbl_index(v234);
-
-            float_t value = 1.0f;
-            //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
-            //    value = 0.0f;
-
-            rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0,
-            a1->target_anim_fps * 0.1f, 0.0f, 1.0f, -1, offset, aft_mot_db);
-        }*/
+            && mottbl_index <= 223 ? 1 : 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
     } break;
     case DSC_X_DUMMY: {
 
@@ -6796,27 +6707,15 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
 
         int32_t mouth_anim_id = (int32_t)data[1];
-        float_t blend_duration = 0.1f;
-        //if (func == DSC_EDIT_MOUTH_ANIM)
-        //    blend_duration = (float_t)(int32_t)data[2] * 0.001f;
 
         rob_chara* rob_chr = playdata->rob_chr;
         if (!rob_chr)
             break;
 
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-        blend_duration *= a1->target_anim_fps;
 
-        float_t value = 1.0f;
-        //if (a1->pv_game->data.field_2D090 && mottbl_index != 144)
-        //    value = 0.0f;
-
-        float_t blend_offset = 0.0f;
-        //if (a1->pv_game->data.pv->is_old_pv)
-        //    blend_offset = 1.0f;
-
-        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
-            0, blend_duration, 0.0f, 1.0f, -1, blend_offset, aft_mot_db);
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, 1.0f,
+            0, 0.1f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
     } break;
     case DSC_X_SET_CHARA: {
         a1->chara_id = (int32_t)data[0];
@@ -6940,7 +6839,6 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             else if (pv_data.pv_id == 826 && false)
                 chara_index = rob_chara_array_get(a1->chara_id)->chara_index;
 
-            //chara_index chara_index = pv_db_pv::get_performer_chara(a1->pv_game->data.pv, a1->chara_id);
             chara_size_index = chara_init_data_get_chara_size_index(chara_index);
         }
         else if (chara_size == 2)
@@ -6948,7 +6846,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         else if (chara_size == 3)
             chara_size_index = rob_chr->pv_data.chara_size_index;
         else {
-            rob_chr->set_chara_size((float_t)chara_size / 1000.0f/*a1->field_2C54C*/);
+            rob_chr->set_chara_size((float_t)chara_size / 1000.0f);
             break;
         }
 
@@ -6985,9 +6883,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             break;
 
         mat4_mult_vec3_trans(&a1->scene_rot_mat, &pos, &pos);
-        rob_chr->set_chara_pos_adjust(&pos);
+        rob_chr->set_chara_pos_adjust(pos);
 
-        if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+        if (rob_chr->check_for_ageageagain_module()) {
             rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
             rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
         }
@@ -7030,7 +6928,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chr->item_equip->wind_strength = wind_strength_outer;
+        rob_chr->set_wind_strength(wind_strength_outer);
     } break;
     case DSC_X_OSAGE_STEP: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -7046,7 +6944,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        rob_chr->set_step(osage_step_outer);
+        rob_chr->set_osage_step(osage_step_outer);
     } break;
     case DSC_X_OSAGE_MV_CCL: {
         data_struct* aft_data = &data_list[DATA_AFT];
@@ -7670,8 +7568,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
 #endif
 
 static void x_pv_game_reset_field(x_pv_game* xpvgm) {
-    task_stage_modern_info v14;
-    task_stage_modern_set_stage(&v14);
+    task_stage_modern_info().set_stage();
     Glitter::glt_particle_manager->FreeScenes();
 }
 
@@ -8899,7 +8796,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         play_control_size = max_def(play_control_size, ml.blend_color.a.max_frame);
         play_control_size = max_def(play_control_size, ml.blend_color.a.keys_vec.back().frame + 1.0f);
     }
-    
+
     if (has_data[4]) {
         play_control_size = max_def(play_control_size, ml.emission.r.max_frame);
         play_control_size = max_def(play_control_size, ml.emission.r.keys_vec.back().frame + 1.0f);
@@ -8919,9 +8816,9 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         play_control_size = max_def(play_control_size, ml.emission.a.max_frame);
         play_control_size = max_def(play_control_size, ml.emission.a.keys_vec.back().frame + 1.0f);
     }
-    
+
     size_t count = (size_t)(int32_t)play_control_size;
-    
+
     if (has_data[0] && (ml.blend_color.r.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.blend_color.r.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.blend_color.r.keys_vec.back().frame;
@@ -8931,7 +8828,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[1] && (ml.blend_color.g.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.blend_color.g.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.blend_color.g.keys_vec.back().frame;
@@ -8941,7 +8838,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[2] && (ml.blend_color.b.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.blend_color.b.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.blend_color.b.keys_vec.back().frame;
@@ -8951,7 +8848,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[3] && (ml.blend_color.a.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.blend_color.a.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.blend_color.a.keys_vec.back().frame;
@@ -8961,7 +8858,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[4] && (ml.emission.r.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.emission.r.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.emission.r.keys_vec.back().frame;
@@ -8971,7 +8868,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[5] && (ml.emission.g.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.emission.g.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.emission.g.keys_vec.back().frame;
@@ -8981,7 +8878,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[6] && (ml.emission.b.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.emission.b.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.emission.b.keys_vec.back().frame;
@@ -8991,7 +8888,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             count = _count + 1;
         }
     }
-    
+
     if (has_data[7] && (ml.emission.a.ep_type_post == AUTH_3D_EP_CYCLE
         || ml.emission.a.ep_type_post == AUTH_3D_EP_CYCLE_OFFSET)) {
         size_t _count = (size_t)ml.emission.a.keys_vec.back().frame;

@@ -829,10 +829,10 @@ struct auth_3d_id {
     int32_t get_uid();
     void read_file(auth_3d_database* auth_3d_db);
     void read_file_modern();
+    void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags obj_flags);
     void set_camera_root_update(bool value);
     void set_chara_id(int32_t value);
     void set_chara_item(bool value);
-    void set_obj_flags_alpha(mdl::ObjFlags obj_flags, float_t alpha);
     void set_enable(bool value);
     void set_frame_rate(FrameRateControl* value);
     void set_last_frame(float_t value);

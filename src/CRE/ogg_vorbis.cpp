@@ -592,7 +592,7 @@ void OggFileHandler::SetPath(std::string& path) {
 }
 
 void OggFileHandler::SetPath(std::string&& path) {
-    SetPath(*(std::string*)&path);
+    SetPath(path);
 }
 
 void OggFileHandler::SetPauseState(OggFileHandlerPauseState value) {
@@ -817,7 +817,7 @@ void OggPlayback::SetPath(std::string& path) {
 }
 
 void OggPlayback::SetPath(std::string&& path) {
-    SetPath(*(std::string*)&path);
+    SetPath(path);
 }
 
 void OggPlayback::SetPauseState(OggFileHandlerPauseState value) {

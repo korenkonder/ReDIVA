@@ -111,7 +111,7 @@ struct x_pv_play_data_set_motion {
     int32_t motion_id;
     float_t frame;
     float_t blend_duration;
-    bool field_10;
+    bool blend;
     MotionBlendType blend_type;
     bool disable_eye_motion;
     int32_t motion_index;

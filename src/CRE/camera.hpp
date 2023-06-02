@@ -30,6 +30,8 @@ struct camera {
     vec3 rotation;
     vec3 view_point;
     vec3 interest;
+    bool use_up;
+    vec3 up;
     int32_t render_width;
     int32_t render_height;
     int32_t sprite_width;
@@ -52,6 +54,8 @@ struct camera {
     bool fast_change;
     bool fast_change_hist0;
     bool fast_change_hist1;
+    bool ignore_fov;
+    bool ignore_min_dist;
 
     camera();
     ~camera();
@@ -79,6 +83,9 @@ struct camera {
     void get_interest(vec3& value);
     void set_interest(const vec3& value);
     void set_interest(const vec3&& value);
+    void get_up(bool& use_up, vec3& value);
+    void set_up(bool use_up, const vec3& value);
+    void set_up(bool use_up, const vec3&& value);
     void get_res(int32_t& render_width, int32_t& render_height,
         int32_t& sprite_width, int32_t& sprite_height);
     void set_res(int32_t render_width, int32_t render_height,
@@ -86,6 +93,8 @@ struct camera {
     void set_fast_change(bool value);
     void set_fast_change_hist0(bool value);
     void set_fast_change_hist1(bool value);
+    void set_ignore_fov(bool value);
+    void set_ignore_min_dist(bool value);
     void reset();
     void move(double_t move_x, double_t move_y);
     void rotate(double_t rotate_x, double_t rotate_y);
@@ -97,4 +106,18 @@ struct camera {
     void set_position(const vec3&& pos);
     void update();
     void update_data();
+};
+
+struct cam_struct {
+    bool use_up;
+    vec3 view_point;
+    vec3 interest;
+    float_t fov;
+    float_t roll;
+    vec3 up;
+    float_t min_distance;
+
+    cam_struct();
+    void get(camera* cam);
+    void set(camera* cam);
 };

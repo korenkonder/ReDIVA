@@ -62,6 +62,15 @@ struct task_stage_info {
     uint16_t load_counter;
 
     task_stage_info();
+    task_stage_info(int16_t load_index, uint16_t load_counter);
+
+    bool check() const;
+    int32_t get_stage_index() const;
+    void set_ground(bool value) const;
+    void set_ring(bool value) const;
+    void set_sky(bool value) const;
+    void set_stage() const;
+    void set_stage_display(bool value, bool effect_enable) const;
 };
 
 extern void task_stage_init();
@@ -73,19 +82,12 @@ extern void task_stage_current_set_stage_display(bool value, bool effect_enable)
 extern void task_stage_disp_shadow();
 extern stage* task_stage_get_current_stage();
 int32_t task_stage_get_current_stage_index();
-extern void task_stage_get_current_stage_info(task_stage_info* stg_info);
-extern void task_stage_get_loaded_stage_infos(std::vector<task_stage_info>* vec);
-extern stage* task_stage_get_stage(task_stage_info stg_info);
-int32_t task_stage_get_stage_index(task_stage_info* stg_info);
-extern bool task_stage_has_stage_info(task_stage_info* stg_info);
+extern task_stage_info task_stage_get_current_stage_info();
+extern void task_stage_get_loaded_stage_infos(std::vector<task_stage_info>& vec);
+extern stage* task_stage_get_stage(const task_stage_info stg_info);
 extern bool task_stage_load_task(const char* name);
-extern void task_stage_set_ground(task_stage_info* stg_info, bool value);
-extern void task_stage_set_mat(mat4* mat);
-extern void task_stage_set_ring(task_stage_info* stg_info, bool value);
-extern void task_stage_set_sky(task_stage_info* stg_info, bool value);
-extern void task_stage_set_stage(task_stage_info* stg_info);
-extern void task_stage_set_stage_display(task_stage_info* stg_info, bool value, bool effect_enable);
+extern void task_stage_set_mat(const mat4& mat);
 extern void task_stage_set_stage_index(int32_t stage_index);
-extern void task_stage_set_stage_indices(std::vector<int32_t>& stage_indices);
+extern void task_stage_set_stage_indices(const std::vector<int32_t>& stage_indices);
 extern bool task_stage_unload_task();
 extern void task_stage_free();

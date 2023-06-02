@@ -15,19 +15,44 @@
 #include "post_process/tone_map.hpp"
 #include "camera.hpp"
 
+enum post_process_frame_texture_type {
+    POST_PROCESS_FRAME_TEXTURE_PRE_PP = 0,
+    POST_PROCESS_FRAME_TEXTURE_POST_PP,
+    POST_PROCESS_FRAME_TEXTURE_FB,
+    POST_PROCESS_FRAME_TEXTURE_MAX,
+};
+
 enum post_process_mag_filter_type {
-    POST_PROCESS_MAG_FILTER_NEAREST       = 0,
-    POST_PROCESS_MAG_FILTER_BILINEAR      = 1,
-    POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP = 2,
-    POST_PROCESS_MAG_FILTER_SHARPEN_4_TAP = 3,
-    POST_PROCESS_MAG_FILTER_CONE_4_TAP    = 4,
-    POST_PROCESS_MAG_FILTER_CONE_2_TAP    = 5,
-    POST_PROCESS_MAG_FILTER_MAX           = 6,
+    POST_PROCESS_MAG_FILTER_NEAREST = 0,
+    POST_PROCESS_MAG_FILTER_BILINEAR,
+    POST_PROCESS_MAG_FILTER_SHARPEN_5_TAP,
+    POST_PROCESS_MAG_FILTER_SHARPEN_4_TAP,
+    POST_PROCESS_MAG_FILTER_CONE_4_TAP,
+    POST_PROCESS_MAG_FILTER_CONE_2_TAP,
+    POST_PROCESS_MAG_FILTER_MAX,
 };
 
 struct sun_quad_shader_data {
     vec4 g_transform[4];
     vec4 g_emission;
+};
+
+struct post_process_frame_texture_render_texture {
+    texture* texture;
+    render_texture render_texture;
+    post_process_frame_texture_type type;
+
+    post_process_frame_texture_render_texture();
+    ~post_process_frame_texture_render_texture();
+};
+
+
+struct post_process_frame_texture {
+    post_process_frame_texture_render_texture render_textures[4];
+    bool capture;
+
+    post_process_frame_texture();
+    ~post_process_frame_texture();
 };
 
 struct post_process {
@@ -90,6 +115,7 @@ struct post_process {
     int32_t screen_width;
     int32_t screen_height;
     post_process_mag_filter_type mag_filter;
+    post_process_frame_texture frame_texture[6];
 
     post_process();
     ~post_process();
@@ -100,6 +126,13 @@ struct post_process {
     void draw_lens_ghost(render_texture* rt);
     void init_fbo(int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
+    bool frame_texture_cont_capture_set(bool value);
+    void frame_texture_free();
+    int32_t frame_texture_load(int32_t slot, post_process_frame_texture_type type, texture* tex);
+    void frame_texture_reset();
+    bool frame_texture_slot_capture_set(int32_t index);
+    bool frame_texture_unload(int32_t slot, texture* tex);
+    void get_frame_texture(GLuint tex, post_process_frame_texture_type type);
     int32_t movie_texture_set(texture* movie_texture);
     void movie_texture_free(texture* movie_texture);
     int32_t render_texture_set(texture* render_texture, bool task_photo);

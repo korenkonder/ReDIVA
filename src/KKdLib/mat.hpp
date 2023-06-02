@@ -170,6 +170,7 @@ extern void mat4_translate_x_add(const mat4* x, float_t y, mat4* z);
 extern void mat4_translate_y_add(const mat4* x, float_t y, mat4* z);
 extern void mat4_translate_z_add(const mat4* x, float_t y, mat4* z);
 extern void mat4_from_quat(const quat* quat, mat4* mat);
+extern void mat4_from_two_vectors(const vec3* x, const vec3* y, mat4* mat);
 extern void mat4_from_axis_angle(const vec3* axis, float_t angle, mat4* mat);
 extern void mat4_from_axis_angle_sin_cos(const vec3* axis, float_t sin_val, float_t cos_val, mat4* mat);
 extern void mat4_from_mat3(const mat3* x, mat4* z);

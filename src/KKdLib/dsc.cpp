@@ -1640,9 +1640,63 @@ static void dsc_convert_from_ac100_effect(dsc_replace* dr, dsc_replace_data* drd
 }
 
 static void dsc_convert_from_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+    int32_t expression_id;
+    switch (data[0]) {
+    case 0:
+        expression_id = 52;
+        break;
+    case 1:
+        expression_id = 66;
+        break;
+    case 2:
+        expression_id = 65;
+        break;
+    case 3:
+        expression_id = 53;
+        break;
+    case 4:
+        expression_id = 4;
+        break;
+    case 5:
+        expression_id = 68;
+        break;
+    case 6:
+        expression_id = 54;
+        break;
+    case 7:
+        expression_id = 70;
+        break;
+    case 8:
+        expression_id = 55;
+        break;
+    case 9:
+        expression_id = 56;
+        break;
+    case 10:
+        expression_id = 57;
+        break;
+    case 11:
+        expression_id = 58;
+        break;
+    case 12:
+        expression_id = 59;
+        break;
+    case 13:
+        expression_id = 72;
+        break;
+    case 14:
+        expression_id = 73;
+        break;
+    case 15:
+        expression_id = 23;
+        break;
+    default:
+        return;
+    }
+
     uint32_t* expression = dsc_replace_add_func(dr, drd);
     expression[0] = 0;
-    expression[1] = data[0];
+    expression[1] = expression_id;
     expression[2] = data[1];
     expression[3] = data[2];
 }
@@ -1655,9 +1709,51 @@ static void dsc_convert_from_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* d
 }
 
 static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+    int32_t hand_anim_id;
+    switch (data[0]) {
+    case 0:
+        hand_anim_id = 0;
+        break;
+    case 1:
+        hand_anim_id = 1;
+        break;
+    case 2:
+        hand_anim_id = 2;
+        break;
+    case 3:
+        hand_anim_id = 3;
+        break;
+    case 4:
+        hand_anim_id = 4;
+        break;
+    case 5:
+        hand_anim_id = 5;
+        break;
+    case 6:
+        hand_anim_id = 6;
+        break;
+    case 7:
+        hand_anim_id = 14;
+        break;
+    case 8:
+        hand_anim_id = 9;
+        break;
+    case 9:
+        hand_anim_id = 10;
+        break;
+    case 10:
+        hand_anim_id = 12;
+        break;
+    case 11:
+        hand_anim_id = 13;
+        break;
+    default:
+        return;
+    }
+
     uint32_t* hand_anim = dsc_replace_add_func(dr, drd);
     hand_anim[0] = 0;
-    hand_anim[1] = data[0];
+    hand_anim[1] = hand_anim_id;
     hand_anim[2] = data[1];
     hand_anim[3] = data[2];
     hand_anim[4] = data[3];
@@ -1719,10 +1815,46 @@ static void dsc_convert_from_ac100_mode_select(dsc_replace* dr, dsc_replace_data
 }
 
 static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+    int32_t mouth_anim_id;
+    switch (data[0]) {
+    case 0:
+        mouth_anim_id = 24;
+        break;
+    case 1:
+        mouth_anim_id = 31;
+        break;
+    case 2:
+        mouth_anim_id = 25;
+        break;
+    case 3:
+        mouth_anim_id = 26;
+        break;
+    case 4:
+        mouth_anim_id = 27;
+        break;
+    case 5:
+        mouth_anim_id = 32;
+        break;
+    case 6:
+        mouth_anim_id = 28;
+        break;
+    case 7:
+        mouth_anim_id = 9;
+        break;
+    case 8:
+        mouth_anim_id = 29;
+        break;
+    case 9:
+        mouth_anim_id = 30;
+        break;
+    default:
+        return;
+    }
+
     uint32_t* mouth_anim = dsc_replace_add_func(dr, drd);
     mouth_anim[0] = 0;
     mouth_anim[1] = 0;
-    mouth_anim[2] = data[0];
+    mouth_anim[2] = mouth_anim_id;
     mouth_anim[3] = data[1];
     mouth_anim[4] = data[2];
 }
@@ -1797,8 +1929,62 @@ static void dsc_convert_to_ac100_expression(dsc_replace* dr, dsc_replace_data* d
     if (data[0])
         return;
 
+    int32_t expression_id;
+    switch (data[1]) {
+    case 52:
+        expression_id = 0;
+        break;
+    case 66:
+        expression_id = 1;
+        break;
+    case 65:
+        expression_id = 2;
+        break;
+    case 53:
+        expression_id = 3;
+        break;
+    case 4:
+        expression_id = 4;
+        break;
+    case 68:
+        expression_id = 5;
+        break;
+    case 54:
+        expression_id = 6;
+        break;
+    case 70:
+        expression_id = 7;
+        break;
+    case 55:
+        expression_id = 8;
+        break;
+    case 56:
+        expression_id = 9;
+        break;
+    case 57:
+        expression_id = 10;
+        break;
+    case 58:
+        expression_id = 11;
+        break;
+    case 59:
+        expression_id = 12;
+        break;
+    case 72:
+        expression_id = 13;
+        break;
+    case 73:
+        expression_id = 14;
+        break;
+    case 24:
+        expression_id = 15;
+        break;
+    default:
+        return;
+    }
+
     uint32_t* expression = dsc_replace_add_func(dr, drd);
-    expression[0] = data[1];
+    expression[0] = expression_id;
     expression[1] = data[2];
     expression[2] = data[3];
     expression[3] = data[4];
@@ -1817,8 +2003,50 @@ static void dsc_convert_to_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* dr
     if (data[0])
         return;
 
+    int32_t hand_anim_id;
+    switch (data[1]) {
+    case 0:
+        hand_anim_id = 0;
+        break;
+    case 1:
+        hand_anim_id = 1;
+        break;
+    case 2:
+        hand_anim_id = 2;
+        break;
+    case 3:
+        hand_anim_id = 3;
+        break;
+    case 4:
+        hand_anim_id = 4;
+        break;
+    case 5:
+        hand_anim_id = 5;
+        break;
+    case 6:
+        hand_anim_id = 6;
+        break;
+    case 14:
+        hand_anim_id = 7;
+        break;
+    case 9:
+        hand_anim_id = 8;
+        break;
+    case 10:
+        hand_anim_id = 9;
+        break;
+    case 12:
+        hand_anim_id = 10;
+        break;
+    case 13:
+        hand_anim_id = 11;
+        break;
+    default:
+        return;
+    }
+
     uint32_t* hand_anim = dsc_replace_add_func(dr, drd);
-    hand_anim[0] = data[1];
+    hand_anim[0] = hand_anim_id;
     hand_anim[1] = data[2];
     hand_anim[2] = data[3];
     hand_anim[3] = data[4];
@@ -1893,8 +2121,44 @@ static void dsc_convert_to_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* d
     if (data[0])
         return;
 
+    int32_t mouth_anim_id;
+    switch (data[2]) {
+    case 24:
+        mouth_anim_id = 0;
+        break;
+    case 31:
+        mouth_anim_id = 1;
+        break;
+    case 25:
+        mouth_anim_id = 2;
+        break;
+    case 26:
+        mouth_anim_id = 3;
+        break;
+    case 27:
+        mouth_anim_id = 4;
+        break;
+    case 32:
+        mouth_anim_id = 5;
+        break;
+    case 28:
+        mouth_anim_id = 6;
+        break;
+    case 9:
+        mouth_anim_id = 7;
+        break;
+    case 29:
+        mouth_anim_id = 8;
+        break;
+    case 30:
+        mouth_anim_id = 9;
+        break;
+    default:
+        return;
+    }
+
     uint32_t* mouth_anim = dsc_replace_add_func(dr, drd);
-    mouth_anim[0] = data[2];
+    mouth_anim[0] = mouth_anim_id;
     mouth_anim[1] = data[3];
     mouth_anim[2] = data[4];
 }
@@ -1960,10 +2224,10 @@ static void dsc_convert_note7_to_note11(dsc_replace* dr, dsc_replace_data* drd, 
     note11->type = dn->type;
     note11->hold_timer = -1;
     note11->hold_end = -1;
-    note11->x_pos = dn->x_pos;
-    note11->y_pos = dn->y_pos;
+    note11->pos_x = dn->pos_x;
+    note11->pos_y = dn->pos_y;
     note11->angle = dn->angle;
-    note11->wave_count = dn->wave_count;
+    note11->frequency = dn->frequency;
     note11->distance = dn->distance;
     note11->amplitude = dn->amplitude;
     note11->target_flying_time = dr->target_flying_time;
@@ -1976,10 +2240,10 @@ static void dsc_convert_note7_to_note12(dsc_replace* dr, dsc_replace_data* drd, 
     note12->type = dn->type;
     note12->hold_timer = -1;
     note12->hold_end = -1;
-    note12->x_pos = dn->x_pos;
-    note12->y_pos = dn->y_pos;
+    note12->pos_x = dn->pos_x;
+    note12->pos_y = dn->pos_y;
     note12->angle = dn->angle;
-    note12->wave_count = dn->wave_count;
+    note12->frequency = dn->frequency;
     note12->distance = dn->distance;
     note12->amplitude = dn->amplitude;
     note12->target_flying_time = dr->target_flying_time;
@@ -2008,12 +2272,12 @@ static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
 
     dsc_note7* note7 = (dsc_note7*)dsc_replace_add_func(dr, drd);
     note7->type = dn->type;
-    note7->x_pos = dn->x_pos;
-    note7->y_pos = dn->y_pos;
+    note7->pos_x = dn->pos_x;
+    note7->pos_y = dn->pos_y;
     note7->angle = dn->angle;
     note7->distance = dn->distance;
     note7->amplitude = dn->amplitude;
-    note7->wave_count = dn->wave_count;
+    note7->frequency = dn->frequency;
 }
 
 static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
@@ -2022,10 +2286,10 @@ static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd,
     note12->type = dn->type;
     note12->hold_timer = dn->hold_timer;
     note12->hold_end = dn->hold_end;
-    note12->x_pos = dn->x_pos;
-    note12->y_pos = dn->y_pos;
+    note12->pos_x = dn->pos_x;
+    note12->pos_y = dn->pos_y;
     note12->angle = dn->angle;
-    note12->wave_count = dn->wave_count;
+    note12->frequency = dn->frequency;
     note12->distance = dn->distance;
     note12->amplitude = dn->amplitude;
     note12->target_flying_time = dn->target_flying_time;
@@ -2054,12 +2318,12 @@ static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
 
     dsc_note7* note7 = (dsc_note7*)dsc_replace_add_func(dr, drd);
     note7->type = dn->type;
-    note7->x_pos = dn->x_pos;
-    note7->y_pos = dn->y_pos;
+    note7->pos_x = dn->pos_x;
+    note7->pos_y = dn->pos_y;
     note7->angle = dn->angle;
     note7->distance = dn->distance;
     note7->amplitude = dn->amplitude;
-    note7->wave_count = dn->wave_count;
+    note7->frequency = dn->frequency;
 }
 
 static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
@@ -2068,10 +2332,10 @@ static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd,
     note11->type = dn->type;
     note11->hold_timer = dn->hold_timer;
     note11->hold_end = dn->hold_end;
-    note11->x_pos = dn->x_pos;
-    note11->y_pos = dn->y_pos;
+    note11->pos_x = dn->pos_x;
+    note11->pos_y = dn->pos_y;
     note11->angle = dn->angle;
-    note11->wave_count = dn->wave_count;
+    note11->frequency = dn->frequency;
     note11->distance = dn->distance;
     note11->amplitude = dn->amplitude;
     note11->target_flying_time = dn->target_flying_time;
@@ -2760,7 +3024,7 @@ bool dsc::parse(const void* data, size_t size, dsc_type type) {
     default:
         if (*data_dsc >= 0x10000000) {
             signature = *data_dsc++;
-            size--;
+            size -= 4;
         }
         break;
     case DSC_F:

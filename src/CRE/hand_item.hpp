@@ -5,12 +5,11 @@
 
 #pragma once
 
-#include <vector>
+#include <map>
+#include <string>
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/item_table.hpp"
 #include "../KKdLib/database/object.hpp"
-#include "../KKdLib/mat.hpp"
-#include "../KKdLib/vec.hpp"
 
 struct hand_item {
     object_info obj_left;

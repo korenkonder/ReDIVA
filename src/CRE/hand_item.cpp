@@ -153,18 +153,15 @@ void hand_item_handler::read() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string dir;
-        dir.assign("rom/");
-        dir.append(i);
+        std::string file;
+        file.assign(i);
+        file.append("hand_item_data.txt");
 
-        const char* file = "hand_item_data.txt";
-
-        if (!aft_data->check_file_exists(dir.c_str(), file))
-            continue;
-
-        p_file_handler* pfhndl = new p_file_handler;
-        pfhndl->read_file(aft_data, dir.c_str(), file);
-        file_handlers.push_back(pfhndl);
+        if (aft_data->check_file_exists("rom/", file.c_str())) {
+            p_file_handler* pfhndl = new p_file_handler;
+            pfhndl->read_file(aft_data, "rom/", file.c_str());
+            file_handlers.push_back(pfhndl);
+        }
     }
 }
 

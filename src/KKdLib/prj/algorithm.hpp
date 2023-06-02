@@ -13,6 +13,16 @@
 
 namespace prj {
     template <class T>
+    bool find(std::vector<T>& vec, T& value) {
+        auto begin = vec.begin();
+        auto end = vec.end();
+        for (auto i = begin; i != end; i++)
+            if (*i == value)
+                return true;
+        return false;
+    }
+
+    template <class T>
     void sort(std::vector<T>& vec) {
         std::sort(vec.begin(), vec.end());
     }

@@ -635,7 +635,7 @@ void stream::write_string_null_terminated(std::string& str) {
 }
 
 void stream::write_string_null_terminated(std::string&& str) {
-    write_string_null_terminated(*(std::string*)&str);
+    write_string_null_terminated(str);
 }
 
 void stream::write_wstring_null_terminated(std::wstring& str) {

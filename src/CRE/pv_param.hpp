@@ -59,176 +59,22 @@ namespace pv_param {
         color_correction();
     };
 
-    struct file_data_struct {
-        std::vector<dof> dof_default;
-        std::vector<color_correction> cc_default;
-        std::vector<bloom> bloom_default;
-        std::map<std::string, std::vector<dof>> dof;
-        std::map<std::string, std::vector<color_correction>> cc;
-        std::map<std::string, std::vector<bloom>> bloom;
+    extern void light_data_clear_data();
+    extern light_param_light_data& light_data_get_chara_light_data(int32_t id);
+    extern light_param_light_data& light_data_get_stage_light_data(int32_t id);
+    extern bool light_data_load_files(int32_t pv_id, std::string&& mdata_dir);
 
-        file_data_struct();
-        ~file_data_struct();
-
-        std::vector<pv_param::bloom>& get_bloom_data(std::string& file);
-        std::vector<pv_param::color_correction>& get_color_correction_data(std::string& file);
-        std::vector<pv_param::dof>& get_dof_data(std::string& file);
-        bool load_bloom_file(std::string& file);
-        bool load_color_correction_file(std::string& file);
-        bool load_dof_file(std::string& file);
-        void unload_bloom_file(std::string& file);
-        void unload_color_correction_file(std::string& file);
-        void unload_dof_file(std::string& file);
-    };
-
-    struct light_data_struct {
-        light_param_light_data light_default;
-        std::string chara_light_file;
-        std::string stage_light_file;
-        std::map<int32_t, light_param_light_data> chara_light;
-        std::map<int32_t, light_param_light_data> stage_light;
-
-        light_data_struct();
-        ~light_data_struct();
-    };
-
-    struct post_process_data_struct {
-        dof dof_default;
-        color_correction cc_default;
-        bloom bloom_default;
-        std::string dof_file;
-        std::string cc_file;
-        std::string bloom_file;
-        std::vector<dof> dof;
-        std::vector<color_correction> cc;
-        std::vector<bloom> bloom;
-
-        post_process_data_struct();
-        ~post_process_data_struct();
-
-        void clear_data();
-        bool load_files(std::string& path);
-        void set_dof(::dof& d);
-    };
-
-    void post_process_data_clear_data();
-    pv_param::bloom& post_process_data_get_bloom_data(int32_t id);
-    pv_param::color_correction& post_process_data_get_color_correction_data(int32_t id);
-    pv_param::dof& post_process_data_get_dof_data(int32_t id);
-    bool post_process_data_load_files(int32_t pv_id);
-    bool post_process_data_load_files(int32_t pv_id, std::string& mdata_dir);
-    void post_process_data_set_dof(::dof& d);
+    extern void post_process_data_clear_data();
+    extern pv_param::bloom& post_process_data_get_bloom_data(int32_t id);
+    extern pv_param::color_correction& post_process_data_get_color_correction_data(int32_t id);
+    extern pv_param::dof& post_process_data_get_dof_data(int32_t id);
+    extern bool post_process_data_load_files(int32_t pv_id, std::string&& mdata_dir);
+    extern void post_process_data_set_dof(::dof& d);
 }
 
 namespace pv_param_task {
-    class PostProcessCtrl {
-    public:
-        float_t frame;
-        float_t duration;
-
-        PostProcessCtrl();
-        ~PostProcessCtrl();
-
-        virtual void Reset() = 0;
-        virtual void Set() = 0;
-    };
-
-    class PostProcessCtrlBloom : public PostProcessCtrl {
-    public:
-        struct Data {
-            pv_param::bloom data;
-            pv_param::bloom data_prev;
-
-            Data();
-        } data;
-
-        PostProcessCtrlBloom();
-        ~PostProcessCtrlBloom();
-
-        virtual void Reset() override;
-        virtual void Set() override;
-    };
-
-    class PostProcessCtrlCC : public PostProcessCtrl {
-    public:
-        struct Data {
-            pv_param::color_correction data;
-            pv_param::color_correction data_prev;
-
-            Data();
-        } data;
-
-        PostProcessCtrlCC();
-        ~PostProcessCtrlCC();
-
-        virtual void Reset() override;
-        virtual void Set() override;
-
-        void CalcToneTrans(float_t value, float_t& tone_trans_start, float_t& tone_trans_end);
-    };
-
-    class PostProcessCtrlCharaAlpha : public PostProcessCtrl {
-    public:
-        struct Data {
-            pv_param::chara_alpha data[ROB_CHARA_COUNT];
-
-            Data();
-        } data;
-
-        PostProcessCtrlCharaAlpha();
-        ~PostProcessCtrlCharaAlpha();
-
-        virtual void Reset() override;
-        virtual void Set() override;
-    };
-
-    class PostProcessCtrlCharaItemAlpha : public PostProcessCtrlCharaAlpha {
-    public:
-        typedef void (*Callback)(void* data, int32_t chara_id, int32_t type, float_t alpha);
-
-        Callback callback[ROB_CHARA_COUNT];
-        void* callback_data[ROB_CHARA_COUNT];
-
-        PostProcessCtrlCharaItemAlpha();
-        ~PostProcessCtrlCharaItemAlpha();
-
-        virtual void Reset() override;
-        virtual void Set() override;
-    };
-
-    class PostProcessCtrlDof : public PostProcessCtrl {
-    public:
-        struct Data {
-            pv_param::dof data;
-            pv_param::dof data_prev;
-
-            Data();
-        } data;
-
-        PostProcessCtrlDof();
-        ~PostProcessCtrlDof();
-
-        virtual void Reset() override;
-        virtual void Set() override;
-
-        void SetData(pv_param::dof* dof, float_t duration);
-    };
-
-    class PostProcessTask : public app::Task {
-    public:
-        PostProcessCtrlDof dof;
-        PostProcessCtrlCC cc;
-        PostProcessCtrlBloom bloom;
-        PostProcessCtrlCharaAlpha chara_alpha;
-        PostProcessCtrlCharaItemAlpha chara_item_alpha;
-
-        PostProcessTask();
-        virtual ~PostProcessTask() override;
-
-        virtual bool Init() override;
-        virtual bool Ctrl() override;
-        virtual bool Dest() override;
-    };
+    typedef void (*post_process_task_set_chara_item_alpha_callback)
+        (void* data, int32_t chara_id, int32_t type, float_t alpha);
 
     extern bool post_process_task_add_task();
     extern void post_process_task_set_bloom_data(
@@ -241,6 +87,6 @@ namespace pv_param_task {
         int32_t chara_id, int32_t type, float_t alpha, float_t duration);
     extern void post_process_task_set_chara_item_alpha(
         int32_t chara_id, int32_t type, float_t alpha, float_t duration,
-        PostProcessCtrlCharaItemAlpha::Callback callback, void* callback_data);
+        post_process_task_set_chara_item_alpha_callback callback, void* callback_data);
     extern bool post_process_task_del_task();
 }

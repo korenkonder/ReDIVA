@@ -15,9 +15,9 @@
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/stage_test.hpp"
+#include "pv_game/pv_game.hpp"
 #include "data_edit.hpp"
 #include "data_initialize.hpp"
-#include "pv_game.hpp"
 #include "system_startup.hpp"
 #include "x_pv_game.hpp"
 

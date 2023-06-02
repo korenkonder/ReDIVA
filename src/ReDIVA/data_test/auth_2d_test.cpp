@@ -187,7 +187,7 @@ bool DtmAet::Ctrl() {
         if (type) {
             comp.data.clear();
             aet_manager_init_aet_layout(&comp, aet_id, layer_name,
-                (AetFlags)0, RESOLUTION_MODE_HD, 0, frame, aft_aet_db);
+                (AetFlags)0, RESOLUTION_MODE_HD, 0, frame, aft_aet_db, aft_spr_db);
         }
         else {
             float_t x = 0.0f;

@@ -17,10 +17,11 @@ static int32_t io_json_read_char(stream& s, io_json_read_buffer* buf);
 static void io_json_seek(stream& s, io_json_read_buffer* buf, int64_t offset);
 static void io_json_seek_one(stream& s, io_json_read_buffer* buf);
 static void io_json_read_inner(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
-static void io_json_read_digit(stream& s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end);
+static void io_json_read_digit(stream& s, io_json_read_buffer* buf,
+    int32_t* c, char* dig_buf, size_t* dig_buf_pos, size_t dig_buf_end);
 static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
 static uint8_t io_json_read_string_hex(int32_t c);
-static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
+static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int32_t* c);
 static void io_json_read_string(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
 static void io_json_read_map(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
 static void io_json_read_array(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c);
@@ -110,84 +111,88 @@ inline static void io_json_seek_one(stream& s, io_json_read_buffer* buf) {
 
 static void io_json_read_inner(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
     *msg = {};
-    while (*c != EOF) {
-        if (CHECK_WHITESPACE(*c))
-            *c = io_json_read_char(s, buf);
-
-        if (*c >= '0' && *c <= '9') {
-            io_json_read_float(s, buf, msg, c);
-            return;
-        }
-
-        switch (*c) {
-        case '\"':
-            io_json_read_string(s, buf, msg, c);
-            break;
-        case '{':
-            io_json_read_map(s, buf, msg, c);
-            break;
-        case '[':
-            io_json_read_array(s, buf, msg, c);
-            break;
-        case '-':
-            io_json_read_float(s, buf, msg, c);
-            break;
-        case 't':
-            io_json_read_bool(s, buf, msg, c);
-            break;
-        case 'f':
-            io_json_read_bool(s, buf, msg, c);
-            break;
-        case 'n':
-            io_json_read_null(s, buf, msg, c);
-            break;
-        }
+    if (*c == EOF)
         return;
+
+    if (CHECK_WHITESPACE(*c))
+        *c = io_json_read_char(s, buf);
+
+    switch (*c) {
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '-':
+        io_json_read_float(s, buf, msg, c);
+        break;
+    case '"':
+        io_json_read_string(s, buf, msg, c);
+        break;
+    case '{':
+        io_json_read_map(s, buf, msg, c);
+        break;
+    case '[':
+        io_json_read_array(s, buf, msg, c);
+        break;
+    case 't':
+        io_json_read_bool(s, buf, msg, c);
+        break;
+    case 'f':
+        io_json_read_bool(s, buf, msg, c);
+        break;
+    case 'n':
+        io_json_read_null(s, buf, msg, c);
+        break;
     }
 }
 
-inline static void io_json_read_digit(stream& s, io_json_read_buffer* buf, int32_t* c, char** dig_buf, char* dig_buf_end) {
-    char* b = *dig_buf;
+inline static void io_json_read_digit(stream& s, io_json_read_buffer* buf,
+    int32_t* c, char* dig_buf, size_t* dig_buf_pos, size_t dig_buf_end) {
+    size_t b = *dig_buf_pos;
     while (*c >= '0' && *c <= '9' && b < dig_buf_end) {
-        *b++ = *c;
+        dig_buf[b++] = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             break;
     }
-    *dig_buf = b;
+    *dig_buf_pos = b;
 }
 
 static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
     char dig_buf[0x100];
-    char* t_buf = dig_buf;
-    char* buf_end = dig_buf + 0x100;
+    size_t buf_pos = 0;
+    size_t buf_end = 0x100;
     bool negate = false;
     bool zero = false;
     bool fraction = false;
     memset(dig_buf, 0, 0x100);
 
     if (*c == '-') {
-        *t_buf++ = *c;
+        dig_buf[buf_pos++] = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
         negate = true;
     }
 
     if (*c == '0') {
-        *t_buf++ = *c;
+        dig_buf[buf_pos++]  = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
         zero = true;
     }
     else
-        io_json_read_digit(s, buf, c, &t_buf, buf_end);
+        io_json_read_digit(s, buf, c, dig_buf, &buf_pos, buf_end);
 
-    bool f = false;
     if (*c == '.') {
-        f = true;
-        *t_buf++ = *c;
+        dig_buf[buf_pos++]  = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
-        io_json_read_digit(s, buf, c, &t_buf, buf_end);
+        io_json_read_digit(s, buf, c, dig_buf, &buf_pos, buf_end);
         fraction = true;
     }
 
@@ -199,7 +204,7 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
         io_json_seek_one(s, buf);
         return;
     }
-    else if (*c != 'e' && *c != 'E' && !f) {
+    else if (*c != 'e' && *c != 'E' && !fraction) {
         int64_t val;
         if (sscanf_s(dig_buf, "%lli", &val) == EOF)
             return;
@@ -222,16 +227,16 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
         return;
     }
     else if (*c == 'e' || *c == 'E') {
-        *t_buf++ = *c;
+        dig_buf[buf_pos++]  = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
 
         if (*c == '+' || *c == '-') {
-            *t_buf++ = *c;
+            dig_buf[buf_pos++]  = *c;
             if ((*c = io_json_read_char(s, buf)) == EOF)
                 return;
         }
-        io_json_read_digit(s, buf, c, &t_buf, buf_end);
+        io_json_read_digit(s, buf, c, dig_buf, &buf_pos, buf_end);
     }
 
     double_t val;
@@ -239,7 +244,7 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
     if (sscanf_s(dig_buf, "%lg", &val) == EOF)
         return;
 
-    if ((float_t)val == val)
+    if (val == (float_t)val)
         *msg = (float_t)val;
     else
         *msg = val;
@@ -257,7 +262,7 @@ inline static uint8_t io_json_read_string_hex(int32_t c) {
         return 0;
 }
 
-static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
+static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, int32_t* c) {
     if (*c != '"')
         return 0;
 
@@ -281,7 +286,7 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgp
                 len++;
                 break;
             case 'u': {
-                wchar_t uc = 0;
+                uint32_t uc = 0;
                 if ((*c = io_json_read_char(s, buf)) == EOF)
                     break;
                 uc |= io_json_read_string_hex(*c) << 24;
@@ -326,7 +331,7 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgp
 
             switch (*c) {
             case '"':
-                temp[i++] = '\"';
+                temp[i++] = '"';
                 break;
             case '\\':
                 temp[i++] = '\\';
@@ -350,7 +355,7 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgp
                 temp[i++] = '\t';
                 break;
             case 'u': {
-                wchar_t uc = 0;
+                uint32_t uc = 0;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 24;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 16;
                 uc |= io_json_read_string_hex(io_json_read_char(s, buf)) << 8;
@@ -382,7 +387,7 @@ static char* io_json_read_string_inner(stream& s, io_json_read_buffer* buf, msgp
 }
 
 inline static void io_json_read_string(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
-    char* temp = io_json_read_string_inner(s, buf, msg, c);
+    char* temp = io_json_read_string_inner(s, buf, c);
     *msg = temp;
     free_def(temp);
 }
@@ -406,7 +411,7 @@ static void io_json_read_map(stream& s, io_json_read_buffer* buf, msgpack* msg, 
             if (*c == '}')
                 break;
 
-            char* key = io_json_read_string_inner(s, buf, msg, c);
+            char* key = io_json_read_string_inner(s, buf, c);
             if (!key)
                 return;
 
@@ -655,7 +660,7 @@ inline static void io_json_write_double_t(stream& s, double_t val) {
 }
 
 inline static void io_json_write_string(stream& s, std::string& val) {
-    s.write_char('\"');
+    s.write_char('"');
     const char* str = val.c_str();
     size_t len = val.size();
     for (size_t i = len; i; i--, str++)
@@ -720,5 +725,5 @@ inline static void io_json_write_string(stream& s, std::string& val) {
         default:
             s.write_char(*str);
         }
-    s.write_char('\"');
+    s.write_char('"');
 }

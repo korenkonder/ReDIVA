@@ -256,22 +256,21 @@ static void auth_3d_database_load_uids(auth_3d_database* auth_3d_db,
             if (uid_file->value.c_str()[0] == 'A')
                 uid->enabled = true;
 
-            uid->name = uid_file->value.substr(2, uid_file->value.size() - 2);
+            uid->name.assign(uid_file->value.substr(2, uid_file->value.size() - 2));
             uid->name_hash = hash_string_murmurhash(uid->name);
-            uid->category = uid_file->category;
+            uid->category.assign(uid_file->category);
             uid->category_hash = hash_string_murmurhash(uid->category);
         }
 
         if (uid->enabled) {
-            uid_file->category = uid->category;
+            uid_file->category.assign(uid->category);
 
-            if (uid->category.size() > 0) {
-                std::string& cat_file = uid->category;
-
+            if (uid->category.size() > 0)
                 for (auth_3d_database_category& j : category)
-                    if (!cat_file.compare(j.name))
+                    if (!uid->category.compare(j.name)) {
                         j.uid.push_back(org_uid);
-            }
+                        break;
+                    }
         }
 
         if (uid_file->flags & AUTH_3D_DATABASE_UID_SIZE)

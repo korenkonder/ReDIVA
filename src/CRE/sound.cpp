@@ -1869,14 +1869,14 @@ void wave_audio_storage_clear() {
     wave_audio_storage_data.clear();
 }
 
-WaveAudio* wave_audio_storage_get_wave_audio(std::string& name) {
+WaveAudio* wave_audio_storage_get_wave_audio(const std::string& name) {
     auto elem = wave_audio_storage_data.find(name);
     if (elem != wave_audio_storage_data.end())
         return &elem->second;
     return 0;
 }
 
-bool wave_audio_storage_load_wave_audio(std::string& name) {
+bool wave_audio_storage_load_wave_audio(const std::string& name) {
     wave_audio_storage_unload_wave_audio(name);
 
     sound_db_property* property = sound_work->FindProperty(name.c_str());
@@ -1891,7 +1891,7 @@ bool wave_audio_storage_load_wave_audio(std::string& name) {
     return false;
 }
 
-void wave_audio_storage_unload_wave_audio(std::string& name) {
+void wave_audio_storage_unload_wave_audio(const std::string& name) {
     auto elem = wave_audio_storage_data.find(name);
     if (elem != wave_audio_storage_data.end()) {
         elem->second.Reset();

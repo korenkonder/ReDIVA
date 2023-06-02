@@ -134,6 +134,7 @@ struct osage_play_data_header {
 struct osage_play_data_node_header {
     uint16_t count;
     int16_t shift;
+#pragma warning(suppress: 4200)
     int16_t data[];
 };
 
@@ -159,9 +160,9 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    
+
     bool AddTask();
-    void AppendCharaMotionId(rob_chara* rob_chr, std::vector<uint32_t>& motion_ids);
+    void AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
     bool CheckTaskReady();
     void GetOpdFileData(object_info obj_info,
         uint32_t motion_id, float_t*& data, uint32_t& count);
@@ -523,7 +524,7 @@ public:
     void SetDisp(bool value);
     void SetNotReset(bool value);
     void SetPvId(int32_t pv_id, int32_t chara_id, bool reset);
-    void SetPvSetMotion(std::vector<pv_data_set_motion>& set_motion);
+    void SetPvSetMotion(const std::vector<pv_data_set_motion>& set_motion);
 
     void sub_1404F77E0();
     bool sub_1404F7AF0();
@@ -1124,7 +1125,7 @@ static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t skelet
 static void rob_chara_set_adjust(rob_chara* rob_chr, rob_chara_data_adjust* adjust_new,
     rob_chara_data_adjust* adjust, rob_chara_data_adjust* adjust_prev);
 static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
-    chara_index chara_index, int32_t module_index, rob_chara_pv_data* pv_data);
+    chara_index chara_index, int32_t module_index, const rob_chara_pv_data& pv_data);
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
@@ -2225,6 +2226,20 @@ int32_t chara_init_data_get_chara_size_index(chara_index chara_index) {
     return 1;
 }
 
+int32_t chara_init_data_get_swim_costume(chara_index chara_index) {
+    const chara_init_data* chara_init_data = chara_init_data_get(chara_index);
+    if (chara_init_data)
+        return chara_init_data->field_848.swim_costume;
+    return 0;
+}
+
+int32_t chara_init_data_get_swim_s_costume(chara_index chara_index) {
+    const chara_init_data* chara_init_data = chara_init_data_get(chara_index);
+    if (chara_init_data)
+        return chara_init_data->field_848.swim_s_costume;
+    return 0;
+}
+
 float_t chara_size_table_get_value(uint32_t index) {
     static const float_t chara_size_table[] = {
         1.07f, 1.0f, 0.96f, 0.987f, 1.025f, 1.045f
@@ -2249,6 +2264,14 @@ bool check_module_index_is_501(int32_t module_index) {
     if (module_index == -1 || module_index >= 502)
         return false;
     return module_index == 501;
+}
+
+const uint32_t* get_opd_motion_set_ids() {
+    static const uint32_t opd_motion_set_ids[] = {
+        51, 194, 797, (uint32_t)-1,
+    };
+
+    return opd_motion_set_ids;
 }
 
 const float_t get_osage_gravity_const() {
@@ -2291,9 +2314,14 @@ bool osage_play_data_manager_add_task() {
     return osage_play_data_manager->AddTask();
 }
 
-void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, int32_t motion_id) {
+void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id) {
     std::vector<uint32_t> motion_ids;
     motion_ids.push_back(motion_id);
+    osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids);
+}
+
+void osage_play_data_manager_append_chara_motion_ids(
+    rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids) {
     osage_play_data_manager->AppendCharaMotionId(rob_chr, motion_ids);
 }
 
@@ -2404,7 +2432,7 @@ void rob_free() {
         delete osage_play_data_manager;
         osage_play_data_manager = 0;
     }
-    
+
     if (opd_maker_array) {
         delete[] opd_maker_array;
         opd_maker_array = 0;
@@ -2570,6 +2598,12 @@ mat4* rob_chara::get_bone_data_mat(size_t index) {
     return rob_chara_bone_data_get_mat(bone_data, index);
 }
 
+object_info rob_chara::get_chara_init_data_face_object(int32_t index) {
+    if (index >= 0 && index < 15)
+        return chara_init_data->face_objects[index];
+    return {};
+}
+
 float_t rob_chara::get_frame() {
     return bone_data->get_frame();
 }
@@ -2642,10 +2676,6 @@ static void rob_chara_bone_data_set_motion_arm_length(rob_chara_bone_data* rob_b
     motion_bone_index motion_bone_index, float_t value) {
     motion_blend_mot* v3 = rob_bone_data->motion_loaded.front();
     v3->bone_data.bones.data()[motion_bone_index].arm_length = value;
-}
-
-static void rob_chara_bone_data_set_disable_eye_motion(rob_chara_bone_data* rob_bone_data, bool value) {
-    rob_bone_data->disable_eye_motion = value;
 }
 
 static void sub_1405F9520(rob_chara_item_equip_object* itm_eq_obj, rob_osage_parts_bit a2, bool a3) {
@@ -2823,10 +2853,10 @@ static void sub_140555B00(rob_chara* rob_chr, bool a2) {
     if (v6)
         v9 = sub_14054FEE0(rob_chr);
 
-    float_t v12 = rob_chr->data.field_1588.field_0.field_8;
+    float_t v12 = rob_chr->data.field_1588.field_0.frame;
     float_t v13 = v12 - v9;
     if (v3 && v6 && (v13 < v11 || v13 <= v8)) {
-        float_t v14 = rob_chr->data.field_1588.field_0.field_8;
+        float_t v14 = rob_chr->data.field_1588.field_0.frame;
         v14 = (v12 - v8) * 0.5f;
         int32_t v15 = (int32_t)v14;
         if (v14 != -0.0f && (float_t)v15 != v14)
@@ -2841,7 +2871,7 @@ static void sub_140555B00(rob_chara* rob_chr, bool a2) {
                 v9 = v12 - v16;
             }
             else
-                v17 = rob_chr->data.field_1588.field_0.field_8 - v9;
+                v17 = rob_chr->data.field_1588.field_0.frame - v9;
             v10 = v17 - v8;
         }
         else {
@@ -3044,9 +3074,9 @@ static void sub_14053A9C0(struc_223* a1, rob_chara* rob_chr,
     mothead_apply2(a1, rob_chr, v7->field_18.data());
 
     if (a1->field_0.field_58 == 1)
-        a1->field_0.field_8 = frame_count - 1.0f;
+        a1->field_0.frame = frame_count - 1.0f;
     else
-        a1->field_0.field_8 = a1->field_0.frame_count;
+        a1->field_0.frame = a1->field_0.frame_count;
 
     if (a1->field_0.field_20.field_0 & 0x200000)
         a1->field_0.field_20.field_0 |= 0x100;
@@ -3082,6 +3112,11 @@ static void sub_14053A9C0(struc_223* a1, rob_chara* rob_chr,
                 return;
         d = v11->data;
     }
+}
+
+void rob_chara::load_body_parts_object_info(item_id item_id, object_info obj_info,
+    const bone_database* bone_data, void* data, const object_database* obj_db) {
+    item_equip->load_body_parts_object_info(item_id, obj_info, bone_data, data, obj_db);
 }
 
 void rob_chara::load_motion(int32_t motion_id, bool a3, float_t frame,
@@ -3130,7 +3165,7 @@ void rob_chara::load_motion(int32_t motion_id, bool a3, float_t frame,
         rob_chara_bone_data_set_motion_arm_length(this->bone_data,
             rob_motion_c_kata_bone_get(i), 0.0f);
     }
-    rob_chara_bone_data_set_disable_eye_motion(this->bone_data, false);
+    this->bone_data->set_disable_eye_motion(false);
 
     item_equip->set_osage_move_cancel(0, 0.0f);
     for (int32_t i = 0; i < ROB_OSAGE_PARTS_MAX; i++)
@@ -3158,9 +3193,10 @@ void rob_chara::load_motion(int32_t motion_id, bool a3, float_t frame,
         data.motion.step_data.frame = data.motion.step_data.step;
 
     float_t step = data.motion.step;
-    if (step < 0.0f)
+    if (data.motion.step < 0.0f)
         step = data.motion.step_data.frame;
-    item_equip->set_step(step);
+    item_equip->set_osage_step(step);
+
     rob_chara_bone_data_motion_load(this->bone_data, motion_id, blend_type, bone_data, mot_db);
     this->bone_data->set_motion_frame(data.motion.step_data.frame,
         data.motion.step_data.frame, data.field_1588.field_0.frame_count);
@@ -3266,6 +3302,9 @@ void rob_chara::reset_osage() {
     for (rob_chara_data_adjust& i : data.motion.parts_adjust_prev)
         i.reset();
 
+    for (int32_t i = 0; i < ROB_OSAGE_PARTS_MAX; i++)
+        item_equip->reset_nodes_external_force((rob_osage_parts)i);
+
     data.motion.adjust_global.reset();
     data.motion.adjust_global_prev.reset();
 
@@ -3274,7 +3313,7 @@ void rob_chara::reset_osage() {
     item_equip->parts_append = false;
     item_equip->parts_white_one_l = false;
 
-    set_step(-1.0f);
+    set_osage_step(-1.0f);
 }
 
 void rob_chara::set_bone_data_frame(float_t frame) {
@@ -3283,12 +3322,16 @@ void rob_chara::set_bone_data_frame(float_t frame) {
     rob_chara_bone_data_update(bone_data, 0);
 }
 
+void rob_chara::set_chara_color(bool value) {
+    item_equip->chara_color = value;
+}
+
 void rob_chara::set_chara_height_adjust(bool value) {
     data.adjust_data.height_adjust = value;
 }
 
-void rob_chara::set_chara_pos_adjust(vec3* value) {
-    data.adjust_data.pos_adjust = *value;
+void rob_chara::set_chara_pos_adjust(vec3& value) {
+    data.adjust_data.pos_adjust = value;
 }
 
 void rob_chara::set_chara_pos_adjust_y(float_t value) {
@@ -3490,6 +3533,14 @@ static void sub_1405500F0(rob_chara* rob_chr) {
         rob_chr->data.motion.field_29 |= 0x01;
         break;
     }
+}
+
+void rob_chara::set_data_miku_rot_position(vec3& value) {
+    data.miku_rot.position = value;
+}
+
+void rob_chara::set_data_miku_rot_rot_y_int16(int16_t value) {
+    data.miku_rot.rot_y_int16 = value;
 }
 
 void rob_chara::set_eyelid_mottbl_motion_from_face(int32_t a2,
@@ -3757,6 +3808,17 @@ void rob_chara::set_face_mottbl_motion(int32_t type,
     }
 }
 
+void rob_chara::set_face_object(object_info obj_info, int32_t a3) {
+    if (a3 == 2)
+        data.motion.field_3B0.face_object = obj_info;
+    else
+        data.motion.field_150.face_object = obj_info;
+}
+
+void rob_chara::set_face_object_index(int32_t index) {
+    set_face_object(get_chara_init_data_face_object(index), 0);
+}
+
 void rob_chara::set_frame(float_t frame) {
     bone_data->set_frame(frame);
     data.motion.frame_data.frame = frame;
@@ -3811,10 +3873,14 @@ void rob_chara::set_hand_r_mottbl_motion(int32_t type,
     rob_chara_set_hand_r_motion(this, &motion, type, mot_db);
 }
 
+void rob_chara::set_left_hand_scale(float_t value) {
+    data.adjust_data.left_hand_scale = value;
+}
+
 bool rob_chara::set_motion_id(int32_t motion_id,
-    float_t frame, float_t blend_duration, bool a5, bool set_motion_reset_data,
+    float_t frame, float_t blend_duration, bool blend, bool set_motion_reset_data,
     MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db) {
-    if (!a5 && data.motion.motion_id == motion_id)
+    if (!blend && data.motion.motion_id == motion_id)
         return false;
 
     if (blend_duration <= 0.0f)
@@ -3831,12 +3897,21 @@ bool rob_chara::set_motion_id(int32_t motion_id,
         item_equip->item_equip_object[ITEM_TE_L].osage_iterations = 60;
         item_equip->item_equip_object[ITEM_TE_R].osage_iterations = 60;
 
-        if (rob_chara_check_for_ageageagain_module(chara_index, module_index)) {
+        if (check_for_ageageagain_module()) {
             rob_chara_age_age_array_set_skip(chara_id, 1);
             rob_chara_age_age_array_set_skip(chara_id, 2);
         }
     }
     return true;
+}
+
+void rob_chara::set_motion_loop(float_t loop_begin, float_t loop_end, int32_t loop_count) {
+    bone_data->set_motion_loop_state(MOT_PLAY_FRAME_DATA_LOOP_CONTINUOUS);
+    bone_data->set_motion_loop(loop_begin, loop_count, loop_end);
+    if (data.field_1588.field_0.field_58 != 1) {
+        data.field_1588.field_0.field_58 = 1;
+        data.field_1588.field_0.frame = data.field_1588.field_0.frame_count - 1.0f;
+    }
 }
 
 void rob_chara::set_motion_reset_data(int32_t motion_id, float_t frame) {
@@ -3845,6 +3920,10 @@ void rob_chara::set_motion_reset_data(int32_t motion_id, float_t frame) {
 
 void rob_chara::set_motion_skin_param(int32_t motion_id, float_t frame) {
     item_equip->set_motion_skin_param(chara_id, motion_id, (int32_t)roundf(frame));
+}
+
+void rob_chara::set_motion_step(float_t value) {
+    data.motion.step_data.step = value;
 }
 
 void rob_chara::set_mouth_mottbl_motion(int32_t type,
@@ -3882,6 +3961,13 @@ void rob_chara::set_osage_reset() {
     item_equip->set_osage_reset();
 }
 
+void rob_chara::set_osage_step(float_t value) {
+    data.motion.step = value;
+    if (value < 0.0f)
+        value = data.motion.step_data.frame;
+    item_equip->set_osage_step(value);
+}
+
 void rob_chara::set_parts_disp(item_id id, bool disp) {
     if (id < ITEM_BODY)
         return;
@@ -3890,8 +3976,7 @@ void rob_chara::set_parts_disp(item_id id, bool disp) {
     else if (id == ITEM_MAX)
         for (int32_t i = ITEM_ATAMA; i <= ITEM_ITEM16; i++) {
             item_equip->item_equip_object[i].can_disp = disp;
-            if (i == ITEM_ATAMA
-                && rob_chara_check_for_ageageagain_module(chara_index, module_index)) {
+            if (i == ITEM_ATAMA && check_for_ageageagain_module()) {
                 rob_chara_age_age_array_set_disp(chara_id, 1, disp);
                 rob_chara_age_age_array_set_disp(chara_id, 2, disp);
                 rob_chara_age_age_array_set_skip(chara_id, 1);
@@ -3900,26 +3985,34 @@ void rob_chara::set_parts_disp(item_id id, bool disp) {
         }
 }
 
-void rob_chara::set_step(float_t value) {
-    data.motion.step = value;
-    if (value < 0.0f)
-        value = data.motion.step_data.frame;
-    item_equip->set_step(value);
+void rob_chara::set_right_hand_scale(float_t value) {
+    data.adjust_data.right_hand_scale = value;
 }
 
-void rob_chara::set_step_motion_step(float_t step) {
-    data.motion.step_data.step = step;
-    if (step < 0.0f)
+void rob_chara::set_shadow_cast(bool value) {
+    if (value)
+        item_equip->field_A0 |= 0x04;
+    else
+        item_equip->field_A0 &= ~0x04;
+}
+
+void rob_chara::set_step_motion_step(float_t value) {
+    data.motion.step_data.step = value;
+    if (value < 0.0f)
         data.motion.step_data.frame = 1.0f;
     else
-        data.motion.step_data.frame = step;
+        data.motion.step_data.frame = value;
 
     rob_chara_bone_data_set_step(bone_data, data.motion.step_data.frame);
 
-    step = data.motion.step;
-    if (step < 0.0f)
+    float_t step = data.motion.step;
+    if (data.motion.step < 0.0f)
         step = data.motion.step_data.frame;
-    item_equip->set_step(step);
+    item_equip->set_osage_step(step);
+}
+
+void rob_chara::set_use_opd(bool value) {
+    item_equip->use_opd = value;
 }
 
 void rob_chara::set_visibility(bool value) {
@@ -3932,10 +4025,25 @@ void rob_chara::set_visibility(bool value) {
         data.field_3 &= ~0x01;
     }
 
-    if (rob_chara_check_for_ageageagain_module(chara_index, module_index)) {
+    if (check_for_ageageagain_module()) {
         rob_chara_age_age_array_set_disp(chara_id, 1, value);
         rob_chara_age_age_array_set_disp(chara_id, 2, value);
     }
+}
+
+void rob_chara::set_wind_strength(float_t value) {
+    item_equip->wind_strength = value;
+}
+
+static void sub_140554830(rob_chara* rob_chr, uint8_t a2, uint8_t a3,
+    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, bool a9);
+
+void rob_chara::sub_140554790(bool a2, float_t a3, float_t a5, float_t a6, float_t a7, float_t a8) {
+    sub_140554830(this, true, a2, a3, a5, a6, a7, a8, false);
+}
+
+void rob_chara::sub_1405547E0(bool a2, float_t a3, float_t a5, float_t a6, float_t a7, float_t a8) {
+    sub_140554830(this, true, a2, a3, a5, a6, a7, a8, false);
 }
 
 osage_init_data::osage_init_data() : rob_chr() {
@@ -3944,7 +4052,7 @@ osage_init_data::osage_init_data() : rob_chr() {
     frame = -1;
 }
 
-osage_init_data::osage_init_data(rob_chara* rob_chr, int32_t motion_id) {
+osage_init_data::osage_init_data(rob_chara* rob_chr, uint32_t motion_id) {
     this->rob_chr = rob_chr;
     pv_id = -1;
     this->motion_id = motion_id;
@@ -5491,7 +5599,7 @@ static void mothead_func_32(mothead_func_data* func_data,
     if (rob_chr_data->motion.field_28 & 0x08)
         v5 = sub_140533440(v5);
 
-    float_t v7 = rob_chr_data->field_1588.field_0.field_8 - 1.0f
+    float_t v7 = rob_chr_data->field_1588.field_0.frame - 1.0f
         - rob_chr_data->motion.frame_data.frame;
     if (v7 >= v8)
         v7 = v8;
@@ -5700,8 +5808,8 @@ static void mothead_func_59_set_rob_chara_head_object(mothead_func_data* func_da
     rob_chara_set_head_object(func_data->rob_chr, ((int32_t*)data)[0], mot_db);
 }
 
-static void sub_14041C950(rob_chara_bone_data* rob_bone_data, uint8_t a2, bool a3,
-    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, uint8_t a9) {
+static void sub_14041C950(rob_chara_bone_data* rob_bone_data, bool a2, bool a3,
+    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, bool a9) {
     struc_258* v11 = &rob_bone_data->field_788;
     bool v10 = !v11->field_8E && a3 || !a3 && v11->field_8E;
 
@@ -5724,7 +5832,7 @@ static void sub_14041C950(rob_chara_bone_data* rob_bone_data, uint8_t a2, bool a
 }
 
 static void sub_140554830(rob_chara* rob_chr, uint8_t a2, uint8_t a3,
-    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, uint8_t a9) {
+    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, bool a9) {
     sub_14041C950(rob_chr->bone_data, a2, a3, a4, a5, a6, a7, a8, a9);
     if (fabsf(a6) <= 0.000001f)
         rob_chr->data.field_2 |= 0x80;
@@ -5733,7 +5841,7 @@ static void sub_140554830(rob_chara* rob_chr, uint8_t a2, uint8_t a3,
 static void mothead_func_60(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     sub_140554830(func_data->rob_chr, 1, ((int32_t*)data)[0] != 0,
-        ((float_t*)data)[1], ((float_t*)data)[2], ((float_t*)data)[3] * 6.0f, 0.25f, 0.0f, 0);
+        ((float_t*)data)[1], ((float_t*)data)[2], ((float_t*)data)[3] * 6.0f, 0.25f, 0.0f, false);
 }
 
 static void mothead_func_61_set_eyelid_motion_from_face(mothead_func_data* func_data,
@@ -5808,7 +5916,7 @@ static void mothead_func_65_motion_skin_param(mothead_func_data* func_data,
 
 static void mothead_func_66_osage_step(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    func_data->rob_chr->set_step(((float_t*)data)[0]);
+    func_data->rob_chr->set_osage_step(((float_t*)data)[0]);
 }
 
 static void mothead_func_67_sleeve(mothead_func_data* func_data,
@@ -5990,7 +6098,7 @@ static void mothead_func_76_rob_arm_adjust(mothead_func_data* func_data,
 
 static void mothead_func_77_disable_eye_motion(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    rob_chara_bone_data_set_disable_eye_motion(func_data->rob_chr->bone_data, ((uint8_t*)data)[0] != 0);
+    func_data->rob_chr->bone_data->set_disable_eye_motion(((uint8_t*)data)[0] != 0);
 }
 
 static void mothead_func_78(mothead_func_data* func_data,
@@ -6623,7 +6731,7 @@ static bool opd_decode(const osage_play_data_header* file_head, float_t** opd_de
 
     for (size_t i = 0; i < file_head->nodes_count; i++)
         for (uint32_t i = 3; i; i--) {
-            opd_data_decode(node->data, node->count, node->shift, buf);
+            opd_data_decode(node->data, node->count, (uint8_t)node->shift, buf);
             buf += file_head->frame_count;
             node = (const osage_play_data_node_header*)((size_t)node
                 + sizeof(const osage_play_data_node_header) + node->count * sizeof(uint16_t));
@@ -6710,7 +6818,7 @@ void rob_chara_data_adjust_ctrl(rob_chara* rob_chr, rob_chara_data_adjust* adjus
     float_t v7 = 0.0f;
     adjust->frame += rob_chr->data.motion.step_data.frame;
     if (rob_chr->data.field_1588.field_0.field_58 == 1)
-        cycle *= (60.0f / rob_chr->data.field_1588.field_0.field_8);
+        cycle *= (60.0f / rob_chr->data.field_1588.field_0.frame);
     cycle *= adjust->frame * 2.0f * (float_t)M_PI * (float_t)(1.0 / 60.0f);
 
     switch (adjust->cycle_type) {
@@ -7144,7 +7252,7 @@ static void sub_140505310(rob_chara* rob_chr, const bone_database* bone_data, co
     switch (rob_chr->data.field_1588.field_0.field_58) {
     case -1: {
         rob_chr->data.field_1588.field_0.field_20.field_0 &= ~0x81;
-        rob_chr->data.motion.frame_data.frame = rob_chr->data.field_1588.field_0.field_8;
+        rob_chr->data.motion.frame_data.frame = rob_chr->data.field_1588.field_0.frame;
     } break;
     case 0: {
         int32_t motion_id = rob_chr->data.field_1588.field_0.field_5C;
@@ -7240,7 +7348,7 @@ static void sub_140505980(rob_chara* rob_chr) {
 LABEL_23:
     float_t v5 = rob_chr->data.field_1588.field_0.field_80;
     if (v5 >= 0.0f && v5 <= rob_chr->data.motion.frame_data.frame) {
-        if (v5 < (rob_chr->data.field_1588.field_0.field_8 - 1.0f)
+        if (v5 < (rob_chr->data.field_1588.field_0.frame - 1.0f)
             || rob_chr->data.field_1588.field_0.field_58 == -1
             || rob_chr->data.field_1588.field_0.field_58 == 2) {
             rob_chr->data.field_1588.field_0.field_20.field_0 &= ~0x2020081;
@@ -8021,12 +8129,12 @@ static void rob_disp_rob_chara_init(rob_chara* rob_chr,
         rob_itm_equip->load_outfit_object_info((item_id)i,
             chr_init_data->field_7E4[i], false, aft_bone_data, aft_data, aft_obj_db);
     rob_itm_equip->set_shadow_type(rob_chr->chara_id);
-    rob_chr->item_equip->field_A0 = 5;
+    rob_chr->item_equip->field_A0 = 0x05;
     rob_chr->item_cos_data.reload_items(rob_chr->chara_id, bone_data, data, obj_db);
     if (rob_chr->item_cos_data.check_for_npr_flag())
         rob_chr->item_equip->npr_flag = true;
 
-    if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+    if (rob_chr->check_for_ageageagain_module()) {
         rob_chara_age_age_array_load(rob_chr->chara_id, 1);
         rob_chara_age_age_array_load(rob_chr->chara_id, 2);
     }
@@ -8074,10 +8182,10 @@ static void rob_disp_rob_chara_ctrl_thread_main(rob_chara* rob_chr) {
     rob_chr->get_trans_scale(0, trans);
     rob_chr->item_equip->position = trans;
     rob_chara_item_equip_ctrl(rob_chr->item_equip);
-    if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
-        rob_chara_age_age_array_set_step(rob_chr->chara_id, 1, rob_chr->item_equip->step);
+    if (rob_chr->check_for_ageageagain_module()) {
+        rob_chara_age_age_array_set_step(rob_chr->chara_id, 1, rob_chr->item_equip->osage_step);
         rob_chara_age_age_ctrl(rob_chr, 1, "j_tail_l_006_wj");
-        rob_chara_age_age_array_set_step(rob_chr->chara_id, 2, rob_chr->item_equip->step);
+        rob_chara_age_age_array_set_step(rob_chr->chara_id, 2, rob_chr->item_equip->osage_step);
         rob_chara_age_age_ctrl(rob_chr, 2, "j_tail_r_006_wj");
     }
 }
@@ -8378,7 +8486,7 @@ static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, 
     }
 
     float_t v51 = (v48 - atan2f(-v68.x, v68.y)) * a1->field_198;
-    vec3 v71 = *(vec3*&)v73->row2;
+    vec3 v71 = *(vec3*)&v73->row2;
     v71.y += 1.0f;
     v71 *= 0.5f;
 
@@ -9456,10 +9564,9 @@ static float_t sub_140406E90(bone_data* a1, bone_data* a2, float_t a3, vec3* a4)
 }
 
 static float_t sub_14064AD10(vec3* a1, float_t a2) {
-    task_stage_info v5;
-    task_stage_get_current_stage_info(&v5);
-    if (task_stage_has_stage_info(&v5)) {
-        stage* stg = task_stage_get_stage(v5);
+    task_stage_info stg_info = task_stage_get_current_stage_info();
+    if (stg_info.check()) {
+        stage* stg = task_stage_get_stage(stg_info);
         if (!stg)
             return -1000.0f;
 
@@ -11233,11 +11340,11 @@ static void rob_chara_set_adjust(rob_chara* rob_chr, rob_chara_data_adjust* adju
 }
 
 static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
-    chara_index chara_index, int32_t module_index, rob_chara_pv_data* pv_data) {
+    chara_index chara_index, int32_t module_index, const rob_chara_pv_data& pv_data) {
     rob_chr->chara_id = chara_id;
     rob_chr->chara_index = chara_index;
     rob_chr->module_index = module_index;
-    rob_chr->pv_data = *pv_data;
+    rob_chr->pv_data = pv_data;
     rob_chr->chara_init_data = chara_init_data_get(chara_index);
     if (!check_module_index_is_501(module_index)) {
         const item_cos_data* cos
@@ -11245,7 +11352,7 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
         if (cos)
             rob_chr->item_cos_data.set_chara_index_item_nos(chara_index, cos->arr);
     }
-    rob_chr->item_cos_data.set_item_array(&pv_data->item);
+    rob_chr->item_cos_data.set_item_array(pv_data.item);
 }
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
@@ -11391,9 +11498,9 @@ rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id) {
 }
 
 int32_t rob_chara_array_init_chara_index(chara_index chara_index,
-    rob_chara_pv_data* pv_data, int32_t module_index, bool can_set_default) {
+    const rob_chara_pv_data& pv_data, int32_t module_index, bool can_set_default) {
     if (!app::TaskWork::CheckTaskReady(task_rob_manager)
-        || pv_data->type < ROB_CHARA_TYPE_0|| pv_data->type > ROB_CHARA_TYPE_3)
+        || pv_data.type < ROB_CHARA_TYPE_0|| pv_data.type > ROB_CHARA_TYPE_3)
         return -1;
 
     int32_t chara_id = 0;
@@ -11405,7 +11512,7 @@ int32_t rob_chara_array_init_chara_index(chara_index chara_index,
 
     if (can_set_default && (module_index < 0 || module_index > 498))
         module_index = 0;
-    rob_chara_pv_data_array[chara_id] = *pv_data;
+    rob_chara_pv_data_array[chara_id] = pv_data;
     rob_chara_set_pv_data(&rob_chara_array[chara_id], chara_id, chara_index, module_index, pv_data);
     task_rob_manager->AppendInitCharaList(&rob_chara_array[chara_id]);
     return chara_id;
@@ -11423,7 +11530,7 @@ void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id) {
     rob_chara_item_equip* rob_itm_equip = rob_chara_array[chara_id].item_equip;
     rob_itm_equip->reset_init_data(rob_chara_bone_data_get_node(rob_chara_array[chara_id].bone_data, 0));
     rob_itm_equip->set_shadow_type(chara_id);
-    rob_itm_equip->field_A0 = 5;
+    rob_itm_equip->field_A0 = 0x05;
 }
 
 void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags) {
@@ -11433,7 +11540,7 @@ void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::O
 
     rob_chr->item_equip->set_alpha_obj_flags(alpha, flags);
 
-    if (rob_chara_check_for_ageageagain_module(rob_chr->chara_index, rob_chr->module_index)) {
+    if (rob_chr->check_for_ageageagain_module()) {
         rob_chara_age_age_array_set_alpha(chara_id, 1, alpha);
         rob_chara_age_age_array_set_alpha(chara_id, 2, alpha);
     }
@@ -11460,7 +11567,7 @@ void pv_osage_manager_array_set_pv_id(int32_t chara_id, int32_t pv_id, bool rese
 }
 
 void pv_osage_manager_array_set_pv_set_motion(
-    int32_t chara_id, std::vector<pv_data_set_motion>& set_motion) {
+    int32_t chara_id, const std::vector<pv_data_set_motion>& set_motion) {
     pv_osage_manager_array_get(chara_id)->SetPvSetMotion(set_motion);
 }
 
@@ -12295,6 +12402,10 @@ void rob_chara_bone_data::reset() {
     sleeve_adjust.reset();
 }
 
+void rob_chara_bone_data::set_disable_eye_motion(bool value) {
+    disable_eye_motion = value;
+}
+
 void rob_chara_bone_data::set_frame(float_t frame) {
     motion_loaded.front()->mot_play_data.frame_data.set_frame(frame);
 }
@@ -12368,8 +12479,34 @@ rob_chara_pv_data::rob_chara_pv_data() {
     eyes_adjust.pos = -1.0f;
 }
 
-rob_chara_pv_data::~rob_chara_pv_data() {
-
+void rob_chara_pv_data::reset() {
+    type = ROB_CHARA_TYPE_2;
+    field_4 = true;
+    field_5 = false;
+    field_6 = false;
+    field_8 = 0.0f;
+    rot_y_int16 = 0;
+    field_16 = 0xC9;
+    sleeve_l = {};
+    sleeve_r = {};
+    field_70 = 0;
+    motion_face_ids[0] = -1;
+    motion_face_ids[1] = -1;
+    motion_face_ids[2] = -1;
+    motion_face_ids[3] = -1;
+    motion_face_ids[4] = -1;
+    motion_face_ids[5] = -1;
+    motion_face_ids[6] = -1;
+    motion_face_ids[7] = -1;
+    motion_face_ids[8] = -1;
+    motion_face_ids[9] = -1;
+    chara_size_index = 1;
+    height_adjust = false;
+    item = {};
+    eyes_adjust.xrot_adjust = false;
+    eyes_adjust.base_adjust = EYES_BASE_ADJUST_DIRECTION;
+    eyes_adjust.neg = -1.0f;
+    eyes_adjust.pos = -1.0f;
 }
 
 rob_chara_item_equip_object::rob_chara_item_equip_object() : index(), mats(),
@@ -12801,6 +12938,14 @@ void rob_chara_item_equip_object::reset_external_force() {
         i->rob.ResetExtrenalForce();
 }
 
+void rob_chara_item_equip_object::reset_nodes_external_force(rob_osage_parts_bit parts_bits) {
+    for (ExOsageBlock*& i : osage_blocks)
+        if (i->rob.CheckPartsBits(parts_bits)) {
+            i->rob.SetNodesExternalForce(0, 1.0f);
+            i->rob.SetNodesForce(1.0f);
+        }
+}
+
 void rob_chara_item_equip_object::set_alpha_obj_flags(float_t alpha, int32_t flags) {
     obj_flags = (mdl::ObjFlags)flags;
     this->alpha = clamp_def(alpha, 0.0f, 1.0f);
@@ -13031,10 +13176,12 @@ field_B4(), field_D4(), disable_update(), field_DC(), texture_color_coefficients
 chara_color(), npr_flag(), mat(), field_13C(), field_8BC(), field_8C0(), field_8C4(), field_8C8(), field_8CC(),
 field_8D0(), field_8D4(), field_8D8(), field_8DC(), field_8E0(), field_8E4(), field_8E8(), field_8EC(),
 field_8F0(), field_8F4(), field_8F8(), field_8FC(), field_900(), field_908(), field_910(), field_918(),
-field_920(), field_928(), field_930(), step(1.0f), use_opd(), parts_short(), parts_append(), parts_white_one_l() {
+field_920(), field_928(), field_930(), use_opd(), parts_short(), parts_append(), parts_white_one_l() {
     item_equip_object = new rob_chara_item_equip_object[ITEM_MAX];
     wind_strength = 1.0f;
     chara_color = true;
+    osage_step = 1.0f;
+
     for (int32_t i = ITEM_BODY; i < ITEM_MAX; i++)
         item_equip_object[i].item_equip = this;
 }
@@ -13098,7 +13245,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
     mdl::DispManager& disp_manager = rctx->disp_manager;
     shadow* shad = rctx->render_manager.shadow_ptr;
     if (shadow_type != -1) {
-        if (field_A0 & 4) {
+        if (field_A0 & 0x04) {
             vec3 pos = position;
             pos.y -= 0.2f;
             shad->field_1D0[shadow_type].push_back(pos);
@@ -13113,7 +13260,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
             enum_or(flags, mdl::OBJ_SHADOW);
         }
 
-        if (field_A0 & 1)
+        if (field_A0 & 0x01)
             enum_or(flags, mdl::OBJ_4);
     }
     disp_manager.set_obj_flags(flags);
@@ -13182,8 +13329,8 @@ const mat4* rob_chara_item_equip::get_ex_data_bone_node_mat(item_id id, const ch
     return item_equip_object[id].get_ex_data_bone_node_mat(name);
 }
 
-void rob_chara_item_equip::load_body_parts_object_info(item_id id,
-    object_info obj_info, const bone_database* bone_data, void* data, const object_database* obj_db) {
+void rob_chara_item_equip::load_body_parts_object_info(item_id id, object_info obj_info,
+    const bone_database* bone_data, void* data, const object_database* obj_db) {
     if (id <= ITEM_BODY || id >= ITEM_MAX)
         obj_info = {};
     load_object_info(obj_info, id, false, bone_data, data, obj_db);
@@ -13206,7 +13353,7 @@ void rob_chara_item_equip::reset() {
         item_equip_object[i].init_members();
     item_equip_range = false;
     shadow_type = (shadow_type_enum)-1;
-    field_A0 = 5;
+    field_A0 = 0x05;
     texture_pattern.clear();
     field_D0 = {};
     field_D4 = -1;
@@ -13214,7 +13361,7 @@ void rob_chara_item_equip::reset() {
     parts_short = false;
     parts_append = false;
     parts_white_one_l = false;
-    step = 1.0f;
+    osage_step = 1.0f;
     use_opd = false;
     first_item_equip_object = ITEM_ATAMA;
     max_item_equip_object = ITEM_ITEM16;
@@ -13238,12 +13385,17 @@ void rob_chara_item_equip::reset_init_data(bone_node* bone_nodes) {
         *v7++ = mat4_identity;
     }
 
-    step = 1.0f;
+    osage_step = 1.0f;
     wet = 0.0f;
     wind_strength = 1.0f;
     chara_color = true;
     npr_flag = false;
     mat = mat4_identity;
+}
+
+void rob_chara_item_equip::reset_nodes_external_force(rob_osage_parts parts) {
+    item_equip_object[parts == ROB_OSAGE_PARTS_MUFFLER ? ITEM_OUTER : ITEM_KAMI]
+        .reset_nodes_external_force((rob_osage_parts_bit)(1 << parts));
 }
 
 void rob_chara_item_equip::set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags) {
@@ -13333,6 +13485,10 @@ void rob_chara_item_equip::set_osage_reset() {
     task_wind->ptr->reset();
 }
 
+void rob_chara_item_equip::set_osage_step(float_t value) {
+    osage_step = value;
+}
+
 void rob_chara_item_equip::set_osage_move_cancel(uint8_t id, float_t value) {
     if (id == 0)
         for (int32_t i = first_item_equip_object; i < max_item_equip_object; i++)
@@ -13353,10 +13509,6 @@ void rob_chara_item_equip::set_shadow_type(int32_t chara_id) {
         shadow_type = SHADOW_CHARA;
     else
         shadow_type = SHADOW_STAGE;
-}
-
-void rob_chara_item_equip::set_step(float_t value) {
-    step = value;
 }
 
 void rob_chara_item_equip::set_texture_pattern(texture_pattern_struct* tex_pat, size_t count) {
@@ -13966,9 +14118,9 @@ void rob_chara_item_cos_data::set_item(int32_t item_no) {
         cos.arr[item->sub_id] = item_no;
 }
 
-void rob_chara_item_cos_data::set_item_array(rob_chara_pv_data_item* item) {
+void rob_chara_item_cos_data::set_item_array(const rob_chara_pv_data_item& item) {
     for (int32_t i = 0; i < 4; i++)
-        set_item(item->arr[i]);
+        set_item(item.arr[i]);
 }
 
 void rob_chara_item_cos_data::set_item_no(item_sub_id sub_id, int32_t item_no) {
@@ -14565,7 +14717,7 @@ field_34(), field_38(), field_3C(), field_40(), field_44(), field_48() {
 
 }
 
-struc_652::struc_652() : motion_id(), frame_count(), field_8(), field_C(), field_10(), field_20(),
+struc_652::struc_652() : motion_id(), frame_count(), frame(), field_C(), field_10(), field_20(),
 field_30(), field_40(), field_50(), field_52(), field_54(), field_58(), field_5C(), field_60(),
 field_64(), field_68(), loop_count(), loop_begin(), loop_end(), field_78(), field_7C(), field_80(),
 field_84(), field_88(), field_8C(), field_90(), field_94(), field_96(), field_98(), field_9C(),
@@ -14588,7 +14740,7 @@ struc_652::~struc_652() {
 void struc_652::reset() {
     motion_id = -1;
     frame_count = 0.0f;
-    field_8 = 0.0f;
+    frame = 0.0f;
     field_C = 0;
     sub_140536DD0();
     field_50 = 0;
@@ -15551,6 +15703,9 @@ static void sub_14053E810(rob_chara* rob_chr, void* data) {
         v16.strength = ((float_t*)data)[14];
         v16.strength_transition = (float_t)((int32_t*)data)[15];
     }
+    else
+        rob_chr->item_equip->reset_nodes_external_force((rob_osage_parts)((uint8_t*)data)[4]);
+
     rob_chara_set_parts_adjust_by_index(rob_chr, (rob_osage_parts)((uint8_t*)data)[4], &v16);
 }
 
@@ -16228,8 +16383,8 @@ static void sub_140479AA0(OpdMaker::Data* a1, rob_chara* rob_chr, std::vector<in
     a1->empty = false;
 }
 
-static bool sub_140479090(struc_655* a1, chara_index chara_index) {
-    std::vector<uint32_t>* v4 = a1->field_10[chara_index].field_0;
+static bool sub_140479090(struc_655& a1, chara_index chara_index) {
+    std::vector<uint32_t>* v4 = a1.field_10[chara_index].field_0;
     for (int32_t i = 0; i < ITEM_SUB_MAX; i++, v4++)
         if (v4->size())
             return false;
@@ -16258,7 +16413,7 @@ bool OpdMakeWorker::Ctrl() {
         rob_chr->item_equip->reset_init_data(rob_chara_bone_data_get_node(
             rob_chara_array[chara_id].bone_data, 0));
         rob_chr->item_equip->set_shadow_type(chara_id);
-        rob_chr->item_equip->field_A0 = 5;
+        rob_chr->item_equip->field_A0 = 0x05;
         state = 2;
     }
     case 2: {
@@ -16375,7 +16530,7 @@ bool OpdMakeWorker::Ctrl() {
 
         rob_chr->item_cos_data.reload_items(chara_id, aft_bone_data, aft_data, aft_obj_db);
         skin_param_manager_reset(chara_id);
-        if (sub_140479090(&opd_make_manager->field_88, chara_index))
+        if (sub_140479090(opd_make_manager->field_88, chara_index))
             return true;
         state = 1;
     } break;
@@ -16463,7 +16618,7 @@ bool OsagePlayDataManager::AddTask() {
     return app::TaskWork::AddTask(this, "OSAGE_PLAY_DATA_MANAGER");
 }
 
-void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, std::vector<uint32_t>& motion_ids) {
+void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids) {
     if (CheckTaskReady() || !rob_chr)
         return;
 
@@ -16693,7 +16848,7 @@ bool OpdMakeManager::Ctrl() {
     case 5: {
         bool v8 = false;
         for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
-            if (!sub_140479090(&field_88, (chara_index)i)) {
+            if (!sub_140479090(field_88, (chara_index)i)) {
                 chara = (chara_index)i;
                 v8 = true;
                 break;
@@ -16701,9 +16856,9 @@ bool OpdMakeManager::Ctrl() {
 
         if (v8) {
             for (int32_t i = 0; i < 4; i++) {
-                rob_chara_pv_data v32;
-                v32.type = ROB_CHARA_TYPE_3;
-                rob_chara_array_init_chara_index(chara, &v32, 499, false);
+                rob_chara_pv_data pv_data;
+                pv_data.type = ROB_CHARA_TYPE_3;
+                rob_chara_array_init_chara_index(chara, pv_data, 499, false);
             }
             mode = 6;
         }
@@ -17456,7 +17611,7 @@ rob_sleeve_handler::~rob_sleeve_handler() {
 
 void rob_sleeve_handler::clear() {
     ready = false;
-    
+
     for (auto& i : sleeves) {
         delete i.second.l;
         delete i.second.r;
@@ -17597,18 +17752,15 @@ void rob_sleeve_handler::read() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string dir;
-        dir.assign("rom/");
-        dir.append(i);
+        std::string file;
+        file.assign(i);
+        file.append("rob_sleeve_data.txt");
 
-        const char* file = "rob_sleeve_data.txt";
-
-        if (!aft_data->check_file_exists(dir.c_str(), file))
-            continue;
-
-        p_file_handler* pfhndl = new p_file_handler;
-        pfhndl->read_file(aft_data, dir.c_str(), file);
-        file_handlers.push_back(pfhndl);
+        if (aft_data->check_file_exists("rom/", file.c_str())) {
+            p_file_handler* pfhndl = new p_file_handler;
+            pfhndl->read_file(aft_data, "rom/", file.c_str());
+            file_handlers.push_back(pfhndl);
+        }
     }
 }
 
@@ -17776,7 +17928,7 @@ void PvOsageManager::SetPvId(int32_t pv_id, int32_t chara_id, bool reset) {
     cnd.notify_one();
 }
 
-void PvOsageManager::SetPvSetMotion(std::vector<pv_data_set_motion>& set_motion) {
+void PvOsageManager::SetPvSetMotion(const std::vector<pv_data_set_motion>& set_motion) {
     pv_set_motion.assign(set_motion.begin(), set_motion.end());
 }
 

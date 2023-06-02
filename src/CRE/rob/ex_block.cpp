@@ -816,20 +816,20 @@ void CLOTH::Init() {
     }
 }
 
-void CLOTH::SetSkinParamColiR(float_t coli_r) {
-    skin_param_ptr->coli_r = coli_r;
+void CLOTH::SetSkinParamColiR(float_t value) {
+    skin_param_ptr->coli_r = value;
 }
 
-void CLOTH::SetSkinParamFriction(float_t friction) {
-    skin_param_ptr->friction = friction;
+void CLOTH::SetSkinParamFriction(float_t value) {
+    skin_param_ptr->friction = value;
 }
 
-void CLOTH::SetSkinParamWindAfc(float_t wind_afc) {
-    skin_param_ptr->wind_afc = wind_afc;
+void CLOTH::SetSkinParamWindAfc(float_t value) {
+    skin_param_ptr->wind_afc = value;
 }
 
-void CLOTH::SetWindDirection(vec3& wind_direction) {
-    this->wind_direction = wind_direction;
+void CLOTH::SetWindDirection(vec3& value) {
+    this->wind_direction = value;
 }
 
 void CLOTH::Field_30(float_t a2) {
@@ -1487,7 +1487,7 @@ void ExClothBlock::Field_20() {
     ColiSet();
 
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
-    float_t step = get_delta_frame() * rob_itm_equip->step;
+    float_t step = get_delta_frame() * rob_itm_equip->osage_step;
     if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data[0].field_C)
         step = 1.0f;
     sub_140218560(&rob, step, false);
@@ -2062,7 +2062,7 @@ void ExOsageBlock::Field_10() {
 
 void ExOsageBlock::Field_18(int32_t stage, bool disable_external_force) {
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
-    float_t step = get_delta_frame() * rob_itm_equip->step;
+    float_t step = get_delta_frame() * rob_itm_equip->osage_step;
     if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data[0].field_C)
         step = 1.0f;
 
@@ -2103,7 +2103,7 @@ void ExOsageBlock::Field_20() {
     }
 
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
-    float_t step = get_delta_frame() * rob_itm_equip->step;
+    float_t step = get_delta_frame() * rob_itm_equip->osage_step;
     if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data[0].field_C)
         step = 1.0f;
 
@@ -2596,7 +2596,7 @@ void ExExpressionBlock::Field_50() {
 void ExExpressionBlock::Calc() {
     float_t delta_frame = get_delta_frame();
     if (step)
-        delta_frame *= item_equip_object->item_equip->step;
+        delta_frame *= item_equip_object->item_equip->osage_step;
     float_t frame = this->frame + delta_frame;
     this->frame = frame >= 65535.0f ? frame - 65535.0f : frame;
 

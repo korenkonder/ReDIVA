@@ -267,11 +267,10 @@ void TaskDataTestGlitterParticle::Window() {
 
 void TaskDataTestGlitterParticle::LoadFile(const char* file) {
     data_struct* aft_data = &data_list[DATA_AFT];
-    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
     Glitter::glt_particle_manager->UnloadEffectGroup(hash);
-    hash = Glitter::glt_particle_manager->LoadFile(Glitter::FT, aft_data, file, 0, -1.0f, true, aft_obj_db);
+    hash = Glitter::glt_particle_manager->LoadFile(Glitter::FT, aft_data, file, 0, -1.0f, true);
     rebuild_geff = true;
 }
 

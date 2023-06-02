@@ -370,7 +370,7 @@ extern bool sound_work_unload_farc(const char* file_path);
 
 extern void wave_audio_storage_init();
 extern void wave_audio_storage_clear();
-extern WaveAudio* wave_audio_storage_get_wave_audio(std::string& name);
-extern bool wave_audio_storage_load_wave_audio(std::string& name);
-extern void wave_audio_storage_unload_wave_audio(std::string& name);
+extern WaveAudio* wave_audio_storage_get_wave_audio(const std::string& name);
+extern bool wave_audio_storage_load_wave_audio(const std::string& name);
+extern void wave_audio_storage_unload_wave_audio(const std::string& name);
 extern void wave_audio_storage_free();

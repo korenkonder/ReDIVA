@@ -12,10 +12,68 @@
 extern render_context* rctx_ptr;
 
 namespace pv_param {
-    static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash);
+    struct file_data_struct {
+        std::vector<dof> dof_default;
+        std::vector<color_correction> cc_default;
+        std::vector<bloom> bloom_default;
+        std::map<std::string, std::vector<dof>> dof;
+        std::map<std::string, std::vector<color_correction>> cc;
+        std::map<std::string, std::vector<bloom>> bloom;
+
+        file_data_struct();
+        ~file_data_struct();
+
+        std::vector<pv_param::bloom>& get_bloom_data(std::string& file);
+        std::vector<pv_param::color_correction>& get_color_correction_data(std::string& file);
+        std::vector<pv_param::dof>& get_dof_data(std::string& file);
+        bool load_bloom_file(std::string& file);
+        bool load_color_correction_file(std::string& file);
+        bool load_dof_file(std::string& file);
+        void unload_bloom_file(std::string& file);
+        void unload_color_correction_file(std::string& file);
+        void unload_dof_file(std::string& file);
+    };
+
+    struct light_data_struct {
+        light_param_light_data light_default;
+        std::string chara_light_file;
+        std::string stage_light_file;
+        std::map<int32_t, light_param_light_data> chara_light;
+        std::map<int32_t, light_param_light_data> stage_light;
+
+        light_data_struct();
+        ~light_data_struct();
+
+        void clear_data();
+        bool load_file(std::string& file, std::map<int32_t, light_param_light_data>& map);
+        bool load_files(std::string& path);
+    };
+
+    struct post_process_data_struct {
+        dof dof_default;
+        color_correction cc_default;
+        bloom bloom_default;
+        std::string dof_file;
+        std::string cc_file;
+        std::string bloom_file;
+        std::vector<dof> dof;
+        std::vector<color_correction> cc;
+        std::vector<bloom> bloom;
+
+        post_process_data_struct();
+        ~post_process_data_struct();
+
+        void clear_data();
+        bool load_files(std::string& path);
+        void set_dof(::dof& d);
+    };
 
     file_data_struct file_data;
+    light_data_struct light_data;
     post_process_data_struct post_process_data;
+
+    static char* get_next_item(char*& str);
+    static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash);
 
     bloom::bloom() {
         id = -1;
@@ -50,6 +108,100 @@ namespace pv_param {
         exposure = 1.0f;
         gamma = 1.0f;
         contrast = 1.0f;
+    }
+
+    void light_data_clear_data() {
+        light_data.clear_data();
+    }
+
+    light_param_light_data& light_data_get_chara_light_data(int32_t id) {
+        auto elem = light_data.chara_light.find(id);
+        if (elem != light_data.chara_light.end())
+            return elem->second;
+
+        return light_data.light_default;
+    }
+
+    light_param_light_data& light_data_get_stage_light_data(int32_t id) {
+        auto elem = light_data.stage_light.find(id);
+        if (elem != light_data.stage_light.end())
+            return elem->second;
+
+        return light_data.light_default;
+    }
+
+    bool light_data_load_files(int32_t pv_id, std::string&& mdata_dir) {
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "pv%03d", pv_id);
+
+        std::string path;
+        path.assign("rom/pv_param/");
+        path.append(buf);
+
+        if (mdata_dir.size()) {
+            std::string temp_path;
+            temp_path.assign(mdata_dir);
+            temp_path.append(path);
+            if (data_list[DATA_AFT].check_directory_exists(temp_path.c_str()))
+                path.assign(temp_path);
+        }
+
+        if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
+            return light_data.load_files(path);
+        return false;
+    }
+
+    void post_process_data_clear_data() {
+        post_process_data.clear_data();
+    }
+
+    pv_param::bloom& post_process_data_get_bloom_data(int32_t id) {
+        for (pv_param::bloom& i : post_process_data.bloom)
+            if (i.id == id)
+                return i;
+
+        return post_process_data.bloom_default;
+    }
+
+    pv_param::color_correction& post_process_data_get_color_correction_data(int32_t id) {
+        for (pv_param::color_correction& i : post_process_data.cc)
+            if (i.id == id)
+                return i;
+
+        return post_process_data.cc_default;
+    }
+
+    pv_param::dof& post_process_data_get_dof_data(int32_t id) {
+        for (pv_param::dof& i : post_process_data.dof)
+            if (i.id == id)
+                return i;
+
+        return post_process_data.dof_default;
+    }
+
+    bool post_process_data_load_files(int32_t pv_id, std::string&& mdata_dir) {
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "pv%03d", pv_id);
+
+        std::string path;
+        path.assign("rom/pv_param/");
+        path.append(buf);
+
+        if (mdata_dir.size()) {
+            std::string temp_path;
+            temp_path.assign(mdata_dir);
+            temp_path.append(path);
+            if (data_list[DATA_AFT].check_directory_exists(temp_path.c_str()))
+                path.assign(temp_path);
+        }
+
+        if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
+            return post_process_data.load_files(path);
+        return false;
+    }
+
+    void post_process_data_set_dof(::dof& d) {
+        post_process_data.set_dof(d);
     }
 
     file_data_struct::file_data_struct() {
@@ -104,8 +256,7 @@ namespace pv_param {
         if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
             return false;
 
-        if (count <= 1 || str_utils_compare(lines[0],
-            "ID,ColorR,ColorG,ColorB,BrightpassR,BrightpassG,BrightpassB,Range")) {
+        if (count <= 1 || str_utils_compare(get_next_item(lines[0]), "ID")) {
             free_def(buf);
             free_def(lines);
             return false;
@@ -119,10 +270,15 @@ namespace pv_param {
 
         for (size_t i = 0; i < count; i++) {
             pv_param::bloom bloom_data;
-            if (sscanf_s(lines[i], "%d,%g,%g,%g,%g,%g,%g,%g",
-                &bloom_data.id, &bloom_data.color.x, &bloom_data.color.y, &bloom_data.color.z,
-                &bloom_data.brightpass.x, &bloom_data.brightpass.y, &bloom_data.brightpass.z, &bloom_data.range) == 8)
-                bloom.push_back(bloom_data);
+            bloom_data.id = atoi(get_next_item(lines[i]));
+            bloom_data.color.x = (float_t)atof(get_next_item(lines[i]));
+            bloom_data.color.y = (float_t)atof(get_next_item(lines[i]));
+            bloom_data.color.z = (float_t)atof(get_next_item(lines[i]));
+            bloom_data.brightpass.x = (float_t)atof(get_next_item(lines[i]));
+            bloom_data.brightpass.y = (float_t)atof(get_next_item(lines[i]));
+            bloom_data.brightpass.z = (float_t)atof(get_next_item(lines[i]));
+            bloom_data.range = (float_t)atof(get_next_item(lines[i]));
+            bloom.push_back(bloom_data);
         }
 
         this->bloom.insert_or_assign(file, bloom);
@@ -145,8 +301,7 @@ namespace pv_param {
         if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
             return false;
 
-        if (count <= 1 || str_utils_compare(lines[0],
-            "ID,Hue,Saturation,Lightness,Exposure,GammaR,GammaG,GammaB,Contrast")) {
+        if (count <= 1 || str_utils_compare(get_next_item(lines[0]), "ID")) {
             free_def(buf);
             free_def(lines);
             return false;
@@ -160,10 +315,16 @@ namespace pv_param {
 
         for (size_t i = 0; i < count; i++) {
             pv_param::color_correction cc_data;
-            if (sscanf_s(lines[i], "%d,%g,%g,%g,%g,%g,%g,%g,%g",
-                &cc_data.id, &cc_data.hue, &cc_data.saturation, &cc_data.lightness,
-                &cc_data.exposure, &cc_data.gamma.x, &cc_data.gamma.y, &cc_data.gamma.z, &cc_data.contrast) == 9)
-                cc.push_back(cc_data);
+            cc_data.id = atoi(get_next_item(lines[i]));
+            cc_data.hue = (float_t)atof(get_next_item(lines[i]));
+            cc_data.saturation = (float_t)atof(get_next_item(lines[i]));
+            cc_data.lightness = (float_t)atof(get_next_item(lines[i]));
+            cc_data.exposure = (float_t)atof(get_next_item(lines[i]));
+            cc_data.gamma.x = (float_t)atof(get_next_item(lines[i]));
+            cc_data.gamma.y = (float_t)atof(get_next_item(lines[i]));
+            cc_data.gamma.z = (float_t)atof(get_next_item(lines[i]));
+            cc_data.contrast = (float_t)atof(get_next_item(lines[i]));
+            cc.push_back(cc_data);
         }
 
         this->cc.insert_or_assign(file, cc);
@@ -186,8 +347,7 @@ namespace pv_param {
         if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
             return false;
 
-        if (count <= 1 || str_utils_compare(lines[0],
-            "ID,Focus,FocusRange,FuzzingRange,Ratio,Quality")) {
+        if (count <= 1 || str_utils_compare(get_next_item(lines[0]), "ID")) {
             free_def(buf);
             free_def(lines);
             return false;
@@ -201,10 +361,13 @@ namespace pv_param {
 
         for (size_t i = 0; i < count; i++) {
             pv_param::dof dof_data;
-            if (sscanf_s(lines[i], "%d,%g,%g,%g,%g,%g",
-                &dof_data.id, &dof_data.focus, &dof_data.focus_range,
-                &dof_data.fuzzing_range, &dof_data.ratio, &dof_data.quality) == 6)
-                dof.push_back(dof_data);
+            dof_data.id = atoi(get_next_item(lines[i]));
+            dof_data.focus = (float_t)atof(get_next_item(lines[i]));
+            dof_data.focus_range = (float_t)atof(get_next_item(lines[i]));
+            dof_data.fuzzing_range = (float_t)atof(get_next_item(lines[i]));
+            dof_data.ratio = (float_t)atof(get_next_item(lines[i]));
+            dof_data.quality = (float_t)atof(get_next_item(lines[i]));
+            dof.push_back(dof_data);
         }
 
         this->dof.insert_or_assign(file, dof);
@@ -240,6 +403,138 @@ namespace pv_param {
 
     light_data_struct::~light_data_struct() {
 
+    }
+
+    void light_data_struct::clear_data() {
+        chara_light_file.clear();
+        stage_light_file.clear();
+        chara_light.clear();
+        stage_light.clear();
+    }
+
+    bool light_data_struct::load_file(std::string& file, std::map<int32_t, light_param_light_data>& map) {
+        std::string data;
+        if (!data_list[DATA_AFT].load_file(&data, file.c_str(), load_text_file))
+            return false;
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (!str_utils_text_file_parse(data.c_str(), data.size(), buf, lines, count))
+            return false;
+
+        if (count <= 1 || str_utils_compare(get_next_item(lines[0]), "Type")) {
+            free_def(buf);
+            free_def(lines);
+            return false;
+        }
+
+        lines++;
+        count--;
+
+        for (size_t i = 0; i < count; i++) {
+            light_param_light_data light;
+
+            char* str = get_next_item(lines[i]);
+            if (!str_utils_compare(str, "PARALLEL"))
+                light.type = LIGHT_PARALLEL;
+            else if (!str_utils_compare(str, "POINT"))
+                light.type = LIGHT_POINT;
+            else if (!str_utils_compare(str, "SPOT"))
+                light.type = LIGHT_SPOT;
+            else
+                light.type = LIGHT_OFF;
+            light.has_type = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.ambient.x) == 1)
+                light.has_ambient = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.ambient.y) == 1)
+                light.has_ambient = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.ambient.z) == 1)
+                light.has_ambient = true;
+
+            light.ambient.w = 1.0f;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.diffuse.x) == 1)
+                light.has_diffuse = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.diffuse.y) == 1)
+                light.has_diffuse = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.diffuse.z) == 1)
+                light.has_diffuse = true;
+
+            light.diffuse.w = 1.0f;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.specular.x) == 1)
+                light.has_specular = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.specular.y) == 1)
+                light.has_specular = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.specular.z) == 1)
+                light.has_specular = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.specular.w) == 1)
+                light.has_specular = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.position.x) == 1)
+                light.has_position = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.position.y) == 1)
+                light.has_position = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.position.z) == 1)
+                light.has_position = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.tone_curve.start_point) == 1)
+                light.has_tone_curve = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.tone_curve.end_point) == 1)
+                light.has_tone_curve = true;
+
+            if (sscanf_s(get_next_item(lines[i]), "%g", &light.tone_curve.coefficient) == 1)
+                light.has_tone_curve = true;
+
+            int32_t id;
+            if (sscanf_s(get_next_item(lines[i]), "%d", &id) != 1)
+                id = -1;
+
+            map.insert_or_assign(id, light);
+        }
+
+        lines--;
+
+        free_def(buf);
+        free_def(lines);
+        return true;
+    }
+
+    bool light_data_struct::load_files(std::string& path) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+
+        if (!aft_data->check_directory_exists(path.c_str()))
+            return true;
+
+        if (aft_data->check_file_exists(path.c_str(), "/chara_light.txt")) {
+            chara_light_file.assign(path);
+            chara_light_file.append("/chara_light.txt");
+        }
+        else
+            chara_light_file.clear();
+
+        if (aft_data->check_file_exists(path.c_str(), "/stage_light.txt")) {
+            stage_light_file.assign(path);
+            stage_light_file.append("/stage_light.txt");
+        }
+        else
+            stage_light_file.clear();
+
+        load_file(chara_light_file, chara_light);
+        load_file(stage_light_file, stage_light);
+        return true;
     }
 
     post_process_data_struct::post_process_data_struct() {
@@ -282,23 +577,23 @@ namespace pv_param {
         if (!aft_data->check_directory_exists(path.c_str()))
             return false;
 
-        if (aft_data->check_file_exists(path.c_str(), "dof.txt")) {
+        if (aft_data->check_file_exists(path.c_str(), "/dof.txt")) {
             dof_file.assign(path);
-            dof_file.append("dof.txt");
+            dof_file.append("/dof.txt");
         }
         else
             dof_file.clear();
 
-        if (aft_data->check_file_exists(path.c_str(), "cc.txt")) {
-            dof_file.assign(path);
-            dof_file.append("cc.txt");
+        if (aft_data->check_file_exists(path.c_str(), "/cc.txt")) {
+            cc_file.assign(path);
+            cc_file.append("/cc.txt");
         }
         else
             cc_file.clear();
 
-        if (aft_data->check_file_exists(path.c_str(), "bloom.txt")) {
-            dof_file.assign(path);
-            dof_file.append("bloom.txt");
+        if (aft_data->check_file_exists(path.c_str(), "/bloom.txt")) {
+            bloom_file.assign(path);
+            bloom_file.append("/bloom.txt");
         }
         else
             bloom_file.clear();
@@ -346,70 +641,16 @@ namespace pv_param {
         }
     }
 
-    void post_process_data_clear_data() {
-        post_process_data.clear_data();
-    }
-
-    pv_param::bloom& post_process_data_get_bloom_data(int32_t id) {
-        for (pv_param::bloom& i : post_process_data.bloom)
-            if (i.id == id)
-                return i;
-
-        return post_process_data.bloom_default;
-    }
-
-    pv_param::color_correction& post_process_data_get_color_correction_data(int32_t id) {
-        for (pv_param::color_correction& i : post_process_data.cc)
-            if (i.id == id)
-                return i;
-
-        return post_process_data.cc_default;
-    }
-
-    pv_param::dof& post_process_data_get_dof_data(int32_t id) {
-        for (pv_param::dof& i : post_process_data.dof)
-            if (i.id == id)
-                return i;
-
-        return post_process_data.dof_default;
-    }
-
-    bool post_process_data_load_files(int32_t pv_id) {
-        char buf[0x100];
-        sprintf_s(buf, sizeof(buf), "pv%03d/", pv_id);
-
-        std::string path;
-        path.assign("rom/pv_param/");
-        path.append(buf);
-
-        if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
-            return post_process_data.load_files(path);
-        return false;
-    }
-
-    bool post_process_data_load_files(int32_t pv_id, std::string& mdata_dir) {
-        char buf[0x100];
-        sprintf_s(buf, sizeof(buf), "pv%03d/", pv_id);
-
-        std::string path;
-        path.assign("rom/pv_param/");
-        path.append(buf);
-
-        if (mdata_dir.size()) {
-            std::string temp_path;
-            temp_path.assign(mdata_dir);
-            temp_path.append(path);
-            if (data_list[DATA_AFT].check_directory_exists(temp_path.c_str()))
-                path.assign(temp_path);
-        }
-
-        if (data_list[DATA_AFT].check_directory_exists(path.c_str()))
-            return post_process_data.load_files(path);
-        return false;
-    }
-
-    void post_process_data_set_dof(::dof& d) {
-        post_process_data.set_dof(d);
+    static char* get_next_item(char*& str) {
+        char* orig_str = str;
+        while (*str)
+            if (*str == ',') {
+                *str++ = 0;
+                break;
+            }
+            else
+                str++;
+        return orig_str;
     }
 
     static bool load_text_file(void* data, const char* path, const char* file, uint32_t hash) {
@@ -429,7 +670,170 @@ namespace pv_param {
 }
 
 namespace pv_param_task {
+    class PostProcessCtrl {
+    public:
+        float_t frame;
+        float_t duration;
+
+        PostProcessCtrl();
+        ~PostProcessCtrl();
+
+        virtual void Reset() = 0;
+        virtual void Set() = 0;
+    };
+
+    class PostProcessCtrlBloom : public PostProcessCtrl {
+    public:
+        struct Data {
+            pv_param::bloom data;
+            pv_param::bloom data_prev;
+
+            Data();
+        } data;
+
+        PostProcessCtrlBloom();
+        ~PostProcessCtrlBloom();
+
+        virtual void Reset() override;
+        virtual void Set() override;
+    };
+
+    class PostProcessCtrlCC : public PostProcessCtrl {
+    public:
+        struct Data {
+            pv_param::color_correction data;
+            pv_param::color_correction data_prev;
+
+            Data();
+        } data;
+
+        PostProcessCtrlCC();
+        ~PostProcessCtrlCC();
+
+        virtual void Reset() override;
+        virtual void Set() override;
+
+        void CalcToneTrans(float_t value, float_t& tone_trans_start, float_t& tone_trans_end);
+    };
+
+    class PostProcessCtrlCharaAlpha : public PostProcessCtrl {
+    public:
+        struct Data {
+            pv_param::chara_alpha data[ROB_CHARA_COUNT];
+
+            Data();
+        } data;
+
+        PostProcessCtrlCharaAlpha();
+        ~PostProcessCtrlCharaAlpha();
+
+        virtual void Reset() override;
+        virtual void Set() override;
+    };
+
+    class PostProcessCtrlCharaItemAlpha : public PostProcessCtrlCharaAlpha {
+    public:
+        post_process_task_set_chara_item_alpha_callback callback[ROB_CHARA_COUNT];
+        void* callback_data[ROB_CHARA_COUNT];
+
+        PostProcessCtrlCharaItemAlpha();
+        ~PostProcessCtrlCharaItemAlpha();
+
+        virtual void Reset() override;
+        virtual void Set() override;
+    };
+
+    class PostProcessCtrlDof : public PostProcessCtrl {
+    public:
+        struct Data {
+            pv_param::dof data;
+            pv_param::dof data_prev;
+
+            Data();
+        } data;
+
+        PostProcessCtrlDof();
+        ~PostProcessCtrlDof();
+
+        virtual void Reset() override;
+        virtual void Set() override;
+
+        void SetData(pv_param::dof* dof, float_t duration);
+    };
+
+    class PostProcessTask : public app::Task {
+    public:
+        PostProcessCtrlDof dof;
+        PostProcessCtrlCC cc;
+        PostProcessCtrlBloom bloom;
+        PostProcessCtrlCharaAlpha chara_alpha;
+        PostProcessCtrlCharaItemAlpha chara_item_alpha;
+
+        PostProcessTask();
+        virtual ~PostProcessTask() override;
+
+        virtual bool Init() override;
+        virtual bool Ctrl() override;
+        virtual bool Dest() override;
+    };
+
     PostProcessTask post_process_task;
+
+    bool post_process_task_add_task() {
+        return app::TaskWork::AddTask(&post_process_task, "PV POST PROCESS TASK");
+    }
+
+    void post_process_task_set_bloom_data(
+        pv_param::bloom& data, float_t duration) {
+        PostProcessCtrlBloom& bloom = post_process_task.bloom;
+        bloom.frame = 0.0f;
+        bloom.duration = duration;
+        bloom.data.data = data;
+    }
+
+    void post_process_task_set_color_correction_data(
+        pv_param::color_correction& data, float_t duration) {
+        PostProcessCtrlCC& cc = post_process_task.cc;
+        cc.frame = 0.0f;
+        cc.duration = duration;
+        cc.data.data = data;
+    }
+
+    void post_process_task_set_dof_data(
+        pv_param::dof& data, float_t duration) {
+        PostProcessCtrlDof& dof = post_process_task.dof;
+        dof.frame = 0.0f;
+        dof.duration = duration;
+        dof.data.data = data;
+    }
+
+    void post_process_task_set_chara_alpha(
+        int32_t chara_id, int32_t type, float_t alpha, float_t duration) {
+        PostProcessCtrlCharaAlpha& chara_alpha = post_process_task.chara_alpha;
+        pv_param::chara_alpha& chara_alpha_data = chara_alpha.data.data[chara_id];
+        chara_alpha_data.type = type;
+        chara_alpha_data.frame = 0.0f;
+        chara_alpha_data.alpha = alpha;
+        chara_alpha_data.duration = duration;
+    }
+
+    void post_process_task_set_chara_item_alpha(
+        int32_t chara_id, int32_t type, float_t alpha, float_t duration,
+        post_process_task_set_chara_item_alpha_callback callback, void* callback_data) {
+        PostProcessCtrlCharaItemAlpha& chara_item_alpha = post_process_task.chara_item_alpha;
+        pv_param::chara_alpha& chara_item_alpha_data = chara_item_alpha.data.data[chara_id];
+        chara_item_alpha_data.type = type;
+        chara_item_alpha_data.frame = 0.0f;
+        chara_item_alpha_data.alpha = alpha;
+        chara_item_alpha_data.duration = duration;
+
+        chara_item_alpha.callback[chara_id] = callback;
+        chara_item_alpha.callback_data[chara_id] = callback_data;
+    }
+
+    bool post_process_task_del_task() {
+        return post_process_task.DelTask();
+    }
 
     PostProcessCtrl::PostProcessCtrl() {
         frame = -1.0f;
@@ -628,7 +1032,7 @@ namespace pv_param_task {
         for (pv_param::chara_alpha& i : data.data)
             i = {};
 
-        for (PostProcessCtrlCharaItemAlpha::Callback& i : callback)
+        for (post_process_task_set_chara_item_alpha_callback& i : callback)
             i = 0;
 
         for (void*& i : callback_data)
@@ -653,9 +1057,6 @@ namespace pv_param_task {
 
             if (callback)
                 callback[index](callback_data[index], index, i.type, value);
-            /*pv_game* v5 = pv_game_data_get();
-            if (v5)
-                sub_140115EC0(v5, index, i.type, value);*/
 
             i.frame += get_delta_frame();
             if (i.frame > i.duration) {
@@ -880,61 +1281,5 @@ namespace pv_param_task {
         chara_alpha.Reset();
         chara_item_alpha.Reset();
         return true;
-    }
-
-    bool post_process_task_add_task() {
-        return app::TaskWork::AddTask(&post_process_task, "PV POST PROCESS TASK");
-    }
-
-    void post_process_task_set_bloom_data(
-        pv_param::bloom& data, float_t duration) {
-        PostProcessCtrlBloom& bloom = post_process_task.bloom;
-        bloom.frame = 0.0f;
-        bloom.duration = duration;
-        bloom.data.data = data;
-    }
-
-    void post_process_task_set_color_correction_data(
-        pv_param::color_correction& data, float_t duration) {
-        PostProcessCtrlCC& cc = post_process_task.cc;
-        cc.frame = 0.0f;
-        cc.duration = duration;
-        cc.data.data = data;
-    }
-
-    void post_process_task_set_dof_data(
-        pv_param::dof& data, float_t duration) {
-        PostProcessCtrlDof& dof = post_process_task.dof;
-        dof.frame = 0.0f;
-        dof.duration = duration;
-        dof.data.data = data;
-    }
-
-    void post_process_task_set_chara_alpha(
-        int32_t chara_id, int32_t type, float_t alpha, float_t duration) {
-        PostProcessCtrlCharaAlpha& chara_alpha = post_process_task.chara_alpha;
-        pv_param::chara_alpha& chara_alpha_data = chara_alpha.data.data[chara_id];
-        chara_alpha_data.type = type;
-        chara_alpha_data.frame = 0.0f;
-        chara_alpha_data.alpha = alpha;
-        chara_alpha_data.duration = duration;
-    }
-
-    void post_process_task_set_chara_item_alpha(
-        int32_t chara_id, int32_t type, float_t alpha, float_t duration,
-        PostProcessCtrlCharaItemAlpha::Callback callback, void* callback_data) {
-        PostProcessCtrlCharaItemAlpha& chara_item_alpha = post_process_task.chara_item_alpha;
-        pv_param::chara_alpha& chara_item_alpha_data = chara_item_alpha.data.data[chara_id];
-        chara_item_alpha_data.type = type;
-        chara_item_alpha_data.frame = 0.0f;
-        chara_item_alpha_data.alpha = alpha;
-        chara_item_alpha_data.duration = duration;
-
-        chara_item_alpha.callback[chara_id] = callback;
-        chara_item_alpha.callback_data[chara_id] = callback_data;
-    }
-
-    bool post_process_task_del_task() {
-        return post_process_task.DelTask();
     }
 }

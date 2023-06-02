@@ -156,4 +156,5 @@ struct aet_database {
     uint32_t get_aet_set_id_by_name(const char* name) const;
     uint32_t get_aet_set_id_by_name_index(uint32_t index) const;
     const char* get_aet_set_name(uint32_t set_id) const;
+    uint32_t get_aet_id_by_name(const char* name) const;
 };

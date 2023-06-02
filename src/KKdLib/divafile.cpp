@@ -97,8 +97,6 @@ namespace divafile {
         dec.open(data, file_length);
         free_def(data);
     }
-    void decrypt(memory_stream& s) {
-    }
 
     void encrypt(const char* path) {
         wchar_t* file_buf = utf8_to_utf16(path);

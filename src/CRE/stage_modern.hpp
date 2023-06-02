@@ -66,6 +66,14 @@ struct task_stage_modern_info {
     uint16_t load_counter;
 
     task_stage_modern_info();
+    task_stage_modern_info(int16_t load_index, uint16_t load_counter);
+
+    bool check() const;
+    uint32_t get_stage_hash() const;
+    void set_ground(bool value) const;
+    void set_sky(bool value) const;
+    void set_stage() const;
+    void set_stage_display(bool value, bool effect_enable) const;
 };
 
 extern void task_stage_modern_init();
@@ -77,19 +85,14 @@ extern void task_stage_modern_current_set_stage_display(bool value, bool effect_
 extern void task_stage_modern_disp_shadow();
 extern stage_modern* task_stage_modern_get_current_stage();
 extern uint32_t task_stage_modern_get_current_stage_hash();
-extern void task_stage_modern_get_current_stage_info(task_stage_modern_info* stg_info);
-extern void task_stage_modern_get_loaded_stage_infos(std::vector<task_stage_modern_info>* vec);
-extern stage_modern* task_stage_modern_get_stage(task_stage_modern_info stg_info);
-extern uint32_t task_stage_modern_get_stage_hash(task_stage_modern_info* stg_info);
-extern bool task_stage_modern_has_stage_info(task_stage_modern_info* stg_info);
+extern task_stage_modern_info task_stage_modern_get_current_stage_info();
+extern void task_stage_modern_get_loaded_stage_infos(std::vector<task_stage_modern_info>& vec);
+extern stage_modern* task_stage_modern_get_stage(const task_stage_modern_info stg_info);
 extern bool task_stage_modern_load_task(const char* name);
 extern void task_stage_modern_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data);
-extern void task_stage_modern_set_ground(task_stage_modern_info* stg_info, bool value);
-extern void task_stage_modern_set_mat(mat4* mat);
-extern void task_stage_modern_set_sky(task_stage_modern_info* stg_info, bool value);
-extern void task_stage_modern_set_stage(task_stage_modern_info* stg_info);
-extern void task_stage_modern_set_stage_display(task_stage_modern_info* stg_info, bool value, bool effect_enable);
+
+extern void task_stage_modern_set_mat(const mat4& mat);
 extern void task_stage_modern_set_stage_hash(uint32_t stage_hash, stage_data_modern* stg_data);
 extern void task_stage_modern_set_stage_hashes(std::vector<uint32_t>& stage_hashes,
     std::vector<stage_data_modern*>& load_stage_data);

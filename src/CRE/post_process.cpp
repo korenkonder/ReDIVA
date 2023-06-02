@@ -18,6 +18,22 @@ extern bool task_stage_is_modern;
 
 extern render_context* rctx_ptr;
 
+post_process_frame_texture_render_texture::post_process_frame_texture_render_texture() : texture() {
+    type = POST_PROCESS_FRAME_TEXTURE_MAX;
+}
+
+post_process_frame_texture_render_texture::~post_process_frame_texture_render_texture() {
+
+}
+
+post_process_frame_texture::post_process_frame_texture() : capture() {
+
+}
+
+post_process_frame_texture::~post_process_frame_texture() {
+
+}
+
 post_process::post_process() : ssaa(), mlaa(), ss_alpha_mask(), aet_back_tex(),
 render_textures_data(), movie_textures_data(), aet_back(), texture_counter(), lens_shaft_query(),
 lens_flare_query(), lens_shaft_query_data(), lens_flare_query_data(), lens_flare_query_index(),
@@ -155,6 +171,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 
     draw_lens_ghost(&rend_texture);
 
+    get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_PRE_PP);
+
     blur->get_blur(&rend_texture);
     exposure->get_exposure(cam, render_width, render_height, reset_exposure,
         blur->tex[4].color_texture->tex, blur->tex[2].color_texture->tex);
@@ -183,6 +201,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         shaders_ft.set(SHADER_FT_REDUCE);
         render_texture::draw_quad(&shaders_ft, render_width, render_height);
     }
+
+    get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_POST_PP);
 
     fbo::blit(rend_texture.fbos[0], post_texture.fbos[0],
         0, 0, render_width, render_height,
@@ -636,6 +656,70 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
     this->screen_height = screen_height;
 }
 
+bool post_process::frame_texture_cont_capture_set(bool value) {
+    frame_texture[0].capture = value;
+    return true;
+}
+
+void post_process::frame_texture_free() {
+    for (post_process_frame_texture& i : frame_texture) {
+        for (post_process_frame_texture_render_texture& j : i.render_textures) {
+            j.texture = 0;
+            j.render_texture.free();
+            j.type = POST_PROCESS_FRAME_TEXTURE_MAX;
+        }
+
+        i.capture = false;
+    }
+}
+
+int32_t post_process::frame_texture_load(int32_t slot, post_process_frame_texture_type type, texture* tex) {
+    if (!tex || slot < 0 || slot >= 6)
+        return -1;
+
+    for (post_process_frame_texture_render_texture& i : frame_texture[slot].render_textures)
+        if (!i.texture) {
+            i.render_texture.set_color_depth_textures(tex->tex, 0, 0);
+            i.texture = tex;
+            i.type = type;
+            return (int32_t)(&i - frame_texture[slot].render_textures);
+        }
+    return -1;
+}
+
+void post_process::frame_texture_reset() {
+    for (post_process_frame_texture& i : frame_texture) {
+        for (post_process_frame_texture_render_texture& j : i.render_textures) {
+            j.texture = 0;
+            j.type = POST_PROCESS_FRAME_TEXTURE_MAX;
+        }
+
+        i.capture = false;
+    }
+}
+
+bool post_process::frame_texture_slot_capture_set(int32_t index) {
+    if (index < 1 || index >= 5)
+        return false;
+
+    frame_texture[index].capture = true;
+    return true;
+}
+
+bool post_process::frame_texture_unload(int32_t slot, texture* tex) {
+    if (!tex || slot < 0 || slot >= 6)
+        return false;
+
+    for (post_process_frame_texture_render_texture& i : frame_texture[slot].render_textures)
+        if (i.texture == tex) {
+            i.render_texture.free();
+            i.texture = 0;
+            i.type = POST_PROCESS_FRAME_TEXTURE_MAX;
+            return true;
+        }
+    return false;
+}
+
 int32_t post_process::movie_texture_set(texture* movie_texture) {
     if (!movie_texture)
         return -1;
@@ -648,6 +732,33 @@ int32_t post_process::movie_texture_set(texture* movie_texture) {
     movie_textures_data[index] = movie_texture;
     movie_textures[index].set_color_depth_textures(movie_texture->tex, 0, 0);
     return index;
+}
+
+void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type type) {
+    for (post_process_frame_texture& i : frame_texture) {
+        if (!i.capture)
+            continue;
+
+        for (auto& j : i.render_textures) {
+            if (!j.texture || j.type != type || j.render_texture.bind() < 0)
+                continue;
+
+            texture* dst_tex = j.texture;
+
+            glActiveTexture(GL_TEXTURE0);
+            gl_state_active_bind_texture_2d(GL_TEXTURE_2D, tex);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glViewport(0, 0, dst_tex->width, dst_tex->height);
+            uniform_value[U_REDUCE] = 0;
+            shaders_ft.set(SHADER_FT_REDUCE);
+            render_texture::draw_quad(&shaders_ft, dst_tex->width, dst_tex->height);
+            gl_state_bind_framebuffer(0);
+        }
+
+        if (&i - frame_texture)
+            i.capture = false;
+    }
 }
 
 void post_process::movie_texture_free(texture* movie_texture) {

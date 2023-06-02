@@ -7,8 +7,8 @@
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/mdata_manager.hpp"
 #include "../CRE/sprite.hpp"
+#include "pv_game/pv_game.hpp"
 #include "game_state.hpp"
-#include "pv_game.hpp"
 
 system_startup_detail::TaskSystemStartup* task_system_startup;
 
@@ -25,8 +25,6 @@ system_startup_struct system_startup;
 int32_t system_startup_ready;
 
 static bool system_startup_check_ready();
-
-static void task_pv_game_init_test_pv();
 
 namespace system_startup_detail {
     TaskSystemStartup::TaskSystemStartup() {
@@ -61,7 +59,7 @@ namespace system_startup_detail {
                 system_startup.state = 4;
             break;
         case 4:
-            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, false);
+            //rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, false);
             task_pv_game_init_test_pv();
             system_startup.state = 5;
             break;
@@ -78,7 +76,7 @@ namespace system_startup_detail {
                 system_startup.state = 8;
             break;
         case 8:
-            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, true);
+            //rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, true);
             system_startup_ready = 1;
             break;
         }
@@ -131,29 +129,12 @@ static bool system_startup_check_ready() {
         return true;
 
     task_pv_game_del_task();
-    if (!task_pv_game_check_task_ready() && task_rob_manager_del_task())
-        system_startup.ready = true;
+    if (!task_pv_game_check_task_ready()) {
+        //task_mask_screen_fade_in(0.0f, 0);
+        if (task_rob_manager_del_task()) {
+            system_startup.ready = true;
+            return true;
+        }
+    }
     return system_startup.ready;
-}
-
-static void task_pv_game_init_test_pv() {
-    if (test_mode_get())
-        return;
-
-    task_rob_manager_add_task();
-    TaskPvGame::Args args;
-    args.init_data.pv_id = 999;
-    args.init_data.difficulty = 1;
-    args.init_data.field_C = 0;
-    args.init_data.score_percentage_clear = 50;
-    args.init_data.life_gauge_safety_time = 40;
-    args.init_data.life_gauge_border = 30;
-    args.field_190 = false;
-    args.field_191 = false;
-    args.no_fail = false;
-    args.field_193 = true;
-    args.field_194 = true;
-    args.field_195 = true;
-    args.test_pv = true;
-    task_pv_game_add_task(args);
 }

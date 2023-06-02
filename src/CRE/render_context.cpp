@@ -207,7 +207,7 @@ namespace mdl {
         pos[0] = { 0.0f, 0.0f, 0.0f };
         pos[1] = { 0.0f, 0.0f, 1.0f };
     }
-    
+
     EtcObjEllipse::EtcObjEllipse() : wire() {
         radius = 1.0f;
         slices = 8;
@@ -1595,7 +1595,7 @@ namespace mdl {
             etc_vertex_array_cache.push_back({});
             etc_vertex_array = &etc_vertex_array_cache.back();
         }
-        
+
         if (!etc_vertex_array->vertex_array) {
             glGenVertexArrays(1, &etc_vertex_array->vertex_array);
 

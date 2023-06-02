@@ -53,22 +53,22 @@ enum dsc_type {
 #pragma region dsc_note
 struct dsc_note7 {
     int32_t type;
-    int32_t x_pos;
-    int32_t y_pos;
+    int32_t pos_x;
+    int32_t pos_y;
     int32_t angle;
     int32_t distance;
     int32_t amplitude;
-    int32_t wave_count;
+    int32_t frequency;
 };
 
 struct dsc_note11 {
     int32_t type;
     int32_t hold_timer;
     int32_t hold_end;
-    int32_t x_pos;
-    int32_t y_pos;
+    int32_t pos_x;
+    int32_t pos_y;
     int32_t angle;
-    int32_t wave_count;
+    int32_t frequency;
     int32_t distance;
     int32_t amplitude;
     int32_t target_flying_time;
@@ -79,10 +79,10 @@ struct dsc_note12 {
     int32_t type;
     int32_t hold_timer;
     int32_t hold_end;
-    int32_t x_pos;
-    int32_t y_pos;
+    int32_t pos_x;
+    int32_t pos_y;
     int32_t angle;
-    int32_t wave_count;
+    int32_t frequency;
     int32_t distance;
     int32_t amplitude;
     int32_t target_flying_time;
@@ -119,6 +119,7 @@ enum dsc_target_ac {
     DSC_TARGET_AC_RANDOM                    = 0x08,
     DSC_TARGET_AC_RANDOM_HOLD               = 0x09,
     DSC_TARGET_AC_PREVIOUS                  = 0x0A,
+    DSC_TARGET_AC_MAX                       = 0x0B,
 };
 
  enum dsc_target_ft {
@@ -133,8 +134,10 @@ enum dsc_target_ac {
     DSC_TARGET_FT_RANDOM                    = 0x08,
     DSC_TARGET_FT_RANDOM_HOLD               = 0x09,
     DSC_TARGET_FT_PREVIOUS                  = 0x0A,
+    DSC_TARGET_FT_0B                        = 0x0B,
     DSC_TARGET_FT_SLIDE_L                   = 0x0C,
     DSC_TARGET_FT_SLIDE_R                   = 0x0D,
+    DSC_TARGET_FT_0E                        = 0x0E,
     DSC_TARGET_FT_SLIDE_CHAIN_L             = 0x0F,
     DSC_TARGET_FT_SLIDE_CHAIN_R             = 0x10,
     DSC_TARGET_FT_GREEN_SQUARE              = 0x11,
@@ -142,8 +145,10 @@ enum dsc_target_ac {
     DSC_TARGET_FT_CIRCLE_CHANCE             = 0x13,
     DSC_TARGET_FT_CROSS_CHANCE              = 0x14,
     DSC_TARGET_FT_SQUARE_CHANCE             = 0x15,
+    DSC_TARGET_FT_16                        = 0x16,
     DSC_TARGET_FT_SLIDE_L_CHANCE            = 0x17,
     DSC_TARGET_FT_SLIDE_R_CHANCE            = 0x18,
+    DSC_TARGET_FT_MAX                       = 0x19,
 };
 
 enum dsc_target_dt {
@@ -159,6 +164,7 @@ enum dsc_target_dt {
     DSC_TARGET_DT_CIRCLE_HOLD               = 0x09,
     DSC_TARGET_DT_CROSS_HOLD                = 0x0A,
     DSC_TARGET_DT_SQUARE_HOLD               = 0x0B,
+    DSC_TARGET_DT_MAX                       = 0x0C,
 };
 
 enum dsc_target_f {
@@ -183,6 +189,7 @@ enum dsc_target_f {
     DSC_TARGET_F_STAR_RIGHT                 = 0x13,
     DSC_TARGET_F_STAR_DOWN                  = 0x14,
     DSC_TARGET_F_STAR_LEFT                  = 0x15,
+    DSC_TARGET_F_MAX                        = 0x16,
 };
 
 enum dsc_target_f2 {
@@ -205,6 +212,7 @@ enum dsc_target_f2 {
     DSC_TARGET_F2_EDIT_CHANCE_STAR          = 0x10,
     DSC_TARGET_F2_LINK_STAR                 = 0x16,
     DSC_TARGET_F2_LINK_STAR_END             = 0x17,
+    DSC_TARGET_F2_MAX                       = 0x18,
 };
 
 enum dsc_target_mgf {
@@ -232,6 +240,7 @@ enum dsc_target_mgf {
     DSC_TARGET_MGF_CIRCLE_FEVER_HOLD        = 0x2A,
     DSC_TARGET_MGF_CROSS_FEVER_HOLD         = 0x2B,
     DSC_TARGET_MGF_SQUARE_FEVER_HOLD        = 0x2C,
+    DSC_TARGET_MGF_MAX                      = 0x2D,
 };
 
 enum dsc_target_id_x {
@@ -260,6 +269,7 @@ enum dsc_target_id_x {
     DSC_TARGET_X_CIRCLE_RUSH                = 0x1A,
     DSC_TARGET_X_CROSS_RUSH                 = 0x1B,
     DSC_TARGET_X_SQUARE_RUSH                = 0x1C,
+    DSC_TARGET_X_MAX                        = 0x1D,
 };
 #pragma endregion
 

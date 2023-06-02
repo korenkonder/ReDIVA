@@ -490,6 +490,10 @@ const char* aet_database::get_aet_set_name(uint32_t set_id) const {
     return get_aet_set_by_id(set_id)->name.c_str();
 }
 
+uint32_t aet_database::get_aet_id_by_name(const char* name) const {
+    return get_aet_by_name(name)->id;
+}
+
 static void aet_database_file_classic_read_inner(aet_database_file* aet_db, stream& s) {
     uint32_t aet_sets_count = s.read_uint32_t();
     uint32_t aet_sets_offset = s.read_uint32_t();

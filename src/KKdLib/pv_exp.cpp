@@ -161,7 +161,7 @@ static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_al
             s.position_push(face_offset[i], SEEK_SET);
             s.read(0x04);
             while (s.read_int16_t() != -1) {
-                s.read(0x0C);
+                s.read(0x0E);
                 face_count++;
             }
             face_count++;
@@ -185,7 +185,7 @@ static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_al
             s.position_push(face_cl_offset[i], SEEK_SET);
             s.read(0x04);
             while (s.read_int16_t() != -1) {
-                s.read(0x0C);
+                s.read(0x0E);
                 face_cl_count++;
             }
             face_cl_count++;

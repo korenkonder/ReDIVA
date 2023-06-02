@@ -86,7 +86,7 @@ namespace mdl {
         GLuint vao = rctx->disp_manager.get_vertex_array(etc);
         if (!vao)
             return;
-       
+
         vec4 g_material_state_diffuse = rctx->obj_batch.g_material_state_diffuse;
         vec4 g_material_state_ambient = rctx->obj_batch.g_material_state_ambient;
         vec4 g_material_state_specular = rctx->obj_batch.g_material_state_specular;
