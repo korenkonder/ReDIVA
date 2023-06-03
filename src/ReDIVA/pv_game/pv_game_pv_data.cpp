@@ -500,7 +500,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
                 rob_chr->bone_data->set_disable_eye_motion(i.disable_eye_motion);
                 rob_chr->set_motion_step(i.frame_speed);
                 if (set)
-                    pv_expression_array_set_motion(hash_murmurhash_empty, chara_id, i.motion_id);
+                    pv_expression_array_set_motion(pv_game->data.pv->
+                        pv_expression_file_name.c_str(), chara_id, i.motion_id);
 
                 if (!pv_game->data.pv->disable_calc_motfrm_limit)
                     set_motion_max_frame(chara_id, i.motion_index, i.dsc_time);
@@ -624,7 +625,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
             rob_chr->bone_data->set_disable_eye_motion(true);
             rob_chr->set_motion_step(frame_speed);
             if (set)
-                pv_expression_array_set_motion(hash_murmurhash_empty, chara_id, motion_id);
+                pv_expression_array_set_motion(pv_game->data.pv->
+                    pv_expression_file_name.c_str(), chara_id, motion_id);
 
             if (!pv_game->data.pv->disable_calc_motfrm_limit)
                 set_motion_max_frame(chara_id, motion_index, motion ? motion->time : 0);
@@ -1406,7 +1408,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
                     rob_chr->bone_data->set_disable_eye_motion(i.disable_eye_motion);
                     rob_chr->set_motion_step(i.frame_speed);
                     if (set)
-                        pv_expression_array_set_motion(hash_murmurhash_empty, chara_id, i.motion_id);
+                        pv_expression_array_set_motion(pv_game->data.pv->
+                            pv_expression_file_name.c_str(), chara_id, i.motion_id);
                 }
                 playdata->set_motion.clear();
             }

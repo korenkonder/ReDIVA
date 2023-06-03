@@ -47,8 +47,8 @@ struct pv_expression {
     void face_set_frame(float_t frame);
     void reset();
     void reset_data();
-    bool set_motion(const char* file, int32_t motion_id);
-    bool set_motion(uint32_t, int32_t motion_id);
+    bool set_motion(const char* path, int32_t motion_id);
+    bool set_motion(uint32_t hash, int32_t motion_id);
 };
 
 pv_expression pv_expression_array[ROB_CHARA_COUNT];
@@ -106,9 +106,9 @@ void pv_expression_array_reset_motion(size_t chara_id) {
     exp.reset();
 }
 
-bool pv_expression_array_set_motion(const char* file, size_t chara_id, int32_t motion_id) {
+bool pv_expression_array_set_motion(const char* path, size_t chara_id, int32_t motion_id) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
-        return pv_expression_array[chara_id].set_motion(file, motion_id);
+        return pv_expression_array[chara_id].set_motion(path, motion_id);
     return false;
 }
 
@@ -488,8 +488,11 @@ void pv_expression::reset_data() {
     face_cl_data_update = false;
 }
 
-bool pv_expression::set_motion(const char* file, int32_t motion_id) {
-    return set_motion(hash_utf8_murmurhash(file), motion_id);
+bool pv_expression::set_motion(const char* path, int32_t motion_id) {
+    const char* file = strrchr(path, '/');
+    if (!file)
+        file = strrchr(path, '\\');
+    return set_motion(hash_utf8_murmurhash(file ? file : path), motion_id);
 }
 
 bool pv_expression::set_motion(uint32_t hash, int32_t motion_id) {
