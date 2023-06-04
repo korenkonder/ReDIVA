@@ -185,7 +185,7 @@ struct pv_game_data {
     int32_t life_gauge_safety_time;
     int32_t life_gauge_border;
     int32_t stage_index;
-    bool field_2D00C;
+    bool music_play;
     bool no_fail;
     bool field_2D00E;
     bool changed_field;
@@ -209,9 +209,9 @@ struct pv_game_data {
     bool field_2D05E;
     bool start_fade;
     bool title_image_init;
-    bool field_2D061;
+    bool mute;
     bool ex_stage;
-    bool field_2D063;
+    bool play_success;
     bool has_auth_3d_frame;
     bool has_light_frame;
     bool has_aet_frame[4];
@@ -473,7 +473,7 @@ struct pv_game_init_data {
 };
 
 struct struc_14 {
-    int32_t field_0;
+    int32_t type;
     pv_difficulty difficulty;
     int32_t edition;
     uint32_t pv;
@@ -504,7 +504,7 @@ struct struc_677 {
     int32_t field_10;
     bool no_fail;
     int8_t field_15;
-    int8_t field_16;
+    bool success;
     bool field_17;
     int32_t field_18;
     int32_t field_1C;
@@ -746,9 +746,9 @@ public:
         bool no_fail;
         bool field_193;
         bool field_194;
-        bool field_195;
+        bool mute;
         bool ex_stage;
-        bool field_197;
+        bool success;
         bool test_pv;
         int32_t option;
 
@@ -760,7 +760,7 @@ public:
     };
 
     struct Data {
-        int32_t field_0;
+        int32_t type;
         pv_game_init_data init_data;
         std::string se_name;
         std::string slide_se_name;
@@ -770,12 +770,12 @@ public:
         std::string chainslide_failure_name;
         std::string slidertouch_name;
         bool field_190;
-        bool field_191;
+        bool music_play;
         bool no_fail;
         bool field_193;
-        bool field_194;
+        bool mute;
         bool ex_stage;
-        bool field_196;
+        bool success;
         int32_t option;
 
         Data();

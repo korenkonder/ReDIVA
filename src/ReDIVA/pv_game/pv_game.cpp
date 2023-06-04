@@ -269,12 +269,12 @@ current_reference_score(), target_count(), field_2CF84(), field_2CF88(), field_2
 slide_chain_length(), field_2CF98(), field_2CF9C(), field_2CFA0(), field_2CFA4(), pv(),field_2CFB0(),
 chance_point(), reference_score(), reference_score_no_flag(), reference_score_no_flag_life_bonus(),
 field_2CFE0(), field_2CFE4(), notes_passed(), field_2CFF0(), song_energy(), song_energy_base(),
-song_energy_border(), life_gauge_safety_time(), life_gauge_border(), stage_index(), field_2D00C(),
+song_energy_border(), life_gauge_safety_time(), life_gauge_border(), stage_index(), music_play(),
 no_fail(), changed_field(), challenge_time_start(), challenge_time_end(), max_time(), max_time_float(),
 current_time_float(), current_time(), field_2D038(), field_2D03C(), score_hold_multi(),
 score_hold(), score_slide(), has_slide(), has_success_se(), pv_disp2d(), life_gauge_final(),
-hit_border(), field_2D05D(), field_2D05E(), start_fade(), title_image_init(), field_2D061(),
-ex_stage(), field_2D063(), has_auth_3d_frame(), has_light_frame(), has_aet_frame(), has_aet_list(),
+hit_border(), field_2D05D(), field_2D05E(), start_fade(), title_image_init(), mute(),
+ex_stage(), play_success(), has_auth_3d_frame(), has_light_frame(), has_aet_frame(), has_aet_list(),
 field_index(), edit_effect_index(), slidertouch_counter(), change_field_branch_success_counter(),
 field_2D080(), field_2D084(), life_gauge_bonus(), life_gauge_total_bonus(), field_2D090(), no_clear(),
 field_2D092(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), success(), title_image_state(),
@@ -464,7 +464,7 @@ bool pv_game_data::sub_140119960(bool* has_target, int64_t* dsc_time, int32_t* t
             case DSC_TARGET_FT_16:
             case DSC_TARGET_FT_SLIDE_L_CHANCE:
             case DSC_TARGET_FT_SLIDE_R_CHANCE:
-                *has_slide = 1;
+                *has_slide = true;
                 break;
             case DSC_TARGET_FT_0E:
                 *slide_chain_type = 1;
@@ -815,12 +815,12 @@ field_4(), state(), field_C(), pv_id(), field_14(), modules(), items() {
     data.life_gauge_safety_time = 0;
     data.life_gauge_border = 0;
     data.stage_index = 0;
-    data.field_2D00C = true;
+    data.music_play = true;
     data.challenge_time_start = -1;
     data.challenge_time_end = -1;
-    data.field_2D061 = false;
+    data.mute = false;
     data.ex_stage = false;
-    data.field_2D063 = false;
+    data.play_success = false;
     data.field_2D0BC = false;
     data.next_stage = false;
     data.has_frame_texture = false;
@@ -1153,7 +1153,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
     if (!data.task_effect_init && (dsc_time > -1 || curr_time > -1)) {
         rand_state_array_4_set_seed_1393939();
         task_effect_parent_reset();
-        data.task_effect_init = 1;
+        data.task_effect_init = true;
     }
 
     pv_game_field& curr_field_data = data.field_data[data.current_field];
@@ -2359,6 +2359,8 @@ bool pv_game::load() {
             pv_db_pv* pv = task_pv_db_get_pv(pv_id);
             if (pv)
                 data.pv = pv;
+            else
+                break;
 
             const pv_db_pv_disp2d* pv_disp2d;
             int32_t pv_disp2d_pv_id;
@@ -2388,7 +2390,7 @@ bool pv_game::load() {
 
                     pv_disp2d_data.pv_spr_set_id = aft_spr_db->get_spr_set_id_by_name(spr_set_name.c_str());
                     pv_disp2d_data.pv_aet_set_id = aft_aet_db->get_aet_set_id_by_name(aet_set_name.c_str());
-                    pv_disp2d_data.pv_aet_id = aft_aet_db->get_aet_id_by_name(aet_set_name.c_str());
+                    pv_disp2d_data.pv_aet_id = aft_aet_db->get_aet_id_by_name(aet_name.c_str());
                 }
 
                 pv_disp2d_data.title_start_2d_field = pv_disp2d->title_start_2d_field;
@@ -2663,7 +2665,7 @@ bool pv_game::load() {
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
         if (diff && !data.field_2D094) {
             if (sub_14013C8C0()->sub_1400E7910() < 4
-                && !data.pv_data.read_dsc_file(std::string(diff->script_file_name), this, data.field_2D00C))
+                && !data.pv_data.read_dsc_file(std::string(diff->script_file_name), this, data.music_play))
                 return false;
 
             data.field_2D094 = true;
@@ -4017,7 +4019,7 @@ void pv_game::reset() {
     for (bool& i : data.has_aet_list)
         i = false;
 
-    data.success = data.field_2D063;
+    data.success = data.play_success;
     data.field_2CE98 = 0;
     data.se_index = -1;
     data.field_2DB34 = 0;
@@ -4760,7 +4762,7 @@ int32_t pv_game::sub_1400FDD80() {
 
 void pv_game::sub_140104FB0() {
     data.se_index = -1;
-    data.success = data.field_2D063;
+    data.success = data.play_success;
     data.field_2CE98 = 0;
     data.field_2DB34 = 0;
     data.field_2D0A8 = 0;
@@ -5056,25 +5058,25 @@ void pv_game_init_data::reset() {
 
 struc_14::struc_14() : edition(), pv(), field_10(), field_11(), field_12(),
 field_13(), field_14(), field_18(), field_1C(), field_24(), field_25(), field_26() {
-    field_0 = 8;
+    type = 8;
     difficulty = PV_DIFFICULTY_NORMAL;
     field_20 = 1.0f;
 }
 
 int32_t struc_14::sub_1400E7910() {
-    return field_0;
+    return type;
 }
 
 bool struc_14::sub_1400E7920() {
-    return field_0 == 2 || field_0 == 3 || field_0 == 5 || field_0 == 7;
+    return type == 2 || type == 3 || type == 5 || type == 7;
 }
 
 void struc_14::sub_1400E79E0(int32_t a2) {
-    field_0 = a2;
+    type = a2;
 }
 
 TaskPvGame::Args::Args() : init_data(), field_190(), field_191(), no_fail(),
-field_193(), field_194(), field_195(), ex_stage(), field_197(), test_pv(), option() {
+field_193(), field_194(), mute(), ex_stage(), success(), test_pv(), option() {
     Reset();
 }
 
@@ -5100,15 +5102,15 @@ void TaskPvGame::Args::Reset() {
     no_fail = false;
     field_193 = true;
     field_194 = false;
-    field_195 = false;
+    mute = false;
     ex_stage = false;
-    field_197 = false;
+    success = false;
     test_pv = false;
     option = 0;
 }
 
-TaskPvGame::Data::Data() : field_0(), init_data(), field_190(), field_191(), no_fail(),
-field_193(), field_194(), ex_stage(), field_196(), option() {
+TaskPvGame::Data::Data() : type(), init_data(), field_190(), music_play(),
+no_fail(), field_193(), mute(), ex_stage(), success(), option() {
     Reset();
 }
 
@@ -5127,16 +5129,16 @@ void TaskPvGame::Data::Clear() {
 }
 
 void TaskPvGame::Data::Reset() {
-    field_0 = 1;
+    type = 1;
     init_data.reset();
     Clear();
     field_190 = false;
-    field_191 = true;
+    music_play = true;
     no_fail = false;
     field_193 = true;
-    field_194 = false;
+    mute = false;
     ex_stage = false;
-    field_196 = false;
+    success = false;
     option = 0;
 }
 
@@ -5187,7 +5189,7 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_time_data.current_time.get_timestamp();
     pv_game_time_data.add_current_time = true;
 
-    sub_14013C8C0()->sub_1400E79E0(data.field_0);
+    sub_14013C8C0()->sub_1400E79E0(data.type);
     sub_14013C8C0()->pv = data.init_data.pv_id;;
     sub_14013C8C0()->difficulty = data.init_data.difficulty;
     sub_14013C8C0()->edition = data.init_data.edition;
@@ -5199,7 +5201,7 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
             pv_game_ptr->set_item_mask(i, i, data.init_data.items_mask[i].arr[j]);
     }
 
-    pv_game_ptr->data.field_2D00C = data.field_191;
+    pv_game_ptr->data.music_play = data.music_play;
     pv_game_ptr->data.no_fail = data.no_fail;
     pv_game_ptr->data.field_2D00E = data.field_193;
     pv_game_ptr->data.song_energy_base = (float_t)data.init_data.score_percentage_clear;
@@ -5213,9 +5215,9 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_ptr->data.play_data.other_chainslide_success_name.assign(data.chainslide_success_name);
     pv_game_ptr->data.play_data.other_chainslide_failure_name.assign(data.chainslide_failure_name);
     pv_game_ptr->data.play_data.other_slidertouch_name.assign(data.slidertouch_name);
-    pv_game_ptr->data.field_2D061 = data.field_194;
+    pv_game_ptr->data.mute = data.mute;
     pv_game_ptr->data.ex_stage = data.ex_stage;
-    pv_game_ptr->data.field_2D063 = data.field_196;
+    pv_game_ptr->data.play_success = data.success;
     pv_game_ptr->data.play_data.option = data.option;
 
     target_pos_scale_offset_get();
@@ -5252,7 +5254,7 @@ float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, 
 }
 
 float_t dsc_time_to_frame(int64_t time) {
-    return (float_t)((float_t)(int32_t)time / (float_t)1000000000) * 60.0f;
+    return (float_t)time / (float_t)1000000000 * 60.0f;
 }
 
 void pv_game_init() {
@@ -5279,7 +5281,7 @@ bool task_pv_game_add_task(TaskPvGame::Args& args) {
     if (!task_pv_game)
         task_pv_game = new TaskPvGame;
 
-    task_pv_game->data.field_0 = 1;
+    task_pv_game->data.type = 1;
     task_pv_game->data.init_data = args.init_data;
     task_pv_game->data.se_name.assign(args.se_name);
     task_pv_game->data.slide_se_name.assign(args.slide_se_name);
@@ -5289,17 +5291,17 @@ bool task_pv_game_add_task(TaskPvGame::Args& args) {
     task_pv_game->data.chainslide_failure_name.assign(args.chainslide_failure_name);
     task_pv_game->data.slidertouch_name.assign(args.slidertouch_name);
     task_pv_game->data.field_190 = args.field_190;
-    task_pv_game->data.field_191 = !args.field_195;
+    task_pv_game->data.music_play = !args.mute;
     task_pv_game->data.no_fail = args.no_fail;
     if (args.field_191) {
-        task_pv_game->data.field_0 = 2;
+        task_pv_game->data.type = 2;
         task_pv_game->data.field_193 = args.field_193;
     }
     else
         task_pv_game->data.field_193 = true;
-    task_pv_game->data.field_194 = args.field_195;
+    task_pv_game->data.mute = args.mute;
     task_pv_game->data.ex_stage = args.ex_stage;
-    task_pv_game->data.field_196 = args.field_197;
+    task_pv_game->data.success = args.success;
     task_pv_game->data.option = args.option;
 
     if (args.test_pv)
@@ -5391,15 +5393,15 @@ void task_pv_game_init_pv() {
 
     if (sub_14038BB30()->field_0.no_fail) {
         args.no_fail = true;
-        if (!sub_14038BB30()->field_0.field_15) {
-            args.field_190 = false;
-            args.field_191 = false;
-        }
-        else {
+        if (sub_14038BB30()->field_0.field_15) {
             args.field_190 = true;
             args.field_191 = true;
-            if (sub_14038BB30()->field_0.field_16)
-                args.field_197 = true;
+            if (sub_14038BB30()->field_0.success)
+                args.success = true;
+        }
+        else {
+            args.field_190 = false;
+            args.field_191 = false;
         }
     }
     else {
@@ -5429,7 +5431,7 @@ void task_pv_game_init_test_pv() {
     args.no_fail = false;
     args.field_193 = true;
     args.field_194 = true;
-    args.field_195 = true;
+    args.mute = true;
     args.test_pv = true;
     task_pv_game_add_task(args);
 }
@@ -5652,11 +5654,11 @@ static bool pv_game_parent_ctrl() {
 
     int64_t curr_time = pv_game_time_data.curr_time;
     if (pv_game_time_data.add_last_stop_time)
-        curr_time += (int64_t)(pv_game_time_data.last_stop_time.calc_time() * 100.0);
+        curr_time += (int64_t)(pv_game_time_data.last_stop_time.calc_time() * 1000.0);
 
     int64_t delta_time = pv_game_time_data.delta_time;
     if (pv_game_time_data.add_current_time)
-        delta_time += (int64_t)(pv_game_time_data.current_time.calc_time() * 100.0);
+        delta_time += (int64_t)(pv_game_time_data.current_time.calc_time() * 1000.0);
 
     pv_game_time_data.delta_time = 0;
     pv_game_time_data.current_time.get_timestamp();
@@ -5680,11 +5682,11 @@ static void pv_game_parent_disp() {
 
 static void pv_game_time_ctrl() {
     if (pv_game_time_data.add_last_stop_time)
-        pv_game_time_data.curr_time += (int64_t)(pv_game_time_data.last_stop_time.calc_time() * 100.0);
+        pv_game_time_data.curr_time += (int64_t)(pv_game_time_data.last_stop_time.calc_time() * 1000.0);
     pv_game_time_data.add_last_stop_time = false;
 
     if (pv_game_time_data.add_current_time)
-        pv_game_time_data.delta_time += (int64_t)(pv_game_time_data.current_time.calc_time() * 100.0);
+        pv_game_time_data.delta_time += (int64_t)(pv_game_time_data.current_time.calc_time() * 1000.0);
     pv_game_time_data.add_current_time = false;
 }
 

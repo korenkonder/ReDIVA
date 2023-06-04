@@ -288,8 +288,8 @@ struct pv_game_pv_data {
     int32_t field_2BFB4;
     int32_t field_2BFB8;
     int32_t field_2BFBC;
-    bool field_2BFC0;
     bool music_play;
+    bool music_playing;
     int32_t field_2BFC4;
     bool pv_end;
     float_t fov;
@@ -325,7 +325,8 @@ struct pv_game_pv_data {
     int64_t ctrl(float_t delta_time, int64_t curr_time, bool a4);
     //void dsc_buffer_counter_set();
     //void dsc_buffer_set(const void* data, uint32_t size);
-    bool dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* dsc_time_offset, bool* music_play, bool a6, bool ignore_targets);
+    bool dsc_ctrl(float_t delta_time, int64_t curr_time,
+        float_t* dsc_time_offset, bool* music_play, bool a6, bool ignore_targets);
     void dsc_reset_position();
     //void dsc_get_start_position(int32_t* value);
     dsc_data* find_func(int32_t func_name, int32_t* time,
@@ -338,12 +339,12 @@ struct pv_game_pv_data {
     const std::vector<pv_data_set_motion>* get_set_motion(size_t chara_id);
     pv_dsc_target_group* get_target();
     int32_t get_target_target_count(size_t index, float_t time_offset, bool a4);
-    void init(::pv_game * pv_game, bool a3);
-    bool read_dsc_file(std::string&& file_path, struct pv_game* pv_game, bool a4);
+    void init(::pv_game * pv_game, bool music_play);
+    bool read_dsc_file(std::string&& file_path, struct pv_game* pv_game, bool music_play);
     void reset();
     void reset_camera_post_process();
     void scene_fade_ctrl(float_t delta_time);
-    void set_camera_max_frame(int32_t time);
+    void set_camera_max_frame(int64_t time);
     void set_item_anim_max_frame(int32_t chara_id, int32_t index, int64_t time);
     void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
 };

@@ -1141,16 +1141,17 @@ bool SubGameState::PhotoModeDemo::Dest() {
 }
 
 bool SubGameState::Selector::Init() {
-    app::TaskWork::AddTask(&x_pv_game_selector, "X PVGAME SELECTOR", 0);
+    x_pv_game_selector_init();
+    app::TaskWork::AddTask(x_pv_game_selector_ptr, "X PVGAME SELECTOR", 0);
     return true;
 }
 
 bool SubGameState::Selector::Ctrl() {
-    if (x_pv_game_selector.exit) {
-        if (x_pv_game_selector.start && x_pv_game_init()) {
-            XPVGameSelector& sel = x_pv_game_selector;
+    if (x_pv_game_selector_ptr->exit) {
+        if (x_pv_game_selector_ptr->start && x_pv_game_init()) {
+            XPVGameSelector* sel = x_pv_game_selector_ptr;
             app::TaskWork::AddTask(x_pv_game_ptr, "X PVGAME", 0);
-            x_pv_game_ptr->Load(sel.pv_id, sel.stage_id, sel.charas, sel.modules);
+            x_pv_game_ptr->Load(sel->pv_id, sel->stage_id, sel->charas, sel->modules);
             game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
         }
         else
@@ -1161,8 +1162,13 @@ bool SubGameState::Selector::Ctrl() {
 }
 
 bool SubGameState::Selector::Dest() {
-    x_pv_game_selector.DelTask();
-    return true;
+    if (!app::TaskWork::CheckTaskReady(x_pv_game_selector_ptr)) {
+        x_pv_game_selector_free();
+        return true;
+    }
+
+    x_pv_game_selector_ptr->DelTask();
+    return false;
 }
 
 bool SubGameState::GameMain::Init() {
@@ -1644,6 +1650,10 @@ void game_state_ctrl() {
         }
     }
     game_state->call_count++;
+}
+
+GameStateEnum game_state_get_game_state() {
+    return game_state_get()->game_state;
 }
 
 size_t game_state_print(char* buf, size_t buf_size) {

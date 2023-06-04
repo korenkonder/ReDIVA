@@ -296,18 +296,16 @@ void struc_676::reset() {
 pv_game_pv_data::pv_game_pv_data() : field_0(), dsc_state(), play()/*, dsc_buffer(), dsc_buffer_counter()*/,
 dsc_data_ptr(), dsc_data_ptr_end(), field_2BF38(), curr_time(), curr_time_float(), prev_time_float(),
 field_2BF50(), field_2BF60(), field_2BF64(), field_2BF68(), chara_id(), pv_game()/*, field_2BF80()*/,
-music(), dsc_file_handler(),
-dsc_time(),  music_play(), field_2BFC4(),
-pv_end(), field_2BFD4(), field_2BFD5(), data_camera(),
-has_signature(), has_perf_id(), targets_remaining(), target_index(), scene_rot_y(),
-field_2C550(), branch_mode(), last_challenge_note(), field_2C560() {
+music(), dsc_file_handler(), dsc_time(), music_playing(), field_2BFC4(), pv_end(), field_2BFD4(),
+field_2BFD5(), data_camera(), has_signature(), has_perf_id(), targets_remaining(), target_index(),
+scene_rot_y(), field_2C550(), branch_mode(), last_challenge_note(), field_2C560() {
     field_2BF30 = -1;
     field_2BF58 = -1i64;
     field_2BFB0 = -1;
     field_2BFB4 = -1;
     field_2BFB8 = -1;
     field_2BFBC = -1;
-    field_2BFC0 = true;
+    music_play = true;
     fov = 32.2673416137695f;
     min_dist = 0.05f;
     target_flying_time = -1.0f;
@@ -394,7 +392,8 @@ void pv_game_pv_data::dsc_buffer_set(const void* data, uint32_t size) {
     dsc_buffer_counter_set();
 }*/
 
-bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* dsc_time_offset, bool* music_play, bool a6, bool ignore_targets) {
+bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
+    float_t* dsc_time_offset, bool* music_play, bool a6, bool ignore_targets) {
     if (sub_14013C8C0()->sub_1400E7910() >= 4 && field_2BF68 <= curr_time)
         pv_game->set_lyric(-1, { 0xFF, 0xFF, 0xFF, 0xFF });
 
@@ -421,8 +420,6 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
             }
         }
     }
-
-    dsc_data_ptr++;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
@@ -641,7 +638,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t motion_index = (int32_t)data[0];
+        int32_t motion_index = (int32_t)data[1];
         if (motion_index >= 0) {
             pv_play_data_motion* motion = playdata->get_motion(motion_index);
             if (motion) {
@@ -688,7 +685,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
 
             pv_game->set_data_campv(0, index, frame);
             rctx_ptr->camera->set_fast_change_hist0(true);
-            set_camera_max_frame((int32_t)data_camera[0].time);
+            set_camera_max_frame(data_camera[0].time);
         } break;
         case 1: {
             if (data_camera[1].index != index - 1) {
@@ -713,7 +710,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
 
             pv_game->set_data_campv(1, index, frame);
             rctx_ptr->camera->set_fast_change_hist0(true);
-            set_camera_max_frame((int32_t)data_camera[1].time);
+            set_camera_max_frame(data_camera[1].time);
         } break;
         case 2: {
             pv_game->set_data_campv(2, index, 0.0f);
@@ -957,11 +954,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
             music->play(4, pv_game->get_play_data_song_file_name(), false, 0.0f, 0.0f, 0.0f, 3.0f, false);
 
             int32_t v189 = 100;
-            int32_t v192 = 0;
-            if (sub_14013C8C0()->sub_1400E7910() != 2 || !sub_14013C8C0()->field_25)
-                v192 = 100;
+            int32_t v192 = 100;
+            if (sub_14013C8C0()->sub_1400E7910() == 2 && sub_14013C8C0()->field_25)
+                v192 = 0;
 
-            if (!field_2BFC0) {
+            if (!music_play) {
                 v192 = 0;
                 v189 = 0;
             }
@@ -978,7 +975,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
             music->set_pause(true);
 
         *music_play = true;
-        this->music_play = true;
+        this->music_playing = true;
     } break;
     case DSC_FT_MODE_SELECT:
     case DSC_FT_EDIT_MODE_SELECT: {
@@ -2030,6 +2027,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time, float_t* d
         play = false;
     } return false;
     }
+
+    dsc_data_ptr++;
     return true;
 }
 
@@ -2353,7 +2352,7 @@ int32_t pv_game_pv_data::get_target_target_count(size_t index, float_t time_offs
     return targets[index].target_count;
 }
 
-void pv_game_pv_data::init(::pv_game* pv_game, bool a3) {
+void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     this->pv_game = pv_game;
     //field_2BF80 = sub_14013C8F0();
     music = pv_game_music_get();
@@ -2389,7 +2388,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool a3) {
     field_2BFB4 = -1;
     field_2BFB8 = -1;
     field_2BFBC = -1;
-    field_2BFC0 = a3;
+    music_play = music_play;
     field_2BFD4 = false;
     field_2BFD5 = false;
     pv_end = false;
@@ -2405,7 +2404,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool a3) {
     field_2BF30 = -1;
     field_2BF38 = 0;
     field_2BF68 = 0;
-    music_play = false;
+    music_playing = false;
 
     dsc_reset_position();
 
@@ -2444,7 +2443,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool a3) {
     reset_camera_post_process();
 }
 
-bool pv_game_pv_data::read_dsc_file(std::string&& file_path, ::pv_game* pv_game, bool a4) {
+bool pv_game_pv_data::read_dsc_file(std::string&& file_path, ::pv_game* pv_game, bool music_play) {
     switch (dsc_state) {
     case 0:
         if (dsc_file_handler.read_file(&data_list[DATA_AFT], file_path.c_str()))
@@ -2473,7 +2472,7 @@ bool pv_game_pv_data::read_dsc_file(std::string&& file_path, ::pv_game* pv_game,
         dsc_state = 2;
     } break;
     case 2:
-        init(pv_game, a4);
+        init(pv_game, music_play);
         dsc_state = 0;
         return true;
     }
@@ -2521,9 +2520,9 @@ void pv_game_pv_data::reset() {
 void pv_game_pv_data::reset_camera_post_process() {
     camera* cam = rctx_ptr->camera;
     cam->set_ignore_min_dist(false);
-    cam->set_max_distance(0.05);
+    cam->set_min_distance(0.05f);
     cam->set_ignore_fov(false);
-    cam->set_fov(32.2673416137695);
+    cam->set_fov(32.2673416137695f);
 
     post_process* pp = &rctx_ptr->post_process;
     pp->tone_map->set_scene_fade_color(0.0f);
@@ -2547,7 +2546,7 @@ void pv_game_pv_data::scene_fade_ctrl(float_t delta_time) {
     scene_fade.ctrl(delta_time);
 }
 
-void pv_game_pv_data::set_camera_max_frame(int32_t time) {
+void pv_game_pv_data::set_camera_max_frame(int64_t time) {
     std::vector<int32_t>& data_camera = branch_mode != 2
         ? data_camera_branch_fail
         : data_camera_branch_success;

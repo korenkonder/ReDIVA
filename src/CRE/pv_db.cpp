@@ -1434,6 +1434,7 @@ namespace pv_db {
                                     pv_db_pv_motion motion;
                                     motion.index = (int32_t)m;
                                     motion.id = aft_mot_db->get_motion_id(motion_name);
+                                    motion.name.assign(motion_name);
                                     d.motion[l].push_back(motion);
                                 }
 
@@ -1970,8 +1971,10 @@ namespace pv_db {
 
                 j.field.data.reserve(count);
                 for (int32_t k = 0; k <= count; k++) {
-                    if (!kv.open_scope_fmt("%02d", k))
+                    if (!kv.open_scope_fmt("%02d", k)) {
+                        j.field.data.push_back({});
                         continue;
+                    }
 
                     pv_db_pv_field field;
 

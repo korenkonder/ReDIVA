@@ -55,7 +55,7 @@ namespace system_startup_detail {
             system_startup.state = 3;
             break;
         case 3:
-            if (mdata_manager_get()->state == 5 ||mdata_manager_get()->state == 15)
+            if (!app::TaskWork::CheckTaskReady(mdata_manager_get()))
                 system_startup.state = 4;
             break;
         case 4:

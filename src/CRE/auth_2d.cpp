@@ -254,7 +254,7 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
     if (!comp || !names || !spr_ids)
         return;
 
-    for (int32_t i = 0; i < max_digits && (all_digits || value); i++) {
+    for (int32_t i = 0; i < max_digits; i++) {
         int32_t digit = value % 10;
         value /= 10;
 
@@ -262,6 +262,9 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
         if (layout)
             aet_layout_data::put_sprite(spr_ids[digit],
                 spr::SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
+
+        if (!all_digits && !value)
+            break;
     }
 }
 
