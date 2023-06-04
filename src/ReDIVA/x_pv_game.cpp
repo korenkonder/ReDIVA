@@ -198,6 +198,7 @@ enum dsc_x_func {
     DSC_X_VR_LIVE_TRANSFORM,
     DSC_X_VR_LIVE_FLY,
     DSC_X_VR_LIVE_CHARA_VOICE,
+    DSC_X_MAX,
 };
 
 #define DOF_BAKE 0
@@ -229,7 +230,7 @@ dof_cam dof_cam_data;
 #endif
 x_pv_game* x_pv_game_ptr;
 x_pv_game_music* x_pv_game_music_ptr;
-XPVGameSelector x_pv_game_selector;
+XPVGameSelector* x_pv_game_selector_ptr;
 
 extern render_context* rctx_ptr;
 
@@ -5827,6 +5828,10 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     modules[4] = 40;
     modules[5] = 31;
 #endif
+
+    const prj::vector_pair_combine<int32_t, module>& modules = module_table_handler_data_get_modules();
+    for (const auto& i : modules)
+        modules_data[i.second.chara].push_back(&i.second);
 }
 
 XPVGameSelector::~XPVGameSelector() {
@@ -5927,7 +5932,7 @@ void XPVGameSelector::Window() {
 
     float_t w = 400.0f;
     float_t h = (float_t)height;
-    h = min_def(h, 432.0f);
+    h = min_def(h, 438.0f);
 
     ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -5972,31 +5977,41 @@ void XPVGameSelector::Window() {
     }
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        const item_table* itm_tbl = item_table_handler_array_get_table(charas[i]);
         sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
-        sprintf_s(buf1, sizeof(buf1), "%d", modules[i] + 1);
+        
+        buf1[0] = 0;
+        for (const auto& j : modules_data[charas[i]])
+            if (modules[i] == j->cos) {
+                sprintf_s(buf1, sizeof(buf1), "%s", j->name.c_str());
+                break;
+            }
 
         ImGui::StartPropertyColumn(buf);
+        extern ImFont* imgui_font_arial;
+        if (imgui_font_arial)
+            ImGui::PushFont(imgui_font_arial);
         if (ImGui::BeginCombo("", buf1, 0)) {
-            for (const auto& j : itm_tbl->cos) {
-                if (j.first == 499)
+            for (const auto& j : modules_data[charas[i]]) {
+                if (j->cos == 499)
                     continue;
 
                 ImGui::PushID(&j);
-                sprintf_s(buf1, sizeof(buf1), "%d", j.first + 1);
-                if (ImGui::Selectable(buf1, modules[i] == j.first)
+                sprintf_s(buf1, sizeof(buf1), "%s", j->name.c_str());
+                if (ImGui::Selectable(buf1, modules[i] == j->cos)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                    || (ImGui::IsItemFocused() && modules[i] != j.first))
-                    modules[i] = j.first;
+                    || (ImGui::IsItemFocused() && modules[i] != j->cos))
+                    modules[i] = j->cos;
                 ImGui::PopID();
 
-                if (modules[i] == j.first)
+                if (modules[i] == j->cos)
                     ImGui::SetItemDefaultFocus();
             }
 
             window_focus |= true;
             ImGui::EndCombo();
         }
+        if (imgui_font_arial)
+            ImGui::PopFont();
         ImGui::EndPropertyColumn();
     }
 
@@ -6037,6 +6052,21 @@ extern bool x_pv_game_free() {
 
         delete x_pv_game_music_ptr;
         x_pv_game_music_ptr = 0;
+
+    }
+    return true;
+}
+
+bool x_pv_game_selector_init() {
+    if (!x_pv_game_selector_ptr)
+        x_pv_game_selector_ptr = new XPVGameSelector;
+    return true;
+}
+
+bool x_pv_game_selector_free() {
+    if (x_pv_game_selector_ptr) {
+        delete x_pv_game_selector_ptr;
+        x_pv_game_selector_ptr = 0;
     }
     return true;
 }
@@ -6140,7 +6170,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         else
             v19 = a1->branch_mode == 1;
         if (!v19) {
-            if (func < 0 || func > DSC_X_VR_LIVE_CHARA_VOICE) {
+            if (func < 0 || func >= DSC_X_MAX) {
                 a1->play = false;
                 return false;
             }

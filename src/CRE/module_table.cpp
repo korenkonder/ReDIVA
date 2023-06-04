@@ -189,11 +189,15 @@ void module_table_handler::parse(p_file_handler* pfhndl) {
         }
 
         if (kv.has_key("cos")) {
-            int32_t cos;
-            kv.read("cos", cos);
-            cos--;
-            if (cos != 9999)
-                module.cos = cos;
+            const char* cos_str;
+            kv.read("cos", cos_str);
+
+            int32_t cos = 0;
+            if (sscanf_s(cos_str, "COS_%03d", &cos) == 1) {
+                cos--;
+                if (cos != 9999)
+                    module.cos = cos;
+            }
         }
 
         modules.push_back({ module.id, module });

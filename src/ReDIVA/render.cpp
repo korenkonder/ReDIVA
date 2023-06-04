@@ -104,6 +104,8 @@ common_data_struct common_data;
 
 render_data* render;
 
+ImFont* imgui_font_arial;
+
 bool draw_imgui   = true;
 bool draw_grid_3d = false;
 
@@ -841,6 +843,10 @@ static render_context* render_context_load() {
     rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
     rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
 
+    resolution_struct* res_wind = res_window_get();
+    rctx->camera->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
+        res_wind->width, res_wind->height);
+
     render_resize_fb(rctx, true);
 
     Glitter::glt_particle_manager_add_task();
@@ -876,9 +882,6 @@ static render_context* render_context_load() {
 
     camera* cam = rctx->camera;
 
-    resolution_struct* res_wind = res_window_get();
-    cam->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
-        res_wind->width, res_wind->height);
     //cam->set_position({ 1.35542f, 1.41634f, 1.27852f });
     //cam->rotate({ -45.0, -32.5 });
     //cam->set_position({ -6.67555f, 4.68882f, -3.67537f });
@@ -900,11 +903,28 @@ static render_context* render_context_load() {
     ImGuiIO& io = ImGui::GetIO();
     io.IniFilename = 0;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-    lock_unlock(imgui_context_lock);
+
+    io.Fonts->AddFontDefault();
+    
+    const char* font_file = "C:\\Windows\\Fonts\\ArialUni.ttf";
+
+    ImVector<ImWchar> ranges;
+    ImFontGlyphRangesBuilder builder;
+    builder.AddRanges(io.Fonts->GetGlyphRangesDefault());
+    builder.AddRanges(io.Fonts->GetGlyphRangesJapanese());
+    builder.AddRanges(io.Fonts->GetGlyphRangesChineseFull());
+    builder.AddRanges(io.Fonts->GetGlyphRangesKorean());
+    builder.AddRanges(io.Fonts->GetGlyphRangesCyrillic());
+    builder.AddRanges(io.Fonts->GetGlyphRangesGreek());
+    builder.AddChar((ImWchar)0x2200);
+    builder.BuildRanges(&ranges);
+
+    imgui_font_arial = io.Fonts->AddFontFromFileTTF(font_file, 14.0f, 0, ranges.Data);
 
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
+    lock_unlock(imgui_context_lock);
 
     clear_color = { 0x60, 0x60, 0x60, 0xFF };
     set_clear_color = true;
@@ -1027,6 +1047,13 @@ static void render_context_ctrl(render_context* rctx) {
     rctx_ptr = rctx;
     game_state_ctrl();
     rctx->ctrl();
+
+    if (game_state_get_game_state() == GAME_STATE_STARTUP)
+        for (int32_t i = 1; i < 0; i++) {
+            rctx_ptr = rctx;
+            game_state_ctrl();
+            rctx->ctrl();
+        }
 
     char buf[0x200];
     game_state_print(buf, sizeof(buf));

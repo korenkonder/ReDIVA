@@ -18,6 +18,7 @@
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/frame_rate_control.hpp"
+#include "../CRE/module_table.hpp"
 #include "../CRE/ogg_vorbis.hpp"
 #include "../CRE/stage_modern.hpp"
 #include "../CRE/task.hpp"
@@ -804,6 +805,7 @@ public:
     int32_t stage_id;
     chara_index charas[ROB_CHARA_COUNT];
     int32_t modules[ROB_CHARA_COUNT];
+    std::vector<const module*> modules_data[CHARA_MAX];
     bool start;
     bool exit;
 
@@ -817,8 +819,11 @@ public:
 };
 
 extern x_pv_game* x_pv_game_ptr;
-extern XPVGameSelector x_pv_game_selector;
+extern XPVGameSelector* x_pv_game_selector_ptr;
 
 extern bool x_pv_game_init();
 extern bool x_pv_game_free();
+
+extern bool x_pv_game_selector_init();
+extern bool x_pv_game_selector_free();
 #endif
