@@ -8,6 +8,7 @@
 #include "../CRE/mdata_manager.hpp"
 #include "../CRE/sprite.hpp"
 #include "pv_game/pv_game.hpp"
+#include "config.hpp"
 #include "game_state.hpp"
 
 system_startup_detail::TaskSystemStartup* task_system_startup;
@@ -59,7 +60,9 @@ namespace system_startup_detail {
                 system_startup.state = 4;
             break;
         case 4:
-            //rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, false);
+#if !PV_DEBUG
+            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, false);
+#endif
             task_pv_game_init_test_pv();
             system_startup.state = 5;
             break;
@@ -76,7 +79,9 @@ namespace system_startup_detail {
                 system_startup.state = 8;
             break;
         case 8:
-            //rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, true);
+#if !PV_DEBUG
+            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, true);
+#endif
             system_startup_ready = 1;
             break;
         }
@@ -93,9 +98,11 @@ namespace system_startup_detail {
     }
 
     void TaskSystemStartup::Disp() {
+#if !PV_DEBUG
         resolution_struct* res_wind = res_window_get();
         spr::put_sprite_rect({ 0.0f, 0.0f, (float_t)res_wind->width, (float_t)res_wind->height },
             res_wind->resolution_mode, spr::SPR_PRIO_25, color_black, 0);
+#else
     }
 }
 

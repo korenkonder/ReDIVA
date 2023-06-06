@@ -16,6 +16,8 @@
 #include "../../CRE/sound.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../game_state.hpp"
+#include "../imgui_helper.hpp"
+#include "../input.hpp"
 #include "player_data.hpp"
 #include "pv_game_camera.hpp"
 #include "pv_game_music.hpp"
@@ -5207,7 +5209,11 @@ void TaskPvGame::Data::Reset() {
     option = 0;
 }
 
+#if PV_DEBUG
+TaskPvGame::TaskPvGame() : pause(), step_frame(), is_paused() {
+#else
 TaskPvGame::TaskPvGame() {
+#endif
 
 }
 
@@ -5216,6 +5222,12 @@ TaskPvGame::~TaskPvGame() {
 }
 
 bool TaskPvGame::Init() {
+#if PV_DEBUG
+    pause = true;
+    step_frame = false;
+    is_paused = false;
+#endif
+
     Load(data);
     //touch_util::touch_reaction_set_enable(false);
     return true;
@@ -5236,6 +5248,120 @@ bool TaskPvGame::Dest() {
 void TaskPvGame::Disp() {
     pv_game_parent_disp();
 }
+
+#if PV_DEBUG
+void TaskPvGame::Window() {
+    if (pv_game_parent_data.pv_state != 1 || pv_game_parent_data.init_time)
+        return;
+
+    if (Input::IsKeyTapped(GLFW_KEY_K, GLFW_MOD_CONTROL))
+        pv_game_ptr->end_pv = true;
+    else if (Input::IsKeyTapped(GLFW_KEY_K))
+        pause ^= true;
+
+    if (Input::IsKeyTapped(GLFW_KEY_L)) {
+        pause = true;
+        step_frame = true;
+    }
+
+    if (!pause)
+        return;
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
+
+    float_t w = 240.0f;
+    float_t h = 86.0f;
+
+    extern int32_t width;
+    ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoResize;
+
+    bool collapsed = !ImGui::Begin("PV GAME", 0, window_flags);
+    if (collapsed) {
+        ImGui::End();
+        return;
+    }
+
+    w = ImGui::GetContentRegionAvailWidth();
+    if (ImGui::BeginTable("buttons", 2)) {
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.5f);
+
+        ImGui::TableNextColumn();
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed(pause || (!pause && step_frame) ? "Play (K)" : "Pause (K)", { w, 0.0f }))
+            pause ^= true;
+
+        ImGui::TableNextColumn();
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed("Step Frame (L)", { w, 0.0f })) {
+            pause = true;
+            step_frame = true;
+        }
+
+        ImGui::TableNextColumn();
+        w = ImGui::GetContentRegionAvailWidth();
+        if (ImGui::ButtonEnterKeyPressed("Stop (Ctrl+K)", { w, 0.0f }))
+            pv_game_ptr->end_pv = true;
+
+        ImGui::TableNextColumn();
+        w = ImGui::GetContentRegionAvailWidth();
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "%d/%d",
+            (int32_t)dsc_time_to_frame(pv_game_get()->data.current_time),
+            (int32_t)(pv_game_get()->data.current_time / 10000));
+        ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive, { 0.0f, 0.0f, 0.0f, 0.0f });
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+        ImGui::ButtonExEnterKeyPressed(buf, { w, 0.0f }, ImGuiButtonFlags_DontClosePopups
+            | ImGuiButtonFlags_NoNavFocus | ImGuiButtonFlags_NoHoveredOnFocus);
+        ImGui::PopStyleColor(3);
+        ImGui::EndTable();
+    }
+
+    extern bool input_locked;
+    input_locked |= ImGui::IsWindowFocused();
+    ImGui::End();
+}
+
+void TaskPvGame::Basic() {
+    if (pv_game_parent_data.pv_state != 1 || pv_game_parent_data.init_time)
+        return;
+
+    if (step_frame)
+        if (pause)
+            pause = false;
+        else {
+            pause = true;
+            step_frame = false;
+        }
+
+    if (pause && !is_paused) {
+        pv_game_time_pause();
+
+        extern float_t frame_speed;
+        frame_speed = 0.0f;
+
+        is_paused = true;
+    }
+
+    if (!pause && is_paused) {
+        pv_game_time_start();
+
+        extern float_t frame_speed;
+        frame_speed = 1.0f;
+
+        is_paused = false;
+    }
+
+    pv_game_music_get()->set_pause(pause ? 1 : 0);
+    Glitter::glt_particle_manager->SetPause(pause);
+}
+#endif
 
 void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_init();
@@ -5536,18 +5662,19 @@ void task_pv_game_init_test_pv() {
 
     task_rob_manager_add_task();
     TaskPvGame::Args args;
-    args.init_data.pv_id = 999;
-    args.init_data.difficulty = PV_DIFFICULTY_NORMAL;
+    args.init_data.pv_id = 705;
+    args.init_data.difficulty = PV_DIFFICULTY_HARD;
     args.init_data.edition = 0;
     args.init_data.score_percentage_clear = 50;
     args.init_data.life_gauge_safety_time = 40;
     args.init_data.life_gauge_border = 30;
     args.field_190 = false;
-    args.watch = false;
+    args.watch = true;
     args.no_fail = false;
     args.field_193 = true;
     args.field_194 = true;
-    args.mute = true;
+    args.mute = false;
+    args.success = true;
     args.test_pv = true;
     task_pv_game_add_task(args);
 }

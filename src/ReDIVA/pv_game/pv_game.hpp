@@ -8,6 +8,7 @@
 #include "../../CRE/auth_3d.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task.hpp"
+#include "../config.hpp"
 #include "../task_window.hpp"
 #include "pv_game_pv_data.hpp"
 #include "pv_game_play_data.hpp"
@@ -750,7 +751,11 @@ struct struc_717 {
     ~struc_717();
 };
 
+#if PV_DEBUG
+class TaskPvGame : public app::TaskWindow {
+#else
 class TaskPvGame : public app::Task {
+#endif
 public:
     struct Args {
         pv_game_init_data init_data;
@@ -805,6 +810,12 @@ public:
         void Reset();
     } data;
 
+#if PV_DEBUG
+    bool pause;
+    bool step_frame;
+    bool is_paused;
+#endif
+
     TaskPvGame();
     virtual ~TaskPvGame() override;
 
@@ -812,6 +823,10 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
+#if PV_DEBUG
+    virtual void Basic() override;
+    virtual void Window() override;
+#endif
 
     void Load(TaskPvGame::Data& data);
     bool Unload();
