@@ -4538,7 +4538,7 @@ bool x_pv_game::Ctrl() {
                 playdata[i].rob_chr = rob_chr;
                 rob_chr->frame_speed = anim_frame_speed;
                 rob_chr->data.motion.step_data.step = anim_frame_speed;
-                pv_expression_array_reset_data(i, rob_chr, anim_frame_speed);
+                pv_expression_array_set(i, rob_chr, anim_frame_speed);
             }
             pv_game_dsc_data_find_playdata_set_motion(this, i);
             pv_game_dsc_data_find_playdata_item_anim(this, i);

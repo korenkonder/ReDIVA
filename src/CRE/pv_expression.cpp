@@ -85,15 +85,9 @@ void pv_expression_array_reset() {
         i.reset();
 }
 
-bool pv_expression_array_reset_data(size_t chara_id, void* rob_chr, float_t frame_speed) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
-        return false;
-
-    pv_expression& exp = pv_expression_array[chara_id];
-    exp.rob_chr = (rob_chara*)rob_chr;
-    exp.frame_speed = frame_speed;
-    exp.reset_data();
-    return true;
+void pv_expression_array_reset_data() {
+    for (pv_expression& i : pv_expression_array)
+        i.reset_data();
 }
 
 void pv_expression_array_reset_motion(size_t chara_id) {
@@ -104,6 +98,17 @@ void pv_expression_array_reset_motion(size_t chara_id) {
     if (exp.rob_chr)
         exp.rob_chr->autoblink_enable();
     exp.reset();
+}
+
+bool pv_expression_array_set(size_t chara_id, void* rob_chr, float_t frame_speed) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return false;
+
+    pv_expression& exp = pv_expression_array[chara_id];
+    exp.rob_chr = (rob_chara*)rob_chr;
+    exp.frame_speed = frame_speed;
+    exp.reset_data();
+    return true;
 }
 
 bool pv_expression_array_set_motion(const char* path, size_t chara_id, int32_t motion_id) {
@@ -125,7 +130,7 @@ bool pv_expression_file_check_not_ready(const char* path) {
     const char* file = strrchr(path, '/');
     if (!file)
         file = strrchr(path, '\\');
-    uint32_t hash = hash_utf8_murmurhash(file ? file : path);
+    uint32_t hash = hash_utf8_murmurhash(file ? file + 1 : path);
     for (pv_expression_file*& i : pv_expression_file_storage)
         if (i && i->hash == hash)
             return i->file_handler.check_not_ready();
@@ -147,7 +152,7 @@ void pv_expression_file_load(void* data, const char* path) {
     if (!file)
         file = strrchr(path, '\\');
 
-    uint32_t hash = hash_utf8_murmurhash(file ? file : path);
+    uint32_t hash = hash_utf8_murmurhash(file ? file + 1 : path);
     for (pv_expression_file*& i : pv_expression_file_storage)
         if (i && i->hash == hash) {
             i->load_count++;
@@ -199,7 +204,7 @@ void pv_expression_file_unload(const char* path) {
     if (!file)
         file = strrchr(path, '\\');
 
-    uint32_t hash = hash_utf8_murmurhash(file ? file : path);
+    uint32_t hash = hash_utf8_murmurhash(file ? file + 1 : path);
     for (pv_expression_file*& i : pv_expression_file_storage) {
         if (!i || i->hash != hash)
             continue;
@@ -492,7 +497,7 @@ bool pv_expression::set_motion(const char* path, int32_t motion_id) {
     const char* file = strrchr(path, '/');
     if (!file)
         file = strrchr(path, '\\');
-    return set_motion(hash_utf8_murmurhash(file ? file : path), motion_id);
+    return set_motion(hash_utf8_murmurhash(file ? file + 1 : path), motion_id);
 }
 
 bool pv_expression::set_motion(uint32_t hash, int32_t motion_id) {

@@ -148,8 +148,8 @@ extern render_context* rctx_ptr;
 static bool pv_game_parent_ctrl();
 static void pv_game_parent_disp();
 
-static void pv_game_time_ctrl();
-static void pv_game_time_get();
+static void pv_game_time_pause();
+static void pv_game_time_start();
 
 static FrameRateControl* get_diva_pv_frame_rate();
 static SysFrameRate* sys_frame_rate_get(int32_t chara_id);
@@ -2920,6 +2920,7 @@ bool pv_game::load() {
                             }
                         }
                     }
+                    auth_3d_list_index++;
                 }
 
                 int32_t light_uid = aft_auth_3d_db->get_uid(i.light.c_str());
@@ -3779,7 +3780,7 @@ bool pv_game::load() {
             }
         }
 
-        pv_expression_array_reset();
+        pv_expression_array_reset_data();
         state = 25;
     } break;
     case 25: {
@@ -4780,7 +4781,7 @@ void pv_game::sub_140104FB0() {
 }
 
 void pv_game::sub_140106640() {
-    pv_game_time_ctrl();
+    pv_game_time_pause();
 
     pv_game_music_get()->stop();
     pv_game_music_get()->set_volume_map(0, 0);
@@ -4879,11 +4880,11 @@ void pv_game::sub_140106640() {
     data.field_2D095 = false;
     data.field_2D096 = false;
 
-    pv_expression_array_reset();
+    pv_expression_array_reset_data();
 
     data.pv_end_fadeout = false;
 
-    pv_game_time_get();
+    pv_game_time_start();
 }
 
 bool pv_game::sub_14010EF00() {
@@ -5593,7 +5594,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
             pvgmp->state = 4;
             break;
         case 6:
-            pv_game_time_ctrl();
+            pv_game_time_pause();
             if (sub_14013C8C0()->sub_1400E7920()) {
                 pv_game_ptr->state = 0;
                 pvgmp->state = 8;
@@ -5622,7 +5623,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
             /*else
                 task_wait_screen_set_load_end();*/
 
-            pv_game_time_get();
+            pv_game_time_start();
             pvgmp->state = 10;
             break;
         case 10:
@@ -5631,8 +5632,8 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
                     pv_game_ptr->reset_appear();
                     //task_wait_screen_set(0);
                     if (pv_game_ptr->data.field_2CF9C > 0) {
-                        pv_game_time_ctrl();
-                        pv_game_time_get();
+                        pv_game_time_pause();
+                        pv_game_time_start();
                     }
                     pvgmp->state = 13;
                 }
@@ -5648,8 +5649,8 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
         case 12:
             pv_game_ptr->reset_appear();
             if (pv_game_ptr->data.field_2CF9C > 0) {
-                pv_game_time_ctrl();
-                pv_game_time_get();
+                pv_game_time_pause();
+                pv_game_time_start();
             }
             pvgmp->state = 13;
             break;
@@ -5796,7 +5797,7 @@ static void pv_game_parent_disp() {
     pv_game_ptr->disp();
 }
 
-static void pv_game_time_ctrl() {
+static void pv_game_time_pause() {
     if (pv_game_time_data.add_last_stop_time)
         pv_game_time_data.curr_time += pv_game_time_data.last_stop_time.calc_time_int();
     pv_game_time_data.add_last_stop_time = false;
@@ -5806,7 +5807,7 @@ static void pv_game_time_ctrl() {
     pv_game_time_data.add_current_time = false;
 }
 
-static void pv_game_time_get() {
+static void pv_game_time_start() {
     pv_game_time_data.last_stop_time.get_timestamp();
     pv_game_time_data.add_last_stop_time = true;
 

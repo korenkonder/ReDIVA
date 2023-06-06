@@ -562,7 +562,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (motion && motion->enable && (!motion->motion_index || motion_index == motion->motion_index)) {
             if (dsc_time != motion->time) {
                 frame = dsc_time_to_frame(curr_time - motion->time);
-                float_t dsc_frame = roundf(dsc_time_to_frame(dsc_time - motion->time));
+                dsc_frame = roundf(dsc_time_to_frame(dsc_time - motion->time));
                 if (frame < dsc_frame)
                     frame = dsc_frame;
                 blend = curr_time > motion->time;
@@ -2362,20 +2362,21 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     pv_expression_array_reset();
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (pv_game->data.chara[i].chara_id == -1 || !pv_game->data.chara[i].rob_chr)
+        pv_game_chara& chr = pv_game->data.chara[i];
+        if (chr.chara_id == -1 || !chr.rob_chr)
             continue;
 
         pv_play_data& playdata = this->playdata[i];
         playdata.reset();
         playdata.set_motion.clear();
 
-        if (pv_game->data.chara[i].chara_id != -1)
-            playdata.rob_chr = rob_chara_array_get(pv_game->data.chara[i].chara_id);
+        if (chr.chara_id != -1)
+            playdata.rob_chr = rob_chara_array_get(chr.chara_id);
 
         if (playdata.rob_chr) {
             playdata.rob_chr->frame_speed = anim_frame_speed;
             playdata.rob_chr->data.motion.step_data.step = anim_frame_speed;
-            pv_expression_array_reset_data(i, playdata.rob_chr, anim_frame_speed);
+            pv_expression_array_set(i, playdata.rob_chr, anim_frame_speed);
         }
 
         find_playdata_set_motion(i);
