@@ -494,8 +494,9 @@ struct pv_db_pv {
 
     int32_t get_chrmot_motion_id(int32_t chara_id,
         chara_index chara_index, const pv_db_pv_motion& motion) const;
-    const pv_db_pv_difficulty* get_difficulty(int32_t difficulty, pv_attribute_type attribute_type) const;
-    const pv_db_pv_difficulty* get_difficulty(int32_t difficulty, int32_t edition) const;
+    const pv_db_pv_difficulty* get_difficulty(
+        pv_difficulty difficulty, pv_attribute_type attribute_type) const;
+    const pv_db_pv_difficulty* get_difficulty(pv_difficulty difficulty, int32_t edition) const;
     chara_index get_performer_chara(int32_t performer) const;
     int32_t get_performer_costume(int32_t performer) const;
     size_t get_performer_count() const;
@@ -504,6 +505,7 @@ struct pv_db_pv {
     int32_t get_performer_item(int32_t performer, pv_performer_item item) const;
     bool get_performer_pseudo_fixed(chara_index chara_index, int32_t performer, bool a4, bool a5) const;
     int32_t get_performer_pseudo_same_id(int32_t performer) const;
+    int32_t get_performer_pv_costume(int32_t performer, pv_difficulty difficulty) const;
     pv_performer_size get_performer_size(int32_t performer) const;
     pv_performer_type get_performer_type(int32_t performer) const;
     bool is_performer_type_pseudo(int32_t performer) const;
@@ -557,8 +559,8 @@ extern pv_db::TaskPvDB* task_pv_db_get();
 extern uint32_t task_pv_db_get_paths_count();
 extern pv_db_pv* task_pv_db_get_pv(int32_t pv_id);
 extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
-    int32_t difficulty, pv_attribute_type attribute_type);
+    pv_difficulty difficulty, pv_attribute_type attribute_type);
 extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
-    int32_t difficulty, int32_t edition);
+    pv_difficulty difficulty, int32_t edition);
 extern bool task_pv_db_is_paths_empty();
 extern void task_pv_db_free();

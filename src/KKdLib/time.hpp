@@ -14,5 +14,6 @@ struct time_struct {
     time_struct();
 
     double_t calc_time();
+    int64_t calc_time_int();
     void get_timestamp();
 };

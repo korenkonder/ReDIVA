@@ -340,7 +340,7 @@ struct pv_game_pv_data {
     pv_dsc_target_group* get_target();
     int32_t get_target_target_count(size_t index, float_t time_offset, bool a4);
     void init(::pv_game * pv_game, bool music_play);
-    bool read_dsc_file(std::string&& file_path, struct pv_game* pv_game, bool music_play);
+    bool load(std::string&& file_path, struct pv_game* pv_game, bool music_play);
     void reset();
     void reset_camera_post_process();
     void scene_fade_ctrl(float_t delta_time);

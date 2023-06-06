@@ -14,10 +14,16 @@ time_struct::time_struct() : timestamp() {
 
 double_t time_struct::calc_time() {
     LARGE_INTEGER timestamp;
-    if (!QueryPerformanceCounter(&timestamp))
-        return 0;
+    if (QueryPerformanceCounter(&timestamp))
+        return (double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq;
+    return 0.0;
+}
 
-    return (double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq;
+int64_t time_struct::calc_time_int() {
+    LARGE_INTEGER timestamp;
+    if (QueryPerformanceCounter(&timestamp))
+        return (int64_t)((double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq * 1000.0);
+    return 0;
 }
 
 void time_struct::get_timestamp() {

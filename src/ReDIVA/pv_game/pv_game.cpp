@@ -50,7 +50,7 @@ struct pv_game_parent {
     int8_t field_25;
     int8_t field_26;
     int8_t field_27;
-    bool field_28;
+    bool init_time;
 
     pv_game_parent();
 
@@ -262,8 +262,8 @@ pv_effect_resource::~pv_effect_resource() {
 
 }
 
-pv_game_data::pv_game_data() : field_2CE98(), field_2CE9C(), field_2CF1C(), field_2CF20(), field_2CF24(),
-field_2CF28(), field_2CF2C(), field_2CF30(), field_2CF34(), field_2CF38(), life_gauge(), score_final(),
+pv_game_data::pv_game_data() : field_2CE98(), field_2CE9C(), field_2CF1C(), field_2CF20(), appear_state(),
+appear_time(), appear_duration(), field_2CF30(), field_2CF34(), field_2CF38(), life_gauge(), score_final(),
 challenge_time_total_bonus(), combo(), challenge_time_combo_count(), max_combo(), total_hit_count(), hit_count(),
 current_reference_score(), target_count(), field_2CF84(), field_2CF88(), field_2CF8C(), score_slide_chain_bonus(),
 slide_chain_length(), field_2CF98(), field_2CF9C(), field_2CFA0(), field_2CFA4(), pv(),field_2CFB0(),
@@ -383,12 +383,12 @@ void pv_game_data::reset() {
     pv_data.prev_time_float = 0.0f;
     pv_data.field_2BF30 = -1;
     pv_data.field_2BF38 = 0;
-    pv_data.music_play = false;
+    pv_data.music_playing = false;
     pv_data.pv_game->data.play_data.lyrics_color = { 0xFF, 0xFF, 0xFF, 0xFF };
     pv_data.play = true;
     pv_data.field_2BF50 = 0;
-    pv_data.field_2BFD5 = 0;
-    sub_14013C8C0()->field_26 = 0;
+    pv_data.field_2BFD5 = false;
+    sub_14013C8C0()->field_26 = false;
     pv_data.field_2BF58 = -1;
     pv_data.field_2BFC4 = 2;
 
@@ -742,8 +742,8 @@ PROCESS_TARGET:
                 || !prev_target_2_has_same_slide_chain
                 || next_target_slide_chain_count != prev_target_2_slide_chain_count
                 || prev_target_1_has_start
-                || (v139 = (float_t)(int32_t)(next_target.time_begin - prev_target_1.time_begin) * 0.000001f,
-                     v140 = (float_t)(int32_t)(prev_target_1.time_begin - prev_target_2.time_begin) * 0.000001f,
+                || (v139 = (float_t)(next_target.time_begin - prev_target_1.time_begin) * 0.000001f,
+                     v140 = (float_t)(prev_target_1.time_begin - prev_target_2.time_begin) * 0.000001f,
                      (v139 >= (v140 * 0.5f) && v139 <= (v140 * 1.5f)))))
             slide_chain_end = false;
         else {
@@ -816,6 +816,7 @@ field_4(), state(), field_C(), pv_id(), field_14(), modules(), items() {
     data.life_gauge_border = 0;
     data.stage_index = 0;
     data.music_play = true;
+    data.no_fail = false;
     data.challenge_time_start = -1;
     data.challenge_time_end = -1;
     data.mute = false;
@@ -873,7 +874,7 @@ int32_t pv_game::calculate_reference_score() {
     const int32_t life_gauge_cool = life_gauge_table_array[sub_14013C8C0()->difficulty][0];
 
     data.max_time = data.get_max_time(&data.challenge_time_start, &data.challenge_time_end);
-    data.max_time_float = (float_t)(int32_t)data.max_time * 0.000000001f;
+    data.max_time_float = (float_t)data.max_time * 0.000000001f;
 
     data.pv_data.dsc_reset_position();
     data.target_reference_score.push_back(0);
@@ -1544,8 +1545,8 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
         }
 
         data.play_data.fade_end_ctrl();
-        data.play_data.sub_140138D60();
-        data.play_data.sub_140138F30();
+        data.play_data.frame_ctrl();
+        data.play_data.ui_set_disp();
         data.play_data.set_aet_song_energy();
         data.play_data.score_update(data.score_final, true);
 
@@ -1572,7 +1573,7 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
     int32_t target = -1;
 
     data.current_time = data.pv_data.ctrl(delta_time, curr_time, true);
-    data.current_time_float = (float_t)(int32_t)data.current_time * 0.000000001f;
+    data.current_time_float = (float_t)data.current_time * 0.000000001f;
     data.field_2D038 = data.current_time_float + data.field_2D03C;
 
     if (!sub_14013C8C0()->sub_1400E7920()) {
@@ -1723,7 +1724,7 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
         calculate_song_energy_border();
     }
 
-    sub_1400FCAD0(delta_time);
+    play_data_ctrl(delta_time);
 
     title_image_ctrl(false);
     data.play_data.set_aet_song_energy();
@@ -2665,7 +2666,7 @@ bool pv_game::load() {
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
         if (diff && !data.field_2D094) {
             if (sub_14013C8C0()->sub_1400E7910() < 4
-                && !data.pv_data.read_dsc_file(std::string(diff->script_file_name), this, data.music_play))
+                && !data.pv_data.load(std::string(diff->script_file_name), this, data.music_play))
                 return false;
 
             data.field_2D094 = true;
@@ -3804,10 +3805,69 @@ bool pv_game::load() {
 void pv_game::play_se(int32_t index) {
     const pv_db_pv_difficulty* diff = data.pv->get_difficulty(sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
     if (diff && diff->effect_se_file_name.size()
-        && index > 0 && index < diff->effect_se_name_list.size()
+        && index >= 0 && index < diff->effect_se_name_list.size()
         && diff->effect_se_name_list[index].size()) {
         sound_work_play_se(1, diff->effect_se_name_list[index].c_str(), 1.0f);
         data.se_index = index;
+    }
+}
+
+void pv_game::play_data_ctrl(float_t delta_time) {
+    bool fade_end = data.play_data.fade_end_ctrl();
+    data.play_data.frame_ctrl();
+    data.play_data.ui_set_disp();
+
+    switch (data.appear_state) {
+    case 0:
+        if (data.start_fade) {
+            data.appear_state = 1;
+            break;
+        }
+
+        if (sub_14013C8C0()->sub_1400E7920()) {
+            data.appear_state = 4;
+            data.appear_time = 0.0f;
+            data.appear_duration = 0.0f;
+        }
+        else {
+            data.appear_state = 3;
+            data.appear_time = 0.0f;
+            data.appear_duration = 0.0f;
+
+            if (!data.pv_data.field_2BFD5)
+                data.play_data.sub_140137F80(true, 0.0f);
+        }
+        break;
+    case 1:
+        if (!fade_end)
+            return;
+
+        if (sub_14013C8C0()->sub_1400E7920()) {
+            data.appear_state = 4;
+            data.appear_time = 0.0f;
+            data.appear_duration = 0.0f;
+        }
+        else {
+            data.appear_state = 2;
+            data.appear_time = 0.0f;
+            data.appear_duration = 2.0f;
+
+            if (!data.pv_data.field_2BFD5)
+                data.play_data.sub_140137F80(true, 2.0f);
+        }
+        break;
+    case 2:
+        data.appear_time += delta_time;
+        if (data.appear_time >= data.appear_duration) {
+            data.appear_state = 3;
+            data.appear_time = 0.0f;
+            data.appear_duration = 0.0f;
+        }
+        break;
+    case 3:
+        data.play_data.ctrl(delta_time);
+        data.play_data.score_update(data.score_final, false);
+        break;
     }
 }
 
@@ -3975,12 +4035,12 @@ void pv_game::reset() {
     data.field_2CF34 = 0;
     data.play_data.field_650 = 43;
     data.play_data.field_654 = 0.0f;
-    data.field_2CF24 = 3;
-    data.field_2CF28 = 0.0f;
+    data.appear_state = 3;
+    data.appear_time = 0.0f;
     data.field_2CF38 = 0;
     data.play_data.field_658 = 0;
     data.play_data.field_65C = 0.0f;
-    data.field_2CF2C = 0.0f;
+    data.appear_duration = 0.0f;
     data.target_count = 0;
     data.field_2CF84 = 0;
     data.current_reference_score = 0;
@@ -4033,6 +4093,12 @@ void pv_game::reset() {
     data.effect_rs_list_hashes.clear();
 
     data.task_effect_init = false;
+}
+
+void pv_game::reset_appear() {
+    data.appear_state = 0;
+    data.appear_time = 0.0f;
+    data.appear_duration = 0.0f;
 }
 
 void pv_game::reset_field() {
@@ -4586,65 +4652,6 @@ bool pv_game::unload() {
     return true;
 }
 
-void pv_game::sub_1400FCAD0(float_t delta_time) {
-    bool fade_end = data.play_data.fade_end_ctrl();
-    data.play_data.sub_140138D60();
-    data.play_data.sub_140138F30();
-
-    switch (data.field_2CF24) {
-    case 0:
-        if (data.start_fade) {
-            data.field_2CF24 = 1;
-            break;
-        }
-
-        if (sub_14013C8C0()->sub_1400E7920()) {
-            data.field_2CF24 = 4;
-            data.field_2CF28 = 0.0f;
-            data.field_2CF2C = 0.0f;
-        }
-        else {
-            data.field_2CF24 = 3;
-            data.field_2CF28 = 0.0f;
-            data.field_2CF2C = 0.0f;
-
-            if (!data.pv_data.field_2BFD5)
-                data.play_data.sub_140137F80(1, 0.0f);
-        }
-        break;
-    case 1:
-        if (!fade_end)
-            return;
-
-        if (sub_14013C8C0()->sub_1400E7920()) {
-            data.field_2CF24 = 4;
-            data.field_2CF28 = 0.0f;
-            data.field_2CF2C = 0.0f;
-        }
-        else {
-            data.field_2CF24 = 2;
-            data.field_2CF28 = 0.0f;
-            data.field_2CF2C = 2.0f;
-
-            if (!data.pv_data.field_2BFD5)
-                data.play_data.sub_140137F80(1, 2.0f);
-        }
-        break;
-    case 2:
-        data.field_2CF28 += delta_time;
-        if (data.field_2CF28 >= data.field_2CF2C) {
-            data.field_2CF24 = 3;
-            data.field_2CF28 = 0.0f;
-            data.field_2CF2C = 0.0f;
-        }
-        break;
-    case 3:
-        data.play_data.sub_1401385F0(delta_time);
-        data.play_data.score_update(data.score_final, false);
-        break;
-    }
-}
-
 void pv_game::sub_1400FC500() {
     if (data.field_2D095) {
         if (data.hit_count[0] + data.hit_count[1] == data.target_count)
@@ -4809,7 +4816,7 @@ void pv_game::sub_140106640() {
     set_lyric(-1, { 0xFF, 0xFF, 0xFF, 0xFF });
     data.reset();
     data.title_image_state = 0;
-    sub_140108320();
+    reset_appear();
 
     data.life_gauge = 127;
     data.score_final = 0;
@@ -4879,12 +4886,6 @@ void pv_game::sub_140106640() {
     pv_game_time_get();
 }
 
-void pv_game::sub_140108320() {
-    data.field_2CF24 = 0;
-    data.field_2CF28 = 0.0f;
-    data.field_2CF2C = 0.0f;
-}
-
 bool pv_game::sub_14010EF00() {
     /*InputState* input_state = input_state_get(0);
     if (!sub_1401E8380(ub_1401E8950() + 1))
@@ -4908,7 +4909,7 @@ bool pv_game::sub_14010EF00() {
             return false;
         }
 
-        if (data.field_2DB38.calc_time() > 0.1f) {
+        if (data.field_2DB38.calc_time_int() > 1000000) {
             data.field_2D0AC = 0;
             return true;
         }
@@ -5071,11 +5072,74 @@ bool struc_14::sub_1400E7920() {
     return type == 2 || type == 3 || type == 5 || type == 7;
 }
 
-void struc_14::sub_1400E79E0(int32_t a2) {
-    type = a2;
+void struc_14::sub_1400E79E0(int32_t value) {
+    type = value;
 }
 
-TaskPvGame::Args::Args() : init_data(), field_190(), field_191(), no_fail(),
+struc_660::struc_660() : field_0(), field_4(), field_20(), field_24(), field_48(), field_4C() {
+
+}
+
+struc_660::~struc_660() {
+
+}
+
+struc_661::struc_661() {
+
+}
+
+struc_661::~struc_661() {
+
+}
+
+struc_662::struc_662() : field_0(), total_hit_count(), hit_count(), field_2C(), field_30(), field_44(),
+max_combo(), challenge_time_total_bonus(), score_hold_multi(), score_final(), score_percentage(),
+score_slide(), field_70(), has_slide(), pv_game_state(), field_7C(), field_80(), field_84(), field_88(),
+field_8C(), field_90(), field_94(), field_98(), field_9C(), field_A0(), field_A4(), field_A8(),
+field_AC(), field_C4(), field_124(), field_13C(), field_1E0(), field_1E4(), next_stage() {
+
+}
+
+struc_662::~struc_662() {
+
+}
+
+struc_777::struc_777() : field_0(), field_4(), field_8(), field_C(),
+field_30(), field_34(), field_38(), field_3C(), field_60(), field_64() {
+
+}
+
+struc_777::~struc_777() {
+
+}
+
+struc_778::struc_778() : field_0(), field_4() {
+
+}
+
+struc_778::~struc_778() {
+
+}
+
+struc_716::struc_716() : field_0(), field_4(), field_8(), field_C(), field_10(), field_11(), field_14(), field_18(),
+field_1C(), field_20(), field_24(), field_28(), field_2C(), field_4A8(), field_610(), field_618(), field_620(),
+field_628(), field_630(), field_638(), field_640(), field_648(), field_649(), field_650(), field_658(), field_660() {
+
+}
+
+struc_716::~struc_716() {
+
+}
+
+struc_717::struc_717() : field_0(), field_19C8() {
+
+}
+
+struc_717::~struc_717() {
+
+}
+
+TaskPvGame::Args::Args() : init_data(), field_190(), watch(), no_fail(),
 field_193(), field_194(), mute(), ex_stage(), success(), test_pv(), option() {
     Reset();
 }
@@ -5098,7 +5162,7 @@ void TaskPvGame::Args::Reset() {
     init_data.reset();
     Clear();
     field_190 = false;
-    field_191 = true;
+    watch = true;
     no_fail = false;
     field_193 = true;
     field_194 = false;
@@ -5179,7 +5243,8 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_parent_data.state = 0;
     pv_game_parent_data.playing = true;
     pv_game_parent_data.state = 0;
-    pv_game_parent_data.field_28 = 0;
+    pv_game_parent_data.init_time = false;
+
     pv_game_time_data.curr_time = 0;
     pv_game_time_data.last_stop_time.get_timestamp();
     pv_game_time_data.last_stop_time.get_timestamp();
@@ -5293,7 +5358,7 @@ bool task_pv_game_add_task(TaskPvGame::Args& args) {
     task_pv_game->data.field_190 = args.field_190;
     task_pv_game->data.music_play = !args.mute;
     task_pv_game->data.no_fail = args.no_fail;
-    if (args.field_191) {
+    if (args.watch) {
         task_pv_game->data.type = 2;
         task_pv_game->data.field_193 = args.field_193;
     }
@@ -5354,7 +5419,7 @@ void task_pv_game_init_pv() {
         for (int32_t j = 0; j < 4; j++) {
             int32_t item_no = 0;
             /*if (v2->field_2C.field_64[i] >= 0)
-                item_no = sub_140234860->sub_140234490( v2->field_2C.field_64[i]);*/
+                item_no = sub_140234860->sub_140234490(v2->field_2C.field_64[i]);*/
             args.init_data.items[i].arr[j] = item_no;
             args.init_data.items_mask[i].arr[j] = v2->field_2C.field_7C[i].arr[j];
         }
@@ -5391,27 +5456,77 @@ void task_pv_game_init_pv() {
             args.slidertouch_name.assign(*(std::string*)(v28 + 40));
     }*/
 
-    if (sub_14038BB30()->field_0.no_fail) {
+    if (v0->field_0.no_fail) {
         args.no_fail = true;
-        if (sub_14038BB30()->field_0.field_15) {
+        if (v0->field_0.watch) {
             args.field_190 = true;
-            args.field_191 = true;
-            if (sub_14038BB30()->field_0.success)
+            args.watch = true;
+            if (v0->field_0.success)
                 args.success = true;
         }
         else {
             args.field_190 = false;
-            args.field_191 = false;
+            args.watch = false;
         }
     }
     else {
         args.no_fail = false;
         args.field_190 = false;
-        args.field_191 = false;
+        args.watch = false;
     }
 
-    args.option = sub_14038BB30()->field_0.field_24;
+    args.option = sub_14038BB30()->field_0.option;
     task_pv_game_add_task(args);
+}
+
+bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool music_play) {
+    task_pv_game->data.Reset();
+
+    task_pv_game->data.init_data.pv_id = pv_id;
+    task_pv_game->data.init_data.difficulty = difficulty;
+    task_pv_game->data.init_data.score_percentage_clear = 100;
+    task_pv_game->data.init_data.life_gauge_safety_time = 5;
+    task_pv_game->data.init_data.life_gauge_border = 20;
+    task_pv_game->data.init_data.stage_index = 0;
+
+    pv_db_pv* pv = task_pv_db_get_pv(pv_id);
+    for (int32_t i = 0; i < 6 && (!pv || pv && i < pv->get_performer_count()); i++) {
+        if (pv && pv->get_performer_fixed(i)) {
+            /*struc_683 v23;
+            if (sub_1403F8C30()->sub_1403F8BA0(pv->get_performer_chara(i),
+                pv->get_performer_pv_costume(i, difficulty), &v23))
+                task_pv_game->data.init_data.modules[i] = v23.id;
+            else*/
+                task_pv_game->data.init_data.modules[i] = 0;
+        }
+        else
+            task_pv_game->data.init_data.modules[i] = 0;
+
+        for (int32_t& j : task_pv_game->data.init_data.items[i].arr)
+            j = 0;
+
+        for (bool& j : task_pv_game->data.init_data.items_mask[i].arr)
+            j = true;
+    }
+
+    task_pv_game->data.type = 3;
+    task_pv_game->data.field_190 = false;
+    task_pv_game->data.music_play = music_play;
+    task_pv_game->data.no_fail = false;
+    task_pv_game->data.field_193 = true;
+    task_pv_game->data.success = false;
+
+    task_pv_game->data.se_name.assign("");
+    task_pv_game->data.slide_se_name.assign("");
+    task_pv_game->data.chainslide_first_name.assign("");
+    task_pv_game->data.chainslide_sub_name.assign("");
+    task_pv_game->data.chainslide_success_name.assign("");
+    task_pv_game->data.chainslide_failure_name.assign("");
+    task_pv_game->data.slidertouch_name.assign("");
+
+    task_pv_game->data.option = 0;
+
+    return app::TaskWork::AddTask(task_pv_game, 0, "PVGAMEDEMO", 0);
 }
 
 void task_pv_game_init_test_pv() {
@@ -5427,7 +5542,7 @@ void task_pv_game_init_test_pv() {
     args.init_data.life_gauge_safety_time = 40;
     args.init_data.life_gauge_border = 30;
     args.field_190 = false;
-    args.field_191 = false;
+    args.watch = false;
     args.no_fail = false;
     args.field_193 = true;
     args.field_194 = true;
@@ -5458,7 +5573,7 @@ float_t DivaPvFrameRate::GetDeltaFrame() {
 
 pv_game_parent::pv_game_parent() : field_0(), field_1(), pv_state(), playing(), field_4(),
 field_5(), field_6(), field_7(), curr_time(), delta_time(), state(), update_func(), field_20(),
-field_21(), field_22(), field_23(), field_24(), field_25(), field_26(), field_27(), field_28() {
+field_21(), field_22(), field_23(), field_24(), field_25(), field_26(), field_27(), init_time() {
 
 }
 
@@ -5513,7 +5628,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
         case 10:
             /*if (sub_14013C8C0()->sub_1400E7910() == 3 || (sub_14013C8C0()->sub_1400E7910() >= 6)) {
                 if (task_wait_screen_get_hide_text()) {
-                    pv_game_ptr->sub_140108320();
+                    pv_game_ptr->reset_appear();
                     //task_wait_screen_set(0);
                     if (pv_game_ptr->data.field_2CF9C > 0) {
                         pv_game_time_ctrl();
@@ -5531,7 +5646,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
             pvgmp->state = 12;
             break;
         case 12:
-            pv_game_ptr->sub_140108320();
+            pv_game_ptr->reset_appear();
             if (pv_game_ptr->data.field_2CF9C > 0) {
                 pv_game_time_ctrl();
                 pv_game_time_get();
@@ -5541,7 +5656,7 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
         default:
             if (pvgmp->state >= 13) {
                 pv_game_state = 0;
-                pvgmp->field_28 = true;
+                pvgmp->init_time = true;
                 pvgmp->pv_state = 1;
             }
             break;
@@ -5638,8 +5753,8 @@ struc_683::struc_683() : sort_index(), chara_index(), cos(), sleeve_l(), sleeve_
 }
 
 static bool pv_game_parent_ctrl() {
-    if (pv_game_parent_data.field_28) {
-        pv_game_parent_data.field_28 = false;
+    if (pv_game_parent_data.init_time) {
+        pv_game_parent_data.init_time = false;
 
         pv_game_time_data.curr_time = 0;
         pv_game_time_data.last_stop_time.get_timestamp();
@@ -5654,11 +5769,11 @@ static bool pv_game_parent_ctrl() {
 
     int64_t curr_time = pv_game_time_data.curr_time;
     if (pv_game_time_data.add_last_stop_time)
-        curr_time += (int64_t)(pv_game_time_data.last_stop_time.calc_time() * 1000.0);
+        curr_time += pv_game_time_data.last_stop_time.calc_time_int();
 
     int64_t delta_time = pv_game_time_data.delta_time;
     if (pv_game_time_data.add_current_time)
-        delta_time += (int64_t)(pv_game_time_data.current_time.calc_time() * 1000.0);
+        delta_time += pv_game_time_data.current_time.calc_time_int();
 
     pv_game_time_data.delta_time = 0;
     pv_game_time_data.current_time.get_timestamp();
@@ -5672,6 +5787,7 @@ static bool pv_game_parent_ctrl() {
         pv_game_parent_data.update_func(&pv_game_parent_data);
 
     pv_game_music_get()->ctrl(pv_game_parent_data.delta_time);
+
     return pv_game_parent_data.playing;
 }
 
@@ -5682,11 +5798,11 @@ static void pv_game_parent_disp() {
 
 static void pv_game_time_ctrl() {
     if (pv_game_time_data.add_last_stop_time)
-        pv_game_time_data.curr_time += (int64_t)(pv_game_time_data.last_stop_time.calc_time() * 1000.0);
+        pv_game_time_data.curr_time += pv_game_time_data.last_stop_time.calc_time_int();
     pv_game_time_data.add_last_stop_time = false;
 
     if (pv_game_time_data.add_current_time)
-        pv_game_time_data.delta_time += (int64_t)(pv_game_time_data.current_time.calc_time() * 1000.0);
+        pv_game_time_data.delta_time += pv_game_time_data.current_time.calc_time_int();
     pv_game_time_data.add_current_time = false;
 }
 

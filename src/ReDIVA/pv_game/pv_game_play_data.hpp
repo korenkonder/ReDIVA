@@ -26,7 +26,7 @@ enum pv_game_aet {
     PV_GAME_AET_MAX_SLIDE_NUM_5,
     PV_GAME_AET_MAX_SLIDE_NUM_6,
     PV_GAME_AET_FRAME_BOTTOM,
-    PV_GAME_AET_FRAME_UP,
+    PV_GAME_AET_FRAME_TOP,
     PV_GAME_AET_CHANCE_FRAME_BOTTOM,
     PV_GAME_AET_CHANCE_FRAME_TOP,
     PV_GAME_AET_20,
@@ -130,17 +130,19 @@ struct pv_game_play_data {
     bool pv_set;
     uint32_t aet_ids[PV_GAME_AET_MAX];
     bool aet_ids_enable[PV_GAME_AET_MAX];
-    float_t field_1C8[2];
-    float_t field_1D0[2];
-    float_t field_1D8[2];
-    float_t field_1E0[2];
-    float_t field_1E8[2];
-    float_t field_1F0[2];
-    bool field_1F8[2];
-    int32_t field_1FC[2];
-    float_t field_204[2];
-    float_t field_20C[2];
-    int32_t frame_state;
+    float_t frame_btm_pos[2];
+    float_t frame_btm_pos_diff[2];
+    float_t frame_top_pos[2];
+    float_t frame_top_pos_diff[2];
+    float_t song_info_pos;
+    float_t song_info_pos_diff;
+    float_t song_energy_pos;
+    float_t song_energy_pos_diff;
+    bool frame_disp[2];
+    int32_t frame_state[2];
+    float_t frame_top_pos_max[2];
+    float_t frame_btm_pos_max[2];
+    int32_t frame_danger_state;
     bool field_218;
     bool fade_begin;
     bool fade_end;
@@ -226,6 +228,7 @@ struct pv_game_play_data {
     ~pv_game_play_data();
 
     void combo_ctrl(float_t delta_time);
+    void ctrl(float_t delta_time);
     void disable_update();
     void disp();
     void disp_chance_point();
@@ -240,6 +243,8 @@ struct pv_game_play_data {
     void disp_spr_set_back();
     void fade_begin_ctrl();
     bool fade_end_ctrl();
+    void frame_ctrl();
+    void frame_set(bool disp, int32_t index, int32_t state, float_t duration);
     void free_aet(pv_aet aet, int32_t index);
     void free_aet_title_image();
     float_t get_aet_frame(pv_aet aet, int32_t index);
@@ -298,9 +303,12 @@ struct pv_game_play_data {
     void set_value_text(int32_t index, float_t time_offset);
     void skin_danger_ctrl();
     void score_update(uint32_t score_final, bool update);
+    void ui_set_disp();
+    void ui_set_pos();
     void unload();
     void unload_aet();
     void unload_auth_2d();
+    void unload_auth_2d_data();
 
     void sub_140134670(int32_t chance_result);
     void sub_140134730();
@@ -308,15 +316,15 @@ struct pv_game_play_data {
     void sub_1401349C0(uint32_t set_id);
     void sub_140135ED0();
     void sub_1401362C0();
-    void sub_1401378E0(bool disp, int32_t index, int32_t a4, float_t a5);
     void sub_140137BE0();
     void sub_140137DD0(int32_t a2, float_t delta_time, vec2& pos, int32_t combo_count);
-    void sub_140137F80(bool a2, float_t a3);
-    void sub_1401385F0(float_t delta_time);
-    void sub_140138A30();
-    void sub_140138D60();
-    void sub_140138F30();
-    void sub_14013C320();
+    void sub_140137F80(bool update, float_t duration);
+
+    inline void reinit_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio prio,
+        AetFlags flags, const char* layer_name, const vec2* pos = 0, const vec2* scale = 0) {
+        aet_manager_free_aet_object_reset(&aet_ids[aet_index]);
+        aet_ids[aet_index] = init_aet_gam_cmn(aet_index, prio, flags, layer_name, pos, scale);
+    }
 };
 
 extern float_t get_percentage_clear_excellent();

@@ -958,7 +958,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             if (sub_14013C8C0()->sub_1400E7910() == 2 && sub_14013C8C0()->field_25)
                 v192 = 0;
 
-            if (!music_play) {
+            if (!this->music_play) {
                 v192 = 0;
                 v189 = 0;
             }
@@ -2388,7 +2388,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     field_2BFB4 = -1;
     field_2BFB8 = -1;
     field_2BFBC = -1;
-    music_play = music_play;
+    this->music_play = music_play;
     field_2BFD4 = false;
     field_2BFD5 = false;
     pv_end = false;
@@ -2443,7 +2443,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     reset_camera_post_process();
 }
 
-bool pv_game_pv_data::read_dsc_file(std::string&& file_path, ::pv_game* pv_game, bool music_play) {
+bool pv_game_pv_data::load(std::string&& file_path, ::pv_game* pv_game, bool music_play) {
     switch (dsc_state) {
     case 0:
         if (dsc_file_handler.read_file(&data_list[DATA_AFT], file_path.c_str()))

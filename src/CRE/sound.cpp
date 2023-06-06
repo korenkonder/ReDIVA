@@ -1866,6 +1866,9 @@ void wave_audio_storage_init() {
 }
 
 void wave_audio_storage_clear() {
+    for (auto& i : wave_audio_storage_data)
+        i.second.Reset();
+
     wave_audio_storage_data.clear();
 }
 
@@ -1900,6 +1903,9 @@ void wave_audio_storage_unload_wave_audio(const std::string& name) {
 }
 
 void wave_audio_storage_free() {
+    for (auto& i : wave_audio_storage_data)
+        i.second.Reset();
+
     wave_audio_storage_data.clear();
 }
 

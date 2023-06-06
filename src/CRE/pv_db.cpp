@@ -501,7 +501,8 @@ int32_t pv_db_pv::get_chrmot_motion_id(int32_t chara_id,
     return motion.id;
 }
 
-const pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, pv_attribute_type attribute_type) const {
+const pv_db_pv_difficulty* pv_db_pv::get_difficulty(
+    pv_difficulty difficulty, pv_attribute_type attribute_type) const {
     if (attribute_type == PV_ATTRIBUTE_END)
         return 0;
 
@@ -512,7 +513,7 @@ const pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, pv_attri
     return 0;
 }
 
-const pv_db_pv_difficulty* pv_db_pv::get_difficulty(int32_t difficulty, int32_t edition) const {
+const pv_db_pv_difficulty* pv_db_pv::get_difficulty(pv_difficulty difficulty, int32_t edition) const {
     const std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
     for (const pv_db_pv_difficulty& i : diff)
         if (i.edition == edition)
@@ -548,7 +549,7 @@ int32_t pv_db_pv::get_performer_costume(int32_t performer) const {
         performer = pv_db_pv::get_performer_pseudo_same_id(performer);
         if (performer >= 0) {
             const pv_db_pv_performer* perf = &this->performer[performer];
-            costume = pv_db_pv::get_pseudo_costume(type, (chara_index)perf->chara, perf->costume);
+            costume = pv_db_pv::get_pseudo_costume(type, perf->chara, perf->costume);
         }
     }
     return costume;
@@ -620,6 +621,32 @@ int32_t pv_db_pv::get_performer_pseudo_same_id(int32_t performer) const {
             return performer;
     }
     return -1;
+}
+
+int32_t pv_db_pv::get_performer_pv_costume(int32_t performer, pv_difficulty difficulty) const {
+    if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
+        return -1;
+
+    const pv_db_pv_performer* perf = &this->performer[performer];
+    int32_t costume;
+    if (difficulty < 0 || difficulty >= PV_DIFFICULTY_MAX)
+        costume = perf->pv_costume[PV_DIFFICULTY_HARD];
+    else
+        costume = perf->pv_costume[difficulty];
+
+    pv_performer_type type = perf->type;
+    if (type >= PV_PERFORMER_PSEUDO_SWIM && type <= PV_PERFORMER_PSEUDO_SWIM_S) {
+        performer = get_performer_pseudo_same_id(performer);
+        if (performer >= 0) {
+            const pv_db_pv_performer* perf = &this->performer[performer];
+            if (difficulty < 0 || difficulty >= PV_DIFFICULTY_MAX)
+                costume = perf->pv_costume[PV_DIFFICULTY_HARD];
+            else
+                costume = perf->pv_costume[difficulty];
+            costume = pv_db_pv::get_pseudo_costume(perf->type, perf->chara, costume);
+        }
+    }
+    return costume;
 }
 
 pv_performer_size pv_db_pv::get_performer_size(int32_t performer) const {
@@ -2271,7 +2298,7 @@ pv_db_pv* task_pv_db_get_pv(int32_t pv_id) {
 }
 
 const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
-    int32_t difficulty, pv_attribute_type attribute_type) {
+    pv_difficulty difficulty, pv_attribute_type attribute_type) {
     pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     if (pv)
         return pv->get_difficulty(difficulty, attribute_type);
@@ -2279,7 +2306,7 @@ const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
 }
 
 const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
-    int32_t difficulty, int32_t edition) {
+    pv_difficulty difficulty, int32_t edition) {
     pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     if (pv)
         return pv->get_difficulty(difficulty, edition);

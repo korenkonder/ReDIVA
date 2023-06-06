@@ -155,6 +155,8 @@ int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
 
+static const int32_t fast_loader_speed = 60;
+
 bool light_chara_ambient;
 vec4 npr_cloth_spec_color = 1.0f;
 
@@ -1048,8 +1050,8 @@ static void render_context_ctrl(render_context* rctx) {
     game_state_ctrl();
     rctx->ctrl();
 
-    if (game_state_get_game_state() == GAME_STATE_STARTUP)
-        for (int32_t i = 1; i < 0; i++) {
+    if (fast_loader_speed > 1 && game_state_get_game_state() == GAME_STATE_STARTUP)
+        for (int32_t i = 1; i < fast_loader_speed; i++) {
             rctx_ptr = rctx;
             game_state_ctrl();
             rctx->ctrl();

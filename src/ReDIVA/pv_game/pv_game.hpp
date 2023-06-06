@@ -143,9 +143,9 @@ struct pv_game_data {
     int8_t field_2CE9C[128];
     int32_t field_2CF1C;
     bool field_2CF20;
-    int32_t field_2CF24;
-    float_t field_2CF28;
-    float_t field_2CF2C;
+    int32_t appear_state;
+    float_t appear_time;
+    float_t appear_duration;
     int32_t field_2CF30;
     int32_t field_2CF34;
     int32_t field_2CF38;
@@ -194,7 +194,7 @@ struct pv_game_data {
     int64_t max_time;
     float_t max_time_float;
     float_t current_time_float;
-    uint64_t current_time;
+    int64_t current_time;
     float_t field_2D038;
     float_t field_2D03C;
     int32_t score_hold_multi;
@@ -405,7 +405,9 @@ struct pv_game {
     void itmpv_reset();
     bool load();
     void play_se(int32_t index);
+    void play_data_ctrl(float_t delta_time);
     void reset();
+    void reset_appear();
     void reset_field();
     void set_chara_use_opd(bool value);
     void set_data_campv(int32_t type, int32_t index, float_t frame);
@@ -434,12 +436,10 @@ struct pv_game {
 
     void sub_1400FC500();
     int32_t sub_1400FC780(float_t delta_time);
-    void sub_1400FCAD0(float_t delta_time);
     float_t sub_1400FCEB0();
     int32_t sub_1400FDD80();
     void sub_140104FB0();
     void sub_140106640();
-    void sub_140108320();
     bool sub_14010EF00();
     void sub_14010F030();
     int32_t sub_14010F930();
@@ -493,7 +493,7 @@ struct struc_14 {
 
     int32_t sub_1400E7910();
     bool sub_1400E7920();
-    void sub_1400E79E0(int32_t a2);
+    void sub_1400E79E0(int32_t value);
 };
 
 struct struc_677 {
@@ -503,13 +503,13 @@ struct struc_677 {
     int8_t field_C;
     int32_t field_10;
     bool no_fail;
-    int8_t field_15;
+    bool watch;
     bool success;
     bool field_17;
     int32_t field_18;
     int32_t field_1C;
     int32_t field_20;
-    int32_t field_24;
+    int32_t option;
 };
 
 struct struc_775 {
@@ -559,7 +559,6 @@ struct struc_664 {
     int8_t field_3;
 };
 
-
 struct struc_660 {
     int32_t field_0;
     int32_t field_4;
@@ -569,10 +568,16 @@ struct struc_660 {
     std::string field_28;
     int32_t field_48;
     int32_t field_4C;
+
+    struc_660();
+    ~struc_660();
 };
 
 struct struc_661 {
     struc_660 field_0[2];
+
+    struc_661();
+    ~struc_661();
 };
 
 struct struc_662 {
@@ -611,6 +616,9 @@ struct struc_662 {
     int32_t field_1E0;
     int32_t field_1E4[3];
     bool next_stage;
+
+    struc_662();
+    ~struc_662();
 };
 
 struct struc_777 {
@@ -626,12 +634,18 @@ struct struc_777 {
     std::string field_40;
     int32_t field_60;
     int32_t field_64;
+
+    struc_777();
+    ~struc_777();
 };
 
 struct struc_778 {
     int32_t field_0;
     int32_t field_4;
     std::string field_8[2];
+
+    struc_778();
+    ~struc_778();
 };
 
 struct struc_780 {
@@ -678,6 +692,9 @@ struct struc_716 {
     int64_t field_650;
     int64_t field_658;
     int64_t field_660;
+
+    struc_716();
+    ~struc_716();
 };
 
 struct struc_718 {
@@ -728,6 +745,9 @@ struct struc_717 {
     struc_677 field_0;
     struc_716 field_28[4];
     struc_718 field_19C8;
+
+    struc_717();
+    ~struc_717();
 };
 
 class TaskPvGame : public app::Task {
@@ -742,7 +762,7 @@ public:
         std::string chainslide_failure_name;
         std::string slidertouch_name;
         bool field_190;
-        bool field_191;
+        bool watch;
         bool no_fail;
         bool field_193;
         bool field_194;
@@ -809,6 +829,7 @@ extern bool task_pv_game_check_task_ready();
 extern bool task_pv_game_del_task();
 
 extern void task_pv_game_init_pv();
+extern bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool music_play);
 extern void task_pv_game_init_test_pv();
 
 extern struc_14* sub_14013C8C0();

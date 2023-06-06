@@ -394,16 +394,18 @@ pv_disp2d::~pv_disp2d() {
 
 }
 
-pv_game_play_data::pv_game_play_data() : pv_set(), aet_ids(), aet_ids_enable(), field_1C8(), field_1D0(),
-field_1D8(), field_1E0(), field_1E8(), field_1F0(), field_1F8(), field_1FC(), field_204(), field_20C(),
-frame_state(), field_218(), fade_begin(), fade_end(), fade(), skin_danger_frame(), field_2FC(),
-chance_result(), chance_points(), field_310(), slide_points(), max_slide_points(), pv_spr_set_id(),
-pv_aet_set_id(), pv_aet_id(), stage_index(), field_33C(), field_350(), field_354(), value_text_spr_index(),
-not_clear(), spr_set_back_id(), loaded(), state(), field_36C(), update(), field_374(), field_378(),
-field_37C(), score_speed(), score(), value_text_display(), field_38C(), value_text_index(),
-value_text_time_offset(), combo_state(), combo_count(), combo_disp_time(), field_3AC(), field_3B0(),
-field_3B4(), field_3B8(), field_3BC(),  aix(), ogg(), field_3C4(), ex_song_index(), field_5EC(), option(),
-field_5F4(), lyric(), lyric_set(), field_64C(), field_650(), field_654(), field_658(), field_65C() {
+pv_game_play_data::pv_game_play_data() : pv_set(), aet_ids(), aet_ids_enable(), frame_btm_pos(),
+frame_btm_pos_diff(), frame_top_pos(), frame_top_pos_diff(), song_info_pos(), song_info_pos_diff(),
+song_energy_pos(), song_energy_pos_diff(), frame_disp(), frame_state(), frame_top_pos_max(),
+frame_btm_pos_max(), frame_danger_state(), field_218(), fade_begin(), fade_end(), fade(),
+skin_danger_frame(), field_2FC(), chance_result(), chance_points(), field_310(), slide_points(),
+max_slide_points(), pv_spr_set_id(), pv_aet_set_id(), pv_aet_id(), stage_index(), field_33C(),
+field_350(), field_354(), value_text_spr_index(), not_clear(), spr_set_back_id(), loaded(),
+state(), field_36C(), update(), field_374(), field_378(), field_37C(), score_speed(), score(),
+value_text_display(), field_38C(), value_text_index(), value_text_time_offset(), combo_state(),
+combo_count(), combo_disp_time(), field_3AC(), field_3B0(), field_3B4(), field_3B8(),
+field_3BC(), aix(), ogg(), field_3C4(), ex_song_index(), field_5EC(), option(), field_5F4(),
+lyric(), lyric_set(), field_64C(), field_650(), field_654(), field_658(), field_65C() {
     chance_points_pos = 0;
     slide_points_pos = 0;
     max_slide_points_pos = 0;
@@ -452,6 +454,79 @@ void pv_game_play_data::combo_ctrl(float_t delta_time) {
         break;
     }
 
+}
+
+void pv_game_play_data::ctrl(float_t delta_time) {
+    if (!update)
+        return;
+
+    combo_ctrl(delta_time);
+    skin_danger_ctrl();
+
+    if (field_378) {
+        switch (field_374) {
+        case 0:
+            init_aet_chance_txt(true);
+            field_374++;
+            field_37C = 0.0f;
+            break;
+        case 1:
+            if (field_37C >= 2.0f)
+                field_374 = 2;
+            break;
+        case 2:
+            if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_CHANCE_TXT])) {
+                aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_TXT]);
+                field_374++;
+            }
+            break;
+        case 4:
+            init_aet_chance_txt(false);
+            field_374++;
+            field_37C = 0.0f;
+            break;
+        case 5:
+            if (field_37C >= 2.0f)
+                field_374 = 6;
+            break;
+        case 6:
+            if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_CHANCE_TXT])) {
+                aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_TXT]);
+                field_374 = 0;
+                field_378 = false;
+            }
+            break;
+        }
+
+        field_37C += delta_time;
+    }
+
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_CHANCE_POINT]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_POINT]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_SLIDE_POINT]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SLIDE_POINT]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_POINT]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_POINT]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_PLUS]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_PLUS]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_0]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_0]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_1]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_1]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_2]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_2]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_3]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_3]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_4]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_4]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_5]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_5]);
+    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_6]))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_6]);
+
+    if (aet_ids[PV_GAME_AET_VALUE_TEXT] && (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_VALUE_TEXT])
+        || aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_VALUE_TEXT]) > 60.0f))
+        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_VALUE_TEXT]);
 }
 
 void pv_game_play_data::disable_update() {
@@ -639,13 +714,13 @@ void pv_game_play_data::disp_max_slide_point() {
 }
 
 void pv_game_play_data::disp_score() {
-    if (!(aet_ids[PV_GAME_AET_FRAME_BOTTOM] || aet_ids[PV_GAME_AET_BOTTOM_BACK]) || !field_1F8[0])
+    if (!(aet_ids[PV_GAME_AET_FRAME_BOTTOM] || aet_ids[PV_GAME_AET_BOTTOM_BACK]) || !frame_disp[0])
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    vec2 pos = { 0.0f, field_1C8[0] };
+    vec2 pos = { 0.0f, frame_btm_pos[0] };
     AetComp::put_number_sprite(score, 7, &comp, spr_p_score,
         spr_p_score_spr, spr::SPR_PRIO_11, &pos, true, aft_spr_db);
 }
@@ -701,7 +776,7 @@ void pv_game_play_data::disp_slide_points(int32_t max_slide_point, float_t pos_x
 }
 
 void pv_game_play_data::disp_song_energy() {
-    if (!(aet_ids[PV_GAME_AET_FRAME_BOTTOM] || aet_ids[PV_GAME_AET_BOTTOM_BACK]) || !field_1F8[0])
+    if (!(aet_ids[PV_GAME_AET_FRAME_BOTTOM] || aet_ids[PV_GAME_AET_BOTTOM_BACK]) || !frame_disp[0])
         return;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -715,7 +790,7 @@ void pv_game_play_data::disp_song_energy() {
         spr = spr_p_energy_reach_num_spr;
 
     int32_t song_energy = (int32_t)(pv_game->data.song_energy * 100.0f);
-    vec2 pos = { 0.0f, field_1F0[0] };
+    vec2 pos = { 0.0f, song_energy_pos };
     AetComp::put_number_sprite(song_energy / 100, 3, &comp,
         &spr_p_energy_num[4], spr, spr::SPR_PRIO_16, &pos, 0, aft_spr_db);
     AetComp::put_number_sprite(song_energy % 100, 2, &comp,
@@ -768,6 +843,136 @@ bool pv_game_play_data::fade_end_ctrl() {
 
     return fade_end;
 }
+
+void pv_game_play_data::frame_ctrl() {
+    for (int32_t i = 0; i < 2; i++) {
+        if (frame_state[i] == 3) {
+            frame_btm_pos[i] = max_def(frame_btm_pos[i] - frame_btm_pos_diff[i], 0.0f);
+            frame_top_pos[i] = max_def(frame_top_pos[i] - frame_top_pos_diff[i], 0.0f);
+
+            if (frame_btm_pos[i] == 0.0f && frame_top_pos[i] == 0.0f)
+                frame_state[i] = 1;
+        }
+        else if (frame_state[i] == 4) {
+            frame_btm_pos[i] = min_def(frame_btm_pos[i] + frame_btm_pos_diff[i], frame_btm_pos_max[i]);
+            frame_top_pos[i] = min_def(frame_top_pos[i] + frame_top_pos_diff[i], frame_top_pos_max[i]);
+
+            if (frame_btm_pos[i] == frame_btm_pos_max[i] && frame_top_pos[i] == frame_top_pos_max[i])
+                frame_state[i] = 2;
+        }
+    }
+
+    if (song_info_pos_diff > 0.0f)
+        song_info_pos -= song_info_pos_diff;
+    song_info_pos = max_def(song_info_pos, 0.0f);
+
+    if (song_energy_pos_diff > 0.0f)
+        song_energy_pos -= song_energy_pos_diff;
+    song_energy_pos = max_def(song_energy_pos, 0.0f);
+
+    ui_set_pos();
+
+    if (frame_state[0] == 1)
+        field_218 = true;
+
+    int32_t v13 = 0;
+    bool v15 = false;
+    if (!sub_14013C8C0()->sub_1400E7920() && frame_disp[0]) {
+        if (frame_state[0] == 1 || !field_218)
+            v15 = true;
+        v13 = (int32_t)-song_info_pos;
+    }
+
+    task_game_2d_sub_140372670(v15);
+    task_game_2d_sub_1403726D0(v13);
+    task_game_2d_set_energy_unit_no_fail(pv_game_get()->data.no_fail);
+}
+
+#pragma warning(push)
+#pragma warning(disable: 6385)
+#pragma warning(disable: 6386)
+void pv_game_play_data::frame_set(bool disp, int32_t index, int32_t state, float_t duration) {
+    if (index < 0 || index > 1)
+        return;
+
+    frame_disp [index] = disp;
+    frame_state[index] = state;
+
+    switch (index) {
+    case 0:
+        /*if (game_skin_get()->check_skin()) {
+            set_aet_id_visible_enable(PV_GAME_AET_TOP_FRONT   , disp);
+            set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_FRONT, disp);
+            set_aet_id_visible_enable(PV_GAME_AET_TOP_BACK    , disp);
+            set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_BACK , disp);
+        }
+        else */{
+            set_aet_id_visible_enable(PV_GAME_AET_FRAME_BOTTOM, disp);
+            set_aet_id_visible_enable(PV_GAME_AET_FRAME_TOP    , disp);
+        }
+
+        set_aet_id_visible_enable(PV_GAME_AET_0                      , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_1                      , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_SONG_ICON              , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_LEVEL_INFO             , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_BASE       , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HISPEED    , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HIDDEN     , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_SUDDEN     , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE       , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE_REACH , disp);
+        set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02, disp);
+        set_aet_id_visible_enable(PV_GAME_AET_STAGE_INFO             , disp);
+
+        set_song_energy(disp);
+        break;
+    case 1:
+        set_aet_id_visible_enable(PV_GAME_AET_CHANCE_FRAME_BOTTOM, disp);
+        set_aet_id_visible_enable(PV_GAME_AET_CHANCE_FRAME_TOP   , disp);
+        break;
+    }
+
+    switch (state) {
+    case 3:
+        if (duration > 0.0f) {
+            frame_btm_pos_diff[index] = (1.0f / duration) * frame_btm_pos_max[index];
+            frame_top_pos_diff[index] = (1.0f / duration) * frame_top_pos_max[index];
+
+            if (!index) {
+                if (song_info_pos_diff < 0.0f)
+                    song_info_pos_diff = (1.0f / duration) * frame_top_pos_max[index];
+                if (song_energy_pos_diff < 0.0f)
+                    song_energy_pos_diff = (1.0f / duration) * frame_btm_pos_max[0];
+            }
+        }
+        else {
+            frame_state[index] = 1;
+            frame_btm_pos[index] = 0.0f;
+            frame_top_pos[index] = 0.0f;
+            field_218 = true;
+
+            if (!index) {
+                song_info_pos = 0.0f;
+                song_energy_pos = 0.0f;
+            }
+        }
+        break;
+    case 4:
+        if (duration > 0.0f) {
+            frame_btm_pos_diff[index] = (1.0f / duration) * frame_btm_pos_max[index];
+            frame_top_pos_diff[index] = (1.0f / duration) * frame_top_pos_max[index];
+        }
+        else {
+            frame_state[index] = 2;
+            frame_btm_pos[index] = frame_btm_pos_max[index];
+            frame_top_pos[index] = frame_top_pos_max[index];
+        }
+        break;
+    }
+
+    ui_set_pos();
+}
+#pragma warning(pop)
 
 void pv_game_play_data::free_aet(pv_aet aet, int32_t index) {
     if (index < 0 || index >= 8)
@@ -887,36 +1092,25 @@ void pv_game_play_data::init_aet(pv_aet aet, int32_t index, std::string&& layer_
 
 void pv_game_play_data::init_aet_black_fade() {
     fade = PV_GAME_AET_BLACK_FADE;
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_BLACK_FADE]);
-    aet_ids[PV_GAME_AET_BLACK_FADE] = init_aet_gam_cmn(PV_GAME_AET_BLACK_FADE,
-        spr::SPR_PRIO_17, AET_PLAY_ONCE, spr_black_fade[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_BLACK_FADE, spr::SPR_PRIO_17, AET_PLAY_ONCE, spr_black_fade[0]);
     set_aet_id_frame(PV_GAME_AET_BLACK_FADE, 0.0f);
     set_aet_id_play(PV_GAME_AET_BLACK_FADE, false);
 }
 
 void pv_game_play_data::init_aet_chance_frame() {
-
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_FRAME_BOTTOM]);
-    aet_ids[PV_GAME_AET_CHANCE_FRAME_BOTTOM] = init_aet_gam_cmn(PV_GAME_AET_CHANCE_FRAME_BOTTOM,
-        spr::SPR_PRIO_12, AET_LOOP, spr_chance_frame_bottom[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_FRAME_TOP]);
-    aet_ids[PV_GAME_AET_CHANCE_FRAME_TOP] = init_aet_gam_cmn(PV_GAME_AET_CHANCE_FRAME_TOP,
-        spr::SPR_PRIO_12, AET_LOOP, spr_chance_frame_top[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_CHANCE_FRAME_BOTTOM, spr::SPR_PRIO_12, AET_LOOP, spr_chance_frame_bottom[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_CHANCE_FRAME_TOP   , spr::SPR_PRIO_12, AET_LOOP, spr_chance_frame_top   [0]);
 }
 
 void pv_game_play_data::init_aet_chance_point(int32_t chance_points, float_t pos_x, float_t pos_y) {
-
     vec2 pos = { pos_x, pos_y };
     target_pos_scale_offset_apply(&pos, &pos);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_POINT]);
-    aet_ids[PV_GAME_AET_CHANCE_POINT] = init_aet_gam_cmn(PV_GAME_AET_CHANCE_POINT, spr::SPR_PRIO_15,
-        AET_PLAY_ONCE, spr_chance_point[(get_digit_count(chance_points, 6) + 1) % 2 ? 1 : 0], &pos);
+    reinit_aet_gam_cmn(PV_GAME_AET_CHANCE_POINT, spr::SPR_PRIO_15, AET_PLAY_ONCE,
+        spr_chance_point[(get_digit_count(chance_points, 6) + 1) % 2 ? 1 : 0], &pos);
 }
 
 void pv_game_play_data::init_aet_chance_txt(bool end) {
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_TXT]);
-    aet_ids[PV_GAME_AET_CHANCE_TXT] = init_aet_gam_cmn(PV_GAME_AET_CHANCE_TXT,
-        spr::SPR_PRIO_06, AET_PLAY_ONCE, spr_chance_txt[end ? 0 : 1]);
+    reinit_aet_gam_cmn(PV_GAME_AET_CHANCE_TXT, spr::SPR_PRIO_06, AET_PLAY_ONCE, spr_chance_txt[end ? 0 : 1]);
 }
 
 void pv_game_play_data::init_aet_combo(int32_t target_display_index,
@@ -1019,9 +1213,7 @@ float_t pv_game_play_data::init_aet_edit_effect(int32_t aet_id, const char* name
 }
 
 void pv_game_play_data::init_aet_frame(bool danger) {
-
-
-    if (frame_state != (danger ? 2 : 1)) {
+    if (frame_danger_state != (danger ? 2 : 1)) {
         data_struct* aft_data = &data_list[DATA_AFT];
         aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
 
@@ -1033,11 +1225,8 @@ void pv_game_play_data::init_aet_frame(bool danger) {
             aet_ids[PV_GAME_AET_BOTTOM_BACK] = aet_manager_init_aet_object(game_skin_get()->get_skin_aet(),
                 spr::SPR_PRIO_03, AET_LOOP, "bottom_back", 0, 0, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db);
         }
-        else */{
-            aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_FRAME_BOTTOM]);
-            aet_ids[PV_GAME_AET_FRAME_BOTTOM] = init_aet_gam_cmn(PV_GAME_AET_FRAME_BOTTOM,
-                spr::SPR_PRIO_10, AET_LOOP, spr_frame[danger ? 2 : 0]);
-        }
+        else */
+            reinit_aet_gam_cmn(PV_GAME_AET_FRAME_BOTTOM, spr::SPR_PRIO_10, AET_LOOP, spr_frame[danger ? 2 : 0]);
 
         /*if (game_skin_get()->check_skin()) {
             aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_TOP_FRONT]);
@@ -1047,23 +1236,21 @@ void pv_game_play_data::init_aet_frame(bool danger) {
             aet_ids[PV_GAME_AET_TOP_BACK] = aet_manager_init_aet_object(game_skin_get()->get_skin_aet(),
                 spr::SPR_PRIO_03, AET_LOOP, "top_back", 0, 0, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db);
         }
-        else */{
-            aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_FRAME_UP]);
-            aet_ids[PV_GAME_AET_FRAME_UP] = init_aet_gam_cmn(PV_GAME_AET_FRAME_UP,
-                spr::SPR_PRIO_10, AET_LOOP, spr_frame[danger ? 3 : 1]);
-        }
-        frame_state = danger ? 2 : 1;
+        else */
+            reinit_aet_gam_cmn(PV_GAME_AET_FRAME_TOP, spr::SPR_PRIO_10, AET_LOOP, spr_frame[danger ? 3 : 1]);
+
+        frame_danger_state = danger ? 2 : 1;
     }
 
     /*if (game_skin_get()->check_skin()) {
-        set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_FRONT, field_1F8[0]);
-        set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_BACK , field_1F8[0]);
-        set_aet_id_visible_enable(PV_GAME_AET_TOP_FRONT   , field_1F8[0]);
-        set_aet_id_visible_enable(PV_GAME_AET_TOP_BACK    , field_1F8[0]);
+        set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_FRONT, frame_disp[0]);
+        set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_BACK , frame_disp[0]);
+        set_aet_id_visible_enable(PV_GAME_AET_TOP_FRONT   , frame_disp[0]);
+        set_aet_id_visible_enable(PV_GAME_AET_TOP_BACK    , frame_disp[0]);
     }
     else */{
-        set_aet_id_visible_enable(PV_GAME_AET_FRAME_BOTTOM, field_1F8[0]);
-        set_aet_id_visible_enable(PV_GAME_AET_FRAME_UP    , field_1F8[0]);
+        set_aet_id_visible_enable(PV_GAME_AET_FRAME_BOTTOM, frame_disp[0]);
+        set_aet_id_visible_enable(PV_GAME_AET_FRAME_TOP   , frame_disp[0]);
     }
 }
 
@@ -1075,7 +1262,7 @@ uint32_t pv_game_play_data::init_aet_gam_cmn(pv_game_aet aet_index, spr::SprPrio
 
     uint32_t aet_id = aet_manager_init_aet_object(3, prio, flags, layer_name, pos,
         0, 0, 0, -1.0f, -1.0f, scale, 0, aft_aet_db, aft_spr_db);
-    aet_ids_enable[aet_index] = 1;
+    aet_ids_enable[aet_index] = true;
     return aet_id;
 }
 
@@ -1099,7 +1286,7 @@ void pv_game_play_data::init_aet_id(int32_t aet_id, const char* layer_name,
 void pv_game_play_data::init_aet_level_info() {
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_LEVEL_INFO]);
 
-    int32_t difficulty = sub_14013C8C0()->difficulty;
+    pv_difficulty difficulty = sub_14013C8C0()->difficulty;
     int32_t edition = sub_14013C8C0()->edition;
 
     const pv_db_pv_difficulty* diff = pv_game_get()->data.pv->get_difficulty(difficulty, edition);
@@ -1117,13 +1304,12 @@ void pv_game_play_data::init_aet_level_info() {
         name = (extra ? spr_level_info_extra : spr_level_info)[difficulty];
 
     aet_ids[PV_GAME_AET_LEVEL_INFO] = init_aet_gam_cmn(PV_GAME_AET_LEVEL_INFO, spr::SPR_PRIO_13, AET_LOOP, name);
-    set_aet_id_visible_enable(PV_GAME_AET_LEVEL_INFO, field_1F8[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_LEVEL_INFO, frame_disp[0]);
 }
 
 void pv_game_play_data::init_aet_next_info() {
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_NEXT_INFO]);
-    aet_ids[PV_GAME_AET_NEXT_INFO] = init_aet_gam_cmn(PV_GAME_AET_NEXT_INFO, spr::SPR_PRIO_22,
-        AET_PLAY_ONCE, pv_game_get()->data.next_stage ? spr_next_info[0] : spr_failed_info[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_NEXT_INFO, spr::SPR_PRIO_22, AET_PLAY_ONCE,
+        pv_game_get()->data.next_stage ? spr_next_info[0] : spr_failed_info[0]);
 }
 
 void pv_game_play_data::init_aet_option_info() {
@@ -1138,18 +1324,18 @@ void pv_game_play_data::init_aet_option_info() {
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_OPTION_INFO_HISPEED]);
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_OPTION_INFO_HIDDEN]);
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_OPTION_INFO_SUDDEN]);
-    aet_ids[PV_GAME_AET_OPTION_INFO_BASE] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_BASE,
-        spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_base[0]);
+    aet_ids[PV_GAME_AET_OPTION_INFO_BASE   ] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_BASE,
+        spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_base   [0]);
     aet_ids[PV_GAME_AET_OPTION_INFO_HISPEED] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_HISPEED,
         spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_hispeed[option != 1 ? 1 : 0]);
-    aet_ids[PV_GAME_AET_OPTION_INFO_HIDDEN] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_HIDDEN,
-        spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_hidden[option != 2 ? 1 : 0]);
-    aet_ids[PV_GAME_AET_OPTION_INFO_SUDDEN] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_SUDDEN,
-        spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_sudden[option != 3 ? 1 : 0]);
-    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_BASE, field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HISPEED, field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HIDDEN, field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_SUDDEN, field_1F8[0]);
+    aet_ids[PV_GAME_AET_OPTION_INFO_HIDDEN ] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_HIDDEN,
+        spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_hidden [option != 2 ? 1 : 0]);
+    aet_ids[PV_GAME_AET_OPTION_INFO_SUDDEN ] = init_aet_gam_cmn(PV_GAME_AET_OPTION_INFO_SUDDEN,
+        spr::SPR_PRIO_13, AET_PLAY_ONCE, spr_option_info_sudden [option != 3 ? 1 : 0]);
+    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_BASE   , frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HISPEED, frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HIDDEN , frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_SUDDEN , frame_disp[0]);
 }
 
 void pv_game_play_data::init_aet_slide_max(int32_t slide_point, float_t pos_x, float_t pos_y) {
@@ -1226,60 +1412,45 @@ void pv_game_play_data::init_aet_slide_point(int32_t slide_point, float_t pos_x,
 }
 
 void pv_game_play_data::init_aet_song_energy() {
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_BASE]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_BASE] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BASE,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BASE,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_base[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_BASE_REACH]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_BASE_REACH] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BASE_REACH,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BASE_REACH,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_base_reach[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_NORMAL]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_NORMAL] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_NORMAL,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_NORMAL,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_normal[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_REACH]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_REACH] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_REACH,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_REACH,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_reach[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_FULL]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_FULL] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_FULL,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_FULL,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_full[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_EFF_NORMAL]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_EFF_NORMAL] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_EFF_NORMAL,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_EFF_NORMAL,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_eff_normal[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_EFF_REACH]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_EFF_REACH] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_EFF_REACH,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_EFF_REACH,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_eff_reach[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_CLEAR_TXT]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_CLEAR_TXT] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_clear_txt[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER_GREAT]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER_GREAT] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER_GREAT,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER_GREAT,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_border_great[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_border_excellent[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER_RIVAL]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER_RIVAL] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER_RIVAL,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER_RIVAL,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_border_rival[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_EDGE_LINE02]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_EDGE_LINE02] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02,
         spr::SPR_PRIO_15, AET_LOOP, spr_song_energy_edge_line02[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_NOT_CLEAR]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_NOT_CLEAR] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR,
         spr::SPR_PRIO_16, AET_LOOP, spr_song_energy_not_clear[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_BORDER] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_BORDER,
         spr::SPR_PRIO_16, AET_LOOP, spr_song_energy_border[0]);
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ENERGY_NOT_CLEAR_TXT]);
-    aet_ids[PV_GAME_AET_SONG_ENERGY_NOT_CLEAR_TXT] = init_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR_TXT,
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR_TXT,
         spr::SPR_PRIO_16, AET_LOOP, spr_song_energy_not_clear_txt[0]);
 
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE            , field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE_REACH      , field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT       , field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BORDER_GREAT    , field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT, field_1F8[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02     , field_1F8[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE            , frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE_REACH      , frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT       , frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BORDER_GREAT    , frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT, frame_disp[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02     , frame_disp[0]);
 
-    set_song_energy(field_1F8[0]);
+    set_song_energy(frame_disp[0]);
 
     set_aet_id_play(PV_GAME_AET_SONG_ENERGY_BASE            , false);
     set_aet_id_play(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT       , false);
@@ -1295,25 +1466,20 @@ void pv_game_play_data::init_aet_song_energy() {
 }
 
 void pv_game_play_data::init_aet_song_icon_loop() {
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SONG_ICON]);
-    aet_ids[PV_GAME_AET_SONG_ICON] = init_aet_gam_cmn(PV_GAME_AET_SONG_ICON,
-        spr::SPR_PRIO_13, AET_LOOP, spr_song_icon_loop[0]);
-    set_aet_id_visible_enable(PV_GAME_AET_SONG_ICON, field_1F8[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_SONG_ICON, spr::SPR_PRIO_13, AET_LOOP, spr_song_icon_loop[0]);
+    set_aet_id_visible_enable(PV_GAME_AET_SONG_ICON, frame_disp[0]);
 }
 
 void pv_game_play_data::init_aet_stage_info() {
-    if (stage_index >= 0 && stage_index <= 3) {
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_STAGE_INFO]);
-        aet_ids[PV_GAME_AET_STAGE_INFO] = init_aet_gam_cmn(PV_GAME_AET_STAGE_INFO,
-            spr::SPR_PRIO_13, AET_LOOP, spr_stage_info[stage_index]);
-        set_aet_id_visible_enable(PV_GAME_AET_STAGE_INFO, field_1F8[0]);
-    }
+    if (stage_index < 0 || stage_index >= 4)
+        return;
+
+    reinit_aet_gam_cmn(PV_GAME_AET_STAGE_INFO, spr::SPR_PRIO_13, AET_LOOP, spr_stage_info[stage_index]);
+    set_aet_id_visible_enable(PV_GAME_AET_STAGE_INFO, frame_disp[0]);
 }
 
 void pv_game_play_data::init_aet_success_info() {
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SUCCESS_INFO]);
-    aet_ids[PV_GAME_AET_SUCCESS_INFO] = init_aet_gam_cmn(PV_GAME_AET_SUCCESS_INFO,
-        spr::SPR_PRIO_02, (AetFlags)0, spr_success_info[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_SUCCESS_INFO, spr::SPR_PRIO_02, (AetFlags)0, spr_success_info[0]);
 }
 
 void pv_game_play_data::init_aet_title_image(const char* name) {
@@ -1327,9 +1493,7 @@ void pv_game_play_data::init_aet_title_image(const char* name) {
 
 void pv_game_play_data::init_aet_white_fade() {
     fade = PV_GAME_AET_WHITE_FADE;
-    aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_WHITE_FADE]);
-    aet_ids[PV_GAME_AET_WHITE_FADE] = init_aet_gam_cmn(PV_GAME_AET_WHITE_FADE,
-        spr::SPR_PRIO_17, AET_PLAY_ONCE, spr_white_fade[0]);
+    reinit_aet_gam_cmn(PV_GAME_AET_WHITE_FADE, spr::SPR_PRIO_17, AET_PLAY_ONCE, spr_white_fade[0]);
     set_aet_id_frame(PV_GAME_AET_WHITE_FADE, 0.0f);
     set_aet_id_play(PV_GAME_AET_WHITE_FADE, false);
 }
@@ -1631,17 +1795,17 @@ void pv_game_play_data::skin_danger_ctrl() {
     skin_danger_frame--;
 
     vec4 color = 1.0f;
-    if (frame_state == 2) {
+    if (frame_danger_state == 2) {
         if (skin_danger_frame < 0)
             skin_danger_frame = 30;
         else if (skin_danger_frame < 15)
             color = { 1.0f, 0.6f, 0.7f, 1.0f };
     }
 
-    aet_manager_set_obj_color(aet_ids[PV_GAME_AET_BOTTOM_BACK], color);
+    aet_manager_set_obj_color(aet_ids[PV_GAME_AET_BOTTOM_BACK ], color);
     aet_manager_set_obj_color(aet_ids[PV_GAME_AET_BOTTOM_FRONT], color);
-    aet_manager_set_obj_color(aet_ids[PV_GAME_AET_TOP_BACK], color);
-    aet_manager_set_obj_color(aet_ids[PV_GAME_AET_TOP_FRONT], color);*/
+    aet_manager_set_obj_color(aet_ids[PV_GAME_AET_TOP_BACK    ], color);
+    aet_manager_set_obj_color(aet_ids[PV_GAME_AET_TOP_FRONT   ], color);*/
 }
 
 void pv_game_play_data::score_update(uint32_t score_final, bool update) {
@@ -1650,10 +1814,68 @@ void pv_game_play_data::score_update(uint32_t score_final, bool update) {
 
     if (score_final - score > 140)
         score += (int32_t)((float_t)(10 * (score_final - score)) * score_speed);
-    else if (score_final - score <= 20)
-        score = score_final;
-    else
+    else if (score_final - score > 20)
         score += 20;
+    else
+        score = score_final;
+}
+
+void pv_game_play_data::ui_set_disp() {
+    for (int32_t i = PV_GAME_AET_0; i <= PV_GAME_AET_SONG_ICON; i++)
+        set_aet_id_visible((pv_game_aet)i, aet_ids_enable[i]);
+}
+
+void pv_game_play_data::ui_set_pos() {
+    const vec3        frame_btm_pos = { 0.0f,  this->frame_btm_pos[0], 0.0f };
+    const vec3 chance_frame_btm_pos = { 0.0f,  this->frame_btm_pos[1], 0.0f };
+    const vec3        frame_top_pos = { 0.0f, -this->frame_top_pos[0], 0.0f };
+    const vec3 chance_frame_top_pos = { 0.0f, -this->frame_top_pos[1], 0.0f };
+    const vec3        song_info_pos = { 0.0f, -this->   song_info_pos, 0.0f };
+    const vec3      song_energy_pos = { 0.0f,  this-> song_energy_pos, 0.0f };
+
+    /*if (game_skin_get()->check_skin()) {
+        set_aet_id_position(PV_GAME_AET_BOTTOM_FRONT, frame_btm_pos);
+        set_aet_id_position(PV_GAME_AET_BOTTOM_BACK , frame_btm_pos);
+    }
+    else*/
+        set_aet_id_position(PV_GAME_AET_FRAME_BOTTOM, frame_btm_pos);
+
+    set_aet_id_position(PV_GAME_AET_0                           , frame_btm_pos);
+    set_aet_id_position(PV_GAME_AET_1                           , frame_btm_pos);
+    set_aet_id_position(PV_GAME_AET_STAGE_INFO                  , frame_btm_pos);
+
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BASE            , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BASE_REACH      , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_NORMAL          , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_REACH           , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_FULL            , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_EFF_NORMAL      , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_EFF_REACH       , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT       , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER_GREAT    , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT, song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER_RIVAL    , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02     , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER          , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR       , song_energy_pos);
+    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR_TXT   , song_energy_pos);
+
+    /*if (game_skin_get()->check_skin()) {
+        set_aet_id_position(PV_GAME_AET_TOP_FRONT, frame_top_pos);
+        set_aet_id_position(PV_GAME_AET_TOP_BACK , frame_top_pos);
+    }
+    else*/
+        set_aet_id_position(PV_GAME_AET_FRAME_TOP, frame_top_pos);
+
+    set_aet_id_position(PV_GAME_AET_CHANCE_FRAME_BOTTOM, chance_frame_btm_pos);
+    set_aet_id_position(PV_GAME_AET_CHANCE_FRAME_TOP   , chance_frame_top_pos);
+
+    set_aet_id_position(PV_GAME_AET_SONG_ICON          , song_info_pos);
+    set_aet_id_position(PV_GAME_AET_LEVEL_INFO         , song_info_pos);
+    set_aet_id_position(PV_GAME_AET_OPTION_INFO_BASE   , song_info_pos);
+    set_aet_id_position(PV_GAME_AET_OPTION_INFO_HISPEED, song_info_pos);
+    set_aet_id_position(PV_GAME_AET_OPTION_INFO_HIDDEN , song_info_pos);
+    set_aet_id_position(PV_GAME_AET_OPTION_INFO_SUDDEN , song_info_pos);
 }
 
 void pv_game_play_data::unload() {
@@ -1683,7 +1905,7 @@ void pv_game_play_data::unload_auth_2d() {
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    sub_14013C320();
+    unload_auth_2d_data();
 
     if (pv_set) {
         if (pv_spr_set_id != -1)
@@ -1698,12 +1920,22 @@ void pv_game_play_data::unload_auth_2d() {
     //game_skin_get()->unload_skin();
 }
 
+void pv_game_play_data::unload_auth_2d_data() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
+
+    if (pv_set && pv_aet_set_id != -1)
+        aet_manager_free_aet_set_objects(pv_aet_set_id, aft_aet_db);
+
+    aet_manager_free_aet_set_objects(3, aft_aet_db);
+}
+
 void pv_game_play_data::sub_140134670(int32_t chance_result) {
     if (!field_378)
         return;
 
     sub_140137F80(true, 1.0f);
-    sub_1401378E0(true, 1, 4, 60.0f);
+    frame_set(true, 1, 4, 60.0f);
 
     this->chance_result = chance_result;
     field_37C = 0.0f;
@@ -1712,7 +1944,7 @@ void pv_game_play_data::sub_140134670(int32_t chance_result) {
 
 void pv_game_play_data::sub_140134730() {
     sub_140137F80(false, 1.0f);
-    sub_1401378E0(true, 1, 3, 60.0f);
+    frame_set(true, 1, 3, 60.0f);
     update = true;
     field_37C = 0.0f;
     field_374 = 0;
@@ -1781,17 +2013,15 @@ void pv_game_play_data::sub_140135ED0() {
         init_aet_level_info();
         init_aet_option_info();
         init_aet_stage_info();
-        sub_1401378E0(false, 0, 0, 0.0f);
-        sub_1401378E0(false, 1, 0, 0.0f);
+        frame_set(false, 0, 0, 0.0f);
+        frame_set(false, 1, 0, 0.0f);
     }
 
-    if (sub_14013C8C0()->sub_1400E7910() != 2)
-        sub_14013C8C0()->sub_1400E7910();
-
     /*if (game_skin_get()->check_skin()) {
-        field_204[0] = 105.0f;
-        field_20C[0] = 200.0f;
+        frame_top_pos_max[0] = 105.0f;
+        frame_btm_pos_max[0] = 200.0f;
     }*/
+
     init_aet_white_fade();
 
     task_game_2d_add_task();
@@ -1806,35 +2036,33 @@ void pv_game_play_data::sub_1401362C0() {
     }
 
     for (int32_t i = 0; i < 2; i++) {
-        field_1C8[i] = 0.0f;
-        field_1D0[i] = 0.0f;
-        field_1D8[i] = 0.0f;
-        field_1E0[i] = 0.0f;
-        field_1E8[i] = 0.0f;
-        field_1F0[i] = 0.0f;
-        field_1F8[i] = false;
-        field_1FC[i] = 0;
+        frame_btm_pos[i] = 0.0f;
+        frame_btm_pos_diff[i] = 0.0f;
+        frame_top_pos[i] = 0.0f;
+        frame_top_pos_diff[i] = 0.0f;
+        frame_disp[i] = false;
+        frame_state[i] = 0;
     }
 
-    field_1C8[0] = 86.0f;
-    field_1C8[1] = 138.0f;
+    frame_btm_pos[0] = 86.0f;
+    frame_btm_pos[1] = 138.0f;
 
-    field_1D8[0] = 58.0f;
-    field_1D8[1] = 138.0f;
+    frame_top_pos[0] = 58.0f;
+    frame_top_pos[1] = 138.0f;
 
-    field_1E8[0] = 58.0f;
-    field_1E8[1] = -1.0f;
+    song_info_pos = 58.0f;
+    song_info_pos_diff = -1.0f;
 
-    field_1F0[0] = 86.0f;
-    field_1F0[1] = -1.0f;
+    song_energy_pos = 86.0f;
+    song_energy_pos_diff = -1.0f;
 
-    field_204[0] = 58.0f;
-    field_204[1] = 138.0f;
+    frame_top_pos_max[0] = 58.0f;
+    frame_top_pos_max[1] = 138.0f;
 
-    field_20C[0] = 86.0f;
-    field_20C[1] = 138.0f;
+    frame_btm_pos_max[0] = 86.0f;
+    frame_btm_pos_max[1] = 138.0f;
 
-    frame_state = 0;
+    frame_danger_state = 0;
     field_218 = false;
     fade_begin = false;
     fade_end = false;
@@ -1865,90 +2093,6 @@ void pv_game_play_data::sub_1401362C0() {
     combo_disp_time = 0;
     combo_pos = 0.0f;
 }
-
-#pragma warning(push)
-#pragma warning(disable: 6385)
-#pragma warning(disable: 6386)
-void pv_game_play_data::sub_1401378E0(bool disp, int32_t index, int32_t a4, float_t a5) {
-    if (index < 0 || index > 1)
-        return;
-
-    field_1F8[index] = disp;
-    field_1FC[index] = a4;
-
-    switch (index) {
-    case 0:
-        /*if (game_skin_get()->check_skin()) {
-            set_aet_id_visible_enable(PV_GAME_AET_TOP_FRONT   , disp);
-            set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_FRONT, disp);
-            set_aet_id_visible_enable(PV_GAME_AET_TOP_BACK    , disp);
-            set_aet_id_visible_enable(PV_GAME_AET_BOTTOM_BACK , disp);
-        }
-        else */{
-            set_aet_id_visible_enable(PV_GAME_AET_FRAME_BOTTOM, disp);
-            set_aet_id_visible_enable(PV_GAME_AET_FRAME_UP    , disp);
-        }
-
-        set_aet_id_visible_enable(PV_GAME_AET_0                      , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_1                      , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_SONG_ICON              , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_LEVEL_INFO             , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_BASE       , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HISPEED    , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_HIDDEN     , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_OPTION_INFO_SUDDEN     , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE       , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_BASE_REACH , disp);
-        set_aet_id_visible_enable(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02, disp);
-        set_aet_id_visible_enable(PV_GAME_AET_STAGE_INFO             , disp);
-
-        set_song_energy(disp);
-        break;
-    case 1:
-        set_aet_id_visible_enable(PV_GAME_AET_CHANCE_FRAME_BOTTOM, disp);
-        set_aet_id_visible_enable(PV_GAME_AET_CHANCE_FRAME_TOP   , disp);
-        break;
-    }
-
-    if (a4 == 3) {
-        if (a5 <= 0.0f) {
-            field_1FC[index] = 1;
-            field_1C8[index] = 0.0f;
-            field_1D8[index] = 0.0f;
-            field_218 = true;
-
-            if (!index) {
-                field_1E8[0] = 0.0f;
-                field_1F0[0] = 0.0f;
-            }
-        }
-        else {
-            field_1D0[index] = (1.0f / a5) * field_20C[index];
-            field_1E0[index] = (1.0f / a5) * field_204[index];
-
-            if (!index) {
-                if (field_1E8[1] < 0.0f)
-                    field_1E8[1] = (1.0f / a5) * field_204[index];
-                if (field_1F0[1] < 0.0f)
-                    field_1F0[1] = (1.0f / a5) * field_20C[0];
-            }
-        }
-    }
-    else if (a4 == 4) {
-        if (a5 <= 0.0f) {
-            field_1FC[index] = 2;
-            field_1C8[index] = field_20C[index];
-            field_1D8[index] = field_204[index];
-        }
-        else {
-            field_1D0[index] = (1.0f / a5) * field_20C[index];
-            field_1E0[index] = (1.0f / a5) * field_204[index];
-        }
-    }
-
-    sub_140138A30();
-}
-#pragma warning(pop)
 
 void pv_game_play_data::sub_140137BE0() {
     if (!loaded)
@@ -1998,7 +2142,7 @@ void pv_game_play_data::sub_140137DD0(int32_t a2, float_t delta_time, vec2& pos,
             value_text_display = 0;
         break;
     }
-    set_song_energy(field_1F8[0]);
+    set_song_energy(frame_disp[0]);
 
     float_t alpha = field_33C % 60 < 30 ? 1.0f : 0.0f;
     set_aet_id_alpha(PV_GAME_AET_SONG_ENERGY_EFF_NORMAL, alpha);
@@ -2008,204 +2152,15 @@ void pv_game_play_data::sub_140137DD0(int32_t a2, float_t delta_time, vec2& pos,
     field_33C++;
 }
 
-void pv_game_play_data::sub_140137F80(bool update, float_t a3) {
+void pv_game_play_data::sub_140137F80(bool update, float_t duration) {
     if (update) {
-        sub_1401378E0(true, 0, 3, a3 * 60.0f);
-        update = true;
+        frame_set(true, 0, 3, duration * 60.0f);
+        this->update = true;
     }
     else {
-        sub_1401378E0(true, 0, 4, a3 * 60.0f);
-        update = false;
+        frame_set(true, 0, 4, duration * 60.0f);
+        this->update = false;
     }
-}
-
-void pv_game_play_data::sub_1401385F0(float_t delta_time){
-    if (!update)
-        return;
-
-    combo_ctrl(delta_time);
-    skin_danger_ctrl();
-
-    if (field_378) {
-        switch (field_374) {
-        case 0:
-            init_aet_chance_txt(true);
-            field_374++;
-            field_37C = 0.0f;
-            break;
-        case 1:
-            if (field_37C >= 2.0f)
-                field_374 = 2;
-            break;
-        case 2:
-            if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_CHANCE_TXT])) {
-                aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_TXT]);
-                field_374++;
-            }
-            break;
-        case 4:
-            init_aet_chance_txt(false);
-            field_374++;
-            field_37C = 0.0f;
-            break;
-        case 5:
-            if (field_37C >= 2.0f)
-                field_374 = 6;
-            break;
-        case 6:
-            if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_CHANCE_TXT])) {
-                aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_TXT]);
-                field_374 = 0;
-                field_378 = false;
-            }
-            break;
-        }
-
-        field_37C += delta_time;
-    }
-
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_CHANCE_POINT]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_CHANCE_POINT]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_SLIDE_POINT]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_SLIDE_POINT]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_POINT]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_POINT]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_PLUS]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_PLUS]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_0]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_0]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_1]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_1]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_2]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_2]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_3]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_3]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_4]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_4]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_5]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_5]);
-    if (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_6]))
-        aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_6]);
-
-    if (aet_ids[PV_GAME_AET_VALUE_TEXT] && (aet_manager_get_obj_end(aet_ids[PV_GAME_AET_VALUE_TEXT])
-        || aet_manager_get_obj_frame(aet_ids[PV_GAME_AET_VALUE_TEXT]) > 60.0f))
-            aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_VALUE_TEXT]);
-}
-
-void pv_game_play_data::sub_140138A30() {
-    const vec3 v16 = { 0.0f,  field_1C8[0], 0.0f };
-    const vec3 v18 = { 0.0f,  field_1C8[1], 0.0f };
-    const vec3 v17 = { 0.0f, -field_1D8[0], 0.0f };
-    const vec3 v19 = { 0.0f, -field_1D8[1], 0.0f };
-    const vec3 v15 = { 0.0f, -field_1E8[0], 0.0f };
-    const vec3 v14 = { 0.0f,  field_1F0[0], 0.0f };
-
-    /*if (game_skin_get()->check_skin()) {
-        set_aet_id_position(PV_GAME_AET_BOTTOM_FRONT, v16);
-        set_aet_id_position(PV_GAME_AET_BOTTOM_BACK , v16);
-    }
-    else*/
-        set_aet_id_position(PV_GAME_AET_FRAME_BOTTOM, v16);
-
-    set_aet_id_position(PV_GAME_AET_0                           , v16);
-    set_aet_id_position(PV_GAME_AET_1                           , v16);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BASE            , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BASE_REACH      , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_NORMAL          , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_REACH           , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_FULL            , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_EFF_NORMAL      , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_EFF_REACH       , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_CLEAR_TXT       , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR       , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_NOT_CLEAR_TXT   , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER_GREAT    , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER_EXCELLENT, v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER_RIVAL    , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_EDGE_LINE02     , v14);
-    set_aet_id_position(PV_GAME_AET_SONG_ENERGY_BORDER          , v14);
-    set_aet_id_position(PV_GAME_AET_STAGE_INFO                  , v16);
-
-    /*if (game_skin_get()->check_skin()) {
-        set_aet_id_position(PV_GAME_AET_TOP_FRONT, v17);
-        set_aet_id_position(PV_GAME_AET_TOP_BACK , v17);
-    }
-    else*/
-        set_aet_id_position(PV_GAME_AET_FRAME_UP , v17);
-
-    set_aet_id_position(PV_GAME_AET_CHANCE_FRAME_BOTTOM, v18);
-    set_aet_id_position(PV_GAME_AET_CHANCE_FRAME_TOP   , v19);
-    set_aet_id_position(PV_GAME_AET_SONG_ICON          , v15);
-    set_aet_id_position(PV_GAME_AET_LEVEL_INFO         , v15);
-    set_aet_id_position(PV_GAME_AET_OPTION_INFO_BASE   , v15);
-    set_aet_id_position(PV_GAME_AET_OPTION_INFO_HISPEED, v15);
-    set_aet_id_position(PV_GAME_AET_OPTION_INFO_HIDDEN , v15);
-    set_aet_id_position(PV_GAME_AET_OPTION_INFO_SUDDEN , v15);
-}
-
-void pv_game_play_data::sub_140138D60() {
-    for (int32_t i = 0; i < 2; i++) {
-        if (field_1FC[i] == 3) {
-            field_1C8[i] = field_1C8[i] - field_1D0[i];
-            field_1C8[i] = max_def(field_1C8[i], 0.0f);
-
-            field_1D8[i] = field_1D8[i] - field_1E0[i];
-            field_1D8[i] = max_def(field_1D8[i], 0.0f);
-
-            if (field_1C8[i] == 0.0f && field_1D8[i] == 0.0f)
-                field_1FC[i] = 1;
-        }
-        else if (field_1FC[i] == 4) {
-            field_1C8[i] = field_1D0[i] + field_1C8[i];
-            field_1C8[i] = min_def(field_1C8[i], field_20C[i]);
-
-            field_1D8[i] = field_1E0[i] + field_1D8[i];
-            field_1D8[i] = min_def(field_1D8[i], field_204[i]);
-
-            if (field_1C8[i] == field_20C[i] && field_1D8[i] == field_204[i])
-                field_1FC[i] = 2;
-        }
-    }
-
-    if (field_1E8[1] > 0.0f)
-        field_1E8[0] -= field_1E8[1];
-    field_1E8[0] = max_def(field_1E8[0], 0.0f);
-
-    if (field_1F0[1] > 0.0f)
-        field_1F0[0] -= field_1F0[1];
-    field_1F0[0] = max_def(field_1F0[0], 0.0f);
-
-    sub_140138A30();
-
-    if (field_1FC[0] == 1)
-        field_218 = true;
-
-    int32_t v13 = 0;
-    bool v15 = false;
-    if (!sub_14013C8C0()->sub_1400E7920() && field_1F8[0]) {
-        if (field_1FC[0] == 1 || !field_218)
-            v15 = true;
-        v13 = (int32_t)-field_1E8[0];
-    }
-
-    task_game_2d_sub_140372670(v15);
-    task_game_2d_sub_1403726D0(v13);
-    task_game_2d_set_energy_unit_no_fail(pv_game_get()->data.no_fail);
-}
-
-void pv_game_play_data::sub_140138F30() {
-    for (int32_t i = PV_GAME_AET_0; i <= PV_GAME_AET_SONG_ICON; i++)
-        set_aet_id_visible((pv_game_aet)i, aet_ids_enable[i]);
-}
-
-void pv_game_play_data::sub_14013C320() {
-    data_struct* aft_data = &data_list[DATA_AFT];
-    aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
-
-    if (pv_set && pv_aet_set_id != -1)
-        aet_manager_free_aet_set_objects(pv_aet_set_id, aft_aet_db);
-
-    aet_manager_free_aet_set_objects(3, aft_aet_db);
 }
 
 float_t get_percentage_clear_excellent() {

@@ -763,19 +763,8 @@ void compile_all_shaders(bool debug) {
 }
 #endif*/
 
-int32_t wmain(int32_t argc, wchar_t** argv) {
-/*#if defined(ReDIVA_DEV)
-    if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
-        compile_all_shaders(argc >= 3 && !wcscmp(argv[2], L"-d"));
-        return 0;
-    }
-#endif*/
-
-    //ShowWindow(GetConsoleWindow(), SW_HIDE);
-    timeBeginPeriod(1);
-    SetProcessDPIAware();
-
-    /*
+/*
+void decrypt_x_save_data() {
     uint8_t key[] = {
         0xA4, 0xB7, 0x31, 0xD0, 0x33, 0xFB, 0x4A, 0x63, 0x9D, 0xD2, 0x46, 0xA5, 0x05, 0xCD, 0x4B, 0xE5,
         0xF2, 0x10, 0xEE, 0x05, 0xC3, 0x56, 0x45, 0x3A, 0xAF, 0x22, 0x5C, 0x88, 0xA0, 0x9F, 0xB6, 0x8A,
@@ -846,7 +835,20 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     ufs.close();
 
     if (dst)
-        free(dst);*/
+        free(dst);
+}*/
+
+int32_t wmain(int32_t argc, wchar_t** argv) {
+/*#if defined(ReDIVA_DEV)
+    if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
+        compile_all_shaders(argc >= 3 && !wcscmp(argv[2], L"-d"));
+        return 0;
+    }
+#endif*/
+
+    //ShowWindow(GetConsoleWindow(), SW_HIDE);
+    timeBeginPeriod(1);
+    SetProcessDPIAware();
 
     int32_t cpuid_data[4] = {};
     __cpuid(cpuid_data, 1);
