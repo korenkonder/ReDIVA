@@ -5665,20 +5665,18 @@ void task_pv_game_init_test_pv() {
 
     task_rob_manager_add_task();
     TaskPvGame::Args args;
-    args.init_data.pv_id = 705;
-    args.init_data.difficulty = PV_DIFFICULTY_HARD;
+    args.init_data.pv_id = 999;
+    args.init_data.difficulty = PV_DIFFICULTY_NORMAL;
     args.init_data.edition = 0;
     args.init_data.score_percentage_clear = 50;
     args.init_data.life_gauge_safety_time = 40;
     args.init_data.life_gauge_border = 30;
     args.field_190 = false;
-    args.watch = true;
+    args.watch = false;
     args.no_fail = false;
     args.field_193 = true;
     args.field_194 = true;
-    args.mute = false;
-    args.success = true;
-    args.test_pv = true;
+    args.mute = true;
     task_pv_game_add_task(args);
 }
 
