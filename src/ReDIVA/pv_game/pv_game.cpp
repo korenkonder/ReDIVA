@@ -135,7 +135,6 @@ SysFrameRate sys_frame_rate_array[3];
 pv_game* pv_game_ptr;
 pv_disp2d pv_disp2d_data;
 TaskPvGame* task_pv_game;
-PVGameSelector* pv_game_selector_ptr;
 
 struc_14 stru_140C94438;
 struc_717 stru_141197E00;
