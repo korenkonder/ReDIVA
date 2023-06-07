@@ -17694,7 +17694,7 @@ void rob_sleeve_handler::parse(p_file_handler* pfhndl) {
 
         ::chara_index chara_index = chara_index_get_from_chara_name(chara);
 
-        rob_sleeve& sleeve = sleeves.insert({ { chara_index, cos }, {} }).first->second;
+        rob_sleeve& sleeve = sleeves.insert({ { chara_index, cos - 1 }, {} }).first->second;
         switch (type) {
         case ROB_SLEEVE_L:
             parse_sleeve_data(kv, sleeve.l);
