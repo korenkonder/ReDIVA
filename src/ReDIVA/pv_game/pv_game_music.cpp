@@ -445,18 +445,20 @@ void pv_game_music::stop_reset_flags() {
     exclude_flags(PV_GAME_MUSIC_ALL);
 }
 
-void pv_game_music_init() {
+bool pv_game_music_init() {
     if (!pv_game_music_ptr)
         pv_game_music_ptr = new pv_game_music;
+    return true;
 }
 
 pv_game_music* pv_game_music_get() {
     return pv_game_music_ptr;
 }
 
-void pv_game_music_free() {
+vool pv_game_music_free() {
     if (pv_game_music_ptr) {
         delete pv_game_music_ptr;
         pv_game_music_ptr = 0;
     }
+    return true;
 }

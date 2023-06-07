@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../../CRE/auth_3d.hpp"
+#include "../../CRE/module_table.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task.hpp"
 #include "../config.hpp"
@@ -835,9 +836,9 @@ public:
 extern float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, int64_t* time_int = 0);
 extern float_t dsc_time_to_frame(int64_t time);
 
-extern void pv_game_init();
+extern bool pv_game_init();
 extern pv_game* pv_game_get();
-extern void pv_game_free();
+extern bool pv_game_free();
 
 extern bool task_pv_game_add_task(TaskPvGame::Args& args);
 extern bool task_pv_game_check_task_ready();

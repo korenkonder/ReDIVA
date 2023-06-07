@@ -818,12 +818,11 @@ public:
     virtual void Window() override;
 };
 
-extern x_pv_game* x_pv_game_ptr;
-extern XPVGameSelector* x_pv_game_selector_ptr;
-
 extern bool x_pv_game_init();
+extern x_pv_game* x_pv_game_get();
 extern bool x_pv_game_free();
 
 extern bool x_pv_game_selector_init();
+extern XPVGameSelector* x_pv_game_selector_get();
 extern bool x_pv_game_selector_free();
 #endif

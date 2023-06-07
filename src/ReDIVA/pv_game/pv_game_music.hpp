@@ -120,6 +120,6 @@ struct pv_game_music {
     void stop_reset_flags();
 };
 
-extern void pv_game_music_init();
+extern bool pv_game_music_init();
 extern pv_game_music* pv_game_music_get();
-extern void pv_game_music_free();
+extern bool pv_game_music_free();

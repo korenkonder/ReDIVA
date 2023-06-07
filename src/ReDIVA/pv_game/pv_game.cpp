@@ -135,6 +135,7 @@ SysFrameRate sys_frame_rate_array[3];
 pv_game* pv_game_ptr;
 pv_disp2d pv_disp2d_data;
 TaskPvGame* task_pv_game;
+PVGameSelector* pv_game_selector_ptr;
 
 struc_14 stru_140C94438;
 struc_717 stru_141197E00;
@@ -5449,24 +5450,26 @@ float_t dsc_time_to_frame(int64_t time) {
     return (float_t)time / (float_t)1000000000 * 60.0f;
 }
 
-void pv_game_init() {
+bool pv_game_init() {
     pv_game_music_init();
 
     if (!pv_game_ptr)
         pv_game_ptr = new pv_game;
+    return true;
 }
 
 pv_game* pv_game_get() {
     return pv_game_ptr;
 }
 
-void pv_game_free() {
+bool pv_game_free() {
     if (pv_game_ptr) {
         delete pv_game_ptr;
         pv_game_ptr = 0;
     }
 
     pv_game_music_free();
+    return true;
 }
 
 bool task_pv_game_add_task(TaskPvGame::Args& args) {

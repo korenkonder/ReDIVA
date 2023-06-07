@@ -6023,13 +6023,17 @@ void XPVGameSelector::Window() {
     ImGui::End();
 }
 
-extern bool x_pv_game_init() {
+bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
     x_pv_game_music_ptr = new x_pv_game_music;
     return true;
 }
 
-extern bool x_pv_game_free() {
+x_pv_game* x_pv_game_get() {
+    return x_pv_game_ptr;
+}
+
+bool x_pv_game_free() {
     if (x_pv_game_ptr) {
         switch (x_pv_game_ptr->state_old) {
         case 0:
@@ -6061,6 +6065,10 @@ bool x_pv_game_selector_init() {
     if (!x_pv_game_selector_ptr)
         x_pv_game_selector_ptr = new XPVGameSelector;
     return true;
+}
+
+XPVGameSelector* x_pv_game_selector_get() {
+    return x_pv_game_selector_ptr;
 }
 
 bool x_pv_game_selector_free() {
