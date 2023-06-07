@@ -495,7 +495,7 @@ public:
     uint32_t motion_index;
     std::vector<pv_data_set_motion> pv_set_motion;
     std::vector<osage_set_motion> osage_set_motion;
-    pv_db_pv* pv;
+    const pv_db_pv* pv;
     std::map<float_t, bool> reset_frames_list;
     std::thread* thread;
     std::condition_variable cnd;
@@ -18135,7 +18135,7 @@ void PvOsageManager::sub_1404F8AA0() {
     rob_chr->set_motion_id(motion_id, 0.0f, 0.0f,
         true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
     if (pv)
-        for (pv_db_pv_osage_init& i : pv->osage_init) {
+        for (const pv_db_pv_osage_init& i : pv->osage_init) {
             int32_t osage_init_motion_id = aft_mot_db->get_motion_id(i.motion.c_str());
             if (osage_init_motion_id != -1 && osage_init_motion_id == motion_id) {
                 if (rob_chr->data.field_1588.field_0.field_58 == 1)

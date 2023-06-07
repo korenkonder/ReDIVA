@@ -115,6 +115,10 @@ pv_game* pv_game_ptr;
 pv_disp2d pv_disp2d_data;
 TaskPvGame* task_pv_game;
 
+#if PV_DEBUG
+PVGameSelector* pv_game_selector_ptr;
+#endif
+
 struc_14 stru_140C94438;
 struc_717 stru_141197E00;
 
@@ -1240,7 +1244,11 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
             if (aet_index >= 0) {
                 float_t end_time = -1.0f;
                 float_t start_time = -1.0f;
+#if PV_DEBUG
+                FrameRateControl* frame_rate_control = &sys_frame_rate;
+#else
                 FrameRateControl* frame_rate_control = 0;
+#endif
 
                 if (data.has_aet_frame[i]) {
                     int32_t aet_frame = get_field_aet_frame_by_name_id(next_field_data, aet, aet_name_id);
@@ -1283,7 +1291,11 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
             else {
                 float_t end_time = -1.0f;
                 float_t start_time = -1.0f;
+#if PV_DEBUG
+                FrameRateControl* frame_rate_control = &sys_frame_rate;
+#else
                 FrameRateControl* frame_rate_control = 0;
+#endif
 
                 if (data.has_aet_frame[i]) {
                     int32_t aet_frame = get_field_aet_frame_by_name_id(next_field_data, aet, aet_name_id);
@@ -2338,7 +2350,7 @@ bool pv_game::load() {
     case 1: {
         if (sub_14013C8C0()->sub_1400E7910() < 4) {
             pv_id = sub_14013C8C0()->pv;
-            pv_db_pv* pv = task_pv_db_get_pv(pv_id);
+            const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
             if (pv)
                 data.pv = pv;
             else
@@ -5230,7 +5242,7 @@ void TaskPvGame::Disp() {
 
 #if PV_DEBUG
 void TaskPvGame::Window() {
-    if (pv_game_parent_data.pv_state != 1 || pv_game_parent_data.init_time)
+    if (data.type != 2 || pv_game_parent_data.pv_state != 1)
         return;
 
     if (Input::IsKeyTapped(GLFW_KEY_K, GLFW_MOD_CONTROL))
@@ -5308,7 +5320,7 @@ void TaskPvGame::Window() {
 }
 
 void TaskPvGame::Basic() {
-    if (pv_game_parent_data.pv_state != 1 || pv_game_parent_data.init_time)
+    if (data.type != 2 || pv_game_parent_data.pv_state != 1)
         return;
 
     if (step_frame)
@@ -5346,7 +5358,7 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_init();
 
     pv_game_parent_data.update_func = pv_game_parent::ctrl;
-    pv_game_parent_data.state = 0;
+    pv_game_parent_data.pv_state = 0;
     pv_game_parent_data.playing = true;
     pv_game_parent_data.state = 0;
     pv_game_parent_data.init_time = false;
@@ -5417,6 +5429,233 @@ bool TaskPvGame::Unload() {
     pv_game_free();
     return true;
 }
+
+#if PV_DEBUG
+PVGameSelector::PVGameSelector() : charas(), modules(), start(), exit() {
+    pv_id = 600;
+    pv = task_pv_db_get_pv(pv_id);
+    difficulty = PV_DIFFICULTY_HARD;
+    edition = 0;
+    success = true;
+
+    difficulty = PV_DIFFICULTY_HARD;
+
+    const prj::vector_pair_combine<int32_t, module>& modules = module_table_handler_data_get_modules();
+    for (const auto& i : modules)
+        modules_data[i.second.chara].push_back(&i.second);
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        for (const auto& j : modules_data[charas[i]])
+            if (this->modules[i] == j->cos) {
+                module_names[i].assign(j->name);
+                break;
+            }
+}
+
+PVGameSelector::~PVGameSelector() {
+
+}
+
+bool PVGameSelector::Init() {
+    start = false;
+    exit = false;
+    return true;
+}
+
+bool PVGameSelector::Ctrl() {
+    return false;
+}
+
+bool PVGameSelector::Dest() {
+    return true;
+}
+
+void PVGameSelector::Window() {
+    static const char* difficulty_names[] = {
+        "EASY",
+        "NORMAL",
+        "HARD",
+        "EXTREME",
+        "ENCORE",
+    };
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
+
+    extern int32_t height;
+    extern int32_t width;
+
+    float_t w = 400.0f;
+    float_t h = (float_t)height;
+    h = min_def(h, 500.0f);
+
+    ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoResize;
+
+    window_focus = false;
+    bool open = true;
+    if (!ImGui::Begin("X PV Game Selector", &open, window_flags)) {
+        ImGui::End();
+        return;
+    }
+    else if (!open) {
+        start = false;
+        exit = true;
+        ImGui::End();
+        return;
+    }
+
+    pv_db::TaskPvDB* task_pv_db = task_pv_db_get();
+
+    ImGui::StartPropertyColumn("PV");
+    extern ImFont* imgui_font_arial;
+    if (imgui_font_arial)
+        ImGui::PushFont(imgui_font_arial);
+    if (ImGui::BeginCombo("", pv->song_name.c_str(), 0)) {
+        for (const pv_db_pv& i : task_pv_db->pv_data) {
+            if (i.id == 999)
+                continue;
+
+            ImGui::PushID(&i);
+            if (ImGui::Selectable(i.song_name.c_str(), pv_id == i.id)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
+                || (ImGui::IsItemFocused() && pv_id != i.id)) {
+                pv_id = i.id;
+                pv = &i;
+                difficulty = PV_DIFFICULTY_HARD;
+                edition = 0;
+                success = true;
+            }
+            ImGui::PopID();
+
+            if (pv_id == i.id)
+                ImGui::SetItemDefaultFocus();
+        }
+
+        window_focus |= true;
+        ImGui::EndCombo();
+    }
+    if (imgui_font_arial)
+        ImGui::PopFont();
+    ImGui::EndPropertyColumn();
+
+    ImGui::StartPropertyColumn("Difficulty");
+    if (ImGui::BeginCombo("", difficulty_names[difficulty], 0)) {
+        for (int32_t i = 0; i < PV_DIFFICULTY_MAX; i++) {
+            if (!pv->difficulty[i].size())
+                continue;
+
+            if (ImGui::Selectable(difficulty_names[i], difficulty == i)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
+                || (ImGui::IsItemFocused() && difficulty != i)) {
+                difficulty = (pv_difficulty)i;
+                edition = 0;
+                success = true;
+            }
+
+            if (difficulty == i)
+                ImGui::SetItemDefaultFocus();
+        }
+
+        window_focus |= true;
+        ImGui::EndCombo();
+    }
+    ImGui::EndPropertyColumn();
+
+    char buf[0x200];
+
+    ImGui::StartPropertyColumn("Edition");
+    sprintf_s(buf, sizeof(buf), "%d", edition);
+    if (ImGui::BeginCombo("", buf, 0)) {
+        for (const pv_db_pv_difficulty& i : pv->difficulty[difficulty]) {
+            ImGui::PushID(&i);
+            sprintf_s(buf, sizeof(buf), "%d", i.edition);
+            if (ImGui::Selectable(buf, edition == i.edition)
+                || ImGui::ItemKeyPressed(ImGuiKey_Enter)
+                || (ImGui::IsItemFocused() && edition != i.edition)) {
+                edition = i.edition;
+                success = true;
+            }
+            ImGui::PopID();
+
+            if (edition == i.edition)
+                ImGui::SetItemDefaultFocus();
+        }
+
+        window_focus |= true;
+        ImGui::EndCombo();
+    }
+    ImGui::EndPropertyColumn();
+
+    bool has_success = !!pv->get_difficulty(difficulty, edition)->pvbranch_success_se_name.size();
+    ImGui::DisableElementPush(has_success);
+    ImGui::Checkbox("Success", &success);
+    ImGui::DisableElementPop(has_success);
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        chara_index chara_old = charas[i];
+
+        sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
+        ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
+            (int32_t*)&charas[i], 0, false, &window_focus);
+
+        if (chara_old != charas[i]) {
+            modules[i] = 0;
+            module_names[i].clear();
+
+            for (const auto& j : modules_data[charas[i]])
+                if (modules[i] == j->id) {
+                    module_names[i].assign(j->name);
+                    break;
+                }
+        }
+    }
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
+
+        ImGui::StartPropertyColumn(buf);
+        extern ImFont* imgui_font_arial;
+        if (imgui_font_arial)
+            ImGui::PushFont(imgui_font_arial);
+        if (ImGui::BeginCombo("", module_names[i].c_str(), 0)) {
+            for (const auto& j : modules_data[charas[i]]) {
+                if (j->cos == 499)
+                    continue;
+
+                ImGui::PushID(&j);
+                if (ImGui::Selectable(j->name.c_str(), modules[i] == j->id)
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
+                    || (ImGui::IsItemFocused() && modules[i] != j->id)) {
+                    modules[i] = j->id;
+                    module_names[i].assign(j->name);
+                }
+                ImGui::PopID();
+
+                if (modules[i] == j->id)
+                    ImGui::SetItemDefaultFocus();
+            }
+
+            window_focus |= true;
+            ImGui::EndCombo();
+        }
+        if (imgui_font_arial)
+            ImGui::PopFont();
+        ImGui::EndPropertyColumn();
+    }
+
+    if (ImGui::Button("Start")) {
+        start = true;
+        exit = true;
+    }
+
+    ImGui::End();
+}
+#endif
 
 float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, int64_t* time_int) {
     if (time_int)
@@ -5597,7 +5836,7 @@ bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool mus
     task_pv_game->data.init_data.life_gauge_border = 20;
     task_pv_game->data.init_data.stage_index = 0;
 
-    pv_db_pv* pv = task_pv_db_get_pv(pv_id);
+    const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     for (int32_t i = 0; i < 6 && (!pv || pv && i < pv->get_performer_count()); i++) {
         if (pv && pv->get_performer_fixed(i)) {
             module_data mdl;
@@ -5657,6 +5896,26 @@ void task_pv_game_init_test_pv() {
     args.mute = true;
     task_pv_game_add_task(args);
 }
+
+#if PV_DEBUG
+bool pv_game_selector_init() {
+    if (!pv_game_selector_ptr)
+        pv_game_selector_ptr = new PVGameSelector;
+    return true;
+}
+
+PVGameSelector* pv_game_selector_get() {
+    return pv_game_selector_ptr;
+}
+
+bool pv_game_selector_free() {
+    if (pv_game_selector_ptr) {
+        delete pv_game_selector_ptr;
+        pv_game_selector_ptr = 0;
+    }
+    return true;
+}
+#endif
 
 struc_14* sub_14013C8C0() {
     return &stru_140C94438;
@@ -5844,6 +6103,26 @@ struc_674::struc_674() : performer(), module(), item(), field_1C(), pv() {
 }
 
 static bool pv_game_parent_ctrl() {
+#if PV_DEBUG
+    if (pv_game_parent_data.init_time) {
+        if (task_pv_game->pause)
+            pv_game_parent_data.init_time = false;
+
+        pv_game_time_data.curr_time = 0;
+        pv_game_time_data.last_stop_time.get_timestamp();
+        pv_game_time_data.last_stop_time.get_timestamp();
+
+        if (!task_pv_game->pause)
+            pv_game_time_data.add_last_stop_time = true;
+
+        pv_game_time_data.delta_time = 0;
+        pv_game_time_data.current_time.get_timestamp();
+        pv_game_time_data.current_time.get_timestamp();
+
+        if (!task_pv_game->pause)
+            pv_game_time_data.add_current_time = true;
+    }
+#else
     if (pv_game_parent_data.init_time) {
         pv_game_parent_data.init_time = false;
 
@@ -5857,6 +6136,7 @@ static bool pv_game_parent_ctrl() {
         pv_game_time_data.current_time.get_timestamp();
         pv_game_time_data.add_current_time = true;
     }
+#endif
 
     int64_t curr_time = pv_game_time_data.curr_time;
     if (pv_game_time_data.add_last_stop_time)
@@ -5963,7 +6243,7 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
     const pv_db_pv* pv = a4.pv;
     PlayerData* player_data = player_data_array_get(0);
     bool v14 = pv->get_performer_pseudo_fixed(chr->chara_index,
-        performer, a4.field_1C, player_data->field_F40 == 0);
+        performer, a4.field_1C, !player_data->field_F40);
     if (sub_14013C8C0()->sub_1400E7910() == 3 && !pv->get_performer_fixed(performer))
         v14 = false;
 

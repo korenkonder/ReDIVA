@@ -109,7 +109,7 @@ void customize_item_table_handler::fill_name_map() {
         { "FACE"  , 1 },
         { "NECK"  , 2 },
         { "BACK"  , 3 },
-        { 0, 0 }, 
+        { 0, 0 },
     };
 
     std::pair<const char*, int32_t>* name = customize_item_table_names;

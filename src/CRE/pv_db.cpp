@@ -1139,8 +1139,8 @@ namespace pv_db {
                 int32_t pv_costume;
                 if (kv.read("pv_costume", pv_costume)) {
                     pv_costume--;
-                    for (int32_t j = 0; j < 5; j++)
-                        if (performer.pv_costume[j] != -1)
+                    for (int32_t j = 0; j < PV_DIFFICULTY_MAX; j++)
+                        if (performer.pv_costume[j] == -1)
                             performer.pv_costume[j] = pv_costume;
                 }
 
@@ -2297,7 +2297,7 @@ uint32_t task_pv_db_get_paths_count() {
     return (uint32_t)task_pv_db_get()->paths.size();
 }
 
-pv_db_pv* task_pv_db_get_pv(int32_t pv_id) {
+const pv_db_pv* task_pv_db_get_pv(int32_t pv_id) {
     std::list<pv_db_pv>& pv_data = task_pv_db_get()->pv_data;
     for (pv_db_pv& i : pv_data)
         if (i.id == pv_id)
@@ -2307,7 +2307,7 @@ pv_db_pv* task_pv_db_get_pv(int32_t pv_id) {
 
 const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     pv_difficulty difficulty, pv_attribute_type attribute_type) {
-    pv_db_pv* pv = task_pv_db_get_pv(pv_id);
+    const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     if (pv)
         return pv->get_difficulty(difficulty, attribute_type);
     return 0;
@@ -2315,7 +2315,7 @@ const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
 
 const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     pv_difficulty difficulty, int32_t edition) {
-    pv_db_pv* pv = task_pv_db_get_pv(pv_id);
+    const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     if (pv)
         return pv->get_difficulty(difficulty, edition);
     return 0;

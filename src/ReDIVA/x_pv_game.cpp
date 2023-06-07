@@ -5832,6 +5832,13 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     const prj::vector_pair_combine<int32_t, module>& modules = module_table_handler_data_get_modules();
     for (const auto& i : modules)
         modules_data[i.second.chara].push_back(&i.second);
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        for (const auto& j : modules_data[charas[i]])
+            if (this->modules[i] == j->cos) {
+                module_names[i].assign(j->name);
+                break;
+            }
 }
 
 XPVGameSelector::~XPVGameSelector() {
@@ -5964,7 +5971,6 @@ void XPVGameSelector::Window() {
     stage_id++;
 
     char buf[0x200];
-    char buf1[0x100];
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
         chara_index chara_old = charas[i];
 
@@ -5972,35 +5978,37 @@ void XPVGameSelector::Window() {
         ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
             (int32_t*)&charas[i], 0, false, &window_focus);
 
-        if (chara_old != charas[i])
+        if (chara_old != charas[i]) {
             modules[i] = 0;
+            module_names[i].clear();
+
+            for (const auto& j : modules_data[charas[i]])
+                if (modules[i] == j->cos) {
+                    module_names[i].assign(j->name);
+                    break;
+                }
+        }
     }
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
         sprintf_s(buf, sizeof(buf), "Module %dP", i + 1);
-        
-        buf1[0] = 0;
-        for (const auto& j : modules_data[charas[i]])
-            if (modules[i] == j->cos) {
-                sprintf_s(buf1, sizeof(buf1), "%s", j->name.c_str());
-                break;
-            }
 
         ImGui::StartPropertyColumn(buf);
         extern ImFont* imgui_font_arial;
         if (imgui_font_arial)
             ImGui::PushFont(imgui_font_arial);
-        if (ImGui::BeginCombo("", buf1, 0)) {
+        if (ImGui::BeginCombo("", module_names[i].c_str(), 0)) {
             for (const auto& j : modules_data[charas[i]]) {
                 if (j->cos == 499)
                     continue;
 
                 ImGui::PushID(&j);
-                sprintf_s(buf1, sizeof(buf1), "%s", j->name.c_str());
-                if (ImGui::Selectable(buf1, modules[i] == j->cos)
+                if (ImGui::Selectable(j->name.c_str(), modules[i] == j->cos)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                    || (ImGui::IsItemFocused() && modules[i] != j->cos))
+                    || (ImGui::IsItemFocused() && modules[i] != j->cos)) {
                     modules[i] = j->cos;
+                    module_names[i].assign(j->name);
+                }
                 ImGui::PopID();
 
                 if (modules[i] == j->cos)

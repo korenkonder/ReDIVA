@@ -833,6 +833,31 @@ public:
     bool Unload();
 };
 
+#if PV_DEBUG
+class PVGameSelector : public app::TaskWindow {
+public:
+    int32_t pv_id;
+    const pv_db_pv* pv;
+    pv_difficulty difficulty;
+    int32_t edition;
+    bool success;
+    chara_index charas[ROB_CHARA_COUNT];
+    int32_t modules[ROB_CHARA_COUNT];
+    std::string module_names[ROB_CHARA_COUNT];
+    std::vector<const module*> modules_data[CHARA_MAX];
+    bool start;
+    bool exit;
+
+    PVGameSelector();
+    virtual ~PVGameSelector() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Window() override;
+};
+#endif
+
 extern float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, int64_t* time_int = 0);
 extern float_t dsc_time_to_frame(int64_t time);
 
@@ -847,6 +872,12 @@ extern bool task_pv_game_del_task();
 extern void task_pv_game_init_pv();
 extern bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool music_play);
 extern void task_pv_game_init_test_pv();
+
+#if PV_DEBUG
+extern bool pv_game_selector_init();
+extern PVGameSelector* pv_game_selector_get();
+extern bool pv_game_selector_free();
+#endif
 
 extern struc_14* sub_14013C8C0();
 extern struc_717* sub_14038BB30();

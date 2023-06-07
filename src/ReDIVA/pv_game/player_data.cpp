@@ -271,8 +271,7 @@ void PlayerData::Reset() {
     field_D58.clear();
     field_D70.clear();
 
-    static prj::time start_of_2011 = prj::strptime("2011-01-01 00:00:00");
-    field_D88 = start_of_2011;
+    field_D88 = prj::strptime("2011-01-01 00:00:00");
 
     field_D90 = false;
     clear_border = 0;

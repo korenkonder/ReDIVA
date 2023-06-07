@@ -15,6 +15,7 @@
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/stage_test.hpp"
+#include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
 #include "data_edit.hpp"
 #include "data_initialize.hpp"
@@ -856,6 +857,10 @@ bool data_test_reset = false;
 bool network_error;
 bool test_mode;
 
+#if PV_DEBUG
+bool pv_x;
+#endif
+
 GameStateEnum data_test_game_state_prev;
 
 static bool game_state_call_sub(GameState* game_state);
@@ -1141,16 +1146,65 @@ bool SubGameState::PhotoModeDemo::Dest() {
 }
 
 bool SubGameState::Selector::Init() {
+#if PV_DEBUG
+    if (!pv_x) {
+        pv_game_selector_init();
+        app::TaskWork::AddTask(pv_game_selector_get(), "PVGAME SELECTOR", 0);
+        return true;
+    }
+#endif
     x_pv_game_selector_init();
     app::TaskWork::AddTask(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
     return true;
 }
 
 bool SubGameState::Selector::Ctrl() {
+#if PV_DEBUG
+    if (!pv_x) {
+        PVGameSelector* sel = pv_game_selector_get();
+        if (sel->exit) {
+            if (sel->start && pv_game_init()) {
+                struc_717* v0 = sub_14038BB30();
+                v0->field_0.stage_index = 0;
+
+                struc_716* v2 = &v0->field_28[v0->field_0.stage_index];
+                v2->field_2C.pv_id = sel->pv_id;
+                v2->field_2C.difficulty = sel->difficulty;
+                v2->field_2C.edition = sel->edition;
+                v2->field_2C.score_percentage_clear = 5000;
+                v2->field_2C.life_gauge_safety_time = 40;
+                v2->field_2C.life_gauge_border = 30;
+
+                for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+                    v2->field_2C.field_4C[i] = sel->modules[i];
+                    v2->field_2C.field_64[i] = sel->modules[i];
+                    for (int32_t j = 0; j < 4; j++)
+                        v2->field_2C.field_7C[i].arr[j] = false;
+                }
+
+                v0->field_0.no_fail = true;
+                v0->field_0.watch = true;
+                v0->field_0.success = sel->success;
+
+                PlayerData* player_data = player_data_array_get(0);
+                player_data->field_0 = true;
+
+                sub_14038BB30()->field_0.option = 0;
+
+                task_pv_game_init_pv();
+                game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
+            }
+            else
+                game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+            return true;
+        }
+        return false;
+    }
+#endif
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (sel->exit) {
         if (sel->start && x_pv_game_init()) {
-            app::TaskWork::AddTask(x_pv_game_get(), "X PVGAME", 0);
+            app::TaskWork::AddTask(x_pv_game_get(), "PVGAME", 0);
             x_pv_game_get()->Load(sel->pv_id, sel->stage_id, sel->charas, sel->modules);
             game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
         }
@@ -1162,6 +1216,18 @@ bool SubGameState::Selector::Ctrl() {
 }
 
 bool SubGameState::Selector::Dest() {
+#if PV_DEBUG
+    if (!pv_x) {
+        PVGameSelector* sel = pv_game_selector_get();
+        if (!app::TaskWork::CheckTaskReady(sel)) {
+            pv_game_selector_free();
+            return true;
+        }
+
+        sel->DelTask();
+        return false;
+    }
+#endif
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (!app::TaskWork::CheckTaskReady(sel)) {
         x_pv_game_selector_free();
@@ -1177,12 +1243,23 @@ bool SubGameState::GameMain::Init() {
 }
 
 bool SubGameState::GameMain::Ctrl() {
+#if PV_DEBUG
+    if (!pv_x) {
+        if (!task_pv_game_check_task_ready())
+            return true;
+        return false;
+    }
+#endif
     if (!app::TaskWork::CheckTaskReady(x_pv_game_get()))
         return true;
     return false;
 }
 
 bool SubGameState::GameMain::Dest() {
+#if PV_DEBUG
+    if (!pv_x)
+        return pv_game_free();
+#endif
     return x_pv_game_free();
 }
 

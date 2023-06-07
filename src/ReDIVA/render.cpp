@@ -155,11 +155,7 @@ int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
 
-#if PV_DEBUG
-static const int32_t fast_loader_speed = 0;
-#else
 static const int32_t fast_loader_speed = 60;
-#endif
 
 bool light_chara_ambient;
 vec4 npr_cloth_spec_color = 1.0f;
@@ -912,7 +908,7 @@ static render_context* render_context_load() {
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
     io.Fonts->AddFontDefault();
-    
+
     const char* font_file = "C:\\Windows\\Fonts\\ArialUni.ttf";
 
     ImVector<ImWchar> ranges;
@@ -966,6 +962,9 @@ extern double_t input_rotate_x;
 extern double_t input_rotate_y;
 extern double_t input_roll;
 extern bool input_reset;
+#if PV_DEBUG
+extern bool pv_x;
+#endif
 
 static void render_context_ctrl(render_context* rctx) {
     camera* cam = rctx->camera;
@@ -1034,8 +1033,19 @@ static void render_context_ctrl(render_context* rctx) {
 
     if (Input::IsKeyTapped(GLFW_KEY_F4))
         game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+#if PV_DEBUG
+    else if (Input::IsKeyTapped(GLFW_KEY_F5, GLFW_MOD_CONTROL)) {
+        pv_x = false;
+        game_state_set_game_state_next(GAME_STATE_GAME);
+    }
+    else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
+        pv_x = true;
+        game_state_set_game_state_next(GAME_STATE_GAME);
+    }
+#else
     else if (Input::IsKeyTapped(GLFW_KEY_F5))
         game_state_set_game_state_next(GAME_STATE_GAME);
+#endif
     else if (Input::IsKeyTapped(GLFW_KEY_F6)) {
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
         game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AET);

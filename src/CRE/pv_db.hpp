@@ -558,7 +558,7 @@ extern void task_pv_db_free_pv_data();
 extern bool task_pv_db_del_task();
 extern pv_db::TaskPvDB* task_pv_db_get();
 extern uint32_t task_pv_db_get_paths_count();
-extern pv_db_pv* task_pv_db_get_pv(int32_t pv_id);
+extern const pv_db_pv* task_pv_db_get_pv(int32_t pv_id);
 extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     pv_difficulty difficulty, pv_attribute_type attribute_type);
 extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,

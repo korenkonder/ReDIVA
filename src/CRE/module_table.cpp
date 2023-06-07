@@ -178,7 +178,7 @@ void module_table_handler::fill_name_map() {
         { "MEIKO" , 7 },
         { "SAKINE", 8 },
         { "TETO"  , 9 },
-        { 0, 0 }, 
+        { 0, 0 },
     };
 
     std::pair<const char*, int32_t>* name = module_table_names;
@@ -334,19 +334,20 @@ void module_data_handler::add_modules() {
         mdl.chara_index = (chara_index)i.second.chara;
         mdl.cos = i.second.cos;
         mdl.field_79 = false;
+
         rob_sleeve_handler_data_get_sleeve_data(mdl.chara_index, mdl.cos, mdl.sleeve_l, mdl.sleeve_r);
 
-        sprintf_s(buf, sizeof(0x80), "SPR_SEL_MD%03d", mdl.id);
+        sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03d", mdl.id);
         mdl.spr_sel_md_id_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
 
-        sprintf_s(buf, sizeof(0x80), "SPR_SEL_MD%03dCMN", mdl.id);
+        sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03dCMN", mdl.id);
         mdl.spr_sel_md_id_cmn_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
 
-        sprintf_s(buf, sizeof(0x80), "SPR_SEL_MD%03d_MD_IMG_%03d", mdl.id, mdl.id);
-        mdl.spr_sel_md_id_cmn_md_img_id_spr_id = aft_spr_db->get_spr_set_by_name(buf)->id;
-        
-        sprintf_s(buf, sizeof(0x80), "SPR_SEL_MD%03dCMN_MD_IMG", mdl.id);
-        mdl.spr_sel_md_id_cmn_md_img_spr_id = aft_spr_db->get_spr_set_by_name(buf)->id;
+        sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03d_MD_IMG_%03d", mdl.id, mdl.id);
+        mdl.spr_sel_md_id_cmn_md_img_id_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
+
+        sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03dCMN_MD_IMG", mdl.id);
+        mdl.spr_sel_md_id_cmn_md_img_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
 
         /*struc_684 v17;
         if (sub_1402B7880()->sub_1402B7550(i.second.id, v17)) {

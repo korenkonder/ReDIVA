@@ -28,7 +28,7 @@ const int32_t spr_p_life_safe_num_spr[] = {
 TaskGame2d* task_game_2d;
 
 Game2dEnergyUnit::Game2dEnergyUnit() : field_1B8(), field_1CC(), field_1D1(), no_fail(), field_1D4(),
-max_value(), life_gauge_prev(), life_gauge_stable(), life_gauge_decrease(), life_gauge_increase(), 
+max_value(), life_gauge_prev(), life_gauge_stable(), life_gauge_decrease(), life_gauge_increase(),
 life_gauge_border(), life_gauge(), life_gauge_delay(), field_218(), life_gauge_safety(),
 life_gauge_safety_time(), life_gauge_bonus(), field_224(), field_228(), field_22C() {
 
