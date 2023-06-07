@@ -575,6 +575,14 @@ bool pv_db_pv::get_performer_fixed(int32_t performer) const {
     return this->performer[performer].fixed;
 }
 
+size_t pv_db_pv::get_performer_fixed_count() const {
+    size_t count = 0;
+    for (const pv_db_pv_performer& i : performer)
+        if (i.fixed)
+            count++;
+    return count;
+}
+
 int32_t pv_db_pv::get_performer_item(int32_t performer, pv_performer_item item) const {
     if (performer < 0 || performer >= ROB_CHARA_COUNT || performer >= this->performer.size())
         return -1;

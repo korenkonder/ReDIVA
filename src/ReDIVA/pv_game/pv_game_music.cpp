@@ -455,7 +455,7 @@ pv_game_music* pv_game_music_get() {
     return pv_game_music_ptr;
 }
 
-vool pv_game_music_free() {
+bool pv_game_music_free() {
     if (pv_game_music_ptr) {
         delete pv_game_music_ptr;
         pv_game_music_ptr = 0;

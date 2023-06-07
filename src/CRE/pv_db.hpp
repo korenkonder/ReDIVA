@@ -502,6 +502,7 @@ struct pv_db_pv {
     size_t get_performer_count() const;
     int32_t get_performer_exclude(int32_t performer) const;
     bool get_performer_fixed(int32_t performer) const;
+    size_t get_performer_fixed_count() const;
     int32_t get_performer_item(int32_t performer, pv_performer_item item) const;
     bool get_performer_pseudo_fixed(chara_index chara_index, int32_t performer, bool a4, bool a5) const;
     int32_t get_performer_pseudo_same_id(int32_t performer) const;

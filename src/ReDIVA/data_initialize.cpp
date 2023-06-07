@@ -145,7 +145,7 @@ bool TaskDataInit::Ctrl() {
             //&& !sub_140388A50()
             && !hand_item_handler_data_load()
             && !rob_sleeve_handler_data_load()) {
-            //sub_1403F8C30()->sub_1403F98D0();
+            module_data_handler_data_add_all_modules();
             //sub_140234860()->sub_140234DE0();
             //sub_140392D10();
             //sub_140226760()->sub_140226A80();

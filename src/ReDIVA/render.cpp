@@ -868,6 +868,7 @@ static render_context* render_context_load() {
 
     hand_item_handler_data_init();
     module_table_handler_data_init();
+    module_data_handler_data_init();
     customize_item_table_handler_data_init();
 
     aet_manager_add_aet_sets(aft_aet_db);
@@ -1176,6 +1177,7 @@ static void render_context_dispose(render_context* rctx) {
     aet_manager_remove_aet_sets(aft_aet_db);
 
     customize_item_table_handler_data_free();
+    module_data_handler_data_free();
     module_table_handler_data_free();
     hand_item_handler_data_free();
 

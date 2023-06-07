@@ -93,27 +93,6 @@ struct struc_674 {
     struc_674();
 };
 
-struct struc_683 {
-    int32_t id;
-    int32_t sort_index;
-    chara_index chara_index;
-    int32_t cos;
-    rob_sleeve_data sleeve_l;
-    rob_sleeve_data sleeve_r;
-    int32_t spr_sel_md_id_spr_set_id;
-    int32_t spr_sel_md_id_cmn_spr_set_id;
-    int32_t spr_sel_md_id_cmn_md_img_id_spr_id;
-    int32_t spr_sel_md_id_cmn_md_img_spr_id;
-    bool field_78;
-    bool field_79;
-    std::string name;
-    int32_t field_A0;
-    time_t field_A8;
-    time_t field_B0;
-
-    struc_683();
-};
-
 struct struc_773 {
     int32_t field_0;
     bool field_4;
@@ -5621,11 +5600,11 @@ bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool mus
     pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     for (int32_t i = 0; i < 6 && (!pv || pv && i < pv->get_performer_count()); i++) {
         if (pv && pv->get_performer_fixed(i)) {
-            /*struc_683 v23;
-            if (sub_1403F8C30()->sub_1403F8BA0(pv->get_performer_chara(i),
-                pv->get_performer_pv_costume(i, difficulty), &v23))
-                task_pv_game->data.init_data.modules[i] = v23.id;
-            else*/
+            module_data mdl;
+            if (module_data_handler_data_get_module(pv->get_performer_chara(i),
+                pv->get_performer_pv_costume(i, difficulty), mdl))
+                task_pv_game->data.init_data.modules[i] = mdl.id;
+            else
                 task_pv_game->data.init_data.modules[i] = 0;
         }
         else
@@ -5864,22 +5843,6 @@ struc_674::struc_674() : performer(), module(), item(), field_1C(), pv() {
 
 }
 
-struc_683::struc_683() : sort_index(), chara_index(), cos(), sleeve_l(), sleeve_r() {
-    id = -1;
-    spr_sel_md_id_spr_set_id = -1;
-    spr_sel_md_id_cmn_spr_set_id = -1;
-    spr_sel_md_id_cmn_md_img_id_spr_id = -1;
-    spr_sel_md_id_cmn_md_img_spr_id = -1;
-    field_78 = false;
-    field_79 = false;
-    name.assign("");
-    field_A0 = 0;
-    field_A8 = -1;
-    field_B0 = -1;
-    //field_A8 = *sub_1404911C0();
-    //field_B0 = *sub_1404911C0();
-}
-
 static bool pv_game_parent_ctrl() {
     if (pv_game_parent_data.init_time) {
         pv_game_parent_data.init_time = false;
@@ -5978,14 +5941,14 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
     pv_game_chara* chr = &arr[performer];
 
     {
-        /*struc_683 v40;
-        if (sub_1403F8C30()->sub_1403F8B40(a4.module, v40)) {
-            chr->chara_index = v40.chara_index;
-            chr->cos = v40.cos;
-            chr->pv_data.sleeve_l = v40.sleeve_l;
-            chr->pv_data.sleeve_r = v40.sleeve_r;
+        module_data mdl;
+        if (module_data_handler_data_get_module(a4.module, mdl)) {
+            chr->chara_index = mdl.chara_index;
+            chr->cos = mdl.cos;
+            chr->pv_data.sleeve_l = mdl.sleeve_l;
+            chr->pv_data.sleeve_r = mdl.sleeve_r;
         }
-        else */{
+        else {
             chr->chara_index = CHARA_MIKU;
             chr->cos = 0;
         }
@@ -6033,10 +5996,10 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
     }
 
     if (chara_index != CHARA_MAX) {
-        //struc_683 v40;
-        //sub_1403F8C30()->sub_1403F8840(chara_index, costume != -1 ? costume : 0, v40);
-        chr->chara_index = chara_index;//v40.chara_index;
-        chr->cos = costume;//v40.cos;
+        module_data mdl;
+        module_data_handler_data_get_module(chara_index, costume != -1 ? costume : 0, mdl);
+        chr->chara_index = mdl.chara_index;
+        chr->cos = mdl.cos;
     }
 
     pv_performer_item item = PV_PERFORMER_ITEM_ZUJO;

@@ -510,7 +510,7 @@ struct struc_677 {
     bool field_17;
     int32_t field_18;
     int32_t field_1C;
-    int32_t field_20;
+    bool field_20;
     int32_t option;
 };
 
