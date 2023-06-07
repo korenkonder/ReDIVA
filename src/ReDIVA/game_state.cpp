@@ -1142,16 +1142,16 @@ bool SubGameState::PhotoModeDemo::Dest() {
 
 bool SubGameState::Selector::Init() {
     x_pv_game_selector_init();
-    app::TaskWork::AddTask(x_pv_game_selector_ptr, "X PVGAME SELECTOR", 0);
+    app::TaskWork::AddTask(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
     return true;
 }
 
 bool SubGameState::Selector::Ctrl() {
-    if (x_pv_game_selector_ptr->exit) {
-        if (x_pv_game_selector_ptr->start && x_pv_game_init()) {
-            XPVGameSelector* sel = x_pv_game_selector_ptr;
-            app::TaskWork::AddTask(x_pv_game_ptr, "X PVGAME", 0);
-            x_pv_game_ptr->Load(sel->pv_id, sel->stage_id, sel->charas, sel->modules);
+    XPVGameSelector* sel = x_pv_game_selector_get();
+    if (sel->exit) {
+        if (sel->start && x_pv_game_init()) {
+            app::TaskWork::AddTask(x_pv_game_get(), "X PVGAME", 0);
+            x_pv_game_get()->Load(sel->pv_id, sel->stage_id, sel->charas, sel->modules);
             game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
         }
         else
@@ -1162,12 +1162,13 @@ bool SubGameState::Selector::Ctrl() {
 }
 
 bool SubGameState::Selector::Dest() {
-    if (!app::TaskWork::CheckTaskReady(x_pv_game_selector_ptr)) {
+    XPVGameSelector* sel = x_pv_game_selector_get();
+    if (!app::TaskWork::CheckTaskReady(sel)) {
         x_pv_game_selector_free();
         return true;
     }
 
-    x_pv_game_selector_ptr->DelTask();
+    sel->DelTask();
     return false;
 }
 
@@ -1176,7 +1177,7 @@ bool SubGameState::GameMain::Init() {
 }
 
 bool SubGameState::GameMain::Ctrl() {
-    if (!app::TaskWork::CheckTaskReady(x_pv_game_ptr))
+    if (!app::TaskWork::CheckTaskReady(x_pv_game_get()))
         return true;
     return false;
 }
