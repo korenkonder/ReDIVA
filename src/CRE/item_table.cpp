@@ -318,7 +318,7 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
         itm.org_itm = i.org_itm;
         itm.npr_flag = i.npr_flag;
         itm.face_depth = i.face_depth;
-        itm_tbl.item.insert_or_assign(i.no, itm);
+        itm_tbl.item.push_back(i.no, itm);
     }
 
     for (itm_table_dbgset& i : itm_tbl_file.dbgset) {
@@ -328,7 +328,7 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
 
         item_table_dbgset dbg;
         dbg.item = i.item;
-        itm_tbl.dbgset.insert_or_assign(set_id, dbg);
+        itm_tbl.dbgset.push_back(set_id, dbg);
     }
 
     for (itm_table_cos& i : itm_tbl_file.cos) {
@@ -341,9 +341,12 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
             if (item)
                 cos.arr[item->sub_id] = j;
         }
-        itm_tbl.cos.insert_or_assign(i.id, cos);
+        itm_tbl.cos.push_back(i.id, cos);
     }
 
-    item_cos_data cos = {};
-    itm_tbl.cos.insert_or_assign(499, cos);
+    itm_tbl.cos.push_back(499, {});
+
+    itm_tbl.item.combine();
+    itm_tbl.dbgset.combine();
+    itm_tbl.cos.combine();
 }

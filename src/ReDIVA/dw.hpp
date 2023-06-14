@@ -7,22 +7,26 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
+#include "../CRE/sprite.hpp"
 #include <vector>
 
 namespace dw {
     enum Flags {
-        FLAG_1       = 0x001,
-        FLAG_2       = 0x002,
-        MULTISELECT  = 0x004,
-        FLAG_8       = 0x008,
-        RADIOBUTTON  = 0x010,
-        CHECKBOX     = 0x020,
-        CLOSE_BUTTON = 0x040,
-        FLAG_80      = 0x080,
-        HORIZONTAL   = 0x100,
-        VERTICAL     = 0x200,
-        FLAG_400     = 0x400,
-        FLAG_800     = 0x800,
+        FLAG_1       = 0x0001,
+        FLAG_2       = 0x0002,
+        MULTISELECT  = 0x0004,
+        FLAG_8       = 0x0008,
+        RADIOBUTTON  = 0x0010,
+        CHECKBOX     = 0x0020,
+        CLOSE_BUTTON = 0x0040,
+        FLAG_80      = 0x0080,
+        HORIZONTAL   = 0x0100,
+        VERTICAL     = 0x0200,
+        FLAG_400     = 0x0400,
+        FLAG_800     = 0x0800,
+        FLAG_1000    = 0x1000,
+        FLAG_2000    = 0x2000,
+        FLAG_4000    = 0x4000,
 
         // Added
         LABEL_SIZE   = 0x8000,
@@ -73,7 +77,7 @@ namespace dw {
         SelectionListener();
         virtual ~SelectionListener();
 
-        virtual void Field_8(Widget* data) = 0;
+        virtual void Callback(Widget* data) = 0;
         virtual void Field_10(Widget* data) = 0;
     };
 
@@ -82,7 +86,7 @@ namespace dw {
         SelectionAdapter();
         virtual ~SelectionAdapter() override;
 
-        virtual void Field_8(Widget* data) override;
+        virtual void Callback(Widget* data) override;
         virtual void Field_10(Widget* data) override;
     };
 
@@ -94,7 +98,23 @@ namespace dw {
         SelectionListenerOnHook(Widget::Callback callback);
         virtual ~SelectionListenerOnHook() override;
 
-        virtual void Field_8(Widget* data) override;
+        virtual void Callback(Widget* data) override;
+    };
+
+    class DropDownListScrollBarSelectionListener : public SelectionAdapter {
+    public:
+        DropDownListScrollBarSelectionListener();
+        virtual ~DropDownListScrollBarSelectionListener() override;
+
+        virtual void Callback(Widget* data) override;
+    };
+    
+    class ScrollBarTestSelectionListener : public SelectionAdapter {
+    public:
+        ScrollBarTestSelectionListener();
+        virtual ~ScrollBarTestSelectionListener() override;
+
+        virtual void Callback(Widget* data) override;
     };
 
     class Composite;
@@ -111,6 +131,10 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+        virtual vec2 GetPos() override;
+
+        virtual void GetSetSize();
+        virtual vec2 GetSize();
     };
 
     class Label : public Control {
@@ -168,6 +192,10 @@ namespace dw {
 
         void SetParams(float_t value, float_t min, float_t max,
             float_t a5, float_t step, float_t step_fast);
+        void SetValue(float_t value);
+        void SetWidth(float_t value);
+
+        void AddSelectionListener(SelectionListener* value);
     };
 
     class Scrollable : public Control {
@@ -180,6 +208,9 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+        virtual void SetSize(vec2 value) override;
+
+        virtual rectangle GetBoundingBox();
     };
 
     class Layout {
@@ -285,8 +316,20 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+        virtual void SetSize(vec2 size) override;
+
+        virtual void GetSetSize() override;
+        virtual vec2 GetSize()  override;
 
         void SetLayout(Layout* value);
+    };
+
+    class Group : public Composite {
+    public:
+        Group(Composite* parent = 0, Flags flags = (Flags)0);
+        virtual ~Group() override;
+
+        virtual void Draw() override;
     };
 
     class Button : public Control {
@@ -300,6 +343,7 @@ namespace dw {
 
         virtual void Draw() override;
 
+        void AddSelectionListener(SelectionListener* value);
         void SetValue(bool value);
     };
 
@@ -331,12 +375,20 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+        virtual void SetSize(vec2 size) override;
+        virtual vec2 GetPos() override;
+
+        virtual vec2 GetSize() override;
+
+        virtual rectangle GetBoundingBox() override;
 
         virtual void Hide();
 
         void Disp();
         bool GetDisp();
         void SetDisp(bool value);
+
+        void sub_1402F38B0();
     };
 
     class List : public Scrollable {
@@ -358,9 +410,19 @@ namespace dw {
         void AddSelectionListener(SelectionListener* value);
         void ClearItems();
         std::string GetItem(size_t index) const;
+        size_t GetItemCount();
         void ResetSelectedItem();
         void ResetSetSelectedItem(size_t index);
+        void SetItemIndex(size_t index);
         void SetSelectedItem(size_t index);
+
+        inline std::string GetHoveredItem() {
+            return GetItem(hovered_item);
+        }
+        
+        inline std::string GetSelectedItem() {
+            return GetItem(selected_item);
+        }
     };
 
     class ListBox : public Composite {
@@ -373,11 +435,54 @@ namespace dw {
         virtual void Draw() override;
         virtual void Reset() override;
 
-        void AddItem(const std::string& str);
-        void AddItem(const std::string&& str);
-        void AddSelectionListener(SelectionListener* value);
-        void ClearItems();
-        std::string GetItem(size_t index) const;
+        inline void AddItem(const std::string& str) {
+            if (list)
+                list->AddItem(str);
+        }
+
+        inline void AddItem(const std::string&& str) {
+            if (list)
+                list->AddItem(str);
+        }
+
+        inline void AddSelectionListener(SelectionListener* value) {
+            if (list)
+                list->AddSelectionListener(value);
+        }
+
+        inline void ClearItems() {
+            if (list)
+                list->ClearItems();
+        }
+
+        inline std::string GetItem(size_t index) {
+            if (list)
+                return list->GetItem(index);
+            return {};
+        }
+
+        inline size_t GetItemCount() {
+            if (list)
+                return list->GetItemCount();
+            return 0;
+        }
+
+        inline std::string GetHoveredItem() {
+            if (list)
+                return list->GetHoveredItem();
+            return {};
+        }
+
+        inline std::string GetSelectedItem() {
+            if (list)
+                return list->GetHoveredItem();
+            return {};
+        }
+
+        inline void SetItemIndex(size_t index) {
+            if (list)
+                list->SetItemIndex(index);
+        }
     };
 
     class Slider : public Control {
@@ -395,8 +500,18 @@ namespace dw {
 
         void AddSelectionListener(SelectionListener* value);
 
-        static Slider* make(Composite* parent, Flags flags,
-            float_t x, float_t y, float_t width, float_t height, const char* name);
+        static Slider* make(Composite* parent = 0,
+            Flags flags = (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL), float_t x = 0.0f, float_t y = 0.0f,
+            float_t width = 128.0f, float_t height = 20.0f, const char* name = "slider");
+
+        inline void SetParams(float_t value, float_t min, float_t max,
+            float_t a5, float_t step, float_t step_fast) {
+            scroll_bar->SetParams(value, min, max, a5, step, step_fast);
+        }
+
+        inline void SetValue(float_t value) {
+            scroll_bar->SetValue(value);
+        }
     };
 }
 

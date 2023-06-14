@@ -244,7 +244,7 @@ inline static void io_msgpack_write_inner(stream& s, msgpack* msg) {
     case MSGPACK_MAP: {
         msgpack_map* ptr = msg->data.map;
         io_msgpack_write_map(s, ptr->size());
-        for (msgpack_key_value& i : *ptr) {
+        for (auto& i : *ptr) {
             io_msgpack_write_string(s, i.first);
             io_msgpack_write_inner(s, &i.second);
         }

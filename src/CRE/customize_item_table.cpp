@@ -207,7 +207,7 @@ void customize_item_table_handler::parse(p_file_handler* pfhndl) {
                 customize_item.parts = parts;
         }
 
-        customize_items.push_back({ customize_item.id, customize_item });
+        customize_items.push_back(customize_item.id, customize_item);
 
         kv.close_scope();
     }

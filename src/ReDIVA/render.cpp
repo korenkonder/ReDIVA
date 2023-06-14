@@ -49,6 +49,7 @@
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
+#include "data_test/motion_test.hpp"
 #include "data_test/stage_test.hpp"
 #include "pv_game/pv_game.hpp"
 #include "game_state.hpp"
@@ -579,6 +580,7 @@ static render_context* render_context_load() {
     auth_3d_test_window_init();
     dtm_aet_init();
     dtm_stg_init();
+    motion_test_init();
     task_data_test_glitter_particle_init();
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
@@ -1208,6 +1210,7 @@ static void render_context_dispose(render_context* rctx) {
     light_param_data_storage::unload();
 
     task_data_test_glitter_particle_free();
+    motion_test_free();
     dtm_stg_free();
     dtm_aet_free();
     auth_3d_test_window_free();

@@ -212,7 +212,7 @@ struct dof_cam {
     std::vector<float_t> focus_range;
     std::vector<float_t> fuzzing_range;
     std::vector<float_t> ratio;
-    std::vector<std::pair<int32_t, bool>> enable_frame;
+    prj::vector_pair<int32_t, bool> enable_frame;
     int32_t frame;
     bool enable;
 
@@ -858,7 +858,7 @@ void x_pv_game_camera::unload() {
     if (state != 20)
         return;
 
-    id.unload_id(rctx_ptr);
+    id.unload(rctx_ptr);
     auth_3d_data_unload_category(category.hash_murmurhash);
     state = 0;
 }
@@ -1224,7 +1224,7 @@ void x_pv_game_effect::unload() {
 
     for (x_pv_game_song_effect& i : song_effect)
         for (x_pv_game_song_effect_auth_3d& j : i.auth_3d) {
-            j.id.unload_id(rctx_ptr);
+            j.id.unload(rctx_ptr);
             j.id = {};
         }
 
@@ -1583,7 +1583,7 @@ void x_pv_game_chara_effect::unload() {
                 if (!j.category.str.size())
                     continue;
 
-                j.id.unload_id(rctx_ptr);
+                j.id.unload(rctx_ptr);
                 auth_3d_data_unload_category(j.category.hash_murmurhash);
                 object_storage_unload_set(j.object_set.hash_murmurhash);
             }
@@ -2146,7 +2146,7 @@ int64_t x_pv_game_dsc_data::find_pv_end() {
     return max_def(pv_end_time, end_time);
 }
 
-void x_pv_game_dsc_data::find_stage_effects(std::vector<std::pair<int64_t, int32_t>>& stage_effects) {
+void x_pv_game_dsc_data::find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects) {
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
     int32_t prev_time = -1;
@@ -2164,7 +2164,7 @@ void x_pv_game_dsc_data::find_stage_effects(std::vector<std::pair<int64_t, int32
         int32_t stage_effect = (int32_t)data[0];
 
         if (stage_effect < 8 || stage_effect > 9)
-            stage_effects.push_back({ (int64_t)time * 10000, stage_effect });
+            stage_effects.push_back((int64_t)time * 10000, stage_effect);
         prev_time = time;
         i++;
     }
@@ -3875,7 +3875,7 @@ void x_pv_game_stage::unload() {
         return;
 
     for (std::pair<uint32_t, auth_3d_id> i : auth_3d_ids)
-        i.second.unload_id(rctx_ptr);
+        i.second.unload(rctx_ptr);
 
     auth_3d_ids.clear();
 
@@ -4405,9 +4405,9 @@ bool x_pv_game::Ctrl() {
             x_pv_bar_beat_data* bar_beat_data = 0;
             int32_t beat_counter = 0;
 
-            std::vector<std::pair<int32_t, uint32_t>> miku_disp;
-            std::vector<std::pair<int32_t, uint32_t>> set_motion;
-            std::vector<std::pair<int32_t, uint32_t>> set_playdata;
+            prj::vector_pair<int32_t, uint32_t> miku_disp;
+            prj::vector_pair<int32_t, uint32_t> set_motion;
+            prj::vector_pair<int32_t, uint32_t> set_playdata;
 
             int32_t time = -1;
             int32_t frame = -1;
@@ -4429,16 +4429,16 @@ bool x_pv_game::Ctrl() {
                     state[chara_id].disp = (int32_t)data[1] == 1;
                     if (state[chara_id].disp)
                         state[chara_id].disp_time = time;
-                    miku_disp.push_back({ time, i.data_offset });
+                    miku_disp.push_back(time, i.data_offset);
                 } break;
                 case DSC_X_SET_MOTION: {
                     int32_t chara_id = (int32_t)data[0];
                     state[chara_id].set_motion_time = time;
                     state[chara_id].set_motion_data_offset = i.data_offset;
-                    set_motion.push_back({ time, i.data_offset });
+                    set_motion.push_back(time, i.data_offset);
                 } break;
                 case DSC_X_SET_PLAYDATA: {
-                    set_playdata.push_back({ time, i.data_offset });
+                    set_playdata.push_back(time, i.data_offset);
                 } break;
                 }
             }
@@ -4730,7 +4730,7 @@ bool x_pv_game::Ctrl() {
             for (int32_t& i : effchrpv_rob_mot_ids) {
                 char buf[0x100];
                 sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", i + 1);
-                int32_t motion_id = aft_mot_db->get_motion_id(buf);
+                uint32_t motion_id = aft_mot_db->get_motion_id(buf);
                 rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i]);
                 rob_chr->set_motion_id(motion_id, 0.0f,
                     0.0f, false, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
@@ -4966,7 +4966,7 @@ void x_pv_game::Basic() {
         dof_cam_data.fuzzing_range.push_back(pv.f2.fuzzing_range);
         dof_cam_data.ratio.push_back(pv.f2.ratio);
         if (dof_cam_data.enable != enable) {
-            dof_cam_data.enable_frame.push_back({ frame, enable });
+            dof_cam_data.enable_frame.push_back(frame, enable);
             dof_cam_data.enable = enable;
         }
         dof_cam_data.frame = frame;
@@ -5271,7 +5271,7 @@ static void mot_write_motion(mot_data_bake* bake) {
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "PV826_OST_P%d_00", bake->performer);
 
-    int32_t motion_id = aft_mot_db->get_motion_id(buf);
+    uint32_t motion_id = aft_mot_db->get_motion_id(buf);
 
     size_t motion_index = -1;
     const motion_set_info* set_info = bake_pv826_set_info;
@@ -5643,7 +5643,7 @@ bool x_pv_game::Unload() {
             i = -1;
         }
 
-    light_auth_3d_id.unload_id(rctx_ptr);
+    light_auth_3d_id.unload(rctx_ptr);
 
     light_auth_3d_id = {};
 
@@ -6339,7 +6339,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 frame = 0.0f;
         }
 
-        int32_t motion_id = -1;
+        uint32_t motion_id = -1;
         int32_t chara_id = 0;
         for (pvpp_chara& i : pv_data.play_param->chara) {
             if (chara_id++ != a1->chara_id)
@@ -8091,7 +8091,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
         handler->obj_id_data.reserve(set->obj_num);
         for (uint32_t j = 0; j < obj_num_new; j++)
-            handler->obj_id_data.push_back({ obj_data_new[j].id, obj_num + j });
+            handler->obj_id_data.push_back(obj_data_new[j].id, obj_num + j);
 
         uint32_t _obj_num = obj_num + obj_num_new;
         handler->vertex_buffer_num = _obj_num;
@@ -8153,7 +8153,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[l];
                     const char* bone_name = bone_array[bone_vertices.index].name;
 
-                    hrc_bones.push_back({ bone_name, &bone_array[bone_vertices.index] });
+                    hrc_bones.push_back(bone_name, &bone_array[bone_vertices.index]);
 
                     int32_t node_index = obj_hrc->get_node_index(bone_name);
                     while (node_index >= 0) {
@@ -9231,7 +9231,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
                 auto elem = object_material_list.find(i);
                 if (elem == object_material_list.end()) {
-                    object_material_list.push_back({ i, {} });
+                    object_material_list.push_back(i, {});
                     elem = object_material_list.end() - 1;
                 }
                 elem->second.push_back(k);
@@ -9251,7 +9251,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             if (j.id.check_not_empty() && j.id.check_loaded()) {
                 auth_3d* auth = j.id.get_auth_3d();
                 if (auth && auth->material_list.size() && auth->object.size())
-                    stage_data_effect_auth_3ds.push_back({ j.id, {} });
+                    stage_data_effect_auth_3ds.push_back(j.id, {});
             }
     }
 
@@ -9262,7 +9262,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                 if (k.id.check_not_empty() && k.id.check_loaded()) {
                     auth_3d* auth = k.id.get_auth_3d();
                     if (auth && auth->material_list.size() && auth->object.size())
-                        stage_data_change_effect_auth_3ds.push_back({ k.id, {} });
+                        stage_data_change_effect_auth_3ds.push_back(k.id, {});
                 }
         }
 
@@ -9287,7 +9287,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
                 continue;
 
-            i.second.push_back({ j.hash, {} });
+            i.second.push_back(j.hash, {});
             material_list_data& data = i.second.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
@@ -9308,7 +9308,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
                 continue;
 
-            i.second.push_back({ j.hash, {} });
+            i.second.push_back(j.hash, {});
             material_list_data& data = i.second.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
@@ -9485,7 +9485,7 @@ static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm) {
             if (v61 != -0.0f && (float_t)frame_int != v61)
                 v61 = (float_t)(v61 < 0.0f ? frame_int - 1 : frame_int);
 
-            int32_t motion_id = -1;
+            uint32_t motion_id = -1;
             if (i >= 0 && i < play_param->chara.size()) {
                 pvpp_chara& chara = play_param->chara[i];
                 if (j.motion_index > 0 && j.motion_index <= chara.motion.size()) {

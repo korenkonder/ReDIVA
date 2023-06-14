@@ -264,9 +264,9 @@ void sprite_database::add(sprite_database_file* spr_db_file) {
         spr_set.file_name_hash = hash_string_murmurhash(spr_set.file_name);
         spr_set.index = (uint32_t)(sprite_sets_count + i.index);
 
-        spr_set_ids.push_back({ spr_set.id, &spr_set });
-        spr_set_indices.push_back({ spr_set.index, &spr_set });
-        spr_set_names.push_back({ spr_set.name, &spr_set });
+        spr_set_ids.push_back(spr_set.id, &spr_set);
+        spr_set_indices.push_back(spr_set.index, &spr_set);
+        spr_set_names.push_back(spr_set.name, &spr_set);
 
         spr_ids.reserve(i.sprite.size());
         spr_names.reserve(i.sprite.size());
@@ -282,9 +282,9 @@ void sprite_database::add(sprite_database_file* spr_db_file) {
             spr.info = { j.index, (uint16_t)((j.texture ? 0x4000 : 0x0000) | spr_set.index) };
             spr.load_count = 1;
 
-            spr_ids.push_back({ spr.id, &spr });
-            spr_names.push_back({ spr.name, &spr });
-            spr_indices.push_back({ spr.info, &spr });
+            spr_ids.push_back(spr.id, &spr);
+            spr_names.push_back(spr.name, &spr);
+            spr_indices.push_back(spr.info, &spr);
         }
     }
 
@@ -316,8 +316,8 @@ void sprite_database::add_spr_set(uint32_t set_id, uint32_t index) {
     set.id = set_id;
     set.index = index;
 
-    spr_set_indices.push_back({ set.index, &set });
-    spr_set_ids.push_back({ set.id, &set });
+    spr_set_indices.push_back(set.index, &set);
+    spr_set_ids.push_back(set.id, &set);
 
     spr_set_indices.combine();
     spr_set_ids.combine();
@@ -334,7 +334,7 @@ void sprite_database::parse(const spr_db_spr_set_file* set_file,
 
     uint16_t set_index = (uint16_t)elem->second->index;
 
-    spr_set_names.push_back({ set_file->name, elem->second });
+    spr_set_names.push_back(set_file->name, elem->second);
 
     sprite_ids.reserve(set_file->sprite.size());
     for (const spr_db_spr_file& i : set_file->sprite) {
@@ -365,9 +365,9 @@ void sprite_database::parse(const spr_db_spr_set_file* set_file,
         spr->info = { i.index, (uint16_t)((i.texture ? 0x4000 : 0x0000) | set_index) };
         spr->load_count++;
 
-        spr_ids.push_back({ spr->id, spr });
-        spr_names.push_back({ spr->name, spr });
-        spr_indices.push_back({ spr->info, spr });
+        spr_ids.push_back(spr->id, spr);
+        spr_names.push_back(spr->name, spr);
+        spr_indices.push_back(spr->info, spr);
     }
 
     spr_set_names.combine();

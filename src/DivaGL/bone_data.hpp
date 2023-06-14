@@ -1161,7 +1161,7 @@ struct struc_525 {
 struct struc_524 {
     int32_t field_0;
     struc_525 field_4;
-    int32_t motion_id;
+    uint32_t motion_id;
     uint8_t field_10;
 };
 
@@ -1376,7 +1376,7 @@ struct RobPartialMotion {
     RobPartialMotion_vtbl* __vftable;
 
     struct Data {
-        int32_t motion_id;
+        uint32_t motion_id;
         int32_t mottbl_index;
         int32_t state;
         float_t frame;
@@ -1419,7 +1419,7 @@ struct rob_chara_data_adjust {
     vec3 curr_external_force;
     float_t curr_force;
     float_t curr_strength;
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t set_frame;
     float_t force_duration;
     int32_t type;
@@ -1469,7 +1469,7 @@ struct struc_405 {
     RobHandMotion hand_l;
     RobHandMotion hand_r;
     RobMouthMotion mouth;
-    RobEyesMotion eye;
+    RobEyesMotion eyes;
     RobEyelidMotion eyelid;
     object_info head_object;
     object_info hand_l_object;
@@ -1480,7 +1480,7 @@ struct struc_405 {
 };
 
 struct rob_chara_motion {
-    int32_t motion_id;
+    uint32_t motion_id;
     int32_t prev_motion_id;
     struc_389 frame_data;
     struc_406 step_data;
@@ -1540,7 +1540,7 @@ struct mothead_data2 {
 };
 
 struct struc_652 {
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame_count;
     float_t field_8;
     int16_t field_C;
@@ -1705,7 +1705,7 @@ struct struc_223 {
     struc_652 field_0;
     struc_651 field_330;
     int64_t *field_7A0;
-    int32_t motion_set_id;
+    uint32_t motion_set_id;
 };
 
 struct rob_chara_data_miku_rot {
@@ -2661,7 +2661,7 @@ struct mot_key_data {
     mot_data* mot_data;
     bone_database_skeleton_type skeleton_type;
     int32_t skeleton_select;
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame;
     struc_369 field_68;
 };
@@ -2991,7 +2991,7 @@ struct rob_chara_bone_data {
 };
 
 struct opd_blend_data {
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame;
     float_t frame_count;
     bool field_C;

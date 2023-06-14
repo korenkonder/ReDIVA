@@ -18,28 +18,11 @@ static int64_t key_val_get_key_index(key_val* kv, std::string& key);
 static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size);
 static void key_val_sort(key_val* kv);
 
-key_val_hash_index_pair::key_val_hash_index_pair() {
-    hash = hash_fnv1a64m_empty;
-    index = 0;
-}
-
-key_val_hash_index_pair::key_val_hash_index_pair(uint64_t hash, size_t index) : hash(hash), index(index) {
-
-}
-
 key_val_scope::key_val_scope() : index(), count() {
 
 }
 
 key_val_scope::~key_val_scope() {
-
-}
-
-key_val_pair::key_val_pair() : str(), length() {
-
-}
-
-key_val_pair::key_val_pair(const char* str, size_t length) : str(str), length(length) {
 
 }
 
@@ -131,7 +114,7 @@ bool key_val::open_scope(const char* str) {
         curr_scope->count = prev_scope->count;
         curr_scope->key_hash_index.resize(prev_scope->key_hash_index.size());
         memmove(curr_scope->key_hash_index.data(), prev_scope->key_hash_index.data(),
-            sizeof(key_val_hash_index_pair) * prev_scope->key_hash_index.size());
+            sizeof(std::pair<uint64_t, size_t>) * prev_scope->key_hash_index.size());
         return true;
     }
 
@@ -188,7 +171,7 @@ bool key_val::open_scope(std::string& str) {
         curr_scope->count = prev_scope->count;
         curr_scope->key_hash_index.resize(prev_scope->key_hash_index.size());
         memmove(curr_scope->key_hash_index.data(), prev_scope->key_hash_index.data(),
-            sizeof(key_val_hash_index_pair) * prev_scope->key_hash_index.size());
+            sizeof(std::pair<uint64_t, size_t>) * prev_scope->key_hash_index.size());
         return true;
     }
 
@@ -309,7 +292,7 @@ bool key_val::read(bool& value) {
         value = false;
         return false;
     }
-    value = atoi(val[index].str) ? true : false;
+    value = atoi(val[index].first) ? true : false;
     return true;
 }
 
@@ -319,7 +302,7 @@ bool key_val::read(float_t& value) {
         value = 0.0f;
         return false;
     }
-    value = (float_t)atof(val[index].str);
+    value = (float_t)atof(val[index].first);
     return true;
 }
 
@@ -329,7 +312,7 @@ bool key_val::read(int32_t& value) {
         value = 0;
         return false;
     }
-    value = atoi(val[index].str);
+    value = atoi(val[index].first);
     return true;
 }
 
@@ -339,7 +322,7 @@ bool key_val::read(uint32_t& value) {
         value = 0;
         return false;
     }
-    value = (uint32_t)atoll(val[index].str);
+    value = (uint32_t)atoll(val[index].first);
     return true;
 }
 
@@ -349,7 +332,7 @@ bool key_val::read(const char*& value) {
         value = 0;
         return false;
     }
-    value = val[index].str;
+    value = val[index].first;
     return true;
 }
 
@@ -359,7 +342,7 @@ bool key_val::read(std::string& value) {
         value.clear();
         return false;
     }
-    value.assign(val[index].str, val[index].length);
+    value.assign(val[index].first, val[index].second);
     return true;
 }
 
@@ -376,7 +359,7 @@ bool key_val::read(const char* key, bool& value) {
         value = false;
         return false;
     }
-    value = atoi(val[index].str) ? true : false;
+    value = atoi(val[index].first) ? true : false;
     return true;
 }
 
@@ -386,7 +369,7 @@ bool key_val::read(std::string& key, bool& value) {
         value = false;
         return false;
     }
-    value = atoi(val[index].str) ? true : false;
+    value = atoi(val[index].first) ? true : false;
     return true;
 }
 
@@ -396,7 +379,7 @@ bool key_val::read(const char* key, float_t& value) {
         value = 0.0f;
         return false;
     }
-    value = (float_t)atof(val[index].str);
+    value = (float_t)atof(val[index].first);
     return true;
 }
 
@@ -406,7 +389,7 @@ bool key_val::read(std::string& key, float_t& value) {
         value = 0.0f;
         return false;
     }
-    value = (float_t)atof(val[index].str);
+    value = (float_t)atof(val[index].first);
     return true;
 }
 
@@ -416,7 +399,7 @@ bool key_val::read(const char* key, int32_t& value) {
         value = 0;
         return false;
     }
-    value = atoi(val[index].str);
+    value = atoi(val[index].first);
     return true;
 }
 
@@ -426,7 +409,7 @@ bool key_val::read(std::string& key, int32_t& value) {
         value = 0;
         return false;
     }
-    value = atoi(val[index].str);
+    value = atoi(val[index].first);
     return true;
 }
 
@@ -436,7 +419,7 @@ bool key_val::read(const char* key, uint32_t& value) {
         value = 0;
         return false;
     }
-    value = (uint32_t)atoll(val[index].str);
+    value = (uint32_t)atoll(val[index].first);
     return true;
 }
 
@@ -446,7 +429,7 @@ bool key_val::read(std::string& key, uint32_t& value) {
         value = 0;
         return false;
     }
-    value = (uint32_t)atoll(val[index].str);
+    value = (uint32_t)atoll(val[index].first);
     return true;
 }
 
@@ -456,7 +439,7 @@ bool key_val::read(const char* key, const char*& value) {
         value = 0;
         return false;
     }
-    value = val[index].str;
+    value = val[index].first;
     return true;
 }
 
@@ -466,7 +449,7 @@ bool key_val::read(std::string& key, const char*& value) {
         value = 0;
         return false;
     }
-    value = val[index].str;
+    value = val[index].first;
     return true;
 }
 
@@ -476,7 +459,7 @@ bool key_val::read(const char* key, std::string& value) {
         value.clear();
         return false;
     }
-    value.assign(val[index].str, val[index].length);
+    value.assign(val[index].first, val[index].second);
     return true;
 }
 
@@ -486,7 +469,7 @@ bool key_val::read(std::string& key, std::string& value) {
         value.clear();
         return false;
     }
-    value.assign(val[index].str, val[index].length);
+    value.assign(val[index].first, val[index].second);
     return true;
 }
 
@@ -1073,24 +1056,24 @@ void key_val_out::get_lexicographic_order(std::vector<int32_t>& vec, int32_t len
 
 static int64_t key_val_find_first_key(key_val* kv, int64_t low, int64_t high,
     const char* s, size_t s_len, size_t offset) {
-    key_val_pair* k = kv->key.data();
+    auto* k = kv->key.data();
 
     int64_t first_idx = -1;
     int64_t mid;
     int32_t res;
     bool full;
     while (low <= high) {
-        key_val_pair* l = &k[mid = (low + high) / 2];
-        if (l->length > offset && s_len <= l->length - offset) {
-            res = memcmp(s, l->str + offset, s_len);
-            if (!res && l->str[offset + s_len] && l->str[offset + s_len] != '.')
+        auto* l = &k[mid = (low + high) / 2];
+        if (l->second > offset && s_len <= l->second - offset) {
+            res = memcmp(s, l->first + offset, s_len);
+            if (!res && l->first[offset + s_len] && l->first[offset + s_len] != '.')
                 res = -1;
             full = true;
         }
         else {
-            if (l->length >= offset) {
-                res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
-                if (!res && s[l->length - offset])
+            if (l->second >= offset) {
+                res = str_utils_compare_length(s, s_len, l->first + offset, l->second - offset);
+                if (!res && s[l->second - offset])
                     res = 1;
             }
             else
@@ -1113,24 +1096,24 @@ static int64_t key_val_find_first_key(key_val* kv, int64_t low, int64_t high,
 
 static int64_t key_val_find_last_key(key_val* kv, int64_t low, int64_t high,
     const char* s, size_t s_len, size_t offset) {
-    key_val_pair* k = kv->key.data();
+    auto* k = kv->key.data();
 
     int64_t last_idx = -1;
     int64_t mid;
     int32_t res;
     bool full;
     while (low <= high) {
-        key_val_pair* l = &k[mid = (low + high) / 2];
-        if (l->length > offset && s_len <= l->length - offset) {
-            res = memcmp(s, l->str + offset, s_len);
-            if (!res && l->str[offset + s_len] && l->str[offset + s_len] != '.')
+        auto* l = &k[mid = (low + high) / 2];
+        if (l->second > offset && s_len <= l->second - offset) {
+            res = memcmp(s, l->first + offset, s_len);
+            if (!res && l->first[offset + s_len] && l->first[offset + s_len] != '.')
                 res = -1;
             full = true;
         }
         else {
-            if (l->length >= offset) {
-                res = str_utils_compare_length(s, s_len, l->str + offset, l->length - offset);
-                if (!res && s[l->length - offset])
+            if (l->second >= offset) {
+                res = str_utils_compare_length(s, s_len, l->first + offset, l->second - offset);
+                if (!res && s[l->second - offset])
                     res = 1;
             }
             else
@@ -1186,11 +1169,11 @@ static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size) 
 
     uint64_t hash = hash_fnv1a64m(str, size);
 
-    key_val_hash_index_pair* key = curr_scope->key_hash_index.data();
+    auto* key = curr_scope->key_hash_index.data();
     size_t len = curr_scope->count;
     size_t temp;
     while (len > 0) {
-        if (hash < key[temp = len / 2].hash)
+        if (hash < key[temp = len / 2].first)
             len = temp;
         else {
             key += temp + 1;
@@ -1199,16 +1182,16 @@ static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size) 
     }
 
     if (key == curr_scope->key_hash_index.data())
-        if (key[0].hash == hash)
-            return key[0].index;
+        if (key[0].first == hash)
+            return key[0].second;
         else
             return -1;
-    else if (key[-1].hash == hash)
-        return key[-1].index;
+    else if (key[-1].first == hash)
+        return key[-1].second;
     else if (key == curr_scope->key_hash_index.data() + curr_scope->key_hash_index.size())
         return -1;
-    else if (key[0].hash == hash)
-        return key[0].index;
+    else if (key[0].first == hash)
+        return key[0].second;
     return -1;
 }
 
@@ -1227,11 +1210,11 @@ static void key_val_sort(key_val* kv) {
     curr_scope->key_hash_index.clear();
     curr_scope->key_hash_index.resize(count);
 
-    key_val_pair* key = kv->key.data() + index;
-    key_val_hash_index_pair* key_hash_index = curr_scope->key_hash_index.data();
+    auto* key = kv->key.data() + index;
+    auto* key_hash_index = curr_scope->key_hash_index.data();
     for (size_t i = 0; i < count; i++) {
-        key_hash_index->index = index + i;
-        key_hash_index->hash = hash_fnv1a64m(key->str, key->length);
+        key_hash_index->second = index + i;
+        key_hash_index->first = hash_fnv1a64m(key->first, key->second);
         key++;
         key_hash_index++;
     }
@@ -1242,34 +1225,34 @@ static void key_val_sort(key_val* kv) {
     size_t c[RADIX];
     kv->temp_key_hash_index.clear();
     kv->temp_key_hash_index.reserve(count);
-    key_val_hash_index_pair* o_key_hash_index = kv->temp_key_hash_index.data();
-    key_val_hash_index_pair* arr_key_hash_index = curr_scope->key_hash_index.data();
-    key_val_hash_index_pair* org_arr = arr_key_hash_index;
+    auto* o_key_hash_index = kv->temp_key_hash_index.data();
+    auto* arr_key_hash_index = curr_scope->key_hash_index.data();
+    auto* org_arr = arr_key_hash_index;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint64_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
         memset(c, 0, sizeof(size_t) * RADIX);
 
         for (size_t i = 0; i < count; i++)
-            c[(arr_key_hash_index[i].hash >> s) & (RADIX - 1)]++;
+            c[(arr_key_hash_index[i].first >> s) & (RADIX - 1)]++;
 
         for (size_t i = 1; i < RADIX; i++)
             c[i] += c[i - 1];
 
         for (int64_t i = count - 1; i >= 0; i--) {
-            size_t index = --c[(arr_key_hash_index[i].hash >> s) & (RADIX - 1)];
+            size_t index = --c[(arr_key_hash_index[i].first >> s) & (RADIX - 1)];
             o_key_hash_index[index] = arr_key_hash_index[i];
         }
 
-        key_val_hash_index_pair* t_key_hash = arr_key_hash_index;
+        auto* t_key_hash = arr_key_hash_index;
         arr_key_hash_index = o_key_hash_index;
         o_key_hash_index = t_key_hash;
     }
 
     if (org_arr == o_key_hash_index) {
-        key_val_hash_index_pair* t_key_hash_index = arr_key_hash_index;
+        auto* t_key_hash_index = arr_key_hash_index;
         arr_key_hash_index = o_key_hash_index;
         o_key_hash_index = t_key_hash_index;
 
-        memmove(arr_key_hash_index, o_key_hash_index, sizeof(key_val_hash_index_pair) * count);
+        memmove(arr_key_hash_index, o_key_hash_index, sizeof(*o_key_hash_index) * count);
     }
 }

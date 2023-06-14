@@ -576,7 +576,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (!diff)
             break;
 
-        int32_t motion_id = diff->get_motion_or_default(chara_id, motion_index).id;
+        uint32_t motion_id = diff->get_motion_or_default(chara_id, motion_index).id;
         if (pv_game_get()->data.pv)
             motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id,
                 rob_chr->chara_index, diff->get_motion_or_default(chara_id, motion_index));
@@ -1018,7 +1018,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             frame_speed = 1.0f;
         value = clamp_def(value, 0.0f, 1.0f);
 
-        int32_t motion_id;
+        uint32_t motion_id;
         const pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
         if (diff) {
@@ -2065,17 +2065,17 @@ void pv_game_pv_data::find_change_fields() {
 
         switch (pv_branch_mode) {
         case 0:
-            change_field_branch_fail.push_back({ time, data[0] });
-            change_field_branch_success.push_back({ time, data[0] });
+            change_field_branch_fail.push_back(time, data[0]);
+            change_field_branch_success.push_back(time, data[0]);
             if (!branch)
                 change_field_branch_time = 10000LL * time;
             break;
         case 1:
-            change_field_branch_fail.push_back({ time, data[0] });
+            change_field_branch_fail.push_back(time, data[0]);
             branch = true;
             break;
         case 2:
-            change_field_branch_success.push_back({ time, data[0] });
+            change_field_branch_success.push_back(time, data[0]);
             branch = true;
             break;
         }
@@ -2317,7 +2317,7 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
             if (frame != -0.0f && (float_t)frame_int != frame)
                 frame = (float_t)(frame < 0.0f ? frame_int - 1 : frame_int);
 
-            int32_t motion_id = diff->get_motion_or_default(i, j.index).id;
+            uint32_t motion_id = diff->get_motion_or_default(i, j.index).id;
             if (pv_game_get()->data.pv) {
                 rob_chara* rob_chr = playdata.rob_chr;
                 if (rob_chr)

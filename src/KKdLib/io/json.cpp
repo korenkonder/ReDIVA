@@ -422,7 +422,7 @@ static void io_json_read_map(stream& s, io_json_read_buffer* buf, msgpack* msg, 
             }
             io_json_read_skip_whitespace(s, buf, c);
 
-            map.push_back({ key, {} });
+            map.push_back(key, {});
             io_json_read_inner(s, buf, &map.back().second, c);
             free_def(key);
 
@@ -548,9 +548,12 @@ inline static void io_json_write_inner(stream& s, msgpack* msg, size_t tabs) {
 
         s.write("[\n", 2);
 
+        std::string tabs_str;
+        for (size_t i = 0; i <= tabs; i++)
+            tabs_str.append("  ");
+
         for (msgpack& i : *ptr) {
-            for (size_t i = 0; i <= tabs; i++)
-                s.write("  ", 2);
+            s.write(tabs_str.c_str(), tabs_str.size());
             io_json_write_inner(s, &i, tabs + 1);
             if (&i + 1 != ptr->data() + ptr->size())
                 s.write_char(',');
@@ -570,9 +573,12 @@ inline static void io_json_write_inner(stream& s, msgpack* msg, size_t tabs) {
 
         s.write("{\n", 2);
 
-        for (msgpack_key_value& i : *ptr) {
-            for (size_t i = 0; i <= tabs; i++)
-                s.write("  ", 2);
+        std::string tabs_str;
+        for (size_t i = 0; i <= tabs; i++)
+            tabs_str.append("  ");
+
+        for (auto& i : *ptr) {
+            s.write(tabs_str.c_str(), tabs_str.size());
             io_json_write_string(s, i.first);
             s.write(": ", 2);
             io_json_write_inner(s, &i.second, tabs + 1);

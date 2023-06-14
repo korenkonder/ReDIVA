@@ -340,7 +340,7 @@ void DataEdit::Auth3D::Patch() {
 
 void DataEdit::Auth3D::Reset() {
     auth_3d_data_unload_category(category.hash_murmurhash);
-    id.unload_id(rctx_ptr);
+    id.unload(rctx_ptr);
     object_storage_unload_set(object_set.hash_murmurhash);
 
     category.clear();

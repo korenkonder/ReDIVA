@@ -7,6 +7,7 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/item_table.hpp"
+#include "../KKdLib/prj/vector_pair_combine.hpp"
 #include "file_handler.hpp"
 #include "object.hpp"
 #include "texture.hpp"
@@ -111,9 +112,9 @@ struct item_table_dbgset {
 };
 
 struct item_table {
-    std::map<int32_t, item_table_item> item;
-    std::map<int32_t, item_cos_data> cos;
-    std::map<uint32_t, item_table_dbgset> dbgset;
+    prj::vector_pair_combine<int32_t, item_table_item> item;
+    prj::vector_pair_combine<int32_t, item_cos_data> cos;
+    prj::vector_pair_combine<uint32_t, item_table_dbgset> dbgset;
 
     item_table();
     ~item_table();

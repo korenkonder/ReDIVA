@@ -140,13 +140,11 @@ DtwStg::DtwStg() : Shell(0) {
     pv->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     //dw::List::sub_1402F9930(this->ns->list, 30);
-    ns->list->hovered_item = 0;
-    ns->list->ResetSetSelectedItem(0);
+    ns->list->SetItemIndex(0);
     ns->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     //dw::List::sub_1402F9930(this->stage->list, 30);
-    stage->list->hovered_item = 0;
-    stage->list->ResetSetSelectedItem(0);
+    stage->list->SetItemIndex(0);
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     stage_display = new dw::Button(this, dw::CHECKBOX);
@@ -186,7 +184,7 @@ void DtwStg::PvIdCallback(dw::Widget* data) {
         data_struct* aft_data = &data_list[DATA_AFT];
         stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-        std::string name = list_box->GetItem(list_box->list->selected_item);
+        std::string name = list_box->GetSelectedItem();
 
         dw::ListBox* pv_list_box = dtw_stg->pv;
         pv_list_box->ClearItems();
@@ -203,7 +201,7 @@ void DtwStg::StageCallback(dw::Widget* data) {
         data_struct* aft_data = &data_list[DATA_AFT];
         stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-        std::string name = list_box->GetItem(list_box->list->selected_item);
+        std::string name = list_box->GetSelectedItem();
         dtm_stg->load_stage_index = aft_stage_data->get_stage_index(name.c_str());
     }
 }
@@ -240,9 +238,12 @@ void dtm_stg_free() {
 }
 
 void dtw_stg_init() {
-    if (!dtw_stg)
+    if (!dtw_stg) {
         dtw_stg = new DtwStg;
-    dtw_stg->Disp();
+        dtw_stg->sub_1402F38B0();
+    }
+    else
+        dtw_stg->Disp();
 }
 
 void dtw_stg_load(bool hide) {

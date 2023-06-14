@@ -268,9 +268,9 @@ void aet_database::add(aet_database_file* aet_db_file) {
         aet_set.index = (uint32_t)(aet_sets_count + i.index);
         aet_set.sprite_set_id = i.sprite_set_id;
 
-        aet_set_ids.push_back({ aet_set.id, &aet_set });
-        aet_set_indices.push_back({ aet_set.index, &aet_set });
-        aet_set_names.push_back({ aet_set.name, &aet_set });
+        aet_set_ids.push_back(aet_set.id, &aet_set);
+        aet_set_indices.push_back(aet_set.index, &aet_set);
+        aet_set_names.push_back(aet_set.name, &aet_set);
 
         aet_ids.reserve(i.aet.size());
         aet_names.reserve(i.aet.size());
@@ -285,9 +285,9 @@ void aet_database::add(aet_database_file* aet_db_file) {
             aet.info = { j.index, (uint16_t)aet_set.index };
             aet.load_count = 1;
 
-            aet_ids.push_back({ aet.id, &aet });
-            aet_names.push_back({ aet.name, &aet });
-            aet_indices.push_back({ aet.info, &aet });
+            aet_ids.push_back(aet.id, &aet);
+            aet_names.push_back(aet.name, &aet);
+            aet_indices.push_back(aet.info, &aet);
         }
     }
 
@@ -319,8 +319,8 @@ void aet_database::add_aet_set(uint32_t set_id, uint32_t index) {
     set.id = set_id;
     set.index = index;
 
-    aet_set_indices.push_back({ set.index, &set });
-    aet_set_ids.push_back({ set.id, &set });
+    aet_set_indices.push_back(set.index, &set);
+    aet_set_ids.push_back(set.id, &set);
 
     aet_set_indices.combine();
     aet_set_ids.combine();
@@ -337,7 +337,7 @@ void aet_database::parse(const aet_db_aet_set_file* set_file,
 
     uint16_t set_index = (uint16_t)elem->second->index;
 
-    aet_set_names.push_back({ set_file->name, elem->second });
+    aet_set_names.push_back(set_file->name, elem->second);
 
     aet_ids.reserve(set_file->aet.size());
     for (const aet_db_aet_file& i : set_file->aet) {
@@ -365,9 +365,9 @@ void aet_database::parse(const aet_db_aet_set_file* set_file,
         aet->info = { i.index, set_index };
         aet->load_count++;
 
-        this->aet_ids.push_back({ aet->id, aet });
-        aet_names.push_back({ aet->name, aet });
-        aet_indices.push_back({ aet->info, aet });
+        this->aet_ids.push_back(aet->id, aet);
+        aet_names.push_back(aet->name, aet);
+        aet_indices.push_back(aet->info, aet);
     }
 
     aet_set_names.combine();

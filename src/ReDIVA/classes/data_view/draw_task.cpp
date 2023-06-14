@@ -55,11 +55,9 @@ static const char* mdl_obj_kind_name[] = {
     "User",
 };
 
-typedef std::pair<mdl::ObjData*, uint32_t> mdl_obj_data_sort;
-
 struct data_view_draw_task {
     render_context* rctx;
-    std::vector<mdl_obj_data_sort> obj_data;
+    prj::vector_pair<mdl::ObjData*, uint32_t> obj_data;
 
     data_view_draw_task();
     ~data_view_draw_task();
@@ -112,7 +110,7 @@ void data_view_draw_task_imgui(class_data* data) {
 
     render_context* rctx = data_view->rctx;
     std::vector<mdl::ObjData*>* obj = rctx->disp_manager.obj;
-    std::vector<mdl_obj_data_sort>& obj_data = data_view->obj_data;
+    auto& obj_data = data_view->obj_data;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
     tree_node_base_flags |= ImGuiTreeNodeFlags_OpenOnDoubleClick;
@@ -138,11 +136,11 @@ void data_view_draw_task_imgui(class_data* data) {
 
         obj_data.reserve(count);
         for (mdl::ObjData*& j : draw_tasks)
-            obj_data.push_back({ j, hash_murmurhash(&j, 8, 0, true) });
+            obj_data.push_back(j, hash_murmurhash(&j, 8, 0, true));
 
         ImGui::Text("       Hash; Type");
 
-        for (mdl_obj_data_sort& j : obj_data) {
+        for (auto& j : obj_data) {
             mdl::ObjData* data = j.first;
             if (data->kind < mdl::OBJ_KIND_NORMAL || data->kind > mdl::OBJ_KIND_TRANSLUCENT)
                 continue;

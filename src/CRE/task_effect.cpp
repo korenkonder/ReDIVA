@@ -116,7 +116,7 @@ struct ripple_emit_scene_shader_data {
 struct struc_608 {
     const stage_effects* stage_effects;
     const stage_effects_modern* stage_effects_modern;
-    std::vector<std::pair<TaskEffectType, TaskEffect*>> field_10;
+    prj::vector_pair<TaskEffectType, TaskEffect*> field_10;
 
     struc_608();
     struc_608(const ::stage_effects* stage_effects);
@@ -130,9 +130,9 @@ struct TaskEffectParent {
     std::vector<uint32_t> stage_hashes; // Added
     std::vector<int32_t> stage_indices;
     std::vector<uint32_t> obj_set_ids;
-    std::vector<std::pair<TaskEffectType, TaskEffect*>> effects;
-    std::vector<std::pair<TaskEffectType, TaskEffect*>> field_50;
-    std::vector<std::pair<int32_t, struc_608>> field_68;
+    prj::vector_pair<TaskEffectType, TaskEffect*> effects;
+    prj::vector_pair<TaskEffectType, TaskEffect*> field_50;
+    prj::vector_pair<int32_t, struc_608> field_68;
     int32_t state;
     bool enable;
     bool modern; // Added
@@ -622,7 +622,7 @@ void TaskEffectAuth3D::Reset() {
 void TaskEffectAuth3D::ResetData() {
     for (int32_t i = 0; i < stage.count; i++) {
         auth_3d_id& id = stage.auth_3d_ids_ptr[i];
-        id.unload_id(rctx_ptr);
+        id.unload(rctx_ptr);
     }
     stage.count = 0;
     enable = false;
@@ -2969,7 +2969,7 @@ void TaskEffectParent::SetStageHashes(std::vector<uint32_t>& stage_hashes) {
         const stage_effects_modern* effects = stage_data->effects_init
             ? &stage_data->effects : &stage_effects_modern_default;
 
-        field_68.push_back({ i, struc_608(effects) });
+        field_68.push_back(i, struc_608(effects));
 
         for (uint32_t j : effects->field_0)
             if (j == hash_murmurhash_empty || j == hash_murmurhash_null || j == -1)
@@ -3005,7 +3005,7 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
         const stage_effects* effects = stage_data->effects_init
             ? &stage_data->effects : &stage_effects_default;
 
-        field_68.push_back({ i, struc_608(effects) });
+        field_68.push_back(i, struc_608(effects));
 
         for (int32_t j : effects->field_0)
             if (j == -1)

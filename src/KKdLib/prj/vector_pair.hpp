@@ -15,6 +15,32 @@ namespace prj {
     template <class T, class U>
     class vector_pair : public std::vector<std::pair<T, U>> {
     public:
+        using value_pair = std::pair<T, U>;
+
+        inline void push_back(const T& first, const U& second) {
+            push_back({ first, second });
+        }
+
+        inline void push_back(const T& first, U&& second) {
+            push_back({ first, second });
+        }
+
+        inline void push_back(T&& first, const U& second) {
+            push_back({ first, second });
+        }
+
+        inline void push_back(T&& first, U&& second) {
+            push_back({ first, second });
+        }
+
+        inline void push_back(const value_pair& value) {
+            std::vector<std::pair<T, U>>::push_back(value);
+        }
+
+        inline void push_back(value_pair&& value) {
+            std::vector<std::pair<T, U>>::push_back(value);
+        }
+
         inline void sort() {
             std::sort(this->begin(), this->end(),
                 [](const std::pair<T, U>& a, const std::pair<T, U>& b) {

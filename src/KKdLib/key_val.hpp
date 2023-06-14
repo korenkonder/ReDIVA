@@ -9,33 +9,18 @@
 #include <vector>
 #include "default.hpp"
 #include "io/stream.hpp"
+#include "prj/vector_pair.hpp"
 #include "vec.hpp"
-
-struct key_val_hash_index_pair {
-    uint64_t hash;
-    size_t index;
-
-    key_val_hash_index_pair();
-    key_val_hash_index_pair(uint64_t hash, size_t index);
-};
 
 struct key_val_scope {
     std::string key;
     size_t index;
     size_t count;
 
-    std::vector<key_val_hash_index_pair> key_hash_index;
+    prj::vector_pair<uint64_t, size_t> key_hash_index;
 
     key_val_scope();
     ~key_val_scope();
-};
-
-struct key_val_pair {
-    const char* str;
-    size_t length;
-
-    key_val_pair();
-    key_val_pair(const char* str, size_t length);
 };
 
 struct key_val {
@@ -43,10 +28,10 @@ struct key_val {
     std::vector<key_val_scope> scope;
     ssize_t scope_size;
     std::string temp_key;
-    std::vector<key_val_hash_index_pair> temp_key_hash_index;
+    prj::vector_pair<uint64_t, size_t> temp_key_hash_index;
 
-    std::vector<key_val_pair> key;
-    std::vector<key_val_pair> val;
+    prj::vector_pair<const char*, size_t> key;
+    prj::vector_pair<const char*, size_t> val;
     char* buf;
 
     key_val();

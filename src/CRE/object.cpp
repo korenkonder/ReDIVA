@@ -1971,7 +1971,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             handler->obj_file_handler.reset();
             handler->obj_id_data.reserve(set->obj_num);
             for (uint32_t i = 0; i < set->obj_num; i++)
-                handler->obj_id_data.push_back({ set->obj_data[i].id, i });
+                handler->obj_id_data.push_back(set->obj_data[i].id, i);
             handler->obj_id_data.sort();
 
             if (!obj_set_handler_vertex_buffer_load(handler)
@@ -2088,7 +2088,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         handler->obj_file_handler.reset();
         handler->obj_id_data.reserve(set->obj_num);
         for (uint32_t i = 0; i < set->obj_num; i++)
-            handler->obj_id_data.push_back({ set->obj_data[i].id, i });
+            handler->obj_id_data.push_back(set->obj_data[i].id, i);
 
         if (!obj_set_handler_vertex_buffer_load(handler)
             || !obj_set_handler_index_buffer_load(handler))
@@ -2301,7 +2301,7 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
     uint32_t tex_num = handler->tex_num;
     texture** tex_data = handler->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
-        handler->tex_id_data.push_back({ tex_id_data[i], i });
+        handler->tex_id_data.push_back(tex_id_data[i], i);
         handler->gentex.push_back(tex_data[i]);
     }
     handler->tex_id_data.sort();
@@ -2330,7 +2330,7 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
     uint32_t tex_num = handler->tex_num;
     texture** tex_data = handler->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
-        handler->tex_id_data.push_back({ tex_id_data[i], i });
+        handler->tex_id_data.push_back(tex_id_data[i], i);
         handler->gentex.push_back(tex_data[i]);
     }
     handler->tex_id_data.sort();

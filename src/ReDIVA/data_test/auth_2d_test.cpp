@@ -84,16 +84,15 @@ bool DtmAet::Ctrl() {
             || aet_manager_load_file(set_id, aft_aet_db))
             break;
 
-        dw::List* id_list = dtw_aet->id->list;
-        id_list->ClearItems();
+        dw::ListBox* id = dtw_aet->id;
+        id->ClearItems();
 
         uint32_t scenes_count = aet_manager_get_scenes_count(set_id, aft_aet_db);
         for (uint32_t i = scenes_count, j = 0; i; i--, j++)
-            id_list->AddItem(aet_manager_get_scene_name(
+            id->AddItem(aet_manager_get_scene_name(
                 aft_aet_db->get_aet_by_set_id_index(set_id, j)->id, aft_aet_db));
 
-        id_list->hovered_item = id_index;
-        id_list->ResetSetSelectedItem(id_index);
+        id->SetItemIndex(id_index);
         state = 4;
     } break;
     case 4: {
@@ -112,14 +111,15 @@ bool DtmAet::Ctrl() {
             else
                 i++;
 
-        dw::List* layer_list = dtw_aet->layer->list;
-        layer_list->ClearItems();
-        layer_list->AddItem("ROOT");
-        for (std::string& i : comp_layers)
-            layer_list->AddItem(i);
+        dw::ListBox* layer = dtw_aet->layer;
+        layer->ClearItems();
 
-        layer_list->hovered_item = layer_index;
-        layer_list->ResetSetSelectedItem(layer_index);
+        layer->AddItem("ROOT");
+
+        for (std::string& i : comp_layers)
+            layer->AddItem(i);
+
+        layer->SetItemIndex(layer_index);
         state = 5;
     } break;
     case 5: {
@@ -145,18 +145,14 @@ bool DtmAet::Ctrl() {
             end_time = aet_manager_get_scene_end_time(aet_id, aft_aet_db);
 
         dw::ListBox* marker = dtw_aet->marker;
-        if (marker->list)
-            marker->ClearItems();
+        marker->ClearItems();
 
         marker->AddItem("NOMARKER");
 
         for (std::string& i : markers)
             marker->AddItem(i);
 
-        if (marker->list) {
-            marker->list->hovered_item = marker_index;
-            marker->list->ResetSetSelectedItem(marker_index);
-        }
+        marker->SetItemIndex(marker_index);
         state = 6;
     } break;
     case 6: {
@@ -344,12 +340,11 @@ DtwAet::DtwAet() : Shell(0) {
     for (size_t i = aft_aet_db->aet_set_names.size(), j = 0; i; i--, j++) {
         uint32_t set_id = aft_aet_db->get_aet_set_id_by_name_index((uint32_t)j);
         const aet_db_aet_set* set = aft_aet_db->get_aet_set_by_id(set_id);
-        this->set->list->AddItem(set->name);
+        this->set->AddItem(set->name);
     }
 
     //set->list->sub_1402F9930(20);
-    set->list->hovered_item = dtm_aet->curr_set_index;
-    set->list->ResetSetSelectedItem(dtm_aet->curr_set_index);
+    set->SetItemIndex(dtm_aet->curr_set_index);
 
     set->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::SetCallback));
 
@@ -385,8 +380,7 @@ DtwAet::DtwAet() : Shell(0) {
     type->AddItem("DRAW");
     type->AddItem("LAYOUT");
 
-    type->list->hovered_item = dtm_aet->type;
-    type->list->ResetSetSelectedItem(dtm_aet->type);
+    type->list->SetItemIndex(dtm_aet->type);
 
     type->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::TypeCallback));
 
@@ -397,7 +391,7 @@ DtwAet::DtwAet() : Shell(0) {
     frame->SetName("FRAME");
     frame->format = "%4.0f";
 
-    frame->scroll_bar->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 10.0f);
+    frame->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 10.0f);
 
     frame->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::FrameCallback));
 
@@ -489,9 +483,13 @@ void dtm_aet_load() {
         return;
 
     app::TaskWork::AddTask(dtm_aet, "DATA_TEST_AET_MANAGER");
-    if (!dtw_aet)
+
+    if (!dtw_aet) {
         dtw_aet = new DtwAet();
-    dtw_aet->Disp();
+        dtw_aet->sub_1402F38B0();
+    }
+    else
+        dtw_aet->Disp();
 }
 
 void dtm_aet_unload() {

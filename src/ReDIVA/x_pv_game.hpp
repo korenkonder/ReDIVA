@@ -109,7 +109,7 @@ public:
 
 struct x_pv_play_data_set_motion {
     float_t frame_speed;
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame;
     float_t blend_duration;
     bool blend;
@@ -471,7 +471,7 @@ struct x_pv_game_dsc_data {
     void find_bar_beat(x_pv_bar_beat& bar_beat);
     void find_change_fields(std::vector<int64_t>& change_fields);
     int64_t find_pv_end();
-    void find_stage_effects(std::vector<std::pair<int64_t, int32_t>>& stage_effects);
+    void find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects);
     void reset();
     void unload();
 };
@@ -493,7 +493,7 @@ struct x_pv_game_data {
     x_pv_bar_beat bar_beat;
     int32_t stage_effect_index;
     int32_t next_stage_effect_bar;
-    std::vector<std::pair<int64_t, int32_t>> stage_effects;
+    prj::vector_pair<int64_t, int32_t> stage_effects;
     x_pv_game_camera camera;
     x_pv_game_effect effect;
     x_pv_game_chara_effect chara_effect;

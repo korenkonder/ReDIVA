@@ -140,7 +140,7 @@ bool Auth3dTestTask::Ctrl() {
 }
 
 bool Auth3dTestTask::Dest() {
-    auth_3d_id.unload_id(rctx_ptr);
+    auth_3d_id.unload(rctx_ptr);
     object_storage_unload_set(effcmn_obj_set);
     task_stage_unload_task();
     clear_color = color_black;
@@ -219,7 +219,7 @@ void Auth3dTestTask::SetAuth3dId() {
         data_struct* aft_data = &data_list[DATA_AFT];
         auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
 
-        auth_3d_id.unload_id(rctx_ptr);
+        auth_3d_id.unload(rctx_ptr);
         auth_3d_id = auth_3d_data_load_uid(auth_3d_uid, aft_auth_3d_db);
         if (auth_3d_id.check_not_empty()) {
             auth_3d_id.set_enable(false);
@@ -290,11 +290,11 @@ void Auth3dTestTask::SetStage() {
     }
 }
 
-auth_3d_test_window_category::auth_3d_test_window_category() : name(), index() {
+Auth3dTestWindow::Category::Category() : name(), index() {
 
 }
 
-auth_3d_test_window_category::~auth_3d_test_window_category() {
+Auth3dTestWindow::Category::~Category() {
 
 }
 
@@ -309,17 +309,18 @@ Auth3dTestWindow::Auth3dTestWindow() {
 
     category.resize(auth_3d_db_cat.size());
     for (auth_3d_database_category& i : auth_3d_db_cat) {
-        auth_3d_test_window_category* cat = &category[&i - auth_3d_db_cat.data()];
+        Auth3dTestWindow::Category* cat = &category[&i - auth_3d_db_cat.data()];
         cat->name = &i.name;
         cat->index = -1;
 
         cat->uid.reserve(i.uid.size());
         for (int32_t& j : i.uid)
             if (uids[j].enabled)
-                cat->uid.push_back({ &uids[j].name, uids[j].org_uid });
+                cat->uid.push_back(&uids[j].name, uids[j].org_uid);
 
         if (cat->uid.size()) {
-            quicksort_custom(cat->uid.data(), cat->uid.size(), sizeof(auth_3d_test_window_uid),
+            quicksort_custom(cat->uid.data(), cat->uid.size(),
+                sizeof(std::pair<std::string*, int32_t>),
                 auth_3d_test_window_uid_quicksort_compare_func);
             cat->index = 0;
         }
@@ -334,12 +335,12 @@ Auth3dTestWindow::Auth3dTestWindow() {
     auth_3d_uid_load = false;
 
     if (category.size() > 0) {
-        auth_3d_test_window_category* cat = &category.front();
+        Auth3dTestWindow::Category* cat = &category.front();
 
         if (cat->uid.size()) {
             auth_3d_load = true;
             auth_3d_uid_load = true;
-            auth_3d_uid = cat->uid.front().uid;
+            auth_3d_uid = cat->uid.front().second;
         }
 
         auth_3d_category_index = 0;
@@ -444,7 +445,7 @@ void Auth3dTestWindow::Window() {
     ImGui::GetContentRegionAvailSetNextItemWidth();
     if (ImGui::BeginCombo("##Auth 3D Category Index", _auth_3d_category_index > -1
         ? category[_auth_3d_category_index].name->c_str() : "", 0)) {
-        for (auth_3d_test_window_category& i : category) {
+        for (Auth3dTestWindow::Category& i : category) {
             int32_t auth_3d_category_idx = (int32_t)(&i - category.data());
 
             ImGui::PushID(&i);
@@ -465,12 +466,12 @@ void Auth3dTestWindow::Window() {
     }
 
     if (_auth_3d_category_index != auth_3d_category_index) {
-        auth_3d_test_window_category* cat = &category[_auth_3d_category_index];
+        Auth3dTestWindow::Category* cat = &category[_auth_3d_category_index];
 
         if (cat->uid.size() > 0) {
             auth_3d_load = true;
             auth_3d_uid_load = true;
-            auth_3d_uid = cat->uid[cat->index].uid;
+            auth_3d_uid = cat->uid[cat->index].second;
         }
         else {
             auth_3d_load = false;
@@ -491,17 +492,17 @@ void Auth3dTestWindow::Window() {
 
     ImGui::GetContentRegionAvailSetNextItemWidth();
     bool auth_3d_category_found = false;
-    for (auth_3d_test_window_category& i : category) {
+    for (Auth3dTestWindow::Category& i : category) {
         if (auth_3d_category_index != &i - category.data())
             continue;
 
         if (ImGui::BeginCombo("##Auth 3D Index", _auth_3d_index > -1
-            ? i.uid[_auth_3d_index].name->c_str() : "", 0)) {
-            for (auth_3d_test_window_uid& j : i.uid) {
+            ? i.uid[_auth_3d_index].first->c_str() : "", 0)) {
+            for (auto& j : i.uid) {
                 int32_t auth_3d_idx = (int32_t)(&j - i.uid.data());
 
                 ImGui::PushID(&j);
-                if (ImGui::Selectable(j.name->c_str(), _auth_3d_index == auth_3d_idx)
+                if (ImGui::Selectable(j.first->c_str(), _auth_3d_index == auth_3d_idx)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && _auth_3d_index != auth_3d_idx)) {
                     auth_3d_index = -1;
@@ -520,7 +521,7 @@ void Auth3dTestWindow::Window() {
         if (_auth_3d_index != auth_3d_index) {
             i.index = _auth_3d_index;
             auth_3d_uid_load = true;
-            auth_3d_uid = i.uid[_auth_3d_index].uid;
+            auth_3d_uid = i.uid[_auth_3d_index].second;
             auth_3d_index = _auth_3d_index;
         }
         auth_3d_category_found = true;
@@ -673,7 +674,7 @@ void auth_3d_test_window_free() {
 }
 
 static int auth_3d_test_window_uid_quicksort_compare_func(void const* src1, void const* src2) {
-    std::string* str1 = ((auth_3d_test_window_uid*)src1)->name;
-    std::string* str2 = ((auth_3d_test_window_uid*)src2)->name;
+    std::string* str1 = ((std::pair<std::string*, int32_t>*)src1)->first;
+    std::string* str2 = ((std::pair<std::string*, int32_t>*)src2)->first;
     return str_utils_compare_length(str1->c_str(), str1->size(), str2->c_str(), str2->size());
 }

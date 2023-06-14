@@ -761,7 +761,7 @@ namespace Glitter {
         GLuint vbo;
         GLuint ebo;
         float_t emission;
-        std::vector<std::pair<GLint, GLsizei>> draw_list;
+        prj::vector_pair<GLint, GLsizei> draw_list;
 
         RenderGroup();
         virtual ~RenderGroup();

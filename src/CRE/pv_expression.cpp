@@ -26,7 +26,7 @@ struct pv_expression_file {
 
 struct pv_expression {
     rob_chara* rob_chr;
-    int32_t motion_id;
+    uint32_t motion_id;
     pv_exp_data* face_data;
     pv_exp_data* face_data_curr;
     pv_exp_data* face_data_prev;
@@ -47,8 +47,8 @@ struct pv_expression {
     void face_set_frame(float_t frame);
     void reset();
     void reset_data();
-    bool set_motion(const char* path, int32_t motion_id);
-    bool set_motion(uint32_t hash, int32_t motion_id);
+    bool set_motion(const char* path, uint32_t motion_id);
+    bool set_motion(uint32_t hash, uint32_t motion_id);
 };
 
 pv_expression pv_expression_array[ROB_CHARA_COUNT];
@@ -111,13 +111,13 @@ bool pv_expression_array_set(size_t chara_id, void* rob_chr, float_t frame_speed
     return true;
 }
 
-bool pv_expression_array_set_motion(const char* path, size_t chara_id, int32_t motion_id) {
+bool pv_expression_array_set_motion(const char* path, size_t chara_id, uint32_t motion_id) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
         return pv_expression_array[chara_id].set_motion(path, motion_id);
     return false;
 }
 
-bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, int32_t motion_id) {
+bool pv_expression_array_set_motion(uint32_t hash, size_t chara_id, uint32_t motion_id) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
         return pv_expression_array[chara_id].set_motion(hash, motion_id);
     return false;
@@ -493,14 +493,14 @@ void pv_expression::reset_data() {
     face_cl_data_update = false;
 }
 
-bool pv_expression::set_motion(const char* path, int32_t motion_id) {
+bool pv_expression::set_motion(const char* path, uint32_t motion_id) {
     const char* file = strrchr(path, '/');
     if (!file)
         file = strrchr(path, '\\');
     return set_motion(hash_utf8_murmurhash(file ? file + 1 : path), motion_id);
 }
 
-bool pv_expression::set_motion(uint32_t hash, int32_t motion_id) {
+bool pv_expression::set_motion(uint32_t hash, uint32_t motion_id) {
     pv_expression_file* pv_exp_file = 0;
     for (pv_expression_file*& i : pv_expression_file_storage)
         if (i && i->hash == hash) {

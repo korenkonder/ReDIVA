@@ -492,7 +492,7 @@ int32_t pv_db_pv::get_chrmot_motion_id(int32_t chara_id,
     for (const pv_db_pv_chrmot& i : chrmot)
         if (i.id == chara_id && chara_index_get_from_chara_name(i.chara.c_str())
             == chara_index && !i.org_name.compare(motion.name)) {
-            int32_t motion_id = aft_mot_db->get_motion_id(i.name.c_str());
+            uint32_t motion_id = aft_mot_db->get_motion_id(i.name.c_str());
             if (motion_id != -1)
                 return motion_id;
             break;

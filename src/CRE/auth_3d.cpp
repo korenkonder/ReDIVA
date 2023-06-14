@@ -2535,7 +2535,7 @@ void auth_3d_id::set_visibility(bool value) {
     }
 }
 
-void auth_3d_id::unload_id(render_context* rctx) {
+void auth_3d_id::unload(render_context* rctx) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return;
 

@@ -1397,7 +1397,7 @@ bool SubGameState::DataTestMot::Init() {
 }
 
 bool SubGameState::DataTestMot::Ctrl() {
-    return task_data_init_check_state();
+    return false;
 }
 
 bool SubGameState::DataTestMot::Dest() {

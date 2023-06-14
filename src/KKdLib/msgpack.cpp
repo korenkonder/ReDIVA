@@ -31,7 +31,7 @@ msgpack* msgpack::get_by_name(const char* name) {
         return 0;
 
     msgpack_map* ptr = data.map;
-    for (msgpack_key_value& i : *ptr)
+    for (auto& i : *ptr)
         if (!i.first.compare(name))
             return &i.second;
 
@@ -43,7 +43,7 @@ void msgpack::set_by_name(const char* name, msgpack* m) {
         return;
 
     msgpack_map* ptr = data.map;
-    for (msgpack_key_value& i : *ptr)
+    for (auto& i : *ptr)
         if (!i.first.compare(name)) {
             i.second = *m;
             return;
@@ -63,7 +63,7 @@ msgpack* msgpack::append(const char* name, msgpack* m) {
         return tm;
     }
     else {
-        data.map->push_back({ name, *m });
+        data.map->push_back(name, *m);
         m->clear();
         return &data.map->back().second;
     }
@@ -80,7 +80,7 @@ msgpack* msgpack::append(const char* name, msgpack& m) {
         return tm;
     }
     else {
-        data.map->push_back({ name, m });
+        data.map->push_back(name, m);
         m.clear();
         return &data.map->back().second;
     }
@@ -97,7 +97,7 @@ msgpack* msgpack::append(const char* name, msgpack&& m) {
         return tm;
     }
     else {
-        data.map->push_back({ name, m });
+        data.map->push_back(name, m);
         m.clear();
         return &data.map->back().second;
     }

@@ -137,6 +137,15 @@ void task_wind_init() {
     task_wind = new TaskWind;
 }
 
+bool task_wind_hide_task() {
+    task_wind->ptr->reset();
+    return task_wind->HideTask();
+}
+
+bool task_wind_run_task() {
+    return task_wind->RunTask();
+}
+
 void task_wind_free() {
     if (task_wind) {
         delete task_wind;

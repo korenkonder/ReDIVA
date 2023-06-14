@@ -81,15 +81,27 @@ module::~module() {
 
 }
 
-module_data::module_data() : sort_index(), chara_index(), cos(),
-sleeve_l(), sleeve_r(), field_78(), field_79(), field_A0() {
+module_data::module_data() : id(), sort_index(), chara_index(), cos(), sleeve_l(), sleeve_r(),
+spr_sel_md_id_spr_set_id(), spr_sel_md_id_cmn_spr_set_id(), spr_sel_md_id_cmn_md_img_id_spr_id(),
+spr_sel_md_id_cmn_md_img_spr_id(), field_78(), field_79(), field_A0() {
+    reset();
+}
+
+void module_data::reset() {
     id = -1;
+    sort_index = 0;
+    chara_index = CHARA_MIKU;
+    cos = 0;
+    sleeve_l = {};
+    sleeve_r = {};
     spr_sel_md_id_spr_set_id = -1;
     spr_sel_md_id_cmn_spr_set_id = -1;
     spr_sel_md_id_cmn_md_img_id_spr_id = -1;
     spr_sel_md_id_cmn_md_img_spr_id = -1;
+    field_78 = false;
+    field_79 = false;
     name.assign("");
-
+    field_A0 = 0;
     field_A8 = prj::time::get_default();
     field_B0 = prj::time::get_default();
 }
@@ -137,6 +149,10 @@ bool module_data_handler_data_get_module(chara_index chara_index, int32_t cos, m
 
 bool module_data_handler_data_get_module(int32_t id, module_data& data) {
     return module_data_handler_data->get_module(id, data);
+}
+
+const std::vector<module_data>& module_data_handler_data_get_modules() {
+    return module_data_handler_data->modules;
 }
 
 void module_data_handler_data_free() {
@@ -276,7 +292,7 @@ void module_table_handler::parse(p_file_handler* pfhndl) {
             }
         }
 
-        modules.push_back({ module.id, module });
+        modules.push_back(module.id, module);
 
         kv.close_scope();
     }

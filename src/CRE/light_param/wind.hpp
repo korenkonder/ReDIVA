@@ -61,5 +61,7 @@ public:
 
 extern TaskWind* task_wind;
 
-void task_wind_init();
-void task_wind_free();
+extern void task_wind_init();
+extern bool task_wind_hide_task();
+extern bool task_wind_run_task();
+extern void task_wind_free();

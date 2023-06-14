@@ -4287,7 +4287,7 @@ void pv_game::set_osage_init(const pv_game_chara& chr) {
         }
 
     for (const pv_db_pv_osage_init& i : pv->osage_init) {
-        int32_t motion_id = aft_mot_db->get_motion_id(i.motion.c_str());
+        uint32_t motion_id = aft_mot_db->get_motion_id(i.motion.c_str());
         if (motion_id == -1)
             continue;
 
@@ -4497,11 +4497,11 @@ bool pv_game::unload() {
     data.field_2D8A0 = true;
 
     for (auto& i : data.auth_3d)
-        i.second.unload_id(rctx_ptr);
+        i.second.unload(rctx_ptr);
 
     for (auto& i : data.field_2DA08)
         for (auto& j : i.auth_3d_ids)
-            j.unload_id(rctx_ptr);
+            j.unload(rctx_ptr);
 
     if (data.field_2DAC8)
         for (std::string& i : data.auth_3d_categories)

@@ -478,7 +478,7 @@ struct struc_14 {
     int32_t type;
     pv_difficulty difficulty;
     int32_t edition;
-    uint32_t pv;
+    int32_t pv;
     int8_t field_10;
     int8_t field_11;
     int8_t field_12;

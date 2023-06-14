@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "default.hpp"
+#include "prj/vector_pair.hpp"
 
 enum msgpack_type : uint32_t {
     MSGPACK_NONE = 0,
@@ -31,8 +32,7 @@ enum msgpack_type : uint32_t {
 struct msgpack;
 
 typedef std::vector<msgpack> msgpack_array;
-typedef std::pair<std::string, msgpack> msgpack_key_value;
-typedef std::vector<msgpack_key_value> msgpack_map;
+typedef prj::vector_pair<std::string, msgpack> msgpack_map;
 
 union msgpack_data {
     bool b;

@@ -236,7 +236,7 @@ namespace Glitter {
 
             if (j > 0) {
                 disp += j;
-                rend_group->draw_list.push_back({ (GLint)index, (GLsizei)j });
+                rend_group->draw_list.push_back((GLint)index, (GLsizei)j);
                 index += j;
             }
         }
@@ -395,7 +395,7 @@ namespace Glitter {
 
             if (j > 0) {
                 disp += j;
-                rend_group->draw_list.push_back({ (GLint)index, (GLsizei)(j * 2) });
+                rend_group->draw_list.push_back((GLint)index, (GLsizei)(j * 2));
                 index += j * 2;
             }
         }
@@ -1247,7 +1247,7 @@ namespace Glitter {
 
             if (j > 0) {
                 disp += j;
-                rend_group->draw_list.push_back({ (GLint)index, (GLsizei)j });
+                rend_group->draw_list.push_back((GLint)index, (GLsizei)j);
                 index += j;
             }
         }
@@ -1404,7 +1404,7 @@ namespace Glitter {
 
             if (j > 0) {
                 disp += j;
-                rend_group->draw_list.push_back({ (GLint)index, (GLsizei)(j * 2) });
+                rend_group->draw_list.push_back((GLint)index, (GLsizei)(j * 2));
                 index += j * 2;
             }
         }

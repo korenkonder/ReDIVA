@@ -314,8 +314,8 @@ void object_database::update() {
     obj_set_murmurhashes.reserve(object_set.size());
 
     for (object_set_info& i : object_set) {
-        obj_set_ids.push_back({ i.id, &i });
-        obj_set_murmurhashes.push_back({ i.name_hash, &i });
+        obj_set_ids.push_back(i.id, &i);
+        obj_set_murmurhashes.push_back(i.name_hash, &i);
 
         obj_infos.reserve(i.object.size());
         obj_fnv1a64m_hashes.reserve(i.object.size());
@@ -324,11 +324,11 @@ void object_database::update() {
         obj_info_murmurhashes.reserve(i.object.size());
 
         for (object_info_data& j : i.object) {
-            obj_infos.push_back({ { j.id, i.id }, &j });
-            obj_fnv1a64m_hashes.push_back({ j.name_hash_fnv1a64m, &j });
-            obj_fnv1a64m_hashes_upper.push_back({ j.name_hash_fnv1a64m_upper, &j });
-            obj_murmurhashes.push_back({ j.name_hash_murmurhash, &j });
-            obj_info_murmurhashes.push_back({ j.name_hash_murmurhash, { j.id, i.id } });
+            obj_infos.push_back({ j.id, i.id }, &j);
+            obj_fnv1a64m_hashes.push_back(j.name_hash_fnv1a64m, &j);
+            obj_fnv1a64m_hashes_upper.push_back(j.name_hash_fnv1a64m_upper, &j);
+            obj_murmurhashes.push_back(j.name_hash_murmurhash, &j);
+            obj_info_murmurhashes.push_back(j.name_hash_murmurhash, { j.id, i.id });
         }
     }
 

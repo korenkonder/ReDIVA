@@ -120,7 +120,7 @@ enum dsc_ft_func {
 
 struct pv_play_data_set_motion {
     float_t frame_speed;
-    int32_t motion_id;
+    uint32_t motion_id;
     float_t frame;
     float_t blend_duration;
     bool blend;

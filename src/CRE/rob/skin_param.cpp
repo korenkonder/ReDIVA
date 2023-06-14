@@ -61,7 +61,7 @@ struct SkinParamManager : public app::Task {
     int32_t GetExtSkpFile(const osage_init_data& osage_init, const std::string& path,
         std::string& file, void* data, motion_database* mot_db, object_database* obj_db);
     std::vector<skin_param_file_data>* GetSkinParamFileData(
-        object_info obj_info, int32_t motion_id, int32_t frame);
+        object_info obj_info, uint32_t motion_id, int32_t frame);
     void Reset();
 };
 
@@ -238,7 +238,7 @@ bool skin_param_manager_check_task_ready(int32_t chara_id) {
 }
 
 std::vector<skin_param_file_data>* skin_param_manager_get_skin_param_file_data(
-    int32_t chara_id, object_info obj_info, int32_t motion_id, int32_t frame) {
+    int32_t chara_id, object_info obj_info, uint32_t motion_id, int32_t frame) {
     return skin_param_manager_get(chara_id)->GetSkinParamFileData(obj_info, motion_id, frame);
 }
 
@@ -972,7 +972,7 @@ int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init, const
 }
 
 std::vector<skin_param_file_data>* SkinParamManager::GetSkinParamFileData(
-    object_info obj_info, int32_t motion_id, int32_t frame) {
+    object_info obj_info, uint32_t motion_id, int32_t frame) {
     if (object_motion_frame.size()) {
         auto elem = object_motion_frame.find({ obj_info, { motion_id, frame } });
         if (elem != object_motion_frame.end())

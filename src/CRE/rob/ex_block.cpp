@@ -900,7 +900,7 @@ void RobCloth::ResetData() {
     reset_data_list = 0;
 }
 
-void RobCloth::AddMotionResetData(int32_t motion_id, float_t frame) {
+void RobCloth::AddMotionResetData(uint32_t motion_id, float_t frame) {
     int32_t frame_int = (int32_t)roundf(frame * 1000.0f);
 
     auto elem = motion_reset_data.find({ motion_id, frame_int });
@@ -1153,7 +1153,7 @@ void RobCloth::SetForceAirRes(float_t force, float_t force_gain, float_t air_res
     skin_param_ptr->air_res = air_res;
 }
 
-void RobCloth::SetMotionResetData(int32_t motion_id, float_t frame) {
+void RobCloth::SetMotionResetData(uint32_t motion_id, float_t frame) {
     osage_reset = true;
     auto elem = motion_reset_data.find({ motion_id, (int32_t)roundf(frame * 1000.0f) });
     if (elem != motion_reset_data.end() && elem->second.size() + root_count == nodes.size()) {
@@ -1521,7 +1521,7 @@ void ExClothBlock::Field_50() {
     sub_14021D840(&rob);
 }
 
-void ExClothBlock::AddMotionResetData(int32_t motion_id, float_t frame) {
+void ExClothBlock::AddMotionResetData(uint32_t motion_id, float_t frame) {
     rob.AddMotionResetData(motion_id, frame);
 }
 
@@ -1548,7 +1548,7 @@ float_t* ExClothBlock::LoadOpdData(size_t node_index, float_t* opd_data, size_t 
     return rob.LoadOpdData(node_index, opd_data, opd_count);
 }
 
-void ExClothBlock::SetMotionResetData(int32_t motion_id, float_t frame) {
+void ExClothBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
     rob.SetMotionResetData(motion_id, frame);
 }
 
@@ -1585,7 +1585,7 @@ RobOsage::~RobOsage() {
 
 }
 
-void RobOsage::AddMotionResetData(int32_t motion_id, float_t frame) {
+void RobOsage::AddMotionResetData(uint32_t motion_id, float_t frame) {
     int32_t frame_int = (int32_t)roundf(frame * 1000.0f);
 
     auto elem = motion_reset_data.find({ motion_id, frame_int });
@@ -1830,7 +1830,7 @@ void RobOsage::SetInitRot(float_t init_rot_y, float_t init_rot_z) {
     skin_param_ptr->init_rot.z = init_rot_z * DEG_TO_RAD_FLOAT;
 }
 
-void RobOsage::SetMotionResetData(int32_t motion_id, float_t frame) {
+void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
     osage_reset = true;
     auto v6 = motion_reset_data.find({ motion_id, (int32_t)roundf(frame * 1000.0f) });
     if (v6 != motion_reset_data.end() && v6->second.size() + 1 == nodes.size())
@@ -2172,7 +2172,7 @@ void ExOsageBlock::Field_58() {
     field_59 = false;
 }
 
-void ExOsageBlock::AddMotionResetData(int32_t motion_id, float_t frame) {
+void ExOsageBlock::AddMotionResetData(uint32_t motion_id, float_t frame) {
     rob.AddMotionResetData(motion_id, frame);
 }
 
@@ -2190,7 +2190,7 @@ float_t* ExOsageBlock::LoadOpdData(size_t node_index, float_t* opd_data, size_t 
     return rob.LoadOpdData(node_index, opd_data, opd_count);
 }
 
-void ExOsageBlock::SetMotionResetData(int32_t motion_id, float_t frame) {
+void ExOsageBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
     rob.SetMotionResetData(motion_id, frame);
 }
 
@@ -2223,21 +2223,21 @@ void ExOsageBlock::SetWindDirection() {
 }
 
 void ExOsageBlock::sub_1405F3E10(obj_skin_block_osage* osg_data,
-    obj_skin_osage_node* osg_nodes, std::vector<std::pair<uint32_t, RobOsageNode*>>* a4,
+    obj_skin_osage_node* osg_nodes, prj::vector_pair<uint32_t, RobOsageNode*>* a4,
     std::map<const char*, ExNodeBlock*>* a5) {
     RobOsageNode* node = rob.GetNode(0);
-    a4->push_back({ osg_data->external_name_index, node });
+    a4->push_back(osg_data->external_name_index, node);
 
     for (uint32_t i = 0; i < osg_data->count; i++) {
         node = rob.GetNode(i + 1ULL);
-        a4->push_back({ osg_nodes[i].name_index, node });
+        a4->push_back(osg_nodes[i].name_index, node);
 
         if (node->bone_node_ptr && node->bone_node_ptr->name)
             a5->insert({ node->bone_node_ptr->name, this });
     }
 
     node = rob.GetNode(osg_data->count + 1ULL);
-    a4->push_back({ osg_data->name_index, node });
+    a4->push_back(osg_data->name_index, node);
 
     if (node->bone_node_ptr && node->bone_node_ptr->name)
         a5->insert({ node->bone_node_ptr->name, this });

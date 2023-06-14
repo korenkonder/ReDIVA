@@ -39,7 +39,7 @@ public:
     int32_t load_stage_index;
     vec3 trans_value;
     float_t rot_y_value;
-    std::vector<std::pair<std::string, std::string>> field_348;
+    prj::vector_pair<std::string, std::string> field_348;
     bool field_388;
     int32_t field_38C;
     bool field_390;
@@ -68,22 +68,17 @@ public:
     void SetStage();
 };
 
-struct auth_3d_test_window_uid {
-    std::string* name;
-    int32_t uid;
-};
-
-struct auth_3d_test_window_category {
-    std::string* name;
-    int32_t index;
-    std::vector<auth_3d_test_window_uid> uid;
-
-    auth_3d_test_window_category();
-    ~auth_3d_test_window_category();
-};
-
 class Auth3dTestWindow : public app::TaskWindow {
 public:
+    struct Category {
+        std::string* name;
+        int32_t index;
+        prj::vector_pair<std::string*, int32_t> uid;
+
+        Category();
+        ~Category();
+    };
+
     int32_t auth_3d_category_index;
     int32_t auth_3d_category_index_prev;
     int32_t auth_3d_index;
@@ -101,7 +96,7 @@ public:
     bool stg_display;
 
     std::vector<const char*> stage;
-    std::vector<auth_3d_test_window_category> category;
+    std::vector<Category> category;
 
     Auth3dTestWindow();
     virtual ~Auth3dTestWindow() override;

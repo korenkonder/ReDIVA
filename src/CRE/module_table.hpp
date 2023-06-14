@@ -38,9 +38,11 @@ struct module_data {
     std::string name;
     int32_t field_A0;
     prj::time field_A8;
-    prj::time  field_B0;
+    prj::time field_B0;
 
     module_data();
+
+    void reset();
 };
 
 extern void module_table_handler_data_init();
@@ -54,4 +56,5 @@ extern void module_data_handler_data_init();
 extern void module_data_handler_data_add_all_modules();
 extern bool module_data_handler_data_get_module(chara_index chara_index, int32_t cos, module_data& data);
 extern bool module_data_handler_data_get_module(int32_t id, module_data& data);
+extern const std::vector<module_data>& module_data_handler_data_get_modules();
 extern void module_data_handler_data_free();

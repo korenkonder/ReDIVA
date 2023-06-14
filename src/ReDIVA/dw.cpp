@@ -24,10 +24,7 @@ namespace dw_gui_detail {
         std::vector<dw::Widget*> free_widgets;
         /*struc_751 field_C0;
         int field_F4;
-        int field_F8;
-        int field_FC;
-        int field_100;
-        int field_104;
+        rectangle field_F8;
         int field_108;
         int field_10C;
         int field_110;
@@ -125,6 +122,11 @@ static bool dw_gui_get_ctrl();
 static bool dw_gui_get_disp();
 
 namespace dw {
+    static RowLayout* row_layout_vertical = new RowLayout(VERTICAL);
+
+    static DropDownListScrollBarSelectionListener drop_down_list_scroll_bar_selection_listener;
+    static ScrollBarTestSelectionListener scroll_bar_test_Selection_listener;
+
     SelectionListener::SelectionListener() {
 
     }
@@ -141,7 +143,7 @@ namespace dw {
 
     }
 
-    void SelectionAdapter::Field_8(Widget* data) {
+    void SelectionAdapter::Callback(Widget* data) {
 
     }
 
@@ -161,8 +163,32 @@ namespace dw {
 
     }
 
-    void SelectionListenerOnHook::Field_8(Widget* data) {
+    void SelectionListenerOnHook::Callback(Widget* data) {
         callback(data);
+    }
+
+    DropDownListScrollBarSelectionListener::DropDownListScrollBarSelectionListener() {
+
+    }
+    
+    DropDownListScrollBarSelectionListener::~DropDownListScrollBarSelectionListener() {
+
+    }
+
+    void DropDownListScrollBarSelectionListener::Callback(Widget* data) {
+
+    }
+    
+    ScrollBarTestSelectionListener::ScrollBarTestSelectionListener() {
+
+    }
+    
+    ScrollBarTestSelectionListener::~ScrollBarTestSelectionListener() {
+
+    }
+
+    void ScrollBarTestSelectionListener::Callback(Widget* data) {
+
     }
 
     Widget::Widget(Widget* parent, Flags flags) : free(),
@@ -246,6 +272,26 @@ namespace dw {
         Widget::Reset();
     }
 
+    vec2 dw::Control::GetPos() {
+        vec2 pos = position;
+        if (parent_comp) {
+            rectangle parent_rect = parent_comp->GetBoundingBox();
+            vec2 parent_pos = parent_comp->GetPos();
+            pos += parent_pos + parent_rect.pos;
+            if (parent_comp->v_bar)
+                pos.y -= parent_comp->v_bar->value;
+        }
+        return pos;
+    }
+
+    void Control::GetSetSize() {
+        SetSize(GetSize());
+    }
+
+    vec2 Control::GetSize() {
+        return size;
+    }
+
     Label::Label(Composite* parent, Flags flags) : Control(parent, flags) {
 
     }
@@ -296,6 +342,30 @@ namespace dw {
         this->step = step;
     }
 
+    void ScrollBar::SetValue(float_t value) {
+        value = clamp_def(value, min, max);
+        if (round)
+            this->value = roundf(value / step) * step;
+        else
+            this->value = value;
+    }
+
+    void ScrollBar::SetWidth(float_t value) {
+        vec2 glyph_size = value;//font->GetFontGlyphSize();
+        if (flags & HORIZONTAL) {
+            size.x = value;
+            size.y = glyph_size.y;
+        }
+        else {
+            size.x = glyph_size.x;
+            size.y = value;
+        }
+    }
+
+    void ScrollBar::AddSelectionListener(SelectionListener* value) {
+        selection_listeners.push_back(value);
+    }
+
     Scrollable::Scrollable(Composite* parent, Flags flags) : Control(parent, flags), h_bar(), v_bar() {
         if (flags & HORIZONTAL) {
             h_bar = new ScrollBar(parent, HORIZONTAL);
@@ -319,6 +389,38 @@ namespace dw {
 
     void Scrollable::Reset() {
         Control::Reset();
+    }
+
+    void Scrollable::SetSize(vec2 value) {
+        Widget::SetSize(value);
+
+        if (flags & FLAG_800) {
+            value.x -= 2.0f * 2.0f;
+            value.y -= 2.0f * 2.0f;
+        }
+
+        if (v_bar) {
+            v_bar->position.x = value.x - v_bar->size.x;
+            v_bar->position.y = 0.0f;
+            v_bar->SetWidth(value.y);
+        }
+    }
+
+    rectangle Scrollable::GetBoundingBox() {
+        rectangle rect;
+        rect.size.x = size.x;
+        rect.size.y = size.y;
+
+        if (flags & FLAG_800) {
+            rect.pos.x = 2.0f;
+            rect.pos.y = 2.0f;
+            rect.size.x = size.x - 2.0f * 2.0f;
+            rect.size.y = size.y - 2.0f * 2.0f;
+        }
+
+        if (v_bar)
+            rect.size.x -= v_bar->size.x;
+        return rect;
     }
 
     Layout::Layout() {
@@ -487,8 +589,8 @@ namespace dw {
         }
     }
 
-    Composite::Composite(Composite* parent, Flags flags) : Scrollable(parent, flags), layout() {
-
+    Composite::Composite(Composite* parent, Flags flags) : Scrollable(parent, flags) {
+        layout = row_layout_vertical;
     }
 
     Composite::~Composite() {
@@ -521,8 +623,33 @@ namespace dw {
         Scrollable::Reset();
     }
 
+    void Composite::SetSize(vec2 size) {
+        Scrollable::SetSize(size);
+        layout->SetSize(this);
+    }
+
+    void Composite::GetSetSize() {
+        SetSize(GetSize());
+    }
+
+    vec2 Composite::GetSize() {
+        return layout->GetSize(this);
+    }
+
     void Composite::SetLayout(Layout* value) {
         layout = value;
+    }
+
+    Group::Group(Composite* parent, Flags flag) : Composite(parent, (Flags)(flags & ~(VERTICAL | HORIZONTAL))) {
+
+    }
+
+    Group::~Group() {
+
+    }
+
+    void Group::Draw() {
+        Composite::Draw();
     }
 
     Button::Button(Composite* parent, Flags flags) : Control(parent, flags),  value(), callback() {
@@ -550,6 +677,10 @@ namespace dw {
             if (ImGui::Button(name.c_str()) && callback)
                 callback(this);
         ImGui::PopID();
+    }
+
+    void Button::AddSelectionListener(SelectionListener* value) {
+        selection_listeners.push_back(value);
     }
 
     void Button::SetValue(bool value) {
@@ -664,7 +795,57 @@ namespace dw {
     }
 
     void Shell::Hide() {
+        destroy = true;
+    }
 
+    void dw::Shell::SetSize(vec2 size) {
+        dw::Widget::SetSize(size);
+        if (flags & CHECKBOX) {
+            if (close_button) {
+                vec2 size = close_button->GetSize();
+                close_button->position.x = this->size.x - size.x + 2.0f;
+                close_button->position.y = 2.0f;
+            }
+        }
+
+        rectangle bounding_box = GetBoundingBox();
+        if (v_bar) {
+            v_bar->position.x = bounding_box.pos.x + bounding_box.size.x - v_bar->size.x;
+            v_bar->position.y = bounding_box.pos.y;
+            v_bar->SetWidth(bounding_box.size.y);
+        }
+
+        layout->SetSize(this);
+    }
+
+    vec2 Shell::GetPos() {
+        return position;
+    }
+
+    vec2 Shell::GetSize() {
+        vec2 size = dw::Composite::GetSize();
+        size.x += 2.0f * 2.0f;
+        size.y += 2.0f * 2.0f;
+        /*if (flags & CHECKBOX)
+            size.y += p_dw__font_type_8x16_0_get_font_glyph_height() + 2.0f;*/
+        return size;
+    }
+
+    rectangle dw::Shell::GetBoundingBox() {
+        rectangle rect;
+        rect.pos.x = 2.0;
+        rect.pos.y = 2.0;
+        rect.size.x = size.x - 2.0f * 2.0f;
+        rect.size.y = size.y - 2.0f * 2.0f;
+
+        /*if (flags & CHECKBOX) {
+            rect.size.y -= p_dw__font_type_8x16_0_get_font_glyph_height() + 2.0f;
+            rect.pos.y += p_dw__font_type_8x16_0_get_font_glyph_height() + 2.0f;
+        }*/
+
+        if (v_bar)
+            rect.size.x -= v_bar->size.x;
+        return rect;
     }
 
     void Shell::Disp() {
@@ -695,6 +876,11 @@ namespace dw {
             if (hide_callback)
                 hide_callback(this);
         }
+    }
+
+    void Shell::sub_1402F38B0() {
+        //sub_1402F3770();
+        Disp();
     }
 
     List::List(Composite* parent, Flags flags) : Scrollable(parent, flags) {
@@ -735,6 +921,10 @@ namespace dw {
         return items[index];
     }
 
+    size_t List::GetItemCount() {
+        return items.size();
+    }
+
     void List::ResetSelectedItem() {
         if (flags & MULTISELECT)
             selected_item = -1;
@@ -748,6 +938,11 @@ namespace dw {
         SetSelectedItem(index);
     }
 
+    void List::SetItemIndex(size_t index) {
+        hovered_item = index;
+        ResetSetSelectedItem(index);
+    }
+
     void List::SetSelectedItem(size_t index) {
         if (index < items.size())
             if (flags & MULTISELECT)
@@ -758,6 +953,13 @@ namespace dw {
 
     ListBox::ListBox(Composite* parent, Flags flags) : Composite(parent, flags), list() {
         list = new List(parent, flags);
+        list->SetName("ddl");
+        list->parent = this;
+
+        if (list->v_bar) {
+            list->v_bar->parent = this;
+            list->v_bar->AddSelectionListener(&drop_down_list_scroll_bar_selection_listener);
+        }
     }
 
     ListBox::~ListBox() {
@@ -803,7 +1005,7 @@ namespace dw {
         if (list->selected_item != selected_item) {
             list->selected_item = selected_item;
             for (SelectionListener*& i : list->selection_listeners)
-                i->Field_8(this);
+                i->Callback(this);
         }
         ImGui::PopID();
 
@@ -812,26 +1014,6 @@ namespace dw {
 
     void ListBox::Reset() {
         Composite::Reset();
-    }
-
-    void ListBox::AddItem(const std::string& str) {
-        list->AddItem(str);
-    }
-
-    void ListBox::AddItem(const std::string&& str) {
-        list->AddItem(str);
-    }
-
-    void ListBox::AddSelectionListener(SelectionListener* value) {
-        list->AddSelectionListener(value);
-    }
-
-    void ListBox::ClearItems() {
-        list->ClearItems();
-    }
-
-    std::string ListBox::GetItem(size_t index) const {
-        return list->GetItem(index);
     }
 
     Slider::Slider(Composite* parent, Flags flags) : Control(parent, flags) {
@@ -852,7 +1034,7 @@ namespace dw {
         ImGui::PopID();
         if (ret)
             for (SelectionListener*& i : selection_listeners)
-                i->Field_8(this);
+                i->Callback(this);
     }
 
     void Slider::Reset() {

@@ -846,7 +846,7 @@ struct auth_3d_id {
     void set_shadow(bool value);
     void set_src_dst_chara(int32_t src_chara, int32_t dst_chara);
     void set_visibility(bool value);
-    void unload_id(render_context* rctx);
+    void unload(render_context* rctx);
 };
 
 inline bool operator >(const auth_3d_id& left, const auth_3d_id& right) {
