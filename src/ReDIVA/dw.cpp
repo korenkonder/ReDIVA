@@ -170,7 +170,7 @@ namespace dw {
     DropDownListScrollBarSelectionListener::DropDownListScrollBarSelectionListener() {
 
     }
-    
+
     DropDownListScrollBarSelectionListener::~DropDownListScrollBarSelectionListener() {
 
     }
@@ -178,11 +178,11 @@ namespace dw {
     void DropDownListScrollBarSelectionListener::Callback(Widget* data) {
 
     }
-    
+
     ScrollBarTestSelectionListener::ScrollBarTestSelectionListener() {
 
     }
-    
+
     ScrollBarTestSelectionListener::~ScrollBarTestSelectionListener() {
 
     }
@@ -197,7 +197,7 @@ namespace dw {
     }
 
     Widget::~Widget() {
-
+        Free();
     }
 
     void Widget::Draw() {
@@ -205,27 +205,27 @@ namespace dw {
     }
 
     void Widget::Reset() {
-        name.clear();
+        text.clear();
     }
 
-    std::string Widget::GetName() {
-        return name;
+    std::string Widget::GetText() {
+        return text;
     }
 
-    void Widget::SetName(std::string& str) {
-        name.assign(str);
+    void Widget::SetText(std::string& str) {
+        text.assign(str);
         if (flags & LABEL_SIZE) {
-            ImVec2 size = ImGui::CalcTextSize(name.c_str(), 0, true);
-            this->size = { size.x, size.y };
+            ImVec2 size = ImGui::CalcTextSize(text.c_str(), 0, true);
+            rect.size = { size.x, size.y };
         }
     }
 
     void Widget::SetSize(vec2 value) {
-        size = value;
+        rect.size = value;
     }
 
     vec2 Widget::GetPos() {
-        return position;
+        return rect.pos;
     }
 
     void Widget::Free() {
@@ -233,25 +233,31 @@ namespace dw {
             return;
 
         Reset();
+
         if (free_callback)
             free_callback(this);
-        free = 1;
+
+        free = true;
 
         if (dw_gui_detail_display)
             dw_gui_detail_display->free_widgets.push_back(this);
     }
 
-    void Widget::SetName(std::string&& str) {
-        SetName(str);
+    rectangle Widget::GetRectangle() {
+        return { GetPos(), rect.size };
+    }
+
+    void Widget::SetText(std::string&& str) {
+        SetText(str);
     }
 
     void Widget::UpdateDraw() {
-        //sub_140302800(qword_1411900C8);
+        //print->sub_140302800();
         Draw();
     }
 
     Control::Control(Composite* parent, Flags flags) : Widget(parent, flags),
-        parent_comp(), parent_shell()/*, parent_menu()*/{
+        parent_comp(), parent_shell()/*, parent_menu()*/ {
         parent_comp = parent;
         if (parent) {
             parent->controls.push_back(this);
@@ -272,12 +278,11 @@ namespace dw {
         Widget::Reset();
     }
 
-    vec2 dw::Control::GetPos() {
-        vec2 pos = position;
+    vec2 Control::GetPos() {
+        vec2 pos = rect.pos;
         if (parent_comp) {
-            rectangle parent_rect = parent_comp->GetBoundingBox();
-            vec2 parent_pos = parent_comp->GetPos();
-            pos += parent_pos + parent_rect.pos;
+            rectangle parent_comp_bb = parent_comp->GetBoundingBox();
+            pos += parent_comp->GetPos() + parent_comp_bb.pos;
             if (parent_comp->v_bar)
                 pos.y -= parent_comp->v_bar->value;
         }
@@ -289,7 +294,7 @@ namespace dw {
     }
 
     vec2 Control::GetSize() {
-        return size;
+        return rect.size;
     }
 
     Label::Label(Composite* parent, Flags flags) : Control(parent, flags) {
@@ -301,12 +306,42 @@ namespace dw {
     }
 
     void Label::Draw() {
-        ImGui::PushID(this);
-        if (size != 0.0f)
-            ImGui::Text(name.c_str());
+        rectangle rect = GetRectangle();
+        //print->SetFont(font);
+        //vec2 text_size = print->GetTextSize(name);
+        ImVec2 _text_size = ImGui::CalcTextSize(text.c_str());
+        vec2 text_size(_text_size.x, _text_size.y);
+
+        vec2 pos;
+        if (flags & FLAG_4000)
+            pos.x = rect.pos.x;
+        else if (flags & FLAG_20000)
+            pos.x = rect.pos.x + rect.size.x - text_size.x;
         else
-            ImGui::TextCentered(name.c_str());
+            pos.x = rect.pos.x + (rect.size.x - text_size.x) * 0.5f;
+        pos.y = rect.pos.y + (rect.size.y - text_size.y) * 0.5f;
+
+        /*print->SetColor(Field_A0()
+            ? dw_gui_colors_current.foreground
+            : &dw_gui_colors_current.disable_foreground);
+        print->sub_1403027C0(rect);
+        print->SetFont(font);
+        print->PrintText(name, pos.x, pos.y);*/
+
+        mat4_mult_vec2(&mat4_identity, &pos, &pos);
+
+        ImGui::PushID(this);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (pos.x - rect.pos.x));
+        ImGui::Text(text.c_str());
         ImGui::PopID();
+    }
+
+    vec2 Label::GetSize() {
+        //sub_140302810(qword_1411900C8, &font);
+        //vec2 size = sub_140302A70(qword_1411900C8, text);
+        ImVec2 _size = ImGui::CalcTextSize(text.c_str(), 0, true);
+        vec2 size(_size.x, _size.y);
+        return size + 2.0f * 2.0f;
     }
 
     ScrollBar::ScrollBar(Control* parent, Flags flags) : Widget(parent, flags),
@@ -328,8 +363,17 @@ namespace dw {
 
     }
 
-    void ScrollBar::SetSize(vec2 value) {
-        size = value;
+    void ScrollBar::SetSize(vec2 size) {
+        if (flags & HORIZONTAL) {
+            rect.size.x = size.x;
+            //rect.size.y = font->GetFontGlyphHeight();
+            rect.size.y = ImGui::CalcEmptyGlyphHeight();
+        }
+        else {
+            //rect.size.x = font->GetFontGlyphWidth();
+            rect.size.x = ImGui::CalcEmptyGlyphHeight();
+            rect.size.y = size.y;
+        }
     }
 
     void ScrollBar::SetParams(float_t value, float_t min,
@@ -340,6 +384,46 @@ namespace dw {
         this->step_fast = step_fast;
         this->max = max;
         this->step = step;
+    }
+
+    void ScrollBar::SetParams(float_t size, float_t step, size_t items_count) {
+        if (!items_count)
+            return;
+
+        float_t v5 = (float_t)(int64_t)items_count;
+        if (v5 < 0.0f)
+            v5 += (float_t)UINT64_MAX;
+
+        float_t v6 = v5 * step;
+        if (v6 > size) {
+            min = 0.0f;
+            max = v6 - size;
+            field_94 = (size / v6) * (v6 - size);
+            dw::ScrollBar::SetValue(value);
+            this->step = step;
+
+            int64_t v8 = 0;
+            float_t v9 = size / step;
+            if (v9 >= INT64_MAX) {
+                v9 -= INT64_MAX;
+                if (v9 < INT64_MAX)
+                    v8 = INT64_MIN;
+            }
+
+            int64_t v10 = (int64_t)v9;
+            float_t v11 = (float_t)(v8 + v10);
+            if (v11 < 0.0f)
+                v11 += UINT64_MAX;
+            step_fast = v11 * step;
+        }
+        else {
+            min = 0.0f;
+            max = 0.0f;
+            field_94 = v6;
+            SetValue(value);
+            this->step = step;
+            step_fast = v6;
+        }
     }
 
     void ScrollBar::SetValue(float_t value) {
@@ -353,12 +437,12 @@ namespace dw {
     void ScrollBar::SetWidth(float_t value) {
         vec2 glyph_size = value;//font->GetFontGlyphSize();
         if (flags & HORIZONTAL) {
-            size.x = value;
-            size.y = glyph_size.y;
+            rect.size.x = value;
+            rect.size.y = glyph_size.y;
         }
         else {
-            size.x = glyph_size.x;
-            size.y = value;
+            rect.size.x = glyph_size.x;
+            rect.size.y = value;
         }
     }
 
@@ -369,12 +453,12 @@ namespace dw {
     Scrollable::Scrollable(Composite* parent, Flags flags) : Control(parent, flags), h_bar(), v_bar() {
         if (flags & HORIZONTAL) {
             h_bar = new ScrollBar(parent, HORIZONTAL);
-            h_bar->SetName("h_bar");
+            h_bar->SetText("h_bar");
         }
 
         if (flags & VERTICAL) {
             v_bar = new ScrollBar(parent, VERTICAL);
-            v_bar->SetName("v_bar");
+            v_bar->SetText("v_bar");
         }
     }
 
@@ -388,6 +472,16 @@ namespace dw {
     }
 
     void Scrollable::Reset() {
+        if (h_bar) {
+            h_bar->Free();
+            h_bar = 0;
+        }
+
+        if (v_bar) {
+            v_bar->Free();
+            v_bar = 0;
+        }
+
         Control::Reset();
     }
 
@@ -400,26 +494,23 @@ namespace dw {
         }
 
         if (v_bar) {
-            v_bar->position.x = value.x - v_bar->size.x;
-            v_bar->position.y = 0.0f;
+            v_bar->rect.pos.x = value.x - v_bar->rect.size.x;
+            v_bar->rect.pos.y = 0.0f;
             v_bar->SetWidth(value.y);
         }
     }
 
     rectangle Scrollable::GetBoundingBox() {
         rectangle rect;
-        rect.size.x = size.x;
-        rect.size.y = size.y;
+        rect.size = this->rect.size;
 
         if (flags & FLAG_800) {
-            rect.pos.x = 2.0f;
-            rect.pos.y = 2.0f;
-            rect.size.x = size.x - 2.0f * 2.0f;
-            rect.size.y = size.y - 2.0f * 2.0f;
+            rect.pos = 2.0f;
+            rect.size -= 2.0f * 2.0f;
         }
 
         if (v_bar)
-            rect.size.x -= v_bar->size.x;
+            rect.size.x -= v_bar->rect.size.x;
         return rect;
     }
 
@@ -431,8 +522,8 @@ namespace dw {
 
     }
 
-    FillLayout::FillLayout(int32_t a2) {
-        field_8 = a2;
+    FillLayout::FillLayout(Flags flags) {
+        this->flags = flags;
     }
 
     FillLayout::~FillLayout() {
@@ -440,15 +531,58 @@ namespace dw {
     }
 
     vec2 FillLayout::GetSize(Composite* comp) {
-        return comp->size;
+        if (!comp->controls.size())
+        {
+            vec2 size = comp->rect.size;
+            if (comp->v_bar)
+                size.x += comp->v_bar->rect.size.x;
+            return size;
+        }
+
+        vec2 size = 0.0f;
+        if (flags == VERTICAL)
+            for (Control* i : comp->controls) {
+                vec2 _size = i->GetSize();
+                size.x = max_def(_size.x, size.x);
+            }
+        else
+            for (Control* i : comp->controls) {
+                vec2 _size = i->GetSize();
+                size.y = max_def(_size.y, size.y);
+            }
+
+        if (comp->v_bar)
+            size.x += comp->v_bar->rect.size.x;
+        return size;
     }
 
     void FillLayout::SetSize(Composite* comp) {
-        const vec2 position = comp->position;
-        const vec2 size = comp->size;
-        for (Control* i : comp->controls) {
-            i->position = position;
-            i->SetSize(size);
+        rectangle comp_bb = comp->GetBoundingBox();
+        vec2 comp_bb_size = comp_bb.size;
+        if (!comp->controls.size())
+            return;
+
+        float_t size = (float_t)(int64_t)comp->controls.size();
+        if (size < 0.0f)
+            size += (float_t)UINT64_MAX;
+
+        if (flags == VERTICAL) {
+            float_t pos = 0.0f;
+            size = comp_bb_size.y / size;
+            for (Control* i : comp->controls) {
+                i->rect.pos = { 0.0f, pos };
+                i->SetSize({ comp_bb_size.x, size });
+                pos += size;
+            }
+        }
+        else {
+            float_t pos = 0.0f;
+            size = comp_bb_size.x / size;
+            for (Control* i : comp->controls) {
+                i->rect.pos = { pos, 0.0f };
+                i->SetSize({ size, comp_bb_size.y });
+                pos += size;
+            }
         }
     }
 
@@ -464,8 +598,8 @@ namespace dw {
 
     }
 
-    GraphLayout::GraphLayout(int32_t a2) {
-        field_8 = a2;
+    GraphLayout::GraphLayout(Flags flags) {
+        this->flags = flags;
     }
 
     GraphLayout::~GraphLayout() {
@@ -473,15 +607,14 @@ namespace dw {
     }
 
     vec2 GraphLayout::GetSize(Composite* comp) {
-        return comp->size;
+        return comp->rect.size;
     }
 
     void GraphLayout::SetSize(Composite* comp) {
-        const vec2 position = comp->position;
-        const vec2 size = comp->size;
+        const rectangle rect = comp->rect;
         for (Control* i : comp->controls) {
-            i->position = position;
-            i->SetSize(size);
+            i->rect.pos = rect.pos;
+            i->SetSize(rect.size);
         }
     }
 
@@ -497,11 +630,9 @@ namespace dw {
 
     }
 
-    GridLayout::GridLayout(size_t a2) : field_8(), field_10(),
-        field_18(), field_20(), field_28(), field_30(), field_38() {
-        field_40 = a2;
-        field_48 = 2.0f;
-        field_4C = 2.0f;
+    GridLayout::GridLayout(size_t columns) : rows() {
+        this->columns = columns;
+        spacing = 2.0f;
     }
 
     GridLayout::~GridLayout() {
@@ -509,15 +640,83 @@ namespace dw {
     }
 
     vec2 GridLayout::GetSize(Composite* comp) {
-        return comp->size;
+        std::vector<Control*>& controls = comp->controls;
+        size_t controls_count = controls.size();
+        if (!controls_count) {
+            vec2 size = comp->rect.size;
+            if (comp->v_bar)
+                size.x += comp->v_bar->rect.size.x;
+            return size;
+        }
+
+        rows = (controls_count + columns - 1) / columns;
+        rows = rows ? rows : 1;
+
+        column_size.resize(columns);
+        row_size.resize(rows);
+
+        size_t control = 0;
+        for (size_t row = 0; row < rows && control < controls_count; row++)
+            for (size_t column = 0; column < columns && control < controls_count; column++, control++) {
+                vec2 size = controls.data()[control]->GetSize();
+                column_size.data()[column] = max_def(size.x, column_size.data()[column]);
+                row_size.data()[row] = max_def(size.y, row_size.data()[row]);
+            }
+
+        vec2 size;
+        size.x = (float_t)(int64_t)(columns - 1);
+        if (size.x < 0.0f)
+            size.x += (float_t)UINT64_MAX;
+
+        size.y = (float_t)(int64_t)(rows - 1);
+        if (size.y < 0.0f)
+            size.y += (float_t)UINT64_MAX;
+
+        size *= spacing;
+
+        float_t size_x = size.x;
+        for (float_t i : column_size)
+            size_x += i;
+        size.x = size_x;
+
+        float_t size_y = size.y;
+        for (float_t i : row_size)
+            size_y += i;
+        size.y = size_y;
+
+        if (comp->v_bar)
+            size.x += comp->v_bar->rect.size.x;
+        return size;
     }
 
     void GridLayout::SetSize(Composite* comp) {
-        const vec2 position = comp->position;
-        const vec2 size = comp->size;
-        for (Control* i : comp->controls) {
-            i->position = position;
-            i->SetSize(size);
+        std::vector<Control*>& controls = comp->controls;
+        size_t controls_count = controls.size();
+
+        rectangle comp_bb = comp->GetBoundingBox();
+        vec2 comp_bb_size = comp_bb.size;
+        if (!controls_count)
+            return;
+
+        if (controls_count == 1) {
+            Scrollable* scrollable = dynamic_cast<Scrollable*>(comp->controls.front());
+            if (scrollable) {
+                scrollable->rect.pos = 0.0f;
+                scrollable->SetSize(comp_bb.size);
+                return;
+            }
+        }
+
+        size_t control = 0;
+        vec2 pos = 0.0f;
+        for (size_t row = 0; row < rows && control < controls_count; row++) {
+            vec2 _pos = pos;
+            for (size_t column = 0; column < columns && control < controls_count; column++, control++) {
+                comp->controls.data()[control]->rect.pos = _pos;
+                comp->controls.data()[control]->SetSize({ column_size.data()[column], row_size.data()[row] });
+                _pos.x += column_size.data()[column] + spacing.x;
+            }
+            pos.y += row_size.data()[row] + spacing.y;
         }
     }
 
@@ -544,16 +743,66 @@ namespace dw {
     }
 
     vec2 RowLayout::GetSize(Composite* comp) {
-        return comp->size;
+        if (!comp->controls.size()) {
+            vec2 size = comp->rect.size;
+            if (comp->v_bar)
+                size.x += comp->v_bar->rect.size.x;
+            return size;
+        }
+
+        vec2 size = 0.0f;
+        if (flags == VERTICAL) {
+            for (Control* i : comp->controls) {
+                vec2 _size = i->GetSize();
+                size.x = max_def(_size.x, size.x);
+                size.y += _size.y + spacing;
+            }
+            size.y -= spacing;
+        }
+        else {
+            for (Control* i : comp->controls) {
+                vec2 _size = i->GetSize();
+                size.x += _size.x + spacing;
+                size.y = max_def(_size.y, size.y);
+            }
+            size.x -= spacing;
+        }
+
+        if (comp->v_bar)
+            size.x += comp->v_bar->rect.size.x;
+        return size;
     }
 
     void RowLayout::SetSize(Composite* comp) {
-        const vec2 position = comp->position;
-        const vec2 size = comp->size;
-        for (Control* i : comp->controls) {
-            i->position = position;
-            i->SetSize(size);
+        rectangle comp_bb = comp->GetBoundingBox();
+        vec2 comp_bb_size = comp_bb.size;
+        if (!comp->controls.size())
+            return;
+
+        if (comp->controls.size() == 1) {
+            Scrollable* scrollable = dynamic_cast<Scrollable*>(comp->controls.front());
+            if (scrollable) {
+                scrollable->rect.pos = 0.0f;
+                scrollable->SetSize(comp_bb.size);
+                return;
+            }
         }
+
+        float_t pos = 0.0f;
+        if (flags == VERTICAL)
+            for (Control*& i : comp->controls) {
+                i->rect.pos = { 0.0f, pos };
+                float_t size_y = i->GetSize().y;
+                i->SetSize({ comp_bb_size.x, size_y });
+                pos += size_y + spacing;
+            }
+        else
+            for (Control*& i : comp->controls) {
+                i->rect.pos = { pos, 0.0f };
+                float_t size_x = i->GetSize().x;
+                i->SetSize({ size_x, comp_bb_size.y });
+                pos += size_x + spacing;
+            }
     }
 
     void RowLayout::Begin() {
@@ -603,9 +852,9 @@ namespace dw {
             layout->Begin();
 
         for (Control*& i : controls) {
-            if (i->size != 0.0f)
-                ImGui::SetNextItemWidth(i->size.x);
-            i->Draw();
+            if (i->rect.size != 0.0f)
+                ImGui::SetNextItemWidth(i->rect.size.x);
+            i->UpdateDraw();
             if (layout)
                 layout->Next();
         }
@@ -616,10 +865,10 @@ namespace dw {
     }
 
     void Composite::Reset() {
-        //for (Control* i : controls)
-            //Widget::sub_1402ECDE0(i);
-
+        for (Control*& i : controls)
+            i->Free();
         controls.clear();
+
         Scrollable::Reset();
     }
 
@@ -653,7 +902,7 @@ namespace dw {
     }
 
     Button::Button(Composite* parent, Flags flags) : Control(parent, flags),  value(), callback() {
-
+        GetSetSize();
     }
 
     Button::~Button() {
@@ -663,20 +912,63 @@ namespace dw {
     void Button::Draw() {
         ImGui::PushID(this);
         if (flags & CHECKBOX) {
-            if (ImGui::Checkbox(name.c_str(), &value) && callback)
-                callback(this);
-        }
-        else if (flags & RADIOBUTTON) {
-            if (ImGui::RadioButton(name.c_str(), value)) {
+            bool value = this->value;
+            if (ImGui::Checkbox(text.c_str(), &value)) {
+                SetValue(value);
                 if (callback)
                     callback(this);
-                value = true;
             }
         }
-        else
-            if (ImGui::Button(name.c_str()) && callback)
-                callback(this);
+        else if (flags & RADIOBUTTON) {
+            if (ImGui::RadioButton(text.c_str(), value)) {
+                SetValue(value);
+                if (callback)
+                    callback(this);
+            }
+        }
+        else {
+            if (ImGui::Button(text.c_str())) {
+                if (callback)
+                    callback(this);
+            }
+        }
         ImGui::PopID();
+    }
+
+    vec2 Button::GetSize() {
+        //print->SetFont(font);
+        //vec2 size = print->GetTextSize(text);
+        ImVec2 _size = ImGui::CalcTextSize(text.c_str(), 0, true);
+        vec2 size = vec2(_size.x, _size.y);
+
+        if (flags & FLAG_8) {
+            size.x += 2.0f;
+            size.x += 2.0f * 2.0f;
+            size.y += 2.0f * 2.0f;
+        }
+        else if (flags & RADIOBUTTON) {
+            /*print->SetFont(font);
+            std::string text("(X)");
+            vec2 size = print->GetTextSize(text);
+            ImVec2 _size = ImGui::CalcTextSize(text.c_str(), 0, true);
+            vec2 radiobutton_size = vec2(_size.x, _size.y);
+            size.x += radiobutton_size.x*/
+
+            ImGuiStyle& style = ImGui::GetCurrentContext()->Style;
+            size.x += ImGui::GetFrameHeight() + style.ItemInnerSpacing.x;
+        }
+        else if (flags & CHECKBOX) {
+            /*print->SetFont(font);
+            std::string text("[X]");
+            vec2 size = print->GetTextSize(text);
+            ImVec2 _size = ImGui::CalcTextSize(text.c_str(), 0, true);
+            vec2 checkbox_size = vec2(_size.x, _size.y);
+            size.x += checkbox_size.x*/
+
+            ImGuiStyle& style = ImGui::GetCurrentContext()->Style;
+            size.x += ImGui::GetFrameHeight() + style.ItemInnerSpacing.x;
+        }
+        return size;
     }
 
     void Button::AddSelectionListener(SelectionListener* value) {
@@ -697,7 +989,7 @@ namespace dw {
 
     ShellCloseButton::ShellCloseButton(Shell* parent) : Button(parent) {
         SetSize({ 14.0f, 14.0f });
-        SetName("Close Box");
+        SetText("Close Box");
         callback = Callback;
         //field_100 = 0;
         //field_104 = 4;
@@ -743,13 +1035,13 @@ namespace dw {
         if (!GetDisp())
             return;
 
-        ImGui::SetNextWindowPos({ position.x, position.y }, ImGuiCond_Appearing);
-        if (size != 0.0f)
-            ImGui::SetNextWindowSize({ size.x, size.y }, ImGuiCond_Appearing);
+        ImGui::SetNextWindowPos({ rect.pos.x, rect.pos.y }, ImGuiCond_Appearing);
+        if (rect.size != 0.0f)
+            ImGui::SetNextWindowSize({ rect.size.x, rect.size.y }, ImGuiCond_Appearing);
 
         bool open = true;
         ImGui::PushID(this);
-        if (ImGui::Begin(name.c_str(), close_button ? &open : 0))
+        if (ImGui::Begin(text.c_str(), close_button ? &open : 0))
             Composite::Draw();
         input_locked |= ImGui::IsWindowFocused();
         ImGui::End();
@@ -798,20 +1090,20 @@ namespace dw {
         destroy = true;
     }
 
-    void dw::Shell::SetSize(vec2 size) {
-        dw::Widget::SetSize(size);
+    void Shell::SetSize(vec2 size) {
+        Widget::SetSize(size);
         if (flags & CHECKBOX) {
             if (close_button) {
                 vec2 size = close_button->GetSize();
-                close_button->position.x = this->size.x - size.x + 2.0f;
-                close_button->position.y = 2.0f;
+                close_button->rect.pos.x = rect.size.x - size.x + 2.0f;
+                close_button->rect.pos.y = 2.0f;
             }
         }
 
         rectangle bounding_box = GetBoundingBox();
         if (v_bar) {
-            v_bar->position.x = bounding_box.pos.x + bounding_box.size.x - v_bar->size.x;
-            v_bar->position.y = bounding_box.pos.y;
+            v_bar->rect.pos.x = bounding_box.pos.x + bounding_box.size.x - v_bar->rect.size.x;
+            v_bar->rect.pos.y = bounding_box.pos.y;
             v_bar->SetWidth(bounding_box.size.y);
         }
 
@@ -819,11 +1111,11 @@ namespace dw {
     }
 
     vec2 Shell::GetPos() {
-        return position;
+        return rect.pos;
     }
 
     vec2 Shell::GetSize() {
-        vec2 size = dw::Composite::GetSize();
+        vec2 size = Composite::GetSize();
         size.x += 2.0f * 2.0f;
         size.y += 2.0f * 2.0f;
         /*if (flags & CHECKBOX)
@@ -831,12 +1123,10 @@ namespace dw {
         return size;
     }
 
-    rectangle dw::Shell::GetBoundingBox() {
+    rectangle Shell::GetBoundingBox() {
         rectangle rect;
-        rect.pos.x = 2.0;
-        rect.pos.y = 2.0;
-        rect.size.x = size.x - 2.0f * 2.0f;
-        rect.size.y = size.y - 2.0f * 2.0f;
+        rect.pos = 2.0f;
+        rect.size = this->rect.size - 2.0f * 2.0f;
 
         /*if (flags & CHECKBOX) {
             rect.size.y -= p_dw__font_type_8x16_0_get_font_glyph_height() + 2.0f;
@@ -844,7 +1134,7 @@ namespace dw {
         }*/
 
         if (v_bar)
-            rect.size.x -= v_bar->size.x;
+            rect.size.x -= v_bar->rect.size.x;
         return rect;
     }
 
@@ -901,6 +1191,39 @@ namespace dw {
         Scrollable::Reset();
     }
 
+    void List::SetSize(vec2 size) {
+        Scrollable::SetSize(size);
+        SetScrollBarParams();
+    }
+    
+    vec2 List::GetSize() {
+        //print->SetFont();
+
+        float_t max_text_size = 0.0f;
+        for (std::string& i : items) {
+            //vec2 text_size = print->GetTextSize(i);
+            ImVec2 _text_size = ImGui::CalcTextSize(i.c_str());
+            vec2 text_size(_text_size.x, _text_size.y);
+            max_text_size = max_def(text_size.x, max_text_size);
+        }
+
+        size_t v7 = sub_1402EF620();
+        size_t v8 = items.size();
+        //float_t v12 = font->GetFontGlyphHeight();
+        float_t v12 = ImGui::CalcEmptyGlyphHeight();
+        float_t v14 = (float_t)(int64_t)min_def(v7, v8);
+        if (v14 < 0.0f)
+            v14 += (float_t)UINT64_MAX;
+
+        vec2 size = { max_text_size, v12 * v14 };
+        if (v_bar)
+            size.x += v_bar->rect.size.x;
+
+        if (flags & FLAG_800)
+            size += 2.0f * 2.0f;
+        return size;
+    }
+
     void List::AddItem(const std::string& str) {
         items.push_back(str);
     }
@@ -915,6 +1238,8 @@ namespace dw {
 
     void List::ClearItems() {
         items.clear();
+        hovered_item = -1;
+        selected_item = -1;
     }
 
     std::string List::GetItem(size_t index) const {
@@ -943,6 +1268,13 @@ namespace dw {
         ResetSetSelectedItem(index);
     }
 
+    void List::SetScrollBarParams() {
+        rectangle bb = GetBoundingBox();
+        if (v_bar)
+            //v_bar->SetParams(bb.size.y, font->GetFontGlyphHeight(), items.size());
+            v_bar->SetParams(bb.size.y, ImGui::CalcEmptyGlyphHeight(), items.size());
+    }
+
     void List::SetSelectedItem(size_t index) {
         if (index < items.size())
             if (flags & MULTISELECT)
@@ -951,9 +1283,18 @@ namespace dw {
                 selections[index] = 1;
     }
 
+    size_t List::sub_1402EF620() {
+        if (!v_bar)
+            return items.size();       
+        /*else if (field_140 >= this->items.size())
+            return items.size();
+        return field_140;*/
+        return 0;
+    }
+
     ListBox::ListBox(Composite* parent, Flags flags) : Composite(parent, flags), list() {
         list = new List(parent, flags);
-        list->SetName("ddl");
+        list->SetText("ddl");
         list->parent = this;
 
         if (list->v_bar) {
@@ -972,8 +1313,7 @@ namespace dw {
         std::vector<std::string>& items = list->items;
         size_t hovered_item = list->selected_item;
         size_t selected_item = list->selected_item;
-        if (size == 0.0f)
-            ImGui::GetContentRegionAvailSetNextItemWidth();
+        ImGui::SetNextItemWidth(rect.size.x);
         ImGui::PushID(this);
         if (ImGui::BeginCombo("##", selected_item != -1
             && items.size() ? items[selected_item].c_str() : "", 0)) {
@@ -985,6 +1325,7 @@ namespace dw {
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && selected_item != item)) {
                     selected_item = item;
+                    list->selected_item = -1;
                 }
 
                 if (ImGui::IsItemHovered())
@@ -998,6 +1339,7 @@ namespace dw {
             window_focus |= true;
             ImGui::EndCombo();
         }
+        ImGui::PopID();
 
         if (list->hovered_item != hovered_item)
             list->hovered_item = hovered_item;
@@ -1007,13 +1349,22 @@ namespace dw {
             for (SelectionListener*& i : list->selection_listeners)
                 i->Callback(this);
         }
-        ImGui::PopID();
 
         input_locked |= window_focus;
     }
 
     void ListBox::Reset() {
         Composite::Reset();
+    }
+
+    vec2 ListBox::GetSize() {
+        vec2 size = list->GetSize();
+        //size.x += font->GetFontGlyphWidth();
+        //size.y = font->GetFontGlyphHeight();
+        ImVec2 _size = ImGui::CalcEmptyGlyphSize();
+        size.x += _size.x;
+        size.y = _size.y;
+        return size + 2.0f * 2.0f;
     }
 
     Slider::Slider(Composite* parent, Flags flags) : Control(parent, flags) {
@@ -1029,7 +1380,7 @@ namespace dw {
     void Slider::Draw() {
         ScrollBar* scroll_bar = this->scroll_bar;
         ImGui::PushID(this);
-        bool ret = ImGui::ColumnSliderFloatButton(name.c_str(), &scroll_bar->value,
+        bool ret = ImGui::ColumnSliderFloatButton(text.c_str(), &scroll_bar->value,
             scroll_bar->step, scroll_bar->min, scroll_bar->max, scroll_bar->step_fast, format, 0);
         ImGui::PopID();
         if (ret)
@@ -1048,8 +1399,8 @@ namespace dw {
 
     void Slider::SetSize(vec2 value) {
         Widget::SetSize(value);
-        scroll_bar->position.x = value.x - scroll_bar->size.x;
-        scroll_bar->position.y = 0.0f;
+        scroll_bar->rect.pos.x = value.x - scroll_bar->rect.size.x;
+        scroll_bar->rect.pos.y = 0.0f;
     }
 
     void Slider::AddSelectionListener(SelectionListener* value) {
@@ -1057,37 +1408,40 @@ namespace dw {
     }
 
     Slider* Slider::make(Composite* parent, Flags flags,
-        float_t x, float_t y, float_t width, float_t height, const char* name) {
+        float_t pos_x, float_t pos_y, float_t width, float_t height, const char* text) {
         Slider* slider = new Slider(parent, flags);
         ScrollBar* scroll_bar = slider->scroll_bar;
-        slider->SetName(name);
-        scroll_bar->SetName("slider's bar");
+        slider->SetText(text);
+        scroll_bar->SetText("slider's bar");
         scroll_bar->SetSize({ width, height });
-        /*sub_140302810(qword_1411900C8, &slider->font);
-        std::string v13 = slider->GetName();
-        float_t v15;
-        float_t v17;
+        //print->SetFont(font);
+        vec2 size;
         if (flags & HORIZONTAL) {
-            vec2 v21;
-            vec2 v22;
-            sub_140302A70(qword_1411900C8, &v22, v13);
-            sub_140302A70(qword_1411900C8, &v21, "0000");
-            scroll_bar->position.x = v21.x + v22.x;
-            scroll_bar->position.y = 0.0f;
-            v17 = v21.x + v22.x + scroll_bar->size.x ;
-            v15 = p_dw__Font::GetFontGlyphHeight(&slider->font);
+            //vec2 v21 = print->GetTextSize(slider->text);
+            //vec2 v22 = print->GetTextSize("0000");
+            ImVec2 _v21 = ImGui::CalcTextSize(slider->text.c_str());
+            ImVec2 _v22 = ImGui::CalcTextSize("0000");
+            vec2 v21 = { _v21.x, _v21.y };
+            vec2 v22 = { _v22.x, _v22.y };
+            scroll_bar->rect.pos.x = v21.x + v22.x;
+            scroll_bar->rect.pos.y = 0.0f;
+            size.x = v21.x + v22.x + scroll_bar->rect.size.x;
+            //size.y = p_dw__Font::GetFontGlyphHeight(&slider->font);
+            size.y = ImGui::CalcEmptyGlyphHeight();
         }
         else {
-            vec2 v21;
-            vec2 v22;
-            sub_140302A70(qword_1411900C8, &v21, v13);
-            sub_140302A70(qword_1411900C8, &v22, "0000");
-            v17 = p_dw__Font::GetFontGlyphWidth(&slider->font);
-            v15 = v21.x + v22.x + scroll_bar->size.y;
-        }*/
-        slider->position.x = x;
-        slider->position.y = y;
-        //slider->SetSize({ v17, v15 });
+            //vec2 v21 = print->GetTextSize(slider->text);
+            //vec2 v22 = print->GetTextSize("0000");
+            ImVec2 _v21 = ImGui::CalcTextSize(slider->text.c_str());
+            ImVec2 _v22 = ImGui::CalcTextSize("0000");
+            vec2 v21 = { _v21.x, _v21.y };
+            vec2 v22 = { _v22.x, _v22.y };
+            //size.x = p_dw__Font::GetFontGlyphWidth(&slider->font);
+            size.x = ImGui::CalcEmptyGlyphHeight();
+            size.y = v21.x + v22.x + scroll_bar->rect.size.y;
+        }
+        slider->rect.pos = { pos_x, pos_y };
+        slider->SetSize(size);
         return slider;
     }
 }

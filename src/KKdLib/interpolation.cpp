@@ -8,9 +8,9 @@
 void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
     vec2 t = vec2(
-        (float_t)(int32_t)(f - f1 + 0),
-        (float_t)(int32_t)(f - f1 + 1)
-    ) / (float_t)(int32_t)(f2 - f1);
+        (float_t)(int64_t)(f - f1 + 0),
+        (float_t)(int64_t)(f - f1 + 1)
+    ) / (float_t)(int64_t)(f2 - f1);
     vec2 t_2 = t * t;
     vec2 t_3 = t_2 * t;
     vec2 t_23 = 3.0f * t_2;
@@ -93,7 +93,7 @@ int32_t interpolate_chs_reverse_sequence(
             if (left_count > 1) {
                 values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
                 for (size_t j = 1; j < left_count - 1; j++)
-                    values.push_back({ (float_t)(int32_t)(frame + j), a[j] });
+                    values.push_back({ (float_t)(int64_t)(frame + j), a[j] });
                 t2_old = 0.0f;
             }
             break;
@@ -187,7 +187,7 @@ int32_t interpolate_chs_reverse_sequence(
             if (has_error) {
                 values.push_back({ (float_t)frame, a[0], t2_old, 0.0f });
                 for (size_t j = 1; j < c; j++)
-                    values.push_back({ (float_t)(int32_t)(frame + j), a[j] });
+                    values.push_back({ (float_t)(int64_t)(frame + j), a[j] });
                 t2_old = 0.0f;
             }
             else {
@@ -208,12 +208,12 @@ int32_t interpolate_chs_reverse_sequence(
         left_count -= c;
     }
 
-    values.push_back({ (float_t)(int32_t)(count - 1), arr[count - 1], t2_old, 0.0f });
+    values.push_back({ (float_t)(int64_t)(count - 1), arr[count - 1], t2_old, 0.0f });
 
     kft3* keys = values.data();
     size_t length = values.size();
     for (size_t i = 0; i < count; i++) {
-        float_t frame = (float_t)(int32_t)i;
+        float_t frame = (float_t)(int64_t)i;
 
         kft3* first_key = keys;
         kft3* key = keys;

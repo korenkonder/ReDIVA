@@ -168,7 +168,7 @@ bool DtmAet::Ctrl() {
 
         char buf[0x20];
         sprintf_s(buf, sizeof(buf), "%f frame", frame);
-        dtw_aet->marker_frame->SetName(buf);
+        dtw_aet->marker_frame->SetText(buf);
         this->frame = frame;
         state = 7;
     } break;
@@ -231,8 +231,49 @@ bool DtmAet::Dest() {
 }
 
 void DtmAet::Disp() {
-    if (state != 7)
+    if (state != 7 || !type)
         return;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+
+    for (const auto& i : comp.data) {
+        vec2 v7 = 0.0f;
+        if (centering)
+            v7 = vec2((float_t)res_window_get()->width, (float_t)res_window_get()->height) * 0.5f;
+
+        vec3 pos;
+        *(vec2*)&pos = *(vec2*)&i.second.position + v7;
+        pos.z = i.second.position.z;
+
+        spr::SprArgs v34;
+        v34.SetSpriteSize({ 10.0f, 10.0f});
+        v34.trans = pos;
+        v34.center = { 5.0f, 5.0f, 0.0f };
+        v34.kind = spr::SPR_KIND_LINES;
+        v34.resolution_mode_screen = i.second.mode;
+
+        spr::SprArgs v35 = v34;
+        v35.rot.z = v34.rot.z + (float_t)(M_PI / 2.0f);
+        spr::put_sprite(v34, aft_spr_db);
+        spr::put_sprite(v35, aft_spr_db);
+
+        font.init_font_data(0);
+
+        print_work.SetFont(&font);
+        print_work.prio = spr::SPR_PRIO_29;
+        print_work.line_origin_loc = *(vec2*)&pos;
+        print_work.text_current_loc = print_work.line_origin_loc;
+        print_work.SetResolutionMode(i.second.mode);
+        print_work.color = color_red;
+        print_work.printf_align_left("%s\n", i.first.c_str());
+
+        /*if (input_state_get(0)->sub_14018D480(64)) {
+            print_work.color = color_white;
+            print_work.printf_align_left("p(%.2f,%.2f)\n", pos.x, pos.y);
+            print_work.printf_align_left("o(%f)\n", i.second.opacity);
+        }*/
+    }
 }
 
 void DtmAet::Basic() {
@@ -324,16 +365,15 @@ void DtmAet::SetCentering(bool value) {
         centering = value;
 }
 
-DtwAet::DtwAet() : Shell(0) {
+DtwAet::DtwAet() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
 
-    position = { 0.0f, 0.0f };
-    size = { 220.0f, 380.0f };
+    rect = { 0.0f, 0.0f, 220.0f, 380.0f };
 
-    dw::Widget::SetName("2DAUTH TEST");
+    dw::Widget::SetText("2DAUTH TEST");
 
-    (new dw::Label(this))->SetName("SET");
+    (new dw::Label(this))->SetText("SET");
 
     set = new dw::ListBox(this);
 
@@ -348,14 +388,14 @@ DtwAet::DtwAet() : Shell(0) {
 
     set->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::SetCallback));
 
-    (new dw::Label(this))->SetName("ID");
+    (new dw::Label(this))->SetText("ID");
 
     id = new dw::ListBox(this);
     //id->list->sub_1402F9930(20);
 
     id->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::IdCallback));
 
-    (new dw::Label(this))->SetName("LAYER");
+    (new dw::Label(this))->SetText("LAYER");
 
     layer = new dw::ListBox(this);
     layer->AddItem("ROOT");
@@ -363,7 +403,7 @@ DtwAet::DtwAet() : Shell(0) {
 
     layer->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::LayerCallback));
 
-    (new dw::Label(this))->SetName("MARKER");
+    (new dw::Label(this))->SetText("MARKER");
 
     marker = new dw::ListBox(this);
     marker->AddItem("NOMARKER");
@@ -372,9 +412,9 @@ DtwAet::DtwAet() : Shell(0) {
     marker->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::MarkerCallback));
 
     marker_frame = new dw::Label(this);
-    marker_frame->SetName("0");
+    marker_frame->SetText("0");
 
-    (new dw::Label(this))->SetName("TYPE");
+    (new dw::Label(this))->SetText("TYPE");
 
     type = new dw::ListBox(this);
     type->AddItem("DRAW");
@@ -384,29 +424,29 @@ DtwAet::DtwAet() : Shell(0) {
 
     type->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::TypeCallback));
 
-    (new dw::Label(this))->SetName("FRAME");
+    (new dw::Label(this))->SetText("FRAME");
 
     frame = dw::Slider::make(this, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
         0.0f, 0.0f, 128.0f, 20.0f, "slider");
-    frame->SetName("FRAME");
+    frame->SetText("FRAME");
     frame->format = "%4.0f";
 
     frame->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 10.0f);
 
     frame->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::FrameCallback));
 
-    (new dw::Label(this))->SetName("SWITCH");
+    (new dw::Label(this))->SetText("SWITCH");
 
     dw::Button* lock = new dw::Button(this, dw::CHECKBOX);
-    lock->SetName("LOCK");
+    lock->SetText("LOCK");
     lock->callback = DtwAet::LockCallback;
 
     dw::Button* loop = new dw::Button(this, dw::CHECKBOX);
-    loop->SetName("LOOP");
+    loop->SetText("LOOP");
     loop->callback = DtwAet::LoopCallback;
 
     dw::Button* centering = new dw::Button(this, dw::CHECKBOX);
-    centering->SetName("CENTERING");
+    centering->SetText("CENTERING");
     centering->callback = DtwAet::CenteringCallback;
 
     //GetSetSize();

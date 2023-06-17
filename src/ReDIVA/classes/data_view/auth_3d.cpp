@@ -143,7 +143,7 @@ void data_view_auth_3d_imgui(class_data* data) {
         if (auth->auth_2d.size() > 0
             && ImGui::TreeNodeEx("Auth 2D", tree_node_flags)) {
             for (std::string& l : auth->auth_2d)
-                ImGui::Text(l.c_str());
+                ImGui::Text("%s", l.c_str());
             ImGui::TreePop();
         }
 
@@ -198,7 +198,7 @@ void data_view_auth_3d_imgui(class_data* data) {
         if (auth->motion.size() > 0
             && ImGui::TreeNodeEx("Motion", tree_node_flags)) {
             for (std::string& l : auth->motion)
-                ImGui::Text(l.c_str());
+                ImGui::Text("%s", l.c_str());
             ImGui::TreePop();
         }
 

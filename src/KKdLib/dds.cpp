@@ -159,7 +159,7 @@ dds::~dds() {
     }
 }
 
-void dds::read( const char* path) {
+void dds::read(const char* path) {
     if (!this || !path)
         return;
 

@@ -8,6 +8,7 @@
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
+#include "../CRE/font.hpp"
 #include "../CRE/hand_item.hpp"
 #include "../CRE/item_table.hpp"
 #include "../CRE/module_table.hpp"
@@ -46,14 +47,14 @@ bool TaskDataInit::Ctrl() {
         sprite_manager_read_file(4, "", aft_data, aft_spr_db);
         sprite_manager_read_file(472, "", aft_data, aft_spr_db);
         sprite_manager_read_file(43, "", aft_data, aft_spr_db);
-        //fontmap_data_read_file();
+        fontmap_data_read_file();
         state = 1;
     } break;
     case 1:
         if (!sprite_manager_load_file(4, aft_spr_db)
             && !sprite_manager_load_file(472, aft_spr_db)
             && !sprite_manager_load_file(43, aft_spr_db)
-            /* || fontmap_data_parse_file()*/)
+            && !fontmap_data_load_file())
             state = field_6C ? 2 : 4;
         break;
     case 2:

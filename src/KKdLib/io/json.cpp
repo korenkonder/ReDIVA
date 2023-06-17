@@ -180,7 +180,7 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
     }
 
     if (*c == '0') {
-        dig_buf[buf_pos++]  = *c;
+        dig_buf[buf_pos++] = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
         zero = true;
@@ -189,7 +189,7 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
         io_json_read_digit(s, buf, c, dig_buf, &buf_pos, buf_end);
 
     if (*c == '.') {
-        dig_buf[buf_pos++]  = *c;
+        dig_buf[buf_pos++] = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
         io_json_read_digit(s, buf, c, dig_buf, &buf_pos, buf_end);
@@ -227,12 +227,12 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
         return;
     }
     else if (*c == 'e' || *c == 'E') {
-        dig_buf[buf_pos++]  = *c;
+        dig_buf[buf_pos++] = *c;
         if ((*c = io_json_read_char(s, buf)) == EOF)
             return;
 
         if (*c == '+' || *c == '-') {
-            dig_buf[buf_pos++]  = *c;
+            dig_buf[buf_pos++] = *c;
             if ((*c = io_json_read_char(s, buf)) == EOF)
                 return;
         }

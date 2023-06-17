@@ -19,6 +19,7 @@
 #include "../CRE/data.hpp"
 #include "../CRE/fbo.hpp"
 #include "../CRE/file_handler.hpp"
+#include "../CRE/font.hpp"
 #include "../CRE/gl_state.hpp"
 #include "../CRE/hand_item.hpp"
 #include "../CRE/light_param.hpp"
@@ -53,6 +54,7 @@
 #include "data_test/stage_test.hpp"
 #include "pv_game/pv_game.hpp"
 #include "game_state.hpp"
+#include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 #include "task_window.hpp"
@@ -551,6 +553,8 @@ static render_context* render_context_load() {
 
     skin_param_data_load();
 
+    fontmap_data_init();
+    font_info_default_init();
     sound_init();
     wave_audio_storage_init();
     ogg_file_handler_storage_init();
@@ -1240,6 +1244,8 @@ static void render_context_dispose(render_context* rctx) {
     ogg_file_handler_storage_free();
     wave_audio_storage_free();
     sound_free();
+    font_info_default_free();
+    fontmap_data_free();
 
     skin_param_data_free();
     mothead_storage_free();

@@ -78,6 +78,16 @@ namespace ImGui {
         SetNextItemWidth(GetContentRegionAvail().x);
     }
 
+    extern ImVec2 CalcEmptyGlyphSize();
+
+    inline float_t CalcEmptyGlyphWidth() {
+        return CalcEmptyGlyphSize().x;
+    }
+
+    inline float_t CalcEmptyGlyphHeight() {
+        return CalcEmptyGlyphSize().y;
+    }
+
     extern void StartPropertyColumn(const char* label);
     extern void EndPropertyColumn();
 

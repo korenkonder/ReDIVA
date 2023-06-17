@@ -377,7 +377,59 @@ inline constexpr size_t utf8_to_utf16_length(const char* s) {
     return length;
 }
 
+inline constexpr size_t utf8_to_utf16_length(const char* s, size_t length) {
+    if (!s || !length)
+        return 0;
+
+    uint32_t c = 0;
+    size_t _length = 0;
+    size_t l = 0;
+
+    while (*s && length) {
+        char t = *s++;
+        length--;
+        if (!(t & 0x80)) {
+            l = 0;
+            _length++;
+            c = 0;
+            continue;
+        }
+        else if ((t & 0xFC) == 0xF8)
+            continue;
+        else if ((t & 0xF8) == 0xF0) {
+            c = t & 0x07;
+            l = 3;
+        }
+        else if ((t & 0xF0) == 0xE0) {
+            c = t & 0x0F;
+            l = 2;
+        }
+        else if ((t & 0xE0) == 0xC0) {
+            c = t & 0x1F;
+            l = 1;
+        }
+        else if ((t & 0xC0) == 0x80) {
+            c = (c << 6) | (t & 0x3F);
+            l--;
+        }
+
+        if (!l) {
+            if (c <= 0xD7FF || (c >= 0xE000 && c <= 0xFFFF))
+                _length++;
+            else if (c >= 0x10000 && c <= 0x10FFFF) {
+                _length++;
+                _length++;
+            }
+            c = 0;
+        }
+    }
+    return _length;
+}
+
 inline constexpr size_t utf16_to_utf8_length(const wchar_t* s) {
+    if (!s)
+        return 0;
+
     uint32_t c = 0;
     size_t length = 0;
     while (*s) {
@@ -410,7 +462,46 @@ inline constexpr size_t utf16_to_utf8_length(const wchar_t* s) {
     return length;
 }
 
+inline constexpr size_t utf16_to_utf8_length(const wchar_t* s, size_t length) {
+    if (!s || !length)
+        return 0;
+
+    uint32_t c = 0;
+    size_t _length = 0;
+    while (*s && length) {
+        c = *s++;
+        length--;
+        if ((c & 0xFC00) == 0xD800) {
+            if (!*s)
+                break;
+
+            wchar_t _c = *s++;
+            if ((_c & 0xFC00) != 0xDC00)
+                continue;
+
+            c &= 0x3FF;
+            c <<= 10;
+            c |= _c & 0x3FF;
+            c += 0x10000;
+        }
+        else if ((c & 0xFC00) == 0xDC00)
+            continue;
+
+        if (c <= 0x7F)
+            _length++;
+        else if (c <= 0x7FF)
+            _length += 2;
+        else if ((c >= 0x800 && c <= 0xD7FF) || (c >= 0xE000 && c <= 0xFFFF))
+            _length += 3;
+        else if (c >= 0x10000 && c <= 0x10FFFF)
+            _length += 4;
+    }
+    return _length;
+}
+
 extern wchar_t* utf8_to_utf16(const char* s);
+extern wchar_t* utf8_to_utf16(const char* s, size_t length);
 extern char* utf16_to_utf8(const wchar_t* s);
+extern char* utf16_to_utf8(const wchar_t* s, size_t length);
 extern std::wstring utf8_to_utf16(const std::string& s);
 extern std::string utf16_to_utf8(const std::wstring& s);

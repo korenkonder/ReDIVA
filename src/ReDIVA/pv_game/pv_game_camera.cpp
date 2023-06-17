@@ -176,7 +176,7 @@ static float_t sub_14011B160(float_t acceleration_1, float_t acceleration_2, flo
         return cosf(t * (float_t)M_PI) * (acceleration_2 - 1.0f) + 1.0f;
     else if (acceleration_1 == 1.0f)
         return cosf(t * (float_t)M_PI + (float_t)M_PI)
-        * fabsf((float_t)(int32_t)(1.0f - acceleration_2)) + 1.0f;
+            * fabsf((float_t)(int32_t)(1.0f - acceleration_2)) + 1.0f;
     else if (t < acceleration_1)
         return 2.0f - (cosf((t / acceleration_1) * (float_t)M_PI)
             * (acceleration_2 - 1.0f) + 1.0f);

@@ -12,24 +12,27 @@
 
 namespace dw {
     enum Flags {
-        FLAG_1       = 0x0001,
-        FLAG_2       = 0x0002,
-        MULTISELECT  = 0x0004,
-        FLAG_8       = 0x0008,
-        RADIOBUTTON  = 0x0010,
-        CHECKBOX     = 0x0020,
-        CLOSE_BUTTON = 0x0040,
-        FLAG_80      = 0x0080,
-        HORIZONTAL   = 0x0100,
-        VERTICAL     = 0x0200,
-        FLAG_400     = 0x0400,
-        FLAG_800     = 0x0800,
-        FLAG_1000    = 0x1000,
-        FLAG_2000    = 0x2000,
-        FLAG_4000    = 0x4000,
+        FLAG_1       = 0x00001,
+        FLAG_2       = 0x00002,
+        MULTISELECT  = 0x00004,
+        FLAG_8       = 0x00008,
+        RADIOBUTTON  = 0x00010,
+        CHECKBOX     = 0x00020,
+        CLOSE_BUTTON = 0x00040,
+        FLAG_80      = 0x00080,
+        HORIZONTAL   = 0x00100,
+        VERTICAL     = 0x00200,
+        FLAG_400     = 0x00400,
+        FLAG_800     = 0x00800,
+        FLAG_1000    = 0x01000,
+        FLAG_2000    = 0x02000,
+        FLAG_4000    = 0x04000,
+        FLAG_8000    = 0x08000,
+        FLAG_10000   = 0x10000,
+        FLAG_20000   = 0x20000,
 
         // Added
-        LABEL_SIZE   = 0x8000,
+        LABEL_SIZE   = 0x80000,
     };
 
     class Widget {
@@ -51,9 +54,8 @@ namespace dw {
         } callback_data;
 
         Callback free_callback;
-        std::string name;
-        vec2 position;
-        vec2 size;
+        std::string text;
+        rectangle rect;
         Widget* parent;
         Flags flags;
 
@@ -62,13 +64,14 @@ namespace dw {
 
         virtual void Draw();
         virtual void Reset();
-        virtual std::string GetName();
-        virtual void SetName(std::string& str);
+        virtual std::string GetText();
+        virtual void SetText(std::string& str);
         virtual void SetSize(vec2 value);
         virtual vec2 GetPos();
 
         void Free();
-        void SetName(std::string&& str);
+        rectangle GetRectangle();
+        void SetText(std::string&& str);
         void UpdateDraw();
     };
 
@@ -143,6 +146,7 @@ namespace dw {
         virtual ~Label() override;
 
         virtual void Draw() override;
+        virtual vec2 GetSize() override;
     };
 
     class ScrollBar : public Widget {
@@ -155,7 +159,7 @@ namespace dw {
         float_t field_94;
         float_t step;
         float_t step_fast;
-        int field_A0;
+        float_t field_A0;
         bool round;
         char field_A5;
         char field_A6;
@@ -192,6 +196,7 @@ namespace dw {
 
         void SetParams(float_t value, float_t min, float_t max,
             float_t a5, float_t step, float_t step_fast);
+        void SetParams(float_t size, float_t step, size_t items_count);
         void SetValue(float_t value);
         void SetWidth(float_t value);
 
@@ -229,9 +234,9 @@ namespace dw {
 
     class FillLayout : public Layout {
     public:
-        int32_t field_8;
+        Flags flags;
 
-        FillLayout(int32_t a2 = 512);
+        FillLayout(Flags flags = VERTICAL);
         virtual ~FillLayout() override;
 
         virtual vec2 GetSize(Composite* comp) override;
@@ -245,9 +250,9 @@ namespace dw {
 
     class GraphLayout : public Layout {
     public:
-        int32_t field_8;
+        Flags flags;
 
-        GraphLayout(int32_t a2 = 512);
+        GraphLayout(Flags flags = VERTICAL);
         virtual ~GraphLayout() override;
 
         virtual vec2 GetSize(Composite* comp) override;
@@ -261,18 +266,13 @@ namespace dw {
 
     class GridLayout : public Layout {
     public:
-        __int64 field_8;
-        __int64 field_10;
-        __int64 field_18;
-        __int64 field_20;
-        __int64 field_28;
-        __int64 field_30;
-        __int64 field_38;
-        size_t field_40;
-        float_t field_48;
-        float_t field_4C;
+        size_t rows;
+        std::vector<float_t> column_size;
+        std::vector<float_t> row_size;
+        size_t columns;
+        vec2 spacing;
 
-        GridLayout(size_t a2 = 2);
+        GridLayout(size_t columns = 2);
         virtual ~GridLayout() override;
 
         virtual vec2 GetSize(Composite* comp) override;
@@ -319,7 +319,7 @@ namespace dw {
         virtual void SetSize(vec2 size) override;
 
         virtual void GetSetSize() override;
-        virtual vec2 GetSize()  override;
+        virtual vec2 GetSize() override;
 
         void SetLayout(Layout* value);
     };
@@ -342,6 +342,7 @@ namespace dw {
         virtual ~Button() override;
 
         virtual void Draw() override;
+        virtual vec2 GetSize() override;
 
         void AddSelectionListener(SelectionListener* value);
         void SetValue(bool value);
@@ -404,6 +405,9 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+        virtual void SetSize(vec2 size) override;
+
+        virtual vec2 GetSize() override;
 
         void AddItem(const std::string& str);
         void AddItem(const std::string&& str);
@@ -414,6 +418,7 @@ namespace dw {
         void ResetSelectedItem();
         void ResetSetSelectedItem(size_t index);
         void SetItemIndex(size_t index);
+        void SetScrollBarParams();
         void SetSelectedItem(size_t index);
 
         inline std::string GetHoveredItem() {
@@ -423,6 +428,8 @@ namespace dw {
         inline std::string GetSelectedItem() {
             return GetItem(selected_item);
         }
+
+        size_t sub_1402EF620();
     };
 
     class ListBox : public Composite {
@@ -434,6 +441,8 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+
+        virtual vec2 GetSize() override;
 
         inline void AddItem(const std::string& str) {
             if (list)
@@ -475,7 +484,7 @@ namespace dw {
 
         inline std::string GetSelectedItem() {
             if (list)
-                return list->GetHoveredItem();
+                return list->GetSelectedItem();
             return {};
         }
 
@@ -501,8 +510,9 @@ namespace dw {
         void AddSelectionListener(SelectionListener* value);
 
         static Slider* make(Composite* parent = 0,
-            Flags flags = (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL), float_t x = 0.0f, float_t y = 0.0f,
-            float_t width = 128.0f, float_t height = 20.0f, const char* name = "slider");
+            Flags flags = (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
+            float_t pos_x = 0.0f, float_t pos_y = 0.0f,
+            float_t width = 128.0f, float_t height = 20.0f, const char* text = "slider");
 
         inline void SetParams(float_t value, float_t min, float_t max,
             float_t a5, float_t step, float_t step_fast) {

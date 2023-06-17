@@ -48,8 +48,12 @@ namespace ImGui {
         IsItemToggledOpenAccum |= IsItemToggledOpen();
     }
 
-    bool SliderScalarStep(const char* label, ImGuiDataType data_type, void* p_data,
+    static bool SliderScalarStep(const char* label, ImGuiDataType data_type, void* p_data,
         const void* p_min, const void* p_max, const void* p_step, const char* format, ImGuiSliderFlags flags);
+
+    ImVec2 CalcEmptyGlyphSize() {
+        return ImGui::CalcTextSize(" ");
+    }
 
     void StartPropertyColumn(const char* label) {
         PushID(label);
@@ -1907,7 +1911,7 @@ namespace ImGui {
 
         std::string tex_buf(g.TempBuffer.Data, g.TempBuffer.Size);
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
-        ImGui::Text(tex_buf.c_str());
+        ImGui::Text("%s", tex_buf.c_str());
     }
 
     void TextRight(const char* fmt, ...) {
@@ -1920,7 +1924,7 @@ namespace ImGui {
 
         std::string tex_buf(g.TempBuffer.Data, g.TempBuffer.Size);
         ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
-        ImGui::Text(tex_buf.c_str());
+        ImGui::Text("%s", tex_buf.c_str());
     }
 
     // Taken from ImGui src
@@ -2239,7 +2243,7 @@ namespace ImGui {
         return false;
     }
 
-    bool SliderScalarStep(const char* label, ImGuiDataType data_type, void* p_data,
+    static bool SliderScalarStep(const char* label, ImGuiDataType data_type, void* p_data,
         const void* p_min, const void* p_max, const void* p_step, const char* format, ImGuiSliderFlags flags) {
         ImGuiWindow* window = GetCurrentWindow();
         if (window->SkipItems)

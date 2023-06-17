@@ -123,9 +123,9 @@ static float_t interpolate_mot_value(float_t p1, float_t p2,
 static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
     vec2 t = vec2(
-        (float_t)(int32_t)(f - f1 + 0),
-        (float_t)(int32_t)(f - f1 + 1)
-    ) / (float_t)(int32_t)(f2 - f1);
+        (float_t)(int64_t)(f - f1 + 0),
+        (float_t)(int64_t)(f - f1 + 1)
+    ) / (float_t)(int64_t)(f2 - f1);
     vec2 t_1 = t - 1.0f;
 
     vec2 t1_t2 = *(vec2*)&arr[f] - arr[f1] - (t * 2.0f - 3.0f) * (t * t) * (arr[f1] - arr[f2]);

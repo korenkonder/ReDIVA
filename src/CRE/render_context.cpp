@@ -3877,9 +3877,9 @@ void shadow::ctrl(render_context* rctx) {
             for (vec3& j : field_1D0[i])
                 v7 += j;
 
-            float_t v14 = (float_t)(int32_t)field_1D0[i].size();
+            float_t v14 = (float_t)(int64_t)field_1D0[i].size();
             if (v14 < 0.0f)
-                v14 += 1.8446744e19f;
+                v14 += (float_t)UINT64_MAX;
             v7 *= 1.0f / v14;
 
             float_t v15 = 0.0f;
@@ -3971,10 +3971,9 @@ void shadow::ctrl(render_context* rctx) {
             for (vec3& j : field_1D0[i])
                 v22 += j;
 
-            int32_t v27 = (int32_t)field_1D0[i].size();
-            float_t v29 = (float_t)v27;
-            if (v27 < 0)
-                v29 += 1.8446744e19f;
+            float_t v29 = (float_t)(int64_t)field_1D0[i].size();
+            if (v29 < 0.0f)
+                v29 += (float_t)UINT64_MAX;
 
             float_t v30 = 0.0f;
             vec3 v31 = v22 * (1.0f / v29);

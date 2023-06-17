@@ -699,8 +699,8 @@ void AetObj::Disp() {
 
     vec3 anchor = this->anchor;
     if (flags & AET_100000) {
-        anchor.x = (float_t)(int32_t)scene->width * 0.5f;
-        anchor.y = (float_t)(int32_t)scene->height * 0.5f;
+        anchor.x = (float_t)scene->width * 0.5f;
+        anchor.y = (float_t)scene->height * 0.5f;
         anchor.z = 0.0f;
     }
 
@@ -712,8 +712,8 @@ void AetObj::Disp() {
 
     const aet_camera* camera = scene->camera;
     if (camera) {
-        float_t eye_x = camera->eye_x.interpolate(frame) - (float_t)(int32_t)scene->width * 0.5f;
-        float_t eye_y = camera->eye_y.interpolate(frame) - (float_t)(int32_t)scene->height * 0.5f;
+        float_t eye_x = camera->eye_x.interpolate(frame) - (float_t)scene->width * 0.5f;
+        float_t eye_y = camera->eye_y.interpolate(frame) - (float_t)scene->height * 0.5f;
         float_t eye_z = camera->eye_z.interpolate(frame);
         mat4_translate_mult(&mat, -eye_x, -eye_y, -eye_z, &mat);
     }

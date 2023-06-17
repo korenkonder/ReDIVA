@@ -8,13 +8,14 @@
 #include "../../KKdLib/default.hpp"
 #include "../../CRE/auth_2d.hpp"
 #include "../dw.hpp"
+#include "../print_work.hpp"
 #include "../task_window.hpp"
 
 class DtmAet : public app::Task {
 public:
     std::vector<std::string> sound_farcs;
-    //draw_params draw_params;
-    //font_info font;
+    PrintWork print_work;
+    font_info font;
     uint32_t curr_set_index;
     uint32_t set_index;
     uint32_t id_index;

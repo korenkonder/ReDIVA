@@ -74,37 +74,30 @@ DtwStg::DtwStg() : Shell(0) {
 
     std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
 
-    position = { 0.0f, 0.0f };
-    size = { 250.0f, 240.0f };
-
-    dw::Widget::SetName("STAGE TEST");
+    dw::Widget::SetText("STAGE TEST");
 
     dw::Composite* pv_comp = new dw::Composite(this);
     pv_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(pv_comp, dw::LABEL_SIZE))->SetName("PV:");
+    (new dw::Label(pv_comp, dw::LABEL_SIZE))->SetText("PV:");
 
     pv_id = new dw::ListBox(pv_comp);
-    pv_id->SetSize({ 48.0f, 0.0f });
 
     pv = new dw::ListBox(pv_comp);
-    pv->SetSize({ 160.0f, 0.0f });
 
     dw::Composite* ns_comp = new dw::Composite(this);
     ns_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(ns_comp, dw::LABEL_SIZE))->SetName("NS:");
+    (new dw::Label(ns_comp, dw::LABEL_SIZE))->SetText("NS:");
 
     ns = new dw::ListBox(ns_comp);
-    ns->SetSize({ 160.0f, 0.0f });
 
     dw::Composite* other_comp = new dw::Composite(this);
     other_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(other_comp, dw::LABEL_SIZE))->SetName("Other:");
+    (new dw::Label(other_comp, dw::LABEL_SIZE))->SetText("Other:");
 
     other = new dw::ListBox(other_comp);
-    other->SetSize({ 160.0f, 0.0f });
 
     stage = new dw::ListBox(this);
 
@@ -140,34 +133,34 @@ DtwStg::DtwStg() : Shell(0) {
     pv->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     //dw::List::sub_1402F9930(this->ns->list, 30);
-    ns->list->SetItemIndex(0);
+    ns->SetItemIndex(0);
     ns->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     //dw::List::sub_1402F9930(this->stage->list, 30);
-    stage->list->SetItemIndex(0);
+    stage->SetItemIndex(0);
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
     stage_display = new dw::Button(this, dw::CHECKBOX);
-    stage_display->SetName("Stage display");
+    stage_display->SetText("Stage display");
     stage_display->SetValue(true);
 
     ring = new dw::Button(this, dw::CHECKBOX);
-    ring->SetName("[Ring]");
+    ring->SetText("[Ring]");
     ring->SetValue(true);
 
     ground = new dw::Button(this, dw::CHECKBOX);
-    ground->SetName("[Ground]");
+    ground->SetText("[Ground]");
     ground->SetValue(true);
 
     sky = new dw::Button(this, dw::CHECKBOX);
-    sky->SetName("[Sky]");
+    sky->SetText("[Sky]");
     sky->SetValue(true);
 
     effect_display = new dw::Button(this, dw::CHECKBOX);
-    effect_display->SetName("Effects display");
+    effect_display->SetText("Effects display");
     effect_display->SetValue(true);
 
-    //GetSetSize();
+    GetSetSize();
 }
 
 DtwStg::~DtwStg() {
@@ -189,9 +182,11 @@ void DtwStg::PvIdCallback(dw::Widget* data) {
         dw::ListBox* pv_list_box = dtw_stg->pv;
         pv_list_box->ClearItems();
         auto elem = dtw_stg->pv_stage.find(name);
-        if (elem != dtw_stg->pv_stage.end())
+        if (elem != dtw_stg->pv_stage.end()) {
             for (std::string& i : elem->second)
                 pv_list_box->AddItem(i);
+            dtw_stg->GetSetSize();
+        }
     }
 }
 

@@ -1231,54 +1231,54 @@ int32_t DtmMot::ConvertMotionSetNameToPVID(const char* set_name) {
 DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
     this->chara_id = chara_id;
 
-    SetName("Face motion");
+    SetText("Face motion");
 
     enable = new dw::Button(this, dw::CHECKBOX);
-    enable->SetName("Enable");
+    enable->SetText("Enable");
     enable->SetValue(false);
 
     dw::Group* motion_group = new dw::Group(this);
     motion_group->SetLayout(new dw::GridLayout(3));
-    motion_group->SetName("Motion");
+    motion_group->SetText("Motion");
 
-    (new dw::Label(motion_group))->SetName("FACE  ");
+    (new dw::Label(motion_group))->SetText("FACE  ");
 
     face = InitAddMottblMapMotions(motion_group, 0);
 
     face_frame = dw::Slider::make(motion_group);
-    face_frame->SetName("Frame  ");
+    face_frame->SetText("Frame  ");
     face_frame->format = "%4.0f";
     face_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
 
-    (new dw::Label(motion_group))->SetName("FACE_CL  ");
+    (new dw::Label(motion_group))->SetText("FACE_CL  ");
 
     face_cl = new dw::Label(motion_group);
-    face_cl->SetName("");
+    face_cl->SetText("");
 
     face_cl_frame = dw::Slider::make(motion_group);
-    face_cl_frame->SetName("Frame");
+    face_cl_frame->SetText("Frame");
     face_cl_frame->format = "%4.0f";
     face_cl_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
 
-    (new dw::Label(motion_group))->SetName("EYES  ");
+    (new dw::Label(motion_group))->SetText("EYES  ");
 
     eyes = InitAddMottblMapMotions(motion_group, 1);
 
     eyes_frame = dw::Slider::make(motion_group);
-    eyes_frame->SetName("Frame");
+    eyes_frame->SetText("Frame");
     eyes_frame->format = "%4.0f";
     eyes_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
 
-    (new dw::Label(motion_group))->SetName("MOUTH ");
+    (new dw::Label(motion_group))->SetText("MOUTH ");
 
     mouth = InitAddMottblMapMotions(motion_group, 2);
 
     mouth_frame = dw::Slider::make(motion_group);
-    mouth_frame->SetName("Frame");
+    mouth_frame->SetText("Frame");
     mouth_frame->format = "%4.0f";
     mouth_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
 
-    //GetSetSize();
+    GetSetSize();
 }
 
 DataTestFaceMotDw::~DataTestFaceMotDw() {
@@ -1370,9 +1370,9 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
 
     uint32_t face_cl_mot_id = aft_mot_db->get_motion_id(face_cl_mot.c_str());
     if (face_cl_mot_id != -1)
-        face_cl->SetName(face_cl_mot);
+        face_cl->SetText(face_cl_mot);
     else
-        face_cl->SetName("CLモーションなし");
+        face_cl->SetText("CLモーションなし");
 
     auto elem_eyelid = motion_id_mottbl_map.find(face_cl_mot_id);
     if (elem_eyelid != motion_id_mottbl_map.end())
@@ -1656,13 +1656,13 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     char buf[0x20];
     sprintf_s(buf, sizeof(buf), "MOTION TEST %dP", chara_id + 1);
-    SetName(buf);
+    SetText(buf);
 
     dw::Composite* chara_comp = new dw::Composite(this);
     chara_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* chara_label = new dw::Label(chara_comp);
-    chara_label->SetName("CHARA   ");
+    chara_label->SetText("CHARA   ");
     //chara_label->SetFont(&p_dw__font_type_6x12);
 
     dw::ListBox* chara = new dw::ListBox(chara_comp);
@@ -1691,7 +1691,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     set_comp->SetLayout( new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* set_label = new dw::Label(set_comp);
-    set_label->SetName("SET     ");
+    set_label->SetText("SET     ");
     //set_label->SetFont(&p_dw__font_type_6x12);
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -1711,7 +1711,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     id_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* id_label = new dw::Label(id_comp);
-    id_label->SetName("ID      ");
+    id_label->SetText("ID      ");
     //id_label->SetFont(&p_dw__font_type_6x12);
 
     set_list_box_proc.list_box = new dw::ListBox(id_comp);
@@ -1721,28 +1721,28 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     //set_list_box_proc.list_box->SetFont(&p_dw__font_type_6x12);
 
     id_list_box_proc.slider = dw::Slider::make(this);
-    id_list_box_proc.slider->SetName("Y ROT");
+    id_list_box_proc.slider->SetText("Y ROT");
     id_list_box_proc.slider->format = "%3.0f";
     id_list_box_proc.slider->SetParams(test_mot_data->rot_y[chara_id], -180.0f, 180.0f, 36.0f, 1.0f, 10.0f);
     id_list_box_proc.slider->callback_data.i32 = chara_id;
     id_list_box_proc.slider->AddSelectionListener(&rotate_slider_proc);
 
     rotate_slider_proc.slider = dw::Slider::make(this);
-    rotate_slider_proc.slider->dw::Widget::SetName("X POS");
+    rotate_slider_proc.slider->dw::Widget::SetText("X POS");
     rotate_slider_proc.slider->format = "%3.2f";
     rotate_slider_proc.slider->SetParams(test_mot_data->trans_x[chara_id], -2.0f, 2.0f, 0.4f, 0.01f, 0.1f);
     rotate_slider_proc.slider->callback_data.i32 = chara_id;
     rotate_slider_proc.slider->AddSelectionListener(&position_slider_proc);
 
     dw::Group* frame_group = new dw::Group(this);
-    frame_group->SetName("FRAME");
+    frame_group->SetText("FRAME");
     //frame_group->SetFont(&p_dw__font_type_6x12);
 
     for (int32_t i = 3; i < 4; i++) {
         step_slider = dw::Slider::make(frame_group);
         char buf[0x10];
         sprintf_s(buf, sizeof(buf), "STEP %02d", i);
-        step_slider->SetName(buf);
+        step_slider->SetText(buf);
         step_slider->format = "%4.4f";
         step_slider->SetParams(test_mot_data->step[chara_id].array[i], -3.0f, 3.0f, 0.4f, 0.01f, 0.1f);
         step_slider->callback_data.i32 = chara_id;
@@ -1753,26 +1753,26 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dw::Composite* frame_comp = new dw::Composite(frame_group);
     frame_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(frame_comp))->SetName("FRAME ");
+    (new dw::Label(frame_comp))->SetText("FRAME ");
 
     frame = new dw::Label(frame_comp, dw::FLAG_4000);
-    frame->SetName("00000.0000");
+    frame->SetText("00000.0000");
 
     dw::Label* frame_separator = new dw::Label(frame_comp);
-    frame_separator->SetName(" / ");
+    frame_separator->SetText(" / ");
 
     frame_count = new dw::Label(frame_comp, dw::FLAG_4000);
-    frame_count->SetName("00000.0000");
+    frame_count->SetText("00000.0000");
 
     current = dw::Slider::make(frame_group);
-    current->SetName("Current");
+    current->SetText("Current");
     current->format = "%4.0f";
     current->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     current->callback_data.i32 = chara_id;
     current->AddSelectionListener(&frame_slider_proc);
 
     frame_slider_proc.slider = dw::Slider::make(frame_group);
-    frame_slider_proc.slider->SetName("Start  ");
+    frame_slider_proc.slider->SetText("Start  ");
     frame_slider_proc.slider->format = "%4.0f";
     frame_slider_proc.slider->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     frame_slider_proc.slider->callback_data.i32 = chara_id;
@@ -1781,41 +1781,41 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dw::Composite* start_ctrl_comp = new dw::Composite(frame_group);
     start_ctrl_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(start_ctrl_comp))->SetName("Start Ctrl : ");
+    (new dw::Label(start_ctrl_comp))->SetText("Start Ctrl : ");
 
     dw::Button* start_ctrl_left = new dw::Button(start_ctrl_comp, dw::FLAG_8);
-    start_ctrl_left->SetName(" < ");
+    start_ctrl_left->SetText(" < ");
     start_ctrl_left->callback_data.v64 = this;
     start_ctrl_left->callback = DataTestMotDw::StartCtrlLeftRightCallback;
 
     dw::Button* start_ctrl_reset = new dw::Button(start_ctrl_comp, dw::FLAG_8);
-    start_ctrl_reset->SetName(" RESET ");
+    start_ctrl_reset->SetText(" RESET ");
     start_ctrl_reset->callback = DataTestMotDw::StartCtrlResetCallback;
 
     dw::Button* start_ctrl_right = new dw::Button(start_ctrl_comp, dw::FLAG_8);
-    start_ctrl_right->SetName(" > ");
+    start_ctrl_right->SetText(" > ");
     start_ctrl_right->callback_data.v64 = this;
     start_ctrl_right->callback = DataTestMotDw::StartCtrlLeftRightCallback;
 
     dw::Group* ab_loop_group = new dw::Group(this);
     ab_loop_group->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
-    ab_loop_group->SetName("AB LOOP");
+    ab_loop_group->SetText("AB LOOP");
     //ab_loop_group->SetFont(&p_dw__font_type_6x12);
 
     dw::Button* a_label = new dw::Button(ab_loop_group, dw::FLAG_8);
-    a_label->SetName(" A ");
+    a_label->SetText(" A ");
     a_label->callback_data.i64 = (int64_t)this;
     a_label->callback = DataTestMotDw::ACallback;
     //a_label->SetFont(&p_dw__font_type_6x12);
 
     dw::Button* b_label = new dw::Button(ab_loop_group, dw::FLAG_8);
-    b_label->SetName(" B ");
+    b_label->SetText(" B ");
     b_label->callback_data.i64 = (int64_t)this;
     b_label->callback = DataTestMotDw::BCallback;
     //b_label->SetFont(&p_dw__font_type_6x12);
 
     dw::Button* ab_toggle_button = new dw::Button(ab_loop_group, dw::CHECKBOX);
-    ab_toggle_button->SetName("");
+    ab_toggle_button->SetText("");
     ab_toggle_button->callback_data.v64 = this;
     ab_toggle_button->callback = DataTestMotDw::ABToggleCallback;
     //ab_toggle->SetFont(&p_dw__font_type_6x12);
@@ -1823,20 +1823,20 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     ab_loop = new dw::Label(ab_loop_group, dw::FLAG_8);
     //ab_loop->SetFont(&p_dw__font_type_6x12);
-    ab_loop->SetName("     00000:00000");
+    ab_loop->SetText("     00000:00000");
 
     dw::Composite* rob_comp = new dw::Composite(this);
     rob_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Button* disp_button = new dw::Button(rob_comp, dw::CHECKBOX);
-    disp_button->SetName("DISP  ");
+    disp_button->SetText("DISP  ");
     disp_button->SetValue(true);
     disp_button->AddSelectionListener(&disp_button_proc);
     disp_button->callback_data.i32 = chara_id;
     //disp_button->SetFont(&p_dw__font_type_6x12);
 
     disp_button_proc.button = new dw::Button(rob_comp, dw::CHECKBOX);
-    disp_button_proc.button->SetName("SET CHANGE  ");
+    disp_button_proc.button->SetText("SET CHANGE  ");
     disp_button_proc.button->SetValue(false);
     //disp_button_proc.button->SetFont(&p_dw__font_type_6x12);
 
@@ -1844,23 +1844,23 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     var_comp->Composite::SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Button* reate_face_mot_dw = new dw::Button(var_comp, dw::FLAG_8);
-    reate_face_mot_dw->SetName(" FACE MOT ");
+    reate_face_mot_dw->SetText(" FACE MOT ");
     reate_face_mot_dw->AddSelectionListener(&create_face_mot_dw_proc);
     reate_face_mot_dw->callback_data.i32 = chara_id;
     //reate_face_mot_dw->SetFont(&p_dw__font_type_6x12);
 
     dw::Button* create_eq_dw = new dw::Button(var_comp, dw::FLAG_8);
-    create_eq_dw->SetName("  EQUIP  ");
+    create_eq_dw->SetText("  EQUIP  ");
     create_eq_dw->AddSelectionListener(&create_eq_dw_proc);
     //create_eq_dw->SetFont(&p_dw__font_type_6x12);
 
     dw::Button* create_debug_cam = new dw::Button(var_comp, dw::FLAG_8);
-    create_debug_cam->SetName(" LOCK CAM ");
+    create_debug_cam->SetText(" LOCK CAM ");
     create_debug_cam->AddSelectionListener(&create_debug_cam_proc);
     //create_debug_cam->SetFont(&p_dw__font_type_6x12);
 
     dw::Button* use_opd_button = new dw::Button(this, dw::CHECKBOX);
-    use_opd_button->SetName("USE OSAGE PLAY DATA");
+    use_opd_button->SetText("USE OSAGE PLAY DATA");
     use_opd_button->SetValue(false);
     use_opd_button->AddSelectionListener(&use_opd_button_proc);
     use_opd_button->callback_data.i32 = chara_id;
@@ -1869,13 +1869,13 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dtm_mot->SetPartialMot(false);
 
     dw::Button* save_only_start_frame_button = new dw::Button(this, dw::CHECKBOX);
-    save_only_start_frame_button->SetName("Initialize only Start Frame Osage");
+    save_only_start_frame_button->SetText("Initialize only Start Frame Osage");
     save_only_start_frame_button->SetValue(false);
     save_only_start_frame_button->AddSelectionListener(&save_only_start_frame_button_proc);
     save_only_start_frame_button->callback_data.i32 = chara_id;
     //save_only_start_frame_button->SetFont(&p_dw__font_type_6x12);
 
-    //GetSetSize();
+    GetSetSize();
 }
 
 DataTestMotDw::~DataTestMotDw() {
@@ -1891,7 +1891,7 @@ void DataTestMotDw::Draw() {
 
     char buf[0x20];
     sprintf_s(buf, sizeof(buf), "     %5d:%5d", (int32_t)roundf(a_frame), (int32_t)roundf(b_frame));
-    this->ab_loop->SetName(buf);
+    this->ab_loop->SetText(buf);
 
     dw::Shell::Draw();
 }
@@ -1925,10 +1925,10 @@ void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_count) {
 void DataTestMotDw::SetFrameLabel(float_t frame, float_t frame_count) {
     char buf[0x40];
     sprintf_s(buf, sizeof(buf), "%10.4f", frame);
-    this->frame->SetName(buf);
+    this->frame->SetText(buf);
 
     sprintf_s(buf, sizeof(buf), "%7.1f", frame_count);
-    this->frame_count->SetName(buf);
+    this->frame_count->SetText(buf);
 }
 
 void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
@@ -1975,7 +1975,7 @@ void DataTestMotDw::ResetFrame() {
 }
 
 void DataTestMotDw::ResetIDListBoxIndex() {
-    //GetSetSize();
+    GetSetSize();
 
     set_list_box_proc.list_box->SetItemIndex(0);
 }
@@ -2046,7 +2046,7 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
     if (frame > set_motion.back().frame_stage_index.first)
         last = set_motion.back().frame_stage_index.first;
 
-    if (button->GetName().compare(" < "))
+    if (button->GetText().compare(" < "))
         test_mot_dw->frame_slider_proc.slider->SetValue(last);
     else if (first > 0.0f)
         test_mot_dw->frame_slider_proc.slider->SetValue(first);
@@ -2069,7 +2069,7 @@ void DataTestMotA3dDw::PvListBoxProc::Callback(dw::Widget* data) {
     if (list_box)
         data_test_mot_a3d_dw->SetPvId(atoi(list_box->GetSelectedItem().c_str()));
 
-    //data_test_mot_a3d_dw->GetSetSize();
+    data_test_mot_a3d_dw->GetSetSize();
 }
 
 DataTestMotA3dDw::A3dListBoxProc::A3dListBoxProc() {
@@ -2132,13 +2132,13 @@ void DataTestMotCtrlDw::GameCameraButtonProc::Callback(dw::Widget* data) {
 }
 
 DataTestMotA3dDw::DataTestMotA3dDw() {
-    SetName("MOTION TEST");
+    SetText("MOTION TEST");
 
     dw::Composite* pv_comp = new dw::Composite(this);
     pv_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* pv_label = new dw::Label(pv_comp);
-    pv_label->SetName("PV");
+    pv_label->SetText("PV");
     //pv_label->SetFont(&p_dw__font_type_6x12);
 
     pv = new dw::ListBox(pv_comp);
@@ -2160,7 +2160,7 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     a3d_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* a3d_label = new dw::Label(a3d_comp);
-    a3d_label->SetName("A3d");
+    a3d_label->SetText("A3d");
     //a3d_label->SetFont(&p_dw__font_type_6x12);
 
     a3d = new dw::ListBox(a3d_comp);
@@ -2175,23 +2175,23 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     button_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     play_a3d = new dw::Button(button_comp, dw::FLAG_8);
-    play_a3d->SetName(" PLAY A3D ");
+    play_a3d->SetText(" PLAY A3D ");
 
     play_a3d->callback_data.v64 = this;
     play_a3d->callback = DataTestMotA3dDw::PlayA3dCallback;
     //play_a3d->SetFont(&p_dw__font_type_6x12);
 
     sync_1p_frame = new dw::Button(button_comp, dw::CHECKBOX);
-    sync_1p_frame->SetName("SYNC 1P FRAME");
+    sync_1p_frame->SetText("SYNC 1P FRAME");
     sync_1p_frame->callback_data.v64 = this;
     sync_1p_frame->callback = DataTestMotA3dDw::Sync1pFrameCallback;
     //sync_1p_frame->SetFont(&p_dw__font_type_6x12);
 
-    /*GetSetSize();
+    GetSetSize();
 
-    position.x = (float_t)res_window_get()->width * 0.3f - size.x * 0.3f;
+    rect.pos.x = (float_t)res_window_get()->width * 0.3f - rect.size.x * 0.3f;
 
-    SetSize(size);*/
+    SetSize(rect.size);
 }
 
 DataTestMotA3dDw::~DataTestMotA3dDw() {
@@ -2199,7 +2199,7 @@ DataTestMotA3dDw::~DataTestMotA3dDw() {
 }
 
 void DataTestMotA3dDw::Draw() {
-    SetName(data_test_mot_a3d_get_state_text());
+    SetText(data_test_mot_a3d_get_state_text());
 }
 
 void DataTestMotA3dDw::Hide() {
@@ -2253,7 +2253,7 @@ void DataTestMotA3dDw::Sync1pFrameCallback(dw::Widget* data) {
 DataTestMotCtrlDw::DataTestMotCtrlDw() {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
 
-    SetName("MOTION TEST");
+    SetText("MOTION TEST");
 
     type_list = new dw::ListBox(this);
     type_list->AddItem("ONCE");
@@ -2263,40 +2263,40 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
     type_list->AddSelectionListener(&type_list_box_proc);
 
     reset_mot = new dw::Button(this, dw::FLAG_8);
-    reset_mot->SetName("RESET MOT");
+    reset_mot->SetText("RESET MOT");
     reset_mot->callback_data.v64 = this;
     reset_mot->callback = DataTestMotCtrlDw::ResetMotCallback;
 
     reset_cam = new dw::Button(this, dw::FLAG_8);
-    reset_cam->SetName("RESET CAM");
+    reset_cam->SetText("RESET CAM");
     reset_cam->callback_data.v64 = this;
     reset_cam->callback = DataTestMotCtrlDw::ResetCamCallback;
 
     reload_data = new dw::Button(this, dw::FLAG_8);
-    reload_data->SetName("RELOAD DATA");
+    reload_data->SetText("RELOAD DATA");
     reload_data->callback_data.v64 = this;
     reload_data->callback = DataTestMotCtrlDw::ReloadDataCallback;
 
     dw::Button* sync_frame_button = new dw::Button(this, dw::CHECKBOX);
-    sync_frame_button->SetName("SYNC FRAME");
+    sync_frame_button->SetText("SYNC FRAME");
     sync_frame_button->AddSelectionListener(&sync_frame_button_proc);
     //sync_frame_button->SetFont(&p_dw__font_type_6x12);
 
     running = new dw::Button(this, dw::CHECKBOX);
-    running->SetName("RUNNING");
+    running->SetText("RUNNING");
     running->SetValue(false);
     running->callback = DataTestMotCtrlDw::RunningCallback;
     //running->SetFont(&p_dw__font_type_6x12);
 
     stage = new dw::Button(this, dw::FLAG_8);
-    stage->SetName("STAGE");
+    stage->SetText("STAGE");
     stage->callback = DataTestMotCtrlDw::StageCallback;
 
-    /*GetSetSize();
+    GetSetSize();
 
-    position.x = (float_t)res_window_get()->width - size.x;
+    rect.pos.x = (float_t)res_window_get()->width - rect.size.x;
 
-    SetSize(size);*/
+    SetSize(rect.size);
 }
 
 DataTestMotCtrlDw::~DataTestMotCtrlDw() {
@@ -2431,12 +2431,12 @@ static void data_test_mot_dw_array_init(int32_t chara_id, DtmMot* dtm_mot) {
 
     switch (chara_id) {
     case 0: {
-        test_mot_dw->position.y += 14.0f;
+        test_mot_dw->rect.pos.y += 14.0f;
     } break;
     case 1: {
         resolution_struct* res_wind = res_window_get();
-        test_mot_dw->position.x = (float_t)res_wind->width - test_mot_dw->size.x;
-        test_mot_dw->position.y = (float_t)res_wind->height - 24.0f;
+        test_mot_dw->rect.pos.x = (float_t)res_wind->width - test_mot_dw->rect.size.x;
+        test_mot_dw->rect.pos.y = (float_t)res_wind->height - 24.0f;
     } break;
     }
 }

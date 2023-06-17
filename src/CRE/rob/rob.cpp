@@ -2519,22 +2519,22 @@ mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, size_
 static void rob_chara_data_adjust_ctrl(rob_chara* rob_chr,
     rob_chara_data_adjust* adjust, rob_chara_data_adjust* adjust_prev) {
     float_t cycle = adjust->cycle;
-    float_t v7 = 0.0f;
     adjust->frame += rob_chr->data.motion.step_data.frame;
     if (rob_chr->data.field_1588.field_0.field_58 == 1)
         cycle *= (60.0f / rob_chr->data.field_1588.field_0.frame);
     cycle *= adjust->frame * 2.0f * (float_t)M_PI * (float_t)(1.0 / 60.0f);
 
+    float_t cycle_val = 0.0f;
     switch (adjust->cycle_type) {
     case 1:
-        v7 = cosf(adjust->phase * (float_t)M_PI + cycle);
+        cycle_val = cosf(adjust->phase * (float_t)M_PI + cycle);
         break;
     case 2:
-        v7 = sinf(adjust->phase * (float_t)M_PI + cycle);
+        cycle_val = sinf(adjust->phase * (float_t)M_PI + cycle);
         break;
     }
 
-    adjust->curr_external_force = (adjust->external_force_cycle + v7)
+    adjust->curr_external_force = (adjust->external_force_cycle + cycle_val)
         * (adjust->external_force * adjust->external_force_cycle_strength) + adjust->external_force;
 
     if (adjust->type == 1) {
@@ -19478,7 +19478,7 @@ bool TaskRobManager::CheckCharaLoaded(rob_chara* rob_chr) {
         || rob_chr->chara_id < 0 || rob_chr->chara_id >= ROB_CHARA_COUNT)
         return false;
 
-    int8_t chara_id  = rob_chr->chara_id;
+    int8_t chara_id = rob_chr->chara_id;
     for (rob_chara*& i : free_chara)
         if (i->chara_id == chara_id)
             return false;

@@ -306,8 +306,8 @@ namespace Glitter {
                 double_t t1_accum = 0.0;
                 double_t t2_accum = 0.0;
                 for (size_t j = 1; j < i - 1; j++) {
-                    float_t _t1 = (float_t)(int32_t)((j + 0) * step) / (float_t)(int32_t)(i * step);
-                    float_t _t2 = (float_t)(int32_t)((j + 1) * step) / (float_t)(int32_t)(i * step);
+                    float_t _t1 = (float_t)(int64_t)((j + 0) * step) / (float_t)(int64_t)(i * step);
+                    float_t _t2 = (float_t)(int64_t)((j + 1) * step) / (float_t)(int64_t)(i * step);
                     float_t t1_1 = _t1 - 1.0f;
                     float_t t2_1 = _t2 - 1.0f;
 
