@@ -85,7 +85,7 @@ public:
     std::vector<auth_3d_id> auth_3d_ids;
     std::vector<uint32_t> obj_sets;
     bool camera;
-    
+
     DataTestMotA3d();
     virtual ~DataTestMotA3d() override;
 
@@ -441,7 +441,7 @@ public:
 
         virtual void Callback(dw::Widget* data) override;
     };
-    
+
     class A3dListBoxProc : public dw::SelectionAdapter {
     public:
         A3dListBoxProc();

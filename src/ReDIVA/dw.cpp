@@ -1195,7 +1195,7 @@ namespace dw {
         Scrollable::SetSize(size);
         SetScrollBarParams();
     }
-    
+
     vec2 List::GetSize() {
         //print->SetFont();
 
@@ -1285,7 +1285,7 @@ namespace dw {
 
     size_t List::sub_1402EF620() {
         if (!v_bar)
-            return items.size();       
+            return items.size();
         /*else if (field_140 >= this->items.size())
             return items.size();
         return field_140;*/

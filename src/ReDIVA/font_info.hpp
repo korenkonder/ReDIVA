@@ -14,7 +14,9 @@ struct font_char {
     rectangle tex;
     float_t glyph_offset;
     float_t glyph_width;
-    bool field_18;
+    uint8_t field_18;
+
+    font_char();
 };
 
 struct font_info {

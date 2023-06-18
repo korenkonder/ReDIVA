@@ -111,7 +111,7 @@ namespace dw {
 
         virtual void Callback(Widget* data) override;
     };
-    
+
     class ScrollBarTestSelectionListener : public SelectionAdapter {
     public:
         ScrollBarTestSelectionListener();
@@ -424,7 +424,7 @@ namespace dw {
         inline std::string GetHoveredItem() {
             return GetItem(hovered_item);
         }
-        
+
         inline std::string GetSelectedItem() {
             return GetItem(selected_item);
         }

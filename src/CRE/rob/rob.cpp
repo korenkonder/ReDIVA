@@ -11523,7 +11523,7 @@ bool pv_osage_manager_array_get_disp(int32_t chara_id) {
 
 void pv_osage_manager_array_set_motion_ids(
     int32_t chara_id, const std::vector<uint32_t>& motion_ids) {
-    std::vector<pv_data_set_motion> set_motion; 
+    std::vector<pv_data_set_motion> set_motion;
     for (const uint32_t& i : motion_ids)
         set_motion.push_back({ i });
     pv_osage_manager_array_get(chara_id)->SetPvSetMotion(set_motion);
@@ -19557,15 +19557,15 @@ bool TaskRobManager::GetWait(rob_chara* rob_chr) {
     for (auto& i : init_chara)
         if (i->chara_id == chara_id)
             return true;
-    
+
     for (auto& i : load_chara)
         if (i->chara_id == chara_id)
             return true;
-    
+
     for (auto& i : loaded_chara)
         if (i->chara_id == chara_id)
             return true;
-    
+
     for (auto& i : free_chara)
         if (i->chara_id == chara_id)
             return true;

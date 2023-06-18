@@ -367,7 +367,7 @@ float_t msgpack::read_float_t(const char* name) {
     case MSGPACK_FLOAT32:
         return m->data.f32;
     case MSGPACK_FLOAT64:
-        return (float_t)m->data.f64;;
+        return (float_t)m->data.f64;
     }
     return 0;
 }
@@ -400,7 +400,7 @@ double_t msgpack::read_double_t(const char* name) {
     case MSGPACK_FLOAT32:
         return m->data.f32;
     case MSGPACK_FLOAT64:
-        return m->data.f64;;
+        return m->data.f64;
     }
     return 0;
 }

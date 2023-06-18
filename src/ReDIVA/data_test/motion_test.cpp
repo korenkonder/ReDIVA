@@ -516,7 +516,7 @@ void DataTestMotA3d::Reset() {
         i.unload(rctx_ptr);
 
     auth_3d_ids.clear();
-    
+
     for (uint32_t& i : obj_sets)
         object_storage_unload_set(i);
 
@@ -1378,7 +1378,7 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     if (elem_eyelid != motion_id_mottbl_map.end())
         data.eyelid.mottbl_index = elem_eyelid->second;
     data.eyelid.frame = face_cl_frame->scroll_bar->value;
-    
+
     auto elem_eyes = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(eyes->GetSelectedItem().c_str()));
     if (elem_eyes != motion_id_mottbl_map.end())
         data.eyes.mottbl_index = elem_eyes->second;

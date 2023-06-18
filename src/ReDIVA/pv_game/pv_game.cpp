@@ -5372,7 +5372,7 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_time_data.add_current_time = true;
 
     sub_14013C8C0()->sub_1400E79E0(data.type);
-    sub_14013C8C0()->pv = data.init_data.pv_id;;
+    sub_14013C8C0()->pv = data.init_data.pv_id;
     sub_14013C8C0()->difficulty = data.init_data.difficulty;
     sub_14013C8C0()->edition = data.init_data.edition;
 

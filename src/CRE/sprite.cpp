@@ -340,6 +340,29 @@ namespace spr {
         sprite_manager->PutSprite(args, 0);
     }
 
+    void put_sprite_line_list(vec2* points, size_t count, resolution_mode mode,
+        spr::SprPrio prio, color4u8 color, int32_t layer) {
+        spr::SprArgs args;
+        args.kind = SPR_KIND_ARROW_AB;
+        args.layer = layer;
+        args.resolution_mode_screen = mode;
+        args.resolution_mode_sprite = mode;
+        args.prio = prio;
+        args.color = color;
+
+        std::vector<spr::SpriteVertex> vertex_array;
+        vertex_array.reserve(count);
+
+        for (size_t i = 0; i < count; i++, points++) {
+            spr::SpriteVertex vert = {};
+            *(vec2*)&vert.pos = *points;
+            vertex_array.push_back(vert);
+        }
+
+        args.SetVertexArray(vertex_array.data(), vertex_array.size());
+        sprite_manager->PutSprite(args, 0);
+    }
+
     void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
         args.trans.x = rect.pos.x;

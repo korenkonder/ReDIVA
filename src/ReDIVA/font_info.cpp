@@ -7,6 +7,10 @@
 
 font_info* font_info_default;
 
+font_char::font_char() : glyph_offset(), glyph_width(), field_18() {
+
+}
+
 font_info::font_info() : font_ptr(), type() {
     font_handler_index = -1;
     init_font_data(0);
@@ -60,7 +64,7 @@ font_char* font_info::get_char_data(wchar_t c, font_char* font_c) const {
     font_c->tex.size = glyph_size;
     font_c->glyph_offset = glyph_offset;
     font_c->glyph_width = glyph_width;
-    font_c->field_18 = false;
+    font_c->field_18 = 0;
     return font_c;
 }
 

@@ -210,6 +210,8 @@ namespace spr {
     spr::SprArgs* put_sprite(const spr::SprArgs& args, const sprite_database* spr_db);
     void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color);
     void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
+    void put_sprite_line_list(vec2* points, size_t count, resolution_mode mode,
+        spr::SprPrio prio, color4u8 color, int32_t layer);
     void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
     void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
     void put_sprite_triangles(SpriteVertex* vert, size_t num, resolution_mode mode,

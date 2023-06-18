@@ -184,11 +184,11 @@ namespace prj {
         inline void push_back(const T& first, U&& second) {
             new_data.push_back({ first, second });
         }
-        
+
         inline void push_back(T&& first, const U& second) {
             new_data.push_back({ first, second });
         }
-        
+
         inline void push_back(T&& first, U&& second) {
             new_data.push_back({ first, second });
         }

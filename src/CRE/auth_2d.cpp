@@ -1223,7 +1223,7 @@ void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
         data.height = (float_t)video->height;
         data.color.r = video->color[0];
         data.color.g = video->color[1];
-        data.color.b = video->color[2];;
+        data.color.b = video->color[2];
         data.opacity = opacity;
         data.mode = dst_mode;
         comp->Add(layer->name, data);

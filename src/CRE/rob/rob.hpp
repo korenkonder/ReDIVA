@@ -3537,7 +3537,7 @@ extern float_t chara_size_table_get_value(uint32_t index);
 
 extern bool check_module_index_is_501(int32_t module_index);
 
-extern const uint32_t* get_opd_motion_set_ids();;
+extern const uint32_t* get_opd_motion_set_ids();
 
 extern const float_t get_osage_gravity_const();
 

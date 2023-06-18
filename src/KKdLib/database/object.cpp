@@ -241,7 +241,7 @@ void object_database::add(object_database_file* obj_db_file) {
     if (!obj_db_file || !obj_db_file->ready)
         return;
 
-    object_set.reserve(obj_db_file->object_set.size());;
+    object_set.reserve(obj_db_file->object_set.size());
 
     for (object_set_info_file& i : obj_db_file->object_set) {
         uint32_t name_hash = hash_string_murmurhash(i.name);
