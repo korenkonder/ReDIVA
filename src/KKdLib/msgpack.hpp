@@ -245,17 +245,17 @@ struct msgpack {
 
     inline bool check_null() {
         if (type == MSGPACK_ARRAY)
-            return data.arr->size() == 0;
+            return !data.arr->size();
         else if (type == MSGPACK_MAP)
-            return data.map->size() == 0;
+            return !data.map->size();
         return type == MSGPACK_NONE;
     }
 
     inline bool check_not_null() {
         if (type == MSGPACK_ARRAY)
-            return data.arr->size() != 0;
+            return !!data.arr->size();
         else if (type == MSGPACK_MAP)
-            return data.map->size() != 0;
+            return !!data.map->size();
         return type != MSGPACK_NONE;
     }
 

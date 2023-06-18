@@ -393,7 +393,7 @@ static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloc
 
         s.set_position(mh[i].key_set_types_offset, SEEK_SET);
         for (int32_t j = 0, b = 0; j < m->key_set_count; j++) {
-            if (j % 8 == 0)
+            if (!(j % 8))
                 b = s.read_uint16_t();
 
             key_set_array[j].type = (mot_key_set_type)((b >> (j % 8 * 2)) & 0x03);
@@ -605,7 +605,7 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
 
     s_motc.set_position(mh.key_set_types_offset, SEEK_SET);
     for (uint32_t j = 0, b = 0; j < key_set_count; j++) {
-        if (j % 8 == 0)
+        if (!(j % 8))
             b = s_motc.read_uint16_t_reverse_endianness();
 
         key_set_array[j].type = (mot_key_set_type)((b >> (j % 8 * 2)) & 0x03);

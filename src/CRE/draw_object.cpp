@@ -754,7 +754,7 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
                 uniform_value[uni_type] = 1;
         }
 
-        if (tex_index == 0 || tex_index == 1)
+        if (tex_index >= 0 && tex_index <= 1)
             uniform_value[U_TEXTURE_BLEND] = texdata->attrib.get_blend();
     }
 

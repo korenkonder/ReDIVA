@@ -3275,7 +3275,7 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
     glass_eye->field_74 = glass_eye->field_3C * v2;
     glass_eye->field_80 = glass_eye->field_48 * v2;
     glass_eye->field_8C = glass_eye->field_54 * v2;
-    if (glass_eye->field_B0 == 0) {
+    if (!glass_eye->field_B0) {
         glass_eye->field_A0 = 0.0f;
         return;
     }

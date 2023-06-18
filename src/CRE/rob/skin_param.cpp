@@ -690,14 +690,17 @@ bool SkinParamManager::Init() {
 }
 
 bool SkinParamManager::Ctrl() {
-    if (state == 0) {
+    switch (state) {
+    case 0:
         if (CtrlFiles())
             return false;
+
         state = 1;
-    }
-    else if (state != 1)
+    case 1:
+        return true;
+    default:
         return false;
-    return true;
+    }
 }
 
 bool SkinParamManager::Dest() {

@@ -2567,11 +2567,11 @@ void dsc::convert(dsc_type dst_type) {
         break;
     }
 
-    bool enable_edit_camera = ((note_convert_src == 0 || note_convert_src == 1)
-        && (note_convert_dst == 0 || note_convert_dst == 1)
-        || note_convert_src == 2 && note_convert_dst == 2);
-    bool enable_edit_camera_ac = (note_convert_src == 0 || note_convert_src == 1)
-        && (note_convert_dst == 0 || note_convert_dst == 1) && dst_has_perf_id;
+    bool enable_edit_camera = note_convert_src >= 0 && note_convert_src <= 1
+        && note_convert_dst >= 0 && note_convert_dst <= 1
+        || note_convert_src == 2 && note_convert_dst == 2;
+    bool enable_edit_camera_ac = note_convert_src >= 0 && note_convert_src <= 1
+        && note_convert_dst >= 0 && note_convert_dst <= 1 && dst_has_perf_id;
 
     dsc_replace dr(type, dst_type, dst_has_perf_id);
 

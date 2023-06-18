@@ -218,7 +218,7 @@ static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
     }
     gl_state_get_error();
 
-    if (level == 0) {
+    if (!level) {
         if (stencil) {
             if (depth_texture)
                 glFramebufferTexture(GL_FRAMEBUFFER,

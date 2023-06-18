@@ -2274,16 +2274,19 @@ void ExConstraintBlock::Field_18(int32_t stage, bool disable_external_force) {
     if (field_59)
         return;
 
-    if (stage == 0) {
+    switch (stage) {
+    case 0:
         if (field_58)
             Field_20();
-    }
-    else if (stage == 2) {
+        break;
+    case 2:
         if (has_children_node)
             DataSet();
-    }
-    else if (stage == 5)
+        break;
+    case 5:
         Field_20();
+        break;
+    }
 }
 
 void ExConstraintBlock::Field_20() {

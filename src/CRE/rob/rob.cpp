@@ -2690,12 +2690,14 @@ void rob_chara::adjust_ctrl() {
 }
 
 static motion_bone_index rob_motion_c_kata_bone_get(int32_t index) {
-    if (index == 0)
+    switch (index) {
+    case 0:
         return MOTION_BONE_C_KATA_L;
-    else if (index == 1)
+    case 1:
         return MOTION_BONE_C_KATA_R;
-    else
+    default:
         return MOTION_BONE_NONE;
+    }
 }
 
 static void rob_chara_bone_data_set_motion_arm_length(rob_chara_bone_data* rob_bone_data,
@@ -3058,7 +3060,7 @@ static void mothead_apply2_inner(struc_380* a1, int32_t type, const mothead_data
             break;
 
         do {
-            if (a3->type == 0) {
+            if (!a3->type) {
                 void* v10 = a3->data;
                 if (!v10)
                     break;
@@ -5914,7 +5916,7 @@ static void mothead_func_13(mothead_func_data* func_data,
     v9 = v5->field_8.field_150;
     HIBYTE(v12) = v9;
     if ((v6 & 2) != 0)
-        HIBYTE(v12) = v9 == 0;
+        HIBYTE(v12) = !v9;
     v14 = ((int32_t*)data)[2];
     v13 = (v6 & 4) != 0;
     sub_1401FCE40((int64_t)&v10);*/
@@ -9182,20 +9184,18 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
     bool v2 = false;
     int32_t v8 = v0.field_0;
     float_t v9 = rob_chr->data.motion.frame_data.frame;
-    if (v8 == 0) {
-        if (v9
-            < v0.frame)
+    switch (v8) {
+    case 0:
+        if (v9 < v0.frame)
             return false;
-    }
-    else if (v8 == 1) {
-        if (v9
-            < v0.frame
-            || v9
-            >= v0.field_8)
+        break;
+    case 1:
+        if (v9 < v0.frame || v9 >= v0.field_8)
             return false;
-    }
-    else
+        break;
+    default:
         return false;
+    }
 
     mat4 mat;
     sub_140419290(rob_chr->bone_data, rob_ik_hand_leg_bones[a2], &mat);
@@ -9268,10 +9268,14 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
 
     int32_t v33 = v0.field_0;
     vec3 v48 = 0.0f;
-    if (v33 == 0)
+    switch (v0.field_0) {
+    case 0:
         v48 = vec3::lerp(v45, v13, v31);
-    else if (v33 == 1)
+        break;
+    case 1:
         v48 = vec3::lerp(v13, v45, v31);
+        break;
+    }
 
     switch (v0.field_E) {
     case 1:
@@ -13483,7 +13487,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
     else {
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++) {
             mdl::ObjFlags v18 = (mdl::ObjFlags)0;
-            if (field_18[i] == 0) {
+            if (!field_18[i]) {
                 if (rctx->chara_reflect)
                     enum_or(v18, mdl::OBJ_CHARA_REFLECT);
                 if (rctx->chara_refract)
@@ -13692,13 +13696,18 @@ void rob_chara_item_equip::set_osage_step(float_t value) {
 }
 
 void rob_chara_item_equip::set_osage_move_cancel(uint8_t id, float_t value) {
-    if (id == 0)
+    switch (id) {
+    case 0:
         for (int32_t i = first_item_equip_object; i < max_item_equip_object; i++)
             item_equip_object[i].set_osage_move_cancel(value);
-    else if (id == 1)
+        break;
+    case 1:
         item_equip_object[ITEM_KAMI].set_osage_move_cancel(value);
-    else if (id == 2)
+        break;
+    case 2:
         item_equip_object[ITEM_OUTER].set_osage_move_cancel(value);
+        break;
+    }
 }
 
 void rob_chara_item_equip::set_osage_play_data_init(item_id id, float_t* opdi_data) {
@@ -13707,7 +13716,7 @@ void rob_chara_item_equip::set_osage_play_data_init(item_id id, float_t* opdi_da
 }
 
 void rob_chara_item_equip::set_shadow_type(int32_t chara_id) {
-    if (chara_id == 0)
+    if (!chara_id)
         shadow_type = SHADOW_CHARA;
     else
         shadow_type = SHADOW_STAGE;
@@ -14004,7 +14013,7 @@ static void sub_14052C560(rob_chara_item_cos_data* item_sub_data,
         }
         else {
             item_id id = sub_140512EF0(rob_itm_equip, ITEM_ITEM09);
-            if (id != ITEM_NONE && ((item->attr & 0x10) == 0 || &i - item->data.obj.data())) {
+            if (id != ITEM_NONE && (!(item->attr & 0x10) || &i - item->data.obj.data())) {
                 bool v8 = false;
                 if (item->attr & 0x10 && &i - item->data.obj.data() == 1) {
                     sub_140513B90(rob_itm_equip, id, item->data.obj[1].obj_info,
@@ -14086,7 +14095,7 @@ static void sub_14052C8C0(rob_chara_item_cos_data* item_cos_data,
                 id = v13;
             }
         }
-        else if (item->type == 0) {
+        else if (!item->type) {
             id = sub_140512EF0(rob_itm_equip, ITEM_ITEM09);
             if (id != ITEM_NONE) {
                 rob_itm_equip->load_body_parts_object_info(id, i.obj_info, bone_data, data, obj_db);
@@ -14097,7 +14106,7 @@ static void sub_14052C8C0(rob_chara_item_cos_data* item_cos_data,
         else
             continue;
 
-        if (item->attr & 0xC)
+        if (item->attr & 0x0C)
             item_cos_data->set_texture_pattern(rob_itm_equip, item_no, id, false);
     }
 }
@@ -18500,7 +18509,7 @@ void RobThreadParent::sub_14054E0D0() {
     {
         std::unique_lock<std::mutex> u_lock(threads_mtx);
         threads.pop_front();
-        threads_null = threads.size() == 0;
+        threads_null = !threads.size();
     }
 
     if (threads_null) {
@@ -19356,7 +19365,8 @@ bool TaskRobManager::Ctrl() {
 }
 
 bool TaskRobManager::Dest() {
-    if (dest_state == 0) {
+    switch (dest_state) {
+    case 0: {
         rob_manager_rob_impl* rob_impls1 = rob_manager_rob_impls1_get(this);
         for (; rob_impls1->task; rob_impls1++)
             rob_impls1->task->DelTask();
@@ -19371,12 +19381,15 @@ bool TaskRobManager::Dest() {
         loaded_chara.clear();
         dest_state = 1;
     }
-    else if (dest_state != 1)
-        return false;
+    case 1:
+        if (!task_rob_load_del_task())
+            return false;
 
-    task_rob_load_del_task();
-    dest_state = 2;
-    return true;
+        dest_state = 2;
+        return true;
+    default:
+        return false;
+    }
 }
 
 void TaskRobManager::Disp() {

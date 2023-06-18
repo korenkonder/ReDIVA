@@ -412,11 +412,9 @@ static errno_t farc_get_files(farc* f) {
 static void farc_pack_files(farc* f, stream& s, farc_compress_mode mode, bool get_files) {
     bool plain = false;
     for (farc_file& i : f->files) {
-        char* ext = str_utils_get_extension(i.name.c_str());
-        bool is_a3da = str_utils_compare(ext, ".a3da") == 0;
-        bool is_diva = str_utils_compare(ext, ".diva") == 0;
-        bool is_vag = str_utils_compare(ext, ".vag") == 0;
-        free_def(ext);
+        bool is_a3da = i.name.find(".a3da") == i.name.size() - 5;
+        bool is_diva = i.name.find(".diva") == i.name.size() - 5;
+        bool is_vag  = i.name.find(".vag" ) == i.name.size() - 4;
 
         if (is_a3da || is_diva || is_vag) {
             plain = true;
