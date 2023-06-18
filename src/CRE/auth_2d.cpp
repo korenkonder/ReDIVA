@@ -272,7 +272,7 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
 aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;
-    color = { 0xFF, 0xFF, 0xFF, 0xFF };
+    color = 0xFFFFFFFF;
     mode = RESOLUTION_MODE_HD;
 }
 
@@ -1001,7 +1001,7 @@ void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
     args.index = index;
     args.layer = layer_index;
     args.prio = prio;
-    vec4_to_vec4u8(color * 255.0f, args.color);
+    args.color = color;
     args.resolution_mode_screen = dst_mode;
     args.resolution_mode_sprite = dst_mode;
     if (flags & AET_FLIP_H)
@@ -1047,7 +1047,7 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
     args.index = index;
     args.layer = layer_index;
     args.prio = prio;
-    vec4_to_vec4u8(color * 255.0f, args.color);
+    args.color = color;
     args.resolution_mode_screen = dst_mode;
     args.resolution_mode_sprite = dst_mode;
     if (flags & AET_FLIP_H)
@@ -1088,7 +1088,7 @@ void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
             vec4 _color = this->color;
             _color.w = opacity * _color.w * this->opacity;
 
-            vec4_to_vec4u8(_color * 255.0f, spr_args.color);
+           spr_args.color = _color;
 
             spr::SprArgs* v52 = spr::put_sprite(spr_args, spr_db);
             spr::SprArgs* v53 = spr::put_sprite(args, spr_db);
@@ -1221,9 +1221,9 @@ void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
         const aet_video* video = layer->item.video;
         data.width = (float_t)video->width;
         data.height = (float_t)video->height;
-        data.color.x = video->color[0];
-        data.color.y = video->color[1];
-        data.color.z = video->color[2];;
+        data.color.r = video->color[0];
+        data.color.g = video->color[1];
+        data.color.b = video->color[2];;
         data.opacity = opacity;
         data.mode = dst_mode;
         comp->Add(layer->name, data);

@@ -17,6 +17,7 @@
 #include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.hpp"
 #include "../GL/uniform_buffer.hpp"
+#include "../color.hpp"
 #include "../file_handler.hpp"
 #include "../frame_rate_control.hpp"
 #include "../static_var.hpp"
@@ -651,7 +652,7 @@ namespace Glitter {
             int32_t appear_time;
             int32_t life_time;
             int32_t start_time;
-            vec4u8 color;
+            color4u8 color;
             bool ext_anim_is_x;
             union {
                 Effect::ExtAnim * ext_anim;

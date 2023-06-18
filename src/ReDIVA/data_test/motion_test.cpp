@@ -92,7 +92,7 @@ DataTestMot::~DataTestMot() {
 }
 
 bool DataTestMot::Init() {
-    clear_color = { 0x60, 0x60, 0x60, 0xFF };
+    clear_color = 0xFF606060;
     set_clear_color = true;
 
     camera* cam = rctx_ptr->camera;
@@ -321,7 +321,7 @@ bool DataTestMot::Ctrl() {
 }
 
 bool DataTestMot::Dest() {
-    clear_color = { 0x00, 0x00, 0x00, 0xFF };
+    clear_color = 0xFF000000;
     set_clear_color = true;
 
     dtm_mot_array[0].DelTask();

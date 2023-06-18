@@ -1365,7 +1365,7 @@ bool SubGameState::DataTestObj::Dest() {
 }
 
 bool SubGameState::DataTestStg::Init() {
-    clear_color = { 0x60, 0x60, 0x60, 0xFF };
+    clear_color = 0xFF606060;
 
     camera* cam = rctx_ptr->camera;
     cam->reset();
@@ -1382,7 +1382,7 @@ bool SubGameState::DataTestStg::Ctrl() {
 }
 
 bool SubGameState::DataTestStg::Dest() {
-    clear_color = { 0x00, 0x00, 0x00, 0xFF };
+    clear_color = 0xFF000000;
 
     dtw_stg->Hide();
     dtm_stg->DelTask();
@@ -1432,7 +1432,7 @@ bool SubGameState::DataTestSpr::Dest() {
 }
 
 bool SubGameState::DataTestAet::Init() {
-    clear_color = { 0x60, 0x60, 0x60, 0xFF };
+    clear_color = 0xFF606060;
     dtm_aet_load();
     return true;
 }
@@ -1442,7 +1442,7 @@ bool SubGameState::DataTestAet::Ctrl() {
 }
 
 bool SubGameState::DataTestAet::Dest() {
-    clear_color = { 0x00, 0x00, 0x00, 0xFF };
+    clear_color = 0xFF000000;
     dtm_aet_unload();
     return true;
 }

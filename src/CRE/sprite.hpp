@@ -11,6 +11,7 @@
 #include "../KKdLib/database/sprite.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
+#include "color.hpp"
 #include "render_context.hpp"
 #include "resolution_mode.hpp"
 #include "texture.hpp"
@@ -144,7 +145,7 @@ namespace spr {
     struct SpriteVertex {
         vec3 pos;
         vec2 uv;
-        vec4u8 color;
+        color4u8 color;
     };
 
     struct SprArgs {
@@ -167,7 +168,7 @@ namespace spr {
 
         SprKind kind;
         IDUnion id;
-        vec4u8 color;
+        color4u8 color;
         SprAttr attr;
         int32_t blend;
         int32_t index;
@@ -204,13 +205,13 @@ namespace spr {
 
     vec2 proj_sprite_3d_line(vec3 vec, bool offset);
 
-    void put_cross(const mat4& mat, vec4u8 color_x, vec4u8 color_y, vec4u8 color_z);
+    void put_cross(const mat4& mat, color4u8 color_x, color4u8 color_y, color4u8 color_z);
     void put_rgb_cross(const mat4& mat);
     spr::SprArgs* put_sprite(const spr::SprArgs& args, const sprite_database* spr_db);
-    void put_sprite_3d_line(vec3 p1, vec3 p2, vec4u8 color);
-    void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer);
-    void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer);
-    void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer);
+    void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color);
+    void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
+    void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
+    void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer);
     void put_sprite_triangles(SpriteVertex* vert, size_t num, resolution_mode mode,
         SprPrio prio, int32_t spr_id, int32_t layer, const sprite_database* spr_db);
 }

@@ -57,7 +57,7 @@ bool TaskDataTestGlitterParticle::Init() {
     Glitter::glt_particle_manager->draw_all_mesh = false;
     dtm_stg_load(0);
 
-    clear_color = { 0x60, 0x60, 0x60, 0xFF };
+    clear_color = 0xFF606060;
 
     camera* cam = rctx_ptr->camera;
     cam->reset();
@@ -137,7 +137,7 @@ void TaskDataTestGlitterParticle::Disp() {
     if (show_grid) {
         mdl::EtcObj etc = {};
         etc.init(mdl::ETC_OBJ_GRID);
-        etc.color = { 0x00, 0x00, 0x00, 0xFF };
+        etc.color = 0xFF000000;
         etc.data.grid.w = 50;
         etc.data.grid.h = 50;
         etc.data.grid.ws = 50;

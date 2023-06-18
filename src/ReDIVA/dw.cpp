@@ -49,36 +49,36 @@ namespace dw_gui_detail {
 }
 
 struct dw_gui_colors {
-    vec4u8 background;
-    vec4u8 foreground;
-    vec4u8 selection_background;
-    vec4u8 selection_foreground;
-    vec4u8 selection_inactive_background;
-    vec4u8 selection_inactive_foreground;
-    vec4u8 disable_background;
-    vec4u8 disable_foreground;
-    vec4u8 title_background;
-    vec4u8 title_foreground;
-    vec4u8 title_inactive_background;
-    vec4u8 title_inactive_foreground;
-    vec4u8 active_border_color;
-    vec4u8 inactive_border_color;
-    vec4u8 focus_border_color;
-    vec4u8 border_color;
-    vec4u8 border_light_color;
-    vec4u8 border_dark_color;
-    vec4u8 popup_background;
-    vec4u8 popup_foreground;
-    vec4u8 popup_selection_background;
-    vec4u8 popup_selection_foreground;
-    vec4u8 menu_background;
-    vec4u8 menu_foreground;
-    vec4u8 menu_selection_background;
-    vec4u8 menu_selection_foreground;
-    vec4u8 button_background;
-    vec4u8 button_foreground;
-    vec4u8 button_disable_background;
-    vec4u8 button_disable_foreground;
+    color4u8 background;
+    color4u8 foreground;
+    color4u8 selection_background;
+    color4u8 selection_foreground;
+    color4u8 selection_inactive_background;
+    color4u8 selection_inactive_foreground;
+    color4u8 disable_background;
+    color4u8 disable_foreground;
+    color4u8 title_background;
+    color4u8 title_foreground;
+    color4u8 title_inactive_background;
+    color4u8 title_inactive_foreground;
+    color4u8 active_border_color;
+    color4u8 inactive_border_color;
+    color4u8 focus_border_color;
+    color4u8 border_color;
+    color4u8 border_light_color;
+    color4u8 border_dark_color;
+    color4u8 popup_background;
+    color4u8 popup_foreground;
+    color4u8 popup_selection_background;
+    color4u8 popup_selection_foreground;
+    color4u8 menu_background;
+    color4u8 menu_foreground;
+    color4u8 menu_selection_background;
+    color4u8 menu_selection_foreground;
+    color4u8 button_background;
+    color4u8 button_foreground;
+    color4u8 button_disable_background;
+    color4u8 button_disable_foreground;
 };
 
 static dw_gui_colors dw_gui_colors_default = {

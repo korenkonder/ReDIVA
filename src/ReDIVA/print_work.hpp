@@ -34,8 +34,8 @@ namespace app {
 
 
 struct PrintWork {
-    vec4u8 color;
-    vec4u8 fill_color;
+    color4u8 color;
+    color4u8 fill_color;
     bool clip;
     rectangle clip_data;
     spr::SprPrio prio;
@@ -50,6 +50,7 @@ struct PrintWork {
 
     PrintWork();
 
+    void DrawLine(vec2 pos[2]);
     font_char GetCharData(wchar_t c);
     vec2 GetTextSize(const wchar_t* str, size_t length);
     vec2 GetTextSize(const wchar_t* str_begin, const wchar_t* str_end);

@@ -105,7 +105,7 @@ bool Auth3dTestTask::Init() {
     obj_sets.shrink_to_fit();
 
     rctx_ptr->render_manager.shadow_ptr->self_shadow = true;
-    clear_color = { 0x99, 0x99, 0x99, 0x00 };
+    clear_color = 0x00999999;
     task_stage_load_task("A3D_STAGE");
     object_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
     return true;

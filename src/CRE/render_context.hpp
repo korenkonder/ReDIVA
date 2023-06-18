@@ -15,6 +15,7 @@
 #include "light_param/wind.hpp"
 #include "light_param.hpp"
 #include "camera.hpp"
+#include "color.hpp"
 #include "gl_state.hpp"
 #include "light_param.hpp"
 #include "object.hpp"
@@ -393,7 +394,7 @@ namespace mdl {
         };
 
         EtcObjType type;
-        vec4u8 color;
+        color4u8 color;
         //bool fog;
         bool constant; // Added
         Data data;

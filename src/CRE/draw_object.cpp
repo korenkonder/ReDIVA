@@ -93,9 +93,7 @@ namespace mdl {
         vec4 g_material_state_emission = rctx->obj_batch.g_material_state_emission;
         vec4 g_material_state_shininess = rctx->obj_batch.g_material_state_shininess;
 
-        vec4 color;
-        vec4u8_to_vec4(etc->color, color);
-        color *= (float_t)(1.0 / 255.0);
+        vec4 color = etc->color;
 
         vec4 ambient;
         *(vec3*)&ambient = *(vec3*)&color * 0.5f;

@@ -7,16 +7,16 @@
 #include "../KKdLib/str_utils.hpp"
 
 PrintWork::PrintWork() : clip(), layer(), field_28(), line_length() {
-    color = { 0xFF, 0xFF, 0xFF, 0xFF };
-    fill_color = { 0x80, 0x80, 0x80, 0xFF };
-    this->clip_data.size = 0i64;
+    color = 0xFFFFFFFF;
+    fill_color = 0xFF808080;
     prio = spr::SPR_PRIO_DEFAULT;
-    layer = 0;
     resolution_mode = RESOLUTION_MODE_HD;
-    field_28 = 0;
-    line_length = 0i64;
     font = font_info_default_get();
     empty_char = '\x25\xA1';
+}
+
+void PrintWork::DrawLine(vec2 pos[2]) {
+    spr::put_sprite_line(pos[0], pos[1], resolution_mode, prio, color, layer);
 }
 
 font_char PrintWork::GetCharData(wchar_t c) {

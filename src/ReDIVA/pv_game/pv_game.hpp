@@ -423,7 +423,7 @@ struct pv_game {
     void set_eyes_adjust(pv_game_chara* chr);
     void set_item(size_t performer, rob_chara_pv_data_item& value);
     void set_item_mask(size_t performer, size_t item, bool value);
-    void set_lyric(int32_t lyric_index, vec4u8 lyric_color);
+    void set_lyric(int32_t lyric_index, color4u8 lyric_color);
     void set_module(size_t performer, int32_t module);
     void set_osage_init(const pv_game_chara& chr);
     bool set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration);

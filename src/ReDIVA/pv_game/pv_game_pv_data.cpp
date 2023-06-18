@@ -942,8 +942,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_LYRIC: {
         int32_t lyric_index = (int32_t)data[0];
-        vec4u8 color = *(vec4u8*)&data[1];
-        color = { color.z, color.y, color.x, color.w };
+        color4u8 color = *(uint32_t*)&data[1];
+        color = { color.b, color.g, color.r, color.a };
         pv_game->set_lyric(lyric_index, color);
     } break;
     case DSC_FT_MUSIC_PLAY: {
@@ -2434,7 +2434,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
         shad->blur_filter_enable[1] = 0x1;
     }
 
-    pv_game->data.play_data.lyrics_color = { 0xFF, 0xFF, 0xFF, 0xFF };
+    pv_game->data.play_data.lyric_color = 0xFFFFFFFF;
 
     field_0 = true;
     chara_id = 0;

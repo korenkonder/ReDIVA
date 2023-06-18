@@ -369,7 +369,7 @@ void pv_game_data::reset() {
     pv_data.field_2BF30 = -1;
     pv_data.field_2BF38 = 0;
     pv_data.music_playing = false;
-    pv_data.pv_game->data.play_data.lyrics_color = { 0xFF, 0xFF, 0xFF, 0xFF };
+    pv_data.pv_game->data.play_data.lyric_color = 0xFFFFFFFF;
     pv_data.play = true;
     pv_data.field_2BF50 = 0;
     pv_data.field_2BFD5 = false;
@@ -3877,7 +3877,7 @@ void pv_game::reset() {
 
     memset(data.play_data.lyric, 0, sizeof(data.play_data.lyric));
     data.play_data.lyric_set = false;
-    data.play_data.lyrics_color = { 0xFF, 0xFF, 0xFF, 0xFF };
+    data.play_data.lyric_color = 0xFFFFFFFF;
 
     memset(data.field_2CE9C, 0, sizeof(data.field_2CE9C));
     data.field_2CF1C = 0;
@@ -4225,12 +4225,11 @@ void pv_game::set_item_mask(size_t performer, size_t item, bool value) {
     items_mask[performer].arr[item] = value;
 }
 
-void pv_game::set_lyric(int32_t lyric_index, vec4u8 lyric_color) {
+void pv_game::set_lyric(int32_t lyric_index, color4u8 lyric_color) {
     memset(data.play_data.lyric, 0, sizeof(data.play_data.lyric));
     data.play_data.lyric_set = false;
 
-    data.play_data.lyrics_color = sub_14013C8C0()->sub_1400E7910() < 4
-        ? lyric_color : vec4u8(0xFF, 0xFF, 0xFF, 0xFF);
+    data.play_data.lyric_color = sub_14013C8C0()->sub_1400E7910() < 4 ? lyric_color : 0xFFFFFFFF;
 
     if (lyric_index < 0)
         return;

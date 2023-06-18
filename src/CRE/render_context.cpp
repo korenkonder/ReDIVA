@@ -226,7 +226,7 @@ namespace mdl {
 
     void EtcObj::init(EtcObjType type) {
         this->type = type;
-        color = { 0xFF, 0xFF, 0xFF, 0xFF };
+        color = 0xFFFFFFFF;
         //fog = false;
         constant = false;
         switch (type) {
@@ -2699,7 +2699,7 @@ namespace mdl {
             return;
 
         data->init_etc(this, mat, etc);
-        if (etc->color.w == 0xFF) {
+        if (etc->color.a == 0xFF) {
             if ((obj_flags & OBJ_SHADOW) != 0)
                 mdl::DispManager::entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
             mdl::DispManager::entry_list(OBJ_TYPE_OPAQUE, data);

@@ -51,17 +51,13 @@ void graphics_background_color_imgui(class_data* data) {
     color_edit_flags |= ImGuiColorEditFlags_NoDragDrop;
 
     ImGui::GetContentRegionAvailSetNextItemWidth();
-    vec4 _clear_color;
-    vec4u8_to_vec4(clear_color, _clear_color);
-    _clear_color *= (float_t)(1.0 / 255.0);
-    if (ImGui::ColorEdit4("##Background Color", (float_t*)&_clear_color, color_edit_flags)) {
-        _clear_color = vec4::clamp(_clear_color, 0.0f, 1.0f) * 255.0f;
-        vec4_to_vec4u8(_clear_color, clear_color);
-    }
+    vec4 _clear_color = clear_color;
+    if (ImGui::ColorEdit4("##Background Color", (float_t*)&_clear_color, color_edit_flags))
+        clear_color = _clear_color;
     ImGui::Checkbox("Set Clear Color", &set_clear_color);
 
     if (ImGui::ButtonEnterKeyPressed("Reset Color")) {
-        clear_color = { 0x60, 0x60, 0x60, 0xFF };
+        clear_color = 0xFF606060;
         set_clear_color = true;
     }
 

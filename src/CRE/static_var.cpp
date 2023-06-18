@@ -42,22 +42,6 @@ const mat3 sv_ypbpr_to_rgb = {
     { 1.57480f, -0.46812f, 0.00000f },
 };
 
-const vec4u8 color_black        = { 0x00, 0x00, 0x00, 0xFF };
-const vec4u8 color_grey         = { 0x7F, 0x7F, 0x7F, 0xFF };
-const vec4u8 color_white        = { 0xFF, 0xFF, 0xFF, 0xFF };
-const vec4u8 color_red          = { 0xFF, 0x00, 0x00, 0xFF };
-const vec4u8 color_green        = { 0x00, 0xFF, 0x00, 0xFF };
-const vec4u8 color_blue         = { 0x00, 0x00, 0xFF, 0xFF };
-const vec4u8 color_cyan         = { 0x00, 0xFF, 0xFF, 0xFF };
-const vec4u8 color_magenta      = { 0xFF, 0x00, 0xFF, 0xFF };
-const vec4u8 color_yellow       = { 0xFF, 0xFF, 0x00, 0xFF };
-const vec4u8 color_dark_red     = { 0x7F, 0x00, 0x00, 0xFF };
-const vec4u8 color_dark_green   = { 0x00, 0x7F, 0x00, 0xFF };
-const vec4u8 color_dark_blue    = { 0x00, 0x00, 0x7F, 0xFF };
-const vec4u8 color_dark_cyan    = { 0x00, 0x7F, 0x7F, 0xFF };
-const vec4u8 color_dark_magenta = { 0x7F, 0x00, 0x7F, 0xFF };
-const vec4u8 color_dark_yellow  = { 0x7F, 0x7F, 0x00, 0xFF };
-
 void sv_anisotropy_set(int32_t value) {
     sv_anisotropy = 1 << (int32_t)roundf(log2f((float_t)clamp_def(value, 1, sv_max_texture_max_anisotropy)));
     if (sv_anisotropy != sv_old_anisotropy)

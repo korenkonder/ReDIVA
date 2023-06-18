@@ -217,7 +217,7 @@ struct pv_game_play_data {
     float_t field_5F4;
     char lyric[76];
     bool lyric_set;
-    vec4u8 lyrics_color;
+    color4u8 lyric_color;
     bool field_64C;
     int32_t field_650;
     float_t field_654;

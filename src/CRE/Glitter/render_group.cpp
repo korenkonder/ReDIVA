@@ -234,7 +234,7 @@ namespace Glitter {
 
         particle->StepUVParticle(GLT_VAL, rend_elem, delta_frame, random_ptr);
         rend_elem->disp = true;
-        rend_elem->color = { -1.0f, -1.0f, -1.0f, -1.0f };
+        rend_elem->color = -1.0f;
 
         bool disp = true;
         if (particle->data.data.sub_flags & PARTICLE_SUB_USE_CURVE)
@@ -597,7 +597,7 @@ namespace Glitter {
 
         particle->StepUVParticle(rend_elem, delta_frame, random_ptr);
         rend_elem->disp = true;
-        rend_elem->color = { -1.0f, -1.0f, -1.0f, -1.0f };
+        rend_elem->color = -1.0f;
 
         bool disp = true;
         float_t color_scale = -1.0f;

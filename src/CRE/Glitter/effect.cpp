@@ -17,7 +17,7 @@ namespace Glitter {
 
     Effect::Data::Data(GLT) : appear_time(), life_time(),
         start_time(), ext_anim(), flags(), emission(), seed() {
-        color = { 0xFF, 0xFF, 0xFF, 0xFF };
+        color = 0xFFFFFFFF;
         name_hash = GLT_VAL != Glitter::FT
             ? hash_murmurhash_empty : hash_fnv1a64m_empty;
         ext_anim_is_x = GLT_VAL == Glitter::X;

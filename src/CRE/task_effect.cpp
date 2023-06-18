@@ -2068,8 +2068,8 @@ void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_
     int32_t v37 = (int32_t)(a4 * 60.0f);
     int32_t v27 = v33 >= v37 ? v37 : v33;
 
-    vec4u8 v19a = { 0x08, 0x00, 0x00, (uint8_t)v19 };
-    vec4u8 v29 = { (uint8_t)v27, 0x00, 0x00, (uint8_t)(int32_t)(v24 * 1275.0f) };
+    color4u8 v19a = { 0x08, 0x00, 0x00, (uint8_t)v19 };
+    color4u8 v29 = { (uint8_t)v27, 0x00, 0x00, (uint8_t)(int32_t)(v24 * 1275.0f) };
 
     for (float_t i = 0.0f; i < v23; i += 0.03f) {
         if (v24 > 0.0f) {
@@ -2130,7 +2130,7 @@ void ripple_emit::sub_14035AAE0() {
         v1.data.vertex[i].z = ((rand_state_array_get_float(4) - 0.5f)
             * v10 + emitter_list[i].y) * emit_pos_scale;
         v1.data.color[i] = rand_state_array_get_float(4) < 0.5f
-            ? vec4u8(0x00, 0x00, 0x00, 0xFF) : vec4u8(0x00, 0x00, 0x00, 0xFF);
+            ? color4u8(0x00, 0x00, 0x00, 0xFF) : color4u8(0x00);
         v1.data.count++;
     }
 
@@ -3058,18 +3058,18 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
     {
         size_t count = data->count;
         vec3* vertex = data->vertex;
-        vec4u8* color = data->color;
+        color4u8* color = data->color;
 
         const size_t vtx_count = (size_t)count * 0x06;
         vec3* vtx_data = force_malloc_s(vec3, vtx_count);
 
         for (size_t i = count; i; i--, vtx_data += 6, vertex++, color++) {
-            vtx_data[0] = { vertex->x, vertex->z, (float_t)color->w };
-            vtx_data[1] = { vertex->x, vertex->z, (float_t)color->w };
-            vtx_data[2] = { vertex->x, vertex->z, (float_t)color->w };
-            vtx_data[3] = { vertex->x, vertex->z, (float_t)color->w };
-            vtx_data[4] = { vertex->x, vertex->z, (float_t)color->w };
-            vtx_data[5] = { vertex->x, vertex->z, (float_t)color->w };
+            vtx_data[0] = { vertex->x, vertex->z, (float_t)color->a };
+            vtx_data[1] = { vertex->x, vertex->z, (float_t)color->a };
+            vtx_data[2] = { vertex->x, vertex->z, (float_t)color->a };
+            vtx_data[3] = { vertex->x, vertex->z, (float_t)color->a };
+            vtx_data[4] = { vertex->x, vertex->z, (float_t)color->a };
+            vtx_data[5] = { vertex->x, vertex->z, (float_t)color->a };
         }
 
         vtx_data -= vtx_count;

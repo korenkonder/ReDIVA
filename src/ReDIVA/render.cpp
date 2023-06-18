@@ -935,7 +935,7 @@ static render_context* render_context_load() {
     ImGui_ImplOpenGL3_Init("#version 430");
     lock_unlock(imgui_context_lock);
 
-    clear_color = { 0x60, 0x60, 0x60, 0xFF };
+    clear_color = 0xFF606060;
     set_clear_color = true;
 
     chara_index charas[6];

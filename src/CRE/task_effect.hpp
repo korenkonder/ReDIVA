@@ -367,7 +367,7 @@ struct struc_101 {
     int32_t ripple_emit_uniform;
     int32_t count;
     vec3* vertex;
-    vec4u8* color;
+    color4u8* color;
     float_t size;
     int32_t field_24;
 };
@@ -375,7 +375,7 @@ struct struc_101 {
 struct ripple_emit_draw_data {
     struc_101 data;
     vec3 vertex[16];
-    vec4u8 color[16];
+    color4u8 color[16];
 
     ripple_emit_draw_data();
 };

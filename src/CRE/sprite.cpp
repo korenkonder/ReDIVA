@@ -52,7 +52,7 @@ public:
 struct sprite_draw_vertex {
     vec3 pos;
     vec2 uv[2];
-    vec4u8 color;
+    color4u8 color;
 };
 
 struct sprite_draw_param {
@@ -204,7 +204,7 @@ namespace spr {
     void SprArgs::Reset() {
         kind = SPR_KIND_NORMAL;
         id = {};
-        color = { 0xFF, 0xFF, 0xFF, 0xFF };
+        color = 0xFFFFFFFF;
         attr = (SprAttr)0;
         blend = 0;
         index = -1;
@@ -290,7 +290,7 @@ namespace spr {
         return sc_vec;
     }
 
-    void put_cross(const mat4& mat, vec4u8 color_x, vec4u8 color_y, vec4u8 color_z) {
+    void put_cross(const mat4& mat, color4u8 color_x, color4u8 color_y, color4u8 color_z) {
         vec3 v5 = { 0.0f, 0.0f, 0.0f };
         vec3 v6;
         mat4_mult_vec3_trans(&mat, &v5, &v6);
@@ -318,13 +318,13 @@ namespace spr {
         return sprite_manager->PutSprite(args, spr_db);
     }
 
-    void put_sprite_3d_line(vec3 p1, vec3 p2, vec4u8 color) {
+    void put_sprite_3d_line(vec3 p1, vec3 p2, color4u8 color) {
         vec2 sc_p1 = proj_sprite_3d_line(p1, true);
         vec2 sc_p2 = proj_sprite_3d_line(p2, true);
         spr::put_sprite_line(sc_p1, sc_p2, RESOLUTION_MODE_MAX, SPR_PRIO_DEBUG, color, 0);
     }
 
-    void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer) {
+    void put_sprite_line(vec2 p1, vec2 p2, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
         args.trans.x = p1.x;
         args.trans.y = p1.y;
@@ -340,7 +340,7 @@ namespace spr {
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer) {
+    void put_sprite_multi(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
         args.trans.x = rect.pos.x;
         args.trans.y = rect.pos.y;
@@ -356,7 +356,7 @@ namespace spr {
         sprite_manager->PutSprite(args, 0);
     }
 
-    void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, vec4u8 color, int32_t layer) {
+    void put_sprite_rect(rectangle rect, resolution_mode mode, spr::SprPrio prio, color4u8 color, int32_t layer) {
         spr::SprArgs args;
         args.trans.x = rect.pos.x;
         args.trans.y = rect.pos.y;
@@ -1204,7 +1204,7 @@ namespace spr {
         if (args.kind == SPR_KIND_LINE)
             return;
 
-        const vec4u8 color = args.color;
+        const color4u8 color = args.color;
 
         if (font)
             draw_sprite_scale(&args);

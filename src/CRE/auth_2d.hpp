@@ -8,6 +8,7 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/aet.hpp"
 #include "../KKdLib/vec.hpp"
+#include "color.hpp"
 #include "frame_rate_control.hpp"
 #include "sprite.hpp"
 
@@ -76,7 +77,7 @@ struct aet_layout_data {
     float_t width;
     float_t height;
     float_t opacity;
-    vec4u8 color;
+    color4u8 color;
     resolution_mode mode;
 
     aet_layout_data();
