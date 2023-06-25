@@ -25,7 +25,7 @@ const int32_t spr_p_life_safe_num_spr[] = {
     2867, 2868, 2869, 2870, 2871, 2872, 2873, 2874, 2875, 2876
 };
 
-TaskGame2d* task_game_2d;
+TaskGame2d task_game_2d;
 
 Game2dEnergyUnit::Game2dEnergyUnit() : field_1B8(), field_1CC(), field_1D1(), no_fail(), field_1D4(),
 max_value(), life_gauge_prev(), life_gauge_stable(), life_gauge_decrease(), life_gauge_increase(),
@@ -493,30 +493,21 @@ void TaskGame2d::Disp() {
 }
 
 bool task_game_2d_add_task() {
-    if (!task_game_2d)
-        task_game_2d = new TaskGame2d;
-
-    return app::TaskWork::AddTask(task_game_2d, 0, "GAME_2D", 0);
+    return app::TaskWork::AddTask(&task_game_2d, 0, "GAME_2D", 0);
 }
 
 void task_game_2d_set_energy_unit_no_fail(bool value) {
-    task_game_2d->energy_unit.no_fail = value;
+    task_game_2d.energy_unit.no_fail = value;
 }
 
 void task_game_2d_sub_140372670(bool value) {
-    task_game_2d->energy_unit.field_1D1 = value;
+    task_game_2d.energy_unit.field_1D1 = value;
 }
 
 void task_game_2d_sub_1403726D0(int32_t value) {
-    task_game_2d->energy_unit.field_1D4 = value;
+    task_game_2d.energy_unit.field_1D4 = value;
 }
 
 bool task_game_2d_del_task() {
-    if (!task_game_2d)
-        return true;
-
-    bool ret = task_game_2d->DelTask();
-    delete task_game_2d;
-    task_game_2d = 0;
-    return ret;
+    return task_game_2d.DelTask();
 }

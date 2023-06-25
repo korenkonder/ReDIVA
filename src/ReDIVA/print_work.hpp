@@ -48,7 +48,8 @@ struct sprite_text_mesh {
          rectangle pos, rectangle uv, color4u8 color);
 };
 
-struct PrintWork {
+class PrintWork {
+public:
     color4u8 color;
     color4u8 fill_color;
     bool clip;

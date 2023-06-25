@@ -235,11 +235,13 @@ struct pv_game_play_data {
     void disp_chance_points(int32_t chance_points, float_t pos_x, float_t pos_y);
     void disp_chance_txt();
     void disp_combo();
+    void disp_lyric(const char* str, bool h_center, color4u8 color);
     void disp_max_slide_point();
     void disp_score();
     void disp_slide_point();
     void disp_slide_points(int32_t max_slide_point, float_t pos_x, float_t pos_y, bool max_slide);
     void disp_song_energy();
+    void disp_song_name(const char* str);
     void disp_spr_set_back();
     void fade_begin_ctrl();
     bool fade_end_ctrl();

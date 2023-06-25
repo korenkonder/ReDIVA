@@ -395,7 +395,7 @@ void pv_game_pv_data::dsc_buffer_set(const void* data, uint32_t size) {
 bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     float_t* dsc_time_offset, bool* music_play, bool a6, bool ignore_targets) {
     if (sub_14013C8C0()->sub_1400E7910() >= 4 && field_2BF68 <= curr_time)
-        pv_game->set_lyric(-1, { 0xFF, 0xFF, 0xFF, 0xFF });
+        pv_game->set_lyric(-1, 0xFFFFFFFF);
 
     int32_t func = dsc_data_ptr->func;
     uint32_t* data = dsc.get_func_data(dsc_data_ptr);
@@ -1200,7 +1200,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_EDIT_LYRIC: {
         int32_t lyric_index = (int32_t)data[0] - 1;
         field_2BF68 = curr_time + 1000000LL * (int32_t)data[1];
-        pv_game->set_lyric(lyric_index, { 0xFF, 0xFF, 0xFF, 0xFF });
+        pv_game->set_lyric(lyric_index, 0xFFFFFFFF);
     } break;
     case DSC_FT_EDIT_TARGET: {
     } break;
@@ -2124,7 +2124,7 @@ void pv_game_pv_data::find_data_camera() {
 
     ::dsc_data* i = dsc.data.data();
     ::dsc_data* i_end = dsc.data.data() + dsc.data.size();
-    while (i = find_func(DSC_FT_CHANGE_FIELD, &time, &pv_branch_mode, i, i_end)) {
+    while (i = find_func(DSC_FT_DATA_CAMERA, &time, &pv_branch_mode, i, i_end)) {
         if (time < 0) {
             time = prev_time;
             if (prev_time < 0)

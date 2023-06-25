@@ -154,7 +154,7 @@ PrintWork::PrintWork() : clip(), layer(), field_28(), line_length() {
     prio = spr::SPR_PRIO_DEFAULT;
     resolution_mode = RESOLUTION_MODE_HD;
     font = font_info_default_get();
-    empty_char = '\x25\xA1';
+    empty_char = L'\x25A1';
 }
 
 void PrintWork::DrawLine(vec2 pos[2]) {

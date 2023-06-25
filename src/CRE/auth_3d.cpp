@@ -368,25 +368,23 @@ void auth_3d::ctrl(render_context* rctx) {
             for (auth_3d_camera_root& i : camera_root) {
                 i.interpolate(auth_3d_camera_root_calc_frame(&i, frame, rctx));
 
-                vec3 interest = i.interest_value;
-                vec3 view_point = i.view_point_value;
-                float_t fov = i.fov_value;
-                float_t roll = i.roll_value;
+                cam_struct cam;
+
+                cam.interest = i.interest_value;
+                cam.view_point = i.view_point_value;
+                cam.fov = i.fov_value;
+                cam.roll = i.roll_value;
 
                 if (left_right_reverse) {
-                    interest.x = -interest.x;
-                    view_point.x = -view_point.x;
-                    roll = -roll;
+                    cam.interest.x = -cam.interest.x;
+                    cam.view_point.x = -cam.view_point.x;
+                    cam.roll = -cam.roll;
                 }
 
-                mat4_mult_vec3_trans(&mat, &interest, &interest);
-                mat4_mult_vec3_trans(&mat, &view_point, &view_point);
+                mat4_mult_vec3_trans(&mat, &cam.interest, &cam.interest);
+                mat4_mult_vec3_trans(&mat, &cam.view_point, &cam.view_point);
 
-                camera* cam = rctx->camera;
-                cam->set_interest(interest);
-                cam->set_view_point(view_point);
-                cam->set_fov(fov * RAD_TO_DEG);
-                cam->set_roll(roll * RAD_TO_DEG);
+                cam.set(rctx->camera);
                 break;
             }
 
@@ -3562,7 +3560,6 @@ static void auth_3d_camera_auxiliary_set(auth_3d_camera_auxiliary* ca, render_co
 }
 
 static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t frame, render_context* rctx) {
-    camera* cam = rctx->camera;
     if (auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.x, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.y, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.z, frame, 0.3f)
@@ -3570,7 +3567,7 @@ static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t f
         || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame, 0.3f)) {
         frame = (float_t)(int32_t)frame;
-        cam->set_fast_change(true);
+        rctx->camera->set_fast_change(true);
     }
     else {
         float_t frame_prev = frame - get_delta_frame();
@@ -3582,7 +3579,7 @@ static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t f
                 || auth_3d_key_detect_fast_change(&cr->interest.translation.x, frame_prev, 0.3f)
                 || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame_prev, 0.3f)
                 || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame_prev, 0.3f))
-                cam->set_fast_change_hist0(true);
+                rctx->camera->set_fast_change_hist0(true);
         }
     }
     return frame;

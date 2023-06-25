@@ -32,10 +32,6 @@ struct camera {
     vec3 interest;
     bool use_up;
     vec3 up;
-    int32_t render_width;
-    int32_t render_height;
-    int32_t sprite_width;
-    int32_t sprite_height;
     vec3 field_1E4;
     vec3 field_1F0;
     vec3 field_1FC;
@@ -60,8 +56,7 @@ struct camera {
     camera();
     ~camera();
 
-    void initialize(double_t aspect, int32_t render_width, int32_t render_height,
-        int32_t sprite_width, int32_t sprite_height);
+    void initialize(double_t aspect);
     double_t get_min_distance();
     void set_min_distance(double_t value);
     double_t get_max_distance();
@@ -86,10 +81,6 @@ struct camera {
     void get_up(bool& use_up, vec3& value);
     void set_up(bool use_up, const vec3& value);
     void set_up(bool use_up, const vec3&& value);
-    void get_res(int32_t& render_width, int32_t& render_height,
-        int32_t& sprite_width, int32_t& sprite_height);
-    void set_res(int32_t render_width, int32_t render_height,
-        int32_t sprite_width, int32_t sprite_height);
     void set_fast_change(bool value);
     void set_fast_change_hist0(bool value);
     void set_fast_change_hist1(bool value);

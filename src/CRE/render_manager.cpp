@@ -1453,12 +1453,12 @@ static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
             GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
 
         if (opaque_enable && rctx->disp_manager.get_obj_count(opaque))
-            rctx->disp_manager.draw(opaque, alpha);
+            rctx->disp_manager.draw_translucent(opaque, alpha);
         if (transparent_enable && rctx->disp_manager.get_obj_count(transparent))
-            rctx->disp_manager.draw(transparent, alpha);
+            rctx->disp_manager.draw_translucent(transparent, alpha);
         if (translucent_enable && rctx->disp_manager.get_obj_count(translucent)) {
             gl_state_enable_blend();
-            rctx->disp_manager.draw(translucent, alpha);
+            rctx->disp_manager.draw_translucent(translucent, alpha);
             gl_state_disable_blend();
         }
 
@@ -1501,10 +1501,19 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type) {
     std::vector<mdl::ObjData*>& vec = rctx->disp_manager.obj[type];
     for (mdl::ObjData*& i : vec)
-        if (i->kind == mdl::OBJ_KIND_TRANSLUCENT) {
+        switch (i->kind) {
+        case mdl::OBJ_KIND_NORMAL: {
             int32_t alpha = (int32_t)(i->args.sub_mesh.blend_color.w * 255.0f);
             alpha = clamp_def(alpha, 0, 255);
             arr[alpha] = true;
+        } break;
+        case mdl::OBJ_KIND_TRANSLUCENT: {
+            for (uint32_t j = 0; j < i->args.translucent.count; j++) {
+                int32_t alpha = (int32_t)(i->args.translucent.sub_mesh[j]->blend_color.w * 255.0f);
+                alpha = clamp_def(alpha, 0, 255);
+                arr[alpha] = true;
+            }
+        } break;
         }
 }
 

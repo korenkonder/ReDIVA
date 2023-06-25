@@ -2837,9 +2837,9 @@ struct rob_chara_motion {
     struc_406 step_data;
     float_t step;
     int32_t field_24;
-    int8_t field_28;
-    int8_t field_29;
-    int8_t field_2A;
+    uint8_t field_28;
+    uint8_t field_29;
+    uint8_t field_2A;
     int32_t loop_index;
     uint32_t field_30;
     int16_t field_34;

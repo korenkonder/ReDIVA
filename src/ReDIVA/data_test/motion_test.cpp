@@ -1354,7 +1354,7 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
         { 131, 0.0f },
     };
 
-    std::string face_mot = face->GetSelectedItem();
+    std::string face_mot = face->GetSelectedItemStr();
     auto elem_face = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(face_mot.c_str()));
     if (elem_face != motion_id_mottbl_map.end())
         data.face.mottbl_index = elem_face->second;
@@ -1379,12 +1379,12 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
         data.eyelid.mottbl_index = elem_eyelid->second;
     data.eyelid.frame = face_cl_frame->scroll_bar->value;
 
-    auto elem_eyes = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(eyes->GetSelectedItem().c_str()));
+    auto elem_eyes = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(eyes->GetSelectedItemStr().c_str()));
     if (elem_eyes != motion_id_mottbl_map.end())
         data.eyes.mottbl_index = elem_eyes->second;
     data.eyes.frame = eyes_frame->scroll_bar->value;
 
-    auto elem_mouth = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(mouth->GetSelectedItem().c_str()));
+    auto elem_mouth = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(mouth->GetSelectedItemStr().c_str()));
     if (elem_mouth != motion_id_mottbl_map.end())
         data.mouth.mottbl_index = elem_mouth->second;
     data.mouth.frame = mouth_frame->scroll_bar->value;
@@ -1398,7 +1398,7 @@ bool DataTestFaceMotDw::GetEnable() {
 
 dw::ListBox* DataTestFaceMotDw::InitAddMottblMapMotions(dw::Composite* parent, int32_t type) {
     dw::ListBox* list_box = new dw::ListBox(parent);
-    //list_box->list->sub_1402F9930(20);
+    list_box->SetMaxItems(20);
     AddMottblMapMotions(list_box, type);
     return list_box;
 }
@@ -1418,9 +1418,9 @@ DataTestMotDw::StepSliderProc::~StepSliderProc() {
 
 }
 
-void DataTestMotDw::StepSliderProc::Callback(dw::Widget* data) {
+void DataTestMotDw::StepSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
         test_mot_data->step[slider->callback_data.i32].array[index] = slider->scroll_bar->value;
 }
@@ -1433,9 +1433,9 @@ DataTestMotDw::CharaListBoxProc::~CharaListBoxProc() {
 
 }
 
-void DataTestMotDw::CharaListBoxProc::Callback(dw::Widget* data) {
+void DataTestMotDw::CharaListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
         int32_t chara_id = list_box->callback_data.i32;
         ::chara_index chara_index = (::chara_index)list_box->list->selected_item;
@@ -1470,11 +1470,11 @@ DataTestMotDw::CTypeListBoxProc::~CTypeListBoxProc() {
 
 }
 
-void DataTestMotDw::CTypeListBoxProc::Callback(dw::Widget* data) {
+void DataTestMotDw::CTypeListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
-        std::string str = list_box->GetSelectedItem();
+        std::string str = list_box->GetSelectedItemStr();
         size_t start = str.find('(');
         if (start != -1) {
             start += 4;
@@ -1495,9 +1495,9 @@ DataTestMotDw::SetListBoxProc::~SetListBoxProc() {
 
 }
 
-void DataTestMotDw::SetListBoxProc::Callback(dw::Widget* data) {
+void DataTestMotDw::SetListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box) {
         int32_t chara_id = list_box->callback_data.i32;
         test_mot_data->motion_set_index[chara_id] = (int32_t)list_box->list->selected_item;
@@ -1513,7 +1513,7 @@ DataTestMotDw::IdListBoxProc::~IdListBoxProc() {
 
 }
 
-void DataTestMotDw::IdListBoxProc::Callback(dw::Widget* data) {
+void DataTestMotDw::IdListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1525,7 +1525,7 @@ DataTestMotDw::RotateSliderProc::~RotateSliderProc() {
 
 }
 
-void DataTestMotDw::RotateSliderProc::Callback(dw::Widget* data) {
+void DataTestMotDw::RotateSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1537,7 +1537,7 @@ DataTestMotDw::PositionSliderProc::~PositionSliderProc() {
 
 }
 
-void DataTestMotDw::PositionSliderProc::Callback(dw::Widget* data) {
+void DataTestMotDw::PositionSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1549,7 +1549,7 @@ DataTestMotDw::FrameSliderProc::~FrameSliderProc() {
 
 }
 
-void DataTestMotDw::FrameSliderProc::Callback(dw::Widget* data) {
+void DataTestMotDw::FrameSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1561,7 +1561,7 @@ DataTestMotDw::StartFrameSliderProc::~StartFrameSliderProc() {
 
 }
 
-void DataTestMotDw::StartFrameSliderProc::Callback(dw::Widget* data) {
+void DataTestMotDw::StartFrameSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1573,7 +1573,7 @@ DataTestMotDw::DispButtonProc::~DispButtonProc() {
 
 }
 
-void DataTestMotDw::DispButtonProc::Callback(dw::Widget* data) {
+void DataTestMotDw::DispButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1585,7 +1585,7 @@ DataTestMotDw::UseOpdButtonProc::~UseOpdButtonProc() {
 
 }
 
-void DataTestMotDw::UseOpdButtonProc::Callback(dw::Widget* data) {
+void DataTestMotDw::UseOpdButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1597,7 +1597,7 @@ DataTestMotDw::PartialMotButtonProc::~PartialMotButtonProc() {
 
 }
 
-void DataTestMotDw::PartialMotButtonProc::Callback(dw::Widget* data) {
+void DataTestMotDw::PartialMotButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1609,7 +1609,7 @@ DataTestMotDw::SaveOnlyStartFrameButtonProc::~SaveOnlyStartFrameButtonProc() {
 
 }
 
-void DataTestMotDw::SaveOnlyStartFrameButtonProc::Callback(dw::Widget* data) {
+void DataTestMotDw::SaveOnlyStartFrameButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1621,7 +1621,7 @@ DataTestMotDw::CreateFaceMotDwProc::~CreateFaceMotDwProc() {
 
 }
 
-void DataTestMotDw::CreateFaceMotDwProc::Callback(dw::Widget* data) {
+void DataTestMotDw::CreateFaceMotDwProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1633,7 +1633,7 @@ DataTestMotDw::CreateEqDwProc::~CreateEqDwProc() {
 
 }
 
-void DataTestMotDw::CreateEqDwProc::Callback(dw::Widget* data) {
+void DataTestMotDw::CreateEqDwProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1645,7 +1645,7 @@ DataTestMotDw::CreateDebugCamProc::~CreateDebugCamProc() {
 
 }
 
-void DataTestMotDw::CreateDebugCamProc::Callback(dw::Widget* data) {
+void DataTestMotDw::CreateDebugCamProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -1663,36 +1663,36 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     dw::Label* chara_label = new dw::Label(chara_comp);
     chara_label->SetText("CHARA   ");
-    //chara_label->SetFont(&p_dw__font_type_6x12);
+    chara_label->SetFont(dw::p_font_type_6x12);
 
     dw::ListBox* chara = new dw::ListBox(chara_comp);
-    //chara->list->sub_1402F9930(20);
+    chara->SetMaxItems(20);
     for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
         chara->AddItem(chara_index_get_name((chara_index)i));
     chara->callback_data.i32 = chara_id;
     chara->SetItemIndex(test_mot_data->chara_index[chara_id]);
     chara->AddSelectionListener(&chara_list_box_proc);
-    //chara->SetFont(&p_dw__font_type_6x12);
+    chara->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* chara_list_box_comp = new dw::Composite(this);
     chara_list_box_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     chara_list_box_proc.list_box = new dw::ListBox(chara_list_box_comp);
-    //chara_list_box_proc.list_box->list->sub_1402F9930(40);
-    //chara_list_box_proc.list_box->SetFont(&p_dw__font_type_6x12);
+    chara_list_box_proc.list_box->SetMaxItems(40);
+    chara_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
     AddModules(chara_id, chara_list_box_proc.list_box);
     chara_list_box_proc.list_box->callback_data.i32 = chara_id;
 
     chara_list_box_proc.list_box->SetItemIndex(test_mot_data->module_index[chara_id]);
     chara_list_box_proc.list_box->AddSelectionListener(&c_type_list_box_proc);
-    //chara_list_box_proc.list_box->SetFont(&p_dw__font_type_6x12);
+    chara_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* set_comp = new dw::Composite(this);
     set_comp->SetLayout( new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* set_label = new dw::Label(set_comp);
     set_label->SetText("SET     ");
-    //set_label->SetFont(&p_dw__font_type_6x12);
+    set_label->SetFont(dw::p_font_type_6x12);
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
@@ -1700,25 +1700,25 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     c_type_list_box_proc.list_box = new dw::ListBox(set_comp);
     for (motion_set_info& i : aft_mot_db->motion_set)
         c_type_list_box_proc.list_box->AddItem(i.name);
-    //c_type_list_box_proc.list_box->list->sub_1402F9930(40);
+    c_type_list_box_proc.list_box->SetMaxItems(40);
     c_type_list_box_proc.list_box->callback_data.i32 = chara_id;
 
     c_type_list_box_proc.list_box->SetItemIndex(test_mot_data->motion_set_index[chara_id]);
     c_type_list_box_proc.list_box->AddSelectionListener(&set_list_box_proc);
-    //c_type_list_box_proc.list_box->SetFont(&p_dw__font_type_6x12);
+    c_type_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* id_comp = new dw::Composite(this);
     id_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* id_label = new dw::Label(id_comp);
     id_label->SetText("ID      ");
-    //id_label->SetFont(&p_dw__font_type_6x12);
+    id_label->SetFont(dw::p_font_type_6x12);
 
     set_list_box_proc.list_box = new dw::ListBox(id_comp);
-    //set_list_box_proc.list_box->list->sub_1402F9930(40);
+    set_list_box_proc.list_box->SetMaxItems(40);
     set_list_box_proc.list_box->callback_data.i32 = chara_id;
     set_list_box_proc.list_box->AddSelectionListener(&id_list_box_proc);
-    //set_list_box_proc.list_box->SetFont(&p_dw__font_type_6x12);
+    set_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
     id_list_box_proc.slider = dw::Slider::make(this);
     id_list_box_proc.slider->SetText("Y ROT");
@@ -1736,7 +1736,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     dw::Group* frame_group = new dw::Group(this);
     frame_group->SetText("FRAME");
-    //frame_group->SetFont(&p_dw__font_type_6x12);
+    frame_group->SetFont(dw::p_font_type_6x12);
 
     for (int32_t i = 3; i < 4; i++) {
         step_slider = dw::Slider::make(frame_group);
@@ -1800,29 +1800,29 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dw::Group* ab_loop_group = new dw::Group(this);
     ab_loop_group->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
     ab_loop_group->SetText("AB LOOP");
-    //ab_loop_group->SetFont(&p_dw__font_type_6x12);
+    ab_loop_group->SetFont(dw::p_font_type_6x12);
 
     dw::Button* a_label = new dw::Button(ab_loop_group, dw::FLAG_8);
     a_label->SetText(" A ");
     a_label->callback_data.i64 = (int64_t)this;
     a_label->callback = DataTestMotDw::ACallback;
-    //a_label->SetFont(&p_dw__font_type_6x12);
+    a_label->SetFont(dw::p_font_type_6x12);
 
     dw::Button* b_label = new dw::Button(ab_loop_group, dw::FLAG_8);
     b_label->SetText(" B ");
     b_label->callback_data.i64 = (int64_t)this;
     b_label->callback = DataTestMotDw::BCallback;
-    //b_label->SetFont(&p_dw__font_type_6x12);
+    b_label->SetFont(dw::p_font_type_6x12);
 
     dw::Button* ab_toggle_button = new dw::Button(ab_loop_group, dw::CHECKBOX);
     ab_toggle_button->SetText("");
     ab_toggle_button->callback_data.v64 = this;
     ab_toggle_button->callback = DataTestMotDw::ABToggleCallback;
-    //ab_toggle->SetFont(&p_dw__font_type_6x12);
+    ab_toggle_button->SetFont(dw::p_font_type_6x12);
     start_frame_slider_proc.button = ab_toggle_button;
 
     ab_loop = new dw::Label(ab_loop_group, dw::FLAG_8);
-    //ab_loop->SetFont(&p_dw__font_type_6x12);
+    ab_loop->SetFont(dw::p_font_type_6x12);
     ab_loop->SetText("     00000:00000");
 
     dw::Composite* rob_comp = new dw::Composite(this);
@@ -1833,12 +1833,12 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     disp_button->SetValue(true);
     disp_button->AddSelectionListener(&disp_button_proc);
     disp_button->callback_data.i32 = chara_id;
-    //disp_button->SetFont(&p_dw__font_type_6x12);
+    disp_button->SetFont(dw::p_font_type_6x12);
 
     disp_button_proc.button = new dw::Button(rob_comp, dw::CHECKBOX);
     disp_button_proc.button->SetText("SET CHANGE  ");
     disp_button_proc.button->SetValue(false);
-    //disp_button_proc.button->SetFont(&p_dw__font_type_6x12);
+    disp_button_proc.button->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* var_comp = new dw::Composite(this);
     var_comp->Composite::SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -1847,24 +1847,24 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     reate_face_mot_dw->SetText(" FACE MOT ");
     reate_face_mot_dw->AddSelectionListener(&create_face_mot_dw_proc);
     reate_face_mot_dw->callback_data.i32 = chara_id;
-    //reate_face_mot_dw->SetFont(&p_dw__font_type_6x12);
+    reate_face_mot_dw->SetFont(dw::p_font_type_6x12);
 
     dw::Button* create_eq_dw = new dw::Button(var_comp, dw::FLAG_8);
     create_eq_dw->SetText("  EQUIP  ");
     create_eq_dw->AddSelectionListener(&create_eq_dw_proc);
-    //create_eq_dw->SetFont(&p_dw__font_type_6x12);
+    create_eq_dw->SetFont(dw::p_font_type_6x12);
 
     dw::Button* create_debug_cam = new dw::Button(var_comp, dw::FLAG_8);
     create_debug_cam->SetText(" LOCK CAM ");
     create_debug_cam->AddSelectionListener(&create_debug_cam_proc);
-    //create_debug_cam->SetFont(&p_dw__font_type_6x12);
+    create_debug_cam->SetFont(dw::p_font_type_6x12);
 
     dw::Button* use_opd_button = new dw::Button(this, dw::CHECKBOX);
     use_opd_button->SetText("USE OSAGE PLAY DATA");
     use_opd_button->SetValue(false);
     use_opd_button->AddSelectionListener(&use_opd_button_proc);
     use_opd_button->callback_data.i32 = chara_id;
-    //use_opd_button->SetFont(&p_dw__font_type_6x12);
+    use_opd_button->SetFont(dw::p_font_type_6x12);
 
     dtm_mot->SetPartialMot(false);
 
@@ -1873,7 +1873,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     save_only_start_frame_button->SetValue(false);
     save_only_start_frame_button->AddSelectionListener(&save_only_start_frame_button_proc);
     save_only_start_frame_button->callback_data.i32 = chara_id;
-    //save_only_start_frame_button->SetFont(&p_dw__font_type_6x12);
+    save_only_start_frame_button->SetFont(dw::p_font_type_6x12);
 
     GetSetSize();
 }
@@ -2046,7 +2046,7 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
     if (frame > set_motion.back().frame_stage_index.first)
         last = set_motion.back().frame_stage_index.first;
 
-    if (button->GetText().compare(" < "))
+    if (button->GetText().compare(L" < "))
         test_mot_dw->frame_slider_proc.slider->SetValue(last);
     else if (first > 0.0f)
         test_mot_dw->frame_slider_proc.slider->SetValue(first);
@@ -2064,10 +2064,10 @@ DataTestMotA3dDw::PvListBoxProc::~PvListBoxProc() {
 
 }
 
-void DataTestMotA3dDw::PvListBoxProc::Callback(dw::Widget* data) {
-    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+void DataTestMotA3dDw::PvListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box)
-        data_test_mot_a3d_dw->SetPvId(atoi(list_box->GetSelectedItem().c_str()));
+        data_test_mot_a3d_dw->SetPvId(atoi(list_box->GetSelectedItemStr().c_str()));
 
     data_test_mot_a3d_dw->GetSetSize();
 }
@@ -2080,7 +2080,7 @@ DataTestMotA3dDw::A3dListBoxProc::~A3dListBoxProc() {
 
 }
 
-void DataTestMotA3dDw::A3dListBoxProc::Callback(dw::Widget* data) {
+void DataTestMotA3dDw::A3dListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
 
 }
 
@@ -2092,9 +2092,9 @@ DataTestMotCtrlDw::TypeListBoxProc::~TypeListBoxProc() {
 
 }
 
-void DataTestMotCtrlDw::TypeListBoxProc::Callback(dw::Widget* data) {
+void DataTestMotCtrlDw::TypeListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
     if (list_box)
         test_mot_data->type = (int32_t)list_box->list->selected_item;
 }
@@ -2107,9 +2107,9 @@ DataTestMotCtrlDw::SyncFrameButtonProc::~SyncFrameButtonProc() {
 
 }
 
-void DataTestMotCtrlDw::SyncFrameButtonProc::Callback(dw::Widget* data) {
+void DataTestMotCtrlDw::SyncFrameButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
     if (button)
         test_mot_data->sync_frame = button->value;
 }
@@ -2122,9 +2122,9 @@ DataTestMotCtrlDw::GameCameraButtonProc::~GameCameraButtonProc() {
 
 }
 
-void DataTestMotCtrlDw::GameCameraButtonProc::Callback(dw::Widget* data) {
+void DataTestMotCtrlDw::GameCameraButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
-    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
     if (button) {
         test_mot_data->field_A8 = true;
         test_mot_data->field_A9 = button->value;
@@ -2139,11 +2139,11 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
 
     dw::Label* pv_label = new dw::Label(pv_comp);
     pv_label->SetText("PV");
-    //pv_label->SetFont(&p_dw__font_type_6x12);
+    pv_label->SetFont(dw::p_font_type_6x12);
 
     pv = new dw::ListBox(pv_comp);
-    //pv->list->sub_1402F9930(20);
-    //pv->SetFont(&p_dw__font_type_6x12);
+    pv->SetMaxItems(20);
+    pv->SetFont(dw::p_font_type_6x12);
 
     for (int32_t i = 0; i < 1000; i++) {
         if (!task_pv_db_get_pv(i))
@@ -2161,15 +2161,15 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
 
     dw::Label* a3d_label = new dw::Label(a3d_comp);
     a3d_label->SetText("A3d");
-    //a3d_label->SetFont(&p_dw__font_type_6x12);
+    a3d_label->SetFont(dw::p_font_type_6x12);
 
     a3d = new dw::ListBox(a3d_comp);
-    //a3d->list->sub_1402F9930(20);
+    a3d->SetMaxItems(20);
     a3d->AddItem("PVを選択して下さい");
 
     a3d->Reset();
     a3d->AddSelectionListener(&a3d_list_box_proc);
-    //a3d->SetFont(&p_dw__font_type_6x12);
+    a3d->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* button_comp = new dw::Composite(this);
     button_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -2179,13 +2179,13 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
 
     play_a3d->callback_data.v64 = this;
     play_a3d->callback = DataTestMotA3dDw::PlayA3dCallback;
-    //play_a3d->SetFont(&p_dw__font_type_6x12);
+    play_a3d->SetFont(dw::p_font_type_6x12);
 
     sync_1p_frame = new dw::Button(button_comp, dw::CHECKBOX);
     sync_1p_frame->SetText("SYNC 1P FRAME");
     sync_1p_frame->callback_data.v64 = this;
     sync_1p_frame->callback = DataTestMotA3dDw::Sync1pFrameCallback;
-    //sync_1p_frame->SetFont(&p_dw__font_type_6x12);
+    sync_1p_frame->SetFont(dw::p_font_type_6x12);
 
     GetSetSize();
 
@@ -2239,7 +2239,7 @@ void DataTestMotA3dDw::SetPvId(int32_t pv_id) {
 }
 
 void DataTestMotA3dDw::PlayA3dCallback(dw::Widget* data) {
-    std::string auth_3d = data_test_mot_a3d_dw_get()->a3d->GetSelectedItem();
+    std::string auth_3d = data_test_mot_a3d_dw_get()->a3d->GetSelectedItemStr();
     data_test_mot_a3d_set_auth_3d(auth_3d);
 }
 
@@ -2280,13 +2280,13 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
     dw::Button* sync_frame_button = new dw::Button(this, dw::CHECKBOX);
     sync_frame_button->SetText("SYNC FRAME");
     sync_frame_button->AddSelectionListener(&sync_frame_button_proc);
-    //sync_frame_button->SetFont(&p_dw__font_type_6x12);
+    sync_frame_button->SetFont(dw::p_font_type_6x12);
 
     running = new dw::Button(this, dw::CHECKBOX);
     running->SetText("RUNNING");
     running->SetValue(false);
     running->callback = DataTestMotCtrlDw::RunningCallback;
-    //running->SetFont(&p_dw__font_type_6x12);
+    running->SetFont(dw::p_font_type_6x12);
 
     stage = new dw::Button(this, dw::FLAG_8);
     stage->SetText("STAGE");

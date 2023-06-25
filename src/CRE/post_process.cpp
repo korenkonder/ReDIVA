@@ -204,6 +204,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 
     get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_POST_PP);
 
+    frame_texture_reset_capture();
+
     fbo::blit(rend_texture.fbos[0], post_texture.fbos[0],
         0, 0, render_width, render_height,
         0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
@@ -698,6 +700,12 @@ void post_process::frame_texture_reset() {
     }
 }
 
+void post_process::frame_texture_reset_capture() {
+    for (post_process_frame_texture& i : frame_texture)
+        if (&i - frame_texture)
+            i.capture = false;
+}
+
 bool post_process::frame_texture_slot_capture_set(int32_t index) {
     if (index < 1 || index >= 5)
         return false;
@@ -745,8 +753,7 @@ void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type
 
             texture* dst_tex = j.texture;
 
-            glActiveTexture(GL_TEXTURE0);
-            gl_state_active_bind_texture_2d(GL_TEXTURE_2D, tex);
+            gl_state_active_bind_texture_2d(0, tex);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             glViewport(0, 0, dst_tex->width, dst_tex->height);
@@ -755,9 +762,6 @@ void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type
             render_texture::draw_quad(&shaders_ft, dst_tex->width, dst_tex->height);
             gl_state_bind_framebuffer(0);
         }
-
-        if (&i - frame_texture)
-            i.capture = false;
     }
 }
 

@@ -300,7 +300,8 @@ namespace Glitter {
                 vec3 scale = this->scale * scale_all;
 
                 mat4_rotate_zyx_mult(&mat, &rot, &mat);
-                mat4_scale_rot(&mat, &scale, &mat);
+                mat4_scale_rot(&mat, &scale, &this->mat);
+
                 for (F2EmitterInst*& i : emitters)
                     if (i)
                         i->CtrlInit(GPM_VAL, GLT_VAL, this, delta_frame);
@@ -846,7 +847,8 @@ namespace Glitter {
                 mat4 mat;
                 mat4_translate(&trans, &mat);
                 mat4_rotate_zyx_mult(&mat, &rot, &mat);
-                mat4_scale_rot(&mat, &scale, &mat);
+                mat4_scale_rot(&mat, &scale, &this->mat);
+
                 for (XEmitterInst*& i : emitters)
                     if (i)
                         i->CtrlInit(this, delta_frame);

@@ -302,7 +302,13 @@ void OggFile::ThreadMain(OggFile* of) {
 
     waitable_timer timer;
     while (!of->thread_state.get()) {
-        of->Ctrl(of->info ? of->info->rate : 44100);
+        int32_t rate = 44100;
+        {
+            std::unique_lock<std::mutex> u_lock(of->file_mtx);
+            if (of->info)
+                rate = of->info->rate;
+        }
+        of->Ctrl(rate);
         timer.sleep(8);
     }
     of->thread_state.set(0);

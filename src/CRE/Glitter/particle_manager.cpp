@@ -344,7 +344,7 @@ namespace Glitter {
         if (effect_hash == hash_fnv1a64m_empty || effect_hash == hash_murmurhash_empty)
             return;
 
-        if (effect_group_hash == hash_fnv1a64m_empty && effect_group_hash == hash_murmurhash_empty) {
+        if (effect_group_hash == hash_fnv1a64m_empty || effect_group_hash == hash_murmurhash_empty) {
             for (Scene*& i : scenes)
                 if (i && i->FreeEffect(this, effect_hash, force_kill))
                     break;

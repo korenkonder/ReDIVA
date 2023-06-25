@@ -130,6 +130,7 @@ struct post_process {
     void frame_texture_free();
     int32_t frame_texture_load(int32_t slot, post_process_frame_texture_type type, texture* tex);
     void frame_texture_reset();
+    void frame_texture_reset_capture();
     bool frame_texture_slot_capture_set(int32_t index);
     bool frame_texture_unload(int32_t slot, texture* tex);
     void get_frame_texture(GLuint tex, post_process_frame_texture_type type);

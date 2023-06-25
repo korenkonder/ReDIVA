@@ -2016,6 +2016,10 @@ namespace mdl {
         uniform_value_reset();
         gl_state_get();
 
+        rctx_ptr->obj_scene_ubo.Bind(0);
+        rctx_ptr->obj_batch_ubo.Bind(1);
+        rctx_ptr->obj_skinning_ubo.Bind(3);
+
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
@@ -2042,9 +2046,8 @@ namespace mdl {
             case OBJ_KIND_NORMAL: {
                 int32_t a = (int32_t)(i->args.sub_mesh.blend_color.w * 255.0f);
                 a = clamp_def(a, 0, 255);
-                if (a == alpha) {
+                if (a == alpha)
                     draw_sub_mesh(rctx_ptr, &i->args.sub_mesh, &i->mat, func);
-                }
             } break;
             case OBJ_KIND_TRANSLUCENT: {
                 for (uint32_t j = 0; j < i->args.translucent.count; j++) {
@@ -3581,8 +3584,10 @@ void render_context::disp() {
     app::TaskWork::Disp();
     render_manager.shadow_ptr->ctrl(this);
     int32_t sprite_index = sprite_manager_get_index();
-    sprite_manager_set_index(3);
-    //dw_gui_ctrl_disp();
+    //sprite_manager_set_index(3);
+    sprite_manager_set_index(0);
+    extern void dw_gui_ctrl_disp();
+    dw_gui_ctrl_disp();
     sprite_manager_set_index(sprite_index);
     post_process.ctrl(camera);
     render_manager.render_all(this);

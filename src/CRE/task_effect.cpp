@@ -62,6 +62,13 @@ struct particle_data {
     float_t size;
 };
 
+struct particle_scene_shader_data {
+    vec4 g_transform[4];
+    vec4 g_view_pos;
+    vec4 g_light_env_chara_diffuse;
+    vec4 g_light_env_chara_specular;
+};
+
 struct particle_vertex_data {
     vec3 position;
     vec3 normal;
@@ -256,6 +263,7 @@ static vec3 particle_wind;
 static particle_data* ptcl_data;
 static GLuint ptcl_vao;
 static GLuint ptcl_vbo;
+static GL::UniformBuffer particle_scene_ubo;
 static const size_t ptcl_count = 0x400;
 
 static bool rain_particle_enable;
@@ -2401,8 +2409,23 @@ void particle_draw() {
     if (!count)
         return;
 
-    gl_state_bind_vertex_array(ptcl_vao);
+    const light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
+
+    particle_scene_shader_data shader_data = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->vp_mat, &temp);
+    shader_data.g_transform[0] = temp.row0;
+    shader_data.g_transform[1] = temp.row1;
+    shader_data.g_transform[2] = temp.row2;
+    shader_data.g_transform[3] = temp.row3;
+    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
+    light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
+    light_chara.get_specular(shader_data.g_light_env_chara_specular);
+    particle_scene_ubo.WriteMapMemory(shader_data);
+
     shaders_ft.set(SHADER_FT_PARTICL);
+    particle_scene_ubo.Bind(0);
+    gl_state_bind_vertex_array(ptcl_vao);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
     gl_state_bind_vertex_array(0);
 }
@@ -3194,6 +3217,7 @@ static void leaf_particle_init(bool change_stage) {
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
     gl_state_bind_element_array_buffer(0);
+
     leaf_particle_scene_ubo.Create(sizeof(leaf_particle_scene_shader_data));
 }
 
@@ -3461,6 +3485,8 @@ static void particle_init(vec3* offset) {
 
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
+
+    particle_scene_ubo.Create(sizeof(particle_scene_shader_data));
 }
 
 static void particle_ctrl() {
@@ -3660,6 +3686,8 @@ static void particle_free() {
         glDeleteBuffers(1, &ptcl_vbo);
         ptcl_vbo = 0;
     }
+
+    particle_scene_ubo.Destroy();
 }
 
 static void rain_particle_init(bool change_stage) {

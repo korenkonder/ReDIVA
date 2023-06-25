@@ -13,6 +13,7 @@
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task_effect.hpp"
+#include "../dw.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
 
@@ -118,8 +119,10 @@ bool Auth3dTestTask::Ctrl() {
     if (field_1EC == 1 && !object_storage_load_obj_set_check_not_read(effcmn_obj_set))
         field_1EC = 4;
 
-    if (field_1D4 == 1 && auth_3d_id.check_loaded())
+    if (field_1D4 == 1 && auth_3d_id.check_loaded()) {
+        sub_140194880(2);
         field_1D4 = 2;
+    }
 
     if (field_1D4 == 2) {
         auth_3d_id.set_enable(true);

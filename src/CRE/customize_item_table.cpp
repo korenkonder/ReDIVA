@@ -31,7 +31,20 @@ struct customize_item_table_handler {
     void read();
 };
 
+struct customize_item_data_handler {
+    std::vector<customize_item_data> customize_items;
+
+    customize_item_data_handler();
+    ~customize_item_data_handler();
+
+    void add_all_customize_items();
+    void add_customize_items();
+    bool get_customize_item(int32_t id, customize_item_data& data);
+    int32_t get_customize_item_obj_id(int32_t id);
+};
+
 customize_item_table_handler* customize_item_table_handler_data;
+customize_item_data_handler* customize_item_data_handler_data;
 
 customize_item::customize_item() : sort_index(), chara() {
     id = -1;
@@ -41,6 +54,31 @@ customize_item::customize_item() : sort_index(), chara() {
 
 customize_item::~customize_item() {
 
+}
+
+customize_item_data::customize_item_data() : id(), obj_id(), sort_index(), chara_index(), parts(),
+spr_cmnitm_thmb_id_itm_img_spr_id(), field_3C(), field_3D(), field_40(), spr_cmnitm_thmb_id_spr_set_id() {
+    reset();
+}
+
+customize_item_data::~customize_item_data() {
+
+}
+
+void customize_item_data::reset() {
+    id = -1;
+    obj_id = -1;
+    sort_index = 0;
+    name.assign("");
+    chara_index = CHARA_MIKU;
+    parts = -1;
+    spr_cmnitm_thmb_id_itm_img_spr_id = -1;
+    field_3C = false;
+    field_3D = false;
+    field_40 = 0;
+    field_48 = prj::time::get_default();
+    field_50 = prj::time::get_default();
+    spr_cmnitm_thmb_id_spr_set_id = -1;
 }
 
 void customize_item_table_handler_data_init() {
@@ -65,10 +103,33 @@ void customize_item_table_handler_data_read() {
 }
 
 void customize_item_table_handler_data_free() {
-
     if (customize_item_table_handler_data) {
         delete customize_item_table_handler_data;
         customize_item_table_handler_data = 0;
+    }
+}
+
+void customize_item_data_handler_data_init() {
+    if (!customize_item_data_handler_data)
+        customize_item_data_handler_data = new customize_item_data_handler;
+}
+
+void customize_item_data_handler_data_add_all_customize_items() {
+    customize_item_data_handler_data->add_all_customize_items();
+}
+
+bool customize_item_data_handler_data_get_customize_item(int32_t id, customize_item_data& data) {
+    return customize_item_data_handler_data->get_customize_item(id, data);
+}
+
+int32_t customize_item_data_handler_data_get_customize_item_obj_id(int32_t id) {
+    return customize_item_data_handler_data->get_customize_item_obj_id(id);
+}
+
+void customize_item_data_handler_data_free() {
+    if (customize_item_data_handler_data) {
+        delete customize_item_data_handler_data;
+        customize_item_data_handler_data = 0;
     }
 }
 
@@ -234,4 +295,74 @@ void customize_item_table_handler::read() {
             file_handlers.push_back(pfhndl);
         }
     }
+}
+
+customize_item_data_handler::customize_item_data_handler() {
+
+}
+
+customize_item_data_handler::~customize_item_data_handler() {
+
+}
+
+void customize_item_data_handler::add_all_customize_items() {
+    add_customize_items();
+}
+
+void customize_item_data_handler::add_customize_items() {
+    customize_items.clear();
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
+
+    char buf[0x80];
+
+    for (const auto& i : customize_item_table_handler_data_get_customize_items()) {
+        customize_item_data cstm_itm;
+        cstm_itm.id = i.second.id;
+        cstm_itm.obj_id = i.second.obj_id;
+        cstm_itm.sort_index = i.second.sort_index;
+        cstm_itm.name.assign(i.second.name);
+        cstm_itm.chara_index = (chara_index)i.second.chara;
+        cstm_itm.parts = i.second.parts;
+
+        /*struc_781 v24;
+        if (sub_1402B7880()->sub_1402B7420(cstm_itm.id, &v24)) {
+            cstm_itm.field_3C = true;
+            cstm_itm.field_3D = v24.field_4;
+            cstm_itm.name.assign(v24.field_8);
+            cstm_itm.field_40 = v24.field_28;
+            cstm_itm.field_48.value = v24.field_30.value;
+            cstm_itm.field_50.value = v24.field_38.value;
+            cstm_itm.sort_index = v24.sort_index;
+        }
+
+        int32_t v23 = -1;
+        if (sub_1402B7880->sub_1402B7510(cstm_itm.id, &v23))
+            cstm_itm.field_3D = true;*/
+
+        sprintf_s(buf, sizeof(buf), "SPR_CMNITM_THMB%03d", cstm_itm.id);
+        cstm_itm.spr_cmnitm_thmb_id_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
+
+        sprintf_s(buf, sizeof(buf), "SPR_CMNITM_THMB%03d_ITM_IMG", cstm_itm.id);
+        cstm_itm.spr_cmnitm_thmb_id_itm_img_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
+
+        customize_items.push_back(cstm_itm);
+    }
+}
+
+bool customize_item_data_handler::get_customize_item(int32_t id, customize_item_data& data) {
+    for (customize_item_data& i : customize_items)
+        if (i.id == id) {
+            data = i;
+            return true;
+        }
+    return false;
+}
+
+int32_t customize_item_data_handler::get_customize_item_obj_id(int32_t id) {
+    for (customize_item_data& i : customize_items)
+        if (i.id == id)
+            return i.obj_id;
+    return -1;
 }

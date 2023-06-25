@@ -2230,7 +2230,7 @@ float_t chara_size_table_get_value(uint32_t index) {
         1.07f, 1.0f, 0.96f, 0.987f, 1.025f, 1.045f
     };
 
-    if (index >= 0 && index <= 4)
+    if (index >= 0 && index < 5)
         return chara_size_table[index];
     return 1.0f;
 }
@@ -2240,7 +2240,7 @@ float_t chara_pos_adjust_y_table_get_value(uint32_t index) {
         0.071732f, 0.0f, -0.03859f, 0.0f, 0.0f
     };
 
-    if (index >= 0 && index <= 4)
+    if (index >= 0 && index < 5)
         return chara_pos_adjust_y_table[index];
     return 0.0f;
 }
@@ -3115,7 +3115,7 @@ static void mothead_apply2_inner(struc_380* a1, int32_t type, const mothead_data
     } break;
     case 40: {
         v19->field_0.field_238 = ((int16_t*)v35)[0];
-        if ((a1->rob_chara_data->motion.field_28 & 8) != 0)
+        if (a1->rob_chara_data->motion.field_28 & 0x08)
             v19->field_0.field_23C = -((float_t*)v35)[1];
         else
             v19->field_0.field_23C = ((float_t*)v35)[1];
@@ -3129,14 +3129,14 @@ static void mothead_apply2_inner(struc_380* a1, int32_t type, const mothead_data
     } break;
     case 46: {
         if (v19->field_0.field_10.field_0 & 0x100) {
-            if (a1->rob_chara_data->motion.field_28 & 8)
+            if (a1->rob_chara_data->motion.field_28 & 0x08)
                 v19->field_0.field_274 = -((int16_t*)v35)[0];
             else
                 v19->field_0.field_274 = ((int16_t*)v35)[0];
         }
     } break;
     case 51: {
-        if (a1->rob_chara_data->motion.field_28 & 8)
+        if (a1->rob_chara_data->motion.field_28 & 0x08)
             v19->field_0.field_2B8 = -((int16_t*)v35)[0];
         else
             v19->field_0.field_2B8 = ((int16_t*)v35)[0];
@@ -3148,7 +3148,7 @@ static void mothead_apply2_inner(struc_380* a1, int32_t type, const mothead_data
     } break;
     case 64: {
         float_t v31 = ((float_t*)v35)[0];
-        if (a1->rob_chara_data->motion.field_28 & 8)
+        if (a1->rob_chara_data->motion.field_28 & 0x08)
             v31 = -v31;
         v19->field_0.field_318.x = v31;
         v19->field_0.field_318.y = ((float_t*)v35)[1];
@@ -3337,7 +3337,7 @@ void rob_chara::load_motion(uint32_t motion_id, bool a3, float_t frame,
         data.motion.step_data.frame = data.motion.step_data.step;
 
     float_t step = data.motion.step;
-    if (data.motion.step < 0.0f)
+    if (step < 0.0f)
         step = data.motion.step_data.frame;
     item_equip->set_osage_step(step);
 
@@ -4310,7 +4310,7 @@ void rob_chara::set_step_motion_step(float_t value) {
     rob_chara_bone_data_set_step(bone_data, data.motion.step_data.frame);
 
     float_t step = data.motion.step;
-    if (data.motion.step < 0.0f)
+    if (step < 0.0f)
         step = data.motion.step_data.frame;
     item_equip->set_osage_step(step);
 }
@@ -5420,7 +5420,6 @@ static void bone_data_parent_load_rob_chara(bone_data_parent* bone) {
     bone->ik_bone_count = rob_bone_data->ik_bone_count;
     bone->chain_pos = rob_bone_data->chain_pos;
     bone->bones.clear();
-    bone->bones.shrink_to_fit();
     bone->bones.resize(rob_bone_data->motion_bone_count);
     bone->global_key_set_count = 6;
     bone->bone_key_set_count = (uint32_t)((bone->motion_bone_count + bone->ik_bone_count) * 3);
@@ -5792,7 +5791,7 @@ static void mothead_func_2(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     func_data->rob_chr_data->field_1588.field_0.field_20.field_0 |= 0x100;
     rob_chara_data* rob_chr_data = func_data->rob_chr_data;
-    if (rob_chr_data->motion.field_28 & 8)
+    if (rob_chr_data->motion.field_28 & 0x08)
         rob_chr_data->field_1588.field_0.field_274 -= ((int16_t*)data)[0];
     else
         rob_chr_data->field_1588.field_0.field_274 += ((int16_t*)data)[0];
@@ -6545,7 +6544,7 @@ static void mothead_func_62_rob_parts_adjust(mothead_func_data* func_data,
     v16.reset();
 
     int8_t type = ((int8_t*)data)[5];
-    if (type >= 0 && type <= 5) {
+    if (type >= 0 && type < 6) {
         float_t set_frame = (float_t)mhd_data->frame;
         v16.enable = true;
         v16.frame = rob_chr->data.motion.frame_data.frame - set_frame;
@@ -6738,7 +6737,7 @@ static void mothead_func_75_rob_adjust_global(mothead_func_data* func_data,
     v14.reset();
 
     int8_t type = ((int8_t*)data)[4];
-    if (type >= 0 && type <= 5) {
+    if (type >= 0 && type < 6) {
         float_t set_frame = (float_t)mhd_data->frame;
         v14.enable = true;
         v14.frame = rob_chr->data.motion.frame_data.frame - set_frame;
@@ -7530,7 +7529,7 @@ static void sub_1405145F0(rob_chara* rob_chr, const bone_database* bone_data, co
         return;
 
     float_t frame;
-    if (rob_chr->data.motion.field_28 >= 0)
+    if (!(rob_chr->data.motion.field_28 & 0x80))
         frame = 0.0f;
     else
         frame = rob_chr->data.motion.frame_data.last_set_frame;
@@ -7538,7 +7537,7 @@ static void sub_1405145F0(rob_chara* rob_chr, const bone_database* bone_data, co
         rob_chr->data.field_8.field_4.field_10, frame, MOTION_BLEND, bone_data, mot_db);
     rob_chara_bone_data_set_motion_duration(rob_chr->bone_data, 0.0f, 1.0f, 1.0f);
     rob_chr->set_motion_reset_data(rob_chr->data.field_8.field_4.motion_id, 0.0f);
-    rob_chr->data.field_8.field_0++;
+    rob_chr->data.field_8.field_0 = 1;
 }
 
 static void sub_1405144C0(rob_chara* rob_chr, const bone_database* bone_data, const motion_database* mot_db) {
@@ -8147,7 +8146,7 @@ static void sub_140504AC0(rob_chara* rob_chr) {
         v4.y = rob_chr->data.field_8.field_B8.field_10.y
             - get_osage_gravity_const() * rob_chr->data.field_1588.field_0.field_200;
     }
-    else if (rob_chr->data.field_1 >= 0) {
+    else if (!(rob_chr->data.field_1 & 0x80)) {
         vec3 v20 = rob_chr->data.miku_rot.field_3C;
         v20.x += v4.x + rob_chr->data.field_8.field_B8.field_10.x;
         v20.z += v4.z + rob_chr->data.field_8.field_B8.field_10.z;
@@ -10303,21 +10302,18 @@ static void rob_chara_bone_data_motion_blend_mot_list_init(rob_chara_bone_data* 
 
 static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
     rob_bone_data->mats.clear();
-    rob_bone_data->mats.shrink_to_fit();
     rob_bone_data->mats.resize(rob_bone_data->object_bone_count);
 
     for (mat4& i : rob_bone_data->mats)
         i = mat4_identity;
 
     rob_bone_data->mats2.clear();
-    rob_bone_data->mats2.shrink_to_fit();
     rob_bone_data->mats2.resize(rob_bone_data->total_bone_count - rob_bone_data->object_bone_count);
 
     for (mat4& i : rob_bone_data->mats2)
         i = mat4_identity;
 
     rob_bone_data->nodes.clear();
-    rob_bone_data->nodes.shrink_to_fit();
     rob_bone_data->nodes.resize(rob_bone_data->total_bone_count);
 }
 
@@ -18667,7 +18663,7 @@ bool TaskRobBase::Ctrl() {
     rob_thread_handler->sub_14054E3F0();
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && i->data.field_3 >= 0)
+        if (i && !(i->data.field_3 & 0x80))
             rob_base_rob_chara_ctrl(i);
 
     for (rob_chara*& i : free_chara)
@@ -18730,7 +18726,7 @@ bool TaskRobCollision::Ctrl() {
         }
 
         /*for (rob_chara*& i : ctrl_chara)
-            if (i && i->data.field_3 >= 0)
+            if (i && !(i->data.field_3 & 0x80))
                 sub_14050EA90(v13);*/
     }
 
@@ -18777,11 +18773,11 @@ bool TaskRobDisp::Ctrl() {
     init_chara.clear();
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && i->data.field_3 >= 0)
+        if (i && !(i->data.field_3 & 0x80))
             rob_disp_rob_chara_ctrl(i);
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && i->data.field_3 >= 0)
+        if (i && !(i->data.field_3 & 0x80))
             rob_thread_handler->AppendRobCharaFunc(i->chara_id, i,
                 rob_disp_rob_chara_ctrl_thread_main);
 
@@ -18826,7 +18822,7 @@ void TaskRobDisp::Disp() {
         if (pv_osage_manager_array_get_disp(&chara_id))
             continue;
 
-        if (i->is_visible() && i->data.field_3 >= 0)
+        if (i->is_visible() && !(i->data.field_3 & 0x80))
             rob_disp_rob_chara_disp(i);
     }
 }
@@ -18857,7 +18853,7 @@ bool TaskRobInfo::Ctrl() {
     init_chara.clear();
 
     for (rob_chara*& i : ctrl_chara)
-        if (i && i->data.field_3 >= 0)
+        if (i && !(i->data.field_3 & 0x80))
             i->rob_info_ctrl();
 
     free_chara.clear();
@@ -19585,6 +19581,72 @@ bool TaskRobMotionModifier::Init() {
     return true;
 }
 
+static void sub_1405484A0(rob_chara* rob_chr) {
+    rob_chr->data.motion.step_data.field_4 = rob_chr->data.motion.step_data.frame;
+
+    if (rob_chr->data.motion.step_data.step < 0.0f)
+        rob_chr->data.motion.step_data.frame = 1.0f;
+    else
+        rob_chr->data.motion.step_data.frame = rob_chr->data.motion.step_data.step;
+
+    rob_chara_bone_data_set_step(rob_chr->bone_data, rob_chr->data.motion.step_data.frame);
+
+    float_t step = rob_chr->data.motion.step;
+    if (step < 0.0f)
+        step = rob_chr->data.motion.step_data.frame;
+    rob_chr->item_equip->set_osage_step(step);
+
+    if (!(rob_chr->data.motion.field_28 & 0x40)) {
+        if (rob_chr->data.field_8.field_B8.field_7C > 0.0f)
+            rob_chr->data.motion.step_data.frame = rob_chr->data.field_8.field_B8.field_80;
+        return;
+    }
+
+    if (!rob_chr->data.field_1588.field_0.field_298)
+        return;
+
+    if (!rob_chr->field_20 || rob_chr->data.motion.frame_data.frame >= rob_chr->data.field_1588.field_0.field_29C) {
+        rob_chr->data.motion.step_data.frame = 1.0f;
+        rob_chr->data.motion.field_28 &= ~0x40;
+        return;
+    }
+
+    float_t v6 = 1.0f;
+    /*size_t v7 = rob_chr->field_20;
+    if (rob_chr->data.field_1588.field_0.field_298 & 0x200
+        || (stru_140A2E410[*(int32_t*)(v7 + 6744)][rob_chr->data.field_1588.field_0.field_298 & 0xFF]
+            && *(int32_t*)(v7 + 6736) & 0x02)) {
+        float_t v11 = rob_chr->data.field_1588.field_0.field_2A4;
+        switch (rob_chr->data.field_1588.field_0.field_2A0) {
+        case 1:
+            v11 += *(float_t*)(v7 + 6608);
+            break;
+        case 2:
+            v11 += *(float_t*)(v7 + 6720);
+            break;
+        case 3:
+            v11 += *(float_t*)(v7 + 6724);
+            break;
+        case 4:
+            v11 += *(float_t*)(v7 + 6728);
+            break;
+        }
+
+        float_t v12 = v11 - *(float_t*)(v7 + 1752);
+        if (v12 > 0.0f)
+            v6 = (rob_chr->data.field_1588.field_0.field_29C - rob_chr->data.motion.frame_data.frame) / v12;
+    }*/
+
+    if (v6 < rob_chr->data.field_1588.field_0.field_2A8)
+        v6 = rob_chr->data.field_1588.field_0.field_2A8;
+
+    if (v6 <= rob_chr->data.field_1588.field_0.field_2AC)
+        rob_chr->data.motion.step_data.frame = v6;
+    else
+        rob_chr->data.motion.step_data.frame = rob_chr->data.field_1588.field_0.field_2AC;
+    return;
+}
+
 bool TaskRobMotionModifier::Ctrl() {
     if (pv_osage_manager_array_get_disp())
         return false;
@@ -19594,9 +19656,9 @@ bool TaskRobMotionModifier::Ctrl() {
             AppendCtrlCharaList(i);
     init_chara.clear();
 
-    /*for (rob_chara*& i : ctrl_chara)
+    for (rob_chara*& i : ctrl_chara)
         if (i)
-            sub_1405484A0(i);*/
+            sub_1405484A0(i);
 
     for (rob_chara*& i : ctrl_chara)
         if (i)
@@ -19729,7 +19791,7 @@ static void sub_14053F300(RobPartialMotion* a1) {
 static void sub_140548660(rob_chara* rob_chr) {
     rob_chr->data.motion.frame_data.prev_frame = rob_chr->data.motion.frame_data.frame;
     rob_chr->bone_data->sub_14041DBA0();
-    if (rob_chr->data.motion.field_28 < 0)
+    if (rob_chr->data.motion.field_28 & 0x80)
         rob_chr->bone_data->set_frame(rob_chr->data.motion.frame_data.last_set_frame);
     rob_chr->data.motion.frame_data.frame = rob_chr->bone_data->get_frame();
     sub_14053F300(&rob_chr->data.motion.field_150.face);
@@ -19763,9 +19825,9 @@ bool TaskRobPrepareControl::Ctrl() {
             AppendCtrlCharaList(i);
     init_chara.clear();
 
-    /*for (rob_chara*& i : ctrl_chara)
+    for (rob_chara*& i : ctrl_chara)
         if (i)
-            sub_1405484A0(i);*/
+            sub_1405484A0(i);
 
     for (rob_chara*& i : ctrl_chara)
         if (i) {

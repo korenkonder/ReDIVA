@@ -4,6 +4,7 @@
 */
 
 #include "pv_game_play_data.hpp"
+#include "../print_work.hpp"
 #include "game_2d.hpp"
 #include "player_data.hpp"
 #include "pv_game.hpp"
@@ -384,6 +385,9 @@ const char* spr_white_fade[] = {
     "white_fade",
 };
 
+static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
+    const char* str, bool h_center, color4u8 color, rectangle* clip_rect = 0);
+
 pv_disp2d::pv_disp2d() : pv_id(), title_start_2d_field(), title_end_2d_field(),
 title_start_2d_low_field(), title_end_2d_low_field(), title_start_3d_field(), title_end_3d_field(),
 target_shadow_type(), pv_spr_set_id(), pv_aet_set_id(), pv_aet_id() {
@@ -656,6 +660,11 @@ void pv_game_play_data::disp_combo() {
         spr_p_combo_num_spr, spr::SPR_PRIO_14, &pos, false, aft_spr_db);
 }
 
+void pv_game_play_data::disp_lyric(const char* str, bool h_center, color4u8 color) {
+    if (loaded && str)
+        sub_14013AAE0(song_txt[0].position.x, song_txt[0].position.y, spr::SPR_PRIO_17, str, h_center, color);
+}
+
 void pv_game_play_data::disp_max_slide_point() {
     if (!aet_ids[PV_GAME_AET_MAX_SLIDE_POINT])
         return;
@@ -805,6 +814,27 @@ void pv_game_play_data::disp_song_energy() {
     if (spr_p_energy_num_0_layout)
         aet_layout_data::put_sprite(spr[10], spr::SPR_ATTR_CTR_CC,
             spr::SPR_PRIO_16, &pos, spr_p_energy_num_0_layout, aft_spr_db);
+}
+
+void pv_game_play_data::disp_song_name(const char* str) {
+    if (!loaded || !str || !frame_disp[0])
+        return;
+
+    PrintWork print_work;
+    font_info font(16);
+    print_work.SetFont(&font);
+
+    bool clip = print_work.GetTextSize(str, str + utf8_length(str)).x > 768.0f;
+
+    vec2 pos;
+    pos.x = song_txt[1].position.x;
+    pos.y = song_txt[1].position.y - song_info_pos;
+
+    rectangle clip_rect;
+    clip_rect.pos = pos;
+    clip_rect.size = { 768.0f, font.glyph.y };
+
+    sub_14013AAE0(pos.y, pos.y, spr::SPR_PRIO_16, str, 0, 0xFFFFFFFF, clip ? &clip_rect : 0);
 }
 
 void pv_game_play_data::disp_spr_set_back() {
@@ -2169,4 +2199,33 @@ float_t get_percentage_clear_excellent() {
 
 float_t get_percentage_clear_great() {
     return percentage_clear_great[sub_14013C8C0()->difficulty];
+}
+
+static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
+    const char* str, bool h_center, color4u8 color, rectangle* clip_rect) {
+    if (!str)
+        return;
+
+    font_info font(16);
+    font.set_glyph_size(24.0f, 24.0f);
+
+    PrintWork print_work;
+    print_work.SetFont(&font);
+    print_work.line_origin_loc = { pos_x, pos_y };
+    print_work.text_current_loc = { pos_x, pos_y };
+    print_work.SetResolutionMode(RESOLUTION_MODE_HD);
+    print_work.prio = prio;
+    print_work.color = color;
+
+    app::text_flags flags = (app::text_flags)((h_center
+        ? app::TEXT_FLAG_ALIGN_FLAG_H_CENTER
+        : app::TEXT_FLAG_ALIGN_FLAG_LEFT)
+        | app::TEXT_FLAG_FONT);
+
+    if (clip_rect) {
+        print_work.clip = true;
+        print_work.clip_data = *clip_rect;
+    }
+
+    print_work.PrintText(flags, str);
 }

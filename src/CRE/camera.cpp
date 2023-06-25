@@ -4,16 +4,16 @@
 */
 
 #include "camera.hpp"
+#include "resolution_mode.hpp"
 
 static void camera_calculate_projection(camera* c);
 static void camera_calculate_projection_aet(camera* c);
 static void camera_calculate_view(camera* c);
 static void camera_calculate_forward(camera* c);
 
-camera::camera() : forward(), rotation(), view_point(), interest(), fov_correct_height(),
-aet_depth(), use_up(), render_width(), render_height(), sprite_width(), sprite_height(),
-field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(), fov(),
-fov_rad(), max_distance(), min_distance(), changed_view(), changed_proj(), changed_proj_aet(),
+camera::camera() : forward(), rotation(), view_point(), interest(), fov_correct_height(), aet_depth(),
+use_up(), field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(),
+fov(), fov_rad(), max_distance(), min_distance(), changed_view(), changed_proj(), changed_proj_aet(),
 fast_change(), fast_change_hist0(), fast_change_hist1(), ignore_fov(), ignore_min_dist() {
 
 }
@@ -22,8 +22,7 @@ camera::~camera() {
 
 }
 
-void camera::initialize(double_t aspect, int32_t render_width,
-    int32_t render_height, int32_t sprite_width, int32_t sprite_height) {
+void camera::initialize(double_t aspect) {
     this->aspect = aspect;
     fov = 0.0;
     fov_correct_height = 0.0f;
@@ -32,10 +31,6 @@ void camera::initialize(double_t aspect, int32_t render_width,
     rotation = { 0.0f, 0.0f, 0.0f };
     use_up = false;
     up = { 0.0f, 1.0f, 0.0f };
-    this->render_width = render_width;
-    this->render_height = render_height;
-    this->sprite_width = sprite_width;
-    this->sprite_height = sprite_height;
     view = mat4_identity;
     inv_view = mat4_identity;
     projection = mat4_identity;
@@ -220,27 +215,6 @@ void camera::set_up(bool use_up, const vec3&& value) {
     }
 }
 
-void camera::get_res(int32_t& render_width, int32_t& render_height,
-    int32_t& sprite_width, int32_t& sprite_height) {
-    render_width = this->render_width;
-    render_height = this->render_height;
-    sprite_width = this->sprite_width;
-    sprite_height = this->sprite_height;
-}
-
-void camera::set_res(int32_t render_width, int32_t render_height,
-    int32_t sprite_width, int32_t sprite_height) {
-    if (this->render_width != render_width || this->render_height != render_height
-        || this->sprite_width != sprite_width || this->sprite_height != sprite_height) {
-        this->render_width = render_width;
-        this->render_height = render_height;
-        this->sprite_width = sprite_width;
-        this->sprite_height = sprite_height;
-        changed_proj = true;
-        changed_proj_aet = true;
-    }
-}
-
 void camera::set_fast_change(bool value) {
     fast_change = value;
 }
@@ -268,6 +242,9 @@ void camera::reset() {
     set_fov(32.2673416137695);
     min_distance = 0.05;
     max_distance = 6000.0;
+    changed_proj = true;
+    changed_proj_aet = true;
+    changed_view = true;
     fast_change = false;
     fast_change_hist0 = false;
     fast_change_hist1 = false;
@@ -381,10 +358,12 @@ static void camera_calculate_projection(camera* c) {
     mat4_persp(c->fov_rad, c->aspect, c->min_distance, c->max_distance, &c->projection);
     mat4_inverse(&c->projection, &c->inv_projection);
 
-    float_t fov_correct_height = (float_t)(((double_t)c->render_height * 0.5) / tan(c->fov_rad * 0.5));
+    resolution_struct* res_wind_int = res_window_internal_get();
 
-    float_t height = (float_t)c->render_height * 0.5f;
-    float_t width = (float_t)c->render_height * (float_t)c->aspect * 0.5f;
+    float_t fov_correct_height = ((float_t)res_wind_int->height * 0.5f) / tanf((float_t)(c->fov_rad * 0.5));
+
+    float_t height = (float_t)res_wind_int->height * 0.5f;
+    float_t width = (float_t)res_wind_int->height * (float_t)c->aspect * 0.5f;
 
     c->field_1E4.x = fov_correct_height;
     c->field_1E4.y = 0.0f;
@@ -405,19 +384,25 @@ static void camera_calculate_projection(camera* c) {
 }
 
 static void camera_calculate_projection_aet(camera* c) {
-    float_t sprite_half_width = (float_t)c->sprite_width * 0.5f;
-    float_t sprite_half_height = (float_t)c->sprite_height * 0.5f;
-    float_t render_half_width = (float_t)c->render_width * 0.5f;
-    float_t render_half_height = (float_t)c->render_height * 0.5f;
+    resolution_struct* res_wind_int = res_window_internal_get();
+    resolution_struct* res_wind = res_window_get();
 
-    float_t aet_depth = sprite_half_height / (tanf(0.34557518363f) * 0.75f);
+    float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
+    float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
+    float_t render_half_width = (float_t)res_wind_int->width * 0.5f;
+    float_t render_half_height = (float_t)res_wind_int->height * 0.5f;
+
+    static float_t field_20 = tanf(atanf(tanf(0.34557518363f) * 0.75f));
+
+    float_t aet_depth = sprite_half_height / field_20;
     c->aet_depth = aet_depth;
 
-    float_t fov_correct_height = (float_t)(sprite_half_height / tan(c->fov_rad * 0.5));
+    float_t fov_correct_height = sprite_half_height / tanf((float_t)c->fov_rad * 0.5f);
     c->fov_correct_height = fov_correct_height;
 
-    float_t v8a = (float_t)c->min_distance / aet_depth * sprite_half_width;
-    float_t v8b = (float_t)c->min_distance / aet_depth * sprite_half_height;
+    float_t v8 = (float_t)c->min_distance / aet_depth;
+    float_t v8a = v8 * sprite_half_width;
+    float_t v8b = v8 * sprite_half_height;
 
     mat4 spr_2d_proj;
     mat4_frustrum(-v8a, v8a, v8b, -v8b, c->min_distance, 3000.0, &spr_2d_proj);
@@ -430,13 +415,16 @@ static void camera_calculate_projection_aet(camera* c) {
 
     mat4_mult(&spr_2d_view, &spr_2d_proj, &c->view_projection_aet_2d);
 
-    float_t v13a = (float_t)c->min_distance / aet_depth * render_half_width;
-    float_t v13b = (float_t)c->min_distance / aet_depth * render_half_height;
+    float_t v13c = render_half_height / tanf((float_t)c->fov_rad * 0.5f);
+
+    float_t v13 = (float_t)c->min_distance / v13c;
+    float_t v13a = v13 * render_half_width;
+    float_t v13b = v13 * render_half_height;
 
     mat4 spr_3d_proj;
     mat4_frustrum(-v13a, v13a, v13b, -v13b, c->min_distance, 3000.0, &spr_3d_proj);
 
-    vec3 spr_3d_viewpoint = { render_half_width, render_half_height, render_half_height };
+    vec3 spr_3d_viewpoint = { render_half_width, render_half_height, v13c };
     vec3 spr_3d_interest = { render_half_width, render_half_height, 0.0f };
     vec3 spr_3d_up = { 0.0f, 1.0f, 0.0f };
     mat4 spr_3d_view;

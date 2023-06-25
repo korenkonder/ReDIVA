@@ -579,7 +579,7 @@ static render_context* render_context_load() {
     task_pv_db_init();
     Glitter::glt_particle_manager_init();
 
-    dw_gui_detail_display_init();
+    dw_init();
 
     auth_3d_test_window_init();
     dtm_aet_init();
@@ -851,9 +851,7 @@ static render_context* render_context_load() {
     rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
     rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
 
-    resolution_struct* res_wind = res_window_get();
-    rctx->camera->initialize(aspect, internal_3d_res.x, internal_3d_res.y,
-        res_wind->width, res_wind->height);
+    rctx->camera->initialize(aspect);
 
     render_resize_fb(rctx, true);
 
@@ -872,6 +870,7 @@ static render_context* render_context_load() {
     module_table_handler_data_init();
     module_data_handler_data_init();
     customize_item_table_handler_data_init();
+    customize_item_data_handler_data_init();
 
     aet_manager_add_aet_sets(aft_aet_db);
     sprite_manager_add_spr_sets(aft_spr_db);
@@ -929,6 +928,7 @@ static render_context* render_context_load() {
     builder.BuildRanges(&ranges);
 
     imgui_font_arial = io.Fonts->AddFontFromFileTTF(font_file, 14.0f, 0, ranges.Data);
+    io.Fonts->Build();
 
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
@@ -987,17 +987,12 @@ static void render_context_ctrl(render_context* rctx) {
     global_context_menu = true;
     lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
-    dw_gui_ctrl_disp();
     app::TaskWork_Window();
     classes_process_imgui(classes, classes_count);
     lock_unlock(imgui_context_lock);
 
-    if (old_width != width || old_height != height || old_scale_index != scale_index) {
+    if (old_width != width || old_height != height || old_scale_index != scale_index)
         render_resize_fb(rctx, true);
-        resolution_struct* res_wind = res_window_get();
-        cam->set_res(internal_3d_res.x, internal_3d_res.y,
-            res_wind->width, res_wind->height);
-    }
     old_width = width;
     old_height = height;
     old_scale_index = scale_index;
@@ -1192,6 +1187,7 @@ static void render_context_dispose(render_context* rctx) {
     sprite_manager_remove_spr_sets(aft_spr_db);
     aet_manager_remove_aet_sets(aft_aet_db);
 
+    customize_item_data_handler_data_free();
     customize_item_table_handler_data_free();
     module_data_handler_data_free();
     module_table_handler_data_free();
@@ -1219,7 +1215,7 @@ static void render_context_dispose(render_context* rctx) {
     dtm_aet_free();
     auth_3d_test_window_free();
 
-    dw_gui_detail_display_free();
+    dw_free();
 
     Glitter::glt_particle_manager_free();
     task_pv_db_free();
@@ -1343,16 +1339,16 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     internal_res.y = (int32_t)res_height;
 
 #if BAKE_PNG || BAKE_VIDEO
-    internal_2d_res.x = clamp_def(internal_res.x * 2, 1, sv_max_texture_size);
-    internal_2d_res.y = clamp_def(internal_res.y * 2, 1, sv_max_texture_size);
+    internal_2d_res = vec2i::clamp(internal_res * 2, 1, sv_max_texture_size);
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * 2));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * 2));
+    internal_3d_res = vec2i::clamp(internal_3d_res, 1, sv_max_texture_size);
 #else
     internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * render_scale_table[scale_index]));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * render_scale_table[scale_index]));
-#endif
     internal_3d_res = vec2i::clamp(internal_3d_res, 1, sv_max_texture_size);
+#endif
 
     bool fb_changed = old_internal_2d_res.x != internal_2d_res.x
         || old_internal_2d_res.y != internal_2d_res.y

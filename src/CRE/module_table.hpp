@@ -8,6 +8,7 @@
 #include <string>
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/item_table.hpp"
+#include "../KKdLib/prj/vector_pair_combine.hpp"
 #include "../KKdLib/prj/time.hpp"
 #include "rob/rob.hpp"
 
@@ -31,7 +32,7 @@ struct module_data {
     rob_sleeve_data sleeve_r;
     int32_t spr_sel_md_id_spr_set_id;
     int32_t spr_sel_md_id_cmn_spr_set_id;
-    int32_t spr_sel_md_id_cmn_md_img_id_spr_id;
+    int32_t spr_sel_md_id_md_img_id_spr_id;
     int32_t spr_sel_md_id_cmn_md_img_spr_id;
     bool field_78;
     bool field_79;
@@ -41,6 +42,7 @@ struct module_data {
     prj::time field_B0;
 
     module_data();
+    ~module_data();
 
     void reset();
 };

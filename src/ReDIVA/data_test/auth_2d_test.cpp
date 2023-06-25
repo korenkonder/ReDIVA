@@ -15,7 +15,6 @@
 #include "../../CRE/sprite.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task_effect.hpp"
-#include "../imgui_helper.hpp"
 #include "../input.hpp"
 #include "../task_window.hpp"
 
@@ -383,7 +382,7 @@ DtwAet::DtwAet() {
         this->set->AddItem(set->name);
     }
 
-    //set->list->sub_1402F9930(20);
+    set->SetMaxItems(20);
     set->SetItemIndex(dtm_aet->curr_set_index);
 
     set->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::SetCallback));
@@ -391,7 +390,7 @@ DtwAet::DtwAet() {
     (new dw::Label(this))->SetText("ID");
 
     id = new dw::ListBox(this);
-    //id->list->sub_1402F9930(20);
+    id->SetMaxItems(20);
 
     id->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::IdCallback));
 
@@ -399,7 +398,7 @@ DtwAet::DtwAet() {
 
     layer = new dw::ListBox(this);
     layer->AddItem("ROOT");
-    //layer->list->sub_1402F9930(20);
+    layer->SetMaxItems(20);
 
     layer->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::LayerCallback));
 
@@ -407,7 +406,7 @@ DtwAet::DtwAet() {
 
     marker = new dw::ListBox(this);
     marker->AddItem("NOMARKER");
-    //marker->list->sub_1402F9930(20);
+    marker->SetMaxItems(20);
 
     marker->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::MarkerCallback));
 
@@ -426,8 +425,7 @@ DtwAet::DtwAet() {
 
     (new dw::Label(this))->SetText("FRAME");
 
-    frame = dw::Slider::make(this, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL),
-        0.0f, 0.0f, 128.0f, 20.0f, "slider");
+    frame = dw::Slider::make(this);
     frame->SetText("FRAME");
     frame->format = "%4.0f";
 

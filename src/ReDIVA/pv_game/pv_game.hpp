@@ -189,7 +189,7 @@ struct pv_game_data {
     int32_t stage_index;
     bool music_play;
     bool no_fail;
-    bool field_2D00E;
+    bool disp_lyrics;
     bool changed_field;
     int64_t challenge_time_start;
     int64_t challenge_time_end;
@@ -228,7 +228,7 @@ struct pv_game_data {
     int32_t life_gauge_total_bonus;
     bool field_2D090;
     bool no_clear;
-    bool field_2D092;
+    bool disp_lyrics_now;
     bool field_2D093;
     bool field_2D094;
     bool field_2D095;
@@ -314,6 +314,18 @@ struct pv_game_data {
         int32_t* slide_chain_no_end_count, bool* has_slide_chain, int64_t target_flying_time_hist);
 };
 
+union pv_game_item {
+    struct {
+        int32_t head;
+        int32_t face;
+        int32_t chest;
+        int32_t back;
+    };
+    int32_t arr[4];
+
+    pv_game_item();
+};
+
 struct pv_game_item_mask {
     bool arr[4];
 
@@ -357,6 +369,7 @@ struct pv_game {
     int32_t ctrl(float_t delta_time, int64_t curr_time);
     void data_itmpv_disable();
     void disp();
+    void disp_song_name();
     void edit_effect_ctrl(float_t delta_time);
     void edit_effect_set(int32_t index, float_t frame_speed, float_t delta_time);
     void end(bool a2, bool set_fade);
@@ -437,6 +450,7 @@ struct pv_game {
     bool unload();
 
     void sub_1400FC500();
+    void sub_1400FC6F0();
     int32_t sub_1400FC780(float_t delta_time);
     float_t sub_1400FCEB0();
     int32_t sub_1400FDD80();
@@ -536,15 +550,14 @@ struct struc_775 {
     int32_t field_44;
     int8_t field_48;
     int8_t field_49;
-    int32_t field_4C[6];
-    int32_t field_64[6];
-    rob_chara_pv_data_item field_7C[6];
-    bool field_DC[6];
-    int32_t field_E4;
-    int32_t field_E8;
-    int32_t field_EC;
-    int32_t field_F0;
+    int32_t field_4C[ROB_CHARA_COUNT];
+    int32_t field_64[ROB_CHARA_COUNT];
+    pv_game_item field_7C[ROB_CHARA_COUNT];
+    pv_game_item_mask field_DC[ROB_CHARA_COUNT];
     int32_t field_F4;
+    int32_t field_F8;
+
+    struc_775();
 };
 
 struct struc_663 {
@@ -770,7 +783,7 @@ public:
         bool field_190;
         bool watch;
         bool no_fail;
-        bool field_193;
+        bool disp_lyrics;
         bool field_194;
         bool mute;
         bool ex_stage;
@@ -798,7 +811,7 @@ public:
         bool field_190;
         bool music_play;
         bool no_fail;
-        bool field_193;
+        bool disp_lyrics;
         bool mute;
         bool ex_stage;
         bool success;

@@ -8,6 +8,7 @@
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
+#include "../../CRE/customize_item_table.hpp"
 #include "../../CRE/hand_item.hpp"
 #include "../../CRE/random.hpp"
 #include "../../CRE/pv_expression.hpp"
@@ -262,13 +263,13 @@ hit_border(), field_2D05D(), field_2D05E(), start_fade(), title_image_init(), mu
 ex_stage(), play_success(), has_auth_3d_frame(), has_light_frame(), has_aet_frame(), has_aet_list(),
 field_index(), edit_effect_index(), slidertouch_counter(), change_field_branch_success_counter(),
 field_2D080(), field_2D084(), life_gauge_bonus(), life_gauge_total_bonus(), field_2D090(), no_clear(),
-field_2D092(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), success(), title_image_state(),
+disp_lyrics_now(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), success(), title_image_state(),
 field_2D09C(), use_osage_play_data(), pv_end_fadeout(), rival_percentage(), field_2D0A8(), field_2D0AC(),
 field_2D0B0(), field_2D0BC(), next_stage(), has_frame_texture(), field_2D0BF(), field_2D0C0(), field_2D0C4(),
 field_2D7E8(), field_2D7EC(), field_2D808(), field_2D80C(), edit_effect(), camera_auth_3d_uid(),
 se_index(), task_effect_init(), field_2D87C(), current_field(), field_2D8A0(), field_2D8A4(),
 campv_index(), field_2D954(), field_2DAC8(), field_2DACC(), height_adjust(), field_2DB2C(), field_2DB34() {
-    field_2D00E = true;
+    disp_lyrics = true;
 }
 
 pv_game_data::~pv_game_data() {
@@ -773,6 +774,13 @@ PROCESS_TARGET:
     return end;
 }
 #pragma warning(pop)
+
+pv_game_item::pv_game_item() {
+    arr[0] = -1;
+    arr[1] = -1;
+    arr[2] = -1;
+    arr[3] = -1;
+}
 
 pv_game_item_mask::pv_game_item_mask() {
     arr[0] = true;
@@ -1426,7 +1434,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
     }
 
     for (uint64_t& i : curr_field_data.stop_eff_list)
-        Glitter::glt_particle_manager->FreeSceneEffect(0, i);
+        Glitter::glt_particle_manager->FreeSceneEffect(hash_fnv1a64m_empty, i);
 
     for (uint64_t& i : next_field_data.play_eff_list)
         Glitter::glt_particle_manager->LoadScene(hash_fnv1a64m_empty, i);
@@ -1572,7 +1580,7 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
     if (!sub_14013C8C0()->sub_1400E7920()) {
         /*TaskLampCtrl* task_lamp_ctrl = task_lamp_ctrl_get();
         task_lamp_ctrl->field_74 = 2;
-        task_lamp_ctrl->field_78 = { 0xFF, 0xFF, 0xFF, 0xFF };
+        task_lamp_ctrl->field_78 = 0xFFFFFFFF;
         task_lamp_ctrl->field_7C = 0;
         task_slider_control_get()->sub_140618980(3);*/
 
@@ -1739,8 +1747,13 @@ void pv_game::data_itmpv_disable() {
 }
 
 void pv_game::disp() {
-    //sub_1400FC6F0();
+    sub_1400FC6F0();
     //sub_14013C8F0()->sub_14012A4E0();
+}
+
+void pv_game::disp_song_name() {
+    if (!sub_14013C8C0()->sub_1400E7920())
+        data.play_data.disp_song_name(data.play_data.song_name.c_str());
 }
 
 void pv_game::edit_effect_ctrl(float_t delta_time) {
@@ -3726,7 +3739,7 @@ bool pv_game::load() {
     case 24: {
         data.reset();
         data.play_data.sub_140137BE0();
-        set_lyric(-1, { 0xFF, 0xFF, 0xFF, 0xFF });
+        set_lyric(-1, 0xFFFFFFFF);
 
         for (pv_game_chara& i : data.chara) {
             if (!i.check_chara())
@@ -3969,7 +3982,7 @@ void pv_game::reset() {
     data.reference_score_no_flag_life_bonus = 0;
     data.target_reference_score.clear();
     data.field_2CFE0 = 0;
-    data.field_2D092 = data.field_2D00E;
+    data.disp_lyrics_now = data.disp_lyrics;
     data.notes_passed = 0;
     data.field_2CFF0 = 0;
     data.song_energy = 0.0f;
@@ -4365,14 +4378,16 @@ void pv_game::title_image_ctrl(bool dont_wait) {
         if (data.current_time_float - diff->title_image.time < 0.0f)
             break;
 
-        if (diff->title_image.aet_name.size()) {
+        if (!diff->title_image.aet_name.size()) {
             state = 3;
             break;
         }
 
         data.play_data.init_aet_title_image(diff->title_image.aet_name.c_str());
-        if (diff->title_image.end_time >= 0.0)
+        if (diff->title_image.end_time >= 0.0f)
             state = 2;
+        else
+            state = 3;
         break;
     case 2:
         if (diff->title_image.end_time <= data.current_time_float) {
@@ -4669,6 +4684,15 @@ void pv_game::sub_1400FC500() {
         data.next_stage = true;*/
 }
 
+void pv_game::sub_1400FC6F0() {
+    disp_song_name();
+
+    if (!data.play_data.field_64C && sub_14013C8C0()->sub_1400E7910() != 3 && data.play_data.lyric_set && data.disp_lyrics_now) {
+        bool h_center = sub_14013C8C0()->sub_1400E7910() == 2 || sub_14013C8C0()->sub_1400E7910() == 5;
+        data.play_data.disp_lyric(data.play_data.lyric, h_center, this->data.play_data.lyric_color);
+    }
+}
+
 int32_t pv_game::sub_1400FC780(float_t delta_time) {
     data.play_data.field_65C += delta_time;
     data.play_data.skin_danger_ctrl();
@@ -4803,10 +4827,10 @@ void pv_game::sub_140106640() {
 
     //sub_14013C8F0()->sub_14012BDA0();
 
-    data.field_2D092 = data.field_2D00E;
+    data.disp_lyrics_now = data.disp_lyrics;
 
     data.play_data.sub_140137BE0();
-    set_lyric(-1, { 0xFF, 0xFF, 0xFF, 0xFF });
+    set_lyric(-1, 0xFFFFFFFF);
     data.reset();
     data.title_image_state = 0;
     reset_appear();
@@ -5069,6 +5093,13 @@ void struc_14::sub_1400E79E0(int32_t value) {
     type = value;
 }
 
+struc_775::struc_775() : pv_id(), field_4(), difficulty(), edition(), field_10(), field_14(),
+field_18(), field_1C(), score_percentage_clear(), life_gauge_safety_time(), life_gauge_border(),
+field_2C(), field_30(), field_34(), field_38(), field_3C(), ex_stage(), another_song_index(),
+field_44(), field_48(), field_49(), field_4C(), field_64(), field_F4(), field_F8() {
+
+}
+
 struc_660::struc_660() : field_0(), field_4(), field_20(), field_24(), field_48(), field_4C() {
 
 }
@@ -5133,7 +5164,7 @@ struc_717::~struc_717() {
 }
 
 TaskPvGame::Args::Args() : init_data(), field_190(), watch(), no_fail(),
-field_193(), field_194(), mute(), ex_stage(), success(), test_pv(), option() {
+disp_lyrics(), field_194(), mute(), ex_stage(), success(), test_pv(), option() {
     Reset();
 }
 
@@ -5157,7 +5188,7 @@ void TaskPvGame::Args::Reset() {
     field_190 = false;
     watch = true;
     no_fail = false;
-    field_193 = true;
+    disp_lyrics = true;
     field_194 = false;
     mute = false;
     ex_stage = false;
@@ -5167,7 +5198,7 @@ void TaskPvGame::Args::Reset() {
 }
 
 TaskPvGame::Data::Data() : type(), init_data(), field_190(), music_play(),
-no_fail(), field_193(), mute(), ex_stage(), success(), option() {
+no_fail(), disp_lyrics(), mute(), ex_stage(), success(), option() {
     Reset();
 }
 
@@ -5192,7 +5223,7 @@ void TaskPvGame::Data::Reset() {
     field_190 = false;
     music_play = true;
     no_fail = false;
-    field_193 = true;
+    disp_lyrics = true;
     mute = false;
     ex_stage = false;
     success = false;
@@ -5230,6 +5261,9 @@ bool TaskPvGame::Ctrl() {
 bool TaskPvGame::Dest() {
     if (!Unload())
         return false;
+
+    extern float_t frame_speed;
+    frame_speed = 1.0f;
 
     //touch_util::touch_reaction_set_enable(true);
     return true;
@@ -5385,7 +5419,7 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
 
     pv_game_ptr->data.music_play = data.music_play;
     pv_game_ptr->data.no_fail = data.no_fail;
-    pv_game_ptr->data.field_2D00E = data.field_193;
+    pv_game_ptr->data.disp_lyrics = data.disp_lyrics;
     pv_game_ptr->data.song_energy_base = (float_t)data.init_data.score_percentage_clear;
     pv_game_ptr->data.life_gauge_safety_time = data.init_data.life_gauge_safety_time;
     pv_game_ptr->data.life_gauge_border = data.init_data.life_gauge_border;
@@ -5437,18 +5471,23 @@ PVGameSelector::PVGameSelector() : charas(), modules(), start(), exit() {
     edition = 0;
     success = true;
 
-    difficulty = PV_DIFFICULTY_HARD;
-
     const prj::vector_pair_combine<int32_t, module>& modules = module_table_handler_data_get_modules();
     for (const auto& i : modules)
         modules_data[i.second.chara].push_back(&i.second);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        charas[i] = pv->get_performer_chara(i);
+        this->modules[i] = 0;
+        module_names[i].clear();
+
+        int32_t cos = pv->get_performer_pv_costume(i, difficulty);
         for (const auto& j : modules_data[charas[i]])
-            if (this->modules[i] == j->cos) {
+            if (cos == j->cos) {
+                this->modules[i] = j->id;
                 module_names[i].assign(j->name);
                 break;
             }
+    }
 }
 
 PVGameSelector::~PVGameSelector() {
@@ -5497,7 +5536,7 @@ void PVGameSelector::Window() {
 
     window_focus = false;
     bool open = true;
-    if (!ImGui::Begin("X PV Game Selector", &open, window_flags)) {
+    if (!ImGui::Begin("PV Game Selector", &open, window_flags)) {
         ImGui::End();
         return;
     }
@@ -5528,6 +5567,20 @@ void PVGameSelector::Window() {
                 difficulty = PV_DIFFICULTY_HARD;
                 edition = 0;
                 success = true;
+
+                for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
+                    charas[j] = pv->get_performer_chara(j);
+                    this->modules[j] = 0;
+                    module_names[j].clear();
+
+                    int32_t cos = pv->get_performer_pv_costume(j, difficulty);
+                    for (const auto& k : modules_data[charas[j]])
+                        if (cos == k->cos) {
+                            modules[j] = k->id;
+                            module_names[j].assign(k->name);
+                            break;
+                        }
+                }
             }
             ImGui::PopID();
 
@@ -5554,6 +5607,20 @@ void PVGameSelector::Window() {
                 difficulty = (pv_difficulty)i;
                 edition = 0;
                 success = true;
+
+                for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
+                    charas[j] = pv->get_performer_chara(j);
+                    this->modules[j] = 0;
+                    module_names[j].clear();
+
+                    int32_t cos = pv->get_performer_pv_costume(j, difficulty);
+                    for (const auto& k : modules_data[charas[j]])
+                        if (cos == k->cos) {
+                            modules[j] = k->id;
+                            module_names[j].assign(k->name);
+                            break;
+                        }
+                }
             }
 
             if (difficulty == i)
@@ -5578,6 +5645,20 @@ void PVGameSelector::Window() {
                 || (ImGui::IsItemFocused() && edition != i.edition)) {
                 edition = i.edition;
                 success = true;
+
+                for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
+                    charas[j] = pv->get_performer_chara(j);
+                    this->modules[j] = 0;
+                    module_names[j].clear();
+
+                    int32_t cos = pv->get_performer_pv_costume(j, difficulty);
+                    for (const auto& k : modules_data[charas[j]])
+                        if (cos == k->cos) {
+                            modules[j] = k->id;
+                            module_names[j].assign(k->name);
+                            break;
+                        }
+                }
             }
             ImGui::PopID();
 
@@ -5607,7 +5688,8 @@ void PVGameSelector::Window() {
             module_names[i].clear();
 
             for (const auto& j : modules_data[charas[i]])
-                if (modules[i] == j->id) {
+                if (modules[i] == j->cos) {
+                    modules[i] = j->id;
                     module_names[i].assign(j->name);
                     break;
                 }
@@ -5706,10 +5788,10 @@ bool task_pv_game_add_task(TaskPvGame::Args& args) {
     task_pv_game->data.no_fail = args.no_fail;
     if (args.watch) {
         task_pv_game->data.type = 2;
-        task_pv_game->data.field_193 = args.field_193;
+        task_pv_game->data.disp_lyrics = args.disp_lyrics;
     }
     else
-        task_pv_game->data.field_193 = true;
+        task_pv_game->data.disp_lyrics = true;
     task_pv_game->data.mute = args.mute;
     task_pv_game->data.ex_stage = args.ex_stage;
     task_pv_game->data.success = args.success;
@@ -5764,14 +5846,15 @@ void task_pv_game_init_pv() {
         args.init_data.modules[i] = v2->field_2C.field_4C[i];
         for (int32_t j = 0; j < 4; j++) {
             int32_t item_no = 0;
-            /*if (v2->field_2C.field_64[i] >= 0)
-                item_no = sub_140234860->sub_140234490(v2->field_2C.field_64[i]);*/
+            if (v2->field_2C.field_7C[i].arr[j] >= 0)
+                item_no = customize_item_data_handler_data_get_customize_item_obj_id(
+                    v2->field_2C.field_7C[i].arr[j]);
             args.init_data.items[i].arr[j] = item_no;
-            args.init_data.items_mask[i].arr[j] = v2->field_2C.field_7C[i].arr[j];
+            args.init_data.items_mask[i].arr[j] = v2->field_2C.field_DC[i].arr[j];
         }
     }
 
-    args.field_193 = true;
+    args.disp_lyrics = true;
     args.field_194 = false;
 
     /*if (player_data->btn_se_equip >= 0) {
@@ -5859,7 +5942,7 @@ bool task_pv_game_init_demo_pv(int32_t pv_id, pv_difficulty difficulty, bool mus
     task_pv_game->data.field_190 = false;
     task_pv_game->data.music_play = music_play;
     task_pv_game->data.no_fail = false;
-    task_pv_game->data.field_193 = true;
+    task_pv_game->data.disp_lyrics = true;
     task_pv_game->data.success = false;
 
     task_pv_game->data.se_name.assign("");
@@ -5890,7 +5973,7 @@ void task_pv_game_init_test_pv() {
     args.field_190 = false;
     args.watch = false;
     args.no_fail = false;
-    args.field_193 = true;
+    args.disp_lyrics = true;
     args.field_194 = true;
     args.mute = true;
     task_pv_game_add_task(args);

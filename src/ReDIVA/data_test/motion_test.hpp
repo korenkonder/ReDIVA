@@ -243,7 +243,7 @@ public:
         StepSliderProc();
         virtual ~StepSliderProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class CharaListBoxProc : public dw::SelectionAdapter {
@@ -253,7 +253,7 @@ public:
         CharaListBoxProc();
         virtual ~CharaListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class CTypeListBoxProc : public dw::SelectionAdapter {
@@ -263,7 +263,7 @@ public:
         CTypeListBoxProc();
         virtual ~CTypeListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class SetListBoxProc : public dw::SelectionAdapter {
@@ -273,7 +273,7 @@ public:
         SetListBoxProc();
         virtual ~SetListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class IdListBoxProc : public dw::SelectionAdapter {
@@ -283,7 +283,7 @@ public:
         IdListBoxProc();
         virtual ~IdListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class RotateSliderProc : public dw::SelectionAdapter {
@@ -293,7 +293,7 @@ public:
         RotateSliderProc();
         virtual ~RotateSliderProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class PositionSliderProc : public dw::SelectionAdapter {
@@ -301,7 +301,7 @@ public:
         PositionSliderProc();
         virtual ~PositionSliderProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class FrameSliderProc : public dw::SelectionAdapter {
@@ -311,7 +311,7 @@ public:
         FrameSliderProc();
         virtual ~FrameSliderProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class StartFrameSliderProc : public dw::SelectionAdapter {
@@ -321,7 +321,7 @@ public:
         StartFrameSliderProc();
         virtual ~StartFrameSliderProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class DispButtonProc : public dw::SelectionAdapter {
@@ -331,7 +331,7 @@ public:
         DispButtonProc();
         virtual ~DispButtonProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class UseOpdButtonProc : public dw::SelectionAdapter {
@@ -339,7 +339,7 @@ public:
         UseOpdButtonProc();
         virtual ~UseOpdButtonProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class PartialMotButtonProc : public dw::SelectionAdapter {
@@ -347,7 +347,7 @@ public:
         PartialMotButtonProc();
         virtual ~PartialMotButtonProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class SaveOnlyStartFrameButtonProc : public dw::SelectionAdapter {
@@ -355,7 +355,7 @@ public:
         SaveOnlyStartFrameButtonProc();
         virtual ~SaveOnlyStartFrameButtonProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class CreateFaceMotDwProc : public dw::SelectionAdapter {
@@ -363,7 +363,7 @@ public:
         CreateFaceMotDwProc();
         virtual ~CreateFaceMotDwProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class CreateEqDwProc : public dw::SelectionAdapter {
@@ -371,7 +371,7 @@ public:
         CreateEqDwProc();
         virtual ~CreateEqDwProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     struct CreateDebugCamProc : public dw::SelectionAdapter {
@@ -379,7 +379,7 @@ public:
         CreateDebugCamProc();
         virtual ~CreateDebugCamProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     DtmMot* dtm_mot;
@@ -439,7 +439,7 @@ public:
         PvListBoxProc();
         virtual ~PvListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class A3dListBoxProc : public dw::SelectionAdapter {
@@ -447,7 +447,7 @@ public:
         A3dListBoxProc();
         virtual ~A3dListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     dw::ListBox* pv;
@@ -476,7 +476,7 @@ public:
         TypeListBoxProc();
         virtual ~TypeListBoxProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     class SyncFrameButtonProc : public dw::SelectionAdapter {
@@ -484,7 +484,7 @@ public:
         SyncFrameButtonProc();
         virtual ~SyncFrameButtonProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
 
@@ -493,7 +493,7 @@ public:
         GameCameraButtonProc();
         virtual ~GameCameraButtonProc() override;
 
-        virtual void Callback(dw::Widget* data) override;
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
     dw::ListBox* type_list;

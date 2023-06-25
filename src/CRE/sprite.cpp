@@ -732,12 +732,13 @@ namespace spr {
             int32_t x_max;
             int32_t y_max;
             if (index == 0 || index == 3) {
-                camera* cam = rctx->camera;
-                float_t sprite_half_width = (float_t)cam->sprite_width * 0.5f;
-                float_t sprite_half_height = (float_t)cam->sprite_height * 0.5f;
+                resolution_struct* res_wind = res_window_get();
 
-                float_t aet_depth = cam->aet_depth;
-                float_t aet_depth_1 = 1.0f / cam->aet_depth;
+                float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
+                float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
+
+                float_t aet_depth = rctx->camera->aet_depth;
+                float_t aet_depth_1 = 1.0f / aet_depth;
 
                 float_t v15a = sprite_half_height * aspect[i] * 0.2f * aet_depth_1;
                 float_t v15b = sprite_half_height * 0.2f * aet_depth_1;
@@ -1513,6 +1514,9 @@ namespace spr {
                     vertex_buffer.push_back(spr_vtx);
                 }
             } break;
+            default:
+                draw_param_buffer.pop_back();
+                return;
             }
             break;
         case 1:
@@ -1679,8 +1683,7 @@ namespace spr {
             sprite_draw_param& draw_param_2 = draw_param_buffer.data()[draw_param_buffer.size() - 2];
             sprite_draw_param& draw_param_1 = draw_param_buffer.data()[draw_param_buffer.size() - 1];
 
-            if ((args.index == -1 || args.index == 0 || args.index == 3)
-                && draw_param_2.mode == draw_param_1.mode
+            if (draw_param_2.mode == draw_param_1.mode
                 && draw_param_2.blend == draw_param_1.blend
                 && draw_param_2.blend_src_rgb == draw_param_1.blend_src_rgb
                 && draw_param_2.blend_src_alpha == draw_param_1.blend_src_alpha

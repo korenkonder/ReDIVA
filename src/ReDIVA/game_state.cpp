@@ -1178,8 +1178,8 @@ bool SubGameState::Selector::Ctrl() {
                 for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
                     v2->field_2C.field_4C[i] = sel->modules[i];
                     v2->field_2C.field_64[i] = sel->modules[i];
-                    for (int32_t j = 0; j < 4; j++)
-                        v2->field_2C.field_7C[i].arr[j] = false;
+                    v2->field_2C.field_7C[i] = {};
+                    v2->field_2C.field_DC[i] = {};
                 }
 
                 v0->field_0.no_fail = true;

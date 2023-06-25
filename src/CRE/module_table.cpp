@@ -55,7 +55,6 @@ struct module_data_random {
     const char* name;
 };
 
-
 module_data_random module_data_random_data[] = {
     {  -2,  0, CHARA_MIKU  , 1935, 35031, "オール ランダム" },
     {  -3,  1, CHARA_MIKU  , 1947, 35043, "初音ミク ランダム" },
@@ -82,9 +81,13 @@ module::~module() {
 }
 
 module_data::module_data() : id(), sort_index(), chara_index(), cos(), sleeve_l(), sleeve_r(),
-spr_sel_md_id_spr_set_id(), spr_sel_md_id_cmn_spr_set_id(), spr_sel_md_id_cmn_md_img_id_spr_id(),
+spr_sel_md_id_spr_set_id(), spr_sel_md_id_cmn_spr_set_id(), spr_sel_md_id_md_img_id_spr_id(),
 spr_sel_md_id_cmn_md_img_spr_id(), field_78(), field_79(), field_A0() {
     reset();
+}
+
+module_data::~module_data() {
+
 }
 
 void module_data::reset() {
@@ -96,7 +99,7 @@ void module_data::reset() {
     sleeve_r = {};
     spr_sel_md_id_spr_set_id = -1;
     spr_sel_md_id_cmn_spr_set_id = -1;
-    spr_sel_md_id_cmn_md_img_id_spr_id = -1;
+    spr_sel_md_id_md_img_id_spr_id = -1;
     spr_sel_md_id_cmn_md_img_spr_id = -1;
     field_78 = false;
     field_79 = false;
@@ -360,14 +363,14 @@ void module_data_handler::add_modules() {
         mdl.spr_sel_md_id_cmn_spr_set_id = aft_spr_db->get_spr_set_by_name(buf)->id;
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03d_MD_IMG_%03d", mdl.id, mdl.id);
-        mdl.spr_sel_md_id_cmn_md_img_id_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
+        mdl.spr_sel_md_id_md_img_id_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
 
         sprintf_s(buf, sizeof(buf), "SPR_SEL_MD%03dCMN_MD_IMG", mdl.id);
         mdl.spr_sel_md_id_cmn_md_img_spr_id = aft_spr_db->get_spr_by_name(buf)->id;
 
         /*struc_684 v17;
         if (sub_1402B7880()->sub_1402B7550(i.second.id, v17)) {
-            mdl.field_78 = 1;
+            mdl.field_78 = true;
             mdl.field_79 = v17.field_4;
             mdl.name.assign(v17.name);
             mdl.field_A0 = v17.field_28;
