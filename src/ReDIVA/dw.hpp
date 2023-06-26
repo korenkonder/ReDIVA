@@ -86,7 +86,7 @@ namespace dw {
             int64_t field_0;
             int32_t field_8;
             int8_t field_C;
-            vec2 field_10;
+            vec2 mouse_pos;
             int32_t field_18;
             Widget* widget;
 
@@ -135,21 +135,20 @@ namespace dw {
         typedef void(*Callback)(Widget* widget);
 
         struct KeyCallbackData {
-            Widget* field_0;
-            int32_t field_8;
+            Widget* widget;
+            int32_t modifier;
             int8_t field_C;
             int8_t field_D;
-            int32_t field_10;
-            int32_t field_14;
+            int32_t input[2];
 
             KeyCallbackData();
         };
 
         struct MouseCallbackData {
-            Widget* field_0;
+            Widget* widget;
             vec2 pos;
-            int32_t field_10;
-            int32_t field_14;
+            int32_t input;
+            int32_t modifier;
 
             MouseCallbackData();
         };
@@ -233,7 +232,7 @@ namespace dw {
         virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
         virtual vec2 GetPos() override;
 
-        virtual void GetSetSize();
+        virtual void UpdateLayout();
         virtual vec2 GetSize();
         virtual bool Field_58();
         virtual bool Field_60();
@@ -290,7 +289,7 @@ namespace dw {
         virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
         virtual void SetSize(vec2 size) override;
 
-        virtual void GetSetSize() override;
+        virtual void UpdateLayout() override;
         virtual vec2 GetSize() override;
         virtual bool Field_58() override;
         virtual bool Field_60() override;
@@ -750,6 +749,9 @@ namespace dw {
         virtual ~ShellCloseButton() override;
 
         virtual void Draw() override;
+        virtual vec2 GetPos() override;
+
+        virtual vec2 GetSize() override;
 
         static void Callback(Widget* data);
     };
@@ -765,11 +767,19 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
+        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
+        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
         virtual void SetSize(vec2 value) override;
 
-        void AddSelectionListener(SelectionListener* value);
+        virtual void UpdateLayout() override;
+        virtual vec2 GetSize() override;
 
-        static Slider* make(Composite* parent = 0,
+        void AddSelectionListener(SelectionListener* value);
+        vec2 GetTextSize();
+
+        static Slider* Create(Composite* parent, Flags flags, const char* text,
+            const char* format, float_t width = 128.f);
+        static Slider* Create(Composite* parent = 0,
             Flags flags = (Flags)(FLAG_800 | HORIZONTAL),
             float_t pos_x = 0.0f, float_t pos_y = 0.0f,
             float_t width = 128.0f, float_t height = 20.0f, const char* text = "slider");

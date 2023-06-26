@@ -57,6 +57,7 @@
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
+#include "input_state.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
 #include <glad/glad.h>
@@ -553,6 +554,7 @@ static render_context* render_context_load() {
 
     skin_param_data_load();
 
+    input_state_init();
     fontmap_data_init();
     font_info_default_init();
     sound_init();
@@ -1063,12 +1065,14 @@ static void render_context_ctrl(render_context* rctx) {
     classes_process_ctrl(classes, classes_count);
 
     rctx_ptr = rctx;
+    input_state_ctrl();
     game_state_ctrl();
     rctx->ctrl();
 
     if (fast_loader_speed > 1 && game_state_get_game_state() == GAME_STATE_STARTUP)
         for (int32_t i = 1; i < fast_loader_speed; i++) {
             rctx_ptr = rctx;
+            input_state_ctrl();
             game_state_ctrl();
             rctx->ctrl();
         }
@@ -1242,6 +1246,7 @@ static void render_context_dispose(render_context* rctx) {
     sound_free();
     font_info_default_free();
     fontmap_data_free();
+    input_state_free();
 
     skin_param_data_free();
     mothead_storage_free();

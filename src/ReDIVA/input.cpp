@@ -54,10 +54,12 @@ namespace Input {
 
     static bool is_key_mod(int32_t key);
     static bool is_key_numpad(int32_t key);
+
     static void KeyboardCallback(GLFWwindow* window,
         int32_t key, int32_t scancode, int32_t action, int32_t mods);
     static void MouseButtonCallback(GLFWwindow* window,
         int32_t button, int32_t action, int32_t mods);
+
     static Key* vector_Key_find(std::vector<Key>& keys, int32_t key);
     static MouseButton* vector_MouseButton_find(
         std::vector<MouseButton>& mouse_buttons, int32_t button);

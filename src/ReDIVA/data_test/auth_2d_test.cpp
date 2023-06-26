@@ -15,8 +15,7 @@
 #include "../../CRE/sprite.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task_effect.hpp"
-#include "../input.hpp"
-#include "../task_window.hpp"
+#include "../input_state.hpp"
 
 extern int32_t width;
 extern int32_t height;
@@ -267,11 +266,11 @@ void DtmAet::Disp() {
         print_work.color = color_red;
         print_work.printf_align_left("%s\n", i.first.c_str());
 
-        /*if (input_state_get(0)->sub_14018D480(64)) {
+        if (input_state_get(0)->CheckDown(64)) {
             print_work.color = color_white;
             print_work.printf_align_left("p(%.2f,%.2f)\n", pos.x, pos.y);
             print_work.printf_align_left("o(%f)\n", i.second.opacity);
-        }*/
+        }
     }
 }
 
@@ -368,8 +367,6 @@ DtwAet::DtwAet() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
 
-    rect = { 0.0f, 0.0f, 220.0f, 380.0f };
-
     dw::Widget::SetText("2DAUTH TEST");
 
     (new dw::Label(this))->SetText("SET");
@@ -385,14 +382,14 @@ DtwAet::DtwAet() {
     set->SetMaxItems(20);
     set->SetItemIndex(dtm_aet->curr_set_index);
 
-    set->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::SetCallback));
+    set->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::SetCallback));
 
     (new dw::Label(this))->SetText("ID");
 
     id = new dw::ListBox(this);
     id->SetMaxItems(20);
 
-    id->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::IdCallback));
+    id->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::IdCallback));
 
     (new dw::Label(this))->SetText("LAYER");
 
@@ -400,7 +397,7 @@ DtwAet::DtwAet() {
     layer->AddItem("ROOT");
     layer->SetMaxItems(20);
 
-    layer->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::LayerCallback));
+    layer->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::LayerCallback));
 
     (new dw::Label(this))->SetText("MARKER");
 
@@ -408,24 +405,24 @@ DtwAet::DtwAet() {
     marker->AddItem("NOMARKER");
     marker->SetMaxItems(20);
 
-    marker->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::MarkerCallback));
+    marker->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::MarkerCallback));
 
     marker_frame = new dw::Label(this);
     marker_frame->SetText("0");
 
     (new dw::Label(this))->SetText("TYPE");
 
-    type = new dw::ListBox(this);
+    type = new dw::ListBox(this, dw::MULTISELECT);
     type->AddItem("DRAW");
     type->AddItem("LAYOUT");
 
-    type->list->SetItemIndex(dtm_aet->type);
+    type->SetItemIndex(dtm_aet->type);
 
-    type->list->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::TypeCallback));
+    type->AddSelectionListener(new dw::SelectionListenerOnHook(DtwAet::TypeCallback));
 
     (new dw::Label(this))->SetText("FRAME");
 
-    frame = dw::Slider::make(this);
+    frame = dw::Slider::Create(this);
     frame->SetText("FRAME");
     frame->format = "%4.0f";
 
@@ -447,7 +444,7 @@ DtwAet::DtwAet() {
     centering->SetText("CENTERING");
     centering->callback = DtwAet::CenteringCallback;
 
-    //GetSetSize();
+    UpdateLayout();
 }
 
 DtwAet::~DtwAet() {
@@ -523,7 +520,7 @@ void dtm_aet_load() {
     app::TaskWork::AddTask(dtm_aet, "DATA_TEST_AET_MANAGER");
 
     if (!dtw_aet) {
-        dtw_aet = new DtwAet();
+        dtw_aet = new DtwAet;
         dtw_aet->sub_1402F38B0();
     }
     else

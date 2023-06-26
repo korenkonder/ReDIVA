@@ -213,15 +213,15 @@ void PrintWork::DrawTextMesh(app::text_flags flags, sprite_text_mesh& mesh) {
 
 void PrintWork::FillRectangle(rectangle rect) {
     if (clip) {
-        float_t v8a;
-        PrintWork::sub_140196110(rect.pos.x, rect.pos.x + rect.size.y,
-            clip_data.pos.x, clip_data.pos.x + clip_data.size.x, rect.pos.x, v8a);
-        rect.size.x = v8a - rect.pos.x;
+        float_t clip_max_pos_x;
+        PrintWork::ClampPosToClipBox(rect.pos.x, rect.pos.x + rect.size.x,
+            clip_data.pos.x, clip_data.pos.x + clip_data.size.x, rect.pos.x, clip_max_pos_x);
+        rect.size.x = clip_max_pos_x - rect.pos.x;
 
-        float_t v8b;
-        PrintWork::sub_140196110(rect.pos.y, rect.pos.y + rect.size.y,
-            clip_data.pos.y, clip_data.pos.y + clip_data.size.y, rect.pos.y, v8b);
-        rect.size.y = v8b - rect.pos.y;
+        float_t clip_max_pos_y;
+        PrintWork::ClampPosToClipBox(rect.pos.y, rect.pos.y + rect.size.y,
+            clip_data.pos.y, clip_data.pos.y + clip_data.size.y, rect.pos.y, clip_max_pos_y);
+        rect.size.y = clip_max_pos_y - rect.pos.y;
     }
 
     spr::put_sprite_rect(rect, resolution_mode, prio, fill_color, layer);
@@ -459,17 +459,18 @@ void PrintWork::vwprintf(app::text_flags flags, const wchar_t* fmt, va_list args
     PrintText(flags, buf, buf + vswprintf_s(buf, sizeof(buf) / sizeof(wchar_t), fmt, args));
 }
 
-void PrintWork::sub_140196110(float_t a1, float_t a2, float_t a3, float_t a4, float_t& a5, float_t& a6) {
-    float_t v8 = max_def(a1, a3);
-    float_t v10 = max_def(a2, a4);
+void PrintWork::ClampPosToClipBox(float_t pos_min, float_t pos_max,
+    float_t clip_box_min, float_t clip_box_max, float_t& clip_pos_min, float_t& clip_pos_max) {
+    float_t v8 = max_def(pos_min, clip_box_min);
+    float_t v10 = min_def(pos_max, clip_box_max);
 
-    if (v8 >= v10) {
-        a5 = a1;
-        a6 = a1;
+    if (v8 < v10) {
+        clip_pos_min = v8;
+        clip_pos_max = v10;
     }
     else {
-        a5 = v8;
-        a6 = v10;
+        clip_pos_min = pos_min;
+        clip_pos_max = pos_min;
     }
 }
 
@@ -509,25 +510,25 @@ int32_t PrintWork::sub_140197D60(rectangle clip_box, rectangle& pos, rectangle& 
     vec2 uv_pos = uv.pos;
     vec2 uv_size = uv.size;
 
-    vec2 v29;
-    vec2 v25;
-    PrintWork::sub_140196110(pos_pos.x, pos_pos.x + pos_size.x,
-        clip_box.pos.x, clip_box.pos.x + clip_box.size.x, v25.x, v29.x);
-    PrintWork::sub_140196110(pos_pos.y, pos_pos.y + pos_size.y,
-        clip_box.pos.y, clip_box.pos.y + clip_box.size.y, v25.y, v29.y);
+    vec2 clip_max_pos;
+    vec2 clip_min_pos;
+    PrintWork::ClampPosToClipBox(pos_pos.x, pos_pos.x + pos_size.x,
+        clip_box.pos.x, clip_box.pos.x + clip_box.size.x, clip_min_pos.x, clip_max_pos.x);
+    PrintWork::ClampPosToClipBox(pos_pos.y, pos_pos.y + pos_size.y,
+        clip_box.pos.y, clip_box.pos.y + clip_box.size.y, clip_min_pos.y, clip_max_pos.y);
 
-    vec2 v27 = v29 - v25;
+    vec2 clip_size = clip_max_pos - clip_min_pos;
 
-    if (v27.x == pos_size.x && v27.y == pos_size.y)
+    if (clip_size.x == pos_size.x && clip_size.y == pos_size.y)
         return 2;
-    else if (v27.x <= 0.0f || v27.y <= 0.0f)
+    else if (clip_size.x <= 0.0f || clip_size.y <= 0.0f)
         return 0;
 
     vec2 uv_scale = uv_size / pos_size;
-    pos.pos = v25;
-    pos.size = v27;
-    uv.pos = (v25 - pos_pos) * uv_scale + uv_pos;
-    uv.size = v27 * uv_scale;
+    pos.pos = clip_min_pos;
+    pos.size = clip_size;
+    uv.pos = (clip_min_pos - pos_pos) * uv_scale + uv_pos;
+    uv.size = clip_size * uv_scale;
     return 1;
 }
 

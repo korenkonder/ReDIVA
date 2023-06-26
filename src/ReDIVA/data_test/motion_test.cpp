@@ -13,6 +13,7 @@
 #include "../../CRE/pv_db.hpp"
 #include "../../CRE/resolution_mode.hpp"
 #include "../../CRE/stage.hpp"
+#include "../input_state.hpp"
 #include "auth_3d_test.hpp"
 #include "equip_test.hpp"
 #include "stage_test.hpp"
@@ -246,7 +247,7 @@ bool DataTestMot::Ctrl() {
         dtm_mot_array[0].SetLoop(true);
         dtm_mot_array[1].SetLoop(true);
 
-        bool play = false;//input_state_get(0)->sub_14018D540(84) != 0;
+        bool play = input_state_get(0)->CheckIntervalTapped(84);
         dtm_mot_array[0].SetPlay(play);
         dtm_mot_array[1].SetPlay(play);
     } break;
@@ -1245,7 +1246,7 @@ DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
 
     face = InitAddMottblMapMotions(motion_group, 0);
 
-    face_frame = dw::Slider::make(motion_group);
+    face_frame = dw::Slider::Create(motion_group);
     face_frame->SetText("Frame  ");
     face_frame->format = "%4.0f";
     face_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
@@ -1255,7 +1256,7 @@ DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
     face_cl = new dw::Label(motion_group);
     face_cl->SetText("");
 
-    face_cl_frame = dw::Slider::make(motion_group);
+    face_cl_frame = dw::Slider::Create(motion_group);
     face_cl_frame->SetText("Frame");
     face_cl_frame->format = "%4.0f";
     face_cl_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
@@ -1264,7 +1265,7 @@ DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
 
     eyes = InitAddMottblMapMotions(motion_group, 1);
 
-    eyes_frame = dw::Slider::make(motion_group);
+    eyes_frame = dw::Slider::Create(motion_group);
     eyes_frame->SetText("Frame");
     eyes_frame->format = "%4.0f";
     eyes_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
@@ -1273,12 +1274,12 @@ DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
 
     mouth = InitAddMottblMapMotions(motion_group, 2);
 
-    mouth_frame = dw::Slider::make(motion_group);
+    mouth_frame = dw::Slider::Create(motion_group);
     mouth_frame->SetText("Frame");
     mouth_frame->format = "%4.0f";
     mouth_frame->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
 
-    GetSetSize();
+    UpdateLayout();
 }
 
 DataTestFaceMotDw::~DataTestFaceMotDw() {
@@ -1720,14 +1721,14 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     set_list_box_proc.list_box->AddSelectionListener(&id_list_box_proc);
     set_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
-    id_list_box_proc.slider = dw::Slider::make(this);
+    id_list_box_proc.slider = dw::Slider::Create(this);
     id_list_box_proc.slider->SetText("Y ROT");
     id_list_box_proc.slider->format = "%3.0f";
     id_list_box_proc.slider->SetParams(test_mot_data->rot_y[chara_id], -180.0f, 180.0f, 36.0f, 1.0f, 10.0f);
     id_list_box_proc.slider->callback_data.i32 = chara_id;
     id_list_box_proc.slider->AddSelectionListener(&rotate_slider_proc);
 
-    rotate_slider_proc.slider = dw::Slider::make(this);
+    rotate_slider_proc.slider = dw::Slider::Create(this);
     rotate_slider_proc.slider->dw::Widget::SetText("X POS");
     rotate_slider_proc.slider->format = "%3.2f";
     rotate_slider_proc.slider->SetParams(test_mot_data->trans_x[chara_id], -2.0f, 2.0f, 0.4f, 0.01f, 0.1f);
@@ -1739,7 +1740,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     frame_group->SetFont(dw::p_font_type_6x12);
 
     for (int32_t i = 3; i < 4; i++) {
-        step_slider = dw::Slider::make(frame_group);
+        step_slider = dw::Slider::Create(frame_group);
         char buf[0x10];
         sprintf_s(buf, sizeof(buf), "STEP %02d", i);
         step_slider->SetText(buf);
@@ -1764,14 +1765,14 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     frame_count = new dw::Label(frame_comp, dw::FLAG_4000);
     frame_count->SetText("00000.0000");
 
-    current = dw::Slider::make(frame_group);
+    current = dw::Slider::Create(frame_group);
     current->SetText("Current");
     current->format = "%4.0f";
     current->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
     current->callback_data.i32 = chara_id;
     current->AddSelectionListener(&frame_slider_proc);
 
-    frame_slider_proc.slider = dw::Slider::make(frame_group);
+    frame_slider_proc.slider = dw::Slider::Create(frame_group);
     frame_slider_proc.slider->SetText("Start  ");
     frame_slider_proc.slider->format = "%4.0f";
     frame_slider_proc.slider->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
@@ -1875,7 +1876,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     save_only_start_frame_button->callback_data.i32 = chara_id;
     save_only_start_frame_button->SetFont(dw::p_font_type_6x12);
 
-    GetSetSize();
+    UpdateLayout();
 }
 
 DataTestMotDw::~DataTestMotDw() {
@@ -1975,7 +1976,7 @@ void DataTestMotDw::ResetFrame() {
 }
 
 void DataTestMotDw::ResetIDListBoxIndex() {
-    GetSetSize();
+    UpdateLayout();
 
     set_list_box_proc.list_box->SetItemIndex(0);
 }
@@ -2069,7 +2070,7 @@ void DataTestMotA3dDw::PvListBoxProc::Callback(dw::SelectionListener::CallbackDa
     if (list_box)
         data_test_mot_a3d_dw->SetPvId(atoi(list_box->GetSelectedItemStr().c_str()));
 
-    data_test_mot_a3d_dw->GetSetSize();
+    data_test_mot_a3d_dw->UpdateLayout();
 }
 
 DataTestMotA3dDw::A3dListBoxProc::A3dListBoxProc() {
@@ -2187,7 +2188,7 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     sync_1p_frame->callback = DataTestMotA3dDw::Sync1pFrameCallback;
     sync_1p_frame->SetFont(dw::p_font_type_6x12);
 
-    GetSetSize();
+    UpdateLayout();
 
     rect.pos.x = (float_t)res_window_get()->width * 0.3f - rect.size.x * 0.3f;
 
@@ -2292,7 +2293,7 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
     stage->SetText("STAGE");
     stage->callback = DataTestMotCtrlDw::StageCallback;
 
-    GetSetSize();
+    UpdateLayout();
 
     rect.pos.x = (float_t)res_window_get()->width - rect.size.x;
 

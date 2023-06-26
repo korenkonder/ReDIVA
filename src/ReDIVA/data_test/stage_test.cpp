@@ -160,7 +160,7 @@ DtwStg::DtwStg() : Shell(0) {
     effect_display->SetText(L"Effects display");
     effect_display->SetValue(true);
 
-    GetSetSize();
+    UpdateLayout();
 }
 
 DtwStg::~DtwStg() {
@@ -185,7 +185,7 @@ void DtwStg::PvIdCallback(dw::Widget* data) {
         if (elem != dtw_stg->pv_stage.end()) {
             for (std::string& i : elem->second)
                 pv_list_box->AddItem(i);
-            dtw_stg->GetSetSize();
+            dtw_stg->UpdateLayout();
         }
     }
 }

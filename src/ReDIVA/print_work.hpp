@@ -95,7 +95,10 @@ public:
     void vprintf(app::text_flags flags, const char* fmt, va_list args);
     void vwprintf(app::text_flags flags, const wchar_t* fmt, va_list args);
 
-    static void sub_140196110(float_t a1, float_t a2, float_t a3, float_t a4, float_t& a5, float_t& a6);
+    static void ClampPosToClipBox(float_t pos_min, float_t pos_max,
+        float_t clip_box_min, float_t clip_box_max, float_t& clip_pos_min, float_t& clip_pos_max);
+
     vec2 sub_140197B80(app::text_flags flags, vec2 size);
+
     static int32_t sub_140197D60(rectangle clip_box, rectangle& pos, rectangle& uv);
 };
