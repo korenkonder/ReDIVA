@@ -10,7 +10,8 @@
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../imgui_helper.hpp"
-#include "../input.hpp"
+#include "../input_state.hpp"
+#include "../print_work.hpp"
 #include "stage_test.hpp"
 
 TaskDataTestGlitterParticle* task_data_test_glitter_particle;
@@ -22,9 +23,8 @@ extern bool input_reset;
 extern bool input_locked;
 extern bool draw_grid_3d;
 
-TaskDataTestGlitterParticle::TaskDataTestGlitterParticle() : hash(), scene_counter(), frame(),
-auto_and_repeat(), reload(), pv_mode(), show_grid(), rebuild_geff(), geff_index(),
-file_index(), load_file(), input_play(), input_stop(), delta_frame(), stage_test() {
+TaskDataTestGlitterParticle::TaskDataTestGlitterParticle() : hash(), dw(),
+frame(), auto_and_repeat(), reload(), pv_mode(), show_grid(), rebuild_geff() {
 
 }
 
@@ -35,56 +35,40 @@ TaskDataTestGlitterParticle::~TaskDataTestGlitterParticle() {
 bool TaskDataTestGlitterParticle::Init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-    Glitter::glt_particle_manager->counter = (uint32_t)(time.LowPart * 0x0CAD3078ULL);
+    Glitter::glt_particle_manager->counter = (uint32_t)(time.LowPart * hash_murmurhash_empty);
 
-    data_list[DATA_AFT].get_directory_files("rom/particle/", files);
-    for (std::vector<data_struct_file>::iterator i = files.begin(); i != files.end();)
-        if (str_utils_check_ends_with(i->name.c_str(), ".farc")) {
-            char* temp = str_utils_get_without_extension(i->name.c_str());
-            if (temp) {
-                i->name.assign(temp);
-                free(temp);
-            }
-            else
-                i->name.clear();
-            i++;
-        }
-        else
-            i = files.erase(i);
+    clear_color = 0xFF606060;
 
     Glitter::glt_particle_manager->emission = 1.0f;
     Glitter::glt_particle_manager->draw_all = false;
     Glitter::glt_particle_manager->draw_all_mesh = false;
-    dtm_stg_load(0);
-
-    clear_color = 0xFF606060;
 
     camera* cam = rctx_ptr->camera;
     cam->reset();
-    cam->set_view_point({ 0.0f, 0.88f, 4.3f });
+    cam->set_view_point({ 0.0f, 1.0f, 3.45f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
 
     hash = hash_fnv1a64m_empty;
     scene_counter = 0;
-    frame = 0.0f;
+    dw = new DataTestGlitterParticleDw(this);
+    dw->sub_1402F38B0();
+    frame = 0;
     auto_and_repeat = false;
     reload = false;
     pv_mode = false;
     show_grid = false;
     rebuild_geff = false;
-    file_index = -1;
     return true;
 }
 
 bool TaskDataTestGlitterParticle::Ctrl() {
-    if (load_file && file_index < files.size())
-        LoadFile(files[file_index].name.c_str());
-    load_file = false;
-
-    if (input_play)
-        reload = true;
-    else if (input_stop)
-        Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
+    InputState* input_state = input_state_get(0);
+    if (input_state) {
+        if (input_state->CheckTapped(43))
+            SetReload();
+        else if (input_state->CheckTapped(42))
+            SceneFree();
+    }
 
     if (!Glitter::glt_particle_manager->CheckNoFileReaders(hash)) {
         reload = false;
@@ -92,36 +76,51 @@ bool TaskDataTestGlitterParticle::Ctrl() {
     }
 
     if (rebuild_geff) {
-        int32_t effects_count = (int32_t)Glitter::glt_particle_manager->GetEffectsCount(this->hash);
-        geff.clear();
-        geff.push_back("ALL");
-        for (int32_t i = 0; i < effects_count; i++)
-            geff.push_back(Glitter::glt_particle_manager->GetEffectName(hash, i));
+        if (dw) {
+            if (dw->geff->list)
+                dw->geff->list->ClearItems();
+
+            int32_t effects_count = (int)Glitter::glt_particle_manager->GetEffectsCount(hash);
+            dw->geff->AddItem("ALL");
+
+            std::vector<uint64_t> effect_hashes(effects_count);
+            for (int32_t i = 0; i < effects_count; i++) {
+                const char* effect_name = Glitter::glt_particle_manager->GetEffectName(hash, i);
+                dw->geff->AddItem(effect_name);
+                effect_hashes[i] = Glitter::glt_particle_manager->CalculateHash(effect_name);
+            }
+
+            dw->geff->SetItemIndex(0);
+        }
+
         rebuild_geff = false;
     }
 
-    if (Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter) && !Glitter::glt_particle_manager->GetPause())
+    if (Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter)
+        && !Glitter::glt_particle_manager->GetPause())
         frame += sys_frame_rate.GetDeltaFrame();
 
     if (reload || auto_and_repeat && !Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter)) {
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
         uint64_t effect_hash = hash_fnv1a64m_empty;
 
-        if (geff_index)
-            effect_hash = Glitter::glt_particle_manager->CalculateHash(geff[geff_index].c_str());
+        if (dw) {
+            dw::ListBox* geff = dw->geff;
+            if (geff->list && geff->list->selected_item)
+                effect_hash = Glitter::glt_particle_manager->CalculateHash(
+                    geff->GetItemStr(geff->list->selected_item).c_str());
+        }
 
         if (!pv_mode)
-            scene_counter = Glitter::glt_particle_manager->Load(hash, effect_hash, 0);
+            scene_counter = Glitter::glt_particle_manager->Load(hash, effect_hash, false);
         else if (effect_hash == hash_fnv1a64m_empty)
             scene_counter = Glitter::glt_particle_manager->LoadScene(hash, hash_fnv1a64m_empty);
         else
             scene_counter = Glitter::glt_particle_manager->LoadScene(hash_fnv1a64m_empty, effect_hash);
+
         frame = 0.0f;
         reload = false;
     }
-
-    input_play = false;
-    input_stop = false;
     return false;
 }
 
@@ -130,6 +129,11 @@ bool TaskDataTestGlitterParticle::Dest() {
     Glitter::glt_particle_manager->FreeScenes();
     Glitter::glt_particle_manager->FreeEffects();
     Glitter::glt_particle_manager->SetPause(false);
+
+    if (dw) {
+        dw->Hide();
+        dw = 0;
+    }
     return true;
 }
 
@@ -144,138 +148,249 @@ void TaskDataTestGlitterParticle::Disp() {
         etc.data.grid.hs = 50;
         rctx_ptr->disp_manager.entry_obj_etc(&mat4_identity, &etc);
     }
+
+    int32_t life_time = 0;
+    float_t frame = Glitter::glt_particle_manager->GetSceneFrameLifeTime(scene_counter, &life_time);
+
+    PrintWork print_work;
+    font_info font(16);
+    print_work.SetFont(&font);
+    print_work.line_origin_loc = { 0.0f, 624.0f };
+    print_work.text_current_loc = { 0.0f, 624.0f };
+    print_work.printf_align_left("%.0f - %.0f/%.0f\n", this->frame, frame, (float_t)life_time);
+
+    size_t disp;
+    size_t ctrl;
+
+    disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_QUAD);
+    ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_QUAD);
+    print_work.printf_align_left(" Quad: ctrl%d, disp%d\n", disp, ctrl);
+
+    disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_LOCUS);
+    ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_LOCUS);
+    print_work.printf_align_left("Locus: ctrl%d, disp%d\n", disp, ctrl);
+
+    disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_LINE);
+    ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_LINE);
+    print_work.printf_align_left(" Line: ctrl%d, disp%d\n", disp, ctrl);
+
+    // Added
+    disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_MESH);
+    ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_MESH);
+    print_work.printf_align_left(" Mesh: ctrl%d, disp%d\n", disp, ctrl);
+
 }
 
-void TaskDataTestGlitterParticle::Window() {
-    ImGuiIO& io = ImGui::GetIO();
-    ImGuiStyle& style = ImGui::GetStyle();
-    ImFont* font = ImGui::GetFont();
+void TaskDataTestGlitterParticle::SceneFree( ){
+    Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
+}
 
-    float_t w = 280.0f;
-    float_t h = 278.0f;
+void TaskDataTestGlitterParticle::SetPause(bool value) {
+    Glitter::glt_particle_manager->SetPause(value);
+}
 
-    ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
-    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
-
-    ImGuiWindowFlags window_flags = 0;
-    window_flags |= ImGuiWindowFlags_NoResize;
-
-    window_focus = false;
-    if (!ImGui::Begin("Glitter Test##Data Test", 0, window_flags)) {
-        ImGui::End();
-        return;
-    }
-
-    if (ImGui::ColumnComboBoxConfigFile("File", files.data(),
-        files.size(), &file_index, 0, false, &window_focus)) {
-        load_file = true;
-        input_stop = true;
-    }
-
-    if (ImGui::ButtonEnterKeyPressed("Reset Camera (R)"))
-        input_reset = true;
-
-    w = ImGui::GetContentRegionAvailWidth();
-    if (ImGui::ButtonEnterKeyPressed("Play (F)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_F))
-        input_play = true;
-
-    w = ImGui::GetContentRegionAvailWidth();
-    if (ImGui::ButtonEnterKeyPressed("Stop (V)", { w, 0.0f }) || ImGui::IsKeyPressed(ImGuiKey_V))
-        input_stop = true;
-
-    bool pause = Glitter::glt_particle_manager->GetPause();
-    ImGui::CheckboxEnterKeyPressed("Pause (G)", &pause);
-    if (ImGui::IsKeyPressed(ImGuiKey_G))
-        pause ^= true;
-    Glitter::glt_particle_manager->SetPause(pause);
-
-    ImGui::CheckboxEnterKeyPressed("Auto (T)", &auto_and_repeat);
-    if (ImGui::IsKeyPressed(ImGuiKey_T))
-        auto_and_repeat ^= true;
-
-    ImGui::CheckboxEnterKeyPressed("PV Mode (P)", &pv_mode);
-    if (ImGui::IsKeyPressed(ImGuiKey_P))
-        pv_mode ^= true;
-
-    ImGui::Separator();
-
-    ImGui::ColumnSliderFloatButton("Emission",
-        &Glitter::glt_particle_manager->emission, 0.01f, 1.0f, 2.0f, 0.1f, "%.2f", 0);
-
-    ImGui::Separator();
-
-    ImGui::CheckboxEnterKeyPressed("Show Grid", &draw_grid_3d);
-
-    w = ImGui::GetContentRegionAvailWidth();
-    if (ImGui::ButtonEnterKeyPressed("Stage", { w, 0.0f }))
-        stage_test = true;
-
-    window_focus |= ImGui::IsWindowFocused();
-    ImGui::End();
-
-    float_t win_x = min_def((float_t)width, 240.0f);
-    float_t win_y = min_def((float_t)height, 96.0f);
-
-    float_t x = 0.0f;
-    float_t y = (float_t)height - win_y;
-    w = win_x;
-    h = win_y;
-
-    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
-    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
-
-    window_flags = 0;
-    window_flags |= ImGuiWindowFlags_NoTitleBar;
-    window_flags |= ImGuiWindowFlags_NoResize;
-    window_flags |= ImGuiWindowFlags_NoScrollbar;
-    window_flags |= ImGuiWindowFlags_NoCollapse;
-    window_flags |= ImGuiWindowFlags_NoMouseInputs;
-    window_flags |= ImGuiWindowFlags_NoNavInputs;
-    window_flags |= ImGuiWindowFlags_NoNavFocus;
-
-    ImGui::PushStyleColor(ImGuiCol_Border, 0);
-    ImGui::PushStyleColor(ImGuiCol_WindowBg, 0);
-    if (ImGui::Begin("Glitter Test Sub##Data Test", 0, window_flags)) {
-        size_t ctrl;
-        size_t disp;
-        float_t frame;
-        int32_t life_time;
-
-        life_time = 0;
-        frame = Glitter::glt_particle_manager->GetSceneFrameLifeTime(scene_counter, &life_time);
-        ImGui::Text("%.0f - %.0f/%d", this->frame, frame, life_time);
-
-        ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_QUAD);
-        disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_QUAD);
-        ImGui::Text(" Quad: ctrl%lld, disp%lld", ctrl, disp);
-
-        ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_LOCUS);
-        disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_LOCUS);
-        ImGui::Text("Locus: ctrl%lld, disp%lld", ctrl, disp);
-
-        ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_LINE);
-        disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_LINE);
-        ImGui::Text(" Line: ctrl%lld, disp%lld", ctrl, disp);
-
-        ctrl = Glitter::glt_particle_manager->GetCtrlCount(Glitter::PARTICLE_MESH);
-        disp = Glitter::glt_particle_manager->GetDispCount(Glitter::PARTICLE_MESH);
-        ImGui::Text(" Mesh: ctrl%lld, disp%lld", ctrl, disp);
-    }
-    ImGui::PopStyleColor(2);
-    ImGui::End();
+void TaskDataTestGlitterParticle::SetReload() {
+    reload = true;
 }
 
 void TaskDataTestGlitterParticle::LoadFile(const char* file) {
     data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
     Glitter::glt_particle_manager->UnloadEffectGroup(hash);
-    hash = Glitter::glt_particle_manager->LoadFile(Glitter::FT, aft_data, file, 0, -1.0f, true);
+    hash = Glitter::glt_particle_manager->LoadFile(Glitter::FT, aft_data, file, 0, -1.0f, true, aft_obj_db);
     rebuild_geff = true;
 }
 
+DataTestGlitterParticleDw::DataTestGlitterParticleDw(TaskDataTestGlitterParticle* task) {
+    this->task = task;
+
+    SetText("Glitter");
+
+    (new dw::Label(this))->SetText("list");
+
+    list = new dw::ListBox(this);
+    list->SetMaxItems(30);
+    list->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::ListCallback));
+
+    (new dw::Label(this))->SetText("geff");
+
+    geff = new dw::ListBox(this);
+    geff->SetMaxItems(30);
+
+    pause = new dw::Button(this, dw::CHECKBOX);
+    pause->SetText("Pause");
+    pause->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::PauseCallback));
+
+    auto_and_repeat = new dw::Button(this, dw::CHECKBOX);
+    auto_and_repeat->SetText("Auto & Repeat");
+    auto_and_repeat->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::AutoAndRepeatCallback));
+
+    pv_mode = new dw::Button(this, dw::CHECKBOX);
+    pv_mode->SetText("PV Mode");
+    pv_mode->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::PvModeCallback));
+    
+    play = new dw::Button(this, dw::FLAG_8);
+    play->SetText("Play(E)");
+    play->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::PlayCallback));
+    
+    stop = new dw::Button(this, dw::FLAG_8);
+    stop->SetText("Stop(D)");
+    stop->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::StopCallback));
+
+    emission = dw::Slider::Create(this, (dw::Flags)(dw::FLAG_800 | dw::HORIZONTAL), "Emission", "%2.2f", 150.0f);
+    emission->SetParams(1.0f, 1.0f, 2.0f, 0.1f, 0.01f, 0.1f);
+    emission->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::EmissionCallback));
+
+    show_grid = new dw::Button(this, dw::CHECKBOX);
+    show_grid->SetText("Show Grid");
+    show_grid->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::ShowGridCallback));
+    
+    stage = new dw::Button(this, dw::FLAG_8);
+    stage->SetText("Stage");
+    stage->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::StageCallback));
+
+    chara = new dw::Button(this, dw::CHECKBOX);
+    chara->SetText("Chara");
+    chara->AddSelectionListener(new dw::SelectionListenerOnHook(
+        DataTestGlitterParticleDw::CharaCallback));
+
+    Init();
+
+    UpdateLayout();
+}
+
+DataTestGlitterParticleDw::~DataTestGlitterParticleDw() {
+
+}
+
+void DataTestGlitterParticleDw::Init() {
+    pause->SetValue(false);
+    auto_and_repeat->SetValue(false);
+    pv_mode->SetValue(false);
+    show_grid->SetValue(false);
+    chara->SetValue(false);
+    list->ClearItems();
+
+    std::vector<data_struct_file> files;
+    data_list[DATA_AFT].get_directory_files("rom/particle/", files);
+    for (data_struct_file& i : files) {
+        size_t pos = i.name.find(".farc");
+        if (pos == i.name.size() - 5)
+            list->AddItem(i.name.substr(0, pos));
+    }
+}
+
+void DataTestGlitterParticleDw::AutoAndRepeatCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        DataTestGlitterParticleDw* glt_ptcl_dw =
+            dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->auto_and_repeat = button->value;
+    }
+}
+
+void DataTestGlitterParticleDw::CharaCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button)
+        if (dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell))
+            if (button->value) {
+                /*if (!app::TaskWork::CheckTaskReady(&data_test_chr))
+                    app::TaskWork::AddTask(&data_test_chr, "DATA_TEST_CHR");*/
+            }
+            else {
+                /*if (app::TaskWork::CheckTaskReady(&data_test_chr))
+                    data_test_chr.DelTask();*/
+            }
+}
+
+void DataTestGlitterParticleDw::EmissionCallback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        if (dynamic_cast<DataTestGlitterParticleDw*>(slider->parent_shell))
+            Glitter::glt_particle_manager->emission = slider->scroll_bar->value;
+}
+
+void DataTestGlitterParticleDw::ListCallback(dw::Widget* data) {
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    if (list_box) {
+        DataTestGlitterParticleDw* glt_ptcl_dw =
+            dynamic_cast<DataTestGlitterParticleDw*>(list_box->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->LoadFile(list_box->GetItemStr(list_box->list->selected_item).c_str());
+    }
+}
+
+void DataTestGlitterParticleDw::PauseCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        DataTestGlitterParticleDw* glt_ptcl_dw =
+            dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->SetPause(button->value);
+    }
+}
+
+void DataTestGlitterParticleDw::PlayCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        DataTestGlitterParticleDw* glt_ptcl_dw =
+            dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->SetReload();
+    }
+}
+
+void DataTestGlitterParticleDw::PvModeCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        DataTestGlitterParticleDw* glt_ptcl_dw =
+            dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->pv_mode = button->value;
+    }
+}
+
+void DataTestGlitterParticleDw::ShowGridCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        DataTestGlitterParticleDw* glt_ptcl_dw =
+            dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->show_grid = button->value;
+    }
+}
+
+void DataTestGlitterParticleDw::StageCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button)
+        if (dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell))
+            dtw_stg_load(0);
+}
+
+void DataTestGlitterParticleDw::StopCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        DataTestGlitterParticleDw* glt_ptcl_dw = dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
+        if (glt_ptcl_dw)
+            glt_ptcl_dw->task->SceneFree();
+    }
+}
+
 void task_data_test_glitter_particle_init() {
-    task_data_test_glitter_particle = new TaskDataTestGlitterParticle;
+    if (!task_data_test_glitter_particle)
+        task_data_test_glitter_particle = new TaskDataTestGlitterParticle;
 }
 
 void task_data_test_glitter_particle_free() {

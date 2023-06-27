@@ -7,6 +7,7 @@
 #define BAKE_PNG (0)
 #define BAKE_VIDEO (0)
 #define BAKE_PV826 (0)
+#define DW_TRANSLATE (0)
 #define PV_DEBUG (1)
 
 #define DATA_EDIT (0)

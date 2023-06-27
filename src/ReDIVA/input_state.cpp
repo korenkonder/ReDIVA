@@ -68,6 +68,8 @@ static bool sub_140190A30(struc_794* a1, int32_t index);
 
 InputState* input_state;
 
+bool disable_input_state_update = false;
+
 extern render_context* rctx_ptr;
 
 InputState::DoubleTap::DoubleTap() : hold_frame(), frame(), state() {
@@ -508,58 +510,60 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
         { 98, GLFW_MOUSE_BUTTON_RIGHT, },
     };
 
-    for (const key_map& i : key_map_array) {
-        bool tapped = false;
-        bool released = false;
-        bool down = false;
+    if (!disable_input_state_update) {
+        for (const key_map& i : key_map_array) {
+            bool tapped = false;
+            bool released = false;
+            bool down = false;
 
-        for (const int32_t& j : i.keys) {
-            if (j == -1)
-                break;
+            for (const int32_t& j : i.keys) {
+                if (j == -1)
+                    break;
 
-            if (!tapped)
-                if (Input::IsKeyTapped(j, -1))
-                    tapped = true;
+                if (!tapped)
+                    if (Input::IsKeyTapped(j, -1))
+                        tapped = true;
 
-            if (!released)
-                if (Input::IsKeyReleased(j, -1))
-                    released = true;
+                if (!released)
+                    if (Input::IsKeyReleased(j, -1))
+                        released = true;
 
-            if (!down)
-                if (Input::IsKeyDown(j, -1))
-                    down = true;
+                if (!down)
+                    if (Input::IsKeyDown(j, -1))
+                        down = true;
+            }
+
+            a1->tapped[i.index] = tapped;
+            a1->released[i.index] = released;
+            a1->down[i.index] = down;
         }
 
-        a1->tapped[i.index] = tapped;
-        a1->released[i.index] = released;
-        a1->down[i.index] = down;
-    }
+        for (const key_map& i : mouse_button_array) {
+            bool tapped = false;
+            bool released = false;
+            bool down = false;
 
-    for (const key_map& i : mouse_button_array) {
-        bool tapped = false;
-        bool released = false;
-        bool down = false;
+            for (const int32_t& j : i.keys) {
+                if (j == -1)
+                    break;
 
-        for (const int32_t& j : i.keys) {
-            if (j == -1)
-                break;
+                if (!tapped)
+                    if (Input::IsMouseButtonTapped(j))
+                        tapped = true;
 
-            if (!tapped)
-                if (Input::IsMouseButtonTapped(j))
-                    tapped = true;
+                if (!released)
+                    if (Input::IsMouseButtonReleased(j))
+                        released = true;
 
-            if (!released)
-                if (Input::IsMouseButtonReleased(j))
-                    released = true;
+                if (!down)
+                    if (Input::IsMouseButtonDown(j))
+                        down = true;
+            }
 
-            if (!down)
-                if (Input::IsMouseButtonDown(j))
-                    down = true;
+            a1->tapped[i.index] = tapped;
+            a1->released[i.index] = released;
+            a1->down[i.index] = down;
         }
-
-        a1->tapped[i.index] = tapped;
-        a1->released[i.index] = released;
-        a1->down[i.index] = down;
     }
 
     int32_t x_offset = rctx_ptr->post_process.screen_x_offset;

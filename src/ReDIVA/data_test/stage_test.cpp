@@ -13,7 +13,7 @@
 #include "../../CRE/task_effect.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
-#include "../task_window.hpp"
+#include "../config.hpp"
 
 extern int32_t width;
 extern int32_t height;
@@ -74,12 +74,12 @@ DtwStg::DtwStg() : Shell(0) {
 
     std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
 
-    dw::Widget::SetText(L"STAGE TEST");
+    dw::Widget::SetText("STAGE TEST");
 
     dw::Composite* pv_comp = new dw::Composite(this);
     pv_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(pv_comp))->SetText(L"PV:");
+    (new dw::Label(pv_comp))->SetText("PV:");
 
     pv_id = new dw::ListBox(pv_comp);
 
@@ -88,14 +88,14 @@ DtwStg::DtwStg() : Shell(0) {
     dw::Composite* ns_comp = new dw::Composite(this);
     ns_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(ns_comp))->SetText(L"NS:");
+    (new dw::Label(ns_comp))->SetText("NS:");
 
     ns = new dw::ListBox(ns_comp);
 
     dw::Composite* other_comp = new dw::Composite(this);
     other_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-    (new dw::Label(other_comp))->SetText(L"Other:");
+    (new dw::Label(other_comp))->SetText("Other:");
 
     other = new dw::ListBox(other_comp);
 
@@ -140,24 +140,38 @@ DtwStg::DtwStg() : Shell(0) {
     stage->SetItemIndex(0);
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
+#if DW_TRANSLATE
+    const char*  stage_display_text = "Stage display";
+    const char*           ring_text = "[Ring]";
+    const char*         ground_text = "[Ground]";
+    const char*            sky_text = "[Sky]";
+    const char* effect_display_text = "Effects display";
+#else
+    const char* stage_display_text = "ステージ表示";
+    const char* ring_text = "【リング】";
+    const char* ground_text = "【地面】";
+    const char* sky_text = "【空】";
+    const char* effect_display_text = "エフェクト表示";
+#endif
+
     stage_display = new dw::Button(this, dw::CHECKBOX);
-    stage_display->SetText(L"Stage display");
+    stage_display->SetText(stage_display_text);
     stage_display->SetValue(true);
 
     ring = new dw::Button(this, dw::CHECKBOX);
-    ring->SetText(L"[Ring]");
+    ring->SetText(ring_text);
     ring->SetValue(true);
 
     ground = new dw::Button(this, dw::CHECKBOX);
-    ground->SetText(L"[Ground]");
+    ground->SetText(ground_text);
     ground->SetValue(true);
 
     sky = new dw::Button(this, dw::CHECKBOX);
-    sky->SetText(L"[Sky]");
+    sky->SetText(sky_text);
     sky->SetValue(true);
 
     effect_display = new dw::Button(this, dw::CHECKBOX);
-    effect_display->SetText(L"Effects display");
+    effect_display->SetText(effect_display_text);
     effect_display->SetValue(true);
 
     UpdateLayout();
@@ -221,11 +235,6 @@ bool dtm_stg_unload() {
 }
 
 void dtm_stg_free() {
-    if (dtw_stg) {
-        delete dtw_stg;
-        dtw_stg = 0;
-    }
-
     if (dtm_stg) {
         delete dtm_stg;
         dtm_stg = 0;
@@ -233,12 +242,9 @@ void dtm_stg_free() {
 }
 
 void dtw_stg_init() {
-    if (!dtw_stg) {
+    while (!dtw_stg)
         dtw_stg = new DtwStg;
-        dtw_stg->sub_1402F38B0();
-    }
-    else
-        dtw_stg->Disp();
+    dtw_stg->Disp();
 }
 
 void dtw_stg_load(bool hide) {

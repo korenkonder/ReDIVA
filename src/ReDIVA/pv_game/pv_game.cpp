@@ -3416,7 +3416,7 @@ bool pv_game::load() {
             Glitter::glt_particle_manager->counter = 0;
             for (pv_effect_resource& i : data.effect_rs_list) {
                 uint64_t hash = Glitter::glt_particle_manager->LoadFile(Glitter::FT,
-                    aft_data, i.name.c_str(), 0, i.emission, true);
+                    aft_data, i.name.c_str(), 0, i.emission, true, aft_obj_db);
                 if (hash != hash_fnv1a64m_empty)
                     data.effect_rs_list_hashes.push_back(hash);
             }

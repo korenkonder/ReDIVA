@@ -430,6 +430,8 @@ public:
     static void BCallback(dw::Widget* data);
     static void StartCtrlLeftRightCallback(dw::Widget* data);
     static void StartCtrlResetCallback(dw::Widget* data);
+
+    void sub_14028D8B0();
 };
 
 class DataTestMotA3dDw : public dw::Shell {

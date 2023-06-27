@@ -30,6 +30,8 @@ extern HWND window_handle;
 extern ImGuiContext* imgui_context;
 extern lock_cs imgui_context_lock;
 
+extern bool disable_input_state_update;
+
 namespace Input {
     struct Key {
         int32_t key;
@@ -199,7 +201,10 @@ namespace Input {
         input_rotate_y = 0.0;
         input_roll = 0.0;
 
-        if (!window_handle || window_handle != GetForegroundWindow())
+        if (IsKeyTapped(GLFW_KEY_F3))
+            disable_input_state_update ^= true;
+
+        if (!window_handle || window_handle != GetForegroundWindow() || !disable_input_state_update)
             return;
 
         double_t freq = render_timer->get_freq();

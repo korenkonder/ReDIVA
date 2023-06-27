@@ -59,7 +59,7 @@ struct InputState {
     bool updated;
     bool field_D1;
     bool field_D2;
-    bool key;
+    uint8_t key;
     DoubleTap DoubleTapData[INPUT_BUTTON_COUNT];
     HoldTap HoldTapData[INPUT_BUTTON_COUNT];
     IntervalTap IntervalTapData[INPUT_BUTTON_COUNT];

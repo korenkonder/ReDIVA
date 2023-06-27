@@ -2544,22 +2544,22 @@ static void rob_chara_data_adjust_ctrl(rob_chara* rob_chr,
         mat4_mult_vec3(&mat, &adjust->curr_external_force, &adjust->curr_external_force);
     }
     else if (adjust->type == 2) {
-        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, 9)->ex_data_mat;
+        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_KL_MUNE_B_WJ)->ex_data_mat;
         if (mat)
             mat4_mult_vec3(mat, &adjust->curr_external_force, &adjust->curr_external_force);
     }
     else if (adjust->type == 3) {
-        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, 10)->ex_data_mat;
+        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_KL_KUBI)->ex_data_mat;
         if (mat)
             mat4_mult_vec3(mat, &adjust->curr_external_force, &adjust->curr_external_force);
     }
     else if (adjust->type == 4) {
-        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, 15)->ex_data_mat;
+        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_FACE_ROOT)->ex_data_mat;
         if (mat)
             mat4_mult_vec3(mat, &adjust->curr_external_force, &adjust->curr_external_force);
     }
     else if (adjust->type == 5) {
-        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, 177)->ex_data_mat;
+        mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_KL_KOSI_ETC_WJ)->ex_data_mat;
         if (mat) {
             adjust->curr_external_force.z = -adjust->curr_external_force.z;
             mat4_mult_vec3(mat, &adjust->curr_external_force, &adjust->curr_external_force);
@@ -3498,7 +3498,8 @@ void rob_chara::reset_data(rob_chara_pv_data* pv_data,
         BONE_DATABASE_SKELETON_COMMON, chara_init_data->skeleton_type, bone_data);
     data.reset();
     data_prev.reset();
-    item_equip->get_parent_bone_nodes(rob_chara_bone_data_get_node(this->bone_data, 0), bone_data);
+    item_equip->get_parent_bone_nodes(rob_chara_bone_data_get_node(
+        this->bone_data, MOT_BONE_N_HARA_CP), bone_data);
     type = pv_data->type;
     rob_chara_data* rob_chr_data = &data;
     rob_chr_data->miku_rot.rot_y_int16 = pv_data->rot_y_int16;
@@ -8240,7 +8241,7 @@ static void rob_disp_rob_chara_init(rob_chara* rob_chr,
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
     const chara_init_data* chr_init_data = rob_chr->chara_init_data;
-    bone_node* v3 = rob_chara_bone_data_get_node(rob_chr->bone_data, 0);
+    bone_node* v3 = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_N_HARA_CP);
     rob_itm_equip->reset_init_data(v3);
     rob_itm_equip->set_item_equip_range(rob_chr->module_index == 501);
     rob_itm_equip->load_object_info({}, ITEM_BODY, false, bone_data, data, obj_db);
@@ -11484,7 +11485,8 @@ void rob_chara_array_free_chara_id(int32_t chara_id) {
 
 void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id) {
     rob_chara_item_equip* rob_itm_equip = rob_chara_array[chara_id].item_equip;
-    rob_itm_equip->reset_init_data(rob_chara_bone_data_get_node(rob_chara_array[chara_id].bone_data, 0));
+    rob_itm_equip->reset_init_data(rob_chara_bone_data_get_node(
+        rob_chara_array[chara_id].bone_data, MOT_BONE_N_HARA_CP));
     rob_itm_equip->set_shadow_type(chara_id);
     rob_itm_equip->field_A0 = 0x05;
 }
@@ -16618,7 +16620,7 @@ bool OpdMakeWorker::Ctrl() {
         }
 
         rob_chr->item_equip->reset_init_data(rob_chara_bone_data_get_node(
-            rob_chara_array[chara_id].bone_data, 0));
+            rob_chara_array[chara_id].bone_data, MOT_BONE_N_HARA_CP));
         rob_chr->item_equip->set_shadow_type(chara_id);
         rob_chr->item_equip->field_A0 = 0x05;
         state = 2;

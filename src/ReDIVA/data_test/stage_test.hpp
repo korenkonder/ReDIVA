@@ -6,8 +6,8 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
+#include "../../CRE/task.hpp"
 #include "../dw.hpp"
-#include "../task_window.hpp"
 
 struct stage_test_stage_pv {
     int32_t pv_id;

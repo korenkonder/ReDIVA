@@ -153,7 +153,7 @@ namespace dw {
             MouseCallbackData();
         };
 
-        bool free;
+        bool freed;
 
         union {
             int8_t i8;
@@ -467,6 +467,8 @@ namespace dw {
 
         virtual void Draw() override;
 
+        virtual vec2 GetSize() override;
+
         virtual rectangle GetBoundingBox() override;
     };
 
@@ -524,6 +526,7 @@ namespace dw {
         void AddItem(const std::string& str);
         void AddItem(const std::wstring& str);
         void AddSelectionListener(SelectionListener* value);
+        void Callback(SelectionListener::CallbackData* data);
         bool CheckItemSelected(size_t index);
         void ClearItems();
         std::string GetItemStr(size_t index) const;

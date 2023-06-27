@@ -99,7 +99,7 @@ struct struc_751 {
     int8_t field_1C;
     int8_t field_1D;
     int64_t field_20;
-    int8_t field_28;
+    uint8_t field_28;
     int32_t key_input[2];
 
     struc_751();
@@ -144,14 +144,14 @@ namespace dw_gui_detail {
         Display(dw::init_data& init_data);
         virtual ~Display();
 
-        void AddShell(dw::Shell* value);
         void CheckShells();
         void Ctrl();
         void Draw();
         void FreeWidgets();
         dw::Shell* GetHoveredShell();
+        void MakeShellFirst(dw::Shell* value);
+        void MakeShellLast(dw::Shell* value);
         void RemoveShell(dw::Shell* value);
-        void PopShell(dw::Shell* value);
 
         void sub_1402E6300(dw::Widget* widget);
         void sub_1402E6440(dw::Widget* widget);
@@ -359,7 +359,7 @@ namespace dw {
 
     }
 
-    Widget::Widget(Widget* parent, Flags flags) : free(),
+    Widget::Widget(Widget* parent, Flags flags) : freed(),
         callback_data(), free_callback(), parent() {
         text.assign(L"NO_NAME");
         this->flags = flags;
@@ -409,7 +409,7 @@ namespace dw {
     }
 
     void Widget::Free() {
-        if (free)
+        if (freed)
             return;
 
         Reset();
@@ -417,7 +417,7 @@ namespace dw {
         if (free_callback)
             free_callback(this);
 
-        free = true;
+        freed = true;
 
         if (dw_gui_detail_display)
             dw_gui_detail_display->free_widgets.push_back(this);
@@ -973,7 +973,7 @@ namespace dw {
             if (!sub_140192D00())
                 return 0;
 
-            dw_gui_detail_display->AddShell(this);
+            dw_gui_detail_display->MakeShellFirst(this);
         }
 
         if ((uint16_t)dw_gui_detail_display->field_C0.field_18 >= 1 && (uint16_t)dw_gui_detail_display->field_C0.field_18 <= 8) {
@@ -1082,7 +1082,7 @@ namespace dw {
 
     void Shell::Disp() {
         SetDisp(true);
-        dw_gui_detail_display->AddShell(this);
+        dw_gui_detail_display->MakeShellFirst(this);
         dw_gui_detail_display->focused_shell = this;
         dw_gui_detail_display->set_focus = true;
     }
@@ -1097,7 +1097,7 @@ namespace dw {
 
         disp = value;
         if (disp) {
-            dw_gui_detail_display->AddShell(this);
+            dw_gui_detail_display->MakeShellFirst(this);
             dw_gui_detail_display->focused_shell = this;
             dw_gui_detail_display->set_focus = true;
             if (disp_callback)
@@ -1454,50 +1454,56 @@ namespace dw {
     void Group::Draw() {
         print->SetFont(&font);
 
-        rectangle v14 = GetRectangle();
+        rectangle rect = GetRectangle();
 
-        float_t v4 = (float_t)(int32_t)(font.GetFontGlyphHeight() * 0.5f);
-        v14.pos.y += v4;
-        v14.size.y += v4;
+        float_t half_glyph_height = (float_t)(int32_t)(font.GetFontGlyphHeight() * 0.5f);
+        rect.pos.y += half_glyph_height;
+        rect.size.y -= half_glyph_height;
 
         print->SetColor(colors_current.border_color);
-        print->sub_140301390(v14, 2.0f);
+        print->sub_140301390(rect, 2.0f);
 
-        v14.size += -1.0f;
+        rect.size += -1.0f;
         print->SetColor(color_black);
-        print->sub_140301390(v14, 1.0f);
+        print->sub_140301390(rect, 1.0f);
 
         if (GetText().size()) {
-            rectangle v7 = GetRectangle();
+            rectangle rect = GetRectangle();
 
-            rectangle v14;
-            v14.pos.x = v7.pos.x + 2.0f;
-            v14.pos.y = v7.pos.y;
-            v14.size.x = v7.size.x + 2.0f * -2.0f;
-            v14.size.y = font.GetFontGlyphHeight();
+            rect.pos.x += 2.0f;
+            rect.pos.y = rect.pos.y;
+            rect.size.x += 2.0f * -2.0f;
+            rect.size.y = font.GetFontGlyphHeight();
 
             vec2 text_size = print->GetTextSize(GetText());
-            v14.size.x = min_def(text_size.x, v14.size.x);
+            rect.size.x = min_def(text_size.x, rect.size.x);
 
             print->SetFillColor(colors_current.background);
-            print->FillRectangle(v14);
+            print->FillRectangle(rect);
 
             print->SetColor(colors_current.foreground);
-            print->SetClipData(v14);
-            print->PrintText(GetText(), v14.pos.x, v14.pos.y);
+            print->SetClipData(rect);
+            print->PrintText(GetText(), rect.pos.x, rect.pos.y);
         }
 
         Composite::Draw();
+    }
+
+    vec2 Group::GetSize() {
+        vec2 size = Composite::GetSize();
+        size.x += 2.0f * 2.0f;
+        size.y += font.GetFontGlyphHeight() + 2.0f;
+        return size;
     }
 
     rectangle Group::GetBoundingBox() {
         float_t glyph_height = font.GetFontGlyphHeight();
 
         rectangle rect = Scrollable::GetBoundingBox();
-        rect.pos.x = rect.pos.x + 2.0f;
-        rect.pos.y = rect.pos.y + glyph_height;
-        rect.size.x = rect.size.x - (2.0f * 2.0f);
-        rect.size.y = rect.size.y - (glyph_height + 2.0f);
+        rect.pos.x += 2.0f;
+        rect.pos.y += glyph_height;
+        rect.size.x -= 2.0f * 2.0f;
+        rect.size.y -= glyph_height + 2.0f;
         return rect;
     }
 
@@ -2008,6 +2014,12 @@ namespace dw {
         selection_listeners.push_back(value);
     }
 
+    void List::Callback(SelectionListener::CallbackData* data) {
+        if (data->widget)
+            for (SelectionListener*& i : selection_listeners)
+                i->Callback(data);
+    }
+
     bool List::CheckItemSelected(size_t index) {
         if (index >= items.size())
             return false;
@@ -2157,7 +2169,7 @@ namespace dw {
     }
 
     ListBox::~ListBox() {
-        delete list;
+
     }
 
     void ListBox::Draw() {
@@ -2798,7 +2810,7 @@ namespace dw {
     }
 
     Slider::~Slider() {
-        delete scroll_bar;
+
     }
 
     void Slider::Draw() {
@@ -3214,10 +3226,10 @@ void struc_751::sub_140300A10() {
     key_input[0] = 0;
     key_input[1] = 0;
 
-    bool key = input_state->GetKey();
+    uint8_t key = input_state->GetKey();
 
     field_28 = key;
-    key_input[0] = key ? 0x01 : 0x00;
+    key_input[0] = key;
 
     int32_t mouse_pos_x = input_state->sub_14018CCC0(8);
     int32_t mouse_pos_y = input_state->sub_14018CCC0(9);
@@ -3484,17 +3496,6 @@ dw_gui_detail::Display::~Display() {
 
 }
 
-void dw_gui_detail::Display::AddShell(dw::Shell* value) {
-    if (!value)
-        return;
-
-    for (dw::Shell* i : shells)
-        if (i == value)
-            return;
-
-    shells.push_back(value);
-}
-
 void dw_gui_detail::Display::CheckShells() {
     std::vector<dw::Shell*> vec;
 
@@ -3561,7 +3562,7 @@ dw::Shell* dw_gui_detail::Display::GetHoveredShell() {
     for (auto i = i_begin; i != i_end;) {
         i--;
 
-        if (!(*i)->free && (*i)->GetDisp()) {
+        if (!(*i)->freed && (*i)->GetDisp()) {
             rectangle rect = (*i)->GetRectangle();
             if (rect.pos.x <= mouse_callback_data.pos.x && mouse_callback_data.pos.x < rect.pos.x + rect.size.x
                 && rect.pos.y <= mouse_callback_data.pos.y && mouse_callback_data.pos.y < rect.pos.y + rect.size.y)
@@ -3570,6 +3571,38 @@ dw::Shell* dw_gui_detail::Display::GetHoveredShell() {
     }
 
     return 0;
+}
+
+void dw_gui_detail::Display::MakeShellFirst(dw::Shell* value) {
+    if (!value)
+        return;
+
+    auto i = shells.begin();
+    auto i_end = shells.end();
+    while (i != i_end)
+        if (*i == value) {
+            shells.erase(i);
+            shells.push_back(value);
+            break;
+        }
+        else
+            i++;
+}
+
+void dw_gui_detail::Display::MakeShellLast(dw::Shell* value) {
+    if (!value)
+        return;
+
+    auto i = shells.begin();
+    auto i_end = shells.end();
+    while (i != i_end)
+        if (*i == value) {
+            shells.erase(i);
+            shells.insert(shells.begin(), value);
+            break;
+        }
+        else
+            i++;
 }
 
 void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
@@ -3591,20 +3624,6 @@ void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
 
     if (move_resize_shell == value)
         move_resize_shell = 0;
-}
-
-void dw_gui_detail::Display::PopShell(dw::Shell* value) {
-    if (!value)
-        return;
-
-    auto i = shells.begin();
-    auto i_end = shells.end();
-    while (i != i_end)
-        if (*i == value) {
-            shells.erase(i);
-            shells.push_back(value);
-            break;
-        }
 }
 
 void dw_gui_detail::Display::sub_1402E6300(dw::Widget* widget) {
@@ -3720,7 +3739,7 @@ int32_t dw_gui_detail::Display::sub_1402E5630() {
 
             if (v15a) {
                 if (selected_shell)
-                    PopShell(selected_shell);
+                    MakeShellLast(selected_shell);
 
                 switch (v15) {
                 case 0:
@@ -3862,6 +3881,6 @@ static void sub_1402EE3C0(rectangle rect, float_t border, int32_t type, color4u8
         v24.size.x = rect.size.x - border - border;
         v24.size.y = rect.size.y - border - border;
         dw::print->SetFillColor(*fill_color);
-        //dw::print->FillRectangle(v24);
+        dw::print->FillRectangle(v24);
     }
 }

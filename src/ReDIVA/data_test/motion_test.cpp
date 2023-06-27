@@ -13,6 +13,7 @@
 #include "../../CRE/pv_db.hpp"
 #include "../../CRE/resolution_mode.hpp"
 #include "../../CRE/stage.hpp"
+#include "../config.hpp"
 #include "../input_state.hpp"
 #include "auth_3d_test.hpp"
 #include "equip_test.hpp"
@@ -81,6 +82,10 @@ DataTestMot::Data::Data() : chara_index(), curr_chara_index(), module_index(), c
 motion_set_index(), curr_motion_set_index(), motion_index(), curr_motion_index(), rot_y(),
 trans_x(), offset(), start_frame(), type(), reset_mot(), reset_cam(), reload_data(),
 sync_frame(), field_A8(), field_A9(), running(), field_AC(), field_B0(), sync_1p_frame() {
+    for (uint32_t& i : motion_set_index)
+        i = -1;
+    for (uint32_t& i : curr_motion_set_index)
+        i = -1;
     field_AA = true;
 }
 
@@ -117,7 +122,7 @@ bool DataTestMot::Ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    //data_test_mot_dw_array_get(0)->sub_14028D8B0();
+   data_test_mot_dw_array_get(0)->sub_14028D8B0();
 
     bool v3 = false;
     bool v2 = false;
@@ -282,26 +287,24 @@ bool DataTestMot::Ctrl() {
     if (data.reset_cam) {
         data.reset_cam = false;
 
-        camera* cam = rctx_ptr->camera;
-        cam->reset();
-
+        cam_struct cam;
         if (data.field_A9) {
-            cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-            cam->set_interest({ 0.0f, 1.0f, 0.0f });
-            cam->set_view_point({ -3.79f, 0.71f, 1.0f });
-            cam->set_interest({ 0.0f, 0.96f, 0.0f });
-            cam->set_fov(32.8124985652134);
+            cam.view_point = { -3.79f, 0.71f, 1.0f };
+            cam.interest = { 0.0f, 0.96f, 0.0f };
+            cam.fov = 0.57268613576889f;
         }
         else {
-            cam->set_view_point({ 0.0f, 1.0f, 3.45f });
-            cam->set_interest({ 0.0f, 1.0f, 0.0f });
-            cam->set_fov(32.8124985652134);
+            cam.view_point = { 0.0f, 1.0f, 3.45f };
+            cam.interest = { 0.0f, 1.0f, 0.0f };
+            cam.fov = 0.563171327114105f;
         }
+        cam.set(rctx_ptr->camera);
     }
 
     if (data.field_A8) {
         data.field_A8 = false;
-        //rctx_ptr->camera->set_fov(data.field_A9 ? 32.2673416137695 : 32.8125);
+
+        //sub_1401F9510(data.field_A9 ? 32.2673416137695f : 32.8125f);
     }
 
     if (data.running && dtm_mot_array[0].CheckFirstFrame() && !frame_comp
@@ -458,6 +461,22 @@ void DataTestMotA3d::Basic() {
 
 const char* DataTestMotA3d::GetStateText() {
     switch (state) {
+#if DW_TRANSLATE
+    case 0:
+        return "A3D: Initializing...";
+    case 1:
+        return "A3D: Awaiting command...";
+    case 2:
+        return "A3D: Requesting data...";
+    case 3:
+        return "A3D: Loading PV Stage...";
+    case 4:
+        return "A3D: Loading A3D Category...";
+    case 5:
+        return "A3D: Loading A3D Handle...";
+    default:
+        return "A3D: Unknown mode";
+#else
     case 0:
         return "A3D: 初期化中...";
     case 1:
@@ -472,6 +491,7 @@ const char* DataTestMotA3d::GetStateText() {
         return "A3D: A3Dハンドル読込中...";
     default:
         return "A3D: 未知のモード";
+#endif
     }
 }
 
@@ -1798,7 +1818,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     start_ctrl_right->callback_data.v64 = this;
     start_ctrl_right->callback = DataTestMotDw::StartCtrlLeftRightCallback;
 
-    dw::Group* ab_loop_group = new dw::Group(this);
+    dw::Group* ab_loop_group = new dw::Group(frame_group);
     ab_loop_group->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
     ab_loop_group->SetText("AB LOOP");
     ab_loop_group->SetFont(dw::p_font_type_6x12);
@@ -1869,8 +1889,14 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     dtm_mot->SetPartialMot(false);
 
+#if DW_TRANSLATE
+    const char* save_only_start_frame_button_text = "Initialize only Start Frame Osage";
+#else
+    const char* save_only_start_frame_button_text = "Startフレームだけおさげ初期化";
+#endif
+
     dw::Button* save_only_start_frame_button = new dw::Button(this, dw::CHECKBOX);
-    save_only_start_frame_button->SetText("Initialize only Start Frame Osage");
+    save_only_start_frame_button->SetText(save_only_start_frame_button_text);
     save_only_start_frame_button->SetValue(false);
     save_only_start_frame_button->AddSelectionListener(&save_only_start_frame_button_proc);
     save_only_start_frame_button->callback_data.i32 = chara_id;
@@ -2057,6 +2083,52 @@ void DataTestMotDw::StartCtrlResetCallback(dw::Widget* data) {
     data_test_mot_data_get()->reset_mot = true;
 }
 
+void DataTestMotDw::sub_14028D8B0() {
+    InputState* input_state = input_state_get(0);
+
+    int32_t chara_list_dir = 0;
+    if (input_state->CheckTapped(70))
+        chara_list_dir--;
+    if (input_state->CheckTapped(71))
+        chara_list_dir++;
+
+    if (chara_list_dir) {
+        dw::List* list = chara_list_box_proc.list_box->list;
+        if (chara_list_dir >= 0) {
+            if (list->selected_item < list->items.size() - 1)
+                list->SetItemIndex(list->selected_item + 1);
+        }
+        else {
+            if (list->selected_item)
+                list->SetItemIndex(list->selected_item - 1);
+        }
+
+        dw::SelectionListener::CallbackData callback_data = chara_list_box_proc.list_box;
+        list->Callback(&callback_data);
+    }
+
+    int32_t set_list_dir = 0;
+    if (input_state->CheckTapped(72))
+        set_list_dir--;
+    if (input_state->CheckTapped(73))
+        set_list_dir++;
+
+    if (set_list_dir) {
+        dw::List* list = set_list_box_proc.list_box->list;
+        if (set_list_dir >= 0) {
+            if (list->selected_item < list->items.size() - 1)
+                list->SetItemIndex(list->selected_item + 1);
+        }
+        else {
+            if (list->selected_item)
+                list->SetItemIndex(list->selected_item - 1);
+        }
+
+        dw::SelectionListener::CallbackData callback_data = set_list_box_proc.list_box;
+        list->Callback(&callback_data);
+    }
+}
+
 DataTestMotA3dDw::PvListBoxProc::PvListBoxProc() {
 
 }
@@ -2164,11 +2236,17 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     a3d_label->SetText("A3d");
     a3d_label->SetFont(dw::p_font_type_6x12);
 
+#if DW_TRANSLATE
+    const char* please_select_a_pv = "Please select a PV";
+#else
+    const char* please_select_a_pv = "PVを選択して下さい";
+#endif
+
     a3d = new dw::ListBox(a3d_comp);
     a3d->SetMaxItems(20);
-    a3d->AddItem("PVを選択して下さい");
+    a3d->AddItem(please_select_a_pv);
 
-    a3d->Reset();
+    a3d->SetItemIndex(0);
     a3d->AddSelectionListener(&a3d_list_box_proc);
     a3d->SetFont(dw::p_font_type_6x12);
 
@@ -2201,6 +2279,7 @@ DataTestMotA3dDw::~DataTestMotA3dDw() {
 
 void DataTestMotA3dDw::Draw() {
     SetText(data_test_mot_a3d_get_state_text());
+    Shell::Draw();
 }
 
 void DataTestMotA3dDw::Hide() {
@@ -2305,11 +2384,52 @@ DataTestMotCtrlDw::~DataTestMotCtrlDw() {
 }
 
 void DataTestMotCtrlDw::Draw() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
+    DataTestMot::Data* test_mot_data = data_test_mot_data_get();
+    InputState* input_state = input_state_get(0);
+    if (input_state->CheckTapped(60))
+        test_mot_data->reset_mot = true;
+    else if (input_state->CheckTapped(50))
+        test_mot_data->reload_data = true;
+
+    if (input_state->CheckTapped(51))
+        switch (test_mot_data->type) {
+        case 0:
+        case 1:
+            test_mot_data->type = 2;
+            break;
+        case 2:
+        default: {
+            test_mot_data->type = 0;
+
+            if (dtm_mot_array[0].motion_set_id != -1) {
+                std::string motion_set_name(aft_mot_db->get_motion_set_name(dtm_mot_array[0].motion_set_id));
+
+                const char* v13[] = {
+                    "CMN",
+                    "EDT",
+                    "TEST_DESIGN",
+                };
+
+                for (const char* i : v13)
+                    if (motion_set_name.find(i) != -1) {
+                        test_mot_data->type = 1;
+                        break;
+                    }
+            }
+        } break;
+        }
+
+    if (type_list->list && type_list->list->selected_item != test_mot_data->type)
+        type_list->list->SetItemIndex(test_mot_data->type);
+
+    Shell::Draw();
 }
 
 void DataTestMotCtrlDw::Hide() {
-
+    Shell::SetDisp(false);
 }
 
 void DataTestMotCtrlDw::ReloadDataCallback(dw::Widget* data) {
