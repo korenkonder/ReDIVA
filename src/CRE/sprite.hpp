@@ -17,6 +17,8 @@
 #include "texture.hpp"
 #include "gl_state.hpp"
 
+#define BREAK_SPRITE_VERTEX_LIMIT (1)
+
 struct rectangle {
     vec2 pos;
     vec2 size;
@@ -184,7 +186,11 @@ namespace spr {
         mat4 mat;
         texture* texture;
         int32_t shader;
+#if BREAK_SPRITE_VERTEX_LIMIT
+        size_t vertex_array;
+#else
         SpriteVertex* vertex_array;
+#endif
         size_t num_vertex;
         Flags flags;
         vec2 sprite_size;
