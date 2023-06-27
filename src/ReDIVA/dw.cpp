@@ -1132,7 +1132,7 @@ namespace dw {
     KeyListener::~KeyListener() {
 
     }
-    
+
     KeyAdapter::KeyAdapter() {
 
     }
@@ -1144,11 +1144,11 @@ namespace dw {
     void KeyAdapter::Field_8(Widget::KeyCallbackData data) {
 
     }
-    
+
     void KeyAdapter::Field_10(Widget::KeyCallbackData data) {
 
     }
-    
+
     void KeyAdapter::Field_18(Widget::KeyCallbackData data) {
 
     }
@@ -1160,7 +1160,7 @@ namespace dw {
     MouseListener::~MouseListener() {
 
     }
-    
+
     MouseAdapter::MouseAdapter() {
 
     }
@@ -1721,7 +1721,7 @@ namespace dw {
     List::List(Composite* parent, Flags flags) : Scrollable(parent, flags), field_148() {
         hovered_item = -1;
         selected_item = -1;
-        
+
         max_items = -1;
         if (flags & VERTICAL)
             max_items = 10;
@@ -2348,6 +2348,7 @@ namespace dw {
         if (flags & HORIZONTAL) {
             print->sub_140301390(v16, 1.0f);
             print->PrintText(L"<", v14.pos.x, v14.pos.y);
+
             v16.pos.x = v14.size.x + v14.pos.x - glyph_size.x;
             print->sub_140301390(v16, 1.0f);
             print->PrintText(L">", v14.size.x + v14.pos.x - v16.size.x, v14.pos.y);
@@ -3087,7 +3088,7 @@ void dw_free() {
         delete dw::text_buf;
         dw::text_buf = 0;
     }
-    
+
     if (dw::print) {
         delete dw::print;
         dw::print = 0;
@@ -3146,7 +3147,7 @@ namespace dw {
     vec2 Print::GetTextSize(std::wstring& str) {
         return print_work->GetTextSize(str.c_str(), str.c_str() + str.size());
     }
-    
+
     vec2 Print::GetTextSize(const wchar_t* str, size_t length) {
         return print_work->GetTextSize(str, str + length);
     }

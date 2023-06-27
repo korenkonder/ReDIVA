@@ -234,12 +234,12 @@ DataTestGlitterParticleDw::DataTestGlitterParticleDw(TaskDataTestGlitterParticle
     pv_mode->SetText("PV Mode");
     pv_mode->AddSelectionListener(new dw::SelectionListenerOnHook(
         DataTestGlitterParticleDw::PvModeCallback));
-    
+
     play = new dw::Button(this, dw::FLAG_8);
     play->SetText("Play(E)");
     play->AddSelectionListener(new dw::SelectionListenerOnHook(
         DataTestGlitterParticleDw::PlayCallback));
-    
+
     stop = new dw::Button(this, dw::FLAG_8);
     stop->SetText("Stop(D)");
     stop->AddSelectionListener(new dw::SelectionListenerOnHook(
@@ -254,7 +254,7 @@ DataTestGlitterParticleDw::DataTestGlitterParticleDw(TaskDataTestGlitterParticle
     show_grid->SetText("Show Grid");
     show_grid->AddSelectionListener(new dw::SelectionListenerOnHook(
         DataTestGlitterParticleDw::ShowGridCallback));
-    
+
     stage = new dw::Button(this, dw::FLAG_8);
     stage->SetText("Stage");
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(

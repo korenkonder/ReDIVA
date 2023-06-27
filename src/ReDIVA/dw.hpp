@@ -45,7 +45,7 @@ namespace dw {
             : Font(font_handler_index, name) {
 
         }
-        
+
         inline Font(int32_t font_handler_index, std::string&& name, bool half_width)
             : Font(font_handler_index, name, half_width) {
 
@@ -192,7 +192,7 @@ namespace dw {
         rectangle GetRectangle();
         void SetText(std::string& str);
         void UpdateDraw();
-        
+
         inline void SetText(std::wstring&& str) {
             SetText(str);
         }
