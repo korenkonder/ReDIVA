@@ -17,7 +17,7 @@
 #include "static_var.hpp"
 #include "texture.hpp"
 
-#define SHARED_OBJECT_BUFFER (0)
+#define SHARED_OBJECT_BUFFER (1)
 
 struct obj_mesh_index_buffer {
     GLuint buffer;
