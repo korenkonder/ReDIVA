@@ -3293,8 +3293,8 @@ static void glass_eye_calc(glass_eye_struct* glass_eye) {
     float_t v17 = (float_t)(uint8_t)frame * (float_t)(M_PI * (1.0 / 128.0));
     float_t v19 = sinf(sinf(v17 * 27.0f) + v17 * 2.0f);
     float_t v20 = sinf(v17 * 23.0f);
-    glass_eye->field_A0.w = 0.0f;
     glass_eye->field_A0.z = (v19 + v20) * 0.5f * 0.01f;
+    glass_eye->field_A0.w = 0.0f;
 }
 
 static void glass_eye_set(glass_eye_struct* glass_eye) {

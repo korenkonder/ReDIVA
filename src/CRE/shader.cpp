@@ -777,8 +777,6 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
             break;
         }
         printf_debug("%s shader compile error:\nfile: %s\n%s\n", type_str, file, info_log);
-        free_def(info_log);
-        glDeleteShader(shader);
 
 #if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
@@ -799,9 +797,15 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
 
             file_stream s;
             s.open(buf, L"wb");
-            s.write(data, utf8_length(data));
+            s.write_utf8_string(data);
+            s.write_utf8_string("\n/*\n");
+            s.write_utf8_string(info_log);
+            s.write_utf8_string("*/\n");
         }
 #endif
+
+        free_def(info_log);
+        glDeleteShader(shader);
         return 0;
     }
     return shader;
@@ -829,8 +833,6 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
-        free_def(info_log);
-        glDeleteProgram(program);
 
 #if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
@@ -851,7 +853,10 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
 
             file_stream s;
             s.open(buf, L"wb");
-            s.write(vert, utf8_length(vert));
+            s.write_utf8_string(vert);
+            s.write_utf8_string("\n/*\n");
+            s.write_utf8_string(info_log);
+            s.write_utf8_string("*/\n");
             s.close();
 
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
@@ -859,10 +864,16 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
 
             s.open(buf, L"wb");
-            s.write(frag, utf8_length(frag));
+            s.write_utf8_string(frag);
+            s.write_utf8_string("\n/*\n");
+            s.write_utf8_string(info_log);
+            s.write_utf8_string("*/\n");
             s.close();
         }
 #endif
+
+        free_def(info_log);
+        glDeleteProgram(program);
         return 0;
     }
     else {
@@ -896,8 +907,6 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         GLchar* info_log = force_malloc_s(GLchar, 0x10000);
         glGetProgramInfoLog(program, 0x10000, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
-        free_def(info_log);
-        glDeleteProgram(program);
 
 #if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
@@ -918,7 +927,10 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
 
             file_stream s;
             s.open(buf, L"wb");
-            s.write(vert, utf8_length(vert));
+            s.write_utf8_string(vert);
+            s.write_utf8_string("\n/*\n");
+            s.write_utf8_string(info_log);
+            s.write_utf8_string("*/\n");
             s.close();
 
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
@@ -926,10 +938,16 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
 
             s.open(buf, L"wb");
-            s.write(frag, utf8_length(frag));
+            s.write_utf8_string(frag);
+            s.write_utf8_string("\n/*\n");
+            s.write_utf8_string(info_log);
+            s.write_utf8_string("*/\n");
             s.close();
         }
 #endif
+
+        free_def(info_log);
+        glDeleteProgram(program);
         return 0;
     }
     else {

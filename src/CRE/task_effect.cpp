@@ -6,7 +6,6 @@
 #include "task_effect.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/hash.hpp"
-#include "GL/uniform_buffer.hpp"
 #include "auth_3d.hpp"
 #include "data.hpp"
 #include "gl_state.hpp"
@@ -19,6 +18,7 @@
 struct for_ring_vertex_data {
     vec2 position;
     vec4 color;
+    float_t size;
 };
 
 struct leaf_particle_data {
@@ -49,7 +49,7 @@ struct leaf_particle_vertex_data {
     vec2 texcoord;
 };
 
-struct particle_data {
+struct particle_rot_data {
     vec3 position;
     vec3 direction;
     vec3 normal;
@@ -76,20 +76,15 @@ struct particle_vertex_data {
     vec2 texcoord;
 };
 
-struct rain_particle_data {
+struct particle_data {
     vec3 position;
-    vec2 texcoord;
+    float_t size;
     float_t alpha;
-    int32_t type;
-    int32_t field_1C;
+    int32_t life_time;
     vec3 velocity;
-    int32_t field_2C;
-    int32_t field_30;
-    int32_t field_34;
-    int32_t field_38;
-    int32_t field_3C;
+    vec3 direction;
 
-    rain_particle_data();
+    particle_data();
 };
 
 struct rain_particle_scene_shader_data {
@@ -118,6 +113,34 @@ struct ripple_emit_scene_shader_data {
     vec4 g_size_in_projection;
     vec4 g_transform;
     vec4 g_framebuffer_size;
+};
+
+struct snow_particle_vertex_data {
+    vec3 position;
+    float_t size;
+    float_t alpha;
+};
+
+struct snow_particle_gpu_vertex_data {
+    vec3 position;
+    float_t size;
+};
+
+struct snow_particle_scene_shader_data {
+    vec4 g_transform[4];
+    vec4 g_view_world_row2;
+    vec4 g_size_in_projection;
+    vec4 g_state_point_attenuation;
+    vec4 g_range_scale;
+    vec4 g_range_offset;
+    vec4 g_framebuffer_size;
+    vec4 g_near_far;
+};
+
+struct snow_particle_batch_shader_data {
+    vec4 g_pos_offset;
+    vec4 g_color;
+    vec4i start_vertex_location;
 };
 
 struct struc_608 {
@@ -192,18 +215,29 @@ static void leaf_particle_free();
 
 static void particle_init(vec3* offset);
 static void particle_ctrl();
-static int32_t particle_disp(particle_vertex_data* vtx_data, particle_data* data, int32_t count);
-static particle_data* particle_emit();
+static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* data, int32_t count);
+static particle_rot_data* particle_emit();
 static void particle_event(particle_event_data* event_data);
-static void particle_kill(particle_data* data);
+static void particle_kill(particle_rot_data* data);
 static void particle_free();
 
-static void rain_particle_init(bool change_stage);
+static void rain_particle_init(bool change_stage = false);
 static void rain_particle_ctrl();
 static void rain_particle_free();
 
 static void ripple_emit_init();
 static void ripple_emit_free();
+
+static void snow_particle_init(bool change_stage = false);
+static void snow_particle_ctrl();
+static void snow_particle_data_init();
+static void snow_particle_data_emit_fallen(particle_data* data);
+static void snow_particle_data_kill_fallen(particle_data* data, bool kill);
+static void snow_particle_data_reset(particle_data* data);
+static void snow_particle_data_free();
+static particle_data* snow_particle_emit_fallen();
+static vec3 snow_particle_get_random_velocity();
+static void snow_particle_free();
 
 static void sub_1403B6ED0(render_texture* a1, render_texture* a2, render_texture* a3, ripple_emit_params& params);
 static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
@@ -222,21 +256,12 @@ static TaskEffectStar* task_effect_star;
 
 static TaskEffectParent* task_effect_parent;
 
-static ripple_emit* ripple_emit_data;
-
 static TaskEffectFogAnim::Data* task_effect_fog_anim_data;
 static TaskEffectFogRing::Data* task_effect_fog_ring_data;
 static TaskEffectSplash::Data* task_effect_splash_data;
 
 static stage_param_leaf* stage_param_data_leaf_current;
-static stage_param_litproj* stage_param_data_litproj_current;
-static stage_param_rain* stage_param_data_rain_current;
-static stage_param_snow* stage_param_data_snow_current;
-
 static bool stage_param_data_leaf_set;
-static bool stage_param_data_litproj_set;
-static bool stage_param_data_rain_set;
-static bool stage_param_data_snow_set;
 
 static bool leaf_particle_enable;
 static float_t leaf_particle_delta_frame;
@@ -251,6 +276,9 @@ static GLuint leaf_ptcl_ebo;
 static GL::UniformBuffer leaf_particle_scene_ubo;
 static const size_t leaf_ptcl_count = 0x800;
 
+static stage_param_litproj* stage_param_data_litproj_current;
+static bool stage_param_data_litproj_set;
+
 static bool light_proj_enable;
 static render_texture litproj_shadow[2];
 static render_texture litproj_texture;
@@ -260,18 +288,21 @@ static float_t particle_delta_time;
 static int32_t particle_index;
 static int32_t particle_count;
 static vec3 particle_wind;
-static particle_data* ptcl_data;
+static particle_rot_data* ptcl_data;
 static GLuint ptcl_vao;
 static GLuint ptcl_vbo;
 static GL::UniformBuffer particle_scene_ubo;
 static const size_t ptcl_count = 0x400;
 
+static stage_param_rain* stage_param_data_rain_current;
+static bool stage_param_data_rain_set;
+
 static bool rain_particle_enable;
 static float_t rain_particle_delta_frame;
 static uint32_t rain_particle_tex_id;
-static rain_particle_data rain_ptcl_data[8];
-static GLuint rain_ptcl_vao;
-static GLuint rain_ptcl_vbo;
+static particle_data rain_ptcl_data[8];
+static GLuint rain_vao;
+static GL::ShaderStorageBuffer rain_ssbo;
 static GL::UniformBuffer rain_particle_scene_ubo;
 static GL::UniformBuffer rain_particle_batch_ubo;
 static const size_t rain_ptcl_count = 0x8000;
@@ -280,16 +311,41 @@ static GLuint ripple_vao;
 static GL::UniformBuffer ripple_batch_ubo;
 static GL::UniformBuffer ripple_scene_ubo;
 
+static ripple_emit* ripple_emit_data;
+
 static GLuint ripple_emit_vao;
-static GLuint ripple_emit_vbo;
+static GL::ShaderStorageBuffer ripple_emit_ssbo;
 static GL::UniformBuffer ripple_emit_scene_ubo;
+
+static stage_param_snow* stage_param_data_snow_current;
+static bool stage_param_data_snow_set;
+
+static bool snow_particle_enable;
+static float_t snow_particle_delta_frame;
+static float_t snow_particle_size_min;
+static float_t snow_particle_size_mid;
+static float_t snow_particle_size_max;
+static int32_t snow_particle_fallen_index;
+static int32_t snow_particle_fallen_count;
+static uint32_t snow_particle_tex_id;
+static particle_data* snow_ptcl_data;
+static particle_data snow_ptcl_gpu[4];
+static particle_data* snow_ptcl_fallen_data;
+static GLuint snow_vao;
+static GL::ShaderStorageBuffer snow_ssbo;
+static GL::ShaderStorageBuffer snow_gpu_ssbo;
+static GL::ShaderStorageBuffer snow_fallen_ssbo;
+static GL::UniformBuffer snow_particle_scene_ubo;
+static GL::UniformBuffer snow_particle_batch_ubo;
+static const size_t snow_ptcl_count = 0x8000;
+static const size_t snow_ptcl_fallen_count = 0x2000;
 
 static TaskEffect** task_effect_data_array[] = {
     (TaskEffect**)&task_effect_auth_3d,
     0,
     (TaskEffect**)&task_effect_leaf,
     0,
-    0/*(TaskEffect**)&task_effect_snow*/,
+    (TaskEffect**)&task_effect_snow,
     0,
     (TaskEffect**)&task_effect_ripple,
     (TaskEffect**)&task_effect_rain,
@@ -791,7 +847,7 @@ struc_573::struc_573() : chara_index(), bone_index() {
 
 TaskEffectFogRing::Data::Data() : enable(), delta_frame(), field_8(), ring_size(), tex_id(),
 ptcl_size(), max_ptcls(), num_ptcls(), density(), density_offset(), ptcl_data(), num_vtx(),
-field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control(), vao(), vbo() {
+field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control(), vao() {
     current_stage_index = -1;
 }
 
@@ -865,54 +921,27 @@ void TaskEffectFogRing::Data::CalcVert() {
     float_t density = this->density;
     fog_ring_data* ptcl_data = this->ptcl_data;
 
-    for_ring_vertex_data* ptcl_vtx_data;
-    if (GLAD_GL_VERSION_4_5) {
-        ptcl_vtx_data = (for_ring_vertex_data*)glMapNamedBuffer(vbo, GL_WRITE_ONLY);
-        if (!ptcl_vtx_data) {
-            glUnmapNamedBuffer(vbo);
-            num_vtx = 0;
-            return;
-        }
-    }
-    else {
-        gl_state_bind_array_buffer(vbo);
-        ptcl_vtx_data = (for_ring_vertex_data*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!ptcl_vtx_data) {
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            gl_state_bind_array_buffer(0);
-            num_vtx = 0;
-            return;
-        }
+    for_ring_vertex_data* ptcl_vtx_data = (for_ring_vertex_data*)ssbo.MapMemory();
+    if (!ptcl_vtx_data) {
+        ssbo.UnmapMemory();
+        num_vtx = 0;
+        return;
     }
 
     vec4 color = this->color;
-    for (int32_t i = num_ptcls; i > 0; i--, ptcl_data++, ptcl_vtx_data += 6) {
-        float_t size = ptcl_data->size * (float_t)((1.0 / 128.0 + 1.0 / 256.0) / 2.0);
+    for (int32_t i = num_ptcls; i > 0; i--, ptcl_data++, ptcl_vtx_data++) {
+        float_t size = ptcl_data->size * (float_t)(1.0 / 256.0);
         color.w = ptcl_data->density * density;
 
         vec2 position;
         position.x = ptcl_data->position.x * (float_t)(1.0 / 8.0);
         position.y = ptcl_data->position.z * (float_t)(1.0 / 8.0);
-        ptcl_vtx_data[0].position = position + vec2(-size,  size);
-        ptcl_vtx_data[0].color = color;
-        ptcl_vtx_data[1].position = position + vec2(-size, -size);
-        ptcl_vtx_data[1].color = color;
-        ptcl_vtx_data[2].position = position + vec2( size,  size);
-        ptcl_vtx_data[2].color = color;
-        ptcl_vtx_data[3].position = position + vec2( size, -size);
-        ptcl_vtx_data[3].color = color;
-        ptcl_vtx_data[4].position = position + vec2( size,  size);
-        ptcl_vtx_data[4].color = color;
-        ptcl_vtx_data[5].position = position + vec2(-size, -size);
-        ptcl_vtx_data[5].color = color;
+        ptcl_vtx_data->position = position;
+        ptcl_vtx_data->color = color;
+        ptcl_vtx_data->size = size;
     }
 
-    if (GLAD_GL_VERSION_4_5)
-        glUnmapNamedBuffer(vbo);
-    else {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
-    }
+    ssbo.UnmapMemory();
 
     num_vtx = (int32_t)(num_ptcls * 6LL);
 }
@@ -947,10 +976,7 @@ void TaskEffectFogRing::Data::Dest() {
         vao = 0;
     }
 
-    if (vbo) {
-        glDeleteBuffers(1, &vbo);
-        vbo = 0;
-    }
+    ssbo.Destroy();
 
     rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
     rctx_ptr->render_manager.clear_user_func(0);
@@ -1052,7 +1078,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
     if (!this->stage_indices.size())
         return;
 
-    current_stage_index = stage_indices.front();
+    current_stage_index = this->stage_indices.front();
 
     stage_param_fog_ring* fog_ring = stage_param_data_fog_ring_storage_get_value(current_stage_index);
     if (!fog_ring)
@@ -1097,8 +1123,6 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
         v3[4].position = 0.0f;
     }
 
-    const size_t max_ptcls_vtx_count = (size_t)max_ptcls * 0x06;
-
     if (ptcl_data) {
         free(ptcl_data);
         ptcl_data = 0;
@@ -1109,10 +1133,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
         vao = 0;
     }
 
-    if (vbo) {
-        glDeleteBuffers(1, &vbo);
-        vbo = 0;
-    }
+    ssbo.Destroy();
 
     ptcl_data = force_malloc_s(fog_ring_data, max_ptcls);
     ptcl_data = new (ptcl_data) fog_ring_data[max_ptcls];
@@ -1120,30 +1141,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
     if (!vao)
         glGenVertexArrays(1, &vao);
 
-    if (!vbo)
-        glGenBuffers(1, &vbo);
-
-    static const GLsizei buffer_size = sizeof(for_ring_vertex_data);
-
-    gl_state_bind_array_buffer(vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * max_ptcls_vtx_count),
-            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    else
-        glBufferData(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * max_ptcls_vtx_count),
-            0, GL_DYNAMIC_DRAW);
-
-    gl_state_bind_vertex_array(vao);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(for_ring_vertex_data, position));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(for_ring_vertex_data, color));
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
+    ssbo.Create(sizeof(for_ring_vertex_data) * max_ptcls);
 
     InitParticleData();
 
@@ -1290,7 +1288,7 @@ void TaskEffectFogRing::PreInit(int32_t stage_index) {
 }
 
 void TaskEffectFogRing::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    SetFrameRateControl(0);
+    SetFrameRateControl();
     task_effect_fog_ring_data = &data;
     data.SetStageIndices(stage_indices);
 }
@@ -1322,7 +1320,7 @@ void TaskEffectFogRing::SetFrameRateControl(FrameRateControl* value) {
 }
 
 void TaskEffectFogRing::Reset() {
-    //sub_140349C30(&this->data);
+    data.Reset();
 }
 
 TaskEffectLeaf::TaskEffectLeaf() : frame_rate_control(), wait_frames() {
@@ -1337,7 +1335,7 @@ bool TaskEffectLeaf::Init() {
     if (stage_param_data_leaf_current) {
         leaf_particle_init();
         wait_frames = 2;
-        SetFrameRateControl(0);
+        SetFrameRateControl();
     }
     return true;
 }
@@ -1391,7 +1389,7 @@ void TaskEffectLeaf::SetStageIndices(std::vector<int32_t>& stage_indices) {
     if (!this->stage_indices.size())
         return;
 
-    int32_t stage_index = stage_indices.front();
+    int32_t stage_index = this->stage_indices.front();
     current_stage_index = stage_index;
     stage_param_leaf* leaf = stage_param_data_leaf_storage_get_value(stage_index);
 
@@ -1524,22 +1522,23 @@ void TaskEffectLitproj::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 
     stage_param_data_litproj_current = 0;
-    if (stage_indices.size()) {
-        int32_t stage_index = stage_indices.front();
-        current_stage_index = stage_index;
-        stage_param_litproj* litproj = stage_param_data_litproj_storage_get_value(stage_index);
-        if (litproj) {
-            data_struct* aft_data = &data_list[DATA_AFT];
-            texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+    if (this->stage_indices.size())
+        return;
 
-            stage_param_data_litproj_current = litproj;
+    int32_t stage_index = this->stage_indices.front();
+    current_stage_index = stage_index;
+    stage_param_litproj* litproj = stage_param_data_litproj_storage_get_value(stage_index);
+    if (litproj) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
-            light_proj* _litproj = new light_proj(width, height);
-            rctx_ptr->litproj = _litproj;
-            _litproj->enable = true;
-            _litproj->texture_id = aft_tex_db->get_texture_id(litproj->tex_name.c_str());
-            stage_param_data_litproj_set = true;
-        }
+        stage_param_data_litproj_current = litproj;
+
+        light_proj* _litproj = new light_proj(width, height);
+        rctx_ptr->litproj = _litproj;
+        _litproj->enable = true;
+        _litproj->texture_id = aft_tex_db->get_texture_id(litproj->tex_name.c_str());
+        stage_param_data_litproj_set = true;
     }
 }
 
@@ -1579,7 +1578,7 @@ TaskEffectParticle::~TaskEffectParticle() {
 }
 
 bool TaskEffectParticle::Init() {
-    SetFrameRateControl(0);
+    SetFrameRateControl();
     return true;
 }
 
@@ -1636,8 +1635,8 @@ TaskEffectRain:: ~TaskEffectRain() {
 
 bool TaskEffectRain::Init() {
     if (stage_param_data_rain_current) {
-        rain_particle_init(0);
-        SetFrameRateControl(0);
+        rain_particle_init();
+        SetFrameRateControl();
     }
     return true;
 }
@@ -1691,7 +1690,7 @@ void TaskEffectRain::SetStageIndices(std::vector<int32_t>& stage_indices) {
     if (!this->stage_indices.size())
         return;
 
-    int32_t stage_index = stage_indices.front();
+    int32_t stage_index = this->stage_indices.front();
     current_stage_index = stage_index;
     stage_param_rain* rain = stage_param_data_rain_storage_get_value(stage_index);
 
@@ -1727,8 +1726,10 @@ void TaskEffectRain::SetCurrentStageIndex(int32_t value) {
         }
 
     stage_param_data_rain_set = found;
-    if (found)
+    if (found) {
         stage_param_data_rain_current = stage_param_data_rain_storage_get_value(value);
+        rain_particle_init(true);
+    }
 }
 
 void TaskEffectRain::SetFrameRateControl(FrameRateControl* value) {
@@ -1740,8 +1741,8 @@ void TaskEffectRain::SetFrameRateControl(FrameRateControl* value) {
 
 void TaskEffectRain::Reset() {
     if (stage_param_data_rain_current) {
-        rain_particle_init(0);
-        SetFrameRateControl(0);
+        rain_particle_init();
+        SetFrameRateControl();
     }
 }
 
@@ -2248,7 +2249,7 @@ void TaskEffectRipple::PreInit(int32_t stage_index) {
 }
 
 void TaskEffectRipple::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    SetFrameRateControl(0);
+    SetFrameRateControl();
     emit = ripple_emit_data;
     emit->set_stage_indices(stage_indices);
 }
@@ -2269,6 +2270,312 @@ void TaskEffectRipple::Reset() {
         ripple_emit_data->clear_tex();
     ripple_emit_data->reset();
 }
+
+TaskEffectSnow::TaskEffectSnow() : frame_rate_control() {
+    current_stage_index = -1;
+}
+
+TaskEffectSnow::~TaskEffectSnow() {
+
+}
+
+bool TaskEffectSnow::Init() {
+    if (stage_param_data_snow_current) {
+        snow_particle_init();
+        SetFrameRateControl();
+    }
+    return true;
+}
+
+bool TaskEffectSnow::Ctrl() {
+    if (stage_param_data_snow_current) {
+        snow_particle_delta_frame = frame_rate_control->GetDeltaFrame();
+        snow_particle_ctrl();
+    }
+    return false;
+}
+
+bool TaskEffectSnow::Dest() {
+    snow_particle_data_free();
+    snow_particle_free();
+
+    stage_param_data_snow_current = 0;
+    stage_param_data_snow_storage_clear();
+    stage_param_data_snow_set = 0;
+    current_stage_index = -1;
+    stage_indices.clear();
+    return 1;
+}
+
+void TaskEffectSnow::Disp() {
+
+}
+
+void TaskEffectSnow::Basic() {
+
+}
+
+void TaskEffectSnow::PreInit(int32_t stage_index) {
+
+}
+
+void TaskEffectSnow::SetStageIndices(std::vector<int32_t>& stage_indices) {
+    if (stage_param_data_snow_current)
+        Dest();
+
+    stage_param_data_snow_set = 0;
+    current_stage_index = -1;
+    this->stage_indices.clear();
+    stage_param_data_snow_storage_clear();
+
+    for (int32_t i : stage_indices) {
+        stage_param_snow snow;
+        if (task_effect_array_parse_stage_param_data_snow(&snow, i)) {
+            this->stage_indices.push_back(i);
+            stage_param_data_snow_storage_set_stage_data(i, &snow);
+        }
+    }
+
+    stage_param_data_snow_current = 0;
+    if (!this->stage_indices.size())
+        return;
+
+    int32_t stage_index = this->stage_indices.front();
+    current_stage_index = stage_index;
+    stage_param_snow* snow = stage_param_data_snow_storage_get_value(stage_index);
+
+    snow_particle_tex_id = -1;
+    if (snow->tex_name.size()) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+
+        snow_particle_tex_id = aft_tex_db->get_texture_id(snow->tex_name.c_str());
+    }
+
+    if (snow) {
+        stage_param_data_snow_current = snow;
+        stage_param_data_snow_set = true;
+    }
+}
+
+void TaskEffectSnow::SetEnable(bool value) {
+    snow_particle_enable = value;
+}
+
+void TaskEffectSnow::SetCurrentStageIndex(int32_t value) {
+    if (current_stage_index == value)
+        return;
+
+    current_stage_index = value;
+
+    bool found = false;
+    for (int32_t i : stage_indices)
+        if (i == value) {
+            found = true;
+            break;
+        }
+
+    stage_param_data_snow_set = found;
+    if (found) {
+        stage_param_data_snow_current = stage_param_data_snow_storage_get_value(value);
+        snow_particle_init(true);
+    }
+}
+
+void TaskEffectSnow::SetFrameRateControl(FrameRateControl* value) {
+    if (value)
+        frame_rate_control = value;
+    else
+        frame_rate_control = &sys_frame_rate;
+}
+
+void TaskEffectSnow::Reset() {
+    if (stage_param_data_snow_current) {
+        snow_particle_init();
+        SetFrameRateControl();
+    }
+}
+
+/*
+struct struc_180 {
+    uint32_t count;
+    int32_t field_4;
+    int64_t field_8;
+    int64_t field_10;
+    int64_t field_18;
+    int32_t field_20;
+    int64_t field_28;
+    int64_t field_30;
+    int64_t field_38;
+};
+
+struct ParticleEmitter {
+    struc_180* field_8;
+    int64_t field_10;
+    int64_t field_18;
+    float_t field_20;
+    int32_t field_24;
+    float_t field_28;
+    float_t particle_size;
+
+    ParticleEmitter();
+    virtual ~ParticleEmitter();
+
+    virtual bool Field_8();
+    virtual bool Field_10();
+};
+
+struct ParticleEmitterRob : ParticleEmitter {
+    int32_t field_30;
+    int32_t field_34;
+    int32_t field_38;
+    int32_t field_3C;
+    int32_t field_40;
+    int32_t field_44;
+    int32_t field_48;
+    int32_t field_4C;
+    int32_t field_50;
+    int32_t field_54;
+    int32_t field_58;
+    int32_t emit_num;
+    int32_t field_60;
+    float_t emission_ratio_attn;
+    float_t emission_velocity_scale;
+    bool in_water;
+    int8_t field_6D;
+};
+
+struct water_particle {
+    struc_180* field_0;
+    vec4 color;
+    float_t particle_size;
+    std::vector<point_particle_data> field_20;
+    int32_t count;
+    int32_t tex_id;
+    bool blink;
+    std::vector<vec3> field_48;
+    std::vector<vec4u8> field_60;
+    struc_101 field_78;
+    float_t ripple_emission;
+
+    water_particle();
+    ~water_particle();
+};
+
+struct ParticleDispObj {
+    struc_180* field_8;
+    object_info object;
+    std::vector<mat4> instances_mat;
+
+    ParticleDispObj();
+    virtual ~ParticleDispObj();
+
+    void Disp();
+};
+
+struct TaskEffectSplash : public TaskEffect {
+public:
+    struct Data {
+        struct Sub {
+            int32_t field_0;
+            struc_180* field_8;
+            int32_t field_10;
+            ParticleEmitterRob* field_18;
+            int32_t field_20;
+            water_particle* field_28;
+            int8_t field_30;
+            struc_180 field_38;
+            int32_t field_78;
+            ParticleEmitterRob* field_80;
+            ParticleDispObj field_88;
+            vec4 color;
+            float_t particle_size;
+            int32_t emit_num;
+            float_t ripple_emission;
+            float_t emission_ratio_attn;
+            float_t emission_velocity_scale;
+            int32_t splash_tex_id;
+            object_info splash_obj_id;
+            int8_t in_water;
+            int8_t blink;
+            int64_t field_E8;
+            int64_t field_F0;
+            int64_t field_F8;
+        };
+
+        int8_t field_0;
+        int32_t field_4;
+        int8_t field_8;
+        Sub field_10;
+        int8_t field_110;
+        int32_t current_stage_index;
+        std::vector<int32_t> stage_indices;
+        FrameRateControl* frame_rate_control;
+        int64_t field_138;
+    };
+
+    bool enable;
+    Data data;
+
+    TaskEffectSplash();
+    virtual ~TaskEffectSplash() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+    virtual void Basic() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetFrame(int32_t value) override;
+    virtual void Field_48() override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void Field_68() override;
+    virtual void Reset() override;
+    virtual void Field_80() override;
+    virtual void Field_88() override;
+    virtual void Field_90() override;
+    virtual void Field_98(int32_t a2, int32_t* a3) override;
+    virtual void Field_A0(int32_t a2, int32_t* a3) override;
+    virtual void Field_A8(int32_t a2, int8_t* a3) override;
+};
+
+struct TaskEffectStar : public TaskEffect {
+public:
+    FrameRateControl* frame_rate_control;
+    int32_t current_stage_index;
+    float_t delta_frame;
+    std::vector<int32_t> stage_indices;
+
+    TaskEffectStar();
+    virtual ~TaskEffectStar() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+    virtual void Basic() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetFrame(int32_t value) override;
+    virtual void Field_48() override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void Field_68() override;
+    virtual void Reset() override;
+    virtual void Field_80() override;
+    virtual void Field_88() override;
+    virtual void Field_90() override;
+    virtual void Field_98(int32_t a2, int32_t* a3) override;
+    virtual void Field_A0(int32_t a2, int32_t* a3) override;
+    virtual void Field_A8(int32_t a2, int8_t* a3) override;
+};
+*/
 
 void leaf_particle_draw() {
     if (!stage_param_data_leaf_current || !leaf_ptcl_data
@@ -2354,11 +2661,12 @@ void rain_particle_draw() {
 
     vec4 color = rain->color;
     float_t color_a = color.w;
-    gl_state_bind_vertex_array(rain_ptcl_vao);
+    gl_state_bind_vertex_array(rain_vao);
     rain_particle_scene_ubo.Bind(0);
     rain_particle_batch_ubo.Bind(1);
+    rain_ssbo.Bind(0);
     for (int32_t i = 0; i < 8; i++, first += count) {
-        rain_particle_data& data = rain_ptcl_data[i];
+        particle_data& data = rain_ptcl_data[i];
         vec3 pos_offset = data.position / range;
         vec3 tangent = data.velocity * tangent_size;
         color.w = color_a * data.alpha;
@@ -2431,7 +2739,105 @@ void particle_draw() {
 }
 
 void snow_particle_draw() {
+    if (!stage_param_data_snow_current || !snow_particle_enable || !stage_param_data_snow_set)
+        return;
 
+    texture* tex = texture_storage_get_texture(snow_particle_tex_id);
+    if (!tex)
+        return;
+
+    stage_param_snow* snow = stage_param_data_snow_current;
+    draw_pass_set_camera(rctx_ptr);
+
+    gl_state_enable_blend();
+    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_state_enable_depth_test();
+    gl_state_set_depth_mask(GL_FALSE);
+
+    float_t point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
+        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.1f;
+
+    snow_particle_scene_shader_data snow_scene = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->vp_mat, &temp);
+    snow_scene.g_transform[0] = temp.row0;
+    snow_scene.g_transform[1] = temp.row1;
+    snow_scene.g_transform[2] = temp.row2;
+    snow_scene.g_transform[3] = temp.row3;
+
+    mat4_transpose(&rctx_ptr->view_mat, &temp);
+    snow_scene.g_view_world_row2 = temp.row2;
+    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->post_process.render_width;
+    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->post_process.render_height;
+    snow_scene.g_size_in_projection.z = snow_particle_size_min;
+    snow_scene.g_size_in_projection.w = snow_particle_size_max;
+    snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
+    snow_scene.g_range_scale.x = snow->range_gpu.x;
+    snow_scene.g_range_scale.y = snow->range_gpu.y;
+    snow_scene.g_range_scale.z = snow->range_gpu.z;
+    snow_scene.g_range_offset.x = snow->offset_gpu.x - snow->range_gpu.x * 0.5f;
+    snow_scene.g_range_offset.y = snow->offset_gpu.y;
+    snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
+    snow_particle_scene_ubo.WriteMapMemory(snow_scene);
+    
+    snow_particle_batch_shader_data snow_batch = {};
+    snow_batch.g_color = snow->color;
+    snow_batch.start_vertex_location.x = 0;
+    snow_particle_batch_ubo.WriteMapMemory(snow_batch);
+
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(1, rctx_ptr->post_process.rend_texture.depth_texture->tex);
+    gl_state_bind_vertex_array(snow_vao);
+
+    uniform_value[U_SNOW_PARTICLE] = 0;
+    shaders_ft.set(SHADER_FT_SNOW_PT);
+    snow_particle_scene_ubo.Bind(0);
+    snow_particle_batch_ubo.Bind(1);
+
+    snow_ssbo.Bind(0);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, snow->num_snow * 6);
+
+    snow_fallen_ssbo.Bind(0);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
+
+    uniform_value[U_SNOW_PARTICLE] = 1;
+    shaders_ft.set(SHADER_FT_SNOW_PT);
+    snow_particle_scene_ubo.Bind(0);
+    snow_particle_batch_ubo.Bind(1);
+
+    point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
+        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.06f;
+
+    snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
+    snow_particle_scene_ubo.WriteMapMemory(snow_scene);
+
+    snow_gpu_ssbo.Bind(0);
+
+    int32_t count = snow->num_snow_gpu / 4;
+    count = min_def(count, snow_ptcl_count / 4) * 6;
+
+    int32_t first = 0;
+    for (particle_data& i : snow_ptcl_gpu) {
+        vec3 pos_offset = i.position / snow->range_gpu;
+        vec4 color = snow->color;
+        color.w *= i.alpha;
+
+        snow_batch = {};
+        snow_batch.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.0f };
+        snow_batch.g_color = color;
+        snow_batch.start_vertex_location.x = first;
+        snow_particle_batch_ubo.WriteMapMemory(snow_batch);
+
+        shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
+        first += count;
+    }
+
+    gl_state_active_bind_texture_2d(1, 0);
+    gl_state_active_bind_texture_2d(0, 0);
+
+    gl_state_disable_depth_test();
+    gl_state_set_depth_mask(GL_TRUE);
+    gl_state_disable_blend();
 }
 
 void task_effect_init() {
@@ -2441,8 +2847,8 @@ void task_effect_init() {
     if (!task_effect_leaf)
         task_effect_leaf = new TaskEffectLeaf;
 
-    /*if (!task_effect_snow)
-        task_effect_snow = new TaskEffectSnow;*/
+    if (!task_effect_snow)
+        task_effect_snow = new TaskEffectSnow;
 
     if (!task_effect_ripple)
         task_effect_ripple = new TaskEffectRipple;
@@ -2490,10 +2896,10 @@ void task_effect_free() {
         task_effect_leaf = 0;
     }
 
-    /*if (task_effect_snow) {
+    if (task_effect_snow) {
         delete task_effect_snow;
         task_effect_snow = 0;
-    }*/
+    }
 
     if (task_effect_ripple) {
         delete task_effect_ripple;
@@ -2750,8 +3156,7 @@ void leaf_particle_data::init() {
     size = leaf->psize;
 }
 
-rain_particle_data::rain_particle_data() : alpha(), type(), field_1C(),
-field_2C(), field_30(), field_34(), field_38(), field_3C() {
+particle_data::particle_data() : size(), alpha(), life_time() {
 
 }
 
@@ -3071,6 +3476,7 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     if (tex)
         gl_state_active_bind_texture_2d(0, tex->tex);
     gl_state_bind_vertex_array(data->vao);
+    data->ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);
     gl_state_disable_blend();
 }
@@ -3083,27 +3489,15 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
         vec3* vertex = data->vertex;
         color4u8* color = data->color;
 
-        const size_t vtx_count = (size_t)count * 0x06;
-        vec3* vtx_data = force_malloc_s(vec3, vtx_count);
+        vec3* vtx_data = force_malloc_s(vec3, count);
 
-        for (size_t i = count; i; i--, vtx_data += 6, vertex++, color++) {
-            vtx_data[0] = { vertex->x, vertex->z, (float_t)color->a };
-            vtx_data[1] = { vertex->x, vertex->z, (float_t)color->a };
-            vtx_data[2] = { vertex->x, vertex->z, (float_t)color->a };
-            vtx_data[3] = { vertex->x, vertex->z, (float_t)color->a };
-            vtx_data[4] = { vertex->x, vertex->z, (float_t)color->a };
-            vtx_data[5] = { vertex->x, vertex->z, (float_t)color->a };
-        }
+        for (size_t i = count; i; i--, vtx_data++, vertex++, color++)
+            *vtx_data = { vertex->x, vertex->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
 
-        vtx_data -= vtx_count;
+        vtx_data -= count;
 
-        if (GLAD_GL_VERSION_4_5)
-            glNamedBufferSubData(ripple_emit_vbo, 0, sizeof(vec3) * vtx_count, vtx_data);
-        else {
-            gl_state_bind_array_buffer(ripple_emit_vbo);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * vtx_count, vtx_data);
-            gl_state_bind_array_buffer(0);
-        }
+        ripple_emit_ssbo.WriteMapMemory(0, sizeof(vec3) * count, vtx_data);
+
         free_def(vtx_data);
     }
 
@@ -3132,9 +3526,11 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
 
     uniform_value[U_RIPPLE] = data->ripple_uniform;
     uniform_value[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
+
     gl_state_bind_vertex_array(ripple_emit_vao);
     shaders_ft.set(SHADER_FT_RIPEMIT);
     ripple_emit_scene_ubo.Bind(0);
+    ripple_emit_ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->count * 6);
 
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
@@ -3236,8 +3632,7 @@ static void leaf_particle_ctrl() {
     stage_param_leaf* leaf = stage_param_data_leaf_current;
 
     float_t off_y = leaf->offset.y;
-    float_t delta_time = (float_t)(leaf->frame_speed_coef
-        * (leaf_particle_delta_frame * (1.0 / 60.0)));
+    float_t delta_time = leaf->frame_speed_coef * (leaf_particle_delta_frame * (float_t)(1.0 / 60.0));
 
     leaf_particle_data* data = leaf_ptcl_data;
     if (leaf_particle_num_ptcls < 0x800) {
@@ -3437,9 +3832,9 @@ static void particle_init(vec3* offset) {
 
     const size_t ptcl_vtx_count = ptcl_count * 0x06;
 
-    ptcl_data = force_malloc_s(particle_data, ptcl_count);
+    ptcl_data = force_malloc_s(particle_rot_data, ptcl_count);
 
-    particle_data* data = ptcl_data;
+    particle_rot_data* data = ptcl_data;
     for (size_t i = 0; i < ptcl_count; i++, data++)
         data->alive = false;
 
@@ -3495,7 +3890,7 @@ static void particle_ctrl() {
 
     vec3 wind = particle_wind;
 
-    particle_data* data = ptcl_data;
+    particle_rot_data* data = ptcl_data;
     for (int32_t i = 0; i < ptcl_count; i++, data++) {
         if (!data->alive)
             continue;
@@ -3513,7 +3908,7 @@ static void particle_ctrl() {
     }
 }
 
-static int32_t particle_disp(particle_vertex_data* vtx_data, particle_data* data, int32_t count) {
+static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* data, int32_t count) {
     int32_t vtx_count = 0;
     for (size_t i = 0; i < count; i++, data++) {
         if (!data->alive)
@@ -3573,21 +3968,21 @@ static int32_t particle_disp(particle_vertex_data* vtx_data, particle_data* data
     return vtx_count;
 }
 
-static particle_data* particle_emit() {
+static particle_rot_data* particle_emit() {
     if (particle_count >= ptcl_count)
         return 0;
 
     for (int32_t i = 0; i < ptcl_count; i++) {
-        particle_data* data = &ptcl_data[particle_index++];
+        particle_rot_data* data = &ptcl_data[particle_index++];
         if (particle_index >= ptcl_count)
             particle_index = 0;
-        if (data->alive)
-            continue;
 
-        *data = {};
-        data->alive = true;
-        particle_count++;
-        return data;
+        if (!data->alive) {
+            *data = {};
+            data->alive = true;
+            particle_count++;
+            return data;
+        }
     }
     return 0;
 }
@@ -3609,7 +4004,7 @@ static void particle_event(particle_event_data* event_data) {
         color[2] = vec4(1.0f, 0.6f, 0.0f, 1.0f);
 
         for (int32_t i = 0; i < count; i++) {
-            particle_data* data = particle_emit();
+            particle_rot_data* data = particle_emit();
             if (!data)
                 break;
 
@@ -3641,7 +4036,7 @@ static void particle_event(particle_event_data* event_data) {
         direction.z = cosf(v13) * v15;
 
         for (int32_t i = 0; i < count; i++) {
-            particle_data* data = particle_emit();
+            particle_rot_data* data = particle_emit();
             if (!data)
                 break;
 
@@ -3664,7 +4059,7 @@ static void particle_event(particle_event_data* event_data) {
     }
 }
 
-static void particle_kill(particle_data* data) {
+static void particle_kill(particle_rot_data* data) {
     data->alive = false;
     particle_count--;
 }
@@ -3694,25 +4089,19 @@ static void rain_particle_init(bool change_stage) {
     vec3 velocity = stage_param_data_rain_current->velocity;
     vec3 vel_range = stage_param_data_rain_current->vel_range;
 
-    const size_t rain_ptcl_vtx_count = rain_ptcl_count * 0x06;
-
     for (int32_t i = 0; i < 8; i++) {
-        rain_particle_data& data = rain_ptcl_data[i];
+        particle_data& data = rain_ptcl_data[i];
         data.position.x = 0.0f;
         data.position.y = ((float_t)i * -12.5f) - 5.0f;
         data.position.z = 0.0f;
-        data.texcoord.x = 1.0f;
+        data.size = 1.0f;
         data.alpha = 1.0f;
-        data.type = 1;
-        data.velocity.x = rand_state_array_get_float(4);
-        data.velocity.y = rand_state_array_get_float(4);
-        data.velocity.z = rand_state_array_get_float(4);
-        data.velocity = (data.velocity - 0.5f) * vel_range + velocity;
-        data.field_2C = 0;
-        data.field_30 = 0;
-        data.field_34 = 0;
-        data.field_38 = 0;
-        data.field_3C = 0;
+        data.life_time = 1;
+        vec3 _velocity;
+        _velocity.x = rand_state_array_get_float(4);
+        _velocity.y = rand_state_array_get_float(4);
+        _velocity.z = rand_state_array_get_float(4);
+        data.velocity = (_velocity - 0.5f) * vel_range + velocity;
     }
 
     if (change_stage)
@@ -3720,43 +4109,23 @@ static void rain_particle_init(bool change_stage) {
 
     rain_particle_free();
 
-    if (!rain_ptcl_vao)
-        glGenVertexArrays(1, &rain_ptcl_vao);
+    if (!rain_vao)
+        glGenVertexArrays(1, &rain_vao);
 
-    if (!rain_ptcl_vbo)
-        glGenBuffers(1, &rain_ptcl_vbo);
-
-    vec3* vtx_data = force_malloc_s(vec3, rain_ptcl_vtx_count);
-    for (int32_t i = 0; i < rain_ptcl_count; i++, vtx_data += 6) {
+    vec3* vtx_data = force_malloc_s(vec3, rain_ptcl_count);
+    for (int32_t i = 0; i < rain_ptcl_count; i++) {
         vec3 position;
         position.x = rand_state_array_get_float(4);
         position.y = rand_state_array_get_float(4);
         position.z = rand_state_array_get_float(4);
-        vtx_data[0] = position;
-        vtx_data[1] = position;
-        vtx_data[2] = position;
-        vtx_data[3] = position;
-        vtx_data[4] = position;
-        vtx_data[5] = position;
+        *vtx_data++ = position;
     }
-    vtx_data -= rain_ptcl_vtx_count;
 
-    static const GLsizei buffer_size = sizeof(vec3);
+    vtx_data -= rain_ptcl_count;
 
-    gl_state_bind_array_buffer(rain_ptcl_vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * rain_ptcl_vtx_count), vtx_data, 0);
-    else
-        glBufferData(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * rain_ptcl_vtx_count), vtx_data, GL_STATIC_DRAW);
+    rain_ssbo.Create(sizeof(vec3) * rain_ptcl_count, vtx_data);
+
     free_def(vtx_data);
-
-    gl_state_bind_vertex_array(rain_ptcl_vao);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size, 0);
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
 
     rain_particle_scene_ubo.Create(sizeof(rain_particle_scene_shader_data));
     rain_particle_batch_ubo.Create(sizeof(rain_particle_batch_shader_data));
@@ -3769,7 +4138,7 @@ static void rain_particle_ctrl() {
     float_t delta_time = (float_t)(rain_particle_delta_frame * (1.0 / 60.0));
 
     for (int32_t i = 0; i < 8; i++) {
-        rain_particle_data& data = rain_ptcl_data[i];
+        particle_data& data = rain_ptcl_data[i];
         data.position += delta_time * data.velocity;
         data.alpha = 1.0f;
 
@@ -3785,15 +4154,12 @@ static void rain_particle_ctrl() {
 }
 
 static void rain_particle_free() {
-    if (rain_ptcl_vao) {
-        glDeleteVertexArrays(1, &rain_ptcl_vao);
-        rain_ptcl_vao = 0;
+    if (rain_vao) {
+        glDeleteVertexArrays(1, &rain_vao);
+        rain_vao = 0;
     }
 
-    if (rain_ptcl_vbo) {
-        glDeleteBuffers(1, &rain_ptcl_vbo);
-        rain_ptcl_vbo = 0;
-    }
+    rain_ssbo.Destroy();
 
     rain_particle_scene_ubo.Destroy();
     rain_particle_batch_ubo.Destroy();
@@ -3809,31 +4175,9 @@ static void ripple_emit_init() {
     if (!ripple_emit_vao)
         glGenVertexArrays(1, &ripple_emit_vao);
 
-    if (!ripple_emit_vbo)
-        glGenBuffers(1, &ripple_emit_vbo);
-
     size_t max_count = 16;
 
-    const size_t max_vtx_count = (size_t)max_count * 0x06;
-
-    static const GLsizei buffer_size = sizeof(vec3);
-
-    gl_state_bind_array_buffer(ripple_emit_vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * max_vtx_count),
-            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    else
-        glBufferData(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * max_vtx_count),
-            0, GL_DYNAMIC_DRAW);
-
-    gl_state_bind_vertex_array(ripple_emit_vao);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size, 0);
-
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
+    ripple_emit_ssbo.Create(sizeof(vec3) * max_count);
 
     ripple_emit_scene_ubo.Create(sizeof(ripple_emit_scene_shader_data));
 }
@@ -3847,17 +4191,329 @@ static void ripple_emit_free() {
     ripple_batch_ubo.Destroy();
     ripple_scene_ubo.Destroy();
 
+    ripple_emit_ssbo.Destroy();
+
     if (ripple_emit_vao) {
         glDeleteVertexArrays(1, &ripple_emit_vao);
         ripple_emit_vao = 0;
     }
 
-    if (ripple_emit_vbo) {
-        glDeleteBuffers(1, &ripple_emit_vbo);
-        ripple_emit_vbo = 0;
+    ripple_emit_scene_ubo.Destroy();
+}
+
+static void snow_particle_init(bool change_stage) {
+    stage_param_snow* snow = stage_param_data_snow_current;
+
+    float_t colli_ground_y = stage_param_data_snow_current->colli_ground.y;
+
+    snow_particle_fallen_count = 0;
+    snow_particle_fallen_index = 0;
+
+    int32_t render_height = rctx_ptr->post_process.render_height;
+    float_t snow_particle_size = (float_t)render_height * (float_t)(1.0 / 720.0);
+    snow_particle_size_min = snow_particle_size;
+    snow_particle_size_mid = snow_particle_size * 31.0f;
+    snow_particle_size_max = snow_particle_size * 63.0f;
+
+    snow_particle_data_free();
+    snow_particle_data_init();
+
+    vec3 velocity = snow->velocity;
+    vec3 vel_range = snow->vel_range;
+    vec3 range = snow->range;
+    vec3 offset = snow->offset;
+    range.y = offset.y + range.y - max_def(offset.y, colli_ground_y);
+
+    if (stage_param_data_snow_current->num_snow > 0) {
+        particle_data* snow_ptcl = snow_ptcl_data;
+        for (int32_t i = ((stage_param_data_snow_current->num_snow - 1) >> 1) + 1; i; i--, snow_ptcl += 2) {
+            vec3 position;
+            position.x = rand_state_array_get_float(4) - 0.5f;
+            position.y = rand_state_array_get_float(4);
+            position.z = rand_state_array_get_float(4) - 0.5f;
+            snow_ptcl[0].position = position * range + offset;
+
+            snow_ptcl[0].size = rand_state_array_get_float(4) * 0.4f + 0.3f;
+            snow_ptcl[0].alpha = rand_state_array_get_float(4) * 0.5f + 0.4f;
+            snow_ptcl[0].life_time = 1;
+
+            vec3 _velocity;
+            _velocity.x = rand_state_array_get_float(4);
+            _velocity.y = rand_state_array_get_float(4);
+            _velocity.z = rand_state_array_get_float(4);
+            snow_ptcl[0].velocity = (_velocity - 0.5f) * vel_range + velocity;
+
+            snow_ptcl[0].direction = 0.0f;
+
+            snow_ptcl[1].size = ((rand_state_array_get_float(4) * 0.5f) + 0.3f) * snow_ptcl[0].size;
+            snow_ptcl[1].alpha = (rand_state_array_get_float(4) + 1.0f) * 0.3f;
+
+            _velocity.x = rand_state_array_get_float(4);
+            _velocity.y = rand_state_array_get_float(4);
+            _velocity.z = rand_state_array_get_float(4);
+            snow_ptcl[1].velocity = (_velocity - 0.5f) * 0.035f * (snow_ptcl[1].size + snow_ptcl[0].size);
+
+            snow_ptcl[0].size = snow_particle_size_mid * snow_ptcl[0].size;
+            snow_ptcl[1].size = snow_particle_size_mid * snow_ptcl[1].size;
+        }
     }
 
-    ripple_emit_scene_ubo.Destroy();
+    for (int32_t i = 0; i < snow_ptcl_fallen_count; i++)
+        snow_particle_data_kill_fallen(&snow_ptcl_fallen_data[i], false);
+
+    for (particle_data& i : snow_ptcl_gpu) {
+        i.position.x = 0.0f;
+        i.position.y = (float_t)(&i - snow_ptcl_gpu) * -25.0f - 5.0f;
+        i.position.z = 0.0f;
+        i.alpha = 1.0;
+        i.life_time = 1;
+
+        vec3 _velocity;
+        _velocity.x = rand_state_array_get_float(4);
+        _velocity.y = rand_state_array_get_float(4);
+        _velocity.z = rand_state_array_get_float(4);
+        i.velocity = (_velocity - 0.5f) * vel_range + velocity;
+        i.direction = 0.0f;
+    }
+
+    if (change_stage)
+        return;
+
+    snow_particle_free();
+
+    if (!snow_vao)
+        glGenVertexArrays(1, &snow_vao);
+
+    snow_ssbo.Create(sizeof(snow_particle_vertex_data) * snow->num_snow);
+
+    snow_particle_gpu_vertex_data* vtx_data = force_malloc_s(snow_particle_gpu_vertex_data, snow_ptcl_count);
+
+    for (int32_t i = 0; i < snow_ptcl_count; i++, vtx_data++) {
+        vtx_data->position.x = rand_state_array_get_float(4);
+        vtx_data->position.y = rand_state_array_get_float(4);
+        vtx_data->position.z = rand_state_array_get_float(4);
+        vtx_data->size = (rand_state_array_get_float(4) * 0.5f + 0.4f) * snow_particle_size_mid;
+    }
+
+    vtx_data -= snow_ptcl_count;
+
+    snow_gpu_ssbo.Create(sizeof(snow_particle_gpu_vertex_data) * snow_ptcl_count, vtx_data);
+
+    free_def(vtx_data);
+
+    snow_fallen_ssbo.Create(sizeof(snow_particle_vertex_data) * snow_ptcl_fallen_count);
+
+    snow_particle_scene_ubo.Create(sizeof(snow_particle_scene_shader_data));
+    snow_particle_batch_ubo.Create(sizeof(snow_particle_batch_shader_data));
+}
+
+static void snow_particle_ctrl() {
+    if (!stage_param_data_snow_current)
+        return;
+
+    stage_param_snow* snow = stage_param_data_snow_current;
+    float_t colli_ground_y = snow->colli_ground.y + 0.03f;
+    float_t offset_y = snow->offset.y;
+
+    float_t delta_time = (float_t)(snow_particle_delta_frame * (1.0 / 60.0));
+
+    vec4 _colli_ground_xz = {
+        -snow->colli_ground.min_x,
+        snow->colli_ground.max_x,
+        -snow->colli_ground.min_z,
+        snow->colli_ground.max_z
+    };
+
+    __m128 colli_ground_xz = vec4::load_xmm(_colli_ground_xz);
+
+    if (snow->num_snow > 0) {
+        particle_data* snow_ptcl = snow_ptcl_data;
+        for (int32_t i = ((snow->num_snow - 1) >> 1) + 1; i; i--, snow_ptcl += 2) {
+            vec3 direction;
+            if (--snow_ptcl[0].life_time > 0)
+                direction = snow_ptcl[0].direction;
+            else {
+                snow_ptcl[0].life_time = rand_state_array_get_int(15, 35, 4);
+                direction = snow_particle_get_random_velocity();
+                snow_ptcl[0].direction = direction;
+            }
+
+            vec3 velocity = (direction * delta_time + snow_ptcl[0].velocity) * 0.98f;
+            vec3 position = velocity * delta_time + snow_ptcl[0].position;
+            snow_ptcl[0].velocity = velocity;
+            snow_ptcl[0].position = position;
+
+            if (position.y < offset_y)
+                snow_particle_data_reset(snow_ptcl);
+            else if (colli_ground_y > position.y) {
+                __m128 pos = vec3::load_xmm(position);
+                if (!_mm_movemask_ps(_mm_add_ps(_mm_mul_ps(_mm_shuffle_ps(pos, pos, 0xA0),
+                    vec4::load_xmm({ 1.0f, -1.0f, 1.0f, -1.0f })), colli_ground_xz))) {
+                    snow_ptcl[0].position.y = colli_ground_y;
+                    snow_particle_data_emit_fallen(snow_ptcl);
+                    snow_particle_data_reset(snow_ptcl);
+                }
+            }
+
+            snow_ptcl[1].position = snow_ptcl[0].position + snow_ptcl[1].velocity;
+        }
+    }
+
+    for (particle_data& i : snow_ptcl_gpu) {
+        vec3 direction;
+        if (--i.life_time > 0)
+            direction = i.direction;
+        else {
+            i.life_time = rand_state_array_get_int(0xFu, 0x23u, 4);
+            direction = snow_particle_get_random_velocity();
+            i.direction = direction;
+        }
+
+        vec3 velocity = (direction * delta_time + i.velocity) * 0.98f;
+        vec3 position = velocity * delta_time + i.position;
+        i.velocity = velocity;
+        i.alpha = 1.0f;
+        i.position = position;
+        if (position.y > -1.0f)
+            i.alpha = max_def(-position.y, 0.0f);
+        else if (position.y < -99.0f) {
+            i.alpha = max_def(position.y + 100.0f, 0.0f);
+            if (position.y < -100.0f)
+                i.position = 0.0f;
+        }
+    }
+
+    particle_data* snow_ptcl_fallen = snow_ptcl_fallen_data;
+    for (size_t i = snow->num_snow; i; i--, snow_ptcl_fallen++)
+        if (snow_ptcl_fallen->size != 0.0f) {
+            snow_ptcl_fallen->alpha *= 0.95f;
+            if (snow_ptcl_fallen->alpha < 0.02f)
+                snow_particle_data_kill_fallen(snow_ptcl_fallen, true);
+        }
+
+    snow_particle_vertex_data* vtx_data = (snow_particle_vertex_data*)snow_ssbo.MapMemory();
+    if (vtx_data) {
+        particle_data* snow_ptcl = snow_ptcl_data;
+        for (int32_t i = snow->num_snow; i; i--, snow_ptcl++, vtx_data++) {
+            vtx_data->position = snow_ptcl->position;
+            vtx_data->size = snow_ptcl->size;
+            vtx_data->alpha = snow_ptcl->alpha;
+        }
+    }
+    snow_ssbo.UnmapMemory();
+
+    snow_particle_vertex_data* fallen_vtx_data = (snow_particle_vertex_data*)snow_fallen_ssbo.MapMemory();
+    if (fallen_vtx_data) {
+        particle_data* snow_ptcl_fallen = snow_ptcl_fallen_data;
+        for (size_t i = snow_ptcl_fallen_count; i; i--, snow_ptcl_fallen++, fallen_vtx_data++) {
+            fallen_vtx_data->position = snow_ptcl_fallen->position;
+            fallen_vtx_data->size = snow_ptcl_fallen->size;
+            fallen_vtx_data->alpha = snow_ptcl_fallen->alpha;
+        }
+    }
+    snow_fallen_ssbo.UnmapMemory();
+}
+
+static void snow_particle_data_init() {
+    if (!snow_ptcl_data)
+        snow_ptcl_data = force_malloc_s(particle_data, stage_param_data_snow_current->num_snow);
+
+    if (!snow_ptcl_fallen_data)
+        snow_ptcl_fallen_data = force_malloc_s(particle_data, snow_ptcl_fallen_count);
+}
+
+static void snow_particle_data_emit_fallen(particle_data* data) {
+    for (int32_t i = 0; i < 6; i++) {
+        particle_data* d = snow_particle_emit_fallen();
+        if (!d)
+            break;
+
+        d->position.x = (rand_state_array_get_float(4) - 0.5f) * 0.05f + data->position.x;
+        d->position.y = data->position.y;
+        d->position.z = (rand_state_array_get_float(4) - 0.5f) * 0.05f + data->position.z;
+        d->size = (rand_state_array_get_float(4) * 0.5f + 0.2f) * data->size;
+        d->velocity = 0.0f;
+        d->alpha = data->alpha * 0.60f;
+    }
+}
+
+static void snow_particle_data_kill_fallen(particle_data* data, bool kill) {
+    if (kill)
+        --snow_particle_fallen_count;
+
+    data->position = { 0.0f, -10.0f, 0.0f };
+    data->size = 0.0f;
+    data->alpha = 1.0f;
+}
+
+static void snow_particle_data_reset(particle_data* data) {
+    stage_param_snow* snow = stage_param_data_snow_current;
+    vec3 position;
+    position.x = rand_state_array_get_float(4) - 0.5f;
+    position.y = 1.0f;
+    position.z = rand_state_array_get_float(4) - 0.5f;
+    data->position = position * snow->range + snow->offset;
+
+    data->life_time = 1;
+
+    vec3 velocity;
+    velocity.x = rand_state_array_get_float(4);
+    velocity.y = rand_state_array_get_float(4);
+    velocity.z = rand_state_array_get_float(4);
+    data->velocity = (velocity - 0.5f) * snow->vel_range + snow->velocity;
+    data->direction = 0.0f;
+}
+
+static void snow_particle_data_free() {
+    if (snow_ptcl_data) {
+        free(snow_ptcl_data);
+        snow_ptcl_data = 0;
+    }
+
+    if (snow_ptcl_fallen_data) {
+        free(snow_ptcl_fallen_data);
+        snow_ptcl_fallen_data = 0;
+    }
+}
+
+static particle_data* snow_particle_emit_fallen() {
+    if (snow_particle_fallen_count >= snow_ptcl_fallen_count)
+        return 0;
+
+    for (int32_t i = 0; i < snow_ptcl_fallen_count; i++) {
+        particle_data* data = &snow_ptcl_fallen_data[snow_particle_fallen_index++];
+        if (snow_particle_fallen_index >= snow_ptcl_fallen_count)
+            snow_particle_fallen_index = 0;
+
+        if (data->size == 0.0f) {
+            snow_particle_fallen_count++;
+            return data;
+        }
+    }
+    return 0;
+}
+
+static vec3 snow_particle_get_random_velocity() {
+    stage_param_snow* snow = stage_param_data_snow_current;
+    vec3 velocity;
+    velocity.x = rand_state_array_get_float(4);
+    velocity.y = rand_state_array_get_float(4);
+    velocity.z = rand_state_array_get_float(4);
+    return (velocity - 0.5f) * snow->vel_range + snow->velocity;
+}
+
+static void snow_particle_free() {
+    if (snow_vao) {
+        glDeleteVertexArrays(1, &snow_vao);
+        snow_vao = 0;
+    }
+
+    snow_ssbo.Destroy();
+    snow_gpu_ssbo.Destroy();
+    snow_fallen_ssbo.Destroy();
+
+    snow_particle_scene_ubo.Destroy();
+    snow_particle_batch_ubo.Destroy();
 }
 
 static void sub_1403B6ED0(render_texture* a1, render_texture* a2, render_texture* a3, ripple_emit_params& params) {

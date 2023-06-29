@@ -122,7 +122,7 @@ static void stage_param_snow_read_inner(stage_param_snow* snow, stream& s) {
             if (buf[8] != ' ')
                 goto End;
 
-            snow->tex_name.assign(buf + 23);
+            snow->tex_name.assign(buf + 9);
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "num_snow", 8)) {
             if (!str_utils_compare_length(buf, sizeof(buf), "num_snow_gpu", 12)) {

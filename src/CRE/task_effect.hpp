@@ -10,6 +10,8 @@
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
+#include "GL/shader_storage_buffer.hpp"
+#include "GL/uniform_buffer.hpp"
 #include "rob/rob.hpp"
 #include "frame_rate_control.hpp"
 #include "render_texture.hpp"
@@ -64,7 +66,7 @@ public:
     virtual void SetEnable(bool value);
     virtual void SetCurrentStageHash(uint32_t value); // Added
     virtual void SetCurrentStageIndex(int32_t value);
-    virtual void SetFrameRateControl(FrameRateControl* value);
+    virtual void SetFrameRateControl(FrameRateControl* value = 0);
     virtual void Field_68();
     virtual void Reset();
     virtual void Event(int32_t event_type, void* data);
@@ -123,7 +125,7 @@ public:
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageHash(uint32_t value) override; // Added
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
 
     void ResetData();
@@ -233,7 +235,7 @@ public:
         std::vector<int32_t> stage_indices;
         FrameRateControl* frame_rate_control;
         GLuint vao;
-        GLuint vbo;
+        GL::ShaderStorageBuffer ssbo;
 
         Data();
         ~Data();
@@ -269,7 +271,7 @@ public:
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
 };
 
@@ -292,7 +294,7 @@ public:
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
 };
 
@@ -335,7 +337,7 @@ public:
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetEnable(bool value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
     virtual void Event(int32_t event_type, void* data) override;
 };
@@ -358,7 +360,7 @@ public:
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
 };
 
@@ -476,7 +478,7 @@ public:
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
 };
 
@@ -497,19 +499,10 @@ public:
 
     virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Reset() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
 
 struct struc_180 {
@@ -572,6 +565,9 @@ struct water_particle {
     std::vector<vec4u8> field_60;
     struc_101 field_78;
     float_t ripple_emission;
+
+    water_particle();
+    ~water_particle();
 };
 
 struct ParticleDispObj {
@@ -644,7 +640,7 @@ public:
     virtual void Field_48() override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Field_68() override;
     virtual void Reset() override;
     virtual void Field_80() override;
@@ -677,7 +673,7 @@ public:
     virtual void Field_48() override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
     virtual void Field_68() override;
     virtual void Reset() override;
     virtual void Field_80() override;
