@@ -18,7 +18,7 @@ static void stage_param_snow_write_string(stream& s,
     char* buf, size_t buf_size, std::string& value);
 
 stage_param_snow_colli_ground::stage_param_snow_colli_ground()
-    : field_0(), field_4(), field_8(), field_C(), field_10() {
+    : min_x(), max_x(), min_z(), max_z(), y() {
 
 }
 
@@ -183,8 +183,8 @@ static void stage_param_snow_read_inner(stage_param_snow* snow, stream& s) {
         else if (!str_utils_compare_length(buf, sizeof(buf), "colli_ground", 12)) {
             stage_param_snow_colli_ground& colli_ground = snow->colli_ground;
             if (buf[12] != ' ' || sscanf_s(buf + 13, "%f %f %f %f %f",
-                &colli_ground.field_0, &colli_ground.field_4, &colli_ground.field_8,
-                &colli_ground.field_C, &colli_ground.field_10) != 5)
+                &colli_ground.min_x, &colli_ground.max_x,
+                &colli_ground.min_z, &colli_ground.max_z, &colli_ground.y) != 5)
                 goto End;
         }
     }
@@ -264,11 +264,11 @@ static void stage_param_snow_write_inner(stage_param_snow* snow, stream& s) {
 
     stage_param_snow_colli_ground& colli_ground = snow->colli_ground;
     s.write("colli_ground", 12);
-    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.field_0);
-    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.field_4);
-    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.field_8);
-    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.field_C);
-    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.field_10);
+    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.min_x);
+    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.max_x);
+    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.min_z);
+    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.max_z);
+    stage_param_snow_write_float_t(s, buf, sizeof(buf), colli_ground.y);
     s.write_char('\n');
 }
 

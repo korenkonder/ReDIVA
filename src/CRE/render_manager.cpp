@@ -31,7 +31,7 @@ static void draw_pass_shadow_esm_filter(render_context* rctx,
     render_texture* dst, render_texture* buf, render_texture* src);
 static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj);
 static void draw_pass_sss_contour(render_context* rctx, post_process* pp);
-static void draw_pass_sss_filter(render_context* rctx, sss_data* a1);
+static void draw_pass_sss_filter(render_context* rctx, sss_data* sss);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
 static void draw_pass_3d_shadow_reset(render_context* rctx);
 static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx);
@@ -1228,7 +1228,7 @@ static void draw_pass_sss_filter_calc_coef(double_t a1, size_t a2, double_t a3, 
     }
 }
 
-static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
+static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     const int32_t sss_count = 6;
     vec3 interest = rctx->camera->interest;
     vec3 view_point = rctx->camera->view_point;
@@ -1280,8 +1280,8 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     rctx->obj_batch.g_sss_param = { v33, 0.0f, 0.0f, 0.0f };
 
     gl_state_active_texture(0);
-    if (a1->npr_contour) {
-        a1->textures[0].bind();
+    if (sss->npr_contour) {
+        sss->textures[0].bind();
         glViewport(0, 0, 640, 360);
         post_process* pp = &rctx->post_process;
         uniform_value[U_REDUCE] = 0;
@@ -1289,11 +1289,11 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
         gl_state_bind_texture_2d(pp->rend_texture.color_texture->tex);
         render_texture::draw_quad(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
-    a1->textures[2].bind();
+    sss->textures[2].bind();
     glViewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 0;
     shaders_ft.set(SHADER_FT_SSS_FILT);
-    gl_state_bind_texture_2d(a1->textures[0].color_texture->tex);
+    gl_state_bind_texture_2d(sss->textures[0].color_texture->tex);
     render_texture::draw_quad(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
     sss_filter_gaussian_coef_shader_data shader_data = {};
@@ -1306,11 +1306,11 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* a1) {
     draw_pass_sss_filter_calc_coef(1.0, sss_count, v34, 3, a5, a6, a7, a8, shader_data.g_coef);
 
     rctx->sss_filter_gaussian_coef_ubo.WriteMapMemory(shader_data);
-    a1->textures[1].bind();
+    sss->textures[1].bind();
     glViewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 3;
     shaders_ft.set(SHADER_FT_SSS_FILT);
-    gl_state_bind_texture_2d(a1->textures[2].color_texture->tex);
+    gl_state_bind_texture_2d(sss->textures[2].color_texture->tex);
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
     render_texture::draw_quad(&shaders_ft, 320, 180, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     gl_state_bind_texture_2d(0);

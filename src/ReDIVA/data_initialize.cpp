@@ -43,7 +43,8 @@ bool TaskDataInit::Ctrl() {
 
     switch (state) {
     case 0: {
-        sprite_manager_reset_res_data();
+        // Fucks up scaling
+        //sprite_manager_reset_res_data();
         sprite_manager_read_file(4, "", aft_data, aft_spr_db);
         sprite_manager_read_file(472, "", aft_data, aft_spr_db);
         sprite_manager_read_file(43, "", aft_data, aft_spr_db);

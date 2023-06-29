@@ -2651,11 +2651,10 @@ namespace dw {
                 callback_data.field_8 = 0x1000002;
             else {
                 vec2 v23 = sub_1402E4790();
-                if (v23.x + v10 <= v9)
-                    if (v9 <= v23.x + v10 + v23.y)
-                        callback_data.field_8 = 0x1000005;
-                    else
-                        callback_data.field_8 = 0x1000006;
+                if (v23.x + v10 > v9)
+                    callback_data.field_8 = 0x1000005;
+                else if (v9 > v23.x + v10 + v23.y)
+                    callback_data.field_8 = 0x1000006;
             }
         }
 

@@ -240,6 +240,8 @@ int32_t render_main(render_init_struct* ris) {
 #if !(BAKE_PNG || BAKE_VIDEO)
         width = window_rect.right;
         height = window_rect.bottom;
+        old_width = width;
+        old_height = height;
 #endif
 
         scale_index = ris->scale_index > 0 && ris->scale_index < RENDER_SCALE_MAX
@@ -852,6 +854,8 @@ static render_context* render_context_load() {
         internal_2d_res.x, internal_2d_res.y, width, height);
     rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
     rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
+    sprite_manager_set_res((double_t)internal_2d_res.x / (double_t)internal_2d_res.y,
+        internal_2d_res.x, internal_2d_res.y);
 
     rctx->camera->initialize(aspect);
 
@@ -1326,22 +1330,12 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     double_t res_width = (double_t)width;
     double_t res_height = (double_t)height;
     double_t view_aspect = res_width / res_height;
-    res_width = round(res_height * aspect);
-    res_height = round(res_width / aspect);
-    if (view_aspect < aspect) {
-        res_width = (double_t)width;
+    if (view_aspect < aspect)
         res_height = round(res_width / aspect);
-    }
-    else {
+    else if (view_aspect > aspect)
         res_width = round(res_height * aspect);
-        res_height = round(res_width / aspect);
-        if (view_aspect > aspect)
-            res_height = round(res_width / aspect);
-    }
 
-    vec2i internal_res;
-    internal_res.x = (int32_t)res_width;
-    internal_res.y = (int32_t)res_height;
+    vec2i internal_res = { (int32_t)res_width, (int32_t)res_height };
 
 #if BAKE_PNG || BAKE_VIDEO
     internal_2d_res = vec2i::clamp(internal_res * 2, 1, sv_max_texture_size);

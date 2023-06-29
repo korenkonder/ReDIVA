@@ -10,11 +10,11 @@
 #include <string>
 
 struct stage_param_snow_colli_ground {
-    float_t field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
-    float_t field_10;
+    float_t min_x;
+    float_t max_x;
+    float_t min_z;
+    float_t max_z;
+    float_t y;
 
     stage_param_snow_colli_ground();
 };
