@@ -269,20 +269,18 @@ namespace mdl {
         const std::vector<texture*>* textures;
         int32_t mat_count;
         const mat4* mats;
-        GLuint vertex_array;
-        GLuint vertex_buffer;
-        GLuint index_buffer;
+        //GLuint vertex_buffer;
+        obj_mesh_vertex_buffer* vertex_buffer;
+        //GLuint index_buffer;
+        obj_mesh_index_buffer* index_buffer;
         bool set_blend_color;
         bool chara_color;
         vec4 blend_color;
         vec4 emission;
         bool self_shadow;
         shadow_type_enum shadow;
-        GLuint morph_vertex_buffer;
-#if SHARED_OBJECT_BUFFER
-        size_t vertex_buffer_offset;
-        size_t morph_vertex_buffer_offset;
-#endif
+        //GLuint morph_vertex_buffer;
+        obj_mesh_vertex_buffer* morph_vertex_buffer;
         float_t morph_weight;
         int32_t texture_pattern_count;
         texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
@@ -432,13 +430,11 @@ namespace mdl {
         Args args;
 
         void init_etc(DispManager* disp_manager, const mat4* mat, mdl::EtcObj* etc);
-        void init_sub_mesh(DispManager* disp_manager, const mat4* mat,
-            float_t radius, obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material,
-            std::vector<texture*>* textures, int32_t mat_count, mat4* mats, GLuint vertex_buffer,
-            GLuint index_buffer, vec4* blend_color, vec4* emission, GLuint morph_vertex_buffer,
-#if SHARED_OBJECT_BUFFER
-            size_t vertex_buffer_offset, size_t morph_vertex_buffer_offset,
-#endif
+        void init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
+            obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material, std::vector<texture*>* textures,
+            int32_t mat_count, mat4* mats, /*GLuint vertex_buffer, GLuint index_buffer,*/
+            obj_mesh_vertex_buffer* vertex_buffer, obj_mesh_index_buffer* index_buffer, vec4* blend_color,
+            vec4* emission, /*GLuint morph_vertex_buffer,*/ obj_mesh_vertex_buffer* morph_vertex_buffer,
             int32_t instances_count, mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
         void init_translucent(const mat4* mat, ObjTranslucentArgs* translucent);
         void init_user(const mat4* mat, UserArgsFunc func, void* data);
@@ -495,16 +491,12 @@ namespace mdl {
 
     struct DispManager {
         struct vertex_array {
-#if SHARED_OBJECT_BUFFER
-            GLuint vertex_buffer;
-            size_t vertex_buffer_offset;
-            GLuint morph_vertex_buffer;
-            size_t morph_vertex_buffer_offset;
-#else
-            GLuint vertex_buffer;
-            GLuint morph_vertex_buffer;
-#endif
-            GLuint index_buffer;
+            //GLuint vertex_buffer;
+            obj_mesh_vertex_buffer* vertex_buffer;
+            //GLuint morph_vertex_buffer;
+            obj_mesh_vertex_buffer* morph_vertex_buffer;
+            //GLuint index_buffer;
+            obj_mesh_index_buffer* index_buffer;
             int32_t alive_time;
             GLuint vertex_array;
             bool vertex_attrib_array[16];
