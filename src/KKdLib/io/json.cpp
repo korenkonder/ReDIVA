@@ -209,11 +209,11 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
         if (sscanf_s(dig_buf, "%lli", &val) == EOF)
             return;
 
-        if (val >= 0x00 && val < 0xFF)
+        if (val >= 0x00 && val <= 0xFF)
             *msg = (uint8_t)val;
         else if (val >= (int8_t)0x80 && val <= (int8_t)0x7F)
             *msg = (int8_t)val;
-        else if (val >= 0x0000 && val < 0xFFFF)
+        else if (val >= 0x0000 && val <= 0xFFFF)
             *msg = (uint16_t)val;
         else if (val >= (int16_t)0x8000 && val <= (int16_t)0x7FFF)
             *msg = (int16_t)val;
