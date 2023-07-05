@@ -66,8 +66,6 @@ namespace app {
         field_2C = false;
         is_frame_dependent = false;
         SetName("(unknown)");
-        field_4E = false;
-        field_4F = false;
         base_calc_time = 0;
         calc_time = 0;
         calc_time_max = 0;

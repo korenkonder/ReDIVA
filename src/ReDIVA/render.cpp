@@ -51,6 +51,7 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
+#include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
 #include "pv_game/pv_game.hpp"
 #include "game_state.hpp"
@@ -585,6 +586,7 @@ static render_context* render_context_load() {
 
     dw_init();
 
+    data_test_sel_init();
     auth_3d_test_window_init();
     dtm_aet_init();
     dtm_stg_init();
@@ -1053,10 +1055,8 @@ static void render_context_ctrl(render_context* rctx) {
     else if (Input::IsKeyTapped(GLFW_KEY_F5))
         game_state_set_game_state_next(GAME_STATE_GAME);
 #endif
-    else if (Input::IsKeyTapped(GLFW_KEY_F6)) {
+    else if (Input::IsKeyTapped(GLFW_KEY_F6))
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_TEST_AET);
-    }
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
     else if (Input::IsKeyTapped(GLFW_KEY_F8))
@@ -1222,6 +1222,7 @@ static void render_context_dispose(render_context* rctx) {
     dtm_stg_free();
     dtm_aet_free();
     auth_3d_test_window_free();
+    data_test_sel_free();
 
     dw_free();
 

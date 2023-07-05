@@ -14,6 +14,7 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
+#include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
 #include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
@@ -1329,14 +1330,19 @@ bool SubGameState::GameOver::Dest() {
 }
 
 bool SubGameState::DataTestMain::Init() {
+    app::TaskWork::AddTask(data_test_sel, "DATA_TEST_MAIN");
     return true;
 }
 
 bool SubGameState::DataTestMain::Ctrl() {
+    int32_t state = data_test_sel_get_sub_state();
+    if (state >= 0)
+        game_state_set_sub_game_state_next((SubGameStateEnum)state);
     return false;
 }
 
 bool SubGameState::DataTestMain::Dest() {
+    data_test_sel->DelTask();
     return true;
 }
 

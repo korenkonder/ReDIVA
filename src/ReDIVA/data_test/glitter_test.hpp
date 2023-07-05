@@ -9,7 +9,6 @@
 #include <vector>
 #include "../../KKdLib/default.hpp"
 #include "../../CRE/Glitter/glitter.hpp"
-#include "../../CRE/data.hpp"
 #include "../../CRE/task.hpp"
 #include "../dw.hpp"
 

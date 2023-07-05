@@ -57,8 +57,6 @@ namespace app {
         bool field_2C;
         bool is_frame_dependent;
         char name[32];
-        bool field_4E;
-        bool field_4F;
         uint32_t base_calc_time;
         uint32_t calc_time;
         uint32_t calc_time_max;
