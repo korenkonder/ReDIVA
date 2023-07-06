@@ -11739,6 +11739,11 @@ mot_key_data::~mot_key_data() {
 
 }
 
+eyes_adjust::eyes_adjust() : xrot_adjust(), base_adjust() {
+    neg = -1.0f;
+    pos = -1.0f;
+}
+
 bone_data::bone_data() : type(), has_parent(), motion_bone_index(), mirror(), parent(),
 disable_mot_anim(), key_set_offset(), key_set_count(), frame(), base_translation(),
 rotation(), ik_target(), trans(), rot_mat(), trans_prev(), rot_mat_prev(), pole_target_mat(),
@@ -12654,33 +12659,10 @@ void rob_chara_bone_data::sub_14041DBA0() {
         sub_1404156B0(&i->mot_play_data);
 }
 
-rob_chara_pv_data::rob_chara_pv_data() {
-    type = ROB_CHARA_TYPE_2;
-    field_4 = true;
-    field_5 = false;
-    field_6 = false;
-    field_8 = 0.0f;
-    rot_y_int16 = 0x00;
-    field_16 = 0xC9;
-    sleeve_l = {};
-    sleeve_r = {};
-    field_70 = 0;
-    motion_face_ids[0] = -1;
-    motion_face_ids[1] = -1;
-    motion_face_ids[2] = -1;
-    motion_face_ids[3] = -1;
-    motion_face_ids[4] = -1;
-    motion_face_ids[5] = -1;
-    motion_face_ids[6] = -1;
-    motion_face_ids[7] = -1;
-    motion_face_ids[8] = -1;
-    motion_face_ids[9] = -1;
-    chara_size_index = 1;
-    height_adjust = false;
-    item = {};
-    eyes_adjust.base_adjust = EYES_BASE_ADJUST_DIRECTION;
-    eyes_adjust.neg = -1.0f;
-    eyes_adjust.pos = -1.0f;
+rob_chara_pv_data::rob_chara_pv_data() : type(), field_4(), field_5(),
+field_6(), rot_y_int16(), field_16(), sleeve_l(), sleeve_r(), field_70(),
+motion_face_ids(), chara_size_index(), height_adjust(), item() {
+    reset();
 }
 
 void rob_chara_pv_data::reset() {
@@ -12694,23 +12676,12 @@ void rob_chara_pv_data::reset() {
     sleeve_l = {};
     sleeve_r = {};
     field_70 = 0;
-    motion_face_ids[0] = -1;
-    motion_face_ids[1] = -1;
-    motion_face_ids[2] = -1;
-    motion_face_ids[3] = -1;
-    motion_face_ids[4] = -1;
-    motion_face_ids[5] = -1;
-    motion_face_ids[6] = -1;
-    motion_face_ids[7] = -1;
-    motion_face_ids[8] = -1;
-    motion_face_ids[9] = -1;
+    for (uint32_t& i : motion_face_ids)
+        i = -1;
     chara_size_index = 1;
     height_adjust = false;
     item = {};
-    eyes_adjust.xrot_adjust = false;
-    eyes_adjust.base_adjust = EYES_BASE_ADJUST_DIRECTION;
-    eyes_adjust.neg = -1.0f;
-    eyes_adjust.pos = -1.0f;
+    eyes_adjust = {};
 }
 
 rob_chara_item_equip_object::rob_chara_item_equip_object() : index(), mats(),

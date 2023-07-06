@@ -890,6 +890,8 @@ struct eyes_adjust {
     eyes_base_adjust_type base_adjust;
     float_t neg;
     float_t pos;
+
+    eyes_adjust();
 };
 
 struct mot {
