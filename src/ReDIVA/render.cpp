@@ -864,9 +864,6 @@ static render_context* render_context_load() {
     render_resize_fb(rctx, true);
 
     Glitter::glt_particle_manager_add_task();
-    //app::TaskWork::AddTask(&pv_game_data, "PVGAME", 0);
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        rob_chara_pv_data_array[i].type = ROB_CHARA_TYPE_NONE;
 
     light_param_data_storage::load(aft_data);
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
@@ -945,24 +942,6 @@ static render_context* render_context_load() {
 
     clear_color = 0xFF606060;
     set_clear_color = true;
-
-    chara_index charas[6];
-    int32_t modules[6];
-
-    charas[0] = CHARA_MIKU;
-    charas[1] = CHARA_MIKU;//CHARA_RIN;
-    charas[2] = CHARA_MIKU;//CHARA_LEN;
-    charas[3] = CHARA_MIKU;//CHARA_LUKA;
-    charas[4] = CHARA_MIKU;//CHARA_MEIKO;
-    charas[5] = CHARA_MIKU;//CHARA_KAITO;
-
-    modules[0] = 0;//168;
-    modules[1] = 0;//46;
-    modules[2] = 0;//39;
-    modules[3] = 0;//41;
-    modules[4] = 0;//40;
-    modules[5] = 0;//31;
-    //pv_game_data.Load(739, charas, modules);
 
     rctx->obj_batch.g_blend_color = 1.0f;
     rctx->obj_batch.g_offset_color = 0.0f;
@@ -1162,7 +1141,6 @@ static void render_context_dispose(render_context* rctx) {
 
     render->unload_common_data();
 
-    //pv_game_data.DelTask();
     Glitter::glt_particle_manager_del_task();
     task_auth_3d_del_task();
     aet_manager_del_task();
@@ -1201,7 +1179,6 @@ static void render_context_dispose(render_context* rctx) {
     module_table_handler_data_free();
     hand_item_handler_data_free();
 
-    //rob_chara_array_free_chara_id(0);
     render_timer->reset();
     while (app::task_work->tasks.size()) {
         render_timer->start_of_cycle();
