@@ -251,9 +251,26 @@ chara_index chara_index_get_from_chara_name(const char* str) {
     if (!str)
         return CHARA_MAX;
 
-    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
-        if (!str_utils_compare(str, chara_names[i]))
+    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++) {
+        const char* chr_s = chara_names[i];
+        const char* s = str;
+
+        char chr_c;
+        char diff;
+        do
+        {
+            chr_c = *chr_s;
+            diff = *s - chr_c;
+            if (diff)
+                break;
+
+            s++;
+            chr_s++;
+        } while (chr_c);
+
+        if (!diff)
             return (chara_index)i;
+    }
     return CHARA_MAX;
 }
 

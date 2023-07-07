@@ -109,7 +109,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
             dw::ListBox* geff = dw->geff;
             if (geff->list && geff->list->selected_item)
                 effect_hash = Glitter::glt_particle_manager->CalculateHash(
-                    geff->GetItemStr(geff->list->selected_item).c_str());
+                    geff->GetSelectedItemStr().c_str());
         }
 
         if (!pv_mode)
@@ -329,7 +329,7 @@ void DataTestGlitterParticleDw::ListCallback(dw::Widget* data) {
         DataTestGlitterParticleDw* glt_ptcl_dw =
             dynamic_cast<DataTestGlitterParticleDw*>(list_box->parent_shell);
         if (glt_ptcl_dw)
-            glt_ptcl_dw->task->LoadFile(list_box->GetItemStr(list_box->list->selected_item).c_str());
+            glt_ptcl_dw->task->LoadFile(list_box->GetSelectedItemStr().c_str());
     }
 }
 

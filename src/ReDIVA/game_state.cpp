@@ -1455,7 +1455,6 @@ bool SubGameState::DataTestAet::Dest() {
 
 bool SubGameState::DataTestAuth3d::Init() {
     app::TaskWork::AddTask(auth_3d_test_task, "AUTH3DTEST");
-    app::TaskWork::AddTask(auth_3d_test_window, "AUTH3DTEST WINDOW");
     return true;
 }
 
@@ -1465,7 +1464,6 @@ bool SubGameState::DataTestAuth3d::Ctrl() {
 
 bool SubGameState::DataTestAuth3d::Dest() {
     auth_3d_test_task->DelTask();
-    auth_3d_test_window->DelTask();
     return true;
 }
 

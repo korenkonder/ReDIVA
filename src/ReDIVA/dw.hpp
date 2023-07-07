@@ -13,24 +13,31 @@
 
 namespace dw {
     enum Flags {
-        FLAG_1       = 0x00001,
-        FLAG_2       = 0x00002,
-        MULTISELECT  = 0x00004,
-        FLAG_8       = 0x00008,
-        RADIOBUTTON  = 0x00010,
-        CHECKBOX     = 0x00020,
-        CLOSE_BUTTON = 0x00040,
-        FLAG_80      = 0x00080,
-        HORIZONTAL   = 0x00100,
-        VERTICAL     = 0x00200,
-        FLAG_400     = 0x00400,
-        FLAG_800     = 0x00800,
-        FLAG_1000    = 0x01000,
-        FLAG_2000    = 0x02000,
-        FLAG_4000    = 0x04000,
-        FLAG_8000    = 0x08000,
-        FLAG_10000   = 0x10000,
-        FLAG_20000   = 0x20000,
+        FLAG_1       = 0x0000001,
+        FLAG_2       = 0x0000002,
+        MULTISELECT  = 0x0000004,
+        FLAG_8       = 0x0000008,
+        RADIOBUTTON  = 0x0000010,
+        CHECKBOX     = 0x0000020,
+        CLOSE_BUTTON = 0x0000040,
+        FLAG_80      = 0x0000080,
+        HORIZONTAL   = 0x0000100,
+        VERTICAL     = 0x0000200,
+        FLAG_400     = 0x0000400,
+        FLAG_800     = 0x0000800,
+        FLAG_1000    = 0x0001000,
+        FLAG_2000    = 0x0002000,
+        FLAG_4000    = 0x0004000,
+        FLAG_8000    = 0x0008000,
+        FLAG_10000   = 0x0010000,
+        FLAG_20000   = 0x0020000,
+        FLAG_40000   = 0x0040000,
+        FLAG_80000   = 0x0080000,
+        FLAG_100000  = 0x0100000,
+        FLAG_200000  = 0x0200000,
+        FLAG_400000  = 0x0400000,
+        FLAG_800000  = 0x0800000,
+        FLAG_1000000 = 0x1000000,
     };
 
     struct Font {
@@ -731,9 +738,12 @@ namespace dw {
         virtual bool Field_60();
         virtual void Field_68(bool value);
 
+        void SetMax(float_t value);
+        void SetMin(float_t value);
         void SetParams(float_t value, float_t min, float_t max,
             float_t a5, float_t step, float_t step_fast);
         void SetParams(float_t size, float_t step, size_t items_count);
+        void SetRound(bool value);
         void SetValue(float_t value);
         void SetWidth(float_t value);
 
@@ -742,6 +752,7 @@ namespace dw {
         vec2 sub_1402E4790();
         SelectionListener::CallbackData sub_1402E5140(Widget::KeyCallbackData key_callback_data);
         SelectionListener::CallbackData sub_1402E5380(Widget::MouseCallbackData mouse_callback_data);
+        void sub_1402F9670(float_t value);
 
         static void sub_1402E6CC0(SelectionListener::CallbackData callback_data);
     };
@@ -787,13 +798,29 @@ namespace dw {
             float_t pos_x = 0.0f, float_t pos_y = 0.0f,
             float_t width = 128.0f, float_t height = 20.0f, const char* text = "slider");
 
+        inline void SetMax(float_t value) {
+            scroll_bar->SetMax(value);
+        }
+
+        inline void SetMin(float_t value) {
+            scroll_bar->SetMin(value);
+        }
+
         inline void SetParams(float_t value, float_t min, float_t max,
             float_t a5, float_t step, float_t step_fast) {
             scroll_bar->SetParams(value, min, max, a5, step, step_fast);
         }
 
+        inline void SetRound(bool value) {
+            scroll_bar->SetRound(value);
+        }
+
         inline void SetValue(float_t value) {
             scroll_bar->SetValue(value);
+        }
+
+        inline void sub_1402F9670(float_t value) {
+            scroll_bar->sub_1402F9670(value);
         }
     };
 

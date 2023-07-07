@@ -533,11 +533,6 @@ void dtm_aet_unload() {
 }
 
 void dtm_aet_free() {
-    if (dtw_aet) {
-        delete dtw_aet;
-        dtw_aet = 0;
-    }
-
     if (dtm_aet) {
         delete dtm_aet;
         dtm_aet = 0;

@@ -2464,6 +2464,14 @@ namespace dw {
         field_A5 = !value;
     }
 
+    void ScrollBar::SetMax(float_t value) {
+        max = value;
+    }
+
+    void ScrollBar::SetMin(float_t value) {
+        min = value;
+    }
+
     void ScrollBar::SetParams(float_t value, float_t min,
         float_t max, float_t a5, float_t step, float_t step_fast) {
         this->value = value;
@@ -2511,6 +2519,10 @@ namespace dw {
             this->step = step;
             step_fast = v6;
         }
+    }
+ 
+    void ScrollBar::SetRound(bool value) {
+        round = value;
     }
 
     void ScrollBar::SetValue(float_t value) {
@@ -2697,6 +2709,10 @@ namespace dw {
             callback_data.widget = parent;
         }
         return callback_data;
+    }
+
+    void ScrollBar::sub_1402F9670(float_t value) {
+        field_94 = value;
     }
 
     void ScrollBar::sub_1402E6CC0(SelectionListener::CallbackData data) {

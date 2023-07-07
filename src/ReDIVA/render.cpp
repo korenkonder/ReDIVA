@@ -575,7 +575,6 @@ static render_context* render_context_load() {
     aet_manager_init();
     sprite_manager_init();
     auth_3d_data_init();
-    auth_3d_test_task_init();
     task_auth_3d_init();
     task_stage_init();
     task_stage_modern_init();
@@ -587,7 +586,7 @@ static render_context* render_context_load() {
     dw_init();
 
     data_test_sel_init();
-    auth_3d_test_window_init();
+    auth_3d_test_task_init();
     dtm_aet_init();
     dtm_stg_init();
     motion_test_init();
@@ -1201,7 +1200,7 @@ static void render_context_dispose(render_context* rctx) {
     motion_test_free();
     dtm_stg_free();
     dtm_aet_free();
-    auth_3d_test_window_free();
+    auth_3d_test_task_free();
     data_test_sel_free();
 
     dw_free();
@@ -1213,7 +1212,6 @@ static void render_context_dispose(render_context* rctx) {
     task_stage_modern_free();
     task_stage_free();
     task_auth_3d_free();
-    auth_3d_test_task_free();
     auth_3d_data_free();
     sprite_manager_free();
     aet_manager_free();
