@@ -564,6 +564,44 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
             a1->released[i.index] = released;
             a1->down[i.index] = down;
         }
+
+        {
+            bool tapped = false;
+            bool released = false;
+            bool down = false;
+
+            if (Input::scroll > 0.0 && Input::scroll_prev > 0.0)
+                down = true;
+            else if (Input::scroll > 0.0)
+                tapped = true;
+            else if (Input::scroll_prev > 0.0)
+                released = true;
+
+            const int32_t index = 99;
+
+            a1->tapped[index] = tapped;
+            a1->released[index] = released;
+            a1->down[index] = down;
+        }
+
+        {
+            bool tapped = false;
+            bool released = false;
+            bool down = false;
+
+            if (Input::scroll < 0.0 && Input::scroll_prev < 0.0)
+                down = true;
+            else if (Input::scroll < 0.0)
+                tapped = true;
+            else if (Input::scroll_prev < 0.0)
+                released = true;
+
+            const int32_t index = 100;
+
+            a1->tapped[index] = tapped;
+            a1->released[index] = released;
+            a1->down[index] = down;
+        }
     }
 
     int32_t x_offset = rctx_ptr->post_process.screen_x_offset;

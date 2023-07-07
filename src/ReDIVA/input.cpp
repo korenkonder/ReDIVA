@@ -19,6 +19,7 @@ double_t input_move_y;
 double_t input_rotate_x;
 double_t input_rotate_y;
 double_t input_roll;
+double_t input_scroll;
 bool input_reset;
 bool input_reset_mouse_position;
 bool input_locked;
@@ -49,10 +50,12 @@ namespace Input {
     std::vector<Key> keys;
     std::vector<MouseButton> mouse_buttons;
     POINT pos;
+    double_t scroll;
 
     std::vector<Key> keys_prev;
     std::vector<MouseButton> mouse_buttons_prev;
     POINT pos_prev;
+    double_t scroll_prev;
 
     static bool is_key_mod(int32_t key);
     static bool is_key_numpad(int32_t key);
@@ -61,6 +64,8 @@ namespace Input {
         int32_t key, int32_t scancode, int32_t action, int32_t mods);
     static void MouseButtonCallback(GLFWwindow* window,
         int32_t button, int32_t action, int32_t mods);
+    static void ScrollCallback(GLFWwindow* window,
+        double_t x_offset, double_t y_offset);
 
     static Key* vector_Key_find(std::vector<Key>& keys, int32_t key);
     static MouseButton* vector_MouseButton_find(
@@ -189,11 +194,14 @@ namespace Input {
 
     void NewFrame() {
         pos_prev = pos;
+        scroll_prev = scroll;
 
         if (window_handle) {
             GetCursorPos(&pos);
             ScreenToClient(window_handle, &pos);
         }
+
+        scroll = 0.0f;
 
         input_move_x = 0.0;
         input_move_y = 0.0;
@@ -347,6 +355,7 @@ namespace Input {
     void SetInputs(GLFWwindow* window) {
         glfwSetKeyCallback(window, (GLFWkeyfun)KeyboardCallback);
         glfwSetMouseButtonCallback(window, (GLFWmousebuttonfun)MouseButtonCallback);
+        glfwSetScrollCallback(window, (GLFWscrollfun)ScrollCallback);
     }
 
     static bool is_key_mod(int32_t key) {
@@ -456,6 +465,11 @@ namespace Input {
             *mb = { button, action, mods };
         else
             mouse_buttons.push_back({ button, action, mods });
+    }
+
+    static void ScrollCallback(GLFWwindow* window,
+        double_t x_offset, double_t y_offset) {
+        scroll += y_offset;
     }
 
     static Key* vector_Key_find(std::vector<Key>& keys, int32_t key) {

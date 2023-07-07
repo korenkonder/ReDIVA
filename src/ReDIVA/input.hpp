@@ -10,7 +10,9 @@
 
 namespace Input {
     extern POINT pos;
+    extern double_t scroll;
     extern POINT pos_prev;
+    extern double_t scroll_prev;
 
     extern bool IsKeyDown(int32_t key, int32_t mods = 0);
     extern bool IsKeyUp(int32_t key, int32_t mods = 0);
