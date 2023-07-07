@@ -1841,6 +1841,7 @@ namespace mdl {
 
         int32_t alpha_test = 0;
         float_t min_alpha = 1.0f;
+        float_t alpha_threshold = 0.0f;
         bool reflect = uniform_value[U_REFLECT] == 1;
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
@@ -1864,19 +1865,21 @@ namespace mdl {
                 func = draw_sub_mesh_translucent;
             else
                 gl_state_set_depth_mask(GL_FALSE);
+            alpha_test = 1;
             min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_TRANSPARENT:
         case OBJ_TYPE_TRANSPARENT_LOCAL:
             alpha_test = 1;
             min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
             break;
         case OBJ_TYPE_SHADOW_CHARA:
         case OBJ_TYPE_SHADOW_STAGE:
         case OBJ_TYPE_SHADOW_OBJECT_CHARA:
         case OBJ_TYPE_SHADOW_OBJECT_STAGE:
             func = draw_sub_mesh_shadow;
-            min_alpha = 0.5f;
             break;
         case OBJ_TYPE_TYPE_6:
             func = draw_sub_mesh_translucent;
@@ -1889,6 +1892,7 @@ namespace mdl {
             rctx_ptr->draw_state.shader_index = SHADER_FT_SIL;
             alpha_test = 1;
             min_alpha = 0.0f;
+            alpha_threshold = 0.99999994f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
             gl_state_set_cull_face_mode(GL_FRONT);
@@ -1913,6 +1917,7 @@ namespace mdl {
                 func = draw_sub_mesh_reflect_reflect_map;
             alpha_test = 1;
             min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
             alpha_test = 1;
@@ -1923,11 +1928,13 @@ namespace mdl {
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
             gl_state_set_depth_mask(GL_FALSE);
             min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_REFLECT_TRANSPARENT:
         case OBJ_TYPE_REFRACT_TRANSPARENT:
             alpha_test = 1;
             min_alpha = 0.1f;
+            alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_SSS:
             func = draw_sub_mesh_sss;
@@ -1938,7 +1945,7 @@ namespace mdl {
         default:
             break;
         }
-        rctx_ptr->obj_batch.g_max_alpha = { 0.0f, 0.0f, 0.0f, min_alpha };
+        rctx_ptr->obj_batch.g_max_alpha = { 0.0f, 0.0f, alpha_threshold, min_alpha };
         uniform_value[U_ALPHA_TEST] = alpha_test;
 
         for (ObjData*& i : obj[type]) {
@@ -1995,6 +2002,7 @@ namespace mdl {
 
         int32_t alpha_test = 0;
         float_t min_alpha = 1.0f;
+        float_t alpha_threshold = 0.0f;
         bool reflect = uniform_value[U_REFLECT] == 1;
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
@@ -2016,7 +2024,9 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL:
             gl_state_set_depth_mask(GL_FALSE);
+            alpha_test = 1;
             min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
             break;
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
@@ -2024,11 +2034,12 @@ namespace mdl {
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL:
             alpha_test = 1;
             min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
             break;
         default:
             break;
         }
-        rctx_ptr->obj_batch.g_max_alpha = { 0.0f, 0.0f, 0.0f, min_alpha };
+        rctx_ptr->obj_batch.g_max_alpha = { 0.0f, 0.0f, alpha_threshold, min_alpha };
         uniform_value[U_ALPHA_TEST] = alpha_test;
 
         for (ObjData*& i : obj[type]) {

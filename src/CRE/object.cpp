@@ -938,10 +938,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             if (attrib) {
                                 msgpack* recieve_shadow = attrib->read("recieve_shadow");
                                 msgpack* cast_shadow = attrib->read("cast_shadow");
+                                msgpack* transparent = attrib->read("transparent");
                                 if (recieve_shadow)
                                     sub_mesh.attrib.m.recieve_shadow = recieve_shadow->read_bool();
                                 if (cast_shadow)
                                     sub_mesh.attrib.m.cast_shadow = cast_shadow->read_bool();
+                                if (transparent)
+                                    sub_mesh.attrib.m.transparent = transparent->read_bool();
                             }
                         }
                         break;

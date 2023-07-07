@@ -405,13 +405,13 @@ static const int32_t lit_proj_fpt_unival_max[] = {
 };
 
 static const int32_t simple_vpt_unival_max[] = {
-    //1, 1, 0, 0, 1, 0, 0, // 6th added
-    1, 0, 0, // 0th removed, 3rd removed, 4th removed, 5th removed, 6th added
+    //1, 1, 0, 0, 1, 0,
+    1, 0, // 0th removed, 3rd removed, 4th removed, 5th removed
 };
 
 static const int32_t simple_fpt_unival_max[] = {
-    //0, 0, 2, 0, 0, 3, 1, // 6th added
-    0, 2, 1, // 0th removed, 3rd removed, 4th removed, 5th removed, 6th added
+    //0, 0, 2, 0, 0, 3,
+    0, 2, // 0th removed, 3rd removed, 4th removed, 5th removed
 };
 
 static const int32_t silhouette_vpt_unival_max[] = {
@@ -725,11 +725,11 @@ static const int32_t fade_fpt_unival_max[] = {
 };*/
 
 static const int32_t water01_vpt_unival_max[] = {
-    1, 1, 0, 0, 0, 0, 0, 1, 0, // 8th added
+    1, 1, 0, 0, 0, 0, 0, 1,
 };
 
 static const int32_t water01_fpt_unival_max[] = {
-    0, 0, 2, 1, 1, 1, 1, 1, 1, // 8th added
+    0, 0, 2, 1, 1, 1, 1, 1,
 };
 
 /*static const int32_t water02_vpt_unival_max[] = {
@@ -749,11 +749,11 @@ static const int32_t water_ring_fpt_unival_max[] = {
 };*/
 
 static const int32_t water_particle_vpt_unival_max[] = {
-    0, // 0th added
+    -1,
 };
 
 static const int32_t water_particle_fpt_unival_max[] = {
-    0, // 0th added
+    -1,
 };
 
 /*static const int32_t snow_particle_vpt_unival_max[] = {
@@ -927,11 +927,11 @@ static const int32_t fog_ptcl_fpt_unival_max[] = {
 };
 
 static const int32_t particle_vpt_unival_max[] = {
-    0, // 0th added
+    -1,
 };
 
 static const int32_t particle_fpt_unival_max[] = {
-    1, // 0th added
+    -1,
 };
 
 static const int32_t glitter_particle_vpt_unival_max[] = {
@@ -2107,8 +2107,7 @@ static const uniform_name STAGE_uniform[] = {
     U_FOG_HEIGHT,
     U_LIGHT_1,
     U12,
-    U_ALPHA_TEST,    // 11th added
-    U_TEXTURE_BLEND, // 12th added
+    U_ALPHA_TEST, // 11th added
 };
 
 static const uniform_name SKIN_uniform[] = {
@@ -2268,7 +2267,6 @@ static const uniform_name SIMPLE_uniform[] = {
     //U_NORMAL, // 3rd removed
     //U_INSTANCE, // 4th removed
     //U2E, // 5th removed
-    U_ALPHA_TEST, // 6th added
 };
 
 static const uniform_name SIL_uniform[] = {
@@ -2374,7 +2372,6 @@ static const uniform_name WATER01_uniform[] = {
     U_ENV_MAP,
     U_SPECULAR,
     U_FOG_HEIGHT,
-    U_ALPHA_TEST, // 8th added
 };
 
 /*static const uniform_name WATER02_uniform[] = {
@@ -2387,7 +2384,7 @@ static const uniform_name WATER01_uniform[] = {
 };*/
 
 static const uniform_name W_PTCL_uniform[] = {
-    U_ALPHA_TEST, // 0th added
+    U_INVALID,
 };
 
 static const uniform_name SNOW_PT_uniform[] = {
@@ -2485,7 +2482,7 @@ static const uniform_name FOGPTCL_uniform[] = {
 };
 
 static const uniform_name PARTICL_uniform[] = {
-    U_ALPHA_TEST, // 0th added
+    U_INVALID,
 };
 
 static const uniform_name GLITTER_PT_uniform[] = {
@@ -2744,7 +2741,6 @@ static const bool SIMPLE_permut[] = {
     //false, // 3rd removed
     //false, // 4th removed
     //false, // 5th removed
-    false, // 6th added
 };
 
 static const bool SIL_permut[] = {
@@ -2850,7 +2846,6 @@ static const bool WATER01_permut[] = {
     false,
     false,
     false,
-    false, // 8th added
 };
 
 static const bool WATER02_permut[] = {
@@ -2863,7 +2858,7 @@ static const bool WATER02_permut[] = {
 };*/
 
 static const bool W_PTCL_permut[] = {
-    false, // 0th added
+    false,
 };
 
 static const bool SNOW_PT_permut[] = {
@@ -2961,7 +2956,7 @@ static const bool FOGPTCL_permut[] = {
 };
 
 static const bool PARTICL_permut[] = {
-    false, // 0th added
+    false,
 };
 
 static const bool GLITTER_PT_permut[] = {
