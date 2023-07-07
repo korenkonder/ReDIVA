@@ -1314,14 +1314,14 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     else if (view_aspect > aspect)
         res_width = round(res_height * aspect);
 
-    vec2i internal_res = { (int32_t)res_width, (int32_t)res_height };
-
 #if BAKE_PNG || BAKE_VIDEO
-    internal_2d_res = vec2i::clamp(internal_res * 2, 1, sv_max_texture_size);
-    internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * 2));
-    internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * 2));
+    vec2i internal_res = { (int32_t)res_width * 2, (int32_t)res_height * 2};
+    internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
+    internal_3d_res.x = (int32_t)roundf((float_t)internal_res.x);
+    internal_3d_res.y = (int32_t)roundf((float_t)internal_res.y);
     internal_3d_res = vec2i::clamp(internal_3d_res, 1, sv_max_texture_size);
 #else
+    vec2i internal_res = { (int32_t)res_width, (int32_t)res_height };
     internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
     internal_3d_res.x = (int32_t)roundf((float_t)(internal_res.x * render_scale_table[scale_index]));
     internal_3d_res.y = (int32_t)roundf((float_t)(internal_res.y * render_scale_table[scale_index]));
