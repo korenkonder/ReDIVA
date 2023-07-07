@@ -522,11 +522,17 @@ void Auth3dTestSubWindow::SelectionListAet::Callback(dw::SelectionListener::Call
 Auth3dTestSubWindow::Auth3dTestSubWindow() {
     SetText("A3D STAGE");
 
-    floor_offset = new dw::Button(this, dw::CHECKBOX);
-    floor_offset->SetText("床上25cm");
-    floor_offset->SetValue(auth_3d_test_task->plane_above_floor);
-    floor_offset->callback_data.v64 = &auth_3d_test_task->plane_above_floor;
-    floor_offset->AddSelectionListener(&selection_button_bool);
+#if DW_TRANSLATE
+    const char* plane_above_floor_text = "Plane 25 cm above floor";
+#else
+    const char* plane_above_floor_text = "床上25cm";
+#endif
+
+    plane_above_floor = new dw::Button(this, dw::CHECKBOX);
+    plane_above_floor->SetText(plane_above_floor_text);
+    plane_above_floor->SetValue(auth_3d_test_task->plane_above_floor);
+    plane_above_floor->callback_data.v64 = &auth_3d_test_task->plane_above_floor;
+    plane_above_floor->AddSelectionListener(&selection_button_bool);
 
     stage = new dw::Button(this, dw::CHECKBOX);
     stage->SetText("stage");
@@ -567,6 +573,14 @@ Auth3dTestSubWindow::Auth3dTestSubWindow() {
 
     stg_list->list->AddSelectionListener(&selection_list_stage);
 
+#if DW_TRANSLATE
+    const char* stage_link_change_text = "Stage Link Change";
+    const char* auth_2d_text = "2D Auth";
+#else
+    const char* stage_link_change_text = "STG連動切り替え";
+    const char* auth_2d_text = "2Dオーサ";
+#endif
+
     stage_link_change = new dw::Button(this, dw::CHECKBOX);
     stage_link_change->SetText("STG連動切り替え");
     stage_link_change->SetValue(auth_3d_test_task->stage_link_change);
@@ -574,7 +588,7 @@ Auth3dTestSubWindow::Auth3dTestSubWindow() {
     stage_link_change->AddSelectionListener(&selection_button_bool);
 
     auth_2d = new dw::Button(this, dw::CHECKBOX);
-    auth_2d->SetText("2Dオーサ");
+    auth_2d->SetText(auth_2d_text);
     auth_2d->SetValue(auth_3d_test_task->auth_2d);
     auth_2d->callback_data.v64 = &auth_3d_test_task->auth_2d;
     auth_2d->AddSelectionListener(&selection_button_bool);
@@ -759,7 +773,7 @@ void Auth3dTestWindow::SelectionButtonBegin::Callback(dw::SelectionListener::Cal
             auth_3d_test_task->auth_3d_id.set_paused(false);
             test_window->UpdatePlayButton();
             auth_3d_test_task->auth_3d_id.set_req_frame(0.0f);
-            if (snap_shot) {
+            if (::snap_shot) {
                 auth_3d_test_task->snap_shot = true;
                 sub_140194880(0);
             }
@@ -818,8 +832,8 @@ void Auth3dTestWindow::SelectionButtonSnapShot::Callback(dw::SelectionListener::
     if (button) {
         Auth3dTestWindow* test_window = dynamic_cast<Auth3dTestWindow*>(button->parent_shell);
         if (test_window) {
-            snap_shot = button->value;
-            if (snap_shot) {
+            ::snap_shot = button->value;
+            if (::snap_shot) {
                 Auth3dTestWindow::RepeatCallback(false);
                 test_window->repeat->SetValue(false);
             }
@@ -893,6 +907,24 @@ void Auth3dTestWindow::SelectionButtonDebugCamera::Callback(dw::SelectionListene
 Auth3dTestWindow::Auth3dTestWindow() {
     SetText("AUTH3D");
 
+#if DW_TRANSLATE
+    const char* nage_text = "NAGE▽";
+    const char* obj_link_text = "OBJ Link";
+    const char* left_right_reverse_text = "Left Right Reverse";
+    const char* snap_shot_text = "ss capture";
+    const char* self_shadow_off_text = "Self Shadow Off";
+    const char* black_mask_text = "Black Mask";
+    const char* offset_save_text = "Offset Save";
+#else
+    const char* nage_text = "投▽";
+    const char* obj_link_text = "OBJ連動";
+    const char* left_right_reverse_text = "左右逆";
+    const char* snap_shot_text = "ss画撮";
+    const char* self_shadow_off_text = "セルフ影OFF";
+    const char* black_mask_text = "黒mask";
+    const char* offset_save_text = "オフセットSave";
+#endif
+
     dw::Composite* v4 = new dw::Composite(this);
     v4->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
@@ -911,7 +943,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     eff_menu = 0;
 
     nage = new dw::Button(v4, dw::FLAG_8);
-    nage->SetText("投▽");
+    nage->SetText(nage_text);
     nage_menu = 0;
 
     category_list = new dw::ListBox(this);
@@ -961,7 +993,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     (new dw::Label(v44))->SetText(" ID  ");
 
     obj_link = new dw::Button(v44, dw::CHECKBOX);
-    obj_link->SetText("OBJ連動");
+    obj_link->SetText(obj_link_text);
     obj_link->SetValue(true);
 
     id_list = new dw::ListBox(this);
@@ -1001,7 +1033,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     repeat->AddSelectionListener(&repeat_listener);
 
     left_right_reverse = new dw::Button(this, dw::CHECKBOX);
-    left_right_reverse->SetText("左右逆");
+    left_right_reverse->SetText(left_right_reverse_text);
     left_right_reverse->SetValue(auth_3d_test_task->left_right_reverse);
     left_right_reverse_listener.callback = Auth3dTestWindow::LeftRightReverseCallback;
     left_right_reverse->AddSelectionListener(&left_right_reverse_listener);
@@ -1023,27 +1055,27 @@ Auth3dTestWindow::Auth3dTestWindow() {
 
     (new dw::Label(v79))->SetText("   ");
 
-    screenshot_drawing = new dw::Button(v79, dw::CHECKBOX);
-    screenshot_drawing->SetText("ss画撮");
-    screenshot_drawing->SetValue(snap_shot);
-    screenshot_drawing->AddSelectionListener(&screenshot_drawing_listener);
+    snap_shot = new dw::Button(v79, dw::CHECKBOX);
+    snap_shot->SetText(snap_shot_text);
+    snap_shot->SetValue(snap_shot);
+    snap_shot->AddSelectionListener(&snap_shot_listener);
 
     dw::Composite* v97 = new dw::Composite(this);
     v97->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     self_shadow_off = new dw::Button(v97, dw::RADIOBUTTON);
-    self_shadow_off->SetText("セルフ影OFF");
+    self_shadow_off->SetText(self_shadow_off_text);
     self_shadow_off->callback_data.i64 = 0;
-    self_shadow_off->AddSelectionListener(&self_shadow_listener);
+    self_shadow_off->AddSelectionListener(&shadow_type_listener);
 
     self_shadow_on = new dw::Button(v97, dw::RADIOBUTTON);
     self_shadow_on->SetText("ON");
     self_shadow_on->callback_data.i64 = 1;
     self_shadow_on->SetValue(1);
-    self_shadow_on->AddSelectionListener(&self_shadow_listener);
+    self_shadow_on->AddSelectionListener(&shadow_type_listener);
 
     black_mask = new dw::Button(this, dw::CHECKBOX);
-    black_mask->SetText("黒mask");
+    black_mask->SetText(black_mask_text);
     black_mask->SetValue(auth_3d_test_task->black_mask);
     black_mask->callback_data.v64 = &auth_3d_test_task->black_mask;
     black_mask->AddSelectionListener(&selection_button_bool);
@@ -1066,7 +1098,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     rot_y->SetRound(true);
 
     save = new dw::Button(this, dw::FLAG_8);
-    save->SetText("オフセットSave");
+    save->SetText(offset_save_text);
     save->AddSelectionListener(&save_listener);
 
     dw::Composite* v117 = new dw::Composite(this);

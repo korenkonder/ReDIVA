@@ -129,7 +129,7 @@ public:
         virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
-    dw::Button* floor_offset;
+    dw::Button* plane_above_floor;
     dw::Button* stage;
     dw::Button* stg_auth;
     dw::ListBox* stg_list;
@@ -310,7 +310,7 @@ public:
     dw::Button* left_right_reverse;
     dw::Button* pos;
     dw::Button* log;
-    dw::Button* screenshot_drawing;
+    dw::Button* snap_shot;
     dw::Button* self_shadow_off;
     dw::Button* self_shadow_on;
     dw::Button* black_mask;
@@ -334,9 +334,9 @@ public:
     SelectionButtonBindBoolFunc pos_listener;
     SelectionButtonBindBoolFunc repeat_listener;
     SelectionButtonBindBoolFunc left_right_reverse_listener;
-    SelectionButtonSnapShot screenshot_drawing_listener;
+    SelectionButtonSnapShot snap_shot_listener;
     SelectionButtonLog log_listener;
-    SelectionButtonShadowType self_shadow_listener;
+    SelectionButtonShadowType shadow_type_listener;
     SelectionButtonSave save_listener;
     SelectionButtonCamReset cam_reset_listener;
     SelectionButtonDebugCamera debug_camera_listener;
