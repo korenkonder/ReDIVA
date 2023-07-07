@@ -1778,19 +1778,19 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t v346;
         switch (v342) {
         case 0:
-            v346 = 1;
-            break;
-        case 1:
             rob_chr->autoblink_disable();
             v346 = 2;
             break;
-        case 2:
-            v346 = 3;
-            break;
-        case 3:
+        case 1:
         default:
             rob_chr->autoblink_enable();
             v346 = 2;
+            break;
+        case 2:
+            v346 = 1;
+            break;
+        case 3:
+            v346 = 3;
             break;
         }
 

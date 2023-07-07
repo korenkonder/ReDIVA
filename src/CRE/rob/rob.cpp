@@ -7894,7 +7894,7 @@ static void sub_140555F70(rob_chara* rob_chr, const motion_database* mot_db) {
     if (sub_1404190E0(rob_chr->bone_data))
         return;
 
-    if (rob_chr->data.motion.field_29 < 0)
+    if (rob_chr->data.motion.field_29 & 0x80)
         return;
 
     int32_t v3 = rob_chr->data.motion.field_150.field_1C0;
