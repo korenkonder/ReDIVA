@@ -1231,16 +1231,16 @@ auth_3d_rgba::~auth_3d_rgba() {
 }
 
 void auth_3d_rgba::interpolate(float_t frame){
-    if (flags & A3DA_RGBA_R)
+    if (flags & AUTH_3D_RGBA_R)
         value.x = r.interpolate(frame);
 
-    if (flags & A3DA_RGBA_G)
+    if (flags & AUTH_3D_RGBA_G)
         value.y = g.interpolate(frame);
 
-    if (flags & A3DA_RGBA_B)
+    if (flags & AUTH_3D_RGBA_B)
         value.z = b.interpolate(frame);
 
-    if (flags & A3DA_RGBA_A)
+    if (flags & AUTH_3D_RGBA_A)
         value.w = a.interpolate(frame);
 }
 
@@ -2919,8 +2919,11 @@ static void a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
             i.tangent1 = 0.0f;
             i.tangent2 = 0.0f;
         }
-        key.keys.front().tangent1 = ep_pre_val;
-        key.keys.back().tangent2 = ep_post_val;
+
+        if (key.ep_type_pre == A3DA_EP_LINEAR)
+            key.keys.front().tangent1 = ep_pre_val;
+        if (key.ep_type_post == A3DA_EP_LINEAR)
+            key.keys.back().tangent2 = ep_post_val;
     }
 
     msgpack* change_type = msg->read("change_type");
@@ -2941,6 +2944,47 @@ static void a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
                 break;
             }
             break;
+        }
+    }
+
+    msgpack* replace_keys = msg->read_array("replace_keys");
+    if (replace_keys) {
+        key.keys.clear();
+
+        msgpack_array* ptr = replace_keys->data.arr;
+        for (msgpack& i : *ptr) {
+            msgpack& _key = i;
+
+            msgpack* data = _key.read_array();
+            if (!data)
+                continue;
+
+            msgpack_array* ptr = data->data.arr;
+
+            kft3 k = {};
+            switch (ptr->size()) {
+            case 1:
+                k.frame = (*ptr)[0].read_float_t();
+                break;
+            case 2:
+                k.frame = (*ptr)[0].read_float_t();
+                k.value = (*ptr)[1].read_float_t();
+                break;
+            case 3: {
+                k.frame = (*ptr)[0].read_float_t();
+                k.value = (*ptr)[1].read_float_t();
+                float_t tangent = (*ptr)[2].read_float_t();
+                k.tangent1 = tangent;
+                k.tangent2 = tangent;
+            } break;
+            case 4:
+                k.frame = (*ptr)[0].read_float_t();
+                k.value = (*ptr)[1].read_float_t();
+                k.tangent1 = (*ptr)[2].read_float_t();
+                k.tangent2 = (*ptr)[3].read_float_t();
+                break;
+            }
+            key.keys.push_back(k);
         }
     }
 }
