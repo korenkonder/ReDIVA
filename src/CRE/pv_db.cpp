@@ -1287,8 +1287,8 @@ namespace pv_db {
 
         const char* eyes_base_adjust_type;
         if (kv.read("eyes_base_adjust_type", eyes_base_adjust_type))
-            for (int32_t i = EYES_BASE_ADJUST_NONE; i < EYES_BASE_ADJUST_MAX; i++)
-                if (!strcmp(eyes_base_adjust_type, eyes_base_adjust_type_names[i])) {
+            for (int32_t i = 0; i < EYES_BASE_ADJUST_MAX; i++)
+                if (!str_utils_compare(eyes_base_adjust_type, eyes_base_adjust_type_names[i])) {
                     pv->eyes_base_adjust_type = (::eyes_base_adjust_type)i;
                     break;
                 }
@@ -1407,8 +1407,8 @@ namespace pv_db {
 
                     const char* level;
                     if (kv.read("level", level))
-                        for (int32_t k = PV_LV_00_0; k < PV_LV_MAX; k++)
-                            if (!strcmp(level, pv_level_names[k])) {
+                        for (int32_t k = 0; k < PV_LV_MAX; k++)
+                            if (!str_utils_compare(level, pv_level_names[k])) {
                                 d.level = (pv_level)k;
                                 break;
                             }
@@ -1947,11 +1947,11 @@ namespace pv_db {
 
             const char* type;
             if (kv.read(frame_texture_type_names[i], type)) {
-                if (!strcmp(type, "PRE_PP"))
+                if (!str_utils_compare(type, "PRE_PP"))
                     frame_texture.type = PV_FRAME_TEXTURE_PRE_PP;
-                else if (!strcmp(type, "POST_PP"))
+                else if (!str_utils_compare(type, "POST_PP"))
                     frame_texture.type = PV_FRAME_TEXTURE_POST_PP;
-                else if (!strcmp(type, "FB"))
+                else if (!str_utils_compare(type, "FB"))
                     frame_texture.type = PV_FRAME_TEXTURE_FB;
                 else
                     frame_texture.type = PV_FRAME_TEXTURE_POST_PP;

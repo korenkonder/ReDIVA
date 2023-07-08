@@ -616,6 +616,7 @@ void post_process::draw_lens_ghost(render_texture* rt) {
 void post_process::init_fbo(int32_t render_width, int32_t render_height,
     int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height) {
     if (this->render_width == render_width && this->render_height == render_height
+        && this->sprite_width == sprite_width && this->sprite_height == sprite_height
         && this->screen_width == screen_width && this->screen_height == screen_height)
         return;
 

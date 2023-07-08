@@ -149,8 +149,10 @@ static const char* application_name = "ReDIVA";
 static int32_t old_scale_index;
 static int32_t scale_index;
 
+static vec2i old_internal_res;
 static vec2i old_internal_2d_res;
 static vec2i old_internal_3d_res;
+vec2i internal_res;
 vec2i internal_2d_res;
 vec2i internal_3d_res;
 static int32_t old_width;
@@ -444,8 +446,9 @@ static bool render_init(render_init_struct* ris) {
     res_window_set(RESOLUTION_MODE_HD);
 
 #if BAKE_PNG || BAKE_VIDEO
-    width = 1920;
-    height = 1080;
+    width = BAKE_BASE_WIDTH;
+    height = BAKE_BASE_HEIGHT;
+    glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE);
 #endif
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
@@ -1315,7 +1318,7 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
         res_width = round(res_height * aspect);
 
 #if BAKE_PNG || BAKE_VIDEO
-    vec2i internal_res = { (int32_t)res_width * 2, (int32_t)res_height * 2};
+    vec2i internal_res = { (int32_t)res_width * BAKE_RES_SCALE, (int32_t)res_height * BAKE_RES_SCALE };
     internal_2d_res = vec2i::clamp(internal_res, 1, sv_max_texture_size);
     internal_3d_res.x = (int32_t)roundf((float_t)internal_res.x);
     internal_3d_res.y = (int32_t)roundf((float_t)internal_res.y);

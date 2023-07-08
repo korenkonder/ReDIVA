@@ -5,6 +5,7 @@
 
 #include "input_state.hpp"
 #include "../CRE/render_context.hpp"
+#include "config.hpp"
 #include "input.hpp"
 
 /*
@@ -69,6 +70,7 @@ static bool sub_140190A30(struc_794* a1, int32_t index);
 InputState* input_state;
 
 bool disable_input_state_update = false;
+bool disable_cursor = false;
 
 extern render_context* rctx_ptr;
 
@@ -604,10 +606,17 @@ static bool sub_140190A30(struc_794* a1, int32_t index) {
         }
     }
 
+#if BAKE_PNG || BAKE_VIDEO
+    int32_t x_offset = 0;
+    int32_t y_offset = 0;
+    float_t x_scale = 1280.0f / (float_t)BAKE_BASE_WIDTH;
+    float_t y_scale = 720.0f / (float_t)BAKE_BASE_HEIGHT;
+#else
     int32_t x_offset = rctx_ptr->post_process.screen_x_offset;
     int32_t y_offset = rctx_ptr->post_process.screen_y_offset;
     float_t x_scale = 1280.0f / (float_t)rctx_ptr->post_process.sprite_width;
     float_t y_scale = 720.0f / (float_t)rctx_ptr->post_process.sprite_height;
+#endif
 
     a1->field_30[8] = (int32_t)((float_t)(Input::pos.x - x_offset) * x_scale);
     a1->field_30[9] = (int32_t)((float_t)(Input::pos.y - y_offset) * y_scale);

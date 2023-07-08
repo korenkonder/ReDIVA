@@ -32,6 +32,7 @@ extern ImGuiContext* imgui_context;
 extern lock_cs imgui_context_lock;
 
 extern bool disable_input_state_update;
+extern bool disable_cursor;
 
 namespace Input {
     struct Key {
@@ -211,6 +212,8 @@ namespace Input {
 
         if (IsKeyTapped(GLFW_KEY_F3))
             disable_input_state_update ^= true;
+        else if (IsKeyTapped(GLFW_KEY_F3, GLFW_MOD_CONTROL))
+            disable_cursor ^= true;
 
         if (!window_handle || window_handle != GetForegroundWindow() || !disable_input_state_update)
             return;

@@ -3450,7 +3450,8 @@ void struc_751::sub_1403011A0() {
     /*if (sub_1406A0510())
         field_20 = 0;*/
 
-    if (!(uint16_t)field_18)
+    extern bool disable_cursor;
+    if (disable_cursor || !(uint16_t)field_18)
         return;
 
     if (stru_1409D6390[(uint16_t)field_18 - 1].field_0 != 0x49) {

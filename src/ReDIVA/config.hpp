@@ -11,4 +11,10 @@
 #define PV_DEBUG (1)
 
 #define DATA_EDIT (0)
+
+#if BAKE_PNG || BAKE_VIDEO
+#define BAKE_BASE_WIDTH (1920)
+#define BAKE_BASE_HEIGHT (1080)
+#define BAKE_RES_SCALE (2)
+#endif
 #endif
