@@ -10,6 +10,8 @@
 #include "io/path.hpp"
 #include "str_utils.hpp"
 
+const pv_exp_data pv_exp_data_null = { 999999.0f, -1, 0, 0.0f, 0.0f };
+
 static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void pv_exp_classic_write_inner(pv_exp* exp, stream& s);
 
@@ -259,7 +261,7 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
 
             face_data++;
         }
-        s.align_write(0x20);
+        s.align_write(0x10);
 
         face_cl_offset[i] = s.get_position();
 
@@ -276,7 +278,7 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
 
             face_cl_data++;
         }
-        s.align_write(0x20);
+        s.align_write(0x10);
     }
 
     for (uint32_t i = 0; i < motion_num; i++) {
@@ -285,7 +287,7 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
     }
     s.align_write(0x10);
 
-    s.set_position(exp->is_x ? 0x28 : 0x20, SEEK_SET);
+    s.set_position(0x20, SEEK_SET);
     for (uint32_t i = 0; i < motion_num; i++) {
         s.write_uint32_t((uint32_t)face_offset[i]);
         s.write_uint32_t((uint32_t)face_cl_offset[i]);

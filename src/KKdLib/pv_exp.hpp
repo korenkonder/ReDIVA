@@ -43,3 +43,5 @@ struct pv_exp {
     void pack_file(void** data, size_t* size);
     void unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void* data, size_t size, bool modern);
 };
+
+extern const pv_exp_data pv_exp_data_null;
