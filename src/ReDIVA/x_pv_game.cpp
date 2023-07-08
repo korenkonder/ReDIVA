@@ -8894,7 +8894,6 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     };
 
     get_max_count(ml.blend_color.r, 0);
-    get_max_count(ml.blend_color.r, 0);
     get_max_count(ml.blend_color.g, 1);
     get_max_count(ml.blend_color.b, 2);
     get_max_count(ml.blend_color.a, 3);
