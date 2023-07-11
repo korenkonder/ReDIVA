@@ -2036,8 +2036,6 @@ namespace mdl {
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
             break;
-        default:
-            break;
         }
         rctx_ptr->obj_batch.g_max_alpha = { 0.0f, 0.0f, alpha_threshold, min_alpha };
         uniform_value[U_ALPHA_TEST] = alpha_test;
