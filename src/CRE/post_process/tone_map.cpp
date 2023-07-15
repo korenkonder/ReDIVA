@@ -39,6 +39,7 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     if (!this)
         return;
 
+    gl_state_begin_event("PostProcess::tone_map");
     post_process* pp = (post_process*)pp_data;
 
     set_lens_flare_power(pp->lens_flare_power);
@@ -171,6 +172,7 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     fbo::blit(buf_rt->fbos[0], rt->fbos[0],
         0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
         0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    gl_state_end_event();
 }
 
 void post_process_tone_map::init_fbo() {

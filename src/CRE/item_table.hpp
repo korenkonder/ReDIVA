@@ -105,8 +105,6 @@ union item_cos_data {
 };
 
 struct item_table_dbgset {
-    std::vector<int32_t> item;
-
     item_table_dbgset();
     ~item_table_dbgset();
 };
@@ -114,7 +112,7 @@ struct item_table_dbgset {
 struct item_table {
     prj::vector_pair_combine<int32_t, item_table_item> item;
     prj::vector_pair_combine<int32_t, item_cos_data> cos;
-    prj::vector_pair_combine<uint32_t, item_table_dbgset> dbgset;
+    prj::vector_pair_combine<std::string, item_cos_data> dbgset;
 
     item_table();
     ~item_table();
@@ -126,6 +124,10 @@ extern void item_table_handler_array_init();
 extern const item_cos_data* item_table_handler_array_get_item_cos_data_by_module_index(
     chara_index chara_index, int32_t module_index);
 extern const item_table_item* item_table_handler_array_get_item(
+    chara_index chara_index, int32_t item_no);
+extern std::string item_table_handler_array_get_item_name(
+    chara_index chara_index, int32_t item_no);
+extern item_sub_id item_table_handler_array_get_item_sub_id(
     chara_index chara_index, int32_t item_no);
 extern const std::vector<uint32_t>* item_table_handler_array_get_item_objset(
     chara_index chara_index, int32_t item_no);

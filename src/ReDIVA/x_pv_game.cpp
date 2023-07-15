@@ -33,7 +33,6 @@
 #endif
 #include "imgui_helper.hpp"
 #include "input.hpp"
-#include <functional>
 
 enum dsc_x_func {
     DSC_X_END = 0,
@@ -4603,43 +4602,34 @@ bool x_pv_game::Ctrl() {
     case 18: {
         std::vector<object_info> object_hrc;
         std::vector<std::string> material_list;
+
+        auto check_for_material_list_object_hrc = [&](auth_3d_id& id) {
+            if (!id.check_not_empty() || !id.check_loaded())
+                return;
+
+            auth_3d* auth = id.get_auth_3d();
+            if (!auth || !auth->material_list.size() || !auth->object_hrc.size())
+                return;
+
+            for (auth_3d_material_list& i : auth->material_list)
+                if (i.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
+                    material_list.push_back(i.name);
+
+            for (auth_3d_object_hrc& i : auth->object_hrc)
+                object_hrc.push_back(i.object_info);
+        };
+
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
             x_pv_game_stage_effect& eff = stage_data.effect[i];
-            for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
-                if (!j.id.check_not_empty() || !j.id.check_loaded())
-                    continue;
-
-                auth_3d* auth = j.id.get_auth_3d();
-                if (!auth || !auth->material_list.size() || !auth->object_hrc.size())
-                    continue;
-
-                for (auth_3d_material_list& k : auth->material_list)
-                    if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
-                        material_list.push_back(k.name);
-
-                for (auth_3d_object_hrc& k : auth->object_hrc)
-                    object_hrc.push_back(k.object_info);
-            }
+            for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
+                check_for_material_list_object_hrc(j.id);
         }
 
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
             for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
                 x_pv_game_stage_change_effect& chg_eff = stage_data.change_effect[i][j];
-                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
-                    if (!k.id.check_not_empty() || !k.id.check_loaded())
-                        continue;
-
-                    auth_3d* auth = k.id.get_auth_3d();
-                    if (!auth || !auth->material_list.size() || !auth->object_hrc.size())
-                        continue;
-
-                    for (auth_3d_material_list& l : auth->material_list)
-                        if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
-                            material_list.push_back(l.name);
-
-                    for (auth_3d_object_hrc& l : auth->object_hrc)
-                        object_hrc.push_back(l.object_info);
-                }
+                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
+                    check_for_material_list_object_hrc(k.id);
             }
 
         prj::sort_unique(object_hrc);
@@ -4650,43 +4640,34 @@ bool x_pv_game::Ctrl() {
 
         std::vector<object_info> object;
         material_list.clear();
+
+        auto check_for_material_list_object = [&](auth_3d_id& id) {
+            if (!id.check_not_empty() || !id.check_loaded())
+                return;
+
+            auth_3d* auth = id.get_auth_3d();
+            if (!auth || !auth->material_list.size() || !auth->object.size())
+                return;
+
+            for (auth_3d_material_list& i : auth->material_list)
+                if (i.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
+                    material_list.push_back(i.name);
+
+            for (auth_3d_object& i : auth->object)
+                object.push_back(i.object_info);
+        };
+
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
             x_pv_game_stage_effect& eff = stage_data.effect[i];
-            for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d) {
-                if (!j.id.check_not_empty() || !j.id.check_loaded())
-                    continue;
-
-                auth_3d* auth = j.id.get_auth_3d();
-                if (!auth || !auth->material_list.size() || !auth->object.size())
-                    continue;
-
-                for (auth_3d_material_list& k : auth->material_list)
-                    if (k.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
-                        material_list.push_back(k.name);
-
-                for (auth_3d_object& k : auth->object)
-                    object.push_back(k.object_info);
-            }
+            for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
+                check_for_material_list_object(j.id);
         }
 
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
             for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
                 x_pv_game_stage_change_effect& chg_eff = stage_data.change_effect[i][j];
-                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d) {
-                    if (!k.id.check_not_empty() || !k.id.check_loaded())
-                        continue;
-
-                    auth_3d* auth = k.id.get_auth_3d();
-                    if (!auth || !auth->material_list.size() || !auth->object.size())
-                        continue;
-
-                    for (auth_3d_material_list& l : auth->material_list)
-                        if (l.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION))
-                            material_list.push_back(l.name);
-
-                    for (auth_3d_object& l : auth->object)
-                        object.push_back(l.object_info);
-                }
+                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
+                    check_for_material_list_object(k.id);
             }
 
         prj::sort_unique(object);
@@ -6123,7 +6104,7 @@ static vec4 bright_scale_get(int32_t index, float_t value) {
 }
 
 static float_t dsc_time_to_frame(int64_t time) {
-    return (float_t)time / 1000000000.0f * 60.0f;
+    return roundf((float_t)time / 1000000000.0f * 60.0f);
 }
 
 static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
@@ -8392,6 +8373,30 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
 typedef std::pair<vec4, vec4> material_list_color;
 
+inline bool operator >(const material_list_color& left, const material_list_color& right) {
+    return memcmp(&left, &right, sizeof(material_list_color)) > 0;
+}
+
+inline bool operator <(const material_list_color& left, const material_list_color& right) {
+    return memcmp(&left, &right, sizeof(material_list_color)) < 0;
+}
+
+inline bool operator >=(const material_list_color& left, const material_list_color& right) {
+    return memcmp(&left, &right, sizeof(material_list_color)) >= 0;
+}
+
+inline bool operator <=(const material_list_color& left, const material_list_color& right) {
+    return memcmp(&left, &right, sizeof(material_list_color)) <= 0;
+}
+
+inline bool operator ==(const material_list_color& left, const material_list_color& right) {
+    return !memcmp(&left, &right, sizeof(material_list_color));
+}
+
+inline bool operator !=(const material_list_color& left, const material_list_color& right) {
+    return !!memcmp(&left, &right, sizeof(material_list_color));
+}
+
 struct material_list_data {
     std::vector<material_list_color> color;
     std::vector<material_list_color> color_opt;
@@ -8410,8 +8415,11 @@ struct material_list_data {
     bool cycle;
     float_t start_time;
     float_t end_time;
+    bool original_data;
+    bool has_data[8];
 
-    inline material_list_data() : has_color(), type(), cycle(), start_time(), end_time() {
+    inline material_list_data() : has_color(), type(), cycle(),
+        start_time(), end_time(), original_data(), has_data() {
 
     }
 
@@ -8422,55 +8430,31 @@ struct material_list_data {
     bool optimize();
 };
 
+struct material_list_color_data {
+    std::vector<material_list_color> data;
+    bool original_data;
+    bool has_data[8];
+
+    inline material_list_color_data() : original_data(), has_data() {
+
+    }
+
+    inline ~material_list_color_data() {
+
+    }
+};
+
 bool material_list_data::optimize() {
     color_opt.assign(color.begin(), color.end());
     morph_opt.assign(morph.begin(), morph.end());
 
-    if (type < A3DA_KEY_LINEAR)
+    if (type < A3DA_KEY_LINEAR || original_data)
         return true;
 
-    while (true) {
-        std::vector<material_list_color> color(this->color_opt);
-        std::vector<kft3> morph(this->morph_opt);
-
-        // Remove duplicate color entries
+    // Find and optimize 0123456 to 01230123
+    auto optimize_func_1 = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
         kft3* keys = morph.data();
         size_t length = morph.size();
-        if (color.size() > 1) {
-            auto i_begin = color.begin();
-            auto i_end = color.end() - 1;
-
-            for (auto i = i_begin; i != i_end;)
-                if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
-                    float_t value = (float_t)(int64_t)(i - i_begin + 1);
-                    for (size_t k = i - i_begin + 1; k < length; k++)
-                        if (keys[k].value >= value)
-                            keys[k].value -= 1.0f;
-                    i = color.erase(i);
-                    i_begin = color.begin();
-                    i_end = color.end() - 1;
-                }
-                else
-                    i++;
-        }
-
-        // Remove duplicate at start
-        if (length > 1 && *(uint32_t*)&keys[0].frame != *(uint32_t*)&keys[1].frame
-            && *(uint32_t*)&keys[0].value == *(uint32_t*)&keys[1].value) {
-            morph.erase(morph.begin());
-            keys = morph.data();
-            length = morph.size();
-        }
-
-        // Remove duplicate at end
-        if (length > 1 && *(uint32_t*)&keys[length - 2].frame != *(uint32_t*)&keys[length - 1].frame
-            && *(uint32_t*)&keys[length - 2].value == *(uint32_t*)&keys[length - 1].value) {
-            morph.erase(morph.end() - 1);
-            keys = morph.data();
-            length = morph.size();
-        }
-
-        // Find and optimize 0123456 to 01230123
         if (color.size() > 2)
             for (size_t i = 0; i < length - 2; i++)
                 for (size_t j = i + 2; j < length; j++) {
@@ -8513,8 +8497,12 @@ bool material_list_data::optimize() {
                     color.erase(elem, elem + count);
                     break;
                 }
+    };
 
-        // Find and optimize 01234 to 01210
+    // Find and optimize 01234 to 01210
+    auto optimize_func_2_asc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
+        kft3* keys = morph.data();
+        size_t length = morph.size();
         for (size_t i = 0; i < length - 1; i++)
             for (size_t j = i + 1; j < length; j++) {
                 size_t count = j - i;
@@ -8555,8 +8543,58 @@ bool material_list_data::optimize() {
                 i += count * 2;
                 break;
             }
+    };
+    
+    // Find and optimize 01234 to 01210
+    auto optimize_func_2_desc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
+        kft3* keys = morph.data();
+        size_t length = morph.size();
+        for (size_t i = 0; i < length - 1; i++)
+            for (size_t j = i + 1; j < length; j++) {
+                size_t count = j - i;
+                if (j + count > length || i + count * 2 >= length)
+                    break;
 
-        // Find and optimize 012345 to 012210
+                material_list_color* color_data = color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count * 2; k < count; k++, l--)
+                    if (memcmp(&color_data[(int32_t)keys[i + k].value],
+                        &color_data[(int32_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
+
+                if (!equal)
+                    continue;
+
+                float_t start_value = keys[i].value;
+                float_t end_value = keys[i + count * 2].value;
+
+                if (*(uint32_t*)&start_value == *(uint32_t*)&end_value)
+                    break;
+                else if (i + count * 2 + 1 < length
+                    && *(uint32_t*)&keys[i + count * 2].frame != *(uint32_t*)&keys[i + count * 2 + 1].frame)
+                    break;
+
+                for (size_t k = count, l = count - 1; k < count * 2; k++, l--) {
+                    if (keys[i + k].value > keys[i + k + 1].value && keys[i + l + 1].value < keys[i + l].value
+                        || keys[i + k].value < keys[i + k + 1].value && keys[i + l + 1].value > keys[i + l].value) {
+                        keys[i + k + 0].tangent1 = -keys[i + k + 0].tangent1;
+                        keys[i + k + 1].tangent2 = -keys[i + k + 1].tangent2;
+                    }
+                    keys[i + k + 1].value = keys[i + l].value;
+                }
+
+                i += count * 2;
+                break;
+            }
+    };
+    
+    // Find and optimize 012345 to 012210
+    auto optimize_func_3_asc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
+        kft3* keys = morph.data();
+        size_t length = morph.size();
         for (size_t i = 0; i < length - 1; i++)
             for (size_t j = i + 1; j < length; j++) {
                 size_t count = j - i;
@@ -8597,21 +8635,138 @@ bool material_list_data::optimize() {
                 i += count * 2;
                 break;
             }
+    };
+    
+    // Find and optimize 012345 to 012210
+    auto optimize_func_3_desc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
+        kft3* keys = morph.data();
+        size_t length = morph.size();
+        for (size_t i = 0; i < length - 1; i++)
+            for (size_t j = i + 1; j < length; j++) {
+                size_t count = j - i;
+                if (j + count > length || i + count * 2 + 1 >= length)
+                    break;
 
-        int32_t max_value = 0;
-        for (kft3& i : morph)
-            max_value = max_def(max_value, (int32_t)i.value);
-        max_value++;
+                material_list_color* color_data = color.data();
+                bool equal = true;
+                for (size_t k = 0, l = count * 2 + 1; k <= count; k++, l--)
+                    if (memcmp(&color_data[(int64_t)keys[i + k].value],
+                        &color_data[(int64_t)keys[i + l].value],
+                        sizeof(material_list_color))) {
+                        equal = false;
+                        break;
+                    }
 
-        if (max_value < color.size())
-            color.resize(max_value);
+                if (!equal)
+                    continue;
 
-        if (color.size() < this->color_opt.size() || morph.size() < this->morph_opt.size()) {
-            this->color_opt.assign(color.begin(), color.end());
-            this->morph_opt.assign(morph.begin(), morph.end());
-            continue;
+                float_t start_value = keys[i].value;
+                float_t end_value = keys[i + count * 2 + 1].value;
+
+                if (*(uint32_t*)&start_value == *(uint32_t*)&end_value)
+                    break;
+                else if (i + count * 2 + 2 < length
+                    && *(uint32_t*)&keys[i + count * 2 + 1].frame != *(uint32_t*)&keys[i + count * 2 + 2].frame)
+                    break;
+
+                for (size_t k = count, l = count - 1; k < count * 2; k++, l--) {
+                    if (keys[i + k + 1].value > keys[i + k + 2].value && keys[i + l + 1].value < keys[i + l].value
+                        || keys[i + k + 1].value < keys[i + k + 2].value && keys[i + l + 1].value > keys[i + l].value) {
+                        keys[i + k + 1].tangent1 = -keys[i + k + 1].tangent1;
+                        keys[i + k + 2].tangent2 = -keys[i + k + 2].tangent2;
+                    }
+                    keys[i + k + 2].value = keys[i + l].value;
+                }
+
+                i += count * 2;
+                break;
+            }
+    };
+
+    if (color_opt.size() > 1) {
+        // Remove duplicate color entries
+        kft3* keys = morph_opt.data();
+        size_t length = morph_opt.size();
+        {
+            auto i_begin = color_opt.begin();
+            auto i_end = color_opt.end() - 1;
+
+            for (auto i = i_begin; i != i_end;)
+                if (!memcmp(&i[0], &i[1], sizeof(material_list_color))) {
+                    float_t value = (float_t)(int64_t)(i - i_begin + 1);
+                    for (size_t k = i - i_begin + 1; k < length; k++)
+                        if (keys[k].value >= value)
+                            keys[k].value -= 1.0f;
+                    i = color_opt.erase(i);
+                    i_begin = color_opt.begin();
+                    i_end = color_opt.end() - 1;
+                }
+                else
+                    i++;
         }
-        break;
+
+        // Remove duplicate at start
+        if (length > 1 && *(uint32_t*)&keys[0].frame != *(uint32_t*)&keys[1].frame
+            && *(uint32_t*)&keys[0].value == *(uint32_t*)&keys[1].value)
+            morph_opt.erase(morph_opt.begin());
+
+        // Remove duplicate at end
+        if (length > 1 && *(uint32_t*)&keys[length - 2].frame != *(uint32_t*)&keys[length - 1].frame
+            && *(uint32_t*)&keys[length - 2].value == *(uint32_t*)&keys[length - 1].value)
+            morph_opt.erase(morph_opt.end() - 1);
+
+        while (true) {
+            std::vector<material_list_color> color(color_opt);
+            std::vector<kft3> morph(morph_opt);
+
+            optimize_func_1(color, morph);
+            optimize_func_2_asc(color, morph);
+            optimize_func_3_asc(color, morph);
+
+            int32_t max_value = 0;
+            for (kft3& i : morph)
+                max_value = max_def(max_value, (int32_t)i.value);
+            max_value++;
+
+            if (max_value < color.size())
+                color.resize(max_value);
+
+            if (color.size() > 2) {
+                std::reverse(morph.begin(), morph.end());
+
+                optimize_func_2_desc(color, morph);
+                optimize_func_3_desc(color, morph);
+
+                int32_t min_value = INT32_MAX;
+                for (kft3& i : morph)
+                    min_value = min_def(min_value, (int32_t)i.value);
+
+                int32_t max_value = 0;
+                for (kft3& i : morph)
+                    max_value = max_def(max_value, (int32_t)i.value);
+                max_value++;
+
+                if (min_value && min_value != INT32_MAX) {
+                    color.erase(color.begin(), color.begin() + min_value);
+                    max_value -= min_value;
+
+                    for (kft3& i : morph)
+                        i.value -= (float_t)min_value;
+                }
+
+                if (max_value < color.size())
+                    color.resize(max_value);
+
+                std::reverse(morph.begin(), morph.end());
+            }
+
+            if (color.size() < color_opt.size() || morph.size() < morph_opt.size()) {
+                color_opt.assign(color.begin(), color.end());
+                morph_opt.assign(morph.begin(), morph.end());
+                continue;
+            }
+            break;
+        }
     }
 
     /*if (color_opt.size() > 2) {
@@ -8839,10 +8994,36 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     float_t start_time = FLT_MAX;
     float_t end_time = FLT_MIN;
     auth_3d_ep_type ep_type_post = AUTH_3D_EP_NONE;
+    auth_3d_key_type type = AUTH_3D_KEY_NONE;
+    uint64_t hash0 = hash_fnv1a64m_empty;
+    uint32_t hash1 = hash_murmurhash_empty;
+    bool same_data = true;
+    int32_t first_same_data_index = -1;
+    int32_t count_same_data = 0;
 
-    std::function<void(auth_3d_key&, int32_t)> check_ep_cycle = [&](auth_3d_key& k, int32_t index) {
+    auto check_ep_cycle = [&](auth_3d_key& k, int32_t index) {
+        type = max_def(k.type, type);
+
         if (!has_data[index])
             return;
+
+        if (same_data) {
+            uint64_t _hash0 = hash_fnv1a64m(k.keys_vec.data(), sizeof(kft3) * k.keys_vec.size());
+            uint32_t _hash1 = hash_murmurhash(k.keys_vec.data(), sizeof(kft3) * k.keys_vec.size(), 0, true);
+            if (hash0 == hash_fnv1a64m_empty) {
+                hash0 = _hash0;
+                hash1 = _hash1;
+                first_same_data_index = index;
+                count_same_data = 1;
+            }
+            else if (hash0 != _hash0 || hash1 != _hash1) {
+                same_data = false;
+                first_same_data_index = -1;
+                count_same_data = 0;
+            }
+            else
+                count_same_data++;
+        }
 
         if ((!ep_type_post || ep_type_post == AUTH_3D_EP_CYCLE) && k.ep_type_post == AUTH_3D_EP_CYCLE
             && (start_time == FLT_MAX || start_time == k.keys_vec.front().frame)
@@ -8861,6 +9042,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             ep_type_post = AUTH_3D_EP_NONE;
             start_time = 0.0f;
             end_time = max_def(end_time, k.max_frame);
+            end_time = max_def(end_time, k.keys_vec.back().frame + 1.0f);
         }
     };
 
@@ -8878,10 +9060,88 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         end_time = play_control_size;
     }
 
+    if (type >= AUTH_3D_KEY_LINEAR && first_same_data_index != -1) {
+        std::vector<kft3>* vec_data = 0;
+        switch (first_same_data_index) {
+        case 0:
+            vec_data = &ml.blend_color.r.keys_vec;
+            break;
+        case 1:
+            vec_data = &ml.blend_color.g.keys_vec;
+            break;
+        case 2:
+            vec_data = &ml.blend_color.b.keys_vec;
+            break;
+        case 3:
+            vec_data = &ml.blend_color.a.keys_vec;
+            break;
+        case 4:
+            vec_data = &ml.emission.r.keys_vec;
+            break;
+        case 5:
+            vec_data = &ml.emission.g.keys_vec;
+            break;
+        case 6:
+            vec_data = &ml.emission.b.keys_vec;
+            break;
+        case 7:
+            vec_data = &ml.emission.a.keys_vec;
+            break;
+        }
+
+        float_t min_value = FLT_MAX;
+        float_t max_value = -FLT_MAX;
+
+        for (kft3& i : *vec_data) {
+            min_value = min_def(min_value, i.value);
+            max_value = max_def(max_value, i.value);
+        }
+
+        float_t scale = 1.0f / (max_value - min_value);
+
+        ml.blend_color.interpolate(0.0f);
+        ml.emission.interpolate(0.0f);
+
+
+        data.morph.reserve(vec_data->size());
+        int32_t index = 0;
+        for (kft3& i : *vec_data) {
+            material_list_color color;
+            color.first = ml.blend_color.value;
+            color.second = ml.emission.value;
+            for (int32_t j = 0; j < 8; j++)
+                if (has_data[j])
+                    ((float_t*)&color)[j] = i.value;
+
+            data.morph.push_back({ i.frame, (float_t)index, i.tangent1, i.tangent2 });
+            data.color.push_back(color);
+        }
+
+        data.type = type;
+        data.original_data = true;
+        memcpy(data.has_data, has_data, sizeof(has_data));
+        return;
+    }
+    else if (type >= AUTH_3D_KEY_NONE && type <= AUTH_3D_KEY_STATIC) {
+        ml.blend_color.interpolate(0.0f);
+        ml.emission.interpolate(0.0f);
+
+        material_list_color color;
+        color.first = ml.blend_color.value;
+        color.second = ml.emission.value;
+
+        data.morph.push_back({ 0, (float_t)(int64_t)data.color.size() });
+        data.color.push_back(color);
+        data.type = type;
+        data.original_data = true;
+        memcpy(data.has_data, has_data, sizeof(has_data));
+        return;
+    }
+
 #pragma warning(suppress: 26451)
     size_t count = (size_t)(int64_t)(end_time - start_time);
 
-    std::function<void(auth_3d_key&, int32_t)> get_max_count = [&](auth_3d_key& k, int32_t index) {
+    auto get_max_count = [&](auth_3d_key& k, int32_t index) {
         if (ep_type_post || !has_data[index] || k.ep_type_post != AUTH_3D_EP_CYCLE)
             return;
 
@@ -8923,10 +9183,12 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             if (values_src[0].first != 0.0f || values_src[0].second != 0.0f) {
                 data.morph.push_back({ 0, (float_t)(int64_t)data.color.size() });
                 data.color.push_back(values_src[0]);
-                data.type = 1;
+                data.type = AUTH_3D_KEY_STATIC;
             }
             else
-                data.type = 0;
+                data.type = AUTH_3D_KEY_NONE;
+            data.original_data = true;
+            memcpy(data.has_data, has_data, sizeof(has_data));
             return;
         }
     }
@@ -8995,68 +9257,90 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             t1 = 0.0f;
             t2 = 0.0f;
 
-            float_t start[8];
-            float_t end[8];
-            float_t _t1[8];
-            float_t _t2[8];
-            *(material_list_color*)start = v[0];
-            *(material_list_color*)end = v[i];
-            for (size_t o = 0; o < 8; o++) {
-                if (!has_data[o] || constant[o])
-                    continue;
+            if (type == AUTH_3D_KEY_HERMITE) {
+                float_t start[8];
+                float_t end[8];
+                float_t _t1[8];
+                float_t _t2[8];
+                *(material_list_color*)start = v[0];
+                *(material_list_color*)end = v[i];
+                for (size_t o = 0; o < 8; o++) {
+                    if (!has_data[o] || constant[o])
+                        continue;
 
-                float_t scale = fabsf(end[o] - start[o]) > 0.0f ? 1.0f / (end[o] - start[o]) : 0.0f;
-                float_t offset = -start[o];
+                    float_t scale = fabsf(end[o] - start[o]) > 0.0f ? 1.0f / (end[o] - start[o]) : 0.0f;
+                    float_t offset = -start[o];
 
-                for (size_t j = 0; j <= i; j++)
-                    a[j] = (((float_t*)&v[j])[o] - offset) * scale;
+                    for (size_t j = 0; j <= i; j++)
+                        a[j] = (((float_t*)&v[j])[o] - offset) * scale;
 
-                if (!fast) {
-                    double_t t1_accum = 0.0;
-                    double_t t2_accum = 0.0;
-                    for (size_t j = 1; j < i - 1; j++) {
-                        float_t t1 = 0.0f;
-                        float_t t2 = 0.0f;
-                        interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
-                        t1_accum += t1;
-                        t2_accum += t2;
+                    if (!fast) {
+                        double_t t1_accum = 0.0;
+                        double_t t2_accum = 0.0;
+                        for (size_t j = 1; j < i - 1; j++) {
+                            float_t t1 = 0.0f;
+                            float_t t2 = 0.0f;
+                            interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
+                            t1_accum += t1;
+                            t2_accum += t2;
+                        }
+                        _t1[o] = (float_t)(t1_accum / (double_t)(i - 2));
+                        _t2[o] = (float_t)(t2_accum / (double_t)(i - 2));
                     }
-                    _t1[o] = (float_t)(t1_accum / (double_t)(i - 2));
-                    _t2[o] = (float_t)(t2_accum / (double_t)(i - 2));
+                    else
+                        interpolate_chs_reverse_value(a, left_count, _t1[o], _t2[o], 0, i, 1);
+
+                    t1 += _t1[o];
+                    t2 += _t2[o];
                 }
-                else
-                    interpolate_chs_reverse_value(a, left_count, _t1[o], _t2[o], 0, i, 1);
 
-                t1 += _t1[o];
-                t2 += _t2[o];
-            }
+                if (has_data_count) {
+                    t1 /= (float_t)has_data_count;
+                    t2 /= (float_t)has_data_count;
+                }
 
-            if (has_data_count) {
-                t1 /= (float_t)has_data_count;
-                t2 /= (float_t)has_data_count;
-            }
+                has_error = false;
+                for (size_t j = 1; j < i; j++) {
+                    float_t val = interpolate_chs_value(0.0f, 1.0f, t1, t2, 0.0f, (float_t)i, (float_t)j);
+                    vec4 v_first = vec4::abs(vec4::lerp(v[0].first, v[i].first, val) - v[j].first);
+                    vec4 v_second = vec4::abs(vec4::lerp(v[0].second, v[i].second, val) - v[j].second);
+                    if (val < 0.0f || val > 1.0f
+                        || has_data[0] && v_first.x > reverse_bias
+                        || has_data[1] && v_first.y > reverse_bias
+                        || has_data[2] && v_first.z > reverse_bias
+                        || has_data[3] && v_first.w > reverse_bias
+                        || has_data[4] && v_second.x > reverse_bias
+                        || has_data[5] && v_second.y > reverse_bias
+                        || has_data[6] && v_second.z > reverse_bias
+                        || has_data[7] && v_second.w > reverse_bias) {
+                        has_error = true;
+                        break;
+                    }
+                }
 
-            has_error = false;
-            for (size_t j = 1; j < i; j++) {
-                float_t val = interpolate_chs_value(0.0f, 1.0f, t1, t2, 0.0f, (float_t)i, (float_t)j);
-                vec4 v_first = vec4::abs(vec4::lerp(v[0].first, v[i].first, val) - v[j].first);
-                vec4 v_second = vec4::abs(vec4::lerp(v[0].second, v[i].second, val) - v[j].second);
-                if (val < 0.0f || val > 1.0f
-                    || has_data[0] && v_first.x > reverse_bias
-                    || has_data[1] && v_first.y > reverse_bias
-                    || has_data[2] && v_first.z > reverse_bias
-                    || has_data[3] && v_first.w > reverse_bias
-                    || has_data[4] && v_second.x > reverse_bias
-                    || has_data[5] && v_second.y > reverse_bias
-                    || has_data[6] && v_second.z > reverse_bias
-                    || has_data[7] && v_second.w > reverse_bias) {
+                if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
                     has_error = true;
-                    break;
+            }
+            else {
+                has_error = false;
+                for (size_t j = 1; j < i; j++) {
+                    float_t val = interpolate_linear_value(0.0f, 1.0f, 0.0f, (float_t)i, (float_t)j);
+                    vec4 v_first = vec4::abs(vec4::lerp(v[0].first, v[i].first, val) - v[j].first);
+                    vec4 v_second = vec4::abs(vec4::lerp(v[0].second, v[i].second, val) - v[j].second);
+                    if (val < 0.0f || val > 1.0f
+                        || has_data[0] && v_first.x > reverse_bias
+                        || has_data[1] && v_first.y > reverse_bias
+                        || has_data[2] && v_first.z > reverse_bias
+                        || has_data[3] && v_first.w > reverse_bias
+                        || has_data[4] && v_second.x > reverse_bias
+                        || has_data[5] && v_second.y > reverse_bias
+                        || has_data[6] && v_second.z > reverse_bias
+                        || has_data[7] && v_second.w > reverse_bias) {
+                        has_error = true;
+                        break;
+                    }
                 }
             }
-
-            if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
-                has_error = true;
 
             if (!has_error) {
                 i_prev = i;
@@ -9135,34 +9419,35 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         (float_t)(int64_t)data.color.size(), t2_old, 0.0f });
     data.color.push_back(val[count - 1]);
 
-    int32_t type = 2;
+    if (type == AUTH_3D_KEY_HERMITE) {
+        type = AUTH_3D_KEY_LINEAR;
+        kft3* keys = data.morph.data();
+        size_t length = data.morph.size();
+        for (size_t i = 0; i < count; i++) {
+            float_t frame = start_time + (float_t)(int64_t)i;
 
-    kft3* keys = data.morph.data();
-    size_t length = data.morph.size();
-    for (size_t i = 0; i < count; i++) {
-        float_t frame = start_time + (float_t)(int64_t)i;
+            kft3* first_key = keys;
+            kft3* key = keys;
+            size_t _length = length;
+            size_t temp;
+            while (_length > 0)
+                if (frame < key[temp = _length / 2].frame)
+                    _length = temp;
+                else {
+                    key += temp + 1;
+                    _length -= temp + 1;
+                }
 
-        kft3* first_key = keys;
-        kft3* key = keys;
-        size_t _length = length;
-        size_t temp;
-        while (_length > 0)
-            if (frame < key[temp = _length / 2].frame)
-                _length = temp;
-            else {
-                key += temp + 1;
-                _length -= temp + 1;
-            }
-
-        if (key != first_key && key != &first_key[length]) {
-            float_t l_val = interpolate_linear_value(key[-1].value, key[0].value,
-                key[-1].frame, key[0].frame, frame);
-            float_t h_val = interpolate_chs_value(key[-1].value, key[0].value,
-                key[-1].tangent2, key[0].tangent1,
-                key[-1].frame, key[0].frame, frame);
-            if (fabsf(l_val - h_val) > reverse_bias) {
-                type = 3;
-                break;
+            if (key != first_key && key != &first_key[length]) {
+                float_t l_val = interpolate_linear_value(key[-1].value, key[0].value,
+                    key[-1].frame, key[0].frame, frame);
+                float_t h_val = interpolate_chs_value(key[-1].value, key[0].value,
+                    key[-1].tangent2, key[0].tangent1,
+                    key[-1].frame, key[0].frame, frame);
+                if (fabsf(l_val - h_val) > reverse_bias) {
+                    type = AUTH_3D_KEY_HERMITE;
+                    break;
+                }
             }
         }
     }
@@ -9171,6 +9456,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     data.cycle = ep_type_post == AUTH_3D_EP_CYCLE;
     data.start_time = start_time;
     data.end_time = end_time;
+    memcpy(data.has_data, has_data, sizeof(has_data));
 }
 
 static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
@@ -9237,49 +9523,87 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
     printf_debug("");
 
-    for (auto& i : stage_data_effect_auth_3ds) {
-        auth_3d* auth = i.first.get_auth_3d();
+    prj::vector_pair<uint32_t, material_list_color_data> material_colors;
 
+    auto convert_material_list = [&](auth_3d* auth,
+        prj::vector_pair<uint32_t, material_list_data>& material_lists) {
         printf_debug("%s\n", auth->file_name.c_str());
 
-        i.second.reserve(auth->material_list.size());
+        material_lists.reserve(auth->material_list.size());
         for (auth_3d_material_list& j : auth->material_list) {
             if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
                 continue;
 
-            i.second.push_back(j.hash, {});
-            material_list_data& data = i.second.back().second;
+            material_lists.push_back(j.hash, {});
+            material_list_data& data = material_lists.back().second;
 
             x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
             bool same = data.optimize();
-            printf_debug("    %d %20s %3llu %3llu %3llu %3llu%s%s\n", data.type,
-                j.name.c_str(), data.color.size(), data.morph.size(),
+            printf_debug("    %c%c%c%c%c%c%c%c %d %32s %08X %3llu %3llu %3llu %3llu%s%s%s\n",
+                j.blend_color.flags & AUTH_3D_RGBA_R ? 'R' : ' ',
+                j.blend_color.flags & AUTH_3D_RGBA_G ? 'G' : ' ',
+                j.blend_color.flags & AUTH_3D_RGBA_B ? 'B' : ' ',
+                j.blend_color.flags & AUTH_3D_RGBA_A ? 'A' : ' ',
+                j.emission.flags & AUTH_3D_RGBA_R ? 'R' : ' ',
+                j.emission.flags & AUTH_3D_RGBA_G ? 'G' : ' ',
+                j.emission.flags & AUTH_3D_RGBA_B ? 'B' : ' ',
+                j.emission.flags & AUTH_3D_RGBA_A ? 'A' : ' ',
+                data.type, j.name.c_str(), j.hash,
+                data.color.size(), data.morph.size(),
                 data.color_opt.size(), data.morph_opt.size(),
-                same ? ""  : " Not same", data.cycle ? " Cycle" : "");
+                data.cycle ? "; Cycle" : "", same ? "" : "; Not same",
+                data.original_data ? "; Orig Data" : "");
+
+            auto elem = material_colors.find(j.hash);
+            if (elem == material_colors.end()) {
+                material_colors.push_back({ j.hash, {} });
+                material_colors.sort();
+                elem = material_colors.find(j.hash);
+                elem->second.original_data = data.original_data;
+                memcpy(elem->second.has_data, data.has_data, sizeof(data.has_data));
+            }
+
+            if (elem->second.original_data && !data.original_data)
+                elem->second.original_data = false;
+
+            elem->second.data.insert(elem->second.data.end(), data.color_opt.begin(), data.color_opt.end());
         }
+    };
+
+    for (auto& i : stage_data_effect_auth_3ds)
+        convert_material_list(i.first.get_auth_3d(), i.second);
+
+    for (auto& i : stage_data_change_effect_auth_3ds)
+        convert_material_list(i.first.get_auth_3d(), i.second);
+
+    for (auto& i : material_colors)
+        prj::sort_unique(i.second.data);
+
+    for (auto& i : material_colors) {
+        if (!i.second.original_data)
+            continue;
+
+        material_list_color min_color = { FLT_MAX, FLT_MAX };
+        material_list_color max_color = { -FLT_MAX, -FLT_MAX };
+        for (material_list_color& j : i.second.data) {
+            min_color.first = vec4::min(j.first, min_color.first);
+            min_color.second = vec4::min(j.second, min_color.second);
+            max_color.first = vec4::max(j.first, max_color.first);
+            max_color.second = vec4::max(j.second, max_color.second);
+        }
+
+        printf("%f %f %f %f %f %f %f %f\n",
+            min_color.first.x, min_color.first.y, min_color.first.z, min_color.first.w,
+            min_color.second.x, min_color.second.y, min_color.second.z, min_color.second.w);
+        printf("%f %f %f %f %f %f %f %f\n",
+            max_color.first.x, max_color.first.y, max_color.first.z, max_color.first.w,
+            max_color.second.x, max_color.second.y, max_color.second.z, max_color.second.w);
     }
 
-    for (auto& i : stage_data_change_effect_auth_3ds) {
-        auth_3d* auth = i.first.get_auth_3d();
+    for (auto& i : material_colors)
+        printf("%d ", (int32_t)i.second.data.size());
 
-        printf_debug("%s\n", auth->file_name.c_str());
-
-        i.second.reserve(auth->material_list.size());
-        for (auth_3d_material_list& j : auth->material_list) {
-            if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
-                continue;
-
-            i.second.push_back(j.hash, {});
-            material_list_data& data = i.second.back().second;
-
-            x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
-            bool same = data.optimize();
-            printf_debug("    %d %20s %3llu %3llu %3llu %3llu%s%s\n", data.type,
-                j.name.c_str(), data.color.size(), data.morph.size(),
-                data.color_opt.size(), data.morph_opt.size(),
-                same ? "" : " Not same", data.cycle ? " Cycle" : "");
-        }
-    }
+    printf("%d\n", (int32_t)material_colors.size());
 }
 
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id) {

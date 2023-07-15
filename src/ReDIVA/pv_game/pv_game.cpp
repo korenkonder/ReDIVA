@@ -898,8 +898,7 @@ int32_t pv_game::calculate_reference_score() {
     int32_t target_index_chance = 0;
     int32_t target_index_chance_no_flag = 0;
     bool end;
-    do
-    {
+    do {
         int32_t target_count = 0;
         int32_t target_flag = 0;
         int32_t slide_chain_type = 0;
@@ -5745,7 +5744,7 @@ float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, 
 }
 
 float_t dsc_time_to_frame(int64_t time) {
-    return (float_t)time / (float_t)1000000000 * 60.0f;
+    return roundf((float_t)time / (float_t)1000000000 * 60.0f);
 }
 
 bool pv_game_init() {

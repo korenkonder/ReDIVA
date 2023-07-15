@@ -161,7 +161,7 @@ namespace rndr {
         RND_PASSID_SPRITE_BG,
         RND_PASSID_ALL_3D,
         RND_PASSID_SHOW_VECTOR,
-        RND_PASSID_POSTPROCESS,
+        RND_PASSID_POST_PROCESS,
         RND_PASSID_SPRITE_FG,
         RND_PASSID_12,
         RND_PASSID_NUM,
@@ -697,7 +697,7 @@ namespace rndr {
         void pass_sprite_bg(render_context* rctx);
         void pass_all_3d(render_context* rctx);
         void pass_show_vector(render_context* rctx);
-        void pass_postprocess(render_context* rctx);
+        void pass_post_process(render_context* rctx);
         void pass_sprite_fg(render_context* rctx);
 
         void pass_3d_contour(render_context* rctx);

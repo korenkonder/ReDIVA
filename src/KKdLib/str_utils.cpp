@@ -447,8 +447,7 @@ inline int32_t str_utils_compare_length(const char* str0, size_t str0_len, const
     int32_t diff = 0;
     char c0;
     char c1;
-    do
-    {
+    do {
         c0 = *str0++;
         c1 = *str1++;
         if (!c0 || !c1)
@@ -485,8 +484,7 @@ inline int32_t str_utils_compare_length(const wchar_t* str0, size_t str0_len, co
     int32_t diff = 0;
     wchar_t c0;
     wchar_t c1;
-    do
-    {
+    do {
         c0 = *str0++;
         c1 = *str1++;
         if (!c0 || !c1)

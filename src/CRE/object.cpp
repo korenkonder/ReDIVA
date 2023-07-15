@@ -31,8 +31,8 @@ static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler);
 static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
 static size_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format);
 
-std::vector<obj_set_handler> object_storage_data;
-std::list<obj_set_handler> object_storage_data_modern;
+std::map<uint32_t, obj_set_handler> object_storage_data;
+std::map<uint32_t, obj_set_handler> object_storage_data_modern;
 
 obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer(), size() {
 
@@ -1439,108 +1439,76 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
 }
 
 inline void object_storage_init(const object_database* obj_db) {
-    const object_set_info* obj_set = obj_db->object_set.data();
-    size_t count = obj_db->object_set.size();
-    object_storage_data.resize(count);
-    for (size_t i = 0; i < count; i++) {
-        object_storage_data[i].set_id = obj_set[i].id;
-        object_storage_data[i].name.assign(obj_set[i].name);
+    for (const object_set_info& i : obj_db->object_set) {
+        obj_set_handler handler;
+        handler.set_id = i.id;
+        handler.name.assign(i.name);
+        object_storage_data.insert({ i.id, handler });
     }
     object_storage_data_modern.clear();
 }
 
 inline obj* object_storage_get_obj(object_info obj_info) {
-    for (obj_set_handler& i : object_storage_data) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
-        if (!set)
-            return 0;
-
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return &set->obj_data[j];
+    auto elem = object_storage_data.find(obj_info.set_id);
+    if (elem != object_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (set)
+            for (uint32_t j = 0; j < set->obj_num; j++)
+                if (set->obj_data[j].id == obj_info.id)
+                    return &set->obj_data[j];
         return 0;
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
-        if (!set)
-            return 0;
-
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return &set->obj_data[j];
+    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != object_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (set)
+            for (uint32_t j = 0; j < set->obj_num; j++)
+                if (set->obj_data[j].id == obj_info.id)
+                    return &set->obj_data[j];
         return 0;
     }
     return 0;
 }
 
 inline obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id) {
-    for (obj_set_handler& i : object_storage_data)
-        if (i.set_id == set_id)
-            return &i;
+    auto elem = object_storage_data.find(set_id);
+    if (elem != object_storage_data.end())
+        return &elem->second;
 
-    for (obj_set_handler& i : object_storage_data_modern)
-        if (i.set_id == set_id)
-            return &i;
-    return 0;
-}
-
-inline obj_set_handler* object_storage_get_obj_set_handler_by_index(size_t index) {
-    if (index >= 0 && index < object_storage_data.size())
-        return &object_storage_data[index];
-
-    index -= object_storage_data.size();
-    if (index >= 0 && index < object_storage_data_modern.size()) {
-        auto elem = object_storage_data_modern.begin();
-        std::advance(elem, index);
-        return &*elem;
-    }
+    auto elem_modern = object_storage_data_modern.find(set_id);
+    if (elem_modern != object_storage_data_modern.end())
+        return &elem_modern->second;
     return 0;
 }
 
 inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name) {
-    for (obj_set_handler& i : object_storage_data) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
-        if (!set)
-            return 0;
-
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].get_obj_mesh(mesh_name);
+    auto elem = object_storage_data.find(obj_info.set_id);
+    if (elem != object_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (set)
+            for (uint32_t j = 0; j < set->obj_num; j++)
+                if (set->obj_data[j].id == obj_info.id)
+                    return set->obj_data[j].get_obj_mesh(mesh_name);
         return 0;
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
-        if (!set)
-            return 0;
-
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].get_obj_mesh(mesh_name);
+    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != object_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (set)
+            for (uint32_t j = 0; j < set->obj_num; j++)
+                if (set->obj_data[j].id == obj_info.id)
+                    return set->obj_data[j].get_obj_mesh(mesh_name);
         return 0;
     }
     return 0;
 }
 
 inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index) {
-    for (obj_set_handler& i : object_storage_data) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
+    auto elem = object_storage_data.find(obj_info.set_id);
+    if (elem != object_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
 
@@ -1556,11 +1524,9 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
         return 0;
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
+    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != object_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
 
@@ -1579,8 +1545,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
 }
 
 inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name) {
-    for (obj_set_handler& i : object_storage_data) {
-        obj_set* set = i.obj_set;
+    for (auto& i : object_storage_data) {
+        obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
@@ -1589,8 +1555,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
                 return set->obj_data[j].get_obj_mesh(mesh_name);
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        obj_set* set = i.obj_set;
+    for (auto& i : object_storage_data_modern) {
+        obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
@@ -1602,8 +1568,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
 }
 
 inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, uint32_t index) {
-    for (obj_set_handler& i : object_storage_data) {
-        obj_set* set = i.obj_set;
+    for (auto& i : object_storage_data) {
+        obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
@@ -1618,8 +1584,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
         }
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        obj_set* set = i.obj_set;
+    for (auto& i : object_storage_data_modern) {
+        obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
@@ -1637,11 +1603,9 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
 }
 
 inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name) {
-    for (obj_set_handler& i : object_storage_data) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
+    auto elem = object_storage_data.find(obj_info.set_id);
+    if (elem != object_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
         if (!set)
             return -1;
 
@@ -1650,11 +1614,9 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
                 return set->obj_data[j].get_obj_mesh_index(mesh_name);
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
+    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != object_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return -1;
 
@@ -1666,8 +1628,8 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
 }
 
 inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name) {
-    for (obj_set_handler& i : object_storage_data) {
-        obj_set* set = i.obj_set;
+    for (auto& i : object_storage_data) {
+        obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
@@ -1676,8 +1638,8 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
                 return set->obj_data[j].get_obj_mesh_index(mesh_name);
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        obj_set* set = i.obj_set;
+    for (auto& i : object_storage_data_modern) {
+        obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
@@ -1689,13 +1651,13 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
 }
 
 inline obj_set* object_storage_get_obj_set(uint32_t set_id) {
-    for (obj_set_handler& i : object_storage_data)
-        if (i.set_id == set_id)
-            return i.obj_set;
+    auto elem = object_storage_data.find(set_id);
+    if (elem != object_storage_data.end())
+        return elem->second.obj_set;
 
-    for (obj_set_handler& i : object_storage_data_modern)
-        if (i.set_id == set_id)
-            return i.obj_set;
+    auto elem_modern = object_storage_data_modern.find(set_id);
+    if (elem_modern != object_storage_data_modern.end())
+        return elem_modern->second.obj_set;
     return 0;
 }
 
@@ -1704,62 +1666,20 @@ inline size_t object_storage_get_obj_set_count() {
 }
 
 inline int32_t object_storage_get_obj_storage_load_count(uint32_t set_id) {
-    for (obj_set_handler& i : object_storage_data)
-        if (i.set_id == set_id)
-            return i.load_count;
+    auto elem = object_storage_data.find(set_id);
+    if (elem != object_storage_data.end())
+        return elem->second.load_count;
 
-    for (obj_set_handler& i : object_storage_data_modern)
-        if (i.set_id == set_id)
-            return i.load_count;
+    auto elem_modern = object_storage_data_modern.find(set_id);
+    if (elem_modern != object_storage_data_modern.end())
+        return elem_modern->second.load_count;
     return 0;
-}
-
-inline obj_set* object_storage_get_obj_set_by_index(size_t index) {
-    if (index >= 0 && index < object_storage_data.size())
-        return object_storage_data[index].obj_set;
-
-    index -= object_storage_data.size();
-    if (index >= 0 && index < object_storage_data_modern.size()) {
-        auto elem = object_storage_data_modern.begin();
-        std::advance(elem, index);
-        return elem->obj_set;
-    }
-    return 0;
-}
-
-inline int32_t object_storage_get_obj_storage_load_count_by_index(size_t index) {
-    if (index >= 0 && index < object_storage_data.size())
-        return object_storage_data[index].load_count;
-
-    index -= object_storage_data.size();
-    if (index >= 0 && index < object_storage_data_modern.size()) {
-        auto elem = object_storage_data_modern.begin();
-        std::advance(elem, index);
-        return elem->load_count;
-    }
-    return 0;
-}
-
-inline size_t object_storage_get_obj_set_index(uint32_t set_id) {
-    for (obj_set_handler& i : object_storage_data)
-        if (i.set_id == set_id)
-            return &i - object_storage_data.data();
-
-    size_t index = 0;
-    for (obj_set_handler& i : object_storage_data_modern)
-        if (i.set_id == set_id)
-            return object_storage_data.size() + index;
-        else
-            index++;
-    return -1;
 }
 
 inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
-    for (obj_set_handler& i : object_storage_data) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
+    auto elem = object_storage_data.find(obj_info.set_id);
+    if (elem != object_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
 
@@ -1769,11 +1689,9 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
         return 0;
     }
 
-    for (obj_set_handler& i : object_storage_data_modern) {
-        if (i.set_id != obj_info.set_id)
-            continue;
-
-        obj_set* set = i.obj_set;
+    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != object_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
 
@@ -1929,8 +1847,7 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
 
     obj_set_handler* handler = object_storage_get_obj_set_handler(hash);
     if (!handler) {
-        object_storage_data_modern.push_back({});
-        handler = &object_storage_data_modern.back();
+        handler = &object_storage_data_modern.insert({ hash, {} }).first->second;
         handler->set_id = hash;
     }
 
@@ -2172,16 +2089,11 @@ inline void object_storage_unload_set(uint32_t set_id) {
     handler->obj_file_handler.reset();
     handler->farc_file_handler.reset();
     if (handler->modern)
-        for (auto i = object_storage_data_modern.begin(); i != object_storage_data_modern.end(); i++)
-            if (i->set_id == set_id) {
-                i = object_storage_data_modern.erase(i);
-                break;
-            }
+        object_storage_data_modern.erase(set_id);
 }
 
 inline void object_storage_free() {
     object_storage_data.clear();
-    object_storage_data.shrink_to_fit();
     object_storage_data_modern.clear();
 }
 

@@ -35,6 +35,7 @@ post_process_aa::~post_process_aa() {
 
 void post_process_aa::apply_mlaa(render_texture* rt,
     render_texture* buf_rt, GLuint* samplers, int32_t ss_alpha_mask) {
+    gl_state_begin_event("PostProcess::mlaa");
     mlaa_buffer.bind();
     gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
@@ -67,6 +68,7 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     fbo::blit(buf_rt->fbos[0], rt->fbos[0],
         0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
         0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    gl_state_end_event();
 }
 
 void post_process_aa::init_fbo(int32_t width, int32_t height) {

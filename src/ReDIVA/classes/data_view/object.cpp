@@ -47,7 +47,7 @@ void data_view_object_imgui(class_data* data) {
         return;
     }
 
-    size_t count = object_storage_get_obj_set_count();
+    /*size_t count = object_storage_get_obj_set_count();
     for (size_t i = 0; i < count; i++) {
         obj_set_handler* handler = object_storage_get_obj_set_handler_by_index(i);
         if (!handler || !handler->obj_set)
@@ -61,7 +61,7 @@ void data_view_object_imgui(class_data* data) {
             handler->set_id, load_count, handler->name.c_str());
         ImGui::Selectable(buf);
         ImGui::PopID();
-    }
+    }*/
 
     data->imgui_focus |= ImGui::IsWindowFocused();
     ImGui::End();

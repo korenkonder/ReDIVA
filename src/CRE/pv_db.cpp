@@ -2248,7 +2248,7 @@ item_id pv_performer_item_to_item_id(pv_performer_item item) {
 
 item_sub_id pv_performer_item_to_item_sub_id(pv_performer_item item) {
     static const item_sub_id pv_performer_item_id_to_item_sub_id_table[] = {
-         ITEM_SUB_ZUJO, ITEM_SUB_MEGANE, ITEM_SUB_KUBI, ITEM_SUB_L_UDE,
+         ITEM_SUB_ZUJO, ITEM_SUB_MEGANE, ITEM_SUB_KUBI, ITEM_SUB_JOHA_USHIRO,
     };
 
     if (item >= 0 && item < PV_PERFORMER_ITEM_MAX)

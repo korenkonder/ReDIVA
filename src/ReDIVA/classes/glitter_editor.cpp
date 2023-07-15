@@ -4182,7 +4182,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
         obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
         ssize_t object_set_count = object_storage_get_obj_set_count();
 
-        ImGui::StartPropertyColumn("Object Set");
+        /*ImGui::StartPropertyColumn("Object Set");
         if (ImGui::BeginCombo("##Object Set", handler ? handler->name.c_str() : "None", 0)) {
             ssize_t set_index = handler ? object_storage_get_obj_set_index(set_id) : -1;
 
@@ -4219,7 +4219,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
             data->imgui_focus |= true;
             ImGui::EndCombo();
         }
-        ImGui::EndPropertyColumn();
+        ImGui::EndPropertyColumn();*/
 
         ImGui::DisableElementPush(set_id != -1);
         obj* obj = 0;

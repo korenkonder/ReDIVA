@@ -121,8 +121,8 @@ namespace rndr {
         case RND_PASSID_SHOW_VECTOR:
             pass_show_vector(rctx);
             break;
-        case RND_PASSID_POSTPROCESS:
-            pass_postprocess(rctx);
+        case RND_PASSID_POST_PROCESS:
+            pass_post_process(rctx);
             break;
         case RND_PASSID_SPRITE_FG:
             pass_sprite_fg(rctx);
@@ -150,6 +150,7 @@ namespace rndr {
     }
 
     void RenderManager::pass_shadowmap(render_context* rctx) {
+        gl_state_begin_event("pass_shadowmap");
         rctx->camera->update_data();
         if (rctx->litproj->set(rctx)) {
             rctx->obj_scene_ubo.WriteMapMemory(rctx->obj_scene);
@@ -232,6 +233,7 @@ namespace rndr {
                 }
         }
         gl_state_bind_framebuffer(0);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_ss_sss(render_context* rctx) {
@@ -239,6 +241,7 @@ namespace rndr {
         if (!sss->init || !sss->enable)
             return;
 
+        gl_state_begin_event("pass_ss_sss");
         rctx->camera->update_data();
         post_process* pp = &rctx->post_process;
         //if (pp->render_width > 1280.0)
@@ -325,9 +328,11 @@ namespace rndr {
 
         draw_pass_sss_filter(rctx, sss);
         gl_state_bind_framebuffer(0);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_reflect(render_context* rctx) {
+        gl_state_begin_event("pass_reflect");
         render_texture& refl_tex = rctx->render_manager.get_render_texture(0);
         render_texture& refl_buf_tex = rctx->render_manager.get_render_texture(11);
         refl_tex.bind();
@@ -406,9 +411,11 @@ namespace rndr {
             glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         }
         gl_state_bind_framebuffer(0);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_refract(render_context* rctx) {
+        gl_state_begin_event("pass_refract");
         render_texture& refract_texture = rctx->render_manager.get_render_texture(1);
         refract_texture.bind();
         if (rctx->disp_manager.get_obj_count(mdl::OBJ_TYPE_REFRACT_OPAQUE)
@@ -450,15 +457,19 @@ namespace rndr {
             glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         }
         gl_state_bind_framebuffer(0);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_user(render_context* rctx) {
+        gl_state_begin_event("pass_user");
         for (draw_user& i : user)
             if (i.func)
                 i.func(i.data);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_clear(render_context* rctx) {
+        gl_state_begin_event("pass_clear");
         if (true/*field_128*/) {
             vec4 clear_color = get_clear_color();
             glClearBufferfv(GL_COLOR, 0, (GLfloat*)&clear_color);
@@ -504,12 +515,14 @@ namespace rndr {
             }
         }
         gl_state_get_error();
+        gl_state_end_event();
     }
 
     void RenderManager::pass_sprite_bg(render_context* rctx) {
         if (!sprite_manager_get_reqlist_count(2))
             return;
 
+        gl_state_begin_event("pass_sprite_bg");
         post_process* pp = &rctx->post_process;
         pp->set_render_texture(true);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -527,9 +540,11 @@ namespace rndr {
         gl_state_set_depth_mask(GL_TRUE);
         gl_state_bind_framebuffer(0);
         gl_state_get_error();
+        gl_state_end_event();
     }
 
     void RenderManager::pass_all_3d(render_context* rctx) {
+        gl_state_begin_event("pass_all_3d");
         rctx->camera->update_data();
         rctx->post_process.set_render_texture();
         draw_pass_set_camera(rctx);
@@ -714,12 +729,15 @@ namespace rndr {
         shader::unbind();
         pass_sprite_fg_surf(rctx);
         gl_state_bind_framebuffer(0);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_show_vector(render_context* rctx) {
         return;
         /*if (!show_vector_flags)
             return;
+
+        gl_state_begin_event("pass_show_vector");
 
         rctx->camera->update_data();
         rctx->view_mat = rctx->camera->view;
@@ -749,10 +767,12 @@ namespace rndr {
                 draw_task_draw_objects_by_type_show_vector(rctx, mdl::OBJ_TYPE_TRANSLUCENT_NO_SHADOW, i);
                 draw_task_draw_objects_by_type_show_vector(rctx, mdl::OBJ_TYPE_TRANSLUCENT, i);
             }
-        }*/
+        }
+        gl_state_end_event();*/
     }
 
-    void RenderManager::pass_postprocess(render_context* rctx) {
+    void RenderManager::pass_post_process(render_context* rctx) {
+        gl_state_begin_event("pass_post_process");
         rctx->camera->update_data();
 
         texture* light_proj_tex = 0;
@@ -765,12 +785,14 @@ namespace rndr {
         }
 
         rctx->post_process.apply(rctx->camera, light_proj_tex, npr_param);
+        gl_state_end_event();
     }
 
     void RenderManager::pass_sprite_fg(render_context* rctx) {
         if (!sprite_manager_get_reqlist_count(0))
             return;
 
+        gl_state_begin_event("pass_sprite_fg");
         post_process* pp = &rctx->post_process;
         glViewport(0, 0, pp->sprite_width, pp->sprite_height);
 
@@ -802,6 +824,7 @@ namespace rndr {
             gl_state_bind_read_framebuffer(0);
         }
         gl_state_get_error();
+        gl_state_end_event();
     }
 
     void RenderManager::pass_3d_contour(render_context* rctx) {

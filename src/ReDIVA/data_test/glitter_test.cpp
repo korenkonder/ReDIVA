@@ -10,10 +10,42 @@
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
-#include "../imgui_helper.hpp"
+#include "../dw.hpp"
 #include "../input_state.hpp"
 #include "../print_work.hpp"
 #include "stage_test.hpp"
+
+class DataTestGlitterParticleDw : public dw::Shell {
+public:
+    TaskDataTestGlitterParticle* task;
+    dw::ListBox* list;
+    dw::ListBox* geff;
+    dw::Button* pause;
+    dw::Button* auto_and_repeat;
+    dw::Button* pv_mode;
+    dw::Button* play;
+    dw::Button* stop;
+    dw::Slider* emission;
+    dw::Button* show_grid;
+    dw::Button* stage;
+    dw::Button* chara;
+
+    DataTestGlitterParticleDw(TaskDataTestGlitterParticle* task);
+    virtual ~DataTestGlitterParticleDw() override;
+
+    void Init();
+
+    static void AutoAndRepeatCallback(dw::Widget* data);
+    static void CharaCallback(dw::Widget* data);
+    static void EmissionCallback(dw::Widget* data);
+    static void ListCallback(dw::Widget* data);
+    static void PauseCallback(dw::Widget* data);
+    static void PlayCallback(dw::Widget* data);
+    static void PvModeCallback(dw::Widget* data);
+    static void ShowGridCallback(dw::Widget* data);
+    static void StageCallback(dw::Widget* data);
+    static void StopCallback(dw::Widget* data);
+};
 
 TaskDataTestGlitterParticle* task_data_test_glitter_particle;
 
@@ -204,6 +236,18 @@ void TaskDataTestGlitterParticle::LoadFile(const char* file) {
     rebuild_geff = true;
 }
 
+void task_data_test_glitter_particle_init() {
+    if (!task_data_test_glitter_particle)
+        task_data_test_glitter_particle = new TaskDataTestGlitterParticle;
+}
+
+void task_data_test_glitter_particle_free() {
+    if (task_data_test_glitter_particle) {
+        delete task_data_test_glitter_particle;
+        task_data_test_glitter_particle = 0;
+    }
+}
+
 DataTestGlitterParticleDw::DataTestGlitterParticleDw(TaskDataTestGlitterParticle* task) {
     this->task = task;
 
@@ -386,17 +430,5 @@ void DataTestGlitterParticleDw::StopCallback(dw::Widget* data) {
         DataTestGlitterParticleDw* glt_ptcl_dw = dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell);
         if (glt_ptcl_dw)
             glt_ptcl_dw->task->SceneFree();
-    }
-}
-
-void task_data_test_glitter_particle_init() {
-    if (!task_data_test_glitter_particle)
-        task_data_test_glitter_particle = new TaskDataTestGlitterParticle;
-}
-
-void task_data_test_glitter_particle_free() {
-    if (task_data_test_glitter_particle) {
-        delete task_data_test_glitter_particle;
-        task_data_test_glitter_particle = 0;
     }
 }

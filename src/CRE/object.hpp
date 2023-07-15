@@ -125,7 +125,6 @@ extern void object_material_msgpack_write(const char* path, const char* set_name
 extern void object_storage_init(const object_database* obj_db);
 extern obj* object_storage_get_obj(object_info obj_info);
 extern obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id);
-extern obj_set_handler* object_storage_get_obj_set_handler_by_index(size_t index);
 extern obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name);
 extern obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index);
 extern obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name);
@@ -135,9 +134,6 @@ extern uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
 extern obj_set* object_storage_get_obj_set(uint32_t set_id);
 extern size_t object_storage_get_obj_set_count();
 extern int32_t object_storage_get_obj_storage_load_count(uint32_t set_id);
-extern obj_set* object_storage_get_obj_set_by_index(size_t index);
-extern size_t object_storage_get_obj_set_index(uint32_t set_id);
-extern int32_t object_storage_get_obj_storage_load_count_by_index(size_t index);
 extern obj_skin* object_storage_get_obj_skin(object_info obj_info);
 extern obj_index_buffer* object_storage_get_obj_index_buffers(uint32_t set_id);
 extern obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_info obj_info);

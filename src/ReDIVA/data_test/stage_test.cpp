@@ -11,9 +11,32 @@
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task_effect.hpp"
-#include "../imgui_helper.hpp"
+#include "../dw.hpp"
 #include "../input.hpp"
 #include "../config.hpp"
+
+class DtwStg : public dw::Shell {
+public:
+    std::map<std::string, std::vector<std::string>> pv_stage;
+    dw::ListBox* stage;
+    dw::ListBox* ns;
+    dw::ListBox* pv;
+    dw::ListBox* pv_id;
+    dw::ListBox* other;
+    dw::Button* stage_display;
+    dw::Button* ground;
+    dw::Button* ring;
+    dw::Button* sky;
+    dw::Button* effect_display;
+
+    DtwStg();
+    virtual ~DtwStg() override;
+
+    virtual void Hide() override;
+
+    static void PvIdCallback(dw::Widget* data);
+    static void StageCallback(dw::Widget* data);
+};
 
 extern int32_t width;
 extern int32_t height;
@@ -66,6 +89,48 @@ bool DtmStg::Ctrl() {
 bool DtmStg::Dest() {
     task_stage_unload_task();
     return true;
+}
+
+void dtm_stg_init() {
+    dtm_stg = new DtmStg;
+}
+
+void dtm_stg_load(int32_t stage_index) {
+    if (app::TaskWork::CheckTaskReady(dtm_stg))
+        return;
+
+    if (app::TaskWork::CheckTaskReady(dtm_stg)) {
+        dtm_stg->stage_index = stage_index;
+        dtm_stg->load_stage_index = stage_index;
+    }
+    app::TaskWork::AddTask(dtm_stg, "DATA_TEST_STAGE");
+}
+
+bool dtm_stg_unload() {
+    return dtm_stg->DelTask();
+}
+
+void dtm_stg_free() {
+    if (dtm_stg) {
+        delete dtm_stg;
+        dtm_stg = 0;
+    }
+}
+
+void dtw_stg_init() {
+    while (!dtw_stg)
+        dtw_stg = new DtwStg;
+    dtw_stg->Disp();
+}
+
+void dtw_stg_load(bool hide) {
+    dtw_stg_init();
+    if (hide)
+        dtw_stg->SetDisp(false);
+}
+
+void dtw_stg_unload() {
+    dtw_stg->Hide();
 }
 
 DtwStg::DtwStg() : Shell(0) {
@@ -141,10 +206,10 @@ DtwStg::DtwStg() : Shell(0) {
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
 #if DW_TRANSLATE
-    const char*  stage_display_text = "Stage display";
-    const char*           ring_text = "[Ring]";
-    const char*         ground_text = "[Ground]";
-    const char*            sky_text = "[Sky]";
+    const char* stage_display_text = "Stage display";
+    const char* ring_text = "[Ring]";
+    const char* ground_text = "[Ground]";
+    const char* sky_text = "[Sky]";
     const char* effect_display_text = "Effects display";
 #else
     const char* stage_display_text = "ステージ表示";
@@ -213,48 +278,6 @@ void DtwStg::StageCallback(dw::Widget* data) {
         std::string name = list_box->GetSelectedItemStr();
         dtm_stg->load_stage_index = aft_stage_data->get_stage_index(name.c_str());
     }
-}
-
-void dtm_stg_init() {
-    dtm_stg = new DtmStg;
-}
-
-void dtm_stg_load(int32_t stage_index) {
-    if (app::TaskWork::CheckTaskReady(dtm_stg))
-        return;
-
-    if (app::TaskWork::CheckTaskReady(dtm_stg)) {
-        dtm_stg->stage_index = stage_index;
-        dtm_stg->load_stage_index = stage_index;
-    }
-    app::TaskWork::AddTask(dtm_stg, "DATA_TEST_STAGE");
-}
-
-bool dtm_stg_unload() {
-    return dtm_stg->DelTask();
-}
-
-void dtm_stg_free() {
-    if (dtm_stg) {
-        delete dtm_stg;
-        dtm_stg = 0;
-    }
-}
-
-void dtw_stg_init() {
-    while (!dtw_stg)
-        dtw_stg = new DtwStg;
-    dtw_stg->Disp();
-}
-
-void dtw_stg_load(bool hide) {
-    dtw_stg_init();
-    if (hide)
-        dtw_stg->SetDisp(false);
-}
-
-void dtw_stg_unload() {
-    dtw_stg->Hide();
 }
 
 static int stage_test_stage_pv_quicksort_compare_func(void const* src1, void const* src2) {

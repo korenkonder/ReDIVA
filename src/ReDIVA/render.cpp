@@ -49,6 +49,7 @@
 #include "../KKdLib/str_utils.hpp"
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
+#include "data_test/equip_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/selector.hpp"
@@ -70,7 +71,7 @@
 #include <imgui/imgui_impl_opengl3.h>
 #include <timeapi.h>
 
-#if defined(DEBUG)
+#ifdef DEBUG
 #define RENDER_DEBUG 1
 #endif
 
@@ -593,6 +594,7 @@ static render_context* render_context_load() {
     dtm_aet_init();
     dtm_stg_init();
     motion_test_init();
+    equip_test_init();
     task_data_test_glitter_particle_init();
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
@@ -1200,6 +1202,7 @@ static void render_context_dispose(render_context* rctx) {
     light_param_data_storage::unload();
 
     task_data_test_glitter_particle_free();
+    equip_test_free();
     motion_test_free();
     dtm_stg_free();
     dtm_aet_free();
@@ -1392,7 +1395,8 @@ static void render_imgui_context_menu(classes_data* classes,
 #if RENDER_DEBUG
 static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id,
     GLenum severity, GLsizei length, const char* message, const void* userParam) {
-    if (id == 131169 || id == 131185 || id == 131218 || id == 131204)
+    if (!id && severity == GL_DEBUG_SEVERITY_NOTIFICATION
+        || id == 131169 || id == 131185 || id == 131218 || id == 131204)
         return;
 
     printf_debug("########################################\n");

@@ -2318,7 +2318,7 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
                 frame = (float_t)(frame < 0.0f ? frame_int - 1 : frame_int);
 
             uint32_t motion_id = diff->get_motion_or_default(i, j.index).id;
-            if (pv_game_get()->data.pv) {
+            if (pv_game_get() && pv_game_get()->data.pv) {
                 rob_chara* rob_chr = playdata.rob_chr;
                 if (rob_chr)
                     motion_id = pv_game_get()->data.pv->get_chrmot_motion_id(rob_chr->chara_id,

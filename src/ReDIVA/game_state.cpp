@@ -1390,8 +1390,8 @@ bool SubGameState::DataTestStg::Ctrl() {
 bool SubGameState::DataTestStg::Dest() {
     clear_color = 0xFF000000;
 
-    dtw_stg->Hide();
-    dtm_stg->DelTask();
+    dtm_stg_unload();
+    dtw_stg_unload();
     return true;
 }
 

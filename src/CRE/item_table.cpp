@@ -92,7 +92,7 @@ const item_table_item* item_table::get_item(int32_t item_no) {
 
 void item_table_handler_array_init() {
     item_table_handler_array = new item_table_handler[CHARA_MAX];
-    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
+    for (int32_t i = 0; i < CHARA_MAX; i++)
         item_table_handler_array[i].set_path((chara_index)i);
 }
 
@@ -112,9 +112,25 @@ const item_cos_data* item_table_handler_array_get_item_cos_data_by_module_index(
 
 const item_table_item* item_table_handler_array_get_item(
     chara_index chara_index, int32_t item_no) {
-    if (chara_index >= CHARA_MIKU && chara_index < CHARA_MAX)
+    if (chara_index >= 0 && chara_index < CHARA_MAX)
         return item_table_handler_array[chara_index].get_item(item_no);
     return 0;
+}
+
+std::string item_table_handler_array_get_item_name(
+    chara_index chara_index, int32_t item_no) {
+    const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
+    if (item)
+        return item->name;
+    return {};
+}
+
+item_sub_id item_table_handler_array_get_item_sub_id(
+    chara_index chara_index, int32_t item_no) {
+    const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
+    if (item)
+        return item->sub_id;
+    return ITEM_SUB_NONE;
 }
 
 const std::vector<uint32_t>* item_table_handler_array_get_item_objset(
@@ -126,20 +142,20 @@ const std::vector<uint32_t>* item_table_handler_array_get_item_objset(
 }
 
 const item_table* item_table_handler_array_get_table(chara_index chara_index) {
-    if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX)
+    if (chara_index < 0 || chara_index >= CHARA_MAX)
         return 0;
     return &item_table_handler_array[chara_index].table;
 }
 
 bool item_table_handler_array_load() {
     bool ret = false;
-    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
+    for (int32_t i = 0; i < CHARA_MAX; i++)
         ret |= item_table_handler_array[i].load();
     return ret;
 }
 
 void item_table_handler_array_read() {
-    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
+    for (int32_t i = 0; i < CHARA_MAX; i++)
         item_table_handler_array[i].read();
 }
 
@@ -170,7 +186,7 @@ const item_table_item* item_table_handler::get_item(int32_t item_no) {
 }
 
 bool item_table_handler::load() {
-    if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX || ready || !file)
+    if (chara_index < 0 || chara_index >= CHARA_MAX || ready || !file)
         return false;
 
     for (p_file_handler*& i : file_handlers)
@@ -251,7 +267,7 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
     for (itm_table_item& i : itm_tbl_file.item) {
         item_table_item itm;
         itm.flag = i.flag;
-        itm.name = i.name;
+        itm.name.assign(i.name);
 
         itm.objset.reserve(i.objset.size());
         for (std::string& j : i.objset) {
@@ -322,13 +338,17 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
     }
 
     for (itm_table_dbgset& i : itm_tbl_file.dbgset) {
-        uint32_t set_id = aft_obj_db->get_object_set_id(i.name.c_str());
-        if (set_id == -1)
+        if (aft_obj_db->get_object_set_id(i.name.c_str()) == -1)
             continue;
 
-        item_table_dbgset dbg;
-        dbg.item = i.item;
-        itm_tbl.dbgset.push_back(set_id, dbg);
+        item_cos_data cos = {};
+        for (int32_t j : i.item) {
+            const item_table_item* item = itm_tbl.get_item(j);
+            if (item)
+                cos.arr[item->sub_id] = j;
+        }
+
+        itm_tbl.dbgset.push_back(i.name, cos);
     }
 
     for (itm_table_cos& i : itm_tbl_file.cos) {

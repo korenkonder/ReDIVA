@@ -113,3 +113,15 @@ extern void gl_state_set_polygon_mode(GLenum face, GLenum mode, bool force = fal
 extern void gl_state_set_primitive_restart_index(GLuint index, bool force = false);
 extern void gl_state_set_stencil_mask(GLuint mask, bool force = false);
 extern void gl_state_use_program(GLuint program, bool force = false);
+
+inline constexpr void gl_state_begin_event(const char* str) {
+#ifdef DEBUG
+    glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, (GLsizei)utf8_length(str), str);
+#endif
+}
+
+inline constexpr void gl_state_end_event() {
+#ifdef DEBUG
+    glPopDebugGroup();
+#endif
+}

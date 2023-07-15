@@ -2199,7 +2199,7 @@ extern render_context* rctx_ptr;
 extern uint32_t cmn_set_id;
 
 const chara_init_data* chara_init_data_get(chara_index chara_index) {
-    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+    if (chara_index >= 0 && chara_index < CHARA_MAX)
         return &chara_init_data_array[chara_index];
     return 0;
 }
@@ -2785,7 +2785,6 @@ uint32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
 
     int32_t v2 = data.field_8.field_1A4;
     if (rob_cmn_mottbl_data
-        && chara_index >= CHARA_MIKU
         && chara_index >= 0 && chara_index < rob_cmn_mottbl_data->chara_count
         && id >= 0 && id < rob_cmn_mottbl_data->mottbl_indices_count) {
         rob_cmn_mottbl_sub_header* v4 = (rob_cmn_mottbl_sub_header*)((uint8_t*)rob_cmn_mottbl_data
@@ -13712,7 +13711,7 @@ item_cos_texture_change_tex::~item_cos_texture_change_tex() {
 
 }
 
-rob_chara_item_cos_data::rob_chara_item_cos_data() : chara_index(), chara_index_2nd(), cos(), cos_2nd() {
+rob_chara_item_cos_data::rob_chara_item_cos_data() : curr_chara_index(), chara_index(), curr_cos(), cos() {
 
 }
 
@@ -13846,7 +13845,7 @@ static void sub_140522990(rob_chara_item_cos_data* item_cos_data) {
     item_cos_data->texture_pattern_clear();
     for (int32_t sub_id = ITEM_SUB_ZUJO; sub_id < ITEM_SUB_MAX; sub_id++) {
         int32_t item_no = item_cos_data->cos.arr[sub_id];
-        if (!item_no || sub_id == ITEM_SUB_KUTSU)
+        if (!item_no || sub_id == ITEM_SUB_HADA)
             continue;
 
         const item_table_item* item = item_table_handler_array_get_item(item_cos_data->chara_index, item_no);
@@ -14020,8 +14019,8 @@ static void sub_140522C60(rob_chara_item_cos_data* item_cos_data, rob_chara_item
     const item_sub_id dword_140A2BB70[] = {
         ITEM_SUB_ZUJO, ITEM_SUB_KAMI, ITEM_SUB_HITAI, ITEM_SUB_ME, ITEM_SUB_MEGANE,
         ITEM_SUB_MIMI, ITEM_SUB_KUCHI, ITEM_SUB_MAKI, ITEM_SUB_KUBI, ITEM_SUB_INNER,
-        ITEM_SUB_JOHA_MAE, ITEM_SUB_JOHA_USHIRO, ITEM_SUB_HADA, ITEM_SUB_U_UDE, ITEM_SUB_L_UDE,
-        ITEM_SUB_TE, ITEM_SUB_BELT, ITEM_SUB_ASI, ITEM_SUB_SUNE, ITEM_SUB_HEAD, ITEM_SUB_MAX,
+        ITEM_SUB_KATA, ITEM_SUB_U_UDE, ITEM_SUB_L_UDE, ITEM_SUB_JOHA_MAE, ITEM_SUB_JOHA_USHIRO,
+        ITEM_SUB_BELT, ITEM_SUB_KOSI, ITEM_SUB_SUNE, ITEM_SUB_KUTSU, ITEM_SUB_HEAD, ITEM_SUB_MAX,
     };
 
     const item_sub_id* v6 = dword_140A2BB70;
@@ -14086,7 +14085,7 @@ static void sub_140522D00(rob_chara_item_cos_data* item_cos_data, rob_chara_item
         return;
 
     const item_sub_id dword_140A2BBC8[] = {
-        ITEM_SUB_KATA, ITEM_SUB_PANTS, ITEM_SUB_MAX,
+        ITEM_SUB_TE, ITEM_SUB_ASI, ITEM_SUB_MAX,
     };
 
     const item_sub_id* v6 = dword_140A2BBC8;
@@ -14114,7 +14113,7 @@ static void sub_140522D90(rob_chara_item_cos_data* item_cos_data, rob_chara_item
         return;
 
     const item_sub_id dword_140A2BBD8[] = {
-        ITEM_SUB_COSI, ITEM_SUB_OUTER, ITEM_SUB_MAX,
+        ITEM_SUB_PANTS, ITEM_SUB_OUTER, ITEM_SUB_MAX,
     };
 
     const item_sub_id* v6 = dword_140A2BBD8;
@@ -14173,7 +14172,7 @@ static void sub_140522F90(rob_chara_item_cos_data* item_cos_data, rob_chara_item
     if (!item_table_handler_array_get_table(item_cos_data->chara_index))
         return;
 
-    int32_t item_no = item_cos_data->cos.arr[ITEM_SUB_KUTSU];
+    int32_t item_no = item_cos_data->cos.arr[ITEM_SUB_HADA];
     if (!item_no)
         return;
 
@@ -14247,7 +14246,7 @@ static void sub_1405231D0(rob_chara_item_cos_data* item_cos_data, rob_chara_item
     if (!item_table_handler_array_get_table(item_cos_data->chara_index))
         return;
 
-    for (int32_t i = ITEM_SUB_ZUJO; i < ITEM_SUB_MAX; i++)
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++)
         sub_140523230(item_cos_data, rob_itm_equip, item_cos_data->cos.arr[i]);
 }
 
@@ -14308,7 +14307,7 @@ void rob_chara_item_cos_data::set_item_no(item_sub_id sub_id, int32_t item_no) {
 }
 
 void rob_chara_item_cos_data::set_item_nos(const int32_t* item_nos) {
-    for (int32_t i = ITEM_SUB_ZUJO; i < ITEM_SUB_MAX; i++)
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++)
         set_item_no((item_sub_id)i, item_nos[i]);
 }
 
@@ -17027,7 +17026,7 @@ bool OpdMakeManager::Ctrl() {
     } break;
     case 5: {
         bool v8 = false;
-        for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
+        for (int32_t i = 0; i < CHARA_MAX; i++)
             if (!sub_140479090(field_88, (chara_index)i)) {
                 chara = (chara_index)i;
                 v8 = true;
@@ -19134,7 +19133,7 @@ bool TaskRobLoad::LoadCharaItemCheckNotRead(chara_index chara_index, int32_t ite
 
 void TaskRobLoad::LoadCharaItems(chara_index chara_index,
     item_cos_data* cos, void* data, const object_database* obj_db) {
-    for (int32_t i = ITEM_SUB_ZUJO; i < ITEM_SUB_MAX; i++)
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++)
         LoadCharaItem(chara_index, cos->arr[i], data, obj_db);
 }
 
@@ -19204,7 +19203,7 @@ void TaskRobLoad::UnloadCharaItem(chara_index chara_index, int32_t item_no) {
 }
 
 void TaskRobLoad::UnloadCharaItems(chara_index chara_index, item_cos_data* cos) {
-    for (int32_t i = ITEM_SUB_ZUJO; i < ITEM_SUB_MAX; i++)
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++)
         UnloadCharaItem(chara_index, cos->arr[i]);
 }
 
@@ -19539,7 +19538,7 @@ bool TaskRobManager::GetWait(rob_chara* rob_chr) {
         if (i->chara_id == chara_id)
             return true;
 
-    return true;
+    return false;
 }
 
 TaskRobMotionModifier::TaskRobMotionModifier() {

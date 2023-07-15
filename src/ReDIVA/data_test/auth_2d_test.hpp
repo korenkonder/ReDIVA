@@ -54,35 +54,7 @@ public:
     virtual void SetCentering(bool value);
 };
 
-class DtwAet : public dw::Shell {
-public:
-    dw::ListBox* set;
-    dw::ListBox* id;
-    dw::ListBox* layer;
-    dw::ListBox* marker;
-    dw::Label* marker_frame;
-    dw::ListBox* type;
-    dw::Slider* frame;
-
-    DtwAet();
-    virtual ~DtwAet() override;
-
-    virtual void Hide() override;
-
-    static void CenteringCallback(dw::Widget* data);
-    static void FrameCallback(dw::Widget* data);
-    static void IdCallback(dw::Widget* data);
-    static void LayerCallback(dw::Widget* data);
-    static void LockCallback(dw::Widget* data);
-    static void LoopCallback(dw::Widget* data);
-    static void MarkerCallback(dw::Widget* data);
-    static void SetCallback(dw::Widget* data);
-    static void TypeCallback(dw::Widget* data);
-};
-
 extern DtmAet* dtm_aet;
-
-extern DtwAet* dtw_aet;
 
 extern void dtm_aet_init();
 extern void dtm_aet_load();

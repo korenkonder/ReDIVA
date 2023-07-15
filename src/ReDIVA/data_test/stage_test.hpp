@@ -7,11 +7,11 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../../CRE/task.hpp"
-#include "../dw.hpp"
+#include <vector>
 
 struct stage_test_stage_pv {
     int32_t pv_id;
-    std::vector<std::int32_t> stage;
+    std::vector<int32_t> stage;
 
     stage_test_stage_pv(int32_t pv_id);
     ~stage_test_stage_pv();
@@ -30,32 +30,7 @@ public:
     virtual bool Dest() override;
 };
 
-class DtwStg : public dw::Shell {
-public:
-    std::map<std::string, std::vector<std::string>> pv_stage;
-    dw::ListBox* stage;
-    dw::ListBox* ns;
-    dw::ListBox* pv;
-    dw::ListBox* pv_id;
-    dw::ListBox* other;
-    dw::Button* stage_display;
-    dw::Button* ground;
-    dw::Button* ring;
-    dw::Button* sky;
-    dw::Button* effect_display;
-
-    DtwStg();
-    virtual ~DtwStg() override;
-
-    virtual void Hide() override;
-
-    static void PvIdCallback(dw::Widget* data);
-    static void StageCallback(dw::Widget* data);
-};
-
 extern DtmStg* dtm_stg;
-
-extern DtwStg* dtw_stg;
 
 extern void dtm_stg_init();
 extern void dtm_stg_load(int32_t stage_index);

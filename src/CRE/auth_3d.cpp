@@ -5909,7 +5909,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
 
 static bool auth_3d_object_hrc_replace_chara(auth_3d_object_hrc* oh,
     chara_index src_chara, chara_index dst_chara, object_database* obj_db) {
-    if (src_chara < CHARA_MIKU || src_chara > CHARA_TETO || dst_chara < CHARA_MIKU || dst_chara > CHARA_TETO || src_chara == dst_chara)
+    if (src_chara < 0 || src_chara >= CHARA_MAX || dst_chara < 0 || dst_chara >= CHARA_MAX || src_chara == dst_chara)
         return false;
 
     std::string src_chara_str = chara_index_get_auth_3d_name(src_chara);

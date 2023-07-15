@@ -17,6 +17,32 @@
 #include "../../CRE/task_effect.hpp"
 #include "../input_state.hpp"
 
+class DtwAet : public dw::Shell {
+public:
+    dw::ListBox* set;
+    dw::ListBox* id;
+    dw::ListBox* layer;
+    dw::ListBox* marker;
+    dw::Label* marker_frame;
+    dw::ListBox* type;
+    dw::Slider* frame;
+
+    DtwAet();
+    virtual ~DtwAet() override;
+
+    virtual void Hide() override;
+
+    static void CenteringCallback(dw::Widget* data);
+    static void FrameCallback(dw::Widget* data);
+    static void IdCallback(dw::Widget* data);
+    static void LayerCallback(dw::Widget* data);
+    static void LockCallback(dw::Widget* data);
+    static void LoopCallback(dw::Widget* data);
+    static void MarkerCallback(dw::Widget* data);
+    static void SetCallback(dw::Widget* data);
+    static void TypeCallback(dw::Widget* data);
+};
+
 extern int32_t width;
 extern int32_t height;
 
@@ -363,6 +389,36 @@ void DtmAet::SetCentering(bool value) {
         centering = value;
 }
 
+void dtm_aet_init() {
+    dtm_aet = new DtmAet;
+}
+
+void dtm_aet_load() {
+    if (app::TaskWork::CheckTaskReady(dtm_aet))
+        return;
+
+    app::TaskWork::AddTask(dtm_aet, "DATA_TEST_AET_MANAGER");
+
+    if (!dtw_aet) {
+        dtw_aet = new DtwAet;
+        dtw_aet->sub_1402F38B0();
+    }
+    else
+        dtw_aet->Disp();
+}
+
+void dtm_aet_unload() {
+    dtm_aet->DelTask();
+    dtw_aet->Hide();
+}
+
+void dtm_aet_free() {
+    if (dtm_aet) {
+        delete dtm_aet;
+        dtm_aet = 0;
+    }
+}
+
 DtwAet::DtwAet() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
@@ -507,34 +563,4 @@ void DtwAet::TypeCallback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
     if (list_box)
         dtm_aet->SetType(list_box->list->selected_item ? 1 : 0);
-}
-
-void dtm_aet_init() {
-    dtm_aet = new DtmAet;
-}
-
-void dtm_aet_load() {
-    if (app::TaskWork::CheckTaskReady(dtm_aet))
-        return;
-
-    app::TaskWork::AddTask(dtm_aet, "DATA_TEST_AET_MANAGER");
-
-    if (!dtw_aet) {
-        dtw_aet = new DtwAet;
-        dtw_aet->sub_1402F38B0();
-    }
-    else
-        dtw_aet->Disp();
-}
-
-void dtm_aet_unload() {
-    dtm_aet->DelTask();
-    dtw_aet->Hide();
-}
-
-void dtm_aet_free() {
-    if (dtm_aet) {
-        delete dtm_aet;
-        dtm_aet = 0;
-    }
 }

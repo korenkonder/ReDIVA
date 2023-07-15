@@ -2309,10 +2309,10 @@ struct item_cos_texture_change_tex {
 };
 
 struct rob_chara_item_cos_data {
+    ::chara_index curr_chara_index;
     ::chara_index chara_index;
-    ::chara_index chara_index_2nd;
+    item_cos_data curr_cos;
     item_cos_data cos;
-    item_cos_data cos_2nd;
     std::map<int32_t, std::vector<item_cos_texture_change_tex>> texture_change;
     std::map<int32_t, std::vector<uint32_t>> item_change;
     std::map<object_info, item_id> field_F0;

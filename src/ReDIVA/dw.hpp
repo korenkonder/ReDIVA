@@ -139,7 +139,7 @@ namespace dw {
 
     class Widget {
     public:
-        typedef void(*Callback)(Widget* widget);
+        typedef void(*Callback)(Widget* data);
 
         struct KeyCallbackData {
             Widget* widget;

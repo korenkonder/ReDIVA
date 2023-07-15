@@ -2030,6 +2030,7 @@ namespace dw {
 
     void List::ClearItems() {
         items.clear();
+        selections.clear();
         hovered_item = -1;
         selected_item = -1;
     }
@@ -3561,13 +3562,13 @@ void dw_gui_detail::Display::Draw() {
 
 void dw_gui_detail::Display::FreeWidgets() {
     for (auto& i : free_widgets) {
-        delete i;
-
         if (howered_widget == i)
             howered_widget = 0;
 
         if (selected_widget == i)
             selected_widget = 0;
+
+        delete i;
     }
 
     free_widgets.clear();

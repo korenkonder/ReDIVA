@@ -67,6 +67,68 @@ const char* chara_names[] = {
     "EXT",
 };
 
+const char* item_id_names[] = {
+    "BODY",
+    "ATAMA",
+    "KATA_R",
+    "MUNE",
+    "KATA_L",
+    "UDE_R",
+    "SENAKA",
+    "UDE_L",
+    "HARA",
+    "KOSI",
+    "TE_R",
+    "TE_L",
+    "MOMO",
+    "SUNE",
+    "ASI",
+    "KAMI",
+    "OUTER",
+    "PANTS",
+    "ZUJO",
+    "MEGANE",
+    "KUBI",
+    "JOHA_USHIRO",
+    "KUCHI",
+    "ITEM09",
+    "ITEM10",
+    "ITEM11",
+    "ITEM12",
+    "ITEM13",
+    "ITEM14",
+    "ITEM15",
+    "ITEM16",
+};
+
+const char* item_sub_id_names[] = {
+    "ZUJO",
+    "KAMI",
+    "HITAI",
+    "ME",
+    "MEGANE",
+    "MIMI",
+    "KUCHI",
+    "MAKI",
+    "KUBI",
+    "INNER",
+    "OUTER",
+    "KATA",
+    "U_UDE",
+    "L_UDE",
+    "TE",
+    "JOHA_MAE",
+    "JOHA_USHIRO",
+    "BELT",
+    "KOSI",
+    "PANTS",
+    "ASI",
+    "SUNE",
+    "KUTSU",
+    "HADA",
+    "HEAD",
+};
+
 static void itm_table_read_inner(itm_table* itm_tbl, stream& s);
 static void itm_table_write_inner(itm_table* itm_tbl, stream& s);
 static void itm_table_read_text(itm_table* itm_tbl, void* data, size_t size);
@@ -230,19 +292,19 @@ bool itm_table::load_file(void* data, const char* path, const char* file, uint32
 }
 
 const char* chara_index_get_auth_3d_name(chara_index chara_index) {
-    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+    if (chara_index >= 0 && chara_index < CHARA_MAX)
         return chara_auth_3d_names[chara_index];
     return 0;
 }
 
 const char* chara_index_get_chara_name(chara_index chara_index) {
-    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+    if (chara_index >= 0 && chara_index < CHARA_MAX)
         return chara_names[chara_index];
     return 0;
 }
 
 const char* chara_index_get_face_mot_name(chara_index chara_index) {
-    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+    if (chara_index >= 0 && chara_index < CHARA_MAX)
         return chara_face_mot_names[chara_index];
     return 0;
 }
@@ -251,14 +313,13 @@ chara_index chara_index_get_from_chara_name(const char* str) {
     if (!str)
         return CHARA_MAX;
 
-    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++) {
+    for (int32_t i = 0; i < CHARA_MAX; i++) {
         const char* chr_s = chara_names[i];
         const char* s = str;
 
         char chr_c;
         char diff;
-        do
-        {
+        do {
             chr_c = *chr_s;
             diff = *s - chr_c;
             if (diff)
@@ -275,8 +336,20 @@ chara_index chara_index_get_from_chara_name(const char* str) {
 }
 
 const char* chara_index_get_name(chara_index chara_index) {
-    if (chara_index >= CHARA_MIKU && chara_index <= CHARA_TETO)
+    if (chara_index >= 0 && chara_index < CHARA_MAX)
         return chara_full_names[chara_index];
+    return 0;
+}
+
+const char* item_id_get_name(item_id id) {
+    if (id >= 0 && id < ITEM_MAX)
+        return item_id_names[id];
+    return 0;
+}
+
+const char* item_sub_id_get_name(item_sub_id sub_id) {
+    if (sub_id >= 0 && sub_id < ITEM_SUB_MAX)
+        return item_sub_id_names[sub_id];
     return 0;
 }
 

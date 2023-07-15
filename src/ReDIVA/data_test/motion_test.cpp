@@ -14,10 +14,336 @@
 #include "../../CRE/resolution_mode.hpp"
 #include "../../CRE/stage.hpp"
 #include "../config.hpp"
+#include "../dw.hpp"
 #include "../input_state.hpp"
 #include "auth_3d_test.hpp"
 #include "equip_test.hpp"
 #include "stage_test.hpp"
+
+class DataTestFaceMotDw : public dw::Shell {
+public:
+    struct MotionData {
+        int32_t mottbl_index;
+        float_t frame;
+    };
+
+    struct Data {
+        MotionData face;
+        MotionData eyelid;
+        MotionData eyes;
+        MotionData mouth;
+    };
+
+    int32_t chara_id;
+    std::map<uint32_t, int32_t> motion_id_mottbl_map;
+    dw::Button* enable;
+    dw::ListBox* face;
+    dw::Slider* face_frame;
+    dw::Label* face_cl;
+    dw::Slider* face_cl_frame;
+    dw::ListBox* eyes;
+    dw::Slider* eyes_frame;
+    dw::ListBox* mouth;
+    dw::Slider* mouth_frame;
+
+    DataTestFaceMotDw(int32_t chara_id);
+    virtual ~DataTestFaceMotDw() override;
+
+    virtual void Hide() override;
+
+    void AddMottblMapMotions(dw::ListBox* list_box, int32_t type);
+    Data GetData();
+    bool GetEnable();
+    dw::ListBox* InitAddMottblMapMotions(dw::Composite* parent, int32_t type);
+    void Reset();
+};
+
+class DataTestMotDw : public dw::Shell {
+public:
+    class StepSliderProc : public dw::SelectionAdapter {
+    public:
+        int32_t index;
+
+        StepSliderProc();
+        virtual ~StepSliderProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class CharaListBoxProc : public dw::SelectionAdapter {
+    public:
+        dw::ListBox* list_box;
+
+        CharaListBoxProc();
+        virtual ~CharaListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class CTypeListBoxProc : public dw::SelectionAdapter {
+    public:
+        dw::ListBox* list_box;
+
+        CTypeListBoxProc();
+        virtual ~CTypeListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class SetListBoxProc : public dw::SelectionAdapter {
+    public:
+        dw::ListBox* list_box;
+
+        SetListBoxProc();
+        virtual ~SetListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class IdListBoxProc : public dw::SelectionAdapter {
+    public:
+        dw::Slider* slider;
+
+        IdListBoxProc();
+        virtual ~IdListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class RotateSliderProc : public dw::SelectionAdapter {
+    public:
+        dw::Slider* slider;
+
+        RotateSliderProc();
+        virtual ~RotateSliderProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class PositionSliderProc : public dw::SelectionAdapter {
+    public:
+        PositionSliderProc();
+        virtual ~PositionSliderProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class FrameSliderProc : public dw::SelectionAdapter {
+    public:
+        dw::Slider* slider;
+
+        FrameSliderProc();
+        virtual ~FrameSliderProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class StartFrameSliderProc : public dw::SelectionAdapter {
+    public:
+        dw::Button* button;
+
+        StartFrameSliderProc();
+        virtual ~StartFrameSliderProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class DispButtonProc : public dw::SelectionAdapter {
+    public:
+        dw::Button* button;
+
+        DispButtonProc();
+        virtual ~DispButtonProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class UseOpdButtonProc : public dw::SelectionAdapter {
+    public:
+        UseOpdButtonProc();
+        virtual ~UseOpdButtonProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class PartialMotButtonProc : public dw::SelectionAdapter {
+    public:
+        PartialMotButtonProc();
+        virtual ~PartialMotButtonProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class SaveOnlyStartFrameButtonProc : public dw::SelectionAdapter {
+    public:
+        SaveOnlyStartFrameButtonProc();
+        virtual ~SaveOnlyStartFrameButtonProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class CreateFaceMotDwProc : public dw::SelectionAdapter {
+    public:
+        CreateFaceMotDwProc();
+        virtual ~CreateFaceMotDwProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class CreateEqDwProc : public dw::SelectionAdapter {
+    public:
+        CreateEqDwProc();
+        virtual ~CreateEqDwProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    struct CreateDebugCamProc : public dw::SelectionAdapter {
+    public:
+        CreateDebugCamProc();
+        virtual ~CreateDebugCamProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    DtmMot* dtm_mot;
+    dw::ListBox* chara;
+    CharaListBoxProc chara_list_box_proc;
+    CTypeListBoxProc c_type_list_box_proc;
+    SetListBoxProc set_list_box_proc;
+    IdListBoxProc id_list_box_proc;
+    RotateSliderProc rotate_slider_proc;
+    PositionSliderProc position_slider_proc;
+    //__int64 field_1E8;
+    //__int64 field_1F0;
+    //__int64 field_1F8;
+    dw::Slider* step_slider;
+    StepSliderProc step_slider_proc[4];
+    dw::Slider* current;
+    FrameSliderProc frame_slider_proc;
+    StartFrameSliderProc start_frame_slider_proc;
+    dw::Label* ab_loop;
+    dw::Label* frame;
+    dw::Label* frame_count;
+    DispButtonProc disp_button_proc;
+    UseOpdButtonProc use_opd_button_proc;
+    PartialMotButtonProc partial_mot_button_proc;
+    SaveOnlyStartFrameButtonProc save_only_start_frame_button_proc;
+    CreateFaceMotDwProc create_face_mot_dw_proc;
+    CreateEqDwProc create_eq_dw_proc;
+    CreateDebugCamProc create_debug_cam_proc;
+
+    DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot);
+    virtual ~DataTestMotDw() override;
+
+    virtual void Draw() override;
+    virtual void Hide() override;
+
+    virtual void ClearIDs();
+    virtual void AddID(const char* str);
+    virtual void SetFrameSlider(float_t frame, float_t frame_count);
+    virtual void SetFrameLabel(float_t frame, float_t frame_count);
+
+    void AddModules(int32_t chara_id, dw::ListBox* list_box);
+    void ResetFrame();
+    void ResetIDListBoxIndex();
+    void SetIDListBoxIndex(uint32_t index);
+
+    static void ABToggleCallback(dw::Widget* data);
+    static void ACallback(dw::Widget* data);
+    static void BCallback(dw::Widget* data);
+    static void StartCtrlLeftRightCallback(dw::Widget* data);
+    static void StartCtrlResetCallback(dw::Widget* data);
+
+    void sub_14028D8B0();
+};
+
+class DataTestMotA3dDw : public dw::Shell {
+public:
+    class PvListBoxProc : public dw::SelectionAdapter {
+    public:
+        PvListBoxProc();
+        virtual ~PvListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class A3dListBoxProc : public dw::SelectionAdapter {
+    public:
+        A3dListBoxProc();
+        virtual ~A3dListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    dw::ListBox* pv;
+    DataTestMotA3dDw::PvListBoxProc pv_list_box_proc;
+    dw::ListBox* a3d;
+    DataTestMotA3dDw::A3dListBoxProc a3d_list_box_proc;
+    dw::Button* play_a3d;
+    dw::Button* sync_1p_frame;
+
+    DataTestMotA3dDw();
+    virtual ~DataTestMotA3dDw();
+
+    virtual void Draw() override;
+    virtual void Hide() override;
+
+    void SetPvId(int32_t pv_id);
+
+    static void PlayA3dCallback(dw::Widget* data);
+    static void Sync1pFrameCallback(dw::Widget* data);
+};
+
+class DataTestMotCtrlDw : public dw::Shell {
+public:
+    class TypeListBoxProc : public dw::SelectionAdapter {
+    public:
+        TypeListBoxProc();
+        virtual ~TypeListBoxProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    class SyncFrameButtonProc : public dw::SelectionAdapter {
+    public:
+        SyncFrameButtonProc();
+        virtual ~SyncFrameButtonProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+
+    class GameCameraButtonProc : public dw::SelectionAdapter {
+    public:
+        GameCameraButtonProc();
+        virtual ~GameCameraButtonProc() override;
+
+        virtual void Callback(dw::SelectionListener::CallbackData* data) override;
+    };
+
+    dw::ListBox* type_list;
+    TypeListBoxProc type_list_box_proc;
+    dw::Button* reset_mot;
+    dw::Button* reset_cam;
+    dw::Button* reload_data;
+    dw::Button* stage;
+    dw::Button* running;
+    DataTestMotCtrlDw::SyncFrameButtonProc sync_frame_button_proc;
+    DataTestMotCtrlDw::GameCameraButtonProc game_camera_button_proc;
+
+    DataTestMotCtrlDw();
+    virtual ~DataTestMotCtrlDw();
+
+    virtual void Draw() override;
+    virtual void Hide() override;
+
+    static void ReloadDataCallback(dw::Widget* data);
+    static void ResetCamCallback(dw::Widget* data);
+    static void ResetMotCallback(dw::Widget* data);
+    static void RunningCallback(dw::Widget* data);
+    static void StageCallback(dw::Widget* data);
+};
 
 extern int32_t width;
 extern int32_t height;
@@ -112,8 +438,8 @@ bool DataTestMot::Init() {
     data_test_mot_a3d_dw_init();
     data.reset_cam = true;
     data.field_A8 = true;
-    //dtm_eq_vs_array[0].AddTask(0, data.chara_index[0]);
-    //dtm_eq_vs_array[1].AddTask(1, data.chara_index[1]);
+    dtm_eq_vs_array[0].AddTask(0, data.chara_index[0]);
+    dtm_eq_vs_array[1].AddTask(1, data.chara_index[1]);
     motion_test_objset_load();
     return true;
 }
@@ -135,28 +461,28 @@ bool DataTestMot::Ctrl() {
 
     if (data.chara_index[0] != data.curr_chara_index[0]) {
         data.curr_chara_index[0] = data.chara_index[0];
-        //dtm_eq_vs_array[0].SetCharaIndexModuleIndex(data.chara_index[0], data.module_index[0]);
+        dtm_eq_vs_array[0].SetCharaIndexModuleIndex(data.chara_index[0], data.module_index[0]);
         v3 = true;
         v2 = true;
     }
 
     if (data.chara_index[1] != data.curr_chara_index[1]) {
         data.curr_chara_index[1] = data.chara_index[1];
-        //dtm_eq_vs_array[1].SetCharaIndexModuleIndex(data.chara_index[1], data.module_index[1]);
+        dtm_eq_vs_array[1].SetCharaIndexModuleIndex(data.chara_index[1], data.module_index[1]);
         v3 = true;
         v2 = true;
     }
 
     if (data.module_index[0] != data.curr_module_index[0]) {
         data.curr_module_index[0] = data.module_index[0];
-        //dtm_eq_vs_array[0].SetCharaIndexModuleIndex(data.chara_index[0], data.module_index[0]);
+        dtm_eq_vs_array[0].SetCharaIndexModuleIndex(data.chara_index[0], data.module_index[0]);
         v3 = true;
         v2 = true;
     }
 
     if (data.module_index[1] != data.curr_module_index[1]) {
         data.curr_module_index[1] = data.module_index[1];
-        //dtm_eq_vs_array[1].SetCharaIndexModuleIndex(data.chara_index[1], data.module_index[1]);
+        dtm_eq_vs_array[1].SetCharaIndexModuleIndex(data.chara_index[1], data.module_index[1]);
         v3 = true;
         v2 = true;
     }
@@ -183,7 +509,7 @@ bool DataTestMot::Ctrl() {
 
         data_test_mot_dw_array_get(1)->ClearIDs();
 
-        const motion_set_info& set_info = aft_mot_db->motion_set[data.motion_set_index[0]];
+        const motion_set_info& set_info = aft_mot_db->motion_set[data.motion_set_index[1]];
         for (const motion_info& i : set_info.motion)
             data_test_mot_dw_array_get(1)->AddID(i.name.c_str());
 
@@ -335,8 +661,8 @@ bool DataTestMot::Dest() {
     data_test_mot_ctrl_dw_get()->Hide();
     data_test_mot_a3d_dw_get()->Hide();
     data_test_face_mot_dw_array_unload();
-    //dtm_eq_vs_array[0].DelTask();
-    //dtm_eq_vs_array[1].DelTask();
+    dtm_eq_vs_array[0].DelTask();
+    dtm_eq_vs_array[1].DelTask();
     motion_test_objset_unload();
     data_test_mot_a3d_get()->DelTask();
     return true;
@@ -562,7 +888,7 @@ void DataTestMotA3d::Sync1pFrame() {
         i.set_req_frame(frame);
 }
 
-DtmMot::DtmMot() : rob_bone_data(), field_7C(), rot_y(), pre_offset(), post_offset(), divide(),
+DtmMot::DtmMot() : rob_bone_data(), type(), rot_y(), pre_offset(), post_offset(), divide(),
 loop(), change_motion(), use_opd(), field_D6(), reset_mot(), save_only_start_frame(), state(),
 frame(), delta_frame(), looped(), start_frame(), ab_frame(), ab_loop(), set_motion_index() {
     chara_id = -1;
@@ -592,7 +918,7 @@ bool DtmMot::Init() {
     state = 1;
     looped = 0;
 
-    if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX || module_index >= 502) {
+    if (chara_index < 0 || chara_index >= CHARA_MAX || module_index >= 502) {
         state = 0;
         return true;
     }
@@ -600,7 +926,7 @@ bool DtmMot::Init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    if (!field_7C) {
+    if (!type) {
         int32_t motion_set_index = this->motion_set_index;
         int32_t motion_index = this->motion_index;
         if (aft_mot_db->motion_set.size() <= motion_set_index) {
@@ -863,7 +1189,7 @@ bool DtmMot::Ctrl() {
 
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
 
-        float_t frame = 0.0f;
+        float_t frame = this->frame;
         if (frame >= pre_offset)
             frame = min_def(rob_chr->data.field_1588.field_0.frame, frame - pre_offset);
 
@@ -970,7 +1296,7 @@ void DtmMot::Basic() {
 
     int32_t step_index = 3;
     for (int32_t i = 0; i < 4; i++)
-        if (frame >= divide[i]) {
+        if (frame < divide[i]) {
             step_index = i;
             break;
         }
@@ -1017,13 +1343,32 @@ void DtmMot::Basic() {
 }
 
 bool DtmMot::AddTask(::chara_index chara_index,
-    int32_t module_index, uint32_t motion_set_id, uint32_t motion_id) {
-    return true;
+    int32_t module_index, uint32_t motion_set_index, uint32_t motion_index) {
+    if (app::TaskWork::HasTask(this) || app::TaskWork::CheckTaskReady(this))
+        return true;
+
+    this->chara_index = chara_index;
+    this->module_index = module_index;
+    this->motion_index = motion_index;
+    this->motion_set_index = motion_set_index;
+    type = 0;
+    return app::TaskWork::AddTask(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
 bool DtmMot::AddTask(::chara_index chara_index,
     int32_t module_index, uint32_t motion_id) {
-    return true;
+    if (app::TaskWork::HasTask(this) || app::TaskWork::CheckTaskReady(this))
+        return true;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    this->chara_index = chara_index;
+    this->module_index = module_index;
+    this->motion_id = motion_id;
+    this->motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
+    type = 1;
+    return app::TaskWork::AddTask(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
 bool DtmMot::DelTask() {
@@ -1153,11 +1498,11 @@ void DtmMot::SetOffset(float_t pre_offset, float_t post_offset) {
 }
 
 void DtmMot::SetPlay(bool value) {
-    partial_mot = value;
+    play = value;
 }
 
 void DtmMot::SetPartialMot(bool value) {
-    play = value;
+    partial_mot = value;
 }
 
 void DtmMot::SetResetMot() {
@@ -1247,6 +1592,70 @@ int32_t DtmMot::ConvertMotionSetNameToPVID(const char* set_name) {
     pv_id += (set_name[3] - '0') * 10;
     pv_id += set_name[4] - '0';
     return pv_id;
+}
+
+void motion_test_init() {
+    if (!data_test_mot)
+        data_test_mot = new DataTestMot;
+
+    if (!data_test_mot_a3d)
+        data_test_mot_a3d = new DataTestMotA3d;
+
+    if (!dtm_mot_array)
+        dtm_mot_array = new DtmMot[2];
+
+    motion_test_objset = {};
+}
+
+void motion_test_free() {
+    for (DataTestFaceMotDw*& i : data_test_face_mot_dw_array)
+        if (i) {
+            delete i;
+            i = 0;
+        }
+
+    if (data_test_mot_ctrl_dw) {
+        delete data_test_mot_ctrl_dw;
+        data_test_mot_ctrl_dw = 0;
+    }
+
+    if (data_test_mot_a3d_dw) {
+        delete data_test_mot_a3d_dw;
+        data_test_mot_a3d_dw = 0;
+    }
+
+    for (DataTestMotDw*& i : data_test_mot_dw_array)
+        if (i) {
+            delete i;
+            i = 0;
+        }
+
+    motion_test_objset.clear();
+    motion_test_objset.shrink_to_fit();
+
+    if (dtm_mot_array) {
+        delete[] dtm_mot_array;
+        dtm_mot_array = 0;
+    }
+
+    if (data_test_mot_a3d) {
+        delete data_test_mot_a3d;
+        data_test_mot_a3d = 0;
+    }
+
+    if (data_test_mot) {
+        delete data_test_mot;
+        data_test_mot = 0;
+    }
+}
+
+void dtm_mot_array_set_reset_mot() {
+    dtm_mot_array[0].SetResetMot();
+    dtm_mot_array[1].SetResetMot();
+}
+
+bool dtm_mot_array_sub_140291C10() {
+    return dtm_mot_array[0].sub_140291C10() && dtm_mot_array[1].sub_140291C10();
 }
 
 DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {
@@ -1503,7 +1912,7 @@ void DataTestMotDw::CTypeListBoxProc::Callback(dw::SelectionListener::CallbackDa
             size_t end = str.find(')');
             if (end != -1)
                 test_mot_data->module_index[list_box->callback_data.i32] =
-                    atoi(str.substr(start, end - start).c_str()) - 1;
+                atoi(str.substr(start, end - start).c_str()) - 1;
         }
     }
 }
@@ -1535,7 +1944,13 @@ DataTestMotDw::IdListBoxProc::~IdListBoxProc() {
 }
 
 void DataTestMotDw::IdListBoxProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    DataTestMot::Data* test_mot_data = data_test_mot_data_get();
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data->widget);
+    if (list_box) {
+        int32_t chara_id = list_box->callback_data.i32;
+        test_mot_data->motion_index[chara_id] = (int32_t)list_box->list->selected_item;
+        data_test_mot_dw_array_get(chara_id)->ResetFrame();
+    }
 }
 
 DataTestMotDw::RotateSliderProc::RotateSliderProc() : slider() {
@@ -1547,7 +1962,10 @@ DataTestMotDw::RotateSliderProc::~RotateSliderProc() {
 }
 
 void DataTestMotDw::RotateSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    DataTestMot::Data* test_mot_data = data_test_mot_data_get();
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
+    if (slider)
+        test_mot_data->rot_y[slider->callback_data.i32] = slider->scroll_bar->value * DEG_TO_RAD_FLOAT;
 }
 
 DataTestMotDw::PositionSliderProc::PositionSliderProc() {
@@ -1559,7 +1977,10 @@ DataTestMotDw::PositionSliderProc::~PositionSliderProc() {
 }
 
 void DataTestMotDw::PositionSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    DataTestMot::Data* test_mot_data = data_test_mot_data_get();
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
+    if (slider)
+        test_mot_data->trans_x[slider->callback_data.i32] = slider->scroll_bar->value;
 }
 
 DataTestMotDw::FrameSliderProc::FrameSliderProc() : slider() {
@@ -1571,7 +1992,16 @@ DataTestMotDw::FrameSliderProc::~FrameSliderProc() {
 }
 
 void DataTestMotDw::FrameSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    DataTestMot::Data* test_mot_data = data_test_mot_data_get();
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
+    if (slider) {
+        float_t frame = slider->scroll_bar->value;
+        data_test_mot_dw_array_get(slider->scroll_bar->callback_data.i32)->dtm_mot->SetFrame(frame);
+        if (test_mot_data->sync_frame) {
+            dtm_mot_array[0].SetFrame(frame);
+            dtm_mot_array[1].SetFrame(frame);
+        }
+    }
 }
 
 DataTestMotDw::StartFrameSliderProc::StartFrameSliderProc() : button() {
@@ -1583,7 +2013,10 @@ DataTestMotDw::StartFrameSliderProc::~StartFrameSliderProc() {
 }
 
 void DataTestMotDw::StartFrameSliderProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    DataTestMot::Data* test_mot_data = data_test_mot_data_get();
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
+    if (slider)
+        test_mot_data->start_frame[slider->callback_data.i32] = slider->scroll_bar->value;
 }
 
 DataTestMotDw::DispButtonProc::DispButtonProc() : button() {
@@ -1595,7 +2028,9 @@ DataTestMotDw::DispButtonProc::~DispButtonProc() {
 }
 
 void DataTestMotDw::DispButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
+    if (button)
+        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetDisp(button->value);
 }
 
 DataTestMotDw::UseOpdButtonProc::UseOpdButtonProc() {
@@ -1607,7 +2042,9 @@ DataTestMotDw::UseOpdButtonProc::~UseOpdButtonProc() {
 }
 
 void DataTestMotDw::UseOpdButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
+    if (button)
+        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetUseOpd(button->value);
 }
 
 DataTestMotDw::PartialMotButtonProc::PartialMotButtonProc() {
@@ -1619,7 +2056,9 @@ DataTestMotDw::PartialMotButtonProc::~PartialMotButtonProc() {
 }
 
 void DataTestMotDw::PartialMotButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
+    if (button)
+        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetPartialMot(button->value);
 }
 
 DataTestMotDw::SaveOnlyStartFrameButtonProc::SaveOnlyStartFrameButtonProc() {
@@ -1631,7 +2070,9 @@ DataTestMotDw::SaveOnlyStartFrameButtonProc::~SaveOnlyStartFrameButtonProc() {
 }
 
 void DataTestMotDw::SaveOnlyStartFrameButtonProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
+    if (button)
+        data_test_mot_dw_array_get(button->callback_data.i32)->dtm_mot->SetSaveOnlyStartFrame(button->value);
 }
 
 DataTestMotDw::CreateFaceMotDwProc::CreateFaceMotDwProc() {
@@ -1643,7 +2084,9 @@ DataTestMotDw::CreateFaceMotDwProc::~CreateFaceMotDwProc() {
 }
 
 void DataTestMotDw::CreateFaceMotDwProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
+    if (button)
+        data_test_face_mot_dw_array_init(button->callback_data.i32);
 }
 
 DataTestMotDw::CreateEqDwProc::CreateEqDwProc() {
@@ -1655,7 +2098,7 @@ DataTestMotDw::CreateEqDwProc::~CreateEqDwProc() {
 }
 
 void DataTestMotDw::CreateEqDwProc::Callback(dw::SelectionListener::CallbackData* data) {
-
+    data_test_equip_dw_init();
 }
 
 DataTestMotDw::CreateDebugCamProc::CreateDebugCamProc() {
@@ -1688,7 +2131,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     dw::ListBox* chara = new dw::ListBox(chara_comp);
     chara->SetMaxItems(20);
-    for (int32_t i = CHARA_MIKU; i < CHARA_MAX; i++)
+    for (int32_t i = 0; i < CHARA_MAX; i++)
         chara->AddItem(chara_index_get_name((chara_index)i));
     chara->callback_data.i32 = chara_id;
     chara->SetItemIndex(test_mot_data->chara_index[chara_id]);
@@ -1709,7 +2152,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     chara_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* set_comp = new dw::Composite(this);
-    set_comp->SetLayout( new dw::RowLayout(dw::HORIZONTAL));
+    set_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     dw::Label* set_label = new dw::Label(set_comp);
     set_label->SetText("SET     ");
@@ -2064,10 +2507,10 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
         if (i.motion_id == test_mot_dw->dtm_mot->motion_id)
             if (&i != set_motion.data())
                 last = i.frame_stage_index.first;
-            if (frame < i.frame_stage_index.first) {
-                first = i.frame_stage_index.first;
-                break;
-            }
+        if (frame < i.frame_stage_index.first) {
+            first = i.frame_stage_index.first;
+            break;
+        }
     }
 
     if (frame > set_motion.back().frame_stage_index.first)
@@ -2335,7 +2778,7 @@ DataTestMotCtrlDw::DataTestMotCtrlDw() {
 
     SetText("MOTION TEST");
 
-    type_list = new dw::ListBox(this);
+    type_list = new dw::ListBox(this, dw::MULTISELECT);
     type_list->AddItem("ONCE");
     type_list->AddItem("LOOP");
     type_list->AddItem("STEP");
@@ -2455,66 +2898,6 @@ void DataTestMotCtrlDw::StageCallback(dw::Widget* data) {
     dtw_stg_load(false);
 }
 
-void motion_test_init() {
-    if (!data_test_mot)
-        data_test_mot = new DataTestMot;
-
-    if (!data_test_mot_a3d)
-        data_test_mot_a3d = new DataTestMotA3d;
-
-    if (!dtm_mot_array)
-        dtm_mot_array = new DtmMot[2];
-
-    motion_test_objset = {};
-}
-
-void motion_test_free() {
-    for (DataTestFaceMotDw*& i : data_test_face_mot_dw_array)
-        if (i) {
-            delete i;
-            i = 0;
-        }
-
-    if (data_test_mot_ctrl_dw) {
-        delete data_test_mot_ctrl_dw;
-        data_test_mot_ctrl_dw = 0;
-    }
-
-    if (data_test_mot_a3d_dw) {
-        delete data_test_mot_a3d_dw;
-        data_test_mot_a3d_dw = 0;
-    }
-
-    for (DataTestMotDw*& i : data_test_mot_dw_array)
-        if (i) {
-            delete i;
-            i = 0;
-        }
-
-    motion_test_objset.clear();
-    motion_test_objset.shrink_to_fit();
-
-    if (dtm_mot_array) {
-        delete[] dtm_mot_array;
-        dtm_mot_array = 0;
-    }
-
-    if (data_test_mot_a3d) {
-        delete data_test_mot_a3d;
-        data_test_mot_a3d = 0;
-    }
-
-    if (data_test_mot) {
-        delete data_test_mot;
-        data_test_mot = 0;
-    }
-}
-
-void dtm_mot_array_set_reset_mot() {
-    dtm_mot_array[0].SetResetMot();
-    dtm_mot_array[1].SetResetMot();
-}
-
 static DataTestMot::Data* data_test_mot_data_get() {
     return &data_test_mot->data;
 }
@@ -2567,6 +2950,7 @@ static DataTestMotDw* data_test_mot_dw_array_get(int32_t chara_id) {
 }
 
 static void data_test_mot_a3d_dw_init() {
+    data_test_mot_a3d_add_task();
     if (!data_test_mot_a3d_dw) {
         data_test_mot_a3d_dw = new DataTestMotA3dDw;
         data_test_mot_a3d_dw->sub_1402F38B0();

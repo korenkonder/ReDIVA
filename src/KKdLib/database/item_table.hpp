@@ -77,19 +77,19 @@ enum item_sub_id {
     ITEM_SUB_KUBI        = 0x08,
     ITEM_SUB_INNER       = 0x09,
     ITEM_SUB_OUTER       = 0x0A,
-    ITEM_SUB_JOHA_MAE    = 0x0B,
-    ITEM_SUB_JOHA_USHIRO = 0x0C,
-    ITEM_SUB_HADA        = 0x0D,
-    ITEM_SUB_KATA        = 0x0E,
-    ITEM_SUB_U_UDE       = 0x0F,
-    ITEM_SUB_L_UDE       = 0x10,
-    ITEM_SUB_TE          = 0x11,
-    ITEM_SUB_BELT        = 0x12,
-    ITEM_SUB_COSI        = 0x13,
-    ITEM_SUB_PANTS       = 0x14,
-    ITEM_SUB_ASI         = 0x15,
-    ITEM_SUB_SUNE        = 0x16,
-    ITEM_SUB_KUTSU       = 0x17,
+    ITEM_SUB_KATA        = 0x0B,
+    ITEM_SUB_U_UDE       = 0x0C,
+    ITEM_SUB_L_UDE       = 0x0D,
+    ITEM_SUB_TE          = 0x0E,
+    ITEM_SUB_JOHA_MAE    = 0x0F,
+    ITEM_SUB_JOHA_USHIRO = 0x10,
+    ITEM_SUB_BELT        = 0x11,
+    ITEM_SUB_KOSI        = 0x12,
+    ITEM_SUB_PANTS       = 0x13,
+    ITEM_SUB_ASI         = 0x14,
+    ITEM_SUB_SUNE        = 0x15,
+    ITEM_SUB_KUTSU       = 0x16,
+    ITEM_SUB_HADA        = 0x17,
     ITEM_SUB_HEAD        = 0x18,
     ITEM_SUB_MAX         = 0x19,
 };
@@ -200,8 +200,14 @@ extern const char* chara_face_mot_names[];
 extern const char* chara_full_names[];
 extern const char* chara_names[];
 
+extern const char* item_id_names[];
+extern const char* item_sub_id_names[];
+
 extern const char* chara_index_get_auth_3d_name(chara_index chara_index);
 extern const char* chara_index_get_chara_name(chara_index chara_index);
 extern const char* chara_index_get_face_mot_name(chara_index chara_index);
 extern chara_index chara_index_get_from_chara_name(const char* str);
 extern const char* chara_index_get_name(chara_index chara_index);
+
+extern const char* item_id_get_name(item_id id);
+extern const char* item_sub_id_get_name(item_sub_id sub_id);
