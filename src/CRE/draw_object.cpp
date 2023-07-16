@@ -511,12 +511,10 @@ inline void draw_object_model_mat_load(render_context* rctx, const mat4& mat) {
 }
 
 inline void model_mat_face_camera_position(const mat4* view, const mat4* src, mat4* dst) {
-    vec3 trans;
-    mat4_get_translation(view, &trans);
-    mat4_mult_vec3_inv_trans(view, &trans, &trans);
-    trans = -trans;
+    mat4 mat;
+    mat4_inverse_normalized(view, &mat);
 
-    vec3 dir = vec3::normalize(trans - *(vec3*)&src->row3);
+    vec3 dir = vec3::normalize(*(vec3*)&mat.row3 - *(vec3*)&src->row3);
 
     vec3 x_rot;
     vec3 y_rot;
