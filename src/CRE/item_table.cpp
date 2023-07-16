@@ -96,13 +96,13 @@ void item_table_handler_array_init() {
         item_table_handler_array[i].set_path((chara_index)i);
 }
 
-const item_cos_data* item_table_handler_array_get_item_cos_data_by_module_index(
-    chara_index chara_index, int32_t module_index) {
+const item_cos_data* item_table_handler_array_get_item_cos_data(
+    chara_index chara_index, int32_t cos_id) {
     const item_table* table = item_table_handler_array_get_table(chara_index);
     if (!table)
         return 0;
 
-    auto elem = table->cos.find(module_index);
+    auto elem = table->cos.find(cos_id);
     if (elem != table->cos.end())
         return &elem->second;
     else if (table->cos.size())

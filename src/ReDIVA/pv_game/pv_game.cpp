@@ -6367,8 +6367,7 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
     for (int32_t i = 0; i < PV_PERFORMER_ITEM_MAX; i++) {
         int32_t item_no = pv->get_performer_item(performer, item);
         if (item_no == -2) {
-            const item_cos_data* cos =
-                item_table_handler_array_get_item_cos_data_by_module_index(chr->chara_index, chr->cos);
+            const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chr->chara_index, chr->cos);
             if (!cos)
                 continue;
 

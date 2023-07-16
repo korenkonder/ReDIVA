@@ -129,7 +129,7 @@ public:
     bool change_motion;
     bool disp;
     bool use_opd;
-    bool field_D6;
+    bool loaded;
     bool reset_mot;
     bool partial_mot;
     bool save_only_start_frame;
@@ -166,6 +166,7 @@ public:
     void GetABLoop(bool& ab_loop, float_t& a_frame, float_t& b_frame);
     float_t GetFrame();
     float_t GetFrameCount();
+    bool GetLoaded();
     float_t GetStep();
     void ResetABLoop();
     void SetABFrame(bool a);
@@ -190,7 +191,6 @@ public:
 
     static int32_t ConvertMotionSetNameToPVID(const char* set_name);
 
-    bool sub_140291C10();
     void sub_1402922C0(bool value);
 };
 
@@ -200,5 +200,5 @@ extern DtmMot* dtm_mot_array;
 extern void motion_test_init();
 extern void motion_test_free();
 
+extern bool dtm_mot_array_get_loaded();
 extern void dtm_mot_array_set_reset_mot();
-extern bool dtm_mot_array_sub_140291C10();

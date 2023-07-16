@@ -675,7 +675,7 @@ void DataTestMot::Disp() {
 void DataTestMot::sub_140286280() {
     dtm_mot_array[0].sub_1402922C0(true);
     dtm_mot_array[0].sub_1402922C0(true);
-    if (data.sync_frame && (!dtm_mot_array[0].sub_140291C10() || !dtm_mot_array[1].sub_140291C10())) {
+    if (data.sync_frame && (!dtm_mot_array[0].GetLoaded() || !dtm_mot_array[1].GetLoaded())) {
         dtm_mot_array[0].sub_1402922C0(false);
         dtm_mot_array[0].sub_1402922C0(false);
     }
@@ -889,7 +889,7 @@ void DataTestMotA3d::Sync1pFrame() {
 }
 
 DtmMot::DtmMot() : rob_bone_data(), type(), rot_y(), pre_offset(), post_offset(), divide(),
-loop(), change_motion(), use_opd(), field_D6(), reset_mot(), save_only_start_frame(), state(),
+loop(), change_motion(), use_opd(), loaded(), reset_mot(), save_only_start_frame(), state(),
 frame(), delta_frame(), looped(), start_frame(), ab_frame(), ab_loop(), set_motion_index() {
     chara_id = -1;
     chara_index = CHARA_MAX;
@@ -943,13 +943,7 @@ bool DtmMot::Init() {
     }
 
     pv_id = DtmMot::ConvertMotionSetNameToPVID(aft_mot_db->get_motion_set_name(motion_set_id));
-    field_D6 = false;
-    return true;
-}
-
-bool DtmMot::sub_140291C10() {
-    if (state)
-        return field_D6;
+    loaded = false;
     return true;
 }
 
@@ -1025,7 +1019,7 @@ bool DtmMot::Ctrl() {
         state = 11;
     } break;
     case 7: {
-        field_D6 = false;
+        loaded = false;
         if (skin_param_manager_check_task_ready(chara_id)
             || pv_osage_manager_array_get_disp(chara_id)
             || osage_play_data_manager_check_task_ready())
@@ -1160,7 +1154,7 @@ bool DtmMot::Ctrl() {
         state = 11;
     } break;
     case 11: {
-        field_D6 = true;
+        loaded = true;
         if (!field_100)
             break;
 
@@ -1432,6 +1426,12 @@ float_t DtmMot::GetFrameCount() {
     return 0.0f;
 }
 
+bool DtmMot::GetLoaded() {
+    if (state)
+        return loaded;
+    return true;
+}
+
 float_t DtmMot::GetStep() {
     return step[3];
 }
@@ -1649,13 +1649,13 @@ void motion_test_free() {
     }
 }
 
+bool dtm_mot_array_get_loaded() {
+    return dtm_mot_array[0].GetLoaded() && dtm_mot_array[1].GetLoaded();
+}
+
 void dtm_mot_array_set_reset_mot() {
     dtm_mot_array[0].SetResetMot();
     dtm_mot_array[1].SetResetMot();
-}
-
-bool dtm_mot_array_sub_140291C10() {
-    return dtm_mot_array[0].sub_140291C10() && dtm_mot_array[1].sub_140291C10();
 }
 
 DataTestFaceMotDw::DataTestFaceMotDw(int32_t chara_id) {

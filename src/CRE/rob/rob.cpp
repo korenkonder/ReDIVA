@@ -11303,8 +11303,7 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
     rob_chr->pv_data = pv_data;
     rob_chr->chara_init_data = chara_init_data_get(chara_index);
     if (!check_module_index_is_501(module_index)) {
-        const item_cos_data* cos
-            = item_table_handler_array_get_item_cos_data_by_module_index(chara_index, module_index);
+        const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chara_index, module_index);
         if (cos)
             rob_chr->item_cos_data.set_chara_index_item_nos(chara_index, cos->arr);
     }
