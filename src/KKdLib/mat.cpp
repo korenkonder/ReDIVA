@@ -2130,20 +2130,22 @@ inline void mat4_blend(const mat4* x, const mat4* y, mat4* z, float_t blend) {
 
     quat_from_mat3(x->row0.x, x->row1.x, x->row2.x, x->row0.y,
         x->row1.y, x->row2.y, x->row0.z, x->row1.z, x->row2.z, &q0);
+    q0 = quat::normalize(q0);
     quat_from_mat3(y->row0.x, y->row1.x, y->row2.x, y->row0.y,
         y->row1.y, y->row2.y, y->row0.z, y->row1.z, y->row2.z, &q1);
+    q1 = quat::normalize(q1);
 
+    vec3 t0;
     vec3 t1;
     vec3 t2;
-    vec3 t3;
-    mat4_get_translation(x, &t1);
-    mat4_get_translation(y, &t2);
+    mat4_get_translation(x, &t0);
+    mat4_get_translation(y, &t1);
 
-    q2 = quat::slerp(q0, q1, blend);
-    t3 = vec3::lerp(t1, t2, blend);
+    q2 = quat::lerp(q0, q1, blend);
+    t2 = vec3::lerp(t0, t1, blend);
 
     mat4_from_quat(&q2, z);
-    mat4_set_translation(z, &t3);
+    mat4_set_translation(z, &t2);
 }
 
 inline void mat4_blend_rotation(const mat4* x, const mat4* y, mat4* z, float_t blend) {

@@ -19,6 +19,7 @@ struct quat {
     static float_t length_squared(const quat& left);
     static float_t distance(const quat& left, const quat& right);
     static float_t distance_squared(const quat& left, const quat& right);
+    static quat lerp(const quat& left, const quat& right, const float_t blend);
     static quat slerp(const quat& left, const quat& right, const float_t blend);
     static quat normalize(const quat& left);
     static quat rcp(const quat& left);
@@ -177,37 +178,40 @@ inline float_t quat::distance_squared(const quat& left, const quat& right) {
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
 }
 
+inline quat quat::lerp(const quat& left, const quat& right, const float_t blend) {
+    quat x_t;
+    quat y_t;
+    x_t = left;
+    y_t = right;
+
+    if (quat::dot(x_t, y_t) < 0.0f)
+        x_t = -x_t;
+
+    return quat::normalize(x_t * (1.0f - blend) + y_t * blend);
+}
+
 inline quat quat::slerp(const quat& left, const quat& right, const float_t blend) {
     quat x_t;
     quat y_t;
-    quat z_t;
-    x_t = quat::normalize(left);
-    y_t = quat::normalize(right);
+    x_t = left;
+    y_t = right;
 
     float_t dot = quat::dot(x_t, y_t);
     if (dot < 0.0f) {
-        z_t = -y_t;
         dot = -dot;
+        x_t = -x_t;
     }
-    else
-        z_t = y_t;
 
-    const float_t DOT_THRESHOLD = 0.9995f;
-    float_t s0, s1;
-    if (dot <= DOT_THRESHOLD) {
-        float_t theta_0 = acosf(dot);
-        float_t theta = theta_0 * blend;
-        float_t sin_theta = sinf(theta);
-        float_t sin_theta_0 = sinf(theta_0);
+    dot = min_def(dot, 1.0f);
 
-        s0 = cosf(theta) - dot * sin_theta / sin_theta_0;
-        s1 = sin_theta / sin_theta_0;
-    }
-    else {
-        s0 = (1.0f - blend);
-        s1 = blend;
-    }
-    return quat::normalize(left * s0 + z_t * s0);
+    float_t theta = acosf(dot);
+    if (theta == 0.0f)
+        return x_t;
+
+    float_t st = 1.0f / sinf(theta);
+    float_t s0 = sinf((1.0f - blend) * theta) * st;
+    float_t s1 = sinf(theta * blend) * st;
+    return quat::normalize(x_t * s0 + y_t * s1);
 }
 
 inline quat quat::normalize(const quat& left) {

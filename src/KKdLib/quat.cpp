@@ -39,39 +39,40 @@ inline void quat_mult(const quat* x, const quat* y, quat* z) {
 
 void quat_from_mat3(float_t m00, float_t m01, float_t m02, float_t m10,
     float_t m11, float_t m12, float_t m20, float_t m21, float_t m22, quat* quat) {
-    float_t sq;
-
     if (m00 + m11 + m22 >= 0.0f) {
-        sq = sqrtf(m00 + m11 + m22 + 1.0f);
-        quat->w = 0.5f * sq;
+        float_t sq = sqrtf(m00 + m11 + m22 + 1.0f);
+        quat->w = sq * 0.5f;
         sq = 0.5f / sq;
-        quat->x = (m12 - m21) * sq;
-        quat->y = (m20 - m02) * sq;
-        quat->z = (m01 - m10) * sq;
+        quat->x = (m21 - m12) * sq;
+        quat->y = (m02 - m20) * sq;
+        quat->z = (m10 - m01) * sq;
+        return;
     }
-    else if (m00 > m11 && m00 > m22) {
-        sq = sqrtf(m00 - m11 - m22 + 1.0f);
-        quat->x = 0.5f * sq;
+
+    float_t max = max_def(m22, max_def(m11, m00));
+    if (max == m00) {
+        float_t sq = sqrtf(m00 - (m11 + m22) + 1.0f);
+        quat->x = sq * 0.5f;
         sq = 0.5f / sq;
-        quat->y = (m10 + m01) * sq;
-        quat->z = (m20 + m02) * sq;
-        quat->w = (m12 - m21) * sq;
+        quat->y = (m01 + m10) * sq;
+        quat->z = (m02 + m20) * sq;
+        quat->w = (m21 - m12) * sq;
     }
-    else if (m11 > m22) {
-        sq = sqrtf(m11 - m00 - m22 + 1.0f);
-        quat->y = 0.5f * sq;
+    else if (max == m11) {
+        float_t sq = sqrtf(m11 - (m00 + m22) + 1.0f);
+        quat->y = sq * 0.5f;
         sq = 0.5f / sq;
-        quat->x = (m10 + m01) * sq;
-        quat->z = (m21 + m12) * sq;
-        quat->w = (m20 - m02) * sq;
+        quat->x = (m01 + m10) * sq;
+        quat->z = (m12 + m21) * sq;
+        quat->w = (m02 - m20) * sq;
     }
     else {
-        sq = sqrtf(m22 - m00 - m11 + 1.0f);
-        quat->z = 0.5f * sq;
+        float_t sq = sqrtf(m22 - (m00 + m11) + 1.0f);
+        quat->z = sq * 0.5f;
         sq = 0.5f / sq;
-        quat->x = (m20 + m02) * sq;
-        quat->y = (m21 + m12) * sq;
-        quat->w = (m01 - m10) * sq;
+        quat->x = (m02 + m20) * sq;
+        quat->y = (m12 + m21) * sq;
+        quat->w = (m10 - m01) * sq;
     }
 }
 
