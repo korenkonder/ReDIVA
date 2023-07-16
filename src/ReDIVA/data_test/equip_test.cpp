@@ -21,7 +21,7 @@ public:
         int32_t item_no;
         const item_cos_data* cos;
         chara_index chara_index;
-        int32_t module_index;
+        int32_t cos_id;
         bool update_item;
         int32_t disp_parts;
         std::vector<int32_t> items[DATA_TEST_ITEM_EQUIP_MAX];
@@ -54,10 +54,10 @@ public:
     int32_t GetCharaID();
     chara_index GetCharaIndex(int32_t chara_id);
     const item_cos_data* GetCos(int32_t chara_id);
+    int32_t GetCosId(int32_t chara_id);
     int32_t GetCurrentCharaItem(int32_t chara_id, dw::Widget* data);
     int32_t GetDispParts(int32_t chara_id);
     int32_t GetItemNo(int32_t chara_id);
-    int32_t GetModuleIndex(int32_t chara_id);
     bool GetRefresh(int32_t chara_id);
     bool GetResetItemNo(int32_t chara_id);
     bool GetSetItemNo(int32_t chara_id);
@@ -69,11 +69,11 @@ public:
     void SetCharaIndex(int32_t chara_id, ::chara_index chara_index);
     void SetCharaItemCos(int32_t chara_id, const item_cos_data* cos);
     void SetCos(int32_t chara_id, const item_cos_data* cos);
+    void SetCosId(int32_t chara_id, int32_t cos_id);
     void SetCurrentItemNo(int32_t chara_id, dw::Widget* data, int32_t value);
     void SetDisp(int32_t chara_id, bool value);
     void SetDispParts(int32_t chara_id, int32_t parts);
     void SetItemNo(int32_t chara_id, int32_t value);
-    void SetModuleIndex(int32_t chara_id, int32_t module_index);
     void SetRefresh(int32_t chara_id, bool value);
     void SetResetItemNo(int32_t chara_id, bool value);
     void SetSetItemNo(int32_t chara_id, bool value);
@@ -127,7 +127,7 @@ static int32_t data_test_equip_dw_get_item_no(int32_t chara_id);
 static bool data_test_equip_dw_get_reset_item_no(int32_t chara_id);
 static bool data_test_equip_dw_get_set_item_no(int32_t chara_id);
 static void data_test_equip_dw_reset_chara_item_cos(int32_t chara_id);
-static void data_test_equip_dw_set_module_index(int32_t chara_id, int32_t cos);
+static void data_test_equip_dw_set_cos_id(int32_t chara_id, int32_t cos);
 static void data_test_equip_dw_sub_140261520(int32_t chara_id);
 
 static std::vector<int32_t>* data_test_item_array_get(::chara_index chara_index);
@@ -141,7 +141,7 @@ static void data_test_item_equip_array_unload();
 static int32_t data_test_item_get_item_equip(chara_index chara_index, int32_t item_no);
 
 DtmEqVs::DtmEqVs() : chara_id(), chara_index(),
-curr_chara_index(), module_index(), curr_module_index(), disp_parts() {
+curr_chara_index(), cos_id(), curr_cos_id(), disp_parts() {
     state = -1;
 }
 
@@ -237,11 +237,11 @@ bool DtmEqVs::AddTask(int32_t chara_id, ::chara_index chara_index) {
     this->chara_id = chara_id;
     this->chara_index = chara_index;
     this->curr_chara_index = chara_index;
-    module_index = 0;
-    curr_module_index = 0;
+    cos_id = 0;
+    curr_cos_id = 0;
     disp_parts = 0;
     data_test_equip_dw_set_chara_index(chara_id, chara_index);
-    data_test_equip_dw_set_module_index(chara_id, module_index);
+    data_test_equip_dw_set_cos_id(chara_id, cos_id);
     return app::TaskWork::AddTask(this, "DATA TEST EQUIP MANAGER FOR VS");
 }
 
@@ -249,21 +249,21 @@ bool DtmEqVs::DelTask() {
     return app::Task::DelTask();
 }
 
-void DtmEqVs::SetCharaIndexModuleIndex(::chara_index chara_index, int32_t module_index) {
+void DtmEqVs::SetCharaIndexCosId(::chara_index chara_index, int32_t cos_id) {
     this->chara_index = chara_index;
-    this->module_index = module_index;
+    this->cos_id = cos_id;
     data_test_equip_dw_set_chara_index(chara_id, chara_index);
-    data_test_equip_dw_set_module_index(chara_id, module_index);
+    data_test_equip_dw_set_cos_id(chara_id, cos_id);
 }
 
 void DtmEqVs::CtrlChara() {
-    if (chara_index == curr_chara_index && module_index == curr_module_index)
+    if (chara_index == curr_chara_index && cos_id == curr_cos_id)
         return;
 
     curr_chara_index = chara_index;
-    curr_module_index = module_index;
-    const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chara_index, module_index);
-    if (!check_module_index_is_501(curr_module_index) || !cos) {
+    curr_cos_id = cos_id;
+    const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chara_index, cos_id);
+    if (!check_cos_id_is_501(curr_cos_id) || !cos) {
         data_test_equip_dw_sub_140261520(chara_id);
         data_test_equip_dw_set_chara_item_cos(chara_id, cos);
     }
@@ -317,7 +317,7 @@ void equip_test_free() {
 }
 
 DataTestEquipDw::Data::Data() : disp(), set_item_no(), reset_item_no(), refresh(), item_no(),
-cos(), chara_index(), module_index(), update_item(), disp_parts(), current_items() {
+cos(), chara_index(), cos_id(), update_item(), disp_parts(), current_items() {
 
 }
 
@@ -496,6 +496,10 @@ const item_cos_data* DataTestEquipDw::GetCos(int32_t chara_id) {
     return data[chara_id].cos;
 }
 
+int32_t DataTestEquipDw::GetCosId(int32_t chara_id) {
+    return data[chara_id].cos_id;
+}
+
 int32_t DataTestEquipDw::GetCurrentCharaItem(int32_t chara_id, dw::Widget* data) {
     return this->data[chara_id].current_items[data->callback_data.i32];
 }
@@ -506,10 +510,6 @@ int32_t DataTestEquipDw::GetDispParts(int32_t chara_id) {
 
 int32_t DataTestEquipDw::GetItemNo(int32_t chara_id) {
     return data[chara_id].item_no;
-}
-
-int32_t DataTestEquipDw::GetModuleIndex(int32_t chara_id) {
-    return data[chara_id].module_index;
 }
 
 bool DataTestEquipDw::GetRefresh(int32_t chara_id) {
@@ -594,6 +594,10 @@ void DataTestEquipDw::SetCos(int32_t chara_id, const item_cos_data* cos) {
     data[chara_id].cos = cos;
 }
 
+void DataTestEquipDw::SetCosId(int32_t chara_id, int32_t cos_id) {
+    data[chara_id].cos_id = cos_id;
+}
+
 void DataTestEquipDw::SetCurrentItemNo(int32_t chara_id, dw::Widget* data, int32_t value) {
     this->data[chara_id].current_items[data->callback_data.i32] = value;
 }
@@ -610,10 +614,6 @@ void DataTestEquipDw::SetDispParts(int32_t chara_id, int32_t parts) {
 
 void DataTestEquipDw::SetItemNo(int32_t chara_id, int32_t value) {
     data[chara_id].item_no = value;
-}
-
-void DataTestEquipDw::SetModuleIndex(int32_t chara_id, int32_t module_index) {
-    data[chara_id].module_index = module_index;
 }
 
 void DataTestEquipDw::SetRefresh(int32_t chara_id, bool value) {
@@ -691,7 +691,7 @@ void DataTestEquipDw::PartsCallback(dw::Widget* data) {
 
     int32_t chara_id = data_test_equip_dw->GetCharaID();
     ::chara_index chara_index = data_test_equip_dw->GetCharaIndex(chara_id);
-    int32_t cos = data_test_equip_dw->GetModuleIndex(chara_id);
+    int32_t cos = data_test_equip_dw->GetCosId(chara_id);
 
     const item_cos_data* v9 = item_table_handler_array_get_item_cos_data(chara_index, cos);
     size_t selected_item = list_box->list->selected_item;
@@ -895,9 +895,9 @@ static void data_test_equip_dw_reset_chara_item_cos(int32_t chara_id) {
         data_test_equip_dw->ResetCharaItemCos(chara_id);
 }
 
-static void data_test_equip_dw_set_module_index(int32_t chara_id, int32_t cos) {
+static void data_test_equip_dw_set_cos_id(int32_t chara_id, int32_t cos) {
     if (data_test_equip_dw)
-        data_test_equip_dw->SetModuleIndex(chara_id, cos);
+        data_test_equip_dw->SetCosId(chara_id, cos);
 }
 
 static void data_test_equip_dw_sub_140261520(int32_t chara_id) {

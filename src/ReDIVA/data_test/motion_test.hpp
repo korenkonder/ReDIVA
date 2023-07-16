@@ -35,8 +35,8 @@ public:
 
         ::chara_index chara_index[2];
         ::chara_index curr_chara_index[2];
-        uint32_t module_index[2];
-        uint32_t curr_module_index[2];
+        uint32_t cos_id[2];
+        uint32_t curr_cos_id[2];
         uint32_t motion_set_index[2];
         uint32_t curr_motion_set_index[2];
         uint32_t motion_index[2];
@@ -107,7 +107,7 @@ public:
     int32_t chara_id;
     int32_t type;
     ::chara_index chara_index;
-    int32_t module_index;
+    int32_t cos_id;
     union {
         uint32_t motion_set_id;
         int32_t motion_set_index;
@@ -156,9 +156,9 @@ public:
     virtual void Basic() override;
 
     virtual bool AddTask(::chara_index chara_index,
-        int32_t module_index, uint32_t motion_set_index, uint32_t motion_index);
+        int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index);
     virtual bool AddTask(::chara_index chara_index,
-        int32_t module_index, uint32_t motion_id);
+        int32_t cos_id, uint32_t motion_id);
     virtual bool DelTask();
 
     bool CheckFirstFrame();

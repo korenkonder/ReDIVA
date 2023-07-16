@@ -15,8 +15,8 @@ public:
     int32_t chara_id;
     ::chara_index chara_index;
     ::chara_index curr_chara_index;
-    int32_t module_index;
-    int32_t curr_module_index;
+    int32_t cos_id;
+    int32_t curr_cos_id;
     int32_t disp_parts;
 
     DtmEqVs();
@@ -29,7 +29,7 @@ public:
     virtual bool AddTask(int32_t chara_id, ::chara_index chara_index);
     virtual bool DelTask();
 
-    void SetCharaIndexModuleIndex(::chara_index chara_index, int32_t module_index);
+    void SetCharaIndexCosId(::chara_index chara_index, int32_t cos_id);
 
     void CtrlChara();
     void CtrlDispParts();

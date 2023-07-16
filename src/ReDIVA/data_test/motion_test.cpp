@@ -404,7 +404,7 @@ DataTestMot::Data::Step::Step() {
     array[3] = 1.0f;
 }
 
-DataTestMot::Data::Data() : chara_index(), curr_chara_index(), module_index(), curr_module_index(),
+DataTestMot::Data::Data() : chara_index(), curr_chara_index(), cos_id(), curr_cos_id(),
 motion_set_index(), curr_motion_set_index(), motion_index(), curr_motion_index(), rot_y(),
 trans_x(), offset(), start_frame(), type(), reset_mot(), reset_cam(), reload_data(),
 sync_frame(), field_A8(), field_A9(), running(), field_AC(), field_B0(), sync_1p_frame() {
@@ -461,28 +461,28 @@ bool DataTestMot::Ctrl() {
 
     if (data.chara_index[0] != data.curr_chara_index[0]) {
         data.curr_chara_index[0] = data.chara_index[0];
-        dtm_eq_vs_array[0].SetCharaIndexModuleIndex(data.chara_index[0], data.module_index[0]);
+        dtm_eq_vs_array[0].SetCharaIndexCosId(data.chara_index[0], data.cos_id[0]);
         v3 = true;
         v2 = true;
     }
 
     if (data.chara_index[1] != data.curr_chara_index[1]) {
         data.curr_chara_index[1] = data.chara_index[1];
-        dtm_eq_vs_array[1].SetCharaIndexModuleIndex(data.chara_index[1], data.module_index[1]);
+        dtm_eq_vs_array[1].SetCharaIndexCosId(data.chara_index[1], data.cos_id[1]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.module_index[0] != data.curr_module_index[0]) {
-        data.curr_module_index[0] = data.module_index[0];
-        dtm_eq_vs_array[0].SetCharaIndexModuleIndex(data.chara_index[0], data.module_index[0]);
+    if (data.cos_id[0] != data.curr_cos_id[0]) {
+        data.curr_cos_id[0] = data.cos_id[0];
+        dtm_eq_vs_array[0].SetCharaIndexCosId(data.chara_index[0], data.cos_id[0]);
         v3 = true;
         v2 = true;
     }
 
-    if (data.module_index[1] != data.curr_module_index[1]) {
-        data.curr_module_index[1] = data.module_index[1];
-        dtm_eq_vs_array[1].SetCharaIndexModuleIndex(data.chara_index[1], data.module_index[1]);
+    if (data.cos_id[1] != data.curr_cos_id[1]) {
+        data.curr_cos_id[1] = data.cos_id[1];
+        dtm_eq_vs_array[1].SetCharaIndexCosId(data.chara_index[1], data.cos_id[1]);
         v3 = true;
         v2 = true;
     }
@@ -602,13 +602,13 @@ bool DataTestMot::Ctrl() {
         dtm_mot_array[0].DelTask();
     else
         dtm_mot_array[0].AddTask(data.chara_index[0],
-            data.module_index[0], data.motion_set_index[0], data.motion_index[0]);
+            data.cos_id[0], data.motion_set_index[0], data.motion_index[0]);
 
     if (v2)
         dtm_mot_array[1].DelTask();
     else
         dtm_mot_array[1].AddTask(data.chara_index[1],
-            data.module_index[1], data.motion_set_index[1], data.motion_index[1]);
+            data.cos_id[1], data.motion_set_index[1], data.motion_index[1]);
 
     if (data.reset_cam) {
         data.reset_cam = false;
@@ -893,7 +893,7 @@ loop(), change_motion(), use_opd(), loaded(), reset_mot(), save_only_start_frame
 frame(), delta_frame(), looped(), start_frame(), ab_frame(), ab_loop(), set_motion_index() {
     chara_id = -1;
     chara_index = CHARA_MAX;
-    module_index = 502;
+    cos_id = 502;
     motion_set_id = -1;
     motion_id = -1;
     step[0] = 0.0f;
@@ -918,7 +918,7 @@ bool DtmMot::Init() {
     state = 1;
     looped = 0;
 
-    if (chara_index < 0 || chara_index >= CHARA_MAX || module_index >= 502) {
+    if (chara_index < 0 || chara_index >= CHARA_MAX || cos_id >= 502) {
         state = 0;
         return true;
     }
@@ -986,12 +986,12 @@ bool DtmMot::Ctrl() {
         pv_data.type = ROB_CHARA_TYPE_3;
 
         module_data data;
-        if (module_data_handler_data_get_module(chara_index, module_index, data)) {
+        if (module_data_handler_data_get_module(chara_index, cos_id, data)) {
             pv_data.sleeve_l = data.sleeve_l;
             pv_data.sleeve_r = data.sleeve_r;
         }
 
-        chara_id = rob_chara_array_init_chara_index(chara_index, pv_data, module_index, true);
+        chara_id = rob_chara_array_init_chara_index(chara_index, pv_data, cos_id, true);
         state = 4;
     } break;
     case 4: {
@@ -1337,12 +1337,12 @@ void DtmMot::Basic() {
 }
 
 bool DtmMot::AddTask(::chara_index chara_index,
-    int32_t module_index, uint32_t motion_set_index, uint32_t motion_index) {
+    int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index) {
     if (app::TaskWork::HasTask(this) || app::TaskWork::CheckTaskReady(this))
         return true;
 
     this->chara_index = chara_index;
-    this->module_index = module_index;
+    this->cos_id = cos_id;
     this->motion_index = motion_index;
     this->motion_set_index = motion_set_index;
     type = 0;
@@ -1350,7 +1350,7 @@ bool DtmMot::AddTask(::chara_index chara_index,
 }
 
 bool DtmMot::AddTask(::chara_index chara_index,
-    int32_t module_index, uint32_t motion_id) {
+    int32_t cos_id, uint32_t motion_id) {
     if (app::TaskWork::HasTask(this) || app::TaskWork::CheckTaskReady(this))
         return true;
 
@@ -1358,7 +1358,7 @@ bool DtmMot::AddTask(::chara_index chara_index,
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     this->chara_index = chara_index;
-    this->module_index = module_index;
+    this->cos_id = cos_id;
     this->motion_id = motion_id;
     this->motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
     type = 1;
@@ -1911,7 +1911,7 @@ void DataTestMotDw::CTypeListBoxProc::Callback(dw::SelectionListener::CallbackDa
 
             size_t end = str.find(')');
             if (end != -1)
-                test_mot_data->module_index[list_box->callback_data.i32] =
+                test_mot_data->cos_id[list_box->callback_data.i32] =
                 atoi(str.substr(start, end - start).c_str()) - 1;
         }
     }
@@ -2147,7 +2147,7 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     AddModules(chara_id, chara_list_box_proc.list_box);
     chara_list_box_proc.list_box->callback_data.i32 = chara_id;
 
-    chara_list_box_proc.list_box->SetItemIndex(test_mot_data->module_index[chara_id]);
+    chara_list_box_proc.list_box->SetItemIndex(test_mot_data->cos_id[chara_id]);
     chara_list_box_proc.list_box->AddSelectionListener(&c_type_list_box_proc);
     chara_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
@@ -2435,8 +2435,8 @@ void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
         }
     }
 
-    int32_t module_index = test_mot_data->module_index[chara_id];
-    list_box->SetItemIndex(module_index < list_box->GetItemCount() ? module_index : 0);
+    int32_t cos_id = test_mot_data->cos_id[chara_id];
+    list_box->SetItemIndex(cos_id < list_box->GetItemCount() ? cos_id : 0);
 }
 
 void DataTestMotDw::ResetFrame() {

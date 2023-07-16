@@ -2607,7 +2607,7 @@ struct rob_chara {
     uint8_t field_C;
     uint8_t field_D;
     chara_index chara_index;
-    int32_t module_index;
+    int32_t cos_id;
     int32_t field_18;
     float_t field_1C;
     struc_307* field_20;

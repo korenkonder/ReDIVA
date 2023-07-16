@@ -3404,7 +3404,7 @@ struct rob_chara {
     bool field_C;
     bool field_D;
     chara_index chara_index;
-    int32_t module_index;
+    int32_t cos_id;
     float_t frame_speed;
     void* field_20;
     rob_chara_bone_data* bone_data;
@@ -3537,7 +3537,7 @@ extern int32_t chara_init_data_get_swim_s_costume(chara_index chara_index);
 extern float_t chara_pos_adjust_y_table_get_value(uint32_t index);
 extern float_t chara_size_table_get_value(uint32_t index);
 
-extern bool check_module_index_is_501(int32_t module_index);
+extern bool check_cos_id_is_501(int32_t cos_id);
 
 extern const uint32_t* get_opd_motion_set_ids();
 
@@ -3587,13 +3587,13 @@ extern float_t rob_chara_array_get_data_adjust_scale(int32_t chara_id);
 extern rob_chara_item_cos_data* rob_chara_array_get_item_cos_data(int32_t chara_id);
 extern rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id);
 extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
-    const rob_chara_pv_data& pv_data, int32_t module_index, bool can_set_default);
+    const rob_chara_pv_data& pv_data, int32_t cos_id, bool can_set_default);
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
 extern void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id);
 extern void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags);
 extern void rob_chara_array_set_visibility(int32_t chara_id, bool value);
 
-extern bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t module_index);
+extern bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t cos_id);
 
 extern bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id);
 
@@ -3639,5 +3639,5 @@ extern int32_t look_anim_id_to_mottbl_index(int32_t look_anim_id);
 extern int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id);
 
 inline bool rob_chara::check_for_ageageagain_module() {
-    return rob_chara_check_for_ageageagain_module(chara_index, module_index);
+    return rob_chara_check_for_ageageagain_module(chara_index, cos_id);
 }

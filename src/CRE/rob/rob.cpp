@@ -1110,7 +1110,7 @@ static void rob_chara_load_default_motion_sub(rob_chara* rob_chr, int32_t skelet
 static void rob_chara_set_adjust(rob_chara* rob_chr, rob_chara_data_adjust* adjust_new,
     rob_chara_data_adjust* adjust, rob_chara_data_adjust* adjust_prev);
 static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
-    chara_index chara_index, int32_t module_index, const rob_chara_pv_data& pv_data);
+    chara_index chara_index, int32_t cos_id, const rob_chara_pv_data& pv_data);
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
@@ -2245,10 +2245,10 @@ float_t chara_pos_adjust_y_table_get_value(uint32_t index) {
     return 0.0f;
 }
 
-bool check_module_index_is_501(int32_t module_index) {
-    if (module_index == -1 || module_index >= 502)
+bool check_cos_id_is_501(int32_t cos_id) {
+    if (cos_id == -1 || cos_id >= 502)
         return false;
-    return module_index == 501;
+    return cos_id == 501;
 }
 
 const uint32_t* get_opd_motion_set_ids() {
@@ -8242,7 +8242,7 @@ static void rob_disp_rob_chara_init(rob_chara* rob_chr,
     const chara_init_data* chr_init_data = rob_chr->chara_init_data;
     bone_node* v3 = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_N_HARA_CP);
     rob_itm_equip->reset_init_data(v3);
-    rob_itm_equip->set_item_equip_range(rob_chr->module_index == 501);
+    rob_itm_equip->set_item_equip_range(rob_chr->cos_id == 501);
     rob_itm_equip->load_object_info({}, ITEM_BODY, false, bone_data, data, obj_db);
     for (int32_t i = ITEM_BODY; i < ITEM_ASI; i++)
         rob_itm_equip->load_outfit_object_info((item_id)i,
@@ -11296,14 +11296,14 @@ static void rob_chara_set_adjust(rob_chara* rob_chr, rob_chara_data_adjust* adju
 }
 
 static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
-    chara_index chara_index, int32_t module_index, const rob_chara_pv_data& pv_data) {
+    chara_index chara_index, int32_t cos_id, const rob_chara_pv_data& pv_data) {
     rob_chr->chara_id = chara_id;
     rob_chr->chara_index = chara_index;
-    rob_chr->module_index = module_index;
+    rob_chr->cos_id = cos_id;
     rob_chr->pv_data = pv_data;
     rob_chr->chara_init_data = chara_init_data_get(chara_index);
-    if (!check_module_index_is_501(module_index)) {
-        const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chara_index, module_index);
+    if (!check_cos_id_is_501(cos_id)) {
+        const item_cos_data* cos = item_table_handler_array_get_item_cos_data(chara_index, cos_id);
         if (cos)
             rob_chr->item_cos_data.set_chara_index_item_nos(chara_index, cos->arr);
     }
@@ -11453,7 +11453,7 @@ rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id) {
 }
 
 int32_t rob_chara_array_init_chara_index(chara_index chara_index,
-    const rob_chara_pv_data& pv_data, int32_t module_index, bool can_set_default) {
+    const rob_chara_pv_data& pv_data, int32_t cos_id, bool can_set_default) {
     if (!app::TaskWork::CheckTaskReady(task_rob_manager)
         || pv_data.type < ROB_CHARA_TYPE_0|| pv_data.type > ROB_CHARA_TYPE_3)
         return -1;
@@ -11465,10 +11465,10 @@ int32_t rob_chara_array_init_chara_index(chara_index chara_index,
             return -1;
     }
 
-    if (can_set_default && (module_index < 0 || module_index > 498))
-        module_index = 0;
+    if (can_set_default && (cos_id < 0 || cos_id > 498))
+        cos_id = 0;
     rob_chara_pv_data_array[chara_id] = pv_data;
-    rob_chara_set_pv_data(&rob_chara_array[chara_id], chara_id, chara_index, module_index, pv_data);
+    rob_chara_set_pv_data(&rob_chara_array[chara_id], chara_id, chara_index, cos_id, pv_data);
     task_rob_manager->AppendInitCharaList(&rob_chara_array[chara_id]);
     return chara_id;
 }
@@ -11544,8 +11544,8 @@ int32_t rob_chara_array_reset_pv_data(int32_t chara_id) {
     return chara_id;
 }
 
-bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t module_index) {
-    return chara_index == CHARA_MIKU && module_index == 148;
+bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t cos_id) {
+    return chara_index == CHARA_MIKU && cos_id == 148;
 }
 
 bool rob_chara_pv_data_array_check_chara_id(int32_t chara_id) {
@@ -15257,7 +15257,7 @@ void rob_chara_data::reset() {
 }
 
 rob_chara::rob_chara() : chara_id(), type(), field_C(), field_D(),
-chara_index(), module_index(), chara_init_data(), field_20() {
+chara_index(), cos_id(), chara_init_data(), field_20() {
     frame_speed = 1.0f;
     bone_data = new rob_chara_bone_data();
     item_equip = new rob_chara_item_equip();
