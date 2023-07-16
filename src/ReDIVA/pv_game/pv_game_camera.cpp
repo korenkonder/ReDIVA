@@ -248,6 +248,8 @@ static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time) 
     if (!cam)
         return false;
 
+    pv_game_camera_data.curr_time += delta_time;
+
     mat4 dir_mat;
     mat4 up_mat;
     vec3 interest;
