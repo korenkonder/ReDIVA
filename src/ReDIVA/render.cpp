@@ -947,7 +947,7 @@ static render_context* render_context_load() {
     ImGui_ImplOpenGL3_Init("#version 430");
     lock_unlock(imgui_context_lock);
 
-    clear_color = 0xFF606060;
+    clear_color = 0xFF000000;
     set_clear_color = true;
 
     rctx->obj_batch.g_blend_color = 1.0f;

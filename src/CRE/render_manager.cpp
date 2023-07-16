@@ -470,50 +470,48 @@ namespace rndr {
 
     void RenderManager::pass_clear(render_context* rctx) {
         gl_state_begin_event("pass_clear");
-        if (true/*field_128*/) {
+
+        if (false/*field_128*/) {
             vec4 clear_color = get_clear_color();
-            glClearBufferfv(GL_COLOR, 0, (GLfloat*)&clear_color);
+            glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
 
         post_process* pp = &rctx->post_process;
         if (!sss_data.enable || !sss_data.npr_contour) {
             pp->set_render_texture();
-
             if (sprite_manager_get_reqlist_count(2)) {
                 glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
                 glClearDepth(1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                gl_state_bind_framebuffer(0);
             }
             else {
                 vec4 clear_color = get_clear_color();
                 glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
                 glClearDepth(1.0f);
-                if (true/*field_128*/)
+                if (false/*field_128*/)
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 else
                     glClear(GL_DEPTH_BUFFER_BIT);
+                gl_state_bind_framebuffer(0);
             }
-            gl_state_bind_framebuffer(0);
         }
         else {
+            pp->set_render_texture();
             if (sprite_manager_get_reqlist_count(2)) {
-                pp->set_render_texture();
-
-                vec4 clear_color = 0.0f;
                 glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
                 glClear(GL_COLOR_BUFFER_BIT);
                 gl_state_bind_framebuffer(0);
             }
-            else if (true/*field_128*/) {
-                pp->set_render_texture();
-
+            else if (false/*field_128*/) {
                 vec4 clear_color = get_clear_color();
                 glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
                 glClear(GL_COLOR_BUFFER_BIT);
                 gl_state_bind_framebuffer(0);
             }
         }
+
         gl_state_get_error();
         gl_state_end_event();
     }
@@ -799,7 +797,7 @@ namespace rndr {
         if (multisample && multisample_framebuffer) {
             glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
             gl_state_enable_multisample();
-            glClearColor(0.0, 0.0, 0.0, 0.0);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
         }
         else
