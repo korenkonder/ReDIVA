@@ -7,6 +7,7 @@
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
+#include "../dw_console.hpp"
 #include "pv_game.hpp"
 #include "pv_game_camera.hpp"
 #include "pv_game_music.hpp"
@@ -73,6 +74,9 @@ extern render_context* rctx_ptr;
 
 extern bool light_chara_ambient;
 extern vec4 npr_cloth_spec_color;
+
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
 pv_play_data_set_motion::pv_play_data_set_motion() : frame_speed(), motion_id(),
 frame(), blend_duration(), blend(), disable_eye_motion(), dsc_frame() {
@@ -364,8 +368,8 @@ int64_t pv_game_pv_data::ctrl(float_t delta_time, int64_t curr_time, bool a4) {
         bool music_play = false;
         bool next = dsc_ctrl(delta_time, this->curr_time, &dsc_time_offset, &music_play, a4, false);
 
-        //if (prev_dsc_data_ptr != dsc_data_ptr)
-        //    print_dsc_command(&dsc_buffer[dsc_buffer_counter], dsc_time);
+        if (prev_dsc_data_ptr != dsc_data_ptr)
+            print_dsc_command(dsc, prev_dsc_data_ptr, dsc_time);
 
         prev_dsc_data_ptr = dsc_data_ptr;
         if (music_play) {
@@ -629,7 +633,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 set_motion_max_frame(chara_id, motion_index, motion ? motion->time : 0);
         }
         else {
-            set_motion->clear();
+            playdata->set_motion.clear();
+            playdata->set_motion.push_back(v518);
             rob_chr->set_motion_step(frame_speed);
         }
     } break;
@@ -1043,12 +1048,18 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         float_t blend_duration = playdata->motion_data.mot_smooth_len / this->anim_frame_speed;
         MotionBlendType blend_type = MOTION_BLEND_CROSS;
-        if (_blend_type == 2)
-            blend_type = MOTION_BLEND_FREEZE;
-        else if (_blend_type != 1) {
+        switch (_blend_type) {
+        case 0:
+        default:
             if (func == DSC_FT_EDIT_MOTION_LOOP)
                 blend_type = MOTION_BLEND_FREEZE;
             blend_duration = 0.0f;
+            break;
+        case 1:
+            break;
+        case 2:
+            blend_type = MOTION_BLEND_FREEZE;
+            break;
         }
 
         bool blend = !(dsc_time / 10000) || (int32_t)(value * 1000.0);
@@ -2595,4 +2606,36 @@ void pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_inde
                 roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
             break;
         }
+}
+
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time) {
+    print_dsc_command(dsc, dsc_data_ptr, &time);
+}
+
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
+    if (dsc_data_ptr->func < 0 || dsc_data_ptr->func >= DSC_FT_MAX) {
+        dw_console_printf(DW_CONSOLE_PV_SCRIPT, "UNKNOWN command(%d)\n", dsc_data_ptr->func);
+        return;
+    }
+
+    if (time)
+        if (dsc_data_ptr->func == DSC_FT_TIME)
+            return;
+        else
+            dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%.3f:", (float_t)*time * 0.00001f);
+
+    dsc_get_func_length get_func_length = dsc.get_dsc_get_func_length();
+
+    dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%s(", dsc_data_ptr->name);
+
+    uint32_t* data = dsc.get_func_data(dsc_data_ptr);
+
+    int32_t length = get_func_length(dsc_data_ptr->func);
+    for (int32_t i = 0; i < length; i++)
+        if (i)
+            dw_console_printf(DW_CONSOLE_PV_SCRIPT, ", %d", ((int32_t*)data)[i]);
+        else
+            dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%d", ((int32_t*)data)[i]);
+
+    dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
 }

@@ -20,6 +20,7 @@
 #include "pv_game/pv_game.hpp"
 #include "data_edit.hpp"
 #include "data_initialize.hpp"
+#include "dw_console.hpp"
 #include "system_startup.hpp"
 #include "x_pv_game.hpp"
 
@@ -1820,6 +1821,9 @@ static void game_state_set_state(GameStateEnum state, SubGameStateEnum sub_state
         game_state->set_game_state_next = false;
         game_state->call_count = 0;
         game_state->advertise_state = 0;
+
+        dw_console_printf(DW_CONSOLE_MODE_CTRL, "[%s]->[%s]\n",
+            game_state_names[game_state_prev], game_state_names[state]);
 
         GameStateData* game_state_data = game_state_data_array_get(game_state->game_state);
         if (game_state_data) {

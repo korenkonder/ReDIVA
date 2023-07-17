@@ -74,7 +74,7 @@ classes_data classes[] = {
             CLASS_DATA_NO_DATA,
         },
         information_classes,
-        2,
+        3,
     },
 #if defined(ReDIVA_DEV)
     {

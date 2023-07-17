@@ -4,10 +4,33 @@
 */
 
 #include "information.hpp"
+#include "../dw_console.hpp"
 #include "information/frame_speed.hpp"
 #include "information/task.hpp"
 
 classes_data information_classes[] = {
+    {
+        "Console##Information",
+        CLASSES_IN_CONTEXT_MENU,
+        (bool(*)(class_data*, render_context*))dw_console_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            {},
+            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
     {
         "FrameSpeed##Information",
         CLASSES_IN_CONTEXT_MENU,

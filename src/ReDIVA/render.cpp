@@ -55,6 +55,7 @@
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
 #include "pv_game/pv_game.hpp"
+#include "dw_console.hpp"
 #include "game_state.hpp"
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
@@ -557,17 +558,19 @@ static render_context* render_context_load() {
     mothead_storage_init();
     skin_param_data_init();
 
-    game_state_init();
-
     skin_param_data_load();
 
     input_state_init();
     fontmap_data_init();
     font_info_default_init();
+    dw_console_c_buff_array_init();
     sound_init();
     wave_audio_storage_init();
     ogg_file_handler_storage_init();
     ogg_playback_data_init();
+
+    game_state_init();
+
     object_storage_init(aft_obj_db);
     stage_param_data_storage_init();
     pv_expression_file_storage_init();
@@ -1229,10 +1232,12 @@ static void render_context_dispose(render_context* rctx) {
     pv_expression_file_storage_free();
     stage_param_data_storage_free();
     object_storage_free();
+
     ogg_playback_data_free();
     ogg_file_handler_storage_free();
     wave_audio_storage_free();
     sound_free();
+    dw_console_c_buff_array_free();
     font_info_default_free();
     fontmap_data_free();
     input_state_free();

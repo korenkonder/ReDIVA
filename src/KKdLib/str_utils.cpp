@@ -41,65 +41,69 @@ bool str_utils_check_ends_with(const wchar_t* str, const wchar_t* mask) {
     return false;
 }
 
-const char* str_utils_get_next_int32_t(const char* str, int32_t& value, char separator) {
+const char* str_utils_get_next_int32_t(const char* str, int32_t& value, const char split) {
     std::string s;
-    str = str_utils_get_next_string(str, s, separator);
+    str = str_utils_get_next_string(str, s, split);
     sscanf_s(s.c_str(), "%d", &value);
     return str;
 }
 
-const wchar_t* str_utils_get_next_int32_t(const wchar_t* str, int32_t& value, wchar_t separator) {
+const wchar_t* str_utils_get_next_int32_t(const wchar_t* str, int32_t& value, const wchar_t split) {
     std::wstring s;
-    str = str_utils_get_next_string(str, s, separator);
+    str = str_utils_get_next_string(str, s, split);
     swscanf_s(s.c_str(), L"%d", &value);
     return str;
 }
 
-const char* str_utils_get_next_float_t(const char* str, float_t& value, char separator) {
+const char* str_utils_get_next_float_t(const char* str, float_t& value, const char split) {
     std::string s;
-    str = str_utils_get_next_string(str, s, separator);
+    str = str_utils_get_next_string(str, s, split);
     sscanf_s(s.c_str(), "%f", &value);
     return str;
 }
 
-const wchar_t* str_utils_get_next_float_t(const wchar_t* str, float_t& value, wchar_t separator) {
+const wchar_t* str_utils_get_next_float_t(const wchar_t* str, float_t& value, const wchar_t split) {
     std::wstring s;
-    str = str_utils_get_next_string(str, s, separator);
+    str = str_utils_get_next_string(str, s, split);
     swscanf_s(s.c_str(), L"%f", &value);
     return str;
 }
 
-const char* str_utils_get_next_string(const char* str, std::string& value, char separator) {
+const char* str_utils_get_next_string(const char* str, std::string& value, const char split) {
+    value.clear();
+
     if (!str)
         return 0;
 
-    value = {};
-    while (*str) {
-        char c = *str++;
-        if (c == separator)
-            break;
-
-        value += c;
+    const char* t = strchr(str, split);
+    if (!t) {
+        value.assign(str);
+        return 0;
     }
-    return *str ? str : 0;
+
+    value.assign(str, t - str);
+    t++;
+    return *t ? t : 0;
 }
 
-const wchar_t* str_utils_get_next_string(const wchar_t* str, std::wstring& value, wchar_t separator) {
+const wchar_t* str_utils_get_next_string(const wchar_t* str, std::wstring& value, const wchar_t split) {
+    value.clear();
+
     if (!str)
         return 0;
 
-    value = {};
-    while (*str) {
-        wchar_t c = *str++;
-        if (c == separator)
-            break;
-
-        value += c;
+    const wchar_t* t = wcschr(str, split);
+    if (!t) {
+        value.assign(str);
+        return 0;
     }
-    return str;
+
+    value.assign(str, t - str);
+    t++;
+    return *t ? t : 0;
 }
 
-char* str_utils_split_get_right(const char* str, char split) {
+char* str_utils_split_get_right(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -115,7 +119,7 @@ char* str_utils_split_get_right(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_right(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_right(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -131,7 +135,7 @@ wchar_t* str_utils_split_get_right(const wchar_t* str, wchar_t split) {
     return p;
 }
 
-char* str_utils_split_get_left(const char* str, char split) {
+char* str_utils_split_get_left(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -144,7 +148,7 @@ char* str_utils_split_get_left(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_left(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_left(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -157,7 +161,7 @@ wchar_t* str_utils_split_get_left(const wchar_t* str, wchar_t split) {
     return p;
 }
 
-char* str_utils_split_get_right_include(const char* str, char split) {
+char* str_utils_split_get_right_include(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -172,7 +176,7 @@ char* str_utils_split_get_right_include(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_right_include(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_right_include(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -187,7 +191,7 @@ wchar_t* str_utils_split_get_right_include(const wchar_t* str, wchar_t split) {
     return p;
 }
 
-char* str_utils_split_get_left_include(const char* str, char split) {
+char* str_utils_split_get_left_include(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -201,7 +205,7 @@ char* str_utils_split_get_left_include(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_get_left_include(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_get_left_include(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -215,7 +219,7 @@ wchar_t* str_utils_split_get_left_include(const wchar_t* str, wchar_t split) {
     return p;
 }
 
-char* str_utils_split_right_get_right(const char* str, char split) {
+char* str_utils_split_right_get_right(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -231,7 +235,7 @@ char* str_utils_split_right_get_right(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_right_get_right(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_right(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -247,7 +251,7 @@ wchar_t* str_utils_split_right_get_right(const wchar_t* str, wchar_t split) {
     return p;
 }
 
-char* str_utils_split_right_get_left(const char* str, char split) {
+char* str_utils_split_right_get_left(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -260,7 +264,7 @@ char* str_utils_split_right_get_left(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_right_get_left(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_left(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -273,7 +277,7 @@ wchar_t* str_utils_split_right_get_left(const wchar_t* str, wchar_t split) {
     return p;
 }
 
-char* str_utils_split_right_get_right_include(const char* str, char split) {
+char* str_utils_split_right_get_right_include(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -288,7 +292,7 @@ char* str_utils_split_right_get_right_include(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
@@ -303,7 +307,7 @@ wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, wchar_t spl
     return p;
 }
 
-char* str_utils_split_right_get_left_include(const char* str, char split) {
+char* str_utils_split_right_get_left_include(const char* str, const char split) {
     if (!str)
         return 0;
 
@@ -318,7 +322,7 @@ char* str_utils_split_right_get_left_include(const char* str, char split) {
     return p;
 }
 
-wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, wchar_t split) {
+wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, const wchar_t split) {
     if (!str)
         return 0;
 
