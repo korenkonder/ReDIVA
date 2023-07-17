@@ -873,10 +873,18 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
         s.read(ff->data, ff->size);
     }
     else if (f->signature == FARC_FArC) {
-        ff->data_compressed = force_malloc(ff->size_compressed);
-        s.read(ff->data_compressed, ff->size_compressed);
-        deflate::decompress(ff->data_compressed, ff->size_compressed,
-            &ff->data, &ff->size, deflate::MODE_GZIP);
+        if (ff->size) {
+            ff->data_compressed = force_malloc(ff->size_compressed);
+            s.read(ff->data_compressed, ff->size_compressed);
+            deflate::decompress(ff->data_compressed, ff->size_compressed,
+                &ff->data, &ff->size, deflate::MODE_GZIP);
+        }
+        else {
+            ff->data = force_malloc(ff->size_compressed);
+            s.read(ff->data, ff->size_compressed);
+            ff->size = ff->size_compressed;
+            ff->size_compressed = 0;
+        }
     }
     else if (ff->flags) {
         size_t temp_s = ff->flags & FARC_AES
@@ -907,6 +915,18 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
             memcpy(ff->data_compressed, (void*)t, ff->size_compressed);
             deflate::decompress(ff->data_compressed, ff->size_compressed,
                 &ff->data, &ff->size, deflate::MODE_GZIP);
+            if (ff->size) {
+                ff->data_compressed = force_malloc(ff->size_compressed);
+                memcpy(ff->data_compressed, (void*)t, ff->size_compressed);
+                deflate::decompress(ff->data_compressed, ff->size_compressed,
+                    &ff->data, &ff->size, deflate::MODE_GZIP);
+            }
+            else {
+                ff->data = force_malloc(ff->size_compressed);
+                memcpy(ff->data, (void*)t, ff->size_compressed);
+                ff->size = ff->size_compressed;
+                ff->size_compressed = 0;
+            }
         }
         else {
             ff->data_compressed = 0;
