@@ -61,14 +61,39 @@ struct pv_game_parent {
 };
 
 struct pv_game_time {
-    int64_t curr_time;
-    time_struct last_stop_time;
-    bool add_last_stop_time;
-    int64_t delta_time;
-    time_struct current_time;
-    bool add_current_time;
+    int64_t value;
+    time_struct time;
+    bool add;
 
     pv_game_time();
+
+    inline int64_t calc() {
+        int64_t value = this->value;
+        if (add)
+            value += time.calc_time_int();
+        return value;
+    }
+    
+    inline void pause() {
+        if (add)
+            value += time.calc_time_int();
+        add = false;
+    }
+    
+    inline void reset() {
+        value = 0;
+        time.get_timestamp();
+    }
+
+    inline void restart() {
+        reset();
+        start();
+    }
+
+    inline void start() {
+        time.get_timestamp();
+        add = true;
+    }
 };
 
 struct pv_game_se_data {
@@ -124,7 +149,8 @@ struc_14 stru_140C94438;
 struc_717 stru_141197E00;
 
 pv_game_parent pv_game_parent_data;
-pv_game_time pv_game_time_data;
+pv_game_time pv_game_curr_time;
+pv_game_time pv_game_delta_time;
 int32_t pv_game_parent_state;
 
 int32_t pv_game_state;
@@ -5243,7 +5269,7 @@ TaskPvGame::~TaskPvGame() {
 
 bool TaskPvGame::Init() {
 #if PV_DEBUG
-    pause = true;
+    pause = data.init_data.pv_id != 999;
     step_frame = false;
     is_paused = false;
 #endif
@@ -5395,14 +5421,8 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_parent_data.state = 0;
     pv_game_parent_data.init_time = false;
 
-    pv_game_time_data.curr_time = 0;
-    pv_game_time_data.last_stop_time.get_timestamp();
-    pv_game_time_data.last_stop_time.get_timestamp();
-    pv_game_time_data.add_last_stop_time = true;
-    pv_game_time_data.delta_time = 0;
-    pv_game_time_data.current_time.get_timestamp();
-    pv_game_time_data.current_time.get_timestamp();
-    pv_game_time_data.add_current_time = true;
+    pv_game_curr_time.restart();
+    pv_game_delta_time.restart();
 
     sub_14013C8C0()->sub_1400E79E0(data.type);
     sub_14013C8C0()->pv = data.init_data.pv_id;
@@ -6166,9 +6186,8 @@ void pv_game_parent::ctrl(pv_game_parent* pvgmp) {
     }
 }
 
-pv_game_time::pv_game_time() : curr_time(), add_last_stop_time(), delta_time(), add_current_time() {
-    last_stop_time.get_timestamp();
-    add_last_stop_time = true;
+pv_game_time::pv_game_time() : value(), add() {
+    start();
 }
 
 pv_game_se_data::pv_game_se_data() {
@@ -6184,51 +6203,24 @@ struc_674::struc_674() : performer(), module(), item(), field_1C(), pv() {
 }
 
 static bool pv_game_parent_ctrl() {
-#if PV_DEBUG
-    if (pv_game_parent_data.init_time) {
-        if (task_pv_game->pause)
-            pv_game_parent_data.init_time = false;
-
-        pv_game_time_data.curr_time = 0;
-        pv_game_time_data.last_stop_time.get_timestamp();
-        pv_game_time_data.last_stop_time.get_timestamp();
-
-        if (!task_pv_game->pause)
-            pv_game_time_data.add_last_stop_time = true;
-
-        pv_game_time_data.delta_time = 0;
-        pv_game_time_data.current_time.get_timestamp();
-        pv_game_time_data.current_time.get_timestamp();
-
-        if (!task_pv_game->pause)
-            pv_game_time_data.add_current_time = true;
-    }
-#else
     if (pv_game_parent_data.init_time) {
         pv_game_parent_data.init_time = false;
 
-        pv_game_time_data.curr_time = 0;
-        pv_game_time_data.last_stop_time.get_timestamp();
-        pv_game_time_data.last_stop_time.get_timestamp();
-        pv_game_time_data.add_last_stop_time = true;
+        pv_game_curr_time.restart();
+        pv_game_delta_time.restart();
 
-        pv_game_time_data.delta_time = 0;
-        pv_game_time_data.current_time.get_timestamp();
-        pv_game_time_data.current_time.get_timestamp();
-        pv_game_time_data.add_current_time = true;
-    }
+#if PV_DEBUG
+        if (task_pv_game->pause) {
+            pv_game_curr_time.add = false;
+            pv_game_delta_time.add = false;
+        }
 #endif
+    }
 
-    int64_t curr_time = pv_game_time_data.curr_time;
-    if (pv_game_time_data.add_last_stop_time)
-        curr_time += pv_game_time_data.last_stop_time.calc_time_int();
+    int64_t curr_time = pv_game_curr_time.calc();
+    int64_t delta_time = pv_game_delta_time.calc();
 
-    int64_t delta_time = pv_game_time_data.delta_time;
-    if (pv_game_time_data.add_current_time)
-        delta_time += pv_game_time_data.current_time.calc_time_int();
-
-    pv_game_time_data.delta_time = 0;
-    pv_game_time_data.current_time.get_timestamp();
+    pv_game_delta_time.reset();
 
     pv_game_parent_data.curr_time = 1000 * curr_time;
     pv_game_parent_data.delta_time = (float_t)(1000 * delta_time) * 0.000000001f;
@@ -6249,21 +6241,13 @@ static void pv_game_parent_disp() {
 }
 
 static void pv_game_time_pause() {
-    if (pv_game_time_data.add_last_stop_time)
-        pv_game_time_data.curr_time += pv_game_time_data.last_stop_time.calc_time_int();
-    pv_game_time_data.add_last_stop_time = false;
-
-    if (pv_game_time_data.add_current_time)
-        pv_game_time_data.delta_time += pv_game_time_data.current_time.calc_time_int();
-    pv_game_time_data.add_current_time = false;
+    pv_game_curr_time.pause();
+    pv_game_delta_time.pause();
 }
 
 static void pv_game_time_start() {
-    pv_game_time_data.last_stop_time.get_timestamp();
-    pv_game_time_data.add_last_stop_time = true;
-
-    pv_game_time_data.current_time.get_timestamp();
-    pv_game_time_data.add_current_time = true;
+    pv_game_curr_time.start();
+    pv_game_delta_time.start();
 }
 
 static FrameRateControl* get_diva_pv_frame_rate() {
