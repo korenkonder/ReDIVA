@@ -165,7 +165,7 @@ public:
     void AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
     bool CheckTaskReady();
     void GetOpdFileData(object_info obj_info,
-        uint32_t motion_id, float_t*& data, uint32_t& count);
+        uint32_t motion_id, const float_t*& data, uint32_t& count);
     void LoadOpdFile(p_file_handler* pfhndl);
     void LoadOpdFileList();
     void Reset();
@@ -2315,7 +2315,7 @@ bool osage_play_data_manager_check_task_ready() {
 }
 
 void osage_play_data_manager_get_opd_file_data(object_info obj_info,
-    uint32_t motion_id, float_t*& data, uint32_t& count) {
+    uint32_t motion_id, const float_t*& data, uint32_t& count) {
     osage_play_data_manager->GetOpdFileData(obj_info, motion_id, data, count);
 }
 
@@ -2455,7 +2455,7 @@ static void rob_chara_item_equip_object_load_opd_data(rob_chara_item_equip_objec
     rob_chara_item_equip* rob_itm_equip = itm_eq_obj->item_equip;
     size_t index = 0;
     for (opd_blend_data& i : rob_itm_equip->opd_blend_data) {
-        float_t* opd_data = 0;
+        const float_t* opd_data = 0;
         uint32_t opd_count = 0;
         osage_play_data_manager_get_opd_file_data(itm_eq_obj->obj_info, i.motion_id, opd_data, opd_count);
         if (!opd_data)
@@ -2480,6 +2480,9 @@ static void rob_chara_item_equip_object_ctrl(rob_chara_item_equip_object* itm_eq
         rob_chara_item_equip_object_ctrl_iterate_nodes(itm_eq_obj, itm_eq_obj->osage_iterations);
         itm_eq_obj->osage_iterations = 0;
     }
+
+    if (!itm_eq_obj->node_blocks.size()) // Added
+        return;
 
     for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
         i->Field_10();
@@ -4189,7 +4192,7 @@ bool rob_chara::set_motion_id(uint32_t motion_id,
 
     if (blend_duration <= 0.0f)
         blend_type = MOTION_BLEND;
-    load_motion(motion_id, 0, frame, blend_type, bone_data, mot_db);
+    load_motion(motion_id, false, frame, blend_type, bone_data, mot_db);
     rob_chara_bone_data_set_motion_duration(this->bone_data, blend_duration, 1.0f, 0.0f);
     data.motion.field_28 |= 0x80;
     data.motion.frame_data.last_set_frame = frame;
@@ -7344,18 +7347,21 @@ static void motion_blend_mot_set_blend(motion_blend_mot* a1,
         a1->blend = 0;
         break;
     case MOTION_BLEND_FREEZE:
-        a1->blend = &a1->freeze;
         a1->freeze.Reset();
+        a1->blend = &a1->freeze;
         sub_140412E10(a1, 0);
         break;
     case MOTION_BLEND_CROSS:
-        a1->blend = &a1->cross;
         a1->cross.Reset();
+        a1->blend = &a1->cross;
         break;
     case MOTION_BLEND_COMBINE:
-        a1->blend = &a1->combine;
         a1->combine.Reset();
-        a1->combine.blend = clamp_def(blend, 0.0f, 1.0f);
+        a1->blend = &a1->combine;
+
+        a1->blend->blend = clamp_def(blend, 0.0f, 1.0f);
+        a1->blend->enable = true;
+        a1->blend->rot_y = true;
         break;
     }
 }
@@ -7421,9 +7427,8 @@ static bool opd_decode(const osage_play_data_header* file_head, float_t** opd_de
 
 static bool opd_decode_data(const void* data, float_t** opd_decod_buf, osage_play_data_header* head) {
     if (!*opd_decod_buf)
-        return false;
-
-    return opd_decode((const osage_play_data_header*)data, opd_decod_buf, head);
+        return opd_decode((const osage_play_data_header*)data, opd_decod_buf, head);
+    return false;
 }
 
 static bool pv_osage_manager_array_get_disp(int32_t* chara_id) {
@@ -10837,12 +10842,11 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
     if (!rob_bone_data->motion_loaded.size())
         return;
 
-    auto i_begin = rob_bone_data->motion_loaded.end();
-    auto i_end = rob_bone_data->motion_loaded.begin();
-    i_end++;
-    auto i_end2 = rob_bone_data->motion_loaded.begin();
-    for (auto i = i_begin; i != i_end;) {
-        i--;
+    motion_blend_mot* v3 = rob_bone_data->motion_loaded.front();
+
+    auto i_begin = rob_bone_data->motion_loaded.rbegin();;
+    auto i_end = rob_bone_data->motion_loaded.rend();
+    for (auto i = i_begin; i != i_end; i++) {
         if (!sub_1404136B0(*i))
             continue;
 
@@ -10851,20 +10855,21 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
         sub_140410A40(*i, &(*v4)->bone_data.bones, &(*i)->bone_data.bones);
     }
 
-    for (auto i = i_begin; i != i_end2;) {
-        i--;
-        if (!sub_1404136B0(*i))
+    auto j_begin = rob_bone_data->motion_loaded.rbegin();;
+    auto j_end = rob_bone_data->motion_loaded.rend();
+    for (auto j = j_begin; j != j_end; j++) {
+        if (sub_1404136B0(*j))
             continue;
 
-        auto v5 = i;
-        v5++;
-        if (i != i_end)
-            sub_140410B70(*i, &(*v5)->bone_data.bones);
-        else if ((*i)->get_type() == MOTION_BLEND_FREEZE)
-            sub_140410B70(*i, 0);
+        if (j != rob_bone_data->motion_loaded.rbegin()) {
+            auto v5 = j;
+            v5--;
+            sub_140410B70(*j, &(*v5)->bone_data.bones);
+        }
+        else if ((*j)->get_type() == MOTION_BLEND_FREEZE)
+            sub_140410B70(*j, 0);
     }
 
-    motion_blend_mot* v3 = rob_bone_data->motion_loaded.front();
     sub_140410CB0(&rob_bone_data->face, &v3->bone_data.bones);
     sub_140410CB0(&rob_bone_data->hand_l, &v3->bone_data.bones);
     sub_140410CB0(&rob_bone_data->hand_r, &v3->bone_data.bones);
@@ -11871,11 +11876,8 @@ void MotionBlendCross::Step(struc_400* a2) {
         frame += step;
     }
 
-    if (rot_y) {
-        mat4 mat;
-        mat4_rotate_y(-a2->prev_rot_y, &mat);
-        rot_y_mat = mat;
-    }
+    if (rot_y)
+        mat4_rotate_y(-a2->prev_rot_y, &rot_y_mat);
     else
         rot_y_mat = mat4_identity;
 }
@@ -11954,6 +11956,10 @@ void MotionBlendCross::Blend(bone_data* a2, bone_data* a3) {
         mat4_mult(&v16, &v15, &a2->rot_mat[1]);
         break;
     }
+}
+
+bool MotionBlendCross::Field_30() {
+    return false;
 }
 
 MotionBlendCombine::MotionBlendCombine() {
@@ -12711,7 +12717,7 @@ void rob_chara_item_equip_object::check_no_opd(std::vector<opd_blend_data>& opd_
         return;
 
     for (::opd_blend_data& i : opd_blend_data) {
-        float_t* opd_data = 0;
+        const float_t* opd_data = 0;
         uint32_t opd_count = 0;
         osage_play_data_manager_get_opd_file_data(obj_info, i.motion_id, opd_data, opd_count);
         if (!opd_data) {
@@ -13211,7 +13217,7 @@ void rob_chara_item_equip_object::set_null_blocks_expression_data(
     }
 }
 
-void rob_chara_item_equip_object::set_osage_play_data_init(float_t* opdi_data) {
+void rob_chara_item_equip_object::set_osage_play_data_init(const float_t* opdi_data) {
     for (ExOsageBlock*& i : osage_blocks)
         opdi_data = i->SetOsagePlayDataInit(opdi_data);
 
@@ -13677,7 +13683,7 @@ void rob_chara_item_equip::set_osage_move_cancel(uint8_t id, float_t value) {
     }
 }
 
-void rob_chara_item_equip::set_osage_play_data_init(item_id id, float_t* opdi_data) {
+void rob_chara_item_equip::set_osage_play_data_init(item_id id, const float_t* opdi_data) {
     if (id >= ITEM_KAMI && id <= ITEM_ITEM16)
         item_equip_object[id].set_osage_play_data_init(opdi_data);
 }
@@ -16817,7 +16823,7 @@ bool OsagePlayDataManager::CheckTaskReady() {
 }
 
 void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
-    uint32_t motion_id, float_t*& data, uint32_t& count) {
+    uint32_t motion_id, const float_t*& data, uint32_t& count) {
     data = 0;
     count = 0;
 
@@ -16843,7 +16849,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
     prj::sort_unique(opd_req_data);
     for (const std::pair<object_info, int32_t>& i : opd_req_data) {
         auto elem = opd_file_data.find(i);
-        if (elem == opd_file_data.end())
+        if (elem != opd_file_data.end())
             continue;
 
         const char* object_name = aft_obj_db->get_object_name(i.first);
@@ -18903,7 +18909,7 @@ bool TaskRobLoad::AppendFreeReqData(chara_index chara_index) {
     if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
         return false;
 
-    for (std::list<ReqData>::iterator i = load_req_data.end(); i != load_req_data.begin(); ) {
+    for (auto i = load_req_data.end(); i != load_req_data.begin(); ) {
         i--;
         if (i->chara_index == chara_index) {
             i = load_req_data.erase(i);
@@ -18921,7 +18927,7 @@ bool TaskRobLoad::AppendFreeReqDataObj(chara_index chara_index, const item_cos_d
     if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
         return false;
 
-    for (std::list<ReqDataObj>::iterator i = load_req_data_obj.end(); i != load_req_data_obj.begin(); ) {
+    for (auto i = load_req_data_obj.end(); i != load_req_data_obj.begin(); ) {
         i--;
         if (i->chara_index == chara_index
             && !memcmp(&i->cos, cos, sizeof(item_cos_data))) {
@@ -18941,7 +18947,7 @@ bool TaskRobLoad::AppendLoadReqData(chara_index chara_index) {
     if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
         return false;
 
-    for (std::list<ReqData>::iterator i = free_req_data.end(); i != free_req_data.begin(); ) {
+    for (auto i = free_req_data.end(); i != free_req_data.begin(); ) {
         i--;
         if (i->chara_index == chara_index) {
             i = free_req_data.erase(i);
@@ -18960,7 +18966,7 @@ bool TaskRobLoad::AppendLoadReqDataObj(chara_index chara_index, const item_cos_d
     if (chara_index < CHARA_MIKU || chara_index > CHARA_TETO)
         return false;
 
-    for (std::list<ReqDataObj>::iterator i = free_req_data_obj.end(); i != free_req_data_obj.begin(); ) {
+    for (auto i = free_req_data_obj.end(); i != free_req_data_obj.begin(); ) {
         i--;
         if (i->chara_index == chara_index
             && !memcmp(&i->cos, cos, sizeof(item_cos_data))) {
@@ -19076,7 +19082,7 @@ int32_t TaskRobLoad::CtrlFunc4() {
 }
 
 void TaskRobLoad::FreeLoadedReqData(ReqData* req_data) {
-    for (std::list<ReqData>::iterator i = loaded_req_data.begin(); i != loaded_req_data.end(); i++)
+    for (auto i = loaded_req_data.begin(); i != loaded_req_data.end(); i++)
         if (i->chara_index == req_data->chara_index) {
             if (i->count > 0)
                 i->count--;
@@ -19088,7 +19094,7 @@ void TaskRobLoad::FreeLoadedReqData(ReqData* req_data) {
 }
 
 void TaskRobLoad::FreeLoadedReqDataObj(ReqDataObj* req_data_obj) {
-    for (std::list<ReqDataObj>::iterator i = loaded_req_data_obj.begin(); i != loaded_req_data_obj.end(); i++)
+    for (auto i = loaded_req_data_obj.begin(); i != loaded_req_data_obj.end(); i++)
         if (i->chara_index == req_data_obj->chara_index
             && !memcmp(&i->cos, &req_data_obj->cos, sizeof(item_cos_data))) {
             if (i->count > 0)

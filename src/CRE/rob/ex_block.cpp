@@ -77,24 +77,29 @@ static void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3);
 static void sub_14021D480(RobCloth* rob_cls);
 static void sub_14021DC60(RobCloth* rob_cls, float_t step);
 static void sub_14021D840(RobCloth* rob_cls);
-static void sub_14047C800(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale,
-    float_t step, bool disable_external_force, bool ring_coli, bool has_children_node);
+static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool disable_external_force,
+    bool ring_coli, bool has_children_node);
 static void sub_14047E1C0(RobOsage* rob_osg, vec3* scale);
-static void sub_14047F110(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, bool init_rot);
-static void sub_1404803B0(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, bool has_children_node);
+static void sub_14047F110(RobOsage* rob_osg, mat4* mat, const vec3* parent_scale, bool init_rot);
+static void sub_1404803B0(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, bool has_children_node);
 static void sub_140482180(RobOsageNode* node, float_t a2);
 static void sub_140482300(vec3* a1, vec3* a2, vec3* a3, float_t osage_gravity_const, float_t weight);
 static void sub_140482490(RobOsageNode* node, float_t step, float_t a3);
 static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length);
-static void sub_14047D8C0(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, float_t step, bool a5);
-static void sub_14047C750(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, float_t step);
-static void sub_14047C770(RobOsage* rob_osg, mat4* root_matrix,
-    vec3* parent_scale, float_t step, bool disable_external_force);
+static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool a5);
+static void sub_14047C750(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step);
+static void sub_14047C770(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool disable_external_force);
 static void sub_14047D620(RobOsage* rob_osg, float_t step);
 static void sub_14047ECA0(RobOsage* rob_osg, float_t step);
-static void sub_14047F990(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, bool a4);
-static void sub_140480260(RobOsage* rob_osg, mat4* root_matrix,
-    vec3* parent_scale, float_t step, bool disable_external_force);
+static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, bool a4);
+static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool disable_external_force);
 static void sub_140482100(struc_476* a1, opd_blend_data* a2, struc_477* a3);
 static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend);
 static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order);
@@ -410,7 +415,7 @@ OsageCollision::Work::~Work() {
 
 // 0x140485450
 void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
-    SkinParam::CollisionParam* cls_param, mat4* transform) {
+    SkinParam::CollisionParam* cls_param, const mat4* transform) {
     cls->type = SkinParam::CollisionTypeEnd;
     if (!cls_param || !transform)
         return;
@@ -443,7 +448,7 @@ void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
 
 // 0x140485410
 void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
-    std::vector<SkinParam::CollisionParam>& cls_list, mat4* transform) {
+    std::vector<SkinParam::CollisionParam>& cls_list, const mat4* transform) {
     if (!cls_list.size()) {
         cls->type = SkinParam::CollisionTypeEnd;
         cls->radius = 0.0f;
@@ -940,7 +945,7 @@ void RobCloth::ApplyResetData() {
     }
 }
 
-void RobCloth::ColiSet(mat4* transform) {
+void RobCloth::ColiSet(const mat4* transform) {
     if (skin_param_ptr->coli.size())
         OsageCollision::Work::update_cls_work(coli, skin_param_ptr->coli.data(), transform);
     OsageCollision::Work::update_cls_work(coli_ring, ring.skp_root_coli, transform);
@@ -1117,7 +1122,7 @@ void RobCloth::InitDataParent(obj_skin_block_cloth* cls_data,
         cls_data->node_array, cls_data->mat_array, cls_data->field_14, itm_eq_obj, bone_data);
 }
 
-float_t* RobCloth::LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count) {
+const float_t* RobCloth::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
     CLOTHNode* i_begin = nodes.data() + root_count;
     CLOTHNode* i_end = nodes.data() + nodes.size();
     for (CLOTHNode* i = i_begin; i != i_end; i++) {
@@ -1208,9 +1213,9 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
             mat4 v32 = root.data()[j].field_D8;
             for (size_t k = 1; k < nodes_count; k++, v29 += root_count) {
                 opd_vec3_data* opd = &v29->opd_data[i - i_end];
-                float_t* opd_x = opd->x;
-                float_t* opd_y = opd->y;
-                float_t* opd_z = opd->z;
+                const float_t* opd_x = opd->x;
+                const float_t* opd_y = opd->y;
+                const float_t* opd_z = opd->z;
 
                 vec3 v61;
                 v61.x = opd_x[curr_key];
@@ -1267,7 +1272,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
     }
 }
 
-float_t* RobCloth::SetOsagePlayDataInit(float_t* opdi_data) {
+const float_t* RobCloth::SetOsagePlayDataInit(const float_t* opdi_data) {
     CLOTHNode* i_begin = nodes.data() + root_count;
     CLOTHNode* i_end = nodes.data() + nodes.size();
     for (CLOTHNode* i = i_begin; i != i_end; i++) {
@@ -1544,7 +1549,7 @@ void ExClothBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     SetSkinParamOsageRoot(skp_root);
 }
 
-float_t* ExClothBlock::LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count) {
+const float_t* ExClothBlock::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
     return rob.LoadOpdData(node_index, opd_data, opd_count);
 }
 
@@ -1552,7 +1557,7 @@ void ExClothBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
     rob.SetMotionResetData(motion_id, frame);
 }
 
-float_t* ExClothBlock::SetOsagePlayDataInit(float_t* opdi_data) {
+const float_t* ExClothBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
     return rob.SetOsagePlayDataInit(opdi_data);
 }
 
@@ -1602,7 +1607,7 @@ void RobOsage::AddMotionResetData(uint32_t motion_id, float_t frame) {
 }
 
 // 0x14047EE90
-void RobOsage::ApplyResetData(mat4* mat) {
+void RobOsage::ApplyResetData(const mat4* mat) {
     if (reset_data_list) {
         std::list<RobOsageNodeResetData>::iterator reset_data = reset_data_list->begin();
         RobOsageNode* i_begin = nodes.data() + 1;
@@ -1627,7 +1632,7 @@ bool RobOsage::CheckPartsBits(rob_osage_parts_bit parts_bits) {
     return false;
 }
 
-void RobOsage::ColiSet(mat4* transform) {
+void RobOsage::ColiSet(const mat4* transform) {
     if (skin_param_ptr->coli.size())
         OsageCollision::Work::update_cls_work(coli, skin_param_ptr->coli.data(), transform);
     OsageCollision::Work::update_cls_work(coli_ring, ring.skp_root_coli, transform);
@@ -1718,7 +1723,7 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
         mat4_translate_mult(&v38->mat, node.length, 0.0f, 0.0f, &node.mat);
 }
 
-float_t* RobOsage::LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count) {
+const float_t* RobOsage::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
@@ -1875,14 +1880,14 @@ void RobOsage::SetNodesForce(float_t force) {
 }
 
 // 0x14047E240
-void RobOsage::SetOsagePlayData(mat4* root_matrix,
-    vec3& parent_scale, std::vector<opd_blend_data>& opd_blend_data) {
+void RobOsage::SetOsagePlayData(const mat4* root_matrix,
+    const vec3& parent_scale, std::vector<opd_blend_data>& opd_blend_data) {
     if (!opd_blend_data.size())
         return;
 
     vec3 v63 = exp_data.position * parent_scale;
 
-    mat4 v85;
+    mat4 v85 = *root_matrix;
     mat4_mult_vec3_trans(&v85, &v63, &nodes.data()[0].trans);
 
     sub_14047F110(this, &v85, &parent_scale, false);
@@ -1917,9 +1922,9 @@ void RobOsage::SetOsagePlayData(mat4* root_matrix,
         RobOsageNode* j_end = nodes.data() + nodes.size();
         for (RobOsageNode* j = j_begin; j != j_end; j++) {
             opd_vec3_data* opd = &j->opd_data[i - i_end];
-            float_t* opd_x = opd->x;
-            float_t* opd_y = opd->y;
-            float_t* opd_z = opd->z;
+            const float_t* opd_x = opd->x;
+            const float_t* opd_y = opd->y;
+            const float_t* opd_z = opd->z;
 
             vec3 v62;
             v62.x = opd_x[curr_key];
@@ -1984,7 +1989,7 @@ void RobOsage::SetOsagePlayData(mat4* root_matrix,
     }
 }
 
-float_t* RobOsage::SetOsagePlayDataInit(float_t* opdi_data) {
+const float_t* RobOsage::SetOsagePlayDataInit(const float_t* opdi_data) {
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
@@ -2186,7 +2191,7 @@ void ExOsageBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     mats = bone_nodes->mat;
 }
 
-float_t* ExOsageBlock::LoadOpdData(size_t node_index, float_t* opd_data, size_t opd_count) {
+const float_t* ExOsageBlock::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
     return rob.LoadOpdData(node_index, opd_data, opd_count);
 }
 
@@ -2194,7 +2199,7 @@ void ExOsageBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
     rob.SetMotionResetData(motion_id, frame);
 }
 
-float_t* ExOsageBlock::SetOsagePlayDataInit(float_t* opdi_data) {
+const float_t* ExOsageBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
     return rob.SetOsagePlayDataInit(opdi_data);
 }
 
@@ -3374,8 +3379,9 @@ static void sub_14021D840(RobCloth* rob_cls) {
     sub_140218560(rob_cls, 1.0f, true);
 }
 
-static void sub_14047C800(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale,
-    float_t step, bool disable_external_force, bool ring_coli, bool has_children_node) {
+static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool disable_external_force,
+    bool ring_coli, bool has_children_node) {
     if (!rob_osg->nodes.size())
         return;
 
@@ -3551,7 +3557,7 @@ static void sub_14047E1C0(RobOsage* rob_osg, vec3* scale) {
         }
 }
 
-static void sub_14047F110(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, bool init_rot) {
+static void sub_14047F110(RobOsage* rob_osg, mat4* mat, const vec3* parent_scale, bool init_rot) {
     vec3 position = rob_osg->exp_data.position * *parent_scale;
     mat4_translate_mult(mat, &position, mat);
     mat4_rotate_zyx_mult(mat, &rob_osg->exp_data.rotation, mat);
@@ -3563,7 +3569,8 @@ static void sub_14047F110(RobOsage* rob_osg, mat4* mat, vec3* parent_scale, bool
     mat4_rotate_zyx_mult(mat, &rot, mat);
 }
 
-static void sub_1404803B0(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, bool has_children_node) {
+static void sub_1404803B0(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, bool has_children_node) {
     mat4 v47 = *root_matrix;
     vec3 v45 = rob_osg->exp_data.position * *parent_scale;
     mat4_mult_vec3_trans(&v47, &v45, &rob_osg->nodes.data()[0].trans);
@@ -3677,7 +3684,8 @@ static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length) {
         *pos1 = *pos2 + diff * (length / sqrtf(dist));
 }
 
-static void sub_14047D8C0(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, float_t step, bool a5) {
+static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool a5) {
     if (!rob_osg->osage_reset && step <= 0.0f)
         return;
 
@@ -3806,12 +3814,13 @@ static void sub_14047D8C0(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_sca
     }
 }
 
-static void sub_14047C750(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, float_t step) {
+static void sub_14047C750(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step) {
     sub_14047C770(rob_osg, root_matrix, parent_scale, step, false);
 }
 
-static void sub_14047C770(RobOsage* rob_osg, mat4* root_matrix,
-    vec3* parent_scale, float_t step, bool disable_external_force) {
+static void sub_14047C770(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool disable_external_force) {
     sub_14047C800(rob_osg, root_matrix, parent_scale, step, disable_external_force, false, false);
     sub_14047D8C0(rob_osg, root_matrix, parent_scale, step, true);
     sub_140480260(rob_osg, root_matrix, parent_scale, step, disable_external_force);
@@ -3880,7 +3889,8 @@ static void sub_14047ECA0(RobOsage* rob_osg, float_t step) {
         }
 }
 
-static void sub_14047F990(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_scale, bool a4) {
+static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, bool a4) {
     if (!rob_osg->nodes.size())
         return;
 
@@ -3959,8 +3969,8 @@ static void sub_14047F990(RobOsage* rob_osg, mat4* root_matrix, vec3* parent_sca
     }
 }
 
-static void sub_140480260(RobOsage* rob_osg, mat4* root_matrix,
-    vec3* parent_scale, float_t step, bool disable_external_force) {
+static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
+    const vec3* parent_scale, float_t step, bool disable_external_force) {
     if (!disable_external_force) {
         rob_osg->SetNodesExternalForce(0, 1.0f);
         rob_osg->SetNodesForce(1.0f);
