@@ -54,10 +54,10 @@ struct struc_595 stru_1409A0AA0[] = {
     { "右下 →　中央", 0xB7, 3, 8 },
     { "左上 →　中央", 0xB1, 3, 8 },
     { "左下 →　中央", 0xB5, 3, 8 },
-    { "上", 0xA8, 0, 0 },
 };
 
-struct struc_595 stru_1409A0DD0[] = {
+struct struc_595  stru_1409A0DD0[] = {
+    { "上", 0xA8, 0, 0 },
     { "下", 0xAA, 0, 0 },
     { "右", 0xAE, 0, 0 },
     { "左", 0xAC, 0, 0 },
@@ -2618,11 +2618,15 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
         return;
     }
 
-    if (time)
-        if (dsc_data_ptr->func == DSC_FT_TIME)
+    if (dsc_data_ptr->func == DSC_FT_TIME) {
+        if (time)
             return;
-        else
+    }
+    else {
+        if (time)
+#pragma warning(suppress: 26451)
             dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%.3f:", (float_t)*time * 0.00001f);
+    }
 
     dsc_get_func_length get_func_length = dsc.get_dsc_get_func_length();
 
