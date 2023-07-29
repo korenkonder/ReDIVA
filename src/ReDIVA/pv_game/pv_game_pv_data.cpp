@@ -1556,11 +1556,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t id = (int32_t)data[0];
-        int32_t enable = (int32_t)data[1];
+        int32_t id = (int32_t)data[1];
+        int32_t disp = (int32_t)data[2];
 
         if (rob_chr)
-            rob_chr->set_parts_disp((item_id)id, enable == 1);
+            rob_chr->set_parts_disp((item_id)id, disp == 1);
     } break;
     case DSC_FT_TARGET_FLYING_TIME: {
         /*float_t target_flying_time = (float_t)(int32_t)data[0] * 0.001f;
