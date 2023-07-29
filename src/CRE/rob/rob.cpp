@@ -3524,7 +3524,7 @@ void rob_chara::reset_data(rob_chara_pv_data* pv_data,
     rob_chr_data->field_8.field_4.field_10 = pv_data->field_5;
     load_motion(rob_chr_data->field_8.field_4.motion_id,
         pv_data->field_5, 0.0f, MOTION_BLEND, bone_data, mot_db);
-    set_parts_disp(ITEM_MAX, true);
+    field_C = true;
     item_equip->field_DC = 0;
     sub_140513C60(item_equip, ITEM_ATAMA, false);
     sub_140513C60(item_equip, ITEM_TE_R, false);
@@ -4279,10 +4279,10 @@ void rob_chara::set_parts_disp(item_id id, bool disp) {
     if (id < ITEM_BODY)
         return;
     else if (id < ITEM_ITEM16)
-        item_equip->item_equip_object[id].can_disp = disp;
+        item_equip->set_disp(id, disp);
     else if (id == ITEM_MAX)
         for (int32_t i = ITEM_ATAMA; i <= ITEM_ITEM16; i++) {
-            item_equip->item_equip_object[i].can_disp = disp;
+            item_equip->set_disp((item_id)i, disp);
             if (i == ITEM_ATAMA && check_for_ageageagain_module()) {
                 rob_chara_age_age_array_set_disp(chara_id, 1, disp);
                 rob_chara_age_age_array_set_disp(chara_id, 2, disp);
@@ -6502,9 +6502,9 @@ static void sub_14041C950(rob_chara_bone_data* rob_bone_data, bool a2, bool a3,
         v11->field_8F = 1;
     v11->field_90 = a3;
     v11->field_94 = a4 < 0.0f ? 1.0f : a4;
-    v11->field_98 = a4 < 0.0f ? 1.0f : a5;
-    v11->field_9C = a4 < 0.0f ? 1.0f : a7;
-    v11->field_A0 = a4 < 0.0f ? 1.0f : a6;
+    v11->field_98 = a5 < 0.0f ? 1.0f : a5;
+    v11->field_9C = a7 < 0.0f ? 1.0f : a7;
+    v11->field_A0 = a6 < 0.0f ? 1.0f : a6;
     v11->field_A4 = 0.0f;
     v11->field_A8 = 1.0f;
     v11->field_AC = 0.0f;
@@ -13522,7 +13522,7 @@ void rob_chara_item_equip::load_object_info(object_info obj_info, item_id id,
 
     item_equip_object[id].load_object_info_ex_data(obj_info,
         bone_nodes, osage_reset, bone_data, data, obj_db);
-    item_equip_object[id].can_disp = true;
+    set_disp(id, true);
 }
 
 void rob_chara_item_equip::reset() {
@@ -13953,8 +13953,7 @@ static void sub_140513B90(rob_chara_item_equip* rob_itm_equip, item_id id, objec
     rob_itm_equip->field_D0 = a4;
     rob_itm_equip->field_D4 = id;
     rob_itm_equip->load_object_info(a3, id, false, bone_data, data, obj_db);
-    if (id >= ITEM_BODY && id < ITEM_MAX)
-        rob_itm_equip->item_equip_object[id].can_disp = false;
+    rob_itm_equip->set_disp(id, false);
 }
 
 static void sub_14052C560(rob_chara_item_cos_data* item_sub_data,
