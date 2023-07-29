@@ -2004,14 +2004,15 @@ namespace pv_db {
                 j.field.data.clear();
                 j.field.ex_stage_set = false;
 
-                j.field.data.reserve(count);
+                j.field.data.reserve(count + 1);
                 for (int32_t k = 0; k <= count; k++) {
                     if (!kv.open_scope_fmt("%02d", k)) {
                         j.field.data.push_back({});
                         continue;
                     }
 
-                    pv_db_pv_field field;
+                    j.field.data.push_back({});
+                    pv_db_pv_field& field = j.field.data.back();
 
                     const char* stage;
                     if (kv.read("stage", stage))
@@ -2223,8 +2224,6 @@ namespace pv_db {
                         }
                         kv.close_scope();
                     }
-
-                    j.field.data.push_back(field);
 
                     kv.close_scope();
                 }
