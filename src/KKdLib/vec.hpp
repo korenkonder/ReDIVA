@@ -458,12 +458,9 @@ extern const __m128 vec2_neg;
 extern const __m128 vec3_neg;
 extern const __m128 vec4_neg;
 
-extern const vec4i vec2_abs;
-extern const vec4i vec3_abs;
-extern const vec4i vec4_abs;
-
-extern const vec4i vec4_mask_vec2;
-extern const vec4i vec4_mask_vec3;
+extern const __m128i vec2i_abs;
+extern const __m128i vec3i_abs;
+extern const __m128i vec4i_abs;
 
 inline vec2::vec2() : x(), y() {
 
@@ -479,18 +476,15 @@ inline vec2::vec2(float_t x, float_t y) : x(x), y(y) {
 
 inline __m128 vec2::load_xmm(const float_t data) {
     __m128 _data = _mm_set_ss(data);
-    _data = _mm_shuffle_ps(_data, _data, 0);
-    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec2)));
+    return _mm_shuffle_ps(_data, _data, 0x50);
 }
 
 inline __m128 vec2::load_xmm(const vec2& data) {
-    __m128 _data = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
-    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec2)));
+    return _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
 }
 
 inline __m128 vec2::load_xmm(const vec2&& data) {
-    __m128 _data = _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
-    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec2)));
+    return _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
 }
 
 inline vec2 vec2::store_xmm(const __m128& data) {
@@ -507,18 +501,15 @@ inline vec2 vec2::store_xmm(const __m128&& data) {
 
 inline __m128 vec3::load_xmm(const float_t data) {
     __m128 _data = _mm_set_ss(data);
-    _data = _mm_shuffle_ps(_data, _data, 0);
-    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    return _mm_shuffle_ps(_data, _data, 0x40);
 }
 
 inline __m128 vec3::load_xmm(const vec3& data) {
-    __m128 _data = _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
-    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
 }
 
 inline __m128 vec3::load_xmm(const vec3&& data) {
-    __m128 _data = _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
-    return _mm_and_ps(_data, _mm_castsi128_ps(vec4i::load_xmm(vec4_mask_vec3)));
+    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
 }
 
 inline vec3 vec3::store_xmm(const __m128& data) {
@@ -810,7 +801,7 @@ inline float_t vec2::distance_squared(const vec2& left, const vec2& right) {
 }
 
 inline vec2 vec2::abs(const vec2& left) {
-    return vec2::store_xmm(_mm_and_ps(vec2::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec2_abs))));
+    return vec2::store_xmm(_mm_castsi128_ps(_mm_and_si128(_mm_castps_si128(vec2::load_xmm(left)), vec2i_abs)));
 }
 
 inline vec2 vec2::lerp(const vec2& left, const vec2& right, const vec2& blend) {
@@ -1106,7 +1097,7 @@ inline float_t vec3::distance_squared(const vec3& left, const vec3& right) {
 }
 
 inline vec3 vec3::abs(const vec3& left) {
-    return vec3::store_xmm(_mm_and_ps(vec3::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec3_abs))));
+    return vec3::store_xmm(_mm_castsi128_ps(_mm_and_si128(_mm_castps_si128(vec3::load_xmm(left)), vec3i_abs)));
 }
 
 inline vec3 vec3::lerp(const vec3& left, const vec3& right, const vec3& blend) {
@@ -1404,7 +1395,7 @@ inline float_t vec4::distance_squared(const vec4& left, const vec4& right) {
 }
 
 inline vec4 vec4::abs(const vec4& left) {
-    return vec4::store_xmm(_mm_and_ps(vec4::load_xmm(left), _mm_castsi128_ps(vec4i::load_xmm(vec4_abs))));
+    return vec4::store_xmm(_mm_castsi128_ps(_mm_and_si128(_mm_castps_si128(vec4::load_xmm(left)), vec4i_abs)));
 }
 
 inline vec4 vec4::lerp(const vec4& left, const vec4& right, const vec4& blend) {
