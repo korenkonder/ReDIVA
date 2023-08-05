@@ -7867,6 +7867,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
         prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
 
+        std::vector<uint32_t> used_material_indices;
+
         uint32_t obj_num_new = (uint32_t)(obj_num + bones_vertices.size());
         obj* obj_data_new = alloc->allocate<::obj>(obj_num_new);
         memcpy(obj_data_new, set->obj_data, sizeof(obj) * obj_num);
@@ -7893,8 +7895,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             if (!src_obj)
                 continue;
 
-            vec3 aabb_min_obj = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
-            vec3 aabb_max_obj = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+            vec3 aabb_min_obj =    9999999.0f;
+            vec3 aabb_max_obj = -100000000.0f;
 
             obj_mesh* mesh_array = src_obj->mesh_array;
             uint32_t num_mesh = src_obj->num_mesh;
@@ -7905,6 +7907,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                 if (bone_vertices_mesh.vertices.size())
                     act_num_mesh++;
             }
+
+            used_material_indices.clear();
 
             obj_mesh* mesh_array_new = alloc->allocate<obj_mesh>(act_num_mesh);
             for (uint32_t k = 0, k1 = 0; k < num_mesh; k++) {
@@ -7918,8 +7922,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
                 dst_mesh->flags = src_mesh->flags;
 
-                vec3 aabb_min_mesh = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
-                vec3 aabb_max_mesh = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+                vec3 aabb_min_mesh =    9999999.0f;
+                vec3 aabb_max_mesh = -100000000.0f;
+
+                used_material_indices.reserve(src_mesh->num_submesh);
 
                 obj_sub_mesh* submesh_array = src_mesh->submesh_array;
                 uint32_t num_submesh = src_mesh->num_submesh;
@@ -7948,8 +7954,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
                     dst_submesh->attrib = src_submesh->attrib;
 
-                    vec3 aabb_min_submesh = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
-                    vec3 aabb_max_submesh = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+                    vec3 aabb_min_submesh =    9999999.0f;
+                    vec3 aabb_max_submesh = -100000000.0f;
 
                     uint32_t* index = index_array_new;
                     obj_vertex_data* vertex_array = bone_vertices_mesh.vertices.data();
@@ -7971,6 +7977,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     dst_submesh->first_index = 0;
                     dst_submesh->last_index = 0;
                     dst_submesh->index_offset = 0;
+
+                    used_material_indices.push_back(dst_submesh->material_index);
                 }
                 dst_mesh->submesh_array = submesh_array_new;
                 dst_mesh->num_submesh = num_submesh;
@@ -8005,13 +8013,38 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             dst_obj->mesh_array = mesh_array_new;
             dst_obj->num_mesh = act_num_mesh;
 
+            prj::sort_unique(used_material_indices);
+
             dst_obj->bounding_sphere.center = (aabb_max_obj + aabb_min_obj) * 0.5f;
             dst_obj->bounding_sphere.radius = vec3::length(aabb_max_obj - aabb_min_obj) * 0.5f;
 
             obj_material_data* material_array = src_obj->material_array;
-            uint32_t num_material = src_obj->num_material;
+            uint32_t num_material = (uint32_t)used_material_indices.size();
             obj_material_data* material_array_new = alloc->allocate<obj_material_data>(num_material);
-            memcpy(material_array_new, material_array, sizeof(obj_material_data) * num_material);
+            for (uint32_t k = 0; k < num_material; k++) {
+                material_array_new[k] = material_array[used_material_indices[k]];
+
+                for (uint32_t l = 0; l < act_num_mesh; l++) {
+                    obj_mesh* mesh = &mesh_array_new[l];
+
+                    obj_sub_mesh* submesh_array = mesh->submesh_array;
+                    uint32_t num_submesh = mesh->num_submesh;
+                    for (uint32_t m = 0; m < num_submesh; m++) {
+                        obj_sub_mesh* submesh = &submesh_array[m];
+
+                        uint32_t material_index = submesh->material_index;
+
+                        uint32_t n = 0;
+                        for (uint32_t& o : used_material_indices)
+                            if (o == material_index) {
+                                submesh->material_index = n;
+                                break;
+                            }
+                            else
+                                n++;
+                    }
+                }
+            }
             dst_obj->material_array = material_array_new;
             dst_obj->num_material = num_material;
 

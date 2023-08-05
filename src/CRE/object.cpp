@@ -2104,8 +2104,8 @@ static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* hand
         for (uint32_t j = 0; j < obj.num_mesh; j++) {
             obj_mesh& mesh = obj.mesh_array[j];
             for (uint32_t k = 0; k < mesh.num_submesh; k++) {
-                vec3 _min = vec3(   9999999.0f,    9999999.0f,    9999999.0f);
-                vec3 _max = vec3(-100000000.0f, -100000000.0f, -100000000.0f);
+                vec3 _min =    9999999.0f;
+                vec3 _max = -100000000.0f;
 
                 obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
                 uint32_t* index = sub_mesh.index_array;
