@@ -4895,59 +4895,49 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
 }
 
 static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2) {
-    bone_node* v5;
-    vec3 v30;
+    vec3 trans;
 
     switch (a1->motion_bone_index) {
     case MOTION_BONE_N_SKATA_L_WJ_CD_EX:
-        v5 = a2[MOTION_BONE_C_KATA_L].node;
-        mat4_get_translation(v5[2].mat, &v30);
-        bone_data_mult_1_ik_hands(a1, &v30);
+        mat4_get_translation(a2[MOTION_BONE_C_KATA_L].node[2].mat, &trans);
+        bone_data_mult_1_ik_hands(a1, &trans);
         break;
     case MOTION_BONE_N_SKATA_R_WJ_CD_EX:
-        v5 = a2[MOTION_BONE_C_KATA_R].node;
-        mat4_get_translation(v5[2].mat, &v30);
-        bone_data_mult_1_ik_hands(a1, &v30);
+        mat4_get_translation(a2[MOTION_BONE_C_KATA_R].node[2].mat, &trans);
+        bone_data_mult_1_ik_hands(a1, &trans);
         break;
     case MOTION_BONE_N_SKATA_B_L_WJ_CD_CU_EX:
-        v5 = a2[MOTION_BONE_N_UP_KATA_L_EX].node;
-        mat4_get_translation(v5[0].mat, &v30);
-        bone_data_mult_1_ik_hands_2(a1, &v30, 0.333f);
+        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &trans);
+        bone_data_mult_1_ik_hands_2(a1, &trans, 0.333f);
         break;
     case MOTION_BONE_N_SKATA_B_R_WJ_CD_CU_EX:
-        v5 = a2[MOTION_BONE_N_UP_KATA_R_EX].node;
-        mat4_get_translation(v5[0].mat, &v30);
-        bone_data_mult_1_ik_hands_2(a1, &v30, 0.333f);
+        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &trans);
+        bone_data_mult_1_ik_hands_2(a1, &trans, 0.333f);
         break;
     case MOTION_BONE_N_SKATA_C_L_WJ_CD_CU_EX:
-        v5 = a2[MOTION_BONE_N_UP_KATA_L_EX].node;
-        mat4_get_translation(v5[0].mat, &v30);
-        bone_data_mult_1_ik_hands_2(a1, &v30, 0.5f);
+        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &trans);
+        bone_data_mult_1_ik_hands_2(a1, &trans, 0.5f);
         break;
     case MOTION_BONE_N_SKATA_C_R_WJ_CD_CU_EX:
-        v5 = a2[MOTION_BONE_N_UP_KATA_R_EX].node;
-        mat4_get_translation(v5[0].mat, &v30);
-        bone_data_mult_1_ik_hands_2(a1, &v30, 0.5f);
+        mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &trans);
+        bone_data_mult_1_ik_hands_2(a1, &trans, 0.5f);
         break;
     case MOTION_BONE_N_MOMO_A_L_WJ_CD_EX:
-        v5 = a2[MOTION_BONE_CL_MOMO_L].node;
-        mat4_get_translation(v5[2].mat, &v30);
-        mat4_mult_vec3_inv_trans(a1->node[0].mat, &v30, &v30);
-        v30 = -v30;
-        bone_data_mult_1_ik_legs(a1, &v30);
+        mat4_get_translation(a2[MOTION_BONE_CL_MOMO_L].node[2].mat, &trans);
+        mat4_mult_vec3_inv_trans(a1->node[0].mat, &trans, &trans);
+        trans = -trans;
+        bone_data_mult_1_ik_legs(a1, &trans);
         break;
     case MOTION_BONE_N_MOMO_A_R_WJ_CD_EX:
-        v5 = a2[MOTION_BONE_CL_MOMO_R].node;
-        mat4_get_translation(v5[2].mat, &v30);
-        mat4_mult_vec3_inv_trans(a1->node[0].mat, &v30, &v30);
-        v30 = -v30;
-        bone_data_mult_1_ik_legs(a1, &v30);
+        mat4_get_translation(a2[MOTION_BONE_CL_MOMO_R].node[2].mat, &trans);
+        mat4_mult_vec3_inv_trans(a1->node[0].mat, &trans, &trans);
+        trans = -trans;
+        bone_data_mult_1_ik_legs(a1, &trans);
         break;
     case MOTION_BONE_N_HARA_CD_EX:
-        v5 = a2[MOTION_BONE_KL_MUNE_B_WJ].node;
-        mat4_get_translation(v5[0].mat, &v30);
-        mat4_mult_vec3_inv_trans(a1->node[0].mat, &v30, &v30);
-        bone_data_mult_1_ik_legs(a1, &v30);
+        mat4_get_translation(a2[MOTION_BONE_KL_MUNE_B_WJ].node[0].mat, &trans);
+        mat4_mult_vec3_inv_trans(a1->node[0].mat, &trans, &trans);
+        bone_data_mult_1_ik_legs(a1, &trans);
         break;
     default:
         return false;
