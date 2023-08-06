@@ -2155,15 +2155,15 @@ static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* hand
                     continue;
 
                 obj_material_texture_data& texture = k;
-                uint32_t texture_id = texture.tex_index;
+                uint32_t tex_index = texture.tex_index;
                 texture.tex_index = -1;
                 texture.texture_index = 0;
 
                 std::pair<uint32_t, uint32_t>* tex_id_data = handler->tex_id_data.data();
                 uint32_t tex_id_num = (uint32_t)handler->tex_id_data.size();
                 for (uint32_t l = tex_id_num; l; l--, tex_id_data++)
-                    if (tex_id_data->first == texture_id) {
-                        texture.tex_index = texture_id;
+                    if (tex_id_data->first == tex_index) {
+                        texture.tex_index = tex_index;
                         texture.texture_index = tex_id_data->second;
                         break;
                     }

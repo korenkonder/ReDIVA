@@ -392,6 +392,12 @@ int32_t shader_set_data::get_index_by_name(const char* name) {
     return -1;
 }
 
+const char* shader_set_data::get_name_by_index(int32_t index) {
+    if (index >= 0 && index < size)
+        return shaders[index].name;
+    return 0;
+}
+
 void shader_set_data::load(farc* f, bool ignore_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
