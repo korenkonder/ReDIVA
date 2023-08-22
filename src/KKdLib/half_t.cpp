@@ -4,14 +4,8 @@
 */
 
 #include "half_t.hpp"
-#include <immintrin.h>
 
-extern bool f16c;
-
-float_t half_to_float(half_t h) {
-    if (f16c)
-        return _mm_cvtss_f32( _mm_cvtph_ps(_mm_cvtsi32_si128((uint16_t)h)));
-
+float_t half_to_float_convert(half_t h) {
     int32_t si32;
     uint16_t sign = (h >> 15) & 0x001;
     uint16_t exponent = (h >> 10) & 0x01F;
@@ -26,10 +20,7 @@ float_t half_to_float(half_t h) {
     return *(float_t*)&si32;
 }
 
-half_t float_to_half(float_t val) {
-    if (f16c)
-        return (half_t)_mm_cvtsi128_si32(_mm_cvtps_ph(_mm_set_ss(val), _MM_FROUND_CUR_DIRECTION));
-
+half_t float_to_half_convert(float_t val) {
     int32_t si32 = *(int32_t*)&val;
     if (si32 == 0x00000000)
         return FLOAT16_POSITIVE_ZERO;
@@ -52,10 +43,7 @@ half_t float_to_half(float_t val) {
     return (half_t)((sign << 15) | (exponent << 10) | mantissa);
 }
 
-double_t half_to_double(half_t h) {
-    if (f16c)
-        return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128((uint16_t)h)));
-
+double_t half_to_double_convert(half_t h) {
     int64_t si64;
     uint16_t sign = (h >> 15) & 0x001;
     uint16_t exponent = (h >> 10) & 0x01F;
@@ -70,10 +58,7 @@ double_t half_to_double(half_t h) {
     return *(double_t*)&si64;
 }
 
-half_t double_to_half(double_t val) {
-    if (f16c)
-        return (half_t)_mm_cvtsi128_si32(_mm_cvtps_ph(_mm_cvtpd_ps(_mm_set_sd(val)), _MM_FROUND_CUR_DIRECTION));
-
+half_t double_to_half_convert(double_t val) {
     int64_t si64 = *(int64_t*)&val;
     if (si64 == 0x0000000000000000)
         return FLOAT16_POSITIVE_ZERO;

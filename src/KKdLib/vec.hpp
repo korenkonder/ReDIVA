@@ -1797,39 +1797,63 @@ inline void vec4_to_vec4u16(const vec4& src, vec4u16& dst) {
 }
 
 inline void vec2h_to_vec2(const vec2h& src, vec2& dst) {
-    dst.x = half_to_float(src.x);
-    dst.y = half_to_float(src.y);
+    extern bool f16c;
+    if (f16c) {
+        dst = vec2::store_xmm(_mm_cvtph_ps(_mm_cvtsi32_si128(*(int32_t*)&src)));
+        return;
+    }
+
+    dst.x = half_to_float_convert(src.x);
+    dst.y = half_to_float_convert(src.y);
 }
 
 inline void vec3h_to_vec3(const vec3h& src, vec3& dst) {
-    dst.x = half_to_float(src.x);
-    dst.y = half_to_float(src.y);
-    dst.z = half_to_float(src.z);
+    dst.x = half_to_float_convert(src.x);
+    dst.y = half_to_float_convert(src.y);
+    dst.z = half_to_float_convert(src.z);
 }
 
 inline void vec4h_to_vec4(const vec4h& src, vec4& dst) {
-    dst.x = half_to_float(src.x);
-    dst.y = half_to_float(src.y);
-    dst.z = half_to_float(src.z);
-    dst.w = half_to_float(src.w);
+    extern bool f16c;
+    if (f16c) {
+        dst = vec4::store_xmm(_mm_cvtph_ps(_mm_cvtsi64_si128(*(int64_t*)&src)));
+        return;
+    }
+
+    dst.x = half_to_float_convert(src.x);
+    dst.y = half_to_float_convert(src.y);
+    dst.z = half_to_float_convert(src.z);
+    dst.w = half_to_float_convert(src.w);
 }
 
 inline void vec2_to_vec2h(const vec2& src, vec2h& dst) {
-    dst.x = float_to_half(src.x);
-    dst.y = float_to_half(src.y);
+    extern bool f16c;
+    if (f16c) {
+        *(int32_t*)&dst = _mm_cvtsi128_si32(_mm_cvtps_ph(vec2::load_xmm(src), _MM_FROUND_CUR_DIRECTION));
+        return;
+    }
+
+    dst.x = float_to_half_convert(src.x);
+    dst.y = float_to_half_convert(src.y);
 }
 
 inline void vec3_to_vec3h(const vec3& src, vec3h& dst) {
-    dst.x = float_to_half(src.x);
-    dst.y = float_to_half(src.y);
-    dst.z = float_to_half(src.z);
+    dst.x = float_to_half_convert(src.x);
+    dst.y = float_to_half_convert(src.y);
+    dst.z = float_to_half_convert(src.z);
 }
 
 inline void vec4_to_vec4h(const vec4& src, vec4h& dst) {
-    dst.x = float_to_half(src.x);
-    dst.y = float_to_half(src.y);
-    dst.z = float_to_half(src.z);
-    dst.w = float_to_half(src.w);
+    extern bool f16c;
+    if (f16c) {
+        *(int64_t*)&dst = _mm_cvtsi128_si64(_mm_cvtps_ph(vec4::load_xmm(src), _MM_FROUND_CUR_DIRECTION));
+        return;
+    }
+
+    dst.x = float_to_half_convert(src.x);
+    dst.y = float_to_half_convert(src.y);
+    dst.z = float_to_half_convert(src.z);
+    dst.w = float_to_half_convert(src.w);
 }
 
 inline void vec2i8_to_vec2i(const vec2i8& src, vec2i& dst) {
