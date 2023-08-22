@@ -28,6 +28,10 @@
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
 #endif
+#if BAKE_VIDEO_NVENC
+#include <d3d11.h>
+#include "nvenc/nvenc_encoder.hpp"
+#endif
 #if BAKE_PV826
 #include "../KKdLib/waitable_timer.hpp"
 #endif
@@ -3961,7 +3965,24 @@ static bool img_write = false;
 #endif
 
 #if BAKE_VIDEO
+#if BAKE_VIDEO_NVENC
+#pragma comment(lib, "d3d11.lib")
+
+ID3D11Device* d3d_device;
+ID3D11DeviceContext* d3d_device_context;
+ID3D11Texture2D* d3d_texture;
+
+const size_t nvenc_src_pixel_size = 8;
+const size_t nvenc_dst_pixel_size = 4;
+
+std::vector<uint8_t> nvenc_temp_pixels;
+
+nvenc_encoder* nvenc_enc;
+
+file_stream* nvenc_stream;
+#else
 FILE* pipe;
+#endif
 #endif
 
 #if DOF_BAKE
@@ -3999,6 +4020,62 @@ static int32_t frame_prev = -1;
 bool x_pv_game::Ctrl() {
 #if BAKE_VIDEO
     if (img_write && frame_prev != frame) {
+#if BAKE_VIDEO_NVENC
+        D3D11_MAPPED_SUBRESOURCE mapped_res = {};
+        if (SUCCEEDED(d3d_device_context->Map(d3d_texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
+            texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
+            size_t width = tex->width;
+            size_t height = tex->height;
+
+            gl_state_bind_texture_2d(tex->tex);
+            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
+            gl_state_bind_texture_2d(0);
+
+            uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
+            uint8_t* dst = (uint8_t*)mapped_res.pData;
+
+            __m128 rgb_f32;
+            vec4i rgb_u10;
+
+            extern bool f16c;
+            if (f16c)
+                for (size_t y = 0, i = height; i; y++, i--) {
+                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+
+                    for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
+                        rgb_f32 = _mm_cvtph_ps(_mm_loadl_epi64((__m128i*)src1));
+                        rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
+                        rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
+                        rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
+                        *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
+                            | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
+                    }
+                }
+            else
+                for (size_t y = 0, i = height; i; y++, i--) {
+                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+
+                    for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
+                        rgb_f32.m128_f32[0] = half_to_float_convert(((half_t*)src1)[0]);
+                        rgb_f32.m128_f32[1] = half_to_float_convert(((half_t*)src1)[1]);
+                        rgb_f32.m128_f32[2] = half_to_float_convert(((half_t*)src1)[2]);
+                        rgb_f32.m128_f32[3] = half_to_float_convert(((half_t*)src1)[3]);
+                        rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
+                        rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
+                        rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
+                        *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
+                            | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
+                    }
+                }
+
+            d3d_device_context->Unmap(d3d_texture, 0);
+            nvenc_enc->write_frame(d3d_texture, nvenc_stream);
+            nvenc_stream->flush();
+        }
+
+#else
         texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
         size_t width = tex->width;
         size_t height = tex->height;
@@ -4027,6 +4104,7 @@ bool x_pv_game::Ctrl() {
 
         fwrite(pixels.data(), 1, width * height * pixel_size, pipe);
         fflush(pipe);
+#endif
 
         frame_prev = frame;
         img_write = false;
@@ -4748,6 +4826,42 @@ bool x_pv_game::Ctrl() {
 #endif
 
 #if BAKE_VIDEO
+        extern bool disable_cursor;
+        disable_cursor = true;
+
+        const int32_t width = 3840;
+        const int32_t height = 2160;
+
+#if BAKE_VIDEO_NVENC
+        D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
+            D3D11_SDK_VERSION, &d3d_device, 0, &d3d_device_context);
+
+        D3D11_TEXTURE2D_DESC tex_desc = { 0 };
+        tex_desc.Width = 3840;
+        tex_desc.Height = height;
+        tex_desc.MipLevels = 1;
+        tex_desc.ArraySize = 1;
+        tex_desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+        tex_desc.SampleDesc.Count = 1;
+        tex_desc.SampleDesc.Quality = 0;
+        tex_desc.Usage = D3D11_USAGE_DYNAMIC;
+        tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+        tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        tex_desc.MiscFlags = 0;
+
+        d3d_texture = 0;
+        d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture);
+
+        nvenc_temp_pixels.resize((size_t)width* (size_t)height* nvenc_src_pixel_size);
+
+        nvenc_enc = new nvenc_encoder(width, height, d3d_device);
+
+        char buf[0x100];
+        sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", pv_data[pv_index].pv_id);
+
+        nvenc_stream = new file_stream();
+        nvenc_stream->open(buf, "wb");
+#else
         char buf[0x400];
         /*sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb48le -s %dx%d -r 60 -i -"
             " -c:v h264_nvenc -gpu 0 -profile:v high -b_ref_mode 1 -rc constqp -qp 20 -preset p7"
@@ -4756,8 +4870,9 @@ bool x_pv_game::Ctrl() {
         sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb48le -s %dx%d -r 60 -i -"
             " -c:v hevc_nvenc -gpu 0 -profile:v main10 -rc constqp -qp 20 -preset p7"
             " -color_range pc -color_primaries bt709 -color_trc bt709 -colorspace bt709 -pix_fmt p010le"
-            " G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", 3840, 2160, pv_data[pv_index].pv_id);
+            " G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", width, height, pv_data[pv_index].pv_id);
         pipe = _popen(buf, "wb");
+#endif
 #endif
 
 #if BAKE_PV826
@@ -4794,8 +4909,31 @@ bool x_pv_game::Ctrl() {
     } break;
     case 21: {
 #if BAKE_VIDEO
+        extern bool disable_cursor;
+        disable_cursor = false;
+
+#if BAKE_VIDEO_NVENC
+        nvenc_stream->close();
+        delete nvenc_stream;
+        nvenc_stream = 0;
+
+        delete nvenc_enc;
+        nvenc_enc = 0;
+
+        nvenc_temp_pixels.clear();
+        nvenc_temp_pixels.shrink_to_fit();
+
+        d3d_texture->Release();
+        d3d_texture = 0;
+
+        d3d_device_context->Release();
+        d3d_device_context = 0;
+        d3d_device->Release();
+        d3d_device = 0;
+#else
         fflush(pipe);
         _pclose(pipe);
+#endif
 #endif
 
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
