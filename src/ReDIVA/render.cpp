@@ -64,6 +64,11 @@
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
 #include <glad/glad.h>
+#if BAKE_VIDEO
+#include <glad/glad_wgl.h>
+#include <d3d11.h>
+#pragma comment(lib, "d3d11.lib")
+#endif
 #include <GLFW/glfw3.h>
 #include <GLFW/glfw3native.h>
 #include <imgui/imgui.h>
@@ -185,7 +190,10 @@ static void render_context_dispose(render_context* rctx);
 static void render_shaders_load();
 static void render_shaders_free();
 
-static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash);
+static bool render_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash);
+#if ReDIVA_DEV
+static bool render_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash);
+#endif
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
@@ -210,6 +218,12 @@ bool global_context_menu;
 extern size_t frame_counter;
 render_context* rctx_ptr;
 bool task_stage_is_modern;
+
+#if BAKE_VIDEO
+ID3D11Device* d3d_device;
+ID3D11DeviceContext* d3d_device_context;
+HANDLE d3d_gl_handle;
+#endif
 
 int32_t render_main(render_init_struct* ris) {
     render_lock = new lock_cs;
@@ -354,13 +368,32 @@ bool render_data::load() {
     if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
         return false;
 
+#if BAKE_VIDEO
+    if (!gladLoadWGLLoader((GLADloadproc)glfwGetProcAddress, GetDC(window_handle)))
+        return false;
+
+    D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
+        D3D11_SDK_VERSION, &d3d_device, 0, &d3d_device_context);
+
+    if (GLAD_WGL_NV_DX_interop2)
+        d3d_gl_handle = wglDXOpenDeviceNV(d3d_device);
+#endif
+
     gl_state_get_error();
     glViewport(0, 0, width, height);
     return true;
 }
 
 void render_data::unload() {
+#if BAKE_VIDEO
+    if (GLAD_WGL_NV_DX_interop2)
+        wglDXCloseDeviceNV(d3d_device);
 
+    d3d_device_context->Release();
+    d3d_device_context = 0;
+    d3d_device->Release();
+    d3d_device = 0;
+#endif
 }
 
 void render_data::load_common_data() {

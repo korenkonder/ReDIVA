@@ -28,8 +28,11 @@
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
 #endif
-#if BAKE_VIDEO_NVENC
+#if BAKE_VIDEO
+#include <glad/glad_wgl.h>
 #include <d3d11.h>
+#include "../CRE/shader_dev.hpp"
+#include "../CRE/shader_ft.hpp"
 #include "nvenc/nvenc_encoder.hpp"
 #endif
 #if BAKE_PV826
@@ -3965,12 +3968,23 @@ static bool img_write = false;
 #endif
 
 #if BAKE_VIDEO
-#if BAKE_VIDEO_NVENC
-#pragma comment(lib, "d3d11.lib")
+extern ID3D11Device* d3d_device;
+extern ID3D11DeviceContext* d3d_device_context;
+extern HANDLE d3d_gl_handle;
 
-ID3D11Device* d3d_device;
-ID3D11DeviceContext* d3d_device_context;
-ID3D11Texture2D* d3d_texture;
+const int32_t d3d_in_flight_num = 3;
+bool d3d_tex_write[d3d_in_flight_num];
+int32_t d3d_curr_tex = 0;
+int32_t d3d_tex_in_queue = 0;
+
+ID3D11Texture2D* d3d_texture[d3d_in_flight_num];
+
+GLuint d3d_query[d3d_in_flight_num];
+GLuint d3d_gl_fbo[d3d_in_flight_num];
+GLuint d3d_gl_rbo[d3d_in_flight_num];
+HANDLE d3d_gl_rbo_handle[d3d_in_flight_num];
+
+waitable_timer d3d_timer;
 
 const size_t nvenc_src_pixel_size = 8;
 const size_t nvenc_dst_pixel_size = 4;
@@ -3980,9 +3994,6 @@ std::vector<uint8_t> nvenc_temp_pixels;
 nvenc_encoder* nvenc_enc;
 
 file_stream* nvenc_stream;
-#else
-FILE* pipe;
-#endif
 #endif
 
 #if DOF_BAKE
@@ -4019,112 +4030,128 @@ static int32_t frame_prev = -1;
 
 bool x_pv_game::Ctrl() {
 #if BAKE_VIDEO
-    if (img_write && frame_prev != frame) {
-#if BAKE_VIDEO_NVENC
-        D3D11_MAPPED_SUBRESOURCE mapped_res = {};
-        if (SUCCEEDED(d3d_device_context->Map(d3d_texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
-            texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
-            size_t width = tex->width;
-            size_t height = tex->height;
-
-            gl_state_bind_texture_2d(tex->tex);
-            glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
-            gl_state_bind_texture_2d(0);
-
-            uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
-            uint8_t* dst = (uint8_t*)mapped_res.pData;
-
-            __m128 rgb_f32;
-            vec4i rgb_u10;
-
-            extern bool f16c;
-            if (f16c)
-                for (size_t y = 0, i = height; i; y++, i--) {
-                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
-
-                    for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
-                        rgb_f32 = _mm_cvtph_ps(_mm_loadl_epi64((__m128i*)src1));
-                        rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
-                        rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
-                        rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
-                        *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
-                            | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
-                    }
-                }
-            else
-                for (size_t y = 0, i = height; i; y++, i--) {
-                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
-
-                    for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
-                        rgb_f32.m128_f32[0] = half_to_float_convert(((half_t*)src1)[0]);
-                        rgb_f32.m128_f32[1] = half_to_float_convert(((half_t*)src1)[1]);
-                        rgb_f32.m128_f32[2] = half_to_float_convert(((half_t*)src1)[2]);
-                        rgb_f32.m128_f32[3] = half_to_float_convert(((half_t*)src1)[3]);
-                        rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
-                        rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
-                        rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
-                        *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
-                            | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
-                    }
-                }
-
-            d3d_device_context->Unmap(d3d_texture, 0);
-            nvenc_enc->write_frame(d3d_texture, nvenc_stream);
+    auto write_frame = [&](int32_t idx) {
+        int32_t res = 0;
+        glGetQueryObjectiv(d3d_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
+        if (res) {
+            nvenc_enc->write_frame(d3d_texture[idx], nvenc_stream);
             nvenc_stream->flush();
+            d3d_tex_in_queue--;
+            d3d_tex_write[idx] = false;
         }
+    };
 
-#else
-        texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
-        size_t width = tex->width;
-        size_t height = tex->height;
+    if (GLAD_WGL_NV_DX_interop2 && d3d_tex_in_queue) {
+        if (frame_prev == x_pv_game_ptr->frame)
+            for (int32_t i = 0; i < d3d_in_flight_num && !d3d_tex_write[d3d_curr_tex]; i++)
+                d3d_curr_tex = (d3d_curr_tex + 1) % d3d_in_flight_num;
 
-        const size_t pixel_size = 6;
-
-        std::vector<uint8_t> temp_pixels;
-        temp_pixels.resize(width * height * pixel_size);
-        gl_state_bind_texture_2d(tex->tex);
-        glGetTexImage(GL_TEXTURE_2D, 0, GL_RGB, GL_UNSIGNED_SHORT, temp_pixels.data());
-        gl_state_bind_texture_2d(0);
-
-        std::vector<uint8_t> pixels;
-        pixels.resize(width * height * pixel_size);
-
-        uint8_t* src = (uint8_t*)temp_pixels.data();
-        uint8_t* dst = (uint8_t*)pixels.data();
-        for (size_t y = 0; y < height; y++) {
-            uint8_t* src1 = &src[y * width * pixel_size];
-            uint8_t* dst1 = &dst[(height - y - 1) * width * pixel_size];
-            memcpy(dst1, src1, width * pixel_size);
-        }
-
-        temp_pixels.clear();
-        temp_pixels.shrink_to_fit();
-
-        fwrite(pixels.data(), 1, width * height * pixel_size, pipe);
-        fflush(pipe);
-#endif
-
-        frame_prev = frame;
-        img_write = false;
+        if (d3d_tex_write[d3d_curr_tex])
+            write_frame(d3d_curr_tex);
     }
 #endif
 
-#if BAKE_PNG
-    if (img_write && frame_prev != frame) {
+#if BAKE_PNG || BAKE_VIDEO
+    if (img_write && frame_prev != x_pv_game_ptr->frame) {
         texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
-        uint32_t width = tex->width;
-        uint32_t height = tex->height;
+        int32_t width = tex->width;
+        int32_t height = tex->height;
 
+#if BAKE_VIDEO
+        if (GLAD_WGL_NV_DX_interop2) {
+            shaders_dev.primitive_restart = shaders_ft.primitive_restart;
+            shaders_dev.primitive_restart_index = shaders_ft.primitive_restart_index;
+
+            int32_t idx = (d3d_curr_tex + 1) % d3d_in_flight_num;
+            d3d_curr_tex = idx;
+            int32_t next_idx = (idx + 2) % d3d_in_flight_num;
+
+            while (d3d_tex_write[next_idx]) {
+                d3d_timer.sleep_float(1.0);
+                write_frame(next_idx);
+            }
+
+            wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[next_idx]);
+
+            gl_state_bind_framebuffer(d3d_gl_fbo[next_idx]);
+            gl_state_active_bind_texture_2d(0, tex->tex);
+            glViewport(0, 0, width, height);
+            shaders_dev.set(SHADER_DEV_CLAMP_COLORS);
+            glBeginQuery(GL_SAMPLES_PASSED, d3d_query[next_idx]);
+            render_texture::draw(&shaders_dev);
+            glEndQuery(GL_SAMPLES_PASSED);
+            gl_state_bind_texture_2d(0);
+            gl_state_bind_framebuffer(0);
+
+            wglDXUnlockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[next_idx]);
+
+            d3d_tex_in_queue++;
+            d3d_tex_write[next_idx] = true;
+
+            shaders_ft.primitive_restart = shaders_dev.primitive_restart;
+            shaders_ft.primitive_restart_index = shaders_dev.primitive_restart_index;
+
+        }
+        else {
+            D3D11_MAPPED_SUBRESOURCE mapped_res = {};
+            if (SUCCEEDED(d3d_device_context->Map(d3d_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
+                gl_state_bind_texture_2d(tex->tex);
+                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
+                gl_state_bind_texture_2d(0);
+
+                uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
+                uint8_t* dst = (uint8_t*)mapped_res.pData;
+
+                __m128 rgb_f32;
+                vec4i rgb_u10;
+
+                extern bool f16c;
+                if (f16c)
+                    for (size_t y = 0, i = height; i; y++, i--) {
+                        uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                        uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+
+                        for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
+                            rgb_f32 = _mm_cvtph_ps(_mm_loadl_epi64((__m128i*)src1));
+                            rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
+                            rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
+                            rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
+                            *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
+                                | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
+                        }
+                    }
+                else
+                    for (size_t y = 0, i = height; i; y++, i--) {
+                        uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                        uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+
+                        for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
+                            rgb_f32.m128_f32[0] = half_to_float_convert(((half_t*)src1)[0]);
+                            rgb_f32.m128_f32[1] = half_to_float_convert(((half_t*)src1)[1]);
+                            rgb_f32.m128_f32[2] = half_to_float_convert(((half_t*)src1)[2]);
+                            rgb_f32.m128_f32[3] = half_to_float_convert(((half_t*)src1)[3]);
+                            rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
+                            rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
+                            rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
+                            *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
+                                | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
+                        }
+                    }
+
+                d3d_device_context->Unmap(d3d_texture[0], 0);
+                nvenc_enc->write_frame(d3d_texture[0], nvenc_stream);
+                nvenc_stream->flush();
+            }
+        }
+#elif BAKE_PNG
         std::vector<uint8_t> temp_pixels;
-        temp_pixels.resize(width * height * 4 * sizeof(uint8_t));
+        temp_pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
         gl_state_bind_texture_2d(tex->tex);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
         gl_state_bind_texture_2d(0);
 
         std::vector<uint8_t> pixels;
-        pixels.resize(width * height * 4 * sizeof(uint8_t));
+        pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
 
         uint8_t* src = (uint8_t*)temp_pixels.data();
         uint8_t* dst = (uint8_t*)pixels.data();
@@ -4150,13 +4177,17 @@ bool x_pv_game::Ctrl() {
         uint32_t error = lodepng::encode(png, pixels, (uint32_t)width, (uint32_t)height, LCT_RGBA, 8);
         if (!error) {
             char buf[0x200];
-            sprintf_s(buf, sizeof(buf), "E:\\Rinku\\X\\pv%03d", pv_data[pv_index].pv_id);
+            sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Photos\\pv%03d",
+                x_pv_game_ptr->pv_data[x_pv_game_ptr->pv_index].pv_id);
             CreateDirectoryA(buf, 0);
 
-            sprintf_s(buf, sizeof(buf), "E:\\Rinku\\X\\pv%03d\\%05d.png", pv_data[pv_index].pv_id, frame);
+            sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Photos\\pv%03d\\%05d.png",
+                x_pv_game_ptr->pv_data[x_pv_game_ptr->pv_index].pv_id, x_pv_game_ptr->frame);
             lodepng::save_file(png, buf);
         }
-        frame_prev = frame;
+#endif
+
+        frame_prev = x_pv_game_ptr->frame;
         img_write = false;
     }
 #endif
@@ -4825,34 +4856,65 @@ bool x_pv_game::Ctrl() {
         }
 #endif
 
-#if BAKE_VIDEO
+#if BAKE_PNG || BAKE_VIDEO
         extern bool disable_cursor;
         disable_cursor = true;
 
         const int32_t width = 3840;
         const int32_t height = 2160;
 
-#if BAKE_VIDEO_NVENC
-        D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
-            D3D11_SDK_VERSION, &d3d_device, 0, &d3d_device_context);
+#if BAKE_VIDEO
+        if (GLAD_WGL_NV_DX_interop2) {
+            glGenRenderbuffers(d3d_in_flight_num, d3d_gl_rbo);
+            glGenFramebuffers(d3d_in_flight_num, d3d_gl_fbo);
+            glGenQueries(d3d_in_flight_num, d3d_query);
 
-        D3D11_TEXTURE2D_DESC tex_desc = { 0 };
-        tex_desc.Width = 3840;
-        tex_desc.Height = height;
-        tex_desc.MipLevels = 1;
-        tex_desc.ArraySize = 1;
-        tex_desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
-        tex_desc.SampleDesc.Count = 1;
-        tex_desc.SampleDesc.Quality = 0;
-        tex_desc.Usage = D3D11_USAGE_DYNAMIC;
-        tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-        tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-        tex_desc.MiscFlags = 0;
+            D3D11_TEXTURE2D_DESC tex_desc = { };
+            tex_desc.Width = width;
+            tex_desc.Height = height;
+            tex_desc.MipLevels = 1;
+            tex_desc.ArraySize = 1;
+            tex_desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+            tex_desc.SampleDesc.Count = 1;
+            tex_desc.SampleDesc.Quality = 0;
+            tex_desc.Usage = D3D11_USAGE_DEFAULT;
+            tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+            tex_desc.CPUAccessFlags = 0;
+            tex_desc.MiscFlags = 0;
 
-        d3d_texture = 0;
-        d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture);
+            for (int32_t i = 0; i < d3d_in_flight_num; i++)
+                d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture[i]);
 
-        nvenc_temp_pixels.resize((size_t)width* (size_t)height* nvenc_src_pixel_size);
+            for (int32_t i = 0; i < d3d_in_flight_num; i++)
+                d3d_gl_rbo_handle[i] = wglDXRegisterObjectNV(d3d_gl_handle, d3d_texture[i],
+                    d3d_gl_rbo[i], GL_RENDERBUFFER, WGL_ACCESS_READ_WRITE_NV);
+
+            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
+                wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[i]);
+                gl_state_bind_framebuffer(d3d_gl_fbo[i]);
+                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_rbo[i]);
+                gl_state_bind_framebuffer(0);
+                wglDXUnlockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[i]);
+            }
+        }
+        else {
+            D3D11_TEXTURE2D_DESC tex_desc = { };
+            tex_desc.Width = width;
+            tex_desc.Height = height;
+            tex_desc.MipLevels = 1;
+            tex_desc.ArraySize = 1;
+            tex_desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+            tex_desc.SampleDesc.Count = 1;
+            tex_desc.SampleDesc.Quality = 0;
+            tex_desc.Usage = D3D11_USAGE_DYNAMIC;
+            tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+            tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            tex_desc.MiscFlags = 0;
+
+            d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture[0]);
+
+            nvenc_temp_pixels.resize((size_t)width* (size_t)height* nvenc_src_pixel_size);
+        }
 
         nvenc_enc = new nvenc_encoder(width, height, d3d_device);
 
@@ -4861,18 +4923,6 @@ bool x_pv_game::Ctrl() {
 
         nvenc_stream = new file_stream();
         nvenc_stream->open(buf, "wb");
-#else
-        char buf[0x400];
-        /*sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb48le -s %dx%d -r 60 -i -"
-            " -c:v h264_nvenc -gpu 0 -profile:v high -b_ref_mode 1 -rc constqp -qp 20 -preset p7"
-            " -color_range pc -color_primaries bt709 -color_trc bt709 -colorspace bt709 -pix_fmt yuv420p"
-            " G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.264", 3840, 2160, pv_data[pv_index].pv_id);*/
-        sprintf_s(buf, sizeof(buf), "ffmpeg -y -f rawvideo -pix_fmt rgb48le -s %dx%d -r 60 -i -"
-            " -c:v hevc_nvenc -gpu 0 -profile:v main10 -rc constqp -qp 20 -preset p7"
-            " -color_range pc -color_primaries bt709 -color_trc bt709 -colorspace bt709 -pix_fmt p010le"
-            " G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", width, height, pv_data[pv_index].pv_id);
-        pipe = _popen(buf, "wb");
-#endif
 #endif
 
 #if BAKE_PV826
@@ -4908,11 +4958,21 @@ bool x_pv_game::Ctrl() {
             state_old = 21;
     } break;
     case 21: {
-#if BAKE_VIDEO
+#if BAKE_PNG || BAKE_VIDEO
         extern bool disable_cursor;
         disable_cursor = false;
 
-#if BAKE_VIDEO_NVENC
+#if BAKE_VIDEO
+        if (GLAD_WGL_NV_DX_interop2) {
+            bool wait = false;
+            for (int32_t i = 0; i < d3d_in_flight_num; i++)
+                if (d3d_tex_write[i])
+                    wait |= true;
+
+            if (wait)
+                break;
+        }
+
         nvenc_stream->close();
         delete nvenc_stream;
         nvenc_stream = 0;
@@ -4920,19 +4980,32 @@ bool x_pv_game::Ctrl() {
         delete nvenc_enc;
         nvenc_enc = 0;
 
-        nvenc_temp_pixels.clear();
-        nvenc_temp_pixels.shrink_to_fit();
+        if (GLAD_WGL_NV_DX_interop2) {
+            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
+                wglDXUnregisterObjectNV(d3d_gl_handle, d3d_gl_rbo_handle[i]);
+                d3d_gl_rbo_handle[i] = 0;
+            }
 
-        d3d_texture->Release();
-        d3d_texture = 0;
+            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
+                d3d_texture[i]->Release();
+                d3d_texture[i] = 0;
+            }
 
-        d3d_device_context->Release();
-        d3d_device_context = 0;
-        d3d_device->Release();
-        d3d_device = 0;
-#else
-        fflush(pipe);
-        _pclose(pipe);
+            glDeleteQueries(d3d_in_flight_num, d3d_query);
+
+            glDeleteFramebuffers(d3d_in_flight_num, d3d_gl_fbo);
+            memset(d3d_gl_fbo, 0, sizeof(d3d_gl_fbo));
+
+            glDeleteRenderbuffers(d3d_in_flight_num, d3d_gl_rbo);
+            memset(d3d_gl_rbo, 0, sizeof(d3d_gl_rbo));
+        }
+        else {
+            nvenc_temp_pixels.clear();
+            nvenc_temp_pixels.shrink_to_fit();
+
+            d3d_texture[0]->Release();
+            d3d_texture[0] = 0;
+        }
 #endif
 #endif
 

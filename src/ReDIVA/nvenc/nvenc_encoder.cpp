@@ -95,18 +95,23 @@ nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_bu
     nvenc_config.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
     nvenc_config.gopLength = 10;
     nvenc_config.frameIntervalP = 1;
-    nvenc_config.encodeCodecConfig.hevcConfig.idrPeriod = 10;
-    nvenc_config.encodeCodecConfig.hevcConfig.pixelBitDepthMinus8 = 2;
-    nvenc_config.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoSignalTypePresentFlag = 1;
-    nvenc_config.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFormat = NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED;
-    nvenc_config.encodeCodecConfig.hevcConfig.hevcVUIParameters.videoFullRangeFlag = 1;
-    nvenc_config.encodeCodecConfig.hevcConfig.hevcVUIParameters.colourDescriptionPresentFlag = 1;
-    nvenc_config.encodeCodecConfig.hevcConfig.hevcVUIParameters.colourMatrix = NV_ENC_VUI_MATRIX_COEFFS_BT709;
+
+    NV_ENC_CONFIG_HEVC& hevc_config = nvenc_config.encodeCodecConfig.hevcConfig;
+    hevc_config.idrPeriod = 10;
+    hevc_config.pixelBitDepthMinus8 = 2;
+    hevc_config.hevcVUIParameters.videoSignalTypePresentFlag = 1;
+    hevc_config.hevcVUIParameters.videoFormat = NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED;
+    hevc_config.hevcVUIParameters.videoFullRangeFlag = 1;
+    hevc_config.hevcVUIParameters.colourDescriptionPresentFlag = 1;
+    hevc_config.hevcVUIParameters.colourPrimaries = NV_ENC_VUI_COLOR_PRIMARIES_BT709;
+    hevc_config.hevcVUIParameters.transferCharacteristics = NV_ENC_VUI_TRANSFER_CHARACTERISTIC_BT709;
+    hevc_config.hevcVUIParameters.colourMatrix = NV_ENC_VUI_MATRIX_COEFFS_BT709;
 
     nvenc_config.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-    nvenc_config.rcParams.constQP.qpIntra = 20;
-    nvenc_config.rcParams.constQP.qpInterB = 20;
-    nvenc_config.rcParams.constQP.qpIntra = 20;
+    nvenc_config.rcParams.constQP.qpIntra = 10;
+    nvenc_config.rcParams.constQP.qpInterB = 10;
+    nvenc_config.rcParams.constQP.qpIntra = 10;
+    nvenc_config.rcParams.multiPass = NV_ENC_TWO_PASS_FULL_RESOLUTION;
 
     print_nvenc_status(__LINE__, nvenc_api->nvEncInitializeEncoder(encoder, &init_params));
 

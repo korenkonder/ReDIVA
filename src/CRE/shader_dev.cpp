@@ -12,8 +12,36 @@
 
 enum shader_dev_sub_enum {
     SHADER_DEV_SUB_SHADER_FFP = 0,
+    SHADER_DEV_SUB_CLAMP_COLORS,
     SHADER_DEV_SUB_SHADER_END,
 };
+
+static const int32_t clamp_colors_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t clamp_colors_fpt_unival_max[] = {
+    -1,
+};
+
+static const uniform_name CLAMP_COLORS_uniform[] = {
+    U_INVALID,
+};
+
+static const bool CLAMP_COLORS_permut[] = {
+    false,
+};
+
+static const shader_sub_table CLAMP_COLORS_table[] = {
+    {
+        SHADER_DEV_SUB_CLAMP_COLORS,
+        clamp_colors_vpt_unival_max,
+        clamp_colors_fpt_unival_max,
+        "clamp_colors",
+        "clamp_colors",
+    },
+};
+
 
 #define shader_table_struct(n) \
 { \
@@ -36,6 +64,7 @@ const shader_table shader_dev_table[] = {
         0,
         0,
     },
+    shader_table_struct(CLAMP_COLORS),
 };
 
 #undef shader_table_struct

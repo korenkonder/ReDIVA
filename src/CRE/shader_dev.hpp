@@ -11,7 +11,7 @@
 
 enum shader_dev_enum {
     SHADER_DEV_FFP = 0,
-    SHADER_DEV_GRID,      // Added
+    SHADER_DEV_CLAMP_COLORS,
     SHADER_DEV_END,
 };
 
