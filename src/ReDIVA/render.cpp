@@ -1268,10 +1268,10 @@ struct shaders_load_struct {
 
 static void render_shaders_load() {
     shaders_load_struct load_ft = { &shaders_ft, "ft" };
-    data_list[DATA_AFT].load_file(&load_ft, "rom/", "ft_shaders.farc", render_load_shaders);
+    data_list[DATA_AFT].load_file(&load_ft, "rom/", "ft_shaders.farc", render_load_ft_shaders);
 #if ReDIVA_DEV
     shaders_load_struct load_dev = { &shaders_dev, "dev" };
-    data_list[DATA_AFT].load_file(&load_dev, "rom/", "dev_shaders.farc", render_load_shaders);
+    data_list[DATA_AFT].load_file(&load_dev, "rom/", "dev_shaders.farc", render_load_dev_shaders);
 #endif
 }
 
@@ -1282,7 +1282,7 @@ static void render_shaders_free() {
     shaders_ft.unload();
 }
 
-static bool render_load_shaders(void* data, const char* path, const char* file, uint32_t hash) {
+static bool render_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash) {
     shaders_load_struct* load = (shaders_load_struct*)data;
     std::string s;
     s.assign(path);
@@ -1292,9 +1292,24 @@ static bool render_load_shaders(void* data, const char* path, const char* file, 
     f.read(s.c_str(), true, false);
     load->set->load(&f, false, load->name, shader_ft_table, shader_ft_table_size,
         shader_ft_bind_func_table, shader_ft_bind_func_table_size,
-        shader_ft_get_index_by_name);
+        shader_ft_get_index_by_name, shader_ft_get_name_by_index);
     return true;
 }
+
+#if ReDIVA_DEV
+static bool render_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash) {
+    shaders_load_struct* load = (shaders_load_struct*)data;
+    std::string s;
+    s.assign(path);
+    s.append(file);
+
+    farc f;
+    f.read(s.c_str(), true, false);
+    load->set->load(&f, false, load->name, shader_dev_table, shader_dev_table_size,
+        0, 0, 0, 0);
+    return true;
+}
+#endif
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     if (!count || !paths)
