@@ -39,7 +39,6 @@ const shader_table shader_dev_table[] = {
 };
 
 #undef shader_table_struct
-#undef shader_table_struct
 
 const size_t shader_dev_table_size =
     sizeof(shader_dev_table) / sizeof(shader_table);

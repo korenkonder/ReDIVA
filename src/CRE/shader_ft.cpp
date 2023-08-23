@@ -3130,7 +3130,6 @@ const shader_table shader_ft_table[] = {
 };
 
 #undef shader_table_struct
-#undef shader_table_struct
 
 const size_t shader_ft_table_size =
     sizeof(shader_ft_table) / sizeof(shader_table);
@@ -3260,6 +3259,12 @@ int32_t shader_ft_get_index_by_name(const char* name) {
     if (!str_utils_compare(name, "EYEBALL"))
         return SHADER_FT_GLASEYE;
     return -1;
+}
+
+const char* shader_ft_get_name_by_index(int32_t index) {
+    if (index == SHADER_FT_GLASEYE)
+        return "EYEBALL";
+    return 0;
 }
 
 static void glass_eye_calc(glass_eye_struct* glass_eye) {

@@ -45,6 +45,7 @@ struct shader;
 struct shader_set_data;
 
 typedef int32_t (*PFNSHADERGETINDEXFUNCPROC)(const char* name);
+typedef const char* (*PFNSHADERGETNAMEFUNCPROC)(int32_t index);
 
 typedef void (*PFNSHADERBINDFUNCPROC)(shader_set_data* set, shader* shad);
 
@@ -93,6 +94,7 @@ struct shader_set_data {
     GLuint primitive_restart_index;
 
     PFNSHADERGETINDEXFUNCPROC get_index_by_name_func;
+    PFNSHADERGETNAMEFUNCPROC get_name_by_index_func;
 
     shader_set_data();
 
@@ -108,7 +110,7 @@ struct shader_set_data {
     void load(farc* f, bool ignore_cache, const char* name,
         const shader_table* shaders_table, const size_t size,
         const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
-        PFNSHADERGETINDEXFUNCPROC get_index_by_name);
+        PFNSHADERGETINDEXFUNCPROC get_index_by_name, PFNSHADERGETNAMEFUNCPROC get_name_by_index);
     void set(uint32_t index);
     void unload();
 };

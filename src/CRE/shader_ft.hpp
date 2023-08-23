@@ -87,3 +87,4 @@ extern const size_t shader_ft_bind_func_table_size;
 extern shader_set_data shaders_ft;
 
 extern int32_t shader_ft_get_index_by_name(const char* name);
+extern const char* shader_ft_get_name_by_index(int32_t index);

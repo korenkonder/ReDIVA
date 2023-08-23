@@ -291,8 +291,8 @@ void shader::unbind() {
     gl_state_use_program(0);
 }
 
-shader_set_data::shader_set_data() : size(), shaders(), curr_shader(),
-primitive_restart(), primitive_restart_index(), get_index_by_name_func() {
+shader_set_data::shader_set_data() : size(), shaders(), curr_shader(), primitive_restart(),
+primitive_restart_index(), get_index_by_name_func(), get_name_by_index_func() {
 
 }
 
@@ -393,6 +393,12 @@ int32_t shader_set_data::get_index_by_name(const char* name) {
 }
 
 const char* shader_set_data::get_name_by_index(int32_t index) {
+    if (get_name_by_index_func) {
+        const char* name = get_name_by_index_func(index);
+        if (name)
+            return name;
+    }
+
     if (index >= 0 && index < size)
         return shaders[index].name;
     return 0;
@@ -401,7 +407,7 @@ const char* shader_set_data::get_name_by_index(int32_t index) {
 void shader_set_data::load(farc* f, bool ignore_cache,
     const char* name, const shader_table* shaders_table, const size_t size,
     const shader_bind_func* bind_func_table, const size_t bind_func_table_size,
-    PFNSHADERGETINDEXFUNCPROC get_index_by_name) {
+    PFNSHADERGETINDEXFUNCPROC get_index_by_name, PFNSHADERGETNAMEFUNCPROC get_name_by_index) {
     if (!this || !f || !shaders_table || !size)
         return;
 
@@ -704,6 +710,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
         shader_cache_farc.write(temp_buf, FARC_COMPRESS_FArC, false);
 
     this->get_index_by_name_func = get_index_by_name;
+    this->get_name_by_index_func = get_name_by_index;
 }
 
 void shader_set_data::set(uint32_t index) {
@@ -758,6 +765,7 @@ void shader_set_data::unload() {
     this->shaders = 0;
 
     get_index_by_name_func = 0;
+    get_name_by_index_func = 0;
 }
 
 static GLuint shader_compile_shader(GLenum type, const char* data, const char* file) {
