@@ -4255,6 +4255,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
 
         if (obj->skin) {
             st.sub_structs.push_back({});
+            omdl = &st.sub_structs.end()[-2];
             f2_struct* oskn = &st.sub_structs.back();
 
             memory_stream s_oskn;
