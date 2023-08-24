@@ -4860,8 +4860,8 @@ bool x_pv_game::Ctrl() {
         extern bool disable_cursor;
         disable_cursor = true;
 
-        const int32_t width = 3840;
-        const int32_t height = 2160;
+        const int32_t width = BAKE_BASE_WIDTH * BAKE_RES_SCALE;
+        const int32_t height = BAKE_BASE_HEIGHT * BAKE_RES_SCALE;
 
 #if BAKE_VIDEO
         if (GLAD_WGL_NV_DX_interop2) {
