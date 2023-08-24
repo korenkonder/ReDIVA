@@ -4694,7 +4694,7 @@ bool x_pv_game::Ctrl() {
         state_old = 10;
     } break;
     case 10: {
-        if (pv_osage_manager_array_get_disp()/* || osage_play_data_manager_check_task_not_ready()*/)
+        if (pv_osage_manager_array_get_disp() || osage_play_data_manager_check_task_ready())
             break;
 
         bool wait_load = false;
