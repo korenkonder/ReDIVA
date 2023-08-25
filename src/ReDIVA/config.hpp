@@ -17,6 +17,7 @@
 #define BAKE_BASE_HEIGHT (1080)
 #define BAKE_RES_SCALE (2)
 #endif
+
 #if BAKE_VIDEO
 #undef BAKE_PNG
 #elif BAKE_PNG
