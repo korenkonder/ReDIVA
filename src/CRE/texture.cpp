@@ -11,9 +11,11 @@
 #include <map>
 #include <vector>
 
+static void texture_bind(GLenum target, GLuint texture);
 static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
 static uint32_t texture_get_height_align_mip_level(texture* tex, int32_t mip_level);
 static uint32_t texture_get_height_mip_level(texture* tex, int32_t mip_level);
+static GLuint texture_get_working_internal_format(GLuint internal_format);
 static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height);
 static int32_t texture_get_size_mip_level(texture* tex, int32_t mip_level);
 static uint32_t texture_get_width_align_mip_level(texture* tex, int32_t mip_level);
@@ -69,40 +71,42 @@ void texture_apply_color_tone(texture* chg_tex,
 
         int32_t width_align = texture_get_width_align_mip_level(org_tex, i);
         int32_t height_align = texture_get_height_align_mip_level(org_tex, i);
-        glBindTexture(org_tex->target, org_tex->tex);
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
+            texture_bind(org_tex->target, org_tex->tex);
             glGetCompressedTexImage(org_tex->target, i, data);
             if (org_tex->internal_format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
                 dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, col_tone);
             else
                 dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
-            glBindTexture(chg_tex->target, chg_tex->tex);
 
-            int32_t width = texture_get_width_mip_level(org_tex, i);
-            int32_t height = texture_get_width_mip_level(org_tex, i);
+            texture_bind(chg_tex->target, chg_tex->tex);
+            uint32_t width = texture_get_width_mip_level(org_tex, i);
+            uint32_t height = texture_get_width_mip_level(org_tex, i);
             glCompressedTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 chg_tex->internal_format, size, data);
         }
         else if (org_tex->internal_format == GL_RGB5) {
+            texture_bind(org_tex->target, org_tex->tex);
             glGetTexImage(org_tex->target, i, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
             rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
-            glBindTexture(chg_tex->target, chg_tex->tex);
 
-            int32_t width = texture_get_width_mip_level(org_tex, i);
-            int32_t height = texture_get_width_mip_level(org_tex, i);
+            texture_bind(chg_tex->target, chg_tex->tex);
+            uint32_t width = texture_get_width_mip_level(org_tex, i);
+            uint32_t height = texture_get_width_mip_level(org_tex, i);
             glTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
-        glBindTexture(org_tex->target, 0);
         gl_state_get_error();
         free_def(data);
     }
+    texture_bind(org_tex->target, 0);
 }
 
 texture* texture_copy(texture_id id, texture* org_tex) {
     if (org_tex->target != GL_TEXTURE_2D)
         return 0;
 
+    texture_bind(org_tex->target, org_tex->tex);
     std::vector<void*> vec_data;
     for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
         void* data = force_malloc(texture_get_size_mip_level(org_tex, i));
@@ -110,20 +114,18 @@ texture* texture_copy(texture_id id, texture* org_tex) {
             break;
 
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
-            glBindTexture(org_tex->target, org_tex->tex);
             glGetCompressedTexImage(org_tex->target, i, data);
         }
         else {
             GLenum format;
             GLenum type;
             texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
-            glBindTexture(org_tex->target, org_tex->tex);
             glGetTexImage(org_tex->target, i, format, type, data);
         }
-        glBindTexture(org_tex->target, 0);
         gl_state_get_error();
         vec_data.push_back(data);
     }
+    texture_bind(org_tex->target, 0);
 
     texture* tex = texture_load_tex_2d(id, org_tex->internal_format,
         org_tex->width, org_tex->height, org_tex->max_mipmap_level, vec_data.data(), true);
@@ -168,6 +170,101 @@ texture* texture_txp_load(txp* t, texture_id id) {
         tex = texture_load_tex_2d(id, internal_format, width, height, max_mipmap_level, data_ptr, true);
     free_def(data_ptr);
     return tex;
+}
+
+void texture_txp_store(texture* tex, txp* t) {
+    if (tex->target != GL_TEXTURE_2D && tex->target != GL_TEXTURE_CUBE_MAP)
+        return;
+
+    int32_t max_mipmap_level = tex->max_mipmap_level;
+
+    t->has_cube_map = tex->target == GL_TEXTURE_CUBE_MAP;
+    t->array_size = t->has_cube_map ? 6 : 1;
+    t->mipmaps_count = max_mipmap_level + 1;
+    t->mipmaps.resize((size_t)t->mipmaps_count * t->array_size);
+
+    txp_format format = TXP_RGBA8;
+    switch (tex->internal_format) {
+    case GL_ALPHA8:
+        format = TXP_A8;
+        break;
+    case GL_RGB8:
+        format = TXP_RGB8;
+        break;
+    case GL_RGBA8:
+        format = TXP_RGBA8;
+        break;
+    case GL_RGB5:
+        format = TXP_RGB5;
+        break;
+    case GL_RGB5_A1:
+        format = TXP_RGB5A1;
+        break;
+    case GL_RGBA4:
+        format = TXP_RGBA4;
+        break;
+    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+        format = TXP_BC1;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+        format = TXP_BC1a;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+        format = TXP_BC2;
+        break;
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+        format = TXP_BC3;
+        break;
+    case GL_COMPRESSED_RED_RGTC1_EXT:
+        format = TXP_BC4;
+        break;
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+        format = TXP_BC5;
+        break;
+    case GL_LUMINANCE8 :
+        format = TXP_L8;
+        break;
+    case GL_LUMINANCE8_ALPHA8:
+        format = TXP_L8A8;
+        break;
+    }
+
+    auto get_tex_mipmap_data = [&](txp_mipmap& mipmap, GLenum target, int32_t mip_level) {
+        mipmap.width = texture_get_width_mip_level(tex, mip_level);
+        mipmap.height = texture_get_width_mip_level(tex, mip_level);
+        mipmap.format = format;
+        mipmap.size = texture_get_size_mip_level(tex, mip_level);
+        mipmap.data.resize(mipmap.size);
+
+        if (tex->flags & TEXTURE_BLOCK_COMPRESSION)
+            glGetCompressedTexImage(target, mip_level, mipmap.data.data());
+        else {
+            GLenum format;
+            GLenum type;
+            texture_get_format_type_by_internal_format(tex->internal_format, &format, &type);
+            glGetTexImage(target, mip_level, format, type, mipmap.data.data());
+        }
+        gl_state_get_error();
+    };
+
+    texture_bind(tex->target, tex->tex);
+    int32_t size = 0;
+    if (t->has_cube_map)
+        for (int32_t i = 0; i < 6; i++)
+            for (int32_t j = 0; j <= max_mipmap_level; j++) {
+                static const GLenum target_cube_map_array[] = {
+                    GL_TEXTURE_CUBE_MAP_POSITIVE_X, GL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                    GL_TEXTURE_CUBE_MAP_POSITIVE_Y, GL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                    GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, GL_TEXTURE_CUBE_MAP_POSITIVE_Z,
+                };
+
+                get_tex_mipmap_data(t->mipmaps[i * ((int64_t)max_mipmap_level + 1) + j],
+                    target_cube_map_array[i], j);
+            }
+    else
+        for (int32_t i = 0; i <= max_mipmap_level; i++)
+            get_tex_mipmap_data(t->mipmaps[i], GL_TEXTURE_2D, i);
+    texture_bind(tex->target, 0);
 }
 
 void texture_free(texture* tex) {
@@ -341,6 +438,17 @@ inline void texture_storage_free() {
     texture_storage.shrink_to_fit();
 }
 
+inline static void texture_bind(GLenum target, GLuint texture) {
+    switch (target) {
+    case GL_TEXTURE_2D:
+        gl_state_bind_texture_2d(texture);
+        break;
+    case GL_TEXTURE_CUBE_MAP:
+        gl_state_bind_texture_cube_map(texture);
+        break;
+    }
+}
+
 static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type) {
     GLenum _format;
     GLenum _type;
@@ -464,6 +572,19 @@ inline static uint32_t texture_get_height_mip_level(texture* tex, int32_t mip_le
     return max_def(height, 1);
 }
 
+inline static GLuint texture_get_working_internal_format(GLuint internal_format) {
+    switch (internal_format) {
+    case GL_ALPHA8:
+        return GL_R8;
+    case GL_LUMINANCE8:
+        return GL_R8;
+    case GL_LUMINANCE8_ALPHA8:
+        return GL_RG8;
+    default:
+        return internal_format;
+    }
+}
+
 static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) {
     int32_t size = width * height;
     switch (internal_format) {
@@ -561,14 +682,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         return tex;
 
     glGenTextures(1, &tex->tex);
-    switch (target) {
-    case GL_TEXTURE_2D:
-        gl_state_bind_texture_2d(tex->tex);
-        break;
-    case GL_TEXTURE_CUBE_MAP:
-        gl_state_bind_texture_cube_map(tex->tex);
-        break;
-    }
+    texture_bind(target, tex->tex);
     texture_set_params(target, max_mipmap_level, use_high_anisotropy);
 
     GLint swizzle[4];
@@ -579,7 +693,6 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         swizzle[2] = GL_ZERO;
         swizzle[3] = GL_RED;
         glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        internal_format = GL_R8;
         break;
     case GL_COMPRESSED_RED_RGTC1_EXT:
         swizzle[0] = GL_RED;
@@ -601,7 +714,6 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         swizzle[2] = GL_RED;
         swizzle[3] = GL_ONE;
         glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        internal_format = GL_R8;
         break;
     case GL_LUMINANCE8_ALPHA8:
         swizzle[0] = GL_RED;
@@ -609,9 +721,10 @@ static texture* texture_load_tex(texture_id id, GLenum target,
         swizzle[2] = GL_RED;
         swizzle[3] = GL_GREEN;
         glTexParameteriv(target, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        internal_format = GL_RG8;
         break;
     }
+
+    GLuint working_internal_format = texture_get_working_internal_format(internal_format);
 
     int32_t size = 0;
     if (target == GL_TEXTURE_CUBE_MAP)
@@ -632,7 +745,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
                 };
 
                 if (texture_load(target_cube_map_array[i],
-                    internal_format, mip_width, mip_height, j, data) < 0)
+                    working_internal_format, mip_width, mip_height, j, data) < 0)
                     goto fail;
                 size += texture_get_size(internal_format, mip_width, mip_height);
             }
@@ -646,20 +759,13 @@ static texture* texture_load_tex(texture_id id, GLenum target,
             else
                 data = 0;
 
-            if (texture_load(target, internal_format,
-                mip_width, mip_height, i, data) < 0)
+            if (texture_load(target,
+                working_internal_format, mip_width, mip_height, i, data) < 0)
                 goto fail;
             size += texture_get_size(internal_format, mip_width, mip_height);
         }
 
-    switch (target) {
-    case GL_TEXTURE_2D:
-        gl_state_bind_texture_2d(0);
-        break;
-    case GL_TEXTURE_CUBE_MAP:
-        gl_state_bind_texture_cube_map(0);
-        break;
-    }
+    texture_bind(target, 0);
 
     tex->target = target;
     tex->width = (int16_t)width;
@@ -681,15 +787,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
     return tex;
 
 fail:
-    switch (target) {
-    case GL_TEXTURE_2D:
-        gl_state_bind_texture_2d(0);
-        break;
-
-    case GL_TEXTURE_CUBE_MAP:
-        gl_state_bind_texture_cube_map(0);
-        break;
-    }
+    texture_bind(target, 0);
     texture_free(tex);
     return 0;
 }
