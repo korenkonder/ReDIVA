@@ -231,7 +231,7 @@ void texture_txp_store(texture* tex, txp* t) {
 
     auto get_tex_mipmap_data = [&](txp_mipmap& mipmap, GLenum target, int32_t mip_level) {
         mipmap.width = texture_get_width_mip_level(tex, mip_level);
-        mipmap.height = texture_get_width_mip_level(tex, mip_level);
+        mipmap.height = texture_get_height_mip_level(tex, mip_level);
         mipmap.format = format;
         mipmap.size = texture_get_size_mip_level(tex, mip_level);
         mipmap.data.resize(mipmap.size);
