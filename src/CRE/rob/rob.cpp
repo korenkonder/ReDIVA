@@ -396,7 +396,7 @@ struct rob_chara_age_age_object {
         bool npr, bool reflect, const vec3& a5, bool chara_color);
     bool get_obj_set_handler_object_index(object_info obj_info);
     ::obj* get_obj_set_obj();
-    std::vector<texture*>* get_obj_set_texture();
+    std::vector<texture*>& get_obj_set_texture();
     void load(object_info obj_info, int32_t count);
     void reset();
     void update(rob_chara_age_age_data* data, int32_t count, float_t alpha);
@@ -17281,7 +17281,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
     rctx->disp_manager.set_chara_color(chara_color);
     rctx->disp_manager.set_shadow_type(chara_index ? SHADOW_STAGE : SHADOW_CHARA);
     rctx->disp_manager.entry_obj_by_obj(&mat4_identity, &obj,
-        get_obj_set_texture(), &obj_vert_buf, &obj_index_buf, 0, 1.0f);
+        &get_obj_set_texture(), &obj_vert_buf, &obj_index_buf, 0, 1.0f);
 }
 
 bool rob_chara_age_age_object::get_obj_set_handler_object_index(object_info obj_info) {
@@ -17298,11 +17298,11 @@ return true;
 }
 
 ::obj* rob_chara_age_age_object::get_obj_set_obj() {
-    return &obj_set_handler->obj_set->obj_data[obj_index];
+    return obj_set_handler->obj_set->obj_data[obj_index];
 }
 
-std::vector<texture*>* rob_chara_age_age_object::get_obj_set_texture() {
-    return &obj_set_handler->gentex;
+std::vector<texture*>& rob_chara_age_age_object::get_obj_set_texture() {
+    return obj_set_handler->gentex;
 }
 
 void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {

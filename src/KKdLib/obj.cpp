@@ -531,11 +531,13 @@ void obj_set::move_data(obj_set* set_src, prj::shared_ptr<prj::stack_allocator> 
     is_x = set_src->is_x;
 
     uint32_t obj_num = set_src->obj_num;
-    obj* obj_data_src = set_src->obj_data;
-    obj* obj_data_dst = alloc->allocate<obj>(obj_num);
+    obj** obj_data_src = set_src->obj_data;
+    obj** obj_data_dst = alloc->allocate<obj*>(obj_num);
 
-    for (uint32_t i = 0; i < obj_num; i++)
-        obj_move_data(&obj_data_dst[i], &obj_data_src[i], alloc);
+    for (uint32_t i = 0; i < obj_num; i++) {
+        obj_data_dst[i] = alloc->allocate<obj>();
+        obj_move_data(obj_data_dst[i], obj_data_src[i], alloc);
+    }
 
     this->obj_data = obj_data_dst;
     this->obj_num = obj_num;
@@ -1218,7 +1220,10 @@ static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_
     set->reserved[1] = s.read_uint32_t();
 
     uint32_t obj_num = set->obj_num;
-    set->obj_data = alloc->allocate<obj>(obj_num);
+    set->obj_data = alloc->allocate<obj*>(obj_num);
+
+    for (uint32_t i = 0; i < obj_num; i++)
+        set->obj_data[i] = alloc->allocate<::obj>();
 
     uint32_t* data = force_malloc_s(uint32_t, obj_num * 3ULL);
 
@@ -1248,7 +1253,7 @@ static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_
 
     if (osh.obj_data) {
         for (uint32_t i = 0; i < obj_num; i++) {
-            obj* obj = &set->obj_data[i];
+            obj* obj = set->obj_data[i];
             if (obj_data[i])
                 obj_classic_read_model(obj, alloc, s, obj_data[i]);
 
@@ -1264,9 +1269,8 @@ static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_
         }
 
         s.set_position(osh.obj_id_data, SEEK_SET);
-        obj* obj_data = set->obj_data;
         for (uint32_t i = 0; i < obj_num; i++)
-            obj_data[i].id = s.read_uint32_t();
+            set->obj_data[i]->id = s.read_uint32_t();
     }
 
     if (osh.tex_id_data) {
@@ -1317,7 +1321,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
     int32_t* obj_data = data;
     for (uint32_t i = 0; i < obj_num; i++) {
         obj_data[i] = (int32_t)s.get_position();
-        obj_classic_write_model(&set->obj_data[i], s, obj_data[i]);
+        obj_classic_write_model(set->obj_data[i], s, obj_data[i]);
     }
     s.align_write(0x10);
 
@@ -1328,7 +1332,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
 
     osh.obj_id_data = s.get_position();
     for (uint32_t i = 0; i < obj_num; i++) {
-        uint32_t object_id = set->obj_data[i].id;
+        uint32_t object_id = set->obj_data[i]->id;
         s.write_uint32_t(object_id);
         if (osh.last_obj_id < object_id)
             osh.last_obj_id = object_id;
@@ -1338,7 +1342,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
     int32_t* obj_name_data = data;
     for (uint32_t i = 0; i < obj_num; i++) {
         obj_name_data[i] = (int32_t)s.get_position();
-        s.write_utf8_string_null_terminated(set->obj_data[i].name);
+        s.write_utf8_string_null_terminated(set->obj_data[i]->name);
     }
     s.align_write(0x10);
 
@@ -1359,7 +1363,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
 
     int32_t* obj_skin_data = data;
     for (uint32_t i = 0; i < obj_num; i++) {
-        obj_skin* sk = set->obj_data[i].skin;
+        obj_skin* sk = set->obj_data[i]->skin;
         if (!sk) {
             obj_skin_data[i] = 0;
             continue;
@@ -3929,7 +3933,10 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
     }
 
     uint32_t obj_num = set->obj_num;
-    set->obj_data = alloc->allocate<obj>(obj_num);
+    set->obj_data = alloc->allocate<obj*>(obj_num);
+
+    for (uint32_t i = 0; i < obj_num; i++)
+        set->obj_data[i] = alloc->allocate<::obj>();
 
     int64_t* data = force_malloc_s(int64_t, obj_num * 3ULL);
 
@@ -3971,7 +3978,7 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
 
     if (osh.obj_data)
         for (uint32_t i = 0; i < obj_num; i++) {
-            obj* obj = &set->obj_data[i];
+            obj* obj = set->obj_data[i];
             if (osh.obj_name_data && obj_name_data[i]) {
                 obj->name = obj_read_utf8_string_null_terminated_offset(alloc, s_mosd, obj_name_data[i]);
                 obj->hash = hash_utf8_murmurhash(obj->name);
@@ -3982,9 +3989,8 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
 
     if (osh.obj_id_data) {
         s_mosd.set_position(osh.obj_id_data, SEEK_SET);
-        obj* obj_data = set->obj_data;
         for (uint32_t i = 0; i < obj_num; i++)
-            obj_data[i].id = s_mosd.read_uint32_t_reverse_endianness();
+            set->obj_data[i]->id = s_mosd.read_uint32_t_reverse_endianness();
     }
 
     free_def(data);
@@ -4038,7 +4044,7 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
             s_ovtx_ptr = &s_ovtx;
         }
 
-        obj* obj = &set->obj_data[omdl_index];
+        obj* obj = set->obj_data[omdl_index];
         memory_stream s_omdl;
         s_omdl.open(i.data);
         s_omdl.big_endian = i.header.use_big_endian;
@@ -4188,7 +4194,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
 
     osh.obj_id_data = s_mosd.get_position();
     for (uint32_t i = 0; i < obj_num; i++)
-        s_mosd.write_uint32_t_reverse_endianness(set->obj_data[i].id);
+        s_mosd.write_uint32_t_reverse_endianness(set->obj_data[i]->id);
     s_mosd.align_write(0x10);
 
     osh.tex_id_data = s_mosd.get_position();
@@ -4199,7 +4205,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
     int64_t* obj_name_data = force_malloc_s(int64_t, obj_num);
     for (uint32_t i = 0; i < obj_num; i++) {
         obj_name_data[i] = (int32_t)s_mosd.get_position();
-        s_mosd.write_utf8_string_null_terminated(set->obj_data[i].name);
+        s_mosd.write_utf8_string_null_terminated(set->obj_data[i]->name);
     }
     s_mosd.align_write(0x10);
 
@@ -4244,7 +4250,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
 
     f2_struct st;
     for (uint32_t i = 0; i < obj_num; i++) {
-        obj* obj = &set->obj_data[i];
+        obj* obj = set->obj_data[i];
 
         st.sub_structs.push_back({});
         f2_struct* omdl = &st.sub_structs.back();

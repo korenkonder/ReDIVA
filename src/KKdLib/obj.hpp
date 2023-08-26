@@ -702,7 +702,7 @@ struct obj_set {
     bool big_endian;
     bool is_x;
 
-    obj* obj_data;
+    obj** obj_data;
     uint32_t obj_num;
     uint32_t* tex_id_data;
     uint32_t tex_id_num;

@@ -347,16 +347,19 @@ obj_index_buffer::obj_index_buffer() : mesh_num(), mesh_data() {
 
 }
 
-bool obj_index_buffer::load(obj& obj) {
-    mesh_num = obj.num_mesh;
-    mesh_data = new obj_mesh_index_buffer[obj.num_mesh];
+bool obj_index_buffer::load(obj* obj) {
+    if (!obj)
+        return false;
+
+    mesh_num = obj->num_mesh;
+    mesh_data = new obj_mesh_index_buffer[obj->num_mesh];
     if (!mesh_data)
         return false;
 
 #if SHARED_OBJECT_BUFFER
     size_t buffer_size = 0;
     for (uint32_t i = 0; i < mesh_num; i++) {
-        obj_mesh& mesh = obj.mesh_array[i];
+        obj_mesh& mesh = obj->mesh_array[i];
         size_t num_index = 0;
         for (uint32_t i = 0; i < mesh.num_submesh; i++)
             num_index += mesh.submesh_array[i].num_index;
@@ -370,9 +373,9 @@ bool obj_index_buffer::load(obj& obj) {
             mesh_data[i].size = (GLsizeiptr)buffer_size;
 
             uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
-            data = obj_mesh_index_buffer::fill_data(data, obj.mesh_array[i]);
+            data = obj_mesh_index_buffer::fill_data(data, obj->mesh_array[i]);
 
-            obj_mesh& mesh = obj.mesh_array[i];
+            obj_mesh& mesh = obj->mesh_array[i];
             for (uint32_t j = 0; j < mesh.num_submesh; j++)
                 mesh.submesh_array[j].index_offset += offset;
         }
@@ -391,7 +394,7 @@ bool obj_index_buffer::load(obj& obj) {
         mesh_data[i].buffer = buffer;
 #else
     for (uint32_t i = 0; i < mesh_num; i++)
-        if (!mesh_data[i].load(obj.mesh_array[i]))
+        if (!mesh_data[i].load(obj->mesh_array[i]))
             return false;
 #endif
     return true;
@@ -423,9 +426,12 @@ obj_vertex_buffer::obj_vertex_buffer() : mesh_num(), mesh_data() {
 
 }
 
-bool obj_vertex_buffer::load(obj& obj) {
-    mesh_num = obj.num_mesh;
-    mesh_data = new obj_mesh_vertex_buffer[obj.num_mesh];
+bool obj_vertex_buffer::load(obj* obj) {
+    if (!obj)
+        return false;
+
+    mesh_num = obj->num_mesh;
+    mesh_data = new obj_mesh_vertex_buffer[obj->num_mesh];
     if (!mesh_data)
         return false;
 
@@ -433,7 +439,7 @@ bool obj_vertex_buffer::load(obj& obj) {
     size_t buffer_size = 0;
     bool double_buffer = false;
     for (uint32_t i = 0; i < mesh_num; i++) {
-        obj_mesh& mesh = obj.mesh_array[i];
+        obj_mesh& mesh = obj->mesh_array[i];
         if (!mesh.num_vertex || !mesh.vertex_array)
             continue;
 
@@ -459,7 +465,7 @@ bool obj_vertex_buffer::load(obj& obj) {
             mesh_buffer.count = count;
             mesh_buffer.size = (GLsizeiptr)buffer_size;
 
-            data = obj_mesh_vertex_buffer::fill_data(data, obj.mesh_array[i]);
+            data = obj_mesh_vertex_buffer::fill_data(data, obj->mesh_array[i]);
         }
     }
 
@@ -480,7 +486,7 @@ bool obj_vertex_buffer::load(obj& obj) {
         memcpy(mesh_data[i].buffers, buffers, count * sizeof(GLuint));
 #else
     for (uint32_t i = 0; i < mesh_num; i++)
-        if (!mesh_data[i].load(obj.mesh_array[i]))
+        if (!mesh_data[i].load(obj->mesh_array[i]))
             return false;
 #endif
     return true;
@@ -638,9 +644,9 @@ void object_material_msgpack_read(const char* path, const char* set_name,
         uint32_t name_hash = hash_string_murmurhash(name);
 
         for (uint32_t i = 0; i < obj_set->obj_num; i++) {
-            obj& obj = obj_set->obj_data[i];
+            obj* obj = obj_set->obj_data[i];
 
-            if (name_hash != hash_string_murmurhash(obj.name))
+            if (name_hash != hash_string_murmurhash(obj->name))
                 continue;
 
             msgpack* materials = object.read_array("material");
@@ -652,8 +658,8 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                     std::string name = material.read_string("name");
                     uint32_t name_hash = hash_string_murmurhash(name);
 
-                    for (size_t k = 0; k < obj.num_material; k++) {
-                        obj_material& mat = obj.material_array[k].material;
+                    for (size_t k = 0; k < obj->num_material; k++) {
+                        obj_material& mat = obj->material_array[k].material;
 
                         if (name_hash != hash_string_murmurhash(mat.name))
                             continue;
@@ -817,7 +823,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             }
                         }
 
-                        obj.material_array[k].num_of_textures = num_of_textures;
+                        obj->material_array[k].num_of_textures = num_of_textures;
 
                         msgpack* attrib = material.read("attrib");
                         if (attrib) {
@@ -919,8 +925,8 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                     std::string name = _mesh.read_string("name");
                     uint32_t name_hash = hash_string_murmurhash(name);
 
-                    for (size_t k = 0; k < obj.num_mesh; k++) {
-                        obj_mesh& mesh = obj.mesh_array[k];
+                    for (size_t k = 0; k < obj->num_mesh; k++) {
+                        obj_mesh& mesh = obj->mesh_array[k];
 
                         if (name_hash != hash_string_murmurhash(mesh.name))
                             continue;
@@ -1129,18 +1135,18 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
 
     msgpack_array objects(obj_set->obj_num);
     for (uint32_t i = 0; i < obj_set->obj_num; i++) {
-        obj& obj = obj_set->obj_data[i];
+        obj* obj = obj_set->obj_data[i];
 
         msgpack& object = objects.data()[i];
         object = msgpack(msgpack_map());
-        object.append("name", obj.name);
+        object.append("name", obj->name);
 
         msgpack* materials = object.append("material", msgpack_array());
         if (materials) {
             msgpack_array* ptr = materials->data.arr;
-            ptr->resize(obj.num_material);
-            for (size_t j = 0; j < obj.num_material; j++) {
-                obj_material& mat = obj.material_array[j].material;
+            ptr->resize(obj->num_material);
+            for (size_t j = 0; j < obj->num_material; j++) {
+                obj_material& mat = obj->material_array[j].material;
                 msgpack& material = ptr->data()[j];
                 material = msgpack_map();
 
@@ -1369,9 +1375,9 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
         msgpack* meshes = object.append("mesh", msgpack_array());
         if (meshes) {
             msgpack_array* ptr = meshes->data.arr;
-            ptr->resize(obj.num_mesh);
-            for (size_t j = 0; j < obj.num_mesh; j++) {
-                obj_mesh& mesh = obj.mesh_array[j];
+            ptr->resize(obj->num_mesh);
+            for (size_t j = 0; j < obj->num_mesh; j++) {
+                obj_mesh& mesh = obj->mesh_array[j];
                 msgpack& _mesh = ptr->data()[j];
                 _mesh = msgpack_map();
 
@@ -1454,8 +1460,8 @@ inline obj* object_storage_get_obj(object_info obj_info) {
         obj_set* set = elem->second.obj_set;
         if (set)
             for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j].id == obj_info.id)
-                    return &set->obj_data[j];
+                if (set->obj_data[j]->id == obj_info.id)
+                    return set->obj_data[j];
         return 0;
     }
 
@@ -1464,8 +1470,8 @@ inline obj* object_storage_get_obj(object_info obj_info) {
         obj_set* set = elem_modern->second.obj_set;
         if (set)
             for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j].id == obj_info.id)
-                    return &set->obj_data[j];
+                if (set->obj_data[j]->id == obj_info.id)
+                    return set->obj_data[j];
         return 0;
     }
     return 0;
@@ -1488,8 +1494,8 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
         obj_set* set = elem->second.obj_set;
         if (set)
             for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j].id == obj_info.id)
-                    return set->obj_data[j].get_obj_mesh(mesh_name);
+                if (set->obj_data[j]->id == obj_info.id)
+                    return set->obj_data[j]->get_obj_mesh(mesh_name);
         return 0;
     }
 
@@ -1498,8 +1504,8 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
         obj_set* set = elem_modern->second.obj_set;
         if (set)
             for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j].id == obj_info.id)
-                    return set->obj_data[j].get_obj_mesh(mesh_name);
+                if (set->obj_data[j]->id == obj_info.id)
+                    return set->obj_data[j]->get_obj_mesh(mesh_name);
         return 0;
     }
     return 0;
@@ -1513,12 +1519,12 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
             return 0;
 
         for (uint32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j].id != obj_info.id)
+            if (set->obj_data[j]->id != obj_info.id)
                 continue;
 
-            obj& obj = set->obj_data[j];
-            if (index >= 0 && index < obj.num_mesh)
-                return &obj.mesh_array[index];
+            obj* obj = set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
             return 0;
         }
         return 0;
@@ -1531,12 +1537,12 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
             return 0;
 
         for (uint32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j].id != obj_info.id)
+            if (set->obj_data[j]->id != obj_info.id)
                 continue;
 
-            obj& obj = set->obj_data[j];
-            if (index >= 0 && index < obj.num_mesh)
-                return &obj.mesh_array[index];
+            obj* obj = set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
             return 0;
         }
         return 0;
@@ -1551,8 +1557,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
             continue;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash)
-                return set->obj_data[j].get_obj_mesh(mesh_name);
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh(mesh_name);
     }
 
     for (auto& i : object_storage_data_modern) {
@@ -1561,8 +1567,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
             continue;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash)
-                return set->obj_data[j].get_obj_mesh(mesh_name);
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh(mesh_name);
     }
     return 0;
 }
@@ -1574,12 +1580,12 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
             continue;
 
         for (uint32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j].hash != hash)
+            if (set->obj_data[j]->hash != hash)
                 continue;
 
-            obj& obj = set->obj_data[j];
-            if (index >= 0 && index < obj.num_mesh)
-                return &obj.mesh_array[index];
+            obj* obj = set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
             return 0;
         }
     }
@@ -1590,12 +1596,12 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
             continue;
 
         for (uint32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j].hash != hash)
+            if (set->obj_data[j]->hash != hash)
                 continue;
 
-            obj& obj = set->obj_data[j];
-            if (index >= 0 && index < obj.num_mesh)
-                return &obj.mesh_array[index];
+            obj* obj = set->obj_data[j];
+            if (index >= 0 && index < obj->num_mesh)
+                return &obj->mesh_array[index];
             return 0;
         }
     }
@@ -1610,8 +1616,8 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
             return -1;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].get_obj_mesh_index(mesh_name);
+            if (set->obj_data[j]->id == obj_info.id)
+                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
 
     auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
@@ -1621,8 +1627,8 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
             return -1;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].get_obj_mesh_index(mesh_name);
+            if (set->obj_data[j]->id == obj_info.id)
+                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
     return -1;
 }
@@ -1634,8 +1640,8 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
             continue;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash)
-                return set->obj_data[j].get_obj_mesh_index(mesh_name);
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
 
     for (auto& i : object_storage_data_modern) {
@@ -1644,8 +1650,8 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
             continue;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].hash == hash)
-                return set->obj_data[j].get_obj_mesh_index(mesh_name);
+            if (set->obj_data[j]->hash == hash)
+                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
     return -1;
 }
@@ -1684,8 +1690,8 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
             return 0;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].skin;
+            if (set->obj_data[j]->id == obj_info.id)
+                return set->obj_data[j]->skin;
         return 0;
     }
 
@@ -1696,8 +1702,8 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
             return 0;
 
         for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j].id == obj_info.id)
-                return set->obj_data[j].skin;
+            if (set->obj_data[j]->id == obj_info.id)
+                return set->obj_data[j]->skin;
         return 0;
     }
     return 0;
@@ -1715,7 +1721,7 @@ inline obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_in
     if (handler && handler->obj_set && handler->index_buffer_data) {
         obj_set* set = handler->obj_set;
         for (uint32_t i = 0; i < set->obj_num; i++)
-            if (set->obj_data[i].id == obj_info.id)
+            if (set->obj_data[i]->id == obj_info.id)
                 return handler->index_buffer_data[i].mesh_data;
     }
     return 0;
@@ -1733,7 +1739,7 @@ inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_
     if (handler && handler->obj_set && handler->vertex_buffer_data) {
         obj_set* set = handler->obj_set;
         for (uint32_t i = 0; i < set->obj_num; i++)
-            if (set->obj_data[i].id == obj_info.id)
+            if (set->obj_data[i]->id == obj_info.id)
                 return handler->vertex_buffer_data[i].mesh_data;
     }
     return 0;
@@ -1891,7 +1897,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             handler->obj_file_handler.reset();
             handler->obj_id_data.reserve(set->obj_num);
             for (uint32_t i = 0; i < set->obj_num; i++)
-                handler->obj_id_data.push_back(set->obj_data[i].id, i);
+                handler->obj_id_data.push_back(set->obj_data[i]->id, i);
             handler->obj_id_data.sort();
 
             if (!obj_set_handler_vertex_buffer_load(handler)
@@ -2008,7 +2014,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         handler->obj_file_handler.reset();
         handler->obj_id_data.reserve(set->obj_num);
         for (uint32_t i = 0; i < set->obj_num; i++)
-            handler->obj_id_data.push_back(set->obj_data[i].id, i);
+            handler->obj_id_data.push_back(set->obj_data[i]->id, i);
 
         if (!obj_set_handler_vertex_buffer_load(handler)
             || !obj_set_handler_index_buffer_load(handler))
@@ -2100,9 +2106,9 @@ inline void object_storage_free() {
 static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* handler) {
     obj_set* set = handler->obj_set;
     for (uint32_t i = 0; i < set->obj_num; i++) {
-        obj& obj = set->obj_data[i];
-        for (uint32_t j = 0; j < obj.num_mesh; j++) {
-            obj_mesh& mesh = obj.mesh_array[j];
+        obj* obj = set->obj_data[i];
+        for (uint32_t j = 0; j < obj->num_mesh; j++) {
+            obj_mesh& mesh = obj->mesh_array[j];
             for (uint32_t k = 0; k < mesh.num_submesh; k++) {
                 vec3 _min =    9999999.0f;
                 vec3 _max = -100000000.0f;
@@ -2139,10 +2145,10 @@ static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* hand
 static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* handler) {
     obj_set* set = handler->obj_set;
     for (uint32_t i = 0; i < set->obj_num; i++) {
-        obj& obj = set->obj_data[i];
-        uint32_t num_material = obj.num_material;
+        obj* obj = set->obj_data[i];
+        uint32_t num_material = obj->num_material;
         for (uint32_t j = 0; j < num_material; j++) {
-            obj_material_data& material_data = obj.material_array[j];
+            obj_material_data& material_data = obj->material_array[j];
             obj_material& material = material_data.material;
 
             if (*(int32_t*)&material.shader.name[4] != 0xDEADFF) {

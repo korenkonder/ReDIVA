@@ -65,7 +65,7 @@ struct obj_index_buffer {
 
     obj_index_buffer();
 
-    bool load(obj& obj);
+    bool load(obj* obj);
     void unload();
 };
 
@@ -78,7 +78,7 @@ struct obj_vertex_buffer {
 
     obj_vertex_buffer();
 
-    bool load(obj& obj);
+    bool load(obj* obj);
     void unload();
 };
 

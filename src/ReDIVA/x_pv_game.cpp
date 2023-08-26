@@ -7966,7 +7966,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
         uint32_t obj_num = set->obj_num;
         for (uint32_t j = 0; j < obj_num; j++) {
-            obj* obj = &set->obj_data[j];
+            obj* obj = set->obj_data[j];
             if (obj->id != i.first.id)
                 continue;
 
@@ -8080,23 +8080,24 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
         std::vector<uint32_t> used_material_indices;
 
-        uint32_t obj_num_new = (uint32_t)(obj_num + bones_vertices.size());
-        obj* obj_data_new = alloc->allocate<::obj>(obj_num_new);
-        memcpy(obj_data_new, set->obj_data, sizeof(obj) * obj_num);
+        uint32_t obj_num_new = (uint32_t)bones_vertices.size();
+        obj** obj_data_new = alloc->allocate<::obj*>((size_t)obj_num + obj_num_new);
+        memcpy(obj_data_new, set->obj_data, sizeof(obj*) * obj_num);
         set->obj_data = obj_data_new;
-        set->obj_num = obj_num_new;
+        set->obj_num = obj_num + obj_num_new;
         obj_data_new += obj_num;
-        obj_num_new -= obj_num;
 
         for (uint32_t j = 0; j < obj_num_new; j++) {
             x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[j];
             uint32_t src_id = bone_vertices.src_id;
 
+            obj_data_new[j] = alloc->allocate<::obj>();
+
             obj* src_obj = 0;
-            obj* dst_obj = &obj_data_new[j];
+            obj* dst_obj = obj_data_new[j];
             for (uint32_t k = 0; k < obj_num; k++)
-                if (set->obj_data[k].id == src_id) {
-                    src_obj = &set->obj_data[k];
+                if (set->obj_data[k]->id == src_id) {
+                    src_obj = set->obj_data[k];
                     break;
                 }
 
@@ -8292,7 +8293,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
         handler->obj_id_data.reserve(set->obj_num);
         for (uint32_t j = 0; j < obj_num_new; j++)
-            handler->obj_id_data.push_back(obj_data_new[j].id, obj_num + j);
+            handler->obj_id_data.push_back(obj_data_new[j]->id, obj_num + j);
 
         uint32_t _obj_num = obj_num + obj_num_new;
         handler->vertex_buffer_num = _obj_num;
@@ -8315,7 +8316,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
         }
 
         for (uint32_t j = 0; j < obj_num; j++) {
-            obj* obj = &set->obj_data[j];
+            obj* obj = set->obj_data[j];
             if (obj->id != i.first.id)
                 continue;
 

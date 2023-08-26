@@ -4226,8 +4226,8 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
         if (handler && handler->obj_set) {
             obj_set* set = handler->obj_set;
             for (uint32_t i = 0; i < set->obj_num; i++)
-                if (set->obj_data[i].id == obj_id) {
-                    obj = &set->obj_data[i];
+                if (set->obj_data[i]->id == obj_id) {
+                    obj = set->obj_data[i];
                     break;
                 }
         }
@@ -4238,7 +4238,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
                 obj_set* set = handler->obj_set;
                 ssize_t obj_index = -1;
                 for (uint32_t i = 0; i < set->obj_num; i++)
-                    if (set->obj_data[i].id == obj_id) {
+                    if (set->obj_data[i]->id == obj_id) {
                         obj_index = i;
                         break;
                     }
@@ -4252,7 +4252,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
 
                 for (uint32_t i = 0; i < set->obj_num; i++) {
                     ImGui::PushID(i);
-                    ::obj* obj = &set->obj_data[i];
+                    ::obj* obj = set->obj_data[i];
                     if (ImGui::Selectable(obj->name, obj->id == obj_id)
                         || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                         || (ImGui::IsItemFocused() && obj->id != obj_id))
@@ -4263,7 +4263,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
                 if (obj_index == -1 || obj_index >= set->obj_num)
                     obj_id = -1;
                 else
-                    obj_id = set->obj_data[obj_index].id;
+                    obj_id = set->obj_data[obj_index]->id;
 
                 if (mesh->object_name_hash != obj_id) {
                     mesh->object_name_hash = obj_id;
