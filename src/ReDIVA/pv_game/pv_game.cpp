@@ -73,13 +73,13 @@ struct pv_game_time {
             value += time.calc_time_int();
         return value;
     }
-    
+
     inline void pause() {
         if (add)
             value += time.calc_time_int();
         add = false;
     }
-    
+
     inline void reset() {
         value = 0;
         time.get_timestamp();

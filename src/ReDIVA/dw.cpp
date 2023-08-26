@@ -2521,7 +2521,7 @@ namespace dw {
             step_fast = v6;
         }
     }
- 
+
     void ScrollBar::SetRound(bool value) {
         round = value;
     }

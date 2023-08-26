@@ -2779,7 +2779,7 @@ void snow_particle_draw() {
     snow_scene.g_range_offset.y = snow->offset_gpu.y;
     snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
     snow_particle_scene_ubo.WriteMapMemory(snow_scene);
-    
+
     snow_particle_batch_shader_data snow_batch = {};
     snow_batch.g_color = snow->color;
     snow_batch.start_vertex_location.x = 0;
