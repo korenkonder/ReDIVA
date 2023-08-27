@@ -165,6 +165,13 @@ void data_view_auth_3d_imgui(class_data* data) {
             ImGui::TreePop();
         }
 
+        if (auth->curve.size() > 0
+            && ImGui::TreeNodeEx("Curve", tree_node_flags)) {
+            for (auth_3d_curve& l : auth->curve)
+                data_view_auth_3d_imgui_auth_3d_curve(&l);
+            ImGui::TreePop();
+        }
+
         data_view_auth_3d_imgui_auth_3d_dof(&auth->dof);
 
         if (auth->fog.size() > 0

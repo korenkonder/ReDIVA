@@ -37,7 +37,11 @@ namespace prj {
 #endif
 
         if (allocate) {
+#if PRJ_STACK_ALLOCATOR_ORIGINAL_CODE
             size_t data_size = this->size;
+#else
+            size_t data_size = node ? (node->capacity + sizeof(stack_allocator_node)) * 2 : this->size;
+#endif
             size_t _size = size + sizeof(stack_allocator_node);
             size_t mults = 0;
             while (data_size < _size) {

@@ -3886,12 +3886,14 @@ void x_pv_game_stage::unload() {
 
     auth_3d_ids.clear();
 
-    for (x_pv_game_stage_effect& i : effect)
-        for (x_pv_game_stage_effect_glitter& j : i.glitter)
+    for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
+        x_pv_game_stage_effect& eff = effect[i];
+        for (x_pv_game_stage_effect_glitter& j : eff.glitter)
             if (j.scene_counter) {
                 Glitter::glt_particle_manager->FreeSceneEffect(j.scene_counter, false);
                 j.scene_counter = 0;
             }
+    }
 
     if (stage_effect_transition_state == 1)
         stop_stage_change_effect();

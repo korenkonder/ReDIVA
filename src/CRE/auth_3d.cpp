@@ -5787,6 +5787,9 @@ static void auth_3d_object_load(auth_3d* auth, auth_3d_object* o,
 
 static void auth_3d_object_curve_load(auth_3d* auth, auth_3d_object_curve* oc,
     std::string& name, float_t frame_offset) {
+    if (!name.size())
+        return;
+
     oc->curve = 0;
     oc->name.assign(name);
     oc->frame_offset = 0.0f;
