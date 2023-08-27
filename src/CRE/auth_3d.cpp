@@ -2906,11 +2906,9 @@ namespace auth_3d_detail  {
     }
 }
 
-static void a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
-    if (msg->read_bool("remove")) {
-        key = {};
-        return;
-    }
+static bool a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
+    if (msg->read_bool("remove"))
+        return false;
 
     if (msg->read_bool("ignore_tangents") && key.keys.size()) {
         float_t ep_pre_val = key.keys.front().tangent1;
@@ -2987,57 +2985,51 @@ static void a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
             key.keys.push_back(k);
         }
     }
+    return true;
 }
 
-static void a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
+static bool a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
     if (msg->read_bool("remove")) {
         rgba = {};
-        return;
+        return false;
     }
 
-    if (rgba.flags & A3DA_RGBA_R) {
-        msgpack* r = msg->read_map("r");
-        if (r)
-            a3da_msgpack_read_key(rgba.r, r);
-
-        if (rgba.r.type == A3DA_KEY_NONE) {
+    msgpack* r = msg->read_map("r");
+    if (r) {
+        enum_or(rgba.flags, A3DA_RGBA_R);
+        if (!a3da_msgpack_read_key(rgba.r, r)) {
             rgba.r = {};
             enum_and(rgba.flags, ~A3DA_RGBA_R);
         }
     }
 
-    if (rgba.flags & A3DA_RGBA_G) {
-        msgpack* g = msg->read_map("g");
-        if (g)
-            a3da_msgpack_read_key(rgba.g, g);
-
-        if (rgba.g.type == A3DA_KEY_NONE) {
+    msgpack* g = msg->read_map("g");
+    if (g) {
+        enum_or(rgba.flags, A3DA_RGBA_G);
+        if (!a3da_msgpack_read_key(rgba.g, g)) {
             rgba.g = {};
             enum_and(rgba.flags, ~A3DA_RGBA_G);
         }
     }
 
-    if (rgba.flags & A3DA_RGBA_B) {
-        msgpack* b = msg->read_map("b");
-        if (b)
-            a3da_msgpack_read_key(rgba.b, b);
-
-        if (rgba.b.type == A3DA_KEY_NONE) {
+    msgpack* b = msg->read_map("b");
+    if (b) {
+        enum_or(rgba.flags, A3DA_RGBA_B);
+        if (!a3da_msgpack_read_key(rgba.b, b)) {
             rgba.b = {};
             enum_and(rgba.flags, ~A3DA_RGBA_B);
         }
     }
 
-    if (rgba.flags & A3DA_RGBA_A) {
-        msgpack* a = msg->read_map("a");
-        if (a)
-            a3da_msgpack_read_key(rgba.a, a);
-
-        if (rgba.a.type == A3DA_KEY_NONE) {
+    msgpack* a = msg->read_map("a");
+    if (a) {
+        enum_or(rgba.flags, A3DA_RGBA_A);
+        if (!a3da_msgpack_read_key(rgba.a, a)) {
             rgba.a = {};
             enum_and(rgba.flags, ~A3DA_RGBA_A);
         }
     }
+    return true;
 }
 
 static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_file) {
@@ -3117,22 +3109,22 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
                     break;
                 }
 
-                if (j->flags & A3DA_MATERIAL_LIST_BLEND_COLOR) {
-                    msgpack* blend_color = material_list.read_map("blend_color");
-                    if (blend_color) {
-                        a3da_msgpack_read_rgba(j->blend_color, blend_color);
-                        if (!j->blend_color.flags)
-                            enum_and(j->flags, ~A3DA_MATERIAL_LIST_BLEND_COLOR);
-                    }
+                msgpack* new_name = material_list.read("new_name");
+                if (new_name)
+                    j->name.assign(new_name->read_string());
+
+                msgpack* blend_color = material_list.read_map("blend_color");
+                if (blend_color) {
+                    enum_or(j->flags, A3DA_MATERIAL_LIST_BLEND_COLOR);
+                    if (!a3da_msgpack_read_rgba(j->blend_color, blend_color))
+                        enum_and(j->flags, ~A3DA_MATERIAL_LIST_BLEND_COLOR);
                 }
 
-                if (j->flags & A3DA_MATERIAL_LIST_EMISSION) {
-                    msgpack* emission = material_list.read_map("emission");
-                    if (emission) {
-                        a3da_msgpack_read_rgba(j->emission, emission);
-                        if (!j->emission.flags)
-                            enum_and(j->flags, ~A3DA_MATERIAL_LIST_EMISSION);
-                    }
+                msgpack* emission = material_list.read_map("emission");
+                if (emission) {
+                    enum_or(j->flags, A3DA_MATERIAL_LIST_EMISSION);
+                    if (!a3da_msgpack_read_rgba(j->emission, emission))
+                        enum_and(j->flags, ~A3DA_MATERIAL_LIST_EMISSION);
                 }
 
                 if (!j->flags)

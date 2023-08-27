@@ -16,6 +16,7 @@
 #include "../CRE/pv_expression.hpp"
 #include "../CRE/pv_param.hpp"
 #include "../CRE/random.hpp"
+#include "../CRE/shader_ft.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/sprite.hpp"
 #include "../CRE/task_effect.hpp"
@@ -32,7 +33,6 @@
 #include <glad/glad_wgl.h>
 #include <d3d11.h>
 #include "../CRE/shader_dev.hpp"
-#include "../CRE/shader_ft.hpp"
 #include "nvenc/nvenc_encoder.hpp"
 #endif
 #if BAKE_PV826
@@ -4926,6 +4926,7 @@ bool x_pv_game::Ctrl() {
         nvenc_stream = new file_stream();
         nvenc_stream->open(buf, "wb");
 #endif
+#endif
 
 #if BAKE_PV826
         x_pv_game_map_auth_3d_to_mot(this, true);
@@ -6002,6 +6003,13 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     stage_id = 16;
 
     charas[0] = CHARA_LEN;
+
+    modules[0] = 0;
+
+    pv_id = 811;
+    stage_id = 11;
+
+    charas[0] = CHARA_MIKU;
 
     modules[0] = 0;
 
@@ -7930,9 +7938,108 @@ static std::string x_pv_game_split_auth_3d_get_object_name(
     return str;
 }
 
+static void x_pv_game_split_auth_3d_update_object_set(obj_set_handler* handler) {
+    prj::shared_ptr<prj::stack_allocator> old_alloc = handler->alloc_handler;
+
+    prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
+
+    obj_set* set = alloc->allocate<obj_set>();
+    set->move_data(handler->obj_set, alloc);
+    handler->obj_set = set;
+}
+
+static void x_pv_game_split_auth_3d_write_object_set(obj_set_handler* handler) {
+    obj_set* set = handler->obj_set;
+
+    char name[0x200];
+    strcpy_s(name, sizeof(name), handler->name.c_str());
+
+    for (size_t j = 0; j < sizeof(name); j++) {
+        char c = name[j];
+        if (c >= 'A' && c <= 'Z')
+            name[j] += 0x20;
+    }
+
+    char buf[0x200];
+    file_stream s;
+
+    strcpy_s(buf, sizeof(buf), "patch\\!temp\\");
+    strcat_s(buf, sizeof(buf), name);
+    strcat_s(buf, sizeof(buf), "_obj.bin");
+
+    uint32_t obj_num = set->obj_num;
+    for (uint32_t j = 0; j < obj_num; j++) {
+        obj* obj = set->obj_data[j];
+
+        uint32_t num_material = obj->num_material;
+        for (uint32_t k = 0; k < num_material; k++) {
+            obj_material& material = obj->material_array[k].material;
+
+            if (*(int32_t*)&material.shader.name[4] == 0xDEADFF) {
+                *(int32_t*)&material.shader.name[4] = 0;
+                const char* shader_name = shaders_ft.get_name_by_index(material.shader.index);
+                strcpy_s(material.shader.name, sizeof(material.shader.name), shader_name);
+            }
+        }
+    }
+
+    bool modern = set->modern;
+    set->modern = false;
+
+    void* obj_data = 0;
+    size_t obj_length = 0;
+    set->pack_file(&obj_data, &obj_length);
+
+    set->modern = modern;
+
+    for (uint32_t j = 0; j < obj_num; j++) {
+        obj* obj = set->obj_data[j];
+
+        uint32_t num_material = obj->num_material;
+        for (uint32_t k = 0; k < num_material; k++) {
+            obj_material& material = obj->material_array[k].material;
+
+            if (*(int32_t*)&material.shader.name[4] != 0xDEADFF) {
+                material.shader.index = shaders_ft.get_index_by_name(material.shader.name);
+                *(int32_t*)&material.shader.name[4] = 0xDEADFF;
+            }
+        }
+    }
+
+    s.open(buf, "wb");
+    s.write(obj_data, obj_length);
+    s.close();
+
+    free_def(obj_data);
+
+    strcpy_s(buf, sizeof(buf), "patch\\!temp\\");
+    strcat_s(buf, sizeof(buf), name);
+    strcat_s(buf, sizeof(buf), "_tex.bin");
+
+    uint32_t tex_num = handler->tex_num;
+    texture** gentex = handler->gentex.data();
+
+    txp_set txp;
+    txp.textures.resize(tex_num);
+    for (uint32_t j = 0; j < tex_num; j++)
+        texture_txp_store(gentex[j], &txp.textures[j]);
+
+    void* tex_data = 0;
+    size_t tex_length = 0;
+    txp.pack_file(&tex_data, &tex_length, false);
+
+    s.open(buf, "wb");
+    s.write(tex_data, tex_length);
+    s.close();
+
+    free_def(tex_data);
+}
+
 static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
     std::vector<object_info>& object_hrc, std::vector<std::string>& material_list) {
     object_database& obj_db = xpvgm->stage_data.obj_db;
+
     std::map<object_info, std::vector<std::string>> object_hrc_material_list;
     for (const object_info i : object_hrc) {
         obj* obj = object_storage_get_obj(i);
@@ -7957,10 +8064,14 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
     for (auto& i : object_hrc_material_list)
         prj::sort_unique(i.second);
 
+    std::vector<uint32_t> object_set_ids;
+
     for (auto& i : object_hrc_material_list) {
         obj_set_handler* handler = object_storage_get_obj_set_handler(i.first.set_id);
         if (!handler)
             continue;
+
+        object_set_ids.push_back(i.first.set_id);
 
         obj_set* set = handler->obj_set;
 
@@ -8161,9 +8272,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     dst_submesh->index_format = src_submesh->index_format;
 
                     uint32_t num_index = (uint32_t)bone_vertices_sub_mesh.indices.size();
-                    uint32_t* index_array_new = alloc->allocate<uint32_t>(num_index);
-                    memcpy(index_array_new, bone_vertices_sub_mesh.indices.data(), sizeof(uint32_t) * num_index);
-                    dst_submesh->index_array = index_array_new;
+                    dst_submesh->index_array = alloc->allocate<uint32_t>(
+                        bone_vertices_sub_mesh.indices.data(), num_index);
                     dst_submesh->num_index = num_index;
 
                     dst_submesh->attrib = src_submesh->attrib;
@@ -8171,7 +8281,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     vec3 aabb_min_submesh =    9999999.0f;
                     vec3 aabb_max_submesh = -100000000.0f;
 
-                    uint32_t* index = index_array_new;
+                    uint32_t* index = dst_submesh->index_array;
                     obj_vertex_data* vertex_array = bone_vertices_mesh.vertices.data();
                     for (uint32_t l = 0; l < num_index; l++, index++) {
                         vec3 pos = vertex_array[*index].position;
@@ -8215,9 +8325,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     dst_mesh->size_vertex = src_mesh->size_vertex;
 
                 uint32_t num_vertex = (uint32_t)bone_vertices_mesh.vertices.size();
-                obj_vertex_data* vertex_array_new = alloc->allocate<obj_vertex_data>(num_vertex);
-                memcpy(vertex_array_new, bone_vertices_mesh.vertices.data(), sizeof(obj_vertex_data) * num_vertex);
-                dst_mesh->vertex_array = vertex_array_new;
+                dst_mesh->vertex_array = alloc->allocate<obj_vertex_data>(
+                    bone_vertices_mesh.vertices.data(), num_vertex);
                 dst_mesh->num_vertex = num_vertex;
 
                 dst_mesh->attrib = src_mesh->attrib;
@@ -8267,10 +8376,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
             dst_obj->skin = 0;
 
             std::string& dst_name = bone_vertices.dst_name;
-            char* name = alloc->allocate<char>(dst_name.size() + 1);
-            memcpy(name, dst_name.c_str(), dst_name.size());
-            name[dst_name.size()] = 0;
-            dst_obj->name = name;
+            dst_obj->name = alloc->allocate<char>(dst_name.c_str(), dst_name.size() + 1);
 
             uint32_t hash = hash_string_murmurhash(dst_name);
             dst_obj->id = hash;
@@ -8283,7 +8389,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     set_info->object.push_back({});
                     info = &set_info->object.back();
                     info->id = hash;
-                    info->name.assign(name);
+                    info->name.assign(dst_obj->name);
                     info->name_hash_fnv1a64m = hash_string_fnv1a64m(info->name);
                     info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(info->name, true);
                     info->name_hash_murmurhash = hash_string_murmurhash(info->name);
@@ -8293,7 +8399,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
         obj_db.update();
 
-        handler->obj_id_data.reserve(set->obj_num);
+        handler->obj_id_data.reserve(obj_num_new);
         for (uint32_t j = 0; j < obj_num_new; j++)
             handler->obj_id_data.push_back(obj_data_new[j]->id, obj_num + j);
 
@@ -8514,6 +8620,49 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                     }
             }
         }
+
+        for (uint32_t j = 0; j < obj_num_new; j++) {
+            x_pv_game_split_auth_3d_hrc_obj_bone& bone_vertices = bones_vertices[j];
+            uint32_t src_id = bone_vertices.src_id;
+
+            uint32_t src = -1;
+            for (uint32_t k = 0; k < obj_num; k++)
+                if (set->obj_data[k]->id == src_id) {
+                    src = k;
+                    break;
+                }
+
+            if (src == -1)
+                continue;
+
+            uint32_t size = --set->obj_num - src;
+
+            memmove(&set->obj_data[src], &set->obj_data[src + 1], sizeof(obj*) * size);
+            memset(&set->obj_data[src + size], 0, sizeof(obj*));
+
+            handler->vertex_buffer_num--;
+            handler->vertex_buffer_data[src].unload();
+            memmove(&handler->vertex_buffer_data[src],
+                &handler->vertex_buffer_data[src + 1], sizeof(obj_vertex_buffer) * size);
+            memset(&handler->vertex_buffer_data[src + size], 0, sizeof(obj_vertex_buffer));
+
+            handler->index_buffer_num--;
+            handler->index_buffer_data[src].unload();
+            memmove(&handler->index_buffer_data[src],
+                &handler->index_buffer_data[src + 1], sizeof(obj_index_buffer) * size);
+            memset(&handler->index_buffer_data[src + size], 0, sizeof(obj_index_buffer));
+        }
+    }
+
+    prj::sort_unique(object_set_ids);
+
+    for (uint32_t& i : object_set_ids) {
+        obj_set_handler* handler = object_storage_get_obj_set_handler(i);
+        if (!handler)
+            continue;
+
+        x_pv_game_split_auth_3d_update_object_set(handler);
+        x_pv_game_split_auth_3d_write_object_set(handler);
     }
 
     for (std::pair<uint32_t, auth_3d_id> i : xpvgm->stage_data.auth_3d_ids) {
@@ -8595,22 +8744,6 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 
 typedef std::pair<vec4, vec4> material_list_color;
 
-inline bool operator >(const material_list_color& left, const material_list_color& right) {
-    return memcmp(&left, &right, sizeof(material_list_color)) > 0;
-}
-
-inline bool operator <(const material_list_color& left, const material_list_color& right) {
-    return memcmp(&left, &right, sizeof(material_list_color)) < 0;
-}
-
-inline bool operator >=(const material_list_color& left, const material_list_color& right) {
-    return memcmp(&left, &right, sizeof(material_list_color)) >= 0;
-}
-
-inline bool operator <=(const material_list_color& left, const material_list_color& right) {
-    return memcmp(&left, &right, sizeof(material_list_color)) <= 0;
-}
-
 inline bool operator ==(const material_list_color& left, const material_list_color& right) {
     return !memcmp(&left, &right, sizeof(material_list_color));
 }
@@ -8620,8 +8753,10 @@ inline bool operator !=(const material_list_color& left, const material_list_col
 }
 
 struct material_list_data {
+    std::string name;
     std::vector<material_list_color> color;
     std::vector<material_list_color> color_opt;
+    std::vector<int32_t> color_opt_idx;
     union {
         uint16_t has_color;
         struct {
@@ -8637,11 +8772,10 @@ struct material_list_data {
     bool cycle;
     float_t start_time;
     float_t end_time;
-    bool original_data;
     bool has_data[8];
 
     inline material_list_data() : has_color(), type(), cycle(),
-        start_time(), end_time(), original_data(), has_data() {
+        start_time(), end_time(), has_data() {
 
     }
 
@@ -8653,11 +8787,12 @@ struct material_list_data {
 };
 
 struct material_list_color_data {
+    std::string name;
     std::vector<material_list_color> data;
-    bool original_data;
-    bool has_data[8];
+   bool has_data[8];
+    std::vector<std::pair<material_list_color, std::vector<int32_t>>> same_data;
 
-    inline material_list_color_data() : original_data(), has_data() {
+    inline material_list_color_data() : has_data() {
 
     }
 
@@ -8668,9 +8803,10 @@ struct material_list_color_data {
 
 bool material_list_data::optimize() {
     color_opt.assign(color.begin(), color.end());
+    color_opt_idx.resize(color_opt.size());
     morph_opt.assign(morph.begin(), morph.end());
 
-    if (type < A3DA_KEY_LINEAR || original_data)
+    if (type < A3DA_KEY_LINEAR)
         return true;
 
     // Find and optimize 0123456 to 01230123
@@ -8766,7 +8902,7 @@ bool material_list_data::optimize() {
                 break;
             }
     };
-    
+
     // Find and optimize 01234 to 01210
     auto optimize_func_2_desc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
         kft3* keys = morph.data();
@@ -8812,7 +8948,7 @@ bool material_list_data::optimize() {
                 break;
             }
     };
-    
+
     // Find and optimize 012345 to 012210
     auto optimize_func_3_asc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
         kft3* keys = morph.data();
@@ -8858,7 +8994,7 @@ bool material_list_data::optimize() {
                 break;
             }
     };
-    
+
     // Find and optimize 012345 to 012210
     auto optimize_func_3_desc = [&](std::vector<material_list_color>& color, std::vector<kft3>& morph) {
         kft3* keys = morph.data();
@@ -8990,6 +9126,8 @@ bool material_list_data::optimize() {
             break;
         }
     }
+
+    color_opt_idx.resize(color_opt.size());
 
     /*if (color_opt.size() > 2) {
         material_list_color* color_data = color_opt.data();
@@ -9176,15 +9314,16 @@ bool material_list_data::optimize() {
             || v_second.y > reverse_bias
             || v_second.z > reverse_bias
             || v_second.w > reverse_bias) {
-            printf("");
+            printf_debug("");
             return false;
         }
     }
     return true;
 }
 
+
 static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
-    float_t play_control_size, material_list_data& data, bool fast = false) {
+    float_t play_control_size, material_list_data& data, vec4 emission, bool fast = false) {
     if (!ml.blend_color.flags && !ml.emission.flags) {
         data.type = 0;
         return;
@@ -9282,80 +9421,24 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         end_time = play_control_size;
     }
 
-    if (type >= AUTH_3D_KEY_LINEAR && first_same_data_index != -1) {
-        std::vector<kft3>* vec_data = 0;
-        switch (first_same_data_index) {
-        case 0:
-            vec_data = &ml.blend_color.r.keys_vec;
-            break;
-        case 1:
-            vec_data = &ml.blend_color.g.keys_vec;
-            break;
-        case 2:
-            vec_data = &ml.blend_color.b.keys_vec;
-            break;
-        case 3:
-            vec_data = &ml.blend_color.a.keys_vec;
-            break;
-        case 4:
-            vec_data = &ml.emission.r.keys_vec;
-            break;
-        case 5:
-            vec_data = &ml.emission.g.keys_vec;
-            break;
-        case 6:
-            vec_data = &ml.emission.b.keys_vec;
-            break;
-        case 7:
-            vec_data = &ml.emission.a.keys_vec;
-            break;
-        }
+    auto set_value = [&](material_list_color& dst, const vec4 src0, const vec4 src1) {
+        for (int32_t j = 0; j < 4; j++)
+            (&dst.first.x)[j] = has_data[0 + j] ? (&src0.x)[j] : 1.0f;
 
-        float_t min_value = FLT_MAX;
-        float_t max_value = -FLT_MAX;
+        for (int32_t j = 0; j < 4; j++)
+            (&dst.second.x)[j] = has_data[4 + j] ? (&src1.x)[j] : (&emission.x)[j];
+    };
 
-        for (kft3& i : *vec_data) {
-            min_value = min_def(min_value, i.value);
-            max_value = max_def(max_value, i.value);
-        }
-
-        float_t scale = 1.0f / (max_value - min_value);
-
-        ml.blend_color.interpolate(0.0f);
-        ml.emission.interpolate(0.0f);
-
-
-        data.morph.reserve(vec_data->size());
-        int32_t index = 0;
-        for (kft3& i : *vec_data) {
-            material_list_color color;
-            color.first = ml.blend_color.value;
-            color.second = ml.emission.value;
-            for (int32_t j = 0; j < 8; j++)
-                if (has_data[j])
-                    ((float_t*)&color)[j] = i.value;
-
-            data.morph.push_back({ i.frame, (float_t)index, i.tangent1, i.tangent2 });
-            data.color.push_back(color);
-        }
-
-        data.type = type;
-        data.original_data = true;
-        memcpy(data.has_data, has_data, sizeof(has_data));
-        return;
-    }
-    else if (type >= AUTH_3D_KEY_NONE && type <= AUTH_3D_KEY_STATIC) {
+    if (type >= AUTH_3D_KEY_NONE && type <= AUTH_3D_KEY_STATIC) {
         ml.blend_color.interpolate(0.0f);
         ml.emission.interpolate(0.0f);
 
         material_list_color color;
-        color.first = ml.blend_color.value;
-        color.second = ml.emission.value;
+        set_value(color, ml.blend_color.value, ml.emission.value);
 
         data.morph.push_back({ 0, (float_t)(int64_t)data.color.size() });
         data.color.push_back(color);
         data.type = type;
-        data.original_data = true;
         memcpy(data.has_data, has_data, sizeof(has_data));
         return;
     }
@@ -9390,8 +9473,8 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     for (size_t i = 0; i < count; i++) {
         ml.blend_color.interpolate(start_time + (float_t)(int64_t)i);
         ml.emission.interpolate(start_time + (float_t)(int64_t)i);
-        values_src[i].first = ml.blend_color.value;
-        values_src[i].second = ml.emission.value;
+
+        set_value(values_src[i], ml.blend_color.value, ml.emission.value);
     }
 
     {
@@ -9409,7 +9492,6 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
             }
             else
                 data.type = AUTH_3D_KEY_NONE;
-            data.original_data = true;
             memcpy(data.has_data, has_data, sizeof(has_data));
             return;
         }
@@ -9681,37 +9763,14 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
     memcpy(data.has_data, has_data, sizeof(has_data));
 }
 
+#pragma warning(push)
+#pragma warning(disable: 6385)
 static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
     std::vector<object_info>& object, std::vector<std::string>& material_list) {
     object_database& obj_db = xpvgm->stage_data.obj_db;
-    prj::vector_pair<object_info, std::vector<std::string>> object_material_list;
-    for (const object_info i : object) {
-        obj* obj = object_storage_get_obj(i);
-        if (!obj)
-            continue;
 
-        uint32_t num_material = obj->num_material;
-        for (uint32_t j = 0; j < num_material; j++) {
-            obj_material* material = &obj->material_array[j].material;
-            for (const std::string k : material_list) {
-                if (k.compare(material->name))
-                    continue;
-
-                auto elem = object_material_list.find(i);
-                if (elem == object_material_list.end()) {
-                    object_material_list.push_back(i, {});
-                    elem = object_material_list.end() - 1;
-                }
-                elem->second.push_back(k);
-            }
-        }
-    }
-
-    for (auto& i : object_material_list)
-        prj::sort_unique(i.second);
-
-    prj::vector_pair<auth_3d_id, prj::vector_pair<uint32_t, material_list_data>> stage_data_effect_auth_3ds;
-    prj::vector_pair<auth_3d_id, prj::vector_pair<uint32_t, material_list_data>> stage_data_change_effect_auth_3ds;
+    prj::vector_pair<auth_3d*, prj::vector_pair<uint32_t, material_list_data>> stage_data_effect_auth_3ds;
+    prj::vector_pair<auth_3d*, prj::vector_pair<uint32_t, material_list_data>> stage_data_change_effect_auth_3ds;
 
     for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
         x_pv_game_stage_effect& eff = xpvgm->stage_data.effect[i];
@@ -9719,7 +9778,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             if (j.id.check_not_empty() && j.id.check_loaded()) {
                 auth_3d* auth = j.id.get_auth_3d();
                 if (auth && auth->material_list.size() && auth->object.size())
-                    stage_data_effect_auth_3ds.push_back(j.id, {});
+                    stage_data_effect_auth_3ds.push_back(auth, {});
             }
     }
 
@@ -9730,7 +9789,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                 if (k.id.check_not_empty() && k.id.check_loaded()) {
                     auth_3d* auth = k.id.get_auth_3d();
                     if (auth && auth->material_list.size() && auth->object.size())
-                        stage_data_change_effect_auth_3ds.push_back(k.id, {});
+                        stage_data_change_effect_auth_3ds.push_back(auth, {});
                 }
         }
 
@@ -9743,90 +9802,878 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             stage_data_change_effect_auth_3ds.erase(elem);
     }
 
-    printf_debug("");
-
     prj::vector_pair<uint32_t, material_list_color_data> material_colors;
+    std::vector<uint32_t> object_set_ids;
 
     auto convert_material_list = [&](auth_3d* auth,
         prj::vector_pair<uint32_t, material_list_data>& material_lists) {
-        printf_debug("%s\n", auth->file_name.c_str());
+            printf_debug("%s\n", auth->file_name.c_str());
 
-        material_lists.reserve(auth->material_list.size());
-        for (auth_3d_material_list& j : auth->material_list) {
-            if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
-                continue;
+            prj::vector_pair<std::pair<uint32_t, int32_t>, std::pair<bool, bool>> material_shaders;
 
-            material_lists.push_back(j.hash, {});
-            material_list_data& data = material_lists.back().second;
+            for (auth_3d_object& i : auth->object) {
+                obj* obj = object_storage_get_obj(i.object_info);
+                if (!obj)
+                    continue;
 
-            x_pv_game_split_auth_3d_material_list(j, auth->play_control.size, data);
-            bool same = data.optimize();
-            printf_debug("    %c%c%c%c%c%c%c%c %d %32s %08X %3llu %3llu %3llu %3llu%s%s%s\n",
-                j.blend_color.flags & AUTH_3D_RGBA_R ? 'R' : ' ',
-                j.blend_color.flags & AUTH_3D_RGBA_G ? 'G' : ' ',
-                j.blend_color.flags & AUTH_3D_RGBA_B ? 'B' : ' ',
-                j.blend_color.flags & AUTH_3D_RGBA_A ? 'A' : ' ',
-                j.emission.flags & AUTH_3D_RGBA_R ? 'R' : ' ',
-                j.emission.flags & AUTH_3D_RGBA_G ? 'G' : ' ',
-                j.emission.flags & AUTH_3D_RGBA_B ? 'B' : ' ',
-                j.emission.flags & AUTH_3D_RGBA_A ? 'A' : ' ',
-                data.type, j.name.c_str(), j.hash,
-                data.color.size(), data.morph.size(),
-                data.color_opt.size(), data.morph_opt.size(),
-                data.cycle ? "; Cycle" : "", same ? "" : "; Not same",
-                data.original_data ? "; Orig Data" : "");
+                uint32_t material_list_count = 0;
+                uint32_t material_index = -1;
+                for (auth_3d_material_list& j : auth->material_list) {
+                    if (!(j.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
+                        continue;
 
-            auto elem = material_colors.find(j.hash);
-            if (elem == material_colors.end()) {
-                material_colors.push_back({ j.hash, {} });
-                material_colors.sort();
-                elem = material_colors.find(j.hash);
-                elem->second.original_data = data.original_data;
-                memcpy(elem->second.has_data, data.has_data, sizeof(data.has_data));
+                    uint32_t num_material = obj->num_material;
+                    for (uint32_t k = 0; k < num_material; k++) {
+                        obj_material* material = &obj->material_array[k].material;
+                        if (j.name.compare(material->name))
+                            continue;
+
+                        if (material_list_count)
+                            printf_debug("%s has more than one material_list!\n", obj->name);
+                        else {
+                            material_index = k;
+                            material_shaders.push_back({ {j.hash, material->shader.index}, {
+                                    !!material->shader_info.m.is_lgt_diffuse,
+                                    !!material->shader_info.m.is_lgt_specular
+                                } });
+                        }
+                        material_list_count++;
+                        break;
+                    }
+                }
+
+                if (material_index == -1)
+                    continue;
+
+                uint32_t num_mesh = obj->num_mesh;
+                for (uint32_t j = 0; j < num_mesh; j++) {
+                    obj_mesh* mesh = obj->mesh_array;
+                    uint32_t num_mesh = obj->num_mesh;
+
+                    for (uint32_t k = 0; k < num_mesh; k++, mesh++) {
+                        obj_sub_mesh* sub_mesh = mesh->submesh_array;
+                        uint32_t num_submesh = mesh->num_submesh;
+
+                        uint32_t same_material_count = 0;
+                        for (uint32_t l = 0; l < num_submesh; l++, sub_mesh++) {
+                            if (sub_mesh->material_index != material_index)
+                                continue;
+
+                            if (same_material_count)
+                                printf_debug("%s's %s has more than one submesh with material %s!\n",
+                                    obj->name, mesh->name, obj->material_array[material_index].material.name);
+                            same_material_count++;
+                        }
+                    }
+                }
             }
 
-            if (elem->second.original_data && !data.original_data)
-                elem->second.original_data = false;
+            material_shaders.sort_unique();
 
-            elem->second.data.insert(elem->second.data.end(), data.color_opt.begin(), data.color_opt.end());
-        }
+            material_lists.reserve(auth->material_list.size());
+            for (auth_3d_material_list& i : auth->material_list) {
+                if (!(i.flags & (AUTH_3D_MATERIAL_LIST_BLEND_COLOR | AUTH_3D_MATERIAL_LIST_EMISSION)))
+                    continue;
+
+                bool found = false;
+                vec4 emission = 0.0f;
+                for (auth_3d_object& j : auth->object) {
+                    obj* obj = object_storage_get_obj(j.object_info);
+                    if (!obj)
+                        continue;
+
+                    uint32_t num_material = obj->num_material;
+                    for (uint32_t k = 0; k < num_material; k++)
+                        if (!i.name.compare(obj->material_array[k].material.name)) {
+                            found = true;
+                            emission = obj->material_array[k].material.color.emission;
+                            object_set_ids.push_back(j.object_info.set_id);
+                            break;
+                        }
+                }
+
+                if (!found)
+                    continue;
+
+                material_lists.push_back(i.hash, {});
+                material_list_data& data = material_lists.back().second;
+                data.name.assign(i.name);
+
+                x_pv_game_split_auth_3d_material_list(i, auth->play_control.size, data, emission);
+                bool same = data.optimize();
+                printf_debug("    %c%c%c%c%c%c%c%c %d %32s %08X %3llu %3llu %3llu %3llu%s%s\n",
+                    i.blend_color.flags & AUTH_3D_RGBA_R ? 'R' : ' ',
+                    i.blend_color.flags & AUTH_3D_RGBA_G ? 'G' : ' ',
+                    i.blend_color.flags & AUTH_3D_RGBA_B ? 'B' : ' ',
+                    i.blend_color.flags & AUTH_3D_RGBA_A ? 'A' : ' ',
+                    i.emission.flags & AUTH_3D_RGBA_R ? 'R' : ' ',
+                    i.emission.flags & AUTH_3D_RGBA_G ? 'G' : ' ',
+                    i.emission.flags & AUTH_3D_RGBA_B ? 'B' : ' ',
+                    i.emission.flags & AUTH_3D_RGBA_A ? 'A' : ' ',
+                    data.type, i.name.c_str(), i.hash,
+                    data.color.size(), data.morph.size(),
+                    data.color_opt.size(), data.morph_opt.size(),
+                    data.cycle ? "; Cycle" : "", same ? "" : "; Not same");
+
+                auto elem = material_colors.find(i.hash);
+                if (elem == material_colors.end()) {
+                    material_colors.push_back({ i.hash, {} });
+                    elem = material_colors.end() - 1;
+                    elem->second.name.assign(i.name);
+                    memcpy(elem->second.has_data, data.has_data, sizeof(data.has_data));
+                }
+
+                for (int32_t j = 0; j < 8; j++)
+                    elem->second.has_data[j] |= data.has_data[j];
+            }
+
+            material_colors.sort();
+
+            for (auto& i : material_lists) {
+                auto elem = material_colors.find(i.first);
+                if (elem == material_colors.end())
+                    continue;
+
+                material_list_data& data = i.second;
+
+                if (!elem->second.data.size()) {
+                    int32_t k = (int32_t)elem->second.data.size();
+                    for (int32_t& j : data.color_opt_idx)
+                        j = k++;
+
+                    elem->second.data.insert(elem->second.data.end(),
+                        data.color_opt.begin(), data.color_opt.end());
+                    continue;
+                }
+
+                bool found = false;
+                const material_list_color* color_data = elem->second.data.data();
+                size_t color_count = elem->second.data.size();
+                const material_list_color* color_opt_data = data.color_opt.data();
+                size_t color_opt_count = data.color_opt.size();
+                size_t first_temp = -1;
+                size_t count_temp = -1;
+                size_t first = -1;
+                size_t count = -1;
+                for (size_t j = 0; j < color_count; j++) {
+                    for (size_t k = count_temp != -1 ? count_temp : 0; k < color_opt_count; k++)
+                        if (color_data[j] != color_opt_data[k]
+                            || first_temp == -1 && k != 0) {
+                            first_temp = -1;
+                            count_temp = -1;
+                        }
+                        else if (first_temp == -1) {
+                            first_temp = j;
+                            count_temp = 1;
+                            break;
+                        }
+                        else {
+                            count_temp++;
+                            break;
+                        }
+
+                    if (first_temp != -1
+                        && (first_temp + count_temp >= color_count || count_temp == color_opt_count)
+                        && (count == -1 || count_temp > count)) {
+                        first = first_temp;
+                        count = count_temp;
+                    }
+                }
+
+                first_temp = -1;
+                count_temp = -1;
+                size_t first_reverse = -1;
+                size_t count_reverse = -1;
+                for (size_t j = 0; j < color_count; j++) {
+                    for (size_t k = count_temp != -1 ? count_temp : 0; k < color_opt_count; k++)
+                        if (color_data[j] != color_opt_data[color_opt_count - k - 1]
+                            || first_temp == -1 && k != 0) {
+                            first_temp = -1;
+                            count_temp = -1;
+                        }
+                        else if (first_temp == -1) {
+                            first_temp = j;
+                            count_temp = 1;
+                            break;
+                        }
+                        else {
+                            count_temp++;
+                            break;
+                        }
+
+                    if (first_temp != -1
+                        && (first_temp + count_temp >= color_count || count_temp == color_opt_count)
+                        && (count_reverse == -1 || count_temp > count_reverse)) {
+                        first_reverse = first_temp;
+                        count_reverse = count_temp;
+                    }
+                }
+
+                if (first != -1 && first < first_reverse) {
+                    int32_t k = (int32_t)first;
+                    for (int32_t& j : data.color_opt_idx)
+                        j = k++;
+
+                    if (first + count >= color_count)
+                        elem->second.data.insert(elem->second.data.begin() + first + 1,
+                            data.color_opt.begin() + count, data.color_opt.end());
+                }
+                else if (first_reverse != -1) {
+                    int32_t k = (int32_t)(color_opt_count + first_reverse - 1);
+                    for (int32_t& j : data.color_opt_idx)
+                        j = k--;
+
+                    if (first_reverse + count_reverse >= color_count)
+                        elem->second.data.insert(elem->second.data.begin() + first_reverse + 1,
+                            data.color_opt.rbegin() + count_reverse, data.color_opt.rend());
+                }
+                else {
+                    int32_t k = (int32_t)elem->second.data.size();
+                    for (int32_t& j : data.color_opt_idx)
+                        j = k++;
+
+                    elem->second.data.insert(elem->second.data.end(),
+                        data.color_opt.begin(), data.color_opt.end());
+                }
+            }
     };
 
     for (auto& i : stage_data_effect_auth_3ds)
-        convert_material_list(i.first.get_auth_3d(), i.second);
+        convert_material_list(i.first, i.second);
 
     for (auto& i : stage_data_change_effect_auth_3ds)
-        convert_material_list(i.first.get_auth_3d(), i.second);
+        convert_material_list(i.first, i.second);
 
-    for (auto& i : material_colors)
-        prj::sort_unique(i.second.data);
+    prj::sort_unique(object_set_ids);
 
     for (auto& i : material_colors) {
-        if (!i.second.original_data)
-            continue;
-
-        material_list_color min_color = { FLT_MAX, FLT_MAX };
-        material_list_color max_color = { -FLT_MAX, -FLT_MAX };
+        auto& same_data = i.second.same_data;
         for (material_list_color& j : i.second.data) {
-            min_color.first = vec4::min(j.first, min_color.first);
-            min_color.second = vec4::min(j.second, min_color.second);
-            max_color.first = vec4::max(j.first, max_color.first);
-            max_color.second = vec4::max(j.second, max_color.second);
+            std::vector<int32_t>* same_data_indices = 0;
+            for (auto& k : same_data)
+                if (k.first == j) {
+                    same_data_indices = &k.second;
+                    break;
+                }
+
+            if (!same_data_indices) {
+                same_data.push_back({ j, {} });
+                same_data_indices = &same_data.back().second;
+            }
+
+            same_data_indices->push_back((int32_t)(&j - i.second.data.data()));
         }
 
-        printf("%f %f %f %f %f %f %f %f\n",
-            min_color.first.x, min_color.first.y, min_color.first.z, min_color.first.w,
-            min_color.second.x, min_color.second.y, min_color.second.z, min_color.second.w);
-        printf("%f %f %f %f %f %f %f %f\n",
-            max_color.first.x, max_color.first.y, max_color.first.z, max_color.first.w,
-            max_color.second.x, max_color.second.y, max_color.second.z, max_color.second.w);
+        for (auto& j : same_data)
+            prj::sort_unique(j.second);
     }
 
-    for (auto& i : material_colors)
-        printf("%d ", (int32_t)i.second.data.size());
+    std::vector<std::pair<std::string, uint32_t>> material_objects;
 
-    printf("%d\n", (int32_t)material_colors.size());
+    for (uint32_t& i : object_set_ids) {
+        obj_set_handler* handler = object_storage_get_obj_set_handler(i);
+        if (!handler)
+            continue;
+
+        obj_set* set = handler->obj_set;
+
+        uint32_t obj_num_new = 0;
+        uint32_t obj_num = set->obj_num;
+        for (uint32_t j = 0; j < obj_num; j++) {
+            obj* obj = set->obj_data[j];
+
+            for (auto& k : material_colors) {
+                uint32_t material_index = -1;
+                uint32_t num_material = obj->num_material;
+                for (uint32_t l = 0; l < num_material; l++)
+                    if (!k.second.name.compare(obj->material_array[l].material.name)) {
+                        material_index = l;
+                        break;
+                    }
+
+                if (material_index == -1)
+                    continue;
+
+                obj_material* material = &obj->material_array[material_index].material;
+                uint32_t shader = material->shader.index;
+
+                bool* has_data = k.second.has_data;
+                if ((shader == SHADER_FT_ITEM || shader == SHADER_FT_STAGE)
+                    && (has_data[4] || has_data[5] || has_data[6] || has_data[7])) {
+                    printf_debug("");
+                    continue;
+                }
+
+                material_objects.push_back({ obj->name, k.first });
+
+                obj_num_new += (uint32_t)(k.second.data.size() - 1);
+            }
+        }
+
+        prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+
+        uint32_t _obj_num = obj_num + obj_num_new;
+
+        obj** obj_data = set->obj_data;
+        obj** obj_data_new = alloc->allocate<::obj*>(_obj_num);
+        set->obj_data = obj_data_new;
+        set->obj_num = _obj_num;
+
+        obj_vertex_buffer* vertex_buffer_data = handler->vertex_buffer_data;
+        handler->vertex_buffer_num = _obj_num;
+        obj_vertex_buffer* vertex_buffer_data_new = new obj_vertex_buffer[_obj_num];
+        handler->vertex_buffer_data = vertex_buffer_data_new;
+
+        obj_index_buffer* index_buffer_data = handler->index_buffer_data;
+        handler->index_buffer_num = _obj_num;
+        obj_index_buffer* index_buffer_data_new = new obj_index_buffer[_obj_num];
+        handler->index_buffer_data = index_buffer_data_new;
+
+        for (uint32_t j = 0; j < obj_num; j++, obj_data++, obj_data_new++,
+            vertex_buffer_data_new++, index_buffer_data_new++) {
+            *obj_data_new = *obj_data;
+
+            bool init_buffer = false;
+            *vertex_buffer_data_new = vertex_buffer_data[j];
+            *index_buffer_data_new = index_buffer_data[j];
+
+            obj* obj = *obj_data;
+            for (auto& k : material_colors) {
+                uint32_t material_index = -1;
+                uint32_t num_material = obj->num_material;
+                for (uint32_t l = 0; l < num_material; l++)
+                    if (!k.second.name.compare(obj->material_array[l].material.name)) {
+                        material_index = l;
+                        break;
+                    }
+
+                if (material_index == -1)
+                    continue;
+
+                obj_material* material = &obj->material_array[material_index].material;
+                uint32_t shader = material->shader.index;
+                if (shader == SHADER_FT_BLINN)
+                    if (!material->shader_info.m.is_lgt_diffuse && !material->shader_info.m.is_lgt_specular)
+                        shader = SHADER_FT_CONSTANT;
+                    else if (!material->shader_info.m.is_lgt_specular)
+                        shader = SHADER_FT_LAMBERT;
+
+                bool* has_data = k.second.has_data;
+                if ((shader == SHADER_FT_ITEM || shader == SHADER_FT_STAGE)
+                    && (has_data[4] || has_data[5] || has_data[6] || has_data[7])) {
+                    printf_debug("");
+                    continue;
+                }
+
+                material->color.emission = 1.0f;
+
+                if (!init_buffer) {
+                    vertex_buffer_data_new->unload();
+                    index_buffer_data_new->unload();
+                    init_buffer = true;
+                }
+
+                uint32_t index = 0;
+                for (auto& l : k.second.data) {
+                    ::obj* obj_new = alloc->allocate<::obj>();
+
+                    obj_new->bounding_sphere = obj->bounding_sphere;
+
+                    obj_mesh* mesh_array = obj->mesh_array;
+                    uint32_t num_mesh = obj->num_mesh;
+                    obj_mesh* mesh_array_new = alloc->allocate<obj_mesh>(num_mesh);
+                    for (uint32_t m = 0; m < num_mesh; m++) {
+                        obj_mesh* src_mesh = &mesh_array[m];
+                        obj_mesh* dst_mesh = &mesh_array_new[m];
+
+                        dst_mesh->flags = src_mesh->flags;
+                        dst_mesh->bounding_sphere = src_mesh->bounding_sphere;
+
+                        obj_sub_mesh* submesh_array = src_mesh->submesh_array;
+                        uint32_t num_submesh = src_mesh->num_submesh;
+                        obj_sub_mesh* submesh_array_new = alloc->allocate<obj_sub_mesh>(num_submesh);
+                        for (uint32_t n = 0; n < num_submesh; n++) {
+                            obj_sub_mesh* src_submesh = &submesh_array[n];
+                            obj_sub_mesh* dst_submesh = &submesh_array_new[n];
+
+                            dst_submesh->flags = src_submesh->flags;
+                            dst_submesh->bounding_sphere = src_submesh->bounding_sphere;
+                            dst_submesh->material_index = src_submesh->material_index;
+                            memcpy(dst_submesh->uv_index, src_submesh->uv_index, 0x08);
+
+                            uint32_t num_bone_index = src_submesh->num_bone_index;
+                            dst_submesh->bone_index_array = alloc->allocate<uint16_t>(
+                                src_submesh->bone_index_array, num_bone_index);
+                            dst_submesh->num_bone_index = num_bone_index;
+
+                            dst_submesh->bones_per_vertex = src_submesh->bones_per_vertex;
+                            dst_submesh->primitive_type = src_submesh->primitive_type;
+                            dst_submesh->index_format = src_submesh->index_format;
+
+                            uint32_t num_index = src_submesh->num_index;
+                            dst_submesh->index_array = alloc->allocate<uint32_t>(
+                                src_submesh->index_array, num_index);
+                            dst_submesh->num_index = num_index;
+
+                            dst_submesh->attrib = src_submesh->attrib;
+                            dst_submesh->axis_aligned_bounding_box = src_submesh->axis_aligned_bounding_box;
+
+                            dst_submesh->first_index = 0;
+                            dst_submesh->last_index = 0;
+                            dst_submesh->index_offset = 0;
+                        }
+                        dst_mesh->submesh_array = submesh_array_new;
+                        dst_mesh->num_submesh = num_submesh;
+
+                        dst_mesh->vertex_format = src_mesh->vertex_format;
+                        dst_mesh->size_vertex = src_mesh->size_vertex;
+
+                        uint32_t num_vertex = src_mesh->num_vertex;
+                        dst_mesh->vertex_array = alloc->allocate<obj_vertex_data>(
+                            src_mesh->vertex_array, num_vertex);
+                        dst_mesh->num_vertex = num_vertex;
+
+                        if (!(dst_mesh->vertex_format & OBJ_VERTEX_COLOR0)) {
+                            enum_or(dst_mesh->vertex_format, OBJ_VERTEX_COLOR0);
+
+                            obj_vertex_data* vertex_array = dst_mesh->vertex_array;
+                            for (uint32_t n = dst_mesh->num_vertex; n; n--, vertex_array++)
+                                vertex_array->color0 = 1.0f;
+                        }
+
+                        dst_mesh->attrib = src_mesh->attrib;
+                        memcpy(dst_mesh->reserved, src_mesh->reserved, sizeof(uint32_t) * 6);
+                        memcpy(dst_mesh->name, src_mesh->name, 0x40);
+
+                        vec4 color_mult = 1.0f;
+
+                        for (int32_t n = 0; n < 4; n++)
+                            if (has_data[n])
+                                (&color_mult.x)[n] *= (&l.first.x)[n];
+
+                        switch (shader) {
+                        case SHADER_FT_BLINN:
+                        case SHADER_FT_ITEM:
+                        case SHADER_FT_STAGE:
+                        case SHADER_FT_LAMBERT:
+                            break;
+                        case SHADER_FT_SKY:
+                        case SHADER_FT_CONSTANT:
+                            for (int32_t n = 0; n < 4; n++)
+                                if (has_data[4 + n])
+                                    (&color_mult.x)[n] *= (&l.second.x)[n];
+                            break;
+                        }
+
+                        obj_vertex_data* vertex_array = dst_mesh->vertex_array;
+                        for (uint32_t n = dst_mesh->num_vertex; n; n--, vertex_array++)
+                            vertex_array->color0 *= color_mult;
+                    }
+                    obj_new->mesh_array = mesh_array_new;
+                    obj_new->num_mesh = num_mesh;
+
+                    uint32_t num_material = obj->num_material;
+                    obj_new->material_array = alloc->allocate<obj_material_data>(obj->material_array, num_material);
+                    obj_new->num_material = num_material;
+
+                    obj_new->flags = obj->flags;
+
+                    char buf[0x100];
+                    sprintf_s(buf, sizeof(buf), "%s_%03d", obj->name, index);
+                    obj_new->name = alloc->allocate<char>(buf, utf8_length(buf) + 1);
+
+                    uint32_t hash = hash_string_murmurhash(buf);
+                    obj_new->id = hash;
+                    obj_new->hash = hash;
+
+                    *obj_data_new++ = obj_new;
+                    vertex_buffer_data_new++->load(obj_new);
+                    index_buffer_data_new++->load(obj_new);
+                    index++;
+
+                    object_set_info* set_info = (object_set_info*)obj_db.get_object_set_info(i);
+                    if (set_info) {
+                        object_info_data* info = (object_info_data*)obj_db.get_object_info_data_by_murmurhash(hash);
+                        if (!info) {
+                            set_info->object.push_back({});
+                            info = &set_info->object.back();
+                            info->id = hash;
+                            info->name.assign(obj_new->name);
+                            info->name_hash_fnv1a64m = hash_string_fnv1a64m(info->name);
+                            info->name_hash_fnv1a64m_upper = hash_string_fnv1a64m(info->name, true);
+                            info->name_hash_murmurhash = hash_string_murmurhash(info->name);
+                        }
+                    }
+                }
+
+                obj_data_new--;
+                vertex_buffer_data_new--;
+                index_buffer_data_new--;
+                break;
+            }
+        }
+
+        obj_db.update();
+
+        delete[] vertex_buffer_data;
+        delete[] index_buffer_data;
+
+        obj_data = set->obj_data;
+
+        handler->obj_id_data.clear();
+        handler->obj_id_data.reserve(_obj_num);
+        for (uint32_t j = 0; j < _obj_num; j++)
+            handler->obj_id_data.push_back(obj_data[j]->id, j);
+    }
+
+    for (uint32_t& i : object_set_ids) {
+        obj_set_handler* handler = object_storage_get_obj_set_handler(i);
+        if (!handler)
+            continue;
+
+        x_pv_game_split_auth_3d_update_object_set(handler);
+        x_pv_game_split_auth_3d_write_object_set(handler);
+    }
+
+    prj::sort(material_objects);
+
+    typedef std::pair<float_t, float_t> morph_index_pair;
+
+    struct morph_indices {
+        morph_index_pair effect[X_PV_GAME_STAGE_EFFECT_COUNT];
+        morph_index_pair change_effect
+            [X_PV_GAME_STAGE_EFFECT_COUNT][X_PV_GAME_STAGE_EFFECT_COUNT];
+
+        inline morph_indices() {
+            for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+                effect[i] = { -1.0f, -1.0f };
+
+            for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+                for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++)
+                    change_effect[i][j] = { -1.0f, -1.0f };
+        }
+    };
+
+    std::vector<morph_indices> morph_indices_data;
+    morph_indices_data.resize(material_objects.size());
+
+    auto replace_material_list = [&](auth_3d* auth,
+        prj::vector_pair<uint32_t, material_list_data>& material_lists) {
+            auth->material_list.clear();
+            auth->material_list.shrink_to_fit();
+
+            auto get_index_pair = [&](size_t index) {
+                auto& morph_indices = morph_indices_data[index];
+
+                x_pv_game_stage& stage = xpvgm->stage_data;
+                for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
+                    x_pv_game_stage_effect& eff = stage.effect[i];
+                    for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
+                        if (auth == j.id.get_auth_3d())
+                            return &morph_indices.effect[i];
+                }
+
+                for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+                    for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
+                        x_pv_game_stage_change_effect& chg_eff = stage.change_effect[i][j];
+                        for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
+                            if (auth == k.id.get_auth_3d())
+                                return &morph_indices.change_effect[i][j];
+                    }
+
+                return (morph_index_pair*)0;
+            };
+
+            for (auto& i : material_objects) {
+                morph_index_pair* index_pair = get_index_pair(&i - material_objects.data());
+                if (!index_pair)
+                    continue;
+
+                for (auth_3d_object& j : auth->object)
+                    if (!i.first.compare(j.uid_name)) {
+                        *index_pair = { -2.0f, -2.0f };
+                        break;
+                    }
+            }
+
+            if (!material_lists.size())
+                return;
+
+            for (auto& i : material_lists) {
+                for (auto& j : material_objects) {
+                    if (i.first != j.second)
+                        continue;
+
+                    auth_3d_object* object = 0;
+                    for (auth_3d_object& k : auth->object)
+                        if (!j.first.compare(k.uid_name)) {
+                            object = &k;
+                            break;
+                        }
+
+                    if (!object)
+                        continue;
+
+                    material_list_data& data = i.second;
+
+                    object->uid_name.append("_000");
+                    object->object_info = obj_db.get_object_info(object->name.c_str());
+                    object->object_hash = object->object_info.id;
+
+                    auth_3d_object_curve& morph = object->morph;
+                    morph.name.assign(data.name);
+                    morph.frame_offset = 0;
+
+                    auth->curve.push_back({});
+                    auth_3d_curve& curve = auth->curve.back();
+
+                    auth_3d_key* ex_key = 0;
+                    for (auth_3d_curve& k : auth->curve)
+                        if (!morph.name.compare(k.name)) {
+                            ex_key = &k.curve;
+                            break;
+                        }
+
+                    curve.name.assign(data.name);
+
+                    auth_3d_key& key = curve.curve;
+                    key.max_frame = auth->max_frame;
+                    key.frame_delta = key.max_frame;
+                    key.value_delta = 0.0f;
+
+                    bool desc = data.color_opt_idx.front() > data.color_opt_idx.back();
+
+                    auto replace_value = [&](float_t value) {
+                        if (desc)
+                            return (float_t)data.color_opt_idx[(int64_t)value] - fmodf(value, 1.0f);
+                        else
+                            return (float_t)data.color_opt_idx[(int64_t)value] + fmodf(value, 1.0f);
+                    };
+
+                    morph_index_pair* index_pair = get_index_pair(&j - material_objects.data());
+
+                    switch (data.type) {
+                    case AUTH_3D_KEY_NONE:
+                        key.type = AUTH_3D_KEY_NONE;
+                        key.value = 0.0f;
+                        if (index_pair)
+                            *index_pair = { 0.0f, 0.0f };
+                        continue;
+                    case AUTH_3D_KEY_STATIC:
+                        key.value = replace_value(data.morph_opt.front().value);
+                        key.type = key.value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+                        if (index_pair)
+                            *index_pair = { key.value, key.value };
+                        continue;
+                    case AUTH_3D_KEY_LINEAR:
+                        key.type = AUTH_3D_KEY_LINEAR;
+                        break;
+                    case AUTH_3D_KEY_HERMITE:
+                    default:
+                        key.type = AUTH_3D_KEY_HERMITE;
+                        break;
+                    }
+
+                    size_t length = data.morph_opt.size();
+                    if (length > 1) {
+                        key.keys_vec.assign(data.morph_opt.begin(), data.morph_opt.end());
+                        for (kft3& k : key.keys_vec)
+                            k.value = replace_value(k.value);
+                        key.length = length;
+                        key.keys = key.keys_vec.data();
+
+                        kft3* first_key = &key.keys[0];
+                        kft3* last_key = &key.keys[length - 1];
+                        if (first_key->frame < last_key->frame
+                            && last_key->frame > 0.0f && key.max_frame > first_key->frame) {
+                            key.ep_type_post = data.cycle ? AUTH_3D_EP_CYCLE : AUTH_3D_EP_NONE;
+                            key.frame_delta = last_key->frame - first_key->frame;
+                            key.value_delta = last_key->value - first_key->value;
+                        }
+
+                        if (index_pair)
+                            *index_pair = { first_key->value, last_key->value };
+                    }
+                    else if (length == 1) {
+                        key.value = replace_value(data.morph_opt.front().value);
+                        key.type = key.value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+                        if (index_pair)
+                            *index_pair = { key.value, key.value };
+                    }
+                    else {
+                        key.type = AUTH_3D_KEY_NONE;
+                        key.value = 0.0f;
+                        if (index_pair)
+                            *index_pair = { 0.0f, 0.0f };
+                    }
+
+                    if (ex_key)
+                        if (ex_key->type != key.type
+                            || ex_key->value != key.value
+                            || ex_key->max_frame != key.max_frame
+                            || ex_key->ep_type_pre != key.ep_type_pre
+                            || ex_key->ep_type_post != key.ep_type_post
+                            || ex_key->frame_delta != key.frame_delta
+                            || ex_key->value_delta != key.value_delta
+                            || ex_key->length != key.length
+                            || memcmp(ex_key->keys_vec.data(), key.keys_vec.data(), sizeof(kft3) * key.length))
+                            printf_debug("");
+                        else
+                            auth->curve.pop_back();
+                }
+            }
+    };
+
+    for (auto& i : stage_data_effect_auth_3ds)
+        replace_material_list(i.first, i.second);
+
+    for (auto& i : stage_data_change_effect_auth_3ds)
+        replace_material_list(i.first, i.second);
+
+    for (auto& i : morph_indices_data) {
+        auto& material_object = material_objects[&i - morph_indices_data.data()];
+
+        auto write_morph = [&](auth_3d* auth, float_t morph_value) {
+            auth_3d_object* object = 0;
+            for (auth_3d_object& k : auth->object)
+                if (!material_object.first.compare(k.uid_name)) {
+                    object = &k;
+                    break;
+                }
+
+            if (!object)
+                return;;
+
+            auto elem = material_colors.find(material_object.second);
+            if (elem == material_colors.end())
+                return;
+
+            object->uid_name.append("_000");
+            object->object_info = obj_db.get_object_info(object->name.c_str());
+            object->object_hash = object->object_info.id;
+
+            auth_3d_object_curve& morph = object->morph;
+            morph.name.assign(elem->second.name);
+            morph.frame_offset = 0;
+
+            auth->curve.push_back({});
+            auth_3d_curve& curve = auth->curve.back();
+
+            auth_3d_key* ex_key = 0;
+            for (auth_3d_curve& k : auth->curve)
+                if (!morph.name.compare(k.name)) {
+                    ex_key = &k.curve;
+                    break;
+                }
+
+            curve.name.assign(elem->second.name);
+
+            auth_3d_key& key = curve.curve;
+            key.max_frame = auth->max_frame;
+            key.frame_delta = key.max_frame;
+            key.value_delta = 0.0f;
+
+            key.value = morph_value;
+            key.type = key.value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
+
+            if (ex_key)
+                if (ex_key->type != key.type
+                    || ex_key->value != key.value
+                    || ex_key->max_frame != key.max_frame
+                    || ex_key->ep_type_pre != key.ep_type_pre
+                    || ex_key->ep_type_post != key.ep_type_post
+                    || ex_key->frame_delta != key.frame_delta
+                    || ex_key->value_delta != key.value_delta
+                    || ex_key->length != key.length
+                    || memcmp(ex_key->keys_vec.data(), key.keys_vec.data(), sizeof(kft3) * key.length))
+                    printf_debug("");
+                else
+                    auth->curve.pop_back();
+        };
+
+        x_pv_game_stage& stage = xpvgm->stage_data;
+        for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
+            if (i.effect[j].first != -2.0f)
+                continue;
+
+            float_t morph_value = -1.0f;
+            for (int32_t k = 0; k < X_PV_GAME_STAGE_EFFECT_COUNT; k++)
+                if (i.change_effect[k][j].first >= 0.0f) {
+                    morph_value = i.change_effect[k][j].second;
+                    break;
+                }
+                else if (i.change_effect[j][k].first >= 0.0f) {
+                    morph_value = i.change_effect[j][k].first;
+                    break;
+                }
+                else if (j != k && i.effect[k].first >= 0.0f) {
+                    morph_value = i.effect[k].first;
+                    break;
+                }
+
+            if (morph_value == -1.0f)
+                continue;
+
+            x_pv_game_stage_effect& eff = stage.effect[j];
+            for (x_pv_game_stage_effect_auth_3d& k : eff.auth_3d)
+                write_morph(k.id.get_auth_3d(), morph_value);
+        }
+
+        for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++)
+            for (int32_t k = 0; k < X_PV_GAME_STAGE_EFFECT_COUNT; k++) {
+                if (i.change_effect[j][k].first != -2.0f)
+                    continue;
+
+                float_t morph_value = -1.0f;
+                if (i.effect[j].second >= 0.0f)
+                    morph_value = i.effect[j].second;
+                else if (i.effect[k].first >= 0.0f)
+                    morph_value = i.effect[k].first;
+
+                if (morph_value == -1.0f)
+                    continue;
+
+                x_pv_game_stage_change_effect& chg_eff = stage.change_effect[j][k];
+                for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
+                    write_morph(k.id.get_auth_3d(), morph_value);
+            }
+    }
+
+    auto fix_object_morphs = [&](auth_3d* auth) {
+        for (auth_3d_curve& i : auth->curve)
+            if (i.curve.keys_vec.size() > 1)
+                i.curve.keys = i.curve.keys_vec.data();
+
+        for (auth_3d_object& i : auth->object) {
+            auth_3d_object_curve& morph = i.morph;
+            if (!morph.name.size())
+                continue;
+
+            morph.curve = 0;
+            morph.value = 0.0f;
+
+            for (auth_3d_curve& i : auth->curve)
+                if (!morph.name.compare(i.name)) {
+                    morph.curve = &i;
+                    break;
+                }
+        }
+    };
+
+    for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
+        x_pv_game_stage_effect& eff = xpvgm->stage_data.effect[i];
+        for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
+            fix_object_morphs(j.id.get_auth_3d());
+    }
+
+    for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
+            x_pv_game_stage_change_effect& chg_eff = xpvgm->stage_data.change_effect[i][j];
+            for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
+                fix_object_morphs(k.id.get_auth_3d());
+        }
 }
+#pragma warning(pop)
 
 static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id) {
     if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
