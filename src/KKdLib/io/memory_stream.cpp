@@ -6,7 +6,7 @@
 #include "memory_stream.hpp"
 
 memory_stream::memory_stream() {
-
+    data.data = data.vec.begin();
 }
 
 memory_stream::~memory_stream() {
