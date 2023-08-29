@@ -411,9 +411,7 @@ namespace pv_param {
         stage_light_file.clear();
         stage_light_file.shrink_to_fit();
         chara_light.clear();
-        chara_light.shrink_to_fit();
         stage_light.clear();
-        stage_light.shrink_to_fit();
     }
 
     bool light_data_struct::load_file(std::string& file, std::map<int32_t, light_param_light_data>& map) {
