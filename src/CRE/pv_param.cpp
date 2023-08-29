@@ -549,26 +549,35 @@ namespace pv_param {
         if (dof_file.size()) {
             file_data.unload_dof_file(dof_file);
             dof_file.clear();
+            dof_file.shrink_to_fit();
         }
 
-        if (dof.size())
+        if (dof.size()) {
             dof.clear();
+            dof.shrink_to_fit();
+        }
 
         if (cc_file.size()) {
             file_data.unload_color_correction_file(cc_file);
             cc_file.clear();
+            cc_file.shrink_to_fit();
         }
 
-        if (cc.size())
+        if (cc.size()) {
             cc.clear();
+            cc.shrink_to_fit();
+        }
 
         if (bloom_file.size()) {
             file_data.unload_bloom_file(bloom_file);
             bloom_file.clear();
+            bloom_file.shrink_to_fit();
         }
 
-        if (bloom.size())
+        if (bloom.size()) {
             bloom.clear();
+            bloom.shrink_to_fit();
+        }
     }
 
     bool post_process_data_struct::load_files(std::string& path) {

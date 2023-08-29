@@ -910,28 +910,22 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
                 aes128_ecb_decrypt_buffer(&ctx, (uint8_t*)t, temp_s);
             }
 
-        if (ff->flags & FARC_GZIP) {
+        if (!(ff->flags & FARC_GZIP)) {
+            ff->data_compressed = 0;
+            ff->data = force_malloc(ff->size);
+            memcpy(ff->data, (void*)t, ff->size);
+        }
+        else if (!ff->size) {
+            ff->size = ff->size_compressed;
+            ff->size_compressed = 0;
+            ff->data = force_malloc(ff->size);
+            memcpy(ff->data, (void*)t, ff->size);
+        }
+        else {
             ff->data_compressed = force_malloc(ff->size_compressed);
             memcpy(ff->data_compressed, (void*)t, ff->size_compressed);
             deflate::decompress(ff->data_compressed, ff->size_compressed,
                 &ff->data, &ff->size, deflate::MODE_GZIP);
-            if (ff->size) {
-                ff->data_compressed = force_malloc(ff->size_compressed);
-                memcpy(ff->data_compressed, (void*)t, ff->size_compressed);
-                deflate::decompress(ff->data_compressed, ff->size_compressed,
-                    &ff->data, &ff->size, deflate::MODE_GZIP);
-            }
-            else {
-                ff->data = force_malloc(ff->size_compressed);
-                memcpy(ff->data, (void*)t, ff->size_compressed);
-                ff->size = ff->size_compressed;
-                ff->size_compressed = 0;
-            }
-        }
-        else {
-            ff->data_compressed = 0;
-            ff->data = force_malloc(ff->size);
-            memcpy(ff->data, (void*)t, ff->size);
         }
         free_def(temp);
     }
@@ -955,12 +949,13 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
             if (temp_s.check_not_null())
                 temp_s.write(ff->data, ff->size);
         }
-        free_def(ff->data);
+
+        free(ff->data);
         ff->data = 0;
     }
 
     if (ff->data_compressed) {
-        free_def(ff->data_compressed);
+        free(ff->data_compressed);
         ff->data_compressed = 0;
     }
 }
