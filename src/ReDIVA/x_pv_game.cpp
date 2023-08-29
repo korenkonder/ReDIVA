@@ -4800,11 +4800,11 @@ bool x_pv_game::Ctrl() {
         step_frame = false;
 
         frame_float = 0.0;
-        this->frame = (int32_t)frame_float;
-        this->time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
+        frame = (int32_t)frame_float;
+        time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
         while (pv_data[pv_index].dsc_data.dsc_data_ptr != pv_data[pv_index].dsc_data.dsc_data_ptr_end
-            && x_pv_game_dsc_process(this, this->time))
+            && x_pv_game_dsc_process(this, time))
             pv_data[pv_index].dsc_data.dsc_data_ptr++;
 
         light_auth_3d_id.set_enable(true);
