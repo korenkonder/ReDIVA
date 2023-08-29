@@ -7949,6 +7949,59 @@ static void x_pv_game_split_auth_3d_update_object_set(obj_set_handler* handler) 
     handler->obj_set = set;
 }
 
+static void x_pv_game_split_auth_3d_write_auth_3d(auth_3d* auth) {
+    char name[0x200];
+    strcpy_s(name, sizeof(name), auth->file_name.c_str());
+
+    char* ext = 0;
+    char* temp = name;
+    while (temp)
+        if (temp = strstr(temp, ".a3da"))
+            ext = temp++;
+
+    if (!ext) {
+        strcat_s(name, sizeof(name), ".a3da");
+        ext = strstr(name, ".a3da");
+    }
+
+    for (char* i = name; *i && i != ext; i++) {
+        char c = *i;
+        if (c >= 'A' && c <= 'Z')
+            *i += 0x20;
+    }
+
+    char buf[0x200];
+    file_stream s;
+
+    strcpy_s(buf, sizeof(buf), "patch\\!temp\\auth_3d\\");
+    strcat_s(buf, sizeof(buf), name);
+
+    for (char* i = name; *i && i != ext; i++) {
+        char c = *i;
+        if (c >= 'a' && c <= 'z')
+            *i -= 0x20;
+    }
+
+    a3da a;
+    auth->store(&a);
+    a._converter_version.assign("20111019");
+    a._file_name.assign(name);
+    a._property_version.assign("20110526");
+    a.ready = true;
+    a.compressed = false;
+    a.format = A3DA_FORMAT_AFT;
+
+    void* a3da_data = 0;
+    size_t a3da_length = 0;
+    a.write(&a3da_data, &a3da_length);
+
+    s.open(buf, "wb");
+    s.write(a3da_data, a3da_length);
+    s.close();
+
+    free_def(a3da_data);
+}
+
 static void x_pv_game_split_auth_3d_write_object_set(obj_set_handler* handler) {
     obj_set* set = handler->obj_set;
 
@@ -7964,7 +8017,7 @@ static void x_pv_game_split_auth_3d_write_object_set(obj_set_handler* handler) {
     char buf[0x200];
     file_stream s;
 
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\");
+    strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
     strcat_s(buf, sizeof(buf), name);
     strcat_s(buf, sizeof(buf), "_obj.bin");
 
@@ -8013,7 +8066,7 @@ static void x_pv_game_split_auth_3d_write_object_set(obj_set_handler* handler) {
 
     free_def(obj_data);
 
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\");
+    strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
     strcat_s(buf, sizeof(buf), name);
     strcat_s(buf, sizeof(buf), "_tex.bin");
 
@@ -10672,6 +10725,12 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
                 fix_object_morphs(k.id.get_auth_3d());
         }
+
+    for (auto& i : stage_data_effect_auth_3ds)
+        x_pv_game_split_auth_3d_write_auth_3d(i.first);
+
+    for (auto& i : stage_data_change_effect_auth_3ds)
+        x_pv_game_split_auth_3d_write_auth_3d(i.first); 
 }
 #pragma warning(pop)
 

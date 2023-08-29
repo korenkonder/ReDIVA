@@ -1592,8 +1592,10 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
                 kv.write(s, "morph_offset", o->morph_offset);
             }
             kv.write(s, "name", o->name);
-            kv.write(s, "parent_name", o->parent_name);
-            kv.write(s, "parent_node", o->parent_node);
+            if (o->parent_name.size())
+                kv.write(s, "parent_name", o->parent_name);
+            if (o->parent_node.size())
+                kv.write(s, "parent_node", o->parent_node);
             if (o->pattern.size()) {
                 kv.write(s, "pat", o->pattern);
                 kv.write(s, "pat_offset",  o->pattern_offset);
@@ -1690,7 +1692,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
             kv.open_scope_fmt(sort_index_data[i]);
-            kv.write(s, "name", vol[sort_index_data[i]]);
+            kv.write(s, vol[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1740,8 +1742,10 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
                 kv.close_scope();
             }
 
-            kv.write(s, "parent_name", oh->parent_name);
-            kv.write(s, "parent_node", oh->parent_node);
+            if (oh->parent_name.size())
+                kv.write(s, "parent_name", oh->parent_name);
+            if (oh->parent_node.size())
+                kv.write(s, "parent_node", oh->parent_node);
             kv.write(s, "shadow", oh->shadow);
             kv.write(s, "uid_name", oh->uid_name);
 
@@ -1763,7 +1767,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
             kv.open_scope_fmt(sort_index_data[i]);
-            kv.write(s, "name", vohl[sort_index_data[i]]);
+            kv.write(s, vohl[sort_index_data[i]]);
             kv.close_scope();
         }
 
@@ -1826,7 +1830,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             kv.open_scope_fmt(sort_index_data[i]);
 
             a3da_point* p = &vp[sort_index_data[i]];
-            kv.write(s, "name", p->name);
+            kv.write(s, p->name);
             key_val_out_write(&kv, s, "", p->model_transform);
 
             kv.close_scope();

@@ -941,6 +941,7 @@ struct auth_3d {
     void load_from_farc(farc* f, const char* file,
         object_database* obj_db, texture_database* tex_db);
     void reset();
+    void store(a3da* auth_file);
     void unload(render_context* rctx);
 };
 
