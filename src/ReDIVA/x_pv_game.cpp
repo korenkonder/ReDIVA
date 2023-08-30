@@ -3358,7 +3358,7 @@ void x_pv_game_stage::ctrl_inner() {
         if (!bar_beat)
             return;
 
-        bool v6 = bar_beat && fabsf(bar_beat->delta_time) > 0.000001f
+        bool change_stage_effect = bar_beat && fabsf(bar_beat->delta_time) > 0.000001f
             && bar_beat->counter > 0 && !((bar_beat->bar - 1) % 2);
 
         int32_t curr_stg_eff = curr_stage_effect;
@@ -3378,7 +3378,7 @@ void x_pv_game_stage::ctrl_inner() {
 
         switch (stage_effect_transition_state) {
         case 0: {
-            if (v6) {
+            if (change_stage_effect) {
                 if (set_change_effect_frame_part_1()) {
                     chg_eff.bars_left = chg_eff.bar_count;
                     stage_effect_transition_state = 1;
@@ -3406,12 +3406,12 @@ void x_pv_game_stage::ctrl_inner() {
             }
         } break;
         case 1: {
-            if (v6) {
+            if (change_stage_effect) {
                 chg_eff.bars_left -= 2;
-                v6 = chg_eff.bars_left <= 0;
+                change_stage_effect = chg_eff.bars_left <= 0;
             }
 
-            if (v6) {
+            if (change_stage_effect) {
                 stop_stage_change_effect();
                 stop_stage_effect_glitter(curr_stage_effect);
 
@@ -3426,10 +3426,9 @@ void x_pv_game_stage::ctrl_inner() {
 
                 std::vector<x_pv_game_stage_effect_glitter>& glitter = eff.glitter;
                 for (x_pv_game_stage_effect_glitter& i : glitter) {
-                    if (fabsf(i.fade_time) <= 0.000001f) {
+                    if (fabsf(i.fade_time) <= 0.000001f)
                         Glitter::glt_particle_manager->SetSceneEffectExtColor(i.scene_counter, 0,
                             hash_murmurhash_empty, -1.0f, -1.0f, -1.0f, 0.0f);
-                    }
                     else if (i.fade_time > 0.001f) {
                         i.fade_time_left -= delta_time_bar_beat * 4.0f;
                         if (i.fade_time_left < 0.0f)
