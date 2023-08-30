@@ -1038,18 +1038,18 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         case DATA_X:
         case DATA_XHD:
             ds->glitter_list_murmurhash.reserve(count);
-            for (size_t i = 0; i < count; i++) {
-                uint32_t hash = hash_string_murmurhash(ds->glitter_list_names[i]);
-                ds->glitter_list_murmurhash.push_back(hash);
+            for (std::string& i : ds->glitter_list_names) {
+                uint32_t hash = hash_string_murmurhash(i);
+                ds->glitter_list_murmurhash.push_back(hash, i.c_str());
             }
             break;
         case DATA_AFT:
         case DATA_FT:
         case DATA_M39:
             ds->glitter_list_fnv1a64m.reserve(count);
-            for (size_t i = 0; i < count; i++) {
-                uint64_t hash = hash_string_fnv1a64m(ds->glitter_list_names[i]);
-                ds->glitter_list_fnv1a64m.push_back(hash);
+            for (std::string& i : ds->glitter_list_names) {
+                uint64_t hash = hash_string_fnv1a64m(i);
+                ds->glitter_list_fnv1a64m.push_back(hash, i.c_str());
             }
             break;
         }

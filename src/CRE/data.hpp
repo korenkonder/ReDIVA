@@ -94,8 +94,8 @@ struct data_struct {
     std::vector<data_struct_path> data_paths;
 #if defined(CRE_DEV)
     std::vector<std::string> glitter_list_names;
-    std::vector<uint64_t> glitter_list_fnv1a64m;
-    std::vector<uint32_t> glitter_list_murmurhash;
+    prj::vector_pair<uint64_t, const char*> glitter_list_fnv1a64m;
+    prj::vector_pair<uint64_t, const char*>  glitter_list_murmurhash;
 #endif
 #if defined(CRE_DEV)
     data_f2 data_f2;

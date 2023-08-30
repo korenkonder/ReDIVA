@@ -931,7 +931,7 @@ void glitter_editor_ctrl(class_data* data) {
         case DATA_VRFL:
         case DATA_X:
         case DATA_XHD: {
-            std::vector<uint32_t>& hashes = ds->glitter_list_murmurhash;
+            auto& hashes = ds->glitter_list_murmurhash;
             for (Glitter::Effect*& i : eg->effects) {
                 if (!i)
                     continue;
@@ -941,19 +941,11 @@ void glitter_editor_ctrl(class_data* data) {
                 if (e->data.name_hash == hash_murmurhash_empty)
                     continue;
 
-                std::vector<uint32_t>::iterator hash = hashes.end();
-                for (std::vector<uint32_t>::iterator j = hashes.begin(); j != hashes.end(); j++)
-                    if (e->data.name_hash == *j) {
-                        hash = j;
-                        break;
-                    }
-
-                if (hash == hashes.end()) {
+                auto elem = hashes.find(e->data.name_hash);
+                if (elem != hashes.end())
+                    e->name.assign(elem->second);
+                else
                     load_success = false;
-                    continue;
-                }
-
-                e->name.assign(ds->glitter_list_names[hash - hashes.begin()]);
             }
 
             switch (ds->type) {
@@ -970,7 +962,7 @@ void glitter_editor_ctrl(class_data* data) {
         case DATA_AFT:
         case DATA_FT:
         case DATA_M39: {
-            std::vector<uint64_t>& hashes = ds->glitter_list_fnv1a64m;
+            auto& hashes = ds->glitter_list_fnv1a64m;
             for (Glitter::Effect* i : eg->effects) {
                 if (!i)
                     continue;
@@ -980,19 +972,12 @@ void glitter_editor_ctrl(class_data* data) {
                 if (e->data.name_hash == hash_fnv1a64m_empty)
                     continue;
 
-                std::vector<uint64_t>::iterator hash = hashes.end();
-                for (std::vector<uint64_t>::iterator j = hashes.begin(); j != hashes.end(); j++)
-                    if (e->data.name_hash == *j) {
-                        hash = j;
-                        break;
-                    }
-
-                if (hash == hashes.end()) {
+                auto elem = hashes.find(e->data.name_hash);
+                if (elem != hashes.end())
+                    e->name.assign(elem->second);
+                else
                     load_success = false;
-                    continue;
-                }
 
-                e->name.assign(ds->glitter_list_names[hash - hashes.begin()]);
             }
         } break;
         }
