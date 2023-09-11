@@ -1943,7 +1943,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             file_len = t - file.c_str();
 
         char buf[0x100];
-        memcpy(buf, file.c_str(), file_len);
+        memcpy_s(buf, sizeof(buf), file.c_str(), file_len);
         char* ext = buf + file_len;
         size_t ext_len = sizeof(buf) - file_len;
 
