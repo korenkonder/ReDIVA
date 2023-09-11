@@ -122,7 +122,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         }
     }
 
-    std::vector<std::wstring> directories = path_get_directories_recursive(indir.c_str(), 0, 0);
+    std::vector<std::wstring> directories = path_get_directories_recursive(indir.c_str());
     for (std::wstring& i : directories) {
         std::wstring _indir = indir + i + L'\\';
         std::wstring _outdir = outdir + i + L'\\';
