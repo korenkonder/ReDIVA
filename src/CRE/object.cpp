@@ -28,8 +28,8 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
     const void* data, size_t size, const char* file, texture_database* tex_db);
 static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler);
 static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler);
-static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
-static size_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format);
+static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
+static uint32_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format);
 
 std::map<uint32_t, obj_set_handler> object_storage_data;
 std::map<uint32_t, obj_set_handler> object_storage_data_modern;
@@ -157,17 +157,18 @@ bool obj_mesh_vertex_buffer::load(obj_mesh& mesh, bool dynamic) {
     if (!mesh.num_vertex || !mesh.vertex_array)
         return false;
 
-    size_t size_vertex;
+    uint32_t size_vertex;
     if (!mesh.attrib.m.compressed)
         size_vertex = obj_vertex_format_get_vertex_size(mesh.vertex_format);
     else
         size_vertex = obj_vertex_format_get_vertex_size_comp(mesh.vertex_format);
 
-    void* vertex = force_malloc(size_vertex * mesh.num_vertex);
+    void* vertex = force_malloc((size_t)size_vertex * mesh.num_vertex);
     obj_mesh_vertex_buffer::fill_data(vertex, mesh);
-    mesh.size_vertex = (int32_t)size_vertex;
+    mesh.size_vertex = size_vertex;
 
-    bool ret = load_data(size_vertex * mesh.num_vertex, vertex, mesh.attrib.m.double_buffer ? 2 : 1, dynamic);
+    bool ret = load_data((size_t)size_vertex * mesh.num_vertex,
+        vertex, mesh.attrib.m.double_buffer ? 2 : 1, dynamic);
     free_def(vertex);
     return ret;
 }
@@ -443,14 +444,14 @@ bool obj_vertex_buffer::load(obj* obj) {
         if (!mesh.num_vertex || !mesh.vertex_array)
             continue;
 
-        size_t size_vertex;
+        uint32_t size_vertex;
         if (!mesh.attrib.m.compressed)
             size_vertex = obj_vertex_format_get_vertex_size(mesh.vertex_format);
         else
             size_vertex = obj_vertex_format_get_vertex_size_comp(mesh.vertex_format);
-        mesh.size_vertex = (int32_t)size_vertex;
+        mesh.size_vertex = size_vertex;
 
-        buffer_size += size_vertex * mesh.num_vertex;
+        buffer_size += (size_t)size_vertex * mesh.num_vertex;
         double_buffer |= !!mesh.attrib.m.double_buffer;
     }
 
@@ -2282,8 +2283,8 @@ static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler) {
     handler->vertex_buffer_num = 0;
 }
 
-inline static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {
-    size_t size = 0;
+inline static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {
+    uint32_t size = 0;
     if (format & OBJ_VERTEX_POSITION)
         size += 12;
     if (format & OBJ_VERTEX_NORMAL)
@@ -2311,8 +2312,8 @@ inline static size_t obj_vertex_format_get_vertex_size(obj_vertex_format format)
     return size;
 }
 
-inline static size_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format) {
-    size_t size = 0;
+inline static uint32_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format) {
+    uint32_t size = 0;
     if (format & OBJ_VERTEX_POSITION)
         size += 12;
     if (format & OBJ_VERTEX_NORMAL)

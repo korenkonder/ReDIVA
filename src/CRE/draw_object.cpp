@@ -806,14 +806,14 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
 
     rctx->obj_batch.g_texture_blend = { (float_t)uniform_value[U_TEXTURE_BLEND], 0.0f, 0.0f, 0.0f };
     if (lighting_type != OBJ_MATERIAL_SHADER_LIGHTING_CONSTANT) {
-        float_t state_shininess;
+        float_t material_shininess;
         if (material->material.shader.index == SHADER_FT_GLASEYE/*SHADER_FT_EYEBALL*/)
-            state_shininess = 10.0f;
+            material_shininess = 10.0f;
         else {
-            state_shininess = (material->material.color.shininess - 16.0f) * (float_t)(1.0 / 112.0);
-            state_shininess = max_def(state_shininess, 0.0f);
+            material_shininess = (material->material.color.shininess - 16.0f) * (float_t)(1.0 / 112.0);
+            material_shininess = max_def(material_shininess, 0.0f);
         }
-        rctx->obj_batch.g_material_state_shininess = { state_shininess, 0.0f, 0.0f, 1.0f };
+        rctx->obj_batch.g_material_state_shininess = { material_shininess, 0.0f, 0.0f, 1.0f };
 
         float_t fresnel = (float_t)material->material.shader_info.m.fresnel_type;
         if (fresnel > 9.0f)
@@ -1000,7 +1000,7 @@ static void draw_object_material_set_uniform(const obj_material_data* mat_data, 
         uniform_value[U_TRANSPARENCY] = 1;
         v4 |= 2;
     }
-    if (shader_compo.transparency) {
+    if (shader_compo.translucency) {
         uniform_value[U_TRANSLUCENCY] = 1;
         v4 |= 2;
     }
