@@ -4659,6 +4659,12 @@ bool x_pv_game::Ctrl() {
         dsc_data.dsc_data_ptr = dsc_data.dsc.data.data();
         dsc_data.dsc_data_ptr_end = dsc_data.dsc_data_ptr + dsc_data.dsc.data.size();
 
+        Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+        if (shad) {
+            shad->blur_filter_enable[0] = true;
+            shad->blur_filter_enable[1] = true;
+        }
+
         state_old = 9;
     } break;
     case 9: {

@@ -3092,9 +3092,9 @@ namespace rndr {
         for (bool& i : draw_pass_3d)
             i = true;
 
-        shadow_ptr = new ::shadow;
+        shadow_ptr = new Shadow;
         if (shadow_ptr)
-            shadow_ptr->init_data();
+            shadow_ptr->InitData();
 
         for (int32_t i = 0; i < 9; i++) {
             const struc_189* v2 = &stru_140A24420[i];
@@ -3565,7 +3565,7 @@ void render_context::disp() {
     draw_state.stats_prev = draw_state.stats;
     draw_state.stats.reset();
     app::TaskWork::Disp();
-    render_manager.shadow_ptr->ctrl(this);
+    render_manager.shadow_ptr->Ctrl(this);
     int32_t sprite_index = sprite_manager_get_index();
     //sprite_manager_set_index(3);
     sprite_manager_set_index(0);
@@ -3780,47 +3780,18 @@ void render_context::light_param_data_face_set(light_param_face* face) {
     this->face.set_direction(face->direction);
 }
 
-shadow::shadow() : field_8(), field_158(), view_point(), interest(),
-field_1A8(), view_point_shared(), interest_shared(), field_2F0() {
-    view_region = 1.2f;
-    range = 1.0f;
-    for (int32_t i = 0; i < 2; i++) {
-        view_point[i] = 1.0f;
-        field_1C0[i] = 0.0f;
-        field_1C8[i] = 0.0f;
-        field_200[i] = i;
-    }
-    view_mat[0] = mat4_identity;
-    view_mat[1] = mat4_identity;
-    blur_filter = BLUR_FILTER_9;
-    near_blur = 1;
-    field_2BC = 2;
-    far_blur = 1;
-    distance = 4.0f;
-    field_2C4 = 0.4f;
-    z_near = 0.1f;
-    z_far = 20.0f;
-    field_2D0 = 1.4f;
-    field_2D4 = 10000.0f;
-    field_2D8 = 80.0f;
-    field_2DC = 2.0f;
-    field_2E0 = 0.05f;
-    ambient = 0.4f;
-    field_2EC = 0;
-    direction = vec3(0.0f, -1.0f, -1.0f) * (1.0f / sqrtf(2.0f));
-    field_2E8 = false;
-    self_shadow = true;
-    blur_filter_enable[0] = true;
-    blur_filter_enable[1] = true;
-    field_2F5 = false;
-    field_208 = (z_far - z_near) * 0.5f;
+Shadow::Shadow() : curr_render_textures(), view_region(), range(), field_1C0(), field_1C8(),
+field_200(), field_208(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(),
+field_2C4(), z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(),
+ambient(), field_2E8(), field_2EC(), field_2F0(), self_shadow(), blur_filter_enable(), field_2F5() {
+    ResetData();
 }
 
-shadow::~shadow() {
-
+Shadow::~Shadow() {
+    Reset();
 }
 
-void shadow::ctrl(render_context* rctx) {
+void Shadow::Ctrl(render_context* rctx) {
     for (int32_t i = 0; i < 2; i++)
         field_2F0[i] = false;
 
@@ -4065,7 +4036,7 @@ void shadow::ctrl(render_context* rctx) {
         i.clear();
 }
 
-int32_t shadow::init_data() {
+int32_t Shadow::InitData() {
     struct shadow_texture_init_params {
         int32_t width;
         int32_t height;
@@ -4085,12 +4056,12 @@ int32_t shadow::init_data() {
 
     shadow_texture_init_params* v3 = init_params;
     for (int32_t i = 0; i < 8; i++, v3++)
-        if (field_8[i].init(v3->width, v3->height,
+        if (render_textures[i].init(v3->width, v3->height,
             v3->max_level, v3->color_format, v3->depth_format) < 0)
             return -1;
 
     for (int32_t i = 0; i < 4; i++) {
-        gl_state_bind_texture_2d(field_8[i == 3 ? 7 : i].color_texture->tex);
+        gl_state_bind_texture_2d(render_textures[i == 3 ? 7 : i].color_texture->tex);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         static const vec4 border_color = 1.0f;
@@ -4099,6 +4070,51 @@ int32_t shadow::init_data() {
     gl_state_bind_texture_2d(0);
     gl_state_get_error();
     return 0;
+}
+
+void Shadow::Reset() {
+    for (render_texture& i : render_textures)
+        i.free();
+
+    ResetData();
+}
+
+void Shadow::ResetData() {
+    view_region = 1.2f;
+    range = 1.0f;
+
+    for (int32_t i = 0; i < 2; i++) {
+        view_point[i] = 1.0f;
+        field_1C0[i] = 0.0f;
+        field_1C8[i] = 0.0f;
+        field_200[i] = i;
+    }
+
+    for (render_texture*& i : curr_render_textures)
+        i = 0;
+
+    view_mat[0] = mat4_identity;
+    view_mat[1] = mat4_identity;
+    blur_filter = BLUR_FILTER_9;
+    near_blur = 1;
+    field_2BC = 2;
+    far_blur = 1;
+    distance = 4.0f;
+    field_2C4 = 0.4f;
+    z_near = 0.1f;
+    z_far = 20.0f;
+    field_2D0 = 1.4f;
+    field_2D4 = 10000.0f;
+    field_2D8 = 80.0f;
+    field_2DC = 2.0f;
+    field_2E0 = 0.05f;
+    ambient = 0.4f;
+    field_2EC = 0;
+    direction = vec3(0.0f, -1.0f, -1.0f) * (1.0f / sqrtf(2.0f));
+    field_2E8 = false;
+    self_shadow = true;
+    field_2F5 = false;
+    field_208 = (z_far - z_near) * 0.5f;
 }
 
 static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshArgs* args,

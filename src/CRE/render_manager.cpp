@@ -22,9 +22,9 @@
 static void blur_filter_apply(render_context* rctx, GLuint tex_0, GLuint tex_1,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
-    shadow* shad, int32_t index, int32_t a3);
+    Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_end_make_shadowmap(render_context* rctx,
-    shadow* shad, int32_t index, int32_t a3);
+    Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_filter(render_context* rctx, render_texture* a1, render_texture* a2,
     render_texture* a3, float_t sigma, float_t far_texel_offset, bool enable_lit_proj);
 static void draw_pass_shadow_esm_filter(render_context* rctx,
@@ -34,7 +34,7 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp);
 static void draw_pass_sss_filter(render_context* rctx, sss_data* sss);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
 static void draw_pass_3d_shadow_reset(render_context* rctx);
-static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx);
+static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx);
 extern void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
     bool transparent_enable, bool translucent_enable, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent);
@@ -194,15 +194,15 @@ namespace rndr {
                 v3 = true;
         }
 
-        ::shadow* shad = shadow_ptr;
+        Shadow* shad = shadow_ptr;
         if (shadow && v3) {
             int32_t v11[2];
             v11[0] = shad->field_200[0];
             v11[1] = shad->field_200[1];
-            shad->field_158[0] = &shad->field_8[0];
-            shad->field_158[1] = &shad->field_8[1];
-            shad->field_158[2] = &shad->field_8[2];
-            shad->field_158[3] = &shad->field_8[7]; // Extra for buf
+            shad->curr_render_textures[0] = &shad->render_textures[0];
+            shad->curr_render_textures[1] = &shad->render_textures[1];
+            shad->curr_render_textures[2] = &shad->render_textures[2];
+            shad->curr_render_textures[3] = &shad->render_textures[7]; // Extra for buf
 
             for (int32_t i = 0, j = 0; i < 2; i++) {
                 if (!v10[i])
@@ -220,14 +220,14 @@ namespace rndr {
             }
         }
         else {
-            shad->field_158[0] = &shad->field_8[0];
-            shad->field_158[1] = &shad->field_8[1];
-            shad->field_158[2] = &shad->field_8[2];
-            shad->field_158[3] = &shad->field_8[7]; // Extra for buf
+            shad->curr_render_textures[0] = &shad->render_textures[0];
+            shad->curr_render_textures[1] = &shad->render_textures[1];
+            shad->curr_render_textures[2] = &shad->render_textures[2];
+            shad->curr_render_textures[3] = &shad->render_textures[7]; // Extra for buf
 
             for (int32_t i = 1; i < 3; i++)
                 for (int32_t j = 0; j < 4; j++) {
-                    shad->field_158[i]->bind(j);
+                    shad->curr_render_textures[i]->bind(j);
                     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
                     glClear(GL_COLOR_BUFFER_BIT);
                 }
@@ -926,9 +926,9 @@ void draw_pass_set_camera(render_context* rctx) {
 }
 
 static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
-    shadow* shad, int32_t index, int32_t a3) {
-    texture* tex = shad->field_158[0]->color_texture;
-    shad->field_158[0]->bind();
+    Shadow* shad, int32_t index, int32_t a3) {
+    texture* tex = shad->curr_render_textures[0]->color_texture;
+    shad->curr_render_textures[0]->bind();
     glViewport(0, 0, tex->width, tex->height);
     glScissor(0, 0, tex->width, tex->height);
     gl_state_enable_depth_test();
@@ -970,22 +970,24 @@ static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
 }
 
 static void draw_pass_shadow_end_make_shadowmap(render_context* rctx,
-    shadow* shad, int32_t index, int32_t a3) {
+    Shadow* shad, int32_t index, int32_t a3) {
     gl_state_disable_depth_test();
     gl_state_disable_scissor_test();
 
     rctx->draw_state.shader_index = -1;
     if (a3 == shad->field_2EC - 1) {
-        draw_pass_shadow_filter(rctx, &shad->field_8[3], &shad->field_8[4], shad->field_158[0],
+        draw_pass_shadow_filter(rctx, &shad->render_textures[3],
+            &shad->render_textures[4], shad->curr_render_textures[0],
             shad->field_2DC, shad->field_2E0 / (shad->field_208 * 2.0f), false);
-        draw_pass_shadow_esm_filter(rctx, &shad->field_8[5], &shad->field_8[6], &shad->field_8[3]);
+        draw_pass_shadow_esm_filter(rctx, &shad->render_textures[5],
+            &shad->render_textures[6], &shad->render_textures[3]);
     }
 
-    render_texture* rend_tex = shad->field_158[1 + index];
-    render_texture* rend_buf_tex = shad->field_158[3];
+    render_texture* rend_tex = shad->curr_render_textures[1 + index];
+    render_texture* rend_buf_tex = shad->curr_render_textures[3];
     rend_tex->bind();
 
-    render_texture* src = shad->field_158[0];
+    render_texture* src = shad->curr_render_textures[0];
     image_filter_scale(rctx, rend_tex->color_texture->tex, src->color_texture->tex, 1.0f);
 
     if (shad->blur_filter_enable[index]) {
@@ -1363,10 +1365,10 @@ static void draw_pass_3d_shadow_reset(render_context* rctx) {
     rctx->draw_state.light = false;
 }
 
-static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
+static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
     if (shad->self_shadow && shad->field_2EC > 0) {
-        gl_state_active_bind_texture_2d(19, shad->field_8[3].color_texture->tex);
-        gl_state_active_bind_texture_2d(20, shad->field_8[5].color_texture->tex);
+        gl_state_active_bind_texture_2d(19, shad->render_textures[3].color_texture->tex);
+        gl_state_active_bind_texture_2d(20, shad->render_textures[5].color_texture->tex);
         gl_state_active_texture(0);
         float_t esm_param = (shad->field_2D8 * shad->field_208 * 2.0f) * 1.442695f;
         rctx->obj_scene.g_esm_param = { esm_param, 0.0f, 0.0f, 0.0f };
@@ -1420,7 +1422,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
                 continue;
             }
 
-            gl_state_active_bind_texture_2d(6 + j, shad->field_158[1 + i]->color_texture->tex);
+            gl_state_active_bind_texture_2d(6 + j, shad->curr_render_textures[1 + i]->color_texture->tex);
             glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
             j++;
         }
@@ -1445,7 +1447,7 @@ static void draw_pass_3d_shadow_set(shadow* shad, render_context* rctx) {
         rctx->draw_state.light = false;
 
         for (int32_t i = 0; i < 2; i++)
-            gl_state_active_bind_texture_2d(6 + i, shad->field_158[1 + i]->color_texture->tex);
+            gl_state_active_bind_texture_2d(6 + i, shad->curr_render_textures[1 + i]->color_texture->tex);
         gl_state_active_texture(0);
 
         rctx->obj_scene.g_shadow_ambient = 1.0f;

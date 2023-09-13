@@ -450,7 +450,7 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
     mat4_mult_vec3_trans(view, &center, &center);
     float_t radius = sphere->radius;
 
-    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     float_t view_region = shad->view_region * shad->range;
     if ((center.x + radius) < -view_region
         || (center.x - radius) > view_region
@@ -464,14 +464,14 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
 
 static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
     return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
 static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
     return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }

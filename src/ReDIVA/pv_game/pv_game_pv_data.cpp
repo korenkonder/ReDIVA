@@ -1293,7 +1293,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         playdata->shadow = enable == 1;
 
-        shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+        Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
         if (shad)
             if (chara_id == 1)
                 shad->blur_filter_enable[1] = playdata->shadow;
@@ -2439,10 +2439,10 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
         sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
     find_set_motion(diff);
 
-    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     if (shad) {
-        shad->blur_filter_enable[0] = 0x1;
-        shad->blur_filter_enable[1] = 0x1;
+        shad->blur_filter_enable[0] = true;
+        shad->blur_filter_enable[1] = true;
     }
 
     pv_game->data.play_data.lyric_color = 0xFFFFFFFF;
@@ -2543,7 +2543,7 @@ void pv_game_pv_data::reset_camera_post_process() {
     pp->tone_map->set_tone_trans(0.0f, 1.0f);
     pp->tone_map->set_saturate_coeff(1.0f);
 
-    shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     if (shad)
         for (bool& i : shad->blur_filter_enable)
             i = true;

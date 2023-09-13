@@ -169,7 +169,7 @@ namespace rndr {
 }
 
 struct render_context;
-struct shadow;
+struct Shadow;
 
 struct draw_state_stats {
     int32_t object_draw_count;
@@ -625,7 +625,7 @@ namespace mdl {
 namespace rndr {
     struct RenderManager {
         bool pass_sw[rndr::RND_PASSID_NUM];
-        shadow* shadow_ptr;
+        Shadow* shadow_ptr;
         bool reflect;
         bool refract;
         int32_t reflect_blur_num;
@@ -927,9 +927,9 @@ struct render_context {
     void light_param_data_face_set(light_param_face* face);
 };
 
-struct shadow {
-    render_texture field_8[8]; // Extra for buf
-    render_texture* field_158[4]; // Extra for buf
+struct Shadow {
+    render_texture render_textures[8]; // Extra for buf
+    render_texture* curr_render_textures[4]; // Extra for buf
     float_t view_region;
     float_t range;
     vec3 view_point[2];
@@ -965,9 +965,11 @@ struct shadow {
     bool blur_filter_enable[2];
     bool field_2F5;
 
-    shadow();
-    ~shadow();
+    Shadow();
+    ~Shadow();
 
-    void ctrl(render_context* rctx);
-    int32_t init_data();
+    void Ctrl(render_context* rctx);
+    int32_t InitData();
+    void Reset();
+    void ResetData();
 };

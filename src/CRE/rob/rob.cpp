@@ -13412,7 +13412,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
         enum_or(flags, mdl::OBJ_REFRACT);
 
     mdl::DispManager& disp_manager = rctx->disp_manager;
-    shadow* shad = rctx->render_manager.shadow_ptr;
+    Shadow* shad = rctx->render_manager.shadow_ptr;
     if (shadow_type != -1) {
         if (field_A0 & 0x04) {
             vec3 pos = position;

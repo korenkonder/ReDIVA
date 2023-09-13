@@ -4470,7 +4470,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         disp_manager.set_obj_flags(flags);
         disp_manager.set_shadow_type(shadow_type);
 
-        shadow* shad = rctx->render_manager.shadow_ptr;
+        Shadow* shad = rctx->render_manager.shadow_ptr;
         if (shad && flags & mdl::OBJ_SHADOW) {
             disp_manager.set_shadow_type(SHADOW_STAGE);
 
@@ -6330,7 +6330,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
                 break;
             }
 
-        shadow* shad = rctx->render_manager.shadow_ptr;
+        Shadow* shad = rctx->render_manager.shadow_ptr;
         if (shad) {
             vec3 pos = *(vec3*)&m->row3;
             pos.y -= 0.2f;
