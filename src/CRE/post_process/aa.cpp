@@ -33,17 +33,17 @@ post_process_aa::~post_process_aa() {
     }
 }
 
-void post_process_aa::apply_mlaa(render_texture* rt,
-    render_texture* buf_rt, GLuint* samplers, int32_t ss_alpha_mask) {
+void post_process_aa::apply_mlaa(RenderTexture* rt,
+    RenderTexture* buf_rt, GLuint* samplers, int32_t ss_alpha_mask) {
     gl_state_begin_event("PostProcess::mlaa");
-    mlaa_buffer.bind();
+    mlaa_buffer.Bind();
     gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 0;
     shaders_ft.set(SHADER_FT_MLAA);
-    render_texture::draw_quad(&shaders_ft, width, height);
+    RenderTexture::DrawQuad(&shaders_ft, width, height);
 
-    temp_buffer.bind();
+    temp_buffer.Bind();
     gl_state_active_bind_texture_2d(0, mlaa_buffer.color_texture->tex);
     gl_state_active_bind_texture_2d(1, mlaa_area_texture);
     gl_state_bind_sampler(0, samplers[0]);
@@ -51,16 +51,16 @@ void post_process_aa::apply_mlaa(render_texture* rt,
     uniform_value[U_MLAA] = 1;
     uniform_value[U_MLAA_SEARCH] = 2;
     shaders_ft.set(SHADER_FT_MLAA);
-    render_texture::draw_quad(&shaders_ft, width, height);
+    RenderTexture::DrawQuad(&shaders_ft, width, height);
 
-    buf_rt->bind();
+    buf_rt->Bind();
     gl_state_active_bind_texture_2d(0, rt->color_texture->tex);
     gl_state_active_bind_texture_2d(1, temp_buffer.color_texture->tex);
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 2;
     uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
     shaders_ft.set(SHADER_FT_MLAA);
-    render_texture::draw_quad(&shaders_ft, width, height);
+    RenderTexture::DrawQuad(&shaders_ft, width, height);
     uniform_value[U_ALPHA_MASK] = 0;
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_active_bind_texture_2d(1, 0);
@@ -78,8 +78,8 @@ void post_process_aa::init_fbo(int32_t width, int32_t height) {
     this->width = max_def(width, 1);
     this->height = max_def(height, 1);
 
-    mlaa_buffer.init(this->width, this->height, 0, GL_RGBA8, 0);
-    temp_buffer.init(this->width, this->height, 0, GL_RGBA8, 0);
+    mlaa_buffer.Init(this->width, this->height, 0, GL_RGBA8, 0);
+    temp_buffer.Init(this->width, this->height, 0, GL_RGBA8, 0);
 }
 
 static void post_process_aa_generate_area_texture(post_process_aa* aa) {

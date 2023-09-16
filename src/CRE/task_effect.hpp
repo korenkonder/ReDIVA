@@ -430,7 +430,7 @@ struct ripple_emit {
     int32_t field_4F0;
     struc_207 field_4F4[6];
     int32_t field_BB4;
-    render_texture field_BB8;
+    RenderTexture field_BB8;
     int32_t counter;
     int8_t field_BEC;
     ripple_emit_params params;
@@ -454,7 +454,7 @@ struct ripple_emit {
 
     static void draw_static(void* data);
 
-    void sub_1403584A0(render_texture* rt);
+    void sub_1403584A0(RenderTexture* rt);
     void sub_140358690();
     void sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_101& a5, struc_101& a6);
     void sub_14035AAE0();

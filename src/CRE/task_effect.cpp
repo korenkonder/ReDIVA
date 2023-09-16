@@ -239,7 +239,7 @@ static particle_data* snow_particle_emit_fallen();
 static vec3 snow_particle_get_random_velocity();
 static void snow_particle_free();
 
-static void sub_1403B6ED0(render_texture* a1, render_texture* a2, render_texture* a3, ripple_emit_params& params);
+static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params);
 static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
 
 static TaskEffectAuth3D* task_effect_auth_3d;
@@ -280,8 +280,8 @@ static stage_param_litproj* stage_param_data_litproj_current;
 static bool stage_param_data_litproj_set;
 
 static bool light_proj_enable;
-static render_texture litproj_shadow[2];
-static render_texture litproj_texture;
+static RenderTexture litproj_shadow[2];
+static RenderTexture litproj_texture;
 
 static bool particle_enable;
 static float_t particle_delta_time;
@@ -997,8 +997,8 @@ void TaskEffectFogRing::Data::Draw() {
         return;
 
     rctx->draw_state.set_fog_height(true);
-    render_texture& rt = rctx->render_manager.get_render_texture(8);
-    rt.bind();
+    RenderTexture& rt = rctx->render_manager.get_render_texture(8);
+    rt.Bind();
     glViewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
@@ -1789,7 +1789,7 @@ void ripple_emit::clear_tex() {
     glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
 
     for (int32_t i = 0, j = 5; i < 3; i++, j++) {
-        render_texture* rt;
+        RenderTexture* rt;
         float_t v5;
         if (use_float_ripplemap) {
             rt = &rctx_ptr->render_manager.get_render_texture(j - 3);
@@ -1801,7 +1801,7 @@ void ripple_emit::clear_tex() {
         }
 
         glClearColor(0.0f, 0.0f, 0.0f, v5);
-        rt->bind();
+        rt->Bind();
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         gl_state_bind_framebuffer(0);
     }
@@ -1847,7 +1847,7 @@ void ripple_emit::draw() {
 
     render_context* rctx = rctx_ptr;
 
-    render_texture* rt[3];
+    RenderTexture* rt[3];
     for (int32_t i = 0, j = 2; i < 3; i++, j++)
         rt[i] = &rctx->render_manager.get_render_texture(
             use_float_ripplemap ? j : (j + 3));
@@ -1857,7 +1857,7 @@ void ripple_emit::draw() {
         if (counter >= 3)
             counter = 0;
 
-        rt[(counter + 1) % 3]->bind();
+        rt[(counter + 1) % 3]->Bind();
 
         GLint v43[4];
         glGetIntegerv(GL_VIEWPORT, v43);
@@ -2010,7 +2010,7 @@ void ripple_emit::draw_static(void* data) {
     ((ripple_emit*)data)->draw();
 }
 
-void ripple_emit::sub_1403584A0(render_texture* rt) {
+void ripple_emit::sub_1403584A0(RenderTexture* rt) {
     if (ripple_tex_id == -1)
         return;
 
@@ -2018,8 +2018,8 @@ void ripple_emit::sub_1403584A0(render_texture* rt) {
     if (!ripple_tex)
         return;
 
-    field_BB8.set_color_depth_textures(ripple_tex->tex, 0, 0);
-    field_BB8.bind(0);
+    field_BB8.SetColorDepthTextures(ripple_tex->tex);
+    field_BB8.Bind();
 
     image_filter_scale(rctx_ptr, ripple_tex->tex, rt->color_texture->tex, 1.0f);
     gl_state_bind_framebuffer(0);
@@ -3503,7 +3503,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
-    render_texture& rt = rctx->render_manager.get_render_texture(
+    RenderTexture& rt = rctx->render_manager.get_render_texture(
         ripple_emit_data->use_float_ripplemap ? 2 : 5);
     int32_t width = rt.color_texture->width;
     int32_t height = rt.color_texture->height;
@@ -4516,8 +4516,8 @@ static void snow_particle_free() {
     snow_particle_batch_ubo.Destroy();
 }
 
-static void sub_1403B6ED0(render_texture* a1, render_texture* a2, render_texture* a3, ripple_emit_params& params) {
-    a1->bind();
+static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params) {
+    a1->Bind();
     if (a1->color_texture->internal_format == GL_RGBA32F
         || a1->color_texture->internal_format == GL_RGBA16F)
         uniform_value[U_RIPPLE] = 1;

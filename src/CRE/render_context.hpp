@@ -190,7 +190,7 @@ struct sss_data {
     bool init;
     bool enable;
     bool npr_contour;
-    render_texture textures[4];
+    RenderTexture textures[4];
     vec4 param;
 
     sss_data();
@@ -443,8 +443,8 @@ namespace mdl {
 
 struct light_proj {
     bool enable;
-    render_texture shadow_texture[2];
-    render_texture draw_texture;
+    RenderTexture shadow_texture[2];
+    RenderTexture draw_texture;
     uint32_t texture_id;
 
     light_proj(int32_t width, int32_t height);
@@ -640,7 +640,7 @@ namespace rndr {
         bool draw_pass_3d[DRAW_PASS_3D_MAX];
         stage_data_reflect_type reflect_type;
         int32_t tex_index[12]; // Extra for buf
-        render_texture render_textures[9]; // Extra for buf
+        RenderTexture render_textures[9]; // Extra for buf
         GLuint multisample_framebuffer;
         GLuint multisample_renderbuffer;
         bool multisample;
@@ -666,7 +666,7 @@ namespace rndr {
 
         void add_user_func(int32_t type, void(*func)(void*), void* data);
         void clear_user_func(int32_t type);
-        render_texture& get_render_texture(int32_t index);
+        RenderTexture& get_render_texture(int32_t index);
         void resize(int32_t width, int32_t height);
         void set_effect_texture(texture* value);
         void set_multisample(bool value);
@@ -928,8 +928,8 @@ struct render_context {
 };
 
 struct Shadow {
-    render_texture render_textures[8]; // Extra for buf
-    render_texture* curr_render_textures[4]; // Extra for buf
+    RenderTexture render_textures[8]; // Extra for buf
+    RenderTexture* curr_render_textures[4]; // Extra for buf
     float_t view_region;
     float_t range;
     vec3 view_point[2];

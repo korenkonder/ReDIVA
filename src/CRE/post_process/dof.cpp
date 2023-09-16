@@ -42,12 +42,12 @@ static const dof_pv dof_pv_default = {
 
 namespace renderer {
     struct DOF3 {
-        static void apply_f2(post_process_dof* dof, render_texture* rt,
-            render_texture* buf, GLuint* samplers, GLuint color_texture,
+        static void apply_f2(post_process_dof* dof, RenderTexture* rt,
+            RenderTexture* buf, GLuint* samplers, GLuint color_texture,
             GLuint depth_texture, float_t min_distance, float_t max_distance, float_t fov,
             float_t focus, float_t focus_range, float_t fuzzing_range, float_t ratio);
-        static void apply_physical(post_process_dof* dof, render_texture* rt,
-            render_texture* buf, GLuint* samplers, GLuint color_texture,
+        static void apply_physical(post_process_dof* dof, RenderTexture* rt,
+            RenderTexture* buf, GLuint* samplers, GLuint color_texture,
             GLuint depth_texture, float_t min_distance, float_t max_distance,
             float_t focus, float_t focal_length, float_t fov, float_t f_number);
 
@@ -56,7 +56,7 @@ namespace renderer {
         static void downsample(post_process_dof* dof,
             GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
         static void main_filter(post_process_dof* dof, GLuint* samplers, bool f2);
-        static void upsample(post_process_dof* dof, render_texture* rt, render_texture* buf,
+        static void upsample(post_process_dof* dof, RenderTexture* rt, RenderTexture* buf,
             GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2);
 
         static void update_data(post_process_dof* dof, float_t min_dist,
@@ -80,7 +80,7 @@ post_process_dof::~post_process_dof() {
     post_process_dof_free_fbo(this);
 }
 
-void post_process_dof::apply(render_texture* rt, render_texture* buf, GLuint* samplers, camera* cam) {
+void post_process_dof::apply(RenderTexture* rt, RenderTexture* buf, GLuint* samplers, camera* cam) {
     if (!this)
         return;
 
@@ -267,8 +267,8 @@ static void post_process_dof_free_fbo(post_process_dof* dof) {
 }
 
 namespace renderer {
-    void DOF3::apply_f2(post_process_dof* dof, render_texture* rt,
-        render_texture* buf, GLuint* samplers, GLuint color_texture,
+    void DOF3::apply_f2(post_process_dof* dof, RenderTexture* rt,
+        RenderTexture* buf, GLuint* samplers, GLuint color_texture,
         GLuint depth_texture, float_t min_distance, float_t max_distance, float_t fov,
         float_t focus, float_t focus_range, float_t fuzzing_range, float_t ratio) {
         gl_state_begin_event("renderer::DOF3::apply_f2");
@@ -295,8 +295,8 @@ namespace renderer {
         gl_state_end_event();
     }
 
-    void DOF3::apply_physical(post_process_dof* dof, render_texture* rt,
-        render_texture* buf, GLuint* samplers, GLuint color_texture,
+    void DOF3::apply_physical(post_process_dof* dof, RenderTexture* rt,
+        RenderTexture* buf, GLuint* samplers, GLuint color_texture,
         GLuint depth_texture, float_t min_distance, float_t max_distance,
         float_t focus, float_t focal_length, float_t fov, float_t f_number) {
         gl_state_begin_event("renderer::DOF3::apply_physical");
@@ -382,10 +382,10 @@ namespace renderer {
         gl_state_end_event();
     }
 
-    void DOF3::upsample(post_process_dof* dof, render_texture* rt, render_texture* buf,
+    void DOF3::upsample(post_process_dof* dof, RenderTexture* rt, RenderTexture* buf,
         GLuint* samplers, GLuint color_texture, GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::upsample");
-        buf->bind();
+        buf->Bind();
         glViewport(0, 0, dof->width, dof->height);
         uniform_value[U_DOF_STAGE] = 4;
         shaders_ft.set(SHADER_FT_DOF);

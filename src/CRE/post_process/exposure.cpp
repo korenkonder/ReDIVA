@@ -169,24 +169,24 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
             glViewport(0, 0, 32, 1);
         else
             glViewport(exposure_history_counter, 0, 1, 1);
-        exposure_history.bind();
+        exposure_history.Bind();
 
         uniform_value[U_EXPOSURE] = 1;
         shaders_ft.set(SHADER_FT_EXPOSURE);
         exposure_measure_ubo.Bind(1);
         gl_state_active_bind_texture_2d(0, in_tex_0);
         gl_state_active_bind_texture_2d(1, in_tex_1);
-        render_texture::draw_quad(&shaders_ft, reset_exposure ? 32 : 1, 1);
+        RenderTexture::DrawQuad(&shaders_ft, reset_exposure ? 32 : 1, 1);
         exposure_history_counter++;
         exposure_history_counter %= 32;
     }
 
     glViewport(0, 0, 1, 1);
-    exposure.bind();
+    exposure.Bind();
     uniform_value[U_EXPOSURE] = 2;
     shaders_ft.set(SHADER_FT_EXPOSURE);
     gl_state_active_bind_texture_2d(0, exposure_history.color_texture->tex);
-    render_texture::draw_quad(&shaders_ft, 1, 1);
+    RenderTexture::DrawQuad(&shaders_ft, 1, 1);
 }
 
 void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) {
@@ -261,9 +261,9 @@ void post_process_exposure::init_fbo() {
     exposure_history_counter = 0;
 
     if (!exposure_history.color_texture)
-        exposure_history.init(32, 1, 0, GL_R32F, 0);
+        exposure_history.Init(32, 1, 0, GL_R32F, 0);
     if (!exposure.color_texture)
-        exposure.init(2, 2, 0, GL_R32F, 0);
+        exposure.Init(2, 2, 0, GL_R32F, 0);
 
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         if (!chara_data[i].query[0])

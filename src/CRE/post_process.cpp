@@ -187,7 +187,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         if (!render_textures_data[i])
             continue;
 
-        render_textures[i].bind();
+        render_textures[i].Bind();
 
         texture* t = render_textures_data[i];
         if (render_width > t->width * 2ULL || render_height > t->height * 2ULL)
@@ -199,7 +199,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
         gl_state_bind_sampler(0, samplers[0]);
         shaders_ft.set(SHADER_FT_REDUCE);
-        render_texture::draw_quad(&shaders_ft, render_width, render_height);
+        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
     }
 
     get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_POST_PP);
@@ -210,7 +210,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         0, 0, render_width, render_height,
         0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-    screen_texture.bind();
+    screen_texture.Bind();
     glViewport(0, 0, sprite_width, sprite_height);
     if (ssaa) {
         gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
@@ -218,7 +218,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
-        render_texture::draw_quad(&shaders_ft, render_width, render_height);
+        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
         uniform_value[U_ALPHA_MASK] = 0;
     }
     else {
@@ -249,7 +249,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         }
 
         shaders_ft.set(SHADER_FT_MAGNIFY);
-        render_texture::draw_quad(&shaders_ft, render_width, render_height);
+        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
     }
     shader::unbind();
 
@@ -516,7 +516,7 @@ static void make_ghost_quad(uint8_t flags, float_t opacity, mat4* mat, float_t*&
     data += 30;
 }
 
-void post_process::draw_lens_ghost(render_texture* rt) {
+void post_process::draw_lens_ghost(RenderTexture* rt) {
     static const float_t v13[16] = {
         -0.70f, -0.30f,  0.35f,  0.50f,
         -0.45f, -0.80f,  0.20f,  0.41f,
@@ -598,7 +598,7 @@ void post_process::draw_lens_ghost(render_texture* rt) {
     }
 
     glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
-    rt->bind();
+    rt->Bind();
     gl_state_enable_blend();
     gl_state_set_blend_func(GL_ONE, GL_ONE);
 
@@ -626,16 +626,16 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
         dof->init_fbo(render_width, render_height);
         exposure->init_fbo();
         tone_map->init_fbo();
-        rend_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
-        buf_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
-        sss_contour_texture.init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+        rend_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
+        buf_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
+        sss_contour_texture.Init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
         if (aet_back_tex)
             texture_free(aet_back_tex);
         aet_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++), GL_RGBA8, render_width, render_height, 0, 0, false);
-        aet_back_texture.set_color_depth_textures(aet_back_tex->tex, 0, rend_texture.depth_texture->tex);
-        pre_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
-        post_texture.init(render_width, render_height, 0, GL_RGBA16F, 0);
-        transparency_texture.init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
+        aet_back_texture.SetColorDepthTextures(aet_back_tex->tex, 0, rend_texture.depth_texture->tex);
+        pre_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
+        post_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
+        transparency_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         gl_state_bind_texture_2d(rend_texture.depth_texture->tex);
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
@@ -647,7 +647,7 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
     }
 
     if (this->sprite_width != sprite_width || this->sprite_height != sprite_height) {
-        screen_texture.init(sprite_width, sprite_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
+        screen_texture.Init(sprite_width, sprite_height, 0, GL_RGBA16F, 0); // Was GL_R11F_G11F_B10F
         this->sprite_width = sprite_width;
         this->sprite_height = sprite_height;
     }
@@ -668,7 +668,7 @@ void post_process::frame_texture_free() {
     for (post_process_frame_texture& i : frame_texture) {
         for (post_process_frame_texture_render_texture& j : i.render_textures) {
             j.texture = 0;
-            j.render_texture.free();
+            j.render_texture.Free();
             j.type = POST_PROCESS_FRAME_TEXTURE_MAX;
         }
 
@@ -682,7 +682,7 @@ int32_t post_process::frame_texture_load(int32_t slot, post_process_frame_textur
 
     for (post_process_frame_texture_render_texture& i : frame_texture[slot].render_textures)
         if (!i.texture) {
-            i.render_texture.set_color_depth_textures(tex->tex, 0, 0);
+            i.render_texture.SetColorDepthTextures(tex->tex);
             i.texture = tex;
             i.type = type;
             return (int32_t)(&i - frame_texture[slot].render_textures);
@@ -721,7 +721,7 @@ bool post_process::frame_texture_unload(int32_t slot, texture* tex) {
 
     for (post_process_frame_texture_render_texture& i : frame_texture[slot].render_textures)
         if (i.texture == tex) {
-            i.render_texture.free();
+            i.render_texture.Free();
             i.texture = 0;
             i.type = POST_PROCESS_FRAME_TEXTURE_MAX;
             return true;
@@ -739,7 +739,7 @@ int32_t post_process::movie_texture_set(texture* movie_texture) {
             return -1;
 
     movie_textures_data[index] = movie_texture;
-    movie_textures[index].set_color_depth_textures(movie_texture->tex, 0, 0);
+    movie_textures[index].SetColorDepthTextures(movie_texture->tex);
     return index;
 }
 
@@ -749,7 +749,7 @@ void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type
             continue;
 
         for (auto& j : i.render_textures) {
-            if (!j.texture || j.type != type || j.render_texture.bind() < 0)
+            if (!j.texture || j.type != type || j.render_texture.Bind() < 0)
                 continue;
 
             texture* dst_tex = j.texture;
@@ -760,7 +760,7 @@ void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type
             glViewport(0, 0, dst_tex->width, dst_tex->height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
-            render_texture::draw_quad(&shaders_ft, dst_tex->width, dst_tex->height);
+            RenderTexture::DrawQuad(&shaders_ft, dst_tex->width, dst_tex->height);
             gl_state_bind_framebuffer(0);
         }
     }
@@ -776,7 +776,7 @@ void post_process::movie_texture_free(texture* movie_texture) {
             return;
 
     movie_textures_data[index] = 0;
-    movie_textures[index].free();
+    movie_textures[index].Free();
 }
 
 int32_t post_process::render_texture_set(texture* render_texture, bool task_photo) {
@@ -792,7 +792,7 @@ int32_t post_process::render_texture_set(texture* render_texture, bool task_phot
                 return -1;
 
     render_textures_data[index] = render_texture;
-    render_textures[index].set_color_depth_textures(render_texture->tex, 0, 0);
+    render_textures[index].SetColorDepthTextures(render_texture->tex);
     return index;
 }
 
@@ -809,7 +809,7 @@ void post_process::render_texture_free(texture* render_texture, bool task_photo)
                 return;
 
     render_textures_data[index] = 0;
-    render_textures[index].free();
+    render_textures[index].Free();
 }
 
 void post_process::reset() {
@@ -824,10 +824,10 @@ void post_process::reset() {
 
 void post_process::set_render_texture(bool aet_back) {
     if (aet_back) {
-        aet_back_texture.bind();
+        aet_back_texture.Bind();
         this->aet_back = 1;
     }
     else
-        rend_texture.bind();
+        rend_texture.Bind();
     glViewport(0, 0, render_width, render_height);
 }

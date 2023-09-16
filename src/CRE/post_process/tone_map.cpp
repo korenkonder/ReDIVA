@@ -33,8 +33,8 @@ post_process_tone_map::~post_process_tone_map() {
     glDeleteTextures(1, &tone_map_tex);
 }
 
-void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
-    render_texture* rt, render_texture* buf_rt,/* render_texture* contour_rt,*/
+void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
+    RenderTexture* rt, RenderTexture* buf_rt,/* RenderTexture* contour_rt,*/
     GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param, void* pp_data) {
     if (!this)
         return;
@@ -163,10 +163,10 @@ void post_process_tone_map::apply(render_texture* in_tex, texture* light_proj_te
     tone_map_ubo.WriteMapMemory(shader_data);
 
     glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
-    buf_rt->bind();
+    buf_rt->Bind();
     shaders_ft.set(SHADER_FT_TONEMAP);
     tone_map_ubo.Bind(1);
-    render_texture::draw(&shaders_ft);
+    RenderTexture::Draw(&shaders_ft);
     gl_state_active_bind_texture_2d(2, 0);
 
     fbo::blit(buf_rt->fbos[0], rt->fbos[0],

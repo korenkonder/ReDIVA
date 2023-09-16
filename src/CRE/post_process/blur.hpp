@@ -23,17 +23,17 @@ struct post_process_blur {
     post_process_blur_data data;
     int32_t width;
     int32_t height;
-    render_texture tex[6];
+    RenderTexture tex[6];
     int32_t* width_down;
     int32_t* height_down;
-    render_texture* tex_down;
+    RenderTexture* tex_down;
     int32_t count_down;
     GL::UniformBuffer gaussian_coef_ubo;
 
     post_process_blur();
     ~post_process_blur();
 
-    void get_blur(render_texture* rt);
+    void get_blur(RenderTexture* rt);
     void init_fbo(int32_t width, int32_t height);
     void initialize_data(const vec3& radius, const vec3& intensity);
 

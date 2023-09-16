@@ -56,8 +56,8 @@ struct post_process_tone_map {
     post_process_tone_map();
     ~post_process_tone_map();
 
-    void apply(render_texture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
-        render_texture* rt, render_texture* buf_rt,/* render_texture* contour_rt,*/
+    void apply(RenderTexture* in_tex, texture* light_proj_tex, texture* back_2d_tex,
+        RenderTexture* rt, RenderTexture* buf_rt,/* RenderTexture* contour_rt,*/
         GLuint in_tex_0, GLuint in_tex_1, int32_t npr_param, void* pp);
     void init_fbo();
     void initialize_data(float_t exposure, bool auto_exposure,

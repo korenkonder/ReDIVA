@@ -22,8 +22,8 @@ struct post_process_exposure_chara_data {
 };
 
 struct post_process_exposure {
-    render_texture exposure_history;
-    render_texture exposure;
+    RenderTexture exposure_history;
+    RenderTexture exposure;
     int32_t exposure_history_counter;
     post_process_exposure_chara_data* chara_data;
     int32_t query_index;

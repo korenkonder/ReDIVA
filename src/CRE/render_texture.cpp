@@ -13,20 +13,20 @@ static GLuint render_texture_vao;
 static bool render_texture_data_initialized;
 static uint32_t render_texture_counter;
 
-static int32_t render_texture_framebuffer_init(render_texture* rt, int32_t max_level);
-static int32_t render_texture_framebuffer_set_texture(render_texture* rrt,
+static int32_t render_texture_framebuffer_init(RenderTexture* rt, int32_t max_level);
+static int32_t render_texture_framebuffer_set_texture(RenderTexture* rrt,
     GLuint color_texture, int32_t level, GLuint depth_texture, bool stencil);
 
-render_texture::render_texture() : color_texture(),
+RenderTexture::RenderTexture() : color_texture(),
 depth_texture(), binding(), max_level(), fbos(), rbo(), field_2C() {
 
 }
 
-render_texture::~render_texture() {
-    free();
+RenderTexture::~RenderTexture() {
+    Free();
 }
 
-int32_t render_texture::bind(int32_t index) {
+int32_t RenderTexture::Bind(int32_t index) {
     if (index < 0 || index > max_level)
         return -1;
 
@@ -38,7 +38,7 @@ int32_t render_texture::bind(int32_t index) {
     return 0;
 }
 
-void render_texture::draw(bool depth) {
+void RenderTexture::Draw(bool depth) {
     gl_state_active_bind_texture_2d(0, color_texture->tex);
     if (depth && depth_texture->tex)
         gl_state_active_bind_texture_2d(1, depth_texture->tex);
@@ -47,7 +47,7 @@ void render_texture::draw(bool depth) {
     gl_state_bind_vertex_array(0);
 }
 
-void render_texture::free() {
+void RenderTexture::Free() {
     if (depth_texture) {
         texture_free(depth_texture);
         depth_texture = 0;
@@ -75,7 +75,7 @@ void render_texture::free() {
     max_level = 0;
 }
 
-int32_t render_texture::init(int32_t width, int32_t height,
+int32_t RenderTexture::Init(int32_t width, int32_t height,
     int32_t max_level, GLenum color_format, GLenum depth_format) {
     if (max_level < 0)
         return -1;
@@ -83,7 +83,7 @@ int32_t render_texture::init(int32_t width, int32_t height,
     max_level = min_def(max_level, 15);
     if (max_level < 0)
         return 0;
-    free();
+    Free();
 
     GLuint color_texture;
     if (color_format) {
@@ -127,15 +127,14 @@ int32_t render_texture::init(int32_t width, int32_t height,
     }
     this->max_level = max_level;
 
-    if (render_texture_framebuffer_init(this, max_level) >= 0) {
+    if (render_texture_framebuffer_init(this, max_level) >= 0)
         for (int32_t i = 0; i <= max_level; i++)
             if (render_texture_framebuffer_set_texture(this, color_texture, i, depth_texture, stencil) < 0)
                 return -1;
-    }
     return 0;
 }
 
-int32_t render_texture::set_color_depth_textures(GLuint color_texture,
+int32_t RenderTexture::SetColorDepthTextures(GLuint color_texture,
     int32_t max_level, GLuint depth_texture, bool stencil) {
     int32_t error = 0;
     this->max_level = max_level;
@@ -145,17 +144,17 @@ int32_t render_texture::set_color_depth_textures(GLuint color_texture,
     return error;
 }
 
-void render_texture::draw(shader_set_data* set) {
+void RenderTexture::Draw(shader_set_data* set) {
     gl_state_bind_vertex_array(render_texture_vao);
     set->draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void render_texture::draw_custom() {
+void RenderTexture::DrawCustom() {
     gl_state_bind_vertex_array(render_texture_vao);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 }
 
-void render_texture::draw_quad(shader_set_data* set, int32_t width, int32_t height,
+void RenderTexture::DrawQuad(shader_set_data* set, int32_t width, int32_t height,
     float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
     extern render_context* rctx_ptr;
 
@@ -191,12 +190,12 @@ void render_texture_data_free() {
     render_texture_data_initialized = false;
 }
 
-static int32_t render_texture_framebuffer_init(render_texture* rt, int32_t max_level) {
+static int32_t render_texture_framebuffer_init(RenderTexture* rt, int32_t max_level) {
     glGenFramebuffers(max_level + 1, rt->fbos);
     return -(gl_state_get_error() != GL_ZERO);
 }
 
-static int32_t render_texture_framebuffer_set_texture(render_texture* rt,
+static int32_t render_texture_framebuffer_set_texture(RenderTexture* rt,
     GLuint color_texture, int32_t level, GLuint depth_texture, bool stencil) {
     if (level < 0 || level > rt->max_level)
         return -1;

@@ -4079,7 +4079,7 @@ bool x_pv_game::Ctrl() {
             glViewport(0, 0, width, height);
             shaders_dev.set(SHADER_DEV_CLAMP_COLORS);
             glBeginQuery(GL_SAMPLES_PASSED, d3d_query[next_idx]);
-            render_texture::draw(&shaders_dev);
+            RenderTexture::Draw(&shaders_dev);
             glEndQuery(GL_SAMPLES_PASSED);
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);

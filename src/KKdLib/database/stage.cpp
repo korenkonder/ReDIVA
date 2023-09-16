@@ -371,16 +371,6 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->ring_rectangle_height = i.ring_rectangle_height;
         data->ring_height = i.ring_height;
         data->ring_out_height = i.ring_out_height;
-        data->render_texture = i.render_texture;
-        data->render_texture_flag = i.render_texture_flag;
-        data->movie_texture = i.movie_texture;
-        data->movie_texture_flag = i.movie_texture_flag;
-        data->ring_rectangle_x = i.ring_rectangle_x;
-        data->ring_rectangle_y = i.ring_rectangle_y;
-        data->ring_rectangle_width = i.ring_rectangle_width;
-        data->ring_rectangle_height = i.ring_rectangle_height;
-        data->ring_height = i.ring_height;
-        data->ring_out_height = i.ring_out_height;
         data->field_13 = i.field_13;
         data->effects = i.effects;
         data->effects_init = i.effects_init;

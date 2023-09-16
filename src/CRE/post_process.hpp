@@ -39,7 +39,7 @@ struct sun_quad_shader_data {
 
 struct post_process_frame_texture_render_texture {
     texture* texture;
-    render_texture render_texture;
+    RenderTexture render_texture;
     post_process_frame_texture_type type;
 
     post_process_frame_texture_render_texture();
@@ -59,19 +59,19 @@ struct post_process {
     bool ssaa;
     bool mlaa;
     int32_t ss_alpha_mask;
-    render_texture rend_texture;
-    render_texture buf_texture;
-    render_texture sss_contour_texture;
+    RenderTexture rend_texture;
+    RenderTexture buf_texture;
+    RenderTexture sss_contour_texture;
     texture* aet_back_tex;
-    render_texture aet_back_texture;
-    render_texture pre_texture;
-    render_texture post_texture;
-    render_texture transparency_texture;
-    render_texture screen_texture;
+    RenderTexture aet_back_texture;
+    RenderTexture pre_texture;
+    RenderTexture post_texture;
+    RenderTexture transparency_texture;
+    RenderTexture screen_texture;
     texture* render_textures_data[16];
-    render_texture render_textures[16];
+    RenderTexture render_textures[16];
     texture* movie_textures_data[1];
-    render_texture movie_textures[1];
+    RenderTexture movie_textures[1];
     int32_t aet_back;
     post_process_aa* aa;
     post_process_blur* blur;
@@ -123,7 +123,7 @@ struct post_process {
     void apply(camera* cam, texture* light_proj_tex, int32_t npr_param);
     void ctrl(camera* cam);
     void draw_lens_flare(camera* cam);
-    void draw_lens_ghost(render_texture* rt);
+    void draw_lens_ghost(RenderTexture* rt);
     void init_fbo(int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height, int32_t screen_width, int32_t screen_height);
     bool frame_texture_cont_capture_set(bool value);

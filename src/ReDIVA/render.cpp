@@ -1136,7 +1136,7 @@ static void render_context_disp(render_context* rctx) {
 
     glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
-    rctx->post_process.rend_texture.bind();
+    rctx->post_process.rend_texture.Bind();
     gl_state_set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);

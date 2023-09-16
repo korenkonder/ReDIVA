@@ -102,10 +102,10 @@ sss_data::sss_data() : init(), enable(), npr_contour(), param() {
     npr_contour = true;
     param = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-    textures[0].init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
-    textures[1].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[2].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
-    textures[3].init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[0].Init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
+    textures[1].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[2].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+    textures[3].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
 }
 
 sss_data::~sss_data() {
@@ -342,9 +342,9 @@ namespace mdl {
 }
 
 light_proj::light_proj(int32_t width, int32_t height) : enable(), texture_id() {
-    shadow_texture[0].init(2048, 512, 0, GL_R32F, GL_DEPTH_COMPONENT32F);
-    shadow_texture[1].init(2048, 512, 0, GL_R32F, GL_ZERO);
-    draw_texture.init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+    shadow_texture[0].Init(2048, 512, 0, GL_R32F, GL_DEPTH_COMPONENT32F);
+    shadow_texture[1].Init(2048, 512, 0, GL_R32F, GL_ZERO);
+    draw_texture.Init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
 }
 
 light_proj::~light_proj() {
@@ -355,7 +355,7 @@ void light_proj::resize(int32_t width, int32_t height) {
     if (!this)
         return;
 
-    draw_texture.init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+    draw_texture.Init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
 }
 
 bool light_proj::set(render_context* rctx) {
@@ -365,7 +365,7 @@ bool light_proj::set(render_context* rctx) {
     static const vec4 color_clear = 1.0f;
     static const GLfloat depth_clear = 1.0f;
 
-    shadow_texture[0].bind();
+    shadow_texture[0].Bind();
     glViewport(0, 0, 2048, 512);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_TRUE);
@@ -378,7 +378,7 @@ bool light_proj::set(render_context* rctx) {
         return true;
     }
     else {
-        draw_texture.bind();
+        draw_texture.Bind();
         glViewport(0, 0, draw_texture.color_texture->width,
             draw_texture.color_texture->height);
         gl_state_enable_depth_test();
@@ -3101,9 +3101,9 @@ namespace rndr {
             if (v2->type != GL_TEXTURE_2D)
                 continue;
 
-            render_texture& rt = render_textures[i];
-            rt.init(v2->width, v2->height, v2->max_level, v2->color_format, v2->depth_format);
-            rt.bind();
+            RenderTexture& rt = render_textures[i];
+            rt.Init(v2->width, v2->height, v2->max_level, v2->color_format, v2->depth_format);
+            rt.Bind();
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         }
@@ -3204,7 +3204,7 @@ namespace rndr {
             }
     }
 
-    render_texture& RenderManager::get_render_texture(int32_t index) {
+    RenderTexture& RenderManager::get_render_texture(int32_t index) {
         return render_textures[stru_140A244E0[index][tex_index[index]]];
     }
 
@@ -4056,7 +4056,7 @@ int32_t Shadow::InitData() {
 
     shadow_texture_init_params* v3 = init_params;
     for (int32_t i = 0; i < 8; i++, v3++)
-        if (render_textures[i].init(v3->width, v3->height,
+        if (render_textures[i].Init(v3->width, v3->height,
             v3->max_level, v3->color_format, v3->depth_format) < 0)
             return -1;
 
@@ -4073,8 +4073,8 @@ int32_t Shadow::InitData() {
 }
 
 void Shadow::Reset() {
-    for (render_texture& i : render_textures)
-        i.free();
+    for (RenderTexture& i : render_textures)
+        i.Free();
 
     ResetData();
 }
@@ -4090,7 +4090,7 @@ void Shadow::ResetData() {
         field_200[i] = i;
     }
 
-    for (render_texture*& i : curr_render_textures)
+    for (RenderTexture*& i : curr_render_textures)
         i = 0;
 
     view_mat[0] = mat4_identity;
