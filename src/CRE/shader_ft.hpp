@@ -77,6 +77,7 @@ enum shader_ft_enum {
     SHADER_FT_GRID,         // Added
     SHADER_FT_TRANSPARENCY, // Added
     SHADER_FT_END,
+    SHADER_FT_MAX,
 };
 
 extern const shader_table shader_ft_table[];

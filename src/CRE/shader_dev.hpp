@@ -13,6 +13,7 @@ enum shader_dev_enum {
     SHADER_DEV_FFP = 0,
     SHADER_DEV_CLAMP_COLORS,
     SHADER_DEV_END,
+    SHADER_DEV_MAX,
 };
 
 extern const shader_table shader_dev_table[];

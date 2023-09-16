@@ -11,6 +11,7 @@
 
 static bool draw_object_blend_set(render_context* rctx,
     const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type);
+static bool draw_object_blend_set_check_use_default_blend(int32_t index);
 static void draw_object_chara_color_fog_set(render_context* rctx,
     const mdl::ObjSubMeshArgs* args, bool disable_fog);
 static void draw_object_material_reset_default(const obj_material_data* mat_data);
@@ -588,21 +589,29 @@ static bool draw_object_blend_set(render_context* rctx,
                 }
             }
 
-            switch (shader_index) {
-            case SHADER_FT_ITEM:
-            case SHADER_FT_SKIN:
-            case SHADER_FT_HAIR:
-            case SHADER_FT_CLOTH:
-            case SHADER_FT_TIGHTS:
-            case SHADER_FT_GLASEYE:
+            if (draw_object_blend_set_check_use_default_blend(shader_index)){
                 src_blend_factor = GL_SRC_ALPHA;
                 dst_blend_factor = GL_ONE_MINUS_SRC_ALPHA;
-                break;
             }
         }
     }
     gl_state_set_blend_func(src_blend_factor, dst_blend_factor);
     return dst_blend_factor == GL_ONE;
+}
+
+static bool draw_object_blend_set_check_use_default_blend(int32_t index) {
+    bool use_default_blend[] = {
+        false, false,  true, false,  true, false, false,  true,  true,  true, false, false,
+        false,  true, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false, false, false, false, false, false, false, false, false, false,
+        false, false, false
+    };
+
+    if (index >= 0 && index < SHADER_FT_MAX)
+        return use_default_blend[index];
+    return false;
 }
 
 static void draw_object_chara_color_fog_set(render_context* rctx, const mdl::ObjSubMeshArgs* args, bool disable_fog) {
