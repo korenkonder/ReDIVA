@@ -779,8 +779,10 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
     GLint success = 0;
     glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
-        glGetShaderInfoLog(shader, 0x10000, 0, info_log);
+        GLint length = 0;
+        glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
+        GLchar* info_log = force_malloc_s(GLchar, length);
+        glGetShaderInfoLog(shader, length, 0, info_log);
         const char* type_str = "Unknown";
         switch (type) {
         case GL_FRAGMENT_SHADER:
@@ -844,8 +846,10 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
-        glGetProgramInfoLog(program, 0x10000, 0, info_log);
+        GLint length = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+        GLchar* info_log = force_malloc_s(GLchar, length);
+        glGetProgramInfoLog(program, length, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
 #if defined(CRE_DEV)
@@ -918,8 +922,10 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
     GLint success = 0;
     glGetProgramiv(program, GL_LINK_STATUS, &success);
     if (!success) {
-        GLchar* info_log = force_malloc_s(GLchar, 0x10000);
-        glGetProgramInfoLog(program, 0x10000, 0, info_log);
+        GLint length = 0;
+        glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
+        GLchar* info_log = force_malloc_s(GLchar, length);
+        glGetProgramInfoLog(program, length, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
 #if defined(CRE_DEV)
