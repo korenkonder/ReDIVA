@@ -206,27 +206,27 @@ void post_process_blur::init_fbo(int32_t width, int32_t height) {
     int32_t* height_down = this->height_down;
 
     if (!tex_down)
-        tex_down = force_malloc_s(RenderTexture, i);
+        tex_down = force_malloc<RenderTexture>(i);
     else if (count_down < i) {
-        RenderTexture* temp = force_malloc_s(RenderTexture, i);
+        RenderTexture* temp = force_malloc<RenderTexture>(i);
         memcpy(temp, tex_down, sizeof(RenderTexture) * count_down);
         free_def(tex_down);
         tex_down = temp;
     }
 
     if (!width_down)
-        width_down = force_malloc_s(int32_t, i);
+        width_down = force_malloc<int32_t>(i);
     else if (count_down < i) {
-        int32_t* temp = force_malloc_s(int32_t, i);
+        int32_t* temp = force_malloc<int32_t>(i);
         memcpy(temp, width_down, sizeof(int32_t) * count_down);
         free_def(width_down);
         width_down = temp;
     }
 
     if (!height_down)
-        height_down = force_malloc_s(int32_t, i);
+        height_down = force_malloc<int32_t>(i);
     else if (count_down < i) {
-        int32_t* temp = force_malloc_s(int32_t, i);
+        int32_t* temp = force_malloc<int32_t>(i);
         memcpy(temp, height_down, sizeof(int32_t) * count_down);
         free_def(height_down);
         height_down = temp;

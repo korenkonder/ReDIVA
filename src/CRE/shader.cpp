@@ -85,7 +85,7 @@ bool shader::parse_define(const char* data, char** temp, size_t* temp_size) {
         if (len + 1 > *temp_size) {
             free_def(*temp);
             *temp_size = len + 1;
-            *temp = force_malloc_s(char, *temp_size);
+            *temp = force_malloc<char>(*temp_size);
         }
 
         memcpy(*temp, data, len);
@@ -105,7 +105,7 @@ bool shader::parse_define(const char* data, char** temp, size_t* temp_size) {
     if (len + 1 > *temp_size) {
         free_def(*temp);
         *temp_size = len + 1;
-        *temp = force_malloc_s(char, *temp_size);
+        *temp = force_malloc<char>(*temp_size);
     }
 
     size_t pos = 0;
@@ -128,7 +128,7 @@ bool shader::parse_define(const char* data, int32_t num_uniform,
         if (len + 1 > *temp_size) {
             free_def(*temp);
             *temp_size = len + 1;
-            *temp = force_malloc_s(char, *temp_size);
+            *temp = force_malloc<char>(*temp_size);
         }
 
         memcpy(*temp, data, len);
@@ -159,7 +159,7 @@ bool shader::parse_define(const char* data, int32_t num_uniform,
     if (len + 1 > *temp_size) {
         free_def(*temp);
         *temp_size = len + 1;
-        *temp = force_malloc_s(char, *temp_size);
+        *temp = force_malloc<char>(*temp_size);
     }
 
     size_t pos = 0;
@@ -195,10 +195,10 @@ char* shader::parse_include(char* data, farc* f) {
         count++;
     }
 
-    char** temp = force_malloc_s(char*, count);
-    size_t* temp_len = force_malloc_s(size_t, count);
-    char** temp_ptr0 = force_malloc_s(char*, count);
-    char** temp_ptr1 = force_malloc_s(char*, count);
+    char** temp = force_malloc<char*>(count);
+    size_t* temp_len = force_malloc<size_t>(count);
+    char** temp_ptr0 = force_malloc<char*>(count);
+    char** temp_ptr1 = force_malloc<char*>(count);
     if (!temp || !temp_len || !temp_ptr0 || !temp_ptr1) {
         free_def(temp);
         free_def(temp_len);
@@ -220,7 +220,7 @@ char* shader::parse_include(char* data, farc* f) {
         i0 += 10;
         size_t s = i1 - i0;
         i1 += 2;
-        char* t = force_malloc_s(char, s + 1);
+        char* t = force_malloc<char>(s + 1);
         if (!t)
             continue;
 
@@ -232,7 +232,7 @@ char* shader::parse_include(char* data, farc* f) {
         if (!ff)
             continue;
 
-        t = force_malloc_s(char, ff->size + 1);
+        t = force_malloc<char>(ff->size + 1);
         if (t) {
             memcpy(t, ff->data, ff->size);
             t[ff->size] = 0;
@@ -253,7 +253,7 @@ char* shader::parse_include(char* data, farc* f) {
         len += temp_len[i];
     }
 
-    char* temp_data = force_malloc_s(char, len + 1);
+    char* temp_data = force_malloc<char>(len + 1);
     size_t pos = 0;
     memcpy(temp_data + pos, data, temp_ptr0[0] - data);
     pos += temp_ptr0[0] - data;
@@ -436,13 +436,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     GLsizei buffer_size = 0x100000;
     void* binary = force_malloc(buffer_size);
     size_t temp_vert_size = 0x10000;
-    char* temp_vert = force_malloc_s(char, temp_vert_size);
+    char* temp_vert = force_malloc<char>(temp_vert_size);
     size_t temp_frag_size = 0x10000;
-    char* temp_frag = force_malloc_s(char, temp_frag_size);
+    char* temp_frag = force_malloc<char>(temp_frag_size);
     std::vector<int32_t> vec_vert;
     std::vector<int32_t> vec_frag;
     std::vector<program_binary> program_data_binary;
-    shader* shaders = force_malloc_s(shader, size);
+    shader* shaders = force_malloc<shader>(size);
     this->shaders = shaders;
     this->size = size;
     for (size_t i = 0; i < size; i++) {
@@ -450,7 +450,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
         shader->name = shaders_table[i].name;
         shader->name_index = shaders_table[i].name_index;
         shader->num_sub = shaders_table[i].num_sub;
-        shader->sub = force_malloc_s(shader_sub, shader->num_sub);
+        shader->sub = force_malloc<shader_sub>(shader->num_sub);
         shader->num_uniform = shaders_table[i].num_uniform;
         shader->use_uniform = shaders_table[i].use_uniform;
         shader->use_permut = shaders_table[i].use_permut;
@@ -473,7 +473,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
             char* vert_data = 0;
             if (vert_ff && vert_ff->data) {
-                vert_data = force_malloc_s(char, vert_ff->size + 1);
+                vert_data = force_malloc<char>(vert_ff->size + 1);
                 if (vert_data) {
                     memcpy(vert_data, vert_ff->data, vert_ff->size);
                     vert_data[vert_ff->size] = 0;
@@ -486,7 +486,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
             char* frag_data = 0;
             if (frag_ff && frag_ff->data) {
-                frag_data = force_malloc_s(char, frag_ff->size + 1);
+                frag_data = force_malloc<char>(frag_ff->size + 1);
                 if (frag_data) {
                     memcpy(frag_data, frag_ff->data, frag_ff->size);
                     frag_data[frag_ff->size] = 0;
@@ -550,7 +550,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
                 if (!ignore_cache)
                     program_data_binary.reserve(unival_shad_count);
-                shader_sub_shader* shaders = force_malloc_s(shader_sub_shader, unival_shad_count);
+                shader_sub_shader* shaders = force_malloc<shader_sub_shader>(unival_shad_count);
                 sub->shaders = shaders;
                 if (shaders) {
                     strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
@@ -619,7 +619,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
             }
             else {
                 program_data_binary.reserve(1);
-                shader_sub_shader* shaders = force_malloc_s(shader_sub_shader, 1);
+                shader_sub_shader* shaders = force_malloc<shader_sub_shader>();
                 sub->shaders = shaders;
                 if (shaders) {
                     strcpy_s(vert_buf, sizeof(vert_buf), sub_table->vp);
@@ -781,7 +781,7 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
     if (!success) {
         GLint length = 0;
         glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &length);
-        GLchar* info_log = force_malloc_s(GLchar, length);
+        GLchar* info_log = force_malloc<GLchar>(length);
         glGetShaderInfoLog(shader, length, 0, info_log);
         const char* type_str = "Unknown";
         switch (type) {
@@ -848,7 +848,7 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
     if (!success) {
         GLint length = 0;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-        GLchar* info_log = force_malloc_s(GLchar, length);
+        GLchar* info_log = force_malloc<GLchar>(length);
         glGetProgramInfoLog(program, length, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
@@ -924,7 +924,7 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
     if (!success) {
         GLint length = 0;
         glGetProgramiv(program, GL_INFO_LOG_LENGTH, &length);
-        GLchar* info_log = force_malloc_s(GLchar, length);
+        GLchar* info_log = force_malloc<GLchar>(length);
         glGetProgramInfoLog(program, length, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 

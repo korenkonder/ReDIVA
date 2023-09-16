@@ -108,7 +108,7 @@ light_param_wind_spc::light_param_wind_spc() : cos(), sin() {
 }
 
 static void light_param_wind_read_inner(light_param_wind* wind, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

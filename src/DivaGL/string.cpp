@@ -261,7 +261,7 @@ static void string_reserve(string* s, ssize_t size) {
     char* src = string_data(s);
     char* dst;
     if (capacity > STRING_NULL_LENGTH)
-        dst = force_malloc_s(char, capacity + 1);
+        dst = force_malloc<char>(capacity + 1);
     else
         dst = s->data;
 
@@ -292,7 +292,7 @@ static void wstring_reserve(wstring* s, ssize_t size) {
     wchar_t* src = wstring_data(s);
     wchar_t* dst;
     if (capacity > STRING_NULL_LENGTH)
-        dst = force_malloc_s(wchar_t, capacity + 1);
+        dst = force_malloc<wchar_t>(capacity + 1);
     else
         dst = s->data;
 

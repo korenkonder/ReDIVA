@@ -84,7 +84,7 @@ light_param_ibl_specular::~light_param_ibl_specular() {
 }
 
 static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 
@@ -263,8 +263,8 @@ static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* 
     int32_t max_level = specular->max_level;
 
     float_t* data_f32[2];
-    data_f32[0] = force_malloc_s(float_t, 4 * (size * size) * 6);
-    data_f32[1] = force_malloc_s(float_t, 4 * ((size / 2) * (size / 2)) * 6);
+    data_f32[0] = force_malloc<float_t>(4 * (size * size) * 6);
+    data_f32[1] = force_malloc<float_t>(4 * ((size / 2) * (size / 2)) * 6);
     for (int32_t i = 0; i < max_level; i++, size /= 2) {
         size_t data_size = 4 * (size * size) * 6;
         size_t data_size_2 = 4 * ((size / 2) * (size / 2)) * 6;

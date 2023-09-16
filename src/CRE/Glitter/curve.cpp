@@ -212,8 +212,8 @@ namespace Glitter {
         const uint8_t step = curve_baked_half ? 2 : 1;
 
         end_time = start_time + (int32_t)((count - 1) * step);
-        float_t* arr_a = force_malloc_s(float_t, count);
-        float_t* arr_b = force_malloc_s(float_t, count);
+        float_t* arr_a = force_malloc<float_t>(count);
+        float_t* arr_b = force_malloc<float_t>(count);
         if (!arr_a || !arr_b) {
             free_def(arr_a);
             free_def(arr_b);

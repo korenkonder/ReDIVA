@@ -54,7 +54,7 @@ void key_val::file_read(const char* path) {
     file_stream s;
     s.open(path, "rb");
     if (s.check_not_null()) {
-        char* d = force_malloc_s(char, s.length);
+        char* d = force_malloc<char>(s.length);
         s.read(d, s.length);
         parse((uint8_t*)d, s.length);
         free_def(d);
@@ -68,7 +68,7 @@ void key_val::file_read(const wchar_t* path) {
     file_stream s;
     s.open(path, L"rb");
     if (s.check_not_null()) {
-        char* d = force_malloc_s(char, s.length);
+        char* d = force_malloc<char>(s.length);
         s.read(d, s.length);
         parse((uint8_t*)d, s.length);
         free_def(d);

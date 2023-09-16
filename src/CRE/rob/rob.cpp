@@ -7398,7 +7398,7 @@ static void opd_data_decode(const int16_t* src_data, size_t count, uint8_t shift
 
 static bool opd_decode(const osage_play_data_header* file_head, float_t** opd_decod_buf, osage_play_data_header* head) {
     const osage_play_data_node_header* node = (osage_play_data_node_header*)&file_head[1];
-    float_t* buf = force_malloc_s(float_t, 3ULL * file_head->frame_count * file_head->nodes_count);
+    float_t* buf = force_malloc<float_t>(3ULL * file_head->frame_count * file_head->nodes_count);
     *opd_decod_buf = buf;
     if (!buf)
         return false;
@@ -17347,8 +17347,7 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     size_t vertex_data_size = vertex_array_size * count;
     this->vertex_data_size = (uint32_t)vertex_data_size;
 
-    rob_chara_age_age_object_vertex* vtx_data = force_malloc_s(
-        rob_chara_age_age_object_vertex, vertex_data_size);
+    rob_chara_age_age_object_vertex* vtx_data = force_malloc<rob_chara_age_age_object_vertex>(vertex_data_size);
     vertex_data = vtx_data;
 
     obj_vertex_data* vertex_array = m->vertex_array;
@@ -17365,7 +17364,7 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     this->num_index = num_index + 1;
     uint32_t num_idx_data = (uint32_t)(count * (num_index + 1));
 
-    uint16_t* idx_data = force_malloc_s(uint16_t, num_idx_data);
+    uint16_t* idx_data = force_malloc<uint16_t>(num_idx_data);
     uint32_t* index_array = sm->index_array;
     uint32_t index_offset = 0;
     uint32_t l = 0;

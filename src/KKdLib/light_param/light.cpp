@@ -114,7 +114,7 @@ light_param_light_group::light_param_light_group() {
 }
 
 static void light_param_light_read_inner(light_param_light* light, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

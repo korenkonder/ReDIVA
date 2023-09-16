@@ -71,7 +71,7 @@ void object_database_file::read(const char* path, bool modern) {
             file_stream s;
             s.open(path_bin, "rb");
             if (s.check_not_null()) {
-                uint8_t* data = force_malloc_s(uint8_t, s.length);
+                uint8_t* data = force_malloc<uint8_t>(s.length);
                 s.read(data, s.length);
                 memory_stream s_bin;
                 s_bin.open(data, s.length);
@@ -107,7 +107,7 @@ void object_database_file::read(const wchar_t* path, bool modern) {
             file_stream s;
             s.open(path_bin, L"rb");
             if (s.check_not_null()) {
-                uint8_t* data = force_malloc_s(uint8_t, s.length);
+                uint8_t* data = force_malloc<uint8_t>(s.length);
                 s.read(data, s.length);
                 memory_stream s_bin;
                 s_bin.open(data, s.length);
@@ -472,7 +472,7 @@ static void object_database_file_classic_read_inner(object_database_file* obj_db
     }
     s.position_pop();
 
-    size_t* object_set_object_count = force_malloc_s(size_t, object_set_count);
+    size_t* object_set_object_count = force_malloc<size_t>(object_set_count);
     s.position_push(objects_offset, SEEK_SET);
     for (uint32_t i = 0; i < object_count; i++) {
         uint32_t id = s.read_uint16_t();
@@ -642,7 +642,7 @@ static void object_database_file_modern_read_inner(object_database_file* obj_db,
         }
     s.position_pop();
 
-    size_t* object_set_object_count = force_malloc_s(size_t, object_set_count);
+    size_t* object_set_object_count = force_malloc<size_t>(object_set_count);
     s.position_push(objects_offset, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < object_count; i++) {

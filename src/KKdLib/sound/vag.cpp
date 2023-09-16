@@ -281,9 +281,9 @@ static bool vag_read_inner(vag* v, stream& s, float_t*& data, size_t& num_blocks
     size_t vag_block_size = BLOCK_SIZE * ch;
 
     num_blocks = (v->size / v->channels) >> 4;
-    int32_t* samp = force_malloc_s(int32_t, ch * 4);
-    data = force_malloc_s(float_t, num_blocks * vag_block_size);
-    flags = force_malloc_s(uint8_t, num_blocks);
+    int32_t* samp = force_malloc<int32_t>(ch * 4);
+    data = force_malloc<float_t>(num_blocks * vag_block_size);
+    flags = force_malloc<uint8_t>(num_blocks);
 
     uint8_t nibble[BLOCK_SIZE];
     float_t* temp_data = data;
@@ -378,7 +378,7 @@ static void vag_write_inner(vag* v, stream& s, const float_t* data, const uint8_
 
     size_t c, i, i1, i2, j;
     int32_t ch = v->channels;
-    int32_t* samp = force_malloc_s(int32_t, hevag ? v->channels * 8ULL : 4ULL);
+    int32_t* samp = force_malloc<int32_t>(hevag ? v->channels * 8ULL : 4ULL);
     if (hevag && coef_index_count > 29) {
         uint8_t flag, sample;
         int32_t temp_data[BLOCK_SIZE];
@@ -530,8 +530,8 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t*& data, size_t& sa
     }
 
     count += add_loop;
-    float_t** wav_data = force_malloc_s(float_t*, count);
-    size_t* wav_samples = force_malloc_s(size_t, count);
+    float_t** wav_data = force_malloc<float_t*>(count);
+    size_t* wav_samples = force_malloc<size_t>(count);
 
     for (size_t i = 0; i < count; i++) {
         if (add_loop && i + 1 == count)
@@ -564,7 +564,7 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t*& data, size_t& sa
 
     l = false;
     size_t ch = v->channels;
-    data = force_malloc_s(float_t, samples * ch);
+    data = force_malloc<float_t>(samples * ch);
     float_t* data_temp = data;
     for (size_t i = 0; i < count; i++) {
         size_t i3;
@@ -583,7 +583,7 @@ static void vag_read_wav(vag* v, const wchar_t* path, float_t*& data, size_t& sa
     }
 
     l = false;
-    flags = force_malloc_s(uint8_t, samples / BLOCK_SIZE);
+    flags = force_malloc<uint8_t>(samples / BLOCK_SIZE);
     uint8_t* f = flags;
     for (size_t i = 0; i < count; i++) {
         size_t num_blocks;

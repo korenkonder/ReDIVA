@@ -3210,7 +3210,7 @@ void dsc::unparse(void** data, size_t* size) {
         data_dsc = (uint32_t*)st.data.data();
     }
     else
-        data_dsc = force_malloc_s(uint32_t, data_size);
+        data_dsc = force_malloc<uint32_t>(data_size);
     uint32_t* func_data = data_dsc;
 
     switch (type) {
@@ -3307,7 +3307,7 @@ dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
     dsc_get_func_name src_get_func_name = dsc_type_get_dsc_get_func_name(src_type);
     dsc_get_func_name dst_get_func_name = dsc_type_get_dsc_get_func_name(dst_type);
     dsc_get_func_length dst_get_func_length = dsc_type_get_dsc_get_func_length(dst_type, dst_has_perf_id);
-    dsc_replace_data* replace_data = force_malloc_s(dsc_replace_data, src_func_count);
+    dsc_replace_data* replace_data = force_malloc<dsc_replace_data>(src_func_count);
     this->replace_data = replace_data;
 
     for (int32_t i = 0; i < src_func_count; i++) {

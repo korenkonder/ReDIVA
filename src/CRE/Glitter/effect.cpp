@@ -44,11 +44,11 @@ namespace Glitter {
 
         if (eff.data.ext_anim)
             if (!data.ext_anim_is_x) {
-                data.ext_anim = force_malloc_s(Effect::ExtAnim, 1);
+                data.ext_anim = force_malloc<Effect::ExtAnim>();
                 *data.ext_anim = *eff.data.ext_anim;
             }
             else {
-                data.ext_anim_x = force_malloc_s(Effect::ExtAnimX, 1);
+                data.ext_anim_x = force_malloc<Effect::ExtAnimX>();
                 *data.ext_anim_x = *eff.data.ext_anim_x;
             }
 

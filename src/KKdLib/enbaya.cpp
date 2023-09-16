@@ -62,7 +62,7 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
         return -7;
 
     *data_out_len = sizeof(quat_trans) * head->track_count * *frames + 0x10;
-    *data_out = force_malloc_s(uint8_t, *data_out_len);
+    *data_out = force_malloc<uint8_t>(*data_out_len);
 
     if (!*data_out)
         return -8;
@@ -93,7 +93,7 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
     *play_head = 0;
 
     enb_head* head = (enb_head*)data;
-    enb_play_head* ph = force_malloc_s(enb_play_head, 1);
+    enb_play_head* ph = force_malloc<enb_play_head>();
     if (!ph)
         return -3;
 
@@ -102,7 +102,7 @@ int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
     ph->data_header = head;
     enb_init(ph, head);
 
-    ph->track_data = force_malloc_s(enb_track, head->track_count);
+    ph->track_data = force_malloc<enb_track>(head->track_count);
 
     if (!ph->track_data) {
         free_def(ph);

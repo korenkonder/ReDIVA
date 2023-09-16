@@ -263,8 +263,8 @@ void FASTCALL shader_load_all_shaders() {
             subs->fp_unival_max = (int32_t*)sub->fp_unival_max;
             subs->num_vp = sub->num_vp;
             subs->num_fp = sub->num_fp;
-            subs->vp = force_malloc_s(int32_t, sub->num_vp);
-            subs->fp = force_malloc_s(int32_t, sub->num_fp);
+            subs->vp = force_malloc<int32_t>(sub->num_vp);
+            subs->fp = force_malloc<int32_t>(sub->num_fp);
 
             _glGenProgramsARB(sub->num_vp, (GLuint*)subs->vp);
             _glGenProgramsARB(sub->num_fp, (GLuint*)subs->fp);

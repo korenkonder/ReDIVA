@@ -107,7 +107,7 @@ bool light_param_glow::load_file(void* data, const char* path, const char* file,
 }
 
 static void light_param_glow_read_inner(light_param_glow* glow, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

@@ -1135,8 +1135,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
 
     ssbo.Destroy();
 
-    ptcl_data = force_malloc_s(fog_ring_data, max_ptcls);
-    ptcl_data = new (ptcl_data) fog_ring_data[max_ptcls];
+    ptcl_data = new (force_malloc<fog_ring_data>(max_ptcls)) fog_ring_data[max_ptcls];
 
     if (!vao)
         glGenVertexArrays(1, &vao);
@@ -3489,7 +3488,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
         vec3* vertex = data->vertex;
         color4u8* color = data->color;
 
-        vec3* vtx_data = force_malloc_s(vec3, count);
+        vec3* vtx_data = force_malloc<vec3>(count);
 
         for (size_t i = count; i; i--, vtx_data++, vertex++, color++)
             *vtx_data = { vertex->x, vertex->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
@@ -3546,7 +3545,7 @@ static void leaf_particle_init(bool change_stage) {
 
     const size_t leaf_ptcl_vtx_count = leaf_ptcl_count * 0x08;
 
-    leaf_ptcl_data = force_malloc_s(leaf_particle_data, leaf_ptcl_count);
+    leaf_ptcl_data = force_malloc<leaf_particle_data>(leaf_ptcl_count);
 
     leaf_particle_num_ptcls = stage_param_data_leaf_current->num_initial_ptcls;
 
@@ -3588,7 +3587,7 @@ static void leaf_particle_init(bool change_stage) {
         (void*)offsetof(leaf_particle_vertex_data, normal));
 
     size_t ebo_count = leaf_ptcl_vtx_count / 4 * 6;
-    uint32_t* ebo_data = force_malloc_s(uint32_t, ebo_count);
+    uint32_t* ebo_data = force_malloc<uint32_t>(ebo_count);
     for (size_t i = 0, j = 0; i < ebo_count; i += 6, j += 4) {
         ebo_data[i + 0] = (uint32_t)(j + 0);
         ebo_data[i + 1] = (uint32_t)(j + 1);
@@ -3832,7 +3831,7 @@ static void particle_init(vec3* offset) {
 
     const size_t ptcl_vtx_count = ptcl_count * 0x06;
 
-    ptcl_data = force_malloc_s(particle_rot_data, ptcl_count);
+    ptcl_data = force_malloc<particle_rot_data>(ptcl_count);
 
     particle_rot_data* data = ptcl_data;
     for (size_t i = 0; i < ptcl_count; i++, data++)
@@ -4112,7 +4111,7 @@ static void rain_particle_init(bool change_stage) {
     if (!rain_vao)
         glGenVertexArrays(1, &rain_vao);
 
-    vec3* vtx_data = force_malloc_s(vec3, rain_ptcl_count);
+    vec3* vtx_data = force_malloc<vec3>(rain_ptcl_count);
     for (int32_t i = 0; i < rain_ptcl_count; i++) {
         vec3 position;
         position.x = rand_state_array_get_float(4);
@@ -4286,7 +4285,7 @@ static void snow_particle_init(bool change_stage) {
 
     snow_ssbo.Create(sizeof(snow_particle_vertex_data) * snow->num_snow);
 
-    snow_particle_gpu_vertex_data* vtx_data = force_malloc_s(snow_particle_gpu_vertex_data, snow_ptcl_count);
+    snow_particle_gpu_vertex_data* vtx_data = force_malloc<snow_particle_gpu_vertex_data>(snow_ptcl_count);
 
     for (int32_t i = 0; i < snow_ptcl_count; i++, vtx_data++) {
         vtx_data->position.x = rand_state_array_get_float(4);
@@ -4416,10 +4415,10 @@ static void snow_particle_ctrl() {
 
 static void snow_particle_data_init() {
     if (!snow_ptcl_data)
-        snow_ptcl_data = force_malloc_s(particle_data, stage_param_data_snow_current->num_snow);
+        snow_ptcl_data = force_malloc<particle_data>(stage_param_data_snow_current->num_snow);
 
     if (!snow_ptcl_fallen_data)
-        snow_ptcl_fallen_data = force_malloc_s(particle_data, snow_ptcl_fallen_count);
+        snow_ptcl_fallen_data = force_malloc<particle_data>(snow_ptcl_fallen_count);
 }
 
 static void snow_particle_data_emit_fallen(particle_data* data) {

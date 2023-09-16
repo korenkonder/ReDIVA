@@ -141,7 +141,7 @@ char* stream::read_utf8_string_null_terminated_offset(int64_t offset) {
         return 0;
     }
 
-    char* str = force_malloc_s(char, len + 1);
+    char* str = force_malloc<char>(len + 1);
     position_push(offset, SEEK_SET);
     read(str, len);
     str[len] = 0;
@@ -156,7 +156,7 @@ wchar_t* stream::read_utf16_string_null_terminated_offset(int64_t offset) {
         return 0;
     }
 
-    wchar_t* str = force_malloc_s(wchar_t, len + 1);
+    wchar_t* str = force_malloc<wchar_t>(len + 1);
     position_push(offset, SEEK_SET);
     read(str, sizeof(wchar_t) * len);
     str[len] = 0;

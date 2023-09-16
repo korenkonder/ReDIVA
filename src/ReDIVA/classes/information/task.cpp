@@ -20,7 +20,7 @@ static int32_t task_sort_by_disp(void const* src1, void const* src2);
 static int32_t task_sort_by_name(void const* src1, void const* src2);
 
 bool information_task_init(class_data* data, render_context* rctx) {
-    data->data = force_malloc_s(int32_t, 2);
+    data->data = force_malloc<int32_t>(2);
     information_task_dispose(data);
     return true;
 }

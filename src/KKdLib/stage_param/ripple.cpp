@@ -108,7 +108,7 @@ bool stage_param_ripple::load_file(void* data, const char* path, const char* fil
 }
 
 static void stage_param_ripple_read_inner(stage_param_ripple* ripple, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

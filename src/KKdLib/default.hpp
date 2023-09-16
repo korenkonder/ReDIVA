@@ -90,7 +90,16 @@ null(ssize_t)
 #define lerp_def(x, y, blend) ((1.0f - (blend)) * (x) + (blend) * (y))
 
 extern void* force_malloc(size_t size);
-#define force_malloc_s(s, size) (s*)force_malloc(sizeof(s) * (size))
+
+template <typename T>
+inline T* force_malloc() {
+    return (T*)force_malloc(sizeof(T));
+}
+
+template <typename T>
+inline T* force_malloc(size_t size) {
+    return (T*)force_malloc(sizeof(T) * (size));
+}
 
 #define enum_or(s0, s1) \
 (s0) = (decltype(s0))((int32_t)(s0) | (s1))

@@ -96,7 +96,7 @@ namespace Glitter {
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
-            uint32_t* ebo_data = force_malloc_s(uint32_t, count - 1);
+            uint32_t* ebo_data = force_malloc<uint32_t>(count - 1);
             for (size_t i = 0, j = 0, k = count / 5 - 1; i < count; i += 5, j += 4, k--) {
                 ebo_data[i + 0] = (uint32_t)(j + 0);
                 ebo_data[i + 1] = (uint32_t)(j + 1);
@@ -441,7 +441,7 @@ namespace Glitter {
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
-            uint32_t* ebo_data = force_malloc_s(uint32_t, count - 1);
+            uint32_t* ebo_data = force_malloc<uint32_t>(count - 1);
             for (size_t i = 0, j = 0, k = count / 5 - 1; i < count; i += 5, j += 4, k--) {
                 ebo_data[i + 0] = (uint32_t)(j + 0);
                 ebo_data[i + 1] = (uint32_t)(j + 1);

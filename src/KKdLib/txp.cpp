@@ -93,11 +93,11 @@ bool txp_set::pack_file(void** data, size_t* size, bool big_endian) {
     if (count < 1)
         return false;
 
-    size_t* txp4_offset = force_malloc_s(size_t, count);
-    size_t** txp2_offset = force_malloc_s(size_t*, count);
+    size_t* txp4_offset = force_malloc<size_t>(count);
+    size_t** txp2_offset = force_malloc<size_t*>(count);
     tex = textures.data();
     for (size_t i = 0; i < count; i++, tex++)
-        txp2_offset[i] = force_malloc_s(size_t, (size_t)tex->mipmaps_count * tex->array_size);
+        txp2_offset[i] = force_malloc<size_t>((size_t)tex->mipmaps_count * tex->array_size);
 
     l = 12 + count * 4;
 
@@ -175,11 +175,11 @@ bool txp_set::pack_file(std::vector<uint8_t>& data, bool big_endian) {
     if (count < 1)
         return false;
 
-    size_t* txp4_offset = force_malloc_s(size_t, count);
-    size_t** txp2_offset = force_malloc_s(size_t*, count);
+    size_t* txp4_offset = force_malloc<size_t>(count);
+    size_t** txp2_offset = force_malloc<size_t*>(count);
     tex = textures.data();
     for (size_t i = 0; i < count; i++, tex++)
-        txp2_offset[i] = force_malloc_s(size_t, (size_t)tex->mipmaps_count * tex->array_size);
+        txp2_offset[i] = force_malloc<size_t>((size_t)tex->mipmaps_count * tex->array_size);
 
     l = 12 + count * 4;
 

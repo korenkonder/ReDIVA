@@ -474,7 +474,7 @@ static void farc_pack_files(farc* f, stream& s, farc_compress_mode mode, bool ge
 
     f->compression_level = clamp_def(f->compression_level, 0, 12);
     if (get_files) {
-        char* temp = force_malloc_s(char, dir_len + 2 + MAX_PATH);
+        char* temp = force_malloc<char>(dir_len + 2 + MAX_PATH);
         memcpy(temp, f->directory_path.c_str(), sizeof(char) * dir_len);
         temp[dir_len] = '\\';
         for (farc_file& i : f->files) {
@@ -704,7 +704,7 @@ static errno_t farc_read_header(farc* f, stream& s) {
     uint8_t* dt;
     int32_t length = 0;
 
-    dt = d_t = force_malloc_s(uint8_t, header_length);
+    dt = d_t = force_malloc<uint8_t>(header_length);
     s.read(d_t, header_length);
     if (f->ft) {
         header_length -= 0x10;
@@ -833,7 +833,7 @@ static void farc_unpack_files(farc* f, stream& s, bool save) {
         free_def(dir_temp);
     }
 
-    char* temp_path = force_malloc_s(char, max_path_len + 1);
+    char* temp_path = force_malloc<char>(max_path_len + 1);
     memcpy(temp_path, f->directory_path.c_str(), sizeof(char) * dir_len);
     temp_path[dir_len] = '\\';
 

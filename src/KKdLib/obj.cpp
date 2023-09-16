@@ -648,8 +648,8 @@ static void obj_vertex_generate_tangents(obj_mesh* mesh) {
 
     uint32_t num_vertex = mesh->num_vertex;
 
-    vec3* tangents = force_malloc_s(vec3, num_vertex);
-    vec3* bitangents = force_malloc_s(vec3, num_vertex);
+    vec3* tangents = force_malloc<vec3>(num_vertex);
+    vec3* bitangents = force_malloc<vec3>(num_vertex);
 
     obj_vertex_data* vtx = mesh->vertex_array;
     uint32_t num_submesh = mesh->num_submesh;
@@ -1225,7 +1225,7 @@ static void obj_set_classic_read_inner(obj_set* set, prj::shared_ptr<prj::stack_
     for (uint32_t i = 0; i < obj_num; i++)
         set->obj_data[i] = alloc->allocate<::obj>();
 
-    uint32_t* data = force_malloc_s(uint32_t, obj_num * 3ULL);
+    uint32_t* data = force_malloc<uint32_t>(obj_num * 3ULL);
 
     uint32_t* obj_data = 0;
     if (osh.obj_data) {
@@ -1316,7 +1316,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
         s.write_int32_t(0);
     s.align_write(0x10);
 
-    int32_t* data = force_malloc_s(int32_t, obj_num);
+    int32_t* data = force_malloc<int32_t>(obj_num);
 
     int32_t* obj_data = data;
     for (uint32_t i = 0; i < obj_num; i++) {
@@ -1524,7 +1524,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
     if (num_mesh) {
         oh.mesh_array = s.get_position() - base_offset;
 
-        obj_mesh_header* mhs = force_malloc_s(obj_mesh_header, num_mesh);
+        obj_mesh_header* mhs = force_malloc<obj_mesh_header>(num_mesh);
         for (uint32_t i = 0; i < num_mesh; i++) {
             obj_mesh* mesh = &obj->mesh_array[i];
             obj_mesh_header* mh = &mhs[i];
@@ -2111,7 +2111,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
             s.write_int32_t(0);
             s.align_write(0x10);
 
-            bhs = force_malloc_s(obj_skin_block_header, ex->num_block);
+            bhs = force_malloc<obj_skin_block_header>(ex->num_block);
             for (uint32_t i = 0; i < ex->num_block; i++) {
                 obj_skin_block* block = &ex->block_array[i];
                 if (block->type != OBJ_SKIN_BLOCK_OSAGE)
@@ -2601,7 +2601,7 @@ static obj_skin_ex_data* obj_classic_read_skin_ex_data(prj::shared_ptr<prj::stac
             ex->num_block++;
         }
 
-        obj_skin_block_header* bhs = force_malloc_s(obj_skin_block_header, ex->num_block);
+        obj_skin_block_header* bhs = force_malloc<obj_skin_block_header>(ex->num_block);
         s.set_position(exh.block_array_offset, SEEK_SET);
         for (uint32_t i = 0; i < ex->num_block; i++) {
             bhs[i].block_signature_offset = s.read_uint32_t();
@@ -3938,7 +3938,7 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
     for (uint32_t i = 0; i < obj_num; i++)
         set->obj_data[i] = alloc->allocate<::obj>();
 
-    int64_t* data = force_malloc_s(int64_t, obj_num * 3ULL);
+    int64_t* data = force_malloc<int64_t>(obj_num * 3ULL);
 
     int64_t* obj_data = 0;
     if (osh.obj_data) {
@@ -4202,7 +4202,7 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
         s_mosd.write_uint32_t_reverse_endianness(set->tex_id_data[i]);
     s_mosd.align_write(0x10);
 
-    int64_t* obj_name_data = force_malloc_s(int64_t, obj_num);
+    int64_t* obj_name_data = force_malloc<int64_t>(obj_num);
     for (uint32_t i = 0; i < obj_num; i++) {
         obj_name_data[i] = (int32_t)s_mosd.get_position();
         s_mosd.write_utf8_string_null_terminated(set->obj_data[i]->name);
@@ -4665,8 +4665,8 @@ static void obj_modern_write_model(obj* obj, stream& s,
     if (num_mesh) {
         oh.mesh_array = s.get_position() - base_offset;
 
-        obj_mesh_header* mhs = force_malloc_s(obj_mesh_header, num_mesh);
-        obj_sub_mesh_header** smhss = force_malloc_s(obj_sub_mesh_header*, num_mesh);
+        obj_mesh_header* mhs = force_malloc<obj_mesh_header>(num_mesh);
+        obj_sub_mesh_header** smhss = force_malloc<obj_sub_mesh_header*>(num_mesh);
         for (uint32_t i = 0; i < num_mesh; i++) {
             obj_mesh* mesh = &obj->mesh_array[i];
 
@@ -4744,7 +4744,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
 
             uint32_t num_submesh = mesh->num_submesh;
             if (num_submesh) {
-                smhs = force_malloc_s(obj_sub_mesh_header, num_submesh);
+                smhs = force_malloc<obj_sub_mesh_header>(num_submesh);
                 smhss[i] = smhs;
                 for (uint32_t j = 0; j < num_submesh; j++) {
                     obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
@@ -5878,7 +5878,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
             }
             s.align_write(0x10);
 
-            bhs = force_malloc_s(obj_skin_block_header, ex->num_block);
+            bhs = force_malloc<obj_skin_block_header>(ex->num_block);
             if (!is_x)
                 for (uint32_t i = 0; i < ex->num_block; i++) {
                     obj_skin_block* block = &ex->block_array[i];
@@ -6650,7 +6650,7 @@ static obj_skin_ex_data* obj_modern_read_skin_ex_data(prj::shared_ptr<prj::stack
                 ex->num_block++;
             }
 
-        obj_skin_block_header* bhs = force_malloc_s(obj_skin_block_header, ex->num_block);
+        obj_skin_block_header* bhs = force_malloc<obj_skin_block_header>(ex->num_block);
         s.set_position(exh.block_array_offset, SEEK_SET);
         if (!is_x)
             for (uint32_t i = 0; i < ex->num_block; i++) {

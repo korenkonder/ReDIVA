@@ -2496,7 +2496,7 @@ static bool key_val_read_raw_data(key_val* kv,
         return false;
 
     char b[0x200];
-    float_t* fs = force_malloc_s(float_t, c);
+    float_t* fs = force_malloc<float_t>(c);
     s = value_list;
     for (size_t i = 0; i < c; i++) {
         const char* t = s;

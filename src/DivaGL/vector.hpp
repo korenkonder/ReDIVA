@@ -69,7 +69,7 @@ void vector_old_##t##_reserve(vector_old_##t* vec, ssize_t size) { \
 \
     t* temp = 0; \
     if (capacity) \
-        temp = (t*)force_malloc_s(t, capacity); \
+        temp = (t*)force_malloc<t>(capacity); \
 \
     if (!temp) \
         return; \
@@ -234,7 +234,7 @@ void vector_old_ptr_##t##_reserve(vector_old_ptr_##t* vec, ssize_t size) { \
 \
     t** temp = 0; \
     if (capacity) \
-        temp = (t**)force_malloc_s(t*, capacity); \
+        temp = (t**)force_malloc<t*>(capacity); \
 \
     if (!temp) \
         return; \

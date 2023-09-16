@@ -65,7 +65,7 @@ void wav::write(const wchar_t* path, const float_t* data, size_t samples) {
 }
 
 wav* wav_init() {
-    wav* w = force_malloc_s(wav, 1);
+    wav* w = force_malloc<wav>();
     return w;
 }
 
@@ -111,7 +111,7 @@ static void wav_read_inner(wav* w, stream& s, float_t*& data, size_t& samples) {
     *w = w_t;
 
     samples = w->size / w->channels / w->bytes;
-    data = force_malloc_s(float_t, w->size / w->bytes);
+    data = force_malloc<float_t>(w->size / w->bytes);
 
     size_t t_s = samples;
     float_t* t_d = data;

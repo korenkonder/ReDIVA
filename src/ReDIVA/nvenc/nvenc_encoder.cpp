@@ -57,7 +57,7 @@ nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_bu
     PNVENCODEAPICREATEINSTANCEPROC nvEncodeAPICreateInstance
         = (PNVENCODEAPICREATEINSTANCEPROC)GetProcAddress(nvenc_dll, "NvEncodeAPICreateInstance");
 
-    nvenc_api = force_malloc_s(NV_ENCODE_API_FUNCTION_LIST, 1);
+    nvenc_api = force_malloc<NV_ENCODE_API_FUNCTION_LIST>();
     nvenc_api->version = NV_ENCODE_API_FUNCTION_LIST_VER;
     print_nvenc_status(__LINE__, nvEncodeAPICreateInstance(nvenc_api));
 

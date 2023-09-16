@@ -346,9 +346,9 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
     GLsizei buffer_size = 0x20000;
     void* spv = force_malloc(buffer_size);
     size_t temp_vert_size = 0x10000;
-    char* temp_vert = force_malloc_s(char, temp_vert_size);
+    char* temp_vert = force_malloc<char>(temp_vert_size);
     size_t temp_frag_size = 0x10000;
-    char* temp_frag = force_malloc_s(char, temp_frag_size);
+    char* temp_frag = force_malloc<char>(temp_frag_size);
     std::vector<int32_t> vec_vert;
     std::vector<int32_t> vec_frag;
     std::vector<program_spv> program_data_vert_spv;
@@ -370,7 +370,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
             char* vert_data = 0;
             if (vert_ff && vert_ff->data) {
-                vert_data = force_malloc_s(char, vert_ff->size + 1);
+                vert_data = force_malloc<char>(vert_ff->size + 1);
                 if (vert_data) {
                     memcpy(vert_data, vert_ff->data, vert_ff->size);
                     vert_data[vert_ff->size] = 0;
@@ -384,7 +384,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
             char* frag_data = 0;
             if (frag_ff && frag_ff->data) {
-                frag_data = force_malloc_s(char, frag_ff->size + 1);
+                frag_data = force_malloc<char>(frag_ff->size + 1);
                 if (frag_data) {
                     memcpy(frag_data, frag_ff->data, frag_ff->size);
                     frag_data[frag_ff->size] = 0;

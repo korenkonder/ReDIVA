@@ -48,7 +48,7 @@ bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
         return true;
     }
 
-    uint16_t* indices = force_malloc_s(uint16_t, num_index);
+    uint16_t* indices = force_malloc<uint16_t>(num_index);
     obj_mesh_index_buffer::fill_data(indices, mesh);
 
     bool ret = load_data(num_index * sizeof(uint16_t), indices);

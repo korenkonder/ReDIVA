@@ -113,7 +113,7 @@ char* str_utils_split_get_right(const char* str, const char split) {
     t++;
 
     size_t len = utf8_length(t);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, t, len);
     p[len] = 0;
     return p;
@@ -129,7 +129,7 @@ wchar_t* str_utils_split_get_right(const wchar_t* str, const wchar_t split) {
     t++;
 
     size_t len = utf16_length(t);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, t, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -142,7 +142,7 @@ char* str_utils_split_get_left(const char* str, const char split) {
     const char* t = strchr(str, split);
 
     size_t len = t ? t - str : utf8_length(str);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, str, len);
     p[len] = 0;
     return p;
@@ -155,7 +155,7 @@ wchar_t* str_utils_split_get_left(const wchar_t* str, const wchar_t split) {
     const wchar_t* t = wcschr(str, split);
 
     size_t len = t ? t - str : utf16_length(str);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, str, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -170,7 +170,7 @@ char* str_utils_split_get_right_include(const char* str, const char split) {
         return str_utils_copy(str);
 
     size_t len = utf8_length(t);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, t, len);
     p[len] = 0;
     return p;
@@ -185,7 +185,7 @@ wchar_t* str_utils_split_get_right_include(const wchar_t* str, const wchar_t spl
         return str_utils_copy(str);
 
     size_t len = utf16_length(t);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, t, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -199,7 +199,7 @@ char* str_utils_split_get_left_include(const char* str, const char split) {
     t++;
 
     size_t len = t ? t - str : utf8_length(str);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, str, len);
     p[len] = 0;
     return p;
@@ -213,7 +213,7 @@ wchar_t* str_utils_split_get_left_include(const wchar_t* str, const wchar_t spli
     t++;
 
     size_t len = t ? t - str : utf16_length(str);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, str, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -229,7 +229,7 @@ char* str_utils_split_right_get_right(const char* str, const char split) {
     t++;
 
     size_t len = t - str;
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, t, len);
     p[len] = 0;
     return p;
@@ -245,7 +245,7 @@ wchar_t* str_utils_split_right_get_right(const wchar_t* str, const wchar_t split
     t++;
 
     size_t len = t - str;
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, t, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -258,7 +258,7 @@ char* str_utils_split_right_get_left(const char* str, const char split) {
     const char* t = strrchr(str, split);
 
     size_t len = t ? t - str : utf8_length(str);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, str, len);
     p[len] = 0;
     return p;
@@ -271,7 +271,7 @@ wchar_t* str_utils_split_right_get_left(const wchar_t* str, const wchar_t split)
     const wchar_t* t = wcsrchr(str, split);
 
     size_t len = t ? t - str : utf16_length(str);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, str, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -286,7 +286,7 @@ char* str_utils_split_right_get_right_include(const char* str, const char split)
         return str_utils_copy(str);
 
     size_t len = utf8_length(t);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, t, len);
     p[len] = 0;
     return p;
@@ -301,7 +301,7 @@ wchar_t* str_utils_split_right_get_right_include(const wchar_t* str, const wchar
         return str_utils_copy(str);
 
     size_t len = utf16_length(t);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, t, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -316,7 +316,7 @@ char* str_utils_split_right_get_left_include(const char* str, const char split) 
         t++;
 
     size_t len = t ? t - str : utf8_length(str);
-    char* p = force_malloc_s(char, len + 1);
+    char* p = force_malloc<char>(len + 1);
     memcpy(p, str, len);
     p[len] = 0;
     return p;
@@ -331,7 +331,7 @@ wchar_t* str_utils_split_right_get_left_include(const wchar_t* str, const wchar_
         t++;
 
     size_t len = t ? t - str : utf16_length(str);
-    wchar_t* p = force_malloc_s(wchar_t, len + 1);
+    wchar_t* p = force_malloc<wchar_t>(len + 1);
     memcpy(p, str, sizeof(wchar_t) * len);
     p[len] = 0;
     return p;
@@ -373,7 +373,7 @@ char* str_utils_add(const char* str0, const char* str1) {
     if (str0 && str1) {
         size_t str0_len = utf8_length(str0);
         size_t str1_len = utf8_length(str1);
-        char* p = force_malloc_s(char, str0_len + str1_len + 1);
+        char* p = force_malloc<char>(str0_len + str1_len + 1);
         memcpy(p, str0, str0_len + 1);
         memcpy(p + str0_len, str1, str1_len + 1);
         return p;
@@ -390,7 +390,7 @@ wchar_t* str_utils_add(const wchar_t* str0, const wchar_t* str1) {
     if (str0 && str1) {
         size_t str0_len = utf16_length(str0);
         size_t str1_len = utf16_length(str1);
-        wchar_t* p = force_malloc_s(wchar_t, str0_len + str1_len + 1);
+        wchar_t* p = force_malloc<wchar_t>(str0_len + str1_len + 1);
         memcpy(p, str0, sizeof(wchar_t) * (str0_len + 1));
         memcpy(p + str0_len, str1, sizeof(wchar_t) * (str1_len + 1));
         return p;
@@ -408,7 +408,7 @@ char* str_utils_copy(const char* str) {
         return 0;
 
     size_t len = utf8_length(str) + 1;
-    char* p = force_malloc_s(char, len);
+    char* p = force_malloc<char>(len);
     memcpy(p, str, len);
     return p;
 }
@@ -418,7 +418,7 @@ wchar_t* str_utils_copy(const wchar_t* str) {
         return 0;
 
     size_t len = utf16_length(str) + 1;
-    wchar_t* p = force_malloc_s(wchar_t, len);
+    wchar_t* p = force_malloc<wchar_t>(len);
     memcpy(p, str, sizeof(wchar_t) * len);
     return p;
 }
@@ -634,8 +634,8 @@ bool str_utils_text_file_parse(const void* data, size_t size,
 
         lf = false;
         t = d;
-        char* temp_buf = force_malloc_s(char, buf_len);
-        char** temp_lines = force_malloc_s(char*, c);
+        char* temp_buf = force_malloc<char>(buf_len);
+        char** temp_lines = force_malloc<char*>(c);
 
         char* b = temp_buf;
         for (size_t i = 0, j = 0, l = 0, m = 0; j < c; i++) {

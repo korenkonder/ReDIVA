@@ -397,7 +397,7 @@ void render_data::unload() {
 }
 
 void render_data::load_common_data() {
-    float_t* grid_verts = force_malloc_s(float_t, 3 * grid_vertex_count);
+    float_t* grid_verts = force_malloc<float_t>(3 * grid_vertex_count);
 
     size_t v = 0;
     for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {

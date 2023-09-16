@@ -108,7 +108,7 @@ density(), has_linear(), linear_start(), linear_end(), has_color(), color() {
 }
 
 static void light_param_fog_read_inner(light_param_fog* fog, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

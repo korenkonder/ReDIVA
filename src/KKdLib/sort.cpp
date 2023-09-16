@@ -44,7 +44,7 @@ void radix_sort_uint8_t(uint8_t* arr, size_t n) {
         return;
 
     size_t c[RADIX];
-    uint8_t* o = force_malloc_s(uint8_t, n);
+    uint8_t* o = force_malloc<uint8_t>(n);
     uint8_t* org_arr = arr;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint8_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
@@ -91,7 +91,7 @@ void radix_sort_uint16_t(uint16_t* arr, size_t n) {
         return;
 
     size_t c[RADIX];
-    uint16_t* o = force_malloc_s(uint16_t, n);
+    uint16_t* o = force_malloc<uint16_t>(n);
     uint16_t* org_arr = arr;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint16_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
@@ -138,7 +138,7 @@ void radix_sort_uint32_t(uint32_t* arr, size_t n) {
         return;
 
     size_t c[RADIX];
-    uint32_t* o = force_malloc_s(uint32_t, n);
+    uint32_t* o = force_malloc<uint32_t>(n);
     uint32_t* org_arr = arr;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint32_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
@@ -185,7 +185,7 @@ void radix_sort_uint64_t(uint64_t* arr, size_t n) {
         return;
 
     size_t c[RADIX];
-    uint64_t* o = force_malloc_s(uint64_t, n);
+    uint64_t* o = force_malloc<uint64_t>(n);
     uint64_t* org_arr = arr;
 
     for (size_t shift = 0, s = 0; shift < sizeof(uint64_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
@@ -232,7 +232,7 @@ void radix_sort_size_t(size_t* arr, size_t n) {
         return;
 
     size_t c[RADIX];
-    size_t* o = force_malloc_s(size_t, n);
+    size_t* o = force_malloc<size_t>(n);
     size_t* org_arr = arr;
 
     for (size_t shift = 0, s = 0; shift < sizeof(size_t) * 8 / RADIX_BASE; shift++, s += RADIX_BASE) {
@@ -268,7 +268,7 @@ void radix_sort_custom(void* arr, size_t n, size_t size, size_t idx_len, radix_i
         return;
 
     size_t c[RADIX];
-    uint8_t* o = force_malloc_s(uint8_t, size * n);
+    uint8_t* o = force_malloc<uint8_t>(size * n);
     uint8_t* a = (uint8_t*)arr;
     void* org_arr = arr;
 

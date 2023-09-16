@@ -231,7 +231,7 @@ bool OggFile::OpenFile(const char* path, double_t time_seek) {
         if (file)
             goto Reset;
 
-        file = force_malloc_s(OggVorbis_File, 1);
+        file = force_malloc<OggVorbis_File>();
         if (!file)
             goto Reset;
 

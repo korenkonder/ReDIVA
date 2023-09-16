@@ -4420,7 +4420,7 @@ bool x_pv_game::Ctrl() {
                     sprintf_s(file_buf, sizeof(file_buf), "pv826\\pv_826_hand_%d.txt", i);
                     s.open(file_buf, "rb");
                     size_t length = s.length;
-                    uint8_t* data = force_malloc_s(uint8_t, length);
+                    uint8_t* data = force_malloc<uint8_t>(length);
                     s.read(data, length);
                     s.close();
 
@@ -5436,7 +5436,7 @@ static mot_key_set_type mot_write_motion_fit_keys_into_curve(std::vector<float_t
         {
             std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
             frames = 0;
-            values = (*bake_pv826_alloc)->allocate<float_t>(1);
+            values = (*bake_pv826_alloc)->allocate<float_t>();
         }
         memcpy(values, _values.data(), sizeof(float_t));
         break;
@@ -5589,7 +5589,7 @@ static void mot_write_motion(mot_data_bake* bake) {
             key_set_data_x.frames = 0;
             {
                 std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-                key_set_data_x.values = alloc->allocate<float_t>(1);
+                key_set_data_x.values = alloc->allocate<float_t>();
                 key_set_data_x.values[0] = 0.0491406508f;
             }
             key_set_data_x.type = MOT_KEY_SET_STATIC;
@@ -5622,7 +5622,7 @@ static void mot_write_motion(mot_data_bake* bake) {
             key_set_data_y.frames = 0;
             {
                 std::unique_lock<std::mutex> u_lock(*bake_pv826_alloc_mutex);
-                key_set_data_y.values = alloc->allocate<float_t>(1);
+                key_set_data_y.values = alloc->allocate<float_t>();
                 key_set_data_y.values[0] = 0.0331281610f;
             }
             key_set_data_y.type = MOT_KEY_SET_STATIC;
@@ -9555,7 +9555,7 @@ static void x_pv_game_split_auth_3d_material_list(auth_3d_material_list& ml,
         }
     }
 
-    float_t* arr = force_malloc_s(float_t, count);
+    float_t* arr = force_malloc<float_t>(count);
     material_list_color* val = values_src;
 
     const float_t reverse_bias = 0.0001f;

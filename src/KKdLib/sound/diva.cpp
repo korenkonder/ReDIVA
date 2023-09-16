@@ -150,8 +150,8 @@ static bool diva_read_inner(diva* d, stream& s, float_t*& data) {
     size_t ch = d->channels;
     size_t samples_count = d->samples_count;
 
-    data = force_malloc_s(float_t, samples_count * ch);
-    ima_storage* storage = force_malloc_s(ima_storage, ch);
+    data = force_malloc<float_t>(samples_count * ch);
+    ima_storage* storage = force_malloc<ima_storage>(ch);
 
     float_t* temp_data = data;
     for (size_t i = 0; i < samples_count; i++)
@@ -187,7 +187,7 @@ static void diva_write_inner(diva* d, stream& s, float_t* data) {
     size_t ch = d->channels;
     size_t samples_count = d->samples_count;
 
-    ima_storage* storage = force_malloc_s(ima_storage, ch);
+    ima_storage* storage = force_malloc<ima_storage>(ch);
 
     float_t* temp_data = data;
     for (size_t i = 0; i < samples_count; i++)

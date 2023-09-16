@@ -242,7 +242,7 @@ static void aet_set_classic_read_inner(aet_set* as, prj::shared_ptr<prj::stack_a
     aet_scene** scenes = alloc->allocate<aet_scene*>(scenes_count);
     as->scenes = (const aet_scene**)scenes;
 
-    uint32_t* data = force_malloc_s(uint32_t, scenes_count);
+    uint32_t* data = force_malloc<uint32_t>(scenes_count);
     s.set_position(0, SEEK_SET);
     for (uint32_t i = 0; i < scenes_count; i++)
         data[i] = s.read_uint32_t();
@@ -298,7 +298,7 @@ static void aet_set_modern_read_inner(aet_set* as, prj::shared_ptr<prj::stack_al
     aet_scene** scenes = alloc->allocate<aet_scene*>(scenes_count);
     as->scenes = (const aet_scene**)scenes;
 
-    int64_t* data = force_malloc_s(int64_t, scenes_count);
+    int64_t* data = force_malloc<int64_t>(scenes_count);
     s_aetc.set_position(0, SEEK_SET);
     if (!is_x)
         for (uint32_t i = 0; i < scenes_count; i++)

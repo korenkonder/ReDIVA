@@ -64,7 +64,7 @@ void bone_database::read(const char* path, bool modern) {
             file_stream s;
             s.open(path_bin, "rb");
             if (s.check_not_null()) {
-                uint8_t* data = force_malloc_s(uint8_t, s.length);
+                uint8_t* data = force_malloc<uint8_t>(s.length);
                 s.read(data, s.length);
                 memory_stream s_bin;
                 s_bin.open(data, s.length);
@@ -100,7 +100,7 @@ void bone_database::read(const wchar_t* path, bool modern) {
             file_stream s;
             s.open(path_bin, L"rb");
             if (s.check_not_null()) {
-                uint8_t* data = force_malloc_s(uint8_t, s.length);
+                uint8_t* data = force_malloc<uint8_t>(s.length);
                 s.read(data, s.length);
                 memory_stream s_bin;
                 s_bin.open(data, s.length);
@@ -565,7 +565,7 @@ static void bone_database_classic_write_inner(bone_database* bone_data, stream& 
     std::vector<std::string> strings;
     std::vector<int64_t> string_offsets;
 
-    int64_t* skeleton_offsets = force_malloc_s(int64_t, skeleton_count);
+    int64_t* skeleton_offsets = force_malloc<int64_t>(skeleton_count);
 
     for (uint32_t i = 0; i < skeleton_count; i++) {
         bone_database_skeleton* skel = &bone_data->skeleton[i];
@@ -1076,7 +1076,7 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
         s_bone.align_write(0x10);
     }
 
-    bone_database_skeleton_header* skh = force_malloc_s(bone_database_skeleton_header, skeleton_count);
+    bone_database_skeleton_header* skh = force_malloc<bone_database_skeleton_header>(skeleton_count);
 
     if (!is_x)
         for (uint32_t i = 0; i < skeleton_count; i++) {

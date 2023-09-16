@@ -110,7 +110,7 @@ bool stage_param_leaf::load_file(void* data, const char* path, const char* file,
 }
 
 static void stage_param_leaf_read_inner(stage_param_leaf* leaf, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

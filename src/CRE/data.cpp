@@ -918,7 +918,7 @@ static void data_load_inner(stream& s) {
         std::string main_rom_path;
         std::string add_data_rom_path;
 
-        ssize_t* t_len = force_malloc_s(ssize_t, count);
+        ssize_t* t_len = force_malloc<ssize_t>(count);
         if (!t_len) {
             data_free_inner(ds);
             continue;
@@ -1009,7 +1009,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
     file_stream s;
     s.open(path, "rb");
     size_t length = s.length;
-    uint8_t* data = force_malloc_s(uint8_t, length);
+    uint8_t* data = force_malloc<uint8_t>(length);
     s.read(data, length);
     s.close();
 

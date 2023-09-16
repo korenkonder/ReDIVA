@@ -1250,7 +1250,7 @@ namespace Glitter {
         farc f;
         {
             size_t file_len = utf8_length(file);
-            char* temp = force_malloc_s(char, file_len + 5);
+            char* temp = force_malloc<char>(file_len + 5);
             if (!temp)
                 return;
 

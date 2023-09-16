@@ -23,7 +23,7 @@ wchar_t* utf8_to_utf16(const char* s) {
     uint32_t c = 0;
     size_t length = utf8_to_utf16_length(s);
 
-    wchar_t* str = force_malloc_s(wchar_t, length + 1);
+    wchar_t* str = force_malloc<wchar_t>(length + 1);
     if (!str)
         return 0;
 
@@ -78,7 +78,7 @@ wchar_t* utf8_to_utf16(const char* s, size_t length) {
     uint32_t c = 0;
     size_t _length = utf8_to_utf16_length(s);
 
-    wchar_t* str = force_malloc_s(wchar_t, _length + 1);
+    wchar_t* str = force_malloc<wchar_t>(_length + 1);
     if (!str)
         return 0;
 
@@ -134,7 +134,7 @@ char* utf16_to_utf8(const wchar_t* s) {
     uint32_t c = 0;
     size_t length = utf16_to_utf8_length(s);
 
-    char* str = force_malloc_s(char, length + 1);
+    char* str = force_malloc<char>(length + 1);
     if (!str)
         return 0;
 
@@ -186,7 +186,7 @@ char* utf16_to_utf8(const wchar_t* s, size_t length) {
     uint32_t c = 0;
     size_t _length = utf16_to_utf8_length(s);
 
-    char* str = force_malloc_s(char, _length + 1);
+    char* str = force_malloc<char>(_length + 1);
     if (!str)
         return 0;
 

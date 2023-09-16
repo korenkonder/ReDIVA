@@ -153,7 +153,7 @@ texture* texture_txp_load(txp* t, texture_id id) {
         return 0;
 
     int32_t count = t->array_size * t->mipmaps_count;
-    void** data_ptr = force_malloc_s(void*, count);
+    void** data_ptr = force_malloc<void*>(count);
     for (uint32_t i = 0, k = 0; i < t->array_size; i++)
         for (uint32_t j = 0; j < t->mipmaps_count; j++, k++)
             data_ptr[k] = t->mipmaps[k].data.data();
@@ -349,7 +349,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
         return false;
 
     size_t count = t->textures.size();
-    *texs = force_malloc_s(texture*, count + 1);
+    *texs = force_malloc<texture*>(count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
         tex[i] = texture_txp_load(&t->textures[i], texture_id(0, ids[i]));
@@ -362,7 +362,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids) {
         return false;
 
     size_t count = t->textures.size();
-    *texs = force_malloc_s(texture*, count + 1);
+    *texs = force_malloc<texture*>(count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
         tex[i] = texture_txp_load(&t->textures[i], ids[i]);

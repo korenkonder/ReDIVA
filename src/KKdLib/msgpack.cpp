@@ -412,7 +412,7 @@ char* msgpack::read_utf8_string(const char* name) {
     msgpack* m = name ? get_by_name(name) : this;
     if (m && m->type == MSGPACK_STRING) {
         size_t length = m->data.str->size();
-        char* val = force_malloc_s(char, length + 1);
+        char* val = force_malloc<char>(length + 1);
         memcpy(val, m->data.str->c_str(), length);
         val[length] = 0;
         return val;

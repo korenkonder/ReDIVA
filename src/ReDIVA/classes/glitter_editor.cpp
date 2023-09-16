@@ -340,7 +340,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                     *t = 0;
             }
 
-            uint64_t* hashes = force_malloc_s(uint64_t, count);
+            uint64_t* hashes = force_malloc<uint64_t>(count);
             for (size_t i = 0; i < count; i++) {
                 size_t len = utf8_length(lines[i]);
                 hashes[i] = hash_murmurhash(lines[i], min_def(len, 0x7F));
@@ -488,7 +488,7 @@ bool glitter_editor_init(class_data* data, render_context* rctx) {
                 *t = 0;
         }
 
-        uint64_t* hashes = force_malloc_s(uint64_t, count);
+        uint64_t* hashes = force_malloc<uint64_t>(count);
         for (size_t i = 0; i < count; i++) {
             size_t len = utf8_length(lines[i]);
             hashes[i] = hash_murmurhash(lines[i], min_def(len, 0x7F));
@@ -1917,7 +1917,7 @@ static bool glitter_editor_list_open_window(Glitter::EffectGroup* eg) {
         file_stream s;
         s.open(file, L"rb");
         size_t length = s.length;
-        uint8_t* data = force_malloc_s(uint8_t, length);
+        uint8_t* data = force_malloc<uint8_t>(length);
         s.read(data, length);
         s.close();
 
@@ -1933,7 +1933,7 @@ static bool glitter_editor_list_open_window(Glitter::EffectGroup* eg) {
 
             uint64_t empty_hash = eg->type != Glitter::FT
                 ? hash_murmurhash_empty : hash_fnv1a64m_empty;
-            uint64_t* hashes = force_malloc_s(uint64_t, count);
+            uint64_t* hashes = force_malloc<uint64_t>(count);
             if (eg->type != Glitter::FT)
                 for (size_t i = 0; i < count; i++) {
                     size_t len = utf8_length(lines[i]);
@@ -3040,7 +3040,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt, class_data* d
             enum_and(effect->data.flags, ~Glitter::EFFECT_LOCAL);
             if (type == 2 || type == 3) {
                 if (!effect->data.ext_anim)
-                    effect->data.ext_anim = force_malloc_s(Glitter::Effect::ExtAnim, 1);
+                    effect->data.ext_anim = force_malloc<Glitter::Effect::ExtAnim>();
                 if (type == 2)
                     enum_or(effect->data.ext_anim->flags, Glitter::EFFECT_EXT_ANIM_CHARA_ANIM);
                 else

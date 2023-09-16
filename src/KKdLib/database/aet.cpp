@@ -81,7 +81,7 @@ void aet_database_file::read(const char* path, bool modern) {
             file_stream s;
             s.open(path_bin, "rb");
             if (s.check_not_null()) {
-                uint8_t* data = force_malloc_s(uint8_t, s.length);
+                uint8_t* data = force_malloc<uint8_t>(s.length);
                 s.read(data, s.length);
                 memory_stream s_bin;
                 s_bin.open(data, s.length);
@@ -117,7 +117,7 @@ void aet_database_file::read(const wchar_t* path, bool modern) {
             file_stream s;
             s.open(path_bin, L"rb");
             if (s.check_not_null()) {
-                uint8_t* data = force_malloc_s(uint8_t, s.length);
+                uint8_t* data = force_malloc<uint8_t>(s.length);
                 s.read(data, s.length);
                 memory_stream s_bin;
                 s_bin.open(data, s.length);

@@ -125,7 +125,7 @@ bool stage_param_star::load_file(void* data, const char* path, const char* file,
 }
 
 static void stage_param_star_read_inner(stage_param_star* star, stream& s) {
-    char* data = force_malloc_s(char, s.length + 1);
+    char* data = force_malloc<char>(s.length + 1);
     s.read(data, s.length);
     data[s.length] = 0;
 

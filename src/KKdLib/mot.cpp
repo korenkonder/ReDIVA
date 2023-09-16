@@ -357,7 +357,7 @@ static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloc
     ms->mot_num = mot_num;
 
     s.set_position(0x00, SEEK_SET);
-    mot_header_classic* mh = force_malloc_s(mot_header_classic, mot_num);
+    mot_header_classic* mh = force_malloc<mot_header_classic>(mot_num);
     for (uint32_t i = 0; i < mot_num; i++) {
         mh[i].key_set_info_offset = s.read_uint32_t();
         mh[i].key_set_types_offset = s.read_uint32_t();
@@ -410,7 +410,7 @@ static void mot_classic_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloc
             else if (key_set->type == MOT_KEY_SET_STATIC) {
                 key_set->keys_count = 1;
                 key_set->frames = 0;
-                key_set->values = alloc->allocate<float_t>(1);
+                key_set->values = alloc->allocate<float_t>();
                 key_set->values[0] = s.read_float_t();
             }
             else {
@@ -446,7 +446,7 @@ static void mot_classic_write_inner(mot_set* ms, stream& s) {
     uint32_t mot_num = ms->mot_num;
 
     s.set_position(mot_num * 0x10ULL + 0x10, SEEK_SET);
-    mot_header_classic* mh = force_malloc_s(mot_header_classic, mot_num);
+    mot_header_classic* mh = force_malloc<mot_header_classic>(mot_num);
     for (size_t i = 0; i < mot_num; i++) {
         ::mot_data* m = &mot_data[i];
 
@@ -622,7 +622,7 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
         else if (key_set->type == MOT_KEY_SET_STATIC) {
             key_set->keys_count = 1;
             key_set->frames = 0;
-            key_set->values = alloc->allocate<float_t>(1);
+            key_set->values = alloc->allocate<float_t>();
             key_set->values[0] = s.read_float_t();
         }
         else {
@@ -876,7 +876,7 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
 
         mot_bone_info* bone_info_array = m->bone_info_array;
 
-        size_t* bone_info_offsets = force_malloc_s(size_t, bone_info_count);
+        size_t* bone_info_offsets = force_malloc<size_t>(bone_info_count);
         mh.bone_info_offset = s_motc.get_position();
         if (!is_x)
             for (int32_t j = 0; j < bone_info_count; j++)

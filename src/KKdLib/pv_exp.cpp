@@ -138,7 +138,7 @@ static void pv_exp_classic_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_al
     int64_t motion_offsets_offset = s.read_int32_t();
     int64_t name_offsets_offset = s.read_uint32_t();
 
-    int64_t* offsets = force_malloc_s(int64_t, motion_num * 3ULL);
+    int64_t* offsets = force_malloc<int64_t>(motion_num * 3ULL);
     int64_t* face_offset = offsets;
     int64_t* face_cl_offset = offsets + motion_num;
     int64_t* name_offset = offsets + motion_num * 2ULL;
@@ -238,7 +238,7 @@ static void pv_exp_classic_write_inner(pv_exp* exp, stream& s) {
     }
     s.align_write(0x20);
 
-    int64_t* offsets = force_malloc_s(int64_t, motion_num * 3ULL);
+    int64_t* offsets = force_malloc<int64_t>(motion_num * 3ULL);
     int64_t* face_offset = offsets;
     int64_t* face_cl_offset = offsets + motion_num;
     int64_t* name_offset = offsets + motion_num * 2ULL;
@@ -327,7 +327,7 @@ static void pv_exp_modern_read_inner(pv_exp* exp, prj::shared_ptr<prj::stack_all
         name_offsets_offset = (int)s.read_offset_x();
     }
 
-    int64_t* offsets = force_malloc_s(int64_t, motion_num * 3ULL);
+    int64_t* offsets = force_malloc<int64_t>(motion_num * 3ULL);
     int64_t* face_offset = offsets;
     int64_t* face_cl_offset = offsets + motion_num;
     int64_t* name_offset = offsets + motion_num * 2ULL;
@@ -450,7 +450,7 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
         }
     s_expc.align_write(0x20);
 
-    int64_t* offsets = force_malloc_s(int64_t, motion_num * 3ULL);
+    int64_t* offsets = force_malloc<int64_t>(motion_num * 3ULL);
     int64_t* face_offset = offsets;
     int64_t* face_cl_offset = offsets + motion_num;
     int64_t* name_offset = offsets + motion_num * 2ULL;

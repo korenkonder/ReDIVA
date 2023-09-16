@@ -753,7 +753,7 @@ namespace Glitter {
             || eff_group->resources_count != count)
             return false;
 
-        texture_id* ids = force_malloc_s(texture_id, count);
+        texture_id* ids = force_malloc<texture_id>(count);
         for (size_t i = 0; i < count; i++) {
             ids[i] = texture_id(0x2A, GPM_VAL->texture_counter);
             GPM_VAL->texture_counter++;
@@ -909,7 +909,7 @@ namespace Glitter {
             if (type == 1)
                 enum_or(eff->data.flags, EFFECT_LOCAL);
             else if (type == 2) {
-                Effect::ExtAnimX* ext_anim_x = force_malloc_s(Effect::ExtAnimX, 1);
+                Effect::ExtAnimX* ext_anim_x = force_malloc<Effect::ExtAnimX>();
                 eff->data.ext_anim_x = ext_anim_x;
                 if (ext_anim_x) {
                     if (big_endian) {
@@ -930,7 +930,7 @@ namespace Glitter {
             }
             else if (type == 3) {
                 if (eff->version == 8) {
-                    Effect::ExtAnimX* ext_anim_x = force_malloc_s(Effect::ExtAnimX, 1);
+                    Effect::ExtAnimX* ext_anim_x = force_malloc<Effect::ExtAnimX>();
                     eff->data.ext_anim_x = ext_anim_x;
                     if (ext_anim_x) {
                         if (big_endian) {
@@ -955,7 +955,7 @@ namespace Glitter {
                     }
                 }
                 else if (eff->version == 10) {
-                    Effect::ExtAnimX* ext_anim_x = force_malloc_s(Effect::ExtAnimX, 1);
+                    Effect::ExtAnimX* ext_anim_x = force_malloc<Effect::ExtAnimX>();
                     eff->data.ext_anim_x = ext_anim_x;
                     if (ext_anim_x) {
                         if (big_endian) {
@@ -980,7 +980,7 @@ namespace Glitter {
                     }
                 }
                 else {
-                    Effect::ExtAnimX* ext_anim_x = force_malloc_s(Effect::ExtAnimX, 1);
+                    Effect::ExtAnimX* ext_anim_x = force_malloc<Effect::ExtAnimX>();
                     eff->data.ext_anim_x = ext_anim_x;
                     if (ext_anim_x) {
                         if (big_endian) {
@@ -1079,7 +1079,7 @@ namespace Glitter {
             if (type == 1)
                 enum_or(eff->data.flags, EFFECT_LOCAL);
             else if (type == 2) {
-                Effect::ExtAnim* ext_anim = force_malloc_s(Effect::ExtAnim, 1);
+                Effect::ExtAnim* ext_anim = force_malloc<Effect::ExtAnim>();
                 eff->data.ext_anim = ext_anim;
                 if (ext_anim) {
                     if (big_endian) {
@@ -1099,7 +1099,7 @@ namespace Glitter {
                 }
             }
             else if (type == 3) {
-                Effect::ExtAnim* ext_anim = force_malloc_s(Effect::ExtAnim, 1);
+                Effect::ExtAnim* ext_anim = force_malloc<Effect::ExtAnim>();
                 eff->data.ext_anim = ext_anim;
                 if (ext_anim) {
                     if (big_endian) {
