@@ -908,18 +908,18 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         rob_chr = playdata->rob_chr;
 
         int32_t v171 = (int32_t)data[1];
-        int32_t v172 = (int32_t)data[2];
+        int32_t duration_int = (int32_t)data[2];
         int32_t v173 = (int32_t)data[3];
-        int32_t v174 = (int32_t)data[4];
+        int32_t blend_int = (int32_t)data[4];
 
-        float_t v175;
-        if (v172 != -1) {
-            v175 = (float_t)v172 * 0.001f * 60.0f;
-            if (v175 < 0.0f)
-                v175 = 0.0f;
+        float_t duration;
+        if (duration_int != -1) {
+            duration = (float_t)duration_int * 0.001f * 60.0f;
+            if (duration < 0.0f)
+                duration = 0.0f;
         }
         else
-            v175 = 0.0f;
+            duration = 0.0f;
 
         float_t v176;
         if (v173 != -1) {
@@ -929,20 +929,20 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         else
             v176 = 1.0f;
 
-        float_t v177;
-        if (v174 != -1) {
-            v177 = (float_t)v174 * 0.001f;
-            v177 = clamp_def(v177, 0.0f, 1.0f);
+        float_t blend;
+        if (blend_int != -1) {
+            blend = (float_t)blend_int * 0.001f;
+            blend = clamp_def(blend, 0.0f, 1.0f);
         }
         else
-            v177 = 1.0f;
+            blend = 1.0f;
 
         if (rob_chr) {
             field_2BFD4 = v171 == 1;
             if (pv_game->data.pv->is_old_pv)
-                rob_chr->sub_1405547E0(field_2BFD4, v176, v177, v175 / anim_frame_speed, 0.25f, 2.0f);
+                rob_chr->set_look_camera_old(field_2BFD4, v176, blend, duration / anim_frame_speed, 0.25f, 2.0f);
             else
-                rob_chr->sub_140554790(field_2BFD4, v176, v177, v175 / anim_frame_speed, 0.25f, 2.0f);
+                rob_chr->set_look_camera_new(field_2BFD4, v176, blend, duration / anim_frame_speed, 0.25f, 2.0f);
         }
     } break;
     case DSC_FT_LYRIC: {
@@ -1376,9 +1376,9 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             v360, v13, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
 
         if (pv_game->data.pv->is_old_pv)
-            rob_chr->sub_1405547E0(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
+            rob_chr->set_look_camera_old(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
         else
-            rob_chr->sub_140554790(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
+            rob_chr->set_look_camera_new(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
     } break;
     case DSC_FT_EDIT_ITEM: {
         int32_t index = (int32_t)data[0];

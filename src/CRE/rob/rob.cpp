@@ -801,7 +801,7 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
     const std::vector<bone_database_bone>* bones, const vec3* common_translation, const vec3* translation);
 static void bone_data_parent_load_rob_chara(bone_data_parent* bone);
 
-static void mot_blend_interpolate(mot_blend* a1, std::vector<bone_data>* bones,
+static void mot_blend_interpolate(mot_blend* a1, std::vector<bone_data>& bones,
     std::vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type);
 static void mot_blend_load_motion(mot_blend* a1, uint32_t motion_id, const motion_database* mot_db);
 static void mot_blend_set_blend_duration(mot_blend* a1, float_t duration, float_t step, float_t offset);
@@ -1049,7 +1049,7 @@ static void rob_chara_bone_data_get_ik_scale(
 static mat4* rob_chara_bone_data_get_mat(rob_chara_bone_data* rob_bone_data, size_t index);
 static bone_node* rob_chara_bone_data_get_node(rob_chara_bone_data* rob_bone_data, size_t index);
 static void rob_chara_bone_data_ik_scale_calculate(
-    rob_chara_bone_data_ik_scale* ik_scale, std::vector<bone_data>* bones,
+    rob_chara_bone_data_ik_scale* ik_scale, std::vector<bone_data>& bones,
     bone_database_skeleton_type base_skeleton_type,
     bone_database_skeleton_type skeleton_type, const bone_database* bone_data);
 static void rob_chara_bone_data_init_data(rob_chara_bone_data* rob_bone_data,
@@ -4184,6 +4184,46 @@ void rob_chara::set_left_hand_scale(float_t value) {
     data.adjust_data.left_hand_scale = value;
 }
 
+static void sub_14041C950(rob_chara_bone_data* rob_bone_data, bool a2, bool a3,
+    float_t a4, float_t blend, float_t duration, float_t a7, float_t a8, bool a9) {
+    rob_chara_bone_data_look_anim* look_anim = &rob_bone_data->look_anim;
+
+    if (!look_anim->field_8E && a3)
+        look_anim->field_8D = true;
+    look_anim->field_8C = a2;
+    look_anim->field_8E = a3;
+    if (!look_anim->field_90 && a3)
+        look_anim->field_8F = true;
+    look_anim->field_90 = a3;
+    look_anim->field_94 = a4 >= 0.0f ? a4 : 1.0f;
+    look_anim->blend = blend >= 0.0f ? blend : 1.0f;
+    look_anim->field_9C = a7 >= 0.0f ? a7 : 1.0f;
+    look_anim->duration = (a3 && !look_anim->field_8E || !a3 && look_anim->field_8E)
+        && duration >= 0.0f ? duration : 0.0f;
+    look_anim->field_A4 = 0.0f;
+    look_anim->step = 1.0f;
+    look_anim->curr_time = 0.0f;
+    look_anim->field_B0 = a8;
+    look_anim->field_1C4 = a9;
+}
+
+void rob_chara::set_look_camera(bool a2, bool a3, float_t a4,
+    float_t blend, float_t duration, float_t a7, float_t a8, bool a9) {
+    sub_14041C950(bone_data, a2, a3, a4, blend, duration, a7, a8, a9);
+    if (fabsf(duration) <= 0.000001f)
+        data.field_2 |= 0x80;
+}
+
+void rob_chara::set_look_camera_new(bool a2, float_t a3,
+    float_t blend, float_t duration, float_t a7, float_t a8) {
+    set_look_camera(true, a2, a3, blend, duration, a7, a8, false);
+}
+
+void rob_chara::set_look_camera_old(bool a2, float_t a3,
+    float_t blend, float_t duration, float_t a7, float_t a8) {
+    set_look_camera(true, a2, a3, blend, duration, a7, a8, true);
+}
+
 bool rob_chara::set_motion_id(uint32_t motion_id,
     float_t frame, float_t blend_duration, bool blend, bool set_motion_reset_data,
     MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db) {
@@ -4341,9 +4381,6 @@ void rob_chara::set_visibility(bool value) {
 void rob_chara::set_wind_strength(float_t value) {
     item_equip->wind_strength = value;
 }
-
-static void sub_140554830(rob_chara* rob_chr, uint8_t a2, uint8_t a3,
-    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, bool a9);
 
 static bool sub_140413710(mot_play_data* a1) {
     if (a1->loop_frames_enabled)
@@ -4696,14 +4733,6 @@ void rob_chara::rob_info_ctrl() {
 void rob_chara::sub_140551000() {
     struc_223* v1 = &data.field_1588;
     v1->field_330.field_0.current = v1->field_330.field_0.data;
-}
-
-void rob_chara::sub_140554790(bool a2, float_t a3, float_t a5, float_t a6, float_t a7, float_t a8) {
-    sub_140554830(this, true, a2, a3, a5, a6, a7, a8, false);
-}
-
-void rob_chara::sub_1405547E0(bool a2, float_t a3, float_t a5, float_t a6, float_t a7, float_t a8) {
-    sub_140554830(this, true, a2, a3, a5, a6, a7, a8, false);
 }
 
 pv_data_set_motion::pv_data_set_motion() : frame_stage_index() {
@@ -5422,16 +5451,15 @@ static bool sub_140410250(struc_313* a1, size_t a2) {
     return !!(a1->bitfield.data()[a2 >> 5] & (1 << (a2 & 0x1F)));
 }
 
-static void mot_blend_interpolate(mot_blend* a1, std::vector<bone_data>* bones,
+static void mot_blend_interpolate(mot_blend* a1, std::vector<bone_data>& bones,
     std::vector<uint16_t>* bone_indices, bone_database_skeleton_type skeleton_type) {
     if (!a1->mot_key_data.key_sets_ready || !a1->mot_key_data.mot_data || a1->field_30)
         return;
 
     float_t frame = a1->mot_play_data.frame_data.frame;
     vec3* keyframe_data = (vec3*)a1->mot_key_data.key_set_data.data();
-    bone_data* bones_data = bones->data();
     for (uint16_t& i : *bone_indices) {
-        bone_data* data = &bones_data[i];
+        bone_data* data = &bones[i];
         bool get_data = sub_140410250(&a1->field_0.field_8, data->motion_bone_index);
         if (get_data) {
             mot_key_data_interpolate(&a1->mot_key_data, frame, data->key_set_offset, data->key_set_count);
@@ -6471,7 +6499,7 @@ static void rob_chara_set_head_object(rob_chara* rob_chr, int32_t head_object_id
     rob_chara_set_face_motion_id(rob_chr, -1, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
     rob_chara_set_eyelid_motion_id(rob_chr, -1, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
     rob_chara_set_eyes_motion_id(rob_chr, -1, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, mot_db);
-    rob_chr->bone_data->field_788.field_91 = true;
+    rob_chr->bone_data->look_anim.field_91 = true;
 }
 
 static void mothead_func_59_set_rob_chara_head_object(mothead_func_data* func_data,
@@ -6479,39 +6507,9 @@ static void mothead_func_59_set_rob_chara_head_object(mothead_func_data* func_da
     rob_chara_set_head_object(func_data->rob_chr, ((int32_t*)data)[0], mot_db);
 }
 
-static void sub_14041C950(rob_chara_bone_data* rob_bone_data, bool a2, bool a3,
-    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, bool a9) {
-    struc_258* v11 = &rob_bone_data->field_788;
-    bool v10 = !v11->field_8E && a3 || !a3 && v11->field_8E;
-
-    v11->field_8C = a2;
-    if (!v11->field_8E && a3)
-        v11->field_8D = 1;
-    v11->field_8E = a3;
-    if (!v11->field_90 && a3)
-        v11->field_8F = 1;
-    v11->field_90 = a3;
-    v11->field_94 = a4 < 0.0f ? 1.0f : a4;
-    v11->field_98 = a5 < 0.0f ? 1.0f : a5;
-    v11->field_9C = a7 < 0.0f ? 1.0f : a7;
-    v11->field_A0 = a6 < 0.0f ? 1.0f : a6;
-    v11->field_A4 = 0.0f;
-    v11->field_A8 = 1.0f;
-    v11->field_AC = 0.0f;
-    v11->field_B0 = a8;
-    v11->field_1C4 = a9;
-}
-
-static void sub_140554830(rob_chara* rob_chr, uint8_t a2, uint8_t a3,
-    float_t a4, float_t a5, float_t a6, float_t a7, float_t a8, bool a9) {
-    sub_14041C950(rob_chr->bone_data, a2, a3, a4, a5, a6, a7, a8, a9);
-    if (fabsf(a6) <= 0.000001f)
-        rob_chr->data.field_2 |= 0x80;
-}
-
 static void mothead_func_60(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    sub_140554830(func_data->rob_chr, 1, ((int32_t*)data)[0] != 0,
+    func_data->rob_chr->set_look_camera(true, ((int32_t*)data)[0] != 0,
         ((float_t*)data)[1], ((float_t*)data)[2], ((float_t*)data)[3] * 6.0f, 0.25f, 0.0f, false);
 }
 
@@ -8109,7 +8107,7 @@ static void sub_140504710(rob_chara* rob_chr, const motion_database* mot_db,
 
     bool v11 = v8 == v9 || v8 == v10;
     rob_chr->bone_data->eyes.field_30 = v11;
-    rob_chr->bone_data->field_788.field_91 = v11;
+    rob_chr->bone_data->look_anim.field_91 = v11;
 
     object_info v12 = sub_140550350(rob_chr);
     if (rob_chara_get_object_info(rob_chr, ITEM_TE_L) != v12)
@@ -8316,102 +8314,80 @@ static void rob_disp_rob_chara_free(rob_chara* rob_chr) {
 }
 
 static bool sub_14041A010(rob_chara_bone_data* rob_bone_data) {
-    float_t v1 = rob_bone_data->field_788.field_A0;
-    if (v1 > 0.0f) {
-        float_t v3 = rob_bone_data->field_788.field_A4;
-        if (v1 > v3 && fabsf(v1 - v3) > 0.000001f)
+    float_t duration = rob_bone_data->look_anim.duration;
+    if (duration > 0.0f) {
+        float_t v3 = rob_bone_data->look_anim.field_A4;
+        if (duration > v3 && fabsf(duration - v3) > 0.000001f)
             return true;
     }
-    return rob_bone_data->field_788.field_8E;
+    return rob_bone_data->look_anim.field_8E;
 }
 
 static bool sub_140419F90(rob_chara_bone_data* rob_bone_data) {
-    if (rob_bone_data->field_788.field_8E)
-        return rob_bone_data->field_788.field_94 > 0.0f;
+    if (rob_bone_data->look_anim.field_8E)
+        return rob_bone_data->look_anim.field_94 > 0.0f;
     return false;
 }
 
 static bool sub_140419F00(rob_chara_bone_data* rob_bone_data) {
-    if (rob_bone_data->field_788.field_14C)
-        return fabsf(rob_bone_data->field_788.field_150) > 0.000001f;
+    if (rob_bone_data->look_anim.field_14C)
+        return fabsf(rob_bone_data->look_anim.field_150) > 0.000001f;
     return false;
 }
 
-static void sub_140409B70(struc_258* a1, vec3* a2, mat4* a3, bool a4) {
-    if (a2) {
-        a1->field_190 = true;
-        a1->field_191 = a4;
-        a1->field_192 = a4;
-        a1->field_193 = a4;
-        a1->field_194 = a4;
-        a1->field_195 = a4;
-
-        if (a4 && a1->field_A0 > 0.0f && a1->field_A0 > a1->field_AC
-            && fabsf(a1->field_A0 - a1->field_AC) > 0.000001f) {
-            a1->field_AC += a1->field_A8;
-            a1->field_198 = (a1->field_AC + 1.0f) / (a1->field_A0 + 1.0f);
+static void sub_140409B70(rob_chara_bone_data_look_anim* look_anim,
+    vec3* target_view_point, mat4* adjust_mat, bool a4) {
+    if (target_view_point) {
+        look_anim->field_191 = a4;
+        if (a4 && look_anim->duration > 0.0f
+            && look_anim->duration > look_anim->curr_time
+            && fabsf(look_anim->duration - look_anim->curr_time) > 0.000001f) {
+            look_anim->curr_time += look_anim->step;
+            look_anim->field_198 = (look_anim->curr_time + 1.0f) / (look_anim->duration + 1.0f);
         }
         else {
-            a1->field_191 = false;
-            a1->field_198 = 1.0f;
+            look_anim->field_191 = false;
+            look_anim->field_198 = 1.0f;
         }
+
+        look_anim->field_190 = true;
 
         mat4 mat;
-        mat4_inverse(a3, &mat);
+        mat4_inverse(adjust_mat, &mat);
 
         vec3 v24;
-        mat4_mult_vec3_trans(&mat, a2, &v24);
+        mat4_mult_vec3_trans(&mat, target_view_point, &v24);
 
-        float_t v12 = v24.x - 0.05f;
-        if (a1->field_184.x >= v12) {
-            v12 = v24.x + 0.05f;
-            if (a1->field_184.x <= v12)
-                v12 = a1->field_184.x;
-        }
-        a1->field_184.x = v12;
+        look_anim->field_184 = vec3::clamp(look_anim->field_184, v24 - 0.05f, v24 + 0.05f);
 
-        float_t v15 = v24.y - 0.05f;
-        if (a1->field_184.y >= v15) {
-            v15 = v24.y + 0.05f;
-            if (a1->field_184.y <= v15)
-                v15 = a1->field_184.y;
-        }
-        a1->field_184.y = v15;
-
-        float_t v18 = v24.z - 0.05f;
-        if (a1->field_184.z >= v18) {
-            v18 = v24.z + 0.05f;
-            if (a1->field_184.z <= v18)
-                v18 = a1->field_184.z;
-        }
-        a1->field_184.z = v18;
+        look_anim->field_192 = a4;
+        look_anim->field_193 = a4;
+        look_anim->field_194 = a4;
+        look_anim->field_195 = a4;
     }
     else {
-        if (!a1->field_190 && !a1->field_191) {
-            a4 = false;
-            a1->field_198 = 0.0f;
-        }
-        else if (a4 && a1->field_A0 > 0.0f && a1->field_A0 > a1->field_AC
-            && fabsf(a1->field_A0 - a1->field_AC) > 0.000001f) {
-            a1->field_AC += a1->field_A8;
-            a1->field_198 = 1.0f - (a1->field_AC + 1.0f) / (a1->field_A0 + 1.0f);
+        if ((look_anim->field_190 || look_anim->field_191)
+            && (look_anim->field_191 = a4)
+            && (look_anim->duration > 0.0f)
+            && (look_anim->duration > look_anim->curr_time)
+            && fabsf(look_anim->duration - look_anim->curr_time) > 0.000001f) {
+            look_anim->curr_time += look_anim->step;
+            look_anim->field_198 = 1.0f - (look_anim->curr_time + 1.0f) / (look_anim->duration + 1.0f);
         }
         else {
-            a1->field_191 = false;
-            a1->field_198 = 0.0f;
+            look_anim->field_191 = false;
+            look_anim->field_198 = 0.0f;
         }
 
-        a1->field_190 = false;
-        a1->field_191 = a4;
-        a1->field_192 = false;
-        a1->field_193 = false;
-        a1->field_194 = false;
-        a1->field_195 = false;
+        look_anim->field_190 = false;
+        look_anim->field_192 = false;
+        look_anim->field_193 = false;
     }
 }
 
-static void sub_14041C620(rob_chara_bone_data* rob_bone_data, vec3* a2, mat4* a3, bool a4) {
-    sub_140409B70(&rob_bone_data->field_788, a2, a3, a4);
+static void sub_14041C620(rob_chara_bone_data* rob_bone_data,
+    vec3* target_view_point, mat4* adjust_mat, bool a4) {
+    sub_140409B70(&rob_bone_data->look_anim, target_view_point, adjust_mat, a4);
 }
 
 static float_t sub_14040ADE0(float_t a1, float_t a2) {
@@ -8423,469 +8399,411 @@ static float_t sub_14040ADE0(float_t a1, float_t a2) {
     return v1;
 }
 
-static void sub_140407280(struc_258* a1, std::vector<bone_data>* a2, mat4* mat, float_t step) {
-    bone_data* v7 = a2->data();
-
+static void sub_140407280(rob_chara_bone_data_look_anim* look_anim, std::vector<bone_data>& bones, mat4* mat, float_t step) {
     vec3 v69;
-    mat4_get_translation(v7[MOTION_BONE_CL_KAO].node[2].mat, &v69);
-    if (!a1->field_190 && !a1->field_191)
+    mat4_get_translation(bones[MOTION_BONE_CL_KAO].node[2].mat, &v69);
+    if (!look_anim->field_190 && !look_anim->field_191)
         return;
 
     float_t v14 = step * 0.25f;
-    float_t v15 = a1->field_15C.field_8;
-    float_t v18 = -v15;
-    float_t v16 = a1->field_15C.field_C;
-    mat4* v19 = v7[MOTION_BONE_C_KATA_R].node->mat;
-    mat4* v20 = v7[MOTION_BONE_C_KATA_L].node->mat;
-    float_t v21 = v19->row3.x - v20->row3.x;
-    float_t v22 = v19->row3.z - v20->row3.z;
-    mat4* v73 = v7[MOTION_BONE_N_KAO].node->mat;
-    float_t v23 = atan2f(v73->row0.x, v73->row0.z);
-    float_t v24 = atan2f(v21, v22);
+    float_t v15 = look_anim->field_15C.field_8;
+    float_t v16 = look_anim->field_15C.field_C;
+    mat4* c_kata_r_mat = bones[MOTION_BONE_C_KATA_R].node->mat;
+    mat4* c_kata_l_mat = bones[MOTION_BONE_C_KATA_L].node->mat;
+    mat4* n_kao_mat = bones[MOTION_BONE_N_KAO].node->mat;
+
+    float_t v23 = atan2f(n_kao_mat->row0.x, n_kao_mat->row2.x);
+    float_t v24 = atan2f(c_kata_r_mat->row3.x - c_kata_l_mat->row3.x, c_kata_r_mat->row3.z - c_kata_l_mat->row3.z);
     float_t v25 = sub_14040ADE0(v24, v23);
+
+    float_t v18 = -v15;
     if (v25 < 0.0f)
-        v15 = v25 + v15;
+        v15 = v15 + v25;
     else if (v25 > 0.0f)
         v18 = v25 - v15;
 
     vec3 v67;
-    mat4_mult_vec3_inv_trans(v73, &a1->field_184, &v67);
-
-    if (vec3::length(v67) < 0.000001f)
+    mat4_mult_vec3_inv_trans(n_kao_mat, &look_anim->field_184, &v67);
+    if (fabsf(vec3::length(v67)) <= 0.000001f)
         return;
 
     vec3 v68;
-    mat4_mult_vec3_inv_trans(v73, &v69, &v68);
-
+    mat4_mult_vec3_inv_trans(n_kao_mat, &v69, &v68);
     float_t v28 = vec3::length(v68);
-    if (v28 < 0.000001f)
+    if (fabsf(v28) <= 0.000001f)
         return;
 
-    v67 = vec3::normalize(v67);
-    v68 = v67 * v28;
-    float_t v39 = vec2::length(*(vec2*)&v67);
+    v67 = vec3::normalize(v67) * v28;
 
-    float_t v38;
-    if (a1->field_1C8 == 3)
-        v38 = (float_t)(75.0 * DEG_TO_RAD) - (float_t)(30.0 * DEG_TO_RAD);
-    else
-        v38 = (float_t)(75.0 * DEG_TO_RAD);
-
-    float_t v31 = vec3::length(v67);
+    float_t v38 = (float_t)(75.0 * DEG_TO_RAD);
+    if (look_anim->field_1C8 == 3)
+        v38 -= (float_t)(30.0 * DEG_TO_RAD);
 
     bool v36;
     float_t v40;
-    if (v39 >= v31 * cosf(v38)) {
+    if (vec2::length(*(vec2*)&v67) >= vec3::length(v67) * cosf(v38)) {
         v40 = atan2f(-v67.x, v67.y);
         v36 = false;
     }
     else {
-        v40 = a1->field_19C;
+        v40 = look_anim->field_19C;
         v36 = true;
     }
 
     float_t v42 = v40;
-    if (a1->field_190) {
-        if (a1->field_1C8 == 3)
+    if (look_anim->field_190) {
+        if (look_anim->field_1C8 == 3)
             v16 -= (float_t)(100.0 * DEG_TO_RAD);
 
         if (v36 || v40 > v16 || v40 < -v16) {
             v40 = 0.0f;
             v14 *= 0.5f;
-            a1->field_1C8 = 3;
+            look_anim->field_1C8 = 3;
         }
         else if (v40 > v15) {
             v40 = v15;
-            a1->field_1C8 = 2;
             v14 *= 0.5f;
+            look_anim->field_1C8 = 2;
         }
         else if (v40 < v18) {
             v40 = v18;
             v14 *= 0.5f;
-            a1->field_1C8 = 1;
+            look_anim->field_1C8 = 1;
         }
         else
-            return;
+            look_anim->field_1C8 = 0;
     }
     else
-        a1->field_1C8 = 0;
+        look_anim->field_1C8 = 0;
 
-    int32_t v43 = a1->field_1C8;
-    float_t v44 = a1->field_94;
-    if (v43 != 3 && a1->field_14C) {
-        if (!v43)
+    float_t v44 = look_anim->field_94;
+    if (look_anim->field_1C8 != 3 && look_anim->field_14C){
+        if (!look_anim->field_1C8)
             v14 *= 0.5f;
 
-        float_t v45 = a1->field_154;
-        if (fabsf(a1->field_154) <= 0.000001f) {
-            if (v40 >= 0.0f) {
-                v40 = v40 + -(float_t)(50.0 * DEG_TO_RAD);
-                if (v40 < v18)
-                    v40 = v18;
+        float_t v45 = look_anim->field_154;
+        if (fabsf(look_anim->field_154) > 0.000001f) {
+            float_t v46;
+            if (v45 >= 0.0f) {
+                v46 = v40 + (float_t)(50.0 * DEG_TO_RAD);
+                if (v46 > v15)
+                    v46 = v15;
+
+                float_t v47 = v40 - (float_t)(50.0 * DEG_TO_RAD);
+                if (v47 < v18)
+                    v47 = v18;
+
+                if (v46 < v45) {
+                    if (v42 < (float_t)(-70.0 * DEG_TO_RAD)) {
+                        v46 = 0.0f;
+                        look_anim->field_1C8 = 3;
+                    }
+                    else
+                        v46 = look_anim->field_154;
+                }
+                else if (v46 - (float_t)(30.0 * DEG_TO_RAD) < v40)
+                    v46 = v47;
             }
             else {
-                v40 = v40 + (float_t)(50.0 * DEG_TO_RAD);
-                if (v40 > v15)
-                    v40 = v15;
-            }
-        }
-        else if (v45 >= 0.0f) {
-            float_t v46 = v40 + (float_t)(50.0 * DEG_TO_RAD);
-            if (v46 > v15)
-                v46 = v15;
+                v46 = v40 - (float_t)(50.0 * DEG_TO_RAD);
+                if (v46 < v18)
+                    v46 = v18;
 
-            float_t v47 = v40 - (float_t)(50.0 * DEG_TO_RAD);
-            if (v47 < v18)
-                v47 = v18;
+                float_t v47 = v40 + (float_t)(50.0 * DEG_TO_RAD);
+                if (v47 > v15)
+                    v47 = v15;
 
-            if (v40 + (float_t)(50.0 * DEG_TO_RAD) < v45) {
-                if (v42 < (float_t)(-700.0 * DEG_TO_RAD)) {
-                    a1->field_1C8 = 3;
-                    v46 = 0.0f;
+                if (v46 > v45) {
+                    if (v42 > (float_t)(70.0 * DEG_TO_RAD)) {
+                        v46 = 0.0f;
+                        look_anim->field_1C8 = 3;
+                    }
+                    else
+                        v46 = look_anim->field_154;
                 }
-                else
-                    v46 = a1->field_154;
-
-                v40 = v46;
+                else if (v46 + (float_t)(30.0 * DEG_TO_RAD) > v40)
+                    v46 = v47;
             }
-            else if (v46 - (float_t)(30.0 * DEG_TO_RAD) >= v40)
-                v40 = v46;
-            else
-                v40 = v47;
+            v40 = v46;
+        }
+        else if (v40 >= 0.0f) {
+            v40 += (float_t)(-50.0 * DEG_TO_RAD);
+            if (v40 < v18)
+                v40 = v18;
         }
         else {
-            float_t v46 = v40 - (float_t)(50.0 * DEG_TO_RAD);
-            if (v40 - (float_t)(50.0 * DEG_TO_RAD) < v18)
-                v46 = v18;
-
-            float_t v47 = v40 + (float_t)(50.0 * DEG_TO_RAD);
-            if (v40 + (float_t)(50.0 * DEG_TO_RAD) > v15)
-                v47 = v15;
-
-            if (v40 - (float_t)(50.0 * DEG_TO_RAD) > v45) {
-                if (v42 > (float_t)(70.0 * DEG_TO_RAD)) {
-                    a1->field_1C8 = 3;
-                    v46 = 0.0f;
-                }
-                else
-                    v46 = a1->field_154;
-                v40 = v46;
-            }
-            else if (v46 + (float_t)(30.0 * DEG_TO_RAD) <= v40)
-                v40 = v46;
-            else
-                v40 = v47;
+            v40 += (float_t)(50.0 * DEG_TO_RAD);
+            if (v40 > v15)
+                v40 = v15;
         }
 
-        v44 = a1->field_150;
-        a1->field_154 = v40;
+        v44 = look_anim->field_150;
+        look_anim->field_154 = v40;
     }
     else
-        a1->field_154 = 0.0f;
+        look_anim->field_154 = 0.0f;
 
     float_t v48 = v40 * v44;
     float_t v49 = v48;
-    if (a1->field_191) {
-        a1->field_19C = v48;
-        if (!a1->field_190)
-            v48 = a1->field_1AC;
-        else
-            a1->field_1AC = v48;
+    if (!look_anim->field_191) {
+        if (look_anim->field_192)
+            v48 = sub_14040ADE0(v48, look_anim->field_19C) * v14 + look_anim->field_19C;
+        look_anim->field_19C = v48;
+        look_anim->field_1AC = v48;
+    }
+    else if (look_anim->field_190) {
+        look_anim->field_19C = v48;
+        look_anim->field_1AC = v48;
     }
     else {
-        if (a1->field_192)
-            v48 = sub_14040ADE0(v48, a1->field_19C) * v14 + a1->field_19C;
-        a1->field_19C = v48;
-        a1->field_1AC = v48;
+        look_anim->field_19C = v48;
+        v48 = look_anim->field_1AC;
     }
 
-    float_t v51 = (v48 - atan2f(-v68.x, v68.y)) * a1->field_198;
-    vec3 v71 = *(vec3*)&v73->row2;
-    v71.y += 1.0f;
-    v71 *= 0.5f;
+    float_t v51 = (v48 - atan2f(-v68.x, v68.y)) * look_anim->field_198;
+    mat4 v72 = *bones[MOTION_BONE_CL_KAO].node[1].mat;
+    vec3 v71;
+    v71.x = n_kao_mat->row2.x * 0.5f;
+    v71.y = (n_kao_mat->row2.y + 1.0f) * 0.5f;
+    v71.z = n_kao_mat->row2.z * 0.5f;
 
-    mat4 v72 = *v7[MOTION_BONE_CL_KAO].node[1].mat;
     mat4_mult_axis_angle(&v72, &v71, v51, &v72);
-    mat4_mult_vec3_inv_trans(&v72, &a1->field_184, &v67);
+    mat4_mult_axis_angle(&v72, &v71, v51, &v72);
+    mat4_mult_vec3_inv_trans(&v72, &look_anim->field_184, &v67);
 
     float_t v52;
     if (v36)
-        v52 = a1->field_1A0;
+        v52 = look_anim->field_1A0;
     else
-        v52 = vec2::length(*(vec2*)&v67);
+        v52 = atan2f(-v67.z, vec2::length(*(vec2*)&v67));
 
-    if (a1->field_190) {
+    if (look_anim->field_190) {
         float_t v55 = fabsf(v49);
-        float_t v56;
         if (v52 >= 0.0f)
-            v56 = v55 * a1->field_15C.field_24;
+            v55 *= look_anim->field_15C.field_24;
         else
-            v56 = v55 * a1->field_15C.field_20;
-        v52 = v52 * (float_t)((float_t)(a1->field_15C.field_8 - v56) / a1->field_15C.field_8);
-        float_t v57 = a1->field_15C.field_0;
-        if (v52 < v57 || (v57 = a1->field_15C.field_4, v52 > v57))
-            v52 = v57;
+            v55 *= look_anim->field_15C.field_20;
+        v52 *= (look_anim->field_15C.field_8 - v55) / look_anim->field_15C.field_8;
+        v52 = clamp_def(v52, look_anim->field_15C.field_0, look_anim->field_15C.field_4);
     }
 
-    if (a1->field_1C8 == 3 || a1->field_14C)
+    if (look_anim->field_1C8 == 3 || look_anim->field_14C)
         v52 = 0.0f;
 
-    float_t v58 = v52 * a1->field_94;
-    a1->field_158 = 0.0f;
+    look_anim->field_158 = 0.0f;
 
-    if (!a1->field_191) {
-        if (a1->field_193)
-            v58 = sub_14040ADE0(v58, a1->field_1A0) * v14 + a1->field_1A0;
-        a1->field_1A0 = v58;
-        a1->field_1B0 = v58;
+    float_t v58 = v52 * look_anim->field_94;
+    if (!look_anim->field_191) {
+        if (look_anim->field_193)
+            v58 = sub_14040ADE0(v58, look_anim->field_1A0) * v14 + look_anim->field_1A0;
+        look_anim->field_1A0 = v58;
+        look_anim->field_1B0 = v58;
+    }
+    else if (look_anim->field_190) {
+        look_anim->field_1A0 = v58;
+        look_anim->field_1B0 = v58;
     }
     else {
-        a1->field_1A0 = v58;
-        if (a1->field_190)
-            a1->field_1B0 = v58;
-        else
-            v58 = a1->field_1B0;
-
+        look_anim->field_1A0 = v58;
+        v58 = look_anim->field_1B0;
     }
 
-    mat4_rotate_y_mult(&v72, v58 * a1->field_198, &v72);
+    mat4_rotate_y_mult(&v72, v58 * look_anim->field_198, &v72);
 
-    mat4 v60 = v7[MOTION_BONE_CL_KAO].rot_mat[1];
-
+    mat4 v60 = bones[MOTION_BONE_CL_KAO].rot_mat[1];
     mat4 v74;
-    mat4_inverse(v7[MOTION_BONE_CL_KAO].node->mat, &v74);
+    mat4_inverse(bones[MOTION_BONE_CL_KAO].node->mat, &v74);
     mat4_clear_trans(&v74, &v74);
-    mat4_mult(&v7[MOTION_BONE_CL_KAO].rot_mat[1], &v74, &v72);
-
+    mat4_clear_trans(&v72, &v72);
+    mat4_mult(&v72, &v74, &bones[MOTION_BONE_CL_KAO].rot_mat[1]);
     for (int32_t i = MOTION_BONE_CL_KAO; i <= MOTION_BONE_N_KUBI_WJ_EX; i++)
-        bone_data_mult_1(&v7[i], mat, v7, true);
-
-    v7[MOTION_BONE_CL_KAO].rot_mat[1] = v60;
+        bone_data_mult_1(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
+    bones[MOTION_BONE_CL_KAO].rot_mat[1] = v60;
+    return;
 }
 
 static void sub_1404189A0(rob_chara_bone_data* rob_bone_data) {
     motion_blend_mot* v2 = rob_bone_data->motion_loaded.front();
-    sub_140407280(&rob_bone_data->field_788, &v2->bone_data.bones,
+    sub_140407280(&rob_bone_data->look_anim, v2->bone_data.bones,
         &v2->field_4F8.mat, v2->mot_play_data.frame_data.step);
 }
 
-static void sub_140406FC0(struc_258* a1, bone_data* a2, mat4* a3,
-    vec3* a4, vec3* a5, vec3* a6, bool a7, float_t a8, float_t a9) {
-    float_t v14;
-    float_t v17;
-
+static void sub_140406FC0(rob_chara_bone_data_look_anim* look_anim, bone_data* bone,
+    mat4* mat, vec3* a4, vec3* a5, vec3* a6, bool a7, float_t a8, float_t a9) {
     a4->z = fabsf(a4->z);
 
-    float_t v15 = sqrt(a4->x * a4->x + a4->z * a4->z);
-    if (fabsf(v15) <= 0.000001f) {
-        v14 = 0.0f;
-        if (a4->y <= 0.0f)
-            v17 = a6->x;
+    float_t v16 = 0.0f;
+    float_t v17 = sqrtf(a4->x * a4->x + a4->z * a4->z);
+    float_t v19;
+    if (fabsf(v17) > 0.000001f) {
+        v16 = atan2f(a4->x, a4->z);
+        float_t v18 = atanf(-(a4->y / v17));
+        if (v18 > 0.0f)
+            v19 = v18 * look_anim->field_1BC.y;
+        else if (v18 < 0.0f)
+            v19 = v18 * look_anim->field_1BC.x;
         else
-            v17 = a5->x;
+            v19 = v18;
+
+        if (v19 < a5->x)
+            v19 = a5->x;
+        else if (v19 > a6->x)
+            v19 = a6->x;
+
+        if (v16 < a5->y)
+            v16 = a5->y;
+        else if (v16 > a6->y)
+            v16 = a6->y;
     }
-    else {
-        v14 = atan2f(a4->x, a4->z);
-        v17 = atanf(-a4->y / v15);
-
-        if (v17 > 0.0f)
-            v17 *= a1->field_1BC.y;
-        else if (v17 < 0.0f)
-            v17 *= a1->field_1BC.x;
-
-        if (v17 < a5->x)
-            v17 = a5->x;
-        else if (v17 > a6->x)
-            v17 = a6->x;
-
-        if (v14 < a5->y)
-            v14 = a5->y;
-        else if (v14 > a6->y)
-            v14 = a6->y;
-    }
-
-    if (!a1->field_14C || fabsf(a1->field_150) <= 0.000001f) {
-        if (fabsf(a1->field_158) > 0.000001f) {
-            if (a1->field_158 < 0.0f)
-                v17 = a5->x;
-            else
-                v17 = a6->x;
-        }
-        else {
-            if (v17 < 0.0f)
-                v17 = a6->x;
-            else
-                v17 = a5->x;
-        }
-
-        if (fabsf(a1->field_154) > 0.000001f) {
-            if (a1->field_154 < 0.0f)
-                v14 = a5->y;
-            else
-                v14 = a6->y;
-        }
-        else {
-            if (v14 < 0.0f)
-                v14 = a6->y;
-            else
-                v14 = a5->y;
-        }
-    }
-
-    mat4 mat = mat4_identity;
-    mat4_rotate_y_mult(&mat, v14, &mat);
-    mat4_rotate_x_mult(&mat, v17, &mat);
-
-    mat4 v25;
-    mat4_lerp_rotation(&v25, &mat, &mat, a1->field_98);
-
-    if (a7)
-        mat4_lerp_rotation(&a2->rot_mat[0], &mat, &mat, a8);
     else
-        mat4_lerp_rotation(a3, &mat, &mat, a9);
+        v19 = a4->y > 0.0f ? a5->x : a6->x;
 
-    *a3 = mat;
-    a2->rot_mat[0] = mat;
+    if (look_anim->field_14C && fabs(look_anim->field_150) > 0.000001f) {
+        if (fabsf(look_anim->field_158) > 0.000001f)
+            v19 = look_anim->field_158 < 0.0f ? a5->y : a6->y;
+        else
+            v19 = v19 >= 0.0f ? a5->y : a6->y;
+
+        if (fabsf(look_anim->field_154) > 0.000001f)
+            v16 = look_anim->field_154 < 0.0f ? a5->y : a6->y;
+        else
+            v16 = v16 >= 0.0f ? a5->y : a6->y;
+    }
+
+    mat4 v27;
+    mat4_rotate_y(v16, &v27);
+    mat4_rotate_x_mult(&v27, v19, &v27);
+    mat4_lerp_rotation(&mat4_identity, &v27, &v27, look_anim->blend);
+    if (a7)
+        mat4_lerp_rotation(bone->rot_mat, &v27, &v27, a8);
+    else
+        mat4_lerp_rotation(mat, &v27, &v27, a9);
+    *mat = v27;
+    bone->rot_mat[0] = v27;
 }
 
-static void sub_140409170(struc_258* a1, mat4* a2, std::vector<bone_data>* a3, mat4* a4, float_t step) {
-    if (a1->field_91)
+static void sub_140409170(rob_chara_bone_data_look_anim* look_anim, mat4* adjust_mat,
+    std::vector<bone_data>& bones, mat4* mat, float_t step) {
+    if (look_anim->field_91)
         return;
 
-    a1->field_0 = a3;
-    a1->field_8 = *a4;
-
-    bool a7 = false;
+    look_anim->field_0 = &bones;
+    look_anim->field_8 = *mat;
+    bool v10 = false;
     float_t v11 = 0.0f;
-    if (a1->field_A0 > 0.0f && a1->field_A0 > a1->field_A4 && fabsf(a1->field_A0 - a1->field_A4) > 0.000001f) {
-        a7 = true;
-        v11 = (a1->field_A4 + 1.0f) / (a1->field_A0 + 1.0f);
-        if (!a1->field_90)
-            v11 = 1.0f - v11;
-        a1->field_A4 += step;
+    if (look_anim->duration > 0.0f && look_anim->duration > look_anim->field_A4
+        && fabsf(look_anim->duration - look_anim->field_A4) > 0.000001f) {
+        v10 = true;
+        v11 = (look_anim->field_A4 + 1.0f) / (look_anim->duration + 1.0f);
+        if (!look_anim->field_90)
+            v11 = 1.0 - v11;
+        look_anim->field_A4 += step;
     }
 
-    float_t v15 = a1->field_9C * step;
-    if (fabsf(a1->field_9C - 1.0f) <= 0.000001f || v15 > 1.0f || a1->field_8F && !a7
+    float_t v15 = look_anim->field_9C * step;
+    if (fabsf(look_anim->field_9C - 1.0f) <= 0.000001 || v15 > 1.0f || look_anim->field_8F && !v10
         || rctx_ptr->camera->fast_change_hist0 && rctx_ptr->camera->fast_change_hist1)
         v15 = 1.0f;
 
-    a1->field_8D = false;
-    a1->field_8F = false;
-    if (!(a1->field_90 || a1->field_14C && fabsf(a1->field_150) > 0.000001f || a7)
-        || !(a1->field_94 <= 0.0f || a1->field_1C8 != 3))
+    look_anim->field_8D = 0;
+    look_anim->field_8F = 0;
+    if (!(look_anim->field_90 || look_anim->field_14C && fabsf(look_anim->field_150) > 0.000001 || v10)
+        || !(look_anim->field_94 <= 0.0 || look_anim->field_1C8 != 3))
         return;
 
-    a1->field_C0 = a1->field_B4;
+    look_anim->view_point = look_anim->target_view_point;
+    mat4 v61;
+    mat4_inverse(adjust_mat, &v61);
+    mat4_mult_vec3_trans(&v61, &look_anim->view_point, &look_anim->view_point);
 
-    mat4 mat;
-    mat4_inverse(a2, &mat);
-    mat4_mult_vec3_trans(&mat, &a1->field_C0, &a1->field_C0);
+    mat4* kl_eye_l_parent_mat = bones[MOTION_BONE_KL_EYE_L].parent_mat;
+    mat4* kl_eye_r_parent_mat = bones[MOTION_BONE_KL_EYE_R].parent_mat;
 
-    float_t v29 = a1->field_48.field_8;
-    float_t v31 = a1->field_48.field_C;
-    float_t v32 = -a1->field_48.field_8;
-    if (a1->field_1C4 != 0) {
-        v29 = a1->field_48.field_18;
-        v31 = a1->field_48.field_1C;
-        v32 = -a1->field_48.field_18;
+    float_t v30 = look_anim->field_48.field_8;
+    float_t v32 = look_anim->field_48.field_C;
+    float_t v33 = -v30;
+    if (!look_anim->field_1C4) {
+        v30 = look_anim->field_48.field_18;
+        v32 = look_anim->field_48.field_1C;
+        v33 = -look_anim->field_48.field_18;
     }
 
-    std::vector<bone_data>* v19 = a1->field_0;
-    if (a1->field_B0 > 0.0f) {
-        mat4* mat = v19->data()[MOTION_BONE_KL_EYE_L].parent_mat;
+    if (look_anim->field_B0 > 0.0f) {
+        mat4 v61 = *kl_eye_l_parent_mat;
+        *(vec3*)&v61.row3 = *(vec3*)&kl_eye_l_parent_mat->row3 + *(vec3*)&kl_eye_r_parent_mat->row3;
 
-        vec3 v52;
         vec3 v54;
-        mat4_get_translation(v19->data()[MOTION_BONE_KL_EYE_L].parent_mat, &v52);
-        mat4_get_translation(v19->data()[MOTION_BONE_KL_EYE_R].parent_mat, &v54);
+        mat4_mult_vec3_inv_trans(&v61, &look_anim->view_point, &v54);
 
-        v54 = (v52 + v54) * 0.5f;
-        mat4_set_translation(mat, &v54);
-
-        vec3 v53;
-        mat4_mult_vec3_inv_trans(mat, &a1->field_C0, &v53);
-
-        float_t v37 = vec3::length(v53);
-        if (fabsf(v37) <= 0.000001f || v53.x * v53.x + v53.z * v53.z <= 0.01f) {
-            v29 = 0.0f;
-            v32 = 0.0f;
+        float_t v38 = vec3::length_squared(v54);
+        if (fabsf(v38) <= 0.000001f || v54.x * v54.x + v54.z * v54.z <= 0.01f) {
+            v30 = 0.0f;
+            v33 = 0.0f;
         }
-        else if (v37 < a1->field_B0) {
-            v53.z = fabsf(v53.z);
-
-            v53 *= a1->field_B0 / v37;
-            mat4_mult_vec3_trans(mat, &v53, &v53);
+        else if (v38 < look_anim->field_B0) {
+            vec3 v53 = v54 * (look_anim->field_B0 / v38);
+            vec3 v60;
+            mat4_mult_vec3_trans(&v61, &v53, &v60);
 
             vec3 v56;
-            mat4_mult_vec3_inv_trans(v19->data()[MOTION_BONE_KL_EYE_L].parent_mat, &v53, &v56);
-            float_t v40 = atan2f(v56.x - a1->field_48.field_20.x, v56.z);
-            if (v29 < v40)
-                if (v31 > v40)
-                    v29 = v40;
-                else
-                    v29 = v31;
+            mat4_mult_vec3_inv_trans(kl_eye_l_parent_mat, &v60, &v56);
 
-            vec3 v57;
-            mat4_mult_vec3_inv_trans(v19->data()[MOTION_BONE_KL_EYE_R].parent_mat, &v53, &v57);
-            float_t v41 = atan2f(v57.x + a1->field_48.field_20.x, v57.z);
-            if (v32 > v41)
-                if (-v31 < v41)
-                    v32 = v41;
-                else
-                    v32 = -v31;
+            float_t v41 = atan2f(v56.x - look_anim->field_48.field_20.x, v56.z);
+            if (v30 < v41)
+                v30 = min_def(v32, v41);
+
+            vec3 v55;
+            mat4_mult_vec3_inv_trans(kl_eye_r_parent_mat, &v60, &v55);
+
+            float_t v42 = atan2f(v55.x + look_anim->field_48.field_20.x, v55.z);
+            if (v33 > v42)
+                v33 = max_def(-v32, v42);
         }
     }
 
-    float_t v42;
     float_t v43;
-    if (a1->field_1C4) {
-        v42 = a1->field_48.field_10 * -3.8f / a1->field_48.field_34 * a1->field_1BC.x;
-        v43 = a1->field_48.field_14 * 6.0f / a1->field_48.field_38 * a1->field_1BC.y;
+    float_t v44;
+    if (look_anim->field_1C4) {
+        v43 = look_anim->field_48.field_10 * -3.8f / look_anim->field_48.field_34 * look_anim->field_1BC.x;
+        v44 = look_anim->field_48.field_14 * 6.0f / look_anim->field_48.field_38 * look_anim->field_1BC.y;
     }
     else {
-        v42 = a1->field_1BC.x * a1->field_48.field_0;
-        v43 = a1->field_1BC.y * a1->field_48.field_4;
+        v43 = look_anim->field_1BC.x * look_anim->field_48.field_0;
+        v44 = look_anim->field_1BC.y * look_anim->field_48.field_4;
     }
 
-    vec3 v58;
-    mat4_mult_vec3_inv_trans(v19->data()[MOTION_BONE_KL_EYE_L].parent_mat, &a1->field_C0, &v58);
-    v58 -= a1->field_48.field_20;
-
     vec3 v56;
-    v56.x = v43;
-    v56.y = v31;
-    v56.z = 0.0f;
+    vec3 v57;
+    vec3 v58;
 
-    vec3 v55;
-    v55.x = v42;
-    v55.y = v29;
-    v55.z = 0.0f;
+    v56 = vec3(v43, v30, 0.0f);
+    v57 = vec3(v44, v32, 0.0f);
+    mat4_mult_vec3_inv_trans(kl_eye_l_parent_mat, &look_anim->view_point, &v58);
 
-    sub_140406FC0(a1, &v19->data()[MOTION_BONE_KL_EYE_L], &a1->field_CC, &v58, &v55, &v56, a7, v11, v15);
+    v58.x -= look_anim->field_48.field_20.x;
+    v58.y -= look_anim->field_48.field_20.y;
+    v58.z -= look_anim->field_48.field_20.z;
+    sub_140406FC0(look_anim, &bones[MOTION_BONE_KL_EYE_L], &look_anim->field_CC, &v58, &v56, &v57, v10, v11, v15);
 
-    v55.y = -v31;
-    v56.y = v32;
+    v56 = vec3(v43, -v32, 0.0f);
+    v57 = vec3(v44, v33, 0.0f);
+    mat4_mult_vec3_inv_trans(kl_eye_r_parent_mat, &look_anim->view_point, &v58);
 
-    vec3 v59;
-    mat4_mult_vec3_inv_trans(v19->data()[MOTION_BONE_KL_EYE_R].parent_mat, &a1->field_C0, &v59);
-    vec3 v60 = a1->field_48.field_20;
-    v60.x = -v60.x;
-    v59 -= v60;
+    v58.x -= -look_anim->field_48.field_20.x;
+    v58.y -= look_anim->field_48.field_20.y;
+    v58.z -= look_anim->field_48.field_20.z;
+    sub_140406FC0(look_anim, &bones[MOTION_BONE_KL_EYE_R], &look_anim->field_10C, &v58, &v56, &v57, v10, v11, v15);
 
-    sub_140406FC0(a1, &v19->data()[MOTION_BONE_KL_EYE_R], &a1->field_10C, &v59, &v55, &v56, a7, v11, v15);
-
-    bone_data* v47 = a3->data();
     for (int32_t i = MOTION_BONE_KL_EYE_L; i <= MOTION_BONE_KL_HIGHLIGHT_L_WJ; i++)
-        bone_data_mult_1(&v47[i], a4, v47, true);
+        bone_data_mult_1(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
 
     for (int32_t i = MOTION_BONE_KL_EYE_R; i <= MOTION_BONE_KL_HIGHLIGHT_R_WJ; i++)
-        bone_data_mult_1(&v47[i], a4, v47, true);
+        bone_data_mult_1(&bones[i], mat, &bones[MOTION_BONE_N_HARA_CP], true);
 }
 
-static void sub_14041A160(rob_chara_bone_data* rob_bone_data, mat4* a2) {
+static void sub_14041A160(rob_chara_bone_data* rob_bone_data, mat4* adjust_mat) {
     motion_blend_mot* v2 = rob_bone_data->motion_loaded.front();
-    sub_140409170(&rob_bone_data->field_788, a2, &v2->bone_data.bones,
+    sub_140409170(&rob_bone_data->look_anim, adjust_mat, v2->bone_data.bones,
         &v2->field_4F8.mat, v2->mot_play_data.frame_data.step);
 }
 
@@ -8897,16 +8815,19 @@ static void sub_14053BEE0(rob_chara* rob_chr) {
     rob_chr->data.field_2 &= ~0x80;
 
     rob_chara_bone_data* rob_bone_data = rob_chr->bone_data;
-    vec3* v3 = 0;
-    if (sub_14041A010(rob_bone_data) || rob_bone_data->field_788.field_14C) {
-        if (rob_bone_data->field_788.field_8C)
-            rctx_ptr->camera->get_view_point(rob_bone_data->field_788.field_B4);
+    vec3* target_view_point = 0;
+    if (sub_14041A010(rob_bone_data) || rob_bone_data->look_anim.field_14C) {
+        if (rob_bone_data->look_anim.field_8C) {
+            vec3 view_point;
+            rctx_ptr->camera->get_view_point(view_point);
+            rob_bone_data->set_look_anim_target_view_point(&view_point);
+        }
 
         if (sub_140419F90(rob_chr->bone_data) || sub_140419F00(rob_bone_data))
-            v3 = &rob_bone_data->field_788.field_B4;
+            target_view_point = rob_bone_data->get_look_anim_target_view_point();
     }
 
-    sub_14041C620(rob_bone_data, v3, &rob_chr->data.adjust_data.mat, v4);
+    sub_14041C620(rob_bone_data, target_view_point, &rob_chr->data.adjust_data.mat, v4);
     sub_1404189A0(rob_bone_data);
     sub_14041A160(rob_bone_data, &rob_chr->data.adjust_data.mat);
 }
@@ -9013,10 +8934,9 @@ static void sub_14040AE10(mat4* mat, const vec3 a2) {
     }
 }
 
-static void sub_140406A70(vec3* a1, std::vector<bone_data>* bones, mat4* a3, vec3* a4,
+static void sub_140406A70(vec3* a1, std::vector<bone_data>& bones, mat4* a3, vec3* a4,
     const motion_bone_index* a5, float_t rotation_blend, float_t arm_length, bool solve_ik) {
-    bone_data* v8 = bones->data();
-    bone_data* v14 = &v8[a5[0]];
+    bone_data* v14 = &bones[a5[0]];
 
     if (v14->pole_target_mat) {
         vec3 v36;
@@ -9041,7 +8961,7 @@ static void sub_140406A70(vec3* a1, std::vector<bone_data>* bones, mat4* a3, vec
     if (a5[1] == MOTION_BONE_NONE)
         return;
 
-    bone_data* v25 = &v8[a5[1]];
+    bone_data* v25 = &bones[a5[1]];
     if (rotation_blend > 0.0f) {
         mat4 v38;
         mat4 v39;
@@ -9057,17 +8977,17 @@ static void sub_140406A70(vec3* a1, std::vector<bone_data>* bones, mat4* a3, vec
     if (solve_ik) {
         a5++;
         while (*a5 != MOTION_BONE_NONE)
-            bone_data_mult_1(&v8[*a5++], a3, v8, true);
+            bone_data_mult_1(&bones[*a5++], a3, &bones[MOTION_BONE_N_HARA_CP], true);
     }
     else
-        bone_data_mult_1(v25, a3, v8, false);
+        bone_data_mult_1(v25, a3, &bones[MOTION_BONE_N_HARA_CP], false);
 }
 
 static void sub_140418A00(rob_chara_bone_data* rob_bone_data, vec3* a2,
     const motion_bone_index* a3, float_t rotation_blend, float_t arm_length, bool solve_ik) {
     motion_blend_mot* v7 = rob_bone_data->motion_loaded.front();
     mat4 m = v7->field_4F8.mat;
-    sub_140406A70(rob_bone_data->field_76C, &v7->bone_data.bones,
+    sub_140406A70(rob_bone_data->field_76C, v7->bone_data.bones,
         &m, a2, a3, rotation_blend, arm_length, solve_ik);
 }
 
@@ -9631,9 +9551,9 @@ static void sub_1403F9B20(rob_chara_bone_data_sleeve_adjust* a1, motion_bone_ind
     sub_14040AE10(v42, v39 + v41);
 }
 
-static void sub_1403FAF30(rob_chara_bone_data_sleeve_adjust* a1, std::vector<bone_data>* bones, float_t step) {
+static void sub_1403FAF30(rob_chara_bone_data_sleeve_adjust* a1, std::vector<bone_data>& bones, float_t step) {
     a1->step = step;
-    a1->bones = bones;
+    a1->bones = &bones;
     if (a1->enable1)
         sub_1403FA770(a1);
 
@@ -9645,7 +9565,7 @@ static void sub_1403FAF30(rob_chara_bone_data_sleeve_adjust* a1, std::vector<bon
 
 static void sub_14041AB50(rob_chara_bone_data* rob_bone_data) {
     motion_blend_mot* v2 = rob_bone_data->motion_loaded.front();
-    sub_1403FAF30(&rob_bone_data->sleeve_adjust, &v2->bone_data.bones, v2->mot_play_data.frame_data.step);
+    sub_1403FAF30(&rob_bone_data->sleeve_adjust, v2->bone_data.bones, v2->mot_play_data.frame_data.step);
 }
 
 static bool rob_chara_hands_adjust(rob_chara* rob_chr) {
@@ -9903,7 +9823,7 @@ static void rob_chara_bone_data_get_ik_scale(
         return;
 
     motion_blend_mot* v2 = rob_bone_data->motion_loaded.front();
-    rob_chara_bone_data_ik_scale_calculate(&rob_bone_data->ik_scale, &v2->bone_data.bones,
+    rob_chara_bone_data_ik_scale_calculate(&rob_bone_data->ik_scale, v2->bone_data.bones,
         rob_bone_data->base_skeleton_type, rob_bone_data->skeleton_type, bone_data);
     float_t ratio0 = rob_bone_data->ik_scale.ratio0;
     v2->field_4F8.field_C0 = ratio0;
@@ -9925,7 +9845,7 @@ static bone_node* rob_chara_bone_data_get_node(rob_chara_bone_data* rob_bone_dat
 }
 
 static void rob_chara_bone_data_ik_scale_calculate(
-    rob_chara_bone_data_ik_scale* ik_scale, std::vector<bone_data>* bones,
+    rob_chara_bone_data_ik_scale* ik_scale, std::vector<bone_data>& bones,
     bone_database_skeleton_type base_skeleton_type,
     bone_database_skeleton_type skeleton_type, const bone_database* bone_data) {
     const char* base_name = bone_database_skeleton_type_to_string(base_skeleton_type);
@@ -9935,10 +9855,10 @@ static void rob_chara_bone_data_ik_scale_calculate(
     if (!base_heel_height || !heel_height)
         return;
 
-    ::bone_data* b_cl_mune = &bones->data()[MOTION_BONE_CL_MUNE];
-    ::bone_data* b_kl_kubi = &bones->data()[MOTION_BONE_KL_KUBI];
-    ::bone_data* b_c_kata_l = &bones->data()[MOTION_BONE_C_KATA_L];
-    ::bone_data* b_cl_momo_l = &bones->data()[MOTION_BONE_CL_MOMO_L];
+    ::bone_data* b_cl_mune = &bones[MOTION_BONE_CL_MUNE];
+    ::bone_data* b_kl_kubi = &bones[MOTION_BONE_KL_KUBI];
+    ::bone_data* b_c_kata_l = &bones[MOTION_BONE_C_KATA_L];
+    ::bone_data* b_cl_momo_l = &bones[MOTION_BONE_CL_MOMO_L];
 
     float_t base_height = fabsf(b_cl_momo_l->base_translation[0].y) + b_cl_momo_l->ik_segment_length[0]
         + b_cl_momo_l->ik_2nd_segment_length[0] + *base_heel_height;
@@ -10351,10 +10271,9 @@ static void sub_1401EAD00(bone_data* a1, bone_data* a2) {
     }
 }
 
-static void sub_140412BB0(motion_blend_mot* a1, std::vector<bone_data>* bones) {
-    bone_data* bone = bones->data();
+static void sub_140412BB0(motion_blend_mot* a1, std::vector<bone_data>& bones) {
     for (bone_data& i : a1->bone_data.bones)
-        sub_1401EAD00(&i, &bone[i.motion_bone_index]);
+        sub_1401EAD00(&i, &bones[i.motion_bone_index]);
 }
 
 static void sub_14041AE40(rob_chara_bone_data* rob_bone_data) {
@@ -10430,7 +10349,7 @@ static void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, 
     if (rob_bone_data->motion_indices.size()) {
         rob_chara_bone_data_motion_blend_mot_list_init(rob_bone_data);
         sub_140412BB0(rob_bone_data->motion_loaded.front(),
-            &rob_bone_data->motion_loaded.front()->bone_data.bones);
+            rob_bone_data->motion_loaded.front()->bone_data.bones);
         motion_blend_mot_load_file(rob_bone_data->motion_loaded.front(),
             motion_id, MOTION_BLEND_CROSS, 1.0f, bone_data, mot_db);
         return;
@@ -10450,80 +10369,9 @@ static void rob_chara_bone_data_motion_load(rob_chara_bone_data* rob_bone_data, 
     rob_bone_data->motion_loaded.push_back(v16);
     rob_bone_data->motion_loaded_indices.push_back(rob_bone_data->motions.size());
     sub_140412BB0(rob_bone_data->motion_loaded.front(),
-        &rob_bone_data->motion_loaded.front()->bone_data.bones);
+        rob_bone_data->motion_loaded.front()->bone_data.bones);
     motion_blend_mot_load_file(rob_bone_data->motion_loaded.front(),
         motion_id, MOTION_BLEND_CROSS, 1.0f, bone_data, mot_db);
-}
-
-static void sub_1404198D0(struc_258* a1) {
-    a1->field_0 = 0;
-    a1->field_8 = mat4_identity;
-    a1->field_48.field_0 = 0.0f;
-    a1->field_48.field_4 = 0.0f;
-    a1->field_48.field_8 = 0.0f;
-    a1->field_48.field_C = 0.0f;
-    a1->field_48.field_10 = 0.0f;
-    a1->field_48.field_14 = 0.0f;
-    a1->field_48.field_18 = 0.0f;
-    a1->field_48.field_1C = 0.0f;
-    a1->field_48.field_20 = 0.0f;
-    a1->field_48.field_2C = 1.0f;
-    a1->field_48.field_30 = 1.0f;
-    a1->field_48.field_34 = -3.8f;
-    a1->field_48.field_38 = 6.0f;
-    a1->field_48.field_3C = -3.8f;
-    a1->field_48.field_40 = 6.0f;
-    a1->field_8C = false;
-    a1->field_8D = false;
-    a1->field_8E = false;
-    a1->field_8F = false;
-    a1->field_90 = false;
-    a1->field_91 = false;
-    a1->field_94 = 0.0f;
-    a1->field_98 = 1.0f;
-    a1->field_9C = 1.0f;
-    a1->field_A0 = 0.0f;
-    a1->field_A4 = 0.0f;
-    a1->field_A8 = 0.0f;
-    a1->field_AC = 0.0f;
-    a1->field_B0 = 0.0f;
-    a1->field_B4 = 0.0f;
-    a1->field_C0 = 0.0f;
-    a1->field_CC = mat4_identity;
-    a1->field_10C = mat4_identity;
-    a1->field_14C = 0;
-    a1->field_150 = 0.0f;
-    a1->field_154 = 0.0f;
-    a1->field_158 = 0.0f;
-    a1->field_15C.field_0 = 0.0f;
-    a1->field_15C.field_4 = 0.0f;
-    a1->field_15C.field_8 = 0.0f;
-    a1->field_15C.field_C = 0.0f;
-    a1->field_15C.field_10 = 0;
-    a1->field_15C.field_14 = 0;
-    a1->field_15C.field_18 = 0;
-    a1->field_15C.field_1C = 0;
-    a1->field_15C.field_20 = 0.0f;
-    a1->field_15C.field_24 = 0.0f;
-    a1->field_184 = 0.0f;
-    a1->field_190 = false;
-    a1->field_191 = false;
-    a1->field_192 = false;
-    a1->field_193 = false;
-    a1->field_194 = false;
-    a1->field_195 = false;
-    a1->field_198 = 0.0f;
-    a1->field_19C = 0.0f;
-    a1->field_1A0 = 0.0f;
-    a1->field_1A4 = 0;
-    a1->field_1A8 = 0;
-    a1->field_1AC = 0.0f;
-    a1->field_1B0 = 0.0f;
-    a1->field_1B4 = 0;
-    a1->field_1B8 = 0;
-    a1->field_1BC = 1.0f;
-    a1->field_1C4 = 0;
-    a1->field_1C8 = 0;
 }
 
 static void rob_chara_bone_data_set_eyelid_anim_blend_duration(rob_chara_bone_data* rob_bone_data,
@@ -11976,10 +11824,12 @@ bool MotionBlendCombine::Field_30() {
     return true;
 }
 
-MotionBlendFreeze::MotionBlendFreeze() : field_20(),field_21(), field_24(), field_28(), field_2C(), field_30(),
-rot_y_mat(mat4_identity), field_74(mat4_identity),
-field_B4(mat4_identity), field_F4(mat4_identity) {
-
+MotionBlendFreeze::MotionBlendFreeze() : field_20(),
+field_21(), field_24(), field_28(), field_2C(), field_30() {
+    rot_y_mat = mat4_identity;
+    field_74 = mat4_identity;
+    field_B4 = mat4_identity;
+    field_F4 = mat4_identity;
 }
 
 MotionBlendFreeze::~MotionBlendFreeze() {
@@ -12288,12 +12138,83 @@ struc_241::struc_241(float_t field_0, float_t field_4, float_t field_8, float_t 
 
 }
 
-struc_258::struc_258() : field_0(), field_8C(), field_8D(), field_8E(), field_8F(), field_90(),
-field_91(), field_94(), field_98(), field_9C(), field_A0(), field_A4(), field_A8(), field_AC(),
-field_B0(), field_14C(), field_150(), field_154(), field_158(), field_15C(), field_190(), field_191(),
+rob_chara_bone_data_look_anim::rob_chara_bone_data_look_anim() : field_0(), field_8C(), field_8D(), field_8E(),
+field_8F(), field_90(), field_91(), field_94(), blend(), field_9C(), duration(), field_A4(), step(),
+curr_time(), field_B0(), field_14C(), field_150(), field_154(), field_158(), field_15C(), field_190(), field_191(),
 field_192(), field_193(), field_194(), field_195(), field_198(), field_19C(), field_1A0(), field_1A4(),
 field_1A8(), field_1AC(), field_1B0(), field_1B4(), field_1B8(), field_1C4(), field_1C8(), field_1CC() {
 
+}
+
+void rob_chara_bone_data_look_anim::reset() {
+    field_0 = 0;
+    field_8 = mat4_identity;
+    field_48.field_0 = 0.0f;
+    field_48.field_4 = 0.0f;
+    field_48.field_8 = 0.0f;
+    field_48.field_C = 0.0f;
+    field_48.field_10 = 0.0f;
+    field_48.field_14 = 0.0f;
+    field_48.field_18 = 0.0f;
+    field_48.field_1C = 0.0f;
+    field_48.field_20 = 0.0f;
+    field_48.field_2C = 1.0f;
+    field_48.field_30 = 1.0f;
+    field_48.field_34 = -3.8f;
+    field_48.field_38 = 6.0f;
+    field_48.field_3C = -3.8f;
+    field_48.field_40 = 6.0f;
+    field_8C = false;
+    field_8D = false;
+    field_8E = false;
+    field_8F = false;
+    field_90 = false;
+    field_91 = false;
+    field_94 = 0.0f;
+    blend = 1.0f;
+    field_9C = 1.0f;
+    duration = 0.0f;
+    field_A4 = 0.0f;
+    step = 0.0f;
+    curr_time = 0.0f;
+    field_B0 = 0.0f;
+    target_view_point = 0.0f;
+    view_point = 0.0f;
+    field_CC = mat4_identity;
+    field_10C = mat4_identity;
+    field_14C = 0;
+    field_150 = 0.0f;
+    field_154 = 0.0f;
+    field_158 = 0.0f;
+    field_15C.field_0 = 0.0f;
+    field_15C.field_4 = 0.0f;
+    field_15C.field_8 = 0.0f;
+    field_15C.field_C = 0.0f;
+    field_15C.field_10 = 0;
+    field_15C.field_14 = 0;
+    field_15C.field_18 = 0;
+    field_15C.field_1C = 0;
+    field_15C.field_20 = 0.0f;
+    field_15C.field_24 = 0.0f;
+    field_184 = 0.0f;
+    field_190 = false;
+    field_191 = false;
+    field_192 = false;
+    field_193 = false;
+    field_194 = false;
+    field_195 = false;
+    field_198 = 0.0f;
+    field_19C = 0.0f;
+    field_1A0 = 0.0f;
+    field_1A4 = 0;
+    field_1A8 = 0;
+    field_1AC = 0.0f;
+    field_1B0 = 0.0f;
+    field_1B4 = 0;
+    field_1B8 = 0;
+    field_1BC = 1.0f;
+    field_1C4 = 0;
+    field_1C8 = 0;
 }
 
 rob_chara_bone_data_sleeve_adjust::rob_chara_bone_data_sleeve_adjust() : sleeve_l(), sleeve_r(),
@@ -12315,9 +12236,8 @@ void rob_chara_bone_data_sleeve_adjust::reset() {
     field_80 = 0.0f;
 }
 
-rob_chara_bone_data::rob_chara_bone_data() : field_0(), field_1(), object_bone_count(),
-total_bone_count(), motion_bone_count(), ik_bone_count(), chain_pos(),
-disable_eye_motion(), field_76C(), field_784(), field_788() {
+rob_chara_bone_data::rob_chara_bone_data() : field_0(), field_1(), object_bone_count(), total_bone_count(),
+motion_bone_count(), ik_bone_count(), chain_pos(), disable_eye_motion(), field_76C(), look_anim() {
     base_skeleton_type = BONE_DATABASE_SKELETON_NONE;
     skeleton_type = BONE_DATABASE_SKELETON_NONE;
 }
@@ -12337,45 +12257,12 @@ float_t rob_chara_bone_data::get_frame_count() {
     return (float_t)motion_loaded.front()->mot_key_data.mot.frame_count;
 }
 
-bool rob_chara_bone_data::get_motion_has_looped() {
-    return motion_loaded.front()->mot_play_data.frame_data.looped;
+vec3* rob_chara_bone_data::get_look_anim_target_view_point() {
+    return &look_anim.target_view_point;
 }
 
-void rob_chara_bone_data::reset() {
-    object_bone_count = 0;
-    motion_bone_count = 0;
-    total_bone_count = 0;
-    ik_bone_count = 0;
-    chain_pos = 0;
-    mats.clear();
-    mats2.clear();
-    nodes.clear();
-    base_skeleton_type = BONE_DATABASE_SKELETON_NONE;
-    skeleton_type = BONE_DATABASE_SKELETON_NONE;
-
-    if (motions.size() == 3) {
-        rob_chara_bone_data_motion_blend_mot_list_free(this, 0);
-        for (motion_blend_mot*& i : motions)
-            i->reset();
-        rob_chara_bone_data_motion_blend_mot_list_init(this);
-    }
-    else {
-        rob_chara_bone_data_motion_blend_mot_free(this);
-        rob_chara_bone_data_motion_blend_mot_init(this);
-    }
-
-    face.reset();
-    hand_l.reset();
-    hand_r.reset();
-    mouth.reset();
-    eyes.reset();
-    eyelid.reset();
-    disable_eye_motion = false;
-    ik_scale = rob_chara_bone_data_ik_scale();
-    field_76C[0] = 0.0f;
-    field_76C[0] = 0.0f;
-    sub_1404198D0(&field_788);
-    sleeve_adjust.reset();
+bool rob_chara_bone_data::get_motion_has_looped() {
+    return motion_loaded.front()->mot_play_data.frame_data.looped;
 }
 
 void rob_chara_bone_data::interpolate() {
@@ -12390,7 +12277,7 @@ void rob_chara_bone_data::interpolate() {
 
     bone_database_skeleton_type skeleton_type = base_skeleton_type;
     motion_blend_mot* v5 = motion_loaded.front();
-    std::vector<bone_data>* bones = &v5->bone_data.bones;
+    std::vector<bone_data>& bones = v5->bone_data.bones;
     std::vector<uint16_t>* bone_indices = &v5->bone_data.bone_indices;
     mot_blend_interpolate(&face, bones, bone_indices, skeleton_type);
     mot_blend_interpolate(&hand_l, bones, bone_indices, skeleton_type);
@@ -12434,12 +12321,53 @@ void rob_chara_bone_data::load_mouth_motion(uint32_t motion_id, const motion_dat
     mot_blend_load_motion(&mouth, motion_id, mot_db);
 }
 
+void rob_chara_bone_data::reset() {
+    object_bone_count = 0;
+    motion_bone_count = 0;
+    total_bone_count = 0;
+    ik_bone_count = 0;
+    chain_pos = 0;
+    mats.clear();
+    mats2.clear();
+    nodes.clear();
+    base_skeleton_type = BONE_DATABASE_SKELETON_NONE;
+    skeleton_type = BONE_DATABASE_SKELETON_NONE;
+
+    if (motions.size() == 3) {
+        rob_chara_bone_data_motion_blend_mot_list_free(this, 0);
+        for (motion_blend_mot*& i : motions)
+            i->reset();
+        rob_chara_bone_data_motion_blend_mot_list_init(this);
+    }
+    else {
+        rob_chara_bone_data_motion_blend_mot_free(this);
+        rob_chara_bone_data_motion_blend_mot_init(this);
+    }
+
+    face.reset();
+    hand_l.reset();
+    hand_r.reset();
+    mouth.reset();
+    eyes.reset();
+    eyelid.reset();
+    disable_eye_motion = false;
+    ik_scale = rob_chara_bone_data_ik_scale();
+    field_76C[0] = 0.0f;
+    field_76C[0] = 0.0f;
+    look_anim.reset();
+    sleeve_adjust.reset();
+}
+
 void rob_chara_bone_data::set_disable_eye_motion(bool value) {
     disable_eye_motion = value;
 }
 
 void rob_chara_bone_data::set_frame(float_t frame) {
     motion_loaded.front()->mot_play_data.frame_data.set_frame(frame);
+}
+
+void rob_chara_bone_data::set_look_anim_target_view_point(vec3* value) {
+    look_anim.target_view_point = *value;
 }
 
 void rob_chara_bone_data::set_motion_frame(float_t frame, float_t step, float_t frame_count) {
@@ -16963,7 +16891,7 @@ OpdMakeManager::~OpdMakeManager() {
 bool OpdMakeManager::Init() {
     mode = 1;
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, false);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_3D, false);
 
     if (path_check_directory_exists("ram/osage_play_data"))
         RemoveDirectoryA("ram/osage_play_data");
@@ -17114,7 +17042,7 @@ bool OpdMakeManager::Dest() {
         task_rob_manager_del_task();
     }
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_ALL_3D, true);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_3D, true);
 
     if (path_check_directory_exists("ram/osage_play_data"))
         RemoveDirectoryA("ram/osage_play_data");

@@ -1214,7 +1214,7 @@ struct struc_243 {
     float_t field_24;
 };
 
-struct struc_258 {
+struct rob_chara_bone_data_look_anim {
     std::vector<bone_data>* field_0;
     mat4 field_8;
     struc_241 field_48;
@@ -1225,15 +1225,15 @@ struct struc_258 {
     bool field_90;
     bool field_91;
     float_t field_94;
-    float_t field_98;
+    float_t blend;
     float_t field_9C;
-    float_t field_A0;
+    float_t duration;
     float_t field_A4;
-    float_t field_A8;
-    float_t field_AC;
+    float_t step;
+    float_t curr_time;
     float_t field_B0;
-    vec3 field_B4;
-    vec3 field_C0;
+    vec3 target_view_point;
+    vec3 view_point;
     mat4 field_CC;
     mat4 field_10C;
     bool field_14C;
@@ -1262,7 +1262,9 @@ struct struc_258 {
     int32_t field_1C8;
     int32_t field_1CC;
 
-    struc_258();
+    rob_chara_bone_data_look_anim();
+
+    void reset();
 };
 
 struct rob_sleeve_data {
@@ -1323,8 +1325,7 @@ struct rob_chara_bone_data {
     bool disable_eye_motion;
     rob_chara_bone_data_ik_scale ik_scale;
     vec3 field_76C[2];
-    int32_t field_784;
-    struc_258 field_788;
+    rob_chara_bone_data_look_anim look_anim;
     rob_chara_bone_data_sleeve_adjust sleeve_adjust;
 
     rob_chara_bone_data();
@@ -1332,6 +1333,7 @@ struct rob_chara_bone_data {
 
     float_t get_frame();
     float_t get_frame_count();
+    vec3* get_look_anim_target_view_point();
     bool get_motion_has_looped();
     void interpolate();
     void load_eyes_motion(uint32_t motion_id, const motion_database* mot_db);
@@ -1343,6 +1345,7 @@ struct rob_chara_bone_data {
     void reset();
     void set_disable_eye_motion(bool value);
     void set_frame(float_t frame);
+    void set_look_anim_target_view_point(vec3* value);
     void set_motion_frame(float_t frame, float_t step, float_t frame_count);
     void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
     void set_motion_loop_state(mot_play_frame_data_loop_state value);
@@ -3473,6 +3476,12 @@ struct rob_chara {
         float_t value, int32_t state, float_t blend_duration, float_t a7,
         float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
     void set_left_hand_scale(float_t value);
+    void set_look_camera(bool a2, bool a3, float_t a4,
+        float_t blend, float_t duration, float_t a7, float_t a8, bool a9);
+    void set_look_camera_new(bool a2, float_t a3,
+        float_t blend, float_t duration, float_t a7, float_t a8);
+    void set_look_camera_old(bool a2, float_t a3,
+        float_t blend, float_t duration, float_t a7, float_t a8);
     bool set_motion_id(uint32_t motion_id, float_t frame,
         float_t blend_duration, bool blend, bool set_motion_reset_data,
         MotionBlendType blend_type, const bone_database* bone_data, const motion_database* mot_db);
@@ -3498,8 +3507,6 @@ struct rob_chara {
     void sub_140509D30();
     void sub_140518190();
     void sub_140551000();
-    void sub_140554790(bool a2, float_t a3, float_t a5, float_t a6, float_t a7, float_t a8);
-    void sub_1405547E0(bool a2, float_t a3, float_t a5, float_t a6, float_t a7, float_t a8);
 };
 
 struct pv_data_set_motion {

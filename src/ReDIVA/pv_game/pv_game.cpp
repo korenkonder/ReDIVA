@@ -149,8 +149,10 @@ struc_14 stru_140C94438;
 struc_717 stru_141197E00;
 
 pv_game_parent pv_game_parent_data;
+#if !PV_DEBUG
 pv_game_time pv_game_curr_time;
 pv_game_time pv_game_delta_time;
+#endif
 int32_t pv_game_parent_state;
 
 int32_t pv_game_state;
@@ -5421,8 +5423,10 @@ void TaskPvGame::Load(TaskPvGame::Data& data) {
     pv_game_parent_data.state = 0;
     pv_game_parent_data.init_time = false;
 
+#if !PV_DEBUG
     pv_game_curr_time.restart();
     pv_game_delta_time.restart();
+#endif
 
     sub_14013C8C0()->sub_1400E79E0(data.type);
     sub_14013C8C0()->pv = data.init_data.pv_id;
@@ -6206,17 +6210,21 @@ static bool pv_game_parent_ctrl() {
     if (pv_game_parent_data.init_time) {
         pv_game_parent_data.init_time = false;
 
+#if PV_DEBUG
+        pv_game_parent_data.curr_time = 0;
+        pv_game_parent_data.delta_time = 0;
+#else
         pv_game_curr_time.restart();
         pv_game_delta_time.restart();
-
-#if PV_DEBUG
-        if (task_pv_game->pause) {
-            pv_game_curr_time.add = false;
-            pv_game_delta_time.add = false;
-        }
 #endif
     }
 
+#if PV_DEBUG
+#pragma warning(suppress: 26451)
+    int64_t delta_time = (int64_t)(get_delta_frame() * (float_t)(1.0 / 60.0) * (float_t)1000000);
+    pv_game_parent_data.curr_time += 1000 * delta_time;
+    pv_game_parent_data.delta_time = (float_t)(1000 * delta_time) * 0.000000001f;
+#else
     int64_t curr_time = pv_game_curr_time.calc();
     int64_t delta_time = pv_game_delta_time.calc();
 
@@ -6224,6 +6232,7 @@ static bool pv_game_parent_ctrl() {
 
     pv_game_parent_data.curr_time = 1000 * curr_time;
     pv_game_parent_data.delta_time = (float_t)(1000 * delta_time) * 0.000000001f;
+#endif
 
     //sub_14013C8D0()->sub_140132C20(pv_game_parent_data.delta_time);
 
@@ -6241,13 +6250,17 @@ static void pv_game_parent_disp() {
 }
 
 static void pv_game_time_pause() {
+#if !PV_DEBUG
     pv_game_curr_time.pause();
     pv_game_delta_time.pause();
+#endif
 }
 
 static void pv_game_time_start() {
+#if !PV_DEBUG
     pv_game_curr_time.start();
     pv_game_delta_time.start();
+#endif
 }
 
 static FrameRateControl* get_diva_pv_frame_rate() {
