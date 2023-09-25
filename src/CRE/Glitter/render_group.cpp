@@ -96,24 +96,23 @@ namespace Glitter {
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
-            uint32_t* ebo_data = force_malloc<uint32_t>(count - 1);
-            for (size_t i = 0, j = 0, k = count / 5 - 1; i < count; i += 5, j += 4, k--) {
-                ebo_data[i + 0] = (uint32_t)(j + 0);
-                ebo_data[i + 1] = (uint32_t)(j + 1);
-                ebo_data[i + 2] = (uint32_t)(j + 3);
-                ebo_data[i + 3] = (uint32_t)(j + 2);
-                if (k)
-                    ebo_data[i + 4] = 0xFFFFFFFF;
+            uint16_t* ebo_data = force_malloc<uint16_t>(count);
+            for (size_t i = 0, j = 0, k = count; k; i += 5, j += 4, k -= 5) {
+                ebo_data[i + 0] = (uint16_t)(j + 0);
+                ebo_data[i + 1] = (uint16_t)(j + 1);
+                ebo_data[i + 2] = (uint16_t)(j + 3);
+                ebo_data[i + 3] = (uint16_t)(j + 2);
+                ebo_data[i + 4] = (uint16_t)0xFFFFFFFF;
             }
 
             glGenBuffers(1, &ebo);
             gl_state_bind_element_array_buffer(ebo, true);
             if (GLAD_GL_VERSION_4_4)
                 glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint32_t) * (count - 1)), ebo_data, 0);
+                    (GLsizeiptr)(sizeof(uint16_t) * count), ebo_data, 0);
             else
                 glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint32_t) * (count - 1)), ebo_data, GL_STATIC_DRAW);
+                    (GLsizeiptr)(sizeof(uint16_t) * count), ebo_data, GL_STATIC_DRAW);
             free_def(ebo_data);
         }
 
