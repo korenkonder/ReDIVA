@@ -978,8 +978,8 @@ void TaskEffectFogRing::Data::Dest() {
 
     ssbo.Destroy();
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
-    rctx_ptr->render_manager.clear_user_func(0);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
+    rctx_ptr->render_manager.clear_pre_process(0);
     rctx_ptr->draw_state.set_fog_height(false);
 }
 
@@ -1053,8 +1053,8 @@ void TaskEffectFogRing::Data::Reset() {
 }
 
 void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    rctx_ptr->render_manager.clear_user_func(0);
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
+    rctx_ptr->render_manager.clear_pre_process(0);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
     disp = false;
     current_stage_index = -1;
     this->stage_indices.clear();
@@ -1144,8 +1144,8 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
 
     InitParticleData();
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, true);
-    rctx_ptr->render_manager.add_user_func(0, TaskEffectFogRing::Data::DrawStatic, this);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
+    rctx_ptr->render_manager.add_pre_process(0, TaskEffectFogRing::Data::DrawStatic, this);
 }
 
 void TaskEffectFogRing::Data::DrawStatic(void* data) {
@@ -1815,8 +1815,8 @@ void ripple_emit::ctrl() {
 
 void ripple_emit::dest() {
     stage_param_data_ripple_storage_clear();
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, false);
-    rctx_ptr->render_manager.clear_user_func(0);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
+    rctx_ptr->render_manager.clear_pre_process(0);
     this->ground_y = -1001.0;
 }
 
@@ -1968,8 +1968,8 @@ void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
     counter = 0;
     field_BEC = 0;
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_USER, true);
-    rctx_ptr->render_manager.add_user_func(0, ripple_emit::draw_static, this);
+    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
+    rctx_ptr->render_manager.add_pre_process(0, ripple_emit::draw_static, this);
 
     field_4F0 = 18;
     for (struc_207& i : field_4F4)

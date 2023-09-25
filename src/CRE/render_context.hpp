@@ -151,18 +151,18 @@ namespace mdl {
 
 namespace rndr {
     enum RenderPassID {
-        RND_PASSID_SHADOWMAP = 0,
+        RND_PASSID_SHADOW = 0,
         RND_PASSID_SS_SSS,
         RND_PASSID_2,
         RND_PASSID_REFLECT,
         RND_PASSID_REFRACT,
-        RND_PASSID_USER,
+        RND_PASSID_PRE_PROCESS,
         RND_PASSID_CLEAR,
-        RND_PASSID_SPRITE_BG,
-        RND_PASSID_ALL_3D,
+        RND_PASSID_PRE_SPRITE,
+        RND_PASSID_3D,
         RND_PASSID_SHOW_VECTOR,
         RND_PASSID_POST_PROCESS,
-        RND_PASSID_SPRITE_FG,
+        RND_PASSID_SPRITE,
         RND_PASSID_12,
         RND_PASSID_NUM,
     };
@@ -224,7 +224,7 @@ struct draw_state {
     void set_fog_height(bool value);
 };
 
-struct draw_user {
+struct draw_pre_process {
     int32_t type;
     void(*func)(void*);
     void* data;
@@ -638,7 +638,9 @@ namespace rndr {
         bool opaque_z_sort;
         bool alpha_z_sort;
         bool draw_pass_3d[DRAW_PASS_3D_MAX];
+        bool show_ref_map;
         stage_data_reflect_type reflect_type;
+        bool clear;
         int32_t tex_index[12]; // Extra for buf
         RenderTexture render_textures[9]; // Extra for buf
         GLuint multisample_framebuffer;
@@ -648,7 +650,7 @@ namespace rndr {
         float_t show_vector_length;
         float_t show_vector_z_offset;
         bool field_2F8;
-        std::list<draw_user> user;
+        std::list<draw_pre_process> pre_process;
         texture* effect_texture;
         int32_t npr_param;
         bool field_31C;
@@ -664,8 +666,8 @@ namespace rndr {
         RenderManager();
         ~RenderManager();
 
-        void add_user_func(int32_t type, void(*func)(void*), void* data);
-        void clear_user_func(int32_t type);
+        void add_pre_process(int32_t type, void(*func)(void*), void* data);
+        void clear_pre_process(int32_t type);
         RenderTexture& get_render_texture(int32_t index);
         void resize(int32_t width, int32_t height);
         void set_effect_texture(texture* value);
@@ -688,20 +690,20 @@ namespace rndr {
         void render_pass_begin();
         void render_pass_end(rndr::RenderPassID id);
 
-        void pass_shadowmap(render_context* rctx);
+        void pass_shadow(render_context* rctx);
         void pass_ss_sss(render_context* rctx);
         void pass_reflect(render_context* rctx);
         void pass_refract(render_context* rctx);
-        void pass_user(render_context* rctx);
+        void pass_pre_process(render_context* rctx);
         void pass_clear(render_context* rctx);
-        void pass_sprite_bg(render_context* rctx);
-        void pass_all_3d(render_context* rctx);
+        void pass_pre_sprite(render_context* rctx);
+        void pass_3d(render_context* rctx);
         void pass_show_vector(render_context* rctx);
         void pass_post_process(render_context* rctx);
-        void pass_sprite_fg(render_context* rctx);
+        void pass_sprite(render_context* rctx);
 
         void pass_3d_contour(render_context* rctx);
-        void pass_sprite_fg_surf(render_context* rctx);
+        void pass_sprite_surf(render_context* rctx);
     };
 }
 

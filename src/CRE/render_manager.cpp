@@ -71,8 +71,21 @@ namespace rndr {
         gl_state_enable_depth_test();
         gl_state_set_depth_func(GL_LEQUAL);
         gl_state_set_depth_mask(GL_TRUE);
-        for (int32_t i = RND_PASSID_SHADOWMAP; i < RND_PASSID_NUM; i++)
+
+        gl_state_begin_event("rndpass_render_all_pass::Caller::execute_pre3d");
+        for (int32_t i = RND_PASSID_SHADOW; i <= RND_PASSID_CLEAR; i++)
             RenderManager::render_single_pass((RenderPassID)i, rctx);
+        gl_state_end_event();
+
+        gl_state_begin_event("rndpass_render_all_pass::Caller::execute_3d");
+        for (int32_t i = RND_PASSID_PRE_SPRITE; i <= RND_PASSID_3D; i++)
+            RenderManager::render_single_pass((RenderPassID)i, rctx);
+        gl_state_end_event();
+
+        gl_state_begin_event("rndpass_render_all_pass::Caller::execute_2d");
+        for (int32_t i = RND_PASSID_SHOW_VECTOR; i <= RND_PASSID_12; i++)
+            RenderManager::render_single_pass((RenderPassID)i, rctx);
+        gl_state_end_event();
 
         rctx->disp_manager.check_vertex_arrays();
         gl_state_bind_vertex_array(0);
@@ -94,8 +107,8 @@ namespace rndr {
 
         render_pass_begin();
         switch (id) {
-        case RND_PASSID_SHADOWMAP:
-            pass_shadowmap(rctx);
+        case RND_PASSID_SHADOW:
+            pass_shadow(rctx);
             break;
         case RND_PASSID_SS_SSS:
             pass_ss_sss(rctx);
@@ -106,17 +119,17 @@ namespace rndr {
         case RND_PASSID_REFRACT:
             pass_refract(rctx);
             break;
-        case RND_PASSID_USER:
-            pass_user(rctx);
+        case RND_PASSID_PRE_PROCESS:
+            pass_pre_process(rctx);
             break;
         case RND_PASSID_CLEAR:
             pass_clear(rctx);
             break;
-        case RND_PASSID_SPRITE_BG:
-            pass_sprite_bg(rctx);
+        case RND_PASSID_PRE_SPRITE:
+            pass_pre_sprite(rctx);
             break;
-        case RND_PASSID_ALL_3D:
-            pass_all_3d(rctx);
+        case RND_PASSID_3D:
+            pass_3d(rctx);
             break;
         case RND_PASSID_SHOW_VECTOR:
             pass_show_vector(rctx);
@@ -124,8 +137,8 @@ namespace rndr {
         case RND_PASSID_POST_PROCESS:
             pass_post_process(rctx);
             break;
-        case RND_PASSID_SPRITE_FG:
-            pass_sprite_fg(rctx);
+        case RND_PASSID_SPRITE:
+            pass_sprite(rctx);
             break;
         }
         render_pass_end(id);
@@ -149,8 +162,8 @@ namespace rndr {
             gpu_time[id] = 0;
     }
 
-    void RenderManager::pass_shadowmap(render_context* rctx) {
-        gl_state_begin_event("pass_shadowmap");
+    void RenderManager::pass_shadow(render_context* rctx) {
+        gl_state_begin_event("pass_shadow");
         rctx->camera->update_data();
         if (rctx->litproj->set(rctx)) {
             rctx->obj_scene_ubo.WriteMapMemory(rctx->obj_scene);
@@ -460,9 +473,9 @@ namespace rndr {
         gl_state_end_event();
     }
 
-    void RenderManager::pass_user(render_context* rctx) {
-        gl_state_begin_event("pass_user");
-        for (draw_user& i : user)
+    void RenderManager::pass_pre_process(render_context* rctx) {
+        gl_state_begin_event("pass_pre_process");
+        for (draw_pre_process& i : pre_process)
             if (i.func)
                 i.func(i.data);
         gl_state_end_event();
@@ -471,7 +484,7 @@ namespace rndr {
     void RenderManager::pass_clear(render_context* rctx) {
         gl_state_begin_event("pass_clear");
 
-        if (false/*field_128*/) {
+        if (clear) {
             vec4 clear_color = get_clear_color();
             glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -490,7 +503,7 @@ namespace rndr {
                 vec4 clear_color = get_clear_color();
                 glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
                 glClearDepth(1.0f);
-                if (false/*field_128*/)
+                if (clear)
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 else
                     glClear(GL_DEPTH_BUFFER_BIT);
@@ -504,7 +517,7 @@ namespace rndr {
                 glClear(GL_COLOR_BUFFER_BIT);
                 gl_state_bind_framebuffer(0);
             }
-            else if (false/*field_128*/) {
+            else if (clear) {
                 vec4 clear_color = get_clear_color();
                 glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
                 glClear(GL_COLOR_BUFFER_BIT);
@@ -516,11 +529,11 @@ namespace rndr {
         gl_state_end_event();
     }
 
-    void RenderManager::pass_sprite_bg(render_context* rctx) {
+    void RenderManager::pass_pre_sprite(render_context* rctx) {
         if (!sprite_manager_get_reqlist_count(2))
             return;
 
-        gl_state_begin_event("pass_sprite_bg");
+        gl_state_begin_event("pass_pre_sprite");
         post_process* pp = &rctx->post_process;
         pp->set_render_texture(true);
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -541,8 +554,7 @@ namespace rndr {
         gl_state_end_event();
     }
 
-    void RenderManager::pass_all_3d(render_context* rctx) {
-        gl_state_begin_event("pass_all_3d");
+    void RenderManager::pass_3d(render_context* rctx) {
         rctx->camera->update_data();
         rctx->post_process.set_render_texture();
         draw_pass_set_camera(rctx);
@@ -725,9 +737,8 @@ namespace rndr {
         if (shadow)
             draw_pass_3d_shadow_reset(rctx);
         shader::unbind();
-        pass_sprite_fg_surf(rctx);
+        pass_sprite_surf(rctx);
         gl_state_bind_framebuffer(0);
-        gl_state_end_event();
     }
 
     void RenderManager::pass_show_vector(render_context* rctx) {
@@ -786,11 +797,11 @@ namespace rndr {
         gl_state_end_event();
     }
 
-    void RenderManager::pass_sprite_fg(render_context* rctx) {
+    void RenderManager::pass_sprite(render_context* rctx) {
         if (!sprite_manager_get_reqlist_count(0))
             return;
 
-        gl_state_begin_event("pass_sprite_fg");
+        gl_state_begin_event("pass_sprite");
         post_process* pp = &rctx->post_process;
         glViewport(0, 0, pp->sprite_width, pp->sprite_height);
 
@@ -864,7 +875,7 @@ namespace rndr {
         gl_state_disable_blend();
     }
 
-    void RenderManager::pass_sprite_fg_surf(render_context* rctx) {
+    void RenderManager::pass_sprite_surf(render_context* rctx) {
         if (!sprite_manager_get_reqlist_count(1))
             return;
 

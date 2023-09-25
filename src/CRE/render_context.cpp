@@ -3072,7 +3072,7 @@ namespace mdl {
 
 namespace rndr {
     RenderManager::RenderManager() : pass_sw(), reflect_blur_num(), reflect_blur_filter(), sync_gpu(),
-        cpu_time(), gpu_time(), time(), draw_pass_3d(), reflect_type(), tex_index(),
+        cpu_time(), gpu_time(), time(), draw_pass_3d(), show_ref_map(), reflect_type(), clear(), tex_index(),
         multisample_framebuffer(), multisample_renderbuffer(), multisample(), show_vector_flags(),
         show_vector_length(), show_vector_z_offset(), field_2F8(), effect_texture(), npr_param(),
         field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr(), samplers(), sprite_samplers() {
@@ -3082,7 +3082,7 @@ namespace rndr {
         set_pass_sw(RND_PASSID_2, false);
         set_pass_sw(RND_PASSID_REFLECT, false);
         set_pass_sw(RND_PASSID_REFRACT, false);
-        set_pass_sw(RND_PASSID_USER, false);
+        set_pass_sw(RND_PASSID_PRE_PROCESS, false);
         set_pass_sw(RND_PASSID_SHOW_VECTOR, false);
 
         shadow = true;
@@ -3192,14 +3192,14 @@ namespace rndr {
         delete shadow_ptr;
     }
 
-    void RenderManager::add_user_func(int32_t type, void(*func)(void*), void* data) {
-        user.push_back({ type, func, data });
+    void RenderManager::add_pre_process(int32_t type, void(*func)(void*), void* data) {
+        pre_process.push_back({ type, func, data });
     }
 
-    void RenderManager::clear_user_func(int32_t type) {
-        for (std::list<draw_user>::iterator i = user.begin(); i != user.end(); i++)
+    void RenderManager::clear_pre_process(int32_t type) {
+        for (std::list<draw_pre_process>::iterator i = pre_process.begin(); i != pre_process.end(); i++)
             if (i->type == type) {
-                user.erase(i);
+                pre_process.erase(i);
                 break;
             }
     }
