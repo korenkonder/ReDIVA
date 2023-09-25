@@ -1076,7 +1076,7 @@ namespace Glitter {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
-            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
+            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_SHORT, 0);
             shaders_ft.disable_primitive_restart();
             break;
         case PARTICLE_LINE:
