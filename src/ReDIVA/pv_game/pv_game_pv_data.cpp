@@ -15,7 +15,7 @@
 struct struc_595 {
     const char* name;
     int32_t mottbl_index;
-    int32_t field_C;
+    int32_t type;
     int32_t field_10;
 };
 
@@ -300,7 +300,7 @@ void struc_676::reset() {
 pv_game_pv_data::pv_game_pv_data() : field_0(), dsc_state(), play()/*, dsc_buffer(), dsc_buffer_counter()*/,
 dsc_data_ptr(), dsc_data_ptr_end(), field_2BF38(), curr_time(), curr_time_float(), prev_time_float(),
 field_2BF50(), field_2BF60(), field_2BF64(), field_2BF68(), chara_id(), pv_game()/*, field_2BF80()*/,
-music(), dsc_file_handler(), dsc_time(), music_playing(), field_2BFC4(), pv_end(), field_2BFD4(),
+music(), dsc_file_handler(), dsc_time(), music_playing(), field_2BFC4(), pv_end(), look_camera_enable(),
 field_2BFD5(), data_camera(), has_signature(), has_perf_id(), targets_remaining(), target_index(),
 scene_rot_y(), field_2C550(), branch_mode(), last_challenge_note(), field_2C560() {
     field_2BF30 = -1;
@@ -743,16 +743,16 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         rob_chr = playdata->rob_chr;
 
         int32_t v114 = (int32_t)data[0];
-        int32_t duration_int = (int32_t)data[1];
+        int32_t blend_duration_int = (int32_t)data[1];
 
-        float_t duration;
-        if (duration_int == -1)
-            duration = 6.0f;
+        float_t blend_duration;
+        if (blend_duration_int == -1)
+            blend_duration = 6.0f;
         else
-            duration = (float_t)duration_int * 0.001f * 60.0f;
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
 
         if (rob_chr)
-            rob_chr->set_eyelid_mottbl_motion_from_face(v114, duration / anim_frame_speed,
+            rob_chr->set_eyelid_mottbl_motion_from_face(v114, blend_duration / anim_frame_speed,
                 -1.0f, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
     } break;
     case DSC_FT_MOUTH_ANIM: {
@@ -907,42 +907,49 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t v171 = (int32_t)data[1];
-        int32_t duration_int = (int32_t)data[2];
-        int32_t v173 = (int32_t)data[3];
-        int32_t blend_int = (int32_t)data[4];
+        int32_t enable = (int32_t)data[1];
+        int32_t blend_duration_int = (int32_t)data[2];
+        int32_t head_rot_strength_int = (int32_t)data[3];
+        int32_t eyes_rot_strength_int = (int32_t)data[4];
 
-        float_t duration;
-        if (duration_int != -1) {
-            duration = (float_t)duration_int * 0.001f * 60.0f;
-            if (duration < 0.0f)
-                duration = 0.0f;
+        if (!rob_chr)
+            break;
+
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
         }
         else
-            duration = 0.0f;
+            blend_duration = 0.0f;
 
-        float_t v176;
-        if (v173 != -1) {
-            v176 = (float_t)v173 * 0.001f;
-            v176 = clamp_def(v176, 0.0f, 1.0f);
+        float_t head_rot_strength;
+        if (head_rot_strength_int != -1) {
+            head_rot_strength = (float_t)head_rot_strength_int * 0.001f;
+            head_rot_strength = clamp_def(head_rot_strength, 0.0f, 1.0f);
         }
         else
-            v176 = 1.0f;
+            head_rot_strength = 1.0f;
 
-        float_t blend;
-        if (blend_int != -1) {
-            blend = (float_t)blend_int * 0.001f;
-            blend = clamp_def(blend, 0.0f, 1.0f);
+        float_t eyes_rot_strength;
+        if (eyes_rot_strength_int != -1) {
+            eyes_rot_strength = (float_t)eyes_rot_strength_int * 0.001f;
+            eyes_rot_strength = clamp_def(eyes_rot_strength, 0.0f, 1.0f);
         }
         else
-            blend = 1.0f;
+            eyes_rot_strength = 1.0f;
+
+        blend_duration /= anim_frame_speed;
 
         if (rob_chr) {
-            field_2BFD4 = v171 == 1;
+            look_camera_enable = enable == 1;
             if (pv_game->data.pv->is_old_pv)
-                rob_chr->set_look_camera_old(field_2BFD4, v176, blend, duration / anim_frame_speed, 0.25f, 2.0f);
+                rob_chr->set_look_camera_old(look_camera_enable, head_rot_strength,
+                    eyes_rot_strength, blend_duration, 0.25f, 2.0f);
             else
-                rob_chr->set_look_camera_new(field_2BFD4, v176, blend, duration / anim_frame_speed, 0.25f, 2.0f);
+                rob_chr->set_look_camera_new(look_camera_enable, head_rot_strength,
+                    eyes_rot_strength, blend_duration, 0.25f, 2.0f);
         }
     } break;
     case DSC_FT_LYRIC: {
@@ -1347,10 +1354,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t _blend_duration = blend_duration;
         bool v358 = false;
         float_t value = 1.0f;
-        float_t v360 = 1.0f;
+        float_t step = 1.0f;
         int32_t state = 0;
         int32_t v13 = -1;
-        switch (v355.field_C) {
+        switch (v355.type) {
         case 1:
             v358 = true;
             _blend_duration = 0.0f;
@@ -1361,19 +1368,19 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             v13 = 0;
             float_t v363 = motion_storage_get_mot_data_frame_count(rob_chr->
                 get_rob_cmn_mottbl_motion_id(mottbl_index), aft_mot_db) - 1.0f;
-            v360 = v533 > 0.0f ? v363 / target_anim_fps * v533 : 1.0f;
+            step = v533 > 0.0f ? v363 / target_anim_fps * v533 : 1.0f;
         } break;
         case 3: {
             state = 4;
             v13 = 0;
             float_t v363 = motion_storage_get_mot_data_frame_count(rob_chr->
                 get_rob_cmn_mottbl_motion_id(mottbl_index), aft_mot_db) - 1.0f;
-            v360 = v533 > 0.0f ? v363 / target_anim_fps * v533 : 1.0f;
+            step = v533 > 0.0f ? v363 / target_anim_fps * v533 : 1.0f;
         } break;
         }
 
         rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value, state, _blend_duration, 0.0f,
-            v360, v13, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+            step, v13, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
 
         if (pv_game->data.pv->is_old_pv)
             rob_chr->set_look_camera_old(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
@@ -1882,7 +1889,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t shadow_cast = (int32_t)data[0];
+        int32_t shadow_cast = (int32_t)data[1];
 
         if (rob_chr)
             rob_chr->set_shadow_cast(shadow_cast == 1);
@@ -2401,7 +2408,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     field_2BFB8 = -1;
     field_2BFBC = -1;
     this->music_play = music_play;
-    field_2BFD4 = false;
+    look_camera_enable = false;
     field_2BFD5 = false;
     pv_end = false;
     targets_remaining = 0;

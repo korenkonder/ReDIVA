@@ -294,7 +294,7 @@ struct pv_game_pv_data {
     bool pv_end;
     float_t fov;
     float_t min_dist;
-    bool field_2BFD4;
+    bool look_camera_enable;
     bool field_2BFD5;
     pv_play_data playdata[ROB_CHARA_COUNT];
     pv_data_camera data_camera[3];
