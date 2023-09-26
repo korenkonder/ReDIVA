@@ -1084,8 +1084,8 @@ static void rob_chara_bone_data_set_hand_r_anim_blend_duration(rob_chara_bone_da
     float_t duration, float_t step, float_t offset);
 static void rob_chara_bone_data_set_hand_r_frame(rob_chara_bone_data* rob_bone_data, float_t frame);
 static void rob_chara_bone_data_set_hand_r_play_frame_step(rob_chara_bone_data* rob_bone_data, float_t step);
-static void rob_chara_bone_data_set_look_anim_params(rob_chara_bone_data* rob_bone_data,
-    const rob_chara_look_anim_eye_params* params, eyes_adjust* eyes_adjust);
+static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bone_data,
+    const rob_chara_look_anim_eye_param* params, eyes_adjust* eyes_adjust);
 static void rob_chara_bone_data_set_mats(rob_chara_bone_data* rob_bone_data,
     const std::vector<bone_database_bone>* bones, const std::string* motion_bones);
 static void rob_chara_bone_data_set_motion_duration(rob_chara_bone_data* rob_bone_data,
@@ -3407,8 +3407,8 @@ void rob_chara::rob_motion_modifier_ctrl() {
         rob_chara_bone_data_set_right_hand_scale(this->bone_data, right_hand_scale);
 }
 
-static const rob_chara_look_anim_eye_params* rob_chara_look_anim_eye_params_get(chara_index chara_index) {
-    static const rob_chara_look_anim_eye_params rob_chara_look_anim_chara_params[] = {
+static const rob_chara_look_anim_eye_param* rob_chara_look_anim_eye_param_array_get(chara_index chara_index) {
+    static const rob_chara_look_anim_eye_param rob_chara_look_anim_eye_param_array[] = {
         {
             { -0.061086524f, 0.104719758f, -0.080285146f, 0.113446399f, },
             { -0.043633230f, 0.061086524f, -0.080285146f, 0.113446399f, },
@@ -3461,7 +3461,7 @@ static const rob_chara_look_anim_eye_params* rob_chara_look_anim_eye_params_get(
         },
     };
 
-    return &rob_chara_look_anim_chara_params[chara_index];
+    return &rob_chara_look_anim_eye_param_array[chara_index];
 }
 
 static void sub_140514130(rob_chara_item_equip* rob_itm_equip, item_id id, bool a3) {
@@ -3503,8 +3503,8 @@ void rob_chara::reset_data(rob_chara_pv_data* pv_data,
     rob_chr_data->adjust_data.item_scale = scale; // X
     rob_chr_data->adjust_data.height_adjust = this->pv_data.height_adjust;
     rob_chr_data->adjust_data.pos_adjust_y = chara_pos_adjust_y_table_get_value(this->pv_data.chara_size_index);
-    rob_chara_bone_data_set_look_anim_params(this->bone_data,
-        rob_chara_look_anim_eye_params_get(chara_index), &pv_data->eyes_adjust);
+    rob_chara_bone_data_set_look_anim_param(this->bone_data,
+        rob_chara_look_anim_eye_param_array_get(chara_index), &pv_data->eyes_adjust);
     this->bone_data->sleeve_adjust.sleeve_l = pv_data->sleeve_l;
     this->bone_data->sleeve_adjust.sleeve_r = pv_data->sleeve_r;
     this->bone_data->sleeve_adjust.enable1 = true;
@@ -8697,16 +8697,16 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
     float_t yrot_neg_right;
     float_t yrot_pos_right;
     if (look_anim->ft) {
-        yrot_neg_left = look_anim->params.ft.yrot_neg;
-        yrot_pos_left = look_anim->params.ft.yrot_pos;
-        yrot_neg_right = -look_anim->params.ft.yrot_pos;
-        yrot_pos_right = -look_anim->params.ft.yrot_neg;
+        yrot_neg_left = look_anim->param.ft.yrot_neg;
+        yrot_pos_left = look_anim->param.ft.yrot_pos;
+        yrot_neg_right = -look_anim->param.ft.yrot_pos;
+        yrot_pos_right = -look_anim->param.ft.yrot_neg;
     }
     else {
-        yrot_neg_left = look_anim->params.ac.yrot_neg;
-        yrot_pos_left = look_anim->params.ac.yrot_pos;
-        yrot_neg_right = -look_anim->params.ac.yrot_pos;
-        yrot_pos_right = -look_anim->params.ac.yrot_neg;
+        yrot_neg_left = look_anim->param.ac.yrot_neg;
+        yrot_pos_left = look_anim->param.ac.yrot_pos;
+        yrot_neg_right = -look_anim->param.ac.yrot_pos;
+        yrot_pos_right = -look_anim->param.ac.yrot_neg;
     }
 
     if (look_anim->field_B0 > 0.0f) {
@@ -8729,14 +8729,14 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
             vec3 v56;
             mat4_mult_vec3_inv_trans(kl_eye_l_parent_mat, &v60, &v56);
 
-            float_t v41 = atan2f(v56.x - look_anim->params.pos.x, v56.z);
+            float_t v41 = atan2f(v56.x - look_anim->param.pos.x, v56.z);
             if (yrot_neg_left < v41)
                 yrot_neg_left = min_def(yrot_pos_left, v41);
 
             vec3 v55;
             mat4_mult_vec3_inv_trans(kl_eye_r_parent_mat, &v60, &v55);
 
-            float_t v42 = atan2f(v55.x + look_anim->params.pos.x, v55.z);
+            float_t v42 = atan2f(v55.x + look_anim->param.pos.x, v55.z);
             if (yrot_pos_right > v42)
                 yrot_pos_right = max_def(-yrot_pos_left, v42);
         }
@@ -8745,14 +8745,14 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
     float_t xrot_neg;
     float_t xrot_pos;
     if (look_anim->ft) {
-        xrot_neg = look_anim->params.ft.xrot_neg * -3.8f
-            / look_anim->params.xrot_adjust_dir_neg * look_anim->eyes_xrot_adjust_neg;
-        xrot_pos = look_anim->params.ft.xrot_pos * 6.0f
-            / look_anim->params.xrot_adjust_dir_pos * look_anim->eyes_xrot_adjust_pos;
+        xrot_neg = look_anim->param.ft.xrot_neg * -3.8f
+            / look_anim->param.xrot_adjust_dir_neg * look_anim->eyes_xrot_adjust_neg;
+        xrot_pos = look_anim->param.ft.xrot_pos * 6.0f
+            / look_anim->param.xrot_adjust_dir_pos * look_anim->eyes_xrot_adjust_pos;
     }
     else {
-        xrot_neg = look_anim->params.ac.xrot_neg * look_anim->eyes_xrot_adjust_neg;
-        xrot_pos = look_anim->params.ac.xrot_pos * look_anim->eyes_xrot_adjust_pos;
+        xrot_neg = look_anim->param.ac.xrot_neg * look_anim->eyes_xrot_adjust_neg;
+        xrot_pos = look_anim->param.ac.xrot_pos * look_anim->eyes_xrot_adjust_pos;
     }
 
     vec3 rot_neg_left = vec3(xrot_neg, yrot_neg_left, 0.0f);
@@ -8760,7 +8760,7 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
     vec3 pos_left;
     mat4_mult_vec3_inv_trans(kl_eye_l_parent_mat, &look_anim->view_point, &pos_left);
     sub_140406FC0(look_anim, &bones[MOTION_BONE_KL_EYE_L],
-        &look_anim->left_eye_mat, pos_left - look_anim->params.pos,
+        &look_anim->left_eye_mat, pos_left - look_anim->param.pos,
         rot_neg_left, rot_pos_left, eyes_rot_anim, eyes_rot_blend, eyes_rot_step);
 
     const vec3 _xor = vec3(-0.0f, 0.0f, 0.0f);
@@ -8769,7 +8769,7 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
     vec3 pos_right;
     mat4_mult_vec3_inv_trans(kl_eye_r_parent_mat, &look_anim->view_point, &pos_right);
     sub_140406FC0(look_anim, &bones[MOTION_BONE_KL_EYE_R],
-        &look_anim->right_eye_mat, pos_right - (look_anim->params.pos ^ _xor),
+        &look_anim->right_eye_mat, pos_right - (look_anim->param.pos ^ _xor),
         rot_neg_right, rot_pos_right, eyes_rot_anim, eyes_rot_blend, eyes_rot_step);
 
     for (int32_t i = MOTION_BONE_KL_EYE_L; i <= MOTION_BONE_KL_HIGHLIGHT_L_WJ; i++)
@@ -10386,21 +10386,21 @@ static void rob_chara_bone_data_set_hand_r_play_frame_step(rob_chara_bone_data* 
     frame_data->step = step;
 }
 
-static void rob_chara_bone_data_set_look_anim_params(rob_chara_bone_data* rob_bone_data,
-    const rob_chara_look_anim_eye_params* params, eyes_adjust* eyes_adjust) {
-    rob_bone_data->look_anim.params = *params;
+static void rob_chara_bone_data_set_look_anim_param(rob_chara_bone_data* rob_bone_data,
+    const rob_chara_look_anim_eye_param* param, eyes_adjust* eyes_adjust) {
+    rob_bone_data->look_anim.param = *param;
 
     float_t v1_neg;
     float_t v1_pos;
     switch (eyes_adjust->base_adjust) {
     case EYES_BASE_ADJUST_DIRECTION:
     default:
-        v1_neg = params->xrot_adjust_dir_neg * (float_t)(-1.0 / 3.8);
-        v1_pos = params->xrot_adjust_dir_pos * (float_t)(1.0 / 6.0);
+        v1_neg = param->xrot_adjust_dir_neg * (float_t)(-1.0 / 3.8);
+        v1_pos = param->xrot_adjust_dir_pos * (float_t)(1.0 / 6.0);
         break;
     case EYES_BASE_ADJUST_CLEARANCE:
-        v1_neg = params->xrot_adjust_clear_neg * (float_t)(-1.0 / 3.8);
-        v1_pos = params->xrot_adjust_clear_pos * (float_t)(1.0 / 6.0);
+        v1_neg = param->xrot_adjust_clear_neg * (float_t)(-1.0 / 3.8);
+        v1_pos = param->xrot_adjust_clear_pos * (float_t)(1.0 / 6.0);
         break;
     case EYES_BASE_ADJUST_OFF:
         v1_neg = 1.0f;
@@ -10411,8 +10411,8 @@ static void rob_chara_bone_data_set_look_anim_params(rob_chara_bone_data* rob_bo
     float_t v2_pos = 1.0f;
     float_t v2_neg = 1.0f;
     if (eyes_adjust->xrot_adjust) {
-        v2_neg = params->xrot_adjust_neg;
-        v2_pos = params->xrot_adjust_pos;
+        v2_neg = param->xrot_adjust_neg;
+        v2_pos = param->xrot_adjust_pos;
     }
 
     if (eyes_adjust->neg >= 0.0f && eyes_adjust->pos >= 0.0f) {
@@ -12108,22 +12108,24 @@ void mot_blend::reset() {
     field_30 = 0;
 }
 
-rob_chara_look_anim_eye_params::rob_chara_look_anim_eye_params() : ac(), ft(),
+rob_chara_look_anim_eye_param::rob_chara_look_anim_eye_param() : ac(), ft(),
 xrot_adjust_neg(), xrot_adjust_pos(), xrot_adjust_dir_neg(), xrot_adjust_dir_pos(),
 xrot_adjust_clear_neg(), xrot_adjust_clear_pos() {
 
 }
 
-rob_chara_look_anim_eye_params::rob_chara_look_anim_eye_params(struc_822 ac, struc_822 ft, vec3 field_20,
-    float_t xrot_adjust_neg, float_t xrot_adjust_pos, float_t xrot_adjust_dir_neg, float_t xrot_adjust_dir_pos,
-    float_t xrot_adjust_clear_neg, float_t xrot_adjust_clear_pos) : ac(ac), ft(ft),
+rob_chara_look_anim_eye_param::rob_chara_look_anim_eye_param(rob_chara_look_anim_eye_param_limits ac,
+    rob_chara_look_anim_eye_param_limits ft,
+    vec3 pos, float_t xrot_adjust_neg, float_t xrot_adjust_pos,
+    float_t xrot_adjust_dir_neg, float_t xrot_adjust_dir_pos,
+    float_t xrot_adjust_clear_neg, float_t xrot_adjust_clear_pos) : ac(ac), ft(ft), pos(pos),
     xrot_adjust_neg(xrot_adjust_neg), xrot_adjust_pos(xrot_adjust_pos),
     xrot_adjust_dir_neg(xrot_adjust_dir_neg), xrot_adjust_dir_pos(xrot_adjust_dir_pos),
     xrot_adjust_clear_neg(xrot_adjust_clear_neg), xrot_adjust_clear_pos(xrot_adjust_clear_pos) {
 
 }
 
-void rob_chara_look_anim_eye_params::reset() {
+void rob_chara_look_anim_eye_param::reset() {
     ac = {};
     ft = {};
     pos = 0.0f;
@@ -12147,7 +12149,7 @@ field_19C(), field_1AC(), eyes_xrot_adjust_neg(), eyes_xrot_adjust_pos(), ft(), 
 void rob_chara_look_anim::reset() {
     bones = 0;
     mat = mat4_identity;
-    params.reset();
+    param.reset();
     update_view_point = false;
     init_head_rotation = false;
     head_rotation = false;

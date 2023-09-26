@@ -1178,16 +1178,16 @@ struct mot_blend {
     void reset();
 };
 
-struct struc_822 {
+struct rob_chara_look_anim_eye_param_limits {
     float_t xrot_neg;
     float_t xrot_pos;
     float_t yrot_neg;
     float_t yrot_pos;
 };
 
-struct rob_chara_look_anim_eye_params {
-    struc_822 ac;
-    struc_822 ft;
+struct rob_chara_look_anim_eye_param {
+    rob_chara_look_anim_eye_param_limits ac;
+    rob_chara_look_anim_eye_param_limits ft;
     vec3 pos;
     float_t xrot_adjust_neg;
     float_t xrot_adjust_pos;
@@ -1196,9 +1196,11 @@ struct rob_chara_look_anim_eye_params {
     float_t xrot_adjust_clear_neg;
     float_t xrot_adjust_clear_pos;
 
-    rob_chara_look_anim_eye_params();
-    rob_chara_look_anim_eye_params(struc_822 ac, struc_822 ft, vec3 field_20,
-        float_t xrot_adjust_neg, float_t xrot_adjust_pos, float_t xrot_adjust_dir_neg, float_t xrot_adjust_dir_pos,
+    rob_chara_look_anim_eye_param();
+    rob_chara_look_anim_eye_param(rob_chara_look_anim_eye_param_limits ac,
+        rob_chara_look_anim_eye_param_limits ft,
+        vec3 pos, float_t xrot_adjust_neg, float_t xrot_adjust_pos,
+        float_t xrot_adjust_dir_neg, float_t xrot_adjust_dir_pos,
         float_t xrot_adjust_clear_neg, float_t xrot_adjust_clear_pos);
 
     void reset();
@@ -1227,7 +1229,7 @@ struct struc_823 {
 struct rob_chara_look_anim {
     std::vector<bone_data>* bones;
     mat4 mat;
-    rob_chara_look_anim_eye_params params;
+    rob_chara_look_anim_eye_param param;
     bool update_view_point;
     bool init_head_rotation;
     bool head_rotation;
