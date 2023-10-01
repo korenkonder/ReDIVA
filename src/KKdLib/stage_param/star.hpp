@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../default.hpp"
+#include "../mat.hpp"
 #include <string>
 
 struct stage_param_star_utc {
@@ -17,13 +18,16 @@ struct stage_param_star_utc {
     float_t second;
 
     stage_param_star_utc();
+
+    void get_current_time();
+    double_t to_julian_date() const;
 };
 
 struct stage_param_star_modifiers {
-    float_t field_0;
-    float_t field_4;
-    float_t field_8;
-    float_t field_C;
+    float_t color_scale;
+    float_t pos_scale;
+    float_t offset_scale;
+    float_t threshold;
     float_t size_max;
 
     stage_param_star_modifiers();
@@ -49,5 +53,9 @@ struct stage_param_star {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
+    static void get_mat(mat4& mat, const float_t observer_north_latitude,
+        const float_t observer_east_longitude, const stage_param_star_utc& utc, const float_t rotation_y);
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+
+    stage_param_star& operator=(const stage_param_star& star);
 };

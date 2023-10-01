@@ -632,7 +632,7 @@ namespace rndr {
             pass_3d_contour(rctx);
 
         rctx->post_process.draw_lens_flare(rctx->camera);
-        //star_catalog_data.draw();
+        star_catalog_draw();
 
         draw_pass_3d_translucent(rctx,
             draw_pass_3d[DRAW_PASS_3D_OPAQUE],

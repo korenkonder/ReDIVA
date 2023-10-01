@@ -665,29 +665,19 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Disp() override;
-    virtual void Basic() override;
 
-    virtual void PreInit(int32_t stage_index) override;
     virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
     virtual void SetEnable(bool value) override;
     virtual void SetCurrentStageIndex(int32_t value) override;
     virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Field_68() override;
     virtual void Reset() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
 
 extern void leaf_particle_draw();
 extern void rain_particle_draw();
 extern void particle_draw();
 extern void snow_particle_draw();
+extern void star_catalog_draw();
 
 extern void task_effect_init();
 extern void task_effect_free();

@@ -28,7 +28,7 @@ namespace prj {
             time.tm_hour = hour;
             time.tm_min = min;
             time.tm_sec = sec;
-            return prj::time(mktime(&time));
+            return prj::time(_mkgmtime(&time));
         }
         return {};
     }

@@ -143,6 +143,86 @@ struct snow_particle_batch_shader_data {
     vec4i start_vertex_location;
 };
 
+struct star_catalog_scene_shader_data {
+    vec4 g_transform[4];
+};
+
+struct star_catalog_batch_shader_data {
+    vec4 g_size_in_projection;
+    vec4 g_modifiers;
+    vec4 g_thresholds;
+};
+
+struct star_catalog_milky_way {
+    GLuint vbo;
+    GLuint ebo;
+    GLuint vao;
+    uint16_t restart_index;
+    int32_t idx_count;
+    int32_t longitude_degs_10;
+    int32_t latitude_degs_10;
+    float_t longitude_offset_degs_10;
+    float_t latitude_offset_degs_10;
+    float_t latitude;
+    float_t longitude;
+    float_t uv_rec_scale_u;
+    float_t uv_rec_scale_v;
+
+    star_catalog_milky_way();
+    ~star_catalog_milky_way();
+
+    void create_buffers(int32_t subdivs, float_t uv_rec_scale_u, float_t uv_rec_scale_v,
+        int32_t longitude_degs_10, int32_t latitude_degs_10,
+        float_t longitude_offset_degs_10, float_t latitude_offset_degs_10);
+    void create_default_sphere();
+    void delete_buffers();
+    void draw(const mat4& vp, const mat4& model, texture* tex, GL::UniformBuffer& scene_ubo);
+    void reset();
+};
+
+struct star_catalog_vertex {
+    vec3 position;
+    vec2 texcoord;
+
+    star_catalog_vertex();
+};
+
+struct stars_buffer_data {
+    vec3 position;
+    float_t size;
+    vec4 color;
+
+    stars_buffer_data();
+};
+
+struct star_catalog {
+    GLuint vao;
+    bool random;
+    bool enable;
+    stage_param_star* stage_param_data_ptr;
+    stage_param_star stage_param_data;
+    star_catalog_milky_way milky_way;
+    int32_t star_count;
+    int32_t star_b_count;
+    p_file_handler file_handler;
+    uint32_t star_tex;
+    uint32_t star_b_tex;
+    uint32_t milky_way_tex_id;
+    GL::ShaderStorageBuffer stars_ssbo;
+    GL::UniformBuffer scene_ubo;
+    GL::UniformBuffer batch_ubo;
+
+    star_catalog();
+    ~star_catalog();
+
+    void draw();
+    void free();
+    bool init();
+    void set_stage_param_data(stage_param_star* value);
+
+    static void parse_data(std::vector<stars_buffer_data>& vec, size_t data);
+};
+
 struct struc_608 {
     const stage_effects* stage_effects;
     const stage_effects_modern* stage_effects_modern;
@@ -340,6 +420,8 @@ static GL::UniformBuffer snow_particle_batch_ubo;
 static const size_t snow_ptcl_count = 0x8000;
 static const size_t snow_ptcl_fallen_count = 0x2000;
 
+static star_catalog star_catalog_data;
+
 static TaskEffect** task_effect_data_array[] = {
     (TaskEffect**)&task_effect_auth_3d,
     0,
@@ -361,7 +443,7 @@ static TaskEffect** task_effect_data_array[] = {
     0,
     (TaskEffect**)&task_effect_particle,
     (TaskEffect**)&task_effect_litproj,
-    0/*(TaskEffect**)task_effect_star*/,
+    (TaskEffect**)&task_effect_star,
 };
 
 static const char* task_effect_name_array[] = {
@@ -1764,13 +1846,13 @@ ripple_emit_params::ripple_emit_params() {
     field_C = 0.9f;
 }
 
-ripple_emit::ripple_emit() : delta_frame(), update(), rain_ripple_num(),
-rain_ripple_min_value(), rain_ripple_max_value(), field_14(), emit_pos_scale(), emit_pos_ofs_x(),
-emit_pos_ofs_z(), ripple_tex_id(), use_float_ripplemap(), field_30(), rob_emitter_size(),
-emitter_num(), emitter_size(), field_4C(), field_50(), field_178(), field_2A0(), field_3C8(),
-field_4F0(), field_BB4(), counter(), field_BEC(), stage_set(), current_stage_index() {
+ripple_emit::ripple_emit() : delta_frame(), update(), rain_ripple_num(), rain_ripple_min_value(),
+rain_ripple_max_value(), field_14(), emit_pos_scale(), emit_pos_ofs_x(), emit_pos_ofs_z(), ripple_tex_id(),
+use_float_ripplemap(), field_30(), rob_emitter_size(), emitter_num(), emitter_size(), field_4C(), field_50(),
+field_178(), field_2A0(), field_3C8(), field_4F0(), field_BB4(), counter(), field_BEC(), stage_set() {
     ground_y = -1001.0f;
     emitter_list = 0;
+    current_stage_index = -1;
 }
 
 ripple_emit::~ripple_emit() {
@@ -2541,40 +2623,118 @@ public:
     virtual void Field_A0(int32_t a2, int32_t* a3) override;
     virtual void Field_A8(int32_t a2, int8_t* a3) override;
 };
-
-struct TaskEffectStar : public TaskEffect {
-public:
-    FrameRateControl* frame_rate_control;
-    int32_t current_stage_index;
-    float_t delta_frame;
-    std::vector<int32_t> stage_indices;
-
-    TaskEffectStar();
-    virtual ~TaskEffectStar() override;
-
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
-
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
-    virtual void Reset() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
-};
 */
+
+TaskEffectStar::TaskEffectStar() : frame_rate_control(), delta_frame() {
+    current_stage_index = -1;
+}
+
+TaskEffectStar::~TaskEffectStar() {
+
+}
+
+bool TaskEffectStar::Init() {
+    if (!star_catalog_data.stage_param_data_ptr)
+        return true;
+    else if (!star_catalog_data.init())
+        return false;
+
+    SetFrameRateControl(0);
+    return true;
+}
+
+bool TaskEffectStar::Ctrl() {
+    if (star_catalog_data.stage_param_data_ptr)
+        delta_frame = frame_rate_control->GetDeltaFrame();
+    return false;
+}
+
+bool TaskEffectStar::Dest() {
+    star_catalog_data.free();
+    stage_param_data_star_storage_clear();
+    return true;
+}
+
+void TaskEffectStar::Disp() {
+
+}
+
+void TaskEffectStar::SetStageIndices(std::vector<int32_t>& stage_indices) {
+    if (star_catalog_data.stage_param_data_ptr)
+        Dest();
+
+    current_stage_index = -1;
+    this->stage_indices.clear();
+    stage_param_data_star_storage_clear();
+    delta_frame = 1.0f;
+    for (int32_t i : stage_indices) {
+        stage_param_star star;
+        if (task_effect_array_parse_stage_param_data_star(&star, i)) {
+            this->stage_indices.push_back(i);
+            stage_param_data_star_storage_set_stage_data(i, &star);
+        }
+    }
+
+    if (this->stage_indices.size()) {
+        int32_t stage_index = this->stage_indices.front();
+        current_stage_index = stage_index;
+        stage_param_star* star = stage_param_data_star_storage_get_value(stage_index);
+
+        if (star) {
+            const char* dir = "./rom/";
+            const char* farc_file;
+            const char* file;
+
+            if (star_catalog_data.random) {
+                farc_file = "star_catalog_random.farc";
+                file = "random.bin";
+            }
+            else {
+                farc_file = "star_catalog_megastar2.farc";
+                file = "megastar2.bin";
+            }
+
+            star_catalog_data.file_handler.read_file(&data_list[DATA_AFT], dir, farc_file, file, false);
+            star_catalog_data.set_stage_param_data(star);
+        }
+    }
+}
+
+void TaskEffectStar::SetEnable(bool value) {
+    star_catalog_data.enable = value;
+}
+
+void TaskEffectStar::SetCurrentStageIndex(int32_t value) {
+    if (current_stage_index == value)
+        return;
+
+    current_stage_index = value;
+
+    bool found = false;
+    for (int32_t i : stage_indices)
+        if (i == value) {
+            found = true;
+            break;
+        }
+
+    star_catalog_data.stage_param_data_ptr = 0;
+    star_catalog_data.star_tex = -1;
+    star_catalog_data.star_b_tex = -1;
+    star_catalog_data.milky_way_tex_id = -1;
+    if (found)
+        star_catalog_data.set_stage_param_data(stage_param_data_star_storage_get_value(value));
+}
+
+void TaskEffectStar::SetFrameRateControl(FrameRateControl* value) {
+    if (value)
+        frame_rate_control = value;
+    else
+        frame_rate_control = get_sys_frame_rate();
+}
+
+void TaskEffectStar::Reset() {
+
+}
 
 void leaf_particle_draw() {
     if (!stage_param_data_leaf_current || !leaf_ptcl_data
@@ -2839,6 +2999,10 @@ void snow_particle_draw() {
     gl_state_disable_blend();
 }
 
+void star_catalog_draw() {
+    star_catalog_data.draw();
+}
+
 void task_effect_init() {
     if (!task_effect_auth_3d)
         task_effect_auth_3d = new TaskEffectAuth3D;
@@ -2870,8 +3034,8 @@ void task_effect_init() {
     if (!task_effect_litproj)
         task_effect_litproj = new TaskEffectLitproj;
 
-    /*if (!task_effect_star)
-        task_effect_star = new TaskEffectStar;*/
+    if (!task_effect_star)
+        task_effect_star = new TaskEffectStar;
 
     if (!task_effect_parent)
         task_effect_parent = new TaskEffectParent;
@@ -3156,6 +3320,449 @@ void leaf_particle_data::init() {
 }
 
 particle_data::particle_data() : size(), alpha(), life_time() {
+
+}
+
+star_catalog_milky_way::star_catalog_milky_way() : vbo(), ebo(), vao(), restart_index(),
+idx_count(), longitude_degs_10(), latitude_degs_10(), longitude_offset_degs_10(),
+latitude_offset_degs_10(), latitude(), longitude(), uv_rec_scale_u(), uv_rec_scale_v() {
+    reset();
+}
+
+star_catalog_milky_way::~star_catalog_milky_way() {
+
+}
+
+void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scale_u, float_t uv_rec_scale_v,
+    int32_t longitude_degs_10, int32_t latitude_degs_10,
+    float_t longitude_offset_degs_10, float_t latitude_offset_degs_10) {
+    delete_buffers();
+
+    const int32_t sectors_count = 2 * subdivs + 1;
+    const int32_t vtx_count = (subdivs - 1) * sectors_count + 2;
+    restart_index = (uint16_t)-1;
+
+    gl_state_bind_vertex_array(0);
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_element_array_buffer(0);
+
+    if (!vao)
+        glGenVertexArrays(1, &vao);
+
+    if (!vbo)
+        glGenBuffers(1, &vbo);
+
+    const float_t rec_longitude_degs_10 = 1.0f / (float_t)longitude_degs_10;
+    const float_t rec_latitude_degs_10 = 1.0f / (float_t)latitude_degs_10;
+
+    star_catalog_vertex* vtx_data = force_malloc<star_catalog_vertex>(vtx_count);
+    vtx_data[0].position = { 0.0f, 1.0f, 0.0f };
+    vtx_data[0].texcoord.x = 0.5f;
+    vtx_data[0].texcoord.y = (latitude_offset_degs_10 + (1.0f / uv_rec_scale_v) * 90.0f) * rec_latitude_degs_10;
+    size_t vtx = 1;
+    if (subdivs - 1 > 0) {
+        float_t rec_stack_step = 1.0f / (float_t)subdivs;
+        float_t rec_sector_step = 1.0f / (float_t)(2 * subdivs);
+        for (uint32_t i = subdivs - 1, j = 1; i; i--, j++) {
+            float_t stack_angle = (float_t)M_PI_2 - (float_t)j * (float_t)M_PI * rec_stack_step;
+            float_t xz = cosf(stack_angle);
+            float_t y = sinf(stack_angle);
+            float_t texcoord_y = (latitude_offset_degs_10 + stack_angle * (float_t)(1.0 / M_PI)
+                * 180.0f * (float_t)(1.0 / uv_rec_scale_v)) * rec_latitude_degs_10;
+            for (uint32_t k = sectors_count, l = 0; k; k--, l++, vtx++) {
+                float_t sector_angle = (float_t)l * (float_t)(2.0 * M_PI) * rec_sector_step;
+                vtx_data[vtx].position.x = sinf(sector_angle) * xz;
+                vtx_data[vtx].position.y = y;
+                vtx_data[vtx].position.z = cosf(sector_angle) * xz;
+                vtx_data[vtx].texcoord.x = (longitude_offset_degs_10 + (float_t)l * rec_sector_step
+                    * 360.0f * (1.0f / uv_rec_scale_u)) * rec_longitude_degs_10;
+                vtx_data[vtx].texcoord.y = texcoord_y;
+            }
+        }
+    }
+    vtx_data[vtx].position = { 0.0f, -1.0f, 0.0f };
+    vtx_data[vtx].texcoord.x = 1.0f;
+    vtx_data[vtx].texcoord.y = (latitude_offset_degs_10 - (1.0f / uv_rec_scale_v) * 90.0f) * rec_latitude_degs_10;
+
+    gl_state_bind_array_buffer(vbo, true);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER,
+            (GLsizeiptr)(sizeof(star_catalog_vertex) * vtx_count), vtx_data, 0);
+    else
+        glBufferData(GL_ARRAY_BUFFER,
+            (GLsizeiptr)(sizeof(star_catalog_vertex) * vtx_count), vtx_data, GL_STATIC_DRAW);
+    free_def(vtx_data);
+
+    static const GLsizei buffer_size = sizeof(star_catalog_vertex);
+
+    gl_state_bind_vertex_array(vao);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(star_catalog_vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(star_catalog_vertex, texcoord));
+
+    const uint16_t first_vertex = 0;
+    const uint16_t last_vertex = (uint16_t)(vtx_count - 1);
+    uint16_t restart_index = this->restart_index;
+
+    const int32_t ebo_count = (subdivs - 2) * (2 * sectors_count + 1) + 8 * sectors_count - 8;
+    idx_count = ebo_count;
+    uint16_t* ebo_data = force_malloc<uint16_t>(ebo_count);
+    size_t idx = 0;
+    for (uint32_t i = sectors_count - 1, j = 1; i; i--, j++, idx += 4) {
+        ebo_data[idx + 0] = first_vertex;
+        ebo_data[idx + 1] = (uint16_t)(j + 1);
+        ebo_data[idx + 2] = (uint16_t)j;
+        ebo_data[idx + 3] = restart_index;
+    }
+
+    uint16_t v37 = 1;
+    for (uint32_t i = subdivs - 2; i; i--, idx++) {
+        for (uint32_t j = sectors_count; j; j--, idx += 2, v37++) {
+            ebo_data[idx + 0] = (uint16_t)(v37 + sectors_count);
+            ebo_data[idx + 1] = (uint16_t)(v37);
+        }
+        ebo_data[idx] = restart_index;
+    }
+
+    for (uint32_t i = sectors_count - 1; i; i--, idx += 4, v37++) {
+        ebo_data[idx + 0] = last_vertex;
+        ebo_data[idx + 1] = (uint16_t)v37;
+        ebo_data[idx + 2] = (uint16_t)(v37 + 1);
+        ebo_data[idx + 3] = restart_index;
+    }
+
+    if (!ebo)
+        glGenBuffers(1, &ebo);
+
+    gl_state_bind_element_array_buffer(ebo, true);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
+            (GLsizeiptr)(sizeof(uint16_t) * ebo_count), ebo_data, 0);
+    else
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+            (GLsizeiptr)(sizeof(uint16_t) * ebo_count), ebo_data, GL_STATIC_DRAW);
+    free_def(ebo_data);
+
+    gl_state_bind_vertex_array(0);
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_element_array_buffer(0);
+}
+
+void star_catalog_milky_way::create_default_sphere() {
+    create_buffers(16, uv_rec_scale_u, uv_rec_scale_v, longitude_degs_10, latitude_degs_10,
+        longitude_offset_degs_10, latitude_offset_degs_10);
+}
+
+void star_catalog_milky_way::delete_buffers() {
+    if (vbo) {
+        glDeleteBuffers(1, &vbo);
+        vbo = 0;
+    }
+
+    if (ebo) {
+        glDeleteBuffers(1, &ebo);
+        ebo = 0;
+    }
+
+    if (vao) {
+        glDeleteVertexArrays(1, &vao);
+        vao = 0;
+    }
+}
+
+void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex, GL::UniformBuffer& scene_ubo) {
+    if (!vao)
+        return;
+
+    mat4 latitude_mat;
+    mat4 longitude_mat;
+    mat4_rotate_x(latitude * DEG_TO_RAD_FLOAT, &latitude_mat);
+    mat4_rotate_y(longitude * DEG_TO_RAD_FLOAT, &longitude_mat);
+
+    mat4 model;
+    mat4_mult(&latitude_mat, &longitude_mat, &model);
+
+    const float_t pitch_forward = -0.50503153f;
+    const float_t yaw_forward = 4.6496463f;
+    const float_t pitch_up = 0.47347879f;
+    const float_t yaw_up = 3.3660336f;
+
+    vec3 forward;
+    vec3 up;
+    forward.x = sinf(yaw_forward) * cosf(pitch_forward);
+    forward.y = sinf(pitch_forward);
+    forward.z = cosf(yaw_forward) * cosf(pitch_forward);
+    up.x = sinf(yaw_up) * cosf(pitch_up);
+    up.y = sinf(pitch_up);
+    up.z = cosf(yaw_up) * cosf(pitch_up);
+
+    mat4 view = mat4_identity;
+    *(vec3*)&view.row0 = vec3::cross(up, forward);
+    *(vec3*)&view.row1 = up;
+    *(vec3*)&view.row2 = forward;
+
+    mat4_mult(&model, &view, &model);
+    mat4_mult(&model, &mat, &model);
+
+    star_catalog_scene_shader_data scene_shader_data = {};
+    mat4 temp;
+    mat4_mult(&model, &vp, &temp);
+    mat4_transpose(&temp, &temp);
+    scene_shader_data.g_transform[0] = temp.row0;
+    scene_shader_data.g_transform[1] = temp.row1;
+    scene_shader_data.g_transform[2] = temp.row2;
+    scene_shader_data.g_transform[3] = temp.row3;
+    scene_ubo.WriteMemory(scene_shader_data);
+
+    gl_state_enable_cull_face();
+    gl_state_disable_blend();
+    gl_state_set_depth_mask(GL_FALSE);
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_enable_primitive_restart();
+    gl_state_set_primitive_restart_index(restart_index);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    uniform_value[U_STAR] = 1;
+    shaders_ft.set(SHADER_FT_STAR);
+
+    gl_state_bind_vertex_array(vao);
+    scene_ubo.Bind(0);
+    shaders_ft.draw_elements(GL_TRIANGLE_STRIP, idx_count, GL_UNSIGNED_SHORT, 0);
+    gl_state_bind_vertex_array(0);
+
+    gl_state_active_bind_texture_2d(0, 0);
+    gl_state_disable_primitive_restart();
+    gl_state_set_depth_mask(GL_TRUE);
+    gl_state_enable_blend();
+    gl_state_disable_cull_face();
+
+
+}
+
+void star_catalog_milky_way::reset() {
+    longitude_degs_10 = 3600;
+    latitude_degs_10 = 1800;
+    longitude_offset_degs_10 = 1800.9501f;
+    latitude_offset_degs_10 = 900.95001f;
+    latitude = 0.0f;
+    longitude = 0.0f;
+    uv_rec_scale_u = -0.1f;
+    uv_rec_scale_v = 0.1f;
+}
+
+star_catalog_vertex::star_catalog_vertex() {
+
+}
+
+star_catalog::star_catalog() : vao(), stage_param_data_ptr(), star_count(), star_b_count() {
+    random = false;
+    enable = true;
+    star_tex = -1;
+    star_b_tex = -1;
+    milky_way_tex_id = -1;
+}
+
+star_catalog::~star_catalog() {
+    free();
+}
+
+void star_catalog::draw() {
+    if (!stage_param_data_ptr || !enable)
+        return;
+
+    texture* star_tex = texture_storage_get_texture(this->star_tex);
+    texture* star_b_tex = texture_storage_get_texture(this->star_b_tex);
+    if (!star_tex || !star_b_tex)
+        return;
+
+    mat4 model;
+    stage_param_star::get_mat(model,
+        stage_param_data.observer_north_latitude_deg * DEG_TO_RAD_FLOAT,
+        stage_param_data.observer_east_longitude_deg * DEG_TO_RAD_FLOAT,
+        stage_param_data.utc,
+        stage_param_data.rotation_y_deg * DEG_TO_RAD_FLOAT);
+
+    const mat4& view = rctx_ptr->view_mat;
+    model.row3.x = vec3::dot(-*(vec3*)&view.row0, *(vec3*)&view.row3) + model.row3.x;
+    model.row3.y = vec3::dot(-*(vec3*)&view.row1, *(vec3*)&view.row3) + model.row3.y;
+    model.row3.z = vec3::dot(-*(vec3*)&view.row2, *(vec3*)&view.row3) + model.row3.z;
+
+    mat4 proj = rctx_ptr->proj_mat;
+    proj.row0.z = proj.row0.w;
+    proj.row1.z = proj.row1.w;
+    proj.row2.z = proj.row2.w;
+    proj.row3.z = proj.row3.w;
+
+    mat4 vp;
+    mat4_mult(&rctx_ptr->view_mat, &proj, &vp);
+
+    texture* milky_way_tex = texture_storage_get_texture(milky_way_tex_id);
+    if (milky_way_tex)
+        milky_way.draw(vp, model, milky_way_tex, scene_ubo);
+
+    if (!vao)
+        return;
+
+    star_catalog_scene_shader_data scene_shader_data = {};
+    mat4 temp;
+    mat4_mult(&model, &vp, &temp);
+    mat4_transpose(&temp, &temp);
+    scene_shader_data.g_transform[0] = temp.row0;
+    scene_shader_data.g_transform[1] = temp.row1;
+    scene_shader_data.g_transform[2] = temp.row2;
+    scene_shader_data.g_transform[3] = temp.row3;
+    scene_ubo.WriteMemory(scene_shader_data);
+
+    uniform_value[U_STAR] = 0;
+    shaders_ft.set(SHADER_FT_STAR);
+    gl_state_enable_blend();
+    gl_state_set_blend_func(GL_ONE, GL_ONE);
+    gl_state_enable_depth_test();
+    gl_state_set_depth_mask(false);
+    gl_state_bind_vertex_array(vao);
+    for (int32_t i = 0; i < 2; i++) {
+        stage_param_star_modifiers& modifiers = stage_param_data.modifiers[i];
+
+        star_catalog_batch_shader_data batch_shader_data = {};
+        batch_shader_data.g_size_in_projection = {
+            (float_t)(1.0 / 1280.0), (float_t)(1.0 / 720.0), 0.0f, modifiers.size_max
+        };
+        batch_shader_data.g_modifiers = {
+            modifiers.color_scale, modifiers.color_scale * modifiers.offset_scale,
+            modifiers.pos_scale, modifiers.pos_scale * modifiers.offset_scale
+        };
+        batch_shader_data.g_thresholds = { modifiers.threshold * modifiers.pos_scale, 0.0f, 0.0f, 0.0f };
+        batch_ubo.WriteMemory(batch_shader_data);
+
+        scene_ubo.Bind(0);
+        batch_ubo.Bind(1);
+        stars_ssbo.Bind(0);
+        if (i) {
+            gl_state_active_bind_texture_2d(0, star_b_tex->tex);
+            shaders_ft.draw_arrays(GL_TRIANGLES, 0, star_b_count * 6);
+        }
+        else {
+            gl_state_active_bind_texture_2d(0, star_tex->tex);
+            shaders_ft.draw_arrays(GL_TRIANGLES, 0, star_count * 6);
+        }
+    }
+    gl_state_active_bind_texture_2d(0, 0);
+    gl_state_bind_vertex_array(0);
+
+}
+
+void star_catalog::free() {
+    stars_ssbo.Destroy();
+
+    batch_ubo.Destroy();
+    scene_ubo.Destroy();
+
+    star_catalog_data.file_handler.reset();
+    star_catalog_data.milky_way.delete_buffers();
+
+    if (star_catalog_data.vao) {
+        glDeleteVertexArrays(1, &star_catalog_data.vao);
+        star_catalog_data.vao = 0;
+    }
+
+    star_catalog_data.stage_param_data_ptr = 0;
+}
+
+bool star_catalog::init() {
+    if (file_handler.check_not_ready())
+        return false;
+
+    if (file_handler.get_data()) {
+        std::vector<stars_buffer_data> vec;
+        file_handler.get_size();
+        const void* data = file_handler.get_data();
+        star_catalog::parse_data(vec, (size_t)data);
+        std::sort(vec.begin(), vec.end(), [](stars_buffer_data a, stars_buffer_data b) {
+            return a.size > b.size;
+        });
+
+        stars_buffer_data* stars_data = vec.data();
+        size_t length = vec.size();
+        size_t temp;
+        while (length > 0)
+            if (stars_data[temp = length / 2].size <= 0.0f)
+                length = temp;
+            else {
+                stars_data += temp + 1;
+                length -= temp + 1;
+            }
+
+        if (stars_data != vec.data() + vec.size())
+            vec.resize(stars_data - vec.data());
+
+        stars_data = vec.data();
+        length = vec.size();
+        while (length > 0)
+            if (stars_data[temp = length / 2].size <= 2.0f)
+                length = temp;
+            else {
+                stars_data += temp + 1;
+                length -= temp + 1;
+            }
+
+        if (stars_data != vec.data() + vec.size())
+            star_catalog_data.star_b_count = (int32_t)(stars_data - vec.data());
+        else
+            star_catalog_data.star_b_count = (int32_t)vec.size();
+
+        file_handler.reset();
+
+        star_count = (int32_t)vec.size();
+
+        stars_ssbo.Create(sizeof(stars_buffer_data) * vec.size(), vec.data());
+
+        if (!vao)
+            glGenVertexArrays(1, &vao);
+    }
+
+    milky_way.create_default_sphere();
+
+    scene_ubo.Create(sizeof(star_catalog_scene_shader_data));
+    batch_ubo.Create(sizeof(star_catalog_batch_shader_data));
+    return true;
+}
+
+void star_catalog::set_stage_param_data(stage_param_star* value) {
+    stage_param_data_ptr = value;
+    if (value) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+
+        stage_param_data = *value;
+        stage_param_data.utc.get_current_time();
+        stage_param_data.observer_north_latitude_deg = 43.065f;
+        stage_param_data.observer_east_longitude_deg = 141.35f;
+
+        star_tex = aft_tex_db->get_texture_id("F_DIVA_EFF00_HR_STAR");
+        star_b_tex = aft_tex_db->get_texture_id("F_DIVA_EFF00_HR_STAR_B");
+        milky_way_tex_id = aft_tex_db->get_texture_id(value->milky_way_texture_name.c_str());
+    }
+    else {
+        star_tex = -1;
+        star_b_tex = -1;
+        milky_way_tex_id = -1;
+    }
+}
+
+void star_catalog::parse_data(std::vector<stars_buffer_data>& vec, size_t data) {
+    size_t count = *(int32_t*)data;
+    vec.clear();
+    vec.resize(count);
+    if (count > 0)
+        memcpy(vec.data(), (stars_buffer_data*)(data + 4), sizeof(stars_buffer_data) * count);
+}
+
+stars_buffer_data::stars_buffer_data() : size() {
 
 }
 

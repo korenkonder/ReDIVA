@@ -8,6 +8,7 @@
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
 #include "../str_utils.hpp"
+#include <time.h>
 
 static void stage_param_star_read_inner(stage_param_star* star, stream& s);
 static void stage_param_star_write_inner(stage_param_star* star, stream& s);
@@ -27,11 +28,41 @@ stage_param_star_utc::stage_param_star_utc() {
     second = 0.0f;
 }
 
+void stage_param_star_utc::get_current_time() {
+    time_t time_now;
+    struct tm tm;
+    time(&time_now);
+    gmtime_s(&tm, &time_now);
+
+    year = 1900 + tm.tm_year;
+    month = 1 + tm.tm_mon;
+    day = tm.tm_mday;
+    hour = tm.tm_hour;
+    minute = tm.tm_min;
+    second = 0.0f;
+}
+
+double_t stage_param_star_utc::to_julian_date() const  {
+    int64_t year = this->year;
+    int64_t month = this->month;
+    if (month == 1 || month == 2) {
+        year--;
+        month += 12;
+    }
+
+    return (double_t)(day + year / 400 + (int64_t)((double_t)year * 365.25)
+            - (int32_t)((double_t)(month - 2) * -30.59) - year / 100)
+        + 1721088.5
+        + (double_t)hour * (1.0 / 24.0)
+        + (double_t)minute * (1.0 / 1440.0)
+        + (double_t)second * (1.0 / 86400.0);
+}
+
 stage_param_star_modifiers::stage_param_star_modifiers() {
-    field_0 = 1.0f;
-    field_4 = 1.0f;
-    field_8 = 0.0f;
-    field_C = 0.0f;
+    color_scale = 1.0f;
+    pos_scale = 1.0f;
+    offset_scale = 0.0f;
+    threshold = 0.0f;
     size_max = 64.0f;
 }
 
@@ -107,6 +138,38 @@ void stage_param_star::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
+void stage_param_star::get_mat(mat4& mat, const float_t observer_north_latitude,
+    const float_t observer_east_longitude, const stage_param_star_utc& utc, const float_t rotation_y) {
+    double_t v7 = (utc.to_julian_date() - 2440000.5) * 1.0027379094 + 0.671262;
+
+    mat3 rot_y;
+    mat3_rotate_y((float_t)(v7 - (double_t)(int64_t)v7) * (float_t)(M_PI * 2.0) + observer_east_longitude, &rot_y);
+
+    float_t latitude_sin = sinf(observer_north_latitude);
+    float_t latitude_cos = cosf(observer_north_latitude) * 0.99664718f;
+
+    vec3 x_axis = { 0.0f, latitude_cos, -latitude_sin };
+    mat3_mult_vec(&rot_y, &x_axis, &x_axis);
+
+    vec3 y_axis = { 0.0f, latitude_sin, latitude_cos };
+    mat3_mult_vec(&rot_y, &y_axis, &y_axis);
+
+    vec3 z_axis = { 1.0f, 0.0f, 0.0f };
+    mat3_mult_vec(&rot_y, &z_axis, &z_axis);
+
+    x_axis = vec3::normalize(x_axis);
+    y_axis = vec3::normalize(y_axis);
+
+    float_t rot_y_sin = sinf(rotation_y);
+    float_t rot_y_cos = cosf(rotation_y);
+
+    mat4 temp = mat4_identity;
+    *(vec3*)&temp.row0 = x_axis * -rot_y_sin + z_axis * rot_y_cos;
+    *(vec3*)&temp.row1 = y_axis;
+    *(vec3*)&temp.row2 = x_axis * -rot_y_cos + z_axis * -rot_y_sin;
+    mat4_transpose(&temp, &mat);
+}
+
 bool stage_param_star::load_file(void* data, const char* path, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
@@ -122,6 +185,18 @@ bool stage_param_star::load_file(void* data, const char* path, const char* file,
     star->read(s.c_str());
 
     return star->ready;
+}
+
+stage_param_star& stage_param_star::operator=(const stage_param_star& star) {
+    ready = star.ready;
+    milky_way_texture_name.assign(star.milky_way_texture_name);
+    utc = star.utc;
+    rotation_y_deg = star.rotation_y_deg;
+    observer_north_latitude_deg = star.observer_north_latitude_deg;
+    observer_east_longitude_deg = star.observer_east_longitude_deg;
+    modifiers[0] = star.modifiers[0];
+    modifiers[1] = star.modifiers[1];
+    return *this;
 }
 
 static void stage_param_star_read_inner(stage_param_star* star, stream& s) {
@@ -161,8 +236,8 @@ static void stage_param_star_read_inner(stage_param_star* star, stream& s) {
             size_t index = 0;
             stage_param_star_modifiers modifiers;
             if (buf[9] != ' ' || sscanf_s(buf + 10, "%llu %f %f %f %f %f",
-                &index, &modifiers.field_0, &modifiers.field_4,
-                &modifiers.field_8, &modifiers.field_C, &modifiers.size_max) != 6)
+                &index, &modifiers.color_scale, &modifiers.pos_scale,
+                &modifiers.offset_scale, &modifiers.threshold, &modifiers.size_max) != 6)
                 goto End;
 
             if (index >= 2)
@@ -213,10 +288,10 @@ static void stage_param_star_write_inner(stage_param_star* star, stream& s) {
         stage_param_star_modifiers& modifiers = star->modifiers[i];
         s.write("modifiers", 9);
         stage_param_star_write_size_t(s, buf, sizeof(buf), i);
-        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.field_0);
-        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.field_4);
-        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.field_8);
-        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.field_C);
+        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.color_scale);
+        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.pos_scale);
+        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.offset_scale);
+        stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.threshold);
         stage_param_star_write_float_t(s, buf, sizeof(buf), modifiers.size_max);
         s.write_char('\n');
     }
