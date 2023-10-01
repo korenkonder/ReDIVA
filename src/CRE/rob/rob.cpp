@@ -956,7 +956,7 @@ static void mothead_func_65_motion_skin_param(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_66_osage_step(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
-static void mothead_func_67_sleeve(mothead_func_data* func_data,
+static void mothead_func_67_sleeve_adjust(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_68(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
@@ -970,7 +970,7 @@ static void mothead_func_72(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_73_rob_hand_adjust(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
-static void mothead_func_74(mothead_func_data* func_data,
+static void mothead_func_74_disable_collision(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_75_rob_adjust_global(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
@@ -1212,14 +1212,14 @@ static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_64_osage_reset, 0 },
     { mothead_func_65_motion_skin_param, 0 },
     { mothead_func_66_osage_step, 0 },
-    { mothead_func_67_sleeve, 0 },
+    { mothead_func_67_sleeve_adjust, 0 },
     { mothead_func_68, 0 },
     { mothead_func_69_motion_max_frame, 0 },
     { mothead_func_70, 0 },
     { mothead_func_71_osage_move_cancel, 0 },
     { mothead_func_72, 0 },
     { mothead_func_73_rob_hand_adjust, 0 },
-    { mothead_func_74, 0 },
+    { mothead_func_74_disable_collision, 0 },
     { mothead_func_75_rob_adjust_global, 0 },
     { mothead_func_76_rob_arm_adjust, 0 },
     { mothead_func_77_disable_eye_motion, 0 },
@@ -6577,7 +6577,7 @@ static void mothead_func_66_osage_step(mothead_func_data* func_data,
     func_data->rob_chr->set_osage_step(((float_t*)data)[0]);
 }
 
-static void mothead_func_67_sleeve(mothead_func_data* func_data,
+static void mothead_func_67_sleeve_adjust(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     bool v5 = false;
     bool v6 = false;
@@ -6695,7 +6695,7 @@ static void mothead_func_73_rob_hand_adjust(mothead_func_data* func_data,
     }
 }
 
-static void mothead_func_74(mothead_func_data* func_data,
+static void mothead_func_74_disable_collision(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     func_data->rob_chr->set_disable_collision((rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
 }
@@ -15659,7 +15659,7 @@ static void sub_14053D6C0(struc_527* a1, const motion_database* mot_db) {
     struc_528* v15 = new struc_528;
     if (v15) {
         v15->data = 0;
-        v15->type = MOTHEAD_DATA_TYPE_67;
+        v15->type = MOTHEAD_DATA_SLEEVE_ADJUST;
         v15->data = mothead_storage_get_mot_by_motion_id(a1->motion_id, mot_db)->data.data();
         v15->field_0 = true;
     }
@@ -15699,7 +15699,7 @@ static void sub_14053D6C0(struc_527* a1, const motion_database* mot_db) {
     struc_528* v21 = new struc_528;
     if (v21) {
         v21->data = 0;
-        v21->type = MOTHEAD_DATA_TYPE_74;
+        v21->type = MOTHEAD_DATA_DISABLE_COLLISION;
         v21->data = mothead_storage_get_mot_by_motion_id(a1->motion_id, mot_db)->data.data();
         v21->field_0 = true;
     }
