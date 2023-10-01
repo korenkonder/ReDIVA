@@ -753,7 +753,7 @@ void auth_3d::reset() {
     src_chara = CHARA_MAX;
     dst_chara = CHARA_MAX;
     pos = 0;
-    frame_rate = &sys_frame_rate;
+    frame_rate = get_sys_frame_rate();
     frame = 0.0f;
     req_frame = 0.0f;
     max_frame = -1.0f;
@@ -1196,7 +1196,7 @@ namespace auth_3d_detail {
             if (rob_chr)
                 rob_chr->item_equip->disable_update = true;
         }
-        task_effect_parent_set_frame_rate_control(&sys_frame_rate);
+        task_effect_parent_set_frame_rate_control(get_sys_frame_rate());
     }
 
     void EventFilterTimeStop::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
@@ -2605,7 +2605,7 @@ void auth_3d_id::set_frame_rate(FrameRateControl* value) {
             if (value)
                 auth->frame_rate = value;
             else
-                auth->frame_rate = &sys_frame_rate;
+                auth->frame_rate = get_sys_frame_rate();
     }
 }
 

@@ -31,3 +31,7 @@ SysFrameRate::~SysFrameRate() {
 float_t SysFrameRate::GetDeltaFrame() {
     return get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
+
+FrameRateControl* get_sys_frame_rate() {
+    return &sys_frame_rate;
+}

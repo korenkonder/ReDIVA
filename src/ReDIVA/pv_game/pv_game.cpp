@@ -1280,7 +1280,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
                 float_t end_time = -1.0f;
                 float_t start_time = -1.0f;
 #if PV_DEBUG
-                FrameRateControl* frame_rate_control = &sys_frame_rate;
+                FrameRateControl* frame_rate_control = get_sys_frame_rate();
 #else
                 FrameRateControl* frame_rate_control = 0;
 #endif
@@ -1327,7 +1327,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
                 float_t end_time = -1.0f;
                 float_t start_time = -1.0f;
 #if PV_DEBUG
-                FrameRateControl* frame_rate_control = &sys_frame_rate;
+                FrameRateControl* frame_rate_control = get_sys_frame_rate();
 #else
                 FrameRateControl* frame_rate_control = 0;
 #endif

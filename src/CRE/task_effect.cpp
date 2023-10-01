@@ -1315,7 +1315,7 @@ void TaskEffectFogRing::SetFrameRateControl(FrameRateControl* value) {
     if (value)
         data.frame_rate_control = value;
     else
-        data.frame_rate_control = &sys_frame_rate;
+        data.frame_rate_control = get_sys_frame_rate();
 }
 
 void TaskEffectFogRing::Reset() {
@@ -1435,7 +1435,7 @@ void TaskEffectLeaf::SetFrameRateControl(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
-        frame_rate_control = &sys_frame_rate;
+        frame_rate_control = get_sys_frame_rate();
 }
 
 void TaskEffectLeaf::Reset() {
@@ -1611,7 +1611,7 @@ void TaskEffectParticle::SetFrameRateControl(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
-        frame_rate_control = &sys_frame_rate;
+        frame_rate_control = get_sys_frame_rate();
 }
 
 void TaskEffectParticle::Reset() {
@@ -1735,7 +1735,7 @@ void TaskEffectRain::SetFrameRateControl(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
-        frame_rate_control = &sys_frame_rate;
+        frame_rate_control = get_sys_frame_rate();
 }
 
 void TaskEffectRain::Reset() {
@@ -2261,7 +2261,7 @@ void TaskEffectRipple::SetFrameRateControl(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
-        frame_rate_control = &sys_frame_rate;
+        frame_rate_control = get_sys_frame_rate();
 }
 
 void TaskEffectRipple::Reset() {
@@ -2385,7 +2385,7 @@ void TaskEffectSnow::SetFrameRateControl(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
-        frame_rate_control = &sys_frame_rate;
+        frame_rate_control = get_sys_frame_rate();
 }
 
 void TaskEffectSnow::Reset() {

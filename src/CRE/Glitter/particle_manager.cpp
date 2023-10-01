@@ -33,7 +33,7 @@ namespace Glitter {
     }
 
     bool GltParticleManager::Init() {
-        frame_rate = &sys_frame_rate;
+        frame_rate = get_sys_frame_rate();
         return true;
     }
 
