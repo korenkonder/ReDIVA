@@ -2760,17 +2760,6 @@ static int16_t sub_14054FE90(rob_chara* rob_chr, bool a3) {
     return v3;
 }
 
-static void sub_1405F9520(rob_chara_item_equip_object* itm_eq_obj, rob_osage_parts_bit a2, bool a3) {
-    for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
-        if (i->rob.CheckPartsBits(a2))
-            i->rob.field_1F0F = a3;
-}
-
-static void sub_140513EE0(rob_chara_item_equip* rob_itm_eq, rob_osage_parts a2, bool a3) {
-    sub_1405F9520(&rob_itm_eq->item_equip_object[a2 == ROB_OSAGE_PARTS_MUFFLER ? ITEM_OUTER : ITEM_KAMI],
-        (rob_osage_parts_bit)(1 << a2), a3);
-}
-
 static void sub_14041B9D0(rob_chara_bone_data* rob_bone_data) {
     rob_chara_sleeve_adjust& sleeve_adjust = rob_bone_data->sleeve_adjust;
     sleeve_adjust.enable1 = false;
@@ -3251,7 +3240,7 @@ void rob_chara::load_motion(uint32_t motion_id, bool a3, float_t frame,
 
     item_equip->set_osage_move_cancel(0, 0.0f);
     for (int32_t i = 0; i < ROB_OSAGE_PARTS_MAX; i++)
-        sub_140513EE0(item_equip, (rob_osage_parts)i, false);
+        item_equip->set_disable_collision((rob_osage_parts)i, false);
     data.field_1588.field_0.field_30 = data.field_1588.field_0.field_10;
     data.field_1588.field_0.field_40 = data.field_1588.field_0.field_20;
     data.field_1588.field_0.field_276 = data.field_1588.field_0.field_274;
@@ -3841,6 +3830,10 @@ void rob_chara::set_data_miku_rot_position(vec3& value) {
 
 void rob_chara::set_data_miku_rot_rot_y_int16(int16_t value) {
     data.miku_rot.rot_y_int16 = value;
+}
+
+void rob_chara::set_disable_collision(rob_osage_parts parts, bool disable) {
+    item_equip->set_disable_collision(parts, disable);
 }
 
 void rob_chara::set_eyelid_mottbl_motion(int32_t type,
@@ -6702,13 +6695,9 @@ static void mothead_func_73_rob_hand_adjust(mothead_func_data* func_data,
     }
 }
 
-static void sub_140555120(rob_chara* rob_chr, rob_osage_parts a2, bool a3) {
-    sub_140513EE0(rob_chr->item_equip, a2, a3);
-}
-
 static void mothead_func_74(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    sub_140555120(func_data->rob_chr, (rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
+    func_data->rob_chr->set_disable_collision((rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
 }
 
 void rob_chara_set_adjust_global(rob_chara* rob_chr, rob_chara_data_adjust* a2) {
@@ -13091,6 +13080,12 @@ void rob_chara_item_equip_object::set_collision_target_osage(
         }
 }
 
+void rob_chara_item_equip_object::set_disable_collision(rob_osage_parts_bit parts_bits, bool disable) {
+    for (ExOsageBlock*& i : osage_blocks)
+        if (i->rob.CheckPartsBits(parts_bits))
+            i->SetDisableCollision(disable);
+}
+
 void rob_chara_item_equip_object::set_motion_reset_data(uint32_t motion_id, float_t frame) {
     for (ExOsageBlock*& i : osage_blocks)
         i->SetMotionResetData(motion_id, frame);
@@ -13506,6 +13501,11 @@ void rob_chara_item_equip::set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flag
     else
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++)
             item_equip_object[i].set_alpha_obj_flags(alpha, flags);
+}
+
+void rob_chara_item_equip::set_disable_collision(rob_osage_parts parts, bool disable) {
+    item_equip_object[parts == ROB_OSAGE_PARTS_MUFFLER ? ITEM_OUTER : ITEM_KAMI]
+        .set_disable_collision((rob_osage_parts_bit)(1 << parts), disable);
 }
 
 void rob_chara_item_equip::set_disp(item_id id, bool value) {
@@ -15867,7 +15867,7 @@ static void sub_14053EBE0(rob_chara* rob_chr, void* data) {
 }
 
 static void sub_14053E7C0(rob_chara* rob_chr, void* data) {
-    sub_140555120(rob_chr, (rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
+    rob_chr->set_disable_collision((rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
 }
 
 static void sub_14053EC90(rob_chara* rob_chr, void* data) {
@@ -17982,7 +17982,7 @@ void PvOsageManager::AddMotionFrameResetData(int32_t stage_index, uint32_t motio
     rob_chr->reset_osage();
 
     for (int32_t i = 0; i < ROB_OSAGE_PARTS_MAX; i++)
-        sub_140555120(rob_chr, (rob_osage_parts)i, false);
+        rob_chr->set_disable_collision((rob_osage_parts)i, false);
 }
 
 bool PvOsageManager::CheckResetFrameNotFound(uint32_t motion_id, float_t frame) {
@@ -18209,7 +18209,7 @@ void PvOsageManager::sub_1404F83A0(::osage_set_motion* a2) {
 
     rob_chr->reset_osage();
     for (int32_t i = ROB_OSAGE_PARTS_LEFT; i < ROB_OSAGE_PARTS_MAX; i++)
-        sub_140555120(rob_chr, (rob_osage_parts)i, false);
+        rob_chr->set_disable_collision((rob_osage_parts)i, false);
 }
 
 void PvOsageManager::sub_1404F88A0(uint32_t stage_index, uint32_t motion_id, float_t frame) {

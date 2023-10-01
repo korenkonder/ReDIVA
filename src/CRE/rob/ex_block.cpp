@@ -1580,9 +1580,9 @@ void ExClothBlock::SetSkinParamOsageRoot(skin_param_osage_root* skp_root) {
     rob.SetWindDirection(wind_direction);
 }
 
-RobOsage::RobOsage() : skin_param_ptr(), osage_setting(), field_2A0(), field_2A1(), field_2A4(),
-wind_direction(), field_1EB4(), yz_order(), field_1EBC(), root_matrix_ptr(), root_matrix(), move_cancel(),
-field_1F0C(), osage_reset(), field_1F0E(), field_1F0F(), set_external_force(), external_force(), reset_data_list() {
+RobOsage::RobOsage() : skin_param_ptr(), osage_setting(), field_2A0(), field_2A1(), field_2A4(), wind_direction(),
+field_1EB4(), yz_order(), field_1EBC(), root_matrix_ptr(), root_matrix(), move_cancel(), field_1F0C(),
+osage_reset(), prev_osage_reset(), disable_collision(), set_external_force(), external_force(), reset_data_list() {
 
 }
 
@@ -1772,9 +1772,9 @@ void RobOsage::Reset() {
     move_cancel = 0.0f;
     field_1F0C = false;
     osage_reset = false;
-    field_1F0E = false;
+    prev_osage_reset = false;
     ring = osage_ring_data();
-    field_1F0F = 0;
+    disable_collision = false;
     skin_param.reset();
     skin_param_ptr = &skin_param;
     osage_setting = osage_setting_osg_cat();
@@ -2193,6 +2193,10 @@ void ExOsageBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
 
 const float_t* ExOsageBlock::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
     return rob.LoadOpdData(node_index, opd_data, opd_count);
+}
+
+void ExOsageBlock::SetDisableCollision(bool value) {
+    rob.disable_collision = value;
 }
 
 void ExOsageBlock::SetMotionResetData(uint32_t motion_id, float_t frame) {
@@ -3575,8 +3579,8 @@ static void sub_1404803B0(RobOsage* rob_osg, const mat4* root_matrix,
     vec3 v45 = rob_osg->exp_data.position * *parent_scale;
     mat4_mult_vec3_trans(&v47, &v45, &rob_osg->nodes.data()[0].trans);
 
-    if (rob_osg->osage_reset && !rob_osg->field_1F0E) {
-        rob_osg->field_1F0E = true;
+    if (rob_osg->osage_reset && !rob_osg->prev_osage_reset) {
+        rob_osg->prev_osage_reset = true;
         rob_osg->ApplyResetData(root_matrix);
     }
 
@@ -3753,7 +3757,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
             sub_140482490(v35, step, parent_scale->x);
             v35->field_C8 = (float_t)OsageCollision::osage_cls_work_list(v35->trans,
                 skp_osg_node->coli_r, vec_ring_coli, &v35->field_CC);
-            if (!rob_osg->field_1F0F) {
+            if (!rob_osg->disable_collision) {
                 v35->field_C8 += (float_t)OsageCollision::osage_cls(coli_ring, v35->trans, skp_osg_node->coli_r);
                 v35->field_C8 += (float_t)OsageCollision::osage_cls(coli, v35->trans, skp_osg_node->coli_r);
             }
@@ -3827,7 +3831,7 @@ static void sub_14047C770(RobOsage* rob_osg, const mat4* root_matrix,
 }
 
 static void sub_14047D620(RobOsage* rob_osg, float_t step) {
-    if (step < 0.0f && rob_osg->field_1F0F)
+    if (step < 0.0f && rob_osg->disable_collision)
         return;
 
     std::vector<RobOsageNode>& nodes = rob_osg->nodes;
@@ -3868,7 +3872,7 @@ static void sub_14047ECA0(RobOsage* rob_osg, float_t step) {
 
     RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
-    if (rob_osg->field_1F0F)
+    if (rob_osg->disable_collision)
         for (RobOsageNode* i = i_begin; i != i_end; i++) {
             RobOsageNodeData* data = i->data_ptr;
             i->field_C8 += (float_t)OsageCollision::osage_cls_work_list(i->trans,
@@ -3983,7 +3987,7 @@ static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
     rob_osg->field_2A4 = -1.0f;
     rob_osg->field_1F0C = false;
     rob_osg->osage_reset = false;
-    rob_osg->field_1F0E = false;
+    rob_osg->prev_osage_reset = false;
 
     for (RobOsageNode& i : rob_osg->nodes) {
         i.field_C8 = 0.0f;

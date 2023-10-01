@@ -1964,8 +1964,8 @@ struct RobOsage {
     float_t move_cancel;
     bool field_1F0C;
     bool osage_reset;
-    bool field_1F0E;
-    bool field_1F0F;
+    bool prev_osage_reset;
+    bool disable_collision;
     osage_ring_data ring;
     std::map<std::pair<int32_t, int32_t>, std::list<RobOsageNodeResetData>> motion_reset_data;
     std::list<RobOsageNodeResetData>* reset_data_list;
@@ -2032,6 +2032,7 @@ public:
         const char* osg_data_name, obj_skin_osage_node* osg_nodes, bone_node* bone_nodes,
         bone_node* ex_data_bone_nodes, obj_skin* skin);
     const float_t* LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count);
+    void SetDisableCollision(bool value);
     void SetMotionResetData(uint32_t motion_id, float_t frame);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
@@ -2207,6 +2208,7 @@ struct rob_chara_item_equip_object {
     void set_alpha_obj_flags(float_t alpha, int32_t flags);
     bool set_boc(const skin_param_osage_root& skp_root, ExOsageBlock* osg);
     void set_collision_target_osage(const skin_param_osage_root& skp_root, skin_param* skp);
+    void set_disable_collision(rob_osage_parts_bit parts_bits, bool disable);
     void set_motion_reset_data(uint32_t motion_id, float_t frame);
     void set_motion_skin_param(int8_t chara_id, uint32_t motion_id, int32_t frame);
     void set_null_blocks_expression_data(const vec3& position, const vec3& rotation, const vec3& scale);
@@ -2297,6 +2299,7 @@ struct rob_chara_item_equip {
     void reset_init_data(bone_node* bone_nodes);
     void reset_nodes_external_force(rob_osage_parts parts);
     void set_alpha_obj_flags(float_t alpha, mdl::ObjFlags flags);
+    void set_disable_collision(rob_osage_parts parts, bool disable);
     void set_disp(item_id id, bool value);
     void set_item_equip_range(bool value);
     void set_motion_reset_data(uint32_t motion_id, float_t frame);
@@ -3467,6 +3470,7 @@ struct rob_chara {
     void set_data_adjust_mat(rob_chara_adjust_data* rob_chr_adj, bool pos_adjust = true);
     void set_data_miku_rot_position(vec3& value);
     void set_data_miku_rot_rot_y_int16(int16_t value);
+    void set_disable_collision(rob_osage_parts parts, bool disable);
     void set_eyelid_mottbl_motion(int32_t type,
         int32_t mottbl_index, float_t value, int32_t state, float_t blend_duration,
         float_t a7, float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);
