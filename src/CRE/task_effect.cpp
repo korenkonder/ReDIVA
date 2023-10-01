@@ -2604,7 +2604,7 @@ void leaf_particle_draw() {
     light_stage.get_specular(shader_data.g_light_env_stage_specular);
     shader_data.g_lit_dir = rctx_ptr->obj_scene.g_light_chara_dir;
     shader_data.g_lit_luce = rctx_ptr->obj_scene.g_light_chara_luce;
-    leaf_particle_scene_ubo.WriteMapMemory(shader_data);
+    leaf_particle_scene_ubo.WriteMemory(shader_data);
 
     gl_state_active_bind_texture_2d(0, tex->tex);
     shaders_ft.set(SHADER_FT_LEAF_PT);
@@ -2643,7 +2643,7 @@ void rain_particle_draw() {
     scene_shader_data.g_proj[3] = temp.row3;
     scene_shader_data.g_range_scale = { range_scale.x, range_scale.y, range_scale.z, 0.0f };
     scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
-    rain_particle_scene_ubo.WriteMapMemory(scene_shader_data);
+    rain_particle_scene_ubo.WriteMemory(scene_shader_data);
 
     gl_state_enable_blend();
     gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -2674,7 +2674,7 @@ void rain_particle_draw() {
         batch_shader_data.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.075f };
         batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
         batch_shader_data.g_color = color;
-        rain_particle_batch_ubo.WriteMapMemory(batch_shader_data);
+        rain_particle_batch_ubo.WriteMemory(batch_shader_data);
         shaders_ft.draw_arrays(GL_TRIANGLES, first, count);
     }
     gl_state_bind_vertex_array(0);
@@ -2728,7 +2728,7 @@ void particle_draw() {
     rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
     light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
     light_chara.get_specular(shader_data.g_light_env_chara_specular);
-    particle_scene_ubo.WriteMapMemory(shader_data);
+    particle_scene_ubo.WriteMemory(shader_data);
 
     shaders_ft.set(SHADER_FT_PARTICL);
     particle_scene_ubo.Bind(0);
@@ -2777,12 +2777,12 @@ void snow_particle_draw() {
     snow_scene.g_range_offset.x = snow->offset_gpu.x - snow->range_gpu.x * 0.5f;
     snow_scene.g_range_offset.y = snow->offset_gpu.y;
     snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
-    snow_particle_scene_ubo.WriteMapMemory(snow_scene);
+    snow_particle_scene_ubo.WriteMemory(snow_scene);
 
     snow_particle_batch_shader_data snow_batch = {};
     snow_batch.g_color = snow->color;
     snow_batch.start_vertex_location.x = 0;
-    snow_particle_batch_ubo.WriteMapMemory(snow_batch);
+    snow_particle_batch_ubo.WriteMemory(snow_batch);
 
     gl_state_active_bind_texture_2d(0, tex->tex);
     gl_state_active_bind_texture_2d(1, rctx_ptr->post_process.rend_texture.depth_texture->tex);
@@ -2808,7 +2808,7 @@ void snow_particle_draw() {
         * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.06f;
 
     snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
-    snow_particle_scene_ubo.WriteMapMemory(snow_scene);
+    snow_particle_scene_ubo.WriteMemory(snow_scene);
 
     snow_gpu_ssbo.Bind(0);
 
@@ -2825,7 +2825,7 @@ void snow_particle_draw() {
         snow_batch.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.0f };
         snow_batch.g_color = color;
         snow_batch.start_vertex_location.x = first;
-        snow_particle_batch_ubo.WriteMapMemory(snow_batch);
+        snow_particle_batch_ubo.WriteMemory(snow_batch);
 
         shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
         first += count;
@@ -3495,7 +3495,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
 
         vtx_data -= count;
 
-        ripple_emit_ssbo.WriteMapMemory(0, sizeof(vec3) * count, vtx_data);
+        ripple_emit_ssbo.WriteMemory(0, sizeof(vec3) * count, vtx_data);
 
         free_def(vtx_data);
     }
@@ -3521,7 +3521,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
         1.0f / (float_t)width,
         1.0f / (float_t)height,
         0.0f, 0.0f };
-    ripple_emit_scene_ubo.WriteMapMemory(shader_data);
+    ripple_emit_scene_ubo.WriteMemory(shader_data);
 
     uniform_value[U_RIPPLE] = data->ripple_uniform;
     uniform_value[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
@@ -4546,11 +4546,11 @@ static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& p
         (float_t)width / (float_t)(width - 2), (float_t)height / (float_t)(height - 2)
     };
     ripple_scene.g_texcoord = { 1.0f, 0.0f, 0.0f, 0.0f };
-    ripple_scene_ubo.WriteMapMemory(ripple_scene);
+    ripple_scene_ubo.WriteMemory(ripple_scene);
 
     ripple_batch_shader_data ripple_batch = {};
     ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
-    ripple_batch_ubo.WriteMapMemory(ripple_batch);
+    ripple_batch_ubo.WriteMemory(ripple_batch);
 
     gl_state_bind_vertex_array(ripple_vao);
     shaders_ft.set(SHADER_FT_RIPPLE);
