@@ -53,7 +53,7 @@ void post_process_blur::get_blur(RenderTexture* rt) {
         gaussian_coef.g_coef[i] = { coef.x, coef.y, coef.z, 0.0f };
     }
 
-    gaussian_coef_ubo.WriteMapMemory(gaussian_coef);
+    gaussian_coef_ubo.WriteMemory(gaussian_coef);
 
     int32_t i = 0;
     if (count_down > 0) {

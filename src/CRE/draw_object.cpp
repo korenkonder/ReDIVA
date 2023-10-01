@@ -49,7 +49,7 @@ namespace mdl {
             GL_UNSIGNED_INT,
         };
 
-        rctx->obj_batch_ubo.WriteMapMemory(rctx->obj_batch);
+        rctx->obj_batch_ubo.WriteMemory(rctx->obj_batch);
         if (primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && index_format == OBJ_INDEX_U16)
             shaders_ft.draw_range_elements(GL_TRIANGLE_STRIP,
                 start, end, count, GL_UNSIGNED_SHORT, (void*)indices);
@@ -109,7 +109,7 @@ namespace mdl {
         rctx->obj_batch.g_blend_color = color;
 
         gl_state_bind_vertex_array(vao);
-        rctx->obj_batch_ubo.WriteMapMemory(rctx->obj_batch);
+        rctx->obj_batch_ubo.WriteMemory(rctx->obj_batch);
 
         //shaders_ft.set(SHADER_FT_SIMPLE);
         shaders_ft.set(etc->constant ? SHADER_FT_CONSTANT : SHADER_FT_SIMPLE);
@@ -192,7 +192,7 @@ namespace mdl {
                 g_joint_transforms[2] = mat.row2;
             }
 
-            rctx->obj_skinning_ubo.WriteMapMemory(rctx->obj_skinning);
+            rctx->obj_skinning_ubo.WriteMemory(rctx->obj_skinning);
 
             rctx->obj_batch.set_transforms(mat4_identity, rctx->view_mat, rctx->proj_mat);
 

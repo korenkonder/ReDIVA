@@ -429,6 +429,6 @@ namespace renderer {
         shader_data.g_depth_params2.y = focus_range;
         shader_data.g_depth_params2.z = -4.5f / (fuzzing_range * fuzzing_range);
         shader_data.g_depth_params2.w = ratio * 8.0f;
-        dof->common_ubo.WriteMapMemory(shader_data);
+        dof->common_ubo.WriteMemory(shader_data);
     }
 }

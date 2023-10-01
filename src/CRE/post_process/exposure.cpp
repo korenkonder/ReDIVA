@@ -163,7 +163,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
         for (int32_t i = 0; i < 4 && i < ROB_CHARA_COUNT; i++, chara_data++)
             for (int32_t j = 0; j < 8; j++)
                 exposure_measure.g_spot_coefficients[i * 8 + j] = chara_data->spot_coefficients[j];
-        exposure_measure_ubo.WriteMapMemory(exposure_measure);
+        exposure_measure_ubo.WriteMemory(exposure_measure);
 
         if (reset_exposure)
             glViewport(0, 0, 32, 1);
@@ -228,7 +228,7 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
         shader_data.g_transform[2] = mat.row2;
         shader_data.g_transform[3] = mat.row3;
         shader_data.g_emission = 0.0f;
-        pp->sun_quad_ubo.WriteMapMemory(shader_data);
+        pp->sun_quad_ubo.WriteMemory(shader_data);
 
         glBeginQuery(GL_SAMPLES_PASSED, chara->query[next_query_index]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);

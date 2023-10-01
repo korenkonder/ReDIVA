@@ -26,4 +26,4 @@ public:
     virtual float_t GetDeltaFrame() override;
 };
 
-extern SysFrameRate sys_frame_rate;
+extern FrameRateControl* get_sys_frame_rate();

@@ -160,7 +160,7 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
 
-    tone_map_ubo.WriteMapMemory(shader_data);
+    tone_map_ubo.WriteMemory(shader_data);
 
     glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
     buf_rt->Bind();

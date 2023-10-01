@@ -898,7 +898,7 @@ namespace spr {
                 1.0f / (float_t)tex->height, 0.0f, 0.0f
             };
             mat4_transpose(&view_projection, &shader_data.g_transform);
-            rctx->sprite_scene_ubo.WriteMapMemory(shader_data);
+            rctx->sprite_scene_ubo.WriteMemory(shader_data);
 
             render_data.Clear();
 

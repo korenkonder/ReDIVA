@@ -3352,7 +3352,7 @@ static void glass_eye_set(glass_eye_struct* glass_eye) {
     glass_eye_batch.g_tex_scale = temp;
 
     extern render_context* rctx_ptr;
-    rctx_ptr->glass_eye_batch_ubo.WriteMapMemory(glass_eye_batch);
+    rctx_ptr->glass_eye_batch_ubo.WriteMemory(glass_eye_batch);
     rctx_ptr->glass_eye_batch_ubo.Bind(4);
 }
 

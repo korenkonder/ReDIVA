@@ -108,7 +108,7 @@ namespace GL {
             }
         }
 
-        inline void WriteMapMemory(size_t offset, size_t size, const void* data) {
+        inline void WriteMemory(size_t offset, size_t size, const void* data) {
             if (!buffer)
                 return;
 
@@ -121,7 +121,7 @@ namespace GL {
         }
 
         template<typename T>
-        inline void WriteMapMemory(T& data) {
+        inline void WriteMemory(T& data) {
             if (!buffer)
                 return;
 

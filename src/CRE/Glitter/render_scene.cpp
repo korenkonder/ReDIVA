@@ -967,7 +967,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        GPM_VAL->batch_ubo.WriteMapMemory(shader_data);
+        GPM_VAL->batch_ubo.WriteMemory(shader_data);
 
         GLenum blend_src = GL_SRC_ALPHA;
         GLenum blend_dst = GL_ONE_MINUS_SRC_ALPHA;
@@ -2160,7 +2160,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        GPM_VAL->batch_ubo.WriteMapMemory(shader_data);
+        GPM_VAL->batch_ubo.WriteMemory(shader_data);
 
         GLenum blend_src = GL_SRC_ALPHA;
         GLenum blend_dst = GL_ONE_MINUS_SRC_ALPHA;

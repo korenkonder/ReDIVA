@@ -377,7 +377,7 @@ void post_process::draw_lens_flare(camera* cam) {
     shader_data.g_transform[1] = mat.row1;
     shader_data.g_transform[2] = mat.row2;
     shader_data.g_transform[3] = mat.row3;
-    sun_quad_ubo.WriteMapMemory(shader_data);
+    sun_quad_ubo.WriteMemory(shader_data);
 
     glBeginQuery(GL_SAMPLES_PASSED, lens_shaft_query[next_query_index]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -393,7 +393,7 @@ void post_process::draw_lens_flare(camera* cam) {
     shader_data.g_transform[1] = mat.row1;
     shader_data.g_transform[2] = mat.row2;
     shader_data.g_transform[3] = mat.row3;
-    sun_quad_ubo.WriteMapMemory(shader_data);
+    sun_quad_ubo.WriteMemory(shader_data);
 
     glBeginQuery(GL_SAMPLES_PASSED, lens_flare_query[next_query_index]);
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -432,7 +432,7 @@ void post_process::draw_lens_flare(camera* cam) {
         shader_data.g_transform[1] = mat.row1;
         shader_data.g_transform[2] = mat.row2;
         shader_data.g_transform[3] = mat.row3;
-        sun_quad_ubo.WriteMapMemory(shader_data);
+        sun_quad_ubo.WriteMemory(shader_data);
 
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 

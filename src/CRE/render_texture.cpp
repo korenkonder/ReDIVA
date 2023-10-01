@@ -166,7 +166,7 @@ void RenderTexture::DrawQuad(shader_set_data* set, int32_t width, int32_t height
     quad.g_color = { param_x, param_y, param_z, param_w };
     quad.g_texture_lod = 0.0f;
 
-    rctx_ptr->quad_ubo.WriteMapMemory(quad);
+    rctx_ptr->quad_ubo.WriteMemory(quad);
     rctx_ptr->quad_ubo.Bind(0);
     gl_state_bind_vertex_array(render_texture_vao);
     set->draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
