@@ -998,8 +998,8 @@ static void draw_pass_shadow_end_make_shadowmap(render_context* rctx,
     RenderTexture* rend_buf_tex = shad->curr_render_textures[3];
     rend_tex->Bind();
 
-    RenderTexture* src = shad->curr_render_textures[0];
-    image_filter_scale(rctx, rend_tex->color_texture->tex, src->color_texture->tex, 1.0f);
+    image_filter_scale(rctx, rend_tex->color_texture->tex,
+        shad->curr_render_textures[0]->color_texture->tex, 1.0f);
 
     if (shad->blur_filter_enable[index]) {
         for (int32_t i = shad->near_blur, j = 0; i > 0; i--, j++)
@@ -1015,10 +1015,8 @@ static void draw_pass_shadow_end_make_shadowmap(render_context* rctx,
             }
 
         if (shad->near_blur % 2)
-            fbo::blit(rend_buf_tex->fbos[0], rend_tex->fbos[0],
-                0, 0, rend_buf_tex->color_texture->width, rend_buf_tex->color_texture->height,
-                0, 0, rend_tex->color_texture->width, rend_tex->color_texture->height,
-                GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            image_filter_scale(rctx, rend_buf_tex->color_texture->tex,
+                rend_tex->color_texture->tex, 1.0f);
     }
     else {
         rend_tex->Bind();
