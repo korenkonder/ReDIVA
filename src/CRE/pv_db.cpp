@@ -2149,9 +2149,9 @@ namespace pv_db {
                         }
                     }
 
-                    bool spr_set_back;
+                    const char* spr_set_back;
                     if (kv.read("spr_set_back", spr_set_back))
-                        field.spr_set_back = spr_set_back;
+                        field.spr_set_back.assign(spr_set_back);
 
                     bool stage_flag;
                     if (kv.read("stage_flag", stage_flag))
