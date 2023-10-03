@@ -3340,7 +3340,7 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
 
     const int32_t sectors_count = 2 * subdivs + 1;
     const int32_t vtx_count = (subdivs - 1) * sectors_count + 2;
-    restart_index = (uint16_t)-1;
+    restart_index = (uint16_t)0xFFFFFFFF;
 
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
