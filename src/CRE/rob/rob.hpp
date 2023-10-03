@@ -929,7 +929,7 @@ struct bone_data {
     motion_bone_index motion_bone_index;
     int32_t mirror;
     int32_t parent;
-    int32_t disable_mot_anim;
+    int32_t flags;
     int32_t key_set_offset;
     int32_t key_set_count;
     float_t frame;

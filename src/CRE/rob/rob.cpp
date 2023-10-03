@@ -4780,7 +4780,7 @@ static float_t bone_data_limit_angle(float_t angle) {
 }
 
 static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
-    if (a1->disable_mot_anim)
+    if (a1->flags)
         return;
 
     mat4 mat;
@@ -4839,7 +4839,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
         mat4_translate_mult(&mat, &a1->trans, &mat);
         if (solve_ik) {
             a1->node[0].exp_data.rotation = 0.0f;
-            if (!a1->disable_mot_anim)
+            if (!a1->flags)
                 mat4_get_rotation(&a1->rot_mat[0], &a1->node[0].exp_data.rotation);
             else if (bone_data_mult_1_exp_data(a1, &a1->node[0].exp_data, a3))
                 mat4_rotate_zyx(&a1->node[0].exp_data.rotation, &a1->rot_mat[0]);
@@ -5281,7 +5281,7 @@ static vec3* bone_data_set_key_data(bone_data* data, vec3* keyframe_data,
             if (reverse_x)
                 data->trans.x = -data->trans.x;
         }
-        else if (!data->disable_mot_anim) {
+        else if (!data->flags) {
             data->rotation = *keyframe_data;
             if (reverse_x) {
                 const skeleton_rotation_offset* rot_off = skeleton_rotation_offset_array;
@@ -5327,7 +5327,7 @@ static void bone_data_parent_load_bone_database(bone_data_parent* bone,
         bone_node->type = i.type;
         bone_node->mirror = i.mirror;
         bone_node->parent = i.parent;
-        bone_node->disable_mot_anim = i.disable_mot_anim;
+        bone_node->flags = i.flags;
         if (i.type >= BONE_DATABASE_BONE_POSITION_ROTATION)
             bone_node->key_set_count = 6;
         else
@@ -7221,7 +7221,7 @@ static void motion_blend_mot_load_bone_data(motion_blend_mot* a1,
 }
 
 static void sub_1401EB1D0(bone_data* a1, int32_t skeleton_select) {
-    if (!a1->disable_mot_anim) {
+    if (!a1->flags) {
         switch (a1->type) {
         case BONE_DATABASE_BONE_ROTATION:
             a1->rot_mat_prev[0][skeleton_select] = a1->rot_mat[0];
@@ -10159,7 +10159,7 @@ static void rob_chara_bone_data_reserve(rob_chara_bone_data* rob_bone_data) {
 }
 
 static void sub_1401EAD00(bone_data* a1, bone_data* a2) {
-    if (a1->disable_mot_anim)
+    if (a1->flags)
         return;
 
     switch (a1->type) {
@@ -11559,8 +11559,8 @@ eyes_adjust::eyes_adjust() : xrot_adjust(), base_adjust() {
 }
 
 bone_data::bone_data() : type(), has_parent(), motion_bone_index(), mirror(), parent(),
-disable_mot_anim(), key_set_offset(), key_set_count(), frame(), base_translation(),
-rotation(), ik_target(), trans(), rot_mat(), trans_prev(), rot_mat_prev(), pole_target_mat(),
+flags(), key_set_offset(), key_set_count(), frame(), base_translation(), rotation(),
+ik_target(), trans(), rot_mat(), trans_prev(), rot_mat_prev(), pole_target_mat(),
 parent_mat(), node(), ik_segment_length(), ik_2nd_segment_length(), arm_length() {
     eyes_xrot_adjust_neg = 1.0f;
     eyes_xrot_adjust_pos = 1.0f;
