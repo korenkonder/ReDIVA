@@ -131,7 +131,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
 
     if (Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter)
         && !Glitter::glt_particle_manager->GetPause())
-        frame += sys_frame_rate.GetDeltaFrame();
+        frame += get_sys_frame_rate()->GetDeltaFrame();
 
     if (reload || auto_and_repeat && !Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter)) {
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
