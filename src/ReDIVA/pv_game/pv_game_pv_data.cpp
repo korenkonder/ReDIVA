@@ -128,7 +128,7 @@ void pv_play_data_motion_data::ctrl_inner() {
     else {
         float_t t = current_time / duration;
         pos = vec3::lerp(start_pos, end_pos, t);
-        rot = lerp_def(start_rot, start_rot, t);
+        rot = lerp_def(start_rot, end_rot, t);
     }
 
     rob_chr->set_data_miku_rot_position(pos);
@@ -175,25 +175,32 @@ void pv_play_data_motion_data::set(rob_chara* rob_chr, float_t duration,
     this->start_pos = start_pos;
     this->end_pos = end_pos;
 
-    while (start_rot < -180.0f)
-        start_rot += 360.0f;
+    while (true) {
+        while (start_rot < -180.0f)
+            start_rot += 360.0f;
 
-    while (start_rot > 180.0f)
+        if (start_rot <= 180.0f)
+            break;
         start_rot += -360.0f;
+    }
 
-    while (end_rot < -180.0f)
-        end_rot += 360.0f;
+    while (true) {
+        while (end_rot < -180.0f)
+            end_rot += 360.0f;
 
-    while (end_rot > 180.0f)
+        if (end_rot <= 180.0f)
+            break;
         end_rot += -360.0f;
+    }
 
     if (end_rot < start_rot)
         end_rot += 360.0f;
 
+    this->start_rot = start_rot;
+
     if (end_rot >= start_rot + 180.0f)
         end_rot += -360.0f;
 
-    this->start_rot = start_rot;
     this->end_rot = end_rot;
 }
 
