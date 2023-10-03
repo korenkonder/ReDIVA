@@ -950,6 +950,13 @@ struct bone_data {
     float_t eyes_xrot_adjust_pos;
 
     bone_data();
+
+    void copy_rot_trans(bone_data* data);
+    bool check_flags_not_null();
+    vec3* set_key_data(vec3* keyframe_data,
+        bone_database_skeleton_type skeleton_type, bool get_data, bool reverse_x);
+    void store_curr_rot_trans(int32_t skeleton_select);
+
 };
 
 struct bone_data_parent {
@@ -1032,8 +1039,8 @@ struct struc_400 {
 
 class MotionBlend {
 public:
+    bool field_8;
     bool enable;
-    bool rot_y;
     float_t duration;
     float_t frame;
     float_t step;
@@ -1044,10 +1051,10 @@ public:
     virtual ~MotionBlend();
 
     virtual void Reset();
-    virtual void Field_10(float_t a2, float_t a3, int32_t a4) = 0;
+    virtual void Field_10(float_t, float_t, int32_t) = 0;
     virtual void Step(struc_400*) = 0;
-    virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) = 0;
-    virtual void Blend(bone_data*, bone_data*) = 0;
+    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) = 0;
+    virtual void Blend(bone_data* curr, bone_data* prev) = 0;
     virtual bool Field_30();
 
     void SetDuration(float_t duration, float_t step, float_t offset);
@@ -1055,8 +1062,8 @@ public:
 
 class MotionBlendCross : public MotionBlend {
 public:
-    bool field_20;
-    bool field_21;
+    bool trans_xz;
+    bool trans_y;
     mat4 rot_y_mat;
     mat4 field_64;
     mat4 field_A4;
@@ -1066,10 +1073,10 @@ public:
     virtual ~MotionBlendCross() override;
 
     virtual void Reset() override;
-    virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
+    virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) override;
-    virtual void Blend(bone_data*, bone_data*) override;
+    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) override;
+    virtual void Blend(bone_data* curr, bone_data* prev) override;
     virtual bool Field_30() override;
 };
 
@@ -1084,8 +1091,8 @@ public:
 
 class MotionBlendFreeze : public MotionBlend {
 public:
-    bool field_20;
-    bool field_21;
+    bool trans_xz;
+    bool trans_y;
     int32_t field_24;
     float_t field_28;
     float_t field_2C;
@@ -1099,10 +1106,10 @@ public:
     virtual ~MotionBlendFreeze() override;
 
     virtual void Reset() override;
-    virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
+    virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) override;
-    virtual void Blend(bone_data*, bone_data*) override;
+    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) override;
+    virtual void Blend(bone_data* curr, bone_data* prev) override;
 };
 
 class PartialMotionBlendFreeze : public MotionBlendFreeze {
@@ -1111,10 +1118,10 @@ public:
     virtual ~PartialMotionBlendFreeze() override;
 
     virtual void Reset() override;
-    virtual void Field_10(float_t a2, float_t a3, int32_t a4) override;
+    virtual void Field_10(float_t, float_t, int32_t) override;
     virtual void Step(struc_400*) override;
-    virtual void Field_20(std::vector<bone_data>*, std::vector<bone_data>*) override;
-    virtual void Blend(bone_data*, bone_data*) override;
+    virtual void Field_20(std::vector<bone_data>* bones_curr, std::vector<bone_data>* bones_prev) override;
+    virtual void Blend(bone_data* curr, bone_data* prev) override;
 };
 
 struct struc_313 {
@@ -1151,6 +1158,7 @@ struct motion_blend_mot {
     motion_blend_mot();
     ~motion_blend_mot();
 
+    bool get_blend_enable();
     MotionBlendType get_type();
     void reset();
     void set_step(float_t step);
@@ -1550,24 +1558,38 @@ struct RobOsageNodeData {
         skin_param_osage_node* skp_osg_node, size_t index);
 };
 
+struct opd_blend_data {
+    uint32_t motion_id;
+    float_t frame;
+    float_t frame_count;
+    bool use_blend;
+    MotionBlendType type;
+    float_t blend;
+};
+
 struct opd_vec3_data {
     const float_t* x;
     const float_t* y;
     const float_t* z;
 };
 
-struct struc_477 {
+struct opd_node_data {
     float_t length;
     vec3 rotation;
 
-    struc_477();
+    opd_node_data();
+    opd_node_data(float_t length, vec3 rotation);
+
+    static void lerp(opd_node_data& dst, const opd_node_data& src0, const opd_node_data& src1, float_t blend);
 };
 
-struct struc_476 {
-    struc_477 field_0;
-    struc_477 field_10;
+struct opd_node_data_pair {
+    opd_node_data curr;
+    opd_node_data prev;
 
-    struc_476();
+    opd_node_data_pair();
+
+    void set_data(opd_blend_data* blend_data, opd_node_data&& node_data);
 };
 
 struct RobOsageNode {
@@ -1591,7 +1613,7 @@ struct RobOsageNode {
     RobOsageNodeData* data_ptr;
     RobOsageNodeData data;
     std::vector<opd_vec3_data> opd_data;
-    struc_476 field_1B0;
+    opd_node_data_pair opd_node_data;
 
     RobOsageNode();
     ~RobOsageNode();
@@ -1779,7 +1801,7 @@ struct CLOTHNode {
     RobOsageNodeResetData reset_data;
     int32_t field_B4;
     std::vector<opd_vec3_data> opd_data;
-    struc_476 field_D0;
+    opd_node_data_pair opd_node_data;
 
     CLOTHNode();
     ~CLOTHNode();
@@ -1840,15 +1862,6 @@ struct RobClothSubMeshArray {
     obj_sub_mesh arr[4];
 
     RobClothSubMeshArray();
-};
-
-struct opd_blend_data {
-    uint32_t motion_id;
-    float_t frame;
-    float_t frame_count;
-    bool field_C;
-    MotionBlendType type;
-    float_t blend;
 };
 
 struct RobCloth : public CLOTH {

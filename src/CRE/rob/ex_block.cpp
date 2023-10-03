@@ -100,8 +100,6 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, bool a4);
 static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, float_t step, bool disable_external_force);
-static void sub_140482100(struc_476* a1, opd_blend_data* a2, struc_477* a3);
-static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend);
 static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order);
 static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2);
 static bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,
@@ -356,17 +354,39 @@ void RobOsageNodeData::SetForce(const skin_param_osage_root& skp_root,
     this->force = force;
 }
 
-struc_477::struc_477() : length() {
+opd_node_data::opd_node_data() : length() {
 
 }
 
-struc_476::struc_476() {
+opd_node_data::opd_node_data(float_t length, vec3 rotation) {
+    this->length = length;
+    this->rotation = rotation;
+}
+
+void opd_node_data::lerp(opd_node_data& dst, const opd_node_data& src0, const opd_node_data& src1, float_t blend) {
+    dst.length = lerp_def(src0.length, src1.length, blend);
+    dst.rotation = vec3::lerp(src0.rotation, src1.rotation, blend);
+}
+
+opd_node_data_pair::opd_node_data_pair() {
 
 }
 
-RobOsageNode::RobOsageNode() : length(), trans(), trans_orig(), trans_diff(), field_28(),
-child_length(), bone_node_ptr(), bone_node_mat(), sibling_node(), max_distance(),
-field_94(), reset_data(), field_C8(), external_force(), mat(), field_1B0() {
+void opd_node_data_pair::set_data(opd_blend_data* blend_data, opd_node_data&& node_data) {
+    if (!blend_data->use_blend)
+        curr = node_data;
+    else if (blend_data->type == MOTION_BLEND_FREEZE) {
+        if (blend_data->blend == 0.0f)
+            prev = curr;
+        opd_node_data::lerp(curr, prev, node_data, blend_data->blend);
+    }
+    else if (blend_data->type == MOTION_BLEND_CROSS)
+        opd_node_data::lerp(curr, curr, node_data, blend_data->blend);
+}
+
+RobOsageNode::RobOsageNode() : length(), trans(), trans_orig(), trans_diff(),
+field_28(), child_length(), bone_node_ptr(), bone_node_mat(), sibling_node(),
+max_distance(), field_94(), reset_data(), field_C8(), external_force(), mat() {
     field_CC = 1.0f;
     force = 1.0f;
     data_ptr = &data;
@@ -772,7 +792,7 @@ osage_ring_data::~osage_ring_data() {
 
 CLOTHNode::CLOTHNode() : flags(), trans(), trans_orig(), field_1C(), trans_diff(), normal(),
 tangent(), binormal(), tangent_sign(), texcoord(), field_64(), dist_top(), dist_bottom(),
-dist_right(), dist_left(), field_80(), field_88(), reset_data(), field_B4(), field_D0() {
+dist_right(), dist_left(), field_80(), field_88(), reset_data(), field_B4() {
 
 }
 
@@ -1241,10 +1261,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
 
                 mat4_translate_mult(&mat, vec3::distance(v57, v26), 0.0f, 0.0f, &mat);
 
-                struc_477 v83;
-                v83.rotation = rotation;
-                v83.length = v29->dist_top;
-                sub_140482100(&v29->field_D0, i, &v83);
+                v29->opd_node_data.set_data(i, { v29->dist_top, rotation });
 
                 v26 = v61;
             }
@@ -1264,9 +1281,9 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
         sub_140482FF0(mat, v78, 0, 0, yz_order);
 
         for (size_t j = 1; j < nodes_count; j++, v50 += root_count) {
-            mat4_rotate_z_mult(&mat, v50->field_D0.field_0.rotation.z, &mat);
-            mat4_rotate_y_mult(&mat, v50->field_D0.field_0.rotation.y, &mat);
-            mat4_translate_mult(&mat, v50->field_D0.field_0.length, 0.0f, 0.0f, &mat);
+            mat4_rotate_z_mult(&mat, v50->opd_node_data.curr.rotation.z, &mat);
+            mat4_rotate_y_mult(&mat, v50->opd_node_data.curr.rotation.y, &mat);
+            mat4_translate_mult(&mat, v50->opd_node_data.curr.length, 0.0f, 0.0f, &mat);
             mat4_get_translation(&mat, &v50->trans);
         }
     }
@@ -1493,7 +1510,7 @@ void ExClothBlock::Field_20() {
 
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
     float_t step = get_delta_frame() * rob_itm_equip->osage_step;
-    if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data[0].field_C)
+    if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data.front().use_blend)
         step = 1.0f;
     sub_140218560(&rob, step, false);
 }
@@ -1948,10 +1965,8 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
             sub_140482FF0(v87, v86, 0, &rotation, yz_order);
             mat4_set_translation(&v87, &v82);
 
-            struc_477 v72;
-            v72.rotation = rotation;
-            v72.length = vec3::distance(v62, v22) * inv_blend + vec3::distance(v77, v25) * blend;
-            sub_140482100(&j->field_1B0, i, &v72);
+            float_t length = vec3::distance(v62, v22) * inv_blend + vec3::distance(v77, v25) * blend;
+            j->opd_node_data.set_data(i, { length, rotation });
 
             v22 = v62;
             v25 = v77;
@@ -1961,8 +1976,8 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
     RobOsageNode* j_begin = nodes.data() + 1;
     RobOsageNode* j_end = nodes.data() + nodes.size();
     for (RobOsageNode* j = j_begin; j != j_end; j++) {
-        float_t rot_y = j->field_1B0.field_0.rotation.y;
-        float_t rot_z = j->field_1B0.field_0.rotation.z;
+        float_t rot_y = j->opd_node_data.curr.rotation.y;
+        float_t rot_z = j->opd_node_data.curr.rotation.z;
         rot_y = clamp_def(rot_y, (float_t)-M_PI, (float_t)M_PI);
         rot_z = clamp_def(rot_z, (float_t)-M_PI, (float_t)M_PI);
         mat4_rotate_z_mult(&v85, rot_z, &v85);
@@ -1973,7 +1988,7 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
         if (j->bone_node_mat)
             mat4_scale_rot(&v85, &parent_scale, j->bone_node_mat);
 
-        mat4_translate_mult(&v85, j->field_1B0.field_0.length, 0.0f, 0.0f, &v85);
+        mat4_translate_mult(&v85, j->opd_node_data.curr.length, 0.0f, 0.0f, &v85);
         j->trans_orig = j->trans;
         mat4_get_translation(&v85, &j->trans);
     }
@@ -2068,7 +2083,7 @@ void ExOsageBlock::Field_10() {
 void ExOsageBlock::Field_18(int32_t stage, bool disable_external_force) {
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
     float_t step = get_delta_frame() * rob_itm_equip->osage_step;
-    if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data[0].field_C)
+    if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data.front().use_blend)
         step = 1.0f;
 
     mat4* root_matrix = parent_bone_node->ex_data_mat;
@@ -2109,7 +2124,7 @@ void ExOsageBlock::Field_20() {
 
     rob_chara_item_equip* rob_itm_equip = item_equip_object->item_equip;
     float_t step = get_delta_frame() * rob_itm_equip->osage_step;
-    if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data[0].field_C)
+    if (rob_itm_equip->opd_blend_data.size() && rob_itm_equip->opd_blend_data.front().use_blend)
         step = 1.0f;
 
     vec3 parent_scale = parent_bone_node->exp_data.parent_scale;
@@ -3995,23 +4010,6 @@ static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
     }
 
     rob_osg->root_matrix = *rob_osg->root_matrix_ptr;
-}
-
-static void sub_140482100(struc_476* a1, opd_blend_data* a2, struc_477* a3) {
-    if (!a2->field_C)
-        a1->field_0 = *a3;
-    else if (a2->type == MOTION_BLEND_FREEZE) {
-        if (a2->blend == 0.0f)
-            a1->field_10 = a1->field_0;
-        sub_140482DF0(&a1->field_0, &a1->field_10, a3, a2->blend);
-    }
-    else if (a2->type == MOTION_BLEND_CROSS)
-        sub_140482DF0(&a1->field_0, &a1->field_0, a3, a2->blend);
-}
-
-static void sub_140482DF0(struc_477* dst, struc_477* src0, struc_477* src1, float_t blend) {
-    dst->length = lerp_def(src0->length, src1->length, blend);
-    dst->rotation = vec3::lerp(src0->rotation, src1->rotation, blend);
 }
 
 static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order) {
