@@ -223,8 +223,8 @@ static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time) 
     bool in_transition;
     if (pv_game_camera_data.duration == 0.0f
         || pv_game_camera_data.duration <= pv_game_camera_data.curr_time) {
-        view_point = pv_game_camera_data.view_point_start;
-        interest = pv_game_camera_data.interest_start;
+        view_point = pv_game_camera_data.view_point_end;
+        interest = pv_game_camera_data.interest_end;
         in_transition = false;
     }
     else {
