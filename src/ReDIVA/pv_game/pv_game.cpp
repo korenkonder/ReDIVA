@@ -6344,8 +6344,7 @@ static void sub_140105010(pv_game_chara* arr, size_t max_count, pv_game_item_mas
             }
         }
     }
-
-    if (v14) {
+    else if (v14) {
         chara_index = pv->get_performer_chara(performer);
         costume = pv->get_performer_costume(performer);
         int32_t exclude = pv->get_performer_exclude(performer);
