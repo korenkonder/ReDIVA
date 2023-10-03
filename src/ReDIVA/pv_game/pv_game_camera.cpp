@@ -172,17 +172,18 @@ void pv_game_camera_set_fov_min_dist(float_t fov, float_t min_dist) {
 static float_t sub_14011B160(float_t acceleration_1, float_t acceleration_2, float_t t) {
     if (acceleration_2 == 1.0f)
         return 1.0f;
-    if (acceleration_1 == 0.0)
-        return cosf(t * (float_t)M_PI) * (acceleration_2 - 1.0f) + 1.0f;
+
+    if (acceleration_1 == 0.0f)
+        return cosf((float_t)(t * M_PI)) * (acceleration_2 - 1.0f) + 1.0f;
     else if (acceleration_1 == 1.0f)
-        return cosf(t * (float_t)M_PI + (float_t)M_PI)
-            * fabsf((float_t)(int32_t)(1.0f - acceleration_2)) + 1.0f;
+        return cosf((float_t)(t * M_PI + M_PI))
+            * (float_t)abs((int32_t)(1.0f - acceleration_2)) + 1.0f;
     else if (t < acceleration_1)
-        return 2.0f - (cosf((t / acceleration_1) * (float_t)M_PI)
+        return 2.0f - (cosf((float_t)((t / acceleration_1) * M_PI))
             * (acceleration_2 - 1.0f) + 1.0f);
     else
-        return cosf((t - acceleration_1) / (1.0f - acceleration_1)
-            * (float_t)M_PI + (float_t)M_PI) * (1.0f - acceleration_2) + 1.0f;
+        return cosf((float_t)((t - acceleration_1) / (1.0f - acceleration_1) * M_PI + M_PI))
+            * (1.0f - acceleration_2) + 1.0f;
 }
 
 static float_t pv_game_camera_get_acceleration() {
@@ -201,9 +202,9 @@ static float_t pv_game_camera_get_acceleration() {
             v2 = true;
             delta_time = 0.0005f;
         }
-        acceleration_curr_time += delta_time;
         acceleration += sub_14011B160(acceleration_1, acceleration_2,
             v5 * acceleration_curr_time) * (v5 * delta_time);
+        acceleration_curr_time += delta_time;
         pv_game_camera_data.acceleration_curr_time = acceleration_curr_time;
         pv_game_camera_data.acceleration = acceleration;
     }
