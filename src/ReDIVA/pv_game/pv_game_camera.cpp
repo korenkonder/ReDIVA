@@ -188,10 +188,10 @@ static float_t sub_14011B160(float_t acceleration_1, float_t acceleration_2, flo
 
 static float_t pv_game_camera_get_acceleration() {
     bool v2 = false;
-    float_t curr_time = pv_game_camera_data.curr_time;
-    float_t v5 = 1.0f / pv_game_camera_data.duration;
-    float_t acceleration_1 = pv_game_camera_data.acceleration_1;
-    float_t acceleration_2 = pv_game_camera_data.acceleration_2;
+    const float_t curr_time = pv_game_camera_data.curr_time;
+    const float_t inv_duration = 1.0f / pv_game_camera_data.duration;
+    const float_t acceleration_1 = pv_game_camera_data.acceleration_1;
+    const float_t acceleration_2 = pv_game_camera_data.acceleration_2;
     float_t acceleration = pv_game_camera_data.acceleration;
     float_t acceleration_curr_time = pv_game_camera_data.acceleration_curr_time;
     while (acceleration_curr_time < curr_time) {
@@ -202,10 +202,11 @@ static float_t pv_game_camera_get_acceleration() {
             v2 = true;
             delta_time = 0.0005f;
         }
-        acceleration += sub_14011B160(acceleration_1, acceleration_2,
-            v5 * acceleration_curr_time) * (v5 * delta_time);
+        float_t _acceleration = sub_14011B160(acceleration_1, acceleration_2,
+            inv_duration * acceleration_curr_time);
         acceleration_curr_time += delta_time;
         pv_game_camera_data.acceleration_curr_time = acceleration_curr_time;
+        acceleration += _acceleration * (inv_duration * delta_time);
         pv_game_camera_data.acceleration = acceleration;
     }
     return min_def(acceleration, 1.0f);
