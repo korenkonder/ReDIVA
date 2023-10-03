@@ -2986,7 +2986,7 @@ bool pv_game::load() {
                         std::string spr_set_back_image(i.spr_set_back);
                         spr_set_back_image.append("_IMAGE");
 
-                        uint32_t spr_id = aft_spr_db->get_spr_set_id_by_name(spr_set_back_image.c_str());
+                        uint32_t spr_id = aft_spr_db->get_spr_id_by_name(spr_set_back_image.c_str());
                         if (spr_id != -1) {
                             data.spr_set_back_ids.push_back(spr_set_id);
                             field.spr_set_back_id = spr_id;

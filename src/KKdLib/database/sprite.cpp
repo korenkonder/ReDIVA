@@ -482,6 +482,10 @@ const spr_db_spr* sprite_database::get_tex_by_set_id_index(uint32_t set_id, uint
     return &spr_db_spr_null;
 }
 
+uint32_t sprite_database::get_spr_id_by_name(const char* name) const {
+    return get_spr_by_name(name)->id;
+}
+
 const char* sprite_database::get_spr_set_file_name(uint32_t set_id) const {
     return get_spr_set_by_id(set_id)->file_name.c_str();
 }

@@ -152,6 +152,7 @@ struct sprite_database {
     const spr_db_spr* get_spr_by_id(uint32_t id) const;
     const spr_db_spr* get_spr_by_set_id_index(uint32_t set_id, uint32_t index) const;
     const spr_db_spr* get_tex_by_set_id_index(uint32_t set_id, uint32_t index) const;
+    uint32_t get_spr_id_by_name(const char* name) const;
     const char* get_spr_set_file_name(uint32_t set_id) const;
     uint32_t get_spr_set_id_by_name(const char* name) const;
     uint32_t get_spr_set_id_by_name_index(uint32_t index) const;
