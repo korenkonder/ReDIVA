@@ -4210,23 +4210,22 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
         obj* obj = 0;
         if (handler && handler->obj_set) {
             obj_set* set = handler->obj_set;
-            if (set->obj_data) {
-                ::obj** obj_data = set->obj_data;
-                for (uint32_t i = 0; i < set->obj_num; i++)
-                    if (obj_data[i]->id == obj_id) {
-                        obj = obj_data[i];
-                        break;
-                    }
-            }
+            ::obj** obj_data = set->obj_data;
+            for (uint32_t i = 0; i < set->obj_num; i++)
+                if (obj_data[i]->id == obj_id) {
+                    obj = obj_data[i];
+                    break;
+                }
         }
 
         ImGui::StartPropertyColumn("Object");
         if (ImGui::BeginCombo("##Object", obj ? obj->name : "None", 0)) {
-            if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set && handler->obj_set->obj_data) {
+            if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set) {
                 obj_set* set = handler->obj_set;
                 ::obj** obj_data = set->obj_data;
                 ssize_t obj_index = -1;
                 for (uint32_t i = 0; i < set->obj_num; i++)
+#pragma warning(suppress: 28182)
                     if (obj_data[i]->id == obj_id) {
                         obj_index = i;
                         break;
