@@ -159,7 +159,7 @@ pv_db_pv_item::~pv_db_pv_item() {
 
 }
 
-pv_db_pv_hand_item::pv_db_pv_hand_item() : index(), id() {
+pv_db_pv_hand_item::pv_db_pv_hand_item() : index(), uid() {
 
 }
 
@@ -242,6 +242,13 @@ version(), script_format(), high_speed_rate(), hidden_timing(), sudden_timing(),
 
 pv_db_pv_difficulty::~pv_db_pv_difficulty() {
 
+}
+
+int32_t pv_db_pv_difficulty::get_hand_item_uid(int32_t index) const {
+    for (const pv_db_pv_hand_item& i : hand_item)
+        if (i.index == index)
+            return i.uid;
+    return -1;
 }
 
 const pv_db_pv_motion& pv_db_pv_difficulty::get_motion_or_default(int32_t chara_id, int32_t index) const {
@@ -1507,7 +1514,7 @@ namespace pv_db {
 
                                 pv_db_pv_hand_item hand_item;
                                 hand_item.index = (int32_t)k;
-                                hand_item.id = hand_item_handler_data_get_hand_item_uid(name.c_str());
+                                hand_item.uid = hand_item_handler_data_get_hand_item_uid(name.c_str());
                                 hand_item.name.assign(name);
                                 d.hand_item.push_back(hand_item);
                                 kv.close_scope();
@@ -2004,7 +2011,7 @@ namespace pv_db {
                 j.field.data.clear();
                 j.field.ex_stage_set = false;
 
-                j.field.data.reserve(count + 1);
+                j.field.data.reserve(count + 1LL);
                 for (int32_t k = 0; k <= count; k++) {
                     if (!kv.open_scope_fmt("%02d", k)) {
                         j.field.data.push_back({});

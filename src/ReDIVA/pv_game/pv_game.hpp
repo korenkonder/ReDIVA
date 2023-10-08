@@ -312,6 +312,10 @@ struct pv_game_data {
         int32_t* target_flag, bool* has_chance, bool* has_slide, int32_t* slide_chain_type,
         bool* slide_chain_start, int32_t* slide_chain_start_count, int32_t* slide_chain_cont_count,
         int32_t* slide_chain_no_end_count, bool* has_slide_chain, int64_t target_flying_time_hist);
+
+    inline float_t get_anim_offset() {
+        return pv->is_old_pv ? 1.0f : 0.0f;
+    }
 };
 
 union pv_game_item {

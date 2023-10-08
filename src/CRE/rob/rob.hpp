@@ -3498,6 +3498,9 @@ struct rob_chara {
     void set_face_object(object_info obj_info, int32_t a3);
     void set_face_object_index(int32_t index);
     void set_frame(float_t frame);
+    void set_hand_item(int32_t uid, float_t blend_duration);
+    void set_hand_item_l(int32_t uid);
+    void set_hand_item_r(int32_t uid);
     void set_hand_l_mottbl_motion(int32_t type, int32_t mottbl_index,
         float_t value, int32_t state, float_t blend_duration, float_t a7,
         float_t step, int32_t a9, float_t blend_offset, const motion_database* mot_db);

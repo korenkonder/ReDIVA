@@ -14,6 +14,7 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
 #include "../data.hpp"
+#include "../hand_item.hpp"
 #include "../mdata_manager.hpp"
 #include "../pv_db.hpp"
 #include "../random.hpp"
@@ -1015,6 +1016,9 @@ static void rob_disp_rob_chara_ctrl(rob_chara* rob_chr);
 static void rob_disp_rob_chara_ctrl_thread_main(rob_chara* rob_chr);
 static void rob_disp_rob_chara_disp(rob_chara* rob_chr);
 static void rob_disp_rob_chara_free(rob_chara* rob_chr);
+
+static void rob_chara_set_hand_l_object(rob_chara* rob_chr, object_info obj_info, int32_t type);
+static void rob_chara_set_hand_r_object(rob_chara* rob_chr, object_info obj_info, int32_t type);
 
 static void rob_chara_age_age_ctrl(rob_chara_age_age* arr,
     int32_t chara_id, int32_t part_id, mat4& mat);
@@ -3202,7 +3206,7 @@ void rob_chara::load_motion(uint32_t motion_id, bool a3, float_t frame,
         data.miku_rot.position.y = data.miku_rot.field_24.y;
 
     if (a3)
-        data.motion.field_28 ^= (data.motion.field_28 ^ ~data.motion.field_28) & 0x04;
+        data.motion.field_28 ^= 0x04;
 
     if (data.motion.field_28 & 0x04)
         data.motion.field_28 |= 0x08;
@@ -3633,20 +3637,23 @@ static void rob_chara_set_face_motion(rob_chara* rob_chr,
 
 static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
     RobHandMotion* motion, int32_t type, const motion_database* mot_db) {
-    if (type == 2) {
-        rob_chr->data.motion.field_3B0.hand_l.data = motion->data;
-        if (!(rob_chr->data.motion.field_29 & 0x08) || (rob_chr->data.motion.field_2A & 0x04))
-            return;
-    }
-    else if (type == 1) {
-        rob_chr->data.motion.hand_r.data = motion->data;
-        if ((rob_chr->data.motion.field_29 & 0x08) || !(rob_chr->data.motion.field_2A & 0x04))
-            return;
-    }
-    else {
+    switch (type) {
+    case 0:
+    default:
         rob_chr->data.motion.field_150.hand_l.data = motion->data;
         if ((rob_chr->data.motion.field_29 & 0x08) || (rob_chr->data.motion.field_2A & 0x04))
             return;
+        break;
+    case 1:
+        rob_chr->data.motion.hand_l.data = motion->data;
+        if ((rob_chr->data.motion.field_29 & 0x08) || !(rob_chr->data.motion.field_2A & 0x04))
+            return;
+        break;
+    case 2:
+        rob_chr->data.motion.field_3B0.hand_l.data = motion->data;
+        if (!(rob_chr->data.motion.field_29 & 0x08) || (rob_chr->data.motion.field_2A & 0x04))
+            return;
+        break;
     }
 
     rob_chr->bone_data->load_hand_l_motion(motion->data.motion_id, mot_db);
@@ -3658,20 +3665,23 @@ static void rob_chara_set_hand_l_motion(rob_chara* rob_chr,
 
 static void rob_chara_set_hand_r_motion(rob_chara* rob_chr,
     RobHandMotion* motion, int32_t type, const motion_database* mot_db) {
-    if (type == 2) {
-        rob_chr->data.motion.field_3B0.hand_r.data = motion->data;
-        if (!(rob_chr->data.motion.field_29 & 0x10) || (rob_chr->data.motion.field_2A & 0x08))
-            return;
-    }
-    else if (type == 1) {
-        rob_chr->data.motion.hand_r.data = motion->data;
-        if ((rob_chr->data.motion.field_29 & 0x10) || !(rob_chr->data.motion.field_2A & 0x08))
-            return;
-    }
-    else {
+    switch (type) {
+    case 0:
+    default:
         rob_chr->data.motion.field_150.hand_r.data = motion->data;
         if ((rob_chr->data.motion.field_29 & 0x10) || (rob_chr->data.motion.field_2A & 0x08))
             return;
+        break;
+    case 1:
+        rob_chr->data.motion.hand_r.data = motion->data;
+        if ((rob_chr->data.motion.field_29 & 0x10) || !(rob_chr->data.motion.field_2A & 0x08))
+            return;
+        break;
+    case 2:
+        rob_chr->data.motion.field_3B0.hand_r.data = motion->data;
+        if (!(rob_chr->data.motion.field_29 & 0x10) || (rob_chr->data.motion.field_2A & 0x08))
+            return;
+        break;
     }
 
     rob_chr->bone_data->load_hand_r_motion(motion->data.motion_id, mot_db);
@@ -4115,9 +4125,122 @@ void rob_chara::set_face_object_index(int32_t index) {
 void rob_chara::set_frame(float_t frame) {
     bone_data->set_frame(frame);
     data.motion.frame_data.frame = frame;
-    //bone_data->interpolate();
-    //bone_data->update(0);
-    //sub_140509D30();
+}
+
+static void sub_140551870(rob_chara* rob_chr, float_t blend_duration,
+    float_t blend_offset, const motion_database* aft_mot_db) {
+    if (!(rob_chr->data.motion.field_2A & 0x04))
+        return;
+
+    rob_chara_set_hand_l_object(rob_chr, {}, 1);
+    rob_chr->data.motion.field_2A &= ~0x04;
+
+    RobHandMotion motion;
+    motion.data = rob_chr->data.motion.field_150.hand_l.data;
+    motion.data.blend_duration = blend_duration;
+    motion.data.blend_offset = blend_offset;
+    rob_chara_set_hand_l_motion(rob_chr, &motion, 0, aft_mot_db);
+}
+
+static void sub_140550B90(rob_chara* rob_chr, float_t blend_duration,
+    float_t blend_offset, const motion_database* aft_mot_db) {
+    rob_chr->set_hand_l_mottbl_motion(1, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    sub_140551870(rob_chr, blend_duration, blend_offset, aft_mot_db);
+}
+
+static void sub_140554690(rob_chara* rob_chr, int32_t mottbl_index, float_t value,
+    int32_t state, float_t blend_duration, float_t a6, float_t step,
+    int32_t a8, float_t blend_offset, const motion_database* aft_mot_db) {
+    rob_chr->data.motion.field_2A |= 0x04;
+    rob_chr->set_hand_l_mottbl_motion(1, mottbl_index, value, state,
+        blend_duration, a6, step, a8, blend_offset, aft_mot_db);
+}
+
+static void sub_1405519B0(rob_chara* rob_chr, float_t blend_duration,
+    float_t blend_offset, const motion_database* aft_mot_db) {
+    if (!(rob_chr->data.motion.field_2A & 0x08))
+        return;
+
+    rob_chara_set_hand_r_object(rob_chr, {}, 1);
+    rob_chr->data.motion.field_2A &= ~0x08;
+
+    RobHandMotion motion;
+    motion.data = rob_chr->data.motion.field_150.hand_r.data;
+    motion.data.blend_duration = blend_duration;
+    motion.data.blend_offset = blend_offset;
+    rob_chara_set_hand_r_motion(rob_chr, &motion, 0, aft_mot_db);
+}
+
+static void sub_140550C10(rob_chara* rob_chr, float_t blend_duration,
+    float_t blend_offset, const motion_database* aft_mot_db) {
+    rob_chr->set_hand_r_mottbl_motion(1, 192, 0.0f, -1, 0.0f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    sub_1405519B0(rob_chr, blend_duration, blend_offset, aft_mot_db);
+}
+static void sub_140554710(rob_chara* rob_chr, int32_t mottbl_index, float_t value,
+    int32_t state, float_t blend_duration, float_t a6, float_t step,
+    int32_t a8, float_t blend_offset, const motion_database* aft_mot_db) {
+    rob_chr->data.motion.field_2A |= 0x08;
+    rob_chr->set_hand_r_mottbl_motion(1, mottbl_index, value, state,
+        blend_duration, a6, step, a8, blend_offset, aft_mot_db);
+}
+
+void rob_chara::set_hand_item(int32_t uid, float_t blend_duration) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    int32_t mottbl_index = 192;
+    object_info obj_left = {};
+    object_info obj_right = {};
+    float_t left_hand_scale = -1.0f;
+    float_t right_hand_scale = -1.0f;
+
+    const hand_item* hand_item = hand_item_handler_data_get_hand_item(uid, chara_index);
+    if (hand_item) {
+        if (hand_item->obj_left.not_null()) {
+            left_hand_scale = hand_item->hand_scale;
+            obj_left = hand_item->obj_left;
+        }
+
+        if (hand_item->obj_right.not_null()) {
+            right_hand_scale = hand_item->hand_scale;
+            obj_right = hand_item->obj_right;
+        }
+
+        mottbl_index = hand_item->hand_mottbl_index;
+    }
+
+    if (obj_left.is_null())
+        sub_140550B90(this, blend_duration, 0.0f, aft_mot_db);
+    else {
+        sub_140554690(this, mottbl_index, 1.0f, 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chara_set_hand_l_object(this, obj_left, 1);
+    }
+
+    if (obj_right.is_null())
+        sub_140550C10(this, blend_duration, 0.0f, aft_mot_db);
+    else {
+        sub_140554710(this, mottbl_index, 1.0f, 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+        rob_chara_set_hand_r_object(this, obj_right, 1);
+    }
+
+    data.adjust_data.left_hand_scale_default = left_hand_scale;
+    data.adjust_data.right_hand_scale_default = right_hand_scale;
+}
+
+void rob_chara::set_hand_item_l(int32_t uid) {
+    const hand_item* hand_item = hand_item_handler_data_get_hand_item(uid, chara_index);
+    object_info obj_info = {};
+    if (hand_item && hand_item->obj_left.not_null())
+        obj_info = hand_item->obj_left;
+    rob_chara_set_hand_l_object(this, obj_info, 0);
+}
+
+void rob_chara::set_hand_item_r(int32_t uid) {
+    const hand_item* hand_item = hand_item_handler_data_get_hand_item(uid, chara_index);
+    object_info obj_info = {};
+    if (hand_item && hand_item->obj_right.not_null())
+        obj_info = hand_item->obj_right;
+    rob_chara_set_hand_r_object(this, obj_info, 0);
 }
 
 void rob_chara::set_hand_l_mottbl_motion(int32_t type,
@@ -4782,6 +4905,9 @@ static float_t bone_data_limit_angle(float_t angle) {
 static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select) {
     if (a1->check_flags_not_null())
         return;
+
+    if (a1->motion_bone_index == MOTION_BONE_N_HITO_L_EX)
+        printf("");
 
     mat4 mat;
     if (a1->has_parent)
@@ -5778,8 +5904,7 @@ static void mothead_func_4(mothead_func_data* func_data,
 
 static void mothead_func_5(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    rob_chara_data* rob_chr_data = func_data->rob_chr_data;
-    rob_chr_data->motion.field_28 ^= (rob_chr_data->motion.field_28 ^ ~rob_chr_data->motion.field_28) & 0x04;
+    func_data->rob_chr_data->motion.field_28 ^= 0x04;
 }
 
 static void mothead_func_6(mothead_func_data* func_data,
@@ -7795,15 +7920,12 @@ static bool sub_1404190E0(rob_chara_bone_data* rob_bone_data) {
 }
 
 static void sub_140555F70(rob_chara* rob_chr, const motion_database* mot_db) {
-    if (sub_1404190E0(rob_chr->bone_data))
-        return;
-
-    if (rob_chr->data.motion.field_29 & 0x80)
+    if (sub_1404190E0(rob_chr->bone_data) || (rob_chr->data.motion.field_29 & 0x80))
         return;
 
     int32_t v3 = rob_chr->data.motion.field_150.field_1C0;
     if (v3 == 1) {
-        if (rob_chr->data.motion.field_29 & 2) {
+        if (rob_chr->data.motion.field_29 & 0x02) {
             rob_chr->set_eyelid_mottbl_motion_from_face(2, 3.0f, -1.0f, 1.0f, mot_db);
             rob_chr->data.motion.field_29 |= 0x02;
             return;
@@ -8591,7 +8713,7 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
     look_anim->init_eyes_rotation = false;
     if (!(look_anim->eyes_rotation || look_anim->ext_head_rotation
         && fabsf(look_anim->ext_head_rot_strength) > 0.000001f || eyes_rot_anim)
-        || !(look_anim->head_rot_strength <= 0.0 || look_anim->type != 3))
+        || !(look_anim->head_rot_strength <= 0.0f || look_anim->type != 3))
         return;
 
     look_anim->view_point = look_anim->target_view_point;
@@ -9579,6 +9701,36 @@ static void sub_140418810(rob_chara_bone_data* rob_bone_data, const motion_bone_
 static void sub_14053B260(rob_chara* rob_chr) {
     if (rob_chr->data.field_1588.field_0.field_20.field_C & 0x10000000)
         sub_140418810(rob_chr->bone_data, dword_140A2DDB0, dword_140A2DD90);
+}
+
+static void rob_chara_set_hand_l_object(rob_chara* rob_chr, object_info obj_info, int32_t type) {
+    switch (type) {
+    case 0:
+    default:
+        rob_chr->data.motion.field_150.hand_l_object = obj_info;
+        break;
+    case 1:
+        rob_chr->data.motion.hand_l_object = obj_info;
+        break;
+    case 2:
+        rob_chr->data.motion.field_3B0.hand_l_object = obj_info;
+        break;
+    }
+}
+
+static void rob_chara_set_hand_r_object(rob_chara* rob_chr, object_info obj_info, int32_t type) {
+    switch (type) {
+    case 0:
+    default:
+        rob_chr->data.motion.field_150.hand_r_object = obj_info;
+        break;
+    case 1:
+        rob_chr->data.motion.hand_r_object = obj_info;
+        break;
+    case 2:
+        rob_chr->data.motion.field_3B0.hand_r_object = obj_info;
+        break;
+    }
 }
 
 static void rob_chara_age_age_ctrl(rob_chara_age_age* arr,

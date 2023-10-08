@@ -3354,7 +3354,7 @@ bool pv_game::load() {
                 if (i.index < (data.height_adjust ? 0 : 1))
                     continue;
 
-                const hand_item* hand_item = hand_item_handler_data_get_hand_item(i.id, (chara_index)-1);
+                const hand_item* hand_item = hand_item_handler_data_get_hand_item(i.uid, (chara_index)-1);
                 if (hand_item) {
                     hand_obj_infos.push_back(hand_item->obj_left);
                     hand_obj_infos.push_back(hand_item->obj_right);

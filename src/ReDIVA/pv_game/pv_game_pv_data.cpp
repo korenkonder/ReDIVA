@@ -760,7 +760,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (rob_chr)
             rob_chr->set_eyelid_mottbl_motion_from_face(v114, blend_duration / anim_frame_speed,
-                -1.0f, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+                -1.0f, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_MOUTH_ANIM: {
         chara_id = (int32_t)data[0];
@@ -795,7 +795,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 value = 0.0f;
 
             rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, blend_duration / anim_frame_speed,
-                0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+                0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
         }
     } break;
     case DSC_FT_HAND_ANIM: {
@@ -824,18 +824,18 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 value = 0.0f;
         }
         else
-            value = 0.0f;
+            value = 1.0f;
 
         if (rob_chr) {
             int32_t mottbl_index = hand_anim_id_to_mottbl_index(hand_anim_id);
             switch (hand_index) {
             case 0:
                 rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value, 0, blend_duration / anim_frame_speed,
-                    0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+                    0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
                 break;
             case 1:
                 rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value, 0, blend_duration / anim_frame_speed,
-                    0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+                    0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
                 break;
             }
         }
@@ -871,7 +871,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (rob_chr) {
             int32_t mottbl_index = look_anim_id_to_mottbl_index(look_anim_id);
             rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value, mottbl_index == 224, blend_duration
-                / anim_frame_speed, 0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+                / anim_frame_speed, 0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
         }
     } break;
     case DSC_FT_EXPRESSION: {
@@ -906,7 +906,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
             bool v167 = dsc.signature >= 0x10000000 || pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
             rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214 && mottbl_index <= 223,
-                blend_duration / anim_frame_speed, 0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, v167, aft_mot_db);
+                blend_duration / anim_frame_speed, 0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), v167, aft_mot_db);
         }
     } break;
     case DSC_FT_LOOK_CAMERA: {
@@ -1141,13 +1141,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             //if (has_perf_id)
                 v236 = pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
             rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, 0, blend_duration / anim_frame_speed,
-                0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, v236, aft_mot_db);
+                0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), v236, aft_mot_db);
 
             /*if (!has_perf_id) {
                 int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
                 float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
                 rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, target_anim_fps * 0.1,
-                    0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+                    0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
             }*/
         }
     } break;
@@ -1245,7 +1245,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, blend_duration,
-            0.0f, 1.0f, -1, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+            0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_SET_CHARA: {
         chara_id = (int32_t)data[0];
@@ -1337,7 +1337,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
 
         rob_chr->set_eyelid_mottbl_motion_from_face(v339,
-            0.0f, -1.0f, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+            0.0f, -1.0f, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_EDIT_EYE:
     case DSC_FT_EDIT_EYE_ANIM: {
@@ -1387,7 +1387,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
 
         rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value, state, _blend_duration, 0.0f,
-            step, v13, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+            step, v13, pv_game->data.get_anim_offset(), aft_mot_db);
 
         if (pv_game->data.pv->is_old_pv)
             rob_chr->set_look_camera_old(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
@@ -1397,12 +1397,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_EDIT_ITEM: {
         int32_t index = (int32_t)data[0];
 
-        /*if (rob_chr) {
-            pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
+        if (rob_chr) {
+            const pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
                 sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
             if (diff)
-                rob_chr->sub_1405524C0(sub_1404E4B90(&diff->hand_item, index), 0.0f);
-        }*/
+                rob_chr->set_hand_item(diff->get_hand_item_uid(index), 0.0f);
+        }
     } break;
     case DSC_FT_EDIT_EFFECT: {
         int32_t index = (int32_t)data[0];
@@ -1451,21 +1451,21 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         rob_chr = playdata->rob_chr;
 
         int32_t hand_index = (int32_t)data[1];
-        int32_t index = (int32_t)data[0];
+        int32_t index = (int32_t)data[2];
 
-        /*if (rob_chr) {
-            pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
+        if (rob_chr) {
+            const pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
                 sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
             if (diff)
                 switch (hand_index) {
                 case 0:
-                    rob_chr->sub_1405551B0(sub_1404E4B90(&diff->hand_item, index));
+                    rob_chr->set_hand_item_l(diff->get_hand_item_uid(index));
                     break;
                 case 1:
-                    rob_chr->sub_1405551F0(sub_1404E4B90(&diff->hand_item, index));
+                    rob_chr->set_hand_item_r(diff->get_hand_item_uid(index));
                     break;
                 }
-        }*/
+        }
     } break;
     case DSC_FT_EDIT_BLUSH: {
         int32_t index = (int32_t)data[0];
@@ -1820,7 +1820,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
 
         rob_chr->set_eyelid_mottbl_motion_from_face(v346, blend_duration / anim_frame_speed,
-            value, pv_game->data.pv->is_old_pv ? 1.0f : 0.0f, aft_mot_db);
+            value, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_EDIT_INSTRUMENT_ITEM: {
         int32_t index = (int32_t)data[0];

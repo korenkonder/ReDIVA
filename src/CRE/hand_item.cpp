@@ -5,6 +5,7 @@
 
 #include "hand_item.hpp"
 #include "../KKdLib/database/hand_item.hpp"
+#include "../KKdLib/database/object.hpp"
 #include "../KKdLib/io/path.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
@@ -28,7 +29,7 @@ struct hand_item_handler {
     void read();
 };
 
-static void hand_item_load(data_struct* data,
+static void hand_item_load(const object_database* obj_db,
     std::map<std::pair<int32_t, chara_index>, hand_item>& hand_items, hnd_itm& hnd_itm_file);
 
 static int32_t mtp_hand_array_get_mottbl_index(const char* str);
@@ -145,7 +146,7 @@ void hand_item_handler::parse(p_file_handler* pfhndl) {
     hnd_itm hnd_itm;
     hnd_itm.read(pfhndl->get_data(), pfhndl->get_size());
     if (hnd_itm.ready)
-        hand_item_load(&data_list[DATA_AFT], hand_items, hnd_itm);
+        hand_item_load(&data_list[DATA_AFT].data_ft.obj_db, hand_items, hnd_itm);
 }
 
 void hand_item_handler::read() {
@@ -165,14 +166,12 @@ void hand_item_handler::read() {
     }
 }
 
-static void hand_item_load(data_struct* data,
+static void hand_item_load(const object_database* obj_db,
     std::map<std::pair<int32_t, chara_index>, hand_item>& hand_items, hnd_itm& hnd_itm_file) {
-    object_database* aft_obj_db = &data->data_ft.obj_db;
-
     for (hnd_itm_data& i : hnd_itm_file.data) {
         hand_item itm;
-        itm.obj_left = aft_obj_db->get_object_info(i.objname_left.c_str());
-        itm.obj_right = aft_obj_db->get_object_info(i.objname_right.c_str());
+        itm.obj_left = obj_db->get_object_info(i.objname_left.c_str());
+        itm.obj_right = obj_db->get_object_info(i.objname_right.c_str());
         itm.item_str.assign(i.item_str);
         itm.item_name.assign(i.item_name);
         itm.file_size = i.file_size;
@@ -199,7 +198,7 @@ static int32_t mtp_hand_array_get_mottbl_index(const char* str) {
         { "MTP_HAND_GOOD"      , 0xC6 },
         { "MTP_HAND_ONE"       , 0xC7 },
         { "MTP_HAND_THREE"     , 0xC8 },
-        { "MTP_HAND_MEGI"      , 0xC9 },
+        { "MTP_HAND_NEGI"      , 0xC9 },
         { "MTP_HAND_SIZEN"     , 0xCA },
         { "MTP_HAND_PICK"      , 0xCB },
         { "MTP_HAND_MIC"       , 0xCC },
@@ -212,10 +211,14 @@ static int32_t mtp_hand_array_get_mottbl_index(const char* str) {
         { "MTP_HAND_MIC_SLV"   , 0xD3 },
         { "MTP_HAND_CUPICE"    , 0xD4 },
         { "MTP_HAND_ICEBAR"    , 0xD5 },
+        { 0                    , 0    },
     };
 
-    for (auto& i : mtp_hand_array)
-        if (!str_utils_compare(i.first, str))
-            return i.second;
+    auto mtp_hand = mtp_hand_array;
+    while (mtp_hand->first)
+        if (!str_utils_compare(mtp_hand->first, str))
+            return mtp_hand->second;
+        else
+            mtp_hand++;
     return -1;
 }

@@ -211,7 +211,7 @@ struct pv_db_pv_item {
 
 struct pv_db_pv_hand_item {
     int32_t index;
-    int32_t id;
+    int32_t uid;
     std::string name;
 
     pv_db_pv_hand_item();
@@ -306,6 +306,7 @@ struct pv_db_pv_difficulty {
     pv_db_pv_difficulty();
     ~pv_db_pv_difficulty();
 
+    int32_t get_hand_item_uid(int32_t index) const;
     const pv_db_pv_motion& get_motion_or_default(int32_t chara_id, int32_t index) const;
     void reset();
 };
