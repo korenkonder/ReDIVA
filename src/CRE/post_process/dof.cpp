@@ -93,10 +93,10 @@ void post_process_dof::apply(RenderTexture* rt, RenderTexture* buf, GLuint* samp
                     rob_chara* rob_chr = 0;
                     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
                         rob_chara* rob_chr = rob_chara_array_get(i);
-                        if (!rob_chr->is_visible())
+                        if (!rob_chr || !rob_chr->is_visible())
                             continue;
 
-                        mat4 mat = rob_chr->data.field_1E68.field_78[4]; // sub_1405163C0
+                        const mat4& mat = rob_chr->data.field_1E68.field_78[4]; // sub_1405163C0
 
                         vec3 chara_trans = 0.0f;
                         mat4_get_translation(&mat, &chara_trans);
