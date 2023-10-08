@@ -1234,9 +1234,15 @@ float_t pv_game_play_data::init_aet_edit_effect(int32_t aet_id, const char* name
             break;
         }
 
+#if PV_DEBUG
+    FrameRateControl* frame_rate_control = get_sys_frame_rate();
+#else
+    FrameRateControl* frame_rate_control = 0;
+#endif
+
     aet_ids[PV_GAME_AET_EDIT_EFFECT] = aet_manager_init_aet_object(aet_id,
         low_field ? spr::SPR_PRIO_00 : spr::SPR_PRIO_01, loop ? AET_LOOP : AET_PLAY_ONCE,
-        name, 0, 0, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db, aft_spr_db);
+        name, 0, 0, 0, 0, -1.0f, -1.0f, 0, frame_rate_control, aft_aet_db, aft_spr_db);
     set_aet_id_play(PV_GAME_AET_EDIT_EFFECT, false);
 
     return aet_manager_get_scene_layer_end_time(aet_id, name, aft_aet_db);
@@ -1517,8 +1523,14 @@ void pv_game_play_data::init_aet_title_image(const char* name) {
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
+#if PV_DEBUG
+    FrameRateControl* frame_rate_control = get_sys_frame_rate();
+#else
+    FrameRateControl* frame_rate_control = 0;
+#endif
+
     aet_ids[PV_GAME_AET_TITLE_IMAGE] = aet_manager_init_aet_object(pv_aet_id, spr::SPR_PRIO_02,
-        (AetFlags)0, name, 0, 0, 0, 0, -1.0f, -1.0f, 0, 0, aft_aet_db, aft_spr_db);
+        (AetFlags)0, name, 0, 0, 0, 0, -1.0f, -1.0f, 0, frame_rate_control, aft_aet_db, aft_spr_db);
 }
 
 void pv_game_play_data::init_aet_white_fade() {
