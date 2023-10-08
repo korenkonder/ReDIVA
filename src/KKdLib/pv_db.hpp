@@ -147,26 +147,22 @@ struct pv_db_another_song_aft500 {
 };
 
 struct pv_db_auth_replace_by_module {
-    null_int32_t id;
-    null_int32_t module_id;
+    null_def<int32_t> id;
+    null_def<int32_t> module_id;
     std::string name;
     std::string org_name;
 };
-
-null(chara_index)
 
 struct pv_db_chrcam {
-    null_chara_index chara;
+    null_def<chara_index> chara;
 
-    null_int32_t id;
+    null_def<int32_t> id;
     std::string name;
     std::string org_name;
 };
 
-null(pv_db_chreff_type)
-
 struct pv_db_chreff_data {
-    null_pv_db_chreff_type type;
+    null_def<pv_db_chreff_type> type;
 
     std::string Name;
 };
@@ -174,52 +170,50 @@ struct pv_db_chreff_data {
 struct pv_db_chreff {
     std::vector<pv_db_chreff_data> data;
 
-    null_int32_t id;
+    null_def<int32_t> id;
     std::string name;
 };
 
 struct pv_db_chrmot {
-    null_chara_index chara;
+    null_def<chara_index> chara;
 
-    null_int32_t id;
+    null_def<int32_t> id;
     std::string name;
     std::string org_name;
 };
 
 struct pv_db_disp2d_ac200 {
     std::string set_name;
-    null_int32_t target_shadow_type;
-    null_int32_t title_end_2d_field;
-    null_int32_t title_end_2d_low_field;                                // not AC200
-    null_int32_t title_end_3d_field;
-    null_int32_t title_start_2d_field;
-    null_int32_t title_start_2d_low_field;                              // not AC200
-    null_int32_t title_start_3d_field;
+    null_def<int32_t> target_shadow_type;
+    null_def<int32_t> title_end_2d_field;
+    null_def<int32_t> title_end_2d_low_field;                           // not AC200
+    null_def<int32_t> title_end_3d_field;
+    null_def<int32_t> title_start_2d_field;
+    null_def<int32_t> title_start_2d_low_field;                         // not AC200
+    null_def<int32_t> title_start_3d_field;
 };
 
 struct pv_db_disp2d_aft210 {
     std::string set_name;
-    null_int32_t target_shadow_type;
-    null_int32_t title_2d_layer;
-    null_int32_t title_end_2d_field;
-    null_int32_t title_end_2d_low_field;
-    null_int32_t title_end_3d_field;
-    null_int32_t title_start_2d_field;
-    null_int32_t title_start_2d_low_field;
-    null_int32_t title_start_3d_field;
+    null_def<int32_t> target_shadow_type;
+    null_def<int32_t> title_2d_layer;
+    null_def<int32_t> title_end_2d_field;
+    null_def<int32_t> title_end_2d_low_field;
+    null_def<int32_t> title_end_3d_field;
+    null_def<int32_t> title_start_2d_field;
+    null_def<int32_t> title_start_2d_low_field;
+    null_def<int32_t> title_start_3d_field;
 };
 
-null(pv_db_duet_type)
-
 struct pv_db_duet {
-    null_pv_db_duet_type type;
-    null_int32_t num;
+    null_def<pv_db_duet_type> type;
+    null_def<int32_t> num;
 };
 
 struct pv_db_eyes_rot_rate {
-    null_chara_index chr;
-    null_float_t xn_rate;
-    null_float_t xp_rate;
+    null_def<chara_index> chr;
+    null_def<float_t> xn_rate;
+    null_def<float_t> xp_rate;
 };
 
 struct pv_db_ex_auth {
@@ -228,17 +222,17 @@ struct pv_db_ex_auth {
 };
 
 struct pv_db_ex_song_ac101 {
-    null_chara_index chara;
+    null_def<chara_index> chara;
 
     std::string file;
     std::string name;
 };
 
 struct pv_db_ex_song_aft101 {
-    null_chara_index chara;
-    null_chara_index chara2P;                                           // not AFT101
-    null_chara_index chara3P;                                           // not AFT101
-    null_chara_index chara4P;                                           // not AFT101
+    null_def<chara_index> chara;
+    null_def<chara_index> chara2P;                                      // not AFT101
+    null_def<chara_index> chara3P;                                      // not AFT101
+    null_def<chara_index> chara4P;                                      // not AFT101
 
     std::string file;
     std::string name;
@@ -247,12 +241,12 @@ struct pv_db_ex_song_aft101 {
 struct pv_db_ex_song_aft300 {
     std::vector<pv_db_ex_auth> ex_auth;                                 // AFT621/AFT622/AFT701/FT/M39
 
-    null_chara_index chara;
-    null_chara_index chara2P;
-    null_chara_index chara3P;
-    null_chara_index chara4P;
-    null_chara_index chara5P;                                           // not AFT300/AFT310/AFT400
-    null_chara_index chara6P;                                           // not AFT300/AFT310/AFT400
+    null_def<chara_index> chara;
+    null_def<chara_index> chara2P;
+    null_def<chara_index> chara3P;
+    null_def<chara_index> chara4P;
+    null_def<chara_index> chara5P;                                      // not AFT300/AFT310/AFT400
+    null_def<chara_index> chara6P;                                      // not AFT300/AFT310/AFT400
 
     std::string file;
     std::string name;
@@ -284,7 +278,7 @@ struct pv_db_field_ac200 {
     std::string ex_stage;                                               // AC500/AC510/AC511/AC520/AC521/AC600
     std::string spr_set_back;
     std::string stage;
-    null_int32_t stage_flag;                                            // AC520/AC521/AC600
+    null_def<int32_t> stage_flag;                                       // AC520/AC521/AC600
 };
 
 struct pv_db_field_ac500 {
@@ -301,7 +295,7 @@ struct pv_db_field_ac500 {
     std::string ex_stage;
     std::string spr_set_back;
     std::string stage;
-    null_int32_t stage_flag;                                            // AC520/AC521/AC600
+    null_def<int32_t> stage_flag;                                       // AC520/AC521/AC600
 };
 
 struct pv_db_field_aft101 {
@@ -316,15 +310,15 @@ struct pv_db_field_aft101 {
     std::string aet_id_front;
     std::string aet_id_front_low;
     std::string auth_3d;
-    null_int32_t cam_blur;                                              // AFT110/AFT120/AFT200
+    null_def<int32_t> cam_blur;                                         // AFT110/AFT120/AFT200
     std::string ex_auth_3d;
     std::string ex_stage;
     std::string light;                                                  // AFT100
-    null_int32_t npr_type;                                              // AFT110/AFT120/AFT200
-    null_int32_t sdw_off;                                               // AFT110/AFT120/AFT200
+    null_def<int32_t> npr_type;                                         // AFT110/AFT120/AFT200
+    null_def<int32_t> sdw_off;                                          // AFT110/AFT120/AFT200
     std::string spr_set_back;
     std::string stage;
-    null_int32_t stage_flag;
+    null_def<int32_t> stage_flag;
 };
 
 struct pv_db_field_aft210 {
@@ -354,16 +348,16 @@ struct pv_db_field_aft210 {
     std::string aet_id_front;
     std::string aet_id_front_low;
     std::string auth_3d;
-    null_int32_t cam_blur;
+    null_def<int32_t> cam_blur;
     std::string ex_auth_3d;
     std::string ex_stage;
     std::string light;
-    null_int32_t light_frame;
-    null_int32_t npr_type;
-    null_int32_t sdw_off;
+    null_def<int32_t> light_frame;
+    null_def<int32_t> npr_type;
+    null_def<int32_t> sdw_off;
     std::string spr_set_back;
     std::string stage;
-    null_int32_t stage_flag;
+    null_def<int32_t> stage_flag;
 };
 
 struct pv_db_field_aft500 {
@@ -400,21 +394,21 @@ struct pv_db_field_aft500 {
     std::string aet_id_front_3d_surf;
     std::string aet_id_front_low;
     std::string auth_3d;
-    null_int32_t cam_blur;
+    null_def<int32_t> cam_blur;
     std::string ex_auth_3d;
     std::string ex_stage;
     std::string light;
-    null_int32_t light_frame;
-    null_int32_t npr_type;
-    null_int32_t sdw_off;
+    null_def<int32_t> light_frame;
+    null_def<int32_t> npr_type;
+    null_def<int32_t> sdw_off;
     std::string spr_set_back;
     std::string stage;
-    null_int32_t stage_flag;
+    null_def<int32_t> stage_flag;
 };
 
 struct pv_db_mdata_ac110 {
     std::string directory;
-    null_int32_t flag;
+    null_def<int32_t> flag;
     std::string gam_aet;
     std::string gam_aet_id;
     std::string gam_spr;
@@ -425,48 +419,45 @@ struct pv_db_mdata_ac110 {
 
 struct pv_db_mdata_ac200 {
     std::string directory;
-    null_int32_t flag;
+    null_def<int32_t> flag;
 };
 
 struct pv_db_osage_init {
-    null_int32_t frame;
+    null_def<int32_t> frame;
     std::string motion;
     std::string stage;
 };
 
-null(pv_db_performer_size)
-null(pv_db_performer_type)
-
 struct pv_db_performer_aft101 {
-    null_chara_index chara;
-    null_pv_db_performer_size size;
-    null_pv_db_performer_type type;
+    null_def<chara_index> chara;
+    null_def<pv_db_performer_size> size;
+    null_def<pv_db_performer_type> type;
 
-    null_int32_t costume;
-    null_int32_t exclude;
-    null_int32_t fixed;
-    null_int32_t item_back;
-    null_int32_t item_face;
-    null_int32_t item_neck;
-    null_int32_t item_zujo;
-    null_int32_t pv_costume;
+    null_def<int32_t> costume;
+    null_def<int32_t> exclude;
+    null_def<int32_t> fixed;
+    null_def<int32_t> item_back;
+    null_def<int32_t> item_face;
+    null_def<int32_t> item_neck;
+    null_def<int32_t> item_zujo;
+    null_def<int32_t> pv_costume;
 };
 
 struct pv_db_performer_aft500 {
-    null_chara_index chara;
-    null_pv_db_performer_size size;
-    null_pv_db_performer_type type;
+    null_def<chara_index> chara;
+    null_def<pv_db_performer_size> size;
+    null_def<pv_db_performer_type> type;
 
-    null_int32_t costume;
-    null_int32_t exclude;
-    null_int32_t fixed;
-    null_int32_t item_back;
-    null_int32_t item_face;
-    null_int32_t item_kami;                                             // FT
-    null_int32_t item_neck;
-    null_int32_t item_zujo;
-    null_int32_t pv_costume;
-    null_int32_t pseudo_same_id;
+    null_def<int32_t> costume;
+    null_def<int32_t> exclude;
+    null_def<int32_t> fixed;
+    null_def<int32_t> item_back;
+    null_def<int32_t> item_face;
+    null_def<int32_t> item_kami;                                        // FT
+    null_def<int32_t> item_neck;
+    null_def<int32_t> item_zujo;
+    null_def<int32_t> pv_costume;
+    null_def<int32_t> pseudo_same_id;
 };
 
 struct pv_db_pv_expression {
@@ -474,8 +465,8 @@ struct pv_db_pv_expression {
 };
 
 struct pv_db_sabi {
-    null_float_t play_time;
-    null_float_t start_time;
+    null_def<float_t> play_time;
+    null_def<float_t> start_time;
 };
 
 struct pv_db_sel_2d {
@@ -512,7 +503,7 @@ struct pv_db_stage_param_ac200 {
 
 struct pv_db_stage_param_aft210 {
     std::string collision_file;
-    null_int32_t mhd_id;
+    null_def<int32_t> mhd_id;
     std::string stage;
     std::string wind_file;
 };
@@ -522,13 +513,13 @@ struct pv_db_title_image_ac101 {
     std::vector<std::string> file_name;                                 // AC101
 
     std::string aet_name;
-    null_float_t time;
+    null_def<float_t> time;
 };
 
 struct pv_db_title_image_ac200 {
     std::string aet_name;
-    null_float_t end_time;
-    null_float_t time;
+    null_def<float_t> end_time;
+    null_def<float_t> time;
 };
 
 struct pv_db_diff_ac101 {
@@ -540,11 +531,11 @@ struct pv_db_diff_ac101 {
     pv_db_song_info_ac101 song_info;
     pv_db_title_image_ac101 title_image;
 
-    null_int32_t level;
+    null_def<int32_t> level;
     std::string movie_file_name;
     std::string script_file_name;
     std::string se_name;
-    null_int32_t version;
+    null_def<int32_t> version;
 };
 
 struct pv_db_diff_ac200 {
@@ -559,15 +550,13 @@ struct pv_db_diff_ac200 {
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
-    null_float_t edit_chara_scale;
-    null_int32_t level;
+    null_def<float_t> edit_chara_scale;
+    null_def<int32_t> level;
     std::string movie_file_name;
     std::string script_file_name;
     std::string se_name;
-    null_int32_t version;
+    null_def<int32_t> version;
 };
-
-null(pv_db_movie_surface)
 
 struct pv_db_diff_aft101 {
     std::vector<pv_db_field_aft101> field;
@@ -581,7 +570,7 @@ struct pv_db_diff_aft101 {
     std::vector<std::string> pv_item;
 
     pv_db_pv_level level;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
@@ -589,9 +578,9 @@ struct pv_db_diff_aft101 {
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_float_t edit_chara_scale;
+    null_def<float_t> edit_chara_scale;
     std::string effect_se_file_name;
-    null_int32_t level_sort_index;
+    null_def<int32_t> level_sort_index;
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
     std::string script_file_name;
@@ -599,13 +588,13 @@ struct pv_db_diff_aft101 {
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
-    null_int32_t version;
+    null_def<int32_t> version;
 };
 
 struct pv_db_diff_attr {
-    null_int32_t extra;
-    null_int32_t original;
-    null_int32_t slide;
+    null_def<int32_t> extra;
+    null_def<int32_t> original;
+    null_def<int32_t> slide;
 };
 
 struct pv_db_diff_aft300 {
@@ -627,7 +616,7 @@ struct pv_db_diff_aft300 {
 
     pv_db_diff_attr attribute;
     pv_db_pv_level level;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
@@ -635,13 +624,13 @@ struct pv_db_diff_aft300 {
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_int32_t edition;
-    null_int32_t is_ps4dlc;                                             // FT/M39
-    null_float_t edit_chara_scale;
+    null_def<int32_t> edition;
+    null_def<int32_t> is_ps4dlc;                                        // FT/M39
+    null_def<float_t> edit_chara_scale;
     std::string effect_se_file_name;
-    null_float_t hidden_timing;
-    null_float_t high_speed_rate;
-    null_int32_t level_sort_index;
+    null_def<float_t> hidden_timing;
+    null_def<float_t> high_speed_rate;
+    null_def<int32_t> level_sort_index;
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
     std::string script_file_name;
@@ -649,8 +638,8 @@ struct pv_db_diff_aft300 {
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
-    null_float_t sudden_timing;
-    null_int32_t version;
+    null_def<float_t> sudden_timing;
+    null_def<int32_t> version;
 };
 
 struct pv_db_difficulty_aft300 {
@@ -677,7 +666,7 @@ struct pv_db_diff_aft500 {
 
     pv_db_diff_attr attribute;
     pv_db_pv_level level;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_song_info_ac200 song_info_en;                                 // FT/M39
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
@@ -686,13 +675,13 @@ struct pv_db_diff_aft500 {
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_int32_t edition;
-    null_float_t edit_chara_scale;
+    null_def<int32_t> edition;
+    null_def<float_t> edit_chara_scale;
     std::string effect_se_file_name;
-    null_float_t hidden_timing;
-    null_float_t high_speed_rate;
-    null_int32_t is_ps4_dlc;                                            // FT/M39
-    null_int32_t level_sort_index;
+    null_def<float_t> hidden_timing;
+    null_def<float_t> high_speed_rate;
+    null_def<int32_t> is_ps4_dlc;                                       // FT/M39
+    null_def<int32_t> level_sort_index;
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
     std::string script_file_name;
@@ -700,8 +689,8 @@ struct pv_db_diff_aft500 {
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
-    null_float_t sudden_timing;
-    null_int32_t version;
+    null_def<float_t> sudden_timing;
+    null_def<int32_t> version;
 };
 
 struct pv_db_difficulty_aft500 {
@@ -723,12 +712,12 @@ struct pv_db_pv_ac101 {
     pv_db_sel_2d sel_2d;                                                // AC101
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
-    null_chara_index unlock;
+    null_def<chara_index> unlock;
 
-    null_int32_t bpm;
-    null_int32_t date;
-    null_int32_t demo_flag;                                             // AC110/AC120/AC130
-    null_int32_t m_data_flag;                                           // AC101
+    null_def<int32_t> bpm;
+    null_def<int32_t> date;
+    null_def<int32_t> demo_flag;                                        // AC110/AC120/AC130
+    null_def<int32_t> m_data_flag;                                      // AC101
     std::string movie_file_name;
     std::string se_name;
     std::string song_file_name;
@@ -756,23 +745,21 @@ struct pv_db_pv_ac200 {
     pv_db_sabi sabi;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
-    null_chara_index unlock1p;
-    null_chara_index unlock2p;
+    null_def<chara_index> unlock1p;
+    null_def<chara_index> unlock2p;
 
-    null_int32_t bpm;
-    null_int32_t date;
-    null_int32_t edit;
-    null_float_t edit_chara_scale;
+    null_def<int32_t> bpm;
+    null_def<int32_t> date;
+    null_def<int32_t> edit;
+    null_def<float_t> edit_chara_scale;
     std::string movie_file_name;
-    null_int32_t remix_parent;
+    null_def<int32_t> remix_parent;
     std::string se_name;
     std::string song_file_name;
     std::string song_name;
     std::string song_name_reading;
-    null_bool use_osage_play_data;                                      // not AC200
+    null_def<bool> use_osage_play_data;                                 // not AC200
 };
-
-null(pv_db_eyes_base_adjust_type)
 
 struct pv_db_pv_aft101 {
     std::vector<pv_db_chreff> chreff;
@@ -795,36 +782,36 @@ struct pv_db_pv_aft101 {
 
     pv_db_diff_aft101 difficulty[5];
     pv_db_disp2d_ac200 disp2d;
-    null_pv_db_eyes_base_adjust_type eyes_base_adjust_type;             // AFT200
+    null_def<pv_db_eyes_base_adjust_type> eyes_base_adjust_type;        // AFT200
     pv_db_mdata_ac200 mdata;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_pv_expression pv_expression;
     pv_db_sabi sabi;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
-    null_int32_t bpm;
+    null_def<int32_t> bpm;
     std::string chainslide_failure_name;
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_int32_t date;
-    null_int32_t disable_calc_motfrm_limit;
+    null_def<int32_t> date;
+    null_def<int32_t> disable_calc_motfrm_limit;
     std::string effect_se_file_name;
-    null_int32_t edit;
-    null_float_t edit_chara_scale;
-    null_int32_t eyes_xrot_adjust;
-    null_int32_t is_old_pv;                                             // AFT200
+    null_def<int32_t> edit;
+    null_def<float_t> edit_chara_scale;
+    null_def<int32_t> eyes_xrot_adjust;
+    null_def<int32_t> is_old_pv;                                        // AFT200
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
-    null_int32_t remix_parent;
+    null_def<int32_t> remix_parent;
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
     std::string song_file_name;
     std::string song_name;
     std::string song_name_reading;
-    null_bool use_osage_play_data;
+    null_def<bool> use_osage_play_data;
 };
 
 struct pv_db_pv_aft210 {
@@ -848,36 +835,36 @@ struct pv_db_pv_aft210 {
 
     pv_db_diff_aft101 difficulty[5];
     pv_db_disp2d_aft210 disp2d;
-    null_pv_db_eyes_base_adjust_type eyes_base_adjust_type;
+    null_def<pv_db_eyes_base_adjust_type> eyes_base_adjust_type;
     pv_db_mdata_ac200 mdata;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_pv_expression pv_expression;
     pv_db_sabi sabi;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
-    null_int32_t bpm;
+    null_def<int32_t> bpm;
     std::string chainslide_failure_name;
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_int32_t date;
-    null_int32_t disable_calc_motfrm_limit;
+    null_def<int32_t> date;
+    null_def<int32_t> disable_calc_motfrm_limit;
     std::string effect_se_file_name;
-    null_int32_t edit;
-    null_float_t edit_chara_scale;
-    null_int32_t eyes_xrot_adjust;
-    null_int32_t is_old_pv;
+    null_def<int32_t> edit;
+    null_def<float_t> edit_chara_scale;
+    null_def<int32_t> eyes_xrot_adjust;
+    null_def<int32_t> is_old_pv;
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
-    null_int32_t remix_parent;
+    null_def<int32_t> remix_parent;
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
     std::string song_file_name;
     std::string song_name;
     std::string song_name_reading;
-    null_bool use_osage_play_data;
+    null_def<bool> use_osage_play_data;
 };
 
 struct pv_db_pv_aft300 {
@@ -906,43 +893,41 @@ struct pv_db_pv_aft300 {
 
     pv_db_difficulty_aft300 difficulty;
     pv_db_disp2d_aft210 disp2d;
-    null_pv_db_eyes_base_adjust_type eyes_base_adjust_type;
+    null_def<pv_db_eyes_base_adjust_type> eyes_base_adjust_type;
     pv_db_mdata_ac200 mdata;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_pv_expression pv_expression;
     pv_db_sabi sabi;
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
-    null_int32_t bpm;
+    null_def<int32_t> bpm;
     std::string chainslide_failure_name;
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_int32_t date;
-    null_int32_t disable_calc_motfrm_limit;
+    null_def<int32_t> date;
+    null_def<int32_t> disable_calc_motfrm_limit;
     std::string effect_se_file_name;
-    null_int32_t edit;
-    null_float_t edit_chara_scale;
-    null_int32_t eyes_xrot_adjust;
-    null_float_t hidden_timing;
-    null_float_t high_speed_rate;
-    null_int32_t is_old_pv;
+    null_def<int32_t> edit;
+    null_def<float_t> edit_chara_scale;
+    null_def<int32_t> eyes_xrot_adjust;
+    null_def<float_t> hidden_timing;
+    null_def<float_t> high_speed_rate;
+    null_def<int32_t> is_old_pv;
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
-    null_int32_t pre_play_script;                                       // AFT410
-    null_int32_t remix_parent;
+    null_def<int32_t> pre_play_script;                                  // AFT410
+    null_def<int32_t> remix_parent;
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
     std::string song_file_name;
     std::string song_name;
     std::string song_name_reading;
-    null_float_t sudden_timing;
-    null_bool use_osage_play_data;
+    null_def<float_t> sudden_timing;
+    null_def<bool> use_osage_play_data;
 };
-
-null(pv_db_frame_texture_type)
 
 struct pv_db_pv_aft500 {
     std::vector<pv_db_another_song_aft500> another_song;
@@ -974,49 +959,49 @@ struct pv_db_pv_aft500 {
 
     pv_db_difficulty_aft300 difficulty;
     pv_db_disp2d_aft210 disp2d;
-    null_pv_db_eyes_base_adjust_type eyes_base_adjust_type;
-    null_pv_db_frame_texture_type frame_texture_a_type;
-    null_pv_db_frame_texture_type frame_texture_b_type;
-    null_pv_db_frame_texture_type frame_texture_c_type;
-    null_pv_db_frame_texture_type frame_texture_d_type;
-    null_pv_db_frame_texture_type frame_texture_e_type;
-    null_pv_db_frame_texture_type frame_texture_type;
+    null_def<pv_db_eyes_base_adjust_type> eyes_base_adjust_type;
+    null_def<pv_db_frame_texture_type> frame_texture_a_type;
+    null_def<pv_db_frame_texture_type> frame_texture_b_type;
+    null_def<pv_db_frame_texture_type> frame_texture_c_type;
+    null_def<pv_db_frame_texture_type> frame_texture_d_type;
+    null_def<pv_db_frame_texture_type> frame_texture_e_type;
+    null_def<pv_db_frame_texture_type> frame_texture_type;
     pv_db_mdata_ac200 mdata;
-    null_pv_db_movie_surface movie_surface;
+    null_def<pv_db_movie_surface> movie_surface;
     pv_db_pv_expression pv_expression;
     pv_db_sabi sabi;
     pv_db_song_info_ac200 song_info_en;                                 // FT/M39
     pv_db_song_info_ac200 song_info;
     pv_db_title_image_ac200 title_image;
 
-    null_int32_t bpm;
+    null_def<int32_t> bpm;
     std::string chainslide_failure_name;
     std::string chainslide_first_name;
     std::string chainslide_sub_name;
     std::string chainslide_success_name;
-    null_int32_t date;
-    null_int32_t disable_calc_motfrm_limit;
+    null_def<int32_t> date;
+    null_def<int32_t> disable_calc_motfrm_limit;
     std::string effect_se_file_name;
-    null_int32_t edit;
-    null_float_t edit_chara_scale;
-    null_int32_t eyes_xrot_adjust;
+    null_def<int32_t> edit;
+    null_def<float_t> edit_chara_scale;
+    null_def<int32_t> eyes_xrot_adjust;
     std::string frame_texture;
     std::string frame_texture_a;
     std::string frame_texture_b;
     std::string frame_texture_c;
     std::string frame_texture_d;
     std::string frame_texture_e;
-    null_float_t hidden_timing;
-    null_float_t high_speed_rate;
-    null_int32_t is_old_pv;
+    null_def<float_t> hidden_timing;
+    null_def<float_t> high_speed_rate;
+    null_def<int32_t> is_old_pv;
     std::string movie_file_name;
     std::string pvbranch_success_se_name;
-    null_int32_t pack;                                                  // FT/M39
-    null_int32_t pre_play_script;
-    null_int32_t rank_board_id;                                         // FT/M39
-    null_int32_t remix_parent;
-    null_float_t resolution_scale;                                      // FT/M39
-    null_float_t resolution_scale_neo;                                  // FT/M39
+    null_def<int32_t> pack;                                             // FT/M39
+    null_def<int32_t> pre_play_script;
+    null_def<int32_t> rank_board_id;                                    // FT/M39
+    null_def<int32_t> remix_parent;
+    null_def<float_t> resolution_scale;                                 // FT/M39
+    null_def<float_t> resolution_scale_neo;                             // FT/M39
     std::string se_name;
     std::string slide_name;
     std::string slidertouch_name;
@@ -1025,6 +1010,6 @@ struct pv_db_pv_aft500 {
     std::string song_name_en;                                           // FT/M39
     std::string song_name_reading;
     std::string song_name_reading_en;                                   // FT/M39
-    null_float_t sudden_timing;
-    null_bool use_osage_play_data;
+    null_def<float_t> sudden_timing;
+    null_def<bool> use_osage_play_data;
 };

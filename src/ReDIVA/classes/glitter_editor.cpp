@@ -2025,11 +2025,11 @@ static bool glitter_editor_resource_import(GlitterEditor* glt_edt) {
             do
                 for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max_def(d.width >> i, 1);
-                    tex_mip.height = max_def(d.height >> i, 1);
+                    tex_mip.width = max_def(d.width >> i, 1u);
+                    tex_mip.height = max_def(d.height >> i, 1u);
                     tex_mip.format = d.format;
 
-                    uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
+                    uint32_t size = tex_mip.get_size();
                     tex_mip.size = size;
                     tex_mip.data.resize(size);
                     memcpy(tex_mip.data.data(), d.data[index], size);
@@ -2092,7 +2092,7 @@ static bool glitter_editor_resource_export(GlitterEditor* glt_edt) {
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < tex.mipmaps_count; i++) {
-                uint32_t size = txp::get_size(format, max_def(width >> i, 1), max_def(height >> i, 1));
+                uint32_t size = d.get_size(i);
                 void* data = force_malloc(size);
                 memcpy(data, tex.mipmaps[index].data.data(), size);
                 d.data.push_back(data);
@@ -4210,20 +4210,24 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
         obj* obj = 0;
         if (handler && handler->obj_set) {
             obj_set* set = handler->obj_set;
-            for (uint32_t i = 0; i < set->obj_num; i++)
-                if (set->obj_data[i]->id == obj_id) {
-                    obj = set->obj_data[i];
-                    break;
-                }
+            if (set->obj_data) {
+                ::obj** obj_data = set->obj_data;
+                for (uint32_t i = 0; i < set->obj_num; i++)
+                    if (obj_data[i]->id == obj_id) {
+                        obj = obj_data[i];
+                        break;
+                    }
+            }
         }
 
         ImGui::StartPropertyColumn("Object");
         if (ImGui::BeginCombo("##Object", obj ? obj->name : "None", 0)) {
-            if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set) {
+            if (set_id != -1 && handler && handler->set_id == set_id && handler->obj_set && handler->obj_set->obj_data) {
                 obj_set* set = handler->obj_set;
+                ::obj** obj_data = set->obj_data;
                 ssize_t obj_index = -1;
                 for (uint32_t i = 0; i < set->obj_num; i++)
-                    if (set->obj_data[i]->id == obj_id) {
+                    if (obj_data[i]->id == obj_id) {
                         obj_index = i;
                         break;
                     }
@@ -4237,7 +4241,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
 
                 for (uint32_t i = 0; i < set->obj_num; i++) {
                     ImGui::PushID(i);
-                    ::obj* obj = set->obj_data[i];
+                    ::obj* obj = obj_data[i];
                     if (ImGui::Selectable(obj->name, obj->id == obj_id)
                         || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                         || (ImGui::IsItemFocused() && obj->id != obj_id))
@@ -4248,7 +4252,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt, class_data*
                 if (obj_index == -1 || obj_index >= set->obj_num)
                     obj_id = -1;
                 else
-                    obj_id = set->obj_data[obj_index]->id;
+                    obj_id = obj_data[obj_index]->id;
 
                 if (mesh->object_name_hash != obj_id) {
                     mesh->object_name_hash = obj_id;

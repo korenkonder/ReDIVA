@@ -265,10 +265,7 @@ void dds::read(const wchar_t* path) {
 
         do
             for (uint32_t i = 0; i < mipmaps_count; i++) {
-                uint32_t width = max_def(this->width >> i, 1);
-                uint32_t height = max_def(this->height >> i, 1);
-                uint32_t size = txp::get_size(format,
-                    max_def(this->width >> i, 1), max_def(this->height >> i, 1));
+                uint32_t size = get_size(i);
                 void* data = force_malloc(size);
                 s.read(data, size);
                 if (reverse)
@@ -370,8 +367,7 @@ void dds::write(const wchar_t* path) {
         uint32_t index = 0;
         do
             for (uint32_t i = 0; i < mipmaps_count; i++) {
-                uint32_t size = txp::get_size(format,
-                    max_def(width >> i, 1), max_def(height >> i, 1));
+                uint32_t size = get_size(i);
                 void* data = force_malloc(size);
                 memcpy(data, this->data[index], size);
                 dds_reverse_rgb(format, size, (uint8_t*)data);
@@ -382,6 +378,12 @@ void dds::write(const wchar_t* path) {
         while (has_cube_map && index / mipmaps_count < 6);
     }
     free_def(path_dds);
+}
+
+uint32_t dds::get_size(uint32_t mip_level) {
+    return txp::get_size(format,
+        max_def(width >> mip_level, 1u),
+        max_def(height >> mip_level, 1u));
 }
 
 static void dds_reverse_rgb(txp_format format, size_t size, uint8_t* data) {

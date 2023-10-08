@@ -2816,7 +2816,7 @@ void rain_particle_draw() {
     float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
 
     int32_t first = 0;
-    int32_t count = min_def(rain->num_rain, rain_ptcl_count) / 2 / 4 * 6;
+    int32_t count = min_def(rain->num_rain, (int32_t)rain_ptcl_count) / 2 / 4 * 6;
 
     vec4 color = rain->color;
     float_t color_a = color.w;
@@ -2973,7 +2973,7 @@ void snow_particle_draw() {
     snow_gpu_ssbo.Bind(0);
 
     int32_t count = snow->num_snow_gpu / 4;
-    count = min_def(count, snow_ptcl_count / 4) * 6;
+    count = min_def(count, (int32_t)snow_ptcl_count / 4) * 6;
 
     int32_t first = 0;
     for (particle_data& i : snow_ptcl_gpu) {

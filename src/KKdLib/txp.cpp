@@ -15,6 +15,10 @@ txp_mipmap::~txp_mipmap() {
 
 }
 
+uint32_t txp_mipmap::get_size() {
+    return txp::get_size(format, width, height);
+}
+
 txp::txp() : has_cube_map(), array_size(), mipmaps_count() {
 
 }
@@ -404,7 +408,7 @@ bool txp_set::unpack_file(const void* data, bool big_endian) {
                     tex_mipmap->size = *(uint32_t*)(mipmap_d + 20);
                 }
 
-                ssize_t size = txp::get_size(tex_mipmap->format, tex_mipmap->width, tex_mipmap->height);
+                ssize_t size = tex_mipmap->get_size();
                 tex_mipmap->data.resize(max_def(size, tex_mipmap->size));
                 memcpy(tex_mipmap->data.data(), (void*)(mipmap_d + 24), tex_mipmap->size);
                 size -= tex_mipmap->size;

@@ -1117,7 +1117,7 @@ static obj_skin_block_expression* obj_move_data_skin_block_expression(const obj_
     exp_dst->name_index = exp_src->name_index;
 
     uint32_t num_expression = exp_src->num_expression;
-    num_expression = min_def(num_expression, 9);
+    num_expression = min_def(num_expression, 9u);
     exp_dst->num_expression = num_expression;
     for (uint32_t i = 0; i < num_expression; i++)
         exp_dst->expression_array[i] = obj_move_data_string(exp_src->expression_array[i], alloc);
@@ -3189,7 +3189,7 @@ static obj_skin_block_expression* obj_classic_read_skin_block_expression(
     free_def(name);
 
     uint32_t num_expression = s.read_uint32_t();
-    num_expression = min_def(num_expression, 9);
+    num_expression = min_def(num_expression, 9u);
     exp->num_expression = num_expression;
     for (uint32_t i = 0; i < num_expression; i++) {
         uint32_t expression_offset = s.read_uint32_t();
@@ -3213,7 +3213,7 @@ static void obj_classic_write_skin_block_expression(obj_skin_block_expression* e
     s.write_uint32_t((uint32_t)name_offset);
 
     uint32_t num_expression = exp->num_expression;
-    num_expression = min_def(num_expression, 9);
+    num_expression = min_def(num_expression, 9u);
     s.write_int32_t(num_expression);
     for (uint32_t i = 0; i < num_expression; i++) {
         int64_t expression_offset = obj_skin_strings_get_string_offset(strings,
@@ -7263,7 +7263,7 @@ static obj_skin_block_expression* obj_modern_read_skin_block_expression(
     free_def(name);
 
     uint32_t num_expression = s.read_uint32_t_reverse_endianness();
-    num_expression = min_def(num_expression, 9);
+    num_expression = min_def(num_expression, 9u);
     exp->num_expression = num_expression;
     if (!is_x)
         for (uint32_t i = 0; i < num_expression; i++) {
@@ -7295,7 +7295,7 @@ static void obj_modern_write_skin_block_expression(obj_skin_block_expression* ex
     s.write_offset(name_offset, 0x20, is_x);
 
     uint32_t num_expression = exp->num_expression;
-    num_expression = min_def(num_expression, 9);
+    num_expression = min_def(num_expression, 9u);
     s.write_int32_t_reverse_endianness(num_expression);
     if (!is_x) {
         for (uint32_t i = 0; i < num_expression; i++) {

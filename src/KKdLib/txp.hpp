@@ -35,6 +35,8 @@ struct txp_mipmap {
 
     txp_mipmap();
     ~txp_mipmap();
+
+    uint32_t get_size();
 };
 
 struct txp {

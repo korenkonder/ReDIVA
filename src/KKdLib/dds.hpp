@@ -23,4 +23,6 @@ struct dds {
     void read(const wchar_t* path);
     void write(const char* path);
     void write(const wchar_t* path);
+
+    uint32_t get_size(uint32_t mip_level = 0);
 };

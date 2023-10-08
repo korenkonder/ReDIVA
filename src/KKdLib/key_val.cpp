@@ -283,7 +283,7 @@ void key_val::parse(const void* data, size_t size) {
     curr_scope->count = key.size();
 
     key_val_sort(this);
-    free_def(lines)
+    free_def(lines);
 }
 
 bool key_val::read(bool& value) {

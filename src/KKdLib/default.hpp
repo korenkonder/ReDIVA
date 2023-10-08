@@ -20,74 +20,100 @@
 #pragma warning( push )
 #pragma warning( disable: 26812 )
 
-#define free_def(ptr) \
-{ \
-    if (ptr) \
-        free(ptr); \
-    (ptr) = 0; \
+template <typename T>
+inline void free_def(T& ptr) {
+    if (ptr)
+        free(ptr);
+    ptr = 0;
 }
 
-#define null(t) \
-struct null_##t { \
-    bool has_value; \
-    t value; \
+template <typename T>
+struct null_def {
+    bool has_value;
+    T value;
 };
 
-null(bool)
-null(int8_t)
-null(uint8_t)
-null(int16_t)
-null(uint16_t)
-null(int32_t)
-null(uint32_t)
-null(int64_t)
-null(uint64_t)
-null(float_t)
-null(double_t)
-null(size_t)
-null(ssize_t)
+template <typename T, typename U>
+inline T max_def(const T left, const U right) {
+    return left > right ? left : right;
+}
 
-#define max_def(a, b) (((a) > (b)) ? (a) : (b))
+template <typename T, typename U>
+inline T min_def(const T left, const U right) {
+    return left < right ? left : right;
+}
 
-#define min_def(a, b) (((a) < (b)) ? (a) : (b))
+template <typename T, typename U>
+inline T mult_min_max_def(const T value, const U pos_scale, const U neg_scale) {
+    return (value >= (T)0) ? (value * pos_scale) : (value * neg_scale);
+}
 
-#define mult_min_max_def(a, b, c) (((a) >= 0) ? ((a) * (b)) : ((a) * (c)))
+template <typename T, typename U>
+inline T div_min_max_def(const T value, const U pos_scale, const U neg_scale) {
+    return (value >= (T)0) ? (value / pos_scale) : (value / neg_scale);
+}
 
-#define div_min_max_def(a, b, c) (((a) >= 0) ? ((a) / (b)) : ((a) / (c)))
+template <typename T, typename U, typename V>
+inline T clamp_def(const T value, const U min, const V max) {
+    return min_def(max_def(value, min), max);
+}
 
-#define clamp_def(a, b, c) (((((a) > (b)) ? (a) : (b)) < (c)) ? (((a) > (b)) ? (a) : (b)) : (c))
+template <typename T, typename U>
+inline T align_val(const T value, const U align) {
+    return (value + align - (T)1) / align * align;
+}
 
-#define align_val(a, b) ((((a) + (b) - 1) / (b)) * (b))
-
-#define align_val_divide(a, b, c) (((a) + (b) - 1) / (c))
+template <typename T, typename U, typename V>
+inline T align_val_divide(const T value, const U align, const V div) {
+    return (value + align - (T)1) / div;
+}
 
 #define BUF_SIZE 4096
 
-#define RAD_TO_DEG (180.0 / M_PI)
+#define RAD_TO_DEG ((double_t)(180.0 / M_PI))
 
-#define DEG_TO_RAD (M_PI / 180.0)
+#define DEG_TO_RAD ((double_t)(M_PI / 180.0))
 
 #define RAD_TO_DEG_FLOAT ((float_t)(180.0 / M_PI))
 
 #define DEG_TO_RAD_FLOAT ((float_t)(M_PI / 180.0))
 
-#define ctgf(x) (1.0f / tanf(x))
+inline float __CRTDECL ctgf(float _X) {
+    return 1.0f / tanf(_X);
+}
 
-#define ctghf(x) (1.0f / tanhf(x))
+inline float __CRTDECL ctghf(float _X) {
+    return 1.0f / tanhf(_X);
+}
 
-#define actgf(x) (1.0f / atanf(x))
+inline float __CRTDECL actgf(float _X) {
+    return 1.0f / atanf(_X);
+}
 
-#define actghf(x) (1.0f / atanhf(x))
+inline float __CRTDECL actghf(float _X) {
+    return 1.0f / atanhf(_X);
+}
 
-#define ctg(x) (1.0 / tan(x))
+inline double __CRTDECL ctg(double _X) {
+    return 1.0 / tan(_X);
+}
 
-#define ctgh(x) (1.0 / tanh(x))
+inline double __CRTDECL ctgh(double _X) {
+    return 1.0 / tanh(_X);
+}
 
-#define actg(x) (1.0 / atan(x))
+inline double __CRTDECL actg(double _X) {
+    return 1.0 / atan(_X);
+}
 
-#define actgh(x) (1.0 / atanh(x))
+inline double __CRTDECL actgh(double _X) {
+    return 1.0 / atanh(_X);
+}
 
-#define lerp_def(x, y, blend) ((1.0f - (blend)) * (x) + (blend) * (y))
+template <typename T, typename U>
+inline T lerp_def(T x, T y, U blend) {
+    return ((U)1 - blend) * x + blend * y;
+}
 
 extern void* force_malloc(size_t size);
 

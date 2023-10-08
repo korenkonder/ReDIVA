@@ -1037,11 +1037,11 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             do
                 for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max_def(d.width >> i, 1);
-                    tex_mip.height = max_def(d.height >> i, 1);
+                    tex_mip.width = max_def(d.width >> i, 1u);
+                    tex_mip.height = max_def(d.height >> i, 1u);
                     tex_mip.format = d.format;
 
-                    uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
+                    uint32_t size = tex_mip.get_size();
                     tex_mip.size = size;
                     tex_mip.data.resize(size);
                     memcpy(tex_mip.data.data(), d.data[index], size);
@@ -1108,11 +1108,11 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             do
                 for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max_def(d.width >> i, 1);
-                    tex_mip.height = max_def(d.height >> i, 1);
+                    tex_mip.width = max_def(d.width >> i, 1u);
+                    tex_mip.height = max_def(d.height >> i, 1u);
                     tex_mip.format = d.format;
 
-                    uint32_t size = txp::get_size(tex_mip.format, tex_mip.width, tex_mip.height);
+                    uint32_t size = tex_mip.get_size();
                     tex_mip.size = size;
                     tex_mip.data.resize(size);
                     memcpy(tex_mip.data.data(), d.data[index], size);
@@ -1433,7 +1433,7 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
         uint32_t index = 0;
         do
             for (uint32_t j = 0; j < tex.mipmaps_count; j++) {
-                uint32_t size = txp::get_size(format, max_def(width >> j, 1), max_def(height >> j, 1));
+                uint32_t size = txp::get_size(format, max_def(width >> j, 1u), max_def(height >> j, 1u));
                 void* data = force_malloc(size);
                 memcpy(data, tex.mipmaps[index].data.data(), size);
                 d.data.push_back(data);

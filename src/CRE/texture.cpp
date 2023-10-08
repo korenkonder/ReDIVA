@@ -13,12 +13,10 @@
 
 static void texture_bind(GLenum target, GLuint texture);
 static void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
-static uint32_t texture_get_height_align_mip_level(texture* tex, int32_t mip_level);
 static uint32_t texture_get_height_mip_level(texture* tex, int32_t mip_level);
 static GLuint texture_get_working_internal_format(GLuint internal_format);
 static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height);
 static int32_t texture_get_size_mip_level(texture* tex, int32_t mip_level);
-static uint32_t texture_get_width_align_mip_level(texture* tex, int32_t mip_level);
 static uint32_t texture_get_width_mip_level(texture* tex, int32_t mip_level);
 static int32_t texture_load(GLenum target, GLenum internal_format,
     int32_t width, int32_t height, int32_t level, void* data);
@@ -35,19 +33,17 @@ tex(), target(), internal_format(), max_mipmap_level(), size() {
 }
 
 uint32_t texture::get_height_align_mip_level(uint8_t mip_level) {
-    uint32_t height = this->height >> mip_level;
     if (flags & TEXTURE_BLOCK_COMPRESSION)
-        return max_def(height, 4);
+        return max_def((uint32_t)height >> mip_level, 4u);
     else
-        return max_def(height, 1);
+        return max_def((uint32_t)height >> mip_level, 1u);
 }
 
 uint32_t texture::get_width_align_mip_level(uint8_t mip_level) {
-    uint32_t width = this->width >> mip_level;
     if (flags & TEXTURE_BLOCK_COMPRESSION)
-        return max_def(width, 4);
+        return max_def((uint32_t)width >> mip_level, 4u);
     else
-        return max_def(width, 1);
+        return max_def((uint32_t)width >> mip_level, 1u);
 }
 
 texture* texture_init(texture_id id) {
@@ -69,8 +65,8 @@ void texture_apply_color_tone(texture* chg_tex,
         if (!data)
             break;
 
-        int32_t width_align = texture_get_width_align_mip_level(org_tex, i);
-        int32_t height_align = texture_get_height_align_mip_level(org_tex, i);
+        int32_t width_align = org_tex->get_width_align_mip_level(i);
+        int32_t height_align = org_tex->get_height_align_mip_level(i);
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
             texture_bind(org_tex->target, org_tex->tex);
             glGetCompressedTexImage(org_tex->target, i, data);
@@ -560,16 +556,8 @@ static void texture_get_format_type_by_internal_format(GLenum internal_format, G
         *type = _type;
 }
 
-inline static uint32_t texture_get_height_align_mip_level(texture* tex, int32_t mip_level) {
-    uint32_t height = tex->height >> mip_level;
-    if (tex->flags & TEXTURE_BLOCK_COMPRESSION)
-        return max_def(height, 4);
-    return max_def(height, 1);
-}
-
 inline static uint32_t texture_get_height_mip_level(texture* tex, int32_t mip_level) {
-    uint32_t height = tex->height >> mip_level;
-    return max_def(height, 1);
+    return max_def((uint32_t)tex->height >> mip_level, 1u);
 }
 
 inline static GLuint texture_get_working_internal_format(GLuint internal_format) {
@@ -633,21 +621,13 @@ static int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t h
 }
 
 inline static int32_t texture_get_size_mip_level(texture* tex, int32_t mip_level) {
-    int32_t width = tex->width >> mip_level;
-    int32_t height = tex->height >> mip_level;
-    return texture_get_size(tex->internal_format, max_def(width, 1), max_def(height, 1));
-}
-
-inline static uint32_t texture_get_width_align_mip_level(texture* tex, int32_t mip_level) {
-    uint32_t width = tex->width >> mip_level;
-    if (tex->flags & TEXTURE_BLOCK_COMPRESSION)
-        return max_def(width, 4);
-    return max_def(width, 1);
+    return texture_get_size(tex->internal_format,
+        texture_get_width_mip_level(tex, mip_level),
+        texture_get_height_mip_level(tex, mip_level));
 }
 
 inline static uint32_t texture_get_width_mip_level(texture* tex, int32_t mip_level) {
-    uint32_t width = tex->width >> mip_level;
-    return max_def(width, 1);
+    return max_def((uint32_t)tex->width >> mip_level, 1u);
 }
 
 static int32_t texture_load(GLenum target, GLenum internal_format,

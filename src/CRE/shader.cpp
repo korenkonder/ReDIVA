@@ -665,7 +665,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                 size_t bin_count = program_data_binary.size();
                 size_t bin_size = sizeof(uint64_t) * 2 + bin_count * sizeof(program_binary);
                 for (program_binary& k : program_data_binary)
-                    bin_size += align_val(k.length, 0x04ULL);
+                    bin_size += align_val(k.length, 0x04);
                 shader_cache_file->data = force_malloc(bin_size);
                 shader_cache_file->size = bin_size;
                 shader_cache_file->data_changed = true;
@@ -681,7 +681,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                     bin->binary = bin_data - bin_data_base;
                     memcpy((void*)bin_data, (void*)k.binary, k.length);
                     bin_data_base += sizeof(program_binary);
-                    bin_data += align_val(k.length, 0x04ULL);
+                    bin_data += align_val(k.length, 0x04);
                     void* binary = (void*)k.binary;
                     free_def(binary);
                     k.binary = 0;
