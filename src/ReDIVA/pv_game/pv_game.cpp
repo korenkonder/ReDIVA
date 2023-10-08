@@ -4667,9 +4667,9 @@ bool pv_game::unload() {
     light_param_data_storage_data_reset();
 
     post_process& pp = rctx_ptr->post_process;
-    pp.tone_map->set_saturate_coeff(1.0f);
+    pp.tone_map->reset_saturate_coeff(0, true);
     pp.dof->set_dof_pv();
-    pp.tone_map->set_scene_fade(0.0f);
+    pp.tone_map->reset_scene_fade(0);
 
     /*if (!sub_140192E20())
         post_process_set_taa(&pp, 1);*/

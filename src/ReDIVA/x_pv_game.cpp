@@ -5109,9 +5109,8 @@ bool x_pv_game::Dest() {
     task_rob_manager_del_task();
 
     light_param_data_storage_data_reset();
-    rctx_ptr->post_process.tone_map->set_saturate_coeff(1.0f);
-    rctx_ptr->post_process.tone_map->set_scene_fade(0.0f);
-    rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(0);
+    rctx_ptr->post_process.tone_map->reset_saturate_coeff(0, false);
+    rctx_ptr->post_process.tone_map->reset_scene_fade(0);
     rctx_ptr->post_process.dof->data.pv.enable = false;
     rctx_ptr->disp_manager.object_culling = true;
     rctx_ptr->render_manager.shadow_ptr->range = 1.0f;
@@ -7001,12 +7000,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t value = (float_t)(int32_t)data[1] * 0.001f;
+        float_t wet = (float_t)(int32_t)data[1] * 0.001f;
 
-        if (!rob_chr)
-            break;
+        wet = clamp_def(wet, 0.0f, 1.0f);
 
-        rob_chr->item_equip->wet = clamp_def(value, 0.0f, 1.0f);
+        if (rob_chr)
+            rob_chr->item_equip->wet = wet;
     } break;
     case DSC_X_LIGHT_ROT: {
 
@@ -7016,22 +7015,26 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_TONE_TRANS: {
         vec3 start;
-        vec3 end;
         start.x = (float_t)(int32_t)data[0] * 0.001f;
         start.y = (float_t)(int32_t)data[1] * 0.001f;
         start.z = (float_t)(int32_t)data[2] * 0.001f;
+
+        vec3 end;
         end.x = (float_t)(int32_t)data[3] * 0.001f;
         end.y = (float_t)(int32_t)data[4] * 0.001f;
         end.z = (float_t)(int32_t)data[5] * 0.001f;
-        rctx_ptr->post_process.tone_map->set_tone_trans(start, end);
+
+        rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
     } break;
     case DSC_X_SATURATE: {
-        float_t value = (float_t)(int32_t)data[0] * 0.001f;
-        rctx_ptr->post_process.tone_map->set_saturate_coeff(value);
+        float_t saturate_coeff = (float_t)(int32_t)data[0] * 0.001f;
+
+        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
     } break;
     case DSC_X_FADE_MODE: {
-        int32_t value = data[0];
-        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(value);
+        int32_t blend_func = data[0];
+
+        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
     } break;
     case DSC_X_AUTO_BLINK: {
 

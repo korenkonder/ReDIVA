@@ -767,14 +767,10 @@ struct auth_3d_post_process {
     auth_3d_rgba radius;
     auth_3d_rgba scene_fade;
 
-    float_t lens_flare_value;
-    float_t lens_ghost_value;
-    float_t lens_shaft_value;
+    vec3 lens_value;
 
     vec3 intensity_init;
-    float_t lens_flare_init;
-    float_t lens_ghost_init;
-    float_t lens_shaft_init;
+    vec3 lens_init;
     vec3 radius_init;
     vec4 scene_fade_init;
 

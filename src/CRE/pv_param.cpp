@@ -938,7 +938,7 @@ namespace pv_param_task {
         }
 
         post_process_tone_map* tone_map = rctx_ptr->post_process.tone_map;
-        tone_map->set_saturate_coeff(saturation);
+        tone_map->set_saturate_coeff(saturation, 1, false);
         tone_map->set_exposure(exposure * 2.0f);
 
         vec3 tone_trans_start;
@@ -947,7 +947,7 @@ namespace pv_param_task {
         CalcToneTrans(contrast + gamma.y, tone_trans_start.y, tone_trans_end.y);
         CalcToneTrans(contrast + gamma.z, tone_trans_start.z, tone_trans_end.z);
 
-        tone_map->set_tone_trans(tone_trans_start, tone_trans_end);
+        tone_map->set_tone_trans(tone_trans_start, tone_trans_end, 1);
 
         frame += get_delta_frame();
         if (frame > duration) {

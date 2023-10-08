@@ -253,8 +253,8 @@ void pv_scene_fade::ctrl(float_t delta_time) {
         end = false;
     }
 
-    rctx_ptr->post_process.tone_map->set_scene_fade_color(color);
-    rctx_ptr->post_process.tone_map->set_scene_fade_alpha(alpha);
+    rctx_ptr->post_process.tone_map->set_scene_fade_color(color, 1);
+    rctx_ptr->post_process.tone_map->set_scene_fade_alpha(alpha, 1);
 
     if (end)
         reset();
@@ -1540,17 +1540,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         end.y = (float_t)(int32_t)data[4] * 0.001f;
         end.z = (float_t)(int32_t)data[5] * 0.001f;
 
-        rctx_ptr->post_process.tone_map->set_tone_trans(start, end);
+        rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
     } break;
     case DSC_FT_SATURATE: {
         float_t saturate_coeff = (float_t)(int32_t)data[0] * 0.001f;
 
-        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff);
+        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
     } break;
     case DSC_FT_FADE_MODE: {
         int32_t blend_func = (int32_t)data[0];
 
-        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func);
+        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
     } break;
     case DSC_FT_AUTO_BLINK: {
         chara_id = (int32_t)data[0];
@@ -2551,11 +2551,9 @@ void pv_game_pv_data::reset_camera_post_process() {
     cam->set_fov(32.2673416137695f);
 
     post_process* pp = &rctx_ptr->post_process;
-    pp->tone_map->set_scene_fade_color(0.0f);
-    pp->tone_map->set_scene_fade_alpha(0.0f);
-    pp->tone_map->set_scene_fade_alpha(0);
-    pp->tone_map->set_tone_trans(0.0f, 1.0f);
-    pp->tone_map->set_saturate_coeff(1.0f);
+    pp->tone_map->reset_scene_fade(1);
+    pp->tone_map->reset_tone_trans(1);
+    pp->tone_map->reset_saturate_coeff(1, 1);
 
     Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
     if (shad)

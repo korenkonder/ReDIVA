@@ -576,7 +576,7 @@ void post_process::draw_lens_ghost(RenderTexture* rt) {
         }
     }
 
-    const float_t lens_ghost = tone_map->data.lens_ghost;
+    const float_t lens_ghost = tone_map->lens_ghost;
     const int32_t lens_ghost_count = this->lens_ghost_count;
     for (int32_t i = 0; i < lens_ghost_count; i++) {
         float_t opacity = v9 * v14[i] * lens_ghost;
@@ -817,8 +817,13 @@ void post_process::reset() {
     mag_filter = POST_PROCESS_MAG_FILTER_BILINEAR;
     dof->initialize_data(0, 0);
     blur->initialize_data(2.0f, 1.0f);
-    tone_map->initialize_data(2.0f, true, 1.0f, 1, 1.0f,
-        1.0f, 0.0f, 0, 0.0f, 1.0f, TONE_MAP_YCC_EXPONENT);
+
+    for (int32_t i = 0; i < 2; i++) {
+        tone_map->reset_saturate_coeff(i, 0);
+        tone_map->reset_scene_fade(i);
+        tone_map->reset_tone_trans(i);
+    }
+
     reset_exposure = true;
 }
 

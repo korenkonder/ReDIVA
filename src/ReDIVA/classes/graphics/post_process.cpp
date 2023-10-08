@@ -71,24 +71,20 @@ void graphics_post_process_imgui(class_data* data) {
 
     ImGui::SetColumnSpace(1.0f / 4.0f);
     if (ImGui::TreeNode("Tone Trans")) {
-        vec3 tone_trans_start = tone_map->get_tone_trans_start();
+        vec3 tone_trans_start;
+        vec3 tone_trans_end;
+        tone_map->get_tone_trans(tone_trans_start, tone_trans_end);
         ImGui::ColumnSliderVec3Button("Start", &tone_trans_start, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
-        tone_map->set_tone_trans_start(tone_trans_start);
-
-        vec3 tone_trans_end = tone_map->get_tone_trans_end();
         ImGui::ColumnSliderVec3Button("End", &tone_trans_end, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
-        tone_map->set_tone_trans_end(tone_trans_end);
+        tone_map->set_tone_trans(tone_trans_start, tone_trans_end, 0);
         ImGui::TreePop();
     }
 
     if (ImGui::TreeNode("Scene Fade")) {
-        float_t scene_fade_alpha = tone_map->get_scene_fade_alpha();
-        ImGui::ColumnSliderFloatButton("Alpha", &scene_fade_alpha, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
-        tone_map->set_scene_fade_alpha(scene_fade_alpha);
-
-        vec3 scene_fade_color = tone_map->get_scene_fade_color();
-        ImGui::ColumnSliderVec3Button("Color", &scene_fade_color, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
-        tone_map->set_scene_fade_color(scene_fade_color);
+        vec4 scene_fade = tone_map->get_scene_fade();
+        ImGui::ColumnSliderFloatButton("Alpha", &scene_fade.w, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
+        ImGui::ColumnSliderVec3Button("Color", (vec3*)&scene_fade, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
+        tone_map->set_scene_fade(scene_fade, 0);
 
         const char* scene_fade_blend_func_labels[] = {
             "0: OVER",
@@ -99,7 +95,7 @@ void graphics_post_process_imgui(class_data* data) {
         int32_t scene_fade_blend_func = tone_map->get_scene_fade_blend_func();
         ImGui::ColumnComboBox("Blend Func", scene_fade_blend_func_labels, 3,
             &scene_fade_blend_func, 0, false, &data->imgui_focus);
-        tone_map->set_scene_fade_blend_func(scene_fade_blend_func);
+        tone_map->set_scene_fade_blend_func(scene_fade_blend_func, 0);
         ImGui::TreePop();
     }
 
@@ -129,12 +125,12 @@ void graphics_post_process_imgui(class_data* data) {
         tone_map->set_gamma(gamma);
 
         int32_t saturate1 = tone_map->get_saturate_power();
-        ImGui::ColumnSliderIntButton("Saturate 1", &saturate1, 1, 6, "%d", 0);
+        ImGui::ColumnSliderIntButton("Saturate1", &saturate1, 1, 6, "%d", 0);
         tone_map->set_saturate_power(saturate1);
 
         float_t saturate2 = tone_map->get_saturate_coeff();
-        ImGui::ColumnSliderFloatButton("Saturate 2", &saturate2, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
-        tone_map->set_saturate_coeff(saturate2);
+        ImGui::ColumnSliderFloatButton("Saturate2", &saturate2, 0.01f, 0.0f, 1.0f, 0.1f, "%.2f", 0);
+        tone_map->set_saturate_coeff(saturate2, 0, false);
         ImGui::TreePop();
     }
 

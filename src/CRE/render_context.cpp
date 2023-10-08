@@ -3651,11 +3651,9 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
 
     tone_map->set_auto_exposure(true);
     tone_map->set_tone_map_method(TONE_MAP_YCC_EXPONENT);
-    tone_map->set_saturate_coeff(1.0f);
-    tone_map->set_scene_fade(0.0f);
-    tone_map->set_scene_fade_blend_func(0);
-    tone_map->set_tone_trans_start(0.0f);
-    tone_map->set_tone_trans_end(1.0f);
+    tone_map->reset_saturate_coeff(0, false);
+    tone_map->reset_scene_fade(0);
+    tone_map->reset_tone_trans(0);
 
     if (glow->has_exposure)
         tone_map->set_exposure(glow->exposure);
@@ -3667,13 +3665,10 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
         tone_map->set_saturate_power(glow->saturate_power);
 
     if (glow->has_saturate_coef)
-        tone_map->set_saturate_coeff(glow->saturate_coef);
+        tone_map->set_saturate_coeff(glow->saturate_coef, 0, false);
 
-    if (glow->has_flare) {
-        tone_map->set_lens_flare(glow->flare.x);
-        tone_map->set_lens_shaft(glow->flare.y);
-        tone_map->set_lens_ghost(glow->flare.z);
-    }
+    if (glow->has_flare)
+        tone_map->set_lens(glow->flare);
 
     if (glow->has_sigma)
         blur->set_radius(glow->sigma);
@@ -3689,12 +3684,12 @@ void render_context::light_param_data_glow_set(light_param_glow* glow) {
 
     if (glow->has_fade_color) {
         vec4 fade_color = glow->fade_color;
-        tone_map->set_scene_fade(fade_color);
-        tone_map->set_scene_fade_blend_func(glow->fade_color_blend_func);
+        tone_map->set_scene_fade(fade_color, 0);
+        tone_map->set_scene_fade_blend_func(glow->fade_color_blend_func, 0);
     }
 
     if (glow->has_tone_transform)
-        tone_map->set_tone_trans(glow->tone_transform_start, glow->tone_transform_end);
+        tone_map->set_tone_trans(glow->tone_transform_start, glow->tone_transform_end, 0);
 }
 
 void render_context::light_param_data_ibl_set(

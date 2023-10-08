@@ -15,13 +15,29 @@ static void post_process_tone_map_calculate_tex(post_process_tone_map* tm);
 
 extern render_context* rctx_ptr;
 
-post_process_tone_map_data::post_process_tone_map_data() : tex_data(), exposure(), auto_exposure(), gamma(),
-gamma_rate(), saturate_power(), saturate_coeff(), scene_fade_blend_func(), tone_map_method(), lens_flare(),
-lens_shaft(), lens_ghost(), lens_flare_power(), lens_flare_appear_power(), update(), update_tex() {
+post_process_tone_map::post_process_tone_map() : saturate_lock(), lens_shaft_scale(),
+lens_flare_power(), lens_flare_appear_power(), saturate_index(), scene_fade_index(),
+tone_trans_index(), saturate_coeff(), scene_fade_alpha(), scene_fade_blend_func(),
+tone_map_method(), update(), shader_data(), tone_map_ubo(), tone_map_tex() {
+    exposure = 2.0f;
+    exposure_rate = 1.0f;
+    auto_exposure = true;
+    gamma = 1.0f;
+    gamma_rate = 1.0f;
+    saturate_power = 1;
 
-}
+    for (int32_t i = 0; i < 2; i++) {
+        reset_saturate_coeff(i, 0);
+        reset_scene_fade(i);
+        reset_tone_trans(i);
+    }
 
-post_process_tone_map::post_process_tone_map() : shader_data(), tone_map_ubo(), tone_map_tex() {
+    update_lut = true;
+    lens_shaft_inv_scale = 1.0f;
+    lens_flare = 1.0f;
+    lens_shaft = 1.0f;
+    lens_ghost = 1.0f;
+
     tone_map_ubo.Create(sizeof(post_process_tone_map_shader_data));
 }
 
@@ -45,29 +61,28 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
     set_lens_flare_power(pp->lens_flare_power);
     set_lens_flare_appear_power(pp->lens_flare_appear_power);
 
-    if (data.update) {
-        post_process_tone_map_calculate_data(this);
-        data.update = false;
-    }
+    post_process_tone_map_calculate_data(this);
 
-    if (data.update_tex) {
+    if (update_lut) {
+        update_lut = false;
+        saturate_lock = false;
+
         post_process_tone_map_calculate_tex(this);
 
         if (GLAD_GL_VERSION_4_5)
             glTextureSubImage2D(tone_map_tex, 0, 0, 0,
-                16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, data.tex_data);
+                16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         else {
             gl_state_bind_texture_2d(tone_map_tex);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
-                16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, data.tex_data);
+                16 * POST_PROCESS_TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
             gl_state_bind_texture_2d(0);
         }
-        data.update_tex = false;
     }
 
-    uniform_value[U_TONE_MAP] = (int32_t)data.tone_map_method;
+    uniform_value[U_TONE_MAP] = (int32_t)tone_map_method;
     uniform_value[U_FLARE] = 0;
-    uniform_value[U_SCENE_FADE] = data.scene_fade.w > 0.009999999f ? 1 : 0;
+    uniform_value[U_SCENE_FADE] = scene_fade_alpha[scene_fade_index] > 0.009999999f ? 1 : 0;
     uniform_value[U_AET_BACK] = 0;
     uniform_value[U_LIGHT_PROJ] = 0;
     //uniform_value[U25] = 0;
@@ -175,6 +190,78 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
     gl_state_end_event();
 }
 
+bool post_process_tone_map::get_auto_exposure() {
+    return auto_exposure;
+}
+
+float_t post_process_tone_map::get_exposure() {
+    return exposure;
+}
+
+float_t post_process_tone_map::get_exposure_rate() {
+    return exposure_rate;
+}
+
+float_t post_process_tone_map::get_gamma() {
+    return gamma;
+}
+
+float_t post_process_tone_map::get_gamma_rate() {
+    return gamma_rate;
+}
+
+vec3 post_process_tone_map::get_lens() {
+    vec3 value;
+    value.x = lens_flare;
+    value.y = lens_shaft;
+    value.z = lens_ghost;
+    return value;
+}
+
+float_t post_process_tone_map::get_lens_flare_appear_power() {
+    return lens_flare_appear_power;
+}
+
+float_t post_process_tone_map::get_lens_flare_power() {
+    return lens_flare_power;
+}
+
+float_t post_process_tone_map::get_saturate_coeff() {
+    return saturate_coeff[0];
+}
+
+int32_t post_process_tone_map::get_saturate_power() {
+    return saturate_power;
+}
+
+vec4 post_process_tone_map::get_scene_fade() {
+    vec4 scene_fade;
+    *(vec3*)&scene_fade = scene_fade_color[0];
+    scene_fade.w = scene_fade_alpha[0];
+    return scene_fade;
+}
+
+float_t post_process_tone_map::get_scene_fade_alpha() {
+    return scene_fade_alpha[0];
+}
+
+int32_t post_process_tone_map::get_scene_fade_blend_func() {
+    return scene_fade_blend_func[0];
+}
+
+vec3 post_process_tone_map::get_scene_fade_color() {
+    return scene_fade_color[0];
+}
+
+::tone_map_method post_process_tone_map::get_tone_map_method() {
+    return tone_map_method;
+}
+
+void post_process_tone_map::get_tone_trans(vec3& start, vec3& end) {
+    start = tone_trans_start[0];
+    end = tone_trans_end[0];
+}
+
 void post_process_tone_map::init_fbo() {
     if (!this)
         return;
@@ -209,282 +296,178 @@ void post_process_tone_map::init_fbo() {
     }
 }
 
-void post_process_tone_map::initialize_data(float_t exposure, bool auto_exposure,
-    float_t gamma, int32_t saturate_power, float_t saturate_coeff,
-    const vec3& scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    const vec3& tone_trans_start, const vec3& tone_trans_end, tone_map_method tone_map_method) {
-    initialize_data(exposure, auto_exposure, 1.0f, gamma, saturate_power, saturate_coeff,
-        scene_fade_color, scene_fade_alpha, scene_fade_blend_func,
-        tone_trans_start, tone_trans_end, tone_map_method);
+void post_process_tone_map::reset_saturate_coeff(int32_t index, bool lock) {
+    set_saturate_coeff(1.0f, index, lock);
+
+    if (index == 1)
+        saturate_index = 0;
 }
 
-void post_process_tone_map::initialize_data(float_t exposure, bool auto_exposure,
-    float_t gamma, float_t gamma_rate, int32_t saturate_power, float_t saturate_coeff,
-    const vec3& scene_fade_color, float_t scene_fade_alpha, int32_t scene_fade_blend_func,
-    const vec3& tone_trans_start, const vec3& tone_trans_end, tone_map_method tone_map_method) {
-    data.exposure = clamp_def(exposure, 0.0f, 4.0f);
-    data.auto_exposure = auto_exposure;
-    data.gamma = clamp_def(gamma, 0.2f, 2.2f);
-    data.gamma_rate = clamp_def(gamma_rate, 0.5f, 2.0f);
-    data.saturate_power = clamp_def(saturate_power, 1, 6);
-    data.saturate_coeff = clamp_def(saturate_coeff, 0.0f, 1.0f);
-    *(vec3*)&data.scene_fade.x = vec3::clamp(scene_fade_color, 0.0f, 1.0f);
-    data.scene_fade.w = clamp_def(scene_fade_alpha, 0.0f, 1.0f);
-    data.scene_fade_blend_func = clamp_def(scene_fade_blend_func, 0, 2);
-    data.tone_trans_start = vec3::clamp(tone_trans_start, 0.0f, 1.0f);
-    data.tone_trans_end = vec3::clamp(tone_trans_end, 0.0f, 1.0f);
-    data.tone_map_method = clamp_def(tone_map_method, TONE_MAP_YCC_EXPONENT, TONE_MAP_RGB_LINEAR2);
-    data.update_tex = false;
-    data.update = true;
-    data.update_tex = true;
+void post_process_tone_map::reset_scene_fade(int32_t index) {
+    scene_fade_color[index] = 0.0f;
+    scene_fade_alpha[index] = 0.0f;
+    scene_fade_blend_func[index] = 0;
+
+    if (index == 1)
+        scene_fade_index = 0;
+    update = true;
 }
 
-bool post_process_tone_map::get_auto_exposure() {
-    return data.auto_exposure;
+void post_process_tone_map::reset_tone_trans(int32_t index) {
+    tone_trans_scale[index] = 1.0f;
+    tone_trans_offset[index] = 0.0f;
+    tone_trans_start[index] = 0.0f;
+    tone_trans_end[index] = 1.0f;
+
+    if (index == 1)
+        tone_trans_index = 0;
+    update = true;
 }
 
 void post_process_tone_map::set_auto_exposure(bool value) {
-    if (value != data.auto_exposure) {
-        data.auto_exposure = value;
-        data.update = true;
-        data.update_tex = true;
-    }
-}
-
-float_t post_process_tone_map::get_exposure() {
-    return data.exposure;
+    auto_exposure = value;
 }
 
 void post_process_tone_map::set_exposure(float_t value) {
-    value = clamp_def(value, 0.0f, 4.0f);
-    if (value != data.exposure) {
-        data.exposure = value;
-        data.update = true;
-        data.update_tex = true;
-    }
+    exposure = value;
 }
 
-float_t post_process_tone_map::get_gamma() {
-    return data.gamma;
+void post_process_tone_map::set_exposure_rate(float_t value) {
+    exposure_rate = value;
 }
 
 void post_process_tone_map::set_gamma(float_t value) {
-    value = clamp_def(value, 0.2f, 2.2f);
-    if (value != data.gamma) {
-        data.gamma = value;
-        data.update = true;
-        data.update_tex = true;
+    if (value != gamma) {
+        gamma = value;
+        update_lut = true;
     }
-}
-
-float_t post_process_tone_map::get_gamma_rate() {
-    return data.gamma_rate;
 }
 
 void post_process_tone_map::set_gamma_rate(float_t value) {
-    value = clamp_def(value, 0.5f, 2.0f);
-    if (value != data.gamma_rate) {
-        data.gamma_rate = value;
-        data.update_tex = true;
+    if (value != gamma_rate) {
+        gamma_rate = value;
+        update_lut = true;
     }
 }
 
-float_t post_process_tone_map::get_lens_flare() {
-    return data.lens_flare;
-}
-
-void post_process_tone_map::set_lens_flare(float_t value) {
-    if (value != data.lens_flare) {
-        data.lens_flare = value;
-        data.update = true;
-    }
-}
-
-float_t post_process_tone_map::get_lens_flare_appear_power() {
-    return data.lens_flare_appear_power;
+void post_process_tone_map::set_lens(vec3 value) {
+    lens_flare = value.x;
+    lens_shaft = value.y;
+    lens_ghost = value.z;
+    update = true;
 }
 
 void post_process_tone_map::set_lens_flare_appear_power(float_t value) {
-    if (value != data.lens_flare_appear_power) {
-        data.lens_flare_appear_power = value;
-        data.update = true;
-    }
-}
-
-float_t post_process_tone_map::get_lens_flare_power() {
-    return data.lens_flare_power;
+    lens_flare_appear_power = value;
 }
 
 void post_process_tone_map::set_lens_flare_power(float_t value) {
-    if (value != data.lens_flare_power) {
-        data.lens_flare_power = value;
-        data.update = true;
+    lens_flare_power = value;
+}
+
+void post_process_tone_map::set_saturate_coeff(float_t value, int32_t index, bool lock) {
+    if (saturate_lock)
+        return;
+
+    saturate_coeff[index] = value;
+    update_lut = true;
+    update = true;
+
+    if (lock) {
+        saturate_lock = true;
+        saturate_index = 0;
     }
-}
-
-float_t post_process_tone_map::get_lens_ghost() {
-    return data.lens_ghost;
-}
-
-void post_process_tone_map::set_lens_ghost(float_t value) {
-    data.lens_ghost = value;
-}
-
-float_t post_process_tone_map::get_lens_shaft() {
-    return data.lens_shaft;
-}
-
-void post_process_tone_map::set_lens_shaft(float_t value) {
-    value = clamp_def(value, 0.0f, 1.0f);
-    if (value != data.lens_shaft) {
-        data.lens_shaft = value;
-        data.update = true;
-    }
-}
-
-float_t post_process_tone_map::get_saturate_coeff() {
-    return data.saturate_coeff;
-}
-
-void post_process_tone_map::set_saturate_coeff(float_t value) {
-    value = clamp_def(value, 0.0f, 1.0f);
-    if (value != data.saturate_coeff) {
-        data.saturate_coeff = value;
-        data.update_tex = true;
-    }
-}
-
-int32_t post_process_tone_map::get_saturate_power() {
-    return data.saturate_power;
+    else if (index == 1)
+        saturate_index = 1;
 }
 
 void post_process_tone_map::set_saturate_power(int32_t value) {
-    value = clamp_def(value, 1, 6);
-    if (value != data.saturate_power) {
-        data.saturate_power = value;
-        data.update_tex = true;
+    if (value != saturate_power) {
+        saturate_power = value;
+        update_lut = true;
     }
 }
 
-vec4 post_process_tone_map::get_scene_fade() {
-    return data.scene_fade;
+void post_process_tone_map::set_scene_fade(const vec4& value, int32_t index) {
+    scene_fade_color[index] = *(vec3*)&value;
+    scene_fade_alpha[index] = value.w;
+
+    if (index == 1)
+        scene_fade_index = 1;
+    update = true;
 }
 
-void post_process_tone_map::set_scene_fade(const vec4& value) {
-    vec4 temp = vec4::clamp(value, 0.0f, 1.0f);
-    if (temp != data.scene_fade) {
-        data.scene_fade = temp;
-        data.update = true;
-    }
+void post_process_tone_map::set_scene_fade_alpha(float_t value, int32_t index) {
+    scene_fade_alpha[index] = value;
+
+    if (index == 1)
+        scene_fade_index = 1;
+    update = true;
 }
 
-float_t post_process_tone_map::get_scene_fade_alpha() {
-    return data.scene_fade.w;
+void post_process_tone_map::set_scene_fade_blend_func(int32_t value, int32_t index) {
+    if (value < 0 || value > 2)
+        return;
+
+    scene_fade_blend_func[index] = value;
+
+    if (index == 1)
+        scene_fade_index = 1;
+    update = true;
 }
 
-void post_process_tone_map::set_scene_fade_alpha(float_t value) {
-    value = clamp_def(value, 0.0f, 1.0f);
-    if (value != data.scene_fade.w) {
-        data.scene_fade.w = value;
-        data.update = true;
-    }
+
+void post_process_tone_map::set_scene_fade_color(const vec3& value, int32_t index) {
+    scene_fade_color[index] = value;
+
+    if (index == 1)
+        scene_fade_index = 1;
+    update = true;
 }
 
-int32_t post_process_tone_map::get_scene_fade_blend_func() {
-    return data.scene_fade_blend_func;
+void post_process_tone_map::set_tone_map_method(::tone_map_method value) {
+    tone_map_method = value;
 }
 
-void post_process_tone_map::set_scene_fade_blend_func(int32_t value) {
-    value = clamp_def(value, 0, 2);
-    if (value != data.scene_fade_blend_func) {
-        data.scene_fade_blend_func = value;
-        data.update = true;
-    }
-}
+void post_process_tone_map::set_tone_trans(const vec3& start, const vec3& end, int32_t index) {
+    for (int32_t i = 0; i < 3; i++)
+        if (fabsf((&end.x)[i] - (&start.x)[i]) < 0.0001f) {
+            reset_tone_trans(0);
+            return;
+        }
 
-vec3 post_process_tone_map::get_scene_fade_color() {
-    return *(vec3*)&data.scene_fade;
-}
+    tone_trans_end[index] = end;
+    tone_trans_start[index] = start;
 
-void post_process_tone_map::set_scene_fade_color(const vec3& value) {
-    vec3 temp = vec3::clamp(value, 0.0f, 1.0f);
-    if (temp != *(vec3*)&data.scene_fade) {
-        *(vec3*)&data.scene_fade = temp;
-        data.update = true;
-    }
-}
+    vec3 scale = vec3::rcp(end - start);
+    tone_trans_scale[index] = scale;
+    tone_trans_offset[index] = -(scale * start);
 
-tone_map_method post_process_tone_map::get_tone_map_method() {
-    return data.tone_map_method;
-}
-
-void post_process_tone_map::set_tone_map_method(tone_map_method value) {
-    value = clamp_def(value, TONE_MAP_YCC_EXPONENT, TONE_MAP_RGB_LINEAR2);
-    if (value != data.tone_map_method) {
-        data.tone_map_method = value;
-        data.update = true;
-    }
-}
-
-void post_process_tone_map::get_tone_trans(vec3& start, vec3& end) {
-    start = get_tone_trans_start();
-    end = get_tone_trans_start();
-}
-
-void post_process_tone_map::set_tone_trans(const vec3& start, const vec3& end) {
-    set_tone_trans_start(start);
-    set_tone_trans_end(end);
-}
-
-vec3 post_process_tone_map::get_tone_trans_end() {
-    return data.tone_trans_end;
-}
-
-void post_process_tone_map::set_tone_trans_end(const vec3& value) {
-    vec3 temp = vec3::clamp(value, 0.0f, 1.0f);
-    if (temp != data.tone_trans_end) {
-        data.tone_trans_end = temp;
-        data.update = true;
-    }
-}
-
-vec3 post_process_tone_map::get_tone_trans_start() {
-    return data.tone_trans_start;
-}
-
-void post_process_tone_map::set_tone_trans_start(const vec3& value) {
-    vec3 temp = vec3::clamp(value, 0.0f, 1.0f);
-    if (temp != data.tone_trans_start) {
-        data.tone_trans_start = temp;
-        data.update = true;
-    }
+    if (index == 1)
+        tone_trans_index = 1;
+    update = true;
 }
 
 static void post_process_tone_map_calculate_data(post_process_tone_map* tm) {
-    vec3 tone_trans_scale = vec3::rcp(tm->data.tone_trans_end - tm->data.tone_trans_start);
-    vec3 tone_trans_offset = -(tone_trans_scale * tm->data.tone_trans_start);
+    int32_t scene_fade_blend_func = tm->scene_fade_blend_func[tm->scene_fade_index];
 
     post_process_tone_map_shader_data* tmshd = &tm->shader_data;
-    tmshd->g_exposure.x = tm->data.exposure;
+    tmshd->g_exposure.x = tm->exposure * tm->exposure_rate;
     tmshd->g_exposure.y = 0.0625f;
-    tmshd->g_exposure.z = tm->data.exposure * 0.5f;
-    tmshd->g_exposure.w = tm->data.auto_exposure ? 1.0f : 0.0f;
-    tmshd->g_flare_coef.x = (tm->data.lens_flare * 2.0f)
-        * (tm->data.lens_flare_appear_power + tm->data.lens_flare_power);
-    tmshd->g_flare_coef.y = tm->data.lens_shaft * 2.0f;
+    tmshd->g_exposure.z = tm->exposure * tm->exposure_rate * 0.5f;
+    tmshd->g_exposure.w = tm->auto_exposure ? 1.0f : 0.0f;
+    tmshd->g_flare_coef.x = (tm->lens_flare * 2.0f) * (tm->lens_flare_appear_power + tm->lens_flare_power);
+    tmshd->g_flare_coef.y = tm->lens_shaft * 2.0f;
     tmshd->g_flare_coef.z = 0.0f;
     tmshd->g_flare_coef.w = 0.0f;
-    tmshd->g_fade_color = tm->data.scene_fade;
-    if (tm->data.scene_fade_blend_func == 1 || tm->data.scene_fade_blend_func == 2)
+    *(vec3*)&tmshd->g_fade_color = tm->scene_fade_color[tm->scene_fade_index];
+    tmshd->g_fade_color.w = tm->scene_fade_alpha[tm->scene_fade_index];
+    if (scene_fade_blend_func == 1 || scene_fade_blend_func == 2)
         *(vec3*)&tmshd->g_fade_color = *(vec3*)&tmshd->g_fade_color * tmshd->g_fade_color.w;
-    tmshd->g_tone_scale.x = tone_trans_scale.x;
-    tmshd->g_tone_scale.y = tone_trans_scale.y;
-    tmshd->g_tone_scale.z = tone_trans_scale.z;
-    tmshd->g_tone_offset.x = tone_trans_offset.x;
-    tmshd->g_tone_offset.y = tone_trans_offset.y;
-    tmshd->g_tone_offset.z = tone_trans_offset.z;
-    tmshd->g_tone_scale.w = (float_t)tm->data.scene_fade_blend_func;
-    tmshd->g_tone_offset.w = tm->data.gamma > 0.0f ? 2.0f / (tm->data.gamma * 3.0f) : 0.0f;
+    *(vec3*)&tmshd->g_tone_scale = tm->tone_trans_scale[tm->tone_trans_index];
+    *(vec3*)&tmshd->g_tone_offset = tm->tone_trans_offset[tm->tone_trans_index];
+    tmshd->g_tone_scale.w = (float_t)scene_fade_blend_func;
+    tmshd->g_tone_offset.w = tm->gamma > 0.0f ? 2.0f / (tm->gamma * 3.0f) : 0.0f;
 }
 
 static void post_process_tone_map_calculate_tex(post_process_tone_map* tm) {
@@ -495,11 +478,11 @@ static void post_process_tone_map_calculate_tex(post_process_tone_map* tm) {
     int32_t saturate_power;
     float_t saturate_coeff;
 
-    vec2* tex_data = tm->data.tex_data;
+    vec2* tex_data = tm->tex_data;
     float_t gamma_power, gamma, saturation;
-    gamma_power = tm->data.gamma * tm->data.gamma_rate * 1.5f;
-    saturate_power = tm->data.saturate_power;
-    saturate_coeff = tm->data.saturate_coeff;
+    gamma_power = tm->gamma * tm->gamma_rate * 1.5f;
+    saturate_power = tm->saturate_power;
+    saturate_coeff = tm->saturate_coeff[tm->saturate_index];
 
     tex_data->x = 0.0f;
     tex_data->y = 0.0f;

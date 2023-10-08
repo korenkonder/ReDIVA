@@ -1147,9 +1147,7 @@ namespace auth_3d_detail {
             return;
         }
 
-        rctx->post_process.tone_map->set_scene_fade_color(0.0f);
-        rctx->post_process.tone_map->set_scene_fade_alpha(0.0f);
-        rctx->post_process.tone_map->set_scene_fade_blend_func(0);
+        rctx->post_process.tone_map->reset_scene_fade(0);
     }
 
     void EventFilterFade::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
@@ -1163,14 +1161,14 @@ namespace auth_3d_detail {
 
         float_t t = (auth->frame - begin) / (end - begin);
 
-        float_t alpha;
+        vec4 value;
+        *(vec3*)&value = color;
         if (type == EventFilterFade::Type::FADE_IN)
-            alpha = t;
+            value.w = t;
         else
-            alpha = 1.0f - t;
+            value.w = 1.0f - t;
 
-        rctx->post_process.tone_map->set_scene_fade_color(color);
-        rctx->post_process.tone_map->set_scene_fade_alpha(alpha);
+        rctx->post_process.tone_map->set_scene_fade(value, 0);
     }
 
     EventFilterTimeStop::EventFilterTimeStop(a3da_event* e) : Event(e) {
@@ -1668,7 +1666,7 @@ void auth_3d_dof::reset() {
 }
 
 auth_3d_fog::auth_3d_fog() : flags(), flags_init(), id(), density_value(),
-end_value(), start_value(), color_init(), density_init(), end_init(), start_init() {
+end_value(), start_value(), density_init(), end_init(), start_init() {
     reset();
 }
 
@@ -1708,8 +1706,8 @@ void auth_3d_fog::reset() {
 
 auth_3d_light::auth_3d_light() : flags(), flags_init(), id(), cone_angle_value(),
 constant_value(), drop_off_value(), far_value(), intensity_value(), linear_value(),
-quadratic_value(), ambient_init(), cone_angle_init(), constant_init(), diffuse_init(), drop_off_init(),
-far_init(), intensity_init(), linear_init(), quadratic_init(), specular_init(), tone_curve_init() {
+quadratic_value(), cone_angle_init(), constant_init(), drop_off_init(),
+far_init(), intensity_init(), linear_init(), quadratic_init(),  tone_curve_init() {
     reset();
 }
 
@@ -2308,9 +2306,7 @@ void auth_3d_point::reset() {
     name.shrink_to_fit();
 }
 
-auth_3d_post_process::auth_3d_post_process() : flags(), flags_init(),
-lens_flare_value(), lens_ghost_value(), lens_shaft_value(), intensity_init(),
-lens_flare_init(), lens_ghost_init(), lens_shaft_init(), radius_init(), scene_fade_init() {
+auth_3d_post_process::auth_3d_post_process() : flags(), flags_init() {
     reset();
 }
 
@@ -2322,11 +2318,11 @@ void auth_3d_post_process::interpolate(float_t frame) {
     if (flags & AUTH_3D_POST_PROCESS_INTENSITY)
         intensity.interpolate(frame);
     if (flags & AUTH_3D_POST_PROCESS_LENS_FLARE)
-        lens_flare_value = lens_flare.interpolate(frame);
+        lens_value.x = lens_flare.interpolate(frame);
     if (flags & AUTH_3D_POST_PROCESS_LENS_SHAFT)
-        lens_shaft_value = lens_shaft.interpolate(frame);
+        lens_value.y = lens_shaft.interpolate(frame);
     if (flags & AUTH_3D_POST_PROCESS_LENS_GHOST)
-        lens_ghost_value = lens_ghost.interpolate(frame);
+        lens_value.z = lens_ghost.interpolate(frame);
     if (flags & AUTH_3D_POST_PROCESS_RADIUS)
         radius.interpolate(frame);
     if (flags & AUTH_3D_POST_PROCESS_SCENE_FADE)
@@ -2342,13 +2338,9 @@ void auth_3d_post_process::reset() {
     lens_shaft.reset();
     radius.reset();
     scene_fade.reset();
-    lens_flare_value = 1.0f;
-    lens_ghost_value = 1.0f;
-    lens_shaft_value = 1.0f;
+    lens_value = 1.0f;
     intensity_init = 0.0f;
-    lens_flare_init = 1.0f;
-    lens_ghost_init = 1.0f;
-    lens_shaft_init = 1.0f;
+    lens_init = 1.0f;
     radius_init = 0.0f;
     scene_fade_init = 0.0f;
 }
@@ -3835,13 +3827,13 @@ static void auth_3d_camera_auxiliary_restore_prev_value(auth_3d_camera_auxiliary
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_AUTO_EXPOSURE)
         tm->set_auto_exposure(true);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE)
-        tm->set_exposure(1.0);
+        tm->set_exposure(2.0);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA)
         tm->set_gamma(1.0);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE)
         tm->set_gamma_rate(1.0);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE)
-        tm->set_saturate_coeff(1.0);
+        tm->set_saturate_coeff(1.0, 0, false);
 }
 
 static void auth_3d_camera_auxiliary_set(auth_3d_camera_auxiliary* ca, render_context* rctx) {
@@ -3856,7 +3848,7 @@ static void auth_3d_camera_auxiliary_set(auth_3d_camera_auxiliary* ca, render_co
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE)
         tm->set_gamma_rate(ca->gamma_rate_value);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE)
-        tm->set_saturate_coeff(ca->saturate_value);
+        tm->set_saturate_coeff(ca->saturate_value, 0, false);
 }
 
 static void auth_3d_camera_auxiliary_store(auth_3d* auth, auth_3d_camera_auxiliary_file* caf) {
@@ -6784,20 +6776,23 @@ static void auth_3d_post_process_restore_prev_value(auth_3d_post_process* pp, re
     if (pp->flags_init & AUTH_3D_POST_PROCESS_INTENSITY)
         blur->set_intensity(pp->intensity_init);
 
-    if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE)
-        tm->set_lens_flare(pp->lens_flare_init);
-
-    if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST)
-        tm->set_lens_ghost(pp->lens_ghost_init);
-
-    if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT)
-        tm->set_lens_shaft(pp->lens_shaft_init);
+    if (pp->flags_init & (AUTH_3D_POST_PROCESS_LENS_FLARE
+        | AUTH_3D_POST_PROCESS_LENS_GHOST | AUTH_3D_POST_PROCESS_LENS_SHAFT)) {
+        vec3 value = tm->get_lens();
+        if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE)
+            value.x = pp->lens_init.x;
+        if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT)
+            value.y = pp->lens_init.y;
+        if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST)
+            value.z = pp->lens_init.z;
+        tm->set_lens(value);
+    }
 
     if (pp->flags_init & AUTH_3D_POST_PROCESS_RADIUS)
         blur->set_radius(pp->radius_init);
 
     if (pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE)
-        tm->set_scene_fade(pp->scene_fade_init);
+        tm->set_scene_fade(pp->scene_fade_init, 0);
 }
 
 static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* rctx) {
@@ -6813,31 +6808,27 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
         blur->set_intensity(*(vec3*)&pp->intensity.value);
     }
 
-    if (pp->flags & AUTH_3D_POST_PROCESS_LENS_FLARE) {
-        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE)) {
-            pp->lens_flare_init = tm->get_lens_flare();
-            enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_LENS_FLARE);
+    if (pp->flags & (AUTH_3D_POST_PROCESS_LENS_GHOST
+        | AUTH_3D_POST_PROCESS_LENS_SHAFT | AUTH_3D_POST_PROCESS_LENS_FLARE)) {
+        vec3 value = tm->get_lens();
+        if (pp->flags & AUTH_3D_POST_PROCESS_LENS_FLARE) {
+            if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE))
+                pp->lens_init.x = value.x;
+            value.x = pp->lens_value.x;
         }
 
-        tm->set_lens_flare(pp->lens_flare_value);
-    }
-
-    if (pp->flags & AUTH_3D_POST_PROCESS_LENS_GHOST) {
-        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST)) {
-            pp->lens_ghost_init = tm->get_lens_ghost();
-            enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_LENS_GHOST);
+        if (pp->flags & AUTH_3D_POST_PROCESS_LENS_SHAFT) {
+            if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT))
+                pp->lens_init.y = value.y;
+            value.y = pp->lens_value.y;
         }
 
-        tm->set_lens_ghost(pp->lens_ghost_value);
-    }
-
-    if (pp->flags & AUTH_3D_POST_PROCESS_LENS_SHAFT) {
-        if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT)) {
-            pp->lens_shaft_init = tm->get_lens_shaft();
-            enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_LENS_SHAFT);
+        if (pp->flags & AUTH_3D_POST_PROCESS_LENS_GHOST) {
+            if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST))
+                pp->lens_init.z = value.z;
+            value.z = pp->lens_value.z;
         }
-
-        tm->set_lens_shaft(pp->lens_shaft_value);
+        tm->set_lens(value);
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_RADIUS) {
@@ -6855,7 +6846,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_SCENE_FADE);
         }
 
-        tm->set_scene_fade(pp->scene_fade.value);
+        tm->set_scene_fade(pp->scene_fade.value, 0);
     }
 }
 
