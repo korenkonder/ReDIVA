@@ -447,8 +447,8 @@ void light_set::data_set(face& face, light_set_id id) {
 
     vec4 light_reflect_dir;
     lights[LIGHT_CHARA].get_position(light_reflect_dir);
-    if (fabs(light_reflect_dir.x) <= 0.000001f && fabs(light_reflect_dir.y) <= 0.000001f
-        && fabs(light_reflect_dir.z) <= 0.000001f)
+    if (fabsf(light_reflect_dir.x) <= 0.000001f && fabsf(light_reflect_dir.y) <= 0.000001f
+        && fabsf(light_reflect_dir.z) <= 0.000001f)
         *(vec3*)&light_reflect_dir = vec3(0.0f, 1.0f, 0.0f);
     else {
         float_t length = vec3::length(*(vec3*)&light_reflect_dir);

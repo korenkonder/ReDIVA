@@ -2097,7 +2097,7 @@ inline void mat4_get_rotation(const mat4* x, vec3* z) {
     else
         z->y = asinf(-x->row0.z);
 
-    if (fabs(x->row0.z) < 0.99999899f) {
+    if (fabsf(x->row0.z) < 0.99999899f) {
         z->x = atan2f(x->row1.z, x->row2.z);
         z->z = atan2f(x->row0.y, x->row0.x);
     }

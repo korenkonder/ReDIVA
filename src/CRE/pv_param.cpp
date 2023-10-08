@@ -999,7 +999,7 @@ namespace pv_param_task {
             }
 
             float_t value;
-            if (fabs(i.duration) <= 0.000001)
+            if (fabsf(i.duration) <= 0.000001f)
                 value = i.alpha;
             else if (i.duration <= 0.0)
                 value = i.prev_alpha;
@@ -1059,7 +1059,7 @@ namespace pv_param_task {
             }
 
             float_t value;
-            if (fabs(i.duration) <= 0.000001)
+            if (fabsf(i.duration) <= 0.000001f)
                 value = i.alpha;
             else if (i.duration <= 0.0)
                 value = i.prev_alpha;

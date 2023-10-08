@@ -136,7 +136,7 @@ void pv_play_data_motion_data::ctrl_inner() {
     rob_chr->set_osage_reset();
 
     if (rob_chr->check_for_ageageagain_module()) {
-        if (fabs(vec3::distance(start_pos, end_pos) <= 0.000001f && fabsf(end_rot - start_rot) <= 0.000001f)) {
+        if (fabsf(vec3::distance(start_pos, end_pos) <= 0.000001f && fabsf(end_rot - start_rot) <= 0.000001f)) {
             rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
             rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
         }

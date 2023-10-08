@@ -1038,7 +1038,7 @@ void TaskEffectFogRing::Data::Ctrl() {
 }
 
 void TaskEffectFogRing::Data::CtrlInner(float_t delta_time) {
-    if (fabs(delta_time) <= 0.000001f)
+    if (fabsf(delta_time) <= 0.000001f)
         return;
 
     sub_140347B40(delta_time);

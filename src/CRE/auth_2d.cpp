@@ -1164,17 +1164,17 @@ void AetObj::CalcMat(mat4& mat, const aet_layer* layer, float_t frame) {
     }
 
     mat4_translate_mult(&mat, pos_x, pos_y, -pos_z, &mat);
-    if (fabs(dir_x) > 0.000001f)
+    if (fabsf(dir_x) > 0.000001f)
         mat4_rotate_x_mult(&mat, -dir_x, &mat);
-    if (fabs(dir_y) > 0.000001f)
+    if (fabsf(dir_y) > 0.000001f)
         mat4_rotate_y_mult(&mat, -dir_y, &mat);
-    if (fabs(dir_z) > 0.000001f)
+    if (fabsf(dir_z) > 0.000001f)
         mat4_rotate_z_mult(&mat, dir_z * scale_size.x * scale_size.y, &mat);
-    if (fabs(rot_x) > 0.000001f)
+    if (fabsf(rot_x) > 0.000001f)
         mat4_rotate_x_mult(&mat, -rot_x, &mat);
-    if (fabs(rot_y) > 0.000001f)
+    if (fabsf(rot_y) > 0.000001f)
         mat4_rotate_y_mult(&mat, -rot_y, &mat);
-    if (fabs(rot_z) > 0.000001f)
+    if (fabsf(rot_z) > 0.000001f)
         mat4_rotate_z_mult(&mat, rot_z * scale_size.x * scale_size.y, &mat);
     mat4_scale_rot(&mat, scale_x, scale_y, scale_z, &mat);
     mat4_translate_mult(&mat, -anchor_x, -anchor_y, -anchor_z, &mat);

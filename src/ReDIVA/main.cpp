@@ -88,7 +88,7 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
 
     for (int32_t i = 0; i < data.frames; i++) {
         cam_a3da.dof.model_transform.interpolate((float_t)i);
-        bool enable = fabs(cam_a3da.dof.model_transform.rotation_value.z) > 0.000001f;
+        bool enable = fabsf(cam_a3da.dof.model_transform.rotation_value.z) > 0.000001f;
         if (!enable) {
             data.dof_index.push_back(0);
             continue;
