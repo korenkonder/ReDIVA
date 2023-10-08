@@ -1215,7 +1215,7 @@ bool DtmMot::Ctrl() {
 
         mat4 mat;
         mat4_rotate_zyx(&rotation, &mat);
-        mat4_rotate_y_mult(&mat, rot_y, &mat);
+        mat4_mul_rotate_y(&mat, rot_y, &mat);
         mat4_set_translation(&mat, &trans);
         rob_bone_data->update(&mat);
 

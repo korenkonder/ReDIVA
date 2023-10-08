@@ -464,7 +464,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (rob_chr) {
             pos *= (pv_game->data.pv->edit == 2 ? 1.0f : 0.227f);
-            mat4_mult_vec3_trans(&scene_rot_mat, &pos, &pos);
+            mat4_transform_point(&scene_rot_mat, &pos, &pos);
             rob_chr->set_data_miku_rot_position(pos);
             rob_chr->set_osage_reset();
         }
@@ -1179,12 +1179,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         end.up_vec.y = (float_t)(int32_t)data[17] * v14;
         end.up_vec.z = (float_t)(int32_t)data[18] * v14;
 
-        mat4_mult_vec3_trans(&scene_rot_mat, &start.view_point, &start.view_point);
-        mat4_mult_vec3_trans(&scene_rot_mat, &start.interest, &start.interest);
-        mat4_mult_vec3_trans(&scene_rot_mat, &start.up_vec, &start.up_vec);
-        mat4_mult_vec3_trans(&scene_rot_mat, &end.view_point, &end.view_point);
-        mat4_mult_vec3_trans(&scene_rot_mat, &end.interest, &end.interest);
-        mat4_mult_vec3_trans(&scene_rot_mat, &end.up_vec, &end.up_vec);
+        mat4_transform_point(&scene_rot_mat, &start.view_point, &start.view_point);
+        mat4_transform_point(&scene_rot_mat, &start.interest, &start.interest);
+        mat4_transform_point(&scene_rot_mat, &start.up_vec, &start.up_vec);
+        mat4_transform_point(&scene_rot_mat, &end.view_point, &end.view_point);
+        mat4_transform_point(&scene_rot_mat, &end.interest, &end.interest);
+        mat4_transform_point(&scene_rot_mat, &end.up_vec, &end.up_vec);
 
         float_t acceleration_1 = 0.0f;
         if ((int32_t)data[19] != -1)
@@ -1270,8 +1270,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             float_t v5 = pv_game->data.pv->edit == 2 ? 1.0f : 0.227f;
             start_pos *= v5;
             end_pos *= v5;
-            mat4_mult_vec3_trans(&scene_rot_mat, &start_pos, &start_pos);
-            mat4_mult_vec3_trans(&scene_rot_mat, &end_pos, &end_pos);
+            mat4_transform_point(&scene_rot_mat, &start_pos, &start_pos);
+            mat4_transform_point(&scene_rot_mat, &end_pos, &end_pos);
             playdata->motion_data.set(playdata->rob_chr, duration,
                 start_pos, end_pos, start_rot + scene_rot_y, end_rot + scene_rot_y);
             playdata->motion_data.ctrl(0.0f);
@@ -1295,8 +1295,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             float_t v5 = pv_game->data.pv->edit == 2 ? 1.0f : 0.227f;
             start_pos *= v5;
             end_pos *= v5;
-            mat4_mult_vec3_trans(&scene_rot_mat, &start_pos, &start_pos);
-            mat4_mult_vec3_trans(&scene_rot_mat, &end_pos, &end_pos);
+            mat4_transform_point(&scene_rot_mat, &start_pos, &start_pos);
+            mat4_transform_point(&scene_rot_mat, &end_pos, &end_pos);
             playdata->motion_data.set(playdata->rob_chr, duration,
                 start_pos, end_pos, start_rot + scene_rot_y, end_rot + scene_rot_y);
             playdata->motion_data.ctrl(0.0f);
@@ -1665,7 +1665,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (!rob_chr)
             break;
 
-        mat4_mult_vec3_trans(&scene_rot_mat, &pos, &pos);
+        mat4_transform_point(&scene_rot_mat, &pos, &pos);
         rob_chr->set_chara_pos_adjust(pos);
         if (rob_chr->check_for_ageageagain_module()) {
             rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);

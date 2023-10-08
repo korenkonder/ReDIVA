@@ -63,7 +63,7 @@ namespace Glitter {
             mat4_get_translation(&ptcl_inst->data.emitter->mat, &emit_trans);
             temp += emit_trans;
             if (ptcl_inst->data.data.flags & PARTICLE_ROTATE_LOCUS)
-                mat4_mult_vec3(&ptcl_inst->data.emitter->mat_rot, &temp, &temp);
+                mat4_transform_vector(&ptcl_inst->data.emitter->mat_rot, &temp, &temp);
         }
 
         LocusHistory::Data locus_history;

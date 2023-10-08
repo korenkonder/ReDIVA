@@ -32,10 +32,22 @@ const mat4 mat4_null = {
     { 0.0f, 0.0f, 0.0f, 0.0f },
 };
 
+inline void mat3_add(const mat3* x, float_t y, mat3* z) {
+    z->row0 = x->row0 + y;
+    z->row1 = x->row1 + y;
+    z->row2 = x->row2 + y;
+}
+
 inline void mat3_add(const mat3* x, const mat3* y, mat3* z) {
     z->row0 = x->row0 + y->row0;
     z->row1 = x->row1 + y->row1;
     z->row2 = x->row2 + y->row2;
+}
+
+inline void mat3_sub(const mat3* x, float_t y, mat3* z) {
+    z->row0 = x->row0 - y;
+    z->row1 = x->row1 - y;
+    z->row2 = x->row2 - y;
 }
 
 inline void mat3_sub(const mat3* x, const mat3* y, mat3* z) {
@@ -44,7 +56,13 @@ inline void mat3_sub(const mat3* x, const mat3* y, mat3* z) {
     z->row2 = x->row2 - y->row2;
 }
 
-inline void mat3_mult(const mat3* x, const mat3* y, mat3* z) {
+inline void mat3_mul(const mat3* x, float_t y, mat3* z) {
+    z->row0 = x->row0 * y;
+    z->row1 = x->row1 * y;
+    z->row2 = x->row2 * y;
+}
+
+inline void mat3_mul(const mat3* x, const mat3* y, mat3* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -76,7 +94,7 @@ inline void mat3_mult(const mat3* x, const mat3* y, mat3* z) {
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_mult_vec2(const mat3* x, const vec2* y, vec2* z) {
+inline void mat3_transform_vector(const mat3* x, const vec2* y, vec2* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -91,7 +109,7 @@ inline void mat3_mult_vec2(const mat3* x, const vec2* y, vec2* z) {
     *z = *(vec2*)&zt;
 }
 
-inline void mat3_mult_vec(const mat3* x, const vec3* y, vec3* z) {
+inline void mat3_transform_vector(const mat3* x, const vec3* y, vec3* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
@@ -109,20 +127,36 @@ inline void mat3_mult_vec(const mat3* x, const vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void mat3_mult_scalar(const mat3* x, float_t y, mat3* z) {
+inline void mat3_inverse_transform_vector(const mat3* x, const vec2* y, vec2* z) {
     __m128 xt;
     __m128 yt;
     __m128 zt;
-    yt = vec4::load_xmm(y);
+    yt = vec2::load_xmm(*y);
     *(vec3*)&xt = x->row0;
-    zt = _mm_mul_ps(xt, yt);
-    z->row0 = *(vec3*)&zt;
+    zt = _mm_mul_ps(yt, xt);
+    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
     *(vec3*)&xt = x->row1;
-    zt = _mm_mul_ps(xt, yt);
-    z->row1 = *(vec3*)&zt;
+    zt = _mm_mul_ps(yt, xt);
+    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline void mat3_inverse_transform_vector(const mat3* x, const vec3* y, vec3* z) {
+    __m128 xt;
+    __m128 yt;
+    __m128 zt;
+    yt = vec3::load_xmm(*y);
+    *(vec3*)&xt = x->row0;
+    zt = _mm_mul_ps(yt, xt);
+    zt = _mm_hadd_ps(zt, zt);
+    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    *(vec3*)&xt = x->row1;
+    zt = _mm_mul_ps(yt, xt);
+    zt = _mm_hadd_ps(zt, zt);
+    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
     *(vec3*)&xt = x->row2;
-    zt = _mm_mul_ps(xt, yt);
-    z->row2 = *(vec3*)&zt;
+    zt = _mm_mul_ps(yt, xt);
+    zt = _mm_hadd_ps(zt, zt);
+    z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
 }
 
 inline void mat3_transpose(const mat3* x, mat3* z) {
@@ -265,157 +299,202 @@ inline float_t mat3_determinant(const mat3* x) {
     return b00 + b01 + b02 - b03 - b04 - b05;
 }
 
-inline void mat3_rotate_xyz(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_x(float_t rad, mat3* y) {
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *y = mat3_identity;
+    y->row1.y = c;
+    y->row1.z = s;
+    y->row2.y = -s;
+    y->row2.z = c;
+}
+
+inline void mat3_rotate_y(float_t rad, mat3* y) {
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *y = mat3_identity;
+    y->row0.x = c;
+    y->row0.z = -s;
+    y->row2.x = s;
+    y->row2.z = c;
+}
+
+inline void mat3_rotate_z(float_t rad, mat3* y) {
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *y = mat3_identity;
+    y->row0.x = c;
+    y->row0.y = s;
+    y->row1.x = -s;
+    y->row1.y = c;
+}
+
+inline void mat3_rotate_x(float_t s, float_t c, mat3* y) {
+    *y = mat3_identity;
+    y->row1.y = c;
+    y->row1.z = s;
+    y->row2.y = -s;
+    y->row2.z = c;
+}
+
+inline void mat3_rotate_y(float_t s, float_t c, mat3* y) {
+    *y = mat3_identity;
+    y->row0.x = c;
+    y->row0.z = -s;
+    y->row2.x = s;
+    y->row2.z = c;
+}
+
+inline void mat3_rotate_z(float_t s, float_t c, mat3* y) {
+    *y = mat3_identity;
+    y->row0.x = c;
+    y->row0.y = s;
+    y->row1.x = -s;
+    y->row1.y = c;
+}
+
+inline void mat3_rotate_xyz(float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
     dt = mat3_identity;
-    if (x != 0.0f)
-        mat3_rotate_x(x, &dt);
-
-    if (y != 0.0f)
-        if (x != 0.0f)
-            mat3_rotate_y_mult(&dt, y, &dt);
-        else
-            mat3_rotate_y(y, &dt);
-
-    if (z != 0.0f)
-        if (y != 0.0f || x != 0.0f)
-            mat3_rotate_z_mult(&dt, z, &dt);
-        else
-            mat3_rotate_z(z, &dt);
-    *d = dt;
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_xzy(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_xzy(float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
     dt = mat3_identity;
-    if (x != 0.0f)
-        mat3_rotate_x(x, &dt);
-
-    if (z != 0.0f)
-        if (x != 0.0f)
-            mat3_rotate_z_mult(&dt, z, &dt);
-        else
-            mat3_rotate_z(z, &dt);
-
-    if (y != 0.0f)
-        if (z != 0.0f || x != 0.0f)
-            mat3_rotate_y_mult(&dt, y, &dt);
-        else
-            mat3_rotate_y(y, &dt);
-    *d = dt;
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_yxz(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_yxz(float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
     dt = mat3_identity;
-    if (y != 0.0f)
-        mat3_rotate_y(y, &dt);
-
-    if (x != 0.0f)
-        if (y != 0.0f)
-            mat3_rotate_x_mult(&dt, x, &dt);
-        else
-            mat3_rotate_x(x, &dt);
-
-    if (z != 0.0f)
-        if (x != 0.0f || y != 0.0f)
-            mat3_rotate_z_mult(&dt, z, &dt);
-        else
-            mat3_rotate_z(z, &dt);
-    *d = dt;
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_yzx(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_yzx(float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
     dt = mat3_identity;
-    if (y != 0.0f)
-        mat3_rotate_y(y, &dt);
-
-    if (z != 0.0f)
-        if (y != 0.0f)
-            mat3_rotate_z_mult(&dt, z, &dt);
-        else
-            mat3_rotate_z(z, &dt);
-
-    if (x != 0.0f)
-        if (z != 0.0f || y != 0.0f)
-            mat3_rotate_x_mult(&dt, x, &dt);
-        else
-            mat3_rotate_x(x, &dt);
-    *d = dt;
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_zxy(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_zxy(float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
     dt = mat3_identity;
-    if (z != 0.0f)
-        mat3_rotate_z(z, &dt);
-
-    if (x != 0.0f)
-        if (z != 0.0f)
-            mat3_rotate_x_mult(&dt, x, &dt);
-        else
-            mat3_rotate_x(x, &dt);
-
-    if (y != 0.0f)
-        if (x != 0.0f || z != 0.0f)
-            mat3_rotate_y_mult(&dt, y, &dt);
-        else
-            mat3_rotate_y(y, &dt);
-    *d = dt;
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_zyx(float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_rotate_zyx(float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
     dt = mat3_identity;
-    if (z != 0.0f)
-        mat3_rotate_z(z, &dt);
-
-    if (y != 0.0f)
-        if (z != 0.0f)
-            mat3_rotate_y_mult(&dt, y, &dt);
-        else
-            mat3_rotate_y(y, &dt);
-
-    if (x != 0.0f)
-        if (y != 0.0f || z != 0.0f)
-            mat3_rotate_x_mult(&dt, x, &dt);
-        else
-            mat3_rotate_x(x, &dt);
-    *d = dt;
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_x_sin_cos(float_t sin_val, float_t cos_val, mat3* y) {
-    mat3 yt;
-    yt = mat3_identity;
-    yt.row1.y = cos_val;
-    yt.row1.z = sin_val;
-    yt.row2.y = -sin_val;
-    yt.row2.z = cos_val;
-    *y = yt;
+inline void mat3_mul_rotate_x(const mat3* x, float_t rad, mat3* z) {
+    __m128 t1;
+    __m128 t2;
+    __m128 y0;
+    __m128 y1;
+    __m128 y2;
+    __m128 zt;
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *(vec3*)&y0 = x->row0;
+    *(vec3*)&y1 = x->row1;
+    *(vec3*)&y2 = x->row2;
+    z->row0 = *(vec3*)&y0;
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(s));
+    zt = _mm_add_ps(t1, t2);
+    z->row1 = *(vec3*)&zt;
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(-s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
+    zt = _mm_add_ps(t1, t2);
+    z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_rotate_y_sin_cos(float_t sin_val, float_t cos_val, mat3* y) {
-    mat3 yt;
-    yt = mat3_identity;
-    yt.row0.x = cos_val;
-    yt.row0.z = -sin_val;
-    yt.row2.x = sin_val;
-    yt.row2.z = cos_val;
-    *y = yt;
+inline void mat3_mul_rotate_y(const mat3* x, float_t rad, mat3* z) {
+    __m128 t0;
+    __m128 t2;
+    __m128 y0;
+    __m128 y1;
+    __m128 y2;
+    __m128 zt;
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *(vec3*)&y0 = x->row0;
+    *(vec3*)&y1 = x->row1;
+    *(vec3*)&y2 = x->row2;
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(-s));
+    zt = _mm_add_ps(t0, t2);
+    z->row0 = *(vec3*)&zt;
+    z->row1 = *(vec3*)&y1;
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
+    zt = _mm_add_ps(t0, t2);
+    z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_rotate_z_sin_cos(float_t sin_val, float_t cos_val, mat3* y) {
-    mat3 yt;
-    yt = mat3_identity;
-    yt.row0.x = cos_val;
-    yt.row0.y = sin_val;
-    yt.row1.x = -sin_val;
-    yt.row1.y = cos_val;
-    *y = yt;
+inline void mat3_mul_rotate_z(const mat3* x, float_t rad, mat3* z) {
+    __m128 t0;
+    __m128 t1;
+    __m128 y0;
+    __m128 y1;
+    __m128 y2;
+    __m128 zt;
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *(vec3*)&y0 = x->row0;
+    *(vec3*)&y1 = x->row1;
+    *(vec3*)&y2 = x->row2;
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(s));
+    zt = _mm_add_ps(t0, t1);
+    z->row0 = *(vec3*)&zt;
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(-s));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
+    zt = _mm_add_ps(t0, t1);
+    z->row1 = *(vec3*)&zt;
+    z->row2 = *(vec3*)&y2;
 }
 
-inline void mat3_rotate_x_mult_sin_cos(const mat3* x, float_t sin_val, float_t cos_val, mat3* z) {
+inline void mat3_mul_rotate_x(const mat3* x, float_t s, float_t c, mat3* z) {
     __m128 t1;
     __m128 t2;
     __m128 y0;
@@ -426,17 +505,17 @@ inline void mat3_rotate_x_mult_sin_cos(const mat3* x, float_t sin_val, float_t c
     *(vec3*)&y1 = x->row1;
     *(vec3*)&y2 = x->row2;
     z->row0 = *(vec3*)&y0;
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(cos_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(sin_val));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(s));
     zt = _mm_add_ps(t1, t2);
     z->row1 = *(vec3*)&zt;
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(-sin_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(cos_val));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(-s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
     zt = _mm_add_ps(t1, t2);
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_rotate_y_mult_sin_cos(const mat3* x, float_t sin_val, float_t cos_val, mat3* z) {
+inline void mat3_mul_rotate_y(const mat3* x, float_t s, float_t c, mat3* z) {
     __m128 t0;
     __m128 t2;
     __m128 y0;
@@ -446,18 +525,18 @@ inline void mat3_rotate_y_mult_sin_cos(const mat3* x, float_t sin_val, float_t c
     *(vec3*)&y0 = x->row0;
     *(vec3*)&y1 = x->row1;
     *(vec3*)&y2 = x->row2;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(cos_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(-sin_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(-s));
     zt = _mm_add_ps(t0, t2);
     z->row0 = *(vec3*)&zt;
     z->row1 = *(vec3*)&y1;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(sin_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(cos_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
     zt = _mm_add_ps(t0, t2);
     z->row2 = *(vec3*)&zt;
 }
 
-inline void mat3_rotate_z_mult_sin_cos(const mat3* x, float_t sin_val, float_t cos_val, mat3* z) {
+inline void mat3_mul_rotate_z(const mat3* x, float_t s, float_t c, mat3* z) {
     __m128 t0;
     __m128 t1;
     __m128 y0;
@@ -467,262 +546,144 @@ inline void mat3_rotate_z_mult_sin_cos(const mat3* x, float_t sin_val, float_t c
     *(vec3*)&y0 = x->row0;
     *(vec3*)&y1 = x->row1;
     *(vec3*)&y2 = x->row2;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(cos_val));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(sin_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(s));
     zt = _mm_add_ps(t0, t1);
     z->row0 = *(vec3*)&zt;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(-sin_val));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(cos_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(-s));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
     zt = _mm_add_ps(t0, t1);
     z->row1 = *(vec3*)&zt;
     z->row2 = *(vec3*)&y2;
 }
 
-inline void mat3_rotate_x(float_t x, mat3* y) {
-    mat3 yt;
-    float_t x_sin = sinf(x);
-    float_t x_cos = cosf(x);
-    yt = mat3_identity;
-    yt.row1.y = x_cos;
-    yt.row1.z = x_sin;
-    yt.row2.y = -x_sin;
-    yt.row2.z = x_cos;
-    *y = yt;
-}
-
-inline void mat3_rotate_y(float_t x, mat3* y) {
-    mat3 yt;
-    float_t x_sin = sinf(x);
-    float_t x_cos = cosf(x);
-    yt = mat3_identity;
-    yt.row0.x = x_cos;
-    yt.row0.z = -x_sin;
-    yt.row2.x = x_sin;
-    yt.row2.z = x_cos;
-    *y = yt;
-}
-
-inline void mat3_rotate_z(float_t x, mat3* y) {
-    mat3 yt;
-    float_t x_sin = sinf(x);
-    float_t x_cos = cosf(x);
-    yt = mat3_identity;
-    yt.row0.x = x_cos;
-    yt.row0.y = x_sin;
-    yt.row1.x = -x_sin;
-    yt.row1.y = x_cos;
-    *y = yt;
-}
-
-inline void mat3_rotate_xyz_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_rotate_xyz(const mat3* x, float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
-    dt = *s;
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
-    if (z != 0.0f)
-        mat3_rotate_z_mult(&dt, z, &dt);
-    *d = dt;
+    dt = *x;
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_xzy_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_rotate_xzy(const mat3* x, float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
-    dt = *s;
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    if (z != 0.0f)
-        mat3_rotate_z_mult(&dt, z, &dt);
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
-    *d = dt;
+    dt = *x;
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_yxz_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_rotate_yxz(const mat3* x, float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
-    dt = *s;
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    if (z != 0.0f)
-        mat3_rotate_z_mult(&dt, z, &dt);
-    *d = dt;
+    dt = *x;
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_yzx_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_rotate_yzx(const mat3* x, float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
-    dt = *s;
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
-    if (z != 0.0f)
-        mat3_rotate_z_mult(&dt, z, &dt);
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    *d = dt;
+    dt = *x;
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_zxy_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_rotate_zxy(const mat3* x, float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
-    dt = *s;
-    if (z != 0.0f)
-        mat3_rotate_z_mult(&dt, z, &dt);
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
-    *d = dt;
+    dt = *x;
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_zyx_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_rotate_zyx(const mat3* x, float_t rad_x, float_t rad_y, float_t rad_z, mat3* z) {
     mat3 dt;
-    dt = *s;
-    if (z != 0.0f)
-        mat3_rotate_z_mult(&dt, z, &dt);
-    if (y != 0.0f)
-        mat3_rotate_y_mult(&dt, y, &dt);
-    if (x != 0.0f)
-        mat3_rotate_x_mult(&dt, x, &dt);
-    *d = dt;
+    dt = *x;
+    if (rad_z != 0.0f)
+        mat3_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat3_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat3_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
 }
 
-inline void mat3_rotate_x_mult(const mat3* x, float_t y, mat3* z) {
-    __m128 t1;
-    __m128 t2;
-    __m128 y0;
-    __m128 y1;
-    __m128 y2;
-    __m128 zt;
-    float_t y_sin = sinf(y);
-    float_t y_cos = cosf(y);
-    *(vec3*)&y0 = x->row0;
-    *(vec3*)&y1 = x->row1;
-    *(vec3*)&y2 = x->row2;
-    z->row0 = *(vec3*)&y0;
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(y_cos));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(y_sin));
-    zt = _mm_add_ps(t1, t2);
-    z->row1 = *(vec3*)&zt;
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(-y_sin));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(y_cos));
-    zt = _mm_add_ps(t1, t2);
-    z->row2 = *(vec3*)&zt;
+inline void mat3_scale(float_t sx, float_t sy, float_t sz, mat3* z) {
+    *z = mat3_identity;
+    z->row0.x = sx;
+    z->row1.y = sy;
+    z->row2.z = sz;
 }
 
-inline void mat3_rotate_y_mult(const mat3* x, float_t y, mat3* z) {
-    __m128 t0;
-    __m128 t2;
-    __m128 y0;
-    __m128 y1;
-    __m128 y2;
-    __m128 zt;
-    float_t y_sin = sinf(y);
-    float_t y_cos = cosf(y);
-    *(vec3*)&y0 = x->row0;
-    *(vec3*)&y1 = x->row1;
-    *(vec3*)&y2 = x->row2;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(y_cos));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(-y_sin));
-    zt = _mm_add_ps(t0, t2);
-    z->row0 = *(vec3*)&zt;
-    z->row1 = *(vec3*)&y1;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(y_sin));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(y_cos));
-    zt = _mm_add_ps(t0, t2);
-    z->row2 = *(vec3*)&zt;
+inline void mat3_scale_x(float_t s, mat3* y) {
+    *y = mat3_identity;
+    y->row0.x = s;
 }
 
-inline void mat3_rotate_z_mult(const mat3* x, float_t y, mat3* z) {
-    __m128 t0;
-    __m128 t1;
-    __m128 y0;
-    __m128 y1;
-    __m128 y2;
-    __m128 zt;
-    float_t y_sin = sinf(y);
-    float_t y_cos = cosf(y);
-    *(vec3*)&y0 = x->row0;
-    *(vec3*)&y1 = x->row1;
-    *(vec3*)&y2 = x->row2;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(y_cos));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(y_sin));
-    zt = _mm_add_ps(t0, t1);
-    z->row0 = *(vec3*)&zt;
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(-y_sin));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(y_cos));
-    zt = _mm_add_ps(t0, t1);
-    z->row1 = *(vec3*)&zt;
-    z->row2 = *(vec3*)&y2;
+inline void mat3_scale_y(float_t s, mat3* y) {
+    *y = mat3_identity;
+    y->row1.y = s;
 }
 
-inline void mat3_scale(float_t x, float_t y, float_t z, mat3* d) {
-    mat3 dt;
-    dt = mat3_identity;
-    if (x != 1.0f)
-        dt.row0.x = x;
-    if (y != 1.0f)
-        dt.row1.y = y;
-    if (z != 1.0f)
-        dt.row2.z = z;
-    *d = dt;
+inline void mat3_scale_z(float_t s, mat3* y) {
+    *y = mat3_identity;
+    y->row2.z = s;
 }
 
-inline void mat3_scale_x(float_t x, mat3* y) {
-    mat3 yt;
-    yt = mat3_identity;
-    yt.row0.x = x;
-    *y = yt;
-}
-
-inline void mat3_scale_y(float_t x, mat3* y) {
-    mat3 yt;
-    yt = mat3_identity;
-    yt.row1.y = x;
-    *y = yt;
-}
-
-inline void mat3_scale_z(float_t x, mat3* y) {
-    mat3 yt;
-    yt = mat3_identity;
-    yt.row2.z = x;
-    *y = yt;
-}
-
-inline void mat3_scale_mult(const mat3* s, float_t x, float_t y, float_t z, mat3* d) {
+inline void mat3_mul_scale(const mat3* x, float_t sx, float_t sy, float_t sz, mat3* z) {
     mat3 st;
     mat3 dt;
-    if (x != 1.0f || y != 1.0f || z != 1.0f) {
-        st = *s;
+    if (sx != 1.0f || sy != 1.0f || sz != 1.0f) {
         dt = mat3_identity;
-        dt.row0.x = x;
-        dt.row1.y = y;
-        dt.row2.z = z;
-        mat3_mult(&st, &dt, &dt);
-        *d = dt;
+        dt.row0.x = sx;
+        dt.row1.y = sy;
+        dt.row2.z = sz;
+        mat3_mul(x, &dt, z);
     }
     else
-        *d = *s;
+        *z = *x;
 }
 
-inline void mat3_scale_x_mult(const mat3* x, float_t y, mat3* z) {
+inline void mat3_mul_scale_x(const mat3* x, float_t s, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
-    yt.row0.x = y;
-    mat3_mult(x, &yt, z);
+    yt.row0.x = s;
+    mat3_mul(x, &yt, z);
 }
 
-inline void mat3_scale_y_mult(const mat3* x, float_t y, mat3* z) {
+inline void mat3_mul_scale_y(const mat3* x, float_t s, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
-    yt.row1.y = y;
-    mat3_mult(x, &yt, z);
+    yt.row1.y = s;
+    mat3_mul(x, &yt, z);
 }
 
-inline void mat3_scale_z_mult(const mat3* x, float_t y, mat3* z) {
+inline void mat3_mul_scale_z(const mat3* x, float_t s, mat3* z) {
     mat3 yt;
     yt = mat3_identity;
-    yt.row2.z = y;
-    mat3_mult(x, &yt, z);
+    yt.row2.z = s;
+    mat3_mul(x, &yt, z);
 }
 
 inline void mat3_from_quat(const quat* quat, mat3* mat) {
@@ -768,57 +729,57 @@ inline void mat3_from_quat(const quat* quat, mat3* mat) {
 }
 
 inline void mat3_from_axis_angle(const vec3* axis, float_t angle, mat3* mat) {
-    float_t angle_sin;
-    float_t angle_cos;
-    float_t angle_cos_1;
+    float_t s;
+    float_t c;
+    float_t c_1;
     vec3 _axis;
-    vec3 _axis_sin;
+    vec3 _axis_s;
     vec3 temp;
 
-    angle_sin = sinf(angle);
-    angle_cos = cosf(angle);
-    angle_cos_1 = 1.0f - angle_cos;
+    s = sinf(angle);
+    c = cosf(angle);
+    c_1 = 1.0f - c;
 
     _axis = vec3::normalize(*axis);
 
-    _axis_sin = _axis * angle_sin;
-    temp = _axis * (_axis.x * angle_cos_1);
-    mat->row0.x = temp.x + angle_cos;
-    mat->row1.x = temp.y - _axis_sin.z;
-    mat->row2.x = temp.z + _axis_sin.y;
-    temp = _axis * (_axis.y * angle_cos_1);
-    mat->row0.y = temp.x + _axis_sin.z;
-    mat->row1.y = temp.y + angle_cos;
-    mat->row2.y = temp.z - _axis_sin.x;
-    temp = _axis * (_axis.z * angle_cos_1);
-    mat->row0.z = temp.x - _axis_sin.y;
-    mat->row1.z = temp.y + _axis_sin.x;
-    mat->row2.z = temp.z + angle_cos;
+    _axis_s = _axis * s;
+    temp = _axis * (_axis.x * c_1);
+    mat->row0.x = temp.x + c;
+    mat->row1.x = temp.y - _axis_s.z;
+    mat->row2.x = temp.z + _axis_s.y;
+    temp = _axis * (_axis.y * c_1);
+    mat->row0.y = temp.x + _axis_s.z;
+    mat->row1.y = temp.y + c;
+    mat->row2.y = temp.z - _axis_s.x;
+    temp = _axis * (_axis.z * c_1);
+    mat->row0.z = temp.x - _axis_s.y;
+    mat->row1.z = temp.y + _axis_s.x;
+    mat->row2.z = temp.z + c;
 }
 
-inline void mat3_from_axis_angle_sin_cos(const vec3* axis, float_t sin_val, float_t cos_val, mat3* mat) {
-    float_t cos_val_1;
+inline void mat3_from_axis_angle(const vec3* axis, float_t s, float_t c, mat3* mat) {
+    float_t c_1;
     vec3 _axis;
-    vec3 _axis_sin;
+    vec3 _axis_s;
     vec3 temp;
 
-    cos_val_1 = 1.0f - cos_val;
+    c_1 = 1.0f - c;
 
     _axis = vec3::normalize(*axis);
 
-    _axis_sin = _axis * sin_val;
-    temp = _axis * (_axis.x * cos_val_1);
-    mat->row0.x = temp.x + cos_val;
-    mat->row1.x = temp.y - _axis_sin.z;
-    mat->row2.x = temp.z + _axis_sin.y;
-    temp = _axis * (_axis.y * cos_val_1);
-    mat->row0.y = temp.x + _axis_sin.z;
-    mat->row1.y = temp.y + cos_val;
-    mat->row2.y = temp.z - _axis_sin.x;
-    temp = _axis * (_axis.z * cos_val_1);
-    mat->row0.z = temp.x - _axis_sin.y;
-    mat->row1.z = temp.y + _axis_sin.x;
-    mat->row2.z = temp.z + cos_val;
+    _axis_s = _axis * s;
+    temp = _axis * (_axis.x * c_1);
+    mat->row0.x = temp.x + c;
+    mat->row1.x = temp.y - _axis_s.z;
+    mat->row2.x = temp.z + _axis_s.y;
+    temp = _axis * (_axis.y * c_1);
+    mat->row0.y = temp.x + _axis_s.z;
+    mat->row1.y = temp.y + c;
+    mat->row2.y = temp.z - _axis_s.x;
+    temp = _axis * (_axis.z * c_1);
+    mat->row0.z = temp.x - _axis_s.y;
+    mat->row1.z = temp.y + _axis_s.x;
+    mat->row2.z = temp.z + c;
 }
 
 inline void mat3_from_mat4(const mat4* x, mat3* z) {
@@ -890,11 +851,25 @@ inline void mat3_mult_axis_angle(const mat3* x, const vec3* axis, const float_t 
     mat3_from_quat(&q3, z);
 }
 
+inline void mat4_add(const mat4* x, float_t y, mat4* z) {
+    z->row0 = x->row0 + y;
+    z->row1 = x->row1 + y;
+    z->row2 = x->row2 + y;
+    z->row3 = x->row3 + y;
+}
+
 inline void mat4_add(const mat4* x, const mat4* y, mat4* z) {
     z->row0 = x->row0 + y->row0;
     z->row1 = x->row1 + y->row1;
     z->row2 = x->row2 + y->row2;
     z->row3 = x->row3 + y->row3;
+}
+
+inline void mat4_sub(const mat4* x, float_t y, mat4* z) {
+    z->row0 = x->row0 - y;
+    z->row1 = x->row1 - y;
+    z->row2 = x->row2 - y;
+    z->row3 = x->row3 - y;
 }
 
 inline void mat4_sub(const mat4* x, const mat4* y, mat4* z) {
@@ -904,7 +879,14 @@ inline void mat4_sub(const mat4* x, const mat4* y, mat4* z) {
     z->row3 = x->row3 - y->row3;
 }
 
-inline void mat4_mult(const mat4* x, const mat4* y, mat4* z) {
+inline void mat4_mul(const mat4* x, float_t y, mat4* z) {
+    z->row0 = x->row0 * y;
+    z->row1 = x->row1 * y;
+    z->row2 = x->row2 * y;
+    z->row3 = x->row3 * y;
+}
+
+inline void mat4_mul(const mat4* x, const mat4* y, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 t2;
@@ -944,7 +926,7 @@ inline void mat4_mult(const mat4* x, const mat4* y, mat4* z) {
     z->row3 = vec4::store_xmm(_mm_add_ps(_mm_add_ps(t0, t1), _mm_add_ps(t2, t3)));
 }
 
-inline void mat4_mult_vec2(const mat4* x, const vec2* y, vec2* z) {
+inline void mat4_transform_vector(const mat4* x, const vec2* y, vec2* z) {
     __m128 yt;
     __m128 zt;
     __m128 zt0;
@@ -956,21 +938,7 @@ inline void mat4_mult_vec2(const mat4* x, const vec2* y, vec2* z) {
     *z = *(vec2*)&zt;
 }
 
-inline void mat4_mult_vec2_trans(const mat4* x, const vec2* y, vec2* z) {
-    __m128 yt;
-    __m128 zt;
-    __m128 zt0;
-    __m128 zt1;
-    __m128 zt2;
-    *(vec2*)&yt = *y;
-    zt0 = _mm_mul_ps(vec4::load_xmm(x->row0), _mm_shuffle_ps(yt, yt, 0x00));
-    zt1 = _mm_mul_ps(vec4::load_xmm(x->row1), _mm_shuffle_ps(yt, yt, 0x55));
-    zt2 = vec4::load_xmm(x->row3);
-    zt = _mm_add_ps(_mm_add_ps(zt0, zt1), zt2);
-    *z = *(vec2*)&zt;
-}
-
-inline void mat4_mult_vec3(const mat4* x, const vec3* y, vec3* z) {
+inline void mat4_transform_vector(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
     __m128 zt0;
@@ -984,22 +952,35 @@ inline void mat4_mult_vec3(const mat4* x, const vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void mat4_mult_vec3_inv(const mat4* x, const vec3* y, vec3* z) {
+inline void mat4_transform_vector(const mat4* x, const vec4* y, vec4* z) {
     __m128 yt;
-    __m128 zt;
-    yt = vec3::load_xmm(*y);
-    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row0));
-    zt = _mm_hadd_ps(zt, zt);
-    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
-    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row1));
-    zt = _mm_hadd_ps(zt, zt);
-    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
-    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row2));
-    zt = _mm_hadd_ps(zt, zt);
-    z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    __m128 zt0;
+    __m128 zt1;
+    __m128 zt2;
+    __m128 zt3;
+    yt = vec4::load_xmm(*y);
+    zt0 = _mm_mul_ps(vec4::load_xmm(x->row0), _mm_shuffle_ps(yt, yt, 0x00));
+    zt1 = _mm_mul_ps(vec4::load_xmm(x->row1), _mm_shuffle_ps(yt, yt, 0x55));
+    zt2 = _mm_mul_ps(vec4::load_xmm(x->row2), _mm_shuffle_ps(yt, yt, 0xAA));
+    zt3 = _mm_mul_ps(vec4::load_xmm(x->row3), _mm_shuffle_ps(yt, yt, 0xFF));
+    *z = vec4::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3)));
 }
 
-inline void mat4_mult_vec3_trans(const mat4* x, const vec3* y, vec3* z) {
+inline void mat4_transform_point(const mat4* x, const vec2* y, vec2* z) {
+    __m128 yt;
+    __m128 zt;
+    __m128 zt0;
+    __m128 zt1;
+    __m128 zt2;
+    *(vec2*)&yt = *y;
+    zt0 = _mm_mul_ps(vec4::load_xmm(x->row0), _mm_shuffle_ps(yt, yt, 0x00));
+    zt1 = _mm_mul_ps(vec4::load_xmm(x->row1), _mm_shuffle_ps(yt, yt, 0x55));
+    zt2 = vec4::load_xmm(x->row3);
+    zt = _mm_add_ps(_mm_add_ps(zt0, zt1), zt2);
+    *z = *(vec2*)&zt;
+}
+
+inline void mat4_transform_point(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
     __m128 zt0;
@@ -1015,7 +996,61 @@ inline void mat4_mult_vec3_trans(const mat4* x, const vec3* y, vec3* z) {
     *z = *(vec3*)&zt;
 }
 
-inline void mat4_mult_vec3_inv_trans(const mat4* x, const vec3* y, vec3* z) {
+inline void mat4_inverse_transform_vector(const mat4* x, const vec2* y, vec2* z) {
+    __m128 yt;
+    __m128 zt;
+    yt = vec2::load_xmm(*y);
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row0));
+    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row1));
+    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline void mat4_inverse_transform_vector(const mat4* x, const vec3* y, vec3* z) {
+    __m128 yt;
+    __m128 zt;
+    yt = vec3::load_xmm(*y);
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row0));
+    zt = _mm_hadd_ps(zt, zt);
+    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row1));
+    zt = _mm_hadd_ps(zt, zt);
+    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row2));
+    zt = _mm_hadd_ps(zt, zt);
+    z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline void mat4_inverse_transform_vector(const mat4* x, const vec4* y, vec4* z) {
+    __m128 yt;
+    __m128 zt;
+    yt = vec4::load_xmm(*y);
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row0));
+    zt = _mm_hadd_ps(zt, zt);
+    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row1));
+    zt = _mm_hadd_ps(zt, zt);
+    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row2));
+    zt = _mm_hadd_ps(zt, zt);
+    z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row3));
+    zt = _mm_hadd_ps(zt, zt);
+    z->w = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline void mat4_inverse_transform_point(const mat4* x, const vec2* y, vec2* z) {
+    __m128 yt;
+    __m128 zt;
+    yt = vec2::load_xmm(*y);
+    yt = _mm_sub_ps(yt, vec4::load_xmm(x->row3));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row0));
+    z->x = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+    zt = _mm_mul_ps(yt, vec4::load_xmm(x->row1));
+    z->y = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
+}
+
+inline void mat4_inverse_transform_point(const mat4* x, const vec3* y, vec3* z) {
     __m128 yt;
     __m128 zt;
     yt = vec3::load_xmm(*y);
@@ -1029,29 +1064,6 @@ inline void mat4_mult_vec3_inv_trans(const mat4* x, const vec3* y, vec3* z) {
     zt = _mm_mul_ps(yt, vec4::load_xmm(x->row2));
     zt = _mm_hadd_ps(zt, zt);
     z->z = _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
-}
-
-inline void mat4_mult_vec(const mat4* x, vec4* y, vec4* z) {
-    __m128 yt;
-    __m128 zt0;
-    __m128 zt1;
-    __m128 zt2;
-    __m128 zt3;
-    yt = vec4::load_xmm(*y);
-    zt0 = _mm_mul_ps(vec4::load_xmm(x->row0), _mm_shuffle_ps(yt, yt, 0x00));
-    zt1 = _mm_mul_ps(vec4::load_xmm(x->row1), _mm_shuffle_ps(yt, yt, 0x55));
-    zt2 = _mm_mul_ps(vec4::load_xmm(x->row2), _mm_shuffle_ps(yt, yt, 0xAA));
-    zt3 = _mm_mul_ps(vec4::load_xmm(x->row3), _mm_shuffle_ps(yt, yt, 0xFF));
-    *z = vec4::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3)));
-}
-
-inline void mat4_mult_scalar(const mat4* x, float_t y, mat4* z) {
-    __m128 yt;
-    yt = vec4::load_xmm(y);
-    z->row0 = vec4::store_xmm(_mm_mul_ps(vec4::load_xmm(x->row0), yt));
-    z->row1 = vec4::store_xmm(_mm_mul_ps(vec4::load_xmm(x->row1), yt));
-    z->row2 = vec4::store_xmm(_mm_mul_ps(vec4::load_xmm(x->row2), yt));
-    z->row3 = vec4::store_xmm(_mm_mul_ps(vec4::load_xmm(x->row3), yt));
 }
 
 inline void mat4_transpose(const mat4* x, mat4* z) {
@@ -1256,334 +1268,202 @@ inline float_t mat4_determinant(const mat4* x) {
     return b00 * b11 - b01 * b10 + b02 * b09 + b03 * b08 - b04 * b07 + b05 * b06;
 }
 
-inline void mat4_rotate_xyz(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_x(float_t rad, mat4* y) {
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *y = mat4_identity;
+    y->row1.y = c;
+    y->row1.z = s;
+    y->row2.y = -s;
+    y->row2.z = c;
+}
+
+inline void mat4_rotate_y(float_t rad, mat4* y) {
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *y = mat4_identity;
+    y->row0.x = c;
+    y->row0.z = -s;
+    y->row2.x = s;
+    y->row2.z = c;
+}
+
+inline void mat4_rotate_z(float_t rad, mat4* y) {
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
+    *y = mat4_identity;
+    y->row0.x = c;
+    y->row0.y = s;
+    y->row1.x = -s;
+    y->row1.y = c;
+}
+
+inline void mat4_rotate_x(float_t s, float_t c, mat4* y) {
+    *y = mat4_identity;
+    y->row1.y = c;
+    y->row1.z = s;
+    y->row2.y = -s;
+    y->row2.z = c;
+}
+
+inline void mat4_rotate_y(float_t s, float_t c, mat4* y) {
+    *y = mat4_identity;
+    y->row0.x = c;
+    y->row0.z = -s;
+    y->row2.x = s;
+    y->row2.z = c;
+}
+
+inline void mat4_rotate_z(float_t s, float_t c, mat4* y) {
+    *y = mat4_identity;
+    y->row0.x = c;
+    y->row0.y = s;
+    y->row1.x = -s;
+    y->row1.y = c;
+}
+
+inline void mat4_rotate_xyz(float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
     dt = mat4_identity;
-    if (x != 0.0f)
-        mat4_rotate_x(x, &dt);
-
-    if (y != 0.0f)
-        if (x != 0.0f)
-            mat4_rotate_y_mult(&dt, y, &dt);
-        else
-            mat4_rotate_y(y, &dt);
-
-    if (z != 0.0f)
-        if (y != 0.0f || x != 0.0f)
-            mat4_rotate_z_mult(&dt, z, &dt);
-        else
-            mat4_rotate_z(z, &dt);
-    *d = dt;
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat4_rotate_xzy(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_xzy(float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
     dt = mat4_identity;
-    if (x != 0.0f)
-        mat4_rotate_x(x, &dt);
-
-    if (z != 0.0f)
-        if (x != 0.0f)
-            mat4_rotate_z_mult(&dt, z, &dt);
-        else
-            mat4_rotate_z(z, &dt);
-
-    if (y != 0.0f)
-        if (z != 0.0f || x != 0.0f)
-            mat4_rotate_y_mult(&dt, y, &dt);
-        else
-            mat4_rotate_y(y, &dt);
-    *d = dt;
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
 }
 
-inline void mat4_rotate_yxz(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_yxz(float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
     dt = mat4_identity;
-    if (y != 0.0f)
-        mat4_rotate_y(y, &dt);
-
-    if (x != 0.0f)
-        if (y != 0.0f)
-            mat4_rotate_x_mult(&dt, x, &dt);
-        else
-            mat4_rotate_x(x, &dt);
-
-    if (z != 0.0f)
-        if (x != 0.0f || y != 0.0f)
-            mat4_rotate_z_mult(&dt, z, &dt);
-        else
-            mat4_rotate_z(z, &dt);
-    *d = dt;
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat4_rotate_yzx(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_yzx(float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
     dt = mat4_identity;
-    if (y != 0.0f)
-        mat4_rotate_y(y, &dt);
-
-    if (z != 0.0f)
-        if (y != 0.0f)
-            mat4_rotate_z_mult(&dt, z, &dt);
-        else
-            mat4_rotate_z(z, &dt);
-
-    if (x != 0.0f)
-        if (z != 0.0f || y != 0.0f)
-            mat4_rotate_x_mult(&dt, x, &dt);
-        else
-            mat4_rotate_x(x, &dt);
-    *d = dt;
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
 }
 
-inline void mat4_rotate_zxy(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_zxy(float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
     dt = mat4_identity;
-    if (z != 0.0f)
-        mat4_rotate_z(z, &dt);
-
-    if (x != 0.0f)
-        if (z != 0.0f)
-            mat4_rotate_x_mult(&dt, x, &dt);
-        else
-            mat4_rotate_x(x, &dt);
-
-    if (y != 0.0f)
-        if (x != 0.0f || z != 0.0f)
-            mat4_rotate_y_mult(&dt, y, &dt);
-        else
-            mat4_rotate_y(y, &dt);
-    *d = dt;
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
 }
 
-inline void mat4_rotate_zyx(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_rotate_zyx(float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
     dt = mat4_identity;
-    if (z != 0.0f)
-        mat4_rotate_z(z, &dt);
-
-    if (y != 0.0f)
-        if (z != 0.0f)
-            mat4_rotate_y_mult(&dt, y, &dt);
-        else
-            mat4_rotate_y(y, &dt);
-
-    if (x != 0.0f)
-        if (y != 0.0f || z != 0.0f)
-            mat4_rotate_x_mult(&dt, x, &dt);
-        else
-            mat4_rotate_x(x, &dt);
-    *d = dt;
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
 }
 
-inline void mat4_rotate_x(float_t x, mat4* y) {
-    mat4 yt;
-    float_t x_sin = sinf(x);
-    float_t x_cos = cosf(x);
-    yt = mat4_identity;
-    yt.row1.y = x_cos;
-    yt.row1.z = x_sin;
-    yt.row2.y = -x_sin;
-    yt.row2.z = x_cos;
-    *y = yt;
-}
-
-inline void mat4_rotate_y(float_t x, mat4* y) {
-    mat4 yt;
-    float_t x_sin = sinf(x);
-    float_t x_cos = cosf(x);
-    yt = mat4_identity;
-    yt.row0.x = x_cos;
-    yt.row0.z = -x_sin;
-    yt.row2.x = x_sin;
-    yt.row2.z = x_cos;
-    *y = yt;
-}
-
-inline void mat4_rotate_z(float_t x, mat4* y) {
-    mat4 yt;
-    float_t x_sin = sinf(x);
-    float_t x_cos = cosf(x);
-    yt = mat4_identity;
-    yt.row0.x = x_cos;
-    yt.row0.y = x_sin;
-    yt.row1.x = -x_sin;
-    yt.row1.y = x_cos;
-    *y = yt;
-}
-
-inline void mat4_rotate_xyz_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = *s;
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
-    if (z != 0.0f)
-        mat4_rotate_z_mult(&dt, z, &dt);
-    *d = dt;
-}
-
-inline void mat4_rotate_xzy_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = *s;
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    if (z != 0.0f)
-        mat4_rotate_z_mult(&dt, z, &dt);
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
-    *d = dt;
-}
-
-inline void mat4_rotate_yxz_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = *s;
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    if (z != 0.0f)
-        mat4_rotate_z_mult(&dt, z, &dt);
-    *d = dt;
-}
-
-inline void mat4_rotate_yzx_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = *s;
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
-    if (z != 0.0f)
-        mat4_rotate_z_mult(&dt, z, &dt);
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    *d = dt;
-}
-
-inline void mat4_rotate_zxy_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = *s;
-    if (z != 0.0f)
-        mat4_rotate_z_mult(&dt, z, &dt);
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
-    *d = dt;
-}
-
-inline void mat4_rotate_zyx_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = *s;
-    if (z != 0.0f)
-        mat4_rotate_z_mult(&dt, z, &dt);
-    if (y != 0.0f)
-        mat4_rotate_y_mult(&dt, y, &dt);
-    if (x != 0.0f)
-        mat4_rotate_x_mult(&dt, x, &dt);
-    *d = dt;
-}
-
-inline void mat4_rotate_x_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_rotate_x(const mat4* x, float_t rad, mat4* z) {
     __m128 t1;
     __m128 t2;
     __m128 y0;
     __m128 y1;
     __m128 y2;
     __m128 y3;
-    float_t y_sin = sinf(y);
-    float_t y_cos = cosf(y);
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
     y0 = vec4::load_xmm(x->row0);
     y1 = vec4::load_xmm(x->row1);
     y2 = vec4::load_xmm(x->row2);
     y3 = vec4::load_xmm(x->row3);
     z->row0 = vec4::store_xmm(y0);
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(y_cos));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(y_sin));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(s));
     z->row1 = vec4::store_xmm(_mm_add_ps(t1, t2));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(-y_sin));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(y_cos));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(-s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
     z->row2 = vec4::store_xmm(_mm_add_ps(t1, t2));
     z->row3 = vec4::store_xmm(y3);
 }
 
-inline void mat4_rotate_y_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_rotate_y(const mat4* x, float_t rad, mat4* z) {
     __m128 t0;
     __m128 t2;
     __m128 y0;
     __m128 y1;
     __m128 y2;
     __m128 y3;
-    float_t y_sin = sinf(y);
-    float_t y_cos = cosf(y);
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
     y0 = vec4::load_xmm(x->row0);
     y1 = vec4::load_xmm(x->row1);
     y2 = vec4::load_xmm(x->row2);
     y3 = vec4::load_xmm(x->row3);
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(y_cos));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(-y_sin));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(-s));
     z->row0 = vec4::store_xmm(_mm_add_ps(t0, t2));
     z->row1 = vec4::store_xmm(y1);
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(y_sin));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(y_cos));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
     z->row2 = vec4::store_xmm(_mm_add_ps(t0, t2));
     z->row3 = vec4::store_xmm(y3);
 }
 
-inline void mat4_rotate_z_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_rotate_z(const mat4* x, float_t rad, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 y0;
     __m128 y1;
     __m128 y2;
     __m128 y3;
-    float_t y_sin = sinf(y);
-    float_t y_cos = cosf(y);
+    float_t s = sinf(rad);
+    float_t c = cosf(rad);
     y0 = vec4::load_xmm(x->row0);
     y1 = vec4::load_xmm(x->row1);
     y2 = vec4::load_xmm(x->row2);
     y3 = vec4::load_xmm(x->row3);
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(y_cos));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(y_sin));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(s));
     z->row0 = vec4::store_xmm(_mm_add_ps(t0, t1));
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(-y_sin));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(y_cos));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(-s));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
     z->row1 = vec4::store_xmm(_mm_add_ps(t0, t1));
     z->row2 = vec4::store_xmm(y2);
     z->row3 = vec4::store_xmm(y3);
 }
 
-inline void mat4_rotate_x_sin_cos(float_t sin_val, float_t cos_val, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row1.y = cos_val;
-    yt.row1.z = sin_val;
-    yt.row2.y = -sin_val;
-    yt.row2.z = cos_val;
-    *y = yt;
-}
-
-inline void mat4_rotate_y_sin_cos(float_t sin_val, float_t cos_val, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row0.x = cos_val;
-    yt.row0.z = -sin_val;
-    yt.row2.x = sin_val;
-    yt.row2.z = cos_val;
-    *y = yt;
-}
-
-inline void mat4_rotate_z_sin_cos(float_t sin_val, float_t cos_val, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row0.x = cos_val;
-    yt.row0.y = sin_val;
-    yt.row1.x = -sin_val;
-    yt.row1.y = cos_val;
-    *y = yt;
-}
-
-inline void mat4_rotate_x_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_mul_rotate_x(const mat4* x, float_t s, float_t c, mat4* z) {
     __m128 t1;
     __m128 t2;
     __m128 y0;
@@ -1595,16 +1475,16 @@ inline void mat4_rotate_x_mult_sin_cos(const mat4* x, float_t sin_val, float_t c
     y2 = vec4::load_xmm(x->row2);
     y3 = vec4::load_xmm(x->row3);
     z->row0 = vec4::store_xmm(y0);
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(cos_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(sin_val));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(s));
     z->row1 = vec4::store_xmm(_mm_add_ps(t1, t2));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(-sin_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(cos_val));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(-s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
     z->row2 = vec4::store_xmm(_mm_add_ps(t1, t2));
     z->row3 = vec4::store_xmm(y3);
 }
 
-inline void mat4_rotate_y_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_mul_rotate_y(const mat4* x, float_t s, float_t c, mat4* z) {
     __m128 t0;
     __m128 t2;
     __m128 y0;
@@ -1615,17 +1495,17 @@ inline void mat4_rotate_y_mult_sin_cos(const mat4* x, float_t sin_val, float_t c
     y1 = vec4::load_xmm(x->row1);
     y2 = vec4::load_xmm(x->row2);
     y3 = vec4::load_xmm(x->row3);
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(cos_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(-sin_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(-s));
     z->row0 = vec4::store_xmm(_mm_add_ps(t0, t2));
     z->row1 = vec4::store_xmm(y1);
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(sin_val));
-    t2 = _mm_mul_ps(y2, vec4::load_xmm(cos_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(s));
+    t2 = _mm_mul_ps(y2, vec4::load_xmm(c));
     z->row2 = vec4::store_xmm(_mm_add_ps(t0, t2));
     z->row3 = vec4::store_xmm(y3);
 }
 
-inline void mat4_rotate_z_mult_sin_cos(const mat4* x, float_t sin_val, float_t cos_val, mat4* z) {
+inline void mat4_mul_rotate_z(const mat4* x, float_t s, float_t c, mat4* z) {
     __m128 t0;
     __m128 t1;
     __m128 y0;
@@ -1636,116 +1516,177 @@ inline void mat4_rotate_z_mult_sin_cos(const mat4* x, float_t sin_val, float_t c
     y1 = vec4::load_xmm(x->row1);
     y2 = vec4::load_xmm(x->row2);
     y3 = vec4::load_xmm(x->row3);
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(cos_val));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(sin_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(c));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(s));
     z->row0 = vec4::store_xmm(_mm_add_ps(t0, t1));
-    t0 = _mm_mul_ps(y0, vec4::load_xmm(-sin_val));
-    t1 = _mm_mul_ps(y1, vec4::load_xmm(cos_val));
+    t0 = _mm_mul_ps(y0, vec4::load_xmm(-s));
+    t1 = _mm_mul_ps(y1, vec4::load_xmm(c));
     z->row1 = vec4::store_xmm(_mm_add_ps(t0, t1));
     z->row2 = vec4::store_xmm(y2);
     z->row3 = vec4::store_xmm(y3);
 }
 
-inline void mat4_scale(float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_mul_rotate_xyz(const mat4* x, float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
-    dt = mat4_identity;
-    if (x != 1.0f)
-        dt.row0.x = x;
-    if (y != 1.0f)
-        dt.row1.y = y;
-    if (z != 1.0f)
-        dt.row2.z = z;
-    *d = dt;
+    dt = *x;
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
 }
 
-inline void mat4_scale_x(float_t x, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row0.x = x;
-    *y = yt;
-}
-
-inline void mat4_scale_y(float_t x, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row1.y = x;
-    *y = yt;
-}
-
-inline void mat4_scale_z(float_t x, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row2.z = x;
-    *y = yt;
-}
-
-inline void mat4_scale_mult(const mat4* s, float_t x, float_t y, float_t z, float_t w, mat4* d) {
+inline void mat4_mul_rotate_xzy(const mat4* x, float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
     mat4 dt;
-    if (x != 1.0f || y != 1.0f || z != 1.0f || w != 1.0f) {
+    dt = *x;
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
+}
+
+inline void mat4_mul_rotate_yxz(const mat4* x, float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
+    mat4 dt;
+    dt = *x;
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    *z = dt;
+}
+
+inline void mat4_mul_rotate_yzx(const mat4* x, float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
+    mat4 dt;
+    dt = *x;
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
+}
+
+inline void mat4_mul_rotate_zxy(const mat4* x, float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
+    mat4 dt;
+    dt = *x;
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    *z = dt;
+}
+
+inline void mat4_mul_rotate_zyx(const mat4* x, float_t rad_x, float_t rad_y, float_t rad_z, mat4* z) {
+    mat4 dt;
+    dt = *x;
+    if (rad_z != 0.0f)
+        mat4_mul_rotate_z(&dt, rad_z, &dt);
+    if (rad_y != 0.0f)
+        mat4_mul_rotate_y(&dt, rad_y, &dt);
+    if (rad_x != 0.0f)
+        mat4_mul_rotate_x(&dt, rad_x, &dt);
+    *z = dt;
+}
+
+inline void mat4_scale(float_t sx, float_t sy, float_t sz, mat4* z) {
+    *z = mat4_identity;
+    z->row0.x = sx;
+    z->row1.y = sy;
+    z->row2.z = sz;
+}
+
+inline void mat4_scale_x(float_t s, mat4* y) {
+    *y = mat4_identity;
+    y->row0.x = s;
+}
+
+inline void mat4_scale_y(float_t s, mat4* y) {
+    *y = mat4_identity;
+    y->row1.y = s;
+}
+
+inline void mat4_scale_z(float_t s, mat4* y) {
+    *y = mat4_identity;
+    y->row2.z = s;
+}
+
+inline void mat4_mul_scale(const mat4* x, float_t sx, float_t sy, float_t sz, float_t sw, mat4* z) {
+    mat4 dt;
+    if (sx != 1.0f || sy != 1.0f || sz != 1.0f || sw != 1.0f) {
         dt = mat4_identity;
-        dt.row0.x = x;
-        dt.row1.y = y;
-        dt.row2.z = z;
-        dt.row3.w = w;
-        mat4_mult(s, &dt, d);
+        dt.row0.x = sx;
+        dt.row1.y = sy;
+        dt.row2.z = sz;
+        dt.row3.w = sw;
+        mat4_mul(x, &dt, z);
     }
-    else if (s != d)
-        *d = *s;
+    else if (x != z)
+        *z = *x;
 }
 
-inline void mat4_scale_x_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_scale_x(const mat4* x, float_t s, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
-    yt.row0.x = y;
-    mat4_mult(x, &yt, z);
+    yt.row0.x = s;
+    mat4_mul(x, &yt, z);
 }
 
-inline void mat4_scale_y_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_scale_y(const mat4* x, float_t s, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
-    yt.row1.y = y;
-    mat4_mult(x, &yt, z);
+    yt.row1.y = s;
+    mat4_mul(x, &yt, z);
 }
 
-inline void mat4_scale_z_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_scale_z(const mat4* x, float_t s, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
-    yt.row2.z = y;
-    mat4_mult(x, &yt, z);
+    yt.row2.z = s;
+    mat4_mul(x, &yt, z);
 }
 
-inline void mat4_scale_w_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_w_mult(const mat4* x, float_t s, mat4* z) {
     mat4 yt;
     yt = mat4_identity;
-    yt.row3.w = y;
-    mat4_mult(x, &yt, z);
+    yt.row3.w = s;
+    mat4_mul(x, &yt, z);
 }
 
-inline void mat4_scale_rot(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_scale_rot(const mat4* x, float_t sx, float_t sy, float_t sz, mat4* z) {
     mat3 st;
     mat3 dt;
-    if (x != 1.0f || y != 1.0f || z != 1.0f) {
-        st.row0 = *(vec3*)&s->row0;
-        st.row1 = *(vec3*)&s->row1;
-        st.row2 = *(vec3*)&s->row2;
+    if (sx != 1.0f || sy != 1.0f || sz != 1.0f) {
+        st.row0 = *(vec3*)&x->row0;
+        st.row1 = *(vec3*)&x->row1;
+        st.row2 = *(vec3*)&x->row2;
         dt = mat3_identity;
-        dt.row0.x = x;
-        dt.row1.y = y;
-        dt.row2.z = z;
-        mat3_mult(&st, &dt, &dt);
-        *(vec3*)&d->row0 = dt.row0;
-        *(vec3*)&d->row1 = dt.row1;
-        *(vec3*)&d->row2 = dt.row2;
-        d->row0.w = s->row0.w;
-        d->row1.w = s->row1.w;
-        d->row2.w = s->row2.w;
-        d->row3 = s->row3;
+        dt.row0.x = sx;
+        dt.row1.y = sy;
+        dt.row2.z = sz;
+        mat3_mul(&st, &dt, &dt);
+        *(vec3*)&z->row0 = dt.row0;
+        *(vec3*)&z->row1 = dt.row1;
+        *(vec3*)&z->row2 = dt.row2;
+        z->row0.w = x->row0.w;
+        z->row1.w = x->row1.w;
+        z->row2.w = x->row2.w;
+        z->row3 = x->row3;
     }
     else
-        *d = *s;
+        *z = *x;
 }
 
-inline void mat4_scale_x_rot(const mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_x_rot(const mat4* x, float_t s, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1753,8 +1694,8 @@ inline void mat4_scale_x_rot(const mat4* x, float_t y, mat4* z) {
     xt.row1 = *(vec3*)&x->row1;
     xt.row2 = *(vec3*)&x->row2;
     yt = mat3_identity;
-    yt.row0.x = y;
-    mat3_mult(&xt, &yt, &zt);
+    yt.row0.x = s;
+    mat3_mul(&xt, &yt, &zt);
     *(vec3*)&z->row0 = zt.row0;
     *(vec3*)&z->row1 = zt.row1;
     *(vec3*)&z->row2 = zt.row2;
@@ -1764,7 +1705,7 @@ inline void mat4_scale_x_rot(const mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_scale_y_rot(const mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_y_rot(const mat4* x, float_t s, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1772,8 +1713,8 @@ inline void mat4_scale_y_rot(const mat4* x, float_t y, mat4* z) {
     xt.row1 = *(vec3*)&x->row1;
     xt.row2 = *(vec3*)&x->row2;
     yt = mat3_identity;
-    yt.row1.y = y;
-    mat3_mult(&xt, &yt, &zt);
+    yt.row1.y = s;
+    mat3_mul(&xt, &yt, &zt);
     *(vec3*)&z->row0 = zt.row0;
     *(vec3*)&z->row1 = zt.row1;
     *(vec3*)&z->row2 = zt.row2;
@@ -1783,7 +1724,7 @@ inline void mat4_scale_y_rot(const mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_scale_z_rot(const mat4* x, float_t y, mat4* z) {
+inline void mat4_scale_z_rot(const mat4* x, float_t s, mat4* z) {
     mat3 xt;
     mat3 yt;
     mat3 zt;
@@ -1791,8 +1732,8 @@ inline void mat4_scale_z_rot(const mat4* x, float_t y, mat4* z) {
     xt.row1 = *(vec3*)&x->row1;
     xt.row2 = *(vec3*)&x->row2;
     yt = mat3_identity;
-    yt.row2.z = y;
-    mat3_mult(&xt, &yt, &zt);
+    yt.row2.z = s;
+    mat3_mul(&xt, &yt, &zt);
     *(vec3*)&z->row0 = zt.row0;
     *(vec3*)&z->row1 = zt.row1;
     *(vec3*)&z->row2 = zt.row2;
@@ -1802,119 +1743,111 @@ inline void mat4_scale_z_rot(const mat4* x, float_t y, mat4* z) {
     z->row3 = x->row3;
 }
 
-inline void mat4_translate(float_t x, float_t y, float_t z, mat4* d) {
-    mat4 dt;
-    dt = mat4_identity;
-    dt.row3.x = x;
-    dt.row3.y = y;
-    dt.row3.z = z;
-    *d = dt;
+inline void mat4_translate(float_t tx, float_t ty, float_t tz, mat4* z) {
+    *z = mat4_identity;
+    z->row3.x = tx;
+    z->row3.y = ty;
+    z->row3.z = tz;
 }
 
-inline void mat4_translate_x(float_t x, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row3.x = x;
-    *y = yt;
+inline void mat4_translate_x(float_t t, mat4* y) {
+    *y = mat4_identity;
+    y->row3.x = t;
 }
 
-inline void mat4_translate_y(float_t x, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row3.y = x;
-    *y = yt;
+inline void mat4_translate_y(float_t t, mat4* y) {
+    *y = mat4_identity;
+    y->row3.y = t;
 }
 
-inline void mat4_translate_z(float_t x, mat4* y) {
-    mat4 yt;
-    yt = mat4_identity;
-    yt.row3.z = x;
-    *y = yt;
+inline void mat4_translate_z(float_t t, mat4* y) {
+    *y = mat4_identity;
+    y->row3.z = t;
 }
 
-inline void mat4_translate_mult(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
+inline void mat4_mul_translate(const mat4* x, float_t tx, float_t ty, float_t tz, mat4* z) {
     __m128 yt;
     __m128 yt0;
     __m128 yt1;
     __m128 yt2;
     __m128 yt3;
-    if (s != d)
-        *d = *s;
-    if (x != 0.0f || y != 0.0f || z != 0.0f) {
-        yt0 = _mm_mul_ps(vec4::load_xmm(s->row0), vec4::load_xmm(x));
-        yt1 = _mm_mul_ps(vec4::load_xmm(s->row1), vec4::load_xmm(y));
-        yt2 = _mm_mul_ps(vec4::load_xmm(s->row2), vec4::load_xmm(z));
-        yt3 = vec4::load_xmm(s->row3);
+    if (x != z)
+        *z = *x;
+    if (tx != 0.0f || ty != 0.0f || tz != 0.0f) {
+        yt0 = _mm_mul_ps(vec4::load_xmm(x->row0), vec4::load_xmm(tx));
+        yt1 = _mm_mul_ps(vec4::load_xmm(x->row1), vec4::load_xmm(ty));
+        yt2 = _mm_mul_ps(vec4::load_xmm(x->row2), vec4::load_xmm(tz));
+        yt3 = vec4::load_xmm(x->row3);
         yt = _mm_add_ps(_mm_add_ps(yt0, yt1), _mm_add_ps(yt2, yt3));
-        *(vec3*)&d->row3 = vec3::store_xmm(yt);
+        *(vec3*)&z->row3 = vec3::store_xmm(yt);
     }
 }
 
-inline void mat4_translate_x_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_translate_x(const mat4* x, float_t t, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     if (x != z)
         *z = *x;
-    if (y != 0.0f) {
+    if (t != 0.0f) {
         yt0 = vec4::load_xmm(x->row0);
         yt1 = vec4::load_xmm(x->row3);
-        yt0 = _mm_add_ps(_mm_mul_ps(yt0, vec4::load_xmm(y)), yt1);
+        yt0 = _mm_add_ps(_mm_mul_ps(yt0, vec4::load_xmm(t)), yt1);
         *(vec3*)&z->row3 = vec3::store_xmm(yt0);
     }
 }
 
-inline void mat4_translate_y_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_translate_y(const mat4* x, float_t t, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     if (x != z)
         *z = *x;
-    if (y != 0.0f) {
+    if (t != 0.0f) {
         yt0 = vec4::load_xmm(x->row1);
         yt1 = vec4::load_xmm(x->row3);
-        yt0 = _mm_add_ps(_mm_mul_ps(yt0, vec4::load_xmm(y)), yt1);
+        yt0 = _mm_add_ps(_mm_mul_ps(yt0, vec4::load_xmm(t)), yt1);
         *(vec3*)&z->row3 = vec3::store_xmm(yt0);
     }
 }
 
-inline void mat4_translate_z_mult(const mat4* x, float_t y, mat4* z) {
+inline void mat4_mul_translate_z(const mat4* x, float_t t, mat4* z) {
     __m128 yt0;
     __m128 yt1;
     if (x != z)
         *z = *x;
-    if (y != 0.0f) {
+    if (t != 0.0f) {
         yt0 = vec4::load_xmm(x->row2);
         yt1 = vec4::load_xmm(x->row3);
-        yt0 = _mm_add_ps(_mm_mul_ps(yt0, vec4::load_xmm(y)), yt1);
+        yt0 = _mm_add_ps(_mm_mul_ps(yt0, vec4::load_xmm(t)), yt1);
         *(vec3*)&z->row3 = vec3::store_xmm(yt0);
     }
 }
 
-inline void mat4_translate_add(const mat4* s, float_t x, float_t y, float_t z, mat4* d) {
-    if (s != d)
-        *d = *s;
-    if (x != 0.0f || y != 0.0f || z != 0.0f)
-        d->row3 = vec4::store_xmm(_mm_add_ps(vec4::load_xmm(s->row3), vec4::load_xmm(vec4(x, y, z, 0.0f))));
-}
-
-inline void mat4_translate_x_add(const mat4* x, float_t y, mat4* z) {
+inline void mat4_add_translate(const mat4* x, float_t tx, float_t ty, float_t tz, mat4* z) {
     if (x != z)
         *z = *x;
-    if (y != 0.0f)
-        z->row3.x += y;
+    if (tx != 0.0f || ty != 0.0f || tz != 0.0f)
+        z->row3 = vec4::store_xmm(_mm_add_ps(vec4::load_xmm(x->row3), vec4::load_xmm(vec4(tx, ty, tz, 0.0f))));
 }
 
-inline void mat4_translate_y_add(const mat4* x, float_t y, mat4* z) {
+inline void mat4_add_translate_x(const mat4* x, float_t t, mat4* z) {
     if (x != z)
         *z = *x;
-    if (y != 0.0f)
-        z->row3.y += y;
+    if (t != 0.0f)
+        z->row3.x += t;
 }
 
-inline void mat4_translate_z_add(const mat4* x, float_t y, mat4* z) {
+inline void mat4_add_translate_y(const mat4* x, float_t t, mat4* z) {
     if (x != z)
         *z = *x;
-    if (y != 0.0f)
-        z->row3.z += y;
+    if (t != 0.0f)
+        z->row3.y += t;
+}
+
+inline void mat4_add_translate_z(const mat4* x, float_t t, mat4* z) {
+    if (x != z)
+        *z = *x;
+    if (t != 0.0f)
+        z->row3.z += t;
 }
 
 inline void mat4_from_quat(const quat* quat, mat4* mat) {
@@ -1989,61 +1922,61 @@ void mat4_from_two_vectors(const vec3* x, const vec3* y, mat4* mat) {
 }
 
 inline void mat4_from_axis_angle(const vec3* axis, float_t angle, mat4* mat) {
-    float_t angle_sin;
-    float_t angle_cos;
-    float_t angle_cos_1;
+    float_t s;
+    float_t c;
+    float_t c_1;
     vec3 _axis;
-    vec3 _axis_sin;
+    vec3 _axis_s;
     vec3 temp;
 
-    angle_sin = sinf(angle);
-    angle_cos = cosf(angle);
-    angle_cos_1 = 1.0f - angle_cos;
+    s = sinf(angle);
+    c = cosf(angle);
+    c_1 = 1.0f - c;
 
     _axis = vec3::normalize(*axis);
 
-    _axis_sin = _axis * angle_sin;
-    temp = _axis * (_axis.x * angle_cos_1);
-    mat->row0.x = temp.x + angle_cos;
-    mat->row1.x = temp.y - _axis_sin.z;
-    mat->row2.x = temp.z + _axis_sin.y;
-    temp = _axis * (_axis.y * angle_cos_1);
-    mat->row0.y = temp.x + _axis_sin.z;
-    mat->row1.y = temp.y + angle_cos;
-    mat->row2.y = temp.z - _axis_sin.x;
-    temp = _axis * (_axis.z * angle_cos_1);
-    mat->row0.z = temp.x - _axis_sin.y;
-    mat->row1.z = temp.y + _axis_sin.x;
-    mat->row2.z = temp.z + angle_cos;
+    _axis_s = _axis * s;
+    temp = _axis * (_axis.x * c_1);
+    mat->row0.x = temp.x + c;
+    mat->row1.x = temp.y - _axis_s.z;
+    mat->row2.x = temp.z + _axis_s.y;
+    temp = _axis * (_axis.y * c_1);
+    mat->row0.y = temp.x + _axis_s.z;
+    mat->row1.y = temp.y + c;
+    mat->row2.y = temp.z - _axis_s.x;
+    temp = _axis * (_axis.z * c_1);
+    mat->row0.z = temp.x - _axis_s.y;
+    mat->row1.z = temp.y + _axis_s.x;
+    mat->row2.z = temp.z + c;
     mat->row0.w = 0.0f;
     mat->row1.w = 0.0f;
     mat->row2.w = 0.0f;
     mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
 }
 
-inline void mat4_from_axis_angle_sin_cos(const vec3* axis, float_t sin_val, float_t cos_val, mat4* mat) {
-    float_t cos_val_1;
+inline void mat4_from_axis_angle(const vec3* axis, float_t s, float_t c, mat4* mat) {
+    float_t c_1;
     vec3 _axis;
-    vec3 _axis_sin;
+    vec3 _axis_s;
     vec3 temp;
 
-    cos_val_1 = 1.0f - cos_val;
+    c_1 = 1.0f - c;
 
     _axis = vec3::normalize(*axis);
 
-    _axis_sin = _axis * sin_val;
-    temp = _axis * (_axis.x * cos_val_1);
-    mat->row0.x = temp.x + cos_val;
-    mat->row1.x = temp.y - _axis_sin.z;
-    mat->row2.x = temp.z + _axis_sin.y;
-    temp = _axis * (_axis.y * cos_val_1);
-    mat->row0.y = temp.x + _axis_sin.z;
-    mat->row1.y = temp.y + cos_val;
-    mat->row2.y = temp.z - _axis_sin.x;
-    temp = _axis * (_axis.z * cos_val_1);
-    mat->row0.z = temp.x - _axis_sin.y;
-    mat->row1.z = temp.y + _axis_sin.x;
-    mat->row2.z = temp.z + cos_val;
+    _axis_s = _axis * s;
+    temp = _axis * (_axis.x * c_1);
+    mat->row0.x = temp.x + c;
+    mat->row1.x = temp.y - _axis_s.z;
+    mat->row2.x = temp.z + _axis_s.y;
+    temp = _axis * (_axis.y * c_1);
+    mat->row0.y = temp.x + _axis_s.z;
+    mat->row1.y = temp.y + c;
+    mat->row2.y = temp.z - _axis_s.x;
+    temp = _axis * (_axis.z * c_1);
+    mat->row0.z = temp.x - _axis_s.y;
+    mat->row1.z = temp.y + _axis_s.x;
+    mat->row2.z = temp.z + c;
     mat->row0.w = 0.0f;
     mat->row1.w = 0.0f;
     mat->row2.w = 0.0f;

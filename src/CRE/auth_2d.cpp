@@ -706,16 +706,16 @@ void AetObj::Disp() {
 
     mat4 mat;
     mat4_translate(&pos, &mat);
-    mat4_rotate_xyz_mult(&mat, rot.x, rot.y, rot.z * scale_size.x * scale_size.y, &mat);
+    mat4_mul_rotate_xyz(&mat, rot.x, rot.y, rot.z * scale_size.x * scale_size.y, &mat);
     mat4_scale_rot(&mat, scale.x * scale_size.x, scale.y * scale_size.y, scale.z, &mat);
-    mat4_translate_mult(&mat, -anchor.x, -anchor.y, -anchor.z, &mat);
+    mat4_mul_translate(&mat, -anchor.x, -anchor.y, -anchor.z, &mat);
 
     const aet_camera* camera = scene->camera;
     if (camera) {
         float_t eye_x = camera->eye_x.interpolate(frame) - (float_t)scene->width * 0.5f;
         float_t eye_y = camera->eye_y.interpolate(frame) - (float_t)scene->height * 0.5f;
         float_t eye_z = camera->eye_z.interpolate(frame);
-        mat4_translate_mult(&mat, -eye_x, -eye_y, -eye_z, &mat);
+        mat4_mul_translate(&mat, -eye_x, -eye_y, -eye_z, &mat);
     }
 
     if (layer)
@@ -1163,21 +1163,21 @@ void AetObj::CalcMat(mat4& mat, const aet_layer* layer, float_t frame) {
         }
     }
 
-    mat4_translate_mult(&mat, pos_x, pos_y, -pos_z, &mat);
+    mat4_mul_translate(&mat, pos_x, pos_y, -pos_z, &mat);
     if (fabsf(dir_x) > 0.000001f)
-        mat4_rotate_x_mult(&mat, -dir_x, &mat);
+        mat4_mul_rotate_x(&mat, -dir_x, &mat);
     if (fabsf(dir_y) > 0.000001f)
-        mat4_rotate_y_mult(&mat, -dir_y, &mat);
+        mat4_mul_rotate_y(&mat, -dir_y, &mat);
     if (fabsf(dir_z) > 0.000001f)
-        mat4_rotate_z_mult(&mat, dir_z * scale_size.x * scale_size.y, &mat);
+        mat4_mul_rotate_z(&mat, dir_z * scale_size.x * scale_size.y, &mat);
     if (fabsf(rot_x) > 0.000001f)
-        mat4_rotate_x_mult(&mat, -rot_x, &mat);
+        mat4_mul_rotate_x(&mat, -rot_x, &mat);
     if (fabsf(rot_y) > 0.000001f)
-        mat4_rotate_y_mult(&mat, -rot_y, &mat);
+        mat4_mul_rotate_y(&mat, -rot_y, &mat);
     if (fabsf(rot_z) > 0.000001f)
-        mat4_rotate_z_mult(&mat, rot_z * scale_size.x * scale_size.y, &mat);
+        mat4_mul_rotate_z(&mat, rot_z * scale_size.x * scale_size.y, &mat);
     mat4_scale_rot(&mat, scale_x, scale_y, scale_z, &mat);
-    mat4_translate_mult(&mat, -anchor_x, -anchor_y, -anchor_z, &mat);
+    mat4_mul_translate(&mat, -anchor_x, -anchor_y, -anchor_z, &mat);
 }
 
 AetLyo::AetLyo(AetComp* comp) {
@@ -1216,7 +1216,7 @@ void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
         if (layer_video_3d)
             data.anchor.z = layer_video_3d->anchor_z.interpolate(frame);
         data.mat = m;
-        mat4_mult_vec3_trans(&m, &data.anchor, &data.position);
+        mat4_transform_point(&m, &data.anchor, &data.position);
 
         const aet_video* video = layer->item.video;
         data.width = (float_t)video->width;

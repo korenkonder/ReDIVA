@@ -139,7 +139,7 @@ namespace Glitter {
         switch (data.direction) {
         case DIRECTION_BILLBOARD:
             mat4_from_mat3(&GPM_VAL->cam.inv_view_mat3, &dir_mat);
-            mat4_mult(&eff_inst->mat, &dir_mat, &dir_mat);
+            mat4_mul(&eff_inst->mat, &dir_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
             break;
         case DIRECTION_Y_AXIS:
@@ -160,11 +160,11 @@ namespace Glitter {
         }
 
         mat4 mat;
-        mat4_translate_mult(&eff_inst->mat, &trans, &mat);
+        mat4_mul_translate(&eff_inst->mat, &trans, &mat);
         mat4_normalize_rotation(&mat, &mat);
         if (mult)
-            mat4_mult(&dir_mat, &mat, &mat);
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+            mat4_mul(&dir_mat, &mat, &mat);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_clear_trans(&mat, &mat_rot);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
@@ -485,7 +485,7 @@ namespace Glitter {
         vec3 scale = this->scale * scale_all;
 
         mat4 mat = eff_inst->mat;
-        mat4_translate_mult(&mat, &trans, &mat);
+        mat4_mul_translate(&mat, &trans, &mat);
         mat4 mat_rot;
         if (data.direction == DIRECTION_EFFECT_ROTATION) {
             mat4_normalize_rotation(&mat, &mat);
@@ -501,14 +501,14 @@ namespace Glitter {
             if (eff_inst->data.flags & EFFECT_LOCAL) {
                 dir_mat = GPM_VAL->cam.view;
                 mat4_clear_trans(&dir_mat, &dir_mat);
-                mat4_mult(&dir_mat, &mat, &dir_mat);
+                mat4_mul(&dir_mat, &mat, &dir_mat);
             }
             else
                 dir_mat = mat;
 
             mat4 inv_view_mat;
             mat4_from_mat3(&GPM_VAL->cam.inv_view_mat3, &inv_view_mat);
-            mat4_mult(&dir_mat, &inv_view_mat, &dir_mat);
+            mat4_mul(&dir_mat, &inv_view_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
         } break;
         case DIRECTION_Y_AXIS:
@@ -526,12 +526,12 @@ namespace Glitter {
         }
 
         if (mult) {
-            mat4_mult(&dir_mat, &mat, &mat);
-            mat4_mult(&dir_mat, &mat_rot, &mat_rot);
+            mat4_mul(&dir_mat, &mat, &mat);
+            mat4_mul(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
-        mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
+        mat4_mul_rotate_zyx(&mat_rot, &rot, &mat_rot);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;
@@ -593,9 +593,9 @@ namespace Glitter {
             vec3 trans = translation;
             vec3 rot = rotation;
             mat = eff_inst->mat;
-            mat4_translate_mult(&mat, &trans, &mat);
-            mat4_rotate_zyx_mult(&mat, &rot, &mat);
-            mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
+            mat4_mul_translate(&mat, &trans, &mat);
+            mat4_mul_rotate_zyx(&mat, &rot, &mat);
+            mat4_mul_rotate_zyx(&mat_rot, &rot, &mat_rot);
             this->mat = mat;
             this->mat_rot = mat_rot;
 
@@ -611,7 +611,7 @@ namespace Glitter {
         vec3 scale = this->scale * scale_all;
 
         mat4 mat = eff_inst->mat;
-        mat4_translate_mult(&mat, &trans, &mat);
+        mat4_mul_translate(&mat, &trans, &mat);
         mat4 mat_rot;
         if (data.direction == DIRECTION_EFFECT_ROTATION) {
             mat4_normalize_rotation(&mat, &mat);
@@ -625,7 +625,7 @@ namespace Glitter {
         switch (data.direction) {
         case DIRECTION_BILLBOARD: {
             mat4_from_mat3(&GPM_VAL->cam.inv_view_mat3, &dir_mat);
-            mat4_mult(&dir_mat, &mat, &dir_mat);
+            mat4_mul(&dir_mat, &mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
         } break;
         case DIRECTION_Y_AXIS:
@@ -643,12 +643,12 @@ namespace Glitter {
         }
 
         if (mult) {
-            mat4_mult(&dir_mat, &mat, &mat);
-            mat4_mult(&dir_mat, &mat_rot, &mat_rot);
+            mat4_mul(&dir_mat, &mat, &mat);
+            mat4_mul(&dir_mat, &mat_rot, &mat_rot);
         }
 
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
-        mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
+        mat4_mul_rotate_zyx(&mat_rot, &rot, &mat_rot);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
         this->mat_rot = mat_rot;

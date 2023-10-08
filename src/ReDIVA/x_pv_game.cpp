@@ -6435,7 +6435,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        mat4_mult_vec3_trans(&a1->scene_rot_mat, &pos, &pos);
+        mat4_transform_point(&a1->scene_rot_mat, &pos, &pos);
         rob_chr->set_data_miku_rot_position(pos);
         rob_chr->set_osage_reset();
     } break;
@@ -7116,7 +7116,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         if (!rob_chr)
             break;
 
-        mat4_mult_vec3_trans(&a1->scene_rot_mat, &pos, &pos);
+        mat4_transform_point(&a1->scene_rot_mat, &pos, &pos);
         rob_chr->set_chara_pos_adjust(pos);
 
         if (rob_chr->check_for_ageageagain_module()) {
@@ -7628,7 +7628,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             MOTION_BONE_N_HARA, key_set, data);
 
         data[0] = { 0.0f, 0.945f, 0.0f };
-        mat4_mult_vec3(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0], &data[1]);
+        mat4_transform_vector(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0], &data[1]);
         mat4_get_translation(&oh->node[a2m.j_mune_wj].model_transform.mat, &data[0]);
         data[0] += data[1];
         data[1] = 0.0f;
@@ -7648,7 +7648,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             MOTION_BONE_N_KAO, key_set, data);
 
         data[0] = { 0.0f, 0.40f, 0.0f };
-        mat4_mult_vec3(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0], &data[1]);
+        mat4_transform_vector(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0], &data[1]);
         mat4_get_translation(&oh->node[a2m.j_kao_wj].model_transform.mat, &data[0]);
         data[0] += data[1];
         data[1] = oh->node[a2m.j_kao_wj].model_transform.rotation_value;
@@ -7692,14 +7692,14 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             if (pos_middle_dist == 0.0f) {
                 mat4& mat = oh->node[a2m.j_kata_l_wj].model_transform.mat;
                 data[0] = { 0.0f, 0.3f, 0.0f };
-                mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
+                mat4_transform_vector(&mat, &data[0], &tl_up_kata_dir);
             }
             else
                 tl_up_kata_dir *= 0.3f / pos_middle_dist;
 
             vec3 tl_up_kata_pos = tl_up_kata_dir + pos_j_ude_l_wj;
             mat4& mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
-            mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
+            mat4_inverse_transform_point(&mat, &tl_up_kata_pos, &data[0]);
             set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
                 MOTION_BONE_TL_UP_KATA_L, key_set, data);
         }
@@ -7734,14 +7734,14 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
             if (pos_middle_dist == 0.0f) {
                 mat4& mat = oh->node[a2m.j_kata_r_wj].model_transform.mat;
                 data[0] = { 0.0f, 0.3f, 0.0f };
-                mat4_mult_vec3(&mat, &data[0], &tl_up_kata_dir);
+                mat4_transform_vector(&mat, &data[0], &tl_up_kata_dir);
             }
             else
                 tl_up_kata_dir *= 0.3f / pos_middle_dist;
 
             vec3 tl_up_kata_pos = tl_up_kata_dir + pos_j_ude_r_wj;
             mat4& mat = oh->node[a2m.j_mune_b_wj].model_transform.mat;
-            mat4_mult_vec3_inv_trans(&mat, &tl_up_kata_pos, &data[0]);
+            mat4_inverse_transform_point(&mat, &tl_up_kata_pos, &data[0]);
             set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
                 MOTION_BONE_TL_UP_KATA_R, key_set, data);
         }
@@ -8228,10 +8228,10 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                         vec3 normal = vertex.normal;
                         vec3 tangent = *(vec3*)&vertex.tangent;
                         vec3 binormal = vec3::cross(normal, tangent) * vertex.tangent.w;
-                        mat4_mult_vec3_trans(&mat, &vertex.position, &vertex.position);
-                        mat4_mult_vec3(&mat, &normal, &normal);
-                        mat4_mult_vec3(&mat, &tangent, &tangent);
-                        mat4_mult_vec3(&mat, &binormal, &binormal);
+                        mat4_transform_point(&mat, &vertex.position, &vertex.position);
+                        mat4_transform_vector(&mat, &normal, &normal);
+                        mat4_transform_vector(&mat, &tangent, &tangent);
+                        mat4_transform_vector(&mat, &binormal, &binormal);
                         tangent = vec3::normalize(tangent - normal * vec3::dot(normal, tangent));
                         vertex.normal = normal;
                         *(vec3*)&vertex.tangent = tangent;
@@ -8661,8 +8661,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                             node->interpolate(o);
 
                             mat4 mat;
-                            mat4_mult(&node->model_transform.mat_inner, &node->joint_orient_mat, &mat);
-                            mat4_mult(&rot_mat, &mat, &mat);
+                            mat4_mul(&node->model_transform.mat_inner, &node->joint_orient_mat, &mat);
+                            mat4_mul(&rot_mat, &mat, &mat);
 
                             vec3 rotation;
                             mat4_get_rotation(&mat, &rotation);

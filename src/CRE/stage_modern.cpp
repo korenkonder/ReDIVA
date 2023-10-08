@@ -446,8 +446,8 @@ static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* 
 
 static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat) {
     vec3 center;
-    mat4_mult_vec3_trans(mat, &sphere->center, &center);
-    mat4_mult_vec3_trans(view, &center, &center);
+    mat4_transform_point(mat, &sphere->center, &center);
+    mat4_transform_point(view, &center, &center);
     float_t radius = sphere->radius;
 
     Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
@@ -514,7 +514,7 @@ static void stage_modern_disp(stage_modern* s) {
 
     if (s->stage_data->object_sky.not_null_modern() && s->sky) {
         mat4 t = s->mat;
-        mat4_mult(&t, &mat, &t);
+        mat4_mul(&t, &mat, &t);
         disp_manager.entry_obj_by_object_info(&t, s->stage_data->object_sky);
     }
 }

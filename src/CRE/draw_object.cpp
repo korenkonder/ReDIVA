@@ -275,7 +275,7 @@ namespace mdl {
         const mat4* instances_mat = args->instances_mat;
         mat4 _mat;
         for (int32_t i = args->instances_count; i >= 0; i--, instances_mat++) {
-            mat4_mult(instances_mat, mat, &_mat);
+            mat4_mul(instances_mat, mat, &_mat);
             draw_object_model_mat_load(rctx, _mat);
             draw(rctx,
                 sub_mesh->primitive_type,
@@ -540,7 +540,7 @@ inline void model_mat_face_camera_view(const mat4* view, const mat4* src, mat4* 
     mat3_from_mat4(view, &mat);
     mat3_inverse(&mat, &mat);
     mat4_from_mat3(&mat, dst);
-    mat4_mult(dst, src, dst);
+    mat4_mul(dst, src, dst);
 }
 
 static bool draw_object_blend_set(render_context* rctx,

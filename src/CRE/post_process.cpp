@@ -320,7 +320,7 @@ void post_process::draw_lens_flare(camera* cam) {
     *(vec3*)&v44 = position;
     v44.w = 1.0f;
 
-    mat4_mult_vec(&cam->view_projection, &v44, &v44);
+    mat4_transform_vector(&cam->view_projection, &v44, &v44);
 
     float_t v13 = 1.0f / v44.w;
     float_t v14 = v44.x * v13;
@@ -331,7 +331,7 @@ void post_process::draw_lens_flare(camera* cam) {
     v44.x = v14 * v44.w;
     v44.y = v15 * v44.w;
 
-    mat4_mult_vec(&cam->inv_view_projection, &v44, &v44);
+    mat4_transform_vector(&cam->inv_view_projection, &v44, &v44);
     ((pos_scale*)&lens_flare_pos)->get_screen_pos_scale(cam->view_projection, position, false);
 
     float_t v17 = lens_flare_pos.x - (float_t)render_width * 0.5f;
@@ -367,10 +367,10 @@ void post_process::draw_lens_flare(camera* cam) {
     gl_state_disable_cull_face();
 
     mat4 mat;
-    mat4_translate_mult(&cam->view, &position, &mat);
+    mat4_mul_translate(&cam->view, &position, &mat);
     mat4_clear_rot(&mat, &mat);
     mat4_scale_rot(&mat, v24 * 0.2f, &mat);
-    mat4_mult(&mat, &cam->projection, &mat);
+    mat4_mul(&mat, &cam->projection, &mat);
 
     mat4_transpose(&mat, &mat);
     shader_data.g_transform[0] = mat.row0;
@@ -383,10 +383,10 @@ void post_process::draw_lens_flare(camera* cam) {
     glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
     glEndQuery(GL_SAMPLES_PASSED);
 
-    mat4_translate_mult(&cam->view, (vec3*)&v44, &mat);
+    mat4_mul_translate(&cam->view, (vec3*)&v44, &mat);
     mat4_clear_rot(&mat, &mat);
     mat4_scale_rot(&mat, v24 * 2.0f, &mat);
-    mat4_mult(&mat, &cam->projection, &mat);
+    mat4_mul(&mat, &cam->projection, &mat);
 
     mat4_transpose(&mat, &mat);
     shader_data.g_transform[0] = mat.row0;
@@ -422,10 +422,10 @@ void post_process::draw_lens_flare(camera* cam) {
         gl_state_set_blend_func(GL_ONE, GL_ONE);
         gl_state_set_depth_mask(GL_FALSE);
 
-        mat4_translate_mult(&cam->view, &position, &mat);
+        mat4_mul_translate(&cam->view, &position, &mat);
         mat4_clear_rot(&mat, &mat);
         mat4_scale_rot(&mat, v24 * 1.1f, &mat);
-        mat4_mult(&mat, &cam->projection, &mat);
+        mat4_mul(&mat, &cam->projection, &mat);
 
         mat4_transpose(&mat, &mat);
         shader_data.g_transform[0] = mat.row0;
@@ -496,10 +496,10 @@ static void make_ghost_quad(uint8_t flags, float_t opacity, mat4* mat, float_t*&
     vec4 p1 = {  0.5f, -0.5f, x1, y0 };
     vec4 p2 = { -0.5f,  0.5f, x0, y1 };
     vec4 p3 = {  0.5f,  0.5f, x1, y1 };
-    mat4_mult_vec2_trans(mat, (vec2*)&p0, (vec2*)&p0);
-    mat4_mult_vec2_trans(mat, (vec2*)&p1, (vec2*)&p1);
-    mat4_mult_vec2_trans(mat, (vec2*)&p2, (vec2*)&p2);
-    mat4_mult_vec2_trans(mat, (vec2*)&p3, (vec2*)&p3);
+    mat4_transform_point(mat, (vec2*)&p0, (vec2*)&p0);
+    mat4_transform_point(mat, (vec2*)&p1, (vec2*)&p1);
+    mat4_transform_point(mat, (vec2*)&p2, (vec2*)&p2);
+    mat4_transform_point(mat, (vec2*)&p3, (vec2*)&p3);
 
     *(vec4*)&data[0] = p0;
     data[4] = opacity;
@@ -586,7 +586,7 @@ void post_process::draw_lens_ghost(RenderTexture* rt) {
         mat4 mat;
         mat4_translate(v13[i] * v7 + 0.5f, v13[i] * v8 + 0.5f, 0.0f, &mat);
         mat4_scale_rot(&mat, scale, scale * aspect, 1.0f, &mat);
-        mat4_rotate_z_mult_sin_cos(&mat, angle_sin, angle_cos, &mat);
+        mat4_mul_rotate_z(&mat, angle_sin, angle_cos, &mat);
         make_ghost_quad((uint8_t)(i & 0x03), opacity, &mat, data);
     }
 

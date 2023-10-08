@@ -626,9 +626,9 @@ bool TaskEffectAuth3D::Ctrl() {
 
         mat4 mat;
         mat4_translate(0.0f, -0.2f, 0.0f, &mat);
-        mat4_rotate_x_mult(&mat, sinf((float_t)((double_t)((float_t)(frame_int % 512)
+        mat4_mul_rotate_x(&mat, sinf((float_t)((double_t)((float_t)(frame_int % 512)
             * (float_t)(2.0 / 512.0)) * M_PI)) * 0.015f, &mat);
-        mat4_rotate_z_mult(&mat, sinf((float_t)((double_t)((float_t)(frame_int % 360)
+        mat4_mul_rotate_z(&mat, sinf((float_t)((double_t)((float_t)(frame_int % 360)
             * (float_t)(2.0 / 360.0)) * M_PI)) * 0.015f, &mat);
         task_stage_set_mat(mat);
     }
@@ -3483,7 +3483,7 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     mat4_rotate_y(longitude * DEG_TO_RAD_FLOAT, &longitude_mat);
 
     mat4 model;
-    mat4_mult(&latitude_mat, &longitude_mat, &model);
+    mat4_mul(&latitude_mat, &longitude_mat, &model);
 
     const float_t pitch_forward = -0.50503153f;
     const float_t yaw_forward = 4.6496463f;
@@ -3504,12 +3504,12 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     *(vec3*)&view.row1 = up;
     *(vec3*)&view.row2 = forward;
 
-    mat4_mult(&model, &view, &model);
-    mat4_mult(&model, &mat, &model);
+    mat4_mul(&model, &view, &model);
+    mat4_mul(&model, &mat, &model);
 
     star_catalog_scene_shader_data scene_shader_data = {};
     mat4 temp;
-    mat4_mult(&model, &vp, &temp);
+    mat4_mul(&model, &vp, &temp);
     mat4_transpose(&temp, &temp);
     scene_shader_data.g_transform[0] = temp.row0;
     scene_shader_data.g_transform[1] = temp.row1;
@@ -3599,7 +3599,7 @@ void star_catalog::draw() {
     proj.row3.z = proj.row3.w;
 
     mat4 vp;
-    mat4_mult(&rctx_ptr->view_mat, &proj, &vp);
+    mat4_mul(&rctx_ptr->view_mat, &proj, &vp);
 
     texture* milky_way_tex = texture_storage_get_texture(milky_way_tex_id);
     if (milky_way_tex)
@@ -3610,7 +3610,7 @@ void star_catalog::draw() {
 
     star_catalog_scene_shader_data scene_shader_data = {};
     mat4 temp;
-    mat4_mult(&model, &vp, &temp);
+    mat4_mul(&model, &vp, &temp);
     mat4_transpose(&temp, &temp);
     scene_shader_data.g_transform[0] = temp.row0;
     scene_shader_data.g_transform[1] = temp.row1;
@@ -4342,19 +4342,19 @@ static int32_t leaf_particle_disp() {
         vec3 t1;
         vec3 t2;
         vec3 t3;
-        mat3_mult_vec(&mat, &position[0], &t0);
-        mat3_mult_vec(&mat, &position[1], &t1);
-        mat3_mult_vec(&mat, &position[2], &t2);
-        mat3_mult_vec(&mat, &position[3], &t3);
+        mat3_transform_vector(&mat, &position[0], &t0);
+        mat3_transform_vector(&mat, &position[1], &t1);
+        mat3_transform_vector(&mat, &position[2], &t2);
+        mat3_transform_vector(&mat, &position[3], &t3);
         vtx_data[0].position = pos + t0;
         vtx_data[1].position = pos + t1;
         vtx_data[2].position = pos + t2;
         vtx_data[3].position = pos + t3;
 
-        mat3_mult_vec(&mat, &normal[0], &t0);
-        mat3_mult_vec(&mat, &normal[1], &t1);
-        mat3_mult_vec(&mat, &normal[2], &t2);
-        mat3_mult_vec(&mat, &normal[3], &t3);
+        mat3_transform_vector(&mat, &normal[0], &t0);
+        mat3_transform_vector(&mat, &normal[1], &t1);
+        mat3_transform_vector(&mat, &normal[2], &t2);
+        mat3_transform_vector(&mat, &normal[3], &t3);
         vtx_data[0].normal = t0;
         vtx_data[1].normal = t1;
         vtx_data[2].normal = t2;
@@ -4530,15 +4530,15 @@ static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* 
         vec3 t0 = vec3( 0.0125f,  0.007216875f, 0.0f) * size;
         vec3 t1 = vec3(-0.0125f,  0.007216875f, 0.0f) * size;
         vec3 t2 = vec3( 0.0f   , -0.01443375f , 0.0f) * size;
-        mat3_mult_vec(&mat, &t0, &t0);
-        mat3_mult_vec(&mat, &t1, &t1);
-        mat3_mult_vec(&mat, &t2, &t2);
+        mat3_transform_vector(&mat, &t0, &t0);
+        mat3_transform_vector(&mat, &t1, &t1);
+        mat3_transform_vector(&mat, &t2, &t2);
         t0 += pos;
         t1 += pos;
         t2 += pos;
 
         vec3 normal = vec3(0.0f, 0.0f, 1.0f);
-        mat3_mult_vec(&mat, &normal, &normal);
+        mat3_transform_vector(&mat, &normal, &normal);
         data->normal = normal;
 
         vec4 color = data->color;

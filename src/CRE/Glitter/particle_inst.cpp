@@ -403,7 +403,7 @@ namespace Glitter {
         if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER || has_translation) {
             translation += rend_elem->base_translation;
             if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER)
-                mat4_mult_vec3_trans(&rend_elem->mat, &translation, &translation);
+                mat4_transform_point(&rend_elem->mat, &translation, &translation);
             rend_elem->translation = translation;
         }
         return true;
@@ -909,7 +909,7 @@ namespace Glitter {
         if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER || has_translation) {
             translation += rend_elem->base_translation;
             if (data.data.flags & PARTICLE_ROTATE_BY_EMITTER)
-                mat4_mult_vec3_trans(&rend_elem->mat, &translation, &translation);
+                mat4_transform_point(&rend_elem->mat, &translation, &translation);
             rend_elem->translation = translation;
         }
         return true;

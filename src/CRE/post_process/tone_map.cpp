@@ -108,9 +108,9 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
         mat4 mat;
         mat4_translate(0.5f, 0.5f, 0.0f, &mat);
         mat4_scale_rot(&mat, 0.75f, 0.75f, 1.0f, &mat);
-        mat4_rotate_z_mult(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
+        mat4_mul_rotate_z(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
             * 25.0f * DEG_TO_RAD_FLOAT, &mat);
-        mat4_translate_mult(&mat, -((1.0f / (float_t)pp->render_width) * pp->lens_flare_pos.x),
+        mat4_mul_translate(&mat, -((1.0f / (float_t)pp->render_width) * pp->lens_flare_pos.x),
             (pp->lens_flare_pos.y - (float_t)pp->render_height)
                 * (1.0f / (float_t)pp->render_width), 0.0f, &mat);
         mat4_scale_rot(&mat, 1.0f, aspect, 1.0f, &mat);
@@ -126,9 +126,9 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
             mat4_translate(0.5f, 0.5f, 0.0f, &mat);
             mat4_scale_rot(&mat, pp->lens_shaft_scale, pp->lens_shaft_scale, 1.0f, &mat);
-            mat4_rotate_z_mult(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
+            mat4_mul_rotate_z(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
                 * 60.0f * DEG_TO_RAD_FLOAT, &mat);
-            mat4_translate_mult(&mat, -((1.0f / (float_t)pp->render_width) * pp->lens_flare_pos.x),
+            mat4_mul_translate(&mat, -((1.0f / (float_t)pp->render_width) * pp->lens_flare_pos.x),
                 (pp->lens_flare_pos.y - (float_t)pp->render_height)
                     * (1.0f / (float_t)pp->render_width), 0.0f, &mat);
             mat4_scale_rot(&mat, 1.0f, aspect, 1.0f, &mat);

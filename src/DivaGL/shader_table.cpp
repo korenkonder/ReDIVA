@@ -144,11 +144,11 @@ void FASTCALL shader_bind_membrane(shader* shad) {
     uint32_t(FASTCALL * sub_140192E00)() = (uint32_t(*)())0x0000000140192E00;
     uint32_t v1 = sub_140192E00();
     mat4 mat = mat4_identity;
-    mat4_rotate_x_mult(&mat, (float_t)((v1 & 0x1FF) * (M_PI / 256.0)), &mat);
-    mat4_rotate_z_mult(&mat, (float_t)((v1 % 0x168) * (M_PI / 180.0)), &mat);
+    mat4_mul_rotate_x(&mat, (float_t)((v1 & 0x1FF) * (M_PI / 256.0)), &mat);
+    mat4_mul_rotate_z(&mat, (float_t)((v1 % 0x168) * (M_PI / 180.0)), &mat);
 
     vec4 vec = { 1.0f, 0.0f, 0.0f, 0.0f };
-    mat4_mult_vec(&mat, &vec, &vec);
+    mat4_transform_vector(&mat, &vec, &vec);
 
     PFNGLPROGRAMLOCALPARAMETER4FARBPROC _glProgramLocalParameter4fARB
         = *(PFNGLPROGRAMLOCALPARAMETER4FARBPROC*)0x00000001411A4AA8;

@@ -218,8 +218,8 @@ static void rob_osage_apply_reset_data(rob_osage* rob_osg, mat4* mat) {
     mat4 temp;
     mat4_transpose(mat, &temp);
     for (rob_osage_node* v9 = rob_osg->nodes.begin + 1; v9 != rob_osg->nodes.end; v9++) {
-        mat4_mult_vec3(&temp, &v9->reset_data.trans_diff, &v9->trans_diff);
-        mat4_mult_vec3_trans(&temp, &v9->reset_data.trans, &v9->trans);
+        mat4_transform_vector(&temp, &v9->reset_data.trans_diff, &v9->trans_diff);
+        mat4_transform_point(&temp, &v9->reset_data.trans, &v9->trans);
     }
     rob_osg->parent_mat = *rob_osg->parent_mat_ptr;
 }
@@ -227,14 +227,14 @@ static void rob_osage_apply_reset_data(rob_osage* rob_osg, mat4* mat) {
 static void sub_14047F110(rob_osage* rob_osg, mat4* mat, vec3* parent_scale, bool init_rot) {
     mat4_transpose(mat, mat);
     vec3 position = rob_osg->exp_data.position * *parent_scale;
-    mat4_translate_mult(mat, &position, mat);
-    mat4_rotate_zyx_mult(mat, &rob_osg->exp_data.rotation, mat);
+    mat4_mul_translate(mat, &position, mat);
+    mat4_mul_rotate_zyx(mat, &rob_osg->exp_data.rotation, mat);
 
     skin_param* skin_param = rob_osg->skin_param_ptr;
     vec3 rot = skin_param->rot;
     if (init_rot)
         rot = skin_param->init_rot + rot;
-    mat4_rotate_zyx_mult(mat, &rot, mat);
+    mat4_mul_rotate_zyx(mat, &rot, mat);
     mat4_transpose(mat, mat);
 }
 
@@ -267,8 +267,8 @@ static bool sub_140482FF0(mat4* mat, vec3* trans, skin_param_hinge* hinge, vec3*
                 clipped = true;
             }
         }
-        mat4_rotate_y_mult(mat, y_rot, mat);
-        mat4_rotate_z_mult(mat, z_rot, mat);
+        mat4_mul_rotate_y(mat, y_rot, mat);
+        mat4_mul_rotate_z(mat, z_rot, mat);
     }
     else {
         z_rot = atan2f(trans->y, trans->x);
@@ -294,8 +294,8 @@ static bool sub_140482FF0(mat4* mat, vec3* trans, skin_param_hinge* hinge, vec3*
                 clipped = true;
             }
         }
-        mat4_rotate_z_mult(mat, z_rot, mat);
-        mat4_rotate_y_mult(mat, y_rot, mat);
+        mat4_mul_rotate_z(mat, z_rot, mat);
+        mat4_mul_rotate_y(mat, y_rot, mat);
     }
     mat4_transpose(mat, mat);
 
@@ -310,7 +310,7 @@ static void sub_1404803B0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
     mat4 v47 = *root_matrix;
     vec3 v45 = rob_osg->exp_data.position * *parent_scale;
     mat4_transpose(&v47, &v47);
-    mat4_mult_vec3_trans(&v47, &v45, &rob_osg->nodes.begin[0].trans);
+    mat4_transform_point(&v47, &v45, &rob_osg->nodes.begin[0].trans);
 
     if (rob_osg->osage_reset && !rob_osg->field_1F0E) {
         rob_osg->field_1F0E = true;
@@ -331,9 +331,9 @@ static void sub_1404803B0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
                 mat4 parent_mat;
                 vec3 v44;
                 mat4_transpose(&rob_osg->parent_mat, &parent_mat);
-                mat4_mult_vec3_inv_trans(&parent_mat, &v19->trans, &v44);
+                mat4_inverse_transform_point(&parent_mat, &v19->trans, &v44);
                 mat4_transpose(rob_osg->parent_mat_ptr, &parent_mat);
-                mat4_mult_vec3_trans(&parent_mat, &v44, &v44);
+                mat4_transform_point(&parent_mat, &v44, &v44);
                 v19->trans += (v44 - v19->trans) * move_cancel;
             }
     }
@@ -349,7 +349,7 @@ static void sub_1404803B0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
     for (rob_osage_node* v29 = rob_osg->nodes.begin, *v30 = rob_osg->nodes.begin + 1;
         v30 != rob_osg->nodes.end; v29++, v30++) {
         vec3 v45;
-        mat4_mult_vec3_inv_trans(&v47, &v30->trans, &v45);
+        mat4_inverse_transform_point(&v47, &v30->trans, &v45);
         mat4_transpose(&v47, &v47);
         bool v32 = sub_140482FF0(&v47, &v45, &v30->data_ptr->skp_osg_node.hinge,
             &v30->reset_data.rotation, &rob_osg->yz_order);
@@ -366,7 +366,7 @@ static void sub_1404803B0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
         else
             v36 = true;
 
-        mat4_translate_mult(&v47, v35, 0.0f, 0.0f, &v47);
+        mat4_mul_translate(&v47, v35, 0.0f, 0.0f, &v47);
         if (v32 || v36)
             mat4_get_translation(&v47, &v30->trans);
     }
@@ -374,7 +374,7 @@ static void sub_1404803B0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
     if (vector_old_length(rob_osg->nodes) && rob_osg->node.bone_node_mat) {
         mat4 v48 = *rob_osg->nodes.end[-1].bone_node_ptr->ex_data_mat;
         mat4_transpose(&v48, &v48);
-        mat4_translate_mult(&v48, parent_scale->x * rob_osg->node.length, 0.0f, 0.0f, &v48);
+        mat4_mul_translate(&v48, parent_scale->x * rob_osg->node.length, 0.0f, 0.0f, &v48);
         mat4_transpose(&v48, &v48);
         *rob_osg->node.bone_node_ptr->ex_data_mat = v48;
     }
@@ -455,7 +455,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
 
     mat4 v130 = *root_matrix;
     mat4_transpose(&v130, &v130);
-    mat4_mult_vec3_trans(&v130, &v113, &v17->trans);
+    mat4_transform_point(&v130, &v113, &v17->trans);
     v17->trans_diff = v17->trans - v17->trans_orig;
 
     mat4_transpose(&v130, &v130);
@@ -466,7 +466,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
 
     v113 = { 1.0f, 0.0f, 0.0f };
     vec3 v128;
-    mat4_mult_vec3(&v130, &v113, &v128);
+    mat4_transform_vector(&v130, &v113, &v128);
 
     float_t v25 = parent_scale->x;
     if (!rob_osg->osage_reset && step <= 0.0f)
@@ -512,7 +512,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
         mat4_get_translation(&v131, &v111);
 
         for (rob_osage_node* v55 = rob_osg->nodes.begin + 1; v55 != v12; v55++) {
-            mat4_mult_vec3_trans(&v131, &v55->field_94, &v128);
+            mat4_transform_point(&v131, &v55->field_94, &v128);
 
             vec3 v126 = v55->trans + v55->trans_diff + v55->field_28;
             sub_140482F30(&v126, &v111, v25 * v55->length);
@@ -525,13 +525,13 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
             v126 = v55->trans + v55->trans_diff + v55->field_28;
 
             vec3 v129;
-            mat4_mult_vec3_inv_trans(&v131, &v126, &v129);
+            mat4_inverse_transform_point(&v131, &v126, &v129);
 
             mat4_transpose(&v131, &v131);
             sub_140482FF0(&v131, &v129, 0, 0, &rob_osg->yz_order);
             mat4_transpose(&v131, &v131);
 
-            mat4_translate_mult(&v131, vec3::distance(v111, v126), 0.0f, 0.0f, &v131);
+            mat4_mul_translate(&v131, vec3::distance(v111, v126), 0.0f, 0.0f, &v131);
 
             v111 = v126;
         }
@@ -569,7 +569,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
         for (rob_osage_node* v99 = rob_osg->nodes.begin + 1, *v100 = rob_osg->nodes.begin;
             v99 != v12; v99++, v100++) {
             vec3 v129;
-            mat4_mult_vec3_inv_trans(&v130, &v99->trans, &v129);
+            mat4_inverse_transform_point(&v130, &v99->trans, &v129);
             mat4_transpose(&v130, &v130);
             bool v102 = sub_140482FF0(&v130, &v129,
                 &v99->data_ptr->skp_osg_node.hinge,
@@ -588,7 +588,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
             else
                 v106 = true;
 
-            mat4_translate_mult(&v130, v105, 0.0f, 0.0f, &v130);
+            mat4_mul_translate(&v130, v105, 0.0f, 0.0f, &v130);
             if (v102 || v106)
                 mat4_get_translation(&v130, &v99->trans);
         }
@@ -596,7 +596,7 @@ static void sub_14047C800(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
         if (vector_old_length(rob_osg->nodes) && rob_osg->node.bone_node_mat) {
             mat4 v131 = *rob_osg->nodes.end[-1].bone_node_ptr->ex_data_mat;
             mat4_transpose(&v131, &v131);
-            mat4_translate_mult(&v131, v25 * rob_osg->node.length, 0.0f, 0.0f, &v131);
+            mat4_mul_translate(&v131, v25 * rob_osg->node.length, 0.0f, 0.0f, &v131);
             mat4_transpose(&v131, &v131);
             *rob_osg->node.bone_node_ptr->ex_data_mat = v131;
         }
@@ -832,16 +832,16 @@ static void OsageCollision__Work__update_cls_work(OsageCollision__Work* cls,
         cls->radius = cls_param->radius;
         mat4 mat = transform[cls_param->node_idx[0]];
         mat4_transpose(&mat, &mat);
-        mat4_mult_vec3_trans(&mat, &cls_param->pos[0], &cls->pos[0]);
+        mat4_transform_point(&mat, &cls_param->pos[0], &cls->pos[0]);
         switch (cls->type) {
         case SkinParam::CollisionTypePlane:
-            mat4_mult_vec3(&mat, &cls_param->pos[1], &cls->pos[1]);
+            mat4_transform_vector(&mat, &cls_param->pos[1], &cls->pos[1]);
             break;
         case SkinParam::CollisionTypeCapsule:
         case SkinParam::CollisionTypeEllipse:
             mat = transform[cls_param->node_idx[1]];
             mat4_transpose(&mat, &mat);
-            mat4_mult_vec3_trans(&mat, &cls_param->pos[1], &cls->pos[1]);
+            mat4_transform_point(&mat, &cls_param->pos[1], &cls->pos[1]);
             cls->vec_center = cls->pos[1] - cls->pos[0];
             cls->vec_center_length_squared = vec3::length_squared(cls->vec_center);
             cls->vec_center_length = sqrtf(cls->vec_center_length_squared);
@@ -1078,7 +1078,7 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
 
         vec3 trans = rob_osg->exp_data.position * *parent_scale;
         mat4_transpose(&v64, &v64);
-        mat4_mult_vec3_trans(&v64, &trans, &rob_osg->nodes.begin[0].trans);
+        mat4_transform_point(&v64, &trans, &rob_osg->nodes.begin[0].trans);
         mat4_transpose(&v64, &v64);
         sub_14047F110(rob_osg, &v64, parent_scale, false);
     }
@@ -1135,7 +1135,7 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
             sub_140482F30(&v35[0].trans, &v35[-1].trans, v35[0].length * parent_scale->x);
 
         vec3 v63;
-        mat4_mult_vec3_inv_trans(&v64, &v35->trans, &v63);
+        mat4_inverse_transform_point(&v64, &v35->trans, &v63);
         mat4_transpose(&v64, &v64);
         bool v40 = sub_140482FF0(&v64, &v63, &skp_osg_node->hinge,
             &v35->reset_data.rotation, &rob_osg->yz_order);
@@ -1159,7 +1159,7 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
         else
             v45 = true;
 
-        mat4_translate_mult(&v64, v42, 0.0f, 0.0f, &v64);
+        mat4_mul_translate(&v64, v42, 0.0f, 0.0f, &v64);
         v35->reset_data.length = v42;
         if (v40 || v45)
             mat4_get_translation(&v64, &v35->trans);
@@ -1178,14 +1178,14 @@ static void sub_14047D8C0(rob_osage* rob_osg, mat4* root_matrix, vec3* parent_sc
 
         mat4 v65;
         mat4_transpose(root_matrix, &v65);
-        mat4_mult_vec3_inv_trans(&v65, &v35->trans, &v35->reset_data.trans);
-        mat4_mult_vec3_inv(&v65, &v35->trans_diff, &v35->reset_data.trans_diff);
+        mat4_inverse_transform_point(&v65, &v35->trans, &v35->reset_data.trans);
+        mat4_inverse_transform_vector(&v65, &v35->trans_diff, &v35->reset_data.trans_diff);
     }
 
     if (vector_old_length(rob_osg->nodes) && rob_osg->node.bone_node_mat) {
         mat4 v65 = *rob_osg->nodes.end[-1].bone_node_ptr->ex_data_mat;
         mat4_transpose(&v65, &v65);
-        mat4_translate_mult(&v65, rob_osg->node.length * parent_scale->x, 0.0f, 0.0f, &v65);
+        mat4_mul_translate(&v65, rob_osg->node.length * parent_scale->x, 0.0f, 0.0f, &v65);
         mat4_transpose(&v65, &v65);
         *rob_osg->node.bone_node_ptr->ex_data_mat = v65;
         mat4_transpose(&v65, &v65);
@@ -1361,7 +1361,7 @@ void rob_osage_set_osage_play_data(rob_osage* rob_osg, mat4* parent_mat,
 
     mat4 v85;
     mat4_transpose(parent_mat, &v85);
-    mat4_mult_vec3_trans(&v85, &v63, &rob_osg->nodes.begin[0].trans);
+    mat4_transform_point(&v85, &v63, &rob_osg->nodes.begin[0].trans);
     mat4_transpose(&v85, &v85);
 
     sub_14047F110(rob_osg, &v85, parent_scale, false);
@@ -1407,13 +1407,13 @@ void rob_osage_set_osage_play_data(rob_osage* rob_osg, mat4* parent_mat,
             v77.y = opd_y[next_key];
             v77.z = opd_z[next_key];
 
-            mat4_mult_vec3_trans(parent_mat, &v62, &v62);
-            mat4_mult_vec3_trans(parent_mat, &v77, &v77);
+            mat4_transform_point(parent_mat, &v62, &v62);
+            mat4_transform_point(parent_mat, &v77, &v77);
 
             vec3 v82 = v62 * inv_blend + v77 * blend;
 
             vec3 v86;
-            mat4_mult_vec3_inv_trans(&v87, &v82, &v86);
+            mat4_inverse_transform_point(&v87, &v82, &v86);
             mat4_transpose(&v87, &v87);
 
             vec3 v64 = 0.0f;
@@ -1437,8 +1437,8 @@ void rob_osage_set_osage_play_data(rob_osage* rob_osg, mat4* parent_mat,
         float_t v55 = i->field_1B0.field_0.angle.z;
         v54 = clamp_def(v54, (float_t)-M_PI, (float_t)M_PI);
         v55 = clamp_def(v55, (float_t)-M_PI, (float_t)M_PI);
-        mat4_rotate_z_mult(&v85, v55, &v85);
-        mat4_rotate_y_mult(&v85, v54, &v85);
+        mat4_mul_rotate_z(&v85, v55, &v85);
+        mat4_mul_rotate_y(&v85, v54, &v85);
         mat4_transpose(&v85, &v85);
         i->bone_node_ptr->exp_data.parent_scale = *parent_scale;
         *i->bone_node_ptr->ex_data_mat = v85;
@@ -1448,7 +1448,7 @@ void rob_osage_set_osage_play_data(rob_osage* rob_osg, mat4* parent_mat,
             mat4_scale_rot(&mat, parent_scale, &mat);
             mat4_transpose(&mat, i->bone_node_mat);
         }
-        mat4_translate_mult(&v85, i->field_1B0.field_0.length, 0.0f, 0.0f, &v85);
+        mat4_mul_translate(&v85, i->field_1B0.field_0.length, 0.0f, 0.0f, &v85);
         i->trans_orig = i->trans;
         mat4_get_translation(&v85, &i->trans);
     }
@@ -1456,7 +1456,7 @@ void rob_osage_set_osage_play_data(rob_osage* rob_osg, mat4* parent_mat,
     if (vector_old_length(rob_osg->nodes) && rob_osg->node.bone_node_mat) {
         mat4 v87 = *rob_osg->nodes.end[-1].bone_node_ptr->ex_data_mat;
         mat4_transpose(&v87, &v87);
-        mat4_translate_mult(&v87, rob_osg->node.length * parent_scale->x, 0.0f, 0.0f, &v87);
+        mat4_mul_translate(&v87, rob_osg->node.length * parent_scale->x, 0.0f, 0.0f, &v87);
         mat4_transpose(&v87, &v87);
         *rob_osg->node.bone_node_ptr->ex_data_mat = v87;
 
@@ -1578,7 +1578,7 @@ static void sub_14053CE30(rob_osage_node_data_normal_ref* normal_ref, mat4* a2) 
 
         mat4 v33 = normal_ref->mat;
         mat4_transpose(&v33, &v33);
-        mat4_mult(&v33, &v34, a2);
+        mat4_mul(&v33, &v34, a2);
         mat4_transpose(a2, a2);
     }
 }

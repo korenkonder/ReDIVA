@@ -414,14 +414,14 @@ bool light_proj::set_mat(render_context* rctx, bool set_mat) {
 
         mat4 proj;
         mat4_persp(fov, 4.0f, 0.1f, 10.0f, &proj);
-        mat4_mult(&proj, &temp, &proj);
+        mat4_mul(&proj, &temp, &proj);
 
         mat4 view;
         vec3 up = { 0.0f, 1.0f, 0.0f };
         mat4_look_at(&position, &interest, &up, &view);
 
         mat4 mat;
-        mat4_mult(&view, &proj, &mat);
+        mat4_mul(&view, &proj, &mat);
         rctx->obj_scene.set_g_light_projection(mat);
     }
     else {
@@ -1489,7 +1489,7 @@ namespace mdl {
             EtcObjCapsule& capsule = etc->data.capsule;
 
             vec3 origin = (capsule.pos[0] + capsule.pos[1]) * 0.5f;
-            mat4_translate_add(&mat, &origin, &mat);
+            mat4_add_translate(&mat, &origin, &mat);
 
             vec3 dir = vec3::normalize(capsule.pos[1] - capsule.pos[0]);
             vec3 up = { 0.0f, 1.0f, 0.0f };
@@ -1498,7 +1498,7 @@ namespace mdl {
             Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
             mat4 m;
             mat4_mult_axis_angle(&mat4_identity, &axis, angle, &m);
-            mat4_mult(&m, &mat, &mat);
+            mat4_mul(&m, &mat, &mat);
 
             indexed = true;
             wire = capsule.wire;
@@ -1508,7 +1508,7 @@ namespace mdl {
             EtcObjEllipse& ellipse = etc->data.ellipse;
 
             vec3 origin = (ellipse.pos[0] + ellipse.pos[1]) * 0.5f;
-            mat4_translate_add(&mat, &origin, &mat);
+            mat4_add_translate(&mat, &origin, &mat);
 
             vec3 dir = vec3::normalize(ellipse.pos[1] - ellipse.pos[0]);
             vec3 up = { 0.0f, 1.0f, 0.0f };
@@ -1517,7 +1517,7 @@ namespace mdl {
             Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
             mat4 m;
             mat4_mult_axis_angle(&mat4_identity, &axis, angle, &m);
-            mat4_mult(&m, &mat, &mat);
+            mat4_mul(&m, &mat, &mat);
 
             indexed = true;
             wire = ellipse.wire;
@@ -2123,9 +2123,9 @@ namespace mdl {
         points[7] = aabb->center + (aabb->size ^ vec3(-0.0f, -0.0f, 0.0f));
 
         mat4 view_mat;
-        mat4_mult(mat, &cam->view, &view_mat);
+        mat4_mul(mat, &cam->view, &view_mat);
         for (int32_t i = 0; i < 8; i++)
-            mat4_mult_vec3_trans(&view_mat, &points[i], &points[i]);
+            mat4_transform_point(&view_mat, &points[i], &points[i]);
 
         vec4 v2[6];
         *(vec3*)&v2[0] = { 0.0f, 0.0f, -1.0f };
@@ -2159,8 +2159,8 @@ namespace mdl {
             return culling->func(sphere, &cam->view);
 
         vec3 center;
-        mat4_mult_vec3_trans(mat, &sphere->center, &center);
-        mat4_mult_vec3_trans(&cam->view, &center, &center);
+        mat4_transform_point(mat, &sphere->center, &center);
+        mat4_transform_point(&cam->view, &center, &center);
         float_t radius = mat4_get_max_scale(mat) * sphere->radius;
 
         double_t min_depth = (double_t)center.z - (double_t)radius;
@@ -2927,12 +2927,12 @@ namespace mdl {
 
                 const obj_sub_mesh* sub_mesh = i->args.sub_mesh.sub_mesh;
                 if (i->args.sub_mesh.mat_count < 1 || !sub_mesh->num_bone_index)
-                    mat4_mult_vec3_trans(&mat, &sub_mesh->bounding_sphere.center, &center);
+                    mat4_transform_point(&mat, &sub_mesh->bounding_sphere.center, &center);
                 else {
                     vec3 center_sum = 0.0f;
                     for (uint32_t j = 0; j < sub_mesh->num_bone_index; j++) {
                         center = sub_mesh->bounding_sphere.center;
-                        mat4_mult_vec3_trans(&i->args.sub_mesh.mats[j], &center, &center);
+                        mat4_transform_point(&i->args.sub_mesh.mats[j], &center, &center);
                         center_sum += center;
                     }
                     center_sum *= 1.0f / (float_t)sub_mesh->num_bone_index;
@@ -2940,7 +2940,7 @@ namespace mdl {
                 i->radius = i->args.sub_mesh.mesh->bounding_sphere.radius;
             }
 
-            mat4_mult_vec3_trans(view, &center, &center);
+            mat4_transform_point(view, &center, &center);
             i->view_z = center.z;
         }
 
@@ -3345,7 +3345,7 @@ void obj_scene_shader_data::set_projection_view(const mat4& view, const mat4& pr
     g_view_inverse[1] = temp.row1;
     g_view_inverse[2] = temp.row2;
 
-    mat4_mult(&view, &proj, &temp);
+    mat4_mul(&view, &proj, &temp);
     mat4_transpose(&temp, &temp);
     g_projection_view[0] = temp.row0;
     g_projection_view[1] = temp.row1;
@@ -3389,7 +3389,7 @@ void obj_batch_shader_data::set_transforms(const mat4& model, const mat4& view, 
     g_worlds_invtrans[2] = temp.row2;
 
     mat4 mv;
-    mat4_mult(&model, &view, &mv);
+    mat4_mul(&model, &view, &mv);
 
     mat4_transpose(&mv, &temp);
     g_worldview[0] = temp.row0;
@@ -3402,7 +3402,7 @@ void obj_batch_shader_data::set_transforms(const mat4& model, const mat4& view, 
     g_worldview_inverse[1] = temp.row1;
     g_worldview_inverse[2] = temp.row2;
 
-    mat4_mult(&mv, &proj, &temp);
+    mat4_mul(&mv, &proj, &temp);
     mat4_transpose(&temp, &temp);
     g_transforms[0] = temp.row0;
     g_transforms[1] = temp.row1;

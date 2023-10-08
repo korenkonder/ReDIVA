@@ -274,9 +274,9 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_LOCAL) {
             mat4 mat;
-            mat4_mult(&GPM_VAL->cam.inv_view, &rend_group->mat, &mat);
-            mat4_mult(&GPM_VAL->cam.view, &mat, &mat);
-            mat4_mult(&mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
+            mat4_mul(&GPM_VAL->cam.inv_view, &rend_group->mat, &mat);
+            mat4_mul(&GPM_VAL->cam.view, &mat, &mat);
+            mat4_mul(&mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
         }
         else
             rend_group->mat_draw = mat4_identity;
@@ -295,7 +295,7 @@ namespace Glitter {
                 scale.y = 0.0f;
             if (!(has_scale |= fabsf(scale.z) > 0.000001f ? true : false))
                 scale.z = 0.0f;
-            mat4_mult_vec3(&rend_group->mat_rot, &scale, &scale);
+            mat4_transform_vector(&rend_group->mat_rot, &scale, &scale);
 
             mat3_from_mat4(&rend_group->mat, &model_mat);
             mat3_normalize_rotation(&model_mat, &model_mat);
@@ -303,7 +303,7 @@ namespace Glitter {
         else
             model_mat = mat3_identity;
 
-        mat3_mult_vec(&GPM_VAL->cam.inv_view_mat3, &x_vec, &x_vec);
+        mat3_transform_vector(&GPM_VAL->cam.inv_view_mat3, &x_vec, &x_vec);
 
         Buffer* buf;
         if (GLAD_GL_VERSION_4_5)
@@ -345,7 +345,7 @@ namespace Glitter {
                 for (LocusHistory::Data& hist_data : hist->data) {
                     vec3 pos = hist_data.translation;
                     vec3 pos_diff = (pos - elem->base_translation) * scale;
-                    mat3_mult_vec(&model_mat, &pos_diff, &pos_diff);
+                    mat3_transform_vector(&model_mat, &pos_diff, &pos_diff);
                     pos += pos_diff;
 
                     float_t v00;
@@ -419,7 +419,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
-            mat4_mult(&view_mat, &GPM_VAL->cam.view, &view_mat);
+            mat4_mul(&view_mat, &GPM_VAL->cam.view, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
         else {
@@ -429,18 +429,18 @@ namespace Glitter {
         }
 
         if (rend_group->flags & PARTICLE_LOCAL) {
-            mat4_mult(&inv_view_mat, &rend_group->mat, &inv_view_mat);
-            mat4_mult(&view_mat, &inv_view_mat, &view_mat);
+            mat4_mul(&inv_view_mat, &rend_group->mat, &inv_view_mat);
+            mat4_mul(&view_mat, &inv_view_mat, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
 
-        mat4_mult(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
+        mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
 
         mat4 dir_mat;
         switch (rend_group->draw_type) {
         case DIRECTION_BILLBOARD:
             mat4_clear_trans(&model_mat, &dir_mat);
-            mat4_mult(&dir_mat, &inv_view_mat, &dir_mat);
+            mat4_mul(&dir_mat, &inv_view_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
             break;
         case DIRECTION_EMITTER_DIRECTION:
@@ -492,8 +492,8 @@ namespace Glitter {
         vec3 x_vec_base = { 1.0f, 0.0f, 0.0f };
         vec3 y_vec_base = { 0.0f, 1.0f, 0.0f };
 
-        mat4_mult_vec3(&inv_model_mat, &x_vec_base, &x_vec_base);
-        mat4_mult_vec3(&inv_model_mat, &y_vec_base, &y_vec_base);
+        mat4_transform_vector(&inv_model_mat, &x_vec_base, &x_vec_base);
+        mat4_transform_vector(&inv_model_mat, &y_vec_base, &y_vec_base);
 
         vec3 up_vec;
         mat4(*rotate_func)(F2RenderGroup*, RenderElement*, vec3*);
@@ -575,13 +575,13 @@ namespace Glitter {
 
                 mat4 mat = rotate_func(rend_group, elem, &up_vec);
                 mat4_clear_trans(&mat, &mat);
-                mat4_mult(dir_mat, &mat, &mat);
+                mat4_mul(dir_mat, &mat, &mat);
                 mat4_clear_trans(&mat, &mat);
 
                 vec3 x_vec;
-                mat4_mult_vec3(&mat, &x_vec_base, &x_vec);
+                mat4_transform_vector(&mat, &x_vec_base, &x_vec);
                 vec3 y_vec;
-                mat4_mult_vec3(&mat, &y_vec_base, &y_vec);
+                mat4_transform_vector(&mat, &y_vec_base, &y_vec);
 
                 if (use_scale) {
                     x_vec *= scale;
@@ -648,7 +648,7 @@ namespace Glitter {
                 scale.y = 0.0f;
             if (!(has_scale |= fabsf(scale.z) > 0.000001f ? true : false))
                 scale.z = 0.0f;
-            mat4_mult_vec3(&rend_group->mat_rot, &scale, &scale);
+            mat4_transform_vector(&rend_group->mat_rot, &scale, &scale);
             emitter_local = true;
         }
 
@@ -664,14 +664,14 @@ namespace Glitter {
         }
 
         if (rend_group->draw_type != DIRECTION_BILLBOARD) {
-            mat4_mult_vec3(dir_mat, &x_vec, &x_vec);
-            mat4_mult_vec3(dir_mat, &y_vec, &y_vec);
+            mat4_transform_vector(dir_mat, &x_vec, &x_vec);
+            mat4_transform_vector(dir_mat, &y_vec, &y_vec);
         }
         else
-            mat4_mult(&inv_model_mat, dir_mat, &inv_model_mat);
+            mat4_mul(&inv_model_mat, dir_mat, &inv_model_mat);
 
-        mat4_mult_vec3(&inv_model_mat, &x_vec, &x_vec);
-        mat4_mult_vec3(&inv_model_mat, &y_vec, &y_vec);
+        mat4_transform_vector(&inv_model_mat, &x_vec, &x_vec);
+        mat4_transform_vector(&inv_model_mat, &y_vec, &y_vec);
 
         Buffer* buf;
         if (GLAD_GL_VERSION_4_5)
@@ -710,7 +710,7 @@ namespace Glitter {
                     vec3 pos = elem->translation;
                     if (has_scale) {
                         vec3 pos_diff = (pos - elem->base_translation) * scale;
-                        mat4_mult_vec3(&inv_model_mat, &pos_diff, &pos_diff);
+                        mat4_transform_vector(&inv_model_mat, &pos_diff, &pos_diff);
                         pos += pos_diff;
                     }
 
@@ -746,7 +746,7 @@ namespace Glitter {
                     if (use_z_offset) {
                         vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
-                            mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
+                            mat4_transform_vector(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
                         pos += z_offset_dir * z_offset;
                     }
 
@@ -757,7 +757,7 @@ namespace Glitter {
                         xy_vec_rot.x = x_vec.x * pos_add[k].x;
                         xy_vec_rot.y = y_vec.y * pos_add[k].y;
                         xy_vec_rot.z = 0.0f;
-                        mat3_mult_vec(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
+                        mat3_transform_vector(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
                         buf->position = pos + xy_vec_rot;
                         buf->uv[0] = uv + uv_add[k];
                         buf->uv[1] = buf->uv[0];
@@ -784,7 +784,7 @@ namespace Glitter {
                     vec3 pos = elem->translation;
                     if (has_scale) {
                         vec3 pos_diff = (pos - elem->base_translation) * scale;
-                        mat4_mult_vec3(&inv_model_mat, &pos_diff, &pos_diff);
+                        mat4_transform_vector(&inv_model_mat, &pos_diff, &pos_diff);
                         pos += pos_diff;
                     }
 
@@ -820,7 +820,7 @@ namespace Glitter {
                     if (use_z_offset) {
                         vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
-                            mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
+                            mat4_transform_vector(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
                         pos += z_offset_dir * z_offset;
                     }
 
@@ -951,8 +951,8 @@ namespace Glitter {
             return;
 
         mat4 mat;
-        mat4_mult(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
-        mat4_mult(&mat, &GPM_VAL->cam.projection, &mat);
+        mat4_mul(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
+        mat4_mul(&mat, &GPM_VAL->cam.projection, &mat);
 
         float_t emission = 1.0f;
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
@@ -1284,9 +1284,9 @@ namespace Glitter {
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
         if (rend_group->flags & PARTICLE_LOCAL) {
             mat4 mat;
-            mat4_mult(&GPM_VAL->cam.inv_view, &rend_group->mat, &mat);
-            mat4_mult(&GPM_VAL->cam.view, &mat, &mat);
-            mat4_mult(&mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
+            mat4_mul(&GPM_VAL->cam.inv_view, &rend_group->mat, &mat);
+            mat4_mul(&GPM_VAL->cam.view, &mat, &mat);
+            mat4_mul(&mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
         }
         else
             rend_group->mat_draw = mat4_identity;
@@ -1312,7 +1312,7 @@ namespace Glitter {
         else
             model_mat = mat3_identity;
 
-        mat3_mult_vec(&GPM_VAL->cam.inv_view_mat3, &x_vec, &x_vec);
+        mat3_transform_vector(&GPM_VAL->cam.inv_view_mat3, &x_vec, &x_vec);
 
         Buffer* buf;
         if (GLAD_GL_VERSION_4_5)
@@ -1354,7 +1354,7 @@ namespace Glitter {
                 for (LocusHistory::Data& hist_data : hist->data) {
                     vec3 pos = hist_data.translation;
                     vec3 pos_diff = (pos - elem->base_translation) * scale;
-                    mat3_mult_vec(&model_mat, &pos_diff, &pos_diff);
+                    mat3_transform_vector(&model_mat, &pos_diff, &pos_diff);
                     pos += pos_diff;
 
                     float_t v00;
@@ -1432,7 +1432,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
-            mat4_mult(&view_mat, &GPM_VAL->cam.view, &view_mat);
+            mat4_mul(&view_mat, &GPM_VAL->cam.view, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
 
             emitter_local = true;
@@ -1449,12 +1449,12 @@ namespace Glitter {
 
         bool local = false;
         if (rend_group->flags & PARTICLE_LOCAL) {
-            mat4_mult(&inv_view_mat, &rend_group->mat, &inv_view_mat);
-            mat4_mult(&view_mat, &inv_view_mat, &view_mat);
+            mat4_mul(&inv_view_mat, &rend_group->mat, &inv_view_mat);
+            mat4_mul(&view_mat, &inv_view_mat, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
             local = true;
         }
-        mat4_mult(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
+        mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
 
         mat4 dir_mat = mat4_identity;
         vec3 up_vec = { 0.0f, 0.0f, 1.0f };
@@ -1464,7 +1464,7 @@ namespace Glitter {
         switch (rend_group->draw_type) {
         case DIRECTION_BILLBOARD:
             mat4_clear_trans(&model_mat, &dir_mat);
-            mat4_mult(&dir_mat, &inv_view_mat, &dir_mat);
+            mat4_mul(&dir_mat, &inv_view_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
             billboard = true;
             break;
@@ -1558,7 +1558,7 @@ namespace Glitter {
                     scale *= emit_scale;
 
                 if (emitter_local)
-                    mat4_mult_vec3_trans(&model_mat, &trans, &trans);
+                    mat4_transform_point(&model_mat, &trans, &trans);
 
                 mat4 mat;
                 if (billboard) {
@@ -1576,7 +1576,7 @@ namespace Glitter {
                     mat = dir_mat;
 
                 mat4_set_translation(&mat, &trans);
-                mat4_rotate_zyx_mult(&mat, &rot, &mat);
+                mat4_mul_rotate_zyx(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &mat);
 
                 vec3 uv_scroll;
@@ -1594,7 +1594,7 @@ namespace Glitter {
                 disp_manager.set_texture_transform(tex_trans_count, tex_trans);
 
                 if (local)
-                    mat4_mult(&mat, &GPM_VAL->cam.inv_view, &mat);
+                    mat4_mul(&mat, &GPM_VAL->cam.inv_view, &mat);
 
                 if (disp_manager.entry_obj_by_object_info(
                     &mat, object_info, &elem->color, 0, local))
@@ -1624,7 +1624,7 @@ namespace Glitter {
                 mat4_clear_rot(&rend_group->mat, &view_mat);
             else
                 mat4_normalize_rotation(&rend_group->mat, &view_mat);
-            mat4_mult(&view_mat, &GPM_VAL->cam.view, &view_mat);
+            mat4_mul(&view_mat, &GPM_VAL->cam.view, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
         else {
@@ -1635,16 +1635,16 @@ namespace Glitter {
 
         if (rend_group->flags & PARTICLE_LOCAL) {
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL)
-                mat4_mult(&inv_view_mat, &rend_group->mat, &inv_view_mat);
-            mat4_mult(&view_mat, &inv_view_mat, &view_mat);
+                mat4_mul(&inv_view_mat, &rend_group->mat, &inv_view_mat);
+            mat4_mul(&view_mat, &inv_view_mat, &view_mat);
             mat4_inverse(&view_mat, &inv_view_mat);
         }
-        mat4_mult(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
+        mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
 
         switch (rend_group->draw_type) {
         case DIRECTION_BILLBOARD:
             mat4_clear_trans(&model_mat, &dir_mat);
-            mat4_mult(&dir_mat, &inv_view_mat, &dir_mat);
+            mat4_mul(&dir_mat, &inv_view_mat, &dir_mat);
             mat4_clear_trans(&dir_mat, &dir_mat);
             break;
         case DIRECTION_EMITTER_DIRECTION:
@@ -1686,8 +1686,8 @@ namespace Glitter {
         vec3 x_vec_base = { 1.0f, 0.0f, 0.0f };
         vec3 y_vec_base = { 0.0f, 1.0f, 0.0f };
 
-        mat4_mult_vec3(&inv_model_mat, &x_vec_base, &x_vec_base);
-        mat4_mult_vec3(&inv_model_mat, &y_vec_base, &y_vec_base);
+        mat4_transform_vector(&inv_model_mat, &x_vec_base, &x_vec_base);
+        mat4_transform_vector(&inv_model_mat, &y_vec_base, &y_vec_base);
 
         vec3 up_vec;
         mat4(*rotate_func)(XRenderGroup*, RenderElement*, vec3*);
@@ -1773,9 +1773,9 @@ namespace Glitter {
 
                 mat4 mat = rotate_func(rend_group, elem, &up_vec);
                 vec3 x_vec;
-                mat4_mult_vec3(&mat, &x_vec_base, &x_vec);
+                mat4_transform_vector(&mat, &x_vec_base, &x_vec);
                 vec3 y_vec;
-                mat4_mult_vec3(&mat, &y_vec_base, &y_vec);
+                mat4_transform_vector(&mat, &y_vec_base, &y_vec);
 
                 if (use_scale) {
                     x_vec *= scale;
@@ -1855,14 +1855,14 @@ namespace Glitter {
         }
 
         if (rend_group->draw_type != DIRECTION_BILLBOARD) {
-            mat4_mult_vec3(dir_mat, &x_vec, &x_vec);
-            mat4_mult_vec3(dir_mat, &y_vec, &y_vec);
+            mat4_transform_vector(dir_mat, &x_vec, &x_vec);
+            mat4_transform_vector(dir_mat, &y_vec, &y_vec);
         }
         else
-            mat4_mult(&inv_model_mat, dir_mat, &inv_model_mat);
+            mat4_mul(&inv_model_mat, dir_mat, &inv_model_mat);
 
-        mat4_mult_vec3(&inv_model_mat, &x_vec, &x_vec);
-        mat4_mult_vec3(&inv_model_mat, &y_vec, &y_vec);
+        mat4_transform_vector(&inv_model_mat, &x_vec, &x_vec);
+        mat4_transform_vector(&inv_model_mat, &y_vec, &y_vec);
 
         Buffer* buf;
         if (GLAD_GL_VERSION_4_5)
@@ -1934,7 +1934,7 @@ namespace Glitter {
                     if (use_z_offset) {
                         vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
-                            mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
+                            mat4_transform_vector(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
                         pos += z_offset_dir * z_offset;
                     }
 
@@ -1945,7 +1945,7 @@ namespace Glitter {
                         xy_vec_rot.x = x_vec.x * pos_add[k].x;
                         xy_vec_rot.y = y_vec.y * pos_add[k].y;
                         xy_vec_rot.z = 0.0f;
-                        mat3_mult_vec(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
+                        mat3_transform_vector(&ptc_rot, &xy_vec_rot, &xy_vec_rot);
                         buf->position = pos + xy_vec_rot;
                         buf->uv[0] = uv + uv_add[k];
                         buf->uv[1] = buf->uv[0];
@@ -2005,7 +2005,7 @@ namespace Glitter {
                     if (use_z_offset) {
                         vec3 z_offset_dir = vec3::normalize(dist_to_cam - pos);
                         if (emitter_local)
-                            mat4_mult_vec3(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
+                            mat4_transform_vector(&z_offset_inv_mat, &z_offset_dir, &z_offset_dir);
                         pos += z_offset_dir * z_offset;
                     }
 
@@ -2144,8 +2144,8 @@ namespace Glitter {
             return;
 
         mat4 mat;
-        mat4_mult(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
-        mat4_mult(&mat, &GPM_VAL->cam.projection, &mat);
+        mat4_mul(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
+        mat4_mul(&mat, &GPM_VAL->cam.projection, &mat);
 
         float_t emission = 1.0f;
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)

@@ -418,8 +418,8 @@ void auth_3d::ctrl(render_context* rctx) {
                     cam.roll = -cam.roll;
                 }
 
-                mat4_mult_vec3_trans(&mat, &cam.interest, &cam.interest);
-                mat4_mult_vec3_trans(&mat, &cam.view_point, &cam.view_point);
+                mat4_transform_point(&mat, &cam.interest, &cam.interest);
+                mat4_transform_point(&mat, &cam.view_point, &cam.view_point);
 
                 cam.set(rctx->camera);
                 break;
@@ -1076,7 +1076,7 @@ namespace auth_3d_detail {
         if (auth->left_right_reverse)
             trans.x = -trans.x;
 
-        mat4_mult_vec3_trans(&auth->mat, &trans, &trans);
+        mat4_transform_point(&auth->mat, &trans, &trans);
         particle_event_data event;
         event.type = 1.0f;
         event.count = point.model_transform.scale_value.x * 100.0f;
@@ -1471,8 +1471,8 @@ void auth_3d_model_transform::reset() {
 
 void auth_3d_model_transform::set_mat(const mat4* parent_mat) {
     mat4 mat;
-    mat4_translate_mult(parent_mat, &translation_value, &mat);
-    mat4_rotate_zyx_mult(&mat, &rotation_value, &mat);
+    mat4_mul_translate(parent_mat, &translation_value, &mat);
+    mat4_mul_rotate_zyx(&mat, &rotation_value, &mat);
     mat4_scale_rot(&mat, &scale_value, &this->mat);
 }
 
@@ -1552,10 +1552,10 @@ void auth_3d_camera_root::interpolate(float_t frame) {
     mat4& cr_mat = model_transform.mat;
 
     vec3 _view_point = view_point.model_transform.translation.interpolate(frame);
-    mat4_mult_vec3_trans(&cr_mat, &_view_point, &view_point_value);
+    mat4_transform_point(&cr_mat, &_view_point, &view_point_value);
 
     vec3 _interest = interest.translation.interpolate(frame);
-    mat4_mult_vec3_trans(&cr_mat, &_interest, &interest_value);
+    mat4_transform_point(&cr_mat, &_interest, &interest_value);
 
     float_t fov;
     if (view_point.flags & AUTH_3D_CAMERA_ROOT_VIEW_POINT_FOV) {
@@ -2092,7 +2092,7 @@ void auth_3d_object_model_transform::interpolate(float_t frame) {
     mat4 mat;
     mat4_translate(&translation_value, &mat);
 
-    mat4_mult(&mat_rot, &mat, &mat);
+    mat4_mul(&mat_rot, &mat, &mat);
     if (has_scale)
         mat4_scale_rot(&mat, &scale_value, &mat);
     mat_inner = mat;
@@ -2100,7 +2100,7 @@ void auth_3d_object_model_transform::interpolate(float_t frame) {
 }
 
 void auth_3d_object_model_transform::mat_mult(const mat4* mat) {
-    mat4_mult(&this->mat_inner, mat, &this->mat);
+    mat4_mul(&this->mat_inner, mat, &this->mat);
 }
 
 void auth_3d_object_model_transform::reset() {
@@ -2244,13 +2244,13 @@ void auth_3d_object_texture_transform::interpolate(float_t frame) {
     mat4_translate(&translate_frame, &mat);
     mat4_scale_rot(&mat, &scale, &mat);
 
-    mat4_translate_mult(&mat, 1.0f, 1.0f, 0.0f, &mat);
+    mat4_mul_translate(&mat, 1.0f, 1.0f, 0.0f, &mat);
     mat4_scale_rot(&mat, &repeat, &mat);
-    mat4_translate_mult(&mat, -1.0f, -1.0f, 0.0f, &mat);
+    mat4_mul_translate(&mat, -1.0f, -1.0f, 0.0f, &mat);
 
-    mat4_translate_mult(&mat, 0.5f, 0.5f, 0.0f, &mat);
-    mat4_rotate_z_mult(&mat, rotate.z, &mat);
-    mat4_translate_mult(&mat, -0.5f, -0.5f, 0.0f, &mat);
+    mat4_mul_translate(&mat, 0.5f, 0.5f, 0.0f, &mat);
+    mat4_mul_rotate_z(&mat, rotate.z, &mat);
+    mat4_mul_translate(&mat, -0.5f, -0.5f, 0.0f, &mat);
     this->mat = mat;
 }
 
@@ -4483,7 +4483,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
 
             mat4 mat = i.model_transform.mat;
             mat4 t = *m;
-            mat4_mult(&mat, &t, &mat);
+            mat4_mul(&mat, &t, &mat);
 
             vec3 pos = *(vec3*)&mat.row3;
             pos.y -= 0.2f;
@@ -6090,11 +6090,11 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
             mat4 m;
-            mat4_mult(&rob_chr->data.miku_rot.field_6C,
+            mat4_mul(&rob_chr->data.miku_rot.field_6C,
                 auth->chara_item
                     ? &rob_chr->data.adjust_data.item_mat
                     : &rob_chr->data.adjust_data.mat, &m);
-            mat4_mult(&m, &mat, &mat);
+            mat4_mul(&m, &mat, &mat);
             disp_manager.set_shadow_type(auth->chara_id ? SHADOW_STAGE : SHADOW_CHARA);
         }
 
@@ -6312,7 +6312,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     if (auth->chara_id >= 0 && auth->chara_id < ROB_CHARA_COUNT) {
         if (rob_chara_pv_data_array_check_chara_id(auth->chara_id)) {
             rob_chara* rob_chr = rob_chara_array_get(auth->chara_id);
-            mat4_mult(&rob_chr->data.miku_rot.field_6C,
+            mat4_mul(&rob_chr->data.miku_rot.field_6C,
                 auth->chara_item
                     ? &rob_chr->data.adjust_data.item_mat
                     : &rob_chr->data.adjust_data.mat, &mat);
@@ -6439,7 +6439,7 @@ static void auth_3d_object_hrc_nodes_mat_mult(auth_3d_object_hrc* oh, const mat4
         else
             m = *mat;
 
-        mat4_mult(&i.joint_orient_mat, &m, &m);
+        mat4_mul(&i.joint_orient_mat, &m, &m);
         i.model_transform.mat_mult(&m);
 
         if (i.mat)

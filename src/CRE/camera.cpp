@@ -294,10 +294,10 @@ void camera::set(const vec3& view_point, const vec3& interest,
 
     mat4 cam;
     mat4_translate(&trans, &cam);
-    mat4_rotate_zyx_mult(&cam, &rot, &cam);
+    mat4_mul_rotate_zyx(&cam, &rot, &cam);
     mat4_scale_rot(&cam, &scale, &cam);
-    mat4_mult_vec3_trans(&cam, &_vp, &_vp);
-    mat4_mult_vec3_trans(&cam, &_int, &_int);
+    mat4_transform_point(&cam, &_vp, &_vp);
+    mat4_transform_point(&cam, &_int, &_int);
 
     set_view_point(_vp);
     set_interest(_int);
@@ -339,7 +339,7 @@ void camera::update_data() {
         camera_calculate_view(this);
 
     if (changed_proj || changed_view) {
-        mat4_mult(&view, &projection, &view_projection);
+        mat4_mul(&view, &projection, &view_projection);
         mat4_inverse(&view_projection, &inv_view_projection);
     }
 
@@ -413,7 +413,7 @@ static void camera_calculate_projection_aet(camera* c) {
     mat4 spr_2d_view;
     mat4_look_at(&spr_2d_viewpoint, &spr_2d_interest, &spr_2d_up, &spr_2d_view);
 
-    mat4_mult(&spr_2d_view, &spr_2d_proj, &c->view_projection_aet_2d);
+    mat4_mul(&spr_2d_view, &spr_2d_proj, &c->view_projection_aet_2d);
 
     float_t v13c = render_half_height / tanf((float_t)c->fov_rad * 0.5f);
 
@@ -430,7 +430,7 @@ static void camera_calculate_projection_aet(camera* c) {
     mat4 spr_3d_view;
     mat4_look_at(&spr_3d_viewpoint, &spr_3d_interest, &spr_3d_up, &spr_3d_view);
 
-    mat4_mult(&spr_3d_view, &spr_3d_proj, &c->view_projection_aet_3d);
+    mat4_mul(&spr_3d_view, &spr_3d_proj, &c->view_projection_aet_3d);
 }
 
 static void camera_calculate_view(camera* c) {
@@ -460,7 +460,7 @@ static void camera_calculate_view(camera* c) {
         vec3 view_point = -c->view_point;
 
         mat4_rotate_zxy(&rotation, &c->view);
-        mat4_translate_mult(&c->view, &view_point, &c->view);
+        mat4_mul_translate(&c->view, &view_point, &c->view);
         mat4_inverse(&c->view, &c->inv_view);
     }
 

@@ -149,13 +149,13 @@ void stage_param_star::get_mat(mat4& mat, const float_t observer_north_latitude,
     float_t latitude_cos = cosf(observer_north_latitude) * 0.99664718f;
 
     vec3 x_axis = { 0.0f, latitude_cos, -latitude_sin };
-    mat3_mult_vec(&rot_y, &x_axis, &x_axis);
+    mat3_transform_vector(&rot_y, &x_axis, &x_axis);
 
     vec3 y_axis = { 0.0f, latitude_sin, latitude_cos };
-    mat3_mult_vec(&rot_y, &y_axis, &y_axis);
+    mat3_transform_vector(&rot_y, &y_axis, &y_axis);
 
     vec3 z_axis = { 1.0f, 0.0f, 0.0f };
-    mat3_mult_vec(&rot_y, &z_axis, &z_axis);
+    mat3_transform_vector(&rot_y, &z_axis, &z_axis);
 
     x_axis = vec3::normalize(x_axis);
     y_axis = vec3::normalize(y_axis);

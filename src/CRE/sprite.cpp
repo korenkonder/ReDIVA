@@ -308,7 +308,7 @@ namespace spr {
     vec2 proj_sprite_3d_line(vec3 vec, bool offset) {
         camera* cam = rctx_ptr->camera;
 
-        mat4_mult_vec3_trans(&cam->view, &vec, &vec);
+        mat4_transform_point(&cam->view, &vec, &vec);
         if (fabsf(vec.z) < 1.0e-10f)
             return 0.0f;
 
@@ -331,20 +331,20 @@ namespace spr {
     void put_cross(const mat4& mat, color4u8 color_x, color4u8 color_y, color4u8 color_z) {
         vec3 v5 = { 0.0f, 0.0f, 0.0f };
         vec3 v6;
-        mat4_mult_vec3_trans(&mat, &v5, &v6);
+        mat4_transform_point(&mat, &v5, &v6);
 
         vec3 v7 = v6;
 
         v5 = { 1.0f, 0.0f, 0.0f };
-        mat4_mult_vec3_trans(&mat, &v5, &v6);
+        mat4_transform_point(&mat, &v5, &v6);
         put_sprite_3d_line(v7, v6, color_x);
 
         v5 = { 0.0f, 1.0f, 0.0f };
-        mat4_mult_vec3_trans(&mat, &v5, &v6);
+        mat4_transform_point(&mat, &v5, &v6);
         put_sprite_3d_line(v7, v6, color_y);
 
         v5 = { 0.0f, 0.0f, 1.0f };
-        mat4_mult_vec3_trans(&mat, &v5, &v6);
+        mat4_transform_point(&mat, &v5, &v6);
         put_sprite_3d_line(v7, v6, color_z);
     }
 
@@ -855,7 +855,7 @@ namespace spr {
 
                 mat4 view;
                 mat4_look_at(&eye, &target, &up, &view);
-                mat4_mult(&view, &proj, &view_projection);
+                mat4_mul(&view, &proj, &view_projection);
 
                 vec2 min;
                 vec2 max;
@@ -1238,26 +1238,26 @@ namespace spr {
 
             mat4_translate(&args->trans, &m);
             if (fabsf(args->rot.x) > 0.000001f)
-                mat4_rotate_x_mult(&m, args->rot.x, &m);
+                mat4_mul_rotate_x(&m, args->rot.x, &m);
             if (fabsf(args->rot.y) > 0.000001f)
-                mat4_rotate_y_mult(&m, args->rot.y, &m);
+                mat4_mul_rotate_y(&m, args->rot.y, &m);
             if (fabsf(args->rot.z) > 0.000001f)
-                mat4_rotate_z_mult(&m, args->rot.z, &m);
+                mat4_mul_rotate_z(&m, args->rot.z, &m);
             mat4_scale_rot(&m, &args->scale, &m);
             const vec3 center = -args->center;
-            mat4_translate_mult(&m, &center, &m);
+            mat4_mul_translate(&m, &center, &m);
         }
         else {
             mat4_translate(&args->trans, &m);
             mat4_scale_rot(&m, &args->scale, &m);
         }
 
-        mat4_mult(&args->mat, &m, &m);
+        mat4_mul(&args->mat, &m, &m);
 
-        mat4_mult_vec3_trans(&m, &vtx[0], &vtx[0]);
-        mat4_mult_vec3_trans(&m, &vtx[1], &vtx[1]);
-        mat4_mult_vec3_trans(&m, &vtx[2], &vtx[2]);
-        mat4_mult_vec3_trans(&m, &vtx[3], &vtx[3]);
+        mat4_transform_point(&m, &vtx[0], &vtx[0]);
+        mat4_transform_point(&m, &vtx[1], &vtx[1]);
+        mat4_transform_point(&m, &vtx[2], &vtx[2]);
+        mat4_transform_point(&m, &vtx[3], &vtx[3]);
 
         if (mat)
             *mat = m;
@@ -1285,10 +1285,10 @@ namespace spr {
                     mat4 mat;
                     calc_sprite_vertex(args, v42, &mat, font);
                     mat4_inverse(&mat, &mat);
-                    mat4_mult_vec3_trans(&mat, &vtx[0], &v42[0]);
-                    mat4_mult_vec3_trans(&mat, &vtx[1], &v42[1]);
-                    mat4_mult_vec3_trans(&mat, &vtx[2], &v42[2]);
-                    mat4_mult_vec3_trans(&mat, &vtx[3], &v42[3]);
+                    mat4_transform_point(&mat, &vtx[0], &v42[0]);
+                    mat4_transform_point(&mat, &vtx[1], &v42[1]);
+                    mat4_transform_point(&mat, &vtx[2], &v42[2]);
+                    mat4_transform_point(&mat, &vtx[3], &v42[3]);
                     uv00 = *(vec2*)&v42[0].x;
                     uv01 = *(vec2*)&v42[1].x;
                     uv10 = *(vec2*)&v42[2].x;

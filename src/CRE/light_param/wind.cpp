@@ -90,11 +90,11 @@ static float_t wind_apply_spc(wind* w, float_t frame) {
 static void wind_ctrl(wind* w) {
     float_t value = wind_apply_spc(w, w->cycle * w->frame) * w->scale;
     mat4 mat = mat4_identity;
-    mat4_rotate_y_mult(&mat, w->rot_y * DEG_TO_RAD_FLOAT, &mat);
-    mat4_rotate_z_mult(&mat, w->rot_z * DEG_TO_RAD_FLOAT, &mat);
+    mat4_mul_rotate_y(&mat, w->rot_y * DEG_TO_RAD_FLOAT, &mat);
+    mat4_mul_rotate_z(&mat, w->rot_z * DEG_TO_RAD_FLOAT, &mat);
     vec3 wind_direction = 0.0f;
     wind_direction.x = value;
-    mat4_mult_vec3(&mat, &wind_direction, &wind_direction);
+    mat4_transform_vector(&mat, &wind_direction, &wind_direction);
     w->wind_direction = wind_direction * w->strength;
     if (w->strength >= 1.0f)
         w->strength = 1.0f;

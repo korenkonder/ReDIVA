@@ -973,7 +973,7 @@ static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
 
     mat4 proj;
     mat4_ortho(-range, range, -range, range, shad->z_near, shad->z_far, &proj);
-    mat4_mult(&proj, &temp, &rctx->proj_mat);
+    mat4_mul(&proj, &temp, &rctx->proj_mat);
     mat4_look_at(view_point, interest, &rctx->view_mat);
 
     rctx->draw_state.shader_index = SHADER_FT_SIL;
@@ -1413,15 +1413,15 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
             mat4 temp;
             mat4_translate(0.5f, 0.5f, 0.5f, &temp);
             mat4_scale_rot(&temp, 0.5f, 0.5f, 0.5f, &temp);
-            mat4_translate_mult(&temp, v6, 0.0f, 0.0f, &temp);
+            mat4_mul_translate(&temp, v6, 0.0f, 0.0f, &temp);
 
             mat4 proj;
             mat4_ortho(-range, range, -range, range, shad->z_near, shad->z_far, &proj);
-            mat4_mult(&proj, &temp, &proj);
+            mat4_mul(&proj, &temp, &proj);
 
             mat4 view;
             mat4_look_at(view_point, interest, &view);
-            mat4_mult(&view, &proj, &view);
+            mat4_mul(&view, &proj, &view);
             rctx->obj_scene.set_g_self_shadow_receivers(i, view);
         }
 

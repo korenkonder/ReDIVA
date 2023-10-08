@@ -288,14 +288,14 @@ static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time) 
 
     if (!pv_game_camera_data.follow_chara) {
         vec3 direction;
-        mat4_mult_vec3(&dir_mat, &pv_game_camera_data.view_direction, &direction);
+        mat4_transform_vector(&dir_mat, &pv_game_camera_data.view_direction, &direction);
         view_point = direction * distance + interest;
     }
 
     cam->interest = interest;
     cam->view_point = view_point;
 
-    mat4_mult_vec3(&up_mat, &pv_game_camera_data.up_vec, &cam->up);
+    mat4_transform_vector(&up_mat, &pv_game_camera_data.up_vec, &cam->up);
     cam->use_up = true;
     return in_transition;
 }

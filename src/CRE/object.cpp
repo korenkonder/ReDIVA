@@ -583,12 +583,12 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
             mat4 temp;
             int32_t bone_id = s->bone_array[i].id;
             if (bone_id & 0x8000)
-                mat4_mult(mat, &ex_data_matrices[bone_id & 0x7FFF], &temp);
+                mat4_mul(mat, &ex_data_matrices[bone_id & 0x7FFF], &temp);
             else
-                mat4_mult(mat, &matrices[bone_id], &temp);
+                mat4_mul(mat, &matrices[bone_id], &temp);
 
-            mat4_mult(&temp, global_mat, &temp);
-            mat4_mult(&s->bone_array[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
+            mat4_mul(&temp, global_mat, &temp);
+            mat4_mul(&s->bone_array[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
     else
         for (uint32_t i = 0; i < s->num_bone; i++) {
@@ -599,8 +599,8 @@ void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
             else
                 temp = matrices[bone_id];
 
-            mat4_mult(&temp, global_mat, &temp);
-            mat4_mult(&s->bone_array[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
+            mat4_mul(&temp, global_mat, &temp);
+            mat4_mul(&s->bone_array[i].inv_bind_pose_mat, &temp, &matrix_buffer[i]);
         }
 }
 

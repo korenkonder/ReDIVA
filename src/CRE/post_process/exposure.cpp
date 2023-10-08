@@ -66,13 +66,13 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
 
             mat4 v42 = cam->view;
             mat4 v43 = cam->projection;
-            mat4_mult(&v44, &v42, &v42);
-            mat4_mult(&v42, &v43, &v43);
+            mat4_mul(&v44, &v42, &v42);
+            mat4_mul(&v42, &v43, &v43);
 
             vec4 v41;
             vec4 v40;
-            mat4_mult_vec(&v42, &v34, &v41);
-            mat4_mult_vec(&v43, &v34, &v40);
+            mat4_transform_vector(&v42, &v34, &v41);
+            mat4_transform_vector(&v43, &v34, &v40);
 
             float_t v12 = 1.0f / v40.w;
             float_t v13 = v40.x * v12;
@@ -93,7 +93,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
                 v16 = 1.0f;
 
             vec4 v39;
-            mat4_mult_vec(&v42, &v33, &v39);
+            mat4_transform_vector(&v42, &v33, &v39);
 
             float_t v17 = (v39.z + 1.0f) * 0.5f;
             if (v17 > 0.8f)
@@ -215,11 +215,11 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
 
         mat4 mat = mat4_identity;
         sub_1405163C0(rob_chr, 4, &mat);
-        mat4_mult(&mat, &cam->view, &mat);
-        mat4_translate_mult(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
+        mat4_mul(&mat, &cam->view, &mat);
+        mat4_mul_translate(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
         mat4_clear_rot(&mat, &mat);
         mat4_scale_rot(&mat, 0.0035f, &mat);
-        mat4_mult(&mat, &cam->projection, &mat);
+        mat4_mul(&mat, &cam->projection, &mat);
 
         sun_quad_shader_data shader_data = {};
         mat4_transpose(&mat, &mat);

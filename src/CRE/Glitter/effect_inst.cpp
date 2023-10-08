@@ -192,14 +192,14 @@ namespace Glitter {
 
         mat4 mat;
         if (GetExtAnimMat(&mat))
-            mat4_translate_mult(&mat, &translation, &mat);
+            mat4_mul_translate(&mat, &translation, &mat);
         else
             mat4_translate(&translation, &mat);
 
         vec3 rot = rotation;
         vec3 scale = this->scale * scale_all;
 
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
 
         for (F2EmitterInst*& i : emitters)
@@ -299,7 +299,7 @@ namespace Glitter {
                 vec3 rot = rotation;
                 vec3 scale = this->scale * scale_all;
 
-                mat4_rotate_zyx_mult(&mat, &rot, &mat);
+                mat4_mul_rotate_zyx(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &this->mat);
 
                 for (F2EmitterInst*& i : emitters)
@@ -337,7 +337,7 @@ namespace Glitter {
 
         mat4 mat;
         mat4_translate(&trans, &mat);
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
@@ -384,7 +384,7 @@ namespace Glitter {
                 if (!bone_mat)
                     return;
 
-                mat4_mult(bone_mat, &mat, &mat);
+                mat4_mul(bone_mat, &mat, &mat);
             }
 
             if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
@@ -439,7 +439,7 @@ namespace Glitter {
                     obj_mesh* mesh = object_storage_get_obj_mesh_by_index(
                         ext_anim->object, ext_anim->mesh_index);
                     if (mesh) {
-                        mat4_mult(obj_mat, &mat, &mat);
+                        mat4_mul(obj_mat, &mat, &mat);
                         ext_anim->mat = mat;
                         ext_anim->translation = mesh->bounding_sphere.center;
                         goto SetFlags;
@@ -447,7 +447,7 @@ namespace Glitter {
                 }
             }
             else {
-                mat4_mult(obj_mat, &mat, &mat);
+                mat4_mul(obj_mat, &mat, &mat);
                 if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
                     ext_anim->mat = mat4_identity;
                     mat4_get_translation(&mat, &ext_anim->translation);
@@ -488,7 +488,7 @@ namespace Glitter {
         if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
-        mat4_translate_mult(&ext_anim->mat, &ext_anim->translation, mat);
+        mat4_mul_translate(&ext_anim->mat, &ext_anim->translation, mat);
         return true;
     }
 
@@ -720,9 +720,9 @@ namespace Glitter {
             mat4_clear_trans(&mat_rot, &mat_rot);
 
             mat_rot_eff_rot = mat_rot;
-            mat4_rotate_zyx_mult(&mat_rot, &rot, &mat_rot);
+            mat4_mul_rotate_zyx(&mat_rot, &rot, &mat_rot);
 
-            mat4_translate_mult(&mat, &translation, &mat);
+            mat4_mul_translate(&mat, &translation, &mat);
         }
         else {
             mat_rot = mat4_identity;
@@ -734,7 +734,7 @@ namespace Glitter {
 
         vec3 scale = this->scale * scale_all;
 
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &this->mat);
 
         for (XEmitterInst*& i : emitters)
@@ -846,7 +846,7 @@ namespace Glitter {
 
                 mat4 mat;
                 mat4_translate(&trans, &mat);
-                mat4_rotate_zyx_mult(&mat, &rot, &mat);
+                mat4_mul_rotate_zyx(&mat, &rot, &mat);
                 mat4_scale_rot(&mat, &scale, &this->mat);
 
                 for (XEmitterInst*& i : emitters)
@@ -884,7 +884,7 @@ namespace Glitter {
 
         mat4 mat;
         mat4_translate(&trans, &mat);
-        mat4_rotate_zyx_mult(&mat, &rot, &mat);
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
         mat4_scale_rot(&mat, &scale, &mat);
         this->mat = mat;
 
@@ -1024,7 +1024,7 @@ namespace Glitter {
         if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS) || !ext_anim)
             return false;
 
-        mat4_translate_mult(&ext_anim->mat, &ext_anim->translation, mat);
+        mat4_mul_translate(&ext_anim->mat, &ext_anim->translation, mat);
         return true;
     }
 
@@ -1131,7 +1131,7 @@ namespace Glitter {
         if (a2) {
             mat4 mat = *a2;
             if (a3)
-                mat4_mult(a3, &mat, &mat);
+                mat4_mul(a3, &mat, &mat);
 
             if (flags & EFFECT_INST_EXT_ANIM_TRANS_ONLY) {
                 ext_anim->mat = mat4_identity;
