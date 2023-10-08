@@ -1746,7 +1746,7 @@ namespace pv_db {
                     continue;
                 }
 
-                std::string name;
+                const char* name;
                 kv.read("name", name);
 
                 pv_db_pv_ex_song ex_song;
@@ -1769,7 +1769,10 @@ namespace pv_db {
                 }
 
                 ex_song.file.assign(file);
-                ex_song.name.assign(name);
+                if (name)
+                    ex_song.name.assign(name);
+                else
+                    ex_song.name.assign(song_name);
 
                 int32_t count;
                 if (kv.read("ex_auth", "length", count)) {

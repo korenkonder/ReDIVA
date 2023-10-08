@@ -2303,6 +2303,21 @@ std::string pv_game::get_song_name() {
 std::string pv_game::get_song_file_name(int32_t& ex_song_index) {
     ex_song_index = -1;
 
+    const pv_db_pv* pv = data.pv;
+    if (pv->ex_song.data.size()) {
+        if (data.play_data.ex_song_index < 0) {
+            int32_t _ex_song_index = sub_1400FCFD0(data.chara, pv);
+            if (_ex_song_index >= 0 && _ex_song_index < pv->ex_song.data.size()) {
+                ex_song_index = _ex_song_index;
+                return pv->ex_song.data[_ex_song_index].file;
+            }
+        }
+        else if (data.play_data.ex_song_index > 0 && data.play_data.ex_song_index <= pv->ex_song.data.size()) {
+            ex_song_index = data.play_data.ex_song_index - 1;
+            return pv->ex_song.data[data.play_data.ex_song_index - 1LL].file;
+        }
+    }
+
     struc_717* v13 = sub_14038BB30();
     struc_716* v15;
     if (v13->field_0.stage_index >= 4)
@@ -2310,26 +2325,10 @@ std::string pv_game::get_song_file_name(int32_t& ex_song_index) {
     else
         v15 = &v13->field_28[v13->field_0.stage_index];
 
-    ex_song_index = -1;
-    const pv_db_pv* pv = data.pv;
     if (pv->another_song.size() && v15->field_2C.another_song_index < pv->another_song.size()) {
-        const std::string& another_song_name = pv->another_song[v15->field_2C.another_song_index].name;
-        if (another_song_name.size())
-            return another_song_name;
-    }
-
-    if (pv->ex_song.data.size()) {
-        if (ex_song_index < 0) {
-            int32_t _ex_song_index = sub_1400FCFD0(data.chara, pv);
-            if (_ex_song_index >= 0 && _ex_song_index < pv->ex_song.data.size()) {
-                ex_song_index = _ex_song_index;
-                return pv->ex_song.data[_ex_song_index].name;
-            }
-        }
-        else if (ex_song_index > 0 && data.play_data.ex_song_index <= pv->ex_song.data.size()) {
-            ex_song_index = data.play_data.ex_song_index - 1;
-            return pv->ex_song.data[data.play_data.ex_song_index - 1LL].name;
-        }
+        const std::string& another_song_file_name = pv->another_song[v15->field_2C.another_song_index].song_file_name;
+        if (another_song_file_name.size())
+            return another_song_file_name;
     }
 
     return data.pv->song_file_name;
