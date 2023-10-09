@@ -1287,58 +1287,58 @@ struct dsc_data_time {
     uint32_t data_offset;
 };
 
-static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_from_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_to_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_change_field1_to_change_field2(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_change_field2_to_change_field1(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_dummy(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_note7_to_note11(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_note7_to_note12(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
-static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd);
+static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_from_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_to_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_change_field1_to_change_field2(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_change_field2_to_change_field1(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_dummy(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_note7_to_note11(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_note7_to_note12(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
+static int32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd);
 inline static dsc_get_func_length dsc_type_get_dsc_get_func_length(dsc_type type, bool has_perf_id);
 
 inline int32_t dsc_type_get_dsc_func_count(dsc_type type) {
@@ -1610,27 +1610,27 @@ inline dsc_get_func_name dsc_type_get_dsc_get_func_name(dsc_type type) {
     }
 }
 
-static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* cloth_wet = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* cloth_wet = dsc_replace_add_func(dr, drd);
     cloth_wet[0] = 0;
     cloth_wet[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* edit_face = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* edit_face = dsc_replace_add_func(dr, drd);
     edit_face[0] = data[0];
 }
 
-static void dsc_convert_from_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* edit_motion = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* edit_motion = dsc_replace_add_func(dr, drd);
     edit_motion[0] = data[0];
     edit_motion[1] = data[1];
     edit_motion[2] = 0;
     edit_motion[3] = 0;
 }
 
-static void dsc_convert_from_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* effect = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* effect = dsc_replace_add_func(dr, drd);
     effect[0] = 0;
     effect[1] = data[0];
     effect[2] = data[1];
@@ -1639,7 +1639,7 @@ static void dsc_convert_from_ac100_effect(dsc_replace* dr, dsc_replace_data* drd
     effect[5] = data[4];
 }
 
-static void dsc_convert_from_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_from_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     int32_t expression_id;
     switch (data[0]) {
     case 0:
@@ -1694,21 +1694,21 @@ static void dsc_convert_from_ac100_expression(dsc_replace* dr, dsc_replace_data*
         return;
     }
 
-    uint32_t* expression = dsc_replace_add_func(dr, drd);
+    int32_t* expression = dsc_replace_add_func(dr, drd);
     expression[0] = 0;
     expression[1] = expression_id;
     expression[2] = data[1];
     expression[3] = data[2];
 }
 
-static void dsc_convert_from_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* eye_anim = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* eye_anim = dsc_replace_add_func(dr, drd);
     eye_anim[0] = 0;
     eye_anim[1] = data[0];
     eye_anim[2] = data[1];
 }
 
-static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     int32_t hand_anim_id;
     switch (data[0]) {
     case 0:
@@ -1751,7 +1751,7 @@ static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* 
         return;
     }
 
-    uint32_t* hand_anim = dsc_replace_add_func(dr, drd);
+    int32_t* hand_anim = dsc_replace_add_func(dr, drd);
     hand_anim[0] = 0;
     hand_anim[1] = hand_anim_id;
     hand_anim[2] = data[1];
@@ -1759,16 +1759,16 @@ static void dsc_convert_from_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* 
     hand_anim[4] = data[3];
 }
 
-static void dsc_convert_from_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* look_anim = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* look_anim = dsc_replace_add_func(dr, drd);
     look_anim[0] = 0;
     look_anim[1] = data[0];
     look_anim[2] = data[1];
     look_anim[3] = data[2];
 }
 
-static void dsc_convert_from_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* look_camera = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* look_camera = dsc_replace_add_func(dr, drd);
     look_camera[0] = 0;
     look_camera[1] = data[0];
     look_camera[2] = data[1];
@@ -1776,45 +1776,45 @@ static void dsc_convert_from_ac100_look_camera(dsc_replace* dr, dsc_replace_data
     look_camera[4] = data[3];
 }
 
-static void dsc_convert_from_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* lyric = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* lyric = dsc_replace_add_func(dr, drd);
     lyric[0] = data[0];
     lyric[1] = 0xFFFFFFFF;
 }
 
-static void dsc_convert_from_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* miku_disp = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* miku_disp = dsc_replace_add_func(dr, drd);
     miku_disp[0] = 0;
     miku_disp[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* miku_move = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* miku_move = dsc_replace_add_func(dr, drd);
     miku_move[0] = 0;
     miku_move[1] = data[0];
     miku_move[2] = data[1];
     miku_move[3] = data[2];
 }
 
-static void dsc_convert_from_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* miku_rot = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* miku_rot = dsc_replace_add_func(dr, drd);
     miku_rot[0] = 0;
     miku_rot[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* miku_shadow = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* miku_shadow = dsc_replace_add_func(dr, drd);
     miku_shadow[0] = 0;
     miku_shadow[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* mode_select = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* mode_select = dsc_replace_add_func(dr, drd);
     mode_select[0] = 0x1F;
     mode_select[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     int32_t mouth_anim_id;
     switch (data[0]) {
     case 0:
@@ -1851,7 +1851,7 @@ static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data*
         return;
     }
 
-    uint32_t* mouth_anim = dsc_replace_add_func(dr, drd);
+    int32_t* mouth_anim = dsc_replace_add_func(dr, drd);
     mouth_anim[0] = 0;
     mouth_anim[1] = 0;
     mouth_anim[2] = mouth_anim_id;
@@ -1859,65 +1859,65 @@ static void dsc_convert_from_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data*
     mouth_anim[4] = data[2];
 }
 
-static void dsc_convert_from_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* move_camera = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* move_camera = dsc_replace_add_func(dr, drd);
     memmove(move_camera, data, sizeof(uint32_t) * 19);
     move_camera[19] = 0;
     move_camera[20] = 1000;
 }
 
-static void dsc_convert_from_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* set_motion = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* set_motion = dsc_replace_add_func(dr, drd);
     set_motion[0] = 0;
     set_motion[1] = data[0];
     set_motion[2] = data[1];
     set_motion[3] = data[2];
 }
 
-static void dsc_convert_from_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* set_playdata = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* set_playdata = dsc_replace_add_func(dr, drd);
     set_playdata[0] = 0;
     set_playdata[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* shadowheight = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* shadowheight = dsc_replace_add_func(dr, drd);
     shadowheight[0] = 0;
     shadowheight[1] = data[0];
 }
 
-static void dsc_convert_from_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* shadowpos = dsc_replace_add_func(dr, drd);
+static void dsc_convert_from_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* shadowpos = dsc_replace_add_func(dr, drd);
     shadowpos[0] = 0;
     shadowpos[1] = data[0];
     shadowpos[2] = data[1];
 }
 
-static void dsc_convert_to_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_cloth_wet(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* cloth_wet = dsc_replace_add_func(dr, drd);
+    int32_t* cloth_wet = dsc_replace_add_func(dr, drd);
     cloth_wet[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* edit_face = dsc_replace_add_func(dr, drd);
+static void dsc_convert_to_ac100_edit_face(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* edit_face = dsc_replace_add_func(dr, drd);
     edit_face[0] = data[0];
     edit_face[1] = -1;
 }
 
-static void dsc_convert_to_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* edit_motion = dsc_replace_add_func(dr, drd);
+static void dsc_convert_to_ac100_edit_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* edit_motion = dsc_replace_add_func(dr, drd);
     edit_motion[0] = data[0];
     edit_motion[1] = data[1];
 }
 
-static void dsc_convert_to_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* effect = dsc_replace_add_func(dr, drd);
+    int32_t* effect = dsc_replace_add_func(dr, drd);
     effect[0] = data[1];
     effect[1] = data[2];
     effect[2] = data[3];
@@ -1925,7 +1925,7 @@ static void dsc_convert_to_ac100_effect(dsc_replace* dr, dsc_replace_data* drd, 
     effect[4] = data[5];
 }
 
-static void dsc_convert_to_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_expression(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
@@ -1983,23 +1983,23 @@ static void dsc_convert_to_ac100_expression(dsc_replace* dr, dsc_replace_data* d
         return;
     }
 
-    uint32_t* expression = dsc_replace_add_func(dr, drd);
+    int32_t* expression = dsc_replace_add_func(dr, drd);
     expression[0] = expression_id;
     expression[1] = data[2];
     expression[2] = data[3];
     expression[3] = data[4];
 }
 
-static void dsc_convert_to_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_eye_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* eye_anim = dsc_replace_add_func(dr, drd);
+    int32_t* eye_anim = dsc_replace_add_func(dr, drd);
     eye_anim[0] = data[1];
     eye_anim[1] = data[2];
 }
 
-static void dsc_convert_to_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
@@ -2045,79 +2045,79 @@ static void dsc_convert_to_ac100_hand_anim(dsc_replace* dr, dsc_replace_data* dr
         return;
     }
 
-    uint32_t* hand_anim = dsc_replace_add_func(dr, drd);
+    int32_t* hand_anim = dsc_replace_add_func(dr, drd);
     hand_anim[0] = hand_anim_id;
     hand_anim[1] = data[2];
     hand_anim[2] = data[3];
     hand_anim[3] = data[4];
 }
 
-static void dsc_convert_to_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_look_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* look_anim = dsc_replace_add_func(dr, drd);
+    int32_t* look_anim = dsc_replace_add_func(dr, drd);
     look_anim[0] = data[1];
     look_anim[1] = data[2];
     look_anim[2] = data[3];
 }
 
-static void dsc_convert_to_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_look_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* look_camera = dsc_replace_add_func(dr, drd);
+    int32_t* look_camera = dsc_replace_add_func(dr, drd);
     look_camera[0] = data[1];
     look_camera[1] = data[2];
     look_camera[2] = data[3];
     look_camera[3] = data[4];
 }
 
-static void dsc_convert_to_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* lyric = dsc_replace_add_func(dr, drd);
+static void dsc_convert_to_ac100_lyric(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* lyric = dsc_replace_add_func(dr, drd);
     lyric[0] = data[0];
 }
 
-static void dsc_convert_to_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_miku_disp(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* miku_disp = dsc_replace_add_func(dr, drd);
+    int32_t* miku_disp = dsc_replace_add_func(dr, drd);
     miku_disp[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_miku_move(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* miku_move = dsc_replace_add_func(dr, drd);
+    int32_t* miku_move = dsc_replace_add_func(dr, drd);
     miku_move[0] = data[1];
     miku_move[1] = data[2];
     miku_move[2] = data[3];
 }
 
-static void dsc_convert_to_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_miku_rot(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* miku_rot = dsc_replace_add_func(dr, drd);
+    int32_t* miku_rot = dsc_replace_add_func(dr, drd);
     miku_rot[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_miku_shadow(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* miku_shadow = dsc_replace_add_func(dr, drd);
+    int32_t* miku_shadow = dsc_replace_add_func(dr, drd);
     miku_shadow[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* mode_select = dsc_replace_add_func(dr, drd);
+static void dsc_convert_to_ac100_mode_select(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* mode_select = dsc_replace_add_func(dr, drd);
     mode_select[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
@@ -2157,68 +2157,68 @@ static void dsc_convert_to_ac100_mouth_anim(dsc_replace* dr, dsc_replace_data* d
         return;
     }
 
-    uint32_t* mouth_anim = dsc_replace_add_func(dr, drd);
+    int32_t* mouth_anim = dsc_replace_add_func(dr, drd);
     mouth_anim[0] = mouth_anim_id;
     mouth_anim[1] = data[3];
     mouth_anim[2] = data[4];
 }
 
-static void dsc_convert_to_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* move_camera = dsc_replace_add_func(dr, drd);
+static void dsc_convert_to_ac100_move_camera(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* move_camera = dsc_replace_add_func(dr, drd);
     memmove(move_camera, data, sizeof(uint32_t) * 19);
 }
 
-static void dsc_convert_to_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_set_motion(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* set_motion = dsc_replace_add_func(dr, drd);
+    int32_t* set_motion = dsc_replace_add_func(dr, drd);
     set_motion[0] = data[1];
     set_motion[1] = data[2];
     set_motion[2] = data[3];
 }
 
-static void dsc_convert_to_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_set_playdata(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* set_playdata = dsc_replace_add_func(dr, drd);
+    int32_t* set_playdata = dsc_replace_add_func(dr, drd);
     set_playdata[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_shadowheight(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* shadowheight = dsc_replace_add_func(dr, drd);
+    int32_t* shadowheight = dsc_replace_add_func(dr, drd);
     shadowheight[0] = data[1];
 }
 
-static void dsc_convert_to_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_to_ac100_shadowpos(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     if (data[0])
         return;
 
-    uint32_t* shadowpos = dsc_replace_add_func(dr, drd);
+    int32_t* shadowpos = dsc_replace_add_func(dr, drd);
     shadowpos[0] = data[1];
     shadowpos[1] = data[2];
 }
 
-static void dsc_convert_change_field1_to_change_field2(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* change_field1 = dsc_replace_add_func(dr, drd);
+static void dsc_convert_change_field1_to_change_field2(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* change_field1 = dsc_replace_add_func(dr, drd);
     change_field1[0] = data[0];
     change_field1[1] = 1;
 }
 
-static void dsc_convert_change_field2_to_change_field1(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
-    uint32_t* change_field1 = dsc_replace_add_func(dr, drd);
+static void dsc_convert_change_field2_to_change_field1(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
+    int32_t* change_field1 = dsc_replace_add_func(dr, drd);
     change_field1[0] = data[0];
 }
 
-static void dsc_convert_dummy(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_dummy(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
 
 }
 
-static void dsc_convert_note7_to_note11(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_note7_to_note11(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     dsc_note7* dn = (dsc_note7*)data;
     dsc_note11* note11 = (dsc_note11*)dsc_replace_add_func(dr, drd);
     note11->type = dn->type;
@@ -2234,7 +2234,7 @@ static void dsc_convert_note7_to_note11(dsc_replace* dr, dsc_replace_data* drd, 
     note11->time_signature = dr->target_flying_time != -1000 ? dr->time_signature : 0;
 }
 
-static void dsc_convert_note7_to_note12(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_note7_to_note12(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     dsc_note7* dn = (dsc_note7*)data;
     dsc_note12* note12 = (dsc_note12*)dsc_replace_add_func(dr, drd);
     note12->type = dn->type;
@@ -2251,12 +2251,12 @@ static void dsc_convert_note7_to_note12(dsc_replace* dr, dsc_replace_data* drd, 
     note12->target_effect = -1;
 }
 
-static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     dsc_note11* dn = (dsc_note11*)data;
     if (dn->target_flying_time != -1000) {
         if (dr->time_signature != dn->time_signature) {
             dsc_replace_data* repl_data = &dr->replace_data[dr->bar_time_set_func_id];
-            uint32_t* bar_time_set = dsc_replace_add_func(dr, repl_data);
+            int32_t* bar_time_set = dsc_replace_add_func(dr, repl_data);
             *bar_time_set++ = dr->bpm;
             *bar_time_set++ = dn->time_signature;
             dr->time_signature = dn->time_signature;
@@ -2264,7 +2264,7 @@ static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
 
         if (dr->target_flying_time != dn->target_flying_time) {
             dsc_replace_data* repl_data = &dr->replace_data[dr->target_flying_time_func_id];
-            uint32_t* target_flying_time = dsc_replace_add_func(dr, repl_data);
+            int32_t* target_flying_time = dsc_replace_add_func(dr, repl_data);
             *target_flying_time++ = dn->target_flying_time;
             dr->target_flying_time = dn->target_flying_time;
         }
@@ -2280,7 +2280,7 @@ static void dsc_convert_note11_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
     note7->frequency = dn->frequency;
 }
 
-static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     dsc_note11* dn = (dsc_note11*)data;
     dsc_note12* note12 = (dsc_note12*)dsc_replace_add_func(dr, drd);
     note12->type = dn->type;
@@ -2297,12 +2297,12 @@ static void dsc_convert_note11_to_note12(dsc_replace* dr, dsc_replace_data* drd,
     note12->target_effect = -1;
 }
 
-static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     dsc_note12* dn = (dsc_note12*)data;
     if (dn->target_flying_time != -1000) {
         if (dr->time_signature != dn->time_signature) {
             dsc_replace_data* repl_data = &dr->replace_data[dr->bar_time_set_func_id];
-            uint32_t* bar_time_set = dsc_replace_add_func(dr, repl_data);
+            int32_t* bar_time_set = dsc_replace_add_func(dr, repl_data);
             *bar_time_set++ = dr->bpm;
             *bar_time_set++ = dn->time_signature;
             dr->time_signature = dn->time_signature;
@@ -2310,7 +2310,7 @@ static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
 
         if (dr->target_flying_time != dn->target_flying_time) {
             dsc_replace_data* repl_data = &dr->replace_data[dr->target_flying_time_func_id];
-            uint32_t* target_flying_time = dsc_replace_add_func(dr, repl_data);
+            int32_t* target_flying_time = dsc_replace_add_func(dr, repl_data);
             *target_flying_time++ = dn->target_flying_time;
             dr->target_flying_time = dn->target_flying_time;
         }
@@ -2326,7 +2326,7 @@ static void dsc_convert_note12_to_note7(dsc_replace* dr, dsc_replace_data* drd, 
     note7->frequency = dn->frequency;
 }
 
-static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data) {
+static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd, int32_t* data) {
     dsc_note12* dn = (dsc_note12*)data;
     dsc_note11* note11 = (dsc_note11*)dsc_replace_add_func(dr, drd);
     note11->type = dn->type;
@@ -2342,7 +2342,7 @@ static void dsc_convert_note12_to_note11(dsc_replace* dr, dsc_replace_data* drd,
     note11->time_signature = dn->time_signature;
 }
 
-uint32_t* dsc::add_func(const char* name, int32_t func, int32_t func_length) {
+int32_t* dsc::add_func(const char* name, int32_t func, int32_t func_length) {
     dsc_data dsc_d;
     dsc_d.name = name;
     dsc_d.func = func;
@@ -2353,7 +2353,7 @@ uint32_t* dsc::add_func(const char* name, int32_t func, int32_t func_length) {
     return data_buffer.data() + dsc_d.data_offset;
 }
 
-inline static uint32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
+inline static int32_t* dsc_replace_add_func(dsc_replace* dr, dsc_replace_data* drd) {
     return dr->dsc.add_func(drd->name, drd->func_id, drd->length);
 }
 
@@ -2648,27 +2648,27 @@ void dsc::convert(dsc_type dst_type) {
         if (func == -1 || dr.replace_data[func].func_id == -1)
             continue;
 
-        uint32_t* data = get_func_data(&i);
+        int32_t* data = get_func_data(&i);
         dsc_replace_data* repl_data = &dr.replace_data[func];
         if (func == dr.bar_time_set_func_id) {
             dr.bpm = data[0];
             dr.time_signature = data[1];
             dr.target_flying_time = -1000;
 
-            uint32_t* bar_time_set = dsc_replace_add_func(&dr, repl_data);
+            int32_t* bar_time_set = dsc_replace_add_func(&dr, repl_data);
             *bar_time_set++ = dr.bpm;
             *bar_time_set++ = dr.time_signature;
         }
         else if (func == dr.target_flying_time_func_id) {
             dr.target_flying_time = data[0];
 
-            uint32_t* target_flying_time = dsc_replace_add_func(&dr, repl_data);
+            int32_t* target_flying_time = dsc_replace_add_func(&dr, repl_data);
             *target_flying_time++ = dr.target_flying_time;
         }
         else if (dr.replace_data[func].func)
             dr.replace_data[func].func(&dr, repl_data, data);
         else {
-            uint32_t* dst_data = dsc_replace_add_func(&dr, repl_data);
+            int32_t* dst_data = dsc_replace_add_func(&dr, repl_data);
             memmove(dst_data, data, sizeof(uint32_t) * repl_data->length);
         }
     }
@@ -2743,7 +2743,7 @@ void dsc::rebuild() {
         dsc_d.data_offset = (uint32_t)data_time_buffer.size();
         data_time.push_back(dsc_d);
 
-        uint32_t* func_data = get_func_data(&j);
+        int32_t* func_data = get_func_data(&j);
         int32_t func_length = get_func_length(j.func);
         data_time_buffer.resize((size_t)dsc_d.data_offset + func_length);
         memmove(data_time_buffer.data() + dsc_d.data_offset, func_data, sizeof(uint32_t) * func_length);
@@ -2827,7 +2827,7 @@ void dsc::rebuild() {
             data_buffer.push_back(pv_branch_mode);
         }
 
-        uint32_t* data = add_func(get_func_name(i.func),
+        int32_t* data = add_func(get_func_name(i.func),
             i.func, get_func_length(i.func));
         memmove(data, data_time_buffer.data() + i.data_offset,
             sizeof(uint32_t) * get_func_length(i.func));
@@ -2838,8 +2838,8 @@ dsc_get_func_length dsc::get_dsc_get_func_length() {
     return dsc_type_get_dsc_get_func_length(type, signature >= 0x10101514);
 }
 
-uint32_t* dsc::get_func_data(dsc_data* data) {
-    return (uint32_t*)(data_buffer.data() + data->data_offset);
+int32_t* dsc::get_func_data(dsc_data* data) {
+    return data_buffer.data() + data->data_offset;
 }
 
 void dsc::merge(int32_t count, ...) {
@@ -2919,7 +2919,7 @@ void dsc::merge(int32_t count, ...) {
             dsc_d.data_offset = (uint32_t)data_time_buffer.size();
             data_time.push_back(dsc_d);
 
-            uint32_t* func_data = s->get_func_data(&j);
+            int32_t* func_data = s->get_func_data(&j);
             int32_t func_length = get_func_length(j.func);
             data_time_buffer.resize((size_t)dsc_d.data_offset + func_length);
             memmove(data_time_buffer.data() + dsc_d.data_offset, func_data, sizeof(uint32_t) * func_length);
@@ -3005,7 +3005,7 @@ void dsc::merge(int32_t count, ...) {
             data_buffer.push_back(pv_branch_mode);
         }
 
-        uint32_t* data = add_func(get_func_name(i.func),
+        int32_t* data = add_func(get_func_name(i.func),
             i.func, get_func_length(i.func));
         memmove(data, data_time_buffer.data() + i.data_offset,
             sizeof(uint32_t) * get_func_length(i.func));
@@ -3016,7 +3016,7 @@ bool dsc::parse(const void* data, size_t size, dsc_type type) {
     if (!data || !(size / 4) || type < DSC_AC101 || type > DSC_VRFL)
         return false;
 
-    uint32_t* data_dsc = (uint32_t*)data;
+    int32_t* data_dsc = (int32_t*)data;
 
     f2_struct st;
     signature = 0;
@@ -3041,12 +3041,12 @@ bool dsc::parse(const void* data, size_t size, dsc_type type) {
     case DSC_X:
     case DSC_VRFL:
         st.read(data, size);
-        data_dsc = (uint32_t*)st.data.data();
+        data_dsc = (int32_t*)st.data.data();
         if (st.header.use_big_endian)
             for (size_t i = size / 4; i; i--, data_dsc++)
                 *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
 
-        data_dsc = (uint32_t*)st.data.data();
+        data_dsc = (int32_t*)st.data.data();
         if (*data_dsc++ != 0x13120420) {
             return false;
         }
@@ -3065,7 +3065,7 @@ bool dsc::parse(const void* data, size_t size, dsc_type type) {
 
     size_t func_count = 0;
     size_t data_size = 0;
-    uint32_t* func_data = data_dsc;
+    int32_t* func_data = data_dsc;
     for (size_t i = 0; i < size; i++) {
         if (!*func_data) {
             size = i;
@@ -3166,7 +3166,7 @@ bool dsc::parse_text(const void* data, size_t size, dsc_type type) {
         if (func_length != data_buf.size())
             break;
 
-        uint32_t* data = add_func(func_name, func_id, func_length);
+        int32_t* data = add_func(func_name, func_id, func_length);
         memcpy(data, data_buf.data(), sizeof(uint32_t) * func_length);
     }
 
@@ -3204,14 +3204,14 @@ void dsc::unparse(void** data, size_t* size) {
         data_size = align_val(s, 4);
 
     f2_struct st;
-    uint32_t* data_dsc;
+    int32_t* data_dsc;
     if (f2) {
         st.data.resize(data_size * sizeof(uint32_t));
-        data_dsc = (uint32_t*)st.data.data();
+        data_dsc = (int32_t*)st.data.data();
     }
     else
-        data_dsc = force_malloc<uint32_t>(data_size);
-    uint32_t* func_data = data_dsc;
+        data_dsc = force_malloc<int32_t>(data_size);
+    int32_t* func_data = data_dsc;
 
     switch (type) {
     default:
@@ -3233,7 +3233,7 @@ void dsc::unparse(void** data, size_t* size) {
 
     for (dsc_data& i : this->data) {
         *func_data++ = i.func;
-        uint32_t* data = this->get_func_data(&i);
+        int32_t* data = this->get_func_data(&i);
         for (int32_t j = get_func_length(i.func); j; j--)
             *func_data++ = *data++;
     }

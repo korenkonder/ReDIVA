@@ -409,7 +409,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         pv_game->set_lyric(-1, 0xFFFFFFFF);
 
     int32_t func = dsc_data_ptr->func;
-    uint32_t* data = dsc.get_func_data(dsc_data_ptr);
+    int32_t* data = dsc.get_func_data(dsc_data_ptr);
 
     if (branch_mode) {
         bool v18;
@@ -445,7 +445,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         return false;
     }
     case DSC_FT_TIME: {
-        dsc_time = 10000LL * (int32_t)data[0];
+        dsc_time = 10000LL * data[0];
         *dsc_time_offset = 0.0f;
         if (curr_time < dsc_time)
             return false;
@@ -453,14 +453,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         *dsc_time_offset = (float_t)((double_t)(curr_time - dsc_time) * 0.000000001);
     } break;
     case DSC_FT_MIKU_MOVE: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
         vec3 pos;
-        pos = (float_t)(int32_t)data[1] * 0.001f;
-        pos = (float_t)(int32_t)data[2] * 0.001f;
-        pos = (float_t)(int32_t)data[3] * 0.001f;
+        pos = (float_t)data[1] * 0.001f;
+        pos = (float_t)data[2] * 0.001f;
+        pos = (float_t)data[3] * 0.001f;
 
         if (rob_chr) {
             pos *= (pv_game->data.pv->edit == 2 ? 1.0f : 0.227f);
@@ -470,11 +470,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_MIKU_ROT: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t rot = (float_t)(int32_t)data[1] * 0.001f;
+        float_t rot = (float_t)data[1] * 0.001f;
 
         if (rob_chr) {
             rob_chr->set_data_miku_rot_rot_y_int16(
@@ -483,11 +483,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_MIKU_DISP: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t disp = (int32_t)data[1];
+        int32_t disp = data[1];
         playdata->disp = disp == 1;
 
         if (!rob_chr)
@@ -522,7 +522,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_MIKU_SHADOW: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
     } break;
@@ -536,13 +536,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_SET_MOTION: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t motion_index = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t frame_speed_int = (int32_t)data[3];
+        int32_t motion_index = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t frame_speed_int = data[3];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -646,11 +646,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_SET_PLAYDATA: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t motion_index = (int32_t)data[1];
+        int32_t motion_index = data[1];
         if (motion_index >= 0) {
             pv_play_data_motion* motion = playdata->get_motion(motion_index);
             if (motion) {
@@ -673,8 +673,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_SET_CAMERA: {
     } break;
     case DSC_FT_DATA_CAMERA: {
-        int32_t id = (int32_t)data[0];
-        int32_t index = (int32_t)data[1];
+        int32_t id = data[0];
+        int32_t index = data[1];
 
         switch (id) {
         case 0: {
@@ -731,7 +731,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_CHANGE_FIELD: {
-        int32_t field_index = (int32_t)data[0];
+        int32_t field_index = data[0];
 
         if (field_index > 0)
             pv_game->change_field(field_index, dsc_time, curr_time);
@@ -745,12 +745,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_FADEOUT_FIELD: {
     } break;
     case DSC_FT_EYE_ANIM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t v114 = (int32_t)data[0];
-        int32_t blend_duration_int = (int32_t)data[1];
+        int32_t v114 = data[0];
+        int32_t blend_duration_int = data[1];
 
         float_t blend_duration;
         if (blend_duration_int == -1)
@@ -763,13 +763,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 -1.0f, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_MOUTH_ANIM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t mouth_anim_id = (int32_t)data[2];
-        int32_t blend_duration_int = (int32_t)data[3];
-        int32_t value_int = (int32_t)data[4];
+        int32_t mouth_anim_id = data[2];
+        int32_t blend_duration_int = data[3];
+        int32_t value_int = data[4];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -799,14 +799,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_HAND_ANIM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t hand_index = (int32_t)data[1];
-        int32_t hand_anim_id = (int32_t)data[2];
-        int32_t blend_duration_int = (int32_t)data[3];
-        int32_t value_int = (int32_t)data[4];
+        int32_t hand_index = data[1];
+        int32_t hand_anim_id = data[2];
+        int32_t blend_duration_int = data[3];
+        int32_t value_int = data[4];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -841,13 +841,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_LOOK_ANIM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t look_anim_id = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t value_int = (int32_t)data[3];
+        int32_t look_anim_id = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t value_int = data[3];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -875,13 +875,13 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_EXPRESSION: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t expression_id = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t value_int = (int32_t)data[3];
+        int32_t expression_id = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t value_int = data[3];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -910,14 +910,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_LOOK_CAMERA: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t enable = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t head_rot_strength_int = (int32_t)data[3];
-        int32_t eyes_rot_strength_int = (int32_t)data[4];
+        int32_t enable = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t head_rot_strength_int = data[3];
+        int32_t eyes_rot_strength_int = data[4];
 
         if (!rob_chr)
             break;
@@ -960,7 +960,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_LYRIC: {
-        int32_t lyric_index = (int32_t)data[0];
+        int32_t lyric_index = data[0];
         color4u8 color = *(uint32_t*)&data[1];
         color = { color.b, color.g, color.r, color.a };
         pv_game->set_lyric(lyric_index, color);
@@ -998,8 +998,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_MODE_SELECT:
     case DSC_FT_EDIT_MODE_SELECT: {
-        int32_t diff_bits = (int32_t)data[0];
-        int32_t mode = (int32_t)data[1];
+        int32_t diff_bits = data[0];
+        int32_t mode = data[1];
 
         bool v3 = true;
         if (func == DSC_FT_MODE_SELECT && has_perf_id && sub_14013C8C0()->sub_1400E7910() < 4)
@@ -1021,10 +1021,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_EDIT_MOTION:
     case DSC_FT_EDIT_MOTION_LOOP:
     case DSC_FT_EDIT_MOTION_F: {
-        int32_t motion_index = (int32_t)data[0];
-        float_t frame_speed = (float_t)(int32_t)data[1] * 0.001f;
-        int32_t _blend_type = (int32_t)data[2];
-        float_t value = (float_t)(int32_t)data[3] * 0.001f;
+        int32_t motion_index = data[0];
+        float_t frame_speed = (float_t)data[1] * 0.001f;
+        int32_t _blend_type = data[2];
+        float_t value = (float_t)data[3] * 0.001f;
 
         if (!rob_chr) {
             playdata->motion_data.mot_smooth_len = 12.0f;
@@ -1112,28 +1112,28 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata->motion_data.mot_smooth_len = 12.0f;
     } break;
     case DSC_FT_BAR_TIME_SET: {
-        int32_t bpm = (int32_t)data[0];
-        int32_t time_signature = (int32_t)data[1] + 1;
+        int32_t bpm = data[0];
+        int32_t time_signature = data[1] + 1;
         float_t target_flying_time = bar_time_set_to_target_flying_time(bpm, time_signature);
         //field_2BF80->field_0.target_flying_time = target_flying_time;
         this->target_flying_time = target_flying_time;
         this->time_signature = time_signature;
     } break;
     case DSC_FT_SHADOWHEIGHT: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_EDIT_FACE:
     case DSC_FT_EDIT_EXPRESSION: {
-        int32_t expression_id = (int32_t)data[0];
+        int32_t expression_id = data[0];
         float_t blend_duration = 0.0f;
         if (func == DSC_FT_EDIT_EXPRESSION)
-            blend_duration = (float_t)(int32_t)data[1] * 0.001f * 60.0f;
+            blend_duration = (float_t)data[1] * 0.001f * 60.0f;
 
         /*int32_t mouth_anim_id = -1;
         if (!has_perf_id)
-            mouth_anim_id = (int32_t)data[1];*/
+            mouth_anim_id = data[1];*/
 
         if (rob_chr) {
             int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
@@ -1153,31 +1153,31 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_MOVE_CAMERA:
     case DSC_FT_EDIT_CAMERA: {
-        float_t duration = (float_t)(int32_t)data[0] * 0.001f;
+        float_t duration = (float_t)data[0] * 0.001f;
 
         float_t v12 = pv_game->data.pv->edit == 2 ? 1.0f : 0.227f;
         float_t v14 = 1.0f / field_2C54C;
 
         pv_game_camera_dsc_data start;
         pv_game_camera_dsc_data end;
-        start.view_point.x = (float_t)(int32_t)data[1] * v14 * v12;
-        start.view_point.y = (float_t)(int32_t)data[2] * v14 * v12;
-        start.view_point.z = (float_t)(int32_t)data[3] * v14 * v12;
-        start.interest.x = (float_t)(int32_t)data[4] * v14 * v12;
-        start.interest.y = (float_t)(int32_t)data[5] * v14 * v12;
-        start.interest.z = (float_t)(int32_t)data[6] * v14 * v12;
-        start.up_vec.x = (float_t)(int32_t)data[7] * v14;
-        start.up_vec.y = (float_t)(int32_t)data[8] * v14;
-        start.up_vec.z = (float_t)(int32_t)data[9] * v14;
-        end.view_point.x = (float_t)(int32_t)data[10] * v14 * v12;
-        end.view_point.y = (float_t)(int32_t)data[11] * v14 * v12;
-        end.view_point.z = (float_t)(int32_t)data[12] * v14 * v12;
-        end.interest.x = (float_t)(int32_t)data[13] * v14 * v12;
-        end.interest.y = (float_t)(int32_t)data[14] * v14 * v12;
-        end.interest.z = (float_t)(int32_t)data[15] * v14 * v12;
-        end.up_vec.x = (float_t)(int32_t)data[16] * v14;
-        end.up_vec.y = (float_t)(int32_t)data[17] * v14;
-        end.up_vec.z = (float_t)(int32_t)data[18] * v14;
+        start.view_point.x = (float_t)data[1] * v14 * v12;
+        start.view_point.y = (float_t)data[2] * v14 * v12;
+        start.view_point.z = (float_t)data[3] * v14 * v12;
+        start.interest.x = (float_t)data[4] * v14 * v12;
+        start.interest.y = (float_t)data[5] * v14 * v12;
+        start.interest.z = (float_t)data[6] * v14 * v12;
+        start.up_vec.x = (float_t)data[7] * v14;
+        start.up_vec.y = (float_t)data[8] * v14;
+        start.up_vec.z = (float_t)data[9] * v14;
+        end.view_point.x = (float_t)data[10] * v14 * v12;
+        end.view_point.y = (float_t)data[11] * v14 * v12;
+        end.view_point.z = (float_t)data[12] * v14 * v12;
+        end.interest.x = (float_t)data[13] * v14 * v12;
+        end.interest.y = (float_t)data[14] * v14 * v12;
+        end.interest.z = (float_t)data[15] * v14 * v12;
+        end.up_vec.x = (float_t)data[16] * v14;
+        end.up_vec.y = (float_t)data[17] * v14;
+        end.up_vec.z = (float_t)data[18] * v14;
 
         mat4_transform_point(&scene_rot_mat, &start.view_point, &start.view_point);
         mat4_transform_point(&scene_rot_mat, &start.interest, &start.interest);
@@ -1187,20 +1187,20 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         mat4_transform_point(&scene_rot_mat, &end.up_vec, &end.up_vec);
 
         float_t acceleration_1 = 0.0f;
-        if ((int32_t)data[19] != -1)
-            acceleration_1 = (float_t)(int32_t)data[19] * 0.001f;
+        if (data[19] != -1)
+            acceleration_1 = (float_t)data[19] * 0.001f;
 
         float_t acceleration_2 = 1.0f;
-        if ((int32_t)data[20] != -1)
-            acceleration_2 = (float_t)(int32_t)data[20] * 0.001f;
+        if (data[20] != -1)
+            acceleration_2 = (float_t)data[20] * 0.001f;
 
         int32_t follow_chara = 0;
         int32_t chara_id = 0;
         int32_t chara_follow_point = 0;
         if (func == DSC_FT_EDIT_CAMERA) {
-            follow_chara = (int32_t)data[21];
-            chara_id = (int32_t)data[22];
-            chara_follow_point = (int32_t)data[23];
+            follow_chara = data[21];
+            chara_id = data[22];
+            chara_follow_point = data[23];
         }
 
         pv_game_camera_set_fov_min_dist(fov, min_dist);
@@ -1218,24 +1218,24 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         return false;
     }
     case DSC_FT_SHADOWPOS: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_EDIT_LYRIC: {
-        int32_t lyric_index = (int32_t)data[0] - 1;
-        field_2BF68 = curr_time + 1000000LL * (int32_t)data[1];
+        int32_t lyric_index = data[0] - 1;
+        field_2BF68 = curr_time + 1000000LL * data[1];
         pv_game->set_lyric(lyric_index, 0xFFFFFFFF);
     } break;
     case DSC_FT_EDIT_TARGET: {
     } break;
     case DSC_FT_EDIT_MOUTH:
     case DSC_FT_EDIT_MOUTH_ANIM: {
-        int32_t mouth_anim_id = (int32_t)data[0];
+        int32_t mouth_anim_id = data[0];
 
         float_t blend_duration = 0.1f;
         if (func == DSC_FT_EDIT_MOUTH_ANIM)
-            blend_duration = (float_t)(int32_t)data[1] * 0.001f;
+            blend_duration = (float_t)data[1] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -1248,7 +1248,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_SET_CHARA: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
     } break;
@@ -1256,15 +1256,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t v9 = 1.0f / field_2C54C;
         float_t duration = (float_t)(int32_t)(data[0]) * v9;
         vec3 start_pos;
-        start_pos.x = (float_t)(int32_t)data[1] * v9;
+        start_pos.x = (float_t)data[1] * v9;
         start_pos.y = 0.0f;
-        start_pos.z = (float_t)(int32_t)data[2] * v9;
+        start_pos.z = (float_t)data[2] * v9;
         vec3 end_pos;
-        end_pos.x = (float_t)(int32_t)data[3] * v9;
+        end_pos.x = (float_t)data[3] * v9;
         end_pos.y = 0.0f;
-        end_pos.z = (float_t)(int32_t)data[4] * v9;
-        float_t start_rot = (float_t)(int32_t)data[5] * v9;
-        float_t end_rot = (float_t)(int32_t)data[6] * v9;
+        end_pos.z = (float_t)data[4] * v9;
+        float_t start_rot = (float_t)data[5] * v9;
+        float_t end_rot = (float_t)data[6] * v9;
 
         if (playdata) {
             float_t v5 = pv_game->data.pv->edit == 2 ? 1.0f : 0.227f;
@@ -1281,15 +1281,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         float_t v9 = 1.0f / field_2C54C;
         float_t duration = (float_t)(int32_t)(data[0]) * v9;
         vec3 start_pos;
-        start_pos.x = (float_t)(int32_t)data[1] * v9;
-        start_pos.y = (float_t)(int32_t)data[2] * v9;
-        start_pos.z = (float_t)(int32_t)data[3] * v9;
+        start_pos.x = (float_t)data[1] * v9;
+        start_pos.y = (float_t)data[2] * v9;
+        start_pos.z = (float_t)data[3] * v9;
         vec3 end_pos;
-        end_pos.x = (float_t)(int32_t)data[4] * v9;
-        end_pos.y = (float_t)(int32_t)data[5] * v9;
-        end_pos.z = (float_t)(int32_t)data[6] * v9;
-        float_t start_rot = (float_t)(int32_t)data[7] * v9;
-        float_t end_rot = (float_t)(int32_t)data[8] * v9;
+        end_pos.x = (float_t)data[4] * v9;
+        end_pos.y = (float_t)data[5] * v9;
+        end_pos.z = (float_t)data[6] * v9;
+        float_t start_rot = (float_t)data[7] * v9;
+        float_t end_rot = (float_t)data[8] * v9;
 
         if (playdata) {
             float_t v5 = pv_game->data.pv->edit == 2 ? 1.0f : 0.227f;
@@ -1303,7 +1303,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_EDIT_SHADOW: {
-        int32_t enable = (int32_t)data[0];
+        int32_t enable = data[0];
 
         playdata->shadow = enable == 1;
 
@@ -1315,7 +1315,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 shad->blur_filter_enable[0] = playdata->shadow;
     } break;
     case DSC_FT_EDIT_EYELID: {
-        int32_t v337 = (int32_t)data[0];
+        int32_t v337 = data[0];
 
         if (!rob_chr)
             break;
@@ -1341,12 +1341,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_EDIT_EYE:
     case DSC_FT_EDIT_EYE_ANIM: {
-        int32_t eye_anim_id = (int32_t)data[0];
-        float_t v533 = (float_t)(int32_t)data[1] * 0.001f;
+        int32_t eye_anim_id = data[0];
+        float_t v533 = (float_t)data[1] * 0.001f;
 
         float_t blend_duration = 0.0f;
         if (func == DSC_FT_EDIT_EYE_ANIM)
-            blend_duration = (float_t)(int32_t)data[2] * 0.001f * 60.0f;
+            blend_duration = (float_t)data[2] * 0.001f * 60.0f;
         if (eye_anim_id < 0 || eye_anim_id >= 34)
             eye_anim_id = 0;
 
@@ -1395,7 +1395,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             rob_chr->set_look_camera_new(v358, 0.0f, 1.0f, blend_duration, 1.0f, 2.0f);
     } break;
     case DSC_FT_EDIT_ITEM: {
-        int32_t index = (int32_t)data[0];
+        int32_t index = data[0];
 
         if (rob_chr) {
             const pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
@@ -1405,15 +1405,15 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_EDIT_EFFECT: {
-        int32_t index = (int32_t)data[0];
-        float_t speed = (float_t)(int32_t)data[1] * 0.001f;
+        int32_t index = data[0];
+        float_t speed = (float_t)data[1] * 0.001f;
 
         pv_game->edit_effect_set(index, speed, delta_time);
     } break;
     case DSC_FT_EDIT_HAND_ANIM: {
     } break;
     case DSC_FT_EDIT_DISP: {
-        int32_t disp = (int32_t)data[0];
+        int32_t disp = data[0];
 
         playdata->disp = disp == 1;
         if (rob_chr)
@@ -1441,17 +1441,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         pv_game->sub_140115C10(chara_id, playdata->disp);
     } break;
     case DSC_FT_AIM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_FT_HAND_ITEM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t hand_index = (int32_t)data[1];
-        int32_t index = (int32_t)data[2];
+        int32_t hand_index = data[1];
+        int32_t index = data[2];
 
         if (rob_chr) {
             const pv_db_pv_difficulty* diff = pv_game->data.pv->get_difficulty(
@@ -1468,14 +1468,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_EDIT_BLUSH: {
-        int32_t index = (int32_t)data[0];
+        int32_t index = data[0];
 
         if (rob_chr)
             rob_chr->set_face_object_index(index >= 0 || index < 15 ? index : 0);
     } break;
     case DSC_FT_NEAR_CLIP: {
-        float_t _min_dist = (float_t)(int32_t)data[0] * 0.001f;
-        float_t _fov = (float_t)(int32_t)data[1] * 0.001f;
+        float_t _min_dist = (float_t)data[0] * 0.001f;
+        float_t _fov = (float_t)data[1] * 0.001f;
 
         camera* cam = rctx_ptr->camera;
 
@@ -1504,11 +1504,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         pv_game_camera_set_fov_min_dist(fov, min_dist);
     } break;
     case DSC_FT_CLOTH_WET: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t wet = (float_t)(int32_t)data[0] * 0.001f;
+        float_t wet = (float_t)data[0] * 0.001f;
 
         wet = clamp_def(wet, 0.0f, 1.0f);
 
@@ -1518,12 +1518,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_LIGHT_ROT: {
     } break;
     case DSC_FT_SCENE_FADE: {
-        scene_fade.duration = (float_t)(int32_t)data[0] * 0.001f;
-        scene_fade.start_alpha = (float_t)(int32_t)data[1] * 0.001f;
-        scene_fade.end_alpha = (float_t)(int32_t)data[2] * 0.001f;
-        scene_fade.color.x = (float_t)(int32_t)data[3] * 0.001f;
-        scene_fade.color.y = (float_t)(int32_t)data[4] * 0.001f;
-        scene_fade.color.z = (float_t)(int32_t)data[5] * 0.001f;
+        scene_fade.duration = (float_t)data[0] * 0.001f;
+        scene_fade.start_alpha = (float_t)data[1] * 0.001f;
+        scene_fade.end_alpha = (float_t)data[2] * 0.001f;
+        scene_fade.color.x = (float_t)data[3] * 0.001f;
+        scene_fade.color.y = (float_t)data[4] * 0.001f;
+        scene_fade.color.z = (float_t)data[5] * 0.001f;
 
         scene_fade.enable = true;
         scene_fade.time = 0.0f;
@@ -1531,33 +1531,33 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_TONE_TRANS: {
         vec3 start;
-        start.x = (float_t)(int32_t)data[0] * 0.001f;
-        start.y = (float_t)(int32_t)data[1] * 0.001f;
-        start.z = (float_t)(int32_t)data[2] * 0.001f;
+        start.x = (float_t)data[0] * 0.001f;
+        start.y = (float_t)data[1] * 0.001f;
+        start.z = (float_t)data[2] * 0.001f;
 
         vec3 end;
-        end.x = (float_t)(int32_t)data[3] * 0.001f;
-        end.y = (float_t)(int32_t)data[4] * 0.001f;
-        end.z = (float_t)(int32_t)data[5] * 0.001f;
+        end.x = (float_t)data[3] * 0.001f;
+        end.y = (float_t)data[4] * 0.001f;
+        end.z = (float_t)data[5] * 0.001f;
 
         rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
     } break;
     case DSC_FT_SATURATE: {
-        float_t saturate_coeff = (float_t)(int32_t)data[0] * 0.001f;
+        float_t saturate_coeff = (float_t)data[0] * 0.001f;
 
         rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
     } break;
     case DSC_FT_FADE_MODE: {
-        int32_t blend_func = (int32_t)data[0];
+        int32_t blend_func = data[0];
 
         rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
     } break;
     case DSC_FT_AUTO_BLINK: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t enable = (int32_t)data[0];
+        int32_t enable = data[0];
 
         if (rob_chr)
             if (enable)
@@ -1566,28 +1566,28 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 rob_chr->autoblink_disable();
     } break;
     case DSC_FT_PARTS_DISP: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t id = (int32_t)data[1];
-        int32_t disp = (int32_t)data[2];
+        int32_t id = data[1];
+        int32_t disp = data[2];
 
         if (rob_chr)
             rob_chr->set_parts_disp((item_id)id, disp == 1);
     } break;
     case DSC_FT_TARGET_FLYING_TIME: {
-        /*float_t target_flying_time = (float_t)(int32_t)data[0] * 0.001f;
+        /*float_t target_flying_time = (float_t)data[0] * 0.001f;
 
         if (target_flying_time >= 0.0f)
             field_2BF80->field_0.target_flying_time = target_flying_time;*/
     } break;
     case DSC_FT_CHARA_SIZE: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t chara_size = (int32_t)data[1];
+        int32_t chara_size = data[1];
         if (!rob_chr)
             break;
 
@@ -1613,23 +1613,23 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         break;
     } break;
     case DSC_FT_CHARA_HEIGHT_ADJUST: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t height_adjust = (int32_t)data[1];
+        int32_t height_adjust = data[1];
 
         if (rob_chr)
             rob_chr->set_chara_height_adjust(height_adjust != 0);
     } break;
     case DSC_FT_ITEM_ANIM: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t index = (int32_t)data[1];
-        int32_t v290 = (int32_t)data[2];
-        int32_t disp = (int32_t)data[3];
+        int32_t index = data[1];
+        int32_t v290 = data[2];
+        int32_t disp = data[3];
 
         if (index < 0)
             break;
@@ -1654,14 +1654,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             pv_game->set_data_itmpv_visibility(chara_id, index, disp != 0);
     } break;
     case DSC_FT_CHARA_POS_ADJUST: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
         vec3 pos;
-        pos.x = (float_t)(int32_t)data[1] * 0.001f;
-        pos.y = (float_t)(int32_t)data[2] * 0.001f;
-        pos.z = (float_t)(int32_t)data[3] * 0.001f;
+        pos.x = (float_t)data[1] * 0.001f;
+        pos.y = (float_t)data[2] * 0.001f;
+        pos.z = (float_t)data[3] * 0.001f;
         if (!rob_chr)
             break;
 
@@ -1673,17 +1673,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_SCENE_ROT: {
-        float_t scene_rot = (float_t)(int32_t)data[0] * 0.001f;
+        float_t scene_rot = (float_t)data[0] * 0.001f;
 
         scene_rot_y = scene_rot;
         mat4_rotate_y(scene_rot * DEG_TO_RAD_FLOAT, &scene_rot_mat);
     } break;
     case DSC_FT_EDIT_MOT_SMOOTH_LEN: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t value = (int32_t)data[1];
+        int32_t value = data[1];
 
         if (value >= 0)
             playdata->motion_data.mot_smooth_len = (float_t)(value * 60) / field_2C54C;
@@ -1691,14 +1691,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             playdata->motion_data.mot_smooth_len = 12.0f;
     } break;
     case DSC_FT_PV_BRANCH_MODE: {
-        int32_t branch_mode = (int32_t)data[0];
+        int32_t branch_mode = data[0];
 
         if (branch_mode >= 0 && branch_mode <= 2)
             this->branch_mode = branch_mode;
     } break;
     case DSC_FT_DATA_CAMERA_START: {
-        int32_t camera_index = (int32_t)data[0];
-        int32_t index = (int32_t)data[1];
+        int32_t camera_index = data[0];
+        int32_t index = data[1];
 
         if (camera_index < 3) {
             data_camera[camera_index].enable = true;
@@ -1707,7 +1707,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_MOVIE_PLAY: {
-        int32_t v408 = (int32_t)data[0];
+        int32_t v408 = data[0];
 
         /*if (pv_game_get()->loaded && v408 && app::TaskWork::CheckTaskReady(task_movie_get(0))) {
             v410 = task_movie_get(0);
@@ -1717,7 +1717,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }*/
     } break;
     case DSC_FT_MOVIE_DISP: {
-        int32_t v412 = (int32_t)data[0];
+        int32_t v412 = data[0];
         if (!pv_game_get()->loaded)
             break;
 
@@ -1742,34 +1742,34 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }*/
     } break;
     case DSC_FT_WIND: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t wind_strength_kami = (float_t)(int32_t)data[1] * 0.001f;
-        float_t wind_strength_outer = (float_t)(int32_t)data[2] * 0.001f;
+        float_t wind_strength_kami = (float_t)data[1] * 0.001f;
+        float_t wind_strength_outer = (float_t)data[2] * 0.001f;
 
         if (rob_chr)
             rob_chr->set_wind_strength(wind_strength_outer);
     } break;
     case DSC_FT_OSAGE_STEP: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t osage_step_kami = (float_t)(int32_t)data[1] * 0.001f;
-        float_t osage_step_outer = (float_t)(int32_t)data[2] * 0.001f;
+        float_t osage_step_kami = (float_t)data[1] * 0.001f;
+        float_t osage_step_outer = (float_t)data[2] * 0.001f;
 
         if (rob_chr)
             rob_chr->set_osage_step(osage_step_outer);
     } break;
     case DSC_FT_OSAGE_MV_CCL: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t osage_mv_ccl_kami = (float_t)(int32_t)data[1] * 0.001f;
-        float_t osage_mv_ccl_outer = (float_t)(int32_t)data[2] * 0.001f;
+        float_t osage_mv_ccl_kami = (float_t)data[1] * 0.001f;
+        float_t osage_mv_ccl_outer = (float_t)data[2] * 0.001f;
 
         if (rob_chr) {
             rob_chr->set_osage_move_cancel(1, osage_mv_ccl_kami);
@@ -1777,25 +1777,25 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_CHARA_COLOR: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t chara_color = (int32_t)data[1];
+        int32_t chara_color = data[1];
 
         if (rob_chr)
             rob_chr->set_chara_color(chara_color != 0);
     } break;
     case DSC_FT_SE_EFFECT: {
-        int32_t index = (int32_t)data[0];
+        int32_t index = data[0];
 
         if (pv_game_get()->loaded)
             pv_game->play_se(index);
     } break;
     case DSC_FT_EDIT_EYELID_ANIM: {
-        int32_t v342 = (int32_t)data[0];
-        float_t blend_duration = (float_t)(int32_t)data[1] * 0.001f * 60.0f;
-        float_t value = (float_t)(int32_t)data[2] * 0.001f;
+        int32_t v342 = data[0];
+        float_t blend_duration = (float_t)data[1] * 0.001f * 60.0f;
+        float_t value = (float_t)data[2] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -1823,8 +1823,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             value, pv_game->data.get_anim_offset(), aft_mot_db);
     } break;
     case DSC_FT_EDIT_INSTRUMENT_ITEM: {
-        int32_t index = (int32_t)data[0];
-        float_t frame_speed = (float_t)(int32_t)data[1] * 0.001f;
+        int32_t index = data[0];
+        float_t frame_speed = (float_t)data[1] * 0.001f;
 
         if (rob_chr) {
             field_2C560.field_288[chara_id] = index != -1;
@@ -1834,8 +1834,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_PV_END_FADEOUT: {
-        float_t duration = (float_t)(int32_t)data[0] * 0.001f;
-        int32_t v437 = (int32_t)data[1];
+        float_t duration = (float_t)data[0] * 0.001f;
+        int32_t v437 = data[1];
 
         /*if (a6)
             task_mask_screen_fade_out(duration, v437 != 1);*/
@@ -1844,28 +1844,28 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_TARGET_FLAG: {
     } break;
     case DSC_FT_ITEM_ANIM_ATTACH: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t index = (int32_t)data[1];
-        int32_t attach = (int32_t)data[2];
+        int32_t index = data[1];
+        int32_t attach = data[2];
 
         if (index >= 0)
             pv_game->set_data_itmpv_chara_id(chara_id, index, attach == 1);
     } break;
     case DSC_FT_SHADOW_RANGE: {
-        float_t range = (float_t)(int32_t)data[0] * 0.001f;
+        float_t range = (float_t)data[0] * 0.001f;
 
         rctx_ptr->render_manager.shadow_ptr->range = range;
     } break;
     case DSC_FT_HAND_SCALE: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t hand = (int32_t)data[1];
-        float_t scale = (float_t)(int32_t)data[2] * 0.001f;
+        int32_t hand = data[1];
+        float_t scale = (float_t)data[2] * 0.001f;
 
         if (rob_chr)
             switch (hand) {
@@ -1879,10 +1879,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_LIGHT_POS: {
         vec3 pos;
-        pos.x = (float_t)(int32_t)data[0] * 0.001f;
-        pos.y = (float_t)(int32_t)data[1] * 0.001f;
-        pos.z = (float_t)(int32_t)data[2] * 0.001f;
-        int32_t index = (int32_t)data[3];
+        pos.x = (float_t)data[0] * 0.001f;
+        pos.y = (float_t)data[1] * 0.001f;
+        pos.z = (float_t)data[2] * 0.001f;
+        int32_t index = data[3];
 
         if (index >= LIGHT_CHARA && index <= LIGHT_PROJECTION) {
             light_set* set_data = &rctx_ptr->light_set[LIGHT_SET_MAIN];
@@ -1892,11 +1892,11 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_FACE_TYPE: {
     } break;
     case DSC_FT_SHADOW_CAST: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t shadow_cast = (int32_t)data[1];
+        int32_t shadow_cast = data[1];
 
         if (rob_chr)
             rob_chr->set_shadow_cast(shadow_cast == 1);
@@ -1904,51 +1904,51 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_FOG: {
     } break;
     case DSC_FT_BLOOM: {
-        int32_t id = (int32_t)data[0];
-        float_t duration = (float_t)(int32_t)data[1];
+        int32_t id = data[0];
+        float_t duration = (float_t)data[1];
 
         pv_game->set_pv_param_post_process_bloom_data(true, id, duration);
     } break;
     case DSC_FT_COLOR_COLLE: {
-        int32_t set = (int32_t)data[0];
-        int32_t id = (int32_t)data[1];
-        float_t duration = (float_t)(int32_t)data[2];
+        int32_t set = data[0];
+        int32_t id = data[1];
+        float_t duration = (float_t)data[2];
 
         pv_game->set_pv_param_post_process_color_correction_data(set == 1, id, duration);
     } break;
     case DSC_FT_DOF: {
-        int32_t set = (int32_t)data[0];
-        int32_t id = (int32_t)data[1];
-        float_t duration = (float_t)(int32_t)data[2];
+        int32_t set = data[0];
+        int32_t id = data[1];
+        float_t duration = (float_t)data[2];
 
         pv_game->set_pv_param_post_process_dof_data(set == 1, id, duration);
     } break;
     case DSC_FT_CHARA_ALPHA: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t alpha = (float_t)(int32_t)data[1] * 0.001f;
-        float_t duration = (float_t)(int32_t)data[2];
-        int32_t type = (int32_t)data[3];
+        float_t alpha = (float_t)data[1] * 0.001f;
+        float_t duration = (float_t)data[2];
+        int32_t type = data[3];
 
         pv_game->set_pv_param_post_process_chara_alpha_data(chara_id, alpha, type, duration);
     } break;
     case DSC_FT_AOTO_CAP: {
-        int32_t enable = (int32_t)data[0];
+        int32_t enable = data[0];
 
         if (pv_game->data.pv)
             rctx_ptr->post_process.frame_texture_cont_capture_set(enable == 1);
     } break;
     case DSC_FT_MAN_CAP: {
-        int32_t slot = (int32_t)data[0];
+        int32_t slot = data[0];
 
         if (pv_game->data.pv && slot >= 0 && slot <= 4)
             rctx_ptr->post_process.frame_texture_slot_capture_set(slot + 1);
     } break;
     case DSC_FT_TOON: {
-        int32_t npr_param = (int32_t)data[0];
-        int32_t value = (int32_t)data[1];
+        int32_t npr_param = data[0];
+        int32_t value = data[1];
 
         rctx_ptr->render_manager.set_npr_param(npr_param);
         if (npr_param == 1)
@@ -1960,19 +1960,19 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_SHIMMER: {
     } break;
     case DSC_FT_ITEM_ALPHA: {
-        chara_id = (int32_t)data[0];
+        chara_id = data[0];
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t alpha = (float_t)(int32_t)data[1] * 0.001f;
-        float_t duration = (float_t)(int32_t)data[2];
-        int32_t type = (int32_t)data[3];
+        float_t alpha = (float_t)data[1] * 0.001f;
+        float_t duration = (float_t)data[2];
+        int32_t type = data[3];
 
         pv_game->set_pv_param_post_process_chara_item_alpha_data(chara_id, alpha, type, duration);
     } break;
     case DSC_FT_MOVIE_CUT_CHG: {
-        /*int32_t v486 = (int32_t)data[0];
-        int32_t v487 = (int32_t)data[1];
+        /*int32_t v486 = data[0];
+        int32_t v487 = data[1];
 
         if (pv_game_get()->loaded) {
             for (int32_t m = 0; m < 2; m++)
@@ -1999,8 +1999,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }*/
     } break;
     case DSC_FT_CHARA_LIGHT: {
-        int32_t id = (int32_t)data[0];
-        float_t transition = (float_t)(int32_t)data[1];
+        int32_t id = data[0];
+        float_t transition = (float_t)data[1];
 
         light_param_light_data& light_data = pv_param::light_data_get_chara_light_data(id);
 
@@ -2013,8 +2013,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         light_chara->set_position(light_data.position);
     } break;
     case DSC_FT_STAGE_LIGHT: {
-        int32_t id = (int32_t)data[0];
-        float_t transition = (float_t)(int32_t)data[1];
+        int32_t id = data[0];
+        float_t transition = (float_t)data[1];
 
         light_param_light_data& light_data = pv_param::light_data_get_chara_light_data(id);
 
@@ -2027,12 +2027,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         light_stage->set_position(light_data.position);
     } break;
     case DSC_FT_AGEAGE_CTRL: {
-        int32_t chara_id = (int32_t)data[0];
-        int32_t parts = (int32_t)data[0];
-        int32_t npr = (int32_t)data[2];
-        int32_t rot_speed = (int32_t)data[3];
-        int32_t skip = (int32_t)data[4];
-        int32_t disp = (int32_t)data[5];
+        int32_t chara_id = data[0];
+        int32_t parts = data[0];
+        int32_t npr = data[2];
+        int32_t rot_speed = data[3];
+        int32_t skip = data[4];
+        int32_t disp = data[5];
 
         switch (parts) {
         case 0:
@@ -2086,7 +2086,7 @@ void pv_game_pv_data::find_change_fields() {
                 break;
         }
 
-        uint32_t* data = dsc.get_func_data(i);
+        int32_t* data = dsc.get_func_data(i);
 
         switch (pv_branch_mode) {
         case 0:
@@ -2125,15 +2125,15 @@ dsc_data* pv_game_pv_data::find_func(int32_t func_name, int32_t* time,
         else if (i->func == DSC_FT_END)
             break;
         else if (i->func == DSC_FT_TIME) {
-            uint32_t* data = dsc.get_func_data(i);
-            _time = (int32_t)data[0];
+            int32_t* data = dsc.get_func_data(i);
+            _time = data[0];
         }
         else if (i->func == DSC_FT_PV_END)
             break;
         else if (i->func == DSC_FT_PV_BRANCH_MODE) {
             if (pv_branch_mode) {
-                uint32_t* data = dsc.get_func_data(i);
-                *pv_branch_mode = (int32_t)data[0];
+                int32_t* data = dsc.get_func_data(i);
+                *pv_branch_mode = data[0];
             }
         }
     return 0;
@@ -2156,8 +2156,8 @@ void pv_game_pv_data::find_data_camera() {
                 break;
         }
 
-        uint32_t* data = dsc.get_func_data(i);
-        int32_t stage_effect = (int32_t)data[0];
+        int32_t* data = dsc.get_func_data(i);
+        int32_t stage_effect = data[0];
 
         switch (pv_branch_mode) {
         case 0:
@@ -2197,9 +2197,9 @@ void pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
                 break;
         }
 
-        uint32_t* data = dsc.get_func_data(i);
-        if (chara_id == (int32_t)data[0] && (int32_t)data[2] == 2)
-            item_anim.push_back({ time, (int32_t)data[1], pv_branch_mode });
+        int32_t* data = dsc.get_func_data(i);
+        if (chara_id == data[0] && data[2] == 2)
+            item_anim.push_back({ time, data[1], pv_branch_mode });
 
         prev_time = time;
         i++;
@@ -2226,9 +2226,9 @@ void pv_game_pv_data::find_playdata_set_motion(int32_t chara_id) {
                 break;
         }
 
-        uint32_t* data = dsc.get_func_data(i);
-        if (chara_id == (int32_t)data[0])
-            set_motion.push_back({ time, (int32_t)data[1], pv_branch_mode });
+        int32_t* data = dsc.get_func_data(i);
+        if (chara_id == data[0])
+            set_motion.push_back({ time, data[1], pv_branch_mode });
 
         prev_time = time;
         i++;
@@ -2256,10 +2256,10 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
         if (time < 0)
             time = prev_time;
 
-        uint32_t* data = dsc.get_func_data(i);
+        int32_t* data = dsc.get_func_data(i);
 
-        int32_t chara_id = (int32_t)data[0];
-        int32_t motion_index = (int32_t)data[1];
+        int32_t chara_id = data[0];
+        int32_t motion_index = data[1];
 
         v99[chara_id].push_back({ time, motion_index, pv_branch_mode });
 
@@ -2281,9 +2281,9 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
         if (time < 0)
             time = prev_time;
 
-        uint32_t* data = dsc.get_func_data(i);
+        int32_t* data = dsc.get_func_data(i);
 
-        int32_t field = (int32_t)data[0];
+        int32_t field = data[0];
 
         if (field >= 0 && field < diff->field.data.size())
             v94.push_back({ time, diff->field.data[field].stage_index, pv_branch_mode });
@@ -2644,7 +2644,7 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
 
     dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%s(", dsc_data_ptr->name);
 
-    uint32_t* data = dsc.get_func_data(dsc_data_ptr);
+    int32_t* data = dsc.get_func_data(dsc_data_ptr);
 
     int32_t length = get_func_length(dsc_data_ptr->func);
     for (int32_t i = 0; i < length; i++)

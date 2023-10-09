@@ -285,22 +285,22 @@ struct dsc_replace_data;
 typedef int32_t(*dsc_get_func_id)(const char* name);
 typedef int32_t(*dsc_get_func_length)(int32_t id);
 typedef const char*(*dsc_get_func_name)(int32_t id);
-typedef const void(*dsc_func_convert)(dsc_replace* dr, dsc_replace_data* drd, uint32_t* data);
+typedef const void(*dsc_func_convert)(dsc_replace* dr, dsc_replace_data* drd, int32_t* data);
 
 struct dsc {
     dsc_type type;
     uint32_t signature;
     uint32_t id;
     std::vector<dsc_data> data;
-    std::vector<uint32_t> data_buffer;
+    std::vector<int32_t> data_buffer;
 
     dsc(dsc_type type = DSC_FT, uint32_t signature = 0x15122517, uint32_t id = 0);
     ~dsc();
 
-    uint32_t* add_func(const char* name, int32_t func, int32_t func_length);
+    int32_t* add_func(const char* name, int32_t func, int32_t func_length);
     void convert(dsc_type dst_type);
     dsc_get_func_length get_dsc_get_func_length();
-    uint32_t* get_func_data(dsc_data* data);
+    int32_t* get_func_data(dsc_data* data);
     void merge(int32_t count, ...);
     bool parse(const void* data, size_t size, dsc_type type);
     bool parse_text(const void* data, size_t size, dsc_type type);

@@ -2069,15 +2069,15 @@ dsc_data* x_pv_game_dsc_data::find(int32_t func_name, int32_t* time,
         else if (i->func == DSC_X_END)
             break;
         else if (i->func == DSC_X_TIME) {
-            uint32_t* data = dsc.get_func_data(i);
-            _time = (int32_t)data[0];
+            int32_t* data = dsc.get_func_data(i);
+            _time = data[0];
         }
         else if (i->func == DSC_X_PV_END)
             break;
         else if (i->func == DSC_X_PV_BRANCH_MODE) {
             if (pv_branch_mode) {
-                uint32_t* data = dsc.get_func_data(i);
-                *pv_branch_mode = (int32_t)data[0];
+                int32_t* data = dsc.get_func_data(i);
+                *pv_branch_mode = data[0];
             }
         }
     return 0;
@@ -2092,16 +2092,16 @@ void x_pv_game_dsc_data::find_bar_beat(x_pv_bar_beat& bar_beat) {
         if (i.func == DSC_X_END)
             break;
 
-        uint32_t* data = dsc.get_func_data(&i);
+        int32_t* data = dsc.get_func_data(&i);
         switch (i.func) {
         case DSC_X_TIME: {
-            time = (int32_t)data[0];
+            time = data[0];
         } break;
         case DSC_X_BAR_POINT: {
             bar_beat.data.push_back({});
             bar_beat_data = &bar_beat.data.back();
             *bar_beat_data = {};
-            bar_beat_data->bar = (int32_t)data[0];
+            bar_beat_data->bar = data[0];
             bar_beat_data->bar_time = (float_t)time * (float_t)(1.0 / 100000.0);
             bar_beat_data->beat_counter = beat_counter;
         } break;
@@ -2167,8 +2167,8 @@ void x_pv_game_dsc_data::find_stage_effects(prj::vector_pair<int64_t, int32_t>& 
                 break;
         }
 
-        uint32_t* data = dsc.get_func_data(i);
-        int32_t stage_effect = (int32_t)data[0];
+        int32_t* data = dsc.get_func_data(i);
+        int32_t stage_effect = data[0];
 
         if (stage_effect < 8 || stage_effect > 9)
             stage_effects.push_back((int64_t)time * 10000, stage_effect);
@@ -4439,10 +4439,10 @@ bool x_pv_game::Ctrl() {
                             if (j.func == DSC_X_END)
                                 break;
 
-                            uint32_t* data = d.get_func_data(&j);
+                            int32_t* data = d.get_func_data(&j);
                             switch (j.func) {
                             case DSC_X_TIME:
-                                time = (int32_t)data[0];
+                                time = data[0];
                                 break;
                             case DSC_X_HAND_ANIM: {
                                 if (data[1] == 0) {
@@ -4450,8 +4450,8 @@ bool x_pv_game::Ctrl() {
                                         data[3] = (time - hand_l_time) / 100;
 
                                     hand_l_time = time;
-                                    hand_l_id = (int32_t)data[2];
-                                    hand_l_duration = (int32_t)data[3] * 100;
+                                    hand_l_id = data[2];
+                                    hand_l_duration = data[3] * 100;
                                     hand_l_data = &j;
                                 }
                             } break;
@@ -4469,10 +4469,10 @@ bool x_pv_game::Ctrl() {
                             if (j.func == DSC_X_END)
                                 break;
 
-                            uint32_t* data = d.get_func_data(&j);
+                            int32_t* data = d.get_func_data(&j);
                             switch (j.func) {
                             case DSC_X_TIME:
-                                time = (int32_t)data[0];
+                                time = data[0];
                                 break;
                             case DSC_X_HAND_ANIM: {
                                 if (data[1] == 1) {
@@ -4480,8 +4480,8 @@ bool x_pv_game::Ctrl() {
                                         data[3] = (time - hand_r_time) / 100;
 
                                     hand_r_time = time;
-                                    hand_r_id = (int32_t)data[2];
-                                    hand_r_duration = (int32_t)data[3] * 100;
+                                    hand_r_id = data[2];
+                                    hand_r_duration = data[3] * 100;
                                     hand_r_data = &j;
                                 }
                             } break;
@@ -4525,24 +4525,24 @@ bool x_pv_game::Ctrl() {
                 if (i.func == DSC_X_END)
                     break;
 
-                uint32_t* data = dsc_data.dsc.get_func_data(&i);
+                int32_t* data = dsc_data.dsc.get_func_data(&i);
                 switch (i.func) {
                 case DSC_X_TIME: {
                     for (miku_state& i : state)
                         if (state[chara_id].disp && i.disp_time == time && i.set_motion_time != time)
                             state_vec.push_back(i);
-                    time = (int32_t)data[0];
+                    time = data[0];
                     frame = (int32_t)roundf((float_t)time * (float_t)(60.0 / 100000.0));
                 } break;
                 case DSC_X_MIKU_DISP: {
-                    int32_t chara_id = (int32_t)data[0];
-                    state[chara_id].disp = (int32_t)data[1] == 1;
+                    int32_t chara_id = data[0];
+                    state[chara_id].disp = data[1] == 1;
                     if (state[chara_id].disp)
                         state[chara_id].disp_time = time;
                     miku_disp.push_back(time, i.data_offset);
                 } break;
                 case DSC_X_SET_MOTION: {
-                    int32_t chara_id = (int32_t)data[0];
+                    int32_t chara_id = data[0];
                     state[chara_id].set_motion_time = time;
                     state[chara_id].set_motion_data_offset = i.data_offset;
                     set_motion.push_back(time, i.data_offset);
@@ -4557,32 +4557,32 @@ bool x_pv_game::Ctrl() {
                 int32_t time = -1;
                 for (miku_state& i : state_vec) {
                     if (i.disp_time != time) {
-                        uint32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.disp_time;
                         time = i.disp_time;
                     }
 
-                    uint32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
+                    int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
                         DSC_X_SET_MOTION, dsc_x_get_func_length(DSC_X_SET_MOTION));
-                    uint32_t* data = dsc_data.dsc.data_buffer.data() + i.set_motion_data_offset;
-                    memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
+                    int32_t* data = dsc_data.dsc.data_buffer.data() + i.set_motion_data_offset;
+                    memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
                 }
 
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : miku_disp) {
                     if (i.first != time) {
-                        uint32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.first;
                         time = i.first;
                     }
 
                     for (int32_t j = 1; j < 6; j++) {
-                        uint32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_MIKU_DISP),
+                        int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_MIKU_DISP),
                             DSC_X_MIKU_DISP, dsc_x_get_func_length(DSC_X_MIKU_DISP));
-                        uint32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
-                        memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_MIKU_DISP));
+                        int32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
+                        memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_MIKU_DISP));
                         new_data[0] = j;
                     }
                 }
@@ -4590,17 +4590,17 @@ bool x_pv_game::Ctrl() {
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : set_motion) {
                     if (i.first != time) {
-                        uint32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.first;
                         time = i.first;
                     }
 
                     for (int32_t j = 1; j < 6; j++) {
-                        uint32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
+                        int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
                             DSC_X_SET_MOTION, dsc_x_get_func_length(DSC_X_SET_MOTION));
-                        uint32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
-                        memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
+                        int32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
+                        memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
                         new_data[0] = j;
                     }
                 }
@@ -4608,17 +4608,17 @@ bool x_pv_game::Ctrl() {
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : set_playdata) {
                     if (i.first != time) {
-                        uint32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.first;
                         time = i.first;
                     }
 
                     for (int32_t j = 1; j < 6; j++) {
-                        uint32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_PLAYDATA),
+                        int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_PLAYDATA),
                             DSC_X_SET_PLAYDATA, dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
-                        uint32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
-                        memcpy(new_data, data, sizeof(uint32_t) * dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
+                        int32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
+                        memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
                         new_data[0] = j;
                     }
                 }
@@ -6384,7 +6384,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     x_pv_game_data& pv_data = a1->pv_data[a1->pv_index];
 
     dsc_x_func func = (dsc_x_func)pv_data.dsc_data.dsc_data_ptr->func;
-    uint32_t* data = pv_data.dsc_data.dsc.get_func_data(
+    int32_t* data = pv_data.dsc_data.dsc.get_func_data(
         pv_data.dsc_data.dsc_data_ptr);
     if (a1->branch_mode) {
         bool v19;
@@ -6417,19 +6417,19 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         return false;
     } break;
     case DSC_X_TIME: {
-        pv_data.dsc_data.time = (int64_t)(int32_t)data[0] * 10000;
+        pv_data.dsc_data.time = (int64_t)data[0] * 10000;
         if (pv_data.dsc_data.time > curr_time)
             return false;
     } break;
     case DSC_X_MIKU_MOVE: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
         vec3 pos;
-        pos.x = (float_t)(int32_t)data[1] * 0.001f;
-        pos.y = (float_t)(int32_t)data[2] * 0.001f;
-        pos.z = (float_t)(int32_t)data[3] * 0.001f;
+        pos.x = (float_t)data[1] * 0.001f;
+        pos.y = (float_t)data[2] * 0.001f;
+        pos.z = (float_t)data[3] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -6439,11 +6439,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_ROT: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t rot_y = (float_t)(int32_t)data[0] * 0.001f;
+        float_t rot_y = (float_t)data[0] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -6453,11 +6453,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr->set_osage_reset();
     } break;
     case DSC_X_MIKU_DISP: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t disp = (int32_t)data[1];
+        int32_t disp = data[1];
 
         playdata->disp = disp == 1;
 
@@ -6487,7 +6487,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             rob_chr->set_visibility(false);
     } break;
     case DSC_X_MIKU_SHADOW: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
     } break;
@@ -6495,16 +6495,16 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_SET_MOTION: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
         if (!rob_chr)
             break;
 
-        int32_t motion_index = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t frame_speed_int = (int32_t)data[3];
+        int32_t motion_index = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t frame_speed_int = data[3];
 
         float_t blend_duration;
         if (blend_duration_int != -1){
@@ -6609,11 +6609,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         }
     } break;
     case DSC_X_SET_PLAYDATA: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t motion_index = (int32_t)data[1];
+        int32_t motion_index = data[1];
         if (motion_index < 0) {
             playdata->motion.clear();
             break;
@@ -6655,7 +6655,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_CHANGE_FIELD: {
-        int32_t field = (int32_t)data[0];
+        int32_t field = data[0];
         if (field > 0)
             x_pv_game_change_field(a1, field, pv_data.dsc_data.time, curr_time);
         else
@@ -6674,12 +6674,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_EYE_ANIM: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t v115 = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
+        int32_t v115 = data[1];
+        int32_t blend_duration_int = data[2];
 
         float_t blend_duration;
         if (blend_duration_int != -1)
@@ -6695,13 +6695,13 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr->set_eyelid_mottbl_motion_from_face(v115, blend_duration, -1.0f, 0.0f, aft_mot_db);
     } break;
     case DSC_X_MOUTH_ANIM: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t mouth_anim_id = (int32_t)data[2];
-        int32_t blend_duration_int = (int32_t)data[3];
-        int32_t value_int = (int32_t)data[4];
+        int32_t mouth_anim_id = data[2];
+        int32_t blend_duration_int = data[3];
+        int32_t value_int = data[4];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -6762,14 +6762,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
     } break;
     case DSC_X_HAND_ANIM: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t hand_index = (int32_t)data[1];
-        int32_t hand_anim_id = (int32_t)data[2];
-        int32_t blend_duration_int = (int32_t)data[3];
-        int32_t value_int = (int32_t)data[4];
+        int32_t hand_index = data[1];
+        int32_t hand_anim_id = data[2];
+        int32_t blend_duration_int = data[3];
+        int32_t value_int = data[4];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -6807,13 +6807,13 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         }
     } break;
     case DSC_X_LOOK_ANIM: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t look_anim_id = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t value_int = (int32_t)data[3];
+        int32_t look_anim_id = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t value_int = data[3];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -6844,13 +6844,13 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         return 1;
     } break;
     case DSC_X_EXPRESSION: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t expression_id = (int32_t)data[1];
-        int32_t blend_duration_int = (int32_t)data[2];
-        int32_t value_int = (int32_t)data[3];
+        int32_t expression_id = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t value_int = data[3];
 
         float_t blend_duration;
         if (blend_duration_int != -1) {
@@ -6909,7 +6909,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr = playdata->rob_chr;
     } break;
     case DSC_X_EDIT_FACE: {
-        int32_t expression_id = (int32_t)data[0];
+        int32_t expression_id = data[0];
 
         if (!rob_chr)
             break;
@@ -6927,7 +6927,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         break;
     } break;
     case DSC_X_SHADOWPOS: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
     } break;
@@ -6938,11 +6938,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_EDIT_MOUTH: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t mouth_anim_id = (int32_t)data[1];
+        int32_t mouth_anim_id = data[1];
 
         if (!rob_chr)
             break;
@@ -6953,7 +6953,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             0, 0.1f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
     } break;
     case DSC_X_SET_CHARA: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
     } break;
@@ -6982,7 +6982,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_AIM: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
     } break;
@@ -6996,11 +6996,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_CLOTH_WET: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t wet = (float_t)(int32_t)data[1] * 0.001f;
+        float_t wet = (float_t)data[1] * 0.001f;
 
         wet = clamp_def(wet, 0.0f, 1.0f);
 
@@ -7015,19 +7015,19 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
     } break;
     case DSC_X_TONE_TRANS: {
         vec3 start;
-        start.x = (float_t)(int32_t)data[0] * 0.001f;
-        start.y = (float_t)(int32_t)data[1] * 0.001f;
-        start.z = (float_t)(int32_t)data[2] * 0.001f;
+        start.x = (float_t)data[0] * 0.001f;
+        start.y = (float_t)data[1] * 0.001f;
+        start.z = (float_t)data[2] * 0.001f;
 
         vec3 end;
-        end.x = (float_t)(int32_t)data[3] * 0.001f;
-        end.y = (float_t)(int32_t)data[4] * 0.001f;
-        end.z = (float_t)(int32_t)data[5] * 0.001f;
+        end.x = (float_t)data[3] * 0.001f;
+        end.y = (float_t)data[4] * 0.001f;
+        end.z = (float_t)data[5] * 0.001f;
 
         rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
     } break;
     case DSC_X_SATURATE: {
-        float_t saturate_coeff = (float_t)(int32_t)data[0] * 0.001f;
+        float_t saturate_coeff = (float_t)data[0] * 0.001f;
 
         rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
     } break;
@@ -7040,12 +7040,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_PARTS_DISP: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
         item_id id = (item_id)data[1];
-        int32_t disp = (int32_t)data[2];
+        int32_t disp = data[2];
 
         if (!rob_chr)
             break;
@@ -7056,11 +7056,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_CHARA_SIZE: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t chara_size = (int32_t)data[1];
+        int32_t chara_size = data[1];
 
         if (!rob_chr)
             return 1;
@@ -7094,11 +7094,11 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr->set_chara_pos_adjust_y(chara_pos_adjust_y_table_get_value(chara_size_index));
     } break;
     case DSC_X_CHARA_HEIGHT_ADJUST: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t height_adjust = (int32_t)data[1];
+        int32_t height_adjust = data[1];
 
         if (rob_chr)
             rob_chr->set_chara_height_adjust(height_adjust != 0);
@@ -7107,14 +7107,14 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         printf_debug("");
     } break;
     case DSC_X_CHARA_POS_ADJUST: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
         vec3 pos;
-        pos.x = (float_t)(int32_t)data[2] * 0.001f;
-        pos.y = (float_t)(int32_t)data[3] * 0.001f;
-        pos.z = (float_t)(int32_t)data[4] * 0.001f;
+        pos.x = (float_t)data[2] * 0.001f;
+        pos.y = (float_t)data[3] * 0.001f;
+        pos.z = (float_t)data[4] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -7128,7 +7128,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         }
     } break;
     case DSC_X_SCENE_ROT: {
-        float_t scene_rot_y = (float_t)(int32_t)data[0] * 0.001f;
+        float_t scene_rot_y = (float_t)data[0] * 0.001f;
         a1->scene_rot_y = scene_rot_y;
 
         mat4_rotate_y(scene_rot_y * DEG_TO_RAD_FLOAT, &a1->scene_rot_mat);
@@ -7138,7 +7138,7 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_PV_BRANCH_MODE: {
-        int32_t branch_mode = (int32_t)data[0];
+        int32_t branch_mode = data[0];
         if (branch_mode >= 0 && branch_mode <= 2)
             a1->branch_mode = branch_mode;
     } break;
@@ -7152,12 +7152,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_WIND: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t wind_strength_kami = (float_t)(int32_t)data[1] * 0.001f;
-        float_t wind_strength_outer = (float_t)(int32_t)data[2] * 0.001f;
+        float_t wind_strength_kami = (float_t)data[1] * 0.001f;
+        float_t wind_strength_outer = (float_t)data[2] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -7165,12 +7165,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr->set_wind_strength(wind_strength_outer);
     } break;
     case DSC_X_OSAGE_STEP: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t osage_step_kami = (float_t)(int32_t)data[1] * 0.001f;
-        float_t osage_step_outer = (float_t)(int32_t)data[2] * 0.001f;
+        float_t osage_step_kami = (float_t)data[1] * 0.001f;
+        float_t osage_step_outer = (float_t)data[2] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -7178,12 +7178,12 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         rob_chr->set_osage_step(osage_step_outer);
     } break;
     case DSC_X_OSAGE_MV_CCL: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t osage_mv_ccl_kami = (float_t)(int32_t)data[1] * 0.001f;
-        float_t osage_mv_ccl_outer = (float_t)(int32_t)data[2] * 0.001f;
+        float_t osage_mv_ccl_kami = (float_t)data[1] * 0.001f;
+        float_t osage_mv_ccl_outer = (float_t)data[2] * 0.001f;
 
         if (!rob_chr)
             break;
@@ -7255,25 +7255,25 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_BLOOM: {
-        int32_t id = (int32_t)data[0];
-        float_t duration = (float_t)(int32_t)data[1];
+        int32_t id = data[0];
+        float_t duration = (float_t)data[1];
 
         pv_param_task::post_process_task_set_bloom_data(
             pv_param::post_process_data_get_bloom_data(id), duration);
     } break;
     case DSC_X_COLOR_CORRECTION: {
-        int32_t enable = (int32_t)data[0];
-        int32_t id = (int32_t)data[1];
-        float_t duration = (float_t)(int32_t)data[2];
+        int32_t enable = data[0];
+        int32_t id = data[1];
+        float_t duration = (float_t)data[2];
 
         if (enable == 1)
             pv_param_task::post_process_task_set_color_correction_data(
                 pv_param::post_process_data_get_color_correction_data(id), duration);
     } break;
     case DSC_X_DOF: {
-        int32_t enable = (int32_t)data[0];
-        int32_t id = (int32_t)data[1];
-        float_t duration = (float_t)(int32_t)data[2];
+        int32_t enable = data[0];
+        int32_t id = data[1];
+        float_t duration = (float_t)data[2];
 
         rctx_ptr->post_process.dof->data.pv.enable = enable == 1;
         if (enable == 1)
@@ -7281,13 +7281,13 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
                 pv_param::post_process_data_get_dof_data(id), duration);
     } break;
     case DSC_X_CHARA_ALPHA: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t alpha = (float_t)(int32_t)data[1] * 0.001f;
-        float_t duration = (float_t)(int32_t)data[2];
-        int32_t type = (int32_t)data[3];
+        float_t alpha = (float_t)data[1] * 0.001f;
+        float_t duration = (float_t)data[2];
+        int32_t type = data[3];
 
         if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT)
             pv_param_task::post_process_task_set_chara_alpha(
@@ -7306,13 +7306,13 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_ITEM_ALPHA: {
-        a1->chara_id = (int32_t)data[0];
+        a1->chara_id = data[0];
         playdata = &a1->playdata[a1->chara_id];
         rob_chr = playdata->rob_chr;
 
-        float_t alpha = (float_t)(int32_t)data[1] * 0.001f;
-        float_t duration = (float_t)(int32_t)data[2];
-        int32_t type = (int32_t)data[3];
+        float_t alpha = (float_t)data[1] * 0.001f;
+        float_t duration = (float_t)data[2];
+        int32_t type = data[3];
 
         if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
             pv_param_task::post_process_task_set_chara_item_alpha(
@@ -7348,15 +7348,15 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_STAGE_EFFECT: {
-        int32_t stage_effect = (int32_t)data[0];
+        int32_t stage_effect = data[0];
 
         if (stage_effect >= 8 && stage_effect <= 9)
             a1->stage_data.set_stage_effect(stage_effect);
     } break;
     case DSC_X_SONG_EFFECT: {
         bool enable = data[0] ? true : false;
-        int32_t index = (int32_t)data[1];
-        int32_t unk2 = (int32_t)data[2];
+        int32_t index = data[1];
+        int32_t unk2 = data[2];
 
         if (unk2 && !(pv_data.field_1C & 0x10))
             break;
@@ -7372,9 +7372,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
             pv_data.effect.stop_song_effect(index, true);
     } break;
     case DSC_X_SONG_EFFECT_ATTACH: {
-        int32_t index = (int32_t)data[0];
-        int32_t chara_id = (int32_t)data[1];
-        int32_t chara_item = (int32_t)data[2];
+        int32_t index = data[0];
+        int32_t chara_id = data[1];
+        int32_t chara_item = data[2];
 
         pv_data.effect.set_chara_id(index, chara_id, !!chara_item);
     } break;
@@ -7385,8 +7385,8 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
 
     } break;
     case DSC_X_SET_STAGE_EFFECT_ENV: {
-        int32_t env_index = (int32_t)data[0];
-        int32_t trans = (int32_t)data[1];
+        int32_t env_index = data[0];
+        int32_t trans = data[1];
         a1->stage_data.set_env(env_index, (float_t)trans * (float_t)(1.0f / 60.0f), 0.0f);
         printf_debug("Time: %8d; Frame %5d; Env: %2d; Trans: %3d\n",
             (int32_t)(curr_time / 10000), a1->frame, env_index, trans);
@@ -7416,9 +7416,9 @@ static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-        int32_t chara_id = (int32_t)data[0];
+        int32_t chara_id = data[0];
         bool enable = data[1] ? true : false;
-        int32_t index = (int32_t)data[2];
+        int32_t index = data[2];
 
         if (enable) {
             pv_data.chara_effect.set_chara_effect(chara_id, index, pv_data.dsc_data.time);
@@ -10767,7 +10767,7 @@ static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t c
                 break;
         }
 
-        uint32_t* data = dsc_data.dsc.get_func_data(i);
+        int32_t* data = dsc_data.dsc.get_func_data(i);
         if (chara_id == data[0] && data[2] == 2) {
             x_dsc_set_item item;
             item.item_index = data[1];
@@ -10805,7 +10805,7 @@ static void pv_game_dsc_data_find_playdata_set_motion(x_pv_game* xpvgm, int32_t 
                 break;
         }
 
-        uint32_t* data = dsc_data.dsc.get_func_data(i);
+        int32_t* data = dsc_data.dsc.get_func_data(i);
         if (chara_id == data[0]) {
             x_dsc_set_motion motion;
             motion.motion_index = data[1];
@@ -10839,10 +10839,10 @@ static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm) {
         if (time < 0)
             time = prev_time;
 
-        uint32_t* data = dsc_data.dsc.get_func_data(i);
+        int32_t* data = dsc_data.dsc.get_func_data(i);
 
-        int32_t chara_id = (int32_t)data[0];
-        int32_t motion_index = (int32_t)data[1];
+        int32_t chara_id = data[0];
+        int32_t motion_index = data[1];
 
         v98[chara_id].push_back({ time, motion_index, pv_branch_mode });
 

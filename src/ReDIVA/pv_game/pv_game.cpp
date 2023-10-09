@@ -321,7 +321,7 @@ int64_t pv_game_data::get_max_time(int64_t* challenge_time_start, int64_t* chall
     int64_t max_time = 0;
     while (pv_data.dsc_data_ptr != pv_data.dsc_data_ptr_end) {
         int32_t func = pv_data.dsc_data_ptr->func;
-        uint32_t* data = pv_data.dsc.get_func_data(pv_data.dsc_data_ptr);
+        int32_t* data = pv_data.dsc.get_func_data(pv_data.dsc_data_ptr);
 
         if (func < 0 || func >= DSC_FT_MAX)
             goto END;
@@ -332,19 +332,19 @@ int64_t pv_game_data::get_max_time(int64_t* challenge_time_start, int64_t* chall
             max_time = dsc_time;
         } goto END;
         case DSC_FT_TIME: {
-            dsc_time = 10000LL * (int32_t)data[0];
+            dsc_time = 10000LL * data[0];
         } break;
         case DSC_FT_MODE_SELECT:
         case DSC_FT_EDIT_MODE_SELECT: {
             bool v11 = true;
             int32_t mode;
             if (func == DSC_FT_MODE_SELECT && pv_data.has_perf_id && sub_14013C8C0()->sub_1400E7910() < 4) {
-                int32_t diff_bits = (int32_t)data[0];
-                mode = (int32_t)data[1];
+                int32_t diff_bits = data[0];
+                mode = data[1];
                 v11 = !!(diff_bits & (1 << sub_14013C8C0()->difficulty));
             }
             else
-                mode = (int32_t)data[0];
+                mode = data[0];
 
             if (v11 && (sub_14013C8C0()->difficulty == PV_DIFFICULTY_EASY
                 || sub_14013C8C0()->difficulty == PV_DIFFICULTY_NORMAL))
@@ -440,12 +440,12 @@ bool pv_game_data::sub_140119960(bool* has_target, int64_t* dsc_time, int32_t* t
     bool end = false;
     int32_t fade_time_int = (int32_t)(fade_time * 1000000000.0f);
 
-    uint32_t* target_data_offset[4] = {};
+    int32_t* target_data_offset[4] = {};
 
     int32_t _target_count = 0;
     while (pv_data.dsc_data_ptr != pv_data.dsc_data_ptr_end) {
         int32_t func = pv_data.dsc_data_ptr->func;
-        uint32_t* data = pv_data.dsc.get_func_data(pv_data.dsc_data_ptr);
+        int32_t* data = pv_data.dsc.get_func_data(pv_data.dsc_data_ptr);
 
         if (func < 0 || func >= DSC_FT_MAX)
             goto END;
@@ -462,13 +462,13 @@ bool pv_game_data::sub_140119960(bool* has_target, int64_t* dsc_time, int32_t* t
                 goto PROCESS_TARGET;
             }
 
-            *dsc_time = 10000LL * (int32_t)data[0];
+            *dsc_time = 10000LL * data[0];
         } break;
         case DSC_FT_TARGET: {
             *has_target = true;
             target_data_offset[_target_count++] = data;
 
-            int32_t target = (int32_t)data[0];
+            int32_t target = data[0];
 
             switch (target) {
             case DSC_TARGET_FT_0B:
@@ -506,17 +506,17 @@ bool pv_game_data::sub_140119960(bool* has_target, int64_t* dsc_time, int32_t* t
                 *start_fade = false;
         } break;
         case DSC_FT_LYRIC: {
-            int32_t lyric_index = (int32_t)data[0];
+            int32_t lyric_index = data[0];
             if (lyric_index > 0 && *dsc_time < fade_time_int)
                 *start_fade = false;
         } break;
         case DSC_FT_BAR_TIME_SET: {
-            int32_t bpm = (int32_t)data[0];
-            int32_t time_signature = (int32_t)data[1] + 1;
+            int32_t bpm = data[0];
+            int32_t time_signature = data[1] + 1;
             bar_time_set_to_target_flying_time(bpm, time_signature, target_flying_time);
         } break;
         case DSC_FT_TARGET_FLYING_TIME: {
-            int32_t _target_flying_time = (int32_t)data[0];
+            int32_t _target_flying_time = data[0];
             if (target_flying_time >= 0)
                 *target_flying_time = 1000000LL * _target_flying_time;
         } break;
@@ -601,15 +601,15 @@ PROCESS_TARGET:
     next_target.time_end = *dsc_time + target_flying_time_hist;
 
     for (int32_t i = 0; i < _target_count; ) {
-        uint32_t* data = target_data_offset[i];
+        int32_t* data = target_data_offset[i];
 
         dsc_target_ft type = (dsc_target_ft)data[0];
-        float_t pos_x = (float_t)(int32_t)data[1] * 0.001f;
-        float_t pos_y = (float_t)(int32_t)data[2] * 0.001f;
-        float_t angle = (float_t)(int32_t)data[3] * 0.001f;
-        float_t distance = (float_t)(int32_t)data[4] * 0.001f;
-        float_t amplitude = (float_t)(int32_t)data[5] * 0.001f;
-        int32_t frequency = (int32_t)data[6];
+        float_t pos_x = (float_t)data[1] * 0.001f;
+        float_t pos_y = (float_t)data[2] * 0.001f;
+        float_t angle = (float_t)data[3] * 0.001f;
+        float_t distance = (float_t)data[4] * 0.001f;
+        float_t amplitude = (float_t)data[5] * 0.001f;
+        int32_t frequency = data[6];
 
         int32_t high_speed_rate = 1;
         if (pv_data.pv_game->data.play_data.option == 1) {
