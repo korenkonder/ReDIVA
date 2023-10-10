@@ -1402,16 +1402,24 @@ static void obj_classic_read_index(obj_sub_mesh* sub_mesh, prj::shared_ptr<prj::
     uint32_t* index_array = alloc->allocate<uint32_t>(num_index);
     switch (sub_mesh->index_format) {
     case OBJ_INDEX_U8:
-        for (uint32_t i = 0; i < num_index; i++) {
-            uint8_t idx = s.read_uint8_t();
-            index_array[i] = tri_strip && idx == 0xFF ? 0xFFFFFFFF : idx;
-        }
+        if (tri_strip)
+            for (uint32_t i = 0; i < num_index; i++) {
+                uint8_t idx = s.read_uint8_t();
+                index_array[i] = idx == 0xFF ? 0xFFFFFFFF : idx;
+            }
+        else
+            for (uint32_t i = 0; i < num_index; i++)
+                index_array[i] = s.read_uint8_t();
         break;
     case OBJ_INDEX_U16:
-        for (uint32_t i = 0; i < num_index; i++) {
-            uint16_t idx = s.read_uint16_t();
-            index_array[i] = tri_strip && idx == 0xFFFF ? 0xFFFFFFFF : idx;
-        }
+        if (tri_strip)
+            for (uint32_t i = 0; i < num_index; i++) {
+                uint16_t idx = s.read_uint16_t();
+                index_array[i] = idx == 0xFFFF ? 0xFFFFFFFF : idx;
+            }
+        else
+            for (uint32_t i = 0; i < num_index; i++)
+                index_array[i] = s.read_uint16_t();
         break;
     case OBJ_INDEX_U32:
         for (uint32_t i = 0; i < num_index; i++)
@@ -1609,8 +1617,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
                 s.write_int32_t(sub_mesh->num_index);
                 s.write_uint32_t((uint32_t)smh.index_array_offset);
                 s.write_uint32_t(sub_mesh->attrib.w);
-                s.write(0x18);
-                s.write_uint32_t(sub_mesh->index_offset);
+                s.write(0x1C);
                 s.position_pop();
             }
         }
@@ -1634,7 +1641,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             for (int64_t& j : mh->vertex)
                 s.write_uint32_t((uint32_t)j);
 
-            s.write_uint32_t(mesh->attrib.w);
+            s.write_uint32_t(mesh->attrib.w & 0x7FFFFFFF);
             s.write_uint32_t(mh->vertex_format_index);
             s.write_uint32_t(mesh->reserved[0]);
             s.write_uint32_t(mesh->reserved[1]);
@@ -1703,7 +1710,7 @@ static void obj_classic_read_model_mesh(obj_mesh* mesh,
     for (int64_t& i : mh.vertex)
         i = s.read_uint32_t();
 
-    mesh->attrib.w = s.read_uint32_t();
+    mesh->attrib.w = s.read_uint32_t() & 0x7FFFFFFF;
     mh.vertex_format_index = s.read_uint32_t();
     mesh->reserved[0] = s.read_uint32_t();
     mesh->reserved[1] = s.read_uint32_t();
@@ -1751,8 +1758,7 @@ static void obj_classic_read_model_sub_mesh(obj_sub_mesh* sub_mesh,
     sub_mesh->bounding_box.size.x = sub_mesh->bounding_sphere.radius * 2.0f;
     sub_mesh->bounding_box.size.y = sub_mesh->bounding_sphere.radius * 2.0f;
     sub_mesh->bounding_box.size.z = sub_mesh->bounding_sphere.radius * 2.0f;
-    s.read(0, 0x18);
-    sub_mesh->index_offset = s.read_uint32_t();
+    s.read(0, 0x1C);
 
     if (sub_mesh->bones_per_vertex == 4 && smh.bone_index_array_offset) {
         sub_mesh->bone_index_array = alloc->allocate<uint16_t>(sub_mesh->num_bone_index);
@@ -4850,7 +4856,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
                 for (uint32_t j = 0; j < 20; j++)
                     s.write_offset_x(mh->vertex[j]);
 
-            s.write_uint32_t_reverse_endianness(mesh->attrib.w);
+            s.write_uint32_t_reverse_endianness(mesh->attrib.w & 0x7FFFFFFF);
             s.write_uint32_t_reverse_endianness(mh->vertex_format_index);
             s.write_uint32_t_reverse_endianness(mesh->reserved[0]);
             s.write_uint32_t_reverse_endianness(mesh->reserved[1]);
@@ -4973,7 +4979,7 @@ static void obj_modern_read_model_mesh(obj_mesh* mesh,
         for (int64_t& i : mh.vertex)
             i = s.read_offset_x();
 
-    mesh->attrib.w = s.read_uint32_t_reverse_endianness();
+    mesh->attrib.w = s.read_uint32_t_reverse_endianness() & 0x7FFFFFFF;
     mh.vertex_format_index = s.read_uint32_t_reverse_endianness();
     mesh->reserved[0] = s.read_uint32_t_reverse_endianness();
     mesh->reserved[1] = s.read_uint32_t_reverse_endianness();

@@ -26,6 +26,7 @@
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include <meshoptimizer/meshoptimizer.h>
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
 #endif
@@ -10181,11 +10182,19 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
         set->obj_num = _obj_num;
 
         obj_vertex_buffer* vertex_buffer_data = handler->vertex_buffer_data;
+        for (uint32_t j = 0; j < obj_num; j++)
+            vertex_buffer_data[j].unload();
+        delete[] vertex_buffer_data;
+
         handler->vertex_buffer_num = _obj_num;
         obj_vertex_buffer* vertex_buffer_data_new = new obj_vertex_buffer[_obj_num];
         handler->vertex_buffer_data = vertex_buffer_data_new;
 
         obj_index_buffer* index_buffer_data = handler->index_buffer_data;
+        for (uint32_t j = 0; j < obj_num; j++)
+            index_buffer_data[j].unload();
+        delete[] index_buffer_data;
+
         handler->index_buffer_num = _obj_num;
         obj_index_buffer* index_buffer_data_new = new obj_index_buffer[_obj_num];
         handler->index_buffer_data = index_buffer_data_new;
@@ -10194,11 +10203,38 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
             vertex_buffer_data_new++, index_buffer_data_new++) {
             *obj_data_new = *obj_data;
 
-            bool init_buffer = false;
-            *vertex_buffer_data_new = vertex_buffer_data[j];
-            *index_buffer_data_new = index_buffer_data[j];
-
             obj* obj = *obj_data;
+            obj_mesh* mesh_array = obj->mesh_array;
+            uint32_t num_mesh = obj->num_mesh;
+            for (uint32_t m = 0; m < num_mesh; m++) {
+                obj_mesh* mesh = &mesh_array[m];
+
+                obj_sub_mesh* submesh_array = mesh->submesh_array;
+                uint32_t num_submesh = mesh->num_submesh;
+                for (uint32_t n = 0; n < num_submesh; n++) {
+                    obj_sub_mesh* submesh = &submesh_array[n];
+
+                    if (submesh->primitive_type != OBJ_PRIMITIVE_TRIANGLES)
+                        continue;
+
+                    submesh->primitive_type = OBJ_PRIMITIVE_TRIANGLE_STRIP;
+
+                    uint32_t* index_array = submesh->index_array;
+                    submesh->index_array = alloc->allocate<uint32_t>(
+                        meshopt_stripifyBound(submesh->num_index));
+                    submesh->num_index = (uint32_t)meshopt_stripify(submesh->index_array,
+                        index_array, submesh->num_index, mesh->num_vertex, 0xFFFFFFFF);
+
+                    submesh->first_index = 0;
+                    submesh->last_index = 0;
+                    submesh->index_offset = 0;
+                }
+            }
+
+            bool init_buffer = false;
+            vertex_buffer_data_new->load(*obj_data_new);
+            index_buffer_data_new->load(*obj_data_new);
+
             for (auto& k : material_colors) {
                 uint32_t material_index = -1;
                 uint32_t num_material = obj->num_material;
@@ -10375,9 +10411,6 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
         }
 
         obj_db.update();
-
-        delete[] vertex_buffer_data;
-        delete[] index_buffer_data;
 
         obj_data = set->obj_data;
 
