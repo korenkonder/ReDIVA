@@ -101,7 +101,7 @@ union item_cos_data {
         int32_t kutsu;
         int32_t head;
     } data;
-    int32_t arr[25];
+    int32_t arr[ITEM_SUB_MAX];
 };
 
 struct item_table_dbgset {

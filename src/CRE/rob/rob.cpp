@@ -212,7 +212,7 @@ struct struc_568 {
 };
 
 struct struc_656 {
-    std::vector<uint32_t> field_0[25];
+    std::vector<uint32_t> field_0[ITEM_SUB_MAX];
 
     struc_656();
     ~struc_656();
@@ -221,7 +221,7 @@ struct struc_656 {
 struct struc_655 {
     size_t count;
     uint32_t index;
-    struc_656 field_10[10];
+    struc_656 field_10[CHARA_MAX];
 
     struc_655();
     ~struc_655();
