@@ -283,7 +283,7 @@ struct pv_game_pv_data {
     float_t anim_frame_speed;
     float_t target_flying_time;
     int32_t time_signature;
-    ssize_t dsc_time;
+    int64_t dsc_time;
     int32_t field_2BFB0;
     int32_t field_2BFB4;
     int32_t field_2BFB8;
