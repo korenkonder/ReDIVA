@@ -10333,6 +10333,16 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 
     prj::sort_unique(object_set_ids);
 
+    auto material_colors_begin = material_colors.begin();
+    auto material_colors_end = material_colors.end();
+    for (auto i = material_colors_begin; i != material_colors_end;)
+        if (i->second.data.size())
+            i++;
+        else {
+            i = material_colors.erase(i);
+            material_colors_end = material_colors.end();
+        }
+
     for (auto& i : material_colors) {
         auto& same_data = i.second.same_data;
         for (material_list_color& j : i.second.data) {
@@ -10511,6 +10521,8 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                         dst_mesh->flags = src_mesh->flags;
                         dst_mesh->bounding_sphere = src_mesh->bounding_sphere;
 
+                        std::vector<uint32_t> indices;
+
                         obj_sub_mesh* submesh_array = src_mesh->submesh_array;
                         uint32_t num_submesh = src_mesh->num_submesh;
                         obj_sub_mesh* submesh_array_new = alloc->allocate<obj_sub_mesh>(num_submesh);
@@ -10543,6 +10555,10 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                             dst_submesh->first_index = 0;
                             dst_submesh->last_index = 0;
                             dst_submesh->index_offset = 0;
+
+                            if (dst_submesh->material_index == material_index)
+                                indices.insert(indices.end(), dst_submesh->index_array,
+                                    dst_submesh->index_array + num_index);
                         }
                         dst_mesh->submesh_array = submesh_array_new;
                         dst_mesh->num_submesh = num_submesh;
@@ -10587,9 +10603,16 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                             break;
                         }
 
-                        obj_vertex_data* vertex_array = dst_mesh->vertex_array;
-                        for (uint32_t n = dst_mesh->num_vertex; n; n--, vertex_array++)
-                            vertex_array->color0 *= color_mult;
+                        if (indices.size()) {
+                            prj::sort_unique(indices);
+
+                            if (indices.back() == 0xFFFFFFFF)
+                                indices.pop_back();
+
+                            obj_vertex_data* vertex_array = dst_mesh->vertex_array;
+                            for (uint32_t& i : indices)
+                                vertex_array[i].color0 *= color_mult;
+                        }
                     }
                     obj_new->mesh_array = mesh_array_new;
                     obj_new->num_mesh = num_mesh;
