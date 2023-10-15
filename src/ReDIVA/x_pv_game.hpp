@@ -126,15 +126,9 @@ struct x_pv_play_data_motion {
     int64_t time;
 };
 
-struct x_dsc_set_item {
+struct x_pv_play_data_event {
     int32_t time;
-    int32_t item_index;
-    int32_t pv_branch_mode;
-};
-
-struct x_dsc_set_motion {
-    int32_t time;
-    int32_t motion_index;
+    int32_t index;
     int32_t pv_branch_mode;
 };
 
@@ -147,8 +141,8 @@ struct x_pv_play_data_motion_data {
     float_t start_rot;
     float_t end_rot;
     float_t mot_smooth_len;
-    std::vector<x_dsc_set_motion> set_motion;
-    std::vector<x_dsc_set_item> set_item;
+    std::vector<x_pv_play_data_event> set_motion;
+    std::vector<x_pv_play_data_event> set_item;
 
     x_pv_play_data_motion_data();
     ~x_pv_play_data_motion_data();
@@ -166,6 +160,7 @@ struct x_pv_play_data {
     x_pv_play_data();
     ~x_pv_play_data();
 
+    x_pv_play_data_motion* get_motion(int32_t motion_index);
     void reset();
 };
 
@@ -456,23 +451,41 @@ struct x_pv_game_music {
     void stop_reset_flags();
 };
 
-struct x_pv_game_dsc_data {
+struct x_pv_game_pv_data {
+    bool play;
     dsc dsc;
     dsc_data* dsc_data_ptr;
     dsc_data* dsc_data_ptr_end;
-    int64_t time;
+    std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
+    int32_t chara_id;
+    class x_pv_game* pv_game;
+    float_t target_anim_fps;
+    float_t anim_frame_speed;
+    int64_t dsc_time;
+    bool pv_end;
+    x_pv_play_data playdata[ROB_CHARA_COUNT];
+    float_t scene_rot_y;
+    mat4 scene_rot_mat;
+    int32_t branch_mode;
 
-    x_pv_game_dsc_data();
-    ~x_pv_game_dsc_data();
+    x_pv_game_pv_data();
+    ~x_pv_game_pv_data();
 
-    void ctrl(float_t curr_time, float_t delta_time);
+    void ctrl(bool a2, float_t curr_time, float_t delta_time);
+    bool dsc_ctrl(float_t delta_time, int64_t curr_time,
+        float_t* dsc_time_offset);
     dsc_data* find(int32_t func_name, int32_t* time,
         int32_t* pv_branch_mode, dsc_data* start, dsc_data* end);
     void find_bar_beat(x_pv_bar_beat& bar_beat);
     void find_change_fields(std::vector<int64_t>& change_fields);
+    void find_playdata_item_anim(int32_t chara_id);
+    void find_playdata_set_motion(int32_t chara_id);
     int64_t find_pv_end();
+    void find_set_motion();
     void find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects);
+    void init(class x_pv_game* pv_game, bool music_play);
     void reset();
+    void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
     void unload();
 };
 
@@ -497,7 +510,7 @@ struct x_pv_game_data {
     x_pv_game_camera camera;
     x_pv_game_effect effect;
     x_pv_game_chara_effect chara_effect;
-    x_pv_game_dsc_data dsc_data;
+    x_pv_game_pv_data pv_data;
     string_hash exp_file;
     //dof dof;
     x_pv_game_stage* stage;
@@ -732,7 +745,7 @@ class x_pv_game : public app::TaskWindow {
 public:
     int32_t state;
     int32_t pv_count;
-    x_pv_game_data pv_data[3];
+    x_pv_game_data data[3];
     int32_t pv_index;
     x_pv_game_stage stage_data;
     XPVFrameRateControl field_7198C;
@@ -759,18 +772,7 @@ public:
     std::map<int32_t, x_pv_game_a3da_to_mot> effchrpv_auth_3d_rob_mot_ids;
 #endif
 
-    std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
-
-    bool play;
     bool success;
-    int32_t chara_id;
-    float_t target_anim_fps;
-    float_t anim_frame_speed;
-    bool pv_end;
-    x_pv_play_data playdata[ROB_CHARA_COUNT];
-    float_t scene_rot_y;
-    mat4 scene_rot_mat;
-    int32_t branch_mode;
     bool task_effect_init;
 
     bool pause;
@@ -797,6 +799,10 @@ public:
     void ctrl(float_t curr_time, float_t delta_time);
     void stop_current_pv();
     void unload();
+
+    inline x_pv_game_data& get_data() {
+        return data[pv_index];
+    }
 };
 
 class XPVGameSelector : public app::TaskWindow {

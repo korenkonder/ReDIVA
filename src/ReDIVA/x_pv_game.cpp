@@ -39,6 +39,7 @@
 #if BAKE_PV826
 #include "../KKdLib/waitable_timer.hpp"
 #endif
+#include "dw_console.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 
@@ -245,9 +246,8 @@ extern render_context* rctx_ptr;
 static vec4 bright_scale_get(int32_t index, float_t value);
 
 static float_t dsc_time_to_frame(int64_t time);
-static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
+static void x_pv_game_data_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
-static bool x_pv_game_dsc_process(x_pv_game* xpvgm, int64_t curr_time);
 #if BAKE_PV826
 static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 #endif
@@ -257,11 +257,8 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
 static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
     std::vector<object_info>& object, std::vector<std::string>& material_list);
 
-static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id);
-static void pv_game_dsc_data_find_playdata_set_motion(x_pv_game* xpvgm, int32_t chara_id);
-static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm);
-static void pv_game_dsc_data_set_motion_max_frame(x_pv_game* xpvgm,
-    int32_t chara_id, int32_t motion_index, int64_t disp_time);
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
     return (time + 0.0001f) < bar_time;
@@ -591,6 +588,13 @@ x_pv_play_data::x_pv_play_data() : rob_chr(), disp() {
 
 x_pv_play_data::~x_pv_play_data() {
 
+}
+
+x_pv_play_data_motion* x_pv_play_data::get_motion(int32_t motion_index) {
+    for (x_pv_play_data_motion& i : motion)
+        if (i.motion_index == motion_index)
+            return &i;
+    return 0;
 }
 
 void x_pv_play_data::reset() {
@@ -2046,19 +2050,1201 @@ void x_pv_game_music::stop_reset_flags() {
     exclude_flags(X_PV_GAME_MUSIC_ALL);
 }
 
-x_pv_game_dsc_data::x_pv_game_dsc_data() : dsc_data_ptr(), dsc_data_ptr_end(), time() {
-    reset();
+x_pv_game_pv_data::x_pv_game_pv_data() : pv_game(), dsc_data_ptr(), dsc_data_ptr_end(),
+play(), chara_id(), dsc_time(), pv_end(), playdata(), scene_rot_y(), branch_mode() {
+    target_anim_fps = 60.0f;
+    anim_frame_speed = 1.0f;
+    scene_rot_mat = mat4_identity;
+
+    for (x_pv_play_data& i : playdata)
+        i.reset();
 }
 
-x_pv_game_dsc_data::~x_pv_game_dsc_data() {
+x_pv_game_pv_data::~x_pv_game_pv_data() {
 
 }
 
-void x_pv_game_dsc_data::ctrl(float_t curr_time, float_t delta_time) {
+void x_pv_game_pv_data::ctrl(bool a2, float_t curr_time, float_t delta_time) {
+#pragma warning(suppress: 26451)
+    int64_t _curr_time = 1000 * (int64_t)(curr_time * 1000000.0f);
 
+    dsc_data* prev_dsc_data_ptr = dsc_data_ptr;
+
+    float_t dsc_time_offset = 0.0f;
+    while (dsc_data_ptr != dsc_data_ptr_end) {
+        bool music_play = false;
+        bool next = dsc_ctrl(delta_time, _curr_time, &dsc_time_offset);
+
+        if (prev_dsc_data_ptr != dsc_data_ptr)
+            print_dsc_command(dsc, prev_dsc_data_ptr, dsc_time);
+
+        prev_dsc_data_ptr = dsc_data_ptr;
+
+        if (!next)
+            break;
+    }
 }
 
-dsc_data* x_pv_game_dsc_data::find(int32_t func_name, int32_t* time,
+bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
+    float_t* dsc_time_offset) {
+    dsc_x_func func = (dsc_x_func)dsc_data_ptr->func;
+    int32_t* data = dsc.get_func_data(dsc_data_ptr);
+
+    if (branch_mode) {
+        bool v19;
+        if (pv_game->success)
+            v19 = branch_mode == 2;
+        else
+            v19 = branch_mode == 1;
+        if (!v19) {
+            if (func < 0 || func >= DSC_X_MAX) {
+                play = false;
+                return false;
+            }
+            else if (func != DSC_X_TIME
+                && func != DSC_X_PV_END && func != DSC_X_PV_BRANCH_MODE) {
+                dsc_data_ptr++;
+                return true;
+            }
+        }
+    }
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    x_pv_play_data* playdata = &this->playdata[chara_id];
+    rob_chara* rob_chr = playdata->rob_chr;
+
+    switch (func) {
+    case DSC_X_END: {
+        play = false;
+        pv_game->state_old = 21;
+        return false;
+    } break;
+    case DSC_X_TIME: {
+        dsc_time = (int64_t)data[0] * 10000;
+        if (dsc_time > curr_time)
+            return false;
+    } break;
+    case DSC_X_MIKU_MOVE: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        vec3 pos;
+        pos.x = (float_t)data[1] * 0.001f;
+        pos.y = (float_t)data[2] * 0.001f;
+        pos.z = (float_t)data[3] * 0.001f;
+
+        if (!rob_chr)
+            break;
+
+        mat4_transform_point(&scene_rot_mat, &pos, &pos);
+        rob_chr->set_data_miku_rot_position(pos);
+        rob_chr->set_osage_reset();
+    } break;
+    case DSC_X_MIKU_ROT: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t rot_y = (float_t)data[0] * 0.001f;
+
+        if (!rob_chr)
+            break;
+
+        int16_t rot_y_int16 = (int32_t)((rot_y + scene_rot_y) * 32768.0f * (float_t)(1.0 / 180.0));
+        rob_chr->data.miku_rot.rot_y_int16 = rot_y_int16;
+        rob_chr->set_osage_reset();
+    } break;
+    case DSC_X_MIKU_DISP: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t disp = data[1];
+
+        playdata->disp = disp == 1;
+
+        if (!rob_chr)
+            break;
+
+        if (disp == 1) {
+            rob_chr->set_visibility(true);
+            if (rob_chr->check_for_ageageagain_module()) {
+                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
+                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+            }
+
+            for (x_pv_play_data_set_motion& i : playdata->set_motion) {
+                bool set = rob_chr->set_motion_id(i.motion_id, i.frame, i.blend_duration,
+                    i.blend, false, i.blend_type, aft_bone_data, aft_mot_db);
+                rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
+                rob_chr->bone_data->disable_eye_motion = i.disable_eye_motion;
+                rob_chr->data.motion.step_data.step = i.frame_speed;
+                if (set)
+                    pv_expression_array_set_motion(pv_game->get_data()
+                        .exp_file.hash_murmurhash, chara_id, i.motion_id);
+                set_motion_max_frame(chara_id, i.motion_index, i.dsc_time);
+            }
+            playdata->set_motion.clear();
+        }
+        else
+            rob_chr->set_visibility(false);
+    } break;
+    case DSC_X_MIKU_SHADOW: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+    } break;
+    case DSC_X_TARGET: {
+
+    } break;
+    case DSC_X_SET_MOTION: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        if (!rob_chr)
+            break;
+
+        int32_t motion_index = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t frame_speed_int = data[3];
+
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
+        }
+        else
+            blend_duration = 0.0f;
+
+        float_t frame_speed;
+        if (frame_speed_int != -1) {
+            frame_speed = (float_t)frame_speed_int * 0.001f;
+            if (frame_speed < 0.0f)
+                frame_speed = 0.0f;
+        }
+        else
+            frame_speed = 1.0f;
+
+        float_t frame = 0.0f;
+        float_t dsc_frame = 0.0f;
+
+        bool blend = false;
+        x_pv_play_data_motion* motion = playdata->get_motion(motion_index);
+
+        if (motion && motion->enable && (motion_index == motion->motion_index || !motion->motion_index)) {
+            if (dsc_time != motion->time) {
+                frame = dsc_time_to_frame(curr_time - motion->time);
+                dsc_frame = roundf(dsc_time_to_frame(dsc_time - motion->time));
+                if (frame < dsc_frame)
+                    frame = dsc_frame;
+                blend = curr_time > motion->time;
+            }
+            else
+                frame = 0.0f;
+        }
+
+        uint32_t motion_id = -1;
+        int32_t chara_id = 0;
+        for (pvpp_chara& i : pv_game->get_data().play_param->chara) {
+            if (chara_id++ != this->chara_id)
+                continue;
+
+            int32_t mot_idx = 1;
+            for (string_hash& j : i.motion) {
+                if (mot_idx++ != motion_index)
+                    continue;
+
+                motion_id = aft_mot_db->get_motion_id(j.c_str());
+                break;
+            }
+            break;
+        }
+
+        if (motion_index) {
+            if (motion_id == -1)
+                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
+        }
+        else if (motion_id == -1) {
+            motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(5);
+            if (motion_id == -1)
+                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
+        }
+
+        if (blend)
+            blend_duration = 0.0f;
+        else
+            blend_duration /= anim_frame_speed;
+
+        x_pv_play_data_set_motion set_motion;
+        set_motion.frame_speed = frame_speed * anim_frame_speed;
+        set_motion.motion_id = motion_id;
+        set_motion.frame = frame;
+        set_motion.blend_duration = blend_duration;
+        set_motion.blend = blend;
+        set_motion.blend_type = MOTION_BLEND_CROSS;
+        set_motion.disable_eye_motion = true;
+        set_motion.motion_index = motion_index;
+        set_motion.dsc_time = motion ? motion->time : dsc_time;
+        set_motion.dsc_frame = dsc_frame;
+
+        if (playdata->disp) {
+            bool set = rob_chr->set_motion_id(motion_id, frame, blend_duration,
+                blend, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+            rob_chr->set_motion_reset_data(motion_id, dsc_frame);
+            rob_chr->set_motion_skin_param(motion_id, dsc_frame);
+            rob_chr->bone_data->disable_eye_motion = true;
+            rob_chr->data.motion.step_data.step = set_motion.frame_speed;
+            if (set)
+                pv_expression_array_set_motion(pv_game->get_data()
+                    .exp_file.hash_murmurhash, this->chara_id, motion_id);
+            set_motion_max_frame(this->chara_id, motion_index, motion ? motion->time : 0);
+        }
+        else {
+            playdata->set_motion.clear();
+            playdata->set_motion.push_back(set_motion);
+            rob_chr->data.motion.step_data.step = set_motion.frame_speed;
+        }
+    } break;
+    case DSC_X_SET_PLAYDATA: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t motion_index = data[1];
+        if (motion_index >= 0) {
+            x_pv_play_data_motion* motion = playdata->get_motion(motion_index);
+            if (motion) {
+                motion->enable = true;
+                motion->motion_index = motion_index;
+                motion->time = dsc_time;
+            }
+            else
+                playdata->motion.push_back({ true, motion_index, dsc_time });
+        }
+        else
+            playdata->motion.clear();
+    } break;
+    case DSC_X_EFFECT: {
+
+    } break;
+    case DSC_X_FADEIN_FIELD: {
+
+    } break;
+    case DSC_X_EFFECT_OFF: {
+
+    } break;
+    case DSC_X_SET_CAMERA: {
+
+    } break;
+    case DSC_X_DATA_CAMERA: {
+
+    } break;
+    case DSC_X_CHANGE_FIELD: {
+        int32_t field = data[0];
+        if (field > 0)
+            x_pv_game_change_field(pv_game, field, dsc_time, curr_time);
+        else
+            x_pv_game_reset_field(pv_game);
+
+        pv_game->get_data().effect.set_time(dsc_time, false);
+        pv_game->get_data().chara_effect.set_time(dsc_time);
+    } break;
+    case DSC_X_HIDE_FIELD: {
+
+    } break;
+    case DSC_X_MOVE_FIELD: {
+
+    } break;
+    case DSC_X_FADEOUT_FIELD: {
+
+    } break;
+    case DSC_X_EYE_ANIM: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t v115 = data[1];
+        int32_t blend_duration_int = data[2];
+
+        float_t blend_duration;
+        if (blend_duration_int != -1)
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+        else
+            blend_duration = 6.0f;
+
+        if (!rob_chr)
+            break;
+
+        blend_duration /= anim_frame_speed;
+
+        rob_chr->set_eyelid_mottbl_motion_from_face(v115, blend_duration, -1.0f, 0.0f, aft_mot_db);
+    } break;
+    case DSC_X_MOUTH_ANIM: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t mouth_anim_id = data[2];
+        int32_t blend_duration_int = data[3];
+        int32_t value_int = data[4];
+
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
+        }
+        else
+            blend_duration = 6.0f;
+
+        float_t value;
+        if (value_int != -1) {
+            value = (float_t)value_int * 0.001f;
+            if (value < 0.0f || value > 1.0f)
+                value = 1.0f;
+        }
+        else
+            value = 1.0f;
+
+        if (!rob_chr)
+            break;
+
+        switch (mouth_anim_id) {
+        case  4: mouth_anim_id = 34; break;
+        case  5: mouth_anim_id = 35; break;
+        case  6: mouth_anim_id = 36; break;
+        case  7: mouth_anim_id = 37; break;
+        case  8: mouth_anim_id = 38; break;
+        case  9: mouth_anim_id = 39; break;
+        case 10: mouth_anim_id = 4; break;
+        case 11: mouth_anim_id = 5; break;
+        case 12: mouth_anim_id = 6; break;
+        case 13: mouth_anim_id = 7; break;
+        case 14: mouth_anim_id = 8; break;
+        case 15: mouth_anim_id = 9; break;
+        case 16: mouth_anim_id = 10; break;
+        case 17: mouth_anim_id = 11; break;
+        case 18: mouth_anim_id = 12; break;
+        case 19: mouth_anim_id = 13; break;
+        case 20: mouth_anim_id = 14; break;
+        case 21: mouth_anim_id = 15; break;
+        case 22: mouth_anim_id = 16; break;
+        case 23: mouth_anim_id = 17; break;
+        case 24: mouth_anim_id = 18; break;
+        case 25: mouth_anim_id = 19; break;
+        case 26: mouth_anim_id = 20; break;
+        case 27: mouth_anim_id = 21; break;
+        case 28: mouth_anim_id = 22; break;
+        case 29: mouth_anim_id = 40; break;
+        case 30: mouth_anim_id = 41; break;
+        case 31: mouth_anim_id = 42; break;
+        }
+
+        int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
+        blend_duration /= anim_frame_speed;
+
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
+            0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    } break;
+    case DSC_X_HAND_ANIM: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t hand_index = data[1];
+        int32_t hand_anim_id = data[2];
+        int32_t blend_duration_int = data[3];
+        int32_t value_int = data[4];
+
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
+        }
+        else
+            blend_duration = 0.0f;
+
+        float_t value;
+        if (value_int != -1) {
+            value = (float_t)value_int * 0.001f;
+            if (value < 0.0f || value > 1.0f)
+                value = 1.0f;
+        }
+        else
+            value = 1.0f;
+
+        if (!rob_chr)
+            break;
+
+        int32_t mottbl_index = hand_anim_id_to_mottbl_index(hand_anim_id);
+        blend_duration /= anim_frame_speed;
+
+        switch (hand_index) {
+        case 0:
+            rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value,
+                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+            break;
+        case 1:
+            rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value,
+                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+            break;
+        }
+    } break;
+    case DSC_X_LOOK_ANIM: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t look_anim_id = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t value_int = data[3];
+
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
+        }
+        else
+            blend_duration = 6.0f;
+
+        float_t value;
+        if (value_int != -1) {
+            value = (float_t)value_int * 0.001f;
+            if (value < 0.0f || value > 1.0f)
+                value = 1.0f;
+        }
+        else
+            value = 1.0f;
+
+        if (!rob_chr)
+            break;
+
+        int32_t mottbl_index = look_anim_id_to_mottbl_index(look_anim_id);
+        blend_duration /= anim_frame_speed;
+
+        rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
+            mottbl_index == 224 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    } break;
+    case DSC_X_EXPRESSION: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t expression_id = data[1];
+        int32_t blend_duration_int = data[2];
+        int32_t value_int = data[3];
+
+        float_t blend_duration;
+        if (blend_duration_int != -1) {
+            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+            if (blend_duration < 0.0f)
+                blend_duration = 0.0f;
+        }
+        else
+            blend_duration = 0.0f;
+
+        float_t value;
+        if (value_int != -1) {
+            value = (float_t)value_int * 0.001f;
+            if (value < 0.0f || value > 1.0f)
+                value = 1.0f;
+        }
+        else
+            value = 1.0f;
+
+        if (!rob_chr)
+            break;
+
+        int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
+        blend_duration /= anim_frame_speed;
+
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
+            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
+
+    } break;
+    case DSC_X_LOOK_CAMERA: {
+
+    } break;
+    case DSC_X_LYRIC: {
+
+    } break;
+    case DSC_X_MUSIC_PLAY: {
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
+            pv_game->get_data().pv_id == 832 ? 800 : pv_game->get_data().pv_id);
+        x_pv_game_music_ptr->play(4, buf, false, 0.0f, 0.0f, 0.0f, 3.0f, false);
+        x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
+        x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
+    } break;
+    case DSC_X_MODE_SELECT: {
+
+    } break;
+    case DSC_X_EDIT_MOTION: {
+
+    } break;
+    case DSC_X_BAR_TIME_SET: {
+
+    } break;
+    case DSC_X_SHADOWHEIGHT: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+    } break;
+    case DSC_X_EDIT_FACE: {
+        int32_t expression_id = data[0];
+
+        if (!rob_chr)
+            break;
+
+        int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
+
+        rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
+            && mottbl_index <= 223 ? 1 : 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
+    } break;
+    case DSC_X_DUMMY: {
+
+    } break;
+    case DSC_X_PV_END: {
+        dsc_data_ptr++;
+        pv_end = true;
+        break;
+    } break;
+    case DSC_X_SHADOWPOS: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+    } break;
+    case DSC_X_EDIT_LYRIC: {
+
+    } break;
+    case DSC_X_EDIT_TARGET: {
+
+    } break;
+    case DSC_X_EDIT_MOUTH: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t mouth_anim_id = data[1];
+
+        if (!rob_chr)
+            break;
+
+        int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
+
+        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, 1.0f,
+            0, 0.1f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
+    } break;
+    case DSC_X_SET_CHARA: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+    } break;
+    case DSC_X_EDIT_MOVE: {
+
+    } break;
+    case DSC_X_EDIT_SHADOW: {
+
+    } break;
+    case DSC_X_EDIT_EYELID: {
+
+    } break;
+    case DSC_X_EDIT_EYE: {
+
+    } break;
+    case DSC_X_EDIT_ITEM: {
+
+    } break;
+    case DSC_X_EDIT_EFFECT: {
+
+    } break;
+    case DSC_X_EDIT_DISP: {
+
+    } break;
+    case DSC_X_EDIT_HAND_ANIM: {
+
+    } break;
+    case DSC_X_AIM: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+    } break;
+    case DSC_X_HAND_ITEM: {
+
+    } break;
+    case DSC_X_EDIT_BLUSH: {
+
+    } break;
+    case DSC_X_NEAR_CLIP: {
+
+    } break;
+    case DSC_X_CLOTH_WET: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t wet = (float_t)data[1] * 0.001f;
+
+        wet = clamp_def(wet, 0.0f, 1.0f);
+
+        if (rob_chr)
+            rob_chr->item_equip->wet = wet;
+    } break;
+    case DSC_X_LIGHT_ROT: {
+
+    } break;
+    case DSC_X_SCENE_FADE: {
+
+    } break;
+    case DSC_X_TONE_TRANS: {
+        vec3 start;
+        start.x = (float_t)data[0] * 0.001f;
+        start.y = (float_t)data[1] * 0.001f;
+        start.z = (float_t)data[2] * 0.001f;
+
+        vec3 end;
+        end.x = (float_t)data[3] * 0.001f;
+        end.y = (float_t)data[4] * 0.001f;
+        end.z = (float_t)data[5] * 0.001f;
+
+        rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
+    } break;
+    case DSC_X_SATURATE: {
+        float_t saturate_coeff = (float_t)data[0] * 0.001f;
+
+        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
+    } break;
+    case DSC_X_FADE_MODE: {
+        int32_t blend_func = data[0];
+
+        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
+    } break;
+    case DSC_X_AUTO_BLINK: {
+
+    } break;
+    case DSC_X_PARTS_DISP: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        item_id id = (item_id)data[1];
+        int32_t disp = data[2];
+
+        if (!rob_chr)
+            break;
+
+        rob_chr->set_parts_disp(id, disp == 1);
+    } break;
+    case DSC_X_TARGET_FLYING_TIME: {
+
+    } break;
+    case DSC_X_CHARA_SIZE: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t chara_size = data[1];
+
+        if (!rob_chr)
+            break;
+
+        int32_t chara_size_index;
+        if (chara_size == 0)
+            chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index);
+        else if (chara_size == 1) {
+            ::chara_index chara_index = CHARA_MIKU;
+            if (chara_id < pv_game->get_data().play_param->chara.size())
+                chara_index = (::chara_index)pv_game->get_data()
+                    .play_param->chara[chara_id].chara_effect.base_chara;
+            else if (pv_game->get_data().pv_id == 826 && false)
+                chara_index = rob_chara_array_get(chara_id)->chara_index;
+
+            chara_size_index = chara_init_data_get_chara_size_index(chara_index);
+        }
+        else if (chara_size == 2)
+            chara_size_index = 1;
+        else if (chara_size == 3)
+            chara_size_index = rob_chr->pv_data.chara_size_index;
+        else {
+            rob_chr->set_chara_size((float_t)chara_size / 1000.0f);
+            break;
+        }
+
+        if (chara_size_index < 0 || chara_size_index > 4)
+            break;
+
+        rob_chr->set_chara_size(chara_size_table_get_value(chara_size_index));
+        rob_chr->set_chara_pos_adjust_y(chara_pos_adjust_y_table_get_value(chara_size_index));
+    } break;
+    case DSC_X_CHARA_HEIGHT_ADJUST: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        int32_t height_adjust = data[1];
+
+        if (rob_chr)
+            rob_chr->set_chara_height_adjust(height_adjust != 0);
+    } break;
+    case DSC_X_ITEM_ANIM: {
+        printf_debug("");
+    } break;
+    case DSC_X_CHARA_POS_ADJUST: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        vec3 pos;
+        pos.x = (float_t)data[2] * 0.001f;
+        pos.y = (float_t)data[3] * 0.001f;
+        pos.z = (float_t)data[4] * 0.001f;
+
+        if (!rob_chr)
+            break;
+
+        mat4_transform_point(&scene_rot_mat, &pos, &pos);
+        rob_chr->set_chara_pos_adjust(pos);
+
+        if (rob_chr->check_for_ageageagain_module()) {
+            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
+            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
+        }
+    } break;
+    case DSC_X_SCENE_ROT: {
+        float_t scene_rot = (float_t)data[0] * 0.001f;
+
+        scene_rot_y = scene_rot;
+        mat4_rotate_y(scene_rot * DEG_TO_RAD_FLOAT, &scene_rot_mat);
+
+    } break;
+    case DSC_X_EDIT_MOT_SMOOTH_LEN: {
+
+    } break;
+    case DSC_X_PV_BRANCH_MODE: {
+        int32_t branch_mode = data[0];
+
+        if (branch_mode >= 0 && branch_mode <= 2)
+            this->branch_mode = branch_mode;
+    } break;
+    case DSC_X_DATA_CAMERA_START: {
+
+    } break;
+    case DSC_X_MOVIE_PLAY: {
+
+    } break;
+    case DSC_X_MOVIE_DISP: {
+
+    } break;
+    case DSC_X_WIND: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t wind_strength_kami = (float_t)data[1] * 0.001f;
+        float_t wind_strength_outer = (float_t)data[2] * 0.001f;
+
+        if (!rob_chr)
+            break;
+
+        rob_chr->set_wind_strength(wind_strength_outer);
+    } break;
+    case DSC_X_OSAGE_STEP: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t osage_step_kami = (float_t)data[1] * 0.001f;
+        float_t osage_step_outer = (float_t)data[2] * 0.001f;
+
+        if (!rob_chr)
+            break;
+
+        rob_chr->set_osage_step(osage_step_outer);
+    } break;
+    case DSC_X_OSAGE_MV_CCL: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t osage_mv_ccl_kami = (float_t)data[1] * 0.001f;
+        float_t osage_mv_ccl_outer = (float_t)data[2] * 0.001f;
+
+        if (!rob_chr)
+            break;
+
+        rob_chr->set_osage_move_cancel(1, osage_mv_ccl_kami);
+        rob_chr->set_osage_move_cancel(2, osage_mv_ccl_outer);
+    } break;
+    case DSC_X_CHARA_COLOR: {
+
+    } break;
+    case DSC_X_SE_EFFECT: {
+
+    } break;
+    case DSC_X_CHARA_SHADOW_QUALITY: {
+
+    } break;
+    case DSC_X_STAGE_SHADOW_QUALITY: {
+
+    } break;
+    case DSC_X_COMMON_LIGHT: {
+
+    } break;
+    case DSC_X_TONE_MAP: {
+
+    } break;
+    case DSC_X_IBL_COLOR: {
+
+    } break;
+    case DSC_X_REFLECTION: {
+
+    } break;
+    case DSC_X_CHROMATIC_ABERRATION: {
+
+    } break;
+    case DSC_X_STAGE_SHADOW: {
+
+    } break;
+    case DSC_X_REFLECTION_QUALITY: {
+
+    } break;
+    case DSC_X_PV_END_FADEOUT: {
+
+    } break;
+    case DSC_X_CREDIT_TITLE: {
+
+    } break;
+    case DSC_X_BAR_POINT: {
+
+    } break;
+    case DSC_X_BEAT_POINT: {
+
+    } break;
+    case DSC_X_RESERVE1: {
+
+    } break;
+    case DSC_X_PV_AUTH_LIGHT_PRIORITY: {
+
+    } break;
+    case DSC_X_PV_CHARA_LIGHT: {
+
+    } break;
+    case DSC_X_PV_STAGE_LIGHT: {
+
+    } break;
+    case DSC_X_TARGET_EFFECT: {
+
+    } break;
+    case DSC_X_FOG: {
+
+    } break;
+    case DSC_X_BLOOM: {
+        int32_t id = data[0];
+        float_t duration = (float_t)data[1];
+
+        pv_param_task::post_process_task_set_bloom_data(
+            pv_param::post_process_data_get_bloom_data(id), duration);
+    } break;
+    case DSC_X_COLOR_CORRECTION: {
+        int32_t enable = data[0];
+        int32_t id = data[1];
+        float_t duration = (float_t)data[2];
+
+        if (enable == 1)
+            pv_param_task::post_process_task_set_color_correction_data(
+                pv_param::post_process_data_get_color_correction_data(id), duration);
+    } break;
+    case DSC_X_DOF: {
+        int32_t enable = data[0];
+        int32_t id = data[1];
+        float_t duration = (float_t)data[2];
+
+        rctx_ptr->post_process.dof->data.pv.enable = enable == 1;
+        if (enable == 1)
+            pv_param_task::post_process_task_set_dof_data(
+                pv_param::post_process_data_get_dof_data(id), duration);
+    } break;
+    case DSC_X_CHARA_ALPHA: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t alpha = (float_t)data[1] * 0.001f;
+        float_t duration = (float_t)data[2];
+        int32_t type = data[3];
+
+        if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
+            pv_param_task::post_process_task_set_chara_alpha(
+                chara_id, type, alpha, duration * 2.0f);
+    } break;
+    case DSC_X_AUTO_CAPTURE_BEGIN: {
+
+    } break;
+    case DSC_X_MANUAL_CAPTURE: {
+
+    } break;
+    case DSC_X_TOON_EDGE: {
+
+    } break;
+    case DSC_X_SHIMMER: {
+
+    } break;
+    case DSC_X_ITEM_ALPHA: {
+        chara_id = data[0];
+        playdata = &this->playdata[chara_id];
+        rob_chr = playdata->rob_chr;
+
+        float_t alpha = (float_t)data[1] * 0.001f;
+        float_t duration = (float_t)data[2];
+        int32_t type = data[3];
+
+        if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
+            pv_param_task::post_process_task_set_chara_item_alpha(
+                chara_id, type, alpha, duration * 2.0f,
+                x_pv_game_data_chara_item_alpha_callback, this);
+        }
+    } break;
+    case DSC_X_MOVIE_CUT: {
+
+    } break;
+    case DSC_X_EDIT_CAMERA_BOX: {
+
+    } break;
+    case DSC_X_EDIT_STAGE_PARAM: {
+
+    } break;
+    case DSC_X_EDIT_CHANGE_FIELD: {
+
+    } break;
+    case DSC_X_MIKUDAYO_ADJUST: {
+
+    } break;
+    case DSC_X_LYRIC_2: {
+
+    } break;
+    case DSC_X_LYRIC_READ: {
+
+    } break;
+    case DSC_X_LYRIC_READ_2: {
+
+    } break;
+    case DSC_X_ANNOTATION: {
+
+    } break;
+    case DSC_X_STAGE_EFFECT: {
+        int32_t stage_effect = data[0];
+
+        if (stage_effect >= 8 && stage_effect <= 9)
+            pv_game->stage_data.set_stage_effect(stage_effect);
+    } break;
+    case DSC_X_SONG_EFFECT: {
+        bool enable = data[0] ? true : false;
+        int32_t index = data[1];
+        int32_t unk2 = data[2];
+
+        if (unk2 && !(pv_game->get_data().field_1C & 0x10))
+            break;
+
+        x_pv_game_effect& effect = pv_game->get_data().effect;
+        if (enable) {
+            effect.set_song_effect(index, dsc_time);
+            //if (a2->field_18)
+            //    effect.set_song_effect_time(index/*, a2->field_20*/, true);
+            //else
+                effect.set_song_effect_time(index, pv_game->time, false);
+        }
+        else
+            effect.stop_song_effect(index, true);
+    } break;
+    case DSC_X_SONG_EFFECT_ATTACH: {
+        int32_t index = data[0];
+        int32_t chara_id = data[1];
+        int32_t chara_item = data[2];
+
+        pv_game->get_data().effect.set_chara_id(index, chara_id, !!chara_item);
+    } break;
+    case DSC_X_LIGHT_AUTH: {
+
+    } break;
+    case DSC_X_FADE: {
+
+    } break;
+    case DSC_X_SET_STAGE_EFFECT_ENV: {
+        int32_t env_index = data[0];
+        int32_t trans = data[1];
+        pv_game->stage_data.set_env(env_index, (float_t)trans * (float_t)(1.0f / 60.0f), 0.0f);
+        printf_debug("Time: %8d; Frame %5d; Env: %2d; Trans: %3d\n",
+            (int32_t)(curr_time / 10000), pv_game->frame, env_index, trans);
+    } break;
+    case DSC_X_RESERVE2: {
+
+    } break;
+    case DSC_X_COMMON_EFFECT_AET_FRONT: {
+
+    } break;
+    case DSC_X_COMMON_EFFECT_AET_FRONT_LOW: {
+
+    } break;
+    case DSC_X_COMMON_EFFECT_PARTICLE: {
+
+    } break;
+    case DSC_X_SONG_EFFECT_ALPHA_SORT: {
+
+    } break;
+    case DSC_X_LOOK_CAMERA_FACE_LIMIT: {
+
+    } break;
+    case DSC_X_ITEM_LIGHT: {
+
+    } break;
+    case DSC_X_CHARA_EFFECT: {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+        int32_t chara_id = data[0];
+        bool enable = data[1] ? true : false;
+        int32_t index = data[2];
+
+        x_pv_game_chara_effect& chara_effect = pv_game->get_data().chara_effect;
+        if (enable) {
+            chara_effect.set_chara_effect(chara_id, index, dsc_time);
+            //if (a2->field_18)
+            //    chara_effect.set_chara_effect_time(chara_id, index/*, a2->field_20*/);
+            //else
+                chara_effect.set_chara_effect_time(chara_id, index, pv_game->time);
+        }
+        else
+            chara_effect.stop_chara_effect(chara_id, index);
+    } break;
+    case DSC_X_MARKER: {
+
+    } break;
+    case DSC_X_CHARA_EFFECT_CHARA_LIGHT: {
+
+    } break;
+    case DSC_X_ENABLE_COMMON_LIGHT_TO_CHARA: {
+
+    } break;
+    case DSC_X_ENABLE_FXAA: {
+
+    } break;
+    case DSC_X_ENABLE_TEMPORAL_AA: {
+
+    } break;
+    case DSC_X_ENABLE_REFLECTION: {
+
+    } break;
+    case DSC_X_BANK_BRANCH: {
+
+    } break;
+    case DSC_X_BANK_END: {
+
+    } break;
+    case DSC_X_NULL1: {
+
+    } break;
+    case DSC_X_NULL2: {
+
+    } break;
+    case DSC_X_NULL3: {
+
+    } break;
+    case DSC_X_NULL4: {
+
+    } break;
+    case DSC_X_NULL5: {
+
+    } break;
+    case DSC_X_NULL6: {
+
+    } break;
+    case DSC_X_NULL7: {
+
+    } break;
+    case DSC_X_NULL8: {
+
+    } break;
+    case DSC_X_VR_LIVE_MOVIE: {
+
+    } break;
+    case DSC_X_VR_CHEER: {
+
+    } break;
+    case DSC_X_VR_CHARA_PSMOVE: {
+
+    } break;
+    case DSC_X_VR_MOVE_PATH: {
+
+    } break;
+    case DSC_X_VR_SET_BASE: {
+
+    } break;
+    case DSC_X_VR_TECH_DEMO_EFFECT: {
+
+    } break;
+    case DSC_X_VR_TRANSFORM: {
+
+    } break;
+    case DSC_X_GAZE: {
+
+    } break;
+    case DSC_X_TECH_DEMO_GESUTRE: {
+
+    } break;
+    case DSC_X_VR_CHEMICAL_LIGHT_COLOR: {
+
+    } break;
+    case DSC_X_VR_LIVE_MOB: {
+
+    } break;
+    case DSC_X_VR_LIVE_HAIR_OSAGE: {
+
+    } break;
+    case DSC_X_VR_LIVE_LOOK_CAMERA: {
+
+    } break;
+    case DSC_X_VR_LIVE_CHEER: {
+
+    } break;
+    case DSC_X_VR_LIVE_GESTURE: {
+
+    } break;
+    case DSC_X_VR_LIVE_CLONE: {
+
+    } break;
+    case DSC_X_VR_LOOP_EFFECT: {
+
+    } break;
+    case DSC_X_VR_LIVE_ONESHOT_EFFECT: {
+
+    } break;
+    case DSC_X_VR_LIVE_PRESENT: {
+
+    } break;
+    case DSC_X_VR_LIVE_TRANSFORM: {
+
+    } break;
+    case DSC_X_VR_LIVE_FLY: {
+
+    } break;
+    case DSC_X_VR_LIVE_CHARA_VOICE: {
+
+    } break;
+    }
+
+    dsc_data_ptr++;
+    return true;
+}
+
+dsc_data* x_pv_game_pv_data::find(int32_t func_name, int32_t* time,
     int32_t* pv_branch_mode, dsc_data* start, dsc_data* end) {
     int32_t _time = -1;
     for (dsc_data* i = start; i != end; i++)
@@ -2084,7 +3270,7 @@ dsc_data* x_pv_game_dsc_data::find(int32_t func_name, int32_t* time,
     return 0;
 }
 
-void x_pv_game_dsc_data::find_bar_beat(x_pv_bar_beat& bar_beat) {
+void x_pv_game_pv_data::find_bar_beat(x_pv_bar_beat& bar_beat) {
     x_pv_bar_beat_data* bar_beat_data = 0;
     int32_t beat_counter = 0;
 
@@ -2117,13 +3303,13 @@ void x_pv_game_dsc_data::find_bar_beat(x_pv_bar_beat& bar_beat) {
     }
 }
 
-void x_pv_game_dsc_data::find_change_fields(std::vector<int64_t>& change_fields) {
+void x_pv_game_pv_data::find_change_fields(std::vector<int64_t>& change_fields) {
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
     int32_t prev_time = -1;
 
-    ::dsc_data* i = dsc.data.data();
-    ::dsc_data* i_end = dsc.data.data() + dsc.data.size();
+    dsc_data* i = dsc.data.data();
+    dsc_data* i_end = dsc.data.data() + dsc.data.size();
     while (i = find(DSC_X_CHANGE_FIELD, &time, &pv_branch_mode, i, i_end)) {
         if (time < 0) {
             time = prev_time;
@@ -2137,13 +3323,77 @@ void x_pv_game_dsc_data::find_change_fields(std::vector<int64_t>& change_fields)
     }
 }
 
-int64_t x_pv_game_dsc_data::find_pv_end() {
+void x_pv_game_pv_data::find_playdata_item_anim(int32_t chara_id) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return;
+
+    x_pv_play_data* playdata = &this->playdata[chara_id];
+    playdata->motion_data.set_item.clear();
+
+    int32_t pv_branch_mode = 0;
+    int32_t time = -1;
+    int32_t prev_time = -1;
+
+    dsc_data* i = dsc.data.data();
+    dsc_data* i_end = dsc.data.data() + dsc.data.size();
+    while (true) {
+        i = find(DSC_X_ITEM_ANIM, &time, &pv_branch_mode, i, i_end);
+        if (!i)
+            break;
+
+        if (time < 0) {
+            time = prev_time;
+            if (prev_time < 0)
+                break;
+        }
+
+        int32_t* data = dsc.get_func_data(i);
+        if (chara_id == data[0] && data[2] == 2)
+            playdata->motion_data.set_item.push_back({ time, data[1], pv_branch_mode });
+        prev_time = time;
+        i++;
+    }
+}
+
+void x_pv_game_pv_data::find_playdata_set_motion(int32_t chara_id) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return;
+
+    x_pv_play_data* playdata = &this->playdata[chara_id];
+    playdata->motion_data.set_motion.clear();
+
+    int32_t pv_branch_mode = 0;
+    int32_t time = -1;
+    int32_t prev_time = -1;
+
+    dsc_data* i = dsc.data.data();
+    dsc_data* i_end = dsc.data.data() + dsc.data.size();
+    while (true) {
+        i = find(DSC_X_SET_MOTION, &time, &pv_branch_mode, i, i_end);
+        if (!i)
+            break;
+
+        if (time < 0) {
+            time = prev_time;
+            if (prev_time < 0)
+                break;
+        }
+
+        int32_t* data = dsc.get_func_data(i);
+        if (chara_id == data[0])
+            playdata->motion_data.set_motion.push_back({ time, data[1], pv_branch_mode });
+        prev_time = time;
+        i++;
+    }
+}
+
+int64_t x_pv_game_pv_data::find_pv_end() {
     int32_t pv_branch_mode = 0;
     int32_t pv_end_time = -1;
     int32_t end_time = -1;
 
-    ::dsc_data* i = dsc.data.data();
-    ::dsc_data* i_end = dsc.data.data() + dsc.data.size();
+    dsc_data* i = dsc.data.data();
+    dsc_data* i_end = dsc.data.data() + dsc.data.size();
     find(DSC_X_PV_END, &pv_end_time, &pv_branch_mode, i, i_end);
 
     pv_branch_mode = 0;
@@ -2154,13 +3404,137 @@ int64_t x_pv_game_dsc_data::find_pv_end() {
     return max_def(pv_end_time, end_time);
 }
 
-void x_pv_game_dsc_data::find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects) {
+void x_pv_game_pv_data::find_set_motion() {
+    for (std::vector<pv_data_set_motion>& i : set_motion)
+        i.clear();
+
+    std::vector<x_pv_play_data_event> v98[6];
+
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
     int32_t prev_time = -1;
 
-    ::dsc_data* i = dsc.data.data();
-    ::dsc_data* i_end = dsc.data.data() + dsc.data.size();
+    dsc_data* i = dsc.data.data();
+    dsc_data* i_end = dsc.data.data() + dsc.data.size();
+    while (true) {
+        i = find(DSC_X_SET_PLAYDATA, &time, &pv_branch_mode, i, i_end);
+        if (!i)
+            break;
+
+        if (time < 0)
+            time = prev_time;
+
+        int32_t* data = dsc.get_func_data(i);
+
+        int32_t chara_id = data[0];
+        int32_t motion_index = data[1];
+
+        v98[chara_id].push_back({ time, motion_index, pv_branch_mode });
+
+        prev_time = time;
+        i++;
+    }
+
+    pv_branch_mode = 0;
+    time = -1;
+    prev_time = -1;
+
+    i = dsc.data.data();
+    i_end = dsc.data.data() + dsc.data.size();
+    while (true) {
+        i = find(DSC_X_CHANGE_FIELD, &time, &pv_branch_mode, i, i_end);
+        if (!i)
+            break;
+
+        if (time < 0)
+            time = prev_time;
+
+        prev_time = time;
+        i++;
+    }
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    pvpp* play_param = pv_game->get_data().play_param;
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        x_pv_play_data& playdata = this->playdata[i];
+        std::vector<pv_data_set_motion>& set_motion = this->set_motion[i];
+
+        for (x_pv_play_data_event& j : playdata.motion_data.set_motion) {
+            int32_t time = -1;
+            int32_t v56 = 0;
+
+            x_pv_play_data_event* i_begin = v98[i].data() + v98[i].size();
+            x_pv_play_data_event* i_end = v98[i].data();
+            for (x_pv_play_data_event* i = i_begin; i != i_end; ) {
+                i--;
+
+                if (i->index == j.index && i->time <= j.time) {
+                    time = i->time;
+                    break;
+                }
+            }
+
+            if (time < 0)
+                time = j.time;
+
+            float_t frame = dsc_time_to_frame(((int64_t)j.time - time) * 10000);
+
+            float_t v61 = frame;
+            if (frame >= 0.0f)
+                v61 = frame + 0.5f;
+            else
+                v61 = frame - 0.5f;
+
+            int32_t frame_int = (int32_t)v61;
+            if (v61 != -0.0f && (float_t)frame_int != v61)
+                v61 = (float_t)(v61 < 0.0f ? frame_int - 1 : frame_int);
+
+            uint32_t motion_id = -1;
+            if (i >= 0 && i < play_param->chara.size()) {
+                pvpp_chara& chara = play_param->chara[i];
+                if (j.index > 0 && j.index <= chara.motion.size()) {
+                    string_hash& motion = chara.motion[(size_t)j.index - 1];
+                    motion_id = aft_mot_db->get_motion_id(motion.c_str());
+                }
+            }
+
+            if (motion_id != -1)
+                set_motion.push_back({ motion_id, { v61, -1 } });
+        }
+    }
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (i < 0 || i >= play_param->chara.size())
+            continue;
+
+        rob_chara* rob_chr = rob_chara_array_get(i);
+        int32_t pv_id = pv_game->get_data().pv_id;
+
+        std::vector<pv_data_set_motion>& set_motion = this->set_motion[i];
+        std::vector<osage_init_data> vec;
+        vec.reserve(set_motion.size());
+        for (pv_data_set_motion& j : set_motion) {
+            osage_init_data osage_init;
+            osage_init.rob_chr = rob_chr;
+            osage_init.pv_id = pv_id;
+            osage_init.motion_id = j.motion_id;
+            osage_init.frame = (int32_t)j.frame_stage_index.first;
+            vec.push_back(osage_init);
+        }
+        skin_param_manager_add_task(i, vec);
+    }
+}
+
+void x_pv_game_pv_data::find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects) {
+    int32_t pv_branch_mode = 0;
+    int32_t time = -1;
+    int32_t prev_time = -1;
+
+    dsc_data* i = dsc.data.data();
+    dsc_data* i_end = dsc.data.data() + dsc.data.size();
     while (i = find(DSC_X_STAGE_EFFECT, &time, &pv_branch_mode, i, i_end)) {
         if (time < 0) {
             time = prev_time;
@@ -2178,20 +3552,58 @@ void x_pv_game_dsc_data::find_stage_effects(prj::vector_pair<int64_t, int32_t>& 
     }
 }
 
-void x_pv_game_dsc_data::reset() {
-    dsc.type = DSC_NONE;
-    dsc.signature = 0;
-    dsc.id = 0;
-    dsc.data.clear();
-    dsc.data.shrink_to_fit();
-    dsc.data_buffer.clear();
-    dsc.data_buffer.shrink_to_fit();
-    dsc_data_ptr = 0;
-    dsc_data_ptr_end = 0;
-    time = -1;
+void x_pv_game_pv_data::init(class x_pv_game* pv_game, bool music_play) {
+    this->pv_game = pv_game;
+    target_anim_fps = 60.0f;
+    anim_frame_speed = 1.0f;
+    scene_rot_mat = mat4_identity;
+
+    target_anim_fps = get_target_anim_fps();
+    anim_frame_speed = get_anim_frame_speed();
+
+    pv_expression_array_reset();
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        if (pv_game->rob_chara_ids[i] == -1)
+            continue;
+
+        x_pv_play_data& playdata = this->playdata[i];
+        playdata.reset();
+        playdata.set_motion.clear();
+
+        if (pv_game->rob_chara_ids[i] != -1)
+            playdata.rob_chr = rob_chara_array_get(pv_game->rob_chara_ids[i]);
+
+        if (playdata.rob_chr) {
+            playdata.rob_chr->frame_speed = anim_frame_speed;
+            playdata.rob_chr->data.motion.step_data.step = anim_frame_speed;
+            pv_expression_array_set(i, playdata.rob_chr, anim_frame_speed);
+        }
+
+        find_playdata_set_motion(i);
+        find_playdata_item_anim(i);
+    }
+
+    find_set_motion();
+
+    pv_end = false;
+    scene_rot_y = 0.0f;
+    scene_rot_mat = mat4_identity;;
+
+    play = true;
+
+    find_change_fields(pv_game->get_data().change_fields);
+
+    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    if (shad) {
+        shad->blur_filter_enable[0] = true;
+        shad->blur_filter_enable[1] = true;
+    }
+
+    chara_id = 0;
 }
 
-void x_pv_game_dsc_data::unload() {
+void x_pv_game_pv_data::reset() {
     dsc.type = DSC_NONE;
     dsc.signature = 0;
     dsc.id = 0;
@@ -2201,7 +3613,36 @@ void x_pv_game_dsc_data::unload() {
     dsc.data_buffer.shrink_to_fit();
     dsc_data_ptr = 0;
     dsc_data_ptr_end = 0;
-    time = -1;
+    dsc_time = -1;
+}
+
+void x_pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT || motion_index < 0)
+        return;
+
+    x_pv_play_data& playdata = this->playdata[chara_id];
+
+    std::vector<x_pv_play_data_event>& set_motion = playdata.motion_data.set_motion;
+    for (x_pv_play_data_event& i : set_motion)
+        if (10000LL * i.time > dsc_time && i.index == motion_index
+            && (!branch_mode || branch_mode == i.pv_branch_mode)) {
+            playdata.rob_chr->bone_data->set_motion_max_frame(
+                roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
+            break;
+        }
+}
+
+void x_pv_game_pv_data::unload() {
+    dsc.type = DSC_NONE;
+    dsc.signature = 0;
+    dsc.id = 0;
+    dsc.data.clear();
+    dsc.data.shrink_to_fit();
+    dsc.data_buffer.clear();
+    dsc.data_buffer.shrink_to_fit();
+    dsc_data_ptr = 0;
+    dsc_data_ptr_end = 0;
+    dsc_time = -1;
 }
 
 x_pv_game_data::x_pv_game_data() : pv_id(), play_param(), curr_time(), delta_time(), pv_end_time(),
@@ -2262,21 +3703,21 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
         state = 23;
     } break;
     case 23: {
-        dsc_data.find_bar_beat(bar_beat);
+        pv_data.find_bar_beat(bar_beat);
         bar_beat.reset_time();
         stage->bpm_frame_rate_control.bar_beat = &bar_beat;
         state = 24;
     } break;
     case 24: {
-        dsc_data.find_stage_effects(stage_effects);
+        pv_data.find_stage_effects(stage_effects);
 
-        int64_t pv_end_time = dsc_data.find_pv_end();
+        int64_t pv_end_time = pv_data.find_pv_end();
         if (pv_end_time >= 0)
             this->pv_end_time = (float_t)((double_t)pv_end_time * 0.000000001);
         state = 25;
     } break;
     case 25: {
-        dsc_data.find_change_fields(change_fields);
+        pv_data.find_change_fields(change_fields);
         effect.change_fields = &change_fields;
         chara_effect.change_fields = &change_fields;
         state = 30;
@@ -2284,6 +3725,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     case 30: {
         ctrl_stage_effect_index();
         bar_beat.set_time(this->curr_time, this->delta_time);
+        pv_data.ctrl(1, curr_time, delta_time);
         frame++;
     } break;
     case 40: {
@@ -2321,12 +3763,12 @@ void x_pv_game_data::ctrl_stage_effect_index() {
     int32_t bar = bar_beat.get_bar_beat_from_time(0, time);
     next_stage_effect_bar = --bar;
 
-    int32_t v14 = bar / 2 - 1;
+    int32_t v14;
     if (stage->check_stage_effect_has_change_effect(curr_stage_effect->second, next_stage_effect->second))
         v14 = bar / 2 - 2;
-    if (v14 <= 0)
-        v14 = 0;
-    next_stage_effect_bar = 2 * v14 + 1;
+    else
+        v14 = bar / 2 - 1;
+    next_stage_effect_bar = 2 * max_def(v14, 0) + 1;
 }
 
 #if BAKE_PV826
@@ -2387,7 +3829,7 @@ void x_pv_game_data::reset() {
     camera.reset();
     effect.reset();
     chara_effect.reset();
-    dsc_data.reset();
+    pv_data.reset();
     exp_file.clear();
     //dof = {};
     stage = 0;
@@ -2401,7 +3843,7 @@ void x_pv_game_data::stop() {
     stage->reset_stage_env();
     effect.stop();
     chara_effect.stop();
-    dsc_data.reset();
+    pv_data.reset();
 
     field_1C &= ~0xC0;
     if (state == 30)
@@ -2414,7 +3856,7 @@ void x_pv_game_data::unload() {
     effect.unload();
     chara_effect.unload();
     //dof = {};
-    dsc_data.unload();
+    pv_data.unload();
     pv_expression_file_unload(exp_file.hash_murmurhash);
     obj_db.clear();
     tex_db.clear();
@@ -3943,13 +5385,9 @@ void x_pv_game_stage::unload() {
     state = 30;
 }
 
-x_pv_game::x_pv_game() : state(), pv_count(),  pv_index(), state_old(), frame(), frame_float(),
-time(), rob_chara_ids(), play(), success(), chara_id(), pv_end(), playdata(), scene_rot_y(),
-branch_mode(), task_effect_init(), pause(), step_frame(), pv_id(), stage_id(), charas(), modules() {
+x_pv_game::x_pv_game() : state(), pv_count(),  pv_index(), state_old(), frame(), frame_float(), time(),
+rob_chara_ids(), success(), task_effect_init(), pause(), step_frame(), pv_id(), stage_id(), charas(), modules() {
     light_auth_3d_id = {};
-    target_anim_fps = 60.0f;
-    anim_frame_speed = 1.0f;
-    scene_rot_mat = mat4_identity;
     for (chara_index& i : charas)
         i = CHARA_MAX;
     for (int32_t& i : modules)
@@ -4180,11 +5618,11 @@ bool x_pv_game::Ctrl() {
         if (!error) {
             char buf[0x200];
             sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Photos\\pv%03d",
-                x_pv_game_ptr->pv_data[x_pv_game_ptr->pv_index].pv_id);
+                x_pv_game_ptr->get_data().pv_id);
             CreateDirectoryA(buf, 0);
 
             sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Photos\\pv%03d\\%05d.png",
-                x_pv_game_ptr->pv_data[x_pv_game_ptr->pv_index].pv_id, x_pv_game_ptr->frame);
+                x_pv_game_ptr->get_data().pv_id, x_pv_game_ptr->frame);
             lodepng::save_file(png, buf);
         }
 #endif
@@ -4206,11 +5644,11 @@ bool x_pv_game::Ctrl() {
         pv_index = 0;
         pv_count = 1;
 
-        pv_data[pv_index].pv_id = pv_id;
+        get_data().pv_id = pv_id;
 
         char buf[0x200];
         for (int32_t i = 0; i < pv_count; i++) {
-            x_pv_game_data& pv_data = this->pv_data[i];
+            x_pv_game_data& pv_data = this->data[i];
 
             sprintf_s(buf, sizeof(buf), "pv%03d.pvpp", pv_data.pv_id);
             pv_data.play_param_file_handler.read_file(&data_list[DATA_X], "root+/pv/", buf);
@@ -4222,7 +5660,7 @@ bool x_pv_game::Ctrl() {
     case 2: {
         bool wait_load = false;
         for (int32_t i = 0; i < pv_count; i++)
-            if (pv_data[i].play_param_file_handler.check_not_ready())
+            if (data[i].play_param_file_handler.check_not_ready())
                 wait_load |= true;
 
         if (wait_load)
@@ -4231,7 +5669,7 @@ bool x_pv_game::Ctrl() {
         stage_data.load(stage_id, &field_71994, false);
 
         for (int32_t i = 0; i < pv_count; i++) {
-            x_pv_game_data& pv_data = this->pv_data[i];
+            x_pv_game_data& pv_data = this->data[i];
 
             const void* pvpp_data = pv_data.play_param_file_handler.get_data();
             size_t pvpp_size = pv_data.play_param_file_handler.get_size();
@@ -4321,7 +5759,7 @@ bool x_pv_game::Ctrl() {
 
         data_struct* x_data = &data_list[DATA_X];
 
-        light_param_data_storage_data_set_pv_id(pv_data[pv_index].pv_id);
+        light_param_data_storage_data_set_pv_id(get_data().pv_id);
 
         auth_3d_data_load_category(light_category.c_str());
 
@@ -4345,7 +5783,7 @@ bool x_pv_game::Ctrl() {
 
             char buf[0x200];
             sprintf_s(buf, sizeof(buf), "STGPV%03d_EFF_LT_000",
-                pv_data[pv_index].pv_id == 832 ? 800 : pv_data[pv_index].pv_id);
+                get_data().pv_id == 832 ? 800 : get_data().pv_id);
             uint32_t light_auth_3d_hash = hash_utf8_murmurhash(buf);
             for (auth_3d_database_uid& i : aft_auth_3d_db->uid)
                 if (hash_string_murmurhash(i.name) == light_auth_3d_hash) {
@@ -4374,10 +5812,12 @@ bool x_pv_game::Ctrl() {
         if (wait_load)
             break;
 
-        x_pv_game_dsc_data& dsc_data = pv_data[pv_index].dsc_data;
+        x_pv_game_pv_data& pv_data = get_data().pv_data;
 
         pv_param_task::post_process_task_add_task();
         {
+            int32_t pv_id = get_data().pv_id;
+
             data_struct* x_data = &data_list[DATA_X];
 
             dsc dsc_mouth;
@@ -4389,26 +5829,26 @@ bool x_pv_game::Ctrl() {
             char file_buf[0x200];
 
             farc dsc_common_farc;
-            sprintf_s(path_buf, sizeof(path_buf), "root+/pv_script/pv%03d/", pv_data[pv_index].pv_id);
-            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_common.farc", pv_data[pv_index].pv_id);
+            sprintf_s(path_buf, sizeof(path_buf), "root+/pv_script/pv%03d/", pv_id);
+            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_common.farc", pv_id);
             x_data->load_file(&dsc_common_farc, path_buf, file_buf, farc::load_file);
 
-            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_mouth.dsc", pv_data[pv_index].pv_id);
+            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_mouth.dsc", pv_id);
             farc_file* dsc_mouth_ff = dsc_common_farc.read_file(file_buf);
             if (dsc_mouth_ff)
                 dsc_mouth.parse(dsc_mouth_ff->data, dsc_mouth_ff->size, DSC_X);
 
-            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_data[pv_index].pv_id);
+            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_scene.dsc", pv_id);
             farc_file* dsc_scene_ff = dsc_common_farc.read_file(file_buf);
             if (dsc_scene_ff)
                 dsc_scene.parse(dsc_scene_ff->data, dsc_scene_ff->size, DSC_X);
 
-            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_system.dsc", pv_data[pv_index].pv_id);
+            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_system.dsc", pv_id);
             farc_file* dsc_system_ff = dsc_common_farc.read_file(file_buf);
             if (dsc_system_ff)
                 dsc_system.parse(dsc_system_ff->data, dsc_system_ff->size, DSC_X);
 
-            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_data[pv_index].pv_id);
+            sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_id);
             dsc_easy.type = DSC_X;
             x_data->load_file(&dsc_easy, path_buf, file_buf, dsc::load_file);
 
@@ -4434,9 +5874,9 @@ bool x_pv_game::Ctrl() {
                         int32_t hand_l_time = -1;
                         int32_t hand_l_id = -1;
                         int32_t hand_l_duration = -1;
-                        ::dsc_data* hand_l_data = 0;
+                        dsc_data* hand_l_data = 0;
                         int32_t time = -1;
-                        for (::dsc_data& j : d.data) {
+                        for (dsc_data& j : d.data) {
                             if (j.func == DSC_X_END)
                                 break;
 
@@ -4464,9 +5904,9 @@ bool x_pv_game::Ctrl() {
                         int32_t hand_r_time = -1;
                         int32_t hand_r_id = -1;
                         int32_t hand_r_duration = -1;
-                        ::dsc_data* hand_r_data = 0;
+                        dsc_data* hand_r_data = 0;
                         int32_t time = -1;
-                        for (::dsc_data& j : d.data) {
+                        for (dsc_data& j : d.data) {
                             if (j.func == DSC_X_END)
                                 break;
 
@@ -4491,11 +5931,11 @@ bool x_pv_game::Ctrl() {
                     }
                 }
 
-                dsc_data.dsc.merge(9, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy,
+                pv_data.dsc.merge(9, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy,
                     &dsc_hand_keys[0], &dsc_hand_keys[1], &dsc_hand_keys[2], &dsc_hand_keys[3], dsc_hand_keys[4]);
             }
             else
-                dsc_data.dsc.merge(4, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy);
+                pv_data.dsc.merge(4, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy);
 
             struct miku_state {
                 bool disp;
@@ -4522,15 +5962,16 @@ bool x_pv_game::Ctrl() {
 
             int32_t time = -1;
             int32_t frame = -1;
-            for (::dsc_data& i : dsc_data.dsc.data) {
+            for (dsc_data& i : pv_data.dsc.data) {
                 if (i.func == DSC_X_END)
                     break;
 
-                int32_t* data = dsc_data.dsc.get_func_data(&i);
+                int32_t* data = pv_data.dsc.get_func_data(&i);
                 switch (i.func) {
                 case DSC_X_TIME: {
                     for (miku_state& i : state)
-                        if (state[chara_id].disp && i.disp_time == time && i.set_motion_time != time)
+                        if (state[get_data().pv_data.chara_id].disp
+                            && i.disp_time == time && i.set_motion_time != time)
                             state_vec.push_back(i);
                     time = data[0];
                     frame = (int32_t)roundf((float_t)time * (float_t)(60.0 / 100000.0));
@@ -4554,35 +5995,39 @@ bool x_pv_game::Ctrl() {
                 }
             }
 
-            if (state_vec.size() || miku_disp.size() || set_motion.size() || set_playdata.size()) {
+            if (state_vec.size()) {
                 int32_t time = -1;
                 for (miku_state& i : state_vec) {
                     if (i.disp_time != time) {
-                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.disp_time;
                         time = i.disp_time;
                     }
 
-                    int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
+                    int32_t* new_data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
                         DSC_X_SET_MOTION, dsc_x_get_func_length(DSC_X_SET_MOTION));
-                    int32_t* data = dsc_data.dsc.data_buffer.data() + i.set_motion_data_offset;
+                    int32_t* data = pv_data.dsc.data_buffer.data() + i.set_motion_data_offset;
                     memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
                 }
 
+                pv_data.dsc.rebuild();
+            }
+
+            if (pv_id == 826 && (miku_disp.size() || set_motion.size() || set_playdata.size())) {
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : miku_disp) {
                     if (i.first != time) {
-                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.first;
                         time = i.first;
                     }
 
                     for (int32_t j = 1; j < 6; j++) {
-                        int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_MIKU_DISP),
+                        int32_t* new_data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_MIKU_DISP),
                             DSC_X_MIKU_DISP, dsc_x_get_func_length(DSC_X_MIKU_DISP));
-                        int32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
+                        int32_t* data = pv_data.dsc.data_buffer.data() + i.second;
                         memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_MIKU_DISP));
                         new_data[0] = j;
                     }
@@ -4591,16 +6036,16 @@ bool x_pv_game::Ctrl() {
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : set_motion) {
                     if (i.first != time) {
-                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.first;
                         time = i.first;
                     }
 
                     for (int32_t j = 1; j < 6; j++) {
-                        int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
+                        int32_t* new_data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_MOTION),
                             DSC_X_SET_MOTION, dsc_x_get_func_length(DSC_X_SET_MOTION));
-                        int32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
+                        int32_t* data = pv_data.dsc.data_buffer.data() + i.second;
                         memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_SET_MOTION));
                         new_data[0] = j;
                     }
@@ -4609,22 +6054,22 @@ bool x_pv_game::Ctrl() {
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : set_playdata) {
                     if (i.first != time) {
-                        int32_t* data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                        int32_t* data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
                             DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
                         data[0] = i.first;
                         time = i.first;
                     }
 
                     for (int32_t j = 1; j < 6; j++) {
-                        int32_t* new_data = dsc_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_PLAYDATA),
+                        int32_t* new_data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_SET_PLAYDATA),
                             DSC_X_SET_PLAYDATA, dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
-                        int32_t* data = dsc_data.dsc.data_buffer.data() + i.second;
+                        int32_t* data = pv_data.dsc.data_buffer.data() + i.second;
                         memcpy(new_data, data, sizeof(int32_t) * dsc_x_get_func_length(DSC_X_SET_PLAYDATA));
                         new_data[0] = j;
                     }
                 }
 
-                dsc_data.dsc.rebuild();
+                pv_data.dsc.rebuild();
             }
 
             /*sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_data.pv_id);
@@ -4637,28 +6082,7 @@ bool x_pv_game::Ctrl() {
             free_def(data);*/
         }
 
-        pv_expression_array_reset();
-
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-            playdata[i].reset();
-            if (rob_chara_ids[i] == -1)
-                continue;
-
-            rob_chara* rob_chr = rob_chara_array_get(rob_chara_ids[i]);
-            if (rob_chr) {
-                playdata[i].rob_chr = rob_chr;
-                rob_chr->frame_speed = anim_frame_speed;
-                rob_chr->data.motion.step_data.step = anim_frame_speed;
-                pv_expression_array_set(i, rob_chr, anim_frame_speed);
-            }
-            pv_game_dsc_data_find_playdata_set_motion(this, i);
-            pv_game_dsc_data_find_playdata_item_anim(this, i);
-        }
-
-        pv_game_dsc_data_find_set_motion(this);
-
-        dsc_data.dsc_data_ptr = dsc_data.dsc.data.data();
-        dsc_data.dsc_data_ptr_end = dsc_data.dsc_data_ptr + dsc_data.dsc.data.size();
+        get_data().pv_data.init(this, true);
 
         Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
         if (shad) {
@@ -4675,9 +6099,9 @@ bool x_pv_game::Ctrl() {
         bool wait_load = false;
 
         for (int32_t i = 0; i < pv_count; i++)
-            if (!pv_data[i].state || pv_data[i].state == 10) {
-                pv_data[i].state = 10;
-                pv_data[i].field_1C |= 0x08;
+            if (!data[i].state || data[i].state == 10) {
+                data[i].state = 10;
+                data[i].field_1C |= 0x08;
                 wait_load |= true;
             }
 
@@ -4694,8 +6118,8 @@ bool x_pv_game::Ctrl() {
                 continue;
 
             pv_osage_manager_array_reset(chara_id);
-            pv_osage_manager_array_set_pv_set_motion(chara_id, set_motion[chara_id]);
-            pv_osage_manager_array_set_pv_id(chara_id, pv_data[pv_index].pv_id, true);
+            pv_osage_manager_array_set_pv_set_motion(chara_id, get_data().pv_data.set_motion[chara_id]);
+            pv_osage_manager_array_set_pv_id(chara_id, get_data().pv_id, true);
         }
 
         state = 10;
@@ -4708,7 +6132,7 @@ bool x_pv_game::Ctrl() {
         bool wait_load = false;
 
         for (int32_t i = 0; i < pv_count; i++)
-            if (pv_data[i].state != 30)
+            if (data[i].state != 30)
                 wait_load |= true;
 
         if (wait_load)
@@ -4809,9 +6233,12 @@ bool x_pv_game::Ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
-        while (pv_data[pv_index].dsc_data.dsc_data_ptr != pv_data[pv_index].dsc_data.dsc_data_ptr_end
-            && x_pv_game_dsc_process(this, time))
-            pv_data[pv_index].dsc_data.dsc_data_ptr++;
+        x_pv_game_pv_data& pv_data = get_data().pv_data;
+
+        pv_data.dsc_data_ptr = pv_data.dsc.data.data();
+        pv_data.dsc_data_ptr_end = pv_data.dsc_data_ptr + pv_data.dsc.data.size();
+
+        pv_data.ctrl(false, 0.0f, 0.0f);
 
         light_auth_3d_id.set_enable(true);
         light_auth_3d_id.set_camera_root_update(false);
@@ -4927,7 +6354,7 @@ bool x_pv_game::Ctrl() {
         nvenc_enc = new nvenc_encoder(width, height, d3d_device);
 
         char buf[0x100];
-        sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", pv_data[pv_index].pv_id);
+        sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", get_data().pv_id);
 
         nvenc_stream = new file_stream();
         nvenc_stream->open(buf, "wb");
@@ -4949,10 +6376,6 @@ bool x_pv_game::Ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
-        while (pv_data[pv_index].dsc_data.dsc_data_ptr != pv_data[pv_index].dsc_data.dsc_data_ptr_end
-            && x_pv_game_dsc_process(this, time))
-            pv_data[pv_index].dsc_data.dsc_data_ptr++;
-
         x_pv_game_music_ptr->set_pause(pause ? 1 : 0);
 
 #if BAKE_PV826
@@ -4963,7 +6386,7 @@ bool x_pv_game::Ctrl() {
         img_write = true;
 #endif
 
-        if (!play || pv_end)
+        if (!get_data().pv_data.play || get_data().pv_data.pv_end)
             state_old = 21;
     } break;
     case 21: {
@@ -5023,7 +6446,7 @@ bool x_pv_game::Ctrl() {
 
 #if DOF_BAKE
         {
-            x_pv_game_data& pv_data = this->pv_data[pv_index];
+            x_pv_game_data& pv_data = this->get_data();
 
             data_struct* x_data = &data_list[DATA_X];
 
@@ -5337,17 +6760,7 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
 
     int32_t chara_index = 0;
 
-    play = true;
     success = true;
-    chara_id = 0;
-    target_anim_fps = get_target_anim_fps();
-    anim_frame_speed = get_anim_frame_speed();
-    pv_end = false;
-    for (x_pv_play_data& i : playdata)
-        i.reset();
-    scene_rot_y = 0.0f;
-    scene_rot_mat = mat4_identity;
-    branch_mode = 0;
     task_effect_init = false;
 
     pause = false;
@@ -5361,11 +6774,6 @@ void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     this->frame = 0;
     frame_float = 0.0;
     time = 0;
-
-    for (std::vector<pv_data_set_motion>& i : set_motion) {
-        i.clear();
-        i.shrink_to_fit();
-    }
 
     Glitter::glt_particle_manager->draw_all = false;
     //sound_work_play_se(1, "load01_2", 1.0f);
@@ -5746,12 +7154,12 @@ bool x_pv_game::Unload() {
         return false;
 
 #if BAKE_PV826
-    if (pv_data[pv_index].pv_id == 826) {
+    if (get_data().pv_id == 826) {
         data_struct* aft_data = &data_list[DATA_AFT];
         motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
         char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "PV%03d", pv_data[pv_index].pv_id);
+        sprintf_s(buf, sizeof(buf), "PV%03d", get_data().pv_id);
         const motion_set_info* set_info = aft_mot_db->get_motion_set_by_name(buf);
         if (set_info) {
             std::string farc_file = "mot_" + set_info->name + ".farc";
@@ -5828,7 +7236,7 @@ bool x_pv_game::Unload() {
     pv_param::post_process_data_clear_data();
 
     char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "PV%03d", pv_data[pv_index].pv_id);
+    sprintf_s(buf, sizeof(buf), "PV%03d", get_data().pv_id);
     uint32_t mot_set = aft_mot_db->get_motion_set_id(buf);
     motion_set_unload_motion(mot_set);
     motion_set_unload_mothead(mot_set);
@@ -5854,31 +7262,16 @@ bool x_pv_game::Unload() {
     light_category.shrink_to_fit();
 
     for (int32_t i = 0; i < pv_count; i++)
-        pv_data[i].reset();
+        data[i].reset();
     stage_data.reset();
 
-    for (std::vector<pv_data_set_motion>& i : set_motion) {
-        i.clear();
-        i.shrink_to_fit();
-    }
+    get_data().bar_beat.reset();
 
-    pv_data[pv_index].bar_beat.reset();
+    get_data().stage_effects.clear();
+    get_data().stage_effects.shrink_to_fit();
+    get_data().stage_effect_index = 0;
 
-    pv_data[pv_index].stage_effects.clear();
-    pv_data[pv_index].stage_effects.shrink_to_fit();
-    pv_data[pv_index].stage_effect_index = 0;
-
-    play = true;
     success = true;
-    chara_id = 0;
-    target_anim_fps = get_target_anim_fps();
-    anim_frame_speed = get_anim_frame_speed();
-    pv_end = false;
-    for (x_pv_play_data& i : playdata)
-        i.reset();
-    scene_rot_y = 0.0f;
-    scene_rot_mat = mat4_identity;
-    branch_mode = 0;
     task_effect_init = false;
 
     pv_id = 0;
@@ -5898,11 +7291,11 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
 
 #if BAKE_PV826
     for (int32_t i = 0; i < pv_count; i++)
-        pv_data[i].ctrl(curr_time, delta_time,
-            pv_data[i].pv_id == 826 ? &effchrpv_auth_3d_mot_ids : 0);
+        data[i].ctrl(curr_time, delta_time,
+            data[i].pv_id == 826 ? &effchrpv_auth_3d_mot_ids : 0);
 #else
     for (int32_t i = 0; i < pv_count; i++)
-        pv_data[i].ctrl(curr_time, delta_time);
+        data[i].ctrl(curr_time, delta_time);
 #endif
 
     switch (state) {
@@ -5913,7 +7306,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
     case 30: {
         bool v38 = true;
         for (int32_t i = 0; i < pv_count; i++)
-            if (pv_data[i].state == 10 || pv_data[i].state == 20) {
+            if (data[i].state == 10 || data[i].state == 20) {
                 v38 = false;
                 break;
             }
@@ -5922,7 +7315,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
             break;
 
         stop_current_pv();
-        this->pv_data[pv_index].unload_if_state_is_0();
+        this->data[pv_index].unload_if_state_is_0();
         pv_index++;
 
         state = 20;
@@ -5930,7 +7323,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
     case 40: {
         bool v19 = true;
         for (int32_t i = 0; i < pv_count; i++)
-            if (pv_data[i].state == 10 || pv_data[i].state == 20) {
+            if (data[i].state == 10 || data[i].state == 20) {
                 v19 = false;
                 break;
             }
@@ -5940,34 +7333,34 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
 
         stop_current_pv();
 
-        x_pv_game_data* pv_data = this->pv_data;
-        for (int32_t i = 0; i < pv_count; i++, pv_data++) {
-            if (!pv_data->state) {
+        x_pv_game_data* data = this->data;
+        for (int32_t i = 0; i < pv_count; i++, data++) {
+            if (!data->state) {
                 rctx_ptr->camera->reset();
-                pv_data->field_1C &= ~0xD1;
-                pv_data->state = 0;
-                pv_data->stage_effect_index = 0;
-                pv_data->next_stage_effect_bar = 0;
-                pv_data->dsc_data.reset();
+                data->field_1C &= ~0xD1;
+                data->state = 0;
+                data->stage_effect_index = 0;
+                data->next_stage_effect_bar = 0;
+                data->pv_data.reset();
             }
 
             if (i > 0)
-                pv_data->unload_if_state_is_0();
+                data->unload_if_state_is_0();
         }
 
         if (pv_index) {
             pv_index = 0;
-            if (!pv_data->state)
-                pv_data->state = 20;
-            else if (pv_data->state == 10)
-                pv_data->field_1C |= 0x08;
+            if (!data->state)
+                data->state = 20;
+            else if (data->state == 10)
+                data->field_1C |= 0x08;
         }
         state = 20;
     }
     case 50: {
         bool v16 = false;
         for (int32_t i = 0; i < pv_count; i++)
-            if (pv_data[i].state)
+            if (data[i].state)
                 v16 = true;
 
         if (!v16 && stage_data.state != 20)
@@ -5982,14 +7375,14 @@ void x_pv_game::stop_current_pv() {
     if (pv_count <= 0)
         return;
 
-    pv_data[pv_index].stop();
+    data[pv_index].stop();
     field_7198C.Reset();
     field_71994.Reset();
 }
 
 void x_pv_game::unload() {
     for (int32_t i = 0; i < pv_count; i++)
-        pv_data[i].unload();
+        data[i].unload();
     stage_data.unload();
     state = 50;
 }
@@ -6333,13 +7726,11 @@ static float_t dsc_time_to_frame(int64_t time) {
     return roundf((float_t)time / 1000000000.0f * 60.0f);
 }
 
-static void x_pv_game_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
+static void x_pv_game_data_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
     if (!data)
         return;
 
-    x_pv_game* xpvgm = (x_pv_game*)data;
-
-    x_pv_game_data& pv_data = xpvgm->pv_data[xpvgm->pv_index];
+    x_pv_game_data& pv_data = *(x_pv_game_data*)data;
 
     if (chara_id < 0 || chara_id >= pv_data.play_param->chara.size())
         return;
@@ -6379,1174 +7770,6 @@ static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_
     }
 
     light_param_data_storage_data_set_pv_cut(field);
-}
-
-static bool x_pv_game_dsc_process(x_pv_game* a1, int64_t curr_time) {
-    x_pv_game_data& pv_data = a1->pv_data[a1->pv_index];
-
-    dsc_x_func func = (dsc_x_func)pv_data.dsc_data.dsc_data_ptr->func;
-    int32_t* data = pv_data.dsc_data.dsc.get_func_data(
-        pv_data.dsc_data.dsc_data_ptr);
-    if (a1->branch_mode) {
-        bool v19;
-        if (a1->success)
-            v19 = a1->branch_mode == 2;
-        else
-            v19 = a1->branch_mode == 1;
-        if (!v19) {
-            if (func < 0 || func >= DSC_X_MAX) {
-                a1->play = false;
-                return false;
-            }
-            else if ((data[0] < 0 || data[0] > 1)
-                && func != DSC_X_PV_END && func != DSC_X_PV_BRANCH_MODE)
-                return true;
-        }
-    }
-
-    data_struct* aft_data = &data_list[DATA_AFT];
-    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-    x_pv_play_data* playdata = &a1->playdata[a1->chara_id];
-    rob_chara* rob_chr = playdata->rob_chr;
-
-    switch (func) {
-    case DSC_X_END: {
-        a1->play = false;
-        a1->state_old = 21;
-        return false;
-    } break;
-    case DSC_X_TIME: {
-        pv_data.dsc_data.time = (int64_t)data[0] * 10000;
-        if (pv_data.dsc_data.time > curr_time)
-            return false;
-    } break;
-    case DSC_X_MIKU_MOVE: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        vec3 pos;
-        pos.x = (float_t)data[1] * 0.001f;
-        pos.y = (float_t)data[2] * 0.001f;
-        pos.z = (float_t)data[3] * 0.001f;
-
-        if (!rob_chr)
-            break;
-
-        mat4_transform_point(&a1->scene_rot_mat, &pos, &pos);
-        rob_chr->set_data_miku_rot_position(pos);
-        rob_chr->set_osage_reset();
-    } break;
-    case DSC_X_MIKU_ROT: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t rot_y = (float_t)data[0] * 0.001f;
-
-        if (!rob_chr)
-            break;
-
-        int16_t rot_y_int16 = (int32_t)((rot_y + a1->scene_rot_y) * 32768.0f * (float_t)(1.0 / 180.0));
-        rob_chr->data.miku_rot.rot_y_int16 = rot_y_int16;
-        rob_chr->set_osage_reset();
-    } break;
-    case DSC_X_MIKU_DISP: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t disp = data[1];
-
-        playdata->disp = disp == 1;
-
-        if (!rob_chr)
-            break;
-
-        if (disp == 1) {
-            rob_chr->set_visibility(true);
-            if (rob_chr->check_for_ageageagain_module()) {
-                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-                rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
-            }
-
-            for (x_pv_play_data_set_motion& i : playdata->set_motion) {
-                bool set = rob_chr->set_motion_id(i.motion_id, i.frame, i.blend_duration,
-                    i.blend, false, i.blend_type, aft_bone_data, aft_mot_db);
-                rob_chr->set_motion_reset_data(i.motion_id, i.dsc_frame);
-                rob_chr->bone_data->disable_eye_motion = i.disable_eye_motion;
-                rob_chr->data.motion.step_data.step = i.frame_speed;
-                if (set)
-                    pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, i.motion_id);
-                pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, i.motion_index, i.dsc_time);
-            }
-            playdata->set_motion.clear();
-        }
-        else
-            rob_chr->set_visibility(false);
-    } break;
-    case DSC_X_MIKU_SHADOW: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-    } break;
-    case DSC_X_TARGET: {
-
-    } break;
-    case DSC_X_SET_MOTION: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        if (!rob_chr)
-            break;
-
-        int32_t motion_index = data[1];
-        int32_t blend_duration_int = data[2];
-        int32_t frame_speed_int = data[3];
-
-        float_t blend_duration;
-        if (blend_duration_int != -1){
-            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
-            if (blend_duration < 0.0f)
-                blend_duration = 0.0f;
-        }
-        else
-            blend_duration = 0.0f;
-
-        float_t frame_speed;
-        if (frame_speed_int != -1) {
-            frame_speed = (float_t)frame_speed_int * 0.001f;
-            if (frame_speed < 0.0f)
-                frame_speed = 0.0f;
-        }
-        else
-            frame_speed = 1.0f;
-
-        float_t frame = 0.0f;
-        float_t dsc_frame = 0.0f;
-
-        bool blend = false;
-        x_pv_play_data_motion* motion = 0;
-        for (x_pv_play_data_motion& i : playdata->motion)
-            if (i.motion_index == motion_index) {
-                motion = &i;
-                break;
-            }
-
-        if (motion && motion->enable && (motion_index == motion->motion_index || !motion->motion_index)) {
-            if (pv_data.dsc_data.time != motion->time) {
-                frame = dsc_time_to_frame(curr_time - motion->time);
-                dsc_frame = roundf(dsc_time_to_frame(pv_data.dsc_data.time - motion->time));
-                if (frame < dsc_frame)
-                    frame = dsc_frame;
-                blend = curr_time > motion->time;
-            }
-            else
-                frame = 0.0f;
-        }
-
-        uint32_t motion_id = -1;
-        int32_t chara_id = 0;
-        for (pvpp_chara& i : pv_data.play_param->chara) {
-            if (chara_id++ != a1->chara_id)
-                continue;
-
-            int32_t mot_idx = 1;
-            for (string_hash& j : i.motion) {
-                if (mot_idx++ != motion_index)
-                    continue;
-
-                motion_id = aft_mot_db->get_motion_id(j.c_str());
-                break;
-            }
-            break;
-        }
-
-        if (motion_index) {
-            if (motion_id == -1)
-                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
-        }
-        else if (motion_id == -1) {
-            motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(5);
-            if (motion_id == -1)
-                motion_id = rob_chr->get_rob_cmn_mottbl_motion_id(0);
-        }
-
-        if (blend)
-            blend_duration = 0.0f;
-        else
-            blend_duration /= a1->anim_frame_speed;
-
-        x_pv_play_data_set_motion set_motion;
-        set_motion.frame_speed = frame_speed * a1->anim_frame_speed;
-        set_motion.motion_id = motion_id;
-        set_motion.frame = frame;
-        set_motion.blend_duration = blend_duration;
-        set_motion.blend = blend;
-        set_motion.blend_type = MOTION_BLEND_CROSS;
-        set_motion.disable_eye_motion = true;
-        set_motion.motion_index = motion_index;
-        set_motion.dsc_time = motion ? motion->time : pv_data.dsc_data.time;
-        set_motion.dsc_frame = dsc_frame;
-
-        if (playdata->disp) {
-            bool set = rob_chr->set_motion_id(motion_id, frame, blend_duration,
-                blend, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
-            rob_chr->set_motion_reset_data(motion_id, dsc_frame);
-            rob_chr->set_motion_skin_param(motion_id, dsc_frame);
-            rob_chr->bone_data->disable_eye_motion = true;
-            rob_chr->data.motion.step_data.step = set_motion.frame_speed;
-            if (set)
-                pv_expression_array_set_motion(pv_data.exp_file.hash_murmurhash, a1->chara_id, motion_id);
-            pv_game_dsc_data_set_motion_max_frame(a1, a1->chara_id, motion_index, motion ? motion->time : 0);
-        }
-        else {
-            playdata->set_motion.clear();
-            playdata->set_motion.push_back(set_motion);
-            rob_chr->data.motion.step_data.step = set_motion.frame_speed;
-        }
-    } break;
-    case DSC_X_SET_PLAYDATA: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t motion_index = data[1];
-        if (motion_index < 0) {
-            playdata->motion.clear();
-            break;
-        }
-
-        x_pv_play_data_motion* motion = 0;
-        for (x_pv_play_data_motion& i : playdata->motion)
-            if (i.motion_index == motion_index) {
-                motion = &i;
-                break;
-            }
-
-        if (motion) {
-            motion->enable = true;
-            motion->motion_index = motion_index;
-            motion->time = pv_data.dsc_data.time;
-        }
-        else {
-            x_pv_play_data_motion motion;
-            motion.enable = true;
-            motion.motion_index = motion_index;
-            motion.time = pv_data.dsc_data.time;
-            playdata->motion.push_back(motion);
-        }
-    } break;
-    case DSC_X_EFFECT: {
-
-    } break;
-    case DSC_X_FADEIN_FIELD: {
-
-    } break;
-    case DSC_X_EFFECT_OFF: {
-
-    } break;
-    case DSC_X_SET_CAMERA: {
-
-    } break;
-    case DSC_X_DATA_CAMERA: {
-
-    } break;
-    case DSC_X_CHANGE_FIELD: {
-        int32_t field = data[0];
-        if (field > 0)
-            x_pv_game_change_field(a1, field, pv_data.dsc_data.time, curr_time);
-        else
-            x_pv_game_reset_field(a1);
-
-        pv_data.effect.set_time(pv_data.dsc_data.time, false);
-        pv_data.chara_effect.set_time(pv_data.dsc_data.time);
-    } break;
-    case DSC_X_HIDE_FIELD: {
-
-    } break;
-    case DSC_X_MOVE_FIELD: {
-
-    } break;
-    case DSC_X_FADEOUT_FIELD: {
-
-    } break;
-    case DSC_X_EYE_ANIM: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t v115 = data[1];
-        int32_t blend_duration_int = data[2];
-
-        float_t blend_duration;
-        if (blend_duration_int != -1)
-            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
-        else
-            blend_duration = 6.0f;
-
-        if (!rob_chr)
-            break;
-
-        blend_duration /= a1->anim_frame_speed;
-
-        rob_chr->set_eyelid_mottbl_motion_from_face(v115, blend_duration, -1.0f, 0.0f, aft_mot_db);
-    } break;
-    case DSC_X_MOUTH_ANIM: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t mouth_anim_id = data[2];
-        int32_t blend_duration_int = data[3];
-        int32_t value_int = data[4];
-
-        float_t blend_duration;
-        if (blend_duration_int != -1) {
-            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
-            if (blend_duration < 0.0f)
-                blend_duration = 0.0f;
-        }
-        else
-            blend_duration = 6.0f;
-
-        float_t value;
-        if (value_int != -1) {
-            value = (float_t)value_int * 0.001f;
-            if (value < 0.0f || value > 1.0f)
-                value = 1.0f;
-        }
-        else
-            value = 1.0f;
-
-        if (!rob_chr)
-            break;
-
-        switch (mouth_anim_id) {
-            case  4: mouth_anim_id = 34; break;
-            case  5: mouth_anim_id = 35; break;
-            case  6: mouth_anim_id = 36; break;
-            case  7: mouth_anim_id = 37; break;
-            case  8: mouth_anim_id = 38; break;
-            case  9: mouth_anim_id = 39; break;
-            case 10: mouth_anim_id =  4; break;
-            case 11: mouth_anim_id =  5; break;
-            case 12: mouth_anim_id =  6; break;
-            case 13: mouth_anim_id =  7; break;
-            case 14: mouth_anim_id =  8; break;
-            case 15: mouth_anim_id =  9; break;
-            case 16: mouth_anim_id = 10; break;
-            case 17: mouth_anim_id = 11; break;
-            case 18: mouth_anim_id = 12; break;
-            case 19: mouth_anim_id = 13; break;
-            case 20: mouth_anim_id = 14; break;
-            case 21: mouth_anim_id = 15; break;
-            case 22: mouth_anim_id = 16; break;
-            case 23: mouth_anim_id = 17; break;
-            case 24: mouth_anim_id = 18; break;
-            case 25: mouth_anim_id = 19; break;
-            case 26: mouth_anim_id = 20; break;
-            case 27: mouth_anim_id = 21; break;
-            case 28: mouth_anim_id = 22; break;
-            case 29: mouth_anim_id = 40; break;
-            case 30: mouth_anim_id = 41; break;
-            case 31: mouth_anim_id = 42; break;
-        }
-
-        int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-        blend_duration /= a1->anim_frame_speed;
-
-        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value,
-            0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-    } break;
-    case DSC_X_HAND_ANIM: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t hand_index = data[1];
-        int32_t hand_anim_id = data[2];
-        int32_t blend_duration_int = data[3];
-        int32_t value_int = data[4];
-
-        float_t blend_duration;
-        if (blend_duration_int != -1) {
-            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
-            if (blend_duration < 0.0f)
-                blend_duration = 0.0f;
-        }
-        else
-            blend_duration = 0.0f;
-
-        float_t value;
-        if (value_int != -1) {
-            value = (float_t)value_int * 0.001f;
-            if (value < 0.0f || value > 1.0f)
-                value = 1.0f;
-        }
-        else
-            value = 1.0f;
-
-        if (!rob_chr)
-            break;
-
-        int32_t mottbl_index = hand_anim_id_to_mottbl_index(hand_anim_id);
-        blend_duration /= a1->anim_frame_speed;
-
-        switch (hand_index) {
-        case 0:
-            rob_chr->set_hand_l_mottbl_motion(0, mottbl_index, value,
-                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-            break;
-        case 1:
-            rob_chr->set_hand_r_mottbl_motion(0, mottbl_index, value,
-                0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-            break;
-        }
-    } break;
-    case DSC_X_LOOK_ANIM: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t look_anim_id = data[1];
-        int32_t blend_duration_int = data[2];
-        int32_t value_int = data[3];
-
-        float_t blend_duration;
-        if (blend_duration_int != -1) {
-            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
-            if (blend_duration < 0.0f)
-                blend_duration = 0.0f;
-        }
-        else
-            blend_duration = 6.0f;
-
-        float_t value;
-        if (value_int != -1) {
-            value = (float_t)value_int * 0.001f;
-            if (value < 0.0f || value > 1.0f)
-                value = 1.0f;
-        }
-        else
-            value = 1.0f;
-
-        if (!rob_chr)
-            break;
-
-        int32_t mottbl_index = look_anim_id_to_mottbl_index(look_anim_id);
-        blend_duration /= a1->anim_frame_speed;
-
-        rob_chr->set_eyes_mottbl_motion(0, mottbl_index, value,
-            mottbl_index == 224 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-        return 1;
-    } break;
-    case DSC_X_EXPRESSION: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t expression_id = data[1];
-        int32_t blend_duration_int = data[2];
-        int32_t value_int = data[3];
-
-        float_t blend_duration;
-        if (blend_duration_int != -1) {
-            blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
-            if (blend_duration < 0.0f)
-                blend_duration = 0.0f;
-        }
-        else
-            blend_duration = 0.0f;
-
-        float_t value;
-        if (value_int != -1) {
-            value = (float_t)value_int * 0.001f;
-            if (value < 0.0f || value > 1.0f)
-                value = 1.0f;
-        }
-        else
-            value = 1.0f;
-
-        if (!rob_chr)
-            break;
-
-        int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-        blend_duration /= a1->anim_frame_speed;
-
-        rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, blend_duration, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
-
-    } break;
-    case DSC_X_LOOK_CAMERA: {
-
-    } break;
-    case DSC_X_LYRIC: {
-
-    } break;
-    case DSC_X_MUSIC_PLAY: {
-        char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
-            a1->pv_data[a1->pv_index].pv_id == 832 ? 800 : a1->pv_data[a1->pv_index].pv_id);
-        x_pv_game_music_ptr->play(4, buf, false, 0.0f, 0.0f, 0.0f, 3.0f, false);
-        x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
-        x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
-    } break;
-    case DSC_X_MODE_SELECT: {
-
-    } break;
-    case DSC_X_EDIT_MOTION: {
-
-    } break;
-    case DSC_X_BAR_TIME_SET: {
-
-    } break;
-    case DSC_X_SHADOWHEIGHT: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-    } break;
-    case DSC_X_EDIT_FACE: {
-        int32_t expression_id = data[0];
-
-        if (!rob_chr)
-            break;
-
-        int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-
-        rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, mottbl_index >= 214
-            && mottbl_index <= 223 ? 1 : 0, 0.0f, 0.0f, 1.0f, -1, 0.0f, true, aft_mot_db);
-    } break;
-    case DSC_X_DUMMY: {
-
-    } break;
-    case DSC_X_PV_END: {
-        a1->pv_end = true;
-        break;
-    } break;
-    case DSC_X_SHADOWPOS: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-    } break;
-    case DSC_X_EDIT_LYRIC: {
-
-    } break;
-    case DSC_X_EDIT_TARGET: {
-
-    } break;
-    case DSC_X_EDIT_MOUTH: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t mouth_anim_id = data[1];
-
-        if (!rob_chr)
-            break;
-
-        int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-
-        rob_chr->set_mouth_mottbl_motion(0, mottbl_index, 1.0f,
-            0, 0.1f, 0.0f, 1.0f, -1, 0.0f, aft_mot_db);
-    } break;
-    case DSC_X_SET_CHARA: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-    } break;
-    case DSC_X_EDIT_MOVE: {
-
-    } break;
-    case DSC_X_EDIT_SHADOW: {
-
-    } break;
-    case DSC_X_EDIT_EYELID: {
-
-    } break;
-    case DSC_X_EDIT_EYE: {
-
-    } break;
-    case DSC_X_EDIT_ITEM: {
-
-    } break;
-    case DSC_X_EDIT_EFFECT: {
-
-    } break;
-    case DSC_X_EDIT_DISP: {
-
-    } break;
-    case DSC_X_EDIT_HAND_ANIM: {
-
-    } break;
-    case DSC_X_AIM: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-    } break;
-    case DSC_X_HAND_ITEM: {
-
-    } break;
-    case DSC_X_EDIT_BLUSH: {
-
-    } break;
-    case DSC_X_NEAR_CLIP: {
-
-    } break;
-    case DSC_X_CLOTH_WET: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t wet = (float_t)data[1] * 0.001f;
-
-        wet = clamp_def(wet, 0.0f, 1.0f);
-
-        if (rob_chr)
-            rob_chr->item_equip->wet = wet;
-    } break;
-    case DSC_X_LIGHT_ROT: {
-
-    } break;
-    case DSC_X_SCENE_FADE: {
-
-    } break;
-    case DSC_X_TONE_TRANS: {
-        vec3 start;
-        start.x = (float_t)data[0] * 0.001f;
-        start.y = (float_t)data[1] * 0.001f;
-        start.z = (float_t)data[2] * 0.001f;
-
-        vec3 end;
-        end.x = (float_t)data[3] * 0.001f;
-        end.y = (float_t)data[4] * 0.001f;
-        end.z = (float_t)data[5] * 0.001f;
-
-        rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
-    } break;
-    case DSC_X_SATURATE: {
-        float_t saturate_coeff = (float_t)data[0] * 0.001f;
-
-        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
-    } break;
-    case DSC_X_FADE_MODE: {
-        int32_t blend_func = data[0];
-
-        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
-    } break;
-    case DSC_X_AUTO_BLINK: {
-
-    } break;
-    case DSC_X_PARTS_DISP: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        item_id id = (item_id)data[1];
-        int32_t disp = data[2];
-
-        if (!rob_chr)
-            break;
-
-        rob_chr->set_parts_disp(id, disp == 1);
-    } break;
-    case DSC_X_TARGET_FLYING_TIME: {
-
-    } break;
-    case DSC_X_CHARA_SIZE: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t chara_size = data[1];
-
-        if (!rob_chr)
-            return 1;
-
-        int32_t chara_size_index;
-        if (chara_size == 0)
-            chara_size_index = chara_init_data_get_chara_size_index(rob_chr->chara_index);
-        else if (chara_size == 1) {
-            ::chara_index chara_index = CHARA_MIKU;
-            if (a1->chara_id < pv_data.play_param->chara.size())
-                chara_index = (::chara_index)a1->pv_data[a1->pv_index]
-                .play_param->chara[a1->chara_id].chara_effect.base_chara;
-            else if (pv_data.pv_id == 826 && false)
-                chara_index = rob_chara_array_get(a1->chara_id)->chara_index;
-
-            chara_size_index = chara_init_data_get_chara_size_index(chara_index);
-        }
-        else if (chara_size == 2)
-            chara_size_index = 1;
-        else if (chara_size == 3)
-            chara_size_index = rob_chr->pv_data.chara_size_index;
-        else {
-            rob_chr->set_chara_size((float_t)chara_size / 1000.0f);
-            break;
-        }
-
-        if (chara_size_index < 0 || chara_size_index > 4)
-            break;
-
-        rob_chr->set_chara_size(chara_size_table_get_value(chara_size_index));
-        rob_chr->set_chara_pos_adjust_y(chara_pos_adjust_y_table_get_value(chara_size_index));
-    } break;
-    case DSC_X_CHARA_HEIGHT_ADJUST: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        int32_t height_adjust = data[1];
-
-        if (rob_chr)
-            rob_chr->set_chara_height_adjust(height_adjust != 0);
-    } break;
-    case DSC_X_ITEM_ANIM: {
-        printf_debug("");
-    } break;
-    case DSC_X_CHARA_POS_ADJUST: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        vec3 pos;
-        pos.x = (float_t)data[2] * 0.001f;
-        pos.y = (float_t)data[3] * 0.001f;
-        pos.z = (float_t)data[4] * 0.001f;
-
-        if (!rob_chr)
-            break;
-
-        mat4_transform_point(&a1->scene_rot_mat, &pos, &pos);
-        rob_chr->set_chara_pos_adjust(pos);
-
-        if (rob_chr->check_for_ageageagain_module()) {
-            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 1);
-            rob_chara_age_age_array_set_skip(rob_chr->chara_id, 2);
-        }
-    } break;
-    case DSC_X_SCENE_ROT: {
-        float_t scene_rot_y = (float_t)data[0] * 0.001f;
-        a1->scene_rot_y = scene_rot_y;
-
-        mat4_rotate_y(scene_rot_y * DEG_TO_RAD_FLOAT, &a1->scene_rot_mat);
-
-    } break;
-    case DSC_X_EDIT_MOT_SMOOTH_LEN: {
-
-    } break;
-    case DSC_X_PV_BRANCH_MODE: {
-        int32_t branch_mode = data[0];
-        if (branch_mode >= 0 && branch_mode <= 2)
-            a1->branch_mode = branch_mode;
-    } break;
-    case DSC_X_DATA_CAMERA_START: {
-
-    } break;
-    case DSC_X_MOVIE_PLAY: {
-
-    } break;
-    case DSC_X_MOVIE_DISP: {
-
-    } break;
-    case DSC_X_WIND: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t wind_strength_kami = (float_t)data[1] * 0.001f;
-        float_t wind_strength_outer = (float_t)data[2] * 0.001f;
-
-        if (!rob_chr)
-            break;
-
-        rob_chr->set_wind_strength(wind_strength_outer);
-    } break;
-    case DSC_X_OSAGE_STEP: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t osage_step_kami = (float_t)data[1] * 0.001f;
-        float_t osage_step_outer = (float_t)data[2] * 0.001f;
-
-        if (!rob_chr)
-            break;
-
-        rob_chr->set_osage_step(osage_step_outer);
-    } break;
-    case DSC_X_OSAGE_MV_CCL: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t osage_mv_ccl_kami = (float_t)data[1] * 0.001f;
-        float_t osage_mv_ccl_outer = (float_t)data[2] * 0.001f;
-
-        if (!rob_chr)
-            break;
-
-        rob_chr->set_osage_move_cancel(1, osage_mv_ccl_kami);
-        rob_chr->set_osage_move_cancel(2, osage_mv_ccl_outer);
-    } break;
-    case DSC_X_CHARA_COLOR: {
-
-    } break;
-    case DSC_X_SE_EFFECT: {
-
-    } break;
-    case DSC_X_CHARA_SHADOW_QUALITY: {
-
-    } break;
-    case DSC_X_STAGE_SHADOW_QUALITY: {
-
-    } break;
-    case DSC_X_COMMON_LIGHT: {
-
-    } break;
-    case DSC_X_TONE_MAP: {
-
-    } break;
-    case DSC_X_IBL_COLOR: {
-
-    } break;
-    case DSC_X_REFLECTION: {
-
-    } break;
-    case DSC_X_CHROMATIC_ABERRATION: {
-
-    } break;
-    case DSC_X_STAGE_SHADOW: {
-
-    } break;
-    case DSC_X_REFLECTION_QUALITY: {
-
-    } break;
-    case DSC_X_PV_END_FADEOUT: {
-
-    } break;
-    case DSC_X_CREDIT_TITLE: {
-
-    } break;
-    case DSC_X_BAR_POINT: {
-
-    } break;
-    case DSC_X_BEAT_POINT: {
-
-    } break;
-    case DSC_X_RESERVE1: {
-
-    } break;
-    case DSC_X_PV_AUTH_LIGHT_PRIORITY: {
-
-    } break;
-    case DSC_X_PV_CHARA_LIGHT: {
-
-    } break;
-    case DSC_X_PV_STAGE_LIGHT: {
-
-    } break;
-    case DSC_X_TARGET_EFFECT: {
-
-    } break;
-    case DSC_X_FOG: {
-
-    } break;
-    case DSC_X_BLOOM: {
-        int32_t id = data[0];
-        float_t duration = (float_t)data[1];
-
-        pv_param_task::post_process_task_set_bloom_data(
-            pv_param::post_process_data_get_bloom_data(id), duration);
-    } break;
-    case DSC_X_COLOR_CORRECTION: {
-        int32_t enable = data[0];
-        int32_t id = data[1];
-        float_t duration = (float_t)data[2];
-
-        if (enable == 1)
-            pv_param_task::post_process_task_set_color_correction_data(
-                pv_param::post_process_data_get_color_correction_data(id), duration);
-    } break;
-    case DSC_X_DOF: {
-        int32_t enable = data[0];
-        int32_t id = data[1];
-        float_t duration = (float_t)data[2];
-
-        rctx_ptr->post_process.dof->data.pv.enable = enable == 1;
-        if (enable == 1)
-            pv_param_task::post_process_task_set_dof_data(
-                pv_param::post_process_data_get_dof_data(id), duration);
-    } break;
-    case DSC_X_CHARA_ALPHA: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t alpha = (float_t)data[1] * 0.001f;
-        float_t duration = (float_t)data[2];
-        int32_t type = data[3];
-
-        if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT)
-            pv_param_task::post_process_task_set_chara_alpha(
-                a1->chara_id, type, alpha, duration * 2.0f);
-    } break;
-    case DSC_X_AUTO_CAPTURE_BEGIN: {
-
-    } break;
-    case DSC_X_MANUAL_CAPTURE: {
-
-    } break;
-    case DSC_X_TOON_EDGE: {
-
-    } break;
-    case DSC_X_SHIMMER: {
-
-    } break;
-    case DSC_X_ITEM_ALPHA: {
-        a1->chara_id = data[0];
-        playdata = &a1->playdata[a1->chara_id];
-        rob_chr = playdata->rob_chr;
-
-        float_t alpha = (float_t)data[1] * 0.001f;
-        float_t duration = (float_t)data[2];
-        int32_t type = data[3];
-
-        if (a1->chara_id >= 0 && a1->chara_id < ROB_CHARA_COUNT) {
-            pv_param_task::post_process_task_set_chara_item_alpha(
-                a1->chara_id, type, alpha, duration * 2.0f,
-                x_pv_game_chara_item_alpha_callback, a1);
-        }
-    } break;
-    case DSC_X_MOVIE_CUT: {
-
-    } break;
-    case DSC_X_EDIT_CAMERA_BOX: {
-
-    } break;
-    case DSC_X_EDIT_STAGE_PARAM: {
-
-    } break;
-    case DSC_X_EDIT_CHANGE_FIELD: {
-
-    } break;
-    case DSC_X_MIKUDAYO_ADJUST: {
-
-    } break;
-    case DSC_X_LYRIC_2: {
-
-    } break;
-    case DSC_X_LYRIC_READ: {
-
-    } break;
-    case DSC_X_LYRIC_READ_2: {
-
-    } break;
-    case DSC_X_ANNOTATION: {
-
-    } break;
-    case DSC_X_STAGE_EFFECT: {
-        int32_t stage_effect = data[0];
-
-        if (stage_effect >= 8 && stage_effect <= 9)
-            a1->stage_data.set_stage_effect(stage_effect);
-    } break;
-    case DSC_X_SONG_EFFECT: {
-        bool enable = data[0] ? true : false;
-        int32_t index = data[1];
-        int32_t unk2 = data[2];
-
-        if (unk2 && !(pv_data.field_1C & 0x10))
-            break;
-
-        if (enable) {
-            pv_data.effect.set_song_effect(index, pv_data.dsc_data.time);
-            //if (a2->field_18)
-            //    pv_data.effect.set_song_effect_time(index/*, a2->field_20*/, true);
-            //else
-                pv_data.effect.set_song_effect_time(index, a1->time, false);
-        }
-        else
-            pv_data.effect.stop_song_effect(index, true);
-    } break;
-    case DSC_X_SONG_EFFECT_ATTACH: {
-        int32_t index = data[0];
-        int32_t chara_id = data[1];
-        int32_t chara_item = data[2];
-
-        pv_data.effect.set_chara_id(index, chara_id, !!chara_item);
-    } break;
-    case DSC_X_LIGHT_AUTH: {
-
-    } break;
-    case DSC_X_FADE: {
-
-    } break;
-    case DSC_X_SET_STAGE_EFFECT_ENV: {
-        int32_t env_index = data[0];
-        int32_t trans = data[1];
-        a1->stage_data.set_env(env_index, (float_t)trans * (float_t)(1.0f / 60.0f), 0.0f);
-        printf_debug("Time: %8d; Frame %5d; Env: %2d; Trans: %3d\n",
-            (int32_t)(curr_time / 10000), a1->frame, env_index, trans);
-    } break;
-    case DSC_X_RESERVE2: {
-
-    } break;
-    case DSC_X_COMMON_EFFECT_AET_FRONT: {
-
-    } break;
-    case DSC_X_COMMON_EFFECT_AET_FRONT_LOW: {
-
-    } break;
-    case DSC_X_COMMON_EFFECT_PARTICLE: {
-
-    } break;
-    case DSC_X_SONG_EFFECT_ALPHA_SORT: {
-
-    } break;
-    case DSC_X_LOOK_CAMERA_FACE_LIMIT: {
-
-    } break;
-    case DSC_X_ITEM_LIGHT: {
-
-    } break;
-    case DSC_X_CHARA_EFFECT: {
-        data_struct* aft_data = &data_list[DATA_AFT];
-        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
-        int32_t chara_id = data[0];
-        bool enable = data[1] ? true : false;
-        int32_t index = data[2];
-
-        if (enable) {
-            pv_data.chara_effect.set_chara_effect(chara_id, index, pv_data.dsc_data.time);
-            //if (a2->field_18)
-            //    pv_data.chara_effect.set_chara_effect_time(chara_id, index/*, a2->field_20*/);
-            //else
-                pv_data.chara_effect.set_chara_effect_time(chara_id, index, a1->time);
-        }
-        else
-            pv_data.chara_effect.stop_chara_effect(chara_id, index);
-    } break;
-    case DSC_X_MARKER: {
-
-    } break;
-    case DSC_X_CHARA_EFFECT_CHARA_LIGHT: {
-
-    } break;
-    case DSC_X_ENABLE_COMMON_LIGHT_TO_CHARA: {
-
-    } break;
-    case DSC_X_ENABLE_FXAA: {
-
-    } break;
-    case DSC_X_ENABLE_TEMPORAL_AA: {
-
-    } break;
-    case DSC_X_ENABLE_REFLECTION: {
-
-    } break;
-    case DSC_X_BANK_BRANCH: {
-
-    } break;
-    case DSC_X_BANK_END: {
-
-    } break;
-    case DSC_X_NULL1: {
-
-    } break;
-    case DSC_X_NULL2: {
-
-    } break;
-    case DSC_X_NULL3: {
-
-    } break;
-    case DSC_X_NULL4: {
-
-    } break;
-    case DSC_X_NULL5: {
-
-    } break;
-    case DSC_X_NULL6: {
-
-    } break;
-    case DSC_X_NULL7: {
-
-    } break;
-    case DSC_X_NULL8: {
-
-    } break;
-    case DSC_X_VR_LIVE_MOVIE: {
-
-    } break;
-    case DSC_X_VR_CHEER: {
-
-    } break;
-    case DSC_X_VR_CHARA_PSMOVE: {
-
-    } break;
-    case DSC_X_VR_MOVE_PATH: {
-
-    } break;
-    case DSC_X_VR_SET_BASE: {
-
-    } break;
-    case DSC_X_VR_TECH_DEMO_EFFECT: {
-
-    } break;
-    case DSC_X_VR_TRANSFORM: {
-
-    } break;
-    case DSC_X_GAZE: {
-
-    } break;
-    case DSC_X_TECH_DEMO_GESUTRE: {
-
-    } break;
-    case DSC_X_VR_CHEMICAL_LIGHT_COLOR: {
-
-    } break;
-    case DSC_X_VR_LIVE_MOB: {
-
-    } break;
-    case DSC_X_VR_LIVE_HAIR_OSAGE: {
-
-    } break;
-    case DSC_X_VR_LIVE_LOOK_CAMERA: {
-
-    } break;
-    case DSC_X_VR_LIVE_CHEER: {
-
-    } break;
-    case DSC_X_VR_LIVE_GESTURE: {
-
-    } break;
-    case DSC_X_VR_LIVE_CLONE: {
-
-    } break;
-    case DSC_X_VR_LOOP_EFFECT: {
-
-    } break;
-    case DSC_X_VR_LIVE_ONESHOT_EFFECT: {
-
-    } break;
-    case DSC_X_VR_LIVE_PRESENT: {
-
-    } break;
-    case DSC_X_VR_LIVE_TRANSFORM: {
-
-    } break;
-    case DSC_X_VR_LIVE_FLY: {
-
-    } break;
-    case DSC_X_VR_LIVE_CHARA_VOICE: {
-
-    } break;
-    }
-    return true;
 }
 
 #if BAKE_PV826
@@ -7962,15 +8185,17 @@ static void x_pv_game_split_auth_3d_write_auth_3d(auth_3d* auth) {
     char name[0x200];
     strcpy_s(name, sizeof(name), auth->file_name.c_str());
 
+    const char* a3da_ext = ".a3da";
+
     char* ext = 0;
     char* temp = name;
     while (temp)
-        if (temp = strstr(temp, ".a3da"))
+        if (temp = strstr(temp, a3da_ext))
             ext = temp++;
 
     if (!ext) {
-        strcat_s(name, sizeof(name), ".a3da");
-        ext = strstr(name, ".a3da");
+        strcat_s(name, sizeof(name), a3da_ext);
+        ext = strstr(name, a3da_ext);
     }
 
     for (char* i = name; *i && i != ext; i++) {
@@ -10775,222 +11000,39 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
 }
 #pragma warning(pop)
 
-static void pv_game_dsc_data_find_playdata_item_anim(x_pv_game* xpvgm, int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
-        return;
-
-    x_pv_play_data* playdata = &xpvgm->playdata[chara_id];
-    playdata->motion_data.set_item.clear();
-
-    int32_t pv_branch_mode = 0;
-    int32_t time = -1;
-    int32_t prev_time = -1;
-
-    x_pv_game_dsc_data& dsc_data = xpvgm->pv_data[xpvgm->pv_index].dsc_data;
-    ::dsc_data* i = dsc_data.dsc.data.data();
-    ::dsc_data* i_end = dsc_data.dsc.data.data() + dsc_data.dsc.data.size();
-    while (true) {
-        i = dsc_data.find(DSC_X_ITEM_ANIM, &time, &pv_branch_mode, i, i_end);
-        if (!i)
-            break;
-
-        if (time < 0) {
-            time = prev_time;
-            if (prev_time < 0)
-                break;
-        }
-
-        int32_t* data = dsc_data.dsc.get_func_data(i);
-        if (chara_id == data[0] && data[2] == 2) {
-            x_dsc_set_item item;
-            item.item_index = data[1];
-            item.time = time;
-            item.pv_branch_mode = pv_branch_mode;
-            playdata->motion_data.set_item.push_back(item);
-        }
-        prev_time = time;
-        i++;
-    }
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time) {
+    print_dsc_command(dsc, dsc_data_ptr, &time);
 }
 
-static void pv_game_dsc_data_find_playdata_set_motion(x_pv_game* xpvgm, int32_t chara_id) {
-    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
+    if (dsc_data_ptr->func < 0 || dsc_data_ptr->func >= DSC_X_MAX) {
+        dw_console_printf(DW_CONSOLE_PV_SCRIPT, "UNKNOWN command(%d)\n", dsc_data_ptr->func);
         return;
-
-    x_pv_play_data* playdata = &xpvgm->playdata[chara_id];
-    playdata->motion_data.set_motion.clear();
-
-    int32_t pv_branch_mode = 0;
-    int32_t time = -1;
-    int32_t prev_time = -1;
-
-    x_pv_game_dsc_data& dsc_data = xpvgm->pv_data[xpvgm->pv_index].dsc_data;
-    ::dsc_data* i = dsc_data.dsc.data.data();
-    ::dsc_data* i_end = dsc_data.dsc.data.data() + dsc_data.dsc.data.size();
-    while (true) {
-        i = dsc_data.find(DSC_X_SET_MOTION, &time, &pv_branch_mode, i, i_end);
-        if (!i)
-            break;
-
-        if (time < 0) {
-            time = prev_time;
-            if (prev_time < 0)
-                break;
-        }
-
-        int32_t* data = dsc_data.dsc.get_func_data(i);
-        if (chara_id == data[0]) {
-            x_dsc_set_motion motion;
-            motion.motion_index = data[1];
-            motion.time = time;
-            motion.pv_branch_mode = pv_branch_mode;
-            playdata->motion_data.set_motion.push_back(motion);
-        }
-        prev_time = time;
-        i++;
-    }
-}
-
-static void pv_game_dsc_data_find_set_motion(x_pv_game* xpvgm) {
-    for (std::vector<pv_data_set_motion>& i : xpvgm->set_motion)
-        i.clear();
-
-    std::vector<x_dsc_set_motion> v98[6];
-
-    int32_t pv_branch_mode = 0;
-    int32_t time = -1;
-    int32_t prev_time = -1;
-
-    x_pv_game_dsc_data& dsc_data = xpvgm->pv_data[xpvgm->pv_index].dsc_data;
-    ::dsc_data* i = dsc_data.dsc.data.data();
-    ::dsc_data* i_end = dsc_data.dsc.data.data() + dsc_data.dsc.data.size();
-    while (true) {
-        i = dsc_data.find(DSC_X_SET_PLAYDATA, &time, &pv_branch_mode, i, i_end);
-        if (!i)
-            break;
-
-        if (time < 0)
-            time = prev_time;
-
-        int32_t* data = dsc_data.dsc.get_func_data(i);
-
-        int32_t chara_id = data[0];
-        int32_t motion_index = data[1];
-
-        v98[chara_id].push_back({ time, motion_index, pv_branch_mode });
-
-        prev_time = time;
-        i++;
     }
 
-    pv_branch_mode = 0;
-    time = -1;
-    prev_time = -1;
-
-    i = dsc_data.dsc.data.data();
-    i_end = dsc_data.dsc.data.data() + dsc_data.dsc.data.size();
-    while (true) {
-        i = dsc_data.find(DSC_X_CHANGE_FIELD, &time, &pv_branch_mode, i, i_end);
-        if (!i)
-            break;
-
-        if (time < 0)
-            time = prev_time;
-
-        prev_time = time;
-        i++;
+    if (dsc_data_ptr->func == DSC_X_TIME) {
+        if (time)
+            return;
+    }
+    else {
+        if (time)
+#pragma warning(suppress: 26451)
+            dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%.3f:", (float_t)*time * 0.00001f);
     }
 
-    data_struct* aft_data = &data_list[DATA_AFT];
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    dsc_get_func_length get_func_length = dsc.get_dsc_get_func_length();
 
-    pvpp* play_param = xpvgm->pv_data[xpvgm->pv_index].play_param;
+    dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%s(", dsc_data_ptr->name);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        x_pv_play_data& playdata = xpvgm->playdata[i];
-        std::vector<pv_data_set_motion>& set_motion = xpvgm->set_motion[i];
+    int32_t* data = dsc.get_func_data(dsc_data_ptr);
 
-        for (x_dsc_set_motion& j : playdata.motion_data.set_motion) {
-            int32_t time = -1;
-            int32_t v56 = 0;
+    int32_t length = get_func_length(dsc_data_ptr->func);
+    for (int32_t i = 0; i < length; i++)
+        if (i)
+            dw_console_printf(DW_CONSOLE_PV_SCRIPT, ", %d", ((int32_t*)data)[i]);
+        else
+            dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%d", ((int32_t*)data)[i]);
 
-            x_dsc_set_motion* i_begin = v98[i].data() + v98[i].size();
-            x_dsc_set_motion* i_end = v98[i].data();
-            for (x_dsc_set_motion* i = i_begin; i != i_end; ) {
-                i--;
-
-                if (i->motion_index == j.motion_index && i->time <= j.time) {
-                    time = i->time;
-                    break;
-                }
-            }
-
-            if (time < 0)
-                time = j.time;
-
-            float_t frame = dsc_time_to_frame(((int64_t)j.time - time) * 10000);
-
-            float_t v61 = frame;
-            if (frame >= 0.0f)
-                v61 = frame + 0.5f;
-            else
-                v61 = frame - 0.5f;
-
-            int32_t frame_int = (int32_t)v61;
-            if (v61 != -0.0f && (float_t)frame_int != v61)
-                v61 = (float_t)(v61 < 0.0f ? frame_int - 1 : frame_int);
-
-            uint32_t motion_id = -1;
-            if (i >= 0 && i < play_param->chara.size()) {
-                pvpp_chara& chara = play_param->chara[i];
-                if (j.motion_index > 0 && j.motion_index <= chara.motion.size()) {
-                    string_hash& motion = chara.motion[(size_t)j.motion_index - 1];
-                    motion_id = aft_mot_db->get_motion_id(motion.c_str());
-                }
-            }
-
-            if (motion_id != -1)
-                set_motion.push_back({ motion_id, { v61, -1 } });
-        }
-    }
-
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        if (i < 0 || i >= play_param->chara.size())
-            continue;
-
-        rob_chara* rob_chr = rob_chara_array_get(i);
-        int32_t pv_id = xpvgm->pv_data[xpvgm->pv_index].pv_id;
-
-        std::vector<pv_data_set_motion>& set_motion = xpvgm->set_motion[i];
-        std::vector<osage_init_data> vec;
-        vec.reserve(set_motion.size());
-        for (pv_data_set_motion& j : set_motion) {
-            osage_init_data osage_init;
-            osage_init.rob_chr = rob_chr;
-            osage_init.pv_id = pv_id;
-            osage_init.motion_id = j.motion_id;
-            osage_init.frame = (int32_t)j.frame_stage_index.first;
-            vec.push_back(osage_init);
-        }
-        skin_param_manager_add_task(i, vec);
-    }
-}
-
-static void pv_game_dsc_data_set_motion_max_frame(x_pv_game* xpvgm,
-    int32_t chara_id, int32_t motion_index, int64_t disp_time) {
-    if (chara_id < 0 || chara_id > ROB_CHARA_COUNT || motion_index < 0)
-        return;
-
-    x_pv_play_data* playdata = &xpvgm->playdata[chara_id];
-    int64_t dsc_time = xpvgm->pv_data[xpvgm->pv_index].dsc_data.time;
-    for (x_dsc_set_motion& i : playdata->motion_data.set_motion) {
-        int64_t time = (int64_t)i.time * 10000;
-        if (time > dsc_time && i.motion_index == motion_index
-            && (!xpvgm->branch_mode || xpvgm->branch_mode == i.pv_branch_mode)) {
-            playdata->rob_chr->bone_data->set_motion_max_frame(
-                roundf(dsc_time_to_frame(time - disp_time)) - 1.0f);
-            break;
-        }
-    }
+    dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
 }
 #endif
