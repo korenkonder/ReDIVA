@@ -5388,7 +5388,7 @@ void TaskPvGame::Window() {
 }
 
 void TaskPvGame::Basic() {
-    if (data.type != 2 || pv_game_parent_data.pv_state != 1)
+    if (data.type != 2 || pv_game_parent_data.pv_state != 1 || pv_game_parent_data.init_time)
         return;
 
     if (step_frame)

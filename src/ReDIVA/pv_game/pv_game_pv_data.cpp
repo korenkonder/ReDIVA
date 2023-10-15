@@ -213,7 +213,7 @@ pv_play_data::~pv_play_data() {
 }
 
 pv_play_data_motion* pv_play_data::get_motion(int32_t motion_index) {
-    for (::pv_play_data_motion& i : motion)
+    for (pv_play_data_motion& i : motion)
         if (i.motion_index == motion_index)
             return &i;
     return 0;
@@ -441,7 +441,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     switch (func) {
     case DSC_FT_END: {
-        //play = false;
+        play = false;
         return false;
     }
     case DSC_FT_TIME: {
@@ -1076,7 +1076,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
         }
 
-        bool blend = !(dsc_time / 10000) || (int32_t)(value * 1000.0);
+        bool blend = !(dsc_time / 10000) || (int32_t)(value * 1000.0f);
 
         pv_play_data_set_motion v518;
         v518.frame_speed = frame_speed;
