@@ -907,6 +907,9 @@ static void obj_move_data_skin_bone(obj_skin_bone* bone_dst, const obj_skin_bone
 
 static obj_skin_ex_data* obj_move_data_skin_ex_data(const obj_skin_ex_data* ex_src,
     prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!ex_src)
+        return 0;
+
     obj_skin_ex_data* ex_dst = alloc->allocate<obj_skin_ex_data>();
 
     uint32_t num_osage_node = ex_src->num_osage_node;
