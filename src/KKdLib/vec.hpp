@@ -499,135 +499,6 @@ inline vec2 vec2::store_xmm(const __m128&& data) {
     return _data;
 }
 
-inline __m128 vec3::load_xmm(const float_t data) {
-    __m128 _data = _mm_set_ss(data);
-    return _mm_shuffle_ps(_data, _data, 0x40);
-}
-
-inline __m128 vec3::load_xmm(const vec3& data) {
-    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
-}
-
-inline __m128 vec3::load_xmm(const vec3&& data) {
-    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_set_ss(data.z));
-}
-
-inline vec3 vec3::store_xmm(const __m128& data) {
-    vec3 _data;
-    _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
-    *(int32_t*)&_data.z = _mm_cvtsi128_si32(_mm_srli_si128(_mm_castps_si128(data), 8));
-    return _data;
-}
-
-inline vec3 vec3::store_xmm(const __m128&& data) {
-    vec3 _data;
-    _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
-    *(int32_t*)&_data.z = _mm_cvtsi128_si32(_mm_srli_si128(_mm_castps_si128(data), 8));
-    return _data;
-}
-
-inline __m128 vec4::load_xmm(const float_t data) {
-    __m128 _data = _mm_set_ss(data);
-    return _mm_shuffle_ps(_data, _data, 0);
-}
-
-inline __m128 vec4::load_xmm(const vec4& data) {
-    return _mm_loadu_ps((const float*)&data);
-}
-
-inline __m128 vec4::load_xmm(const vec4&& data) {
-    return _mm_loadu_ps((const float*)&data);
-}
-
-inline vec4 vec4::store_xmm(const __m128& data) {
-    vec4 _data;
-    _mm_storeu_ps((float*)&_data, data);
-    return _data;
-}
-
-inline vec4 vec4::store_xmm(const __m128&& data) {
-    vec4 _data;
-    _mm_storeu_ps((float*)&_data, data);
-    return _data;
-}
-
-inline __m128i vec2i::load_xmm(const int32_t data) {
-    __m128i _data = _mm_cvtsi32_si128(data);
-    return _mm_shuffle_epi32(_data, 0);
-}
-
-inline __m128i vec2i::load_xmm(const vec2i& data) {
-    return _mm_loadl_epi64((const __m128i*) & data);
-}
-
-inline __m128i vec2i::load_xmm(const vec2i&& data) {
-    return _mm_loadl_epi64((const __m128i*) & data);
-}
-
-inline vec2i vec2i::store_xmm(const __m128i& data) {
-    vec2i _data;
-    _mm_storel_epi64((__m128i*) & _data, data);
-    return _data;
-}
-
-inline vec2i vec2i::store_xmm(const __m128i&& data) {
-    vec2i _data;
-    _mm_storel_epi64((__m128i*) & _data, data);
-    return _data;
-}
-
-inline __m128i vec3i::load_xmm(const int32_t data) {
-    __m128i _data = _mm_cvtsi32_si128(data);
-    return _mm_shuffle_epi32(_data, 0);
-}
-
-inline __m128i vec3i::load_xmm(const vec3i& data) {
-    return _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) & data), _mm_cvtsi32_si128(data.z));
-}
-
-inline __m128i vec3i::load_xmm(const vec3i&& data) {
-    return _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) & data), _mm_cvtsi32_si128(data.z));
-}
-
-inline vec3i vec3i::store_xmm(const __m128i& data) {
-    vec3i _data;
-    _mm_storel_epi64((__m128i*) & _data, data);
-    _data.z = _mm_cvtsi128_si32(_mm_srli_si128(data, 8));
-    return _data;
-}
-
-inline vec3i vec3i::store_xmm(const __m128i&& data) {
-    vec3i _data;
-    _mm_storel_epi64((__m128i*) & _data, data);
-    _data.z = _mm_cvtsi128_si32(_mm_srli_si128(data, 8));
-    return _data;
-}
-
-inline __m128i vec4i::load_xmm(const int32_t data) {
-    __m128i _data = _mm_cvtsi32_si128(data);
-    return _mm_shuffle_epi32(_data, 0);
-}
-
-inline __m128i vec4i::load_xmm(const vec4i& data) {
-    return _mm_loadu_si128((const __m128i*)&data);
-}
-
-inline __m128i vec4i::load_xmm(const vec4i&& data) {
-    return _mm_loadu_si128((const __m128i*)&data);
-}
-
-inline vec4i vec4i::store_xmm(const __m128i& data) {
-    vec4i _data;
-    _mm_storeu_si128((__m128i*)&_data, data);
-    return _data;
-}
-
-inline vec4i vec4i::store_xmm(const __m128i&& data) {
-    vec4i _data;
-    _mm_storeu_si128((__m128i*)&_data, data);
-    return _data;
-}
-
 inline vec2 operator +(const vec2& left, const vec2& right) {
     return vec2::store_xmm(_mm_add_ps(vec2::load_xmm(left), vec2::load_xmm(right)));
 }
@@ -1039,17 +910,40 @@ inline bool operator !=(const vec3& left, const vec3& right) {
     return !!memcmp(&left, &right, sizeof(vec3));
 }
 
+inline __m128 vec3::load_xmm(const float_t data) {
+    __m128 _data = _mm_set_ss(data);
+    return _mm_shuffle_ps(_data, _data, 0x40);
+}
+
+inline __m128 vec3::load_xmm(const vec3& data) {
+    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_load_ss(&data.z));
+}
+
+inline __m128 vec3::load_xmm(const vec3&& data) {
+    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_load_ss(&data.z));
+}
+
+inline vec3 vec3::store_xmm(const __m128& data) {
+    vec3 _data;
+    _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
+    _mm_store_ss(&_data.z, _mm_castsi128_ps(_mm_srli_si128(_mm_castps_si128(data), 8)));
+    return _data;
+}
+
+inline vec3 vec3::store_xmm(const __m128&& data) {
+    vec3 _data;
+    _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
+    _mm_store_ss(&_data.z, _mm_castsi128_ps(_mm_srli_si128(_mm_castps_si128(data), 8)));
+    return _data;
+}
+
 inline float_t vec3::angle(const vec3& left, const vec3& right) {
     return acosf(vec3::dot(left, right) / (vec3::length(left) * vec3::length(right)));
 }
 
 inline float_t vec3::dot(const vec3& left, const vec3& right) {
-    __m128 xt;
-    __m128 yt;
     __m128 zt;
-    xt = vec3::load_xmm(left);
-    yt = vec3::load_xmm(right);
-    zt = _mm_mul_ps(xt, yt);
+    zt = _mm_mul_ps(vec3::load_xmm(left), vec3::load_xmm(right));
     zt = _mm_hadd_ps(zt, zt);
     return _mm_cvtss_f32(_mm_hadd_ps(zt, zt));
 }
@@ -1349,6 +1243,31 @@ inline bool operator !=(const vec4& left, const vec4& right) {
     return !!memcmp(&left, &right, sizeof(vec4));
 }
 
+inline __m128 vec4::load_xmm(const float_t data) {
+    __m128 _data = _mm_set_ss(data);
+    return _mm_shuffle_ps(_data, _data, 0);
+}
+
+inline __m128 vec4::load_xmm(const vec4& data) {
+    return _mm_loadu_ps((const float*)&data);
+}
+
+inline __m128 vec4::load_xmm(const vec4&& data) {
+    return _mm_loadu_ps((const float*)&data);
+}
+
+inline vec4 vec4::store_xmm(const __m128& data) {
+    vec4 _data;
+    _mm_storeu_ps((float*)&_data, data);
+    return _data;
+}
+
+inline vec4 vec4::store_xmm(const __m128&& data) {
+    vec4 _data;
+    _mm_storeu_ps((float*)&_data, data);
+    return _data;
+}
+
 inline float_t vec4::angle(const vec4& left, const vec4& right) {
     return acosf(vec4::dot(left, right) / (vec4::length(left) * vec4::length(right)));
 }
@@ -1526,6 +1445,31 @@ inline vec2i operator -(const int32_t left, const vec2i& right) {
     return vec2i::store_xmm(_mm_sub_epi32(vec2i::load_xmm(left), vec2i::load_xmm(right)));
 }
 
+inline __m128i vec2i::load_xmm(const int32_t data) {
+    __m128i _data = _mm_cvtsi32_si128(data);
+    return _mm_shuffle_epi32(_data, 0);
+}
+
+inline __m128i vec2i::load_xmm(const vec2i& data) {
+    return _mm_loadl_epi64((const __m128i*) & data);
+}
+
+inline __m128i vec2i::load_xmm(const vec2i&& data) {
+    return _mm_loadl_epi64((const __m128i*) & data);
+}
+
+inline vec2i vec2i::store_xmm(const __m128i& data) {
+    vec2i _data;
+    _mm_storel_epi64((__m128i*) & _data, data);
+    return _data;
+}
+
+inline vec2i vec2i::store_xmm(const __m128i&& data) {
+    vec2i _data;
+    _mm_storel_epi64((__m128i*) & _data, data);
+    return _data;
+}
+
 inline vec2i vec2i::min(const vec2i& left, const vec2i& right) {
     return vec2i::store_xmm(_mm_min_epi32(vec2i::load_xmm(left), vec2i::load_xmm(right)));
 }
@@ -1580,6 +1524,33 @@ inline vec3i operator -(const int32_t left, const vec3i& right) {
     return vec3i::store_xmm(_mm_sub_epi32(vec3i::load_xmm(left), vec3i::load_xmm(right)));
 }
 
+inline __m128i vec3i::load_xmm(const int32_t data) {
+    __m128i _data = _mm_cvtsi32_si128(data);
+    return _mm_shuffle_epi32(_data, 0);
+}
+
+inline __m128i vec3i::load_xmm(const vec3i& data) {
+    return _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) & data), _mm_cvtsi32_si128(data.z));
+}
+
+inline __m128i vec3i::load_xmm(const vec3i&& data) {
+    return _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) & data), _mm_cvtsi32_si128(data.z));
+}
+
+inline vec3i vec3i::store_xmm(const __m128i& data) {
+    vec3i _data;
+    _mm_storel_epi64((__m128i*) & _data, data);
+    _data.z = _mm_cvtsi128_si32(_mm_srli_si128(data, 8));
+    return _data;
+}
+
+inline vec3i vec3i::store_xmm(const __m128i&& data) {
+    vec3i _data;
+    _mm_storel_epi64((__m128i*) & _data, data);
+    _data.z = _mm_cvtsi128_si32(_mm_srli_si128(data, 8));
+    return _data;
+}
+
 inline vec3i vec3i::min(const vec3i& left, const vec3i& right) {
     return vec3i::store_xmm(_mm_min_epi32(vec3i::load_xmm(left), vec3i::load_xmm(right)));
 }
@@ -1632,6 +1603,31 @@ inline vec4i operator -(const vec4i& left, const int32_t right) {
 
 inline vec4i operator -(const int32_t left, const vec4i& right) {
     return vec4i::store_xmm(_mm_sub_epi32(vec4i::load_xmm(left), vec4i::load_xmm(right)));
+}
+
+inline __m128i vec4i::load_xmm(const int32_t data) {
+    __m128i _data = _mm_cvtsi32_si128(data);
+    return _mm_shuffle_epi32(_data, 0);
+}
+
+inline __m128i vec4i::load_xmm(const vec4i& data) {
+    return _mm_loadu_si128((const __m128i*) & data);
+}
+
+inline __m128i vec4i::load_xmm(const vec4i&& data) {
+    return _mm_loadu_si128((const __m128i*) & data);
+}
+
+inline vec4i vec4i::store_xmm(const __m128i& data) {
+    vec4i _data;
+    _mm_storeu_si128((__m128i*) & _data, data);
+    return _data;
+}
+
+inline vec4i vec4i::store_xmm(const __m128i&& data) {
+    vec4i _data;
+    _mm_storeu_si128((__m128i*) & _data, data);
+    return _data;
 }
 
 inline vec4i vec4i::min(const vec4i& left, const vec4i& right) {

@@ -1727,7 +1727,7 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
             obj_skin_bone* bone = skin->bone_array;
             for (uint32_t j = 0; j < skin->num_bone; j++, bone++)
                 if (bone->id == osg_nodes->name_index) {
-                    mat4_inverse_normalized(&bone->inv_bind_pose_mat, &v26[i].mat);
+                    mat4_invert_fast(&bone->inv_bind_pose_mat, &v26[i].mat);
                     break;
                 }
 
@@ -2365,7 +2365,7 @@ void ExConstraintBlock::Calc() {
         mat4_get_translation(&mat, &trans);
 
         mat3 rot;
-        mat3_from_mat4(source_node_bone_node->mat, &rot);
+        mat4_to_mat3(source_node_bone_node->mat, &rot);
         mat3_normalize_rotation(&rot, &rot);
         mat3_mul_rotate_zyx(&rot, &orientation->offset, &rot);
         mat4_from_mat3(&rot, node->mat);
@@ -2460,7 +2460,7 @@ void ExConstraintBlock::DataSet() {
     vec3 parent_scale = parent_bone_node->exp_data.parent_scale;
 
     mat4 mat;
-    mat4_inverse_normalized(parent_bone_node->ex_data_mat, &mat);
+    mat4_invert_fast(parent_bone_node->ex_data_mat, &mat);
     mat4_mul(bone_node_ptr->mat, &mat, &mat);
     mat4_get_rotation(&mat, &exp_data->rotation);
     mat4_get_translation(&mat, &exp_data->position);
@@ -3116,7 +3116,7 @@ static void sub_140219940(RobCloth* rob_cls) {
 
         mat4_mul_translate(&m, &root_node.trans_orig, &m);
         root.field_D8 = m;
-        mat4_inverse(&m, &m);
+        mat4_invert(&m, &m);
         root.field_118 = m;
     }
 }

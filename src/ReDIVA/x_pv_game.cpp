@@ -8872,7 +8872,7 @@ static void x_pv_game_split_auth_3d_hrc_material_list(x_pv_game* xpvgm,
                         obj_skin_bone* hrc_bone = hrc_bones_elem->second;
                         mat4 rot_mat;
                         mat4_clear_trans(&hrc_bone->inv_bind_pose_mat, &rot_mat);
-                        mat4_invrot(&rot_mat, &rot_mat);
+                        mat4_invert_rotation(&rot_mat, &rot_mat);
 
                         vec3 rot_mat_rot;
                         mat4_get_rotation(&rot_mat, &rot_mat_rot);

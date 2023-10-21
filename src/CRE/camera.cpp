@@ -340,7 +340,7 @@ void camera::update_data() {
 
     if (changed_proj || changed_view) {
         mat4_mul(&view, &projection, &view_projection);
-        mat4_inverse(&view_projection, &inv_view_projection);
+        mat4_invert(&view_projection, &inv_view_projection);
     }
 
     changed_proj = false;
@@ -356,7 +356,7 @@ static void camera_calculate_forward(camera* c) {
 
 static void camera_calculate_projection(camera* c) {
     mat4_persp(c->fov_rad, c->aspect, c->min_distance, c->max_distance, &c->projection);
-    mat4_inverse(&c->projection, &c->inv_projection);
+    mat4_invert(&c->projection, &c->inv_projection);
 
     resolution_struct* res_wind_int = res_window_internal_get();
 
@@ -443,7 +443,7 @@ static void camera_calculate_view(camera* c) {
         *(vec3*)&c->inv_view.row0 = x_axis;
         *(vec3*)&c->inv_view.row1 = y_axis;
         *(vec3*)&c->inv_view.row2 = z_axis;
-        mat4_inverse(&c->inv_view, &c->view);
+        mat4_invert(&c->inv_view, &c->view);
         mat4_get_rotation(&c->inv_view, &c->rotation);
     }
     else {
@@ -461,11 +461,11 @@ static void camera_calculate_view(camera* c) {
 
         mat4_rotate_zxy(&rotation, &c->view);
         mat4_mul_translate(&c->view, &view_point, &c->view);
-        mat4_inverse(&c->view, &c->inv_view);
+        mat4_invert(&c->view, &c->inv_view);
     }
 
-    mat3_from_mat4(&c->view, &c->view_mat3);
-    mat3_inverse(&c->view_mat3, &c->inv_view_mat3);
+    mat4_to_mat3(&c->view, &c->view_mat3);
+    mat3_invert(&c->view_mat3, &c->inv_view_mat3);
     mat4_from_mat3(&c->view_mat3, &c->view_rot);
     mat4_from_mat3(&c->inv_view_mat3, &c->inv_view_rot);
 

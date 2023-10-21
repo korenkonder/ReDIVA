@@ -4974,7 +4974,7 @@ static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, boo
 
                 if (bone_data_mult_1_ik(a1, a3)) {
                     mat4 rot_mat;
-                    mat4_invrot_normalized(&mat, &rot_mat);
+                    mat4_invert_rotation_fast(&mat, &rot_mat);
                     mat4_mul(a1->node[0].mat, &rot_mat, &rot_mat);
                     mat4_clear_trans(&rot_mat, &rot_mat);
                     mat4_get_rotation(&rot_mat, &a1->node[0].exp_data.rotation);
@@ -8360,7 +8360,7 @@ static void sub_140409B70(rob_chara_look_anim* look_anim,
         look_anim->field_190 = true;
 
         mat4 mat;
-        mat4_inverse(adjust_mat, &mat);
+        mat4_invert(adjust_mat, &mat);
 
         vec3 v24;
         mat4_transform_point(&mat, target_view_point, &v24);
@@ -8574,7 +8574,7 @@ static void sub_140407280(rob_chara_look_anim* look_anim, std::vector<bone_data>
     head_rot_axis.x = n_kao_mat->row2.x * 0.5f;
     head_rot_axis.y = (n_kao_mat->row2.y + 1.0f) * 0.5f;
     head_rot_axis.z = n_kao_mat->row2.z * 0.5f;
-    mat4_mult_axis_angle(&cl_kao_mat, &head_rot_axis, head_rot_angle, &cl_kao_mat);
+    mat4_mul_rotation(&cl_kao_mat, &head_rot_axis, head_rot_angle, &cl_kao_mat);
     mat4_inverse_transform_point(&cl_kao_mat, &look_anim->field_184, &v67);
 
     float_t v52;
@@ -8619,7 +8619,7 @@ static void sub_140407280(rob_chara_look_anim* look_anim, std::vector<bone_data>
     mat4 cl_kao_mat_backup = bones[MOTION_BONE_CL_KAO].rot_mat[1];
 
     mat4 v74;
-    mat4_inverse(bones[MOTION_BONE_CL_KAO].node->mat, &v74);
+    mat4_invert(bones[MOTION_BONE_CL_KAO].node->mat, &v74);
     mat4_clear_trans(&v74, &v74);
     mat4_clear_trans(&cl_kao_mat, &cl_kao_mat);
     mat4_mul(&cl_kao_mat, &v74, &bones[MOTION_BONE_CL_KAO].rot_mat[1]);
@@ -8718,7 +8718,7 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
 
     look_anim->view_point = look_anim->target_view_point;
     mat4 v61;
-    mat4_inverse(adjust_mat, &v61);
+    mat4_invert(adjust_mat, &v61);
     mat4_transform_point(&v61, &look_anim->view_point, &look_anim->view_point);
 
     mat4* kl_eye_l_parent_mat = bones[MOTION_BONE_KL_EYE_L].parent_mat;

@@ -500,7 +500,7 @@ void light_set::data_set(face& face, light_set_id id) {
                 if (length != 0.0f)
                     axis *= 1.0f / length;
 
-                mat4_from_axis_angle(&axis, -angle, &normal_tangent_transforms);
+                mat4_set(&axis, -angle, &normal_tangent_transforms);
             }
         }
     }

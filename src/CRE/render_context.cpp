@@ -1496,8 +1496,9 @@ namespace mdl {
             vec3 axis;
             float_t angle;
             Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
-            mat4 m;
-            mat4_mult_axis_angle(&mat4_identity, &axis, angle, &m);
+
+            mat4 m = mat4_identity;
+            mat4_mul_rotation(&m, &axis, angle, &m);
             mat4_mul(&m, &mat, &mat);
 
             indexed = true;
@@ -1515,8 +1516,9 @@ namespace mdl {
             vec3 axis;
             float_t angle;
             Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
-            mat4 m;
-            mat4_mult_axis_angle(&mat4_identity, &axis, angle, &m);
+
+            mat4 m = mat4_identity;
+            mat4_mul_rotation(&m, &axis, angle, &m);
             mat4_mul(&m, &mat, &mat);
 
             indexed = true;
@@ -3339,7 +3341,7 @@ void obj_scene_shader_data::set_projection_view(const mat4& view, const mat4& pr
     g_view[1] = temp.row1;
     g_view[2] = temp.row2;
 
-    mat4_inverse(&view, &temp);
+    mat4_invert(&view, &temp);
     mat4_transpose(&temp, &temp);
     g_view_inverse[0] = temp.row0;
     g_view_inverse[1] = temp.row1;
@@ -3360,7 +3362,7 @@ void obj_batch_shader_data::set_g_joint(const mat4& mat) {
     g_joint[1] = temp.row1;
     g_joint[2] = temp.row2;
 
-    mat4_inverse(&mat, &temp);
+    mat4_invert(&mat, &temp);
     mat4_transpose(&temp, &temp);
     g_joint_inverse[0] = temp.row0;
     g_joint_inverse[1] = temp.row1;
@@ -3383,7 +3385,7 @@ void obj_batch_shader_data::set_transforms(const mat4& model, const mat4& view, 
     g_worlds[1] = temp.row1;
     g_worlds[2] = temp.row2;
 
-    mat4_inverse(&model, &temp);
+    mat4_invert(&model, &temp);
     g_worlds_invtrans[0] = temp.row0;
     g_worlds_invtrans[1] = temp.row1;
     g_worlds_invtrans[2] = temp.row2;
@@ -3396,7 +3398,7 @@ void obj_batch_shader_data::set_transforms(const mat4& model, const mat4& view, 
     g_worldview[1] = temp.row1;
     g_worldview[2] = temp.row2;
 
-    mat4_inverse(&mv, &temp);
+    mat4_invert(&mv, &temp);
     mat4_transpose(&temp, &temp);
     g_worldview_inverse[0] = temp.row0;
     g_worldview_inverse[1] = temp.row1;

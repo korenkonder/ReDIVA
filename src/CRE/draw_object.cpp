@@ -513,7 +513,7 @@ inline void draw_object_model_mat_load(render_context* rctx, const mat4& mat) {
 
 inline void model_mat_face_camera_position(const mat4* view, const mat4* src, mat4* dst) {
     mat4 mat;
-    mat4_inverse_normalized(view, &mat);
+    mat4_invert_fast(view, &mat);
 
     vec3 dir = vec3::normalize(*(vec3*)&mat.row3 - *(vec3*)&src->row3);
 
@@ -537,8 +537,8 @@ inline void model_mat_face_camera_position(const mat4* view, const mat4* src, ma
 
 inline void model_mat_face_camera_view(const mat4* view, const mat4* src, mat4* dst) {
     mat3 mat;
-    mat3_from_mat4(view, &mat);
-    mat3_inverse(&mat, &mat);
+    mat4_to_mat3(view, &mat);
+    mat3_invert(&mat, &mat);
     mat4_from_mat3(&mat, dst);
     mat4_mul(dst, src, dst);
 }

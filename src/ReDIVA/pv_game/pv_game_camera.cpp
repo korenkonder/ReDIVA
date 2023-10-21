@@ -132,8 +132,8 @@ void pv_game_camera_set_dsc_data(float_t duration, pv_game_camera_dsc_data& star
         pv_game_camera_data.view_direction = start_direction;
         pv_game_camera_data.up_vec = start.up_vec;
 
-        mat4_from_two_vectors(&start_direction, &end_direction, &pv_game_camera_data.dir_mat);
-        mat4_from_two_vectors(&start.up_vec, &end.up_vec, &pv_game_camera_data.up_mat);
+        mat4_set(&start_direction, &end_direction, &pv_game_camera_data.dir_mat);
+        mat4_set(&start.up_vec, &end.up_vec, &pv_game_camera_data.up_mat);
     }
 
     pv_game_camera_data.duration = duration;

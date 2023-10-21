@@ -349,7 +349,7 @@ namespace Glitter {
             vec3 axis;
             float_t angle;
             axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
-            mat4_mult_axis_angle(&mat, &axis, angle, &mat);
+            mat4_mul_rotation(&mat, &axis, angle, &mat);
         }
         else
             mat4_rotate_z((float_t)M_PI, &mat);
@@ -373,7 +373,7 @@ namespace Glitter {
             vec3 axis;
             float_t angle;
             axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
-            mat4_mult_axis_angle(&mat, &axis, angle, &mat);
+            mat4_mul_rotation(&mat, &axis, angle, &mat);
         }
         return mat;
     }
@@ -733,8 +733,8 @@ namespace Glitter {
         float_t angle;
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
-        mat4 mat;
-        mat4_mult_axis_angle(&mat4_identity, &axis, angle, &mat);
+        mat4 mat = mat4_identity;
+        mat4_mul_rotation(&mat, &axis, angle, &mat);
         return mat;
     }
 
@@ -753,8 +753,8 @@ namespace Glitter {
         float_t angle;
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
-        mat4 mat;
-        mat4_mult_axis_angle(&mat4_identity, &axis, angle, &mat);
+        mat4 mat = mat4_identity;
+        mat4_mul_rotation(&mat, &axis, angle, &mat);
         return mat;
     }
 
@@ -775,8 +775,8 @@ namespace Glitter {
         float_t angle;
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
-        mat4 mat;
-        mat4_mult_axis_angle(&mat4_identity, &axis, angle, &mat);
+        mat4 mat = mat4_identity;
+        mat4_mul_rotation(&mat, &axis, angle, &mat);
         return mat;
     }
 
@@ -795,8 +795,8 @@ namespace Glitter {
         float_t angle;
         axis_angle_from_vectors(&axis, &angle, &vec1, &vec2);
 
-        mat4 mat;
-        mat4_mult_axis_angle(&mat4_identity, &axis, angle, &mat);
+        mat4 mat = mat4_identity;
+        mat4_mul_rotation(&mat, &axis, angle, &mat);
         return mat;
     }
 }

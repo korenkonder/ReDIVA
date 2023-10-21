@@ -297,7 +297,7 @@ namespace Glitter {
                 scale.z = 0.0f;
             mat4_transform_vector(&rend_group->mat_rot, &scale, &scale);
 
-            mat3_from_mat4(&rend_group->mat, &model_mat);
+            mat4_to_mat3(&rend_group->mat, &model_mat);
             mat3_normalize_rotation(&model_mat, &model_mat);
         }
         else
@@ -420,7 +420,7 @@ namespace Glitter {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
             mat4_mul(&view_mat, &GPM_VAL->cam.view, &view_mat);
-            mat4_inverse(&view_mat, &inv_view_mat);
+            mat4_invert(&view_mat, &inv_view_mat);
         }
         else {
             model_mat = mat4_identity;
@@ -431,7 +431,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_LOCAL) {
             mat4_mul(&inv_view_mat, &rend_group->mat, &inv_view_mat);
             mat4_mul(&view_mat, &inv_view_mat, &view_mat);
-            mat4_inverse(&view_mat, &inv_view_mat);
+            mat4_invert(&view_mat, &inv_view_mat);
         }
 
         mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
@@ -486,7 +486,7 @@ namespace Glitter {
     void F2RenderScene::CalcDispQuadDirectionRotation(
         F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
-        mat4_inverse(model_mat, &inv_model_mat);
+        mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
 
         vec3 x_vec_base = { 1.0f, 0.0f, 0.0f };
@@ -614,7 +614,7 @@ namespace Glitter {
     void F2RenderScene::CalcDispQuadNormal(GPM,
         F2RenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
-        mat4_inverse(model_mat, &inv_model_mat);
+        mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
 
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
@@ -628,7 +628,7 @@ namespace Glitter {
             dist_to_cam = GPM_VAL->cam.view_point - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
-                mat4_inverse(&z_offset_inv_mat, &z_offset_inv_mat);
+                mat4_invert(&z_offset_inv_mat, &z_offset_inv_mat);
             }
         }
 
@@ -1306,7 +1306,7 @@ namespace Glitter {
             if (!(has_scale |= fabsf(scale.z) > 0.000001f ? true : false))
                 scale.z = 0.0f;
 
-            mat3_from_mat4(&rend_group->mat, &model_mat);
+            mat4_to_mat3(&rend_group->mat, &model_mat);
             mat3_normalize_rotation(&model_mat, &model_mat);
         }
         else
@@ -1433,7 +1433,7 @@ namespace Glitter {
             model_mat = rend_group->mat;
             mat4_normalize_rotation(&model_mat, &view_mat);
             mat4_mul(&view_mat, &GPM_VAL->cam.view, &view_mat);
-            mat4_inverse(&view_mat, &inv_view_mat);
+            mat4_invert(&view_mat, &inv_view_mat);
 
             emitter_local = true;
             if (rend_group->flags & PARTICLE_SCALE) {
@@ -1451,7 +1451,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_LOCAL) {
             mat4_mul(&inv_view_mat, &rend_group->mat, &inv_view_mat);
             mat4_mul(&view_mat, &inv_view_mat, &view_mat);
-            mat4_inverse(&view_mat, &inv_view_mat);
+            mat4_invert(&view_mat, &inv_view_mat);
             local = true;
         }
         mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
@@ -1625,7 +1625,7 @@ namespace Glitter {
             else
                 mat4_normalize_rotation(&rend_group->mat, &view_mat);
             mat4_mul(&view_mat, &GPM_VAL->cam.view, &view_mat);
-            mat4_inverse(&view_mat, &inv_view_mat);
+            mat4_invert(&view_mat, &inv_view_mat);
         }
         else {
             model_mat = mat4_identity;
@@ -1637,7 +1637,7 @@ namespace Glitter {
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL)
                 mat4_mul(&inv_view_mat, &rend_group->mat, &inv_view_mat);
             mat4_mul(&view_mat, &inv_view_mat, &view_mat);
-            mat4_inverse(&view_mat, &inv_view_mat);
+            mat4_invert(&view_mat, &inv_view_mat);
         }
         mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
 
@@ -1680,7 +1680,7 @@ namespace Glitter {
 
     void XRenderScene::CalcDispQuadDirectionRotation(XRenderGroup* rend_group, mat4* model_mat) {
         mat4 inv_model_mat;
-        mat4_inverse(model_mat, &inv_model_mat);
+        mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
 
         vec3 x_vec_base = { 1.0f, 0.0f, 0.0f };
@@ -1807,7 +1807,7 @@ namespace Glitter {
 
     void XRenderScene::CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
         mat4 inv_model_mat;
-        mat4_inverse(model_mat, &inv_model_mat);
+        mat4_invert(model_mat, &inv_model_mat);
         mat4_clear_trans(&inv_model_mat, &inv_model_mat);
 
         vec3 x_vec = { 1.0f, 0.0f, 0.0f };
@@ -1821,7 +1821,7 @@ namespace Glitter {
             dist_to_cam = GPM_VAL->cam.view_point - dist_to_cam;
             if (rend_group->flags & PARTICLE_EMITTER_LOCAL) {
                 mat4_normalize_rotation(model_mat, &z_offset_inv_mat);
-                mat4_inverse(&z_offset_inv_mat, &z_offset_inv_mat);
+                mat4_invert(&z_offset_inv_mat, &z_offset_inv_mat);
             }
         }
 

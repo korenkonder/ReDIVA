@@ -1284,7 +1284,7 @@ namespace spr {
                     vec3 v42[4];
                     mat4 mat;
                     calc_sprite_vertex(args, v42, &mat, font);
-                    mat4_inverse(&mat, &mat);
+                    mat4_invert(&mat, &mat);
                     mat4_transform_point(&mat, &vtx[0], &v42[0]);
                     mat4_transform_point(&mat, &vtx[1], &v42[1]);
                     mat4_transform_point(&mat, &vtx[2], &v42[2]);
