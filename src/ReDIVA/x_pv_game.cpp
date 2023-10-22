@@ -3588,7 +3588,7 @@ void x_pv_game_pv_data::init(class x_pv_game* pv_game, bool music_play) {
 
     pv_end = false;
     scene_rot_y = 0.0f;
-    scene_rot_mat = mat4_identity;;
+    scene_rot_mat = mat4_identity;
 
     play = true;
 
@@ -10884,7 +10884,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
                 }
 
             if (!object)
-                return;;
+                return;
 
             auto elem = material_colors.find(material_object.second);
             if (elem == material_colors.end())
@@ -11019,7 +11019,7 @@ static void x_pv_game_split_auth_3d_material_list(x_pv_game* xpvgm,
         x_pv_game_split_auth_3d_write_auth_3d(i.first);
 
     for (auto& i : stage_data_change_effect_auth_3ds)
-        x_pv_game_split_auth_3d_write_auth_3d(i.first); 
+        x_pv_game_split_auth_3d_write_auth_3d(i.first);
 }
 #pragma warning(pop)
 

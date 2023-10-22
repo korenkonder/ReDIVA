@@ -10690,7 +10690,7 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
 
     motion_blend_mot* v3 = rob_bone_data->motion_loaded.front();
 
-    auto i_begin = rob_bone_data->motion_loaded.rbegin();;
+    auto i_begin = rob_bone_data->motion_loaded.rbegin();
     auto i_end = rob_bone_data->motion_loaded.rend();
     for (auto i = i_begin; i != i_end; i++) {
         if (!sub_1404136B0(*i))
@@ -10701,7 +10701,7 @@ static void sub_1404182B0(rob_chara_bone_data* rob_bone_data) {
         sub_140410A40(*i, &(*v4)->bone_data.bones, &(*i)->bone_data.bones);
     }
 
-    auto j_begin = rob_bone_data->motion_loaded.rbegin();;
+    auto j_begin = rob_bone_data->motion_loaded.rbegin();
     auto j_end = rob_bone_data->motion_loaded.rend();
     for (auto j = j_begin; j != j_end; j++) {
         if (sub_1404136B0(*j))

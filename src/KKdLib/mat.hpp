@@ -85,6 +85,23 @@ struct mat3 {
     void get_scale(vec3& out_s) const;
     float_t get_max_scale() const;
 
+    inline void transform_vector(vec2& normalInOut) const {
+        transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void transform_vector(vec3& normalInOut) const {
+        transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void inverse_transform_vector(vec2& normalInOut) const {
+        inverse_transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void inverse_transform_vector(vec3& normalInOut) const {
+        inverse_transform_vector(normalInOut, normalInOut);
+    }
+
+
     inline void transpose() {
         transpose(*this);
     }
@@ -113,64 +130,76 @@ struct mat3 {
         normalize_rotation();
     }
 
-    inline void mat3_rotate_xyz(const vec3& rad) {
+    inline void rotate_xyz(const vec3& rad) {
         rotate_xyz(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_rotate_xzy(const vec3& rad) {
+    inline void rotate_xzy(const vec3& rad) {
         rotate_xzy(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_rotate_yxz(const vec3& rad) {
+    inline void rotate_yxz(const vec3& rad) {
         rotate_yxz(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_rotate_yzx(const vec3& rad) {
+    inline void rotate_yzx(const vec3& rad) {
         rotate_yzx(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_rotate_zxy(const vec3& rad) {
+    inline void rotate_zxy(const vec3& rad) {
         rotate_zxy(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_rotate_zyx(const vec3& rad) {
+    inline void rotate_zyx(const vec3& rad) {
         rotate_zyx(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_mul_rotate_xyz(const vec3& rad) {
+    inline void mul_rotate_xyz(const vec3& rad) {
         mul_rotate_xyz(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_mul_rotate_xzy(const vec3& rad) {
+    inline void mul_rotate_xzy(const vec3& rad) {
         mul_rotate_xzy(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_mul_rotate_yxz(const vec3& rad) {
+    inline void mul_rotate_yxz(const vec3& rad) {
         mul_rotate_yxz(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_mul_rotate_yzx(const vec3& rad) {
+    inline void mul_rotate_yzx(const vec3& rad) {
         mul_rotate_yzx(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_mul_rotate_zxy(const vec3& rad) {
+    inline void mul_rotate_zxy(const vec3& rad) {
         mul_rotate_zxy(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_mul_rotate_zyx(const vec3& rad) {
+    inline void mul_rotate_zyx(const vec3& rad) {
         mul_rotate_zyx(rad.x, rad.y, rad.z);
     }
 
-    inline void mat3_scale(const vec3& s) {
+    inline void scale(const vec3& s) {
         scale(s.x, s.y, s.z);
     }
 
-    inline void mat3_mul_scale(float_t s) {
+    inline void mul_scale(float_t s) {
         mul_scale(s, s, s);
     }
 
-    inline void mat3_mul_scale(const vec3& s) {
+    inline void mul_scale(const vec3& s) {
         mul_scale(s.x, s.y, s.z);
+    }
+
+    inline vec3 get_scale() const {
+        vec3 out_s;
+        get_scale(out_s);
+        return out_s;
+    }
+
+    inline vec3 get_rotation() const {
+        vec3 out_rad;
+        get_rotation(out_rad);
+        return out_rad;
     }
 };
 
@@ -310,6 +339,46 @@ struct mat4 {
     void look_at(const vec3& eye, const vec3& target, const vec3& up);
     void look_at(const vec3& eye, const vec3& target);
 
+    inline void transform_vector(vec2& normalInOut) const {
+        transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void transform_vector(vec3& normalInOut) const {
+        transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void transform_vector(vec4& normalInOut) const {
+        transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void transform_point(vec2& pointInOut) const {
+        transform_point(pointInOut, pointInOut);
+    }
+
+    inline void transform_point(vec3& pointInOut) const {
+        transform_point(pointInOut, pointInOut);
+    }
+
+    inline void inverse_transform_vector(vec2& normalInOut) const {
+        inverse_transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void inverse_transform_vector(vec3& normalInOut) const {
+        inverse_transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void inverse_transform_vector(vec4& normalInOut) const {
+        inverse_transform_vector(normalInOut, normalInOut);
+    }
+
+    inline void inverse_transform_point(vec2& pointInOut) const {
+        inverse_transform_point(pointInOut, pointInOut);
+    }
+
+    inline void inverse_transform_point(vec3& pointInOut) const {
+        inverse_transform_point(pointInOut, pointInOut);
+    }
+
     inline void transpose() {
         transpose(*this);
     }
@@ -428,6 +497,36 @@ struct mat4 {
 
     inline void add_translate(const vec3& t) {
         add_translate(t.x, t.y, t.z);
+    }
+
+    inline void clear_rot(const mat4& in_m1) {
+        if (this != &in_m1)
+            *this = in_m1;
+        clear_rot();
+    }
+
+    inline void clear_trans(const mat4& in_m1) {
+        if (this != &in_m1)
+            *this = in_m1;
+        clear_trans();
+    }
+
+    inline vec3 get_scale() const {
+        vec3 out_s;
+        get_scale(out_s);
+        return out_s;
+    }
+
+    inline vec3 get_rotation() const {
+        vec3 out_rad;
+        get_rotation(out_rad);
+        return out_rad;
+    }
+
+    inline vec3 get_translation() const {
+        vec3 out_t;
+        get_translation(out_t);
+        return out_t;
     }
 };
 
