@@ -2347,6 +2347,16 @@ void ExConstraintBlock::Field_50() {
     Field_20();
 }
 
+static void sub_1401EB410(mat4& mat, vec3& in_v1, vec3& in_v2) {
+    const vec3 v1 = vec3::normalize(in_v1);
+    const vec3 v2 = vec3::normalize(in_v2);
+    const vec3 axis = vec3::cross(v2, v1);
+
+    float_t s = clamp_def(vec3::dot(v2, v1), -1.0f, 1.0f);
+    float_t c = sqrtf(clamp_def(1.0f - s * s, 0.0f, 1.0f));
+    mat.set(axis, s, c);
+}
+
 void ExConstraintBlock::Calc() {
     bone_node* node = bone_node_ptr;
     if (!node)
@@ -2383,7 +2393,7 @@ void ExConstraintBlock::Calc() {
             break;
 
         mat4 v59;
-        sub_1401EB410(&v59, &align_axis, &target_offset);
+        sub_1401EB410(v59, align_axis, target_offset);
         if (direction_up_vector_bone_node) {
             vec3 affected_axis = direction->up_vector.affected_axis;
             mat4 v56;
@@ -2412,7 +2422,7 @@ void ExConstraintBlock::Calc() {
             if (v36 >= 0.0f)
                 v40 = -v40;
 
-            sub_1405F10D0(&v56, &target_offset, v39, v40);
+            mat4_set(&target_offset, v39, v40, &v56);
             mat4_mul(&v59, &v56, &v59);
         }
         mat4_mul(&v59, &mat, node->mat);
@@ -2435,7 +2445,7 @@ void ExConstraintBlock::Calc() {
             mat4_inverse_transform_point(&mat, &up_vector_trans, &up_vector_trans);
 
             mat4 v26;
-            sub_1401EB410(&v26, &position->up_vector.affected_axis, &up_vector_trans);
+            sub_1401EB410(v26, position->up_vector.affected_axis, up_vector_trans);
             mat4_mul(&v26, &mat, &mat);
         }
         if (position->constrained_object.affected_by_orientation)
@@ -2511,42 +2521,6 @@ void ExConstraintBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
 
     if (up_vector_name)
         direction_up_vector_bone_node = itm_eq_obj->get_bone_node(up_vector_name, bone_data);
-}
-
-void ExConstraintBlock::sub_1405F10D0(mat4* mat, vec3* a2, float_t a3, float_t a4) {
-    vec3 v5 = vec3::normalize(*a2);
-    vec3 v9 = v5 *  (1.0f - a3);
-    vec3 v6 = v5 * v9.x;
-    vec3 v7 = v5 * v9.y;
-    vec3 v8 = v5 * v9.z;
-    mat->row0.x = v6.x + a3;
-    mat->row0.y = v6.y - v5.z * a4;
-    mat->row0.z = v6.z + v5.y * a4;
-    mat->row0.w = 0.0f;
-    mat->row1.x = v7.x + v5.z * a4;
-    mat->row1.y = v7.y + a3;
-    mat->row1.z = v7.z - v5.x * a4;
-    mat->row1.w = 0.0f;
-    mat->row2.x = v8.x - v5.y * a4;
-    mat->row2.y = v8.y + v5.x * a4;
-    mat->row2.z = v8.z + a3;
-    mat->row2.w = 0.0f;
-    mat->row3 = { 0.0f, 0.0f, 0.0f, 1.0f };
-}
-
-void ExConstraintBlock::sub_1401EB410(mat4* mat, vec3* a2, vec3* target_offset) {
-    vec3 v3 = vec3::normalize(*a2);
-    vec3 v4 = vec3::normalize(*target_offset);
-    vec3 v13 = vec3::cross(v4, v3);
-
-    float_t v18 = vec3::dot(v3, v4);
-    v18 = clamp_def(v18, -1.0f, 1.0f);
-    float_t v19 = 1.0f - v18;
-
-    float_t v20 = 1.0f - v18 * v18;
-    v20 = sqrtf(clamp_def(v20, 0.0f, 1.0f));
-
-    sub_1405F10D0(mat, &v13, v18, v20);
 }
 
 ExExpressionBlock::ExExpressionBlock() : values(), types(), expressions(),

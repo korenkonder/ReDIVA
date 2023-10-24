@@ -2081,9 +2081,6 @@ public:
     void DataSet();
     void InitData(rob_chara_item_equip_object* itm_eq_obj, obj_skin_block_constraint* cns_data,
         const char* cns_data_name, const bone_database* bone_data);
-
-    static void sub_1405F10D0(mat4* mat, vec3* a2, float_t a3, float_t a4);
-    static void sub_1401EB410(mat4* mat, vec3* a2, vec3* target_offset);
 };
 
 struct ex_expression_block_stack;
