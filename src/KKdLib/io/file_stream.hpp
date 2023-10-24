@@ -36,4 +36,14 @@ public:
 
     void open(const char* path, const char* mode);
     void open(const wchar_t* path, const wchar_t* mode);
+
+    template <typename T>
+    size_t read(T& data) {
+        return read(&data, sizeof(T));
+    }
+
+    template <typename T>
+    size_t write(const T& data) {
+        return write(&data, sizeof(T));
+    }
 };

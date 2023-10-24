@@ -2894,7 +2894,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
     head.ep_type_post = value.ep_type_post;
     head.max_frame = value.max_frame;
     head.length = len;
-    s.write(&head, sizeof(a3dc_key_header));
+    s.write(head);
 
     switch (f16) {
     case A3DA_COMPRESS_F32F32F32F32:

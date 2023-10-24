@@ -42,4 +42,14 @@ public:
     void open(std::vector<uint8_t>& data);
     void copy(void** data, size_t* size);
     void copy(std::vector<uint8_t>& data);
+
+    template <typename T>
+    size_t read(T& data) {
+        return read(&data, sizeof(T));
+    }
+
+    template <typename T>
+    size_t write(const T& data) {
+        return write(&data, sizeof(T));
+    }
 };

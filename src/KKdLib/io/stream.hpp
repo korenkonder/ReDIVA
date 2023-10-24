@@ -144,4 +144,14 @@ public:
     void write_offset(int64_t val, int64_t offset, bool is_x);
     void write_offset_f2(int64_t val, int64_t offset);
     void write_offset_x(int64_t val);
+
+    template <typename T>
+    size_t read(T& data) {
+        return read(&data, sizeof(T));
+    }
+
+    template <typename T>
+    size_t write(const T& data) {
+        return write(&data, sizeof(T));
+    }
 };

@@ -92,7 +92,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                 uint8_t buf[0x400];
                 size_t size;
                 if (encrypt) {
-                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
+                    while (length && (size = in_file.read(buf))) {
                         if (length == size) { // PKCS7 Padding
                             uint8_t align = (uint8_t)(0x10 - size % 0x10);
                             for (uint8_t i = 0; i < align; i++)
@@ -107,7 +107,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                     }
                 }
                 else {
-                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
+                    while (length && (size = in_file.read(buf))) {
                         aes256_cbc_decrypt_buffer(&ctx, buf, size);
 
                         if (length == size) // PKCS7 Padding
@@ -152,7 +152,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                 uint8_t buf[0x400];
                 size_t size;
                 if (encrypt) {
-                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
+                    while (length && (size = in_file.read(buf))) {
                         if (length == size) { // PKCS7 Padding
                             uint8_t align = (uint8_t)(0x10 - size % 0x10);
                             for (uint8_t i = 0; i < align; i++)
@@ -167,7 +167,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                     }
                 }
                 else {
-                    while (length && (size = in_file.read(buf, sizeof(buf)))) {
+                    while (length && (size = in_file.read(buf))) {
                         aes256_cbc_decrypt_buffer(&ctx, buf, size);
 
                         if (length == size) // PKCS7 Padding
