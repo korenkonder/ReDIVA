@@ -9076,7 +9076,7 @@ struct material_list_data {
 struct material_list_color_data {
     std::string name;
     std::vector<material_list_color> data;
-   bool has_data[8];
+    bool has_data[8];
     std::vector<std::pair<material_list_color, std::vector<int32_t>>> same_data;
 
     inline material_list_color_data() : has_data() {
