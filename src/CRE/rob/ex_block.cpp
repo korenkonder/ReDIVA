@@ -2352,9 +2352,9 @@ static void sub_1401EB410(mat4& mat, vec3& in_v1, vec3& in_v2) {
     const vec3 v2 = vec3::normalize(in_v2);
     const vec3 axis = vec3::cross(v2, v1);
 
-    float_t s = clamp_def(vec3::dot(v2, v1), -1.0f, 1.0f);
-    float_t c = sqrtf(clamp_def(1.0f - s * s, 0.0f, 1.0f));
-    mat.set(axis, s, c);
+    float_t c = clamp_def(vec3::dot(v2, v1), -1.0f, 1.0f);
+    float_t s = sqrtf(clamp_def(1.0f - c * c, 0.0f, 1.0f));
+    mat.set(axis, c, s);
 }
 
 void ExConstraintBlock::Calc() {
@@ -2422,7 +2422,7 @@ void ExConstraintBlock::Calc() {
             if (v36 >= 0.0f)
                 v40 = -v40;
 
-            mat4_set(&target_offset, v39, v40, &v56);
+            mat4_set(&target_offset, -v40, v39, &v56);
             mat4_mul(&v59, &v56, &v59);
         }
         mat4_mul(&v59, &mat, node->mat);
