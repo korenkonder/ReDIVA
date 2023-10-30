@@ -12843,13 +12843,13 @@ void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
     if (obj_info.is_null())
         return;
 
-    mdl::ObjFlags v2 = rctx->disp_manager.get_obj_flags();
-    mdl::ObjFlags v4 = v2;
+    mdl::ObjFlags flags = rctx->disp_manager.get_obj_flags();
+    mdl::ObjFlags chara_flags = flags;
     if (fabsf(alpha - 1.0f) > 0.000001f)
-        enum_or(v4, obj_flags);
+        enum_or(chara_flags, obj_flags);
     else
-        enum_and(v4, ~(mdl::OBJ_ALPHA_ORDER_3 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_1));
-    rctx->disp_manager.set_obj_flags(v4);
+        enum_and(chara_flags, ~(mdl::OBJ_ALPHA_ORDER_3 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_1));
+    rctx->disp_manager.set_obj_flags(chara_flags);
     if (can_disp) {
         rctx->disp_manager.entry_obj_by_object_info_object_skin(obj_info,
             &texture_pattern, &texture_data, alpha, mats, ex_data_bone_mats.data(), 0, mat);
@@ -12857,7 +12857,7 @@ void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
         for (ExNodeBlock*& i : node_blocks)
             i->Disp(mat, rctx);
     }
-    rctx->disp_manager.set_obj_flags(v2);
+    rctx->disp_manager.set_obj_flags(flags);
 }
 
 int32_t rob_chara_item_equip_object::get_bone_index(const char* name, const bone_database* bone_data) {
@@ -13543,22 +13543,22 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
             item_equip_object[i].disp(&mat, rctx);
     else {
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++) {
-            mdl::ObjFlags v18 = (mdl::ObjFlags)0;
+            mdl::ObjFlags chara_flags = (mdl::ObjFlags)0;
             if (!field_18[i]) {
                 if (rctx->chara_reflect)
-                    enum_or(v18, mdl::OBJ_CHARA_REFLECT);
+                    enum_or(chara_flags, mdl::OBJ_CHARA_REFLECT);
                 if (rctx->chara_refract)
-                    enum_or(v18, mdl::OBJ_REFRACT);
+                    enum_or(chara_flags, mdl::OBJ_REFRACT);
             }
 
-            mdl::ObjFlags v19 = (mdl::ObjFlags)(mdl::OBJ_4 | mdl::OBJ_SHADOW);
+            mdl::ObjFlags flags = (mdl::ObjFlags)(mdl::OBJ_4 | mdl::OBJ_SHADOW);
             if (i == ITEM_HARA)
-                v19 = (mdl::ObjFlags)0;
+                flags = (mdl::ObjFlags)0;
 
             if (!(field_A0 & 0x04))
-                enum_and(v19, ~mdl::OBJ_SHADOW);
+                enum_and(flags, ~mdl::OBJ_SHADOW);
 
-            disp_manager.set_obj_flags((mdl::ObjFlags)(v18 | v19 | mdl::OBJ_SSS));
+            disp_manager.set_obj_flags((mdl::ObjFlags)(chara_flags | flags | mdl::OBJ_SSS));
             item_equip_object[i].disp(&mat, rctx);
         }
     }
