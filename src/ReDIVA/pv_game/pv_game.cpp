@@ -5604,7 +5604,7 @@ void PVGameSelector::Window() {
                     this->modules[j] = 0;
                     module_names[j].clear();
 
-                    int32_t cos = pv->get_performer_pv_costume(j, difficulty);
+                    int32_t cos = pv->get_performer_costume(j);
                     for (const auto& k : modules_data[charas[j]])
                         if (cos == k->cos) {
                             modules[j] = k->id;
