@@ -188,7 +188,7 @@ void dds::read(const wchar_t* path) {
             goto End;
 
         DDS_HEADER dds_h = {};
-        if (s.read(dds_h) != sizeof(DDS_HEADER))
+        if (s.read_data(dds_h) != sizeof(DDS_HEADER))
             goto End;
 
         if (!((dds_h.flags & DDSD_CAPS) && (dds_h.flags & DDSD_HEIGHT)
@@ -362,7 +362,7 @@ void dds::write(const wchar_t* path) {
     s.open(path_dds, L"wb");
     if (s.check_not_null()) {
         s.write_uint32_t_reverse_endianness(DDS_MAGIC, true);
-        s.write(dds_h);
+        s.write_data(dds_h);
 
         uint32_t index = 0;
         do

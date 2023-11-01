@@ -44,12 +44,12 @@ public:
     void copy(std::vector<uint8_t>& data);
 
     template <typename T>
-    size_t read(T& data) {
+    size_t read_data(T& data) {
         return read(&data, sizeof(T));
     }
 
     template <typename T>
-    size_t write(const T& data) {
+    size_t write_data(const T& data) {
         return write(&data, sizeof(T));
     }
 };

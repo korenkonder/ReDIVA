@@ -1495,7 +1495,7 @@ static void obj_classic_read_model(obj* obj, prj::shared_ptr<prj::stack_allocato
         obj->material_array = alloc->allocate<obj_material_data>(obj->num_material);
         for (uint32_t i = 0; i < obj->num_material; i++) {
             obj_material_data& mat_data = obj->material_array[i];
-            s.read(mat_data);
+            s.read_data(mat_data);
 
             for (obj_material_texture_data& j : mat_data.material.texdata)
                 mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
@@ -1551,7 +1551,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             s.write_int32_t(0);
             s.write_int32_t(0);
 
-            for (int64_t& i : mh->vertex)
+            for (int64_t& j : mh->vertex)
                 s.write_int32_t(0);
 
             s.write_int32_t(0);
@@ -1652,7 +1652,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             s.write_uint32_t(mesh->reserved[3]);
             s.write_uint32_t(mesh->reserved[4]);
             s.write_uint32_t(mesh->reserved[5]);
-            s.write(&mesh->name, sizeof(mesh->name) - 1);
+            s.write(mesh->name, sizeof(mesh->name) - 1);
             s.write_char('\0');
         }
         s.position_pop();
@@ -1665,7 +1665,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             obj_material_data mat_data = obj->material_array[i];
             for (obj_material_texture_data& j : mat_data.material.texdata)
                 mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
-            s.write(mat_data);
+            s.write_data(mat_data);
         }
     }
     s.align_write(0x10);
@@ -4472,7 +4472,7 @@ static void obj_modern_read_model(obj* obj, prj::shared_ptr<prj::stack_allocator
         obj->material_array = alloc->allocate<obj_material_data>(obj->num_material);
         for (uint32_t i = 0; i < obj->num_material; i++) {
             obj_material_data& mat_data = obj->material_array[i];
-            s.read(mat_data);
+            s.read_data(mat_data);
 
             if (s.big_endian)
                 obj_material_texture_enrs_table.apply(&mat_data);
@@ -4880,7 +4880,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
             obj_material_data mat_data = obj->material_array[i];
             for (obj_material_texture_data& j : mat_data.material.texdata)
                 mat4_transpose(&j.tex_coord_mat, &j.tex_coord_mat);
-            s.write(mat_data);
+            s.write_data(mat_data);
         }
     }
     s.align_write(0x10);

@@ -146,12 +146,12 @@ public:
     void write_offset_x(int64_t val);
 
     template <typename T>
-    size_t read(T& data) {
+    size_t read_data(T& data) {
         return read(&data, sizeof(T));
     }
 
     template <typename T>
-    size_t write(const T& data) {
+    size_t write_data(const T& data) {
         return write(&data, sizeof(T));
     }
 };
