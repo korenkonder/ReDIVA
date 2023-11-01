@@ -2354,7 +2354,7 @@ static void sub_1401EB410(mat4& mat, vec3& in_v1, vec3& in_v2) {
 
     float_t c = clamp_def(vec3::dot(v2, v1), -1.0f, 1.0f);
     float_t s = sqrtf(clamp_def(1.0f - c * c, 0.0f, 1.0f));
-    mat.set(axis, -s, c);
+    mat.set(axis, c, s);
 }
 
 void ExConstraintBlock::Calc() {
