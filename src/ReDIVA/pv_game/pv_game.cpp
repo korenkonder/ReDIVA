@@ -5506,19 +5506,7 @@ PVGameSelector::PVGameSelector() : charas(), modules(), start(), exit() {
     for (const auto& i : modules)
         modules_data[i.second.chara].push_back(&i.second);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
-        charas[i] = pv->get_performer_chara(i);
-        this->modules[i] = 0;
-        module_names[i].clear();
-
-        int32_t cos = pv->get_performer_pv_costume(i, difficulty);
-        for (const auto& j : modules_data[charas[i]])
-            if (cos == j->cos) {
-                this->modules[i] = j->id;
-                module_names[i].assign(j->name);
-                break;
-            }
-    }
+    ResetChara();
 }
 
 PVGameSelector::~PVGameSelector() {
@@ -5599,19 +5587,7 @@ void PVGameSelector::Window() {
                 edition = 0;
                 success = true;
 
-                for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
-                    charas[j] = pv->get_performer_chara(j);
-                    this->modules[j] = 0;
-                    module_names[j].clear();
-
-                    int32_t cos = pv->get_performer_costume(j);
-                    for (const auto& k : modules_data[charas[j]])
-                        if (cos == k->cos) {
-                            modules[j] = k->id;
-                            module_names[j].assign(k->name);
-                            break;
-                        }
-                }
+                ResetChara();
             }
             ImGui::PopID();
 
@@ -5639,19 +5615,7 @@ void PVGameSelector::Window() {
                 edition = 0;
                 success = true;
 
-                for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
-                    charas[j] = pv->get_performer_chara(j);
-                    this->modules[j] = 0;
-                    module_names[j].clear();
-
-                    int32_t cos = pv->get_performer_pv_costume(j, difficulty);
-                    for (const auto& k : modules_data[charas[j]])
-                        if (cos == k->cos) {
-                            modules[j] = k->id;
-                            module_names[j].assign(k->name);
-                            break;
-                        }
-                }
+                ResetChara();
             }
 
             if (difficulty == i)
@@ -5677,19 +5641,7 @@ void PVGameSelector::Window() {
                 edition = i.edition;
                 success = true;
 
-                for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
-                    charas[j] = pv->get_performer_chara(j);
-                    this->modules[j] = 0;
-                    module_names[j].clear();
-
-                    int32_t cos = pv->get_performer_pv_costume(j, difficulty);
-                    for (const auto& k : modules_data[charas[j]])
-                        if (cos == k->cos) {
-                            modules[j] = k->id;
-                            module_names[j].assign(k->name);
-                            break;
-                        }
-                }
+                ResetChara();
             }
             ImGui::PopID();
 
@@ -5711,8 +5663,42 @@ void PVGameSelector::Window() {
         chara_index chara_old = charas[i];
 
         sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
-        ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
-            (int32_t*)&charas[i], 0, false, &window_focus);
+        if (charas[i] == CHARA_MAX) {
+            const char* items = "";
+            int32_t index = 0;
+            ImGui::DisableElementPush(false);
+            ImGui::ColumnComboBox(buf, &items, 1, &index, 0, false, &window_focus);
+            ImGui::DisableElementPop(false);
+        }
+        else if (pv->is_performer_type_pseudo(i)) {
+            char buf2[0x100];
+            switch (pv->get_performer_type(i)) {
+            case PV_PERFORMER_PSEUDO_DEFAULT:
+                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO DEFAULT");
+                break;
+            case PV_PERFORMER_PSEUDO_SAME:
+                sprintf_s(buf2, sizeof(buf2), "%s %dP", "PSEUDO SAME", pv->get_performer_pseudo_same_id(i) + 1);
+                break;
+            case PV_PERFORMER_PSEUDO_SWIM:
+                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO SWIM");
+                break;
+            case PV_PERFORMER_PSEUDO_SWIM_S:
+                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO SWIM TAN");
+                break;
+            case PV_PERFORMER_PSEUDO_MYCHARA:
+                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO MYCHARA");
+                break;
+            }
+
+            const char* items = buf2;
+            int32_t index = 0;
+            ImGui::DisableElementPush(false);
+            ImGui::ColumnComboBox(buf, &items, 1, &index, 0, false, &window_focus);
+            ImGui::DisableElementPop(false);
+        }
+        else
+            ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
+                (int32_t*)&charas[i], 0, false, &window_focus);
 
         if (chara_old != charas[i]) {
             modules[i] = 0;
@@ -5734,7 +5720,10 @@ void PVGameSelector::Window() {
         extern ImFont* imgui_font_arial;
         if (imgui_font_arial)
             ImGui::PushFont(imgui_font_arial);
-        if (ImGui::BeginCombo("", module_names[i].c_str(), 0)) {
+
+        bool enable = charas[i] != CHARA_MAX && !pv->is_performer_type_pseudo(i);
+        ImGui::DisableElementPush(enable);
+        if (ImGui::BeginCombo("", enable ? module_names[i].c_str() : "", 0)) {
             for (const auto& j : modules_data[charas[i]]) {
                 if (j->cos == 499)
                     continue;
@@ -5755,6 +5744,8 @@ void PVGameSelector::Window() {
             window_focus |= true;
             ImGui::EndCombo();
         }
+        ImGui::DisableElementPop(enable);
+
         if (imgui_font_arial)
             ImGui::PopFont();
         ImGui::EndPropertyColumn();
@@ -5766,6 +5757,27 @@ void PVGameSelector::Window() {
     }
 
     ImGui::End();
+}
+
+void PVGameSelector::ResetChara() {
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        charas[i] = pv->get_performer_chara(i);
+        this->modules[i] = 0;
+        module_names[i].clear();
+
+        if (i >= pv->performer.size()) {
+            charas[i] = CHARA_MAX;
+            continue;
+        }
+
+        int32_t cos = pv->get_performer_pv_costume(i, difficulty);
+        for (const auto& j : modules_data[charas[i]])
+            if (cos == j->cos) {
+                this->modules[i] = j->id;
+                module_names[i].assign(j->name);
+                break;
+            }
+    }
 }
 #endif
 

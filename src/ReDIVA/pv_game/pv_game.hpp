@@ -872,6 +872,8 @@ public:
     virtual bool Ctrl() override;
     virtual bool Dest() override;
     virtual void Window() override;
+
+    void ResetChara();
 };
 #endif
 
