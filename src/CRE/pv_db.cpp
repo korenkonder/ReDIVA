@@ -653,12 +653,12 @@ int32_t pv_db_pv::get_performer_pv_costume(int32_t performer, pv_difficulty diff
     if (type >= PV_PERFORMER_PSEUDO_SWIM && type <= PV_PERFORMER_PSEUDO_SWIM_S) {
         performer = get_performer_pseudo_same_id(performer);
         if (performer >= 0) {
-            const pv_db_pv_performer* perf = &this->performer[performer];
+            const pv_db_pv_performer* pseudo_perf = &this->performer[performer];
             if (difficulty < 0 || difficulty >= PV_DIFFICULTY_MAX)
-                costume = perf->pv_costume[PV_DIFFICULTY_HARD];
+                costume = pseudo_perf->pv_costume[PV_DIFFICULTY_HARD];
             else
-                costume = perf->pv_costume[difficulty];
-            costume = pv_db_pv::get_pseudo_costume(perf->type, perf->chara, costume);
+                costume = pseudo_perf->pv_costume[difficulty];
+            costume = pv_db_pv::get_pseudo_costume(perf->type, pseudo_perf->chara, costume);
         }
     }
     return costume;

@@ -5502,10 +5502,6 @@ PVGameSelector::PVGameSelector() : charas(), modules(), start(), exit() {
     edition = 0;
     success = true;
 
-    const prj::vector_pair_combine<int32_t, module>& modules = module_table_handler_data_get_modules();
-    for (const auto& i : modules)
-        modules_data[i.second.chara].push_back(&i.second);
-
     ResetChara();
 }
 
@@ -5663,34 +5659,8 @@ void PVGameSelector::Window() {
         chara_index chara_old = charas[i];
 
         sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
-        if (charas[i] == CHARA_MAX) {
+        if (charas[i] == CHARA_MAX || pv->get_performer_fixed(i)) {
             const char* items = "";
-            int32_t index = 0;
-            ImGui::DisableElementPush(false);
-            ImGui::ColumnComboBox(buf, &items, 1, &index, 0, false, &window_focus);
-            ImGui::DisableElementPop(false);
-        }
-        else if (pv->is_performer_type_pseudo(i)) {
-            char buf2[0x100];
-            switch (pv->get_performer_type(i)) {
-            case PV_PERFORMER_PSEUDO_DEFAULT:
-                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO DEFAULT");
-                break;
-            case PV_PERFORMER_PSEUDO_SAME:
-                sprintf_s(buf2, sizeof(buf2), "%s %dP", "PSEUDO SAME", pv->get_performer_pseudo_same_id(i) + 1);
-                break;
-            case PV_PERFORMER_PSEUDO_SWIM:
-                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO SWIM");
-                break;
-            case PV_PERFORMER_PSEUDO_SWIM_S:
-                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO SWIM TAN");
-                break;
-            case PV_PERFORMER_PSEUDO_MYCHARA:
-                sprintf_s(buf2, sizeof(buf2), "%s", "PSEUDO MYCHARA");
-                break;
-            }
-
-            const char* items = buf2;
             int32_t index = 0;
             ImGui::DisableElementPush(false);
             ImGui::ColumnComboBox(buf, &items, 1, &index, 0, false, &window_focus);
@@ -5704,10 +5674,10 @@ void PVGameSelector::Window() {
             modules[i] = 0;
             module_names[i].clear();
 
-            for (const auto& j : modules_data[charas[i]])
-                if (modules[i] == j->cos) {
-                    modules[i] = j->id;
-                    module_names[i].assign(j->name);
+            for (const auto& j : module_data_handler_data_get_modules())
+                if (modules[i] == j.cos) {
+                    modules[i] = j.id;
+                    module_names[i].assign(j.name);
                     break;
                 }
         }
@@ -5721,23 +5691,23 @@ void PVGameSelector::Window() {
         if (imgui_font_arial)
             ImGui::PushFont(imgui_font_arial);
 
-        bool enable = charas[i] != CHARA_MAX && !pv->is_performer_type_pseudo(i);
+        bool enable = charas[i] != CHARA_MAX && !pv->get_performer_fixed(i);
         ImGui::DisableElementPush(enable);
         if (ImGui::BeginCombo("", enable ? module_names[i].c_str() : "", 0)) {
-            for (const auto& j : modules_data[charas[i]]) {
-                if (j->cos == 499)
+            for (const auto& j : module_data_handler_data_get_modules()) {
+                if (j.chara_index != charas[i] || j.cos == 499)
                     continue;
 
                 ImGui::PushID(&j);
-                if (ImGui::Selectable(j->name.c_str(), modules[i] == j->id)
+                if (ImGui::Selectable(j.name.c_str(), modules[i] == j.id)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                    || (ImGui::IsItemFocused() && modules[i] != j->id)) {
-                    modules[i] = j->id;
-                    module_names[i].assign(j->name);
+                    || (ImGui::IsItemFocused() && modules[i] != j.id)) {
+                    modules[i] = j.id;
+                    module_names[i].assign(j.name);
                 }
                 ImGui::PopID();
 
-                if (modules[i] == j->id)
+                if (modules[i] == j.id)
                     ImGui::SetItemDefaultFocus();
             }
 
@@ -5770,13 +5740,20 @@ void PVGameSelector::ResetChara() {
             continue;
         }
 
-        int32_t cos = pv->get_performer_pv_costume(i, difficulty);
-        for (const auto& j : modules_data[charas[i]])
-            if (cos == j->cos) {
-                this->modules[i] = j->id;
-                module_names[i].assign(j->name);
-                break;
-            }
+        int32_t pv_costume = pv->get_performer_pv_costume(i, difficulty);
+        module_data mdl;
+        if (module_data_handler_data_get_module(charas[i], pv_costume, mdl)) {
+            this->modules[i] = mdl.id;
+            module_names[i].assign(mdl.name);
+        }
+        else {
+            module_data mdl;
+            int32_t mdl_id = 0;
+            if (module_data_handler_data_get_module(charas[i], 0, mdl))
+                mdl_id = mdl.id;
+            this->modules[i] = mdl_id;
+            module_names[i].assign(mdl.name);
+        }
     }
 }
 #endif

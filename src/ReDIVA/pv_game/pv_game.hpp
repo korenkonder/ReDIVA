@@ -861,7 +861,6 @@ public:
     chara_index charas[ROB_CHARA_COUNT];
     int32_t modules[ROB_CHARA_COUNT];
     std::string module_names[ROB_CHARA_COUNT];
-    std::vector<const module*> modules_data[CHARA_MAX];
     bool start;
     bool exit;
 
