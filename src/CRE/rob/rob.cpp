@@ -943,7 +943,7 @@ static void mothead_func_58_set_eyelid_mottbl_motion(mothead_func_data* func_dat
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_59_set_rob_chara_head_object(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
-static void mothead_func_60(mothead_func_data* func_data,
+static void mothead_func_60_set_look_camera(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_61_set_eyelid_motion_from_face(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
@@ -1209,7 +1209,7 @@ static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_57_set_eyes_mottbl_motion, 0 },
     { mothead_func_58_set_eyelid_mottbl_motion, 0 },
     { mothead_func_59_set_rob_chara_head_object, 0 },
-    { mothead_func_60, 0 },
+    { mothead_func_60_set_look_camera, 0 },
     { mothead_func_61_set_eyelid_motion_from_face, 0 },
     { mothead_func_62_rob_parts_adjust, 0 },
     { mothead_func_63, 0 },
@@ -6576,7 +6576,7 @@ static void mothead_func_59_set_rob_chara_head_object(mothead_func_data* func_da
     rob_chara_set_head_object(func_data->rob_chr, ((int32_t*)data)[0], mot_db);
 }
 
-static void mothead_func_60(mothead_func_data* func_data,
+static void mothead_func_60_set_look_camera(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     func_data->rob_chr->set_look_camera(true, ((int32_t*)data)[0] != 0,
         ((float_t*)data)[1], ((float_t*)data)[2], ((float_t*)data)[3] * 6.0f, 0.25f, 0.0f, false);
