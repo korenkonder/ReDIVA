@@ -16,17 +16,9 @@ enum farc_signature {
 };
 
 enum farc_flags {
+    FARC_NONE = 0x00,
     FARC_GZIP = 0x02,
     FARC_AES  = 0x04,
-};
-
-enum farc_compress_mode {
-    FARC_COMPRESS_FArc          = 0,
-    FARC_COMPRESS_FArC          = 1,
-    FARC_COMPRESS_FARC          = 2,
-    FARC_COMPRESS_FARC_GZIP     = 3,
-    FARC_COMPRESS_FARC_AES      = 4,
-    FARC_COMPRESS_FARC_GZIP_AES = 5,
 };
 
 struct farc_file {
@@ -36,11 +28,12 @@ struct farc_file {
     size_t size_compressed;
     void* data;
     void* data_compressed;
-    farc_flags flags;
+    bool compressed;
+    bool encrypted;
     bool data_changed;
 
-    inline farc_file() : offset(), size(), size_compressed(),
-        data(), data_compressed(), flags(), data_changed() {
+    inline farc_file() : offset(), size(), size_compressed(), data(),
+        data_compressed(), compressed(), encrypted(), data_changed() {
 
     }
 
@@ -80,9 +73,12 @@ struct farc {
     farc_file* read_file(const char* name);
     farc_file* read_file(const wchar_t* name);
     farc_file* read_file(uint32_t hash);
-    void write(const char* path, farc_compress_mode mode, bool get_files = true);
-    void write(const wchar_t* path, farc_compress_mode mode, bool get_files = true);
-    void write(void** data, size_t* size, farc_compress_mode mode);
+    void write(const char* path, farc_signature signature = FARC_FArC,
+        farc_flags flags = FARC_NONE, bool get_files = true);
+    void write(const wchar_t* path, farc_signature signature = FARC_FArC,
+        farc_flags flags = FARC_NONE, bool get_files = true);
+    void write(void** data, size_t* size, farc_signature signature = FARC_FArC,
+        farc_flags flags = FARC_NONE);
 
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
 };

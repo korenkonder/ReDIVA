@@ -699,6 +699,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     vert_spv_size += align_val(k.size, 0x10);
                 shader_vert_file->data = force_malloc(vert_spv_size);
                 shader_vert_file->size = vert_spv_size;
+                shader_vert_file->compressed = true;
                 shader_vert_file->data_changed = true;
 
                 program_spv* vert_spv = (program_spv*)shader_vert_file->data;
@@ -724,6 +725,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     frag_spv_size += align_val(k.size, 0x10);
                 shader_frag_file->data = force_malloc(frag_spv_size);
                 shader_frag_file->size = frag_spv_size;
+                shader_frag_file->compressed = true;
                 shader_frag_file->data_changed = true;
 
                 program_spv* frag_spv = (program_spv*)shader_frag_file->data;
@@ -760,7 +762,7 @@ void compile_all_shaders(bool debug) {
 
     farc of;
     compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
-    of.write("rom\\ft_shaders_spirv", FARC_COMPRESS_FArC, false);
+    of.write("rom\\ft_shaders_spirv", FARC_FArC, FARC_NONE, false);
 }
 #endif*/
 

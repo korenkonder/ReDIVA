@@ -7126,11 +7126,12 @@ static void mot_write_motion_set(x_pv_game* xpvgm) {
         f.add_file(mot_file.c_str());
         farc_file* ff = &f.files.back();
         bake_pv826_mot_set->pack_file(&ff->data, &ff->size);
+        ff->compressed = true;
 
         std::string mot_farc;
         mot_farc.append("pv826\\mot_");
         mot_farc.append(bake_pv826_set_info->name);
-        f.write(mot_farc.c_str(), FARC_COMPRESS_FArC, false);
+        f.write(mot_farc.c_str(), FARC_FArC, FARC_NONE, false);
     }
 
     delete[] bake_pv826_thread;

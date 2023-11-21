@@ -1247,6 +1247,8 @@ namespace Glitter {
         FileWriter fr;
         fr.type = GLT_VAL;
 
+        bool encrypt = compress && glt_type != Glitter::FT;
+
         farc f;
         {
             size_t file_len = utf8_length(file);
@@ -1264,6 +1266,7 @@ namespace Glitter {
                     temp[file_len + 4] = 0;
                     farc_file* ff_dve = f.add_file(temp);
                     dve_st.write(&ff_dve->data, &ff_dve->size);
+                    ff_dve->encrypted = encrypt;
                 }
                 else {
                     free(temp);
@@ -1278,6 +1281,7 @@ namespace Glitter {
                     temp[file_len + 4] = 0;
                     farc_file* ff_drs = f.add_file(temp);
                     drs_st.write(&ff_drs->data, &ff_drs->size);
+                    ff_drs->encrypted = encrypt;
                 }
             }
 
@@ -1297,11 +1301,20 @@ namespace Glitter {
             free(temp);
         }
 
-        farc_compress_mode mode;
-        if (compress)
-            mode = glt_type != Glitter::FT ? FARC_COMPRESS_FARC_GZIP_AES : FARC_COMPRESS_FArC;
-        else
-            mode = FARC_COMPRESS_FArc;
+        farc_signature signature;
+        farc_flags flags;
+        if (encrypt) {
+            signature = FARC_FARC;
+            flags = FARC_AES;
+        }
+        else if (compress) {
+            signature = FARC_FArC;
+            flags = FARC_NONE;
+        }
+        else {
+            signature = FARC_FArc;
+            flags = FARC_NONE;
+        }
 
         char* temp = str_utils_add(path, file);
         if (glt_type != Glitter::FT) {
@@ -1317,7 +1330,7 @@ namespace Glitter {
             }
             free_def(list_temp);
         }
-        f.write(temp, mode, false);
+        f.write(temp, signature, flags, false);
         free_def(temp);
     }
 }

@@ -116,8 +116,9 @@ void motion_database_file::write(const char* path) {
     s.open();
     motion_database_file_write_inner(this, s);
     s.copy(&ff->data, &ff->size);
+    ff->compressed = true;
 
-    f.write(path, FARC_COMPRESS_FArC, false);
+    f.write(path, FARC_FArC, FARC_NONE, false);
 }
 
 void motion_database_file::write(const wchar_t* path) {
@@ -133,8 +134,9 @@ void motion_database_file::write(const wchar_t* path) {
     s.open();
     motion_database_file_write_inner(this, s);
     s.copy(&ff->data, &ff->size);
+    ff->compressed = true;
 
-    f.write(path, FARC_COMPRESS_FArC, false);
+    f.write(path, FARC_FArC, FARC_NONE, false);
 }
 
 void motion_database_file::write(void** data, size_t* size) {
