@@ -801,6 +801,8 @@ namespace Glitter {
         ~F2RenderScene();
 
         void Append(F2RenderGroup* rend_group);
+        void CalcDisp(GPM);
+        void CalcDisp(GPM, F2RenderGroup* rend_group);
         void CalcDispLine(F2RenderGroup* rend_group);
         void CalcDispLocus(GPM, F2RenderGroup* rend_group);
         void CalcDispQuad(GPM, F2RenderGroup* rend_group);
@@ -864,6 +866,7 @@ namespace Glitter {
             size_t id, float_t emission, bool appear_now);
         virtual ~EffectInst();
 
+        virtual void CalcDisp(GPM) = 0;
         virtual void Copy(EffectInst* dst, float_t emission) = 0;
         virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) = 0;
         virtual void Disp(GPM, DispType disp_type) = 0;
@@ -911,6 +914,7 @@ namespace Glitter {
         F2EffectInst(GPM, GLT, Effect* eff, size_t id, float_t emission, bool appear_now);
         virtual ~F2EffectInst() override;
 
+        virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
         virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) override;
         virtual void Disp(GPM, DispType disp_type) override;
@@ -966,6 +970,7 @@ namespace Glitter {
         XEffectInst(GPM, Effect* eff, size_t id, float_t emission, bool appear_now, uint8_t load_flags = 0);
         virtual ~XEffectInst() override;
 
+        virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
         virtual void Ctrl(GPM, GLT, float_t delta_frame, float_t emission) override;
         virtual void Disp(GPM, DispType disp_type) override;
@@ -975,7 +980,6 @@ namespace Glitter {
         virtual bool HasEnded(bool a2) override;
         virtual void Reset(GPM, GLT, float_t emission) override;
 
-        void CalcDisp(GPM);
         void CtrlInit(GPM, float_t emission);
         void CtrlMat(GPM);
         DispType GetDispType();
@@ -1528,8 +1532,8 @@ namespace Glitter {
         Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool a5);
         virtual ~Scene();
 
-#if defined(CRE_DEV)
         void CalcDisp(GPM);
+#if defined(CRE_DEV)
         bool CanDisp(DispType disp_type, bool a3);
 #endif
         bool Copy(EffectInst* eff_inst, Scene* dst);
@@ -1558,10 +1562,12 @@ namespace Glitter {
         std::vector<Scene*> scenes;
         std::vector<FileReader*> file_readers;
         std::map<uint64_t, EffectGroup*> effect_groups;
+#if defined(CRE_DEV)
         Scene* selected_scene;
         EffectInst* selected_effect;
         EmitterInst* selected_emitter;
         ParticleInst* selected_particle;
+#endif
         void* bone_data;
         FrameRateControl* frame_rate;
         Camera cam;

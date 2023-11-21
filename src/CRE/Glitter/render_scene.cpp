@@ -151,6 +151,86 @@ namespace Glitter {
         groups.push_back(rend_group);
     }
 
+    void F2RenderScene::CalcDisp(GPM) {
+        disp_quad = 0;
+        disp_line = 0;
+        disp_locus = 0;
+        disp_mesh = 0;
+
+#if defined(CRE_DEV)
+        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
+        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
+        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
+        for (F2RenderGroup*& i : groups) {
+            if (!i)
+                continue;
+
+            F2RenderGroup* rend_group = i;
+            if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
+                continue;
+
+            if (!GPM_VAL->draw_selected || !eff) {
+                CalcDisp(GPM_VAL, rend_group);
+            }
+            else if ((eff && ptcl) || (eff && !emit)) {
+                if (!ptcl || rend_group->particle == ptcl)
+                    CalcDisp(GPM_VAL, rend_group);
+            }
+            else if (emit)
+                for (F2ParticleInst*& i : emit->particles) {
+                    if (!i)
+                        continue;
+
+                    F2ParticleInst* particle = i;
+                    if (rend_group->particle == particle)
+                        CalcDisp(GPM_VAL, rend_group);
+
+                    for (F2ParticleInst*& j : particle->data.children)
+                        if (j && rend_group->particle == j)
+                            CalcDisp(GPM_VAL, rend_group);
+                }
+        }
+#else
+        for (F2RenderGroup*& i : groups) {
+            if (!i)
+                continue;
+
+            F2RenderGroup* rend_group = i;
+            if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
+                continue;
+
+            CalcDisp(GPM_VAL, rend_group);
+        }
+#endif
+    }
+
+    void F2RenderScene::CalcDisp(GPM, F2RenderGroup* rend_group) {
+        rend_group->disp = 0;
+        switch (rend_group->type) {
+        case PARTICLE_QUAD:
+            if (!rend_group->vao)
+                return;
+
+            CalcDispQuad(GPM_VAL, rend_group);
+            disp_quad += rend_group->disp;
+            break;
+        case PARTICLE_LINE:
+            if (!rend_group->vao)
+                return;
+
+            CalcDispLine(rend_group);
+            disp_line += rend_group->disp;
+            break;
+        case PARTICLE_LOCUS:
+            if (!rend_group->vao)
+                return;
+
+            CalcDispLocus(GPM_VAL, rend_group);
+            disp_locus += rend_group->disp;
+            break;
+        }
+    }
+
     void F2RenderScene::CalcDispLine(F2RenderGroup* rend_group) {
         if (!rend_group->elements || !rend_group->vbo || rend_group->ctrl < 1)
             return;
@@ -874,11 +954,7 @@ namespace Glitter {
     }
 
     void F2RenderScene::Disp(GPM, DispType disp_type) {
-        disp_quad = 0;
-        disp_line = 0;
-        disp_locus = 0;
-        disp_mesh = 0;
-
+#if defined(CRE_DEV)
         F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
         F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
         F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
@@ -891,9 +967,6 @@ namespace Glitter {
                 || (rend_group->CannotDisp() && !GPM_VAL->draw_all))
                 continue;
 
-#if !defined(CRE_DEV)
-            Disp(GPM_VAL, rend_group);
-#else
             if (!GPM_VAL->draw_selected || !eff) {
                 Disp(GPM_VAL, rend_group);
             }
@@ -914,8 +987,20 @@ namespace Glitter {
                         if (j && rend_group->particle == j)
                             Disp(GPM_VAL, rend_group);
                 }
-#endif
         }
+#else
+        for (F2RenderGroup*& i : groups) {
+            if (!i)
+                continue;
+
+            F2RenderGroup* rend_group = i;
+            if ((rend_group)->disp_type != disp_type
+                || (rend_group->CannotDisp() && !GPM_VAL->draw_all))
+                continue;
+
+            Disp(GPM_VAL, rend_group);
+        }
+#endif
     }
 
     void F2RenderScene::Disp(GPM, F2RenderGroup* rend_group) {
@@ -928,26 +1013,7 @@ namespace Glitter {
             return;
         }
 
-        if (!rend_group->vao)
-            return;
-
-        rend_group->disp = 0;
-        switch (rend_group->type) {
-        case PARTICLE_QUAD:
-            CalcDispQuad(GPM_VAL, rend_group);
-            disp_quad += rend_group->disp;
-            break;
-        case PARTICLE_LINE:
-            CalcDispLine(rend_group);
-            disp_line += rend_group->disp;
-            break;
-        case PARTICLE_LOCUS:
-            CalcDispLocus(GPM_VAL, rend_group);
-            disp_locus += rend_group->disp;
-            break;
-        }
-
-        if (rend_group->disp < 1)
+        if (!rend_group->vao || rend_group->disp < 1)
             return;
 
         mat4 mat;
@@ -1106,6 +1172,12 @@ namespace Glitter {
     }
 
     void XRenderScene::CalcDisp(GPM) {
+        disp_quad = 0;
+        disp_line = 0;
+        disp_locus = 0;
+        disp_mesh = 0;
+
+#if defined(CRE_DEV)
         XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
         XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
         XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
@@ -1117,9 +1189,6 @@ namespace Glitter {
             if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
-#if !defined(CRE_DEV)
-            CalcDisp(GPM_VAL, rend_group);
-#else
             if (!GPM_VAL->draw_selected || !eff) {
                 CalcDisp(GPM_VAL, rend_group);
             }
@@ -1140,22 +1209,45 @@ namespace Glitter {
                         if (j && rend_group->particle == j)
                             CalcDisp(GPM_VAL, rend_group);
                 }
-#endif
         }
+#else
+        for (XRenderGroup*& i : groups) {
+            if (!i)
+                continue;
+
+            XRenderGroup* rend_group = i;
+            if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
+                continue;
+
+            CalcDisp(GPM_VAL, rend_group);
+        }
+#endif
     }
 
     void XRenderScene::CalcDisp(GPM, XRenderGroup* rend_group) {
-        disp_mesh = 0;
-
-        switch (rend_group->type) {
-        case PARTICLE_MESH:
-            break;
-        default:
-            return;
-        }
-
         rend_group->disp = 0;
         switch (rend_group->type) {
+        case PARTICLE_QUAD:
+            if (!rend_group->vao)
+                return;
+
+            CalcDispQuad(GPM_VAL, rend_group);
+            disp_quad += rend_group->disp;
+            break;
+        case PARTICLE_LINE:
+            if (!rend_group->vao)
+                return;
+
+            CalcDispLine(rend_group);
+            disp_line += rend_group->disp;
+            break;
+        case PARTICLE_LOCUS:
+            if (!rend_group->vao)
+                return;
+
+            CalcDispLocus(GPM_VAL, rend_group);
+            disp_locus += rend_group->disp;
+            break;
         case PARTICLE_MESH:
             CalcDispMesh(GPM_VAL, rend_group);
             disp_mesh += rend_group->disp;
@@ -2069,10 +2161,7 @@ namespace Glitter {
     }
 
     void XRenderScene::Disp(GPM, DispType disp_type) {
-        disp_quad = 0;
-        disp_line = 0;
-        disp_locus = 0;
-
+#if defined(CRE_DEV)
         XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
         XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
         XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
@@ -2084,9 +2173,6 @@ namespace Glitter {
             if ((rend_group)->disp_type != disp_type || rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
-#if !defined(CRE_DEV)
-            Disp(GPM_VAL, rend_group);
-#else
             if (!GPM_VAL->draw_selected || !eff) {
                 Disp(GPM_VAL, rend_group);
             }
@@ -2107,39 +2193,22 @@ namespace Glitter {
                         if (j && rend_group->particle == j)
                             Disp(GPM_VAL, rend_group);
                 }
-#endif
         }
+#else
+        for (XRenderGroup* i : groups) {
+            if (!i)
+                continue;
+
+            XRenderGroup* rend_group = i;
+            if ((rend_group)->disp_type != disp_type || rend_group->CannotDisp() && !GPM_VAL->draw_all)
+                continue;
+
+            Disp(GPM_VAL, rend_group);
+        }
+#endif
     }
 
     void XRenderScene::Disp(GPM, XRenderGroup* rend_group) {
-        switch (rend_group->type) {
-        case PARTICLE_QUAD:
-        case PARTICLE_LINE:
-        case PARTICLE_LOCUS:
-            break;
-        default:
-            return;
-        }
-
-        if (!rend_group->vao)
-            return;
-
-        rend_group->disp = 0;
-        switch (rend_group->type) {
-        case PARTICLE_QUAD:
-            CalcDispQuad(GPM_VAL, rend_group);
-            disp_quad += rend_group->disp;
-            break;
-        case PARTICLE_LINE:
-            CalcDispLine(rend_group);
-            disp_line += rend_group->disp;
-            break;
-        case PARTICLE_LOCUS:
-            CalcDispLocus(GPM_VAL, rend_group);
-            disp_locus += rend_group->disp;
-            break;
-        }
-
         if (rend_group->disp < 1)
             return;
 

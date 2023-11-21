@@ -45,19 +45,19 @@ namespace Glitter {
         return false;
     }
 
-#if defined(CRE_DEV)
     void Scene::CalcDisp(GPM) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
-                XEffectInst* eff_x = dynamic_cast<XEffectInst*>(i.ptr);
-                if (!eff_x || GPM_VAL->draw_selected && GPM_VAL->selected_effect
+#if defined(CRE_DEV)
+                if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
                     && GPM_VAL->selected_effect != i.ptr)
                     continue;
-
-                eff_x->CalcDisp(GPM_VAL);
+#endif
+                i.ptr->CalcDisp(GPM_VAL);
             }
     }
 
+#if defined(CRE_DEV)
     bool Scene::CanDisp(DispType disp_type, bool a3) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {

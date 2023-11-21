@@ -168,6 +168,10 @@ namespace Glitter {
         delete ext_anim;
     }
 
+    void F2EffectInst::CalcDisp(GPM) {
+        render_scene.CalcDisp(GPM_VAL);
+    }
+
     void F2EffectInst::Copy(EffectInst* dst, float_t emission) {
         dst->frame0 = frame0;
         dst->frame1 = frame1;
@@ -684,6 +688,10 @@ namespace Glitter {
         delete ext_anim;
     }
 
+    void XEffectInst::CalcDisp(GPM) {
+        render_scene.CalcDisp(GPM_VAL);
+    }
+
     void XEffectInst::Copy(EffectInst* dst, float_t emission) {
         dst->frame0 = frame0;
         dst->frame1 = frame1;
@@ -820,10 +828,6 @@ namespace Glitter {
                 i->Reset();
 
         CtrlInit(GPM_VAL, emission);
-    }
-
-    void XEffectInst::CalcDisp(GPM) {
-        render_scene.CalcDisp(GPM_VAL);
     }
 
     void XEffectInst::CtrlInit(GPM, float_t emission) {

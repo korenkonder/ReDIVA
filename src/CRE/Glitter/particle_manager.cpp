@@ -15,8 +15,11 @@ namespace Glitter {
 
     }
 
-    GltParticleManager::GltParticleManager() : selected_scene(), selected_effect(),
-        selected_emitter(), selected_particle(), bone_data(), frame_rate(), cam(), flags(),
+    GltParticleManager::GltParticleManager() :
+#if defined(CRE_DEV)
+        selected_scene(), selected_effect(), selected_emitter(), selected_particle(),
+#endif
+        bone_data(), frame_rate(), cam(), flags(),
         scene_load_counter(), texture_counter(), random(), counter(), draw_selected() {
         emission = 1.5f;
         delta_frame = 2.0f;
@@ -66,7 +69,6 @@ namespace Glitter {
         return true;
     }
 
-    #if defined(CRE_DEV)
     void GltParticleManager::Disp() {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
@@ -75,7 +77,6 @@ namespace Glitter {
             if (i)
                 i->CalcDisp(this);
     }
-    #endif
 
     void GltParticleManager::Basic() {
         BasicEffectGroups();
