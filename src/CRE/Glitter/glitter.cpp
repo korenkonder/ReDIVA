@@ -267,17 +267,12 @@ namespace Glitter {
         *angle = vec3::length(*axis);
 
         if (*angle >= 0.000001f)
-            *angle = asinf(min_def(*angle, 1.0f));
+            *angle = asinf(clamp_def(*angle, -1.0f, 1.0f));
         else {
             *angle = 0.0f;
-            axis->x = vec1->z;
-            axis->y = 0.0f;
-            axis->z = vec1->x;
-            if (vec3::length(*axis) < 0.000001f) {
-                axis->x = -vec1->y;
-                axis->y = vec1->x;
-                axis->z = 0.0f;
-            }
+            *axis = vec3::cross(vec3(0.0f, 1.0f, 0.0f), *vec1);
+            if (vec3::length(*axis) < 0.000001f)
+                *axis = vec3::cross(vec3(0.0f, 0.0f, 1.0f), *vec1);
         }
 
         if (vec3::dot(*vec1, *vec2) < 0.0f)
