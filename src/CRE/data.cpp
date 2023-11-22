@@ -1042,6 +1042,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
                 uint32_t hash = hash_string_murmurhash(i);
                 ds->glitter_list_murmurhash.push_back(hash, i.c_str());
             }
+            ds->glitter_list_murmurhash.sort();
             break;
         case DATA_AFT:
         case DATA_FT:
@@ -1051,6 +1052,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
                 uint64_t hash = hash_string_fnv1a64m(i);
                 ds->glitter_list_fnv1a64m.push_back(hash, i.c_str());
             }
+            ds->glitter_list_fnv1a64m.sort();
             break;
         }
 
