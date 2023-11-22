@@ -2809,19 +2809,19 @@ namespace mdl {
         }
     }
 
-    void DispManager::entry_obj_etc(const mat4* mat, EtcObj* etc) {
+    void DispManager::entry_obj_etc(const mat4* mat, EtcObj* etc, bool local) {
         ObjData* data = alloc_data(mdl::OBJ_KIND_ETC);
         if (!data)
             return;
 
         data->init_etc(this, mat, etc);
         if (etc->color.a == 0xFF) {
-            if ((obj_flags & OBJ_SHADOW) != 0)
+            if (!local && (obj_flags & OBJ_SHADOW))
                 mdl::DispManager::entry_list((mdl::ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
-            mdl::DispManager::entry_list(OBJ_TYPE_OPAQUE, data);
+            mdl::DispManager::entry_list(local ? OBJ_TYPE_OPAQUE_LOCAL : OBJ_TYPE_OPAQUE, data);
         }
         else
-            mdl::DispManager::entry_list(OBJ_TYPE_TRANSLUCENT, data);
+            mdl::DispManager::entry_list(local ? OBJ_TYPE_TRANSLUCENT_LOCAL : OBJ_TYPE_TRANSLUCENT, data);
     }
 
     void DispManager::entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type) {
