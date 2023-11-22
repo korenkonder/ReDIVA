@@ -1625,7 +1625,7 @@ namespace mdl {
             wire = ellipse.wire;
             length = vec3::distance(ellipse.pos[0], ellipse.pos[1]);
         } break;
-        case mdl::ETC_OBJ_CYLINDER: {
+        case mdl::ETC_OBJ_CYLINDER: { // Added
             EtcObjCylinder& cylinder = etc->data.cylinder;
 
             indexed = true;
@@ -1664,7 +1664,7 @@ namespace mdl {
                 && ((i.data.ellipse.stacks + 1)) >> 1 == ((etc->data.ellipse.stacks + 1) >> 1)
                 && fabsf(i.data.ellipse.radius - etc->data.ellipse.radius) < 0.00001f
                 && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f
-                || type == mdl::ETC_OBJ_CYLINDER
+                || type == mdl::ETC_OBJ_CYLINDER // Added
                 && i.data.cylinder.slices == etc->data.cylinder.slices
                 && i.data.cylinder.stacks == etc->data.cylinder.stacks
                 && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
@@ -1797,7 +1797,7 @@ namespace mdl {
             etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
             etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
         } break;
-        case mdl::ETC_OBJ_CYLINDER: {
+        case mdl::ETC_OBJ_CYLINDER: { // Added
             EtcObjCylinder& cylinder = etc->data.cylinder;
 
             size_t wire_offset = gen_cylinder_vertices_indices(vtx_data, vtx_indices,
@@ -2952,7 +2952,7 @@ namespace mdl {
                     && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f)
                     return i.vertex_array;
                 break;
-            case mdl::ETC_OBJ_CYLINDER:
+            case mdl::ETC_OBJ_CYLINDER: // Added
                 if (i.data.cylinder.slices == etc->data.cylinder.slices
                     && i.data.cylinder.stacks == etc->data.cylinder.stacks
                     && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
