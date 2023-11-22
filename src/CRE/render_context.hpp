@@ -60,8 +60,9 @@ namespace mdl {
         ETC_OBJ_CONE,
         ETC_OBJ_LINE,
         ETC_OBJ_CROSS,
-        ETC_OBJ_CAPSULE, // Added
-        ETC_OBJ_ELLIPSE, // Added
+        ETC_OBJ_CAPSULE,  // Added
+        ETC_OBJ_ELLIPSE,  // Added
+        ETC_OBJ_CYLINDER, // Added
         ETC_OBJ_MAX,
     };
 
@@ -375,6 +376,17 @@ namespace mdl {
         EtcObjEllipse();
     };
 
+    struct EtcObjCylinder { // Added
+        float_t base;
+        float_t top;
+        float_t height;
+        int32_t slices;
+        int32_t stacks;
+        bool wire;
+
+        EtcObjCylinder();
+    };
+
     struct EtcObj {
         union Data {
             EtcObjTeapot teapot;
@@ -387,6 +399,7 @@ namespace mdl {
             EtcObjCross cross;
             EtcObjCapsule capsule; // Added
             EtcObjEllipse ellipse; // Added
+            EtcObjCylinder cylinder; // Added
 
             Data();
         };

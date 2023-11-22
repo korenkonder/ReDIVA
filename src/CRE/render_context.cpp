@@ -216,6 +216,14 @@ namespace mdl {
         pos[1] = { 0.0f, 0.0f, 1.0f };
     }
 
+    EtcObjCylinder::EtcObjCylinder() : wire() {
+        base = 1.0f;
+        top = 1.0f;
+        height = 1.0f;
+        slices = 8;
+        stacks = 8;
+    }
+
     EtcObj::Data::Data() : capsule() {
 
     }
@@ -259,6 +267,9 @@ namespace mdl {
             break;
         case ETC_OBJ_ELLIPSE: // Added
             data.ellipse = {};
+            break;
+        case ETC_OBJ_CYLINDER: // Added
+            data.cylinder = {};
             break;
         }
     }
@@ -1004,7 +1015,7 @@ namespace mdl {
         data.push_back(1.0f);
         data.push_back(0.0f);
 
-        double_t sector_step = (M_PI * 2.0) / (double_t)slices;
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
         double_t stack_step = M_PI / (double_t)stacks;
 
         for (int32_t i = 1; i < stacks; i++) {
@@ -1015,10 +1026,10 @@ namespace mdl {
             data.reserve(sizeof(vec3) * 2 * slices);
 
             for (int32_t j = 0; j < slices; j++) {
-                float_t sector_angle = (float_t)((double_t)j * sector_step);
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
 
-                float_t x = xz * cosf(sector_angle);
-                float_t z = xz * sinf(sector_angle);
+                float_t x = xz * cosf(slice_angle);
+                float_t z = xz * sinf(slice_angle);
 
                 data.push_back(x);
                 data.push_back(y);
@@ -1057,7 +1068,7 @@ namespace mdl {
                 indices.push_back(j + m2);
                 indices.push_back(k + m2);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1077,7 +1088,7 @@ namespace mdl {
                 indices.push_back(j + m2);
                 indices.push_back(k + m2);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1142,7 +1153,7 @@ namespace mdl {
                 indices.push_back(j + m);
                 indices.push_back(k + m);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1174,7 +1185,7 @@ namespace mdl {
         data.push_back(1.0f);
         data.push_back(0.0f);
 
-        double_t sector_step = (M_PI * 2.0) / (double_t)slices;
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
         double_t stack_step = M_PI / (double_t)stacks;
 
         for (int32_t i = 1; i <= stacks / 2; i++) {
@@ -1185,10 +1196,10 @@ namespace mdl {
             data.reserve(sizeof(vec3) * 2 * slices);
 
             for (int32_t j = 0; j < slices; j++) {
-                float_t sector_angle = (float_t)((double_t)j * sector_step);
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
 
-                float_t x = xz * cosf(sector_angle);
-                float_t z = xz * sinf(sector_angle);
+                float_t x = xz * cosf(slice_angle);
+                float_t z = xz * sinf(slice_angle);
 
                 data.push_back(x);
                 data.push_back(y + length);
@@ -1208,10 +1219,10 @@ namespace mdl {
             data.reserve(sizeof(vec3) * 2 * slices);
 
             for (int32_t j = 0; j < slices; j++) {
-                float_t sector_angle = (float_t)((double_t)j * sector_step);
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
 
-                float_t x = xz * cosf(sector_angle);
-                float_t z = xz * sinf(sector_angle);
+                float_t x = xz * cosf(slice_angle);
+                float_t z = xz * sinf(slice_angle);
 
                 data.push_back(x);
                 data.push_back(y - length);
@@ -1255,7 +1266,7 @@ namespace mdl {
                 indices.push_back(j + m2);
                 indices.push_back(k + m2);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1275,7 +1286,7 @@ namespace mdl {
                 indices.push_back(j + m2);
                 indices.push_back(k + m2);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1291,7 +1302,7 @@ namespace mdl {
                 indices.push_back(m2);
                 indices.push_back(k + m1);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1343,7 +1354,7 @@ namespace mdl {
                 indices.push_back(j + m);
                 indices.push_back(k + m);
 
-                if (++k >= slices)
+                if (k++ >= slices)
                     k = 0;
             }
         }
@@ -1375,7 +1386,7 @@ namespace mdl {
         data.push_back(1.0f);
         data.push_back(0.0f);
 
-        double_t sector_step = (M_PI * 2.0) / (double_t)slices;
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
         double_t stack_step = M_PI / (double_t)stacks;
 
         for (int32_t i = 1; i < stacks; i++) {
@@ -1388,10 +1399,10 @@ namespace mdl {
             data.reserve(sizeof(vec3) * 2 * slices);
 
             for (int32_t j = 0; j < slices; j++) {
-                float_t sector_angle = (float_t)((double_t)j * sector_step);
+                float_t slice_angle = (float_t)((double_t)j * slice_step);
 
-                float_t x = xz * cosf(sector_angle);
-                float_t z = xz * sinf(sector_angle);
+                float_t x = xz * cosf(slice_angle);
+                float_t z = xz * sinf(slice_angle);
 
                 data.push_back(x);
                 data.push_back(y);
@@ -1421,6 +1432,94 @@ namespace mdl {
         return gen_sphere_indices(indices, slices, stacks);
     }
 
+    static size_t gen_cylinder_vertices_indices(std::vector<float_t>& data, std::vector<uint32_t>& indices,
+        int32_t slices, int32_t stacks, float_t base, float_t top, float_t height) {
+        double_t slice_step = (M_PI * 2.0) / (double_t)slices;
+
+        if (height >= 0.00001f) {
+            data.reserve(sizeof(vec3) * (((size_t)stacks + 1) * ((size_t)slices + 1)));
+            for (int32_t i = 0; i <= stacks; i++) {
+                float_t y = -0.5f * height + i * height;
+                float_t radius = lerp_def(base, top, (float_t)i / (float_t)stacks);
+
+                for (int32_t j = 0; j <= slices; j++) {
+                    float_t slice_angle = (float_t)((double_t)j * slice_step);
+
+                    data.push_back(radius * cosf(slice_angle));
+                    data.push_back(y);
+                    data.push_back(radius * sinf(slice_angle));
+                }
+            }
+
+            indices.reserve(3LL * (size_t)stacks * (size_t)slices);
+            int32_t ring_vtx_count = slices + 1;
+            for (int32_t i = 0; i < stacks; i++)
+                for (int32_t j = 0; j < slices; j++) {
+                    indices.push_back(i * ring_vtx_count + j);
+                    indices.push_back((i + 1) * ring_vtx_count + j);
+                    indices.push_back((i + 1) * ring_vtx_count + j + 1);
+
+                    indices.push_back(i * ring_vtx_count + j);
+                    indices.push_back((i + 1) * ring_vtx_count + j + 1);
+                    indices.push_back(i * ring_vtx_count + j + 1);
+                }
+        }
+
+        if (top >= 0.00001f) {
+            data.reserve(sizeof(vec3) * ((size_t)slices + 2));
+            float_t top_y = 0.5f * height;
+            int32_t top_index = (int32_t)(data.size() / 3);
+
+            for (int32_t i = 0; i <= slices; i++) {
+                float_t slice_angle = (float_t)((double_t)i * slice_step);
+
+                data.push_back(top * cosf(slice_angle));
+                data.push_back(top_y);
+                data.push_back(top * sinf(slice_angle));
+            }
+
+            data.push_back(0.0f);
+            data.push_back(top_y);
+            data.push_back(0.0f);
+
+            indices.reserve(3LL * (size_t)slices);
+            int32_t top_center_index = (int32_t)(data.size() / 3) - 1;
+            for (int32_t i = 0; i < slices; i++) {
+                indices.push_back(top_center_index);
+                indices.push_back(top_index + i + 1);
+                indices.push_back(top_index + i);
+            }
+        }
+
+        if (base >= 0.00001f) {
+            data.reserve(sizeof(vec3) * ((size_t)slices + 2));
+            float_t base_y = -0.5f * height;
+            int32_t base_index = (int32_t)(data.size() / 3);
+
+            for (int32_t i = 0; i <= slices; i++) {
+                float_t slice_angle = (float_t)((double_t)i * slice_step);
+
+                data.push_back(top * cosf(slice_angle));
+                data.push_back(base_y);
+                data.push_back(top * sinf(slice_angle));
+            }
+
+            data.push_back(0.0f);
+            data.push_back(base_y);
+            data.push_back(0.0f);
+
+            indices.reserve(3LL * (size_t)slices);
+            int32_t base_center_index = (int32_t)(data.size() / 3) - 1;
+            for (int32_t i = 0; i < slices; i++) {
+                indices.push_back(base_center_index);
+                indices.push_back(base_index + i);
+                indices.push_back(base_index + i + 1);
+            }
+        }
+
+        return 0;
+    }
+
     void DispManager::add_vertex_array(EtcObj* etc, mat4& mat) {
         EtcObjType type = etc->type;
         switch (type) {
@@ -1434,6 +1533,7 @@ namespace mdl {
         case mdl::ETC_OBJ_CROSS:
         case mdl::ETC_OBJ_CAPSULE: // Added
         case mdl::ETC_OBJ_ELLIPSE: // Added
+        case mdl::ETC_OBJ_CYLINDER: // Added
             break;
         default:
             return;
@@ -1525,6 +1625,12 @@ namespace mdl {
             wire = ellipse.wire;
             length = vec3::distance(ellipse.pos[0], ellipse.pos[1]);
         } break;
+        case mdl::ETC_OBJ_CYLINDER: {
+            EtcObjCylinder& cylinder = etc->data.cylinder;
+
+            indexed = true;
+            wire = cylinder.wire;
+        } break;
         }
 
         DispManager::etc_vertex_array* etc_vertex_array = 0;
@@ -1557,7 +1663,13 @@ namespace mdl {
                 && i.data.ellipse.slices == etc->data.ellipse.slices
                 && ((i.data.ellipse.stacks + 1)) >> 1 == ((etc->data.ellipse.stacks + 1) >> 1)
                 && fabsf(i.data.ellipse.radius - etc->data.ellipse.radius) < 0.00001f
-                && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f)
+                && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f
+                || type == mdl::ETC_OBJ_CYLINDER
+                && i.data.cylinder.slices == etc->data.cylinder.slices
+                && i.data.cylinder.stacks == etc->data.cylinder.stacks
+                && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
+                && fabsf(i.data.cylinder.top - etc->data.cylinder.top) < 0.00001f
+                && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
                 if (i.vertex_array) {
                     i.alive_time = 2;
                     if (!wire) {
@@ -1679,6 +1791,17 @@ namespace mdl {
 
             gen_ellipse_vertices(vtx_data, ellipse.slices, ellipse.stacks, length, ellipse.radius);
             size_t wire_offset = gen_ellipse_indices(vtx_indices, ellipse.slices, ellipse.stacks, length);
+
+            etc_vertex_array->offset = 0;
+            etc_vertex_array->count = (GLsizei)wire_offset;
+            etc_vertex_array->wire_offset = wire_offset * sizeof(uint32_t);
+            etc_vertex_array->wire_count = (GLsizei)(vtx_indices.size() - wire_offset);
+        } break;
+        case mdl::ETC_OBJ_CYLINDER: {
+            EtcObjCylinder& cylinder = etc->data.cylinder;
+
+            size_t wire_offset = gen_cylinder_vertices_indices(vtx_data, vtx_indices,
+                cylinder.slices, cylinder.stacks, cylinder.base, cylinder.top, cylinder.height);
 
             etc_vertex_array->offset = 0;
             etc_vertex_array->count = (GLsizei)wire_offset;
@@ -2777,6 +2900,8 @@ namespace mdl {
         case mdl::ETC_OBJ_ELLIPSE: // Added
             length = vec3::distance(etc->data.ellipse.pos[0], etc->data.ellipse.pos[1]);
             break;
+        case mdl::ETC_OBJ_CYLINDER: // Added
+            break;
         default:
             return 0;
         }
@@ -2825,6 +2950,14 @@ namespace mdl {
                     && ((i.data.ellipse.stacks + 1)) >> 1 == ((etc->data.ellipse.stacks + 1) >> 1)
                     && fabsf(i.data.ellipse.radius - etc->data.ellipse.radius) < 0.00001f
                     && fabsf(vec3::distance(i.data.ellipse.pos[0], i.data.ellipse.pos[1]) - length) < 0.00001f)
+                    return i.vertex_array;
+                break;
+            case mdl::ETC_OBJ_CYLINDER:
+                if (i.data.cylinder.slices == etc->data.cylinder.slices
+                    && i.data.cylinder.stacks == etc->data.cylinder.stacks
+                    && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
+                    && fabsf(i.data.cylinder.top - etc->data.cylinder.top) < 0.00001f
+                    && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
                     return i.vertex_array;
                 break;
             }
