@@ -1771,16 +1771,6 @@ namespace Glitter {
     }
 
     void XRenderScene::CalcDispQuadDirectionRotation(XRenderGroup* rend_group, mat4* model_mat) {
-        mat4 inv_model_mat;
-        mat4_invert(model_mat, &inv_model_mat);
-        mat4_clear_trans(&inv_model_mat, &inv_model_mat);
-
-        vec3 x_vec_base = { 1.0f, 0.0f, 0.0f };
-        vec3 y_vec_base = { 0.0f, 1.0f, 0.0f };
-
-        mat4_transform_vector(&inv_model_mat, &x_vec_base, &x_vec_base);
-        mat4_transform_vector(&inv_model_mat, &y_vec_base, &y_vec_base);
-
         vec3 up_vec;
         mat4(*rotate_func)(XRenderGroup*, RenderElement*, vec3*);
         if (rend_group->draw_type == DIRECTION_EMIT_POSITION) {
@@ -1797,6 +1787,14 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMITTER_LOCAL
             && rend_group->GetEmitterScale(scale))
             use_scale = rend_group->flags & PARTICLE_SCALE ? true : false;
+
+        vec3 x_vec_base = { 1.0f, 0.0f, 0.0f };
+        vec3 y_vec_base = { 0.0f, 1.0f, 0.0f };
+
+        if (use_scale) {
+            x_vec_base.x *= scale.x;
+            y_vec_base.y *= scale.y;
+        }
 
         Buffer* buf;
         if (GLAD_GL_VERSION_4_5)
@@ -1861,24 +1859,25 @@ namespace Glitter {
                 uv_add[3].x = split_uv.x;
                 uv_add[3].y = 0.0f;
 
+                vec3 x_vec = x_vec_base;
+                vec3 y_vec = y_vec_base;
+
+                if (fabsf(elem->rotation.z) > 0.000001f) {
+                    mat3 ptc_rot;
+                    mat3_rotate_z(elem->rot_z_sin, elem->rot_z_cos, &ptc_rot);
+                    mat3_transform_vector(&ptc_rot, &x_vec, &x_vec);
+                    mat3_transform_vector(&ptc_rot, &y_vec, &y_vec);
+                }
+
                 vec2 uv = elem->uv + elem->uv_scroll;
 
                 mat4 mat = rotate_func(rend_group, elem, &up_vec);
-                vec3 x_vec;
-                mat4_transform_vector(&mat, &x_vec_base, &x_vec);
-                vec3 y_vec;
-                mat4_transform_vector(&mat, &y_vec_base, &y_vec);
+                mat4_transform_vector(&mat, &x_vec, &x_vec);
+                mat4_transform_vector(&mat, &y_vec, &y_vec);
 
-                if (use_scale) {
-                    x_vec *= scale;
-                    y_vec *= scale;
-                }
-
-                float_t rot_z_cos = elem->rot_z_cos;
-                float_t rot_z_sin = elem->rot_z_sin;
                 for (int32_t k = 0; k < 4; k++, buf++) {
-                    vec3 x_vec_rot = x_vec * (pos_add[k].x * rot_z_cos - pos_add[k].y * rot_z_sin);
-                    vec3 y_vec_rot = y_vec * (pos_add[k].x * rot_z_sin + pos_add[k].y * rot_z_cos);
+                    vec3 x_vec_rot = pos_add[k].x * x_vec;
+                    vec3 y_vec_rot = pos_add[k].y * y_vec;
                     buf->position = pos + (x_vec_rot + y_vec_rot);
                     buf->uv[0] = uv + uv_add[k];
                     buf->uv[1] = buf->uv[0];
