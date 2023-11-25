@@ -1650,19 +1650,6 @@ namespace mdl {
 
         size_t wire_offset = indices.size();
 
-        // Top cap wireframe
-        {
-            int32_t m1 = 0;
-            int32_t m2 = 1;
-
-            indices.reserve(2LL * slices);
-
-            for (int32_t j = 0; j < slices; j++) {
-                indices.push_back(m1);
-                indices.push_back(j + m2);
-            }
-        }
-
         // Stacks wireframe
         for (int32_t i = 0; i < stacks; i++) {
             int32_t m1 = i * slices + 1;
@@ -1673,19 +1660,6 @@ namespace mdl {
             for (int32_t j = 0; j < slices; j++) {
                 indices.push_back(j + m1);
                 indices.push_back(j + m2);
-            }
-        }
-
-        // Bottom cap wireframe
-        {
-            int32_t m1 = stacks * slices + 1;
-            int32_t m2 = m1 + slices;
-
-            indices.reserve(2LL * slices);
-
-            for (int32_t j = 0; j < slices; j++) {
-                indices.push_back(j + m1);
-                indices.push_back(m2);
             }
         }
 
