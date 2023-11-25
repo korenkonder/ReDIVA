@@ -1539,7 +1539,7 @@ namespace mdl {
         int32_t slices, int32_t stacks, float_t base, float_t top, float_t height) {
         float_t half_height = height * 0.5f;
 
-        if (slices < 2 || stacks < 2)
+        if (slices < 2 || stacks < 0)
             return;
 
         data.reserve(sizeof(vec3) * 2);
