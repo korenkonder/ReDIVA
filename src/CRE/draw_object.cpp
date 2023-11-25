@@ -160,6 +160,12 @@ namespace mdl {
             else
                 shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
             break;
+        case mdl::ETC_OBJ_CYLINDER: // Added
+            if (etc->data.cylinder.wire)
+                shaders_ft.draw_elements(GL_LINES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+            else
+                shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, (void*)etc->offset);
+            break;
         }
         shader::unbind();
         uniform_value_reset();
