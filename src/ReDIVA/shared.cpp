@@ -5,7 +5,6 @@
 
 #include "shared.hpp"
 #include "classes/data_view.hpp"
-#include "classes/glitter_editor.hpp"
 #include "classes/graphics.hpp"
 #include "classes/information.hpp"
 
@@ -75,31 +74,7 @@ classes_data classes[] = {
         },
         information_classes,
         3,
-    },
-#if defined(ReDIVA_DEV)
-    {
-        "Glitter Editor",
-        CLASSES_IN_CONTEXT_MENU,
-        glitter_editor_init,
-        glitter_editor_ctrl,
-        glitter_editor_disp,
-        glitter_editor_drop,
-        CLASSES_DATA_NO_FUNC,
-        glitter_editor_imgui,
-        glitter_editor_input,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        glitter_editor_dispose,
-        {
-            {},
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
-            false,
-            CLASS_DATA_NO_DATA,
-        },
-        0,
-        0,
-    },
-#endif
+    }
 };
 
 const size_t classes_count = sizeof(classes) / sizeof(classes_data);

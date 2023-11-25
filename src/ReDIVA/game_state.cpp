@@ -21,6 +21,7 @@
 #include "data_edit.hpp"
 #include "data_initialize.hpp"
 #include "dw_console.hpp"
+#include "glitter_editor.hpp"
 #include "system_startup.hpp"
 #include "x_pv_game.hpp"
 
@@ -62,6 +63,19 @@ struct GameState {
         static bool Dest();
     };
 
+    struct AppError {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+#if defined(ReDIVA_DEV)
+    struct GlitterEditor { // Added
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
 #if DATA_EDIT
     struct DataEdit { // Added
         static bool Init();
@@ -69,12 +83,7 @@ struct GameState {
         static bool Dest();
     };
 #endif
-
-    struct AppError {
-        static bool Init();
-        static bool Ctrl();
-        static bool Dest();
-    };
+#endif
 
     GameStateEnum game_state;
     GameStateEnum game_state_next;
@@ -334,6 +343,19 @@ struct SubGameState {
         static bool Dest();
     };
 
+    struct DataTestAppError {
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
+#if defined(ReDIVA_DEV)
+    struct GlitterEditor { // Added
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+
 #if DATA_EDIT
     struct DataEdit { // Added
         static bool Init();
@@ -341,12 +363,7 @@ struct SubGameState {
         static bool Dest();
     };
 #endif
-
-    struct DataTestAppError {
-        static bool Init();
-        static bool Ctrl();
-        static bool Dest();
-    };
+#endif
 };
 
 struct GameStateData {
@@ -463,6 +480,33 @@ GameStateData game_state_data_array[] = {
         GAME_STATE_ADVERTISE,
         SUB_GAME_STATE_MAX,
     },
+    {
+        GAME_STATE_APP_ERROR,
+        GameState::AppError::Init,
+        GameState::AppError::Ctrl,
+        GameState::AppError::Dest,
+        {
+            SUB_GAME_STATE_APP_ERROR,
+            SUB_GAME_STATE_MAX,
+        },
+        GAME_STATE_ADVERTISE,
+        SUB_GAME_STATE_MAX,
+    },
+
+#if defined(ReDIVA_DEV)
+    { // Added
+        GAME_STATE_GLITTER_EDITOR,
+        GameState::GlitterEditor::Init,
+        GameState::GlitterEditor::Ctrl,
+        GameState::GlitterEditor::Dest,
+        {
+            SUB_GAME_STATE_GLITTER_EDITOR,
+            SUB_GAME_STATE_MAX,
+        },
+        GAME_STATE_ADVERTISE,
+        SUB_GAME_STATE_MAX,
+    },
+
 #if DATA_EDIT
     { // Added
         GAME_STATE_DATA_EDIT,
@@ -477,18 +521,7 @@ GameStateData game_state_data_array[] = {
         SUB_GAME_STATE_MAX,
     },
 #endif
-    {
-        GAME_STATE_APP_ERROR,
-        GameState::AppError::Init,
-        GameState::AppError::Ctrl,
-        GameState::AppError::Dest,
-        {
-            SUB_GAME_STATE_APP_ERROR,
-            SUB_GAME_STATE_MAX,
-        },
-        GAME_STATE_ADVERTISE,
-        SUB_GAME_STATE_MAX,
-    },
+#endif
 };
 
 SubGameStateData sub_game_state_data_array[] = {
@@ -772,6 +805,23 @@ SubGameStateData sub_game_state_data_array[] = {
         SubGameState::DataTestModeMain::Ctrl,
         SubGameState::DataTestModeMain::Dest,
     },
+    {
+        SUB_GAME_STATE_APP_ERROR,
+        0,
+        SubGameState::DataTestAppError::Init,
+        SubGameState::DataTestAppError::Ctrl,
+        SubGameState::DataTestAppError::Dest,
+    },
+
+#if defined(ReDIVA_DEV)
+    { // Added
+        SUB_GAME_STATE_GLITTER_EDITOR,
+        0,
+        SubGameState::GlitterEditor::Init,
+        SubGameState::GlitterEditor::Ctrl,
+        SubGameState::GlitterEditor::Dest,
+    },
+
 #if DATA_EDIT
     { // Added
         SUB_GAME_STATE_DATA_EDIT,
@@ -781,13 +831,7 @@ SubGameStateData sub_game_state_data_array[] = {
         SubGameState::DataEdit::Dest,
     },
 #endif
-    {
-        SUB_GAME_STATE_APP_ERROR,
-        0,
-        SubGameState::DataTestAppError::Init,
-        SubGameState::DataTestAppError::Ctrl,
-        SubGameState::DataTestAppError::Dest,
-    },
+#endif
 };
 
 const char* game_state_names[] = {
@@ -796,10 +840,13 @@ const char* game_state_names[] = {
     "GAME",
     "DATA_TEST",
     "TEST_MODE",
+    "APP_ERROR",
+#if defined(ReDIVA_DEV)
+    "GLITTER_EDITOR",
 #if DATA_EDIT
     "DATA_EDIT",
 #endif
-    "APP_ERROR",
+#endif
     "MAX",
 };
 
@@ -844,10 +891,13 @@ const char* sub_game_state_names[] = {
     "DATA_TEST_GRAPHICS",
     "DATA_TEST_COLLECTION_CARD",
     "TEST_MODE_MAIN",
+    "APP_ERROR",
+#if defined(ReDIVA_DEV)
+    "GLITTER_EDITOR",
 #if DATA_EDIT
     "DATA_EDIT",
 #endif
-    "APP_ERROR",
+#endif
     "MAX",
 };
 
@@ -955,6 +1005,31 @@ bool GameState::TestMode::Dest() {
     return true;
 }
 
+bool GameState::AppError::Init() {
+    return true;
+}
+
+bool GameState::AppError::Ctrl() {
+    return false;
+}
+
+bool GameState::AppError::Dest() {
+    return true;
+}
+
+#if defined(ReDIVA_DEV)
+bool GameState::GlitterEditor::Init() { // Added
+    return true;
+}
+
+bool GameState::GlitterEditor::Ctrl() { // Added
+    return false;
+}
+
+bool GameState::GlitterEditor::Dest() { // Added
+    return true;
+}
+
 #if DATA_EDIT
 bool GameState::DataEdit::Init() { // Added
     return true;
@@ -968,18 +1043,7 @@ bool GameState::DataEdit::Dest() { // Added
     return true;
 }
 #endif
-
-bool GameState::AppError::Init() {
-    return true;
-}
-
-bool GameState::AppError::Ctrl() {
-    return false;
-}
-
-bool GameState::AppError::Dest() {
-    return true;
-}
+#endif
 
 bool SubGameState::DataInitialize::Init() {
     task_data_init_add_task();
@@ -1620,6 +1684,26 @@ bool SubGameState::DataTestModeMain::Dest() {
     return true;
 }
 
+#if defined(ReDIVA_DEV)
+bool SubGameState::GlitterEditor::Init() { // Added
+    camera* cam = rctx_ptr->camera;
+    cam->reset();
+    cam->set_view_point({ 0.0f, 1.4f, 1.0f });
+    cam->set_interest({ 0.0f, 1.4f, 0.0f });
+
+    app::TaskWork::AddTask(&glitter_editor, "GLITTER EDITOR", 0);
+    return true;
+}
+
+bool SubGameState::GlitterEditor::Ctrl() { // Added
+    return false;
+}
+
+bool SubGameState::GlitterEditor::Dest() { // Added
+    glitter_editor.DelTask();
+    return true;
+}
+
 #if DATA_EDIT
 bool SubGameState::DataEdit::Init() { // Added
     app::TaskWork::AddTask(&data_edit, "DATA EDIT", 0);
@@ -1634,6 +1718,7 @@ bool SubGameState::DataEdit::Dest() { // Added
     data_edit.DelTask();
     return true;
 }
+#endif
 #endif
 
 bool SubGameState::DataTestAppError::Init() {

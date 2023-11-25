@@ -12,6 +12,7 @@
 enum shader_dev_enum {
     SHADER_DEV_FFP = 0,
     SHADER_DEV_CLAMP_COLORS,
+    SHADER_DEV_GLITTER_PT_WIREFRAME,
     SHADER_DEV_END,
     SHADER_DEV_MAX,
 };

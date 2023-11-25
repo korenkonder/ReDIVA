@@ -57,6 +57,7 @@
 #include "pv_game/pv_game.hpp"
 #include "dw_console.hpp"
 #include "game_state.hpp"
+#include "glitter_editor.hpp"
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
@@ -1082,11 +1083,15 @@ static void render_context_ctrl(render_context* rctx) {
     else if (Input::IsKeyTapped(GLFW_KEY_F7))
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
     else if (Input::IsKeyTapped(GLFW_KEY_F8))
-#if DATA_EDIT
-        game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
-    else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
-#endif
         game_state_set_game_state_next(GAME_STATE_APP_ERROR);
+#if ReDIVA_DEV
+    else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
+        game_state_set_game_state_next(GAME_STATE_GLITTER_EDITOR); // Added
+#if DATA_EDIT
+    else if (Input::IsKeyTapped(GLFW_KEY_F10)) // Added
+        game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
+#endif
+#endif
 
     classes_process_ctrl(classes, classes_count);
 
@@ -1349,6 +1354,14 @@ static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
         return;
 
     classes_process_drop(classes, classes_count, count, paths);
+
+#if ReDIVA_DEV
+    if (app::TaskWork::HasTask(&glitter_editor)) {
+        glitter_editor.file.assign(paths[0]);
+        glitter_editor.load_popup = true;
+    }
+#endif
+
     glfwFocusWindow(window);
 }
 
