@@ -2071,7 +2071,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.cylinder.top = emit_inst->data.cylinder.radius * scale.x;
         etc.data.cylinder.height = emit_inst->data.cylinder.height * scale.y;
         etc.data.cylinder.slices = 16;
-        etc.data.cylinder.stacks = 16;
+        etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
         rctx_ptr->disp_manager.entry_obj_etc(&mat, &etc, local);
 
@@ -2167,7 +2167,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.top = emit_inst->data.cylinder.radius * scale.x;
         etc.data.cylinder.height = emit_inst->data.cylinder.height * scale.y;
         etc.data.cylinder.slices = 16;
-        etc.data.cylinder.stacks = 16;
+        etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
         rctx_ptr->disp_manager.entry_obj_etc(&mat, &etc, local);
 
