@@ -453,10 +453,10 @@ bool GlitterEditor::Init() {
 }
 
 bool GlitterEditor::Ctrl() {
-    int32_t sel_rsrc = selected_edit_resource;
-    Glitter::Effect* sel_efct = selected_edit_effect;
-    Glitter::Emitter* sel_emit = selected_edit_emitter;
-    Glitter::Particle* sel_ptcl = selected_edit_particle;
+    int32_t sel_rsrc = selected_resource;
+    Glitter::Effect* sel_efct = selected_effect;
+    Glitter::Emitter* sel_emit = selected_emitter;
+    Glitter::Particle* sel_ptcl = selected_particle;
 
     if (effect_group_add) {
         Glitter::glt_particle_manager->UnloadEffectGroup(hash);
@@ -608,7 +608,7 @@ bool GlitterEditor::Ctrl() {
         input_reload = true;
     }
 
-    if (eg && sel_efct)
+    if (eg && selected_edit_effect)
         if (effect_flags & GLITTER_EDITOR_DUPLICATE) {
             ssize_t eff_count = eg->effects.size();
 
@@ -686,7 +686,7 @@ bool GlitterEditor::Ctrl() {
             input_reload = true;
         }
 
-    if (eg && sel_emit)
+    if (eg && selected_edit_emitter)
         if (emitter_flags & GLITTER_EDITOR_DUPLICATE) {
             Glitter::Emitter* e = new Glitter::Emitter(eg->type);
             *e = *selected_emitter;
@@ -746,7 +746,7 @@ bool GlitterEditor::Ctrl() {
             input_reload = true;
         }
 
-    if (eg && sel_ptcl)
+    if (eg && selected_edit_particle)
         if (particle_flags & GLITTER_EDITOR_DUPLICATE) {
             Glitter::Particle* p = new Glitter::Particle(eg->type);
             *p = *selected_edit_particle;
