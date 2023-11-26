@@ -637,9 +637,6 @@ static render_context* render_context_load() {
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
 
     if (false) {
-        data_struct* x_data = &data_list[DATA_X];
-        data_struct* xhd_data = &data_list[DATA_XHD];
-
         char buf[0x200];
         std::vector<uint32_t> obj_set_ids;
         std::map<uint32_t, std::string> obj_set_id_name;
@@ -699,16 +696,32 @@ static render_context* render_context_load() {
                 object_material_msgpack_write("patch\\AFT_orig\\objset", obj_set_id_name[i].c_str(),
                     i, &obj_set, &txp_set, aft_obj_db, aft_tex_db);
             }
-
-            obj_set_ids.clear();
-            obj_set_id_name.clear();
         }
+    }
 
+    if (false) {
+        data_struct* x_data = &data_list[DATA_X];
+
+        char buf[0x200];
+        std::vector<uint32_t> obj_set_ids;
+        std::map<uint32_t, std::string> obj_set_id_name;
         for (int32_t i = 801; i <= 832; i++) {
             uint32_t effpv_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "EFFPV%03d", i));
             if (x_data->check_file_exists("root+/objset", effpv_hash)) {
                 obj_set_ids.push_back(effpv_hash);
                 obj_set_id_name.insert({ effpv_hash, buf });
+            }
+
+            uint32_t effpvptc_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "EFFPV%03dPTC", i));
+            if (x_data->check_file_exists("root+/objset", effpvptc_hash)) {
+                obj_set_ids.push_back(effpvptc_hash);
+                obj_set_id_name.insert({ effpvptc_hash, buf });
+            }
+
+            uint32_t effstgpvptc_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "EFFSTGPV%03dPTC", i % 100));
+            if (x_data->check_file_exists("root+/objset", effstgpvptc_hash)) {
+                obj_set_ids.push_back(effstgpvptc_hash);
+                obj_set_id_name.insert({ effstgpvptc_hash, buf });
             }
 
             uint32_t stgpv_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "STGPV%03d", i % 100));
@@ -792,16 +805,32 @@ static render_context* render_context_load() {
                 object_material_msgpack_write("patch\\X_orig\\objset", obj_set_id_name[i].c_str(),
                     i, &obj_set, &txp_set, &obj_db, &tex_db);
             }
-
-            obj_set_ids.clear();
-            obj_set_id_name.clear();
         }
+    }
 
-        if (false)for (int32_t i = 801; i <= 832; i++) {
+    if (false) {
+        data_struct* xhd_data = &data_list[DATA_XHD];
+
+        char buf[0x200];
+        std::vector<uint32_t> obj_set_ids;
+        std::map<uint32_t, std::string> obj_set_id_name;
+        for (int32_t i = 801; i <= 832; i++) {
             uint32_t effpv_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "EFFPV%03d", i));
             if (xhd_data->check_file_exists("root+/objset", effpv_hash)) {
                 obj_set_ids.push_back(effpv_hash);
                 obj_set_id_name.insert({ effpv_hash, buf });
+            }
+
+            uint32_t effpvptc_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "EFFPV%03dPTC", i));
+            if (xhd_data->check_file_exists("root+/objset", effpvptc_hash)) {
+                obj_set_ids.push_back(effpvptc_hash);
+                obj_set_id_name.insert({ effpvptc_hash, buf });
+            }
+
+            uint32_t effstgpvptc_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "EFFSTGPV%03dPTC", i % 100));
+            if (xhd_data->check_file_exists("root+/objset", effstgpvptc_hash)) {
+                obj_set_ids.push_back(effstgpvptc_hash);
+                obj_set_id_name.insert({ effstgpvptc_hash, buf });
             }
 
             uint32_t stgpv_hash = hash_murmurhash(buf, sprintf_s(buf, sizeof(buf), "STGPV%03d", i % 100));
