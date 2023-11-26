@@ -246,7 +246,7 @@ extern render_context* rctx_ptr;
 static vec4 bright_scale_get(int32_t index, float_t value);
 
 static float_t dsc_time_to_frame(int64_t time);
-static void x_pv_game_data_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
+static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
 #if BAKE_PV826
 static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
@@ -3009,7 +3009,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
             pv_param_task::post_process_task_set_chara_item_alpha(
                 chara_id, type, alpha, duration * 2.0f,
-                x_pv_game_data_chara_item_alpha_callback, this);
+                x_pv_game_item_alpha_callback, this->pv_game);
         }
     } break;
     case DSC_X_MOVIE_CUT: {
@@ -7833,11 +7833,11 @@ static float_t dsc_time_to_frame(int64_t time) {
     return roundf((float_t)time / 1000000000.0f * 60.0f);
 }
 
-static void x_pv_game_data_chara_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
+static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
     if (!data)
         return;
 
-    x_pv_game_data& pv_data = *(x_pv_game_data*)data;
+    x_pv_game_data& pv_data = ((x_pv_game*)data)->get_data();
 
     if (chara_id < 0 || chara_id >= pv_data.play_param->chara.size())
         return;
