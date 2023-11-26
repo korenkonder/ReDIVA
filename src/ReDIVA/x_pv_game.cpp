@@ -7509,15 +7509,6 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
 
     modules[0] = 0;
 
-    pv_id = 802;
-    stage_id = 2;
-
-    charas[0] = CHARA_MIKU;
-    charas[1] = CHARA_LUKA;
-
-    modules[0] = 0;
-    modules[1] = 0;
-
 #if BAKE_PV826
     pv_id = 826;
     stage_id = 26;
