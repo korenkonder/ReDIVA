@@ -6141,30 +6141,45 @@ bool x_pv_game::Ctrl() {
         state_old = 18;
     } break;
     case 18: {
+        x_pv_game_data& pv_data = this->get_data();
+
+        std::vector<auth_3d*> chara_effect_auth_3ds;
+        std::vector<auth_3d*> song_effect_auth_3ds;
         std::vector<auth_3d*> stage_data_effect_auth_3ds;
         std::vector<auth_3d*> stage_data_change_effect_auth_3ds;
+
+        auto add_auth_3d = [&](std::vector<auth_3d*>& auth_3ds, auth_3d_id id) {
+            if (!id.check_not_empty() || !id.check_loaded())
+                return;
+
+            auth_3d* auth = id.get_auth_3d();
+            if (auth && (auth->object.size() || auth->object_hrc.size()))
+                auth_3ds.push_back(auth);
+        };
+
+        for (auto& i : pv_data.chara_effect.auth_3d)
+            for (x_pv_game_chara_effect_auth_3d& j : i)
+                add_auth_3d(chara_effect_auth_3ds, j.id);
+        
+        for (x_pv_game_song_effect& i : pv_data.effect.song_effect)
+            for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
+                add_auth_3d(song_effect_auth_3ds, j.id);
 
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++) {
             x_pv_game_stage_effect& eff = stage_data.effect[i];
             for (x_pv_game_stage_effect_auth_3d& j : eff.auth_3d)
-                if (j.id.check_not_empty() && j.id.check_loaded()) {
-                    auth_3d* auth = j.id.get_auth_3d();
-                    if (auth && auth->material_list.size() && auth->object.size())
-                        stage_data_effect_auth_3ds.push_back(auth);
-                }
+                add_auth_3d(stage_data_effect_auth_3ds, j.id);
         }
 
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT; i++)
             for (int32_t j = 0; j < X_PV_GAME_STAGE_EFFECT_COUNT; j++) {
                 x_pv_game_stage_change_effect& chg_eff = stage_data.change_effect[i][j];
                 for (x_pv_game_stage_effect_auth_3d& k : chg_eff.auth_3d)
-                    if (k.id.check_not_empty() && k.id.check_loaded()) {
-                        auth_3d* auth = k.id.get_auth_3d();
-                        if (auth && auth->material_list.size() && auth->object.size())
-                            stage_data_change_effect_auth_3ds.push_back(auth);
-                    }
+                    add_auth_3d(stage_data_change_effect_auth_3ds, k.id);
             }
 
+        prj::sort_unique(chara_effect_auth_3ds);
+        prj::sort_unique(song_effect_auth_3ds);
         prj::sort_unique(stage_data_effect_auth_3ds);
         prj::sort_unique(stage_data_change_effect_auth_3ds);
 
@@ -6182,21 +6197,43 @@ bool x_pv_game::Ctrl() {
         }
 
         std::vector<uint32_t> object_set_ids;
-        for (auth_3d*& i : stage_data_effect_auth_3ds) {
-            for (auth_3d_object& j : i->object)
-                object_set_ids.push_back(j.object_info.set_id);
 
-            for (auth_3d_object_hrc& j : i->object_hrc)
-                object_set_ids.push_back(j.object_info.set_id);
-        }
+        auto add_auth_3d_object_set_id = [&](auth_3d* auth) {
+            for (auth_3d_object& i : auth->object)
+                object_set_ids.push_back(i.object_info.set_id);
 
-        for (auth_3d*& i : stage_data_change_effect_auth_3ds) {
-            for (auth_3d_object& j : i->object)
-                object_set_ids.push_back(j.object_info.set_id);
+            for (auth_3d_object_hrc& i : auth->object_hrc)
+                object_set_ids.push_back(i.object_info.set_id);
+        };
 
-            for (auth_3d_object_hrc& j : i->object_hrc)
-                object_set_ids.push_back(j.object_info.set_id);
-        }
+        auto add_glitter_object_set_id = [&](uint32_t eff_group_hash) {
+            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(eff_group_hash);
+            if (eff_group && eff_group->CheckModel())
+                object_set_ids.insert(object_set_ids.end(),
+                    eff_group->object_set_ids.begin(), eff_group->object_set_ids.end());
+        };
+
+        for (auth_3d*& i : chara_effect_auth_3ds)
+            add_auth_3d_object_set_id(i);
+        
+        for (auth_3d*& i : song_effect_auth_3ds)
+            add_auth_3d_object_set_id(i);
+
+        for (auth_3d*& i : stage_data_effect_auth_3ds)
+            add_auth_3d_object_set_id(i);
+
+        for (auth_3d*& i : stage_data_change_effect_auth_3ds)
+            add_auth_3d_object_set_id(i);
+
+        for (string_hash& i : pv_data.effect.pv_glitter)
+            add_glitter_object_set_id(i.hash_murmurhash);
+
+        for (x_pv_game_song_effect& i : pv_data.effect.song_effect)
+            for (x_pv_game_song_effect_glitter& j : i.glitter)
+                add_glitter_object_set_id(j.name.hash_murmurhash);
+
+        for (uint32_t& i : stage_data.stage_glitter)
+            add_glitter_object_set_id(i);
 
         prj::sort_unique(object_set_ids);
 
@@ -6268,6 +6305,9 @@ bool x_pv_game::Ctrl() {
             x_pv_game_write_object_set(handler);
         }
 
+        for (auto& i : chara_effect_auth_3ds)
+            x_pv_game_write_auth_3d(i);
+        
         for (auto& i : stage_data_effect_auth_3ds)
             x_pv_game_write_auth_3d(i);
 
@@ -8252,7 +8292,7 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
     a._file_name.assign(name);
     a._property_version.assign("20110526");
     a.ready = true;
-    a.compressed = false;
+    a.compressed = true;
     a.format = A3DA_FORMAT_AFT;
 
     void* a3da_data = 0;
