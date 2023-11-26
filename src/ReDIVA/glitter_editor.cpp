@@ -2052,7 +2052,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.init(mdl::ETC_OBJ_CUBE);
         etc.color = 0x8F0000FF;
         etc.constant = true;
-        etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.01f);
+        etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
         rctx_ptr->disp_manager.entry_obj_etc(&mat, &etc, local);
 
@@ -2148,7 +2148,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.init(mdl::ETC_OBJ_CUBE);
         etc.color = 0x8F0000FF;
         etc.constant = true;
-        etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.01f);
+        etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
         rctx_ptr->disp_manager.entry_obj_etc(&mat, &etc, local);
 
