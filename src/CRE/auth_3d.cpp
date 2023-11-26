@@ -3067,8 +3067,10 @@ namespace auth_3d_detail  {
 }
 
 static bool a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
-    if (msg->read_bool("remove"))
+    if (msg->read_bool("remove")) {
+        key = {};
         return false;
+    }
 
     if (msg->read_bool("ignore_tangents") && key.keys.size()) {
         float_t ep_pre_val = key.keys.front().tangent1;
@@ -3089,8 +3091,15 @@ static bool a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
         a3da_key_type type = (a3da_key_type)change_type->read_int32_t();
         switch (type) {
         case A3DA_KEY_NONE:
+            key.keys.clear();
             key.type = A3DA_KEY_NONE;
-            break;
+            key.value = 0.0f;
+            return true;
+        case A3DA_KEY_STATIC:
+            key.keys.clear();
+            key.type = A3DA_KEY_STATIC;
+            key.value = msg->read_float_t("value");
+            return true;
         case A3DA_KEY_LINEAR:
         case A3DA_KEY_HERMITE:
         case A3DA_KEY_HOLD:
@@ -3148,6 +3157,26 @@ static bool a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
     return true;
 }
 
+static bool a3da_msgpack_read_vec3(a3da_vec3& vec, msgpack* msg) {
+    if (msg->read_bool("remove")) {
+        vec = {};
+        return false;
+    }
+
+    msgpack* x = msg->read_map("x");
+    if (x && !a3da_msgpack_read_key(vec.x, x))
+        vec.x = {};
+
+    msgpack* y = msg->read_map("y");
+    if (y && !a3da_msgpack_read_key(vec.y, y))
+        vec.y = {};
+
+    msgpack* z = msg->read_map("z");
+    if (z && !a3da_msgpack_read_key(vec.z, z))
+        vec.z = {};
+    return true;
+}
+
 static bool a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
     if (msg->read_bool("remove")) {
         rgba = {};
@@ -3188,6 +3217,48 @@ static bool a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
             rgba.a = {};
             enum_and(rgba.flags, ~A3DA_RGBA_A);
         }
+    }
+    return true;
+}
+
+static bool a3da_msgpack_read_model_transform(a3da_model_transform& mt, msgpack* msg) {
+    if (msg->read_bool("remove")) {
+        mt = {};
+        mt.scale.x.type = A3DA_KEY_STATIC;
+        mt.scale.x.value = 1.0f;
+        mt.scale.y.type = A3DA_KEY_STATIC;
+        mt.scale.y.value = 1.0f;
+        mt.scale.z.type = A3DA_KEY_STATIC;
+        mt.scale.z.value = 1.0f;
+        mt.visibility.type = A3DA_KEY_STATIC;
+        mt.visibility.value = 1.0f;
+        return false;
+    }
+
+    msgpack* trans = msg->read_map("trans");
+    if (trans && !a3da_msgpack_read_vec3(mt.translation, trans))
+        mt.translation = {};
+
+    msgpack* rot = msg->read_map("rot");
+    if (rot && !a3da_msgpack_read_vec3(mt.rotation, rot))
+        mt.rotation = {};
+
+    msgpack* scale = msg->read_map("scale");
+    if (scale && !a3da_msgpack_read_vec3(mt.scale, scale)) {
+        mt.scale = {};
+        mt.scale.x.type = A3DA_KEY_STATIC;
+        mt.scale.x.value = 1.0f;
+        mt.scale.y.type = A3DA_KEY_STATIC;
+        mt.scale.y.value = 1.0f;
+        mt.scale.z.type = A3DA_KEY_STATIC;
+        mt.scale.z.value = 1.0f;
+    }
+
+    msgpack* visibility = msg->read_map("visibility");
+    if (visibility && !a3da_msgpack_read_key(mt.visibility, visibility)) {
+        mt.visibility = {};
+        mt.visibility.type = A3DA_KEY_STATIC;
+        mt.visibility.value = 1.0f;
     }
     return true;
 }
@@ -3256,14 +3327,13 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
             std::string name = material_list.read_string("name");
             uint32_t name_hash = hash_string_murmurhash(name);
 
-            bool remove = material_list.read_bool("remove");
-
             auto j_begin = auth_file->material_list.begin();
             auto j_end = auth_file->material_list.end();
             for (auto j = j_begin; j != j_end; j++) {
                 if (name_hash != hash_string_murmurhash(j->name))
                     continue;
 
+                bool remove = material_list.read_bool("remove");
                 if (remove) {
                     auth_file->material_list.erase(j);
                     break;
@@ -3294,6 +3364,9 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
         }
     }
 
+    std::vector<std::string> remove_parent_name;
+    std::vector<std::string> remove_parent_node;
+
     msgpack* objhrcs = msg.read_array("objhrc");
     if (objhrcs) {
         msgpack_array* ptr = objhrcs->data.arr;
@@ -3303,15 +3376,133 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
             std::string name = objhrc.read_string("name");
             uint32_t name_hash = hash_string_murmurhash(name);
 
-            for (a3da_object_hrc& j : auth_file->object_hrc) {
-                if (name_hash != hash_string_murmurhash(j.name))
+            auto j_begin = auth_file->object_hrc.begin();
+            auto j_end = auth_file->object_hrc.end();
+            for (auto j = j_begin; j != j_end; j++) {
+                if (name_hash != hash_string_murmurhash(j->name))
                     continue;
 
-                j.shadow = objhrc.read_bool("shadow");
+                bool remove = objhrc.read_bool("remove");
+                if (remove) {
+                    auto k_begin = auth_file->object_list.begin();
+                    auto k_end = auth_file->object_list.end();
+                    for (auto k = k_begin; k != k_end; k++)
+                        if (name_hash == hash_string_murmurhash(*k)) {
+                            auth_file->object_list.erase(k);
+                            break;
+                        }
+
+                    remove_parent_name.push_back(j->name);
+
+                    for (a3da_object_node& k : j->node)
+                        remove_parent_node.push_back(k.name);
+
+                    auth_file->object_hrc.erase(j);
+                    break;
+                }
+
+                j->shadow = objhrc.read_bool("shadow");
                 break;
             }
         }
     }
+
+    msgpack* objects = msg.read_array("object");
+    if (objects) {
+        msgpack_array* ptr = objects->data.arr;
+        for (msgpack& i : *ptr) {
+            msgpack& object = i;
+
+            std::string name = object.read_string("name");
+            uint32_t name_hash = hash_string_murmurhash(name);
+
+            auto j_begin = auth_file->object.begin();
+            auto j_end = auth_file->object.end();
+            for (auto j = j_begin; j != j_end; j++) {
+                if (name_hash != hash_string_murmurhash(j->name))
+                    continue;
+
+                bool remove = object.read_bool("remove");
+                if (remove) {
+                    auto k_begin = auth_file->object_hrc_list.begin();
+                    auto k_end = auth_file->object_hrc_list.end();
+                    for (auto k = k_begin; k != k_end; k++)
+                        if (name_hash == hash_string_murmurhash(*k)) {
+                            auth_file->object_hrc_list.erase(k);
+                            break;
+                        }
+
+                    remove_parent_name.push_back(j->name);
+
+                    auth_file->object.erase(j);
+                    break;
+                }
+
+                a3da_msgpack_read_model_transform(j->model_transform, &object);
+                break;
+            }
+        }
+    }
+
+    while (remove_parent_name.size() || remove_parent_node.size()) {
+        size_t remove_parent_name_size = remove_parent_name.size();
+        for (size_t i = remove_parent_name_size, i1 = 0; i; i--, i1++) {
+            uint32_t remove_parent_name_hash = hash_string_murmurhash(remove_parent_name[i1]);
+
+            auto j_begin = auth_file->object.begin();
+            auto j_end = auth_file->object.end();
+            for (auto j = j_begin; j != j_end; j++)
+                if (remove_parent_name_hash == hash_string_murmurhash(j->parent_name)) {
+                    remove_parent_name.push_back(j->name);
+                    auth_file->object.erase(j);
+                    break;
+                }
+
+            auto k_begin = auth_file->object_hrc.begin();
+            auto k_end = auth_file->object_hrc.end();
+            for (auto k = k_begin; k != k_end; k++)
+                if (remove_parent_name_hash == hash_string_murmurhash(k->parent_name)) {
+                    remove_parent_name.push_back(k->name);
+
+                    for (a3da_object_node& l : k->node)
+                        remove_parent_node.push_back(l.name);
+                    auth_file->object_hrc.erase(k);
+                    break;
+                }
+        }
+
+        remove_parent_name.erase(remove_parent_name.begin(),
+            remove_parent_name.begin() + remove_parent_name_size);
+        
+        size_t remove_parent_node_size = remove_parent_node.size();
+        for (size_t i = remove_parent_node_size, i1 = 0; i; i--, i1++) {
+            uint32_t remove_parent_node_hash = hash_string_murmurhash(remove_parent_node[i1]);
+
+            auto j_begin = auth_file->object.begin();
+            auto j_end = auth_file->object.end();
+            for (auto j = j_begin; j != j_end; j++)
+                if (remove_parent_node_hash == hash_string_murmurhash(j->parent_node)) {
+                    remove_parent_node.push_back(j->name);
+                    auth_file->object.erase(j);
+                    break;
+                }
+
+            auto k_begin = auth_file->object_hrc.begin();
+            auto k_end = auth_file->object_hrc.end();
+            for (auto k = k_begin; k != k_end; k++)
+                if (remove_parent_node_hash == hash_string_murmurhash(k->parent_node)) {
+                    remove_parent_node.push_back(k->name);
+
+                    for (a3da_object_node& l : k->node)
+                        remove_parent_node.push_back(l.name);
+                    auth_file->object_hrc.erase(k);
+                    break;
+                }
+        }
+
+        remove_parent_node.erase(remove_parent_node.begin(),
+            remove_parent_node.begin() + remove_parent_node_size);
+    };
 }
 
 static bool auth_3d_key_detect_fast_change(auth_3d_key* data, float_t frame, float_t threshold) {
