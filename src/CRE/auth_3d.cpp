@@ -3086,6 +3086,10 @@ static bool a3da_msgpack_read_key(a3da_key& key, msgpack* msg) {
             key.keys.back().tangent2 = ep_post_val;
     }
 
+    msgpack* max_frame = msg->read("max_frame");
+    if (max_frame)
+        key.max_frame = max_frame->read_float_t();
+
     msgpack* change_type = msg->read("change_type");
     if (change_type) {
         a3da_key_type type = (a3da_key_type)change_type->read_int32_t();
@@ -3289,6 +3293,27 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
     if (msg.type != MSGPACK_MAP)
         return;
 
+    msgpack* curves = msg.read_array("curve");
+    if (curves) {
+        msgpack_array* ptr = curves->data.arr;
+        for (msgpack& i : *ptr) {
+            msgpack& curve = i;
+
+            std::string name = curve.read_string("name");
+            uint32_t name_hash = hash_string_murmurhash(name);
+
+            for (a3da_curve& j : auth_file->curve) {
+                if (name_hash != hash_string_murmurhash(j.name))
+                    continue;
+
+                msgpack* cv = curve.read_map("cv");
+                if (cv)
+                    a3da_msgpack_read_key(j.curve, cv);
+                break;
+            }
+        }
+    }
+
     msgpack* m_objhrcs = msg.read_array("m_objhrc");
     if (m_objhrcs) {
         msgpack_array* ptr = m_objhrcs->data.arr;
@@ -3438,10 +3463,31 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
                     break;
                 }
 
+                bool remove_morph = object.read_bool("remove_morph");
+                if (remove_morph) {
+                    j->morph.assign("");
+                    j->morph_offset = 0.0f;
+                }
+
                 a3da_msgpack_read_model_transform(j->model_transform, &object);
                 break;
             }
         }
+    }
+
+    msgpack* play_control = msg.read_map("play_control");
+    if (play_control) {
+        msgpack* begin = play_control->read("begin");
+        if (begin)
+            auth_file->play_control.begin = begin->read_float_t();
+
+        msgpack* fps = play_control->read("fps");
+        if (fps)
+            auth_file->play_control.begin = fps->read_float_t();
+
+        msgpack* size = play_control->read("size");
+        if (size)
+            auth_file->play_control.size = size->read_float_t();
     }
 
     while (remove_parent_name.size() || remove_parent_node.size()) {
