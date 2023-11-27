@@ -22,7 +22,6 @@ struct RenderTexture {
     ~RenderTexture();
 
     int32_t Bind(int32_t index = 0);
-    void Draw(bool depth = false);
     void Free();
     int32_t Init(int32_t width, int32_t height,
         int32_t max_level, GLenum color_format, GLenum depth_format);

@@ -38,15 +38,6 @@ int32_t RenderTexture::Bind(int32_t index) {
     return 0;
 }
 
-void RenderTexture::Draw(bool depth) {
-    gl_state_active_bind_texture_2d(0, color_texture->tex);
-    if (depth && depth_texture->tex)
-        gl_state_active_bind_texture_2d(1, depth_texture->tex);
-    gl_state_bind_vertex_array(render_texture_vao);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_bind_vertex_array(0);
-}
-
 void RenderTexture::Free() {
     if (depth_texture) {
         texture_free(depth_texture);
