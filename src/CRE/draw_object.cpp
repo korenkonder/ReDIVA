@@ -485,8 +485,8 @@ namespace mdl {
                     wrap_t = 0;
 
                 texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
-                gl_state_bind_sampler(tex_index, rctx->render_manager.samplers[(wrap_t * 3
-                    + wrap_s) * 2 + (tex->max_mipmap_level > 0 ? 1 : 0)]);
+                gl_state_bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
+                    + (tex->max_mipmap_level > 0 ? 1 : 0)]);
             }
         }
 
@@ -746,8 +746,8 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
                 wrap_t = 0;
 
             texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
-            gl_state_bind_sampler(tex_index, rctx->render_manager.samplers[(wrap_t * 3
-                + wrap_s) * 2 + (tex->max_mipmap_level > 0 ? 1 : 0)]);
+            gl_state_bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
+                + (tex->max_mipmap_level > 0 ? 1 : 0)]);
         }
 
         if (material->material.shader.index == SHADER_FT_SKY) {
@@ -948,8 +948,8 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
             wrap_t = 0;
 
         texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
-        gl_state_bind_sampler(i, rctx->render_manager.samplers[(wrap_t * 3
-            + wrap_s) * 2 + (tex->max_mipmap_level > 0 ? 1 : 0)]);
+        gl_state_bind_sampler(i, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
+            + (tex->max_mipmap_level > 0 ? 1 : 0)]);
     }
 
     vec4 ambient;

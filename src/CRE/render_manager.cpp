@@ -19,8 +19,6 @@
 #include "task_effect.hpp"
 #include "texture.hpp"
 
-static void blur_filter_apply(render_context* rctx, GLuint tex_0, GLuint tex_1,
-    blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 static void draw_pass_shadow_begin_make_shadowmap(render_context* rctx,
     Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_end_make_shadowmap(render_context* rctx,
@@ -43,8 +41,8 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     mdl::ObjType transparent, mdl::ObjType translucent);
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type);
 
-extern bool draw_grid_3d;
-extern void draw_pass_3d_grid(render_context* rctx);
+static void blur_filter_apply(render_context* rctx, GLuint tex_0, GLuint tex_1,
+    blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
 
 extern light_param_data_storage* light_param_data_storage_data;
 
@@ -495,14 +493,14 @@ namespace rndr {
             pp->set_render_texture();
             if (sprite_manager_get_reqlist_count(2)) {
                 glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClearDepth(1.0f);
+                glClearDepthf(1.0f);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 gl_state_bind_framebuffer(0);
             }
             else {
                 vec4 clear_color = get_clear_color();
                 glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
-                glClearDepth(1.0f);
+                glClearDepthf(1.0f);
                 if (clear)
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 else
@@ -616,8 +614,11 @@ namespace rndr {
 
         Glitter::glt_particle_manager->DispScenes(Glitter::DISP_OPAQUE);
 
-        if (draw_grid_3d)
+        extern bool draw_grid_3d;
+        if (draw_grid_3d) {
+            extern void draw_pass_3d_grid(render_context * rctx);
             draw_pass_3d_grid(rctx);
+        }
 
         gl_state_enable_depth_test();
         gl_state_set_depth_mask(GL_TRUE);

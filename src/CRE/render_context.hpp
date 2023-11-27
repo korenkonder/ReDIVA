@@ -205,13 +205,13 @@ struct draw_state {
     bool wireframe_overlay;
     bool light;
     bool self_shadow;
-    bool field_45;
+    bool shader_debug_flag;
     bool use_global_material;
     bool fog_height;
     bool ex_data_mat;
     bool shader;
     int32_t shader_index;
-    int32_t field_50;
+    int32_t show;
     float_t bump_depth;
     float_t intensity;
     float_t reflectivity;
@@ -541,16 +541,15 @@ namespace mdl {
         int32_t field_C;
         std::vector<mdl::ObjData*> obj[mdl::OBJ_TYPE_MAX];
         mdl::CullingCheck culling;
-        mat4 culling_mat;
-        int32_t field_230;
+        int32_t put_index;
         bool show_alpha_center;
         bool show_mat_center;
         bool object_culling;
         bool object_sort;
         bool chara_color;
-        int32_t buff_size;
-        int32_t buff_max;
         int32_t buff_offset;
+        int32_t buff_max;
+        int32_t buff_size;
         void* buff;
         morph_struct morph;
         int32_t texture_pattern_count;
@@ -673,8 +672,6 @@ namespace rndr {
         bool field_320;
         bool npr;
         sss_data sss_data;
-        GLuint samplers[18];
-        GLuint sprite_samplers[3];
 
         RenderManager();
         ~RenderManager();
@@ -913,8 +910,6 @@ struct render_context {
     GL::UniformBuffer imgfilter_batch_ubo;
     GL::UniformBuffer glass_eye_batch_ubo;
     GL::UniformBuffer quad_ubo;
-    GL::UniformBuffer ripple_ubo;
-    GL::UniformBuffer ripple_emit_ubo;
     GL::UniformBuffer sprite_scene_ubo;
     GL::UniformBuffer sss_filter_gaussian_coef_ubo;
     GL::UniformBuffer transparency_batch_ubo;
@@ -928,6 +923,9 @@ struct render_context {
 
     GLuint empty_texture_2d;
     GLuint empty_texture_cube_map;
+
+    GLuint samplers[18];
+    GLuint sprite_samplers[3];
 
     render_context();
     ~render_context();

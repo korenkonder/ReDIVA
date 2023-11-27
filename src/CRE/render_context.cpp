@@ -113,10 +113,10 @@ sss_data::~sss_data() {
 }
 
 draw_state::draw_state() : wireframe(), wireframe_overlay(), light(), self_shadow(),
-field_45(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
+shader_debug_flag(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
     shader = true;
     shader_index = -1;
-    field_50 = -1;
+    show = -1;
     bump_depth = 1.0f;
     intensity = 1.0f;
     reflectivity = 1.0f;
@@ -458,7 +458,7 @@ namespace mdl {
         culling(), show_alpha_center(), show_mat_center(),  texture_pattern_count(),
         texture_pattern_array(), wet_param(), texture_transform_count(),
         texture_transform_array(), material_list_count(), material_list_array() {
-        field_230 = -1;
+        put_index = -1;
         object_culling = true;
         object_sort = true;
         chara_color = true;
@@ -3379,10 +3379,10 @@ namespace mdl {
 
 namespace rndr {
     RenderManager::RenderManager() : pass_sw(), reflect_blur_num(), reflect_blur_filter(), sync_gpu(),
-        cpu_time(), gpu_time(), time(), draw_pass_3d(), show_ref_map(), reflect_type(), clear(), tex_index(),
-        multisample_framebuffer(), multisample_renderbuffer(), multisample(), show_vector_flags(),
-        show_vector_length(), show_vector_z_offset(), field_2F8(), effect_texture(), npr_param(),
-        field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr(), samplers(), sprite_samplers() {
+        cpu_time(), gpu_time(), time(), draw_pass_3d(), show_ref_map(), reflect_type(), clear(),
+        tex_index(), multisample_framebuffer(), multisample_renderbuffer(), multisample(),
+        show_vector_flags(), show_vector_length(), show_vector_z_offset(), field_2F8(), effect_texture(),
+        npr_param(), field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr() {
         for (bool& i : pass_sw)
             i = true;
 
@@ -3416,76 +3416,9 @@ namespace rndr {
         }
         gl_state_bind_framebuffer(0);
 
-        static const vec4 border_color = 0.0f;
-
-        glGenSamplers(18, samplers);
-        for (int32_t i = 0; i < 18; i++) {
-            GLuint sampler = samplers[i];
-
-            glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-            glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER,
-                i % 2 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
-            glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
-
-            GLuint wrap_s;
-            switch (i / 2 % 3) {
-            case 0:
-                wrap_s = GL_CLAMP_TO_EDGE;
-                break;
-            case 1:
-                wrap_s = GL_REPEAT;
-                break;
-            case 2:
-                wrap_s = GL_MIRRORED_REPEAT;
-                break;
-            }
-            glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, wrap_s);
-
-            GLenum wrap_t;
-            switch (i / 6 % 3) {
-            case 0:
-                wrap_t = GL_CLAMP_TO_EDGE;
-                break;
-            case 1:
-                wrap_t = GL_REPEAT;
-                break;
-            case 2:
-                wrap_t = GL_MIRRORED_REPEAT;
-                break;
-            }
-            glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, wrap_t);
-        }
-
-        GLuint sampler;
-        glGenSamplers(3, sprite_samplers);
-        sampler = sprite_samplers[0];
-        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
-
-        sampler = sprite_samplers[1];
-        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
-
-        sampler = sprite_samplers[2];
-        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
     }
 
     RenderManager::~RenderManager() {
-        glDeleteSamplers(3, sprite_samplers);
-        glDeleteSamplers(18, samplers);
-
         if (multisample_framebuffer) {
             glDeleteFramebuffers(1, &multisample_framebuffer);
             multisample_framebuffer = 0;
@@ -3717,8 +3650,8 @@ void obj_batch_shader_data::set_transforms(const mat4& model, const mat4& view, 
     g_transforms[3] = temp.row3;
 }
 
-render_context::render_context() : litproj(), chara_reflect(), chara_refract(), view_mat(),
-matrix_buffer(), box_vao(), box_vbo(), empty_texture_2d(), empty_texture_cube_map() {
+render_context::render_context() : litproj(), chara_reflect(), chara_refract(), view_mat(), matrix_buffer(),
+box_vao(), box_vbo(), empty_texture_2d(), empty_texture_cube_map(), samplers(), sprite_samplers() {
     camera = new ::camera;
 
     static const float_t box_texcoords[] = {
@@ -3819,9 +3752,77 @@ matrix_buffer(), box_vao(), box_vbo(), empty_texture_2d(), empty_texture_cube_ma
         glCompressedTexImage2D(target_cube_map_array[side], 0,
             GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, 8, empty_texture_data);
     gl_state_bind_texture_cube_map(0);
+
+    static const vec4 border_color = 0.0f;
+
+    glGenSamplers(18, samplers);
+    for (int32_t i = 0; i < 18; i++) {
+        GLuint sampler = samplers[i];
+
+        glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+        glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER,
+            i % 2 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
+        glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+        GLuint wrap_s;
+        switch (i / 2 % 3) {
+        case 0:
+            wrap_s = GL_CLAMP_TO_EDGE;
+            break;
+        case 1:
+            wrap_s = GL_REPEAT;
+            break;
+        case 2:
+            wrap_s = GL_MIRRORED_REPEAT;
+            break;
+        }
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, wrap_s);
+
+        GLenum wrap_t;
+        switch (i / 6 % 3) {
+        case 0:
+            wrap_t = GL_CLAMP_TO_EDGE;
+            break;
+        case 1:
+            wrap_t = GL_REPEAT;
+            break;
+        case 2:
+            wrap_t = GL_MIRRORED_REPEAT;
+            break;
+        }
+        glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, wrap_t);
+    }
+
+    GLuint sampler;
+    glGenSamplers(3, sprite_samplers);
+    sampler = sprite_samplers[0];
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+    sampler = sprite_samplers[1];
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
+
+    sampler = sprite_samplers[2];
+    glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameterf(sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
 }
 
 render_context::~render_context() {
+    glDeleteSamplers(3, sprite_samplers);
+    glDeleteSamplers(18, samplers);
+
     glDeleteTextures(1, &empty_texture_cube_map);
     glDeleteTextures(1, &empty_texture_2d);
 

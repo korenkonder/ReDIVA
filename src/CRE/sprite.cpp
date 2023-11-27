@@ -1665,11 +1665,11 @@ namespace spr {
             break;
         case 1:
             draw_param.texture[0] = tex_param[0].texture->tex;
-            draw_param.sampler = rctx->render_manager.sprite_samplers[0];
+            draw_param.sampler = rctx->sprite_samplers[0];
 
             if (args.num_vertex) {
                 if (args.kind == SPR_KIND_TRIANGLE)
-                    draw_param.sampler = rctx->render_manager.sprite_samplers[1];
+                    draw_param.sampler = rctx->sprite_samplers[1];
 
                 if (args.kind == SPR_KIND_TRIANGLE) {
                     draw_param.mode = GL_TRIANGLE_STRIP;
@@ -1809,7 +1809,7 @@ namespace spr {
 
             draw_param.texture[0] = tex_param[0].texture->tex;
             draw_param.texture[1] = tex_param[1].texture->tex;
-            draw_param.sampler = rctx->render_manager.sprite_samplers[2];
+            draw_param.sampler = rctx->sprite_samplers[2];
 
             sprite_draw_vertex spr_vtx[4] = {};
             spr_vtx[0].pos = vtx[0];
