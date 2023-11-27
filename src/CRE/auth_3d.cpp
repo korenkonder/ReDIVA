@@ -3187,6 +3187,23 @@ static bool a3da_msgpack_read_rgba(a3da_rgba& rgba, msgpack* msg) {
         return false;
     }
 
+    msgpack* rgb = msg->read_map("rgb");
+    if (rgb) {
+        a3da_key rgb_key = rgba.r;
+        if (a3da_msgpack_read_key(rgb_key, rgb)) {
+            rgba.r = rgb_key;
+            rgba.g = rgb_key;
+            rgba.b = rgb_key;
+            enum_or(rgba.flags, A3DA_RGBA_R | A3DA_RGBA_G | A3DA_RGBA_B);
+        }
+        else {
+            rgba.r = {};
+            rgba.g = {};
+            rgba.b = {};
+            enum_and(rgba.flags, ~(A3DA_RGBA_R | A3DA_RGBA_G | A3DA_RGBA_B));
+        }
+    }
+
     msgpack* r = msg->read_map("r");
     if (r) {
         enum_or(rgba.flags, A3DA_RGBA_R);

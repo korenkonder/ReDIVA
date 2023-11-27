@@ -98,6 +98,22 @@ a3da_key::~a3da_key() {
 
 }
 
+a3da_key& a3da_key::operator=(const a3da_key& k) {
+    flags = k.flags;
+    bin_offset = k.bin_offset;
+    type = k.type;
+    ep_type_pre = k.ep_type_pre;
+    ep_type_post = k.ep_type_post;
+    keys.assign(k.keys.begin(), k.keys.end());
+    max_frame = k.max_frame;
+    raw_data = k.raw_data;
+    raw_data_binary = k.raw_data_binary;
+    raw_data_value_list_size = k.raw_data_value_list_size;
+    raw_data_value_list_offset = k.raw_data_value_list_offset;
+    value = k.value;
+    return *this;
+}
+
 a3da_rgba::a3da_rgba() : flags() {
 
 }

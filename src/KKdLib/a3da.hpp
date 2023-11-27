@@ -189,6 +189,8 @@ struct a3da_key {
 
     a3da_key();
     ~a3da_key();
+
+    a3da_key& operator=(const a3da_key& k);
 };
 
 struct a3da_rgba {
