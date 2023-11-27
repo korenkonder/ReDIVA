@@ -1589,9 +1589,7 @@ namespace Glitter {
         virtual bool Init() override;
         virtual bool Ctrl() override;
         virtual bool Dest() override;
-#if defined(CRE_DEV)
         virtual void Disp() override;
-#endif
         virtual void Basic() override;
 
         bool AppendEffectGroup(uint64_t hash, EffectGroup* eff_group, FileReader* file_read);
