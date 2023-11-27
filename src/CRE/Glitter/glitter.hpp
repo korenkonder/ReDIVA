@@ -1200,8 +1200,8 @@ namespace Glitter {
         bool UnparseParticle(EffectGroup* eff_group,
             f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian);
 
-        static void Write(GLT, EffectGroup* eff_group,
-            const char* path, const char* file, bool compress, bool big_endian = false);
+        static void Write(GLT, EffectGroup* eff_group, const char* path,
+            const char* file, bool compress, bool encrypt, bool big_endian = false);
     };
 
     struct LocusHistory {

@@ -1242,12 +1242,10 @@ namespace Glitter {
         return true;
     }
 
-    void FileWriter::Write(GLT, EffectGroup* eff_group,
-        const char* path, const char* file, bool compress, bool big_endian) {
+    void FileWriter::Write(GLT, EffectGroup* eff_group, const char* path,
+        const char* file, bool compress, bool encrypt, bool big_endian) {
         FileWriter fr;
         fr.type = GLT_VAL;
-
-        bool encrypt = compress && glt_type != Glitter::FT;
 
         farc f;
         {
@@ -1266,6 +1264,7 @@ namespace Glitter {
                     temp[file_len + 4] = 0;
                     farc_file* ff_dve = f.add_file(temp);
                     dve_st.write(&ff_dve->data, &ff_dve->size);
+                    ff_dve->compressed = compress;
                     ff_dve->encrypted = encrypt;
                 }
                 else {
@@ -1281,6 +1280,7 @@ namespace Glitter {
                     temp[file_len + 4] = 0;
                     farc_file* ff_drs = f.add_file(temp);
                     drs_st.write(&ff_drs->data, &ff_drs->size);
+                    ff_drs->compressed = compress;
                     ff_drs->encrypted = encrypt;
                 }
             }
@@ -1292,6 +1292,8 @@ namespace Glitter {
                     temp[file_len + 4] = 0;
                     farc_file* ff_lst = f.add_file(temp);
                     lst_st.write(&ff_lst->data, &ff_lst->size);
+                    ff_lst->compressed = compress;
+                    ff_lst->encrypted = encrypt;
                 }
                 else {
                     free(temp);
@@ -1306,6 +1308,9 @@ namespace Glitter {
         if (encrypt) {
             signature = FARC_FARC;
             flags = FARC_AES;
+
+            if (compress)
+                enum_or(flags, FARC_GZIP);
         }
         else if (compress) {
             signature = FARC_FArC;
