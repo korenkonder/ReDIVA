@@ -872,6 +872,7 @@ namespace Glitter {
                 eff->rotation = *(vec3*)(d + 40);
                 flags = (EffectFileFlag) * (int32_t*)(d + 52);
             }
+            d += 56;
 
             if (flags & EFFECT_FILE_ALPHA)
                 enum_or(eff->data.flags, EFFECT_ALPHA);
@@ -891,20 +892,30 @@ namespace Glitter {
                 enum_or(eff->data.flags, 0x80);
 
             if (big_endian) {
-                eff->data.emission = load_reverse_endianness_float_t((void*)(d + 56));
-                eff->data.seed = load_reverse_endianness_int32_t((void*)(d + 60));
+                eff->data.emission = load_reverse_endianness_float_t((void*)d);
+                eff->data.seed = load_reverse_endianness_int32_t((void*)(d + 4));
             }
             else {
-                eff->data.emission = *(float_t*)(d + 56);
-                eff->data.seed = *(int32_t*)(d + 60);
+                eff->data.emission = *(float_t*)d;
+                eff->data.seed = *(int32_t*)(d + 4);
             }
+            d += 8;
+
+            if (eff->version != 8)
+                d += 12;
+            else
+                d += 16;
 
             int32_t type;
             if (big_endian)
-                type = load_reverse_endianness_int32_t((void*)(d + (eff->version != 8 ? 76 : 80)));
+                type = load_reverse_endianness_int32_t((void*)d);
             else
-                type = *(int32_t*)(d + (eff->version != 8 ? 76 : 80));
-            d += eff->version != 8 ? 80 : 88;
+                type = *(int32_t*)d;
+
+            if (eff->version != 8)
+                d += 4;
+            else
+                d += 8;
 
             if (type == 1)
                 enum_or(eff->data.flags, EFFECT_LOCAL);

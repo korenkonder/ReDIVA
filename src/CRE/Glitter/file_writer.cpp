@@ -495,21 +495,24 @@ namespace Glitter {
             d += 4;
         }
 
-        if (eff->data.flags & EFFECT_LOCAL) {
-            if (big_endian)
-                store_reverse_endianness_int32_t((int32_t*)d, 1);
-            else
-                *(int32_t*)d = 1;
-            d += 4;
-        }
-        else if (ext_anim) {
-            if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
-                if (big_endian)
-                    store_reverse_endianness_int32_t((int32_t*)d, 2);
-                else
-                    *(int32_t*)d = 2;
-                d += 4;
+        int32_t type;
+        if (eff->data.flags & EFFECT_LOCAL)
+            type = 1;
+        else if (!ext_anim)
+            type = 0;
+        else if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM)
+            type = 2;
+        else
+            type = 3;
 
+        if (big_endian)
+            store_reverse_endianness_int32_t((int32_t*)d, type);
+        else
+            *(int32_t*)d = type;
+        d += 4;
+
+        if (ext_anim)
+            if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM) {
                 EffectExtAnimFlag ext_anim_flag = ext_anim->flags;
                 enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA_ANIM);
 
@@ -525,12 +528,6 @@ namespace Glitter {
                 }
             }
             else {
-                if (big_endian)
-                    store_reverse_endianness_int32_t((int32_t*)d, 3);
-                else
-                    *(int32_t*)d = 3;
-                d += 4;
-
                 if (big_endian) {
                     store_reverse_endianness_uint64_t((uint64_t*)d, ext_anim->object_hash);
                     store_reverse_endianness_int32_t((int32_t*)(d + 8), ext_anim->flags);
@@ -542,11 +539,6 @@ namespace Glitter {
                 strncpy_s((char*)(d + 12), 0x80, ext_anim->mesh_name, 0x80);
                 ((char*)(d + 12))[0x7F] = '\0';
             }
-        }
-        else {
-            *(int32_t*)d = 0;
-            d += 4;
-        }
 
         st->enrs = e;
 
