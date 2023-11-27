@@ -368,8 +368,8 @@ obj_material_data::obj_material_data() : num_of_textures() {
 
 }
 
-obj_sub_mesh::obj_sub_mesh() : flags(), bounding_sphere(), material_index(), uv_index(), bone_index_array(),
-num_bone_index(), bones_per_vertex(), primitive_type(), index_format(), index_array(), num_index(),
+obj_sub_mesh::obj_sub_mesh() : flags(), bounding_sphere(), material_index(), uv_index(), num_bone_index(),
+bone_index_array(), bones_per_vertex(), primitive_type(), index_format(), num_index(), index_array(),
 attrib(), axis_aligned_bounding_box(), first_index(), last_index(), index_offset() {
 
 }
@@ -490,8 +490,8 @@ obj_skin::obj_skin() : bone_array(), num_bone(), ex_data() {
 
 }
 
-obj::obj() : mesh_array(), num_mesh(), material_array(),
-num_material(), flags(), reserved(), skin(), name(), id() {
+obj::obj() : num_mesh(), mesh_array(), num_material(),
+material_array(), flags(), reserved(), skin(), name(), id() {
     hash = hash_murmurhash_empty;
 }
 

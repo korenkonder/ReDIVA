@@ -215,8 +215,7 @@ void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
     obj_vertex_data* vtx = mesh.vertex_array;
     uint32_t num_vertex = mesh.num_vertex;
     size_t d = (size_t)data;
-    if (!mesh.attrib.m.compressed) {
-        size_t size = (size_t)num_vertex * mesh.size_vertex;
+    if (!mesh.attrib.m.compressed)
         for (uint32_t i = num_vertex; i; i--, vtx++) {
             if (vertex_format & OBJ_VERTEX_POSITION) {
                 *(vec3*)d = vtx->position;
@@ -280,8 +279,7 @@ void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
                 d += 16;
             }
         }
-    }
-    else {
+    else
         for (uint32_t i = num_vertex; i; i--, vtx++) {
             if (vertex_format & OBJ_VERTEX_POSITION) {
                 *(vec3*)d = vtx->position;
@@ -336,7 +334,6 @@ void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
                 d += 8;
             }
         }
-    }
     return (void*)d;
 }
 

@@ -78,7 +78,7 @@ enum obj_material_texture_coordinate_translation_type : uint32_t {
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_NONE   = 0x00,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_UV     = 0x01,
     OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_SPHERE = 0x02,
-    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03
+    OBJ_MATERIAL_TEXTURE_COORDINATE_TRANSLATION_CUBE   = 0x03,
 };
 
 enum obj_material_vertex_translation_type : uint32_t {
@@ -347,13 +347,13 @@ struct obj_sub_mesh {
     obj_bounding_sphere bounding_sphere;
     uint32_t material_index;
     uint8_t uv_index[8];
-    uint16_t* bone_index_array;
     uint32_t num_bone_index;
+    uint16_t* bone_index_array;
     uint32_t bones_per_vertex;
     obj_primitive_type primitive_type;
     obj_index_format index_format;
-    uint32_t* index_array;
     uint32_t num_index;
+    uint32_t* index_array;
     obj_sub_mesh_attrib attrib;
     union {
         obj_axis_aligned_bounding_box axis_aligned_bounding_box;
@@ -679,10 +679,10 @@ struct obj_skin {
 
 struct obj {
     obj_bounding_sphere bounding_sphere;
-    obj_mesh* mesh_array;
     uint32_t num_mesh;
-    obj_material_data* material_array;
+    obj_mesh* mesh_array;
     uint32_t num_material;
+    obj_material_data* material_array;
     uint8_t flags;
     uint32_t reserved[10];
     obj_skin* skin;
