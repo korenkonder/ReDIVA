@@ -2453,12 +2453,6 @@ static void rob_chara_item_equip_ctrl(rob_chara_item_equip* rob_itm_equip) {
             rob_chara_item_equip_object_ctrl(&rob_itm_equip->item_equip_object[i]);
 }
 
-mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, size_t index) {
-    if (index < rob_bone_data->mats.size())
-        return &rob_bone_data->mats[index];
-    return 0;
-}
-
 static void rob_chara_data_adjust_ctrl(rob_chara* rob_chr,
     rob_chara_data_adjust* adjust, rob_chara_data_adjust* adjust_prev) {
     float_t cycle = adjust->cycle;
@@ -3318,7 +3312,7 @@ static bool sub_14053B530(rob_chara* rob_chr) {
 }
 
 static void rob_chara_bone_data_set_left_hand_scale(rob_chara_bone_data* rob_bone_data, float_t scale) {
-    mat4* kl_te_wj_mat = rob_chara_bone_data_get_mats_mat(rob_bone_data, ROB_BONE_KL_TE_L_WJ);
+    mat4* kl_te_wj_mat = rob_bone_data->get_mats_mat(ROB_BONE_KL_TE_L_WJ);
     if (!kl_te_wj_mat)
         return;
 
@@ -3331,7 +3325,7 @@ static void rob_chara_bone_data_set_left_hand_scale(rob_chara_bone_data* rob_bon
     mat4_set_translation(&mat, &trans);
 
     for (int32_t i = ROB_BONE_KL_TE_L_WJ; i <= ROB_BONE_NL_OYA_C_L_WJ; i++) {
-        mat4* m = rob_chara_bone_data_get_mats_mat(rob_bone_data, i);
+        mat4* m = rob_bone_data->get_mats_mat(i);
         if (m)
             mat4_mul(m, &mat, m);
     }
@@ -3344,7 +3338,7 @@ static void rob_chara_bone_data_set_left_hand_scale(rob_chara_bone_data* rob_bon
 }
 
 static void rob_chara_bone_data_set_right_hand_scale(rob_chara_bone_data* rob_bone_data, float_t scale) {
-    mat4* kl_te_wj_mat = rob_chara_bone_data_get_mats_mat(rob_bone_data, ROB_BONE_KL_TE_R_WJ);
+    mat4* kl_te_wj_mat = rob_bone_data->get_mats_mat(ROB_BONE_KL_TE_R_WJ);
     if (!kl_te_wj_mat)
         return;
 
@@ -3357,7 +3351,7 @@ static void rob_chara_bone_data_set_right_hand_scale(rob_chara_bone_data* rob_bo
     mat4_set_translation(&mat, &trans);
 
     for (int32_t i = ROB_BONE_KL_TE_R_WJ; i <= ROB_BONE_NL_OYA_C_R_WJ; i++) {
-        mat4* m = rob_chara_bone_data_get_mats_mat(rob_bone_data, i);
+        mat4* m = rob_bone_data->get_mats_mat(i);
         if (m)
             mat4_mul(m, &mat, m);
     }
@@ -3815,7 +3809,7 @@ static void rob_chara_data_adjuct_set_trans(rob_chara_adjust_data* rob_chr_adj,
 }
 
 void rob_chara::set_data_adjust_mat(rob_chara_adjust_data* rob_chr_adj, bool pos_adjust) {
-    mat4* mat = rob_chara_bone_data_get_mats_mat(bone_data, ROB_BONE_N_HARA_CP);
+    mat4* mat = bone_data->get_mats_mat(ROB_BONE_N_HARA_CP);
 
     vec3 trans;
     mat4_get_translation(mat, &trans);
@@ -4785,11 +4779,11 @@ void rob_chara::sub_140509D30() {
     mat4* m;
     mat4 mat;
     for (int32_t i = 0; i < 27; i++) {
-        m = rob_chara_bone_data_get_mats_mat(bone_data, v3->bone_index);
+        m = bone_data->get_mats_mat(v3->bone_index);
         mat4_mul_translate(m, &v3->bone_offset, &mat);
         *v42 = mat;
 
-        m = rob_chara_bone_data_get_mats_mat(bone_data, v6->bone_index);
+        m = bone_data->get_mats_mat(v6->bone_index);
         mat4_mul_translate(m, &v3->bone_offset, &mat);
         *v43 = mat;
 
@@ -7509,12 +7503,12 @@ static void sub_140507F60(rob_chara* rob_chr) {
     sub_14041DA50(rob_chr->bone_data, sub_140504E80(rob_chr));
     rob_chr->data.miku_rot.field_48 = rob_chr->data.miku_rot.field_24;
 
-    mat4* v3 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, ROB_BONE_N_HARA);
+    mat4* v3 = rob_chr->bone_data->get_mats_mat(ROB_BONE_N_HARA);
     mat4_get_translation(v3, &rob_chr->data.miku_rot.field_24);
     rob_chr->data.miku_rot.field_54 = rob_chr->data.miku_rot.field_24
         - rob_chr->data.miku_rot.field_48;
 
-    mat4* v8 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, ROB_BONE_N_HARA_CP);
+    mat4* v8 = rob_chr->bone_data->get_mats_mat(ROB_BONE_N_HARA_CP);
     vec3 v10 = { 0.0f, 0.0f, 1.0f };
     mat4_transform_vector(v8, &v10, &v10);
     rob_chr->data.miku_rot.field_6 = (int32_t)((float_t)(atan2f(v10.x, v10.z) * 32768.0f) * (1.0 / M_PI));
@@ -9028,7 +9022,7 @@ static bool sub_14053ACA0(rob_chara* rob_chr, int32_t hand) {
         solve_ik = false;
     }
 
-    mat4* v40 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, rob_kl_te_bones[hand]);
+    mat4* v40 = rob_chr->bone_data->get_mats_mat(rob_kl_te_bones[hand]);
     mat4 v42;
     mat4_mul(v40, &adjust_data.mat, &v42);
 
@@ -9057,7 +9051,7 @@ static bool sub_14053ACA0(rob_chara* rob_chr, int32_t hand) {
         rob_chr->data.motion.hand_adjust[hand].arm_length, solve_ik);
 
     while (v15 > 0) {
-        mat4* v40 = rob_chara_bone_data_get_mats_mat(rob_chr->bone_data, rob_kl_te_bones[hand]);
+        mat4* v40 = rob_chr->bone_data->get_mats_mat(rob_kl_te_bones[hand]);
         mat4_set_translation(v40, &v18);
 
         vec3 v37 = -rob_chr->data.motion.hand_adjust[hand].offset;
@@ -9162,14 +9156,14 @@ static bool sub_14053B580(rob_chara* rob_chr, int32_t a2) {
     } break;
     default:
         if (v0.field_C < 16) {
-            mat4* v26 = rob_chara_bone_data_get_mats_mat(
-                (rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28), dword_140A2DDD0[v0.field_C]);
+            mat4* v26 = ((rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28))
+                ->get_mats_mat(dword_140A2DDD0[v0.field_C]);
             mat4_get_translation(v26, &v45);
             v45 += v0.field_10;
         }
         else {
-            mat4* v23 = rob_chara_bone_data_get_mats_mat(
-                (rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28), dword_140A2DDD0[v0.field_C]);
+            mat4* v23 = ((rob_chara_bone_data*)((size_t)rob_chr->field_20 + 0x28))
+                ->get_mats_mat(dword_140A2DDD0[v0.field_C]);
 
             mat4 v49;
             mat4_mul_translate(v23, &v0.field_10, &v49);
@@ -12419,6 +12413,12 @@ bool rob_chara_bone_data::get_look_anim_head_rotation() {
 
 bool rob_chara_bone_data::get_look_anim_update_view_point() {
     return look_anim.update_view_point;
+}
+
+mat4* rob_chara_bone_data::get_mats_mat(size_t index) {
+    if (index < mats.size())
+        return &mats[index];
+    return 0;
 }
 
 bool rob_chara_bone_data::get_motion_has_looped() {

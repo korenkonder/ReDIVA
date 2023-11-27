@@ -1272,9 +1272,9 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     for (int32_t i = 0; i < 2; i++) {
         chara_position[i] = interest;
         chara_distance[i] = 999999.0f;
-        rob_chara_bone_data* v16 = rob_chara_array[i].bone_data;
-        if (rob_chara_pv_data_array[i].type != ROB_CHARA_TYPE_NONE && rob_chara_array[i].data.field_0 & 1) {
-            mat4* mat = rob_chara_bone_data_get_mats_mat(v16, MOTION_BONE_N_HARA_CP);
+        rob_chara_bone_data* rob_bone_data = rob_chara_array_get_bone_data(i);
+        if (rob_chara_pv_data_array_check_chara_id(i) && rob_chara_array_check_visibility(i)) {
+            mat4* mat = rob_bone_data->get_mats_mat(MOTION_BONE_N_HARA_CP);
             if (mat) {
                 mat4_get_translation(mat, &chara_position[i]);
                 chara_distance[i] = vec3::distance(view_point, chara_position[i]);

@@ -1354,6 +1354,7 @@ struct rob_chara_bone_data {
     bool get_look_anim_ext_head_rotation();
     bool get_look_anim_head_rotation();
     bool get_look_anim_update_view_point();
+    mat4* get_mats_mat(size_t index);
     bool get_motion_has_looped();
     void interpolate();
     void load_eyes_motion(uint32_t motion_id, const motion_database* mot_db);
@@ -3563,9 +3564,6 @@ struct osage_init_data {
 
 #define ROB_CHARA_COUNT 6
 
-extern rob_chara* rob_chara_array;
-extern rob_chara_pv_data* rob_chara_pv_data_array;
-
 extern const chara_init_data* chara_init_data_get(chara_index chara_index);
 extern int32_t chara_init_data_get_chara_size_index(chara_index chara_index);
 extern int32_t chara_init_data_get_swim_costume(chara_index chara_index);
@@ -3598,8 +3596,6 @@ extern void pv_osage_manager_array_reset(int32_t chara_id);
 
 extern void rob_init();
 extern void rob_free();
-
-extern mat4* rob_chara_bone_data_get_mats_mat(rob_chara_bone_data* rob_bone_data, size_t index);
 
 extern void rob_chara_age_age_array_ctrl(int32_t chara_id, int32_t part_id, mat4& mat);
 extern void rob_chara_age_age_array_disp(render_context* rctx,
