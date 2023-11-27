@@ -84,6 +84,7 @@ public:
     bool save;
     bool save_popup;
     bool save_compress;
+    bool save_encrypt;
     bool close;
     bool close_editor;
     bool input_play;

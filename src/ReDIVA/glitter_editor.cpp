@@ -816,6 +816,7 @@ bool GlitterEditor::Ctrl() {
 
         save = false;
         save_compress = false;
+        save_encrypt = false;
         free_def(path);
         free_def(file);
         return close_editor;
@@ -1198,8 +1199,8 @@ void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag
 }
 
 GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_data(), load_data_wait(),
-load_popup(), load_data_popup(), load_error_list_popup(), save(), save_popup(), save_compress(), close(),
-close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
+load_popup(), load_data_popup(), load_error_list_popup(), save(), save_popup(), save_compress(), save_encrypt(),
+close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
 effect_group_add(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(), particle_flags(),
 load_glt_type(), save_glt_type(), load_data_type(), frame_counter(), old_frame_counter(),
 start_frame(), end_frame(),  counter(), effect_group(), scene(), hash(), selected_type(),
@@ -1767,8 +1768,8 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
 }
 
 static void glitter_editor_save_file(GlitterEditor* glt_edt, const char* path, const char* file) {
-    Glitter::FileWriter::Write(glt_edt->save_glt_type,
-        glt_edt->effect_group, path, file, glt_edt->save_compress);
+    Glitter::FileWriter::Write(glt_edt->save_glt_type, glt_edt->effect_group,
+        path, file, glt_edt->save_compress, glt_edt->save_encrypt);
 }
 
 static bool glitter_editor_list_open_window(Glitter::EffectGroup* eg) {
@@ -5193,6 +5194,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("X", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = false;
+                    glt_edt->save_encrypt = false;
                     glt_edt->save_glt_type = Glitter::X;
                     close = true;
                 }
@@ -5201,6 +5203,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("X HD", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = true;
+                    glt_edt->save_encrypt = true;
                     glt_edt->save_glt_type = Glitter::X;
                     close = true;
                 }
@@ -5209,6 +5212,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("None", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = false;
                     glt_edt->save_compress = false;
+                    glt_edt->save_encrypt = false;
                     close = true;
                 }
 
@@ -5225,6 +5229,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("F2 PSV", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = false;
+                    glt_edt->save_encrypt = false;
                     glt_edt->save_glt_type = Glitter::F2;
                     close = true;
                 }
@@ -5233,6 +5238,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("F2 PS3", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = true;
+                    glt_edt->save_encrypt = true;
                     glt_edt->save_glt_type = Glitter::F2;
                     close = true;
                 }
@@ -5241,6 +5247,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("FT", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = true;
                     glt_edt->save_compress = false;
+                    glt_edt->save_encrypt = false;
                     glt_edt->save_glt_type = Glitter::FT;
                     close = true;
                 }
@@ -5249,6 +5256,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 if (ImGui::ButtonEnterKeyPressed("None", ImGui::GetContentRegionAvail())) {
                     glt_edt->save = false;
                     glt_edt->save_compress = false;
+                    glt_edt->save_encrypt = false;
                     close = true;
                 }
 
