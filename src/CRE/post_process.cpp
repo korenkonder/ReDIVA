@@ -54,15 +54,28 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     stage_index = -1;
     stage_index_prev = -1;
 
-    glGenSamplers(2, samplers);
-    glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glSamplerParameteri(samplers[1], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glSamplerParameteri(samplers[1], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    GLuint sampler;
+    glGenSamplers(3, samplers);
+    sampler = samplers[0];
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    sampler = samplers[1];
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+    static const vec4 border_color = 0.0f;
+
+    sampler = samplers[2];
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
 
     glGenVertexArrays(1, &query_vao);
 
@@ -133,7 +146,7 @@ post_process::~post_process() {
     }
 
     if (samplers[0]) {
-        glDeleteSamplers(2, samplers);
+        glDeleteSamplers(3, samplers);
         samplers[0] = 0;
     }
 
@@ -794,8 +807,7 @@ void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type
             texture* dst_tex = j.texture;
 
             gl_state_active_bind_texture_2d(0, tex);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            gl_state_bind_sampler(0, samplers[0]);
             glViewport(0, 0, dst_tex->width, dst_tex->height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);

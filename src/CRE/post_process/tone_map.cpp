@@ -117,9 +117,7 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
 
         uniform_value[U_FLARE] = 1;
         gl_state_active_bind_texture_2d(4, pp->lens_flare_texture->tex);
-        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        gl_state_bind_sampler(4, pp->samplers[2]);
         mat4 mat;
         mat4_translate(0.5f, 0.5f, 0.0f, &mat);
         mat4_scale_rot(&mat, 0.75f, 0.75f, 1.0f, &mat);
@@ -136,9 +134,7 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
         if (pp->lens_shaft_scale < 50.0f) {
             uniform_value[U_FLARE] = 2;
             gl_state_active_bind_texture_2d(5, pp->lens_shaft_texture->tex);
-            glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+            gl_state_bind_sampler(5, pp->samplers[2]);
             mat4_translate(0.5f, 0.5f, 0.0f, &mat);
             mat4_scale_rot(&mat, pp->lens_shaft_scale, pp->lens_shaft_scale, 1.0f, &mat);
             mat4_mul_rotate_z(&mat, (pp->lens_flare_pos.x / (float_t)pp->render_width)
@@ -165,14 +161,11 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
 
     if (npr_param == 1) {
         /*gl_state_active_bind_texture_2d(16, contour_rt->GetColorTex());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl_state_bind_sampler(16, pp->samplers[1]);
         gl_state_active_bind_texture_2d(17, contour_rt->GetDepthTex());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);*/
+        gl_state_bind_sampler(17, pp->samplers[1]);*/
         gl_state_active_bind_texture_2d(14, rt->GetDepthTex());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl_state_bind_sampler(14, pp->samplers[1]);
     }
 
     tone_map_ubo.WriteMemory(shader_data);

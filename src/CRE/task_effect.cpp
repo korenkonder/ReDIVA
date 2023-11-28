@@ -157,6 +157,7 @@ struct star_catalog_milky_way {
     GLuint vbo;
     GLuint ebo;
     GLuint vao;
+    GLuint sampler;
     uint16_t restart_index;
     int32_t idx_count;
     int32_t longitude_degs_10;
@@ -3323,8 +3324,8 @@ particle_data::particle_data() : size(), alpha(), life_time() {
 
 }
 
-star_catalog_milky_way::star_catalog_milky_way() : vbo(), ebo(), vao(), restart_index(),
-idx_count(), longitude_degs_10(), latitude_degs_10(), longitude_offset_degs_10(),
+star_catalog_milky_way::star_catalog_milky_way() : vbo(), ebo(), vao(), sampler(),
+restart_index(), idx_count(), longitude_degs_10(), latitude_degs_10(), longitude_offset_degs_10(),
 latitude_offset_degs_10(), latitude(), longitude(), uv_rec_scale_u(), uv_rec_scale_v() {
     reset();
 }
@@ -3446,6 +3447,13 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
             (GLsizeiptr)(sizeof(uint16_t) * ebo_count), ebo_data, GL_STATIC_DRAW);
     free_def(ebo_data);
 
+    if (!sampler)
+        glGenSamplers(1, &sampler);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
     gl_state_bind_element_array_buffer(0);
@@ -3457,6 +3465,11 @@ void star_catalog_milky_way::create_default_sphere() {
 }
 
 void star_catalog_milky_way::delete_buffers() {
+    if (sampler) {
+        glDeleteSamplers(1, &sampler);
+        sampler = 0;
+    }
+    
     if (vbo) {
         glDeleteBuffers(1, &vbo);
         vbo = 0;
@@ -3521,12 +3534,9 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     gl_state_disable_blend();
     gl_state_set_depth_mask(GL_FALSE);
     gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_bind_sampler(0, sampler);
     gl_state_enable_primitive_restart();
     gl_state_set_primitive_restart_index(restart_index);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     uniform_value[U_STAR] = 1;
     shaders_ft.set(SHADER_FT_STAR);
 
@@ -3535,6 +3545,7 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     shaders_ft.draw_elements(GL_TRIANGLE_STRIP, idx_count, GL_UNSIGNED_SHORT, 0);
     gl_state_bind_vertex_array(0);
 
+    gl_state_bind_sampler(0, 0);
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_disable_primitive_restart();
     gl_state_set_depth_mask(GL_TRUE);

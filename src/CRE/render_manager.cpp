@@ -856,14 +856,11 @@ namespace rndr {
 
         shaders_ft.set(SHADER_FT_CONTOUR_NPR);
         gl_state_active_bind_texture_2d(16, contour_rt->GetColorTex());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl_state_bind_sampler(16, rctx->post_process.samplers[1]);
         gl_state_active_bind_texture_2d(17, contour_rt->GetDepthTex());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl_state_bind_sampler(17, rctx->post_process.samplers[1]);
         gl_state_active_bind_texture_2d(14, rt->GetDepthTex());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        gl_state_bind_sampler(14, rctx->post_process.samplers[1]);
         rctx->quad_ubo.Bind(0);
         rctx->contour_params_ubo.Bind(2);
         RenderTexture::Draw(&shaders_ft);
@@ -1158,16 +1155,11 @@ static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj) 
         return false;
     }
 
-    static const vec4 border_color = 0.0f;
     rctx->draw_state.shader_index = SHADER_FT_LITPROJ;
     gl_state_active_bind_texture_2d(17, tex->tex);
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    gl_state_bind_sampler(17, rctx->post_process.samplers[2]);
     gl_state_active_bind_texture_2d(18, litproj->shadow_texture[0].GetColorTex());
-    glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    gl_state_bind_sampler(18, rctx->post_process.samplers[2]);
     gl_state_active_texture(0);
     return true;
 }
@@ -1180,15 +1172,9 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
     gl_state_set_depth_mask(GL_TRUE);
     glViewport(0, 0, pp->render_width, pp->render_height);
     gl_state_active_bind_texture_2d(0, pp->rend_texture.GetColorTex());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl_state_bind_sampler(0, rctx->post_process.samplers[1]);
     gl_state_active_bind_texture_2d(1, pp->rend_texture.GetDepthTex());
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    gl_state_bind_sampler(1, rctx->post_process.samplers[1]);
     gl_state_active_texture(0);
 
     camera* cam = rctx->camera;
