@@ -1943,15 +1943,15 @@ void ripple_emit::draw() {
         GLint v43[4];
         glGetIntegerv(GL_VIEWPORT, v43);
 
-        int32_t width = rt[0]->color_texture->width;
-        int32_t height = rt[0]->color_texture->height;
+        int32_t width = rt[0]->GetWidth();
+        int32_t height = rt[0]->GetHeight();
 
         glViewport(1, 1, width - 2, height - 2);
 
         draw_pass_set_camera(rctx_ptr);
         glClear(GL_DEPTH_BUFFER_BIT);
         if (rctx->disp_manager.get_obj_count(mdl::OBJ_TYPE_USER)) {
-            gl_state_active_bind_texture_2d(7, rt[counter % 3]->color_texture->tex);
+            gl_state_active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
             rctx->disp_manager.draw(mdl::OBJ_TYPE_USER, 0, true);
             gl_state_active_bind_texture_2d(7, 0);
         }
@@ -2102,7 +2102,7 @@ void ripple_emit::sub_1403584A0(RenderTexture* rt) {
     field_BB8.SetColorDepthTextures(ripple_tex->tex);
     field_BB8.Bind();
 
-    image_filter_scale(rctx_ptr, ripple_tex->tex, rt->color_texture->tex, 1.0f);
+    image_filter_scale(rctx_ptr, ripple_tex->tex, rt->GetColorTex(), 1.0f);
     gl_state_bind_framebuffer(0);
 }
 
@@ -2945,7 +2945,7 @@ void snow_particle_draw() {
     snow_particle_batch_ubo.WriteMemory(snow_batch);
 
     gl_state_active_bind_texture_2d(0, tex->tex);
-    gl_state_active_bind_texture_2d(1, rctx_ptr->post_process.rend_texture.depth_texture->tex);
+    gl_state_active_bind_texture_2d(1, rctx_ptr->post_process.rend_texture.GetDepthTex());
     gl_state_bind_vertex_array(snow_vao);
 
     uniform_value[U_SNOW_PARTICLE] = 0;
@@ -4111,8 +4111,8 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
 
     RenderTexture& rt = rctx->render_manager.get_render_texture(
         ripple_emit_data->use_float_ripplemap ? 2 : 5);
-    int32_t width = rt.color_texture->width;
-    int32_t height = rt.color_texture->height;
+    int32_t width = rt.GetWidth();
+    int32_t height = rt.GetHeight();
 
     ripple_emit_scene_shader_data shader_data = {};
     shader_data.g_size_in_projection = {
@@ -5129,7 +5129,7 @@ static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a
         uniform_value[U_RIPPLE] = 1;
     else
         uniform_value[U_RIPPLE] = 0;
-    sub_1403B6F60(a1->color_texture->tex, a2->color_texture->tex, a3->color_texture->tex, params);
+    sub_1403B6F60(a1->GetColorTex(), a2->GetColorTex(), a3->GetColorTex(), params);
     gl_state_bind_framebuffer(0);
 }
 

@@ -183,7 +183,7 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     exposure.Bind();
     uniform_value[U_EXPOSURE] = 2;
     shaders_ft.set(SHADER_FT_EXPOSURE);
-    gl_state_active_bind_texture_2d(0, exposure_history.color_texture->tex);
+    gl_state_active_bind_texture_2d(0, exposure_history.GetColorTex());
     RenderTexture::DrawQuad(&shaders_ft, 1, 1);
 }
 

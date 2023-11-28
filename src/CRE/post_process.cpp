@@ -173,15 +173,14 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 
     draw_lens_ghost(&rend_texture);
 
-    get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_PRE_PP);
+    get_frame_texture(rend_texture.GetColorTex(), POST_PROCESS_FRAME_TEXTURE_PRE_PP);
 
     blur->get_blur(&rend_texture);
     exposure->get_exposure(cam, render_width, render_height, reset_exposure,
-        blur->tex[4].color_texture->tex, blur->tex[2].color_texture->tex);
+        blur->tex[4].GetColorTex(), blur->tex[2].GetColorTex());
     tone_map->apply(&rend_texture, light_proj_tex, (texture*)(aet_back ? aet_back_tex : 0),
-        &rend_texture, &buf_texture,/* sss_contour_texture,*/
-        blur->tex[0].color_texture->tex,
-        exposure->exposure.color_texture->tex, npr_param, this);
+        &rend_texture, &buf_texture, /* sss_contour_texture,*/
+        blur->tex[0].GetColorTex(), exposure->exposure.GetColorTex(), npr_param, this);
     if (mlaa)
         apply_mlaa(samplers, ss_alpha_mask);
 
@@ -198,20 +197,20 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
             uniform_value[U_REDUCE] = 0;
 
         glViewport(0, 0, t->width, t->height);
-        gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
+        gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
         gl_state_bind_sampler(0, samplers[0]);
         shaders_ft.set(SHADER_FT_REDUCE);
         RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
     }
 
-    get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_POST_PP);
+    get_frame_texture(rend_texture.GetColorTex(), POST_PROCESS_FRAME_TEXTURE_POST_PP);
 
     frame_texture_reset_capture();
 
     screen_texture.Bind();
     glViewport(0, 0, sprite_width, sprite_height);
     if (ssaa) {
-        gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
+        gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
         gl_state_bind_sampler(0, samplers[0]);
         uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
@@ -220,7 +219,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         uniform_value[U_ALPHA_MASK] = 0;
     }
     else {
-        gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
+        gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
         if (mag_filter == POST_PROCESS_MAG_FILTER_NEAREST)
             gl_state_bind_sampler(0, samplers[1]);
         else
@@ -258,14 +257,14 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
     gl_state_begin_event("PostProcess::mlaa");
     mlaa_buffer.Bind();
-    gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
+    gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 0;
     shaders_ft.set(SHADER_FT_MLAA);
     RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
 
     temp_buffer.Bind();
-    gl_state_active_bind_texture_2d(0, mlaa_buffer.color_texture->tex);
+    gl_state_active_bind_texture_2d(0, mlaa_buffer.GetColorTex());
     gl_state_active_bind_texture_2d(1, mlaa_area_texture);
     gl_state_bind_sampler(0, samplers[0]);
     gl_state_bind_sampler(1, samplers[1]);
@@ -275,8 +274,8 @@ void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
     RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
 
     buf_texture.Bind();
-    gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
-    gl_state_active_bind_texture_2d(1, temp_buffer.color_texture->tex);
+    gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
+    gl_state_active_bind_texture_2d(1, temp_buffer.GetColorTex());
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 2;
     uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
@@ -287,8 +286,8 @@ void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
     gl_state_active_bind_texture_2d(1, 0);
 
     fbo::blit(buf_texture.fbos[0], rend_texture.fbos[0],
-        0, 0, buf_texture.color_texture->width, buf_texture.color_texture->height,
-        0, 0, rend_texture.color_texture->width, rend_texture.color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        0, 0, buf_texture.GetWidth(), buf_texture.GetHeight(),
+        0, 0, rend_texture.GetWidth(), rend_texture.GetHeight(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
     gl_state_end_event();
 }
 
@@ -632,8 +631,8 @@ void post_process::draw_lens_ghost(RenderTexture* rt) {
         gl_state_bind_array_buffer(0);
     }
 
-    glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
     rt->Bind();
+    rt->SetViewport();
     gl_state_enable_blend();
     gl_state_set_blend_func(GL_ONE, GL_ONE);
 
@@ -658,24 +657,30 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
     if (this->render_width != render_width || this->render_height != render_height) {
         blur->init_fbo(render_width, render_height);
         dof->init_fbo(render_width, render_height);
+
         exposure->init_fbo();
         tone_map->init_fbo();
+
         rend_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         buf_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
+
         if (aet_back_tex)
             texture_free(aet_back_tex);
         aet_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++), GL_RGBA8, render_width, render_height, 0, 0, false);
-        aet_back_texture.SetColorDepthTextures(aet_back_tex->tex, 0, rend_texture.depth_texture->tex);
+        aet_back_texture.SetColorDepthTextures(aet_back_tex->tex, 0, rend_texture.GetDepthTex());
         transparency_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         mlaa_buffer.Init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
         temp_buffer.Init(render_width, render_height, 0, GL_RGBA8, 0);
         sss_contour_texture = &mlaa_buffer;
-        gl_state_bind_texture_2d(rend_texture.depth_texture->tex);
+
+        gl_state_bind_texture_2d(rend_texture.GetDepthTex());
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        gl_state_bind_texture_2d(mlaa_buffer.depth_texture->tex);
+
+        gl_state_bind_texture_2d(mlaa_buffer.GetDepthTex());
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         gl_state_bind_texture_2d(0);
+
         this->render_width = render_width;
         this->render_height = render_height;
     }

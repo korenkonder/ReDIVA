@@ -87,7 +87,7 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
     uniform_value[U_LIGHT_PROJ] = 0;
     //uniform_value[U25] = 0;
 
-    gl_state_active_bind_texture_2d(0, in_tex->color_texture->tex);
+    gl_state_active_bind_texture_2d(0, in_tex->GetColorTex());
     gl_state_active_bind_texture_2d(1, in_tex_0);
     gl_state_active_bind_texture_2d(2, tone_map_tex);
     gl_state_active_bind_texture_2d(3, in_tex_1);
@@ -164,29 +164,29 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
     }
 
     if (npr_param == 1) {
-        /*gl_state_active_bind_texture_2d(16, contour_rt->color_texture->tex);
+        /*gl_state_active_bind_texture_2d(16, contour_rt->GetColorTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        gl_state_active_bind_texture_2d(17, contour_rt->depth_texture->tex);
+        gl_state_active_bind_texture_2d(17, contour_rt->GetDepthTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);*/
-        gl_state_active_bind_texture_2d(14, rt->depth_texture->tex);
+        gl_state_active_bind_texture_2d(14, rt->GetDepthTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     }
 
     tone_map_ubo.WriteMemory(shader_data);
 
-    glViewport(0, 0, rt->color_texture->width, rt->color_texture->height);
     buf_rt->Bind();
+    buf_rt->SetViewport();
     shaders_ft.set(SHADER_FT_TONEMAP);
     tone_map_ubo.Bind(1);
     RenderTexture::Draw(&shaders_ft);
     gl_state_active_bind_texture_2d(2, 0);
 
     fbo::blit(buf_rt->fbos[0], rt->fbos[0],
-        0, 0, buf_rt->color_texture->width, buf_rt->color_texture->height,
-        0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        0, 0, buf_rt->GetWidth(), buf_rt->GetHeight(),
+        0, 0, rt->GetWidth(), rt->GetHeight(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
     gl_state_end_event();
 }
 

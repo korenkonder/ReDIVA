@@ -390,8 +390,7 @@ bool light_proj::set(render_context* rctx) {
     }
     else {
         draw_texture.Bind();
-        glViewport(0, 0, draw_texture.color_texture->width,
-            draw_texture.color_texture->height);
+        draw_texture.SetViewport();
         gl_state_enable_depth_test();
         gl_state_set_depth_mask(GL_TRUE);
         glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
@@ -4364,7 +4363,7 @@ int32_t Shadow::InitData() {
             return -1;
 
     for (int32_t i = 0; i < 4; i++) {
-        gl_state_bind_texture_2d(render_textures[i == 3 ? 7 : i].color_texture->tex);
+        gl_state_bind_texture_2d(render_textures[i == 3 ? 7 : i].GetColorTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         static const vec4 border_color = 1.0f;

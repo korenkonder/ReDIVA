@@ -114,15 +114,13 @@ void post_process_dof::apply(RenderTexture* rt, RenderTexture* buf, camera* cam)
                 }
 
                 focus = max_def(focus, (float_t)cam->min_distance);
-                renderer::DOF3::apply_physical(this, rt, buf,
-                    rt->color_texture->tex, rt->depth_texture->tex,
+                renderer::DOF3::apply_physical(this, rt, buf, rt->GetColorTex(), rt->GetDepthTex(),
                     (float_t)cam->min_distance, (float_t)cam->max_distance, focus,
                     dof_debug_data.focal_length, (float_t)cam->fov_rad, dof_debug_data.f_number);
             }
             else {
                 float_t fuzzing_range = max_def(dof_debug_data.f2.fuzzing_range, 0.01f);
-                renderer::DOF3::apply_f2(this, rt, buf,
-                    rt->color_texture->tex, rt->depth_texture->tex,
+                renderer::DOF3::apply_f2(this, rt, buf, rt->GetColorTex(), rt->GetDepthTex(),
                     (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
                     dof_debug_data.f2.focus, dof_debug_data.f2.focus_range,
                     fuzzing_range, dof_debug_data.f2.ratio);
@@ -132,8 +130,7 @@ void post_process_dof::apply(RenderTexture* rt, RenderTexture* buf, camera* cam)
     }
     else if (dof_pv_data.enable && dof_pv_data.f2.ratio > 0.0f) {
         float_t fuzzing_range = max_def(dof_pv_data.f2.fuzzing_range, 0.01f);
-        renderer::DOF3::apply_f2(this, rt, buf,
-            rt->color_texture->tex, rt->depth_texture->tex,
+        renderer::DOF3::apply_f2(this, rt, buf, rt->GetColorTex(), rt->GetDepthTex(),
             (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
             dof_pv_data.f2.focus, dof_pv_data.f2.focus_range,
             fuzzing_range, dof_pv_data.f2.ratio);
@@ -418,8 +415,8 @@ namespace renderer {
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         fbo::blit(buf->fbos[0], rt->fbos[0],
-            0, 0, buf->color_texture->width, buf->color_texture->height,
-            0, 0, rt->color_texture->width, rt->color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+            0, 0, buf->GetWidth(), buf->GetHeight(),
+            0, 0, rt->GetWidth(), rt->GetHeight(), GL_COLOR_BUFFER_BIT, GL_LINEAR);
         gl_state_end_event();
     }
 

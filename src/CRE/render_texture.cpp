@@ -84,8 +84,8 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
             return -1;
 
         render_texture_counter++;
-        color_texture = this->color_texture->tex;
-        gl_state_bind_texture_2d(this->color_texture->tex);
+        color_texture = GetColorTex();
+        gl_state_bind_texture_2d(GetColorTex());
         if (color_format == GL_RGBA32F) {
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -108,7 +108,7 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
             return -1;
 
         render_texture_counter++;
-        depth_texture = this->depth_texture->tex;
+        depth_texture = this->GetDepthTex();
         stencil = depth_format == GL_DEPTH24_STENCIL8;
     }
     else {
@@ -146,14 +146,14 @@ void RenderTexture::DrawCustom() {
 }
 
 void RenderTexture::DrawQuad(shader_set_data* set, int32_t width, int32_t height,
-    float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
+    float_t scale_x, float_t scale_y, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
     extern render_context* rctx_ptr;
 
     float_t w = (float_t)max_def(width, 1);
     float_t h = (float_t)max_def(height, 1);
     quad_shader_data quad = {};
     quad.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f }; // x * 0.5 + 0.5
-    quad.g_texel_size = { scale / w, scale / h, w, h };
+    quad.g_texel_size = { scale_x / w, scale_y / h, w, h };
     quad.g_color = { param_x, param_y, param_z, param_w };
     quad.g_texture_lod = 0.0f;
 
