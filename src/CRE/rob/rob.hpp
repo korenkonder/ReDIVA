@@ -3625,6 +3625,7 @@ extern rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id);
 extern int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     const rob_chara_pv_data& pv_data, int32_t cos_id, bool can_set_default);
 extern void rob_chara_array_free_chara_id(int32_t chara_id);
+extern void rob_chara_array_reset_pv_data(int32_t chara_id);
 extern void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id);
 extern void rob_chara_array_set_alpha_obj_flags(int32_t chara_id, float_t alpha, mdl::ObjFlags flags);
 extern void rob_chara_array_set_visibility(int32_t chara_id, bool value);

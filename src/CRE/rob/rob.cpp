@@ -11330,6 +11330,10 @@ void rob_chara_array_free_chara_id(int32_t chara_id) {
     rob_chara_pv_data_array[chara_id].type = ROB_CHARA_TYPE_NONE;
 }
 
+void rob_chara_array_reset_pv_data(int32_t chara_id) {
+    rob_chara_pv_data_array[chara_id].type = ROB_CHARA_TYPE_NONE;
+}
+
 void rob_chara_array_reset_bone_data_item_equip(int32_t chara_id) {
     rob_chara_item_equip* rob_itm_equip = rob_chara_array[chara_id].item_equip;
     rob_itm_equip->reset_init_data(rob_chara_bone_data_get_node(
@@ -11386,11 +11390,6 @@ void pv_osage_manager_array_set_pv_id(int32_t chara_id, int32_t pv_id, bool rese
 void pv_osage_manager_array_set_pv_set_motion(
     int32_t chara_id, const std::vector<pv_data_set_motion>& set_motion) {
     pv_osage_manager_array_get(chara_id)->SetPvSetMotion(set_motion);
-}
-
-int32_t rob_chara_array_reset_pv_data(int32_t chara_id) {
-    rob_chara_pv_data_array[chara_id].type = ROB_CHARA_TYPE_NONE;
-    return chara_id;
 }
 
 bool rob_chara_check_for_ageageagain_module(chara_index chara_index, int32_t cos_id) {
@@ -12746,7 +12745,6 @@ rob_chara_pv_data::rob_chara_pv_data() : type(), field_4(), field_5(),
 field_6(), rot_y_int16(), field_16(), sleeve_l(), sleeve_r(), field_70(),
 motion_face_ids(), chara_size_index(), height_adjust(), item() {
     reset();
-    type = ROB_CHARA_TYPE_NONE;
 }
 
 void rob_chara_pv_data::reset() {

@@ -935,6 +935,9 @@ static render_context* render_context_load() {
 
     Glitter::glt_particle_manager_add_task();
 
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
+        rob_chara_array_reset_pv_data(i);
+
     light_param_data_storage::load(aft_data);
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
 
