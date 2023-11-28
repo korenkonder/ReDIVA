@@ -14,6 +14,9 @@ fbo::~fbo() {
     free_data();
 }
 
+#pragma warning(push)
+#pragma warning(disable: 6385)
+#pragma warning(disable: 6386)
 void fbo::init_data(int32_t width, int32_t height,
     GLuint* color_textures, int32_t count, GLuint depth_texture) {
     if (buffer) {
@@ -58,6 +61,7 @@ void fbo::init_data(int32_t width, int32_t height,
     glDrawBuffers(count, color_attachments);
     glCheckFramebufferStatus(GL_FRAMEBUFFER);
 }
+#pragma warning(pop)
 
 void fbo::free_data() {
     if (buffer) {

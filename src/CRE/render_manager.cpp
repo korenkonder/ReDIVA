@@ -1465,11 +1465,7 @@ static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
         alpha_array, opaque, transparent, translucent);
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
-        fbo::blit(pp->rend_texture.fbos[0], pp->transparency_texture.fbos[0],
-            0, 0, pp->render_width, pp->render_height,
-            0, 0, pp->render_width, pp->render_height,
-            GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT, GL_NEAREST);
-
+        pp->transparency->copy(&pp->rend_texture);
         if (opaque_enable && rctx->disp_manager.get_obj_count(opaque))
             rctx->disp_manager.draw_translucent(opaque, alpha);
         if (transparent_enable && rctx->disp_manager.get_obj_count(transparent))
@@ -1479,22 +1475,8 @@ static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
             rctx->disp_manager.draw_translucent(translucent, alpha);
             gl_state_disable_blend();
         }
-
-        transparency_batch_shader_data shader_data = {};
-        shader_data.g_opacity = { (float_t)alpha * (float_t)(1.0 / 255.0), 0.0f, 0.0f, 0.0f };
-        rctx->transparency_batch_ubo.WriteMemory(shader_data);
-
-        pp->buf_texture.Bind();
-        shaders_ft.set(SHADER_FT_TRANSPARENCY);
-        rctx->transparency_batch_ubo.Bind(0);
-        gl_state_active_bind_texture_2d(0, pp->transparency_texture.color_texture->tex);
-        gl_state_active_bind_texture_2d(1, pp->rend_texture.color_texture->tex);
-        RenderTexture::DrawCustom();
-
-        fbo::blit(pp->buf_texture.fbos[0], pp->rend_texture.fbos[0],
-            0, 0, pp->render_width, pp->render_height,
-            0, 0, pp->render_width, pp->render_height,
-            GL_COLOR_BUFFER_BIT, GL_NEAREST);
+        pp->transparency->combine(&pp->rend_texture, &pp->buf_texture,
+            (float_t)alpha * (float_t)(1.0 / 255.0), rctx);
     }
 }
 

@@ -12,6 +12,7 @@
 #include "post_process/dof.hpp"
 #include "post_process/exposure.hpp"
 #include "post_process/tone_map.hpp"
+#include "post_process/transparency.hpp"
 #include "camera.hpp"
 
 enum post_process_frame_texture_type {
@@ -73,6 +74,7 @@ struct post_process {
     post_process_dof* dof;
     post_process_exposure* exposure;
     post_process_tone_map* tone_map;
+    post_process_transparency* transparency;
     GLuint samplers[3];
     GLuint query_vao;
     GLuint lens_ghost_vao;

@@ -51,6 +51,7 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     dof = new post_process_dof();
     exposure = new post_process_exposure();
     tone_map = new post_process_tone_map();
+    transparency = new post_process_transparency();
     stage_index = -1;
     stage_index_prev = -1;
 
@@ -138,6 +139,11 @@ post_process::~post_process() {
     if (tone_map) {
         delete tone_map;
         tone_map = 0;
+    }
+
+    if (transparency) {
+        delete transparency;
+        transparency = 0;
     }
 
     if (mlaa_area_texture) {
@@ -681,7 +687,11 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
             texture_free(aet_back_tex);
         aet_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++), GL_RGBA8, render_width, render_height, 0, 0, false);
         aet_back_texture.SetColorDepthTextures(aet_back_tex->tex, 0, rend_texture.GetDepthTex());
-        transparency_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
+        transparency_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
+
+        transparency->init_fbo(transparency_texture.GetColorTex(),
+            rend_texture.GetDepthTex(), render_width, render_height);
+
         mlaa_buffer.Init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
         temp_buffer.Init(render_width, render_height, 0, GL_RGBA8, 0);
         sss_contour_texture = &mlaa_buffer;
