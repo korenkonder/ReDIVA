@@ -12746,6 +12746,7 @@ rob_chara_pv_data::rob_chara_pv_data() : type(), field_4(), field_5(),
 field_6(), rot_y_int16(), field_16(), sleeve_l(), sleeve_r(), field_70(),
 motion_face_ids(), chara_size_index(), height_adjust(), item() {
     reset();
+    type = ROB_CHARA_TYPE_NONE;
 }
 
 void rob_chara_pv_data::reset() {
