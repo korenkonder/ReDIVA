@@ -1317,7 +1317,7 @@ float_t auth_3d_key::interpolate(float_t frame) {
             frame = last_frame - fmodf(delta_frame, frame_delta);
             break;
         case A3DA_EP_CYCLE_OFFSET:
-            offset = -(float_t)((int32_t)(delta_frame / frame_delta) + 1) * value_delta;
+            offset = (prj::truncf(delta_frame / frame_delta) + 1.0f) * value_delta;
             frame = last_frame - fmodf(delta_frame, frame_delta);
             break;
         }
@@ -1338,7 +1338,7 @@ float_t auth_3d_key::interpolate(float_t frame) {
             frame = first_frame + fmodf(delta_frame, frame_delta);
             break;
         case A3DA_EP_CYCLE_OFFSET:
-            offset = (float_t)((int32_t)(delta_frame / frame_delta) + 1) * value_delta;
+            offset = (prj::truncf(delta_frame / frame_delta) + 1.0f) * value_delta;
             frame = first_frame + fmodf(delta_frame, frame_delta);
             break;
         }
@@ -4146,13 +4146,13 @@ static float_t auth_3d_camera_root_calc_frame(auth_3d_camera_root* cr, float_t f
         || auth_3d_key_detect_fast_change(&cr->interest.translation.x, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->interest.translation.y, frame, 0.3f)
         || auth_3d_key_detect_fast_change(&cr->interest.translation.z, frame, 0.3f)) {
-        frame = (float_t)(int32_t)frame;
+        frame = prj::floorf(frame);
         rctx->camera->set_fast_change(true);
     }
     else {
         float_t frame_prev = frame - get_delta_frame();
         if (frame_prev > 0.0f && (int32_t)frame - (int32_t)frame_prev == 2) {
-            frame_prev = (float_t)((int32_t)frame_prev + 1);
+            frame_prev = prj::ceilf(frame_prev);
             if (auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.x, frame_prev, 0.3f)
                 || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.y, frame_prev, 0.3f)
                 || auth_3d_key_detect_fast_change(&cr->view_point.model_transform.translation.z, frame_prev, 0.3f)
@@ -6364,14 +6364,8 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
         else if (tex_pat_count >= TEXTURE_PATTERN_COUNT)
             break;
 
-        float_t pat = i.pattern.value;
-        if (pat > 0.0f)
-            pat = (float_t)(int32_t)(pat + 0.5f);
-        else if (pat < 0.0f)
-            pat = (float_t)(int32_t)(pat - 0.5f);
-
         sprintf_s(buf, sizeof(buf), "%.*s%03d",
-            (int32_t)(i.name.size() - 3), i.name.c_str(), (int32_t)pat);
+            (int32_t)(i.name.size() - 3), i.name.c_str(), (int32_t)prj::roundf(i.pattern.value));
 
         tex_pat[tex_pat_count].src = texture_id(0, i.texture_id);
         tex_pat[tex_pat_count].dst = texture_id(0, tex_db->get_texture_id(buf));
@@ -6429,13 +6423,8 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
         }
     }
     else if (o->pattern.curve) {
-        float_t pat = o->pattern.value;
-        if (pat > 0.0f)
-            pat = (float_t)(int32_t)(pat + 0.5f);
-        else if (pat < 0.0f)
-            pat = (float_t)(int32_t)(pat - 0.5f);
-
-        sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, (int32_t)pat);
+        sprintf_s(buf, sizeof(buf), "%.*s%03d",
+            uid_name_length - 3, uid_name, (int32_t)prj::roundf(o->pattern.value));
         object_info obj_info = obj_db->get_object_info(buf);
         disp_manager.entry_obj_by_object_info(&mat, obj_info);
     }

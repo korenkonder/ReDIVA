@@ -1142,24 +1142,24 @@ void AetObj::CalcMat(mat4& mat, const aet_layer* layer, float_t frame) {
     }
     else {
         const aet_layer_video* video = layer->video;
-        pos_x = roundf(video->pos_x.interpolate(frame));
-        pos_y = roundf(video->pos_y.interpolate(frame));
+        pos_x = prj::roundf(video->pos_x.interpolate(frame));
+        pos_y = prj::roundf(video->pos_y.interpolate(frame));
         rot_z = video->rot_z.interpolate(frame) * DEG_TO_RAD_FLOAT;
         scale_x = video->scale_x.interpolate(frame);
         scale_y = video->scale_y.interpolate(frame);
-        anchor_x = roundf(video->anchor_x.interpolate(frame));
-        anchor_y = roundf(video->anchor_y.interpolate(frame));
+        anchor_x = prj::roundf(video->anchor_x.interpolate(frame));
+        anchor_y = prj::roundf(video->anchor_y.interpolate(frame));
 
         const aet_layer_video_3d* _3d = video->_3d;
         if (_3d) {
-            pos_z = roundf(_3d->pos_z.interpolate(frame));
+            pos_z = prj::roundf(_3d->pos_z.interpolate(frame));
             dir_x = _3d->dir_x.interpolate(frame) * DEG_TO_RAD_FLOAT;
             dir_y = _3d->dir_y.interpolate(frame) * DEG_TO_RAD_FLOAT;
             dir_z = _3d->dir_z.interpolate(frame) * DEG_TO_RAD_FLOAT;
             rot_x = _3d->rot_x.interpolate(frame) * DEG_TO_RAD_FLOAT;
             rot_y = _3d->rot_y.interpolate(frame) * DEG_TO_RAD_FLOAT;
             scale_z = _3d->scale_z.interpolate(frame);
-            anchor_z = roundf(_3d->anchor_z.interpolate(frame));
+            anchor_z = prj::roundf(_3d->anchor_z.interpolate(frame));
         }
     }
 

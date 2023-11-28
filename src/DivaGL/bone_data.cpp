@@ -1380,16 +1380,14 @@ void rob_osage_set_osage_play_data(rob_osage* rob_osg, mat4* parent_mat,
         if (frame >= i->frame_count)
             frame = 0.0f;
 
-        int32_t frame_int = (int32_t)frame;
-        if (frame != -0.0f && (float_t)frame_int != frame)
-            frame_int = (frame < 0.0f ? frame_int - 1 : frame_int);
+        frame = prj::floorf(frame);
 
-        int32_t curr_key = frame_int;
-        int32_t next_key = frame_int + 1;
+        int32_t curr_key = (int32_t)(int64_t)frame;
+        int32_t next_key = curr_key + 1;
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
 
-        float_t blend = frame - (float_t)frame_int;
+        float_t blend = frame - (float_t)(int64_t)frame;
         float_t inv_blend = 1.0f - blend;
         for (rob_osage_node* j = rob_osg->nodes.begin + 1; j != rob_osg->nodes.end; j++) {
             opd_vec3_data* opd = &j->opd_data.begin[v17];

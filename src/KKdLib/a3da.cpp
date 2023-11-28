@@ -2926,7 +2926,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
     case A3DA_COMPRESS_I16F16F32F32:
         for (uint32_t i = 0; i < len; i++) {
             kft3* k = &keys[i];
-            s.write_int16_t((int16_t)roundf(k->frame));
+            s.write_int16_t((int16_t)prj::roundf(k->frame));
             s.write_half_t(float_to_half(k->value));
             s.write_float_t(k->tangent1);
             s.write_float_t(k->tangent2);
@@ -2935,7 +2935,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
     case A3DA_COMPRESS_I16F16F16F16:
         for (uint32_t i = 0; i < len; i++) {
             kft3* k = &keys[i];
-            s.write_int16_t((int16_t)roundf(k->frame));
+            s.write_int16_t((int16_t)prj::roundf(k->frame));
             s.write_half_t(float_to_half(k->value));
             s.write_half_t(float_to_half(k->tangent1));
             s.write_half_t(float_to_half(k->tangent2));

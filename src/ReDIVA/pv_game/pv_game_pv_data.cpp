@@ -573,7 +573,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (motion && motion->enable && (!motion->motion_index || motion_index == motion->motion_index)) {
             if (dsc_time != motion->time) {
                 frame = dsc_time_to_frame(curr_time - motion->time);
-                dsc_frame = roundf(dsc_time_to_frame(dsc_time - motion->time));
+                dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - motion->time));
                 if (frame < dsc_frame)
                     frame = dsc_frame;
                 blend = curr_time > motion->time;
@@ -691,7 +691,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 curr_time = this->data_camera[0].time;
 
             float_t frame = dsc_time_to_frame(curr_time - data_camera[0].time);
-            float_t dsc_frame = roundf(dsc_time_to_frame(dsc_time - data_camera[0].time));
+            float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - data_camera[0].time));
             if (frame < dsc_frame)
                 frame = dsc_frame;
 
@@ -710,7 +710,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 curr_time = data_camera[1].time;
 
             float_t frame = dsc_time_to_frame(curr_time - data_camera[1].time);
-            float_t dsc_frame = roundf(dsc_time_to_frame(dsc_time - data_camera[1].time));
+            float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - data_camera[1].time));
             if (frame < dsc_frame)
                 frame = dsc_frame;
 
@@ -1254,7 +1254,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_EDIT_MOVE: {
         float_t v9 = 1.0f / field_2C54C;
-        float_t duration = (float_t)(int32_t)(data[0]) * v9;
+        float_t duration = (float_t)data[0] * v9;
         vec3 start_pos;
         start_pos.x = (float_t)data[1] * v9;
         start_pos.y = 0.0f;
@@ -1279,7 +1279,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     } break;
     case DSC_FT_EDIT_MOVE_XYZ: {
         float_t v9 = 1.0f / field_2C54C;
-        float_t duration = (float_t)(int32_t)(data[0]) * v9;
+        float_t duration = (float_t)data[0] * v9;
         vec3 start_pos;
         start_pos.x = (float_t)data[1] * v9;
         start_pos.y = (float_t)data[2] * v9;
@@ -1638,7 +1638,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             int64_t time = pv_game->get_data_itmpv_time(chara_id, index);
             if (time >= 0 && time <= dsc_time && time <= curr_time) {
                 float_t frame = dsc_time_to_frame(curr_time - time);
-                float_t dsc_frame = roundf(dsc_time_to_frame(dsc_time - time));
+                float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - time));
                 if (frame < dsc_frame)
                     frame = dsc_frame;
                 pv_game->set_data_itmpv_req_frame(chara_id, index, frame);
@@ -2331,16 +2331,7 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
             if (time < 0)
                 time = j.time;
 
-            float_t frame = dsc_time_to_frame(((int64_t)j.time - time) * 10000);
-
-            if (frame >= 0.0f)
-                frame += 0.5f;
-            else
-                frame -= 0.5f;
-
-            int32_t frame_int = (int32_t)frame;
-            if (frame != -0.0f && (float_t)frame_int != frame)
-                frame = (float_t)(frame < 0.0f ? frame_int - 1 : frame_int);
+            float_t frame = prj::roundf(dsc_time_to_frame(((int64_t)j.time - time) * 10000));
 
             uint32_t motion_id = diff->get_motion_or_default(i, j.index).id;
             if (pv_game_get() && pv_game_get()->data.pv) {
@@ -2578,12 +2569,7 @@ void pv_game_pv_data::set_camera_max_frame(int64_t time) {
         if (10000LL * i <= dsc_time)
             continue;
 
-        float_t max_frame = dsc_time_to_frame(10000LL * i - time);
-        if (max_frame > 0.0f)
-            max_frame = (float_t)(int32_t)(max_frame + 0.5f);
-        else if (max_frame < 0.0f)
-            max_frame = (float_t)(int32_t)(max_frame - 0.5f);
-
+        float_t max_frame = prj::roundf(dsc_time_to_frame(10000LL * i - time));
         if (pv_game->data.camera_auth_3d_uid != -1) {
             auth_3d_id id = pv_game->get_auth_3d_id(pv_game->data.camera_auth_3d_uid);
             if (id.check_not_empty())
@@ -2599,7 +2585,7 @@ void pv_game_pv_data::set_item_anim_max_frame(int32_t chara_id, int32_t index, i
 
     for (auto& i : playdata[chara_id].motion_data.item_anim)
         if (10000LL * i.time > dsc_time && i.index == index && (!branch_mode || branch_mode == i.pv_branch_mode)) {
-            pv_game->set_data_itmpv_max_frame(chara_id, index, roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
+            pv_game->set_data_itmpv_max_frame(chara_id, index, prj::roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
             break;
         }
 }
@@ -2615,7 +2601,7 @@ void pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_inde
         if (10000LL * i.time > dsc_time && i.index == motion_index
             && (!branch_mode || branch_mode == i.pv_branch_mode)) {
             playdata.rob_chr->bone_data->set_motion_max_frame(
-                roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
+                prj::roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
             break;
         }
 }

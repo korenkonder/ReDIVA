@@ -2240,7 +2240,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (motion && motion->enable && (motion_index == motion->motion_index || !motion->motion_index)) {
             if (dsc_time != motion->time) {
                 frame = dsc_time_to_frame(curr_time - motion->time);
-                dsc_frame = roundf(dsc_time_to_frame(dsc_time - motion->time));
+                dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - motion->time));
                 if (frame < dsc_frame)
                     frame = dsc_frame;
                 blend = curr_time > motion->time;
@@ -3480,17 +3480,7 @@ void x_pv_game_pv_data::find_set_motion() {
             if (time < 0)
                 time = j.time;
 
-            float_t frame = dsc_time_to_frame(((int64_t)j.time - time) * 10000);
-
-            float_t v61 = frame;
-            if (frame >= 0.0f)
-                v61 = frame + 0.5f;
-            else
-                v61 = frame - 0.5f;
-
-            int32_t frame_int = (int32_t)v61;
-            if (v61 != -0.0f && (float_t)frame_int != v61)
-                v61 = (float_t)(v61 < 0.0f ? frame_int - 1 : frame_int);
+            float_t frame = prj::roundf(dsc_time_to_frame(((int64_t)j.time - time) * 10000));
 
             uint32_t motion_id = -1;
             if (i >= 0 && i < play_param->chara.size()) {
@@ -3502,7 +3492,7 @@ void x_pv_game_pv_data::find_set_motion() {
             }
 
             if (motion_id != -1)
-                set_motion.push_back({ motion_id, { v61, -1 } });
+                set_motion.push_back({ motion_id, { frame, -1 } });
         }
     }
 
@@ -3627,7 +3617,7 @@ void x_pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_in
         if (10000LL * i.time > dsc_time && i.index == motion_index
             && (!branch_mode || branch_mode == i.pv_branch_mode)) {
             playdata.rob_chr->bone_data->set_motion_max_frame(
-                roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
+                prj::roundf(dsc_time_to_frame(10000LL * i.time - time)) - 1.0f);
             break;
         }
 }
@@ -5191,7 +5181,7 @@ void x_pv_game_stage::set_stage_effect_auth_3d_frame(int32_t stage_effect, float
             int32_t frame_offset = (int32_t)id.get_frame_offset();
             int32_t _frame = frame_offset + (int32_t)(frame - (float_t)frame_offset) % (int32_t)last_frame;
 
-            frame = (float_t)_frame + (frame - (float_t)(int32_t)frame);
+            frame = (float_t)_frame + (frame - prj::floorf(frame);
         }
         id.set_req_frame(frame);
         id.set_max_frame(-1.0f);
@@ -5974,7 +5964,7 @@ bool x_pv_game::Ctrl() {
                             && i.disp_time == time && i.set_motion_time != time)
                             state_vec.push_back(i);
                     time = data[0];
-                    frame = (int32_t)roundf((float_t)time * (float_t)(60.0 / 100000.0));
+                    frame = (int32_t)prj::roundf((float_t)time * (float_t)(60.0 / 100000.0));
                 } break;
                 case DSC_X_MIKU_DISP: {
                     int32_t chara_id = data[0];
@@ -7821,7 +7811,7 @@ static vec4 bright_scale_get(int32_t index, float_t value) {
 }
 
 static float_t dsc_time_to_frame(int64_t time) {
-    return roundf((float_t)time / 1000000000.0f * 60.0f);
+    return prj::roundf((float_t)time / 1000000000.0f * 60.0f);
 }
 
 static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {

@@ -1893,7 +1893,7 @@ float_t pv_game::get_aet_frame_max_frame(int32_t aet_frame, int32_t aet_index, s
         int64_t aet_time = get_aet_time(aet_index, aet_name_id);
         if (aet_time >= 0) {
             frame = dsc_time_to_frame(curr_time - aet_time);
-            float_t dsc_frame = roundf(dsc_time_to_frame(dsc_time - aet_time));
+            float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - aet_time));
             frame = max_def(frame, dsc_frame);
         }
 
@@ -1945,7 +1945,7 @@ float_t pv_game::get_aet_frame_max_frame_change_field(int32_t aet_index,
         ? data.pv_data.change_field_branch_fail
         : data.pv_data.change_field_branch_success;
     if (time == 10000LL * change_field.back().first)
-        return roundf(dsc_time_to_frame(data.max_time - get_aet_time(aet_index, aet_name_id))) - 1.0f;
+        return prj::roundf(dsc_time_to_frame(data.max_time - get_aet_time(aet_index, aet_name_id))) - 1.0f;
     return -1.0f;
 }
 
@@ -1983,7 +1983,7 @@ float_t pv_game::get_auth_3d_frame_max_frame(int32_t auth_3d_frame, int32_t auth
         int64_t auth_3d_time = get_auth_3d_time(auth_3d_uid, type);
         if (auth_3d_time >= 0) {
             frame = dsc_time_to_frame(curr_time - auth_3d_time);
-            float_t dsc_frame = roundf(dsc_time_to_frame(dsc_time - auth_3d_time));
+            float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - auth_3d_time));
             frame = max_def(frame, dsc_frame);
         }
 
@@ -2007,7 +2007,7 @@ float_t pv_game::get_auth_3d_frame_max_frame_change_field(uint32_t auth_3d_uid, 
         ? data.pv_data.change_field_branch_fail
         : data.pv_data.change_field_branch_success;
     if (time == 10000LL * change_field.back().first)
-        return roundf(dsc_time_to_frame(data.max_time - get_auth_3d_time(auth_3d_uid, type))) - 1.0f;
+        return prj::roundf(dsc_time_to_frame(data.max_time - get_auth_3d_time(auth_3d_uid, type))) - 1.0f;
     return -1.0f;
 }
 
@@ -2179,7 +2179,7 @@ float_t pv_game::get_next_aet_max_time_max_frame_change_field(int32_t aet_index,
         if (time > dsc_time && i.second >= 0 && i.second < data.field_data.size()
             && ((get_field_aet_frame_by_name_id(data.field_data[i.second], aet_index, aet_name_id) + 5) & ~5u) == 0) {
             *max_time = time;
-            return roundf(dsc_time_to_frame(time - get_aet_time(aet_index, aet_name_id))) - 1.0f;
+            return prj::roundf(dsc_time_to_frame(time - get_aet_time(aet_index, aet_name_id))) - 1.0f;
         }
     }
     return -1.0f;
@@ -2223,7 +2223,7 @@ float_t pv_game::get_next_auth_3d_max_time_max_frame_change_field(uint32_t auth_
         if (time > dsc_time && i.second >= 0 && i.second < data.field_data.size()
             && ((get_field_auth_3d_frame(data.field_data[i.second], auth_3d_uid, type) + 5) & -6) == 0) {
             *max_time = time;
-            return roundf(dsc_time_to_frame(time - get_auth_3d_time(auth_3d_uid, type))) - 1.0f;
+            return prj::roundf(dsc_time_to_frame(time - get_auth_3d_time(auth_3d_uid, type))) - 1.0f;
         }
     }
     return -1.0f;
@@ -4319,17 +4319,11 @@ void pv_game::set_osage_init(const pv_game_chara& chr) {
     const std::vector<pv_data_set_motion>* set_motion = data.pv_data.get_set_motion(chr.chara_id);
     if (set_motion)
         for (const pv_data_set_motion& i : *set_motion) {
-            float_t frame = i.frame_stage_index.first;
-            if (frame > 0.0f)
-                frame = (float_t)(int32_t)(frame + 0.5f);
-            else if (frame < 0.0f)
-                frame = (float_t)(int32_t)(frame - 0.5f);
-
             osage_init_data osage_init;
             osage_init.rob_chr = chr.rob_chr;
             osage_init.pv_id = pv->id;
             osage_init.motion_id = i.motion_id;
-            osage_init.frame = (int32_t)frame;
+            osage_init.frame = (int32_t)prj::roundf(i.frame_stage_index.first);
             vec.push_back(osage_init);
         }
 
@@ -5765,7 +5759,7 @@ float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, 
 }
 
 float_t dsc_time_to_frame(int64_t time) {
-    return roundf((float_t)time / (float_t)1000000000 * 60.0f);
+    return prj::roundf((float_t)time / (float_t)1000000000 * 60.0f);
 }
 
 bool pv_game_init() {

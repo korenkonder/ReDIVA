@@ -2922,12 +2922,7 @@ static void sub_140555B00(rob_chara* rob_chr, bool a2) {
     float_t v13 = v12 - v9;
     if (v3 && v6 && (v13 < v11 || v13 <= v8)) {
         float_t v14 = rob_chr->data.field_1588.field_0.frame;
-        v14 = (v12 - v8) * 0.5f;
-        int32_t v15 = (int32_t)v14;
-        if (v14 != -0.0f && (float_t)v15 != v14)
-            v14 = (float_t)(v14 < 0.0f ? v15 - 1 : v15);
-
-        float_t v16 = v14 + v8;
+        float_t v16 = prj::floorf((v12 - v8) * 0.5f) + v8;
         if (v11 > v16) {
             float_t v17;
             if (v13 < v16) {
@@ -4382,7 +4377,7 @@ void rob_chara::set_motion_reset_data(uint32_t motion_id, float_t frame) {
 }
 
 void rob_chara::set_motion_skin_param(uint32_t motion_id, float_t frame) {
-    item_equip->set_motion_skin_param(chara_id, motion_id, (int32_t)roundf(frame));
+    item_equip->set_motion_skin_param(chara_id, motion_id, (int32_t)prj::roundf(frame));
 }
 
 void rob_chara::set_motion_step(float_t value) {
@@ -5644,11 +5639,8 @@ static void mot_blend_set_frame(mot_blend* a1, float_t frame) {
 
 static void mot_key_frame_interpolate(mot* a1, float_t frame, float_t* value,
     mot_key_set* a4, uint32_t key_set_count, struc_369* a6) {
-    if (a6->field_0 == 4) {
-        int32_t frame_int = (int32_t)frame;
-        if (frame != -0.0f && (float_t)frame_int != frame)
-            frame = (float_t)(frame < 0.0f ? frame_int - 1 : frame_int);
-    }
+    if (a6->field_0 == 4)
+        frame = prj::floorf(frame);
 
     if (!key_set_count)
         return;
@@ -18349,11 +18341,7 @@ void PvOsageManager::sub_1404F83A0(::osage_set_motion* a2) {
         sub_14053D360(&v42);
 
         float_t frame_1 = frame;
-
-        int32_t frame_int = (int32_t)frame;
-        if (frame != -0.0f && (float_t)frame_int != frame)
-            frame = (float_t)(frame < 0.0f ? frame_int - 1 : frame_int);
-        frame += 1.0f;
+        frame = prj::floorf(frame) + 1.0f;
 
         if (iterations <= 1) {
             if (frame_1 == i) {

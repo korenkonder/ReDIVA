@@ -113,7 +113,7 @@ void graphics_post_process_imgui(class_data* data) {
 
         float_t exposure = tone_map->get_exposure();
         ImGui::ColumnSliderFloatButton("Exposure", &exposure, 0.02f, 0.0f, 4.0f, 0.1f, "%.2f", 0);
-        exposure = roundf(exposure / 0.02f) * 0.02f;
+        exposure = prj::roundf(exposure / 0.02f) * 0.02f;
         tone_map->set_exposure(exposure);
 
         bool auto_exposure = tone_map->get_auto_exposure();

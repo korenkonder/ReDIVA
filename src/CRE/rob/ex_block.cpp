@@ -926,7 +926,7 @@ void RobCloth::ResetData() {
 }
 
 void RobCloth::AddMotionResetData(uint32_t motion_id, float_t frame) {
-    int32_t frame_int = (int32_t)roundf(frame * 1000.0f);
+    int32_t frame_int = (int32_t)prj::roundf(frame * 1000.0f);
 
     auto elem = motion_reset_data.find({ motion_id, frame_int });
     if (elem != motion_reset_data.end())
@@ -1180,7 +1180,7 @@ void RobCloth::SetForceAirRes(float_t force, float_t force_gain, float_t air_res
 
 void RobCloth::SetMotionResetData(uint32_t motion_id, float_t frame) {
     osage_reset = true;
-    auto elem = motion_reset_data.find({ motion_id, (int32_t)roundf(frame * 1000.0f) });
+    auto elem = motion_reset_data.find({ motion_id, (int32_t)prj::roundf(frame * 1000.0f) });
     if (elem != motion_reset_data.end() && elem->second.size() + root_count == nodes.size()) {
         this->reset_data_list = &elem->second;
 
@@ -1204,16 +1204,14 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
         if (frame >= i->frame_count)
             frame = 0.0f;
 
-        int32_t frame_int = (int32_t)frame;
-        if (frame != -0.0f && (float_t)frame_int != frame)
-            frame_int = (frame < 0.0f ? frame_int - 1 : frame_int);
+        frame = prj::floorf(frame);
 
-        int32_t curr_key = frame_int;
-        int32_t next_key = frame_int + 1;
+        int32_t curr_key = (int32_t)(int64_t)frame;
+        int32_t next_key = curr_key + 1;
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
 
-        float_t blend = frame - (float_t)frame_int;
+        float_t blend = frame - (float_t)(int64_t)frame;
         float_t inv_blend = 1.0f - blend;
 
         for (size_t j = 0; j < root_count; j++) {
@@ -1608,7 +1606,7 @@ RobOsage::~RobOsage() {
 }
 
 void RobOsage::AddMotionResetData(uint32_t motion_id, float_t frame) {
-    int32_t frame_int = (int32_t)roundf(frame * 1000.0f);
+    int32_t frame_int = (int32_t)prj::roundf(frame * 1000.0f);
 
     auto elem = motion_reset_data.find({ motion_id, frame_int });
     if (elem != motion_reset_data.end())
@@ -1854,7 +1852,7 @@ void RobOsage::SetInitRot(float_t init_rot_y, float_t init_rot_z) {
 
 void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
     osage_reset = true;
-    auto v6 = motion_reset_data.find({ motion_id, (int32_t)roundf(frame * 1000.0f) });
+    auto v6 = motion_reset_data.find({ motion_id, (int32_t)prj::roundf(frame * 1000.0f) });
     if (v6 != motion_reset_data.end() && v6->second.size() + 1 == nodes.size())
         reset_data_list = &v6->second;
 }
@@ -1924,16 +1922,14 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
         if (frame >= i->frame_count)
             frame = 0.0f;
 
-        int32_t frame_int = (int32_t)frame;
-        if (frame != -0.0f && (float_t)frame_int != frame)
-            frame_int = (frame < 0.0f ? frame_int - 1 : frame_int);
+        frame = prj::floorf(frame);
 
-        int32_t curr_key = frame_int;
-        int32_t next_key = frame_int + 1;
+        int32_t curr_key = (int32_t)(int64_t)frame;
+        int32_t next_key = curr_key + 1;
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
 
-        float_t blend = frame - (float_t)frame_int;
+        float_t blend = frame - (float_t)(int64_t)frame;
         float_t inv_blend = 1.0f - blend;
         RobOsageNode* j_begin = nodes.data() + 1;
         RobOsageNode* j_end = nodes.data() + nodes.size();
@@ -2910,7 +2906,7 @@ static float_t exp_rand_0_1(float_t v1) {
 }
 
 static float_t exp_round(float_t v1) {
-    return roundf(v1);
+    return prj::roundf(v1);
 }
 
 static float_t exp_sin(float_t v1) {

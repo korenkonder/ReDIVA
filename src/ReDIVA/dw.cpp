@@ -1456,7 +1456,7 @@ namespace dw {
 
         rectangle rect = GetRectangle();
 
-        float_t half_glyph_height = (float_t)(int32_t)(font.GetFontGlyphHeight() * 0.5f);
+        float_t half_glyph_height = prj::floorf(font.GetFontGlyphHeight() * 0.5f);
         rect.pos.y += half_glyph_height;
         rect.size.y -= half_glyph_height;
 
@@ -1752,7 +1752,7 @@ namespace dw {
 
         float_t pos_y = 0.0f;
         if (v_bar)
-            pos_y = (float_t)(int32_t)v_bar->value;
+            pos_y = prj::floorf(v_bar->value);
         print->SetFont(&font);
 
         rectangle v21 = GetScrollableRectangle();
@@ -2107,7 +2107,7 @@ namespace dw {
 
         float_t v4 = 0.0f;
         if (v_bar)
-            v4 = (float_t)(int32_t)(v_bar->value / glyph_height);
+            v4 = prj::floorf(v_bar->value / glyph_height);
 
         int64_t v6 = 0;
         if (v4 >= (float_t)INT64_MAX) {
@@ -2529,7 +2529,7 @@ namespace dw {
     void ScrollBar::SetValue(float_t value) {
         value = clamp_def(value, min, max);
         if (round)
-            this->value = roundf(value / step) * step;
+            this->value = prj::roundf(value / step) * step;
         else
             this->value = value;
     }

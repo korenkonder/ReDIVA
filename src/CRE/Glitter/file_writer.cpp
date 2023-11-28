@@ -905,10 +905,10 @@ namespace Glitter {
 
         if (big_endian) {
             store_reverse_endianness_uint64_t((uint64_t*)d, ptcl->data.tex_hash);
-            *(uint8_t*)(d + 8) = (uint8_t)roundf(clamp_def(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
-            *(uint8_t*)(d + 9) = (uint8_t)roundf(clamp_def(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
-            *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp_def(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
-            *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp_def(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 8) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 9) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 10) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 11) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
             store_reverse_endianness_int32_t((int32_t*)(d + 12), ptcl->data.blend_mode);
             store_reverse_endianness_int32_t((int32_t*)(d + 16), ptcl->data.unk0);
             store_reverse_endianness_int32_t((int32_t*)(d + 20), ptcl->data.split_u);
@@ -921,10 +921,10 @@ namespace Glitter {
         }
         else {
             *(uint64_t*)d = ptcl->data.tex_hash;
-            *(uint8_t*)(d + 8) = (uint8_t)roundf(clamp_def(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
-            *(uint8_t*)(d + 9) = (uint8_t)roundf(clamp_def(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
-            *(uint8_t*)(d + 10) = (uint8_t)roundf(clamp_def(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
-            *(uint8_t*)(d + 11) = (uint8_t)roundf(clamp_def(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 8) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.x, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 9) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.y, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 10) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.z, 0.0f, 1.0f) * 255.0f);
+            *(uint8_t*)(d + 11) = (uint8_t)prj::roundf(clamp_def(ptcl->data.color.w, 0.0f, 1.0f) * 255.0f);
             *(int32_t*)(d + 12) = ptcl->data.blend_mode;
             *(int32_t*)(d + 16) = ptcl->data.unk0;
             *(int32_t*)(d + 20) = ptcl->data.split_u;

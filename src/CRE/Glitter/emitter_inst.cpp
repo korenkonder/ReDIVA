@@ -210,7 +210,7 @@ namespace Glitter {
             count = 1;
 
         for (F2ParticleInst*& i : particles)
-            i->Emit(GPM_VAL, GLT_VAL, (int32_t)roundf(particles_per_emission), count, emission);
+            i->Emit(GPM_VAL, GLT_VAL, (int32_t)prj::roundf(particles_per_emission), count, emission);
     }
 
     void F2EmitterInst::Free(GPM, GLT, float_t emission, bool free) {
@@ -710,7 +710,7 @@ namespace Glitter {
 
         for (XParticleInst*& i : particles)
             if (i)
-                i->Emit((int32_t)roundf(particles_per_emission), count, emission);
+                i->Emit((int32_t)prj::roundf(particles_per_emission), count, emission);
     }
 
     void XEmitterInst::Free(float_t emission, bool free) {

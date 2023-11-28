@@ -7778,16 +7778,16 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
         s.write_float_t_reverse_endianness(position.z);
 
         vec3 normal = vec3::mult_min_max(vtx[i].normal, -32768.0f, 32767.0f);
-        s.write_int16_t_reverse_endianness((int16_t)roundf(normal.x));
-        s.write_int16_t_reverse_endianness((int16_t)roundf(normal.y));
-        s.write_int16_t_reverse_endianness((int16_t)roundf(normal.z));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(normal.x));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(normal.y));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(normal.z));
         s.write(0x02);
 
         vec4 tangent = vec4::mult_min_max(vtx[i].tangent, -32768.0f, 32767.0f);
-        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.x));
-        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.y));
-        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.z));
-        s.write_int16_t_reverse_endianness((int16_t)roundf(tangent.w));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(tangent.x));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(tangent.y));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(tangent.z));
+        s.write_int16_t_reverse_endianness((int16_t)prj::roundf(tangent.w));
 
         vec2h texcoord0;
         vec2_to_vec2h(vtx[i].texcoord0, texcoord0);

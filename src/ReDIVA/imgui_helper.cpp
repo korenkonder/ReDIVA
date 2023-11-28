@@ -865,7 +865,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
+        v[0] = prj::roundf(v[0] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
@@ -887,8 +887,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
-        v[1] = roundf(v[1] / step) * step;
+        v[0] = prj::roundf(v[0] / step) * step;
+        v[1] = prj::roundf(v[1] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -911,9 +911,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
-        v[1] = roundf(v[1] / step) * step;
-        v[2] = roundf(v[2] / step) * step;
+        v[0] = prj::roundf(v[0] / step) * step;
+        v[1] = prj::roundf(v[1] / step) * step;
+        v[2] = prj::roundf(v[2] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -937,10 +937,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / step) * step;
-        v[1] = roundf(v[1] / step) * step;
-        v[2] = roundf(v[2] / step) * step;
-        v[3] = roundf(v[3] / step) * step;
+        v[0] = prj::roundf(v[0] / step) * step;
+        v[1] = prj::roundf(v[1] / step) * step;
+        v[2] = prj::roundf(v[2] / step) * step;
+        v[3] = prj::roundf(v[3] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -1051,7 +1051,7 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / button_step) * button_step;
+        v[0] = prj::roundf(v[0] / button_step) * button_step;
 
         v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
@@ -1081,8 +1081,8 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / button_step) * button_step;
-        v[1] = roundf(v[1] / button_step) * button_step;
+        v[0] = prj::roundf(v[0] / button_step) * button_step;
+        v[1] = prj::roundf(v[1] / button_step) * button_step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -1116,9 +1116,9 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / button_step) * button_step;
-        v[1] = roundf(v[1] / button_step) * button_step;
-        v[2] = roundf(v[2] / button_step) * button_step;
+        v[0] = prj::roundf(v[0] / button_step) * button_step;
+        v[1] = prj::roundf(v[1] / button_step) * button_step;
+        v[2] = prj::roundf(v[2] / button_step) * button_step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -1156,10 +1156,10 @@ namespace ImGui {
         if (!res)
             return false;
 
-        v[0] = roundf(v[0] / button_step) * button_step;
-        v[1] = roundf(v[1] / button_step) * button_step;
-        v[2] = roundf(v[2] / button_step) * button_step;
-        v[3] = roundf(v[3] / button_step) * button_step;
+        v[0] = prj::roundf(v[0] / button_step) * button_step;
+        v[1] = prj::roundf(v[1] / button_step) * button_step;
+        v[2] = prj::roundf(v[2] / button_step) * button_step;
+        v[3] = prj::roundf(v[3] / button_step) * button_step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -1301,14 +1301,14 @@ namespace ImGui {
             max = min;
         flags |= ImGuiSliderFlags_NoInput;
 
-        v[0] = (int32_t)roundf(log2f((float_t)*val));
+        v[0] = (int32_t)prj::roundf(log2f((float_t)*val));
         StartPropertyColumn(label);
         bool res = false;
         ImGuiStyle& style = GetStyle();
         BeginGroup();
         PushMultiItemsWidths(1, CalcItemWidth());
-        min = (int32_t)roundf(log2f((float_t)min));
-        max = (int32_t)roundf(log2f((float_t)max));
+        min = (int32_t)prj::roundf(log2f((float_t)min));
+        max = (int32_t)prj::roundf(log2f((float_t)max));
         sprintf_s(buf, sizeof(buf), format, 1 << v[0]);
         res |= SliderIntDisable("##X", &v[0], min, max, buf, flags, true);
         EndGroup();
@@ -1334,15 +1334,15 @@ namespace ImGui {
             max = min;
         flags |= ImGuiSliderFlags_NoInput;
 
-        v[0] = (int32_t)roundf(log2f((float_t)val->x));
-        v[1] = (int32_t)roundf(log2f((float_t)val->y));
+        v[0] = (int32_t)prj::roundf(log2f((float_t)val->x));
+        v[1] = (int32_t)prj::roundf(log2f((float_t)val->y));
         StartPropertyColumn(label);
         bool res = false;
         ImGuiStyle& style = GetStyle();
         BeginGroup();
         PushMultiItemsWidths(2, CalcItemWidth());
-        min = (int32_t)roundf(log2f((float_t)min));
-        max = (int32_t)roundf(log2f((float_t)max));
+        min = (int32_t)prj::roundf(log2f((float_t)min));
+        max = (int32_t)prj::roundf(log2f((float_t)max));
         sprintf_s(buf, sizeof(buf), format, 1 << v[0]);
         res |= SliderIntDisable("##X", &v[0], min, max, buf, flags, true);
         SameLine(0.0f, style.ItemInnerSpacing.x);
@@ -1372,16 +1372,16 @@ namespace ImGui {
             max = min;
         flags |= ImGuiSliderFlags_NoInput;
 
-        v[0] = (int32_t)roundf(log2f((float_t)val->x));
-        v[1] = (int32_t)roundf(log2f((float_t)val->y));
-        v[2] = (int32_t)roundf(log2f((float_t)val->z));
+        v[0] = (int32_t)prj::roundf(log2f((float_t)val->x));
+        v[1] = (int32_t)prj::roundf(log2f((float_t)val->y));
+        v[2] = (int32_t)prj::roundf(log2f((float_t)val->z));
         StartPropertyColumn(label);
         bool res = false;
         ImGuiStyle& style = GetStyle();
         BeginGroup();
         PushMultiItemsWidths(3, CalcItemWidth());
-        min = (int32_t)roundf(log2f((float_t)min));
-        max = (int32_t)roundf(log2f((float_t)max));
+        min = (int32_t)prj::roundf(log2f((float_t)min));
+        max = (int32_t)prj::roundf(log2f((float_t)max));
         sprintf_s(buf, sizeof(buf), format, 1 << v[0]);
         res |= SliderIntDisable("##X", &v[0], min, max, buf, flags, true);
         SameLine(0.0f, style.ItemInnerSpacing.x);
@@ -1415,17 +1415,17 @@ namespace ImGui {
             max = min;
         flags |= ImGuiSliderFlags_NoInput;
 
-        v[0] = (int32_t)roundf(log2f((float_t)val->x));
-        v[1] = (int32_t)roundf(log2f((float_t)val->y));
-        v[2] = (int32_t)roundf(log2f((float_t)val->z));
-        v[3] = (int32_t)roundf(log2f((float_t)val->w));
+        v[0] = (int32_t)prj::roundf(log2f((float_t)val->x));
+        v[1] = (int32_t)prj::roundf(log2f((float_t)val->y));
+        v[2] = (int32_t)prj::roundf(log2f((float_t)val->z));
+        v[3] = (int32_t)prj::roundf(log2f((float_t)val->w));
         StartPropertyColumn(label);
         bool res = false;
         ImGuiStyle& style = GetStyle();
         BeginGroup();
         PushMultiItemsWidths(4, CalcItemWidth());
-        min = (int32_t)roundf(log2f((float_t)min));
-        max = (int32_t)roundf(log2f((float_t)max));
+        min = (int32_t)prj::roundf(log2f((float_t)min));
+        max = (int32_t)prj::roundf(log2f((float_t)max));
         sprintf_s(buf, sizeof(buf), format, 1 << v[0]);
         res |= SliderIntDisable("##X", &v[0], min, max, buf, flags, true);
         SameLine(0.0f, style.ItemInnerSpacing.x);

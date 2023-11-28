@@ -5989,7 +5989,7 @@ static void glitter_editor_curve_editor_selector(GlitterEditor* glt_edt) {
         &zoom_time, 1.0f, 5.0f, 500.0f, 10.0f, "%.1f%%", 0);
     crv_edt->zoom_time = zoom_time * 0.01f;
 
-    int32_t zoom_value = (int32_t)roundf(crv_edt->zoom_value * 100.0f);
+    int32_t zoom_value = (int32_t)prj::roundf(crv_edt->zoom_value * 100.0f);
     ImGui::ColumnSliderIntButton("Zoom Value", &zoom_value, 10, 1000, "%d%%", 0);
     crv_edt->zoom_value = (float_t)zoom_value * 0.01f;
 
@@ -6734,7 +6734,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             if (i->frame >= start_time && i->frame <= end_time) {
                 int32_t start = i - i_begin > 0 ? (i - 1)->frame + 1 : start_time;
                 int32_t end = i_end - i > 1 ? (i + 1)->frame - 1 : end_time;
-                crv_edt->frame = (int32_t)roundf((io.MousePos.x - canvas_pos.x) / frame_width);
+                crv_edt->frame = (int32_t)prj::roundf((io.MousePos.x - canvas_pos.x) / frame_width);
                 crv_edt->frame = clamp_def(crv_edt->frame + start_time, start, end);
                 if (i->frame != crv_edt->frame) {
                     i->frame = crv_edt->frame;
@@ -6847,7 +6847,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
     }
 
     if (!crv_edt->key_edit && can_drag && ImGui::IsMouseDown(ImGuiMouseButton_Left) && (!holding_tan || dragged)) {
-        int32_t frame = (int32_t)roundf((io.MousePos.x - canvas_pos.x) / frame_width);
+        int32_t frame = (int32_t)prj::roundf((io.MousePos.x - canvas_pos.x) / frame_width);
         crv_edt->frame = clamp_def(frame + start_time, start_time, end_time);
         if (ImGui::IsKeyDown(ImGuiKey_LeftShift) || ImGui::IsKeyDown(ImGuiKey_RightShift)) {
             crv_edt->key = glitter_editor_curve_editor_get_closest_key(glt_edt, curve);
@@ -7196,7 +7196,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 const vec3 n_value_vec = { n_value + n_random_range, n_value, n_value - n_random_range };
                 const vec3 c_tangent2_vec = c_tangent2;
                 const vec3 n_tangent1_vec = n_tangent1;
-                const int32_t frame_width_int = (int32_t)roundf(frame_width);
+                const int32_t frame_width_int = (int32_t)prj::roundf(frame_width);
                 for (int32_t j = c->frame; j < n->frame; j++) {
                     if (j < start_time)
                         continue;
@@ -7392,7 +7392,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             if (!points.size() || points.back().x < x || points.back().y != y)
                 points.push_back({ x, y });
 
-            const int32_t frame_width_int = (int32_t)roundf(frame_width);
+            const int32_t frame_width_int = (int32_t)prj::roundf(frame_width);
             for (int32_t j = c->frame; j < n->frame; j++) {
                 if (j < start_time)
                     continue;

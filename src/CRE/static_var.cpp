@@ -43,7 +43,7 @@ const mat3 sv_ypbpr_to_rgb = {
 };
 
 void sv_anisotropy_set(int32_t value) {
-    sv_anisotropy = 1 << (int32_t)roundf(log2f((float_t)clamp_def(value, 1, sv_max_texture_max_anisotropy)));
+    sv_anisotropy = 1 << (int32_t)prj::roundf(log2f((float_t)clamp_def(value, 1, sv_max_texture_max_anisotropy)));
     if (sv_anisotropy != sv_old_anisotropy)
         sv_anisotropy_changed = true;
     sv_old_anisotropy = sv_anisotropy;

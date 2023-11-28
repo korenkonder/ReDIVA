@@ -1091,7 +1091,7 @@ bool DtmMot::Ctrl() {
             }
 
             for (pv_data_set_motion& i : set_motion)
-                vec.push_back({ rob_chr, pv->id, i.motion_id, "", (int32_t)roundf(i.frame_stage_index.first) });
+                vec.push_back({ rob_chr, pv->id, i.motion_id, "", (int32_t)prj::roundf(i.frame_stage_index.first) });
 
         }
         skin_param_manager_add_task(chara_id, vec);
@@ -1243,7 +1243,7 @@ bool DtmMot::Ctrl() {
                 continue;
             }
 
-            float_t frame = (float_t)(int32_t)roundf(set_motion.data()[set_motion_index].frame_stage_index.first);
+            float_t frame = (float_t)(int32_t)prj::roundf(set_motion.data()[set_motion_index].frame_stage_index.first);
             if (frame > this->frame)
                 break;
 
@@ -2360,7 +2360,7 @@ void DataTestMotDw::Draw() {
     start_frame_slider_proc.button->SetValue(ab_loop);
 
     char buf[0x20];
-    sprintf_s(buf, sizeof(buf), "     %5d:%5d", (int32_t)roundf(a_frame), (int32_t)roundf(b_frame));
+    sprintf_s(buf, sizeof(buf), "     %5d:%5d", (int32_t)prj::roundf(a_frame), (int32_t)prj::roundf(b_frame));
     this->ab_loop->SetText(buf);
 
     dw::Shell::Draw();
