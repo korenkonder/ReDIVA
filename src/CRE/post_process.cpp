@@ -18,6 +18,11 @@ extern bool task_stage_is_modern;
 
 extern render_context* rctx_ptr;
 
+static void post_process_generate_area_texture(post_process* pp);
+static void post_process_calculate_area_texture_data(uint8_t* data, int32_t cross1, int32_t cross2);
+static void post_process_calculate_area_texture_data_area(float_t* val_left,
+    float_t* val_right, int32_t cross1, int32_t cross2, int32_t dleft, int32_t dright);
+
 post_process_frame_texture_render_texture::post_process_frame_texture_render_texture() : texture() {
     type = POST_PROCESS_FRAME_TEXTURE_MAX;
 }
@@ -34,15 +39,14 @@ post_process_frame_texture::~post_process_frame_texture() {
 
 }
 
-post_process::post_process() : ssaa(), mlaa(), ss_alpha_mask(), aet_back_tex(),
-render_textures_data(), movie_textures_data(), aet_back(), texture_counter(), lens_shaft_query(),
-lens_flare_query(), lens_shaft_query_data(), lens_flare_query_data(), lens_flare_query_index(),
-lens_flare_texture(), lens_shaft_texture(), lens_ghost_texture(), lens_ghost_count(),
-lens_flare_pos(), lens_shaft_scale(), lens_shaft_inv_scale(), lens_flare_power(),
+post_process::post_process() : ssaa(), mlaa(), ss_alpha_mask(), aet_back_tex(), render_textures_data(),
+movie_textures_data(), aet_back(), mlaa_area_texture(), sss_contour_texture(), texture_counter(),
+lens_shaft_query(), lens_flare_query(), lens_shaft_query_data(), lens_flare_query_data(),
+lens_flare_query_index(), lens_flare_texture(), lens_shaft_texture(), lens_ghost_texture(),
+lens_ghost_count(), lens_flare_pos(), lens_shaft_scale(), lens_shaft_inv_scale(), lens_flare_power(),
 field_A10(), lens_flare_appear_power(), render_width(), render_height(), view_point(),
 interest(), view_point_prev(), interest_prev(), reset_exposure(), sprite_width(), sprite_height(),
 screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filter() {
-    aa = new post_process_aa();
     blur = new post_process_blur();
     dof = new post_process_dof();
     exposure = new post_process_exposure();
@@ -80,6 +84,8 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
+    post_process_generate_area_texture(this);
+
     if (!lens_shaft_query[0])
         glGenQueries(3, lens_shaft_query);
 
@@ -101,11 +107,6 @@ post_process::~post_process() {
     if (aet_back_tex)
         texture_free(aet_back_tex);
 
-    if (aa) {
-        delete aa;
-        aa = 0;
-    }
-
     if (blur) {
         delete blur;
         blur = 0;
@@ -124,6 +125,11 @@ post_process::~post_process() {
     if (tone_map) {
         delete tone_map;
         tone_map = 0;
+    }
+
+    if (mlaa_area_texture) {
+        glDeleteTextures(1, &mlaa_area_texture);
+        mlaa_area_texture = 0;
     }
 
     if (samplers[0]) {
@@ -160,10 +166,6 @@ post_process::~post_process() {
 }
 
 void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param) {
-    fbo::blit(rend_texture.fbos[0], pre_texture.fbos[0],
-        0, 0, render_width, render_height,
-        0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
 
@@ -177,11 +179,11 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
     exposure->get_exposure(cam, render_width, render_height, reset_exposure,
         blur->tex[4].color_texture->tex, blur->tex[2].color_texture->tex);
     tone_map->apply(&rend_texture, light_proj_tex, (texture*)(aet_back ? aet_back_tex : 0),
-        &rend_texture, &buf_texture,/* &sss_contour_texture,*/
+        &rend_texture, &buf_texture,/* sss_contour_texture,*/
         blur->tex[0].color_texture->tex,
         exposure->exposure.color_texture->tex, npr_param, this);
     if (mlaa)
-        aa->apply_mlaa(&rend_texture, &buf_texture, samplers, ss_alpha_mask);
+        apply_mlaa(samplers, ss_alpha_mask);
 
     for (int32_t i = 0; i < 16; i++) {
         if (!render_textures_data[i])
@@ -205,10 +207,6 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
     get_frame_texture(rend_texture.color_texture->tex, POST_PROCESS_FRAME_TEXTURE_POST_PP);
 
     frame_texture_reset_capture();
-
-    fbo::blit(rend_texture.fbos[0], post_texture.fbos[0],
-        0, 0, render_width, render_height,
-        0, 0, render_width, render_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
     screen_texture.Bind();
     glViewport(0, 0, sprite_width, sprite_height);
@@ -255,6 +253,43 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
+}
+
+void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
+    gl_state_begin_event("PostProcess::mlaa");
+    mlaa_buffer.Bind();
+    gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
+    gl_state_bind_sampler(0, samplers[1]);
+    uniform_value[U_MLAA] = 0;
+    shaders_ft.set(SHADER_FT_MLAA);
+    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+
+    temp_buffer.Bind();
+    gl_state_active_bind_texture_2d(0, mlaa_buffer.color_texture->tex);
+    gl_state_active_bind_texture_2d(1, mlaa_area_texture);
+    gl_state_bind_sampler(0, samplers[0]);
+    gl_state_bind_sampler(1, samplers[1]);
+    uniform_value[U_MLAA] = 1;
+    uniform_value[U_MLAA_SEARCH] = 2;
+    shaders_ft.set(SHADER_FT_MLAA);
+    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+
+    buf_texture.Bind();
+    gl_state_active_bind_texture_2d(0, rend_texture.color_texture->tex);
+    gl_state_active_bind_texture_2d(1, temp_buffer.color_texture->tex);
+    gl_state_bind_sampler(0, samplers[1]);
+    uniform_value[U_MLAA] = 2;
+    uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
+    shaders_ft.set(SHADER_FT_MLAA);
+    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+    uniform_value[U_ALPHA_MASK] = 0;
+    gl_state_active_bind_texture_2d(0, 0);
+    gl_state_active_bind_texture_2d(1, 0);
+
+    fbo::blit(buf_texture.fbos[0], rend_texture.fbos[0],
+        0, 0, buf_texture.color_texture->width, buf_texture.color_texture->height,
+        0, 0, rend_texture.color_texture->width, rend_texture.color_texture->height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    gl_state_end_event();
 }
 
 void post_process::ctrl(camera* cam) {
@@ -621,25 +656,24 @@ void post_process::init_fbo(int32_t render_width, int32_t render_height,
         return;
 
     if (this->render_width != render_width || this->render_height != render_height) {
-        aa->init_fbo(render_width, render_height);
         blur->init_fbo(render_width, render_height);
         dof->init_fbo(render_width, render_height);
         exposure->init_fbo();
         tone_map->init_fbo();
         rend_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
         buf_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
-        sss_contour_texture.Init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
         if (aet_back_tex)
             texture_free(aet_back_tex);
         aet_back_tex = texture_load_tex_2d(texture_id(0x25, texture_counter++), GL_RGBA8, render_width, render_height, 0, 0, false);
         aet_back_texture.SetColorDepthTextures(aet_back_tex->tex, 0, rend_texture.depth_texture->tex);
-        pre_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
-        post_texture.Init(render_width, render_height, 0, GL_RGBA16F, 0);
         transparency_texture.Init(render_width, render_height, 0, GL_RGBA16F, GL_DEPTH_COMPONENT32F);
+        mlaa_buffer.Init(render_width, render_height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
+        temp_buffer.Init(render_width, render_height, 0, GL_RGBA8, 0);
+        sss_contour_texture = &mlaa_buffer;
         gl_state_bind_texture_2d(rend_texture.depth_texture->tex);
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        gl_state_bind_texture_2d(sss_contour_texture.depth_texture->tex);
+        gl_state_bind_texture_2d(mlaa_buffer.depth_texture->tex);
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         gl_state_bind_texture_2d(0);
         this->render_width = render_width;
@@ -836,4 +870,212 @@ void post_process::set_render_texture(bool aet_back) {
     else
         rend_texture.Bind();
     glViewport(0, 0, render_width, render_height);
+}
+
+#define MAX_EDGE_DETECTION_LEN (3)
+#define GRID_SIDE_LEN (2 * MAX_EDGE_DETECTION_LEN + 1)
+#define SIDE_LEN (5 * GRID_SIDE_LEN)
+
+static void post_process_generate_area_texture(post_process* pp) {
+    uint8_t* data = (uint8_t*)malloc(SIDE_LEN * SIDE_LEN * 2);
+    if (!data)
+        return;
+
+    for (int32_t cross2 = 0; cross2 < 5; cross2++)
+        for (int32_t cross1 = 0; cross1 < 5; cross1++)
+            post_process_calculate_area_texture_data(data, cross1, cross2);
+
+    glGenTextures(1, &pp->mlaa_area_texture);
+    gl_state_bind_texture_2d(pp->mlaa_area_texture);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, SIDE_LEN, SIDE_LEN, 0, GL_RG, GL_UNSIGNED_BYTE, data);
+    gl_state_bind_texture_2d(0);
+    free(data);
+}
+
+static void post_process_calculate_area_texture_data(uint8_t* data, int32_t cross1, int32_t cross2) {
+    uint8_t* _data = &data[(SIDE_LEN * GRID_SIDE_LEN * cross2 + GRID_SIDE_LEN * cross1) * 2];
+    for (int32_t dright = 0; dright < GRID_SIDE_LEN; dright++) {
+        for (int32_t dleft = 0; dleft < GRID_SIDE_LEN; dleft++) {
+            float_t val_left = 0.0f;
+            float_t val_right = 0.0f;
+            post_process_calculate_area_texture_data_area(&val_left, &val_right, cross1, cross2, dleft, dright);
+            _data[0] = (uint8_t)(val_left * 255.9f);
+            _data[1] = (uint8_t)(val_right * 255.9f);
+            _data += 2;
+        }
+        _data += GRID_SIDE_LEN * 4 * 2;
+    }
+}
+
+static void post_process_calculate_area_texture_data_area(float_t* val_left,
+    float_t* val_right, int32_t cross1, int32_t cross2, int32_t dleft, int32_t dright) {
+    auto calc_area_tex_val = [&](int32_t a1, int32_t a2) {
+        float_t v2 = (float_t)(-0.5 / ((float_t)a2 - 0.5));
+        float_t v3 = (float_t)a1 * v2 + 0.5f;
+        if (a1 >= a2 - 1)
+            return (v3 * 0.5f) * 0.5f;
+        else
+            return ((float_t)(a1 + 1) * v2 + 0.5f + v3) * 0.5f;
+    };
+
+    int32_t dist = dleft + dright + 1;
+    float_t _val_left = 0.0f;
+    float_t _val_right = 0.0f;
+    switch (cross2) {
+    case 0:
+        switch (cross1) {
+        case 1:
+            _val_right = calc_area_tex_val(dleft, min_def(dist, GRID_SIDE_LEN));
+            break;
+        case 3:
+            _val_left = calc_area_tex_val(dleft, min_def(dist, GRID_SIDE_LEN));
+            break;
+        }
+        break;
+    case 1:
+        switch (cross1) {
+        case 0:
+            _val_right = calc_area_tex_val(dright, min_def(dist, GRID_SIDE_LEN));
+            break;
+        case 1:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_right = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_right = calc_area_tex_val(dright, v12);
+                else
+                    _val_right = calc_area_tex_val(v15, v12) * 2.0f;
+            }
+            else {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft >= v12)
+                    _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+                else
+                    _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+            }
+            break;
+        case 3:
+        case 4:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_left = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_right = calc_area_tex_val(dright, v12);
+                else
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
+            }
+            else {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                else
+                    _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+            }
+            break;
+        }
+        break;
+    case 3:
+        switch (cross1) {
+        case 0:
+            _val_left = calc_area_tex_val(dright, min_def(dist, GRID_SIDE_LEN));
+            break;
+        case 1:
+        case 4:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_right = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_left = calc_area_tex_val(dright, v12);
+                else
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
+            }
+            else {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                else
+                    _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+            }
+            break;
+        case 3:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_left = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_left = calc_area_tex_val(dright, v12);
+                else
+                    _val_left = calc_area_tex_val(v15, v12) * 2.0f;
+            }
+            else {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                else
+                    _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+            }
+            break;
+        }
+        break;
+    case 4:
+        switch (cross1) {
+        case 1:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_right = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_left = calc_area_tex_val(dright, v12);
+                else
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
+            }
+            else {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                else
+                    _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+            }
+            break;
+        case 3:
+            if (dist % 2) {
+                int32_t v12 = dist / 2 + 1;
+                int32_t v15 = dist / 2;
+                if (dleft < v15)
+                    _val_left = calc_area_tex_val(dleft, v12);
+                else if (dright < v15)
+                    _val_right = calc_area_tex_val(dright, v12);
+                else
+                    _val_left = _val_right = calc_area_tex_val(v15, v12);
+            }
+            else {
+                int32_t v12 = dist / 2;
+                float_t v14 = -0.5f / (float_t)v12;
+                if (dleft < v12)
+                    _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                else
+                    _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+            }
+            break;
+        }
+        break;
+    }
+
+    *val_left = _val_left;
+    *val_right = _val_right;
+    return;
 }

@@ -541,7 +541,7 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(rctx, 2, true,
-            pp->aa->temp_buffer.color_texture,
+            pp->temp_buffer.color_texture,
             rctx->camera->view_projection_aet_3d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();
@@ -819,7 +819,7 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(rctx, 0, true,
-            pp->aa->temp_buffer.color_texture,
+            pp->temp_buffer.color_texture,
             rctx->camera->view_projection_aet_2d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();
@@ -839,7 +839,7 @@ namespace rndr {
 
     void RenderManager::pass_3d_contour(render_context* rctx) {
         RenderTexture* rt = &rctx->post_process.rend_texture;
-        RenderTexture* contour_rt = &rctx->post_process.sss_contour_texture;
+        RenderTexture* contour_rt = rctx->post_process.sss_contour_texture;
 
         gl_state_enable_blend();
         gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -888,7 +888,7 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(rctx, 1, true,
-            pp->aa->temp_buffer.color_texture,
+            pp->temp_buffer.color_texture,
             rctx->camera->view_projection_aet_2d);
     }
 }
@@ -1175,7 +1175,7 @@ static bool draw_pass_shadow_litproj(render_context* rctx, light_proj* litproj) 
 }
 
 static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
-    pp->sss_contour_texture.Bind();
+    pp->sss_contour_texture->Bind();
     gl_state_enable_depth_test();
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);

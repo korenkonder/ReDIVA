@@ -8,7 +8,6 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/uniform_buffer.hpp"
-#include "post_process/aa.hpp"
 #include "post_process/blur.hpp"
 #include "post_process/dof.hpp"
 #include "post_process/exposure.hpp"
@@ -61,11 +60,8 @@ struct post_process {
     int32_t ss_alpha_mask;
     RenderTexture rend_texture;
     RenderTexture buf_texture;
-    RenderTexture sss_contour_texture;
-    texture* aet_back_tex;
     RenderTexture aet_back_texture;
-    RenderTexture pre_texture;
-    RenderTexture post_texture;
+    texture* aet_back_tex;
     RenderTexture transparency_texture;
     RenderTexture screen_texture;
     texture* render_textures_data[16];
@@ -73,7 +69,6 @@ struct post_process {
     texture* movie_textures_data[1];
     RenderTexture movie_textures[1];
     int32_t aet_back;
-    post_process_aa* aa;
     post_process_blur* blur;
     post_process_dof* dof;
     post_process_exposure* exposure;
@@ -82,6 +77,10 @@ struct post_process {
     GLuint query_vao;
     GLuint lens_ghost_vao;
     GLuint lens_ghost_vbo;
+    RenderTexture mlaa_buffer;
+    RenderTexture temp_buffer;
+    GLuint mlaa_area_texture;
+    RenderTexture* sss_contour_texture;
     GL::UniformBuffer sun_quad_ubo;
     int32_t texture_counter;
     GLuint lens_shaft_query[3];
@@ -121,6 +120,7 @@ struct post_process {
     ~post_process();
 
     void apply(camera* cam, texture* light_proj_tex, int32_t npr_param);
+    void apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask);
     void ctrl(camera* cam);
     void draw_lens_flare(camera* cam);
     void draw_lens_ghost(RenderTexture* rt);
