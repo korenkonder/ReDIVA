@@ -2967,7 +2967,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t id = data[1];
         float_t duration = (float_t)data[2];
 
-        rctx_ptr->post_process.dof->data.pv.enable = enable == 1;
+        dof_pv_data.enable = enable == 1;
         if (enable == 1)
             pv_param_task::post_process_task_set_dof_data(
                 pv_param::post_process_data_get_dof_data(id), duration);
@@ -6632,7 +6632,7 @@ bool x_pv_game::Dest() {
     light_param_data_storage_data_reset();
     rctx_ptr->post_process.tone_map->reset_saturate_coeff(0, false);
     rctx_ptr->post_process.tone_map->reset_scene_fade(0);
-    rctx_ptr->post_process.dof->data.pv.enable = false;
+    dof_pv_data.enable = false;
     rctx_ptr->disp_manager.object_culling = true;
     rctx_ptr->render_manager.shadow_ptr->range = 1.0f;
 

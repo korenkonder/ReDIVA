@@ -151,23 +151,23 @@ void graphics_post_process_imgui(class_data* data) {
     ImGui::SetDefaultColumnSpace();
 
     if (ImGui::TreeNodeEx("DOF", ImGuiTreeNodeFlags_DefaultOpen)) {
-        bool use_ui_params = dof->data.debug.flags & DOF_DEBUG_USE_UI_PARAMS;
-        bool phys = use_ui_params && dof->data.debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
-        bool f2 = use_ui_params && ~dof->data.debug.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
+        bool use_ui_params = dof_debug_data.flags & DOF_DEBUG_USE_UI_PARAMS;
+        bool phys = use_ui_params && dof_debug_data.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
+        bool f2 = use_ui_params && ~dof_debug_data.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
 
         float_t alpha = style.Alpha * ImGui::AlphaDisabledScale;
 
         ImGui::CheckboxFlagsEnterKeyPressed("use UI params",
-            (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_USE_UI_PARAMS);
+            (uint32_t*)&dof_debug_data.flags, DOF_DEBUG_USE_UI_PARAMS);
 
         if (!use_ui_params) {
             ImGui::PushItemFlag(ImGuiItemFlags_Disabled, true);
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         ImGui::CheckboxFlagsEnterKeyPressed("enable DOF",
-            (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_ENABLE_DOF);
+            (uint32_t*)&dof_debug_data.flags, DOF_DEBUG_ENABLE_DOF);
         ImGui::CheckboxFlagsEnterKeyPressed("enable physical DOF",
-            (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_ENABLE_PHYS_DOF);
+            (uint32_t*)&dof_debug_data.flags, DOF_DEBUG_ENABLE_PHYS_DOF);
         if (!use_ui_params) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
@@ -178,7 +178,7 @@ void graphics_post_process_imgui(class_data* data) {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         ImGui::CheckboxFlagsEnterKeyPressed("auto focus",
-            (uint32_t*)&dof->data.debug.flags, DOF_DEBUG_AUTO_FOCUS);
+            (uint32_t*)&dof_debug_data.flags, DOF_DEBUG_AUTO_FOCUS);
         if (!phys) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
@@ -190,15 +190,15 @@ void graphics_post_process_imgui(class_data* data) {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         ImGui::ColumnSliderFloatButton("distance to focus[m]",
-            &dof->data.debug.focus, 0.01f, 0.01f, 30.0f, 1.0f, "%.2f", 0);
+            &dof_debug_data.focus, 0.01f, 0.01f, 30.0f, 1.0f, "%.2f", 0);
 
-        float_t focal_length = dof->data.debug.focal_length * 1000.0f;
+        float_t focal_length = dof_debug_data.focal_length * 1000.0f;
         ImGui::ColumnSliderFloatButton("focal length[mm]",
             &focal_length, 0.01f, 0.1f, 100.0f, 1.0f, "%.2f", 0);
-        dof->data.debug.focal_length = focal_length / 1000.0f;
+        dof_debug_data.focal_length = focal_length / 1000.0f;
 
         ImGui::ColumnSliderFloatButton("F-Number",
-            &dof->data.debug.f_number, 0.01f, 0.1f, 40.0f, 1.0f, "%.2f", 0);
+            &dof_debug_data.f_number, 0.01f, 0.1f, 40.0f, 1.0f, "%.2f", 0);
         if (!phys) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
@@ -209,13 +209,13 @@ void graphics_post_process_imgui(class_data* data) {
             ImGui::PushStyleVar(ImGuiStyleVar_Alpha, alpha);
         }
         ImGui::ColumnSliderFloatButton("f2 distance to focus[m]",
-            &dof->data.debug.f2.focus, 0.01f, 0.01f, 30.0f, 1.0f, "%.2f", 0);
+            &dof_debug_data.f2.focus, 0.01f, 0.01f, 30.0f, 1.0f, "%.2f", 0);
         ImGui::ColumnSliderFloatButton("f2 focus range[m]",
-            &dof->data.debug.f2.focus_range, 0.01f, 0.0f, 10.0f, 1.0f, "%.2f", 0);
+            &dof_debug_data.f2.focus_range, 0.01f, 0.0f, 10.0f, 1.0f, "%.2f", 0);
         ImGui::ColumnSliderFloatButton("f2 fuzzing range[m]",
-            &dof->data.debug.f2.fuzzing_range, 0.01f, 0.0f, 10.0f, 1.0f, "%.2f", 0);
+            &dof_debug_data.f2.fuzzing_range, 0.01f, 0.0f, 10.0f, 1.0f, "%.2f", 0);
         ImGui::ColumnSliderFloatButton("f2 ratio",
-            &dof->data.debug.f2.ratio, 0.01f, 0.0f, 1.0f, 1.0f, "%.2f", 0);
+            &dof_debug_data.f2.ratio, 0.01f, 0.0f, 1.0f, 1.0f, "%.2f", 0);
         if (!f2) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
@@ -227,8 +227,8 @@ void graphics_post_process_imgui(class_data* data) {
     if (ImGui::ButtonEnterKeyPressed("Reset Post Process", { 0, 0 })) {
         stage* stg = task_stage_get_current_stage();
         light_param_data_storage_data_set_stage(stg->index);
-        dof->set_dof_debug();
-        dof->set_dof_pv();
+        dof_debug_set();
+        dof_pv_set();
     }
 
     data->imgui_focus |= ImGui::IsWindowFocused();

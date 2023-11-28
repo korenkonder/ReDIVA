@@ -1227,12 +1227,12 @@ namespace pv_param_task {
 
         post_process_dof* dof = rctx_ptr->post_process.dof;
         dof_pv pv;
-        dof->get_dof_pv(&pv);
+        dof_pv_get(&pv);
         pv.f2.focus = focus;
         pv.f2.focus_range = focus_range;
         pv.f2.fuzzing_range = fuzzing_range;
         pv.f2.ratio = ratio;
-        dof->set_dof_pv(&pv);
+        dof_pv_set(&pv);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -1249,7 +1249,7 @@ namespace pv_param_task {
 
         if (fabsf(duration) > 0.000001f) {
             dof_pv pv;
-            rctx_ptr->post_process.dof->get_dof_pv(&pv);
+            dof_pv_get(&pv);
             data.data_prev.focus = pv.f2.focus;
             data.data_prev.focus_range = pv.f2.focus_range;
             data.data_prev.fuzzing_range = pv.f2.fuzzing_range;

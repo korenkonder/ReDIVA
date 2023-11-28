@@ -4674,7 +4674,7 @@ bool pv_game::unload() {
 
     post_process& pp = rctx_ptr->post_process;
     pp.tone_map->reset_saturate_coeff(0, true);
-    pp.dof->set_dof_pv();
+    dof_pv_set();
     pp.tone_map->reset_scene_fade(0);
 
     /*if (!sub_140192E20())

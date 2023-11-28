@@ -4246,7 +4246,7 @@ static void auth_3d_dof_restore_prev_value(auth_3d_dof* d, render_context* rctx)
     if (!d->has_dof)
         return;
 
-    rctx->post_process.dof->set_dof_pv();
+    dof_pv_set(0);
 }
 
 static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
@@ -4264,7 +4264,7 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
     pv.f2.focus_range = d->model_transform.scale_value.x;
     pv.f2.fuzzing_range = d->model_transform.rotation_value.x;
     pv.f2.ratio = d->model_transform.rotation_value.y;
-    rctx->post_process.dof->set_dof_pv(&pv);
+    dof_pv_set(&pv);
 }
 
 static void auth_3d_dof_store(auth_3d* auth, auth_3d_dof* d, auth_3d_dof_file* df) {

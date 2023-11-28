@@ -167,7 +167,7 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
     for (int32_t i = 0; i < 8; i++)
         gl_state_bind_sampler(i, 0);
 
-    dof->apply(&rend_texture, &buf_texture, samplers, cam);
+    dof->apply(&rend_texture, &buf_texture, cam);
 
     draw_lens_ghost(&rend_texture);
 
@@ -815,7 +815,8 @@ void post_process::render_texture_free(texture* render_texture, bool task_photo)
 void post_process::reset() {
     mlaa = true;
     mag_filter = POST_PROCESS_MAG_FILTER_BILINEAR;
-    dof->initialize_data(0, 0);
+    dof_debug_set(0);
+    dof_pv_set(0);
     blur->initialize_data(2.0f, 1.0f);
 
     for (int32_t i = 0; i < 2; i++) {

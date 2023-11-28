@@ -40,17 +40,12 @@ struct dof_pv {
     dof_f2 f2;
 };
 
-struct post_process_dof_data {
-    dof_debug debug;
-    dof_pv pv;
-};
-
 struct post_process_dof {
-    post_process_dof_data data;
     int32_t width;
     int32_t height;
     GLuint textures[6];
     fbo fbo[4];
+    GLuint samplers[2];
     GLuint vao;
     GL::UniformBuffer common_ubo;
     GL::UniformBuffer texcoords_ubo;
@@ -58,12 +53,14 @@ struct post_process_dof {
     post_process_dof();
     ~post_process_dof();
 
-    void apply(RenderTexture* rt, RenderTexture* buf, GLuint* samplers, camera* cam);
+    void apply(RenderTexture* rt, RenderTexture* buf, camera* cam);
     void init_fbo(int32_t width, int32_t height);
-    void initialize_data(dof_debug* debug, dof_pv* pv);
-
-    void get_dof_debug(dof_debug* debug);
-    void set_dof_debug(dof_debug* debug = 0);
-    void get_dof_pv(dof_pv* pv);
-    void set_dof_pv(dof_pv* pv = 0);
 };
+
+extern dof_debug dof_debug_data;
+extern dof_pv dof_pv_data;
+
+extern void dof_debug_get(dof_debug* debug);
+extern void dof_debug_set(dof_debug* debug = 0);
+extern void dof_pv_get(dof_pv* pv);
+extern void dof_pv_set(dof_pv* pv = 0);
