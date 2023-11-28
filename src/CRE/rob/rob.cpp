@@ -2741,10 +2741,6 @@ float_t rob_chara::get_trans_scale(int32_t bone, vec3& trans) {
     return data.field_1E68.field_DF8[bone].scale;
 }
 
-bool rob_chara::is_visible() {
-    return !!(data.field_0 & 0x01);
-}
-
 static int16_t sub_14054FE90(rob_chara* rob_chr, bool a3) {
     int16_t v3 = rob_chr->data.miku_rot.rot_y_int16;
     if (!a3 || !(rob_chr->data.field_0 & 0x10)) {
@@ -3361,6 +3357,20 @@ static void rob_chara_bone_data_set_right_hand_scale(rob_chara_bone_data* rob_bo
         if (node)
             node->exp_data.scale = { scale, scale, scale };
     }
+}
+
+void rob_chara::rob_info_ctrl() {
+    data.field_3DA0 = data.field_3D9C;
+    if (data.field_1E68.field_64 > 0.01f)
+        data.field_2 |= 0x40;
+
+    //sub_140517CC0(this);
+    //sub_140517B80(this);
+    //sub_140517F20(this);
+
+    /*int32_t v4 = sub_14013C8C0()->sub_1400E7910();
+    if (v4 >= 4 && v4 != 8)
+        sub_14054FF20(this);*/
 }
 
 void rob_chara::rob_motion_modifier_ctrl() {
@@ -4822,18 +4832,9 @@ void rob_chara::sub_140509D30() {
     }
 }
 
-void rob_chara::rob_info_ctrl() {
-    data.field_3DA0 = data.field_3D9C;
-    if (data.field_1E68.field_64 > 0.01f)
-        data.field_2 |= 0x40;
-
-    //sub_140517CC0(this);
-    //sub_140517B80(this);
-    //sub_140517F20(this);
-
-    /*int32_t v4 = sub_14013C8C0()->sub_1400E7910();
-    if (v4 >= 4 && v4 != 8)
-        sub_14054FF20(this);*/
+void rob_chara::sub_1405163C0(int32_t index, mat4& mat) {
+    if (index >= 0 && index <= 26)
+        mat = data.field_1E68.field_78[index];
 }
 
 void rob_chara::sub_140551000() {

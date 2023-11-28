@@ -236,9 +236,11 @@ static bool pv_game_camera_get_edit_camera(cam_struct* cam, float_t delta_time) 
 
     if (pv_game_camera_data.follow_chara) {
         rob_chara* rob_chr = rob_chara_array_get(pv_game_camera_data.chara_id);
-        if (rob_chr)
-            mat4_get_translation(&rob_chr->data.field_1E68.field_78[
-                pv_game_camera_data.chara_follow_point], &interest);
+        if (rob_chr) {
+            mat4 mat = mat4_identity;
+            rob_chr->sub_1405163C0(pv_game_camera_data.chara_follow_point, mat);
+            mat4_get_translation(&mat, &interest);
+        }
     }
 
     cam->interest = interest;
@@ -281,9 +283,11 @@ static bool pv_game_camera_get_move_camera(cam_struct* cam, float_t delta_time) 
 
     if (pv_game_camera_data.follow_chara) {
         rob_chara* rob_chr = rob_chara_array_get(pv_game_camera_data.chara_id);
-        if (rob_chr)
-            mat4_get_translation(&rob_chr->data.field_1E68.field_78[
-                pv_game_camera_data.chara_follow_point], &interest);
+        if (rob_chr) {
+            mat4 mat = mat4_identity;
+            rob_chr->sub_1405163C0(pv_game_camera_data.chara_follow_point, mat);
+            mat4_get_translation(&mat, &interest);
+        }
     }
 
     if (!pv_game_camera_data.follow_chara) {

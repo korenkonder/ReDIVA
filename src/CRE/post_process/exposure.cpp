@@ -15,8 +15,6 @@ struct exposure_measure_shader_data {
     vec4 g_spot_coefficients[32];
 };
 
-static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat);
-
 post_process_exposure_chara_data::post_process_exposure_chara_data() : spot_weight(), query(), query_data() {
     for (GLuint& i : query_data)
         i = -1;
@@ -61,13 +59,13 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
             vec4 v34 = { 0.05f, 0.0f, -0.04f, 1.0f };
             vec4 v33 = { 1.0f, 0.0f, 0.0f, 0.0f };
 
-            mat4 v44;
-            sub_1405163C0(rob_chr, 4, &v44);
+            mat4 v44 = mat4_identity;
+            rob_chr->sub_1405163C0(4, v44);
 
-            mat4 v42 = cam->view;
-            mat4 v43 = cam->projection;
-            mat4_mul(&v44, &v42, &v42);
-            mat4_mul(&v42, &v43, &v43);
+            mat4 v42;
+            mat4 v43;
+            mat4_mul(&v44, &cam->view, &v42);
+            mat4_mul(&v42, &cam->projection, &v43);
 
             vec4 v41;
             vec4 v40;
@@ -214,7 +212,7 @@ void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) 
         float_t max_face_depth = rob_chr->get_max_face_depth();
 
         mat4 mat = mat4_identity;
-        sub_1405163C0(rob_chr, 4, &mat);
+        rob_chr->sub_1405163C0(4, mat);
         mat4_mul(&mat, &cam->view, &mat);
         mat4_mul_translate(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
         mat4_clear_rot(&mat, &mat);
@@ -268,9 +266,4 @@ void post_process_exposure::init_fbo() {
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         if (!chara_data[i].query[0])
             glGenQueries(3, chara_data[i].query);
-}
-
-static void sub_1405163C0(rob_chara* rob_chr, int32_t a2, mat4* mat) {
-    if (a2 >= 0 && a2 <= 26)
-        *mat = rob_chr->data.field_1E68.field_78[a2];
 }

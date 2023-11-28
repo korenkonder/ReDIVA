@@ -3460,7 +3460,6 @@ struct rob_chara {
     float_t get_max_face_depth();
     uint32_t get_rob_cmn_mottbl_motion_id(int32_t id);
     float_t get_trans_scale(int32_t bone, vec3& trans);
-    bool is_visible();
     void load_body_parts_object_info(item_id item_id, object_info obj_info,
         const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_motion(uint32_t motion_id, bool a3, float_t frame,
@@ -3533,9 +3532,13 @@ struct rob_chara {
     void set_visibility(bool value);
     void set_wind_strength(float_t value);
 
+    inline bool is_visible() {
+        return !!(data.field_0 & 0x01);
+    }
+
     void sub_1405070E0(const bone_database* bone_data, const motion_database* mot_db);
     void sub_140509D30();
-    void sub_140518190();
+    void sub_1405163C0(int32_t index, mat4& mat);
     void sub_140551000();
 };
 

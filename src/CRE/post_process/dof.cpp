@@ -96,7 +96,8 @@ void post_process_dof::apply(RenderTexture* rt, RenderTexture* buf, GLuint* samp
                         if (!rob_chr || !rob_chr->is_visible())
                             continue;
 
-                        const mat4& mat = rob_chr->data.field_1E68.field_78[4]; // sub_1405163C0
+                        mat4 mat = mat4_identity;
+                        rob_chr->sub_1405163C0(4, mat);
 
                         vec3 chara_trans = 0.0f;
                         mat4_get_translation(&mat, &chara_trans);
