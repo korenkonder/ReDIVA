@@ -11,10 +11,9 @@ namespace GL {
     struct UniformBuffer {
     private:
         GLuint buffer;
-        GLsizeiptr size;
 
     public:
-        inline UniformBuffer() : buffer(), size() {
+        inline UniformBuffer() : buffer() {
 
         }
 
@@ -26,12 +25,9 @@ namespace GL {
             if (buffer)
                 return;
 
-            this->size = (GLsizeiptr)size;
-
             if (GLAD_GL_VERSION_4_5) {
                 glCreateBuffers(1, &buffer);
-                glNamedBufferStorage(buffer,
-                    this->size, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+                glNamedBufferStorage(buffer, size, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
             }
             else {
                 glGenBuffers(1, &buffer);
@@ -49,8 +45,6 @@ namespace GL {
             if (buffer)
                 return;
 
-            this->size = (GLsizeiptr)size;
-
             if (GLAD_GL_VERSION_4_5) {
                 glCreateBuffers(1, &buffer);
                 glNamedBufferStorage(buffer, (GLsizeiptr)size, data, 0);
@@ -66,7 +60,7 @@ namespace GL {
         }
 
         inline void Bind(int32_t index) {
-            gl_state_bind_uniform_buffer_range(index, buffer, 0, size);
+            gl_state_bind_uniform_buffer_base(index, buffer);
         }
 
         inline void Destroy() {
