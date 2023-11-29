@@ -174,7 +174,8 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
         exposure_measure_ubo.Bind(1);
         gl_state_active_bind_texture_2d(0, in_tex_0);
         gl_state_active_bind_texture_2d(1, in_tex_1);
-        RenderTexture::DrawQuad(&shaders_ft, reset_exposure ? 32 : 1, 1);
+        RenderTexture::DrawQuad(&shaders_ft, reset_exposure ? 32 : 1, 1,
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         exposure_history_counter++;
         exposure_history_counter %= 32;
     }
@@ -184,7 +185,8 @@ void post_process_exposure::get_exposure(camera* cam, int32_t render_width,
     uniform_value[U_EXPOSURE] = 2;
     shaders_ft.set(SHADER_FT_EXPOSURE);
     gl_state_active_bind_texture_2d(0, exposure_history.GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 1, 1);
+    RenderTexture::DrawQuad(&shaders_ft, 1, 1,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void post_process_exposure::get_exposure_chara_data(void* pp_data, camera* cam) {

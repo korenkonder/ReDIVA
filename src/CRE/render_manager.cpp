@@ -1197,7 +1197,8 @@ static void draw_pass_sss_contour(render_context* rctx, post_process* pp) {
 
     shaders_ft.set(SHADER_FT_CONTOUR);
     rctx->contour_coef_ubo.Bind(2);
-    RenderTexture::DrawQuad(&shaders_ft, pp->render_width, pp->render_height);
+    RenderTexture::DrawQuad(&shaders_ft, pp->render_width, pp->render_height,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 static void draw_pass_sss_filter_calc_coef(double_t a1, size_t a2, double_t a3, size_t a4,
@@ -1305,14 +1306,16 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
         gl_state_bind_texture_2d(pp->rend_texture.GetColorTex());
-        RenderTexture::DrawQuad(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+        RenderTexture::DrawQuad(&shaders_ft, 640, 360,
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
     sss->textures[2].Bind();
     glViewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 0;
     shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(sss->textures[0].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 640, 360, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+    RenderTexture::DrawQuad(&shaders_ft, 640, 360,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
     sss_filter_gaussian_coef_shader_data shader_data = {};
     shader_data.g_param = { (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f };
@@ -1330,7 +1333,8 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(sss->textures[2].GetColorTex());
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
-    RenderTexture::DrawQuad(&shaders_ft, 320, 180, 1.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
+    RenderTexture::DrawQuad(&shaders_ft, 320, 180,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     gl_state_bind_texture_2d(0);
 }
 

@@ -194,12 +194,13 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
 
     get_frame_texture(rend_texture.GetColorTex(), POST_PROCESS_FRAME_TEXTURE_PRE_PP);
 
-    blur->get_blur(&rend_texture);
+    blur->downsample(&rend_texture);
+    blur->get_blur();
     exposure->get_exposure(cam, render_width, render_height, reset_exposure,
-        blur->tex[4].GetColorTex(), blur->tex[2].GetColorTex());
+        blur->reduce_texture[4].GetColorTex(), blur->reduce_texture[2].GetColorTex());
     tone_map->apply(&rend_texture, light_proj_tex, (texture*)(aet_back ? aet_back_tex : 0),
         &rend_texture, &buf_texture, /* sss_contour_texture,*/
-        blur->tex[0].GetColorTex(), exposure->exposure.GetColorTex(), npr_param, this);
+        blur->reduce_texture[0].GetColorTex(), exposure->exposure.GetColorTex(), npr_param, this);
     if (mlaa)
         apply_mlaa(samplers, ss_alpha_mask);
 
@@ -219,7 +220,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
         gl_state_bind_sampler(0, samplers[0]);
         shaders_ft.set(SHADER_FT_REDUCE);
-        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height,
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 
     get_frame_texture(rend_texture.GetColorTex(), POST_PROCESS_FRAME_TEXTURE_POST_PP);
@@ -234,7 +236,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
-        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height,
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         uniform_value[U_ALPHA_MASK] = 0;
     }
     else {
@@ -265,7 +268,8 @@ void post_process::apply(camera* cam, texture* light_proj_tex, int32_t npr_param
         }
 
         shaders_ft.set(SHADER_FT_MAGNIFY);
-        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+        RenderTexture::DrawQuad(&shaders_ft, render_width, render_height,
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
     shader::unbind();
 
@@ -280,7 +284,8 @@ void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
     gl_state_bind_sampler(0, samplers[1]);
     uniform_value[U_MLAA] = 0;
     shaders_ft.set(SHADER_FT_MLAA);
-    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     temp_buffer.Bind();
     gl_state_active_bind_texture_2d(0, mlaa_buffer.GetColorTex());
@@ -290,7 +295,8 @@ void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
     uniform_value[U_MLAA] = 1;
     uniform_value[U_MLAA_SEARCH] = 2;
     shaders_ft.set(SHADER_FT_MLAA);
-    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
     buf_texture.Bind();
     gl_state_active_bind_texture_2d(0, rend_texture.GetColorTex());
@@ -299,7 +305,8 @@ void post_process::apply_mlaa(GLuint* samplers, int32_t ss_alpha_mask) {
     uniform_value[U_MLAA] = 2;
     uniform_value[U_ALPHA_MASK] = ss_alpha_mask ? 1 : 0;
     shaders_ft.set(SHADER_FT_MLAA);
-    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height);
+    RenderTexture::DrawQuad(&shaders_ft, render_width, render_height,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     uniform_value[U_ALPHA_MASK] = 0;
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_active_bind_texture_2d(1, 0);
@@ -821,7 +828,8 @@ void post_process::get_frame_texture(GLuint tex, post_process_frame_texture_type
             glViewport(0, 0, dst_tex->width, dst_tex->height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
-            RenderTexture::DrawQuad(&shaders_ft, dst_tex->width, dst_tex->height);
+            RenderTexture::DrawQuad(&shaders_ft, dst_tex->width, dst_tex->height,
+                1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
             gl_state_bind_framebuffer(0);
         }
     }

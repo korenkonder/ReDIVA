@@ -20,12 +20,19 @@ static void post_process_blur_radius_calculate_gaussian_kernel(float_t* gaussian
 
 post_process_blur::post_process_blur() : data(),
 width(), height(), width_down(), height_down(), tex_down(), count_down() {
-    tex[0].Init(256, 144, 0, GL_RGBA16F, 0);
-    tex[1].Init(128, 72, 0, GL_RGBA16F, 0);
-    tex[2].Init(64, 36, 0, GL_RGBA16F, 0);
-    tex[3].Init(32, 18, 0, GL_RGBA16F, 0);
-    tex[4].Init(8, 8, 0, GL_RGBA16F, 0);
-    tex[5].Init(256, 144, 0, GL_RGBA16F, 0);
+    reduce_width[0] = 256;
+    reduce_height[0] = 144;
+    reduce_width[1] = 128;
+    reduce_height[1] = 72;
+    reduce_width[2] = 64;
+    reduce_height[2] = 36;
+    reduce_width[3] = 32;
+    reduce_height[3] = 18;
+    reduce_width[4] = 8;
+    reduce_height[4] = 8;
+    for (int32_t i = 0; i < 5; i++)
+        reduce_texture[i].Init(reduce_width[i], reduce_height[i], 0, GL_RGBA16F, 0);
+    downsample_texture.Init(reduce_width[0], reduce_height[0], 0, GL_RGBA16F, 0);
     gaussian_coef_ubo.Create(sizeof(gaussian_coef_shader_data));
 }
 
@@ -41,20 +48,7 @@ post_process_blur:: ~post_process_blur() {
     free_def(width_down);
 }
 
-void post_process_blur::get_blur(RenderTexture* rt) {
-    uniform_value[U_ALPHA_MASK] = 0;
-
-    vec3 intensity = data.intensity;
-    vec3* gauss = data.gauss;
-
-    gaussian_coef_shader_data gaussian_coef = {};
-    for (int32_t i = 0; i < POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE && i < 8; i++) {
-        vec3 coef = gauss[i] * intensity;
-        gaussian_coef.g_coef[i] = { coef.x, coef.y, coef.z, 0.0f };
-    }
-
-    gaussian_coef_ubo.WriteMemory(gaussian_coef);
-
+void post_process_blur::downsample(RenderTexture* rt) {
     int32_t i = 0;
     if (count_down > 0) {
         uniform_value[U_REDUCE] = 1;
@@ -63,7 +57,8 @@ void post_process_blur::get_blur(RenderTexture* rt) {
             glViewport(0, 0, width_down[i], height_down[i]);
             tex_down[i].Bind();
             gl_state_active_bind_texture_2d(0, (i ? tex_down[i - 1] : *rt).GetColorTex());
-            RenderTexture::DrawQuad(&shaders_ft, width_down[i], height_down[i]);
+            RenderTexture::DrawQuad(&shaders_ft, width_down[i], height_down[i],
+                1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         }
         i--;
     }
@@ -71,114 +66,91 @@ void post_process_blur::get_blur(RenderTexture* rt) {
     uniform_value[U_REDUCE] = 3;
     shaders_ft.set(SHADER_FT_REDUCE);
 
-    glViewport(0, 0, 256, 144);
-    tex[0].Bind();
+    glViewport(0, 0, reduce_width[0], reduce_height[0]);
+    reduce_texture[0].Bind();
     gl_state_active_bind_texture_2d(0, (count_down > 0 ? tex_down[i] : *rt).GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, width, height, 1.0f, 1.0f, 1.1f, 1.1f, 1.1f, 0.0f);
+    RenderTexture::DrawQuad(&shaders_ft, width, height,
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.1f, 1.1f, 1.1f, 0.0f);
 
-    uniform_value[U_GAUSS] = 1;
-    shaders_ft.set(SHADER_FT_GAUSS);
+    downsample_texture.Bind();
+    gl_state_active_bind_texture_2d(0, reduce_texture[0].GetColorTex());
+    for (int32_t i = 1; i < 5; i++) {
+        float_t scale;
+        if (i == 4) {
+            scale = 1.0f;
+            uniform_value[U_EXPOSURE] = 0;
+            shaders_ft.set(SHADER_FT_EXPOSURE);
+        }
+        else
+        {
+            scale = 0.75;
+            uniform_value[U_REDUCE] = 1;
+            shaders_ft.set(SHADER_FT_REDUCE);
+        }
 
-    glViewport(0, 0, 256, 144);
-    tex[5].Bind();
-    gl_state_active_bind_texture_2d(0, tex[0].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 256, 144, 1.0f, 1.0f,
-        data.intensity.x * 0.5f, data.intensity.y * 0.5f, data.intensity.z * 0.5f, 1.0f);
+        glViewport(0, 0, reduce_width[i], reduce_height[i]);
+        RenderTexture::DrawQuad(&shaders_ft, reduce_width[i - 1], reduce_height[i - 1],
+            1.0f, 1.0f, 0.0f, 0.0f, scale, 1.0f, 1.0f, 1.0f, 1.0f);
+        gl_state_active_bind_texture_2d(0, reduce_texture[i].GetColorTex());
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
+    }
+}
 
-    uniform_value[U_REDUCE] = 1;
-    shaders_ft.set(SHADER_FT_REDUCE);
+void post_process_blur::get_blur() {
+    uniform_value[U_ALPHA_MASK] = 0;
 
-    glViewport(0, 0, 128, 72);
-    tex[1].Bind();
-    gl_state_active_bind_texture_2d(0, tex[0].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 256, 144);
+    vec3 intensity = data.intensity;
+    vec3* gauss = data.gauss;
 
-    uniform_value[U_REDUCE] = 1;
-    shaders_ft.set(SHADER_FT_REDUCE);
+    gaussian_coef_shader_data gaussian_coef = {};
+    for (int32_t i = 0; i < POST_PROCESS_BLUR_GAUSSIAN_KERNEL_SIZE && i < 8; i++) {
+        *(vec3*)&gaussian_coef.g_coef[i] = gauss[i] * intensity;
+        gaussian_coef.g_coef[i].w = 0.0f;
+    }
 
-    glViewport(0, 0, 64, 36);
-    tex[2].Bind();
-    gl_state_active_bind_texture_2d(0, tex[1].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 128, 72);
-
-    uniform_value[U_REDUCE] = 1;
-    shaders_ft.set(SHADER_FT_REDUCE);
-
-    glViewport(0, 0, 32, 18);
-    tex[3].Bind();
-    gl_state_active_bind_texture_2d(0, tex[2].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 64, 36);
-
-    uniform_value[U_EXPOSURE] = 0;
-    shaders_ft.set(SHADER_FT_EXPOSURE);
-
-    glViewport(0, 0, 8, 8);
-    tex[4].Bind();
-    gl_state_active_bind_texture_2d(0, tex[3].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 32, 18);
+    gaussian_coef_ubo.WriteMemory(gaussian_coef);
 
     uniform_value[U_GAUSS] = 0;
     shaders_ft.set(SHADER_FT_GAUSS);
     gaussian_coef_ubo.Bind(1);
 
-    glViewport(0, 0, 128, 72);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[1].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 128, 72, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f);
-    fbo::blit(tex[0].fbos[0], tex[1].fbos[0],
-        0, 0, 128, 72,
-        0, 0, 128, 72, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    downsample_texture.Bind();
+    for (int32_t i = 1; i < 4; i++) {
+        glViewport(0, 0, reduce_width[i], reduce_height[i]);
+        gl_state_active_bind_texture_2d(0, reduce_texture[i].GetColorTex());
+        RenderTexture::DrawQuad(&shaders_ft, reduce_width[i], reduce_height[i],
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f);
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
+    }
 
-    glViewport(0, 0, 64, 36);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[2].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 64, 36, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f);
-    fbo::blit(tex[0].fbos[0], tex[2].fbos[0],
-        0, 0, 64, 36,
-        0, 0, 64, 36, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    for (int32_t i = 1; i < 4; i++) {
+        glViewport(0, 0, reduce_width[i], reduce_height[i]);
+        gl_state_active_bind_texture_2d(0, reduce_texture[i].GetColorTex());
+        RenderTexture::DrawQuad(&shaders_ft, reduce_width[i], reduce_height[i],
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
+        glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
+    }
 
-    glViewport(0, 0, 32, 18);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[3].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 32, 18);
-    fbo::blit(tex[0].fbos[0], tex[3].fbos[0],
-        0, 0, 32, 18,
-        0, 0, 32, 18, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    uniform_value[U_GAUSS] = 1;
+    shaders_ft.set(SHADER_FT_GAUSS);
 
-    glViewport(0, 0, 128, 72);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[1].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 128, 72, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-    fbo::blit(tex[0].fbos[0], tex[1].fbos[0],
-        0, 0, 128, 72,
-        0, 0, 128, 72, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-    glViewport(0, 0, 64, 36);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[2].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 64, 36, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-    fbo::blit(tex[0].fbos[0], tex[2].fbos[0],
-        0, 0, 64, 36,
-        0, 0, 64, 36, GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-    glViewport(0, 0, 32, 18);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[3].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 32, 18, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-    fbo::blit(tex[0].fbos[0], tex[3].fbos[0],
-        0, 0, 32, 18,
-        0, 0, 32, 18, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glViewport(0, 0, reduce_width[0], reduce_height[0]);
+    gl_state_active_bind_texture_2d(0, reduce_texture[0].GetColorTex());
+    RenderTexture::DrawQuad(&shaders_ft, reduce_width[0], reduce_height[0],
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+        data.intensity.x * 0.5f, data.intensity.y * 0.5f, data.intensity.z * 0.5f, 1.0f);
 
     uniform_value[U_REDUCE] = 7;
     shaders_ft.set(SHADER_FT_REDUCE);
 
-    glViewport(0, 0, 256, 144);
-    tex[0].Bind();
-    gl_state_active_bind_texture_2d(0, tex[5].GetColorTex());
-    gl_state_active_bind_texture_2d(1, tex[1].GetColorTex());
-    gl_state_active_bind_texture_2d(2, tex[2].GetColorTex());
-    gl_state_active_bind_texture_2d(3, tex[3].GetColorTex());
-    RenderTexture::DrawQuad(&shaders_ft, 32, 18, 0.25f, 0.25f, 0.15f, 0.25f, 0.25f, 0.25f);
+    glViewport(0, 0, reduce_width[0], reduce_height[0]);
+    reduce_texture[0].Bind();
+    gl_state_active_bind_texture_2d(0, downsample_texture.GetColorTex());
+    gl_state_active_bind_texture_2d(1, reduce_texture[1].GetColorTex());
+    gl_state_active_bind_texture_2d(2, reduce_texture[2].GetColorTex());
+    gl_state_active_bind_texture_2d(3, reduce_texture[3].GetColorTex());
+    RenderTexture::DrawQuad(&shaders_ft, reduce_width[3], reduce_height[3],
+        1.0f, 1.0f, 0.0f, 0.0f, 0.25f, 0.15f, 0.25f, 0.25f, 0.25f);
 }
 
 void post_process_blur::init_fbo(int32_t width, int32_t height) {

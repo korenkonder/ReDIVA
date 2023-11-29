@@ -23,7 +23,10 @@ struct post_process_blur {
     post_process_blur_data data;
     int32_t width;
     int32_t height;
-    RenderTexture tex[6];
+    RenderTexture reduce_texture[5];
+    RenderTexture downsample_texture;
+    int32_t reduce_width[5];
+    int32_t reduce_height[5];
     int32_t* width_down;
     int32_t* height_down;
     RenderTexture* tex_down;
@@ -33,7 +36,8 @@ struct post_process_blur {
     post_process_blur();
     ~post_process_blur();
 
-    void get_blur(RenderTexture* rt);
+    void downsample(RenderTexture* rt);
+    void get_blur();
     void init_fbo(int32_t width, int32_t height);
     void initialize_data(const vec3& radius, const vec3& intensity);
 

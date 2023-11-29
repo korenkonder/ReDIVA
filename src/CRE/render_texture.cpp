@@ -146,14 +146,18 @@ void RenderTexture::DrawCustom() {
 }
 
 void RenderTexture::DrawQuad(shader_set_data* set, int32_t width, int32_t height,
-    float_t scale_x, float_t scale_y, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
+    float_t s0, float_t t0, float_t s1, float_t t1, float_t scale,
+    float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
     extern render_context* rctx_ptr;
+
+    s0 -= s1;
+    t0 -= t1;
 
     float_t w = (float_t)max_def(width, 1);
     float_t h = (float_t)max_def(height, 1);
     quad_shader_data quad = {};
-    quad.g_texcoord_modifier = { 0.5f, 0.5f, 0.5f, 0.5f }; // x * 0.5 + 0.5
-    quad.g_texel_size = { scale_x / w, scale_y / h, w, h };
+    quad.g_texcoord_modifier = { 0.5f * s0, 0.5f * t0, 0.5f * s0 + s1, 0.5f * t0 + t1 }; // x * 0.5 * y0 + 0.5 * y0 + y1
+    quad.g_texel_size = { scale / w, scale / h, w, h };
     quad.g_color = { param_x, param_y, param_z, param_w };
     quad.g_texture_lod = 0.0f;
 

@@ -30,9 +30,9 @@ struct RenderTexture {
 
     static void Draw(shader_set_data* set);
     static void DrawCustom();
-    static void DrawQuad(shader_set_data* set,
-        int32_t width, int32_t height, float_t scale_x = 1.0f, float_t scale_y = 1.0f,
-        float_t param_x = 1.0f, float_t param_y = 1.0f, float_t param_z = 1.0f, float_t param_w = 1.0f);
+    static void DrawQuad(shader_set_data* set, int32_t width, int32_t height,
+        float_t s0, float_t t0, float_t s1, float_t t1, float_t scale,
+        float_t param_x, float_t param_y, float_t param_z, float_t param_w);
 
     inline GLuint GetColorTex() {
         return color_texture->tex;
