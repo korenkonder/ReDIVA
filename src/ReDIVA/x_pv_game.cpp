@@ -5181,7 +5181,7 @@ void x_pv_game_stage::set_stage_effect_auth_3d_frame(int32_t stage_effect, float
             int32_t frame_offset = (int32_t)id.get_frame_offset();
             int32_t _frame = frame_offset + (int32_t)(frame - (float_t)frame_offset) % (int32_t)last_frame;
 
-            frame = (float_t)_frame + (frame - prj::floorf(frame);
+            frame = (float_t)_frame + (frame - prj::floorf(frame));
         }
         id.set_req_frame(frame);
         id.set_max_frame(-1.0f);
