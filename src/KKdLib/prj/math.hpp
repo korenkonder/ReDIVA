@@ -1,8 +1,6 @@
 /*
     by korenkonder
     GitHub/GitLab: korenkonder
-
-    Taken from MSVC's VC/include/memory
 */
 
 #pragma once
