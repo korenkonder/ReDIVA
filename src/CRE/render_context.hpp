@@ -267,7 +267,7 @@ namespace mdl {
         const obj_sub_mesh* sub_mesh;
         const obj_mesh* mesh;
         const obj_material_data* material;
-        const std::vector<texture*>* textures;
+        const std::vector<GLuint>* textures;
         int32_t mat_count;
         const mat4* mats;
         //GLuint vertex_buffer;
@@ -444,7 +444,7 @@ namespace mdl {
 
         void init_etc(DispManager* disp_manager, const mat4* mat, mdl::EtcObj* etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
-            obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material, std::vector<texture*>* textures,
+            obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material, std::vector<GLuint>* textures,
             int32_t mat_count, mat4* mats, /*GLuint vertex_buffer, GLuint index_buffer,*/
             obj_mesh_vertex_buffer* vertex_buffer, obj_mesh_index_buffer* index_buffer, vec4* blend_color,
             vec4* emission, /*GLuint morph_vertex_buffer,*/ obj_mesh_vertex_buffer* morph_vertex_buffer,
@@ -581,11 +581,11 @@ namespace mdl {
         void entry_list(ObjType type, ObjData* data);
         bool entry_obj(::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* mat,
-            std::vector<texture*>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
+            std::vector<GLuint>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
             obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
             mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*), bool enable_bone_mat, bool local = false);
         void entry_obj_by_obj(const mat4* mat,
-            ::obj* obj, std::vector<texture*>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
+            ::obj* obj, std::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, mat4* bone_mat, float_t alpha);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,

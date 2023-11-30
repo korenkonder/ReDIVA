@@ -283,7 +283,7 @@ namespace mdl {
     }
 
     void ObjData::init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
-        obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material, std::vector<texture*>* textures,
+        obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material, std::vector<GLuint>* textures,
         int32_t mat_count, mat4* mats, /*GLuint vertex_buffer, GLuint index_buffer,*/
         obj_mesh_vertex_buffer* vertex_buffer, obj_mesh_index_buffer* index_buffer, vec4* blend_color,
         vec4* emission, /*GLuint morph_vertex_buffer,*/ obj_mesh_vertex_buffer* morph_vertex_buffer,
@@ -2488,7 +2488,7 @@ namespace mdl {
 
     bool DispManager::entry_obj(::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
         obj_mesh_index_buffer* obj_index_buf, const mat4* mat,
-        std::vector<texture*>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
+        std::vector<GLuint>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
         obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
         mat4* instances_mat, void(*func)(const ObjSubMeshArgs*), bool enable_bone_mat, bool local) {
         if (!obj_vertex_buf || !obj_index_buf) {
@@ -2863,7 +2863,7 @@ namespace mdl {
     }
 
     void DispManager::entry_obj_by_obj(const mat4* mat,
-        ::obj* obj, std::vector<texture*>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
+        ::obj* obj, std::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
         obj_mesh_index_buffer* obj_index_buf, mat4* bone_mat, float_t alpha) {
         if (!obj)
             return;
@@ -2890,7 +2890,7 @@ namespace mdl {
         if (!object)
             return false;
 
-        std::vector<texture*>* textures = object_storage_get_obj_set_textures(obj_info.set_id);
+        std::vector<GLuint>* textures = object_storage_get_obj_set_textures(obj_info.set_id);
         obj_mesh_vertex_buffer* obj_vertex_buffer = object_storage_get_obj_mesh_vertex_buffer(obj_info);
         obj_mesh_index_buffer* obj_index_buffer = object_storage_get_obj_mesh_index_buffer(obj_info);
 

@@ -976,7 +976,7 @@ void RobCloth::Disp(const mat4* mat, render_context* rctx) {
     if (!obj)
         return;
 
-    std::vector<texture*>* tex = object_storage_get_obj_set_textures(itm_eq_obj->obj_info.set_id);
+    std::vector<GLuint>* tex = object_storage_get_obj_set_textures(itm_eq_obj->obj_info.set_id);
 
     vec3 center = (nodes.data()[0].trans + nodes.data()[root_count * nodes_count - 1].trans) * 0.5f;
 

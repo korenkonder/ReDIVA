@@ -410,7 +410,7 @@ namespace mdl {
 
     void draw_sub_mesh_translucent(render_context* rctx, const ObjSubMeshArgs* args) {
         const obj_material_data* material = args->material;
-        const std::vector<texture*>* textures = args->textures;
+        const std::vector<GLuint>* textures = args->textures;
         if (rctx->draw_state.shader_index != -1) {
             rctx->obj_batch.g_material_state_emission = args->emission;
             draw_object_material_set_uniform(material, false);
@@ -461,7 +461,7 @@ namespace mdl {
                     }
 
                 if (tex_id == -1)
-                    tex_id = (*textures)[texdata->texture_index]->tex;
+                    tex_id = (*textures)[texdata->texture_index];
 
                 if (tex_id == -1)
                     tex_id = 0;
@@ -659,7 +659,7 @@ static void draw_object_material_reset_reflect(render_context* rctx) {
 }
 
 static void draw_object_material_set_default(render_context* rctx, const mdl::ObjSubMeshArgs* args, bool use_shader) {
-    const std::vector<texture*>* textures = args->textures;
+    const std::vector<GLuint>* textures = args->textures;
     const obj_material_data* material = args->material;
     obj_material_shader_lighting_type lighting_type =
         material->material.shader_info.get_lighting_type();
@@ -691,7 +691,7 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
             }
 
         if (tex_id == -1)
-            tex_id = (*textures)[texdata->texture_index]->tex;
+            tex_id = (*textures)[texdata->texture_index];
 
         if (tex_id == -1)
             continue;
@@ -904,7 +904,7 @@ static void draw_object_material_set_parameter(render_context* rctx, const obj_m
 
 static void draw_object_material_set_reflect(render_context* rctx, const mdl::ObjSubMeshArgs* args) {
     const obj_material_data* material = args->material;
-    const std::vector<texture*>* textures = args->textures;
+    const std::vector<GLuint>* textures = args->textures;
     if (material->material.attrib.m.double_sided)
         gl_state_disable_cull_face();
 
@@ -924,7 +924,7 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
             }
 
         if (tex_id == -1)
-            tex_id = (*textures)[texdata->texture_index]->tex;
+            tex_id = (*textures)[texdata->texture_index];
 
         if (tex_id == -1)
             tex_id = 0;

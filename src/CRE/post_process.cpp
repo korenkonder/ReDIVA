@@ -353,7 +353,7 @@ void post_process::draw_lens_flare(camera* cam) {
     if (!lens_flare_texture)
         return;
 
-    texture* tex = obj_database_get_obj_set_texture(5, 4549);
+    GLuint tex = obj_database_get_obj_set_texture(5, 4549);
     if (!tex)
         return;
 
@@ -407,7 +407,7 @@ void post_process::draw_lens_flare(camera* cam) {
     sun_quad_shader_data shader_data = {};
     shader_data.g_emission = emission;
 
-    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(0, tex);
     shaders_ft.set(SHADER_FT_SUN);
     gl_state_bind_vertex_array(query_vao);
     sun_quad_ubo.Bind(0);
@@ -664,7 +664,7 @@ void post_process::draw_lens_ghost(RenderTexture* rt) {
 
     uniform_value[U_REDUCE] = 4;
     shaders_ft.set(SHADER_FT_REDUCE);
-    gl_state_active_bind_texture_2d(0, lens_ghost_texture->tex);
+    gl_state_active_bind_texture_2d(0, lens_ghost_texture);
     gl_state_bind_vertex_array(lens_ghost_vao);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, (GLsizei)(lens_ghost_count * 6LL));
     gl_state_bind_vertex_array(0);

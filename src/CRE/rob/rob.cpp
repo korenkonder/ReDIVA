@@ -397,7 +397,7 @@ struct rob_chara_age_age_object {
         bool npr, bool reflect, const vec3& a5, bool chara_color);
     bool get_obj_set_handler_object_index(object_info obj_info);
     ::obj* get_obj_set_obj();
-    std::vector<texture*>& get_obj_set_texture();
+    std::vector<GLuint>& get_obj_set_texture();
     void load(object_info obj_info, int32_t count);
     void reset();
     void update(rob_chara_age_age_data* data, int32_t count, float_t alpha);
@@ -17392,7 +17392,7 @@ return true;
     return obj_set_handler->obj_set->obj_data[obj_index];
 }
 
-std::vector<texture*>& rob_chara_age_age_object::get_obj_set_texture() {
+std::vector<GLuint>& rob_chara_age_age_object::get_obj_set_texture() {
     return obj_set_handler->gentex;
 }
 

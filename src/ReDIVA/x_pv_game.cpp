@@ -8356,22 +8356,22 @@ static void x_pv_game_write_object_set(obj_set_handler* handler) {
     strcat_s(buf, sizeof(buf), "_tex.bin");
 
     uint32_t tex_num = handler->tex_num;
-    texture** gentex = handler->gentex.data();
+    texture** tex_data = handler->tex_data;
 
     txp_set txp;
     txp.textures.resize(tex_num);
     for (uint32_t j = 0; j < tex_num; j++)
-        texture_txp_store(gentex[j], &txp.textures[j]);
+        texture_txp_store(tex_data[j], &txp.textures[j]);
 
-    void* tex_data = 0;
-    size_t tex_length = 0;
-    txp.pack_file(&tex_data, &tex_length, false);
+    void* txp_data = 0;
+    size_t txp_length = 0;
+    txp.pack_file(&txp_data, &txp_length, false);
 
     s.open(buf, "wb");
-    s.write(tex_data, tex_length);
+    s.write(txp_data, txp_length);
     s.close();
 
-    free_def(tex_data);
+    free_def(txp_data);
 }
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time) {

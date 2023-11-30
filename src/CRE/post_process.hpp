@@ -90,9 +90,9 @@ struct post_process {
     GLuint lens_shaft_query_data[3];
     GLuint lens_flare_query_data[3];
     int32_t lens_flare_query_index;
-    texture* lens_flare_texture;
-    texture* lens_shaft_texture;
-    texture* lens_ghost_texture;
+    GLuint lens_flare_texture;
+    GLuint lens_shaft_texture;
+    GLuint lens_ghost_texture;
     int32_t lens_ghost_count;
     vec3 lens_flare_pos;
     float_t lens_shaft_scale;

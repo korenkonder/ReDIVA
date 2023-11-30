@@ -1743,8 +1743,8 @@ inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_
     return 0;
 }
 
-texture* obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
-    std::vector<texture*>* textures = object_storage_get_obj_set_textures(set);
+GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
+    std::vector<GLuint>* textures = object_storage_get_obj_set_textures(set);
     if (!textures)
         return 0;
 
@@ -1758,7 +1758,7 @@ texture* obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
     return 0;
 }
 
-inline std::vector<texture*>* object_storage_get_obj_set_textures(int32_t set) {
+inline std::vector<GLuint>* object_storage_get_obj_set_textures(int32_t set) {
     obj_set_handler* handler = object_storage_get_obj_set_handler(set);
     if (handler)
         return &handler->gentex;
@@ -2221,7 +2221,7 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
     texture** tex_data = handler->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
         handler->tex_id_data.push_back(tex_id_data[i], i);
-        handler->gentex.push_back(tex_data[i]);
+        handler->gentex.push_back(tex_data[i]->tex);
     }
     handler->tex_id_data.sort();
     return false;
@@ -2250,7 +2250,7 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
     texture** tex_data = handler->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
         handler->tex_id_data.push_back(tex_id_data[i], i);
-        handler->gentex.push_back(tex_data[i]);
+        handler->gentex.push_back(tex_data[i]->tex);
     }
     handler->tex_id_data.sort();
     return false;

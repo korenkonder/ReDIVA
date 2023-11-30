@@ -116,7 +116,7 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
         const float_t aspect = (float_t)pp->render_height / (float_t)pp->render_width;
 
         uniform_value[U_FLARE] = 1;
-        gl_state_active_bind_texture_2d(4, pp->lens_flare_texture->tex);
+        gl_state_active_bind_texture_2d(4, pp->lens_flare_texture);
         gl_state_bind_sampler(4, pp->samplers[2]);
         mat4 mat;
         mat4_translate(0.5f, 0.5f, 0.0f, &mat);
@@ -133,7 +133,7 @@ void post_process_tone_map::apply(RenderTexture* in_tex, texture* light_proj_tex
 
         if (pp->lens_shaft_scale < 50.0f) {
             uniform_value[U_FLARE] = 2;
-            gl_state_active_bind_texture_2d(5, pp->lens_shaft_texture->tex);
+            gl_state_active_bind_texture_2d(5, pp->lens_shaft_texture);
             gl_state_bind_sampler(5, pp->samplers[2]);
             mat4_translate(0.5f, 0.5f, 0.0f, &mat);
             mat4_scale_rot(&mat, pp->lens_shaft_scale, pp->lens_shaft_scale, 1.0f, &mat);
