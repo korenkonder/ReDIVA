@@ -6650,8 +6650,7 @@ void x_pv_game::Basic() {
         camera* cam = rctx_ptr->camera;
         post_process_dof* dof = rctx_ptr->post_process.dof;
 
-        dof_pv pv;
-        dof->get_dof_pv(&pv);
+        dof_pv& pv = dof_pv_data;
 
         vec3 interest;
         vec3 view_point;

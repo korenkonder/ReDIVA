@@ -3474,11 +3474,11 @@ struct rob_chara {
     void set_bone_data_frame(float_t frame);
     void set_chara_color(bool value);
     void set_chara_height_adjust(bool value);
-    void set_chara_pos_adjust(vec3& value);
+    void set_chara_pos_adjust(const vec3& value);
     void set_chara_pos_adjust_y(float_t value);
     void set_chara_size(float_t value);
     void set_data_adjust_mat(rob_chara_adjust_data* rob_chr_adj, bool pos_adjust = true);
-    void set_data_miku_rot_position(vec3& value);
+    void set_data_miku_rot_position(const vec3& value);
     void set_data_miku_rot_rot_y_int16(int16_t value);
     void set_disable_collision(rob_osage_parts parts, bool disable);
     void set_eyelid_mottbl_motion(int32_t type,

@@ -3555,7 +3555,7 @@ void rob_chara::set_chara_height_adjust(bool value) {
     data.adjust_data.height_adjust = value;
 }
 
-void rob_chara::set_chara_pos_adjust(vec3& value) {
+void rob_chara::set_chara_pos_adjust(const vec3& value) {
     data.adjust_data.pos_adjust = value;
 }
 
@@ -3833,7 +3833,7 @@ void rob_chara::set_data_adjust_mat(rob_chara_adjust_data* rob_chr_adj, bool pos
     mat4_set_translation(&rob_chr_adj->item_mat, &rob_chr_adj->item_trans);
 }
 
-void rob_chara::set_data_miku_rot_position(vec3& value) {
+void rob_chara::set_data_miku_rot_position(const vec3& value) {
     data.miku_rot.position = value;
 }
 
