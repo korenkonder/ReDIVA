@@ -21,13 +21,17 @@ namespace GL {
 
         }
 
+        inline void Bind(int32_t index, bool force = false) {
+            gl_state_bind_uniform_buffer_base(index, buffer, force);
+        }
+
         inline void Create(size_t size) {
             if (buffer)
                 return;
 
             if (GLAD_GL_VERSION_4_5) {
                 glCreateBuffers(1, &buffer);
-                glNamedBufferStorage(buffer, size, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
+                glNamedBufferStorage(buffer, (GLsizeiptr)size, 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
             }
             else {
                 glGenBuffers(1, &buffer);
@@ -41,26 +45,25 @@ namespace GL {
 
         }
 
-        inline void Create(size_t size, const void* data) {
+        inline void Create(size_t size, const void* data, bool dynamic = false) {
             if (buffer)
                 return;
 
             if (GLAD_GL_VERSION_4_5) {
                 glCreateBuffers(1, &buffer);
-                glNamedBufferStorage(buffer, (GLsizeiptr)size, data, 0);
+                glNamedBufferStorage(buffer, (GLsizeiptr)size, data,
+                    dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
             }
             else {
                 glGenBuffers(1, &buffer);
                 gl_state_bind_uniform_buffer(buffer);
                 if (GLAD_GL_VERSION_4_4)
-                    glBufferStorage(GL_UNIFORM_BUFFER, (GLsizeiptr)size, data, 0);
+                    glBufferStorage(GL_UNIFORM_BUFFER, (GLsizeiptr)size, data,
+                        dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
                 else
-                    glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
+                    glBufferData(GL_UNIFORM_BUFFER, (GLsizeiptr)size, data,
+                        dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
             }
-        }
-
-        inline void Bind(int32_t index) {
-            gl_state_bind_uniform_buffer_base(index, buffer);
         }
 
         inline void Destroy() {
@@ -68,6 +71,10 @@ namespace GL {
                 glDeleteBuffers(1, &buffer);
                 buffer = 0;
             }
+        }
+
+        inline bool IsNull() {
+            return !buffer;
         }
 
         inline void* MapMemory() {
@@ -88,6 +95,10 @@ namespace GL {
             if (!GLAD_GL_VERSION_4_5)
                 gl_state_bind_array_buffer(0);
             return 0;
+        }
+
+        inline bool NotNull() {
+            return !!buffer;
         }
 
         inline void UnmapMemory() {

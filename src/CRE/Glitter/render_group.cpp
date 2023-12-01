@@ -82,17 +82,10 @@ namespace Glitter {
         glGenVertexArrays(1, &vao);
         gl_state_bind_vertex_array(vao, true);
 
-        glGenBuffers(1, &vbo);
-        gl_state_bind_array_buffer(vbo, true);
-
         static const GLsizei buffer_size = sizeof(Buffer);
 
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-        else
-            glBufferData(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_DRAW);
+        vbo.Create(buffer_size * max_count);
+        vbo.Bind();
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
@@ -105,14 +98,8 @@ namespace Glitter {
                 ebo_data[i + 4] = (uint16_t)0xFFFFFFFF;
             }
 
-            glGenBuffers(1, &ebo);
-            gl_state_bind_element_array_buffer(ebo, true);
-            if (GLAD_GL_VERSION_4_4)
-                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint16_t) * count), ebo_data, 0);
-            else
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint16_t) * count), ebo_data, GL_STATIC_DRAW);
+            ebo.Create(sizeof(uint16_t) * count, ebo_data);
+            ebo.Bind();
             free_def(ebo_data);
         }
 
@@ -267,15 +254,8 @@ namespace Glitter {
             particle = 0;
         }
 
-        if (ebo) {
-            glDeleteBuffers(1, &ebo);
-            ebo = 0;
-        }
-
-        if (vbo) {
-            glDeleteBuffers(1, &vbo);
-            vbo = 0;
-        }
+        ebo.Destroy();
+        vbo.Destroy();
 
         if (vao) {
             glDeleteVertexArrays(1, &vao);
@@ -426,17 +406,10 @@ namespace Glitter {
         glGenVertexArrays(1, &vao);
         gl_state_bind_vertex_array(vao, true);
 
-        glGenBuffers(1, &vbo);
-        gl_state_bind_array_buffer(vbo, true);
-
         static const GLsizei buffer_size = sizeof(Buffer);
 
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-        else
-            glBufferData(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(buffer_size * max_count), 0, GL_DYNAMIC_DRAW);
+        vbo.Create(buffer_size * max_count);
+        vbo.Bind();
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
@@ -449,14 +422,8 @@ namespace Glitter {
                 ebo_data[i + 4] = (uint16_t)0xFFFFFFFF;
             }
 
-            glGenBuffers(1, &ebo);
-            gl_state_bind_element_array_buffer(ebo, true);
-            if (GLAD_GL_VERSION_4_4)
-                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint16_t) * count), ebo_data, 0);
-            else
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint16_t) * count), ebo_data, GL_STATIC_DRAW);
+            ebo.Create(sizeof(uint16_t) * count, ebo_data);
+            ebo.Bind();
             free_def(ebo_data);
         }
 
@@ -630,15 +597,8 @@ namespace Glitter {
             particle = 0;
         }
 
-        if (ebo) {
-            glDeleteBuffers(1, &ebo);
-            ebo = 0;
-        }
-
-        if (vbo) {
-            glDeleteBuffers(1, &vbo);
-            vbo = 0;
-        }
+        ebo.Destroy();
+        vbo.Destroy();
 
         if (vao) {
             glDeleteVertexArrays(1, &vao);

@@ -479,15 +479,8 @@ namespace mdl {
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
             glDeleteVertexArrays(1, &i.vertex_array);
 
-            if (i.vertex_buffer) {
-                glDeleteBuffers(1, &i.vertex_buffer);
-                i.vertex_buffer = 0;
-            }
-
-            if (i.index_buffer) {
-                glDeleteBuffers(1, &i.index_buffer);
-                i.index_buffer = 0;
-            }
+            i.vertex_buffer.Destroy();
+            i.index_buffer.Destroy();
         }
         etc_vertex_array_cache.clear();
 
@@ -1799,7 +1792,7 @@ namespace mdl {
 
         DispManager::etc_vertex_array* etc_vertex_array = 0;
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache) {
-            if (i.alive_time <= 0 || i.type != type || !i.vertex_buffer)
+            if (i.alive_time <= 0 || i.type != type || i.vertex_buffer.IsNull())
                 continue;
 
             if (type == mdl::ETC_OBJ_TEAPOT
@@ -1996,57 +1989,34 @@ namespace mdl {
         if (etc_vertex_array->max_vtx < vtx_data.size()) {
             etc_vertex_array->max_vtx = vtx_data.size();
 
-            if (etc_vertex_array->vertex_buffer) {
-                glDeleteBuffers(1, &etc_vertex_array->vertex_buffer);
-                etc_vertex_array->vertex_buffer = 0;
-            }
+            etc_vertex_array->vertex_buffer.Destroy();
         }
 
         if (etc_vertex_array->max_idx < vtx_indices.size()) {
             etc_vertex_array->max_idx = vtx_indices.size();
 
-            if (etc_vertex_array->index_buffer) {
-                glDeleteBuffers(1, &etc_vertex_array->index_buffer);
-                etc_vertex_array->index_buffer = 0;
-            }
+            etc_vertex_array->index_buffer.Destroy();
         }
 
         GLsizei size_vertex = sizeof(vec3) * 2;
 
         gl_state_bind_vertex_array(etc_vertex_array->vertex_array);
 
-        if (!etc_vertex_array->vertex_buffer) {
-            glGenBuffers(1, &etc_vertex_array->vertex_buffer);
-            gl_state_bind_array_buffer(etc_vertex_array->vertex_buffer);
-            if (GLAD_GL_VERSION_4_4)
-                glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t)
-                    * vtx_data.size(), vtx_data.data(), GL_DYNAMIC_STORAGE_BIT);
-            else
-                glBufferData(GL_ARRAY_BUFFER, sizeof(float_t)
-                    * vtx_data.size(), vtx_data.data(), GL_DYNAMIC_DRAW);
-        }
-        else {
-            gl_state_bind_array_buffer(etc_vertex_array->vertex_buffer);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float_t)
-                * vtx_data.size(), vtx_data.data());
-        }
+        if (etc_vertex_array->vertex_buffer.IsNull())
+            etc_vertex_array->vertex_buffer.Create(sizeof(float_t) * vtx_data.size());
 
-        if (indexed)
-            if (!etc_vertex_array->index_buffer) {
-                glGenBuffers(1, &etc_vertex_array->index_buffer);
-                gl_state_bind_element_array_buffer(etc_vertex_array->index_buffer);
-                if (GLAD_GL_VERSION_4_4)
-                    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)
-                        * vtx_indices.size(), vtx_indices.data(), GL_DYNAMIC_STORAGE_BIT);
-                else
-                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t)
-                        * vtx_indices.size(), vtx_indices.data(), GL_DYNAMIC_DRAW);
-            }
-            else {
-                gl_state_bind_element_array_buffer(etc_vertex_array->index_buffer);
-                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
-                    * vtx_indices.size(), vtx_indices.data());
-            }
+        etc_vertex_array->vertex_buffer.Bind();
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float_t)
+            * vtx_data.size(), vtx_data.data());
+
+        if (indexed) {
+            if (etc_vertex_array->index_buffer.IsNull())
+                etc_vertex_array->index_buffer.Create(sizeof(uint32_t) * vtx_indices.size());
+
+            etc_vertex_array->index_buffer.Bind();
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
+                * vtx_indices.size(), vtx_indices.data());
+        }
 
         glEnableVertexAttribArray(POSITION_INDEX);
         glVertexAttribPointer(POSITION_INDEX,
@@ -3840,8 +3810,8 @@ render_context::~render_context() {
     contour_params_ubo.Destroy();
     contour_coef_ubo.Destroy();
 
-    glDeleteVertexArrays(1, &box_vao);
     glDeleteBuffers(1, &box_vbo);
+    glDeleteVertexArrays(1, &box_vao);
 
     if (camera) {
         delete camera;

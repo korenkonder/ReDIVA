@@ -7,6 +7,8 @@
 #include "../KKdLib/prj/shared_ptr.hpp"
 #include "../KKdLib/prj/stack_allocator.hpp"
 #include "../KKdLib/txp.hpp"
+#include "GL/array_buffer.hpp"
+#include "GL/element_array_buffer.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include "shader_ft.hpp"
@@ -122,9 +124,9 @@ namespace spr {
             std::vector<sprite_draw_vertex> vertex_buffer;
             std::vector<uint32_t> index_buffer;
             GLuint vao;
-            GLuint vbo;
+            GL::ArrayBuffer vbo;
             size_t vbo_vertex_count;
-            GLuint ebo;
+            GL::ElementArrayBuffer ebo;
             size_t ebo_index_count;
 
             RenderData();
@@ -590,23 +592,16 @@ void sprite_manager_free() {
 }
 
 namespace spr {
-    SpriteManager::RenderData::RenderData() {
+    SpriteManager::RenderData::RenderData() : vao() {
         glGenVertexArrays(1, &vao);
         gl_state_bind_vertex_array(vao, true);
-
-        glGenBuffers(1, &vbo);
-        gl_state_bind_array_buffer(vbo, true);
 
         vbo_vertex_count = 4096;
 
         static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
 
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_STORAGE_BIT);
-        else
-            glBufferData(GL_ARRAY_BUFFER,
-                (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_DRAW);
+        vbo.Create(buffer_size * vbo_vertex_count);
+        vbo.Bind();
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -621,17 +616,10 @@ namespace spr {
         glVertexAttribPointer(3, 2, GL_FLOAT, GL_FALSE, buffer_size,
             (void*)offsetof(sprite_draw_vertex, uv[1]));
 
-        glGenBuffers(1, &ebo);
-        gl_state_bind_element_array_buffer(ebo, true);
-
         ebo_index_count = 4096;
 
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-                (GLsizeiptr)(sizeof(uint32_t) * ebo_index_count), 0, GL_DYNAMIC_STORAGE_BIT);
-        else
-            glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                (GLsizeiptr)(sizeof(uint32_t) * ebo_index_count), 0, GL_DYNAMIC_DRAW);
+        ebo.Create(sizeof(uint32_t) * ebo_index_count);
+        ebo.Bind();
 
         gl_state_bind_array_buffer(0);
         gl_state_bind_vertex_array(0);
@@ -639,15 +627,8 @@ namespace spr {
     }
 
     SpriteManager::RenderData::~RenderData() {
-        if (ebo) {
-            glDeleteBuffers(1, &ebo);
-            ebo = 0;
-        }
-
-        if (vbo) {
-            glDeleteBuffers(1, &vbo);
-            vbo = 0;
-        }
+        ebo.Destroy();
+        vbo.Destroy();
 
         if (vao) {
             glDeleteVertexArrays(1, &vao);
@@ -668,18 +649,13 @@ namespace spr {
             while (vbo_vertex_count < vertex_buffer.size())
                 vbo_vertex_count *= 2;
 
-            glDeleteBuffers(1, &vbo);
-            glGenBuffers(1, &vbo);
+            vbo.Destroy();
 
             gl_state_bind_vertex_array(vao, true);
-            gl_state_bind_array_buffer(vbo, true);
 
-            if (GLAD_GL_VERSION_4_4)
-                glBufferStorage(GL_ARRAY_BUFFER,
-                    (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_STORAGE_BIT);
-            else
-                glBufferData(GL_ARRAY_BUFFER,
-                    (GLsizeiptr)(buffer_size * vbo_vertex_count), 0, GL_DYNAMIC_DRAW);
+            vbo.Create(buffer_size * vbo_vertex_count);
+            vbo.Bind();
+
             glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
                 * vertex_buffer.size()), vertex_buffer.data());
 
@@ -699,51 +675,28 @@ namespace spr {
             gl_state_bind_array_buffer(0);
             gl_state_bind_vertex_array(0);
         }
-        else {
-            if (GLAD_GL_VERSION_4_5)
-                glNamedBufferSubData(vbo, 0, (GLsizeiptr)(buffer_size
-                    * vertex_buffer.size()), vertex_buffer.data());
-            else {
-                gl_state_bind_array_buffer(vbo);
-                glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
-                    * vertex_buffer.size()), vertex_buffer.data());
-                gl_state_bind_array_buffer(0);
-            }
-        }
+        else
+            vbo.WriteMemory(0, buffer_size * vertex_buffer.size(), vertex_buffer.data());
 
         if (ebo_index_count < index_buffer.size()) {
             while (ebo_index_count < index_buffer.size())
                 ebo_index_count *= 2;
 
-            glDeleteBuffers(1, &ebo);
-            glGenBuffers(1, &ebo);
+            ebo.Destroy();
 
             gl_state_bind_vertex_array(vao, true);
-            gl_state_bind_element_array_buffer(ebo, true);
 
-            if (GLAD_GL_VERSION_4_4)
-                glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint32_t) * ebo_index_count), 0, GL_DYNAMIC_STORAGE_BIT);
-            else
-                glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                    (GLsizeiptr)(sizeof(uint32_t) * ebo_index_count), 0, GL_DYNAMIC_DRAW);
+            ebo.Create(sizeof(uint32_t) * ebo_index_count);
+            ebo.Bind();
+
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
                 * index_buffer.size()), index_buffer.data());
 
             gl_state_bind_vertex_array(0);
             gl_state_bind_element_array_buffer(0);
         }
-        else {
-            if (GLAD_GL_VERSION_4_5)
-                glNamedBufferSubData(ebo, 0, (GLsizeiptr)(sizeof(uint32_t)
-                    * index_buffer.size()), index_buffer.data());
-            else {
-                gl_state_bind_array_buffer(ebo);
-                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
-                    * index_buffer.size()), index_buffer.data());
-                gl_state_bind_array_buffer(0);
-            }
-        }
+        else
+            ebo.WriteMemory(0, sizeof(uint32_t) * index_buffer.size(), index_buffer.data());
     }
 
     SpriteManager::SpriteManager() : aspect(), index(), set_counter() {

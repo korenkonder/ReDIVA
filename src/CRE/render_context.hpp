@@ -8,6 +8,8 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
+#include "GL/array_buffer.hpp"
+#include "GL/element_array_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
 #include "light_param/face.hpp"
 #include "light_param/fog.hpp"
@@ -521,8 +523,8 @@ namespace mdl {
         };
 
         struct etc_vertex_array {
-            GLuint vertex_buffer;
-            GLuint index_buffer;
+            GL::ArrayBuffer vertex_buffer;
+            GL::ElementArrayBuffer index_buffer;
             int32_t alive_time;
             GLuint vertex_array;
             EtcObj::Data data;

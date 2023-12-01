@@ -7,6 +7,7 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
+#include "GL/array_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
 #include "post_process/blur.hpp"
 #include "post_process/dof.hpp"
@@ -78,7 +79,7 @@ struct post_process {
     GLuint samplers[3];
     GLuint query_vao;
     GLuint lens_ghost_vao;
-    GLuint lens_ghost_vbo;
+    GL::ArrayBuffer lens_ghost_vbo;
     RenderTexture mlaa_buffer;
     RenderTexture temp_buffer;
     GLuint mlaa_area_texture;

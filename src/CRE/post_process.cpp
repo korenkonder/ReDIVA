@@ -83,13 +83,8 @@ screen_x_offset(), screen_y_offset(), screen_width(), screen_height(), mag_filte
     glGenVertexArrays(1, &lens_ghost_vao);
     gl_state_bind_vertex_array(lens_ghost_vao);
 
-    glGenBuffers(1, &lens_ghost_vbo);
-    gl_state_bind_array_buffer(lens_ghost_vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t) * 5 * (6 * 16),
-            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    else
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 5 * (6 * 16), 0, GL_DYNAMIC_DRAW);
+    lens_ghost_vbo.Create(sizeof(float_t) * 5 * (6 * 16));
+    lens_ghost_vbo.Bind();
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)0);
@@ -166,10 +161,7 @@ post_process::~post_process() {
         lens_ghost_vao = 0;
     }
 
-    if (lens_ghost_vbo) {
-        glDeleteBuffers(1, &lens_ghost_vbo);
-        lens_ghost_vbo = 0;
-    }
+    lens_ghost_vbo.Destroy();
 
     if (lens_shaft_query[0]) {
         glDeleteQueries(3, lens_shaft_query);
@@ -618,23 +610,9 @@ void post_process::draw_lens_ghost(RenderTexture* rt) {
     const float_t angle_sin = sinf(angle);
     const float_t angle_cos = cosf(angle);
 
-    float_t* data;
-    if (GLAD_GL_VERSION_4_5) {
-        data = (float_t*)glMapNamedBuffer(lens_ghost_vbo, GL_WRITE_ONLY);
-        if (!data) {
-            glUnmapNamedBuffer(lens_ghost_vbo);
-            return;
-        }
-    }
-    else {
-        gl_state_bind_array_buffer(lens_ghost_vbo);
-        data = (float_t*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!data) {
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            gl_state_bind_array_buffer(0);
-            return;
-        }
-    }
+    float_t* data = (float_t*)lens_ghost_vbo.MapMemory();
+    if (!data)
+        return;
 
     const float_t lens_ghost = tone_map->lens_ghost;
     const int32_t lens_ghost_count = this->lens_ghost_count;
@@ -650,12 +628,7 @@ void post_process::draw_lens_ghost(RenderTexture* rt) {
         make_ghost_quad((uint8_t)(i & 0x03), opacity, &mat, data);
     }
 
-    if (GLAD_GL_VERSION_4_5)
-        glUnmapNamedBuffer(lens_ghost_vbo);
-    else {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
-    }
+    lens_ghost_vbo.UnmapMemory();
 
     rt->Bind();
     rt->SetViewport();

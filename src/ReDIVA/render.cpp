@@ -101,7 +101,7 @@ struct common_data_struct {
 
 struct render_data {
     GLuint grid_vao;
-    GLuint grid_vbo;
+    GL::ArrayBuffer grid_vbo;
 
     render_data();
     ~render_data();
@@ -355,7 +355,7 @@ void draw_pass_3d_grid(render_context* rctx) {
 
 float_t rob_frame = 0.0f;
 
-render_data::render_data() : grid_vao(), grid_vbo() {
+render_data::render_data() : grid_vao() {
 
 }
 
@@ -433,14 +433,8 @@ void render_data::load_common_data() {
     glGenVertexArrays(1, &grid_vao);
     gl_state_bind_vertex_array(grid_vao);
 
-    glGenBuffers(1, &grid_vbo);
-    gl_state_bind_array_buffer(grid_vbo);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER, sizeof(float_t) * 3
-            * grid_vertex_count, grid_verts, 0);
-    else
-        glBufferData(GL_ARRAY_BUFFER, sizeof(float_t) * 3
-            * grid_vertex_count, grid_verts, GL_STATIC_DRAW);
+    grid_vbo.Create(sizeof(float_t) * 3 * grid_vertex_count, grid_verts);
+    grid_vbo.Bind();
 
     glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
     glVertexAttribI1i(1, 2);
@@ -459,10 +453,7 @@ void render_data::load_common_data() {
 }
 
 void render_data::unload_common_data() {
-    if (grid_vbo) {
-        glDeleteBuffers(1, &grid_vbo);
-        grid_vbo = 0;
-    }
+    grid_vbo.Destroy();
 
     if (grid_vao) {
         glDeleteVertexArrays(1, &grid_vao);

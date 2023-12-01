@@ -6,6 +6,7 @@
 #include "task_effect.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/hash.hpp"
+#include "GL/element_array_buffer.hpp"
 #include "auth_3d.hpp"
 #include "data.hpp"
 #include "gl_state.hpp"
@@ -154,8 +155,8 @@ struct star_catalog_batch_shader_data {
 };
 
 struct star_catalog_milky_way {
-    GLuint vbo;
-    GLuint ebo;
+    GL::ArrayBuffer vbo;
+    GL::ElementArrayBuffer ebo;
     GLuint vao;
     GLuint sampler;
     uint16_t restart_index;
@@ -352,8 +353,8 @@ static int32_t leaf_particle_num_ptcls;
 static uint32_t leaf_particle_tex_id;
 static leaf_particle_data* leaf_ptcl_data;
 static GLuint leaf_ptcl_vao;
-static GLuint leaf_ptcl_vbo;
-static GLuint leaf_ptcl_ebo;
+static GL::ArrayBuffer leaf_ptcl_vbo;
+static GL::ElementArrayBuffer leaf_ptcl_ebo;
 static GL::UniformBuffer leaf_particle_scene_ubo;
 static const size_t leaf_ptcl_count = 0x800;
 
@@ -371,7 +372,7 @@ static int32_t particle_count;
 static vec3 particle_wind;
 static particle_rot_data* ptcl_data;
 static GLuint ptcl_vao;
-static GLuint ptcl_vbo;
+static GL::ElementArrayBuffer ptcl_vbo;
 static GL::UniformBuffer particle_scene_ubo;
 static const size_t ptcl_count = 0x400;
 
@@ -2848,31 +2849,13 @@ void particle_draw() {
     if (!ptcl_data)
         return;
 
-    particle_vertex_data* vtx_data;
-    if (GLAD_GL_VERSION_4_5) {
-        vtx_data = (particle_vertex_data*)glMapNamedBuffer(ptcl_vbo, GL_WRITE_ONLY);
-        if (!vtx_data) {
-            glUnmapNamedBuffer(ptcl_vbo);
-            return;
-        }
-    }
-    else {
-        gl_state_bind_array_buffer(ptcl_vbo);
-        vtx_data = (particle_vertex_data*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!vtx_data) {
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            gl_state_bind_array_buffer(0);
-            return;
-        }
-    }
+    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory();
+    if (!vtx_data)
+        return;
 
     int32_t count = particle_disp(vtx_data, ptcl_data, ptcl_count);
-    if (GLAD_GL_VERSION_4_5)
-        glUnmapNamedBuffer(ptcl_vbo);
-    else {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
-    }
+
+    ptcl_vbo.UnmapMemory();
 
     if (!count)
         return;
@@ -3324,8 +3307,8 @@ particle_data::particle_data() : size(), alpha(), life_time() {
 
 }
 
-star_catalog_milky_way::star_catalog_milky_way() : vbo(), ebo(), vao(), sampler(),
-restart_index(), idx_count(), longitude_degs_10(), latitude_degs_10(), longitude_offset_degs_10(),
+star_catalog_milky_way::star_catalog_milky_way() : vao(), sampler(), restart_index(),
+idx_count(), longitude_degs_10(), latitude_degs_10(), longitude_offset_degs_10(),
 latitude_offset_degs_10(), latitude(), longitude(), uv_rec_scale_u(), uv_rec_scale_v() {
     reset();
 }
@@ -3346,12 +3329,6 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
     gl_state_bind_element_array_buffer(0);
-
-    if (!vao)
-        glGenVertexArrays(1, &vao);
-
-    if (!vbo)
-        glGenBuffers(1, &vbo);
 
     const float_t rec_longitude_degs_10 = 1.0f / (float_t)longitude_degs_10;
     const float_t rec_latitude_degs_10 = 1.0f / (float_t)latitude_degs_10;
@@ -3385,13 +3362,11 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     vtx_data[vtx].texcoord.x = 1.0f;
     vtx_data[vtx].texcoord.y = (latitude_offset_degs_10 - (1.0f / uv_rec_scale_v) * 90.0f) * rec_latitude_degs_10;
 
-    gl_state_bind_array_buffer(vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(star_catalog_vertex) * vtx_count), vtx_data, 0);
-    else
-        glBufferData(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(star_catalog_vertex) * vtx_count), vtx_data, GL_STATIC_DRAW);
+    if (!vao)
+        glGenVertexArrays(1, &vao);
+
+    vbo.Create(sizeof(star_catalog_vertex) * vtx_count, vtx_data);
+    vbo.Bind();
     free_def(vtx_data);
 
     static const GLsizei buffer_size = sizeof(star_catalog_vertex);
@@ -3435,16 +3410,8 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
         ebo_data[idx + 3] = restart_index;
     }
 
-    if (!ebo)
-        glGenBuffers(1, &ebo);
-
-    gl_state_bind_element_array_buffer(ebo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint16_t) * ebo_count), ebo_data, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint16_t) * ebo_count), ebo_data, GL_STATIC_DRAW);
+    ebo.Create(sizeof(uint16_t) * ebo_count, ebo_data);
+    ebo.Bind();
     free_def(ebo_data);
 
     if (!sampler)
@@ -3470,15 +3437,8 @@ void star_catalog_milky_way::delete_buffers() {
         sampler = 0;
     }
     
-    if (vbo) {
-        glDeleteBuffers(1, &vbo);
-        vbo = 0;
-    }
-
-    if (ebo) {
-        glDeleteBuffers(1, &ebo);
-        ebo = 0;
-    }
+    vbo.Destroy();
+    ebo.Destroy();
 
     if (vao) {
         glDeleteVertexArrays(1, &vao);
@@ -4178,20 +4138,10 @@ static void leaf_particle_init(bool change_stage) {
     if (!leaf_ptcl_vao)
         glGenVertexArrays(1, &leaf_ptcl_vao);
 
-    if (!leaf_ptcl_vbo)
-        glGenBuffers(1, &leaf_ptcl_vbo);
-
     static const GLsizei buffer_size = sizeof(leaf_particle_vertex_data);
 
-    gl_state_bind_array_buffer(leaf_ptcl_vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * leaf_ptcl_vtx_count),
-            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    else
-        glBufferData(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * leaf_ptcl_vtx_count),
-            0, GL_DYNAMIC_DRAW);
+    leaf_ptcl_vbo.Create(buffer_size * leaf_ptcl_vtx_count);
+    leaf_ptcl_vbo.Bind();
 
     gl_state_bind_vertex_array(leaf_ptcl_vao);
     glEnableVertexAttribArray(0);
@@ -4215,16 +4165,8 @@ static void leaf_particle_init(bool change_stage) {
         ebo_data[i + 5] = (uint32_t)(j + 3);
     }
 
-    if (!leaf_ptcl_ebo)
-        glGenBuffers(1, &leaf_ptcl_ebo);
-
-    gl_state_bind_element_array_buffer(leaf_ptcl_ebo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint32_t) * ebo_count), ebo_data, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-            (GLsizeiptr)(sizeof(uint32_t) * ebo_count), ebo_data, GL_STATIC_DRAW);
+    leaf_ptcl_ebo.Create(sizeof(uint32_t) * ebo_count, ebo_data);
+    leaf_ptcl_ebo.Bind();
     free_def(ebo_data);
 
     gl_state_bind_vertex_array(0);
@@ -4319,23 +4261,9 @@ static int32_t leaf_particle_disp() {
     normal[2] = sub_1406427A0(vec3(-0.2f, -0.2f, 1.0f), vec3(0.0f, 1.0f, 0.0f)).first;
     normal[3] = sub_1406427A0(vec3( 0.4f, -0.4f, 1.0f), vec3(0.0f, 1.0f, 0.0f)).first;
 
-    leaf_particle_vertex_data* vtx_data;
-    if (GLAD_GL_VERSION_4_5) {
-        vtx_data = (leaf_particle_vertex_data*)glMapNamedBuffer(leaf_ptcl_vbo, GL_WRITE_ONLY);
-        if (!vtx_data) {
-            glUnmapNamedBuffer(leaf_ptcl_vbo);
-            return 0;
-        }
-    }
-    else {
-        gl_state_bind_array_buffer(leaf_ptcl_vbo);
-        vtx_data = (leaf_particle_vertex_data*)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!vtx_data) {
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            gl_state_bind_array_buffer(0);
-            return 0;
-        }
-    }
+    leaf_particle_vertex_data* vtx_data =  (leaf_particle_vertex_data*)leaf_ptcl_vbo.MapMemory();
+    if (!vtx_data)
+        return 0;
 
     int32_t vtx_count = 0;
     leaf_particle_data* data = leaf_ptcl_data;
@@ -4411,12 +4339,7 @@ static int32_t leaf_particle_disp() {
         }
     }
 
-    if (GLAD_GL_VERSION_4_5)
-        glUnmapNamedBuffer(leaf_ptcl_vbo);
-    else {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
-    }
+    leaf_ptcl_vbo.UnmapMemory();
     return vtx_count;
 }
 
@@ -4431,15 +4354,8 @@ static void leaf_particle_free() {
         leaf_ptcl_vao = 0;
     }
 
-    if (leaf_ptcl_vbo) {
-        glDeleteBuffers(1, &leaf_ptcl_vbo);
-        leaf_ptcl_vbo = 0;
-    }
-
-    if (leaf_ptcl_ebo) {
-        glDeleteBuffers(1, &leaf_ptcl_ebo);
-        leaf_ptcl_ebo = 0;
-    }
+    leaf_ptcl_vbo.Destroy();
+    leaf_ptcl_ebo.Destroy();
 
     leaf_particle_scene_ubo.Destroy();
 }
@@ -4466,20 +4382,10 @@ static void particle_init(vec3* offset) {
     if (!ptcl_vao)
         glGenVertexArrays(1, &ptcl_vao);
 
-    if (!ptcl_vbo)
-        glGenBuffers(1, &ptcl_vbo);
-
     static const GLsizei buffer_size = sizeof(particle_vertex_data);
 
-    gl_state_bind_array_buffer(ptcl_vbo, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * ptcl_vtx_count),
-            0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
-    else
-        glBufferData(GL_ARRAY_BUFFER,
-            (GLsizeiptr)(buffer_size * ptcl_vtx_count),
-            0, GL_DYNAMIC_DRAW);
+    ptcl_vbo.Create(buffer_size * ptcl_vtx_count);
+    ptcl_vbo.Bind();
 
     gl_state_bind_vertex_array(ptcl_vao);
     glEnableVertexAttribArray(0);
@@ -4694,10 +4600,7 @@ static void particle_free() {
         ptcl_vao = 0;
     }
 
-    if (ptcl_vbo) {
-        glDeleteBuffers(1, &ptcl_vbo);
-        ptcl_vbo = 0;
-    }
+    ptcl_vbo.Destroy();
 
     particle_scene_ubo.Destroy();
 }

@@ -16,6 +16,8 @@
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.hpp"
+#include "../GL/array_buffer.hpp"
+#include "../GL/element_array_buffer.hpp"
 #include "../GL/uniform_buffer.hpp"
 #include "../color.hpp"
 #include "../file_handler.hpp"
@@ -759,8 +761,8 @@ namespace Glitter {
         DispType disp_type;
         FogType fog_type;
         GLuint vao;
-        GLuint vbo;
-        GLuint ebo;
+        GL::ArrayBuffer vbo;
+        GL::ElementArrayBuffer ebo;
         float_t emission;
         prj::vector_pair<GLint, GLsizei> draw_list;
 

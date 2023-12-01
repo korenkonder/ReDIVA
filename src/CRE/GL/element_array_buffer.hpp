@@ -8,21 +8,21 @@
 #include "../gl_state.hpp"
 
 namespace GL {
-    struct ShaderStorageBuffer {
+    struct ElementArrayBuffer {
     private:
         GLuint buffer;
 
     public:
-        inline ShaderStorageBuffer() : buffer() {
+        inline ElementArrayBuffer() : buffer() {
 
         }
 
-        inline ~ShaderStorageBuffer() {
+        inline ~ElementArrayBuffer() {
 
         }
 
-        inline void Bind(int32_t index, bool force = false) {
-            gl_state_bind_shader_storage_buffer_base(index, buffer, force);
+        inline void Bind(bool force = false) {
+            gl_state_bind_element_array_buffer(buffer, force);
         }
 
         inline void Create(size_t size) {
@@ -35,12 +35,12 @@ namespace GL {
             }
             else {
                 glGenBuffers(1, &buffer);
-                gl_state_bind_shader_storage_buffer(buffer);
+                gl_state_bind_element_array_buffer(buffer);
                 if (GLAD_GL_VERSION_4_4)
-                    glBufferStorage(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size,
+                    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size,
                         0, GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT);
                 else
-                    glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
+                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
             }
 
         }
@@ -56,12 +56,12 @@ namespace GL {
             }
             else {
                 glGenBuffers(1, &buffer);
-                gl_state_bind_shader_storage_buffer(buffer);
+                gl_state_bind_element_array_buffer(buffer);
                 if (GLAD_GL_VERSION_4_4)
-                    glBufferStorage(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, data,
+                    glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data,
                         dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
                 else
-                    glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, data,
+                    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data,
                         dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
             }
         }
@@ -85,15 +85,15 @@ namespace GL {
             if (GLAD_GL_VERSION_4_5)
                 data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
             else {
-                gl_state_bind_array_buffer(buffer);
-                data = glMapBuffer(GL_SHADER_STORAGE_BUFFER, GL_WRITE_ONLY);
+                gl_state_bind_element_array_buffer(buffer);
+                data = glMapBuffer(GL_ELEMENT_ARRAY_BUFFER, GL_WRITE_ONLY);
             }
 
             if (data)
                 return data;
 
             if (!GLAD_GL_VERSION_4_5)
-                gl_state_bind_array_buffer(0);
+                gl_state_bind_element_array_buffer(0);
             return 0;
         }
 
@@ -108,8 +108,8 @@ namespace GL {
             if (GLAD_GL_VERSION_4_5)
                 glUnmapNamedBuffer(buffer);
             else {
-                glUnmapBuffer(GL_SHADER_STORAGE_BUFFER);
-                gl_state_bind_array_buffer(0);
+                glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
+                gl_state_bind_element_array_buffer(0);
             }
         }
 
@@ -120,8 +120,8 @@ namespace GL {
             if (GLAD_GL_VERSION_4_5)
                 glNamedBufferSubData(buffer, (GLsizeiptr)offset, (GLsizeiptr)size, data);
             else {
-                gl_state_bind_shader_storage_buffer(buffer);
-                glBufferSubData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
+                gl_state_bind_element_array_buffer(buffer);
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)offset, (GLsizeiptr)size, data);
             }
         }
 
@@ -133,8 +133,8 @@ namespace GL {
             if (GLAD_GL_VERSION_4_5)
                 glNamedBufferSubData(buffer, 0, sizeof(T), &data);
             else {
-                gl_state_bind_shader_storage_buffer(buffer);
-                glBufferSubData(GL_SHADER_STORAGE_BUFFER, 0, sizeof(T), &data);
+                gl_state_bind_element_array_buffer(buffer);
+                glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(T), &data);
             }
         }
     };
