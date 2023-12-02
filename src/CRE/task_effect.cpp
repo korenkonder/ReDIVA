@@ -372,7 +372,7 @@ static int32_t particle_count;
 static vec3 particle_wind;
 static particle_rot_data* ptcl_data;
 static GLuint ptcl_vao;
-static GL::ElementArrayBuffer ptcl_vbo;
+static GL::ArrayBuffer ptcl_vbo;
 static GL::UniformBuffer particle_scene_ubo;
 static const size_t ptcl_count = 0x400;
 
