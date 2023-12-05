@@ -239,6 +239,71 @@ namespace rndr {
         glViewport(0, 0, render_width[0], render_height[0]);
     }
 
+    void Render::calc_exposure_chara_data(camera* cam) {
+        shader::unbind();
+
+        gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+        gl_state_set_depth_mask(GL_FALSE);
+        gl_state_disable_cull_face();
+
+        shaders_ft.set(SHADER_FT_SUN_NO_TEXTURED);
+        gl_state_bind_vertex_array(rctx_ptr->common_vao);
+        rctx_ptr->sun_quad_ubo.Bind(0);
+
+        ExposureCharaData* chara_data = exposure_chara_data;
+        int32_t query_index = (this->exposure_query_index + 1) % 3;
+        this->exposure_query_index = query_index;
+        int32_t next_query_index = (query_index + 2) % 3;
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara_data++) {
+            rob_chara* rob_chr = rob_chara_array_get(i);
+            if (!rob_chr || !rob_chr->is_visible())
+                continue;
+
+            float_t max_face_depth = rob_chr->get_max_face_depth();
+
+            mat4 mat = mat4_identity;
+            rob_chr->sub_1405163C0(4, mat);
+            mat4_mul(&mat, &cam->view, &mat);
+            mat4_mul_translate(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
+            mat4_clear_rot(&mat, &mat);
+            mat4_scale_rot(&mat, 0.0035f, &mat);
+            mat4_mul(&mat, &cam->projection, &mat);
+
+            sun_quad_shader_data shader_data = {};
+            mat4_transpose(&mat, &mat);
+            shader_data.g_transform[0] = mat.row0;
+            shader_data.g_transform[1] = mat.row1;
+            shader_data.g_transform[2] = mat.row2;
+            shader_data.g_transform[3] = mat.row3;
+            shader_data.g_emission = 0.0f;
+            rctx_ptr->sun_quad_ubo.WriteMemory(shader_data);
+
+            glBeginQuery(GL_SAMPLES_PASSED, chara_data->query[next_query_index]);
+            shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+            glEndQuery(GL_SAMPLES_PASSED);
+
+            if (chara_data->query_data[next_query_index] == -1)
+                chara_data->query_data[next_query_index] = 0;
+
+            if (chara_data->query_data[query_index] != -1) {
+                int32_t res = 0;
+                glGetQueryObjectiv(chara_data->query[query_index],
+                    GL_QUERY_RESULT_AVAILABLE, &res);
+                if (res)
+                    glGetQueryObjectuiv(chara_data->query[query_index],
+                        GL_QUERY_RESULT, chara_data->query_data);
+                else
+                    chara_data->query_data[query_index] = 0;
+            }
+        }
+
+        gl_state_bind_vertex_array(0);
+
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_state_set_depth_mask(GL_TRUE);
+        gl_state_enable_cull_face();
+    }
+
     void Render::ctrl(camera* cam) {
         view_point_prev = view_point;
         interest_prev = interest;
@@ -676,71 +741,6 @@ namespace rndr {
 
     float_t Render::get_lens_flare_power() {
         return lens_flare_power;
-    }
-
-    void Render::get_exposure_chara_data(camera* cam) {
-        shader::unbind();
-
-        gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-        gl_state_set_depth_mask(GL_FALSE);
-        gl_state_disable_cull_face();
-
-        shaders_ft.set(SHADER_FT_SUN_NO_TEXTURED);
-        gl_state_bind_vertex_array(rctx_ptr->common_vao);
-        rctx_ptr->sun_quad_ubo.Bind(0);
-
-        ExposureCharaData* chara_data = exposure_chara_data;
-        int32_t query_index = (this->exposure_query_index + 1) % 3;
-        this->exposure_query_index = query_index;
-        int32_t next_query_index = (query_index + 2) % 3;
-        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara_data++) {
-            rob_chara* rob_chr = rob_chara_array_get(i);
-            if (!rob_chr || !rob_chr->is_visible())
-                continue;
-
-            float_t max_face_depth = rob_chr->get_max_face_depth();
-
-            mat4 mat = mat4_identity;
-            rob_chr->sub_1405163C0(4, mat);
-            mat4_mul(&mat, &cam->view, &mat);
-            mat4_mul_translate(&mat, max_face_depth + 0.1f, 0.0f, -0.06f, &mat);
-            mat4_clear_rot(&mat, &mat);
-            mat4_scale_rot(&mat, 0.0035f, &mat);
-            mat4_mul(&mat, &cam->projection, &mat);
-
-            sun_quad_shader_data shader_data = {};
-            mat4_transpose(&mat, &mat);
-            shader_data.g_transform[0] = mat.row0;
-            shader_data.g_transform[1] = mat.row1;
-            shader_data.g_transform[2] = mat.row2;
-            shader_data.g_transform[3] = mat.row3;
-            shader_data.g_emission = 0.0f;
-            rctx_ptr->sun_quad_ubo.WriteMemory(shader_data);
-
-            glBeginQuery(GL_SAMPLES_PASSED, chara_data->query[next_query_index]);
-            shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-            glEndQuery(GL_SAMPLES_PASSED);
-
-            if (chara_data->query_data[next_query_index] == -1)
-                chara_data->query_data[next_query_index] = 0;
-
-            if (chara_data->query_data[query_index] != -1) {
-                int32_t res = 0;
-                glGetQueryObjectiv(chara_data->query[query_index],
-                    GL_QUERY_RESULT_AVAILABLE, &res);
-                if (res)
-                    glGetQueryObjectuiv(chara_data->query[query_index],
-                        GL_QUERY_RESULT, chara_data->query_data);
-                else
-                    chara_data->query_data[query_index] = 0;
-            }
-        }
-
-        gl_state_bind_vertex_array(0);
-
-        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-        gl_state_set_depth_mask(GL_TRUE);
-        gl_state_enable_cull_face();
     }
 
     vec3 Render::get_intensity() {

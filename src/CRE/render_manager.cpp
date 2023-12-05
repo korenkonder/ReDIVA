@@ -841,7 +841,7 @@ namespace rndr {
         if (rctx->render_manager->field_120)
             rctx->disp_manager->draw(mdl::OBJ_TYPE_TYPE_7);
 
-        render->get_exposure_chara_data(rctx->camera);
+        render->calc_exposure_chara_data(rctx->camera);
 
         if (npr_param == 1)
             pass_3d_contour();

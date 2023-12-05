@@ -181,6 +181,7 @@ namespace rndr {
 
         void apply_post_process(camera* cam, texture* light_proj_tex, int32_t npr_param);
         void bind_render_texture(bool aet_back = false);
+        void calc_exposure_chara_data(camera* cam);
         void ctrl(camera* cam);
         void draw_quad(int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
             float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w);
@@ -194,7 +195,6 @@ namespace rndr {
         void free();
         bool get_auto_exposure();
         float_t get_exposure();
-        void get_exposure_chara_data(camera* cam);
         float_t get_exposure_rate();
         float_t get_gamma();
         float_t get_gamma_rate();
