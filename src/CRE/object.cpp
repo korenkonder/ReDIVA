@@ -34,7 +34,7 @@ static uint32_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format)
 std::map<uint32_t, obj_set_handler> object_storage_data;
 std::map<uint32_t, obj_set_handler> object_storage_data_modern;
 
-obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer(), size() {
+obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer() {
 
 }
 
@@ -60,7 +60,6 @@ bool obj_mesh_index_buffer::load_data(size_t size, const void* data) {
     if (!size)
         return false;
 
-    this->size = (GLsizeiptr)size;
     glGenBuffers(1, &buffer);
     gl_state_bind_element_array_buffer(buffer, true);
     if (GLAD_GL_VERSION_4_4)
@@ -76,7 +75,6 @@ void obj_mesh_index_buffer::unload() {
         glDeleteBuffers(1, &buffer);
 
     buffer = 0;
-    size = 0;
 }
 
 void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
@@ -368,8 +366,6 @@ bool obj_index_buffer::load(obj* obj) {
     if (index) {
         void* data = index;
         for (uint32_t i = 0; i < mesh_num; i++) {
-            mesh_data[i].size = (GLsizeiptr)buffer_size;
-
             uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
             data = obj_mesh_index_buffer::fill_data(data, obj->mesh_array[i]);
 

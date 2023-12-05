@@ -4,7 +4,7 @@
 */
 
 #include "pv_param.hpp"
-#include "post_process.hpp"
+#include "render.hpp"
 #include "render_context.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/str_utils.hpp"
@@ -883,7 +883,7 @@ namespace pv_param_task {
         else
             value = vec3::lerp(data.data_prev.color, data.data.color, frame / duration);
 
-        rctx_ptr->post_process.blur->set_intensity(value);
+        rctx_ptr->render.set_intensity(value);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -937,9 +937,8 @@ namespace pv_param_task {
             contrast = lerp_def(data.data_prev.contrast, data.data.contrast, t);
         }
 
-        post_process_tone_map* tone_map = rctx_ptr->post_process.tone_map;
-        tone_map->set_saturate_coeff(saturation, 1, false);
-        tone_map->set_exposure(exposure * 2.0f);
+        rctx_ptr->render.set_saturate_coeff(saturation, 1, false);
+        rctx_ptr->render.set_exposure(exposure * 2.0f);
 
         vec3 tone_trans_start;
         vec3 tone_trans_end;
@@ -947,7 +946,7 @@ namespace pv_param_task {
         CalcToneTrans(contrast + gamma.y, tone_trans_start.y, tone_trans_end.y);
         CalcToneTrans(contrast + gamma.z, tone_trans_start.z, tone_trans_end.z);
 
-        tone_map->set_tone_trans(tone_trans_start, tone_trans_end, 1);
+        rctx_ptr->render.set_tone_trans(tone_trans_start, tone_trans_end, 1);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -1225,7 +1224,6 @@ namespace pv_param_task {
             return;
 #endif
 
-        post_process_dof* dof = rctx_ptr->post_process.dof;
         dof_pv pv;
         dof_pv_get(&pv);
         pv.f2.focus = focus;

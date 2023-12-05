@@ -4,6 +4,7 @@
 */
 
 #pragma once
+
 #include <glad/glad.h>
 #include "../gl_state.hpp"
 
@@ -85,15 +86,19 @@ namespace GL {
             if (GLAD_GL_VERSION_4_5)
                 data = glMapNamedBuffer(buffer, GL_WRITE_ONLY);
             else {
-                gl_state_bind_array_buffer(buffer);
+                gl_state_bind_uniform_buffer(buffer);
                 data = glMapBuffer(GL_UNIFORM_BUFFER, GL_WRITE_ONLY);
             }
 
             if (data)
                 return data;
 
-            if (!GLAD_GL_VERSION_4_5)
-                gl_state_bind_array_buffer(0);
+            if (GLAD_GL_VERSION_4_5)
+                glUnmapNamedBuffer(buffer);
+            else {
+                glUnmapBuffer(GL_UNIFORM_BUFFER);
+                gl_state_bind_uniform_buffer(0);
+            }
             return 0;
         }
 
@@ -109,7 +114,7 @@ namespace GL {
                 glUnmapNamedBuffer(buffer);
             else {
                 glUnmapBuffer(GL_UNIFORM_BUFFER);
-                gl_state_bind_array_buffer(0);
+                gl_state_bind_uniform_buffer(0);
             }
         }
 

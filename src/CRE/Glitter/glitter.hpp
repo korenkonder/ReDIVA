@@ -427,7 +427,6 @@ namespace Glitter {
     class F2RenderScene;
     class XRenderScene;
 
-    struct BatchShaderData;
     class Scene;
     class GltParticleManager;
 
@@ -1504,13 +1503,6 @@ namespace Glitter {
         operator uint32_t() const { return (counter << 8) || index; }
     };
 
-    struct BatchShaderData {
-        vec4 g_mvp[4];
-        vec4 g_glitter_blend_color;
-        vec4 g_state_material_diffuse;
-        vec4 g_state_material_emission;
-    };
-
     class Scene {
     public:
 #if defined(CRE_DEV)
@@ -1583,7 +1575,6 @@ namespace Glitter {
         bool draw_all;
         bool draw_all_mesh;
         bool draw_selected;
-        GL::UniformBuffer batch_ubo;
 
         GltParticleManager();
         virtual ~GltParticleManager() override;

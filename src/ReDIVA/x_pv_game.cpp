@@ -2715,17 +2715,17 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         end.y = (float_t)data[4] * 0.001f;
         end.z = (float_t)data[5] * 0.001f;
 
-        rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
+        rctx_ptr->render.set_tone_trans(start, end, 1);
     } break;
     case DSC_X_SATURATE: {
         float_t saturate_coeff = (float_t)data[0] * 0.001f;
 
-        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
+        rctx_ptr->render.set_saturate_coeff(saturate_coeff, 1, false);
     } break;
     case DSC_X_FADE_MODE: {
         int32_t blend_func = data[0];
 
-        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
+        rctx_ptr->render.set_scene_fade_blend_func(blend_func, 1);
     } break;
     case DSC_X_AUTO_BLINK: {
 
@@ -3584,7 +3584,7 @@ void x_pv_game_pv_data::init(class x_pv_game* pv_game, bool music_play) {
 
     find_change_fields(pv_game->get_data().change_fields);
 
-    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = shadow_ptr_get();
     if (shad) {
         shad->blur_filter_enable[0] = true;
         shad->blur_filter_enable[1] = true;
@@ -5483,7 +5483,7 @@ bool x_pv_game::Ctrl() {
 
 #if BAKE_PNG || BAKE_VIDEO
     if (img_write && frame_prev != x_pv_game_ptr->frame) {
-        texture* tex = rctx_ptr->post_process.screen_texture.color_texture;
+        texture* tex = rctx_ptr->render.rediva_screen_texture.color_texture;
         int32_t width = tex->width;
         int32_t height = tex->height;
 
@@ -5690,6 +5690,11 @@ bool x_pv_game::Ctrl() {
                 if (++chara_index >= ROB_CHARA_COUNT)
                     break;
             }
+
+            if (pv_data.play_param->chara.size() < 2)
+                rctx_ptr->render.update_res(false, 1);
+            else
+                rctx_ptr->render.update_res(false, 2);
 
 #if BAKE_PV826
             if (pv_id == 826) {
@@ -6074,7 +6079,7 @@ bool x_pv_game::Ctrl() {
 
         get_data().pv_data.init(this, true);
 
-        Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+        Shadow* shad = shadow_ptr_get();
         if (shad) {
             shad->blur_filter_enable[0] = true;
             shad->blur_filter_enable[1] = true;
@@ -6150,7 +6155,7 @@ bool x_pv_game::Ctrl() {
         for (auto& i : pv_data.chara_effect.auth_3d)
             for (x_pv_game_chara_effect_auth_3d& j : i)
                 add_auth_3d(chara_effect_auth_3ds, j.id);
-        
+
         for (x_pv_game_song_effect& i : pv_data.effect.song_effect)
             for (x_pv_game_song_effect_auth_3d& j : i.auth_3d)
                 add_auth_3d(song_effect_auth_3ds, j.id);
@@ -6205,7 +6210,7 @@ bool x_pv_game::Ctrl() {
 
         for (auth_3d*& i : chara_effect_auth_3ds)
             add_auth_3d_object_set_id(i);
-        
+
         for (auth_3d*& i : song_effect_auth_3ds)
             add_auth_3d_object_set_id(i);
 
@@ -6297,7 +6302,7 @@ bool x_pv_game::Ctrl() {
 
         for (auto& i : chara_effect_auth_3ds)
             x_pv_game_write_auth_3d(i);
-        
+
         for (auto& i : stage_data_effect_auth_3ds)
             x_pv_game_write_auth_3d(i);
 
@@ -6619,13 +6624,6 @@ bool x_pv_game::Dest() {
 
     task_rob_manager_del_task();
 
-    light_param_data_storage_data_reset();
-    rctx_ptr->post_process.tone_map->reset_saturate_coeff(0, false);
-    rctx_ptr->post_process.tone_map->reset_scene_fade(0);
-    dof_pv_data.enable = false;
-    rctx_ptr->disp_manager.object_culling = true;
-    rctx_ptr->render_manager.shadow_ptr->range = 1.0f;
-
     Glitter::glt_particle_manager->SetPause(false);
     extern float_t frame_speed;
     frame_speed = 1.0f;
@@ -6648,7 +6646,7 @@ void x_pv_game::Basic() {
 #if DOF_BAKE
     if (dof_cam_data.frame != frame) {
         camera* cam = rctx_ptr->camera;
-        post_process_dof* dof = rctx_ptr->post_process.dof;
+        renderer::DOF3* dof = rctx_ptr->render.dof;
 
         dof_pv pv;
         dof_pv_get(&dof_pv_data);
@@ -7370,6 +7368,27 @@ bool x_pv_game::Unload() {
         i = 0;
 
     Glitter::glt_particle_manager->draw_all = true;
+
+    osage_play_data_manager_reset();
+
+    skin_param_storage_reset();
+
+    light_param_data_storage_data_reset();
+
+    rndr::Render& rend = rctx_ptr->render;
+    rend.reset_saturate_coeff(0, true);
+    dof_pv_set();
+    rend.reset_scene_fade(0);
+
+    rend.set_taa(1);
+    rend.update_res(0, -1);
+
+    rctx_ptr->disp_manager->object_culling = true;
+    shadow_ptr_get()->range = 1.0f;
+    rctx_ptr->render_manager->set_effect_texture(0);
+
+    sound_work_reset_all_se();
+
     pv_param_task::post_process_task_del_task();
     return true;
 }

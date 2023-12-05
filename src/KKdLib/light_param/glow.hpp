@@ -12,6 +12,7 @@ enum tone_map_method {
     TONE_MAP_YCC_EXPONENT = 0,
     TONE_MAP_RGB_LINEAR   = 1,
     TONE_MAP_RGB_LINEAR2  = 2,
+    TONE_MAP_MAX          = 3,
 };
 
 struct light_param_glow {

@@ -17,7 +17,6 @@
 #include "../CRE/clear_color.hpp"
 #include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
-#include "../CRE/fbo.hpp"
 #include "../CRE/file_handler.hpp"
 #include "../CRE/font.hpp"
 #include "../CRE/gl_state.hpp"
@@ -31,6 +30,8 @@
 #include "../CRE/pv_db.hpp"
 #include "../CRE/pv_expression.hpp"
 #include "../CRE/random.hpp"
+#include "../CRE/render.hpp"
+#include "../CRE/render_manager.hpp"
 #include "../CRE/shader.hpp"
 #include "../CRE/shader_dev.hpp"
 #include "../CRE/shader_ft.hpp"
@@ -42,7 +43,6 @@
 #include "../CRE/task.hpp"
 #include "../CRE/task_effect.hpp"
 #include "../CRE/texture.hpp"
-#include "../CRE/post_process.hpp"
 #include "../KKdLib/database/item_table.hpp"
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/sort.hpp"
@@ -345,7 +345,7 @@ void draw_pass_3d_grid(render_context* rctx) {
     shaders_ft.set(SHADER_FT_GRID);
     rctx->obj_scene_ubo.Bind(0);
     gl_state_bind_vertex_array(render->grid_vao);
-    glDrawArrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
+    shaders_ft.draw_arrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
     gl_state_use_program(0);
 
     gl_state_disable_depth_test();
@@ -566,7 +566,6 @@ static render_context* render_context_load() {
     rctx_ptr = rctx;
 
     gl_state_get();
-    render_texture_data_init();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
@@ -595,6 +594,13 @@ static render_context* render_context_load() {
     ogg_playback_data_init();
 
     game_state_init();
+
+    render_manager_init_data(0, 0, 0, false);
+    /*render_manager_init_data(
+        stru_140EDA5B0.ssaa,
+        stru_140EDA5B0.hd_res,
+        stru_140EDA5B0.ss_alpha_mask,
+        stru_140EDA5B0.screen_shot_4x == 1);*/
 
     object_storage_init(aft_obj_db);
     stage_param_data_storage_init();
@@ -913,16 +919,14 @@ static render_context* render_context_load() {
 
     render_resize_fb(rctx, false);
 
-    rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
+    rctx->resize(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
-    rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
-    rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
-    sprite_manager_set_res((double_t)internal_2d_res.x / (double_t)internal_2d_res.y,
-        internal_2d_res.x, internal_2d_res.y);
 
     rctx->camera->initialize(aspect);
 
     render_resize_fb(rctx, true);
+
+    rctx->init();
 
     Glitter::glt_particle_manager_add_task();
 
@@ -1161,7 +1165,7 @@ static void render_context_disp(render_context* rctx) {
 
     glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
-    rctx->post_process.rend_texture.Bind();
+    rctx->render.rend_texture[0].Bind();
     gl_state_set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
@@ -1172,17 +1176,17 @@ static void render_context_disp(render_context* rctx) {
     rctx->disp();
 
 #if BAKE_PNG || BAKE_VIDEO
-    fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
-        0, 0, rctx->post_process.sprite_width, rctx->post_process.sprite_height,
-        0, 0, rctx->post_process.screen_width, rctx->post_process.screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    fbo_blit(rctx->screen_texture.fbos[0], 0,
+        0, 0, rctx->sprite_width, rctx->sprite_height,
+        0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #else
-    fbo::blit(rctx->post_process.screen_texture.fbos[0], 0,
-        0, 0, rctx->post_process.sprite_width, rctx->post_process.sprite_height,
-        rctx->post_process.screen_x_offset, rctx->post_process.screen_y_offset,
-        rctx->post_process.sprite_width, rctx->post_process.sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    fbo_blit(rctx->screen_buffer.fbos[0], 0,
+        0, 0, rctx->sprite_width, rctx->sprite_height,
+        rctx->screen_x_offset, rctx->screen_y_offset,
+        rctx->sprite_width, rctx->sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #endif
 
-    glViewport(0, 0, rctx->post_process.screen_width, rctx->post_process.screen_height);
+    glViewport(0, 0, rctx->screen_width, rctx->screen_height);
     classes_process_disp(classes, classes_count);
 
     if (draw_imgui)
@@ -1210,6 +1214,9 @@ static void render_context_dispose(render_context* rctx) {
     render->unload_common_data();
 
     Glitter::glt_particle_manager_del_task();
+
+    rctx->free();
+
     task_auth_3d_del_task();
     aet_manager_del_task();
     task_pv_db_del_task();
@@ -1270,6 +1277,8 @@ static void render_context_dispose(render_context* rctx) {
     auth_3d_test_task_free();
     data_test_sel_free();
 
+    render_manager_free_data();
+
     dw_free();
 
     Glitter::glt_particle_manager_free();
@@ -1305,8 +1314,6 @@ static void render_context_dispose(render_context* rctx) {
     motion_free();
 
     app::task_work_free();
-
-    render_texture_data_free();
 
     delete rctx;
 
@@ -1393,10 +1400,7 @@ static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
 }
 
 static void render_resize_fb(render_context* rctx, bool change_fb) {
-    if (internal_3d_res.x < 20)
-        internal_3d_res.x = 20;
-    if (internal_3d_res.y < 20)
-        internal_3d_res.y = 20;
+    internal_3d_res = vec2i::max(internal_3d_res, 20);
 
     double_t res_width = (double_t)width;
     double_t res_height = (double_t)height;
@@ -1428,14 +1432,9 @@ static void render_resize_fb(render_context* rctx, bool change_fb) {
     old_internal_2d_res = internal_2d_res;
     old_internal_3d_res = internal_3d_res;
 
-    if (fb_changed && change_fb) {
-        rctx->post_process.init_fbo(internal_3d_res.x, internal_3d_res.y,
+    if (fb_changed && change_fb)
+        rctx->resize(internal_3d_res.x, internal_3d_res.y,
             internal_2d_res.x, internal_2d_res.y, width, height);
-        rctx->render_manager.resize(internal_2d_res.x, internal_2d_res.y);
-        rctx->litproj->resize(internal_3d_res.x, internal_3d_res.y);
-        sprite_manager_set_res((double_t)internal_2d_res.x / (double_t)internal_2d_res.y,
-            internal_2d_res.x, internal_2d_res.y);
-    }
 }
 
 static void render_imgui_context_menu(classes_data* classes,

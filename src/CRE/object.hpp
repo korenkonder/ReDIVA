@@ -21,7 +21,6 @@
 
 struct obj_mesh_index_buffer {
     GLuint buffer;
-    GLsizeiptr size;
 
     obj_mesh_index_buffer();
 
@@ -112,6 +111,7 @@ extern int32_t obj_material_texture_type_get_texcoord_index(
     obj_material_texture_type type, int32_t index);
 extern int32_t obj_material_texture_type_get_texture_index(
     obj_material_texture_type type, int32_t base_index);
+
 extern void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
     mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat);
 

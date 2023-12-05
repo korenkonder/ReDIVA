@@ -964,7 +964,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
             emission = rend_group->emission;
 
-        BatchShaderData shader_data = {};
+        glitter_batch_shader_data shader_data = {};
         mat4_transpose(&mat, &mat);
         shader_data.g_mvp[0] = mat.row0;
         shader_data.g_mvp[1] = mat.row1;
@@ -973,7 +973,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        GPM_VAL->batch_ubo.WriteMemory(shader_data);
+        rctx_ptr->glitter_batch_ubo.WriteMemory(shader_data);
 
         GLenum blend_src = GL_SRC_ALPHA;
         GLenum blend_dst = GL_ONE_MINUS_SRC_ALPHA;
@@ -1077,7 +1077,7 @@ namespace Glitter {
         }
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
-        GPM_VAL->batch_ubo.Bind(2);
+        rctx_ptr->glitter_batch_ubo.Bind(2);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
@@ -1537,7 +1537,7 @@ namespace Glitter {
                 emit_scale += ext_anim_scale;
         }
 
-        mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
+        mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
         disp_manager.set_texture_pattern(0, 0);
 
         RenderElement* elem = rend_group->elements;
@@ -2098,7 +2098,7 @@ namespace Glitter {
         if (rend_group->flags & PARTICLE_EMISSION || rend_group->blend_mode == PARTICLE_BLEND_TYPICAL)
             emission = rend_group->emission;
 
-        BatchShaderData shader_data = {};
+        glitter_batch_shader_data shader_data = {};
         mat4_transpose(&mat, &mat);
         shader_data.g_mvp[0] = mat.row0;
         shader_data.g_mvp[1] = mat.row1;
@@ -2107,7 +2107,7 @@ namespace Glitter {
         shader_data.g_glitter_blend_color = 1.0f;
         shader_data.g_state_material_diffuse = 0.0f;
         shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-        GPM_VAL->batch_ubo.WriteMemory(shader_data);
+        rctx_ptr->glitter_batch_ubo.WriteMemory(shader_data);
 
         GLenum blend_src = GL_SRC_ALPHA;
         GLenum blend_dst = GL_ONE_MINUS_SRC_ALPHA;
@@ -2194,7 +2194,7 @@ namespace Glitter {
             gl_state_disable_cull_face();
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
-        GPM_VAL->batch_ubo.Bind(2);
+        rctx_ptr->glitter_batch_ubo.Bind(2);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);

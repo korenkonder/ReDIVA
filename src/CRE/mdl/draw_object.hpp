@@ -5,11 +5,11 @@
 
 #pragma once
 
-#include "../KKdLib/default.hpp"
-#include "../KKdLib/mat.hpp"
-#include "../KKdLib/vec.hpp"
-#include "object.hpp"
-#include "render_context.hpp"
+#include "../../KKdLib/default.hpp"
+#include "../../KKdLib/mat.hpp"
+#include "../../KKdLib/vec.hpp"
+#include "../object.hpp"
+#include "../render_context.hpp"
 
 namespace mdl {
     extern void draw(render_context* rctx, obj_primitive_type primitive_type, uint32_t count,

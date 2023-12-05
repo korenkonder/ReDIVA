@@ -198,7 +198,6 @@ struct stars_buffer_data {
 };
 
 struct star_catalog {
-    GLuint vao;
     bool random;
     bool enable;
     stage_param_star* stage_param_data_ptr;
@@ -383,19 +382,16 @@ static bool rain_particle_enable;
 static float_t rain_particle_delta_frame;
 static uint32_t rain_particle_tex_id;
 static particle_data rain_ptcl_data[8];
-static GLuint rain_vao;
 static GL::ShaderStorageBuffer rain_ssbo;
 static GL::UniformBuffer rain_particle_scene_ubo;
 static GL::UniformBuffer rain_particle_batch_ubo;
 static const size_t rain_ptcl_count = 0x8000;
 
-static GLuint ripple_vao;
 static GL::UniformBuffer ripple_batch_ubo;
 static GL::UniformBuffer ripple_scene_ubo;
 
 static ripple_emit* ripple_emit_data;
 
-static GLuint ripple_emit_vao;
 static GL::ShaderStorageBuffer ripple_emit_ssbo;
 static GL::UniformBuffer ripple_emit_scene_ubo;
 
@@ -413,7 +409,6 @@ static uint32_t snow_particle_tex_id;
 static particle_data* snow_ptcl_data;
 static particle_data snow_ptcl_gpu[4];
 static particle_data* snow_ptcl_fallen_data;
-static GLuint snow_vao;
 static GL::ShaderStorageBuffer snow_ssbo;
 static GL::ShaderStorageBuffer snow_gpu_ssbo;
 static GL::ShaderStorageBuffer snow_fallen_ssbo;
@@ -931,7 +926,7 @@ struc_573::struc_573() : chara_index(), bone_index() {
 
 TaskEffectFogRing::Data::Data() : enable(), delta_frame(), field_8(), ring_size(), tex_id(),
 ptcl_size(), max_ptcls(), num_ptcls(), density(), density_offset(), ptcl_data(), num_vtx(),
-field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control(), vao() {
+field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control() {
     current_stage_index = -1;
 }
 
@@ -1055,43 +1050,38 @@ void TaskEffectFogRing::Data::Dest() {
         ptcl_data = 0;
     }
 
-    if (vao) {
-        glDeleteVertexArrays(1, &vao);
-        vao = 0;
-    }
-
     ssbo.Destroy();
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
-    rctx_ptr->render_manager.clear_pre_process(0);
-    rctx_ptr->draw_state.set_fog_height(false);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
+    rctx_ptr->render_manager->clear_pre_process(0);
+    rctx_ptr->draw_state->set_fog_height(false);
 }
 
 void TaskEffectFogRing::Data::Disp() {
     if (enable && disp)
-        rctx_ptr->disp_manager.entry_obj_user(&mat4_identity,
+        rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
             (mdl::UserArgsFunc)draw_fog_particle, this, mdl::OBJ_TYPE_USER);
 }
 
 void TaskEffectFogRing::Data::Draw() {
     render_context* rctx = rctx_ptr;
 
-    rctx->draw_state.set_fog_height(false);
+    rctx->draw_state->set_fog_height(false);
     if (!enable || !disp)
         return;
 
-    rctx->draw_state.set_fog_height(true);
-    RenderTexture& rt = rctx->render_manager.get_render_texture(8);
+    rctx->draw_state->set_fog_height(true);
+    RenderTexture& rt = rctx->render_manager->get_render_texture(8);
     rt.Bind();
     glViewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
     glClearColor(density_offset, density_offset, density_offset, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    if (rctx->disp_manager.get_obj_count(mdl::OBJ_TYPE_USER))
-        rctx->disp_manager.draw(mdl::OBJ_TYPE_USER);
+    if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER))
+        rctx->disp_manager->draw(mdl::OBJ_TYPE_USER);
     gl_state_bind_framebuffer(0);
-    rctx->render_manager.set_effect_texture(rt.color_texture);
+    rctx->render_manager->set_effect_texture(rt.color_texture);
     gl_state_get_error();
 }
 
@@ -1137,8 +1127,8 @@ void TaskEffectFogRing::Data::Reset() {
 }
 
 void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    rctx_ptr->render_manager.clear_pre_process(0);
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
+    rctx_ptr->render_manager->clear_pre_process(0);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
     disp = false;
     current_stage_index = -1;
     this->stage_indices.clear();
@@ -1212,24 +1202,16 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
         ptcl_data = 0;
     }
 
-    if (vao) {
-        glDeleteVertexArrays(1, &vao);
-        vao = 0;
-    }
-
     ssbo.Destroy();
 
     ptcl_data = new (force_malloc<fog_ring_data>(max_ptcls)) fog_ring_data[max_ptcls];
-
-    if (!vao)
-        glGenVertexArrays(1, &vao);
 
     ssbo.Create(sizeof(for_ring_vertex_data) * max_ptcls);
 
     InitParticleData();
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
-    rctx_ptr->render_manager.add_pre_process(0, TaskEffectFogRing::Data::DrawStatic, this);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
+    rctx_ptr->render_manager->add_pre_process(0, TaskEffectFogRing::Data::DrawStatic, this);
 }
 
 void TaskEffectFogRing::Data::DrawStatic(void* data) {
@@ -1863,7 +1845,7 @@ ripple_emit::~ripple_emit() {
 
 void ripple_emit::add_draw_ripple_emit(struc_101* data) {
     if (data->count > 0)
-        rctx_ptr->disp_manager.entry_obj_user(&mat4_identity,
+        rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
             (mdl::UserArgsFunc)draw_ripple_emit, data, mdl::OBJ_TYPE_USER);
 }
 
@@ -1875,11 +1857,11 @@ void ripple_emit::clear_tex() {
         RenderTexture* rt;
         float_t v5;
         if (use_float_ripplemap) {
-            rt = &rctx_ptr->render_manager.get_render_texture(j - 3);
+            rt = &rctx_ptr->render_manager->get_render_texture(j - 3);
             v5 = -0.3f;
         }
         else {
-            rt = &rctx_ptr->render_manager.get_render_texture(j);
+            rt = &rctx_ptr->render_manager->get_render_texture(j);
             v5 = 0.5f;
         }
 
@@ -1899,8 +1881,8 @@ void ripple_emit::ctrl() {
 
 void ripple_emit::dest() {
     stage_param_data_ripple_storage_clear();
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
-    rctx_ptr->render_manager.clear_pre_process(0);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
+    rctx_ptr->render_manager->clear_pre_process(0);
     this->ground_y = -1001.0;
 }
 
@@ -1932,7 +1914,7 @@ void ripple_emit::draw() {
 
     RenderTexture* rt[3];
     for (int32_t i = 0, j = 2; i < 3; i++, j++)
-        rt[i] = &rctx->render_manager.get_render_texture(
+        rt[i] = &rctx->render_manager->get_render_texture(
             use_float_ripplemap ? j : (j + 3));
 
     if (update) {
@@ -1950,11 +1932,11 @@ void ripple_emit::draw() {
 
         glViewport(1, 1, width - 2, height - 2);
 
-        draw_pass_set_camera(rctx_ptr);
+        draw_pass_set_camera();
         glClear(GL_DEPTH_BUFFER_BIT);
-        if (rctx->disp_manager.get_obj_count(mdl::OBJ_TYPE_USER)) {
+        if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
             gl_state_active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
-            rctx->disp_manager.draw(mdl::OBJ_TYPE_USER, 0, true);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_USER, 0, true);
             gl_state_active_bind_texture_2d(7, 0);
         }
 
@@ -1980,8 +1962,8 @@ void ripple_emit::draw() {
     if (!use_float_ripplemap)
         v11 += 3;
 
-    rctx->render_manager.set_effect_texture(
-        rctx->render_manager.get_render_texture(v11).color_texture);
+    rctx->render_manager->set_effect_texture(
+        rctx->render_manager->get_render_texture(v11).color_texture);
 
     update = false;
 
@@ -2052,8 +2034,8 @@ void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
     counter = 0;
     field_BEC = 0;
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
-    rctx_ptr->render_manager.add_pre_process(0, ripple_emit::draw_static, this);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
+    rctx_ptr->render_manager->add_pre_process(0, ripple_emit::draw_static, this);
 
     field_4F0 = 18;
     for (struc_207& i : field_4F4)
@@ -2104,7 +2086,7 @@ void ripple_emit::sub_1403584A0(RenderTexture* rt) {
     field_BB8.SetColorDepthTextures(ripple_tex->tex);
     field_BB8.Bind();
 
-    image_filter_scale(rctx_ptr, ripple_tex->tex, rt->GetColorTex(), 1.0f);
+    image_filter_scale(ripple_tex->tex, rt->GetColorTex(), 1.0f);
     gl_state_bind_framebuffer(0);
 }
 
@@ -2822,7 +2804,6 @@ void rain_particle_draw() {
 
     vec4 color = rain->color;
     float_t color_a = color.w;
-    gl_state_bind_vertex_array(rain_vao);
     rain_particle_scene_ubo.Bind(0);
     rain_particle_batch_ubo.Bind(1);
     rain_ssbo.Bind(0);
@@ -2890,7 +2871,7 @@ void snow_particle_draw() {
         return;
 
     stage_param_snow* snow = stage_param_data_snow_current;
-    draw_pass_set_camera(rctx_ptr);
+    draw_pass_set_camera();
 
     gl_state_enable_blend();
     gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -2910,8 +2891,8 @@ void snow_particle_draw() {
 
     mat4_transpose(&rctx_ptr->view_mat, &temp);
     snow_scene.g_view_world_row2 = temp.row2;
-    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->post_process.render_width;
-    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->post_process.render_height;
+    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->render.render_width[0];
+    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->render.render_height[0];
     snow_scene.g_size_in_projection.z = snow_particle_size_min;
     snow_scene.g_size_in_projection.w = snow_particle_size_max;
     snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
@@ -2929,8 +2910,8 @@ void snow_particle_draw() {
     snow_particle_batch_ubo.WriteMemory(snow_batch);
 
     gl_state_active_bind_texture_2d(0, tex->tex);
-    gl_state_active_bind_texture_2d(1, rctx_ptr->post_process.rend_texture.GetDepthTex());
-    gl_state_bind_vertex_array(snow_vao);
+    gl_state_active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].GetDepthTex());
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
 
     uniform_value[U_SNOW_PARTICLE] = 0;
     shaders_ft.set(SHADER_FT_SNOW_PT);
@@ -3307,7 +3288,7 @@ particle_data::particle_data() : size(), alpha(), life_time() {
 
 }
 
-star_catalog_milky_way::star_catalog_milky_way() : vao(), sampler(), restart_index(),
+star_catalog_milky_way::star_catalog_milky_way() : sampler(), restart_index(),
 idx_count(), longitude_degs_10(), latitude_degs_10(), longitude_offset_degs_10(),
 latitude_offset_degs_10(), latitude(), longitude(), uv_rec_scale_u(), uv_rec_scale_v() {
     reset();
@@ -3436,7 +3417,7 @@ void star_catalog_milky_way::delete_buffers() {
         glDeleteSamplers(1, &sampler);
         sampler = 0;
     }
-    
+
     vbo.Destroy();
     ebo.Destroy();
 
@@ -3530,7 +3511,7 @@ star_catalog_vertex::star_catalog_vertex() {
 
 }
 
-star_catalog::star_catalog() : vao(), stage_param_data_ptr(), star_count(), star_b_count() {
+star_catalog::star_catalog() : stage_param_data_ptr(), star_count(), star_b_count() {
     random = false;
     enable = true;
     star_tex = -1;
@@ -3576,9 +3557,6 @@ void star_catalog::draw() {
     if (milky_way_tex)
         milky_way.draw(vp, model, milky_way_tex, scene_ubo);
 
-    if (!vao)
-        return;
-
     star_catalog_scene_shader_data scene_shader_data = {};
     mat4 temp;
     mat4_mul(&model, &vp, &temp);
@@ -3595,7 +3573,7 @@ void star_catalog::draw() {
     gl_state_set_blend_func(GL_ONE, GL_ONE);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(false);
-    gl_state_bind_vertex_array(vao);
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
     for (int32_t i = 0; i < 2; i++) {
         stage_param_star_modifiers& modifiers = stage_param_data.modifiers[i];
 
@@ -3635,11 +3613,6 @@ void star_catalog::free() {
 
     star_catalog_data.file_handler.reset();
     star_catalog_data.milky_way.delete_buffers();
-
-    if (star_catalog_data.vao) {
-        glDeleteVertexArrays(1, &star_catalog_data.vao);
-        star_catalog_data.vao = 0;
-    }
 
     star_catalog_data.stage_param_data_ptr = 0;
 }
@@ -3691,9 +3664,6 @@ bool star_catalog::init() {
         star_count = (int32_t)vec.size();
 
         stars_ssbo.Create(sizeof(stars_buffer_data) * vec.size(), vec.data());
-
-        if (!vao)
-            glGenVertexArrays(1, &vao);
     }
 
     milky_way.create_default_sphere();
@@ -4052,7 +4022,7 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     texture* tex = texture_storage_get_texture(data->tex_id);
     if (tex)
         gl_state_active_bind_texture_2d(0, tex->tex);
-    gl_state_bind_vertex_array(data->vao);
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
     data->ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);
     gl_state_disable_blend();
@@ -4080,7 +4050,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
-    RenderTexture& rt = rctx->render_manager.get_render_texture(
+    RenderTexture& rt = rctx->render_manager->get_render_texture(
         ripple_emit_data->use_float_ripplemap ? 2 : 5);
     int32_t width = rt.GetWidth();
     int32_t height = rt.GetHeight();
@@ -4104,7 +4074,7 @@ static void draw_ripple_emit(render_context* rctx, struc_101* data) {
     uniform_value[U_RIPPLE] = data->ripple_uniform;
     uniform_value[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
 
-    gl_state_bind_vertex_array(ripple_emit_vao);
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
     shaders_ft.set(SHADER_FT_RIPEMIT);
     ripple_emit_scene_ubo.Bind(0);
     ripple_emit_ssbo.Bind(0);
@@ -4629,9 +4599,6 @@ static void rain_particle_init(bool change_stage) {
 
     rain_particle_free();
 
-    if (!rain_vao)
-        glGenVertexArrays(1, &rain_vao);
-
     vec3* vtx_data = force_malloc<vec3>(rain_ptcl_count);
     for (int32_t i = 0; i < rain_ptcl_count; i++) {
         vec3 position;
@@ -4674,11 +4641,6 @@ static void rain_particle_ctrl() {
 }
 
 static void rain_particle_free() {
-    if (rain_vao) {
-        glDeleteVertexArrays(1, &rain_vao);
-        rain_vao = 0;
-    }
-
     rain_ssbo.Destroy();
 
     rain_particle_scene_ubo.Destroy();
@@ -4686,14 +4648,8 @@ static void rain_particle_free() {
 }
 
 static void ripple_emit_init() {
-    if (!ripple_vao)
-        glGenVertexArrays(1, &ripple_vao);
-
     ripple_batch_ubo.Create(sizeof(ripple_batch_shader_data));
     ripple_scene_ubo.Create(sizeof(ripple_scene_shader_data));
-
-    if (!ripple_emit_vao)
-        glGenVertexArrays(1, &ripple_emit_vao);
 
     size_t max_count = 16;
 
@@ -4703,20 +4659,10 @@ static void ripple_emit_init() {
 }
 
 static void ripple_emit_free() {
-    if (ripple_vao) {
-        glDeleteVertexArrays(1, &ripple_vao);
-        ripple_vao = 0;
-    }
-
     ripple_batch_ubo.Destroy();
     ripple_scene_ubo.Destroy();
 
     ripple_emit_ssbo.Destroy();
-
-    if (ripple_emit_vao) {
-        glDeleteVertexArrays(1, &ripple_emit_vao);
-        ripple_emit_vao = 0;
-    }
 
     ripple_emit_scene_ubo.Destroy();
 }
@@ -4729,7 +4675,7 @@ static void snow_particle_init(bool change_stage) {
     snow_particle_fallen_count = 0;
     snow_particle_fallen_index = 0;
 
-    int32_t render_height = rctx_ptr->post_process.render_height;
+    int32_t render_height = rctx_ptr->render.render_height[0];
     float_t snow_particle_size = (float_t)render_height * (float_t)(1.0 / 720.0);
     snow_particle_size_min = snow_particle_size;
     snow_particle_size_mid = snow_particle_size * 31.0f;
@@ -4800,9 +4746,6 @@ static void snow_particle_init(bool change_stage) {
         return;
 
     snow_particle_free();
-
-    if (!snow_vao)
-        glGenVertexArrays(1, &snow_vao);
 
     snow_ssbo.Create(sizeof(snow_particle_vertex_data) * snow->num_snow);
 
@@ -5023,11 +4966,6 @@ static vec3 snow_particle_get_random_velocity() {
 }
 
 static void snow_particle_free() {
-    if (snow_vao) {
-        glDeleteVertexArrays(1, &snow_vao);
-        snow_vao = 0;
-    }
-
     snow_ssbo.Destroy();
     snow_gpu_ssbo.Destroy();
     snow_fallen_ssbo.Destroy();
@@ -5073,7 +5011,7 @@ static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& p
     ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
     ripple_batch_ubo.WriteMemory(ripple_batch);
 
-    gl_state_bind_vertex_array(ripple_vao);
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
     shaders_ft.set(SHADER_FT_RIPPLE);
     ripple_scene_ubo.Bind(0);
     ripple_batch_ubo.Bind(1);

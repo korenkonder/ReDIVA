@@ -18,7 +18,7 @@ struct color4u8 {
 
     }
 
-    inline color4u8(uint8_t x, uint8_t y, uint8_t z, uint8_t w) : r(x), g(y), b(z), a(w) {
+    inline color4u8(uint8_t r, uint8_t g, uint8_t b, uint8_t a) : r(r), g(g), b(b), a(a) {
 
     }
 

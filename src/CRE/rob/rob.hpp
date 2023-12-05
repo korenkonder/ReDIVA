@@ -11,8 +11,8 @@
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/mot.hpp"
 #include "../../KKdLib/vec.hpp"
-#include "../draw_object.hpp"
 #include "../item_table.hpp"
+#include "../render_context.hpp"
 #include "../object.hpp"
 #include "../static_var.hpp"
 

@@ -253,8 +253,8 @@ void pv_scene_fade::ctrl(float_t delta_time) {
         end = false;
     }
 
-    rctx_ptr->post_process.tone_map->set_scene_fade_color(color, 1);
-    rctx_ptr->post_process.tone_map->set_scene_fade_alpha(alpha, 1);
+    rctx_ptr->render.set_scene_fade_color(color, 1);
+    rctx_ptr->render.set_scene_fade_alpha(alpha, 1);
 
     if (end)
         reset();
@@ -1307,7 +1307,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         playdata->shadow = enable == 1;
 
-        Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+        Shadow* shad = shadow_ptr_get();
         if (shad)
             if (chara_id == 1)
                 shad->blur_filter_enable[1] = playdata->shadow;
@@ -1540,17 +1540,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         end.y = (float_t)data[4] * 0.001f;
         end.z = (float_t)data[5] * 0.001f;
 
-        rctx_ptr->post_process.tone_map->set_tone_trans(start, end, 1);
+        rctx_ptr->render.set_tone_trans(start, end, 1);
     } break;
     case DSC_FT_SATURATE: {
         float_t saturate_coeff = (float_t)data[0] * 0.001f;
 
-        rctx_ptr->post_process.tone_map->set_saturate_coeff(saturate_coeff, 1, false);
+        rctx_ptr->render.set_saturate_coeff(saturate_coeff, 1, false);
     } break;
     case DSC_FT_FADE_MODE: {
         int32_t blend_func = data[0];
 
-        rctx_ptr->post_process.tone_map->set_scene_fade_blend_func(blend_func, 1);
+        rctx_ptr->render.set_scene_fade_blend_func(blend_func, 1);
     } break;
     case DSC_FT_AUTO_BLINK: {
         chara_id = data[0];
@@ -1857,7 +1857,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_SHADOW_RANGE: {
         float_t range = (float_t)data[0] * 0.001f;
 
-        rctx_ptr->render_manager.shadow_ptr->range = range;
+        shadow_ptr_get()->range = range;
     } break;
     case DSC_FT_HAND_SCALE: {
         chara_id = data[0];
@@ -1938,19 +1938,19 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t enable = data[0];
 
         if (pv_game->data.pv)
-            rctx_ptr->post_process.frame_texture_cont_capture_set(enable == 1);
+            rctx_ptr->render.frame_texture_cont_capture_set(enable == 1);
     } break;
     case DSC_FT_MAN_CAP: {
         int32_t slot = data[0];
 
         if (pv_game->data.pv && slot >= 0 && slot <= 4)
-            rctx_ptr->post_process.frame_texture_slot_capture_set(slot + 1);
+            rctx_ptr->render.frame_texture_slot_capture_set(slot + 1);
     } break;
     case DSC_FT_TOON: {
         int32_t npr_param = data[0];
         int32_t value = data[1];
 
-        rctx_ptr->render_manager.set_npr_param(npr_param);
+        rctx_ptr->render_manager->set_npr_param(npr_param);
         if (npr_param == 1)
             if (value > 0)
                 npr_cloth_spec_color.w = (float_t)(value - 1) * 0.1f;
@@ -2444,7 +2444,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
         sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
     find_set_motion(diff);
 
-    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = shadow_ptr_get();
     if (shad) {
         shad->blur_filter_enable[0] = true;
         shad->blur_filter_enable[1] = true;
@@ -2541,12 +2541,11 @@ void pv_game_pv_data::reset_camera_post_process() {
     cam->set_ignore_fov(false);
     cam->set_fov(32.2673416137695f);
 
-    post_process* pp = &rctx_ptr->post_process;
-    pp->tone_map->reset_scene_fade(1);
-    pp->tone_map->reset_tone_trans(1);
-    pp->tone_map->reset_saturate_coeff(1, 1);
+    rctx_ptr->render.reset_scene_fade(1);
+    rctx_ptr->render.reset_tone_trans(1);
+    rctx_ptr->render.reset_saturate_coeff(1, 1);
 
-    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = shadow_ptr_get();
     if (shad)
         for (bool& i : shad->blur_filter_enable)
             i = true;

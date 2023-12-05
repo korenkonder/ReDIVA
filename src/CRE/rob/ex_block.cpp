@@ -995,9 +995,9 @@ void RobCloth::Disp(const mat4* mat, render_context* rctx) {
         }
     }
 
-    rctx->disp_manager.set_texture_pattern((int32_t)itm_eq_obj->texture_pattern.size(), itm_eq_obj->texture_pattern.data());
-    rctx->disp_manager.entry_obj_by_obj(mat, &o, tex, vertex_buffer, index_buffer, 0, itm_eq_obj->alpha);
-    rctx->disp_manager.set_texture_pattern();
+    rctx->disp_manager->set_texture_pattern((int32_t)itm_eq_obj->texture_pattern.size(), itm_eq_obj->texture_pattern.data());
+    rctx->disp_manager->entry_obj_by_obj(mat, &o, tex, vertex_buffer, index_buffer, 0, itm_eq_obj->alpha);
+    rctx->disp_manager->set_texture_pattern();
 }
 
 void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,

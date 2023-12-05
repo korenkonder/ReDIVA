@@ -4,6 +4,7 @@
 */
 
 #pragma once
+
 #include <glad/glad.h>
 #include "../gl_state.hpp"
 
@@ -92,8 +93,12 @@ namespace GL {
             if (data)
                 return data;
 
-            if (!GLAD_GL_VERSION_4_5)
+            if (GLAD_GL_VERSION_4_5)
+                glUnmapNamedBuffer(buffer);
+            else {
+                glUnmapBuffer(GL_ELEMENT_ARRAY_BUFFER);
                 gl_state_bind_element_array_buffer(0);
+            }
             return 0;
         }
 

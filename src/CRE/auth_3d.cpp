@@ -473,7 +473,7 @@ void auth_3d::disp(render_context* rctx) {
         if (i->active)
             i->Disp(this, &mat, rctx);
 
-    rctx->disp_manager.set_material_list(0, 0);
+    rctx->disp_manager->set_material_list(0, 0);
 }
 
 void auth_3d::load(a3da* auth_file,
@@ -1147,7 +1147,7 @@ namespace auth_3d_detail {
             return;
         }
 
-        rctx->post_process.tone_map->reset_scene_fade(0);
+        rctx->render.reset_scene_fade(0);
     }
 
     void EventFilterFade::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {
@@ -1168,7 +1168,7 @@ namespace auth_3d_detail {
         else
             value.w = 1.0f - t;
 
-        rctx->post_process.tone_map->set_scene_fade(value, 0);
+        rctx->render.set_scene_fade(value, 0);
     }
 
     EventFilterTimeStop::EventFilterTimeStop(a3da_event* e) : Event(e) {
@@ -3536,7 +3536,7 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
 
         remove_parent_name.erase(remove_parent_name.begin(),
             remove_parent_name.begin() + remove_parent_name_size);
-        
+
         size_t remove_parent_node_size = remove_parent_node.size();
         for (size_t i = remove_parent_node_size, i1 = 0; i; i--, i1++) {
             uint32_t remove_parent_node_hash = hash_string_murmurhash(remove_parent_node[i1]);
@@ -3964,7 +3964,7 @@ static void auth_3d_read_file_modern(auth_3d* auth) {
 }
 
 static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
-    mdl::DispManager& disp_manager = rctx->disp_manager;
+    mdl::DispManager& disp_manager = *rctx->disp_manager;
 
     int32_t mat_list_count = 0;
     material_list_struct mat_list[TEXTURE_PATTERN_COUNT];
@@ -4076,33 +4076,29 @@ static void auth_3d_camera_auxiliary_load(auth_3d* auth, auth_3d_camera_auxiliar
 }
 
 static void auth_3d_camera_auxiliary_restore_prev_value(auth_3d_camera_auxiliary* ca, render_context* rctx) {
-    post_process_tone_map* tm = rctx->post_process.tone_map;
-
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_AUTO_EXPOSURE)
-        tm->set_auto_exposure(true);
+        rctx->render.set_auto_exposure(true);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE)
-        tm->set_exposure(2.0);
+        rctx->render.set_exposure(2.0);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA)
-        tm->set_gamma(1.0);
+        rctx->render.set_gamma(1.0);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE)
-        tm->set_gamma_rate(1.0);
+        rctx->render.set_gamma_rate(1.0);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE)
-        tm->set_saturate_coeff(1.0, 0, false);
+        rctx->render.set_saturate_coeff(1.0, 0, false);
 }
 
 static void auth_3d_camera_auxiliary_set(auth_3d_camera_auxiliary* ca, render_context* rctx) {
-    post_process_tone_map* tm = rctx->post_process.tone_map;
-
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_AUTO_EXPOSURE)
-        tm->set_auto_exposure(ca->auto_exposure_value > 0.0f);
+        rctx->render.set_auto_exposure(ca->auto_exposure_value > 0.0f);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_EXPOSURE)
-        tm->set_exposure(ca->exposure_value);
+        rctx->render.set_exposure(ca->exposure_value);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA)
-        tm->set_gamma(ca->gamma_value);
+        rctx->render.set_gamma(ca->gamma_value);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_GAMMA_RATE)
-        tm->set_gamma_rate(ca->gamma_rate_value);
+        rctx->render.set_gamma_rate(ca->gamma_rate_value);
     if (ca->flags & AUTH_3D_CAMERA_AUXILIARY_SATURATE)
-        tm->set_saturate_coeff(ca->saturate_value, 0, false);
+        rctx->render.set_saturate_coeff(ca->saturate_value, 0, false);
 }
 
 static void auth_3d_camera_auxiliary_store(auth_3d* auth, auth_3d_camera_auxiliary_file* caf) {
@@ -4698,7 +4694,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
     if (!auth->visible || !moh->model_transform.visible)
         return;
 
-    mdl::DispManager& disp_manager = rctx->disp_manager;
+    mdl::DispManager& disp_manager = *rctx->disp_manager;
 
     for (auth_3d_object_instance& i : moh->instance) {
         if (!i.model_transform.visible)
@@ -4716,7 +4712,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         disp_manager.set_obj_flags(flags);
         disp_manager.set_shadow_type(shadow_type);
 
-        Shadow* shad = rctx->render_manager.shadow_ptr;
+        Shadow* shad = shadow_ptr_get();
         if (shad && flags & mdl::OBJ_SHADOW) {
             disp_manager.set_shadow_type(SHADOW_STAGE);
 
@@ -6328,7 +6324,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
 
     mat4 mat = o->model_transform.mat;
 
-    mdl::DispManager& disp_manager = rctx->disp_manager;
+    mdl::DispManager& disp_manager = *rctx->disp_manager;
     object_database* obj_db = auth->obj_db;
     texture_database* tex_db = auth->tex_db;
 
@@ -6379,7 +6375,8 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     texture_transform_struct tex_trans[TEXTURE_TRANSFORM_COUNT];
 
     for (auth_3d_object_texture_transform& i : o->texture_transform) {
-        if (tex_trans_count >= TEXTURE_TRANSFORM_COUNT)
+        if (tex_trans_count >= TEXTURE_TRANSFORM_COUNT || i.texture_id == -1
+            || !texture_storage_get_texture(i.texture_id))
             break;
 
         tex_trans[tex_trans_count].id = i.texture_id;
@@ -6408,7 +6405,10 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
 
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, morph_int);
             object_info obj_info = obj_db->get_object_info(buf);
-            disp_manager.entry_obj_by_object_info(&mat, obj_info);
+            if (auth->alpha < 0.999f)
+                disp_manager.entry_obj_by_object_info(&mat, obj_info, auth->alpha);
+            else
+                disp_manager.entry_obj_by_object_info(&mat, obj_info);
             disp_manager.set_morph({}, 0.0f);
         }
         else {
@@ -6526,7 +6526,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
     if (!auth->visible || !oh->node.front().model_transform.visible)
         return;
 
-    mdl::DispManager& disp_manager = rctx->disp_manager;
+    mdl::DispManager& disp_manager = *rctx->disp_manager;
     object_database* obj_db = auth->obj_db;
     texture_database* tex_db = auth->tex_db;
 
@@ -6565,7 +6565,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
                 break;
             }
 
-        Shadow* shad = rctx->render_manager.shadow_ptr;
+        Shadow* shad = shadow_ptr_get();
         if (shad) {
             vec3 pos = *(vec3*)&m->row3;
             pos.y -= 0.2f;
@@ -7013,47 +7013,41 @@ static void auth_3d_post_process_load(auth_3d* auth, auth_3d_post_process* pp, a
 }
 
 static void auth_3d_post_process_restore_prev_value(auth_3d_post_process* pp, render_context* rctx) {
-    post_process_blur* blur = rctx->post_process.blur;
-    post_process_tone_map* tm = rctx->post_process.tone_map;
-
     if (pp->flags_init & AUTH_3D_POST_PROCESS_INTENSITY)
-        blur->set_intensity(pp->intensity_init);
+        rctx->render.set_intensity(pp->intensity_init);
 
     if (pp->flags_init & (AUTH_3D_POST_PROCESS_LENS_FLARE
         | AUTH_3D_POST_PROCESS_LENS_GHOST | AUTH_3D_POST_PROCESS_LENS_SHAFT)) {
-        vec3 value = tm->get_lens();
+        vec3 value = rctx->render.get_lens();
         if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE)
             value.x = pp->lens_init.x;
         if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_SHAFT)
             value.y = pp->lens_init.y;
         if (pp->flags_init & AUTH_3D_POST_PROCESS_LENS_GHOST)
             value.z = pp->lens_init.z;
-        tm->set_lens(value);
+        rctx->render.set_lens(value);
     }
 
     if (pp->flags_init & AUTH_3D_POST_PROCESS_RADIUS)
-        blur->set_radius(pp->radius_init);
+        rctx->render.set_radius(pp->radius_init);
 
     if (pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE)
-        tm->set_scene_fade(pp->scene_fade_init, 0);
+        rctx->render.set_scene_fade(pp->scene_fade_init, 0);
 }
 
 static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* rctx) {
-    post_process_blur* blur = rctx->post_process.blur;
-    post_process_tone_map* tm = rctx->post_process.tone_map;
-
     if (pp->flags & AUTH_3D_POST_PROCESS_INTENSITY) {
         if (!(pp->flags_init & AUTH_3D_POST_PROCESS_INTENSITY)) {
-            pp->intensity_init = blur->get_intensity();
+            pp->intensity_init = rctx->render.get_intensity();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_INTENSITY);
         }
 
-        blur->set_intensity(*(vec3*)&pp->intensity.value);
+        rctx->render.set_intensity(*(vec3*)&pp->intensity.value);
     }
 
     if (pp->flags & (AUTH_3D_POST_PROCESS_LENS_GHOST
         | AUTH_3D_POST_PROCESS_LENS_SHAFT | AUTH_3D_POST_PROCESS_LENS_FLARE)) {
-        vec3 value = tm->get_lens();
+        vec3 value = rctx->render.get_lens();
         if (pp->flags & AUTH_3D_POST_PROCESS_LENS_FLARE) {
             if (!(pp->flags_init & AUTH_3D_POST_PROCESS_LENS_FLARE))
                 pp->lens_init.x = value.x;
@@ -7071,25 +7065,25 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
                 pp->lens_init.z = value.z;
             value.z = pp->lens_value.z;
         }
-        tm->set_lens(value);
+        rctx->render.set_lens(value);
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_RADIUS) {
         if (!(pp->flags_init & AUTH_3D_POST_PROCESS_RADIUS)) {
-            pp->radius_init = blur->get_radius();
+            pp->radius_init = rctx->render.get_radius();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_RADIUS);
         }
 
-        blur->set_radius(*(vec3*)&pp->radius.value);
+        rctx->render.set_intensity(*(vec3*)&pp->radius.value);
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_SCENE_FADE) {
         if (!(pp->flags_init & AUTH_3D_POST_PROCESS_SCENE_FADE)) {
-            pp->scene_fade_init = tm->get_scene_fade();
+            pp->scene_fade_init = rctx->render.get_scene_fade();
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_SCENE_FADE);
         }
 
-        tm->set_scene_fade(pp->scene_fade.value, 0);
+        rctx->render.set_scene_fade(pp->scene_fade.value, 0);
     }
 }
 

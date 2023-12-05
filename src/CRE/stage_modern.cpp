@@ -450,7 +450,7 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
     mat4_transform_point(view, &center, &center);
     float_t radius = sphere->radius;
 
-    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = shadow_ptr_get();
     float_t view_region = shad->view_region * shad->range;
     if ((center.x + radius) < -view_region
         || (center.x - radius) > view_region
@@ -464,14 +464,14 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
 
 static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = shadow_ptr_get();
     mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
     return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
 static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view) {
     mat4 mat;
-    Shadow* shad = rctx_ptr->render_manager.shadow_ptr;
+    Shadow* shad = shadow_ptr_get();
     mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
     return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
@@ -492,7 +492,7 @@ static void stage_modern_disp(stage_modern* s) {
     if (s->state != 6 || !s->stage_display)
         return;
 
-    mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
+    mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
 
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
@@ -530,7 +530,7 @@ static void stage_modern_disp_shadow(stage_modern* s) {
 }
 
 static void stage_modern_disp_shadow_object(object_info object, mat4* mat) {
-    mdl::DispManager& disp_manager = rctx_ptr->disp_manager;
+    mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
 
     for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
         disp_manager.set_shadow_type((shadow_type_enum)i);
@@ -556,18 +556,18 @@ static void stage_modern_free(stage_modern* s) {
     if (s->state < 7 || s->state > 9)
         return;
 
-    rndr::RenderManager* render_manager = &rctx_ptr->render_manager;
+    rndr::RenderManager* render_manager = rctx_ptr->render_manager;
     if (s->stage_data->render_texture != -1 && s->stage_data->render_texture != hash_murmurhash_empty)
-        rctx_ptr->post_process.render_texture_free(
+        rctx_ptr->render.render_texture_free(
             texture_storage_get_texture(s->stage_data->render_texture), 0);
 
     if (s->stage_data->movie_texture != -1 && s->stage_data->movie_texture != hash_murmurhash_empty)
-        rctx_ptr->post_process.movie_texture_free(
+        rctx_ptr->render.movie_texture_free(
             texture_storage_get_texture(s->stage_data->movie_texture));
 
     render_manager->set_shadow_true();
-    //rctx_ptr->post_process.field_14 = 0;
-    //rctx_ptr->post_process.field_ED8 = 1;
+    //rctx_ptr->render.field_14 = 0;
+    //rctx_ptr->render.field_ED8 = 1;
     npr_cloth_spec_color.w = 1.0f;
     render_manager->field_31D = false;
     render_manager->field_31E = false;
@@ -614,11 +614,11 @@ static void stage_modern_load(stage_modern* s, void* data, object_database* obj_
             return;
 
         if (s->stage_data->render_texture != -1 && s->stage_data->render_texture != hash_murmurhash_empty)
-            rctx_ptr->post_process.render_texture_set(
+            rctx_ptr->render.render_texture_set(
                 texture_storage_get_texture(s->stage_data->render_texture), 0);
 
         if (s->stage_data->movie_texture != -1 && s->stage_data->movie_texture != hash_murmurhash_empty)
-            rctx_ptr->post_process.movie_texture_set(
+            rctx_ptr->render.movie_texture_set(
                 texture_storage_get_texture(s->stage_data->movie_texture));
         s->state = 6;
     }
@@ -642,7 +642,7 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
     if (other && s == other)
         return;
 
-    rndr::RenderManager* render_manager = &rctx_ptr->render_manager;
+    rndr::RenderManager* render_manager = rctx_ptr->render_manager;
     if (s) {
         //flt_14CC925C0 = 0.0;
         //flt_140CB3704 = -1001.0;
@@ -655,8 +655,8 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         render_manager->field_31F = false;
         render_manager->field_320 = false;
         render_manager->set_shadow_true();
-        //rctx_ptr->post_process.field_14 = 0;
-        //rctx_ptr->post_process.field_ED8 = 1;
+        //rctx_ptr->render.field_14 = 0;
+        //rctx_ptr->render.field_ED8 = 1;
         npr_cloth_spec_color.w = 1.0f;
         render_manager->set_npr_param(0);
         light_chara_ambient = false;

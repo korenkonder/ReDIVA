@@ -8,9 +8,8 @@
 #include "render_context.hpp"
 #include "texture.hpp"
 
-static GLuint render_texture_vao;
+extern render_context* rctx_ptr;
 
-static bool render_texture_data_initialized;
 static uint32_t render_texture_counter;
 
 static int32_t render_texture_init_framebuffer(RenderTexture* rt, int32_t max_level);
@@ -59,9 +58,10 @@ void RenderTexture::Free() {
         field_2C = 0;
     }
 
-    if (fbos[0]) {
+    if (fbos) {
         glDeleteFramebuffers(max_level + 1, fbos);
-        memset(fbos, 0, sizeof(fbos));
+        free(fbos);
+        fbos = 0;
     }
     max_level = 0;
 }
@@ -129,63 +129,18 @@ int32_t RenderTexture::SetColorDepthTextures(GLuint color_texture,
     int32_t max_level, GLuint depth_texture, bool stencil) {
     int32_t error = 0;
     this->max_level = max_level;
-    if (!fbos[0])
+    if (!fbos)
         error = render_texture_init_framebuffer(this, max_level);
     render_texture_set_framebuffer_texture(this, color_texture, max_level, depth_texture, stencil);
     return error;
 }
 
-void RenderTexture::Draw(shader_set_data* set) {
-    gl_state_bind_vertex_array(render_texture_vao);
-    set->draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-void RenderTexture::DrawCustom() {
-    gl_state_bind_vertex_array(render_texture_vao);
-    glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-void RenderTexture::DrawQuad(shader_set_data* set, int32_t width, int32_t height,
-    float_t s0, float_t t0, float_t s1, float_t t1, float_t scale,
-    float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
-    extern render_context* rctx_ptr;
-
-    s0 -= s1;
-    t0 -= t1;
-
-    float_t w = (float_t)max_def(width, 1);
-    float_t h = (float_t)max_def(height, 1);
-    quad_shader_data quad = {};
-    quad.g_texcoord_modifier = { 0.5f * s0, 0.5f * t0, 0.5f * s0 + s1, 0.5f * t0 + t1 }; // x * 0.5 * y0 + 0.5 * y0 + y1
-    quad.g_texel_size = { scale / w, scale / h, w, h };
-    quad.g_color = { param_x, param_y, param_z, param_w };
-    quad.g_texture_lod = 0.0f;
-
-    rctx_ptr->quad_ubo.WriteMemory(quad);
-    rctx_ptr->quad_ubo.Bind(0);
-    gl_state_bind_vertex_array(render_texture_vao);
-    set->draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-}
-
-void render_texture_data_init() {
-    if (render_texture_data_initialized)
-        return;
-
-    glGenVertexArrays(1, &render_texture_vao);
-
-    render_texture_data_initialized = true;
-}
-
-void render_texture_data_free() {
-    if (!render_texture_data_initialized)
-        return;
-
-    glDeleteVertexArrays(1, &render_texture_vao);
-
-    render_texture_data_initialized = false;
+void render_texture_counter_reset() {
+    render_texture_counter = 0;
 }
 
 static int32_t render_texture_init_framebuffer(RenderTexture* rt, int32_t max_level) {
+    rt->fbos = force_malloc<GLuint>(max_level + 1LL);
     glGenFramebuffers(max_level + 1, rt->fbos);
     return -(gl_state_get_error() != GL_ZERO);
 }

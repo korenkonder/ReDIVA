@@ -8,8 +8,9 @@
 #include <vector>
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/stage.hpp"
-#include "render_context.hpp"
 #include "auth_3d.hpp"
+#include "render_context.hpp"
+#include "task.hpp"
 
 struct stage_modern {
     uint32_t hash;

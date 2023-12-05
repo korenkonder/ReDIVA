@@ -27,12 +27,10 @@ namespace Glitter {
         draw_all_mesh = true;
         scenes.reserve(0x100);
         file_readers.reserve(0x100);
-        batch_ubo.Create(sizeof(BatchShaderData));
     }
 
     GltParticleManager::~GltParticleManager() {
         FreeEffects();
-        batch_ubo.Destroy();
     }
 
     bool GltParticleManager::Init() {

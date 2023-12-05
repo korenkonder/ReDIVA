@@ -234,7 +234,6 @@ public:
         int32_t current_stage_index;
         std::vector<int32_t> stage_indices;
         FrameRateControl* frame_rate_control;
-        GLuint vao;
         GL::ShaderStorageBuffer ssbo;
 
         Data();

@@ -155,8 +155,7 @@ namespace spr {
         uint32_t AddSetModern();
         void AddSprSets(const sprite_database* spr_db);
         void Clear();
-        void Draw(render_context* rctx,
-            int32_t index, bool font, texture* tex, const mat4& vp);
+        void Draw(int32_t index, bool font, texture* tex, const mat4& vp);
         SprSet* GetSet(uint32_t index);
         bool GetSetReady(uint32_t index);
         uint32_t GetSetSpriteNum(uint32_t index);
@@ -470,9 +469,8 @@ void sprite_manager_clear() {
     sprite_manager->Clear();
 }
 
-void sprite_manager_draw(render_context* rctx,
-    int32_t index, bool font, texture* tex, const mat4& vp) {
-    sprite_manager->Draw(rctx, index, font, tex, vp);
+void sprite_manager_draw(int32_t index, bool font, texture* tex, const mat4& vp) {
+    sprite_manager->Draw(index, font, tex, vp);
 }
 
 int32_t sprite_manager_get_index() {
@@ -770,8 +768,8 @@ namespace spr {
         render_data.Clear();
     }
 
-    void SpriteManager::Draw(render_context* rctx,
-        int32_t index, bool font, texture* tex, const mat4& vp) {
+    void SpriteManager::Draw(int32_t index, bool font, texture* tex, const mat4& vp) {
+        render_context* rctx = rctx_ptr;
         draw_sprite_begin(rctx);
 
         ::resolution_mode mode = res_window_get()->resolution_mode;

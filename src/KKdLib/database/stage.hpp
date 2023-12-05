@@ -18,10 +18,10 @@ enum stage_data_format {
 };
 
 enum stage_data_flags {
-    STAGE_DATA_FLAG_1              = 0x1,
-    STAGE_DATA_LIGHT_CHARA_AMBIENT = 0x2,
-    STAGE_DATA_FLAG_4              = 0x4,
-    STAGE_DATA_FLAG_8              = 0x8,
+    STAGE_DATA_FLAG_1              = 0x01,
+    STAGE_DATA_LIGHT_CHARA_AMBIENT = 0x02,
+    STAGE_DATA_FLAG_4              = 0x04,
+    STAGE_DATA_FLAG_8              = 0x08,
 };
 
 enum stage_data_reflect_resolution_mode {

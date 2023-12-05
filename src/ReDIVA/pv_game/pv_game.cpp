@@ -1188,13 +1188,13 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
         task_stage_current_set_stage_display(false, true);
 
     light_param_data_storage_data_set_pv_cut((int32_t)field);
-    rctx_ptr->render_manager.set_npr_param(next_field_data.npr_type);
-    //rctx_ptr->post_process.set_cam_blur(next_field_data.cam_blur);
+    rctx_ptr->render_manager->set_npr_param(next_field_data.npr_type);
+    //rctx_ptr->render.set_cam_blur(next_field_data.cam_blur);
 
     if (next_field_data.sdw_off)
-        rctx_ptr->render_manager.set_shadow_false();
+        rctx_ptr->render_manager->set_shadow_false();
     else
-        rctx_ptr->render_manager.set_shadow_true();
+        rctx_ptr->render_manager->set_shadow_true();
 
     bool disp_front = true;
     bool disp_front_low = true;
@@ -2580,7 +2580,11 @@ bool pv_game::load() {
                     i.rob_chr = rob_chara_array_get(i.chara_id);
             }
 
-            rctx_ptr->render_manager.set_effect_texture(0);
+            if (data.pv->get_performer_count() < 2)
+                rctx_ptr->render.update_res(false, 1);
+            else
+                rctx_ptr->render.update_res(false, 2);
+            rctx_ptr->render_manager->set_effect_texture(0);
             state = 12;
             return false;
         }
@@ -2653,7 +2657,11 @@ bool pv_game::load() {
                 i.rob_chr = rob_chara_array_get(i.chara_id);
         }
 
-        rctx_ptr->render_manager.set_effect_texture(0);
+        if (data.pv->get_performer_count() < 2)
+            rctx_ptr->render.update_res(false, 1);
+        else
+            rctx_ptr->render.update_res(false, 2);
+        rctx_ptr->render_manager->set_effect_texture(0);
         state = 3;
     } return false;
     case 3: {
@@ -3152,7 +3160,7 @@ bool pv_game::load() {
             for (const pv_db_pv_frame_texture& i : get_pv_db_pv()->frame_texture)
                 if (i.data.size()) {
                     data.has_frame_texture = true;
-                    rctx_ptr->post_process.frame_texture_reset();
+                    rctx_ptr->render.frame_texture_reset();
                     break;
                 }
         }
@@ -3474,12 +3482,12 @@ bool pv_game::load() {
             state = 12;
     } break;
     case 12: {
-        post_process& pp = rctx_ptr->post_process;
+        rndr::Render& rend = rctx_ptr->render;
         int32_t frame_texture_slot = 0;
         for (const pv_db_pv_frame_texture& i : data.pv->frame_texture) {
             texture* tex = texture_storage_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
             if (tex)
-                pp.frame_texture_load(frame_texture_slot, (post_process_frame_texture_type)i.type, tex);
+                rend.frame_texture_load(frame_texture_slot, (rndr::Render::FrameTextureType)i.type, tex);
             frame_texture_slot++;
         }
 
@@ -3691,7 +3699,7 @@ bool pv_game::load() {
             if (sub_14013C8C0()->sub_1400E7910() < 4)
                 data.pv_data.get_target_target_count(0, 0.0f, true);
         }
-        rctx_ptr->disp_manager.object_culling = false;
+        rctx_ptr->disp_manager->object_culling = false;
         state = 22;
     } break;
     case 22: {
@@ -3833,11 +3841,11 @@ bool pv_game::load() {
         data.play_data.free_aet_title_image();
         data.title_image_state = 0;
         Glitter::glt_particle_manager->counter = 0;
-        rctx_ptr->disp_manager.object_culling = true;
+        rctx_ptr->disp_manager->object_culling = true;
         loaded = true;
         state = false;
         //sel_vocal_change_get()->DelTask();
-        rctx_ptr->render_manager.set_effect_texture(0);
+        rctx_ptr->render_manager->set_effect_texture(0);
         pv_param_task::post_process_task_add_task();
     } return true;
     }
@@ -4461,19 +4469,19 @@ bool pv_game::unload() {
 
         data.field_2CF30 = 4;
 
-        post_process& pp = rctx_ptr->post_process;
+        rndr::Render& rend = rctx_ptr->render;
         int32_t frame_texture_slot = 0;
         for (const pv_db_pv_frame_texture& i : data.pv->frame_texture) {
             if (i.data.size()) {
                 texture* tex = texture_storage_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
                 if (tex)
-                    pp.frame_texture_unload(frame_texture_slot, tex);
+                    rend.frame_texture_unload(frame_texture_slot, tex);
             }
             frame_texture_slot++;
         }
 
         if (data.has_frame_texture) {
-            rctx_ptr->post_process.frame_texture_free();
+            rend.frame_texture_free();
             data.has_frame_texture = false;
         }
 
@@ -4666,19 +4674,17 @@ bool pv_game::unload() {
 
     light_param_data_storage_data_reset();
 
-    post_process& pp = rctx_ptr->post_process;
-    pp.tone_map->reset_saturate_coeff(0, true);
+    rndr::Render& rend = rctx_ptr->render;
+    rend.reset_saturate_coeff(0, true);
     dof_pv_set();
-    pp.tone_map->reset_scene_fade(0);
+    rend.reset_scene_fade(0);
 
-    /*if (!sub_140192E20())
-        post_process_set_taa(&pp, 1);*/
+    rend.set_taa(1);
+    rend.update_res(0, -1);
 
-    //sub_1404A9480(&pp, 0, -1);
-
-    rctx_ptr->disp_manager.object_culling = true;
-    rctx_ptr->render_manager.shadow_ptr->range = 1.0f;
-    rctx_ptr->render_manager.set_effect_texture(0);
+    rctx_ptr->disp_manager->object_culling = true;
+    shadow_ptr_get()->range = 1.0f;
+    rctx_ptr->render_manager->set_effect_texture(0);
 
     sound_work_reset_all_se();
 
@@ -4763,7 +4769,7 @@ int32_t pv_game::sub_1400FC780(float_t delta_time) {
             //task_mask_screen_fade_out(0.75f, 0);
         }
 
-        rctx_ptr->post_process.tone_map->set_exposure(0.0f);
+        rctx_ptr->render.set_exposure(0.0f);
 
         if (data.play_data.get_aet_next_info_disp())
             return 0;

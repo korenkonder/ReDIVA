@@ -395,7 +395,7 @@ bool Auth3dTestTask::Init() {
     obj_sets.clear();
     obj_sets.shrink_to_fit();
 
-    rctx_ptr->render_manager.shadow_ptr->self_shadow = true;
+    shadow_ptr_get()->self_shadow = true;
     clear_color = 0x00999999;
     auth_3d_test_window_init();
     task_stage_load_task("A3D_STAGE");
@@ -456,7 +456,7 @@ bool Auth3dTestTask::Dest() {
     task_stage_unload_task();
     auth_3d_test_window->Hide();
     clear_color = color_black;
-    rctx_ptr->render_manager.shadow_ptr->self_shadow = true;
+    shadow_ptr_get()->self_shadow = true;
     if (category.size())
         auth_3d_data_unload_category(category.c_str());
     category.clear();
@@ -479,7 +479,7 @@ void Auth3dTestTask::Disp() {
         etc.color = 0xFFFFFFFF;
         etc.data.plane.w = 20;
         etc.data.plane.h = 20;
-        rctx_ptr->disp_manager.entry_obj_etc(&mat, &etc);
+        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
     }
 }
 
@@ -1158,7 +1158,7 @@ Auth3dTestWindow::SelectionButtonShadowType::~SelectionButtonShadowType() {
 void Auth3dTestWindow::SelectionButtonShadowType::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data->widget);
     if (button)
-        rctx_ptr->render_manager.shadow_ptr->self_shadow = !!button->callback_data.i64;
+        shadow_ptr_get()->self_shadow = !!button->callback_data.i64;
 }
 
 Auth3dTestWindow::SelectionButtonSave::SelectionButtonSave() {

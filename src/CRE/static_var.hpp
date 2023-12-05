@@ -12,6 +12,14 @@
 #include "../KKdLib/vec.hpp"
 #include <glad/glad.h>
 
+enum blur_filter_mode {
+    BLUR_FILTER_4 = 0,
+    BLUR_FILTER_9,
+    BLUR_FILTER_16,
+    BLUR_FILTER_32,
+    BLUR_FILTER_MAX,
+};
+
 enum draw_pass_3d_type {
     DRAW_PASS_3D_OPAQUE = 0,
     DRAW_PASS_3D_TRANSLUCENT,

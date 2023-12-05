@@ -6,7 +6,6 @@
 #pragma once
 
 #include "shared.hpp"
-#include "shader.hpp"
 #include "texture.hpp"
 
 struct RenderTexture {
@@ -14,12 +13,12 @@ struct RenderTexture {
     texture* depth_texture;
     int32_t binding;
     int32_t max_level;
-    GLuint fbos[16];
+    GLuint* fbos;
     GLuint rbo;
     GLuint field_2C;
 
     RenderTexture();
-    ~RenderTexture();
+    virtual ~RenderTexture();
 
     int32_t Bind(int32_t index = 0);
     void Free();
@@ -28,24 +27,18 @@ struct RenderTexture {
     int32_t SetColorDepthTextures(GLuint color_texture,
         int32_t max_level = 0, GLuint depth_texture = 0, bool stencil = false);
 
-    static void Draw(shader_set_data* set);
-    static void DrawCustom();
-    static void DrawQuad(shader_set_data* set, int32_t width, int32_t height,
-        float_t s0, float_t t0, float_t s1, float_t t1, float_t scale,
-        float_t param_x, float_t param_y, float_t param_z, float_t param_w);
-
     inline GLuint GetColorTex() {
         return color_texture->tex;
     };
-    
+
     inline GLuint GetDepthTex() {
         return depth_texture->tex;
     };
-    
+
     inline int32_t GetHeight() {
         return color_texture->height;
     };
-    
+
     inline int32_t GetWidth() {
         return color_texture->width;
     };
@@ -55,5 +48,4 @@ struct RenderTexture {
     };
 };
 
-extern void render_texture_data_init();
-extern void render_texture_data_free();
+extern void render_texture_counter_reset();

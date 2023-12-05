@@ -17,8 +17,9 @@
 #include "../hand_item.hpp"
 #include "../mdata_manager.hpp"
 #include "../pv_db.hpp"
-#include "../random.hpp"
 #include "../pv_expression.hpp"
+#include "../random.hpp"
+#include "../resolution_mode.hpp"
 #include "../stage.hpp"
 #include "motion.hpp"
 #include "skin_param.hpp"
@@ -9727,7 +9728,7 @@ static void rob_chara_age_age_ctrl(rob_chara_age_age* arr,
 
 static void rob_chara_age_age_disp(rob_chara_age_age* arr,
     render_context* rctx, int32_t chara_id, bool reflect, bool chara_color) {
-    bool npr = !!rctx->render_manager.npr_param;
+    bool npr = !!rctx->render_manager->npr_param;
     mat4& view = rctx->camera->view;
     vec3 v11 = { view.row0.z, view.row1.z, view.row2.z };
     arr[chara_id * 3 + 0].disp(rctx, chara_id, npr, reflect, v11, chara_color);
@@ -11203,9 +11204,9 @@ void rob_chara_age_age_array_ctrl(int32_t chara_id, int32_t part_id, mat4& mat) 
 
 void rob_chara_age_age_array_disp(render_context* rctx,
     int32_t chara_id, bool reflect, bool chara_color) {
-    mdl::ObjFlags obj_flags = rctx->disp_manager.get_obj_flags();
+    mdl::ObjFlags obj_flags = rctx->disp_manager->get_obj_flags();
     rob_chara_age_age_disp(rob_chara_age_age_array, rctx, chara_id, reflect, chara_color);
-    rctx->disp_manager.set_obj_flags(obj_flags);
+    rctx->disp_manager->set_obj_flags(obj_flags);
 }
 
 void rob_chara_age_age_array_load(int32_t chara_id, int32_t part_id) {
@@ -12835,21 +12836,21 @@ void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
     if (obj_info.is_null())
         return;
 
-    mdl::ObjFlags flags = rctx->disp_manager.get_obj_flags();
+    mdl::ObjFlags flags = rctx->disp_manager->get_obj_flags();
     mdl::ObjFlags chara_flags = flags;
     if (fabsf(alpha - 1.0f) > 0.000001f)
         enum_or(chara_flags, obj_flags);
     else
         enum_and(chara_flags, ~(mdl::OBJ_ALPHA_ORDER_3 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_1));
-    rctx->disp_manager.set_obj_flags(chara_flags);
+    rctx->disp_manager->set_obj_flags(chara_flags);
     if (can_disp) {
-        rctx->disp_manager.entry_obj_by_object_info_object_skin(obj_info,
+        rctx->disp_manager->entry_obj_by_object_info_object_skin(obj_info,
             &texture_pattern, &texture_data, alpha, mats, ex_data_bone_mats.data(), 0, mat);
 
         for (ExNodeBlock*& i : node_blocks)
             i->Disp(mat, rctx);
     }
-    rctx->disp_manager.set_obj_flags(flags);
+    rctx->disp_manager->set_obj_flags(flags);
 }
 
 int32_t rob_chara_item_equip_object::get_bone_index(const char* name, const bone_database* bone_data) {
@@ -13484,10 +13485,10 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
     mat4_mul(&mat, node->mat, &mat);
     int32_t tex_pat_count = (int32_t)rob_itm_equip->texture_pattern.size();
     if (tex_pat_count)
-        rctx->disp_manager.set_texture_pattern(tex_pat_count, rob_itm_equip->texture_pattern.data());
-    rctx->disp_manager.entry_obj_by_object_info(0, rob_itm_equip->field_D0);
+        rctx->disp_manager->set_texture_pattern(tex_pat_count, rob_itm_equip->texture_pattern.data());
+    rctx->disp_manager->entry_obj_by_object_info(0, rob_itm_equip->field_D0);
     if (tex_pat_count)
-        rctx->disp_manager.set_texture_pattern();
+        rctx->disp_manager->set_texture_pattern();
 }
 
 void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
@@ -13497,20 +13498,19 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
     if (rctx->chara_refract)
         enum_or(flags, mdl::OBJ_REFRACT);
 
-    mdl::DispManager& disp_manager = rctx->disp_manager;
-    Shadow* shad = rctx->render_manager.shadow_ptr;
+    mdl::DispManager& disp_manager = *rctx->disp_manager;
     if (shadow_type != -1) {
         if (field_A0 & 0x04) {
             vec3 pos = position;
             pos.y -= 0.2f;
-            shad->field_1D0[shadow_type].push_back(pos);
+            shadow_ptr_get()->field_1D0[shadow_type].push_back(pos);
 
             float_t v9;
             if (sub_140512F60(this) <= -0.2f)
                 v9 = -0.5f;
             else
                 v9 = 0.05f;
-            rctx->render_manager.shadow_ptr->field_1C0[shadow_type] = v9;
+            shadow_ptr_get()->field_1C0[shadow_type] = v9;
             disp_manager.set_shadow_type(shadow_type);
             enum_or(flags, mdl::OBJ_SHADOW);
         }
@@ -13526,7 +13526,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
 
     disp_manager.set_texture_color_coefficients(texture_color_coefficients);
     disp_manager.set_wet_param(wet);
-    rctx->render_manager.field_31C |= npr_flag;
+    rctx->render_manager->field_31C |= npr_flag;
     sub_140512C20(this, rctx);
     rob_chara_age_age_array_disp(rctx, chara_id, rctx->chara_reflect, chara_color);
 
@@ -15258,19 +15258,18 @@ void pos_scale::get_screen_pos_scale(mat4& mat, vec3& trans, bool apply_offset) 
     mat4_transform_vector(&mat, &v15, &v15);
 
     if (fabsf(v15.w) >= 1.0e-10f) {
-        post_process* pp = &rctx_ptr->post_process;
+        float_t v8 = v15.y * (1.0f / v15.w);
+        float_t v9 = v15.x * (1.0f / v15.w) + 1.0f;
+        resolution_struct* res_wind_int = res_window_internal_get();
+        float_t v11 = (float_t)(v9 * 0.5f) * (float_t)res_wind_int->width;
+        float_t v12 = (float_t)((1.0f - v8) * 0.5f) * (float_t)res_wind_int->height;
         if (apply_offset) {
-            float_t v11 = (1.0f + v15.x * (1.0f / v15.w)) * 0.5f * (float_t)pp->screen_width;
-            float_t v12 = (1.0f - v15.y * (1.0f / v15.w)) * 0.5f * (float_t)pp->screen_height;
-            v11 += (float_t)pp->screen_x_offset;
-            v12 += (float_t)pp->screen_y_offset;
-            pos = { v11, v12 };
+            resolution_struct* res_wind = res_window_get();
+            v11 += (float_t)res_wind_int->x_offset;
+            v12 += (float_t)(res_wind->height - res_wind_int->y_offset - res_wind_int->height);
         }
-        else{
-            float_t v11 = (1.0f + v15.x * (1.0f / v15.w)) * 0.5f * (float_t)pp->render_width;
-            float_t v12 = (1.0f - v15.y * (1.0f / v15.w)) * 0.5f * (float_t)pp->render_height;
-            pos = { v11, v12 };
-        }
+        pos.x = v11;
+        pos.y = v12;
         scale = -v15.w;
     }
     else {
@@ -17054,7 +17053,7 @@ OpdMakeManager::~OpdMakeManager() {
 bool OpdMakeManager::Init() {
     mode = 1;
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_3D, false);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, false);
 
     if (path_check_directory_exists("ram/osage_play_data"))
         RemoveDirectoryA("ram/osage_play_data");
@@ -17205,7 +17204,7 @@ bool OpdMakeManager::Dest() {
         task_rob_manager_del_task();
     }
 
-    rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_3D, true);
+    rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, true);
 
     if (path_check_directory_exists("ram/osage_play_data"))
         RemoveDirectoryA("ram/osage_play_data");
@@ -17368,10 +17367,10 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
     mdl::ObjFlags flags = (mdl::ObjFlags)(mdl::OBJ_SSS | mdl::OBJ_4 | mdl::OBJ_SHADOW);
     if (reflect)
         enum_or(flags, mdl::OBJ_CHARA_REFLECT);
-    rctx->disp_manager.set_obj_flags(flags);
-    rctx->disp_manager.set_chara_color(chara_color);
-    rctx->disp_manager.set_shadow_type(chara_index ? SHADOW_STAGE : SHADOW_CHARA);
-    rctx->disp_manager.entry_obj_by_obj(&mat4_identity, &obj,
+    rctx->disp_manager->set_obj_flags(flags);
+    rctx->disp_manager->set_chara_color(chara_color);
+    rctx->disp_manager->set_shadow_type(chara_index ? SHADOW_STAGE : SHADOW_CHARA);
+    rctx->disp_manager->entry_obj_by_obj(&mat4_identity, &obj,
         &get_obj_set_texture(), &obj_vert_buf, &obj_index_buf, 0, 1.0f);
 }
 

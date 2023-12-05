@@ -109,7 +109,7 @@ void data_view_draw_task_imgui(class_data* data) {
     }
 
     render_context* rctx = data_view->rctx;
-    std::vector<mdl::ObjData*>* obj = rctx->disp_manager.obj;
+    std::vector<mdl::ObjData*>* obj = rctx->disp_manager->obj;
     auto& obj_data = data_view->obj_data;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;

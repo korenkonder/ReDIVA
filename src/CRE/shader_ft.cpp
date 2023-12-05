@@ -2521,15 +2521,7 @@ static const uniform_name DOF_uniform[] = {          // Added
     U_DOF,
 };
 
-static const uniform_name COPY_uniform[] = {         // Added
-    U_INVALID,
-};
-
 static const uniform_name GRID_uniform[] = {         // Added
-    U_INVALID,
-};
-
-static const uniform_name GHOST_uniform[] = {        // Added
     U_INVALID,
 };
 
@@ -2995,15 +2987,7 @@ static const bool DOF_permut[] = {          // Added
     true,
 };
 
-static const bool COPY_permut[] = {         // Added
-    false,
-};
-
 static const bool GRID_permut[] = {         // Added
-    false,
-};
-
-static const bool GHOST_permut[] = {        // Added
     false,
 };
 

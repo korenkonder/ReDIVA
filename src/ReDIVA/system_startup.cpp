@@ -59,7 +59,7 @@ namespace system_startup_detail {
                 system_startup.state = 4;
             break;
         case 4:
-            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_3D, false);
+            rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, false);
             task_pv_game_init_test_pv();
             system_startup.state = 5;
             break;
@@ -76,7 +76,7 @@ namespace system_startup_detail {
                 system_startup.state = 8;
             break;
         case 8:
-            rctx_ptr->render_manager.set_pass_sw(rndr::RND_PASSID_3D, true);
+            rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, true);
             system_startup_ready = 1;
             break;
         }

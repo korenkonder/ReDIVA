@@ -490,7 +490,7 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
             free_def(i.data_compressed);
             i.compressed = false;
             i.encrypted = false;
-            
+
             file_stream s_t;
             s_t.open(temp, "rb");
             if (s_t.check_null())
