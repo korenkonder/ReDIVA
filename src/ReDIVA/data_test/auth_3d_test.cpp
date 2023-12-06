@@ -474,8 +474,7 @@ void Auth3dTestTask::Disp() {
     if (plane_above_floor) {
         mat4 mat;
         mat4_translate_y(0.25f, &mat);
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_PLANE);
+        mdl::EtcObj etc(mdl::ETC_OBJ_PLANE);
         etc.color = 0xFFFFFFFF;
         etc.data.plane.w = 20;
         etc.data.plane.h = 20;

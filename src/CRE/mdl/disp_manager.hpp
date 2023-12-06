@@ -43,7 +43,7 @@ struct texture_transform_struct {
     mat4 mat;
 
     texture_transform_struct();
-    texture_transform_struct(uint32_t id, mat4& mat);
+    texture_transform_struct(uint32_t id, const mat4& mat);
 };
 
 struct morph_struct {
@@ -196,6 +196,8 @@ namespace mdl {
         int32_t instances_count;
         const mat4* instances_mat;
         void(*func)(const mdl::ObjSubMeshArgs*);
+
+        ObjSubMeshArgs();
     };
 
     struct EtcObjTeapot {
@@ -314,8 +316,8 @@ namespace mdl {
         GLsizei count; // Added
         size_t offset; // Added
 
-        EtcObj();
-        void init(EtcObjType type);
+        EtcObj(EtcObjType type);
+        ~EtcObj();
     };
 
     typedef void(*UserArgsFunc)(void* data);
@@ -323,11 +325,15 @@ namespace mdl {
     struct UserArgs {
         UserArgsFunc func;
         void* data;
+
+        UserArgs();
     };
 
     struct ObjTranslucentArgs {
         int32_t count;
         ObjSubMeshArgs* sub_mesh[40];
+
+        ObjTranslucentArgs();
     };
 
     struct ObjData {
@@ -336,6 +342,9 @@ namespace mdl {
             EtcObj etc;
             UserArgs user;
             ObjTranslucentArgs translucent;
+
+            Args();
+            ~Args();
         };
 
         ObjKind kind;
@@ -343,6 +352,9 @@ namespace mdl {
         float_t view_z;
         float_t radius;
         Args args;
+
+        ObjData();
+        ~ObjData();
 
         void init_etc(DispManager* disp_manager, const mat4* mat, mdl::EtcObj* etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,

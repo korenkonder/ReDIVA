@@ -2049,8 +2049,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
 
     switch (emit_inst->data.type) {
     case Glitter::EMITTER_BOX: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_CUBE);
+        mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
         etc.color = 0x8F0000FF;
         etc.constant = true;
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
@@ -2064,8 +2063,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         }
     } break;
     case Glitter::EMITTER_CYLINDER: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_CYLINDER);
+        mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
         etc.color = 0x8F00FF00;
         etc.constant = true;
         etc.data.cylinder.base = emit_inst->data.cylinder.radius * scale.x;
@@ -2083,8 +2081,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         }
     } break;
     case Glitter::EMITTER_SPHERE: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_SPHERE);
+        mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
         etc.color = 0x8FFF0000;
         etc.constant = true;
         etc.data.sphere.radius = emit_inst->data.sphere.radius * scale.x;
@@ -2100,8 +2097,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         }
     } break;
     case Glitter::EMITTER_POLYGON: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_LINE);
+        mdl::EtcObj etc(mdl::ETC_OBJ_LINE);
         etc.color = 0x8FFFFF00;
         etc.constant = true;
         etc.data.line.pos[0] = vec3(-emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
@@ -2145,8 +2141,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
 
     switch (emit_inst->data.type) {
     case Glitter::EMITTER_BOX: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_CUBE);
+        mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
         etc.color = 0x8F0000FF;
         etc.constant = true;
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
@@ -2160,8 +2155,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         }
     } break;
     case Glitter::EMITTER_CYLINDER: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_CYLINDER);
+        mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
         etc.color = 0x8F00FF00;
         etc.constant = true;
         etc.data.cylinder.base = emit_inst->data.cylinder.radius * scale.x;
@@ -2179,8 +2173,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         }
     } break;
     case Glitter::EMITTER_SPHERE: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_SPHERE);
+        mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
         etc.color = 0x8FFF0000;
         etc.constant = true;
         etc.data.sphere.radius = emit_inst->data.sphere.radius * scale.x;
@@ -2196,8 +2189,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         }
     } break;
     case Glitter::EMITTER_POLYGON: {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_CYLINDER);
+        mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
         etc.color = 0x8FFFFF00;
         etc.constant = true;
         etc.data.cylinder.base = emit_inst->data.cylinder.radius * scale.x;

@@ -172,8 +172,7 @@ bool TaskDataTestGlitterParticle::Dest() {
 
 void TaskDataTestGlitterParticle::Disp() {
     if (show_grid) {
-        mdl::EtcObj etc = {};
-        etc.init(mdl::ETC_OBJ_GRID);
+        mdl::EtcObj etc(mdl::ETC_OBJ_GRID);
         etc.color = 0xFF000000;
         etc.data.grid.w = 50;
         etc.data.grid.h = 50;
