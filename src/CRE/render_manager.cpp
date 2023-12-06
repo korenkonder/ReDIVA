@@ -1764,6 +1764,7 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
 }
 
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type) {
+    rctx->disp_manager->calc_obj_radius(&rctx->view_mat, type);
     std::vector<mdl::ObjData*>& vec = rctx->disp_manager->obj[type];
     for (mdl::ObjData*& i : vec)
         switch (i->kind) {
@@ -1773,7 +1774,7 @@ static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr
             arr[alpha] = true;
         } break;
         case mdl::OBJ_KIND_TRANSLUCENT: {
-            for (uint32_t j = 0; j < i->args.translucent.count; j++) {
+            for (int32_t j = 0; j < i->args.translucent.count; j++) {
                 int32_t alpha = (int32_t)(i->args.translucent.sub_mesh[j]->blend_color.w * 255.0f);
                 alpha = clamp_def(alpha, 0, 255);
                 arr[alpha] = true;

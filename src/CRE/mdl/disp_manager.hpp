@@ -326,7 +326,7 @@ namespace mdl {
     };
 
     struct ObjTranslucentArgs {
-        uint32_t count;
+        int32_t count;
         ObjSubMeshArgs* sub_mesh[40];
     };
 
@@ -443,6 +443,7 @@ namespace mdl {
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
         void buffer_reset();
+        void calc_obj_radius(mat4* view, mdl::ObjType type);
         void check_vertex_arrays();
         void draw(mdl::ObjType type, int32_t depth_mask = 0, bool a4 = true);
         void draw_translucent(mdl::ObjType type, int32_t alpha);
@@ -473,10 +474,11 @@ namespace mdl {
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
         GLuint get_vertex_array(const EtcObj* etc);
         bool get_chara_color();
-        ObjFlags get_obj_flags();
         void get_material_list(int32_t& count, material_list_struct*& value);
         void get_morph(object_info& object, float_t& weight);
+        void get_obj_center(mat4& mat, const mdl::ObjSubMeshArgs* args, vec3& center);
         int32_t get_obj_count(ObjType type);
+        ObjFlags get_obj_flags();
         shadow_type_enum get_shadow_type();
         void get_texture_color_coeff(vec4& value);
         void get_texture_color_offset(vec4& value);
