@@ -16,6 +16,624 @@
 #include "shader_ft.hpp"
 #include "texture.hpp"
 
+struct particle_init_data {
+    float_t field_0;
+    float_t field_4;
+    float_t field_8;
+    vec3 trans;
+    float_t scale_y;
+};
+
+class TaskEffect : public app::Task {
+public:
+    TaskEffect();
+    virtual ~TaskEffect() override;
+
+    virtual void PreInit(int32_t stage_index);
+    virtual void SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+        object_database* obj_db, texture_database* tex_db, stage_database* stage_data); // Added
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices);
+    virtual void SetFrame(int32_t value);
+    virtual void Field_48();
+    virtual void SetEnable(bool value);
+    virtual void SetCurrentStageHash(uint32_t value); // Added
+    virtual void SetCurrentStageIndex(int32_t value);
+    virtual void SetFrameRateControl(FrameRateControl* value = 0);
+    virtual void Field_68();
+    virtual void Reset();
+    virtual void Event(int32_t event_type, void* data);
+    virtual void Field_80();
+    virtual void Field_88();
+    virtual void Field_90();
+    virtual void Field_98(int32_t a2, int32_t* a3);
+    virtual void Field_A0(int32_t a2, int32_t* a3);
+    virtual void Field_A8(int32_t a2, int8_t* a3);
+};
+
+struct struc_621 {
+    uint32_t stage_hash; // Added
+    int32_t stage_index;
+    std::vector<auth_3d_id> auth_3d_ids;
+
+    struc_621();
+    ~struc_621();
+};
+
+struct TaskEffectAuth3D : public TaskEffect {
+public:
+    struct Stage {
+        size_t count;
+        size_t max_count;
+        auth_3d_id* auth_3d_ids_ptr;
+        auth_3d_id auth_3d_ids[TASK_STAGE_STAGE_COUNT];
+
+        Stage();
+    } stage;
+    bool enable;
+    std::vector<struc_621> field_120;
+    uint32_t current_stage_hash; // Added
+    int32_t current_stage_index;
+    int32_t field_13C;
+    std::vector<uint32_t> stage_hashes;
+    std::vector<int32_t> stage_indices;
+    int8_t field_158;
+    int8_t field_159;
+    int32_t field_15C;
+    float_t frame;
+
+    TaskEffectAuth3D();
+    virtual ~TaskEffectAuth3D() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+        object_database* obj_db, texture_database* tex_db, stage_database* stage_data) override; // Added
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetFrame(int32_t value) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageHash(uint32_t value) override; // Added
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+
+    void ResetData();
+    void SetVisibility(bool value);
+};
+
+struct TaskEffectFogAnim : public TaskEffect {
+public:
+    struct Data {
+        bool field_0;
+        int32_t field_4;
+        bool field_8;
+        float_t field_C[3];
+        float_t field_18[3];
+        float_t field_24;
+        int32_t field_28;
+        int32_t field_2C;
+        int32_t field_30;
+        vec4 field_34;
+
+        Data();
+
+        void Ctrl();
+        void Reset();
+    } data;
+
+    TaskEffectFogAnim();
+    virtual ~TaskEffectFogAnim() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void Reset() override;
+};
+
+struct fog_ring_data {
+    vec3 position;
+    vec3 direction;
+    vec3 field_18;
+    float_t size;
+    float_t density;
+
+    fog_ring_data();
+};
+
+struct point_particle_data {
+    vec2 position;
+    vec4 color;
+};
+
+struct struc_371 {
+    int32_t field_0;
+    vec3 position;
+    float_t field_10;
+    float_t field_14;
+    vec3 direction;
+    float_t field_24;
+
+    struc_371();
+};
+
+struct struc_573 {
+    int32_t chara_index;
+    rob_bone_index bone_index;
+    vec3 position;
+
+    struc_573();
+};
+
+struct TaskEffectFogRing : public TaskEffect {
+public:
+    struct Data {
+        bool enable;
+        float_t delta_frame;
+        bool field_8;
+        float_t ring_size;
+        vec3 wind_dir;
+        int32_t tex_id;
+        vec4 color;
+        float_t ptcl_size;
+        int32_t max_ptcls;
+        int32_t num_ptcls;
+        float_t density;
+        float_t density_offset;
+        fog_ring_data* ptcl_data;
+        int32_t num_vtx;
+        struc_573 field_5C[2][5];
+        int32_t field_124;
+        struc_371 field_128[10];
+        int8_t field_2B8;
+        int8_t field_2B9;
+        bool disp;
+        int32_t current_stage_index;
+        std::vector<int32_t> stage_indices;
+        FrameRateControl* frame_rate_control;
+        GL::ShaderStorageBuffer ssbo;
+
+        Data();
+        ~Data();
+
+        void CalcPtcl(float_t delta_time);
+        void CalcVert();
+        void Ctrl();
+        void CtrlInner(float_t delta_time);
+        void Dest();
+        void Disp();
+        void Draw();
+        void InitParticleData();
+        void Reset();
+        void SetStageIndices(std::vector<int32_t>& stage_indices);
+
+        static void DrawStatic(void* data);
+        static float_t PtclRandom(float_t value);
+
+        void sub_140347B40(float_t delta_time);
+
+        static void sub_140347860(fog_ring_data* a1, int32_t a2, struc_371* a3, float_t a4);
+    } data;
+
+    TaskEffectFogRing();
+    virtual ~TaskEffectFogRing() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+};
+
+struct TaskEffectLeaf : public TaskEffect {
+public:
+    FrameRateControl* frame_rate_control;
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+    int32_t wait_frames;
+
+    TaskEffectLeaf();
+    virtual ~TaskEffectLeaf() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+};
+
+struct TaskEffectLitproj : public TaskEffect {
+public:
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+    int32_t wait_frames;
+    vec4 diffuse;
+    vec4 specular;
+    int32_t frame;
+
+    TaskEffectLitproj();
+    virtual ~TaskEffectLitproj() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void Reset() override;
+};
+
+struct TaskEffectParticle : public TaskEffect {
+public:
+    FrameRateControl* frame_rate_control;
+    int32_t current_stage_index;
+
+    TaskEffectParticle();
+    virtual ~TaskEffectParticle() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+    virtual void Event(int32_t event_type, void* data) override;
+};
+
+struct TaskEffectRain : public TaskEffect {
+public:
+    FrameRateControl* frame_rate_control;
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+
+    TaskEffectRain();
+    virtual ~TaskEffectRain() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+};
+
+struct struc_101 {
+    int32_t ripple_uniform;
+    int32_t ripple_emit_uniform;
+    int32_t count;
+    vec3* vertex;
+    color4u8* color;
+    float_t size;
+    int32_t field_24;
+};
+
+struct ripple_emit_draw_data {
+    struc_101 data;
+    vec3 vertex[16];
+    color4u8 color[16];
+
+    ripple_emit_draw_data();
+};
+
+struct struc_192 {
+    int32_t index;
+    vec3 trans;
+
+    struc_192();
+};
+
+struct struc_207 {
+    struc_192 field_0[18];
+
+    struc_207();
+};
+
+struct ripple_emit_params {
+    float_t wake_attn;
+    float_t speed;
+    float_t field_8;
+    float_t field_C;
+
+    ripple_emit_params();
+};
+
+struct ripple_emit {
+    float_t delta_frame;
+    bool update;
+    int32_t rain_ripple_num;
+    float_t rain_ripple_min_value;
+    float_t rain_ripple_max_value;
+    int32_t field_14;
+    float_t ground_y;
+    float_t emit_pos_scale;
+    float_t emit_pos_ofs_x;
+    float_t emit_pos_ofs_z;
+    int32_t ripple_tex_id;
+    bool use_float_ripplemap;
+    int32_t field_30;
+    float_t rob_emitter_size;
+    size_t emitter_num;
+    const vec3* emitter_list;
+    float_t emitter_size;
+    int32_t field_4C;
+    ripple_emit_draw_data field_50;
+    ripple_emit_draw_data field_178;
+    ripple_emit_draw_data field_2A0;
+    ripple_emit_draw_data field_3C8;
+    int32_t field_4F0;
+    struc_207 field_4F4[6];
+    int32_t field_BB4;
+    RenderTexture field_BB8;
+    int32_t counter;
+    int8_t field_BEC;
+    ripple_emit_params params;
+    bool stage_set;
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+
+    ripple_emit();
+    ~ripple_emit();
+
+    void add_draw_ripple_emit(struc_101* data);
+    void clear_tex();
+    void ctrl();
+    void dest();
+    void disp();
+    void draw();
+    void reset();
+    void set_stage_index(int32_t stage_index);
+    void set_stage_indices(std::vector<int32_t>& stage_indices);
+    void set_stage_param(stage_param_ripple* ripple);
+
+    static void draw_static(void* data);
+
+    void sub_1403584A0(RenderTexture* rt);
+    void sub_140358690();
+    void sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_101& a5, struc_101& a6);
+    void sub_14035AAE0();
+    void sub_14035AED0();
+};
+
+struct TaskEffectRipple : public TaskEffect {
+public:
+    int64_t field_68;
+    FrameRateControl* frame_rate_control;
+    ripple_emit* emit;
+
+    TaskEffectRipple();
+    virtual ~TaskEffectRipple() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+};
+
+struct TaskEffectSnow : public TaskEffect {
+public:
+    FrameRateControl* frame_rate_control;
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+
+    TaskEffectSnow();
+    virtual ~TaskEffectSnow() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+    virtual void Basic() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+};
+
+struct struc_180 {
+    uint32_t count;
+    int32_t field_4;
+    int64_t field_8;
+    int64_t field_10;
+    int64_t field_18;
+    int32_t field_20;
+    int64_t field_28;
+    int64_t field_30;
+    int64_t field_38;
+};
+
+struct ParticleEmitter {
+    struc_180* field_8;
+    int64_t field_10;
+    int64_t field_18;
+    float_t field_20;
+    int32_t field_24;
+    float_t field_28;
+    float_t particle_size;
+
+    ParticleEmitter();
+    virtual ~ParticleEmitter();
+
+    virtual bool Field_8();
+    virtual bool Field_10();
+};
+
+struct ParticleEmitterRob : ParticleEmitter {
+    int32_t field_30;
+    int32_t field_34;
+    int32_t field_38;
+    int32_t field_3C;
+    int32_t field_40;
+    int32_t field_44;
+    int32_t field_48;
+    int32_t field_4C;
+    int32_t field_50;
+    int32_t field_54;
+    int32_t field_58;
+    int32_t emit_num;
+    int32_t field_60;
+    float_t emission_ratio_attn;
+    float_t emission_velocity_scale;
+    bool in_water;
+    int8_t field_6D;
+};
+
+struct water_particle {
+    struc_180* field_0;
+    vec4 color;
+    float_t particle_size;
+    std::vector<point_particle_data> field_20;
+    int32_t count;
+    int32_t tex_id;
+    bool blink;
+    std::vector<vec3> field_48;
+    std::vector<vec4u8> field_60;
+    struc_101 field_78;
+    float_t ripple_emission;
+
+    water_particle();
+    ~water_particle();
+};
+
+struct ParticleDispObj {
+    struc_180* field_8;
+    object_info object;
+    std::vector<mat4> instances_mat;
+
+    ParticleDispObj();
+    virtual ~ParticleDispObj();
+
+    void Disp();
+};
+
+struct TaskEffectSplash : public TaskEffect {
+public:
+    struct Data {
+        struct Sub {
+            int32_t field_0;
+            struc_180* field_8;
+            int32_t field_10;
+            ParticleEmitterRob* field_18;
+            int32_t field_20;
+            water_particle* field_28;
+            int8_t field_30;
+            struc_180 field_38;
+            int32_t field_78;
+            ParticleEmitterRob* field_80;
+            ParticleDispObj field_88;
+            vec4 color;
+            float_t particle_size;
+            int32_t emit_num;
+            float_t ripple_emission;
+            float_t emission_ratio_attn;
+            float_t emission_velocity_scale;
+            int32_t splash_tex_id;
+            object_info splash_obj_id;
+            int8_t in_water;
+            int8_t blink;
+            int64_t field_E8;
+            int64_t field_F0;
+            int64_t field_F8;
+        };
+
+        int8_t field_0;
+        int32_t field_4;
+        int8_t field_8;
+        Sub field_10;
+        int8_t field_110;
+        int32_t current_stage_index;
+        std::vector<int32_t> stage_indices;
+        FrameRateControl* frame_rate_control;
+        int64_t field_138;
+    };
+
+    bool enable;
+    Data data;
+
+    TaskEffectSplash();
+    virtual ~TaskEffectSplash() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+    virtual void Basic() override;
+
+    virtual void PreInit(int32_t stage_index) override;
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetFrame(int32_t value) override;
+    virtual void Field_48() override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Field_68() override;
+    virtual void Reset() override;
+    virtual void Field_80() override;
+    virtual void Field_88() override;
+    virtual void Field_90() override;
+    virtual void Field_98(int32_t a2, int32_t* a3) override;
+    virtual void Field_A0(int32_t a2, int32_t* a3) override;
+    virtual void Field_A8(int32_t a2, int8_t* a3) override;
+};
+
+struct TaskEffectStar : public TaskEffect {
+public:
+    FrameRateControl* frame_rate_control;
+    int32_t current_stage_index;
+    float_t delta_frame;
+    std::vector<int32_t> stage_indices;
+
+    TaskEffectStar();
+    virtual ~TaskEffectStar() override;
+
+    virtual bool Init() override;
+    virtual bool Ctrl() override;
+    virtual bool Dest() override;
+    virtual void Disp() override;
+
+    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
+    virtual void SetEnable(bool value) override;
+    virtual void SetCurrentStageIndex(int32_t value) override;
+    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
+    virtual void Reset() override;
+};
+
 struct for_ring_vertex_data {
     vec2 position;
     vec4 color;
@@ -471,6 +1089,430 @@ extern render_context* rctx_ptr;
 extern int32_t width;
 extern int32_t height;
 
+particle_event_data::particle_event_data() : type(), count(), size(), force() {
+
+}
+
+void leaf_particle_draw() {
+    if (!stage_param_data_leaf_current || !leaf_ptcl_data
+        || !leaf_particle_enable || !stage_param_data_leaf_set)
+        return;
+
+    texture* tex = texture_storage_get_texture(leaf_particle_tex_id);
+    if (!tex)
+        return;
+
+    int32_t count = leaf_particle_disp();
+    if (!count)
+        return;
+
+    const light_data& light_stage = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_STAGE];
+
+    leaf_particle_scene_shader_data shader_data = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->vp_mat, &temp);
+    shader_data.g_transform[0] = temp.row0;
+    shader_data.g_transform[1] = temp.row1;
+    shader_data.g_transform[2] = temp.row2;
+    shader_data.g_transform[3] = temp.row3;
+    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
+    shader_data.g_color = stage_param_data_leaf_current->color;
+    light_stage.get_diffuse(shader_data.g_light_env_stage_diffuse);
+    light_stage.get_specular(shader_data.g_light_env_stage_specular);
+    shader_data.g_lit_dir = rctx_ptr->obj_scene.g_light_chara_dir;
+    shader_data.g_lit_luce = rctx_ptr->obj_scene.g_light_chara_luce;
+    leaf_particle_scene_ubo.WriteMemory(shader_data);
+
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    shaders_ft.set(SHADER_FT_LEAF_PT);
+    leaf_particle_scene_ubo.Bind(0);
+    gl_state_bind_vertex_array(leaf_ptcl_vao);
+    shaders_ft.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
+    gl_state_bind_vertex_array(0);
+}
+
+void rain_particle_draw() {
+    if (!stage_param_data_rain_current || !rain_particle_enable || !stage_param_data_rain_set)
+        return;
+
+    texture* tex = texture_storage_get_texture(rain_particle_tex_id);
+    if (!tex)
+        return;
+
+    stage_param_rain* rain = stage_param_data_rain_current;
+    vec3 range = rain->range;
+    vec3 range_scale = rain->range;
+    vec3 range_offset = rain->offset;
+    range_offset.x -= range.x * 0.5f;
+    range_offset.z -= range.z * 0.5f;
+
+    rain_particle_scene_shader_data scene_shader_data = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->view_mat, &temp);
+    scene_shader_data.g_view[0] = temp.row0;
+    scene_shader_data.g_view[1] = temp.row1;
+    scene_shader_data.g_view[2] = temp.row2;
+    scene_shader_data.g_view[3] = temp.row3;
+    mat4_transpose(&rctx_ptr->proj_mat, &temp);
+    scene_shader_data.g_proj[0] = temp.row0;
+    scene_shader_data.g_proj[1] = temp.row1;
+    scene_shader_data.g_proj[2] = temp.row2;
+    scene_shader_data.g_proj[3] = temp.row3;
+    scene_shader_data.g_range_scale = { range_scale.x, range_scale.y, range_scale.z, 0.0f };
+    scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
+    rain_particle_scene_ubo.WriteMemory(scene_shader_data);
+
+    gl_state_enable_blend();
+    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_state_enable_depth_test();
+    gl_state_set_depth_mask(GL_FALSE);
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    shaders_ft.set(SHADER_FT_RAIN);
+
+    float_t tangent_sign = -rain->psize.x;
+    float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
+
+    int32_t first = 0;
+    int32_t count = min_def(rain->num_rain, (int32_t)rain_ptcl_count) / 2 / 4 * 6;
+
+    vec4 color = rain->color;
+    float_t color_a = color.w;
+    rain_particle_scene_ubo.Bind(0);
+    rain_particle_batch_ubo.Bind(1);
+    rain_ssbo.Bind(0);
+    for (int32_t i = 0; i < 8; i++, first += count) {
+        particle_data& data = rain_ptcl_data[i];
+        vec3 pos_offset = data.position / range;
+        vec3 tangent = data.velocity * tangent_size;
+        color.w = color_a * data.alpha;
+
+        rain_particle_batch_shader_data batch_shader_data = {};
+        batch_shader_data.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.075f };
+        batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
+        batch_shader_data.g_color = color;
+        rain_particle_batch_ubo.WriteMemory(batch_shader_data);
+        shaders_ft.draw_arrays(GL_TRIANGLES, first, count);
+    }
+    gl_state_bind_vertex_array(0);
+    gl_state_active_bind_texture_2d(0, 0);
+    gl_state_set_depth_mask(GL_TRUE);
+    gl_state_disable_blend();
+}
+
+void particle_draw() {
+    if (!ptcl_data)
+        return;
+
+    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory();
+    if (!vtx_data)
+        return;
+
+    int32_t count = particle_disp(vtx_data, ptcl_data, ptcl_count);
+
+    ptcl_vbo.UnmapMemory();
+
+    if (!count)
+        return;
+
+    const light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
+
+    particle_scene_shader_data shader_data = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->vp_mat, &temp);
+    shader_data.g_transform[0] = temp.row0;
+    shader_data.g_transform[1] = temp.row1;
+    shader_data.g_transform[2] = temp.row2;
+    shader_data.g_transform[3] = temp.row3;
+    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
+    light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
+    light_chara.get_specular(shader_data.g_light_env_chara_specular);
+    particle_scene_ubo.WriteMemory(shader_data);
+
+    shaders_ft.set(SHADER_FT_PARTICL);
+    particle_scene_ubo.Bind(0);
+    gl_state_bind_vertex_array(ptcl_vao);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
+    gl_state_bind_vertex_array(0);
+}
+
+void snow_particle_draw() {
+    if (!stage_param_data_snow_current || !snow_particle_enable || !stage_param_data_snow_set)
+        return;
+
+    texture* tex = texture_storage_get_texture(snow_particle_tex_id);
+    if (!tex)
+        return;
+
+    stage_param_snow* snow = stage_param_data_snow_current;
+    draw_pass_set_camera();
+
+    gl_state_enable_blend();
+    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    gl_state_enable_depth_test();
+    gl_state_set_depth_mask(GL_FALSE);
+
+    float_t point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
+        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.1f;
+
+    snow_particle_scene_shader_data snow_scene = {};
+    mat4 temp;
+    mat4_transpose(&rctx_ptr->vp_mat, &temp);
+    snow_scene.g_transform[0] = temp.row0;
+    snow_scene.g_transform[1] = temp.row1;
+    snow_scene.g_transform[2] = temp.row2;
+    snow_scene.g_transform[3] = temp.row3;
+
+    mat4_transpose(&rctx_ptr->view_mat, &temp);
+    snow_scene.g_view_world_row2 = temp.row2;
+    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->render.render_width[0];
+    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->render.render_height[0];
+    snow_scene.g_size_in_projection.z = snow_particle_size_min;
+    snow_scene.g_size_in_projection.w = snow_particle_size_max;
+    snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
+    snow_scene.g_range_scale.x = snow->range_gpu.x;
+    snow_scene.g_range_scale.y = snow->range_gpu.y;
+    snow_scene.g_range_scale.z = snow->range_gpu.z;
+    snow_scene.g_range_offset.x = snow->offset_gpu.x - snow->range_gpu.x * 0.5f;
+    snow_scene.g_range_offset.y = snow->offset_gpu.y;
+    snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
+    snow_particle_scene_ubo.WriteMemory(snow_scene);
+
+    snow_particle_batch_shader_data snow_batch = {};
+    snow_batch.g_color = snow->color;
+    snow_batch.start_vertex_location.x = 0;
+    snow_particle_batch_ubo.WriteMemory(snow_batch);
+
+    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].GetDepthTex());
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
+
+    uniform_value[U_SNOW_PARTICLE] = 0;
+    shaders_ft.set(SHADER_FT_SNOW_PT);
+    snow_particle_scene_ubo.Bind(0);
+    snow_particle_batch_ubo.Bind(1);
+
+    snow_ssbo.Bind(0);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, snow->num_snow * 6);
+
+    snow_fallen_ssbo.Bind(0);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
+
+    uniform_value[U_SNOW_PARTICLE] = 1;
+    shaders_ft.set(SHADER_FT_SNOW_PT);
+    snow_particle_scene_ubo.Bind(0);
+    snow_particle_batch_ubo.Bind(1);
+
+    point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
+        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.06f;
+
+    snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
+    snow_particle_scene_ubo.WriteMemory(snow_scene);
+
+    snow_gpu_ssbo.Bind(0);
+
+    int32_t count = snow->num_snow_gpu / 4;
+    count = min_def(count, (int32_t)snow_ptcl_count / 4) * 6;
+
+    int32_t first = 0;
+    for (particle_data& i : snow_ptcl_gpu) {
+        vec3 pos_offset = i.position / snow->range_gpu;
+        vec4 color = snow->color;
+        color.w *= i.alpha;
+
+        snow_batch = {};
+        snow_batch.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.0f };
+        snow_batch.g_color = color;
+        snow_batch.start_vertex_location.x = first;
+        snow_particle_batch_ubo.WriteMemory(snow_batch);
+
+        shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
+        first += count;
+    }
+
+    gl_state_active_bind_texture_2d(1, 0);
+    gl_state_active_bind_texture_2d(0, 0);
+
+    gl_state_disable_depth_test();
+    gl_state_set_depth_mask(GL_TRUE);
+    gl_state_disable_blend();
+}
+
+void star_catalog_draw() {
+    star_catalog_data.draw();
+}
+
+void task_effect_init() {
+    if (!task_effect_auth_3d)
+        task_effect_auth_3d = new TaskEffectAuth3D;
+
+    if (!task_effect_leaf)
+        task_effect_leaf = new TaskEffectLeaf;
+
+    if (!task_effect_snow)
+        task_effect_snow = new TaskEffectSnow;
+
+    if (!task_effect_ripple)
+        task_effect_ripple = new TaskEffectRipple;
+
+    if (!task_effect_rain)
+        task_effect_rain = new TaskEffectRain;
+
+    /*if (!task_effect_splash)
+        task_effect_splash = new TaskEffectSplash;*/
+
+    if (!task_effect_fog_anim)
+        task_effect_fog_anim = new TaskEffectFogAnim;
+
+    if (!task_effect_fog_ring)
+        task_effect_fog_ring = new TaskEffectFogRing;
+
+    if (!task_effect_particle)
+        task_effect_particle = new TaskEffectParticle;
+
+    if (!task_effect_litproj)
+        task_effect_litproj = new TaskEffectLitproj;
+
+    if (!task_effect_star)
+        task_effect_star = new TaskEffectStar;
+
+    if (!task_effect_parent)
+        task_effect_parent = new TaskEffectParent;
+
+    if (!ripple_emit_data)
+        ripple_emit_data = new ripple_emit;
+
+    task_effect_fog_anim_data = 0;
+    task_effect_fog_ring_data = 0;
+    task_effect_splash_data = 0;
+}
+
+void task_effect_free() {
+    if (task_effect_auth_3d) {
+        delete task_effect_auth_3d;
+        task_effect_auth_3d = 0;
+    }
+
+    if (task_effect_leaf) {
+        delete task_effect_leaf;
+        task_effect_leaf = 0;
+    }
+
+    if (task_effect_snow) {
+        delete task_effect_snow;
+        task_effect_snow = 0;
+    }
+
+    if (task_effect_ripple) {
+        delete task_effect_ripple;
+        task_effect_ripple = 0;
+    }
+
+    if (task_effect_rain) {
+        delete task_effect_rain;
+        task_effect_rain = 0;
+    }
+
+    /*if (task_effect_splash) {
+        delete task_effect_splash;
+        task_effect_splash = 0;
+    }*/
+
+    if (task_effect_fog_anim) {
+        delete task_effect_fog_anim;
+        task_effect_fog_anim = 0;
+    }
+
+    if (task_effect_fog_ring) {
+        delete task_effect_fog_ring;
+        task_effect_fog_ring = 0;
+    }
+
+    if (task_effect_particle) {
+        delete task_effect_particle;
+        task_effect_particle = 0;
+    }
+
+    if (task_effect_litproj) {
+        delete task_effect_litproj;
+        task_effect_litproj = 0;
+    }
+
+    /*if (task_effect_star) {
+        delete task_effect_star;
+        task_effect_star = 0;
+    }*/
+
+    if (task_effect_parent) {
+        delete task_effect_parent;
+        task_effect_parent = 0;
+    }
+
+    if (ripple_emit_data) {
+        delete ripple_emit_data;
+        ripple_emit_data = 0;
+    }
+
+    task_effect_fog_anim_data = 0;
+    task_effect_fog_ring_data = 0;
+    task_effect_splash_data = 0;
+}
+
+void task_effect_parent_event(TaskEffectType type, int32_t event_type, void* data) {
+    task_effect_parent->Event(type, event_type, data);
+}
+
+void task_effect_parent_dest() {
+    task_effect_parent->Dest();
+}
+
+bool task_effect_parent_load() {
+    return task_effect_parent->Load();
+}
+
+void task_effect_parent_reset() {
+    task_effect_parent->Reset();
+}
+
+void task_effect_parent_set_current_stage_hash(uint32_t stage_hash) {
+    task_effect_parent->SetCurrentStageHash(stage_hash);
+}
+
+void task_effect_parent_set_current_stage_index(int32_t stage_index) {
+    task_effect_parent->SetCurrentStageIndex(stage_index);
+}
+
+void task_effect_parent_set_data(void* data,
+    object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
+    task_effect_parent->data = data;
+    task_effect_parent->obj_db = obj_db;
+    task_effect_parent->tex_db = tex_db;
+    task_effect_parent->stage_data = stage_data;
+}
+
+void task_effect_parent_set_enable(bool value) {
+    task_effect_parent->SetEnable(value);
+}
+
+void task_effect_parent_set_frame(int32_t value) {
+    task_effect_parent->SetFrame(value);
+}
+
+void task_effect_parent_set_frame_rate_control(FrameRateControl* value) {
+    task_effect_parent->SetFrameRateControl(value);
+}
+
+void task_effect_parent_set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
+    task_effect_parent->SetStageHashes(stage_hashes);
+}
+
+void task_effect_parent_set_stage_indices(std::vector<int32_t>& stage_indices) {
+    task_effect_parent->SetStageIndices(stage_indices);
+}
+
+bool task_effect_parent_unload() {
+    return task_effect_parent->Unload();
+}
+
 TaskEffect::TaskEffect() {
 
 }
@@ -909,10 +1951,6 @@ void TaskEffectFogAnim::Reset() {
 }
 
 fog_ring_data::fog_ring_data() : size(), density() {
-
-}
-
-particle_event_data::particle_event_data() : type(), count(), size(), force() {
 
 }
 
@@ -2718,426 +3756,6 @@ void TaskEffectStar::SetFrameRateControl(FrameRateControl* value) {
 
 void TaskEffectStar::Reset() {
 
-}
-
-void leaf_particle_draw() {
-    if (!stage_param_data_leaf_current || !leaf_ptcl_data
-        || !leaf_particle_enable || !stage_param_data_leaf_set)
-        return;
-
-    texture* tex = texture_storage_get_texture(leaf_particle_tex_id);
-    if (!tex)
-        return;
-
-    int32_t count = leaf_particle_disp();
-    if (!count)
-        return;
-
-    const light_data& light_stage = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_STAGE];
-
-    leaf_particle_scene_shader_data shader_data = {};
-    mat4 temp;
-    mat4_transpose(&rctx_ptr->vp_mat, &temp);
-    shader_data.g_transform[0] = temp.row0;
-    shader_data.g_transform[1] = temp.row1;
-    shader_data.g_transform[2] = temp.row2;
-    shader_data.g_transform[3] = temp.row3;
-    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
-    shader_data.g_color = stage_param_data_leaf_current->color;
-    light_stage.get_diffuse(shader_data.g_light_env_stage_diffuse);
-    light_stage.get_specular(shader_data.g_light_env_stage_specular);
-    shader_data.g_lit_dir = rctx_ptr->obj_scene.g_light_chara_dir;
-    shader_data.g_lit_luce = rctx_ptr->obj_scene.g_light_chara_luce;
-    leaf_particle_scene_ubo.WriteMemory(shader_data);
-
-    gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set(SHADER_FT_LEAF_PT);
-    leaf_particle_scene_ubo.Bind(0);
-    gl_state_bind_vertex_array(leaf_ptcl_vao);
-    shaders_ft.draw_elements(GL_TRIANGLES, count / 4 * 6, GL_UNSIGNED_INT, 0);
-    gl_state_bind_vertex_array(0);
-}
-
-void rain_particle_draw() {
-    if (!stage_param_data_rain_current || !rain_particle_enable || !stage_param_data_rain_set)
-        return;
-
-    texture* tex = texture_storage_get_texture(rain_particle_tex_id);
-    if (!tex)
-        return;
-
-    stage_param_rain* rain = stage_param_data_rain_current;
-    vec3 range = rain->range;
-    vec3 range_scale = rain->range;
-    vec3 range_offset = rain->offset;
-    range_offset.x -= range.x * 0.5f;
-    range_offset.z -= range.z * 0.5f;
-
-    rain_particle_scene_shader_data scene_shader_data = {};
-    mat4 temp;
-    mat4_transpose(&rctx_ptr->view_mat, &temp);
-    scene_shader_data.g_view[0] = temp.row0;
-    scene_shader_data.g_view[1] = temp.row1;
-    scene_shader_data.g_view[2] = temp.row2;
-    scene_shader_data.g_view[3] = temp.row3;
-    mat4_transpose(&rctx_ptr->proj_mat, &temp);
-    scene_shader_data.g_proj[0] = temp.row0;
-    scene_shader_data.g_proj[1] = temp.row1;
-    scene_shader_data.g_proj[2] = temp.row2;
-    scene_shader_data.g_proj[3] = temp.row3;
-    scene_shader_data.g_range_scale = { range_scale.x, range_scale.y, range_scale.z, 0.0f };
-    scene_shader_data.g_range_offset = { range_offset.x, range_offset.y, range_offset.z, 0.0f };
-    rain_particle_scene_ubo.WriteMemory(scene_shader_data);
-
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_active_bind_texture_2d(0, tex->tex);
-    shaders_ft.set(SHADER_FT_RAIN);
-
-    float_t tangent_sign = -rain->psize.x;
-    float_t tangent_size = -rain->psize.y * (float_t)(1.0 / 30.0);
-
-    int32_t first = 0;
-    int32_t count = min_def(rain->num_rain, (int32_t)rain_ptcl_count) / 2 / 4 * 6;
-
-    vec4 color = rain->color;
-    float_t color_a = color.w;
-    rain_particle_scene_ubo.Bind(0);
-    rain_particle_batch_ubo.Bind(1);
-    rain_ssbo.Bind(0);
-    for (int32_t i = 0; i < 8; i++, first += count) {
-        particle_data& data = rain_ptcl_data[i];
-        vec3 pos_offset = data.position / range;
-        vec3 tangent = data.velocity * tangent_size;
-        color.w = color_a * data.alpha;
-
-        rain_particle_batch_shader_data batch_shader_data = {};
-        batch_shader_data.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.075f };
-        batch_shader_data.g_tangent = { tangent.x, tangent.y, tangent.z, tangent_sign };
-        batch_shader_data.g_color = color;
-        rain_particle_batch_ubo.WriteMemory(batch_shader_data);
-        shaders_ft.draw_arrays(GL_TRIANGLES, first, count);
-    }
-    gl_state_bind_vertex_array(0);
-    gl_state_active_bind_texture_2d(0, 0);
-    gl_state_set_depth_mask(GL_TRUE);
-    gl_state_disable_blend();
-}
-
-void particle_draw() {
-    if (!ptcl_data)
-        return;
-
-    particle_vertex_data* vtx_data = (particle_vertex_data*)ptcl_vbo.MapMemory();
-    if (!vtx_data)
-        return;
-
-    int32_t count = particle_disp(vtx_data, ptcl_data, ptcl_count);
-
-    ptcl_vbo.UnmapMemory();
-
-    if (!count)
-        return;
-
-    const light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
-
-    particle_scene_shader_data shader_data = {};
-    mat4 temp;
-    mat4_transpose(&rctx_ptr->vp_mat, &temp);
-    shader_data.g_transform[0] = temp.row0;
-    shader_data.g_transform[1] = temp.row1;
-    shader_data.g_transform[2] = temp.row2;
-    shader_data.g_transform[3] = temp.row3;
-    rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
-    light_chara.get_diffuse(shader_data.g_light_env_chara_diffuse);
-    light_chara.get_specular(shader_data.g_light_env_chara_specular);
-    particle_scene_ubo.WriteMemory(shader_data);
-
-    shaders_ft.set(SHADER_FT_PARTICL);
-    particle_scene_ubo.Bind(0);
-    gl_state_bind_vertex_array(ptcl_vao);
-    shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
-    gl_state_bind_vertex_array(0);
-}
-
-void snow_particle_draw() {
-    if (!stage_param_data_snow_current || !snow_particle_enable || !stage_param_data_snow_set)
-        return;
-
-    texture* tex = texture_storage_get_texture(snow_particle_tex_id);
-    if (!tex)
-        return;
-
-    stage_param_snow* snow = stage_param_data_snow_current;
-    draw_pass_set_camera();
-
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-
-    float_t point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
-        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.1f;
-
-    snow_particle_scene_shader_data snow_scene = {};
-    mat4 temp;
-    mat4_transpose(&rctx_ptr->vp_mat, &temp);
-    snow_scene.g_transform[0] = temp.row0;
-    snow_scene.g_transform[1] = temp.row1;
-    snow_scene.g_transform[2] = temp.row2;
-    snow_scene.g_transform[3] = temp.row3;
-
-    mat4_transpose(&rctx_ptr->view_mat, &temp);
-    snow_scene.g_view_world_row2 = temp.row2;
-    snow_scene.g_size_in_projection.x = 1.0f / (float_t)rctx_ptr->render.render_width[0];
-    snow_scene.g_size_in_projection.y = 1.0f / (float_t)rctx_ptr->render.render_height[0];
-    snow_scene.g_size_in_projection.z = snow_particle_size_min;
-    snow_scene.g_size_in_projection.w = snow_particle_size_max;
-    snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
-    snow_scene.g_range_scale.x = snow->range_gpu.x;
-    snow_scene.g_range_scale.y = snow->range_gpu.y;
-    snow_scene.g_range_scale.z = snow->range_gpu.z;
-    snow_scene.g_range_offset.x = snow->offset_gpu.x - snow->range_gpu.x * 0.5f;
-    snow_scene.g_range_offset.y = snow->offset_gpu.y;
-    snow_scene.g_range_offset.z = snow->offset_gpu.z - snow->range_gpu.z * 0.5f;
-    snow_particle_scene_ubo.WriteMemory(snow_scene);
-
-    snow_particle_batch_shader_data snow_batch = {};
-    snow_batch.g_color = snow->color;
-    snow_batch.start_vertex_location.x = 0;
-    snow_particle_batch_ubo.WriteMemory(snow_batch);
-
-    gl_state_active_bind_texture_2d(0, tex->tex);
-    gl_state_active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].GetDepthTex());
-    gl_state_bind_vertex_array(rctx_ptr->common_vao);
-
-    uniform_value[U_SNOW_PARTICLE] = 0;
-    shaders_ft.set(SHADER_FT_SNOW_PT);
-    snow_particle_scene_ubo.Bind(0);
-    snow_particle_batch_ubo.Bind(1);
-
-    snow_ssbo.Bind(0);
-    shaders_ft.draw_arrays(GL_TRIANGLES, 0, snow->num_snow * 6);
-
-    snow_fallen_ssbo.Bind(0);
-    shaders_ft.draw_arrays(GL_TRIANGLES, 0, (GLsizei)(snow_ptcl_fallen_count * 6));
-
-    uniform_value[U_SNOW_PARTICLE] = 1;
-    shaders_ft.set(SHADER_FT_SNOW_PT);
-    snow_particle_scene_ubo.Bind(0);
-    snow_particle_batch_ubo.Bind(1);
-
-    point_attenuation = powf(tanf((float_t)rctx_ptr->camera->get_fov()
-        * 0.5f * DEG_TO_RAD_FLOAT) * 3.4f, 2.0f) * 0.06f;
-
-    snow_scene.g_state_point_attenuation = { 0.0f, 0.0f, point_attenuation, 0.0f };
-    snow_particle_scene_ubo.WriteMemory(snow_scene);
-
-    snow_gpu_ssbo.Bind(0);
-
-    int32_t count = snow->num_snow_gpu / 4;
-    count = min_def(count, (int32_t)snow_ptcl_count / 4) * 6;
-
-    int32_t first = 0;
-    for (particle_data& i : snow_ptcl_gpu) {
-        vec3 pos_offset = i.position / snow->range_gpu;
-        vec4 color = snow->color;
-        color.w *= i.alpha;
-
-        snow_batch = {};
-        snow_batch.g_pos_offset = { pos_offset.x, pos_offset.y, pos_offset.z, 0.0f };
-        snow_batch.g_color = color;
-        snow_batch.start_vertex_location.x = first;
-        snow_particle_batch_ubo.WriteMemory(snow_batch);
-
-        shaders_ft.draw_arrays(GL_TRIANGLES, 0, count);
-        first += count;
-    }
-
-    gl_state_active_bind_texture_2d(1, 0);
-    gl_state_active_bind_texture_2d(0, 0);
-
-    gl_state_disable_depth_test();
-    gl_state_set_depth_mask(GL_TRUE);
-    gl_state_disable_blend();
-}
-
-void star_catalog_draw() {
-    star_catalog_data.draw();
-}
-
-void task_effect_init() {
-    if (!task_effect_auth_3d)
-        task_effect_auth_3d = new TaskEffectAuth3D;
-
-    if (!task_effect_leaf)
-        task_effect_leaf = new TaskEffectLeaf;
-
-    if (!task_effect_snow)
-        task_effect_snow = new TaskEffectSnow;
-
-    if (!task_effect_ripple)
-        task_effect_ripple = new TaskEffectRipple;
-
-    if (!task_effect_rain)
-        task_effect_rain = new TaskEffectRain;
-
-    /*if (!task_effect_splash)
-        task_effect_splash = new TaskEffectSplash;*/
-
-    if (!task_effect_fog_anim)
-        task_effect_fog_anim = new TaskEffectFogAnim;
-
-    if (!task_effect_fog_ring)
-        task_effect_fog_ring = new TaskEffectFogRing;
-
-    if (!task_effect_particle)
-        task_effect_particle = new TaskEffectParticle;
-
-    if (!task_effect_litproj)
-        task_effect_litproj = new TaskEffectLitproj;
-
-    if (!task_effect_star)
-        task_effect_star = new TaskEffectStar;
-
-    if (!task_effect_parent)
-        task_effect_parent = new TaskEffectParent;
-
-    if (!ripple_emit_data)
-        ripple_emit_data = new ripple_emit;
-
-    task_effect_fog_anim_data = 0;
-    task_effect_fog_ring_data = 0;
-    task_effect_splash_data = 0;
-}
-
-void task_effect_free() {
-    if (task_effect_auth_3d) {
-        delete task_effect_auth_3d;
-        task_effect_auth_3d = 0;
-    }
-
-    if (task_effect_leaf) {
-        delete task_effect_leaf;
-        task_effect_leaf = 0;
-    }
-
-    if (task_effect_snow) {
-        delete task_effect_snow;
-        task_effect_snow = 0;
-    }
-
-    if (task_effect_ripple) {
-        delete task_effect_ripple;
-        task_effect_ripple = 0;
-    }
-
-    if (task_effect_rain) {
-        delete task_effect_rain;
-        task_effect_rain = 0;
-    }
-
-    /*if (task_effect_splash) {
-        delete task_effect_splash;
-        task_effect_splash = 0;
-    }*/
-
-    if (task_effect_fog_anim) {
-        delete task_effect_fog_anim;
-        task_effect_fog_anim = 0;
-    }
-
-    if (task_effect_fog_ring) {
-        delete task_effect_fog_ring;
-        task_effect_fog_ring = 0;
-    }
-
-    if (task_effect_particle) {
-        delete task_effect_particle;
-        task_effect_particle = 0;
-    }
-
-    if (task_effect_litproj) {
-        delete task_effect_litproj;
-        task_effect_litproj = 0;
-    }
-
-    /*if (task_effect_star) {
-        delete task_effect_star;
-        task_effect_star = 0;
-    }*/
-
-    if (task_effect_parent) {
-        delete task_effect_parent;
-        task_effect_parent = 0;
-    }
-
-    if (ripple_emit_data) {
-        delete ripple_emit_data;
-        ripple_emit_data = 0;
-    }
-
-    task_effect_fog_anim_data = 0;
-    task_effect_fog_ring_data = 0;
-    task_effect_splash_data = 0;
-}
-
-void task_effect_parent_event(TaskEffectType type, int32_t event_type, void* data) {
-    task_effect_parent->Event(type, event_type, data);
-}
-
-void task_effect_parent_dest() {
-    task_effect_parent->Dest();
-}
-
-bool task_effect_parent_load() {
-    return task_effect_parent->Load();
-}
-
-void task_effect_parent_reset() {
-    task_effect_parent->Reset();
-}
-
-void task_effect_parent_set_current_stage_hash(uint32_t stage_hash) {
-    task_effect_parent->SetCurrentStageHash(stage_hash);
-}
-
-void task_effect_parent_set_current_stage_index(int32_t stage_index) {
-    task_effect_parent->SetCurrentStageIndex(stage_index);
-}
-
-void task_effect_parent_set_data(void* data,
-    object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
-    task_effect_parent->data = data;
-    task_effect_parent->obj_db = obj_db;
-    task_effect_parent->tex_db = tex_db;
-    task_effect_parent->stage_data = stage_data;
-}
-
-void task_effect_parent_set_enable(bool value) {
-    task_effect_parent->SetEnable(value);
-}
-
-void task_effect_parent_set_frame(int32_t value) {
-    task_effect_parent->SetFrame(value);
-}
-
-void task_effect_parent_set_frame_rate_control(FrameRateControl* value) {
-    task_effect_parent->SetFrameRateControl(value);
-}
-
-void task_effect_parent_set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
-    task_effect_parent->SetStageHashes(stage_hashes);
-}
-
-void task_effect_parent_set_stage_indices(std::vector<int32_t>&stage_indices) {
-    task_effect_parent->SetStageIndices(stage_indices);
-}
-
-bool task_effect_parent_unload() {
-    return task_effect_parent->Unload();
 }
 
 static TaskEffect* task_effect_array_get(TaskEffectType type, const char** name) {
