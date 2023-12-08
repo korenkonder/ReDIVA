@@ -1180,6 +1180,7 @@ void rain_particle_draw() {
     rain_particle_scene_ubo.Bind(0);
     rain_particle_batch_ubo.Bind(1);
     rain_ssbo.Bind(0);
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
     for (int32_t i = 0; i < 8; i++, first += count) {
         particle_data& data = rain_ptcl_data[i];
         vec3 pos_offset = data.position / range;
@@ -4110,8 +4111,6 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     gl_state_set_depth_mask(GL_TRUE);
     gl_state_enable_blend();
     gl_state_disable_cull_face();
-
-
 }
 
 void star_catalog_milky_way::reset() {
