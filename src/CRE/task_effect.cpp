@@ -891,56 +891,6 @@ struct TaskEffectParent {
     bool Unload();
 };
 
-static TaskEffect* task_effect_array_get(TaskEffectType type, const char** name);
-static std::string task_effect_array_get_stage_param_file_path(
-    TaskEffectType type, int32_t stage_index, bool dev_ram, bool a4);
-static bool task_effect_array_parse_stage_param_data_fog_ring(stage_param_fog_ring* fog_ring, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_leaf(stage_param_leaf* leaf, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_litproj(stage_param_litproj* litproj, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_rain(stage_param_rain* rain, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_ripple(stage_param_ripple* ripple, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index);
-
-static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* data);
-
-static void draw_ripple_emit(render_context* rctx, struc_101* data);
-
-static void leaf_particle_init(bool change_stage = false);
-static void leaf_particle_ctrl();
-static int32_t leaf_particle_disp();
-static void leaf_particle_free();
-
-static void particle_init(vec3* offset);
-static void particle_ctrl();
-static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* data, int32_t count);
-static particle_rot_data* particle_emit();
-static void particle_event(particle_event_data* event_data);
-static void particle_kill(particle_rot_data* data);
-static void particle_free();
-
-static void rain_particle_init(bool change_stage = false);
-static void rain_particle_ctrl();
-static void rain_particle_free();
-
-static void ripple_emit_init();
-static void ripple_emit_free();
-
-static void snow_particle_init(bool change_stage = false);
-static void snow_particle_ctrl();
-static void snow_particle_data_init();
-static void snow_particle_data_emit_fallen(particle_data* data);
-static void snow_particle_data_kill_fallen(particle_data* data, bool kill);
-static void snow_particle_data_reset(particle_data* data);
-static void snow_particle_data_free();
-static particle_data* snow_particle_emit_fallen();
-static vec3 snow_particle_get_random_velocity();
-static void snow_particle_free();
-
-static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params);
-static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
-
 static TaskEffectAuth3D* task_effect_auth_3d;
 static TaskEffectLeaf* task_effect_leaf;
 static TaskEffectSnow* task_effect_snow;
@@ -1088,6 +1038,56 @@ static const char* task_effect_name_array[] = {
 extern render_context* rctx_ptr;
 extern int32_t width;
 extern int32_t height;
+
+static TaskEffect* task_effect_array_get(TaskEffectType type, const char** name);
+static std::string task_effect_array_get_stage_param_file_path(
+    TaskEffectType type, int32_t stage_index, bool dev_ram, bool a4);
+static bool task_effect_array_parse_stage_param_data_fog_ring(stage_param_fog_ring* fog_ring, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_leaf(stage_param_leaf* leaf, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_litproj(stage_param_litproj* litproj, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_rain(stage_param_rain* rain, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_ripple(stage_param_ripple* ripple, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index);
+static bool task_effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index);
+
+static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* data);
+
+static void draw_ripple_emit(render_context* rctx, struc_101* data);
+
+static void leaf_particle_init(bool change_stage = false);
+static void leaf_particle_ctrl();
+static int32_t leaf_particle_disp();
+static void leaf_particle_free();
+
+static void particle_init(vec3* offset);
+static void particle_ctrl();
+static int32_t particle_disp(particle_vertex_data* vtx_data, particle_rot_data* data, int32_t count);
+static particle_rot_data* particle_emit();
+static void particle_event(particle_event_data* event_data);
+static void particle_kill(particle_rot_data* data);
+static void particle_free();
+
+static void rain_particle_init(bool change_stage = false);
+static void rain_particle_ctrl();
+static void rain_particle_free();
+
+static void ripple_emit_init();
+static void ripple_emit_free();
+
+static void snow_particle_init(bool change_stage = false);
+static void snow_particle_ctrl();
+static void snow_particle_data_init();
+static void snow_particle_data_emit_fallen(particle_data* data);
+static void snow_particle_data_kill_fallen(particle_data* data, bool kill);
+static void snow_particle_data_reset(particle_data* data);
+static void snow_particle_data_free();
+static particle_data* snow_particle_emit_fallen();
+static vec3 snow_particle_get_random_velocity();
+static void snow_particle_free();
+
+static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params);
+static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
 
 particle_event_data::particle_event_data() : type(), count(), size(), force() {
 
