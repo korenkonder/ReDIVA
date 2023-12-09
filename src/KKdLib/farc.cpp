@@ -859,15 +859,13 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
                 &ff->data, &ff->size, deflate::MODE_GZIP);
         }
         else {
-            ff->data = force_malloc(ff->size_compressed);
-            s.read(ff->data, ff->size_compressed);
-            ff->size = ff->size_compressed;
-            ff->size_compressed = 0;
+            ff->data = force_malloc(ff->size);
+            s.read(ff->data, ff->size);
         }
     }
     else if (ff->compressed || ff->encrypted) {
-        size_t temp_s = ff->encrypted
-            ? align_val(ff->size_compressed, f->alignment) : ff->size_compressed;
+        size_t temp_s = ff->compressed ? ff->size_compressed : ff->size;
+        temp_s = ff->encrypted ? align_val(temp_s, f->alignment) : temp_s;
         void* temp = force_malloc(temp_s);
         s.read(temp, temp_s);
 
