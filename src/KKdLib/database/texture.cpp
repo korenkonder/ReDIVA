@@ -227,42 +227,16 @@ void texture_database::add(texture_database_file* tex_db_file) {
 
     texture.reserve(tex_db_file->texture.size());
 
-    size_t src_size = texture.size();
-    size_t dst_size = src_size;
+    std::vector< texture_info> texture_add;
 
     for (texture_info_file& i : tex_db_file->texture) {
-        uint32_t id = i.id;
-
-        texture_info* info = texture.data();
-        if (info) {
-            size_t length = src_size;
-            size_t temp;
-            while (length > 0)
-                if (info[temp = length / 2].id >= id)
-                    length /= 2;
-                else {
-                    info += temp + 1;
-                    length -= temp + 1;
-                }
-
-            if (info == texture.data() + src_size || id != info->id)
-                info = 0;
-        }
-
-        if (!info) {
-            texture_info* j_begin = texture.data() + src_size;
-            texture_info* j_end = texture.data() + dst_size;
-            for (texture_info* j = j_begin; j != j_end; j++)
-                if (id == j->id) {
-                    info = j;
-                    break;
-                }
-        }
-
-        if (!info) {
-            texture.push_back({});
-            info = &texture.back();
-            dst_size++;
+        texture_info* info;
+        auto elem = texture_ids.find(i.id);
+        if (elem != texture_ids.end())
+            info = elem->second;
+        else {
+            texture_add.push_back({});
+            info = &texture_add.back();
         }
 
         info->id = i.id;
@@ -270,7 +244,12 @@ void texture_database::add(texture_database_file* tex_db_file) {
         info->name_hash = hash_string_murmurhash(info->name);
     }
 
-    sort();
+    texture.insert(texture.end(), texture_add.begin(), texture_add.end());
+
+    texture_add.clear();
+    texture_add.shrink_to_fit();
+
+    update();
 }
 
 static size_t texture_info_radix_index_func_id(texture_info* data, size_t index) {
@@ -280,22 +259,35 @@ static size_t texture_info_radix_index_func_id(texture_info* data, size_t index)
 void texture_database::clear() {
     texture.clear();
     texture.shrink_to_fit();
+    texture_ids.clear();
+    texture_ids.shrink_to_fit();
+    texture_murmurhashes.clear();
+    texture_murmurhashes.shrink_to_fit();
 }
 
-void texture_database::sort() {
-    radix_sort_custom(texture.data(), texture.size(), sizeof(texture_info),
-        sizeof(uint32_t), (radix_index_func)texture_info_radix_index_func_id);
+void texture_database::update() {
+    texture_ids.clear();
+    texture_murmurhashes.clear();
+
+    texture_ids.reserve(texture.size());
+    texture_murmurhashes.reserve(texture.size());
+
+    for (texture_info& i : texture) {
+        texture_ids.push_back(i.id, &i);
+        texture_murmurhashes.push_back(i.name_hash, &i);
+    }
+
+    texture_ids.sort_unique();
+    texture_murmurhashes.sort_unique();
 }
 
 uint32_t texture_database::get_texture_id(const char* name) const {
     if (!name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const texture_info& i : texture)
-        if (name_hash == i.name_hash)
-            return i.id;
+    auto elem = texture_murmurhashes.find(hash_utf8_murmurhash(name));
+    if (elem != texture_murmurhashes.end())
+        return elem->second->id;
     return -1;
 }
 
@@ -303,9 +295,9 @@ const char* texture_database::get_texture_name(uint32_t id) const {
     if (id == -1)
         return 0;
 
-    for (const texture_info& i : texture)
-        if (id == i.id)
-            return i.name.c_str();
+    auto elem = texture_ids.find(id);
+    if (elem != texture_ids.end())
+        return elem->second->name.c_str();
     return 0;
 }
 

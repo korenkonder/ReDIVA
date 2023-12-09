@@ -1044,7 +1044,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             while (index / tex->mipmaps_count < tex->array_size);
         }
 
-        tex_db->sort();
+        tex_db->update();
 
         size_t tex_id_num = txp_set->textures.size();
         if (set->tex_id_num != tex_id_num) {

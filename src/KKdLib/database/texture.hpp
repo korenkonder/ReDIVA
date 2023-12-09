@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../prj/vector_pair.hpp"
 
 struct texture_info_file {
     std::string name;
@@ -49,13 +50,15 @@ struct texture_database_file {
 
 struct texture_database {
     std::vector<texture_info> texture;
+    prj::vector_pair<uint32_t, texture_info*> texture_ids;
+    prj::vector_pair<uint32_t, texture_info*> texture_murmurhashes;
 
     texture_database();
     ~texture_database();
 
     void add(texture_database_file* tex_db_file);
     void clear();
-    void sort();
+    void update();
 
     uint32_t get_texture_id(const char* name) const;
     const char* get_texture_name(uint32_t id) const;
