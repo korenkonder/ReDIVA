@@ -58,7 +58,7 @@ DtmAet::~DtmAet() {
 
 }
 
-bool DtmAet::Init() {
+bool DtmAet::init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
@@ -73,7 +73,7 @@ bool DtmAet::Init() {
     return true;
 }
 
-bool DtmAet::Ctrl() {
+bool DtmAet::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
@@ -238,7 +238,7 @@ bool DtmAet::Ctrl() {
     return false;
 }
 
-bool DtmAet::Dest() {
+bool DtmAet::dest() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
@@ -254,7 +254,7 @@ bool DtmAet::Dest() {
     return true;
 }
 
-void DtmAet::Disp() {
+void DtmAet::disp() {
     if (state != 7 || !type)
         return;
 
@@ -300,7 +300,7 @@ void DtmAet::Disp() {
     }
 }
 
-void DtmAet::Basic() {
+void DtmAet::basic() {
     if (state != 7)
         return;
 
@@ -394,10 +394,10 @@ void dtm_aet_init() {
 }
 
 void dtm_aet_load() {
-    if (app::TaskWork::CheckTaskReady(dtm_aet))
+    if (app::TaskWork::check_task_ready(dtm_aet))
         return;
 
-    app::TaskWork::AddTask(dtm_aet, "DATA_TEST_AET_MANAGER");
+    app::TaskWork::add_task(dtm_aet, "DATA_TEST_AET_MANAGER");
 
     if (!dtw_aet) {
         dtw_aet = new DtwAet;
@@ -408,7 +408,7 @@ void dtm_aet_load() {
 }
 
 void dtm_aet_unload() {
-    dtm_aet->DelTask();
+    dtm_aet->del();
     dtw_aet->Hide();
 }
 

@@ -67,11 +67,11 @@ stage_detail::TaskStage:: ~TaskStage() {
 
 }
 
-bool stage_detail::TaskStage::Init() {
+bool stage_detail::TaskStage::init() {
     return true;
 }
 
-bool stage_detail::TaskStage::Ctrl() {
+bool stage_detail::TaskStage::ctrl() {
     stage_detail::TaskStage_CtrlInner(this);
 
     for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
@@ -80,7 +80,7 @@ bool stage_detail::TaskStage::Ctrl() {
     return false;
 }
 
-bool stage_detail::TaskStage::Dest() {
+bool stage_detail::TaskStage::dest() {
     stage_detail::TaskStage_Unload(this);
     if (state)
         return false;
@@ -88,7 +88,7 @@ bool stage_detail::TaskStage::Dest() {
     return true;
 }
 
-void stage_detail::TaskStage::Disp() {
+void stage_detail::TaskStage::disp() {
     if (state != 6 || !stage_display)
         return;
 
@@ -236,7 +236,7 @@ void task_stage_set_stage_indices(const std::vector<int32_t>& stage_indices) {
 }
 
 bool task_stage_unload_task() {
-    return task_stage->DelTask();
+    return task_stage->del();
 }
 
 void task_stage_free() {
@@ -345,14 +345,14 @@ static void stage_detail::TaskStage_Load(stage_detail::TaskStage* a1) {
 }
 
 static bool stage_detail::TaskStage_LoadTask(stage_detail::TaskStage* a1, const char* name) {
-    if (app::TaskWork::AddTask(a1, name)) {
+    if (app::TaskWork::add_task(a1, name)) {
         stage_detail::TaskStage_Reset(a1);
         stage_detail::TaskStage_TaskWindAppend(a1);
         return false;
     }
     else {
-        if (!app::TaskWork::HasTaskDest(a1))
-            a1->DelTask();
+        if (!app::TaskWork::has_task_dest(a1))
+            a1->del();
         return true;
     }
 }
@@ -382,7 +382,7 @@ static void stage_detail::TaskStage_SetStage(stage_detail::TaskStage* a1, const 
 }
 
 static void stage_detail::TaskStage_TaskWindAppend(stage_detail::TaskStage* a1) {
-    app::TaskWork::AddTask(task_wind, a1, "CHARA WIND");
+    app::TaskWork::add_task(task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {

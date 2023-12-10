@@ -68,10 +68,10 @@ public:
     DataTestMot();
     virtual ~DataTestMot() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
     void sub_140286280();
 };
@@ -88,11 +88,11 @@ public:
     DataTestMotA3d();
     virtual ~DataTestMotA3d() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
 
     const char* GetStateText();
     void LoadAuth3d(std::string&& name);
@@ -150,16 +150,16 @@ public:
     DtmMot();
     virtual ~DtmMot() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void basic() override;
 
-    virtual bool AddTask(::chara_index chara_index,
+    virtual bool add_task(::chara_index chara_index,
         int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index);
-    virtual bool AddTask(::chara_index chara_index,
+    virtual bool add_task(::chara_index chara_index,
         int32_t cos_id, uint32_t motion_id);
-    virtual bool DelTask();
+    virtual bool del_task();
 
     bool CheckFirstFrame();
     void CtrlFaceMot();

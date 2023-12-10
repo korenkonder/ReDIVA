@@ -29,13 +29,13 @@ TaskDataInit::~TaskDataInit() {
 
 }
 
-bool TaskDataInit::Init() {
+bool TaskDataInit::init() {
     state = 0;
     field_6C = !test_mode_get();
     return true;
 }
 
-bool TaskDataInit::Ctrl() {
+bool TaskDataInit::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
@@ -170,16 +170,16 @@ bool TaskDataInit::Ctrl() {
     return false;
 }
 
-bool TaskDataInit::Dest() {
+bool TaskDataInit::dest() {
     return true;
 }
 
-void TaskDataInit::Disp() {
+void TaskDataInit::disp() {
 
 }
 
 bool task_data_init_add_task() {
-    return app::TaskWork::AddTask(&task_data_init, "DATA_INITIALIZE");
+    return app::TaskWork::add_task(&task_data_init, "DATA_INITIALIZE");
 }
 
 bool task_data_init_check_state() {
@@ -187,5 +187,5 @@ bool task_data_init_check_state() {
 }
 
 bool task_data_init_del_task() {
-    return task_data_init.DelTask();
+    return task_data_init.del();
 }

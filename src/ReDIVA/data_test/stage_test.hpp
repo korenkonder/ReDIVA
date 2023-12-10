@@ -25,9 +25,9 @@ public:
     DtmStg();
     virtual ~DtmStg() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 };
 
 extern DtmStg* dtm_stg;

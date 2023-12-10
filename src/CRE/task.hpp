@@ -14,11 +14,11 @@ namespace app {
         TaskInterface();
         virtual ~TaskInterface();
 
-        virtual bool Init();
-        virtual bool Ctrl();
-        virtual bool Dest();
-        virtual void Disp();
-        virtual void Basic();
+        virtual bool init();
+        virtual bool ctrl();
+        virtual bool dest();
+        virtual void disp();
+        virtual void basic();
     };
 
     class Task : public TaskInterface {
@@ -55,7 +55,7 @@ namespace app {
         Op next_op;
         State next_state;
         bool field_2C;
-        bool is_frame_dependent;
+        bool frame_dependent;
         char name[32];
         uint32_t base_calc_time;
         uint32_t calc_time;
@@ -66,19 +66,19 @@ namespace app {
         Task();
         virtual ~Task() override;
 
-        uint32_t GetCalcTime();
-        uint32_t GetCalcTimeMax();
-        uint32_t GetDispTime();
-        uint32_t GetDispTimeMax();
-        char* GetName();
+        uint32_t get_calc_time();
+        uint32_t get_calc_time_max();
+        uint32_t get_disp_time();
+        uint32_t get_disp_time_max();
+        const char* get_name();
 
-        bool DelTask();
-        bool HideTask();
-        bool RunTask();
-        bool SuspendTask();
+        bool del();
+        bool hide();
+        bool run();
+        bool suspend();
 
-        void SetName(const char* name);
-        void SetPriority(int32_t priority);
+        void set_name(const char* name);
+        void set_priority(int32_t priority);
     };
 
     struct TaskWork;
@@ -87,28 +87,28 @@ namespace app {
 
     struct TaskWork {
         std::list<Task*> tasks;
-        Task* current;
-        bool disp;
+        Task* current_task;
+        bool disp_task;
 
         TaskWork();
         ~TaskWork();
 
-        static bool AddTask(Task* t,
+        static bool add_task(Task* t,
             const char* name = "(unknown)", int32_t priority = 1);
-        static bool AddTask(Task* t, Task* parent_task,
+        static bool add_task(Task* t, Task* parent_task,
             const char* name = "(unknown)", int32_t priority = 1);
-        static void Basic();
-        static bool CheckTaskCtrl(Task* t);
-        static bool CheckTaskReady(Task* t);
-        static void Ctrl();
-        static void Dest();
-        static void Disp();
-        static Task* GetTaskByIndex(int32_t index);
-        static bool HasTask(Task* t);
-        static bool HasTaskInit(Task* t);
-        static bool HasTaskCtrl(Task* t);
-        static bool HasTaskDest(Task* t);
-        static bool HasTasksDest();
+        static void basic();
+        static bool check_task_ctrl(Task* t);
+        static bool check_task_ready(Task* t);
+        static void ctrl();
+        static void dest();
+        static void disp();
+        static Task* get_task_by_index(int32_t index);
+        static bool has_task(Task* t);
+        static bool has_task_init(Task* t);
+        static bool has_task_ctrl(Task* t);
+        static bool has_task_dest(Task* t);
+        static bool has_tasks_dest();
     };
 
     extern void task_work_init();

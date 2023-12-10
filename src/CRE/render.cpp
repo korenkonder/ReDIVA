@@ -1357,7 +1357,7 @@ namespace rndr {
                 * (float_t)inner_width / (float_t)width * (1.0f / round_val)) * round_val);
             render_height[0] = (int32_t)(prj::ceilf((float_t)screen_height
                 * (float_t)inner_height / (float_t)height * (1.0f / round_val)) * round_val);*/
-            
+
             render_width[0] = (int32_t)prj::ceilf((float_t)screen_width
                 * (float_t)inner_width / (float_t)width);
             render_height[0] = (int32_t)prj::ceilf((float_t)screen_height

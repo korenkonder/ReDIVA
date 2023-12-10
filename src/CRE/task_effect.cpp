@@ -29,25 +29,25 @@ public:
     TaskEffect();
     virtual ~TaskEffect() override;
 
-    virtual void PreInit(int32_t stage_index);
-    virtual void SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+    virtual void pre_init(int32_t stage_index);
+    virtual void set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
         object_database* obj_db, texture_database* tex_db, stage_database* stage_data); // Added
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices);
-    virtual void SetFrame(int32_t value);
-    virtual void Field_48();
-    virtual void SetEnable(bool value);
-    virtual void SetCurrentStageHash(uint32_t value); // Added
-    virtual void SetCurrentStageIndex(int32_t value);
-    virtual void SetFrameRateControl(FrameRateControl* value = 0);
-    virtual void Field_68();
-    virtual void Reset();
-    virtual void Event(int32_t event_type, void* data);
-    virtual void Field_80();
-    virtual void Field_88();
-    virtual void Field_90();
-    virtual void Field_98(int32_t a2, int32_t* a3);
-    virtual void Field_A0(int32_t a2, int32_t* a3);
-    virtual void Field_A8(int32_t a2, int8_t* a3);
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices);
+    virtual void set_frame(int32_t value);
+    virtual void field_48();
+    virtual void set_enable(bool value);
+    virtual void set_current_stage_hash(uint32_t value); // Added
+    virtual void set_current_stage_index(int32_t value);
+    virtual void set_frame_rate_control(FrameRateControl* value = 0);
+    virtual void field_68();
+    virtual void reset();
+    virtual void event(int32_t event_type, void* data);
+    virtual void field_80();
+    virtual void field_88();
+    virtual void field_90();
+    virtual void field_98(int32_t a2, int32_t* a3);
+    virtual void field_A0(int32_t a2, int32_t* a3);
+    virtual void field_A8(int32_t a2, int8_t* a3);
 };
 
 struct struc_621 {
@@ -84,24 +84,24 @@ public:
     TaskEffectAuth3D();
     virtual ~TaskEffectAuth3D() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
         object_database* obj_db, texture_database* tex_db, stage_database* stage_data) override; // Added
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageHash(uint32_t value) override; // Added
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_frame(int32_t value) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_hash(uint32_t value) override; // Added
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 
-    void ResetData();
-    void SetVisibility(bool value);
+    void reset_data();
+    void set_visibility(bool value);
 };
 
 struct TaskEffectFogAnim : public TaskEffect {
@@ -120,20 +120,20 @@ public:
 
         Data();
 
-        void Ctrl();
-        void Reset();
+        void ctrl();
+        void reset();
     } data;
 
     TaskEffectFogAnim();
     virtual ~TaskEffectFogAnim() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void reset() override;
 };
 
 struct fog_ring_data {
@@ -192,7 +192,7 @@ public:
         struc_371 field_128[10];
         int8_t field_2B8;
         int8_t field_2B9;
-        bool disp;
+        bool display;
         int32_t current_stage_index;
         std::vector<int32_t> stage_indices;
         FrameRateControl* frame_rate_control;
@@ -201,19 +201,19 @@ public:
         Data();
         ~Data();
 
-        void CalcPtcl(float_t delta_time);
-        void CalcVert();
-        void Ctrl();
-        void CtrlInner(float_t delta_time);
-        void Dest();
-        void Disp();
-        void Draw();
-        void InitParticleData();
-        void Reset();
-        void SetStageIndices(std::vector<int32_t>& stage_indices);
+        void calc_ptcl(float_t delta_time);
+        void calc_vert();
+        void ctrl();
+        void ctrl_inner(float_t delta_time);
+        void dest();
+        void disp();
+        void draw();
+        void init_particle_data();
+        void reset();
+        void set_stage_indices(std::vector<int32_t>& stage_indices);
 
-        static void DrawStatic(void* data);
-        static float_t PtclRandom(float_t value);
+        static void draw_static(void* data);
+        static float_t ptcl_random(float_t value);
 
         void sub_140347B40(float_t delta_time);
 
@@ -223,17 +223,17 @@ public:
     TaskEffectFogRing();
     virtual ~TaskEffectFogRing() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 };
 
 struct TaskEffectLeaf : public TaskEffect {
@@ -246,17 +246,17 @@ public:
     TaskEffectLeaf();
     virtual ~TaskEffectLeaf() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 };
 
 struct TaskEffectLitproj : public TaskEffect {
@@ -271,16 +271,16 @@ public:
     TaskEffectLitproj();
     virtual ~TaskEffectLitproj() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void reset() override;
 };
 
 struct TaskEffectParticle : public TaskEffect {
@@ -291,16 +291,16 @@ public:
     TaskEffectParticle();
     virtual ~TaskEffectParticle() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
-    virtual void Event(int32_t event_type, void* data) override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
+    virtual void event(int32_t event_type, void* data) override;
 };
 
 struct TaskEffectRain : public TaskEffect {
@@ -312,20 +312,20 @@ public:
     TaskEffectRain();
     virtual ~TaskEffectRain() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 };
 
-struct struc_101 {
+struct ripple_struct {
     int32_t ripple_uniform;
     int32_t ripple_emit_uniform;
     int32_t count;
@@ -336,7 +336,7 @@ struct struc_101 {
 };
 
 struct ripple_emit_draw_data {
-    struc_101 data;
+    ripple_struct data;
     vec3 vertex[16];
     color4u8 color[16];
 
@@ -402,7 +402,7 @@ struct ripple_emit {
     ripple_emit();
     ~ripple_emit();
 
-    void add_draw_ripple_emit(struc_101* data);
+    void add_draw_ripple_emit(ripple_struct* data);
     void clear_tex();
     void ctrl();
     void dest();
@@ -417,7 +417,7 @@ struct ripple_emit {
 
     void sub_1403584A0(RenderTexture* rt);
     void sub_140358690();
-    void sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_101& a5, struc_101& a6);
+    void sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, ripple_struct& a5, ripple_struct& a6);
     void sub_14035AAE0();
     void sub_14035AED0();
 };
@@ -431,16 +431,16 @@ public:
     TaskEffectRipple();
     virtual ~TaskEffectRipple() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 };
 
 struct TaskEffectSnow : public TaskEffect {
@@ -452,46 +452,56 @@ public:
     TaskEffectSnow();
     virtual ~TaskEffectSnow() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 };
 
-struct struc_180 {
-    uint32_t count;
-    int32_t field_4;
-    int64_t field_8;
-    int64_t field_10;
-    int64_t field_18;
-    int32_t field_20;
-    int64_t field_28;
-    int64_t field_30;
-    int64_t field_38;
+struct splash_particle_data {
+    vec3 position;
+    vec3 direction;
+    float_t field_18;
+    float_t life_time;
+    float_t field_20;
+    int32_t index;
+    int32_t field_28;
+    float_t field_2C;
+};
+
+struct splash_particle {
+    int32_t count;
+    int32_t alive;
+    std::vector<splash_particle_data> data;
+    int32_t dead;
+    std::vector<int32_t> available;
+
+    splash_particle();
+    ~splash_particle();
 };
 
 struct ParticleEmitter {
-    struc_180* field_8;
-    int64_t field_10;
-    int64_t field_18;
+    splash_particle* splash;
+    vec3 trans;
+    int field_1C;
     float_t field_20;
-    int32_t field_24;
+    int field_24;
     float_t field_28;
     float_t particle_size;
 
     ParticleEmitter();
     virtual ~ParticleEmitter();
 
-    virtual bool Field_8();
-    virtual bool Field_10();
+    virtual bool field_8();
+    virtual bool field_10();
 };
 
 struct ParticleEmitterRob : ParticleEmitter {
@@ -515,16 +525,17 @@ struct ParticleEmitterRob : ParticleEmitter {
 };
 
 struct water_particle {
-    struc_180* field_0;
+    splash_particle* splash;
     vec4 color;
     float_t particle_size;
-    std::vector<point_particle_data> field_20;
+    int32_t splash_count;
+    std::vector<point_particle_data> ptcl_data;
     int32_t count;
     int32_t tex_id;
     bool blink;
-    std::vector<vec3> field_48;
-    std::vector<vec4u8> field_60;
-    struc_101 field_78;
+    std::vector<vec3> position_data;
+    std::vector<color4u8> color_data;
+    ripple_struct ripple;
     float_t ripple_emission;
 
     water_particle();
@@ -532,8 +543,8 @@ struct water_particle {
 };
 
 struct ParticleDispObj {
-    struc_180* field_8;
-    object_info object;
+    splash_particle* splash;
+    object_info obj_info;
     std::vector<mat4> instances_mat;
 
     ParticleDispObj();
@@ -547,13 +558,13 @@ public:
     struct Data {
         struct Sub {
             int32_t field_0;
-            struc_180* field_8;
+            splash_particle* field_8;
             int32_t field_10;
             ParticleEmitterRob* field_18;
             int32_t field_20;
             water_particle* field_28;
             int8_t field_30;
-            struc_180 field_38;
+            splash_particle field_38;
             int32_t field_78;
             ParticleEmitterRob* field_80;
             ParticleDispObj field_88;
@@ -589,27 +600,27 @@ public:
     TaskEffectSplash();
     virtual ~TaskEffectSplash() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
 
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Field_68() override;
-    virtual void Reset() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
+    virtual void pre_init(int32_t stage_index) override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_frame(int32_t value) override;
+    virtual void field_48() override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void field_68() override;
+    virtual void reset() override;
+    virtual void field_80() override;
+    virtual void field_88() override;
+    virtual void field_90() override;
+    virtual void field_98(int32_t a2, int32_t* a3) override;
+    virtual void field_A0(int32_t a2, int32_t* a3) override;
+    virtual void field_A8(int32_t a2, int8_t* a3) override;
 };
 
 struct TaskEffectStar : public TaskEffect {
@@ -622,16 +633,16 @@ public:
     TaskEffectStar();
     virtual ~TaskEffectStar() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value = 0) override;
-    virtual void Reset() override;
+    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_enable(bool value) override;
+    virtual void set_current_stage_index(int32_t value) override;
+    virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
+    virtual void reset() override;
 };
 
 struct for_ring_vertex_data {
@@ -874,21 +885,21 @@ struct TaskEffectParent {
     TaskEffectParent();
     virtual ~TaskEffectParent();
 
-    std::pair<TaskEffectType, TaskEffect*> AddTaskEffectTypePtr(TaskEffectType type);
-    int32_t CheckTaskEffectTypeLoaded(TaskEffectType type);
-    void Event(TaskEffectType type, int32_t event_type, void* data);
-    void Dest();
-    bool Load();
-    void Reset();
-    void ResetData();
-    void SetCurrentStageHash(uint32_t stage_hash); // Added
-    void SetCurrentStageIndex(int32_t stage_index);
-    void SetEnable(bool value);
-    void SetFrame(int32_t value);
-    void SetFrameRateControl(FrameRateControl* value);
-    void SetStageHashes(std::vector<uint32_t>& stage_hashes); // Added
-    void SetStageIndices(std::vector<int32_t>& stage_indices);
-    bool Unload();
+    std::pair<TaskEffectType, TaskEffect*> add_effect(TaskEffectType type);
+    int32_t check_effect_loaded(TaskEffectType type);
+    void event(TaskEffectType type, int32_t event_type, void* data);
+    void dest();
+    bool load();
+    void reset();
+    void reset_data();
+    void set_current_stage_hash(uint32_t stage_hash); // Added
+    void set_current_stage_index(int32_t stage_index);
+    void set_enable(bool value);
+    void set_frame(int32_t value);
+    void set_frame_rate_control(FrameRateControl* value);
+    void set_stage_hashes(std::vector<uint32_t>& stage_hashes); // Added
+    void set_stage_indices(std::vector<int32_t>& stage_indices);
+    bool unload();
 };
 
 static TaskEffectAuth3D* task_effect_auth_3d;
@@ -1053,7 +1064,7 @@ static bool task_effect_array_parse_stage_param_data_star(stage_param_star* star
 
 static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* data);
 
-static void draw_ripple_emit(render_context* rctx, struc_101* data);
+static void draw_ripple_emit(render_context* rctx, ripple_struct* data);
 
 static void leaf_particle_init(bool change_stage = false);
 static void leaf_particle_ctrl();
@@ -1459,27 +1470,27 @@ void task_effect_free() {
 }
 
 void task_effect_parent_event(TaskEffectType type, int32_t event_type, void* data) {
-    task_effect_parent->Event(type, event_type, data);
+    task_effect_parent->event(type, event_type, data);
 }
 
 void task_effect_parent_dest() {
-    task_effect_parent->Dest();
+    task_effect_parent->dest();
 }
 
 bool task_effect_parent_load() {
-    return task_effect_parent->Load();
+    return task_effect_parent->load();
 }
 
 void task_effect_parent_reset() {
-    task_effect_parent->Reset();
+    task_effect_parent->reset();
 }
 
 void task_effect_parent_set_current_stage_hash(uint32_t stage_hash) {
-    task_effect_parent->SetCurrentStageHash(stage_hash);
+    task_effect_parent->set_current_stage_hash(stage_hash);
 }
 
 void task_effect_parent_set_current_stage_index(int32_t stage_index) {
-    task_effect_parent->SetCurrentStageIndex(stage_index);
+    task_effect_parent->set_current_stage_index(stage_index);
 }
 
 void task_effect_parent_set_data(void* data,
@@ -1491,27 +1502,27 @@ void task_effect_parent_set_data(void* data,
 }
 
 void task_effect_parent_set_enable(bool value) {
-    task_effect_parent->SetEnable(value);
+    task_effect_parent->set_enable(value);
 }
 
 void task_effect_parent_set_frame(int32_t value) {
-    task_effect_parent->SetFrame(value);
+    task_effect_parent->set_frame(value);
 }
 
 void task_effect_parent_set_frame_rate_control(FrameRateControl* value) {
-    task_effect_parent->SetFrameRateControl(value);
+    task_effect_parent->set_frame_rate_control(value);
 }
 
 void task_effect_parent_set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
-    task_effect_parent->SetStageHashes(stage_hashes);
+    task_effect_parent->set_stage_hashes(stage_hashes);
 }
 
 void task_effect_parent_set_stage_indices(std::vector<int32_t>& stage_indices) {
-    task_effect_parent->SetStageIndices(stage_indices);
+    task_effect_parent->set_stage_indices(stage_indices);
 }
 
 bool task_effect_parent_unload() {
-    return task_effect_parent->Unload();
+    return task_effect_parent->unload();
 }
 
 TaskEffect::TaskEffect() {
@@ -1522,78 +1533,78 @@ TaskEffect::~TaskEffect() {
 
 }
 
-void TaskEffect::PreInit(int32_t stage_index) {
+void TaskEffect::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffect::SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+void TaskEffect::set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
 
 }
 
-void TaskEffect::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    PreInit(stage_indices[0]);
+void TaskEffect::set_stage_indices(std::vector<int32_t>& stage_indices) {
+    pre_init(stage_indices[0]);
 }
 
-void TaskEffect::SetFrame(int32_t value) {
-
-}
-
-void TaskEffect::Field_48() {
+void TaskEffect::set_frame(int32_t value) {
 
 }
 
-void TaskEffect::SetEnable(bool value) {
+void TaskEffect::field_48() {
 
 }
 
-void TaskEffect::SetCurrentStageHash(uint32_t value) {
+void TaskEffect::set_enable(bool value) {
 
 }
 
-void TaskEffect::SetCurrentStageIndex(int32_t value) {
+void TaskEffect::set_current_stage_hash(uint32_t value) {
 
 }
 
-void TaskEffect::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffect::set_current_stage_index(int32_t value) {
 
 }
 
-void TaskEffect::Field_68() {
+void TaskEffect::set_frame_rate_control(FrameRateControl* value) {
 
 }
 
-void TaskEffect::Reset() {
+void TaskEffect::field_68() {
 
 }
 
-void TaskEffect::Event(int32_t event_type, void* data) {
+void TaskEffect::reset() {
 
 }
 
-void TaskEffect::Field_80() {
+void TaskEffect::event(int32_t event_type, void* data) {
 
 }
 
-void TaskEffect::Field_88() {
+void TaskEffect::field_80() {
 
 }
 
-void TaskEffect::Field_90() {
+void TaskEffect::field_88() {
 
 }
 
-void TaskEffect::Field_98(int32_t a2, int32_t* a3) {
+void TaskEffect::field_90() {
+
+}
+
+void TaskEffect::field_98(int32_t a2, int32_t* a3) {
     if (a3)
         *a3 = 0;
 }
 
-void TaskEffect::Field_A0(int32_t a2, int32_t* a3) {
+void TaskEffect::field_A0(int32_t a2, int32_t* a3) {
     if (a3)
         *a3 = 0;
 }
 
-void TaskEffect::Field_A8(int32_t a2, int8_t* a3) {
+void TaskEffect::field_A8(int32_t a2, int8_t* a3) {
     if (a3)
         *a3 = 0;
 }
@@ -1625,9 +1636,9 @@ TaskEffectAuth3D::~TaskEffectAuth3D() {
 
 }
 
-bool TaskEffectAuth3D::Init() {
+bool TaskEffectAuth3D::init() {
     if (!task_auth_3d_check_task_ready()) {
-        DelTask();
+        del();
         return true;
     }
 
@@ -1649,7 +1660,7 @@ bool TaskEffectAuth3D::Init() {
     return true;
 }
 
-bool TaskEffectAuth3D::Ctrl() {
+bool TaskEffectAuth3D::ctrl() {
     if (field_158 && field_15C > 0)
         field_15C = 0;
 
@@ -1675,22 +1686,22 @@ bool TaskEffectAuth3D::Ctrl() {
     return false;
 }
 
-bool TaskEffectAuth3D::Dest() {
+bool TaskEffectAuth3D::dest() {
     //if (field_158)
     //    sub_14036D1E0(2, (__int64)sub_140345B70, (__int64)this);
-    ResetData();
+    reset_data();
     return true;
 }
 
-void TaskEffectAuth3D::Disp() {
+void TaskEffectAuth3D::disp() {
 
 }
 
-void TaskEffectAuth3D::PreInit(int32_t stage_index) {
+void TaskEffectAuth3D::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectAuth3D::SetStageHashes(std::vector<uint32_t>& stage_hashes, void* data,
+void TaskEffectAuth3D::set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
     this->stage_hashes.assign(stage_hashes.begin(), stage_hashes.end());
     stage_indices.clear();
@@ -1722,7 +1733,7 @@ void TaskEffectAuth3D::SetStageHashes(std::vector<uint32_t>& stage_hashes, void*
     }
 }
 
-void TaskEffectAuth3D::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectAuth3D::set_stage_indices(std::vector<int32_t>& stage_indices) {
     stage_hashes.clear();
     this->stage_indices.assign(stage_indices.begin(), stage_indices.end());
     for (int32_t i : this->stage_indices) {
@@ -1757,7 +1768,7 @@ void TaskEffectAuth3D::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 }
 
-void TaskEffectAuth3D::SetFrame(int32_t value) {
+void TaskEffectAuth3D::set_frame(int32_t value) {
     double_t frame = (double_t)value;
     for (int32_t i = 0; i < stage.count; i++) {
         auth_3d_id& id = stage.auth_3d_ids_ptr[i];
@@ -1771,32 +1782,32 @@ void TaskEffectAuth3D::SetFrame(int32_t value) {
     }
 }
 
-void TaskEffectAuth3D::SetCurrentStageHash(uint32_t value) {
+void TaskEffectAuth3D::set_current_stage_hash(uint32_t value) {
     if (current_stage_hash == value)
         return;
 
-    SetVisibility(false);
+    set_visibility(false);
     current_stage_hash = value;
-    SetVisibility(enable);
+    set_visibility(enable);
 }
 
-void TaskEffectAuth3D::SetCurrentStageIndex(int32_t value) {
+void TaskEffectAuth3D::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
-    SetVisibility(false);
+    set_visibility(false);
     current_stage_index = value;
-    SetVisibility(enable);
+    set_visibility(enable);
 }
 
-void TaskEffectAuth3D::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectAuth3D::set_frame_rate_control(FrameRateControl* value) {
     for (int32_t i = 0; i < stage.count; i++) {
         auth_3d_id& id = stage.auth_3d_ids_ptr[i];
         id.set_frame_rate(value);
     }
 }
 
-void TaskEffectAuth3D::Reset() {
+void TaskEffectAuth3D::reset() {
     for (int32_t i = 0; i < stage.count; i++) {
         auth_3d_id& id = stage.auth_3d_ids_ptr[i];
         id.set_enable(true);
@@ -1805,7 +1816,7 @@ void TaskEffectAuth3D::Reset() {
     }
 }
 
-void TaskEffectAuth3D::ResetData() {
+void TaskEffectAuth3D::reset_data() {
     for (int32_t i = 0; i < stage.count; i++) {
         auth_3d_id& id = stage.auth_3d_ids_ptr[i];
         id.unload(rctx_ptr);
@@ -1823,7 +1834,7 @@ void TaskEffectAuth3D::ResetData() {
     frame = -1.0f;
 }
 
-void TaskEffectAuth3D::SetVisibility(bool value) {
+void TaskEffectAuth3D::set_visibility(bool value) {
     if (current_stage_index != -1)
         for (struc_621& i : field_120) {
             if (i.stage_index != current_stage_index)
@@ -1845,17 +1856,17 @@ void TaskEffectAuth3D::SetVisibility(bool value) {
         }
 }
 
-void TaskEffectAuth3D::SetEnable(bool value) {
+void TaskEffectAuth3D::set_enable(bool value) {
     enable = value;
-    SetVisibility(value);
+    set_visibility(value);
 }
 
 TaskEffectFogAnim::Data::Data() : field_0(), field_4(), field_8(), field_C(),
 field_18(), field_24(), field_28(), field_2C(), field_30(), field_34() {
-    Reset();
+    reset();
 }
 
-void TaskEffectFogAnim::Data::Ctrl() {
+void TaskEffectFogAnim::Data::ctrl() {
     if (!field_0 || !field_8)
         return;
 
@@ -1891,7 +1902,7 @@ void TaskEffectFogAnim::Data::Ctrl() {
     light_set.lights[LIGHT_STAGE].set_specular(color);
 }
 
-void TaskEffectFogAnim::Data::Reset() {
+void TaskEffectFogAnim::Data::reset() {
     field_0 = 0;
     field_4 = -1;
     field_8 = 1;
@@ -1916,34 +1927,34 @@ TaskEffectFogAnim::~TaskEffectFogAnim() {
 
 }
 
-bool TaskEffectFogAnim::Init() {
+bool TaskEffectFogAnim::init() {
     //sub_1400DE640("TaskEffectFogAnim::init()\n");
     return true;
 }
 
-bool TaskEffectFogAnim::Ctrl() {
-    data.Ctrl();
+bool TaskEffectFogAnim::ctrl() {
+    data.ctrl();
     return false;
 }
 
-bool TaskEffectFogAnim::Dest() {
-    data.Reset();
+bool TaskEffectFogAnim::dest() {
+    data.reset();
     task_effect_fog_anim_data = 0;
     //sub_1400DE640("TaskEffectFogAnim::dest()\n");
     return true;
 }
 
-void TaskEffectFogAnim::Disp() {
+void TaskEffectFogAnim::disp() {
 
 }
 
-void TaskEffectFogAnim::PreInit(int32_t) {
-    data.Reset();
+void TaskEffectFogAnim::pre_init(int32_t) {
+    data.reset();
     task_effect_fog_anim_data = &data;
     //sub_1400DE640("TaskEffectFogAnim::pre_init()\n");
 }
 
-void TaskEffectFogAnim::Reset() {
+void TaskEffectFogAnim::reset() {
     if (data.field_0) {
         data.field_C[0] = 0.0f;
         data.field_C[1] = 0.0f;
@@ -1965,7 +1976,7 @@ struc_573::struc_573() : chara_index(), bone_index() {
 
 TaskEffectFogRing::Data::Data() : enable(), delta_frame(), field_8(), ring_size(), tex_id(),
 ptcl_size(), max_ptcls(), num_ptcls(), density(), density_offset(), ptcl_data(), num_vtx(),
-field_124(), field_2B8(), field_2B9(), disp(), frame_rate_control() {
+field_124(), field_2B8(), field_2B9(), display(), frame_rate_control() {
     current_stage_index = -1;
 }
 
@@ -1973,7 +1984,7 @@ TaskEffectFogRing::Data::~Data() {
 
 }
 
-void TaskEffectFogRing::Data::CalcPtcl(float_t delta_time) {
+void TaskEffectFogRing::Data::calc_ptcl(float_t delta_time) {
     float_t delta_time1 = 1.0f * delta_time;
     float_t delta_time2 = 2.0f * delta_time;
     float_t delta_time3 = 3.0f * delta_time;
@@ -2035,7 +2046,7 @@ void TaskEffectFogRing::Data::CalcPtcl(float_t delta_time) {
     }
 }
 
-void TaskEffectFogRing::Data::CalcVert() {
+void TaskEffectFogRing::Data::calc_vert() {
     float_t density = this->density;
     fog_ring_data* ptcl_data = this->ptcl_data;
 
@@ -2064,24 +2075,24 @@ void TaskEffectFogRing::Data::CalcVert() {
     num_vtx = (int32_t)(num_ptcls * 6LL);
 }
 
-void TaskEffectFogRing::Data::Ctrl() {
-    if (!disp)
+void TaskEffectFogRing::Data::ctrl() {
+    if (!display)
         return;
 
-    CtrlInner(delta_frame * (float_t)(1.0 / 60.0));
-    CalcVert();
+    ctrl_inner(delta_frame * (float_t)(1.0 / 60.0));
+    calc_vert();
     field_8 = 0;
 }
 
-void TaskEffectFogRing::Data::CtrlInner(float_t delta_time) {
+void TaskEffectFogRing::Data::ctrl_inner(float_t delta_time) {
     if (fabsf(delta_time) <= 0.000001f)
         return;
 
     sub_140347B40(delta_time);
-    CalcPtcl(delta_time);
+    calc_ptcl(delta_time);
 }
 
-void TaskEffectFogRing::Data::Dest() {
+void TaskEffectFogRing::Data::dest() {
     stage_param_data_fog_ring_storage_clear();
 
     if (ptcl_data) {
@@ -2096,17 +2107,17 @@ void TaskEffectFogRing::Data::Dest() {
     rctx_ptr->draw_state->set_fog_height(false);
 }
 
-void TaskEffectFogRing::Data::Disp() {
-    if (enable && disp)
+void TaskEffectFogRing::Data::disp() {
+    if (enable && display)
         rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
             (mdl::UserArgsFunc)draw_fog_particle, this, mdl::OBJ_TYPE_USER);
 }
 
-void TaskEffectFogRing::Data::Draw() {
+void TaskEffectFogRing::Data::draw() {
     render_context* rctx = rctx_ptr;
 
     rctx->draw_state->set_fog_height(false);
-    if (!enable || !disp)
+    if (!enable || !display)
         return;
 
     rctx->draw_state->set_fog_height(true);
@@ -2124,7 +2135,7 @@ void TaskEffectFogRing::Data::Draw() {
     gl_state_get_error();
 }
 
-void TaskEffectFogRing::Data::InitParticleData() {
+void TaskEffectFogRing::Data::init_particle_data() {
     fog_ring_data* ptcl_data = this->ptcl_data;
     if (!ptcl_data)
         return;
@@ -2134,11 +2145,11 @@ void TaskEffectFogRing::Data::InitParticleData() {
     float_t wind_dir_x = wind_dir.x;
     float_t wind_dir_z = wind_dir.z;
     for (int32_t i = max_ptcls; i > 0; i--, ptcl_data++) {
-        float_t pos_x = PtclRandom(ring_size);
-        float_t pos_z = PtclRandom(ring_size);
-        float_t dir_x = PtclRandom(0.5f) + wind_dir_x;
-        float_t dir_z = PtclRandom(0.5f) + wind_dir_z;
-        float_t size = PtclRandom(3.0f);
+        float_t pos_x = ptcl_random(ring_size);
+        float_t pos_z = ptcl_random(ring_size);
+        float_t dir_x = ptcl_random(0.5f) + wind_dir_x;
+        float_t dir_z = ptcl_random(0.5f) + wind_dir_z;
+        float_t size = ptcl_random(3.0f);
 
         ptcl_data->position.x = pos_x;
         ptcl_data->position.y = 0.5f;
@@ -2151,7 +2162,7 @@ void TaskEffectFogRing::Data::InitParticleData() {
     }
 }
 
-void TaskEffectFogRing::Data::Reset() {
+void TaskEffectFogRing::Data::reset() {
     struc_573(*v2)[5] = field_5C;
     for (int32_t i = 0; i < 2; i++, v2++) {
         struc_573* v3 = *v2;
@@ -2161,14 +2172,14 @@ void TaskEffectFogRing::Data::Reset() {
         }
     }
 
-    InitParticleData();
+    init_particle_data();
     field_8 = true;
 }
 
-void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectFogRing::Data::set_stage_indices(std::vector<int32_t>& stage_indices) {
     rctx_ptr->render_manager->clear_pre_process(0);
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
-    disp = false;
+    display = false;
     current_stage_index = -1;
     this->stage_indices.clear();
     stage_param_data_fog_ring_storage_clear();
@@ -2197,7 +2208,7 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
     if (!fog_ring)
         return;
 
-    disp = true;
+    display = true;
     enable = true;
     ring_size = fog_ring->ring_size;
     wind_dir = fog_ring->wind_dir;
@@ -2247,17 +2258,17 @@ void TaskEffectFogRing::Data::SetStageIndices(std::vector<int32_t>& stage_indice
 
     ssbo.Create(sizeof(for_ring_vertex_data) * max_ptcls);
 
-    InitParticleData();
+    init_particle_data();
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
-    rctx_ptr->render_manager->add_pre_process(0, TaskEffectFogRing::Data::DrawStatic, this);
+    rctx_ptr->render_manager->add_pre_process(0, TaskEffectFogRing::Data::draw_static, this);
 }
 
-void TaskEffectFogRing::Data::DrawStatic(void* data) {
-    ((TaskEffectFogRing::Data*)data)->Draw();
+void TaskEffectFogRing::Data::draw_static(void* data) {
+    ((TaskEffectFogRing::Data*)data)->draw();
 }
 
-float_t TaskEffectFogRing::Data::PtclRandom(float_t value) {
+float_t TaskEffectFogRing::Data::ptcl_random(float_t value) {
     return (float_t)(rand_state_array_get_int(4) % 10000) * 0.0001f * value * 2.0f - value;
 }
 
@@ -2365,43 +2376,43 @@ TaskEffectFogRing::~TaskEffectFogRing() {
 
 }
 
-bool TaskEffectFogRing::Init() {
+bool TaskEffectFogRing::init() {
     //sub_1400DE640("TaskEffectFogRing::init()\n");
     return true;
 }
 
-bool TaskEffectFogRing::Ctrl() {
-    data.delta_frame = data.frame_rate_control->GetDeltaFrame();
-    data.Ctrl();
+bool TaskEffectFogRing::ctrl() {
+    data.delta_frame = data.frame_rate_control->get_delta_frame();
+    data.ctrl();
     return 0;
 }
 
-bool TaskEffectFogRing::Dest() {
-    data.Dest();
+bool TaskEffectFogRing::dest() {
+    data.dest();
     task_effect_fog_ring_data = 0;
     //sub_1400DE640("TaskEffectFogRing::dest()\n");
     return 1;
 }
 
-void TaskEffectFogRing::Disp() {
-    data.Disp();
+void TaskEffectFogRing::disp() {
+    data.disp();
 }
 
-void TaskEffectFogRing::PreInit(int32_t stage_index) {
+void TaskEffectFogRing::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectFogRing::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    SetFrameRateControl();
+void TaskEffectFogRing::set_stage_indices(std::vector<int32_t>& stage_indices) {
+    set_frame_rate_control();
     task_effect_fog_ring_data = &data;
-    data.SetStageIndices(stage_indices);
+    data.set_stage_indices(stage_indices);
 }
 
-void TaskEffectFogRing::SetEnable(bool value) {
+void TaskEffectFogRing::set_enable(bool value) {
     data.enable = value;
 }
 
-void TaskEffectFogRing::SetCurrentStageIndex(int32_t value) {
+void TaskEffectFogRing::set_current_stage_index(int32_t value) {
     if (data.current_stage_index == value)
         return;
 
@@ -2409,22 +2420,22 @@ void TaskEffectFogRing::SetCurrentStageIndex(int32_t value) {
     if (value != -1) {
         for (int32_t& i : data.stage_indices)
             if (i == value) {
-                data.disp = true;
+                data.display = true;
                 return;
             }
     }
-    data.disp = false;
+    data.display = false;
 }
 
-void TaskEffectFogRing::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectFogRing::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         data.frame_rate_control = value;
     else
         data.frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectFogRing::Reset() {
-    data.Reset();
+void TaskEffectFogRing::reset() {
+    data.reset();
 }
 
 TaskEffectLeaf::TaskEffectLeaf() : frame_rate_control(), wait_frames() {
@@ -2435,20 +2446,20 @@ TaskEffectLeaf:: ~TaskEffectLeaf() {
 
 }
 
-bool TaskEffectLeaf::Init() {
+bool TaskEffectLeaf::init() {
     if (stage_param_data_leaf_current) {
         leaf_particle_init();
         wait_frames = 2;
-        SetFrameRateControl();
+        set_frame_rate_control();
     }
     return true;
 }
 
-bool TaskEffectLeaf::Ctrl() {
+bool TaskEffectLeaf::ctrl() {
     if (!stage_param_data_leaf_current)
         return false;
 
-    leaf_particle_delta_frame = frame_rate_control->GetDeltaFrame();
+    leaf_particle_delta_frame = frame_rate_control->get_delta_frame();
     if (wait_frames > 0) {
         wait_frames--;
         return false;
@@ -2457,24 +2468,24 @@ bool TaskEffectLeaf::Ctrl() {
     return false;
 }
 
-bool TaskEffectLeaf::Dest() {
+bool TaskEffectLeaf::dest() {
     leaf_particle_free();
     stage_param_data_leaf_current = 0;
     stage_param_data_leaf_storage_clear();
     return true;
 }
 
-void TaskEffectLeaf::Disp() {
+void TaskEffectLeaf::disp() {
 
 }
 
-void TaskEffectLeaf::PreInit(int32_t stage_index) {
+void TaskEffectLeaf::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectLeaf::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectLeaf::set_stage_indices(std::vector<int32_t>& stage_indices) {
     if (stage_param_data_leaf_current)
-        Dest();
+        dest();
 
     stage_param_data_leaf_set = 0;
     current_stage_index = -1;
@@ -2511,11 +2522,11 @@ void TaskEffectLeaf::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 }
 
-void TaskEffectLeaf::SetEnable(bool value) {
+void TaskEffectLeaf::set_enable(bool value) {
     leaf_particle_enable = value;
 }
 
-void TaskEffectLeaf::SetCurrentStageIndex(int32_t value) {
+void TaskEffectLeaf::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
@@ -2536,14 +2547,14 @@ void TaskEffectLeaf::SetCurrentStageIndex(int32_t value) {
     }
 }
 
-void TaskEffectLeaf::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectLeaf::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
         frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectLeaf::Reset() {
+void TaskEffectLeaf::reset() {
     if (stage_param_data_leaf_current) {
         leaf_particle_init();
         wait_frames = 2;
@@ -2558,7 +2569,7 @@ TaskEffectLitproj:: ~TaskEffectLitproj() {
 
 }
 
-bool TaskEffectLitproj::Init() {
+bool TaskEffectLitproj::init() {
     if (stage_param_data_litproj_current) {
         wait_frames = 10;
         frame = 0;
@@ -2566,7 +2577,7 @@ bool TaskEffectLitproj::Init() {
     return true;
 }
 
-bool TaskEffectLitproj::Ctrl() {
+bool TaskEffectLitproj::ctrl() {
     if (!stage_param_data_litproj_current)
         return false;
 
@@ -2592,7 +2603,7 @@ bool TaskEffectLitproj::Ctrl() {
     return false;
 }
 
-bool TaskEffectLitproj::Dest() {
+bool TaskEffectLitproj::dest() {
     delete rctx_ptr->litproj;
     rctx_ptr->litproj = 0;
     stage_param_data_litproj_current = 0;
@@ -2600,17 +2611,17 @@ bool TaskEffectLitproj::Dest() {
     return true;
 }
 
-void TaskEffectLitproj::Disp() {
+void TaskEffectLitproj::disp() {
 
 }
 
-void TaskEffectLitproj::PreInit(int32_t stage_index) {
+void TaskEffectLitproj::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectLitproj::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectLitproj::set_stage_indices(std::vector<int32_t>& stage_indices) {
     if (stage_param_data_litproj_current)
-        Dest();
+        dest();
 
     stage_param_data_litproj_set = 0;
     current_stage_index = -1;
@@ -2646,11 +2657,11 @@ void TaskEffectLitproj::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 }
 
-void TaskEffectLitproj::SetEnable(bool value) {
+void TaskEffectLitproj::set_enable(bool value) {
     light_proj_enable = value;
 }
 
-void TaskEffectLitproj::SetCurrentStageIndex(int32_t value) {
+void TaskEffectLitproj::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
@@ -2668,7 +2679,7 @@ void TaskEffectLitproj::SetCurrentStageIndex(int32_t value) {
         stage_param_data_litproj_current = stage_param_data_litproj_storage_get_value(value);
 }
 
-void TaskEffectLitproj::Reset() {
+void TaskEffectLitproj::reset() {
     wait_frames = 10;
     frame = 0;
 }
@@ -2681,50 +2692,50 @@ TaskEffectParticle::~TaskEffectParticle() {
 
 }
 
-bool TaskEffectParticle::Init() {
-    SetFrameRateControl();
+bool TaskEffectParticle::init() {
+    set_frame_rate_control();
     return true;
 }
 
-bool TaskEffectParticle::Ctrl() {
-    particle_delta_time = frame_rate_control->GetDeltaFrame() * (float_t)(1.0 / 60.0);
+bool TaskEffectParticle::ctrl() {
+    particle_delta_time = frame_rate_control->get_delta_frame() * (float_t)(1.0 / 60.0);
     if (particle_count > 0)
         particle_ctrl();
     return false;
 }
 
-bool TaskEffectParticle::Dest() {
+bool TaskEffectParticle::dest() {
     particle_free();
     return true;
 }
 
-void TaskEffectParticle::Disp() {
+void TaskEffectParticle::disp() {
 
 }
 
-void TaskEffectParticle::PreInit(int32_t stage_index) {
+void TaskEffectParticle::pre_init(int32_t stage_index) {
     current_stage_index = stage_index;
     //field_74 = 0;
     particle_init(0);
 }
 
-void TaskEffectParticle::SetEnable(bool value) {
+void TaskEffectParticle::set_enable(bool value) {
     particle_enable = value;
 }
 
-void TaskEffectParticle::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectParticle::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
         frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectParticle::Reset() {
+void TaskEffectParticle::reset() {
     if (ptcl_data)
         particle_init(0);
 }
 
-void TaskEffectParticle::Event(int32_t event_type, void* data) {
+void TaskEffectParticle::event(int32_t event_type, void* data) {
     if (event_type == 1)
         particle_event((particle_event_data*)data);
 }
@@ -2737,23 +2748,23 @@ TaskEffectRain:: ~TaskEffectRain() {
 
 }
 
-bool TaskEffectRain::Init() {
+bool TaskEffectRain::init() {
     if (stage_param_data_rain_current) {
         rain_particle_init();
-        SetFrameRateControl();
+        set_frame_rate_control();
     }
     return true;
 }
 
-bool TaskEffectRain::Ctrl() {
+bool TaskEffectRain::ctrl() {
     if (stage_param_data_rain_current) {
-        rain_particle_delta_frame = frame_rate_control->GetDeltaFrame();
+        rain_particle_delta_frame = frame_rate_control->get_delta_frame();
         rain_particle_ctrl();
     }
     return false;
 }
 
-bool TaskEffectRain::Dest() {
+bool TaskEffectRain::dest() {
     if (stage_param_data_rain_current) {
         rain_particle_free();
         stage_param_data_rain_current = 0;
@@ -2765,17 +2776,17 @@ bool TaskEffectRain::Dest() {
     return true;
 }
 
-void TaskEffectRain::Disp() {
+void TaskEffectRain::disp() {
 
 }
 
-void TaskEffectRain::PreInit(int32_t stage_index) {
+void TaskEffectRain::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectRain::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectRain::set_stage_indices(std::vector<int32_t>& stage_indices) {
     if (stage_param_data_rain_current)
-        Dest();
+        dest();
 
     stage_param_data_rain_set = false;
     current_stage_index = -1;
@@ -2812,11 +2823,11 @@ void TaskEffectRain::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 }
 
-void TaskEffectRain::SetEnable(bool value) {
+void TaskEffectRain::set_enable(bool value) {
     rain_particle_enable = value;
 }
 
-void TaskEffectRain::SetCurrentStageIndex(int32_t value) {
+void TaskEffectRain::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
@@ -2836,17 +2847,17 @@ void TaskEffectRain::SetCurrentStageIndex(int32_t value) {
     }
 }
 
-void TaskEffectRain::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectRain::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
         frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectRain::Reset() {
+void TaskEffectRain::reset() {
     if (stage_param_data_rain_current) {
         rain_particle_init();
-        SetFrameRateControl();
+        set_frame_rate_control();
     }
 }
 
@@ -2882,7 +2893,7 @@ ripple_emit::~ripple_emit() {
     ground_y = -1001.0f;
 }
 
-void ripple_emit::add_draw_ripple_emit(struc_101* data) {
+void ripple_emit::add_draw_ripple_emit(ripple_struct* data) {
     if (data->count > 0)
         rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
             (mdl::UserArgsFunc)draw_ripple_emit, data, mdl::OBJ_TYPE_USER);
@@ -3149,7 +3160,7 @@ void ripple_emit::sub_140358690() {
     add_draw_ripple_emit(&v1.data);
 }
 
-void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, struc_101& a5, struc_101& a6) {
+void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, ripple_struct& a5, ripple_struct& a6) {
     vec3 v34 = a3 - a2;
 
     float_t v17 = ground_y - (a2.y - a4);
@@ -3325,51 +3336,51 @@ TaskEffectRipple::~TaskEffectRipple() {
 
 }
 
-bool TaskEffectRipple::Init() {
+bool TaskEffectRipple::init() {
     ripple_emit_init();
     //sub_1400DE640("TaskEffectRipple::init()\n");
     return true;
 }
 
-bool TaskEffectRipple::Ctrl() {
-    emit->delta_frame = frame_rate_control->GetDeltaFrame();
+bool TaskEffectRipple::ctrl() {
+    emit->delta_frame = frame_rate_control->get_delta_frame();
     emit->ctrl();
     return false;
 }
 
-bool TaskEffectRipple::Dest() {
+bool TaskEffectRipple::dest() {
     emit->dest();
     //sub_1400DE640("TaskEffectRipple::dest()\n");
     ripple_emit_free();
     return true;
 }
 
-void TaskEffectRipple::Disp() {
+void TaskEffectRipple::disp() {
     emit->disp();
 }
 
-void TaskEffectRipple::PreInit(int32_t stage_index) {
+void TaskEffectRipple::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectRipple::SetStageIndices(std::vector<int32_t>& stage_indices) {
-    SetFrameRateControl();
+void TaskEffectRipple::set_stage_indices(std::vector<int32_t>& stage_indices) {
+    set_frame_rate_control();
     emit = ripple_emit_data;
     emit->set_stage_indices(stage_indices);
 }
 
-void TaskEffectRipple::SetCurrentStageIndex(int32_t value) {
+void TaskEffectRipple::set_current_stage_index(int32_t value) {
     emit->set_stage_index(value);
 }
 
-void TaskEffectRipple::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectRipple::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
         frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectRipple::Reset() {
+void TaskEffectRipple::reset() {
     if (!emit->use_float_ripplemap)
         ripple_emit_data->clear_tex();
     ripple_emit_data->reset();
@@ -3383,23 +3394,23 @@ TaskEffectSnow::~TaskEffectSnow() {
 
 }
 
-bool TaskEffectSnow::Init() {
+bool TaskEffectSnow::init() {
     if (stage_param_data_snow_current) {
         snow_particle_init();
-        SetFrameRateControl();
+        set_frame_rate_control();
     }
     return true;
 }
 
-bool TaskEffectSnow::Ctrl() {
+bool TaskEffectSnow::ctrl() {
     if (stage_param_data_snow_current) {
-        snow_particle_delta_frame = frame_rate_control->GetDeltaFrame();
+        snow_particle_delta_frame = frame_rate_control->get_delta_frame();
         snow_particle_ctrl();
     }
     return false;
 }
 
-bool TaskEffectSnow::Dest() {
+bool TaskEffectSnow::dest() {
     snow_particle_data_free();
     snow_particle_free();
 
@@ -3411,21 +3422,21 @@ bool TaskEffectSnow::Dest() {
     return 1;
 }
 
-void TaskEffectSnow::Disp() {
+void TaskEffectSnow::disp() {
 
 }
 
-void TaskEffectSnow::Basic() {
+void TaskEffectSnow::basic() {
 
 }
 
-void TaskEffectSnow::PreInit(int32_t stage_index) {
+void TaskEffectSnow::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectSnow::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectSnow::set_stage_indices(std::vector<int32_t>& stage_indices) {
     if (stage_param_data_snow_current)
-        Dest();
+        dest();
 
     stage_param_data_snow_set = 0;
     current_stage_index = -1;
@@ -3462,11 +3473,11 @@ void TaskEffectSnow::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 }
 
-void TaskEffectSnow::SetEnable(bool value) {
+void TaskEffectSnow::set_enable(bool value) {
     snow_particle_enable = value;
 }
 
-void TaskEffectSnow::SetCurrentStageIndex(int32_t value) {
+void TaskEffectSnow::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
@@ -3486,167 +3497,19 @@ void TaskEffectSnow::SetCurrentStageIndex(int32_t value) {
     }
 }
 
-void TaskEffectSnow::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectSnow::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
         frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectSnow::Reset() {
+void TaskEffectSnow::reset() {
     if (stage_param_data_snow_current) {
         snow_particle_init();
-        SetFrameRateControl();
+        set_frame_rate_control();
     }
 }
-
-/*
-struct struc_180 {
-    uint32_t count;
-    int32_t field_4;
-    int64_t field_8;
-    int64_t field_10;
-    int64_t field_18;
-    int32_t field_20;
-    int64_t field_28;
-    int64_t field_30;
-    int64_t field_38;
-};
-
-struct ParticleEmitter {
-    struc_180* field_8;
-    int64_t field_10;
-    int64_t field_18;
-    float_t field_20;
-    int32_t field_24;
-    float_t field_28;
-    float_t particle_size;
-
-    ParticleEmitter();
-    virtual ~ParticleEmitter();
-
-    virtual bool Field_8();
-    virtual bool Field_10();
-};
-
-struct ParticleEmitterRob : ParticleEmitter {
-    int32_t field_30;
-    int32_t field_34;
-    int32_t field_38;
-    int32_t field_3C;
-    int32_t field_40;
-    int32_t field_44;
-    int32_t field_48;
-    int32_t field_4C;
-    int32_t field_50;
-    int32_t field_54;
-    int32_t field_58;
-    int32_t emit_num;
-    int32_t field_60;
-    float_t emission_ratio_attn;
-    float_t emission_velocity_scale;
-    bool in_water;
-    int8_t field_6D;
-};
-
-struct water_particle {
-    struc_180* field_0;
-    vec4 color;
-    float_t particle_size;
-    std::vector<point_particle_data> field_20;
-    int32_t count;
-    int32_t tex_id;
-    bool blink;
-    std::vector<vec3> field_48;
-    std::vector<vec4u8> field_60;
-    struc_101 field_78;
-    float_t ripple_emission;
-
-    water_particle();
-    ~water_particle();
-};
-
-struct ParticleDispObj {
-    struc_180* field_8;
-    object_info object;
-    std::vector<mat4> instances_mat;
-
-    ParticleDispObj();
-    virtual ~ParticleDispObj();
-
-    void Disp();
-};
-
-struct TaskEffectSplash : public TaskEffect {
-public:
-    struct Data {
-        struct Sub {
-            int32_t field_0;
-            struc_180* field_8;
-            int32_t field_10;
-            ParticleEmitterRob* field_18;
-            int32_t field_20;
-            water_particle* field_28;
-            int8_t field_30;
-            struc_180 field_38;
-            int32_t field_78;
-            ParticleEmitterRob* field_80;
-            ParticleDispObj field_88;
-            vec4 color;
-            float_t particle_size;
-            int32_t emit_num;
-            float_t ripple_emission;
-            float_t emission_ratio_attn;
-            float_t emission_velocity_scale;
-            int32_t splash_tex_id;
-            object_info splash_obj_id;
-            int8_t in_water;
-            int8_t blink;
-            int64_t field_E8;
-            int64_t field_F0;
-            int64_t field_F8;
-        };
-
-        int8_t field_0;
-        int32_t field_4;
-        int8_t field_8;
-        Sub field_10;
-        int8_t field_110;
-        int32_t current_stage_index;
-        std::vector<int32_t> stage_indices;
-        FrameRateControl* frame_rate_control;
-        int64_t field_138;
-    };
-
-    bool enable;
-    Data data;
-
-    TaskEffectSplash();
-    virtual ~TaskEffectSplash() override;
-
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
-
-    virtual void PreInit(int32_t stage_index) override;
-    virtual void SetStageIndices(std::vector<int32_t>& stage_indices) override;
-    virtual void SetFrame(int32_t value) override;
-    virtual void Field_48() override;
-    virtual void SetEnable(bool value) override;
-    virtual void SetCurrentStageIndex(int32_t value) override;
-    virtual void SetFrameRateControl(FrameRateControl* value) override;
-    virtual void Field_68() override;
-    virtual void Reset() override;
-    virtual void Field_80() override;
-    virtual void Field_88() override;
-    virtual void Field_90() override;
-    virtual void Field_98(int32_t a2, int32_t* a3) override;
-    virtual void Field_A0(int32_t a2, int32_t* a3) override;
-    virtual void Field_A8(int32_t a2, int8_t* a3) override;
-};
-*/
 
 TaskEffectStar::TaskEffectStar() : frame_rate_control(), delta_frame() {
     current_stage_index = -1;
@@ -3656,35 +3519,35 @@ TaskEffectStar::~TaskEffectStar() {
 
 }
 
-bool TaskEffectStar::Init() {
+bool TaskEffectStar::init() {
     if (!star_catalog_data.stage_param_data_ptr)
         return true;
     else if (!star_catalog_data.init())
         return false;
 
-    SetFrameRateControl(0);
+    set_frame_rate_control(0);
     return true;
 }
 
-bool TaskEffectStar::Ctrl() {
+bool TaskEffectStar::ctrl() {
     if (star_catalog_data.stage_param_data_ptr)
-        delta_frame = frame_rate_control->GetDeltaFrame();
+        delta_frame = frame_rate_control->get_delta_frame();
     return false;
 }
 
-bool TaskEffectStar::Dest() {
+bool TaskEffectStar::dest() {
     star_catalog_data.free();
     stage_param_data_star_storage_clear();
     return true;
 }
 
-void TaskEffectStar::Disp() {
+void TaskEffectStar::disp() {
 
 }
 
-void TaskEffectStar::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectStar::set_stage_indices(std::vector<int32_t>& stage_indices) {
     if (star_catalog_data.stage_param_data_ptr)
-        Dest();
+        dest();
 
     current_stage_index = -1;
     this->stage_indices.clear();
@@ -3723,11 +3586,11 @@ void TaskEffectStar::SetStageIndices(std::vector<int32_t>& stage_indices) {
     }
 }
 
-void TaskEffectStar::SetEnable(bool value) {
+void TaskEffectStar::set_enable(bool value) {
     star_catalog_data.enable = value;
 }
 
-void TaskEffectStar::SetCurrentStageIndex(int32_t value) {
+void TaskEffectStar::set_current_stage_index(int32_t value) {
     if (current_stage_index == value)
         return;
 
@@ -3748,14 +3611,14 @@ void TaskEffectStar::SetCurrentStageIndex(int32_t value) {
         star_catalog_data.set_stage_param_data(stage_param_data_star_storage_get_value(value));
 }
 
-void TaskEffectStar::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectStar::set_frame_rate_control(FrameRateControl* value) {
     if (value)
         frame_rate_control = value;
     else
         frame_rate_control = get_sys_frame_rate();
 }
 
-void TaskEffectStar::Reset() {
+void TaskEffectStar::reset() {
 
 }
 
@@ -4350,12 +4213,12 @@ TaskEffectParent::~TaskEffectParent() {
 
 }
 
-std::pair<TaskEffectType, TaskEffect*> TaskEffectParent::AddTaskEffectTypePtr(TaskEffectType type) {
-    if (CheckTaskEffectTypeLoaded(type) < 0) {
+std::pair<TaskEffectType, TaskEffect*> TaskEffectParent::add_effect(TaskEffectType type) {
+    if (check_effect_loaded(type) < 0) {
         const char* name = 0;
         TaskEffect* t = task_effect_array_get(type, &name);
         if (t) {
-            app::TaskWork::AddTask(t, name);
+            app::TaskWork::add_task(t, name);
             return { type, t };
         }
     }
@@ -4363,25 +4226,25 @@ std::pair<TaskEffectType, TaskEffect*> TaskEffectParent::AddTaskEffectTypePtr(Ta
     return { TASK_EFFECT_INVALID, 0 };
 }
 
-int32_t TaskEffectParent::CheckTaskEffectTypeLoaded(TaskEffectType type) {
+int32_t TaskEffectParent::check_effect_loaded(TaskEffectType type) {
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
         if (i.first == type)
             return 0;
     return -1;
 }
 
-void TaskEffectParent::Event(TaskEffectType type, int32_t event_type, void* data) {
+void TaskEffectParent::event(TaskEffectType type, int32_t event_type, void* data) {
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
         if (i.first == type)
-            i.second->Event(event_type, data);
+            i.second->event(event_type, data);
 }
 
-void TaskEffectParent::Dest() {
+void TaskEffectParent::dest() {
     if (state == 1)
         state = 4;
     else if (state >= 2 && state <= 3) {
         for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-            i.second->DelTask();
+            i.second->del();
         state = 4;
     }
 }
@@ -4392,7 +4255,7 @@ static const TaskEffectType dword_1409E3440[16] = {
     TASK_EFFECT_INVALID,
 };
 
-bool TaskEffectParent::Load() {
+bool TaskEffectParent::load() {
     if (state == 1) {
         if (!modern) {
             bool wait_load = false;
@@ -4407,10 +4270,10 @@ bool TaskEffectParent::Load() {
                 if (i == TASK_EFFECT_INVALID)
                     break;
 
-                std::pair<TaskEffectType, TaskEffect*> v57 = AddTaskEffectTypePtr(i);
+                std::pair<TaskEffectType, TaskEffect*> v57 = add_effect(i);
                 if (v57.second) {
-                    v57.second->SetStageIndices(stage_indices);
-                    v57.second->SetEnable(enable);
+                    v57.second->set_stage_indices(stage_indices);
+                    v57.second->set_enable(enable);
                     effects.push_back(v57);
                     field_50.push_back(v57);
                 }
@@ -4422,10 +4285,10 @@ bool TaskEffectParent::Load() {
                     if (j == TASK_EFFECT_INVALID)
                         break;
 
-                    std::pair<TaskEffectType, TaskEffect*> v57 = AddTaskEffectTypePtr((TaskEffectType)j);
+                    std::pair<TaskEffectType, TaskEffect*> v57 = add_effect((TaskEffectType)j);
                     if (v57.second) {
-                        v57.second->SetStageIndices(stage_indices);
-                        v57.second->SetEnable(enable);
+                        v57.second->set_stage_indices(stage_indices);
+                        v57.second->set_enable(enable);
                         effects.push_back(v57);
                         i.second.field_10.push_back(v57);
                     }
@@ -4450,10 +4313,10 @@ bool TaskEffectParent::Load() {
                 if (i == TASK_EFFECT_INVALID)
                     break;
 
-                std::pair<TaskEffectType, TaskEffect*> v57 = AddTaskEffectTypePtr(i);
+                std::pair<TaskEffectType, TaskEffect*> v57 = add_effect(i);
                 if (v57.second) {
-                    v57.second->SetStageHashes(stage_hashes, data, obj_db, tex_db, stage_data);
-                    v57.second->SetEnable(enable);
+                    v57.second->set_stage_hashes(stage_hashes, data, obj_db, tex_db, stage_data);
+                    v57.second->set_enable(enable);
                     effects.push_back(v57);
                     field_50.push_back(v57);
                 }
@@ -4465,10 +4328,10 @@ bool TaskEffectParent::Load() {
                     if (j == TASK_EFFECT_INVALID)
                         break;
 
-                    std::pair<TaskEffectType, TaskEffect*> v57 = AddTaskEffectTypePtr((TaskEffectType)j);
+                    std::pair<TaskEffectType, TaskEffect*> v57 = add_effect((TaskEffectType)j);
                     if (v57.second) {
-                        v57.second->SetStageHashes(stage_hashes, data, obj_db, tex_db, stage_data);
-                        v57.second->SetEnable(enable);
+                        v57.second->set_stage_hashes(stage_hashes, data, obj_db, tex_db, stage_data);
+                        v57.second->set_enable(enable);
                         effects.push_back(v57);
                         i.second.field_10.push_back(v57);
                     }
@@ -4483,14 +4346,14 @@ bool TaskEffectParent::Load() {
 
     bool wait_load = false;
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-        if (!app::TaskWork::CheckTaskCtrl(i.second)) {
+        if (!app::TaskWork::check_task_ctrl(i.second)) {
             wait_load = true;
             break;
         }
 
     if (!wait_load) {
         for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-            i.second->SetEnable(enable);
+            i.second->set_enable(enable);
 
         state = 3;
         return false;
@@ -4498,12 +4361,12 @@ bool TaskEffectParent::Load() {
     return true;
 }
 
-void TaskEffectParent::Reset() {
+void TaskEffectParent::reset() {
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-        i.second->Reset();
+        i.second->reset();
 }
 
-void TaskEffectParent::ResetData() {
+void TaskEffectParent::reset_data() {
     current_stage_hash = hash_murmurhash_empty;
     current_stage_index = -1;
     this->current_stage_index = -1;
@@ -4516,38 +4379,38 @@ void TaskEffectParent::ResetData() {
     state = 0;
 }
 
-void TaskEffectParent::SetCurrentStageHash(uint32_t stage_hash) {
+void TaskEffectParent::set_current_stage_hash(uint32_t stage_hash) {
     if (current_stage_hash != stage_hash) {
         for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-            i.second->SetCurrentStageHash(stage_hash);
+            i.second->set_current_stage_hash(stage_hash);
         current_stage_hash = stage_hash;
     }
 }
 
-void TaskEffectParent::SetCurrentStageIndex(int32_t stage_index) {
+void TaskEffectParent::set_current_stage_index(int32_t stage_index) {
     if (current_stage_index != stage_index) {
         for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-            i.second->SetCurrentStageIndex(stage_index);
+            i.second->set_current_stage_index(stage_index);
         current_stage_index = stage_index;
     }
 }
 
-void TaskEffectParent::SetEnable(bool value) {
+void TaskEffectParent::set_enable(bool value) {
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-        i.second->SetEnable(value);
+        i.second->set_enable(value);
 }
 
-void TaskEffectParent::SetFrame(int32_t value) {
+void TaskEffectParent::set_frame(int32_t value) {
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-        i.second->SetFrame(value);
+        i.second->set_frame(value);
 }
 
-void TaskEffectParent::SetFrameRateControl(FrameRateControl* value) {
+void TaskEffectParent::set_frame_rate_control(FrameRateControl* value) {
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-        i.second->SetFrameRateControl(value);
+        i.second->set_frame_rate_control(value);
 }
 
-void TaskEffectParent::SetStageHashes(std::vector<uint32_t>& stage_hashes) {
+void TaskEffectParent::set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
     this->stage_indices.clear();
     this->stage_hashes.assign(stage_hashes.begin(), stage_hashes.end());
     obj_set_ids.clear();
@@ -4577,7 +4440,7 @@ void TaskEffectParent::SetStageHashes(std::vector<uint32_t>& stage_hashes) {
     state = 1;
 }
 
-void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
+void TaskEffectParent::set_stage_indices(std::vector<int32_t>& stage_indices) {
     this->stage_indices.assign(stage_indices.begin(), stage_indices.end());
     this->stage_hashes.clear();
     obj_set_ids.clear();
@@ -4613,20 +4476,20 @@ void TaskEffectParent::SetStageIndices(std::vector<int32_t>& stage_indices) {
     state = 1;
 }
 
-bool TaskEffectParent::Unload() {
+bool TaskEffectParent::unload() {
     if (state != 4) {
-        ResetData();
+        reset_data();
         return false;
     }
 
     for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
-        if (app::TaskWork::CheckTaskReady(i.second))
+        if (app::TaskWork::check_task_ready(i.second))
             return true;
 
     for (uint32_t& i : obj_set_ids)
         object_storage_unload_set(i);
 
-    ResetData();
+    reset_data();
     return false;
 }
 
@@ -4645,7 +4508,7 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     gl_state_disable_blend();
 }
 
-static void draw_ripple_emit(render_context* rctx, struc_101* data) {
+static void draw_ripple_emit(render_context* rctx, ripple_struct* data) {
     gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
 
     {

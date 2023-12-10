@@ -16,17 +16,17 @@
 namespace app {
     class TaskWindow : public Task {
     public:
-        bool show_window;
-        bool window_focus;
+        bool show;
+        bool focus;
         bool first_show;
 
         TaskWindow();
         ~TaskWindow();
-        virtual void Window() = 0;
+        virtual void window() = 0;
 
-        void HideWindow();
-        void ShowWindow();
+        void hide_window();
+        void show_window();
     };
 
-    extern void TaskWork_Window();
+    extern void TaskWork_window();
 }

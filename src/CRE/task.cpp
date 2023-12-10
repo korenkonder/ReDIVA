@@ -31,27 +31,27 @@ namespace app {
 
     }
 
-    TaskInterface:: ~TaskInterface() {
+    TaskInterface::~TaskInterface() {
 
     }
 
-    bool TaskInterface::Init() {
+    bool TaskInterface::init() {
         return true;
     }
 
-    bool TaskInterface::Ctrl() {
+    bool TaskInterface::ctrl() {
         return false;
     }
 
-    bool TaskInterface::Dest() {
+    bool TaskInterface::dest() {
         return true;
     }
 
-    void TaskInterface::Disp() {
+    void TaskInterface::disp() {
 
     }
 
-    void TaskInterface::Basic() {
+    void TaskInterface::basic() {
 
     }
 
@@ -64,8 +64,8 @@ namespace app {
         next_op = Task::Op::None;
         next_state = Task::State::None;
         field_2C = false;
-        is_frame_dependent = false;
-        SetName("(unknown)");
+        frame_dependent = false;
+        set_name("(unknown)");
         base_calc_time = 0;
         calc_time = 0;
         calc_time_max = 0;
@@ -77,59 +77,59 @@ namespace app {
 
     }
 
-    uint32_t Task::GetCalcTime() {
+    uint32_t Task::get_calc_time() {
         return calc_time;
     }
 
-    uint32_t Task::GetCalcTimeMax() {
+    uint32_t Task::get_calc_time_max() {
         return calc_time_max;
     }
 
-    uint32_t Task::GetDispTime() {
+    uint32_t Task::get_disp_time() {
         return disp_time;
     }
 
-    uint32_t Task::GetDispTimeMax() {
+    uint32_t Task::get_disp_time_max() {
         return disp_time_max;
     }
 
-    char* Task::GetName() {
+    const char* Task::get_name() {
         return name;
     }
 
-    bool Task::DelTask() {
-        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Dest))
+    bool Task::del() {
+        if (!TaskWork::has_task(this) || !Task_check_request(this, Task::Request::Dest))
             return false;
 
         Task_set_request(this, Task::Request::Dest);
         return true;
     }
 
-    bool Task::HideTask() {
-        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Hide))
+    bool Task::hide() {
+        if (!TaskWork::has_task(this) || !Task_check_request(this, Task::Request::Hide))
             return false;
 
         Task_set_request(this, Task::Request::Hide);
         return true;
     }
 
-    bool Task::RunTask() {
-        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Run))
+    bool Task::run() {
+        if (!TaskWork::has_task(this) || !Task_check_request(this, Task::Request::Run))
             return false;
 
         Task_set_request(this, Task::Request::Run);
         return true;
     }
 
-    bool Task::SuspendTask() {
-        if (!TaskWork::HasTask(this) || !Task_check_request(this, Task::Request::Suspend))
+    bool Task::suspend() {
+        if (!TaskWork::has_task(this) || !Task_check_request(this, Task::Request::Suspend))
             return false;
 
         Task_set_request(this, Task::Request::Suspend);
         return true;
     }
 
-    void Task::SetName(const char* name) {
+    void Task::set_name(const char* name) {
         if (!name) {
             this->name[0] = 0;
             return;
@@ -141,62 +141,62 @@ namespace app {
         this->name[len] = 0;
     }
 
-    void Task::SetPriority(int32_t priority) {
+    void Task::set_priority(int32_t priority) {
         this->priority = priority;
     }
 
-    TaskWork::TaskWork() : current(), disp() {
+    TaskWork::TaskWork() : current_task(), disp_task() {
 
     }
 
     TaskWork::~TaskWork() {
         for (Task* i : tasks)
-            i->DelTask();
+            i->del();
 
         while (tasks.size()) {
-            Ctrl();
-            Basic();
+            ctrl();
+            basic();
         }
     }
 
-    bool TaskWork::AddTask(Task* t, const char* name, int32_t priority) {
-        return TaskWork::AddTask(t, task_work->current, name, priority);
+    bool TaskWork::add_task(Task* t, const char* name, int32_t priority) {
+        return TaskWork::add_task(t, task_work->current_task, name, priority);
     }
 
-    bool TaskWork::AddTask(Task* t, Task* parent_task, const char* name, int32_t priority) {
+    bool TaskWork::add_task(Task* t, Task* parent_task, const char* name, int32_t priority) {
         Task_set_request(t, Task::Request::None);
-        if (TaskWork::HasTask(t) || !Task_check_request(t, Task::Request::Init))
+        if (TaskWork::has_task(t) || !Task_check_request(t, Task::Request::Init))
             return false;
 
-        t->SetPriority(priority);
+        t->set_priority(priority);
         t->parent_task = parent_task;
         t->op = Task::Op::None;
         t->state = Task::State::None;
         t->next_op = Task::Op::None;
         t->next_state = Task::State::None;
-        t->SetName(name);
+        t->set_name(name);
         Task_set_request(t, Task::Request::Init);
         Task_update_op_state(t);
         task_work->tasks.push_back(t);
         return true;
     }
 
-    void TaskWork::Basic() {
+    void TaskWork::basic() {
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks)
                 if (j->priority == i)
                     Task_do_basic(j);
     }
 
-    bool TaskWork::CheckTaskCtrl(Task* t) {
-        return t && app::TaskWork::HasTask(t) && t->state == Task::State::Running && t->op == Task::Op::Ctrl;
+    bool TaskWork::check_task_ctrl(Task* t) {
+        return t && app::TaskWork::has_task(t) && t->state == Task::State::Running && t->op == Task::Op::Ctrl;
     }
 
-    bool TaskWork::CheckTaskReady(Task* t) {
-        return t && TaskWork::HasTask(t) && (t->op == Task::Op::None || t->state != Task::State::None);
+    bool TaskWork::check_task_ready(Task* t) {
+        return t && TaskWork::has_task(t) && (t->op == Task::Op::None || t->state != Task::State::None);
     }
 
-    void TaskWork::Ctrl() {
+    void TaskWork::ctrl() {
         for (Task*& i : task_work->tasks) {
             Task_update_op_state(i);
             Task_set_base_calc_time(i, 0);
@@ -206,18 +206,18 @@ namespace app {
             for (std::list<Task*>::iterator j = task_work->tasks.end(); j != task_work->tasks.begin(); ) {
                 --j;
                 Task* tsk = *j;
-                if (tsk->priority != i || !HasTaskDest(tsk))
+                if (tsk->priority != i || !has_task_dest(tsk))
                     continue;
 
                 time_struct t;
-                task_work->current = tsk;
+                task_work->current_task = tsk;
                 Task_do_ctrl(tsk);
-                task_work->current = 0;
+                task_work->current_task = 0;
                 Task_add_base_calc_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
 
         for (std::list<Task*>::iterator i = task_work->tasks.begin(); i != task_work->tasks.end(); ) {
-            if (TaskWork::CheckTaskReady(*i)) {
+            if (TaskWork::check_task_ready(*i)) {
                 i++;
                 continue;
             }
@@ -235,13 +235,13 @@ namespace app {
             Task_set_calc_time(i);
     }
 
-    void TaskWork::Dest() {
+    void TaskWork::dest() {
         for (Task*& i : task_work->tasks)
-            i->DelTask();
+            i->del();
     }
 
-    void TaskWork::Disp() {
-        task_work->disp = true;
+    void TaskWork::disp() {
+        task_work->disp_task = true;
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks) {
                 Task* tsk = j;
@@ -252,10 +252,10 @@ namespace app {
                 Task_do_disp(tsk);
                 Task_set_disp_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
-        task_work->disp = false;
+        task_work->disp_task = false;
     }
 
-    Task* TaskWork::GetTaskByIndex(int32_t index) {
+    Task* TaskWork::get_task_by_index(int32_t index) {
         int32_t k = 0;
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks)
@@ -265,7 +265,7 @@ namespace app {
         return 0;
     }
 
-    bool TaskWork::HasTask(Task* t) {
+    bool TaskWork::has_task(Task* t) {
         if (!task_work->tasks.size())
             return false;
 
@@ -275,30 +275,30 @@ namespace app {
         return false;
     }
 
-    bool TaskWork::HasTaskInit(Task* t) {
-        if (t && TaskWork::HasTask(t))
+    bool TaskWork::has_task_init(Task* t) {
+        if (t && TaskWork::has_task(t))
             return t->op == Task::Op::Init;
         else
             return false;
     }
 
-    bool TaskWork::HasTaskCtrl(Task* t) {
-        if (t && TaskWork::HasTask(t))
+    bool TaskWork::has_task_ctrl(Task* t) {
+        if (t && TaskWork::has_task(t))
             return t->op == Task::Op::Ctrl;
         else
             return false;
     }
 
-    bool TaskWork::HasTaskDest(Task* t) {
-        if (t && TaskWork::HasTask(t))
+    bool TaskWork::has_task_dest(Task* t) {
+        if (t && TaskWork::has_task(t))
             return t->op == Task::Op::Dest;
         else
             return false;
     }
 
-    bool TaskWork::HasTasksDest() {
+    bool TaskWork::has_tasks_dest() {
         for (Task*& i : task_work->tasks)
-            if (TaskWork::HasTaskDest(i))
+            if (TaskWork::has_task_dest(i))
                 return true;
         return false;
     }
@@ -318,24 +318,24 @@ namespace app {
     static void Task_do_basic(Task* t) {
         if ((t->state == Task::State::Running || t->state == Task::State::Suspended)
             && t->op != Task::Op::Init && t->op != Task::Op::Dest)
-            t->Basic();
+            t->basic();
     }
 
     static void Task_do_ctrl(Task* t) {
         if (t->state != Task::State::Running)
             return;
 
-        if (t->op == Task::Op::Init && t->Init()) {
+        if (t->op == Task::Op::Init && t->init()) {
             t->next_op = Task::Op::Ctrl;
             t->op = Task::Op::Ctrl;
         }
 
-        if (t->op == Task::Op::Ctrl && t->Ctrl()) {
+        if (t->op == Task::Op::Ctrl && t->ctrl()) {
             t->next_op = Task::Op::Dest;
             t->op = Task::Op::Dest;
         }
 
-        if (t->op == Task::Op::Dest && t->Dest()) {
+        if (t->op == Task::Op::Dest && t->dest()) {
             t->next_state = Task::State::None;
             t->next_op = Task::Op::Max;
             t->request = Task::Request::None;
@@ -347,9 +347,9 @@ namespace app {
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks) {
                 Task* tsk = j;
-                if (tsk->priority != i || TaskWork::HasTaskDest(tsk))
+                if (tsk->priority != i || TaskWork::has_task_dest(tsk))
                     continue;
-                else if (tsk->is_frame_dependent) {
+                else if (tsk->frame_dependent) {
                     if (frames <= 0)
                         continue;
                 }
@@ -357,9 +357,9 @@ namespace app {
                     continue;
 
                 time_struct t;
-                task_work->current = tsk;
+                task_work->current_task = tsk;
                 Task_do_ctrl(tsk);
-                task_work->current = 0;
+                task_work->current_task = 0;
                 Task_add_base_calc_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
     }
@@ -367,7 +367,7 @@ namespace app {
     static void Task_do_disp(Task* t) {
         if ((t->state == Task::State::Running || t->state == Task::State::Suspended)
             && t->op != Task::Op::Init && t->op != Task::Op::Dest)
-            t->Disp();
+            t->disp();
     }
 
     static void Task_set_base_calc_time(Task* t, uint32_t value) {
@@ -391,7 +391,7 @@ namespace app {
     }
 
     static bool Task_check_request(Task* t, Task::Request request) {
-        if (task_work->disp)
+        if (task_work->disp_task)
             return false;
 
         switch (request) {

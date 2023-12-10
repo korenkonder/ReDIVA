@@ -114,22 +114,22 @@ TaskWind:: ~TaskWind() {
     delete ptr;
 }
 
-bool TaskWind::Init() {
+bool TaskWind::init() {
     return true;
 }
 
-bool TaskWind::Ctrl() {
+bool TaskWind::ctrl() {
     if (!pv_osage_manager_array_get_disp())
         wind_ctrl(ptr);
     return false;
 }
 
-bool TaskWind::Dest() {
+bool TaskWind::dest() {
     ptr->reset();
     return true;
 }
 
-void TaskWind::Disp() {
+void TaskWind::disp() {
     pv_osage_manager_array_get_disp();
 }
 
@@ -139,11 +139,11 @@ void task_wind_init() {
 
 bool task_wind_hide_task() {
     task_wind->ptr->reset();
-    return task_wind->HideTask();
+    return task_wind->hide();
 }
 
 bool task_wind_run_task() {
-    return task_wind->RunTask();
+    return task_wind->run();
 }
 
 void task_wind_free() {

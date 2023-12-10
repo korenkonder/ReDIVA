@@ -16,8 +16,8 @@ FrameRateControl::~FrameRateControl() {
 
 }
 
-void FrameRateControl::SetFrameSpeed(float_t frame_speed) {
-    this->frame_speed = frame_speed;
+void FrameRateControl::set_frame_speed(float_t value) {
+    frame_speed = value;
 }
 
 SysFrameRate::SysFrameRate() {
@@ -28,7 +28,7 @@ SysFrameRate::~SysFrameRate() {
 
 }
 
-float_t SysFrameRate::GetDeltaFrame() {
+float_t SysFrameRate::get_delta_frame() {
     return get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
 

@@ -26,10 +26,10 @@ public:
     TaskDataTestGlitterParticle();
     virtual ~TaskDataTestGlitterParticle() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
     void LoadFile(const char* file);
     void SceneFree();

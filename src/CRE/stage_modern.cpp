@@ -72,11 +72,11 @@ stage_detail::TaskStageModern:: ~TaskStageModern() {
 
 }
 
-bool stage_detail::TaskStageModern::Init() {
+bool stage_detail::TaskStageModern::init() {
     return true;
 }
 
-bool stage_detail::TaskStageModern::Ctrl() {
+bool stage_detail::TaskStageModern::ctrl() {
     stage_detail::TaskStageModern_CtrlInner(this);
 
     for (int32_t i = 0; i < TASK_STAGE_STAGE_COUNT; i++)
@@ -86,7 +86,7 @@ bool stage_detail::TaskStageModern::Ctrl() {
     return false;
 }
 
-bool stage_detail::TaskStageModern::Dest() {
+bool stage_detail::TaskStageModern::dest() {
     stage_detail::TaskStageModern_Unload(this);
     if (state)
         return false;
@@ -94,7 +94,7 @@ bool stage_detail::TaskStageModern::Dest() {
     return true;
 }
 
-void stage_detail::TaskStageModern::Disp() {
+void stage_detail::TaskStageModern::disp() {
     if (state != 6 || !stage_display)
         return;
 
@@ -158,7 +158,7 @@ bool task_stage_modern_check_not_loaded() {
 }
 
 bool task_stage_modern_check_task_ready() {
-    return app::TaskWork::CheckTaskReady(task_stage_modern);
+    return app::TaskWork::check_task_ready(task_stage_modern);
 }
 
 void task_stage_modern_current_set_ground(bool value) {
@@ -244,7 +244,7 @@ void task_stage_modern_set_stage_hashes(std::vector<uint32_t>& stage_hashes,
 }
 
 bool task_stage_modern_unload_task() {
-    return task_stage_modern->DelTask();
+    return task_stage_modern->del();
 }
 
 void task_stage_modern_free() {
@@ -359,14 +359,14 @@ static void stage_detail::TaskStageModern_Load(stage_detail::TaskStageModern* a1
 }
 
 static bool stage_detail::TaskStageModern_LoadTask(stage_detail::TaskStageModern* a1, const char* name) {
-    if (app::TaskWork::AddTask(a1, name)) {
+    if (app::TaskWork::add_task(a1, name)) {
         stage_detail::TaskStageModern_Reset(a1);
         stage_detail::TaskStageModern_TaskWindAppend(a1);
         return false;
     }
     else {
-        if (!app::TaskWork::HasTaskDest(a1))
-            a1->DelTask();
+        if (!app::TaskWork::has_task_dest(a1))
+            a1->del();
         return true;
     }
 }
@@ -398,7 +398,7 @@ static void stage_detail::TaskStageModern_SetStage(
 }
 
 static void stage_detail::TaskStageModern_TaskWindAppend(stage_detail::TaskStageModern* a1) {
-    app::TaskWork::AddTask(task_wind, a1, "CHARA WIND");
+    app::TaskWork::add_task(task_wind, a1, "CHARA WIND");
 }
 
 static void stage_detail::TaskStageModern_Unload(stage_detail::TaskStageModern* a1) {

@@ -50,10 +50,10 @@ struct SkinParamManager : public app::Task {
     SkinParamManager();
     virtual ~SkinParamManager() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
     void AddFiles();
     bool AddTask(std::vector<osage_init_data>& vec);
@@ -225,7 +225,7 @@ void skin_param_data_free() {
 bool skin_param_manager_array_check_task_ready() {
     bool ret = false;
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        ret |= app::TaskWork::CheckTaskReady(&skin_param_manager[i]);
+        ret |= app::TaskWork::check_task_ready(&skin_param_manager[i]);
     return ret;
 }
 
@@ -234,7 +234,7 @@ bool skin_param_manager_add_task(int32_t chara_id, std::vector<osage_init_data>&
 }
 
 bool skin_param_manager_check_task_ready(int32_t chara_id) {
-    return app::TaskWork::CheckTaskReady(skin_param_manager_get(chara_id));
+    return app::TaskWork::check_task_ready(skin_param_manager_get(chara_id));
 }
 
 std::vector<skin_param_file_data>* skin_param_manager_get_skin_param_file_data(
@@ -683,13 +683,13 @@ SkinParamManager::~SkinParamManager() {
     Reset();
 }
 
-bool SkinParamManager::Init() {
+bool SkinParamManager::init() {
     state = 0;
     AddFiles();
     return true;
 }
 
-bool SkinParamManager::Ctrl() {
+bool SkinParamManager::ctrl() {
     switch (state) {
     case 0:
         if (CtrlFiles())
@@ -703,11 +703,11 @@ bool SkinParamManager::Ctrl() {
     }
 }
 
-bool SkinParamManager::Dest() {
+bool SkinParamManager::dest() {
     return true;
 }
 
-void SkinParamManager::Disp() {
+void SkinParamManager::disp() {
 
 }
 
@@ -852,7 +852,7 @@ void SkinParamManager::AddFiles() {
 }
 
 bool SkinParamManager::AddTask(std::vector<osage_init_data>& vec) {
-    if (app::TaskWork::CheckTaskReady(this) || !app::TaskWork::AddTask(this, "SKIN_PARAM_MANAGER"))
+    if (app::TaskWork::check_task_ready(this) || !app::TaskWork::add_task(this, "SKIN_PARAM_MANAGER"))
         return false;
 
     osage_init.assign(vec.begin(), vec.end());
@@ -1035,7 +1035,7 @@ void SkinParamManager::Reset() {
     }
     files.clear();
 
-    DelTask();
+    del();
 }
 
 sp_skp_db::sp_skp_db() : farc_list_count() {

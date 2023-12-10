@@ -62,13 +62,13 @@ DtmStg::~DtmStg() {
 
 }
 
-bool DtmStg::Init() {
+bool DtmStg::init() {
     task_stage_load_task("DATA_TEST_STG_STAGE");
     task_stage_set_stage_index(stage_index);
     return true;
 }
 
-bool DtmStg::Ctrl() {
+bool DtmStg::ctrl() {
     if (task_stage_check_not_loaded())
         return false;
 
@@ -86,7 +86,7 @@ bool DtmStg::Ctrl() {
     return false;
 }
 
-bool DtmStg::Dest() {
+bool DtmStg::dest() {
     task_stage_unload_task();
     return true;
 }
@@ -96,18 +96,18 @@ void dtm_stg_init() {
 }
 
 void dtm_stg_load(int32_t stage_index) {
-    if (app::TaskWork::CheckTaskReady(dtm_stg))
+    if (app::TaskWork::check_task_ready(dtm_stg))
         return;
 
-    if (app::TaskWork::CheckTaskReady(dtm_stg)) {
+    if (app::TaskWork::check_task_ready(dtm_stg)) {
         dtm_stg->stage_index = stage_index;
         dtm_stg->load_stage_index = stage_index;
     }
-    app::TaskWork::AddTask(dtm_stg, "DATA_TEST_STAGE");
+    app::TaskWork::add_task(dtm_stg, "DATA_TEST_STAGE");
 }
 
 bool dtm_stg_unload() {
-    return dtm_stg->DelTask();
+    return dtm_stg->del();
 }
 
 void dtm_stg_free() {

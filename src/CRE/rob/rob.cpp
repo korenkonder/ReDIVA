@@ -103,12 +103,12 @@ struct OpdMakeWorker : public app::Task {
     OpdMakeWorker();
     virtual ~OpdMakeWorker() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    bool AddTask(bool a2);
+    bool add(bool a2);
 };
 
 struct osage_play_data_init_header {
@@ -158,12 +158,12 @@ public:
     OsagePlayDataManager();
     virtual ~OsagePlayDataManager() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    bool AddTask();
+    bool add();
     void AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids);
     bool CheckTaskReady();
     void GetOpdFileData(object_info obj_info,
@@ -262,12 +262,12 @@ struct OpdMakeManager : app::Task {
     OpdMakeManager();
     virtual ~OpdMakeManager() override;
 
-    bool Init() override;
-    bool Ctrl() override;
-    bool Dest() override;
-    void Disp() override;
+    bool init() override;
+    bool ctrl() override;
+    bool dest() override;
+    void disp() override;
 
-    bool DelTask();
+    bool del();
 };
 
 struct struc_380 {
@@ -501,29 +501,29 @@ public:
     std::map<float_t, bool> reset_frames_list;
     std::thread* thread;
     std::condition_variable cnd;
-    bool disp;
+    bool display;
     bool not_reset;
     bool exit;
     int32_t field_D4;
     std::mutex mtx;
-    std::mutex disp_mtx;
+    std::mutex display_mtx;
     std::mutex not_reset_mtx;
     std::mutex exit_mtx;
 
     PvOsageManager();
     virtual ~PvOsageManager() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
     void AddMotionFrameResetData(int32_t stage_index, uint32_t motion_id, float_t frame, int32_t iterations);
     bool CheckResetFrameNotFound(uint32_t motion_id, float_t frame);
-    bool GetDisp();
+    bool GetDisplay();
     bool GetNotReset();
     void Reset();
-    void SetDisp(bool value);
+    void SetDisplay(bool value);
     void SetNotReset(bool value);
     void SetPvId(int32_t pv_id, int32_t chara_id, bool reset);
     void SetPvSetMotion(const std::vector<pv_data_set_motion>& set_motion);
@@ -593,9 +593,9 @@ public:
     TaskRobLoad();
     virtual ~TaskRobLoad() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
     bool AppendFreeReqData(chara_index chara_index);
     bool AppendFreeReqDataObj(chara_index chara_index, const item_cos_data* cos);
@@ -639,13 +639,13 @@ public:
     RobImplTask();
     virtual ~RobImplTask() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual bool CheckType(rob_chara_type type) = 0;
-    virtual bool IsFrameDependent() = 0;
+    virtual bool check_type(rob_chara_type type) = 0;
+    virtual bool is_frame_dependent() = 0;
 
     void AppendList(rob_chara* rob_chr, std::list<rob_chara*>* list);
     void AppendCtrlCharaList(rob_chara* rob_chr);
@@ -663,12 +663,12 @@ public:
     TaskRobPrepareControl();
     virtual ~TaskRobPrepareControl() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobPrepareAction : public RobImplTask {
@@ -676,12 +676,12 @@ public:
     TaskRobPrepareAction();
     virtual ~TaskRobPrepareAction() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobBase : public RobImplTask {
@@ -689,23 +689,25 @@ public:
     TaskRobBase();
     virtual ~TaskRobBase() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobCollision : public RobImplTask {
 public:
     TaskRobCollision();
     virtual ~TaskRobCollision() override;
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobInfo : public RobImplTask {
@@ -713,12 +715,12 @@ public:
     TaskRobInfo();
     virtual ~TaskRobInfo() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobMotionModifier : public RobImplTask {
@@ -726,12 +728,12 @@ public:
     TaskRobMotionModifier();
     virtual ~TaskRobMotionModifier() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobDisp : public RobImplTask {
@@ -739,26 +741,26 @@ public:
     TaskRobDisp();
     virtual ~TaskRobDisp() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
-    virtual bool CheckType(rob_chara_type type) override;
-    virtual bool IsFrameDependent() override;
+    virtual bool check_type(rob_chara_type type) override;
+    virtual bool is_frame_dependent() override;
 };
 
 class TaskRobManager : public app::Task {
 public:
     int32_t ctrl_state;
     int32_t dest_state;
-    TaskRobPrepareControl prepare_control;
-    TaskRobPrepareAction prepare_action;
-    TaskRobBase base;
-    TaskRobCollision collision;
-    TaskRobInfo info;
-    TaskRobMotionModifier motion_modifier;
-    TaskRobDisp disp;
+    TaskRobPrepareControl rob_prepare_control;
+    TaskRobPrepareAction rob_prepare_action;
+    TaskRobBase rob_base;
+    TaskRobCollision rob_collision;
+    TaskRobInfo rob_info;
+    TaskRobMotionModifier rob_motion_modifier;
+    TaskRobDisp rob_disp;
     std::list<rob_chara*> init_chara;
     std::list<rob_chara*> load_chara;
     std::list<rob_chara*> free_chara;
@@ -767,10 +769,10 @@ public:
     TaskRobManager();
     virtual ~TaskRobManager() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 
     void AppendFreeCharaList(rob_chara* rob_chr);
     void AppendInitCharaList(rob_chara* rob_chr);
@@ -2233,11 +2235,11 @@ void motion_set_unload_mothead(uint32_t set) {
 }
 
 bool opd_make_manager_del_task() {
-    return opd_make_manager->DelTask();
+    return opd_make_manager->del();
 }
 
 bool osage_play_data_manager_add_task() {
-    return osage_play_data_manager->AddTask();
+    return osage_play_data_manager->add();
 }
 
 void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id) {
@@ -7445,7 +7447,7 @@ static bool opd_decode_data(const void* data, float_t** opd_decod_buf, osage_pla
 }
 
 static bool pv_osage_manager_array_get_disp(int32_t* chara_id) {
-    return pv_osage_manager_array_get(*chara_id)->GetDisp();
+    return pv_osage_manager_array_get(*chara_id)->GetDisplay();
 }
 
 static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id) {
@@ -11169,7 +11171,7 @@ static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
 static rob_manager_rob_impl* rob_manager_rob_impls1_get(TaskRobManager* rob_mgr) {
     if (!rob_manager_rob_impls1_init) {
         rob_manager_rob_impls1_init = true;
-        rob_manager_rob_impls1[0].task = &rob_mgr->prepare_control;
+        rob_manager_rob_impls1[0].task = &rob_mgr->rob_prepare_control;
         rob_manager_rob_impls1[0].name = "ROB_PREPARE_CONTROL";
         rob_manager_rob_impls1[1].task = 0;
         rob_manager_rob_impls1[1].name = "";
@@ -11180,17 +11182,17 @@ static rob_manager_rob_impl* rob_manager_rob_impls1_get(TaskRobManager* rob_mgr)
 static rob_manager_rob_impl* rob_manager_rob_impls2_get(TaskRobManager* rob_mgr) {
     if (!rob_manager_rob_impls2_init) {
         rob_manager_rob_impls2_init = true;
-        rob_manager_rob_impls2[0].task = &rob_mgr->prepare_action;
+        rob_manager_rob_impls2[0].task = &rob_mgr->rob_prepare_action;
         rob_manager_rob_impls2[0].name = "ROB_PREPARE_ACTION";
-        rob_manager_rob_impls2[1].task = &rob_mgr->base;
+        rob_manager_rob_impls2[1].task = &rob_mgr->rob_base;
         rob_manager_rob_impls2[1].name = "ROB_BASE";
-        rob_manager_rob_impls2[2].task = &rob_mgr->motion_modifier;
+        rob_manager_rob_impls2[2].task = &rob_mgr->rob_motion_modifier;
         rob_manager_rob_impls2[2].name = "ROB_MOTION_MODIFIER";
-        rob_manager_rob_impls2[3].task = &rob_mgr->collision;
+        rob_manager_rob_impls2[3].task = &rob_mgr->rob_collision;
         rob_manager_rob_impls2[3].name = "ROB_COLLISION";
-        rob_manager_rob_impls2[4].task = &rob_mgr->info;
+        rob_manager_rob_impls2[4].task = &rob_mgr->rob_info;
         rob_manager_rob_impls2[4].name = "ROB_INFO";
-        rob_manager_rob_impls2[5].task = &rob_mgr->disp;
+        rob_manager_rob_impls2[5].task = &rob_mgr->rob_disp;
         rob_manager_rob_impls2[5].name = "ROB_DISP";
         rob_manager_rob_impls2[6].task = 0;
         rob_manager_rob_impls2[6].name = "";
@@ -11296,7 +11298,7 @@ rob_chara_item_equip* rob_chara_array_get_item_equip(int32_t chara_id) {
 
 int32_t rob_chara_array_init_chara_index(chara_index chara_index,
     const rob_chara_pv_data& pv_data, int32_t cos_id, bool can_set_default) {
-    if (!app::TaskWork::CheckTaskReady(task_rob_manager)
+    if (!app::TaskWork::check_task_ready(task_rob_manager)
         || pv_data.type < ROB_CHARA_TYPE_0|| pv_data.type > ROB_CHARA_TYPE_3)
         return -1;
 
@@ -11355,12 +11357,12 @@ void rob_chara_array_set_visibility(int32_t chara_id, bool value) {
 bool pv_osage_manager_array_get_disp() {
     bool disp = false;
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        disp |= pv_osage_manager_array_get(i)->GetDisp();
+        disp |= pv_osage_manager_array_get(i)->GetDisplay();
     return disp;
 }
 
 bool pv_osage_manager_array_get_disp(int32_t chara_id) {
-    return pv_osage_manager_array_get(chara_id)->GetDisp();
+    return pv_osage_manager_array_get(chara_id)->GetDisplay();
 }
 
 void pv_osage_manager_array_set_motion_ids(
@@ -11407,7 +11409,7 @@ void rob_sleeve_handler_data_read() {
 }
 
 bool task_rob_load_add_task() {
-    return app::TaskWork::AddTask(task_rob_load, 0, "ROB LOAD", 0);
+    return app::TaskWork::add_task(task_rob_load, 0, "ROB LOAD", 0);
 }
 
 bool task_rob_load_append_free_req_data(chara_index chara_index) {
@@ -11433,12 +11435,12 @@ bool task_rob_load_check_load_req_data() {
 }
 
 bool task_rob_load_del_task() {
-    task_rob_load->DelTask();
+    task_rob_load->del();
     return true;
 }
 
 bool task_rob_manager_add_task() {
-    return app::TaskWork::AddTask(task_rob_manager, "ROB_MANAGER TASK");
+    return app::TaskWork::add_task(task_rob_manager, "ROB_MANAGER TASK");
 }
 
 bool task_rob_manager_check_chara_loaded(int32_t chara_id) {
@@ -11448,11 +11450,11 @@ bool task_rob_manager_check_chara_loaded(int32_t chara_id) {
 }
 
 bool task_rob_manager_check_task_ready() {
-    return app::TaskWork::CheckTaskReady(task_rob_manager);
+    return app::TaskWork::check_task_ready(task_rob_manager);
 }
 
 bool task_rob_manager_hide_task() {
-    return task_rob_manager->HideTask();
+    return task_rob_manager->hide();
 }
 
 bool task_rob_manager_get_wait(int32_t chara_id) {
@@ -11463,14 +11465,14 @@ bool task_rob_manager_get_wait(int32_t chara_id) {
 }
 
 bool task_rob_manager_run_task() {
-    return task_rob_manager->RunTask();
+    return task_rob_manager->run();
 }
 
 bool task_rob_manager_del_task() {
-    if (!app::TaskWork::CheckTaskReady(task_rob_manager))
+    if (!app::TaskWork::check_task_ready(task_rob_manager))
         return true;
 
-    task_rob_manager->DelTask();
+    task_rob_manager->del();
     return false;
 }
 
@@ -16586,7 +16588,7 @@ OpdMakeWorker::~OpdMakeWorker() {
 
 }
 
-bool OpdMakeWorker::Init() {
+bool OpdMakeWorker::init() {
     data.Reset();
     this->state = field_D4 ? 8 : 1;
     return true;
@@ -16654,7 +16656,7 @@ static bool sub_140479090(struc_655& a1, chara_index chara_index) {
     return true;
 }
 
-bool OpdMakeWorker::Ctrl() {
+bool OpdMakeWorker::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
@@ -16801,7 +16803,7 @@ bool OpdMakeWorker::Ctrl() {
     return false;
 }
 
-bool OpdMakeWorker::Dest() {
+bool OpdMakeWorker::dest() {
     if (opd_maker_array[chara_id].IsWaiting()) {
         opd_maker_array[chara_id].sub_140475AE0();
         return false;
@@ -16812,7 +16814,7 @@ bool OpdMakeWorker::Dest() {
     }
 }
 
-void OpdMakeWorker::Disp() {
+void OpdMakeWorker::disp() {
 
 }
 
@@ -16839,13 +16841,13 @@ OsagePlayDataManager::~OsagePlayDataManager() {
 
 }
 
-bool OsagePlayDataManager::Init() {
+bool OsagePlayDataManager::init() {
     LoadOpdFileList();
     state = 0;
     return true;
 }
 
-bool OsagePlayDataManager::Ctrl() {
+bool OsagePlayDataManager::ctrl() {
     if (state)
         return false;
 
@@ -16861,24 +16863,24 @@ bool OsagePlayDataManager::Ctrl() {
     return !file_handlers.size();
 }
 
-bool OsagePlayDataManager::Dest() {
+bool OsagePlayDataManager::dest() {
     return true;
 }
 
-void OsagePlayDataManager::Disp() {
+void OsagePlayDataManager::disp() {
 
 }
 
-bool OpdMakeWorker::AddTask(bool a2) {
+bool OpdMakeWorker::add(bool a2) {
     if (!task_rob_manager_check_chara_loaded(chara_id))
         return false;
 
     field_D4 = a2;
-    return app::TaskWork::AddTask(this, "OPD_MAKE_WORKER");
+    return app::TaskWork::add_task(this, "OPD_MAKE_WORKER");
 }
 
-bool OsagePlayDataManager::AddTask() {
-    return app::TaskWork::AddTask(this, "OSAGE_PLAY_DATA_MANAGER");
+bool OsagePlayDataManager::add() {
+    return app::TaskWork::add_task(this, "OSAGE_PLAY_DATA_MANAGER");
 }
 
 void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::vector<uint32_t>& motion_ids) {
@@ -16898,7 +16900,7 @@ void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::ve
 }
 
 bool OsagePlayDataManager::CheckTaskReady() {
-    return app::TaskWork::CheckTaskReady(this);
+    return app::TaskWork::check_task_ready(this);
 }
 
 void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
@@ -17050,7 +17052,7 @@ OpdMakeManager::~OpdMakeManager() {
 
 }
 
-bool OpdMakeManager::Init() {
+bool OpdMakeManager::init() {
     mode = 1;
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, false);
@@ -17060,7 +17062,7 @@ bool OpdMakeManager::Init() {
 
     CreateDirectoryA("ram/osage_play_data", 0);
 
-    if (field_1888 || !app::TaskWork::CheckTaskReady(task_rob_manager)) {
+    if (field_1888 || !app::TaskWork::check_task_ready(task_rob_manager)) {
         task_rob_manager_add_task();
         return true;
     }
@@ -17070,7 +17072,7 @@ bool OpdMakeManager::Init() {
     }
 }
 
-bool OpdMakeManager::Ctrl() {
+bool OpdMakeManager::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -17135,7 +17137,7 @@ bool OpdMakeManager::Ctrl() {
                 v11 = true;
 
         if (!v11) {
-            task_rob_manager->HideTask();
+            task_rob_manager->hide();
             mode = 7;
         }
     } break;
@@ -17143,13 +17145,13 @@ bool OpdMakeManager::Ctrl() {
         int32_t j = 0;
         for (OpdMakeWorker*& i : workers)
             if (rob_chara_array_get(j++))
-                i->AddTask(field_1888);
+                i->add(field_1888);
         mode = 8;
     } break;
     case 8: {
         bool v18 = false;
         for (OpdMakeWorker*& i : workers)
-            if (app::TaskWork::CheckTaskReady(i))
+            if (app::TaskWork::check_task_ready(i))
                 v18 = true;
 
         if (!v18)
@@ -17158,7 +17160,7 @@ bool OpdMakeManager::Ctrl() {
     case 9:
         for (int32_t i = 0; i < 4; i++)
             rob_chara_array_free_chara_id(i);
-        task_rob_manager->RunTask();
+        task_rob_manager->run();
         mode = 10;
         break;
     case 10:
@@ -17184,9 +17186,9 @@ bool OpdMakeManager::Ctrl() {
     return ret;
 }
 
-bool OpdMakeManager::Dest() {
+bool OpdMakeManager::dest() {
     for (OpdMakeWorker*& i : workers)
-        if (app::TaskWork::CheckTaskReady(i))
+        if (app::TaskWork::check_task_ready(i))
             return false;
 
     if (!field_1888) {
@@ -17212,14 +17214,14 @@ bool OpdMakeManager::Dest() {
     return true;
 }
 
-void OpdMakeManager::Disp() {
+void OpdMakeManager::disp() {
 
 }
 
-bool OpdMakeManager::DelTask() {
+bool OpdMakeManager::del() {
     for (OpdMakeWorker*& i : workers)
-        i->DelTask();
-    return app::Task::DelTask();
+        i->del();
+    return app::Task::del();
 }
 
 ReqData::ReqData() : chara_index(), count() {
@@ -18050,12 +18052,12 @@ y(y), z(z), rotation(rotation) {
 }
 
 PvOsageManager::PvOsageManager() : state(), chara_id(), reset(), field_74(),
-motion_index(), pv(), thread(), disp(), not_reset(), exit(), field_D4() {
+motion_index(), pv(), thread(), display(), not_reset(), exit(), field_D4() {
     Reset();
 
     {
-        std::unique_lock<std::mutex> u_lock(disp_mtx);
-        disp = false;
+        std::unique_lock<std::mutex> u_lock(display_mtx);
+        display = false;
     }
 
     {
@@ -18088,12 +18090,12 @@ PvOsageManager::~PvOsageManager() {
     thread = 0;
 }
 
-bool PvOsageManager::Init() {
+bool PvOsageManager::init() {
     state = 0;
     return true;
 }
 
-bool PvOsageManager::Ctrl() {
+bool PvOsageManager::ctrl() {
     if (!state) {
         sub_1404F8AA0();
         if (sub_1404F7AF0())
@@ -18106,11 +18108,11 @@ bool PvOsageManager::Ctrl() {
     return true;
 }
 
-bool PvOsageManager::Dest() {
+bool PvOsageManager::dest() {
     return true;
 }
 
-void PvOsageManager::Disp() {
+void PvOsageManager::disp() {
 
 }
 
@@ -18147,9 +18149,9 @@ bool PvOsageManager::CheckResetFrameNotFound(uint32_t motion_id, float_t frame) 
     return reset_frames_list.find(frame) == reset_frames_list.end();
 }
 
-bool PvOsageManager::GetDisp() {
-    std::unique_lock<std::mutex> u_lock(disp_mtx);
-    return disp;
+bool PvOsageManager::GetDisplay() {
+    std::unique_lock<std::mutex> u_lock(display_mtx);
+    return display;
 }
 
 bool PvOsageManager::GetNotReset() {
@@ -18157,9 +18159,9 @@ bool PvOsageManager::GetNotReset() {
     return not_reset;
 }
 
-void PvOsageManager::SetDisp(bool value) {
-    std::unique_lock<std::mutex> u_lock(disp_mtx);
-    disp = value;
+void PvOsageManager::SetDisplay(bool value) {
+    std::unique_lock<std::mutex> u_lock(display_mtx);
+    display = value;
 }
 
 void PvOsageManager::SetNotReset(bool value) {
@@ -18172,12 +18174,12 @@ void PvOsageManager::SetPvId(int32_t pv_id, int32_t chara_id, bool reset) {
         return;
 
     waitable_timer timer;
-    while (GetDisp()) {
+    while (GetDisplay()) {
         SetNotReset(true);
         timer.sleep(1);
     }
 
-    SetDisp(true);
+    SetDisplay(true);
     SetNotReset(false);
     this->reset = reset;
     this->chara_id = chara_id;
@@ -18495,14 +18497,14 @@ void PvOsageManager::ThreadMain(PvOsageManager* pv_osg_mgr) {
         }
 
         {
-            std::unique_lock<std::mutex> u_lock(pv_osg_mgr->disp_mtx);
-            pv_osg_mgr->disp = false;
+            std::unique_lock<std::mutex> u_lock(pv_osg_mgr->display_mtx);
+            pv_osg_mgr->display = false;
         }
     }
 
     {
-        std::unique_lock<std::mutex> u_lock(pv_osg_mgr->disp_mtx);
-        pv_osg_mgr->disp = false;
+        std::unique_lock<std::mutex> u_lock(pv_osg_mgr->display_mtx);
+        pv_osg_mgr->display = false;
     }
 }
 
@@ -18610,19 +18612,19 @@ RobImplTask::~RobImplTask() {
 
 }
 
-bool RobImplTask::Init() {
+bool RobImplTask::init() {
     return true;
 }
 
-bool RobImplTask::Ctrl() {
+bool RobImplTask::ctrl() {
     return false;
 }
 
-bool RobImplTask::Dest() {
+bool RobImplTask::dest() {
     return true;
 }
 
-void RobImplTask::Disp() {
+void RobImplTask::disp() {
 
 }
 
@@ -18692,11 +18694,11 @@ TaskRobBase::~TaskRobBase() {
 
 }
 
-bool TaskRobBase::Init() {
+bool TaskRobBase::init() {
     return true;
 }
 
-bool TaskRobBase::Ctrl() {
+bool TaskRobBase::ctrl() {
     if (pv_osage_manager_array_get_disp())
         return false;
 
@@ -18724,7 +18726,7 @@ bool TaskRobBase::Ctrl() {
     return false;
 }
 
-bool TaskRobBase::Dest() {
+bool TaskRobBase::dest() {
     if (pv_osage_manager_array_get_disp()) {
         pv_osage_manager_array_set_not_reset_true();
         return false;
@@ -18744,11 +18746,11 @@ bool TaskRobBase::Dest() {
     return true;
 }
 
-bool TaskRobBase::CheckType(rob_chara_type type) {
+bool TaskRobBase::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobBase::IsFrameDependent() {
+bool TaskRobBase::is_frame_dependent() {
     return true;
 }
 
@@ -18760,11 +18762,11 @@ TaskRobCollision::~TaskRobCollision() {
 
 }
 
-bool TaskRobCollision::Init() {
+bool TaskRobCollision::init() {
     return true;
 }
 
-bool TaskRobCollision::Ctrl() {
+bool TaskRobCollision::ctrl() {
     for (rob_chara*& i : init_chara)
         AppendCtrlCharaList(i);
     init_chara.clear();
@@ -18785,16 +18787,16 @@ bool TaskRobCollision::Ctrl() {
     return false;
 }
 
-bool TaskRobCollision::Dest() {
+bool TaskRobCollision::dest() {
     FreeCharaLists();
     return true;
 }
 
-bool TaskRobCollision::CheckType(rob_chara_type type) {
+bool TaskRobCollision::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobCollision::IsFrameDependent() {
+bool TaskRobCollision::is_frame_dependent() {
     return true;
 }
 
@@ -18806,11 +18808,11 @@ TaskRobDisp::~TaskRobDisp() {
 
 }
 
-bool TaskRobDisp::Init() {
+bool TaskRobDisp::init() {
     return true;
 }
 
-bool TaskRobDisp::Ctrl() {
+bool TaskRobDisp::ctrl() {
     if (pv_osage_manager_array_get_disp())
         return false;
 
@@ -18840,7 +18842,7 @@ bool TaskRobDisp::Ctrl() {
     return false;
 }
 
-bool TaskRobDisp::Dest() {
+bool TaskRobDisp::dest() {
     if (pv_osage_manager_array_get_disp()) {
         pv_osage_manager_array_set_not_reset_true();
         return false;
@@ -18864,7 +18866,7 @@ bool TaskRobDisp::Dest() {
     return true;
 }
 
-void TaskRobDisp::Disp() {
+void TaskRobDisp::disp() {
     for (rob_chara*& i : ctrl_chara) {
         if (!i)
             continue;
@@ -18878,11 +18880,11 @@ void TaskRobDisp::Disp() {
     }
 }
 
-bool TaskRobDisp::CheckType(rob_chara_type type) {
+bool TaskRobDisp::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_3;
 }
 
-bool TaskRobDisp::IsFrameDependent() {
+bool TaskRobDisp::is_frame_dependent() {
     return false;
 }
 
@@ -18894,11 +18896,11 @@ TaskRobInfo::~TaskRobInfo() {
 
 }
 
-bool TaskRobInfo::Init() {
+bool TaskRobInfo::init() {
     return true;
 }
 
-bool TaskRobInfo::Ctrl() {
+bool TaskRobInfo::ctrl() {
     for (rob_chara*& i : init_chara)
         AppendCtrlCharaList(i);
     init_chara.clear();
@@ -18911,16 +18913,16 @@ bool TaskRobInfo::Ctrl() {
     return false;
 }
 
-bool TaskRobInfo::Dest() {
+bool TaskRobInfo::dest() {
     FreeCharaLists();
     return true;
 }
 
-bool TaskRobInfo::CheckType(rob_chara_type type) {
+bool TaskRobInfo::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobInfo::IsFrameDependent() {
+bool TaskRobInfo::is_frame_dependent() {
     return true;
 }
 
@@ -18932,12 +18934,12 @@ TaskRobLoad::~TaskRobLoad() {
 
 }
 
-bool TaskRobLoad::Init() {
+bool TaskRobLoad::init() {
     field_F0 = 0;
     return true;
 }
 
-bool TaskRobLoad::Ctrl() {
+bool TaskRobLoad::ctrl() {
     int32_t v0 = field_F0;
     while (v0 != -1) {
         field_F0 = v0;
@@ -18959,7 +18961,7 @@ bool TaskRobLoad::Ctrl() {
     return false;
 }
 
-bool TaskRobLoad::Dest() {
+bool TaskRobLoad::dest() {
     if (pv_osage_manager_array_get_disp()) {
         pv_osage_manager_array_set_not_reset_true();
         return false;
@@ -19322,21 +19324,21 @@ TaskRobManager::~TaskRobManager() {
 
 }
 
-bool TaskRobManager::Init() {
+bool TaskRobManager::init() {
     task_rob_load_add_task();
     rob_manager_rob_impl* rob_impls1 = rob_manager_rob_impls1_get(this);
     for (; rob_impls1->task; rob_impls1++) {
         RobImplTask* task = rob_impls1->task;
-        app::TaskWork::AddTask(task, rob_impls1->name);
-        task->is_frame_dependent = task->IsFrameDependent();
+        app::TaskWork::add_task(task, rob_impls1->name);
+        task->frame_dependent = task->is_frame_dependent();
         task->FreeCharaLists();
     }
 
     rob_manager_rob_impl* rob_impls2 = rob_manager_rob_impls2_get(this);
     for (; rob_impls2->task; rob_impls2++) {
         RobImplTask* task = rob_impls2->task;
-        app::TaskWork::AddTask(task, rob_impls2->name);
-        task->is_frame_dependent = task->IsFrameDependent();
+        app::TaskWork::add_task(task, rob_impls2->name);
+        task->frame_dependent = task->is_frame_dependent();
         task->FreeCharaLists();
     }
 
@@ -19345,7 +19347,7 @@ bool TaskRobManager::Init() {
     return true;
 }
 
-bool TaskRobManager::Ctrl() {
+bool TaskRobManager::ctrl() {
     if (!ctrl_state) {
         if (task_rob_load_check_load_req_data())
             return false;
@@ -19376,7 +19378,7 @@ bool TaskRobManager::Ctrl() {
         for (rob_chara*& i : free_chara) {
             rob_chara_type type = i->type;
             for (rob_manager_rob_impl* j = rob_manager_rob_impls1_get(this); j->task; j++) {
-                if (!j->task->CheckType(type))
+                if (!j->task->check_type(type))
                     continue;
 
                 j->task->FreeInitCharaList(&i->chara_id);
@@ -19385,7 +19387,7 @@ bool TaskRobManager::Ctrl() {
             }
 
             for (rob_manager_rob_impl* j = rob_manager_rob_impls2_get(this); j->task; j++) {
-                if (!j->task->CheckType(type))
+                if (!j->task->check_type(type))
                     continue;
 
                 j->task->FreeInitCharaList(&i->chara_id);
@@ -19411,16 +19413,16 @@ bool TaskRobManager::Ctrl() {
     return false;
 }
 
-bool TaskRobManager::Dest() {
+bool TaskRobManager::dest() {
     switch (dest_state) {
     case 0: {
         rob_manager_rob_impl* rob_impls1 = rob_manager_rob_impls1_get(this);
         for (; rob_impls1->task; rob_impls1++)
-            rob_impls1->task->DelTask();
+            rob_impls1->task->del();
 
         rob_manager_rob_impl* rob_impls2 = rob_manager_rob_impls2_get(this);
         for (; rob_impls2->task; rob_impls2++)
-            rob_impls2->task->DelTask();
+            rob_impls2->task->del();
 
         init_chara.clear();
         load_chara.clear();
@@ -19439,7 +19441,7 @@ bool TaskRobManager::Dest() {
     }
 }
 
-void TaskRobManager::Disp() {
+void TaskRobManager::disp() {
 
 }
 
@@ -19534,7 +19536,7 @@ void TaskRobManager::AppendLoadedCharaList(rob_chara* rob_chr) {
 }
 
 bool TaskRobManager::CheckCharaLoaded(rob_chara* rob_chr) {
-    if (!app::TaskWork::CheckTaskReady(this)
+    if (!app::TaskWork::check_task_ready(this)
         || rob_chr->chara_id < 0 || rob_chr->chara_id >= ROB_CHARA_COUNT)
         return false;
 
@@ -19567,14 +19569,14 @@ void TaskRobManager::CheckTypeAppendInitCharaLists(std::list<rob_chara*>* rob_ch
         rob_manager_rob_impl* rob_impls1 = rob_manager_rob_impls1_get(this);
         for (; rob_impls1->task; rob_impls1++) {
             RobImplTask* task = rob_impls1->task;
-            if (task->CheckType(type))
+            if (task->check_type(type))
                 task->AppendInitCharaList(i);
         }
 
         rob_manager_rob_impl* rob_impls2 = rob_manager_rob_impls2_get(this);
         for (; rob_impls2->task; rob_impls2++) {
             RobImplTask* task = rob_impls2->task;
-            if (task->CheckType(type))
+            if (task->check_type(type))
                 task->AppendInitCharaList(i);
         }
     }
@@ -19594,7 +19596,7 @@ void TaskRobManager::FreeLoadedCharaList(int8_t* chara_id) {
 }
 
 bool TaskRobManager::GetWait(rob_chara* rob_chr) {
-    if (!app::TaskWork::CheckTaskReady(this))
+    if (!app::TaskWork::check_task_ready(this))
         return false;
 
     int32_t chara_id = rob_chr->chara_id;
@@ -19628,7 +19630,7 @@ TaskRobMotionModifier::~TaskRobMotionModifier() {
 
 }
 
-bool TaskRobMotionModifier::Init() {
+bool TaskRobMotionModifier::init() {
     return true;
 }
 
@@ -19698,7 +19700,7 @@ static void sub_1405484A0(rob_chara* rob_chr) {
     return;
 }
 
-bool TaskRobMotionModifier::Ctrl() {
+bool TaskRobMotionModifier::ctrl() {
     if (pv_osage_manager_array_get_disp())
         return false;
 
@@ -19719,16 +19721,16 @@ bool TaskRobMotionModifier::Ctrl() {
     return false;
 }
 
-bool TaskRobMotionModifier::Dest() {
+bool TaskRobMotionModifier::dest() {
     FreeCharaLists();
     return true;
 }
 
-bool TaskRobMotionModifier::CheckType(rob_chara_type type) {
+bool TaskRobMotionModifier::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobMotionModifier::IsFrameDependent() {
+bool TaskRobMotionModifier::is_frame_dependent() {
     return true;
 }
 
@@ -19740,24 +19742,24 @@ TaskRobPrepareAction::~TaskRobPrepareAction() {
 
 }
 
-bool TaskRobPrepareAction::Init() {
+bool TaskRobPrepareAction::init() {
     return true;
 }
 
-bool TaskRobPrepareAction::Ctrl() {
+bool TaskRobPrepareAction::ctrl() {
     return false;
 }
 
-bool TaskRobPrepareAction::Dest() {
+bool TaskRobPrepareAction::dest() {
     FreeCharaLists();
     return true;
 }
 
-bool TaskRobPrepareAction::CheckType(rob_chara_type type) {
+bool TaskRobPrepareAction::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobPrepareAction::IsFrameDependent() {
+bool TaskRobPrepareAction::is_frame_dependent() {
     return true;
 }
 
@@ -19769,7 +19771,7 @@ TaskRobPrepareControl::~TaskRobPrepareControl() {
 
 }
 
-bool TaskRobPrepareControl::Init() {
+bool TaskRobPrepareControl::init() {
     return true;
 }
 
@@ -19867,7 +19869,7 @@ static void sub_140548460(rob_chara* rob_chr) {
         rob_chr->data.field_2 &= ~0x08;
 }
 
-bool TaskRobPrepareControl::Ctrl() {
+bool TaskRobPrepareControl::ctrl() {
     if (pv_osage_manager_array_get_disp())
         return false;
 
@@ -19890,15 +19892,15 @@ bool TaskRobPrepareControl::Ctrl() {
     return false;
 }
 
-bool TaskRobPrepareControl::Dest() {
+bool TaskRobPrepareControl::dest() {
     FreeCharaLists();
     return true;
 }
 
-bool TaskRobPrepareControl::CheckType(rob_chara_type type) {
+bool TaskRobPrepareControl::check_type(rob_chara_type type) {
     return type >= ROB_CHARA_TYPE_0 && type <= ROB_CHARA_TYPE_2;
 }
 
-bool TaskRobPrepareControl::IsFrameDependent() {
+bool TaskRobPrepareControl::is_frame_dependent() {
     return true;
 }

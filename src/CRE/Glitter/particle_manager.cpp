@@ -33,12 +33,12 @@ namespace Glitter {
         FreeEffects();
     }
 
-    bool GltParticleManager::Init() {
+    bool GltParticleManager::init() {
         frame_rate = get_sys_frame_rate();
         return true;
     }
 
-    bool GltParticleManager::Ctrl() {
+    bool GltParticleManager::ctrl() {
         if (flags & PARTICLE_MANAGER_READ_FILES) {
             for (std::vector<FileReader*>::iterator i = file_readers.begin(); i != file_readers.end();)
                 if (!*i || (*i)->ReadFarc(this)) {
@@ -54,7 +54,7 @@ namespace Glitter {
 
         if (!(flags & PARTICLE_MANAGER_PAUSE)) {
             if (frame_rate)
-                delta_frame = frame_rate->GetDeltaFrame();
+                delta_frame = frame_rate->get_delta_frame();
             else
                 delta_frame = get_delta_frame();
 
@@ -63,11 +63,11 @@ namespace Glitter {
         return false;
     }
 
-    bool GltParticleManager::Dest() {
+    bool GltParticleManager::dest() {
         return true;
     }
 
-    void GltParticleManager::Disp() {
+    void GltParticleManager::disp() {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
 
@@ -76,7 +76,7 @@ namespace Glitter {
                 i->CalcDisp(this);
     }
 
-    void GltParticleManager::Basic() {
+    void GltParticleManager::basic() {
         BasicEffectGroups();
     }
 
@@ -250,7 +250,7 @@ namespace Glitter {
                 || !(scene->flags & SCENE_EDITOR)) {
                 float_t delta_frame;
                 if (scene->frame_rate)
-                    delta_frame = scene->frame_rate->GetDeltaFrame();
+                    delta_frame = scene->frame_rate->get_delta_frame();
                 else
                     delta_frame = this->delta_frame;
                 scene->Ctrl(this, delta_frame);
@@ -981,11 +981,11 @@ namespace Glitter {
     }
 
     bool glt_particle_manager_add_task() {
-        return app::TaskWork::AddTask(glt_particle_manager, "GLITTER_TASK", 2);
+        return app::TaskWork::add_task(glt_particle_manager, "GLITTER_TASK", 2);
     }
 
     bool glt_particle_manager_del_task() {
-        return glt_particle_manager->DelTask();
+        return glt_particle_manager->del();
     }
 
     void glt_particle_manager_free() {

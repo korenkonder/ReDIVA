@@ -195,7 +195,7 @@ namespace mdl {
     UserArgs::UserArgs() : func(), data() {
 
     }
-    
+
     ObjTranslucentArgs::ObjTranslucentArgs() : count(), sub_mesh() {
 
     }

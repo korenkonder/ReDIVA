@@ -1215,12 +1215,12 @@ bool SubGameState::Selector::Init() {
 #if PV_DEBUG
     if (!pv_x) {
         pv_game_selector_init();
-        app::TaskWork::AddTask(pv_game_selector_get(), "PVGAME SELECTOR", 0);
+        app::TaskWork::add_task(pv_game_selector_get(), "PVGAME SELECTOR", 0);
         return true;
     }
 #endif
     x_pv_game_selector_init();
-    app::TaskWork::AddTask(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
+    app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
     return true;
 }
 
@@ -1270,8 +1270,8 @@ bool SubGameState::Selector::Ctrl() {
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (sel->exit) {
         if (sel->start && x_pv_game_init()) {
-            app::TaskWork::AddTask(x_pv_game_get(), "PVGAME", 0);
-            x_pv_game_get()->Load(sel->pv_id, sel->stage_id, sel->charas, sel->modules);
+            app::TaskWork::add_task(x_pv_game_get(), "PVGAME", 0);
+            x_pv_game_get()->load(sel->pv_id, sel->stage_id, sel->charas, sel->modules);
             game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
         }
         else
@@ -1285,22 +1285,22 @@ bool SubGameState::Selector::Dest() {
 #if PV_DEBUG
     if (!pv_x) {
         PVGameSelector* sel = pv_game_selector_get();
-        if (!app::TaskWork::CheckTaskReady(sel)) {
+        if (!app::TaskWork::check_task_ready(sel)) {
             pv_game_selector_free();
             return true;
         }
 
-        sel->DelTask();
+        sel->del();
         return false;
     }
 #endif
     XPVGameSelector* sel = x_pv_game_selector_get();
-    if (!app::TaskWork::CheckTaskReady(sel)) {
+    if (!app::TaskWork::check_task_ready(sel)) {
         x_pv_game_selector_free();
         return true;
     }
 
-    sel->DelTask();
+    sel->del();
     return false;
 }
 
@@ -1316,7 +1316,7 @@ bool SubGameState::GameMain::Ctrl() {
         return false;
     }
 #endif
-    if (!app::TaskWork::CheckTaskReady(x_pv_game_get()))
+    if (!app::TaskWork::check_task_ready(x_pv_game_get()))
         return true;
     return false;
 }
@@ -1395,7 +1395,7 @@ bool SubGameState::GameOver::Dest() {
 }
 
 bool SubGameState::DataTestMain::Init() {
-    app::TaskWork::AddTask(data_test_sel, "DATA_TEST_MAIN");
+    app::TaskWork::add_task(data_test_sel, "DATA_TEST_MAIN");
     return true;
 }
 
@@ -1407,7 +1407,7 @@ bool SubGameState::DataTestMain::Ctrl() {
 }
 
 bool SubGameState::DataTestMain::Dest() {
-    data_test_sel->DelTask();
+    data_test_sel->del();
     return true;
 }
 
@@ -1443,7 +1443,7 @@ bool SubGameState::DataTestStg::Init() {
     cam->set_view_point({ 0.0f, 0.88f, 4.3f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
 
-    app::TaskWork::AddTask(dtm_stg, "DATA_TEST_STAGE");
+    app::TaskWork::add_task(dtm_stg, "DATA_TEST_STAGE");
     dtw_stg_init();
     return true;
 }
@@ -1461,7 +1461,7 @@ bool SubGameState::DataTestStg::Dest() {
 }
 
 bool SubGameState::DataTestMot::Init() {
-    app::TaskWork::AddTask(data_test_mot, "TASK_DATA_TEST_MOT");
+    app::TaskWork::add_task(data_test_mot, "TASK_DATA_TEST_MOT");
     dtm_stg_load(0);
     dtw_stg_load(true);
     return true;
@@ -1472,7 +1472,7 @@ bool SubGameState::DataTestMot::Ctrl() {
 }
 
 bool SubGameState::DataTestMot::Dest() {
-    data_test_mot->DelTask();
+    data_test_mot->del();
     dtm_stg_unload();
     dtw_stg_unload();
     return true;
@@ -1519,7 +1519,7 @@ bool SubGameState::DataTestAet::Dest() {
 }
 
 bool SubGameState::DataTestAuth3d::Init() {
-    app::TaskWork::AddTask(auth_3d_test_task, "AUTH3DTEST");
+    app::TaskWork::add_task(auth_3d_test_task, "AUTH3DTEST");
     return true;
 }
 
@@ -1528,7 +1528,7 @@ bool SubGameState::DataTestAuth3d::Ctrl() {
 }
 
 bool SubGameState::DataTestAuth3d::Dest() {
-    auth_3d_test_task->DelTask();
+    auth_3d_test_task->del();
     return true;
 }
 
@@ -1629,7 +1629,7 @@ bool SubGameState::DataTestSlider::Dest() {
 }
 
 bool SubGameState::DataTestGlitter::Init() {
-    app::TaskWork::AddTask(task_data_test_glitter_particle, "DATA_TEST_PARTICLE");
+    app::TaskWork::add_task(task_data_test_glitter_particle, "DATA_TEST_PARTICLE");
     dtm_stg_load(0);
     dtw_stg_load(true);
     return true;
@@ -1642,9 +1642,9 @@ bool SubGameState::DataTestGlitter::Ctrl() {
 bool SubGameState::DataTestGlitter::Dest() {
     dtw_stg_unload();
     dtm_stg_unload();
-    //if (data_test_chr->CheckTaskReady())
-    //    data_test_chr->DelTask();
-    task_data_test_glitter_particle->DelTask();
+    //if (data_test_chr->check_task_ready())
+    //    data_test_chr->del();
+    task_data_test_glitter_particle->del();
     return true;
 }
 
@@ -1691,7 +1691,7 @@ bool SubGameState::GlitterEditor::Init() { // Added
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
     cam->set_interest({ 0.0f, 1.4f, 0.0f });
 
-    app::TaskWork::AddTask(&glitter_editor, "GLITTER EDITOR", 0);
+    app::TaskWork::add_task(&glitter_editor, "GLITTER EDITOR", 0);
     return true;
 }
 
@@ -1700,13 +1700,13 @@ bool SubGameState::GlitterEditor::Ctrl() { // Added
 }
 
 bool SubGameState::GlitterEditor::Dest() { // Added
-    glitter_editor.DelTask();
+    glitter_editor.del();
     return true;
 }
 
 #if DATA_EDIT
 bool SubGameState::DataEdit::Init() { // Added
-    app::TaskWork::AddTask(&data_edit, "DATA EDIT", 0);
+    app::TaskWork::add_task(&data_edit, "DATA EDIT", 0);
     return true;
 }
 
@@ -1715,7 +1715,7 @@ bool SubGameState::DataEdit::Ctrl() { // Added
 }
 
 bool SubGameState::DataEdit::Dest() { // Added
-    data_edit.DelTask();
+    data_edit.del();
     return true;
 }
 #endif
@@ -1741,7 +1741,7 @@ void game_state_ctrl() {
     GameState* game_state = game_state_get();
     if (!game_state->set_game_state_next) {
         if (game_state->set_sub_game_state_next && game_state->next_game_state) {
-            if (app::TaskWork::HasTasksDest()) {
+            if (app::TaskWork::has_tasks_dest()) {
                 game_state->call_count++;
                 return;
             }
@@ -1753,7 +1753,7 @@ void game_state_ctrl() {
     }
     else {
         if (game_state->next_sub_game_state && game_state->next_game_state) {
-            if (app::TaskWork::HasTasksDest()) {
+            if (app::TaskWork::has_tasks_dest()) {
                 game_state->call_count++;
                 return;
             }

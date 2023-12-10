@@ -38,20 +38,20 @@ static const int32_t data_test_sel_data_count = sizeof(data_test_sel_data) / siz
 DataTestSel* data_test_sel;
 
 DataTestSel::DataTestSel() : selected_index(), item_index() {
-    Init();
+    init();
 }
 
 DataTestSel::~DataTestSel() {
 
 }
 
-bool DataTestSel::Init() {
+bool DataTestSel::init() {
     selected_index = -1;
     item_index = 0;
     return true;
 }
 
-bool DataTestSel::Ctrl() {
+bool DataTestSel::ctrl() {
     InputState* input_state = input_state_get(0);
     if (input_state->CheckTapped(91))
         item_index--;
@@ -69,11 +69,11 @@ bool DataTestSel::Ctrl() {
     return false;
 }
 
-bool DataTestSel::Dest() {
+bool DataTestSel::dest() {
     return true;
 }
 
-void DataTestSel::Disp() {
+void DataTestSel::disp() {
     PrintWork print_work;
     font_info font(16);
     print_work.SetFont(&font);

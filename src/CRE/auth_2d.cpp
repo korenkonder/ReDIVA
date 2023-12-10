@@ -155,11 +155,11 @@ public:
     AetMgr();
     virtual ~AetMgr();
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
 
     uint32_t AddSetModern();
     void AddAetSets(const aet_database* aet_db);
@@ -315,15 +315,15 @@ void aet_manager_add_aet_sets(const aet_database* aet_db) {
 }
 
 bool aet_manager_add_task() {
-    return app::TaskWork::AddTask(aet_manager, "2DAUTH_TASK", 2);
+    return app::TaskWork::add_task(aet_manager, "2DAUTH_TASK", 2);
 }
 
 bool aet_manager_check_task_ready() {
-    return app::TaskWork::CheckTaskReady(aet_manager);
+    return app::TaskWork::check_task_ready(aet_manager);
 }
 
 bool aet_manager_del_task() {
-    return aet_manager->DelTask();
+    return aet_manager->del();
 }
 
 void aet_manager_free_aet_object(uint32_t id) {
@@ -730,7 +730,7 @@ bool AetObj::StepFrame() {
 
     float_t delta_frame = 1.0f;
     if (frame_rate_control)
-        delta_frame = frame_rate_control->GetDeltaFrame();
+        delta_frame = frame_rate_control->get_delta_frame();
 
     delta_frame = delta_frame * frame_speed * scene->fps * (float_t)(1.0 / 60.0);
     if (flags & AET_REVERSE)
@@ -1499,13 +1499,13 @@ AetMgr::~AetMgr() {
 
 }
 
-bool AetMgr::Init() {
+bool AetMgr::init() {
     objects.clear();
     load_counter = 0;
     return true;
 }
 
-bool AetMgr::Ctrl() {
+bool AetMgr::ctrl() {
     for (auto& i : free_objects)
         objects.erase(i);
     free_objects.clear();
@@ -1515,18 +1515,18 @@ bool AetMgr::Ctrl() {
     return false;
 }
 
-bool AetMgr::Dest() {
+bool AetMgr::dest() {
     objects.clear();
     load_counter = 0;
     return true;
 }
 
-void AetMgr::Disp() {
+void AetMgr::disp() {
     for (auto& i : objects)
         i.second.Disp();
 }
 
-void AetMgr::Basic() {
+void AetMgr::basic() {
     auto i = objects.begin();
     auto i_end = objects.end();
     while (i != i_end) {
@@ -1610,7 +1610,7 @@ AetObj* AetMgr::GetObj(uint32_t id) {
 }
 
 bool AetMgr::GetObjEnd(uint32_t id) {
-    if (app::TaskWork::CheckTaskReady(this)) {
+    if (app::TaskWork::check_task_ready(this)) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
             return obj->GetEnd();
@@ -1619,7 +1619,7 @@ bool AetMgr::GetObjEnd(uint32_t id) {
 }
 
 float_t AetMgr::GetObjFrame(uint32_t id) {
-    if (app::TaskWork::CheckTaskReady(this)) {
+    if (app::TaskWork::check_task_ready(this)) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
             return obj->GetFrame();
@@ -1628,7 +1628,7 @@ float_t AetMgr::GetObjFrame(uint32_t id) {
 }
 
 bool AetMgr::GetObjVisible(uint32_t id) {
-    if (app::TaskWork::CheckTaskReady(this)) {
+    if (app::TaskWork::check_task_ready(this)) {
         AetObj* obj = AetMgr::GetObj(id);
         if (obj)
             return obj->GetVisible();

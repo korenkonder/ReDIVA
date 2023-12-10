@@ -60,7 +60,7 @@ void information_task_imgui(class_data* data) {
 
     std::vector<app::Task*> vec;
     for (int32_t i = 0; ; i++) {
-        app::Task* t = app::TaskWork::GetTaskByIndex(i);
+        app::Task* t = app::TaskWork::get_task_by_index(i);
         if (!t)
             break;
 
@@ -86,13 +86,13 @@ void information_task_imgui(class_data* data) {
     if (show_priority)
         for (app::Task*& i : vec) {
             sprintf_s(buf, sizeof(buf), "%1d %-30s % 7d(% 7d) % 7d(% 7d)", i->priority,
-                i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
+                i->get_name(), i->get_calc_time(), i->get_calc_time_max(), i->get_disp_time(), i->get_disp_time_max());
             ImGui::Selectable(buf);
         }
     else
         for (app::Task*& i : vec) {
             sprintf_s(buf, sizeof(buf), "%-32s % 7d(% 7d) % 7d(% 7d)",
-                i->GetName(), i->GetCalcTime(), i->GetCalcTimeMax(), i->GetDispTime(), i->GetDispTimeMax());
+                i->get_name(), i->get_calc_time(), i->get_calc_time_max(), i->get_disp_time(), i->get_disp_time_max());
             ImGui::Selectable(buf);
         }
     ImGui::EndListBox();

@@ -17,12 +17,12 @@ MdataMgr::~MdataMgr() {
 
 }
 
-bool MdataMgr::Init() {
+bool MdataMgr::init() {
     state = 0;
     return true;
 }
 
-bool MdataMgr::Ctrl() {
+bool MdataMgr::ctrl() {
     switch (state) {
     case 0:
         state = 1;
@@ -59,15 +59,15 @@ bool MdataMgr::Ctrl() {
     return false;
 }
 
-bool MdataMgr::Dest() {
+bool MdataMgr::dest() {
     return true;
 }
 
-void MdataMgr::Disp() {
+void MdataMgr::disp() {
 
 }
 
-void MdataMgr::Basic() {
+void MdataMgr::basic() {
 
 }
 
@@ -86,11 +86,11 @@ const std::list<std::string>& MdataMgr::GetPrefixes() {
 }
 
 bool mdata_manager_add_task() {
-    return app::TaskWork::AddTask(mdata_manager_get(), 0, "M_DATA_MANAGER");
+    return app::TaskWork::add_task(mdata_manager_get(), 0, "M_DATA_MANAGER");
 }
 
 bool mdata_manager_del_task() {
-    return mdata_manager_get()->DelTask();
+    return mdata_manager_get()->del();
 }
 
 MdataMgr* mdata_manager_get() {

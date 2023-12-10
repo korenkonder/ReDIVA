@@ -18,10 +18,10 @@ public:
     TaskDataInit();
     virtual ~TaskDataInit() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 };
 
 extern bool task_data_init_add_task();

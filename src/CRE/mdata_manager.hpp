@@ -19,11 +19,11 @@ public:
     MdataMgr();
     virtual ~MdataMgr() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
 
     void Log(const char* fmt, ...);
     const std::list<std::string>& GetPrefixes();

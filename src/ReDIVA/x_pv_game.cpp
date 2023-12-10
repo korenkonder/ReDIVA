@@ -531,15 +531,15 @@ BPMFrameRateControl::~BPMFrameRateControl() {
 
 }
 
-float_t BPMFrameRateControl::GetDeltaFrame() {
+float_t BPMFrameRateControl::get_delta_frame() {
     if (bar_beat)
         return bar_beat->get_delta_frame();
     return 0.0f;
 }
 
-void BPMFrameRateControl::Reset() {
+void BPMFrameRateControl::reset() {
     bar_beat = 0;
-    SetFrameSpeed(1.0f);
+    set_frame_speed(1.0f);
 }
 
 XPVFrameRateControl::XPVFrameRateControl() {
@@ -550,11 +550,11 @@ XPVFrameRateControl::~XPVFrameRateControl() {
 
 }
 
-float_t XPVFrameRateControl::GetDeltaFrame() {
+float_t XPVFrameRateControl::get_delta_frame() {
     return get_delta_frame() * frame_speed;
 }
 
-void XPVFrameRateControl::Reset() {
+void XPVFrameRateControl::reset() {
     frame_speed = 1.0f;
 }
 
@@ -3870,7 +3870,7 @@ PVStageFrameRateControl::~PVStageFrameRateControl() {
 
 }
 
-float_t PVStageFrameRateControl::GetDeltaFrame() {
+float_t PVStageFrameRateControl::get_delta_frame() {
     return delta_frame;
 }
 
@@ -5014,7 +5014,7 @@ void x_pv_game_stage::reset() {
         delete stage_resource;
         stage_resource = 0;
     }
-    bpm_frame_rate_control.Reset();
+    bpm_frame_rate_control.reset();
     stage_auth_3d.clear();
     stage_auth_3d.shrink_to_fit();
     stage_glitter.clear();
@@ -5388,7 +5388,7 @@ x_pv_game::~x_pv_game() {
 
 }
 
-bool x_pv_game::Init() {
+bool x_pv_game::init() {
     task_rob_manager_add_task();
     return true;
 }
@@ -5458,7 +5458,7 @@ static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
 static int32_t frame_prev = -1;
 #endif
 
-bool x_pv_game::Ctrl() {
+bool x_pv_game::ctrl() {
 #if BAKE_VIDEO
     auto write_frame = [&](int32_t idx) {
         int32_t res = 0;
@@ -6603,7 +6603,11 @@ bool x_pv_game::Ctrl() {
         }
 #endif
 
-        unload();
+        for (int32_t i = 0; i < pv_count; i++)
+            data[i].unload();
+        stage_data.unload();
+        state = 50;
+
         state_old = 22;
     } break;
     case 22: {
@@ -6612,14 +6616,14 @@ bool x_pv_game::Ctrl() {
 
         Glitter::glt_particle_manager->FreeScenes();
 
-        DelTask();
+        del();
     } break;
     }
     return false;
 }
 
-bool x_pv_game::Dest() {
-    if (!Unload())
+bool x_pv_game::dest() {
+    if (!unload())
         return false;
 
     task_rob_manager_del_task();
@@ -6633,13 +6637,13 @@ bool x_pv_game::Dest() {
     return true;
 }
 
-void x_pv_game::Disp() {
+void x_pv_game::disp() {
     if (state_old != 20)
         return;
 
 }
 
-void x_pv_game::Basic() {
+void x_pv_game::basic() {
     if (state_old != 20 && state_old != 21)
         return;
 
@@ -6733,7 +6737,7 @@ void x_pv_game::Basic() {
 #endif
 }
 
-void x_pv_game::Window() {
+void x_pv_game::window() {
     if (state_old != 20)
         return;
 
@@ -6748,7 +6752,7 @@ void x_pv_game::Window() {
     }
 
     if (!pause) {
-        Basic();
+        basic();
         return;
     }
 
@@ -6810,10 +6814,10 @@ void x_pv_game::Window() {
     input_locked |= ImGui::IsWindowFocused();
     ImGui::End();
 
-    Basic();
+    basic();
 }
 
-void x_pv_game::Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]) {
+void x_pv_game::load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]) {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -7234,7 +7238,7 @@ static void mot_write_motion_set(x_pv_game* xpvgm) {
 }
 #endif
 
-bool x_pv_game::Unload() {
+bool x_pv_game::unload() {
     pv_osage_manager_array_set_not_reset_true();
     if (pv_osage_manager_array_get_disp())
         return false;
@@ -7483,15 +7487,8 @@ void x_pv_game::stop_current_pv() {
         return;
 
     data[pv_index].stop();
-    field_7198C.Reset();
-    field_71994.Reset();
-}
-
-void x_pv_game::unload() {
-    for (int32_t i = 0; i < pv_count; i++)
-        data[i].unload();
-    stage_data.unload();
-    state = 50;
+    field_7198C.reset();
+    field_71994.reset();
 }
 
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
@@ -7553,21 +7550,21 @@ XPVGameSelector::~XPVGameSelector() {
 
 }
 
-bool XPVGameSelector::Init() {
+bool XPVGameSelector::init() {
     start = false;
     exit = false;
     return true;
 }
 
-bool XPVGameSelector::Ctrl() {
+bool XPVGameSelector::ctrl() {
     return false;
 }
 
-bool XPVGameSelector::Dest() {
+bool XPVGameSelector::dest() {
     return true;
 }
 
-void XPVGameSelector::Window() {
+void XPVGameSelector::window() {
     static const char* pv_names[] = {
         u8"801. Strangers",
         u8"802. Ai Dee",
@@ -7655,7 +7652,7 @@ void XPVGameSelector::Window() {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    window_focus = false;
+    focus = false;
     bool open = true;
     if (!ImGui::Begin("X PV Game Selector", &open, window_flags)) {
         ImGui::End();
@@ -7670,12 +7667,12 @@ void XPVGameSelector::Window() {
 
     pv_id -= 801;
     pv_id = max_def(pv_id, 0);
-    ImGui::ColumnComboBox("PV", pv_names, 32, &pv_id, 0, false, &window_focus);
+    ImGui::ColumnComboBox("PV", pv_names, 32, &pv_id, 0, false, &focus);
     pv_id += 801;
 
     stage_id--;
     stage_id = max_def(stage_id, 0);
-    ImGui::ColumnComboBox("Stage", stage_names, 32, &stage_id, 0, false, &window_focus);
+    ImGui::ColumnComboBox("Stage", stage_names, 32, &stage_id, 0, false, &focus);
     stage_id++;
 
     char buf[0x200];
@@ -7684,7 +7681,7 @@ void XPVGameSelector::Window() {
 
         sprintf_s(buf, sizeof(buf), "Chara %dP", i + 1);
         ImGui::ColumnComboBox(buf, chara_full_names, CHARA_MAX,
-            (int32_t*)&charas[i], 0, false, &window_focus);
+            (int32_t*)&charas[i], 0, false, &focus);
 
         if (chara_old != charas[i]) {
             modules[i] = 0;
@@ -7723,7 +7720,7 @@ void XPVGameSelector::Window() {
                     ImGui::SetItemDefaultFocus();
             }
 
-            window_focus |= true;
+            focus |= true;
             ImGui::EndCombo();
         }
         if (imgui_font_arial)
@@ -7762,7 +7759,7 @@ bool x_pv_game_free() {
             return false;
         }
 
-        if (app::TaskWork::HasTask(x_pv_game_ptr))
+        if (app::TaskWork::has_task(x_pv_game_ptr))
             return false;
 
         delete x_pv_game_ptr;

@@ -1579,11 +1579,11 @@ namespace Glitter {
         GltParticleManager();
         virtual ~GltParticleManager() override;
 
-        virtual bool Init() override;
-        virtual bool Ctrl() override;
-        virtual bool Dest() override;
-        virtual void Disp() override;
-        virtual void Basic() override;
+        virtual bool init() override;
+        virtual bool ctrl() override;
+        virtual bool dest() override;
+        virtual void disp() override;
+        virtual void basic() override;
 
         bool AppendEffectGroup(uint64_t hash, EffectGroup* eff_group, FileReader* file_read);
         void BasicEffectGroups();

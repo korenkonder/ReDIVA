@@ -127,15 +127,15 @@ public:
     GlitterEditor();
     virtual ~GlitterEditor() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Window() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void window() override;
 
-    void Reset();
+    void reset();
 
-    static void ResetDisp();
+    static void reset_disp();
 };
 
 extern GlitterEditor glitter_editor;

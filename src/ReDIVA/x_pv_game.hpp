@@ -92,9 +92,9 @@ public:
     BPMFrameRateControl();
     virtual ~BPMFrameRateControl() override;
 
-    virtual float_t GetDeltaFrame() override;
+    virtual float_t get_delta_frame() override;
 
-    void Reset();
+    void reset();
 };
 
 class XPVFrameRateControl : public FrameRateControl {
@@ -102,9 +102,9 @@ public:
     XPVFrameRateControl();
     virtual ~XPVFrameRateControl() override;
 
-    virtual float_t GetDeltaFrame() override;
+    virtual float_t get_delta_frame() override;
 
-    void Reset();
+    void reset();
 };
 
 struct x_pv_play_data_set_motion {
@@ -547,7 +547,7 @@ public:
     PVStageFrameRateControl();
     virtual ~PVStageFrameRateControl() override;
 
-    virtual float_t GetDeltaFrame() override;
+    virtual float_t get_delta_frame() override;
 };
 
 struct aet_obj_data {
@@ -786,19 +786,18 @@ public:
     x_pv_game();
     virtual ~x_pv_game() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
-    virtual void Window() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
+    virtual void window() override;
 
-    void Load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]);
-    bool Unload();
+    void load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int32_t modules[6]);
+    bool unload();
 
     void ctrl(float_t curr_time, float_t delta_time);
     void stop_current_pv();
-    void unload();
 
     inline x_pv_game_data& get_data() {
         return data[pv_index];
@@ -819,10 +818,10 @@ public:
     XPVGameSelector();
     virtual ~XPVGameSelector() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Window() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void window() override;
 };
 
 extern bool x_pv_game_init();

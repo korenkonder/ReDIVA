@@ -181,7 +181,7 @@ void data_view_draw_task_imgui(class_data* data) {
             } break;
             case mdl::OBJ_KIND_TRANSLUCENT: {
                 mdl::ObjTranslucentArgs* translucent = &data->args.translucent;
-                for (uint32_t l = 0; l < 40 && l < translucent->count; l++) {
+                for (int32_t l = 0; l < 40 && l < translucent->count; l++) {
                     ImGui::PushID(l);
                     if (ImGui::TreeNodeEx("", ImGuiTreeNodeFlags_DefaultOpen, "Data %2d", l)) {
                         data_view_draw_task_imgui_sub_mesh_args(translucent->sub_mesh[l]);

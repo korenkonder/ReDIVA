@@ -36,11 +36,11 @@ public:
     DtmAet();
     virtual ~DtmAet() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
-    virtual void Basic() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
+    virtual void basic() override;
 
     virtual void GetSoundFarcs();
     virtual void SetSetIndex(int32_t value);

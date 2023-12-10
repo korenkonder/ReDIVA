@@ -41,11 +41,11 @@ public:
     Game2dEnergyUnit();
     virtual ~Game2dEnergyUnit();
 
-    virtual void Init();
-    virtual void Ctrl();
-    virtual void Dest();
-    virtual void Disp();
-    virtual void DispInner();
+    virtual void init();
+    virtual void ctrl();
+    virtual void dest();
+    virtual void disp();
+    virtual void disp_inner();
 };
 
 class TaskGame2d : public app::Task {
@@ -56,10 +56,10 @@ public:
     TaskGame2d();
     virtual ~TaskGame2d() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 };
 
 extern bool task_game_2d_add_task();

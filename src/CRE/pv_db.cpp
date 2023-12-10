@@ -884,7 +884,7 @@ namespace pv_db {
 
     }
 
-    bool TaskPvDB::Init() {
+    bool TaskPvDB::init() {
         reset = false;
         field_99 = false;
         InitPerformerTypes();
@@ -894,7 +894,7 @@ namespace pv_db {
         return true;
     }
 
-    bool TaskPvDB::Ctrl() {
+    bool TaskPvDB::ctrl() {
         switch (state) {
         case 1: {
             if (reset) {
@@ -962,7 +962,7 @@ namespace pv_db {
         return false;
     }
 
-    bool TaskPvDB::Dest() {
+    bool TaskPvDB::dest() {
         return true;
     }
 
@@ -2287,7 +2287,7 @@ void task_pv_db_add_paths() {
 }
 
 bool task_pv_db_add_task() {
-    return app::TaskWork::AddTask(task_pv_db_get(), "PV DB");
+    return app::TaskWork::add_task(task_pv_db_get(), "PV DB");
 }
 
 void task_pv_db_free_pv_data() {
@@ -2295,7 +2295,7 @@ void task_pv_db_free_pv_data() {
 }
 
 bool task_pv_db_del_task() {
-    return task_pv_db_get()->DelTask();
+    return task_pv_db_get()->del();
 }
 
 pv_db::TaskPvDB* task_pv_db_get() {

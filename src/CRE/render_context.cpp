@@ -609,7 +609,7 @@ void render_context::ctrl() {
         delta_frame_history_int++;
 
     rctx_ptr = this;
-    app::TaskWork::Ctrl();
+    app::TaskWork::ctrl();
     sound_ctrl();
     file_handler_storage_ctrl();
 }
@@ -620,7 +620,7 @@ void render_context::disp() {
     sprite_manager_reset_req_list();
     draw_state->stats_prev = draw_state->stats;
     draw_state->stats.reset();
-    app::TaskWork::Disp();
+    app::TaskWork::disp();
     shadow_ptr_get()->Ctrl();
     int32_t sprite_index = sprite_manager_get_index();
     //sprite_manager_set_index(3);
@@ -633,7 +633,7 @@ void render_context::disp() {
     render.lens_flare_texture = 0;
     render.aet_back = 0;
     render_manager->field_31C = false;
-    app::TaskWork::Basic();
+    app::TaskWork::basic();
 }
 
 void render_context::free() {

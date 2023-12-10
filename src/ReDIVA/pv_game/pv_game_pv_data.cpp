@@ -360,7 +360,7 @@ int64_t pv_game_pv_data::ctrl(float_t delta_time, int64_t curr_time, bool a4) {
     curr_time_float = (float_t)((double_t)this->curr_time * 0.000000001);
 
     /*for (int32_t i = 0; i < 2; i++)
-        if (app::TaskWork::CheckTaskReady(task_movie_get(i))) {
+        if (app::TaskWork::check_task_ready(task_movie_get(i))) {
             if (pv_game_get()->loaded)
                 sub_14041F1B0(this->curr_time);
             break;
@@ -1709,7 +1709,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
     case DSC_FT_MOVIE_PLAY: {
         int32_t v408 = data[0];
 
-        /*if (pv_game_get()->loaded && v408 && app::TaskWork::CheckTaskReady(task_movie_get(0))) {
+        /*if (pv_game_get()->loaded && v408 && app::TaskWork::check_task_ready(task_movie_get(0))) {
             v410 = task_movie_get(0);
             task_movie_get(0)->sub_14041EF10();
             pv_game_get()->data.field_2D0C0 = 0;
@@ -1722,7 +1722,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         /*for (int32_t i = 0; i < 2; i++) {
-            if (!app::TaskWork::CheckTaskReady(task_movie_get(i)))
+            if (!app::TaskWork::check_task_ready(task_movie_get(i)))
                 continue;
 
             int32_t v415 = 0;
@@ -1976,10 +1976,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (pv_game_get()->loaded) {
             for (int32_t m = 0; m < 2; m++)
-                if (app::TaskWork::CheckTaskReady(task_movie_get(m)))
+                if (app::TaskWork::check_task_ready(task_movie_get(m)))
                     task_movie_get(m)->field_88 = 0;
 
-            if (v486 != -1 && app::TaskWork::CheckTaskReady(task_movie_get(v486))) {
+            if (v486 != -1 && app::TaskWork::check_task_ready(task_movie_get(v486))) {
                 task_movie_get(v486)->sub_14041EF10((__int64)v492);
                 pv_game_get()->data.field_2D0C0 = v486;
                 //sub_14041F210(curr_time);

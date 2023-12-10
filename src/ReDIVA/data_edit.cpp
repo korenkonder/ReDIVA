@@ -45,7 +45,7 @@ inline static void set_data(auth_3d_object_model_transform& mt,
     set_data(mt.visibility, visibility);
 }
 
-void DataEdit::Auth3D::Patch() {
+void DataEdit::Auth3D::patch() {
     ::auth_3d* auth = id.get_auth_3d();
     auth_3d_object_hrc* objhrc = &auth->object_hrc[0];
     auth_3d_object_node* nodes = objhrc->node.data();
@@ -338,7 +338,7 @@ void DataEdit::Auth3D::Patch() {
     objhrc->interpolate(0.0f);
 }
 
-void DataEdit::Auth3D::Reset() {
+void DataEdit::Auth3D::reset() {
     auth_3d_data_unload_category(category.hash_murmurhash);
     id.unload(rctx_ptr);
     object_storage_unload_set(object_set.hash_murmurhash);
@@ -362,13 +362,13 @@ DataEdit::~DataEdit() {
 
 }
 
-bool DataEdit::Init() {
-    Reset();
+bool DataEdit::init() {
+    reset();
     task_rob_manager_add_task();
     return true;
 }
 
-bool DataEdit::Ctrl() {
+bool DataEdit::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
@@ -433,7 +433,7 @@ bool DataEdit::Ctrl() {
         auth_3d.id.set_repeat(false);
         auth_3d.id.set_req_frame(0.0f);
         auth_3d.id.set_visibility(true);
-        auth_3d.Patch();
+        auth_3d.patch();
 
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         rob_chr->set_motion_id(motion_id, 0.0f, 0.0f, true, false,
@@ -486,14 +486,14 @@ bool DataEdit::Ctrl() {
     return false;
 }
 
-bool DataEdit::Dest() {
+bool DataEdit::dest() {
     rob_chara_array_free_chara_id(chara_id);
     task_rob_manager_del_task();
-    Reset();
+    reset();
     return true;
 }
 
-void DataEdit::Window() {
+void DataEdit::window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
@@ -511,7 +511,7 @@ void DataEdit::Window() {
     ImGuiWindowFlags window_flags = 0;
     window_flags |= ImGuiWindowFlags_NoResize;
 
-    window_focus = false;
+    focus = false;
     bool open = true;
     if (!ImGui::Begin("Data Edit", &open, window_flags)) {
         ImGui::End();
@@ -529,14 +529,14 @@ void DataEdit::Window() {
     ImGui::End();
 }
 
-void DataEdit::Reset() {
+void DataEdit::reset() {
     motion_set_unload_motion(mot_set_id);
 
     chara_id = -1;
     state = 0;
     mot_set_id = -1;
     motion_id = -1;
-    auth_3d.Reset();
+    auth_3d.reset();
     ogg_path.clear();
     ogg_path.shrink_to_fit();
     play = false;

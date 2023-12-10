@@ -28,9 +28,9 @@ namespace auth_3d_detail {
         TaskAuth3d();
         virtual ~TaskAuth3d() override;
 
-        virtual bool Init() override;
-        virtual bool Ctrl() override;
-        virtual void Disp() override;
+        virtual bool init() override;
+        virtual bool ctrl() override;
+        virtual void disp() override;
     };
 
     class FrameRateTimeStop : public FrameRateControl {
@@ -38,7 +38,7 @@ namespace auth_3d_detail {
         FrameRateTimeStop();
         virtual ~FrameRateTimeStop() override;
 
-        virtual float_t GetDeltaFrame() override;
+        virtual float_t get_delta_frame() override;
     };
 }
 
@@ -319,7 +319,7 @@ void auth_3d::ctrl(render_context* rctx) {
         }
         else if (!paused) {
             event_flags |= 0x01;
-            frame += frame_rate->GetDeltaFrame();
+            frame += frame_rate->get_delta_frame();
             if (max_frame >= 0.0f && frame > max_frame)
                 frame = max_frame;
         }
@@ -3014,15 +3014,15 @@ void task_auth_3d_init() {
 }
 
 bool task_auth_3d_add_task() {
-    return app::TaskWork::AddTask(task_auth_3d, "AUTH_3D");
+    return app::TaskWork::add_task(task_auth_3d, "AUTH_3D");
 }
 
 bool task_auth_3d_check_task_ready() {
-    return app::TaskWork::CheckTaskReady(task_auth_3d);
+    return app::TaskWork::check_task_ready(task_auth_3d);
 }
 
 bool task_auth_3d_del_task() {
-    return task_auth_3d->DelTask();
+    return task_auth_3d->del();
 }
 
 void task_auth_3d_free() {
@@ -3041,15 +3041,15 @@ namespace auth_3d_detail  {
 
     }
 
-    bool TaskAuth3d::Init() {
+    bool TaskAuth3d::init() {
         return auth_3d_data_struct_init(auth_3d_data, rctx_ptr);
     }
 
-    bool TaskAuth3d::Ctrl() {
+    bool TaskAuth3d::ctrl() {
         return auth_3d_data_struct_ctrl(auth_3d_data, rctx_ptr);
     }
 
-    void TaskAuth3d::Disp() {
+    void TaskAuth3d::disp() {
         auth_3d_data_struct_disp(auth_3d_data, rctx_ptr);
     }
 
@@ -3061,7 +3061,7 @@ namespace auth_3d_detail  {
 
     }
 
-    float_t FrameRateTimeStop::GetDeltaFrame() {
+    float_t FrameRateTimeStop::get_delta_frame() {
         return 0.0f;
     }
 }

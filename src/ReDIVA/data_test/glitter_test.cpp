@@ -65,7 +65,7 @@ TaskDataTestGlitterParticle::~TaskDataTestGlitterParticle() {
 
 }
 
-bool TaskDataTestGlitterParticle::Init() {
+bool TaskDataTestGlitterParticle::init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
     Glitter::glt_particle_manager->counter = (uint32_t)(time.LowPart * hash_murmurhash_empty);
@@ -94,7 +94,7 @@ bool TaskDataTestGlitterParticle::Init() {
     return true;
 }
 
-bool TaskDataTestGlitterParticle::Ctrl() {
+bool TaskDataTestGlitterParticle::ctrl() {
     InputState* input_state = input_state_get(0);
     if (input_state) {
         if (input_state->CheckTapped(43))
@@ -131,7 +131,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
 
     if (Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter)
         && !Glitter::glt_particle_manager->GetPause())
-        frame += get_sys_frame_rate()->GetDeltaFrame();
+        frame += get_sys_frame_rate()->get_delta_frame();
 
     if (reload || auto_and_repeat && !Glitter::glt_particle_manager->SceneHasNotEnded(scene_counter)) {
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
@@ -157,7 +157,7 @@ bool TaskDataTestGlitterParticle::Ctrl() {
     return false;
 }
 
-bool TaskDataTestGlitterParticle::Dest() {
+bool TaskDataTestGlitterParticle::dest() {
     clear_color = color_black;
     Glitter::glt_particle_manager->FreeScenes();
     Glitter::glt_particle_manager->FreeEffects();
@@ -170,7 +170,7 @@ bool TaskDataTestGlitterParticle::Dest() {
     return true;
 }
 
-void TaskDataTestGlitterParticle::Disp() {
+void TaskDataTestGlitterParticle::disp() {
     if (show_grid) {
         mdl::EtcObj etc(mdl::ETC_OBJ_GRID);
         etc.color = 0xFF000000;
@@ -350,12 +350,12 @@ void DataTestGlitterParticleDw::CharaCallback(dw::Widget* data) {
     if (button)
         if (dynamic_cast<DataTestGlitterParticleDw*>(button->parent_shell))
             if (button->value) {
-                /*if (!app::TaskWork::CheckTaskReady(&data_test_chr))
-                    app::TaskWork::AddTask(&data_test_chr, "DATA_TEST_CHR");*/
+                /*if (!app::TaskWork::check_task_ready(&data_test_chr))
+                    app::TaskWork::add_task(&data_test_chr, "DATA_TEST_CHR");*/
             }
             else {
-                /*if (app::TaskWork::CheckTaskReady(&data_test_chr))
-                    data_test_chr.DelTask();*/
+                /*if (app::TaskWork::check_task_ready(&data_test_chr))
+                    data_test_chr.del();*/
             }
 }
 

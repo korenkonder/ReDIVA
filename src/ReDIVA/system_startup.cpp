@@ -35,14 +35,14 @@ namespace system_startup_detail {
 
     }
 
-    bool TaskSystemStartup::Init() {
+    bool TaskSystemStartup::init() {
         system_startup.state = 0;
         system_startup.wait = 0;
         system_startup.ready = false;
         return true;
     }
 
-    bool TaskSystemStartup::Ctrl() {
+    bool TaskSystemStartup::ctrl() {
         system_startup_ready = 0;
         switch (system_startup.state) {
         case 0:
@@ -55,7 +55,7 @@ namespace system_startup_detail {
             system_startup.state = 3;
             break;
         case 3:
-            if (!app::TaskWork::CheckTaskReady(mdata_manager_get()))
+            if (!app::TaskWork::check_task_ready(mdata_manager_get()))
                 system_startup.state = 4;
             break;
         case 4:
@@ -83,7 +83,7 @@ namespace system_startup_detail {
         return false;
     }
 
-    bool TaskSystemStartup::Dest() {
+    bool TaskSystemStartup::dest() {
         if (task_pv_game_check_task_ready() && !system_startup_check_ready())
             return false;
 
@@ -92,7 +92,7 @@ namespace system_startup_detail {
         return true;
     }
 
-    void TaskSystemStartup::Disp() {
+    void TaskSystemStartup::disp() {
         resolution_struct* res_wind = res_window_get();
         spr::put_sprite_rect({ 0.0f, 0.0f, (float_t)res_wind->width, (float_t)res_wind->height },
             res_wind->resolution_mode, spr::SPR_PRIO_25, color_black, 0);
@@ -103,17 +103,17 @@ bool task_system_startup_add_task() {
     if (!task_system_startup)
         task_system_startup = new system_startup_detail::TaskSystemStartup;
 
-    return app::TaskWork::AddTask(task_system_startup, "SYSTEM_STARTUP");
+    return app::TaskWork::add_task(task_system_startup, "SYSTEM_STARTUP");
 }
 
 bool task_system_startup_del_task() {
-    if (!app::TaskWork::CheckTaskReady(task_system_startup)) {
+    if (!app::TaskWork::check_task_ready(task_system_startup)) {
         delete task_system_startup;
         task_system_startup = 0;
         return true;
     }
 
-    task_system_startup->DelTask();
+    task_system_startup->del();
     return false;
 }
 

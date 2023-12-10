@@ -22,12 +22,12 @@ public:
     DtmEqVs();
     virtual ~DtmEqVs() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
 
-    virtual bool AddTask(int32_t chara_id, ::chara_index chara_index);
-    virtual bool DelTask();
+    virtual bool add_task(int32_t chara_id, ::chara_index chara_index);
+    virtual bool del_task();
 
     void SetCharaIndexCosId(::chara_index chara_index, int32_t cos_id);
 

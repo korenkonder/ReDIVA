@@ -149,12 +149,12 @@ DtmEqVs::~DtmEqVs() {
 
 }
 
-bool DtmEqVs::Init() {
+bool DtmEqVs::init() {
     state = 0;
     return true;
 }
 
-bool DtmEqVs::Ctrl() {
+bool DtmEqVs::ctrl() {
     rob_chara_item_cos_data* item_cos_data = rob_chara_array_get_item_cos_data(chara_id);
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
     switch (state) {
@@ -229,11 +229,11 @@ bool DtmEqVs::Ctrl() {
     return false;
 }
 
-bool DtmEqVs::Dest() {
+bool DtmEqVs::dest() {
     return true;
 }
 
-bool DtmEqVs::AddTask(int32_t chara_id, ::chara_index chara_index) {
+bool DtmEqVs::add_task(int32_t chara_id, ::chara_index chara_index) {
     this->chara_id = chara_id;
     this->chara_index = chara_index;
     this->curr_chara_index = chara_index;
@@ -242,11 +242,11 @@ bool DtmEqVs::AddTask(int32_t chara_id, ::chara_index chara_index) {
     disp_parts = 0;
     data_test_equip_dw_set_chara_index(chara_id, chara_index);
     data_test_equip_dw_set_cos_id(chara_id, cos_id);
-    return app::TaskWork::AddTask(this, "DATA TEST EQUIP MANAGER FOR VS");
+    return app::TaskWork::add_task(this, "DATA TEST EQUIP MANAGER FOR VS");
 }
 
-bool DtmEqVs::DelTask() {
-    return app::Task::DelTask();
+bool DtmEqVs::del_task() {
+    return app::Task::del();
 }
 
 void DtmEqVs::SetCharaIndexCosId(::chara_index chara_index, int32_t cos_id) {

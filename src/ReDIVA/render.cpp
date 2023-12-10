@@ -953,10 +953,10 @@ static render_context* render_context_load() {
         render_timer->start_of_cycle();
         lock_lock(render_lock);
         game_state_ctrl();
-        app::TaskWork::Ctrl();
+        app::TaskWork::ctrl();
         sound_ctrl();
         file_handler_storage_ctrl();
-        app::TaskWork::Basic();
+        app::TaskWork::basic();
         lock_unlock(render_lock);
         render_timer->end_of_cycle();
     }
@@ -1042,7 +1042,7 @@ static void render_context_ctrl(render_context* rctx) {
     global_context_menu = true;
     lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
-    app::TaskWork_Window();
+    app::TaskWork_window();
     classes_process_imgui(classes, classes_count);
     lock_unlock(imgui_context_lock);
 
@@ -1221,7 +1221,7 @@ static void render_context_dispose(render_context* rctx) {
     aet_manager_del_task();
     task_pv_db_del_task();
 
-    app::TaskWork::Dest();
+    app::TaskWork::dest();
 
     sound_work_unload_farc("rom/sound/se.farc");
     sound_work_unload_farc("rom/sound/button.farc");
@@ -1259,10 +1259,10 @@ static void render_context_dispose(render_context* rctx) {
         render_timer->start_of_cycle();
         lock_lock(render_lock);
         game_state_ctrl();
-        app::TaskWork::Ctrl();
+        app::TaskWork::ctrl();
         sound_ctrl();
         file_handler_storage_ctrl();
-        app::TaskWork::Basic();
+        app::TaskWork::basic();
         lock_unlock(render_lock);
         render_timer->end_of_cycle();
     }
@@ -1383,7 +1383,7 @@ static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     classes_process_drop(classes, classes_count, count, paths);
 
 #if ReDIVA_DEV
-    if (app::TaskWork::HasTask(&glitter_editor)) {
+    if (app::TaskWork::has_task(&glitter_editor)) {
         glitter_editor.file.assign(paths[0]);
         glitter_editor.load_popup = true;
     }

@@ -16,10 +16,10 @@ namespace system_startup_detail {
         TaskSystemStartup();
         virtual ~TaskSystemStartup() override;
 
-        virtual bool Init() override;
-        virtual bool Ctrl() override;
-        virtual bool Dest() override;
-        virtual void Disp() override;
+        virtual bool init() override;
+        virtual bool ctrl() override;
+        virtual bool dest() override;
+        virtual void disp() override;
     };
 }
 

@@ -837,17 +837,17 @@ public:
     TaskPvGame();
     virtual ~TaskPvGame() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Disp() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void disp() override;
 #if PV_DEBUG
-    virtual void Basic() override;
-    virtual void Window() override;
+    virtual void basic() override;
+    virtual void window() override;
 #endif
 
-    void Load(TaskPvGame::Data& data);
-    bool Unload();
+    void load(TaskPvGame::Data& data);
+    bool unload();
 };
 
 #if PV_DEBUG
@@ -867,12 +867,12 @@ public:
     PVGameSelector();
     virtual ~PVGameSelector() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Window() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void window() override;
 
-    void ResetChara();
+    void reset_chara();
 };
 #endif
 

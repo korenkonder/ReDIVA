@@ -423,7 +423,7 @@ DataTestMot::~DataTestMot() {
 
 }
 
-bool DataTestMot::Init() {
+bool DataTestMot::init() {
     clear_color = 0xFF606060;
     set_clear_color = true;
 
@@ -438,13 +438,13 @@ bool DataTestMot::Init() {
     data_test_mot_a3d_dw_init();
     data.reset_cam = true;
     data.field_A8 = true;
-    dtm_eq_vs_array[0].AddTask(0, data.chara_index[0]);
-    dtm_eq_vs_array[1].AddTask(1, data.chara_index[1]);
+    dtm_eq_vs_array[0].add_task(0, data.chara_index[0]);
+    dtm_eq_vs_array[1].add_task(1, data.chara_index[1]);
     motion_test_objset_load();
     return true;
 }
 
-bool DataTestMot::Ctrl() {
+bool DataTestMot::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -599,15 +599,15 @@ bool DataTestMot::Ctrl() {
     }
 
     if (v3)
-        dtm_mot_array[0].DelTask();
+        dtm_mot_array[0].del_task();
     else
-        dtm_mot_array[0].AddTask(data.chara_index[0],
+        dtm_mot_array[0].add_task(data.chara_index[0],
             data.cos_id[0], data.motion_set_index[0], data.motion_index[0]);
 
     if (v2)
-        dtm_mot_array[1].DelTask();
+        dtm_mot_array[1].del_task();
     else
-        dtm_mot_array[1].AddTask(data.chara_index[1],
+        dtm_mot_array[1].add_task(data.chara_index[1],
             data.cos_id[1], data.motion_set_index[1], data.motion_index[1]);
 
     if (data.reset_cam) {
@@ -650,25 +650,25 @@ bool DataTestMot::Ctrl() {
     return false;
 }
 
-bool DataTestMot::Dest() {
+bool DataTestMot::dest() {
     clear_color = 0xFF000000;
     set_clear_color = true;
 
-    dtm_mot_array[0].DelTask();
-    dtm_mot_array[1].DelTask();
+    dtm_mot_array[0].del();
+    dtm_mot_array[1].del();
     data_test_mot_dw_array_get(0)->Hide();
     data_test_mot_dw_array_get(1)->Hide();
     data_test_mot_ctrl_dw_get()->Hide();
     data_test_mot_a3d_dw_get()->Hide();
     data_test_face_mot_dw_array_unload();
-    dtm_eq_vs_array[0].DelTask();
-    dtm_eq_vs_array[1].DelTask();
+    dtm_eq_vs_array[0].del_task();
+    dtm_eq_vs_array[1].del_task();
     motion_test_objset_unload();
-    data_test_mot_a3d_get()->DelTask();
+    data_test_mot_a3d_get()->del();
     return true;
 }
 
-void DataTestMot::Disp() {
+void DataTestMot::disp() {
 
 }
 
@@ -689,14 +689,14 @@ DataTestMotA3d::~DataTestMotA3d() {
 
 }
 
-bool DataTestMotA3d::Init() {
+bool DataTestMotA3d::init() {
     Reset();
     auth_3d.clear();
     state = 0;
     return true;
 }
 
-bool DataTestMotA3d::Ctrl() {
+bool DataTestMotA3d::ctrl() {
     switch (state) {
     case 0:
         state = 1;
@@ -771,17 +771,17 @@ bool DataTestMotA3d::Ctrl() {
     return false;
 }
 
-bool DataTestMotA3d::Dest() {
+bool DataTestMotA3d::dest() {
     Reset();
     camera = false;
     return true;
 }
 
-void DataTestMotA3d::Disp() {
+void DataTestMotA3d::disp() {
 
 }
 
-void DataTestMotA3d::Basic() {
+void DataTestMotA3d::basic() {
 
 }
 
@@ -912,7 +912,7 @@ DtmMot::~DtmMot() {
 
 }
 
-bool DtmMot::Init() {
+bool DtmMot::init() {
     frame = 0.0f;
     delta_frame = 1.0f;
     state = 1;
@@ -947,11 +947,7 @@ bool DtmMot::Init() {
     return true;
 }
 
-void DtmMot::sub_1402922C0(bool value) {
-    this->field_100 = value;
-}
-
-bool DtmMot::Ctrl() {
+bool DtmMot::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
@@ -1256,7 +1252,7 @@ bool DtmMot::Ctrl() {
     return false;
 }
 
-bool DtmMot::Dest() {
+bool DtmMot::dest() {
     if (!state)
         return true;
 
@@ -1284,7 +1280,7 @@ bool DtmMot::Dest() {
     return true;
 }
 
-void DtmMot::Basic() {
+void DtmMot::basic() {
     if (state != 13)
         return;
 
@@ -1336,9 +1332,9 @@ void DtmMot::Basic() {
     this->frame = frame;
 }
 
-bool DtmMot::AddTask(::chara_index chara_index,
+bool DtmMot::add_task(::chara_index chara_index,
     int32_t cos_id, uint32_t motion_set_index, uint32_t motion_index) {
-    if (app::TaskWork::HasTask(this) || app::TaskWork::CheckTaskReady(this))
+    if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
         return true;
 
     this->chara_index = chara_index;
@@ -1346,12 +1342,12 @@ bool DtmMot::AddTask(::chara_index chara_index,
     this->motion_index = motion_index;
     this->motion_set_index = motion_set_index;
     type = 0;
-    return app::TaskWork::AddTask(this, "DATA_TEST_MOTION_MANAGER", 0);
+    return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
-bool DtmMot::AddTask(::chara_index chara_index,
+bool DtmMot::add_task(::chara_index chara_index,
     int32_t cos_id, uint32_t motion_id) {
-    if (app::TaskWork::HasTask(this) || app::TaskWork::CheckTaskReady(this))
+    if (app::TaskWork::has_task(this) || app::TaskWork::check_task_ready(this))
         return true;
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -1362,12 +1358,12 @@ bool DtmMot::AddTask(::chara_index chara_index,
     this->motion_id = motion_id;
     this->motion_set_id = aft_mot_db->get_motion_set_id_by_motion_id(motion_id);
     type = 1;
-    return app::TaskWork::AddTask(this, "DATA_TEST_MOTION_MANAGER", 0);
+    return app::TaskWork::add_task(this, "DATA_TEST_MOTION_MANAGER", 0);
 }
 
-bool DtmMot::DelTask() {
-    if (app::TaskWork::CheckTaskReady(this))
-        return app::Task::DelTask();
+bool DtmMot::del_task() {
+    if (app::TaskWork::check_task_ready(this))
+        return del();
     return false;
 }
 
@@ -1592,6 +1588,10 @@ int32_t DtmMot::ConvertMotionSetNameToPVID(const char* set_name) {
     pv_id += (set_name[3] - '0') * 10;
     pv_id += set_name[4] - '0';
     return pv_id;
+}
+
+void DtmMot::sub_1402922C0(bool value) {
+    field_100 = value;
 }
 
 void motion_test_init() {
@@ -2903,11 +2903,11 @@ static DataTestMot::Data* data_test_mot_data_get() {
 }
 
 static bool data_test_mot_a3d_add_task() {
-    return app::TaskWork::AddTask(data_test_mot_a3d_get(), "DATA_TEST_MOT_A3D", 0);
+    return app::TaskWork::add_task(data_test_mot_a3d_get(), "DATA_TEST_MOT_A3D", 0);
 }
 
 static bool data_test_mot_a3d_del_task() {
-    return data_test_mot_a3d_get()->DelTask();
+    return data_test_mot_a3d_get()->del();
 }
 
 static const char* data_test_mot_a3d_get_state_text() {

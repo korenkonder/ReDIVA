@@ -38,7 +38,7 @@ Game2dEnergyUnit::~Game2dEnergyUnit() {
 
 }
 
-void Game2dEnergyUnit::Init() {
+void Game2dEnergyUnit::init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
@@ -122,7 +122,7 @@ void Game2dEnergyUnit::Init() {
     life_gauge_bonus = 0;
 }
 
-void Game2dEnergyUnit::Ctrl() {
+void Game2dEnergyUnit::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
@@ -219,7 +219,7 @@ void Game2dEnergyUnit::Ctrl() {
     this->life_gauge = life_gauge;
 }
 
-void Game2dEnergyUnit::Dest() {
+void Game2dEnergyUnit::dest() {
     for (int32_t i = 0; i < 5; i++) {
         if (field_1B8[i]) {
             aet_manager_free_aet_object(field_1B8[i]);
@@ -230,11 +230,11 @@ void Game2dEnergyUnit::Dest() {
     }
 }
 
-void Game2dEnergyUnit::Disp() {
-    DispInner();
+void Game2dEnergyUnit::disp() {
+    disp_inner();
 }
 
-void Game2dEnergyUnit::DispInner() {
+void Game2dEnergyUnit::disp_inner() {
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
@@ -468,32 +468,32 @@ TaskGame2d::~TaskGame2d() {
 
 }
 
-bool TaskGame2d::Init() {
+bool TaskGame2d::init() {
     energy_unit_init = false;
-    energy_unit.Init();
+    energy_unit.init();
     energy_unit_init = true;
     return true;
 }
 
-bool TaskGame2d::Ctrl() {
+bool TaskGame2d::ctrl() {
     if (energy_unit_init)
-        energy_unit.Ctrl();
+        energy_unit.ctrl();
     return false;
 }
 
-bool TaskGame2d::Dest() {
+bool TaskGame2d::dest() {
     energy_unit_init = false;
-    energy_unit.Dest();
+    energy_unit.dest();
     return true;
 }
 
-void TaskGame2d::Disp() {
+void TaskGame2d::disp() {
     if (energy_unit_init)
-        energy_unit.Disp();
+        energy_unit.disp();
 }
 
 bool task_game_2d_add_task() {
-    return app::TaskWork::AddTask(&task_game_2d, 0, "GAME_2D", 0);
+    return app::TaskWork::add_task(&task_game_2d, 0, "GAME_2D", 0);
 }
 
 void task_game_2d_set_energy_unit_no_fail(bool value) {
@@ -509,5 +509,5 @@ void task_game_2d_sub_1403726D0(int32_t value) {
 }
 
 bool task_game_2d_del_task() {
-    return task_game_2d.DelTask();
+    return task_game_2d.del();
 }

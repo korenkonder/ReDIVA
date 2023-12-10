@@ -535,9 +535,9 @@ namespace pv_db {
         TaskPvDB();
         virtual ~TaskPvDB() override;
 
-        virtual bool Init() override;
-        virtual bool Ctrl() override;
-        virtual bool Dest() override;
+        virtual bool init() override;
+        virtual bool ctrl() override;
+        virtual bool dest() override;
 
         void InitChrEffDataTypes();
         void InitMovieSurfaces();

@@ -360,7 +360,7 @@ Auth3dTestTask:: ~Auth3dTestTask() {
 
 }
 
-bool Auth3dTestTask::Init() {
+bool Auth3dTestTask::init() {
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
@@ -403,7 +403,7 @@ bool Auth3dTestTask::Init() {
     return true;
 }
 
-bool Auth3dTestTask::Ctrl() {
+bool Auth3dTestTask::ctrl() {
     InputState* input_state = input_state_get(0);
     if (auth_3d_test_task->auth_3d_id.check_not_empty() && input_state->CheckTapped(29))
         auth_3d_test_task->auth_3d_id.set_paused(
@@ -450,7 +450,7 @@ bool Auth3dTestTask::Ctrl() {
     return false;
 }
 
-bool Auth3dTestTask::Dest() {
+bool Auth3dTestTask::dest() {
     auth_3d_id.unload(rctx_ptr);
     object_storage_unload_set(effcmn_obj_set);
     task_stage_unload_task();
@@ -470,7 +470,7 @@ bool Auth3dTestTask::Dest() {
     return true;
 }
 
-void Auth3dTestTask::Disp() {
+void Auth3dTestTask::disp() {
     if (plane_above_floor) {
         mat4 mat;
         mat4_translate_y(0.25f, &mat);

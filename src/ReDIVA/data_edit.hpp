@@ -28,8 +28,8 @@ public:
         Auth3D();
         ~Auth3D();
 
-        void Patch();
-        void Reset();
+        void patch();
+        void reset();
     };
 
     int32_t chara_id;
@@ -46,12 +46,12 @@ public:
     DataEdit();
     virtual ~DataEdit() override;
 
-    virtual bool Init() override;
-    virtual bool Ctrl() override;
-    virtual bool Dest() override;
-    virtual void Window() override;
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+    virtual void window() override;
 
-    void Reset();
+    void reset();
 };
 
 extern DataEdit data_edit;

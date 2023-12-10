@@ -783,15 +783,15 @@ namespace pv_param_task {
         PostProcessTask();
         virtual ~PostProcessTask() override;
 
-        virtual bool Init() override;
-        virtual bool Ctrl() override;
-        virtual bool Dest() override;
+        virtual bool init() override;
+        virtual bool ctrl() override;
+        virtual bool dest() override;
     };
 
     PostProcessTask post_process_task;
 
     bool post_process_task_add_task() {
-        return app::TaskWork::AddTask(&post_process_task, "PV POST PROCESS TASK");
+        return app::TaskWork::add_task(&post_process_task, "PV POST PROCESS TASK");
     }
 
     void post_process_task_set_bloom_data(
@@ -843,7 +843,7 @@ namespace pv_param_task {
     }
 
     bool post_process_task_del_task() {
-        return post_process_task.DelTask();
+        return post_process_task.del();
     }
 
     PostProcessCtrl::PostProcessCtrl() {
@@ -1265,7 +1265,7 @@ namespace pv_param_task {
 
     }
 
-    bool PostProcessTask::Init() {
+    bool PostProcessTask::init() {
         dof.Reset();
         cc.Reset();
         bloom.Reset();
@@ -1274,7 +1274,7 @@ namespace pv_param_task {
         return true;
     }
 
-    bool PostProcessTask::Ctrl() {
+    bool PostProcessTask::ctrl() {
         dof.Set();
         cc.Set();
         bloom.Set();
@@ -1283,7 +1283,7 @@ namespace pv_param_task {
         return false;
     }
 
-    bool PostProcessTask::Dest() {
+    bool PostProcessTask::dest() {
         dof.Reset();
         cc.Reset();
         bloom.Reset();

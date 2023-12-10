@@ -188,7 +188,171 @@ static bool glitter_editor_hash_input(GlitterEditor* glt_edt,
 
 GlitterEditor glitter_editor;
 
-bool GlitterEditor::Init() {
+GlitterEditor::CurveEditor::CurveEditor() : type(), type_flags(), animation(), list(),
+key(), frame_width(), zoom_time(), prev_zoom_time(), zoom_value(), key_radius_in(),
+key_radius_out(), height_offset(), frame(), draw_list(), io(), timeline_pos(),
+range(), offset(), add_key(), del_key(), add_curve(), del_curve(), key_edit() {
+
+}
+
+void GlitterEditor::CurveEditor::ResetCurves() {
+    memset(&list, 0, sizeof(list));
+    animation = 0;
+    key = {};
+}
+
+void GlitterEditor::CurveEditor::ResetState(Glitter::CurveType type) {
+    this->type = type;
+
+    if (type != -1)
+        type_flags = (Glitter::CurveTypeFlags)(1 << type);
+    else
+        type_flags = (Glitter::CurveTypeFlags)0;
+
+    frame_width = 16;
+    zoom_time = 1.0f;
+    prev_zoom_time = 1.0f;
+    zoom_value = 1.0f;
+    key_radius_in = 6.0f;
+    key_radius_out = 8.0f;
+    height_offset = 20.0f;
+    frame = 0;
+
+    timeline_pos = -curve_editor_timeline_base_pos;
+
+    switch (type) {
+    case Glitter::CURVE_TRANSLATION_X:
+    case Glitter::CURVE_TRANSLATION_Y:
+    case Glitter::CURVE_TRANSLATION_Z:
+        range = 25.0f;
+        break;
+    case Glitter::CURVE_ROTATION_X:
+    case Glitter::CURVE_ROTATION_Y:
+    case Glitter::CURVE_ROTATION_Z:
+        range = 360.0f;
+        break;
+    case Glitter::CURVE_SCALE_X:
+    case Glitter::CURVE_SCALE_Y:
+    case Glitter::CURVE_SCALE_Z:
+    case Glitter::CURVE_SCALE_ALL:
+        range = 5.0f;
+        break;
+    case Glitter::CURVE_COLOR_R:
+    case Glitter::CURVE_COLOR_G:
+    case Glitter::CURVE_COLOR_B:
+    case Glitter::CURVE_COLOR_A:
+    case Glitter::CURVE_COLOR_RGB_SCALE:
+    case Glitter::CURVE_COLOR_R_2ND:
+    case Glitter::CURVE_COLOR_G_2ND:
+    case Glitter::CURVE_COLOR_B_2ND:
+    case Glitter::CURVE_COLOR_A_2ND:
+    case Glitter::CURVE_COLOR_RGB_SCALE_2ND:
+        range = 255.0f;
+        break;
+    case Glitter::CURVE_EMISSION_INTERVAL:
+        range = 20.0f;
+        break;
+    case Glitter::CURVE_PARTICLES_PER_EMISSION:
+        range = 50.0f;
+        break;
+    case Glitter::CURVE_U_SCROLL:
+    case Glitter::CURVE_V_SCROLL:
+    case Glitter::CURVE_U_SCROLL_ALPHA:
+    case Glitter::CURVE_V_SCROLL_ALPHA:
+    case Glitter::CURVE_U_SCROLL_2ND:
+    case Glitter::CURVE_V_SCROLL_2ND:
+    case Glitter::CURVE_U_SCROLL_ALPHA_2ND:
+    case Glitter::CURVE_V_SCROLL_ALPHA_2ND:
+        range = 1.0f;
+        break;
+    default:
+        range = 1.0f;
+        break;
+    }
+
+    offset = 0.0f;
+
+    add_key = false;
+    del_key = false;
+}
+
+void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag) {
+    switch (type) {
+    case Glitter::CURVE_TRANSLATION_X:
+    case Glitter::CURVE_TRANSLATION_Y:
+    case Glitter::CURVE_TRANSLATION_Z:
+        if (type_flag & Glitter::CURVE_TYPE_TRANSLATION_XYZ)
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_ROTATION_X:
+    case Glitter::CURVE_ROTATION_Y:
+    case Glitter::CURVE_ROTATION_Z:
+        if (type_flag & Glitter::CURVE_TYPE_ROTATION_XYZ)
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_SCALE_X:
+    case Glitter::CURVE_SCALE_Y:
+    case Glitter::CURVE_SCALE_Z:
+    case Glitter::CURVE_SCALE_ALL:
+        if (type_flag & (Glitter::CURVE_TYPE_SCALE_XYZ | Glitter::CURVE_TYPE_SCALE_ALL))
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_COLOR_R:
+    case Glitter::CURVE_COLOR_G:
+    case Glitter::CURVE_COLOR_B:
+    case Glitter::CURVE_COLOR_A:
+    case Glitter::CURVE_COLOR_RGB_SCALE:
+        if (type_flag & (Glitter::CURVE_TYPE_COLOR_RGBA | Glitter::CURVE_TYPE_COLOR_RGB_SCALE))
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_COLOR_R_2ND:
+    case Glitter::CURVE_COLOR_G_2ND:
+    case Glitter::CURVE_COLOR_B_2ND:
+    case Glitter::CURVE_COLOR_A_2ND:
+    case Glitter::CURVE_COLOR_RGB_SCALE_2ND:
+        if (type_flag & (Glitter::CURVE_TYPE_COLOR_RGBA_2ND | Glitter::CURVE_TYPE_COLOR_RGB_SCALE_2ND))
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_U_SCROLL:
+    case Glitter::CURVE_V_SCROLL:
+        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL)
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_U_SCROLL_ALPHA:
+    case Glitter::CURVE_V_SCROLL_ALPHA:
+        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL_ALPHA)
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_U_SCROLL_2ND:
+    case Glitter::CURVE_V_SCROLL_2ND:
+        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL_2ND)
+            enum_xor(type_flags, type_flag);
+        break;
+    case Glitter::CURVE_U_SCROLL_ALPHA_2ND:
+    case Glitter::CURVE_V_SCROLL_ALPHA_2ND:
+        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL_ALPHA_2ND)
+            enum_xor(type_flags, type_flag);
+        break;
+    }
+    enum_or(type_flags, (1 << type));
+}
+
+GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_data(), load_data_wait(),
+load_popup(), load_data_popup(), load_error_list_popup(), save(), save_popup(), save_compress(), save_encrypt(),
+close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
+effect_group_add(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(), particle_flags(),
+load_glt_type(), save_glt_type(), load_data_type(), frame_counter(), old_frame_counter(),
+start_frame(), end_frame(), counter(), effect_group(), scene(), hash(), selected_type(),
+selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
+selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle() {
+
+}
+
+GlitterEditor::~GlitterEditor() {
+
+}
+
+bool GlitterEditor::init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
     Glitter::glt_particle_manager->random.value = (uint32_t)(time.LowPart * hash_fnv1a64m_empty);
@@ -202,7 +366,7 @@ bool GlitterEditor::Init() {
     Glitter::glt_particle_manager->draw_all_mesh = true;
     draw_grid_3d = true;
 
-    Reset();
+    reset();
     dtm_stg_load(0);
     dtw_stg_load(true);
 
@@ -452,7 +616,7 @@ bool GlitterEditor::Init() {
     return true;
 }
 
-bool GlitterEditor::Ctrl() {
+bool GlitterEditor::ctrl() {
     int32_t sel_rsrc = selected_resource;
     Glitter::Effect* sel_efct = selected_effect;
     Glitter::Emitter* sel_emit = selected_emitter;
@@ -461,7 +625,7 @@ bool GlitterEditor::Ctrl() {
     if (effect_group_add) {
         Glitter::glt_particle_manager->UnloadEffectGroup(hash);
 
-        GlitterEditor::ResetDisp();
+        GlitterEditor::reset_disp();
 
         LARGE_INTEGER time;
         QueryPerformanceCounter(&time);
@@ -924,7 +1088,7 @@ bool GlitterEditor::Ctrl() {
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
         Glitter::glt_particle_manager->UnloadEffectGroup(hash);
 
-        GlitterEditor::ResetDisp();
+        GlitterEditor::reset_disp();
         effect_group = 0;
         scene = 0;
         hash = 0;
@@ -989,7 +1153,7 @@ bool GlitterEditor::Ctrl() {
     rob_frame = frame_counter;
 
     if (!effect_group) {
-        GlitterEditor::ResetDisp();
+        GlitterEditor::reset_disp();
         return close_editor;
     }
 
@@ -997,7 +1161,7 @@ bool GlitterEditor::Ctrl() {
     return close_editor;
 }
 
-bool GlitterEditor::Dest() {
+bool GlitterEditor::dest() {
     dtw_stg_unload();
     dtm_stg_unload();
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
@@ -1007,7 +1171,7 @@ bool GlitterEditor::Dest() {
     return true;
 }
 
-void GlitterEditor::Disp() {
+void GlitterEditor::disp() {
     //if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME)
         //glitter_editor_disp_wireframe(this);
 
@@ -1015,7 +1179,7 @@ void GlitterEditor::Disp() {
         glitter_editor_draw_emitter_type(this);
 }
 
-void GlitterEditor::Window() {
+void GlitterEditor::window() {
     if (Input::IsKeyTapped(GLFW_KEY_O, GLFW_MOD_CONTROL))
         glitter_editor_open_window(this);
     else if (Input::IsKeyTapped(GLFW_KEY_F4, GLFW_MOD_CONTROL))
@@ -1049,171 +1213,7 @@ void GlitterEditor::Window() {
     }
 }
 
-GlitterEditor::CurveEditor::CurveEditor() : type(), type_flags(), animation(), list(),
-key(), frame_width(), zoom_time(), prev_zoom_time(), zoom_value(), key_radius_in(),
-key_radius_out(), height_offset(), frame(), draw_list(), io(), timeline_pos(),
-range(), offset(), add_key(), del_key(), add_curve(), del_curve(), key_edit() {
-
-}
-
-void GlitterEditor::CurveEditor::ResetCurves() {
-    memset(&list, 0, sizeof(list));
-    animation = 0;
-    key = {};
-}
-
-void GlitterEditor::CurveEditor::ResetState(Glitter::CurveType type) {
-    this->type = type;
-
-    if (type != -1)
-        type_flags = (Glitter::CurveTypeFlags)(1 << type);
-    else
-        type_flags = (Glitter::CurveTypeFlags)0;
-
-    frame_width = 16;
-    zoom_time = 1.0f;
-    prev_zoom_time = 1.0f;
-    zoom_value = 1.0f;
-    key_radius_in = 6.0f;
-    key_radius_out = 8.0f;
-    height_offset = 20.0f;
-    frame = 0;
-
-    timeline_pos = -curve_editor_timeline_base_pos;
-
-    switch (type) {
-    case Glitter::CURVE_TRANSLATION_X:
-    case Glitter::CURVE_TRANSLATION_Y:
-    case Glitter::CURVE_TRANSLATION_Z:
-        range = 25.0f;
-        break;
-    case Glitter::CURVE_ROTATION_X:
-    case Glitter::CURVE_ROTATION_Y:
-    case Glitter::CURVE_ROTATION_Z:
-        range = 360.0f;
-        break;
-    case Glitter::CURVE_SCALE_X:
-    case Glitter::CURVE_SCALE_Y:
-    case Glitter::CURVE_SCALE_Z:
-    case Glitter::CURVE_SCALE_ALL:
-        range = 5.0f;
-        break;
-    case Glitter::CURVE_COLOR_R:
-    case Glitter::CURVE_COLOR_G:
-    case Glitter::CURVE_COLOR_B:
-    case Glitter::CURVE_COLOR_A:
-    case Glitter::CURVE_COLOR_RGB_SCALE:
-    case Glitter::CURVE_COLOR_R_2ND:
-    case Glitter::CURVE_COLOR_G_2ND:
-    case Glitter::CURVE_COLOR_B_2ND:
-    case Glitter::CURVE_COLOR_A_2ND:
-    case Glitter::CURVE_COLOR_RGB_SCALE_2ND:
-        range = 255.0f;
-        break;
-    case Glitter::CURVE_EMISSION_INTERVAL:
-        range = 20.0f;
-        break;
-    case Glitter::CURVE_PARTICLES_PER_EMISSION:
-        range = 50.0f;
-        break;
-    case Glitter::CURVE_U_SCROLL:
-    case Glitter::CURVE_V_SCROLL:
-    case Glitter::CURVE_U_SCROLL_ALPHA:
-    case Glitter::CURVE_V_SCROLL_ALPHA:
-    case Glitter::CURVE_U_SCROLL_2ND:
-    case Glitter::CURVE_V_SCROLL_2ND:
-    case Glitter::CURVE_U_SCROLL_ALPHA_2ND:
-    case Glitter::CURVE_V_SCROLL_ALPHA_2ND:
-        range = 1.0f;
-        break;
-    default:
-        range = 1.0f;
-        break;
-    }
-
-    offset = 0.0f;
-
-    add_key = false;
-    del_key = false;
-}
-
-void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag) {
-    switch (type) {
-    case Glitter::CURVE_TRANSLATION_X:
-    case Glitter::CURVE_TRANSLATION_Y:
-    case Glitter::CURVE_TRANSLATION_Z:
-        if (type_flag & Glitter::CURVE_TYPE_TRANSLATION_XYZ)
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_ROTATION_X:
-    case Glitter::CURVE_ROTATION_Y:
-    case Glitter::CURVE_ROTATION_Z:
-        if (type_flag & Glitter::CURVE_TYPE_ROTATION_XYZ)
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_SCALE_X:
-    case Glitter::CURVE_SCALE_Y:
-    case Glitter::CURVE_SCALE_Z:
-    case Glitter::CURVE_SCALE_ALL:
-        if (type_flag & (Glitter::CURVE_TYPE_SCALE_XYZ | Glitter::CURVE_TYPE_SCALE_ALL))
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_COLOR_R:
-    case Glitter::CURVE_COLOR_G:
-    case Glitter::CURVE_COLOR_B:
-    case Glitter::CURVE_COLOR_A:
-    case Glitter::CURVE_COLOR_RGB_SCALE:
-        if (type_flag & (Glitter::CURVE_TYPE_COLOR_RGBA | Glitter::CURVE_TYPE_COLOR_RGB_SCALE))
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_COLOR_R_2ND:
-    case Glitter::CURVE_COLOR_G_2ND:
-    case Glitter::CURVE_COLOR_B_2ND:
-    case Glitter::CURVE_COLOR_A_2ND:
-    case Glitter::CURVE_COLOR_RGB_SCALE_2ND:
-        if (type_flag & (Glitter::CURVE_TYPE_COLOR_RGBA_2ND | Glitter::CURVE_TYPE_COLOR_RGB_SCALE_2ND))
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_U_SCROLL:
-    case Glitter::CURVE_V_SCROLL:
-        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL)
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_U_SCROLL_ALPHA:
-    case Glitter::CURVE_V_SCROLL_ALPHA:
-        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL_ALPHA)
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_U_SCROLL_2ND:
-    case Glitter::CURVE_V_SCROLL_2ND:
-        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL_2ND)
-            enum_xor(type_flags, type_flag);
-        break;
-    case Glitter::CURVE_U_SCROLL_ALPHA_2ND:
-    case Glitter::CURVE_V_SCROLL_ALPHA_2ND:
-        if (type_flag & Glitter::CURVE_TYPE_UV_SCROLL_ALPHA_2ND)
-            enum_xor(type_flags, type_flag);
-        break;
-    }
-    enum_or(type_flags, (1 << type));
-}
-
-GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_data(), load_data_wait(),
-load_popup(), load_data_popup(), load_error_list_popup(), save(), save_popup(), save_compress(), save_encrypt(),
-close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
-effect_group_add(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(), particle_flags(),
-load_glt_type(), save_glt_type(), load_data_type(), frame_counter(), old_frame_counter(),
-start_frame(), end_frame(),  counter(), effect_group(), scene(), hash(), selected_type(),
-selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
-selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle() {
-
-}
-
-GlitterEditor::~GlitterEditor() {
-
-}
-
-void GlitterEditor::Reset() {
+void GlitterEditor::reset() {
     selected_type = GLITTER_EDITOR_SELECTED_NONE;
     selected_resource = -1;
     selected_effect = 0;
@@ -1227,7 +1227,7 @@ void GlitterEditor::Reset() {
     curve_editor.ResetCurves();
 }
 
-void GlitterEditor::ResetDisp() {
+void GlitterEditor::reset_disp() {
     Glitter::glt_particle_manager->selected_scene = 0;
     Glitter::glt_particle_manager->selected_effect = 0;
     Glitter::glt_particle_manager->selected_emitter = 0;
@@ -1695,7 +1695,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         Glitter::glt_particle_manager->FreeSceneEffect(glt_edt->scene_counter);
         Glitter::glt_particle_manager->UnloadEffectGroup(glt_edt->hash);
 
-        GlitterEditor::ResetDisp();
+        GlitterEditor::reset_disp();
 
         glt_edt->effect_group = 0;
         glt_edt->scene = 0;
@@ -1747,7 +1747,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
             }
         }
 
-        GlitterEditor::ResetDisp();
+        GlitterEditor::reset_disp();
 
         Glitter::glt_particle_manager->GetSceneStartEndFrame(
             &glt_edt->start_frame, &glt_edt->end_frame, glt_edt->scene_counter);
@@ -1764,7 +1764,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         glt_edt->load_data_wait = false;
     }
 
-    glt_edt->Reset();
+    glt_edt->reset();
 }
 
 static void glitter_editor_save_file(GlitterEditor* glt_edt, const char* path, const char* file) {
@@ -2878,7 +2878,7 @@ End:
     case GLITTER_EDITOR_SELECTED_EFFECT:
         if (glt_edt->selected_type != type
             || glt_edt->selected_effect != effect)
-            glt_edt->Reset();
+            glt_edt->reset();
         glt_edt->selected_effect = effect;
         glt_edt->selected_emitter = 0;
         glt_edt->selected_particle = 0;
@@ -2886,7 +2886,7 @@ End:
     case GLITTER_EDITOR_SELECTED_EMITTER:
         if (glt_edt->selected_type != type
             || glt_edt->selected_emitter != emitter)
-            glt_edt->Reset();
+            glt_edt->reset();
         glt_edt->selected_effect = effect;
         glt_edt->selected_emitter = emitter;
         glt_edt->selected_particle = 0;
@@ -2894,7 +2894,7 @@ End:
     case GLITTER_EDITOR_SELECTED_PARTICLE:
         if (glt_edt->selected_type != type
             || glt_edt->selected_particle != particle)
-            glt_edt->Reset();
+            glt_edt->reset();
         glt_edt->selected_effect = effect;
         glt_edt->selected_emitter = emitter;
         glt_edt->selected_particle = particle;
