@@ -1189,7 +1189,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
 
     light_param_data_storage_data_set_pv_cut((int32_t)field);
     rctx_ptr->render_manager->set_npr_param(next_field_data.npr_type);
-    //rctx_ptr->render.set_cam_blur(next_field_data.cam_blur);
+    rctx_ptr->render.set_cam_blur(next_field_data.cam_blur);
 
     if (next_field_data.sdw_off)
         rctx_ptr->render_manager->set_shadow_false();

@@ -566,8 +566,7 @@ static void stage_modern_free(stage_modern* s) {
             texture_storage_get_texture(s->stage_data->movie_texture));
 
     render_manager->set_shadow_true();
-    //rctx_ptr->render.field_14 = 0;
-    //rctx_ptr->render.field_ED8 = 1;
+    rctx_ptr->render.set_cam_blur(0);
     npr_cloth_spec_color.w = 1.0f;
     render_manager->field_31D = false;
     render_manager->field_31E = false;
@@ -655,8 +654,7 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         render_manager->field_31F = false;
         render_manager->field_320 = false;
         render_manager->set_shadow_true();
-        //rctx_ptr->render.field_14 = 0;
-        //rctx_ptr->render.field_ED8 = 1;
+        rctx_ptr->render.set_cam_blur(0);
         npr_cloth_spec_color.w = 1.0f;
         render_manager->set_npr_param(0);
         light_chara_ambient = false;

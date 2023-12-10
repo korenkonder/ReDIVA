@@ -194,6 +194,7 @@ namespace rndr {
         bool frame_texture_unload(int32_t slot, texture* tex);
         void free();
         bool get_auto_exposure();
+        int32_t get_cam_blur();
         float_t get_exposure();
         float_t get_exposure_rate();
         float_t get_gamma();
@@ -202,6 +203,7 @@ namespace rndr {
         vec3 get_lens();
         float_t get_lens_flare_appear_power();
         float_t get_lens_flare_power();
+        int32_t get_mlaa();
         vec3 get_radius();
         float_t get_saturate_coeff();
         int32_t get_saturate_power();
@@ -224,12 +226,14 @@ namespace rndr {
         void reset_tone_trans(int32_t index);
         void resize(int32_t width, int32_t height);
         void set_auto_exposure(bool value);
+        void set_cam_blur(int32_t value);
         void set_exposure(float_t value);
         void set_exposure_rate(float_t value);
         void set_gamma(float_t value);
         void set_gamma_rate(float_t value);
         void set_intensity(const vec3& value);
         void set_lens(vec3 value);
+        void set_mlaa(int32_t value);
         void set_radius(const vec3& value);
         void set_saturate_coeff(float_t value, int32_t index, bool lock);
         void set_saturate_power(int32_t value);

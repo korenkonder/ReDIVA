@@ -98,7 +98,7 @@ namespace rndr {
 
         fade_alpha = -1.0f;
 
-        update_lut = true;
+        update_lut = 1;
 
         lens_shaft_inv_scale = 1.0f;
         lens_flare = 1.0f;
@@ -711,6 +711,10 @@ namespace rndr {
         return auto_exposure;
     }
 
+    int32_t Render::get_cam_blur() {
+        return cam_blur;
+    }
+
     float_t Render::get_exposure() {
         return exposure;
     }
@@ -745,6 +749,10 @@ namespace rndr {
 
     vec3 Render::get_intensity() {
         return intensity;
+    }
+
+    int32_t Render::get_mlaa() {
+        return mlaa;
     }
 
     vec3 Render::get_radius() {
@@ -1014,7 +1022,7 @@ namespace rndr {
 
         if (index == 1)
             scene_fade_index = 0;
-        update = true;
+        update = 1;
     }
 
     void Render::reset_tone_trans(int32_t index) {
@@ -1025,7 +1033,7 @@ namespace rndr {
 
         if (index == 1)
             tone_trans_index = 0;
-        update = true;
+        update = 1;
     }
 
     void Render::resize(int32_t width, int32_t height) {
@@ -1101,43 +1109,58 @@ namespace rndr {
 
     void Render::set_auto_exposure(bool value) {
         auto_exposure = value;
+        update = 1;
+    }
+
+    void Render::set_cam_blur(int32_t value) {
+        cam_blur = value;
+        update = 1;
     }
 
     void Render::set_exposure(float_t value) {
         exposure = value;
+        update = 1;
     }
 
     void Render::set_exposure_rate(float_t value) {
         exposure_rate = value;
+        update = 1;
     }
 
     void Render::set_gamma(float_t value) {
         if (value != gamma) {
             gamma = value;
-            update_lut = true;
+            update_lut = 1;
         }
     }
 
     void Render::set_gamma_rate(float_t value) {
         if (value != gamma_rate) {
             gamma_rate = value;
-            update_lut = true;
+            update_lut = 1;
         }
     }
 
     void Render::set_intensity(const vec3& value) {
         intensity = vec3::clamp(value, 0.0f, 2.0f);
+        update = 1;
     }
 
     void Render::set_lens(vec3 value) {
         lens_flare = value.x;
         lens_shaft = value.y;
         lens_ghost = value.z;
-        update = true;
+        update = 1;
+    }
+
+    void Render::set_mlaa(int32_t value) {
+        mlaa = value;
+        update = 1;
     }
 
     void Render::set_radius(const vec3& value) {
         radius = vec3::clamp(value, 1.0f, 3.0f);
+        update = 1;
     }
 
     void Render::set_saturate_coeff(float_t value, int32_t index, bool lock) {
@@ -1145,11 +1168,11 @@ namespace rndr {
             return;
 
         saturate_coeff[index] = value;
-        update_lut = true;
-        update = true;
+        update_lut = 1;
+        update = 1;
 
         if (lock) {
-            saturate_lock = true;
+            saturate_lock = 1;
             saturate_index = 0;
         }
         else if (index == 1)
@@ -1159,7 +1182,7 @@ namespace rndr {
     void Render::set_saturate_power(int32_t value) {
         if (value != saturate_power) {
             saturate_power = value;
-            update_lut = true;
+            update_lut = 1;
         }
     }
 
@@ -1177,7 +1200,7 @@ namespace rndr {
 
         if (index == 1)
             scene_fade_index = 1;
-        update = true;
+        update = 1;
     }
 
     void Render::set_scene_fade_blend_func(int32_t value, int32_t index) {
@@ -1188,7 +1211,7 @@ namespace rndr {
 
         if (index == 1)
             scene_fade_index = 1;
-        update = true;
+        update = 1;
     }
 
 
@@ -1197,7 +1220,7 @@ namespace rndr {
 
         if (index == 1)
             scene_fade_index = 1;
-        update = true;
+        update = 1;
     }
 
     void Render::set_screen_res(int32_t x_offset, int32_t y_offset, int32_t width, int32_t height) {
@@ -1207,7 +1230,7 @@ namespace rndr {
         screen_height = min_def(height, this->height);
 
         update_res(false, -1);
-        update = true;
+        update = 1;
     }
 
     void Render::set_taa(int32_t value) {
@@ -1236,7 +1259,7 @@ namespace rndr {
 
         if (index == 1)
             tone_trans_index = 1;
-        update = true;
+        update = 1;
     }
 
     void Render::downsample() {
@@ -1921,8 +1944,8 @@ namespace rndr {
         if (!update_lut)
             return;
 
-        update_lut = false;
-        saturate_lock = false;
+        update_lut = 0;
+        saturate_lock = 0;
 
         const float_t tone_map_scale = (float_t)(1.0 / (double_t)TONE_MAP_SAT_GAMMA_SAMPLES);
         const int32_t tone_map_size = 16 * TONE_MAP_SAT_GAMMA_SAMPLES;
