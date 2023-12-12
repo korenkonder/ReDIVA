@@ -6036,7 +6036,7 @@ DivaPvFrameRate::~DivaPvFrameRate() {
 }
 
 float_t DivaPvFrameRate::get_delta_frame() {
-    return get_delta_frame() * get_anim_frame_speed() * frame_speed;
+    return ::get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
 
 pv_game_parent::pv_game_parent() : field_0(), field_1(), pv_state(), playing(), field_4(),

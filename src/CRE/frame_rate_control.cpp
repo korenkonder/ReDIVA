@@ -29,7 +29,7 @@ SysFrameRate::~SysFrameRate() {
 }
 
 float_t SysFrameRate::get_delta_frame() {
-    return get_delta_frame() * get_anim_frame_speed() * frame_speed;
+    return ::get_delta_frame() * get_anim_frame_speed() * frame_speed;
 }
 
 FrameRateControl* get_sys_frame_rate() {

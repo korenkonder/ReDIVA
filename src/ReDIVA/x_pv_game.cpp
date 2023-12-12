@@ -551,7 +551,7 @@ XPVFrameRateControl::~XPVFrameRateControl() {
 }
 
 float_t XPVFrameRateControl::get_delta_frame() {
-    return get_delta_frame() * frame_speed;
+    return ::get_delta_frame() * frame_speed;
 }
 
 void XPVFrameRateControl::reset() {
