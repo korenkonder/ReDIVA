@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -875,7 +875,7 @@ Auth3dTestSubWindow::Auth3dTestSubWindow() {
 #endif
 
     stage_link_change = new dw::Button(this, dw::CHECKBOX);
-    stage_link_change->SetText("STG連動切り替え");
+    stage_link_change->SetText(stage_link_change_text);
     stage_link_change->SetValue(auth_3d_test_task->stage_link_change);
     stage_link_change->callback_data.v64 = &auth_3d_test_task->stage_link_change;
     stage_link_change->AddSelectionListener(&selection_button_bool);
