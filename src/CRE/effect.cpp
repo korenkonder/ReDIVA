@@ -5604,24 +5604,17 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
     if (data->count > 5000)
         return;
 
-    gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+    vec3* vtx_data = (vec3*)ripple_emit_ssbo.MapMemory();
+    if (!vtx_data)
+        return;
 
-    {
-        size_t count = data->count;
-        vec3* position = data->position;
-        color4u8* color = data->color;
+    vec3* position = data->position;
+    color4u8* color = data->color;
 
-        vec3* vtx_data = force_malloc<vec3>(count);
+    for (size_t i = data->count; i; i--, vtx_data++, position++, color++)
+        *vtx_data = { position->x, position->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
 
-        for (size_t i = count; i; i--, vtx_data++, position++, color++)
-            *vtx_data = { position->x, position->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
-
-        vtx_data -= count;
-
-        ripple_emit_ssbo.WriteMemory(0, sizeof(vec3) * count, vtx_data);
-
-        free_def(vtx_data);
-    }
+    ripple_emit_ssbo.UnmapMemory();
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
