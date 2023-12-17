@@ -1113,7 +1113,7 @@ static GL::UniformBuffer ripple_scene_ubo;
 static EffectRipple* effect_ripple;
 static GL::ShaderStorageBuffer ripple_emit_ssbo;
 static GL::UniformBuffer ripple_emit_scene_ubo;
-static size_t ripple_emit_count = 5000;
+static const size_t ripple_emit_count = 5000;
 
 static stage_param_snow* stage_param_data_snow_current;
 static bool stage_param_data_snow_set;
