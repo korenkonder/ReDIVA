@@ -70,7 +70,7 @@ namespace renderer {
 
         void render_tiles(GLuint depth_texture, bool f2);
         void downsample(GLuint color_texture, GLuint depth_texture, bool f2);
-        void main_filter(bool f2);
+        void apply_main_filter(bool f2);
         void upsample(RenderTexture* rt, GLuint color_texture, GLuint depth_texture, bool f2);
 
         void update_data(float_t min_dist, float_t max_dist, float_t fov, float_t dist, float_t focal_length,

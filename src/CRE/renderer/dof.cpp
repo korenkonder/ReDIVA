@@ -221,7 +221,7 @@ namespace renderer {
         gl_state_bind_vertex_array(vao);
         render_tiles(depth_texture, true);
         downsample(color_texture, depth_texture, true);
-        main_filter(true);
+        apply_main_filter(true);
         upsample(rt, color_texture, depth_texture, true);
 
         shader::unbind();
@@ -248,7 +248,7 @@ namespace renderer {
         gl_state_bind_vertex_array(vao);
         render_tiles(depth_texture, false);
         downsample(color_texture, depth_texture, false);
-        main_filter(false);
+        apply_main_filter(false);
         upsample(rt, color_texture, depth_texture, false);
 
         shader::unbind();
@@ -299,8 +299,8 @@ namespace renderer {
         gl_state_end_event();
     }
 
-    void DOF3::main_filter(bool f2) {
-        gl_state_begin_event("renderer::DOF3::main_filter");
+    void DOF3::apply_main_filter(bool f2) {
+        gl_state_begin_event("renderer::DOF3::apply_main_filter");
         gl_state_bind_framebuffer(fbo[3].buffer);
         glViewport(0, 0, fbo[3].width, fbo[3].height);
         uniform_value[U_DOF_STAGE] = 3;
