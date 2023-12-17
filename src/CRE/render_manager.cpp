@@ -10,6 +10,7 @@
 #include "light_param/light.hpp"
 #include "rob/rob.hpp"
 #include "clear_color.hpp"
+#include "effect.hpp"
 #include "gl_state.hpp"
 #include "render.hpp"
 #include "render_context.hpp"
@@ -17,7 +18,6 @@
 #include "shader_ft.hpp"
 #include "sprite.hpp"
 #include "static_var.hpp"
-#include "task_effect.hpp"
 #include "texture.hpp"
 
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);

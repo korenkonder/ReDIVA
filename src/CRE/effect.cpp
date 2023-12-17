@@ -3,17 +3,26 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "task_effect.hpp"
+#include "effect.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/hash.hpp"
+#include "../KKdLib/mat.hpp"
+#include "GL/array_buffer.hpp"
 #include "GL/element_array_buffer.hpp"
+#include "GL/shader_storage_buffer.hpp"
+#include "GL/uniform_buffer.hpp"
+#include "rob/rob.hpp"
 #include "auth_3d.hpp"
 #include "data.hpp"
 #include "gl_state.hpp"
 #include "random.hpp"
+#include "render_texture.hpp"
 #include "render_context.hpp"
 #include "render_manager.hpp"
 #include "shader_ft.hpp"
+#include "stage.hpp"
+#include "stage_param.hpp"
+#include "task.hpp"
 #include "texture.hpp"
 
 struct particle_init_data {
@@ -30,9 +39,9 @@ public:
     virtual ~TaskEffect() override;
 
     virtual void pre_init(int32_t stage_index);
-    virtual void set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
+    virtual void set_stage_hashes(const std::vector<uint32_t>& stage_hashes, void* data,
         object_database* obj_db, texture_database* tex_db, stage_database* stage_data); // Added
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices);
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices);
     virtual void set_frame(int32_t value);
     virtual void field_48();
     virtual void set_enable(bool value);
@@ -59,16 +68,18 @@ struct struc_621 {
     ~struc_621();
 };
 
-struct TaskEffectAuth3D : public TaskEffect {
-public:
-    struct Stage {
-        size_t count;
-        size_t max_count;
-        auth_3d_id* auth_3d_ids_ptr;
-        auth_3d_id auth_3d_ids[TASK_STAGE_STAGE_COUNT];
+struct EffectAuth3d {
+    size_t count;
+    size_t max_count;
+    auth_3d_id* auth_3d_ids_ptr;
+    auth_3d_id auth_3d_ids[TASK_STAGE_STAGE_COUNT];
 
-        Stage();
-    } stage;
+    EffectAuth3d();
+};
+
+class TaskEffectAuth3D : public TaskEffect {
+public:
+    EffectAuth3d stage;
     bool enable;
     std::vector<struc_621> field_120;
     uint32_t current_stage_hash; // Added
@@ -90,9 +101,9 @@ public:
     virtual void disp() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
+    virtual void set_stage_hashes(const std::vector<uint32_t>& stage_hashes, void* data,
         object_database* obj_db, texture_database* tex_db, stage_database* stage_data) override; // Added
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_frame(int32_t value) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_hash(uint32_t value) override; // Added
@@ -104,25 +115,28 @@ public:
     void set_visibility(bool value);
 };
 
-struct TaskEffectFogAnim : public TaskEffect {
+struct EffectFogAnim {
+    bool field_0;
+    int32_t field_4;
+    bool field_8;
+    float_t field_C[3];
+    float_t field_18[3];
+    float_t field_24;
+    int32_t field_28;
+    int32_t field_2C;
+    int32_t field_30;
+    vec4 field_34;
+
+    EffectFogAnim();
+    ~EffectFogAnim();
+
+    void ctrl();
+    void reset();
+};
+
+class TaskEffectFogAnim : public TaskEffect {
 public:
-    struct Data {
-        bool field_0;
-        int32_t field_4;
-        bool field_8;
-        float_t field_C[3];
-        float_t field_18[3];
-        float_t field_24;
-        int32_t field_28;
-        int32_t field_2C;
-        int32_t field_30;
-        vec4 field_34;
-
-        Data();
-
-        void ctrl();
-        void reset();
-    } data;
+    EffectFogAnim  data;
 
     TaskEffectFogAnim();
     virtual ~TaskEffectFogAnim() override;
@@ -147,8 +161,11 @@ struct fog_ring_data {
 };
 
 struct point_particle_data {
-    vec2 position;
+    vec3 position;
+    float_t size;
     vec4 color;
+
+    point_particle_data();
 };
 
 struct struc_371 {
@@ -170,55 +187,57 @@ struct struc_573 {
     struc_573();
 };
 
-struct TaskEffectFogRing : public TaskEffect {
+struct EffectFogRing {
+    bool enable;
+    float_t delta_frame;
+    bool field_8;
+    float_t ring_size;
+    vec3 wind_dir;
+    int32_t tex_id;
+    vec4 color;
+    float_t ptcl_size;
+    int32_t max_ptcls;
+    int32_t num_ptcls;
+    float_t density;
+    float_t density_offset;
+    fog_ring_data* ptcl_data;
+    int32_t num_vtx;
+    struc_573 field_5C[2][5];
+    int32_t field_124;
+    struc_371 field_128[10];
+    int8_t field_2B8;
+    int8_t field_2B9;
+    bool display;
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+    FrameRateControl* frame_rate_control;
+    GL::ShaderStorageBuffer ssbo;
+
+    EffectFogRing();
+    ~EffectFogRing();
+
+    void calc_ptcl(float_t delta_time);
+    void calc_vert();
+    void ctrl();
+    void ctrl_inner(float_t delta_time);
+    void dest();
+    void disp();
+    void draw();
+    void init_particle_data();
+    void restart_effect();
+    void set_stage_indices(const std::vector<int32_t>& stage_indices);
+
+    static void draw_static(void* data);
+    static float_t ptcl_random(float_t value);
+
+    void sub_140347B40(float_t delta_time);
+
+    static void sub_140347860(fog_ring_data* a1, int32_t a2, struc_371* a3, float_t a4);
+};
+
+class TaskEffectFogRing : public TaskEffect {
 public:
-    struct Data {
-        bool enable;
-        float_t delta_frame;
-        bool field_8;
-        float_t ring_size;
-        vec3 wind_dir;
-        int32_t tex_id;
-        vec4 color;
-        float_t ptcl_size;
-        int32_t max_ptcls;
-        int32_t num_ptcls;
-        float_t density;
-        float_t density_offset;
-        fog_ring_data* ptcl_data;
-        int32_t num_vtx;
-        struc_573 field_5C[2][5];
-        int32_t field_124;
-        struc_371 field_128[10];
-        int8_t field_2B8;
-        int8_t field_2B9;
-        bool display;
-        int32_t current_stage_index;
-        std::vector<int32_t> stage_indices;
-        FrameRateControl* frame_rate_control;
-        GL::ShaderStorageBuffer ssbo;
-
-        Data();
-        ~Data();
-
-        void calc_ptcl(float_t delta_time);
-        void calc_vert();
-        void ctrl();
-        void ctrl_inner(float_t delta_time);
-        void dest();
-        void disp();
-        void draw();
-        void init_particle_data();
-        void reset();
-        void set_stage_indices(std::vector<int32_t>& stage_indices);
-
-        static void draw_static(void* data);
-        static float_t ptcl_random(float_t value);
-
-        void sub_140347B40(float_t delta_time);
-
-        static void sub_140347860(fog_ring_data* a1, int32_t a2, struc_371* a3, float_t a4);
-    } data;
+    EffectFogRing data;
 
     TaskEffectFogRing();
     virtual ~TaskEffectFogRing() override;
@@ -229,14 +248,14 @@ public:
     virtual void disp() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
     virtual void reset() override;
 };
 
-struct TaskEffectLeaf : public TaskEffect {
+class TaskEffectLeaf : public TaskEffect {
 public:
     FrameRateControl* frame_rate_control;
     int32_t current_stage_index;
@@ -252,14 +271,14 @@ public:
     virtual void disp() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
     virtual void reset() override;
 };
 
-struct TaskEffectLitproj : public TaskEffect {
+class TaskEffectLitproj : public TaskEffect {
 public:
     int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
@@ -277,13 +296,13 @@ public:
     virtual void disp() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void reset() override;
 };
 
-struct TaskEffectParticle : public TaskEffect {
+class TaskEffectParticle : public TaskEffect {
 public:
     FrameRateControl* frame_rate_control;
     int32_t current_stage_index;
@@ -303,7 +322,7 @@ public:
     virtual void event(int32_t event_type, void* data) override;
 };
 
-struct TaskEffectRain : public TaskEffect {
+class TaskEffectRain : public TaskEffect {
 public:
     FrameRateControl* frame_rate_control;
     int32_t current_stage_index;
@@ -318,7 +337,7 @@ public:
     virtual void disp() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
@@ -329,7 +348,7 @@ struct ripple_struct {
     int32_t ripple_uniform;
     int32_t ripple_emit_uniform;
     int32_t count;
-    vec3* vertex;
+    vec3* position;
     color4u8* color;
     float_t size;
     int32_t field_24;
@@ -337,7 +356,7 @@ struct ripple_struct {
 
 struct ripple_emit_draw_data {
     ripple_struct data;
-    vec3 vertex[16];
+    vec3 position[16];
     color4u8 color[16];
 
     ripple_emit_draw_data();
@@ -365,7 +384,7 @@ struct ripple_emit_params {
     ripple_emit_params();
 };
 
-struct ripple_emit {
+struct EffectRipple {
     float_t delta_frame;
     bool update;
     int32_t rain_ripple_num;
@@ -399,18 +418,18 @@ struct ripple_emit {
     int32_t current_stage_index;
     std::vector<int32_t> stage_indices;
 
-    ripple_emit();
-    ~ripple_emit();
+    EffectRipple();
+    ~EffectRipple();
 
-    void add_draw_ripple_emit(ripple_struct* data);
     void clear_tex();
     void ctrl();
     void dest();
     void disp();
+    void disp_particles(ripple_struct* data);
     void draw();
     void reset();
     void set_stage_index(int32_t stage_index);
-    void set_stage_indices(std::vector<int32_t>& stage_indices);
+    void set_stage_indices(const std::vector<int32_t>& stage_indices);
     void set_stage_param(stage_param_ripple* ripple);
 
     static void draw_static(void* data);
@@ -422,11 +441,11 @@ struct ripple_emit {
     void sub_14035AED0();
 };
 
-struct TaskEffectRipple : public TaskEffect {
+class TaskEffectRipple : public TaskEffect {
 public:
     int64_t field_68;
     FrameRateControl* frame_rate_control;
-    ripple_emit* emit;
+    EffectRipple* emit;
 
     TaskEffectRipple();
     virtual ~TaskEffectRipple() override;
@@ -437,13 +456,13 @@ public:
     virtual void disp() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
     virtual void reset() override;
 };
 
-struct TaskEffectSnow : public TaskEffect {
+class TaskEffectSnow : public TaskEffect {
 public:
     FrameRateControl* frame_rate_control;
     int32_t current_stage_index;
@@ -459,7 +478,7 @@ public:
     virtual void basic() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
@@ -469,12 +488,14 @@ public:
 struct splash_particle_data {
     vec3 position;
     vec3 direction;
-    float_t field_18;
+    float_t size;
     float_t life_time;
     float_t field_20;
     int32_t index;
-    int32_t field_28;
-    float_t field_2C;
+    uint32_t flags;
+    float_t alpha;
+
+    splash_particle_data();
 };
 
 struct splash_particle {
@@ -486,12 +507,20 @@ struct splash_particle {
 
     splash_particle();
     ~splash_particle();
+
+    void ctrl(float_t delta_time);
+    splash_particle_data* emit();
+    void free();
+    void init(int32_t count);
+    void kill(int32_t index);
+    void reset();
+    void restart();
 };
 
 struct ParticleEmitter {
     splash_particle* splash;
     vec3 trans;
-    int field_1C;
+    int32_t field_1C;
     float_t field_20;
     int field_24;
     float_t field_28;
@@ -500,28 +529,37 @@ struct ParticleEmitter {
     ParticleEmitter();
     virtual ~ParticleEmitter();
 
-    virtual bool field_8();
-    virtual bool field_10();
+    virtual void ctrl(float_t delta_time);
+    virtual void restart();
+
+    void reset_data();
 };
 
 struct ParticleEmitterRob : ParticleEmitter {
-    int32_t field_30;
-    int32_t field_34;
-    int32_t field_38;
-    int32_t field_3C;
-    int32_t field_40;
-    int32_t field_44;
-    int32_t field_48;
-    int32_t field_4C;
-    int32_t field_50;
-    int32_t field_54;
-    int32_t field_58;
+    int32_t chara_id;
+    int32_t bone_index;
+    vec3 prev_trans;
+    vec3 velocity;
+    vec3 prev_velocity;
     int32_t emit_num;
-    int32_t field_60;
+    float_t field_60;
     float_t emission_ratio_attn;
     float_t emission_velocity_scale;
     bool in_water;
-    int8_t field_6D;
+    bool init_trans;
+
+    ParticleEmitterRob();
+    virtual ~ParticleEmitterRob() override;
+
+    virtual void ctrl(float_t delta_time) override;
+    virtual void restart() override;
+
+    void get_velocity(float_t delta_time);
+    void get_trans();
+    void reset_data();
+    void reset_data_base();
+    void set_chara(int32_t chara_id, int32_t bone_index, bool in_water);
+    void set_splash(splash_particle* value);
 };
 
 struct water_particle {
@@ -531,15 +569,23 @@ struct water_particle {
     int32_t splash_count;
     std::vector<point_particle_data> ptcl_data;
     int32_t count;
-    int32_t tex_id;
+    int32_t splash_tex_id;
     bool blink;
     std::vector<vec3> position_data;
     std::vector<color4u8> color_data;
     ripple_struct ripple;
     float_t ripple_emission;
+    GL::ShaderStorageBuffer ssbo;
 
     water_particle();
     ~water_particle();
+
+    void ctrl();
+    void disp();
+    void draw(mat4* mat);
+    void free();
+    void reset();
+    void set(splash_particle* splash, int32_t splash_tex_id);
 };
 
 struct ParticleDispObj {
@@ -550,52 +596,82 @@ struct ParticleDispObj {
     ParticleDispObj();
     virtual ~ParticleDispObj();
 
-    void Disp();
+    virtual void disp();
+
+    void init(splash_particle* splash, object_info obj_info);
+    void reset();
 };
 
-struct TaskEffectSplash : public TaskEffect {
+struct EffectSplashParticle {
+    int32_t splash_count;
+    splash_particle* splash;
+    int32_t emitter_rob_count;
+    ParticleEmitterRob* emitter_rob;
+    int32_t water_ptcl_count;
+    water_particle* water_ptcl;
+    bool has_splash_object;
+    splash_particle splash_object;
+    int32_t object_emitter_rob_count;
+    ParticleEmitterRob* object_emitter_rob;
+    ParticleDispObj particle_disp_obj;
+    vec4 color;
+    float_t particle_size;
+    int32_t emit_num;
+    float_t ripple_emission;
+    float_t emission_ratio_attn;
+    float_t emission_velocity_scale;
+    int32_t splash_tex_id;
+    object_info splash_obj_id;
+    bool in_water;
+    bool blink;
+    int64_t rob_ctrl_time;
+    int64_t ptcl_ctrl_time;
+    int64_t ptcl_disp_time;
+
+    EffectSplashParticle();
+    ~EffectSplashParticle();
+
+    void ctrl(float_t delta_time);
+    void dest();
+    void disp();
+    bool init(int32_t splash_tex_id, object_info splash_obj_id, bool in_water, bool blink);
+    void reset();
+    void restart();
+    void set_color(const vec4& value);
+    void set_emission_ratio_attn(float_t value);
+    void set_emission_velocity_scale(float_t value);
+    void set_emit_num(int32_t value);
+    void set_particle_size(float_t value);
+    void set_ripple_emission(float_t value);
+};
+
+struct EffectSplash {
+    bool restart;
+    int32_t stage_index;
+    bool field_8;
+    EffectSplashParticle particle;
+    bool field_110;
+    int32_t current_stage_index;
+    std::vector<int32_t> stage_indices;
+    FrameRateControl* frame_rate_control;
+    int64_t field_138;
+
+    EffectSplash();
+    ~EffectSplash();
+
+    void ctrl(float_t delta_time);
+    void dest();
+    void disp();
+    void reset();
+    void restart_effect();
+    void set_current_stage_index(int32_t value);
+    void set_stage_indices(const std::vector<int32_t>& stage_indices);
+};
+
+class TaskEffectSplash : public TaskEffect {
 public:
-    struct Data {
-        struct Sub {
-            int32_t field_0;
-            splash_particle* field_8;
-            int32_t field_10;
-            ParticleEmitterRob* field_18;
-            int32_t field_20;
-            water_particle* field_28;
-            int8_t field_30;
-            splash_particle field_38;
-            int32_t field_78;
-            ParticleEmitterRob* field_80;
-            ParticleDispObj field_88;
-            vec4 color;
-            float_t particle_size;
-            int32_t emit_num;
-            float_t ripple_emission;
-            float_t emission_ratio_attn;
-            float_t emission_velocity_scale;
-            int32_t splash_tex_id;
-            object_info splash_obj_id;
-            int8_t in_water;
-            int8_t blink;
-            int64_t field_E8;
-            int64_t field_F0;
-            int64_t field_F8;
-        };
-
-        int8_t field_0;
-        int32_t field_4;
-        int8_t field_8;
-        Sub field_10;
-        int8_t field_110;
-        int32_t current_stage_index;
-        std::vector<int32_t> stage_indices;
-        FrameRateControl* frame_rate_control;
-        int64_t field_138;
-    };
-
     bool enable;
-    Data data;
+    EffectSplash data;
 
     TaskEffectSplash();
     virtual ~TaskEffectSplash() override;
@@ -604,26 +680,16 @@ public:
     virtual bool ctrl() override;
     virtual bool dest() override;
     virtual void disp() override;
-    virtual void basic() override;
 
     virtual void pre_init(int32_t stage_index) override;
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
-    virtual void set_frame(int32_t value) override;
-    virtual void field_48() override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
-    virtual void field_68() override;
     virtual void reset() override;
-    virtual void field_80() override;
-    virtual void field_88() override;
-    virtual void field_90() override;
-    virtual void field_98(int32_t a2, int32_t* a3) override;
-    virtual void field_A0(int32_t a2, int32_t* a3) override;
-    virtual void field_A8(int32_t a2, int8_t* a3) override;
 };
 
-struct TaskEffectStar : public TaskEffect {
+class TaskEffectStar : public TaskEffect {
 public:
     FrameRateControl* frame_rate_control;
     int32_t current_stage_index;
@@ -638,7 +704,7 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 
-    virtual void set_stage_indices(std::vector<int32_t>& stage_indices) override;
+    virtual void set_stage_indices(const std::vector<int32_t>& stage_indices) override;
     virtual void set_enable(bool value) override;
     virtual void set_current_stage_index(int32_t value) override;
     virtual void set_frame_rate_control(FrameRateControl* value = 0) override;
@@ -853,10 +919,17 @@ struct star_catalog {
     static void parse_data(std::vector<stars_buffer_data>& vec, size_t data);
 };
 
+struct water_particle_scene_shader_data {
+    vec4 g_transform[4];
+    vec4 g_view_world_row2;
+    vec4 g_size_in_projection;
+    vec4 g_state_point_attenuation;
+};
+
 struct struc_608 {
     const stage_effects* stage_effects;
     const stage_effects_modern* stage_effects_modern;
-    prj::vector_pair<TaskEffectType, TaskEffect*> field_10;
+    prj::vector_pair<EffectType, TaskEffect*> field_10;
 
     struc_608();
     struc_608(const ::stage_effects* stage_effects);
@@ -864,14 +937,15 @@ struct struc_608 {
     ~struc_608();
 };
 
-struct TaskEffectParent {
+class EffectManager {
+public:
     uint32_t current_stage_hash; // Added
     int32_t current_stage_index;
     std::vector<uint32_t> stage_hashes; // Added
     std::vector<int32_t> stage_indices;
     std::vector<uint32_t> obj_set_ids;
-    prj::vector_pair<TaskEffectType, TaskEffect*> effects;
-    prj::vector_pair<TaskEffectType, TaskEffect*> field_50;
+    prj::vector_pair<EffectType, TaskEffect*> effects;
+    prj::vector_pair<EffectType, TaskEffect*> field_50;
     prj::vector_pair<int32_t, struc_608> field_68;
     int32_t state;
     bool enable;
@@ -882,12 +956,12 @@ struct TaskEffectParent {
     texture_database* tex_db; // Added
     stage_database* stage_data; // Added
 
-    TaskEffectParent();
-    virtual ~TaskEffectParent();
+    EffectManager();
+    virtual ~EffectManager();
 
-    std::pair<TaskEffectType, TaskEffect*> add_effect(TaskEffectType type);
-    int32_t check_effect_loaded(TaskEffectType type);
-    void event(TaskEffectType type, int32_t event_type, void* data);
+    std::pair<EffectType, TaskEffect*> add_effect(EffectType type);
+    int32_t check_effect_loaded(EffectType type);
+    void event(EffectType type, int32_t event_type, void* data);
     void dest();
     bool load();
     void reset();
@@ -897,9 +971,77 @@ struct TaskEffectParent {
     void set_enable(bool value);
     void set_frame(int32_t value);
     void set_frame_rate_control(FrameRateControl* value);
-    void set_stage_hashes(std::vector<uint32_t>& stage_hashes); // Added
-    void set_stage_indices(std::vector<int32_t>& stage_indices);
+    void set_stage_hashes(const std::vector<uint32_t>& stage_hashes); // Added
+    void set_stage_indices(const std::vector<int32_t>& stage_indices);
     bool unload();
+};
+
+static const uint32_t flt_1409E59C0[] = {
+    0x3ED7136A, 0x3F3C6690, 0x3E9974E6, 0x3EB68B1A, 0x3E508701, 0x3F39A21F, 0x3D641B33, 0x3F1DB37D,
+    0x3F0B4D6A, 0x3F51450F, 0x3F21450F, 0x3F21AB4B, 0x3F012F6F, 0x3ED136A4, 0x3F6AE925, 0x3F4EB702,
+    0x3DE872B0, 0x3E11F601, 0x3F0CDDD7, 0x3E69691A, 0x3EA8201D, 0x3DEA2B17, 0x3F058256, 0x3ED16DB1,
+    0x3EA9EECC, 0x3F253C36, 0x3F406AD3, 0x3EA9AFE2, 0x3F6F4FB5, 0x3F65729B, 0x3F481ADF, 0x3F575CD1,
+    0x3DFDF3B6, 0x3C804966, 0x3F293E81, 0x3F407011, 0x3E54A4D3, 0x3EC78FEF, 0x3DEF2F98, 0x3F2D1ACA,
+    0x3EDA9A80, 0x3F3A7137, 0x3F339EAE, 0x3E476C8B, 0x3D8EA4A9, 0x3EDB1EE2, 0x3D8B2420, 0x3DC902DE,
+    0x3ECF290B, 0x3EDB5200, 0x3F3EF9DB, 0x3F7DE4A4, 0x3E215769, 0x3F3B4C1B, 0x3F2A53B9, 0x3F4D6E05,
+    0x3B80C73B, 0x3F439192, 0x3E52DA12, 0x3F0421C0, 0x3F15C9C5, 0x3CB851EC, 0x3EAC8F32, 0x3E60980B,
+    0x3EB07358, 0x3EF26D48, 0x3F167DFE, 0x3F4C4E51, 0x3EA1244A, 0x3EACDB38, 0x3F1EA359, 0x3EB00150,
+    0x3F253F7D, 0x3EDA6613, 0x3F262C13, 0x3B42A455, 0x3F68850A, 0x3BA771C9, 0x3F255715, 0x3F682FD7,
+    0x3F2AEB1C, 0x3DF6E2EB, 0x3F1DC098, 0x3E3BA5E3, 0x3F75551D, 0x3F79081C, 0x3F360568, 0x3F268D11,
+    0x3F25104D, 0x3DE63737, 0x3F0BFC65, 0x3F6339C1, 0x3F06DFA4, 0x3F47E282, 0x3EF4039B, 0x3F54E50C,
+    0x3EDDAE3E, 0x3F41EECC, 0x3E561BB0, 0x3EC760BF, 0x3F50A1E0, 0x3F4ABB45, 0x3E9758E2, 0x3DBC5AC4,
+    0x3EE8B6D8, 0x3F7CB1EE, 0x3ED7C30D, 0x3EF4AF4F, 0x3F1A6762, 0x3EF4CAD5, 0x3F1C3B4F, 0x3EA1D14E,
+    0x3DE5CE5B, 0x3CC2A455, 0x3E817050, 0x3F128A1E, 0x3F2C039B, 0x3F1644FA, 0x3F159E84, 0x3EF1A75D,
+    0x3EEC6690, 0x3F280150, 0x3F6DEA89, 0x3E48FB01, 0x3EA1EB85, 0x3E30E022, 0x3F55E9E2, 0x3F385879,
+    0x3F0BD3C3, 0x3F5BC750, 0x3F06B463, 0x3E508462, 0x3DA1E4F7, 0x3DD3458D, 0x3F477C46, 0x3F36872B,
+    0x3F643611, 0x3F795183, 0x3F2A34EC, 0x3E7DF8F4, 0x3C804966, 0x3F6154CA, 0x3F6C73AC, 0x3E194318,
+    0x3F1EAB36, 0x3E8B1855, 0x3F6A862F, 0x3EEE718B, 0x3F511149, 0x3F1D2935, 0x3DEC3223, 0x3ECF3776,
+    0x3E905BC0, 0x3F1ECFEA, 0x3F71FA98, 0x3C8476F3, 0x3EBB76B4, 0x3F0068DC, 0x3F44764B, 0x3EAFA6DF,
+    0x3EE41355, 0x3F3D197A, 0x3EB4B5DD, 0x3E6CEC42, 0x3EC07747, 0x3F516B12, 0x3EE60807, 0x3EAE2C13,
+    0x3E2C9D9D, 0x3D0769EC, 0x3F3921AB, 0x3F06F7E4, 0x3DDF2BAA, 0x3F42708F, 0x3D4BDBA1, 0x3E0A86D7,
+    0x3F0DE892, 0x3C77B9E0, 0x3F2E5FD9, 0x3F0C3BF7, 0x3EFD6777, 0x3F0B8C54, 0x3EF7DE94, 0x3E457A78,
+    0x3F56D289, 0x3EF0EA9E, 0x3F44EB9A, 0x3DCA8C15, 0x3F26A4A9, 0x3F759E84, 0x3E8C710D, 0x3F5B1D93,
+    0x3EDA5F85, 0x3F44A2DB, 0x3F6D729B, 0x3F0584F5, 0x3F1B3EFF, 0x3EE72474, 0x3EB169C2, 0x3DFCD899,
+    0x3E290ABB, 0x3ED5753A, 0x3ED65E89, 0x3EEB9CB7, 0x3F0D5CFB, 0x3EFC764B, 0x3EC90D5A, 0x3F7EA0BA,
+    0x3F26147B, 0x3F4B3C60, 0x3EC46B27, 0x3F00D5A6, 0x3F06E979, 0x3F2A8049, 0x3E19ED7C, 0x3F6CE9A3,
+    0x3F56DD05, 0x3F76E4E2, 0x3F27A637, 0x3F636849, 0x3CE78184, 0x3F38CFC0, 0x3F631A4C, 0x3F6BCC8E,
+    0x3E42EDBB, 0x3F1D6D5D, 0x3E3D1783, 0x3F5F6A94, 0x3EB48E8A, 0x3F69B670, 0x3DD7B741, 0x3C3851EC,
+    0x3F2FBDCF, 0x3EF89DF1, 0x3EB9B90F, 0x3EFF41F2, 0x3EE9DB23, 0x3E64FA05, 0x3F018B2F, 0x3ECDEBD9,
+    0x3F7A7914,
+};
+
+static const uint32_t flt_1409E5D90[] = {
+    0xBE23B257, 0x3EF19A41, 0xBECD1633, 0xBE92E9CD, 0xBF17BC7F, 0x3EE6887B, 0xBF637C9A, 0x3E6D9E84,
+    0x3DB4D6A1, 0x3F228A1E, 0x3E85143C, 0x3E86AD2E, 0x3C17B741, 0xBE3B22D1, 0x3F55D24A, 0x3F1D6E05,
+    0xBF45E354, 0xBF3704FF, 0x3DCDDD6E, 0xBF0B4C1B, 0xBEAFBE77, 0xBF45753A, 0x3D30403A, 0xBE3A4BDC,
+    0xBEAC2268, 0x3E94F0D8, 0x3F00D5A6, 0xBEACA03C, 0x3F5EA012, 0x3F4AE5DE, 0x3F103516, 0x3F2EB9A1,
+    0xBF408312, 0xBF77FB6A, 0x3EA4F8B6, 0x3F00E022, 0xBF15AD97, 0xBE61BDA5, 0xBF44341A, 0x3EB46C76,
+    0xBE1595FF, 0x3EE9C4DB, 0x3ECE7968, 0xBF1C4913, 0xBF5C577E, 0xBE138716, 0xBF5D3650, 0xBF4DBF48,
+    0xBE435936, 0xBE12B7FE, 0x3EFBE76D, 0x3F7BC9EF, 0xBF2F544C, 0x3EED31BA, 0x3EA94D94, 0x3F1ADCB1,
+    0xBF7DFD8B, 0x3F0723CD, 0xBF1692F7, 0x3D042D8C, 0x3E2E50C6, 0xBF747AE1, 0xBEA6E19C, 0xBF0FB353,
+    0xBE9F1AA0, 0xBD592B80, 0x3E33EFF2, 0x3F189D49, 0xBEBDB8BB, 0xBEA64990, 0x3E751D69, 0xBE9FFEB0,
+    0x3E94FCA4, 0xBE1667B6, 0x3E98B04B, 0xBF7E7A10, 0x3F51096C, 0xBF7D6191, 0x3E955B03, 0x3F505FAF,
+    0x3EABAC71, 0xBF424745, 0x3E6E075F, 0xBF222DB6, 0x3F6AAA3B, 0x3F7210E0, 0x3ED815A0, 0x3E9A3593,
+    0x3E944135, 0xBF46718B, 0x3DBFC116, 0x3F467382, 0x3D5BF488, 0x3F0FC5AC, 0xBD3FC654, 0x3F29CAC1,
+    0xBE0949A5, 0x3F03DD98, 0xBF14F228, 0xBE627FA2, 0x3F2143BF, 0x3F15768A, 0xBED14F8B, 0xBF50E8A7,
+    0xBDBA493D, 0x3F796484, 0xBE20F66A, 0xBD350B0F, 0x3E533B10, 0xBD3352A8, 0x3E61DA7B, 0xBEBC5D64,
+    0xBF468C69, 0xBF73D5BB, 0xBEFD1F60, 0x3E1450F0, 0x3EB00D1B, 0x3E322A6F, 0x3E2CF41F, 0xBD658A33,
+    0xBD9CC63F, 0x3EA0053E, 0x3F5BD46B, 0xBF1B81D8, 0xBEBC2A45, 0xBF278FEF, 0x3F2BD46B, 0x3EE161E5,
+    0x3DBD3C36, 0x3F378F47, 0x3D568C69, 0xBF17BE77, 0xBF57876A, 0xBF4B2F45, 0x3F0EF88C, 0x3EDA1DFC,
+    0x3F486C22, 0x3F72A25E, 0x3EA8D25F, 0xBF010386, 0xBF77FB6A, 0x3F42A8EB, 0x3F58E758, 0xBF335F1C,
+    0x3E755C53, 0xBEE9D0A6, 0x3F550C5F, 0xBD8C73AC, 0x3F2221EA, 0x3E6949A5, 0xBF44F2D0, 0xBE432229,
+    0xBEDF4880, 0x3E7681ED, 0x3F63F5D8, 0xBF77B7E9, 0xBE891149, 0x3B525EDD, 0x3F08EC96, 0xBEA0B242,
+    0xBDDF6556, 0x3EF46499, 0xBE969446, 0xBF0989DF, 0xBE7E22E6, 0x3F22D624, 0xBDCFBFC6, 0xBEA3A68B,
+    0xBF29B131, 0xBF6F12C2, 0x3EE4855E, 0x3D5EFC7A, 0xBF483516, 0x3F04E11E, 0xBF6683E4, 0xBF3ABC94,
+    0x3DDE8E61, 0xBF784231, 0x3EB97F63, 0x3DC3BA34, 0xBC26223E, 0x3DB8C005, 0xBD022142, 0xBF1D42C4,
+    0x3F2DA5B9, 0xBD716095, 0x3F09D7DC, 0xBF4D5CFB, 0x3E9A93F3, 0x3F6B3C60, 0xBEE71DE7, 0x3F363B25,
+    0xBE16848C, 0x3F0945B7, 0x3F5AE536, 0x3D30A915, 0x3E59F7F9, 0xBDC6DC5D, 0xBE9D2C7C, 0xBF40CA82,
+    0xBF2B7AA2, 0xBE2A2878, 0xBE26887B, 0xBDA31A4C, 0x3DD5CFAB, 0xBC629739, 0xBE5BC7F7, 0x3F7D4174,
+    0x3E9851EC, 0x3F1678C0, 0xBE6E5365, 0x3BD5F99C, 0x3D5D2F1B, 0x3EAA0275, 0xBF3309EA, 0x3F59D346,
+    0x3F2DBA0A, 0x3F6DC91D, 0x3E9E98DD, 0x3F46D139, 0xBF7187E8, 0x3EE33DB0, 0x3F4633F0, 0x3F57991C,
+    0xBF1E8922, 0x3E6B6AE8, 0xBF2174E6, 0x3F3ED528, 0xBE96E2EB, 0x3F536CDF, 0xBF4A1230, 0xBF7A3CC9,
+    0x3EBEF73C, 0xBCEC2CE4, 0xBE8C8C93, 0xBB3EB5B3, 0xBDB126E9, 0xBF0D8256, 0x3C45974E, 0xBE48533B,
+    0x3F74F228,
 };
 
 static TaskEffectAuth3D* task_effect_auth_3d;
@@ -914,11 +1056,11 @@ static TaskEffectParticle* task_effect_particle;
 static TaskEffectLitproj* task_effect_litproj;
 static TaskEffectStar* task_effect_star;
 
-static TaskEffectParent* task_effect_parent;
+static EffectManager* effect_manager;
 
-static TaskEffectFogAnim::Data* task_effect_fog_anim_data;
-static TaskEffectFogRing::Data* task_effect_fog_ring_data;
-static TaskEffectSplash::Data* task_effect_splash_data;
+static EffectFogAnim* effect_fog_anim;
+static EffectFogRing* effect_fog_ring;
+static EffectSplash* effect_splash;
 
 static stage_param_leaf* stage_param_data_leaf_current;
 static bool stage_param_data_leaf_set;
@@ -968,11 +1110,10 @@ static const size_t rain_ptcl_count = 0x8000;
 
 static GL::UniformBuffer ripple_batch_ubo;
 static GL::UniformBuffer ripple_scene_ubo;
-
-static ripple_emit* ripple_emit_data;
-
+static EffectRipple* effect_ripple;
 static GL::ShaderStorageBuffer ripple_emit_ssbo;
 static GL::UniformBuffer ripple_emit_scene_ubo;
+static size_t ripple_emit_count = 5000;
 
 static stage_param_snow* stage_param_data_snow_current;
 static bool stage_param_data_snow_set;
@@ -998,6 +1139,13 @@ static const size_t snow_ptcl_fallen_count = 0x2000;
 
 static star_catalog star_catalog_data;
 
+static GL::ShaderStorageBuffer water_ssbo;
+static GL::UniformBuffer water_particle_scene_ubo;
+static float_t flt_140C9A588 = 2.0f;
+
+static int32_t dword_141195E48 = 0;
+static int32_t dword_141195E4C = 0;
+
 static TaskEffect** task_effect_data_array[] = {
     (TaskEffect**)&task_effect_auth_3d,
     0,
@@ -1011,7 +1159,7 @@ static TaskEffect** task_effect_data_array[] = {
     0,
     0,
     0,
-    0/*(TaskEffect**)&task_effect_splash*/,
+    (TaskEffect**)&task_effect_splash,
     0,
     (TaskEffect**)&task_effect_fog_anim,
     0,
@@ -1022,7 +1170,7 @@ static TaskEffect** task_effect_data_array[] = {
     (TaskEffect**)&task_effect_star,
 };
 
-static const char* task_effect_name_array[] = {
+static const char* effect_name_array[] = {
     "EFFECT_AUTH3D",
     0,
     "EFFECT_LEAF",
@@ -1050,21 +1198,23 @@ extern render_context* rctx_ptr;
 extern int32_t width;
 extern int32_t height;
 
-static TaskEffect* task_effect_array_get(TaskEffectType type, const char** name);
-static std::string task_effect_array_get_stage_param_file_path(
-    TaskEffectType type, int32_t stage_index, bool dev_ram, bool a4);
-static bool task_effect_array_parse_stage_param_data_fog_ring(stage_param_fog_ring* fog_ring, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_leaf(stage_param_leaf* leaf, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_litproj(stage_param_litproj* litproj, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_rain(stage_param_rain* rain, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_ripple(stage_param_ripple* ripple, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index);
-static bool task_effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index);
+static TaskEffect* effect_array_get(EffectType type, const char** name);
+static std::string effect_array_get_stage_param_file_path(
+    EffectType type, int32_t stage_index, bool dev_ram, bool a4);
+static bool effect_array_parse_stage_param_data_fog_ring(stage_param_fog_ring* fog_ring, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_leaf(stage_param_leaf* leaf, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_litproj(stage_param_litproj* litproj, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_rain(stage_param_rain* rain, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_ripple(stage_param_ripple* ripple, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index);
+static bool effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index);
 
-static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* data);
+static void draw_fog_particle(EffectFogRing* data, mat4* mat);
 
-static void draw_ripple_emit(render_context* rctx, ripple_struct* data);
+static void draw_ripple_particles(ripple_struct* data, mat4* mat);
+
+static void draw_water_particle(water_particle* data, mat4* mat);
 
 static void leaf_particle_init(bool change_stage = false);
 static void leaf_particle_ctrl();
@@ -1096,6 +1246,9 @@ static void snow_particle_data_free();
 static particle_data* snow_particle_emit_fallen();
 static vec3 snow_particle_get_random_velocity();
 static void snow_particle_free();
+
+static void water_particle_init();
+static void water_particle_free();
 
 static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params);
 static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
@@ -1353,7 +1506,7 @@ void star_catalog_draw() {
     star_catalog_data.draw();
 }
 
-void task_effect_init() {
+void effect_init() {
     if (!task_effect_auth_3d)
         task_effect_auth_3d = new TaskEffectAuth3D;
 
@@ -1369,8 +1522,8 @@ void task_effect_init() {
     if (!task_effect_rain)
         task_effect_rain = new TaskEffectRain;
 
-    /*if (!task_effect_splash)
-        task_effect_splash = new TaskEffectSplash;*/
+    if (!task_effect_splash)
+        task_effect_splash = new TaskEffectSplash;
 
     if (!task_effect_fog_anim)
         task_effect_fog_anim = new TaskEffectFogAnim;
@@ -1387,18 +1540,18 @@ void task_effect_init() {
     if (!task_effect_star)
         task_effect_star = new TaskEffectStar;
 
-    if (!task_effect_parent)
-        task_effect_parent = new TaskEffectParent;
+    if (!effect_manager)
+        effect_manager = new EffectManager;
 
-    if (!ripple_emit_data)
-        ripple_emit_data = new ripple_emit;
+    if (!effect_ripple)
+        effect_ripple = new EffectRipple;
 
-    task_effect_fog_anim_data = 0;
-    task_effect_fog_ring_data = 0;
-    task_effect_splash_data = 0;
+    effect_fog_anim = 0;
+    effect_fog_ring = 0;
+    effect_splash = 0;
 }
 
-void task_effect_free() {
+void effect_free() {
     if (task_effect_auth_3d) {
         delete task_effect_auth_3d;
         task_effect_auth_3d = 0;
@@ -1424,10 +1577,10 @@ void task_effect_free() {
         task_effect_rain = 0;
     }
 
-    /*if (task_effect_splash) {
+    if (task_effect_splash) {
         delete task_effect_splash;
         task_effect_splash = 0;
-    }*/
+    }
 
     if (task_effect_fog_anim) {
         delete task_effect_fog_anim;
@@ -1449,80 +1602,90 @@ void task_effect_free() {
         task_effect_litproj = 0;
     }
 
-    /*if (task_effect_star) {
+    if (task_effect_star) {
         delete task_effect_star;
         task_effect_star = 0;
-    }*/
-
-    if (task_effect_parent) {
-        delete task_effect_parent;
-        task_effect_parent = 0;
     }
 
-    if (ripple_emit_data) {
-        delete ripple_emit_data;
-        ripple_emit_data = 0;
+    if (effect_manager) {
+        delete effect_manager;
+        effect_manager = 0;
     }
 
-    task_effect_fog_anim_data = 0;
-    task_effect_fog_ring_data = 0;
-    task_effect_splash_data = 0;
+    if (effect_ripple) {
+        delete effect_ripple;
+        effect_ripple = 0;
+    }
+
+    effect_fog_anim = 0;
+    effect_fog_ring = 0;
+    effect_splash = 0;
 }
 
-void task_effect_parent_event(TaskEffectType type, int32_t event_type, void* data) {
-    task_effect_parent->event(type, event_type, data);
+void effect_fog_ring_data_reset() {
+    if (effect_fog_ring)
+        effect_fog_ring->restart_effect();
 }
 
-void task_effect_parent_dest() {
-    task_effect_parent->dest();
+void effect_splash_data_reset() {
+    if (effect_splash)
+        effect_splash->restart_effect();
 }
 
-bool task_effect_parent_load() {
-    return task_effect_parent->load();
+void effect_manager_event(EffectType type, int32_t event_type, void* data) {
+    effect_manager->event(type, event_type, data);
 }
 
-void task_effect_parent_reset() {
-    task_effect_parent->reset();
+void effect_manager_dest() {
+    effect_manager->dest();
 }
 
-void task_effect_parent_set_current_stage_hash(uint32_t stage_hash) {
-    task_effect_parent->set_current_stage_hash(stage_hash);
+bool effect_manager_load() {
+    return effect_manager->load();
 }
 
-void task_effect_parent_set_current_stage_index(int32_t stage_index) {
-    task_effect_parent->set_current_stage_index(stage_index);
+void effect_manager_reset() {
+    effect_manager->reset();
 }
 
-void task_effect_parent_set_data(void* data,
+void effect_manager_set_current_stage_hash(uint32_t stage_hash) {
+    effect_manager->set_current_stage_hash(stage_hash);
+}
+
+void effect_manager_set_current_stage_index(int32_t stage_index) {
+    effect_manager->set_current_stage_index(stage_index);
+}
+
+void effect_manager_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
-    task_effect_parent->data = data;
-    task_effect_parent->obj_db = obj_db;
-    task_effect_parent->tex_db = tex_db;
-    task_effect_parent->stage_data = stage_data;
+    effect_manager->data = data;
+    effect_manager->obj_db = obj_db;
+    effect_manager->tex_db = tex_db;
+    effect_manager->stage_data = stage_data;
 }
 
-void task_effect_parent_set_enable(bool value) {
-    task_effect_parent->set_enable(value);
+void effect_manager_set_enable(bool value) {
+    effect_manager->set_enable(value);
 }
 
-void task_effect_parent_set_frame(int32_t value) {
-    task_effect_parent->set_frame(value);
+void effect_manager_set_frame(int32_t value) {
+    effect_manager->set_frame(value);
 }
 
-void task_effect_parent_set_frame_rate_control(FrameRateControl* value) {
-    task_effect_parent->set_frame_rate_control(value);
+void effect_manager_set_frame_rate_control(FrameRateControl* value) {
+    effect_manager->set_frame_rate_control(value);
 }
 
-void task_effect_parent_set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
-    task_effect_parent->set_stage_hashes(stage_hashes);
+void effect_manager_set_stage_hashes(const std::vector<uint32_t>& stage_hashes) {
+    effect_manager->set_stage_hashes(stage_hashes);
 }
 
-void task_effect_parent_set_stage_indices(std::vector<int32_t>& stage_indices) {
-    task_effect_parent->set_stage_indices(stage_indices);
+void effect_manager_set_stage_indices(const std::vector<int32_t>& stage_indices) {
+    effect_manager->set_stage_indices(stage_indices);
 }
 
-bool task_effect_parent_unload() {
-    return task_effect_parent->unload();
+bool effect_manager_unload() {
+    return effect_manager->unload();
 }
 
 TaskEffect::TaskEffect() {
@@ -1537,12 +1700,12 @@ void TaskEffect::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffect::set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
+void TaskEffect::set_stage_hashes(const std::vector<uint32_t>& stage_hashes, void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
 
 }
 
-void TaskEffect::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffect::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     pre_init(stage_indices[0]);
 }
 
@@ -1618,7 +1781,7 @@ struc_621::~struc_621() {
 
 }
 
-TaskEffectAuth3D::Stage::Stage() : auth_3d_ids() {
+EffectAuth3d::EffectAuth3d() : auth_3d_ids() {
     count = 0;
     max_count = TASK_STAGE_STAGE_COUNT;
     for (auth_3d_id& i : auth_3d_ids)
@@ -1701,7 +1864,7 @@ void TaskEffectAuth3D::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectAuth3D::set_stage_hashes(std::vector<uint32_t>& stage_hashes, void* data,
+void TaskEffectAuth3D::set_stage_hashes(const std::vector<uint32_t>& stage_hashes, void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
     this->stage_hashes.assign(stage_hashes.begin(), stage_hashes.end());
     stage_indices.clear();
@@ -1733,7 +1896,7 @@ void TaskEffectAuth3D::set_stage_hashes(std::vector<uint32_t>& stage_hashes, voi
     }
 }
 
-void TaskEffectAuth3D::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectAuth3D::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     stage_hashes.clear();
     this->stage_indices.assign(stage_indices.begin(), stage_indices.end());
     for (int32_t i : this->stage_indices) {
@@ -1861,12 +2024,16 @@ void TaskEffectAuth3D::set_enable(bool value) {
     set_visibility(value);
 }
 
-TaskEffectFogAnim::Data::Data() : field_0(), field_4(), field_8(), field_C(),
+EffectFogAnim::EffectFogAnim() : field_0(), field_4(), field_8(), field_C(),
 field_18(), field_24(), field_28(), field_2C(), field_30(), field_34() {
     reset();
 }
 
-void TaskEffectFogAnim::Data::ctrl() {
+EffectFogAnim::~EffectFogAnim() {
+
+}
+
+void EffectFogAnim::ctrl() {
     if (!field_0 || !field_8)
         return;
 
@@ -1902,7 +2069,7 @@ void TaskEffectFogAnim::Data::ctrl() {
     light_set.lights[LIGHT_STAGE].set_specular(color);
 }
 
-void TaskEffectFogAnim::Data::reset() {
+void EffectFogAnim::reset() {
     field_0 = 0;
     field_4 = -1;
     field_8 = 1;
@@ -1939,7 +2106,7 @@ bool TaskEffectFogAnim::ctrl() {
 
 bool TaskEffectFogAnim::dest() {
     data.reset();
-    task_effect_fog_anim_data = 0;
+    effect_fog_anim = 0;
     //sub_1400DE640("TaskEffectFogAnim::dest()\n");
     return true;
 }
@@ -1950,7 +2117,7 @@ void TaskEffectFogAnim::disp() {
 
 void TaskEffectFogAnim::pre_init(int32_t) {
     data.reset();
-    task_effect_fog_anim_data = &data;
+    effect_fog_anim = &data;
     //sub_1400DE640("TaskEffectFogAnim::pre_init()\n");
 }
 
@@ -1966,6 +2133,10 @@ fog_ring_data::fog_ring_data() : size(), density() {
 
 }
 
+point_particle_data::point_particle_data() : size() {
+
+}
+
 struc_371::struc_371() : field_0(), field_10(), field_14(), field_24() {
 
 }
@@ -1974,17 +2145,17 @@ struc_573::struc_573() : chara_index(), bone_index() {
 
 }
 
-TaskEffectFogRing::Data::Data() : enable(), delta_frame(), field_8(), ring_size(), tex_id(),
+EffectFogRing::EffectFogRing() : enable(), delta_frame(), field_8(), ring_size(), tex_id(),
 ptcl_size(), max_ptcls(), num_ptcls(), density(), density_offset(), ptcl_data(), num_vtx(),
 field_124(), field_2B8(), field_2B9(), display(), frame_rate_control() {
     current_stage_index = -1;
 }
 
-TaskEffectFogRing::Data::~Data() {
+EffectFogRing::~EffectFogRing() {
 
 }
 
-void TaskEffectFogRing::Data::calc_ptcl(float_t delta_time) {
+void EffectFogRing::calc_ptcl(float_t delta_time) {
     float_t delta_time1 = 1.0f * delta_time;
     float_t delta_time2 = 2.0f * delta_time;
     float_t delta_time3 = 3.0f * delta_time;
@@ -2046,13 +2217,12 @@ void TaskEffectFogRing::Data::calc_ptcl(float_t delta_time) {
     }
 }
 
-void TaskEffectFogRing::Data::calc_vert() {
+void EffectFogRing::calc_vert() {
     float_t density = this->density;
     fog_ring_data* ptcl_data = this->ptcl_data;
 
     for_ring_vertex_data* ptcl_vtx_data = (for_ring_vertex_data*)ssbo.MapMemory();
     if (!ptcl_vtx_data) {
-        ssbo.UnmapMemory();
         num_vtx = 0;
         return;
     }
@@ -2075,7 +2245,7 @@ void TaskEffectFogRing::Data::calc_vert() {
     num_vtx = (int32_t)(num_ptcls * 6LL);
 }
 
-void TaskEffectFogRing::Data::ctrl() {
+void EffectFogRing::ctrl() {
     if (!display)
         return;
 
@@ -2084,7 +2254,7 @@ void TaskEffectFogRing::Data::ctrl() {
     field_8 = 0;
 }
 
-void TaskEffectFogRing::Data::ctrl_inner(float_t delta_time) {
+void EffectFogRing::ctrl_inner(float_t delta_time) {
     if (fabsf(delta_time) <= 0.000001f)
         return;
 
@@ -2092,7 +2262,7 @@ void TaskEffectFogRing::Data::ctrl_inner(float_t delta_time) {
     calc_ptcl(delta_time);
 }
 
-void TaskEffectFogRing::Data::dest() {
+void EffectFogRing::dest() {
     stage_param_data_fog_ring_storage_clear();
 
     if (ptcl_data) {
@@ -2107,13 +2277,13 @@ void TaskEffectFogRing::Data::dest() {
     rctx_ptr->draw_state->set_fog_height(false);
 }
 
-void TaskEffectFogRing::Data::disp() {
+void EffectFogRing::disp() {
     if (enable && display)
         rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
             (mdl::UserArgsFunc)draw_fog_particle, this, mdl::OBJ_TYPE_USER);
 }
 
-void TaskEffectFogRing::Data::draw() {
+void EffectFogRing::draw() {
     render_context* rctx = rctx_ptr;
 
     rctx->draw_state->set_fog_height(false);
@@ -2135,7 +2305,7 @@ void TaskEffectFogRing::Data::draw() {
     gl_state_get_error();
 }
 
-void TaskEffectFogRing::Data::init_particle_data() {
+void EffectFogRing::init_particle_data() {
     fog_ring_data* ptcl_data = this->ptcl_data;
     if (!ptcl_data)
         return;
@@ -2162,7 +2332,7 @@ void TaskEffectFogRing::Data::init_particle_data() {
     }
 }
 
-void TaskEffectFogRing::Data::reset() {
+void EffectFogRing::restart_effect() {
     struc_573(*v2)[5] = field_5C;
     for (int32_t i = 0; i < 2; i++, v2++) {
         struc_573* v3 = *v2;
@@ -2176,7 +2346,7 @@ void TaskEffectFogRing::Data::reset() {
     field_8 = true;
 }
 
-void TaskEffectFogRing::Data::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void EffectFogRing::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     rctx_ptr->render_manager->clear_pre_process(0);
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
     display = false;
@@ -2184,9 +2354,9 @@ void TaskEffectFogRing::Data::set_stage_indices(std::vector<int32_t>& stage_indi
     this->stage_indices.clear();
     stage_param_data_fog_ring_storage_clear();
 
-    for (int32_t& i : stage_indices) {
+    for (const int32_t& i : stage_indices) {
         stage_param_fog_ring fog_ring;
-        if (task_effect_array_parse_stage_param_data_fog_ring(&fog_ring, i)) {
+        if (effect_array_parse_stage_param_data_fog_ring(&fog_ring, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_fog_ring_storage_set_stage_data(i, &fog_ring);
         }
@@ -2261,18 +2431,18 @@ void TaskEffectFogRing::Data::set_stage_indices(std::vector<int32_t>& stage_indi
     init_particle_data();
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
-    rctx_ptr->render_manager->add_pre_process(0, TaskEffectFogRing::Data::draw_static, this);
+    rctx_ptr->render_manager->add_pre_process(0, EffectFogRing::draw_static, this);
 }
 
-void TaskEffectFogRing::Data::draw_static(void* data) {
-    ((TaskEffectFogRing::Data*)data)->draw();
+void EffectFogRing::draw_static(void* data) {
+    ((EffectFogRing*)data)->draw();
 }
 
-float_t TaskEffectFogRing::Data::ptcl_random(float_t value) {
+float_t EffectFogRing::ptcl_random(float_t value) {
     return (float_t)(rand_state_array_get_int(4) % 10000) * 0.0001f * value * 2.0f - value;
 }
 
-void TaskEffectFogRing::Data::sub_140347B40(float_t delta_time) {
+void EffectFogRing::sub_140347B40(float_t delta_time) {
     field_124 = 0;
 
     struc_573(*v5)[5] = field_5C;
@@ -2332,7 +2502,7 @@ void TaskEffectFogRing::Data::sub_140347B40(float_t delta_time) {
     }
 }
 
-void TaskEffectFogRing::Data::sub_140347860(fog_ring_data* a1, int32_t a2, struc_371* a3, float_t delta_time) {
+void EffectFogRing::sub_140347860(fog_ring_data* a1, int32_t a2, struc_371* a3, float_t delta_time) {
     if (a2 <= 0)
         return;
 
@@ -2389,7 +2559,7 @@ bool TaskEffectFogRing::ctrl() {
 
 bool TaskEffectFogRing::dest() {
     data.dest();
-    task_effect_fog_ring_data = 0;
+    effect_fog_ring = 0;
     //sub_1400DE640("TaskEffectFogRing::dest()\n");
     return 1;
 }
@@ -2402,9 +2572,9 @@ void TaskEffectFogRing::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectFogRing::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectFogRing::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     set_frame_rate_control();
-    task_effect_fog_ring_data = &data;
+    effect_fog_ring = &data;
     data.set_stage_indices(stage_indices);
 }
 
@@ -2435,7 +2605,7 @@ void TaskEffectFogRing::set_frame_rate_control(FrameRateControl* value) {
 }
 
 void TaskEffectFogRing::reset() {
-    data.reset();
+    data.restart_effect();
 }
 
 TaskEffectLeaf::TaskEffectLeaf() : frame_rate_control(), wait_frames() {
@@ -2483,7 +2653,7 @@ void TaskEffectLeaf::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectLeaf::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectLeaf::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     if (stage_param_data_leaf_current)
         dest();
 
@@ -2494,7 +2664,7 @@ void TaskEffectLeaf::set_stage_indices(std::vector<int32_t>& stage_indices) {
 
     for (int32_t i : stage_indices) {
         stage_param_leaf leaf;
-        if (task_effect_array_parse_stage_param_data_leaf(&leaf, i)) {
+        if (effect_array_parse_stage_param_data_leaf(&leaf, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_leaf_storage_set_stage_data(i, &leaf);
         }
@@ -2619,7 +2789,7 @@ void TaskEffectLitproj::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectLitproj::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectLitproj::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     if (stage_param_data_litproj_current)
         dest();
 
@@ -2630,7 +2800,7 @@ void TaskEffectLitproj::set_stage_indices(std::vector<int32_t>& stage_indices) {
 
     for (int32_t i : stage_indices) {
         stage_param_litproj litproj;
-        if (task_effect_array_parse_stage_param_data_litproj(&litproj, i)) {
+        if (effect_array_parse_stage_param_data_litproj(&litproj, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_litproj_storage_set_stage_data(i, &litproj);
         }
@@ -2784,7 +2954,7 @@ void TaskEffectRain::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectRain::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectRain::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     if (stage_param_data_rain_current)
         dest();
 
@@ -2795,7 +2965,7 @@ void TaskEffectRain::set_stage_indices(std::vector<int32_t>& stage_indices) {
 
     for (int32_t i : stage_indices) {
         stage_param_rain rain;
-        if (task_effect_array_parse_stage_param_data_rain(&rain, i)) {
+        if (effect_array_parse_stage_param_data_rain(&rain, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_rain_storage_set_stage_data(i, &rain);
         }
@@ -2880,7 +3050,7 @@ ripple_emit_params::ripple_emit_params() {
     field_C = 0.9f;
 }
 
-ripple_emit::ripple_emit() : delta_frame(), update(), rain_ripple_num(), rain_ripple_min_value(),
+EffectRipple::EffectRipple() : delta_frame(), update(), rain_ripple_num(), rain_ripple_min_value(),
 rain_ripple_max_value(), field_14(), emit_pos_scale(), emit_pos_ofs_x(), emit_pos_ofs_z(), ripple_tex_id(),
 use_float_ripplemap(), field_30(), rob_emitter_size(), emitter_num(), emitter_size(), field_4C(), field_50(),
 field_178(), field_2A0(), field_3C8(), field_4F0(), field_BB4(), counter(), field_BEC(), stage_set() {
@@ -2889,17 +3059,11 @@ field_178(), field_2A0(), field_3C8(), field_4F0(), field_BB4(), counter(), fiel
     current_stage_index = -1;
 }
 
-ripple_emit::~ripple_emit() {
+EffectRipple::~EffectRipple() {
     ground_y = -1001.0f;
 }
 
-void ripple_emit::add_draw_ripple_emit(ripple_struct* data) {
-    if (data->count > 0)
-        rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
-            (mdl::UserArgsFunc)draw_ripple_emit, data, mdl::OBJ_TYPE_USER);
-}
-
-void ripple_emit::clear_tex() {
+void EffectRipple::clear_tex() {
     vec4 clear_color;
     glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
 
@@ -2924,19 +3088,19 @@ void ripple_emit::clear_tex() {
     glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 }
 
-void ripple_emit::ctrl() {
+void EffectRipple::ctrl() {
     if (delta_frame > 0.0f)
         update = true;
 }
 
-void ripple_emit::dest() {
+void EffectRipple::dest() {
     stage_param_data_ripple_storage_clear();
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, false);
     rctx_ptr->render_manager->clear_pre_process(0);
     this->ground_y = -1001.0;
 }
 
-void ripple_emit::disp() {
+void EffectRipple::disp() {
     if (!stage_set)
         return;
 
@@ -2954,7 +3118,13 @@ void ripple_emit::disp() {
     }
 }
 
-void ripple_emit::draw() {
+void EffectRipple::disp_particles(ripple_struct* data) {
+    if (data->count > 0)
+        rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
+            (mdl::UserArgsFunc)draw_ripple_particles, data, mdl::OBJ_TYPE_USER);
+}
+
+void EffectRipple::draw() {
     if (!stage_set)
         return;
 
@@ -3020,7 +3190,7 @@ void ripple_emit::draw() {
     gl_state_enable_cull_face();
 }
 
-void ripple_emit::reset() {
+void EffectRipple::reset() {
     field_4F0 = 18;
     for (struc_207& i : field_4F4)
         for (int32_t j = 0; j < field_4F0; j++)
@@ -3031,7 +3201,7 @@ void ripple_emit::reset() {
     clear_tex();
 }
 
-void ripple_emit::set_stage_index(int32_t stage_index) {
+void EffectRipple::set_stage_index(int32_t stage_index) {
     if (current_stage_index == stage_index)
         return;
 
@@ -3051,7 +3221,7 @@ void ripple_emit::set_stage_index(int32_t stage_index) {
     }
 }
 
-void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void EffectRipple::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     static const int32_t dword_1409E5330[] = {
         0, 1, 2, 4, 10, 5, 12, 7, 14, 9, 21, 15, 23, 17, 25, 19, 26, 20
     };
@@ -3061,9 +3231,9 @@ void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
     this->stage_indices.clear();
 
     stage_param_data_ripple_storage_clear();
-    for (int32_t& i : stage_indices) {
+    for (const int32_t& i : stage_indices) {
         stage_param_ripple ripple;
-        if (task_effect_array_parse_stage_param_data_ripple(&ripple, i)) {
+        if (effect_array_parse_stage_param_data_ripple(&ripple, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_ripple_storage_set_stage_data(i, &ripple);
         }
@@ -3073,6 +3243,7 @@ void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
         return;
 
     current_stage_index = this->stage_indices.front();
+
     stage_param_ripple* ripple = stage_param_data_ripple_storage_get_value(this->stage_indices.front());
     if (!ripple)
         return;
@@ -3085,7 +3256,7 @@ void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
     field_BEC = 0;
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_PRE_PROCESS, true);
-    rctx_ptr->render_manager->add_pre_process(0, ripple_emit::draw_static, this);
+    rctx_ptr->render_manager->add_pre_process(0, EffectRipple::draw_static, this);
 
     field_4F0 = 18;
     for (struc_207& i : field_4F4)
@@ -3100,7 +3271,7 @@ void ripple_emit::set_stage_indices(std::vector<int32_t>& stage_indices) {
     clear_tex();
 }
 
-void ripple_emit::set_stage_param(stage_param_ripple* ripple) {
+void EffectRipple::set_stage_param(stage_param_ripple* ripple) {
     data_struct* aft_data = &data_list[DATA_AFT];
     texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
@@ -3121,11 +3292,11 @@ void ripple_emit::set_stage_param(stage_param_ripple* ripple) {
     emitter_size = ripple->emitter_size;
 }
 
-void ripple_emit::draw_static(void* data) {
-    ((ripple_emit*)data)->draw();
+void EffectRipple::draw_static(void* data) {
+    ((EffectRipple*)data)->draw();
 }
 
-void ripple_emit::sub_1403584A0(RenderTexture* rt) {
+void EffectRipple::sub_1403584A0(RenderTexture* rt) {
     if (ripple_tex_id == -1)
         return;
 
@@ -3141,26 +3312,26 @@ void ripple_emit::sub_1403584A0(RenderTexture* rt) {
 }
 
 
-void ripple_emit::sub_140358690() {
+void EffectRipple::sub_140358690() {
     ripple_emit_draw_data& v1 = field_178;
-    v1.data.vertex = field_50.vertex;
+    v1.data.position = field_50.position;
     v1.data.color = field_50.color;
 
     for (int32_t i = 0; i < 16; i++) {
-        v1.data.vertex[i].x = rand_state_array_get_float(4) * 1.8f - 0.9f;
-        v1.data.vertex[i].y = rand_state_array_get_float(4) * 1.8f - 0.9f;
+        v1.data.position[i].x = rand_state_array_get_float(4) * 1.8f - 0.9f;
+        v1.data.position[i].y = rand_state_array_get_float(4) * 1.8f - 0.9f;
         rand_state_array_get_int(0x03, 0x07, 4);
-        v1.data.vertex[i].z = (float_t)rand_state_array_get_int(0x20, 0xA0, 4);
+        v1.data.position[i].z = (float_t)rand_state_array_get_int(0x20, 0xA0, 4);
     }
 
     v1.data.count = 16;
     v1.data.ripple_uniform = 1;
     v1.data.ripple_emit_uniform = 1;
 
-    add_draw_ripple_emit(&v1.data);
+    disp_particles(&v1.data);
 }
 
-void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, ripple_struct& a5, ripple_struct& a6) {
+void EffectRipple::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, ripple_struct& a5, ripple_struct& a6) {
     vec3 v34 = a3 - a2;
 
     float_t v17 = ground_y - (a2.y - a4);
@@ -3199,9 +3370,9 @@ void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, ripple
         if (v24 > 0.0f) {
             int32_t count = a6.count;
             if (count < 16) {
-                a6.vertex[count].x = (a2.x - v34.x * 0.2f + i * v34.x) * emit_pos_scale;
-                a6.vertex[count].y = 0.0;
-                a6.vertex[count].z = (a2.z - v34.z * 0.2f + i * v34.z) * emit_pos_scale;
+                a6.position[count].x = (a2.x - v34.x * 0.2f + i * v34.x) * emit_pos_scale;
+                a6.position[count].y = 0.0;
+                a6.position[count].z = (a2.z - v34.z * 0.2f + i * v34.z) * emit_pos_scale;
                 a6.color[count] = v29;
                 a6.count++;
             }
@@ -3209,20 +3380,20 @@ void ripple_emit::sub_1403587C0(const vec3 a2, const vec3 a3, float_t a4, ripple
 
         int32_t count = a5.count;
         if (count < 16) {
-            a5.vertex[count].x = (a2.x + i * v34.x) * emit_pos_scale;
-            a5.vertex[count].y = 0.0f;
-            a5.vertex[count].z = (a2.z + i * v34.z) * emit_pos_scale;
+            a5.position[count].x = (a2.x + i * v34.x) * emit_pos_scale;
+            a5.position[count].y = 0.0f;
+            a5.position[count].z = (a2.z + i * v34.z) * emit_pos_scale;
             a6.color[count] = v19a;
             a5.count++;
         }
     }
 }
 
-void ripple_emit::sub_14035AAE0() {
+void EffectRipple::sub_14035AAE0() {
     ripple_emit_draw_data& v1 = field_3C8;
 
     field_3C8.data.count = 0;
-    field_3C8.data.vertex = field_3C8.vertex;
+    field_3C8.data.position = field_3C8.position;
     field_3C8.data.color = field_3C8.color;
     field_3C8.data.size = emitter_size;
 
@@ -3237,9 +3408,9 @@ void ripple_emit::sub_14035AAE0() {
         min_value = min_def(min_value, 126);
 
         for (int32_t i = 0; i < rain_ripple_num; i++) {
-            v1.data.vertex[i].x = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
-            v1.data.vertex[i].y = 0.0f;
-            v1.data.vertex[i].y = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
+            v1.data.position[i].x = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
+            v1.data.position[i].y = 0.0f;
+            v1.data.position[i].y = (float_t)(rand_state_array_get_int(4) % 1000) * 0.001f * 2.0f - 1.0f;
             v1.data.color[i] = { 0x00, 0x00, 0x00,
                 (uint8_t)(0x7F - rand_state_array_get_int(4) % max_value - min_value) };
             v1.data.count++;
@@ -3248,10 +3419,10 @@ void ripple_emit::sub_14035AAE0() {
 
     for (size_t i = 0; i < emitter_num; i++) {
         float_t v10 = emitter_list[i].z;
-        v1.data.vertex[i].x = ((rand_state_array_get_float(4) - 0.5f)
+        v1.data.position[i].x = ((rand_state_array_get_float(4) - 0.5f)
             * v10 + emitter_list[i].x) * emit_pos_scale;
-        v1.data.vertex[i].y = 0.0f;
-        v1.data.vertex[i].z = ((rand_state_array_get_float(4) - 0.5f)
+        v1.data.position[i].y = 0.0f;
+        v1.data.position[i].z = ((rand_state_array_get_float(4) - 0.5f)
             * v10 + emitter_list[i].y) * emit_pos_scale;
         v1.data.color[i] = rand_state_array_get_float(4) < 0.5f
             ? color4u8(0x00, 0x00, 0x00, 0xFF) : color4u8(0x00);
@@ -3261,17 +3432,17 @@ void ripple_emit::sub_14035AAE0() {
     v1.data.ripple_uniform = use_float_ripplemap ? 1 : 0;
     v1.data.ripple_emit_uniform = 0;
 
-    add_draw_ripple_emit(&v1.data);
+    disp_particles(&v1.data);
 }
 
-void ripple_emit::sub_14035AED0() {
+void EffectRipple::sub_14035AED0() {
     field_178.data.count = 0;
-    field_178.data.vertex = field_178.vertex;
+    field_178.data.position = field_178.position;
     field_178.data.color = field_178.color;
     field_178.data.size = rob_emitter_size;
 
     field_2A0.data.count = 0;
-    field_2A0.data.vertex = field_2A0.vertex;
+    field_2A0.data.position = field_2A0.position;
     field_2A0.data.color = field_2A0.color;
     field_2A0.data.size = rob_emitter_size;
 
@@ -3302,10 +3473,10 @@ void ripple_emit::sub_14035AED0() {
                 if (use_float_ripplemap)
                     sub_1403587C0(trans, v4.trans, scale, v2.data, v3.data);
                 else if (v2.data.count < 16) {
-                    v2.data.vertex[v2.data.count].x = ((rand_state_array_get_float(4) - 0.5f)
+                    v2.data.position[v2.data.count].x = ((rand_state_array_get_float(4) - 0.5f)
                         * 0.02f + trans.x) * emit_pos_scale + emit_pos_ofs_x;
-                    v2.data.vertex[v2.data.count].y = trans.y;
-                    v2.data.vertex[v2.data.count].z = ((rand_state_array_get_float(4) - 0.5f)
+                    v2.data.position[v2.data.count].y = trans.y;
+                    v2.data.position[v2.data.count].z = ((rand_state_array_get_float(4) - 0.5f)
                         * 0.02f + trans.z) * emit_pos_scale + emit_pos_ofs_z;
                     v2.data.color[v2.data.count] = { 0x00, 0x00, 0x00, 0x00 };
                     v2.data.count++;
@@ -3320,12 +3491,12 @@ void ripple_emit::sub_14035AED0() {
     if (use_float_ripplemap) {
         v3.data.ripple_uniform = !!use_float_ripplemap;
         v3.data.ripple_emit_uniform = 1;
-        add_draw_ripple_emit(&v3.data);
+        disp_particles(&v3.data);
     }
 
     v2.data.ripple_uniform = !!use_float_ripplemap;
     v2.data.ripple_emit_uniform = 0;
-    add_draw_ripple_emit(&v2.data);
+    disp_particles(&v2.data);
 }
 
 TaskEffectRipple::TaskEffectRipple() : field_68(), frame_rate_control(), emit() {
@@ -3363,9 +3534,9 @@ void TaskEffectRipple::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectRipple::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectRipple::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     set_frame_rate_control();
-    emit = ripple_emit_data;
+    emit = effect_ripple;
     emit->set_stage_indices(stage_indices);
 }
 
@@ -3382,8 +3553,8 @@ void TaskEffectRipple::set_frame_rate_control(FrameRateControl* value) {
 
 void TaskEffectRipple::reset() {
     if (!emit->use_float_ripplemap)
-        ripple_emit_data->clear_tex();
-    ripple_emit_data->reset();
+        effect_ripple->clear_tex();
+    effect_ripple->reset();
 }
 
 TaskEffectSnow::TaskEffectSnow() : frame_rate_control() {
@@ -3434,7 +3605,7 @@ void TaskEffectSnow::pre_init(int32_t stage_index) {
 
 }
 
-void TaskEffectSnow::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectSnow::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     if (stage_param_data_snow_current)
         dest();
 
@@ -3445,7 +3616,7 @@ void TaskEffectSnow::set_stage_indices(std::vector<int32_t>& stage_indices) {
 
     for (int32_t i : stage_indices) {
         stage_param_snow snow;
-        if (task_effect_array_parse_stage_param_data_snow(&snow, i)) {
+        if (effect_array_parse_stage_param_data_snow(&snow, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_snow_storage_set_stage_data(i, &snow);
         }
@@ -3511,6 +3682,923 @@ void TaskEffectSnow::reset() {
     }
 }
 
+splash_particle_data::splash_particle_data() : size(),
+life_time(), field_20(), index(), flags(), alpha() {
+
+}
+
+splash_particle::splash_particle() : count(), alive(), dead() {
+    reset();
+}
+
+splash_particle::~splash_particle() {
+    free();
+}
+
+void splash_particle::ctrl(float_t delta_time) {
+    const float_t gravity = delta_time * -9.8f;
+    if (!data.size() || fabsf(delta_time) <= 0.000001f)
+        return;
+
+    for (splash_particle_data& i : data) {
+        if (i.life_time <= 0.0f)
+            continue;
+
+        i.direction.y = gravity + i.direction.y;
+        i.position = i.direction * delta_time + i.position;
+        i.life_time -= 1.0f;
+
+        if (i.life_time < 1.0f)
+            kill(i.index);
+    }
+}
+
+splash_particle_data* splash_particle::emit() {
+    if (dead < 0)
+        return 0;
+
+    int32_t index = available.data()[dead--];
+    splash_particle_data* ptcl = &this->data.data()[index];
+    ptcl->index = index;
+    alive++;
+    return ptcl;
+}
+
+void splash_particle::free() {
+    available.clear();
+    dead = 0;
+    data.clear();
+    count = 0;
+    alive = 0;
+}
+
+void splash_particle::init(int32_t count) {
+    reset();
+
+    this->count = count;
+    alive = 0;
+    dead = 0;
+    data.clear();
+    data.resize(count);
+    available.clear();
+    available.resize(count);
+
+    restart();
+}
+
+void splash_particle::kill(int32_t index) {
+    if (!available.size() || !data.size() || dead >= count - 1 || index < 0 || index >= count)
+        return;
+
+    available[dead++] = index;
+    data[index].index = -1;
+    data[index].life_time = 0.0;
+    alive--;
+}
+
+void splash_particle::reset() {
+    count = 0;
+    alive = 0;
+    data.clear();
+    dead = 0;
+    available.clear();
+}
+
+void splash_particle::restart() {
+    dead = count - 1;
+
+    int32_t index = 0;
+    for (int32_t& i : available)
+        i = index++;
+
+    for (splash_particle_data& i : data) {
+        i.position = 0.0f;
+        i.direction = 0.0f;
+        i.size = 1.0f;
+        i.life_time = 0.0f;
+        i.field_20 = 1.0f;
+        i.index = -1;
+        i.flags = 0x00;
+        i.alpha = 1.0f;
+    }
+
+    alive = 0;
+}
+
+ParticleEmitter::ParticleEmitter() : splash(), field_1C(),
+field_20(), field_24(), field_28(), particle_size() {
+    reset_data();
+}
+
+ParticleEmitter::~ParticleEmitter() {
+
+}
+
+void ParticleEmitter::ctrl(float_t delta_time) {
+
+}
+
+void ParticleEmitter::restart() {
+
+}
+
+void ParticleEmitter::reset_data() {
+    splash = 0;
+    trans = 0.0f;
+    field_1C = 0;
+    field_20 = 1.0f;
+    field_24 = 0;
+    particle_size = 1.0f;
+    field_28 = 1.0f;
+}
+
+ParticleEmitterRob::ParticleEmitterRob() : chara_id(), bone_index(), emit_num(),
+field_60(), emission_ratio_attn(), emission_velocity_scale(), in_water(), init_trans() {
+    reset_data();
+}
+
+ParticleEmitterRob::~ParticleEmitterRob() {
+
+}
+
+static inline int32_t rand_a_get() {
+    int32_t val = dword_141195E48 + 1;
+    if (val + 1 > 241)
+        val = 0;
+    dword_141195E48 = val;
+    return val;
+}
+
+static inline float_t rand_a_get_float() {
+    return *(float_t*)&flt_1409E59C0[rand_a_get()];
+}
+
+static inline int32_t rand_b_get() {
+    int32_t val = dword_141195E4C + 3;
+    if (val + 3 > 241)
+        val = 0;
+    dword_141195E4C = val;
+    return val;
+}
+
+static inline vec3 rand_b_get_float() {
+    return *(vec3*)&flt_1409E5D90[rand_b_get()];
+}
+
+void ParticleEmitterRob::ctrl(float_t delta_time) {
+    if (fabsf(delta_time) <= 0.000001f || !splash
+        || !rob_chara_array_get(chara_id) || !rob_chara_array_check_visibility(chara_id))
+        return;
+
+    get_trans();
+    get_velocity(delta_time);
+
+    float_t v8 = vec3::length(velocity);
+    if (v8 > 100.0f)
+        return;
+
+    if (trans.y >= 0.3f)
+        field_60 = max_def(field_60 - delta_time * emission_ratio_attn, 0.0f);
+    else
+        field_60 = 1.0f;
+
+    if (v8 < 1.0f)
+        return;
+
+    float_t v27 = min_def(v8 * 0.05f, 1.0f);
+    int32_t emit_num = (int32_t)((float_t)this->emit_num * (v27 * v27) * field_60);
+    if (emit_num <= 0)
+        return;
+
+    vec3 prev_velocity = this->prev_velocity * emission_velocity_scale;
+    vec3 velocity = this->velocity * emission_velocity_scale;;
+    vec3 trans_diff = trans - prev_trans;
+    vec3 velocity_diff = velocity - prev_velocity;
+
+    float_t v41 = flt_140C9A588;
+    for (int32_t i = 0; i < emit_num; i++) {
+        splash_particle_data* ptcl = splash->emit();
+        if (!ptcl)
+            break;
+
+        float_t diff_scale = rand_a_get_float();
+        vec3 rand_vec = rand_b_get_float();
+
+        ptcl->position = rand_vec * 0.05f + (trans_diff * diff_scale + prev_trans);
+        ptcl->direction = rand_vec * 0.65f + (velocity_diff * diff_scale + prev_velocity);
+
+        float_t size_scale = rand_a_get_float();;
+        
+        ptcl->flags = 0x01;
+        ptcl->size = max_def(size_scale * size_scale * particle_size, 1.0f);
+
+        if (in_water && (trans_diff.y * diff_scale) + prev_trans.y < 0.3f) {
+            ptcl->flags = 0x00;
+            ptcl->size += v41;
+            ptcl->direction.y += 0.8f;
+        }
+
+        ptcl->life_time = 100.0f;
+        ptcl->field_20 = 1.0f;
+
+        float_t v56 = min_def(9.0f / ptcl->size, 1.0f);
+        ptcl->alpha = 1.0f - v56 * v56 + 0.3f;
+    }
+}
+
+void ParticleEmitterRob::restart() {
+    velocity = 0.0f;
+    prev_velocity = 0.0f;
+    init_trans = true;
+    field_60 = 0.0f;
+}
+
+void ParticleEmitterRob::get_trans() {
+    vec3 trans;
+    rob_chara_array_get(chara_id)->get_trans_scale(bone_index, trans);
+
+    if (init_trans) {
+        prev_trans = trans;
+        init_trans = false;
+    }
+    else
+        prev_trans = this->trans;
+
+    this->trans = trans;
+}
+
+void ParticleEmitterRob::get_velocity(float_t delta_time) {
+    prev_velocity = velocity;
+    velocity = (trans - prev_trans) * (1.0f / delta_time);
+}
+
+void ParticleEmitterRob::reset_data() {
+    bone_index = -1;
+    chara_id = 0;
+    prev_trans = 0.0f;
+    velocity = 0.0f;
+    prev_velocity = 0.0f;
+    emit_num = 0;
+    field_60 = 0.0f;
+    emission_ratio_attn = 0.0f;
+    emission_velocity_scale = 0.0f;
+    in_water = true;
+    init_trans = true;
+}
+
+void ParticleEmitterRob::reset_data_base() {
+    ParticleEmitter::reset_data();
+}
+
+void ParticleEmitterRob::set_chara(int32_t chara_id, int32_t bone_index, bool in_water) {
+    reset_data_base();
+    reset_data();
+
+    this->chara_id = chara_id;
+    this->bone_index = bone_index;
+    prev_trans = 0.0f;
+    velocity = 0.0f;
+    prev_velocity = 0.0f;
+    emit_num = 0;
+    field_60 = 0.0f;
+    emission_ratio_attn = 0.2f;
+    emission_velocity_scale = 0.08f;
+    this->in_water = in_water;
+    init_trans = true;
+
+}
+
+void ParticleEmitterRob::set_splash(splash_particle* value) {
+    splash = value;
+}
+
+water_particle::water_particle() {
+    reset();
+}
+
+water_particle::~water_particle() {
+    free();
+}
+
+void water_particle::ctrl() {
+    const vec4 color = this->color;
+    count = 0;
+
+    int32_t count = 0;
+    int32_t ripple_count = 0;
+    const float_t emit_pos_scale = effect_ripple->emit_pos_scale;
+    const vec3 ripple_position = vec3(emit_pos_scale, 0.0f, emit_pos_scale);
+
+    const splash_particle_data* splash_ptcl = splash->data.data();
+    point_particle_data* ptcl = ptcl_data.data();
+
+    if (blink)
+        for (int32_t i = splash->count; i > 0; i--, splash_ptcl++) {
+            if (splash_ptcl->life_time <= 0.0f)
+                continue;
+
+            ptcl->position = splash_ptcl->position;
+            ptcl->size = splash_ptcl->size;
+            ptcl->color = color;
+
+            float_t val = rand_a_get_float();
+
+            ptcl->color.w = (val * val) * (val * val) * color.w * splash_ptcl->alpha;
+            ptcl++;
+            count++;
+
+            if (splash_ptcl->position.y < 0.0f) {
+                if (splash_ptcl->flags & 0x01) {
+                    ripple.position[ripple_count] = ripple_position * splash_ptcl->position;
+                    ripple.color[ripple_count] = color4u8(0x00, 0x00, 0x00,
+                        (uint8_t)(int32_t)(ripple_emission * 64.0f));
+                    ripple_count++;
+                }
+
+                splash->kill(splash_ptcl->index);
+            }
+        }
+    else
+        for (int32_t i = splash->count; i > 0; i--, splash_ptcl++) {
+            if (splash_ptcl->life_time <= 0.0f)
+                continue;
+
+            ptcl->position = splash_ptcl->position;
+            ptcl->size = splash_ptcl->size;
+            ptcl->color = color;
+            ptcl++;
+            count++;
+
+            if (splash_ptcl->position.y < 0.0f) {
+                if (splash_ptcl->flags & 0x01) {
+                    ripple.position[ripple_count] = ripple_position * splash_ptcl->position;
+                    ripple.color[ripple_count] = color4u8(0x00, 0x00, 0x00,
+                        (uint8_t)(int32_t)(ripple_emission * 64.0f));
+                    ripple_count++;
+                }
+
+                splash->kill(splash_ptcl->index);
+            }
+        }
+
+    this->count = count;
+    ripple.count = ripple_count;
+}
+
+void water_particle::disp() {
+    if (!splash)
+        return;
+
+    rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
+        (mdl::UserArgsFunc)draw_water_particle, this, mdl::OBJ_TYPE_TRANSLUCENT);
+
+    if (effect_ripple && !effect_ripple->use_float_ripplemap) {
+        ripple.ripple_uniform = 0;
+        ripple.ripple_emit_uniform = 0;
+        effect_ripple->disp_particles(&ripple);
+    }
+}
+
+void water_particle::draw(mat4* mat) {
+    if (count <= 0)
+        return;
+
+    ssbo.WriteMemory(0, sizeof(point_particle_data) * count, ptcl_data.data());
+
+    water_particle_scene_shader_data scene_shader_data = {};
+    mat4 temp;
+    mat4_mul(mat, &rctx_ptr->vp_mat, &temp);
+    mat4_transpose(&temp, &temp);
+    scene_shader_data.g_transform[0] = temp.row0;
+    scene_shader_data.g_transform[1] = temp.row1;
+    scene_shader_data.g_transform[2] = temp.row2;
+    scene_shader_data.g_transform[3] = temp.row3;
+
+    mat4_mul(mat, &rctx_ptr->view_mat, &temp);
+    mat4_transpose(&temp, &temp);
+
+    scene_shader_data.g_view_world_row2 = temp.row2;
+    scene_shader_data.g_state_point_attenuation = { 0.7f, 0.4f, 0.0f, 0.0f };
+    scene_shader_data.g_size_in_projection.x = (float_t)(1.0 / 1280.0);
+    scene_shader_data.g_size_in_projection.y = (float_t)(1.0 / 720.0);
+    scene_shader_data.g_size_in_projection.z = 1.0;
+    scene_shader_data.g_size_in_projection.w = 60.0;
+    water_particle_scene_ubo.WriteMemory(scene_shader_data);
+
+    gl_state_disable_cull_face();
+    shaders_ft.set(SHADER_FT_W_PTCL);
+
+    gl_state_bind_vertex_array(rctx_ptr->common_vao);
+    water_particle_scene_ubo.Bind(4);
+    ssbo.Bind(0);
+    texture* tex = texture_storage_get_texture(splash_tex_id);
+    if (tex)
+        gl_state_active_bind_texture_2d(0, tex->tex);
+    shaders_ft.draw_arrays(GL_TRIANGLES, 0, count * 6);
+    gl_state_bind_vertex_array(0);
+
+    shader::unbind();
+    gl_state_enable_cull_face();
+}
+
+void water_particle::free() {
+    ssbo.Destroy();
+
+    color_data.clear();
+    position_data.clear();
+    ptcl_data.clear();
+    ripple.color = 0;
+    ripple.position = 0;
+    splash_count = 0;
+}
+
+void water_particle::reset() {
+    splash = 0;
+    color = 1.0f;
+    particle_size = 1.0f;;
+    splash_count = 0;
+    ptcl_data.clear();
+    count = 0;
+    splash_tex_id = -1;
+    blink = false;
+    ripple_emission = 0.0f;
+}
+
+void water_particle::set(splash_particle* splash, int32_t splash_tex_id) {
+    reset();
+
+    color = 1.0f;
+    particle_size = 1.0f;
+    this->splash = splash;
+    this->splash_tex_id = splash_tex_id;
+    splash_count = splash->count;
+    ptcl_data.clear();
+    ptcl_data.resize(splash_count);
+    ripple.count = 0;
+    ripple.position = 0;
+    ripple.color = 0;
+    ripple.size = 1.0;
+    position_data.clear();
+    color_data.clear();
+    position_data.resize(5000);
+    color_data.resize(5000);
+    ripple.position = position_data.data();
+    ripple.color = color_data.data();
+
+    ssbo.Create(sizeof(point_particle_data) * splash_count);
+}
+
+ParticleDispObj::ParticleDispObj() : splash() {
+
+}
+
+ParticleDispObj::~ParticleDispObj() {
+
+}
+
+void ParticleDispObj::disp() {
+    if (!splash)
+        return;
+
+    instances_mat.clear();
+
+    if (splash->count > 0)
+        for (splash_particle_data& i : splash->data)
+            if (i.life_time > 0.0f) {
+                mat4 mat;
+                mat4_translate(&i.position, &mat);
+                instances_mat.push_back(mat);
+            }
+
+    rctx_ptr->disp_manager->entry_obj_by_object_info_instanced(obj_info, instances_mat, -1.0f);
+}
+
+void ParticleDispObj::init(splash_particle* splash, object_info obj_info) {
+    if (!splash)
+        return;
+
+    reset();
+
+    this->splash = splash;
+    this->obj_info = obj_info;
+
+    instances_mat.clear();
+    instances_mat.reserve(splash->count);
+}
+
+void ParticleDispObj::reset() {
+    splash = 0;
+    obj_info = {};
+    instances_mat.clear();
+}
+
+EffectSplashParticle::EffectSplashParticle() : splash_count(), splash(), emitter_rob_count(), emitter_rob(),
+water_ptcl_count(), water_ptcl(), has_splash_object(), object_emitter_rob_count(), object_emitter_rob(),
+particle_size(), emit_num(), ripple_emission(), emission_ratio_attn(), emission_velocity_scale(),
+splash_tex_id(), in_water(), blink(), rob_ctrl_time(), ptcl_ctrl_time(), ptcl_disp_time() {
+    reset();
+}
+
+EffectSplashParticle::~EffectSplashParticle() {
+
+}
+
+void EffectSplashParticle::ctrl(float_t delta_time) {
+    for (int32_t i = 0; i < emitter_rob_count; i++)
+        emitter_rob[i].ctrl(delta_time);
+
+    if (has_splash_object)
+        for (int32_t i = 0; i < object_emitter_rob_count; i++)
+            object_emitter_rob[i].ctrl(delta_time);
+
+    time_struct ptcl_ctrl_time;
+    for (int32_t i = 0; i < splash_count; i++)
+        splash[i].ctrl(delta_time);
+
+    if (has_splash_object)
+        splash_object.ctrl(delta_time);
+
+    for (int32_t i = 0; i < water_ptcl_count; i++)
+        water_ptcl[i].ctrl();
+
+    this->ptcl_ctrl_time = ptcl_ctrl_time.calc_time_int();
+}
+
+void EffectSplashParticle::dest() {
+    if (object_emitter_rob) {
+        delete object_emitter_rob;
+        object_emitter_rob = 0;
+    }
+
+    if (splash) {
+        delete[] splash;
+        splash = 0;
+    }
+    splash_count = 0;
+
+    if (emitter_rob) {
+        delete[] emitter_rob;
+        emitter_rob = 0;
+    }
+    emitter_rob_count = 0;
+
+    if (water_ptcl) {
+        delete[] water_ptcl;
+        water_ptcl = 0;
+    }
+    water_ptcl_count = 0;
+}
+
+void EffectSplashParticle::disp() {
+    time_struct ptcl_disp_time;
+    for (int32_t i = 0; i < water_ptcl_count; i++)
+        water_ptcl[i].disp();
+
+    if (has_splash_object)
+        particle_disp_obj.disp();
+    this->ptcl_disp_time = ptcl_disp_time.calc_time_int();
+}
+
+bool EffectSplashParticle::init(int32_t splash_tex_id, object_info splash_obj_id, bool in_water, bool blink) {
+    static const int32_t dword_1409E59A8[5] = {
+        26, 20, 14, 9, 0,
+    };
+
+    static const int32_t dword_1409E59A8_size = sizeof(dword_1409E59A8) / sizeof(int32_t);
+
+    splash_count = 1;
+    splash = new splash_particle[splash_count];
+
+    if (!splash)
+        return false;
+
+    emitter_rob_count = dword_1409E59A8_size * ROB_CHARA_COUNT;
+    emitter_rob = new ParticleEmitterRob[emitter_rob_count];
+
+    if (!emitter_rob)
+        return false;
+
+    water_ptcl_count = 1;
+    water_ptcl = new water_particle[water_ptcl_count];
+
+    if (!water_ptcl)
+        return false;
+
+    for (int32_t i = 0; i < splash_count; i++)
+        splash[i].init(5000);
+
+    for (int32_t i = 0, j = 0; i < ROB_CHARA_COUNT; i++)
+        for (const int32_t& l : dword_1409E59A8) {
+            ParticleEmitterRob& ptcl_emit_rob = emitter_rob[j++];
+            ptcl_emit_rob.set_chara(i, l, in_water);
+            ptcl_emit_rob.set_splash(splash);
+        }
+
+    for (int32_t i = 0; i < splash_count; i++) {
+        water_ptcl[i].set(&splash[i], splash_tex_id);
+        water_ptcl[i].blink = blink;
+    }
+
+    if (splash_obj_id.not_null()) {
+        splash_object.init(100);
+
+        object_emitter_rob_count = dword_1409E59A8_size * ROB_CHARA_COUNT;
+        object_emitter_rob = new ParticleEmitterRob[object_emitter_rob_count];
+
+        if (!object_emitter_rob)
+            return false;
+
+        for (int32_t i = 0, j = 0; i < ROB_CHARA_COUNT; i++)
+            for (const int32_t& l : dword_1409E59A8) {
+                ParticleEmitterRob& ptcl_emit_rob = object_emitter_rob[j++];
+                ptcl_emit_rob.set_chara(i, l, in_water);
+                ptcl_emit_rob.set_splash(&splash_object);
+                ptcl_emit_rob.emit_num = 10;
+                ptcl_emit_rob.particle_size = 1.0f;
+                ptcl_emit_rob.field_28 = 1.0f;
+            }
+
+        particle_disp_obj.init(&splash_object, splash_obj_id);
+        has_splash_object = true;
+    }
+    else
+        has_splash_object = false;
+
+    rob_ctrl_time = 0;
+    ptcl_ctrl_time = 0;
+    ptcl_disp_time = 0;
+
+    set_color({ 15.0f, 15.0f, 15.0f, 1.0f });
+    set_particle_size(5.0f);
+    set_emit_num(5000);
+    set_ripple_emission(0.25f);
+
+    this->splash_tex_id = splash_tex_id;
+    this->splash_obj_id = splash_obj_id;
+    this->in_water = in_water;
+    this->blink = blink;
+    return true;
+}
+
+void EffectSplashParticle::reset() {
+    splash_count = 0;
+    splash = 0;
+    emitter_rob_count = 0;
+    emitter_rob = 0;
+    water_ptcl_count = 0;
+    water_ptcl = 0;
+    has_splash_object = false;
+    object_emitter_rob_count = 0;
+    object_emitter_rob = 0;
+    color = 1.0f;
+    particle_size = 1.0f;
+    emit_num = 1;
+    ripple_emission = 0.0f;
+    emission_ratio_attn = 0.0f;
+    emission_velocity_scale = 0.0f;
+    splash_tex_id = -1;
+    splash_obj_id = {};
+    in_water = false;
+    blink = false;
+    rob_ctrl_time = 0;
+    ptcl_ctrl_time = 0;
+    ptcl_disp_time = 0;
+}
+
+void EffectSplashParticle::restart() {
+    for (int32_t i = 0; i < splash_count; i++)
+        splash[i].restart();
+
+    for (int32_t i = 0; i < splash_count; i++)
+        emitter_rob[i].restart();
+
+    if (has_splash_object) {
+        splash_object.restart();
+
+        for (int32_t i = 0; i < object_emitter_rob_count; i++)
+            object_emitter_rob[i].restart();
+    }
+}
+
+void EffectSplashParticle::set_color(const vec4& value) {
+    for (int32_t i = 0; i < water_ptcl_count; i++)
+        water_ptcl[i].color = value;
+}
+
+void EffectSplashParticle::set_emission_ratio_attn(float_t value) {
+    for (int32_t i = 0; i < emitter_rob_count; i++)
+        emitter_rob[i].emission_ratio_attn = value;
+
+    if (has_splash_object)
+        for (int32_t i = 0; i < object_emitter_rob_count; i++)
+            object_emitter_rob[i].emission_ratio_attn = value;
+
+    emission_ratio_attn = value;
+}
+
+void EffectSplashParticle::set_emission_velocity_scale(float_t value) {
+    for (int32_t i = 0; i < emitter_rob_count; i++)
+        emitter_rob[i].emission_velocity_scale = value;
+
+    if (has_splash_object)
+        for (int32_t i = 0; i < object_emitter_rob_count; i++)
+            object_emitter_rob[i].emission_velocity_scale = value;
+
+    emission_velocity_scale = value;
+}
+
+void EffectSplashParticle::set_emit_num(int32_t value) {
+    emit_num = value;
+
+    for (int32_t i = 0; i < emitter_rob_count; i++)
+        emitter_rob[i].emit_num = value;
+}
+
+void EffectSplashParticle::set_particle_size(float_t value) {
+    particle_size = value;
+
+    for (int32_t i = 0; i < water_ptcl_count; i++)
+        water_ptcl[i].particle_size = value;
+
+    for (int32_t i = 0; i < emitter_rob_count; i++)
+        emitter_rob[i].particle_size = value;
+}
+
+void EffectSplashParticle::set_ripple_emission(float_t value) {
+    for (int32_t i = 0; i < water_ptcl_count; i++)
+        water_ptcl[i].ripple_emission = value;
+
+    ripple_emission = value;
+}
+
+EffectSplash::EffectSplash() : restart(), stage_index(), field_8(),
+field_110(), current_stage_index(), frame_rate_control(), field_138() {
+    reset();
+}
+
+EffectSplash::~EffectSplash() {
+    dest();
+}
+
+void EffectSplash::ctrl(float_t delta_time) {
+    if (restart && field_8 && field_110)
+        particle.ctrl(delta_time);
+}
+
+void EffectSplash::dest() {
+    stage_param_data_splash_storage_clear();
+    particle.dest();
+    reset();
+}
+
+void EffectSplash::disp() {
+    if (restart && field_8 && field_110)
+        particle.disp();
+}
+
+void EffectSplash::reset() {
+    restart = false;
+    field_8 = true;
+    stage_index = -1;
+    field_110 = false;
+    current_stage_index = -1;
+}
+
+static void sub_140366CE0() {
+    dword_141195E48 = 0;
+    dword_141195E4C = 0;
+}
+
+void EffectSplash::restart_effect() {
+    if (restart) {
+        sub_140366CE0();
+        particle.restart();
+    }
+}
+
+void EffectSplash::set_current_stage_index(int32_t value) {
+    if (current_stage_index == value)
+        return;
+
+    current_stage_index = value;
+
+    field_110 = false;
+
+    if (value != -1)
+        for (int32_t i : stage_indices)
+            if (i == value) {
+                field_110 = true;
+                break;
+            }
+}
+
+void EffectSplash::set_stage_indices(const std::vector<int32_t>& stage_indices) {
+    field_110 = false;
+    current_stage_index = -1;
+    this->stage_indices.clear();
+    stage_param_data_splash_storage_clear();
+    for (const int32_t& i : stage_indices) {
+        stage_param_splash splash;
+        if (effect_array_parse_stage_param_data_splash(&splash, i)) {
+            this->stage_indices.push_back(i);
+            stage_param_data_splash_storage_set_stage_data(i, &splash);
+        }
+    }
+
+    if (!this->stage_indices.size())
+        return;
+
+    current_stage_index = this->stage_indices.front();
+
+    stage_param_splash* splash = stage_param_data_splash_storage_get_value(current_stage_index);
+    if (!splash)
+        return;
+
+    field_110 = true;
+    stage_index = current_stage_index;
+    field_8 = true;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+    texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
+
+    if (!particle.init(aft_tex_db->get_texture_id(splash->splash_tex_name.c_str()),
+        aft_obj_db->get_object_info(splash->splash_obj_name.c_str()), splash->in_water, splash->blink))
+        return;
+
+    particle.set_emit_num(splash->emit_num);
+    particle.set_color(splash->color);
+    particle.set_particle_size(splash->particle_size);
+    particle.set_ripple_emission(splash->ripple_emission);
+    particle.set_emission_ratio_attn(splash->emission_ratio_attn);
+    particle.set_emission_velocity_scale(splash->emission_velocity_scale);
+    restart = true;
+}
+
+TaskEffectSplash::TaskEffectSplash() : enable() {
+
+}
+
+TaskEffectSplash::~TaskEffectSplash() {
+
+}
+
+bool TaskEffectSplash::init() {
+    water_particle_init();
+    set_enable(true);
+    //sub_1400DE640("TaskEffectSplash::init()\n");
+    return true;
+}
+
+bool TaskEffectSplash::ctrl() {
+    if (enable)
+        data.ctrl(data.frame_rate_control->get_delta_frame() * (float_t)(1.0 / 60.0));
+    return false;
+}
+
+bool TaskEffectSplash::dest() {
+    data.dest();
+    water_particle_free();
+
+    effect_splash = 0;
+    //sub_1400DE640("TaskEffectSplash::dest()\n");
+    return true;
+}
+
+void TaskEffectSplash::disp() {
+    if (enable)
+        data.disp();
+}
+
+void TaskEffectSplash::pre_init(int32_t stage_index) {
+
+}
+
+void TaskEffectSplash::set_stage_indices(const std::vector<int32_t>& stage_indices) {
+    set_frame_rate_control(0);
+    data.set_stage_indices(stage_indices);
+    effect_splash = &data;
+}
+
+void TaskEffectSplash::set_enable(bool value) {
+    enable = value;
+}
+
+void TaskEffectSplash::set_current_stage_index(int32_t value) {
+    data.set_current_stage_index(value);
+}
+
+void TaskEffectSplash::set_frame_rate_control(FrameRateControl* value) {
+    if (value)
+        data.frame_rate_control = value;
+    else
+        data.frame_rate_control = get_sys_frame_rate();
+}
+
+void TaskEffectSplash::reset() {
+    data.restart_effect();
+}
+
 TaskEffectStar::TaskEffectStar() : frame_rate_control(), delta_frame() {
     current_stage_index = -1;
 }
@@ -3545,7 +4633,7 @@ void TaskEffectStar::disp() {
 
 }
 
-void TaskEffectStar::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void TaskEffectStar::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     if (star_catalog_data.stage_param_data_ptr)
         dest();
 
@@ -3555,35 +4643,36 @@ void TaskEffectStar::set_stage_indices(std::vector<int32_t>& stage_indices) {
     delta_frame = 1.0f;
     for (int32_t i : stage_indices) {
         stage_param_star star;
-        if (task_effect_array_parse_stage_param_data_star(&star, i)) {
+        if (effect_array_parse_stage_param_data_star(&star, i)) {
             this->stage_indices.push_back(i);
             stage_param_data_star_storage_set_stage_data(i, &star);
         }
     }
 
-    if (this->stage_indices.size()) {
-        int32_t stage_index = this->stage_indices.front();
-        current_stage_index = stage_index;
-        stage_param_star* star = stage_param_data_star_storage_get_value(stage_index);
+    if (!this->stage_indices.size())
+        return;
 
-        if (star) {
-            const char* dir = "./rom/";
-            const char* farc_file;
-            const char* file;
+    current_stage_index = this->stage_indices.front();
 
-            if (star_catalog_data.random) {
-                farc_file = "star_catalog_random.farc";
-                file = "random.bin";
-            }
-            else {
-                farc_file = "star_catalog_megastar2.farc";
-                file = "megastar2.bin";
-            }
+    stage_param_star* star = stage_param_data_star_storage_get_value(current_stage_index);
+    if (!star)
+        return;
 
-            star_catalog_data.file_handler.read_file(&data_list[DATA_AFT], dir, farc_file, file, false);
-            star_catalog_data.set_stage_param_data(star);
-        }
+    const char* dir = "./rom/";
+    const char* farc_file;
+    const char* file;
+
+    if (star_catalog_data.random) {
+        farc_file = "star_catalog_random.farc";
+        file = "random.bin";
     }
+    else {
+        farc_file = "star_catalog_megastar2.farc";
+        file = "megastar2.bin";
+    }
+
+    star_catalog_data.file_handler.read_file(&data_list[DATA_AFT], dir, farc_file, file, false);
+    star_catalog_data.set_stage_param_data(star);
 }
 
 void TaskEffectStar::set_enable(bool value) {
@@ -3622,15 +4711,15 @@ void TaskEffectStar::reset() {
 
 }
 
-static TaskEffect* task_effect_array_get(TaskEffectType type, const char** name) {
-    if (type < TASK_EFFECT_AUTH_3D || type > TASK_EFFECT_STAR) {
+static TaskEffect* effect_array_get(EffectType type, const char** name) {
+    if (type < EFFECT_AUTH_3D || type > EFFECT_STAR) {
         if (name)
             *name = 0;
         return 0;
     }
 
     if (name)
-        *name = task_effect_name_array[type];
+        *name = effect_name_array[type];
 
     TaskEffect** task = task_effect_data_array[type];
     if (task)
@@ -3638,8 +4727,8 @@ static TaskEffect* task_effect_array_get(TaskEffectType type, const char** name)
     return 0;
 }
 
-static std::string task_effect_array_get_stage_param_file_path(
-    TaskEffectType type, int32_t stage_index, bool dev_ram, bool a4) {
+static std::string effect_array_get_stage_param_file_path(
+    EffectType type, int32_t stage_index, bool dev_ram, bool a4) {
     std::string path;
     if (dev_ram)
         path.assign("dev_ram/stage_param/");
@@ -3657,7 +4746,7 @@ static std::string task_effect_array_get_stage_param_file_path(
         return {};
 
     const char* effect_name = 0;
-    task_effect_array_get(type, &effect_name);
+    effect_array_get(type, &effect_name);
     if (!effect_name)
         return {};
 
@@ -3675,74 +4764,74 @@ static std::string task_effect_array_get_stage_param_file_path(
     return path;
 }
 
-static bool task_effect_array_parse_stage_param_data_fog_ring(stage_param_fog_ring* fog_ring, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_fog_ring(stage_param_fog_ring* fog_ring, int32_t stage_index) {
     if (!fog_ring)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_FOG_RING, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_FOG_RING, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(fog_ring, path.c_str(), stage_param_fog_ring::load_file);
     return fog_ring->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_leaf(stage_param_leaf* leaf, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_leaf(stage_param_leaf* leaf, int32_t stage_index) {
     if (!leaf)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_LEAF, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_LEAF, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(leaf, path.c_str(), stage_param_leaf::load_file);
     return leaf->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_litproj(stage_param_litproj* litproj, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_litproj(stage_param_litproj* litproj, int32_t stage_index) {
     if (!litproj)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_LITPROJ, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_LITPROJ, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(litproj, path.c_str(), stage_param_litproj::load_file);
     return litproj->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_rain(stage_param_rain* rain, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_rain(stage_param_rain* rain, int32_t stage_index) {
     if (!rain)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_RAIN, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_RAIN, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(rain, path.c_str(), stage_param_rain::load_file);
     return rain->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_ripple(stage_param_ripple* ripple, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_ripple(stage_param_ripple* ripple, int32_t stage_index) {
     if (!ripple)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_RIPPLE, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_RIPPLE, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(ripple, path.c_str(), stage_param_ripple::load_file);
     return ripple->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int32_t stage_index) {
     if (!snow)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_SNOW, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_SNOW, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(snow, path.c_str(), stage_param_snow::load_file);
     return snow->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index) {
     if (!splash)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_SPLASH, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_SPLASH, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(splash, path.c_str(), stage_param_splash::load_file);
     return splash->ready;
 }
 
-static bool task_effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index) {
+static bool effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index) {
     if (!star)
         return false;
 
-    std::string path = task_effect_array_get_stage_param_file_path(TASK_EFFECT_STAR, stage_index, 0, 0);
+    std::string path = effect_array_get_stage_param_file_path(EFFECT_STAR, stage_index, 0, 0);
     data_list[DATA_AFT].load_file(star, path.c_str(), stage_param_star::load_file);
     return star->ready;
 }
@@ -4203,59 +5292,59 @@ struc_608::~struc_608() {
 
 }
 
-TaskEffectParent::TaskEffectParent() : state(), enable(),
+EffectManager::EffectManager() : state(), enable(),
 modern(), data(), obj_db(), tex_db(), stage_data() {
     current_stage_hash = hash_murmurhash_empty;
     current_stage_index = -1;
 }
 
-TaskEffectParent::~TaskEffectParent() {
+EffectManager::~EffectManager() {
 
 }
 
-std::pair<TaskEffectType, TaskEffect*> TaskEffectParent::add_effect(TaskEffectType type) {
+std::pair<EffectType, TaskEffect*> EffectManager::add_effect(EffectType type) {
     if (check_effect_loaded(type) < 0) {
         const char* name = 0;
-        TaskEffect* t = task_effect_array_get(type, &name);
+        TaskEffect* t = effect_array_get(type, &name);
         if (t) {
             app::TaskWork::add_task(t, name);
             return { type, t };
         }
     }
 
-    return { TASK_EFFECT_INVALID, 0 };
+    return { EFFECT_INVALID, 0 };
 }
 
-int32_t TaskEffectParent::check_effect_loaded(TaskEffectType type) {
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+int32_t EffectManager::check_effect_loaded(EffectType type) {
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         if (i.first == type)
             return 0;
     return -1;
 }
 
-void TaskEffectParent::event(TaskEffectType type, int32_t event_type, void* data) {
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+void EffectManager::event(EffectType type, int32_t event_type, void* data) {
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         if (i.first == type)
             i.second->event(event_type, data);
 }
 
-void TaskEffectParent::dest() {
+void EffectManager::dest() {
     if (state == 1)
         state = 4;
     else if (state >= 2 && state <= 3) {
-        for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+        for (std::pair<EffectType, TaskEffect*>& i : effects)
             i.second->del();
         state = 4;
     }
 }
 
-static const TaskEffectType dword_1409E3440[16] = {
-    TASK_EFFECT_AUTH_3D,
-    TASK_EFFECT_PARTICLE,
-    TASK_EFFECT_INVALID,
+static const EffectType dword_1409E3440[16] = {
+    EFFECT_AUTH_3D,
+    EFFECT_PARTICLE,
+    EFFECT_INVALID,
 };
 
-bool TaskEffectParent::load() {
+bool EffectManager::load() {
     if (state == 1) {
         if (!modern) {
             bool wait_load = false;
@@ -4266,11 +5355,11 @@ bool TaskEffectParent::load() {
             if (wait_load)
                 return true;
 
-            for (TaskEffectType i : dword_1409E3440) {
-                if (i == TASK_EFFECT_INVALID)
+            for (EffectType i : dword_1409E3440) {
+                if (i == EFFECT_INVALID)
                     break;
 
-                std::pair<TaskEffectType, TaskEffect*> v57 = add_effect(i);
+                std::pair<EffectType, TaskEffect*> v57 = add_effect(i);
                 if (v57.second) {
                     v57.second->set_stage_indices(stage_indices);
                     v57.second->set_enable(enable);
@@ -4282,10 +5371,10 @@ bool TaskEffectParent::load() {
             for (std::pair<int32_t, struc_608>& i : field_68) {
                 const stage_effects* stage_effects = i.second.stage_effects;
                 for (int32_t j : stage_effects->field_20) {
-                    if (j == TASK_EFFECT_INVALID)
+                    if (j == EFFECT_INVALID)
                         break;
 
-                    std::pair<TaskEffectType, TaskEffect*> v57 = add_effect((TaskEffectType)j);
+                    std::pair<EffectType, TaskEffect*> v57 = add_effect((EffectType)j);
                     if (v57.second) {
                         v57.second->set_stage_indices(stage_indices);
                         v57.second->set_enable(enable);
@@ -4309,11 +5398,11 @@ bool TaskEffectParent::load() {
             if (wait_load)
                 return true;
 
-            for (TaskEffectType i : dword_1409E3440) {
-                if (i == TASK_EFFECT_INVALID)
+            for (EffectType i : dword_1409E3440) {
+                if (i == EFFECT_INVALID)
                     break;
 
-                std::pair<TaskEffectType, TaskEffect*> v57 = add_effect(i);
+                std::pair<EffectType, TaskEffect*> v57 = add_effect(i);
                 if (v57.second) {
                     v57.second->set_stage_hashes(stage_hashes, data, obj_db, tex_db, stage_data);
                     v57.second->set_enable(enable);
@@ -4325,10 +5414,10 @@ bool TaskEffectParent::load() {
             for (std::pair<int32_t, struc_608>& i : field_68) {
                 const stage_effects_modern* stage_effects = i.second.stage_effects_modern;
                 for (int32_t j : stage_effects->field_20) {
-                    if (j == TASK_EFFECT_INVALID)
+                    if (j == EFFECT_INVALID)
                         break;
 
-                    std::pair<TaskEffectType, TaskEffect*> v57 = add_effect((TaskEffectType)j);
+                    std::pair<EffectType, TaskEffect*> v57 = add_effect((EffectType)j);
                     if (v57.second) {
                         v57.second->set_stage_hashes(stage_hashes, data, obj_db, tex_db, stage_data);
                         v57.second->set_enable(enable);
@@ -4345,14 +5434,14 @@ bool TaskEffectParent::load() {
         return false;
 
     bool wait_load = false;
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         if (!app::TaskWork::check_task_ctrl(i.second)) {
             wait_load = true;
             break;
         }
 
     if (!wait_load) {
-        for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+        for (std::pair<EffectType, TaskEffect*>& i : effects)
             i.second->set_enable(enable);
 
         state = 3;
@@ -4361,12 +5450,12 @@ bool TaskEffectParent::load() {
     return true;
 }
 
-void TaskEffectParent::reset() {
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+void EffectManager::reset() {
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         i.second->reset();
 }
 
-void TaskEffectParent::reset_data() {
+void EffectManager::reset_data() {
     current_stage_hash = hash_murmurhash_empty;
     current_stage_index = -1;
     this->current_stage_index = -1;
@@ -4379,38 +5468,38 @@ void TaskEffectParent::reset_data() {
     state = 0;
 }
 
-void TaskEffectParent::set_current_stage_hash(uint32_t stage_hash) {
+void EffectManager::set_current_stage_hash(uint32_t stage_hash) {
     if (current_stage_hash != stage_hash) {
-        for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+        for (std::pair<EffectType, TaskEffect*>& i : effects)
             i.second->set_current_stage_hash(stage_hash);
         current_stage_hash = stage_hash;
     }
 }
 
-void TaskEffectParent::set_current_stage_index(int32_t stage_index) {
+void EffectManager::set_current_stage_index(int32_t stage_index) {
     if (current_stage_index != stage_index) {
-        for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+        for (std::pair<EffectType, TaskEffect*>& i : effects)
             i.second->set_current_stage_index(stage_index);
         current_stage_index = stage_index;
     }
 }
 
-void TaskEffectParent::set_enable(bool value) {
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+void EffectManager::set_enable(bool value) {
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         i.second->set_enable(value);
 }
 
-void TaskEffectParent::set_frame(int32_t value) {
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+void EffectManager::set_frame(int32_t value) {
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         i.second->set_frame(value);
 }
 
-void TaskEffectParent::set_frame_rate_control(FrameRateControl* value) {
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+void EffectManager::set_frame_rate_control(FrameRateControl* value) {
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         i.second->set_frame_rate_control(value);
 }
 
-void TaskEffectParent::set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
+void EffectManager::set_stage_hashes(const std::vector<uint32_t>& stage_hashes) {
     this->stage_indices.clear();
     this->stage_hashes.assign(stage_hashes.begin(), stage_hashes.end());
     obj_set_ids.clear();
@@ -4440,7 +5529,7 @@ void TaskEffectParent::set_stage_hashes(std::vector<uint32_t>& stage_hashes) {
     state = 1;
 }
 
-void TaskEffectParent::set_stage_indices(std::vector<int32_t>& stage_indices) {
+void EffectManager::set_stage_indices(const std::vector<int32_t>& stage_indices) {
     this->stage_indices.assign(stage_indices.begin(), stage_indices.end());
     this->stage_hashes.clear();
     obj_set_ids.clear();
@@ -4476,13 +5565,13 @@ void TaskEffectParent::set_stage_indices(std::vector<int32_t>& stage_indices) {
     state = 1;
 }
 
-bool TaskEffectParent::unload() {
+bool EffectManager::unload() {
     if (state != 4) {
         reset_data();
         return false;
     }
 
-    for (std::pair<TaskEffectType, TaskEffect*>& i : effects)
+    for (std::pair<EffectType, TaskEffect*>& i : effects)
         if (app::TaskWork::check_task_ready(i.second))
             return true;
 
@@ -4493,7 +5582,7 @@ bool TaskEffectParent::unload() {
     return false;
 }
 
-static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* data) {
+static void draw_fog_particle(EffectFogRing* data, mat4* mat) {
     if (!data->num_vtx)
         return;
 
@@ -4506,20 +5595,24 @@ static void draw_fog_particle(render_context* rctx, TaskEffectFogRing::Data* dat
     data->ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);
     gl_state_disable_blend();
+    shader::unbind();
 }
 
-static void draw_ripple_emit(render_context* rctx, ripple_struct* data) {
+static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
+    if (data->count > 5000)
+        return;
+
     gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
 
     {
         size_t count = data->count;
-        vec3* vertex = data->vertex;
+        vec3* position = data->position;
         color4u8* color = data->color;
 
         vec3* vtx_data = force_malloc<vec3>(count);
 
-        for (size_t i = count; i; i--, vtx_data++, vertex++, color++)
-            *vtx_data = { vertex->x, vertex->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
+        for (size_t i = count; i; i--, vtx_data++, position++, color++)
+            *vtx_data = { position->x, position->z, (float_t)color->a * (float_t)(1.0 / 255.0) };
 
         vtx_data -= count;
 
@@ -4530,8 +5623,8 @@ static void draw_ripple_emit(render_context* rctx, ripple_struct* data) {
 
     int32_t size = (int32_t)(data->size + 0.5f);
 
-    RenderTexture& rt = rctx->render_manager->get_render_texture(
-        ripple_emit_data->use_float_ripplemap ? 2 : 5);
+    RenderTexture& rt = rctx_ptr->render_manager->get_render_texture(
+        effect_ripple->use_float_ripplemap ? 2 : 5);
     int32_t width = rt.GetWidth();
     int32_t height = rt.GetHeight();
 
@@ -4560,7 +5653,12 @@ static void draw_ripple_emit(render_context* rctx, ripple_struct* data) {
     ripple_emit_ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->count * 6);
 
+    shader::unbind();
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+}
+
+static void draw_water_particle(water_particle* data, mat4* mat) {
+    data->draw(mat);
 }
 
 static void leaf_particle_init(bool change_stage) {
@@ -5131,9 +6229,7 @@ static void ripple_emit_init() {
     ripple_batch_ubo.Create(sizeof(ripple_batch_shader_data));
     ripple_scene_ubo.Create(sizeof(ripple_scene_shader_data));
 
-    size_t max_count = 16;
-
-    ripple_emit_ssbo.Create(sizeof(vec3) * max_count);
+    ripple_emit_ssbo.Create(sizeof(vec3) * ripple_emit_count);
 
     ripple_emit_scene_ubo.Create(sizeof(ripple_emit_scene_shader_data));
 }
@@ -5452,6 +6548,14 @@ static void snow_particle_free() {
 
     snow_particle_scene_ubo.Destroy();
     snow_particle_batch_ubo.Destroy();
+}
+
+static void water_particle_init() {
+    water_particle_scene_ubo.Create(sizeof(water_particle_scene_shader_data));
+}
+
+static void water_particle_free() {
+    water_particle_scene_ubo.Destroy();
 }
 
 static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params) {

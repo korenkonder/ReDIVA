@@ -112,8 +112,8 @@ extern int32_t obj_material_texture_type_get_texcoord_index(
 extern int32_t obj_material_texture_type_get_texture_index(
     obj_material_texture_type type, int32_t base_index);
 
-extern void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
-    mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat);
+extern void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
+    const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat);
 
 extern void object_material_msgpack_read(const char* path, const char* set_name,
     obj_set* obj_set, object_database* obj_db);

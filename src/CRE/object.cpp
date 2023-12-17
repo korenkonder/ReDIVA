@@ -566,8 +566,8 @@ inline int32_t obj_material_texture_type_get_texture_index(
     return -1;
 }
 
-void obj_skin_set_matrix_buffer(obj_skin* s, mat4* matrices,
-    mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat) {
+void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
+    const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat) {
     if (!s->num_bone)
         return;
 

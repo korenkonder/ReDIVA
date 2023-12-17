@@ -8,9 +8,9 @@
 #include "../KKdLib/str_utils.hpp"
 #include "../KKdLib/vec.hpp"
 #include "rob/rob.hpp"
+#include "effect.hpp"
 #include "light_param.hpp"
 #include "render_context.hpp"
-#include "task_effect.hpp"
 
 namespace stage_detail {
     static void TaskStage_CtrlInner(stage_detail::TaskStage* a1);
@@ -29,9 +29,12 @@ namespace stage_detail {
     static void TaskStage_Unload(stage_detail::TaskStage* a1);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat);
-static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view);
-static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view);
+static bool object_bounding_sphere_check_visibility_shadow(
+    const obj_bounding_sphere* sphere, const mat4* view, const mat4* mat);
+static bool object_bounding_sphere_check_visibility_shadow_chara(
+    const obj_bounding_sphere* sphere, const mat4* view);
+static bool object_bounding_sphere_check_visibility_shadow_stage(
+    const obj_bounding_sphere* sphere, const mat4* view);
 
 static bool stage_ctrl(stage* s);
 static void stage_disp(stage* s);
@@ -145,7 +148,7 @@ void task_stage_info::set_stage_display(bool value, bool effect_enable) const {
     if (stg) {
         stg->stage_display = value;
         if (effect_enable)
-            task_effect_parent_set_enable(value);
+            effect_manager_set_enable(value);
     }
 }
 
@@ -325,14 +328,14 @@ static void stage_detail::TaskStage_Load(stage_detail::TaskStage* a1) {
             }
 
         if (!wait_load) {
-            task_effect_parent_set_stage_indices(a1->stage_indices);
-            task_effect_parent_set_enable(a1->stage_display);
+            effect_manager_set_stage_indices(a1->stage_indices);
+            effect_manager_set_enable(a1->stage_display);
             a1->state = 5;
             //sub_14064DC10();
         }
     } break;
     case 5: {
-        if (task_effect_parent_load())
+        if (effect_manager_load())
             break;
 
             std::vector<task_stage_info> vec;
@@ -404,11 +407,11 @@ static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
     }
 
     if (a1->state == 7) {
-        task_effect_parent_dest();
+        effect_manager_dest();
         a1->state = 8;
     }
     else if (a1->state == 8) {
-        if (!task_effect_parent_unload())
+        if (!effect_manager_unload())
             a1->state = 9;
     }
     else if (a1->state == 9) {
@@ -428,7 +431,8 @@ static void stage_detail::TaskStage_Unload(stage_detail::TaskStage* a1) {
     }
 }
 
-static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* sphere, mat4* view, mat4* mat) {
+static bool object_bounding_sphere_check_visibility_shadow(
+    const obj_bounding_sphere* sphere, const mat4* view, const mat4* mat) {
     vec3 center;
     mat4_transform_point(mat, &sphere->center, &center);
     mat4_transform_point(view, &center, &center);
@@ -446,14 +450,16 @@ static bool object_bounding_sphere_check_visibility_shadow(obj_bounding_sphere* 
     return true;
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_chara(obj_bounding_sphere* sphere, mat4* view) {
+static bool object_bounding_sphere_check_visibility_shadow_chara(
+    const obj_bounding_sphere* sphere, const mat4* view) {
     mat4 mat;
     Shadow* shad = shadow_ptr_get();
     mat4_look_at(&shad->view_point[0], &shad->interest[0], &mat);
     return object_bounding_sphere_check_visibility_shadow(sphere, view, &mat);
 }
 
-static bool object_bounding_sphere_check_visibility_shadow_stage(obj_bounding_sphere* sphere, mat4* view) {
+static bool object_bounding_sphere_check_visibility_shadow_stage(
+    const obj_bounding_sphere* sphere, const mat4* view) {
     mat4 mat;
     Shadow* shad = shadow_ptr_get();
     mat4_look_at(&shad->view_point[1], &shad->interest[1], &mat);
@@ -703,17 +709,17 @@ static void stage_set(stage* s, stage* other) {
         //if (stru_14CC92630.pv_id == 421)
             //render_manager->field_31F = true;
         //sub_14064DC10();
-        task_effect_parent_set_current_stage_index(other->index);
+        effect_manager_set_current_stage_index(other->index);
     }
     else
-        task_effect_parent_set_current_stage_index(-1);
+        effect_manager_set_current_stage_index(-1);
 
     if (other)
         light_param_data_storage_data_set_stage(other->index);
     else
         light_param_data_storage_data_set_default_light_param();
 
-    task_effect_parent_set_frame(0);
+    effect_manager_set_frame(0);
 
     //sub_140344180(0);
 

@@ -11,6 +11,7 @@
 #include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/skin_param.hpp"
 #include "../CRE/data.hpp"
+#include "../CRE/effect.hpp"
 #include "../CRE/item_table.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/pv_expression.hpp"
@@ -19,7 +20,6 @@
 #include "../CRE/shader_ft.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/sprite.hpp"
-#include "../CRE/task_effect.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/farc.hpp"
@@ -4490,7 +4490,7 @@ void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_databas
 
     task_stage_modern_set_data(x_data, obj_db, tex_db, &stg_db);
     task_stage_modern_set_stage_hashes(obj_hash, stage_data);
-    task_effect_parent_set_data(x_data, obj_db, tex_db, &stg_db);
+    effect_manager_set_data(x_data, obj_db, tex_db, &stg_db);
 
     for (uint32_t& i : objhrc_hash)
         object_storage_load_set_hash(x_data, i);
@@ -7869,7 +7869,7 @@ static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t 
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time) {
     if (!xpvgm->task_effect_init && (dsc_time > -1 || curr_time > -1)) {
         rand_state_array_4_set_seed_1393939();
-        task_effect_parent_reset();
+        effect_manager_reset();
         xpvgm->task_effect_init = true;
     }
 

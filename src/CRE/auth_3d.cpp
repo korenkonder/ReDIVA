@@ -14,10 +14,10 @@
 #include "../KKdLib/str_utils.hpp"
 #include "rob/rob.hpp"
 #include "clear_color.hpp"
+#include "effect.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"
 #include "task.hpp"
-#include "task_effect.hpp"
 #include "sound.hpp"
 #include "sprite.hpp"
 #include "stage.hpp"
@@ -1083,7 +1083,7 @@ namespace auth_3d_detail {
         event.size = point.model_transform.scale_value.z;
         event.trans = trans;
         event.force = point.model_transform.scale_value.y;
-        task_effect_parent_event(TASK_EFFECT_PARTICLE, 1, &event);
+        effect_manager_event(EFFECT_PARTICLE, 1, &event);
     }
 
     EventFXSmoothCut::EventFXSmoothCut(a3da_event* e) : Event(e), cam() {
@@ -1185,7 +1185,7 @@ namespace auth_3d_detail {
             if (rob_chr)
                 rob_chr->item_equip->disable_update = true;
         }
-        task_effect_parent_set_frame_rate_control(&frame_rate_time_stop);
+        effect_manager_set_frame_rate_control(&frame_rate_time_stop);
     }
 
     void EventFilterTimeStop::End(auth_3d* auth, int32_t flags, render_context* rctx) {
@@ -1194,7 +1194,7 @@ namespace auth_3d_detail {
             if (rob_chr)
                 rob_chr->item_equip->disable_update = true;
         }
-        task_effect_parent_set_frame_rate_control(get_sys_frame_rate());
+        effect_manager_set_frame_rate_control(get_sys_frame_rate());
     }
 
     void EventFilterTimeStop::Disp(auth_3d* auth, const mat4* mat, render_context* rctx) {

@@ -8,9 +8,9 @@
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/data.hpp"
+#include "../../CRE/effect.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
-#include "../../CRE/task_effect.hpp"
 #include "../dw.hpp"
 #include "../input.hpp"
 #include "../config.hpp"
@@ -82,7 +82,7 @@ bool DtmStg::ctrl() {
     task_stage_current_set_ground(dtw_stg->ground->value);
     task_stage_current_set_ring(dtw_stg->ring->value);
     task_stage_current_set_sky(dtw_stg->sky->value);
-    task_effect_parent_set_enable(dtw_stg->effect_display->value);
+    effect_manager_set_enable(dtw_stg->effect_display->value);
     return false;
 }
 

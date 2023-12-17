@@ -10,11 +10,11 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/auth_2d.hpp"
 #include "../../CRE/data.hpp"
+#include "../../CRE/effect.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/sound.hpp"
 #include "../../CRE/sprite.hpp"
 #include "../../CRE/stage.hpp"
-#include "../../CRE/task_effect.hpp"
 #include "../input_state.hpp"
 
 class DtwAet : public dw::Shell {

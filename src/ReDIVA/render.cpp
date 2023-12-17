@@ -17,6 +17,7 @@
 #include "../CRE/clear_color.hpp"
 #include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
+#include "../CRE/effect.hpp"
 #include "../CRE/file_handler.hpp"
 #include "../CRE/font.hpp"
 #include "../CRE/gl_state.hpp"
@@ -41,7 +42,6 @@
 #include "../CRE/stage_param.hpp"
 #include "../CRE/static_var.hpp"
 #include "../CRE/task.hpp"
-#include "../CRE/task_effect.hpp"
 #include "../CRE/texture.hpp"
 #include "../KKdLib/database/item_table.hpp"
 #include "../KKdLib/timer.hpp"
@@ -617,7 +617,7 @@ static render_context* render_context_load() {
     task_stage_init();
     task_stage_modern_init();
     light_param_data_storage_data_init();
-    task_effect_init();
+    effect_init();
     task_pv_db_init();
     Glitter::glt_particle_manager_init();
 
@@ -1283,7 +1283,7 @@ static void render_context_dispose(render_context* rctx) {
 
     Glitter::glt_particle_manager_free();
     task_pv_db_free();
-    task_effect_free();
+    effect_free();
     light_param_data_storage_data_free();
     task_stage_modern_free();
     task_stage_free();

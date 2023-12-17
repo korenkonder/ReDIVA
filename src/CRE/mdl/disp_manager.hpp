@@ -320,7 +320,7 @@ namespace mdl {
         ~EtcObj();
     };
 
-    typedef void(*UserArgsFunc)(void* data);
+    typedef void(*UserArgsFunc)(void* data, mat4* mat);
 
     struct UserArgs {
         UserArgsFunc func;
@@ -358,11 +358,12 @@ namespace mdl {
 
         void init_etc(DispManager* disp_manager, const mat4* mat, mdl::EtcObj* etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
-            obj_sub_mesh* sub_mesh, obj_mesh* mesh, obj_material_data* material, std::vector<GLuint>* textures,
-            int32_t mat_count, mat4* mats, /*GLuint vertex_buffer, GLuint index_buffer,*/
-            obj_mesh_vertex_buffer* vertex_buffer, obj_mesh_index_buffer* index_buffer, vec4* blend_color,
-            vec4* emission, /*GLuint morph_vertex_buffer,*/ obj_mesh_vertex_buffer* morph_vertex_buffer,
-            int32_t instances_count, mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
+            const obj_sub_mesh* sub_mesh, const obj_mesh* mesh,
+            const obj_material_data* material, const std::vector<GLuint>* textures,
+            int32_t mat_count, const mat4* mats, /*GLuint vertex_buffer, GLuint index_buffer,*/
+            obj_mesh_vertex_buffer* vertex_buffer, obj_mesh_index_buffer* index_buffer, const vec4* blend_color,
+            const vec4* emission, /*GLuint morph_vertex_buffer,*/ obj_mesh_vertex_buffer* morph_vertex_buffer,
+            int32_t instances_count, const mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
         void init_translucent(const mat4* mat, ObjTranslucentArgs* translucent);
         void init_user(const mat4* mat, UserArgsFunc func, void* data);
     };
@@ -379,7 +380,7 @@ namespace mdl {
         Info passed_prev;
         Info culled_prev;
 
-        bool(*func)(obj_bounding_sphere*, mat4*);
+        bool(*func)(const obj_bounding_sphere*, const mat4*);
     };
 
     struct DispManager {
@@ -455,32 +456,39 @@ namespace mdl {
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
         void buffer_reset();
-        void calc_obj_radius(mat4* view, mdl::ObjType type);
+        void calc_obj_radius(const mat4* view, mdl::ObjType type);
         void check_vertex_arrays();
         void draw(mdl::ObjType type, int32_t depth_mask = 0, bool a4 = true);
         void draw_translucent(mdl::ObjType type, int32_t alpha);
         /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
         void entry_list(ObjType type, ObjData* data);
-        bool entry_obj(::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
+        bool entry_obj(const ::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* mat,
-            std::vector<GLuint>* textures, vec4* blend_color, mat4* bone_mat, ::obj* object_morph,
-            obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
-            mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*), bool enable_bone_mat, bool local = false);
+            const std::vector<GLuint>* textures, const vec4* blend_color, const mat4* bone_mat,
+            const ::obj* object_morph, obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
+            const mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*),
+            bool enable_bone_mat, bool local = false);
         void entry_obj_by_obj(const mat4* mat,
-            ::obj* obj, std::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
-            obj_mesh_index_buffer* obj_index_buf, mat4* bone_mat, float_t alpha);
-        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, mat4* bone_mat = 0);
+            const ::obj* obj, const std::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
+            obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, const mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
-            vec4* blend_color, mat4* bone_mat, int32_t instances_count,
-            mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*), bool enable_bone_mat, bool local = false);
-        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, float_t alpha, mat4* bone_mat = 0);
+            const vec4* blend_color, const mat4* bone_mat, int32_t instances_count,
+            const mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*),
+            bool enable_bone_mat, bool local = false);
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, float_t alpha, const mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
-            float_t r, float_t g, float_t b, float_t a, mat4* bone_mat = 0, bool local = false);
+            float_t r, float_t g, float_t b, float_t a, const mat4* bone_mat = 0, bool local = false);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
-            vec4* blend_color, mat4* bone_mat = 0, bool local = false);
+            const vec4* blend_color, const mat4* bone_mat = 0, bool local = false);
+        bool entry_obj_by_object_info_instanced(object_info obj_info,
+            const std::vector<mat4>& instances, float_t alpha);
+        bool entry_obj_by_object_info_instanced(object_info obj_info,
+            const std::vector<mat4>& instances, float_t r, float_t g, float_t b, float_t a);
         void entry_obj_by_object_info_object_skin(object_info obj_info,
-            std::vector<texture_pattern_struct>* texture_pattern, texture_data_struct* texture_data, float_t alpha,
-            mat4* matrices, mat4* ex_data_matrices, const mat4* mat, const mat4* global_mat);
+            const std::vector<texture_pattern_struct>* texture_pattern,
+            const texture_data_struct* texture_data, float_t alpha,
+            const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4* global_mat);
         void entry_obj_etc(const mat4* mat, EtcObj* etc, bool local = false);
         void entry_obj_user(const mat4* mat, UserArgsFunc func, void* data, ObjType type);
         GLuint get_vertex_array(const ObjSubMeshArgs* args);
@@ -488,7 +496,7 @@ namespace mdl {
         bool get_chara_color();
         void get_material_list(int32_t& count, material_list_struct*& value);
         void get_morph(object_info& object, float_t& weight);
-        void get_obj_center(mat4& mat, const mdl::ObjSubMeshArgs* args, vec3& center);
+        void get_obj_center(const mat4& mat, const mdl::ObjSubMeshArgs* args, vec3& center);
         int32_t get_obj_count(ObjType type);
         ObjFlags get_obj_flags();
         shadow_type_enum get_shadow_type();
@@ -499,20 +507,20 @@ namespace mdl {
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
         float_t get_wet_param();
-        void obj_sort(mat4* view, ObjType type, int32_t compare_func);
+        void obj_sort(const mat4* view, ObjType type, int32_t compare_func);
         void refresh();
         void set_chara_color(bool value = false);
-        void set_culling_finc(bool(*func)(obj_bounding_sphere*, mat4*) = 0);
+        void set_culling_finc(bool(*func)(const obj_bounding_sphere*, const mat4*) = 0);
         void set_obj_flags(ObjFlags flags = (ObjFlags)0);
-        void set_material_list(int32_t count = 0, material_list_struct* value = 0);
+        void set_material_list(int32_t count = 0, const material_list_struct* value = 0);
         void set_morph(object_info object = {}, float_t weight = 0.0f);
         void set_shadow_type(shadow_type_enum type = SHADOW_CHARA);
-        void set_texture_color_coefficients(vec4& value);
-        void set_texture_color_offset(vec4& value);
-        void set_texture_pattern(int32_t count = 0, texture_pattern_struct* value = 0);
-        void set_texture_specular_coefficients(vec4& value);
-        void set_texture_specular_offset(vec4& value);
-        void set_texture_transform(int32_t count = 0, texture_transform_struct* value = 0);
+        void set_texture_color_coefficients(const vec4& value);
+        void set_texture_color_offset(const vec4& value);
+        void set_texture_pattern(int32_t count = 0, const texture_pattern_struct* value = 0);
+        void set_texture_specular_coefficients(const vec4& value);
+        void set_texture_specular_offset(const vec4& value);
+        void set_texture_transform(int32_t count = 0, const texture_transform_struct* value = 0);
         void set_wet_param(float_t value = 0.0f);
     };
 }

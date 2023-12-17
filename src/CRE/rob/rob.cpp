@@ -14,6 +14,7 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
 #include "../data.hpp"
+#include "../effect.hpp"
 #include "../hand_item.hpp"
 #include "../mdata_manager.hpp"
 #include "../pv_db.hpp"
@@ -8289,13 +8290,8 @@ static void rob_disp_rob_chara_ctrl(rob_chara* rob_chr) {
 
     rob_chara_item_equip_ctrl_iterate_nodes(rob_chr->item_equip);
 
-    /*TaskEffectSplash::Data* rob_impls1 = sub_1403649D0();
-    if (rob_impls1)
-        sub_140366A70(rob_impls1);*/
-
-    /*TaskEffectFogRing::Data* v3 = sub_140348600();
-    if (v3)
-        sub_140349C30(v3);*/
+    effect_fog_ring_data_reset();
+    effect_splash_data_reset();
 }
 
 static void rob_disp_rob_chara_ctrl_thread_main(rob_chara* rob_chr) {

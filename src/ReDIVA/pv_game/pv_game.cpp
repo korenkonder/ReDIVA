@@ -9,11 +9,11 @@
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
 #include "../../CRE/customize_item_table.hpp"
+#include "../../CRE/effect.hpp"
 #include "../../CRE/hand_item.hpp"
 #include "../../CRE/random.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
-#include "../../CRE/task_effect.hpp"
 #include "../../CRE/sound.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../game_state.hpp"
@@ -1173,7 +1173,7 @@ void pv_game::change_field(size_t field, ssize_t dsc_time, ssize_t curr_time) {
 
     if (!data.task_effect_init && (dsc_time > -1 || curr_time > -1)) {
         rand_state_array_4_set_seed_1393939();
-        task_effect_parent_reset();
+        effect_manager_reset();
         data.task_effect_init = true;
     }
 

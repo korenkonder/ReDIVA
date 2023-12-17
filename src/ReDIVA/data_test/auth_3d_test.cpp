@@ -8,11 +8,12 @@
 #include "../../KKdLib/hash.hpp"
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"
+#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
+#include "../../CRE/effect.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
-#include "../../CRE/task_effect.hpp"
 #include "../dw.hpp"
 #include "../input_state.hpp"
 
@@ -650,11 +651,11 @@ void Auth3dTestTask::SetTransAxis(float_t value, int32_t axis) {
 void Auth3dTestTask::sub_140244610() {
     if (auth_2d && aet_index) {
         task_stage_current_set_stage_display(false, true);
-        task_effect_parent_set_enable(false);
+        effect_manager_set_enable(false);
     }
     else {
         task_stage_current_set_stage_display(stg_auth_display, true);
-        task_effect_parent_set_enable(stg_display);
+        effect_manager_set_enable(stg_display);
     }
 }
 
