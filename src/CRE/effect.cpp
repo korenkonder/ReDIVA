@@ -160,14 +160,6 @@ struct fog_ring_data {
     fog_ring_data();
 };
 
-struct point_particle_data {
-    vec3 position;
-    float_t size;
-    vec4 color;
-
-    point_particle_data();
-};
-
 struct struc_371 {
     int32_t field_0;
     vec3 position;
@@ -562,12 +554,20 @@ struct ParticleEmitterRob : ParticleEmitter {
     void set_splash(splash_particle* value);
 };
 
+struct water_particle_vertex_data {
+    vec3 position;
+    float_t size;
+    vec4 color;
+
+    water_particle_vertex_data();
+};
+
 struct water_particle {
     splash_particle* splash;
     vec4 color;
     float_t particle_size;
     int32_t splash_count;
-    std::vector<point_particle_data> ptcl_data;
+    std::vector<water_particle_vertex_data> ptcl_data;
     int32_t count;
     int32_t splash_tex_id;
     bool blink;
@@ -2130,10 +2130,6 @@ void TaskEffectFogAnim::reset() {
 }
 
 fog_ring_data::fog_ring_data() : size(), density() {
-
-}
-
-point_particle_data::point_particle_data() : size() {
 
 }
 
@@ -3972,6 +3968,10 @@ void ParticleEmitterRob::set_splash(splash_particle* value) {
     splash = value;
 }
 
+water_particle_vertex_data::water_particle_vertex_data() : size() {
+
+}
+
 water_particle::water_particle() {
     reset();
 }
@@ -3990,7 +3990,7 @@ void water_particle::ctrl() {
     const vec3 ripple_position = vec3(emit_pos_scale, 0.0f, emit_pos_scale);
 
     const splash_particle_data* splash_ptcl = splash->data.data();
-    point_particle_data* ptcl = ptcl_data.data();
+    water_particle_vertex_data* ptcl = ptcl_data.data();
 
     if (blink)
         for (int32_t i = splash->count; i > 0; i--, splash_ptcl++) {
@@ -4063,7 +4063,7 @@ void water_particle::draw(mat4* mat) {
     if (count <= 0)
         return;
 
-    ssbo.WriteMemory(0, sizeof(point_particle_data) * count, ptcl_data.data());
+    ssbo.WriteMemory(0, sizeof(water_particle_vertex_data) * count, ptcl_data.data());
 
     water_particle_scene_shader_data scene_shader_data = {};
     mat4 temp;
@@ -4145,7 +4145,7 @@ void water_particle::set(splash_particle* splash, int32_t splash_tex_id) {
     ripple.position = position_data.data();
     ripple.color = color_data.data();
 
-    ssbo.Create(sizeof(point_particle_data) * splash_count);
+    ssbo.Create(sizeof(water_particle_vertex_data) * splash_count);
 }
 
 ParticleDispObj::ParticleDispObj() : splash() {
