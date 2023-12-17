@@ -313,7 +313,6 @@ public:
         virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
-
     class GameCameraButtonProc : public dw::SelectionAdapter {
     public:
         GameCameraButtonProc();

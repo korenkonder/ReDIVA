@@ -1139,7 +1139,6 @@ static const size_t snow_ptcl_fallen_count = 0x2000;
 
 static star_catalog star_catalog_data;
 
-static GL::ShaderStorageBuffer water_ssbo;
 static GL::UniformBuffer water_particle_scene_ubo;
 static float_t flt_140C9A588 = 2.0f;
 
@@ -3308,7 +3307,6 @@ void EffectRipple::sub_1403584A0(RenderTexture* rt) {
     gl_state_bind_framebuffer(0);
 }
 
-
 void EffectRipple::sub_140358690() {
     ripple_emit_draw_data& v1 = field_178;
     v1.data.position = field_50.position;
@@ -3885,7 +3883,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
         ptcl->direction = rand_vec * 0.65f + (velocity_diff * diff_scale + prev_velocity);
 
         float_t size_scale = rand_a_get_float();;
-        
+
         ptcl->flags = 0x01;
         ptcl->size = max_def(size_scale * size_scale * particle_size, 1.0f);
 

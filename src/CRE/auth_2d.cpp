@@ -268,14 +268,12 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
     }
 }
 
-
 aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;
     color = 0xFFFFFFFF;
     mode = RESOLUTION_MODE_HD;
 }
-
 
 void aet_layout_data::put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
     vec2* pos, aet_layout_data* layout, const sprite_database* spr_db) {

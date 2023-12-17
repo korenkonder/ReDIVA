@@ -10159,7 +10159,6 @@ static void sub_14041DAC0(rob_chara_bone_data* a1) {
     sub_140415B30(&a1->eyelid);
 }
 
-
 static void rob_chara_bone_data_motion_blend_mot_free(rob_chara_bone_data* rob_bone_data) {
     rob_chara_bone_data_motion_blend_mot_list_free(rob_bone_data, 0);
     for (motion_blend_mot*& i : rob_bone_data->motions)

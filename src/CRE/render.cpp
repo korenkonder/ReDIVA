@@ -1214,7 +1214,6 @@ namespace rndr {
         update = 1;
     }
 
-
     void Render::set_scene_fade_color(const vec3& value, int32_t index) {
         scene_fade_color[index] = value;
 
@@ -1562,7 +1561,6 @@ namespace rndr {
         gl_state_active_bind_texture_2d(2, 0);
         gl_state_end_event();
     }
-
 
     void Render::calc_exposure(camera* cam) {
         bool v2 = false;

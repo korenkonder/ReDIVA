@@ -8,7 +8,6 @@
 #include <vector>
 #include <cstdint>
 
-
 static void print_nvenc_status(int32_t line, NVENCSTATUS status) {
     switch (status) {
 #define ERR(s) \

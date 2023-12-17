@@ -366,7 +366,6 @@ int64_t pv_game_pv_data::ctrl(float_t delta_time, int64_t curr_time, bool a4) {
             break;
         }*/
 
-
     dsc_data* prev_dsc_data_ptr = dsc_data_ptr;
     targets_remaining = 0;
 

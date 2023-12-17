@@ -96,7 +96,6 @@ SkinParamManager* skin_param_manager;
 
 std::map<object_info, prj::shared_ptr<key_val>> skin_param_storage;
 
-
 SkinParam::CollisionParam::CollisionParam() : type(), node_idx(), pos() {
     radius = 0.2f;
 }

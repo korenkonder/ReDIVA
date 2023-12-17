@@ -2739,7 +2739,6 @@ bool pv_game::load() {
                     continue;
                 }
 
-
                 for (auto& j : i.auth_3d_frame_list)
                     switch (j.second) {
                     case -6:
@@ -3426,7 +3425,6 @@ bool pv_game::load() {
                 wait_load |= true;
                 break;
             }
-
 
         for (uint32_t& i : data.stgpvhrc_obj_set_ids)
             if (object_storage_load_obj_set_check_not_read(i)) {
