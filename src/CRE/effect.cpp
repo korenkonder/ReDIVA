@@ -1494,6 +1494,7 @@ void snow_particle_draw() {
         first += count;
     }
 
+    gl_state_bind_vertex_array(0);
     gl_state_active_bind_texture_2d(1, 0);
     gl_state_active_bind_texture_2d(0, 0);
 
@@ -5594,6 +5595,7 @@ static void draw_fog_particle(EffectFogRing* data, mat4* mat) {
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
     data->ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);
+    gl_state_bind_vertex_array(0);
     gl_state_disable_blend();
     shader::unbind();
 }
@@ -5647,13 +5649,17 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
     uniform_value[U_RIPPLE] = data->ripple_uniform;
     uniform_value[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
 
+    gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
+
     shaders_ft.set(SHADER_FT_RIPEMIT);
     ripple_emit_scene_ubo.Bind(0);
     ripple_emit_ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->count * 6);
 
     shader::unbind();
+
+    gl_state_bind_vertex_array(0);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 }
 
@@ -6602,9 +6608,9 @@ static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& p
     gl_state_active_bind_texture_2d(0, a2);
     gl_state_active_bind_texture_2d(1, a3);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-    gl_state_active_bind_texture_2d(0, 0);
     gl_state_active_bind_texture_2d(1, 0);
-    gl_state_active_texture(0);
+    gl_state_active_bind_texture_2d(0, 0);
+    gl_state_bind_vertex_array(0);
 
     glViewport(v43[0], v43[1], v43[2], v43[3]);
 
