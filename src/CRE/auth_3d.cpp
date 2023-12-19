@@ -4698,7 +4698,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
 
     for (auth_3d_object_instance& i : moh->instance) {
         if (!i.model_transform.visible)
-            return;
+            continue;
 
         mdl::ObjFlags flags = mdl::OBJ_SSS;
         shadow_type_enum shadow_type = SHADOW_CHARA;

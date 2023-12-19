@@ -1025,7 +1025,7 @@ namespace rndr {
         glViewport(0, 0, width, height);
 
         if (multisample && multisample_framebuffer) {
-            glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
+            gl_state_bind_framebuffer(multisample_framebuffer);
             gl_state_enable_multisample();
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
             glClear(GL_COLOR_BUFFER_BIT);
@@ -1044,7 +1044,7 @@ namespace rndr {
         gl_state_enable_depth_test();
 
         if (multisample && multisample_framebuffer) {
-            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            gl_state_bind_framebuffer(rctx->screen_buffer.fbos[0]);
             gl_state_disable_multisample();
             gl_state_bind_read_framebuffer(multisample_framebuffer);
             glBlitFramebuffer(0, 0, width, height,
