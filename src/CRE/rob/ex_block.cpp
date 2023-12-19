@@ -1375,22 +1375,10 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
         return;
 
     vertex_buffer->cycle_index();
-    size_t data;
-    if (GLAD_GL_VERSION_4_5) {
-        data = (size_t)glMapNamedBuffer(vertex_buffer->get_buffer(), GL_WRITE_ONLY);
-        if (!data) {
-            glUnmapNamedBuffer(vertex_buffer->get_buffer());
-            return;
-        }
-    }
-    else {
-        gl_state_bind_array_buffer(vertex_buffer->get_buffer());
-        data = (size_t)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!data) {
-            gl_state_bind_array_buffer(0);
-            return;
-        }
-    }
+    GL::ArrayBuffer buffer = vertex_buffer->get_buffer();
+    size_t data = (size_t)buffer.MapMemory();
+    if (!data)
+        return;
 
     if (double_sided)
         indices_count /= 2;
@@ -1472,12 +1460,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
             }
     }
 
-    if (GLAD_GL_VERSION_4_5)
-        glUnmapNamedBuffer(vertex_buffer->get_buffer());
-    else {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
-    }
+    buffer.UnmapMemory();
 }
 
 ExClothBlock::ExClothBlock() {

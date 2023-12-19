@@ -17326,36 +17326,17 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
 
     obj_vert_buf.cycle_index();
 
-    GLuint buffer = obj_vert_buf.get_buffer();
-    size_t vtx_data;
-    if (GLAD_GL_VERSION_4_5) {
-        vtx_data = (size_t)glMapNamedBuffer(buffer, GL_WRITE_ONLY);
-        if (!vtx_data) {
-            glUnmapNamedBuffer(buffer);
-            return;
-        }
-    }
-    else {
-        gl_state_bind_array_buffer(buffer);
-        vtx_data = (size_t)glMapBuffer(GL_ARRAY_BUFFER, GL_WRITE_ONLY);
-        if (!vtx_data) {
-            glUnmapBuffer(GL_ARRAY_BUFFER);
-            gl_state_bind_array_buffer(0);
-            return;
-        }
-    }
+    GL::ArrayBuffer buffer = obj_vert_buf.get_buffer();
+    size_t vtx_data = (size_t)buffer.MapMemory();
+    if (!vtx_data)
+        return;
 
     size_t vertex_array_size = this->vertex_array_size;
     for (int32_t i = 0; i < disp_count; i++)
         memmove((void*)(vtx_data + vertex_array_size * i),
             (void*)((size_t)vertex_data + vertex_array_size * v44[i].second), vertex_array_size);
 
-    if (GLAD_GL_VERSION_4_5)
-        glUnmapNamedBuffer(buffer);
-    else {
-        glUnmapBuffer(GL_ARRAY_BUFFER);
-        gl_state_bind_array_buffer(0);
-    }
+    buffer.UnmapMemory();
 
     mesh.num_vertex = disp_count * num_vertex;
     sub_mesh.num_index = disp_count * num_index;

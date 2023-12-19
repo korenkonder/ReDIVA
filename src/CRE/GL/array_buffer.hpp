@@ -18,6 +18,10 @@ namespace GL {
 
         }
 
+        inline ArrayBuffer(GLuint buffer) : buffer(buffer) {
+
+        }
+
         inline ~ArrayBuffer() {
 
         }
