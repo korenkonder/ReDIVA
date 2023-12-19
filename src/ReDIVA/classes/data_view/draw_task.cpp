@@ -109,7 +109,7 @@ void data_view_draw_task_imgui(class_data* data) {
     }
 
     render_context* rctx = data_view->rctx;
-    std::vector<mdl::ObjData*>* obj = rctx->disp_manager->obj;
+    std::list<mdl::ObjData*>* obj = rctx->disp_manager->obj;
     auto& obj_data = data_view->obj_data;
 
     ImGuiTreeNodeFlags tree_node_base_flags = 0;
@@ -123,7 +123,7 @@ void data_view_draw_task_imgui(class_data* data) {
         tree_node_flags = tree_node_base_flags;
 
         ImGui::PushID(i);
-        std::vector<mdl::ObjData*>& draw_tasks = obj[i];
+        std::list<mdl::ObjData*>& draw_tasks = obj[i];
         size_t count = draw_tasks.size();
         bool enable = count > 0;
         ImGui::DisableElementPush(enable);

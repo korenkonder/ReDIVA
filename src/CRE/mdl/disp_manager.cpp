@@ -4,7 +4,6 @@
 */
 
 #include "disp_manager.hpp"
-#include "../../KKdLib/sort.hpp"
 #include "../Glitter/glitter.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"
@@ -3114,43 +3113,28 @@ namespace mdl {
         return wet_param;
     }
 
-    static int mdl_obj_data_sort_quicksort_compare0(void const* src1, void const* src2) {
-        float_t d1 = (*(ObjData**)src1)->view_z;
-        float_t d2 = (*(ObjData**)src2)->view_z;
-        return d1 > d2 ? -1 : (d1 < d2 ? 1 : 0);
-    }
-
-    static int mdl_obj_data_sort_quicksort_compare1(void const* src1, void const* src2) {
-        float_t d1 = (*(ObjData**)src1)->view_z;
-        float_t d2 = (*(ObjData**)src2)->view_z;
-        return d1 < d2 ? -1 : (d1 > d2 ? 1 : 0);
-    }
-
-    static int mdl_obj_data_sort_quicksort_compare2(void const* src1, void const* src2) {
-        float_t r1 = (*(ObjData**)src1)->radius;
-        float_t r2 = (*(ObjData**)src2)->radius;
-        return r1 > r2 ? -1 : (r1 < r2 ? 1 : 0);
-    }
-
     void DispManager::obj_sort(const mat4* view, ObjType type, int32_t compare_func) {
-        std::vector<ObjData*>& vec = obj[type];
-        if (vec.size() < 1)
+        std::list<ObjData*>& list = obj[type];
+        if (list.size() < 1)
             return;
 
         calc_obj_radius(view, type);
 
         switch (compare_func) {
         case 0:
-            quicksort_custom(vec.data(), vec.size(),
-                sizeof(ObjData*), mdl_obj_data_sort_quicksort_compare0);
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->view_z > right->view_z;
+            });
             break;
         case 1:
-            quicksort_custom(vec.data(), vec.size(),
-                sizeof(ObjData*), mdl_obj_data_sort_quicksort_compare1);
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->view_z < right->view_z;
+            });
             break;
         case 2:
-            quicksort_custom(vec.data(), vec.size(),
-                sizeof(ObjData*), mdl_obj_data_sort_quicksort_compare2);
+            list.sort([](ObjData* left, ObjData* right) {
+                return left->radius > right->radius;
+            });
             break;
         }
     }
@@ -3174,7 +3158,7 @@ namespace mdl {
         texture_specular_coefficients = 1.0f;
         texture_specular_offset = 0.0f;
 
-        for (std::vector<ObjData*>& i : obj)
+        for (std::list<ObjData*>& i : obj)
             i.clear();
 
         buffer_reset();

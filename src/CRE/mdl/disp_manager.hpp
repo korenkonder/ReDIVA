@@ -420,7 +420,7 @@ namespace mdl {
         shadow_type_enum shadow_type;
         int32_t field_8;
         int32_t field_C;
-        std::vector<mdl::ObjData*> obj[mdl::OBJ_TYPE_MAX];
+        std::list<mdl::ObjData*> obj[mdl::OBJ_TYPE_MAX];
         mdl::CullingCheck culling;
         int32_t put_index;
         bool show_alpha_center;
