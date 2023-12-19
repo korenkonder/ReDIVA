@@ -43,7 +43,6 @@ namespace GL {
                 else
                     glBufferData(GL_SHADER_STORAGE_BUFFER, (GLsizeiptr)size, 0, GL_DYNAMIC_DRAW);
             }
-
         }
 
         inline void Create(size_t size, const void* data, bool dynamic = false) {
