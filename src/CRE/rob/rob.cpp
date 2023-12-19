@@ -10981,64 +10981,14 @@ static void sub_140505FB0(struc_209* a1) {
 }
 
 static float_t sub_140512F60(rob_chara_item_equip* rob_itm_equip) {
-    float_t v26;
-    float_t v27;
-    float_t v28;
-
     mat4* mats = rob_itm_equip->matrices;
-    float_t v25 = 1.0f;
-    float_t* v2 = &v27;
-    float_t v3 = mats->row3.y;
-    v26 = mats->row3.x;
-    if (v3 >= 1.0f)
-        v2 = &v25;
-    v28 = mats->row3.z;
-    float_t v4 = mats[175].row3.x;
-    v27 = v3;
-    float_t v5 = *v2;
-    float_t v6 = mats[175].row3.y;
-    v26 = v4;
-    float_t* v7 = &v27;
-    float_t v8 = mats[175].row3.z;
-    v27 = v6;
-    if (v5 <= v6)
-        v7 = &v25;
-    float_t v9 = mats[181].row3.y;
-    v28 = v8;
-    float_t v10 = mats[181].row3.x;
-    v25 = v5;
-    float_t v11 = *v7;
-    v26 = v10;
-    float_t* v12 = &v27;
-    float_t v13 = mats[181].row3.z;
-    v27 = v9;
-    if (v11 <= v9)
-        v12 = &v25;
-    float_t v14 = mats[105].row3.y;
-    v28 = v13;
-    float_t v15 = mats[105].row3.x;
-    v25 = v11;
-    float_t v16 = *v12;
-    v26 = v15;
-    float_t*v17 = &v27;
-    float_t v18 = mats[105].row3.z;
-    v27 = v14;
-    if (v16 <= v14)
-        v17 = &v25;
-    float_t v19 = mats[140].row3.y;
-    v28 = v18;
-    float_t v20 = mats[140].row3.x;
-    v25 = v16;
-    float_t v21 = *v17;
-    v26 = v20;
-    float_t* v22 = &v27;
-    float_t v23 = mats[140].row3.z;
-    v25 = v21;
-    if (v21 <= v19)
-        v22 = &v25;
-    v27 = v19;
-    v28 = v23;
-    return *v22;
+    float_t y = 1.0f;
+    y = min_def(y, mats[ROB_BONE_N_HARA_CP     ].row3.y);
+    y = min_def(y, mats[ROB_BONE_KL_ASI_L_WJ_CO].row3.y);
+    y = min_def(y, mats[ROB_BONE_KL_ASI_R_WJ_CO].row3.y);
+    y = min_def(y, mats[ROB_BONE_KL_TE_L_WJ    ].row3.y);
+    y = min_def(y, mats[ROB_BONE_KL_TE_R_WJ    ].row3.y);
+    return y;
 }
 
 static void rob_chara_add_motion_reset_data(rob_chara* rob_chr,
@@ -13483,7 +13433,7 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
     int32_t tex_pat_count = (int32_t)rob_itm_equip->texture_pattern.size();
     if (tex_pat_count)
         rctx->disp_manager->set_texture_pattern(tex_pat_count, rob_itm_equip->texture_pattern.data());
-    rctx->disp_manager->entry_obj_by_object_info(0, rob_itm_equip->field_D0);
+    rctx->disp_manager->entry_obj_by_object_info(&mat, rob_itm_equip->field_D0);
     if (tex_pat_count)
         rctx->disp_manager->set_texture_pattern();
 }
