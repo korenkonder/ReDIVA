@@ -1423,7 +1423,7 @@ namespace spr {
                     return;
                 }
 
-                sprite_draw_vertex spr_vtx[4] = {};
+                sprite_draw_vertex spr_vtx[2] = {};
                 spr_vtx[0].pos = vtx[0];
                 spr_vtx[0].color = color;
 
