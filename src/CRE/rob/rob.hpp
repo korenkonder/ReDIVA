@@ -2246,7 +2246,6 @@ struct rob_chara_item_equip {
     int32_t field_A0;
     shadow_type_enum shadow_type;
     vec3 position;
-    int32_t field_B4;
     std::vector<texture_pattern_struct> texture_pattern;
     object_info field_D0;
     int32_t field_D4;

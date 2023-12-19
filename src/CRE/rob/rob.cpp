@@ -13425,8 +13425,8 @@ bool rob_chara_item_equip_object::skp_load_normal_ref(
 
 rob_chara_item_equip::rob_chara_item_equip() : bone_nodes(), matrices(), item_equip_object(), field_18(),
 item_equip_range(), first_item_equip_object(), max_item_equip_object(), field_A0(), shadow_type(), position(),
-field_B4(), field_D4(), disable_update(), field_DC(), texture_color_coefficients(), wet(), wind_strength(),
-chara_color(), npr_flag(), mat(), field_13C(), field_8BC(), field_8C0(), field_8C4(), field_8C8(), field_8CC(),
+field_D4(), disable_update(), field_DC(), texture_color_coefficients(), wet(), wind_strength(), chara_color(),
+npr_flag(), mat(), field_13C(), field_8BC(), field_8C0(), field_8C4(), field_8C8(), field_8CC(),
 field_8D0(), field_8D4(), field_8D8(), field_8DC(), field_8E0(), field_8E4(), field_8E8(), field_8EC(),
 field_8F0(), field_8F4(), field_8F8(), field_8FC(), field_900(), field_908(), field_910(), field_918(),
 field_920(), field_928(), field_930(), use_opd(), parts_short(), parts_append(), parts_white_one_l() {
