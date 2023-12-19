@@ -47,33 +47,33 @@ void data_view_object_imgui(class_data* data) {
         return;
     }
 
-    extern std::map<uint32_t, obj_set_handler> object_storage_data;
+    extern std::map<uint32_t, ObjsetInfo> object_storage_data;
     for (auto& i : object_storage_data) {
-        obj_set_handler* handler = &i.second;
-        if (!handler->obj_set)
+        ObjsetInfo* info = &i.second;
+        if (!info->obj_set)
             continue;
 
-        ImGui::PushID(handler->set_id);
+        ImGui::PushID(info->set_id);
         char buf[0x1000];
         sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Load Count: %3d; Name: %s",
-            handler->set_id, handler->load_count, handler->name.c_str());
+            info->set_id, info->load_count, info->name.c_str());
         ImGui::Selectable(buf);
         ImGui::PopID();
     }
 
-    extern std::map<uint32_t, obj_set_handler> object_storage_data_modern;
+    extern std::map<uint32_t, ObjsetInfo> object_storage_data_modern;
     if (object_storage_data_modern.size())
         ImGui::Selectable("Modern:", false, ImGuiSelectableFlags_Disabled);
 
     for (auto& i : object_storage_data_modern) {
-        obj_set_handler* handler = &i.second;
-        if (!handler->obj_set)
+        ObjsetInfo* info = &i.second;
+        if (!info->obj_set)
             continue;
 
-        ImGui::PushID(handler->set_id);
+        ImGui::PushID(info->set_id);
         char buf[0x1000];
         sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Load Count: %3d; Name: %s",
-            handler->set_id, handler->load_count, handler->name.c_str());
+            info->set_id, info->load_count, info->name.c_str());
         ImGui::Selectable(buf);
         ImGui::PopID();
     }

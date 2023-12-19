@@ -371,7 +371,7 @@ struct rob_chara_age_age_object_vertex {
 };
 
 struct rob_chara_age_age_object {
-    obj_set_handler* obj_set_handler;
+    ObjsetInfo* objset_info;
     int32_t obj_index;
     int32_t field_C;
     int32_t num_vertex;
@@ -397,7 +397,7 @@ struct rob_chara_age_age_object {
         obj_mesh* mesh, const mat4& mat, float_t alpha);
     void disp(render_context* rctx, size_t chara_index,
         bool npr, bool reflect, const vec3& a5, bool chara_color);
-    bool get_obj_set_handler_object_index(object_info obj_info);
+    bool get_objset_info_obj_index(object_info obj_info);
     ::obj* get_obj_set_obj();
     std::vector<GLuint>& get_obj_set_texture();
     void load(object_info obj_info, int32_t count);
@@ -17229,7 +17229,7 @@ void rob_chara_age_age_data::reset() {
     alive = false;
 }
 
-rob_chara_age_age_object::rob_chara_age_age_object() : obj_set_handler(),
+rob_chara_age_age_object::rob_chara_age_age_object() : objset_info(),
 obj_index(), field_C(), num_vertex(), num_index(), vertex_data(),
 vertex_data_size(), vertex_array_size(), disp_count(), count(), field_C3C() {
 
@@ -17257,7 +17257,7 @@ void rob_chara_age_age_object::calc_vertex(rob_chara_age_age_object_vertex*& vtx
 void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
     bool npr, bool reflect, const vec3& a5, bool chara_color) {
     int32_t disp_count = this->disp_count;
-    if (!obj_set_handler || !disp_count)
+    if (!objset_info || !disp_count)
         return;
 
     disp_count = min_def(disp_count, 10);
@@ -17302,25 +17302,25 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
         &get_obj_set_texture(), &obj_vert_buf, &obj_index_buf, 0, 1.0f);
 }
 
-bool rob_chara_age_age_object::get_obj_set_handler_object_index(object_info obj_info) {
-    obj_set_handler = object_storage_get_obj_set_handler(obj_info.set_id);
-    if (!obj_set_handler)
+bool rob_chara_age_age_object::get_objset_info_obj_index(object_info obj_info) {
+    objset_info = object_storage_get_objset_info(obj_info.set_id);
+    if (!objset_info)
         return false;
 
-    auto elem = obj_set_handler->obj_id_data.find(obj_info.id);
-    if (elem == obj_set_handler->obj_id_data.end())
-return false;
+    auto elem = objset_info->obj_id_data.find(obj_info.id);
+    if (elem == objset_info->obj_id_data.end())
+        return false;
 
-obj_index = elem->second;
-return true;
+    obj_index = elem->second;
+    return true;
 }
 
 ::obj* rob_chara_age_age_object::get_obj_set_obj() {
-    return obj_set_handler->obj_set->obj_data[obj_index];
+    return objset_info->obj_set->obj_data[obj_index];
 }
 
 std::vector<GLuint>& rob_chara_age_age_object::get_obj_set_texture() {
-    return obj_set_handler->gentex;
+    return objset_info->gentex;
 }
 
 void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
@@ -17331,9 +17331,9 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     num_index = 0;
     disp_count = 0;
 
-    if (!get_obj_set_handler_object_index(obj_info)) {
+    if (!get_objset_info_obj_index(obj_info)) {
         obj_index = -1;
-        obj_set_handler = 0;
+        objset_info = 0;
         return;
     }
     else {
@@ -17341,12 +17341,12 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
         if (o->num_mesh != 1 || o->mesh_array[0].num_submesh != 1
             || o->mesh_array[0].submesh_array[0].index_format != OBJ_INDEX_U16) {
             obj_index = -1;
-            obj_set_handler = 0;
+            objset_info = 0;
             return;
         }
     }
 
-    if (!obj_set_handler)
+    if (!objset_info)
         return;
 
     ::obj* o = get_obj_set_obj();
@@ -17460,12 +17460,12 @@ void rob_chara_age_age_object::reset() {
     vertex_data_size = 0;
     num_vertex = 0;
     num_index = 0;
-    obj_set_handler = 0;
+    objset_info = 0;
     obj_index = -1;
 }
 
 void rob_chara_age_age_object::update(rob_chara_age_age_data* data, int32_t count, float_t alpha) {
-    if (!obj_set_handler)
+    if (!objset_info)
         return;
 
     ::obj* o = get_obj_set_obj();

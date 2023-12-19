@@ -32,13 +32,13 @@ struct obj_mesh_index_buffer {
 };
 
 struct obj_mesh_vertex_buffer {
-    uint32_t count;
+    int32_t count;
     GLuint buffers[3];
     GLsizeiptr size;
 #if SHARED_OBJECT_BUFFER
     size_t offset;
 #endif
-    uint32_t index;
+    int32_t index;
 
     obj_mesh_vertex_buffer();
 
@@ -81,7 +81,7 @@ struct obj_vertex_buffer {
     void unload();
 };
 
-struct obj_set_handler {
+struct ObjsetInfo {
     p_file_handler obj_file_handler;
     bool obj_loaded;
     p_file_handler tex_file_handler;
@@ -94,17 +94,17 @@ struct obj_set_handler {
     prj::vector_pair<uint32_t, uint32_t> tex_id_data;
     texture** tex_data;
     int32_t set_id;
-    uint32_t vertex_buffer_num;
-    obj_vertex_buffer* vertex_buffer_data;
-    uint32_t index_buffer_num;
-    obj_index_buffer* index_buffer_data;
+    uint32_t objvb_num;
+    obj_vertex_buffer* objvb;
+    uint32_t objib_num;
+    obj_index_buffer* objib;
     uint32_t load_count;
     std::string name;
     p_file_handler farc_file_handler;
     bool modern;
 
-    obj_set_handler();
-    ~obj_set_handler();
+    ObjsetInfo();
+    ~ObjsetInfo();
 };
 
 extern int32_t obj_material_texture_type_get_texcoord_index(
@@ -118,13 +118,13 @@ extern void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
 extern void object_material_msgpack_read(const char* path, const char* set_name,
     obj_set* obj_set, object_database* obj_db);
 extern void object_material_msgpack_read(const char* path, const char* set_name,
-    txp_set* txp_set, texture_database* tex_db, obj_set_handler* handler);
+    txp_set* txp_set, texture_database* tex_db, ObjsetInfo* info);
 extern void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
     obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db);
 
 extern void object_storage_init(const object_database* obj_db);
 extern obj* object_storage_get_obj(object_info obj_info);
-extern obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id);
+extern ObjsetInfo* object_storage_get_objset_info(uint32_t set_id);
 extern obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name);
 extern obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index);
 extern obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name);

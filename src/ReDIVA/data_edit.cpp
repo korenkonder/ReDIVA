@@ -413,7 +413,7 @@ bool DataEdit::ctrl() {
             break;
 
         if (!auth_3d_data_check_category_loaded(auth_3d.category.hash_murmurhash)
-            || (object_storage_get_obj_set_handler(auth_3d.object_set.hash_murmurhash)
+            || (object_storage_get_objset_info(auth_3d.object_set.hash_murmurhash)
             && object_storage_load_obj_set_check_not_read(
                 auth_3d.object_set.hash_murmurhash, &auth_3d.obj_db, &auth_3d.tex_db)))
             break;

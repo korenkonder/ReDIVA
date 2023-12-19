@@ -19,20 +19,25 @@
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"
 
-static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* handler);
-static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* handler);
-static bool obj_set_handler_index_buffer_load(obj_set_handler* handler);
-static void obj_set_handler_index_buffer_free(obj_set_handler* handler);
-static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian);
-static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
+static GLuint create_index_buffer(size_t size, const void* data);
+static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic = false);
+static void free_index_buffer(GLuint buffer);
+static void free_vertex_buffer(GLuint buffer);
+
+static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info);
+static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info);
+static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info);
+static void ObjsetInfo_index_buffer_free(ObjsetInfo* info);
+static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool big_endian);
+static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
     const void* data, size_t size, const char* file, texture_database* tex_db);
-static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler);
-static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler);
+static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info);
+static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info);
 static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
 static uint32_t obj_vertex_format_get_vertex_size_comp(obj_vertex_format format);
 
-std::map<uint32_t, obj_set_handler> object_storage_data;
-std::map<uint32_t, obj_set_handler> object_storage_data_modern;
+std::map<uint32_t, ObjsetInfo> object_storage_data;
+std::map<uint32_t, ObjsetInfo> object_storage_data_modern;
 
 obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer() {
 
@@ -60,20 +65,12 @@ bool obj_mesh_index_buffer::load_data(size_t size, const void* data) {
     if (!size)
         return false;
 
-    glGenBuffers(1, &buffer);
-    gl_state_bind_element_array_buffer(buffer, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
-    gl_state_bind_element_array_buffer(0);
+    buffer = create_index_buffer(size, data);
     return true;
 }
 
 void obj_mesh_index_buffer::unload() {
-    if (buffer)
-        glDeleteBuffers(1, &buffer);
-
+    free_index_buffer(buffer);
     buffer = 0;
 }
 
@@ -181,26 +178,23 @@ bool obj_mesh_vertex_buffer::load_data(size_t size, const void* data, int32_t co
     offset = 0;
 #endif
 
-    glGenBuffers(count, buffers);
     for (int32_t i = 0; i < count; i++) {
-        gl_state_bind_array_buffer(buffers[i], true);
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ARRAY_BUFFER,
-                (GLsizeiptr)size, data, dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
-        else
-            glBufferData(GL_ARRAY_BUFFER,
-                (GLsizeiptr)size, data, dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+        buffers[i] = create_vertex_buffer(size, data, dynamic);
+        if (!buffers[i]) {
+            unload();
+            return false;
+        }
     }
-    gl_state_bind_array_buffer(0);
     return true;
 }
 
 void obj_mesh_vertex_buffer::unload() {
-    if (buffers[0])
-        glDeleteBuffers(count, buffers);
+    for (int32_t i = 0; i < count; i++) {
+        free_vertex_buffer(buffers[i]);
+        buffers[i] = 0;
+    }
 
     count = 0;
-    buffers[0] = 0;
 #if SHARED_OBJECT_BUFFER
     offset = 0;
 #endif
@@ -363,25 +357,29 @@ bool obj_index_buffer::load(obj* obj) {
     }
 
     void* index = force_malloc(buffer_size);
-    if (index) {
-        void* data = index;
-        for (uint32_t i = 0; i < mesh_num; i++) {
-            uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
-            data = obj_mesh_index_buffer::fill_data(data, obj->mesh_array[i]);
-
-            obj_mesh& mesh = obj->mesh_array[i];
-            for (uint32_t j = 0; j < mesh.num_submesh; j++)
-                mesh.submesh_array[j].index_offset += offset;
-        }
+    if (!index) {
+        buffer = 0;
+        unload();
+        return false;
     }
 
-    glGenBuffers(1, &buffer);
-    gl_state_bind_element_array_buffer(buffer, true);
-    if (GLAD_GL_VERSION_4_4)
-        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)buffer_size, index, 0);
-    else
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)buffer_size, index, GL_STATIC_DRAW);
-    gl_state_bind_element_array_buffer(0);
+    void* data = index;
+    for (uint32_t i = 0; i < mesh_num; i++) {
+        uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
+        data = obj_mesh_index_buffer::fill_data(data, obj->mesh_array[i]);
+
+        obj_mesh& mesh = obj->mesh_array[i];
+        for (uint32_t j = 0; j < mesh.num_submesh; j++)
+            mesh.submesh_array[j].index_offset += offset;
+    }
+
+    buffer = create_index_buffer(buffer_size, index);
+    if (!buffer) {
+        free_def(index);
+        unload();
+        return false;
+    }
+
     free_def(index);
 
     for (uint32_t i = 0; i < mesh_num; i++)
@@ -397,8 +395,8 @@ bool obj_index_buffer::load(obj* obj) {
 void obj_index_buffer::unload() {
     if (mesh_data) {
 #if SHARED_OBJECT_BUFFER
-        if (buffer)
-            glDeleteBuffers(1, &buffer);
+        free_index_buffer(buffer);
+        buffer = 0;
 #else
         for (uint32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
@@ -448,32 +446,35 @@ bool obj_vertex_buffer::load(obj* obj) {
         double_buffer |= !!mesh.attrib.m.double_buffer;
     }
 
-    uint32_t count = double_buffer ? 2 : 1;
+    int32_t count = double_buffer ? 2 : 1;
 
     void* vertex = force_malloc(buffer_size);
-    if (vertex) {
-        void* data = vertex;
-        for (uint32_t i = 0; i < mesh_num; i++) {
-            obj_mesh_vertex_buffer& mesh_buffer = mesh_data[i];
-            mesh_buffer.offset = (size_t)data - (size_t)vertex;
-            mesh_buffer.count = count;
-            mesh_buffer.size = (GLsizeiptr)buffer_size;
+    if (!vertex) {
+        for (int32_t i = 0; i < count; i++)
+            buffers[i] = 0;
+        unload();
+        return false;
+    }
 
-            data = obj_mesh_vertex_buffer::fill_data(data, obj->mesh_array[i]);
+    void* data = vertex;
+    for (uint32_t i = 0; i < mesh_num; i++) {
+        obj_mesh_vertex_buffer& mesh_buffer = mesh_data[i];
+        mesh_buffer.offset = (size_t)data - (size_t)vertex;
+        mesh_buffer.count = count;
+        mesh_buffer.size = (GLsizeiptr)buffer_size;
+
+        data = obj_mesh_vertex_buffer::fill_data(data, obj->mesh_array[i]);
+    }
+
+    for (int32_t i = 0; i < count; i++) {
+        buffers[i] = create_vertex_buffer(buffer_size, vertex);
+        if (!buffers[i]) {
+            free_def(vertex);
+            unload();
+            return false;
         }
     }
 
-    glGenBuffers(count, buffers);
-    for (uint32_t i = 0; i < count; i++) {
-        gl_state_bind_array_buffer(buffers[i], true);
-        if (GLAD_GL_VERSION_4_4)
-            glBufferStorage(GL_ARRAY_BUFFER,
-                (GLsizeiptr)buffer_size, vertex, 0);
-        else
-            glBufferData(GL_ARRAY_BUFFER,
-                (GLsizeiptr)buffer_size, vertex, GL_STATIC_DRAW);
-    }
-    gl_state_bind_array_buffer(0);
     free_def(vertex);
 
     for (uint32_t i = 0; i < mesh_num; i++)
@@ -489,8 +490,8 @@ bool obj_vertex_buffer::load(obj* obj) {
 void obj_vertex_buffer::unload() {
     if (mesh_data) {
 #if SHARED_OBJECT_BUFFER
-        if (buffers[0])
-            glDeleteBuffers(mesh_data[0].count, buffers);
+        for (int32_t i = 0; i < mesh_data[0].count; i++)
+            free_vertex_buffer(buffers[i]);
 #else
         for (uint32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
@@ -504,20 +505,20 @@ void obj_vertex_buffer::unload() {
 #endif
 }
 
-obj_set_handler::obj_set_handler() : obj_loaded(), tex_loaded(), obj_set(),
-tex_num(), tex_data(), set_id(), vertex_buffer_num(), vertex_buffer_data(),
-index_buffer_num(), index_buffer_data(), load_count(), modern() {
+ObjsetInfo::ObjsetInfo() : obj_loaded(), tex_loaded(), obj_set(),
+tex_num(), tex_data(), set_id(), objvb_num(), objvb(),
+objib_num(), objib(), load_count(), modern() {
 
 }
 
-obj_set_handler::~obj_set_handler() {
+ObjsetInfo::~ObjsetInfo() {
     if (tex_data) {
         texture_array_free(tex_data);
         tex_data = 0;
     }
 
-    obj_set_handler_index_buffer_free(this);
-    obj_set_handler_vertex_buffer_free(this);
+    ObjsetInfo_index_buffer_free(this);
+    ObjsetInfo_vertex_buffer_free(this);
     alloc_handler.reset();
     while (tex_file_handler.ptr && tex_file_handler.ptr->count)
         tex_file_handler.reset();
@@ -957,7 +958,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 }
 
 void object_material_msgpack_read(const char* path, const char* set_name,
-    txp_set* txp_set, texture_database* tex_db, obj_set_handler* handler) {
+    txp_set* txp_set, texture_database* tex_db, ObjsetInfo* info) {
     if (!tex_db || !path_check_directory_exists(path))
         return;
 
@@ -989,7 +990,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     if (msg.type != MSGPACK_MAP)
         return;
 
-    obj_set* set = handler->obj_set;
+    obj_set* set = info->obj_set;
 
     msgpack* add = msg.read_array("Add");
     if (add) {
@@ -1048,13 +1049,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
         size_t tex_id_num = txp_set->textures.size();
         if (set->tex_id_num != tex_id_num) {
-            uint32_t* tex_id_data = handler->alloc_handler->allocate<uint32_t>(tex_id_num);
+            uint32_t* tex_id_data = info->alloc_handler->allocate<uint32_t>(tex_id_num);
             memmove(tex_id_data, set->tex_id_data, sizeof(uint32_t) * set->tex_id_num);
             memmove(&tex_id_data[set->tex_id_num], ids.data(),
                 sizeof(uint32_t) * (tex_id_num - set->tex_id_num));
             set->tex_id_data = tex_id_data;
             set->tex_id_num = (uint32_t)tex_id_num;
-            handler->tex_num = (uint32_t)tex_id_num;
+            info->tex_num = (uint32_t)tex_id_num;
         }
     }
 
@@ -1440,10 +1441,10 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
 
 inline void object_storage_init(const object_database* obj_db) {
     for (const object_set_info& i : obj_db->object_set) {
-        obj_set_handler handler;
-        handler.set_id = i.id;
-        handler.name.assign(i.name);
-        object_storage_data.insert({ i.id, handler });
+        ObjsetInfo info;
+        info.set_id = i.id;
+        info.name.assign(i.name);
+        object_storage_data.insert({ i.id, info });
     }
     object_storage_data_modern.clear();
 }
@@ -1452,26 +1453,30 @@ inline obj* object_storage_get_obj(object_info obj_info) {
     auto elem = object_storage_data.find(obj_info.set_id);
     if (elem != object_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
-        if (set)
-            for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j]->id == obj_info.id)
-                    return set->obj_data[j];
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second];
         return 0;
     }
 
     auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
     if (elem_modern != object_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
-        if (set)
-            for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j]->id == obj_info.id)
-                    return set->obj_data[j];
+        if (!set)
+            return 0;
+        
+        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem_modern->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second];
         return 0;
     }
     return 0;
 }
 
-inline obj_set_handler* object_storage_get_obj_set_handler(uint32_t set_id) {
+inline ObjsetInfo* object_storage_get_objset_info(uint32_t set_id) {
     auto elem = object_storage_data.find(set_id);
     if (elem != object_storage_data.end())
         return &elem->second;
@@ -1486,20 +1491,24 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
     auto elem = object_storage_data.find(obj_info.set_id);
     if (elem != object_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
-        if (set)
-            for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j]->id == obj_info.id)
-                    return set->obj_data[j]->get_obj_mesh(mesh_name);
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh(mesh_name);
         return 0;
     }
 
     auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
     if (elem_modern != object_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
-        if (set)
-            for (uint32_t j = 0; j < set->obj_num; j++)
-                if (set->obj_data[j]->id == obj_info.id)
-                    return set->obj_data[j]->get_obj_mesh(mesh_name);
+        if (!set)
+            return 0;
+
+        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem_modern->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh(mesh_name);
         return 0;
     }
     return 0;
@@ -1512,14 +1521,11 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j]->id != obj_info.id)
-                continue;
-
-            obj* obj = set->obj_data[j];
+        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem->second.obj_id_data.end()) {
+            obj* obj = set->obj_data[elem_obj->second];
             if (index >= 0 && index < obj->num_mesh)
                 return &obj->mesh_array[index];
-            return 0;
         }
         return 0;
     }
@@ -1530,14 +1536,11 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++) {
-            if (set->obj_data[j]->id != obj_info.id)
-                continue;
-
-            obj* obj = set->obj_data[j];
+        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem_modern->second.obj_id_data.end()) {
+            obj* obj = set->obj_data[elem_obj->second];
             if (index >= 0 && index < obj->num_mesh)
                 return &obj->mesh_array[index];
-            return 0;
         }
         return 0;
     }
@@ -1609,9 +1612,10 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
         if (!set)
             return -1;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->id == obj_info.id)
-                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
+        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh_index(mesh_name);
+        return 0;
     }
 
     auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
@@ -1620,9 +1624,10 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
         if (!set)
             return -1;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->id == obj_info.id)
-                return set->obj_data[j]->get_obj_mesh_index(mesh_name);
+        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem_modern->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second]->get_obj_mesh_index(mesh_name);
+        return 0;
     }
     return -1;
 }
@@ -1683,9 +1688,9 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->id == obj_info.id)
-                return set->obj_data[j]->skin;
+        auto elem_obj = elem->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second]->skin;
         return 0;
     }
 
@@ -1695,46 +1700,44 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
         if (!set)
             return 0;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
-            if (set->obj_data[j]->id == obj_info.id)
-                return set->obj_data[j]->skin;
+        auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
+        if (elem_obj != elem_modern->second.obj_id_data.end())
+            return set->obj_data[elem_obj->second]->skin;
         return 0;
     }
     return 0;
 }
 
 inline obj_index_buffer* object_storage_get_obj_index_buffers(uint32_t set_id) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-    if (handler && handler->index_buffer_data)
-        return handler->index_buffer_data;
+    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    if (info && info->objib)
+        return info->objib;
     return 0;
 }
 
 inline obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_info obj_info) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(obj_info.set_id);
-    if (handler && handler->obj_set && handler->index_buffer_data) {
-        obj_set* set = handler->obj_set;
-        for (uint32_t i = 0; i < set->obj_num; i++)
-            if (set->obj_data[i]->id == obj_info.id)
-                return handler->index_buffer_data[i].mesh_data;
+    ObjsetInfo* info = object_storage_get_objset_info(obj_info.set_id);
+    if (info && info->obj_set && info->objib) {
+        auto elem = info->obj_id_data.find(obj_info.id);
+        if (elem != info->obj_id_data.end())
+            return info->objib[elem->second].mesh_data;
     }
     return 0;
 }
 
 inline obj_vertex_buffer* object_storage_get_obj_vertex_buffers(uint32_t set_id) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-    if (handler && handler->vertex_buffer_data)
-        return handler->vertex_buffer_data;
+    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    if (info && info->objvb)
+        return info->objvb;
     return 0;
 }
 
 inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_info obj_info) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(obj_info.set_id);
-    if (handler && handler->obj_set && handler->vertex_buffer_data) {
-        obj_set* set = handler->obj_set;
-        for (uint32_t i = 0; i < set->obj_num; i++)
-            if (set->obj_data[i]->id == obj_info.id)
-                return handler->vertex_buffer_data[i].mesh_data;
+    ObjsetInfo* info = object_storage_get_objset_info(obj_info.set_id);
+    if (info && info->obj_set && info->objvb) {
+        auto elem = info->obj_id_data.find(obj_info.id);
+        if (elem != info->obj_id_data.end())
+            return info->objvb[elem->second].mesh_data;
     }
     return 0;
 }
@@ -1744,20 +1747,20 @@ GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
     if (!textures)
         return 0;
 
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set);
-    if (!handler)
+    ObjsetInfo* info = object_storage_get_objset_info(set);
+    if (!info)
         return 0;
 
-    auto elem = handler->tex_id_data.find(tex_id);
-    if (elem != handler->tex_id_data.end())
+    auto elem = info->tex_id_data.find(tex_id);
+    if (elem != info->tex_id_data.end())
         return (*textures)[elem->second];
     return 0;
 }
 
 inline std::vector<GLuint>* object_storage_get_obj_set_textures(int32_t set) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set);
-    if (handler)
-        return &handler->gentex;
+    ObjsetInfo* info = object_storage_get_objset_info(set);
+    if (info)
+        return &info->gentex;
     return 0;
 }
 
@@ -1766,12 +1769,12 @@ int32_t object_storage_load_set(void* data, const object_database* obj_db, const
     if (!set_info)
         return 1;
 
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_info->id);
-    if (!handler)
+    ObjsetInfo* info = object_storage_get_objset_info(set_info->id);
+    if (!info)
         return 1;
 
-    if (handler->load_count > 0) {
-        handler->load_count++;
+    if (info->load_count > 0) {
+        info->load_count++;
         return 1;
     }
 
@@ -1782,19 +1785,19 @@ int32_t object_storage_load_set(void* data, const object_database* obj_db, const
         return 1;
 
     if (archive_file_name.size()) {
-        handler->obj_file_handler.read_file(data, "rom/objset/",
+        info->obj_file_handler.read_file(data, "rom/objset/",
             archive_file_name.c_str(), object_file_name.c_str(), false);
-        handler->tex_file_handler.read_file(data, "rom/objset/",
+        info->tex_file_handler.read_file(data, "rom/objset/",
             archive_file_name.c_str(), texture_file_name.c_str(), false);
     }
     else {
-        handler->obj_file_handler.read_file(data, "rom/objset/", object_file_name.c_str());
-        handler->tex_file_handler.read_file(data, "rom/objset/", texture_file_name.c_str());
+        info->obj_file_handler.read_file(data, "rom/objset/", object_file_name.c_str());
+        info->tex_file_handler.read_file(data, "rom/objset/", texture_file_name.c_str());
     }
 
-    handler->load_count = 1;
-    handler->obj_loaded = false;
-    handler->tex_loaded = false;
+    info->load_count = 1;
+    info->obj_loaded = false;
+    info->tex_loaded = false;
     return 0;
 }
 
@@ -1803,16 +1806,16 @@ int32_t object_storage_load_set(void* data, const object_database* obj_db, uint3
     if (!set_info)
         return 1;
 
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-    if (!handler)
+    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    if (!info)
         return 1;
 
-    if (handler->load_count > 0) {
-        handler->load_count++;
+    if (info->load_count > 0) {
+        info->load_count++;
         return 1;
     }
 
-    handler->modern = false;
+    info->modern = false;
 
     const std::string& archive_file_name = set_info->archive_file_name;
     const std::string& object_file_name = set_info->object_file_name;
@@ -1821,19 +1824,19 @@ int32_t object_storage_load_set(void* data, const object_database* obj_db, uint3
         return 1;
 
     if (archive_file_name.size()) {
-        handler->obj_file_handler.read_file(data, "rom/objset/",
+        info->obj_file_handler.read_file(data, "rom/objset/",
             archive_file_name.c_str(), object_file_name.c_str(), false);
-        handler->tex_file_handler.read_file(data, "rom/objset/",
+        info->tex_file_handler.read_file(data, "rom/objset/",
             archive_file_name.c_str(), texture_file_name.c_str(), false);
     }
     else {
-        handler->obj_file_handler.read_file(data, "rom/objset/", object_file_name.c_str());
-        handler->tex_file_handler.read_file(data, "rom/objset/", texture_file_name.c_str());
+        info->obj_file_handler.read_file(data, "rom/objset/", object_file_name.c_str());
+        info->tex_file_handler.read_file(data, "rom/objset/", texture_file_name.c_str());
     }
 
-    handler->load_count = 1;
-    handler->obj_loaded = false;
-    handler->tex_loaded = false;
+    info->load_count = 1;
+    info->obj_loaded = false;
+    info->tex_loaded = false;
     return 0;
 }
 
@@ -1845,88 +1848,88 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     if (!((data_struct*)data)->get_file("root+/objset/", hash, ".farc", file))
         return 1;
 
-    obj_set_handler* handler = object_storage_get_obj_set_handler(hash);
-    if (!handler) {
-        handler = &object_storage_data_modern.insert({ hash, {} }).first->second;
-        handler->set_id = hash;
+    ObjsetInfo* info = object_storage_get_objset_info(hash);
+    if (!info) {
+        info = &object_storage_data_modern.insert({ hash, {} }).first->second;
+        info->set_id = hash;
     }
 
-    if (handler->load_count > 0) {
-        handler->load_count++;
+    if (info->load_count > 0) {
+        info->load_count++;
         return 1;
     }
 
-    handler->modern = true;
+    info->modern = true;
 
-    handler->farc_file_handler.read_file(data, "root+/objset/", file.c_str());
+    info->farc_file_handler.read_file(data, "root+/objset/", file.c_str());
 
-    handler->load_count = 1;
-    handler->obj_loaded = false;
-    handler->tex_loaded = false;
+    info->load_count = 1;
+    info->obj_loaded = false;
+    info->tex_loaded = false;
     return 0;
 }
 
 bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     object_database* obj_db, texture_database* tex_db) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-    if (!handler)
+    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    if (!info)
         return true;
 
-    if (!handler->modern) {
-        if (!handler->obj_loaded && !handler->obj_file_handler.check_not_ready()) {
-            const void* data = handler->obj_file_handler.get_data();
-            size_t size = handler->obj_file_handler.get_size();
+    if (!info->modern) {
+        if (!info->obj_loaded && !info->obj_file_handler.check_not_ready()) {
+            const void* data = info->obj_file_handler.get_data();
+            size_t size = info->obj_file_handler.get_size();
             if (!data || !size)
                 return false;
 
-            prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+            prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
             alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
             obj_set* set = alloc->allocate<obj_set>();
-            handler->obj_set = set;
+            info->obj_set = set;
             set->unpack_file(alloc, data, size, false);
             if (!set->ready)
                 return false;
 
-            handler->obj_file_handler.reset();
-            handler->obj_id_data.reserve(set->obj_num);
+            info->obj_file_handler.reset();
+            info->obj_id_data.reserve(set->obj_num);
             for (uint32_t i = 0; i < set->obj_num; i++)
-                handler->obj_id_data.push_back(set->obj_data[i]->id, i);
-            handler->obj_id_data.sort();
+                info->obj_id_data.push_back(set->obj_data[i]->id, i);
+            info->obj_id_data.sort();
 
-            if (!obj_set_handler_vertex_buffer_load(handler)
-                || !obj_set_handler_index_buffer_load(handler))
+            if (!ObjsetInfo_vertex_buffer_load(info)
+                || !ObjsetInfo_index_buffer_load(info))
                 return false;
 
-            obj_set_handler_calc_axis_aligned_bounding_box(handler);
-            handler->obj_loaded = true;
+            ObjsetInfo_calc_axis_aligned_bounding_box(info);
+            info->obj_loaded = true;
         }
 
-        if (!handler->obj_loaded)
+        if (!info->obj_loaded)
             return true;
 
-        if (!handler->tex_loaded && !handler->tex_file_handler.check_not_ready()) {
-            if (!handler->tex_file_handler.get_data())
+        if (!info->tex_loaded && !info->tex_file_handler.check_not_ready()) {
+            if (!info->tex_file_handler.get_data())
                 return false;
-            else if (obj_set_handler_load_textures(handler,
-                handler->tex_file_handler.get_data(), false))
+            else if (ObjsetInfo_load_textures(info,
+                info->tex_file_handler.get_data(), false))
                 return false;
 
-            obj_set_handler_get_shader_index_texture_index(handler);
-            handler->tex_file_handler.reset();
-            handler->tex_loaded = true;
+            ObjsetInfo_get_shader_index_texture_index(info);
+            info->tex_file_handler.reset();
+            info->tex_loaded = true;
         }
     }
-    else if (!handler->obj_loaded && !handler->farc_file_handler.check_not_ready()) {
-        const void* data = handler->farc_file_handler.get_data();
-        size_t size = handler->farc_file_handler.get_size();
+    else if (!info->obj_loaded && !info->farc_file_handler.check_not_ready()) {
+        const void* data = info->farc_file_handler.get_data();
+        size_t size = info->farc_file_handler.get_size();
         if (!data || !size)
             return false;
 
         farc f;
         f.read(data, size, true);
 
-        std::string& file = handler->farc_file_handler.ptr->file;
+        std::string& file = info->farc_file_handler.ptr->file;
 
         size_t file_len = file.size();
         if (file_len >= 0x100 - 4)
@@ -1970,7 +1973,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         object_set_info_file* set_info_file = 0;
         if (obj_db_file.ready)
             for (object_set_info_file& m : obj_db_file.object_set)
-                if (m.id == handler->set_id) {
+                if (m.id == info->set_id) {
                     set_info_file = &m;
                     break;
                 }
@@ -1992,40 +1995,41 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
             local_tex_db.add(&tex_db_file);
         }
 
-        handler->name.assign(set_info_file->name);
+        info->name.assign(set_info_file->name);
 
-        prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+        prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
         alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
         obj_set* set = alloc->allocate<obj_set>();
-        handler->obj_set = set;
+        info->obj_set = set;
         set->unpack_file(alloc, osd->data, osd->size, true);
         if (!set->ready)
             return false;
 
         object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set, &local_obj_db);
 
-        handler->obj_file_handler.reset();
-        handler->obj_id_data.reserve(set->obj_num);
+        info->obj_file_handler.reset();
+        info->obj_id_data.reserve(set->obj_num);
         for (uint32_t i = 0; i < set->obj_num; i++)
-            handler->obj_id_data.push_back(set->obj_data[i]->id, i);
+            info->obj_id_data.push_back(set->obj_data[i]->id, i);
+        info->obj_id_data.sort();
 
-        if (!obj_set_handler_vertex_buffer_load(handler)
-            || !obj_set_handler_index_buffer_load(handler))
+        if (!ObjsetInfo_vertex_buffer_load(info)
+            || !ObjsetInfo_index_buffer_load(info))
             return false;
 
-        obj_set_handler_calc_axis_aligned_bounding_box(handler);
-        handler->obj_loaded = true;
+        ObjsetInfo_calc_axis_aligned_bounding_box(info);
+        info->obj_loaded = true;
 
-        if (obj_set_handler_load_textures_modern(handler, txd->data, txd->size, file.c_str(), &local_tex_db))
+        if (ObjsetInfo_load_textures_modern(info, txd->data, txd->size, file.c_str(), &local_tex_db))
             return false;
 
-        obj_set_handler_get_shader_index_texture_index(handler);
-        handler->tex_loaded = true;
-        handler->farc_file_handler.reset();
+        ObjsetInfo_get_shader_index_texture_index(info);
+        info->tex_loaded = true;
+        info->farc_file_handler.reset();
     }
 
-    if (handler->obj_loaded && handler->tex_loaded)
+    if (info->obj_loaded && info->tex_loaded)
         return false;
     return true;
 }
@@ -2035,60 +2039,60 @@ inline void object_storage_unload_set(const object_database* obj_db, const char*
     if (!set_info)
         return;
 
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_info->id);
-    if (!handler || handler->load_count <= 0)
+    ObjsetInfo* info = object_storage_get_objset_info(set_info->id);
+    if (!info || info->load_count <= 0)
         return;
 
-    if (--handler->load_count > 0)
+    if (--info->load_count > 0)
         return;
 
-    handler->obj_id_data.clear();
-    handler->tex_id_data.clear();
-    handler->gentex.clear();
+    info->obj_id_data.clear();
+    info->tex_id_data.clear();
+    info->gentex.clear();
 
-    texture_array_free(handler->tex_data);
-    handler->tex_data = 0;
-    handler->tex_num = 0;
+    texture_array_free(info->tex_data);
+    info->tex_data = 0;
+    info->tex_num = 0;
 
-    obj_set_handler_index_buffer_free(handler);
-    obj_set_handler_vertex_buffer_free(handler);
-    handler->load_count = 0;
-    handler->tex_loaded = false;
-    handler->obj_loaded = false;
-    handler->alloc_handler.reset();
-    handler->obj_set = 0;
-    handler->tex_file_handler.reset();
-    handler->obj_file_handler.reset();
-    handler->farc_file_handler.reset();
+    ObjsetInfo_index_buffer_free(info);
+    ObjsetInfo_vertex_buffer_free(info);
+    info->load_count = 0;
+    info->tex_loaded = false;
+    info->obj_loaded = false;
+    info->alloc_handler.reset();
+    info->obj_set = 0;
+    info->tex_file_handler.reset();
+    info->obj_file_handler.reset();
+    info->farc_file_handler.reset();
 }
 
 inline void object_storage_unload_set(uint32_t set_id) {
-    obj_set_handler* handler = object_storage_get_obj_set_handler(set_id);
-    if (!handler || handler->load_count <= 0)
+    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    if (!info || info->load_count <= 0)
         return;
 
-    if (--handler->load_count > 0)
+    if (--info->load_count > 0)
         return;
 
-    handler->obj_id_data.clear();
-    handler->tex_id_data.clear();
-    handler->gentex.clear();
+    info->obj_id_data.clear();
+    info->tex_id_data.clear();
+    info->gentex.clear();
 
-    texture_array_free(handler->tex_data);
-    handler->tex_data = 0;
-    handler->tex_num = 0;
+    texture_array_free(info->tex_data);
+    info->tex_data = 0;
+    info->tex_num = 0;
 
-    obj_set_handler_index_buffer_free(handler);
-    obj_set_handler_vertex_buffer_free(handler);
-    handler->load_count = 0;
-    handler->tex_loaded = false;
-    handler->obj_loaded = false;
-    handler->alloc_handler.reset();
-    handler->obj_set = 0;
-    handler->tex_file_handler.reset();
-    handler->obj_file_handler.reset();
-    handler->farc_file_handler.reset();
-    if (handler->modern)
+    ObjsetInfo_index_buffer_free(info);
+    ObjsetInfo_vertex_buffer_free(info);
+    info->load_count = 0;
+    info->tex_loaded = false;
+    info->obj_loaded = false;
+    info->alloc_handler.reset();
+    info->obj_set = 0;
+    info->tex_file_handler.reset();
+    info->obj_file_handler.reset();
+    info->farc_file_handler.reset();
+    if (info->modern)
         object_storage_data_modern.erase(set_id);
 }
 
@@ -2097,8 +2101,60 @@ inline void object_storage_free() {
     object_storage_data_modern.clear();
 }
 
-static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* handler) {
-    obj_set* set = handler->obj_set;
+static GLuint create_index_buffer(size_t size, const void* data) {
+    GLuint buffer = 0;
+    glGenBuffers(1, &buffer);
+    gl_state_bind_element_array_buffer(buffer);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, 0);
+    else
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
+    gl_state_bind_element_array_buffer(0);
+
+    if (glGetError()) {
+        glDeleteBuffers(1, &buffer);
+        return 0;
+    }
+    return buffer;
+}
+
+static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic) {
+    GLuint buffer = 0;
+    glGenBuffers(1, &buffer);
+    gl_state_bind_array_buffer(buffer);
+    if (GLAD_GL_VERSION_4_4)
+        glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
+            dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
+    else
+        glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
+            dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
+    gl_state_bind_array_buffer(0);
+
+    if (glGetError()) {
+        glDeleteBuffers(1, &buffer);
+        return 0;
+    }
+    return buffer;
+}
+
+static void free_index_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    glDeleteBuffers(1, &buffer);
+    glGetError();
+}
+
+static void free_vertex_buffer(GLuint buffer) {
+    if (!buffer)
+        return;
+
+    glDeleteBuffers(1, &buffer);
+    glGetError();
+}
+
+static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
     for (uint32_t i = 0; i < set->obj_num; i++) {
         obj* obj = set->obj_data[i];
         for (uint32_t j = 0; j < obj->num_mesh; j++) {
@@ -2136,8 +2192,8 @@ static void obj_set_handler_calc_axis_aligned_bounding_box(obj_set_handler* hand
     }
 }
 
-static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* handler) {
-    obj_set* set = handler->obj_set;
+static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
     for (uint32_t i = 0; i < set->obj_num; i++) {
         obj* obj = set->obj_data[i];
         uint32_t num_material = obj->num_material;
@@ -2159,8 +2215,8 @@ static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* hand
                 texture.tex_index = -1;
                 texture.texture_index = 0;
 
-                std::pair<uint32_t, uint32_t>* tex_id_data = handler->tex_id_data.data();
-                uint32_t tex_id_num = (uint32_t)handler->tex_id_data.size();
+                std::pair<uint32_t, uint32_t>* tex_id_data = info->tex_id_data.data();
+                uint32_t tex_id_num = (uint32_t)info->tex_id_data.size();
                 for (uint32_t l = tex_id_num; l; l--, tex_id_data++)
                     if (tex_id_data->first == tex_index) {
                         texture.tex_index = tex_index;
@@ -2172,32 +2228,32 @@ static void obj_set_handler_get_shader_index_texture_index(obj_set_handler* hand
     }
 }
 
-static bool obj_set_handler_index_buffer_load(obj_set_handler* handler) {
-    obj_set* set = handler->obj_set;
-    handler->index_buffer_num = set->obj_num;
-    handler->index_buffer_data = new obj_index_buffer[set->obj_num];
-    if (!handler->index_buffer_data)
+static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    info->objib_num = set->obj_num;
+    info->objib = new obj_index_buffer[set->obj_num];
+    if (!info->objib)
         return true;
 
     for (uint32_t i = 0; i < set->obj_num; i++)
-        if (!handler->index_buffer_data[i].load(set->obj_data[i]))
+        if (!info->objib[i].load(set->obj_data[i]))
             return false;
     return true;
 }
 
-static void obj_set_handler_index_buffer_free(obj_set_handler* handler) {
-    if (handler->index_buffer_data) {
-        for (uint32_t i = 0; i < handler->index_buffer_num; i++)
-            handler->index_buffer_data[i].unload();
-        delete[] handler->index_buffer_data;
+static void ObjsetInfo_index_buffer_free(ObjsetInfo* info) {
+    if (info->objib) {
+        for (uint32_t i = 0; i < info->objib_num; i++)
+            info->objib[i].unload();
+        delete[] info->objib;
     }
 
-    handler->index_buffer_data = 0;
-    handler->index_buffer_num = 0;
+    info->objib = 0;
+    info->objib_num = 0;
 }
 
-static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* data, bool big_endian) {
-    obj_set* set = handler->obj_set;
+static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool big_endian) {
+    obj_set* set = info->obj_set;
     if (!set || !data)
         return true;
     else if (!set->tex_id_num)
@@ -2206,26 +2262,26 @@ static bool obj_set_handler_load_textures(obj_set_handler* handler, const void* 
     {
         txp_set txp;
         txp.unpack_file(data, big_endian);
-        handler->tex_num = (int32_t)txp.textures.size();
-        texture_txp_set_load(&txp, &handler->tex_data, set->tex_id_data);
+        info->tex_num = (int32_t)txp.textures.size();
+        texture_txp_set_load(&txp, &info->tex_data, set->tex_id_data);
     }
 
-    handler->tex_id_data.reserve(handler->tex_num);
-    handler->gentex.reserve(handler->tex_num);
+    info->tex_id_data.reserve(info->tex_num);
+    info->gentex.reserve(info->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
-    uint32_t tex_num = handler->tex_num;
-    texture** tex_data = handler->tex_data;
+    uint32_t tex_num = info->tex_num;
+    texture** tex_data = info->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
-        handler->tex_id_data.push_back(tex_id_data[i], i);
-        handler->gentex.push_back(tex_data[i]->tex);
+        info->tex_id_data.push_back(tex_id_data[i], i);
+        info->gentex.push_back(tex_data[i]->tex);
     }
-    handler->tex_id_data.sort();
+    info->tex_id_data.sort();
     return false;
 }
 
-static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
+static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
     const void* data, size_t size, const char* file, texture_database* tex_db) {
-    obj_set* set = handler->obj_set;
+    obj_set* set = info->obj_set;
     if (!set || !data || !size)
         return true;
     else if (!set->tex_id_num)
@@ -2234,46 +2290,46 @@ static bool obj_set_handler_load_textures_modern(obj_set_handler* handler,
     {
         txp_set txp;
         txp.unpack_file_modern(data, size, 'MTXD');
-        handler->tex_num = (int32_t)txp.textures.size();
-        object_material_msgpack_read("patch\\AFT\\objset", file, &txp, tex_db, handler);
-        texture_txp_set_load(&txp, &handler->tex_data, set->tex_id_data);
+        info->tex_num = (int32_t)txp.textures.size();
+        object_material_msgpack_read("patch\\AFT\\objset", file, &txp, tex_db, info);
+        texture_txp_set_load(&txp, &info->tex_data, set->tex_id_data);
     }
 
-    handler->tex_id_data.reserve(handler->tex_num);
-    handler->gentex.reserve(handler->tex_num);
+    info->tex_id_data.reserve(info->tex_num);
+    info->gentex.reserve(info->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
-    uint32_t tex_num = handler->tex_num;
-    texture** tex_data = handler->tex_data;
+    uint32_t tex_num = info->tex_num;
+    texture** tex_data = info->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
-        handler->tex_id_data.push_back(tex_id_data[i], i);
-        handler->gentex.push_back(tex_data[i]->tex);
+        info->tex_id_data.push_back(tex_id_data[i], i);
+        info->gentex.push_back(tex_data[i]->tex);
     }
-    handler->tex_id_data.sort();
+    info->tex_id_data.sort();
     return false;
 }
 
-static bool obj_set_handler_vertex_buffer_load(obj_set_handler* handler) {
-    obj_set* set = handler->obj_set;
-    handler->vertex_buffer_num = set->obj_num;
-    handler->vertex_buffer_data = new obj_vertex_buffer[set->obj_num];
-    if (!handler->vertex_buffer_data)
+static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
+    info->objvb_num = set->obj_num;
+    info->objvb = new obj_vertex_buffer[set->obj_num];
+    if (!info->objvb)
         return true;
 
     for (uint32_t i = 0; i < set->obj_num; i++)
-        if (!handler->vertex_buffer_data[i].load(set->obj_data[i]))
+        if (!info->objvb[i].load(set->obj_data[i]))
             return false;
     return true;
 }
 
-static void obj_set_handler_vertex_buffer_free(obj_set_handler* handler) {
-    if (handler->vertex_buffer_data) {
-        for (uint32_t i = 0; i < handler->vertex_buffer_num; i++)
-            handler->vertex_buffer_data[i].unload();
-        delete[] handler->vertex_buffer_data;
+static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info) {
+    if (info->objvb) {
+        for (uint32_t i = 0; i < info->objvb_num; i++)
+            info->objvb[i].unload();
+        delete[] info->objvb;
     }
 
-    handler->vertex_buffer_data = 0;
-    handler->vertex_buffer_num = 0;
+    info->objvb = 0;
+    info->objvb_num = 0;
 }
 
 inline static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format) {

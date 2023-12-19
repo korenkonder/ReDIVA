@@ -253,9 +253,9 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 #endif
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
 
-static void x_pv_game_update_object_set(obj_set_handler* handler);
+static void x_pv_game_update_object_set(ObjsetInfo* info);
 static void x_pv_game_write_auth_3d(auth_3d* auth);
-static void x_pv_game_write_object_set(obj_set_handler* handler);
+static void x_pv_game_write_object_set(ObjsetInfo* info);
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
@@ -894,7 +894,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                 wait_load |= true;
 
         for (string_hash& i : pv_obj_set)
-            if (object_storage_get_obj_set_handler(i.hash_murmurhash)
+            if (object_storage_get_objset_info(i.hash_murmurhash)
                 && object_storage_load_obj_set_check_not_read(i.hash_murmurhash, obj_db, tex_db))
                 wait_load |= true;
 
@@ -1306,7 +1306,7 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
                 if (!auth_3d_data_check_category_loaded(j.category.hash_murmurhash))
                     wait_load |= true;
 
-                if (object_storage_get_obj_set_handler(j.object_set.hash_murmurhash)
+                if (object_storage_get_objset_info(j.object_set.hash_murmurhash)
                     && object_storage_load_obj_set_check_not_read(j.object_set.hash_murmurhash, obj_db, tex_db))
                     wait_load |= true;
             }
@@ -4433,7 +4433,7 @@ void x_pv_game_stage_data::ctrl(object_database* obj_db, texture_database* tex_d
         bool wait_load = false;
 
         for (uint32_t& i : objhrc_hash)
-            if (object_storage_get_obj_set_handler(i)
+            if (object_storage_get_objset_info(i)
                 && object_storage_load_obj_set_check_not_read(i, obj_db, tex_db))
                 wait_load |= true;
 
@@ -6233,24 +6233,24 @@ bool x_pv_game::ctrl() {
         prj::sort_unique(object_set_ids);
 
         for (uint32_t& i : object_set_ids) {
-            obj_set_handler* handler = object_storage_get_obj_set_handler(i);
-            if (!handler)
+            ObjsetInfo* info = object_storage_get_objset_info(i);
+            if (!info)
                 continue;
 
-            obj_set* set = handler->obj_set;
+            obj_set* set = info->obj_set;
 
-            prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+            prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
 
             uint32_t obj_num = set->obj_num;
             obj** obj_data = set->obj_data;
 
-            obj_vertex_buffer* vertex_buffer_data = handler->vertex_buffer_data;
+            obj_vertex_buffer* objvb = info->objvb;
             for (uint32_t j = 0; j < obj_num; j++)
-                vertex_buffer_data[j].unload();
+                objvb[j].unload();
 
-            obj_index_buffer* index_buffer_data = handler->index_buffer_data;
+            obj_index_buffer* objib = info->objib;
             for (uint32_t j = 0; j < obj_num; j++)
-                index_buffer_data[j].unload();
+                objib[j].unload();
 
             for (uint32_t j = 0; j < obj_num; j++, obj_data++) {
                 obj* obj = *obj_data;
@@ -6285,19 +6285,19 @@ bool x_pv_game::ctrl() {
             obj_data = set->obj_data;
 
             for (uint32_t j = 0; j < obj_num; j++)
-                vertex_buffer_data[j].load(obj_data[j]);
+                objvb[j].load(obj_data[j]);
 
             for (uint32_t j = 0; j < obj_num; j++)
-                index_buffer_data[j].load(obj_data[j]);
+                objib[j].load(obj_data[j]);
         }
 
         for (uint32_t& i : object_set_ids) {
-            obj_set_handler* handler = object_storage_get_obj_set_handler(i);
-            if (!handler)
+            ObjsetInfo* info = object_storage_get_objset_info(i);
+            if (!info)
                 continue;
 
-            x_pv_game_update_object_set(handler);
-            x_pv_game_write_object_set(handler);
+            x_pv_game_update_object_set(info);
+            x_pv_game_write_object_set(info);
         }
 
         for (auto& i : chara_effect_auth_3ds)
@@ -8237,15 +8237,15 @@ static void auth_3d_key_rev(auth_3d_key& k, std::vector<float_t>& values_src) {
     }
 }
 
-static void x_pv_game_update_object_set(obj_set_handler* handler) {
-    prj::shared_ptr<prj::stack_allocator> old_alloc = handler->alloc_handler;
+static void x_pv_game_update_object_set(ObjsetInfo* info) {
+    prj::shared_ptr<prj::stack_allocator> old_alloc = info->alloc_handler;
 
-    prj::shared_ptr<prj::stack_allocator>& alloc = handler->alloc_handler;
+    prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
     alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
 
     obj_set* set = alloc->allocate<obj_set>();
-    set->move_data(handler->obj_set, alloc);
-    handler->obj_set = set;
+    set->move_data(info->obj_set, alloc);
+    info->obj_set = set;
 }
 
 static void x_pv_game_write_auth_3d(auth_3d* auth) {
@@ -8303,11 +8303,11 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
     free_def(a3da_data);
 }
 
-static void x_pv_game_write_object_set(obj_set_handler* handler) {
-    obj_set* set = handler->obj_set;
+static void x_pv_game_write_object_set(ObjsetInfo* info) {
+    obj_set* set = info->obj_set;
 
     char name[0x200];
-    strcpy_s(name, sizeof(name), handler->name.c_str());
+    strcpy_s(name, sizeof(name), info->name.c_str());
 
     for (size_t j = 0; j < sizeof(name); j++) {
         char c = name[j];
@@ -8371,8 +8371,8 @@ static void x_pv_game_write_object_set(obj_set_handler* handler) {
     strcat_s(buf, sizeof(buf), name);
     strcat_s(buf, sizeof(buf), "_tex.bin");
 
-    uint32_t tex_num = handler->tex_num;
-    texture** tex_data = handler->tex_data;
+    uint32_t tex_num = info->tex_num;
+    texture** tex_data = info->tex_data;
 
     txp_set txp;
     txp.textures.resize(tex_num);
