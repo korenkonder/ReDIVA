@@ -2541,7 +2541,7 @@ static const bool BLINN_permut[] = {
     true,
     true,
     false,
-    false, // 11th added
+    true, // 11th added
 };
 
 static const bool ITEM_permut[] = {
@@ -2555,7 +2555,7 @@ static const bool ITEM_permut[] = {
     false,
     false,
     false,
-    false,
+    true,
     false,
     false,
     false,
@@ -2573,7 +2573,7 @@ static const bool STAGE_permut[] = {
     false,
     false,
     false,
-    false, // 11th added
+    true, // 11th added
 };
 
 static const bool SKIN_permut[] = {
@@ -2582,7 +2582,7 @@ static const bool SKIN_permut[] = {
     false,
     false,
     false,
-    false,
+    true,
     false,
     false,
     false,
@@ -2593,7 +2593,7 @@ static const bool SSS_SKIN_permut[] = {
     //true, // 0th removed
     true,
     false,
-    false,
+    true,
     false,
     false,
     false,
@@ -2621,7 +2621,7 @@ static const bool HAIR_permut[] = {
     false,
     false,
     false,
-    false, // 14th added
+    true, // 14th added
 };
 
 static const bool CLOTH_permut[] = {
@@ -2634,7 +2634,7 @@ static const bool CLOTH_permut[] = {
     false,
     false,
     false,
-    false,
+    true,
     false,
     false,
     false,
@@ -2649,7 +2649,7 @@ static const bool TIGHTS_permut[] = {
     false,
     false,
     false,
-    false,
+    true,
     false,
     false,
     false,
@@ -2663,7 +2663,7 @@ static const bool SKY_permut[] = {
     true,
     true,
     false,
-    false, // 6th added
+    true, // 6th added
 };
 
 /*static const bool EYEBALL_permut[] = {
@@ -2743,7 +2743,7 @@ static const bool SIL_permut[] = {
     true,
     false,
     false,
-    false, // 7th added
+    true, // 7th added
 };
 
 static const bool LAMBERT_permut[] = {
@@ -2755,7 +2755,7 @@ static const bool LAMBERT_permut[] = {
     true,
     true,
     false,
-    false, // 8th added
+    true, // 8th added
 };
 
 static const bool CONSTANT_permut[] = {
@@ -2765,7 +2765,7 @@ static const bool CONSTANT_permut[] = {
     false,
     true,
     true,
-    false, // 6th added
+    true, // 6th added
 };
 
 /*static const bool PEEL_permut[] = {
@@ -2893,7 +2893,7 @@ static const bool FLOOR_permut[] = {
     false,
     true,
     true,
-    false, // 7th added
+    true, // 7th added
 };
 
 static const bool PUDDLE_permut[] = {
@@ -2909,7 +2909,7 @@ static const bool S_REFL_permut[] = {
     true,
     true,
     true,
-    false,
+    true,
     false,
     false,
     false,
