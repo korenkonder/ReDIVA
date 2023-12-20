@@ -10,6 +10,7 @@
 #include "object.hpp"
 #include "data.hpp"
 #include "gl_state.hpp"
+#include "render_context.hpp"
 #include "shader_ft.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
@@ -2141,6 +2142,8 @@ static void free_index_buffer(GLuint buffer) {
     if (!buffer)
         return;
 
+    extern render_context* rctx_ptr;
+    rctx_ptr->disp_manager->check_index_buffer(buffer);
     glDeleteBuffers(1, &buffer);
     glGetError();
 }
@@ -2149,6 +2152,8 @@ static void free_vertex_buffer(GLuint buffer) {
     if (!buffer)
         return;
 
+    extern render_context* rctx_ptr;
+    rctx_ptr->disp_manager->check_vertex_buffer(buffer);
     glDeleteBuffers(1, &buffer);
     glGetError();
 }

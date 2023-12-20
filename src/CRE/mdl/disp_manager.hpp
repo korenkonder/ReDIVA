@@ -172,18 +172,17 @@ namespace mdl {
         const std::vector<GLuint>* textures;
         int32_t mat_count;
         const mat4* mats;
-        //GLuint vertex_buffer;
-        obj_mesh_vertex_buffer* vertex_buffer;
-        //GLuint index_buffer;
-        obj_mesh_index_buffer* index_buffer;
+        GLuint vertex_buffer;
+        size_t vertex_buffer_offset;
+        GLuint index_buffer;
         bool set_blend_color;
         bool chara_color;
         vec4 blend_color;
         vec4 emission;
         bool self_shadow;
         shadow_type_enum shadow;
-        //GLuint morph_vertex_buffer;
-        obj_mesh_vertex_buffer* morph_vertex_buffer;
+        GLuint morph_vertex_buffer;
+        size_t morph_vertex_buffer_offset;
         float_t morph_weight;
         int32_t texture_pattern_count;
         texture_pattern_struct texture_pattern_array[TEXTURE_PATTERN_COUNT];
@@ -358,11 +357,10 @@ namespace mdl {
 
         void init_etc(DispManager* disp_manager, const mat4* mat, mdl::EtcObj* etc);
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
-            const obj_sub_mesh* sub_mesh, const obj_mesh* mesh,
-            const obj_material_data* material, const std::vector<GLuint>* textures,
-            int32_t mat_count, const mat4* mats, /*GLuint vertex_buffer, GLuint index_buffer,*/
-            obj_mesh_vertex_buffer* vertex_buffer, obj_mesh_index_buffer* index_buffer, const vec4* blend_color,
-            const vec4* emission, /*GLuint morph_vertex_buffer,*/ obj_mesh_vertex_buffer* morph_vertex_buffer,
+            const obj_sub_mesh* sub_mesh, const obj_mesh* mesh, const obj_material_data* material,
+            const std::vector<GLuint>* textures, int32_t mat_count, const mat4* mats,
+            GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer, const vec4* blend_color,
+            const vec4* emission, GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset,
             int32_t instances_count, const mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
         void init_translucent(const mat4* mat, ObjTranslucentArgs* translucent);
         void init_user(const mat4* mat, UserArgsFunc func, void* data);
@@ -385,12 +383,11 @@ namespace mdl {
 
     struct DispManager {
         struct vertex_array {
-            //GLuint vertex_buffer;
-            obj_mesh_vertex_buffer* vertex_buffer;
-            //GLuint morph_vertex_buffer;
-            obj_mesh_vertex_buffer* morph_vertex_buffer;
-            //GLuint index_buffer;
-            obj_mesh_index_buffer* index_buffer;
+            GLuint vertex_buffer;
+            size_t vertex_buffer_offset;
+            GLuint morph_vertex_buffer;
+            size_t morph_vertex_buffer_offset;
+            GLuint index_buffer;
             int32_t alive_time;
             GLuint vertex_array;
             bool vertex_attrib_array[16];
@@ -399,6 +396,8 @@ namespace mdl {
             bool compressed;
             GLuint vertex_attrib_buffer_binding[16];
             int32_t texcoord_array[2];
+
+            void reset_vertex_attrib();
         };
 
         struct etc_vertex_array {
@@ -457,7 +456,9 @@ namespace mdl {
         mat4* alloc_mat4_array(int32_t count);
         void buffer_reset();
         void calc_obj_radius(const mat4* view, mdl::ObjType type);
+        void check_index_buffer(GLuint buffer);
         void check_vertex_arrays();
+        void check_vertex_buffer(GLuint buffer);
         void draw(mdl::ObjType type, int32_t depth_mask = 0, bool a4 = true);
         void draw_translucent(mdl::ObjType type, int32_t alpha);
         /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
