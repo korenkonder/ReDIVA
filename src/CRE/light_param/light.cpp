@@ -7,10 +7,17 @@
 #include "../../KKdLib/mat.hpp"
 #include "../render_context.hpp"
 
+struct light_data_color {
+    vec4 ambient;
+    vec4 diffuse;
+    vec4 specular;
+};
+
 extern bool light_chara_ambient;
 extern vec4 npr_cloth_spec_color;
 
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force = false);
+static void light_get_light_color(light_data* light, light_data_color& value, light_id id);
 
 light_data::light_data() : type(), ambient(), diffuse(), specular(), position(),
 spot_direction(), spot_exponent(), spot_cutoff(), attenuation(),
@@ -339,12 +346,16 @@ void light_set::data_set(face& face, light_set_id id) {
     extern render_context* rctx_ptr;
     obj_scene_shader_data& obj_scene = rctx_ptr->obj_scene;
 
-    lights[LIGHT_STAGE].get_diffuse(obj_scene.g_light_env_stage_diffuse);
-    lights[LIGHT_STAGE].get_specular(obj_scene.g_light_env_stage_specular);
+    light_data_color light_color[LIGHT_MAX];
+    for (int32_t i = 0; i < LIGHT_MAX; i++)
+        light_get_light_color(&lights[i], light_color[i], (light_id)i);
 
-    lights[LIGHT_CHARA].get_diffuse(obj_scene.g_light_env_chara_diffuse);
-    lights[LIGHT_CHARA].get_ambient(obj_scene.g_light_env_chara_ambient);
-    lights[LIGHT_CHARA].get_specular(obj_scene.g_light_env_chara_specular);
+    obj_scene.g_light_env_stage_diffuse = light_color[LIGHT_STAGE].diffuse;
+    obj_scene.g_light_env_stage_specular = light_color[LIGHT_STAGE].specular;
+
+    obj_scene.g_light_env_chara_diffuse = light_color[LIGHT_CHARA].diffuse;
+    obj_scene.g_light_env_chara_ambient = light_color[LIGHT_CHARA].ambient;
+    obj_scene.g_light_env_chara_specular = light_color[LIGHT_CHARA].specular;
 
     lights[LIGHT_REFLECT].get_diffuse(obj_scene.g_light_env_reflect_diffuse);
     lights[LIGHT_REFLECT].get_ambient(obj_scene.g_light_env_reflect_ambient);
@@ -518,4 +529,18 @@ static void light_get_direction_from_position(vec4* pos_dir, light_data* light, 
             *(vec3*)pos_dir *= 1.0f / length;
         pos_dir->w = 0.0f;
     }
+}
+
+static void light_get_light_color(light_data* light, light_data_color& value, light_id id) {
+    if (id || light_chara_ambient)
+        value.ambient = light->ambient;
+    else
+        value.ambient = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+    if (!id && false)
+        value.diffuse = light->diffuse * 4.0f;
+    else
+        value.diffuse = light->diffuse;
+
+    value.specular = light->specular;
 }
