@@ -50,11 +50,11 @@ struct Shadow {
     float_t field_2E0;
     float_t ambient;
     bool field_2E8;
-    int32_t field_2EC;
-    bool field_2F0[2];
+    int32_t num_light;
+    bool light_enable[2];
     bool self_shadow;
     bool blur_filter_enable[2];
-    bool field_2F5;
+    bool separate;
 
     Shadow();
     virtual ~Shadow();

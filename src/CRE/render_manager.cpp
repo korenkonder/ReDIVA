@@ -1206,7 +1206,7 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
     glClearColor(1.0, 1.0, 1.0, 1.0);
     if (!a3)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    else if (shad->field_2F5)
+    else if (shad->separate)
         glClear(GL_COLOR_BUFFER_BIT);
     glScissor(1, 1, tex->width - 2, tex->height - 2);
 
@@ -1214,7 +1214,7 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
     float_t offset;
     vec3* interest;
     vec3* view_point;
-    if (shad->field_2F5) {
+    if (shad->separate) {
         offset = index ? 0.5f : -0.5f;
         interest = &shad->interest[index];
         view_point = &shad->view_point[index];
@@ -1243,7 +1243,7 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int
     gl_state_disable_scissor_test();
 
     rctx->draw_state->shader_index = -1;
-    if (a3 == shad->field_2EC - 1) {
+    if (a3 == shad->num_light - 1) {
         draw_pass_shadow_filter(&shad->render_textures[3],
             &shad->render_textures[4], shad->curr_render_textures[0],
             shad->field_2DC, shad->field_2E0 / (shad->field_208 * 2.0f), false);
@@ -1624,7 +1624,7 @@ static void draw_pass_3d_shadow_reset(render_context* rctx) {
 }
 
 static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
-    if (shad->self_shadow && shad->field_2EC > 0) {
+    if (shad->self_shadow && shad->num_light > 0) {
         gl_state_active_bind_texture_2d(19, shad->render_textures[3].GetColorTex());
         gl_state_active_bind_texture_2d(20, shad->render_textures[5].GetColorTex());
         gl_state_active_texture(0);
@@ -1639,22 +1639,23 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         rctx->draw_state->self_shadow = false;
     }
 
-    if (shad->field_2EC > 0) {
+    if (shad->num_light > 0) {
         rctx->draw_state->light = true;
-        uniform_value[U_LIGHT_1] = shad->field_2EC > 1 ? 1 : 0;
+        uniform_value[U_LIGHT_1] = shad->num_light > 1 ? 1 : 0;
 
         float_t range = shad->get_range();
         for (int32_t i = 0; i < 2; i++) {
-            float_t v6 = 0.0f;
+            float_t offset;
             vec3* interest;
             vec3* view_point;
-            if (shad->field_2F5) {
-                v6 = i ? 0.5f : -0.5f;
+            if (shad->separate) {
+                offset = i ? 0.5f : -0.5f;
 
                 interest = &shad->interest[i];
                 view_point = &shad->view_point[i];
             }
             else {
+                offset = 0.0f;
                 interest = &shad->interest_shared;
                 view_point = &shad->view_point_shared;
             }
@@ -1662,7 +1663,7 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
             mat4 temp;
             mat4_translate(0.5f, 0.5f, 0.5f, &temp);
             mat4_scale_rot(&temp, 0.5f, 0.5f, 0.5f, &temp);
-            mat4_mul_translate(&temp, v6, 0.0f, 0.0f, &temp);
+            mat4_mul_translate(&temp, offset, 0.0f, 0.0f, &temp);
 
             mat4 proj;
             mat4_ortho(-range, range, -range, range, shad->z_near, shad->z_far, &proj);
@@ -1676,7 +1677,7 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
 
         int32_t j = 0;
         for (int32_t i = 0; i < 2; i++)
-            if (shad->field_2F0[i]) {
+            if (shad->light_enable[i]) {
                 gl_state_active_bind_texture_2d(6 + j, shad->curr_render_textures[1 + i]->GetColorTex());
                 glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
                 j++;

@@ -13,7 +13,7 @@ extern render_context* rctx_ptr;
 Shadow::Shadow() : curr_render_textures(), view_region(), range(), field_1C0(), field_1C8(),
 field_200(), field_208(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(),
 field_2C4(), z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(),
-ambient(), field_2E8(), field_2EC(), field_2F0(), self_shadow(), blur_filter_enable(), field_2F5() {
+ambient(), field_2E8(), num_light(), light_enable(), self_shadow(), blur_filter_enable(), separate() {
     reset();
 }
 
@@ -23,7 +23,7 @@ Shadow::~Shadow() {
 
 void Shadow::ctrl() {
     for (int32_t i = 0; i < 2; i++)
-        field_2F0[i] = false;
+        light_enable[i] = false;
 
     if (rctx_ptr->render_manager->shadow) {
         view_mat[0] = rctx_ptr->camera->view;
@@ -42,24 +42,24 @@ void Shadow::ctrl() {
 
         for (int32_t i = 0; i < 2; i++)
             if (rctx_ptr->disp_manager->get_obj_count((mdl::ObjType)((int32_t)mdl::OBJ_TYPE_SHADOW_CHARA + i)))
-                field_2F0[i] = true;
+                light_enable[i] = true;
     }
 
     int32_t count = 0;
-    field_2EC = 0;
+    num_light = 0;
     for (int32_t i = 0; i < 2; i++)
-        if (field_2F0[i] && field_1D0[i].size() > 0) {
-            field_2EC++;
+        if (light_enable[i] && field_1D0[i].size() > 0) {
+            num_light++;
             count += (int32_t)field_1D0[i].size();
         }
         else
-            field_2F0[i] = false;
+            light_enable[i] = false;
 
     if (count < 3) {
         for (int32_t i = 0; i < 2; i++) {
             field_1A8[i] = 0.0f;
             field_1C8[i] = 0.0f;
-            if (!field_2F0[i] || field_1D0[i].size() < 1)
+            if (!light_enable[i] || field_1D0[i].size() < 1)
                 continue;
 
             vec3 v7 = 0.0f;
@@ -86,11 +86,11 @@ void Shadow::ctrl() {
             field_1C8[i] = v15;
         }
 
-        if (field_2EC > 0) {
+        if (num_light > 0) {
             vec3 view_point = 0.0f;
             vec3 interest = 0.0f;
             for (int32_t i = 0; i < 2; i++) {
-                if (!field_2F0[i])
+                if (!light_enable[i])
                     continue;
 
                 vec3 v11 = field_1A8[i] - direction * field_208;
@@ -105,16 +105,16 @@ void Shadow::ctrl() {
                 interest += this->interest[i];
             }
 
-            view_point_shared = view_point * (1.0f / (float_t)field_2EC);
-            interest_shared = interest * (1.0f / (float_t)field_2EC);
+            view_point_shared = view_point * (1.0f / (float_t)num_light);
+            interest_shared = interest * (1.0f / (float_t)num_light);
         }
 
         float_t v2 = max_def(field_1C8[0], field_1C8[1]);
-        field_2F5 = false;
+        separate = false;
         view_region = v2 + 1.2f;
         field_200[0] = 0;
         field_200[1] = 1;
-        if (field_2EC >= 2) {
+        if (num_light >= 2) {
             vec3 v12 = field_1A8[0] - interest_shared;
             vec3 v14 = field_1A8[1] - interest_shared;
 
@@ -126,7 +126,7 @@ void Shadow::ctrl() {
 
             if (v16 > 1.2f) {
                 view_region = v2 + 2.4f;
-                field_2F5 = true;
+                separate = true;
             }
             else
                 view_region = v2 + 1.2f + v16;
@@ -153,7 +153,7 @@ void Shadow::ctrl() {
         for (int32_t i = 0; i < 2; i++) {
             field_1A8[i] = 0.0f;
             field_1C8[i] = 0.0;
-            if (!field_2F0[i] || field_1D0[i].size() < 1)
+            if (!light_enable[i] || field_1D0[i].size() < 1)
                 continue;
 
             vec3 v22 = 0.0f;
@@ -180,9 +180,9 @@ void Shadow::ctrl() {
             field_1C8[i] = v30;
         }
 
-        if (field_2EC > 0) {
+        if (num_light > 0) {
             for (int32_t i = 0; i < 2; i++) {
-                if (!field_2F0[i])
+                if (!light_enable[i])
                     continue;
 
                 vec3 v53 = field_1A8[i] -  direction * field_208;
@@ -210,16 +210,16 @@ void Shadow::ctrl() {
 
         float_t v2 = 0.0f;
         float_t v67 = max_def(field_1C8[0], field_1C8[1]);
-        field_2F5 = false;
+        separate = false;
         view_region = v67 + 1.2f;
         field_200[0] = 0;
         field_200[1] = 1;
-        if (field_2EC >= 2) {
+        if (num_light >= 2) {
             float_t v68 = 0.0f;
             float_t v69 = 0.0f;
             float_t v70 = 0.0f;
             for (int32_t i = 0; i < 2; i++) {
-                if (!field_2F0[i])
+                if (!light_enable[i])
                     continue;
 
                 for (vec3& j : field_1D0[i]) {
@@ -249,7 +249,7 @@ void Shadow::ctrl() {
 
             if (v79 > v67 + 1.2f) {
                 view_region = v67 + 2.4f;
-                field_2F5 = true;
+                separate = true;
             }
             else
                 view_region = v79 + 1.2f;
@@ -342,11 +342,11 @@ void Shadow::reset() {
     field_2DC = 2.0f;
     field_2E0 = 0.05f;
     ambient = 0.4f;
-    field_2EC = 0;
+    num_light = 0;
     direction = vec3(0.0f, -1.0f, -1.0f) * (1.0f / sqrtf(2.0f));
     field_2E8 = false;
     self_shadow = true;
-    field_2F5 = false;
+    separate = false;
     field_208 = (z_far - z_near) * 0.5f;
 }
 
