@@ -481,7 +481,7 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     }
 
     GLuint sampler;
-    glGenSamplers(3, render_samplers);
+    glGenSamplers(4, render_samplers);
     sampler = render_samplers[0];
     glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -497,6 +497,13 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     sampler = render_samplers[2];
     glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
+
+    sampler = render_samplers[3];
+    glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glSamplerParameteri(sampler, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
@@ -527,7 +534,7 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
 
 render_context::~render_context() {
     glDeleteSamplers(3, sprite_samplers);
-    glDeleteSamplers(3, render_samplers);
+    glDeleteSamplers(4, render_samplers);
     glDeleteSamplers(18, samplers);
 
     glDeleteTextures(1, &empty_texture_cube_map);
