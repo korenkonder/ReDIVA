@@ -628,7 +628,7 @@ void render_context::disp() {
     draw_state->stats_prev = draw_state->stats;
     draw_state->stats.reset();
     app::TaskWork::disp();
-    shadow_ptr_get()->Ctrl();
+    shadow_ptr_get()->ctrl();
     int32_t sprite_index = sprite_manager_get_index();
     //sprite_manager_set_index(3);
     sprite_manager_set_index(0);

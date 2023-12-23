@@ -57,12 +57,13 @@ struct Shadow {
     bool field_2F5;
 
     Shadow();
-    ~Shadow();
+    virtual ~Shadow();
 
-    void Ctrl();
-    void Free();
-    int32_t Init();
-    void Reset();
+    void ctrl();
+    void free();
+    float_t get_range();
+    int32_t init();
+    void reset();
 };
 
 extern void shadow_ptr_init();

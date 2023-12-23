@@ -14,14 +14,14 @@ Shadow::Shadow() : curr_render_textures(), view_region(), range(), field_1C0(), 
 field_200(), field_208(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(),
 field_2C4(), z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(),
 ambient(), field_2E8(), field_2EC(), field_2F0(), self_shadow(), blur_filter_enable(), field_2F5() {
-    Reset();
+    reset();
 }
 
 Shadow::~Shadow() {
-    Free();
+    free();
 }
 
-void Shadow::Ctrl() {
+void Shadow::ctrl() {
     for (int32_t i = 0; i < 2; i++)
         field_2F0[i] = false;
 
@@ -266,14 +266,18 @@ void Shadow::Ctrl() {
         i.clear();
 }
 
-void Shadow::Free() {
+void Shadow::free() {
     for (RenderTexture& i : render_textures)
         i.Free();
 
-    Reset();
+    reset();
 }
 
-int32_t Shadow::Init() {
+float_t Shadow::get_range() {
+    return range * view_region;
+}
+
+int32_t Shadow::init() {
     struct shadow_texture_init_params {
         int32_t width;
         int32_t height;
@@ -308,7 +312,7 @@ int32_t Shadow::Init() {
     return 0;
 }
 
-void Shadow::Reset() {
+void Shadow::reset() {
     view_region = 1.2f;
     range = 1.0f;
 

@@ -1180,7 +1180,7 @@ void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mas
 
     shadow_ptr_init();
     render_manager.shadow_ptr = shadow_ptr_get();
-    render_manager.shadow_ptr->Init();
+    render_manager.shadow_ptr->init();
 
     rctx_ptr->sss_data->init();
     gl_state_get_error();
@@ -1210,19 +1210,17 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
         glClear(GL_COLOR_BUFFER_BIT);
     glScissor(1, 1, tex->width - 2, tex->height - 2);
 
-    float_t offset = 0.0f;
-    float_t range = shad->view_region * shad->range;
+    float_t range = shad->get_range();
+    float_t offset;
     vec3* interest;
     vec3* view_point;
     if (shad->field_2F5) {
-        offset = -0.5f;
-        if (index)
-            offset = 0.5f;
-
+        offset = index ? 0.5f : -0.5f;
         interest = &shad->interest[index];
         view_point = &shad->view_point[index];
     }
     else {
+        offset = 0.0f;
         interest = &shad->interest_shared;
         view_point = &shad->view_point_shared;
     }
@@ -1645,7 +1643,7 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         rctx->draw_state->light = true;
         uniform_value[U_LIGHT_1] = shad->field_2EC > 1 ? 1 : 0;
 
-        float_t range = shad->view_region * shad->range;
+        float_t range = shad->get_range();
         for (int32_t i = 0; i < 2; i++) {
             float_t v6 = 0.0f;
             vec3* interest;
