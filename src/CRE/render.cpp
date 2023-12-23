@@ -511,7 +511,7 @@ namespace rndr {
         gl_state_bind_vertex_array(0);
 
         if (lens_flare_appear_power <= 0.01f)
-            lens_flare_appear_power = 0.0;
+            lens_flare_appear_power = 0.0f;
         else
             lens_flare_appear_power *= 0.93f;
         lens_shaft_scale = 100.0f;

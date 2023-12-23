@@ -24,7 +24,7 @@ camera::~camera() {
 
 void camera::initialize(double_t aspect) {
     this->aspect = aspect;
-    fov = 0.0;
+    fov = 0.0f;
     fov_correct_height = 0.0f;
     aet_depth = 0.0f;
     forward = { 0.0f, 0.0f, -1.0f };
@@ -48,24 +48,24 @@ void camera::initialize(double_t aspect) {
     ignore_fov = false;
     ignore_min_dist = false;
 
-    set_view_point({ 0.0, 0.0f, 0.0f });
+    set_view_point({ 0.0f, 0.0f, 0.0f });
     set_interest({ 0.0f, 0.0f, -1.0f });
-    set_min_distance(0.05);
-    set_max_distance(6000.0);
-    set_pitch(0.0);
-    set_yaw(0.0);
-    set_roll(0.0);
-    set_fov(32.2673416137695);
+    set_min_distance(0.05f);
+    set_max_distance(6000.0f);
+    set_pitch(0.0f);
+    set_yaw(0.0f);
+    set_roll(0.0f);
+    set_fov(32.2673416137695f);
     camera_calculate_forward(this);
     set_position(0.0f);
     update();
 }
 
-double_t camera::get_min_distance() {
+float_t camera::get_min_distance() {
     return min_distance;
 }
 
-void camera::set_min_distance(double_t value) {
+void camera::set_min_distance(float_t value) {
     if (!ignore_min_dist && min_distance != value) {
         min_distance = value;
         changed_proj = true;
@@ -73,11 +73,11 @@ void camera::set_min_distance(double_t value) {
     }
 }
 
-double_t camera::get_max_distance() {
+float_t camera::get_max_distance() {
     return max_distance;
 }
 
-void camera::set_max_distance(double_t value) {
+void camera::set_max_distance(float_t value) {
     if (max_distance != value) {
         max_distance = value;
         changed_proj = true;
@@ -95,50 +95,50 @@ void camera::set_aspect(double_t value) {
     }
 }
 
-double_t camera::get_fov() {
+float_t camera::get_fov() {
     return fov;
 }
 
-void camera::set_fov(double_t value) {
-    value = clamp_def(value, 1.0, 180.0);
+void camera::set_fov(float_t value) {
+    value = clamp_def(value, 1.0f, 180.0f);
     if (!ignore_fov && fov != value) {
         fov = value;
-        fov_rad = value * DEG_TO_RAD;
+        fov_rad = value * DEG_TO_RAD_FLOAT;
         changed_proj = true;
     }
 }
 
-double_t camera::get_pitch() {
+float_t camera::get_pitch() {
     return pitch;
 }
 
-void camera::set_pitch(double_t value) {
-    value = fmod(value, 360.0);
-    value = clamp_def(value, -89.5, 89.5);
+void camera::set_pitch(float_t value) {
+    value = fmodf(value, 360.0f);
+    value = clamp_def(value, -89.5f, 89.5f);
     if (pitch != value) {
         pitch = value;
         changed_view = true;
     }
 }
 
-double_t camera::get_yaw() {
+float_t camera::get_yaw() {
     return yaw;
 }
 
-void camera::set_yaw(double_t value) {
-    value = fmod(value, 360.0);
+void camera::set_yaw(float_t value) {
+    value = fmodf(value, 360.0f);
     if (yaw != value) {
         yaw = value;
         changed_view = true;
     }
 }
 
-double_t camera::get_roll() {
+float_t camera::get_roll() {
     return roll;
 }
 
-void camera::set_roll(double_t value) {
-    value = fmod(value, 360.0);
+void camera::set_roll(float_t value) {
+    value = fmodf(value, 360.0f);
     if (roll != value) {
         roll = value;
         changed_view = true;
@@ -236,12 +236,12 @@ void camera::set_ignore_min_dist(bool value) {
 }
 
 void camera::reset() {
-    set_pitch(0.0);
-    set_yaw(0.0);
-    set_roll(0.0);
-    set_fov(32.2673416137695);
-    min_distance = 0.05;
-    max_distance = 6000.0;
+    set_pitch(0.0f);
+    set_yaw(0.0f);
+    set_roll(0.0f);
+    set_fov(32.2673416137695f);
+    min_distance = 0.05f;
+    max_distance = 6000.0f;
     changed_proj = true;
     changed_proj_aet = true;
     changed_view = true;
@@ -255,8 +255,8 @@ void camera::reset() {
     update_data();
 }
 
-void camera::move(double_t move_x, double_t move_y) {
-    if (move_x != 0.0 || move_y != 0.0) {
+void camera::move(float_t move_x, float_t move_y) {
+    if (move_x != 0.0f || move_y != 0.0f) {
         vec3 up = { 0.0f, 1.0f, 0.0f };
         vec3 view_point = this->view_point;
         view_point += vec3::normalize(vec3::cross(forward, up)) * (float_t)move_y;
@@ -266,14 +266,14 @@ void camera::move(double_t move_x, double_t move_y) {
     }
 }
 
-void camera::rotate(double_t rotate_x, double_t rotate_y) {
-    if (rotate_x != 0.0)
+void camera::rotate(float_t rotate_x, float_t rotate_y) {
+    if (rotate_x != 0.0f)
         set_yaw(get_yaw() + rotate_x);
 
-    if (rotate_y != 0.0)
+    if (rotate_y != 0.0f)
         set_pitch(get_pitch() + rotate_y);
 
-    if (rotate_x != 0.0 || rotate_y != 0.0) {
+    if (rotate_x != 0.0f || rotate_y != 0.0f) {
         camera_calculate_forward(this);
 
         set_interest(view_point + forward);
@@ -281,11 +281,11 @@ void camera::rotate(double_t rotate_x, double_t rotate_y) {
 }
 
 void camera::set(const vec3& view_point, const vec3& interest,
-    const vec3& trans, const vec3& rot, const vec3& scale, double_t roll, double_t fov) {
+    const vec3& trans, const vec3& rot, const vec3& scale, float_t roll, float_t fov) {
     vec3 _vp;
     vec3 _int;
-    double_t _roll;
-    double_t _fov;
+    float_t _roll;
+    float_t _fov;
 
     _vp = view_point;
     _int = interest;
@@ -306,8 +306,8 @@ void camera::set(const vec3& view_point, const vec3& interest,
 }
 
 void camera::set(const vec3&& view_point, const vec3&& interest,
-    const vec3&& trans, const vec3&& rot, const vec3&& scale, double_t roll, double_t fov) {
-    set(*(vec3*)&view_point, *(vec3*)&interest, *(vec3*)&trans, *(vec3*)&rot, *(vec3*)&scale, roll, fov);
+    const vec3&& trans, const vec3&& rot, const vec3&& scale, float_t roll, float_t fov) {
+    set(view_point, interest, trans, rot, scale, roll, fov);
 }
 
 void camera::set_position(const vec3& pos) {
@@ -355,7 +355,7 @@ static void camera_calculate_forward(camera* c) {
 }
 
 static void camera_calculate_projection(camera* c) {
-    mat4_persp(c->fov_rad, c->aspect, c->min_distance, c->max_distance, &c->projection);
+    mat4_persp(c->fov_rad, (float_t)c->aspect, c->min_distance, c->max_distance, &c->projection);
     mat4_invert(&c->projection, &c->inv_projection);
 
     resolution_struct* res_wind_int = res_window_internal_get();
@@ -469,10 +469,10 @@ static void camera_calculate_view(camera* c) {
     mat4_from_mat3(&c->view_mat3, &c->view_rot);
     mat4_from_mat3(&c->inv_view_mat3, &c->inv_view_rot);
 
-    if (fabs(c->rotation.x * RAD_TO_DEG - c->pitch) > 0.01
-        || fabs(-c->rotation.y * RAD_TO_DEG - c->yaw) > 0.01) {
-        c->pitch = c->rotation.x * RAD_TO_DEG;
-        c->yaw = -c->rotation.y * RAD_TO_DEG;
+    if (fabsf(c->rotation.x * RAD_TO_DEG_FLOAT - c->pitch) > 0.01f
+        || fabsf(-c->rotation.y * RAD_TO_DEG_FLOAT - c->yaw) > 0.01f) {
+        c->pitch = c->rotation.x * RAD_TO_DEG_FLOAT;
+        c->yaw = -c->rotation.y * RAD_TO_DEG_FLOAT;
         camera_calculate_forward(c);
     }
 }
@@ -497,8 +497,8 @@ void cam_struct::get(camera* cam) {
 void cam_struct::set(camera* cam) {
     cam->set_view_point(view_point);
     cam->set_interest(interest);
-    cam->set_fov(fov * RAD_TO_DEG);
-    cam->set_roll(roll * RAD_TO_DEG);
+    cam->set_fov(fov * RAD_TO_DEG_FLOAT);
+    cam->set_roll(roll * RAD_TO_DEG_FLOAT);
     cam->set_up(use_up, up);
     cam->set_min_distance(min_distance);
 }

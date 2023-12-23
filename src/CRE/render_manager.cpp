@@ -915,8 +915,8 @@ namespace rndr {
 #if defined(CRE_DEV)
         if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
             camera* cam = rctx->camera;
-            double_t fov = cam->get_fov();
-            cam->set_fov(32.2673416137695);
+            float_t fov = cam->get_fov();
+            cam->set_fov(32.2673416137695f);
             draw_pass_set_camera();
 
             rctx->obj_scene_ubo.WriteMemory(rctx->obj_scene);

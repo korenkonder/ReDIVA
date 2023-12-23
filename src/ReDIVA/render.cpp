@@ -1080,10 +1080,10 @@ static void render_context_ctrl(render_context* rctx) {
             cam->set_interest({ 0.0f, 1.4f, 0.0f });
         }
         else {
-            cam->rotate(input_rotate_x, input_rotate_y);
-            cam->move(input_move_x, input_move_y);
+            cam->rotate((float_t)input_rotate_x, (float_t)input_rotate_y);
+            cam->move((float_t)input_move_x, (float_t)input_move_y);
             if (input_roll != 0.0)
-                cam->set_roll(cam->get_roll() + input_roll);
+                cam->set_roll(cam->get_roll() + (float_t)input_roll);
         }
     }
 

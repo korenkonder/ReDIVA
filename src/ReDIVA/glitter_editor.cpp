@@ -2438,10 +2438,10 @@ static void glitter_editor_test_window(GlitterEditor* glt_edt) {
 
     camera* cam = rctx_ptr->camera;
 
-    static const double_t fov_min = 0.0;
-    static const double_t fov_max = 180.0;
-    double_t fov = cam->get_fov();
-    if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Double, &fov, &fov_min, &fov_max, "%g"))
+    static const float_t fov_min = 0.0;
+    static const float_t fov_max = 180.0;
+    float_t fov = cam->get_fov();
+    if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Float, &fov, &fov_min, &fov_max, "%g"))
         cam->set_fov(fov);
 
     input_locked |= ImGui::IsWindowFocused();
@@ -3119,10 +3119,10 @@ static void glitter_editor_play_manager(GlitterEditor* glt_edt) {
 
     camera* cam = rctx_ptr->camera;
 
-    static const double_t fov_min = 0.0;
-    static const double_t fov_max = 180.0;
-    double_t fov = cam->get_fov();
-    if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Double, &fov, &fov_min, &fov_max, "%g"))
+    static const float_t fov_min = 0.0f;
+    static const float_t fov_max = 180.0f;
+    float_t fov = cam->get_fov();
+    if (ImGui::SliderScalar("Camera FOV", ImGuiDataType_Float, &fov, &fov_min, &fov_max, "%g"))
         cam->set_fov(fov);
 }
 
