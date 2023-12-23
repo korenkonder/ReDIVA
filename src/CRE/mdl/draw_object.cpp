@@ -22,6 +22,7 @@ static void draw_object_material_set_parameter(render_context* rctx,
     const obj_material_data* mat_data);
 static void draw_object_material_set_reflect(render_context* rctx, const mdl::ObjSubMeshArgs* args);
 static void draw_object_material_set_uniform(const obj_material_data* mat_data, bool disable_color_l);
+static void draw_object_model_mat_load(render_context* rctx, const mat4& mat);
 static void draw_object_vertex_attrib_reset_default(const mdl::ObjSubMeshArgs* args);
 static void draw_object_vertex_attrib_reset_reflect(const mdl::ObjSubMeshArgs* args);
 static void draw_object_vertex_attrib_set_default(render_context* rctx, const mdl::ObjSubMeshArgs* args);
@@ -64,7 +65,7 @@ namespace mdl {
             rctx->draw_state->stats.draw_triangle_count += count - 2;
     }
 
-    void draw_etc_obj(render_context* rctx, mdl::EtcObj* etc) {
+    void draw_etc_obj(render_context* rctx, const mdl::EtcObj* etc, const mat4* mat) {
         switch (etc->type) {
         case mdl::ETC_OBJ_TEAPOT:
         case mdl::ETC_OBJ_GRID:
@@ -88,6 +89,8 @@ namespace mdl {
         GLuint vao = rctx->disp_manager->get_vertex_array(etc);
         if (!vao)
             return;
+
+        draw_object_model_mat_load(rctx, *mat);
 
         vec4 g_material_state_diffuse = rctx->obj_batch.g_material_state_diffuse;
         vec4 g_material_state_ambient = rctx->obj_batch.g_material_state_ambient;
@@ -179,7 +182,7 @@ namespace mdl {
         rctx->obj_batch.g_blend_color = 1.0f;
     }
 
-    void draw_sub_mesh(render_context* rctx, const ObjSubMeshArgs* args, const mat4* model,
+    void draw_sub_mesh(render_context* rctx, const ObjSubMeshArgs* args, const mat4* mat,
         void(*func)(render_context* rctx, const ObjSubMeshArgs* args)) {
         GLuint vao = rctx->disp_manager->get_vertex_array(args);
         if (!vao)
@@ -209,22 +212,22 @@ namespace mdl {
             uniform_value[U_BONE_MAT] = 0;
         }
         else {
-            mat4 mat;
+            mat4 _mat;
             if (args->mesh->attrib.m.billboard)
-                model_mat_face_camera_view(&rctx->view_mat, model, &mat);
+                model_mat_face_camera_view(&rctx->view_mat, mat, &_mat);
             else if (args->mesh->attrib.m.billboard_y_axis)
-                model_mat_face_camera_position(&rctx->view_mat, model, &mat);
+                model_mat_face_camera_position(&rctx->view_mat, mat, &_mat);
             else
-                mat = *model;
+                _mat = *mat;
 
             uniform_value[U_BONE_MAT] = 0;
             gl_state_bind_vertex_array(vao);
             if (func != draw_sub_mesh_default || !args->instances_count) {
-                draw_object_model_mat_load(rctx, mat);
+                draw_object_model_mat_load(rctx, _mat);
                 func(rctx, args);
             }
             else
-                draw_sub_mesh_default_instanced(rctx, args, &mat);
+                draw_sub_mesh_default_instanced(rctx, args, &_mat);
             uniform_value[U_BONE_MAT] = 0;
         }
     }
@@ -508,11 +511,6 @@ namespace mdl {
 
         rctx->draw_state->stats.object_translucent_draw_count++;
     }
-}
-
-inline void draw_object_model_mat_load(render_context* rctx, const mat4& mat) {
-    rctx->obj_batch.set_transforms(mat, rctx->view_mat, rctx->proj_mat);
-    rctx->obj_batch.set_g_joint(mat);
 }
 
 inline void model_mat_face_camera_position(const mat4* view, const mat4* src, mat4* dst) {
@@ -1027,6 +1025,11 @@ static void draw_object_material_set_uniform(const obj_material_data* mat_data, 
         uniform_value[U45] = 0;
     else if (v4 == 2 || v4 == 3)
         uniform_value[U45] = 1;
+}
+
+static void draw_object_model_mat_load(render_context* rctx, const mat4& mat) {
+    rctx->obj_batch.set_transforms(mat, rctx->view_mat, rctx->proj_mat);
+    rctx->obj_batch.set_g_joint(mat);
 }
 
 static void draw_object_vertex_attrib_reset_default(const mdl::ObjSubMeshArgs* args) {
