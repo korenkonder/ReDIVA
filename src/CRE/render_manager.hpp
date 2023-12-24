@@ -76,7 +76,7 @@ namespace rndr {
         int32_t show_vector_flags;
         float_t show_vector_length;
         float_t show_vector_z_offset;
-        bool field_2F8;
+        bool show_stage_shadow;
         std::list<draw_pre_process> pre_process;
         texture* effect_texture;
         int32_t npr_param;

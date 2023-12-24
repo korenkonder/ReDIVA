@@ -1854,9 +1854,9 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             pv_game->set_data_itmpv_chara_id(chara_id, index, attach == 1);
     } break;
     case DSC_FT_SHADOW_RANGE: {
-        float_t range = (float_t)data[0] * 0.001f;
+        float_t shadow_range_factor = (float_t)data[0] * 0.001f;
 
-        shadow_ptr_get()->range = range;
+        shadow_ptr_get()->shadow_range_factor = shadow_range_factor;
     } break;
     case DSC_FT_HAND_SCALE: {
         chara_id = data[0];

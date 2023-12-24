@@ -7388,7 +7388,7 @@ bool x_pv_game::unload() {
     rend.update_res(0, -1);
 
     rctx_ptr->disp_manager->object_culling = true;
-    shadow_ptr_get()->range = 1.0f;
+    shadow_ptr_get()->shadow_range_factor = 1.0f;
     rctx_ptr->render_manager->set_effect_texture(0);
 
     sound_work_reset_all_se();

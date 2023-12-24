@@ -10,10 +10,10 @@ Shadow* shadow_ptr;
 
 extern render_context* rctx_ptr;
 
-Shadow::Shadow() : curr_render_textures(), view_region(), range(), field_1C0(), field_1C8(),
-field_200(), field_208(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(),
-field_2C4(), z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(),
-ambient(), field_2E8(), num_light(), light_enable(), self_shadow(), blur_filter_enable(), separate() {
+Shadow::Shadow() : curr_render_textures(), shadow_range(), shadow_range_factor(), field_1C0(), field_1C8(),
+field_200(), field_208(), near_blur(), blur_filter(), far_blur(), field_2BC(), distance(), field_2C4(),
+z_near(), z_far(), field_2D0(), field_2D4(), field_2D8(), field_2DC(), field_2E0(), shadow_ambient(),
+show_texture(), num_light(), light_enable(), self_shadow(), blur_filter_enable(), separate() {
     reset();
 }
 
@@ -111,7 +111,7 @@ void Shadow::ctrl() {
 
         float_t v2 = max_def(field_1C8[0], field_1C8[1]);
         separate = false;
-        view_region = v2 + 1.2f;
+        shadow_range = v2 + 1.2f;
         field_200[0] = 0;
         field_200[1] = 1;
         if (num_light >= 2) {
@@ -125,11 +125,11 @@ void Shadow::ctrl() {
                 v16 = 0.0f;
 
             if (v16 > 1.2f) {
-                view_region = v2 + 2.4f;
+                shadow_range = v2 + 2.4f;
                 separate = true;
             }
             else
-                view_region = v2 + 1.2f + v16;
+                shadow_range = v2 + 1.2f + v16;
 
             if (vec3::dot(v12, direction) < vec3::dot(v14, direction)) {
                 field_200[1] = 0;
@@ -211,7 +211,7 @@ void Shadow::ctrl() {
         float_t v2 = 0.0f;
         float_t v67 = max_def(field_1C8[0], field_1C8[1]);
         separate = false;
-        view_region = v67 + 1.2f;
+        shadow_range = v67 + 1.2f;
         field_200[0] = 0;
         field_200[1] = 1;
         if (num_light >= 2) {
@@ -248,11 +248,11 @@ void Shadow::ctrl() {
                 v79 = v70;
 
             if (v79 > v67 + 1.2f) {
-                view_region = v67 + 2.4f;
+                shadow_range = v67 + 2.4f;
                 separate = true;
             }
             else
-                view_region = v79 + 1.2f;
+                shadow_range = v79 + 1.2f;
 
             if (vec3::dot(field_1A8[0] - interest_shared, direction)
                 < vec3::dot(field_1A8[1] - interest_shared, direction)) {
@@ -273,8 +273,8 @@ void Shadow::free() {
     reset();
 }
 
-float_t Shadow::get_range() {
-    return range * view_region;
+float_t Shadow::get_shadow_range() {
+    return shadow_range * shadow_range_factor;
 }
 
 int32_t Shadow::init() {
@@ -313,8 +313,8 @@ int32_t Shadow::init() {
 }
 
 void Shadow::reset() {
-    view_region = 1.2f;
-    range = 1.0f;
+    shadow_range = 1.2f;
+    shadow_range_factor = 1.0f;
 
     for (int32_t i = 0; i < 2; i++) {
         view_point[i] = 1.0f;
@@ -341,10 +341,10 @@ void Shadow::reset() {
     field_2D8 = 80.0f;
     field_2DC = 2.0f;
     field_2E0 = 0.05f;
-    ambient = 0.4f;
+    shadow_ambient = 0.4f;
     num_light = 0;
     direction = vec3(0.0f, -1.0f, -1.0f) * (1.0f / sqrtf(2.0f));
-    field_2E8 = false;
+    show_texture = false;
     self_shadow = true;
     separate = false;
     field_208 = (z_far - z_near) * 0.5f;

@@ -87,8 +87,8 @@ namespace rndr {
         render(), sync_gpu(), cpu_time(), gpu_time(), draw_pass_3d(), field_11E(), field_11F(),
         field_120(), show_ref_map(), reflect_type(), clear(), tex_index(), width(), height(),
         multisample_framebuffer(), multisample_renderbuffer(), multisample(), check_state(),
-        show_vector_flags(), show_vector_length(), show_vector_z_offset(), field_2F8(), effect_texture(),
-        npr_param(), field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr() {
+        show_vector_flags(), show_vector_length(), show_vector_z_offset(), show_stage_shadow(),
+        effect_texture(), npr_param(), field_31C(), field_31D(), field_31E(), field_31F(), field_320(), npr() {
         for (bool& i : pass_sw)
             i = true;
 
@@ -158,7 +158,7 @@ namespace rndr {
         show_vector_flags = 0;
         show_vector_length = 0.05f;
         show_vector_z_offset = 0.0f;
-        field_2F8 = false;
+        show_stage_shadow = false;
         effect_texture = 0;
 
         reflect = false;
@@ -433,7 +433,8 @@ namespace rndr {
                 draw_pass_shadow_begin_make_shadowmap(shad, v11[i], j);
                 rctx->disp_manager->draw((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_CHARA + v11[i]));
                 if (rctx->disp_manager->get_obj_count((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + v11[i])) > 0) {
-                    gl_state_set_color_mask(field_2F8 ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+                    gl_state_set_color_mask(show_stage_shadow
+                        ? GL_TRUE : GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                     rctx->disp_manager->draw((mdl::ObjType)(mdl::OBJ_TYPE_SHADOW_OBJECT_CHARA + i));
                     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
                 }
@@ -1210,7 +1211,7 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
         glClear(GL_COLOR_BUFFER_BIT);
     glScissor(1, 1, tex->width - 2, tex->height - 2);
 
-    float_t range = shad->get_range();
+    float_t shadow_range = shad->get_shadow_range();
     float_t offset;
     vec3* interest;
     vec3* view_point;
@@ -1229,7 +1230,8 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
     mat4_translate(offset, 0.0f, 0.0f, &temp);
 
     mat4 proj;
-    mat4_ortho(-range, range, -range, range, shad->z_near, shad->z_far, &proj);
+    mat4_ortho(-shadow_range, shadow_range,
+        -shadow_range, shadow_range, shad->z_near, shad->z_far, &proj);
     mat4_mul(&proj, &temp, &rctx->proj_mat);
     mat4_look_at(view_point, interest, &rctx->view_mat);
 
@@ -1643,7 +1645,7 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         rctx->draw_state->light = true;
         uniform_value[U_LIGHT_1] = shad->num_light > 1 ? 1 : 0;
 
-        float_t range = shad->get_range();
+        float_t shadow_range = shad->get_shadow_range();
         for (int32_t i = 0; i < 2; i++) {
             float_t offset;
             vec3* interest;
@@ -1666,7 +1668,8 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
             mat4_mul_translate(&temp, offset, 0.0f, 0.0f, &temp);
 
             mat4 proj;
-            mat4_ortho(-range, range, -range, range, shad->z_near, shad->z_far, &proj);
+            mat4_ortho(-shadow_range, shadow_range,
+                -shadow_range, shadow_range, shad->z_near, shad->z_far, &proj);
             mat4_mul(&proj, &temp, &proj);
 
             mat4 view;
@@ -1693,11 +1696,8 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         vec4 ambient;
         if (data->get_type() == LIGHT_PARALLEL)
             data->get_ambient(ambient);
-        else {
-            ambient.x = shad->ambient;
-            ambient.y = shad->ambient;
-            ambient.z = shad->ambient;
-        }
+        else
+            *(vec3*)&ambient.x = shad->shadow_ambient;
 
         rctx->obj_scene.g_shadow_ambient = { ambient.x, ambient.y, ambient.z, 1.0f };
         rctx->obj_scene.g_shadow_ambient1 = { 1.0f - ambient.x, 1.0f - ambient.y, 1.0f - ambient.z, 0.0f };
