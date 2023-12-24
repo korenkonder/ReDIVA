@@ -546,6 +546,7 @@ namespace rndr {
             rctx->filter_scene_ubo.Bind(0);
             rctx->imgfilter_batch_ubo.Bind(1);
             gl_state_active_bind_texture_2d(0, rend->rend_texture[0].GetColorTex());
+            gl_state_bind_sampler(0, rctx->render_samplers[0]);
             gl_state_bind_vertex_array(rctx->common_vao);
             shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         }
@@ -787,6 +788,11 @@ namespace rndr {
 
         rctx->obj_scene_ubo.WriteMemory(rctx->obj_scene);
 
+        if (effect_texture)
+            gl_state_active_bind_texture_2d(14, effect_texture->tex);
+        else
+            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
+
         if (pass_sw[RND_PASSID_REFLECT] && reflect) {
             RenderTexture& refl_tex = get_render_texture(0);
             gl_state_active_bind_texture_2d(15, refl_tex.GetColorTex());
@@ -797,15 +803,14 @@ namespace rndr {
             uniform_value[U_WATER_REFLECT] = 0;
         }
 
-        uniform_value[U12] = field_320 ? 1 : 0;
-
-        if (effect_texture)
-            gl_state_active_bind_texture_2d(14, effect_texture->tex);
-        else
-            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
-
         gl_state_active_bind_texture_2d(16, rctx->sss_data->textures[1].GetColorTex());
         gl_state_active_texture(0);
+
+        gl_state_bind_sampler(14, rctx->render_samplers[0]);
+        gl_state_bind_sampler(15, rctx->render_samplers[0]);
+        gl_state_bind_sampler(16, rctx->render_samplers[0]);
+
+        uniform_value[U12] = field_320 ? 1 : 0;
 
         if (alpha_z_sort) {
             rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT, 1);
@@ -1091,6 +1096,7 @@ namespace rndr {
             gl_state_active_bind_texture_2d(14, effect_texture->tex);
         else
             gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
+        gl_state_bind_sampler(14, rctx->render_samplers[0]);
         gl_state_enable_depth_test();
         gl_state_disable_blend();
     }
@@ -1137,6 +1143,7 @@ void image_filter_scale(GLuint dst, GLuint src, const vec4 scale) {
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
     gl_state_active_bind_texture_2d(0, src);
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1328,6 +1335,7 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
         GLint swizzle[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     }
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1337,6 +1345,7 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
     gl_state_active_bind_texture_2d(0, v9);
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
     shader::unbind();
@@ -1376,6 +1385,7 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
     uniform_value[U_ESM_FILTER] = 0;
     shaders_ft.set(SHADER_FT_ESMFILT);
     gl_state_active_bind_texture_2d(0, src_tex);
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1387,6 +1397,7 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
     uniform_value[U_ESM_FILTER] = 1;
     shaders_ft.set(SHADER_FT_ESMFILT);
     gl_state_active_bind_texture_2d(0, buf_tex);
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1567,6 +1578,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
         gl_state_bind_texture_2d(rend->rend_texture[0].GetColorTex());
+        gl_state_bind_sampler(0, rctx->render_samplers[1]);
         rctx->render.draw_quad(640, 360, 1.0f, 1.0f,
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
@@ -1575,6 +1587,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     uniform_value[U_SSS_FILTER] = 0;
     shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(sss->textures[0].GetColorTex());
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     rctx->render.draw_quad(640, 360, 1.0f, 1.0f,
         0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
@@ -1593,6 +1606,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     uniform_value[U_SSS_FILTER] = 3;
     shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(sss->textures[2].GetColorTex());
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
     rctx->render.draw_quad(320, 180, 1.0f, 1.0f,
         0.0f, 0.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
@@ -1640,6 +1654,9 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         gl_state_active_texture(0);
         rctx->draw_state->self_shadow = false;
     }
+
+    gl_state_bind_sampler(19, rctx->render_samplers[0]);
+    gl_state_bind_sampler(20, rctx->render_samplers[0]);
 
     if (shad->num_light > 0) {
         rctx->draw_state->light = true;
@@ -1712,6 +1729,9 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         rctx->obj_scene.g_shadow_ambient = 1.0f;
         rctx->obj_scene.g_shadow_ambient1 = 0.0f;
     }
+
+    gl_state_bind_sampler(6, rctx->render_samplers[0]);
+    gl_state_bind_sampler(7, rctx->render_samplers[0]);
 }
 
 static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
@@ -1808,6 +1828,7 @@ static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTe
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
     gl_state_active_bind_texture_2d(0, src->GetColorTex());
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, (GLint)(filter * 4LL), 4);
 }
 
