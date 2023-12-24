@@ -102,6 +102,7 @@ struct common_data_struct {
 struct render_data {
     GLuint grid_vao;
     GL::ArrayBuffer grid_vbo;
+    GL::UniformBuffer grid_ubo;
 
     render_data();
     ~render_data();
@@ -336,16 +337,20 @@ void render_set_scale_index(int32_t index) {
 void draw_pass_3d_grid(render_context* rctx) {
     rctx->camera->update_data();
 
+    mat4 view_projection;
+    mat4_transpose(&rctx->camera->view_projection, &view_projection);
+    render->grid_ubo.WriteMemory(view_projection);
+
     gl_state_enable_blend();
     gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     gl_state_set_blend_equation(GL_FUNC_ADD);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_TRUE);
 
-    shaders_ft.set(SHADER_FT_GRID);
-    rctx->obj_scene_ubo.Bind(0);
+    shaders_dev.set(SHADER_DEV_GRID);
+    render->grid_ubo.Bind(0);
     gl_state_bind_vertex_array(render->grid_vao);
-    shaders_ft.draw_arrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
+    shaders_dev.draw_arrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
     gl_state_use_program(0);
 
     gl_state_disable_depth_test();
@@ -449,10 +454,13 @@ void render_data::load_common_data() {
     gl_state_bind_array_buffer(0);
     gl_state_bind_vertex_array(0);
 
+    grid_ubo.Create(sizeof(mat4));
+
     free(grid_verts);
 }
 
 void render_data::unload_common_data() {
+    grid_ubo.Destroy();
     grid_vbo.Destroy();
 
     if (grid_vao) {

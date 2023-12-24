@@ -5506,9 +5506,11 @@ bool x_pv_game::ctrl() {
             gl_state_bind_framebuffer(d3d_gl_fbo[next_idx]);
             gl_state_active_bind_texture_2d(0, tex->tex);
             glViewport(0, 0, width, height);
-            shaders_dev.set(SHADER_DEV_CLAMP_COLORS);
+            uniform_value[U_REDUCE] = 0;
+            shaders_ft.set(SHADER_FT_REDUCE);
             glBeginQuery(GL_SAMPLES_PASSED, d3d_query[next_idx]);
-            RenderTexture::Draw(&shaders_dev);
+            rctx_ptr->render.draw_quad(width, height,
+                1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
             glEndQuery(GL_SAMPLES_PASSED);
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);

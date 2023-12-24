@@ -117,7 +117,6 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_DOF_DOWNSAMPLE,  // Added
     SHADER_FT_SUB_DOF_MAIN_FILTER, // Added
     SHADER_FT_SUB_DOF_UPSAMPLE,    // Added
-    SHADER_FT_SUB_GRID,            // Added
     SHADER_FT_SUB_TRANSPARENCY,    // Added
     SHADER_FT_SUB_SHADER_END,
 };
@@ -1047,14 +1046,6 @@ static const int32_t dof_upsample_vpt_unival_max[] = {    // Added
 
 static const int32_t dof_upsample_fpt_unival_max[] = {    // Added
     1,
-};
-
-static const int32_t grid_vpt_unival_max[] = {            // Added
-    -1,
-};
-
-static const int32_t grid_fpt_unival_max[] = {            // Added
-    -1,
 };
 
 static const int32_t transparency_vpt_unival_max[] = {    // Added
@@ -2040,16 +2031,6 @@ static const shader_sub_table DOF_table[] = {          // Added
         dof_upsample_fpt_unival_max,
         "dof_common",
         "dof_upsample",
-    },
-};
-
-static const shader_sub_table GRID_table[] = {         // Added
-    {
-        SHADER_FT_SUB_GRID,
-        grid_vpt_unival_max,
-        grid_fpt_unival_max,
-        "grid",
-        "grid",
     },
 };
 
@@ -3109,7 +3090,6 @@ const shader_table shader_ft_table[] = {
     shader_table_struct(IMGFILT),
     shader_table_struct(SPRITE),
     shader_table_struct(DOF),          // Added
-    shader_table_struct(GRID),         // Added
     shader_table_struct(TRANSPARENCY), // Added
 };
 

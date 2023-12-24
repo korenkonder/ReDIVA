@@ -74,7 +74,6 @@ enum shader_ft_enum {
     SHADER_FT_IMGFILT,
     SHADER_FT_SPRITE,
     SHADER_FT_DOF,          // Added
-    SHADER_FT_GRID,         // Added
     SHADER_FT_TRANSPARENCY, // Added
     SHADER_FT_END,
     SHADER_FT_MAX,

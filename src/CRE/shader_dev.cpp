@@ -12,17 +12,9 @@
 
 enum shader_dev_sub_enum {
     SHADER_DEV_SUB_SHADER_FFP = 0,
-    SHADER_DEV_SUB_CLAMP_COLORS,
     SHADER_DEV_SUB_GLITTER_PT_WIREFRAME,
+    SHADER_DEV_SUB_GRID,
     SHADER_DEV_SUB_SHADER_END,
-};
-
-static const int32_t clamp_colors_vpt_unival_max[] = {
-    -1,
-};
-
-static const int32_t clamp_colors_fpt_unival_max[] = {
-    -1,
 };
 
 static const int32_t glitter_particle_wireframe_vpt_unival_max[] = {
@@ -33,30 +25,28 @@ static const int32_t glitter_particle_wireframe_fpt_unival_max[] = {
     -1,
 };
 
-static const uniform_name CLAMP_COLORS_uniform[] = {
-    U_INVALID,
+static const int32_t grid_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t grid_fpt_unival_max[] = {
+    -1,
 };
 
 static const uniform_name GLITTER_PT_WIREFRAME_uniform[] = {
     U_INVALID,
 };
 
-static const bool CLAMP_COLORS_permut[] = {
-    false,
+static const uniform_name GRID_uniform[] = {
+    U_INVALID,
 };
 
 static const bool GLITTER_PT_WIREFRAME_permut[] = {
     false,
 };
 
-static const shader_sub_table CLAMP_COLORS_table[] = {
-    {
-        SHADER_DEV_SUB_CLAMP_COLORS,
-        clamp_colors_vpt_unival_max,
-        clamp_colors_fpt_unival_max,
-        "clamp_colors",
-        "clamp_colors",
-    },
+static const bool GRID_permut[] = {
+    false,
 };
 
 static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
@@ -66,6 +56,16 @@ static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
         glitter_particle_wireframe_fpt_unival_max,
         "glitter_particle_wireframe",
         "glitter_particle_wireframe",
+    },
+};
+
+static const shader_sub_table GRID_table[] = {
+    {
+        SHADER_DEV_SUB_GRID,
+        grid_vpt_unival_max,
+        grid_fpt_unival_max,
+        "grid",
+        "grid",
     },
 };
 
@@ -90,7 +90,7 @@ const shader_table shader_dev_table[] = {
         0,
         0,
     },
-    shader_table_struct(CLAMP_COLORS),
+    shader_table_struct(GRID),
     shader_table_struct(GLITTER_PT_WIREFRAME),
 };
 
