@@ -136,7 +136,7 @@ void nvenc_encoder::write_frame(ID3D11Texture2D* texture, stream* s) {
     D3D11_TEXTURE2D_DESC desc;
     texture->GetDesc(&desc);
 
-    const NV_ENC_BUFFER_FORMAT buffer_format = NV_ENC_BUFFER_FORMAT_ABGR10;
+    const NV_ENC_BUFFER_FORMAT buffer_format = NV_ENC_BUFFER_FORMAT_ABGR;
 
     NV_ENC_REGISTER_RESOURCE res_params = {};
     res_params.version = NV_ENC_REGISTER_RESOURCE_VER;

@@ -5483,7 +5483,7 @@ bool x_pv_game::ctrl() {
 
 #if BAKE_PNG || BAKE_VIDEO
     if (img_write && frame_prev != x_pv_game_ptr->frame) {
-        texture* tex = rctx_ptr->render.rediva_screen_texture.color_texture;
+        texture* tex = rctx_ptr->screen_buffer.color_texture;
         int32_t width = tex->width;
         int32_t height = tex->height;
 
@@ -6401,7 +6401,7 @@ bool x_pv_game::ctrl() {
             tex_desc.Height = height;
             tex_desc.MipLevels = 1;
             tex_desc.ArraySize = 1;
-            tex_desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+            tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             tex_desc.SampleDesc.Count = 1;
             tex_desc.SampleDesc.Quality = 0;
             tex_desc.Usage = D3D11_USAGE_DEFAULT;
@@ -6430,7 +6430,7 @@ bool x_pv_game::ctrl() {
             tex_desc.Height = height;
             tex_desc.MipLevels = 1;
             tex_desc.ArraySize = 1;
-            tex_desc.Format = DXGI_FORMAT_R10G10B10A2_UNORM;
+            tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
             tex_desc.SampleDesc.Count = 1;
             tex_desc.SampleDesc.Quality = 0;
             tex_desc.Usage = D3D11_USAGE_DYNAMIC;

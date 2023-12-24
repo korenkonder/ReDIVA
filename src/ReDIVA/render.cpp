@@ -1176,7 +1176,7 @@ static void render_context_disp(render_context* rctx) {
     rctx->disp();
 
 #if BAKE_PNG || BAKE_VIDEO
-    fbo_blit(rctx->screen_texture.fbos[0], 0,
+    fbo_blit(rctx->screen_buffer.fbos[0], 0,
         0, 0, rctx->sprite_width, rctx->sprite_height,
         0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #else
