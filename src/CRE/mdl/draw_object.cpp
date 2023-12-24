@@ -403,6 +403,7 @@ namespace mdl {
             || args->sub_mesh->attrib.m.transparent)
             || attrib.punch_through) {
             uniform_value[U_ALPHA_TEST] = 1;
+            rctx->obj_batch.g_max_alpha.z = 0.5f;
             draw_sub_mesh_translucent(rctx, args);
         }
         else {
