@@ -906,11 +906,11 @@ namespace rndr {
         reduce_texture[0].SetColorDepthTextures(reduce_tex[0]->tex);
 
         exposure_history = texture_load_tex_2d(texture_id(0x25, texture_counter++),
-            GL_R32F, 32, 1, 0, 0, 0);
+            GL_RGBA16F, 32, 2, 0, 0, 0);
 
         glGenTextures(1, &exposure_tex);
         gl_state_bind_texture_2d(exposure_tex);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_R32F, 2, 2, 0, GL_RED, GL_FLOAT, 0);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 2, 2, 0, GL_RGBA, GL_FLOAT, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -1269,6 +1269,7 @@ namespace rndr {
         for (int32_t i = 1; i < downsample_count - 1; i++) {
             rend_texture[i].Bind();
             gl_state_active_bind_texture_2d(0, rend_texture[i - 1].GetColorTex());
+            gl_state_bind_sampler(0, rctx->render_samplers[0]);
             glViewport(0, 0, render_width[i], render_height[i]);
             draw_quad(
                 render_post_width[i - 1], render_post_height[i - 1],
@@ -1283,7 +1284,7 @@ namespace rndr {
         glViewport(0, 0, reduce_width[0], reduce_height[0]);
         reduce_texture[0].Bind();
         gl_state_active_bind_texture_2d(0, rend_texture[downsample].GetColorTex());
-        gl_state_bind_sampler(0, rctx->render_samplers[2]);
+        gl_state_bind_sampler(0, rctx->render_samplers[0]);
         draw_quad(
             render_post_width[downsample], render_post_height[downsample],
             render_post_width_scale, render_post_height_scale,
@@ -1583,8 +1584,6 @@ namespace rndr {
                 exposure_chara_data[i].reset();
 
             ExposureCharaData* chara_data = exposure_chara_data;
-            float_t v18 = (float_t)height / (float_t)width;
-            float_t v20 = powf(tanf((float_t)(cam->fov_rad * 0.5f)) * 3.4f, 2.0f);
             for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara_data++) {
                 rob_chara* rob_chr = rob_chara_array_get(i);
                 if (!rob_chr || !rob_chr->is_visible())
@@ -1615,14 +1614,7 @@ namespace rndr {
                 float_t v31 = 0.5f - (fabsf(v14) - 1.0f) * 2.5f;
                 float_t v32 = 0.5f - (fabsf(v13) - 1.0f) * 2.5f;
 
-                float_t v16;
-                if (v32 <= v31)
-                    v16 = v32;
-                else
-                    v16 = v31;
-
-                if (v16 > 1.0f)
-                    v16 = 1.0f;
+                float_t v16 = min_def(min_def(v31, v32), 1.0f);
 
                 vec4 v39;
                 mat4_transform_vector(&v42, &v33, &v39);
@@ -1633,18 +1625,14 @@ namespace rndr {
                 else if (v17 < 0.2f)
                     v17 = 0.0f;
 
+                float_t v18 = (float_t)height / (float_t)width;
+                float_t v20 = tanf(cam->fov_rad * 0.5f);
                 float_t v21 = 0.25f / sqrtf(powf(v20 * 3.4f, 2.0f) * (v41.z * v41.z));
                 float_t v22;
-                if (v21 < 0.055f) {
-                    v22 = (v21 - 0.035f) * 50.0f;
-                    if (v22 < 0.0f)
-                        v22 = 0.0f;
-                }
-                else if (v21 > 0.5f) {
-                    v22 = 1.0f - (v21 - 0.5f) * 3.3333333f;
-                    if (v22 < 0.0f)
-                        v22 = 0.0f;
-                }
+                if (v21 < 0.055f)
+                    v22 = max_def((v21 - 0.035f) * 50.0f, 0.0f);
+                else if (v21 > 0.5f)
+                    v22 = max_def(1.0f - (v21 - 0.5f) * 3.3333333f, 0.0f);
                 else
                     v22 = 1.0f;
 
