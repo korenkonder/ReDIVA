@@ -131,6 +131,7 @@ static bool system_startup_check_ready() {
     task_pv_game_del_task();
     if (!task_pv_game_check_task_ready()) {
         //task_mask_screen_fade_in(0.0f, 0);
+        rctx_ptr->render_manager->set_multisample(true);
         if (task_rob_manager_del_task()) {
             system_startup.ready = true;
             return true;

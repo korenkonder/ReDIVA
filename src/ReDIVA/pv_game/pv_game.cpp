@@ -5981,6 +5981,7 @@ void task_pv_game_init_test_pv() {
         return;
 
     task_rob_manager_add_task();
+    rctx_ptr->render_manager->set_multisample(true);
     TaskPvGame::Args args;
     args.init_data.pv_id = 999;
     args.init_data.difficulty = PV_DIFFICULTY_NORMAL;

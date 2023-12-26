@@ -972,6 +972,9 @@ bool GameState::Game::Dest() {
 }
 
 bool GameState::DataTest::Init() {
+    rctx_ptr->render_manager->set_multisample(false);
+    rctx_ptr->render_manager->set_clear(true);
+    data_test_game_state_prev = game_state_get()->game_state_prev;
     task_rob_manager_add_task();
     return true;
 }
@@ -987,12 +990,19 @@ bool GameState::DataTest::Ctrl() {
 }
 
 bool GameState::DataTest::Dest() {
-    task_rob_manager_del_task();
+    if (!task_rob_manager_del_task())
+        return false;
+
+    rctx_ptr->render_manager->set_multisample(true);
+    rctx_ptr->render_manager->set_clear(false);
     return true;
 }
 
 bool GameState::TestMode::Init() {
     test_mode_set(true);
+    sound_work_reset_all_se();
+    for (int32_t i = 0; i < 3; i++)
+        sound_work_release_stream(i++);
     return true;
 }
 
@@ -1006,6 +1016,9 @@ bool GameState::TestMode::Dest() {
 }
 
 bool GameState::AppError::Init() {
+    for (int32_t i = 0; i < 3; i++)
+        sound_work_release_stream(i++);
+    sound_work_reset_all_se();
     return true;
 }
 
@@ -1305,6 +1318,8 @@ bool SubGameState::Selector::Dest() {
 }
 
 bool SubGameState::GameMain::Init() {
+    sound_work_release_stream(0);
+    rctx_ptr->render_manager->set_multisample(false);
     return true;
 }
 
@@ -1322,11 +1337,20 @@ bool SubGameState::GameMain::Ctrl() {
 }
 
 bool SubGameState::GameMain::Dest() {
+    bool res = task_pv_game_del_task();
 #if PV_DEBUG
     if (!pv_x)
-        return pv_game_free();
+        res = pv_game_free();
+    else
+        res = x_pv_game_free();
+#else
+    res = x_pv_game_free();
 #endif
-    return x_pv_game_free();
+    if (!res)
+        return false;
+
+    rctx_ptr->render_manager->set_multisample(true);
+    return true;
 }
 
 bool SubGameState::GameSel::Init() {
@@ -1686,6 +1710,8 @@ bool SubGameState::DataTestModeMain::Dest() {
 
 #if defined(ReDIVA_DEV)
 bool SubGameState::GlitterEditor::Init() { // Added
+    rctx_ptr->render_manager->set_multisample(false);
+
     camera* cam = rctx_ptr->camera;
     cam->reset();
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
@@ -1701,6 +1727,7 @@ bool SubGameState::GlitterEditor::Ctrl() { // Added
 
 bool SubGameState::GlitterEditor::Dest() { // Added
     glitter_editor.del();
+    rctx_ptr->render_manager->set_multisample(true);
     return true;
 }
 
