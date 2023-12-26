@@ -313,9 +313,7 @@ namespace spr {
         if (fabsf(vec.z) < 1.0e-10f)
             return 0.0f;
 
-        vec2 sc_vec;
-        sc_vec.x = cam->fov_correct_height * vec.x * (1.0f / vec.z);
-        sc_vec.y = cam->fov_correct_height * vec.y * (1.0f / vec.z);
+        vec2 sc_vec = cam->depth * *(vec2*)&vec.x * (1.0f / vec.z);
 
         resolution_struct* res_wind_int = res_window_internal_get();
         sc_vec.x = (float_t)res_wind_int->width * 0.5f - sc_vec.x;

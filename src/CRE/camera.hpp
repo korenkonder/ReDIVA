@@ -10,6 +10,19 @@
 #include "../KKdLib/vec.hpp"
 
 struct camera {
+    vec3 view_point;
+    vec3 interest;
+    float_t roll;
+    float_t fov;
+    float_t aet_fov;
+    double_t aspect;
+    float_t min_distance;
+    float_t max_distance;
+    vec4 projection_scale;
+    bool use_up;
+    vec3 up;
+    bool ignore_fov;
+    bool ignore_min_dist;
     mat4 view;
     mat4 inv_view;
     mat4 projection;
@@ -24,34 +37,22 @@ struct camera {
     mat4 inv_view_rot;
     mat4 view_projection_aet_2d;
     mat4 view_projection_aet_3d;
-    float_t fov_correct_height;
+    float_t depth;
     float_t aet_depth;
-    vec3 forward;
-    vec3 rotation;
-    vec3 view_point;
-    vec3 interest;
-    bool use_up;
-    vec3 up;
     vec3 field_1E4;
     vec3 field_1F0;
     vec3 field_1FC;
     vec3 field_208;
-    float_t yaw;
-    float_t pitch;
-    float_t roll;
-    double_t aspect;
-    float_t fov;
-    float_t fov_rad;
-    float_t max_distance;
-    float_t min_distance;
-    bool changed_view;
-    bool changed_proj;
-    bool changed_proj_aet;
+    vec3 rotation;
     bool fast_change;
     bool fast_change_hist0;
     bool fast_change_hist1;
-    bool ignore_fov;
-    bool ignore_min_dist;
+
+    vec3 forward;
+    float_t yaw;
+    float_t pitch;
+    bool changed_view;
+    bool changed_proj;
 
     camera();
     ~camera();

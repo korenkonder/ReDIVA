@@ -1448,7 +1448,7 @@ static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
     gl_state_active_texture(0);
 
     camera* cam = rctx->camera;
-    float_t v3 = 1.0f / tanf((float_t)(cam->fov_rad * 0.5));
+    float_t v3 = 1.0f / tanf(cam->fov * 0.5f * DEG_TO_RAD_FLOAT);
 
     vec3 direction = cam->interest - cam->view_point;
     float_t length = vec3::length(direction);
@@ -1541,7 +1541,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         interest = closest_chara_position;
 
     float_t v29 = max_def(vec3::distance(view_point, interest), 0.25f);
-    float_t v31 = max_def(tanf(rctx->camera->fov_rad * 0.5f) * 5.0f, 0.25f);
+    float_t v31 = max_def(tanf(rctx->camera->fov * 0.5f * DEG_TO_RAD_FLOAT) * 5.0f, 0.25f);
     float_t v33 = 0.6f;
     float_t v34 = (float_t)(1.0 / clamp_def(v31 * v29, 0.25f, 100.0f));
     if (v34 < 0.145f)

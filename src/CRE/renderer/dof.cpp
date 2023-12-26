@@ -87,13 +87,13 @@ namespace renderer {
 
                     focus = max_def(focus, (float_t)cam->min_distance);
                     apply_physical(rt, rt->GetColorTex(), rt->GetDepthTex(),
-                        (float_t)cam->min_distance, (float_t)cam->max_distance, focus,
-                        dof_debug_data.focal_length, (float_t)cam->fov_rad, dof_debug_data.f_number);
+                        cam->min_distance, cam->max_distance, focus,
+                        dof_debug_data.focal_length, cam->fov * DEG_TO_RAD_FLOAT, dof_debug_data.f_number);
                 }
                 else {
                     float_t fuzzing_range = max_def(dof_debug_data.f2.fuzzing_range, 0.01f);
                     apply_f2(rt, rt->GetColorTex(), rt->GetDepthTex(),
-                        (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
+                        cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
                         dof_debug_data.f2.focus, dof_debug_data.f2.focus_range,
                         fuzzing_range, dof_debug_data.f2.ratio);
                     use_dof_f2 = true;
@@ -103,7 +103,7 @@ namespace renderer {
         else if (dof_pv_data.enable && dof_pv_data.f2.ratio > 0.0f) {
             float_t fuzzing_range = max_def(dof_pv_data.f2.fuzzing_range, 0.01f);
             apply_f2(rt, rt->GetColorTex(), rt->GetDepthTex(),
-                (float_t)cam->min_distance, (float_t)cam->max_distance, (float_t)cam->fov_rad,
+                cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
                 dof_pv_data.f2.focus, dof_pv_data.f2.focus_range,
                 fuzzing_range, dof_pv_data.f2.ratio);
             enum_or(dof_debug_data.flags, DOF_DEBUG_ENABLE_DOF);

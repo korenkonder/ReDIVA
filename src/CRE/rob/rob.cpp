@@ -15198,30 +15198,33 @@ pos_scale::pos_scale() : scale() {
 
 }
 
-void pos_scale::get_screen_pos_scale(mat4& mat, vec3& trans, bool apply_offset) {
-    vec4 v15;
-    *(vec3*)&v15 = trans;
-    v15.w = 1.0f;
-    mat4_transform_vector(&mat, &v15, &v15);
+float_t pos_scale::get_screen_pos_scale(const mat4& mat,
+    const vec3& trans, float_t scale, bool apply_offset) {
+    vec4 v19;
+    *(vec3*)&v19 = trans;
+    v19.w = 1.0f;
+    mat4_transform_vector(&mat, &v19, &v19);
 
-    if (fabsf(v15.w) >= 1.0e-10f) {
-        float_t v8 = v15.y * (1.0f / v15.w);
-        float_t v9 = v15.x * (1.0f / v15.w) + 1.0f;
+    if (fabsf(v19.w) >= 1.0e-10f) {
+        float_t v11 = v19.y * (1.0f / v19.w);
+        float_t v12 = v19.x * (1.0f / v19.w) + 1.0f;
         resolution_struct* res_wind_int = res_window_internal_get();
-        float_t v11 = (float_t)(v9 * 0.5f) * (float_t)res_wind_int->width;
-        float_t v12 = (float_t)((1.0f - v8) * 0.5f) * (float_t)res_wind_int->height;
+        float_t v14 = (float_t)(v12 * 0.5f) * (float_t)res_wind_int->width;
+        float_t v15 = (float_t)((1.0f - v11) * 0.5f) * (float_t)res_wind_int->height;
         if (apply_offset) {
             resolution_struct* res_wind = res_window_get();
-            v11 += (float_t)res_wind_int->x_offset;
-            v12 += (float_t)(res_wind->height - res_wind_int->y_offset - res_wind_int->height);
+            v14 += (float_t)res_wind_int->x_offset;
+            v15 += (float_t)(res_wind->height - res_wind_int->y_offset - res_wind_int->height);
         }
-        pos.x = v11;
-        pos.y = v12;
-        scale = -v15.w;
+        pos.x = v14;
+        pos.y = v15;
+        this->scale = -v19.w;
+        return fabsf(1.0f / v19.w) * (rctx_ptr->camera->depth * scale);
     }
     else {
         pos = 0.0f;
-        scale = 0.0f;
+        this->scale = 0.0f;
+        return 0.0f;
     }
 }
 

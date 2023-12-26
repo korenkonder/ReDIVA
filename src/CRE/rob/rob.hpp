@@ -3237,7 +3237,8 @@ struct pos_scale {
 
     pos_scale();
 
-    void get_screen_pos_scale(mat4& mat, vec3& trans, bool apply_offset);
+    float_t get_screen_pos_scale(const mat4& mat,
+        const vec3& trans, float_t scale = 0.0f, bool apply_offset = false);
 };
 
 struct struc_267 {

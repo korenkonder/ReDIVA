@@ -4,16 +4,16 @@
 */
 
 #include "camera.hpp"
+#include "render_context.hpp"
 #include "resolution_mode.hpp"
 
 static void camera_calculate_projection(camera* c);
-static void camera_calculate_projection_aet(camera* c);
 static void camera_calculate_view(camera* c);
 static void camera_calculate_forward(camera* c);
 
-camera::camera() : forward(), rotation(), view_point(), interest(), fov_correct_height(), aet_depth(),
+camera::camera() : forward(), rotation(), view_point(), interest(), depth(), aet_depth(),
 use_up(), field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(),
-fov(), fov_rad(), max_distance(), min_distance(), changed_view(), changed_proj(), changed_proj_aet(),
+fov(), aet_fov(), max_distance(), min_distance(), changed_view(), changed_proj(),
 fast_change(), fast_change_hist0(), fast_change_hist1(), ignore_fov(), ignore_min_dist() {
 
 }
@@ -24,13 +24,6 @@ camera::~camera() {
 
 void camera::initialize(double_t aspect) {
     this->aspect = aspect;
-    fov = 0.0f;
-    fov_correct_height = 0.0f;
-    aet_depth = 0.0f;
-    forward = { 0.0f, 0.0f, -1.0f };
-    rotation = { 0.0f, 0.0f, 0.0f };
-    use_up = false;
-    up = { 0.0f, 1.0f, 0.0f };
     view = mat4_identity;
     inv_view = mat4_identity;
     projection = mat4_identity;
@@ -39,26 +32,13 @@ void camera::initialize(double_t aspect) {
     inv_view_projection = mat4_identity;
     view_projection_prev = mat4_identity;
     inv_view_projection_prev = mat4_identity;
-    changed_proj = true;
-    changed_proj_aet = true;
-    changed_view = true;
-    fast_change = false;
-    fast_change_hist0 = false;
-    fast_change_hist1 = false;
     ignore_fov = false;
     ignore_min_dist = false;
 
     set_view_point({ 0.0f, 0.0f, 0.0f });
     set_interest({ 0.0f, 0.0f, -1.0f });
-    set_min_distance(0.05f);
-    set_max_distance(6000.0f);
-    set_pitch(0.0f);
-    set_yaw(0.0f);
-    set_roll(0.0f);
-    set_fov(32.2673416137695f);
-    camera_calculate_forward(this);
-    set_position(0.0f);
-    update();
+
+    reset();
 }
 
 float_t camera::get_min_distance() {
@@ -69,7 +49,6 @@ void camera::set_min_distance(float_t value) {
     if (!ignore_min_dist && min_distance != value) {
         min_distance = value;
         changed_proj = true;
-        changed_proj_aet = true;
     }
 }
 
@@ -103,7 +82,6 @@ void camera::set_fov(float_t value) {
     value = clamp_def(value, 1.0f, 180.0f);
     if (!ignore_fov && fov != value) {
         fov = value;
-        fov_rad = value * DEG_TO_RAD_FLOAT;
         changed_proj = true;
     }
 }
@@ -240,10 +218,9 @@ void camera::reset() {
     set_yaw(0.0f);
     set_roll(0.0f);
     set_fov(32.2673416137695f);
-    min_distance = 0.05f;
-    max_distance = 6000.0f;
+    set_min_distance(0.05f);
+    set_max_distance(6000.0f);
     changed_proj = true;
-    changed_proj_aet = true;
     changed_view = true;
     fast_change = false;
     fast_change_hist0 = false;
@@ -332,9 +309,6 @@ void camera::update_data() {
     if (changed_proj)
         camera_calculate_projection(this);
 
-    if (changed_proj_aet)
-        camera_calculate_projection_aet(this);
-
     if (changed_view)
         camera_calculate_view(this);
 
@@ -344,7 +318,6 @@ void camera::update_data() {
     }
 
     changed_proj = false;
-    changed_proj_aet = false;
     changed_view = false;
 }
 
@@ -355,57 +328,30 @@ static void camera_calculate_forward(camera* c) {
 }
 
 static void camera_calculate_projection(camera* c) {
-    mat4_persp(c->fov_rad, (float_t)c->aspect, c->min_distance, c->max_distance, &c->projection);
-    mat4_invert(&c->projection, &c->inv_projection);
-
-    resolution_struct* res_wind_int = res_window_internal_get();
-
-    float_t fov_correct_height = ((float_t)res_wind_int->height * 0.5f) / tanf((float_t)(c->fov_rad * 0.5));
-
-    float_t height = (float_t)res_wind_int->height * 0.5f;
-    float_t width = (float_t)res_wind_int->height * (float_t)c->aspect * 0.5f;
-
-    c->field_1E4.x = fov_correct_height;
-    c->field_1E4.y = 0.0f;
-    c->field_1E4.z = -width;
-    c->field_1E4 = vec3::normalize(c->field_1E4);
-    c->field_1F0.x = -fov_correct_height;
-    c->field_1F0.y = 0.0f;
-    c->field_1F0.z = -width;
-    c->field_1F0 = vec3::normalize(c->field_1F0);
-    c->field_1FC.x = 0.0f;
-    c->field_1FC.y = fov_correct_height;
-    c->field_1FC.z = -height;
-    c->field_1FC = vec3::normalize(c->field_1FC);
-    c->field_208.x = 0.0f;
-    c->field_208.y = -fov_correct_height;
-    c->field_208.z = -height;
-    c->field_208 = vec3::normalize(c->field_208);
-}
-
-static void camera_calculate_projection_aet(camera* c) {
-    resolution_struct* res_wind_int = res_window_internal_get();
     resolution_struct* res_wind = res_window_get();
+    resolution_struct* res_wind_int = res_window_internal_get();
 
-    float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
-    float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
-    float_t render_half_width = (float_t)res_wind_int->width * 0.5f;
-    float_t render_half_height = (float_t)res_wind_int->height * 0.5f;
+    const float_t sprite_half_width = (float_t)res_wind->width * 0.5f;
+    const float_t sprite_half_height = (float_t)res_wind->height * 0.5f;
+    const float_t render_half_width = (float_t)res_wind_int->width * 0.5f;
+    const float_t render_half_height = (float_t)res_wind_int->height * 0.5f;
 
-    static float_t field_20 = tanf(atanf(tanf(0.34557518363f) * 0.75f));
+    const float_t aet_fov = atanf(tanf((float_t)(39.6 * 0.5 * DEG_TO_RAD)) * 0.75f) * 2.0f * RAD_TO_DEG_FLOAT;
+    c->aet_fov = aet_fov;
 
-    float_t aet_depth = sprite_half_height / field_20;
+    const float_t aet_depth = sprite_half_height / tanf(c->aet_fov * 0.5f * DEG_TO_RAD_FLOAT);
     c->aet_depth = aet_depth;
 
-    float_t fov_correct_height = sprite_half_height / tanf((float_t)c->fov_rad * 0.5f);
-    c->fov_correct_height = fov_correct_height;
+    const float_t depth = sprite_half_height / tanf(c->fov * 0.5f * DEG_TO_RAD_FLOAT);
+    c->depth = depth;
 
-    float_t v8 = (float_t)c->min_distance / aet_depth;
-    float_t v8a = v8 * sprite_half_width;
-    float_t v8b = v8 * sprite_half_height;
+    float_t spr_2d_range = c->min_distance / aet_depth;
+    float_t spr_2d_range_x = spr_2d_range * sprite_half_width;
+    float_t spr_2d_range_y = spr_2d_range * sprite_half_height;
 
     mat4 spr_2d_proj;
-    mat4_frustrum(-v8a, v8a, v8b, -v8b, c->min_distance, 3000.0, &spr_2d_proj);
+    mat4_frustrum(-spr_2d_range_x, spr_2d_range_x, spr_2d_range_y, -spr_2d_range_y,
+        c->min_distance, 3000.0f, &spr_2d_proj);
 
     vec3 spr_2d_viewpoint = { sprite_half_width, sprite_half_height, aet_depth };
     vec3 spr_2d_interest = { sprite_half_width, sprite_half_height, 0.0f };
@@ -415,22 +361,38 @@ static void camera_calculate_projection_aet(camera* c) {
 
     mat4_mul(&spr_2d_view, &spr_2d_proj, &c->view_projection_aet_2d);
 
-    float_t v13c = render_half_height / tanf((float_t)c->fov_rad * 0.5f);
+    float_t aet_3d_depth = render_half_height / tanf(c->aet_fov * 0.5f * DEG_TO_RAD_FLOAT);
 
-    float_t v13 = (float_t)c->min_distance / v13c;
-    float_t v13a = v13 * render_half_width;
-    float_t v13b = v13 * render_half_height;
+    float_t spr_3d_range = c->min_distance / aet_3d_depth;
+    float_t spr_3d_range_x = spr_3d_range * render_half_width;
+    float_t spr_3d_range_y = spr_3d_range * render_half_height;
 
     mat4 spr_3d_proj;
-    mat4_frustrum(-v13a, v13a, v13b, -v13b, c->min_distance, 3000.0, &spr_3d_proj);
+    mat4_frustrum(-spr_3d_range_x, spr_3d_range_x, spr_3d_range_y, -spr_3d_range_y,
+        c->min_distance, 3000.0f, &spr_3d_proj);
 
-    vec3 spr_3d_viewpoint = { render_half_width, render_half_height, v13c };
+    vec3 spr_3d_viewpoint = { render_half_width, render_half_height, aet_3d_depth };
     vec3 spr_3d_interest = { render_half_width, render_half_height, 0.0f };
     vec3 spr_3d_up = { 0.0f, 1.0f, 0.0f };
     mat4 spr_3d_view;
     mat4_look_at(&spr_3d_viewpoint, &spr_3d_interest, &spr_3d_up, &spr_3d_view);
 
     mat4_mul(&spr_3d_view, &spr_3d_proj, &c->view_projection_aet_3d);
+
+    extern render_context* rctx_ptr;
+    rctx_ptr->render.calc_projection_matrix(&c->projection, c->fov,
+        (float_t)c->aspect, c->min_distance, c->max_distance,
+        c->projection_scale.x, c->projection_scale.y,
+        c->projection_scale.z, c->projection_scale.w);
+    mat4_invert(&c->projection, &c->inv_projection);
+
+    float_t height = (float_t)res_wind_int->height * 0.5f;
+    float_t width = (float_t)res_wind_int->height * (float_t)c->aspect * 0.5f;
+
+    c->field_1E4 = vec3::normalize({  c->depth, 0.0f, -width });
+    c->field_1F0 = vec3::normalize({ -c->depth, 0.0f, -width });
+    c->field_1FC = vec3::normalize({ 0.0f,  c->depth, -height });
+    c->field_208 = vec3::normalize({ 0.0f, -c->depth, -height });
 }
 
 static void camera_calculate_view(camera* c) {
