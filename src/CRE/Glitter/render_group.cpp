@@ -85,21 +85,21 @@ namespace Glitter {
         static const GLsizei buffer_size = sizeof(Buffer);
 
         vbo.Create(buffer_size * max_count);
-        vbo.Bind();
+        vbo.Bind(true);
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
-            uint16_t* ebo_data = force_malloc<uint16_t>(count);
+            uint32_t* ebo_data = force_malloc<uint32_t>(count);
             for (size_t i = 0, j = 0, k = count; k; i += 5, j += 4, k -= 5) {
-                ebo_data[i + 0] = (uint16_t)(j + 0);
-                ebo_data[i + 1] = (uint16_t)(j + 1);
-                ebo_data[i + 2] = (uint16_t)(j + 3);
-                ebo_data[i + 3] = (uint16_t)(j + 2);
-                ebo_data[i + 4] = (uint16_t)0xFFFFFFFF;
+                ebo_data[i + 0] = (uint32_t)(j + 0);
+                ebo_data[i + 1] = (uint32_t)(j + 1);
+                ebo_data[i + 2] = (uint32_t)(j + 3);
+                ebo_data[i + 3] = (uint32_t)(j + 2);
+                ebo_data[i + 4] = 0xFFFFFFFF;
             }
 
-            ebo.Create(sizeof(uint16_t) * count, ebo_data);
-            ebo.Bind();
+            ebo.Create(sizeof(uint32_t) * count, ebo_data);
+            ebo.Bind(true);
             free_def(ebo_data);
         }
 
@@ -409,21 +409,21 @@ namespace Glitter {
         static const GLsizei buffer_size = sizeof(Buffer);
 
         vbo.Create(buffer_size * max_count);
-        vbo.Bind();
+        vbo.Bind(true);
 
         if (is_quad) {
             size_t count = max_count / 4 * 5;
-            uint16_t* ebo_data = force_malloc<uint16_t>(count);
+            uint32_t* ebo_data = force_malloc<uint32_t>(count);
             for (size_t i = 0, j = 0, k = count; k; i += 5, j += 4, k -= 5) {
-                ebo_data[i + 0] = (uint16_t)(j + 0);
-                ebo_data[i + 1] = (uint16_t)(j + 1);
-                ebo_data[i + 2] = (uint16_t)(j + 3);
-                ebo_data[i + 3] = (uint16_t)(j + 2);
-                ebo_data[i + 4] = (uint16_t)0xFFFFFFFF;
+                ebo_data[i + 0] = (uint32_t)(j + 0);
+                ebo_data[i + 1] = (uint32_t)(j + 1);
+                ebo_data[i + 2] = (uint32_t)(j + 3);
+                ebo_data[i + 3] = (uint32_t)(j + 2);
+                ebo_data[i + 4] = 0xFFFFFFFF;
             }
 
-            ebo.Create(sizeof(uint16_t) * count, ebo_data);
-            ebo.Bind();
+            ebo.Create(sizeof(uint32_t) * count, ebo_data);
+            ebo.Bind(true);
             free_def(ebo_data);
         }
 

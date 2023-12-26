@@ -1077,23 +1077,24 @@ namespace Glitter {
         }
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
+        rctx_ptr->obj_scene_ubo.Bind(0);
         rctx_ptr->glitter_batch_ubo.Bind(2);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
-            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_SHORT, 0);
+            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             shaders_ft.disable_primitive_restart();
             break;
         case PARTICLE_LINE:
+            gl_state_bind_vertex_array(rend_group->vao);
+            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
+            break;
         case PARTICLE_LOCUS:
             gl_state_bind_vertex_array(rend_group->vao);
-            if (rend_group->type == PARTICLE_LINE)
-                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                    shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
-            else
-                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
+            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
             break;
         }
     }
@@ -2194,23 +2195,24 @@ namespace Glitter {
             gl_state_disable_cull_face();
 
         shaders_ft.set(SHADER_FT_GLITTER_PT);
+        rctx_ptr->obj_scene_ubo.Bind(0);
         rctx_ptr->glitter_batch_ubo.Bind(2);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
             shaders_ft.enable_primitive_restart();
-            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_SHORT, 0);
+            shaders_ft.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_INT, 0);
             shaders_ft.disable_primitive_restart();
             break;
         case PARTICLE_LINE:
+            gl_state_bind_vertex_array(rend_group->vao);
+            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
+            break;
         case PARTICLE_LOCUS:
             gl_state_bind_vertex_array(rend_group->vao);
-            if (rend_group->type == PARTICLE_LINE)
-                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                    shaders_ft.draw_arrays(GL_LINE_STRIP, i.first, i.second);
-            else
-                for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                    shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
+            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
+                shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
             break;
         }
     }
