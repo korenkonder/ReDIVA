@@ -25,27 +25,11 @@ static const int32_t glitter_particle_wireframe_fpt_unival_max[] = {
     -1,
 };
 
-static const int32_t grid_vpt_unival_max[] = {
-    -1,
-};
-
-static const int32_t grid_fpt_unival_max[] = {
-    -1,
-};
-
 static const uniform_name GLITTER_PT_WIREFRAME_uniform[] = {
     U_INVALID,
 };
 
-static const uniform_name GRID_uniform[] = {
-    U_INVALID,
-};
-
 static const bool GLITTER_PT_WIREFRAME_permut[] = {
-    false,
-};
-
-static const bool GRID_permut[] = {
     false,
 };
 
@@ -56,16 +40,6 @@ static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
         glitter_particle_wireframe_fpt_unival_max,
         "glitter_particle_wireframe",
         "glitter_particle_wireframe",
-    },
-};
-
-static const shader_sub_table GRID_table[] = {
-    {
-        SHADER_DEV_SUB_GRID,
-        grid_vpt_unival_max,
-        grid_fpt_unival_max,
-        "grid",
-        "grid",
     },
 };
 
@@ -90,7 +64,6 @@ const shader_table shader_dev_table[] = {
         0,
         0,
     },
-    shader_table_struct(GRID),
     shader_table_struct(GLITTER_PT_WIREFRAME),
 };
 

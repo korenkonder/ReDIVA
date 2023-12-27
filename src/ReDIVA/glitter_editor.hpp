@@ -93,6 +93,7 @@ public:
     bool input_pause_temp;
     bool input_reset;
     bool effect_group_add;
+    bool show_grid;
     glitter_editor_disp_flags draw_flags;
     glitter_editor_flags resource_flags;
     glitter_editor_flags effect_flags;

@@ -120,8 +120,7 @@ render_data* render;
 
 ImFont* imgui_font_arial;
 
-bool draw_imgui   = true;
-bool draw_grid_3d = false;
+bool draw_imgui = true;
 
 const double_t render_scale_table[] = {
      1.0 / 4.0, //  25%
@@ -332,30 +331,6 @@ int32_t render_get_scale_index() {
 
 void render_set_scale_index(int32_t index) {
     scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
-}
-
-void draw_pass_3d_grid(render_context* rctx) {
-    rctx->camera->update_data();
-
-    mat4 view_projection;
-    mat4_transpose(&rctx->camera->view_projection, &view_projection);
-    render->grid_ubo.WriteMemory(view_projection);
-
-    gl_state_enable_blend();
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    gl_state_set_blend_equation(GL_FUNC_ADD);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_TRUE);
-
-    shaders_dev.set(SHADER_DEV_GRID);
-    render->grid_ubo.Bind(0);
-    gl_state_bind_vertex_array(render->grid_vao);
-    shaders_dev.draw_arrays(GL_LINES, 0, (GLsizei)grid_vertex_count);
-    gl_state_use_program(0);
-
-    gl_state_disable_depth_test();
-    gl_state_set_depth_mask(GL_FALSE);
-    gl_state_disable_blend();
 }
 
 float_t rob_frame = 0.0f;

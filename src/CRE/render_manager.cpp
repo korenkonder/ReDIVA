@@ -837,12 +837,6 @@ namespace rndr {
 
         Glitter::glt_particle_manager->DispScenes(Glitter::DISP_OPAQUE);
 
-        extern bool draw_grid_3d;
-        if (draw_grid_3d) {
-            extern void draw_pass_3d_grid(render_context * rctx);
-            draw_pass_3d_grid(rctx);
-        }
-
         gl_state_enable_depth_test();
         gl_state_set_depth_mask(GL_TRUE);
         if (draw_pass_3d[DRAW_PASS_3D_TRANSPARENT])

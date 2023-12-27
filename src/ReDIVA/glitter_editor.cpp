@@ -73,7 +73,6 @@ extern vec2i internal_2d_res;
 extern vec2i internal_3d_res;
 extern bool input_reset;
 extern bool input_locked;
-extern bool draw_grid_3d;
 
 extern bool close;
 extern bool global_context_menu;
@@ -340,10 +339,10 @@ void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag
 GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_data(), load_data_wait(),
 load_popup(), load_data_popup(), load_error_list_popup(), save(), save_popup(), save_compress(), save_encrypt(),
 close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
-effect_group_add(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(), particle_flags(),
-load_glt_type(), save_glt_type(), load_data_type(), frame_counter(), old_frame_counter(),
-start_frame(), end_frame(), counter(), effect_group(), scene(), hash(), selected_type(),
-selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
+effect_group_add(), show_grid(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(),
+particle_flags(), load_glt_type(), save_glt_type(), load_data_type(), frame_counter(),
+old_frame_counter(), start_frame(), end_frame(), counter(), effect_group(), scene(), hash(),
+selected_type(), selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
 selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle() {
 
 }
@@ -364,7 +363,6 @@ bool GlitterEditor::init() {
     Glitter::glt_particle_manager->emission = 1.0f;
     Glitter::glt_particle_manager->draw_all = true;
     Glitter::glt_particle_manager->draw_all_mesh = true;
-    draw_grid_3d = true;
 
     reset();
     dtm_stg_load(0);
@@ -1166,8 +1164,6 @@ bool GlitterEditor::dest() {
     dtm_stg_unload();
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
     Glitter::glt_particle_manager->UnloadEffectGroup(hash);
-
-    draw_grid_3d = false;
     return true;
 }
 
@@ -1177,6 +1173,16 @@ void GlitterEditor::disp() {
 
     if (draw_flags & GLITTER_EDITOR_DISP_EMITTER_TYPE)
         glitter_editor_draw_emitter_type(this);
+
+    if (show_grid) {
+        mdl::EtcObj etc(mdl::ETC_OBJ_GRID);
+        etc.color = color_black;
+        etc.data.grid.w = 50;
+        etc.data.grid.h = 50;
+        etc.data.grid.ws = 50;
+        etc.data.grid.hs = 50;
+        rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+    }
 }
 
 void GlitterEditor::window() {
@@ -2415,7 +2421,7 @@ static void glitter_editor_test_window(GlitterEditor* glt_edt) {
 
     ImGui::Separator();
 
-    ImGui::CheckboxEnterKeyPressed("Show Grid", &draw_grid_3d);
+    ImGui::CheckboxEnterKeyPressed("Show Grid", &glt_edt->show_grid);
 
     ImGui::CheckboxEnterKeyPressed("Draw All", &Glitter::glt_particle_manager->draw_all);
 
@@ -3107,7 +3113,7 @@ static void glitter_editor_play_manager(GlitterEditor* glt_edt) {
 
     ImGui::Separator();
 
-    ImGui::CheckboxEnterKeyPressed("Grid", &draw_grid_3d);
+    ImGui::CheckboxEnterKeyPressed("Show Grid", &glt_edt->show_grid);
 
     ImGui::CheckboxEnterKeyPressed("Draw All", &Glitter::glt_particle_manager->draw_all);
 

@@ -54,7 +54,6 @@ extern int32_t height;
 extern render_context* rctx_ptr;
 extern bool input_reset;
 extern bool input_locked;
-extern bool draw_grid_3d;
 
 TaskDataTestGlitterParticle::TaskDataTestGlitterParticle() : hash(), dw(),
 frame(), auto_and_repeat(), reload(), pv_mode(), show_grid(), rebuild_geff() {
@@ -173,7 +172,7 @@ bool TaskDataTestGlitterParticle::dest() {
 void TaskDataTestGlitterParticle::disp() {
     if (show_grid) {
         mdl::EtcObj etc(mdl::ETC_OBJ_GRID);
-        etc.color = 0xFF000000;
+        etc.color = color_black;
         etc.data.grid.w = 50;
         etc.data.grid.h = 50;
         etc.data.grid.ws = 50;
