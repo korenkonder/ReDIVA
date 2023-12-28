@@ -662,6 +662,7 @@ namespace Glitter {
             EffectFlag flags;
             float_t emission;
             int32_t seed;
+            float_t unk;
 
             Data(GLT);
         };
@@ -1289,7 +1290,10 @@ namespace Glitter {
             GLuint texture;
             GLuint mask_texture;
             int32_t unk0;
-            int32_t unk1;
+            float_t unk1;
+            int32_t unk2;
+            int32_t unk3;
+            int32_t unk4;
             Particle::Mesh mesh;
 
             Data();

@@ -206,7 +206,7 @@ namespace Glitter {
         }
 
         bool curve_baked_half = false;
-        if (type == Glitter::F2 || (type == Glitter::X && !(flags & CURVE_BAKED_FULL)))
+        if (GLT_VAL == Glitter::F2 || (GLT_VAL == Glitter::X && !(flags & CURVE_BAKED_FULL)))
             curve_baked_half = true;
 
         const uint8_t step = curve_baked_half ? 2 : 1;
@@ -405,8 +405,10 @@ namespace Glitter {
 
     void Curve::Recalculate(GLT) {
         keys.clear();
-        if (keys_rev.size() == 1)
+        if (keys_rev.size() == 1) {
             keys.push_back(keys_rev.data()[0]);
+            return;
+        }
         else if (keys_rev.size() < 1)
             return;
         else if (!(flags & CURVE_BAKED)) {

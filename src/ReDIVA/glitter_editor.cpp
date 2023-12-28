@@ -1356,14 +1356,12 @@ static void glitter_editor_windows(GlitterEditor* glt_edt) {
     ImVec2 main_menu_bar_size = { 0, 0 };
 
     if (ImGui::BeginMainMenuBar()) {
-        bool is_x = glt_edt->effect_group
-            && glt_edt->effect_group->type == Glitter::X ? true : false;
         if (ImGui::BeginMenu("File", true)) {
             if (ImGui::MenuItem("Open", "Ctrl+O"))
                 glitter_editor_open_window(glt_edt);
-            if (ImGui::MenuItem("Save", "Ctrl+S", false, !is_x))
+            if (ImGui::MenuItem("Save", "Ctrl+S", false))
                 glitter_editor_save_window(glt_edt);
-            if (ImGui::MenuItem("Save As..", "Ctrl+Shift+S", false, !is_x))
+            if (ImGui::MenuItem("Save As..", "Ctrl+Shift+S", false))
                 glitter_editor_save_as_window(glt_edt);
             if (ImGui::MenuItem("Close", "Ctrl+F4"))
                 glt_edt->close = true;
@@ -1629,8 +1627,7 @@ static void glitter_editor_reload(GlitterEditor* glt_edt) {
 }
 
 static void glitter_editor_save(GlitterEditor* glt_edt) {
-    glt_edt->save_popup = glt_edt->effect_group
-        && glt_edt->effect_group->type == Glitter::X ? false : true;
+    glt_edt->save_popup = true;
 }
 
 static void glitter_editor_open_window(GlitterEditor* glt_edt) {
@@ -1665,12 +1662,6 @@ static void glitter_editor_save_window(GlitterEditor* glt_edt) {
 }
 
 static void glitter_editor_save_as_window(GlitterEditor* glt_edt) {
-    if (glt_edt->effect_group
-        && glt_edt->effect_group->type == Glitter::X) {
-        glt_edt->save_popup = false;
-        return;
-    }
-
     if (FAILED(CoInitializeEx(0, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE))) {
         glt_edt->save_popup = false;
         return;
@@ -3272,6 +3263,10 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
             &effect->data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
+
+        if (ImGui::ColumnDragFloat("Unk",
+            &effect->data.unk, 0.0001f, -FLT_MAX, FLT_MAX, "%g", 0))
+            changed = true;
     }
 
     int32_t type;
@@ -4387,7 +4382,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
             &particle->data.count, 1.0f, 0x0000, 0x7FFFFF, "%d", 0))
             changed = true;
 
-    if (ImGui::ColumnDragFloat("Emission",
+    if (particle->version > 2 && ImGui::ColumnDragFloat("Emission",
         &particle->data.emission, 0.0001f, 0.0f, HALF_MAX, "%g",
         ImGuiSliderFlags_NoRoundToFormat)) {
         if (sel_efct->data.flags & Glitter::EFFECT_EMISSION
@@ -4398,12 +4393,20 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
         changed = true;
     }
 
-    if (ImGui::ColumnDragInt("Unk 0",
+    if (particle->version > 3 && ImGui::ColumnDragInt("Unk 0",
         &particle->data.unk0, 1.0f, INT_MIN, INT_MAX, "%d", 0))
         changed = true;
 
-    if (eg->version >= 7 && ImGui::ColumnDragInt("Unk 1",
-        &particle->data.unk1, 1.0f, INT_MIN, INT_MAX, "%d", 0))
+    if (particle->version > 2 && ImGui::ColumnDragFloat("Unk 1",
+        &particle->data.unk1, 0.0001f, -FLT_MAX, FLT_MAX, "%g", 0))
+        changed = true;
+
+    if (ImGui::ColumnDragInt("Unk 2",
+        &particle->data.unk2, 1.0f, INT_MIN, INT_MAX, "%d", 0))
+        changed = true;
+
+    if (eg->version >= 7 && ImGui::ColumnDragInt("Unk 3",
+        &particle->data.unk3, 1.0f, INT_MIN, INT_MAX, "%d", 0))
         changed = true;
 
     if (particle->data.type == Glitter::PARTICLE_LOCUS) {
@@ -5184,7 +5187,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
         y = title_bar_size;
 
         ImGui::SetCursorPos({ x, y });
-        /*if (eg && eg->type == Glitter::X) {
+        if (eg && eg->type == Glitter::X) {
             if (ImGui::BeginTable("buttons", 3)) {
                 bool close = false;
 
@@ -5219,7 +5222,7 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
                 ImGui::EndTable();
             }
         }
-        else*/ {
+        else {
             if (ImGui::BeginTable("buttons", 4)) {
                 bool close = false;
 

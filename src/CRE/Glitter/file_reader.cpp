@@ -110,9 +110,9 @@ namespace Glitter {
                     c->repeat = *(uint32_t*)(d + 4) != 0;
                     c->flags = (CurveFlag) * (uint32_t*)(d + 8);
                     c->random_range = *(float_t*)(d + 12);
-                    keys_count = (uint32_t) * (int16_t*)(d + 16);
-                    c->start_time = *(int16_t*)(d + 18);
-                    c->end_time = *(int16_t*)(d + 20);
+                    keys_count = *(uint16_t*)(d + 16);
+                    c->start_time = *(uint16_t*)(d + 18);
+                    c->end_time = *(uint16_t*)(d + 20);
                 }
             }
             else {
@@ -130,9 +130,9 @@ namespace Glitter {
                     c->repeat = *(uint32_t*)(d + 4) != 0;
                     c->flags = (CurveFlag) * (uint32_t*)(d + 8);
                     c->random_range = *(float_t*)(d + 12);
-                    keys_count = (uint32_t) * (int16_t*)(d + 28);
-                    c->start_time = *(int16_t*)(d + 30);
-                    c->end_time = *(int16_t*)(d + 32);
+                    keys_count = *(uint16_t*)(d + 28);
+                    c->start_time = *(uint16_t*)(d + 30);
+                    c->end_time = *(uint16_t*)(d + 32);
                 }
             }
         }
@@ -142,7 +142,7 @@ namespace Glitter {
                 c->repeat = load_reverse_endianness_uint32_t((void*)(d + 4)) != 0;
                 c->flags = (CurveFlag)load_reverse_endianness_uint32_t((void*)(d + 8));
                 c->random_range = load_reverse_endianness_float_t((void*)(d + 12));
-                keys_count = (uint32_t)load_reverse_endianness_uint16_t((void*)(d + 16));
+                keys_count = load_reverse_endianness_uint16_t((void*)(d + 16));
                 c->start_time = load_reverse_endianness_uint16_t((void*)(d + 18));
                 c->end_time = load_reverse_endianness_uint16_t((void*)(d + 20));
             }
@@ -151,9 +151,9 @@ namespace Glitter {
                 c->repeat = *(uint32_t*)(d + 4) != 0;
                 c->flags = (CurveFlag) * (uint32_t*)(d + 8);
                 c->random_range = *(float_t*)(d + 12);
-                keys_count = (uint32_t) * (int16_t*)(d + 16);
-                c->start_time = *(int16_t*)(d + 18);
-                c->end_time = *(int16_t*)(d + 20);
+                keys_count = *(uint16_t*)(d + 16);
+                c->start_time = *(uint16_t*)(d + 18);
+                c->end_time = *(uint16_t*)(d + 20);
             }
 
             if (c->version == 0)
@@ -394,81 +394,159 @@ namespace Glitter {
 
         std::vector<Curve::Key>& keys = c->keys;
         keys.reserve(count);
-        if (type == Glitter::X && c->keys_version != 2) {
-            if (big_endian)
-                if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                    for (size_t i = count; i; i--) {
-                        key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
-                        key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
-                        if (key.type == KEY_HERMITE) {
-                            key.tangent1 = load_reverse_endianness_float_t((void*)(d + 16));
-                            key.tangent2 = load_reverse_endianness_float_t((void*)(d + 20));
-                            key.random_range = load_reverse_endianness_float_t((void*)(d + 24));
-                            key.value = load_reverse_endianness_float_t((void*)(d + 28));
-                            keys.push_back(key);
-                            d += 32;
+        if (type == Glitter::X) {
+            if (c->keys_version == 2) {
+                if (big_endian)
+                    if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
+                            key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.random_range = load_reverse_endianness_float_t((void*)(d + 12));
+                                key.value = load_reverse_endianness_float_t((void*)(d + 16));
+                                keys.push_back(key);
+                                d += 20;
+                            }
+                            else {
+                                key.random_range = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.value = load_reverse_endianness_float_t((void*)(d + 8));
+                                keys.push_back(key);
+                                d += 12;
+                            }
                         }
-                        else {
-                            key.random_range = load_reverse_endianness_float_t((void*)(d + 8));
-                            key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                            keys.push_back(key);
-                            d += 16;
+                    else
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
+                            key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.value = load_reverse_endianness_float_t((void*)(d + 12));
+                                keys.push_back(key);
+                                d += 16;
+                            }
+                            else {
+                                key.value = load_reverse_endianness_float_t((void*)(d + 4));
+                                keys.push_back(key);
+                                d += 8;
+                            }
                         }
-                    }
                 else
-                    for (size_t i = count; i; i--) {
-                        key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
-                        key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
-                        if (key.type == KEY_HERMITE) {
-                            key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
-                            key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
-                            key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                            keys.push_back(key);
-                            d += 16;
+                    if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType) * (int16_t*)d;
+                            key.frame = *(int16_t*)(d + 2);
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = *(float_t*)(d + 4);
+                                key.tangent2 = *(float_t*)(d + 8);
+                                key.random_range = *(float_t*)(d + 12);
+                                key.value = *(float_t*)(d + 16);
+                                keys.push_back(key);
+                                d += 20;
+                            }
+                            else {
+                                key.random_range = *(float_t*)(d + 4);
+                                key.value = *(float_t*)(d + 8);
+                                keys.push_back(key);
+                                d += 12;
+                            }
                         }
-                        else {
-                            key.value = load_reverse_endianness_float_t((void*)(d + 12));
-                            keys.push_back(key);
-                            d += 16;
+                    else
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType) * (int16_t*)d;
+                            key.frame = *(int16_t*)(d + 2);
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = *(float_t*)(d + 4);
+                                key.tangent2 = *(float_t*)(d + 8);
+                                key.value = *(float_t*)(d + 12);
+                                keys.push_back(key);
+                                d += 16;
+                            }
+                            else {
+                                key.value = *(float_t*)(d + 4);
+                                keys.push_back(key);
+                                d += 8;
+                            }
                         }
-                    }
-            else
-                if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                    for (size_t i = count; i; i--) {
-                        key.type = (KeyType) * (int16_t*)d;
-                        key.frame = *(int16_t*)(d + 2);
-                        if (key.type == KEY_HERMITE) {
-                            key.tangent1 = *(float_t*)(d + 16);
-                            key.tangent2 = *(float_t*)(d + 20);
-                            key.random_range = *(float_t*)(d + 24);
-                            key.value = *(float_t*)(d + 28);
-                            keys.push_back(key);
-                            d += 32;
+            }
+            else {
+                if (big_endian)
+                    if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
+                            key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 16));
+                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 20));
+                                key.random_range = load_reverse_endianness_float_t((void*)(d + 24));
+                                key.value = load_reverse_endianness_float_t((void*)(d + 28));
+                                keys.push_back(key);
+                                d += 32;
+                            }
+                            else {
+                                key.random_range = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.value = load_reverse_endianness_float_t((void*)(d + 12));
+                                keys.push_back(key);
+                                d += 16;
+                            }
                         }
-                        else {
-                            key.random_range = *(float_t*)(d + 8);
-                            key.value = *(float_t*)(d + 12);
-                            keys.push_back(key);
-                            d += 16;
+                    else
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType)load_reverse_endianness_int16_t((void*)d);
+                            key.frame = load_reverse_endianness_int16_t((void*)(d + 2));
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = load_reverse_endianness_float_t((void*)(d + 4));
+                                key.tangent2 = load_reverse_endianness_float_t((void*)(d + 8));
+                                key.value = load_reverse_endianness_float_t((void*)(d + 12));
+                                keys.push_back(key);
+                                d += 16;
+                            }
+                            else {
+                                key.value = load_reverse_endianness_float_t((void*)(d + 12));
+                                keys.push_back(key);
+                                d += 16;
+                            }
                         }
-                    }
                 else
-                    for (size_t i = count; i; i--) {
-                        key.type = (KeyType) * (int16_t*)d;
-                        key.frame = *(int16_t*)(d + 2);
-                        if (key.type == KEY_HERMITE) {
-                            key.tangent1 = *(float_t*)(d + 4);
-                            key.tangent2 = *(float_t*)(d + 8);
-                            key.value = *(float_t*)(d + 12);
-                            keys.push_back(key);
-                            d += 16;
+                    if (c->flags & CURVE_KEY_RANDOM_RANGE)
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType) * (int16_t*)d;
+                            key.frame = *(int16_t*)(d + 2);
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = *(float_t*)(d + 16);
+                                key.tangent2 = *(float_t*)(d + 20);
+                                key.random_range = *(float_t*)(d + 24);
+                                key.value = *(float_t*)(d + 28);
+                                keys.push_back(key);
+                                d += 32;
+                            }
+                            else {
+                                key.random_range = *(float_t*)(d + 8);
+                                key.value = *(float_t*)(d + 12);
+                                keys.push_back(key);
+                                d += 16;
+                            }
                         }
-                        else {
-                            key.value = *(float_t*)(d + 12);
-                            keys.push_back(key);
-                            d += 16;
+                    else
+                        for (size_t i = count; i; i--) {
+                            key.type = (KeyType) * (int16_t*)d;
+                            key.frame = *(int16_t*)(d + 2);
+                            if (key.type == KEY_HERMITE) {
+                                key.tangent1 = *(float_t*)(d + 4);
+                                key.tangent2 = *(float_t*)(d + 8);
+                                key.value = *(float_t*)(d + 12);
+                                keys.push_back(key);
+                                d += 16;
+                            }
+                            else {
+                                key.value = *(float_t*)(d + 12);
+                                keys.push_back(key);
+                                d += 16;
+                            }
                         }
-                    }
+            }
         }
         else {
             float_t scale = 1.0f;
@@ -640,34 +718,22 @@ namespace Glitter {
         }
 
         if (c->flags & CURVE_KEY_RANDOM_RANGE && keys.size()) {
-            Curve::Key* keys_data = keys.data();
             if (type == Glitter::X && c->flags & CURVE_BAKED)
-                if (c->flags & CURVE_RANDOM_RANGE_NEGATE)
-                    for (size_t i = 0; i < count; i++) {
-                        float_t max = keys_data[i].value;
-                        float_t min = keys_data[i].random_range;
-                        if (*(uint32_t*)&min != *(uint32_t*)&max) {
-                            keys_data[i].value = (float_t)(((double_t)min + (double_t)max) * 0.5);
-                            keys_data[i].random_range = (float_t)((double_t)max
-                                - ((double_t)min + (double_t)max) * 0.5);
-                        }
-                        else
-                            keys_data[i].random_range = 0.0f;
+                for (Curve::Key& i : keys) {
+                    float_t max = i.value;
+                    float_t min = i.random_range;
+                    if (*(uint32_t*)&min != *(uint32_t*)&max) {
+                        i.value = (float_t)(((double_t)min + (double_t)max) * 0.5);
+                        i.random_range = (float_t)((double_t)max
+                            - ((double_t)min + (double_t)max) * 0.5);
                     }
-                else
-                    for (size_t i = 0; i < count; i++) {
-                        float_t max = keys_data[i].value;
-                        float_t min = keys_data[i].random_range;
-                        if (*(uint32_t*)&min != *(uint32_t*)&max) {
-                            keys_data[i].value = min;
-                            keys_data[i].random_range = (float_t)((double_t)max - (double_t)min);
-                        }
-                        else
-                            keys_data[i].random_range = 0.0f;
-                    }
+                    else
+                        i.random_range = 0.0f;
+                }
 
             bool has_key_random_range = false;
             if (type == Glitter::F2) {
+                Curve::Key* keys_data = keys.data();
                 if (count > 1 && keys_data[0].random_range != 0.0f
                     && keys_data[1].random_range != 0.0f)
                     has_key_random_range = true;
@@ -688,8 +754,8 @@ namespace Glitter {
             }
 
             if (!has_key_random_range)
-                for (size_t i = 0; i < count; i++)
-                    if (keys_data[i].random_range != 0.0f) {
+                for (Curve::Key& i : keys)
+                    if (i.random_range != 0.0f) {
                         has_key_random_range = true;
                         break;
                     }
@@ -894,17 +960,19 @@ namespace Glitter {
             if (big_endian) {
                 eff->data.emission = load_reverse_endianness_float_t((void*)d);
                 eff->data.seed = load_reverse_endianness_int32_t((void*)(d + 4));
+                eff->data.unk = load_reverse_endianness_float_t((void*)(d + 8));
             }
             else {
                 eff->data.emission = *(float_t*)d;
                 eff->data.seed = *(int32_t*)(d + 4);
+                eff->data.unk = *(float_t*)(d + 8);
             }
-            d += 8;
+            d += 12;
 
             if (eff->version != 8)
-                d += 12;
+                d += 8;
             else
-                d += 16;
+                d += 12;
 
             int32_t type;
             if (big_endian)
@@ -958,8 +1026,8 @@ namespace Glitter {
                         ext_anim_x->instance_id = 0;
                         ext_anim_x->file_name_hash = hash_murmurhash_empty;
                         if (*(char*)(d + 12)) {
-                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 20), 0x80);
-                            ext_anim_x->mesh_name[0x7F] = '\0';
+                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 12), 0x80);
+                            ext_anim_x->mesh_name[0x7F] = 0;
                         }
                         else
                             ext_anim_x->mesh_name[0] = 0;
@@ -984,7 +1052,7 @@ namespace Glitter {
                         ext_anim_x->file_name_hash = hash_murmurhash_empty;
                         if (*(char*)(d + 16)) {
                             strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 16), 0x80);
-                            ext_anim_x->mesh_name[0x7F] = '\0';
+                            ext_anim_x->mesh_name[0x7F] = 0;
                         }
                         else
                             ext_anim_x->mesh_name[0] = 0;
@@ -1012,7 +1080,7 @@ namespace Glitter {
 
                         if (*(char*)(d + 32)) {
                             strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 32), 0x80);
-                            ext_anim_x->mesh_name[0x7F] = '\0';
+                            ext_anim_x->mesh_name[0x7F] = 0;
                         }
                         else
                             ext_anim_x->mesh_name[0] = 0;
@@ -1028,7 +1096,7 @@ namespace Glitter {
             eff->data.name_hash = type != Glitter::FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
             eff->data.seed = 0;
 
-            if (eff->version != 6 && eff->version != 7)
+            if (eff->version < 6 || eff->version > 7)
                 return false;
 
             size_t d = (size_t)data;
@@ -1158,7 +1226,7 @@ namespace Glitter {
             }
             d += 20;
 
-            if (emit->version != 3 && emit->version != 4)
+            if (emit->version < 3 || emit->version > 4)
                 return false;
 
             if (big_endian) {
@@ -1291,7 +1359,7 @@ namespace Glitter {
 
             emit->data.timer = EMITTER_TIMER_BY_TIME;
             emit->data.seed = 0;
-            if (emit->version != 1 && emit->version != 2)
+            if (emit->version < 1 || emit->version > 2)
                 return false;
 
             if (big_endian) {
@@ -1407,8 +1475,9 @@ namespace Glitter {
         UVIndexType uv_index_type;
         uint8_t split_u;
         uint8_t split_v;
-        int32_t unk0;
-        int32_t unk1;
+        int32_t unk2;
+        int32_t unk3;
+        int32_t unk4;
 
         if (type == Glitter::X) {
             ptcl->data.mesh.object_set_name_hash = hash_murmurhash_empty;
@@ -1438,7 +1507,10 @@ namespace Glitter {
                 ptcl->data.draw_type = (Direction) * (int32_t*)(d + 28);
             }
 
-            if (ptcl->version != 4 && ptcl->version != 5)
+            ptcl->data.unk0 = 0;
+            ptcl->data.unk1 = -1.0f;
+
+            if (ptcl->version < 4 || ptcl->version > 5)
                 return false;
 
             if (big_endian) {
@@ -1463,6 +1535,7 @@ namespace Glitter {
                 ptcl->data.z_offset = load_reverse_endianness_float_t((void*)(d + 104));
                 ptcl->data.pivot = (Pivot)load_reverse_endianness_int32_t((void*)(d + 108));
                 ptcl->data.flags = (ParticleFlag)load_reverse_endianness_int32_t((void*)(d + 112));
+                ptcl->data.unk0 = load_reverse_endianness_int32_t((void*)(d + 116));
             }
             else {
                 ptcl->data.rotation = *(vec3*)(d + 32);
@@ -1474,6 +1547,7 @@ namespace Glitter {
                 ptcl->data.z_offset = *(float_t*)(d + 104);
                 ptcl->data.pivot = (Pivot) * (int32_t*)(d + 108);
                 ptcl->data.flags = (ParticleFlag) * (int32_t*)(d + 112);
+                ptcl->data.unk0 = *(int32_t*)(d + 116);
             }
 
             if (eff->data.flags & EFFECT_LOCAL)
@@ -1515,11 +1589,11 @@ namespace Glitter {
                 ptcl->data.count = load_reverse_endianness_int32_t((void*)(d + 240));
                 ptcl->data.draw_flags = (ParticleDrawFlag)
                     load_reverse_endianness_int32_t((void*)(d + 244));
+                ptcl->data.unk1 = load_reverse_endianness_float_t((void*)(d + 248));
                 ptcl->data.emission = load_reverse_endianness_float_t((void*)(d + 252));
             }
             else {
-                ptcl->data.uv_scroll_2nd_add.x = *(float_t*)(d + 120);
-                ptcl->data.uv_scroll_2nd_add.y = *(float_t*)(d + 124);
+                ptcl->data.uv_scroll_2nd_add = *(vec2*)(d + 120);
                 ptcl->data.uv_scroll_2nd_add_scale = *(float_t*)(d + 128);
                 ptcl->data.speed = *(float_t*)(d + 136);
                 ptcl->data.speed_random = *(float_t*)(d + 140);
@@ -1538,6 +1612,7 @@ namespace Glitter {
                 ptcl->data.sub_flags = (ParticleSubFlag) * (int32_t*)(d + 236);
                 ptcl->data.count = *(int32_t*)(d + 240);
                 ptcl->data.draw_flags = (ParticleDrawFlag) * (int32_t*)(d + 244);
+                ptcl->data.unk1 = *(float_t*)(d + 248);
                 ptcl->data.emission = *(float_t*)(d + 252);
             }
             d += 256;
@@ -1553,10 +1628,14 @@ namespace Glitter {
             ptcl->data.locus_history_size = 0;
             ptcl->data.locus_history_size_random = 0;
 
-            if (ptcl->data.type == PARTICLE_MESH)
+            switch (ptcl->data.type) {
+            case 3:
                 ptcl->data.type = PARTICLE_LINE;
-            else if (ptcl->data.type == PARTICLE_LINE)
+                break;
+            case 1:
                 ptcl->data.type = PARTICLE_MESH;
+                break;
+            }
 
             bool has_tex;
             if (ptcl->data.type == PARTICLE_QUAD)
@@ -1584,7 +1663,10 @@ namespace Glitter {
                     ptcl->data.mesh.object_name_hash = *(uint64_t*)d;
                     ptcl->data.mesh.object_set_name_hash = *(uint64_t*)(d + 8);
                 }
-                //memcpy(ptcl->data.mesh.mesh_name, (void*)(d + 16), 0x40);
+                //if (*(char*)(d + 10))
+                //    strncpy_s(ptcl->data.mesh.mesh_name, (char*)(d + 16), 0x40);
+                //else
+                //    ptcl->data.mesh.mesh_name[0] = 0;
                 //if (big_endian)
                 //    ptcl->data.mesh.sub_mesh_hash = load_reverse_endianness_uint64_t((void*)(d + 80));
                 //else
@@ -1600,8 +1682,8 @@ namespace Glitter {
 
             tex_hash = hash_murmurhash_empty;
             mask_tex_hash = hash_murmurhash_empty;
-            unk0 = 0;
-            unk1 = 0;
+            unk2 = 0;
+            unk3 = 0;
 
             if (big_endian) {
                 if (has_tex)
@@ -1611,6 +1693,7 @@ namespace Glitter {
                 b = *(uint8_t*)(d + 10);
                 a = *(uint8_t*)(d + 11);
                 blend_mode = (ParticleBlend)load_reverse_endianness_int32_t((void*)(d + 12));
+                unk2 = load_reverse_endianness_int32_t((void*)(d + 16));
                 split_u = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 20));
                 split_v = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 24));
                 uv_index_type = (UVIndexType)load_reverse_endianness_int32_t((void*)(d + 28));
@@ -1618,7 +1701,7 @@ namespace Glitter {
                 frame_step_uv = load_reverse_endianness_int16_t((void*)(d + 34));
                 uv_index_start = load_reverse_endianness_int32_t((void*)(d + 36));
                 uv_index_end = load_reverse_endianness_int32_t((void*)(d + 40));
-                unk1 = load_reverse_endianness_int32_t((void*)(d + 44));
+                unk3 = load_reverse_endianness_int32_t((void*)(d + 44));
             }
             else {
                 if (has_tex)
@@ -1628,6 +1711,7 @@ namespace Glitter {
                 b = *(uint8_t*)(d + 10);
                 a = *(uint8_t*)(d + 11);
                 blend_mode = (ParticleBlend) * (int32_t*)(d + 12);
+                unk2 = *(int32_t*)(d + 16);
                 split_u = (uint8_t) * (int32_t*)(d + 20);
                 split_v = (uint8_t) * (int32_t*)(d + 24);
                 uv_index_type = (UVIndexType) * (int32_t*)(d + 28);
@@ -1635,7 +1719,7 @@ namespace Glitter {
                 frame_step_uv = *(int16_t*)(d + 34);
                 uv_index_start = *(int32_t*)(d + 36);
                 uv_index_end = *(int32_t*)(d + 40);
-                unk1 = *(int32_t*)(d + 44);
+                unk3 = *(int32_t*)(d + 44);
             }
             d += 48;
 
@@ -1645,14 +1729,18 @@ namespace Glitter {
                         mask_tex_hash = load_reverse_endianness_uint64_t((void*)d);
                     mask_blend_mode = (ParticleBlend)
                         load_reverse_endianness_int32_t((void*)(d + 8));
+                    unk4 = load_reverse_endianness_int32_t((void*)(d + 12));
                 }
                 else {
                     if (has_tex)
                         mask_tex_hash = *(uint64_t*)d;
                     mask_blend_mode = (ParticleBlend) * (int32_t*)(d + 8);
+                    unk4 = *(int32_t*)(d + 12);
                 }
-            else
+            else {
                 mask_blend_mode = PARTICLE_BLEND_TYPICAL;
+                unk4 = 0xFF;
+            }
         }
         else {
             size_t d = (size_t)data;
@@ -1667,7 +1755,10 @@ namespace Glitter {
                 ptcl->data.draw_type = (Direction) * (int32_t*)(d + 8);
             }
 
-            if (ptcl->version != 2 && ptcl->version != 3)
+            ptcl->data.unk0 = 0;
+            ptcl->data.unk1 = -1.0f;
+
+            if (ptcl->version < 2 || ptcl->version > 3)
                 return false;
 
             if (big_endian) {
@@ -1766,10 +1857,14 @@ namespace Glitter {
             ptcl->data.emission = 0.0f;
 
             if (ptcl->version == 3) {
-                if (big_endian)
+                if (big_endian) {
+                    ptcl->data.unk1 = load_reverse_endianness_float_t((void*)d);
                     ptcl->data.emission = load_reverse_endianness_float_t((void*)(d + 4));
-                else
+                }
+                else {
+                    ptcl->data.unk1 = *(float_t*)d;
                     ptcl->data.emission = *(float_t*)(d + 4);
+                }
 
                 if (ptcl->data.emission >= min_emission)
                     enum_or(ptcl->data.flags, PARTICLE_EMISSION);
@@ -1791,8 +1886,8 @@ namespace Glitter {
             ptcl->data.texture = 0;
             ptcl->data.mask_texture = 0;
 
-            unk0 = 0;
-            unk1 = 0;
+            unk2 = 0;
+            unk3 = 0;
 
             if (big_endian) {
                 tex_hash = load_reverse_endianness_uint64_t((void*)d);
@@ -1801,7 +1896,7 @@ namespace Glitter {
                 b = *(uint8_t*)(d + 10);
                 a = *(uint8_t*)(d + 11);
                 blend_mode = (ParticleBlend)load_reverse_endianness_int32_t((void*)(d + 12));
-                unk0 = load_reverse_endianness_int32_t((void*)(d + 16));
+                unk2 = load_reverse_endianness_int32_t((void*)(d + 16));
                 split_u = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 20));
                 split_v = (uint8_t)load_reverse_endianness_int32_t((void*)(d + 24));
                 uv_index_type = (UVIndexType)load_reverse_endianness_int32_t((void*)(d + 28));
@@ -1817,7 +1912,7 @@ namespace Glitter {
                 b = *(uint8_t*)(d + 10);
                 a = *(uint8_t*)(d + 11);
                 blend_mode = (ParticleBlend) * (int32_t*)(d + 12);
-                unk0 = *(int32_t*)(d + 16);
+                unk2 = *(int32_t*)(d + 16);
                 split_u = (uint8_t) * (int32_t*)(d + 20);
                 split_v = (uint8_t) * (int32_t*)(d + 24);
                 uv_index_type = (UVIndexType) * (int32_t*)(d + 28);
@@ -1830,9 +1925,9 @@ namespace Glitter {
 
             if (eff_group->version >= 7) {
                 if (big_endian)
-                    unk1 = load_reverse_endianness_int32_t((void*)d);
+                    unk3 = load_reverse_endianness_int32_t((void*)d);
                 else
-                    unk1 = *(int32_t*)d;
+                    unk3 = *(int32_t*)d;
                 d += 4;
             }
 
@@ -1841,15 +1936,18 @@ namespace Glitter {
                     mask_tex_hash = load_reverse_endianness_uint64_t((void*)d);
                     mask_blend_mode = (ParticleBlend)
                         load_reverse_endianness_int32_t((void*)(d + 8));
+                    unk4 = load_reverse_endianness_int32_t((void*)(d + 12));
                 }
                 else {
                     mask_tex_hash = *(uint64_t*)d;
                     mask_blend_mode = (ParticleBlend) * (int32_t*)(d + 8);
+                    unk4 = *(int32_t*)(d + 12);
                 }
             else {
                 mask_tex_hash = type != Glitter::FT
                     ? hash_murmurhash_empty : hash_fnv1a64m_empty;
                 mask_blend_mode = PARTICLE_BLEND_TYPICAL;
+                unk4 = 0xFF;
             }
         }
 
@@ -1870,8 +1968,9 @@ namespace Glitter {
         ptcl->data.uv_index_end = uv_index_end;
         ptcl->data.split_uv.x = (float_t)split_u;
         ptcl->data.split_uv.y = (float_t)split_v;
-        ptcl->data.unk0 = unk0;
-        ptcl->data.unk1 = unk1;
+        ptcl->data.unk2 = unk2;
+        ptcl->data.unk3 = unk3;
+        ptcl->data.unk4 = unk4;
 
         ptcl->data.split_uv = vec2::rcp(ptcl->data.split_uv);
         ptcl->data.color *= (float_t)(1.0 / 255.0);
