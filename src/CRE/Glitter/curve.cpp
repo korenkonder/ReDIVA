@@ -212,7 +212,8 @@ namespace Glitter {
     }
 
 #if defined(CRE_DEV)
-    inline static void key_to_key_rev(Curve::KeyRev& dst, const Curve::Key& src, bool baked_x) {
+    inline static void key_to_key_rev(Curve::KeyRev& dst,
+        const Curve::Key& src, bool baked_x = false, bool negate = false) {
         dst.type = src.type;
         dst.frame = src.frame;
         dst.tangent1 = src.tangent1;
@@ -225,8 +226,14 @@ namespace Glitter {
         else if (*(uint32_t*)&src.min_value != *(uint32_t*)&src.max_value) {
             double_t max_value = src.max_value;
             double_t min_value = src.min_value;
-            dst.value = (min_value + max_value) * 0.5;
-            dst.random_range = max_value - (min_value + max_value) * 0.5;
+            if (negate) {
+                dst.value = (min_value + max_value) * 0.5;
+                dst.random_range = max_value - (min_value + max_value) * 0.5;
+            }
+            else {
+                dst.value = min_value;
+                dst.random_range = max_value - min_value;
+            }
         }
         else {
             dst.value = src.max_value;
@@ -237,14 +244,16 @@ namespace Glitter {
     void Curve::FitKeysIntoCurve(GLT) {
         keys_rev.clear();
 
-        const bool baked_x = GLT_VAL == Glitter::X && (flags & CURVE_BAKED);
+        const bool baked_x = GLT_VAL == Glitter::X
+            && (flags & CURVE_BAKED) && (flags & CURVE_KEY_RANDOM_RANGE);
+        const bool negate = baked_x && (flags & CURVE_RANDOM_RANGE_NEGATE);
 
         size_t keys_count = keys.size();
         if (keys_count < 1)
             return;
         else if (keys_count == 1) {
             keys_rev.resize(1);
-            key_to_key_rev(keys_rev.front(), keys.front(), baked_x);
+            key_to_key_rev(keys_rev.front(), keys.front(), baked_x, negate);
             return;
         }
         else if (!(flags & CURVE_BAKED)) {
@@ -254,7 +263,7 @@ namespace Glitter {
             auto i_end = keys.end();
             auto j = keys_rev.begin();
             for (auto i = i_begin; i != i_end; i++, j++)
-                key_to_key_rev(*j, *i, false);
+                key_to_key_rev(*j, *i);
             return;
         }
 
@@ -272,7 +281,7 @@ namespace Glitter {
             free_def(arr_b);
             if (keys_count == 1) {
                 keys_rev.resize(1);
-                key_to_key_rev(keys_rev.front(), keys.front(), baked_x);
+                key_to_key_rev(keys_rev.front(), keys.front(), baked_x, negate);
                 return;
             }
             else if (!(flags & CURVE_BAKED)) {
@@ -282,7 +291,7 @@ namespace Glitter {
                 auto i_end = keys.end();
                 auto j = keys_rev.begin();
                 for (auto i = i_begin; i != i_end; i++, j++)
-                    key_to_key_rev(*j, *i, false);
+                    key_to_key_rev(*j, *i);
                 return;
             }
             else
@@ -308,7 +317,7 @@ namespace Glitter {
         auto i_end = keys.end();
         auto j = keys_rev.begin();
         for (auto i = i_begin; i != i_end; i++, j++)
-            key_to_key_rev(*j, *i, baked_x);
+            key_to_key_rev(*j, *i, baked_x, negate);
 
         const Curve::KeyRev* keys_data = keys_rev.data();
         for (size_t i = 0; i < keys_count; i++) {
@@ -316,20 +325,12 @@ namespace Glitter {
             arr_b[i] = keys_data[i].random_range;
         }
 
-        static const double_t curve_baked_reverse_bias[] = {
-            0.00001,
-            0.0001,
-            0.001,
-        };
-
-        static const double_t curve_baked_half_reverse_bias[] = {
+        static const double_t reverse_bias[] = {
             0.000001,
             0.00001,
             0.0001,
         };
 
-        const double_t* reverse_bias = curve_baked_half
-            ? curve_baked_half_reverse_bias : curve_baked_reverse_bias;
         const size_t reverse_min_count = curve_baked_half ? 5 : 4;
 
         keys_rev.clear();
@@ -391,8 +392,8 @@ namespace Glitter {
                     double_t t1_1 = _t1 - 1.0f;
                     double_t t2_1 = _t2 - 1.0f;
 
-                    double_t t1_t2_1 = a[j + 0] - a[0] - (_t1 * 2.0 - 3.0) * (_t1 * _t1) * (a[0] - a[i]);
-                    double_t t1_t2_2 = a[j + 1] - a[0] - (_t2 * 2.0 - 3.0) * (_t2 * _t2) * (a[0] - a[i]);
+                    double_t t1_t2_1 = (a[j + 0] + b[j + 0]) - (a[0] + b[0]) - (_t1 * 2.0 - 3.0) * (_t1 * _t1) * ((a[0] + b[0]) - (a[i] + b[i]));
+                    double_t t1_t2_2 = (a[j + 1] + b[j + 1]) - (a[0] + b[0]) - (_t2 * 2.0 - 3.0) * (_t2 * _t2) * ((a[0] + b[0]) - (a[i] + b[i]));
                     t1_t2_1 /= t1_1 * _t1;
                     t1_t2_2 /= t2_1 * _t2;
 
@@ -410,16 +411,16 @@ namespace Glitter {
                 has_error_lerp = false;
                 has_error_hermite = false;
                 for (size_t j = 1; j < i; j++) {
-                    double_t val = InterpolateHermite(a[0], a[i] - a[0], t1, t2,
+                    double_t val = InterpolateHermite(a[0] + b[0], (a[i] + b[i]) - (a[0] + b[0]), t1, t2,
                         0.0, (double_t)(i * step), (double_t)(j * step));
-                    double_t val_lerp = InterpolateLinear(a[0], a[i],
+                    double_t val_lerp = InterpolateLinear(a[0] + b[0], a[i] + b[i],
                         0.0, (double_t)(i * step), (double_t)(j * step));
-                    if (fabs(val - a[0]) > reverse_bias[0]) {
+                    if (fabs(val - (a[0] + b[j])) > reverse_bias[0]) {
                         has_error = true;
                         constant = false;
-                        if (fabs(val_lerp - a[j]) > reverse_bias[1]) {
+                        if (fabs(val_lerp - (a[j] + b[j])) > reverse_bias[1]) {
                             has_error_lerp = true;
-                            if (fabs(val - a[j]) > reverse_bias[2]) {
+                            if (fabs(val - (a[j] + b[j])) > reverse_bias[2]) {
                                 has_error_hermite = true;
                                 break;
                             }
@@ -484,7 +485,8 @@ namespace Glitter {
         Recalculate(GLT_VAL);
     }
 
-    inline static void key_rev_to_key(Curve::Key& dst, const Curve::KeyRev& src, bool baked_x) {
+    inline static void key_rev_to_key(Curve::Key& dst,
+        const Curve::KeyRev& src, bool baked_x = false, bool negate = false) {
         dst.type = src.type;
         dst.frame = src.frame;
         dst.tangent1 = (float_t)src.tangent1;
@@ -493,10 +495,12 @@ namespace Glitter {
         if (!baked_x) {
             dst.value = (float_t)src.value;
             dst.random_range = (float_t)src.random_range;
+            return;
         }
-        else if (*(uint64_t*)&src.random_range != 0) {
+
+        if (*(uint64_t*)&src.random_range != 0) {
             dst.max_value = (float_t)(src.value + src.random_range);
-            dst.min_value = (float_t)(src.value - src.random_range);
+            dst.min_value = (float_t)(negate ? src.value - src.random_range : src.value);
         }
         else {
             dst.max_value = (float_t)src.value;
@@ -507,14 +511,18 @@ namespace Glitter {
     void Curve::Recalculate(GLT) {
         keys.clear();
 
-        const bool baked_x = GLT_VAL == Glitter::X && (flags & CURVE_BAKED);
+        const bool baked_x = GLT_VAL == Glitter::X
+            && (flags & CURVE_BAKED) && (flags & CURVE_KEY_RANDOM_RANGE);
+        const bool negate = baked_x && (flags & CURVE_RANDOM_RANGE_NEGATE);
 
         size_t keys_count = keys_rev.size();
         if (keys_count < 1)
             return;
         else if (keys_count == 1) {
             keys.resize(1);
-            key_rev_to_key(keys.front(), keys_rev.front(), baked_x);
+            Curve::KeyRev first_key = keys_rev.front();
+            key_rev_to_key(keys.front(), Curve::KeyRev(KEY_CONSTANT, 0,
+                first_key.value, first_key.random_range), baked_x, negate);
             return;
         }
         else if (!(flags & CURVE_BAKED)) {
@@ -524,7 +532,7 @@ namespace Glitter {
             auto i_end = keys_rev.end();
             auto j = keys.begin();
             for (auto i = i_begin; i != i_end; i++, j++)
-                key_rev_to_key(*j, *i, false);
+                key_rev_to_key(*j, *i);
             return;
         }
 
@@ -548,12 +556,14 @@ namespace Glitter {
 
             if (frame <= first_key.frame) {
                 keys.push_back({});
-                key_rev_to_key(keys.back(), first_key, baked_x);
+                key_rev_to_key(keys.back(), Curve::KeyRev(KEY_CONSTANT, frame,
+                    first_key.value, first_key.random_range), baked_x, negate);
                 continue;
             }
             else if (frame >= last_key.frame) {
                 keys.push_back({});
-                key_rev_to_key(keys.back(), last_key, baked_x);
+                key_rev_to_key(keys.back(), Curve::KeyRev(KEY_CONSTANT, frame,
+                    first_key.value, first_key.random_range), baked_x, negate);
                 continue;
             }
 
@@ -595,7 +605,8 @@ namespace Glitter {
 
             Curve::KeyRev key_new;
             keys.push_back({});
-            key_rev_to_key(keys.back(), Curve::KeyRev(KEY_CONSTANT, frame, val, rand_range), baked_x);
+            key_rev_to_key(keys.back(), Curve::KeyRev(KEY_CONSTANT,
+                frame, val, rand_range), baked_x, negate);
         }
     }
 #endif

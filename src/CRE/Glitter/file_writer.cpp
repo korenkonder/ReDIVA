@@ -142,7 +142,7 @@ namespace Glitter {
 
             l += get_size(key_type) * count;
             add_key(key_type, ee, (uint32_t)(get_size(key_type) * count));
-            count = 1;
+            count = 0;
             key_type = i->type;
         }
 
@@ -665,18 +665,35 @@ namespace Glitter {
         }
         else {
             if (eff->version == 7) {
-                ee = { 0, 3, 64, 1 };
+                ee = { 0, 12, 64, 1 };
                 ee.append(0, 1, ENRS_QWORD);
                 ee.append(0, 3, ENRS_DWORD);
-                ee.append(4, 10, ENRS_DWORD);
+                ee.append(4, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
                 e.vec.push_back(ee);
                 l += o = 64;
             }
             else {
-                ee = { 0, 3, 64, 1 };
+                ee = { 0, 11, 64, 1 };
                 ee.append(0, 1, ENRS_QWORD);
                 ee.append(0, 3, ENRS_DWORD);
-                ee.append(4, 9, ENRS_DWORD);
+                ee.append(4, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
+                ee.append(0, 1, ENRS_DWORD);
                 e.vec.push_back(ee);
                 l += o = 60;
             }
@@ -724,7 +741,10 @@ namespace Glitter {
                 store_reverse_endianness_int32_t((void*)(d + 8), eff->data.appear_time);
                 store_reverse_endianness_int32_t((void*)(d + 12), eff->data.life_time);
                 store_reverse_endianness_int32_t((void*)(d + 16), eff->data.start_time);
-                store_reverse_endianness_int32_t((void*)(d + 20), 0xFFFFFFFF);
+                *(uint8_t*)(d + 20) = eff->data.color.b;
+                *(uint8_t*)(d + 21) = eff->data.color.g;
+                *(uint8_t*)(d + 22) = eff->data.color.r;
+                *(uint8_t*)(d + 23) = eff->data.color.a;
                 store_reverse_endianness_int32_t((void*)(d + 24), eff->data.flags & EFFECT_LOOP ? 1 : 0);
                 store_reverse_endianness_float_t((void*)(d + 28), eff->translation.x);
                 store_reverse_endianness_float_t((void*)(d + 32), eff->translation.y);
@@ -738,8 +758,10 @@ namespace Glitter {
                 *(uint64_t*)d = hash_string_murmurhash(eff->name);
                 *(int32_t*)(d + 8) = eff->data.appear_time;
                 *(int32_t*)(d + 12) = eff->data.life_time;
-                *(int32_t*)(d + 16) = eff->data.start_time;
-                *(int32_t*)(d + 20) = 0xFFFFFFFF;
+                *(uint8_t*)(d + 20) = eff->data.color.b;
+                *(uint8_t*)(d + 21) = eff->data.color.g;
+                *(uint8_t*)(d + 22) = eff->data.color.r;
+                *(uint8_t*)(d + 23) = eff->data.color.a;
                 *(int32_t*)(d + 24) = eff->data.flags & EFFECT_LOOP ? 1 : 0;
                 *(vec3*)(d + 28) = eff->translation;
                 *(vec3*)(d + 40) = eff->rotation;
@@ -855,7 +877,10 @@ namespace Glitter {
                 store_reverse_endianness_int32_t((void*)(d + 8), eff->data.appear_time);
                 store_reverse_endianness_int32_t((void*)(d + 12), eff->data.life_time);
                 store_reverse_endianness_int32_t((void*)(d + 16), eff->data.start_time);
-                store_reverse_endianness_int32_t((void*)(d + 20), 0xFFFFFFFF);
+                *(uint8_t*)(d + 20) = eff->data.color.b;
+                *(uint8_t*)(d + 21) = eff->data.color.g;
+                *(uint8_t*)(d + 22) = eff->data.color.r;
+                *(uint8_t*)(d + 23) = eff->data.color.a;
                 store_reverse_endianness_int32_t((void*)(d + 24), eff->data.flags & EFFECT_LOOP ? 1 : 0);
                 store_reverse_endianness_float_t((void*)(d + 28), eff->translation.x);
                 store_reverse_endianness_float_t((void*)(d + 32), eff->translation.y);
@@ -871,7 +896,10 @@ namespace Glitter {
                 *(int32_t*)(d + 8) = eff->data.appear_time;
                 *(int32_t*)(d + 12) = eff->data.life_time;
                 *(int32_t*)(d + 16) = eff->data.start_time;
-                *(int32_t*)(d + 20) = 0xFFFFFFFF;
+                *(uint8_t*)(d + 20) = eff->data.color.b;
+                *(uint8_t*)(d + 21) = eff->data.color.g;
+                *(uint8_t*)(d + 22) = eff->data.color.r;
+                *(uint8_t*)(d + 23) = eff->data.color.a;
                 *(int32_t*)(d + 24) = eff->data.flags & EFFECT_LOOP ? 1 : 0;
                 *(vec3*)(d + 28) = eff->translation;
                 *(vec3*)(d + 40) = eff->rotation;
@@ -1339,16 +1367,17 @@ namespace Glitter {
             }
         }
         else {
-            ee = { 0, 1, 204, 1 };
-            ee.append(0, 51, ENRS_DWORD);
-            e.vec.push_back(ee);
-            l += o = 204;
-
             if (ptcl->version == 3) {
-                ee = { o, 1, 8, 1 };
-                ee.append(0, 2, ENRS_DWORD);
+                ee = { 0, 1, 212, 1 };
+                ee.append(0, 53, ENRS_DWORD);
                 e.vec.push_back(ee);
-                l += o = 8;
+                l += o = 212;
+            }
+            else {
+                ee = { 0, 1, 204, 1 };
+                ee.append(0, 51, ENRS_DWORD);
+                e.vec.push_back(ee);
+                l += o = 204;
             }
 
             if (ptcl->data.type == PARTICLE_LOCUS || ptcl->data.type == PARTICLE_MESH) {
@@ -1357,7 +1386,6 @@ namespace Glitter {
                 e.vec.push_back(ee);
                 l += o = 4;
             }
-
 
             if (eff_group->version >= 7) {
                 ee = { o, 11, 48, 1 };
@@ -1862,20 +1890,21 @@ namespace Glitter {
     }
 
     bool FileWriter::UnparseCurve(f2_struct* st, Curve* c, bool big_endian) {
-#if !defined(CRE_DEV)
-        if (c->keys.size() < 1)
-            return false;
-#else
-        std::vector<Curve::Key> keys = c->keys;
-        if (c->keys_rev.size() < 1)
-            return false;
+#if defined(CRE_DEV)
+        std::vector<Curve::Key> keys;
 
-        c->Recalculate(type);
-        if (!c->keys.size()) {
-            c->keys = keys;
-            return false;
+        extern bool glitter_editor_enable;
+        if (glitter_editor_enable) {
+            if (c->keys_rev.size() < 1)
+                return false;
+
+            keys.assign(c->keys.begin(), c->keys.end());
+            c->Recalculate(type);
         }
 #endif
+
+        if (c->keys.size() < 1)
+            return false;
 
         size_t l;
         size_t d;
@@ -2010,7 +2039,8 @@ namespace Glitter {
         st->sub_structs.push_back(s);
 
 #if defined(CRE_DEV)
-        c->keys = keys;
+        if (glitter_editor_enable)
+            c->keys.assign(keys.begin(), keys.end());
 #endif
         return true;
     }

@@ -872,6 +872,10 @@ namespace Glitter {
                 eff->data.appear_time = load_reverse_endianness_int32_t((void*)(d + 8));
                 eff->data.life_time = load_reverse_endianness_int32_t((void*)(d + 12));
                 eff->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
+                eff->data.color.b = *(uint8_t*)(d + 20);
+                eff->data.color.g = *(uint8_t*)(d + 21);
+                eff->data.color.r = *(uint8_t*)(d + 22);
+                eff->data.color.a = *(uint8_t*)(d + 23);
                 if (load_reverse_endianness_int32_t((void*)(d + 24)))
                     enum_or(eff->data.flags, EFFECT_LOOP);
                 eff->translation.x = load_reverse_endianness_float_t((void*)(d + 28));
@@ -887,6 +891,11 @@ namespace Glitter {
                 eff->data.appear_time = *(int32_t*)(d + 8);
                 eff->data.life_time = *(int32_t*)(d + 12);
                 eff->data.start_time = *(int32_t*)(d + 16);
+                eff->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
+                eff->data.color.b = *(uint8_t*)(d + 20);
+                eff->data.color.g = *(uint8_t*)(d + 21);
+                eff->data.color.r = *(uint8_t*)(d + 22);
+                eff->data.color.a = *(uint8_t*)(d + 23);
                 if (*(int32_t*)(d + 24))
                     enum_or(eff->data.flags, EFFECT_LOOP);
                 eff->translation = *(vec3*)(d + 28);
@@ -1061,6 +1070,10 @@ namespace Glitter {
                 eff->data.appear_time = load_reverse_endianness_int32_t((void*)(d + 8));
                 eff->data.life_time = load_reverse_endianness_int32_t((void*)(d + 12));
                 eff->data.start_time = load_reverse_endianness_int32_t((void*)(d + 16));
+                eff->data.color.b = *(uint8_t*)(d + 20);
+                eff->data.color.g = *(uint8_t*)(d + 21);
+                eff->data.color.r = *(uint8_t*)(d + 22);
+                eff->data.color.a = *(uint8_t*)(d + 23);
                 if (load_reverse_endianness_int32_t((void*)(d + 24)))
                     enum_or(eff->data.flags, EFFECT_LOOP);
                 eff->translation.x = load_reverse_endianness_float_t((void*)(d + 28));
@@ -1076,6 +1089,10 @@ namespace Glitter {
                 eff->data.appear_time = *(int32_t*)(d + 8);
                 eff->data.life_time = *(int32_t*)(d + 12);
                 eff->data.start_time = *(int32_t*)(d + 16);
+                eff->data.color.b = *(uint8_t*)(d + 20);
+                eff->data.color.g = *(uint8_t*)(d + 21);
+                eff->data.color.r = *(uint8_t*)(d + 22);
+                eff->data.color.a = *(uint8_t*)(d + 23);
                 if (*(int32_t*)(d + 24))
                     enum_or(eff->data.flags, EFFECT_LOOP);
                 eff->translation = *(vec3*)(d + 28);

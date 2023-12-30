@@ -371,7 +371,6 @@ bool GlitterEditor::init() {
     dtw_stg_load(true);
 
     input_reset = true;
-    glitter_editor_enable = true;
 
     /*const char* path_vrfl = "VRFL\\";
     std::vector<std::string> files_vrfl = path_get_files(path_vrfl);
@@ -1711,6 +1710,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         return;
 
     if (!glt_edt->load_data_wait) {
+        glitter_editor_enable = true;
         glt_edt->hash = Glitter::glt_particle_manager->LoadFile(glt_edt->load_glt_type,
             &data_list[glt_edt->load_data_type], file, path, -1.0f, false);
         glt_edt->load_data_wait = true;
@@ -1762,11 +1762,13 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         glt_edt->load = false;
         glt_edt->load_wait = false;
         glt_edt->load_data_wait = false;
+        glitter_editor_enable = false;
     }
     else if (!Glitter::glt_particle_manager->CheckHasFileReader(glt_edt->hash)) {
         glt_edt->load = false;
         glt_edt->load_wait = false;
         glt_edt->load_data_wait = false;
+        glitter_editor_enable = false;
     }
 
     glt_edt->reset();
@@ -3183,6 +3185,12 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
         changed = true;
 
     ImGui::Separator();
+
+    vec4 color = effect->data.color;
+    if (ImGui::ColumnColorEdit4("Color", &color,
+        ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_AlphaBar))
+        changed = true;
+    effect->data.color = color;
 
     if (ImGui::ColumnDragVec3("Translation",
         &effect->translation, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
@@ -5761,7 +5769,7 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
 
 static void glitter_editor_curve_editor_selector_list_box_selectable(GlitterEditor* glt_edt,
     const Glitter::CurveTypeFlags flags, const char* label, const Glitter::CurveType type, bool& reset) {
-    if (!(flags & type))
+    if (!(flags & (1 << type)))
         return;
 
     GlitterEditor::CurveEditor* crv_edt = &glt_edt->curve_editor;

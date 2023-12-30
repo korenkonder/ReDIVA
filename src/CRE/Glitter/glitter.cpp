@@ -12,7 +12,8 @@ namespace Glitter {
         | CURVE_TYPE_TRANSLATION_XYZ
         | CURVE_TYPE_ROTATION_XYZ
         | CURVE_TYPE_SCALE_XYZ
-        | CURVE_TYPE_SCALE_ALL);
+        | CURVE_TYPE_SCALE_ALL
+        | CURVE_TYPE_COLOR_RGBA);
 
     const CurveTypeFlags emitter_curve_flags = (CurveTypeFlags)(0
         | CURVE_TYPE_TRANSLATION_XYZ
