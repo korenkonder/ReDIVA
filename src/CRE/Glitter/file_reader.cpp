@@ -717,55 +717,10 @@ namespace Glitter {
                         }
         }
 
-        if (c->flags & CURVE_KEY_RANDOM_RANGE && keys.size()) {
-            if (type == Glitter::X && c->flags & CURVE_BAKED)
-                for (Curve::Key& i : keys) {
-                    float_t max = i.value;
-                    float_t min = i.random_range;
-                    if (*(uint32_t*)&min != *(uint32_t*)&max) {
-                        i.value = (float_t)(((double_t)min + (double_t)max) * 0.5);
-                        i.random_range = (float_t)((double_t)max
-                            - ((double_t)min + (double_t)max) * 0.5);
-                    }
-                    else
-                        i.random_range = 0.0f;
-                }
-
-            bool has_key_random_range = false;
-            if (type == Glitter::F2) {
-                Curve::Key* keys_data = keys.data();
-                if (count > 1 && keys_data[0].random_range != 0.0f
-                    && keys_data[1].random_range != 0.0f)
-                    has_key_random_range = true;
-                else if (count > 1 && keys_data[0].random_range != 0.0f
-                    && keys_data[1].random_range == 0.0f) {
-                    keys_data[0].value += keys_data[0].random_range * 10.0f;
-                    keys_data[0].random_range = 0.0f;
-                }
-
-                if (count > 1 && keys_data[count - 2].random_range != 0.0f
-                    && keys_data[count - 1].random_range != 0.0f)
-                    has_key_random_range = true;
-                else if (count > 1 && keys_data[count - 2].random_range == 0.0f
-                    && keys_data[count - 1].random_range != 0.0f) {
-                    keys_data[count - 1].value += keys_data[count - 1].random_range * 10.0f;
-                    keys_data[count - 1].random_range = 0.0f;
-                }
-            }
-
-            if (!has_key_random_range)
-                for (Curve::Key& i : keys)
-                    if (i.random_range != 0.0f) {
-                        has_key_random_range = true;
-                        break;
-                    }
-
-            if (!has_key_random_range)
-                enum_and(c->flags, ~CURVE_KEY_RANDOM_RANGE);
-        }
-
 #if defined(CRE_DEV)
-        c->FitKeysIntoCurve(type);
+        extern bool glitter_editor_enable;
+        if (glitter_editor_enable)
+            c->FitKeysIntoCurve(type);
 #endif
     }
 

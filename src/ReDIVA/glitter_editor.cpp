@@ -148,14 +148,14 @@ static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
 
 static void glitter_editor_curve_editor_curve_set(GlitterEditor* glt_edt,
     Glitter::Curve* curve, Glitter::CurveType type);
-static Glitter::Curve::Key* glitter_editor_curve_editor_get_closest_key(
+static Glitter::Curve::KeyRev* glitter_editor_curve_editor_get_closest_key(
     GlitterEditor* glt_edt, Glitter::Curve* curve);
-static Glitter::Curve::Key* glitter_editor_curve_editor_get_selected_key(
+static Glitter::Curve::KeyRev* glitter_editor_curve_editor_get_selected_key(
     GlitterEditor* glt_edt, Glitter::Curve* curve);
 static float_t glitter_editor_curve_editor_get_value(GlitterEditor* glt_edt,
     Glitter::CurveType type);
 static void glitter_editor_curve_editor_key_manager(GlitterEditor* glt_edt,
-    std::vector<Glitter::Curve::Key>* keys, bool* add_key, bool* del_key);
+    std::vector<Glitter::Curve::KeyRev>* keys, bool* add_key, bool* del_key);
 static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt);
 static void glitter_editor_curve_editor_selector(GlitterEditor* glt_edt);
 static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt);
@@ -186,6 +186,8 @@ static bool glitter_editor_hash_input(GlitterEditor* glt_edt,
     const char* label, uint64_t* hash);
 
 GlitterEditor glitter_editor;
+
+bool glitter_editor_enable;
 
 GlitterEditor::CurveEditor::CurveEditor() : type(), type_flags(), animation(), list(),
 key(), frame_width(), zoom_time(), prev_zoom_time(), zoom_value(), key_radius_in(),
@@ -369,32 +371,30 @@ bool GlitterEditor::init() {
     dtw_stg_load(true);
 
     input_reset = true;
+    glitter_editor_enable = true;
 
-    /*char* path_x = "VRFL\\";
-    vector_old_string files_x = vector_old_empty(string);
-    path_get_files(&files_x, path_x);
-    for (string* i = files_x.begin; i != files_x.end;)
-        if (str_utils_check_ends_with(string_data(i), ".farc"))
+    /*const char* path_vrfl = "VRFL\\";
+    std::vector<std::string> files_vrfl = path_get_files(path_vrfl);
+    auto files_vrfl_begin = files_vrfl.begin();
+    auto files_vrfl_end = files_vrfl.end();
+    for (auto i = files_vrfl_begin; i != files_vrfl_end; i++)
+        if (!str_utils_check_ends_with(i->c_str(), ".farc"))
+            i = files_vrfl.erase(i);
+        else
             i++;
-        else {
-            string_free(i);
-            vector_old_string_erase(&files_x, i - files_x.begin);
-        }
 
-    ssize_t c = vector_old_length(files_x);
-    GlitterFileReader* fr = 0;
-    if (files_x.begin) {
-        stream s;
+    if (files_vrfl.size()) {
+        file_stream s;
         s.open(L"name_VRFL.glitter.txt", L"rb");
         size_t length = s.length;
-        uint8_t* data = force_malloc(length);
+        uint8_t* data = force_malloc<uint8_t>(length);
         s.read(data, length);
         s.close();
 
         char* buf;
         char** lines;
         size_t count;
-        if (str_utils_text_file_parse(data, length, &buf, &lines, &count)) {
+        if (str_utils_text_file_parse(data, length, buf, lines, count)) {
             for (size_t i = 0; i < count; i++) {
                 char* t = strstr(lines[i], "#(?)");
                 if (t)
@@ -407,24 +407,23 @@ bool GlitterEditor::init() {
                 hashes[i] = hash_murmurhash(lines[i], min_def(len, 0x7F));
             }
 
-            for (ssize_t i = 0; i < c; i++) {
-                char* file_x = str_utils_get_without_extension(string_data(&files_x.begin[i]));
+            for (const std::string& i : files_vrfl) {
+                char* file_vrfl = str_utils_get_without_extension(i.c_str());
 
                 char buf[0x200];
-                sprintf_s(buf, 0x100, "%hs\n", file_x);
+                sprintf_s(buf, 0x100, "%hs\n", file_vrfl);
                 OutputDebugStringA(buf);
 
-                glt_edt->load_glt_type = Glitter::X;
-                fr = glitter_file_reader_init(Glitter::X, path_x, file_x, 1.0f);
-                glitter_file_reader_read(fr, Glitter::glt_particle_manager->emission);
+                Glitter::FileReader fr(Glitter::X, path_vrfl, file_vrfl, 1.0f);
+                fr.Read(Glitter::glt_particle_manager, 0);
 
-                if (fr && fr->effect_group) {
-                    Glitter::EffectGroup* eg = fr->effect_group;
-                    for (Glitter::Effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                        if (!*i)
+                if (fr.effect_group) {
+                    Glitter::EffectGroup* eg = fr.effect_group;
+                    for (Glitter::Effect*& i : eg->effects) {
+                        if (!i)
                             continue;
 
-                        Glitter::Effect* e = *i;
+                        Glitter::Effect* e = i;
                         if (e->data.name_hash == hash_murmurhash_empty)
                             continue;
 
@@ -440,7 +439,84 @@ bool GlitterEditor::init() {
                         }
                     }
 
-                    Glitter::EffectGroup_dispose(fr->effect_group);
+                    delete fr.effect_group;
+                }
+                free_def(file_vrfl);
+            }
+            free_def(lines);
+            free_def(hashes);
+        }
+        free_def(data);
+    }*/
+
+    /*const char* path_x = "X\\";
+    std::vector<std::string> files_x = path_get_files(path_x);
+    auto files_x_begin = files_x.begin();
+    auto files_x_end = files_x.end();
+    for (auto i = files_x_begin; i != files_x_end; i++)
+        if (!str_utils_check_ends_with(i->c_str(), ".farc"))
+            i = files_x.erase(i);
+        else
+            i++;
+
+    Glitter::FileReader* fr = 0;
+    if (files_x.size()) {
+        file_stream s;
+        s.open(L"name_X.glitter.txt", L"rb");
+        size_t length = s.length;
+        uint8_t* data = force_malloc<uint8_t>(length);
+        s.read(data, length);
+        s.close();
+
+        char* buf;
+        char** lines;
+        size_t count;
+        if (str_utils_text_file_parse(data, length, buf, lines, count)) {
+            for (size_t i = 0; i < count; i++) {
+                char* t = strstr(lines[i], "#(?)");
+                if (t)
+                    *t = 0;
+            }
+
+            uint64_t* hashes = force_malloc<uint64_t>(count);
+            for (size_t i = 0; i < count; i++) {
+                size_t len = utf8_length(lines[i]);
+                hashes[i] = hash_murmurhash(lines[i], min_def(len, 0x7F));
+            }
+
+            for (const std::string& i : files_x) {
+                char* file_x = str_utils_get_without_extension(i.c_str());
+
+                char buf[0x200];
+                sprintf_s(buf, 0x100, "%hs\n", file_x);
+                OutputDebugStringA(buf);
+
+                Glitter::FileReader fr(Glitter::X, path_x, file_x, 1.0f);
+                fr.Read(Glitter::glt_particle_manager, 0);
+
+                if (fr.effect_group) {
+                    Glitter::EffectGroup* eg = fr.effect_group;
+                    for (Glitter::Effect*& i : eg->effects) {
+                        if (!i)
+                            continue;
+
+                        Glitter::Effect* e = i;
+                        if (e->data.name_hash == hash_murmurhash_empty)
+                            continue;
+
+                        size_t j;
+                        for (j = 0; j < count; j++)
+                            if (e->data.name_hash == hashes[j])
+                                break;
+
+                        if (j == count) {
+                            char buf[0x200];
+                            sprintf_s(buf, 0x100, "%08llX\n", e->data.name_hash);
+                            OutputDebugStringA(buf);
+                        }
+                    }
+
+                    delete fr.effect_group;
                 }
                 free_def(file_x);
             }
@@ -448,101 +524,40 @@ bool GlitterEditor::init() {
             free_def(hashes);
         }
         free_def(data);
-    }
-    for (string* i = files_x.begin; i != files_x.end; i++)
-        string_free(i);
-    vector_old_string_free(&files_x);
-    glitter_file_reader_dispose(fr);
-    glt_edt->effect_group = 0;
-    return;*/
+    }*/
 
-    /*char* path_x = "X\\";
-    vector_old_string files_x = vector_old_empty(string);
-    path_get_files(&files_x, path_x);
-    for (string* i = files_x.begin; i != files_x.end;)
-        if (str_utils_check_ends_with(string_data(i), ".farc"))
+    /*const char* path_f2 = "F2\\";
+    const char* path_ft = "AFT\\";
+    std::vector<std::string> files_f2 = path_get_files(path_f2);
+    std::vector<std::string> files_ft = path_get_files(path_f2);
+
+    auto files_f2_begin = files_f2.begin();
+    auto files_f2_end = files_f2.end();
+    for (auto i = files_f2_begin; i != files_f2_end; i++)
+        if (!str_utils_check_ends_with(i->c_str(), ".farc"))
+            i = files_f2.erase(i);
+        else
             i++;
-        else {
-            string_free(i);
-            vector_old_string_erase(&files_x, i - files_x.begin);
-        }
 
-    ssize_t c = vector_old_length(files_x);
-    GlitterFileReader* fr = 0;
-    if (files_x.begin)
-        for (ssize_t i = 0; i < c; i++) {
-            char* file_x = str_utils_get_without_extension(string_data(&files_x.begin[i]));
-
-            char buf[0x200];
-            sprintf_s(buf, 0x100, "%hs\n", file_x);
-            OutputDebugStringA(buf);
-
-            glt_edt->load_glt_type = Glitter::X;
-            fr = glitter_file_reader_init(Glitter::X, path_x, file_x, 1.0f);
-            glitter_file_reader_read(fr, Glitter::glt_particle_manager->emission);
-
-            if (fr && fr->effect_group) {
-                Glitter::EffectGroup* eg = fr->effect_group;
-                for (Glitter::Effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                    if (!*i)
-                        continue;
-
-                    Glitter::Effect* e = *i;
-                    if (!e->data.ext_anim)
-                        continue;
-
-                    Glitter::Effect_ext_anim* ea = e->data.ext_anim;
-                    if (ea->instance_id) {
-                        char buf[0x200];
-                        sprintf_s(buf, 0x100, "%08llX %d\n", e->data.name_hash, ea->instance_id);
-                        OutputDebugStringA(buf);
-                    }
-                }
-
-                Glitter::EffectGroup_dispose(fr->effect_group);
-            }
-            free_def(file_x);
-        }
-    for (string* i = files_x.begin; i != files_x.end; i++)
-        string_free(i);
-    vector_old_string_free(&files_x);
-    glitter_file_reader_dispose(fr);
-    glt_edt->effect_group = 0;
-    return;*/
-
-    /*char* path_f2 = "F2\\";
-    char* path_ft = "AFT\\";
-    vector_old_string files_f2 = vector_old_empty(string);
-    vector_old_string files_ft = vector_old_empty(string);
-    path_get_files(&files_f2, path_f2);
-    path_get_files(&files_ft, path_ft);
-    for (string* i = files_f2.begin; i != files_f2.end;)
-        if (str_utils_check_ends_with(string_data(i), ".farc"))
+    auto files_ft_begin = files_ft.begin();
+    auto files_ft_end = files_ft.end();
+    for (auto i = files_ft_begin; i != files_ft_end; i++)
+        if (!str_utils_check_ends_with(i->c_str(), ".farc"))
+            i = files_ft.erase(i);
+        else
             i++;
-        else {
-            string_free(i);
-            vector_old_string_erase(&files_f2, i - files_f2.begin);
-        }
 
-    for (string* i = files_ft.begin; i != files_ft.end;)
-        if (str_utils_check_ends_with(string_data(i), ".farc"))
-            i++;
-        else {
-            string_free(i);
-            vector_old_string_erase(&files_ft, i - files_ft.begin);
-        }
-
-    stream s;
+    file_stream s;
     s.open(L"name_F2.glitter.txt", L"rb");
     size_t length = s.length;
-    uint8_t* data = force_malloc(length);
+    uint8_t* data = force_malloc<uint8_t>(length);
     s.read(data, length);
     s.close();
 
     char* buf;
     char** lines;
     size_t count;
-    if (str_utils_text_file_parse(data, length, &buf, &lines, &count)) {
+    if (str_utils_text_file_parse(data, length, buf, lines, count)) {
         for (size_t i = 0; i < count; i++) {
             char* t = strstr(lines[i], "#(?)");
             if (t)
@@ -555,24 +570,27 @@ bool GlitterEditor::init() {
             hashes[i] = hash_murmurhash(lines[i], min_def(len, 0x7F));
         }
 
-        ssize_t c = vector_old_length(files_f2);
-        GlitterFileReader* fr = 0;
-        if (files_f2.begin && files_ft.begin)
-            for (ssize_t i = 0; i < c; i++) {
-                char* file_f2 = str_utils_get_without_extension(string_data(&files_f2.begin[i]));
-                char* file_ft = str_utils_get_without_extension(string_data(&files_ft.begin[i]));
-                glt_edt->load_glt_type = Glitter::F2;
-                fr = glitter_file_reader_init(Glitter::F2, path_f2, file_f2, 1.0f);
-                glitter_file_reader_read(fr, Glitter::glt_particle_manager->emission);
+        Glitter::FileReader* fr = 0;
+        if (files_f2.size() && files_ft.size()) {
+            auto files_f2_begin = files_f2.begin();
+            auto files_f2_end = files_f2.end();
+            auto files_ft_begin = files_ft.begin();
+            auto files_ft_end = files_ft.end();
+            for (auto i = files_f2_begin, j = files_ft_begin; i != files_f2_end && j != files_ft_end; i++, j++) {
+                const char* file_f2 = str_utils_get_without_extension(i->c_str());
+                const char* file_ft = str_utils_get_without_extension(j->c_str());
 
-                if (fr && fr->effect_group) {
-                    Glitter::EffectGroup* eg = fr->effect_group;
-                    for (Glitter::Effect** i = eg->effects.begin; i != eg->effects.end; i++) {
-                        if (!*i)
+                Glitter::FileReader fr(Glitter::F2, path_vrfl, file_f2, 1.0f);
+                fr.Read(Glitter::glt_particle_manager, 0);
+
+                if (fr.effect_group) {
+                    Glitter::EffectGroup* eg = fr.effect_group;
+                    for (Glitter::Effect*& i : eg->effects) {
+                        if (!i)
                             continue;
 
-                        Glitter::Effect* e = *i;
-                        memset(e->name, 0, 0x80);
+                        Glitter::Effect* e = i;
+                        e->name.clear();
                         if (e->data.name_hash == hash_murmurhash_empty)
                             continue;
 
@@ -584,33 +602,22 @@ bool GlitterEditor::init() {
                         if (j == count)
                             break;
 
-                        size_t len = utf8_length(lines[j]);
-                        memcpy(e->name, lines[j], min_def(len, 0x7F));
+                        e->name.assign(lines[j], min_def(utf8_length(lines[j]), 0x7F));
                     }
 
-                    glt_edt->effect_group = fr->effect_group;
-                    //glt_edt->save_glt_type = Glitter::FT;
-                    //glitter_editor_save_file(path_ft, file_ft);
-                    Glitter::EffectGroup_dispose(fr->effect_group);
+                    Glitter::FileWriter::Write(Glitter::FT, fr.effect_group, path_ft, file_ft, false, false);
+                    delete fr.effect_group;
                 }
                 free_def(file_f2);
                 free_def(file_ft);
             }
-        glitter_file_reader_dispose(fr);
+        }
 
         free_def(buf);
         free_def(lines);
         free_def(hashes);
     }
-    for (string* i = files_f2.begin; i != files_f2.end; i++)
-        string_free(i);
-    vector_old_string_free(&files_f2);
-
-    for (string* i = files_ft.begin; i != files_ft.end; i++)
-        string_free(i);
-    vector_old_string_free(&files_ft);
-    free_def(data);
-    glt_edt->effect_group = 0;*/
+    free_def(data);*/
     return true;
 }
 
@@ -1164,6 +1171,7 @@ bool GlitterEditor::dest() {
     dtm_stg_unload();
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
     Glitter::glt_particle_manager->UnloadEffectGroup(hash);
+    glitter_editor_enable = false;
     return true;
 }
 
@@ -3702,14 +3710,12 @@ static void glitter_editor_property_emitter(GlitterEditor* glt_edt) {
                     prev_direction == Glitter::EMITTER_DIRECTION_Z_AXIS;
                 if (draw_z_axis && !prev_draw_z_axis) {
                     if (!(flags & Glitter::CURVE_TYPE_ROTATION_Z))
-                        emitter->animation.AddValue(eg->type,
-                            (float_t)M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
+                        emitter->animation.AddValue(eg->type, M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
                     emitter->rotation.z += (float_t)M_PI_2;
                 }
                 else if (!draw_z_axis && prev_draw_z_axis) {
                     if (!(flags & Glitter::CURVE_TYPE_ROTATION_Z))
-                        emitter->animation.AddValue(eg->type,
-                            (float_t)-M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
+                        emitter->animation.AddValue(eg->type, -M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
                     emitter->rotation.z -= (float_t)M_PI_2;
                 }
             }
@@ -4019,14 +4025,12 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
                         particle->data.rotation.z -= (float_t)M_PI;
                     else if (draw_z_axis && !prev_draw_z_axis) {
                         if (!(flags & Glitter::CURVE_TYPE_ROTATION_Z))
-                            particle->animation.AddValue(eg->type,
-                                (float_t)M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
+                            particle->animation.AddValue(eg->type, M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
                         particle->data.rotation.z += (float_t)M_PI_2;
                     }
                     else if (!draw_z_axis && prev_draw_z_axis) {
                         if (!(flags & Glitter::CURVE_TYPE_ROTATION_Z))
-                            particle->animation.AddValue(eg->type,
-                                (float_t)-M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
+                            particle->animation.AddValue(eg->type, -M_PI_2, Glitter::CURVE_TYPE_ROTATION_Z);
                         particle->data.rotation.z -= (float_t)M_PI_2;
                     }
                 }
@@ -5277,6 +5281,7 @@ inline static float_t convert_height_to_value(GlitterEditor::CurveEditor* crv_ed
     float_t t = (val - pos - crv_edt->height_offset) / (size - crv_edt->height_offset);
     return (1.0f - t) * (max - min) + min;
 }
+
 inline static float_t convert_value_to_height(GlitterEditor::CurveEditor* crv_edt,
     float_t val, float_t pos, float_t size, float_t min, float_t max) {
     float_t t = 1.0f - (val - min) / (max - min);
@@ -5306,13 +5311,13 @@ static void glitter_editor_curve_editor_curve_set(GlitterEditor* glt_edt,
     }
 }
 
-static Glitter::Curve::Key* glitter_editor_curve_editor_get_closest_key(
+static Glitter::Curve::KeyRev* glitter_editor_curve_editor_get_closest_key(
     GlitterEditor* glt_edt, Glitter::Curve* curve) {
     GlitterEditor::CurveEditor* crv_edt = &glt_edt->curve_editor;
 
-    Glitter::Curve::Key* key = 0;
-    std::vector<Glitter::Curve::Key>* keys = &curve->keys_rev;
-    for (Glitter::Curve::Key& i : *keys) {
+    Glitter::Curve::KeyRev* key = 0;
+    std::vector<Glitter::Curve::KeyRev>* keys = &curve->keys_rev;
+    for (Glitter::Curve::KeyRev& i : *keys) {
         if (i.frame == crv_edt->frame)
             return &i;
 
@@ -5323,12 +5328,12 @@ static Glitter::Curve::Key* glitter_editor_curve_editor_get_closest_key(
     return &key[0];
 }
 
-static Glitter::Curve::Key* glitter_editor_curve_editor_get_selected_key(
+static Glitter::Curve::KeyRev* glitter_editor_curve_editor_get_selected_key(
     GlitterEditor* glt_edt, Glitter::Curve* curve) {
     GlitterEditor::CurveEditor* crv_edt = &glt_edt->curve_editor;
 
-    std::vector<Glitter::Curve::Key>* keys = &curve->keys_rev;
-    for (Glitter::Curve::Key& i : *keys)
+    std::vector<Glitter::Curve::KeyRev>* keys = &curve->keys_rev;
+    for (Glitter::Curve::KeyRev& i : *keys)
         if (i.frame == crv_edt->frame)
             return &i;
     return 0;
@@ -5450,13 +5455,13 @@ static float_t glitter_editor_curve_editor_get_value(GlitterEditor* glt_edt, Gli
 }
 
 static void glitter_editor_curve_editor_key_manager(GlitterEditor* glt_edt,
-    std::vector<Glitter::Curve::Key>* keys, bool* add_key, bool* del_key) {
+    std::vector<Glitter::Curve::KeyRev>* keys, bool* add_key, bool* del_key) {
     GlitterEditor::CurveEditor* crv_edt = &glt_edt->curve_editor;
 
     Glitter::Curve* curve = crv_edt->list[crv_edt->type];
     *add_key = true;
     *del_key = false;
-    for (Glitter::Curve::Key& i : *keys)
+    for (Glitter::Curve::KeyRev& i : *keys)
         if (i.frame > curve->end_time)
             break;
         else if (i.frame == crv_edt->frame) {
@@ -5487,18 +5492,18 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
             || (glt_edt->selected_type == GLITTER_EDITOR_SELECTED_PARTICLE
                 && sel_ptcl->data.draw_type == Glitter::DIRECTION_Z_AXIS));
 
-    float_t scale;
-    float_t inv_scale;
+    double_t scale;
+    double_t inv_scale;
     float_t min;
     float_t min_random;
 
     if (curve->type >= Glitter::CURVE_ROTATION_X && curve->type <= Glitter::CURVE_ROTATION_Z) {
-        scale = RAD_TO_DEG_FLOAT;
-        inv_scale = DEG_TO_RAD_FLOAT;
+        scale = RAD_TO_DEG;
+        inv_scale = DEG_TO_RAD;
     }
     else if (curve->type >= Glitter::CURVE_COLOR_R && curve->type <= Glitter::CURVE_COLOR_RGB_SCALE_2ND) {
-        scale = 255.0f;
-        inv_scale = (float_t)(1.0 / 255.0);
+        scale = 255.0;
+        inv_scale = 1.0 / 255.0;
     }
     else {
         scale = 1.0f;
@@ -5524,12 +5529,12 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
     bool changed = false;
     bool key_edit = false;
 
-    float_t value = 0.0f;
+    double_t value = 0.0;
     if (curve->keys_rev.size() > 1) {
-        Glitter::Curve::Key* i_begin = curve->keys_rev.data();
-        Glitter::Curve::Key* i_end = curve->keys_rev.data() + curve->keys_rev.size();
-        Glitter::Curve::Key* c = i_begin;
-        Glitter::Curve::Key* n = c + 1;
+        Glitter::Curve::KeyRev* i_begin = curve->keys_rev.data();
+        Glitter::Curve::KeyRev* i_end = curve->keys_rev.data() + curve->keys_rev.size();
+        Glitter::Curve::KeyRev* c = i_begin;
+        Glitter::Curve::KeyRev* n = c + 1;
         while (n != i_end && n->frame < crv_edt->frame) {
             c++;
             n++;
@@ -5542,12 +5547,12 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
                 break;
             case Glitter::KEY_LINEAR:
                 value = Glitter::Curve::InterpolateLinear(c->value, n->value,
-                    (float_t)c->frame, (float_t)n->frame, (float_t)crv_edt->frame);
+                    (double_t)c->frame, (double_t)n->frame, (double_t)crv_edt->frame);
                 break;
             case Glitter::KEY_HERMITE:
                 value = Glitter::Curve::InterpolateHermite(
                     c->value, n->value - c->value, c->tangent2, n->tangent1,
-                    (float_t)c->frame, (float_t)n->frame, (float_t)crv_edt->frame);
+                    (double_t)c->frame, (double_t)n->frame, (double_t)crv_edt->frame);
                 break;
             }
     }
@@ -5562,8 +5567,8 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
     ImGui::Text("Frame: %d; Value: %g", crv_edt->frame, value);
 
     if (crv_edt->key && ImGui::TreeNodeEx("Key", ImGuiTreeNodeFlags_DefaultOpen)) {
-        Glitter::Curve::Key* c = crv_edt->key;
-        Glitter::Curve::Key* n = curve->keys_rev.data() + curve->keys_rev.size()
+        Glitter::Curve::KeyRev* c = crv_edt->key;
+        Glitter::Curve::KeyRev* n = curve->keys_rev.data() + curve->keys_rev.size()
             - crv_edt->key > 1 ? &crv_edt->key[1] : 0;
         if (ImGui::ColumnComboBox("Type", Glitter::key_name,
             Glitter::KEY_HERMITE,
@@ -5571,37 +5576,28 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
             changed = true;
         key_edit |= ImGui::IsItemFocused();
 
-        float_t value = c->value;
-        if (fix_rot_z)
-            value -= (float_t)M_PI_2;
-        value *= scale;
+        float_t value = (float_t)((fix_rot_z ? c->value - M_PI_2 : c->value) * scale);
         if (ImGui::ColumnDragFloat("Value",
             &value, 0.0001f, min, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            value *= inv_scale;
-            if (fix_rot_z)
-                value += (float_t)M_PI_2;
-            c->value = value;
+            c->value = fix_rot_z ? value * inv_scale + M_PI_2 : value * inv_scale;
             changed = true;
         }
         key_edit |= ImGui::IsItemFocused();
 
         ImGui::DisableElementPush(key_random_range);
-        float_t random = c->random_range * scale;
+        float_t random = (float_t)(c->random_range * scale);
         if (ImGui::ColumnDragFloat("Random Range",
             &random, 0.0001f, min_random, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            random *= inv_scale;
-            if (random != c->random_range) {
-                c->random_range = random;
-                changed = true;
-            }
+            c->random_range = random * inv_scale;
+            changed = true;
         }
         key_edit |= ImGui::IsItemFocused();
         ImGui::DisableElementPop(key_random_range);
 
         if (n && c->type == Glitter::KEY_HERMITE) {
-            float_t tangent2 = c->tangent2 * scale;
+            float_t tangent2 = (float_t)(c->tangent2 * scale);
             if (ImGui::ColumnDragFloat("Tangent 1",
                 &tangent2, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
                 ImGuiSliderFlags_NoRoundToFormat)) {
@@ -5610,7 +5606,7 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
             }
             key_edit |= ImGui::IsItemFocused();
 
-            float_t tangent1 = n->tangent1 * scale;
+            float_t tangent1 = (float_t)(n->tangent1 * scale);
             if (ImGui::ColumnDragFloat("Tangent 2",
                 &tangent1, 0.0001f, -FLT_MAX, FLT_MAX, "%g",
                 ImGuiSliderFlags_NoRoundToFormat)) {
@@ -5654,11 +5650,11 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
         }
 
         ImGui::DisableElementPush(random_range);
-        float_t random = curve->random_range * scale;
+        float_t random = curve->random_range * (float_t)scale;
         if (ImGui::ColumnDragFloat("Random Range",
             &random, 0.0001f, min_random, FLT_MAX, "%g",
             ImGuiSliderFlags_NoRoundToFormat)) {
-            random *= inv_scale;
+            random *= (float_t)inv_scale;
             if (random != curve->random_range) {
                 curve->random_range = random;
                 changed = true;
@@ -6050,7 +6046,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
 
     Glitter::EffectGroup* eg = glt_edt->effect_group;
     Glitter::Curve* curve = crv_edt->list[crv_edt->type];
-    std::vector<Glitter::Curve::Key>* keys = curve ? &curve->keys_rev : 0;
+    std::vector<Glitter::Curve::KeyRev>* keys = curve ? &curve->keys_rev : 0;
     bool changed = false;
 
     bool fix_rot_z = eg->type != Glitter::X && curve && curve->type == Glitter::CURVE_ROTATION_Z
@@ -6093,7 +6089,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             if (!keys)
                 keys = &curve->keys_rev;
 
-            Glitter::Curve::Key key;
+            Glitter::Curve::KeyRev key;
             key.frame = 0;
             key.value = glitter_editor_curve_editor_get_value(glt_edt, curve->type);
             keys->push_back(key);
@@ -6102,9 +6098,9 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             changed = true;
         }
         else {
-            Glitter::Curve::Key* i_begin = keys->data();
-            Glitter::Curve::Key* i_end = keys->data() + keys->size();
-            Glitter::Curve::Key* i = i_begin;
+            Glitter::Curve::KeyRev* i_begin = keys->data();
+            Glitter::Curve::KeyRev* i_end = keys->data() + keys->size();
+            Glitter::Curve::KeyRev* i = i_begin;
             bool is_before_start = keys->data()[0].frame > crv_edt->frame;
             bool has_key_after = false;
             if (!is_before_start)
@@ -6119,10 +6115,10 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 pos--;
 
             if (!is_before_start && has_key_after) {
-                Glitter::Curve::Key* c = i - 1;
-                Glitter::Curve::Key* n = i;
+                Glitter::Curve::KeyRev* c = i - 1;
+                Glitter::Curve::KeyRev* n = i;
 
-                Glitter::Curve::Key key;
+                Glitter::Curve::KeyRev key;
                 key.frame = crv_edt->frame;
                 key.type = c->type;
                 switch (c->type) {
@@ -6138,9 +6134,9 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 case Glitter::KEY_HERMITE: {
                     int32_t df = n->frame - c->frame;
                     int32_t _df = key.frame - c->frame;
-                    std::vector<float_t> v_arr = interpolate_chs(c->value, n->value, c->tangent2, n->tangent1, 0, df);
+                    std::vector<double_t> v_arr = interpolate_chs(c->value, n->value, c->tangent2, n->tangent1, 0, df);
                     key.value = v_arr[_df];
-                    key.random_range = lerp_def(c->random_range, n->random_range, (float_t)_df / (float_t)df);
+                    key.random_range = lerp_def(c->random_range, n->random_range, (double_t)_df / (double_t)df);
                     interpolate_chs_reverse(v_arr.data(), v_arr.size(), c->tangent2, key.tangent1, 0, _df);
                     interpolate_chs_reverse(v_arr.data(), v_arr.size(), key.tangent2, n->tangent1, _df, df);
                 } break;
@@ -6148,9 +6144,9 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 keys->insert(keys->begin() + ++pos, key);
             }
             else if (is_before_start) {
-                Glitter::Curve::Key* n = i;
+                Glitter::Curve::KeyRev* n = i;
 
-                Glitter::Curve::Key key;
+                Glitter::Curve::KeyRev key;
                 key.frame = crv_edt->frame;
                 key.type = n->type;
                 key.value = n->value;
@@ -6158,9 +6154,9 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 keys->insert(keys->begin() + pos, key);
             }
             else {
-                Glitter::Curve::Key* c = i - 1;
+                Glitter::Curve::KeyRev* c = i - 1;
 
-                Glitter::Curve::Key key;
+                Glitter::Curve::KeyRev key;
                 key.frame = crv_edt->frame;
                 key.type = c->type;
                 key.value = c->value;
@@ -6172,27 +6168,27 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         }
     }
     else if (keys && crv_edt->del_key && del_key) {
-        Glitter::Curve::Key* i_begin = keys->data();
-        Glitter::Curve::Key* i_end = keys->data() + keys->size();
-        for (Glitter::Curve::Key* i = i_begin; i != i_end; i++)
+        Glitter::Curve::KeyRev* i_begin = keys->data();
+        Glitter::Curve::KeyRev* i_end = keys->data() + keys->size();
+        for (Glitter::Curve::KeyRev* i = i_begin; i != i_end; i++)
             if (&i[0] == crv_edt->key) {
                 bool has_key_before = keys->front().frame < i->frame;
                 bool has_key_after = keys->back().frame > i->frame;
                 if (has_key_before && i[-1].type == Glitter::KEY_HERMITE && has_key_after) {
-                    Glitter::Curve::Key* c = i - 1;
-                    Glitter::Curve::Key* n = i + 1;
+                    Glitter::Curve::KeyRev* c = i - 1;
+                    Glitter::Curve::KeyRev* n = i + 1;
                     int32_t df_c = i->frame - c->frame;
                     int32_t df_n = n->frame - i->frame;
 
-                    std::vector<float_t> v_arr_c = interpolate_chs(c->value,
+                    std::vector<double_t> v_arr_c = interpolate_chs(c->value,
                         i->value, c->tangent2, i->tangent1, 0, df_c);
 
-                    std::vector<float_t> v_arr_n = i->type == Glitter::KEY_HERMITE
+                    std::vector<double_t> v_arr_n = i->type == Glitter::KEY_HERMITE
                         ? interpolate_chs(i->value, n->value, i->tangent2, n->tangent1, 0, df_n)
                         : interpolate_linear(i->value, n->value, 0, df_n);
 
                     size_t v_length = v_arr_c.size() + v_arr_n.size() - 1;
-                    float_t* v_arr = new float_t[v_length];
+                    double_t* v_arr = new double_t[v_length];
                     memmove(v_arr, v_arr_c.data(), (v_arr_c.size() - 1) * sizeof(float_t));
                     memmove(v_arr + (v_arr_c.size() - 1), v_arr_n.data(), v_arr_n.size() * sizeof(float_t));
                     interpolate_chs_reverse(v_arr, v_length, c->tangent2,
@@ -6367,7 +6363,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         min *= (float_t)(1.0 / 255.0);
     }
 
-    float_t base_line = convert_value_to_height(crv_edt, 0.0f, canvas_pos.y, canvas_size.y, min, max);
+    float_t base_line = convert_value_to_height(crv_edt, 0.0, canvas_pos.y, canvas_size.y, min, max);
 
     ImVec2 p1, p2, p3;
     p1.x = canvas_pos_min.x;
@@ -6684,19 +6680,18 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
 
     bool dragged = false;
     bool holding_tan = false;
-    Glitter::Curve::Key* i_begin = keys->data();
-    Glitter::Curve::Key* i_end = keys->data() + keys->size();
-    for (Glitter::Curve::Key* i = i_begin; i != i_end; i++) {
+    Glitter::Curve::KeyRev* i_begin = keys->data();
+    Glitter::Curve::KeyRev* i_end = keys->data() + keys->size();
+    for (Glitter::Curve::KeyRev* i = i_begin; i != i_end; i++) {
         if (i->frame < graph_start)
             continue;
         else if (i->frame > graph_end)
             break;
 
-        float_t base_value = i->value;
-        if (fix_rot_z)
-            base_value -= (float_t)M_PI_2;
+        double_t base_value = fix_rot_z ? i->value - M_PI_2 : i->value;
         float_t x = canvas_pos.x + ((size_t)i->frame - start_time) * frame_width;
-        float_t y = convert_value_to_height(crv_edt, base_value, canvas_pos.y, canvas_size.y, min, max);
+        float_t y = convert_value_to_height(crv_edt,
+            (float_t)base_value, canvas_pos.y, canvas_size.y, min, max);
 
         if (!(x >= p3.x - 10.0f && x <= p3.x + canvas_size.x + 10.0f)
             || !(y >= p3.y - 10.0f && y <= p3.y + canvas_size.y + 10.0f))
@@ -6725,7 +6720,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
             float_t old_y = y;
 
             static int32_t base_frame;
-            static float_t base_y;
+            static double_t base_y;
             if ((ImGui::IsKeyPressed(ImGuiKey_LeftShift, false) && !ImGui::IsKeyDown(ImGuiKey_RightShift))
                 || (ImGui::IsKeyPressed(ImGuiKey_RightShift, false) && !ImGui::IsKeyDown(ImGuiKey_LeftShift))) {
                 base_frame = i->frame;
@@ -6758,14 +6753,12 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 y += io.MouseDelta.y;
 
             if (old_y != y) {
-                float_t value = convert_height_to_value(crv_edt,
+                double_t value = convert_height_to_value(crv_edt,
                     y, canvas_pos.y, canvas_size.y, min, max);
                 dragged = true;
 
                 if (base_value != value) {
-                    if (fix_rot_z)
-                        value += (float_t)M_PI_2;
-                    i->value = value;
+                    i->value = fix_rot_z ? value + M_PI_2 : value;
                     changed = true;
                 }
                 crv_edt->key = &i[0];
@@ -6773,12 +6766,11 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         }
 
         if (i - i_begin > 0 && (i - 1)->type == Glitter::KEY_HERMITE) {
-            ImU32 tangent1_color;
-            float_t tangent1;
+            double_t tangent1 = i->tangent1;
             ImVec2 circle_pos;
             circle_pos.x = x - 25.0f;
-            circle_pos.y = y - base_line + convert_value_to_height(crv_edt, tangent1 = i->tangent1,
-                canvas_pos.y, canvas_size.y, min, max);
+            circle_pos.y = y - base_line + convert_value_to_height(crv_edt,
+                (float_t)tangent1, canvas_pos.y, canvas_size.y, min, max);
             draw_list->AddLine({ x, y }, circle_pos, default_color, 1.5f);
 
             if ((circle_pos.x >= p3.x - 10.0f && circle_pos.x <= p3.x + canvas_size.x + 10.0f)
@@ -6786,6 +6778,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 ImGui::SetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
                 ImGui::InvisibleButton("tan1", { 15.0f, 15.0f }, 0);
 
+                ImU32 tangent1_color;
                 if (can_drag && ImGui::IsItemActive()) {
                     if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                         i->tangent1 = convert_height_to_value(crv_edt,
@@ -6807,12 +6800,11 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
         }
 
         if (i_end - i > 1 && i->type == Glitter::KEY_HERMITE) {
-            ImU32 tangent2_color;
-            float_t tangent2;
+            double_t tangent2 = i->tangent2;
             ImVec2 circle_pos;
             circle_pos.x = x + 25.0f;
-            circle_pos.y = y - base_line + convert_value_to_height(crv_edt, tangent2 = i->tangent2,
-                canvas_pos.y, canvas_size.y, min, max);
+            circle_pos.y = y - base_line + convert_value_to_height(crv_edt,
+                (float_t)tangent2, canvas_pos.y, canvas_size.y, min, max);
             draw_list->AddLine({ x, y }, circle_pos, default_color, 1.5f);
 
             if ((circle_pos.x >= p3.x - 10.0f && circle_pos.x <= p3.x + canvas_size.x + 10.0f)
@@ -6820,6 +6812,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
                 ImGui::SetCursorScreenPos({ circle_pos.x - 7.5f, circle_pos.y - 7.5f });
                 ImGui::InvisibleButton("tan2", { 15.0f, 15.0f }, 0);
 
+                ImU32 tangent2_color;
                 if (can_drag && ImGui::IsItemActive()) {
                     if (ImGui::IsMouseDragging(ImGuiMouseButton_Left)) {
                         i->tangent2 = convert_height_to_value(crv_edt,
@@ -6913,7 +6906,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
     const ImU32     random_range_color = ImGui::GetColorU32({ 0.5f, 0.5f, 0.0f, 0.25f });
     const ImU32 key_random_range_color = ImGui::GetColorU32({ 0.5f, 0.0f, 0.5f, 0.25f });
 
-    const std::vector<Glitter::Curve::Key>* keys = &curve->keys_rev;
+    const std::vector<Glitter::Curve::KeyRev>* keys = &curve->keys_rev;
     if (!keys->size())
         return;
 
@@ -6929,14 +6922,15 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             const bool random_range_negate = curve->flags & Glitter::CURVE_RANDOM_RANGE_NEGATE;
             const bool glt_type_ft = glt_edt->effect_group->type == Glitter::FT;
 
-            const Glitter::Curve::Key* c = &keys->data()[0];
+            const Glitter::Curve::KeyRev* c = &keys->data()[0];
             const Glitter::KeyType k_type = c->type;
             const float_t c_frame = (float_t)c->frame;
-            const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-            const float_t c_random_range = random_range_mult && glt_type_ft
+            const double_t c_value = fix_rot_z ? c->value - M_PI : c->value;
+            const double_t c_random_range = random_range_mult && glt_type_ft
                 ? c->random_range * c_value : c->random_range;
 
-            const vec3 value = { c_value + c_random_range, c_value, c_value - c_random_range };
+            const vec3 value = { (float_t)(c_value + c_random_range),
+                (float_t)c_value, (float_t)(c_value - c_random_range) };
             const vec3 random = !random_range_mult
                 ? random_range : glt_type_ft
                 ? (random_range * value) : (random_range * value * 0.01f);
@@ -6947,11 +6941,11 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 canvas_size, canvas_pos, canvas_pos_min, canvas_pos_max);
         }
 
-        const Glitter::Curve::Key* c = &keys->data()[0];
-        const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
+        const Glitter::Curve::KeyRev* c = &keys->data()[0];
+        const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
 
-        float_t y = convert_value_to_height(crv_edt, c_value,
-            canvas_pos.y, canvas_size.y, min, max);
+        float_t y = convert_value_to_height(crv_edt,
+            (float_t)c_value, canvas_pos.y, canvas_size.y, min, max);
 
         draw_list->AddLine({ canvas_pos_min.x, y },
             { canvas_pos_max.x, y }, line_color, line_thickness);
@@ -7010,7 +7004,7 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
     const ImU32     random_range_color = ImGui::GetColorU32({ 0.5f, 0.5f, 0.0f, 0.25f });
     const ImU32 key_random_range_color = ImGui::GetColorU32({ 0.5f, 0.0f, 0.5f, 0.25f });
 
-    const std::vector<Glitter::Curve::Key>* keys = &curve->keys_rev;
+    const std::vector<Glitter::Curve::KeyRev>* keys = &curve->keys_rev;
 
     const float_t frame_width = crv_edt->frame_width * crv_edt->zoom_time;
 
@@ -7025,26 +7019,28 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
 
         bool first_frame_found = false;
 
-        const Glitter::Curve::Key* i_begin = keys->data();
-        const Glitter::Curve::Key* i_end = keys->data() + keys->size();
-        for (const Glitter::Curve::Key* i = i_begin; i != i_end; i++) {
+        const Glitter::Curve::KeyRev* i_begin = keys->data();
+        const Glitter::Curve::KeyRev* i_end = keys->data() + keys->size();
+        for (const Glitter::Curve::KeyRev* i = i_begin; i != i_end; i++) {
             if (i->frame <= start_time || i->frame > start_time && !first_frame_found) {
                 if (i_end - i <= 1)
                     break;
                 else if (i[1].frame <= start_time)
                     continue;
 
-                const Glitter::Curve::Key* c = i;
-                const Glitter::Curve::Key* n = i + 1;
-                const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-                const float_t n_value = fix_rot_z ? n->value - (float_t)M_PI_2 : n->value;
-                const float_t c_random_range = random_range_mult && glt_type_ft
+                const Glitter::Curve::KeyRev* c = i;
+                const Glitter::Curve::KeyRev* n = i + 1;
+                const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+                const double_t n_value = fix_rot_z ? n->value - M_PI_2 : n->value;
+                const double_t c_random_range = random_range_mult && glt_type_ft
                     ? c->random_range * c_value : c->random_range;
-                const float_t n_random_range = random_range_mult && glt_type_ft
+                const double_t n_random_range = random_range_mult && glt_type_ft
                     ? n->random_range * n_value : n->random_range;
 
-                const vec3 c_value_vec = { c_value + c_random_range, c_value, c_value - c_random_range };
-                const vec3 n_value_vec = { n_value + n_random_range, n_value, n_value - n_random_range };
+                const vec3 c_value_vec = { (float_t)(c_value + c_random_range),
+                    (float_t)c_value, (float_t)(c_value - c_random_range) };
+                const vec3 n_value_vec = { (float_t)(n_value + n_random_range),
+                    (float_t)n_value, (float_t)(n_value - n_random_range) };
 
                 vec3 value;
                 if (i->frame < start_time)
@@ -7083,17 +7079,19 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             else if (i->frame > end_time || i->frame == end_time || i_end - i <= 1 && i->frame <= end_time) {
                 vec3 value;
                 if (i->frame > end_time) {
-                    const Glitter::Curve::Key* c = i - 1;
-                    const Glitter::Curve::Key* n = i;
-                    const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-                    const float_t n_value = fix_rot_z ? n->value - (float_t)M_PI_2 : n->value;
-                    const float_t c_random_range = random_range_mult && glt_type_ft
+                    const Glitter::Curve::KeyRev* c = i - 1;
+                    const Glitter::Curve::KeyRev* n = i;
+                    const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+                    const double_t n_value = fix_rot_z ? n->value - M_PI_2 : n->value;
+                    const double_t c_random_range = random_range_mult && glt_type_ft
                         ? c->random_range * c_value : c->random_range;
-                    const float_t n_random_range = random_range_mult && glt_type_ft
+                    const double_t n_random_range = random_range_mult && glt_type_ft
                         ? n->random_range * n_value : n->random_range;
 
-                    const vec3 c_value_vec = { c_value + c_random_range, c_value, c_value - c_random_range };
-                    const vec3 n_value_vec = { n_value + n_random_range, n_value, n_value - n_random_range };
+                    const vec3 c_value_vec = { (float_t)(c_value + c_random_range),
+                        (float_t)c_value, (float_t)(c_value - c_random_range) };
+                    const vec3 n_value_vec = { (float_t)(n_value + n_random_range),
+                        (float_t)n_value, (float_t)(n_value - n_random_range) };
 
                     switch (c->type) {
                     case Glitter::KEY_CONSTANT:
@@ -7112,11 +7110,12 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     }
                 }
                 else {
-                    const Glitter::Curve::Key* c = i;
-                    const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-                    const float_t c_random_range = random_range_mult && glt_type_ft
+                    const Glitter::Curve::KeyRev* c = i;
+                    const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+                    const double_t c_random_range = random_range_mult && glt_type_ft
                         ? c->random_range * c_value : c->random_range;
-                    value = { c_value + c_random_range, c_value, c_value - c_random_range };
+                    value = { (float_t)(c_value + c_random_range),
+                        (float_t)c_value, (float_t)(c_value - c_random_range) };
                 }
 
                 const vec3 random = !random_range_mult
@@ -7136,19 +7135,20 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             else if (i_end - i <= 1)
                 break;
 
-            const Glitter::Curve::Key* c = i;
-            const Glitter::Curve::Key* n = i + 1;
+            const Glitter::Curve::KeyRev* c = i;
+            const Glitter::Curve::KeyRev* n = i + 1;
             const Glitter::KeyType k_type = c->type;
-            const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-            const float_t n_value = fix_rot_z ? n->value - (float_t)M_PI_2 : n->value;
-            const float_t c_random_range = random_range_mult && glt_type_ft
+            const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+            const double_t n_value = fix_rot_z ? n->value - M_PI_2 : n->value;
+            const double_t c_random_range = random_range_mult && glt_type_ft
                 ? c->random_range * c_value : c->random_range;
-            const float_t n_random_range = random_range_mult && glt_type_ft
+            const double_t n_random_range = random_range_mult && glt_type_ft
                 ? n->random_range * n_value : n->random_range;
 
             switch (k_type) {
             case Glitter::KEY_CONSTANT: {
-                const vec3 value = { c_value + c_random_range, c_value, c_value - c_random_range };
+                const vec3 value = { (float_t)(c_value + c_random_range),
+                    (float_t)c_value, (float_t)(c_value - c_random_range) };
                 const vec3 random = !random_range_mult
                     ? random_range : glt_type_ft
                     ? (random_range * value) : (random_range * value * 0.01f);
@@ -7167,13 +7167,15 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 const float_t x1 = canvas_pos.x + (float_t)(c_frame - base_start_time) * frame_width;
                 const float_t x2 = canvas_pos.x + (float_t)(n_frame - base_start_time) * frame_width;
 
-                const float_t _c_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
-                    (float_t)c->frame, (float_t)n->frame, (float_t)c_frame);
-                const float_t _n_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
-                    (float_t)c->frame, (float_t)n->frame, (float_t)n_frame);
+                const double_t _c_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
+                    (double_t)c->frame, (double_t)n->frame, (double_t)c_frame);
+                const double_t _n_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
+                    (double_t)c->frame, (double_t)n->frame, (double_t)n_frame);
 
-                const vec3 c_value_vec = { _c_value + c_random_range, _c_value, _c_value - c_random_range };
-                const vec3 n_value_vec = { _n_value + n_random_range, _n_value, _n_value - n_random_range };
+                const vec3 c_value_vec = { (float_t)(_c_value + c_random_range),
+                    (float_t)_c_value, (float_t)(_c_value - c_random_range) };
+                const vec3 n_value_vec = { (float_t)(_n_value + n_random_range),
+                    (float_t)_n_value, (float_t)(_n_value - n_random_range) };
                 const vec3 c_random = !random_range_mult
                     ? random_range : glt_type_ft
                     ? (random_range * c_value_vec) : (random_range * c_value_vec * 0.01f);
@@ -7188,13 +7190,15 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             case Glitter::KEY_HERMITE: {
                 const float_t c_frame = (float_t)c->frame;
                 const float_t n_frame = (float_t)n->frame;
-                const float_t c_tangent2 = c->tangent2;
-                const float_t n_tangent1 = n->tangent1;
+                const float_t c_tangent2 = (float_t)c->tangent2;
+                const float_t n_tangent1 = (float_t)n->tangent1;
 
                 const vec3 c_frame_vec = c_frame;
                 const vec3 n_frame_vec = n_frame;
-                const vec3 c_value_vec = { c_value + c_random_range, c_value, c_value - c_random_range };
-                const vec3 n_value_vec = { n_value + n_random_range, n_value, n_value - n_random_range };
+                const vec3 c_value_vec = { (float_t)(c_value + c_random_range),
+                    (float_t)c_value, (float_t)(c_value - c_random_range) };
+                const vec3 n_value_vec = { (float_t)(n_value + n_random_range),
+                    (float_t)n_value, (float_t)(n_value - n_random_range) };
                 const vec3 c_tangent2_vec = c_tangent2;
                 const vec3 n_tangent1_vec = n_tangent1;
                 const int32_t frame_width_int = (int32_t)prj::roundf(frame_width);
@@ -7230,21 +7234,21 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
 
     bool first_frame_found = false;
 
-    const Glitter::Curve::Key* i_begin = keys->data();
-    const Glitter::Curve::Key* i_end = keys->data() + keys->size();
-    for (const Glitter::Curve::Key* i = i_begin; i != i_end; i++) {
+    const Glitter::Curve::KeyRev* i_begin = keys->data();
+    const Glitter::Curve::KeyRev* i_end = keys->data() + keys->size();
+    for (const Glitter::Curve::KeyRev* i = i_begin; i != i_end; i++) {
         if (i->frame <= start_time || i->frame > start_time && !first_frame_found) {
             if (i_end - i <= 1)
                 break;
             else if (i[1].frame <= start_time)
                 continue;
 
-            const Glitter::Curve::Key* c = i;
-            const Glitter::Curve::Key* n = i + 1;
-            const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-            const float_t n_value = fix_rot_z ? n->value - (float_t)M_PI_2 : n->value;
+            const Glitter::Curve::KeyRev* c = i;
+            const Glitter::Curve::KeyRev* n = i + 1;
+            const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+            const double_t n_value = fix_rot_z ? n->value - M_PI_2 : n->value;
 
-            float_t value;
+            double_t value;
             if (i->frame < start_time)
                 switch (c->type) {
                 case Glitter::KEY_CONSTANT:
@@ -7253,12 +7257,12 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 case Glitter::KEY_LINEAR:
                 default:
                     value = Glitter::Curve::InterpolateLinear(c_value, n_value,
-                        (float_t)c->frame, (float_t)n->frame, (float_t)start_time);
+                        (double_t)c->frame, (double_t)n->frame, (double_t)start_time);
                     break;
                 case Glitter::KEY_HERMITE:
                     value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                        (float_t)c->tangent2, (float_t)n->tangent1,
-                        (float_t)c->frame, (float_t)n->frame, (float_t)start_time);
+                        (double_t)c->tangent2, (double_t)n->tangent1,
+                        (double_t)c->frame, (double_t)n->frame, (double_t)start_time);
                     break;
                 }
             else
@@ -7269,8 +7273,8 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 : canvas_pos_min.x;
             const float_t x2 = canvas_pos.x + (float_t)(max_def(i->frame,
                 start_time) - base_start_time) * frame_width;
-            const float_t y = convert_value_to_height(crv_edt, value,
-                canvas_pos.y, canvas_size.y, min, max);
+            const float_t y = convert_value_to_height(crv_edt,
+                (float_t)value, canvas_pos.y, canvas_size.y, min, max);
 
             if ((x1 > canvas_pos_min.x || x2 > canvas_pos_min.x)
                 && (x1 < canvas_pos_max.x || x2 < canvas_pos_max.x)) {
@@ -7282,12 +7286,12 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             first_frame_found = true;
         }
         else if (i->frame > end_time || i->frame == end_time || i_end - i <= 1 && i->frame <= end_time) {
-            float_t value;
+            double_t value;
             if (i->frame > end_time) {
-                const Glitter::Curve::Key* c = i - 1;
-                const Glitter::Curve::Key* n = i;
-                const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-                const float_t n_value = fix_rot_z ? n->value - (float_t)M_PI_2 : n->value;
+                const Glitter::Curve::KeyRev* c = i - 1;
+                const Glitter::Curve::KeyRev* n = i;
+                const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+                const double_t n_value = fix_rot_z ? n->value - M_PI_2 : n->value;
 
                 switch (c->type) {
                 case Glitter::KEY_CONSTANT:
@@ -7296,12 +7300,12 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                 case Glitter::KEY_LINEAR:
                 default:
                     value = Glitter::Curve::InterpolateLinear(c_value, n_value,
-                        (float_t)c->frame, (float_t)n->frame, (float_t)end_time);
+                        (double_t)c->frame, (double_t)n->frame, (double_t)end_time);
                     break;
                 case Glitter::KEY_HERMITE:
                     value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                        (float_t)c->tangent2, (float_t)n->tangent1,
-                        (float_t)c->frame, (float_t)n->frame, (float_t)end_time);
+                        (double_t)c->tangent2, (double_t)n->tangent1,
+                        (double_t)c->frame, (double_t)n->frame, (double_t)end_time);
                     break;
                 }
             }
@@ -7313,8 +7317,8 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             const float_t x2 = loop
                 ? canvas_pos.x + (float_t)(end_time - base_start_time) * frame_width
                 : canvas_pos_max.x;
-            const float_t y = convert_value_to_height(crv_edt, value,
-                canvas_pos.y, canvas_size.y, min, max);
+            const float_t y = convert_value_to_height(crv_edt,
+                (float_t)value, canvas_pos.y, canvas_size.y, min, max);
             if ((x1 > canvas_pos_min.x || x2 > canvas_pos_min.x)
                 && (x1 < canvas_pos_max.x || x2 < canvas_pos_max.x)) {
                 if (!points.size() || points.back().x < x1 || points.back().y != y)
@@ -7327,10 +7331,10 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
         else if (i_end - i <= 1)
             break;
 
-        const Glitter::Curve::Key* c = i;
-        const Glitter::Curve::Key* n = i + 1;
-        const float_t c_value = fix_rot_z ? c->value - (float_t)M_PI_2 : c->value;
-        const float_t n_value = fix_rot_z ? n->value - (float_t)M_PI_2 : n->value;
+        const Glitter::Curve::KeyRev* c = i;
+        const Glitter::Curve::KeyRev* n = i + 1;
+        const double_t c_value = fix_rot_z ? c->value - M_PI_2 : c->value;
+        const double_t n_value = fix_rot_z ? n->value - M_PI_2 : n->value;
 
         if (c->type == Glitter::KEY_CONSTANT) {
             const int32_t c_frame = max_def(c->frame, start_time);
@@ -7338,10 +7342,10 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             const float_t x1 = canvas_pos.x + (float_t)(c_frame - base_start_time) * frame_width;
             const float_t x2 = canvas_pos.x + (float_t)(n_frame - base_start_time) * frame_width;
 
-            const float_t y1 = convert_value_to_height(crv_edt, c_value,
-                canvas_pos.y, canvas_size.y, min, max);
-            const float_t y2 = convert_value_to_height(crv_edt, n_value,
-                canvas_pos.y, canvas_size.y, min, max);
+            const float_t y1 = convert_value_to_height(crv_edt,
+                (float_t)c_value, canvas_pos.y, canvas_size.y, min, max);
+            const float_t y2 = convert_value_to_height(crv_edt,
+                (float_t)n_value, canvas_pos.y, canvas_size.y, min, max);
 
             if ((x1 > canvas_pos_min.x || x2 > canvas_pos_min.x)
                 && (x1 < canvas_pos_max.x || x2 < canvas_pos_max.x)) {
@@ -7359,15 +7363,15 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             const float_t x1 = canvas_pos.x + (float_t)(c_frame - base_start_time) * frame_width;
             const float_t x2 = canvas_pos.x + (float_t)(n_frame - base_start_time) * frame_width;
 
-            const float_t _c_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
-                (float_t)c->frame, (float_t)n->frame, (float_t)c_frame);
-            const float_t _n_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
-                (float_t)c->frame, (float_t)n->frame, (float_t)n_frame);
+            const double_t _c_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
+                (double_t)c->frame, (double_t)n->frame, (double_t)c_frame);
+            const double_t _n_value = Glitter::Curve::InterpolateLinear(c_value, n_value,
+                (double_t)c->frame, (double_t)n->frame, (double_t)n_frame);
 
-            const float_t y1 = convert_value_to_height(crv_edt, _c_value,
-                canvas_pos.y, canvas_size.y, min, max);
-            const float_t y2 = convert_value_to_height(crv_edt, _n_value,
-                canvas_pos.y, canvas_size.y, min, max);
+            const float_t y1 = convert_value_to_height(crv_edt,
+                (float_t)_c_value, canvas_pos.y, canvas_size.y, min, max);
+            const float_t y2 = convert_value_to_height(crv_edt,
+                (float_t)_n_value, canvas_pos.y, canvas_size.y, min, max);
 
             if ((x1 > canvas_pos_min.x || x2 > canvas_pos_min.x)
                 && (x1 < canvas_pos_max.x || x2 < canvas_pos_max.x)) {
@@ -7378,18 +7382,18 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
             }
         }
         else if (c->type == Glitter::KEY_HERMITE) {
-            const float_t c_frame = (float_t)c->frame;
-            const float_t n_frame = (float_t)n->frame;
-            const float_t c_tangent2 = (float_t)c->tangent2;
-            const float_t n_tangent1 = (float_t)n->tangent1;
+            const double_t c_frame = (double_t)c->frame;
+            const double_t n_frame = (double_t)n->frame;
+            const double_t c_tangent2 = c->tangent2;
+            const double_t n_tangent1 = n->tangent1;
 
-            float_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
+            double_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
                 c_tangent2, n_tangent1,
-                c_frame, n_frame, (float_t)max_def(c->frame, start_time));
+                c_frame, n_frame, (double_t)max_def(c->frame, start_time));
             float_t x = canvas_pos.x + (float_t)(max_def(c->frame, start_time)
                 - base_start_time) * frame_width;
-            float_t y = convert_value_to_height(crv_edt, value,
-                canvas_pos.y, canvas_size.y, min, max);
+            float_t y = convert_value_to_height(crv_edt,
+                (float_t)value, canvas_pos.y, canvas_size.y, min, max);
             if (!points.size() || points.back().x < x || points.back().y != y)
                 points.push_back({ x, y });
 
@@ -7401,13 +7405,13 @@ static void glitter_editor_curve_editor_window_draw(GlitterEditor* glt_edt, cons
                     break;
 
                 for (int32_t k = 0; k < frame_width_int; k++) {
-                    const float_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
-                        c_tangent2, n_tangent1, c_frame, n_frame, (float_t)j + (float_t)k / frame_width);
+                    const double_t value = Glitter::Curve::InterpolateHermite(c_value, n_value - c_value,
+                        c_tangent2, n_tangent1, c_frame, n_frame, (double_t)j + (double_t)k / frame_width);
 
                     float_t x = canvas_pos.x
                         + (float_t)(j - base_start_time) * frame_width + (float_t)k;
-                    const float_t y = convert_value_to_height(crv_edt, value,
-                        canvas_pos.y, canvas_size.y, min, max);
+                    const float_t y = convert_value_to_height(crv_edt,
+                        (float_t)value, canvas_pos.y, canvas_size.y, min, max);
 
                     if ((x > canvas_pos_min.x || points.back().x < canvas_pos_max.x
                         && canvas_pos_max.x < x) && points.back().x < x)

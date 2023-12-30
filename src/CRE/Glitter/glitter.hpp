@@ -483,7 +483,7 @@ namespace Glitter {
         ~Animation();
 
 #if defined(CRE_DEV)
-        void AddValue(GLT, float_t val, CurveTypeFlags flags);
+        void AddValue(GLT, double_t val, CurveTypeFlags flags);
 #endif
 
         Animation& operator=(const Animation& anim);
@@ -510,16 +510,38 @@ namespace Glitter {
         struct Key {
             KeyType type;
             int32_t frame;
-            float_t value;
+            union {
+                float_t value;
+                float_t max_value;
+            };
             float_t tangent1;
             float_t tangent2;
-            float_t random_range;
+            union {
+                float_t random_range;
+                float_t min_value;
+            };
 
             Key();
             Key(KeyType type, int32_t frame, float_t value, float_t random_range);
             Key(KeyType type, int32_t frame, float_t value,
                 float_t tangent1, float_t tangent2, float_t random_range);
         };
+
+#if defined(CRE_DEV)
+        struct KeyRev {
+            KeyType type;
+            int32_t frame;
+            double_t value;
+            double_t tangent1;
+            double_t tangent2;
+            double_t random_range;
+
+            KeyRev();
+            KeyRev(KeyType type, int32_t frame, double_t value, double_t random_range);
+            KeyRev(KeyType type, int32_t frame, double_t value,
+                double_t tangent1, double_t tangent2, double_t random_range);
+        };
+#endif
 
         CurveType type;
         bool repeat;
@@ -529,7 +551,7 @@ namespace Glitter {
         float_t random_range;
         std::vector<Key> keys;
 #if defined(CRE_DEV)
-        std::vector<Key> keys_rev;
+        std::vector<KeyRev> keys_rev;
 #endif
         uint32_t version;
         uint32_t keys_version;
@@ -538,7 +560,7 @@ namespace Glitter {
         virtual ~Curve();
 
 #if defined(CRE_DEV)
-        void AddValue(GLT, float_t val);
+        void AddValue(GLT, double_t val);
 #endif
         bool F2GetValue(GLT, float_t frame,
             float_t* value, int32_t random_value, Random* random);

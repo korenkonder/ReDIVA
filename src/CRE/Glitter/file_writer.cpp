@@ -156,25 +156,10 @@ namespace Glitter {
         size_t d = (size_t)st->data.data();
 
         if (type == Glitter::X) {
-            std::vector<Curve::Key> keys;
-            keys.assign(c->keys.begin(), c->keys.end());
-
-            if (c->flags & CURVE_BAKED)
-                for (Curve::Key& i : keys) {
-                    float_t value = i.value;
-                    float_t random_range = i.random_range;
-                    if (*(uint32_t*)&random_range != 0) {
-                        i.value = (float_t)((double_t)value + (double_t)random_range);
-                        i.random_range = (float_t)((double_t)value - (double_t)random_range);
-                    }
-                    else
-                        i.random_range = value;
-                }
-
             if (c->keys_version == 2) {
                 if (big_endian)
                     if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
@@ -191,7 +176,7 @@ namespace Glitter {
                             }
                         }
                     else
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
@@ -207,7 +192,7 @@ namespace Glitter {
                         }
                 else
                     if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
@@ -224,7 +209,7 @@ namespace Glitter {
                             }
                         }
                     else
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
@@ -242,7 +227,7 @@ namespace Glitter {
             else {
                 if (big_endian)
                     if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
@@ -259,7 +244,7 @@ namespace Glitter {
                             }
                         }
                     else
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             store_reverse_endianness_int16_t((void*)d, (int16_t)i.type);
                             store_reverse_endianness_int16_t((void*)(d + 2), (int16_t)i.frame);
                             if (i.type == KEY_HERMITE) {
@@ -275,7 +260,7 @@ namespace Glitter {
                         }
                 else
                     if (c->flags & CURVE_KEY_RANDOM_RANGE)
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {
@@ -292,7 +277,7 @@ namespace Glitter {
                             }
                         }
                     else
-                        for (const Curve::Key& i : keys) {
+                        for (const Curve::Key& i : c->keys) {
                             *(int16_t*)d = (int16_t)i.type;
                             *(int16_t*)(d + 2) = (int16_t)i.frame;
                             if (i.type == KEY_HERMITE) {

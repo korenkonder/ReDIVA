@@ -41,7 +41,7 @@ public:
         Glitter::CurveTypeFlags type_flags;
         Glitter::Animation* animation;
         Glitter::Curve* list[Glitter::CURVE_V_SCROLL_ALPHA_2ND - Glitter::CURVE_TRANSLATION_X + 1];
-        Glitter::Curve::Key* key;
+        Glitter::Curve::KeyRev* key;
 
         int32_t frame_width;
         float_t zoom_time;
