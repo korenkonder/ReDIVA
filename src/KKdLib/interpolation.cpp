@@ -28,6 +28,29 @@ void interpolate_chs_reverse_value(float_t* arr, size_t length,
     t2 = h10.y * t1_t2.x - h10.x * t1_t2.y;
 }
 
+void interpolate_chs_reverse_value(double_t* arr, size_t length,
+    double_t& t1, double_t& t2, size_t f1, size_t f2, size_t f) {
+    vec2d t = vec2d(
+        (double_t)(int64_t)(f - f1 + 0),
+        (double_t)(int64_t)(f - f1 + 1)
+    ) / (double_t)(int64_t)(f2 - f1);
+    vec2d t_2 = t * t;
+    vec2d t_3 = t_2 * t;
+    vec2d t_23 = 3.0 * t_2;
+    vec2d t_32 = 2.0 * t_3;
+
+    vec2d h00 = t_32 - t_23 + 1.0;
+    vec2d h01 = t_23 - t_32;
+    vec2d h10 = t_3 - 2.0 * t_2 + t;
+    vec2d h11 = t_3 - t_2;
+
+    vec2d t1_t2 = *(vec2d*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
+    t1_t2 /= (t_2.x - t.x) * (t_2.y - t.y);
+
+    t1 = -h11.y * t1_t2.x + h11.x * t1_t2.y;
+    t2 = h10.y * t1_t2.x - h10.x * t1_t2.y;
+}
+
 void interpolate_chs_reverse(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2) {
     t1 = 0.0f;
@@ -47,6 +70,27 @@ void interpolate_chs_reverse(float_t* arr, size_t length,
     }
     t1 = (float_t)(tt1 / (double_t)(f2 - f1 - 2));
     t2 = (float_t)(tt2 / (double_t)(f2 - f1 - 2));
+}
+
+void interpolate_chs_reverse(double_t* arr, size_t length,
+    double_t& t1, double_t& t2, size_t f1, size_t f2) {
+    t1 = 0.0;
+    t2 = 0.0;
+
+    if (f2 - f1 - 2 < 1)
+        return;
+
+    double_t _t1 = 0.0;
+    double_t _t2 = 0.0;
+    double_t tt1 = 0.0;
+    double_t tt2 = 0.0;
+    for (size_t i = f1 + 1; i < f2 - 1; i++) {
+        interpolate_chs_reverse_value(arr, length, _t1, _t2, f1, f2, i);
+        tt1 += _t1;
+        tt2 += _t2;
+    }
+    t1 = tt1 / (double_t)(f2 - f1 - 2);
+    t2 = tt2 / (double_t)(f2 - f1 - 2);
 }
 
 int32_t interpolate_chs_reverse_sequence(

@@ -576,16 +576,16 @@ namespace Glitter {
             const T t_2 = t * t;
             const T t_3 = t_2 * t;
             return p
-                + (t_3 - 2.0f * t_2 + t) * (t1 * df)
+                + (t_3 - (T)2 * t_2 + t) * (t1 * df)
                 + (t_3 - t_2) * (t2 * df)
-                + (3.0f * t_2 - 2.0f * t_3) * dv;
+                + ((T)3 * t_2 - (T)2 * t_3) * dv;
         };
 
         template <typename T>
         inline static T InterpolateLinear(const T p1, const T p2,
             const T f1, const T f2, const T f) {
             const T t = (f - f1) / (f2 - f1);
-            return (1.0f - t) * p1 + t * p2;
+            return ((T)1 - t) * p1 + t * p2;
         };
     };
 
