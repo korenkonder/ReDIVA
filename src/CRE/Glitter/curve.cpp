@@ -17,7 +17,8 @@ namespace Glitter {
 
     }
 
-    Curve::Key::Key(KeyType type, int32_t frame, float_t value, float_t random_range) : tangent1(), tangent2() {
+    Curve::Key::Key(KeyType type, int32_t frame,
+        float_t value, float_t random_range) : tangent1(), tangent2() {
         this->type = type;
         this->frame = frame;
         this->value = value;
@@ -70,7 +71,7 @@ namespace Glitter {
         float_t end_time;
         float_t _value;
         if (keys_count == 1) {
-            Curve::Key* key = &keys.data()[keys_count - 1];
+            const Curve::Key& key = keys.data()[0];
             _value = F2RandomizeKey(GLT_VAL, key, random);
             goto End;
         }
@@ -87,11 +88,11 @@ namespace Glitter {
         }
 
         if (end_time <= frame) {
-            Curve::Key* key = &keys.data()[keys_count - 1];
+            const Curve::Key& key = keys.data()[keys_count - 1];
             _value = F2RandomizeKey(GLT_VAL, key, random);
         }
         else if (start_time > frame) {
-            Curve::Key* key = &keys.data()[0];
+            const Curve::Key& key = keys.data()[0];
             _value = F2RandomizeKey(GLT_VAL, key, random);
         }
         else if (flags & CURVE_BAKED) {
@@ -109,14 +110,14 @@ namespace Glitter {
             else
                 key_index = 0;
 
-            Curve::Key* key = &keys.data()[key_index];
+            const Curve::Key& key = keys.data()[key_index];
             _value = F2RandomizeKey(GLT_VAL, key, random);
         }
         else {
             size_t curr_key_index = 0;
             size_t next_key_index = 0;
             if (keys_count > 3)
-                GetKeyIndices(&keys, frame, &curr_key_index, &next_key_index);
+                GetKeyIndices(keys, frame, curr_key_index, next_key_index);
             else if (keys_count == 3 && frame >= keys.data()[1].frame) {
                 curr_key_index = 1;
                 next_key_index = 2;
@@ -125,9 +126,9 @@ namespace Glitter {
                 curr_key_index = 0;
                 next_key_index = 1;
             }
-            Curve::Key* curr_key = &keys.data()[curr_key_index];
-            Curve::Key* next_key = &keys.data()[next_key_index];
-            _value = F2Interpolate(GLT_VAL, frame, curr_key, next_key, curr_key->type, random);
+            const Curve::Key& curr_key = keys.data()[curr_key_index];
+            const Curve::Key& next_key = keys.data()[next_key_index];
+            _value = F2Interpolate(GLT_VAL, frame, curr_key, next_key, curr_key.type, random);
         }
 
     End:
@@ -137,8 +138,8 @@ namespace Glitter {
         return true;
     }
 
-    float_t Curve::F2Interpolate(GLT, float_t frame, Curve::Key* curr,
-        Curve::Key* next, KeyType key_type, Random* random) {
+    float_t Curve::F2Interpolate(GLT, float_t frame, const Curve::Key& curr,
+        const Curve::Key& next, KeyType key_type, Random* random) {
         if (key_type == KEY_CONSTANT)
             return F2RandomizeKey(GLT_VAL, curr, random);
         else if (key_type == KEY_HERMITE)
@@ -147,48 +148,45 @@ namespace Glitter {
             return F2InterpolateLinear(GLT_VAL, curr, next, frame, random);
     }
 
-    float_t Curve::F2InterpolateHermite(GLT, Glitter::Curve::Key* curr,
-        Glitter::Curve::Key* next, float_t frame, Random* random) {
+    float_t Curve::F2InterpolateHermite(GLT, const Curve::Key& curr,
+        const Curve::Key& next, float_t frame, Random* random) {
         float_t next_val = F2RandomizeKey(GLT_VAL, next, random);
         float_t curr_val = F2RandomizeKey(GLT_VAL, curr, random);
         return InterpolateHermite(F2RandomizeKey(GLT_VAL, curr, random),
-            next_val - curr_val, curr->tangent2, next->tangent1,
-            (float_t)curr->frame, (float_t)next->frame, frame);
+            next_val - curr_val, curr.tangent2, next.tangent1,
+            (float_t)curr.frame, (float_t)next.frame, frame);
     }
 
-    float_t Curve::F2InterpolateLinear(GLT, Glitter::Curve::Key* curr,
-        Glitter::Curve::Key* next, float_t frame, Random* random) {
-        float_t df = (float_t)(next->frame - curr->frame);
-        float_t t = (frame - (float_t)curr->frame) / (float_t)(next->frame - curr->frame);
+    float_t Curve::F2InterpolateLinear(GLT, const Curve::Key& curr,
+        const Curve::Key& next, float_t frame, Random* random) {
+        float_t df = (float_t)(next.frame - curr.frame);
+        float_t t = (frame - (float_t)curr.frame) / (float_t)(next.frame - curr.frame);
         float_t curr_val = F2RandomizeKey(GLT_VAL, curr, random);
         float_t next_val = F2RandomizeKey(GLT_VAL, next, random);
         return curr_val * (1.0f - t) + next_val * t;
     }
 
     float_t Curve::F2Randomize(GLT, float_t value, Random* random) {
-        float_t rand;
-
         if (!(flags & CURVE_RANDOM_RANGE))
             return value;
 
-        rand = random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
+        float_t rand = random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
             ? -random_range : 0.0f, random_range);
 
-        if (flags & CURVE_RANDOM_RANGE_MULT)
+        if (flags & CURVE_RANDOM_RANGE_MULT) {
             if (GLT_VAL != Glitter::FT)
-                rand *= value * 0.01f;
-            else
-                rand *= value;
-        return rand + value;
+                rand *= 0.01f;
+            rand *= value;
+        }
+        return value + rand;
     }
 
-    float_t Curve::F2RandomizeKey(GLT, Curve::Key* key, Random* random) {
+    float_t Curve::F2RandomizeKey(GLT, const Curve::Key& key, Random* random) {
         if (!(flags & CURVE_KEY_RANDOM_RANGE))
-            return key->value;
+            return key.value;
 
-        float_t rand = random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
-            ? -key->random_range : 0.0f, key->random_range);
-        return rand + key->value;
+        return key.value + random->F2GetFloat(GLT_VAL, flags & CURVE_RANDOM_RANGE_NEGATE
+            ? -key.random_range : 0.0f, key.random_range);
     }
 
 #if defined(CRE_DEV)
@@ -501,8 +499,8 @@ namespace Glitter {
         float_t end_time;
         float_t _value;
         if (keys_count == 1) {
-            Curve::Key* curr_key = &keys.data()[keys_count - 1];
-            _value = XRandomizeKey(curr_key, random);
+            const Curve::Key& key = keys.data()[0];
+            _value = XRandomizeKey(key, random);
             goto End;
         }
 
@@ -518,11 +516,11 @@ namespace Glitter {
         }
 
         if (end_time <= frame) {
-            Curve::Key* key = &keys.data()[keys_count - 1];
+            const Curve::Key& key = keys.data()[keys_count - 1];
             _value = XRandomizeKey(key, random);
         }
         else if (start_time > frame) {
-            Curve::Key* key = &keys.data()[0];
+            const Curve::Key& key = keys.data()[0];
             _value = XRandomizeKey(key, random);
         }
         else if (flags & CURVE_BAKED) {
@@ -540,14 +538,14 @@ namespace Glitter {
             else
                 key_index = 0;
 
-            Curve::Key* key = &keys.data()[key_index];
+            const Curve::Key& key = keys.data()[key_index];
             _value = XRandomizeKey(key, random);
         }
         else {
             size_t curr_key_index = 0;
             size_t next_key_index = 0;
             if (keys_count > 3)
-                Curve::GetKeyIndices(&keys, frame, &curr_key_index, &next_key_index);
+                Curve::GetKeyIndices(keys, frame, curr_key_index, next_key_index);
             else if (keys_count == 3 && frame >= keys.data()[1].frame) {
                 curr_key_index = 1;
                 next_key_index = 2;
@@ -556,9 +554,9 @@ namespace Glitter {
                 curr_key_index = 0;
                 next_key_index = 1;
             }
-            Curve::Key* curr_key = &keys.data()[curr_key_index];
-            Curve::Key* next_key = &keys.data()[next_key_index];
-            _value = XInterpolate(frame, curr_key, next_key, curr_key->type, random);
+            const Curve::Key& curr_key = keys.data()[curr_key_index];
+            const Curve::Key& next_key = keys.data()[next_key_index];
+            _value = XInterpolate(frame, curr_key, next_key, curr_key.type, random);
         }
 
     End:
@@ -568,8 +566,8 @@ namespace Glitter {
         return true;
     }
 
-    float_t Curve::XInterpolate(float_t frame, Curve::Key* curr,
-        Curve::Key* next, KeyType key_type, Random* random) {
+    float_t Curve::XInterpolate(float_t frame, const Curve::Key& curr,
+        const Curve::Key& next, KeyType key_type, Random* random) {
         if (key_type == KEY_CONSTANT)
             return XRandomizeKey(curr, random);
         else if (key_type == KEY_HERMITE)
@@ -578,19 +576,19 @@ namespace Glitter {
             return XInterpolateLinear(curr, next, frame, random);
     }
 
-    float_t Curve::XInterpolateHermite(Glitter::Curve::Key* curr,
-        Glitter::Curve::Key* next, float_t frame, Random* random) {
+    float_t Curve::XInterpolateHermite(const Curve::Key& curr,
+        const Curve::Key& next, float_t frame, Random* random) {
         float_t next_val = XRandomizeKey(next, random);
         float_t curr_val = XRandomizeKey(curr, random);
         return InterpolateHermite(XRandomizeKey(curr, random),
-            next_val - curr_val, curr->tangent2, next->tangent1,
-            (float_t)curr->frame, (float_t)next->frame, frame);
+            next_val - curr_val, curr.tangent2, next.tangent1,
+            (float_t)curr.frame, (float_t)next.frame, frame);
     }
 
-    float_t Curve::XInterpolateLinear(Glitter::Curve::Key* curr,
-        Glitter::Curve::Key* next, float_t frame, Random* random) {
-        float_t df = (float_t)(next->frame - curr->frame);
-        float_t t = (frame - (float_t)curr->frame) / (float_t)(next->frame - curr->frame);
+    float_t Curve::XInterpolateLinear(const Curve::Key& curr,
+        const Curve::Key& next, float_t frame, Random* random) {
+        float_t df = (float_t)(next.frame - curr.frame);
+        float_t t = (frame - (float_t)curr.frame) / (float_t)(next.frame - curr.frame);
         float_t curr_val = XRandomizeKey(curr, random);
         float_t next_val = XRandomizeKey(next, random);
         return curr_val * (1.0f - t) + next_val * t;
@@ -603,31 +601,32 @@ namespace Glitter {
         float_t rand = random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
             ? -random_range : 0.0f, random_range);
 
-        if (flags & CURVE_RANDOM_RANGE_MULT)
-            rand *= value * 0.01f;
-        return rand + value;
+        if (flags & CURVE_RANDOM_RANGE_MULT) {
+            rand *= 0.01f;
+            rand *= value;
+        }
+        return value + rand;
     }
 
-    float_t Curve::XRandomizeKey(Curve::Key* key, Random* random) {
+    float_t Curve::XRandomizeKey(const Curve::Key& key, Random* random) {
         if (!(flags & CURVE_KEY_RANDOM_RANGE))
-            return key->value;
+            return key.value;
 
-        float_t rand = random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
-            ? -key->random_range : 0.0f, key->random_range);
-        return rand + key->value;
+        return key.value + random->XGetFloat(flags & CURVE_RANDOM_RANGE_NEGATE
+            ? -key.random_range : 0.0f, key.random_range);
     }
 
-    void Curve::GetKeyIndices(std::vector<Curve::Key>* keys,
-        float_t frame, size_t* curr, size_t* next) {
-        size_t count = keys->size();
+    void Curve::GetKeyIndices(const std::vector<Curve::Key>& keys,
+        float_t frame, size_t& curr, size_t& next) {
+        size_t count = keys.size();
         if (count <= 1) {
-            *curr = 0;
-            *next = 0;
+            curr = 0;
+            next = 0;
             return;
         }
 
         size_t first_key = 0;
-        Curve::Key* key = keys->data();
+        const Curve::Key* key = keys.data();
         size_t last_key = count - 1;
         size_t temp = last_key / 2;
         while (first_key <= last_key) {
@@ -643,36 +642,36 @@ namespace Glitter {
 
         if (frame > key[temp].frame) {
         NextKey:
-            *curr = temp;
-            *next = temp + 1;
+            curr = temp;
+            next = temp + 1;
         }
         else {
-            *curr = temp - 1;
-            *next = temp;
+            curr = temp - 1;
+            next = temp;
         }
-        *next %= count;
+        next %= count;
     }
 
 #if defined(CRE_DEV)
-    static float_t glitter_curve_add_key(bool has_error,
-        bool has_error_lerp, bool has_error_hermite, float_t* a, float_t* b, int32_t frame,
-        const uint8_t step, size_t i, float_t t1, float_t t2, float_t t2_old,
-        std::vector<Curve::Key>* keys_rev) {
+    static double_t glitter_curve_add_key(bool has_error,
+        bool has_error_lerp, bool has_error_hermite, double_t* a, double_t* b, int32_t frame,
+        const uint8_t step, size_t i, double_t t1, double_t t2, double_t t2_old,
+        std::vector<Curve::KeyRev>* keys_rev) {
         if (has_error && has_error_lerp && has_error_hermite) {
             keys_rev->reserve(i);
-            keys_rev->push_back(Curve::Key(KEY_CONSTANT, frame, a[0], t2_old, 0.0f, b[0]));
+            keys_rev->push_back(Curve::KeyRev(KEY_CONSTANT, frame, a[0], t2_old, 0.0f, b[0]));
             for (size_t j = 1; j < i; j++)
-                keys_rev->push_back(Curve::Key(KEY_CONSTANT, (int32_t)(frame + j * step), a[j], b[j]));
+                keys_rev->push_back(Curve::KeyRev(KEY_CONSTANT, (int32_t)(frame + j * step), a[j], b[j]));
         }
         else if (has_error && has_error_lerp) {
-            keys_rev->push_back(Curve::Key(KEY_HERMITE, frame, a[0], t2_old, t1, b[0]));
+            keys_rev->push_back(Curve::KeyRev(KEY_HERMITE, frame, a[0], t2_old, t1, b[0]));
             return t2;
         }
         else if (has_error || (i > 1 && b[0] != b[1]))
-            keys_rev->push_back(Curve::Key(KEY_LINEAR, frame, a[0], b[0]));
+            keys_rev->push_back(Curve::KeyRev(KEY_LINEAR, frame, a[0], b[0]));
         else
-            keys_rev->push_back(Curve::Key(KEY_CONSTANT, frame, a[0], b[0]));
-        return 0.0f;
+            keys_rev->push_back(Curve::KeyRev(KEY_CONSTANT, frame, a[0], b[0]));
+        return 0.0;
     }
 #endif
 }

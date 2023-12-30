@@ -542,31 +542,31 @@ namespace Glitter {
 #endif
         bool F2GetValue(GLT, float_t frame,
             float_t* value, int32_t random_value, Random* random);
-        float_t F2Interpolate(GLT, float_t frame, Curve::Key* curr,
-            Curve::Key* next, KeyType key_type, Random* random);
-        float_t F2InterpolateHermite(GLT, Glitter::Curve::Key* curr,
-            Glitter::Curve::Key* next, float_t frame, Random* random);
-        float_t F2InterpolateLinear(GLT, Glitter::Curve::Key* curr,
-            Glitter::Curve::Key* next, float_t frame, Random* random);
+        float_t F2Interpolate(GLT, float_t frame, const Curve::Key& curr,
+            const Curve::Key& next, KeyType key_type, Random* random);
+        float_t F2InterpolateHermite(GLT, const Curve::Key& curr,
+            const Curve::Key& next, float_t frame, Random* random);
+        float_t F2InterpolateLinear(GLT, const Curve::Key& curr,
+            const Curve::Key& next, float_t frame, Random* random);
         float_t F2Randomize(GLT, float_t value, Random* random);
-        float_t F2RandomizeKey(GLT, Curve::Key* key, Random* random);
+        float_t F2RandomizeKey(GLT, const Curve::Key& key, Random* random);
 #if defined(CRE_DEV)
         void FitKeysIntoCurve(GLT);
         void Recalculate(GLT);
 #endif
         bool XGetValue(float_t frame,
             float_t* value, int32_t random_value, Random* random);
-        float_t XInterpolate(float_t frame, Curve::Key* curr,
-            Curve::Key* next, KeyType key_type, Random* random);
-        float_t XInterpolateHermite(Glitter::Curve::Key* curr,
-            Glitter::Curve::Key* next, float_t frame, Random* random);
-        float_t XInterpolateLinear(Glitter::Curve::Key* curr,
-            Glitter::Curve::Key* next, float_t frame, Random* random);
+        float_t XInterpolate(float_t frame, const Curve::Key& curr,
+            const Curve::Key& next, KeyType key_type, Random* random);
+        float_t XInterpolateHermite(const Curve::Key& curr,
+            const Curve::Key& next, float_t frame, Random* random);
+        float_t XInterpolateLinear(const Curve::Key& curr,
+            const Curve::Key& next, float_t frame, Random* random);
         float_t XRandomize(float_t value, Random* random);
-        float_t XRandomizeKey(Curve::Key* key, Random* random);
+        float_t XRandomizeKey(const Curve::Key& key, Random* random);
 
-        static void GetKeyIndices(std::vector<Curve::Key>* keys,
-            float_t frame, size_t* curr, size_t* next);
+        static void GetKeyIndices(const std::vector<Curve::Key>& keys,
+            float_t frame, size_t& curr, size_t& next);
 
         template <typename T>
         inline static T InterpolateHermite(const T p, const T dv,
