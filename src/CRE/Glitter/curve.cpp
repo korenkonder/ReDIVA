@@ -35,6 +35,7 @@ namespace Glitter {
         this->random_range = random_range;
     }
 
+#if defined(CRE_DEV)
     Curve::KeyRev::KeyRev() : type(), frame(), value(), tangent1(), tangent2(), random_range() {
 
     }
@@ -56,6 +57,7 @@ namespace Glitter {
         this->tangent2 = tangent2;
         this->random_range = random_range;
     }
+#endif
 
     Curve::Curve(GLT) : type(), repeat(),
         start_time(), end_time(), flags(), random_range() {

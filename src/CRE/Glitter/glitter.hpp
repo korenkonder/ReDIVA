@@ -1648,8 +1648,10 @@ namespace Glitter {
             float_t emission, bool init_scene, object_database* obj_db = 0);
         SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
         SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true, uint8_t load_flags = 0);
+#if defined(CRE_DEV)
         SceneCounter LoadSceneEffect(uint64_t hash, const char* name,
             bool appear_now = true, uint8_t load_flags = 0);
+#endif
         bool SceneHasNotEnded(SceneCounter load_counter);
 #if defined(CRE_DEV)
         void SetFrame(EffectGroup* effect_group,

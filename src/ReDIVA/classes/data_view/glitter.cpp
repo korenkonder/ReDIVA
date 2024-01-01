@@ -59,8 +59,13 @@ void data_view_glitter_imgui(class_data* data) {
     tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
     if (ImGui::TreeNodeEx("Effect Groups", tree_node_flags)) {
+#if defined(CRE_DEV)
         for (auto& i : Glitter::glt_particle_manager->effect_groups)
             ImGui::Text("0x%08X: %s", i.first, i.second->name.c_str());
+#else
+        for (auto& i : Glitter::glt_particle_manager->effect_groups)
+            ImGui::Text("0x%08X", i.first);
+#endif
         ImGui::TreePop();
     }
 
@@ -77,8 +82,13 @@ void data_view_glitter_imgui(class_data* data) {
             tree_node_flags |= ImGuiTreeNodeFlags_DefaultOpen;
 
             ImGui::PushID(sc_index);
+#if defined(CRE_DEV)
             if (!ImGui::TreeNodeEx("##Scene", tree_node_flags,
                 "Scene %d. 0x%08X: %s", sc_index, i->hash, i->name.c_str())) {
+#else
+            if (!ImGui::TreeNodeEx("##Scene", tree_node_flags,
+                "Scene %d. 0x%08X", sc_index, i->hash)) {
+#endif
                 ImGui::PopID();
                 sc_index++;
                 continue;
@@ -96,9 +106,15 @@ void data_view_glitter_imgui(class_data* data) {
                     ImGui::PushStyleColor(ImGuiCol_Text,
                         eff_f2->flags & Glitter::EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
                     ImGui::PushID(eff_index);
+#if defined(CRE_DEV)
                     if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
                         "Effect %d. 0x%08X: %s; Frame: %g", eff_index,
                         eff_f2->data.name_hash, eff_f2->name.c_str(), eff_f2->frame0)) {
+#else
+                    if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
+                        "Effect %d. 0x%08X; Frame: %g", eff_index,
+                        eff_f2->data.name_hash, eff_f2->frame0)) {
+#endif
                         ImGui::PopStyleColor();
                         ImGui::PopID();
                         eff_index++;
@@ -153,9 +169,15 @@ void data_view_glitter_imgui(class_data* data) {
                     ImGui::PushStyleColor(ImGuiCol_Text,
                         eff_x->flags & Glitter::EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
                     ImGui::PushID(eff_index);
+#if defined(CRE_DEV)
                     if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
                         "Effect %d. 0x%08X: %s; Frame: %g", eff_index,
                         eff_x->data.name_hash, eff_x->name.c_str(), eff_x->frame0)) {
+#else
+                    if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
+                        "Effect %d. 0x%08X; Frame: %g", eff_index,
+                        eff_x->data.name_hash, eff_x->frame0)) {
+#endif
                         ImGui::PopStyleColor();
                         ImGui::PopID();
                         eff_index++;

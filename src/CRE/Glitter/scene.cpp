@@ -13,9 +13,9 @@ namespace Glitter {
         emission = 1.0f;
         type = eff_group->type;
         effect_group = eff_group;
+#if defined(CRE_DEV)
         delta_frame_history = 0.0f;
         skip = false;
-#if defined(CRE_DEV)
         fade_frame = -1.0f;
         fade_frame_left = -1.0f;
         frame_rate = 0;
@@ -76,38 +76,41 @@ namespace Glitter {
                 continue;
 
             EffectInst* eff = i.ptr;
-
+#if defined(CRE_DEV)
             bool v13 = false;
             bool v14 = false;
             if (v14)
                 v13 = true;
 
-            float_t v15 = 0.0f;
-            if (!v14)
-                v15 = delta_frame;
+            float_t _delta_frame = delta_frame;
+            if (v14)
+                _delta_frame = 0.0f;
 
             float_t req_frame = eff->req_frame;
             eff->req_frame = 0.0f;
 
-            float_t v17 = req_frame - v15;
+            req_frame -= _delta_frame;
             while (true) {
                 while (true) {
-                    if (v15 > 0.0f)
-                        eff->Ctrl(GPM_VAL, type, v15, emission);
+                    if (v13 || _delta_frame > 0.0f)
+                        eff->Ctrl(GPM_VAL, type, _delta_frame, emission);
 
-                    if (v17 <= 10.0f)
+                    if (req_frame <= 10.0f)
                         break;
 
-                    v15 = 10.0f;
-                    v17 -= 10.0f;
+                    _delta_frame = 10.0f;
+                    req_frame -= 10.0f;
                 }
 
-                if (v17 <= 0.0)
+                if (req_frame <= 0.0f)
                     break;
 
-                v15 = v17;
-                v17 = -1.0f;
+                _delta_frame = req_frame;
+                req_frame = -1.0f;
             }
+#else
+            eff->Ctrl(GPM_VAL, type, delta_frame, emission);
+#endif
         }
     }
 

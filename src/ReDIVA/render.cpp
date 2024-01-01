@@ -616,6 +616,7 @@ static render_context* render_context_load() {
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
 
+#if defined(CRE_DEV)
     if (false) {
         char buf[0x200];
         std::vector<uint32_t> obj_set_ids;
@@ -899,6 +900,7 @@ static render_context* render_context_load() {
             obj_set_id_name.clear();
         }
     }
+#endif
 
     render_resize_fb(rctx, false);
 

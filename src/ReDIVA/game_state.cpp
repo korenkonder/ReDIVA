@@ -9,6 +9,7 @@
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/clear_color.hpp"
 #include "../CRE/pv_db.hpp"
+#include "../CRE/sound.hpp"
 #include "../CRE/task.hpp"
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
@@ -1225,6 +1226,7 @@ bool SubGameState::PhotoModeDemo::Dest() {
 }
 
 bool SubGameState::Selector::Init() {
+#if defined(CRE_DEV)
 #if PV_DEBUG
     if (!pv_x) {
         pv_game_selector_init();
@@ -1234,6 +1236,7 @@ bool SubGameState::Selector::Init() {
 #endif
     x_pv_game_selector_init();
     app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
+#endif
     return true;
 }
 
@@ -1280,6 +1283,7 @@ bool SubGameState::Selector::Ctrl() {
         return false;
     }
 #endif
+#if defined(CRE_DEV)
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (sel->exit) {
         if (sel->start && x_pv_game_init()) {
@@ -1291,10 +1295,12 @@ bool SubGameState::Selector::Ctrl() {
             game_state_set_game_state_next(GAME_STATE_ADVERTISE);
         return true;
     }
+#endif
     return false;
 }
 
 bool SubGameState::Selector::Dest() {
+#if defined(CRE_DEV)
 #if PV_DEBUG
     if (!pv_x) {
         PVGameSelector* sel = pv_game_selector_get();
@@ -1315,6 +1321,9 @@ bool SubGameState::Selector::Dest() {
 
     sel->del();
     return false;
+#else
+    return true;
+#endif
 }
 
 bool SubGameState::GameMain::Init() {
@@ -1324,6 +1333,7 @@ bool SubGameState::GameMain::Init() {
 }
 
 bool SubGameState::GameMain::Ctrl() {
+#if defined(CRE_DEV)
 #if PV_DEBUG
     if (!pv_x) {
         if (!task_pv_game_check_task_ready())
@@ -1333,14 +1343,18 @@ bool SubGameState::GameMain::Ctrl() {
 #endif
     if (!app::TaskWork::check_task_ready(x_pv_game_get()))
         return true;
+#endif
     return false;
 }
 
 bool SubGameState::GameMain::Dest() {
-    bool res = task_pv_game_del_task();
+#if defined(CRE_DEV)
+    bool res;
 #if PV_DEBUG
-    if (!pv_x)
+    if (!pv_x) {
+        task_pv_game_del_task();
         res = pv_game_free();
+    }
     else
         res = x_pv_game_free();
 #else
@@ -1348,6 +1362,7 @@ bool SubGameState::GameMain::Dest() {
 #endif
     if (!res)
         return false;
+#endif
 
     rctx_ptr->render_manager->set_multisample(true);
     return true;

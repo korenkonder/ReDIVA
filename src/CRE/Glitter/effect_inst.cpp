@@ -24,7 +24,9 @@ namespace Glitter {
         mat = mat4_identity;
         flags = (EffectInstFlag)0;
         random = 0;
+#if defined(CRE_DEV)
         req_frame = 0.0f;
+#endif
         ext_color = 0.0f;
         ext_anim_scale = 0.0f;
         some_scale = -1.0f;
