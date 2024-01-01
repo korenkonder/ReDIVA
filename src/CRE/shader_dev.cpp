@@ -25,12 +25,8 @@ static const int32_t glitter_particle_wireframe_fpt_unival_max[] = {
     -1,
 };
 
-static const uniform_name GLITTER_PT_WIREFRAME_uniform[] = {
-    U_INVALID,
-};
-
-static const bool GLITTER_PT_WIREFRAME_permut[] = {
-    false,
+static const std::pair<uniform_name, bool> GLITTER_PT_WIREFRAME_uniform[] = {
+    { U_INVALID      , false,}
 };
 
 static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
@@ -49,16 +45,14 @@ static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
     SHADER_DEV_##n, \
     sizeof(n##_table) / sizeof(shader_sub_table), \
     n##_table, \
-    sizeof(n##_uniform) / sizeof(uniform_name), \
+    sizeof(n##_uniform) / sizeof(std::pair<uniform_name, bool>), \
     n##_uniform, \
-    n##_permut, \
 }
 
 const shader_table shader_dev_table[] = {
     {
         "SHADER_FFP",
         SHADER_DEV_FFP,
-        0,
         0,
         0,
         0,
