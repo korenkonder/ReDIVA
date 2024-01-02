@@ -389,18 +389,18 @@ namespace Glitter {
                 double_t t1_accum = 0.0;
                 double_t t2_accum = 0.0;
                 for (size_t j = 1; j < i - 1; j++) {
-                    double_t _t1 = (double_t)((j + 0) * step) / (double_t)(i * step);
-                    double_t _t2 = (double_t)((j + 1) * step) / (double_t)(i * step);
-                    double_t t1_1 = _t1 - 1.0f;
-                    double_t t2_1 = _t2 - 1.0f;
+                    vec2d t = vec2d(
+                        (double_t)((j + 0) * step),
+                        (double_t)((j + 1) * step)
+                    ) / (double_t)(i * step);
+                    vec2d t_1 = t - 1.0f;
 
-                    double_t t1_t2_1 = (a[j + 0] + b[j + 0]) - (a[0] + b[0]) - (_t1 * 2.0 - 3.0) * (_t1 * _t1) * ((a[0] + b[0]) - (a[i] + b[i]));
-                    double_t t1_t2_2 = (a[j + 1] + b[j + 1]) - (a[0] + b[0]) - (_t2 * 2.0 - 3.0) * (_t2 * _t2) * ((a[0] + b[0]) - (a[i] + b[i]));
-                    t1_t2_1 /= t1_1 * _t1;
-                    t1_t2_2 /= t2_1 * _t2;
+                    vec2d t1_t2 = (*(vec2d*)&a[j + 0] + *(vec2d*)&b[j + 0]) - (a[0] + b[0])
+                        - (t * 2.0 - 3.0) * (t * t) * ((a[0] + b[0]) - (a[i] + b[i]));
+                    t1_t2 /= t_1 * t;
 
-                    double_t t1 = -t1_t2_1 * _t2 + t1_t2_2 * _t1;
-                    double_t t2 = t1_t2_1 * t2_1 - t1_t2_2 * t1_1;
+                    double_t t1 = -t1_t2.x * t.y + t1_t2.y * t.x;
+                    double_t t2 = t1_t2.x * t_1.y - t1_t2.y * t_1.x;
 
                     t1_accum += t1;
                     t2_accum += t2;
