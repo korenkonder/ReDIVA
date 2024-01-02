@@ -1093,8 +1093,8 @@ namespace pv_param_task {
         frame = -1.0f;
     }
 
-    static void get_autofocus_data(float_t distance, float_t fov, float_t& focus,
-        float_t& focus_range, float_t& fuzzing_range, float_t& ratio) {
+    static void get_autofocus_data(float_t distance, float_t fov, bool& enable,
+        float_t& focus, float_t& focus_range, float_t& fuzzing_range, float_t& ratio) {
         float_t v5 = tanf(fov * DEG_TO_RAD_FLOAT * 0.5f);
         float_t v6 = distance * 1000.0f;
         float_t v7 = 36.0f / (v5 * 2.0f);
@@ -1121,12 +1121,14 @@ namespace pv_param_task {
             if (_fuzzing_range < 0.01f)
                 _fuzzing_range = 0.01f;
 
+            enable = true;
             focus = distance;
             focus_range = _focus_range;
             fuzzing_range = _fuzzing_range;
             ratio = _ratio;
         }
         else {
+            enable = false;
             focus = 0.0f;
             focus_range = 0.0f;
             fuzzing_range = 0.0f;
@@ -1145,6 +1147,7 @@ namespace pv_param_task {
         float_t auto_focus;
         float_t auto_focus_range;
 #endif
+        bool enable = true;
         bool autofocus = data.data.chara_id != -1;
 #if DOF_FIX
         if (true) {
@@ -1168,7 +1171,7 @@ namespace pv_param_task {
 
             float_t distance = vec3::distance(trans, view_point);
 
-            get_autofocus_data(distance, fov, focus, focus_range, fuzzing_range, ratio);
+            get_autofocus_data(distance, fov, enable, focus, focus_range, fuzzing_range, ratio);
 
             if (autofocus) {
                 data.data.focus = focus;
@@ -1226,6 +1229,7 @@ namespace pv_param_task {
 
         dof_pv pv;
         dof_pv_get(&pv);
+        pv.enable = enable;
         pv.f2.focus = focus;
         pv.f2.focus_range = focus_range;
         pv.f2.fuzzing_range = fuzzing_range;

@@ -2499,7 +2499,7 @@ static const std::pair<uniform_name, bool> SPRITE_uniform[] = {
 };
 
 static const std::pair<uniform_name, bool> DOF_uniform[] = {          // Added
-    { U_DOF          , false },
+    { U_DOF          , true  },
 };
 
 static const std::pair<uniform_name, bool> TRANSPARENCY_uniform[] = { // Added

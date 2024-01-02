@@ -39,8 +39,8 @@ static const dof_pv dof_pv_default = {
     },
 };
 
-dof_debug dof_debug_data;
-dof_pv dof_pv_data;
+dof_debug dof_debug_data = dof_debug_default;
+dof_pv dof_pv_data = dof_pv_default;
 
 extern render_context* rctx_ptr;
 
