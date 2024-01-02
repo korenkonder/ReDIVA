@@ -4437,36 +4437,35 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
         uint32_t set_id = (uint32_t)mesh->object_set_name_hash;
         uint32_t obj_id = (uint32_t)mesh->object_name_hash;
 
-        ObjsetInfo* info = object_storage_get_objset_info(set_id);
+        ObjsetInfo* set_info = object_storage_get_objset_info(set_id);
         ssize_t object_set_count = object_storage_get_obj_set_count();
 
-        /*ImGui::StartPropertyColumn("Object Set");
-        if (ImGui::BeginCombo("##Object Set", info ? info->name.c_str() : "None", 0)) {
-            ssize_t set_index = info ? object_storage_get_obj_set_index(set_id) : -1;
-
+        extern std::map<uint32_t, ObjsetInfo> object_storage_data_modern;        
+        ImGui::StartPropertyColumn("Object Set");
+        if (ImGui::BeginCombo("##Object Set", set_info ? set_info->name.c_str() : "None", 0)) {
             ImGui::PushID(-1);
-            if (ImGui::Selectable("None", !info)
+            if (ImGui::Selectable("None", !set_info)
                 || ImGui::ItemKeyPressed(ImGuiKey_Enter))
-                set_index = -1;
+                set_info = 0;
             ImGui::PopID();
 
-            for (ssize_t i = 0; i < object_set_count; i++) {
-                ObjsetInfo* info = object_storage_get_objset_info_by_index(i);
+            for (auto& i : object_storage_data_modern) {
+                ObjsetInfo* info = &i.second;
                 if (!info || !info->obj_set)
                     continue;
 
-                ImGui::PushID((int32_t)i);
+                ImGui::PushID(&i);
                 if (ImGui::Selectable(info->name.c_str(), info->set_id == set_id)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                     || (ImGui::IsItemFocused() && info->set_id != set_id))
-                    set_index = i;
+                    set_info = info;
                 ImGui::PopID();
             }
 
-            if (set_index == -1)
+            if (!set_info)
                 set_id = -1;
             else
-                set_id = object_storage_get_objset_info_by_index(set_index)->set_id;
+                set_id = set_info->set_id;
 
             if (mesh->object_set_name_hash != set_id) {
                 mesh->object_set_name_hash = set_id;
@@ -4476,12 +4475,12 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
             input_locked |= ImGui::IsWindowFocused();
             ImGui::EndCombo();
         }
-        ImGui::EndPropertyColumn();*/
+        ImGui::EndPropertyColumn();
 
         ImGui::DisableElementPush(set_id != -1);
         obj* obj = 0;
-        if (info && info->obj_set) {
-            obj_set* set = info->obj_set;
+        if (set_info && set_info->obj_set) {
+            obj_set* set = set_info->obj_set;
             ::obj** obj_data = set->obj_data;
             for (uint32_t i = 0; i < set->obj_num; i++)
                 if (obj_data[i]->id == obj_id) {
@@ -4492,8 +4491,8 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
 
         ImGui::StartPropertyColumn("Object");
         if (ImGui::BeginCombo("##Object", obj ? obj->name : "None", 0)) {
-            if (set_id != -1 && info && info->set_id == set_id && info->obj_set) {
-                obj_set* set = info->obj_set;
+            if (set_id != -1 && set_info && set_info->set_id == set_id && set_info->obj_set) {
+                obj_set* set = set_info->obj_set;
                 ::obj** obj_data = set->obj_data;
                 ssize_t obj_index = -1;
                 for (uint32_t i = 0; i < set->obj_num; i++)
