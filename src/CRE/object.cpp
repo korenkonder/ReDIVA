@@ -135,13 +135,13 @@ GLuint obj_mesh_vertex_buffer::get_buffer() {
     return 0;
 }
 
-#if SHARED_OBJECT_BUFFER
 size_t obj_mesh_vertex_buffer::get_offset() {
+#if SHARED_OBJECT_BUFFER
     if (buffers[0])
         return offset;
+#endif
     return 0;
 }
-#endif
 
 GLsizeiptr obj_mesh_vertex_buffer::get_size() {
     if (buffers[0])

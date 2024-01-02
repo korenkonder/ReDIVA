@@ -2715,35 +2715,23 @@ namespace mdl {
                 if (!data)
                     continue;
 
-#if SHARED_OBJECT_BUFFER
                 GLuint morph_vertex_buffer = 0;
                 size_t morph_vertex_buffer_offset = 0;
                 if (obj_morph_vertex_buf) {
                     morph_vertex_buffer = obj_morph_vertex_buf[i].get_buffer();
                     morph_vertex_buffer_offset = obj_morph_vertex_buf[i].get_offset();
                 }
-#else
-                GLuint morph_vertex_buffer = 0;
-                if (obj_morph_vertex_buf)
-                    morph_vertex_buffer = obj_morph_vertex_buf[i].get_buffer();
-#endif
 
                 GLuint index_buffer = 0;
                 if (obj_index_buf)
                     index_buffer = obj_index_buf[i].buffer;
 
-#if SHARED_OBJECT_BUFFER
                 GLuint vertex_buffer = 0;
                 size_t vertex_buffer_offset = 0;
                 if (obj_vertex_buf) {
                     vertex_buffer = obj_vertex_buf[i].get_buffer();
                     vertex_buffer_offset = obj_vertex_buf[i].get_offset();
                 }
-#else
-                GLuint vertex_buffer = 0;
-                if (obj_vertex_buf)
-                    vertex_buffer = obj_vertex_buf[i].get_buffer();
-#endif
 
                 if (!vertex_buffer || !index_buffer || obj_morph_vertex_buf && !morph_vertex_buffer) {
                     printf_debug("mdl::DispManager::entry_obj: no vertex or index mesh buffer to draw;\n");

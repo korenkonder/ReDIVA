@@ -44,9 +44,7 @@ struct obj_mesh_vertex_buffer {
 
     void cycle_index();
     GLuint get_buffer();
-#if SHARED_OBJECT_BUFFER
     size_t get_offset();
-#endif
     GLsizeiptr get_size();
     bool load(obj_mesh& mesh, bool dynamic = false);
     bool load_data(size_t size, const void* data, int32_t count, bool dynamic);
