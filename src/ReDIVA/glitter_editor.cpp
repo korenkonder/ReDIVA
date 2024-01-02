@@ -4505,8 +4505,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
 
                 ImGui::PushID(-1);
                 if (ImGui::Selectable("None", !obj)
-                    || ImGui::ItemKeyPressed(ImGuiKey_Enter)
-                    || (ImGui::IsItemFocused() && obj))
+                    || ImGui::ItemKeyPressed(ImGuiKey_Enter))
                     obj_index = -1;
                 ImGui::PopID();
 
