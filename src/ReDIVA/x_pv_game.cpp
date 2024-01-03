@@ -6667,34 +6667,29 @@ void x_pv_game::basic() {
 #if DOF_BAKE
     if (dof_cam_data.frame != frame) {
         camera* cam = rctx_ptr->camera;
-        renderer::DOF3* dof = rctx_ptr->render.dof;
 
-        dof_pv pv = {};
-        dof_pv_get(&pv);
+        bool enable = rctx_ptr->render.get_dof_enable();
+
+        float_t focus;
+        float_t focus_range;
+        float_t fuzzing_range;
+        float_t ratio;
+        rctx_ptr->render.get_dof_data(focus, focus_range, fuzzing_range, ratio);
 
         vec3 interest;
         vec3 view_point;
         cam->get_interest(interest);
         cam->get_view_point(view_point);
 
-        bool enable = false;
-        if (pv.enable && pv.f2.ratio > 0.0f) {
-            if (pv.f2.focus > 0.0f) {
-                vec3 direction = vec3::normalize(interest - view_point);
-                interest = direction * pv.f2.focus + view_point;
-            }
-            else
-                interest = view_point;
-            enable = true;
-        }
+        interest = view_point + vec3::normalize(interest - view_point) * focus;
 
         dof_cam_data.position_x.push_back(interest.x);
         dof_cam_data.position_y.push_back(interest.y);
         dof_cam_data.position_z.push_back(interest.z);
-        dof_cam_data.focus.push_back(pv.f2.focus);
-        dof_cam_data.focus_range.push_back(pv.f2.focus_range);
-        dof_cam_data.fuzzing_range.push_back(pv.f2.fuzzing_range);
-        dof_cam_data.ratio.push_back(pv.f2.ratio);
+        dof_cam_data.focus.push_back(focus);
+        dof_cam_data.focus_range.push_back(focus_range);
+        dof_cam_data.fuzzing_range.push_back(fuzzing_range);
+        dof_cam_data.ratio.push_back(ratio);
         if (dof_cam_data.enable != enable) {
             dof_cam_data.enable_frame.push_back(frame, enable);
             dof_cam_data.enable = enable;
