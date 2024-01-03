@@ -2950,27 +2950,21 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t id = data[0];
         float_t duration = (float_t)data[1];
 
-        pv_param_task::post_process_task_set_bloom_data(
-            pv_param::post_process_data_get_bloom_data(id), duration);
+        set_pv_param_post_process_bloom_data(true, id, duration);
     } break;
     case DSC_X_COLOR_CORRECTION: {
         int32_t enable = data[0];
         int32_t id = data[1];
         float_t duration = (float_t)data[2];
 
-        if (enable == 1)
-            pv_param_task::post_process_task_set_color_correction_data(
-                pv_param::post_process_data_get_color_correction_data(id), duration);
+        set_pv_param_post_process_color_correction_data(enable == 1, id, duration);
     } break;
     case DSC_X_DOF: {
         int32_t enable = data[0];
         int32_t id = data[1];
         float_t duration = (float_t)data[2];
 
-        dof_pv_data.enable = enable == 1;
-        if (enable == 1)
-            pv_param_task::post_process_task_set_dof_data(
-                pv_param::post_process_data_get_dof_data(id), duration);
+        set_pv_param_post_process_dof_data(enable == 1, id, duration);
     } break;
     case DSC_X_CHARA_ALPHA: {
         chara_id = data[0];
@@ -3604,6 +3598,30 @@ void x_pv_game_pv_data::reset() {
     dsc_data_ptr = 0;
     dsc_data_ptr_end = 0;
     dsc_time = -1;
+}
+
+bool x_pv_game_pv_data::set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration) {
+    pv_param::bloom& bloom = pv_param::post_process_data_get_bloom_data(id);
+    if (set)
+        pv_param_task::post_process_task_set_bloom_data(bloom, duration);
+    return true;
+}
+
+bool x_pv_game_pv_data::set_pv_param_post_process_color_correction_data(bool set, int32_t id, float_t duration) {
+    pv_param::color_correction& color_correction = pv_param::post_process_data_get_color_correction_data(id);
+    if (set)
+        pv_param_task::post_process_task_set_color_correction_data(color_correction, duration);
+    return true;
+}
+
+bool x_pv_game_pv_data::set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration) {
+    rctx_ptr->render.set_dof_enable(set);
+    rctx_ptr->render.set_dof_update(set);
+
+    pv_param::dof& dof = pv_param::post_process_data_get_dof_data(id);
+    if (set)
+        pv_param_task::post_process_task_set_dof_data(dof, duration);
+    return true;
 }
 
 void x_pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time) {
@@ -6577,9 +6595,6 @@ bool x_pv_game::ctrl() {
             a3da_key_rev(a.dof.model_transform.translation.x, dof_cam_data.position_x);
             a3da_key_rev(a.dof.model_transform.translation.y, dof_cam_data.position_y);
             a3da_key_rev(a.dof.model_transform.translation.z, dof_cam_data.position_z);
-            a.dof.model_transform.translation.x.raw_data = true;
-            a.dof.model_transform.translation.y.raw_data = true;
-            a.dof.model_transform.translation.z.raw_data = true;
             a3da_key_rev(a.dof.model_transform.scale.x, dof_cam_data.focus_range);
             a3da_key_rev(a.dof.model_transform.rotation.x, dof_cam_data.fuzzing_range);
             a3da_key_rev(a.dof.model_transform.rotation.y, dof_cam_data.ratio);
@@ -6654,8 +6669,8 @@ void x_pv_game::basic() {
         camera* cam = rctx_ptr->camera;
         renderer::DOF3* dof = rctx_ptr->render.dof;
 
-        dof_pv pv;
-        dof_pv_get(&dof_pv_data);
+        dof_pv pv = {};
+        dof_pv_get(&pv);
 
         vec3 interest;
         vec3 view_point;
@@ -7383,7 +7398,8 @@ bool x_pv_game::unload() {
 
     rndr::Render& rend = rctx_ptr->render;
     rend.reset_saturate_coeff(0, true);
-    dof_pv_set();
+    rend.set_dof_enable(false);
+    rend.set_dof_update(false);
     rend.reset_scene_fade(0);
 
     rend.set_taa(1);

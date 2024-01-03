@@ -4380,6 +4380,8 @@ bool pv_game::set_pv_param_post_process_color_correction_data(bool set, int32_t 
 }
 
 bool pv_game::set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration) {
+    rctx_ptr->render.set_dof_enable(set);
+
     pv_param::dof& dof = pv_param::post_process_data_get_dof_data(id);
     if (set)
         pv_param_task::post_process_task_set_dof_data(dof, duration);
@@ -4674,7 +4676,7 @@ bool pv_game::unload() {
 
     rndr::Render& rend = rctx_ptr->render;
     rend.reset_saturate_coeff(0, true);
-    dof_pv_set();
+    rend.set_dof_enable(false);
     rend.reset_scene_fade(0);
 
     rend.set_taa(1);

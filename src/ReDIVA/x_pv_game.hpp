@@ -485,6 +485,9 @@ struct x_pv_game_pv_data {
     void find_stage_effects(prj::vector_pair<int64_t, int32_t>& stage_effects);
     void init(class x_pv_game* pv_game, bool music_play);
     void reset();
+    bool set_pv_param_post_process_bloom_data(bool set, int32_t id, float_t duration);
+    bool set_pv_param_post_process_color_correction_data(bool set, int32_t id, float_t duration);
+    bool set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration);
     void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
     void unload();
 };

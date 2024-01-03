@@ -197,6 +197,9 @@ namespace rndr {
         void free();
         bool get_auto_exposure();
         int32_t get_cam_blur();
+        void get_dof_data(float_t& focus, float_t& focus_range, float_t& fuzzing_range, float_t& ratio);
+        bool get_dof_enable();
+        bool get_dof_update();
         float_t get_exposure();
         float_t get_exposure_rate();
         float_t get_gamma();
@@ -229,6 +232,9 @@ namespace rndr {
         void resize(int32_t width, int32_t height);
         void set_auto_exposure(bool value);
         void set_cam_blur(int32_t value);
+        void set_dof_data(float_t focus, float_t focus_range, float_t fuzzing_range, float_t ratio);
+        void set_dof_enable(bool value);
+        void set_dof_update(bool value);
         void set_exposure(float_t value);
         void set_exposure_rate(float_t value);
         void set_gamma(float_t value);

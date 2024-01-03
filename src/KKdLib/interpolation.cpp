@@ -254,6 +254,26 @@ int32_t interpolate_chs_reverse_sequence(
 
     values.push_back({ (float_t)(int64_t)(count - 1), arr[count - 1], t2_old, 0.0f });
 
+    if (values.size() > 2) {
+        kft3* keys = values.data();
+        size_t length = values.size();
+        for (size_t i = 0; i < length - 3; i++)
+            if (*(uint32_t*)&keys[i + 0].value == *(uint32_t*)&keys[i + 1].value
+                && *(uint32_t*)&keys[i + 1].value == *(uint32_t*)&keys[i + 2].value
+                && *(uint32_t*)&keys[i + 0].tangent2 == 0
+                && *(uint32_t*)&keys[i + 1].tangent1 == 0
+                && *(uint32_t*)&keys[i + 1].tangent2 == 0
+                && *(uint32_t*)&keys[i + 2].tangent1 == 0) {
+                keys[i + 1].frame = keys[i + 2].frame;
+                keys[i + 1].tangent2 = keys[i + 2].tangent2;
+                values.erase(values.begin() + (i + 2));
+                keys = values.data();
+                length = values.size();
+                if (length < 3)
+                    break;
+            }
+    }
+
     kft3* keys = values.data();
     size_t length = values.size();
     for (size_t i = 0; i < count; i++) {

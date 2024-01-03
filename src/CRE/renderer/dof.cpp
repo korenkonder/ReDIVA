@@ -31,6 +31,7 @@ static const dof_debug dof_debug_default = {
 
 static const dof_pv dof_pv_default = {
     false,
+    false,
     {
         10.0f,
         1.0f,
@@ -421,16 +422,4 @@ void dof_debug_set(dof_debug* debug) {
         dof_debug_data = *debug;
     else
         dof_debug_data = dof_debug_default;
-}
-
-void dof_pv_get(dof_pv* pv) {
-    if (pv)
-        *pv = dof_pv_data;
-}
-
-void dof_pv_set(dof_pv* pv) {
-    if (pv)
-        dof_pv_data = *pv;
-    else
-        dof_pv_data = dof_pv_default;
 }

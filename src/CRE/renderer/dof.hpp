@@ -35,6 +35,7 @@ struct dof_debug {
 
 struct dof_pv {
     bool enable;
+    bool update;
     dof_f2 f2;
 };
 
@@ -80,10 +81,5 @@ namespace renderer {
     };
 }
 
-extern dof_debug dof_debug_data;
-extern dof_pv dof_pv_data;
-
 extern void dof_debug_get(dof_debug* debug);
 extern void dof_debug_set(dof_debug* debug = 0);
-extern void dof_pv_get(dof_pv* pv);
-extern void dof_pv_set(dof_pv* pv = 0);

@@ -4242,7 +4242,7 @@ static void auth_3d_dof_restore_prev_value(auth_3d_dof* d, render_context* rctx)
     if (!d->has_dof)
         return;
 
-    dof_pv_set(0);
+    rctx->render.set_dof_enable(false);
 }
 
 static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
@@ -4254,13 +4254,9 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
 
     float_t focus = vec3::distance(d->model_transform.translation_value, view_point);
 
-    dof_pv pv;
-    pv.enable = fabsf(d->model_transform.rotation_value.z) > 0.000001f;
-    pv.f2.focus = focus;
-    pv.f2.focus_range = d->model_transform.scale_value.x;
-    pv.f2.fuzzing_range = d->model_transform.rotation_value.x;
-    pv.f2.ratio = d->model_transform.rotation_value.y;
-    dof_pv_set(&pv);
+    rctx->render.set_dof_enable(fabsf(d->model_transform.translation_value.x) > 0.000001f);
+    rctx->render.set_dof_data(focus, d->model_transform.scale_value.x, 
+        d->model_transform.rotation_value.x, d->model_transform.rotation_value.y);
 }
 
 static void auth_3d_dof_store(auth_3d* auth, auth_3d_dof* d, auth_3d_dof_file* df) {

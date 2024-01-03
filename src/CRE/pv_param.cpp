@@ -1097,29 +1097,25 @@ namespace pv_param_task {
         float_t& focus, float_t& focus_range, float_t& fuzzing_range, float_t& ratio) {
         float_t v5 = tanf(fov * DEG_TO_RAD_FLOAT * 0.5f);
         float_t v6 = distance * 1000.0f;
-        float_t v7 = 36.0f / (v5 * 2.0f);
-        v7 *= v7;
+        float_t v7 = (36.0f / (v5 * 2.0f)) * (36.0f / (v5 * 2.0f));
 
         float_t _focus_range = (v6 * 0.36608f * v6) / (v7 - v6 * 0.36608f) * 0.001f;
         if (_focus_range >= 0.0f) {
-            float_t _ratio = (v7 * 20000.0f) / (v6 * 220000.0f + v6 * 11.0f * v6) * 3.0048077f;
-
             float_t range;
-            if (_ratio >= 1.0f) {
+            float_t _ratio;
+            float_t v11 = (v7 * 20000.0f) / (v6 * 220000.0f + v6 * 11.0f * v6);
+            if (v11 >= 0.3328f) {
                 range = (v6 * 3.6608f * v6) / (v7 - v6 * 3.6608f) * 0.001f;
-                if (range < 0.2f)
-                    range = 0.2f;
                 _ratio = 1.0f;
             }
-            else
+            else {
                 range = 20.0f;
+                _ratio = v11 * 3.0048077f;
+            }
 
-            if (_focus_range < 0.2f)
-                _focus_range = 0.2f;
-
-            float_t _fuzzing_range = range - _focus_range;
-            if (_fuzzing_range < 0.01f)
-                _fuzzing_range = 0.01f;
+            range = max_def(range, 0.2f);
+            _focus_range = max_def(_focus_range, 0.2f);
+            float_t _fuzzing_range = max_def(range - _focus_range, 0.01f);
 
             enable = true;
             focus = distance;
@@ -1127,35 +1123,18 @@ namespace pv_param_task {
             fuzzing_range = _fuzzing_range;
             ratio = _ratio;
         }
-        else {
+        else
             enable = false;
-            focus = 0.0f;
-            focus_range = 0.0f;
-            fuzzing_range = 0.0f;
-            ratio = 0.0f;
-        }
     }
 
-#define DOF_FIX 1
-
     void PostProcessCtrlDof::Set() {
-        float_t focus;
-        float_t focus_range;
-        float_t fuzzing_range;
-        float_t ratio;
-#if DOF_FIX
-        float_t auto_focus;
-        float_t auto_focus_range;
-#endif
-        bool enable = true;
         bool autofocus = data.data.chara_id != -1;
-#if DOF_FIX
-        if (true) {
-#else
         if (autofocus) {
-#endif
+            if (!rctx_ptr->render.get_dof_update())
+                return;
+
             vec3 trans = 0.0f;
-            rob_chara* rob_chr = rob_chara_array_get(autofocus ? data.data.chara_id : 0);
+            rob_chara* rob_chr = rob_chara_array_get(data.data.chara_id);
             if (rob_chr) {
                 motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
                 ::bone_data* bone_data = mot->bone_data.bones.data();
@@ -1165,32 +1144,22 @@ namespace pv_param_task {
 
             camera* cam = rctx_ptr->camera;
 
+            bool enable = true;
             vec3 view_point;
             cam->get_view_point(view_point);
-            float_t fov = (float_t)cam->get_fov();
-
-            float_t distance = vec3::distance(trans, view_point);
-
-            get_autofocus_data(distance, fov, enable, focus, focus_range, fuzzing_range, ratio);
-
-            if (autofocus) {
-                data.data.focus = focus;
-                data.data.focus_range = focus_range;
-                data.data.fuzzing_range = fuzzing_range;
-                data.data.ratio = ratio;
-            }
-
-#if DOF_FIX
-            auto_focus = focus;
-            auto_focus_range = focus_range;
-        }
-#else
+            get_autofocus_data(vec3::distance(trans, view_point), cam->get_fov(),
+                enable, data.data.focus, data.data.focus_range,
+                data.data.fuzzing_range, data.data.ratio);
+            rctx_ptr->render.set_dof_enable(enable);
         }
         else if (frame < 0.0f)
             return;
-#endif
 
-        if (fabsf(duration) <= 0.000001f || autofocus && duration < 0.0f) {
+        float_t focus;
+        float_t focus_range;
+        float_t fuzzing_range;
+        float_t ratio;
+        if (fabsf(duration) <= 0.000001f || autofocus) {
             focus = data.data.focus;
             focus_range = data.data.focus_range;
             fuzzing_range = data.data.fuzzing_range;
@@ -1210,31 +1179,7 @@ namespace pv_param_task {
             ratio = lerp_def(data.data_prev.ratio, data.data.ratio, t);
         }
 
-#if DOF_FIX
-        bool ret = true;
-        if (ratio > 0.0f) {
-            if (focus == 0.0f && auto_focus >= 0.0f) {
-                focus = auto_focus;
-                ret = false;
-            }
-            if (focus_range == 0.0f && auto_focus_range >= 0.0f) {
-                focus_range = auto_focus_range;
-                ret = false;
-            }
-        }
-
-        if (!autofocus && ret && frame < 0.0f)
-            return;
-#endif
-
-        dof_pv pv;
-        dof_pv_get(&pv);
-        pv.enable = enable;
-        pv.f2.focus = focus;
-        pv.f2.focus_range = focus_range;
-        pv.f2.fuzzing_range = fuzzing_range;
-        pv.f2.ratio = ratio;
-        dof_pv_set(&pv);
+        rctx_ptr->render.set_dof_data(focus, focus_range, fuzzing_range, ratio);
 
         frame += get_delta_frame();
         if (frame > duration) {
@@ -1249,14 +1194,9 @@ namespace pv_param_task {
         this->duration = duration;
         data.data = *dof;
 
-        if (fabsf(duration) > 0.000001f) {
-            dof_pv pv;
-            dof_pv_get(&pv);
-            data.data_prev.focus = pv.f2.focus;
-            data.data_prev.focus_range = pv.f2.focus_range;
-            data.data_prev.fuzzing_range = pv.f2.fuzzing_range;
-            data.data_prev.ratio = pv.f2.ratio;
-        }
+        if (fabsf(duration) > 0.000001f)
+            rctx_ptr->render.get_dof_data(data.data_prev.focus,
+                data.data_prev.focus_range, data.data_prev.fuzzing_range, data.data_prev.ratio);
         else
             data.data_prev = data.data;
     }

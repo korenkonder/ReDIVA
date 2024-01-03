@@ -17,6 +17,8 @@ extern bool task_stage_is_modern;
 
 extern render_context* rctx_ptr;
 
+extern dof_pv dof_pv_data;
+
 #define MLAA_MAX_EDGE_DETECTION_LEN (3)
 #define MLAA_GRID_SIDE_LEN (2 * MLAA_MAX_EDGE_DETECTION_LEN + 1)
 #define MLAA_SIDE_LEN (5 * MLAA_GRID_SIDE_LEN)
@@ -736,6 +738,21 @@ namespace rndr {
         return cam_blur;
     }
 
+    void Render::get_dof_data(float_t& focus, float_t& focus_range, float_t& fuzzing_range, float_t& ratio) {
+        focus = dof_pv_data.f2.focus;
+        focus_range = dof_pv_data.f2.focus_range;
+        fuzzing_range = dof_pv_data.f2.fuzzing_range;
+        ratio = dof_pv_data.f2.ratio;
+    }
+
+    bool Render::get_dof_enable() {
+        return dof_pv_data.enable;
+    }
+
+    bool Render::get_dof_update() {
+        return dof_pv_data.update;
+    }
+
     float_t Render::get_exposure() {
         return exposure;
     }
@@ -1136,6 +1153,21 @@ namespace rndr {
     void Render::set_cam_blur(int32_t value) {
         cam_blur = value;
         update = 1;
+    }
+
+    void Render::set_dof_data(float_t focus, float_t focus_range, float_t fuzzing_range, float_t ratio) {
+        dof_pv_data.f2.focus = focus;
+        dof_pv_data.f2.focus_range = focus_range;
+        dof_pv_data.f2.ratio = ratio;
+        dof_pv_data.f2.fuzzing_range = fuzzing_range;
+    }
+
+    void Render::set_dof_enable(bool value) {
+        dof_pv_data.enable = value;
+    }
+
+    void Render::set_dof_update(bool value) {
+        dof_pv_data.update = value;
     }
 
     void Render::set_exposure(float_t value) {

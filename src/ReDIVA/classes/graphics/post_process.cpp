@@ -4,6 +4,7 @@
 */
 
 #include "post_process.hpp"
+#include "../../../CRE/render_context.hpp"
 #include "../../../CRE/stage.hpp"
 #include "../../imgui_helper.hpp"
 
@@ -171,6 +172,8 @@ void graphics_post_process_imgui(class_data* data) {
     ImGui::SetDefaultColumnSpace();
 
     if (ImGui::TreeNodeEx("DOF", ImGuiTreeNodeFlags_DefaultOpen)) {
+        dof_debug dof_debug_data;
+        dof_debug_get(&dof_debug_data);
         bool use_ui_params = dof_debug_data.flags & DOF_DEBUG_USE_UI_PARAMS;
         bool phys = use_ui_params && dof_debug_data.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
         bool f2 = use_ui_params && ~dof_debug_data.flags & DOF_DEBUG_ENABLE_PHYS_DOF;
@@ -240,6 +243,7 @@ void graphics_post_process_imgui(class_data* data) {
             ImGui::PopItemFlag();
             ImGui::PopStyleVar();
         }
+        dof_debug_set(&dof_debug_data);
         ImGui::SetDefaultColumnSpace();
         ImGui::TreePop();
     }
@@ -249,7 +253,8 @@ void graphics_post_process_imgui(class_data* data) {
         if (stg)
             light_param_data_storage_data_set_stage(stg->index);
         dof_debug_set();
-        dof_pv_set();
+        extern render_context* rctx_ptr;
+        rctx_ptr->render.set_dof_enable(false);
     }
 
     data->imgui_focus |= ImGui::IsWindowFocused();
