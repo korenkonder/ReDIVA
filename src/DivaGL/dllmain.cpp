@@ -6,7 +6,6 @@
 #include "../KKdLib/default.hpp"
 #include "inject.hpp"
 #include "print.hpp"
-#include "shader_table.hpp"
 #include <Windows.h>
 
 bool APIENTRY DllMain(HMODULE handle, DWORD ul_reason_for_call, LPVOID lpReserved) {

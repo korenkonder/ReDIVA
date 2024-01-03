@@ -1842,12 +1842,15 @@ void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
 
 // 0x140480F40
 void RobOsage::SetNodesExternalForce(vec3* external_force, float_t strength) {
-    vec3 v4;
-    if (external_force)
-        v4 = *external_force;
-    else
-        v4 = 0.0f;
+    if (!external_force) {
+        RobOsageNode* i_begin = nodes.data() + 1;
+        RobOsageNode* i_end = nodes.data() + nodes.size();
+        for (RobOsageNode* i = i_begin; i != i_end; i++)
+            i->external_force = 0.0f;
+        return;
+    }
 
+    vec3 v4 = *external_force;
     size_t exf = osage_setting.exf;
     size_t v8 = 0;
     if (exf >= 4) {
@@ -2951,8 +2954,7 @@ static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& p1
         float_t v30 = 1.0f / cls->vec_center_length;
         vec3 v61 = cls->vec_center * v30;
         float_t v34 = vec3::dot(v61, v56);
-        float_t v35 = vec3::dot(v61 * v34 - v56, cls->pos[0] - p0)
-            / (v34 * v34 - 1.0f);
+        float_t v35 = vec3::dot(v61 * v34 - v56, cls->pos[0] - p0) / (v34 * v34 - 1.0f);
         if (v35 < 0.0f)
             vec = p0;
         else if (v35 <= v25)
@@ -3425,7 +3427,8 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
         for (RobOsageNode* v55 = v55_begin; v55 != v55_end; v55++) {
             mat4_transform_point(&v131, &v55->field_94, &v128);
 
-            vec3 v126 = v55->trans + v55->trans_diff + v55->field_28;
+            vec3 v123 = v55->trans_diff + v55->field_28;
+            vec3 v126 = v55->trans + v123;
             sub_140482F30(&v126, &v111, v25 * v55->length);
 
             vec3 v117 = (v128 - v126) * rob_osg->skin_param_ptr->stiffness;
@@ -3433,7 +3436,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
             float_t v74 = 1.0f / (weight - (weight - 1.0f) * v55->data_ptr->skp_osg_node.inertial_cancel);
             v55->field_28 += v117 * v74;
 
-            v126 = v55->trans + v55->trans_diff + v55->field_28;
+            v126 = v55->trans + v117 + v123;
 
             vec3 v129;
             mat4_inverse_transform_point(&v131, &v126, &v129);

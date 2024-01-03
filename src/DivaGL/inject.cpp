@@ -7,7 +7,6 @@
 #include "bone_data.hpp"
 #include "gl.hpp"
 #include "print.hpp"
-#include "shader_table.hpp"
 #include <Windows.h>
 
 struct patch_struct {
@@ -51,13 +50,9 @@ void inject_uint64_t(void* address, uint64_t data) {
 }
 
 static patch_struct patch_data[] = {
-    { (void*)0x00000001405E4CE0, (uint64_t)&shader_set, },
-    { (void*)0x00000001405E4FC0, (uint64_t)&shader_load_all_shaders, },
-    { (void*)0x00000001405E4B50, (uint64_t)&shader_bind, },
     { (void*)0x00000001401D3860, (uint64_t)&printf_proxy, },
     { (void*)0x00000001400DE640, (uint64_t)&printf_proxy, },
     { (void*)0x00000001405F39E0, (uint64_t)&ExNodeBlock__Field_10, },
-    { (void*)0x00000001405EEAE0, (uint64_t)&ExOsageBlock__Dispose, },
     { (void*)0x00000001405F3640, (uint64_t)&ExOsageBlock__Init, },
     { (void*)0x00000001405F49F0, (uint64_t)&ExOsageBlock__Field_18, },
     { (void*)0x00000001405F2140, (uint64_t)&ExOsageBlock__Field_20, },
@@ -85,11 +80,4 @@ void inject_patches() {
 
     glutMainLoop = (void (FASTCALL*)())*(size_t*)0x0000000140966008;
     inject_uint64_t((void*)0x0000000140966008, (uint64_t)&gl_get_func_pointers);
-
-    inject_uint64_t((void*)&shader_name_bind_func_table[0].bind_func, (uint64_t)&shader_bind_blinn);
-    inject_uint64_t((void*)&shader_name_bind_func_table[1].bind_func, (uint64_t)&shader_bind_cloth);
-    inject_uint64_t((void*)&shader_name_bind_func_table[2].bind_func, (uint64_t)&shader_bind_hair);
-    inject_uint64_t((void*)&shader_name_bind_func_table[3].bind_func, (uint64_t)&shader_bind_membrane);
-    inject_uint64_t((void*)&shader_name_bind_func_table[4].bind_func, (uint64_t)&shader_bind_eye_ball);
-    inject_uint64_t((void*)&shader_name_bind_func_table[5].bind_func, (uint64_t)&shader_bind_tone_map);
 }

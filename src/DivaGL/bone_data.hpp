@@ -8,9 +8,7 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
-#include "string.hpp"
-#include "vector.hpp"
-#include "shader_table.hpp"
+#include "types.hpp"
 #include <glad/glad.h>
 
 enum bone_database_bone_type {
@@ -886,104 +884,6 @@ enum texture_flags {
     TEXTURE_BLOCK_COMPRESSION = 0x1,
 };
 
-#define list(t) \
-struct list_##t##_node; \
-\
-struct list_##t##_node {  \
-    list_##t##_node* next; \
-    list_##t##_node* prev; \
-    t value; \
-}; \
- \
-struct list_##t { \
-    list_##t##_node* head; \
-    size_t size; \
-};
-
-#define list_ptr(t) \
-struct list_ptr_##t##_node; \
-\
-struct list_ptr_##t##_node {  \
-    list_ptr_##t##_node* next; \
-    list_ptr_##t##_node* prev; \
-    t* value; \
-}; \
- \
-struct list_ptr_##t { \
-    list_ptr_##t##_node* head; \
-    size_t size; \
-};
-
-#define tree_def(t) \
-struct tree_##t##_node; \
-\
-struct tree_##t##_node { \
-    tree_##t##_node* left; \
-    tree_##t##_node* parent; \
-    tree_##t##_node* right; \
-    uint8_t color; \
-    uint8_t is_null; \
-    t value; \
-}; \
- \
-struct tree_##t { \
-    tree_##t##_node* head; \
-    size_t size; \
-};
-
-#define tree_ptr(t) \
-struct tree_ptr_##t##_node; \
-\
-struct tree_ptr_##t##_node { \
-    tree_ptr_##t##_node* left; \
-    tree_ptr_##t##_node* parent; \
-    tree_ptr_##t##_node* right; \
-    uint8_t color; \
-    uint8_t is_null; \
-    t* value; \
-}; \
- \
-struct tree_ptr_##t { \
-    tree_ptr_##t##_node* head; \
-    size_t size; \
-};
-
-#define tree_pair(t1, t2) \
-struct tree_pair_##t1##_##t2##_node; \
-\
-struct tree_pair_##t1##_##t2##_node { \
-    tree_pair_##t1##_##t2##_node* left; \
-    tree_pair_##t1##_##t2##_node* parent; \
-    tree_pair_##t1##_##t2##_node* right; \
-    uint8_t color; \
-    uint8_t is_null; \
-    t1 key; \
-    t2 value; \
-}; \
- \
-struct tree_pair_##t1##_##t2 { \
-    tree_pair_##t1##_##t2##_node* head; \
-    size_t size; \
-};
-
-#define tree_pair_ptr(t1, t2) \
-struct tree_pair_##t1##_ptr_##t2##_node; \
-\
-struct tree_pair_##t1##_ptr_##t2##_node { \
-    tree_pair_##t1##_ptr_##t2##_node* left; \
-    tree_pair_##t1##_ptr_##t2##_node* parent; \
-    tree_pair_##t1##_ptr_##t2##_node* right; \
-    uint8_t color; \
-    uint8_t is_null; \
-    t1 key; \
-    t2* value; \
-}; \
- \
-struct tree_pair_##t1##_ptr_##t2 { \
-    tree_pair_##t1##_ptr_##t2##_node* head; \
-    size_t size; \
-};
-
 struct bone_database_bone {
     uint8_t type;
     bool has_parent;
@@ -1052,8 +952,6 @@ struct bone_node {
     mat4* ex_data_mat;
 };
 
-vector_old(bone_node)
-
 struct struc_314 {
     uint32_t* field_0;
     size_t field_8;
@@ -1067,8 +965,6 @@ struct mot_key_set {
     uint16_t* frames;
     float_t* values;
 };
-
-vector_old(mot_key_set)
 
 union item_cos_data {
     struct {
@@ -1109,18 +1005,6 @@ struct item_cos_texture_change_tex {
     bool changed;
 };
 
-vector_old(item_cos_texture_change_tex)
-
-struct item_cos_texture_change {
-    uint32_t item_no;
-    vector_old_item_cos_texture_change_tex tex;
-};
-
-struct item_cos_item_change {
-    item_id id;
-    vector_old_uint32_t item_nos;
-};
-
 struct object_info {
     uint16_t id;
     uint16_t set_id;
@@ -1131,26 +1015,17 @@ struct texture_pattern_struct {
     int32_t dst;
 };
 
-tree_def(item_cos_texture_change)
-tree_def(item_cos_item_change)
-tree_pair(object_info, item_id)
-tree_pair(int32_t, int32_t)
-vector_old(texture_pattern_struct)
-tree_pair(int32_t, object_info)
-
-list_ptr(void)
-
 struct rob_chara_item_cos_data {
     ::chara_index chara_index;
     ::chara_index chara_index_2nd;
     item_cos_data field_8;
     item_cos_data field_6C;
-    tree_item_cos_texture_change texture_change;
-    tree_item_cos_item_change item_change;
-    tree_pair_object_info_item_id field_F0;
-    tree_pair_int32_t_int32_t field_100;
-    vector_old_texture_pattern_struct texture_pattern[31];
-    tree_pair_int32_t_object_info head_replace;
+    prj::map<uint32_t, prj::vector<item_cos_texture_change_tex>> texture_change;
+    prj::map<item_id, prj::vector<uint32_t>> item_change;
+    prj::map<object_info, item_id> field_F0;
+    prj::map<int32_t, int32_t> field_100;
+    prj::vector<texture_pattern_struct> texture_pattern[31];
+    prj::map<int32_t, object_info> head_replace;
 };
 
 struct struc_525 {
@@ -1189,7 +1064,7 @@ struct struc_523 {
     int32_t field_4C;
     uint8_t field_50;
     int32_t field_54;
-    list_ptr_void field_58;
+    prj::list<void*> field_58;
     int64_t field_68;
     int64_t field_70;
     int32_t field_78;
@@ -1588,7 +1463,7 @@ struct struc_652 {
     float_t field_218;
     float_t field_21C;
     int16_t field_220;
-    list_ptr_void field_228;
+    prj::list<void*> field_228;
     int16_t field_238;
     float_t field_23C;
     int32_t field_240;
@@ -1764,8 +1639,6 @@ struct struc_215 {
     float_t field_8;
 };
 
-vector_old(struc_215)
-
 struct struc_267 {
     float_t field_0;
     int16_t field_4;
@@ -1813,7 +1686,7 @@ struct struc_209 {
     struc_195 field_1668[27];
     struc_210 field_1AA0[27];
     float_t field_1BE4[27];
-    vector_old_struc_215 field_1C50;
+    prj::vector<struc_215> field_1C50;
     int64_t field_1C68;
     int64_t field_1C70;
     int64_t field_1C78;
@@ -2008,8 +1881,6 @@ struct rob_touch_area {
     int16_t field_34;
 };
 
-vector_old(rob_touch_area)
-
 struct rob_touch;
 
 struct rob_touch_vftable {
@@ -2019,7 +1890,7 @@ struct rob_touch_vftable {
 struct rob_touch {
     rob_touch_vftable __vftable;
     uint8_t field_8;
-    vector_old_rob_touch_area area;
+    prj::vector<rob_touch_area> area;
 };
 
 struct struc_307 {
@@ -2624,7 +2495,7 @@ struct rob_chara {
 };
 
 struct struc_313 {
-    vector_old_uint32_t bitfield;
+    prj::vector<uint32_t> bitfield;
     size_t motion_bone_count;
 };
 
@@ -2655,9 +2526,9 @@ struct mot_data {
 struct mot_key_data {
     bool key_sets_ready;
     size_t key_set_count;
-    vector_old_mot_key_set key_set;
+    prj::vector<mot_key_set> key_set;
     mot mot;
-    vector_old_float_t key_set_data;
+    prj::vector<float_t> key_set_data;
     mot_data* mot_data;
     bone_database_skeleton_type skeleton_type;
     int32_t skeleton_select;
@@ -2693,8 +2564,6 @@ struct bone_data {
     float_t eyes_xrot_adjust_pos;
 };
 
-vector_old(bone_data)
-
 struct struc_400 {
     bool field_0;
     bool field_1;
@@ -2713,7 +2582,7 @@ struct /*VFT*/ MotionBlend_vtbl {
     void (*Reset)(MotionBlend*);
     void (*Field10)(MotionBlend*, float_t a2, float_t a3, int32_t a4);
     void (*Step)(MotionBlend*, struc_400*);
-    void (*Field20)(MotionBlend*, vector_old_bone_data*, vector_old_bone_data*);
+    void (*Field20)(MotionBlend*, prj::vector<bone_data*>, prj::vector<bone_data*>);
     void (*Blend)(MotionBlend*, bone_data*, bone_data*);
     bool (*Field30)(MotionBlend*);
 };
@@ -2833,7 +2702,7 @@ struct struc_243 {
 };
 
 struct struc_258 {
-    vector_old_bone_data* field_0;
+    prj::vector<bone_data*> field_0;
     mat4 field_8;
     struc_241 field_48;
     uint8_t field_8C;
@@ -2893,7 +2762,7 @@ struct struc_312 {
     vec3 field_74;
     vec3 field_80;
     float_t field_8C;
-    vector_old_bone_data* bones;
+    prj::vector<bone_data*> bones;
     float_t step;
 };
 
@@ -2904,8 +2773,8 @@ struct bone_data_parent {
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
-    vector_old_bone_data bones;
-    vector_old_uint16_t bone_indices;
+    prj::vector<bone_data> bones;
+    prj::vector<uint16_t> bone_indices;
     vec3 global_trans;
     vec3 global_rotation;
     uint32_t bone_key_set_count;
@@ -2946,11 +2815,6 @@ struct motion_blend_mot {
     MotionBlend* blend;
 };
 
-vector_old_ptr(motion_blend_mot)
-vector_old(mat4)
-list_ptr(motion_blend_mot)
-list(size_t)
-
 struct rob_chara_bone_data_ik_scale {
     float_t ratio0;
     float_t ratio1;
@@ -2966,15 +2830,15 @@ struct rob_chara_bone_data {
     size_t motion_bone_count;
     size_t ik_bone_count;
     size_t chain_pos;
-    vector_old_mat4 mats;
-    vector_old_mat4 mats2;
-    vector_old_bone_node nodes;
+    prj::vector<mat4> mats;
+    prj::vector<mat4> mats2;
+    prj::vector<bone_node> nodes;
     bone_database_skeleton_type base_skeleton_type;
     bone_database_skeleton_type skeleton_type;
-    vector_old_ptr_motion_blend_mot motions;
-    list_size_t motion_indices;
-    list_size_t motion_loaded_indices;
-    list_ptr_motion_blend_mot motion_loaded;
+    prj::vector<motion_blend_mot*> motions;
+    prj::list<size_t> motion_indices;
+    prj::list<size_t> motion_loaded_indices;
+    prj::list<motion_blend_mot*> motion_loaded;
     mot_blend face;
     mot_blend hand_l;
     mot_blend hand_r;
@@ -2998,8 +2862,6 @@ struct opd_blend_data {
     MotionBlendType type;
     float_t blend;
 };
-
-vector_old(opd_blend_data)
 
 struct obj_skin_block_node {
     const char* parent_name;
@@ -3061,32 +2923,28 @@ struct obj_skin_block_cloth_node {
     float_t dist_left;
 };
 
-struct SkinParam__CollisionParam {
-    SkinParam::CollisionType type;
-    int32_t node_idx[2];
-    float_t radius;
-    vec3 pos[2];
+namespace SkinParam {
+    struct CollisionParam {
+        CollisionType type;
+        int32_t node_idx[2];
+        float_t radius;
+        vec3 pos[2];
+    };
 };
-
-vector_old(SkinParam__CollisionParam)
 
 struct skin_param_osage_root_boc {
     int32_t ed_node;
-    string ed_root;
+    prj::string ed_root;
     int32_t st_node;
 };
 
-vector_old(skin_param_osage_root_boc)
-
 struct skin_param_osage_root_normal_ref {
-    string n;
-    string u;
-    string d;
-    string l;
-    string r;
+    prj::string n;
+    prj::string u;
+    prj::string d;
+    prj::string l;
+    prj::string r;
 };
-
-vector_old(skin_param_osage_root_normal_ref)
 
 struct skin_param_osage_root {
     int32_t field_0;
@@ -3100,17 +2958,17 @@ struct skin_param_osage_root {
     float_t hinge_y;
     float_t hinge_z;
     const char* name;
-    vector_old_SkinParam__CollisionParam coli;
+    prj::vector<SkinParam::CollisionParam> coli;
     float_t coli_r;
     float_t friction;
     float_t wind_afc;
     int32_t yz_order;
-    vector_old_skin_param_osage_root_boc boc;
+    prj::vector<skin_param_osage_root_boc> boc;
     int32_t coli_type;
     float_t stiffness;
     float_t move_cancel;
-    string colli_tgt_osg;
-    vector_old_skin_param_osage_root_normal_ref normal_ref;
+    prj::string colli_tgt_osg;
+    prj::vector<skin_param_osage_root_normal_ref> normal_ref;
 };
 
 struct obj_skin_block_cloth {
@@ -3217,7 +3075,7 @@ struct ExNodeBlock {
     ExNodeType type;
     const char* name;
     bone_node* parent_bone_node;
-    string parent_name;
+    prj::string parent_name;
     ExNodeBlock* parent_node;
     rob_chara_item_equip_object* item_equip_object;
     bool field_58;
@@ -3230,16 +3088,16 @@ struct ExNullBlock {
     obj_skin_block_node* node_data;
 };
 
-struct rob_osage_node;
+struct RobOsageNode;
 
-struct rob_osage_node_data_normal_ref {
+struct RobOsageNodeDataNormalRef {
     bool field_0;
     int field_4;
-    rob_osage_node* n;
-    rob_osage_node* u;
-    rob_osage_node* d;
-    rob_osage_node* l;
-    rob_osage_node* r;
+    RobOsageNode* n;
+    RobOsageNode* u;
+    RobOsageNode* d;
+    RobOsageNode* l;
+    RobOsageNode* r;
     mat4 mat;
 };
 
@@ -3257,12 +3115,10 @@ struct skin_param_osage_node {
     skin_param_hinge hinge;
 };
 
-vector_old_ptr(rob_osage_node)
-
-struct rob_osage_node_data {
+struct RobOsageNodeData {
     float_t force;
-    vector_old_ptr_rob_osage_node boc;
-    rob_osage_node_data_normal_ref normal_ref;
+    prj::vector<RobOsageNode*> boc;
+    RobOsageNodeDataNormalRef normal_ref;
     skin_param_osage_node skp_osg_node;
 };
 
@@ -3271,8 +3127,6 @@ struct opd_vec3_data {
     float_t* y;
     float_t* z;
 };
-
-vector_old(opd_vec3_data)
 
 struct struc_477 {
     float_t length;
@@ -3291,7 +3145,7 @@ struct RobOsageNodeResetData {
     float_t length;
 };
 
-struct rob_osage_node {
+struct RobOsageNode {
     float_t length;
     vec3 trans;
     vec3 trans_orig;
@@ -3301,7 +3155,7 @@ struct rob_osage_node {
     bone_node* bone_node_ptr;
     mat4* bone_node_mat;
     mat4 mat;
-    rob_osage_node* sibling_node;
+    RobOsageNode* sibling_node;
     float_t max_distance;
     vec3 field_94;
     RobOsageNodeResetData reset_data;
@@ -3309,16 +3163,14 @@ struct rob_osage_node {
     float_t field_CC;
     vec3 external_force;
     float_t force;
-    rob_osage_node_data* data_ptr;
-    rob_osage_node_data data;
-    vector_old_opd_vec3_data opd_data;
+    RobOsageNodeData* data_ptr;
+    RobOsageNodeData data;
+    prj::vector<opd_vec3_data> opd_data;
     struc_476 field_1B0;
 };
 
-vector_old(rob_osage_node)
-
 struct skin_param {
-    vector_old_SkinParam__CollisionParam coli;
+    prj::vector<SkinParam::CollisionParam> coli;
     float_t friction;
     float_t wind_afc;
     float_t air_res;
@@ -3331,23 +3183,44 @@ struct skin_param {
     skin_param_hinge hinge;
     float_t force;
     float_t force_gain;
-    vector_old_rob_osage_node* colli_tgt_osg;
+    prj::vector<RobOsageNode>* colli_tgt_osg;
 };
-
-struct OsageCollision__Work {
-    SkinParam::CollisionType type;
-    float_t radius;
-    vec3 pos[2];
-    vec3 vec_center;
-    float_t vec_center_length;
-    float_t vec_center_length_squared;
-    float_t friction;
-};
-
-vector_old(OsageCollision__Work)
 
 struct OsageCollision {
-    vector_old_OsageCollision__Work work_list;
+    struct Work {
+        SkinParam::CollisionType type;
+        float_t radius;
+        vec3 pos[2];
+        vec3 vec_center;
+        float_t vec_center_length;
+        float_t vec_center_length_squared;
+        float_t friction;
+
+        static void update_cls_work(OsageCollision::Work* cls,
+            SkinParam::CollisionParam* cls_param, const mat4* tranform);
+        static void update_cls_work(OsageCollision::Work* cls,
+            prj::vector<SkinParam::CollisionParam>& cls_list, const mat4* tranform);
+    };
+
+    prj::vector<Work> work_list;
+
+    static int32_t cls_aabb_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_ball_oidashi(vec3& vec, const vec3& p, const vec3& center, const float_t r);
+    static int32_t cls_capsule_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* coli, const float_t r);
+    static int32_t cls_ellipse_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_line2ball_oidashi(vec3& vec,
+        const vec3& p0, const vec3& p1, const vec3& q, const float_t r);
+    static int32_t cls_line2capsule_oidashi(vec3& vec,
+        const vec3& p0, const vec3& p1, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_line2ellipse_oidashi(vec3& vec,
+        const vec3& p0, const vec3& p1, const OsageCollision::Work* cls, const float_t r);
+    static int32_t cls_plane_oidashi(vec3& vec, const vec3& p, const vec3& p1, const vec3& p2, const float_t r);
+    static void get_nearest_line2point(vec3& nearest, const vec3& p0, const vec3& p1, const vec3& q);
+    static int32_t osage_capsule_cls(const OsageCollision::Work* cls, vec3& p0, vec3& p1, const float_t& cls_r);
+    static int32_t osage_capsule_cls(vec3& p0, vec3& p1, const float_t& cls_r, const OsageCollision::Work* cls);
+    static int32_t osage_cls(const OsageCollision::Work* cls, vec3& p, const float_t& cls_r);
+    static int32_t osage_cls(vec3& p, const float_t& cls_r, const OsageCollision::Work* cls, float_t* fric = 0);
+    static int32_t osage_cls_work_list(vec3& p, const float_t& cls_r, const OsageCollision& coli, float_t* fric = 0);
 };
 
 struct osage_ring_data {
@@ -3359,42 +3232,26 @@ struct osage_ring_data {
     float_t ring_out_height;
     bool init;
     OsageCollision coli;
-    vector_old_SkinParam__CollisionParam skp_root_coli;
+    prj::vector<SkinParam::CollisionParam> skp_root_coli;
 };
-
-struct pair_int32_t_int32_t {
-    int32_t key;
-    int32_t value;
-};
-
-list(RobOsageNodeResetData)
-
-struct pair_pair_int32_t_int32_t_list_RobOsageNodeResetData {
-    pair_int32_t_int32_t key;
-    list_RobOsageNodeResetData value;
-};
-
-typedef pair_pair_int32_t_int32_t_list_RobOsageNodeResetData motion_reset_data;
-
-tree_def(motion_reset_data)
 
 struct osage_setting_osg_cat {
     rob_osage_parts parts;
     size_t exf;
 };
 
-struct rob_osage {
+struct RobOsage {
     skin_param* skin_param_ptr;
     bone_node_expression_data exp_data;
-    vector_old_rob_osage_node nodes;
-    rob_osage_node node;
+    prj::vector<RobOsageNode> nodes;
+    RobOsageNode node;
     skin_param skin_param;
     osage_setting_osg_cat osage_setting;
     bool field_2A0;
     bool field_2A1;
     float_t field_2A4;
-    OsageCollision__Work coli[64];
-    OsageCollision__Work coli_ring[64];
+    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_ring[64];
     vec3 wind_direction;
     float_t field_1EB4;
     int32_t yz_order;
@@ -3404,11 +3261,11 @@ struct rob_osage {
     float_t move_cancel;
     bool field_1F0C;
     bool osage_reset;
-    bool field_1F0E;
-    bool field_1F0F;
+    bool prev_osage_reset;
+    bool disable_collision;
     osage_ring_data ring;
-    tree_motion_reset_data motion_reset_data;
-    list_RobOsageNodeResetData* reset_data_list;
+    prj::map<std::pair<int32_t, int32_t>, prj::list<RobOsageNodeResetData>> motion_reset_data;
+    prj::list<RobOsageNodeResetData>* reset_data_list;
     bool set_external_force;
     vec3 external_force;
 };
@@ -3416,7 +3273,7 @@ struct rob_osage {
 struct ExOsageBlock {
     ExNodeBlock base;
     size_t index;
-    rob_osage rob;
+    RobOsage rob;
     mat4* mat;
     int32_t field_1FF8;
     float_t step;
@@ -3548,7 +3405,7 @@ struct CLOTHNode {
     int field_88;
     RobOsageNodeResetData reset_data;
     int field_B4;
-    vector_old_opd_vec3_data opd_data;
+    prj::vector<opd_vec3_data> opd_data;
     struc_476 field_D0;
 };
 
@@ -3569,8 +3426,6 @@ struct CLOTH_vtbl {
     void(*ResetData)(CLOTH*);
 };
 
-vector_old(CLOTHNode)
-
 struct struc_341 {
     size_t field_0;
     size_t field_8;
@@ -3578,23 +3433,21 @@ struct struc_341 {
     int32_t field_14;
 };
 
-vector_old(struc_341)
-
 struct CLOTH {
     CLOTH_vtbl* __vftable;
     int32_t field_8;
     size_t root_count;
     size_t nodes_count;
-    vector_old_CLOTHNode nodes;
+    prj::vector<CLOTHNode> nodes;
     vec3 wind_direction;
     float_t field_44;
     bool set_external_force;
     vec3 external_force;
-    vector_old_struc_341 field_58;
+    prj::vector<struc_341> field_58;
     skin_param* skin_param_ptr;
     skin_param skin_param;
-    OsageCollision__Work coli[64];
-    OsageCollision__Work coli_ring[64];
+    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_ring[64];
     osage_ring_data ring;
     mat4* mats;
 };
@@ -3917,10 +3770,10 @@ struct obj_skin {
 
 struct obj_set_info {
     int32_t id;
-    string name;
-    string object_file_name;
-    string texture_file_name;
-    string archive_file_name;
+    prj::string name;
+    prj::string object_file_name;
+    prj::string texture_file_name;
+    prj::string archive_file_name;
 };
 
 struct pair_uint32_t_obj_set_info {
@@ -3928,12 +3781,10 @@ struct pair_uint32_t_obj_set_info {
     obj_set_info data;
 };
 
-vector_old(pair_uint32_t_obj_set_info)
-
 struct obj_database {
-    vector_old_pair_uint32_t_obj_set_info field_0;
+    prj::vector<pair_uint32_t_obj_set_info> field_0;
     size_t field_18;
-    vector_old_pair_uint32_t_obj_set_info field_20;
+    prj::vector<pair_uint32_t_obj_set_info> field_20;
     bool field_38;
 };
 
@@ -3980,8 +3831,6 @@ struct struc_295 {
     int64_t field_10;
 };
 
-vector_old(struc_295)
-
 struct RobClothRoot {
     vec3 trans;
     vec3 normal;
@@ -3995,11 +3844,9 @@ struct RobClothRoot {
     mat4 field_118;
 };
 
-vector_old(RobClothRoot)
-
 struct RobCloth {
     CLOTH base;
-    vector_old_RobClothRoot root;
+    prj::vector<RobClothRoot> root;
     rob_chara_item_equip_object* itm_eq_obj;
     obj_skin_block_cloth_root* cls_root;
     obj_skin_block_cloth* cls_data;
@@ -4010,8 +3857,8 @@ struct RobCloth {
     obj_axis_aligned_bounding_box axis_aligned_bounding_box;
     obj_mesh_vertex_buffer vertex_buffer[2];
     GLuint index_buffer[2];
-    tree_motion_reset_data motion_reset_data;
-    list_RobOsageNodeResetData* reset_data_list;
+    prj::map<std::pair<int32_t, int32_t>, prj::list<RobOsageNodeResetData>> motion_reset_data;
+    prj::list<RobOsageNodeResetData>* reset_data_list;
 };
 
 struct ExClothBlock {
@@ -4022,19 +3869,10 @@ struct ExClothBlock {
     size_t index;
 };
 
-vector_old_ptr(ExNodeBlock)
-vector_old_ptr(ExNullBlock)
-vector_old_ptr(ExOsageBlock)
-vector_old_ptr(ExConstraintBlock)
-vector_old_ptr(ExExpressionBlock)
-vector_old_ptr(ExClothBlock)
-
 struct ex_data_name_bone_index {
     const char* name;
     int32_t bone_index;
 };
-
-vector_old(ex_data_name_bone_index)
 
 struct texture_data_struct {
     int32_t field_0;
@@ -4049,7 +3887,7 @@ struct rob_chara_item_equip_object {
     mat4* mats;
     object_info object_info;
     int32_t field_14;
-    vector_old_texture_pattern_struct texture_pattern;
+    prj::vector<texture_pattern_struct> texture_pattern;
     texture_data_struct texture_data;
     bool null_blocks_data_set;
     bone_node_expression_data exp_data;
@@ -4060,17 +3898,17 @@ struct rob_chara_item_equip_object {
     mat4* mat;
     int32_t osage_iterations;
     bone_node* bone_nodes;
-    vector_old_ptr_ExNodeBlock node_blocks;
-    vector_old_bone_node ex_data_bone_nodes;
-    vector_old_mat4 ex_data_matrices;
-    vector_old_mat4 field_108;
-    vector_old_ex_data_name_bone_index ex_bones;
+    prj::vector<ExNodeBlock*> node_blocks;
+    prj::vector<bone_node> ex_data_bone_nodes;
+    prj::vector<mat4> ex_data_matrices;
+    prj::vector<mat4> field_108;
+    prj::vector<ex_data_name_bone_index> ex_bones;
     int64_t field_138;
-    vector_old_ptr_ExNullBlock null_blocks;
-    vector_old_ptr_ExOsageBlock osage_blocks;
-    vector_old_ptr_ExConstraintBlock constraint_blocks;
-    vector_old_ptr_ExExpressionBlock expression_blocks;
-    vector_old_ptr_ExClothBlock cloth_blocks;
+    prj::vector<ExNullBlock*> null_blocks;
+    prj::vector<ExOsageBlock*> osage_blocks;
+    prj::vector<ExConstraintBlock*> constraint_blocks;
+    prj::vector<ExExpressionBlock*> expression_blocks;
+    prj::vector<ExClothBlock*> cloth_blocks;
     int8_t field_1B8;
     size_t frame_count;
     bool use_opd;
@@ -4090,7 +3928,7 @@ struct rob_chara_item_equip {
     int32_t field_A0;
     shadow_type_enum shadow_type;
     vec3 position;
-    vector_old_texture_pattern_struct texture_pattern;
+    prj::vector<texture_pattern_struct> texture_pattern;
     object_info field_D0;
     item_id field_D4;
     bool disable_update;
@@ -4128,7 +3966,7 @@ struct rob_chara_item_equip {
     int64_t field_930;
     float_t step;
     bool use_opd;
-    vector_old_opd_blend_data opd_blend_data;
+    prj::vector<opd_blend_data> opd_blend_data;
     bool parts_short;
     bool parts_append;
     bool parts_white_one_l;
@@ -4136,7 +3974,6 @@ struct rob_chara_item_equip {
 
 extern void ExNodeBlock__Field_10(ExNodeBlock* node);
 
-extern ExOsageBlock* ExOsageBlock__Dispose(ExOsageBlock* osg, bool dispose);
 extern void ExOsageBlock__Init(ExOsageBlock* osg);
 extern void ExOsageBlock__Field_18(ExOsageBlock* osg, int32_t a2, bool a3);
 extern void ExOsageBlock__Field_20(ExOsageBlock* osg);
