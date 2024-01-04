@@ -7,6 +7,7 @@
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/memory_stream.hpp"
 #include "../KKdLib/f2/struct.hpp"
+#include "../KKdLib/post_process_table/dof.hpp"
 #include "../KKdLib/a3da.hpp"
 #include "../KKdLib/aes.hpp"
 #include "../KKdLib/deflate.hpp"
@@ -39,18 +40,9 @@ inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32
     }
 }
 
-struct dof_data {
-    int32_t flags;
-    float_t focus;
-    float_t focus_range;
-    float_t fuzzing_range;
-    float_t ratio;
-    float_t quality;
-};
-
 struct dft_dsc_data {
     int32_t frames;
-    std::vector<dof_data> dof;
+    dof dof;
     std::vector<int32_t> dof_index;
 
     dft_dsc_data();
@@ -79,10 +71,10 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
 
     data.frames = (int32_t)cam_a3da.play_control.size;
 
-    data.dof.reserve(data.frames + 1ULL);
+    data.dof.data.reserve(data.frames + 1ULL);
     data.dof_index.reserve(data.frames);
 
-    data.dof.push_back({ 0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f });
+    data.dof.data.push_back({ (dof_flags)0, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f });
 
     auth_3d_camera_root* cr = &cam_a3da.camera_root[0];
 
@@ -97,7 +89,7 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
         float_t focus = vec3::distance(cam_a3da.dof.model_transform.translation_value, cr->view_point_value);
 
         dof_data d;
-        d.flags = 0x1F;
+        d.flags = (dof_flags)(DOF_QUALITY | DOF_RATIO | DOF_FUZZING_RANGE | DOF_FOCUS_RANGE | DOF_FOCUS);
         d.focus = focus;
         d.focus_range = cam_a3da.dof.model_transform.scale_value.x;
         d.fuzzing_range = cam_a3da.dof.model_transform.rotation_value.x;
@@ -105,9 +97,9 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
         d.quality = 1.0f;
 
         bool found = false;
-        for (dof_data& j : data.dof)
+        for (dof_data& j : data.dof.data)
             if (!memcmp(&d, &j, sizeof(dof_data))) {
-                data.dof_index.push_back((int32_t)(&j - data.dof.data()));
+                data.dof_index.push_back((int32_t)(&j - data.dof.data.data()));
                 found = true;
                 break;
             }
@@ -115,8 +107,8 @@ static bool a3da_to_dof_data(const char* a3da_path, dft_dsc_data& data) {
         if (found)
             continue;
 
-        data.dof_index.push_back((int32_t)data.dof.size());
-        data.dof.push_back(d);
+        data.dof_index.push_back((int32_t)data.dof.data.size());
+        data.dof.data.push_back(d);
     }
     return true;
 }
@@ -269,47 +261,8 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     if (dsc_data)
         free(dsc_data);
 
-    memory_stream s_dft;
-    s_dft.open();
-
-    uint32_t off;
-    enrs e;
-    enrs_entry ee;
-    pof pof;
-
-    ee = { 0, 1, 8, 1 };
-    ee.sub.push_back({ 0, 2, ENRS_DWORD });
-    e.vec.push_back(ee);
-    off = 8;
-    off = align_val(off, 0x10);
-
-    ee = { off, 1, 24, (uint32_t)dft_data.dof.size() };
-    ee.sub.push_back({ 0, 6, ENRS_DWORD });
-    e.vec.push_back(ee);
-    off = (uint32_t)(dft_data.dof.size() * 24ULL);
-    off = align_val(off, 0x10);
-
-    s_dft.write_uint32_t((int32_t)dft_data.dof.size());
-    io_write_offset_f2_pof_add(s_dft, 0x10, 0x40, &pof);
-    s_dft.align_write(0x10);
-    s_dft.write(dft_data.dof.data(), sizeof(dof_data) * dft_data.dof.size());
-
-    f2_struct st;
-    s_dft.align_write(0x10);
-    s_dft.copy(st.data);
-    s_dft.close();
-
-    st.enrs = e;
-    st.pof = pof;
-
-    st.header.signature = reverse_endianness_uint32_t('DOFT');
-    st.header.length = 0x40;
-    st.header.use_big_endian = false;
-    st.header.use_section_size = true;
-    st.header.inner_signature = 0x03;
-
     sprintf_s(buf, sizeof(buf), "DOF\\post_process_table\\pv%03d.dft", pv_id);
-    st.write(buf, true, false);
+    dft_data.dof.write(buf);
 }
 
 /*#if defined(ReDIVA_DEV)
