@@ -490,6 +490,12 @@ static void data_view_auth_3d_imgui_auth_3d_dof(auth_3d_dof* d) {
     ImGui::Text("Focus Range");
     data_view_auth_3d_imgui_auth_3d_key(&mt->scale.x, 0, true);
 
+    ImGui::Text("??? (Scale Y)");
+    data_view_auth_3d_imgui_auth_3d_key(&mt->scale.y, 0, true);
+
+    ImGui::Text("??? (Scale Z)");
+    data_view_auth_3d_imgui_auth_3d_key(&mt->scale.z, 0, true);
+
     ImGui::Text("Fuzzing Range");
     data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.x, 0, true);
 

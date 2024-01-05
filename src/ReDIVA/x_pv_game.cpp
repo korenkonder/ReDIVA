@@ -6663,6 +6663,9 @@ bool x_pv_game::ctrl() {
             else
                 rot_z.type = A3DA_KEY_NONE;
 
+            a.dof.model_transform.visibility.type = A3DA_KEY_STATIC;
+            a.dof.model_transform.visibility.value = 1.0f;
+
             a.write(buf);
 
             dof_cam_data.reset();
