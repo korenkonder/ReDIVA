@@ -488,12 +488,15 @@ static void data_view_auth_3d_imgui_auth_3d_dof(auth_3d_dof* d) {
     data_view_auth_3d_imgui_auth_3d_vec3(&mt->translation, "Position");
 
     ImGui::Text("Focus Range");
-    data_view_auth_3d_imgui_auth_3d_key(&mt->scale.y, 0, true);
+    data_view_auth_3d_imgui_auth_3d_key(&mt->scale.x, 0, true);
 
     ImGui::Text("Fuzzing Range");
-    data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.y, 0, true);
+    data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.x, 0, true);
 
     ImGui::Text("Ratio");
+    data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.y, 0, true);
+
+    ImGui::Text("Enable");
     data_view_auth_3d_imgui_auth_3d_key(&mt->rotation.z, 0, true);
     ImGui::TreePop();
 
