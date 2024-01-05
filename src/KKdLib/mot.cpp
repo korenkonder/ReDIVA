@@ -131,8 +131,29 @@ static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     vec2 t1_t2 = *(vec2*)&arr[f] - arr[f1] - (t * 2.0f - 3.0f) * (t * t) * (arr[f1] - arr[f2]);
     t1_t2 /= t_1 * t;
 
-    t1 = -t1_t2.x * t.y + t1_t2.y * t.x;
-    t2 = t1_t2.x * t_1.y - t1_t2.y * t_1.x;
+    t1 = -t.y * t1_t2.x + t.x * t1_t2.y;
+    t2 = t_1.y * t1_t2.x - t_1.x * t1_t2.y;
+}
+
+static void interpolate_mot_reverse_value(float_t* arr, size_t length, float_t& t1a, float_t& t2a,
+    float_t& t1b, float_t& t2b, float_t& t1c, float_t& t2c, size_t f1, size_t f2, size_t f) {
+    vec4 t = vec4(
+        (float_t)(int64_t)(f - f1 + 0),
+        (float_t)(int64_t)(f - f1 + 1),
+        (float_t)(int64_t)(f - f1 + 2),
+        (float_t)(int64_t)(f - f1 + 3)
+    ) / (float_t)(int64_t)(f2 - f1);
+    vec4 t_1 = t - 1.0f;
+
+    vec4 t1_t2 = *(vec4*)&arr[f] - arr[f1] - (t * 2.0f - 3.0f) * (t * t) * (arr[f1] - arr[f2]);
+    t1_t2 /= t_1 * t;
+
+    t1a = -t.y * t1_t2.x + t.x * t1_t2.y;
+    t2a = t_1.y * t1_t2.x - t_1.x * t1_t2.y;
+    t1b = -t.z * t1_t2.y + t.y * t1_t2.z;
+    t2b = t_1.z * t1_t2.y - t_1.y * t1_t2.z;
+    t1c = -t.w * t1_t2.z + t.z * t1_t2.w;
+    t2c = t_1.w * t1_t2.z - t_1.z * t1_t2.w;
 }
 
 inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
@@ -237,7 +258,25 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
             if (!fast) {
                 double_t t1_accum = 0.0;
                 double_t t2_accum = 0.0;
-                for (size_t j = 1; j < i - 1; j++) {
+
+                size_t j = 1;
+                for (; j < i - 1 && j + 3 <= i - 1; j += 3) {
+                    float_t t1a = 0.0f;
+                    float_t t2a = 0.0f;
+                    float_t t1b = 0.0f;
+                    float_t t2b = 0.0f;
+                    float_t t1c = 0.0f;
+                    float_t t2c = 0.0f;
+                    interpolate_mot_reverse_value(a, left_count, t1a, t2a, t1b, t2b, t1c, t2c, 0, i, j);
+                    t1_accum += t1a;
+                    t2_accum += t2a;
+                    t1_accum += t1b;
+                    t2_accum += t2b;
+                    t1_accum += t1c;
+                    t2_accum += t2c;
+                }
+
+                for (; j < i - 1; j++) {
                     float_t t1 = 0.0f;
                     float_t t2 = 0.0f;
                     interpolate_mot_reverse_value(a, left_count, t1, t2, 0, i, j);

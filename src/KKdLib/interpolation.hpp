@@ -336,6 +336,8 @@ inline std::vector<double_t> interpolate_chs(const double_t p1, const double_t p
 
 extern void interpolate_chs_reverse_value(float_t* arr, size_t length,
     float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f);
+extern void interpolate_chs_reverse_value(float_t* arr, size_t length, float_t& t1a, float_t& t2a,
+    float_t& t1b, float_t& t2b, float_t& t1c, float_t& t2c, size_t f1, size_t f2, size_t f);
 extern void interpolate_chs_reverse_value(double_t* arr, size_t length,
     double_t& t1, double_t& t2, size_t f1, size_t f2, size_t f);
 extern void interpolate_chs_reverse(float_t* arr, size_t length,
