@@ -337,6 +337,8 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
         itm_tbl.item.push_back(i.no, itm);
     }
 
+    itm_tbl.item.combine();
+
     for (itm_table_dbgset& i : itm_tbl_file.dbgset) {
         if (aft_obj_db->get_object_set_id(i.name.c_str()) == -1)
             continue;
@@ -350,6 +352,8 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
 
         itm_tbl.dbgset.push_back(i.name, cos);
     }
+
+    itm_tbl.dbgset.combine();
 
     for (itm_table_cos& i : itm_tbl_file.cos) {
         if (!i.item.size())
@@ -365,8 +369,5 @@ static void item_table_load(data_struct* data, item_table& itm_tbl, itm_table& i
     }
 
     itm_tbl.cos.push_back(499, {});
-
-    itm_tbl.item.combine();
-    itm_tbl.dbgset.combine();
     itm_tbl.cos.combine();
 }
