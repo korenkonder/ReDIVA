@@ -260,6 +260,9 @@ static void x_pv_game_write_object_set(ObjsetInfo* info);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
+static void replace_pv832(char* str);
+static void replace_pv832(std::string& str);
+
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
     return (time + 0.0001f) < bar_time;
 }
@@ -2260,7 +2263,11 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 if (mot_idx++ != motion_index)
                     continue;
 
-                motion_id = aft_mot_db->get_motion_id(j.c_str());
+                std::string name(j.str);
+                size_t pos = name.find("PV832");
+                if (pos != -1)
+                    name.replace(pos, 5, "PV800", 5);
+                motion_id = aft_mot_db->get_motion_id(name.c_str());
                 break;
             }
             break;
@@ -3481,7 +3488,12 @@ void x_pv_game_pv_data::find_set_motion() {
                 pvpp_chara& chara = play_param->chara[i];
                 if (j.index > 0 && j.index <= chara.motion.size()) {
                     string_hash& motion = chara.motion[(size_t)j.index - 1];
-                    motion_id = aft_mot_db->get_motion_id(motion.c_str());
+
+                    std::string name(motion.str);
+                    size_t pos = name.find("PV832");
+                    if (pos != -1)
+                        name.replace(pos, 5, "PV800", 5);
+                    motion_id = aft_mot_db->get_motion_id(name.c_str());
                 }
             }
 
@@ -6586,6 +6598,9 @@ bool x_pv_game::ctrl() {
             else
                 sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_BASE", pv_data.pv_id);
 
+            replace_pv832(buf);
+            replace_pv832(a._file_name);
+
             a.ready = true;
             a.compressed = true;
             a.format = A3DA_FORMAT_AFT;
@@ -6841,7 +6856,7 @@ void x_pv_game::load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     data_struct* x_data = &data_list[DATA_X];
 
     char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "PV%03d", pv_id);
+    sprintf_s(buf, sizeof(buf), "PV%03d", pv_id == 832 ? 800 : pv_id);
     uint32_t mot_set = aft_mot_db->get_motion_set_id(buf);
     motion_set_load_motion(mot_set, "", aft_mot_db);
     motion_set_load_mothead(mot_set, "", aft_mot_db);
@@ -7338,7 +7353,7 @@ bool x_pv_game::unload() {
     pv_param::post_process_data_clear_data();
 
     char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "PV%03d", get_data().pv_id);
+    sprintf_s(buf, sizeof(buf), "PV%03d", get_data().pv_id == 832 ? 800 : get_data().pv_id);
     uint32_t mot_set = aft_mot_db->get_motion_set_id(buf);
     motion_set_unload_motion(mot_set);
     motion_set_unload_mothead(mot_set);
@@ -8437,5 +8452,32 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
             dw_console_printf(DW_CONSOLE_PV_SCRIPT, "%d", ((int32_t*)data)[i]);
 
     dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
+}
+
+static void replace_pv832(char* str) {
+    char* pv;
+    pv = str;
+    while (true) {
+        pv = strstr(pv, "PV832");
+        if (!pv)
+            break;
+
+        memcpy(pv + 2, "800", 3);
+        pv += 5;
+    }
+
+    pv = str;
+    while (true) {
+        pv = strstr(pv, "pv832");
+        if (!pv)
+            break;
+
+        memcpy(pv + 2, "800", 3);
+        pv += 5;
+    }
+}
+
+inline static void replace_pv832(std::string& str) {
+    replace_pv832((char*)str.data());
 }
 #endif
