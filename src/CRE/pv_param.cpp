@@ -763,6 +763,9 @@ namespace pv_param_task {
             Data();
         } data;
 
+        post_process_task_set_dof_callback callback;
+        void* callback_data;
+
         PostProcessCtrlDof();
         ~PostProcessCtrlDof();
 
@@ -816,6 +819,19 @@ namespace pv_param_task {
         dof.frame = 0.0f;
         dof.duration = duration;
         dof.data.data = data;
+        dof.callback = 0;
+        dof.callback_data = 0;
+    }
+
+    extern void post_process_task_set_dof_data(
+        pv_param::dof& data, float_t duration,
+        post_process_task_set_dof_callback callback, void* callback_data) {
+        PostProcessCtrlDof& dof = post_process_task.dof;
+        dof.frame = 0.0f;
+        dof.duration = duration;
+        dof.data.data = data;
+        dof.callback = callback;
+        dof.callback_data = callback_data;
     }
 
     void post_process_task_set_chara_alpha(
@@ -1081,7 +1097,7 @@ namespace pv_param_task {
 
     }
 
-    PostProcessCtrlDof::PostProcessCtrlDof() {
+    PostProcessCtrlDof::PostProcessCtrlDof() : callback(), callback_data() {
 
     }
 
@@ -1134,12 +1150,12 @@ namespace pv_param_task {
                 return;
 
             vec3 trans = 0.0f;
-            rob_chara* rob_chr = rob_chara_array_get(data.data.chara_id);
-            if (rob_chr) {
-                motion_blend_mot* mot = rob_chr->bone_data->motion_loaded.front();
-                ::bone_data* bone_data = mot->bone_data.bones.data();
-
-                mat4_get_translation(bone_data[MOTION_BONE_CL_KAO].node->mat, &trans);
+            if (callback)
+                trans = callback(callback_data, data.data.chara_id);
+            else {
+                rob_chara* rob_chr = rob_chara_array_get(data.data.chara_id);
+                if (rob_chr)
+                    mat4_get_translation(rob_chr->get_bone_data_mat(MOTION_BONE_CL_KAO), &trans);
             }
 
             camera* cam = rctx_ptr->camera;

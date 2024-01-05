@@ -324,6 +324,9 @@ struct x_pv_game_chara_effect_auth_3d {
     string_hash object_set;
     auth_3d_id id;
     int64_t time;
+    std::string node_name;
+    int32_t objhrc_index;
+    mat4* node_mat;
 
     x_pv_game_chara_effect_auth_3d();
     ~x_pv_game_chara_effect_auth_3d();
@@ -344,10 +347,15 @@ struct x_pv_game_chara_effect {
 #if BAKE_PV826
     void ctrl(object_database* obj_db, texture_database* tex_db,
         int32_t pv_id = -1, std::map<uint32_t, auth_3d_id>* effchrpv_auth_3d_mot_ids = 0);
-    void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6],
-        std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
 #else
     void ctrl(object_database* obj_db, texture_database* tex_db);
+#endif
+    vec3 get_node_translation(int32_t chara_id, int32_t chara_effect, int32_t objhrc_index, const char* node_name);
+#if BAKE_PV826
+    void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6],
+        std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
+
+#else
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control, chara_index charas[6]);
 #endif
     void load_data();

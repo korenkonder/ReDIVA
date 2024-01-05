@@ -246,6 +246,7 @@ extern render_context* rctx_ptr;
 static vec4 bright_scale_get(int32_t index, float_t value);
 
 static float_t dsc_time_to_frame(int64_t time);
+static vec3 x_pv_game_dof_callback(void* data, int32_t chara_id);
 static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha);
 static void x_pv_game_change_field(x_pv_game* xpvgm, int32_t field, int64_t dsc_time, int64_t curr_time);
 #if BAKE_PV826
@@ -1262,7 +1263,8 @@ void x_pv_game_effect::unload() {
     state = 0;
 }
 
-x_pv_game_chara_effect_auth_3d::x_pv_game_chara_effect_auth_3d() : field_0(), src_chara(), dst_chara() {
+x_pv_game_chara_effect_auth_3d::x_pv_game_chara_effect_auth_3d()
+    : field_0(), src_chara(), dst_chara(), objhrc_index(), node_mat() {
     id = {};
     time = -1;
     reset();
@@ -1281,6 +1283,9 @@ void x_pv_game_chara_effect_auth_3d::reset() {
     object_set.clear();
     id = {};
     time = -1;
+    node_name.clear();
+    objhrc_index = -1;
+    node_mat = 0;
 }
 
 x_pv_game_chara_effect::x_pv_game_chara_effect() : state(), change_fields(), frame_rate_control() {
@@ -1366,6 +1371,50 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
             state = 30;
     } break;
     }
+}
+
+vec3 x_pv_game_chara_effect::get_node_translation(int32_t chara_id,
+    int32_t chara_effect, int32_t objhrc_index, const char* node_name) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return 0.0f;
+
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return 0.0f;
+
+    std::vector<x_pv_game_chara_effect_auth_3d>& chr_eff_auth = this->auth_3d[rob_chr->chara_id];
+    if (chara_effect < 0 || chara_effect >= chr_eff_auth.size())
+        return 0.0f;
+
+    x_pv_game_chara_effect_auth_3d& chr_eff = chr_eff_auth[chara_effect];
+    if (chr_eff.id.is_null())
+        return 0.0f;
+
+    ::auth_3d* auth = chr_eff.id.get_auth_3d();
+    if (!auth || objhrc_index < 0 || objhrc_index >= auth->object_hrc.size())
+        return 0.0f;
+
+    if (!chr_eff.node_mat || chr_eff.objhrc_index != objhrc_index
+        || chr_eff.node_name.compare(node_name)) {
+        mat4* mat = 0;
+        uint32_t node_name_hash = hash_utf8_murmurhash(node_name);
+        for (auth_3d_object_node& i : auth->object_hrc[objhrc_index].node)
+            if (hash_string_murmurhash(i.name) == node_name_hash) {
+                mat = i.mat;
+                break;
+            }
+
+        if (!mat)
+            return 0.0f;
+
+        chr_eff.node_mat = mat;
+        chr_eff.node_name.assign(node_name);
+        chr_eff.objhrc_index = objhrc_index;
+    }
+
+    vec3 trans;
+    mat4_get_translation(chr_eff.node_mat, &trans);
+    return trans;
 }
 
 #if BAKE_PV826
@@ -3632,7 +3681,8 @@ bool x_pv_game_pv_data::set_pv_param_post_process_dof_data(bool set, int32_t id,
 
     pv_param::dof& dof = pv_param::post_process_data_get_dof_data(id);
     if (set)
-        pv_param_task::post_process_task_set_dof_data(dof, duration);
+        pv_param_task::post_process_task_set_dof_data(dof, duration,
+            x_pv_game_dof_callback, this->pv_game);
     return true;
 }
 
@@ -7893,6 +7943,24 @@ static vec4 bright_scale_get(int32_t index, float_t value) {
 
 static float_t dsc_time_to_frame(int64_t time) {
     return prj::roundf((float_t)time / 1000000000.0f * 60.0f);
+}
+
+static vec3 x_pv_game_dof_callback(void* data, int32_t chara_id) {
+    x_pv_game_data& pv_data = ((x_pv_game*)data)->get_data();
+    if (chara_id >= pv_data.play_param->chara.size())
+        return pv_data.chara_effect.get_node_translation(0,
+            (int32_t)(chara_id - pv_data.play_param->chara.size()), 0, "j_kao_wj");
+
+    if (chara_id < 0 && chara_id >= ROB_CHARA_COUNT)
+        return 0.0f;
+
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return 0.0f;
+
+    vec3 trans;
+    mat4_get_translation(rob_chr->get_bone_data_mat(MOTION_BONE_CL_KAO), &trans);
+    return trans;
 }
 
 static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t type, float_t alpha) {
