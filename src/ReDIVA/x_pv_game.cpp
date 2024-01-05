@@ -6607,12 +6607,46 @@ bool x_pv_game::ctrl() {
             a.dof = {};
             a.dof.has_dof = true;
 
-            a3da_key_rev(a.dof.model_transform.translation.x, dof_cam_data.position_x);
-            a3da_key_rev(a.dof.model_transform.translation.y, dof_cam_data.position_y);
-            a3da_key_rev(a.dof.model_transform.translation.z, dof_cam_data.position_z);
-            a3da_key_rev(a.dof.model_transform.scale.x, dof_cam_data.focus_range);
-            a3da_key_rev(a.dof.model_transform.rotation.x, dof_cam_data.fuzzing_range);
-            a3da_key_rev(a.dof.model_transform.rotation.y, dof_cam_data.ratio);
+            std::thread position_x(a3da_key_rev,
+                std::ref(a.dof.model_transform.translation.x), std::ref(dof_cam_data.position_x));
+            std::thread position_y(a3da_key_rev,
+                std::ref(a.dof.model_transform.translation.y), std::ref(dof_cam_data.position_y));
+            std::thread position_z(a3da_key_rev,
+                std::ref(a.dof.model_transform.translation.z), std::ref(dof_cam_data.position_z));
+            std::thread focus_range(a3da_key_rev,
+                std::ref(a.dof.model_transform.scale.x), std::ref(dof_cam_data.focus_range));
+            std::thread fuzzing_range(a3da_key_rev,
+                std::ref(a.dof.model_transform.rotation.x), std::ref(dof_cam_data.fuzzing_range));
+            std::thread ratio(a3da_key_rev,
+                std::ref(a.dof.model_transform.rotation.y), std::ref(dof_cam_data.ratio));
+            SetThreadDescription((HANDLE)position_x.native_handle(), L"DoF A3DA Bake Thread: Position X");
+            SetThreadDescription((HANDLE)position_y.native_handle(), L"DoF A3DA Bake Thread: Position Y");
+            SetThreadDescription((HANDLE)position_z.native_handle(), L"DoF A3DA Bake Thread: Position Z");
+            SetThreadDescription((HANDLE)focus_range.native_handle(), L"DoF A3DA Bake Thread: Focus Range");
+            SetThreadDescription((HANDLE)fuzzing_range.native_handle(), L"DoF A3DA Bake Thread: Fuzzing Range");
+            SetThreadDescription((HANDLE)ratio.native_handle(), L"DoF A3DA Bake Thread: Ratio");
+
+            if (position_x.joinable())
+                position_x.join();
+
+            if (position_y.joinable())
+                position_y.join();
+
+            if (position_z.joinable())
+                position_z.join();
+
+            if (focus_range.joinable())
+                focus_range.join();
+
+            if (fuzzing_range.joinable())
+                fuzzing_range.join();
+
+            if (ratio.joinable())
+                ratio.join();
+
+            a.dof.model_transform.translation.x.raw_data = true;
+            a.dof.model_transform.translation.y.raw_data = true;
+            a.dof.model_transform.translation.z.raw_data = true;
 
             a3da_key& rot_z = a.dof.model_transform.rotation.z;
             if (dof_cam_data.enable_frame.size() > 1) {
