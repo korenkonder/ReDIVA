@@ -966,13 +966,13 @@ namespace Glitter {
     void GltParticleManager::SetSceneName(uint64_t hash, const char* name) {
         std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
         if (elem != effect_groups.end())
-            elem->second->name = name;
+            elem->second->name.assign(name);
 
         for (Scene*& i : scenes) {
             if (!i || i->hash != hash)
                 continue;
 
-            i->name = name;
+            i->name.assign(name);
             break;
         }
     }
