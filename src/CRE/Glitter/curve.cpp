@@ -565,7 +565,7 @@ namespace Glitter {
             else if (frame >= last_key.frame) {
                 keys.push_back({});
                 key_rev_to_key(keys.back(), Curve::KeyRev(KEY_CONSTANT, frame,
-                    first_key.value, first_key.random_range), baked_x, negate);
+                    last_key.value, last_key.random_range), baked_x, negate);
                 continue;
             }
 
