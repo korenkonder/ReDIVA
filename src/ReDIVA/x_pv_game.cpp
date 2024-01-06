@@ -1439,49 +1439,59 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
 
         chara_index src_chara = (chara_index)chara_effect.base_chara;
         chara_index dst_chara = charas[i];
+        chara_index dst_chara_mei = dst_chara == CHARA_SAKINE ? CHARA_MEIKO : dst_chara;
 
         /*if (dst_chara == CHARA_EXTRA)
             dst_chara = src_chara;*/
 
-        std::string src_chara_str = chara_index_get_auth_3d_name(src_chara);
-        std::string dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
+        const char* src_chara_str = chara_index_get_auth_3d_name(src_chara);
+        const char* dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
+        const char* dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
 #if BAKE_PV826
         std::string mik_chara_str = chara_index_get_auth_3d_name(CHARA_MIKU);
 #endif
 
         for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
-            std::string file = j.auth_3d.str;
+            std::string file(j.auth_3d.str);
             std::string object_set;
 #if BAKE_PV826
             if (pv_id != 826) {
 #endif
-                if (!j.object_set.str.size()) {
-                    size_t pos = file.find("_");
-                    if (pos != -1)
-                        object_set.assign(file.substr(0, pos));
-                    else
-                        object_set.assign(file);
-                }
-                else
+                if (j.object_set.str.size())
                     object_set.assign(j.object_set.str);
+                else
+                    object_set.assign(file);
 
                 if (src_chara != dst_chara) {
-                    size_t pos = object_set.find(dst_chara_str);
-                    if (pos && pos != -1)
-                        object_set.replace(pos, dst_chara_str.size(), src_chara_str);
-
-                    if (!j.u00) {
-                        size_t pos = file.find(dst_chara_str);
+                    if (src_chara_str) {
+                        size_t pos = object_set.find(src_chara_str);
                         if (pos != -1)
-                            file.replace(pos, dst_chara_str.size(), src_chara_str);
+                            object_set.replace(pos, 3, dst_chara_str);
+                        else if (dst_chara_mei_str) {
+                            size_t pos = object_set.find(dst_chara_mei_str);
+                            if (pos != -1)
+                                object_set.replace(pos, 3, src_chara_str);
+                        }
                     }
+
+                    if (!j.u00)
+                        if (src_chara_str) {
+                            size_t pos = file.find(src_chara_str);
+                            if (pos != -1)
+                                file.replace(pos, 3, dst_chara_str);
+                            else if (dst_chara_mei_str) {
+                                size_t pos = file.find(dst_chara_mei_str);
+                                if (pos != -1)
+                                    file.replace(pos, 3, src_chara_str);
+                            }
+                        }
                 }
 #if BAKE_PV826
             }
             else {
                 char buf[0x200];
                 sprintf_s(buf, sizeof(buf), "EFFCHRPV%03d", pv_id);
-                if (j.auth_3d.str.find(buf) == std::string::npos)
+                if (j.auth_3d.str.find(buf) == -1)
                     continue;
 
                 file.assign(j.auth_3d.str);
@@ -1492,12 +1502,17 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             }
 #endif
 
-            std::string category = "A3D_";
-            size_t pos = file.find("_");
-            if (pos != -1)
-                category.append(file.substr(0, pos));
+            std::string category;
+            if (!file.find("EFFCHRPV")) {
+                size_t pos = file.find("_");
+                if (pos != -1)
+                    category.assign(file.substr(0, pos));
+                else
+                    category.assign(file);
+                category.insert(0, "A3D_");
+            }
             else
-                category.append(file);
+                category.assign(file);
 
             x_pv_game_chara_effect_auth_3d auth_3d;
             auth_3d.field_0 = j.u00;
