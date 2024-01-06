@@ -366,11 +366,11 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids) {
     return true;
 }
 
-void texture_storage_init() {
+inline void texture_storage_init() {
     texture_storage = {};
 }
 
-texture* texture_storage_create_texture(texture_id id) {
+inline texture* texture_storage_create_texture(texture_id id) {
     auto elem = texture_storage.find(id);
     if (elem != texture_storage.end()) {
         elem->second.init_count++;
@@ -383,25 +383,21 @@ texture* texture_storage_create_texture(texture_id id) {
     return &texture_storage.insert({ id, tex }).first->second;
 }
 
-texture* texture_storage_get_texture(uint32_t id) {
+inline texture* texture_storage_get_texture(uint32_t id) {
     auto elem = texture_storage.find(texture_id(0x00, id));
     if (elem != texture_storage.end())
         return &elem->second;
     return 0;
 }
 
-texture* texture_storage_get_texture(texture_id id) {
+inline texture* texture_storage_get_texture(texture_id id) {
     auto elem = texture_storage.find(id);
     if (elem != texture_storage.end())
         return &elem->second;
     return 0;
 }
 
-size_t texture_storage_get_texture_count() {
-    return texture_storage.size();
-}
-
-void texture_storage_delete_texture(texture_id id) {
+inline void texture_storage_delete_texture(texture_id id) {
     auto elem = texture_storage.find(id);
     if (elem == texture_storage.end())
         return;
@@ -415,7 +411,7 @@ void texture_storage_delete_texture(texture_id id) {
     texture_storage.erase(elem);
 }
 
-void texture_storage_free() {
+inline void texture_storage_free() {
     for (auto& i : texture_storage)
         glDeleteTextures(1, &i.second.tex);
     texture_storage.clear();

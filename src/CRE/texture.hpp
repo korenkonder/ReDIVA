@@ -105,6 +105,5 @@ extern void texture_storage_init();
 extern texture* texture_storage_create_texture(texture_id id);
 extern texture* texture_storage_get_texture(uint32_t id);
 extern texture* texture_storage_get_texture(texture_id id);
-extern size_t texture_storage_get_texture_count();
 extern void texture_storage_delete_texture(texture_id id);
 extern void texture_storage_free();
