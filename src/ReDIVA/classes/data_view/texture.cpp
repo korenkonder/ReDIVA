@@ -47,9 +47,9 @@ void data_view_texture_imgui(class_data* data) {
         return;
     }
 
-    size_t count = texture_storage_get_texture_count();
-    for (size_t i = 0; i < count; i++) {
-        texture* tex = texture_storage_get_texture_by_index(i);
+    extern std::map<texture_id, texture> texture_storage;
+    for (auto& i : texture_storage) {
+        texture* tex = &i.second;
         if (tex->id.id)
             continue;
 

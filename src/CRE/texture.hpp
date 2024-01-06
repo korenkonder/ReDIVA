@@ -31,27 +31,27 @@ struct texture_id {
 };
 
 inline bool operator >(const texture_id& left, const texture_id& right) {
-    return left.id > right.id && left.index > right.index;
+    return (((uint64_t)left.id << 32) | left.index) > (((uint64_t)right.id << 32) | right.index);
 }
 
 inline bool operator <(const texture_id& left, const texture_id& right) {
-    return left.id < right.id && left.index < right.index;
+    return (((uint64_t)left.id << 32) | left.index) < (((uint64_t)right.id << 32) | right.index);
 }
 
 inline bool operator >=(const texture_id& left, const texture_id& right) {
-    return left.id >= right.id && left.index >= right.index;
+    return (((uint64_t)left.id << 32) | left.index) >= (((uint64_t)right.id << 32) | right.index);
 }
 
 inline bool operator <=(const texture_id& left, const texture_id& right) {
-    return left.id <= right.id && left.index <= right.index;
+    return (((uint64_t)left.id << 32) | left.index) <= (((uint64_t)right.id << 32) | right.index);
 }
 
 inline bool operator ==(const texture_id& left, const texture_id& right) {
-    return left.id == right.id && left.index == right.index;
+    return (((uint64_t)left.id << 32) | left.index) == (((uint64_t)right.id << 32) | right.index);
 }
 
 inline bool operator !=(const texture_id& left, const texture_id& right) {
-    return left.id != right.id || left.index != right.index;
+    return (((uint64_t)left.id << 32) | left.index) != (((uint64_t)right.id << 32) | right.index);
 }
 
 struct texture {
@@ -106,6 +106,5 @@ extern texture* texture_storage_create_texture(texture_id id);
 extern texture* texture_storage_get_texture(uint32_t id);
 extern texture* texture_storage_get_texture(texture_id id);
 extern size_t texture_storage_get_texture_count();
-extern texture* texture_storage_get_texture_by_index(size_t index);
 extern void texture_storage_delete_texture(texture_id id);
 extern void texture_storage_free();

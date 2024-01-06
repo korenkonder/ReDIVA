@@ -25,7 +25,7 @@ static texture* texture_load_tex(texture_id id, GLenum target,
     int32_t max_mipmap_level, void** data_ptr, bool use_high_anisotropy);
 static GLenum texture_txp_get_gl_internal_format(txp* t);
 
-std::vector<texture*> texture_storage;
+std::map<texture_id, texture> texture_storage;
 
 texture::texture() : init_count(), flags(), width(), height(),
 tex(), target(), internal_format(), max_mipmap_level(), size() {
@@ -366,72 +366,59 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids) {
     return true;
 }
 
-inline void texture_storage_init() {
+void texture_storage_init() {
     texture_storage = {};
 }
 
-inline texture* texture_storage_create_texture(texture_id id) {
-    for (texture*& i : texture_storage)
-        if (i && i->id == id) {
-            i->init_count++;
-            return i;
-        }
+texture* texture_storage_create_texture(texture_id id) {
+    auto elem = texture_storage.find(id);
+    if (elem != texture_storage.end()) {
+        elem->second.init_count++;
+        return &elem->second;
+    }
 
-    texture* tex = new texture();
-    tex->init_count = 1;
-    tex->id = id;
-    texture_storage.push_back(tex);
-    return tex;
+    texture tex;
+    tex.init_count = 1;
+    tex.id = id;
+    return &texture_storage.insert({ id, tex }).first->second;
 }
 
-inline texture* texture_storage_get_texture(uint32_t id) {
-    for (texture*& i : texture_storage)
-        if (i && i->id.index == id)
-            return i;
+texture* texture_storage_get_texture(uint32_t id) {
+    auto elem = texture_storage.find(texture_id(0x00, id));
+    if (elem != texture_storage.end())
+        return &elem->second;
     return 0;
 }
 
-inline texture* texture_storage_get_texture(texture_id id) {
-    for (texture*& i : texture_storage)
-        if (i && i->id == id)
-            return i;
+texture* texture_storage_get_texture(texture_id id) {
+    auto elem = texture_storage.find(id);
+    if (elem != texture_storage.end())
+        return &elem->second;
     return 0;
 }
 
-inline size_t texture_storage_get_texture_count() {
+size_t texture_storage_get_texture_count() {
     return texture_storage.size();
 }
 
-inline texture* texture_storage_get_texture_by_index(size_t index) {
-    if (index >= 0 && index < texture_storage.size())
-        return texture_storage[index];
-    return 0;
-}
+void texture_storage_delete_texture(texture_id id) {
+    auto elem = texture_storage.find(id);
+    if (elem == texture_storage.end())
+        return;
 
-inline void texture_storage_delete_texture(texture_id id) {
-    for (std::vector<texture*>::iterator i = texture_storage.begin(); i != texture_storage.end(); i++)
-        if (*i && (*i)->id == id) {
-            texture* tex = *i;
-            if (tex->init_count > 1) {
-                tex->init_count--;
-                break;
-            }
-
-            glDeleteTextures(1, &tex->tex);
-            delete tex;
-            i = texture_storage.erase(i);
-            break;
-        }
-}
-
-inline void texture_storage_free() {
-    for (texture*& i : texture_storage) {
-        if (i)
-            glDeleteTextures(1, &i->tex);
-        delete i;
+    texture* tex = &elem->second;
+    if (tex->init_count > 1) {
+        tex->init_count--;
+        return;
     }
+
+    texture_storage.erase(elem);
+}
+
+void texture_storage_free() {
+    for (auto& i : texture_storage)
+        glDeleteTextures(1, &i.second.tex);
     texture_storage.clear();
-    texture_storage.shrink_to_fit();
 }
 
 inline static void texture_bind(GLenum target, GLuint texture) {
