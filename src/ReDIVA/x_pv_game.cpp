@@ -256,13 +256,16 @@ static void x_pv_game_reset_field(x_pv_game* xpvgm);
 
 static void x_pv_game_update_object_set(ObjsetInfo* info);
 static void x_pv_game_write_auth_3d(auth_3d* auth);
-static void x_pv_game_write_object_set(ObjsetInfo* info);
+static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group);
+static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db, texture_database* tex_db);
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
 static void replace_pv832(char* str);
 static void replace_pv832(std::string& str);
+static void replace_stgpv(char* str);
+static void replace_stgpv(std::string& str);
 
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
     return (time + 0.0001f) < bar_time;
@@ -985,6 +988,9 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                 eff_group->LoadModel(x_data);
         }
 
+        for (string_hash& i : pv_glitter)
+            Glitter::glt_particle_manager->SetSceneName(i.hash_murmurhash, i.c_str());
+
         state = 12;
         break;
     }
@@ -1447,9 +1453,6 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
         const char* src_chara_str = chara_index_get_auth_3d_name(src_chara);
         const char* dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
         const char* dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
-#if BAKE_PV826
-        std::string mik_chara_str = chara_index_get_auth_3d_name(CHARA_MIKU);
-#endif
 
         for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
             std::string file(j.auth_3d.str);
@@ -1490,15 +1493,12 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             }
             else {
                 char buf[0x200];
-                sprintf_s(buf, sizeof(buf), "EFFCHRPV%03d", pv_id);
-                if (j.auth_3d.str.find(buf) == -1)
+                sprintf_s(buf, sizeof(buf), , pv_id);
+                if (!j.auth_3d.str.find("EFFCHRPV826"))
                     continue;
 
-                file.assign(j.auth_3d.str);
-                file.replace(utf8_length(buf), mik_chara_str.size(), mik_chara_str);
-
-                sprintf_s(buf, sizeof(buf), "EFFCHRPV%03dMIK001", pv_id);
-                object_set.assign(buf);
+                file.assign("EFFCHRPV826MIK001");
+                object_set.assign("EFFCHRPV826MIK001");
             }
 #endif
 
@@ -4761,6 +4761,9 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
                 eff_group->LoadModel(x_data);
         }
 
+        for (pvsr_effect& i : stage_resource->effect)
+            Glitter::glt_particle_manager->SetSceneName(i.name.hash_murmurhash, i.name.c_str());
+
         size_t stage_effect_count = stage_resource->stage_effect.size();
 
         for (int32_t i = 0; i < X_PV_GAME_STAGE_EFFECT_COUNT && i < stage_effect_count; i++) {
@@ -6288,9 +6291,11 @@ bool x_pv_game::ctrl() {
             }
         }
 
-        std::vector<uint32_t> object_set_ids;
+        std::vector<uint32_t> pv_object_set_ids;
+        std::vector<uint32_t> stage_object_set_ids;
+        std::vector<Glitter::EffectGroup*> glitter_eff_groups;
 
-        auto add_auth_3d_object_set_id = [&](auth_3d* auth) {
+        auto add_auth_3d_object_set_id = [&](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
             for (auth_3d_object& i : auth->object)
                 object_set_ids.push_back(i.object_info.set_id);
 
@@ -6298,34 +6303,45 @@ bool x_pv_game::ctrl() {
                 object_set_ids.push_back(i.object_info.set_id);
         };
 
-        auto add_glitter_object_set_id = [&](uint32_t eff_group_hash) {
+        auto add_glitter_object_set_id = [&](uint32_t eff_group_hash, std::vector<uint32_t>& object_set_ids) {
             Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(eff_group_hash);
-            if (eff_group && eff_group->CheckModel())
-                object_set_ids.insert(object_set_ids.end(),
-                    eff_group->object_set_ids.begin(), eff_group->object_set_ids.end());
+            if (eff_group) {
+                glitter_eff_groups.push_back(eff_group);
+
+                if (eff_group->CheckModel())
+                    object_set_ids.insert(object_set_ids.end(),
+                        eff_group->object_set_ids.begin(), eff_group->object_set_ids.end());
+            }
         };
 
         for (auth_3d*& i : chara_effect_auth_3ds)
-            add_auth_3d_object_set_id(i);
+            add_auth_3d_object_set_id(i, pv_object_set_ids);
 
         for (auth_3d*& i : song_effect_auth_3ds)
-            add_auth_3d_object_set_id(i);
+            add_auth_3d_object_set_id(i, pv_object_set_ids);
 
         for (auth_3d*& i : stage_data_effect_auth_3ds)
-            add_auth_3d_object_set_id(i);
+            add_auth_3d_object_set_id(i, stage_object_set_ids);
 
         for (auth_3d*& i : stage_data_change_effect_auth_3ds)
-            add_auth_3d_object_set_id(i);
+            add_auth_3d_object_set_id(i, stage_object_set_ids);
 
         for (string_hash& i : pv_data.effect.pv_glitter)
-            add_glitter_object_set_id(i.hash_murmurhash);
+            add_glitter_object_set_id(i.hash_murmurhash, pv_object_set_ids);
 
         for (x_pv_game_song_effect& i : pv_data.effect.song_effect)
             for (x_pv_game_song_effect_glitter& j : i.glitter)
-                add_glitter_object_set_id(j.name.hash_murmurhash);
+                add_glitter_object_set_id(j.name.hash_murmurhash, pv_object_set_ids);
 
         for (uint32_t& i : stage_data.stage_glitter)
-            add_glitter_object_set_id(i);
+            add_glitter_object_set_id(i, stage_object_set_ids);
+
+        prj::sort_unique(pv_object_set_ids);
+        prj::sort_unique(stage_object_set_ids);
+
+        std::vector<uint32_t> object_set_ids;
+        object_set_ids.insert(object_set_ids.end(), pv_object_set_ids.begin(), pv_object_set_ids.end());
+        object_set_ids.insert(object_set_ids.end(), stage_object_set_ids.begin(), stage_object_set_ids.end());
 
         prj::sort_unique(object_set_ids);
 
@@ -6388,16 +6404,30 @@ bool x_pv_game::ctrl() {
                 objib[j].load(obj_data[j]);
         }
 
-        for (uint32_t& i : object_set_ids) {
+        object_set_ids.clear();
+
+        for (uint32_t& i : pv_object_set_ids) {
             ObjsetInfo* info = object_storage_get_objset_info(i);
             if (!info)
                 continue;
 
             x_pv_game_update_object_set(info);
-            x_pv_game_write_object_set(info);
+            x_pv_game_write_object_set(info, &pv_data.obj_db, &pv_data.tex_db);
+        }
+
+        for (uint32_t& i : stage_object_set_ids) {
+            ObjsetInfo* info = object_storage_get_objset_info(i);
+            if (!info)
+                continue;
+
+            x_pv_game_update_object_set(info);
+            x_pv_game_write_object_set(info, &stage_data.obj_db, &stage_data.tex_db);
         }
 
         for (auto& i : chara_effect_auth_3ds)
+            x_pv_game_write_auth_3d(i);
+
+        for (auto& i : song_effect_auth_3ds)
             x_pv_game_write_auth_3d(i);
 
         for (auto& i : stage_data_effect_auth_3ds)
@@ -6405,6 +6435,9 @@ bool x_pv_game::ctrl() {
 
         for (auto& i : stage_data_change_effect_auth_3ds)
             x_pv_game_write_auth_3d(i);
+
+        for (auto& i : glitter_eff_groups)
+            x_pv_game_write_glitter(i);
 
         state_old = 19;
     } break;
@@ -6668,7 +6701,7 @@ bool x_pv_game::ctrl() {
 
             a.ready = true;
             a.compressed = true;
-            a.format = A3DA_FORMAT_AFT;
+            a.format = A3DA_FORMAT_AFT_X_PACK;
             a.dof = {};
             a.dof.has_dof = true;
 
@@ -6680,6 +6713,8 @@ bool x_pv_game::ctrl() {
                 std::ref(a.dof.model_transform.translation.z), std::ref(dof_cam_data.position_z));
             std::thread focus_range(a3da_key_rev,
                 std::ref(a.dof.model_transform.scale.x), std::ref(dof_cam_data.focus_range));
+            //std::thread focus(a3da_key_rev,
+            //    std::ref(a.dof.model_transform.scale.y), std::ref(dof_cam_data.focus));
             std::thread fuzzing_range(a3da_key_rev,
                 std::ref(a.dof.model_transform.rotation.x), std::ref(dof_cam_data.fuzzing_range));
             std::thread ratio(a3da_key_rev,
@@ -6688,6 +6723,7 @@ bool x_pv_game::ctrl() {
             SetThreadDescription((HANDLE)position_y.native_handle(), L"DoF A3DA Bake Thread: Position Y");
             SetThreadDescription((HANDLE)position_z.native_handle(), L"DoF A3DA Bake Thread: Position Z");
             SetThreadDescription((HANDLE)focus_range.native_handle(), L"DoF A3DA Bake Thread: Focus Range");
+            //SetThreadDescription((HANDLE)focus.native_handle(), L"DoF A3DA Bake Thread: Focus");
             SetThreadDescription((HANDLE)fuzzing_range.native_handle(), L"DoF A3DA Bake Thread: Fuzzing Range");
             SetThreadDescription((HANDLE)ratio.native_handle(), L"DoF A3DA Bake Thread: Ratio");
 
@@ -6702,6 +6738,9 @@ bool x_pv_game::ctrl() {
 
             if (focus_range.joinable())
                 focus_range.join();
+            
+            //if (focus.joinable())
+            //    focus.join();
 
             if (fuzzing_range.joinable())
                 fuzzing_range.join();
@@ -8404,20 +8443,24 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
 
     char* ext = 0;
     char* temp = name;
-    while (temp)
-        if (temp = strstr(temp, a3da_ext))
-            ext = temp++;
+    while (temp = strstr(temp, a3da_ext))
+        ext = temp++;
 
     if (!ext) {
         strcat_s(name, sizeof(name), a3da_ext);
         ext = strstr(name, a3da_ext);
     }
 
+    replace_stgpv(name);
+
     for (char* i = name; *i && i != ext; i++) {
         char c = *i;
         if (c >= 'A' && c <= 'Z')
             *i += 0x20;
     }
+
+    if (strstr(name, "effchrpv826"))
+        return;
 
     char buf[0x200];
     file_stream s;
@@ -8432,13 +8475,47 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
     }
 
     a3da a;
+    float_t max_frame = auth->max_frame;
+    auth->max_frame = auth->play_control.size;
     auth->store(&a);
+    auth->max_frame = max_frame;
     a._converter_version.assign("20111019");
     a._file_name.assign(name);
     a._property_version.assign("20110526");
     a.ready = true;
     a.compressed = true;
-    a.format = A3DA_FORMAT_AFT;
+    a.format = A3DA_FORMAT_AFT_X_PACK;
+
+    for (a3da_m_object_hrc& i : a.m_object_hrc) {
+        for (a3da_object_instance& j : i.instance) {
+            replace_stgpv(j.name);
+            replace_stgpv(j.uid_name);
+        }
+
+        replace_stgpv(i.name);
+    }
+
+    for (std::string& i : a.m_object_hrc_list)
+        replace_stgpv(i);
+
+    for (a3da_object& i : a.object) {
+        replace_stgpv(i.name);
+        replace_stgpv(i.parent_name);
+        replace_stgpv(i.uid_name);
+    }
+
+    for (a3da_object_hrc& i : a.object_hrc) {
+        replace_stgpv(i.name);
+        replace_stgpv(i.parent_name);
+        replace_stgpv(i.uid_name);
+    }
+    
+    for (std::string& i : a.object_hrc_list)
+        replace_stgpv(i);
+
+
+    for (std::string& i : a.object_list)
+        replace_stgpv(i);
 
     void* a3da_data = 0;
     size_t a3da_length = 0;
@@ -8451,9 +8528,36 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
     free_def(a3da_data);
 }
 
-static void x_pv_game_write_object_set(ObjsetInfo* info) {
-    obj_set* set = info->obj_set;
+static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group) {
+    char name[0x200];
+    strcpy_s(name, sizeof(name), eff_group->name.c_str());
 
+    replace_stgpv(name);
+
+    data_struct* x_data = &data_list[DATA_X];
+    auto& hashes = x_data->glitter_list_murmurhash;
+    for (Glitter::Effect*& i : eff_group->effects) {
+        if (!i)
+            continue;
+
+        Glitter::Effect* e = i;
+        e->name.clear();
+        if (e->data.name_hash == hash_murmurhash_empty)
+            continue;
+
+        auto elem = hashes.find(e->data.name_hash);
+        if (elem != hashes.end()) {
+            e->name.assign(elem->second);
+            replace_stgpv(e->name);
+        }
+        else
+            printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
+    }
+
+    Glitter::FileWriter::Write(Glitter::X, eff_group, "patch\\!temp\\particle\\", name, true, true);
+}
+
+static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db, texture_database* tex_db) {
     char name[0x200];
     strcpy_s(name, sizeof(name), info->name.c_str());
 
@@ -8463,79 +8567,115 @@ static void x_pv_game_write_object_set(ObjsetInfo* info) {
             name[j] += 0x20;
     }
 
-    char buf[0x200];
-    file_stream s;
+    replace_stgpv(name);
 
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
-    strcat_s(buf, sizeof(buf), name);
-    strcat_s(buf, sizeof(buf), "_obj.bin");
+    if (strstr(name, "effchrpv826"))
+        return;
 
-    uint32_t obj_num = set->obj_num;
-    for (uint32_t j = 0; j < obj_num; j++) {
-        obj* obj = set->obj_data[j];
+    {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
-        uint32_t num_material = obj->num_material;
-        for (uint32_t k = 0; k < num_material; k++) {
-            obj_material& material = obj->material_array[k].material;
+        char buf[0x200];
+        strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
+        strcat_s(buf, sizeof(buf), name);
+        strcat_s(buf, sizeof(buf), "_obj.bin");
 
-            if (*(int32_t*)&material.shader.name[4] == 0xDEADFF) {
-                *(int32_t*)&material.shader.name[4] = 0;
-                const char* shader_name = shaders_ft.get_name_by_index(material.shader.index);
-                strcpy_s(material.shader.name, sizeof(material.shader.name), shader_name);
+        prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
+        obj_set* set = alloc->allocate<obj_set>();
+        set->move_data(info->obj_set, alloc);
+
+        uint32_t obj_num = set->obj_num;
+        for (uint32_t i = 0; i < obj_num; i++) {
+            obj* obj = set->obj_data[i];
+
+            replace_stgpv((char*)obj->name);
+            obj->id = aft_obj_db->get_object_info(obj->name).id;
+
+            uint32_t num_material = obj->num_material;
+            for (uint32_t j = 0; j < num_material; j++) {
+                obj_material& material = obj->material_array[j].material;
+
+                for (obj_material_texture_data& k : material.texdata) {
+                    k.texture_index = 0;
+                    if (k.tex_index == -1)
+                        continue;
+
+                    const char* tex_name = tex_db->get_texture_name(k.tex_index);
+                    if (tex_name) {
+                        char name_buf[0x200];
+                        strcpy_s(name_buf, sizeof(name_buf), tex_name);
+                        replace_stgpv(name_buf);
+                        k.tex_index = aft_tex_db->get_texture_id(name_buf);
+                    }
+                    else
+                        k.tex_index = -1;
+
+                }
+
+                if (*(int32_t*)&material.shader.name[4] == 0xDEADFF) {
+                    *(int32_t*)&material.shader.name[4] = 0;
+                    const char* shader_name = shaders_ft.get_name_by_index(material.shader.index);
+                    strcpy_s(material.shader.name, sizeof(material.shader.name), shader_name);
+                }
             }
         }
-    }
 
-    bool modern = set->modern;
-    set->modern = false;
+        uint32_t tex_id_num = set->tex_id_num;
+        for (uint32_t i = 0; i < tex_id_num; i++) {
+            uint32_t& id = set->tex_id_data[i];
+            const char* tex_name = tex_db->get_texture_name(id);
+            if (tex_name) {
+                char name_buf[0x200];
+                strcpy_s(name_buf, sizeof(name_buf), tex_name);
+                replace_stgpv(name_buf);
 
-    void* obj_data = 0;
-    size_t obj_length = 0;
-    set->pack_file(&obj_data, &obj_length);
-
-    set->modern = modern;
-
-    for (uint32_t j = 0; j < obj_num; j++) {
-        obj* obj = set->obj_data[j];
-
-        uint32_t num_material = obj->num_material;
-        for (uint32_t k = 0; k < num_material; k++) {
-            obj_material& material = obj->material_array[k].material;
-
-            if (*(int32_t*)&material.shader.name[4] != 0xDEADFF) {
-                material.shader.index = shaders_ft.get_index_by_name(material.shader.name);
-                *(int32_t*)&material.shader.name[4] = 0xDEADFF;
+                id = aft_tex_db->get_texture_id(name_buf);
             }
+            else
+                id = -1;
         }
+
+        set->modern = false;
+
+        void* obj_data = 0;
+        size_t obj_length = 0;
+        set->pack_file(&obj_data, &obj_length);
+
+        file_stream s;
+        s.open(buf, "wb");
+        s.write(obj_data, obj_length);
+        s.close();
+
+        free_def(obj_data);
     }
 
-    s.open(buf, "wb");
-    s.write(obj_data, obj_length);
-    s.close();
+    {
+        char buf[0x200];
+        strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
+        strcat_s(buf, sizeof(buf), name);
+        strcat_s(buf, sizeof(buf), "_tex.bin");
 
-    free_def(obj_data);
+        uint32_t tex_num = info->tex_num;
+        texture** tex_data = info->tex_data;
 
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
-    strcat_s(buf, sizeof(buf), name);
-    strcat_s(buf, sizeof(buf), "_tex.bin");
+        txp_set txp;
+        txp.textures.resize(tex_num);
+        for (uint32_t j = 0; j < tex_num; j++)
+            texture_txp_store(tex_data[j], &txp.textures[j]);
 
-    uint32_t tex_num = info->tex_num;
-    texture** tex_data = info->tex_data;
+        void* txp_data = 0;
+        size_t txp_length = 0;
+        txp.pack_file(&txp_data, &txp_length, false);
 
-    txp_set txp;
-    txp.textures.resize(tex_num);
-    for (uint32_t j = 0; j < tex_num; j++)
-        texture_txp_store(tex_data[j], &txp.textures[j]);
+        file_stream s;
+        s.open(buf, "wb");
+        s.write(txp_data, txp_length);
+        s.close();
 
-    void* txp_data = 0;
-    size_t txp_length = 0;
-    txp.pack_file(&txp_data, &txp_length, false);
-
-    s.open(buf, "wb");
-    s.write(txp_data, txp_length);
-    s.close();
-
-    free_def(txp_data);
+        free_def(txp_data);
+    }
 }
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time) {
@@ -8599,5 +8739,34 @@ static void replace_pv832(char* str) {
 
 inline static void replace_pv832(std::string& str) {
     replace_pv832((char*)str.data());
+}
+
+static void replace_stgpv(char* str) {
+    char* stgpv;
+    stgpv = str;
+    while (true) {
+        stgpv = strstr(stgpv, "STGPV0");
+        if (!stgpv)
+            break;
+
+        stgpv[5] = '8';
+        stgpv += 6;
+    }
+
+    stgpv = str;
+    while (true) {
+        stgpv = strstr(stgpv, "stgpv0");
+        if (!stgpv)
+            break;
+
+        stgpv[5] = '8';
+        stgpv += 6;
+    }
+
+    replace_pv832(str);
+}
+
+inline static void replace_stgpv(std::string& str) {
+    replace_stgpv((char*)str.data());
 }
 #endif

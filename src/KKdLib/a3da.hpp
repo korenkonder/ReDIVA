@@ -63,12 +63,13 @@ enum a3da_fog_flags {
 
 enum a3da_format {
     A3DA_FORMAT_DT  = 0,
-    A3DA_FORMAT_F   = 1,
-    A3DA_FORMAT_AFT = 2,
-    A3DA_FORMAT_F2  = 3,
-    A3DA_FORMAT_MGF = 4,
-    A3DA_FORMAT_X   = 5,
-    A3DA_FORMAT_XHD = 6,
+    A3DA_FORMAT_F,
+    A3DA_FORMAT_AFT,
+    A3DA_FORMAT_F2,
+    A3DA_FORMAT_MGF,
+    A3DA_FORMAT_X,
+    A3DA_FORMAT_XHD,
+    A3DA_FORMAT_AFT_X_PACK,
 };
 
 enum a3da_key_flags {

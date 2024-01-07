@@ -90,6 +90,11 @@ static void a3dc_write_a3da_vec3(stream& s, a3da_vec3& value);
 static void a3dc_read_a3da_vec3_f16(void* data, size_t size, a3da_vec3* value, a3da_compress_f16 f16);
 static void a3dc_write_a3da_vec3_f16(stream& s, a3da_vec3& value, a3da_compress_f16 f16);
 
+static void a3da_key_make_raw_data_binary(a3da_key* value);
+static void a3da_model_transform_make_raw_data_binary(a3da_model_transform* value);
+static void a3da_rgba_make_raw_data_binary(a3da_rgba* value);
+static void a3da_vec3_make_raw_data_binary(a3da_vec3* value);
+
 a3da_key::a3da_key() : flags(), bin_offset(), type(), ep_type_pre(), ep_type_post(), max_frame(),
 raw_data(), raw_data_binary(), raw_data_value_list_size(), raw_data_value_list_offset(), value() {
 }
@@ -482,9 +487,9 @@ static void a3da_read_inner(a3da* a, stream& s) {
 }
 
 static void a3da_write_inner(a3da* a, stream& s) {
-    bool a3dc = a->compressed || a->format > A3DA_FORMAT_AFT;
+    bool a3dc = a->compressed || a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK;
 
-    if (a->format <= A3DA_FORMAT_AFT)
+    if (a->format <= A3DA_FORMAT_AFT || a->format == A3DA_FORMAT_AFT_X_PACK)
         a->_compress_f16 = A3DA_COMPRESS_F32F32F32F32;
 
     void* a3dc_data = 0;
@@ -498,7 +503,7 @@ static void a3da_write_inner(a3da* a, stream& s) {
 
     memory_stream s_a3da;
     stream& _s = s;
-    if (a->format > A3DA_FORMAT_AFT) {
+    if (a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK) {
         s_a3da.open();
         _s = s_a3da;
     }
@@ -537,7 +542,7 @@ static void a3da_write_inner(a3da* a, stream& s) {
         _s.write(a3da_data, a3da_data_length);
     free_def(a3da_data);
 
-    if (a->format > A3DA_FORMAT_AFT) {
+    if (a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK) {
         f2_struct st;
         s_a3da.align_write(0x10);
         s_a3da.copy(st.data);
@@ -1126,7 +1131,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
     {
         kv.open_scope("_");
 
-        if (a3dc && a->format > A3DA_FORMAT_AFT)
+        if (a3dc && a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK)
             kv.write(s, "compress_f16", a->_compress_f16);
         kv.write(s, "converter.version", a->_converter_version);
         kv.write(s, "file_name", a->_file_name);
@@ -1184,7 +1189,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         kv.open_scope("camera_auxiliary");
 
         a3da_camera_auxiliary* ca = &a->camera_auxiliary;
-        if (a->format == A3DA_FORMAT_F || a->format > A3DA_FORMAT_AFT) {
+        if (a->format == A3DA_FORMAT_F || a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK) {
             if (ca->flags & A3DA_CAMERA_AUXILIARY_EXPOSURE_RATE)
                 key_val_out_write(&kv, s, "exposure_rate", ca->exposure_rate);
             if (ca->flags & A3DA_CAMERA_AUXILIARY_GAMMA_RATE)
@@ -1276,7 +1281,44 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         kv.close_scope();
     }
 
-    if (a->curve.size() > 0) {
+    if (a->format == A3DA_FORMAT_AFT_X_PACK && (a->curve.size() > 0 || a->material_list.size() > 0)) {
+        kv.open_scope("curve");
+
+        int32_t curve_count = (int32_t)a->curve.size();
+        int32_t mat_list_count = (int32_t)a->material_list.size();
+        a3da_curve* vc = a->curve.data();
+        a3da_material_list* vml = a->material_list.data();
+
+        std::vector<int32_t> sort_index;
+        key_val_out::get_lexicographic_order(sort_index, curve_count + mat_list_count);
+        int32_t* sort_index_data = sort_index.data();
+        for (int32_t i = 0; i < curve_count + mat_list_count; i++) {
+            kv.open_scope_fmt(sort_index_data[i]);
+
+            if (sort_index_data[i] < curve_count) {
+                a3da_curve* c = &vc[sort_index_data[i]];
+                key_val_out_write(&kv, s, "cv", c->curve);
+                kv.write(s, "name", c->name);
+            }
+            else {
+                a3da_material_list* ml = &vml[sort_index_data[i] - curve_count];
+                kv.open_scope("ml");
+                kv.write(s, "true");
+                if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
+                    key_val_out_write(&kv, s, "blend_color", ml->blend_color);
+                if (ml->flags & A3DA_MATERIAL_LIST_EMISSION)
+                    key_val_out_write(&kv, s, "emission", ml->emission);
+                kv.close_scope();
+                kv.write(s, "name", ml->name);
+            }
+
+            kv.close_scope();
+        }
+
+        kv.write(s, "length", curve_count + mat_list_count);
+        kv.close_scope();
+    }
+    else if (a->curve.size() > 0) {
         kv.open_scope("curve");
 
         int32_t count = (int32_t)a->curve.size();
@@ -1299,7 +1341,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         kv.close_scope();
     }
 
-    if (a->dof.has_dof && a->format == A3DA_FORMAT_AFT) {
+    if (a->dof.has_dof && (a->format == A3DA_FORMAT_AFT || a->format == A3DA_FORMAT_AFT_X_PACK)) {
         kv.open_scope("dof");
 
         a3da_dof* d = &a->dof;
@@ -1556,10 +1598,10 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             a3da_material_list* ml = &vml[sort_index_data[i]];
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_out_write(&kv, s, "blend_color", ml->blend_color);
-            if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
+            if (ml->flags & A3DA_MATERIAL_LIST_GLOW_INTENSITY)
                 key_val_out_write(&kv, s, "glow_intensity", ml->glow_intensity);
             kv.write(s, "hash_name", hash_string_murmurhash(ml->name));
-            if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
+            if (ml->flags & A3DA_MATERIAL_LIST_EMISSION)
                 key_val_out_write(&kv, s, "incandescence", ml->emission);
             kv.write(s, "name", ml->name);
 
@@ -1796,11 +1838,11 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
 
         a3da_play_control* pc = &a->play_control;
         kv.write(s, "begin", pc->begin);
-        if (pc->flags & A3DA_PLAY_CONTROL_DIV && a->format > A3DA_FORMAT_AFT)
+        if (pc->flags & A3DA_PLAY_CONTROL_DIV && a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK)
             kv.write(s, "div", pc->div);
         kv.write(s, "fps", pc->fps);
         if (pc->flags & A3DA_PLAY_CONTROL_OFFSET) {
-            if (a->format > A3DA_FORMAT_AFT) {
+            if (a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK) {
                 kv.write(s, "offset", pc->offset);
                 kv.write(s, "size", pc->size);
             }
@@ -2030,6 +2072,8 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
     memory_stream s;
     s.open();
 
+    bool aft_rgba = a->format == A3DA_FORMAT_AFT || a->format == A3DA_FORMAT_AFT_X_PACK;
+
     for (a3da_camera_root& i : a->camera_root) {
         a3dc_write_a3da_model_transform_offset(s, i.model_transform);
         a3dc_write_a3da_model_transform_offset(s, i.view_point.model_transform);
@@ -2067,9 +2111,9 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
         a3dc_write_a3da_model_transform_offset(s, i.model_transform);
 
     for (a3da_ambient& i : a->ambient) {
-        if (i.flags & A3DA_AMBIENT_LIGHT_DIFFUSE)
+        if ((i.flags & A3DA_AMBIENT_LIGHT_DIFFUSE) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.light_diffuse);
-        if (i.flags & A3DA_AMBIENT_RIM_LIGHT_DIFFUSE)
+        if ((i.flags & A3DA_AMBIENT_RIM_LIGHT_DIFFUSE) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.rim_light_diffuse);
     }
 
@@ -2111,18 +2155,24 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
     for (a3da_curve& i : a->curve)
         a3dc_write_a3da_key(s, i.curve);
 
+    if (a->dof.has_dof && a->format == A3DA_FORMAT_AFT_X_PACK) {
+        a3da_dof* d = &a->dof;
+        a3da_model_transform_make_raw_data_binary(&d->model_transform);
+        a3dc_write_a3da_model_transform(s, d->model_transform, _compress_f16);
+    }
+
     for (a3da_light& i : a->light) {
         if (i.flags & A3DA_LIGHT_POSITION)
             a3dc_write_a3da_model_transform(s, i.position, _compress_f16);
         if (i.flags & A3DA_LIGHT_SPOT_DIRECTION)
             a3dc_write_a3da_model_transform(s, i.spot_direction, _compress_f16);
-        if (i.flags & A3DA_LIGHT_AMBIENT)
+        if ((i.flags & A3DA_LIGHT_AMBIENT) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.ambient);
-        if (i.flags & A3DA_LIGHT_DIFFUSE)
+        if ((i.flags & A3DA_LIGHT_DIFFUSE) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.diffuse);
-        if (i.flags & A3DA_LIGHT_SPECULAR)
+        if ((i.flags & A3DA_LIGHT_SPECULAR) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.specular);
-        if (i.flags & A3DA_LIGHT_TONE_CURVE)
+        if ((i.flags & A3DA_LIGHT_TONE_CURVE) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.tone_curve);
         if (a->format == A3DA_FORMAT_XHD) {
             if (i.flags & A3DA_LIGHT_INTENSITY)
@@ -2149,7 +2199,7 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_key(s, i.end);
         if (i.flags & A3DA_FOG_START)
             a3dc_write_a3da_key(s, i.start);
-        if (i.flags & A3DA_FOG_COLOR)
+        if ((i.flags & A3DA_FOG_COLOR) && !aft_rgba)
             a3dc_write_a3da_rgba(s, i.color);
     }
 
@@ -2163,14 +2213,27 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_model_transform(s, j.model_transform, _compress_f16);
     }
 
-    for (a3da_material_list& i : a->material_list) {
-        if (i.flags & A3DA_MATERIAL_LIST_GLOW_INTENSITY)
-            a3dc_write_a3da_key(s, i.glow_intensity);
-        if (i.flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
-            a3dc_write_a3da_rgba(s, i.blend_color);
-        if (i.flags & A3DA_MATERIAL_LIST_EMISSION)
-            a3dc_write_a3da_rgba(s, i.emission);
-    }
+    if (a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD)
+        for (a3da_material_list& i : a->material_list) {
+            if (i.flags & A3DA_MATERIAL_LIST_GLOW_INTENSITY)
+                a3dc_write_a3da_key(s, i.glow_intensity);
+            if (i.flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
+                a3dc_write_a3da_rgba(s, i.blend_color);
+            if (i.flags & A3DA_MATERIAL_LIST_EMISSION)
+                a3dc_write_a3da_rgba(s, i.emission);
+        }
+    else if (a->format == A3DA_FORMAT_AFT_X_PACK)
+        for (a3da_material_list& i : a->material_list) {
+            if (i.flags & A3DA_MATERIAL_LIST_BLEND_COLOR) {
+                a3da_rgba_make_raw_data_binary(&i.blend_color);
+                a3dc_write_a3da_rgba(s, i.blend_color);
+            }
+
+            if (i.flags & A3DA_MATERIAL_LIST_EMISSION) {
+                a3da_rgba_make_raw_data_binary(&i.emission);
+                a3dc_write_a3da_rgba(s, i.emission);
+            }
+        }
 
     for (a3da_object& i : a->object) {
         a3dc_write_a3da_model_transform(s, i.model_transform, _compress_f16);
@@ -2215,11 +2278,11 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_key(s, pp->lens_ghost);
         if (pp->flags & A3DA_POST_PROCESS_LENS_SHAFT)
             a3dc_write_a3da_key(s, pp->lens_shaft);
-        if (pp->flags & A3DA_POST_PROCESS_INTENSITY)
+        if ((pp->flags & A3DA_POST_PROCESS_INTENSITY) && !aft_rgba)
             a3dc_write_a3da_rgba(s, pp->intensity);
-        if (pp->flags & A3DA_POST_PROCESS_RADIUS)
+        if ((pp->flags & A3DA_POST_PROCESS_RADIUS) && !aft_rgba)
             a3dc_write_a3da_rgba(s, pp->radius);
-        if (pp->flags & A3DA_POST_PROCESS_SCENE_FADE)
+        if ((pp->flags & A3DA_POST_PROCESS_SCENE_FADE) && !aft_rgba)
             a3dc_write_a3da_rgba(s, pp->scene_fade);
     }
 
@@ -2486,7 +2549,7 @@ static bool key_val_read_raw_data(key_val* kv,
     kv->read("raw_data.value_list_size", value_list_size);
 
     int32_t value_list_offset;
-    if (kv->read( "raw_data.value_list_offset", value_list_offset)) {
+    if (kv->read("raw_data.value_list_offset", value_list_offset)) {
         if (key_type != 3)
             return false;
 
@@ -2724,14 +2787,16 @@ static void key_val_out_write(key_val_out* kv, stream& s,
 
     kv->open_scope(key);
 
-    if (value.flags & A3DA_RGBA_R)
-        key_val_out_write(kv, s, "r", value.r);
-    if (value.flags & A3DA_RGBA_G)
-        key_val_out_write(kv, s, "g", value.g);
-    if (value.flags & A3DA_RGBA_B)
-        key_val_out_write(kv, s, "b", value.b);
+    kv->write(s, "true");
+
     if (value.flags & A3DA_RGBA_A)
         key_val_out_write(kv, s, "a", value.a);
+    if (value.flags & A3DA_RGBA_B)
+        key_val_out_write(kv, s, "b", value.b);
+    if (value.flags & A3DA_RGBA_G)
+        key_val_out_write(kv, s, "g", value.g);
+    if (value.flags & A3DA_RGBA_R)
+        key_val_out_write(kv, s, "r", value.r);
 
     kv->close_scope();
 }
@@ -2853,11 +2918,17 @@ static void a3dc_read_a3da_key_f16(void* data, size_t size, a3da_key* value, a3d
 
 static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f16 f16) {
     if (value.raw_data) {
-        if (value.keys.size() < 1) {
+        if (value.type == A3DA_KEY_NONE || value.type == A3DA_KEY_STATIC) {
+            value.raw_data = false;
+            value.raw_data_binary = false;
+            return;
+        }
+        else if (value.keys.size() < 1) {
             value.raw_data = false;
             value.raw_data_binary = false;
             value.type = A3DA_KEY_NONE;
             value.keys.resize(0);
+            return;
         }
         else if (value.keys.size() == 1) {
             value.raw_data = false;
@@ -2865,6 +2936,7 @@ static void a3dc_write_a3da_key_f16(stream& s, a3da_key& value, a3da_compress_f1
             value.type = A3DA_KEY_STATIC;
             value.value = value.keys[0].value;
             value.keys.resize(0);
+            return;
         }
     }
 
@@ -3081,4 +3153,36 @@ static void a3dc_write_a3da_vec3_f16(stream& s, a3da_vec3& value, a3da_compress_
     a3dc_write_a3da_key_f16(s, value.x, f16);
     a3dc_write_a3da_key_f16(s, value.y, f16);
     a3dc_write_a3da_key_f16(s, value.z, f16);
+}
+
+inline static void a3da_key_make_raw_data_binary(a3da_key* value) {
+    value->raw_data = true;
+    value->raw_data_binary = true;
+}
+
+inline static void a3da_model_transform_make_raw_data_binary(a3da_model_transform* value) {
+    a3da_vec3_make_raw_data_binary(&value->rotation);
+    a3da_vec3_make_raw_data_binary(&value->scale);
+    a3da_vec3_make_raw_data_binary(&value->scale);
+    a3da_key_make_raw_data_binary(&value->visibility);
+}
+
+inline static void a3da_rgba_make_raw_data_binary(a3da_rgba* value) {
+    if (value->flags & A3DA_RGBA_R)
+        a3da_key_make_raw_data_binary(&value->r);
+
+    if (value->flags & A3DA_RGBA_G)
+        a3da_key_make_raw_data_binary(&value->g);
+
+    if (value->flags & A3DA_RGBA_B)
+        a3da_key_make_raw_data_binary(&value->b);
+
+    if (value->flags & A3DA_RGBA_A)
+        a3da_key_make_raw_data_binary(&value->a);
+}
+
+inline static void a3da_vec3_make_raw_data_binary(a3da_vec3* value) {
+    a3da_key_make_raw_data_binary(&value->x);
+    a3da_key_make_raw_data_binary(&value->y);
+    a3da_key_make_raw_data_binary(&value->z);
 }
