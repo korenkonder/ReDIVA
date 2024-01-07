@@ -71,7 +71,7 @@ namespace mdl {
     ObjSubMeshArgs::ObjSubMeshArgs() : sub_mesh(), mesh(), material(), textures(), mat_count(), mats(),
         vertex_buffer(), vertex_buffer_offset(), index_buffer(), set_blend_color(), chara_color(), self_shadow(),
         shadow(), morph_vertex_buffer(), morph_vertex_buffer_offset(), morph_weight(), texture_pattern_count(),
-        texture_transform_count(), texture_transform_array(), instances_count(), instances_mat(), func() {
+        texture_transform_count(), instances_count(), instances_mat(), func(), func_data() {
 
     }
 
