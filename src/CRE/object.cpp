@@ -1981,18 +1981,14 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         if (!set_info_file)
             return false;
 
-        object_database local_obj_db;
         if (obj_db_file.ready) {
             if (obj_db)
                 obj_db->add(&obj_db_file);
-            local_obj_db.add(&obj_db_file);
         }
 
-        texture_database local_tex_db;
         if (tex_db_file.ready) {
             if (tex_db)
                 tex_db->add(&tex_db_file);
-            local_tex_db.add(&tex_db_file);
         }
 
         info->name.assign(set_info_file->name);
@@ -2006,7 +2002,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         if (!set->ready)
             return false;
 
-        object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set, &local_obj_db);
+        object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set, obj_db);
 
         info->obj_file_handler.reset();
         info->obj_id_data.reserve(set->obj_num);
@@ -2021,7 +2017,7 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
         ObjsetInfo_calc_axis_aligned_bounding_box(info);
         info->obj_loaded = true;
 
-        if (ObjsetInfo_load_textures_modern(info, txd->data, txd->size, file.c_str(), &local_tex_db))
+        if (ObjsetInfo_load_textures_modern(info, txd->data, txd->size, file.c_str(), tex_db))
             return false;
 
         ObjsetInfo_get_shader_index_texture_index(info);

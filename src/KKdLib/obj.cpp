@@ -73,7 +73,7 @@ struct obj_header {
 };
 
 struct obj_set_header {
-    uint32_t last_obj_id;
+    int64_t last_obj_id;
     int64_t obj_data;
     int64_t obj_skin_data;
     int64_t obj_name_data;
@@ -1387,7 +1387,7 @@ static void obj_set_classic_write_inner(obj_set* set, stream& s) {
     s.position_push(0x00, SEEK_SET);
     s.write_uint32_t(0x05062500);
     s.write_int32_t(set->obj_num);
-    s.write_uint32_t(osh.last_obj_id);
+    s.write_uint32_t((uint32_t)osh.last_obj_id);
     s.write_uint32_t((uint32_t)osh.obj_data);
     s.write_uint32_t((uint32_t)osh.obj_skin_data);
     s.write_uint32_t((uint32_t)osh.obj_name_data);
@@ -3829,10 +3829,10 @@ static void obj_classic_write_vertex(obj_mesh* mesh,
     if (_vertex_format_file & OBJ_VERTEX_FILE_BONE_INDEX) {
         vertex[11] = s.get_position() - base_offset;
         for (uint32_t i = 0; i < _num_vertex; i++) {
-            s.write_float_t((float_t)vtx[i].bone_index.x);
-            s.write_float_t((float_t)vtx[i].bone_index.y);
-            s.write_float_t((float_t)vtx[i].bone_index.z);
-            s.write_float_t((float_t)vtx[i].bone_index.w);
+            s.write_float_t(vtx[i].bone_index.x >= 0 ? (float_t)(vtx[i].bone_index.x * 3) : -1.0f);
+            s.write_float_t(vtx[i].bone_index.y >= 0 ? (float_t)(vtx[i].bone_index.y * 3) : -1.0f);
+            s.write_float_t(vtx[i].bone_index.z >= 0 ? (float_t)(vtx[i].bone_index.z * 3) : -1.0f);
+            s.write_float_t(vtx[i].bone_index.w >= 0 ? (float_t)(vtx[i].bone_index.w * 3) : -1.0f);
         }
     }
 
@@ -7827,10 +7827,10 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
             s.write_int16_t_reverse_endianness((int16_t)bone_weight.z);
             s.write_int16_t_reverse_endianness((int16_t)bone_weight.w);
 
-            s.write_uint8_t((uint8_t)vtx[i].bone_index.x);
-            s.write_uint8_t((uint8_t)vtx[i].bone_index.y);
-            s.write_uint8_t((uint8_t)vtx[i].bone_index.z);
-            s.write_uint8_t((uint8_t)vtx[i].bone_index.w);
+            s.write_uint8_t((uint8_t)(vtx[i].bone_index.x >= 0 ? vtx[i].bone_index.x * 3 : -1));
+            s.write_uint8_t((uint8_t)(vtx[i].bone_index.y >= 0 ? vtx[i].bone_index.y * 3 : -1));
+            s.write_uint8_t((uint8_t)(vtx[i].bone_index.z >= 0 ? vtx[i].bone_index.z * 3 : -1));
+            s.write_uint8_t((uint8_t)(vtx[i].bone_index.w >= 0 ? vtx[i].bone_index.w * 3 : -1));
         }
     }
 
