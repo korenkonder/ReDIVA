@@ -19379,7 +19379,7 @@ void TaskRobManager::AppendFreeCharaList(rob_chara* rob_chr) {
         return;
 
     int32_t chara_id = rob_chr->chara_id;
-    for (std::list<rob_chara*>::iterator i = init_chara.begin(); i != init_chara.end();)
+    for (auto i = init_chara.begin(); i != init_chara.end();)
         if ((*i)->chara_id == chara_id) {
             i = init_chara.erase(i);
             return;
@@ -19515,7 +19515,7 @@ void TaskRobManager::FreeLoadedCharaList(int8_t* chara_id) {
     if (!chara_id || *chara_id >= ROB_CHARA_COUNT || !loaded_chara.size())
         return;
 
-    for (std::list<rob_chara*>::iterator i = loaded_chara.begin(); i != loaded_chara.end();)
+    for (auto i = loaded_chara.begin(); i != loaded_chara.end();)
         if ((*i)->chara_id == *chara_id) {
             i = loaded_chara.erase(i);
             return;

@@ -40,7 +40,7 @@ namespace Glitter {
 
     bool GltParticleManager::ctrl() {
         if (flags & PARTICLE_MANAGER_READ_FILES) {
-            for (std::vector<FileReader*>::iterator i = file_readers.begin(); i != file_readers.end();)
+            for (auto i = file_readers.begin(); i != file_readers.end();)
                 if (!*i || (*i)->ReadFarc(this)) {
                     delete* i;
                     i = file_readers.erase(i);
@@ -95,14 +95,14 @@ namespace Glitter {
     }
 
     void GltParticleManager::BasicEffectGroups() {
-        for (std::map<uint64_t, EffectGroup*>::iterator i = effect_groups.begin(); i != effect_groups.end(); ) {
+        for (auto i = effect_groups.begin(); i != effect_groups.end(); ) {
             if (i->second->load_count > 0) {
                 i++;
                 continue;
             }
 
             uint64_t hash = i->first;
-            for (std::vector<Scene*>::iterator j = scenes.begin(); j != scenes.end();) {
+            for (auto j = scenes.begin(); j != scenes.end();) {
                 Scene* scene = *j;
                 if (!scene || scene->hash != hash) {
                     j++;
@@ -119,7 +119,7 @@ namespace Glitter {
 
 #if defined(CRE_DEV)
         bool local = false;
-        for (std::vector<Scene*>::iterator i = scenes.begin(); i != scenes.end();) {
+        for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
             if (!(scene->flags & SCENE_ENDED)) {
                 if (!local && scene->CanDisp(DISP_LOCAL, true))
@@ -135,7 +135,7 @@ namespace Glitter {
             }
 
             bool free_scene = true;
-            for (std::vector<SceneEffect>::iterator j = scene->effects.begin(); j != scene->effects.end();)
+            for (auto j = scene->effects.begin(); j != scene->effects.end();)
                 if (!j->ptr || scene->fade_frame_left < 0.0f) {
                     delete j->ptr;
                     j = scene->effects.erase(j);
@@ -170,25 +170,15 @@ namespace Glitter {
     }
 #endif
 
-    bool GltParticleManager::CheckHasFileReader(uint64_t hash) {
+    bool GltParticleManager::CheckNoFileReaders(uint64_t hash) {
+        auto elem = effect_groups.find(hash);
+        if (elem == effect_groups.end())
+            return false;
+
         for (FileReader*& i : file_readers)
             if (i && i->hash == hash)
-                return true;
-        return false;
-    }
-
-    bool GltParticleManager::CheckNoFileReaders(uint64_t hash) {
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
-        if (elem != effect_groups.end()) {
-            if (file_readers.size())
-                return true;
-
-            for (FileReader*& i : file_readers)
-                if (i && i->hash == hash)
-                    return false;
-            return true;
-        }
-        return false;
+                return false;
+        return true;
     }
 
     bool GltParticleManager::CheckSceneEnded(SceneCounter scene_counter) {
@@ -243,14 +233,14 @@ namespace Glitter {
         cam.view_point = c->view_point;
         cam.rotation_y = c->rotation.y;
 
-        for (std::vector<Scene*>::iterator i = scenes.begin(); i != scenes.end();) {
+        for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
     #if defined(CRE_DEV)
             if (!scene || scene->type != Glitter::X && scene->HasEnded(true)) {
                 delete scene;
                 i = scenes.erase(i);
             }
-            else if (scene->type == Glitter::X && scene->flags & SCENE_ENDED
+            else if (scene->type == Glitter::X && !(scene->flags & SCENE_ENDED)
                 || !(scene->flags & SCENE_EDITOR)) {
                 float_t delta_frame;
                 if (scene->frame_rate)
@@ -314,7 +304,7 @@ namespace Glitter {
         if (!scene_counter)
             return;
 
-        for (std::vector<Scene*>::iterator i = scenes.begin(); i != scenes.end();) {
+        for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
             if (!scene || scene_counter.counter != scene->counter.counter) {
                 i++;
@@ -391,14 +381,14 @@ namespace Glitter {
     }
 
     EffectGroup* GltParticleManager::GetEffectGroup(uint64_t hash) {
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
+        auto elem = effect_groups.find(hash);
         if (elem != effect_groups.end())
             return elem->second;
         return 0;
     }
 
     const char* GltParticleManager::GetEffectName(uint64_t hash, int32_t index) {
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
+        auto elem = effect_groups.find(hash);
         if (elem == effect_groups.end())
             return 0;
 
@@ -409,12 +399,10 @@ namespace Glitter {
     }
 
     size_t GltParticleManager::GetEffectsCount(uint64_t hash) {
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
-        if (elem == effect_groups.end())
-            return 0;
-
-        EffectGroup* eff_group = elem->second;
-        return eff_group->effects.size();
+        auto elem = effect_groups.find(hash);
+        if (elem != effect_groups.end())
+            return elem->second->effects.size();
+        return 0;
     }
 
     bool GltParticleManager::GetPause() {
@@ -530,7 +518,7 @@ namespace Glitter {
                 return 0;
 
             bool found = false;
-            for (std::pair<uint64_t, EffectGroup*> i : effect_groups) {
+            for (auto& i : effect_groups) {
                 for (Effect*& j : i.second->effects)
                     if (j->data.name_hash == effect_hash
                         && i.first != hash_fnv1a64m_empty && i.first != hash_murmurhash_empty) {
@@ -546,7 +534,7 @@ namespace Glitter {
                 return 0;
         }
 
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(effect_group_hash);
+        auto elem = effect_groups.find(effect_group_hash);
         if (elem == effect_groups.end())
             return 0;
 
@@ -640,7 +628,7 @@ namespace Glitter {
             empty_hash = hash_murmurhash_empty;
         }
 
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(effect_group_hash);
+        auto elem = effect_groups.find(effect_group_hash);
         if (elem != effect_groups.end()) {
             EffectGroup* eff_group = elem->second;
             eff_group->emission = emission;
@@ -681,7 +669,7 @@ namespace Glitter {
         if (effect_group_hash == hash_murmurhash_empty || effect_group_hash == hash_fnv1a64m_empty)
             return LoadSceneEffect(effect_hash, appear_now);
 
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(effect_group_hash);
+        auto elem = effect_groups.find(effect_group_hash);
         if (elem == effect_groups.end())
             return false;
 
@@ -749,7 +737,7 @@ namespace Glitter {
                     return counter;
                 }
 
-        for (std::pair<uint64_t, EffectGroup*> i : effect_groups) {
+        for (auto& i : effect_groups) {
             EffectGroup* v8 = i.second;
 
             if (v8->effects.size() < 1)
@@ -864,7 +852,7 @@ namespace Glitter {
         Scene** scene, float_t curr_frame, float_t prev_frame,
         uint32_t counter, Random* random, bool reset) {
         if (curr_frame < prev_frame || reset) {
-            for (std::vector<Scene*>::iterator i = scenes.begin(); i != scenes.end();) {
+            for (auto i = scenes.begin(); i != scenes.end();) {
                 if (!*i || *i != *scene) {
                     i++;
                     continue;
@@ -964,7 +952,7 @@ namespace Glitter {
     }
 
     void GltParticleManager::SetSceneName(uint64_t hash, const char* name) {
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
+        auto elem = effect_groups.find(hash);
         if (elem != effect_groups.end())
             elem->second->name.assign(name);
 
@@ -979,7 +967,7 @@ namespace Glitter {
     #endif
 
     void GltParticleManager::UnloadEffectGroup(uint64_t hash) {
-        for (std::vector<FileReader*>::iterator i = file_readers.begin(); i != file_readers.end();)
+        for (auto i = file_readers.begin(); i != file_readers.end();)
             if (!*i || (*i)->hash == hash) {
                 delete* i;
                 i = file_readers.erase(i);
@@ -987,7 +975,7 @@ namespace Glitter {
             else
                 i++;
 
-        std::map<uint64_t, EffectGroup*>::iterator elem = effect_groups.find(hash);
+        auto elem = effect_groups.find(hash);
         if (elem != effect_groups.end())
             elem->second->load_count--;
     }

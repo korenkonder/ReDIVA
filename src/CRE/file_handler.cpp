@@ -296,7 +296,7 @@ static bool file_handler_load_farc_file(void* data, const char* dir, const char*
 
 static void file_handler_storage_ctrl_list() {
     std::list<file_handler*>& list = file_handler_storage_data->list;
-    for (std::list<file_handler*>::iterator i = list.begin(); i != list.end();) {
+    for (auto i = list.begin(); i != list.end();) {
         file_handler* pfhndl = *i;
         if (pfhndl->count == 1) {
             pfhndl->reset();

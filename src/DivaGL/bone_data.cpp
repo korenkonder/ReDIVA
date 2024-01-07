@@ -509,7 +509,7 @@ void ExOsageBlock__Init(ExOsageBlock* osg) {
 // 0x14047EE90
 static void RobOsage__ApplyResetData(RobOsage* rob_osg, mat4* mat) {
     if (rob_osg->reset_data_list) {
-        std::list<RobOsageNodeResetData>::iterator reset_data = rob_osg->reset_data_list->begin();
+        auto reset_data = rob_osg->reset_data_list->begin();
         RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
         RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
         for (RobOsageNode* i = i_begin; i != i_end; i++)

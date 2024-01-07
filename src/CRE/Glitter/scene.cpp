@@ -304,7 +304,7 @@ namespace Glitter {
                 effects.clear();
             }
             else {
-                for (std::vector<SceneEffect>::iterator i = effects.begin(); i != effects.end();)
+                for (auto i = effects.begin(); i != effects.end();)
                     if (!i->ptr) {
                         delete i->ptr;
                         i = effects.erase(i);

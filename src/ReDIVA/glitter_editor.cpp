@@ -1764,7 +1764,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         glt_edt->load_data_wait = false;
         glitter_editor_enable = false;
     }
-    else if (!Glitter::glt_particle_manager->CheckHasFileReader(glt_edt->hash)) {
+    else if (Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {
         glt_edt->load = false;
         glt_edt->load_wait = false;
         glt_edt->load_data_wait = false;
@@ -5843,14 +5843,12 @@ static void glitter_editor_curve_editor_selector(GlitterEditor* glt_edt) {
     crv_edt->animation = anim;
 
     for (int32_t i = Glitter::CURVE_TRANSLATION_X; i <= Glitter::CURVE_V_SCROLL_ALPHA_2ND; i++) {
-        bool found = false;
-        std::vector<Glitter::Curve*>::iterator j;
-        for (j = anim->curves.begin(); j != anim->curves.end(); j++)
+        crv_edt->list[i] = 0;
+        for (auto j = anim->curves.begin(); j != anim->curves.end(); j++)
             if (*j && (*j)->type == i) {
-                found = true;
+                crv_edt->list[i] = *j;
                 break;
             }
-        crv_edt->list[i] = found ? *j : 0;
     }
 
     bool reset = false;
@@ -6220,7 +6218,7 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
     else if (crv_edt->del_curve) {
         Glitter::Curve* c = crv_edt->list[crv_edt->type];
         Glitter::Animation* anim = crv_edt->animation;
-        for (std::vector<Glitter::Curve*>::iterator i = anim->curves.begin(); i != anim->curves.end(); i++)
+        for (auto i = anim->curves.begin(); i != anim->curves.end(); i++)
             if (*i && *i == c) {
                 delete* i;
                 anim->curves.erase(i);

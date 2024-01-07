@@ -650,7 +650,7 @@ p_OggFileHandler::~p_OggFileHandler() {
     }
 
     std::list<p_OggFileHandler*>& list = ogg_file_handler_storage_ptr->list;
-    for (std::list<p_OggFileHandler*>::iterator i = list.begin(); i != list.end();)
+    for (auto i = list.begin(); i != list.end();)
         if (*i == this) {
             list.erase(i);
             break;

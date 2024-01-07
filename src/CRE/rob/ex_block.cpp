@@ -947,7 +947,7 @@ void RobCloth::ApplyResetData() {
     size_t nodes_count = this->nodes_count;
 
     if (reset_data_list) {
-        std::list<RobOsageNodeResetData>::iterator reset_data = this->reset_data_list->begin();
+        auto reset_data = this->reset_data_list->begin();
         CLOTHNode* i_begin = nodes.data() + root_count;
         CLOTHNode* i_end = nodes.data() + nodes.size();
         for (CLOTHNode* i = i_begin; i != i_end; i++)
@@ -1184,7 +1184,7 @@ void RobCloth::SetMotionResetData(uint32_t motion_id, float_t frame) {
     if (elem != motion_reset_data.end() && elem->second.size() + root_count == nodes.size()) {
         this->reset_data_list = &elem->second;
 
-        std::list<RobOsageNodeResetData>::iterator reset_data_list = this->reset_data_list->begin();
+        auto reset_data_list = this->reset_data_list->begin();
         CLOTHNode* i_begin = nodes.data() + root_count;
         CLOTHNode* i_end = nodes.data() + nodes.size();
         for (CLOTHNode* i = i_begin; i != i_end; i++)
@@ -1607,7 +1607,7 @@ void RobOsage::AddMotionResetData(uint32_t motion_id, float_t frame) {
 // 0x14047EE90
 void RobOsage::ApplyResetData(const mat4* mat) {
     if (reset_data_list) {
-        std::list<RobOsageNodeResetData>::iterator reset_data = reset_data_list->begin();
+        auto reset_data = reset_data_list->begin();
         RobOsageNode* i_begin = nodes.data() + 1;
         RobOsageNode* i_end = nodes.data() + nodes.size();
         for (RobOsageNode* i = i_begin; i != i_end; i++)

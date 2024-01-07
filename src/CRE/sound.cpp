@@ -1354,8 +1354,7 @@ bool SoundWork::ParseProperty(sound_db_farc* snd_db_farc) {
 }
 
 bool SoundWork::UnloadProperty(const char* file_path) {
-    for (std::map<std::string, sound_db_property>::iterator i
-        = properties.begin(); i != properties.end(); i++)
+    for (auto i = properties.begin(); i != properties.end(); i++)
         if (!i->second.farc->file_path.compare(file_path)) {
             properties.erase(i);
             break;

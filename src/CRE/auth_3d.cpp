@@ -2871,13 +2871,7 @@ void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint
             obj_sets.push_back(obj_set);
     }
 
-    uint32_t prev_obj_set = -1;
-    radix_sort_uint32_t(obj_sets.data(), obj_sets.size());
-    for (std::vector<uint32_t>::iterator i = obj_sets.begin(); i != obj_sets.end();)
-        if (*i != prev_obj_set)
-            prev_obj_set = *i++;
-        else
-            i = obj_sets.erase(i);
+    prj::sort_unique(obj_sets);
 
     std::string stgpv;
     size_t stgpv_offset = name.find("STGPV");

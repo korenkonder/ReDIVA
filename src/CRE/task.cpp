@@ -203,7 +203,7 @@ namespace app {
         }
 
         for (int32_t i = 2; i >= 0; i--)
-            for (std::list<Task*>::iterator j = task_work->tasks.end(); j != task_work->tasks.begin(); ) {
+            for (auto j = task_work->tasks.end(); j != task_work->tasks.begin(); ) {
                 --j;
                 Task* tsk = *j;
                 if (tsk->priority != i || !has_task_dest(tsk))
@@ -216,7 +216,7 @@ namespace app {
                 Task_add_base_calc_time(tsk, (uint32_t)(t.calc_time() * 1000.0));
             }
 
-        for (std::list<Task*>::iterator i = task_work->tasks.begin(); i != task_work->tasks.end(); ) {
+        for (auto i = task_work->tasks.begin(); i != task_work->tasks.end(); ) {
             if (TaskWork::check_task_ready(*i)) {
                 i++;
                 continue;

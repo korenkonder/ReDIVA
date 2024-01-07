@@ -1617,7 +1617,6 @@ namespace Glitter {
 #if defined(CRE_DEV)
         bool CheckHasLocalEffect();
 #endif
-        bool CheckHasFileReader(uint64_t hash);
         bool CheckNoFileReaders(uint64_t hash);
         bool CheckSceneEnded(SceneCounter scene_counter);
 #if defined(CRE_DEV)
