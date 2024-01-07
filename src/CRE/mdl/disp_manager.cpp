@@ -31,8 +31,7 @@ static const GLuint      BONE_INDEX_INDEX = 15;
 static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshArgs* args,
     int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]);
 
-material_list_struct::material_list_struct() : blend_color(),
-has_blend_color(), emission(), has_emission() {
+material_list_struct::material_list_struct() : blend_color(), has_blend_color(), emission(), has_emission() {
     hash = (uint32_t)-1;
 }
 
