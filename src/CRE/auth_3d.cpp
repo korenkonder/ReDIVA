@@ -7,6 +7,7 @@
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
+#include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/msgpack.hpp"
@@ -88,7 +89,8 @@ static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
     object_info obj_info, int32_t instance);
 static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
     uint32_t object_hash, int32_t instance);
-static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index);
+static const mat4* auth_3d_get_auth_3d_object_mat(auth_3d* auth, size_t index);
+static const mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index);
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
     object_info obj_info, int32_t instance = -1);
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
@@ -2415,7 +2417,7 @@ int32_t auth_3d_id::get_chara_id() {
     return -1;
 }
 
-mat4* auth_3d_id::get_auth_3d_object_mat(size_t index, bool hrc, mat4* mat) {
+const mat4* auth_3d_id::get_auth_3d_object_mat(size_t index, bool hrc) {
     if (id < 0 || (id & 0x7FFF) >= AUTH_3D_DATA_COUNT)
         return 0;
 
@@ -2425,12 +2427,7 @@ mat4* auth_3d_id::get_auth_3d_object_mat(size_t index, bool hrc, mat4* mat) {
 
     if (hrc)
         return auth_3d_get_auth_3d_object_hrc_bone_mats(auth, index);
-
-    if (index >= auth->object.size())
-        return 0;
-
-    *mat = auth->object[index].model_transform.mat;
-    return mat;
+    return auth_3d_get_auth_3d_object_mat(auth, index);
 }
 
 bool auth_3d_id::get_enable() {
@@ -3887,7 +3884,13 @@ static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
     return -1;
 }
 
-static mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index) {
+static const mat4* auth_3d_get_auth_3d_object_mat(auth_3d* auth, size_t index) {
+    if (index >= auth->object.size())
+        return 0;
+    return &auth->object[index].model_transform.mat;
+}
+
+static const mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index) {
     if (index >= auth->object_hrc.size() || auth->object_hrc[index].mats.size() < 1)
         return 0;
     return auth->object_hrc[index].mats.data();

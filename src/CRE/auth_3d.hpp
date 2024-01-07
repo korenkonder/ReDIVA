@@ -810,7 +810,7 @@ struct auth_3d_id {
     bool check_loading();
     bool check_loaded();
     auth_3d* get_auth_3d();
-    mat4* get_auth_3d_object_mat(size_t index, bool hrc, mat4* mat);
+    const mat4* get_auth_3d_object_mat(size_t index, bool hrc);
     int32_t get_chara_id();
     bool get_enable();
     bool get_ended();
