@@ -910,31 +910,6 @@ namespace Glitter {
     }
 
     #if defined(CRE_DEV)
-    void GltParticleManager::SetSceneEffectName(uint64_t effect_group_hash, uint64_t effect_hash, const char* name) {
-        if (effect_group_hash == hash_fnv1a64m_empty || effect_group_hash == hash_murmurhash_empty)
-            for (Scene*& i : scenes) {
-                if (!i)
-                    continue;
-
-                for (SceneEffect& j : i->effects)
-                    if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
-                        j.ptr->name = name;
-                        return;
-                    }
-            }
-        else
-            for (Scene*& i : scenes) {
-                if (!i || i->hash != effect_group_hash)
-                    continue;
-
-                for (SceneEffect& j : i->effects)
-                    if (j.disp && j.ptr && j.ptr->data.name_hash == effect_hash) {
-                        j.ptr->name = name;
-                        return;
-                    }
-            }
-    }
-
     void GltParticleManager::SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame) {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter) {

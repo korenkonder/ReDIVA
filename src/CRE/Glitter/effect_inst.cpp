@@ -401,11 +401,10 @@ namespace Glitter {
             goto SetFlags;
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
-            mat4 temp;
-            mat4* obj_mat = 0;
+            const mat4* obj_mat = 0;
             if (ext_anim->a3da_id != -1)
                 obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc, &temp);
+                    ext_anim->object_index, ext_anim->object_is_hrc);
 
             if (!obj_mat) {
                 ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(ext_anim->object,
@@ -415,7 +414,7 @@ namespace Glitter {
 
                 ext_anim->mesh_index = -1;
                 obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc, &temp);
+                    ext_anim->object_index, ext_anim->object_is_hrc);
                 if (!obj_mat)
                     return;
             }
@@ -577,18 +576,18 @@ namespace Glitter {
             case CURVE_SCALE_ALL:
                 scale_all = value;
                 break;
-            //case CURVE_COLOR_R:
-            //    color.x = value;
-            //    break;
-            //case CURVE_COLOR_G:
-            //    color.y = value;
-            //    break;
-            //case CURVE_COLOR_B:
-            //    color.z = value;
-            //    break;
-            //case CURVE_COLOR_A:
-            //    color.w = value;
-            //    break;
+            case CURVE_COLOR_R:
+                color.x = value;
+                break;
+            case CURVE_COLOR_G:
+                color.y = value;
+                break;
+            case CURVE_COLOR_B:
+                color.z = value;
+                break;
+            case CURVE_COLOR_A:
+                color.w = value;
+                break;
             }
         }
     }
@@ -951,11 +950,10 @@ namespace Glitter {
                 SetExtAnim(mat, 0, 0, set_flags);
         }
         else if (flags & EFFECT_INST_GET_EXT_ANIM_MAT) {
-            mat4 temp;
-            mat4* obj_mat = 0;
+            const mat4* obj_mat = 0;
             if (ext_anim->a3da_id != -1)
                 obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc, &temp);
+                    ext_anim->object_index, ext_anim->object_is_hrc);
 
             if (!obj_mat) {
                 ext_anim->a3da_id = auth_3d_data_get_auth_3d_id(
@@ -966,21 +964,21 @@ namespace Glitter {
 
                 ext_anim->mesh_index = -1;
                 obj_mat = auth_3d_id(ext_anim->a3da_id).get_auth_3d_object_mat(
-                    ext_anim->object_index, ext_anim->object_is_hrc, &temp);
+                    ext_anim->object_index, ext_anim->object_is_hrc);
                 if (!obj_mat)
                     return;
             }
 
-            const mat4* mat = &mat4_identity;
+            mat4 mat = mat4_identity;
 
             int32_t chara_id = auth_3d_id(ext_anim->a3da_id).get_chara_id();
             if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
                 rob_chara* rob_chr = rob_chara_array_get(chara_id);
                 if (rob_chr) {
-                    mat = &rob_chr->data.adjust_data.mat;
+                    mat = rob_chr->data.adjust_data.mat;
 
                     vec3 scale;
-                    mat4_get_scale(mat, &scale);
+                    mat4_get_scale(&mat, &scale);
                     ext_anim_scale = scale - 1.0f;
                     ext_anim_scale.z = 0.0f;
                     enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
@@ -997,12 +995,12 @@ namespace Glitter {
                         ext_anim->object_hash, ext_anim->mesh_index);
                     if (mesh) {
                         vec3* trans = &mesh->bounding_sphere.center;
-                        SetExtAnim(mat, obj_mat, trans, true);
+                        SetExtAnim(&mat, obj_mat, trans, true);
                     }
                 }
             }
             else
-                SetExtAnim(mat, obj_mat, 0, true);
+                SetExtAnim(&mat, obj_mat, 0, true);
 
         }
         else if (ext_anim->object_hash != hash_murmurhash_empty) {

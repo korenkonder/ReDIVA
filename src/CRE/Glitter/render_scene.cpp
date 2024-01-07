@@ -1615,7 +1615,6 @@ namespace Glitter {
             return;
 
         mat4 model_mat;
-        mat4 dir_mat;
         mat4 view_mat;
         mat4 inv_view_mat;
 
@@ -1643,6 +1642,7 @@ namespace Glitter {
         }
         mat4_mul(&view_mat, &GPM_VAL->cam.inv_view, &rend_group->mat_draw);
 
+        mat4 dir_mat;
         switch (rend_group->draw_type) {
         case DIRECTION_BILLBOARD:
             mat4_clear_trans(&model_mat, &dir_mat);

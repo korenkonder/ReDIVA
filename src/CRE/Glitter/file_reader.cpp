@@ -5,9 +5,7 @@
 
 #include "glitter.hpp"
 #include "../../KKdLib/io/path.hpp"
-#include "../../KKdLib/interpolation.hpp"
 #include "../../KKdLib/farc.hpp"
-#include "../../KKdLib/str_utils.hpp"
 #include "../data.hpp"
 
 namespace Glitter {

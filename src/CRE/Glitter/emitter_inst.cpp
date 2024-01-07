@@ -23,7 +23,7 @@ namespace Glitter {
         frame = -(float_t)data.start_time;
         if (data.emission_interval >= -0.000001f)
             emission = data.emission_interval <= 0.000001f
-            ? EMITTER_EMISSION_ON_START : EMITTER_EMISSION_ON_TIMER;
+                ? EMITTER_EMISSION_ON_START : EMITTER_EMISSION_ON_TIMER;
         else
             emission = EMITTER_EMISSION_ON_END;
         loop = data.flags & EMITTER_LOOP ? true : false;

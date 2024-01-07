@@ -358,9 +358,9 @@ namespace Glitter {
 
     enum ParticleType {
         PARTICLE_QUAD  = 0,
-        PARTICLE_LINE  = 1,
+        PARTICLE_LINE  = 1, // 3 in X
         PARTICLE_LOCUS = 2,
-        PARTICLE_MESH  = 3,
+        PARTICLE_MESH  = 3, // 1 in X
     };
 
     enum Pivot {
@@ -1660,7 +1660,6 @@ namespace Glitter {
         void SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
             uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
 #if defined(CRE_DEV)
-        void SetSceneEffectName(uint64_t effect_group_hash, uint64_t effect_hash, const char* name);
         void SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame);
         void SetSceneFrameRate(SceneCounter scene_counter, FrameRateControl* frame_rate);
         void SetSceneName(uint64_t hash, const char* name);
