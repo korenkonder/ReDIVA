@@ -226,9 +226,10 @@ namespace mdl {
     void ObjData::init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
         const obj_sub_mesh* sub_mesh, const obj_mesh* mesh, const obj_material_data* material,
         const std::vector<GLuint>* textures, int32_t mat_count, const mat4* mats,
-        GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer, const vec4* blend_color,
-        const vec4* emission, GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset,
-        int32_t instances_count, const mat4* instances_mat, void(*func)(const ObjSubMeshArgs*)) {
+        GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer,
+        const vec4& blend_color, const vec4& emission, GLuint morph_vertex_buffer,
+        size_t morph_vertex_buffer_offset, int32_t instances_count, const mat4* instances_mat,
+        void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data) {
         kind = mdl::OBJ_KIND_NORMAL;
         this->mat = *mat;
         this->radius = radius;
@@ -255,19 +256,19 @@ namespace mdl {
         for (int32_t i = 0; i < disp_manager->texture_transform_count && i < TEXTURE_TRANSFORM_COUNT; i++)
             args->texture_transform_array[i] = disp_manager->texture_transform_array[i];
 
-        if (blend_color && *blend_color != 1.0f) {
+        if (blend_color != 1.0f) {
             args->set_blend_color = true;
-            args->blend_color = *blend_color;
+            args->blend_color = blend_color;
         }
         else {
             args->set_blend_color = false;
             args->blend_color = 1.0f;
         }
 
-        args->emission = *emission;
+        args->emission = emission;
 
         args->chara_color = disp_manager->chara_color;
-        args->self_shadow = disp_manager->obj_flags & (mdl::OBJ_8 | mdl::OBJ_4) ? 1 : 0;
+        args->self_shadow = !!(disp_manager->obj_flags & (mdl::OBJ_8 | mdl::OBJ_4));
         args->shadow = disp_manager->shadow_type;
         args->texture_color_coefficients = disp_manager->texture_color_coefficients;
         args->texture_color_coefficients.w = disp_manager->wet_param;
@@ -277,6 +278,7 @@ namespace mdl {
         args->instances_count = instances_count;
         args->instances_mat = instances_mat;
         args->func = func;
+        args->func_data = func_data;
 
         disp_manager->add_vertex_array(args);
     }
@@ -2598,10 +2600,10 @@ namespace mdl {
     }
 
     bool DispManager::entry_obj(const ::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
-        obj_mesh_index_buffer* obj_index_buf, const mat4* mat,
-        const std::vector<GLuint>* textures, const vec4* blend_color, const mat4* bone_mat,
-        const ::obj* object_morph, obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
-        const mat4* instances_mat, void(*func)(const ObjSubMeshArgs*), bool enable_bone_mat, bool local) {
+        obj_mesh_index_buffer* obj_index_buf, const mat4* mat, const std::vector<GLuint>* textures,
+        const vec4* blend_color, const mat4* bone_mat, const ::obj* object_morph,
+        obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count, const mat4* instances_mat,
+        void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat, bool local) {
         if (!obj_vertex_buf || !obj_index_buf) {
             printf_debug("mdl::DispManager::entry_obj: no vertex or index object buffer to draw;\n");
             printf_debug("    Object: %s\n", object->name);
@@ -2811,8 +2813,8 @@ namespace mdl {
                 }
 
                 data->init_sub_mesh(this, mat, object->bounding_sphere.radius, sub_mesh, mesh, material, textures,
-                    num_bone_index, mats, vertex_buffer, vertex_buffer_offset, index_buffer, &_blend_color, &_emission,
-                    morph_vertex_buffer, morph_vertex_buffer_offset, instances_count, instances_mat, func);
+                    num_bone_index, mats, vertex_buffer, vertex_buffer_offset, index_buffer, _blend_color, _emission,
+                    morph_vertex_buffer, morph_vertex_buffer_offset, instances_count, instances_mat, func, func_data);
 
                 if (obj_flags & mdl::OBJ_SHADOW_OBJECT) {
                     entry_list((ObjType)(OBJ_TYPE_SHADOW_OBJECT_CHARA
@@ -2985,17 +2987,17 @@ namespace mdl {
         vec4* blend_color_ptr = alpha < 1.0f ? &blend_color : 0;
 
         entry_obj(obj, obj_vert_buf, obj_index_buf, mat, textures, blend_color_ptr,
-            bone_mat, 0, 0, 0, 0, 0, !!bone_mat);
+            bone_mat, 0, 0, 0, 0, 0, 0, !!bone_mat);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4* mat, object_info obj_info, const mat4* bone_mat) {
         vec4 blend_color = 1.0f;
-        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true);
+        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, true);
     }
 
-    bool DispManager::entry_obj_by_object_info(const mat4* mat, object_info obj_info,
-        const vec4* blend_color, const mat4* bone_mat, int32_t instances_count,
-        const mat4* instances_mat, void(*func)(const ObjSubMeshArgs*), bool enable_bone_mat, bool local) {
+    bool DispManager::entry_obj_by_object_info(const mat4* mat, object_info obj_info, const vec4* blend_color,
+        const mat4* bone_mat, int32_t instances_count, const mat4* instances_mat,
+        void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat, bool local) {
         if (obj_info.id == -1 && obj_info.set_id == -1)
             return false;
 
@@ -3016,25 +3018,25 @@ namespace mdl {
 
         return entry_obj(object, obj_vertex_buffer, obj_index_buffer,
             mat, textures, blend_color, bone_mat, obj_morph, obj_morph_vertex_buffer,
-            instances_count, instances_mat, func, enable_bone_mat, local);
+            instances_count, instances_mat, func, func_data, enable_bone_mat, local);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4* mat,
         object_info obj_info, float_t alpha, const mat4* bone_mat) {
         vec4 blend_color = 1.0f;
         blend_color.w = alpha;
-        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true);
+        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, true);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4* mat, object_info obj_info,
         float_t r, float_t g, float_t b, float_t a, const mat4* bone_mat, bool local) {
         vec4 blend_color = { r, g, b, a };
-        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, true, local);
+        return entry_obj_by_object_info(mat, obj_info, &blend_color, bone_mat, 0, 0, 0, 0, true, local);
     }
 
     bool DispManager::entry_obj_by_object_info(const mat4* mat, object_info obj_info,
         const vec4* blend_color, const mat4* bone_mat, bool local) {
-        return entry_obj_by_object_info(mat, obj_info, blend_color, 0, 0, 0, 0, false, local);
+        return entry_obj_by_object_info(mat, obj_info, blend_color, 0, 0, 0, 0, 0, false, local);
     }
 
     bool DispManager::entry_obj_by_object_info_instanced(object_info obj_info,
@@ -3054,7 +3056,7 @@ namespace mdl {
 
         memmove(instances_mat, instances.data(), sizeof(mat4) * instances.size());
         return entry_obj_by_object_info(&mat4_identity, obj_info, a >= 0.0f ? &blend_color : (vec4*)0,
-            0, (int32_t)instances.size(), instances_mat, 0, true);
+            0, (int32_t)instances.size(), instances_mat, 0, 0, true);
     }
 
     void DispManager::entry_obj_by_object_info_object_skin(object_info obj_info,

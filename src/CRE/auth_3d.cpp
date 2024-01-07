@@ -473,7 +473,7 @@ void auth_3d::disp(render_context* rctx) {
         if (i->active)
             i->Disp(this, &mat, rctx);
 
-    rctx->disp_manager->set_material_list(0, 0);
+    rctx->disp_manager->set_material_list();
 }
 
 void auth_3d::load(a3da* auth_file,
@@ -3967,8 +3967,11 @@ static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
     mdl::DispManager& disp_manager = *rctx->disp_manager;
 
     int32_t mat_list_count = 0;
-    material_list_struct mat_list[TEXTURE_PATTERN_COUNT];
+    material_list_struct mat_list[MATERIAL_LIST_COUNT];
     for (auth_3d_material_list& i : auth->material_list) {
+        if (!i.blend_color.flags && !i.emission.flags)
+            continue;
+
         if (i.blend_color.flags) {
             vec4& blend_color = mat_list[mat_list_count].blend_color;
             vec4u8& has_blend_color = mat_list[mat_list_count].has_blend_color;
@@ -3998,9 +4001,6 @@ static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx) {
             mat_list[mat_list_count].emission = {};
             mat_list[mat_list_count].has_emission = {};
         }
-
-        if (!i.blend_color.flags && !i.emission.flags)
-            continue;
 
         mat_list[mat_list_count].hash = i.hash;
         mat_list_count++;

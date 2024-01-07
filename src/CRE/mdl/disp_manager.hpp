@@ -194,7 +194,8 @@ namespace mdl {
         texture_transform_struct texture_transform_array[TEXTURE_TRANSFORM_COUNT];
         int32_t instances_count;
         const mat4* instances_mat;
-        void(*func)(const mdl::ObjSubMeshArgs*);
+        void(*func)(const ObjSubMeshArgs*);
+        const ObjSubMeshArgs* func_data;
 
         ObjSubMeshArgs();
     };
@@ -359,9 +360,10 @@ namespace mdl {
         void init_sub_mesh(DispManager* disp_manager, const mat4* mat, float_t radius,
             const obj_sub_mesh* sub_mesh, const obj_mesh* mesh, const obj_material_data* material,
             const std::vector<GLuint>* textures, int32_t mat_count, const mat4* mats,
-            GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer, const vec4* blend_color,
-            const vec4* emission, GLuint morph_vertex_buffer, size_t morph_vertex_buffer_offset,
-            int32_t instances_count, const mat4* instances_mat, void(*func)(const ObjSubMeshArgs*));
+            GLuint vertex_buffer, size_t vertex_buffer_offset, GLuint index_buffer,
+            const vec4& blend_color, const vec4& emission, GLuint morph_vertex_buffer,
+            size_t morph_vertex_buffer_offset, int32_t instances_count, const mat4* instances_mat,
+            void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data);
         void init_translucent(const mat4* mat, ObjTranslucentArgs* translucent);
         void init_user(const mat4* mat, UserArgsFunc func, void* data);
     };
@@ -464,18 +466,18 @@ namespace mdl {
         /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
         void entry_list(ObjType type, ObjData* data);
         bool entry_obj(const ::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
-            obj_mesh_index_buffer* obj_index_buf, const mat4* mat,
-            const std::vector<GLuint>* textures, const vec4* blend_color, const mat4* bone_mat,
-            const ::obj* object_morph, obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count,
-            const mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*),
+            obj_mesh_index_buffer* obj_index_buf, const mat4* mat, const std::vector<GLuint>* textures,
+            const vec4* blend_color, const mat4* bone_mat, const ::obj* object_morph,
+            obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count, const mat4* instances_mat,
+            void(*func)(const mdl::ObjSubMeshArgs*), const ObjSubMeshArgs* func_data,
             bool enable_bone_mat, bool local = false);
         void entry_obj_by_obj(const mat4* mat,
             const ::obj* obj, const std::vector<GLuint>* textures, obj_mesh_vertex_buffer* obj_vert_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* bone_mat, float_t alpha);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, const mat4* bone_mat = 0);
-        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
-            const vec4* blend_color, const mat4* bone_mat, int32_t instances_count,
-            const mat4* instances_mat, void(*func)(const mdl::ObjSubMeshArgs*),
+        bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, const vec4* blend_color,
+            const mat4* bone_mat, int32_t instances_count, const mat4* instances_mat,
+            void(*func)(const mdl::ObjSubMeshArgs*), const ObjSubMeshArgs* func_data,
             bool enable_bone_mat, bool local = false);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info, float_t alpha, const mat4* bone_mat = 0);
         bool entry_obj_by_object_info(const mat4* mat, object_info obj_info,
