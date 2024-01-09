@@ -343,7 +343,6 @@ namespace app {
     }
 
     static void Task_do_ctrl_frames(int32_t frames, bool frame_skip) {
-        std::list<Task*>* tasks = &task_work->tasks;
         for (int32_t i = 0; i < 3; i++)
             for (Task*& j : task_work->tasks) {
                 Task* tsk = j;

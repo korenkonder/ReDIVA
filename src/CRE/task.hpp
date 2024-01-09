@@ -81,10 +81,6 @@ namespace app {
         void set_priority(int32_t priority);
     };
 
-    struct TaskWork;
-
-    extern TaskWork* task_work;
-
     struct TaskWork {
         std::list<Task*> tasks;
         Task* current_task;
@@ -110,6 +106,8 @@ namespace app {
         static bool has_task_dest(Task* t);
         static bool has_tasks_dest();
     };
+
+    extern TaskWork* task_work;
 
     extern void task_work_init();
     extern void task_work_free();

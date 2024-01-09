@@ -2240,7 +2240,7 @@ namespace mdl {
     }
 
     void DispManager::draw(ObjType type, int32_t depth_mask, bool a4) {
-        if (get_obj_count(type) < 1)
+        if (type < 0 || type >= mdl::OBJ_TYPE_MAX || get_obj_count(type) < 1)
             return;
 
         render_context* rctx = rctx_ptr;
