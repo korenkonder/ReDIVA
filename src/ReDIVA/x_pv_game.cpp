@@ -239,7 +239,10 @@ dof_cam dof_cam_data;
 #endif
 x_pv_game* x_pv_game_ptr;
 x_pv_game_music* x_pv_game_music_ptr;
+#if BAKE_X_PACK
+#else
 XPVGameSelector* x_pv_game_selector_ptr;
+#endif
 
 extern render_context* rctx_ptr;
 
@@ -254,18 +257,25 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 #endif
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
 
+#if BAKE_X_PACK
 static void x_pv_game_update_object_set(ObjsetInfo* info);
-static void x_pv_game_write_auth_3d(auth_3d* auth);
+static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth);
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group);
 static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db, texture_database* tex_db);
+#endif
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
+#if BAKE_X_PACK || DOF_BAKE
 static void replace_pv832(char* str);
 static void replace_pv832(std::string& str);
-static void replace_stgpv(char* str);
-static void replace_stgpv(std::string& str);
+#endif
+
+#if BAKE_X_PACK
+static void replace_names(char* str);
+static void replace_names(std::string& str);
+#endif
 
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
     return (time + 0.0001f) < bar_time;
@@ -6233,6 +6243,7 @@ bool x_pv_game::ctrl() {
         if (wait_load)
             break;
 
+#if BAKE_X_PACK
         state_old = 18;
     } break;
     case 18: {
@@ -6425,20 +6436,48 @@ bool x_pv_game::ctrl() {
         }
 
         for (auto& i : chara_effect_auth_3ds)
-            x_pv_game_write_auth_3d(i);
+            x_pv_game_write_auth_3d(0, i);
 
-        for (auto& i : song_effect_auth_3ds)
-            x_pv_game_write_auth_3d(i);
+        if (song_effect_auth_3ds.size()) {
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "EFFPV%03d", pv_data.pv_id);
+            replace_names(name);
 
-        for (auto& i : stage_data_effect_auth_3ds)
-            x_pv_game_write_auth_3d(i);
+            char path[MAX_PATH];
+            strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
+            strcat_s(path, sizeof(path), name);
 
-        for (auto& i : stage_data_change_effect_auth_3ds)
-            x_pv_game_write_auth_3d(i);
+            farc* f = new farc;
+            for (auto& i : song_effect_auth_3ds)
+                x_pv_game_write_auth_3d(f, i);
+
+            f->write(path, FARC_FArC, FARC_NONE, false);
+            delete f;
+        }
+
+        if (stage_data_effect_auth_3ds.size() || stage_data_change_effect_auth_3ds.size()) {
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
+            replace_names(name);
+
+            char path[MAX_PATH];
+            strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
+            strcat_s(path, sizeof(path), name);
+
+            farc* f = new farc;
+            for (auto& i : stage_data_effect_auth_3ds)
+                x_pv_game_write_auth_3d(f, i);
+
+            for (auto& i : stage_data_change_effect_auth_3ds)
+                x_pv_game_write_auth_3d(f, i);
+
+            f->write(path, FARC_FArC, FARC_NONE, false);
+            delete f;
+        }
 
         for (auto& i : glitter_eff_groups)
             x_pv_game_write_glitter(i);
-
+#endif
         state_old = 19;
     } break;
     case 19: {
@@ -7660,6 +7699,8 @@ void x_pv_game::stop_current_pv() {
     field_71994.reset();
 }
 
+#if BAKE_X_PACK
+#else
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     pv_id = 823;
     stage_id = 23;
@@ -7904,6 +7945,7 @@ void XPVGameSelector::window() {
 
     ImGui::End();
 }
+#endif
 
 bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
@@ -7943,6 +7985,8 @@ bool x_pv_game_free() {
     return true;
 }
 
+#if BAKE_X_PACK
+#else
 bool x_pv_game_selector_init() {
     if (!x_pv_game_selector_ptr)
         x_pv_game_selector_ptr = new XPVGameSelector;
@@ -7960,6 +8004,7 @@ bool x_pv_game_selector_free() {
     }
     return true;
 }
+#endif
 
 #if DOF_BAKE
 dof_cam::dof_cam() {
@@ -8424,6 +8469,7 @@ static void auth_3d_key_rev(auth_3d_key& k, std::vector<float_t>& values_src) {
     }
 }
 
+#if BAKE_X_PACK
 static void x_pv_game_update_object_set(ObjsetInfo* info) {
     prj::shared_ptr<prj::stack_allocator> old_alloc = info->alloc_handler;
 
@@ -8435,7 +8481,7 @@ static void x_pv_game_update_object_set(ObjsetInfo* info) {
     info->obj_set = set;
 }
 
-static void x_pv_game_write_auth_3d(auth_3d* auth) {
+static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth) {
     char name[0x200];
     strcpy_s(name, sizeof(name), auth->file_name.c_str());
 
@@ -8451,28 +8497,16 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
         ext = strstr(name, a3da_ext);
     }
 
-    replace_stgpv(name);
-
-    for (char* i = name; *i && i != ext; i++) {
-        char c = *i;
-        if (c >= 'A' && c <= 'Z')
-            *i += 0x20;
-    }
-
-    if (strstr(name, "effchrpv826"))
-        return;
-
-    char buf[0x200];
-    file_stream s;
-
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\auth_3d\\");
-    strcat_s(buf, sizeof(buf), name);
+    replace_names(name);
 
     for (char* i = name; *i && i != ext; i++) {
         char c = *i;
         if (c >= 'a' && c <= 'z')
             *i -= 0x20;
     }
+
+    if (strstr(name, "EFFCHRPV826"))
+        return;
 
     a3da a;
     float_t max_frame = auth->max_frame;
@@ -8488,51 +8522,74 @@ static void x_pv_game_write_auth_3d(auth_3d* auth) {
 
     for (a3da_m_object_hrc& i : a.m_object_hrc) {
         for (a3da_object_instance& j : i.instance) {
-            replace_stgpv(j.name);
-            replace_stgpv(j.uid_name);
+            replace_names(j.name);
+            replace_names(j.uid_name);
         }
 
-        replace_stgpv(i.name);
+        replace_names(i.name);
     }
 
     for (std::string& i : a.m_object_hrc_list)
-        replace_stgpv(i);
+        replace_names(i);
 
     for (a3da_object& i : a.object) {
-        replace_stgpv(i.name);
-        replace_stgpv(i.parent_name);
-        replace_stgpv(i.uid_name);
+        replace_names(i.name);
+        replace_names(i.parent_name);
+        replace_names(i.uid_name);
     }
 
     for (a3da_object_hrc& i : a.object_hrc) {
-        replace_stgpv(i.name);
-        replace_stgpv(i.parent_name);
-        replace_stgpv(i.uid_name);
+        replace_names(i.name);
+        replace_names(i.parent_name);
+        replace_names(i.uid_name);
     }
     
     for (std::string& i : a.object_hrc_list)
-        replace_stgpv(i);
+        replace_names(i);
 
 
     for (std::string& i : a.object_list)
-        replace_stgpv(i);
+        replace_names(i);
 
-    void* a3da_data = 0;
-    size_t a3da_length = 0;
-    a.write(&a3da_data, &a3da_length);
+    bool own_farc = !f;
+    
+    if (own_farc)
+        f = new farc;
 
-    s.open(buf, "wb");
-    s.write(a3da_data, a3da_length);
-    s.close();
+    farc_file* ff = f->add_file(name);
+    a.write(&ff->data, &ff->size);
 
-    free_def(a3da_data);
+
+    if (own_farc) {
+        char path[MAX_PATH];
+        strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
+        strncat_s(path, sizeof(path), name, ext - name);
+
+        f->write(path, FARC_FArC, FARC_NONE, false);
+        delete f;
+    }
 }
 
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group) {
+    Glitter::EffectGroup temp_eff_group(Glitter::X);
+    temp_eff_group.name.assign(eff_group->name);
+    temp_eff_group.version = eff_group->version;
+
+    temp_eff_group.effects.reserve(eff_group->effects.size());
+    for (Glitter::Effect* i : eff_group->effects) {
+        Glitter::Effect* eff = new Glitter::Effect(Glitter::X);
+        *eff = *i;
+        temp_eff_group.effects.push_back(eff);
+    }
+
+    temp_eff_group.resource_hashes.assign(
+        eff_group->resource_hashes.begin(), eff_group->resource_hashes.end());
+    temp_eff_group.resources_tex = eff_group->resources_tex;
+
     char name[0x200];
     strcpy_s(name, sizeof(name), eff_group->name.c_str());
 
-    replace_stgpv(name);
+    replace_names(name);
 
     data_struct* x_data = &data_list[DATA_X];
     auto& hashes = x_data->glitter_list_murmurhash;
@@ -8548,13 +8605,14 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group) {
         auto elem = hashes.find(e->data.name_hash);
         if (elem != hashes.end()) {
             e->name.assign(elem->second);
-            replace_stgpv(e->name);
+            replace_names(e->name);
         }
         else
             printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
     }
 
-    Glitter::FileWriter::Write(Glitter::X, eff_group, "patch\\!temp\\particle\\", name, true, true);
+    Glitter::FileWriter::Write(Glitter::X, &temp_eff_group,
+        "patch\\!temp\\particle_x\\", name, true, true, true);
 }
 
 static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db, texture_database* tex_db) {
@@ -8567,19 +8625,19 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
             name[j] += 0x20;
     }
 
-    replace_stgpv(name);
+    replace_names(name);
 
     if (strstr(name, "effchrpv826"))
         return;
 
+    farc f;
     {
         data_struct* aft_data = &data_list[DATA_AFT];
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
         texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
 
-        char buf[0x200];
-        strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
-        strcat_s(buf, sizeof(buf), name);
+        char buf[0x100];
+        strcpy_s(buf, sizeof(buf), name);
         strcat_s(buf, sizeof(buf), "_obj.bin");
 
         prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
@@ -8590,7 +8648,7 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
         for (uint32_t i = 0; i < obj_num; i++) {
             obj* obj = set->obj_data[i];
 
-            replace_stgpv((char*)obj->name);
+            replace_names((char*)obj->name);
             obj->id = aft_obj_db->get_object_info(obj->name).id;
 
             uint32_t num_material = obj->num_material;
@@ -8606,7 +8664,7 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
                     if (tex_name) {
                         char name_buf[0x200];
                         strcpy_s(name_buf, sizeof(name_buf), tex_name);
-                        replace_stgpv(name_buf);
+                        replace_names(name_buf);
                         k.tex_index = aft_tex_db->get_texture_id(name_buf);
                     }
                     else
@@ -8629,7 +8687,7 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
             if (tex_name) {
                 char name_buf[0x200];
                 strcpy_s(name_buf, sizeof(name_buf), tex_name);
-                replace_stgpv(name_buf);
+                replace_names(name_buf);
 
                 id = aft_tex_db->get_texture_id(name_buf);
             }
@@ -8639,22 +8697,14 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
 
         set->modern = false;
 
-        void* obj_data = 0;
-        size_t obj_length = 0;
-        set->pack_file(&obj_data, &obj_length);
-
-        file_stream s;
-        s.open(buf, "wb");
-        s.write(obj_data, obj_length);
-        s.close();
-
-        free_def(obj_data);
+        farc_file* ff_obj = f.add_file(buf);
+        set->pack_file(&ff_obj->data, &ff_obj->size);
+        ff_obj->compressed = true;
     }
 
     {
-        char buf[0x200];
-        strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
-        strcat_s(buf, sizeof(buf), name);
+        char buf[0x100];
+        strcpy_s(buf, sizeof(buf), name);
         strcat_s(buf, sizeof(buf), "_tex.bin");
 
         uint32_t tex_num = info->tex_num;
@@ -8665,18 +8715,18 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
         for (uint32_t j = 0; j < tex_num; j++)
             texture_txp_store(tex_data[j], &txp.textures[j]);
 
-        void* txp_data = 0;
-        size_t txp_length = 0;
-        txp.pack_file(&txp_data, &txp_length, false);
-
-        file_stream s;
-        s.open(buf, "wb");
-        s.write(txp_data, txp_length);
-        s.close();
-
-        free_def(txp_data);
+        farc_file* ff_tex = f.add_file(buf);
+        txp.pack_file(&ff_tex->data, &ff_tex->size, false);
+        ff_tex->compressed = true;
     }
+
+    char buf[0x200];
+    strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
+    strcat_s(buf, sizeof(buf), name);
+
+    f.write(buf, FARC_FArC, FARC_NONE, false);
 }
+#endif
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time) {
     print_dsc_command(dsc, dsc_data_ptr, &time);
@@ -8714,6 +8764,7 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
     dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
 }
 
+#if BAKE_X_PACK || DOF_BAKE
 static void replace_pv832(char* str) {
     char* pv;
     pv = str;
@@ -8740,8 +8791,10 @@ static void replace_pv832(char* str) {
 inline static void replace_pv832(std::string& str) {
     replace_pv832((char*)str.data());
 }
+#endif
 
-static void replace_stgpv(char* str) {
+#if BAKE_X_PACK
+static void replace_names(char* str) {
     char* stgpv;
     stgpv = str;
     while (true) {
@@ -8763,10 +8816,32 @@ static void replace_stgpv(char* str) {
         stgpv += 6;
     }
 
+    char* effpv;
+    effpv = str;
+    while (true) {
+        effpv = strstr(effpv, "EFFPV");
+        if (!effpv || strstr(effpv, "EFFPV815") || strstr(effpv, "PTC"))
+            break;
+
+        memcpy(effpv, "ITMPV", 5);
+        effpv += 6;
+    }
+
+    effpv = str;
+    while (true) {
+        effpv = strstr(effpv, "effpv");
+        if (!effpv || strstr(effpv, "effpv815") || strstr(effpv, "ptc"))
+            break;
+
+        memcpy(effpv, "itmpv", 5);
+        effpv += 6;
+    }
+
     replace_pv832(str);
 }
 
-inline static void replace_stgpv(std::string& str) {
-    replace_stgpv((char*)str.data());
+inline static void replace_names(std::string& str) {
+    replace_names((char*)str.data());
 }
+#endif
 #endif

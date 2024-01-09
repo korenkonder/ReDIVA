@@ -815,6 +815,8 @@ public:
     }
 };
 
+#if BAKE_X_PACK
+#else
 class XPVGameSelector : public app::TaskWindow {
 public:
     int32_t pv_id;
@@ -834,12 +836,16 @@ public:
     virtual bool dest() override;
     virtual void window() override;
 };
+#endif
 
 extern bool x_pv_game_init();
 extern x_pv_game* x_pv_game_get();
 extern bool x_pv_game_free();
 
+#if BAKE_X_PACK
+#else
 extern bool x_pv_game_selector_init();
 extern XPVGameSelector* x_pv_game_selector_get();
 extern bool x_pv_game_selector_free();
+#endif
 #endif

@@ -1234,8 +1234,12 @@ bool SubGameState::Selector::Init() {
         return true;
     }
 #endif
+
+#if BAKE_X_PACK
+#else
     x_pv_game_selector_init();
     app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
+#endif
 #endif
     return true;
 }
@@ -1283,7 +1287,10 @@ bool SubGameState::Selector::Ctrl() {
         return false;
     }
 #endif
+
 #if defined(CRE_DEV)
+#if BAKE_X_PACK
+#else
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (sel->exit) {
         if (sel->start && x_pv_game_init()) {
@@ -1296,6 +1303,7 @@ bool SubGameState::Selector::Ctrl() {
         return true;
     }
 #endif
+#endif
     return false;
 }
 
@@ -1304,26 +1312,28 @@ bool SubGameState::Selector::Dest() {
 #if PV_DEBUG
     if (!pv_x) {
         PVGameSelector* sel = pv_game_selector_get();
-        if (!app::TaskWork::check_task_ready(sel)) {
-            pv_game_selector_free();
-            return true;
+        if (app::TaskWork::check_task_ready(sel)) {
+            sel->del();
+            return false;
         }
 
+        pv_game_selector_free();
+        return true;
+    }
+#endif
+
+#if BAKE_X_PACK
+#else
+    XPVGameSelector* sel = x_pv_game_selector_get();
+    if (app::TaskWork::check_task_ready(sel)) {
         sel->del();
         return false;
     }
+    
+    x_pv_game_selector_free();
 #endif
-    XPVGameSelector* sel = x_pv_game_selector_get();
-    if (!app::TaskWork::check_task_ready(sel)) {
-        x_pv_game_selector_free();
-        return true;
-    }
-
-    sel->del();
-    return false;
-#else
+#endif
     return true;
-#endif
 }
 
 bool SubGameState::GameMain::Init() {

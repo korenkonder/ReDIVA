@@ -587,6 +587,8 @@ namespace Glitter {
         float_t XRandomize(float_t value, Random* random);
         float_t XRandomizeKey(const Curve::Key& key, Random* random);
 
+        Curve& operator=(const Curve& curv);
+
         static void GetKeyIndices(const std::vector<Curve::Key>& keys,
             float_t frame, size_t& curr, size_t& next);
 
@@ -1225,7 +1227,7 @@ namespace Glitter {
             f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian);
 
         static void Write(GLT, EffectGroup* eff_group, const char* path,
-            const char* file, bool compress, bool encrypt, bool big_endian = false);
+            const char* file, bool compress, bool encrypt, bool save_lst = false, bool big_endian = false);
     };
 
     struct LocusHistory {

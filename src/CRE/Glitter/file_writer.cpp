@@ -2163,7 +2163,7 @@ namespace Glitter {
     }
 
     void FileWriter::Write(GLT, EffectGroup* eff_group, const char* path,
-        const char* file, bool compress, bool encrypt, bool big_endian) {
+        const char* file, bool compress, bool encrypt, bool save_lst, bool big_endian) {
         FileWriter fr;
         fr.type = GLT_VAL;
 
@@ -2205,7 +2205,7 @@ namespace Glitter {
                 }
             }
 
-            if (fr.type == Glitter::FT) {
+            if (fr.type == Glitter::FT || save_lst) {
                 f2_struct lst_st;
                 if (fr.UnparseDivaList(eff_group, &lst_st, big_endian)) {
                     memcpy(&temp[file_len], ".lst", 4);
@@ -2242,7 +2242,7 @@ namespace Glitter {
         }
 
         char* temp = str_utils_add(path, file);
-        if (glt_type != Glitter::FT) {
+        if (glt_type != Glitter::FT && !save_lst) {
             char* list_temp = str_utils_add(temp, ".glitter.txt");
             file_stream s;
             s.open(list_temp, "wb");

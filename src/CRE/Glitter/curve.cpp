@@ -748,6 +748,22 @@ namespace Glitter {
             ? -key.random_range : 0.0f, key.random_range);
     }
 
+    Curve& Curve::operator=(const Curve& curv) {
+        type = curv.type;
+        repeat = curv.repeat;
+        start_time = curv.start_time;
+        end_time = curv.end_time;
+        flags = curv.flags;
+        random_range = curv.random_range;
+        keys.assign(curv.keys.begin(), curv.keys.end());
+ #if defined(CRE_DEV)
+        keys_rev.assign(curv.keys_rev.begin(), curv.keys_rev.end());
+#endif
+        version = curv.version;
+        keys_version = curv.keys_version;
+        return *this;
+    }
+
     void Curve::GetKeyIndices(const std::vector<Curve::Key>& keys,
         float_t frame, size_t& curr, size_t& next) {
         size_t count = keys.size();
