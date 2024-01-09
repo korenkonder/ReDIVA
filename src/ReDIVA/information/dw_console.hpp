@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../KKdLib/default.hpp"
+#include "../../KKdLib/default.hpp"
 
 enum dw_console_index {
     DW_CONSOLE_SYSTEM,

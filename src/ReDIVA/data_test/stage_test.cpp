@@ -137,8 +137,6 @@ DtwStg::DtwStg() : Shell(0) {
     data_struct* aft_data = &data_list[DATA_AFT];
     stage_database* aft_stage_data = &aft_data->data_ft.stage_data;
 
-    std::vector<stage_data>& stg_data = aft_stage_data->stage_data;
-
     dw::Widget::SetText("STAGE TEST");
 
     dw::Composite* pv_comp = new dw::Composite(this);

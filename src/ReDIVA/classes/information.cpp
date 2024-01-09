@@ -4,7 +4,7 @@
 */
 
 #include "information.hpp"
-#include "../dw_console.hpp"
+#include "../information/dw_console.hpp"
 #include "information/frame_speed.hpp"
 #include "information/task.hpp"
 
@@ -15,15 +15,7 @@ classes_data information_classes[] = {
         (bool(*)(class_data*, render_context*))dw_console_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
         {
-            {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
             false,
             CLASS_DATA_NO_DATA,
@@ -35,17 +27,9 @@ classes_data information_classes[] = {
         "FrameSpeed##Information",
         CLASSES_IN_CONTEXT_MENU,
         information_frame_speed_init,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
         information_frame_speed_imgui,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
         information_frame_speed_dispose,
         {
-            {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
             false,
             CLASS_DATA_NO_DATA,
@@ -57,17 +41,9 @@ classes_data information_classes[] = {
         "Task##Information",
         CLASSES_IN_CONTEXT_MENU,
         information_task_init,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
         information_task_imgui,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
-        CLASSES_DATA_NO_FUNC,
         information_task_dispose,
         {
-            {},
             (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
             false,
             CLASS_DATA_NO_DATA,

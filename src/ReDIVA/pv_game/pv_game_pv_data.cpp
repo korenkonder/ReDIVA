@@ -7,7 +7,7 @@
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
-#include "../dw_console.hpp"
+#include "../information/dw_console.hpp"
 #include "pv_game.hpp"
 #include "pv_game_camera.hpp"
 #include "pv_game_music.hpp"

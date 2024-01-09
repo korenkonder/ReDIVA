@@ -30,7 +30,6 @@ enum classes_enum {
 };
 
 struct class_data {
-    lock_cs* lock;
     class_flags flags;
     bool imgui_focus;
     void* data;
@@ -40,14 +39,7 @@ struct classes_data {
     const char* name;
     const classes_enum flags;
     bool(*    init)(class_data* data, render_context* rctx);
-    void(*    ctrl)(class_data* data);
-    void(*    disp)(class_data* data);
-    void(*    drop)(class_data* data, size_t count, char** paths);
-    bool(*    hide)(class_data* data);
     void(*   imgui)(class_data* data);
-    void(*   input)(class_data* data);
-    bool(*    show)(class_data* data);
-    void(*   sound)(class_data* data);
     bool(* dispose)(class_data* data);
     class_data data;
     classes_data* sub_classes;
@@ -55,10 +47,5 @@ struct classes_data {
 };
 
 extern void classes_process_init   (classes_data* classes, size_t classes_count, render_context* rctx);
-extern void classes_process_disp   (classes_data* classes, size_t classes_count);
-extern void classes_process_drop   (classes_data* classes, size_t classes_count, size_t count, char** paths);
 extern void classes_process_imgui  (classes_data* classes, size_t classes_count);
-extern void classes_process_input  (classes_data* classes, size_t classes_count);
-extern void classes_process_ctrl   (classes_data* classes, size_t classes_count);
-extern void classes_process_sound  (classes_data* classes, size_t classes_count);
 extern void classes_process_dispose(classes_data* classes, size_t classes_count);

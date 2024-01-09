@@ -222,8 +222,6 @@ namespace Input {
         double_t freq_hist = render_timer->get_freq_hist();
         double_t frame_speed = freq / freq_hist;
 
-        classes_process_input(classes, classes_count);
-
         if (input_locked) {
             input_reset_mouse_position = true;
             input_locked = false;

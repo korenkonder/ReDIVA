@@ -54,8 +54,8 @@
 #include "data_test/motion_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
+#include "information/dw_console.hpp"
 #include "pv_game/pv_game.hpp"
-#include "dw_console.hpp"
 #include "game_state.hpp"
 #include "glitter_editor.hpp"
 #include "font_info.hpp"
@@ -1106,8 +1106,6 @@ static void render_context_ctrl(render_context* rctx) {
 #endif
 #endif
 
-    classes_process_ctrl(classes, classes_count);
-
     rctx_ptr = rctx;
     input_state_ctrl();
     game_state_ctrl();
@@ -1176,7 +1174,6 @@ static void render_context_disp(render_context* rctx) {
 #endif
 
     glViewport(0, 0, rctx->screen_width, rctx->screen_height);
-    classes_process_disp(classes, classes_count);
 
     if (draw_imgui)
         render_context_imgui(rctx);
@@ -1369,8 +1366,6 @@ static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     if (!count || !paths)
         return;
 
-    classes_process_drop(classes, classes_count, count, paths);
-
 #if ReDIVA_DEV
     if (app::TaskWork::has_task(&glitter_editor)) {
         glitter_editor.file.assign(paths[0]);
@@ -1445,24 +1440,16 @@ static void render_imgui_context_menu(classes_data* classes,
             ImGui::MenuItem(c->name, 0, false, false);
         else if (ImGui::MenuItem(c->name, 0)) {
             if (!(c->data.flags & CLASS_INIT)) {
-                c->data.lock = new lock_cs;
-                if (c->data.lock->check_init() && c->init) {
-                    lock_lock(c->data.lock);
+                if (c->init) {
                     if (c->init(&c->data, rctx))
                         c->data.flags = CLASS_INIT;
                     else
                         c->data.flags = (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN);
-                    lock_unlock(c->data.lock);
                 }
             }
 
-            if (c->data.lock->check_init()) {
-                lock_lock(c->data.lock);
-                if (c->data.flags & CLASS_INIT && ((c->show && c->show(&c->data)) || !c->show))
-                    enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN | CLASS_HIDE_WINDOW));
-                lock_unlock(c->data.lock);
-            }
-        }
+            if (c->data.flags & CLASS_INIT)
+                enum_and(c->data.flags, ~(CLASS_HIDE | CLASS_HIDDEN | CLASS_HIDE_WINDOW));        }
     }
 }
 

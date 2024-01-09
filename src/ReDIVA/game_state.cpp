@@ -21,7 +21,6 @@
 #include "pv_game/pv_game.hpp"
 #include "data_edit.hpp"
 #include "data_initialize.hpp"
-#include "dw_console.hpp"
 #include "glitter_editor.hpp"
 #include "system_startup.hpp"
 #include "x_pv_game.hpp"
