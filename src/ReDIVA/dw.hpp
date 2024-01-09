@@ -6,8 +6,9 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/rectangle.hpp"
 #include "../KKdLib/vec.hpp"
-#include "../CRE/sprite.hpp"
+#include "../CRE/color.hpp"
 #include "font_info.hpp"
 #include <vector>
 

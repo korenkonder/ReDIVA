@@ -6,9 +6,9 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/rectangle.hpp"
 #include "../KKdLib/vec.hpp"
 #include "../CRE/font.hpp"
-#include "../CRE/sprite.hpp"
 
 struct font_char {
     rectangle tex;
