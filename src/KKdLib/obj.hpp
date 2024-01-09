@@ -387,7 +387,7 @@ struct obj_vertex_data {
 struct obj_mesh_attrib_member {
     uint32_t double_buffer : 1;
     uint32_t billboard_y_axis : 1;
-    uint32_t translucent_no_shadow : 1;
+    uint32_t translucent_sort_by_radius : 1;
     uint32_t billboard : 1;
     uint32_t dummy : 27; // 28
     uint32_t compressed : 1; // Own stuff

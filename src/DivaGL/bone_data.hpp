@@ -3526,7 +3526,7 @@ union obj_mesh_vertex_array_union {
 struct obj_mesh_attrib_member {
     uint32_t double_buffer : 1;
     uint32_t billboard_y_axis : 1;
-    uint32_t translucent_no_shadow : 1;
+    uint32_t translucent_sort_by_radius : 1;
     uint32_t billboard : 1;
     uint32_t dummy : 28;
 };
