@@ -1419,7 +1419,7 @@ static bool draw_pass_shadow_litproj(light_proj* litproj) {
     glClearDepthf(1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-    if (!light_proj::set_mat(false)) {
+    if (!light_proj::set_mat(true)) {
         gl_state_bind_framebuffer(0);
         return false;
     }

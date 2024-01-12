@@ -4706,7 +4706,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
         disp_manager.set_shadow_type(shadow_type);
 
         Shadow* shad = shadow_ptr_get();
-        if (shad && flags & mdl::OBJ_SHADOW) {
+        if (shad && (flags & mdl::OBJ_SHADOW)) {
             disp_manager.set_shadow_type(SHADOW_STAGE);
 
             mat4* m = &moh->model_transform.mat;
