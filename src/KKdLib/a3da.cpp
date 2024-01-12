@@ -3163,7 +3163,7 @@ inline static void a3da_key_make_raw_data_binary(a3da_key* value) {
 inline static void a3da_model_transform_make_raw_data_binary(a3da_model_transform* value) {
     a3da_vec3_make_raw_data_binary(&value->rotation);
     a3da_vec3_make_raw_data_binary(&value->scale);
-    a3da_vec3_make_raw_data_binary(&value->scale);
+    a3da_vec3_make_raw_data_binary(&value->translation);
     a3da_key_make_raw_data_binary(&value->visibility);
 }
 

@@ -17,6 +17,7 @@
 #include "data_test/motion_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
+#include "information/dw_console.hpp"
 #include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
 #include "data_edit.hpp"

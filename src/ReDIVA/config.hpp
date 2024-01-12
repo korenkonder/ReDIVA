@@ -4,10 +4,11 @@
 */
 
 #if defined(ReDIVA_DEV)
+#define BAKE_DOF (0)
 #define BAKE_PNG (0)
 #define BAKE_VIDEO (0)
 #define BAKE_PV826 (0)
-#define BAKE_X_PACK (1)
+#define BAKE_X_PACK (0)
 #define DW_TRANSLATE (0)
 #define PV_DEBUG (1)
 

@@ -39,7 +39,7 @@
 #if BAKE_PV826
 #include "../KKdLib/waitable_timer.hpp"
 #endif
-#include "dw_console.hpp"
+#include "information/dw_console.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 
@@ -210,9 +210,7 @@ enum dsc_x_func {
     DSC_X_MAX,
 };
 
-#define DOF_BAKE 0
-
-#if DOF_BAKE
+#if BAKE_DOF
 struct dof_cam {
     std::vector<float_t> position_x;
     std::vector<float_t> position_y;
@@ -234,7 +232,7 @@ struct dof_cam {
 
 static int32_t aet_index_table[] = { 0, 1, 2, 6, 5 };
 
-#if DOF_BAKE
+#if BAKE_DOF
 dof_cam dof_cam_data;
 #endif
 x_pv_game* x_pv_game_ptr;
@@ -267,7 +265,7 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
-#if BAKE_X_PACK || DOF_BAKE
+#if BAKE_X_PACK || BAKE_DOF
 static void replace_pv832(char* str);
 static void replace_pv832(std::string& str);
 #endif
@@ -5534,7 +5532,7 @@ nvenc_encoder* nvenc_enc;
 file_stream* nvenc_stream;
 #endif
 
-#if DOF_BAKE
+#if BAKE_DOF
 static void a3da_key_rev(a3da_key& k, std::vector<float_t>& values_src) {
     std::vector<kft3> values;
     int32_t type = interpolate_chs_reverse_sequence(values_src, values);
@@ -6705,7 +6703,7 @@ bool x_pv_game::ctrl() {
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
             pv_expression_array_reset_motion(i);
 
-#if DOF_BAKE
+#if BAKE_DOF
         {
             x_pv_game_data& pv_data = this->get_data();
 
@@ -6859,7 +6857,7 @@ void x_pv_game::basic() {
     if (state_old != 20 && state_old != 21)
         return;
 
-#if DOF_BAKE
+#if BAKE_DOF
     if (dof_cam_data.frame != frame) {
         camera* cam = rctx_ptr->camera;
 
@@ -8006,7 +8004,7 @@ bool x_pv_game_selector_free() {
 }
 #endif
 
-#if DOF_BAKE
+#if BAKE_DOF
 dof_cam::dof_cam() {
     frame = -999999;
     enable = false;
@@ -8764,7 +8762,7 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
     dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
 }
 
-#if BAKE_X_PACK || DOF_BAKE
+#if BAKE_X_PACK || BAKE_DOF
 static void replace_pv832(char* str) {
     char* pv;
     pv = str;

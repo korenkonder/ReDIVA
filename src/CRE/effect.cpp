@@ -2803,7 +2803,7 @@ void TaskEffectLitproj::set_stage_indices(const std::vector<int32_t>& stage_indi
     }
 
     stage_param_data_litproj_current = 0;
-    if (this->stage_indices.size())
+    if (!this->stage_indices.size())
         return;
 
     int32_t stage_index = this->stage_indices.front();
