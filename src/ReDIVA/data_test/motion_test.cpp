@@ -102,8 +102,6 @@ public:
 
     class IdListBoxProc : public dw::SelectionAdapter {
     public:
-        dw::Slider* slider;
-
         IdListBoxProc();
         virtual ~IdListBoxProc() override;
 
@@ -112,8 +110,6 @@ public:
 
     class RotateSliderProc : public dw::SelectionAdapter {
     public:
-        dw::Slider* slider;
-
         RotateSliderProc();
         virtual ~RotateSliderProc() override;
 
@@ -130,8 +126,6 @@ public:
 
     class FrameSliderProc : public dw::SelectionAdapter {
     public:
-        dw::Slider* slider;
-
         FrameSliderProc();
         virtual ~FrameSliderProc() override;
 
@@ -140,8 +134,6 @@ public:
 
     class StartFrameSliderProc : public dw::SelectionAdapter {
     public:
-        dw::Button* button;
-
         StartFrameSliderProc();
         virtual ~StartFrameSliderProc() override;
 
@@ -150,8 +142,6 @@ public:
 
     class DispButtonProc : public dw::SelectionAdapter {
     public:
-        dw::Button* button;
-
         DispButtonProc();
         virtual ~DispButtonProc() override;
 
@@ -212,7 +202,9 @@ public:
     CTypeListBoxProc c_type_list_box_proc;
     SetListBoxProc set_list_box_proc;
     IdListBoxProc id_list_box_proc;
+    dw::Slider* rotate_slider;
     RotateSliderProc rotate_slider_proc;
+    dw::Slider* position_slider;
     PositionSliderProc position_slider_proc;
     //__int64 field_1E8;
     //__int64 field_1F0;
@@ -221,11 +213,14 @@ public:
     StepSliderProc step_slider_proc[4];
     dw::Slider* current;
     FrameSliderProc frame_slider_proc;
+    dw::Slider* start_frame_slider;
     StartFrameSliderProc start_frame_slider_proc;
+    dw::Button* ab_toggle_button;
     dw::Label* ab_loop;
     dw::Label* frame;
     dw::Label* frame_count;
     DispButtonProc disp_button_proc;
+    dw::Button* set_change_button;
     UseOpdButtonProc use_opd_button_proc;
     PartialMotButtonProc partial_mot_button_proc;
     SaveOnlyStartFrameButtonProc save_only_start_frame_button_proc;
@@ -1871,7 +1866,7 @@ void DataTestMotDw::CharaListBoxProc::Callback(dw::SelectionListener::CallbackDa
         test_mot_data->chara_index[chara_id] = chara_index;
 
         DataTestMotDw* test_mot_dw = data_test_mot_dw_array_get(chara_id);
-        if (test_mot_dw->disp_button_proc.button->value) {
+        if (test_mot_dw->set_change_button->value) {
             data_struct* aft_data = &data_list[DATA_AFT];
             motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
@@ -1934,7 +1929,7 @@ void DataTestMotDw::SetListBoxProc::Callback(dw::SelectionListener::CallbackData
     }
 }
 
-DataTestMotDw::IdListBoxProc::IdListBoxProc() : slider() {
+DataTestMotDw::IdListBoxProc::IdListBoxProc() {
 
 }
 
@@ -1952,7 +1947,7 @@ void DataTestMotDw::IdListBoxProc::Callback(dw::SelectionListener::CallbackData*
     }
 }
 
-DataTestMotDw::RotateSliderProc::RotateSliderProc() : slider() {
+DataTestMotDw::RotateSliderProc::RotateSliderProc() {
 
 }
 
@@ -1982,7 +1977,7 @@ void DataTestMotDw::PositionSliderProc::Callback(dw::SelectionListener::Callback
         test_mot_data->trans_x[slider->callback_data.i32] = slider->scroll_bar->value;
 }
 
-DataTestMotDw::FrameSliderProc::FrameSliderProc() : slider() {
+DataTestMotDw::FrameSliderProc::FrameSliderProc() {
 
 }
 
@@ -2003,7 +1998,7 @@ void DataTestMotDw::FrameSliderProc::Callback(dw::SelectionListener::CallbackDat
     }
 }
 
-DataTestMotDw::StartFrameSliderProc::StartFrameSliderProc() : button() {
+DataTestMotDw::StartFrameSliderProc::StartFrameSliderProc() {
 
 }
 
@@ -2018,7 +2013,7 @@ void DataTestMotDw::StartFrameSliderProc::Callback(dw::SelectionListener::Callba
         test_mot_data->start_frame[slider->callback_data.i32] = slider->scroll_bar->value;
 }
 
-DataTestMotDw::DispButtonProc::DispButtonProc() : button() {
+DataTestMotDw::DispButtonProc::DispButtonProc() {
 
 }
 
@@ -2183,19 +2178,19 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     set_list_box_proc.list_box->AddSelectionListener(&id_list_box_proc);
     set_list_box_proc.list_box->SetFont(dw::p_font_type_6x12);
 
-    id_list_box_proc.slider = dw::Slider::Create(this);
-    id_list_box_proc.slider->SetText("Y ROT");
-    id_list_box_proc.slider->format = "%3.0f";
-    id_list_box_proc.slider->SetParams(test_mot_data->rot_y[chara_id], -180.0f, 180.0f, 36.0f, 1.0f, 10.0f);
-    id_list_box_proc.slider->callback_data.i32 = chara_id;
-    id_list_box_proc.slider->AddSelectionListener(&rotate_slider_proc);
+    rotate_slider = dw::Slider::Create(this);
+    rotate_slider->SetText("Y ROT");
+    rotate_slider->format = "%3.0f";
+    rotate_slider->SetParams(test_mot_data->rot_y[chara_id], -180.0f, 180.0f, 36.0f, 1.0f, 10.0f);
+    rotate_slider->callback_data.i32 = chara_id;
+    rotate_slider->AddSelectionListener(&rotate_slider_proc);
 
-    rotate_slider_proc.slider = dw::Slider::Create(this);
-    rotate_slider_proc.slider->dw::Widget::SetText("X POS");
-    rotate_slider_proc.slider->format = "%3.2f";
-    rotate_slider_proc.slider->SetParams(test_mot_data->trans_x[chara_id], -2.0f, 2.0f, 0.4f, 0.01f, 0.1f);
-    rotate_slider_proc.slider->callback_data.i32 = chara_id;
-    rotate_slider_proc.slider->AddSelectionListener(&position_slider_proc);
+    position_slider = dw::Slider::Create(this);
+    position_slider->dw::Widget::SetText("X POS");
+    position_slider->format = "%3.2f";
+    position_slider->SetParams(test_mot_data->trans_x[chara_id], -2.0f, 2.0f, 0.4f, 0.01f, 0.1f);
+    position_slider->callback_data.i32 = chara_id;
+    position_slider->AddSelectionListener(&position_slider_proc);
 
     dw::Group* frame_group = new dw::Group(this);
     frame_group->SetText("FRAME");
@@ -2234,12 +2229,12 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     current->callback_data.i32 = chara_id;
     current->AddSelectionListener(&frame_slider_proc);
 
-    frame_slider_proc.slider = dw::Slider::Create(frame_group);
-    frame_slider_proc.slider->SetText("Start  ");
-    frame_slider_proc.slider->format = "%4.0f";
-    frame_slider_proc.slider->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-    frame_slider_proc.slider->callback_data.i32 = chara_id;
-    frame_slider_proc.slider->AddSelectionListener(&start_frame_slider_proc);
+    start_frame_slider = dw::Slider::Create(frame_group);
+    start_frame_slider->SetText("Start  ");
+    start_frame_slider->format = "%4.0f";
+    start_frame_slider->SetParams(0.0f, 0.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+    start_frame_slider->callback_data.i32 = chara_id;
+    start_frame_slider->AddSelectionListener(&start_frame_slider_proc);
 
     dw::Composite* start_ctrl_comp = new dw::Composite(frame_group);
     start_ctrl_comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -2277,12 +2272,11 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     b_label->callback = DataTestMotDw::BCallback;
     b_label->SetFont(dw::p_font_type_6x12);
 
-    dw::Button* ab_toggle_button = new dw::Button(ab_loop_group, dw::CHECKBOX);
+    ab_toggle_button = new dw::Button(ab_loop_group, dw::CHECKBOX);
     ab_toggle_button->SetText("");
     ab_toggle_button->callback_data.v64 = this;
     ab_toggle_button->callback = DataTestMotDw::ABToggleCallback;
     ab_toggle_button->SetFont(dw::p_font_type_6x12);
-    start_frame_slider_proc.button = ab_toggle_button;
 
     ab_loop = new dw::Label(ab_loop_group, dw::FLAG_8);
     ab_loop->SetFont(dw::p_font_type_6x12);
@@ -2298,10 +2292,10 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     disp_button->callback_data.i32 = chara_id;
     disp_button->SetFont(dw::p_font_type_6x12);
 
-    disp_button_proc.button = new dw::Button(rob_comp, dw::CHECKBOX);
-    disp_button_proc.button->SetText("SET CHANGE  ");
-    disp_button_proc.button->SetValue(false);
-    disp_button_proc.button->SetFont(dw::p_font_type_6x12);
+    set_change_button = new dw::Button(rob_comp, dw::CHECKBOX);
+    set_change_button->SetText("SET CHANGE  ");
+    set_change_button->SetValue(false);
+    set_change_button->SetFont(dw::p_font_type_6x12);
 
     dw::Composite* var_comp = new dw::Composite(this);
     var_comp->Composite::SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -2356,7 +2350,7 @@ void DataTestMotDw::Draw() {
     float_t a_frame;
     float_t b_frame;
     dtm_mot->GetABLoop(ab_loop, a_frame, b_frame);
-    start_frame_slider_proc.button->SetValue(ab_loop);
+    ab_toggle_button->SetValue(ab_loop);
 
     char buf[0x20];
     sprintf_s(buf, sizeof(buf), "     %5d:%5d", (int32_t)prj::roundf(a_frame), (int32_t)prj::roundf(b_frame));
@@ -2381,14 +2375,14 @@ void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_count) {
     float_t last_frame = frame_count - 1.0f;
     current->SetParams(min_def(frame, last_frame), 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
-    float_t _frame = frame_slider_proc.slider->scroll_bar->value;
+    float_t _frame = start_frame_slider->scroll_bar->value;
     if (_frame >= 0.0)
         _frame = 0.0;
     else if (_frame > last_frame)
         _frame = last_frame;
-    frame_slider_proc.slider->SetParams(_frame, 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
+    start_frame_slider->SetParams(_frame, 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
-    data_test_mot_data_get()->start_frame[frame_slider_proc.slider->callback_data.i32] = _frame;
+    data_test_mot_data_get()->start_frame[start_frame_slider->callback_data.i32] = _frame;
 }
 
 void DataTestMotDw::SetFrameLabel(float_t frame, float_t frame_count) {
@@ -2439,7 +2433,7 @@ void DataTestMotDw::AddModules(int32_t chara_id, dw::ListBox* list_box) {
 }
 
 void DataTestMotDw::ResetFrame() {
-    frame_slider_proc.slider->SetValue(0.0f);
+    start_frame_slider->SetValue(0.0f);
     dtm_mot->ResetABLoop();
 }
 
@@ -2480,7 +2474,7 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
     if (!test_mot_dw)
         return;
 
-    float_t frame = test_mot_dw->frame_slider_proc.slider->scroll_bar->value;
+    float_t frame = test_mot_dw->start_frame_slider->scroll_bar->value;
 
     std::vector<pv_data_set_motion> set_motion(test_mot_dw->dtm_mot->set_motion);
 
@@ -2516,9 +2510,9 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
         last = set_motion.back().frame_stage_index.first;
 
     if (button->GetText().compare(L" < "))
-        test_mot_dw->frame_slider_proc.slider->SetValue(last);
+        test_mot_dw->start_frame_slider->SetValue(last);
     else if (first > 0.0f)
-        test_mot_dw->frame_slider_proc.slider->SetValue(first);
+        test_mot_dw->start_frame_slider->SetValue(first);
 }
 
 void DataTestMotDw::StartCtrlResetCallback(dw::Widget* data) {
