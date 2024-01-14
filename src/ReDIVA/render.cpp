@@ -1129,7 +1129,7 @@ static void render_context_ctrl(render_context* rctx) {
 static void render_context_disp(render_context* rctx) {
     camera* cam = rctx->camera;
 
-    static const GLfloat color_clear[] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    static const vec4 color_clear = 0.0f;
     static const GLfloat depth_clear = 1.0f;
     static const GLint stencil_clear = 0;
 
@@ -1145,7 +1145,7 @@ static void render_context_disp(render_context* rctx) {
     gl_state_bind_framebuffer(0);
     gl_state_set_depth_mask(GL_TRUE);
     gl_state_set_stencil_mask(0xFF);
-    glClearBufferfv(GL_COLOR, 0, color_clear);
+    glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearDepthf(depth_clear);
     gl_state_set_stencil_mask(0x00);
     gl_state_set_depth_mask(GL_FALSE);
@@ -1154,7 +1154,7 @@ static void render_context_disp(render_context* rctx) {
 
     rctx->render.rend_texture[0].Bind();
     gl_state_set_depth_mask(GL_TRUE);
-    glClearBufferfv(GL_COLOR, 0, color_clear);
+    glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
     gl_state_set_depth_mask(GL_FALSE);
 

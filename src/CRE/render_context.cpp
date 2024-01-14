@@ -113,7 +113,7 @@ bool light_proj::set() {
     if (!this)
         return false;
 
-    static const vec4 color_clear = 1.0f;
+    static const vec4 color_clear = 0.0f;
     static const GLfloat depth_clear = 1.0f;
 
     shadow_texture[0].Bind();
