@@ -86,15 +86,15 @@ static void auth_3d_model_transform_load(auth_3d* auth, auth_3d_model_transform*
 static void auth_3d_model_transform_store(auth_3d* auth, auth_3d_model_transform* mt, auth_3d_model_transform_file* mtf);
 
 static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
-    object_info obj_info, int32_t instance);
+    object_info obj_info, int32_t object_instance);
 static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
-    uint32_t object_hash, int32_t instance);
+    uint32_t object_hash, int32_t object_instance);
 static const mat4* auth_3d_get_auth_3d_object_mat(auth_3d* auth, size_t index);
 static const mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_t index);
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
-    object_info obj_info, int32_t instance = -1);
+    object_info obj_info, int32_t object_instance = -1);
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_hash(auth_3d* auth,
-    uint32_t object_hash, int32_t instance = -1);
+    uint32_t object_hash, int32_t object_instance = -1);
 static void auth_3d_read_file(auth_3d* auth, auth_3d_database* auth_3d_db);
 static void auth_3d_read_file_modern(auth_3d* auth);
 static void auth_3d_set_material_list(auth_3d* auth, render_context* rctx);
@@ -2776,7 +2776,7 @@ int32_t auth_3d_data_get_auth_3d_id(const char* object_name) {
 }
 
 int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
-    int32_t* object_index, bool* hrc, int32_t instance) {
+    int32_t* object_index, bool* hrc, int32_t object_instance) {
     for (int32_t& i : auth_3d_data->loaded_ids) {
         if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
             continue;
@@ -2786,7 +2786,7 @@ int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
             continue;
 
         int32_t obj_hrc_index = auth_3d_get_auth_3d_object_hrc_index_by_object_info(
-            auth, obj_info, instance);
+            auth, obj_info, object_instance);
         if (obj_hrc_index >= 0) {
             if (object_index)
                 *object_index = obj_hrc_index;
@@ -2796,7 +2796,7 @@ int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
         }
 
         int32_t obj_index = auth_3d_get_auth_3d_object_index_by_object_info(
-            auth, obj_info, instance);
+            auth, obj_info, object_instance);
         if (obj_index >= 0) {
             if (object_index)
                 *object_index = obj_index;
@@ -2809,7 +2809,7 @@ int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
 }
 
 int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_hash,
-    int32_t* object_index, bool* hrc, int32_t instance) {
+    int32_t* object_index, bool* hrc, int32_t object_instance) {
     for (int32_t& i : auth_3d_data->loaded_ids) {
         if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
             continue;
@@ -2826,7 +2826,7 @@ int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_has
         }
 
         int32_t obj_index = auth_3d_get_auth_3d_object_index_by_hash(
-            auth, object_hash, instance);
+            auth, object_hash, object_instance);
         if (obj_index >= 0) {
             if (object_index)
                 *object_index = obj_index;
@@ -2836,7 +2836,7 @@ int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_has
         }
 
         int32_t obj_hrc_index = auth_3d_get_auth_3d_object_hrc_index_by_hash(
-            auth, object_hash, instance);
+            auth, object_hash, object_instance);
         if (obj_hrc_index >= 0) {
             if (object_index)
                 *object_index = obj_hrc_index;
@@ -3885,11 +3885,11 @@ static void auth_3d_model_transform_store(auth_3d* auth, auth_3d_model_transform
 }
 
 static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
-    object_info obj_info, int32_t instance) {
+    object_info obj_info, int32_t object_instance) {
     int32_t obj_instance = 0;
     for (auth_3d_object& i : auth->object)
         if (obj_info == i.object_info) {
-            if (obj_instance == instance)
+            if (obj_instance == object_instance)
                 return (int32_t)(&i - auth->object.data());
             obj_instance++;
         }
@@ -3897,11 +3897,11 @@ static int32_t auth_3d_get_auth_3d_object_index_by_object_info(auth_3d* auth,
 }
 
 static int32_t auth_3d_get_auth_3d_object_index_by_hash(auth_3d* auth,
-    uint32_t object_hash, int32_t instance) {
+    uint32_t object_hash, int32_t object_instance) {
     int32_t obj_instance = 0;
     for (auth_3d_object& i : auth->object)
         if (object_hash == i.object_hash) {
-            if (obj_instance == instance)
+            if (obj_instance == object_instance)
                 return (int32_t)(&i - auth->object.data());
             obj_instance++;
         }
@@ -3921,8 +3921,8 @@ static const mat4* auth_3d_get_auth_3d_object_hrc_bone_mats(auth_3d* auth, size_
 }
 
 static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth,
-    object_info obj_info, int32_t instance) {
-    if (instance < 0) {
+    object_info obj_info, int32_t object_instance) {
+    if (object_instance < 0) {
         for (auth_3d_object_hrc& i : auth->object_hrc)
             if (obj_info == i.object_info)
                 return (int32_t)(&i - auth->object_hrc.data());
@@ -3931,7 +3931,7 @@ static int32_t auth_3d_get_auth_3d_object_hrc_index_by_object_info(auth_3d* auth
         int32_t obj_instance = 0;
         for (auth_3d_object_hrc& i : auth->object_hrc)
             if (obj_info == i.object_info) {
-                if (obj_instance == instance)
+                if (obj_instance == object_instance)
                     return (int32_t)(&i - auth->object_hrc.data());
                 obj_instance++;
             }

@@ -1006,9 +1006,9 @@ extern auth_3d* auth_3d_data_get_auth_3d(uint32_t hash);
 extern auth_3d* auth_3d_data_get_auth_3d(int32_t uid);
 extern int32_t auth_3d_data_get_auth_3d_id(const char* object_name);
 extern int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
-    int32_t* object_index, bool* hrc, int32_t instance = -1);
+    int32_t* object_index, bool* hrc, int32_t object_instance = -1);
 extern int32_t auth_3d_data_get_auth_3d_id(uint32_t file_name_hash, uint32_t object_hash,
-    int32_t* object_index, bool* hrc, int32_t instance = -1);
+    int32_t* object_index, bool* hrc, int32_t object_instance = -1);
 void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint32_t>& obj_sets,
     auth_3d_database* auth_3d_db, object_database* obj_db);
 extern const char* auth_3d_data_get_uid_name(int32_t uid, auth_3d_database* auth_3d_db);
