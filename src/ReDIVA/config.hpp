@@ -21,6 +21,7 @@
 #endif
 
 #if BAKE_VIDEO
+#define BAKE_VIDEO_ALPHA (0)
 #undef BAKE_PNG
 #elif BAKE_PNG
 #endif
