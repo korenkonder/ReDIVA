@@ -362,7 +362,7 @@ namespace Glitter {
 
     bool FileReader::ReadFarc(GPM) {
         if (state)
-            return false;
+            return true;
 
         if (file_handler && !file_handler->check_not_ready()) {
             farc->read(file_handler->get_data(), file_handler->get_size(), true);
