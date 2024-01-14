@@ -5554,7 +5554,6 @@ const size_t nvenc_dst_pixel_size = 4;
 std::vector<uint8_t> nvenc_temp_pixels;
 
 nvenc_encoder* nvenc_enc;
-
 file_stream* nvenc_stream;
 #endif
 
@@ -5621,9 +5620,6 @@ bool x_pv_game::ctrl() {
 
 #if BAKE_VIDEO
         if (GLAD_WGL_NV_DX_interop2) {
-            shaders_dev.primitive_restart = shaders_ft.primitive_restart;
-            shaders_dev.primitive_restart_index = shaders_ft.primitive_restart_index;
-
             int32_t idx = (d3d_curr_tex + 1) % d3d_in_flight_num;
             d3d_curr_tex = idx;
             int32_t next_idx = (idx + 2) % d3d_in_flight_num;
@@ -5652,8 +5648,6 @@ bool x_pv_game::ctrl() {
             d3d_tex_in_queue++;
             d3d_tex_write[next_idx] = true;
 
-            shaders_ft.primitive_restart = shaders_dev.primitive_restart;
-            shaders_ft.primitive_restart_index = shaders_dev.primitive_restart_index;
 
         }
         else {
