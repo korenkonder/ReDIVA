@@ -1002,6 +1002,8 @@ extern auth_3d_data_struct* auth_3d_data;
 extern void auth_3d_data_init();
 extern bool auth_3d_data_check_category_loaded(const char* category_name);
 extern bool auth_3d_data_check_category_loaded(uint32_t category_hash);
+extern auth_3d* auth_3d_data_get_auth_3d(uint32_t hash);
+extern auth_3d* auth_3d_data_get_auth_3d(int32_t uid);
 extern int32_t auth_3d_data_get_auth_3d_id(const char* object_name);
 extern int32_t auth_3d_data_get_auth_3d_id(object_info obj_info,
     int32_t* object_index, bool* hrc, int32_t instance = -1);

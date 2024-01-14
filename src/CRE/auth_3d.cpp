@@ -2731,6 +2731,30 @@ bool auth_3d_data_check_category_loaded(uint32_t category_hash) {
     return auth_3d_data_struct_check_category_loaded(auth_3d_data, category_hash);
 }
 
+auth_3d* auth_3d_data_get_auth_3d(uint32_t hash) {
+    for (int32_t& i : auth_3d_data->loaded_ids) {
+        if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
+            continue;
+
+        auth_3d* auth = &auth_3d_data->data[i & 0x7FFF];
+        if (auth->hash == hash)
+            return auth;
+    }
+    return 0;
+}
+
+auth_3d* auth_3d_data_get_auth_3d(int32_t uid) {
+    for (int32_t& i : auth_3d_data->loaded_ids) {
+        if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
+            continue;
+
+        auth_3d* auth = &auth_3d_data->data[i & 0x7FFF];
+        if (auth->uid == uid)
+            return auth;
+    }
+    return 0;
+}
+
 int32_t auth_3d_data_get_auth_3d_id(const char* object_name) {
     for (int32_t& i : auth_3d_data->loaded_ids) {
         if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
