@@ -395,6 +395,7 @@ struct x_pv_game_music_ogg {
     ~x_pv_game_music_ogg();
 };
 
+#if !BAKE_X_PACK
 struct x_pv_game_music {
     x_pv_game_music_flags flags;
     bool pause;
@@ -458,6 +459,7 @@ struct x_pv_game_music {
     int32_t stop();
     void stop_reset_flags();
 };
+#endif
 
 struct x_pv_game_pv_data {
     bool play;
@@ -816,6 +818,24 @@ public:
 };
 
 #if BAKE_X_PACK
+class XPVGameBaker : public app::Task {
+public:
+    int32_t pv_id;
+    int32_t stage_id;
+    ::chara_index chara_index;
+    ::chara_index charas[ROB_CHARA_COUNT];
+    int32_t modules[ROB_CHARA_COUNT];
+    bool start;
+    bool exit;
+    bool next;
+
+    XPVGameBaker();
+    virtual ~XPVGameBaker() override;
+
+    virtual bool init() override;
+    virtual bool ctrl() override;
+    virtual bool dest() override;
+};
 #else
 class XPVGameSelector : public app::TaskWindow {
 public:
@@ -843,6 +863,9 @@ extern x_pv_game* x_pv_game_get();
 extern bool x_pv_game_free();
 
 #if BAKE_X_PACK
+extern bool x_pv_game_baker_init();
+extern XPVGameBaker* x_pv_game_baker_get();
+extern bool x_pv_game_baker_free();
 #else
 extern bool x_pv_game_selector_init();
 extern XPVGameSelector* x_pv_game_selector_get();

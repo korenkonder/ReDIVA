@@ -236,9 +236,10 @@ static int32_t aet_index_table[] = { 0, 1, 2, 6, 5 };
 dof_cam dof_cam_data;
 #endif
 x_pv_game* x_pv_game_ptr;
-x_pv_game_music* x_pv_game_music_ptr;
 #if BAKE_X_PACK
+XPVGameBaker* x_pv_game_baker_ptr;
 #else
+x_pv_game_music* x_pv_game_music_ptr;
 XPVGameSelector* x_pv_game_selector_ptr;
 #endif
 
@@ -1462,6 +1463,14 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
         const char* dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
         const char* dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
 
+#if BAKE_X_PACK
+        if (pv_id == 814) {
+        repeat:
+            dst_chara_mei = dst_chara == CHARA_SAKINE ? CHARA_MEIKO : dst_chara;
+            dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
+            dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
+        }
+#endif
         for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
             std::string file(j.auth_3d.str);
             std::string object_set;
@@ -1536,6 +1545,13 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
                 effchrpv_auth_3d_mot_names->insert({ file, category });
 #endif
         }
+#if BAKE_X_PACK
+        if (pv_id == 814) {
+            dst_chara = (chara_index)((int32_t)(dst_chara + 1));
+            if (dst_chara != CHARA_MAX)
+                goto repeat;
+        }
+#endif
     }
     state = 10;
 }
@@ -1706,6 +1722,7 @@ x_pv_game_music_ogg::~x_pv_game_music_ogg() {
     }
 }
 
+#if !BAKE_X_PACK
 x_pv_game_music::x_pv_game_music() : flags(), pause(), channel_pair_volume(), fade_in(),
 fade_out(), no_fade(), no_fade_remain(), fade_out_time_req(), fade_out_action_req(),
 type(), start(), end(), play_on_end(), fade_in_time(), field_9C(), loaded(), ogg() {
@@ -2124,6 +2141,7 @@ void x_pv_game_music::stop_reset_flags() {
     stop();
     exclude_flags(X_PV_GAME_MUSIC_ALL);
 }
+#endif
 
 x_pv_game_pv_data::x_pv_game_pv_data() : pv_game(), dsc_data_ptr(), dsc_data_ptr_end(),
 play(), chara_id(), dsc_time(), pv_end(), playdata(), scene_rot_y(), branch_mode() {
@@ -2656,12 +2674,14 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     } break;
     case DSC_X_MUSIC_PLAY: {
+#if !BAKE_X_PACK
         char buf[0x200];
         sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
             pv_game->get_data().pv_id == 832 ? 800 : pv_game->get_data().pv_id);
         x_pv_game_music_ptr->play(4, buf, false, 0.0f, 0.0f, 0.0f, 3.0f, false);
         x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
         x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
+#endif
     } break;
     case DSC_X_MODE_SELECT: {
 
@@ -3888,16 +3908,20 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
     camera.load(pv_id, stage->stage_id, frame_rate_control);
 
+#if !BAKE_X_PACK
     sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg", pv_id == 832 ? 800 : pv_id);
     x_pv_game_music_ptr->ogg_reset();
     x_pv_game_music_ptr->load(4, buf, true, 0.0f, false);
+#endif
 
     state = 10;
 }
 
 void x_pv_game_data::reset() {
+#if !BAKE_X_PACK
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_volume_map(0, 0);
+#endif
 
     pv_id = 0;
     play_param_file_handler.reset();
@@ -3953,10 +3977,12 @@ void x_pv_game_data::unload() {
     pv_expression_file_unload(exp_file.hash_murmurhash);
     obj_db.clear();
     tex_db.clear();
+#if !BAKE_X_PACK
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
     x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
     x_pv_game_music_ptr->exclude_flags(X_PV_GAME_MUSIC_OGG);
+#endif
     state = 40;
 }
 
@@ -6433,7 +6459,7 @@ bool x_pv_game::ctrl() {
             x_pv_game_write_object_set(info, &stage_data.obj_db, &stage_data.tex_db);
         }
 
-        for (auto& i : chara_effect_auth_3ds)
+        for (auth_3d*& i : chara_effect_auth_3ds)
             x_pv_game_write_auth_3d(0, i);
 
         if (song_effect_auth_3ds.size()) {
@@ -6445,33 +6471,39 @@ bool x_pv_game::ctrl() {
             strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
             strcat_s(path, sizeof(path), name);
 
-            farc* f = new farc;
-            for (auto& i : song_effect_auth_3ds)
-                x_pv_game_write_auth_3d(f, i);
+            farc* effpv_farc = new farc;
+            for (auth_3d*& i : song_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effpv_farc, i);
 
-            f->write(path, FARC_FArC, FARC_NONE, false);
-            delete f;
+            effpv_farc->write(path, FARC_FArC, FARC_NONE, false);
+            delete effpv_farc;
         }
 
-        if (stage_data_effect_auth_3ds.size() || stage_data_change_effect_auth_3ds.size()) {
-            char name[0x40];
-            sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
-            replace_names(name);
+        char name[0x40];
+        sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
+        replace_names(name);
 
-            char path[MAX_PATH];
-            strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
-            strcat_s(path, sizeof(path), name);
+        char path[MAX_PATH];
+        strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
+        strcat_s(path, sizeof(path), name);
 
-            farc* f = new farc;
-            for (auto& i : stage_data_effect_auth_3ds)
-                x_pv_game_write_auth_3d(f, i);
+        farc* effstgpv_farc = new farc;
+        for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
+            for (uint32_t& j : i.auth_3d_ids) {
+                auth_3d* auth = auth_3d_data_get_auth_3d(j);
+                if (auth)
+                    x_pv_game_write_auth_3d(effstgpv_farc, auth);
+            }
 
-            for (auto& i : stage_data_change_effect_auth_3ds)
-                x_pv_game_write_auth_3d(f, i);
+        for (auth_3d*& i : stage_data_effect_auth_3ds)
+            x_pv_game_write_auth_3d(effstgpv_farc, i);
 
-            f->write(path, FARC_FArC, FARC_NONE, false);
-            delete f;
-        }
+        for (auth_3d*& i : stage_data_change_effect_auth_3ds)
+            x_pv_game_write_auth_3d(effstgpv_farc, i);
+
+        if (effstgpv_farc->files.size())
+            effstgpv_farc->write(path, FARC_FArC, FARC_NONE, false);
+        delete effstgpv_farc;
 
         for (auto& i : glitter_eff_groups)
             x_pv_game_write_glitter(i);
@@ -6624,7 +6656,9 @@ bool x_pv_game::ctrl() {
         x_pv_game_map_auth_3d_to_mot(this, true);
 #endif
 
+#if !BAKE_X_PACK
         pause = true;
+#endif
 
         state_old = 20;
         //sound_work_release_se("load01_2", false);
@@ -6635,7 +6669,9 @@ bool x_pv_game::ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
+#if !BAKE_X_PACK
         x_pv_game_music_ptr->set_pause(pause ? 1 : 0);
+#endif
 
 #if BAKE_PV826
         x_pv_game_map_auth_3d_to_mot(this, delta_frame != 0.0f);
@@ -7604,7 +7640,9 @@ bool x_pv_game::unload() {
 }
 
 void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
+#if !BAKE_X_PACK
     x_pv_game_music_ptr->ctrl(delta_time);
+#endif
 
 #if BAKE_PV826
     for (int32_t i = 0; i < pv_count; i++)
@@ -7698,6 +7736,49 @@ void x_pv_game::stop_current_pv() {
 }
 
 #if BAKE_X_PACK
+XPVGameBaker::XPVGameBaker() : charas(), modules(), start(), exit(), next() {
+    pv_id = 800;
+    stage_id = 0;
+    chara_index = CHARA_MIKU;
+
+    for (::chara_index& i : charas)
+        i = CHARA_MIKU;
+
+    for (int32_t& i : modules)
+        i = 0;
+
+    next = true;
+}
+
+XPVGameBaker::~XPVGameBaker() {
+
+}
+
+bool XPVGameBaker::init() {
+    return true;
+}
+
+bool XPVGameBaker::ctrl() {
+    if (!next)
+        return false;
+
+    next = false;
+
+    switch (pv_id) {
+    case 832:
+        exit = true;
+        return true;
+    }
+
+    pv_id++;
+    stage_id++;
+    start = true;
+    return false;
+}
+
+bool XPVGameBaker::dest() {
+    return true;
+}
 #else
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     pv_id = 823;
@@ -7947,7 +8028,9 @@ void XPVGameSelector::window() {
 
 bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
+#if !BAKE_X_PACK
     x_pv_game_music_ptr = new x_pv_game_music;
+#endif
     return true;
 }
 
@@ -7974,16 +8057,35 @@ bool x_pv_game_free() {
         delete x_pv_game_ptr;
         x_pv_game_ptr = 0;
 
+#if !BAKE_X_PACK
         x_pv_game_music_ptr->stop_reset_flags();
 
         delete x_pv_game_music_ptr;
         x_pv_game_music_ptr = 0;
+#endif
 
     }
     return true;
 }
 
 #if BAKE_X_PACK
+bool x_pv_game_baker_init() {
+    if (!x_pv_game_baker_ptr)
+        x_pv_game_baker_ptr = new XPVGameBaker;
+    return true;
+}
+
+XPVGameBaker* x_pv_game_baker_get() {
+    return x_pv_game_baker_ptr;
+}
+
+bool x_pv_game_baker_free() {
+    if (x_pv_game_baker_ptr) {
+        delete x_pv_game_baker_ptr;
+        x_pv_game_baker_ptr = 0;
+    }
+    return true;
+}
 #else
 bool x_pv_game_selector_init() {
     if (!x_pv_game_selector_ptr)

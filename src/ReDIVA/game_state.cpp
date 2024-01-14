@@ -1236,6 +1236,13 @@ bool SubGameState::Selector::Init() {
 #endif
 
 #if BAKE_X_PACK
+    XPVGameBaker* baker = x_pv_game_baker_get();
+    if (!baker) {
+        x_pv_game_baker_init();
+        app::TaskWork::add_task(x_pv_game_baker_get(), "X PVGAME BAKER", 0);
+    }
+    else
+        baker->next = true;
 #else
     x_pv_game_selector_init();
     app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
@@ -1290,6 +1297,15 @@ bool SubGameState::Selector::Ctrl() {
 
 #if defined(CRE_DEV)
 #if BAKE_X_PACK
+    XPVGameBaker* baker = x_pv_game_baker_get();
+    if (baker->start && x_pv_game_init()) {
+        app::TaskWork::add_task(x_pv_game_get(), "PVGAME", 0);
+        x_pv_game_get()->load(baker->pv_id, baker->stage_id, baker->charas, baker->modules);
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
+    }
+    else
+        game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+    return true;
 #else
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (sel->exit) {
@@ -1323,6 +1339,19 @@ bool SubGameState::Selector::Dest() {
 #endif
 
 #if BAKE_X_PACK
+    XPVGameBaker* baker = x_pv_game_baker_get();
+    if (baker && baker->start) {
+        baker->start = false;
+        return true;
+    }
+    else if (baker && !baker->exit)
+        return false;
+    else if (app::TaskWork::check_task_ready(baker)) {
+        baker->del();
+        return false;
+    }
+
+    x_pv_game_baker_free();
 #else
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (app::TaskWork::check_task_ready(sel)) {
@@ -1372,6 +1401,11 @@ bool SubGameState::GameMain::Dest() {
 #endif
     if (!res)
         return false;
+#if BAKE_X_PACK
+    XPVGameBaker* baker = x_pv_game_baker_get();
+    if (baker)
+        game_state_set_sub_game_state_next(SUB_GAME_STATE_SELECTOR);
+#endif
 #endif
 
     rctx_ptr->render_manager->set_multisample(true);
