@@ -518,7 +518,7 @@ inline vec2::vec2(float_t x, float_t y) : x(x), y(y) {
 }
 
 inline __m128 vec2::load_xmm(const float_t data) {
-    __m128 _data = _mm_set_ss(data);
+    __m128 _data = _mm_load_ss(&data);
     return _mm_shuffle_ps(_data, _data, 0x50);
 }
 
@@ -754,7 +754,7 @@ inline vec2 vec2::normalize_rcp(const vec2& left) {
     zt = _mm_mul_ps(xt, xt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
     if (_mm_cvtss_f32(zt) != 0.0f)
-        zt = _mm_div_ss(_mm_set_ss(1.0f), zt);
+        zt = _mm_div_ss(vec4::load_xmm(1.0f), zt);
     return vec2::store_xmm(_mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)));
 }
 
@@ -965,7 +965,7 @@ inline bool operator !=(const vec3& left, const vec3& right) {
 }
 
 inline __m128 vec3::load_xmm(const float_t data) {
-    __m128 _data = _mm_set_ss(data);
+    __m128 _data = _mm_load_ss(&data);
     return _mm_shuffle_ps(_data, _data, 0x40);
 }
 
@@ -1086,7 +1086,7 @@ inline vec3 vec3::normalize_rcp(const vec3& left) {
     zt = _mm_hadd_ps(zt, zt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
     if (_mm_cvtss_f32(zt) != 0.0f)
-        zt = _mm_div_ss(_mm_set_ss(1.0f), zt);
+        zt = _mm_div_ss(vec4::load_xmm(1.0f), zt);
     return vec3::store_xmm(_mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)));
 }
 
@@ -1310,7 +1310,7 @@ inline bool operator !=(const vec4& left, const vec4& right) {
 }
 
 inline __m128 vec4::load_xmm(const float_t data) {
-    __m128 _data = _mm_set_ss(data);
+    __m128 _data = _mm_load_ss(&data);
     return _mm_shuffle_ps(_data, _data, 0);
 }
 
@@ -1421,7 +1421,7 @@ inline vec4 vec4::normalize_rcp(const vec4& left) {
     zt = _mm_hadd_ps(zt, zt);
     zt = _mm_sqrt_ss(_mm_hadd_ps(zt, zt));
     if (_mm_cvtss_f32(zt) != 0.0f)
-        zt = _mm_div_ss(_mm_set_ss(1.0f), zt);
+        zt = _mm_div_ss(vec4::load_xmm(1.0f), zt);
     return vec4::store_xmm(_mm_mul_ps(xt, _mm_shuffle_ps(zt, zt, 0)));
 }
 
@@ -1739,7 +1739,7 @@ inline vec2d::vec2d(double_t x, double_t y) : x(x), y(y) {
 }
 
 inline __m128d vec2d::load_xmm(const double_t data) {
-    __m128d _data = _mm_set_sd(data);
+    __m128d _data = _mm_load_sd(&data);
     return _mm_shuffle_pd(_data, _data, 0);
 }
 
@@ -1975,7 +1975,7 @@ inline vec2d vec2d::normalize_rcp(const vec2d& left) {
     zt = _mm_mul_pd(xt, xt);
     zt = _mm_sqrt_sd(_mm_hadd_pd(zt, zt), zt);
     if (_mm_cvtsd_f64(zt) != 0.0f)
-        zt = _mm_div_sd(_mm_set_sd(1.0), zt);
+        zt = _mm_div_sd(vec2d::load_xmm(1.0), zt);
     return vec2d::store_xmm(_mm_mul_pd(xt, _mm_shuffle_pd(zt, zt, 0)));
 }
 
