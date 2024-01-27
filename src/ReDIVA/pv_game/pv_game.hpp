@@ -135,6 +135,7 @@ struct pv_effect_resource {
     float_t emission;
 
     pv_effect_resource();
+    pv_effect_resource(const std::string& name, float_t emission);
     ~pv_effect_resource();
 };
 

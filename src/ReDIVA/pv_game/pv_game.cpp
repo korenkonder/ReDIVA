@@ -272,6 +272,10 @@ pv_effect_resource::pv_effect_resource() : emission() {
 
 }
 
+pv_effect_resource::pv_effect_resource(const std::string& name, float_t emission) : name(name), emission(emission) {
+
+}
+
 pv_effect_resource::~pv_effect_resource() {
 
 }
@@ -3039,14 +3043,11 @@ bool pv_game::load() {
                 if (Glitter::glt_particle_manager) {
                     int32_t emision_rs_list_index = 0;
                     for (const std::string& j : i.effect_rs_list) {
-                        float_t emission = -1.0;
+                        float_t emission = -1.0f;
                         if (emision_rs_list_index < i.effect_emision_rs_list.size())
                             emission = i.effect_emision_rs_list[emision_rs_list_index++];
 
-                        pv_effect_resource pv_eff;
-                        pv_eff.name.assign(j);
-                        pv_eff.emission = emission;
-                        data.effect_rs_list.push_back(pv_eff);
+                        data.effect_rs_list.push_back({ j, emission });
                     }
 
                     for (const std::string& j : i.play_eff_list)
