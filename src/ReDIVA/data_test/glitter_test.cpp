@@ -67,7 +67,7 @@ TaskDataTestGlitterParticle::~TaskDataTestGlitterParticle() {
 bool TaskDataTestGlitterParticle::init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-    Glitter::glt_particle_manager->counter = (uint32_t)(time.LowPart * hash_murmurhash_empty);
+    Glitter::counter.value = (uint32_t)(time.LowPart * hash_murmurhash_empty);
 
     clear_color = 0xFF606060;
 

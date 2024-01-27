@@ -3454,7 +3454,7 @@ bool pv_game::load() {
                 j.read_file(aft_auth_3d_db);
 
         if (Glitter::glt_particle_manager) {
-            Glitter::glt_particle_manager->counter = 0;
+            Glitter::counter.Reset();
             for (pv_effect_resource& i : data.effect_rs_list) {
                 uint64_t hash = Glitter::glt_particle_manager->LoadFile(Glitter::FT,
                     aft_data, i.name.c_str(), 0, i.emission, true, aft_obj_db);
@@ -3838,7 +3838,7 @@ bool pv_game::load() {
         data.play_data.init_aet_edit_effect(-1, "eff", false, false);
         data.play_data.free_aet_title_image();
         data.title_image_state = 0;
-        Glitter::glt_particle_manager->counter = 0;
+        Glitter::counter.Reset();
         rctx_ptr->disp_manager->object_culling = true;
         loaded = true;
         state = false;

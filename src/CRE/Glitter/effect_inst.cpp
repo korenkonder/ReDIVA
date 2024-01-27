@@ -115,7 +115,7 @@ namespace Glitter {
     F2EffectInst::F2EffectInst(GPM, GLT, Effect* eff,
         size_t id, float_t emission, bool appear_now)
         : EffectInst(GPM_VAL, GLT_VAL, eff, id, emission, appear_now) {
-        random_ptr = &GPM_VAL->random;
+        random_ptr = &Glitter::random;
         ext_anim = 0;
 
         if (!(eff->data.flags & EFFECT_LOCAL) && data.ext_anim) {
@@ -618,7 +618,7 @@ namespace Glitter {
         ext_anim = 0;
         render_scene = {};
 
-        GPM_VAL->CounterIncrement();
+        counter.Increment();
 
         if (load_flags & 0x01)
             enum_or(flags, EFFECT_INST_FLAG_23);
@@ -626,7 +626,7 @@ namespace Glitter {
         if (data.flags & EFFECT_USE_SEED)
             random = data.seed;
         else
-            random = GPM_VAL->CounterGet();
+            random = counter.GetValue();
         random_shared.value = random;
 
         if (!(eff->data.flags & EFFECT_LOCAL) && data.ext_anim_x) {

@@ -107,7 +107,7 @@ public:
     int32_t start_frame;
     int32_t end_frame;
     Glitter::Random random;
-    int32_t counter;
+    Glitter::Counter counter;
     Glitter::EffectGroup* effect_group;
     Glitter::Scene* scene;
     uint64_t hash;

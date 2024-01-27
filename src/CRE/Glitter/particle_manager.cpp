@@ -10,6 +10,8 @@ extern render_context* rctx_ptr;
 
 namespace Glitter {
     GltParticleManager* glt_particle_manager;
+    Random random;
+    Counter counter;
 
     Camera::Camera() : rotation_y() {
 
@@ -20,7 +22,7 @@ namespace Glitter {
         selected_scene(), selected_effect(), selected_emitter(), selected_particle(),
 #endif
         bone_data(), frame_rate(), cam(), flags(),
-        scene_load_counter(), texture_counter(), random(), counter(), draw_selected() {
+        scene_load_counter(), texture_counter(), draw_selected() {
         emission = 1.5f;
         delta_frame = 2.0f;
         draw_all = true;
@@ -214,14 +216,6 @@ namespace Glitter {
         sc->fade_frame = 30.0f;
     }
 #endif
-
-    int32_t GltParticleManager::CounterGet() {
-        return counter;
-    }
-
-    void GltParticleManager::CounterIncrement() {
-        counter++;
-    }
 
     void GltParticleManager::CtrlScenes() {
         camera* c = rctx_ptr->camera;
@@ -849,11 +843,11 @@ namespace Glitter {
 
     #if defined(CRE_DEV)
     void GltParticleManager::SetFrame(EffectGroup* effect_group,
-        Scene** scene, float_t curr_frame, float_t prev_frame,
-        uint32_t counter, Random* random, bool reset) {
+        Scene*& scene, float_t curr_frame, float_t prev_frame,
+        const Counter& counter, const Random& random, bool reset) {
         if (curr_frame < prev_frame || reset) {
             for (auto i = scenes.begin(); i != scenes.end();) {
-                if (!*i || *i != *scene) {
+                if (!*i || *i != scene) {
                     i++;
                     continue;
                 }
@@ -863,13 +857,13 @@ namespace Glitter {
                 break;
             }
 
-            this->counter = counter;
-            this->random = *random;
+            Glitter::counter = counter;
+            Glitter::random = random;
 
             LoadScene(effect_group->hash, effect_group->type != Glitter::FT
                 ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
-            *scene = GetScene(effect_group->hash);
-            enum_or((*scene)->flags, SCENE_EDITOR);
+            scene = GetScene(effect_group->hash);
+            enum_or(scene->flags, SCENE_EDITOR);
             prev_frame = 0.0f;
         }
 
@@ -879,7 +873,7 @@ namespace Glitter {
             if (delta_frame > delta)
                 delta_frame = delta;
 
-            Scene* s = *scene;
+            Scene* s = scene;
             if (s && !s->HasEnded(true))
                 if (s->type == Glitter::F2) {
                     s->delta_frame_history += delta_frame;

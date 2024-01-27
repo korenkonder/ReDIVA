@@ -7356,6 +7356,7 @@ void x_pv_game::load(int32_t pv_id, int32_t stage_id, chara_index charas[6], int
     frame_float = 0.0;
     time = 0;
 
+    Glitter::counter.Reset();
     Glitter::glt_particle_manager->draw_all = false;
     //sound_work_play_se(1, "load01_2", 1.0f);
 }
@@ -8711,8 +8712,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
 #endif
 
 static void x_pv_game_reset_field(x_pv_game* xpvgm) {
-    task_stage_modern_info().set_stage();
-    Glitter::glt_particle_manager->FreeScenes();
+
 }
 
 struct x_pv_game_auth_3d_hrc_obj_sub_mesh {

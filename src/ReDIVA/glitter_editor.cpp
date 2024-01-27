@@ -356,11 +356,11 @@ GlitterEditor::~GlitterEditor() {
 bool GlitterEditor::init() {
     LARGE_INTEGER time;
     QueryPerformanceCounter(&time);
-    Glitter::glt_particle_manager->random.value = (uint32_t)(time.LowPart * hash_fnv1a64m_empty);
-    Glitter::glt_particle_manager->random.step = 1;
+    Glitter::random.value = (uint32_t)(time.LowPart * hash_fnv1a64m_empty);
+    Glitter::random.step = 1;
 
     QueryPerformanceCounter(&time);
-    Glitter::glt_particle_manager->counter = (uint32_t)(time.LowPart * hash_murmurhash_empty);
+    Glitter::counter.value = (uint32_t)(time.LowPart * hash_murmurhash_empty);
 
     Glitter::glt_particle_manager->emission = 1.0f;
     Glitter::glt_particle_manager->draw_all = true;
@@ -1116,8 +1116,8 @@ bool GlitterEditor::ctrl() {
     if (input_reload) {
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
         effect_group->emission = Glitter::glt_particle_manager->emission;
-        Glitter::glt_particle_manager->SetFrame(effect_group, &scene,
-            frame_counter, old_frame_counter, counter, &random, true);
+        Glitter::glt_particle_manager->SetFrame(effect_group, scene,
+            frame_counter, old_frame_counter, counter, random, true);
         Glitter::glt_particle_manager->selected_scene = scene;
         scene_counter = scene->counter;
         old_frame_counter = frame_counter;
@@ -1132,8 +1132,8 @@ bool GlitterEditor::ctrl() {
         if (frame_counter < (float_t)start_frame)
             frame_counter = (float_t)start_frame;
 
-        Glitter::glt_particle_manager->SetFrame(effect_group, &scene,
-            frame_counter, old_frame_counter, counter, &random, false);
+        Glitter::glt_particle_manager->SetFrame(effect_group, scene,
+            frame_counter, old_frame_counter, counter, random, false);
         Glitter::glt_particle_manager->selected_scene = scene;
         scene_counter = scene->counter;
         old_frame_counter = frame_counter;
@@ -1142,10 +1142,10 @@ bool GlitterEditor::ctrl() {
     if (input_play)
         input_pause = false;
     else if (input_reset) {
-        Glitter::glt_particle_manager->counter = counter;
+        Glitter::counter = counter;
         frame_counter = (float_t)start_frame;
-        Glitter::glt_particle_manager->SetFrame(effect_group, &scene,
-            frame_counter, old_frame_counter, counter, &random, true);
+        Glitter::glt_particle_manager->SetFrame(effect_group, scene,
+            frame_counter, old_frame_counter, counter, random, true);
         Glitter::glt_particle_manager->selected_scene = scene;
         scene_counter = scene->counter;
         old_frame_counter = frame_counter;
@@ -1737,7 +1737,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
                         }
                     }
                 }
-                glt_edt->counter = Glitter::glt_particle_manager->counter;
+                glt_edt->counter = Glitter::counter;
                 glt_edt->effect_group = eg;
                 glt_edt->scene = sc;
                 glt_edt->scene_counter = sc->counter;
@@ -1745,7 +1745,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
             }
             else {
                 Glitter::glt_particle_manager->UnloadEffectGroup(eg->hash);
-                glt_edt->counter = 0;
+                glt_edt->counter.Reset();
                 glt_edt->effect_group = 0;
                 glt_edt->scene = 0;
                 glt_edt->scene_counter = 0;

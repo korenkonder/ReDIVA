@@ -173,8 +173,8 @@ namespace Glitter {
 
     void F2ParticleInst::EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
         F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random) {
-        GPM_VAL->CounterIncrement();
-        random->SetValue(GPM_VAL->CounterGet());
+        counter.Increment();
+        random->SetValue(counter.GetValue());
         rend_elem->random = random->F2GetInt(GLT_VAL, Random::F2GetMax(GLT_VAL));
         rend_elem->frame = 0.0f;
         rend_elem->rebound_time = 0.0f;

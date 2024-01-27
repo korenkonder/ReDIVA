@@ -406,6 +406,7 @@ namespace Glitter {
     struct Animation;
     struct Buffer;
     struct Camera;
+    struct Counter;
     struct Curve;
     class Effect;
     class Emitter;
@@ -756,6 +757,16 @@ namespace Glitter {
 
         static int32_t F2GetMax(GLT);
         static int32_t XGetMax();
+    };
+
+    struct Counter {
+        uint32_t value;
+
+        Counter();
+
+        void Increment();
+        uint32_t GetValue();
+        void Reset();
     };
 
     class RenderGroup {
@@ -1598,8 +1609,6 @@ namespace Glitter {
         float_t emission;
         float_t delta_frame;
         uint32_t texture_counter;
-        Random random;
-        uint32_t counter;
         bool draw_all;
         bool draw_all_mesh;
         bool draw_selected;
@@ -1624,8 +1633,6 @@ namespace Glitter {
 #if defined(CRE_DEV)
         void CheckSceneHasLocalEffect(Scene* sc);
 #endif
-        int32_t CounterGet();
-        void CounterIncrement();
         void CtrlScenes();
         void DispScenes(DispType disp_type);
         void FreeEffects();
@@ -1656,8 +1663,8 @@ namespace Glitter {
         bool SceneHasNotEnded(SceneCounter load_counter);
 #if defined(CRE_DEV)
         void SetFrame(EffectGroup* effect_group,
-            Scene** scene, float_t curr_frame, float_t prev_frame,
-            uint32_t counter, Random* random, bool reset);
+            Scene*& scene, float_t curr_frame, float_t prev_frame,
+            const Counter& counter, const Random& random, bool reset);
 #endif
         void SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
             uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
@@ -1672,6 +1679,8 @@ namespace Glitter {
     };
 
     extern GltParticleManager* glt_particle_manager;
+    extern Random random;
+    extern Counter counter;
 
     extern void axis_angle_from_vectors(vec3* axis, float_t* angle, const vec3* vec0, const vec3* vec1);
 
