@@ -45,6 +45,7 @@ namespace Glitter {
     bool GltParticleManager::ctrl() {
         if (flags & PARTICLE_MANAGER_READ_FILES) {
             field_D4 = field_D0;
+
             for (auto i = file_readers.begin(); i != file_readers.end();)
                 if (!*i || (*i)->ReadFarc(this)) {
                     delete* i;

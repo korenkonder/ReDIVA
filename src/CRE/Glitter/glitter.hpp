@@ -1586,7 +1586,7 @@ namespace Glitter {
         bool HasEnded(bool a2);
         bool HasEnded(size_t id, bool a3);
         void InitEffect(GPM, Effect* eff, size_t id, bool appear_now, uint8_t load_flags = 0);
-        bool ResetCheckInit(GPM, float_t* a2);
+        bool ResetCheckInit(GPM, float_t* a2 = 0);
         bool ResetEffect(GPM, uint64_t effect_hash, size_t* id = 0);
         bool SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
         bool SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a);
@@ -1683,6 +1683,7 @@ namespace Glitter {
 #endif
         void SetPause(bool value);
         void UnloadEffectGroup(uint64_t hash);
+
         void sub_1403A53E0(float_t a2);
     };
 

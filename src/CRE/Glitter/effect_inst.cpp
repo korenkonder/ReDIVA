@@ -576,9 +576,10 @@ namespace Glitter {
                 *a3 -= start_time;
         }
 
+        const float_t emission = sc->emission;
         while (start_time > 0.0f) {
             enum_or(flags, EFFECT_INST_JUST_INIT);
-            if (start_time < delta_frame)
+            if (delta_frame > start_time)
                 delta_frame -= start_time;
 
             if (frame0 >= 0.0f) {
@@ -600,12 +601,12 @@ namespace Glitter {
                 if (frame0 < (float_t)data.life_time) {
                     for (F2EmitterInst*& i : emitters)
                         if (i)
-                            i->Emit(GPM_VAL, GLT_VAL, delta_frame, sc->emission);
+                            i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
                 }
                 else if (data.flags & EFFECT_LOOP)
                     frame0 -= (float_t)data.life_time;
                 else
-                    Free(GPM_VAL, GLT_VAL, sc->emission, false);
+                    Free(GPM_VAL, GLT_VAL, emission, false);
 
                 render_scene.Ctrl(GLT_VAL, delta_frame);
             }
@@ -1138,9 +1139,10 @@ namespace Glitter {
                 *a3 -= start_time;
         }
 
+        const float_t emission = sc->emission;
         while (start_time > 0.0f) {
             enum_or(flags, EFFECT_INST_JUST_INIT);
-            if (start_time < delta_frame)
+            if (delta_frame > start_time)
                 delta_frame -= start_time;
 
             if (frame0 >= 0.0f) {
@@ -1162,12 +1164,12 @@ namespace Glitter {
                 if (frame0 < (float_t)data.life_time) {
                     for (XEmitterInst*& i : emitters)
                         if (i)
-                            i->Emit(delta_frame, sc->emission);
+                            i->Emit(delta_frame, emission);
                 }
                 else if (data.flags & EFFECT_LOOP)
                     frame0 -= (float_t)data.life_time;
                 else
-                    Free(GPM_VAL, Glitter::X, sc->emission, false);
+                    Free(GPM_VAL, Glitter::X, emission, false);
 
                 render_scene.Ctrl(delta_frame, false);
             }
