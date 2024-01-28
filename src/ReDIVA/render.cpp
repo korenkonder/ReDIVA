@@ -56,12 +56,14 @@
 #include "data_test/stage_test.hpp"
 #include "information/dw_console.hpp"
 #include "pv_game/pv_game.hpp"
+#include "classes.hpp"
 #include "game_state.hpp"
 #include "glitter_editor.hpp"
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
 #include "input_state.hpp"
+#include "shared.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
 #include <glad/glad.h>
@@ -1106,6 +1108,8 @@ static void render_context_ctrl(render_context* rctx) {
 #endif
 #endif
 
+    classes_process_ctrl(classes, classes_count);
+
     rctx_ptr = rctx;
     input_state_ctrl();
     game_state_ctrl();
@@ -1435,6 +1439,11 @@ static void render_imgui_context_menu(classes_data* classes,
                 render_imgui_context_menu(c->sub_classes, c->sub_classes_count, rctx);
                 ImGui::EndMenu();
             }
+        }
+        else if (c->data.flags & CLASS_DW) {
+            if (ImGui::MenuItem(c->name, 0))
+                if (c->init)
+                    c->init(0, 0);
         }
         else if (!(c->data.flags & CLASS_HIDDEN))
             ImGui::MenuItem(c->name, 0, false, false);

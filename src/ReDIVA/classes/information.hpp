@@ -8,7 +8,9 @@
 #include "../classes.hpp"
 
 enum information_classes_enum {
+    INFORMATION_CONSOLE,
     INFORMATION_FRAME_SPEED,
+    INFORMATION_TASK,
     INFORMATION_MAX,
 };
 

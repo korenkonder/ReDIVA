@@ -30,11 +30,11 @@ classes_data graphics_classes[] = {
     {
         "Light##Graphics",
         CLASSES_IN_CONTEXT_MENU,
-        (bool(*)(class_data*, render_context*))light_dw_init,
+        (classes_init_func)light_dw_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },

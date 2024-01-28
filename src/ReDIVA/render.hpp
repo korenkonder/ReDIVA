@@ -5,7 +5,6 @@
 
 #pragma once
 
-#include "shared.hpp"
 #include "../KKdLib/vec.hpp"
 
 enum render_scale {

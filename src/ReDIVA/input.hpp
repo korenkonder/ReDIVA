@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "shared.hpp"
+#include "../KKdLib/default.hpp"
 #include <GLFW/glfw3.h>
 
 namespace Input {

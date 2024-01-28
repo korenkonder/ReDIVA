@@ -6,10 +6,13 @@
 */
 
 #include "input.hpp"
-#include <map>
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/vec.hpp"
+#include "../CRE/lock.hpp"
+#include <map>
+#include <vector>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
+#include <imgui/imgui.h>
 #include <timeapi.h>
 
 double_t input_movement_speed = 0.1;

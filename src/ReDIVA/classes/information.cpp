@@ -12,11 +12,11 @@ classes_data information_classes[] = {
     {
         "Console##Information",
         CLASSES_IN_CONTEXT_MENU,
-        (bool(*)(class_data*, render_context*))dw_console_init,
+        (classes_init_func)dw_console_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },
