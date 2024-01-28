@@ -876,6 +876,7 @@ namespace Glitter {
 
     class EffectInst {
     public:
+        bool init;
 #if defined(CRE_DEV)
         std::string name;
 #endif
@@ -900,7 +901,7 @@ namespace Glitter {
         float_t some_scale;
 
         EffectInst(GPM, GLT, Effect* eff,
-            size_t id, float_t emission, bool appear_now);
+            size_t id, bool appear_now, bool init);
         virtual ~EffectInst();
 
         virtual void CalcDisp(GPM) = 0;
@@ -911,7 +912,8 @@ namespace Glitter {
         virtual size_t GetCtrlCount(ParticleType type) = 0;
         virtual size_t GetDispCount(ParticleType type) = 0;
         virtual bool HasEnded(bool a2) = 0;
-        virtual void Reset(GPM, GLT, float_t emission) = 0;
+        virtual void Reset(GPM, GLT, Scene* sc) = 0;
+        virtual bool ResetCheckInit(GPM, GLT, Scene* sc, float_t* a3 = 0) = 0;
 
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale);
         void SetExtColor(bool set, float_t r, float_t g, float_t b, float_t a);
@@ -948,7 +950,7 @@ namespace Glitter {
         ExtAnim* ext_anim;
         F2RenderScene render_scene;
 
-        F2EffectInst(GPM, GLT, Effect* eff, size_t id, float_t emission, bool appear_now);
+        F2EffectInst(GPM, GLT, Effect* eff, size_t id, Scene* sc, bool appear_now, bool init);
         virtual ~F2EffectInst() override;
 
         virtual void CalcDisp(GPM) override;
@@ -959,9 +961,9 @@ namespace Glitter {
         virtual size_t GetCtrlCount(ParticleType type) override;
         virtual size_t GetDispCount(ParticleType type) override;
         virtual bool HasEnded(bool a2) override;
-        virtual void Reset(GPM, GLT, float_t emission) override;
+        virtual void Reset(GPM, GLT, Scene* sc) override;
+        virtual bool ResetCheckInit(GPM, GLT, Scene* sc, float_t* a3 = 0) override;
 
-        void CtrlInit(GPM, GLT, float_t emission);
         void CtrlMat(GPM, GLT);
         DispType GetDispType();
         void GetExtAnim();
@@ -969,6 +971,7 @@ namespace Glitter {
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
         FogType GetFog();
         void GetValue(GLT);
+        bool ResetInit(GPM, GLT, Scene* sc, float_t* a3 = 0);
     };
 
     class XEffectInst : public EffectInst {
@@ -1004,7 +1007,7 @@ namespace Glitter {
         ExtAnim* ext_anim;
         XRenderScene render_scene;
 
-        XEffectInst(GPM, Effect* eff, size_t id, float_t emission, bool appear_now, uint8_t load_flags = 0);
+        XEffectInst(GPM, Effect* eff, size_t id, Scene* sc, bool appear_now, bool init, uint8_t load_flags = 0);
         virtual ~XEffectInst() override;
 
         virtual void CalcDisp(GPM) override;
@@ -1015,9 +1018,9 @@ namespace Glitter {
         virtual size_t GetCtrlCount(ParticleType type) override;
         virtual size_t GetDispCount(ParticleType type) override;
         virtual bool HasEnded(bool a2) override;
-        virtual void Reset(GPM, GLT, float_t emission) override;
+        virtual void Reset(GPM, GLT, Scene* sc) override;
+        virtual bool ResetCheckInit(GPM, GLT, Scene* sc, float_t* a3 = 0) override;
 
-        void CtrlInit(GPM, float_t emission);
         void CtrlMat(GPM);
         DispType GetDispType();
         void GetExtAnim();
@@ -1025,6 +1028,7 @@ namespace Glitter {
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
         FogType GetFog();
         void GetValue();
+        bool ResetInit(GPM, Scene* sc, float_t* a3 = 0);
         void SetExtAnim(const mat4* a2, const mat4* a3, const vec3* trans, bool set_flags);
     };
 
@@ -1186,6 +1190,7 @@ namespace Glitter {
         FileReader(GLT, const wchar_t* path, const wchar_t* file, float_t emission);
         virtual ~FileReader();
 
+        bool CheckInit(GPM);
         bool LoadFarc(void* data, const char* path, const char* file,
             uint64_t hash, object_database* obj_db = 0);
         void ParseAnimation(f2_struct* st, Animation* anim);
@@ -1581,6 +1586,7 @@ namespace Glitter {
         bool HasEnded(bool a2);
         bool HasEnded(size_t id, bool a3);
         void InitEffect(GPM, Effect* eff, size_t id, bool appear_now, uint8_t load_flags = 0);
+        bool ResetCheckInit(GPM, float_t* a2);
         bool ResetEffect(GPM, uint64_t effect_hash, size_t* id = 0);
         bool SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
         bool SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a);
@@ -1606,6 +1612,8 @@ namespace Glitter {
         Camera cam;
         ParticleManagerFlag flags;
         int32_t scene_load_counter;
+        float_t field_D0;
+        float_t field_D4;
         float_t emission;
         float_t delta_frame;
         uint32_t texture_counter;

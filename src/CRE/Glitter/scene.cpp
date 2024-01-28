@@ -274,17 +274,19 @@ namespace Glitter {
         if (!eff)
             return;
 
-        for (SceneEffect& i : effects)
-            if (i.ptr && i.disp && i.ptr->id == id) {
-                i.ptr->Reset(GPM_VAL, type, emission);
-                return;
-            }
+        bool init = !!(flags & SCENE_FLAG_3);
+        if (!init)
+            for (SceneEffect& i : effects)
+                if (i.ptr && i.disp && i.ptr->id == id) {
+                    i.ptr->Reset(GPM_VAL, type, this);
+                    return;
+                }
 
         SceneEffect effect;
         if (type != Glitter::X)
-            effect.ptr = new F2EffectInst(GPM_VAL, type, eff, id, emission, appear_now);
+            effect.ptr = new F2EffectInst(GPM_VAL, type, eff, id, this, appear_now, init);
         else
-            effect.ptr = new XEffectInst(GPM_VAL, eff, id, emission, appear_now, load_flags);
+            effect.ptr = new XEffectInst(GPM_VAL, eff, id, this, appear_now, init, load_flags);
         effect.disp = true;
         effects.push_back(effect);
 
@@ -292,6 +294,16 @@ namespace Glitter {
         if (type == Glitter::X)
             enum_and(flags, ~SCENE_ENDED);
 #endif
+    }
+
+    bool Scene::ResetCheckInit(GPM, float_t* a2) {
+        if (!(flags & SCENE_FLAG_3) || !effects.size())
+            return false;
+
+        for (SceneEffect& i : effects)
+            if (i.disp && i.ptr && i.ptr->ResetCheckInit(GPM_VAL, type, this, a2))
+                return true;
+        return false;
     }
 
     bool Scene::ResetEffect(GPM, uint64_t effect_hash, size_t* id) {
@@ -328,13 +340,13 @@ namespace Glitter {
             || type != Glitter::FT && effect_hash == hash_murmurhash_empty) {
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr)
-                    i.ptr->Reset(GPM_VAL, type, emission);
+                    i.ptr->Reset(GPM_VAL, type, this);
             return true;
         }
         else
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr && i.ptr->data.name_hash == effect_hash) {
-                    i.ptr->Reset(GPM_VAL, type, emission);
+                    i.ptr->Reset(GPM_VAL, type, this);
 
 #if defined(CRE_DEV)
                     enum_and(flags, ~SCENE_ENDED);

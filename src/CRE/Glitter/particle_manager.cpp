@@ -23,6 +23,8 @@ namespace Glitter {
 #endif
         bone_data(), frame_rate(), cam(), flags(),
         scene_load_counter(), texture_counter(), draw_selected() {
+        field_D0 = 20.0f;
+        field_D4 = 20.0f;
         emission = 1.5f;
         delta_frame = 2.0f;
         draw_all = true;
@@ -42,6 +44,7 @@ namespace Glitter {
 
     bool GltParticleManager::ctrl() {
         if (flags & PARTICLE_MANAGER_READ_FILES) {
+            field_D4 = field_D0;
             for (auto i = file_readers.begin(); i != file_readers.end();)
                 if (!*i || (*i)->ReadFarc(this)) {
                     delete* i;
@@ -571,7 +574,7 @@ namespace Glitter {
         if (!counter)
             return 0;
 
-        Scene* scene = new Scene(counter, effect_group_hash, eff_group, 0);
+        Scene* scene = new Scene(counter, effect_group_hash, eff_group, false);
         if (!scene)
             return 0;
 
@@ -781,7 +784,7 @@ namespace Glitter {
             if (!counter)
                 return 0;
 
-            Scene* scene = new Scene(counter, i.first, i.second, 0);
+            Scene* scene = new Scene(counter, i.first, i.second, false);
             if (!scene)
                 return 0;
 
@@ -950,9 +953,10 @@ namespace Glitter {
     }
 
     void GltParticleManager::sub_1403A53E0(float_t a2) {
-        //field_D4 = a2;
-        //if (a2 <= 0.0)
-        //    field_D4 = -1.0;
+        if (a2 <= 0.0f)
+            field_D4 = -1.0f;
+        else
+            field_D4 = a2;
     }
 
     void glt_particle_manager_init() {

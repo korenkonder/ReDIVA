@@ -49,6 +49,35 @@ namespace Glitter {
         delete file_handler;
     }
 
+    bool FileReader::CheckInit(GPM) {
+        if (!effect_group)
+            return true;
+
+        bool ret = 0;
+        if (!effect_group->scene_init) {
+            float_t v20 = Glitter::glt_particle_manager->field_D4;
+            if (Glitter::glt_particle_manager->field_D4 > 0.0f) {
+                if (effect_group->scene) {
+                    if (effect_group->scene->ResetCheckInit(GPM_VAL, &v20))
+                        ret = true;
+                    else
+                        effect_group->scene_init = true;
+                    glt_particle_manager->sub_1403A53E0(v20);
+                }
+                else
+                    effect_group->scene_init = true;
+            }
+            else
+                ret = true;
+        }
+
+        if (!ret) {
+            effect_group = 0;
+            return true;
+        }
+        return false;
+    }
+
     bool FileReader::LoadFarc(void* data, const char* path,
         const char* file, uint64_t hash, object_database* obj_db) {
         this->obj_db = obj_db;
@@ -361,8 +390,14 @@ namespace Glitter {
     }
 
     bool FileReader::ReadFarc(GPM) {
-        if (state)
+        if (state) {
+            if (state == 1)
+                if (CheckInit(GPM_VAL))
+                    state = 2;
+                else
+                    return false;
             return true;
+        }
 
         if (file_handler && !file_handler->check_not_ready()) {
             farc->read(file_handler->get_data(), file_handler->get_size(), true);
