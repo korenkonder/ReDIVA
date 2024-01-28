@@ -4,9 +4,9 @@
 */
 
 #include "graphics.hpp"
+#include "../graphics/face_light.hpp"
 #include "../graphics/light.hpp"
 #include "graphics/background_color.hpp"
-#include "graphics/face_light.hpp"
 #include "graphics/fog.hpp"
 #include "graphics/glitter.hpp"
 #include "graphics/post_process.hpp"
@@ -44,11 +44,11 @@ classes_data graphics_classes[] = {
     {
         "Face Light##Graphics",
         CLASSES_IN_CONTEXT_MENU,
-        graphics_face_light_init,
-        graphics_face_light_imgui,
-        graphics_face_light_dispose,
+        (classes_init_func)dw_face_light_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },
