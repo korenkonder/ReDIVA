@@ -508,7 +508,7 @@ DtwAet::~DtwAet() {
 }
 
 void DtwAet::Hide() {
-    SetDisp(false);
+    SetDisp();
 }
 
 void DtwAet::CenteringCallback(dw::Widget* data) {

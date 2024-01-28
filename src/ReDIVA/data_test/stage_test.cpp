@@ -126,7 +126,7 @@ void dtw_stg_init() {
 void dtw_stg_load(bool hide) {
     dtw_stg_init();
     if (hide)
-        dtw_stg->SetDisp(false);
+        dtw_stg->SetDisp();
 }
 
 void dtw_stg_unload() {
@@ -245,7 +245,7 @@ DtwStg::~DtwStg() {
 }
 
 void DtwStg::Hide() {
-    SetDisp(false);
+    SetDisp();
 }
 
 void DtwStg::PvIdCallback(dw::Widget* data) {

@@ -2360,7 +2360,7 @@ void DataTestMotDw::Draw() {
 }
 
 void DataTestMotDw::Hide() {
-    SetDisp(false);
+    SetDisp();
 }
 
 void DataTestMotDw::ClearIDs() {
@@ -2719,7 +2719,7 @@ void DataTestMotA3dDw::Draw() {
 }
 
 void DataTestMotA3dDw::Hide() {
-    SetDisp(false);
+    SetDisp();
     data_test_mot_a3d_del_task();
 }
 
@@ -2865,7 +2865,7 @@ void DataTestMotCtrlDw::Draw() {
 }
 
 void DataTestMotCtrlDw::Hide() {
-    Shell::SetDisp(false);
+    SetDisp();
 }
 
 void DataTestMotCtrlDw::ReloadDataCallback(dw::Widget* data) {

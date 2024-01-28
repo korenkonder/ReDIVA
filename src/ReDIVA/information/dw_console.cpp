@@ -156,7 +156,7 @@ void DwConsole::Draw() {
 }
 
 void DwConsole::Hide() {
-    SetDisp(false);
+    SetDisp();
 }
 
 void DwConsole::ListBoxCallback(dw::Widget* data) {

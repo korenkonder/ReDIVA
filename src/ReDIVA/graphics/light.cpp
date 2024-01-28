@@ -259,7 +259,7 @@ rectangle light_dw_rect = { 0.0f, vec2(256.0f, 610.0f) };
 static LightDw* light_dw_get();
 static light_data* light_dw_get_light();
 
-void light_dw_init() {
+void light_dw_init(dw::Widget* data) {
     if (!light_dw) {
         light_dw = new LightDw;
         light_dw->sub_1402F38B0();

@@ -353,7 +353,7 @@ namespace dw {
 
         void Disp();
         bool GetDisp();
-        void SetDisp(bool value);
+        void SetDisp(bool value = false);
 
         void sub_1402E43C0(Widget* widget);
         void sub_1402E61F0(Widget* widget);

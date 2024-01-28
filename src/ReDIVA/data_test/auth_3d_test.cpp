@@ -759,7 +759,7 @@ Auth3dTestRobWindow::~Auth3dTestRobWindow() {
 }
 
 void Auth3dTestRobWindow::Hide() {
-    SetDisp(false);
+    SetDisp();
 }
 
 void Auth3dTestRobWindow::GetCharaCos(::chara_index chara_index, int32_t chara_id, dw::ListBox* list_box) {
@@ -903,7 +903,7 @@ Auth3dTestSubWindow::~Auth3dTestSubWindow() {
 }
 
 void Auth3dTestSubWindow::Hide() {
-    SetDisp(false);
+    SetDisp();
 }
 
 void Auth3dTestSubWindow::ResetAet() {
@@ -1417,7 +1417,7 @@ Auth3dTestWindow::~Auth3dTestWindow() {
 }
 
 void Auth3dTestWindow::Hide() {
-    SetDisp(false);
+    SetDisp();
     sub_window->ResetAet();
     sub_window->Hide();
     rob_window->Hide();

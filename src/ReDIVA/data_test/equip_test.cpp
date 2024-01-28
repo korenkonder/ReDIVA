@@ -65,13 +65,13 @@ public:
     bool IsEquipAllowed(int32_t equip);
     void ItemReset();
     void ResetCharaItemCos(int32_t chara_id);
+    void SetCharaDisp(int32_t chara_id, bool value);
     void SetCharaID(int32_t value);
     void SetCharaIndex(int32_t chara_id, ::chara_index chara_index);
     void SetCharaItemCos(int32_t chara_id, const item_cos_data* cos);
     void SetCos(int32_t chara_id, const item_cos_data* cos);
     void SetCosId(int32_t chara_id, int32_t cos_id);
     void SetCurrentItemNo(int32_t chara_id, dw::Widget* data, int32_t value);
-    void SetDisp(int32_t chara_id, bool value);
     void SetDispParts(int32_t chara_id, int32_t parts);
     void SetItemNo(int32_t chara_id, int32_t value);
     void SetRefresh(int32_t chara_id, bool value);
@@ -455,7 +455,7 @@ DataTestEquipDw::~DataTestEquipDw() {
 }
 
 void DataTestEquipDw::Hide() {
-    dw::Shell::SetDisp(false);
+    SetDisp();
 
     for (DataTestEquipDw::Data& i : data)
         i.update_item = false;
@@ -559,6 +559,11 @@ void DataTestEquipDw::ResetCharaItemCos(int32_t chara_id) {
     data[chara_id].cos = 0;
 }
 
+void DataTestEquipDw::SetCharaDisp(int32_t chara_id, bool value) {
+    data[chara_id].disp = value;
+    data[chara_id].disp_parts = value ? 0 : 1;
+}
+
 void DataTestEquipDw::SetCharaID(int32_t value) {
     chara_id = value;
 }
@@ -602,11 +607,6 @@ void DataTestEquipDw::SetCurrentItemNo(int32_t chara_id, dw::Widget* data, int32
     this->data[chara_id].current_items[data->callback_data.i32] = value;
 }
 
-void DataTestEquipDw::SetDisp(int32_t chara_id, bool value) {
-    data[chara_id].disp = value;
-    data[chara_id].disp_parts = value ? 0 : 1;
-}
-
 void DataTestEquipDw::SetDispParts(int32_t chara_id, int32_t parts) {
     if (data[chara_id].disp)
         data[chara_id].disp_parts = parts;
@@ -643,7 +643,7 @@ void DataTestEquipDw::Disp2pCallback(dw::Widget* data) {
 void DataTestEquipDw::DispCallback(int32_t chara_id, dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button)
-        data_test_equip_dw->SetDisp(chara_id, button->value);
+        data_test_equip_dw->SetCharaDisp(chara_id, button->value);
 }
 
 void DataTestEquipDw::DispPartsCallback(dw::Widget* data) {
