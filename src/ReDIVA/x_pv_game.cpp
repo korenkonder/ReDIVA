@@ -1072,7 +1072,7 @@ void x_pv_game_effect::load_data(int32_t pv_id) {
         char buf[0x200];
         size_t len = sprintf_s(buf, sizeof(buf), "eff_pv%03d_main", pv_id);
         uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
-            x_data, buf, 0, -1.0f, false);
+            x_data, buf, 0, -1.0f, true);
         if (hash != hash_murmurhash_empty)
             pv_glitter.push_back(std::string(buf, len));
         break;
@@ -4771,7 +4771,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
         for (pvsr_effect& i : sr->effect) {
             uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
-                x_data, i.name.c_str(), 0, i.emission, false);
+                x_data, i.name.c_str(), 0, i.emission, true);
             if (hash != hash_murmurhash_empty)
                 stage_glitter.push_back(hash);
         }

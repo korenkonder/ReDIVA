@@ -365,6 +365,7 @@ bool GlitterEditor::init() {
     Glitter::glt_particle_manager->emission = 1.0f;
     Glitter::glt_particle_manager->draw_all = true;
     Glitter::glt_particle_manager->draw_all_mesh = true;
+    Glitter::glt_particle_manager->SetPause(true);
 
     reset();
     dtm_stg_load(0);
@@ -1171,6 +1172,7 @@ bool GlitterEditor::dest() {
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
     Glitter::glt_particle_manager->UnloadEffectGroup(hash);
     glitter_editor_enable = false;
+    Glitter::glt_particle_manager->SetPause(false);
     return true;
 }
 
@@ -1712,7 +1714,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     if (!glt_edt->load_data_wait) {
         glitter_editor_enable = true;
         glt_edt->hash = Glitter::glt_particle_manager->LoadFile(glt_edt->load_glt_type,
-            &data_list[glt_edt->load_data_type], file, path, -1.0f, false);
+            &data_list[glt_edt->load_data_type], file, path, -1.0f, true);
         glt_edt->load_data_wait = true;
     }
     else if (Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {

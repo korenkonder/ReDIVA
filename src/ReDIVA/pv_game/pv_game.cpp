@@ -3415,12 +3415,6 @@ bool pv_game::load() {
                 break;
             }
 
-        for (uint32_t& i : data.obj_set_itmpv)
-            if (object_storage_load_obj_set_check_not_read(i)) {
-                wait_load |= true;
-                break;
-            }
-
         for (uint32_t& i : data.obj_set_handitem)
             if (object_storage_load_obj_set_check_not_read(i)) {
                 wait_load |= true;
