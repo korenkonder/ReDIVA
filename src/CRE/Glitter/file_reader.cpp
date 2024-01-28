@@ -784,7 +784,7 @@ namespace Glitter {
                     memcpy(buf, (void*)d, 0x80);
                     buf[0x7F] = 0;
 
-                    i->name = buf;
+                    i->name.assign(buf);
                 }
                 d += 0x80;
             }
