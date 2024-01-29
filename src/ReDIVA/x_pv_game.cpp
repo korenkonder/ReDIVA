@@ -989,14 +989,6 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
             }
         }
 
-        data_struct* x_data = &data_list[DATA_X];
-
-        for (string_hash& i : pv_glitter) {
-            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash_murmurhash);
-            if (eff_group && eff_group->CheckModel())
-                eff_group->LoadModel(x_data);
-        }
-
         for (string_hash& i : pv_glitter)
             Glitter::glt_particle_manager->SetSceneName(i.hash_murmurhash, i.c_str());
 
@@ -1004,18 +996,8 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
         break;
     }
     case 12: {
-        bool wait_load = false;
-
-        for (string_hash& i : pv_glitter) {
-            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash_murmurhash);
-            if (eff_group && eff_group->CheckLoadModel())
-                wait_load |= true;
-        }
-
-        if (wait_load)
-            break;
-
         state = 20;
+        break;
     }
     case 20: {
         for (x_pv_game_song_effect& i : song_effect)
@@ -1267,13 +1249,8 @@ void x_pv_game_effect::unload() {
     for (string_hash& i : pv_obj_set)
         object_storage_unload_set(i.hash_murmurhash);
 
-    for (string_hash& i : pv_glitter) {
-        Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i.hash_murmurhash);
-        if (eff_group)
-            eff_group->FreeModel();
-
+    for (string_hash& i : pv_glitter)
         Glitter::glt_particle_manager->UnloadEffectGroup(i.hash_murmurhash);
-    }
 
     song_effect.clear();
     song_effect.resize(song_effect_count);
@@ -4801,12 +4778,6 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
         data_struct* x_data = &data_list[DATA_X];
 
-        for (uint32_t& i : stage_glitter) {
-            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i);
-            if (eff_group && eff_group->CheckModel())
-                eff_group->LoadModel(x_data);
-        }
-
         for (pvsr_effect& i : stage_resource->effect)
             Glitter::glt_particle_manager->SetSceneName(i.name.hash_murmurhash, i.name.c_str());
 
@@ -4902,12 +4873,6 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
                     if (k.id.check_not_empty() && !k.id.check_loaded())
                         wait_load |= true;
             }
-
-        for (uint32_t& i : stage_glitter) {
-            Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i);
-            if (eff_group && eff_group->CheckLoadModel())
-                wait_load |= true;
-        }
 
         if (wait_load)
             break;
@@ -5510,13 +5475,8 @@ void x_pv_game_stage::unload() {
             chg_eff.bar_count = 0;
         }
 
-    for (uint32_t& i : stage_glitter) {
-        Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(i);
-        if (eff_group)
-            eff_group->FreeModel();
-
+    for (uint32_t& i : stage_glitter)
         Glitter::glt_particle_manager->UnloadEffectGroup(i);
-    }
 
     stage_glitter.clear();
 

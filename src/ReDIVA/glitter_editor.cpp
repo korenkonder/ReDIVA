@@ -1017,17 +1017,6 @@ bool GlitterEditor::ctrl() {
                     load_success = false;
                 }
             }
-
-            switch (ds->type) {
-            case DATA_VRFL:
-            case DATA_X:
-            case DATA_XHD:
-                if (!load_data_wait && eg->CheckModel()) {
-                    eg->LoadModel(ds);
-                    load_data_wait = true;
-                }
-                break;
-            }
         } break;
         case DATA_AFT:
         case DATA_FT:
@@ -1053,19 +1042,8 @@ bool GlitterEditor::ctrl() {
         } break;
         }
 
-        if (load_data_wait)
-            switch (ds->type) {
-            case DATA_VRFL:
-            case DATA_X:
-            case DATA_XHD:
-                if (!eg->CheckLoadModel()) {
-                    load_data_wait = false;
-                    load_data = false;
-                }
-                break;
-            }
-        else
-            load_data = false;
+        load_data = false;
+        load_data_wait = false;
 
         if (!load_success && !glitter_editor_list_open_window(effect_group)) {
             load = false;
@@ -1080,16 +1058,6 @@ bool GlitterEditor::ctrl() {
     }
     else if (close) {
     effect_unload:
-        data_struct* ds = &data_list[load_data_type];
-        switch (ds->type) {
-        case DATA_VRFL:
-        case DATA_X:
-        case DATA_XHD:
-            if (eg)
-                eg->FreeModel();
-            break;
-        }
-
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
         Glitter::glt_particle_manager->UnloadEffectGroup(hash);
 

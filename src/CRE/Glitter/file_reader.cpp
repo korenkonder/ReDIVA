@@ -7,6 +7,7 @@
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/farc.hpp"
 #include "../data.hpp"
+#include "../object.hpp"
 
 namespace Glitter {
     FileReader::FileReader(GLT) : file_handler(), farc(), effect_group(),
@@ -53,7 +54,7 @@ namespace Glitter {
         if (!effect_group)
             return true;
 
-        bool ret = 0;
+        bool ret = false;
         if (!effect_group->scene_init) {
             float_t v20 = Glitter::glt_particle_manager->field_D4;
             if (Glitter::glt_particle_manager->field_D4 > 0.0f) {
@@ -70,6 +71,16 @@ namespace Glitter {
             else
                 ret = true;
         }
+
+#if defined(CRE_DEV)
+        if (type == Glitter::X)
+            for (Mesh& i : effect_group->meshes)
+                if (!i.ready && i.object_set_hash != hash_murmurhash_empty && i.object_set_hash != -1)
+                    if (object_storage_load_obj_set_check_not_read(i.object_set_hash))
+                        ret = true;
+                    else
+                        i.ready = true;
+#endif
 
         if (!ret) {
             effect_group = 0;
@@ -219,6 +230,15 @@ namespace Glitter {
                 return true;
         }
         else if (GPM_VAL->AppendEffectGroup(hash, eff_group, this)) {
+#if defined(CRE_DEV)
+            if (type == Glitter::X)
+                for (Mesh& i : eff_group->meshes)
+                    if (i.object_set_hash != hash_murmurhash_empty) {
+                        object_storage_load_set_hash(file_handler->ptr->ds, i.object_set_hash);
+                        i.load = true;
+                    }
+#endif
+
             if (!init_scene)
                 return true;
 
@@ -1677,6 +1697,8 @@ namespace Glitter {
                 //    ptcl->data.mesh.sub_mesh_hash = *(uint64_t*)(d + 80);
                 d += 88;
                 has_tex = false;
+
+                eff_group->meshes.push_back((uint32_t)ptcl->data.mesh.object_set_name_hash);
             }
             else
                 return false;

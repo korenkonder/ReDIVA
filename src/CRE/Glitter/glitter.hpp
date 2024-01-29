@@ -414,6 +414,7 @@ namespace Glitter {
     class F2EmitterInst;
     class XEmitterInst;
     class ItemBase;
+    struct Mesh;
     class Node;
     class Particle;
     class ParticleInst;
@@ -625,6 +626,22 @@ namespace Glitter {
         ItemBase& operator=(const ItemBase& item_base);
     };
 
+    struct Mesh {
+        uint32_t object_set_hash;
+        uint32_t object_hash;
+        bool load;
+        bool ready;
+
+        inline Mesh() : load(), ready() {
+            object_set_hash = hash_murmurhash_empty;
+            object_hash = hash_murmurhash_empty;
+        }
+
+        inline Mesh(uint32_t object_set_hash) : object_set_hash(object_set_hash), load(), ready() {
+            object_hash = hash_murmurhash_empty;
+        }
+    };
+
     class Node : public ItemBase {
     public:
         vec3 translation;
@@ -713,7 +730,7 @@ namespace Glitter {
         txp_set resources_tex;
         texture** resources;
 #if defined(CRE_DEV)
-        std::vector<uint32_t> object_set_ids;
+        std::vector<Mesh> meshes;
         std::string name;
 #endif
         bool not_loaded;
@@ -723,13 +740,6 @@ namespace Glitter {
 
         EffectGroup(GLT);
         virtual ~EffectGroup();
-
-#if defined(CRE_DEV)
-        bool CheckLoadModel();
-        bool CheckModel();
-        void FreeModel();
-        void LoadModel(void* data);
-#endif
     };
 
     struct Random {
