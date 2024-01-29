@@ -3197,7 +3197,7 @@ bool pv_game::load() {
 
         prj::sort_unique(data.loaded_auth_3d_uids);
         for (int32_t& i : data.loaded_auth_3d_uids) {
-            auth_3d_id id = auth_3d_data_load_uid(i, aft_auth_3d_db);
+            auth_3d_id id = auth_3d_id(i, aft_auth_3d_db);
             if (!id.check_not_empty())
                 continue;
 
@@ -3289,7 +3289,7 @@ bool pv_game::load() {
         itmpv_reset();
         for (struc_269& i : data.field_2DA08) {
             for (auto& j : i.data) {
-                auth_3d_id id = auth_3d_data_load_uid(j.second, aft_auth_3d_db);
+                auth_3d_id id = auth_3d_id(j.second, aft_auth_3d_db);
                 if (!id.check_not_empty())
                     continue;
 

@@ -2372,6 +2372,68 @@ auth_3d_uid_file_modern::~auth_3d_uid_file_modern() {
 
 }
 
+auth_3d_id::auth_3d_id(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db) {
+    id = -1;
+
+    int32_t index = 0;
+    while (auth_3d_data->data[index].uid != -1 || auth_3d_data->data[index].hash
+        != hash_murmurhash_empty && auth_3d_data->data[index].hash != -1)
+        if (++index >= AUTH_3D_DATA_COUNT)
+            return;
+
+    auto elem = auth_3d_data->uid_files_modern.find(hash);
+    if (elem == auth_3d_data->uid_files_modern.end())
+        elem = auth_3d_data->uid_files_modern.insert({ hash, {} }).first;
+
+    auth_3d_uid_file_modern* uid_file = &elem->second;
+    uid_file->load_count = 0;
+    uid_file->hash = hash;
+    uid_file->file_name.clear();
+    uid_file->file_name.shrink_to_fit();
+    uid_file->state = 0;
+    uid_file->name.clear();
+    uid_file->name.shrink_to_fit();
+    uid_file->farc = 0;
+    uid_file->data = data;
+    uid_file->obj_db = obj_db;
+    uid_file->tex_db = tex_db;
+
+    auth_3d_data->data[index].reset();
+
+    if (++auth_3d_load_counter < 0)
+        auth_3d_load_counter = 1;
+
+    int32_t id = ((auth_3d_load_counter & 0x7FFF) << 16) | index & 0x7FFF;
+    auth_3d_data->data[index].hash = hash;
+    auth_3d_data->data[index].id = id;
+    auth_3d_data->loaded_ids.push_back(id);
+    this->id = id;
+}
+
+auth_3d_id::auth_3d_id(int32_t uid, auth_3d_database* auth_3d_db) {
+    id = -1;
+
+    if (uid >= auth_3d_db->uid.size() || !auth_3d_db->uid[uid].enabled)
+        return;
+
+    int32_t index = 0;
+    while (auth_3d_data->data[index].uid != -1 || auth_3d_data->data[index].hash
+        != hash_murmurhash_empty && auth_3d_data->data[index].hash != -1)
+        if (++index >= AUTH_3D_DATA_COUNT)
+            return;
+
+    auth_3d_data->data[index].reset();
+
+    if (++auth_3d_load_counter < 0)
+        auth_3d_load_counter = 1;
+
+    int32_t id = ((auth_3d_load_counter & 0x7FFF) << 16) | index & 0x7FFF;
+    auth_3d_data->data[index].uid = uid;
+    auth_3d_data->data[index].id = id;
+    auth_3d_data->loaded_ids.push_back(id);
+    this->id = id;
+}
+
 bool auth_3d_id::check_not_empty() {
     if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
@@ -2948,64 +3010,6 @@ void auth_3d_data_load_category(const char* category_name, const char* mdata_dir
 
 void auth_3d_data_load_category(void* data, const char* category_name, uint32_t category_hash) {
     auth_3d_data_struct_load_category(auth_3d_data, data, category_name, category_hash);
-}
-
-auth_3d_id auth_3d_data_load_hash(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db) {
-    auto elem = auth_3d_data->uid_files_modern.find(hash);
-    if (elem == auth_3d_data->uid_files_modern.end())
-        elem = auth_3d_data->uid_files_modern.insert({ hash, {} }).first;
-
-    auth_3d_uid_file_modern* uid_file = &elem->second;
-    uid_file->load_count = 0;
-    uid_file->hash = hash;
-    uid_file->file_name.clear();
-    uid_file->file_name.shrink_to_fit();
-    uid_file->state = 0;
-    uid_file->name.clear();
-    uid_file->name.shrink_to_fit();
-    uid_file->farc = 0;
-    uid_file->data = data;
-    uid_file->obj_db = obj_db;
-    uid_file->tex_db = tex_db;
-
-    int32_t index = 0;
-    while (auth_3d_data->data[index].uid != -1 || auth_3d_data->data[index].hash
-        != hash_murmurhash_empty && auth_3d_data->data[index].hash != -1)
-        if (++index >= AUTH_3D_DATA_COUNT)
-            return auth_3d_id();
-
-    auth_3d_data->data[index].reset();
-
-    if (++auth_3d_load_counter < 0)
-        auth_3d_load_counter = 1;
-
-    int32_t id = ((auth_3d_load_counter & 0x7FFF) << 16) | index & 0x7FFF;
-    auth_3d_data->data[index].hash = hash;
-    auth_3d_data->data[index].id = id;
-    auth_3d_data->loaded_ids.push_back(id);
-    return auth_3d_id(id);
-}
-
-auth_3d_id auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db) {
-    if (uid >= auth_3d_db->uid.size() || !auth_3d_db->uid[uid].enabled)
-        return auth_3d_id();
-
-    int32_t index = 0;
-    while (auth_3d_data->data[index].uid != -1 || auth_3d_data->data[index].hash
-        != hash_murmurhash_empty && auth_3d_data->data[index].hash != -1)
-        if (++index >= AUTH_3D_DATA_COUNT)
-            return auth_3d_id();
-
-    auth_3d_data->data[index].reset();
-
-    if (++auth_3d_load_counter < 0)
-        auth_3d_load_counter = 1;
-
-    int32_t id = ((auth_3d_load_counter & 0x7FFF) << 16) | index & 0x7FFF;
-    auth_3d_data->data[index].uid = uid;
-    auth_3d_data->data[index].id = id;
-    auth_3d_data->loaded_ids.push_back(id);
-    return auth_3d_id(id);
 }
 
 void auth_3d_data_unload_category(const char* category_name) {

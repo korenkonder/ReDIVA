@@ -820,7 +820,7 @@ void x_pv_game_camera::ctrl(float_t curr_time) {
         if (!auth_3d_data_check_category_loaded(category.hash_murmurhash))
             break;
 
-        auth_3d_id id = auth_3d_data_load_hash(file.hash_murmurhash, &data_list[DATA_X], 0, 0);
+        auth_3d_id id = auth_3d_id(file.hash_murmurhash, &data_list[DATA_X], 0, 0);
         if (id.check_not_empty()) {
             id.read_file_modern();
             id.set_enable(false);
@@ -926,7 +926,7 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
             x_pv_game_song_effect& song_effect = this->song_effect[i];
             pvpp_effect& effect = play_param->effect[i];
             for (string_hash& j : effect.auth_3d) {
-                auth_3d_id id = auth_3d_data_load_hash(j.hash_murmurhash, x_data, obj_db, tex_db);
+                auth_3d_id id = auth_3d_id(j.hash_murmurhash, x_data, obj_db, tex_db);
                 if (!id.check_not_empty())
                     continue;
 
@@ -1323,7 +1323,7 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
                 if (!j.category.str.size())
                     continue;
 
-                auth_3d_id id = auth_3d_data_load_hash(j.file.hash_murmurhash, x_data, obj_db, tex_db);
+                auth_3d_id id = auth_3d_id(j.file.hash_murmurhash, x_data, obj_db, tex_db);
                 if (!id.check_not_empty()) {
                     j.id = {};
                     continue;
@@ -4805,7 +4805,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
                 auto elem = auth_3d_ids.find(stg_eff_auth_3d.name.hash_murmurhash);
                 if (elem == auth_3d_ids.end()) {
-                    auth_3d_id id = auth_3d_data_load_hash(stg_eff_auth_3d
+                    auth_3d_id id = auth_3d_id(stg_eff_auth_3d
                         .name.hash_murmurhash, x_data, &obj_db, &tex_db);
                     if (!id.check_not_empty()) {
                         eff_auth_3d.id = {};
@@ -5083,7 +5083,7 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
 
         auto elem = auth_3d_ids.find(stg_chg_eff_auth_3d.name.hash_murmurhash);
         if (elem == auth_3d_ids.end()) {
-            auth_3d_id id = auth_3d_data_load_hash(stg_chg_eff_auth_3d
+            auth_3d_id id = auth_3d_id(stg_chg_eff_auth_3d
                 .name.hash_murmurhash, x_data, &obj_db, &tex_db);
             if (!id.check_not_empty()) {
                 chg_eff_auth_3d.id = {};
@@ -6051,8 +6051,7 @@ bool x_pv_game::ctrl() {
             uint32_t light_auth_3d_hash = hash_utf8_murmurhash(buf);
             for (auth_3d_database_uid& i : aft_auth_3d_db->uid)
                 if (hash_string_murmurhash(i.name) == light_auth_3d_hash) {
-                    light_auth_3d_id = auth_3d_data_load_uid(
-                        (int32_t)(&i - aft_auth_3d_db->uid.data()), aft_auth_3d_db);
+                    light_auth_3d_id = auth_3d_id((int32_t)(&i - aft_auth_3d_db->uid.data()), aft_auth_3d_db);
                     if (!light_auth_3d_id.check_not_empty()) {
                         light_auth_3d_id = {};
                         break;

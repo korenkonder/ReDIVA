@@ -798,6 +798,9 @@ struct auth_3d_id {
         this->id = id;
     }
 
+    auth_3d_id(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db);
+    auth_3d_id(int32_t uid, auth_3d_database* auth_3d_db);
+
     inline bool is_null() {
         return id == -1;
     }
@@ -1015,8 +1018,6 @@ extern const char* auth_3d_data_get_uid_name(int32_t uid, auth_3d_database* auth
 extern void auth_3d_data_load_auth_3d_db(auth_3d_database* auth_3d_db);
 extern void auth_3d_data_load_category(const char* category_name, const char* mdata_dir = 0);
 extern void auth_3d_data_load_category(void* data, const char* category_name, uint32_t category_hash);
-extern auth_3d_id auth_3d_data_load_hash(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db);
-extern auth_3d_id auth_3d_data_load_uid(int32_t uid, auth_3d_database* auth_3d_db);
 extern void auth_3d_data_unload_category(const char* category_name);
 extern void auth_3d_data_unload_category(uint32_t category_hash);
 extern void auth_3d_data_free();

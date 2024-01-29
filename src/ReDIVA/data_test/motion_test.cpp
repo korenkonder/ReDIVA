@@ -824,7 +824,7 @@ void DataTestMotA3d::LoadAuth3d(std::string&& name) {
     if (uid == -1)
         return;
 
-    auth_3d_id id = auth_3d_data_load_uid(uid, aft_auth_3d_db);
+    auth_3d_id id = auth_3d_id(uid, aft_auth_3d_db);
     if (!id.check_not_empty())
         return;
 

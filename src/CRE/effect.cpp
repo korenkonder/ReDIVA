@@ -1881,7 +1881,7 @@ void TaskEffectAuth3D::set_stage_hashes(const std::vector<uint32_t>& stage_hashe
                 if (stage.count == stage.max_count)
                     break;
 
-                auth_3d_id id = auth_3d_data_load_hash(j, data, obj_db, tex_db);
+                auth_3d_id id = auth_3d_id(j, data, obj_db, tex_db);
                 if (!id.check_not_empty())
                     break;
 
@@ -1916,7 +1916,7 @@ void TaskEffectAuth3D::set_stage_indices(const std::vector<int32_t>& stage_indic
                 if (stage.count == stage.max_count)
                     break;
 
-                auth_3d_id id = auth_3d_data_load_uid(j, aft_auth_3d_db);
+                auth_3d_id id = auth_3d_id(j, aft_auth_3d_db);
                 if (!id.check_not_empty())
                     break;
 

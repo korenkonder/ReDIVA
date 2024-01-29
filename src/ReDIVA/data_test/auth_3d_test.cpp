@@ -545,7 +545,7 @@ void Auth3dTestTask::SetAuth3dId() {
         auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
 
         auth_3d_id.unload(rctx_ptr);
-        auth_3d_id = auth_3d_data_load_uid(auth_3d_uid, aft_auth_3d_db);
+        auth_3d_id = ::auth_3d_id(auth_3d_uid, aft_auth_3d_db);
         if (auth_3d_id.check_not_empty()) {
             auth_3d_id.set_enable(false);
             auth_3d_id.read_file(aft_auth_3d_db);
