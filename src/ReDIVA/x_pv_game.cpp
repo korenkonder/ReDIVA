@@ -9126,27 +9126,6 @@ static void replace_names(char* str) {
         stgpv += 6;
     }
 
-    char* effpv;
-    effpv = str;
-    while (true) {
-        effpv = strstr(effpv, "EFFPV");
-        if (!effpv || strstr(effpv, "EFFPV815") || strstr(effpv, "PTC"))
-            break;
-
-        memcpy(effpv, "ITMPV", 5);
-        effpv += 6;
-    }
-
-    effpv = str;
-    while (true) {
-        effpv = strstr(effpv, "effpv");
-        if (!effpv || strstr(effpv, "effpv815") || strstr(effpv, "ptc"))
-            break;
-
-        memcpy(effpv, "itmpv", 5);
-        effpv += 6;
-    }
-
     replace_pv832(str);
 }
 
