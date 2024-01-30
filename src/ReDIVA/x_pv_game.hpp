@@ -252,6 +252,7 @@ struct x_pv_game_song_effect_glitter {
     bool field_9[ROB_CHARA_COUNT];
 
     x_pv_game_song_effect_glitter();
+    ~x_pv_game_song_effect_glitter();
 
     void reset();
 };

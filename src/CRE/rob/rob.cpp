@@ -3810,7 +3810,7 @@ static void rob_chara_data_adjuct_set_trans(rob_chara_adjust_data* rob_chr_adj,
 
     if (pos_adjust) {
         _trans = rob_chr_adj->pos_adjust + _trans;
-        _item_trans = rob_chr_adj->pos_adjust + _item_trans; //X
+        _item_trans = rob_chr_adj->pos_adjust + _item_trans; // X
     }
 
     rob_chr_adj->trans = _trans - trans * scale;
@@ -4674,7 +4674,7 @@ static void sub_1405044B0(rob_chara* rob_chr) {
                 - (float_t)rob_chr->data.field_1588.field_330.arm_adjust_start_frame)
             / rob_chr->data.field_1588.field_330.arm_adjust_duration;
 
-        blend = blend > 0.0f ? min_def(blend, 1.0f) : 0.0f;
+        blend = clamp_def(blend, 0.0f, 1.0f);
         if (fabsf(blend - 1.0f) <= 0.000001f)
             rob_chr->data.field_1588.field_330.arm_adjust_duration = -1.0f;
         rob_chr->data.arm_adjust_scale = lerp_def(rob_chr->data.field_1588.field_330.arm_adjust_prev_value,
@@ -15166,8 +15166,8 @@ void rob_chara_data_miku_rot::reset() {
 }
 
 rob_chara_adjust_data::rob_chara_adjust_data() : scale(), height_adjust(), pos_adjust_y(),
-offset_x(), offset_y(), offset_z(), get_global_trans(), left_hand_scale(),
-right_hand_scale(), left_hand_scale_default(), right_hand_scale_default() {
+offset_x(), offset_y(), offset_z(), get_global_trans(), left_hand_scale(), right_hand_scale(),
+left_hand_scale_default(), right_hand_scale_default(), item_scale() {
     reset();
 }
 

@@ -798,9 +798,6 @@ struct auth_3d_id {
         this->id = id;
     }
 
-    auth_3d_id(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db);
-    auth_3d_id(int32_t uid, auth_3d_database* auth_3d_db);
-
     inline bool is_null() {
         return id == -1;
     }
@@ -809,6 +806,8 @@ struct auth_3d_id {
         return id != -1;
     }
 
+    auth_3d_id(uint32_t hash, void* data, object_database* obj_db, texture_database* tex_db);
+    auth_3d_id(int32_t uid, auth_3d_database* auth_3d_db);
     bool check_not_empty();
     bool check_loading();
     bool check_loaded();

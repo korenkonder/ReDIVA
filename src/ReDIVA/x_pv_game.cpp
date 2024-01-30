@@ -780,6 +780,10 @@ x_pv_game_song_effect_glitter::x_pv_game_song_effect_glitter() : scene_counter()
     reset();
 }
 
+x_pv_game_song_effect_glitter::~x_pv_game_song_effect_glitter() {
+
+}
+
 void x_pv_game_song_effect_glitter::reset() {
     name.clear();
     scene_counter = 0;
@@ -937,7 +941,6 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                 id.set_visibility(false);
                 id.set_frame_rate(frame_rate_control);
                 song_effect.auth_3d.push_back(id);
-
             }
         }
         state = 11;
@@ -3178,9 +3181,6 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     } break;
     case DSC_X_CHARA_EFFECT: {
-        data_struct* aft_data = &data_list[DATA_AFT];
-        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-
         int32_t chara_id = data[0];
         bool enable = data[1] ? true : false;
         int32_t index = data[2];
@@ -3817,7 +3817,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     case 30: {
         ctrl_stage_effect_index();
         bar_beat.set_time(this->curr_time, this->delta_time);
-        pv_data.ctrl(1, curr_time, delta_time);
+        pv_data.ctrl(true, curr_time, delta_time);
         frame++;
     } break;
     case 40: {
@@ -4804,7 +4804,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
                 int32_t stage_effect = i + 1;
 
                 auto elem = auth_3d_ids.find(stg_eff_auth_3d.name.hash_murmurhash);
-                if (elem == auth_3d_ids.end()) {
+                if (elem != auth_3d_ids.end()) {
                     auth_3d_id id = auth_3d_id(stg_eff_auth_3d
                         .name.hash_murmurhash, x_data, &obj_db, &tex_db);
                     if (!id.check_not_empty()) {
@@ -5082,7 +5082,7 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
         chg_eff_auth_3d.reset();
 
         auto elem = auth_3d_ids.find(stg_chg_eff_auth_3d.name.hash_murmurhash);
-        if (elem == auth_3d_ids.end()) {
+        if (elem != auth_3d_ids.end()) {
             auth_3d_id id = auth_3d_id(stg_chg_eff_auth_3d
                 .name.hash_murmurhash, x_data, &obj_db, &tex_db);
             if (!id.check_not_empty()) {
