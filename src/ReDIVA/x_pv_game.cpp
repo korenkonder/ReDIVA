@@ -4804,7 +4804,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
                 int32_t stage_effect = i + 1;
 
                 auto elem = auth_3d_ids.find(stg_eff_auth_3d.name.hash_murmurhash);
-                if (elem != auth_3d_ids.end()) {
+                if (elem == auth_3d_ids.end()) {
                     auth_3d_id id = auth_3d_id(stg_eff_auth_3d
                         .name.hash_murmurhash, x_data, &obj_db, &tex_db);
                     if (!id.check_not_empty()) {
@@ -5082,7 +5082,7 @@ void x_pv_game_stage::load_change_effect(int32_t curr_stage_effect, int32_t next
         chg_eff_auth_3d.reset();
 
         auto elem = auth_3d_ids.find(stg_chg_eff_auth_3d.name.hash_murmurhash);
-        if (elem != auth_3d_ids.end()) {
+        if (elem == auth_3d_ids.end()) {
             auth_3d_id id = auth_3d_id(stg_chg_eff_auth_3d
                 .name.hash_murmurhash, x_data, &obj_db, &tex_db);
             if (!id.check_not_empty()) {
