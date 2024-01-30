@@ -6829,7 +6829,7 @@ bool x_pv_game::ctrl() {
         x_pv_game_map_auth_3d_to_mot(this, true);
 #endif
 
-#if !BAKE_X_PACK
+#if !BAKE_X_PACK && !BAKE_DOF
         pause = true;
 #endif
 
