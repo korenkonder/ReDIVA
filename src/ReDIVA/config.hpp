@@ -20,6 +20,10 @@
 #define BAKE_RES_SCALE (2)
 #endif
 
+#if BAKE_DOF || BAKE_X_PACK
+#define BAKE_FAST (1)
+#endif
+
 #if BAKE_VIDEO
 #define BAKE_VIDEO_ALPHA (0)
 #undef BAKE_PNG

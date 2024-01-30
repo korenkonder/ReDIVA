@@ -239,8 +239,11 @@ x_pv_game* x_pv_game_ptr;
 #if BAKE_X_PACK
 XPVGameBaker* x_pv_game_baker_ptr;
 #else
-x_pv_game_music* x_pv_game_music_ptr;
 XPVGameSelector* x_pv_game_selector_ptr;
+#endif
+
+#if !BAKE_FAST
+x_pv_game_music* x_pv_game_music_ptr;
 #endif
 
 extern render_context* rctx_ptr;
@@ -266,7 +269,7 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
-#if BAKE_X_PACK || BAKE_DOF
+#if BAKE_FAST
 static void replace_pv832(char* str);
 static void replace_pv832(std::string& str);
 #endif
@@ -1704,7 +1707,7 @@ x_pv_game_music_ogg::~x_pv_game_music_ogg() {
     }
 }
 
-#if !BAKE_X_PACK
+#if !BAKE_FAST
 x_pv_game_music::x_pv_game_music() : flags(), pause(), channel_pair_volume(), fade_in(),
 fade_out(), no_fade(), no_fade_remain(), fade_out_time_req(), fade_out_action_req(),
 type(), start(), end(), play_on_end(), fade_in_time(), field_9C(), loaded(), ogg() {
@@ -2656,7 +2659,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     } break;
     case DSC_X_MUSIC_PLAY: {
-#if !BAKE_X_PACK
+#if !BAKE_FAST
         char buf[0x200];
         sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
             pv_game->get_data().pv_id == 832 ? 800 : pv_game->get_data().pv_id);
@@ -3887,7 +3890,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
     camera.load(pv_id, stage->stage_id, frame_rate_control);
 
-#if !BAKE_X_PACK
+#if !BAKE_FAST
     sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg", pv_id == 832 ? 800 : pv_id);
     x_pv_game_music_ptr->ogg_reset();
     x_pv_game_music_ptr->load(4, buf, true, 0.0f, false);
@@ -3897,7 +3900,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 }
 
 void x_pv_game_data::reset() {
-#if !BAKE_X_PACK
+#if !BAKE_FAST
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_volume_map(0, 0);
 #endif
@@ -3956,7 +3959,7 @@ void x_pv_game_data::unload() {
     pv_expression_file_unload(exp_file.hash_murmurhash);
     obj_db.clear();
     tex_db.clear();
-#if !BAKE_X_PACK
+#if !BAKE_FAST
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
     x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
@@ -6829,7 +6832,7 @@ bool x_pv_game::ctrl() {
         x_pv_game_map_auth_3d_to_mot(this, true);
 #endif
 
-#if !BAKE_X_PACK && !BAKE_DOF
+#if !BAKE_FAST
         pause = true;
 #endif
 
@@ -6842,7 +6845,7 @@ bool x_pv_game::ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
-#if !BAKE_X_PACK
+#if !BAKE_FAST
         x_pv_game_music_ptr->set_pause(pause ? 1 : 0);
 #endif
 
@@ -7359,7 +7362,7 @@ struct mot_data_bake {
     }
 };
 
-const int32_t bake_pv826_threads_count = 2;
+const int32_t bake_pv826_threads_count = 4;
 
 const motion_set_info* bake_pv826_set_info;
 std::thread* bake_pv826_thread;
@@ -7851,7 +7854,7 @@ bool x_pv_game::unload() {
 }
 
 void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
-#if !BAKE_X_PACK
+#if !BAKE_FAST
     x_pv_game_music_ptr->ctrl(delta_time);
 #endif
 
@@ -8239,7 +8242,7 @@ void XPVGameSelector::window() {
 
 bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
-#if !BAKE_X_PACK
+#if !BAKE_FAST
     x_pv_game_music_ptr = new x_pv_game_music;
 #endif
     return true;
@@ -8268,7 +8271,7 @@ bool x_pv_game_free() {
         delete x_pv_game_ptr;
         x_pv_game_ptr = 0;
 
-#if !BAKE_X_PACK
+#if !BAKE_FAST
         x_pv_game_music_ptr->stop_reset_flags();
 
         delete x_pv_game_music_ptr;
@@ -9074,7 +9077,7 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
     dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
 }
 
-#if BAKE_X_PACK || BAKE_DOF
+#if BAKE_FAST
 static void replace_pv832(char* str) {
     char* pv;
     pv = str;

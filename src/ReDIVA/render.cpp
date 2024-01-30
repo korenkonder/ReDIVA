@@ -233,7 +233,7 @@ int32_t render_main(render_init_struct* ris) {
     if (!render_lock)
         return 0;
 
-#if BAKE_X_PACK || BAKE_DOF
+#if BAKE_FAST
     render_timer = new timer(600.0);
 #else
     render_timer = new timer(60.0);
