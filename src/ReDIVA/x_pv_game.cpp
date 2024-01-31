@@ -6120,6 +6120,7 @@ bool x_pv_game::ctrl() {
             dsc_easy.type = DSC_X;
             x_data->load_file(&dsc_easy, path_buf, file_buf, dsc::load_file);
 
+#if BAKE_PV826
             if (pv_id == 826) {
                 dsc dsc_hand_keys[5];
 
@@ -6203,6 +6204,7 @@ bool x_pv_game::ctrl() {
                     &dsc_hand_keys[0], &dsc_hand_keys[1], &dsc_hand_keys[2], &dsc_hand_keys[3], dsc_hand_keys[4]);
             }
             else
+#endif
                 pv_data.dsc.merge(4, &dsc_mouth, &dsc_scene, &dsc_system, &dsc_easy);
 
             struct miku_state {
