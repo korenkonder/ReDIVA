@@ -1042,7 +1042,7 @@ namespace Glitter {
                         ext_anim_x->instance_id = 0;
                         ext_anim_x->file_name_hash = hash_murmurhash_empty;
                         if (*(char*)(d + 12)) {
-                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 12), 0x80);
+                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 12), 0x7F);
                             ext_anim_x->mesh_name[0x7F] = 0;
                         }
                         else
@@ -1067,7 +1067,7 @@ namespace Glitter {
                         ext_anim_x->instance_id = 0;
                         ext_anim_x->file_name_hash = hash_murmurhash_empty;
                         if (*(char*)(d + 16)) {
-                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 16), 0x80);
+                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 16), 0x7F);
                             ext_anim_x->mesh_name[0x7F] = 0;
                         }
                         else
@@ -1095,7 +1095,7 @@ namespace Glitter {
                         }
 
                         if (*(char*)(d + 32)) {
-                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 32), 0x80);
+                            strncpy_s(ext_anim_x->mesh_name, 0x80, (char*)(d + 32), 0x7F);
                             ext_anim_x->mesh_name[0x7F] = 0;
                         }
                         else
@@ -1218,7 +1218,7 @@ namespace Glitter {
                     ext_anim->object = obj_db->get_object_info_by_fnv1a64m_hash_upper(ext_anim->object_hash);
                     ext_anim->node_index = EFFECT_EXT_ANIM_CHARA_MAX;
                     if (*(char*)(d + 12)) {
-                        strncpy_s(ext_anim->mesh_name, 0x80, (char*)(d + 12), 0x80);
+                        strncpy_s(ext_anim->mesh_name, 0x80, (char*)(d + 12), 0x7F);
                         ext_anim->mesh_name[0x7F] = 0;
                     }
                     else
@@ -1687,8 +1687,10 @@ namespace Glitter {
                     ptcl->data.mesh.object_name_hash = *(uint64_t*)d;
                     ptcl->data.mesh.object_set_name_hash = *(uint64_t*)(d + 8);
                 }
-                //if (*(char*)(d + 10))
-                //    strncpy_s(ptcl->data.mesh.mesh_name, (char*)(d + 16), 0x40);
+                //if (*(char*)(d + 10)) {
+                //    strncpy_s(ptcl->data.mesh.mesh_name, 0x40, (char*)(d + 16), 0x3F);
+                //    ptcl->data.mesh.mesh_name[0x3F] = 0;
+                //}
                 //else
                 //    ptcl->data.mesh.mesh_name[0] = 0;
                 //if (big_endian)

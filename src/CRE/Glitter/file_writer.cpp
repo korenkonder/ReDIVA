@@ -824,7 +824,7 @@ namespace Glitter {
                     }
 
                     if (ext_anim_x->mesh_name[0]) {
-                        strncpy_s((char*)(d + 12), 0x80, ext_anim_x->mesh_name, 0x80);
+                        strncpy_s((char*)(d + 12), 0x80, ext_anim_x->mesh_name, 0x7F);
                         ((char*)(d + 12))[0x7F] = 0;
                     }
                     else
@@ -841,7 +841,7 @@ namespace Glitter {
                     }
 
                     if (ext_anim_x->mesh_name[0]) {
-                        strncpy_s((char*)(d + 16), 0x80, ext_anim_x->mesh_name, 0x80);
+                        strncpy_s((char*)(d + 16), 0x80, ext_anim_x->mesh_name, 0x7F);
                         ((char*)(d + 16))[0x7F] = 0;
                     }
                     else
@@ -862,7 +862,7 @@ namespace Glitter {
                     }
 
                     if (ext_anim_x->mesh_name[0]) {
-                        strncpy_s((char*)(d + 32), 0x80, ext_anim_x->mesh_name, 0x80);
+                        strncpy_s((char*)(d + 32), 0x80, ext_anim_x->mesh_name, 0x7F);
                         ((char*)(d + 32))[0x7F] = 0;
                     }
                     else
@@ -947,7 +947,7 @@ namespace Glitter {
                 }
 
                 if (ext_anim->mesh_name[0]) {
-                    strncpy_s((char*)(d + 12), 0x80, ext_anim->mesh_name, 0x80);
+                    strncpy_s((char*)(d + 12), 0x80, ext_anim->mesh_name, 0x7F);
                     ((char*)(d + 12))[0x7F] = 0;
                 }
                 else
@@ -1585,7 +1585,8 @@ namespace Glitter {
                     *(uint64_t*)d = ptcl->data.mesh.object_name_hash;
                     *(uint64_t*)(d + 8) = ptcl->data.mesh.object_set_name_hash;
                 }
-                //strncpy_s((char*)(d + 16), ptcl->data.mesh.mesh_name, 0x40);
+                //strncpy_s((char*)(d + 16), 0x40, ptcl->data.mesh.mesh_name, 0x3F);
+                //((char*)(d + 16))[0x3F] = 0;
                 //if (big_endian)
                 //    store_reverse_endianness_uint64_t((void*)(d + 80), ptcl->data.mesh.sub_mesh_hash);
                 //else
