@@ -3283,6 +3283,15 @@ bool dsc::load_file(void* data, const char* path, const char* file, uint32_t has
     return ret;
 }
 
+dsc& dsc::operator=(const dsc& d) {
+    type = d.type;
+    signature = d.signature;
+    id = d.id;
+    data.assign(d.data.begin(), d.data.end());
+    data_buffer.assign(d.data_buffer.begin(), d.data_buffer.end());
+    return *this;
+}
+
 dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
     bool dst_has_perf_id) : src_type(DSC_FT), dst_type(DSC_FT), replace_data() {
 

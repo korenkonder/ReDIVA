@@ -309,6 +309,8 @@ struct dsc {
 
     static int32_t calculate_target_flying_time(int32_t bpm, int32_t time_signature);
     static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+
+    dsc& operator=(const dsc& d);
 };
 
 struct dsc_replace_data {
