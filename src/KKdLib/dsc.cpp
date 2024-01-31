@@ -2838,7 +2838,7 @@ dsc_get_func_length dsc::get_dsc_get_func_length() {
     return dsc_type_get_dsc_get_func_length(type, signature >= 0x10101514);
 }
 
-int32_t* dsc::get_func_data(dsc_data* data) {
+int32_t* dsc::get_func_data(const dsc_data* data) {
     return data_buffer.data() + data->data_offset;
 }
 

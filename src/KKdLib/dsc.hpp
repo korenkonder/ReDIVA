@@ -300,7 +300,7 @@ struct dsc {
     int32_t* add_func(const char* name, int32_t func, int32_t func_length);
     void convert(dsc_type dst_type);
     dsc_get_func_length get_dsc_get_func_length();
-    int32_t* get_func_data(dsc_data* data);
+    int32_t* get_func_data(const dsc_data* data);
     void merge(int32_t count, ...);
     bool parse(const void* data, size_t size, dsc_type type);
     bool parse_text(const void* data, size_t size, dsc_type type);
