@@ -267,6 +267,13 @@ namespace Glitter {
         EMITTER_POLYGON  = 4,
     };
 
+    enum FileWriterFlags {
+        FILE_WRITER_COMPRESS   = 0x01,
+        FILE_WRITER_ENCRYPT    = 0x02,
+        FILE_WRITER_NO_LIST    = 0x04,
+        FILE_WRITER_BIG_ENDIAN = 0x08,
+    };
+
     enum FogType {
         FOG_NONE = 0,
         FOG_DEPTH,
@@ -1250,8 +1257,9 @@ namespace Glitter {
         bool UnparseParticle(EffectGroup* eff_group,
             f2_struct* st, Particle* ptcl, Effect* eff, bool big_endian);
 
-        static void Write(GLT, EffectGroup* eff_group, const char* path,
-            const char* file, bool compress, bool encrypt, bool save_lst = false, bool big_endian = false);
+        static void Write(GLT, EffectGroup* eff_group,
+            const char* path, const char* file, FileWriterFlags writer_flags
+                = (Glitter::FileWriterFlags)(Glitter::FILE_WRITER_COMPRESS | Glitter::FILE_WRITER_ENCRYPT));
     };
 
     struct LocusHistory {

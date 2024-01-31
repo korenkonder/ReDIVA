@@ -2162,11 +2162,15 @@ namespace Glitter {
         return true;
     }
 
-    void FileWriter::Write(GLT, EffectGroup* eff_group, const char* path,
-        const char* file, bool compress, bool encrypt, bool save_lst, bool big_endian) {
+    void FileWriter::Write(GLT, EffectGroup* eff_group,
+        const char* path, const char* file, FileWriterFlags writer_flags) {
         FileWriter fr;
         fr.type = GLT_VAL;
 
+        bool compress = !!(writer_flags & FILE_WRITER_COMPRESS);
+        bool encrypt = !!(writer_flags & FILE_WRITER_ENCRYPT);
+        bool save_lst = !(writer_flags & FILE_WRITER_NO_LIST);
+        bool big_endian = !!(writer_flags & FILE_WRITER_BIG_ENDIAN);
         farc f;
         {
             size_t file_len = utf8_length(file);
@@ -2176,6 +2180,7 @@ namespace Glitter {
 
             memcpy(temp, file, file_len);
             temp[file_len] = 0;
+
 
             {
                 f2_struct dve_st;
@@ -2242,7 +2247,7 @@ namespace Glitter {
         }
 
         char* temp = str_utils_add(path, file);
-        if (glt_type != Glitter::FT && !save_lst) {
+        if (glt_type != Glitter::FT && save_lst) {
             char* list_temp = str_utils_add(temp, ".glitter.txt");
             file_stream s;
             s.open(list_temp, "wb");

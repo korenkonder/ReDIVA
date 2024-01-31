@@ -1745,8 +1745,12 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
 }
 
 static void glitter_editor_save_file(GlitterEditor* glt_edt, const char* path, const char* file) {
-    Glitter::FileWriter::Write(glt_edt->save_glt_type, glt_edt->effect_group,
-        path, file, glt_edt->save_compress, glt_edt->save_encrypt);
+    Glitter::FileWriterFlags writer_flags = (Glitter::FileWriterFlags)0;
+    if (glt_edt->save_compress)
+        enum_or(writer_flags, Glitter::FILE_WRITER_COMPRESS);
+    if (glt_edt->save_encrypt)
+        enum_or(writer_flags, Glitter::FILE_WRITER_ENCRYPT);
+    Glitter::FileWriter::Write(glt_edt->save_glt_type, glt_edt->effect_group, path, file, writer_flags);
 }
 
 static bool glitter_editor_list_open_window(Glitter::EffectGroup* eg) {
