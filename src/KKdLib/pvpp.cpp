@@ -55,19 +55,19 @@ pvpp_chara_item::~pvpp_chara_item() {
 
 }
 
-pvpp_effect::pvpp_effect() : chara_id() {
-
-}
-
-pvpp_effect::~pvpp_effect() {
-
-}
-
 pvpp_glitter::pvpp_glitter() : unk2() {
 
 }
 
 pvpp_glitter::~pvpp_glitter() {
+
+}
+
+pvpp_effect::pvpp_effect() : chara_id() {
+
+}
+
+pvpp_effect::~pvpp_effect() {
 
 }
 

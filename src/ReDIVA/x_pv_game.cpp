@@ -1117,7 +1117,7 @@ void x_pv_game_effect::set_song_effect(int32_t index, int64_t time) {
     size_t chara_count = play_param->chara.size();
 
     int32_t chara_id = play_param->effect[index].chara_id;
-    if (chara_id < 0 && chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT || chara_id >= chara_count)
         chara_id = -1;
     song_effect.chara_id = chara_id;
 
@@ -1434,6 +1434,8 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
     size_t chara_count = play_param->chara.size();
     for (int32_t i = 0; i < chara_count && i < ROB_CHARA_COUNT; i++) {
         pvpp_chara& chara = play_param->chara[i];
+        if (!chara.chara_effect_init)
+            continue;
 
         pvpp_chara_effect& chara_effect = chara.chara_effect;
 
