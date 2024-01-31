@@ -569,6 +569,7 @@ static void aet_database_file_classic_write_inner(aet_database_file* aet_db, str
     std::vector<int64_t> string_offsets;
 
     strings.reserve(aet_sets_count + aets_count);
+    string_offsets.reserve(aet_sets_count + aets_count);
 
     for (aet_db_aet_set_file& i : aet_db->aet_set)
         for (aet_db_aet_file& j : i.aet)
@@ -788,6 +789,7 @@ static void aet_database_file_modern_write_inner(aet_database_file* aet_db, stre
     std::vector<int64_t> string_offsets;
 
     strings.reserve(aet_sets_count + aets_count);
+    string_offsets.reserve(aet_sets_count + aets_count);
 
     for (aet_db_aet_set_file& i : aet_db->aet_set) {
         if (aet_database_file_strings_push_back_check(strings, i.name)) {

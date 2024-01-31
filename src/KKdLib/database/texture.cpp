@@ -447,6 +447,7 @@ static void texture_database_file_modern_write_inner(texture_database_file* tex_
     std::vector<int64_t> string_offsets;
 
     strings.reserve(textures_count);
+    string_offsets.reserve(textures_count);
 
     for (texture_info_file& i : tex_db->texture)
         texture_database_file_strings_push_back_check(strings, i.name);

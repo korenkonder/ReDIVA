@@ -578,6 +578,7 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
     std::vector<int64_t> string_offsets;
 
     strings.reserve(sprite_sets_count + sprites_count);
+    string_offsets.reserve(sprite_sets_count + sprites_count);
 
     for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         for (spr_db_spr_file& j : i.sprite)
@@ -818,6 +819,7 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
     std::vector<int64_t> string_offsets;
 
     strings.reserve(sprite_sets_count + sprites_count);
+    string_offsets.reserve(sprite_sets_count + sprites_count);
 
     for (spr_db_spr_set_file& i : spr_db->sprite_set) {
         if (sprite_database_file_strings_push_back_check(strings, i.name)) {
