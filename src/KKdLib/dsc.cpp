@@ -3339,5 +3339,5 @@ dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
 }
 
 dsc_replace::~dsc_replace() {
-
+    free_def(replace_data);
 }
