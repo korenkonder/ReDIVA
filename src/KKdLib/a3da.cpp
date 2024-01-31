@@ -2073,6 +2073,7 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
     s.open();
 
     bool aft_rgba = a->format == A3DA_FORMAT_AFT || a->format == A3DA_FORMAT_AFT_X_PACK;
+    bool x_pack = a->format == A3DA_FORMAT_AFT_X_PACK;
 
     for (a3da_camera_root& i : a->camera_root) {
         a3dc_write_a3da_model_transform_offset(s, i.model_transform);
@@ -2166,14 +2167,34 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_model_transform(s, i.position, _compress_f16);
         if (i.flags & A3DA_LIGHT_SPOT_DIRECTION)
             a3dc_write_a3da_model_transform(s, i.spot_direction, _compress_f16);
-        if ((i.flags & A3DA_LIGHT_AMBIENT) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, i.ambient);
-        if ((i.flags & A3DA_LIGHT_DIFFUSE) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, i.diffuse);
-        if ((i.flags & A3DA_LIGHT_SPECULAR) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, i.specular);
-        if ((i.flags & A3DA_LIGHT_TONE_CURVE) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, i.tone_curve);
+        if (x_pack) {
+            if (i.flags & A3DA_LIGHT_AMBIENT) {
+                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3dc_write_a3da_rgba(s, i.ambient);
+            }
+            if (i.flags & A3DA_LIGHT_DIFFUSE) {
+                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3dc_write_a3da_rgba(s, i.diffuse);
+            }
+            if (i.flags & A3DA_LIGHT_SPECULAR) {
+                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3dc_write_a3da_rgba(s, i.specular);
+            }
+            if (i.flags & A3DA_LIGHT_TONE_CURVE) {
+                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3dc_write_a3da_rgba(s, i.tone_curve);
+            }
+        }
+        else if (!aft_rgba) {
+            if (i.flags & A3DA_LIGHT_AMBIENT)
+                a3dc_write_a3da_rgba(s, i.ambient);
+            if (i.flags & A3DA_LIGHT_DIFFUSE)
+                a3dc_write_a3da_rgba(s, i.diffuse);
+            if (i.flags & A3DA_LIGHT_SPECULAR)
+                a3dc_write_a3da_rgba(s, i.specular);
+            if (i.flags & A3DA_LIGHT_TONE_CURVE)
+                a3dc_write_a3da_rgba(s, i.tone_curve);
+        }
         if (a->format == A3DA_FORMAT_XHD) {
             if (i.flags & A3DA_LIGHT_INTENSITY)
                 a3dc_write_a3da_key(s, i.intensity);
@@ -2199,8 +2220,16 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_key(s, i.end);
         if (i.flags & A3DA_FOG_START)
             a3dc_write_a3da_key(s, i.start);
-        if ((i.flags & A3DA_FOG_COLOR) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, i.color);
+        if (x_pack) {
+            if (i.flags & A3DA_FOG_COLOR) {
+                a3da_rgba_make_raw_data_binary(&i.color);
+                a3dc_write_a3da_rgba(s, i.color);
+            }
+        }
+        else if (!aft_rgba) {
+            if (i.flags & A3DA_FOG_COLOR)
+                a3dc_write_a3da_rgba(s, i.color);
+        }
     }
 
     for (a3da_m_object_hrc& i : a->m_object_hrc) {
@@ -2278,12 +2307,28 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_key(s, pp->lens_ghost);
         if (pp->flags & A3DA_POST_PROCESS_LENS_SHAFT)
             a3dc_write_a3da_key(s, pp->lens_shaft);
-        if ((pp->flags & A3DA_POST_PROCESS_INTENSITY) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, pp->intensity);
-        if ((pp->flags & A3DA_POST_PROCESS_RADIUS) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, pp->radius);
-        if ((pp->flags & A3DA_POST_PROCESS_SCENE_FADE) && !aft_rgba)
-            a3dc_write_a3da_rgba(s, pp->scene_fade);
+        if (x_pack) {
+            if (pp->flags & A3DA_POST_PROCESS_INTENSITY) {
+                a3da_rgba_make_raw_data_binary(&pp->intensity);
+                a3dc_write_a3da_rgba(s, pp->intensity);
+            }
+            if (pp->flags & A3DA_POST_PROCESS_RADIUS) {
+                a3da_rgba_make_raw_data_binary(&pp->radius);
+                a3dc_write_a3da_rgba(s, pp->radius);
+            }
+            if (pp->flags & A3DA_POST_PROCESS_SCENE_FADE) {
+                a3da_rgba_make_raw_data_binary(&pp->scene_fade);
+                a3dc_write_a3da_rgba(s, pp->scene_fade);
+            }
+        }
+        else if (!aft_rgba) {
+            if (pp->flags & A3DA_POST_PROCESS_INTENSITY)
+                a3dc_write_a3da_rgba(s, pp->intensity);
+            if (pp->flags & A3DA_POST_PROCESS_RADIUS)
+                a3dc_write_a3da_rgba(s, pp->radius);
+            if (pp->flags & A3DA_POST_PROCESS_SCENE_FADE)
+                a3dc_write_a3da_rgba(s, pp->scene_fade);
+        }
     }
 
     for (a3da_camera_root& i : a->camera_root) {
