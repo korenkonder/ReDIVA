@@ -263,8 +263,7 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     s_dsc.write(dsc_data, dsc_length);
     s_dsc.close();
 
-    if (dsc_data)
-        free(dsc_data);
+    free_def(dsc_data);
 
     sprintf_s(buf, sizeof(buf), "DOF\\post_process_table\\pv%03d.dft", pv_id);
     dft_data.dof.write(buf);

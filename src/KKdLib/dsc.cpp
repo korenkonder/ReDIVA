@@ -3047,9 +3047,8 @@ bool dsc::parse(const void* data, size_t size, dsc_type type) {
                 *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
 
         data_dsc = (int32_t*)st.data.data();
-        if (*data_dsc++ != 0x13120420) {
+        if (*data_dsc++ != 0x13120420)
             return false;
-        }
 
         signature = 0x13120420;
         id = *data_dsc++;
