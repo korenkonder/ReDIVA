@@ -576,7 +576,7 @@ static void object_database_file_classic_write_inner(object_database_file* obj_d
     int64_t object_sets_offset = 0;
     size_t off_idx = 0;
     int64_t objects_offset = 0;
-    if (string_offsets.size()) {
+    if (object_set_count) {
         for (object_set_info_file& i : obj_db->object_set) {
             string_offsets.push_back(s.get_position());
             s.write_string_null_terminated(i.name);
