@@ -1464,7 +1464,7 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
 #if BAKE_PV826
             if (pv_id != 826) {
 #endif
-                if (j.object_set.str.size())
+                if (j.has_object_set)
                     object_set.assign(j.object_set.str);
                 else
                     object_set.assign(file);

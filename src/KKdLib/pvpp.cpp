@@ -22,11 +22,12 @@ static void pvpp_motion_read(string_hash* mot, stream& s);
 static void pvpp_object_set_read(string_hash* objset, stream& s);
 static void pvpp_read_inner(pvpp* pp, stream& s);
 
-pvpp_chara::pvpp_chara() : chara_effect_init() {
+pvpp_chara_effect_auth_3d::pvpp_chara_effect_auth_3d() : has_object_set(),
+u00(), u01(), u02(), u03(), u04(), u05(), u06(), u07() {
 
 }
 
-pvpp_chara::~pvpp_chara() {
+pvpp_chara_effect_auth_3d::~pvpp_chara_effect_auth_3d() {
 
 }
 
@@ -35,15 +36,6 @@ pvpp_chara_effect::pvpp_chara_effect() : base_chara(), chara_id() {
 }
 
 pvpp_chara_effect::~pvpp_chara_effect() {
-
-}
-
-pvpp_chara_effect_auth_3d::pvpp_chara_effect_auth_3d() : has_object_set(),
-u00(), u01(), u02(), u03(), u04(), u05(), u06(), u07() {
-
-}
-
-pvpp_chara_effect_auth_3d::~pvpp_chara_effect_auth_3d() {
 
 }
 
@@ -68,6 +60,14 @@ pvpp_effect::pvpp_effect() : chara_id() {
 }
 
 pvpp_effect::~pvpp_effect() {
+
+}
+
+pvpp_chara::pvpp_chara() : chara_effect_init() {
+
+}
+
+pvpp_chara::~pvpp_chara() {
 
 }
 
