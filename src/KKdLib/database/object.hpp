@@ -143,6 +143,8 @@ struct object_database {
     prj::vector_pair<uint64_t, object_info_data*> obj_fnv1a64m_hashes;
     prj::vector_pair<uint64_t, object_info_data*> obj_fnv1a64m_hashes_upper;
     prj::vector_pair<uint32_t, object_info_data*> obj_murmurhashes;
+    prj::vector_pair<uint64_t, object_info> obj_info_fnv1a64m_hashes;
+    prj::vector_pair<uint64_t, object_info> obj_info_fnv1a64m_hashes_upper;
     prj::vector_pair<uint32_t, object_info> obj_info_murmurhashes;
 
     object_database();
@@ -161,5 +163,8 @@ struct object_database {
     uint32_t get_object_set_id(const char* name) const;
     const char* get_object_set_name(uint32_t set_id) const;
     object_info get_object_info(const char* name) const;
+    object_info get_object_info_by_fnv1a64m_hash(uint64_t hash) const;
+    object_info get_object_info_by_fnv1a64m_hash_upper(uint64_t hash) const;
+    object_info get_object_info_by_murmurhash(uint32_t hash) const;
     const char* get_object_name(object_info obj_info) const;
 };

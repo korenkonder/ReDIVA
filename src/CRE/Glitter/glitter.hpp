@@ -670,8 +670,6 @@ namespace Glitter {
                     EffectExtAnimCharaNode node_index;
                 };
             };
-
-            static object_info GetObjectInfo(uint64_t hash, object_database* obj_db);
         };
 
         struct ExtAnimX {

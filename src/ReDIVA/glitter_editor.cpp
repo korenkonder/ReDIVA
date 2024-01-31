@@ -3419,8 +3419,10 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
             }
             else {
                 if (glitter_editor_hash_input(glt_edt, "Object Hash", &ext_anim->object_hash)) {
-                    ext_anim->object = Glitter::Effect::ExtAnim::GetObjectInfo(ext_anim->object_hash,
-                        &data_list[glt_edt->load_data_type].data_ft.obj_db);
+                    object_database& obj_db = data_list[glt_edt->load_data_type].data_ft.obj_db;
+                    ext_anim->object = eg->type == Glitter::FT
+                        ? obj_db.get_object_info_by_fnv1a64m_hash_upper(ext_anim->object_hash)
+                        : obj_db.get_object_info_by_murmurhash((uint32_t)ext_anim->object_hash);
                     changed = true;
                 }
 

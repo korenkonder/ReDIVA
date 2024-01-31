@@ -297,6 +297,10 @@ void object_database::clear() {
     obj_fnv1a64m_hashes_upper.shrink_to_fit();
     obj_murmurhashes.clear();
     obj_murmurhashes.shrink_to_fit();
+    obj_info_fnv1a64m_hashes.clear();
+    obj_info_fnv1a64m_hashes.shrink_to_fit();
+    obj_info_fnv1a64m_hashes_upper.clear();
+    obj_info_fnv1a64m_hashes_upper.shrink_to_fit();
     obj_info_murmurhashes.clear();
     obj_info_murmurhashes.shrink_to_fit();
 }
@@ -308,6 +312,8 @@ void object_database::update() {
     obj_fnv1a64m_hashes.clear();
     obj_fnv1a64m_hashes_upper.clear();
     obj_murmurhashes.clear();
+    obj_info_fnv1a64m_hashes.clear();
+    obj_info_fnv1a64m_hashes_upper.clear();
     obj_info_murmurhashes.clear();
 
     obj_set_ids.reserve(object_set.size());
@@ -321,6 +327,8 @@ void object_database::update() {
         obj_fnv1a64m_hashes.reserve(i.object.size());
         obj_fnv1a64m_hashes_upper.reserve(i.object.size());
         obj_murmurhashes.reserve(i.object.size());
+        obj_info_fnv1a64m_hashes.reserve(i.object.size());
+        obj_info_fnv1a64m_hashes_upper.reserve(i.object.size());
         obj_info_murmurhashes.reserve(i.object.size());
 
         for (object_info_data& j : i.object) {
@@ -328,6 +336,8 @@ void object_database::update() {
             obj_fnv1a64m_hashes.push_back(j.name_hash_fnv1a64m, &j);
             obj_fnv1a64m_hashes_upper.push_back(j.name_hash_fnv1a64m_upper, &j);
             obj_murmurhashes.push_back(j.name_hash_murmurhash, &j);
+            obj_info_fnv1a64m_hashes.push_back(j.name_hash_fnv1a64m, { j.id, i.id });
+            obj_info_fnv1a64m_hashes_upper.push_back(j.name_hash_fnv1a64m_upper, { j.id, i.id });
             obj_info_murmurhashes.push_back(j.name_hash_murmurhash, { j.id, i.id });
         }
     }
@@ -338,6 +348,8 @@ void object_database::update() {
     obj_fnv1a64m_hashes.sort_unique();
     obj_fnv1a64m_hashes_upper.sort_unique();
     obj_murmurhashes.sort_unique();
+    obj_info_fnv1a64m_hashes.sort_unique();
+    obj_info_fnv1a64m_hashes_upper.sort_unique();
     obj_info_murmurhashes.sort_unique();
 }
 
@@ -363,6 +375,10 @@ const object_set_info* object_database::get_object_set_info(uint32_t set_id) con
 
 const object_info_data* object_database::get_object_info_data(const char* name) const {
     if (!name || !*name)
+        return 0;
+
+    size_t name_len = utf8_length(name);
+    if (!str_utils_compare_length(name, name_len, "NULL", 5))
         return 0;
 
     auto elem = obj_murmurhashes.find(hash_utf8_murmurhash(name));
@@ -434,6 +450,27 @@ object_info object_database::get_object_info(const char* name) const {
         return object_info();
 
     auto elem = obj_info_murmurhashes.find(hash_utf8_murmurhash(name));
+    if (elem != obj_info_murmurhashes.end())
+        return elem->second;
+    return object_info();
+}
+
+object_info object_database::get_object_info_by_fnv1a64m_hash(uint64_t hash) const {
+    auto elem = obj_info_fnv1a64m_hashes.find(hash);
+    if (elem != obj_info_fnv1a64m_hashes.end())
+        return elem->second;
+    return object_info();
+}
+
+object_info object_database::get_object_info_by_fnv1a64m_hash_upper(uint64_t hash) const {
+    auto elem = obj_info_fnv1a64m_hashes_upper.find(hash);
+    if (elem != obj_info_fnv1a64m_hashes_upper.end())
+        return elem->second;
+    return object_info();
+}
+
+object_info object_database::get_object_info_by_murmurhash(uint32_t hash) const {
+    auto elem = obj_info_murmurhashes.find(hash);
     if (elem != obj_info_murmurhashes.end())
         return elem->second;
     return object_info();

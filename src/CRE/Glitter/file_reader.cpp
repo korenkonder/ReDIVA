@@ -1215,7 +1215,7 @@ namespace Glitter {
                         ext_anim->flags = (EffectExtAnimFlag) * (int32_t*)(d + 8);
                     }
 
-                    ext_anim->object = Effect::ExtAnim::GetObjectInfo(ext_anim->object_hash, obj_db);
+                    ext_anim->object = obj_db->get_object_info_by_fnv1a64m_hash_upper(ext_anim->object_hash);
                     ext_anim->node_index = EFFECT_EXT_ANIM_CHARA_MAX;
                     if (*(char*)(d + 12)) {
                         strncpy_s(ext_anim->mesh_name, 0x80, (char*)(d + 12), 0x80);

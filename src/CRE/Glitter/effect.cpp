@@ -6,15 +6,6 @@
 #include "glitter.hpp"
 
 namespace Glitter {
-    object_info Effect::ExtAnim::GetObjectInfo(uint64_t hash, object_database* obj_db) {
-        for (object_set_info& i : obj_db->object_set) {
-            for (object_info_data& j : i.object)
-                if (hash == j.name_hash_murmurhash || hash == j.name_hash_fnv1a64m_upper)
-                    return { j.id, i.id };
-        }
-        return object_info();
-    }
-
     Effect::Data::Data(GLT) : appear_time(), life_time(),
         start_time(), ext_anim(), flags(), emission(), seed(), unk() {
         color = 0xFFFFFFFF;
