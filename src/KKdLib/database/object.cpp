@@ -568,8 +568,13 @@ static void object_database_file_classic_write_inner(object_database_file* obj_d
 
     uint32_t object_set_count = (uint32_t)obj_db->object_set.size();
 
+    uint32_t object_count = 0;
+    for (object_set_info_file& i : obj_db->object_set)
+        object_count += (uint32_t)i.object.size();
+
     std::vector<int64_t> string_offsets;
-    string_offsets.reserve(object_set_count * 4ULL);
+
+    string_offsets.reserve((int64_t)object_set_count + object_count);
 
     uint32_t max_object_set_id = 0;
     uint32_t object_count = 0;
@@ -832,6 +837,7 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
     std::vector<int64_t> string_offsets;
 
     strings.reserve((int64_t)object_set_count + object_count);
+    string_offsets.reserve((int64_t)object_set_count + object_count);
 
     for (object_set_info_file& i : obj_db->object_set) {
         object_database_strings_push_back_check(strings, i.name);
