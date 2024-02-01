@@ -6790,8 +6790,23 @@ bool x_pv_game::ctrl() {
             stage_data.lens_ghost_texture = -1;
             stage_data.lens_shaft_inv_scale = 1.0f;
             stage_data.unknown = 0;
+
             stage_data.render_texture = replace_texture_id(i.render_texture, &x_stage_tex_db, &x_pack_tex_db);
+            if (stage_data.render_texture == -1) {
+                char name[0x40];
+                sprintf_s(name, sizeof(name), "F_DIVA_STGPV%03d_AM_FB05", this->stage_data.stage_id);
+                replace_names(name);
+                stage_data.render_texture = x_pack_tex_db.get_texture_id(name);
+            }
+
             stage_data.movie_texture = replace_texture_id(i.movie_texture, &x_stage_tex_db, &x_pack_tex_db);
+            if (stage_data.movie_texture == -1) {
+                char name[0x40];
+                sprintf_s(name, sizeof(name), "F_DIVA_STGPV%03d_AM_FB04", this->stage_data.stage_id);
+                replace_names(name);
+                stage_data.movie_texture = x_pack_tex_db.get_texture_id(name);
+            }
+
             stage_data.collision_file_path.assign("rom/STGTST_COLI.000.bin");
             stage_data.reflect_type = STAGE_DATA_REFLECT_DISABLE;
             stage_data.flags = (stage_data_flags)0;
