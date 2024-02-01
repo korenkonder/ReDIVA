@@ -9241,9 +9241,12 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         temp_eff_group.effects.push_back(eff);
     }
 
+    temp_eff_group.emission = eff_group->emission;
+    temp_eff_group.resources_count = eff_group->resources_count;
     temp_eff_group.resource_hashes.assign(
         eff_group->resource_hashes.begin(), eff_group->resource_hashes.end());
     temp_eff_group.resources_tex = eff_group->resources_tex;
+    temp_eff_group.version = eff_group->version;
 
     char name[0x200];
     strcpy_s(name, sizeof(name), eff_group->name.c_str());
