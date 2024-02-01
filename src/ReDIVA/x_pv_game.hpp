@@ -834,6 +834,7 @@ public:
     auth_3d_database_file auth_3d_db_base;
     auth_3d_database_file auth_3d_db;
     object_database_file obj_db;
+    texture_database tex_db_base;
     texture_database_file tex_db;
     stage_database_file stage_data;
 

@@ -266,8 +266,9 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
 static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id);
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
     const auth_3d_database* x_pack_auth_3d_db, const object_database* x_pack_obj_db);
-static void x_pv_game_write_object_set(ObjsetInfo* info, object_database_file* x_pack_obj_db,
-    const texture_database* tex_db, texture_database_file* x_pack_tex_db);
+static void x_pv_game_write_object_set(ObjsetInfo* info,
+    object_database_file* x_pack_obj_db, const texture_database* tex_db,
+    const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db);
 static void x_pv_game_write_play_param(pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db);
 static void x_pv_game_write_stage_resource(pvsr* stage_resource,
@@ -6610,7 +6611,7 @@ bool x_pv_game::ctrl() {
 
             x_pv_game_update_object_set(info);
             x_pv_game_write_object_set(info, &baker->obj_db,
-                &pv_data.tex_db, &baker->tex_db);
+                &pv_data.tex_db, &baker->tex_db_base, &baker->tex_db);
         }
 
         for (uint32_t& i : stage_object_set_ids) {
@@ -6620,7 +6621,7 @@ bool x_pv_game::ctrl() {
 
             x_pv_game_update_object_set(info);
             x_pv_game_write_object_set(info, &baker->obj_db,
-                &stage_data.tex_db, &baker->tex_db);
+                &stage_data.tex_db, &baker->tex_db_base, &baker->tex_db);
         }
 
         auth_3d_database_file& x_pack_auth_3d_db_file = baker->auth_3d_db;
@@ -8103,6 +8104,11 @@ bool XPVGameBaker::init() {
     auth_3d_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\auth_3d\\mdata_auth_3d_db");
     obj_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\objset\\mdata_obj_db", false);
     stage_data.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\mdata_stage_data", false);
+    {
+        texture_database_file tex_db_base;
+        tex_db_base.read("diva\\AFT\\rom\\objset\\tex_db", false);
+        this->tex_db_base.add(&tex_db_base);
+    }
     tex_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\objset\\mdata_tex_db", false);
     return true;
 }
@@ -9292,8 +9298,9 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
             | Glitter::FILE_WRITER_ENCRYPT | Glitter::FILE_WRITER_NO_LIST));
 }
 
-static void x_pv_game_write_object_set(ObjsetInfo* info, object_database_file* x_pack_obj_db,
-    const texture_database* tex_db, texture_database_file* x_pack_tex_db) {
+static void x_pv_game_write_object_set(ObjsetInfo* info,
+    object_database_file* x_pack_obj_db, const texture_database* tex_db,
+    const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db) {
     char name[0x200];
     strcpy_s(name, sizeof(name), info->name.c_str());
 
@@ -9360,11 +9367,30 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database_file* x
                 strcpy_s(name_buf, sizeof(name_buf), tex_name);
                 replace_names(name_buf);
 
-                x_pack_tex_db->texture.push_back({});
-                texture_info_file& tex_info = x_pack_tex_db->texture.back();
-                id = ++texture_max_id;
-                tex_info.name.assign(name_buf);
-                tex_info.id = id;
+                bool found = false;
+                uint32_t hash = hash_utf8_murmurhash(name_buf);
+                for (texture_info_file& j : x_pack_tex_db->texture)
+                    if (hash == hash_string_murmurhash(j.name)) {
+                        id = j.id;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    uint32_t tex_id = x_pack_tex_db_base->get_texture_id(name_buf);
+                    if (tex_id != -1) {
+                        id = tex_id;
+                        found = true;
+                    }
+                }
+
+                if (!found) {
+                    x_pack_tex_db->texture.push_back({});
+                    texture_info_file& tex_info = x_pack_tex_db->texture.back();
+                    id = ++texture_max_id;
+                    tex_info.name.assign(name_buf);
+                    tex_info.id = id;
+                }
             }
             else
                 id = -1;
