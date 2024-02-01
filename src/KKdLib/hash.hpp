@@ -89,13 +89,13 @@ struct string_hash {
         this->hash_murmurhash = hash_string_murmurhash(this->str);
     }
 
-    inline string_hash(std::string& str) {
+    inline string_hash(const std::string& str) {
         this->str.assign(str);
         this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
         this->hash_murmurhash = hash_string_murmurhash(this->str);
     }
 
-    inline string_hash(std::string&& str) {
+    inline string_hash(const std::string&& str) {
         this->str.assign(str);
         this->hash_fnv1a64m = hash_string_fnv1a64m(this->str);
         this->hash_murmurhash = hash_string_murmurhash(this->str);

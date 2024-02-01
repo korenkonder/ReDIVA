@@ -613,38 +613,40 @@ void stream::write_double_t_reverse_endianness(double_t val, bool big_endian) {
     write(buf, sizeof(double_t));
 }
 
-void stream::write_string(std::string& str) {
+void stream::write_string(const std::string& str) {
     write(str.c_str(), str.size());
 }
 
-void stream::write_string(std::string&& str) {
+void stream::write_string(const std::string&& str) {
     write(str.c_str(), str.size());
 }
 
-void stream::write_wstring(std::wstring& str) {
+void stream::write_wstring(const std::wstring& str) {
     write(str.c_str(), sizeof(wchar_t) * str.size());
 }
 
-void stream::write_wstring(std::wstring&& str) {
+void stream::write_wstring(const std::wstring&& str) {
     write(str.c_str(), sizeof(wchar_t) * str.size());
 }
 
-void stream::write_string_null_terminated(std::string& str) {
+void stream::write_string_null_terminated(const std::string& str) {
     write(str.c_str(), str.size());
     write_uint8_t(0);
 }
 
-void stream::write_string_null_terminated(std::string&& str) {
-    write_string_null_terminated(str);
+void stream::write_string_null_terminated(const std::string&& str) {
+    write(str.c_str(), str.size());
+    write_uint8_t(0);
 }
 
-void stream::write_wstring_null_terminated(std::wstring& str) {
+void stream::write_wstring_null_terminated(const std::wstring& str) {
     write(str.c_str(), sizeof(wchar_t) * str.size());
     write_uint16_t(0);
 }
 
-void stream::write_wstring_null_terminated(std::wstring&& str) {
-    write_wstring_null_terminated(*(std::wstring*)&str);
+void stream::write_wstring_null_terminated(const std::wstring&& str) {
+    write(str.c_str(), sizeof(wchar_t) * str.size());
+    write_uint16_t(0);
 }
 
 void stream::write_utf8_string(const char* str) {

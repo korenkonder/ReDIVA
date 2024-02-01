@@ -16,9 +16,9 @@ static void aet_database_file_classic_read_inner(aet_database_file* aet_db, stre
 static void aet_database_file_classic_write_inner(aet_database_file* aet_db, stream& s);
 static void aet_database_file_modern_read_inner(aet_database_file* aet_db, stream& s, uint32_t header_length);
 static void aet_database_file_modern_write_inner(aet_database_file* aet_db, stream& s);
-static int64_t aet_database_file_strings_get_string_offset(std::vector<string_hash>& vec,
-    std::vector<int64_t>& vec_off, std::string& str);
-static bool aet_database_file_strings_push_back_check(std::vector<string_hash>& vec, std::string& str);
+static int64_t aet_database_file_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str);
+static bool aet_database_file_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str);
 
 const aet_db_aet_set aet_db_aet_set_null;
 const aet_db_aet aet_db_aet_null;
@@ -879,20 +879,20 @@ static void aet_database_file_modern_write_inner(aet_database_file* aet_db, stre
     st.write(s, true, aet_db->is_x);
 }
 
-inline static int64_t aet_database_file_strings_get_string_offset(std::vector<string_hash>& vec,
-    std::vector<int64_t>& vec_off, std::string& str) {
+inline static int64_t aet_database_file_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str) {
     uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
     uint64_t hash_murmurhash = hash_string_murmurhash(str);
-    for (string_hash& i : vec)
+    for (const string_hash& i : vec)
         if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return vec_off[&i - vec.data()];
     return 0;
 }
 
-inline static bool aet_database_file_strings_push_back_check(std::vector<string_hash>& vec, std::string& str) {
+inline static bool aet_database_file_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str) {
     uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
     uint64_t hash_murmurhash = hash_string_murmurhash(str);
-    for (string_hash& i : vec)
+    for (const string_hash& i : vec)
         if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return false;
 

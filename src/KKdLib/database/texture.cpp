@@ -16,9 +16,9 @@ static void texture_database_file_classic_read_inner(texture_database_file* tex_
 static void texture_database_file_classic_write_inner(texture_database_file* tex_db, stream& s);
 static void texture_database_file_modern_read_inner(texture_database_file* tex_db, stream& s, uint32_t header_length);
 static void texture_database_file_modern_write_inner(texture_database_file* tex_db, stream& s);
-static int64_t texture_database_file_strings_get_string_offset(std::vector<string_hash>& vec,
-    std::vector<int64_t>& vec_off, std::string& str);
-static void texture_database_file_strings_push_back_check(std::vector<string_hash>& vec, std::string& str);
+static int64_t texture_database_file_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str);
+static bool texture_database_file_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str);
 
 texture_info_file::texture_info_file() {
     id = (uint32_t)-1;
@@ -497,22 +497,23 @@ static void texture_database_file_modern_write_inner(texture_database_file* tex_
     st.write(s, true, tex_db->is_x);
 }
 
-inline static int64_t texture_database_file_strings_get_string_offset(std::vector<string_hash>& vec,
-    std::vector<int64_t>& vec_off, std::string& str) {
+inline static int64_t texture_database_file_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str) {
     uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
     uint64_t hash_murmurhash = hash_string_murmurhash(str);
-    for (string_hash& i : vec)
+    for (const string_hash& i : vec)
         if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return vec_off[&i - vec.data()];
     return 0;
 }
 
-inline static void texture_database_file_strings_push_back_check(std::vector<string_hash>& vec, std::string& str) {
+inline static bool texture_database_file_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str) {
     uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
     uint64_t hash_murmurhash = hash_string_murmurhash(str);
-    for (string_hash& i : vec)
+    for (const string_hash& i : vec)
         if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
-            return;
+            return false;
 
     vec.push_back(str);
+    return true;
 }

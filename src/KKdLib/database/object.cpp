@@ -16,9 +16,9 @@ static void object_database_file_classic_read_inner(object_database_file* obj_db
 static void object_database_file_classic_write_inner(object_database_file* obj_db, stream& s);
 static void object_database_file_modern_read_inner(object_database_file* obj_db, stream& s, uint32_t header_length);
 static void object_database_file_modern_write_inner(object_database_file* obj_db, stream& s);
-static int64_t object_database_strings_get_string_offset(std::vector<std::string>& vec,
-    std::vector<int64_t>& vec_off, std::string& str);
-static void object_database_strings_push_back_check(std::vector<std::string>& vec, std::string& str);
+static int64_t object_database_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str);
+static bool object_database_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str);
 
 object_set_info_file::object_set_info_file() : id() {
 
@@ -568,13 +568,9 @@ static void object_database_file_classic_write_inner(object_database_file* obj_d
 
     uint32_t object_set_count = (uint32_t)obj_db->object_set.size();
 
-    uint32_t object_count = 0;
-    for (object_set_info_file& i : obj_db->object_set)
-        object_count += (uint32_t)i.object.size();
-
     std::vector<int64_t> string_offsets;
 
-    string_offsets.reserve((int64_t)object_set_count + object_count);
+    string_offsets.reserve((int64_t)object_set_count * 4);
 
     uint32_t max_object_set_id = 0;
     uint32_t object_count = 0;
@@ -833,7 +829,7 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
     s_mosi.write(object_count * (is_x ? 0x10ULL : 0x0CULL));
     s_mosi.align_write(0x10);
 
-    std::vector<std::string> strings;
+    std::vector<string_hash> strings;
     std::vector<int64_t> string_offsets;
 
     strings.reserve((int64_t)object_set_count + object_count);
@@ -848,11 +844,11 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
             object_database_strings_push_back_check(strings, j.name);
     }
 
-    quicksort_string(strings.data(), strings.size());
+    quicksort_string_hash(strings.data(), strings.size());
     string_offsets.reserve(strings.size());
-    for (std::string& i : strings) {
+    for (string_hash& i : strings) {
         string_offsets.push_back(s_mosi.get_position());
-        s_mosi.write_string_null_terminated(i);
+        s_mosi.write_string_null_terminated(i.str);
     }
     s_mosi.align_write(0x10);
 
@@ -932,18 +928,23 @@ static void object_database_file_modern_write_inner(object_database_file* obj_db
     st.write(s, true, is_x);
 }
 
-inline static int64_t object_database_strings_get_string_offset(std::vector<std::string>& vec,
-    std::vector<int64_t>& vec_off, std::string& str) {
-    for (std::string& i : vec)
-        if (str == i)
+inline static int64_t object_database_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str) {
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (const string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
             return vec_off[&i - vec.data()];
     return 0;
 }
 
-inline static void object_database_strings_push_back_check(std::vector<std::string>& vec, std::string& str) {
-    for (std::string& i : vec)
-        if (str == i)
-            return;
+inline static bool object_database_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str) {
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (const string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
+            return false;
 
     vec.push_back(str);
+    return true;
 }
