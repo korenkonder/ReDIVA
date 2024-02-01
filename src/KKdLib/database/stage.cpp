@@ -15,6 +15,9 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
 static void stage_database_file_classic_write_inner(stage_database_file* stage_data, stream& s);
 static void stage_database_file_modern_read_inner(stage_database_file* stage_data, stream& s, uint32_t header_length);
 static void stage_database_file_modern_write_inner(stage_database_file* stage_data, stream& s);
+static int64_t stage_database_file_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str);
+static bool stage_database_file_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str);
 
 const stage_effects stage_effects_default;
 const stage_effects_modern stage_effects_modern_default;
@@ -427,15 +430,18 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
     int32_t auth_3d_ids_offsets_offset = s.read_int32_t();
 
     int32_t size = (stage_effects_offset - stages_offset) / count;
-    stage_data->format = size == 104 ? STAGE_DATA_AC
-        : (size == 108 ? STAGE_DATA_F
-        : (size >= 112 ? STAGE_DATA_FT : STAGE_DATA_UNK));
-
-    if (stage_data->format == STAGE_DATA_UNK) {
+    if (size >= 0x68 && size < 0x6C)
+        stage_data->format = STAGE_DATA_AC;
+    else if (size >= 0x6C && size < 0x70)
+        stage_data->format = STAGE_DATA_F;
+    else if (size >= 0x70 && size < 0x74)
+        stage_data->format = STAGE_DATA_FT;
+    else {
         stage_data->ready = false;
         stage_data->modern = false;
         stage_data->big_endian = false;
         stage_data->is_x = false;
+        stage_data->format = STAGE_DATA_UNK;
         return;
     }
 
@@ -545,7 +551,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
 
     s.position_push(stage_effects_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_data_file* stage = &stage_data->stage_data[i];
+        stage_data_file* stage = &_stage_data[i];
         stage_effects* effects = &stage->effects;
         stage->effects_init = true;
 
@@ -559,7 +565,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
 
     s.position_push(auth3d_id_counts_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_data_file* stage = &stage_data->stage_data[i];
+        stage_data_file* stage = &_stage_data[i];
 
         stage->auth_3d_ids.resize(s.read_int32_t());
     }
@@ -567,7 +573,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
 
     s.position_push(auth_3d_ids_offsets_offset, SEEK_SET);
     for (int32_t i = 0; i < count; i++) {
-        stage_data_file* stage = &stage_data->stage_data[i];
+        stage_data_file* stage = &_stage_data[i];
 
         uint32_t id = s.read_uint32_t();
         uint32_t offset = s.read_uint32_t();
@@ -604,7 +610,197 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
 }
 
 static void stage_database_file_classic_write_inner(stage_database_file* stage_data, stream& s) {
+    s.write(0x20);
 
+    int32_t count = (int32_t)stage_data->stage_data.size();
+
+    int64_t stages_offset = s.get_position();
+    switch (stage_data->format) {
+    case STAGE_DATA_AC:
+        s.write(count * 0x68LL);
+        break;
+    case STAGE_DATA_F:
+        s.write(count * 0x6CLL);
+        break;
+    case STAGE_DATA_FT:
+        s.write(count * 0x70LL);
+        break;
+    default:
+        return;
+    }
+    s.align_write(0x20);
+
+    int64_t stage_effects_offset = s.get_position();
+    s.write(count * 0x60LL);
+    s.align_write(0x20);
+
+    int64_t auth3d_id_counts_offset = s.get_position();
+    s.write(count * 0x04LL);
+    s.align_write(0x20);
+
+    int64_t auth_3d_ids_offsets_offset = s.get_position();
+    s.write(count * 0x08LL + 0x04);
+    s.align_write(0x20);
+
+    std::vector<string_hash> strings;
+    std::vector<int64_t> string_offsets;
+
+    strings.reserve(count * 3LL);
+    string_offsets.reserve(count * 3LL);
+
+    if (stage_database_file_strings_push_back_check(strings, "")) {
+        string_offsets.push_back(s.get_position());
+        s.write_string_null_terminated("");
+    }
+
+    for (const stage_data_file& i : stage_data->stage_data) {
+        if (stage_database_file_strings_push_back_check(strings, i.name)) {
+            string_offsets.push_back(s.get_position());
+            s.write_string_null_terminated(i.name);
+        }
+
+        if (stage_database_file_strings_push_back_check(strings, i.auth_3d_name)) {
+            string_offsets.push_back(s.get_position());
+            s.write_string_null_terminated(i.auth_3d_name);
+        }
+
+        if (stage_database_file_strings_push_back_check(strings, i.auth_3d_name)) {
+            string_offsets.push_back(s.get_position());
+            s.write_string_null_terminated(i.auth_3d_name);
+        }
+    }
+    s.align_write(0x04);
+
+    std::vector<int64_t> reflect_offsets;
+    reflect_offsets.reserve(count);
+
+    for (const stage_data_file& i : stage_data->stage_data)
+        if (i.reflect) {
+            reflect_offsets.push_back(s.get_position());
+            s.write_uint32_t(i.reflect_data.mode);
+            s.write_uint32_t(i.reflect_data.blur_num);
+            s.write_uint32_t(i.reflect_data.blur_filter);
+        }
+        else
+            reflect_offsets.push_back(0);
+
+    std::vector<int64_t> refract_offsets;
+    refract_offsets.reserve(count);
+
+    for (const stage_data_file& i : stage_data->stage_data)
+        if (i.refract) {
+            refract_offsets.push_back(s.get_position());
+            s.write_uint32_t(i.refract_data.mode);
+        }
+        else
+            refract_offsets.push_back(0);
+
+    std::vector<int64_t> auth_3d_ids_offsets;
+    auth_3d_ids_offsets.reserve(count);
+
+    for (const stage_data_file& i : stage_data->stage_data) {
+        auth_3d_ids_offsets.push_back(s.get_position());
+        for (const int32_t& j : i.auth_3d_ids)
+            s.write_uint32_t(j);
+        s.write_uint32_t(-1);
+    }
+    s.write_uint32_t(0x358637BD);
+
+    if (stage_data->format == STAGE_DATA_F)
+        s.align_write(0x10);
+
+    stage_data_file* _stage_data = stage_data->stage_data.data();
+    int64_t* _reflect_offsets = reflect_offsets.data();
+    int64_t* _refract_offsets = refract_offsets.data();
+
+    s.position_push(stages_offset, SEEK_SET);
+    for (int32_t i = 0; i < count; i++) {
+        const stage_data_file* stage = &_stage_data[i];
+
+        s.write_uint32_t((uint32_t)stage_database_file_strings_get_string_offset(strings,
+            string_offsets, stage->name));
+        s.write_uint32_t((uint32_t)stage_database_file_strings_get_string_offset(strings,
+            string_offsets, stage->auth_3d_name));
+        s.write_uint32_t(stage->object_set_id);
+        s.write_uint16_t((uint16_t)stage->object_ground.id);
+        s.write_uint16_t((uint16_t)stage->object_ground.set_id);
+        s.write_uint16_t((uint16_t)stage->object_ring.id);
+        s.write_uint16_t((uint16_t)stage->object_ring.set_id);
+        s.write_uint16_t((uint16_t)stage->object_sky.id);
+        s.write_uint16_t((uint16_t)stage->object_sky.set_id);
+        s.write_uint16_t((uint16_t)stage->object_shadow.id);
+        s.write_uint16_t((uint16_t)stage->object_shadow.set_id);
+        s.write_uint16_t((uint16_t)stage->object_reflect.id);
+        s.write_uint16_t((uint16_t)stage->object_reflect.set_id);
+        s.write_uint16_t((uint16_t)stage->object_refract.id);
+        s.write_uint16_t((uint16_t)stage->object_refract.set_id);
+        s.write_uint32_t(stage->lens_flare_texture);
+        s.write_uint32_t(stage->lens_shaft_texture);
+        s.write_uint32_t(stage->lens_ghost_texture);
+        s.write_float_t(stage->lens_shaft_inv_scale);
+        s.write_uint32_t(stage->unknown);
+        s.write_uint32_t(stage->render_texture);
+
+        if (stage_data->format > STAGE_DATA_AC)
+            s.write_uint32_t(stage->movie_texture);
+
+        s.write_uint32_t((uint32_t)stage_database_file_strings_get_string_offset(strings,
+            string_offsets, stage->collision_file_path));
+        s.write_uint32_t(stage->reflect_type);
+        s.write_uint32_t(stage->refract_enable ? 0x01 : 0x00);
+
+        s.write_uint32_t((uint32_t)_reflect_offsets[i]);
+        s.write_uint32_t((uint32_t)_refract_offsets[i]);
+
+        if (stage_data->format > STAGE_DATA_F)
+            s.write_uint32_t(stage->flags);
+
+        s.write_float_t(stage->ring_rectangle_x);
+        s.write_float_t(stage->ring_rectangle_y);
+        s.write_float_t(stage->ring_rectangle_width);
+        s.write_float_t(stage->ring_rectangle_height);
+        s.write_float_t(stage->ring_height);
+        s.write_float_t(stage->ring_out_height);
+    }
+    s.position_pop();
+
+    s.position_push(stage_effects_offset, SEEK_SET);
+    for (int32_t i = 0; i < count; i++) {
+        const stage_data_file* stage = &_stage_data[i];
+        const stage_effects* effects = &stage->effects;
+
+        for (int32_t j = 0; j < 8; j++)
+            s.write_int32_t(effects->field_0[j]);
+
+        for (int32_t j = 0; j < 16; j++)
+            s.write_int32_t(effects->field_20[j]);
+    }
+    s.position_pop();
+
+    s.position_push(auth3d_id_counts_offset, SEEK_SET);
+    for (int32_t i = 0; i < count; i++) {
+        const stage_data_file* stage = &_stage_data[i];
+
+        s.write_int32_t((int32_t)stage->auth_3d_ids.size());
+    }
+    s.position_pop();
+
+    int64_t* _auth_3d_ids_offsets = auth_3d_ids_offsets.data();
+
+    s.position_push(auth_3d_ids_offsets_offset, SEEK_SET);
+    for (int32_t i = 0; i < count; i++) {
+        s.write_uint32_t(i);
+        s.write_uint32_t((uint32_t)_auth_3d_ids_offsets[i]);
+    }
+    s.position_pop();
+
+    s.position_push(0x00, SEEK_SET);
+    s.write_int32_t(count);
+    s.write_int32_t((int32_t)stages_offset);
+    s.write_int32_t((int32_t)stage_effects_offset);
+    s.write_int32_t((int32_t)auth3d_id_counts_offset);
+    s.write_int32_t((int32_t)auth_3d_ids_offsets_offset);
+    s.position_pop();
 }
 
 static void stage_database_file_modern_read_inner(stage_database_file* stage_data, stream& s, uint32_t header_length) {
@@ -726,3 +922,23 @@ static void stage_database_file_modern_write_inner(stage_database_file* stage_da
 
 }
 
+inline static int64_t stage_database_file_strings_get_string_offset(const std::vector<string_hash>& vec,
+    const std::vector<int64_t>& vec_off, const std::string& str) {
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (const string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
+            return vec_off[&i - vec.data()];
+    return 0;
+}
+
+inline static bool stage_database_file_strings_push_back_check(std::vector<string_hash>& vec, const std::string& str) {
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(str);
+    for (string_hash& i : vec)
+        if (hash_fnv1a64m == i.hash_fnv1a64m && hash_murmurhash == i.hash_murmurhash)
+            return false;
+
+    vec.push_back(str);
+    return true;
+}
