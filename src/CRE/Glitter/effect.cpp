@@ -27,6 +27,7 @@ namespace Glitter {
     }
 
     Effect& Effect::operator=(const Effect& eff) {
+        Node::operator=(eff);
         if (data.ext_anim)
             free(data.ext_anim);
 

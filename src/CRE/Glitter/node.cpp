@@ -16,6 +16,7 @@ namespace Glitter {
     }
 
     Node& Node::operator=(const Node& node) {
+        ItemBase::operator=(node);
         translation = node.translation;
         rotation = node.rotation;
         scale = node.scale;

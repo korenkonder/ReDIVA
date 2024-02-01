@@ -41,6 +41,7 @@ namespace Glitter {
     }
 
     Emitter& Emitter::operator=(const Emitter& emit) {
+        Node::operator=(emit);
         data = emit.data;
         version = emit.version;
 
