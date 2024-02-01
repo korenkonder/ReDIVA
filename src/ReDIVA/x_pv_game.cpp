@@ -289,6 +289,8 @@ static void replace_names(char* str);
 static void replace_names(std::string& str);
 static object_info replace_object_info(object_info info,
     const object_database* src_obj_db, const object_database* dst_obj_db);
+static uint32_t replace_texture_id(uint32_t id,
+    const texture_database* src_tex_db, const texture_database* dst_tex_db);
 #endif
 
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
@@ -6746,6 +6748,9 @@ bool x_pv_game::ctrl() {
 
         object_database x_pack_obj_db;
         x_pack_obj_db.add(&baker->obj_db);
+        
+        texture_database x_pack_tex_db;
+        x_pack_tex_db.add(&baker->tex_db);
 
         for (Glitter::EffectGroup*& i : pv_glitter_eff_groups)
             x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &pv_data.obj_db, &x_pack_obj_db);
@@ -6758,6 +6763,7 @@ bool x_pv_game::ctrl() {
 
         stage_database_file& x_pack_stg_db = baker->stage_data;
         object_database& x_stage_obj_db = stage_data.obj_db;
+        texture_database& x_stage_tex_db = stage_data.tex_db;
         stage_database& x_stg_db = stage_data.stage_data.stg_db;
 
         int32_t stage_max_id = -1;
@@ -6784,8 +6790,8 @@ bool x_pv_game::ctrl() {
             stage_data.lens_ghost_texture = -1;
             stage_data.lens_shaft_inv_scale = 1.0f;
             stage_data.unknown = 0;
-            stage_data.render_texture = -1;
-            stage_data.movie_texture = -1;
+            stage_data.render_texture = replace_texture_id(i.render_texture, &x_stage_tex_db, &x_pack_tex_db);
+            stage_data.movie_texture = replace_texture_id(i.movie_texture, &x_stage_tex_db, &x_pack_tex_db);
             stage_data.collision_file_path.assign("rom/STGTST_COLI.000.bin");
             stage_data.reflect_type = STAGE_DATA_REFLECT_DISABLE;
             stage_data.flags = (stage_data_flags)0;
@@ -10101,6 +10107,17 @@ static object_info replace_object_info(object_info info,
     std::string name(_name);
     replace_names(name);
     return dst_obj_db->get_object_info(name.c_str());
+}
+
+static uint32_t replace_texture_id(uint32_t id,
+    const texture_database* src_tex_db, const texture_database* dst_tex_db) {
+    const char* _name = src_tex_db->get_texture_name(id);
+    if (!_name)
+        return -1;
+
+    std::string name(_name);
+    replace_names(name);
+    return dst_tex_db->get_texture_id(name.c_str());
 }
 #endif
 #endif
