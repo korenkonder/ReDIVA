@@ -6247,6 +6247,8 @@ bool x_pv_game::ctrl() {
 
             int32_t time = -1;
             int32_t frame = -1;
+            bool hand_anim_set[ROB_CHARA_COUNT] = {};
+            int32_t hand_anim_set_time[ROB_CHARA_COUNT] = {};
             for (dsc_data& i : pv_data.dsc.data) {
                 if (i.func == DSC_X_END)
                     break;
@@ -6267,6 +6269,11 @@ bool x_pv_game::ctrl() {
                     if (state[chara_id].disp)
                         state[chara_id].disp_time = time;
                     miku_disp.push_back(time, i.data_offset);
+
+                    if (!hand_anim_set[chara_id]) {
+                        hand_anim_set_time[chara_id] = time;
+                        hand_anim_set[chara_id] = true;
+                    }
                 } break;
                 case DSC_X_SET_MOTION: {
                     int32_t chara_id = data[0];
@@ -6278,6 +6285,31 @@ bool x_pv_game::ctrl() {
                     set_playdata.push_back(time, i.data_offset);
                 } break;
                 }
+            }
+
+            for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+                if (!hand_anim_set[i])
+                    continue;
+
+                int32_t* data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                    DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
+                data[0] = hand_anim_set_time[i];
+
+                int32_t* new_hand_anim_l_data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_HAND_ANIM),
+                    DSC_X_HAND_ANIM, dsc_x_get_func_length(DSC_X_HAND_ANIM));
+                new_hand_anim_l_data[0] = i;
+                new_hand_anim_l_data[1] = 0;
+                new_hand_anim_l_data[2] = 9;
+                new_hand_anim_l_data[3] = -1;
+                new_hand_anim_l_data[4] = -1;
+
+                int32_t* new_hand_anim_r_data = pv_data.dsc.add_func(dsc_x_get_func_name(DSC_X_HAND_ANIM),
+                    DSC_X_HAND_ANIM, dsc_x_get_func_length(DSC_X_HAND_ANIM));
+                new_hand_anim_r_data[0] = i;
+                new_hand_anim_r_data[1] = 1;
+                new_hand_anim_r_data[2] = 9;
+                new_hand_anim_r_data[3] = -1;
+                new_hand_anim_r_data[4] = -1;
             }
 
             if (state_vec.size()) {
@@ -6299,6 +6331,7 @@ bool x_pv_game::ctrl() {
                 pv_data.dsc.rebuild();
             }
 
+#if BAKE_PV826
             if (pv_id == 826 && (miku_disp.size() || set_motion.size() || set_playdata.size())) {
                 time = -1;
                 for (std::pair<int32_t, uint32_t>& i : miku_disp) {
@@ -6356,6 +6389,7 @@ bool x_pv_game::ctrl() {
 
                 pv_data.dsc.rebuild();
             }
+#endif
 
             /*sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_data.pv_id);
             void* data = 0;
