@@ -261,9 +261,17 @@ static void x_pv_game_reset_field(x_pv_game* xpvgm);
 
 #if BAKE_X_PACK
 static void x_pv_game_update_object_set(ObjsetInfo* info);
-static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth);
-static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group);
-static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db, texture_database* tex_db);
+static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
+    auth_3d_database_file* auth_3d_db, const char* category);
+static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id);
+static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
+    const auth_3d_database* x_pack_auth_3d_db, const object_database* x_pack_obj_db);
+static void x_pv_game_write_object_set(ObjsetInfo* info, object_database_file* x_pack_obj_db,
+    const texture_database* tex_db, texture_database_file* x_pack_tex_db);
+static void x_pv_game_write_play_param(pvpp* play_param,
+    int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db);
+static void x_pv_game_write_stage_resource(pvsr* stage_resource,
+    int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db);
 #endif
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
@@ -275,8 +283,11 @@ static void replace_pv832(std::string& str);
 #endif
 
 #if BAKE_X_PACK
+static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth);
 static void replace_names(char* str);
 static void replace_names(std::string& str);
+static object_info replace_object_info(object_info info,
+    const object_database* src_obj_db, const object_database* dst_obj_db);
 #endif
 
 bool x_pv_bar_beat_data::compare_bar_time_less(float_t time) {
@@ -2206,6 +2217,9 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         dsc_time = (int64_t)data[0] * 10000;
         if (dsc_time > curr_time)
             return false;
+#if BAKE_X_PACK
+        pv_end = true;
+#endif
     } break;
     case DSC_X_MIKU_MOVE: {
         chara_id = data[0];
@@ -6414,6 +6428,10 @@ bool x_pv_game::ctrl() {
     case 18: {
         x_pv_game_data& pv_data = this->get_data();
 
+        XPVGameBaker* baker = x_pv_game_baker_ptr;
+
+        x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id);
+
         std::vector<auth_3d*> chara_effect_auth_3ds;
         std::vector<auth_3d*> song_effect_auth_3ds;
         std::vector<auth_3d*> stage_data_effect_auth_3ds;
@@ -6472,6 +6490,8 @@ bool x_pv_game::ctrl() {
         std::vector<Glitter::EffectGroup*> glitter_eff_groups;
 
         auto add_auth_3d_object_set_id = [&](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
+            object_set_ids.reserve(auth->object.size() + auth->object_hrc.size());
+
             for (auth_3d_object& i : auth->object)
                 object_set_ids.push_back(i.object_info.set_id);
 
@@ -6484,9 +6504,10 @@ bool x_pv_game::ctrl() {
             if (eff_group) {
                 glitter_eff_groups.push_back(eff_group);
 
-                if (eff_group->CheckModel())
-                    object_set_ids.insert(object_set_ids.end(),
-                        eff_group->object_set_ids.begin(), eff_group->object_set_ids.end());
+                object_set_ids.reserve(eff_group->meshes.size());
+
+                for (Glitter::Mesh& i : eff_group->meshes)
+                    object_set_ids.push_back(i.object_set_hash);
             }
         };
 
@@ -6588,7 +6609,8 @@ bool x_pv_game::ctrl() {
                 continue;
 
             x_pv_game_update_object_set(info);
-            x_pv_game_write_object_set(info, &pv_data.obj_db, &pv_data.tex_db);
+            x_pv_game_write_object_set(info, &baker->obj_db,
+                &pv_data.tex_db, &baker->tex_db);
         }
 
         for (uint32_t& i : stage_object_set_ids) {
@@ -6597,16 +6619,41 @@ bool x_pv_game::ctrl() {
                 continue;
 
             x_pv_game_update_object_set(info);
-            x_pv_game_write_object_set(info, &stage_data.obj_db, &stage_data.tex_db);
+            x_pv_game_write_object_set(info, &baker->obj_db,
+                &stage_data.tex_db, &baker->tex_db);
         }
 
-        for (auth_3d*& i : chara_effect_auth_3ds)
-            x_pv_game_write_auth_3d(0, i);
+        auth_3d_database_file& x_pack_auth_3d_db_file = baker->auth_3d_db;
+
+        {
+            auth_3d* auth = get_data().camera.id.get_auth_3d();
+
+            char category[0x40];
+            sprintf_s(category, sizeof(category), "CAMPV%03d", pv_data.pv_id);
+            replace_names(category);
+            
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "CAMPV%03d_BASE", pv_data.pv_id);
+            replace_names(name);
+
+            x_pack_auth_3d_db_file.category.push_back(category);
+
+            x_pack_auth_3d_db_file.uid.push_back({});
+            auth_3d_database_uid_file& uid = x_pack_auth_3d_db_file.uid.back();
+            uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
+            uid.category.assign(category);
+            uid.org_uid = x_pack_auth_3d_db_file.uid_max++;
+            uid.size = auth->play_control.size;
+            uid.value.assign("A ");
+            uid.value.append(name);
+        }
 
         if (song_effect_auth_3ds.size()) {
             char name[0x40];
             sprintf_s(name, sizeof(name), "EFFPV%03d", pv_data.pv_id);
             replace_names(name);
+
+            x_pack_auth_3d_db_file.category.push_back(name);
 
             char path[MAX_PATH];
             strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
@@ -6614,40 +6661,116 @@ bool x_pv_game::ctrl() {
 
             farc* effpv_farc = new farc;
             for (auth_3d*& i : song_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effpv_farc, i);
+                x_pv_game_write_auth_3d(effpv_farc, i, &x_pack_auth_3d_db_file, name);
 
             effpv_farc->write(path, FARC_FArC, FARC_NONE, false);
             delete effpv_farc;
         }
 
-        char name[0x40];
-        sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
-        replace_names(name);
+        for (auth_3d*& i : chara_effect_auth_3ds)
+            x_pv_game_write_auth_3d(0, i, &x_pack_auth_3d_db_file, 0);
 
-        char path[MAX_PATH];
-        strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
-        strcat_s(path, sizeof(path), name);
+        {
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
+            replace_names(name);
 
-        farc* effstgpv_farc = new farc;
-        for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
-            for (uint32_t& j : i.auth_3d_ids) {
+            x_pack_auth_3d_db_file.category.push_back(name);
+
+            char path[MAX_PATH];
+            strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
+            strcat_s(path, sizeof(path), name);
+
+            farc* effstgpv_farc = new farc;
+            for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
+                for (uint32_t& j : i.auth_3d_ids) {
+                    auth_3d* auth = auth_3d_data_get_auth_3d(j);
+                    if (auth)
+                        x_pv_game_write_auth_3d(effstgpv_farc, auth, &x_pack_auth_3d_db_file, name);
+                }
+
+            for (auth_3d*& i : stage_data_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, i, &x_pack_auth_3d_db_file, name);
+
+            for (auth_3d*& i : stage_data_change_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, i, &x_pack_auth_3d_db_file, name);
+
+            x_pv_game_write_auth_3d(effstgpv_farc,
+                light_auth_3d_id.get_auth_3d(), &x_pack_auth_3d_db_file, name);
+
+            if (effstgpv_farc->files.size())
+                effstgpv_farc->write(path, FARC_FArC, FARC_NONE, false);
+            delete effstgpv_farc;
+        }
+
+        auth_3d_database x_pack_auth_3d_db;
+        x_pack_auth_3d_db.add(&baker->auth_3d_db_base, false);
+        x_pack_auth_3d_db.add(&baker->auth_3d_db, true);
+
+        object_database x_pack_obj_db;
+        x_pack_obj_db.add(&baker->obj_db);
+
+        for (Glitter::EffectGroup*& i : glitter_eff_groups)
+            x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &x_pack_obj_db);
+
+        x_pv_game_write_play_param(pv_data.play_param, pv_data.pv_id, &x_pack_auth_3d_db);
+        x_pv_game_write_stage_resource(stage_data.stage_resource, stage_data.stage_id, &x_pack_auth_3d_db);
+
+        stage_database_file& x_pack_stg_db = baker->stage_data;
+        object_database& x_stage_obj_db = stage_data.obj_db;
+        stage_database& x_stg_db = stage_data.stage_data.stg_db;
+
+        int32_t stage_max_id = -1;
+        for (stage_data_file& i : baker->stage_data.stage_data)
+            stage_max_id = max_def(stage_max_id, i.id);
+
+        for (const stage_data_modern& i : x_stg_db.stage_modern) {
+            x_pack_stg_db.stage_data.push_back({});
+            stage_data_file& stage_data = x_pack_stg_db.stage_data.back();
+            stage_data.id = ++stage_max_id;
+            stage_data.name.assign(i.name);
+            replace_names(stage_data.name);
+            stage_data.auth_3d_name.assign("EFF");
+            stage_data.auth_3d_name.append(stage_data.name);
+            stage_data.object_set_id = x_pack_obj_db.get_object_set_id(stage_data.name.c_str());
+            stage_data.object_ground = replace_object_info(i.object_ground, &x_stage_obj_db, &x_pack_obj_db);
+            stage_data.object_ring = object_info();
+            stage_data.object_sky = replace_object_info(i.object_sky, &x_stage_obj_db, &x_pack_obj_db);
+            stage_data.object_shadow = replace_object_info(i.object_shadow, &x_stage_obj_db, &x_pack_obj_db);
+            stage_data.object_reflect = replace_object_info(i.object_reflect, &x_stage_obj_db, &x_pack_obj_db);
+            stage_data.object_refract = replace_object_info(i.object_refract, &x_stage_obj_db, &x_pack_obj_db);
+            stage_data.lens_flare_texture = -1;
+            stage_data.lens_shaft_texture = -1;
+            stage_data.lens_ghost_texture = -1;
+            stage_data.lens_shaft_inv_scale = 1.0f;
+            stage_data.unknown = 0;
+            stage_data.render_texture = -1;
+            stage_data.movie_texture = -1;
+            stage_data.collision_file_path.assign("rom/STGTST_COLI.000.bin");
+            stage_data.reflect_type = STAGE_DATA_REFLECT_DISABLE;
+            stage_data.flags = (stage_data_flags)0;
+            stage_data.ring_rectangle_x = i.ring_rectangle_x;
+            stage_data.ring_rectangle_y = i.ring_rectangle_y;
+            stage_data.ring_rectangle_width = i.ring_rectangle_width;
+            stage_data.ring_rectangle_height = i.ring_rectangle_height;
+            stage_data.ring_height = i.ring_height;
+            stage_data.ring_out_height = i.ring_out_height;
+
+            stage_data.auth_3d_ids.reserve(i.auth_3d_ids.size());
+            for (const uint32_t& j : i.auth_3d_ids) {
                 auth_3d* auth = auth_3d_data_get_auth_3d(j);
-                if (auth)
-                    x_pv_game_write_auth_3d(effstgpv_farc, auth);
+                if (!auth)
+                    continue;
+
+                char name[0x200];
+                if (get_replace_auth_name(name, sizeof(name), auth)) {
+                    int32_t uid = x_pack_auth_3d_db.get_uid(name);
+                    if (uid != -1)
+                        stage_data.auth_3d_ids.push_back(uid);
+                }
             }
+        }
 
-        for (auth_3d*& i : stage_data_effect_auth_3ds)
-            x_pv_game_write_auth_3d(effstgpv_farc, i);
-
-        for (auth_3d*& i : stage_data_change_effect_auth_3ds)
-            x_pv_game_write_auth_3d(effstgpv_farc, i);
-
-        if (effstgpv_farc->files.size())
-            effstgpv_farc->write(path, FARC_FArC, FARC_NONE, false);
-        delete effstgpv_farc;
-
-        for (auto& i : glitter_eff_groups)
-            x_pv_game_write_glitter(i);
 #endif
         state_old = 19;
     } break;
@@ -7973,6 +8096,14 @@ XPVGameBaker::~XPVGameBaker() {
 }
 
 bool XPVGameBaker::init() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+
+    aet_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\2d\\mdata_aet_db", false);
+    auth_3d_db_base.read("diva\\AFT\\rom\\auth_3d\\auth_3d_db");
+    auth_3d_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\auth_3d\\mdata_auth_3d_db");
+    obj_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\objset\\mdata_obj_db", false);
+    stage_data.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\mdata_stage_data", false);
+    tex_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\objset\\mdata_tex_db", false);
     return true;
 }
 
@@ -7995,6 +8126,11 @@ bool XPVGameBaker::ctrl() {
 }
 
 bool XPVGameBaker::dest() {
+    aet_db.write("patch\\!temp\\2d\\mdata_aet_db");
+    auth_3d_db.write("patch\\!temp\\auth_3d\\mdata_auth_3d_db");
+    obj_db.write("patch\\!temp\\objset\\mdata_obj_db");
+    stage_data.write("patch\\!temp\\mdata_stage_data");
+    tex_db.write("patch\\!temp\\objset\\mdata_tex_db");
     return true;
 }
 #else
@@ -8798,32 +8934,11 @@ static void x_pv_game_update_object_set(ObjsetInfo* info) {
     info->obj_set = set;
 }
 
-static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth) {
+static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
+    auth_3d_database_file* auth_3d_db, const char* category) {
     char name[0x200];
-    strcpy_s(name, sizeof(name), auth->file_name.c_str());
-
-    const char* a3da_ext = ".a3da";
-
-    char* ext = 0;
-    char* temp = name;
-    while (temp = strstr(temp, a3da_ext))
-        ext = temp++;
-
-    if (!ext) {
-        strcat_s(name, sizeof(name), a3da_ext);
-        ext = strstr(name, a3da_ext);
-    }
-
-    replace_names(name);
-
-    for (char* i = name; *i && i != ext; i++) {
-        char c = *i;
-        if (c >= 'a' && c <= 'z')
-            *i -= 0x20;
-    }
-
-    if (strstr(name, "EFFCHRPV826"))
-        return;
+    if (!get_replace_auth_name(name, sizeof(name), auth))
+        return false;
 
     a3da a;
     float_t max_frame = auth->max_frame;
@@ -8832,6 +8947,7 @@ static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth) {
     auth->max_frame = max_frame;
     a._converter_version.assign("20111019");
     a._file_name.assign(name);
+    a._file_name.append(".a3da");
     a._property_version.assign("20110526");
     a.ready = true;
     a.compressed = true;
@@ -8853,6 +8969,12 @@ static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth) {
         replace_names(i.name);
         replace_names(i.parent_name);
         replace_names(i.uid_name);
+
+        for (a3da_object_texture_pattern& j : i.texture_pattern)
+            replace_names(j.name);
+
+        for (a3da_object_texture_transform& j : i.texture_transform)
+            replace_names(j.name);
     }
 
     for (a3da_object_hrc& i : a.object_hrc) {
@@ -8874,20 +8996,195 @@ static void x_pv_game_write_auth_3d(farc* f, auth_3d* auth) {
         f = new farc;
 
     farc_file* ff = f->add_file(name);
+    ff->name.append(".a3da");
     a.write(&ff->data, &ff->size);
-
 
     if (own_farc) {
         char path[MAX_PATH];
         strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
-        strncat_s(path, sizeof(path), name, ext - name);
+        strcat_s(path, sizeof(path), name);
 
         f->write(path, FARC_FArC, FARC_NONE, false);
         delete f;
+
+        auth_3d_db->category.push_back(name);
     }
+
+    auth_3d_db->uid.push_back({});
+    auth_3d_database_uid_file& uid = auth_3d_db->uid.back();
+    uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
+    uid.category.assign(own_farc ? name : category);
+    uid.org_uid = auth_3d_db->uid_max++;
+    uid.size = auth->play_control.size;
+    uid.value.assign("A ");
+    uid.value.append(name);
+    return true;
 }
 
-static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group) {
+static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+
+    dsc _d = d;
+    {
+        std::vector<dsc_data> data_temp;
+        data_temp.reserve(_d.data.size());
+
+        for (const dsc_data& i : _d.data)
+            switch (i.func) {
+            case DSC_X_TARGET:
+            case DSC_X_TARGET_FLYING_TIME:
+            case DSC_X_DOF:
+                break;
+            default:
+                data_temp.push_back(i);
+                break;
+            }
+
+        _d.data.assign(data_temp.begin(), data_temp.end());
+        data_temp.clear();
+        _d.rebuild();
+    }
+
+    for (const dsc_data& i : _d.data) {
+        if (i.func != DSC_X_MOUTH_ANIM)
+            continue;
+
+        int32_t* data = _d.get_func_data(&i);
+
+        int32_t& mouth_anim_id = data[2];
+        switch (mouth_anim_id) {
+        case  4: mouth_anim_id = 34; break;
+        case  5: mouth_anim_id = 35; break;
+        case  6: mouth_anim_id = 36; break;
+        case  7: mouth_anim_id = 37; break;
+        case  8: mouth_anim_id = 38; break;
+        case  9: mouth_anim_id = 39; break;
+        case 10: mouth_anim_id =  4; break;
+        case 11: mouth_anim_id =  5; break;
+        case 12: mouth_anim_id =  6; break;
+        case 13: mouth_anim_id =  7; break;
+        case 14: mouth_anim_id =  8; break;
+        case 15: mouth_anim_id =  9; break;
+        case 16: mouth_anim_id = 10; break;
+        case 17: mouth_anim_id = 11; break;
+        case 18: mouth_anim_id = 12; break;
+        case 19: mouth_anim_id = 13; break;
+        case 20: mouth_anim_id = 14; break;
+        case 21: mouth_anim_id = 15; break;
+        case 22: mouth_anim_id = 16; break;
+        case 23: mouth_anim_id = 17; break;
+        case 24: mouth_anim_id = 18; break;
+        case 25: mouth_anim_id = 19; break;
+        case 26: mouth_anim_id = 20; break;
+        case 27: mouth_anim_id = 21; break;
+        case 28: mouth_anim_id = 22; break;
+        case 29: mouth_anim_id = 40; break;
+        case 30: mouth_anim_id = 41; break;
+        case 31: mouth_anim_id = 42; break;
+        }
+    }
+
+    _d.convert(DSC_FT);
+    _d.signature = 0x14050921;
+
+    char file_buf[0x200];
+
+    const char* dsc_diffs[] = {
+        "easy",
+        "normal",
+        "hard",
+        "extreme",
+        "extreme_1",
+    };
+
+    for (const char*& i : dsc_diffs) {
+        dsc dsc_chart;
+        sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_%s.dsc", pv_id == 832 ? 800 : pv_id, i);
+        if (!aft_data->load_file(&dsc_chart, "rom/script/", file_buf, dsc::load_file))
+            continue;
+
+        {
+            std::vector<dsc_data> data_temp;
+            data_temp.reserve(dsc_chart.data.size());
+
+            for (const dsc_data& i : dsc_chart.data)
+                switch (i.func) {
+                case DSC_X_TIME:
+                case DSC_X_TARGET:
+                case DSC_X_TARGET_FLYING_TIME:
+                    data_temp.push_back(i);
+                    break;
+                }
+
+            dsc_chart.data.assign(data_temp.begin(), data_temp.end());
+            data_temp.clear();
+            dsc_chart.rebuild();
+        }
+
+        dsc dsc_merge;
+        dsc_merge.merge(2, &_d, &dsc_chart);
+
+        void* dsc_data = 0;
+        size_t dsc_length = 0;
+        dsc_merge.unparse(&dsc_data, &dsc_length);
+
+        char path[MAX_PATH];
+        strcpy_s(path, sizeof(path), "patch\\!temp\\script\\");
+        sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_%s.dsc", pv_id == 832 ? 800 : pv_id, i);
+        strcat_s(path, sizeof(path), file_buf);
+
+        file_stream s_dsc;
+        s_dsc.open(path, "wb");
+        s_dsc.write(dsc_data, dsc_length);
+        s_dsc.close();
+
+        free_def(dsc_data);
+    }
+
+    _d = d;
+    {
+        std::vector<dsc_data> data_temp;
+        data_temp.reserve(_d.data.size());
+
+        for (const dsc_data& i : _d.data)
+            switch (i.func) {
+            case DSC_X_END:
+            case DSC_X_TIME:
+            case DSC_X_CHANGE_FIELD:
+            case DSC_X_BAR_POINT:
+            case DSC_X_BEAT_POINT:
+            case DSC_X_STAGE_EFFECT:
+            case DSC_X_SONG_EFFECT:
+            case DSC_X_SONG_EFFECT_ATTACH:
+            case DSC_X_SET_STAGE_EFFECT_ENV:
+            case DSC_X_CHARA_EFFECT:
+                data_temp.push_back(i);
+                break;
+            }
+
+        _d.data.assign(data_temp.begin(), data_temp.end());
+        data_temp.clear();
+        _d.rebuild();
+    }
+
+    void* dsc_data = 0;
+    size_t dsc_length = 0;
+    _d.unparse(&dsc_data, &dsc_length);
+
+    char path[MAX_PATH];
+    strcpy_s(path, sizeof(path), "patch\\!temp\\pv_script\\");
+    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d.dsc", pv_id == 832 ? 800 : pv_id);
+    strcat_s(path, sizeof(path), file_buf);
+
+    file_stream s_dsc;
+    s_dsc.open(path, "wb");
+    s_dsc.write(dsc_data, dsc_length);
+    s_dsc.close();
+    free_def(dsc_data);
+}
+
+static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
+    const auth_3d_database* x_pack_auth_3d_db, const object_database* x_pack_obj_db) {
     Glitter::EffectGroup temp_eff_group(Glitter::X);
     temp_eff_group.name.assign(eff_group->name);
     temp_eff_group.version = eff_group->version;
@@ -8910,7 +9207,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group) {
 
     data_struct* x_data = &data_list[DATA_X];
     auto& hashes = x_data->glitter_list_murmurhash;
-    for (Glitter::Effect*& i : eff_group->effects) {
+    for (Glitter::Effect*& i : temp_eff_group.effects) {
         if (!i)
             continue;
 
@@ -8920,23 +9217,87 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group) {
             continue;
 
         auto elem = hashes.find(e->data.name_hash);
-        if (elem != hashes.end()) {
-            e->name.assign(elem->second);
-            replace_names(e->name);
-        }
-        else
+        if (elem == hashes.end()) {
             printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
+            continue;
+        }
+
+        e->name.assign(elem->second);
+        replace_names(e->name);
+
+        if (!e->data.ext_anim_x)
+            continue;
+        Glitter::Effect::ExtAnimX* ext_anim = e->data.ext_anim_x;
+
+        uint32_t file_name_hash = ext_anim->file_name_hash;
+        uint32_t object_hash = ext_anim->object_hash;
+        uint32_t instance_id = ext_anim->instance_id;
+        for (int32_t& i : auth_3d_data->loaded_ids) {
+            if (i < 0 || (i & 0x7FFF) >= AUTH_3D_DATA_COUNT)
+                continue;
+
+            auth_3d* auth = &auth_3d_data->data[i & 0x7FFF];
+            if (auth->id != i || !auth->enable)
+                continue;
+
+            if (file_name_hash != hash_murmurhash_empty) {
+                if (auth->hash != file_name_hash)
+                    continue;
+            End:
+                free(e->data.ext_anim_x);
+                e->data.ext_anim_x = 0;
+                break;
+            }
+
+            std::string uid_name;
+            int32_t obj_instance = 0;
+            for (auth_3d_object& i : auth->object)
+                if (object_hash == i.object_hash) {
+                    if (obj_instance == instance_id) {
+                        uid_name.assign(i.uid_name);
+                        break;
+                    }
+                    obj_instance++;
+                }
+
+            if (!uid_name.size()) {
+                int32_t obj_hrc_instance = 0;
+                for (auth_3d_object_hrc& i : auth->object_hrc)
+                    if (object_hash == i.object_hash) {
+                        if (obj_hrc_instance == instance_id) {
+                            uid_name.assign(i.uid_name);
+                            break;
+                        }
+                        obj_hrc_instance++;
+                    }
+            }
+
+            if (!uid_name.size())
+                continue;
+
+            replace_names(uid_name);
+            ext_anim->object_hash = hash_string_murmurhash(uid_name);
+
+            char auth_name[0x200];
+            if (!get_replace_auth_name(auth_name, sizeof(auth_name), auth))
+                goto End;
+
+            ext_anim->file_name_hash = x_pack_auth_3d_db->get_uid(auth_name);
+            break;
+        }
     }
 
-    Glitter::FileWriter::Write(Glitter::X, &temp_eff_group,
-        "patch\\!temp\\particle_x\\", name, true, true, true);
+    Glitter::FileWriter::Write(Glitter::X, &temp_eff_group, "patch\\!temp\\particle_x\\",
+        name, (Glitter::FileWriterFlags)(Glitter::FILE_WRITER_COMPRESS
+            | Glitter::FILE_WRITER_ENCRYPT | Glitter::FILE_WRITER_NO_LIST));
 }
 
-static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db, texture_database* tex_db) {
+static void x_pv_game_write_object_set(ObjsetInfo* info, object_database_file* x_pack_obj_db,
+    const texture_database* tex_db, texture_database_file* x_pack_tex_db) {
     char name[0x200];
     strcpy_s(name, sizeof(name), info->name.c_str());
 
-    for (size_t j = 0; j < sizeof(name); j++) {
+    for (size_t j = 0; j < sizeof(name) && name[j]; j++) {
         char c = name[j];
         if (c >= 'A' && c <= 'Z')
             name[j] += 0x20;
@@ -8947,12 +9308,40 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
     if (strstr(name, "effchrpv826"))
         return;
 
+    int32_t object_set_max_id = -1;
+    for (object_set_info_file& i : x_pack_obj_db->object_set)
+        object_set_max_id = max_def(object_set_max_id, (int32_t)i.id);
+
+    int32_t texture_max_id = -1;
+    for (texture_info_file& i : x_pack_tex_db->texture)
+        texture_max_id = max_def(texture_max_id, (int32_t)i.id);
+
+    for (size_t j = 0; j < sizeof(name) && name[j]; j++) {
+        char c = name[j];
+        if (c >= 'a' && c <= 'z')
+            name[j] -= 0x20;
+    }
+
+    x_pack_obj_db->object_set.push_back({});
+    object_set_info_file& obj_set_info = x_pack_obj_db->object_set.back();
+    obj_set_info.name.assign(name);
+    obj_set_info.id = ++object_set_max_id;
+
+    for (size_t j = 0; j < sizeof(name); j++) {
+        char c = name[j];
+        if (c >= 'A' && c <= 'Z')
+            name[j] += 0x20;
+    }
+
+    obj_set_info.object_file_name.assign(name);
+    obj_set_info.object_file_name.append("_obj.bin");
+    obj_set_info.texture_file_name.assign(name);
+    obj_set_info.texture_file_name.append("_tex.bin");
+    obj_set_info.archive_file_name.assign(name);
+    obj_set_info.archive_file_name.append(".farc");
+
     farc f;
     {
-        data_struct* aft_data = &data_list[DATA_AFT];
-        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-        texture_database* aft_tex_db = &aft_data->data_ft.tex_db;
-
         char buf[0x100];
         strcpy_s(buf, sizeof(buf), name);
         strcat_s(buf, sizeof(buf), "_obj.bin");
@@ -8961,12 +9350,37 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
         obj_set* set = alloc->allocate<obj_set>();
         set->move_data(info->obj_set, alloc);
 
+        uint32_t tex_id_num = set->tex_id_num;
+        x_pack_tex_db->texture.reserve(tex_id_num);
+        for (uint32_t i = 0; i < tex_id_num; i++) {
+            uint32_t& id = set->tex_id_data[i];
+            const char* tex_name = tex_db->get_texture_name(id);
+            if (tex_name) {
+                char name_buf[0x200];
+                strcpy_s(name_buf, sizeof(name_buf), tex_name);
+                replace_names(name_buf);
+
+                x_pack_tex_db->texture.push_back({});
+                texture_info_file& tex_info = x_pack_tex_db->texture.back();
+                id = ++texture_max_id;
+                tex_info.name.assign(name_buf);
+                tex_info.id = id;
+            }
+            else
+                id = -1;
+        }
+
         uint32_t obj_num = set->obj_num;
+        obj_set_info.object.reserve(obj_num);
         for (uint32_t i = 0; i < obj_num; i++) {
             obj* obj = set->obj_data[i];
 
             replace_names((char*)obj->name);
-            obj->id = aft_obj_db->get_object_info(obj->name).id;
+            obj->id = i;
+
+            obj_set_info.object.push_back({});
+            obj_set_info.object.back().id = i;
+            obj_set_info.object.back().name.assign(obj->name);
 
             uint32_t num_material = obj->num_material;
             for (uint32_t j = 0; j < num_material; j++) {
@@ -8982,7 +9396,13 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
                         char name_buf[0x200];
                         strcpy_s(name_buf, sizeof(name_buf), tex_name);
                         replace_names(name_buf);
-                        k.tex_index = aft_tex_db->get_texture_id(name_buf);
+
+                        k.tex_index = -1;
+                        for (texture_info_file& i : x_pack_tex_db->texture)
+                            if (!i.name.compare(name_buf)) {
+                                k.tex_index = i.id;
+                                break;
+                            }
                     }
                     else
                         k.tex_index = -1;
@@ -8995,21 +9415,6 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
                     strcpy_s(material.shader.name, sizeof(material.shader.name), shader_name);
                 }
             }
-        }
-
-        uint32_t tex_id_num = set->tex_id_num;
-        for (uint32_t i = 0; i < tex_id_num; i++) {
-            uint32_t& id = set->tex_id_data[i];
-            const char* tex_name = tex_db->get_texture_name(id);
-            if (tex_name) {
-                char name_buf[0x200];
-                strcpy_s(name_buf, sizeof(name_buf), tex_name);
-                replace_names(name_buf);
-
-                id = aft_tex_db->get_texture_id(name_buf);
-            }
-            else
-                id = -1;
         }
 
         set->modern = false;
@@ -9042,6 +9447,425 @@ static void x_pv_game_write_object_set(ObjsetInfo* info, object_database* obj_db
     strcat_s(buf, sizeof(buf), name);
 
     f.write(buf, FARC_FArC, FARC_NONE, false);
+}
+
+static void x_pv_game_write_play_param(pvpp* play_param,
+    int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db) {
+    char path[MAX_PATH];
+    sprintf_s(path, sizeof(path), "patch\\!temp\\pv\\pv%03d.pvpp", pv_id == 832 ? 800 : pv_id);
+    
+    size_t chara_count = play_param->chara.size();
+    size_t effect_count = play_param->effect.size();
+
+    int64_t chara_offset = 0;
+    int64_t effect_offset = 0;
+
+    file_stream s;
+    s.open(path, "wb");
+    s.write(0x20);
+
+    if (chara_count) {
+        chara_offset = s.get_position();
+        s.write(0x20 * chara_count);
+
+        int64_t* auth_3d_offsets = force_malloc<int64_t>(chara_count);
+        int64_t* glitter_offsets = force_malloc<int64_t>(chara_count);
+        int64_t* chara_effect_offsets = force_malloc<int64_t>(chara_count);
+
+        for (pvpp_chara& i : play_param->chara) {
+            if (i.auth_3d.size()) {
+                *auth_3d_offsets++ = s.get_position();
+                for (string_hash& j : i.auth_3d) {
+                    std::string name;
+                    name.assign(j.str);
+                    replace_names(name);
+
+                    s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
+                }
+                s.align_write(0x08);
+            }
+            else
+                *auth_3d_offsets++ = 0;
+
+            if (i.glitter.size()) {
+                *glitter_offsets++ = s.get_position();
+                for (pvpp_glitter& j : i.glitter) {
+                    std::string name;
+                    name.assign(j.name.str);
+                    replace_names(name);
+
+                    s.write_uint32_t(hash_string_murmurhash(name));
+                    s.write_uint8_t(j.unk2);
+                    s.align_write(0x04);
+                }
+                s.align_write(0x08);
+            }
+            else
+                *glitter_offsets++ = 0;
+
+            if (i.chara_effect_init && i.chara_effect.auth_3d.size()) {
+                *chara_effect_offsets = s.get_position();
+
+                int64_t auth_3d_offset = s.get_position();
+
+                pvpp_chara_effect& chara_effect = i.chara_effect;
+                for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
+                    std::string auth_3d;
+                    auth_3d.assign(j.auth_3d.str);
+                    replace_names(auth_3d);
+
+                    char buf[0x40];
+                    memset(buf, 0, 0x40);
+                    strncpy_s(buf, 0x40, auth_3d.c_str(), 0x3F);
+                    buf[0x3F] = 0;
+                    s.write(buf, 0x40);
+                    
+                    if (j.has_object_set) {
+                        std::string object_set;
+                        object_set.assign(j.object_set.str);
+                        replace_names(object_set);
+
+                        char buf[0x40];
+                        memset(buf, 0, 0x40);
+                        strncpy_s(buf, 0x40, auth_3d.c_str(), 0x3F);
+                        buf[0x3F] = 0;
+                        s.write(buf, 0x40);
+                    }
+                    else
+                        s.write(0x40);
+
+                    s.write_uint8_t(j.u00);
+                }
+                s.align_write(0x08);
+
+                s.position_push(*chara_effect_offsets++, SEEK_SET);
+                s.write_int8_t(chara_effect.base_chara);
+                s.write_int8_t(chara_effect.chara_id);
+                s.align_write(0x04);
+                s.write_int32_t((int32_t)chara_effect.auth_3d.size());
+                s.align_write(0x08);
+                s.write_int64_t(auth_3d_offset);
+                s.position_pop();
+            }
+            else
+                *chara_effect_offsets++ = 0;
+        }
+        auth_3d_offsets -= chara_count;
+        glitter_offsets -= chara_count;
+        chara_effect_offsets -= chara_count;
+
+        s.position_push(chara_offset, SEEK_SET);
+        for (pvpp_chara& i : play_param->chara) {
+            s.write_int32_t((int32_t)i.auth_3d.size());
+            s.write_int32_t((int32_t)i.glitter.size());
+            s.align_write(0x08);
+            s.write_int64_t(*auth_3d_offsets++);
+            s.write_int64_t(*glitter_offsets++);
+            s.write_int64_t(*chara_effect_offsets++);
+        }
+        auth_3d_offsets -= chara_count;
+        glitter_offsets -= chara_count;
+        chara_effect_offsets -= chara_count;
+        s.position_pop();
+
+        free_def(auth_3d_offsets);
+        free_def(glitter_offsets);
+        free_def(chara_effect_offsets);
+    }
+
+    if (effect_count) {
+        effect_offset = s.get_position();
+        s.write(0x20 * effect_count);
+
+        int64_t* auth_3d_offsets = force_malloc<int64_t>(effect_count);
+        int64_t* glitter_offsets = force_malloc<int64_t>(effect_count);
+
+        for (pvpp_effect& i : play_param->effect) {
+            if (i.auth_3d.size()) {
+                *auth_3d_offsets++ = s.get_position();
+                for (string_hash& j : i.auth_3d) {
+                    std::string name;
+                    name.assign(j.str);
+                    replace_names(name);
+
+                    s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
+                }
+                s.align_write(0x08);
+            }
+            else
+                *auth_3d_offsets++ = 0;
+
+            if (i.glitter.size()) {
+                *glitter_offsets++ = s.get_position();
+                for (pvpp_glitter& j : i.glitter) {
+                    std::string name;
+                    name.assign(j.name.str);
+                    replace_names(name);
+
+                    s.write_uint32_t(hash_string_murmurhash(name));
+                    s.write_uint8_t(j.unk2 ? 0x01 : 0x00);
+                    s.align_write(0x04);
+                }
+                s.align_write(0x08);
+            }
+            else
+                *glitter_offsets++ = 0;
+        }
+        auth_3d_offsets -= effect_count;
+        glitter_offsets -= effect_count;
+
+        s.position_push(effect_offset, SEEK_SET);
+        for (pvpp_effect& i : play_param->effect) {
+            s.write_int8_t(i.chara_id);
+            s.align_write(0x04);
+            s.write_int32_t((int32_t)i.auth_3d.size());
+            s.write_int32_t((int32_t)i.glitter.size());
+            s.align_write(0x08);
+            s.write_int64_t(*auth_3d_offsets++);
+            s.write_int64_t(*glitter_offsets++);
+        }
+        auth_3d_offsets -= effect_count;
+        glitter_offsets -= effect_count;
+        s.position_pop();
+
+        free_def(auth_3d_offsets);
+        free_def(glitter_offsets);
+    }
+    s.align_write(0x10);
+
+    s.position_push(0x00, SEEK_SET);
+    s.write_uint32_t(reverse_endianness_uint32_t('pvpp'));
+    s.write_int32_t((int32_t)chara_count);
+    s.write_int32_t((int32_t)effect_count);
+    s.align_write(0x08);
+    s.write_int64_t(chara_offset);
+    s.write_int64_t(effect_offset);
+    s.position_pop();
+    s.close();
+}
+
+static void x_pv_game_write_stage_resource(pvsr* stage_resource,
+    int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db) {
+    struct x_pack_pvsr_effect {
+        char name[0x40];
+        float_t emission;
+    };
+
+    char path[MAX_PATH];
+    sprintf_s(path, sizeof(path), "patch\\!temp\\pv_stage_rsrc\\stgpv%03d_param.pvsr",
+        800 + (stage_id == 32 ? 00 : stage_id));
+
+    size_t effect_count = stage_resource->effect.size();
+    size_t stage_effect_count = stage_resource->stage_effect.size();
+    size_t stage_effect_env_count = stage_resource->stage_effect_env.size();
+
+    int64_t effect_offset = 0;
+    int64_t stage_effect_offset = 0;
+    int64_t stage_effect_env_offset = 0;
+    int64_t stage_change_effect_offset = 0;
+
+    file_stream s;
+    s.open(path, "wb");
+    s.write(0x30);
+
+    if (effect_count) {
+        effect_offset = s.get_position();
+
+        for (pvsr_effect& i : stage_resource->effect) {
+            std::string name;
+            name.assign(i.name.str);
+            replace_names(name);
+
+            char buf[0x40];
+            memset(buf, 0, 0x40);
+            strncpy_s(buf, 0x40, name.c_str(), 0x3F);
+            buf[0x3F] = 0;
+            s.write(buf, 0x40);
+
+            s.write_float_t(i.emission);
+        }
+        s.write(0x08);
+    }
+
+    if (stage_effect_count) {
+        stage_effect_offset = s.get_position();
+        s.write(0x20 * stage_effect_count);
+
+        int64_t* auth_3d_offsets = force_malloc<int64_t>(stage_effect_count);
+        int64_t* glitter_offsets = force_malloc<int64_t>(stage_effect_count);
+
+        for (pvsr_stage_effect& i : stage_resource->stage_effect) {
+            if (i.auth_3d.size()) {
+                *auth_3d_offsets++ = s.get_position();
+                for (pvsr_auth_3d& j : i.auth_3d) {
+                    std::string name;
+                    name.assign(j.name.str);
+                    replace_names(name);
+
+                    s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
+                    s.write_uint8_t(j.flags);
+                    s.align_write(0x04);
+                }
+                s.align_write(0x08);
+            }
+            else
+                *auth_3d_offsets++ = 0;
+
+            if (i.glitter.size()) {
+                *glitter_offsets++ = s.get_position();
+                for (pvsr_glitter& j : i.glitter) {
+                    std::string name;
+                    name.assign(j.name.str);
+                    replace_names(name);
+
+                    s.write_uint32_t(hash_string_murmurhash(name));
+                    s.write_int8_t(j.fade_time);
+                    s.write_uint8_t(j.flags);
+                    s.align_write(0x04);
+                }
+                s.align_write(0x08);
+            }
+            else
+                *glitter_offsets++ = 0;
+        }
+        auth_3d_offsets -= stage_effect_count;
+        glitter_offsets -= stage_effect_count;
+
+        s.position_push(stage_effect_offset, SEEK_SET);
+        for (pvsr_stage_effect& i : stage_resource->stage_effect) {
+            s.write_int32_t((int32_t)i.auth_3d.size());
+            s.write_int32_t((int32_t)i.glitter.size());
+            s.write_int64_t(*auth_3d_offsets++);
+            s.write_int64_t(*glitter_offsets++);
+        }
+        auth_3d_offsets -= stage_effect_count;
+        glitter_offsets -= stage_effect_count;
+        s.position_pop();
+
+        free_def(auth_3d_offsets);
+        free_def(glitter_offsets);
+    }
+
+    if (stage_effect_env_count) {
+        stage_effect_env_offset = s.get_position();
+        s.write(0x10 * stage_effect_env_count);
+
+        int64_t* aet_offsets = force_malloc<int64_t>(stage_effect_env_count);
+
+        for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+            if (i.aet_front_low.size()) {
+                *aet_offsets++ = s.get_position();
+                for (pvsr_auth_2d& j : i.aet_front_low) {
+                    std::string name;
+                    name.assign(j.name.str);
+                    replace_names(name);
+
+                    char buf[0x40];
+                    memset(buf, 0, 0x40);
+                    strncpy_s(buf, 0x40, name.c_str(), 0x3F);
+                    buf[0x3F] = 0;
+                    s.write(buf, 0x40);
+                }
+                s.align_write(0x08);
+            }
+            else
+                *aet_offsets++ = 0;
+        }
+        aet_offsets -= stage_effect_env_count;
+
+        s.position_push(stage_effect_env_offset, SEEK_SET);
+        for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+            s.write_int32_t((int32_t)i.aet_front_low.size());
+            s.align_write(0x08);
+            s.write_int64_t(*aet_offsets++);
+        }
+        aet_offsets -= stage_effect_env_count;
+        s.position_pop();
+
+        free_def(aet_offsets);
+    }
+
+    {
+        stage_change_effect_offset = s.get_position();
+        s.write(0x20 * PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
+
+        int64_t* auth_3d_offsets = force_malloc<int64_t>(PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
+        int64_t* glitter_offsets = force_malloc<int64_t>(PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
+
+        for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
+                pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
+
+                if (chg_eff.auth_3d.size()) {
+                    *auth_3d_offsets++ = s.get_position();
+                    for (pvsr_auth_3d& k : chg_eff.auth_3d) {
+                        std::string name;
+                        name.assign(k.name.str);
+                        replace_names(name);
+
+                        s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
+                        s.write_uint8_t(k.flags);
+                        s.align_write(0x04);
+                    }
+                    s.align_write(0x08);
+                }
+                else
+                    *auth_3d_offsets++ = 0;
+
+                if (chg_eff.glitter.size()) {
+                    *glitter_offsets++ = s.get_position();
+                    for (pvsr_glitter& k : chg_eff.glitter) {
+                        std::string name;
+                        name.assign(k.name.str);
+                        replace_names(name);
+
+                        s.write_uint32_t(hash_string_murmurhash(name));
+                        s.write_int8_t(k.fade_time);
+                        s.write_uint8_t(k.flags);
+                        s.align_write(0x04);
+                    }
+                    s.align_write(0x08);
+                }
+                else
+                    *glitter_offsets++ = 0;
+            }
+        auth_3d_offsets -= PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT;
+        glitter_offsets -= PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT;
+
+        s.position_push(stage_change_effect_offset, SEEK_SET);
+        for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
+            for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
+                pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
+
+                s.write_uint8_t(chg_eff.enable ? 0x01 : 0x00);
+                s.write_int8_t(chg_eff.bar_count);
+                s.align_write(0x04);
+                s.write_int32_t((int32_t)chg_eff.auth_3d.size());
+                s.write_int32_t((int32_t)chg_eff.glitter.size());
+                s.align_write(0x08);
+                s.write_int64_t(*auth_3d_offsets++);
+                s.write_int64_t(*glitter_offsets++);
+            }
+        auth_3d_offsets -= PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT;
+        glitter_offsets -= PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT;
+        s.position_pop();
+
+        free_def(auth_3d_offsets);
+        free_def(glitter_offsets);
+    }
+    s.align_write(0x10);
+
+    s.position_push(0x00, SEEK_SET);
+    s.write_uint32_t(reverse_endianness_uint32_t('pvsr'));
+    s.write_int32_t((int32_t)effect_count);
+    s.write_int32_t((int32_t)stage_effect_count);
+    s.write_int32_t((int32_t)stage_effect_env_count);
+    s.write_int64_t(effect_offset);
+    s.write_int64_t(stage_effect_offset);
+    s.write_int64_t(stage_effect_env_offset);
+    s.write_int64_t(stage_change_effect_offset);
+    s.position_pop();
+    s.close();
 }
 #endif
 
@@ -9111,6 +9935,33 @@ inline static void replace_pv832(std::string& str) {
 #endif
 
 #if BAKE_X_PACK
+static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth) {
+    if (!name)
+        return false;
+
+    strcpy_s(name, name_size, auth->file_name.c_str());
+
+    const char* a3da_ext = ".a3da";
+
+    char* ext = 0;
+    char* temp = name;
+    while (temp = strstr(temp, a3da_ext))
+        ext = temp++;
+
+    if (ext)
+        *ext = 0;
+
+    replace_names(name);
+
+    for (char* i = name; *i; i++) {
+        char c = *i;
+        if (c >= 'a' && c <= 'z')
+            *i -= 0x20;
+    }
+
+    return !strstr(name, "EFFCHRPV826");
+}
+
 static void replace_names(char* str) {
     char* stgpv;
     stgpv = str;
@@ -9138,6 +9989,17 @@ static void replace_names(char* str) {
 
 inline static void replace_names(std::string& str) {
     replace_names((char*)str.data());
+}
+
+static object_info replace_object_info(object_info info,
+    const object_database* src_obj_db, const object_database* dst_obj_db) {
+    if (info.is_null_modern())
+        return object_info();
+
+    std::string name;
+    name.assign(src_obj_db->get_object_name(info));
+    replace_names(name);
+    return dst_obj_db->get_object_info(name.c_str());
 }
 #endif
 #endif
