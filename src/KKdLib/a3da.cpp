@@ -2498,6 +2498,10 @@ static bool key_val_read(key_val* kv,
 static void key_val_out_write(key_val_out* kv, stream& s,
     const char* key, a3da_key& value, bool write_true) {
     kv->open_scope(key);
+
+    if (write_true)
+        kv->write(s, "true");
+
     if (value.flags & A3DA_KEY_BIN_OFFSET) {
         kv->write(s, "bin_offset", value.bin_offset);
         value.flags, ~A3DA_KEY_BIN_OFFSET;
@@ -2505,9 +2509,6 @@ static void key_val_out_write(key_val_out* kv, stream& s,
         kv->close_scope();
         return;
     }
-
-    if (write_true)
-        kv->write(s, "true");
 
     if (value.type == A3DA_KEY_NONE) {
         kv->write(s, "type", 0);
