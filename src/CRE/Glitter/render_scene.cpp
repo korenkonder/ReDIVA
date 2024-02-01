@@ -1597,11 +1597,11 @@ namespace Glitter {
 
                 if (local)
                     mat4_mul(&mat, &GPM_VAL->cam.inv_view, &mat);
+                elem->mat_draw = mat;
 
                 if (disp_manager.entry_obj_by_object_info(
                     &mat, object_info, &elem->color, 0, local))
                     disp++;
-                elem->mat_draw = mat;
 
                 disp_manager.set_texture_transform(0, 0);
             }
