@@ -54,7 +54,7 @@ static void a3da_get_time_stamp(char* buf, size_t buf_size);
 static bool key_val_read(key_val* kv,
     const char* key, a3da_key& value);
 static void key_val_out_write(key_val_out* kv, stream& s,
-    const char* key, a3da_key& value);
+    const char* key, a3da_key& value, bool write_true = false);
 static bool key_val_read_raw_data(key_val* kv,
     a3da_key& value);
 static void key_val_out_write_raw_data(key_val_out* kv, stream& s,
@@ -1191,21 +1191,21 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         a3da_camera_auxiliary* ca = &a->camera_auxiliary;
         if (a->format == A3DA_FORMAT_F || a->format > A3DA_FORMAT_AFT && a->format != A3DA_FORMAT_AFT_X_PACK) {
             if (ca->flags & A3DA_CAMERA_AUXILIARY_EXPOSURE_RATE)
-                key_val_out_write(&kv, s, "exposure_rate", ca->exposure_rate);
+                key_val_out_write(&kv, s, "exposure_rate", ca->exposure_rate, true);
             if (ca->flags & A3DA_CAMERA_AUXILIARY_GAMMA_RATE)
-                key_val_out_write(&kv, s, "gamma_rate", ca->gamma_rate);
+                key_val_out_write(&kv, s, "gamma_rate", ca->gamma_rate, true);
             if (ca->flags & A3DA_CAMERA_AUXILIARY_SATURATE)
-                key_val_out_write(&kv, s, "saturate", ca->saturate);
+                key_val_out_write(&kv, s, "saturate", ca->saturate, true);
         }
         else {
             if (ca->flags & A3DA_CAMERA_AUXILIARY_AUTO_EXPOSURE)
-                key_val_out_write(&kv, s, "auto_exposure", ca->auto_exposure);
+                key_val_out_write(&kv, s, "auto_exposure", ca->auto_exposure, true);
             if (ca->flags & A3DA_CAMERA_AUXILIARY_EXPOSURE)
-                key_val_out_write(&kv, s, "exposure", ca->exposure);
+                key_val_out_write(&kv, s, "exposure", ca->exposure, true);
             if (ca->flags & A3DA_CAMERA_AUXILIARY_GAMMA)
-                key_val_out_write(&kv, s, "gamma", ca->gamma);
+                key_val_out_write(&kv, s, "gamma", ca->gamma, true);
             if (ca->flags & A3DA_CAMERA_AUXILIARY_SATURATE)
-                key_val_out_write(&kv, s, "saturate", ca->saturate);
+                key_val_out_write(&kv, s, "saturate", ca->saturate, true);
         }
 
         kv.close_scope();
@@ -1397,12 +1397,12 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             if (f->flags & A3DA_FOG_COLOR)
                 key_val_out_write(&kv, s, "Diffuse", f->color);
             if (f->flags & A3DA_FOG_DENSITY)
-                key_val_out_write(&kv, s, "density", f->density);
+                key_val_out_write(&kv, s, "density", f->density, true);
             if (f->flags & A3DA_FOG_END)
-                key_val_out_write(&kv, s, "end", f->end);
+                key_val_out_write(&kv, s, "end", f->end, true);
             kv.write(s, "id", f->id);
             if (f->flags & A3DA_FOG_START)
-                key_val_out_write(&kv, s, "start", f->start);
+                key_val_out_write(&kv, s, "start", f->start, true);
 
             kv.close_scope();
         }
@@ -1429,23 +1429,23 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             if (l->flags & A3DA_LIGHT_AMBIENT)
                 key_val_out_write(&kv, s, "Ambient", l->ambient);
             if (l->flags & A3DA_LIGHT_CONSTANT && xhd)
-                key_val_out_write(&kv, s, "CONSTANT", l->constant);
+                key_val_out_write(&kv, s, "CONSTANT", l->constant, true);
             if (l->flags & A3DA_LIGHT_CONE_ANGLE && xhd)
-                key_val_out_write(&kv, s, "ConeAngle", l->cone_angle);
+                key_val_out_write(&kv, s, "ConeAngle", l->cone_angle, true);
             if (l->flags & A3DA_LIGHT_DIFFUSE)
                 key_val_out_write(&kv, s, "Diffuse", l->diffuse);
             if (l->flags & A3DA_LIGHT_DROP_OFF && xhd)
-                key_val_out_write(&kv, s, "DropOff", l->drop_off);
+                key_val_out_write(&kv, s, "DropOff", l->drop_off, true);
             if (l->flags & A3DA_LIGHT_FAR && xhd)
-                key_val_out_write(&kv, s, "FAR", l->_far);
+                key_val_out_write(&kv, s, "FAR", l->_far, true);
             if (l->flags & A3DA_LIGHT_TONE_CURVE)
                 key_val_out_write(&kv, s, "Incandescence", l->tone_curve);
             if (l->flags & A3DA_LIGHT_INTENSITY && xhd)
-                key_val_out_write(&kv, s, "Intensity", l->intensity);
+                key_val_out_write(&kv, s, "Intensity", l->intensity, true);
             if (l->flags & A3DA_LIGHT_LINEAR && xhd)
-                key_val_out_write(&kv, s, "LINEAR", l->linear);
+                key_val_out_write(&kv, s, "LINEAR", l->linear, true);
             if (l->flags & A3DA_LIGHT_QUADRATIC && xhd)
-                key_val_out_write(&kv, s, "QUADRATIC", l->quadratic);
+                key_val_out_write(&kv, s, "QUADRATIC", l->quadratic, true);
             if (l->flags & A3DA_LIGHT_SPECULAR)
                 key_val_out_write(&kv, s, "Specular", l->specular);
             kv.write(s, "id", l->id);
@@ -1599,7 +1599,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
             if (ml->flags & A3DA_MATERIAL_LIST_BLEND_COLOR)
                 key_val_out_write(&kv, s, "blend_color", ml->blend_color);
             if (ml->flags & A3DA_MATERIAL_LIST_GLOW_INTENSITY)
-                key_val_out_write(&kv, s, "glow_intensity", ml->glow_intensity);
+                key_val_out_write(&kv, s, "glow_intensity", ml->glow_intensity, true);
             kv.write(s, "hash_name", hash_string_murmurhash(ml->name));
             if (ml->flags & A3DA_MATERIAL_LIST_EMISSION)
                 key_val_out_write(&kv, s, "incandescence", ml->emission);
@@ -1700,26 +1700,26 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
 
                     a3da_object_texture_transform* ott = &vott[sort_index_data[j]];
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_U)
-                        key_val_out_write(&kv, s, "coverageU", ott->coverage_u);
+                        key_val_out_write(&kv, s, "coverageU", ott->coverage_u, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_COVERAGE_V)
-                        key_val_out_write(&kv, s, "coverageV", ott->coverage_v);
+                        key_val_out_write(&kv, s, "coverageV", ott->coverage_v, true);
                     kv.write(s, "name", ott->name);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_U)
-                        key_val_out_write(&kv, s, "offsetU", ott->offset_u);
+                        key_val_out_write(&kv, s, "offsetU", ott->offset_u, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_OFFSET_V)
-                        key_val_out_write(&kv, s, "offsetV", ott->offset_v);
+                        key_val_out_write(&kv, s, "offsetV", ott->offset_v, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_REPEAT_U)
-                        key_val_out_write(&kv, s, "repeatU", ott->repeat_u);
+                        key_val_out_write(&kv, s, "repeatU", ott->repeat_u, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_REPEAT_V)
-                        key_val_out_write(&kv, s, "repeatV", ott->repeat_v);
+                        key_val_out_write(&kv, s, "repeatV", ott->repeat_v, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_ROTATE)
-                        key_val_out_write(&kv, s, "rotate", ott->rotate);
+                        key_val_out_write(&kv, s, "rotate", ott->rotate, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_ROTATE_FRAME)
-                        key_val_out_write(&kv, s, "rotateFrame", ott->rotate_frame);
+                        key_val_out_write(&kv, s, "rotateFrame", ott->rotate_frame, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_U)
-                        key_val_out_write(&kv, s, "translateFrameU", ott->translate_frame_u);
+                        key_val_out_write(&kv, s, "translateFrameU", ott->translate_frame_u, true);
                     if (ott->flags & A3DA_OBJECT_TEXTURE_TRANSFORM_TRANSLATE_FRAME_V)
-                        key_val_out_write(&kv, s, "translateFrameV", ott->translate_frame_v);
+                        key_val_out_write(&kv, s, "translateFrameV", ott->translate_frame_v, true);
 
                     kv.close_scope();
                 }
@@ -1866,11 +1866,11 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         if (a->post_process.flags & A3DA_POST_PROCESS_SCENE_FADE)
             key_val_out_write(&kv, s, "Specular", pp->scene_fade);
         if (a->post_process.flags & A3DA_POST_PROCESS_LENS_FLARE)
-            key_val_out_write(&kv, s, "lens_flare", pp->lens_flare);
+            key_val_out_write(&kv, s, "lens_flare", pp->lens_flare, true);
         if (a->post_process.flags & A3DA_POST_PROCESS_LENS_GHOST)
-            key_val_out_write(&kv, s, "lens_ghost", pp->lens_ghost);
+            key_val_out_write(&kv, s, "lens_ghost", pp->lens_ghost, true);
         if (a->post_process.flags & A3DA_POST_PROCESS_LENS_SHAFT)
-            key_val_out_write(&kv, s, "lens_shaft", pp->lens_shaft);
+            key_val_out_write(&kv, s, "lens_shaft", pp->lens_shaft, true);
 
         kv.close_scope();
     }
@@ -2496,7 +2496,7 @@ static bool key_val_read(key_val* kv,
 }
 
 static void key_val_out_write(key_val_out* kv, stream& s,
-    const char* key, a3da_key& value) {
+    const char* key, a3da_key& value, bool write_true) {
     kv->open_scope(key);
     if (value.flags & A3DA_KEY_BIN_OFFSET) {
         kv->write(s, "bin_offset", value.bin_offset);
@@ -2505,6 +2505,9 @@ static void key_val_out_write(key_val_out* kv, stream& s,
         kv->close_scope();
         return;
     }
+
+    if (write_true)
+        kv->write(s, "true");
 
     if (value.type == A3DA_KEY_NONE) {
         kv->write(s, "type", 0);
