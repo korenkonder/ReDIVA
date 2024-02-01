@@ -2169,15 +2169,15 @@ static void a3da_write_data(a3da* a, void** data, size_t* size) {
             a3dc_write_a3da_model_transform(s, i.spot_direction, _compress_f16);
         if (x_pack) {
             if (i.flags & A3DA_LIGHT_AMBIENT) {
-                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3da_rgba_make_raw_data_binary(&i.ambient);
                 a3dc_write_a3da_rgba(s, i.ambient);
             }
             if (i.flags & A3DA_LIGHT_DIFFUSE) {
-                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3da_rgba_make_raw_data_binary(&i.diffuse);
                 a3dc_write_a3da_rgba(s, i.diffuse);
             }
             if (i.flags & A3DA_LIGHT_SPECULAR) {
-                a3da_rgba_make_raw_data_binary(&i.tone_curve);
+                a3da_rgba_make_raw_data_binary(&i.specular);
                 a3dc_write_a3da_rgba(s, i.specular);
             }
             if (i.flags & A3DA_LIGHT_TONE_CURVE) {
