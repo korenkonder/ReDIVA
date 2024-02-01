@@ -304,7 +304,7 @@ struct x_pv_game_effect {
 
     void ctrl(object_database* obj_db, texture_database* tex_db);
     void load(int32_t pv_id, pvpp* play_param, FrameRateControl* frame_rate_control);
-    void load_data(int32_t pv_id);
+    void load_data(int32_t pv_id, object_database* obj_db, texture_database* tex_db);
     void reset();
     void set_chara_id(int32_t index, int32_t chara_id, bool chara_scale);
     void set_song_effect(int32_t index, int64_t time);

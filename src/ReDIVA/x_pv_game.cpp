@@ -264,8 +264,8 @@ static void x_pv_game_update_object_set(ObjsetInfo* info);
 static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
     auth_3d_database_file* auth_3d_db, const char* category);
 static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id);
-static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
-    const auth_3d_database* x_pack_auth_3d_db, const object_database* x_pack_obj_db);
+static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_3d_database* x_pack_auth_3d_db,
+    const object_database* obj_db, const object_database* x_pack_obj_db);
 static void x_pv_game_write_object_set(ObjsetInfo* info,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
     const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db);
@@ -1051,7 +1051,7 @@ void x_pv_game_effect::load(int32_t pv_id, pvpp* play_param, FrameRateControl* f
     }
 }
 
-void x_pv_game_effect::load_data(int32_t pv_id) {
+void x_pv_game_effect::load_data(int32_t pv_id, object_database* obj_db, texture_database* tex_db) {
     if (state)
         return;
 
@@ -1072,7 +1072,7 @@ void x_pv_game_effect::load_data(int32_t pv_id) {
         char buf[0x200];
         size_t len = sprintf_s(buf, sizeof(buf), "eff_pv%03d_main", pv_id);
         uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
-            x_data, buf, 0, -1.0f, true);
+            x_data, buf, 0, -1.0f, true, obj_db, tex_db);
         if (hash != hash_murmurhash_empty)
             pv_glitter.push_back(std::string(buf, len));
         break;
@@ -3788,7 +3788,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
             state = 0;
     } break;
     case 20: {
-        effect.load_data(pv_id);
+        effect.load_data(pv_id, &obj_db, &tex_db);
         chara_effect.load_data();
         pv_expression_file_load(&data_list[DATA_X], "root+/pv_expression/", exp_file.hash_murmurhash);
         state = 21;
@@ -4768,7 +4768,7 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
 
         for (pvsr_effect& i : sr->effect) {
             uint32_t hash = (uint32_t)Glitter::glt_particle_manager->LoadFile(Glitter::X,
-                x_data, i.name.c_str(), 0, i.emission, true);
+                x_data, i.name.c_str(), 0, i.emission, true, &obj_db, &tex_db);
             if (hash != hash_murmurhash_empty)
                 stage_glitter.push_back(hash);
         }
@@ -6488,7 +6488,8 @@ bool x_pv_game::ctrl() {
 
         std::vector<uint32_t> pv_object_set_ids;
         std::vector<uint32_t> stage_object_set_ids;
-        std::vector<Glitter::EffectGroup*> glitter_eff_groups;
+        std::vector<Glitter::EffectGroup*> pv_glitter_eff_groups;
+        std::vector<Glitter::EffectGroup*> stage_glitter_eff_groups;
 
         auto add_auth_3d_object_set_id = [&](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
             object_set_ids.reserve(auth->object.size() + auth->object_hrc.size());
@@ -6500,7 +6501,8 @@ bool x_pv_game::ctrl() {
                 object_set_ids.push_back(i.object_info.set_id);
         };
 
-        auto add_glitter_object_set_id = [&](uint32_t eff_group_hash, std::vector<uint32_t>& object_set_ids) {
+        auto add_glitter_object_set_id = [&](uint32_t eff_group_hash,
+            std::vector<Glitter::EffectGroup*>& glitter_eff_groups, std::vector<uint32_t>& object_set_ids) {
             Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(eff_group_hash);
             if (eff_group) {
                 glitter_eff_groups.push_back(eff_group);
@@ -6525,14 +6527,14 @@ bool x_pv_game::ctrl() {
             add_auth_3d_object_set_id(i, stage_object_set_ids);
 
         for (string_hash& i : pv_data.effect.pv_glitter)
-            add_glitter_object_set_id(i.hash_murmurhash, pv_object_set_ids);
+            add_glitter_object_set_id(i.hash_murmurhash, pv_glitter_eff_groups, pv_object_set_ids);
 
         for (x_pv_game_song_effect& i : pv_data.effect.song_effect)
             for (x_pv_game_song_effect_glitter& j : i.glitter)
-                add_glitter_object_set_id(j.name.hash_murmurhash, pv_object_set_ids);
+                add_glitter_object_set_id(j.name.hash_murmurhash, pv_glitter_eff_groups, pv_object_set_ids);
 
         for (uint32_t& i : stage_data.stage_glitter)
-            add_glitter_object_set_id(i, stage_object_set_ids);
+            add_glitter_object_set_id(i, stage_glitter_eff_groups, stage_object_set_ids);
 
         prj::sort_unique(pv_object_set_ids);
         prj::sort_unique(stage_object_set_ids);
@@ -6711,8 +6713,11 @@ bool x_pv_game::ctrl() {
         object_database x_pack_obj_db;
         x_pack_obj_db.add(&baker->obj_db);
 
-        for (Glitter::EffectGroup*& i : glitter_eff_groups)
-            x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &x_pack_obj_db);
+        for (Glitter::EffectGroup*& i : pv_glitter_eff_groups)
+            x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &pv_data.obj_db, &x_pack_obj_db);
+
+        for (Glitter::EffectGroup*& i : stage_glitter_eff_groups)
+            x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &stage_data.obj_db, &x_pack_obj_db);
 
         x_pv_game_write_play_param(pv_data.play_param, pv_data.pv_id, &x_pack_auth_3d_db);
         x_pv_game_write_stage_resource(stage_data.stage_resource, stage_data.stage_id, &x_pack_auth_3d_db);
@@ -9189,8 +9194,8 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
     free_def(dsc_data);
 }
 
-static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
-    const auth_3d_database* x_pack_auth_3d_db, const object_database* x_pack_obj_db) {
+static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_3d_database* x_pack_auth_3d_db,
+    const object_database* obj_db, const object_database* x_pack_obj_db) {
     Glitter::EffectGroup temp_eff_group(Glitter::X);
     temp_eff_group.name.assign(eff_group->name);
     temp_eff_group.version = eff_group->version;
@@ -9233,6 +9238,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
 
         if (!e->data.ext_anim_x)
             continue;
+
         Glitter::Effect::ExtAnimX* ext_anim = e->data.ext_anim_x;
 
         uint32_t file_name_hash = ext_anim->file_name_hash;
@@ -9290,6 +9296,38 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group,
 
             ext_anim->file_name_hash = x_pack_auth_3d_db->get_uid(auth_name);
             break;
+        }
+    }
+
+    for (Glitter::Effect*& i : temp_eff_group.effects) {
+        if (!i)
+            continue;
+
+        Glitter::Effect* eff = i;
+        if (eff->data.name_hash == hash_murmurhash_empty)
+            continue;
+
+        for (Glitter::Emitter*& j : eff->emitters) {
+            if (!j)
+                continue;
+
+            Glitter::Emitter* emit = j;
+
+            for (Glitter::Particle*& k : emit->particles) {
+                if (!k)
+                    continue;
+
+                Glitter::Particle* ptcl = k;
+                if (ptcl->data.type != Glitter::PARTICLE_MESH)
+                    continue;
+
+                object_info info;
+                info.set_id = (uint32_t)ptcl->data.mesh.object_set_name_hash;
+                info.id = (uint32_t)ptcl->data.mesh.object_name_hash;
+                info = replace_object_info(info, obj_db, x_pack_obj_db);
+                ptcl->data.mesh.object_set_name_hash = info.set_id;
+                ptcl->data.mesh.object_name_hash = info.id;
+            }
         }
     }
 
@@ -10019,11 +10057,11 @@ inline static void replace_names(std::string& str) {
 
 static object_info replace_object_info(object_info info,
     const object_database* src_obj_db, const object_database* dst_obj_db) {
-    if (info.is_null_modern())
+    const char* _name = src_obj_db->get_object_name(info);
+    if (!_name)
         return object_info();
 
-    std::string name;
-    name.assign(src_obj_db->get_object_name(info));
+    std::string name(_name);
     replace_names(name);
     return dst_obj_db->get_object_info(name.c_str());
 }

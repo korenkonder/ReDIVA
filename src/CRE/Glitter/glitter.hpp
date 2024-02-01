@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include "../../KKdLib/database/object.hpp"
+#include "../../KKdLib/database/texture.hpp"
 #include "../../KKdLib/f2/header.hpp"
 #include "../../KKdLib/f2/struct.hpp"
 #include "../../KKdLib/default.hpp"
@@ -1199,6 +1200,7 @@ namespace Glitter {
         int32_t state;
         bool init_scene;
         object_database* obj_db;
+        texture_database* tex_db;
 
         FileReader(GLT);
         FileReader(GLT, const char* path, const char* file, float_t emission);
@@ -1207,26 +1209,24 @@ namespace Glitter {
 
         bool CheckInit(GPM);
         bool LoadFarc(void* data, const char* path, const char* file,
-            uint64_t hash, object_database* obj_db = 0);
+            uint64_t hash, object_database* obj_db = 0, texture_database* tex_db = 0);
         void ParseAnimation(f2_struct* st, Animation* anim);
         void ParseCurve(f2_struct* st, Animation* anim);
-        bool ParseDivaEffect(GPM, f2_struct* st, object_database* obj_db);
+        bool ParseDivaEffect(GPM, f2_struct* st);
         bool ParseDivaList(f2_struct* st, EffectGroup* eff_group);
         bool ParseDivaResource(GPM, f2_struct* st, EffectGroup* eff_group);
-        bool ParseEffect(f2_struct* st, EffectGroup* eff_group, object_database* obj_db);
-        bool ParseEffectGroup(f2_struct* st, std::vector<Effect*>* vec,
-            EffectGroup* eff_group, object_database* obj_db);
+        bool ParseEffect(f2_struct* st, EffectGroup* eff_group);
+        bool ParseEffectGroup(f2_struct* st, std::vector<Effect*>* vec, EffectGroup* eff_group);
         bool ParseEmitter(f2_struct* st, Effect* eff, EffectGroup* eff_group);
         bool ParseParticle(f2_struct* st, Emitter* emit, Effect* eff, EffectGroup* eff_group);
-        bool Read(GPM, object_database* obj_db);
+        bool Read(GPM);
         bool ReadFarc(GPM);
         void UnpackCurve(void* data, Animation* anim, Curve* c,
             uint32_t count, uint32_t keys_version, bool big_endian);
         bool UnpackDivaList(f2_struct* st, EffectGroup* eff_group);
         bool UnpackDivaResource(GPM, f2_struct* st, EffectGroup* eff_group);
         bool UnpackDivaResourceHashes(f2_struct* st, EffectGroup* eff_group);
-        bool UnpackEffect(void* data, Effect* eff,
-            int32_t efct_version, bool big_endian, object_database* obj_db);
+        bool UnpackEffect(void* data, Effect* eff, int32_t efct_version, bool big_endian);
         bool UnpackEmitter(void* data, Emitter* emit, uint32_t emit_version, bool big_endian);
         bool UnpackParticle(void* data, Particle* ptcl,
             uint32_t ptcl_version, Effect* eff, bool big_endian, EffectGroup* eff_group);
@@ -1677,7 +1677,7 @@ namespace Glitter {
         SceneCounter GetSceneCounter(uint8_t index = 0);
         SceneCounter Load(uint64_t effect_group_hash, uint64_t effect_hash, bool use_existing);
         uint64_t LoadFile(GLT, void* data, const char* file, const char* path,
-            float_t emission, bool init_scene, object_database* obj_db = 0);
+            float_t emission, bool init_scene, object_database* obj_db = 0, texture_database* tex_db = 0);
         SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
         SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true, uint8_t load_flags = 0);
 #if defined(CRE_DEV)

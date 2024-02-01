@@ -609,8 +609,8 @@ namespace Glitter {
         return counter;
     }
 
-    uint64_t GltParticleManager::LoadFile(GLT, void* data, const char* file,
-        const char* path, float_t emission, bool init_scene, object_database* obj_db) {
+    uint64_t GltParticleManager::LoadFile(GLT, void* data, const char* file, const char* path,
+        float_t emission, bool init_scene, object_database* obj_db, texture_database* tex_db) {
         uint64_t effect_group_hash;
         uint64_t empty_hash;
         if (GLT_VAL == Glitter::FT) {
@@ -652,7 +652,7 @@ namespace Glitter {
         if (!path)
             path = GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/";
 
-        if (!fr->LoadFarc(data, path, file, effect_group_hash, obj_db)) {
+        if (!fr->LoadFarc(data, path, file, effect_group_hash, obj_db, tex_db)) {
             delete fr;
             return empty_hash;
         }

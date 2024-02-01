@@ -11,14 +11,14 @@
 
 namespace Glitter {
     FileReader::FileReader(GLT) : file_handler(), farc(), effect_group(),
-        load_count(), type(), path(), file(), state(), init_scene(), obj_db() {
+        load_count(), type(), path(), file(), state(), init_scene(), obj_db(), tex_db() {
         emission = -1.0f;
         type = GLT_VAL;
         hash = GLT_VAL != Glitter::FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
     }
 
     FileReader::FileReader(GLT, const char* path, const char* file, float_t emission)
-        : effect_group(), load_count() {
+        : effect_group(), load_count(), obj_db(), tex_db() {
         this->path = path ? path
             : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/");
         this->file = file;
@@ -30,7 +30,7 @@ namespace Glitter {
     }
 
     FileReader::FileReader(GLT, const wchar_t* path, const wchar_t* file, float_t emission)
-        : effect_group(), load_count() {
+        : effect_group(), load_count(), obj_db(), tex_db() {
         char* path_temp = utf16_to_utf8(path);
         char* file_temp = utf16_to_utf8(file);
         this->path = path_temp ? path_temp
@@ -76,7 +76,7 @@ namespace Glitter {
         if (type == Glitter::X)
             for (Mesh& i : effect_group->meshes)
                 if (!i.ready && i.object_set_hash != hash_murmurhash_empty && i.object_set_hash != -1)
-                    if (object_storage_load_obj_set_check_not_read(i.object_set_hash))
+                    if (object_storage_load_obj_set_check_not_read(i.object_set_hash, obj_db, tex_db))
                         ret = true;
                     else
                         i.ready = true;
@@ -89,9 +89,10 @@ namespace Glitter {
         return false;
     }
 
-    bool FileReader::LoadFarc(void* data, const char* path,
-        const char* file, uint64_t hash, object_database* obj_db) {
+    bool FileReader::LoadFarc(void* data, const char* path, const char* file,
+        uint64_t hash, object_database* obj_db, texture_database* tex_db) {
         this->obj_db = obj_db;
+        this->tex_db = tex_db;
         if (type == Glitter::FT && this->hash != hash_fnv1a64m_empty
             || type != Glitter::FT && this->hash != hash_murmurhash_empty)
             return false;
@@ -213,7 +214,7 @@ namespace Glitter {
         anim->curves.push_back(c);
     }
 
-    bool FileReader::ParseDivaEffect(GPM, f2_struct* st, object_database* obj_db) {
+    bool FileReader::ParseDivaEffect(GPM, f2_struct* st) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('DVEF'))
             return false;
@@ -224,7 +225,7 @@ namespace Glitter {
             return false;
 
         eff_group->scene = 0;
-        if (!ParseEffectGroup(st, &eff_group->effects, eff_group, obj_db)) {
+        if (!ParseEffectGroup(st, &eff_group->effects, eff_group)) {
             eff_group->not_loaded = true;
             if (GPM_VAL->AppendEffectGroup(hash, eff_group, this))
                 return true;
@@ -286,15 +287,14 @@ namespace Glitter {
         return true;
     }
 
-    bool FileReader::ParseEffect(f2_struct* st,
-        EffectGroup* eff_group, object_database* obj_db) {
+    bool FileReader::ParseEffect(f2_struct* st, EffectGroup* eff_group) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('EFCT'))
             return false;
 
         Effect* eff = new Effect(type);
         if (!UnpackEffect(st->data.data(), eff,
-            st->header.version, st->header.use_big_endian, obj_db)) {
+            st->header.version, st->header.use_big_endian)) {
             delete eff;
             return false;
         }
@@ -307,8 +307,7 @@ namespace Glitter {
         return true;
     }
 
-    bool FileReader::ParseEffectGroup(f2_struct* st, std::vector<Effect*>* vec,
-        EffectGroup* eff_group, object_database* obj_db) {
+    bool FileReader::ParseEffectGroup(f2_struct* st, std::vector<Effect*>* vec, EffectGroup* eff_group) {
         if (!st || !st->header.data_size
             || st->header.signature != reverse_endianness_uint32_t('DVEF'))
             return false;
@@ -318,7 +317,7 @@ namespace Glitter {
                 continue;
 
             if (i.header.signature == reverse_endianness_uint32_t('EFCT')) {
-                if (!ParseEffect(&i, eff_group, obj_db))
+                if (!ParseEffect(&i, eff_group))
                     return false;
             }
             else if (i.header.signature == reverse_endianness_uint32_t('DVRS')
@@ -363,7 +362,7 @@ namespace Glitter {
         return true;
     }
 
-    bool FileReader::Read(GPM, object_database* obj_db) {
+    bool FileReader::Read(GPM) {
         std::string dve_file = file + ".dve";
         farc_file* dve_ff = farc->read_file(dve_file.c_str());
         if (!dve_ff)
@@ -374,7 +373,7 @@ namespace Glitter {
         if (st.header.signature != reverse_endianness_uint32_t('DVEF'))
             return false;
 
-        if (!ParseDivaEffect(GPM_VAL, &st, obj_db)) {
+        if (!ParseDivaEffect(GPM_VAL, &st)) {
             EffectGroup* eff_group = new EffectGroup(type);
             if (eff_group) {
                 eff_group->not_loaded = true;
@@ -421,7 +420,7 @@ namespace Glitter {
 
         if (file_handler && !file_handler->check_not_ready()) {
             farc->read(file_handler->get_data(), file_handler->get_size(), true);
-            if (Read(GPM_VAL, obj_db) && init_scene)
+            if (Read(GPM_VAL) && init_scene)
                 state = 1;
             else
                 return true;
@@ -904,8 +903,7 @@ namespace Glitter {
         return true;
     }
 
-    bool FileReader::UnpackEffect(void* data, Effect* eff,
-        int32_t efct_version, bool big_endian, object_database* obj_db) {
+    bool FileReader::UnpackEffect(void* data, Effect* eff, int32_t efct_version, bool big_endian) {
         eff->version = efct_version;
         if (type == Glitter::X) {
             eff->scale = 1.0f;
