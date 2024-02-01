@@ -9292,7 +9292,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                 continue;
 
             auth_3d* auth = &auth_3d_data->data[i & 0x7FFF];
-            if (auth->id != i || !auth->enable)
+            if (auth->id != i)
                 continue;
 
             if (file_name_hash != hash_murmurhash_empty) {
@@ -9305,26 +9305,42 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             }
 
             std::string uid_name;
-            int32_t obj_instance = 0;
-            for (auth_3d_object& i : auth->object)
-                if (object_hash == i.object_hash) {
-                    if (obj_instance == instance_id) {
+            if (instance_id < 0) {
+                for (auth_3d_object& i : auth->object)
+                    if (object_hash == i.object_hash) {
                         uid_name.assign(i.uid_name);
                         break;
                     }
-                    obj_instance++;
-                }
 
-            if (!uid_name.size()) {
-                int32_t obj_hrc_instance = 0;
-                for (auth_3d_object_hrc& i : auth->object_hrc)
-                    if (object_hash == i.object_hash) {
-                        if (obj_hrc_instance == instance_id) {
+                if (!uid_name.size())
+                    for (auth_3d_object_hrc& i : auth->object_hrc)
+                        if (object_hash == i.object_hash) {
                             uid_name.assign(i.uid_name);
                             break;
                         }
-                        obj_hrc_instance++;
+            }
+            else {
+                int32_t obj_instance = 0;
+                for (auth_3d_object& i : auth->object)
+                    if (object_hash == i.object_hash) {
+                        if (obj_instance == instance_id) {
+                            uid_name.assign(i.uid_name);
+                            break;
+                        }
+                        obj_instance++;
                     }
+
+                if (!uid_name.size()) {
+                    int32_t obj_hrc_instance = 0;
+                    for (auth_3d_object_hrc& i : auth->object_hrc)
+                        if (object_hash == i.object_hash) {
+                            if (obj_hrc_instance == instance_id) {
+                                uid_name.assign(i.uid_name);
+                                break;
+                            }
+                            obj_hrc_instance++;
+                        }
+                }
             }
 
             if (!uid_name.size())
