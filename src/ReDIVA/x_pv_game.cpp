@@ -6539,6 +6539,17 @@ bool x_pv_game::ctrl() {
         std::vector<Glitter::EffectGroup*> pv_glitter_eff_groups;
         std::vector<Glitter::EffectGroup*> stage_glitter_eff_groups;
 
+        {
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "STGPV%03d", stage_data.stage_id);
+            if (stage_data.obj_db.get_object_set_id(name) != -1)
+                stage_object_set_ids.push_back(hash_utf8_murmurhash(name));
+
+            sprintf_s(name, sizeof(name), "STGPV%03dHRC", stage_data.stage_id);
+            if (stage_data.obj_db.get_object_set_id(name) != -1)
+                stage_object_set_ids.push_back(hash_utf8_murmurhash(name));
+        }
+
         auto add_auth_3d_object_set_id = [&](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
             object_set_ids.reserve(auth->object.size() + auth->object_hrc.size());
 
@@ -9229,6 +9240,7 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
             case DSC_X_END:
             case DSC_X_TIME:
             case DSC_X_CHANGE_FIELD:
+            case DSC_X_CREDIT_TITLE:
             case DSC_X_BAR_POINT:
             case DSC_X_BEAT_POINT:
             case DSC_X_STAGE_EFFECT:
