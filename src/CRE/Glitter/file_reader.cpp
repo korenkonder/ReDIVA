@@ -10,15 +10,15 @@
 #include "../object.hpp"
 
 namespace Glitter {
-    FileReader::FileReader(GLT) : file_handler(), farc(), effect_group(),
-        load_count(), type(), path(), file(), state(), init_scene(), obj_db(), tex_db() {
+    FileReader::FileReader(GLT)
+        : file_handler(), farc(), effect_group(), load_count(), state(), init_scene(), obj_db(), tex_db() {
         emission = -1.0f;
         type = GLT_VAL;
         hash = GLT_VAL != Glitter::FT ? hash_murmurhash_empty : hash_fnv1a64m_empty;
     }
 
     FileReader::FileReader(GLT, const char* path, const char* file, float_t emission)
-        : effect_group(), load_count(), obj_db(), tex_db() {
+        : file_handler(), farc(), effect_group(), load_count(), state(), init_scene(), obj_db(), tex_db() {
         this->path = path ? path
             : (GLT_VAL != Glitter::FT ? "root+/particle/" : "rom/particle/");
         this->file = file;
@@ -30,7 +30,7 @@ namespace Glitter {
     }
 
     FileReader::FileReader(GLT, const wchar_t* path, const wchar_t* file, float_t emission)
-        : effect_group(), load_count(), obj_db(), tex_db() {
+        : file_handler(), farc(), effect_group(), load_count(), state(), init_scene(), obj_db(), tex_db() {
         char* path_temp = utf16_to_utf8(path);
         char* file_temp = utf16_to_utf8(file);
         this->path = path_temp ? path_temp

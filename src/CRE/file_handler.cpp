@@ -372,7 +372,7 @@ const void* p_file_handler::get_data() {
     return ptr->data;
 }
 
-ssize_t p_file_handler::get_size() {
+size_t p_file_handler::get_size() {
     if (!ptr || ptr->not_ready || ptr->size < 0)
         return 0;
     return ptr->size;

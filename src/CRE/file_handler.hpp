@@ -31,7 +31,7 @@ struct file_handler {
     std::string file;
     bool cache;
     file_handler_callback_func callback[2];
-    ssize_t size;
+    size_t size;
     void* data;
     void* ds;
 
@@ -55,7 +55,7 @@ struct p_file_handler {
     void call_free_callback();
     bool check_not_ready();
     const void* get_data();
-    ssize_t get_size();
+    size_t get_size();
     bool read_file(void* data, const char* path);
     bool read_file(void* data, const char* dir, const char* farc_file, const char* file, bool cache);
     bool read_file(void* data, const char* dir, const char* file);
