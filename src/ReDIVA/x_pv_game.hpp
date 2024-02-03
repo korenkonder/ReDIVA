@@ -500,6 +500,7 @@ struct x_pv_game_pv_data {
     bool set_pv_param_post_process_color_correction_data(bool set, int32_t id, float_t duration);
     bool set_pv_param_post_process_dof_data(bool set, int32_t id, float_t duration);
     void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
+    void stop();
     void unload();
 };
 

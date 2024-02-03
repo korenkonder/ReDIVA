@@ -3746,6 +3746,18 @@ void x_pv_game_pv_data::set_motion_max_frame(int32_t chara_id, int32_t motion_in
         }
 }
 
+void x_pv_game_pv_data::stop() {
+    if (dsc.data.size()) {
+        dsc_data_ptr = dsc.data.data();
+        dsc_data_ptr_end = dsc_data_ptr + dsc.data.size();
+    }
+    else {
+        dsc_data_ptr = 0;
+        dsc_data_ptr_end = 0;
+    }
+    dsc_time = -1;
+}
+
 void x_pv_game_pv_data::unload() {
     dsc.type = DSC_NONE;
     dsc.signature = 0;
@@ -3961,7 +3973,7 @@ void x_pv_game_data::stop() {
     stage->reset_stage_env();
     effect.stop();
     chara_effect.stop();
-    pv_data.reset();
+    pv_data.stop();
 
     field_1C &= ~0xC0;
     if (state == 30)
