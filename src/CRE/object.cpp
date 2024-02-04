@@ -934,6 +934,15 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 vtx->color0.w = 1.0f;
                         }
 
+                        msgpack* invert_negative_color = _mesh.read("invert_negative_color");
+                        if (invert_negative_color && invert_negative_color->read_bool()) {
+                            obj_vertex_data* vtx = mesh.vertex_array;
+                            uint32_t num_vertex = mesh.num_vertex;
+                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                                if (vtx->color0.x < 0.0f)
+                                    *(vec3*)&vtx->color0.x = -*(vec3*)&vtx->color0.x;
+                        }
+
                         msgpack* sub_meshes = _mesh.read_array("sub_mesh");
                         if (!sub_meshes)
                             continue;
