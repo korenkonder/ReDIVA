@@ -1483,8 +1483,6 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
 #if BAKE_PV826
             }
             else {
-                char buf[0x200];
-                sprintf_s(buf, sizeof(buf), , pv_id);
                 if (!j.auth_3d.str.find("EFFCHRPV826"))
                     continue;
 
