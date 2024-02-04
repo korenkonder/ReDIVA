@@ -367,6 +367,35 @@ int32_t x_pv_bar_beat::get_bar_beat_from_time(int32_t* beat, float_t time) {
     return bar;
 }
 
+float_t x_pv_bar_beat::get_next_bar_time(float_t time) {
+    x_pv_bar_beat_data* d = data.data();
+    const size_t size = data.size();
+
+    size_t length = size;
+    size_t temp;
+    while (length > 0)
+        if (d[temp = length / 2].compare_bar_time_less(time))
+            length = temp;
+        else {
+            d += temp + 1;
+            length -= temp + 1;
+        }
+
+    if (d == data.data() + data.size()) {
+        float_t v11 = 0.0f;
+        float_t v12 = divisor;
+        if (data.size())
+            v11 = data.back().bar_time;
+
+        float_t bar_time = (float_t)((int32_t)((time - v11) / v12) + 1) * v12 + v11;
+        if (bar_time < time + 0.00001f)
+            bar_time += v12;
+        return bar_time;
+    }
+    else
+        return d->bar_time;
+}
+
 float_t x_pv_bar_beat::get_next_beat_time(float_t time) {
     x_pv_bar_beat_data* d = data.data();
     const size_t size = data.size();
@@ -467,36 +496,8 @@ void x_pv_bar_beat::reset() {
 void x_pv_bar_beat::reset_time() {
     curr_time = 0.0f;
     delta_time = 0.0f;
-
-    x_pv_bar_beat_data* d = data.data();
-    const size_t size = data.size();
-
-    size_t length = size;
-    size_t temp;
-    while (length > 0)
-        if (d[temp = length / 2].compare_bar_time_less(next_bar_time))
-            length = temp;
-        else {
-            d += temp + 1;
-            length -= temp + 1;
-        }
-
-    float_t next_bar_time;
-    if (d == data.data() + data.size()) {
-        float_t bar_time = 0.0f;
-        float_t divisor = this->divisor;
-        if (data.size())
-            bar_time = data.back().bar_time;
-
-        next_bar_time = (float_t)((int32_t)((-bar_time) / divisor) + 1) * divisor + bar_time;
-        if (next_bar_time < 0.00001f)
-            next_bar_time += divisor;
-    }
-    else
-        next_bar_time = d->bar_time;
-
     curr_bar_time = 0.0f;
-    this->next_bar_time = next_bar_time;
+    next_bar_time = get_next_bar_time(0.0f);
     curr_beat_time = 0.0f;
     next_beat_time = get_next_beat_time(0.0f);
     bar = 1;
@@ -515,39 +516,11 @@ void x_pv_bar_beat::set_time(float_t curr_time, float_t delta_time) {
     this->delta_time = delta_time;
     counter = 0;
 
-    float_t next_bar_time = this->next_bar_time;
     while (curr_time >= next_bar_time) {
         curr_bar_time = next_bar_time;
         bar++;
         counter++;
-
-        x_pv_bar_beat_data* d = data.data();
-        const size_t size = data.size();
-
-        size_t length = size;
-        size_t temp;
-        while (length > 0)
-            if (d[temp = length / 2].compare_bar_time_less(next_bar_time))
-                length = temp;
-            else {
-                d += temp + 1;
-                length -= temp + 1;
-            }
-
-        if (d == data.data() + data.size()) {
-            float_t v11 = 0.0f;
-            float_t v12 = divisor;
-            if (data.size())
-                v11 = data.back().bar_time;
-
-            float_t _next_bar_time = (float_t)((int32_t)((next_bar_time - v11) / v12) + 1) * v12 + v11;
-            if (_next_bar_time < next_bar_time + 0.00001f)
-                _next_bar_time += v12;
-            next_bar_time = _next_bar_time;
-        }
-        else
-            next_bar_time = d->bar_time;
-        this->next_bar_time = next_bar_time;
+        next_bar_time = get_next_bar_time(next_bar_time);
     }
 
     while (curr_time >= next_beat_time) {
@@ -3974,6 +3947,7 @@ void x_pv_game_data::stop() {
     effect.stop();
     chara_effect.stop();
     pv_data.stop();
+    bar_beat.reset_time();
 
     field_1C &= ~0xC0;
     if (state == 30)
@@ -6862,6 +6836,8 @@ bool x_pv_game::ctrl() {
         x_pv_game_change_field(this, 1, -1, -1);
 
         Glitter::glt_particle_manager->SetPause(false);
+        get_data().bar_beat.reset_time();
+
         extern float_t frame_speed;
         frame_speed = 1.0f;
 

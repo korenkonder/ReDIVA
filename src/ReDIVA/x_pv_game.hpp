@@ -77,6 +77,7 @@ struct x_pv_bar_beat {
     float_t get_bar_current_frame();
     float_t get_delta_frame();
     int32_t get_bar_beat_from_time(int32_t* beat, float_t time);
+    float_t get_next_bar_time(float_t time);
     float_t get_next_beat_time(float_t time);
     float_t get_time_from_bar_beat(int32_t bar, int32_t beat);
     void reset();
