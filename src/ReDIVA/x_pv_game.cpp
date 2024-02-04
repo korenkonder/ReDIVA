@@ -4953,7 +4953,8 @@ void x_pv_game_stage::ctrl_inner() {
                 std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = eff.auth_3d;
                 for (x_pv_game_stage_effect_auth_3d& i : auth_3d) {
                     auth_3d_id& id = i.id;
-                    id.set_repeat(false);
+                    if (i.field_1)
+                        id.set_repeat(false);
                 }
             }
         } break;
@@ -5277,6 +5278,16 @@ void x_pv_game_stage::set_stage_effect(int32_t stage_effect) {
         if (!(flags & 0x10)) {
             next_stage_effect = stage_effect;
             stage_effect_transition_state = 0;
+
+            if (((bpm_frame_rate_control.bar_beat->bar - 1) % 2)
+                && curr_stage_effect >= 1 && curr_stage_effect <= 12) {
+                std::vector<x_pv_game_stage_effect_auth_3d>& auth_3d = effect[curr_stage_effect - 1ULL].auth_3d;
+                for (x_pv_game_stage_effect_auth_3d& i : auth_3d) {
+                    auth_3d_id& id = i.id;
+                    if (i.field_1)
+                        id.set_repeat(false);
+                }
+            }
             return;
         }
         else if (curr_stage_effect >= 1 && curr_stage_effect <= 12) {
