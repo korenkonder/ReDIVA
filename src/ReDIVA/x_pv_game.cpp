@@ -9303,7 +9303,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         e->name.assign(elem->second);
         replace_names(e->name);
 
-        if (!e->data.ext_anim_x)
+        if (!e->data.ext_anim_x
+            || (e->data.ext_anim_x->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM))
             continue;
 
         Glitter::Effect::ExtAnimX* ext_anim = e->data.ext_anim_x;
@@ -9319,13 +9320,12 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             if (auth->id != i)
                 continue;
 
+            bool ret = false;
             if (file_name_hash != hash_murmurhash_empty) {
                 if (auth->hash != file_name_hash)
                     continue;
-            End:
-                free(e->data.ext_anim_x);
-                e->data.ext_anim_x = 0;
-                break;
+
+                ret = true;
             }
 
             std::string uid_name;
@@ -9333,6 +9333,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                 for (auth_3d_object& i : auth->object)
                     if (object_hash == i.object_hash) {
                         uid_name.assign(i.uid_name);
+                        ret = false;
                         break;
                     }
 
@@ -9340,6 +9341,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                     for (auth_3d_object_hrc& i : auth->object_hrc)
                         if (object_hash == i.object_hash) {
                             uid_name.assign(i.uid_name);
+                            ret = false;
                             break;
                         }
             }
@@ -9349,6 +9351,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                     if (object_hash == i.object_hash) {
                         if (obj_instance == instance_id) {
                             uid_name.assign(i.uid_name);
+                            ret = false;
                             break;
                         }
                         obj_instance++;
@@ -9360,6 +9363,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                         if (object_hash == i.object_hash) {
                             if (obj_hrc_instance == instance_id) {
                                 uid_name.assign(i.uid_name);
+                                ret = false;
                                 break;
                             }
                             obj_hrc_instance++;
@@ -9367,7 +9371,13 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                 }
             }
 
-            if (!uid_name.size())
+            if (ret) {
+            End:
+                free(e->data.ext_anim_x);
+                e->data.ext_anim_x = 0;
+                break;
+            }
+            else if (!uid_name.size())
                 continue;
 
             replace_names(uid_name);
