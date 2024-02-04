@@ -926,6 +926,14 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                         if (name_hash != hash_string_murmurhash(mesh.name))
                             continue;
 
+                        msgpack* fix_alpha = _mesh.read("fix_alpha");
+                        if (fix_alpha && fix_alpha->read_bool()) {
+                            obj_vertex_data* vtx = mesh.vertex_array;
+                            uint32_t num_vertex = mesh.num_vertex;
+                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                                vtx->color0.w = 1.0f;
+                        }
+
                         msgpack* sub_meshes = _mesh.read_array("sub_mesh");
                         if (!sub_meshes)
                             continue;
