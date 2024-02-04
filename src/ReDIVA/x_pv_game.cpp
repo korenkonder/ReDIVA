@@ -3944,14 +3944,16 @@ void x_pv_game_data::stop() {
     camera.stop();
     stage->reset_stage_effect();
     stage->reset_stage_env();
+    stage->curr_stage_effect = 0;
+    stage->next_stage_effect = 0;
+    stage->stage_effect_transition_state = 0;
     effect.stop();
     chara_effect.stop();
     pv_data.stop();
     bar_beat.reset_time();
-
+    stage_effect_index = 0;
+    next_stage_effect_bar = 0;
     field_1C &= ~0xC0;
-    if (state == 30)
-        state = 0;
 }
 
 void x_pv_game_data::unload() {
@@ -6068,19 +6070,17 @@ bool x_pv_game::ctrl() {
             sprintf_s(buf, sizeof(buf), "STGPV%03d_EFF_LT_000",
                 get_data().pv_id == 832 ? 800 : get_data().pv_id);
             uint32_t light_auth_3d_hash = hash_utf8_murmurhash(buf);
-            for (auth_3d_database_uid& i : aft_auth_3d_db->uid)
-                if (hash_string_murmurhash(i.name) == light_auth_3d_hash) {
-                    light_auth_3d_id = auth_3d_id((int32_t)(&i - aft_auth_3d_db->uid.data()), aft_auth_3d_db);
-                    if (!light_auth_3d_id.check_not_empty()) {
-                        light_auth_3d_id = {};
-                        break;
-                    }
-
+            int32_t uid = aft_auth_3d_db->get_uid(buf);
+            if (uid != -1) {
+                light_auth_3d_id = auth_3d_id(uid, aft_auth_3d_db);
+                if (light_auth_3d_id.check_not_empty()) {
                     light_auth_3d_id.read_file(aft_auth_3d_db);
                     light_auth_3d_id.set_enable(false);
                     light_auth_3d_id.set_visibility(false);
-                    break;
                 }
+                else
+                    light_auth_3d_id = {};
+            }
         }
 
         state_old = 8;
