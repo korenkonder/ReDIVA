@@ -9606,11 +9606,40 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
     f.write(buf, FARC_FArC, FARC_NONE, false);
 }
 
+inline static int64_t x_pv_game_write_strings_get_string_offset(
+    const prj::vector_pair<string_hash, int64_t>& vec, const std::string& str) {
+    std::string _str(str);
+    replace_names(_str);
+
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(_str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(_str);
+    for (auto& i : vec)
+        if (hash_fnv1a64m == i.first.hash_fnv1a64m && hash_murmurhash == i.first.hash_murmurhash)
+            return i.second;
+    return 0;
+}
+
+inline static bool x_pv_game_write_file_strings_push_back_check(stream& s,
+    prj::vector_pair<string_hash, int64_t>& vec, const std::string& str) {
+    std::string _str(str);
+    replace_names(_str);
+
+    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(_str);
+    uint64_t hash_murmurhash = hash_string_murmurhash(_str);
+    for (auto& i : vec)
+        if (hash_fnv1a64m == i.first.hash_fnv1a64m && hash_murmurhash == i.first.hash_murmurhash)
+            return false;
+
+    vec.push_back({ _str, s.get_position() });
+    s.write_string_null_terminated(_str);
+    return true;
+}
+
 static void x_pv_game_write_play_param(pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db) {
     char path[MAX_PATH];
     sprintf_s(path, sizeof(path), "patch\\!temp\\pv\\pv%03d.pvpp", pv_id == 832 ? 800 : pv_id);
-    
+
     size_t chara_count = play_param->chara.size();
     size_t effect_count = play_param->effect.size();
 
@@ -9620,6 +9649,38 @@ static void x_pv_game_write_play_param(pvpp* play_param,
     file_stream s;
     s.open(path, "wb");
     s.write(0x20);
+
+    prj::vector_pair<string_hash, int64_t> strings;
+
+    for (pvpp_chara& i : play_param->chara) {
+        strings.reserve(i.auth_3d.size() + i.glitter.size());
+        for (string_hash& j : i.auth_3d)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.str);
+
+        for (pvpp_glitter& j : i.glitter)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+
+        if (i.chara_effect_init && i.chara_effect.auth_3d.size()) {
+            pvpp_chara_effect& chara_effect = i.chara_effect;
+            strings.reserve(chara_effect.auth_3d.size() * 2);
+            for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
+                x_pv_game_write_file_strings_push_back_check(s, strings, j.auth_3d.str);
+
+                if (j.has_object_set)
+                    x_pv_game_write_file_strings_push_back_check(s, strings, j.object_set.str);
+            }
+        }
+    }
+
+    for (pvpp_effect& i : play_param->effect) {
+        strings.reserve(i.auth_3d.size() + i.glitter.size());
+        for (string_hash& j : i.auth_3d)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.str);
+
+        for (pvpp_glitter& j : i.glitter)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+    }
+    s.align_write(0x10);
 
     if (chara_count) {
         chara_offset = s.get_position();
@@ -9632,13 +9693,8 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         for (pvpp_chara& i : play_param->chara) {
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
-                for (string_hash& j : i.auth_3d) {
-                    std::string name;
-                    name.assign(j.str);
-                    replace_names(name);
-
-                    s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
-                }
+                for (string_hash& j : i.auth_3d)
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.str));
                 s.align_write(0x08);
             }
             else
@@ -9647,13 +9703,9 @@ static void x_pv_game_write_play_param(pvpp* play_param,
             if (i.glitter.size()) {
                 *glitter_offsets++ = s.get_position();
                 for (pvpp_glitter& j : i.glitter) {
-                    std::string name;
-                    name.assign(j.name.str);
-                    replace_names(name);
-
-                    s.write_uint32_t(hash_string_murmurhash(name));
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_uint8_t(j.unk2);
-                    s.align_write(0x04);
+                    s.align_write(0x08);
                 }
                 s.align_write(0x08);
             }
@@ -9667,39 +9719,22 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
                 pvpp_chara_effect& chara_effect = i.chara_effect;
                 for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
-                    std::string auth_3d;
-                    auth_3d.assign(j.auth_3d.str);
-                    replace_names(auth_3d);
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.auth_3d.str));
 
-                    char buf[0x40];
-                    memset(buf, 0, 0x40);
-                    strncpy_s(buf, 0x40, auth_3d.c_str(), 0x3F);
-                    buf[0x3F] = 0;
-                    s.write(buf, 0x40);
-                    
-                    if (j.has_object_set) {
-                        std::string object_set;
-                        object_set.assign(j.object_set.str);
-                        replace_names(object_set);
-
-                        char buf[0x40];
-                        memset(buf, 0, 0x40);
-                        strncpy_s(buf, 0x40, auth_3d.c_str(), 0x3F);
-                        buf[0x3F] = 0;
-                        s.write(buf, 0x40);
-                    }
+                    if (j.has_object_set)
+                        s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.object_set.str));
                     else
-                        s.write(0x40);
+                        s.write_int64_t(0x00);
 
                     s.write_uint8_t(j.u00);
+                    s.align_write(0x08);
                 }
                 s.align_write(0x08);
 
                 s.position_push(*chara_effect_offsets++, SEEK_SET);
                 s.write_int8_t(chara_effect.base_chara);
                 s.write_int8_t(chara_effect.chara_id);
-                s.align_write(0x04);
-                s.write_int32_t((int32_t)chara_effect.auth_3d.size());
+                s.write_int8_t((int8_t)chara_effect.auth_3d.size());
                 s.align_write(0x08);
                 s.write_int64_t(auth_3d_offset);
                 s.position_pop();
@@ -9713,8 +9748,8 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
         s.position_push(chara_offset, SEEK_SET);
         for (pvpp_chara& i : play_param->chara) {
-            s.write_int32_t((int32_t)i.auth_3d.size());
-            s.write_int32_t((int32_t)i.glitter.size());
+            s.write_int8_t((int8_t)i.auth_3d.size());
+            s.write_int8_t((int8_t)i.glitter.size());
             s.align_write(0x08);
             s.write_int64_t(*auth_3d_offsets++);
             s.write_int64_t(*glitter_offsets++);
@@ -9740,13 +9775,8 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         for (pvpp_effect& i : play_param->effect) {
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
-                for (string_hash& j : i.auth_3d) {
-                    std::string name;
-                    name.assign(j.str);
-                    replace_names(name);
-
-                    s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
-                }
+                for (string_hash& j : i.auth_3d)
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.str));
                 s.align_write(0x08);
             }
             else
@@ -9755,13 +9785,9 @@ static void x_pv_game_write_play_param(pvpp* play_param,
             if (i.glitter.size()) {
                 *glitter_offsets++ = s.get_position();
                 for (pvpp_glitter& j : i.glitter) {
-                    std::string name;
-                    name.assign(j.name.str);
-                    replace_names(name);
-
-                    s.write_uint32_t(hash_string_murmurhash(name));
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_uint8_t(j.unk2 ? 0x01 : 0x00);
-                    s.align_write(0x04);
+                    s.align_write(0x08);
                 }
                 s.align_write(0x08);
             }
@@ -9774,9 +9800,8 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         s.position_push(effect_offset, SEEK_SET);
         for (pvpp_effect& i : play_param->effect) {
             s.write_int8_t(i.chara_id);
-            s.align_write(0x04);
-            s.write_int32_t((int32_t)i.auth_3d.size());
-            s.write_int32_t((int32_t)i.glitter.size());
+            s.write_int8_t((int8_t)i.auth_3d.size());
+            s.write_int8_t((int8_t)i.glitter.size());
             s.align_write(0x08);
             s.write_int64_t(*auth_3d_offsets++);
             s.write_int64_t(*glitter_offsets++);
@@ -9792,8 +9817,8 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
     s.position_push(0x00, SEEK_SET);
     s.write_uint32_t(reverse_endianness_uint32_t('pvpp'));
-    s.write_int32_t((int32_t)chara_count);
-    s.write_int32_t((int32_t)effect_count);
+    s.write_int8_t((int8_t)chara_count);
+    s.write_int8_t((int8_t)effect_count);
     s.align_write(0x08);
     s.write_int64_t(chara_offset);
     s.write_int64_t(effect_offset);
@@ -9825,23 +9850,44 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
     s.open(path, "wb");
     s.write(0x30);
 
+    prj::vector_pair<string_hash, int64_t> strings;
+
+    for (pvsr_effect& i : stage_resource->effect)
+        x_pv_game_write_file_strings_push_back_check(s, strings, i.name.str);
+
+    for (pvsr_stage_effect& i : stage_resource->stage_effect) {
+        for (pvsr_auth_3d& j : i.auth_3d)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+
+        for (pvsr_glitter& j : i.glitter)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+    }
+
+    for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env)
+        for (pvsr_auth_2d& j : i.aet_front_low)
+            x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
+
+    for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
+        for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
+            pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
+
+            for (pvsr_auth_3d& k : chg_eff.auth_3d)
+                x_pv_game_write_file_strings_push_back_check(s, strings, k.name.str);
+
+            for (pvsr_glitter& k : chg_eff.glitter)
+                x_pv_game_write_file_strings_push_back_check(s, strings, k.name.str);
+        }
+    s.align_write(0x10);
+
     if (effect_count) {
         effect_offset = s.get_position();
 
         for (pvsr_effect& i : stage_resource->effect) {
-            std::string name;
-            name.assign(i.name.str);
-            replace_names(name);
-
-            char buf[0x40];
-            memset(buf, 0, 0x40);
-            strncpy_s(buf, 0x40, name.c_str(), 0x3F);
-            buf[0x3F] = 0;
-            s.write(buf, 0x40);
-
+            s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, i.name.str));
             s.write_float_t(i.emission);
+            s.align_write(0x08);
         }
-        s.write(0x08);
+        s.align_write(0x08);
     }
 
     if (stage_effect_count) {
@@ -9855,13 +9901,9 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
                 for (pvsr_auth_3d& j : i.auth_3d) {
-                    std::string name;
-                    name.assign(j.name.str);
-                    replace_names(name);
-
-                    s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_uint8_t(j.flags);
-                    s.align_write(0x04);
+                    s.align_write(0x08);
                 }
                 s.align_write(0x08);
             }
@@ -9871,14 +9913,10 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
             if (i.glitter.size()) {
                 *glitter_offsets++ = s.get_position();
                 for (pvsr_glitter& j : i.glitter) {
-                    std::string name;
-                    name.assign(j.name.str);
-                    replace_names(name);
-
-                    s.write_uint32_t(hash_string_murmurhash(name));
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_int8_t(j.fade_time);
                     s.write_uint8_t(j.flags);
-                    s.align_write(0x04);
+                    s.align_write(0x08);
                 }
                 s.align_write(0x08);
             }
@@ -9890,8 +9928,9 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
         s.position_push(stage_effect_offset, SEEK_SET);
         for (pvsr_stage_effect& i : stage_resource->stage_effect) {
-            s.write_int32_t((int32_t)i.auth_3d.size());
-            s.write_int32_t((int32_t)i.glitter.size());
+            s.write_int8_t((int8_t)i.auth_3d.size());
+            s.write_int8_t((int8_t)i.glitter.size());
+            s.align_write(0x08);
             s.write_int64_t(*auth_3d_offsets++);
             s.write_int64_t(*glitter_offsets++);
         }
@@ -9912,17 +9951,8 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
         for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
             if (i.aet_front_low.size()) {
                 *aet_offsets++ = s.get_position();
-                for (pvsr_auth_2d& j : i.aet_front_low) {
-                    std::string name;
-                    name.assign(j.name.str);
-                    replace_names(name);
-
-                    char buf[0x40];
-                    memset(buf, 0, 0x40);
-                    strncpy_s(buf, 0x40, name.c_str(), 0x3F);
-                    buf[0x3F] = 0;
-                    s.write(buf, 0x40);
-                }
+                for (pvsr_auth_2d& j : i.aet_front_low)
+                    s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                 s.align_write(0x08);
             }
             else
@@ -9932,7 +9962,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
         s.position_push(stage_effect_env_offset, SEEK_SET);
         for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
-            s.write_int32_t((int32_t)i.aet_front_low.size());
+            s.write_int8_t((int8_t)i.aet_front_low.size());
             s.align_write(0x08);
             s.write_int64_t(*aet_offsets++);
         }
@@ -9956,13 +9986,9 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
                 if (chg_eff.auth_3d.size()) {
                     *auth_3d_offsets++ = s.get_position();
                     for (pvsr_auth_3d& k : chg_eff.auth_3d) {
-                        std::string name;
-                        name.assign(k.name.str);
-                        replace_names(name);
-
-                        s.write_int32_t(x_pack_auth_3d_db->get_uid(name.c_str()));
+                        s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, k.name.str));
                         s.write_uint8_t(k.flags);
-                        s.align_write(0x04);
+                        s.align_write(0x08);
                     }
                     s.align_write(0x08);
                 }
@@ -9972,14 +9998,10 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
                 if (chg_eff.glitter.size()) {
                     *glitter_offsets++ = s.get_position();
                     for (pvsr_glitter& k : chg_eff.glitter) {
-                        std::string name;
-                        name.assign(k.name.str);
-                        replace_names(name);
-
-                        s.write_uint32_t(hash_string_murmurhash(name));
+                        s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, k.name.str));
                         s.write_int8_t(k.fade_time);
                         s.write_uint8_t(k.flags);
-                        s.align_write(0x04);
+                        s.align_write(0x08);
                     }
                     s.align_write(0x08);
                 }
@@ -9996,9 +10018,8 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
                 s.write_uint8_t(chg_eff.enable ? 0x01 : 0x00);
                 s.write_int8_t(chg_eff.bar_count);
-                s.align_write(0x04);
-                s.write_int32_t((int32_t)chg_eff.auth_3d.size());
-                s.write_int32_t((int32_t)chg_eff.glitter.size());
+                s.write_int8_t((int8_t)chg_eff.auth_3d.size());
+                s.write_int8_t((int8_t)chg_eff.glitter.size());
                 s.align_write(0x08);
                 s.write_int64_t(*auth_3d_offsets++);
                 s.write_int64_t(*glitter_offsets++);
@@ -10014,9 +10035,10 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
     s.position_push(0x00, SEEK_SET);
     s.write_uint32_t(reverse_endianness_uint32_t('pvsr'));
-    s.write_int32_t((int32_t)effect_count);
-    s.write_int32_t((int32_t)stage_effect_count);
-    s.write_int32_t((int32_t)stage_effect_env_count);
+    s.write_int8_t((int8_t)effect_count);
+    s.write_int8_t((int8_t)stage_effect_count);
+    s.write_int8_t((int8_t)stage_effect_env_count);
+    s.align_write(0x08);
     s.write_int64_t(effect_offset);
     s.write_int64_t(stage_effect_offset);
     s.write_int64_t(stage_effect_env_offset);
