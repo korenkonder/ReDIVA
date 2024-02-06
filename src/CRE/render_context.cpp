@@ -125,7 +125,7 @@ bool light_proj::set() {
 
     if (set_mat(false)) {
         rctx_ptr->draw_state->shader_index = SHADER_FT_SIL;
-        uniform_value[U0A] = 1;
+        uniform_value[U_DEPTH] = 1;
         return true;
     }
     else {

@@ -387,7 +387,7 @@ namespace rndr {
             rctx->disp_manager->draw(mdl::OBJ_TYPE_TRANSLUCENT);
 
             rctx->draw_state->shader_index = -1;
-            uniform_value[U0A] = 0;
+            uniform_value[U_DEPTH] = 0;
             draw_pass_shadow_filter(&rctx->litproj->shadow_texture[0],
                 &rctx->litproj->shadow_texture[1], 0, 1.5f, 0.01f, true);
 
@@ -1243,7 +1243,7 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
     mat4_look_at(view_point, interest, &rctx->view_mat);
 
     rctx->draw_state->shader_index = SHADER_FT_SIL;
-    uniform_value[U0A] = 0;
+    uniform_value[U_DEPTH] = 0;
 }
 
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int32_t a3) {

@@ -210,10 +210,10 @@ namespace mdl {
 
             rctx->obj_batch.set_transforms(mat4_identity, rctx->view_mat, rctx->proj_mat);
 
-            uniform_value[U_BONE_MAT] = 1;
+            uniform_value[U_SKINNING] = 1;
             gl_state_bind_vertex_array(vao);
             func(rctx, args);
-            uniform_value[U_BONE_MAT] = 0;
+            uniform_value[U_SKINNING] = 0;
         }
         else {
             mat4 _mat;
@@ -224,7 +224,7 @@ namespace mdl {
             else
                 _mat = *mat;
 
-            uniform_value[U_BONE_MAT] = 0;
+            uniform_value[U_SKINNING] = 0;
             gl_state_bind_vertex_array(vao);
             if (func != draw_sub_mesh_default || !args->instances_count) {
                 draw_object_model_mat_load(rctx, _mat);
@@ -232,7 +232,7 @@ namespace mdl {
             }
             else
                 draw_sub_mesh_default_instanced(rctx, args, &_mat);
-            uniform_value[U_BONE_MAT] = 0;
+            uniform_value[U_SKINNING] = 0;
         }
     }
 
@@ -1042,7 +1042,7 @@ static void draw_object_vertex_attrib_reset_default(const mdl::ObjSubMeshArgs* a
     obj_vertex_format vertex_format = mesh->vertex_format;
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform_value[U_BONE_MAT] = 0;
+        uniform_value[U_SKINNING] = 0;
 
     if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 0;
@@ -1060,7 +1060,7 @@ static void draw_object_vertex_attrib_reset_reflect(const mdl::ObjSubMeshArgs* a
     obj_vertex_format vertex_format = mesh->vertex_format;
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform_value[U_BONE_MAT] = 0;
+        uniform_value[U_SKINNING] = 0;
 
     if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 0;
@@ -1109,9 +1109,9 @@ static void draw_object_vertex_attrib_set_default(render_context* rctx, const md
     }
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform_value[U_BONE_MAT] = 1;
+        uniform_value[U_SKINNING] = 1;
     else
-        uniform_value[U_BONE_MAT] = 0;
+        uniform_value[U_SKINNING] = 0;
 
     if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 1;
@@ -1154,9 +1154,9 @@ static void draw_object_vertex_attrib_set_reflect(render_context* rctx, const md
     }
 
     if (vertex_format & OBJ_VERTEX_BONE_DATA)
-        uniform_value[U_BONE_MAT] = 1;
+        uniform_value[U_SKINNING] = 1;
     else
-        uniform_value[U_BONE_MAT] = 0;
+        uniform_value[U_SKINNING] = 0;
 
     if (args->morph_vertex_buffer) {
         uniform_value[U_MORPH] = 1;
