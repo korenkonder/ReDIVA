@@ -9381,7 +9381,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
                 continue;
 
             replace_names(uid_name);
-            ext_anim->object_hash = hash_string_murmurhash(uid_name);
+            object_info info = x_pack_obj_db->get_object_info(uid_name.c_str());
+            ext_anim->object_hash = ((uint32_t)(uint16_t)info.set_id << 16) | (uint32_t)(uint16_t)info.id;
 
             char auth_name[0x200];
             if (!get_replace_auth_name(auth_name, sizeof(auth_name), auth))
@@ -10131,12 +10132,6 @@ static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth) {
         *ext = 0;
 
     replace_names(name);
-
-    for (char* i = name; *i; i++) {
-        char c = *i;
-        if (c >= 'a' && c <= 'z')
-            *i -= 0x20;
-    }
 
     return !strstr(name, "EFFCHRPV826");
 }
