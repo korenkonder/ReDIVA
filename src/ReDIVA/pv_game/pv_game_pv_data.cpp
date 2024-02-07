@@ -748,8 +748,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         playdata = &this->playdata[chara_id];
         rob_chr = playdata->rob_chr;
 
-        int32_t v114 = data[0];
-        int32_t blend_duration_int = data[1];
+        int32_t v114 = data[1];
+        int32_t blend_duration_int = data[2];
 
         float_t blend_duration;
         if (blend_duration_int == -1)
