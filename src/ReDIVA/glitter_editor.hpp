@@ -76,11 +76,9 @@ public:
     bool create_popup;
     bool load;
     bool load_wait;
-    bool load_data;
-    bool load_data_wait;
     bool load_popup;
     bool load_data_popup;
-    bool load_error_list_popup;
+    bool load_error_popup;
     bool save;
     bool save_popup;
     bool save_compress;

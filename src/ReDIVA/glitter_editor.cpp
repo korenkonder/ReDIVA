@@ -139,9 +139,9 @@ static void glitter_editor_file_create_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 static void glitter_editor_file_load_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
-static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
+static void glitter_editor_file_load_error_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
-static void glitter_editor_file_load_error_list_popup(GlitterEditor* glt_edt,
+static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
 static void glitter_editor_file_save_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size);
@@ -338,14 +338,14 @@ void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag
     enum_or(type_flags, (1 << type));
 }
 
-GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_data(), load_data_wait(),
-load_popup(), load_data_popup(), load_error_list_popup(), save(), save_popup(), save_compress(), save_encrypt(),
+GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_popup(),
+load_data_popup(), load_error_popup(), save(), save_popup(), save_compress(), save_encrypt(),
 close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
 effect_group_add(), show_grid(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(),
 particle_flags(), load_glt_type(), save_glt_type(), load_data_type(), frame_counter(),
 old_frame_counter(), start_frame(), end_frame(), counter(), effect_group(), scene(), hash(),
 selected_type(), selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
-selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle() {
+selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle()  {
 
 }
 
@@ -990,74 +990,13 @@ bool GlitterEditor::ctrl() {
         free_def(file);
         return close_editor;
     }
-    else if (eg && load_data) {
-        bool load_success = true;
-        data_struct* ds = &data_list[load_data_type];
-        switch (ds->type) {
-        case DATA_F2LE:
-        case DATA_F2BE:
-        case DATA_VRFL:
-        case DATA_X:
-        case DATA_XHD: {
-            auto& hashes = ds->glitter_list_murmurhash;
-            for (Glitter::Effect*& i : eg->effects) {
-                if (!i)
-                    continue;
-
-                Glitter::Effect* e = i;
-                e->name.clear();
-                if (e->data.name_hash == hash_murmurhash_empty)
-                    continue;
-
-                auto elem = hashes.find(e->data.name_hash);
-                if (elem != hashes.end())
-                    e->name.assign(elem->second);
-                else {
-                    printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
-                    load_success = false;
-                }
-            }
-        } break;
-        case DATA_AFT:
-        case DATA_FT:
-        case DATA_M39: {
-            auto& hashes = ds->glitter_list_fnv1a64m;
-            for (Glitter::Effect* i : eg->effects) {
-                if (!i)
-                    continue;
-
-                Glitter::Effect* e = i;
-                e->name.clear();
-                if (e->data.name_hash == hash_fnv1a64m_empty)
-                    continue;
-
-                auto elem = hashes.find(e->data.name_hash);
-                if (elem != hashes.end())
-                    e->name.assign(elem->second);
-                else {
-                    printf_debug("Couldn't find name for hash 0x%016X\n", e->data.name_hash);
-                    load_success = false;
-                }
-            }
-        } break;
-        }
-
-        load_data = false;
-        load_data_wait = false;
-
-        if (!load_success && !glitter_editor_list_open_window(effect_group)) {
-            load = false;
-            load_data = false;
-            load_data_wait = false;
-            load_popup = false;
-            load_data_popup = false;
-            load_error_list_popup = true;
-            goto effect_unload;
-        }
-        return close_editor;
-    }
     else if (close) {
-    effect_unload:
+        load = false;
+        load_wait = false;
+        load_popup = false;
+        load_data_popup = false;
+        load_error_popup = false;
+
         Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
         Glitter::glt_particle_manager->UnloadEffectGroup(hash);
 
@@ -1666,82 +1605,159 @@ static void glitter_editor_save_as_window(GlitterEditor* glt_edt) {
 
 static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, const char* file) {
     if (!glt_edt->load_wait) {
-        Glitter::glt_particle_manager->FreeSceneEffect(glt_edt->scene_counter);
-        Glitter::glt_particle_manager->UnloadEffectGroup(glt_edt->hash);
-
-        GlitterEditor::reset_disp();
-
-        glt_edt->effect_group = 0;
-        glt_edt->scene = 0;
-        glt_edt->load_wait = true;
-    }
-
-    if (!glt_edt->load_data_wait && Glitter::glt_particle_manager->GetEffectGroup(glt_edt->hash))
-        return;
-
-    if (!glt_edt->load_data_wait) {
         glitter_editor_enable = true;
         glt_edt->hash = Glitter::glt_particle_manager->LoadFile(glt_edt->load_glt_type,
             &data_list[glt_edt->load_data_type], file, path, -1.0f, true);
-        glt_edt->load_data_wait = true;
+        glt_edt->reset();
+        glt_edt->load_wait = true;
+        return;
     }
-    else if (Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {
-        Glitter::EffectGroup* eg = Glitter::glt_particle_manager->GetEffectGroup(glt_edt->hash);
-        if (eg) {
-            Glitter::glt_particle_manager->LoadScene(glt_edt->hash, eg->type != Glitter::FT
-                ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
-            Glitter::Scene* sc = Glitter::glt_particle_manager->GetScene(glt_edt->hash);
-            if (sc) {
-                bool lst_not_valid = true;
-                enum_or(sc->flags, Glitter::SCENE_EDITOR);
-                if (glt_edt->load_glt_type == Glitter::FT) {
-                    lst_not_valid = false;
-                    for (Glitter::Effect*& i : eg->effects) {
-                        if (!i)
-                            continue;
 
-                        Glitter::Effect* e = i;
-                        if (e->data.name_hash != hash_string_fnv1a64m(e->name)) {
-                            lst_not_valid = true;
-                            break;
-                        }
-                    }
-                }
-                glt_edt->counter = Glitter::counter;
-                glt_edt->effect_group = eg;
-                glt_edt->scene = sc;
-                glt_edt->scene_counter = sc->counter;
-                glt_edt->load_data_popup = lst_not_valid;
-            }
-            else {
+    Glitter::EffectGroup* eg = Glitter::glt_particle_manager->GetEffectGroup(glt_edt->hash);
+    if (!eg) {
+        if (Glitter::glt_particle_manager->file_readers.size())
+            return;
+
+    Error:
+        glitter_editor_enable = false;
+        glt_edt->counter.Reset();
+        glt_edt->effect_group = 0;
+        glt_edt->scene = 0;
+        glt_edt->scene_counter = 0;
+        glt_edt->load = false;
+        glt_edt->load_wait = false;
+        glt_edt->load_popup = false;
+        glt_edt->load_data_popup = false;
+        glt_edt->load_error_popup = true;
+        return;
+    }
+
+    if (!Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {
+        data_struct* ds = &data_list[glt_edt->load_data_type];
+        for (Glitter::Mesh& i : eg->meshes)
+            if (!ds->check_file_exists("root+/objset/", i.object_set_hash)) {
                 Glitter::glt_particle_manager->UnloadEffectGroup(eg->hash);
-                glt_edt->counter.Reset();
-                glt_edt->effect_group = 0;
-                glt_edt->scene = 0;
-                glt_edt->scene_counter = 0;
+                goto Error;
+            }
+    }
+
+    bool load_success = true;
+    data_struct* ds = &data_list[glt_edt->load_data_type];
+    switch (ds->type) {
+    case DATA_F2LE:
+    case DATA_F2BE:
+    case DATA_VRFL:
+    case DATA_X:
+    case DATA_XHD: {
+        auto& hashes = ds->glitter_list_murmurhash;
+        for (Glitter::Effect*& i : eg->effects) {
+            if (!i)
+                continue;
+
+            Glitter::Effect* e = i;
+            if (e->data.name_hash == hash_murmurhash_empty) {
+                e->name.clear();
+                continue;
+            }
+            else if (hash_string_murmurhash(e->name) == e->data.name_hash)
+                continue;
+
+            e->name.clear();
+
+            auto elem = hashes.find(e->data.name_hash);
+            if (elem != hashes.end())
+                e->name.assign(elem->second);
+            else {
+                printf_debug("Couldn't find name for hash 0x%08X\n", e->data.name_hash);
+                load_success = false;
+            }
+        }
+    } break;
+    case DATA_AFT:
+    case DATA_FT:
+    case DATA_M39: {
+        auto& hashes = ds->glitter_list_fnv1a64m;
+        for (Glitter::Effect* i : eg->effects) {
+            if (!i)
+                continue;
+
+            Glitter::Effect* e = i;
+            if (e->data.name_hash == hash_fnv1a64m_empty) {
+                e->name.clear();
+                continue;
+            }
+            else if (hash_string_fnv1a64m(e->name) == e->data.name_hash)
+                continue;
+
+            e->name.clear();
+
+            auto elem = hashes.find(e->data.name_hash);
+            if (elem != hashes.end())
+                e->name.assign(elem->second);
+            else {
+                printf_debug("Couldn't find name for hash 0x%016X\n", e->data.name_hash);
+                load_success = false;
+            }
+        }
+    } break;
+    }
+
+    if (!load_success && !glitter_editor_list_open_window(glt_edt->effect_group)) {
+        close = true;
+        return;
+    }
+
+    Glitter::glt_particle_manager->LoadScene(glt_edt->hash, eg->type != Glitter::FT
+        ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
+    Glitter::Scene* sc = Glitter::glt_particle_manager->GetScene(glt_edt->hash);
+    if (!sc)
+        goto Error;
+
+    bool lst_not_valid = false;
+    enum_or(sc->flags, Glitter::SCENE_EDITOR);
+    if (glt_edt->load_glt_type == Glitter::FT)
+        for (Glitter::Effect*& i : eg->effects) {
+            if (!i)
+                continue;
+
+            Glitter::Effect* e = i;
+            if (e->data.name_hash != hash_string_fnv1a64m(e->name)) {
+                lst_not_valid = true;
+                break;
+            }
+        }
+    else
+        for (Glitter::Effect*& i : eg->effects) {
+            if (!i)
+                continue;
+
+            Glitter::Effect* e = i;
+            if (e->data.name_hash != hash_string_murmurhash(e->name)) {
+                lst_not_valid = true;
+                break;
             }
         }
 
-        GlitterEditor::reset_disp();
-
-        Glitter::glt_particle_manager->GetSceneStartEndFrame(
-            &glt_edt->start_frame, &glt_edt->end_frame, glt_edt->scene_counter);
-        glt_edt->frame_counter = 0;
-        glt_edt->old_frame_counter = 0;
-        glt_edt->input_pause = true;
-        glt_edt->load = false;
-        glt_edt->load_wait = false;
-        glt_edt->load_data_wait = false;
-        glitter_editor_enable = false;
-    }
-    else if (Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {
-        glt_edt->load = false;
-        glt_edt->load_wait = false;
-        glt_edt->load_data_wait = false;
-        glitter_editor_enable = false;
+    if (lst_not_valid) {
+        Glitter::glt_particle_manager->UnloadEffectGroup(eg->hash);
+        goto Error;
     }
 
-    glt_edt->reset();
+    GlitterEditor::reset_disp();
+
+    Glitter::glt_particle_manager->GetSceneStartEndFrame(&glt_edt->start_frame,
+        &glt_edt->end_frame, glt_edt->scene_counter);
+    glt_edt->frame_counter = 0;
+    glt_edt->old_frame_counter = 0;
+    glt_edt->input_pause = true;
+    glt_edt->counter = Glitter::counter;
+    glt_edt->effect_group = eg;
+    glt_edt->scene = sc;
+    glt_edt->scene_counter = sc->counter;
+    glt_edt->load = false;
+    glt_edt->load_wait = false;
+    glt_edt->load_error_popup = false;
+    glitter_editor_enable = false;
 }
 
 static void glitter_editor_save_file(GlitterEditor* glt_edt, const char* path, const char* file) {
@@ -4737,12 +4753,12 @@ static void glitter_editor_popups(GlitterEditor* glt_edt) {
     glitter_editor_file_load_popup(glt_edt, io, style, font, title_bar_size);
     ImGui::PopID();
 
-    ImGui::PushID("Glitter Editor Glitter File Load Pop-up");
-    glitter_editor_file_load_model_popup(glt_edt, io, style, font, title_bar_size);
+    ImGui::PushID("Glitter Editor Glitter File Load Error Pop-up");
+    glitter_editor_file_load_error_popup(glt_edt, io, style, font, title_bar_size);
     ImGui::PopID();
 
-    ImGui::PushID("Glitter Editor Glitter File Load Error List Pop-up");
-    glitter_editor_file_load_error_list_popup(glt_edt, io, style, font, title_bar_size);
+    ImGui::PushID("Glitter Editor Glitter File Load Pop-up");
+    glitter_editor_file_load_model_popup(glt_edt, io, style, font, title_bar_size);
     ImGui::PopID();
 
     ImGui::PushID("Glitter Editor Glitter File Save");
@@ -4829,6 +4845,14 @@ static void glitter_editor_file_create_popup(GlitterEditor* glt_edt,
 static void glitter_editor_file_load_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     if (glt_edt->load_popup) {
+        Glitter::glt_particle_manager->FreeSceneEffect(glt_edt->scene_counter);
+        Glitter::glt_particle_manager->UnloadEffectGroup(glt_edt->hash);
+
+        GlitterEditor::reset_disp();
+
+        glt_edt->effect_group = 0;
+        glt_edt->scene = 0;
+
         ImGui::OpenPopup("Load Glitter File as...", 0);
         glt_edt->load_popup = false;
     }
@@ -4888,7 +4912,7 @@ static void glitter_editor_file_load_popup(GlitterEditor* glt_edt,
             }
 
             if (close) {
-                glt_edt->load = true;
+                glt_edt->load_data_popup = true;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndTable();
@@ -4899,13 +4923,58 @@ static void glitter_editor_file_load_popup(GlitterEditor* glt_edt,
     ImGui::PopStyleVar();
 }
 
-static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
+static void glitter_editor_file_load_error_popup(GlitterEditor* glt_edt,
     ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
-    if (!glt_edt->effect_group) {
-        glt_edt->load_data_popup = false;
-        return;
+    if (glt_edt->load_error_popup) {
+        ImGui::OpenPopup("Glitter File Load Error", 0);
+        glt_edt->load_error_popup = false;
     }
 
+    float_t x;
+    float_t y;
+    float_t w;
+    float_t h;
+    float_t win_x;
+    float_t win_y;
+
+    ImGuiWindowFlags window_flags;
+
+    win_x = 200.0f;
+    win_y = title_bar_size + font->FontSize * 2.0f
+        + style.ItemSpacing.y * 2.0f + style.FramePadding.y;
+
+    x = (float_t)width * 0.5f - win_x * 0.5f;
+    y = (float_t)height * 0.5f - win_y * 0.5f;
+    w = win_x;
+    h = win_y;
+
+    window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoResize;
+    window_flags |= ImGuiWindowFlags_NoMove;
+    window_flags |= ImGuiWindowFlags_NoScrollbar;
+    window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
+
+    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
+    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+    if (ImGui::BeginPopupModal("Glitter File Load Error", 0, window_flags)) {
+        ImGui::SetCursorPosY(title_bar_size);
+        ImGui::TextCentered("Can't load Glitter File");
+
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x * 0.5f - 20.0f);
+
+        x = 40.0f;
+        y = font->FontSize + style.FramePadding.y * 2.0f;
+        if (ImGui::ButtonEnterKeyPressed("OK", { x, y }))
+            ImGui::CloseCurrentPopup();
+        input_locked |= ImGui::IsWindowFocused();
+        ImGui::EndPopup();
+    }
+    ImGui::PopStyleVar();
+}
+
+static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
+    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
     bool data_aft_enable = data_list[DATA_AFT].data_paths.size() > 0;
     bool data_f2le_enable = data_list[DATA_F2LE].data_paths.size() > 0;
     bool data_f2be_enable = data_list[DATA_F2BE].data_paths.size() > 0;
@@ -4916,7 +4985,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
     bool data_xhd_enable = data_list[DATA_XHD].data_paths.size() > 0;
 
     int32_t data_count = 0;
-    switch (glt_edt->effect_group->type) {
+    switch (glt_edt->load_glt_type) {
     case Glitter::F2:
         if (data_f2le_enable)
             data_count++;
@@ -4996,11 +5065,12 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
         if (ImGui::BeginTable("buttons", data_count)) {
             bool close = false;
 
-            switch (glt_edt->effect_group->type) {
+            switch (glt_edt->load_glt_type) {
             case Glitter::F2:
                 if (data_f2le_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("F2LE",  ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_murmurhash_empty;
                         glt_edt->load_data_type = DATA_F2LE;
                         close = true;
                     }
@@ -5009,6 +5079,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_f2be_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("F2BE", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_murmurhash_empty;
                         glt_edt->load_data_type = DATA_F2BE;
                         close = true;
                     }
@@ -5018,6 +5089,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_aft_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("AFT", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_fnv1a64m_empty;
                         glt_edt->load_data_type = DATA_AFT;
                         close = true;
                     }
@@ -5026,6 +5098,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_ft_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("FT", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_fnv1a64m_empty;
                         glt_edt->load_data_type = DATA_FT;
                         close = true;
                     }
@@ -5034,6 +5107,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_m39_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("M39", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_fnv1a64m_empty;
                         glt_edt->load_data_type = DATA_M39;
                         close = true;
                     }
@@ -5043,6 +5117,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_x_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("X", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_murmurhash_empty;
                         glt_edt->load_data_type = DATA_X;
                         close = true;
                     }
@@ -5051,6 +5126,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_xhd_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("XHD", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_murmurhash_empty;
                         glt_edt->load_data_type = DATA_XHD;
                         close = true;
                     }
@@ -5059,6 +5135,7 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
                 if (data_vrfl_enable) {
                     ImGui::TableNextColumn();
                     if (ImGui::ButtonEnterKeyPressed("VRFL", ImGui::GetContentRegionAvail())) {
+                        glt_edt->hash = hash_murmurhash_empty;
                         glt_edt->load_data_type = DATA_VRFL;
                         close = true;
                     }
@@ -5067,62 +5144,11 @@ static void glitter_editor_file_load_model_popup(GlitterEditor* glt_edt,
             }
 
             if (close) {
-                glt_edt->load_data = true;
+                glt_edt->load = true;
                 ImGui::CloseCurrentPopup();
             }
             ImGui::EndTable();
         }
-        input_locked |= ImGui::IsWindowFocused();
-        ImGui::EndPopup();
-    }
-    ImGui::PopStyleVar();
-}
-
-static void glitter_editor_file_load_error_list_popup(GlitterEditor* glt_edt,
-    ImGuiIO& io, ImGuiStyle& style, ImFont* font, const float_t title_bar_size) {
-    if (glt_edt->load_error_list_popup) {
-        ImGui::OpenPopup("Glitter File Load Error", 0);
-        glt_edt->load_error_list_popup = false;
-    }
-
-    float_t x;
-    float_t y;
-    float_t w;
-    float_t h;
-    float_t win_x;
-    float_t win_y;
-
-    ImGuiWindowFlags window_flags;
-
-    win_x = 264.0f;
-    win_y = title_bar_size + font->FontSize * 3.0f
-        + style.ItemSpacing.y * 3.0f + style.FramePadding.y * 2.0f;
-
-    x = (float_t)width * 0.5f - win_x * 0.5f;
-    y = (float_t)height * 0.5f - win_y * 0.5f;
-    w = win_x;
-    h = win_y;
-
-    window_flags = 0;
-    window_flags |= ImGuiWindowFlags_NoResize;
-    window_flags |= ImGuiWindowFlags_NoMove;
-    window_flags |= ImGuiWindowFlags_NoScrollbar;
-    window_flags |= ImGuiWindowFlags_NoScrollWithMouse;
-
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowTitleAlign, { 0.5f, 0.5f });
-    ImGui::SetNextWindowPos({ x, y }, ImGuiCond_Always);
-    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
-    if (ImGui::BeginPopupModal("Glitter File Load Error", 0, window_flags)) {
-        ImGui::SetCursorPosY(title_bar_size);
-        ImGui::Text("Can't find name in Glitter List File\n"
-            "for hash in Glitter Effect File");
-
-        ImGui::SetCursorPosX(ImGui::GetContentRegionAvail().x * 0.5f - 20.0f);
-
-        x = 40.0f;
-        y = font->FontSize + style.FramePadding.y * 2.0f;
-        if (ImGui::ButtonEnterKeyPressed("OK", { x, y }))
-            ImGui::CloseCurrentPopup();
         input_locked |= ImGui::IsWindowFocused();
         ImGui::EndPopup();
     }
