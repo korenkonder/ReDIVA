@@ -9715,6 +9715,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
             if (i.chara_effect_init && i.chara_effect.auth_3d.size()) {
                 *chara_effect_offsets = s.get_position();
+                s.write(0x10);
 
                 int64_t auth_3d_offset = s.get_position();
 
