@@ -9641,8 +9641,13 @@ static void x_pv_game_write_play_param(pvpp* play_param,
     char path[MAX_PATH];
     sprintf_s(path, sizeof(path), "patch\\!temp\\pv\\pv%03d.pvpp", pv_id == 832 ? 800 : pv_id);
 
-    size_t chara_count = play_param->chara.size();
+    size_t chara_count = 0;
     size_t effect_count = play_param->effect.size();
+
+    for (pvpp_chara& i : play_param->chara)
+        if (i.auth_3d.size() || i.glitter.size()
+            || i.chara_effect_init && i.chara_effect.auth_3d.size())
+            chara_count++;
 
     int64_t chara_offset = 0;
     int64_t effect_offset = 0;
@@ -9692,6 +9697,10 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         int64_t* chara_effect_offsets = force_malloc<int64_t>(chara_count);
 
         for (pvpp_chara& i : play_param->chara) {
+            if (!i.auth_3d.size() && !i.glitter.size() && (!i.chara_effect_init
+                || i.chara_effect_init && !i.chara_effect.auth_3d.size()))
+                continue;
+
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
                 for (string_hash& j : i.auth_3d)
@@ -9750,6 +9759,10 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
         s.position_push(chara_offset, SEEK_SET);
         for (pvpp_chara& i : play_param->chara) {
+            if (!i.auth_3d.size() && !i.glitter.size() && (!i.chara_effect_init
+                || i.chara_effect_init && !i.chara_effect.auth_3d.size()))
+                continue;
+
             s.write_int8_t((int8_t)i.auth_3d.size());
             s.write_int8_t((int8_t)i.glitter.size());
             s.align_write(0x08);
@@ -9894,7 +9907,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
     if (stage_effect_count) {
         stage_effect_offset = s.get_position();
-        s.write(0x20 * stage_effect_count);
+        s.write(0x18 * stage_effect_count);
 
         int64_t* auth_3d_offsets = force_malloc<int64_t>(stage_effect_count);
         int64_t* glitter_offsets = force_malloc<int64_t>(stage_effect_count);
@@ -9976,7 +9989,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
     {
         stage_change_effect_offset = s.get_position();
-        s.write(0x20 * PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
+        s.write(0x18 * PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
 
         int64_t* auth_3d_offsets = force_malloc<int64_t>(PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
         int64_t* glitter_offsets = force_malloc<int64_t>(PVSR_STAGE_EFFECT_COUNT * PVSR_STAGE_EFFECT_COUNT);
