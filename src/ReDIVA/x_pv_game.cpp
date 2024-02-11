@@ -9384,6 +9384,11 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             object_info info = x_pack_obj_db->get_object_info(uid_name.c_str());
             ext_anim->object_hash = ((uint32_t)(uint16_t)info.set_id << 16) | (uint32_t)(uint16_t)info.id;
 
+            if (ext_anim->file_name_hash == hash_murmurhash_empty) {
+                ext_anim->file_name_hash = -1;
+                break;
+            }
+
             char auth_name[0x200];
             if (!get_replace_auth_name(auth_name, sizeof(auth_name), auth))
                 goto End;
