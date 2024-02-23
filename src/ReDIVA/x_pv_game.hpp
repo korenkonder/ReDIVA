@@ -698,7 +698,11 @@ struct x_pv_game_stage_data {
     bool check_not_loaded();
     void ctrl(object_database* obj_db, texture_database* tex_db);
     void load(int32_t stage_id, FrameRateControl* frame_rate_control);
+#if BAKE_X_PACK
+    void load_objects(int32_t stage_id, object_database* obj_db, texture_database* tex_db);
+#else
     void load_objects(object_database* obj_db, texture_database* tex_db);
+#endif
     void reset();
     void set_default_stage();
     void set_stage(uint32_t hash);

@@ -4583,7 +4583,11 @@ void x_pv_game_stage_data::load(int32_t stage_id, FrameRateControl* frame_rate_c
     flags |= 0x02;
 }
 
+#if BAKE_X_PACK
+void x_pv_game_stage_data::load_objects(int32_t stage_id, object_database* obj_db, texture_database* tex_db) {
+#else
 void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_database* tex_db) {
+#endif
     if (!(flags & 0x02) || file_handler.check_not_ready() || state && state != 2)
         return;
 
@@ -4601,9 +4605,15 @@ void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_databas
     for (stage_data_modern& i : stg_db.stage_modern) {
         stage_data.push_back(&i);
 
-        std::string objhrc = i.name + "HRC";
+        std::string objhrc(i.name);
+        objhrc.append("HRC");
         obj_hash.push_back(i.hash);
+#if BAKE_X_PACK
+        if (stage_id != 29)
+            objhrc_hash.push_back(hash_string_murmurhash(objhrc));
+#else
         objhrc_hash.push_back(hash_string_murmurhash(objhrc));
+#endif
     }
 
     data_struct* x_data = &data_list[DATA_X];
@@ -4726,8 +4736,13 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         if (stage_data.check_not_loaded() || stage_resource_file_handler.check_not_ready())
             break;
 
+#if BAKE_X_PACK
+        if (stage_data.flags & 0x02)
+            stage_data.load_objects(stage_id, &obj_db, &tex_db);
+#else
         if (stage_data.flags & 0x02)
             stage_data.load_objects(&obj_db, &tex_db);
+#endif
 
         const void* pvsr_data = stage_resource_file_handler.get_data();
         size_t pvsr_size = stage_resource_file_handler.get_size();
