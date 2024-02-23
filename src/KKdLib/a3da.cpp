@@ -1575,7 +1575,7 @@ static void a3da_write_text(a3da* a, void** data, size_t* size, bool a3dc) {
         int32_t* sort_index_data = sort_index.data();
         for (int32_t i = 0; i < count; i++) {
             kv.open_scope_fmt(sort_index_data[i]);
-            kv.write(s, "name", vmohl[sort_index_data[i]]);
+            kv.write(s, vmohl[sort_index_data[i]]);
             kv.close_scope();
         }
 
