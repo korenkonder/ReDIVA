@@ -6042,7 +6042,7 @@ bool x_pv_game::ctrl() {
 
         data_struct* x_data = &data_list[DATA_X];
 
-        light_param_data_storage_data_set_pv_id(get_data().pv_id);
+        light_param_data_storage_data_set_pv_id(get_data().pv_id == 832 ? 800 : get_data().pv_id);
 
         auth_3d_data_load_category(light_category.c_str());
 
