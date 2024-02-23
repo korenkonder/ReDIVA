@@ -926,6 +926,32 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                         if (name_hash != hash_string_murmurhash(mesh.name))
                             continue;
 
+                        msgpack* color_mult = _mesh.read("color_mult");
+                        if (color_mult) {
+                            vec3 _color_mult = 1.0f;
+
+                            msgpack* rgb = color_mult->read("rgb");
+                            if (rgb)
+                                _color_mult = rgb->read_float_t();
+
+                            msgpack* r = color_mult->read("r");
+                            if (r)
+                                _color_mult.x = r->read_float_t();
+
+                            msgpack* g = color_mult->read("g");
+                            if (g)
+                                _color_mult.y = g->read_float_t();
+
+                            msgpack* b = color_mult->read("b");
+                            if (b)
+                                _color_mult.z = b->read_float_t();
+                            
+                            obj_vertex_data* vtx = mesh.vertex_array;
+                            uint32_t num_vertex = mesh.num_vertex;
+                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                                *(vec3*)&vtx->color0 = _color_mult;
+                        }
+
                         msgpack* fix_alpha = _mesh.read("fix_alpha");
                         if (fix_alpha && fix_alpha->read_bool()) {
                             obj_vertex_data* vtx = mesh.vertex_array;
@@ -941,6 +967,28 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             for (uint32_t i = num_vertex; i; i--, vtx++)
                                 if (vtx->color0.x < 0.0f)
                                     *(vec3*)&vtx->color0.x = -*(vec3*)&vtx->color0.x;
+                        }
+
+                        msgpack* replace_normals = _mesh.read("replace_normals");
+                        if (replace_normals) {
+                            vec3 normal = vec3(0.0f, 1.0f, 0.0f);
+
+                            msgpack* x = replace_normals->read("x");
+                            if (x)
+                                normal.x = x->read_float_t();
+
+                            msgpack* y = replace_normals->read("y");
+                            if (y)
+                                normal.y = y->read_float_t();
+
+                            msgpack* z = replace_normals->read("z");
+                            if (z)
+                                normal.z = z->read_float_t();
+
+                            obj_vertex_data* vtx = mesh.vertex_array;
+                            uint32_t num_vertex = mesh.num_vertex;
+                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                                vtx->normal = normal;
                         }
 
                         msgpack* sub_meshes = _mesh.read_array("sub_mesh");
