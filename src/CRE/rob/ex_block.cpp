@@ -1425,14 +1425,14 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
 
                     *(vec3*)data = node->trans;
 
-                    vec3 normal = node->normal * (32727.0f * facing);
+                    vec3 normal = node->normal * (32767.0f * facing);
                     vec3_to_vec3i16(normal, *(vec3i16*)(data + 0x0C));
                     *(int16_t*)(data + 0x12) = 0;
 
                     vec4 tangent;
                     *(vec3*)&tangent = node->tangent;
                     tangent.w = node->tangent_sign;
-                    tangent *= 32727.0f;
+                    tangent *= 32767.0f;
                     vec4_to_vec4i16(tangent, *(vec4i16*)(data + 0x14));
 
                     data += mesh->size_vertex;
@@ -1448,7 +1448,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
 
                     *(vec3*)data = node->trans;
 
-                    vec3 normal = node->normal * (32727.0f * facing);
+                    vec3 normal = node->normal * (32767.0f * facing);
                     vec3_to_vec3i16(normal, *(vec3i16*)(data + 0x0C));
                     *(int16_t*)(data + 0x12) = 0;
 

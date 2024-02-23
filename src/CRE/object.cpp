@@ -280,14 +280,14 @@ void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
             }
 
             if (vertex_format & OBJ_VERTEX_NORMAL) {
-                vec3 normal = vtx->normal * 32727.0f;
+                vec3 normal = vtx->normal * 32767.0f;
                 vec3_to_vec3i16(normal, *(vec3i16*)d);
                 *(int16_t*)(d + 6) = 0;
                 d += 8;
             }
 
             if (vertex_format & OBJ_VERTEX_TANGENT) {
-                vec4 tangent = vtx->tangent * 32727.0f;
+                vec4 tangent = vtx->tangent * 32767.0f;
                 vec4_to_vec4i16(tangent, *(vec4i16*)d);
                 d += 8;
             }
