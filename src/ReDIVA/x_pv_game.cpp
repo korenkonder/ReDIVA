@@ -6435,7 +6435,7 @@ bool x_pv_game::ctrl() {
 
             pv_osage_manager_array_reset(chara_id);
             pv_osage_manager_array_set_pv_set_motion(chara_id, get_data().pv_data.set_motion[chara_id]);
-            pv_osage_manager_array_set_pv_id(chara_id, get_data().pv_id, true);
+            pv_osage_manager_array_set_pv_id(chara_id, get_data().pv_id == 832 ? 800 : get_data().pv_id, true);
         }
 
         state = 10;
