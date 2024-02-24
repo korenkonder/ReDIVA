@@ -287,6 +287,7 @@ struct x_pv_game_camera {
     void reset();
     void stop();
     void unload();
+    void unload_data();
 };
 
 struct x_pv_game_effect {
@@ -315,6 +316,7 @@ struct x_pv_game_effect {
     void stop();
     void stop_song_effect(int32_t index, bool free_glitter);
     void unload();
+    void unload_data();
 };
 
 struct x_pv_game_chara_effect_auth_3d {
@@ -368,6 +370,7 @@ struct x_pv_game_chara_effect {
     void stop();
     void stop_chara_effect(int32_t chara_id, int32_t index);
     void unload();
+    void unload_data();
 };
 
 struct x_pv_game_music_args {
@@ -463,6 +466,98 @@ struct x_pv_game_music {
 };
 #endif
 
+struct aet_obj_data_comp {
+    uint32_t aet_id;
+    char layer_name[0x20];
+    float_t frame;
+    AetComp comp;
+
+    aet_obj_data_comp();
+    ~aet_obj_data_comp();
+
+    aet_layout_data* find_layout(const char* name);
+    bool init_comp(uint32_t aet_id, const std::string&& layer_name,
+        float_t frame, const aet_database* aet_db, const sprite_database* spr_db);
+};
+
+struct aet_obj_data {
+    uint32_t hash;
+    std::string layer_name;
+    aet_obj_data_comp* comp;
+    uint32_t id;
+    bool loop;
+    bool hidden;
+    bool field_2A;
+    FrameRateControl* frame_rate_control;
+
+    aet_obj_data();
+    ~aet_obj_data();
+
+    bool check_disp();
+    aet_layout_data* find_aet_layout(const char* name,
+        const aet_database* aet_db, const sprite_database* spr_db);
+    uint32_t init(AetArgs& args, const aet_database* aet_db);
+    void reset();
+};
+
+struct x_pv_aet_disp_data {
+    rectangle rect;
+    bool disp;
+    uint8_t opacity;
+
+    x_pv_aet_disp_data();
+};
+
+struct x_pv_aet_disp_string {
+    x_pv_aet_disp_data data;
+    std::string str;
+
+    x_pv_aet_disp_string();
+    ~x_pv_aet_disp_string();
+
+    void ctrl(const char* name, aet_obj_data* aet,
+        const aet_database* aet_db, const sprite_database* spr_db);
+};
+
+struct x_pv_str_array_pv {
+    int32_t pv_id;
+    const char* song_name;
+
+    const char* get_song_name(int32_t index);
+    const char* get_song_line_1(int32_t index);
+    const char* get_song_line_2(int32_t index);
+    const char* get_song_line_3(int32_t index);
+};
+
+struct x_pv_game_title {
+    int32_t state;
+    uint32_t aet_set_id;
+    uint32_t spr_set_id;
+    uint32_t aet_id;
+    aet_obj_data tit_layer;
+    aet_obj_data txt_layer;
+    x_pv_str_array_pv str_array;
+    x_pv_aet_disp_string txt_data[4];
+    int32_t txt_layer_index;
+
+    aet_database aet_db;
+    sprite_database spr_db;
+
+    x_pv_game_title();
+    ~x_pv_game_title();
+
+    void ctrl();
+    void ctrl_txt_data();
+    void disp();
+    bool get_set_ids(int8_t cloud_index, uint32_t& aet_set_id, uint32_t& spr_set_id);
+    void load(int32_t pv_id, FrameRateControl* frame_rate_control);
+    void load_data();
+    void reset();
+    void show(int32_t index);
+    void unload();
+    void unload_data();
+};
+
 struct x_pv_game_pv_data {
     bool play;
     dsc dsc;
@@ -503,6 +598,7 @@ struct x_pv_game_pv_data {
     void set_motion_max_frame(int32_t chara_id, int32_t motion_index, int64_t time);
     void stop();
     void unload();
+    void unload_data();
 };
 
 struct x_pv_game_stage;
@@ -526,6 +622,7 @@ struct x_pv_game_data {
     x_pv_game_camera camera;
     x_pv_game_effect effect;
     x_pv_game_chara_effect chara_effect;
+    x_pv_game_title title;
     x_pv_game_pv_data pv_data;
     string_hash exp_file;
     //dof dof;
@@ -544,6 +641,7 @@ struct x_pv_game_data {
     void ctrl(float_t curr_time, float_t delta_time);
 #endif
     void ctrl_stage_effect_index();
+    void disp();
 #if BAKE_PV826
     void load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6],
         std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names = 0);
@@ -553,7 +651,7 @@ struct x_pv_game_data {
     void reset();
     void stop();
     void unload();
-    void unload_if_state_is_0();
+    void unload_data();
 };
 
 class PVStageFrameRateControl : public FrameRateControl {
@@ -564,24 +662,6 @@ public:
     virtual ~PVStageFrameRateControl() override;
 
     virtual float_t get_delta_frame() override;
-};
-
-struct aet_obj_data {
-    uint32_t hash;
-    std::string layer_name;
-    void* field_20;
-    uint32_t id;
-    bool loop;
-    bool hidden;
-    bool field_2A;
-    FrameRateControl* frame_rate_control;
-
-    aet_obj_data();
-    ~aet_obj_data();
-
-    bool check_disp();
-    uint32_t init(AetArgs& args, const aet_database* aet_db);
-    void reset();
 };
 
 struct x_pv_game_stage_env_data {

@@ -42,6 +42,7 @@
 #include "information/dw_console.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
+#include "print_work.hpp"
 
 enum dsc_x_func {
     DSC_X_END = 0,
@@ -877,6 +878,10 @@ void x_pv_game_camera::stop() {
 }
 
 void x_pv_game_camera::unload() {
+    unload_data();
+}
+
+void x_pv_game_camera::unload_data() {
     if (state != 20)
         return;
 
@@ -1220,6 +1225,10 @@ void x_pv_game_effect::stop_song_effect(int32_t index, bool free_glitter) {
 }
 
 void x_pv_game_effect::unload() {
+    unload_data();
+}
+
+void x_pv_game_effect::unload_data() {
     if (state && state != 20)
         return;
 
@@ -1652,6 +1661,22 @@ void x_pv_game_chara_effect::unload() {
     if (!state)
         return;
 
+    unload_data();
+
+    for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d) {
+        i.clear();
+        i.shrink_to_fit();
+    }
+
+    frame_rate_control = 0;
+    play_param = 0;
+    state = 0;
+}
+
+void x_pv_game_chara_effect::unload_data() {
+    if (!state)
+        return;
+
     if (state == 10 || state == 30) {
         for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d)
             for (x_pv_game_chara_effect_auth_3d& j : i) {
@@ -1662,17 +1687,9 @@ void x_pv_game_chara_effect::unload() {
                 auth_3d_data_unload_category(j.category.hash_murmurhash);
                 object_storage_unload_set(j.object_set.hash_murmurhash);
             }
+
         state = 10;
     }
-
-    for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d) {
-        i.clear();
-        i.shrink_to_fit();
-    }
-
-    frame_rate_control = 0;
-    play_param = 0;
-    state = 0;
 }
 
 x_pv_game_music_args::x_pv_game_music_args() : type(), start(), field_2C() {
@@ -2114,6 +2131,462 @@ void x_pv_game_music::stop_reset_flags() {
     exclude_flags(X_PV_GAME_MUSIC_ALL);
 }
 #endif
+
+aet_obj_data_comp::aet_obj_data_comp() : aet_id(), layer_name() {
+    frame = -1.0f;
+}
+
+aet_obj_data_comp::~aet_obj_data_comp() {
+
+}
+
+aet_layout_data* aet_obj_data_comp::find_layout(const char* name) {
+    return comp.Find(name);
+}
+
+bool aet_obj_data_comp::init_comp(uint32_t aet_id, const std::string&& layer_name,
+    float_t frame, const aet_database* aet_db, const sprite_database* spr_db) {
+    if (aet_id == hash_murmurhash_empty || aet_id == -1)
+        return false;
+
+    if (comp.data.size() && this->aet_id == aet_id && !strncmp(this->layer_name,
+        layer_name.c_str(), layer_name.size()) && fabsf(this->frame - frame) <= 0.000001f)
+        return true;
+
+    comp.Clear();
+    this->aet_id = aet_id;
+
+    size_t len = min_def(sizeof(this->layer_name) - 1, layer_name.size());
+    strncpy_s(this->layer_name, sizeof(this->layer_name), layer_name.c_str(), len);
+    this->layer_name[len] = 0;
+    this->frame = frame;
+
+    aet_manager_init_aet_layout(&comp, aet_id, layer_name.c_str(),
+        (AetFlags)0, RESOLUTION_MODE_HD, 0, frame, aet_db, spr_db);
+    return true;
+}
+
+aet_obj_data::aet_obj_data() : comp(), loop(), hidden(), field_2A(), frame_rate_control() {
+    hash = hash_murmurhash_empty;
+
+    reset();
+}
+
+aet_obj_data::~aet_obj_data() {
+    reset();
+}
+
+bool aet_obj_data::check_disp() {
+    return aet_manager_get_obj_end(id);
+}
+
+aet_layout_data* aet_obj_data::find_aet_layout(const char* name,
+    const aet_database* aet_db, const sprite_database* spr_db) {
+    if (!name)
+        return 0;
+
+    if (!comp)
+        comp = new aet_obj_data_comp;
+
+    if (comp && comp->init_comp(hash, layer_name.c_str(), aet_manager_get_obj_frame(id), aet_db, spr_db))
+        return comp->find_layout(name);
+
+    return 0;
+}
+
+uint32_t aet_obj_data::init(AetArgs& args, const aet_database* aet_db) {
+    reset();
+
+    hash = args.id.id;
+    layer_name.assign(args.layer_name);
+    id = aet_manager_init_aet_object(args, aet_db);
+    if (!id)
+        return 0;
+
+    aet_manager_set_obj_frame_rate_control(id, frame_rate_control);
+#if BAKE_VIDEO_ALPHA
+    aet_manager_set_obj_visible(id, false);
+#else
+    aet_manager_set_obj_visible(id, !hidden);
+#endif
+    field_2A = true;
+    loop = !!(args.flags & AET_LOOP);
+    return id;
+}
+
+void aet_obj_data::reset() {
+    field_2A = false;
+
+    if (id) {
+        aet_manager_free_aet_object(id);
+        id = 0;
+    }
+
+    hash = hash_murmurhash_empty;
+    layer_name.clear();
+    layer_name.shrink_to_fit();
+
+    if (comp) {
+        delete comp;
+        comp = 0;
+    }
+}
+
+x_pv_aet_disp_data::x_pv_aet_disp_data() : disp(), opacity() {
+
+}
+
+x_pv_aet_disp_string::x_pv_aet_disp_string() {
+
+}
+
+x_pv_aet_disp_string::~x_pv_aet_disp_string() {
+
+}
+
+void x_pv_aet_disp_string::ctrl(const char* name, aet_obj_data* aet, const aet_database* aet_db, const sprite_database* spr_db) {
+    if (!aet) {
+        data.disp = false;
+        return;
+    }
+
+    aet_layout_data* layout = aet->find_aet_layout(name, aet_db, spr_db);
+    if (!layout) {
+        data.disp = false;
+        return;
+    }
+
+    data.disp = true;
+    data.rect.pos = *(vec2*)&layout->position;
+    data.rect.size.x = layout->height * layout->mat.row1.y * layout->mat.row0.x;
+    data.rect.size.y = layout->height * layout->mat.row1.y;
+    data.opacity = clamp_def((uint8_t)(int32_t)(layout->opacity * 255.0f), 0x00, 0xFF);
+}
+
+static const char* sub_8133DDF8(int32_t id) {
+    return 0;
+}
+
+const char* x_pv_str_array_pv::get_song_name(int32_t index) {
+    if (!index)
+        return song_name;
+
+    int32_t id = 20000010 + 1000 * pv_id + 4 * (index - 1);
+
+    const char* str = sub_8133DDF8(id);
+    if (str)
+        return str;
+    return "";
+}
+
+const char* x_pv_str_array_pv::get_song_line_1(int32_t index) {
+    int32_t id = 20000002 + 1000 * pv_id;
+
+    if (index)
+        id = 20000011 + 1000 * pv_id + 4 * (index - 1);
+
+    const char* str = sub_8133DDF8(id);
+    if (str)
+        return str;
+    return "";
+}
+
+const char* x_pv_str_array_pv::get_song_line_2(int32_t index) {
+    int32_t id = 20000003 + 1000 * pv_id;
+
+    if (index)
+        id = 20000012 + 1000 * pv_id + 4 * (index - 1);
+
+    const char* str = sub_8133DDF8(id);
+    if (str)
+        return str;
+    return "";
+}
+
+const char* x_pv_str_array_pv::get_song_line_3(int32_t index) {
+    int32_t id = 20000004 + 1000 * pv_id;
+    if (index)
+        id = 20000013 + 1000 * pv_id + 4 * (index - 1);
+
+    const char* str = sub_8133DDF8(id);
+    if (str)
+        return str;
+    return "";
+}
+
+x_pv_game_title::x_pv_game_title() : state(), str_array(), txt_layer_index() {
+    aet_set_id = hash_murmurhash_empty;
+    spr_set_id = hash_murmurhash_empty;
+    aet_id = hash_murmurhash_empty;
+}
+
+x_pv_game_title::~x_pv_game_title() {
+    unload();
+}
+
+void x_pv_game_title::ctrl() {
+    switch (state) {
+    case 2:
+        if (!aet_manager_load_file_modern(aet_set_id, &aet_db)
+            && !sprite_manager_load_file_modern(spr_set_id, &spr_db)) {
+            spr_set* set = sprite_manager_get_set(spr_set_id, &spr_db);
+            if (set) {
+                SpriteData* sprdata = set->sprdata;
+                for (uint32_t i = set->num_of_sprite; i; i--, sprdata++)
+                    sprdata->resolution_mode = RESOLUTION_MODE_HD;
+            }
+            state = 3;
+        }
+        break;
+    case 4:
+        if (tit_layer.check_disp() && txt_layer.check_disp())
+            state = 3;
+        else if (txt_layer.id)
+            ctrl_txt_data();
+        break;
+    }
+}
+
+void x_pv_game_title::ctrl_txt_data() {
+
+    const char* comps[4] = {
+        "p_txt01_c",
+        "p_txt02_c",
+        "p_txt03_c",
+        "p_txt04_c",
+    };
+
+    const char** str = comps;
+    for (x_pv_aet_disp_string& i : txt_data)
+        i.ctrl(*str++, &txt_layer, &aet_db, &spr_db);
+}
+
+void x_pv_game_title::disp() {
+    if (state != 4)
+        return;
+
+    font_info font(16);
+
+    PrintWork print_work;
+    print_work.SetFont(&font);
+    print_work.prio = spr::SPR_PRIO_06;
+
+    for (x_pv_aet_disp_string& i : txt_data) {
+        if (!i.data.disp || !i.str.size())
+            continue;
+
+        font.set_glyph_size(i.data.rect.size.x, i.data.rect.size.y);
+        print_work.color.a = i.data.opacity;
+        print_work.line_origin_loc = i.data.rect.pos;
+        print_work.text_current_loc = print_work.line_origin_loc;
+
+        print_work.printf((app::text_flags)(app::TEXT_FLAG_ALIGN_FLAG_LOCATE_V_CENTER
+            | app::TEXT_FLAG_ALIGN_FLAG_H_CENTER
+            | app::TEXT_FLAG_FONT), i.str.c_str());
+    }
+}
+
+bool x_pv_game_title::get_set_ids(int8_t cloud_index, uint32_t& aet_set_id, uint32_t& spr_set_id) {
+    switch (cloud_index) {
+    case 1:
+    default:
+        aet_set_id = hash_utf8_murmurhash("AET_PV_TIT01");
+        spr_set_id = hash_utf8_murmurhash("SPR_PV_TIT01");
+        break;
+    case 2:
+        aet_set_id = hash_utf8_murmurhash("AET_PV_TIT02");
+        spr_set_id = hash_utf8_murmurhash("SPR_PV_TIT02");
+        break;
+    case 3:
+        aet_set_id = hash_utf8_murmurhash("AET_PV_TIT03");
+        spr_set_id = hash_utf8_murmurhash("SPR_PV_TIT03");
+        break;
+    case 4:
+        aet_set_id = hash_utf8_murmurhash("AET_PV_TIT04");
+        spr_set_id = hash_utf8_murmurhash("SPR_PV_TIT04");
+        break;
+    case 5:
+        aet_set_id = hash_utf8_murmurhash("AET_PV_TIT05");
+        spr_set_id = hash_utf8_murmurhash("SPR_PV_TIT05");
+        break;
+    }
+    return 1;
+}
+
+void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) {
+    if (state)
+        return;
+
+    str_array.pv_id = pv_id;
+
+    int32_t cloud_index = 1;
+    switch (pv_id) {
+    case 809:
+    case 810:
+    case 823:
+    case 824:
+    case 825:
+    case 830:
+        cloud_index = 1; // Classic
+        break;
+    case 807:
+    case 808:
+    case 811:
+    case 812:
+    case 813:
+    case 826:
+        cloud_index = 2; // Cute
+        break;
+    case 801:
+    case 803:
+    case 805:
+    case 814:
+    case 819:
+    case 827:
+        cloud_index = 3; // Cool
+        break;
+    case 802:
+    case 815:
+    case 816:
+    case 820:
+    case 822:
+    case 828:
+        cloud_index = 4; // Elegant
+        break;
+    case 804:
+    case 806:
+    case 817:
+    case 818:
+    case 821:
+    case 829:
+        cloud_index = 5; // Chaos
+        break;
+    case 831:
+    case 832:
+        cloud_index = 6; // DLC
+        break;
+    }
+
+    get_set_ids(cloud_index, aet_set_id, spr_set_id);
+
+    switch (cloud_index) {
+    case 1:
+    default:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT01_MAIN");
+        break;
+    case 2:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT02_MAIN");
+        break;
+    case 3:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT03_MAIN");
+        break;
+    case 4:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT04_MAIN");
+        break;
+    case 5:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT05_MAIN");
+        break;
+    }
+
+    tit_layer.frame_rate_control = frame_rate_control;
+    aet_manager_set_obj_frame_rate_control(tit_layer.id, frame_rate_control);
+
+    txt_layer.frame_rate_control = frame_rate_control;
+    aet_manager_set_obj_frame_rate_control(txt_layer.id, frame_rate_control);
+
+    state = 1;
+}
+
+void x_pv_game_title::load_data() {
+    if (!state || state != 1)
+        return;
+
+    sprite_manager_read_file_modern(spr_set_id, &data_list[DATA_X], &spr_db);
+    aet_manager_read_file_modern(aet_set_id, &data_list[DATA_X], &aet_db);
+    state = 2;
+}
+
+void x_pv_game_title::reset() {
+    tit_layer.reset();
+    txt_layer.reset();
+    txt_data[0].data.disp = false;
+    txt_data[1].data.disp = false;
+    txt_data[2].data.disp = false;
+    txt_data[3].data.disp = false;
+    if (state == 4)
+        state = 3;
+}
+
+void x_pv_game_title::show(int32_t index) {
+    if (!state)
+        return;
+
+    txt_data[0].str.assign(str_array.get_song_name(index));
+    txt_data[1].str.assign(str_array.get_song_line_1(index));
+    txt_data[2].str.assign(str_array.get_song_line_2(index));
+    txt_data[3].str.assign(str_array.get_song_line_3(index));
+
+    txt_layer_index = 0;
+
+    int32_t txt_layer_index = 3;
+    while (!txt_data[txt_layer_index].str.size())
+        if (--txt_layer_index < 2)
+            break;
+
+    txt_layer_index = max_def(txt_layer_index + 1, 2);
+    this->txt_layer_index = txt_layer_index;
+
+    if (state != 3 || aet_id == hash_murmurhash_empty)
+        return;
+
+    AetArgs args;
+    args.id.id = aet_id;
+    args.layer_name = "tit_01";
+    args.prio = spr::SPR_PRIO_05;
+    args.spr_db = &spr_db;
+
+    tit_layer.init(args, &aet_db);
+
+    switch (txt_layer_index) {
+    case 0:
+    case 1:
+    case 2:
+    default:
+        args.layer_name = "txt01";
+        break;
+    case 3:
+        args.layer_name = "txt02";
+        break;
+    case 4:
+        args.layer_name = "txt03";
+        break;
+    }
+
+    txt_layer.init(args, &aet_db);
+
+    ctrl_txt_data();
+
+    state = 4;
+}
+
+void x_pv_game_title::unload() {
+    if (state >= 3)
+        unload_data();
+
+    aet_set_id = hash_murmurhash_empty;
+    spr_set_id = hash_murmurhash_empty;
+    aet_id = hash_murmurhash_empty;
+    state = 0;
+}
+
+void x_pv_game_title::unload_data() {
+    if (state && state != 2 && state != 1) {
+        reset();
+        sprite_manager_unload_set_modern(spr_set_id, &spr_db);
+        aet_manager_unload_set_modern(aet_set_id, &aet_db);
+        state = 1;
+    }
+}
 
 x_pv_game_pv_data::x_pv_game_pv_data() : pv_game(), dsc_data_ptr(), dsc_data_ptr_end(),
 play(), chara_id(), dsc_time(), pv_end(), playdata(), scene_rot_y(), branch_mode() {
@@ -2994,7 +3467,10 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     } break;
     case DSC_X_CREDIT_TITLE: {
+        int32_t index = data[0];
 
+        if (index)
+            pv_game->get_data().title.show(index - 1);
     } break;
     case DSC_X_BAR_POINT: {
 
@@ -3730,6 +4206,10 @@ void x_pv_game_pv_data::stop() {
 }
 
 void x_pv_game_pv_data::unload() {
+    unload_data();
+}
+
+void x_pv_game_pv_data::unload_data() {
     dsc.type = DSC_NONE;
     dsc.signature = 0;
     dsc.id = 0;
@@ -3775,6 +4255,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     case 20: {
         effect.load_data(pv_id, &obj_db, &tex_db);
         chara_effect.load_data();
+        title.load_data();
         pv_expression_file_load(&data_list[DATA_X], "root+/pv_expression/", exp_file.hash_murmurhash);
         state = 21;
     } break;
@@ -3838,6 +4319,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
 #else
     chara_effect.ctrl(&obj_db, &tex_db);
 #endif
+    title.ctrl();
     field_1C &= ~0x02;
 }
 
@@ -3868,6 +4350,10 @@ void x_pv_game_data::ctrl_stage_effect_index() {
     next_stage_effect_bar = 2 * max_def(v14, 0) + 1;
 }
 
+void x_pv_game_data::disp() {
+    title.disp();
+}
+
 #if BAKE_PV826
 void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, chara_index charas[6],
     std::unordered_map<std::string, string_hash>* effchrpv_auth_3d_mot_names) {
@@ -3879,6 +4365,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
     data_struct* x_data = &data_list[DATA_X];
 
+    title.load(pv_id, frame_rate_control);
     effect.load(pv_id, play_param, frame_rate_control);
 #if BAKE_PV826
     chara_effect.load(pv_id, play_param, frame_rate_control, charas, effchrpv_auth_3d_mot_names);
@@ -3956,14 +4443,18 @@ void x_pv_game_data::stop() {
 
 void x_pv_game_data::unload() {
     stop();
+
     camera.unload();
+    title.unload();
     effect.unload();
     chara_effect.unload();
     //dof = {};
     pv_data.unload();
     pv_expression_file_unload(exp_file.hash_murmurhash);
+
     obj_db.clear();
     tex_db.clear();
+
 #if !BAKE_FAST
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
@@ -3973,9 +4464,29 @@ void x_pv_game_data::unload() {
     state = 40;
 }
 
-void x_pv_game_data::unload_if_state_is_0() {
-    if (!state)
-        unload();
+void x_pv_game_data::unload_data() {
+    if (state)
+        return;
+
+    stop();
+
+    camera.unload_data();
+    title.unload_data();
+    effect.unload_data();
+    chara_effect.unload_data();
+    //dof = {};
+    pv_data.unload_data();
+    pv_expression_file_unload(exp_file.hash_murmurhash);
+
+    obj_db.clear();
+    tex_db.clear();
+
+#if !BAKE_FAST
+    x_pv_game_music_ptr->stop();
+    x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
+    x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
+    x_pv_game_music_ptr->exclude_flags(X_PV_GAME_MUSIC_OGG);
+#endif
 }
 
 PVStageFrameRateControl::PVStageFrameRateControl() {
@@ -3988,58 +4499,6 @@ PVStageFrameRateControl::~PVStageFrameRateControl() {
 
 float_t PVStageFrameRateControl::get_delta_frame() {
     return delta_frame;
-}
-
-aet_obj_data::aet_obj_data() : field_20(), loop(), hidden(), field_2A(), frame_rate_control() {
-    hash = hash_murmurhash_empty;
-
-    reset();
-}
-
-aet_obj_data::~aet_obj_data() {
-    reset();
-}
-
-bool aet_obj_data::check_disp() {
-    return aet_manager_get_obj_end(id);
-}
-
-uint32_t aet_obj_data::init(AetArgs& args, const aet_database* aet_db) {
-    reset();
-
-    hash = args.id.id;
-    layer_name.assign(args.layer_name);
-    id = aet_manager_init_aet_object(args, aet_db);
-    if (!id)
-        return 0;
-
-    aet_manager_set_obj_frame_rate_control(id, frame_rate_control);
-#if BAKE_VIDEO_ALPHA
-    aet_manager_set_obj_visible(id, false);
-#else
-    aet_manager_set_obj_visible(id, !hidden);
-#endif
-    field_2A = true;
-    loop = !!(args.flags & AET_LOOP);
-    return id;
-}
-
-void aet_obj_data::reset() {
-    field_2A = false;
-
-    if (id) {
-        aet_manager_free_aet_object(id);
-        id = 0;
-    }
-
-    hash = hash_murmurhash_empty;
-    layer_name.clear();
-    layer_name.shrink_to_fit();
-
-    if (field_20) {
-        delete field_20;
-        field_20 = 0;
-    }
 }
 
 x_pv_game_stage_env_data::x_pv_game_stage_env_data() {
@@ -4224,7 +4683,6 @@ void x_pv_game_stage_env::set(int32_t env_index, float_t end_time, float_t start
                     AetArgs args;
                     args.id.id = aet_gam_stgpv_id_main_hash;
                     args.layer_name = aet->name.c_str();
-                    args.mode = RESOLUTION_MODE_HD;
                     args.flags = AET_PLAY_ONCE;
                     switch (type) {
                     case 0:
@@ -4332,7 +4790,6 @@ void x_pv_game_stage_env::sub_810EE03E() {
                 if (aet) {
                     args.id.id = aet_gam_stgpv_id_main_hash;
                     args.layer_name = aet->name.c_str();
-                    args.mode = RESOLUTION_MODE_HD;
                     args.flags = AET_PLAY_ONCE;
                     switch (type) {
                     case 0:
@@ -4413,7 +4870,6 @@ bool x_pv_game_stage_env::sub_810EE198(float_t delta_time) {
                     if (aet) {
                         args.id.id = aet_gam_stgpv_id_main_hash;
                         args.layer_name = aet->name.c_str();
-                        args.mode = RESOLUTION_MODE_HD;
                         args.flags = AET_PLAY_ONCE;
                         switch (type) {
                         case 0:
@@ -7311,6 +7767,8 @@ void x_pv_game::disp() {
     if (state_old != 20)
         return;
 
+    if (pv_index >= 0 && pv_index < pv_count)
+        get_data().disp();
 }
 
 void x_pv_game::basic() {
@@ -8095,7 +8553,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
             break;
 
         stop_current_pv();
-        this->data[pv_index].unload_if_state_is_0();
+        this->data[pv_index].unload_data();
         pv_index++;
 
         state = 20;
@@ -8125,7 +8583,7 @@ void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
             }
 
             if (i > 0)
-                data->unload_if_state_is_0();
+                data->unload_data();
         }
 
         if (pv_index) {
