@@ -200,7 +200,7 @@ static void io_json_read_float(stream& s, io_json_read_buffer* buf, msgpack* msg
         if (negate)
             *msg = -0.0f;
         else
-            *msg = 0;
+            *msg = (uint8_t)0;
         io_json_seek_one(s, buf);
         return;
     }
@@ -401,9 +401,8 @@ inline static void io_json_read_skip_whitespace(stream& s, io_json_read_buffer* 
 }
 
 static void io_json_read_map(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
-    size_t i = 0;
-    msgpack m;
-    msgpack_map map;
+    *msg = msgpack_map();
+    msgpack_map* map = msg->data.map;
     if (*c != '}') {
         while (true) {
             io_json_read_skip_whitespace(s, buf, c);
@@ -422,26 +421,25 @@ static void io_json_read_map(stream& s, io_json_read_buffer* buf, msgpack* msg, 
             }
             io_json_read_skip_whitespace(s, buf, c);
 
-            map.push_back(key, {});
-            io_json_read_inner(s, buf, &map.back().second, c);
+            map->push_back(key, {});
+            io_json_read_inner(s, buf, &map->back().second, c);
             free_def(key);
 
             io_json_read_skip_whitespace(s, buf, c);
 
             if (*c == '}')
                 break;
-            else if (*c != ',')
+            else if (*c != ',') {
+                *msg = {};
                 return;
+            }
         }
     }
-
-    *msg = map;
 }
 
 static void io_json_read_array(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
-    size_t i = 0;
-    msgpack m;
-    msgpack_array array;
+    *msg = msgpack_array();
+    msgpack_array* array = msg->data.arr;
     if (*c != ']') {
         while (true) {
             io_json_read_skip_whitespace(s, buf, c);
@@ -449,19 +447,19 @@ static void io_json_read_array(stream& s, io_json_read_buffer* buf, msgpack* msg
             if (*c == ']')
                 break;
 
-            array.push_back({});
-            io_json_read_inner(s, buf, &array.back(), c);
+            array->push_back({});
+            io_json_read_inner(s, buf, &array->back(), c);
 
             io_json_read_skip_whitespace(s, buf, c);
 
             if (*c == ']')
                 break;
-            else if (*c != ',')
+            else if (*c != ',') {
+                *msg = {};
                 return;
+            }
         }
     }
-
-    *msg = array;
 }
 
 inline static void io_json_read_bool(stream& s, io_json_read_buffer* buf, msgpack* msg, int32_t* c) {
