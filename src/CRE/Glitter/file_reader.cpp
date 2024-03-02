@@ -4,12 +4,17 @@
 */
 
 #include "glitter.hpp"
+#include "../../KKdLib/io/file_stream.hpp"
+#include "../../KKdLib/io/json.hpp"
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/farc.hpp"
+#include "../../KKdLib/msgpack.hpp"
 #include "../data.hpp"
 #include "../object.hpp"
 
 namespace Glitter {
+    static void effect_group_msgpack_read(const char* path, const char* file, EffectGroup* eff_group);
+
     FileReader::FileReader(GLT)
         : file_handler(), farc(), effect_group(), load_count(), state(), init_scene(), obj_db(), tex_db() {
         emission = -1.0f;
@@ -405,6 +410,8 @@ namespace Glitter {
             if (st.header.signature == reverse_endianness_uint32_t('LIST'))
                 ParseDivaList(&st, eff_group);
         }
+
+        effect_group_msgpack_read("patch\\AFT\\particle", file.c_str(), eff_group);
         return true;
     }
 
@@ -2033,5 +2040,108 @@ namespace Glitter {
         if (ptcl->data.uv_index_count < 0)
             ptcl->data.uv_index_count = 0;
         return true;
+    }
+
+    static void effect_group_msgpack_read(const char* path, const char* file, EffectGroup* eff_group) {
+        if (!eff_group || eff_group->type != Glitter::X || !path_check_directory_exists(path))
+            return;
+
+        char file_buf[0x80];
+        for (const char* i = file; *i && *i != '.'; i++) {
+            char c = *i;
+            file_buf[i - file] = c;
+            file_buf[i - file + 1] = 0;
+        }
+
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "%s\\%s.json", path, file_buf);
+        if (!path_check_file_exists(buf))
+            return;
+
+        msgpack msg;
+
+        file_stream s;
+        s.open(buf, "rb");
+        io_json_read(s, &msg);
+        s.close();
+
+        if (msg.type != MSGPACK_MAP)
+            return;
+
+        msgpack* effects = msg.read_array("effect");
+        if (effects) {
+            msgpack_array* ptr = effects->data.arr;
+            for (msgpack& i : *ptr) {
+                msgpack& effect = i;
+
+                std::string name = effect.read_string("name");
+                uint32_t name_hash = hash_string_murmurhash(name);
+
+                for (Effect*& j : eff_group->effects) {
+                    if (!j || name_hash != j->data.name_hash)
+                        continue;
+
+                    Effect* eff = j;
+
+                    if (effect.read_bool("use_emission")) {
+                        enum_or(eff->data.flags, EFFECT_EMISSION);
+                        
+                        for (Emitter*& k : eff->emitters)
+                            if (k)
+                                for (Particle*& l : k->particles)
+                                    if (l)
+                                        enum_or(l->data.flags, PARTICLE_EMISSION);
+                    }
+
+                    bool effect_emission = !!(eff->data.flags & EFFECT_EMISSION);
+
+                    msgpack* emission = effect.read("emission");
+                    if (emission)
+                        eff->data.emission = emission->read_float_t();
+
+                    msgpack* emitters = effect.read_array("emitter");
+                    if (emitters) {
+                        msgpack_array* ptr = emitters->data.arr;
+                        for (msgpack& k : *ptr) {
+                            msgpack& emitter = k;
+
+                            int32_t index = emitter.read_int32_t("index");
+                            if (index < 0 || index >= eff->emitters.size())
+                                continue;
+
+                            Emitter* emit = eff->emitters.data()[index];
+                            if (!emit)
+                                continue;
+
+                            msgpack* particles = emitter.read_array("particle");
+                            if (particles) {
+                                msgpack_array* ptr = particles->data.arr;
+                                for (msgpack& l : *ptr) {
+                                    msgpack& particle = l;
+
+                                    int32_t index = particle.read_int32_t("index");
+                                    if (index < 0 || index >= emit->particles.size())
+                                        continue;
+
+                                    Particle* ptcl = emit->particles.data()[index];
+                                    if (!ptcl || ptcl->version < 3)
+                                        continue;
+
+                                    msgpack* emission = particle.read("emission");
+                                    if (emission)
+                                        ptcl->data.emission = emission->read_float_t();
+
+                                    if (effect_emission || ptcl->data.emission >= min_emission)
+                                        enum_or(ptcl->data.flags, PARTICLE_EMISSION);
+                                    else
+                                        enum_and(ptcl->data.flags, ~PARTICLE_EMISSION);
+                                }
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
     }
 }
