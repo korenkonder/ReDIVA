@@ -2971,7 +2971,7 @@ void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint
             obj_sets.push_back(obj_set);
     }
 
-    stgpv += "HRC";
+    stgpv.append("HRC");
 
     uint32_t obj_set = obj_db->get_object_set_id(stgpv.c_str());
     if (obj_set != -1)

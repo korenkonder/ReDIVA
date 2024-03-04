@@ -718,8 +718,8 @@ void key_val_out::open_scope(std::string& str) {
         temp_key.clear();
         temp_key.reserve(curr_scope->size() + str.size() + 1);
         temp_key.assign(*curr_scope);
-        temp_key += '.';
-        temp_key += str;
+        temp_key.push_back('.');
+        temp_key.append(str);
         scope.push_back(temp_key);
     }
     else
@@ -739,7 +739,7 @@ void key_val_out::open_scope(const char* str) {
         temp_key.clear();
         temp_key.reserve(curr_scope->size() + str_len + 1);
         temp_key.assign(*curr_scope);
-        temp_key += '.';
+        temp_key.push_back('.');
         temp_key.append(str, str_len);
         scope.push_back(temp_key);
     }
@@ -1140,7 +1140,7 @@ static int64_t key_val_get_key_index(key_val* kv, const char* key) {
         kv->temp_key.clear();
         kv->temp_key.reserve(kv->curr_scope->key.size() + str_len + 1);
         kv->temp_key.assign(kv->curr_scope->key);
-        kv->temp_key += '.';
+        kv->temp_key.push_back('.');
         kv->temp_key.append(key, str_len);
         return key_val_get_key_index(kv, kv->temp_key.c_str(), kv->temp_key.size());
     }
@@ -1153,7 +1153,7 @@ static int64_t key_val_get_key_index(key_val* kv, std::string& key) {
         kv->temp_key.clear();
         kv->temp_key.reserve(kv->curr_scope->key.size() + key.size() + 1);
         kv->temp_key.assign(kv->curr_scope->key);
-        kv->temp_key += '.';
+        kv->temp_key.push_back('.');
         kv->temp_key.append(key);
         return key_val_get_key_index(kv, kv->temp_key.c_str(), kv->temp_key.size());
     }

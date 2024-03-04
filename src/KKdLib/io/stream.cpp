@@ -62,13 +62,13 @@ void stream::write_uint8_t(uint8_t val) {
 }
 
 std::string stream::read_string(size_t length) {
-    std::string str = std::string(length, 0);
+    std::string str(length, 0);
     read(&str.front(), sizeof(char) * length);
     return str;
 }
 
 std::wstring stream::read_wstring(size_t length) {
-    std::wstring str = std::wstring(length, 0);
+    std::wstring str(length, 0);
     read(&str.front(), sizeof(wchar_t) * length);
     return str;
 }

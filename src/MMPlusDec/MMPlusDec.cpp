@@ -46,7 +46,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
     }
 
     if (indir.back() != '\\')
-        indir += '\\';
+        indir.push_back('\\');
 
     bool encrypt = (argc == 3 && !str_utils_compare(argv[2], L"-e"))
         || (argc == 4 && !str_utils_compare(argv[3], L"-e"));
@@ -56,7 +56,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         : (indir.substr(0, indir.size() - 1) + (encrypt ? L"_enc" : L"_dec"));
 
     if (outdir.back() != '\\')
-        outdir += '\\';
+        outdir.push_back('\\');
 
     if (!path_check_directory_exists(outdir.c_str())
         && !CreateDirectoryW(outdir.c_str(), 0))

@@ -279,7 +279,7 @@ std::vector<std::string> path_get_directories_recursive(
     std::vector<std::string> directories;
     std::string path_temp;
     path_temp.assign(path);
-    path_temp += '\\';
+    path_temp.push_back('\\');
     for (std::string& i : temp_vec) {
         path_temp.append(i);
         std::vector<std::string> temp = path_get_directories_recursive(
@@ -301,7 +301,7 @@ std::vector<std::string> path_get_directories_recursive(
         if (i.size()) {
             std::string sub_path_temp;
             sub_path_temp.assign(i);
-            sub_path_temp += '\\';
+            sub_path_temp.push_back('\\');
             for (std::string& j : temp)
                 directories.push_back(sub_path_temp + j);
         }

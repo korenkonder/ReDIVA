@@ -294,7 +294,7 @@ bool data_struct::check_directory_exists(const char* dir) {
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
 
             if (path_check_directory_exists(temp.c_str()))
@@ -306,13 +306,13 @@ bool data_struct::check_directory_exists(const char* dir) {
 bool data_struct::check_file_exists(const char* path) {
     const char* t = strrchr(path, '/');
     if (t) {
-        std::string dir = std::string(path, t - path + 1);
+        std::string dir(path, t - path + 1);
         return check_file_exists(dir.c_str(), t + 1);
     }
 
     t = strrchr(path, '\\');
     if (t) {
-        std::string dir = std::string(path, t - path + 1);
+        std::string dir(path, t - path + 1);
         return check_file_exists(dir.c_str(), t + 1);
     }
     return false;
@@ -330,7 +330,8 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
             t_len = file_len;
 
         uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
-        std::string path = std::string(dir) + file;
+        std::string path(dir);
+        path.append(file);
         if (path_check_file_exists(path.c_str()))
             return true;
     }
@@ -369,7 +370,7 @@ bool data_struct::check_file_exists(const char* dir, const char* file) {
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
             temp.append(file, file_len);
 
@@ -417,7 +418,7 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
 
             std::vector<std::string> files = path_get_files(temp.c_str());
@@ -484,7 +485,7 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
 
             std::vector<std::string> files = path_get_files(temp.c_str());
@@ -545,7 +546,7 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
 
             std::vector<std::string> files = path_get_files(temp.c_str());
@@ -578,13 +579,13 @@ bool data_struct::load_file(void* data, const char* path,
     bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
     const char* t = strrchr(path, '/');
     if (t) {
-        std::string dir = std::string(path, t - path + 1);
+        std::string dir(path, t - path + 1);
         return load_file(data, dir.c_str(), t + 1, load_func);
     }
 
     t = strrchr(path, '\\');
     if (t) {
-        std::string dir = std::string(path, t - path + 1);
+        std::string dir(path, t - path + 1);
         return load_file(data, dir.c_str(), t + 1, load_func);
     }
     return false;
@@ -642,7 +643,7 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
             temp.append(file, file_len);
 
@@ -704,7 +705,7 @@ bool data_struct::load_file(void* data, const char* dir, uint32_t hash, const ch
     for (data_struct_path& i : data_paths)
         for (data_struct_directory& j : i.data) {
             temp.assign(j.path);
-            temp += '\\';
+            temp.push_back('\\');
             temp.append(dir_temp);
 
             std::vector<std::string> files = path_get_files(temp.c_str());
@@ -930,11 +931,10 @@ static void data_load_inner(stream& s) {
 
         ds->data_paths.reserve(count);
         for (size_t j = 0; j < count; j++) {
-            data_struct_path data_path;
+            ds->data_paths.push_back({});
+            data_struct_path& data_path = ds->data_paths.back();
             t -= t_len[count - j - 1] + 1;
-            data_path.path = std::string(t, t_len[count - j - 1]);
-            data_path.data = {};
-            ds->data_paths.push_back(data_path);
+            data_path.path.assign(t, t_len[count - j - 1]);
         }
         free_def(t_len);
 
@@ -945,7 +945,7 @@ static void data_load_inner(stream& s) {
                 main_rom_path.assign(j.path);
             else if (data_path_length) {
                 main_rom_path.assign(j.path);
-                main_rom_path += '\\';
+                main_rom_path.push_back('\\');
                 main_rom_path.append(main_rom, main_rom_len);
             }
             else
@@ -955,7 +955,7 @@ static void data_load_inner(stream& s) {
                 add_data_rom_path.assign(j.path);
             else if (data_path_length) {
                 add_data_rom_path.assign(j.path);
-                add_data_rom_path += '\\';
+                add_data_rom_path.push_back('\\');
                 add_data_rom_path.append(add_data, add_data_len);
             }
             else
@@ -976,27 +976,26 @@ static void data_load_inner(stream& s) {
             if (data_directories.size()) {
                 j.data.reserve(data_directories.size() + 1);
                 data_dir_path.assign(add_data_rom_path);
-                data_dir_path += '\\';
+                data_dir_path.push_back('\\');
                 for (std::vector<std::string>::reverse_iterator k = data_directories.rbegin();
                     k != data_directories.rend(); k++) {
-                    data_struct_directory data_dir;
+                    j.data.push_back({});
+                    data_struct_directory& data_dir = j.data.back();
                     data_dir.path.assign(data_dir_path);
                     data_dir.path.append(*k);
                     if (add_data_rom_len) {
-                        data_dir.path += '\\';
+                        data_dir.path.push_back('\\');
                         data_dir.path.append(add_data_rom, add_data_rom_len);
                     }
                     data_dir.name.assign(*k);
-                    j.data.push_back(data_dir);
                 }
             }
             else
                 j.data.reserve(1);
 
-            data_struct_directory data_dir;
-            data_dir.path = main_rom_path;
-            data_dir.name = {};
-            j.data.push_back(data_dir);
+            j.data.push_back({});
+            data_struct_directory& data_dir = j.data.back();
+            data_dir.path.assign(main_rom_path);
         }
         ds->ready = true;
     }
@@ -1027,7 +1026,7 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
         glitter_list_names.reserve(count);
         for (size_t i = 0; i < count; i++) {
             size_t len = utf8_length(lines[i]);
-            std::string name = std::string(lines[i], min_def(len, 0x7F));
+            std::string name(lines[i], min_def(len, 0x7F));
             glitter_list_names.push_back(name);
         }
 

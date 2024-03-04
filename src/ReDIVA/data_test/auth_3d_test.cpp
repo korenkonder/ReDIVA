@@ -615,7 +615,7 @@ void Auth3dTestTask::SetStage() {
 
                     size_t v24 = v20 - name;
                     if (v24 != -1) {
-                        std::string v30 = std::string(name + v16, v24 - v16);
+                        std::string v30(name + v16, v24 - v16);
                         int32_t stage_index = aft_stage_data->get_stage_index(v30.c_str());
                         if (this->stage_index != stage_index)
                             load_stage_index = stage_index;

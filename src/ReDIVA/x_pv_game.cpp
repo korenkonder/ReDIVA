@@ -4375,7 +4375,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
     char buf[0x200];
     size_t len = sprintf_s(buf, sizeof(buf), "exp_PV%03d", pv_id);
-    exp_file = std::string(buf, len);
+    exp_file.assign(buf, len);
 
     camera.load(pv_id, stage->stage_id, frame_rate_control);
 

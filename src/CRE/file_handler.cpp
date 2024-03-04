@@ -381,13 +381,13 @@ size_t p_file_handler::get_size() {
 bool p_file_handler::read_file(void* data, const char* path) {
     const char* t = strrchr(path, '/');
     if (t) {
-        std::string dir = std::string(path, t - path + 1);
+        std::string dir(path, t - path + 1);
         return read_file(data, dir.c_str(), 0, t + 1, false);
     }
 
     t = strrchr(path, '\\');
     if (t) {
-        std::string dir = std::string(path, t - path + 1);
+        std::string dir(path, t - path + 1);
         return read_file(data, dir.c_str(), 0, t + 1, false);
     }
     return false;
