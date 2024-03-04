@@ -935,6 +935,7 @@ static void data_load_inner(stream& s) {
             data_struct_path& data_path = ds->data_paths.back();
             t -= t_len[count - j - 1] + 1;
             data_path.path.assign(t, t_len[count - j - 1]);
+            path_get_full_path(data_path.path);
         }
         free_def(t_len);
 
@@ -960,6 +961,9 @@ static void data_load_inner(stream& s) {
             }
             else
                 add_data_rom_path.assign(add_data, add_data_len);
+
+            path_get_full_path(main_rom_path);
+            path_get_full_path(add_data_rom_path);
 
             if (main_rom_path.size() && main_rom_path.back() == '\\')
                 main_rom_path.pop_back();

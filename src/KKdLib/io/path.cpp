@@ -393,3 +393,24 @@ std::vector<std::wstring> path_get_directories_recursive(
     }
     return directories;
 }
+
+void path_get_full_path(std::string& str) {
+    wchar_t buf[MAX_PATH * 2];
+    buf[0] = 0;
+    wchar_t* utf16_temp = utf8_to_utf16(str.c_str());
+    if (utf16_temp)
+        GetFullPathNameW(utf16_temp, MAX_PATH * 2, buf, 0);
+    free_def(utf16_temp);
+
+    char* utf0_temp = utf16_to_utf8(buf);
+    if (utf0_temp)
+        str.assign(utf0_temp);
+    free_def(utf0_temp);
+}
+
+void path_get_full_path(std::wstring& str) {
+    wchar_t buf[MAX_PATH * 2];
+    buf[0] = 0;
+    GetFullPathNameW(str.c_str(), MAX_PATH * 2, buf, 0);
+    str.assign(buf);
+}
