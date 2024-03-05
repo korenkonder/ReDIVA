@@ -7,6 +7,7 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/database/aet.hpp"
+#include "../KKdLib/aet.hpp"
 #include "../KKdLib/vec.hpp"
 #include "color.hpp"
 #include "frame_rate_control.hpp"
@@ -127,6 +128,7 @@ extern float_t aet_manager_get_scene_layer_start_time(uint32_t aet_id,
 extern const char* aet_manager_get_scene_name(uint32_t aet_id, const aet_database* aet_db);
 extern float_t aet_manager_get_scene_start_time(uint32_t aet_id, const aet_database* aet_db);
 extern uint32_t aet_manager_get_scenes_count(uint32_t set_id, const aet_database* aet_db);
+extern ::aet_set* aet_manager_get_set(uint32_t set_id, const aet_database* aet_db);
 extern bool aet_manager_get_set_ready(uint32_t set_id, const aet_database* aet_db);
 extern void aet_manager_init_aet_layout(AetComp* composition,
     AetArgs args, const aet_database* aet_db);

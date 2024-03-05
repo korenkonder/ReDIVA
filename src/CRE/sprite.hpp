@@ -11,6 +11,7 @@
 #include "../KKdLib/database/sprite.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/rectangle.hpp"
+#include "../KKdLib/spr.hpp"
 #include "../KKdLib/vec.hpp"
 #include "color.hpp"
 #include "render_context.hpp"

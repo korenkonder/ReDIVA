@@ -6,7 +6,6 @@
 #include <map>
 #include <vector>
 #include "auth_2d.hpp"
-#include "../KKdLib/aet.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
@@ -391,6 +390,13 @@ float_t aet_manager_get_scene_start_time(uint32_t aet_id, const aet_database* ae
 
 uint32_t aet_manager_get_scenes_count(uint32_t set_id, const aet_database* aet_db) {
     return aet_manager->GetSetScenesCount(aet_db->get_aet_set_by_id(set_id)->index);
+}
+
+::aet_set* aet_manager_get_set(uint32_t set_id, const aet_database* aet_db) {
+    AetSet* set = aet_manager->GetSet(aet_db->get_aet_set_by_id(set_id)->index);
+    if (set)
+        return set->aet_set;
+    return 0;
 }
 
 bool aet_manager_get_set_ready(uint32_t set_id, const aet_database* aet_db) {
