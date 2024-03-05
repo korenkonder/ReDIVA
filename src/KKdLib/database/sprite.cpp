@@ -33,7 +33,6 @@ spr_db_spr_file::~spr_db_spr_file() {
 
 spr_db_spr::spr_db_spr() : load_count() {
     id = -1;
-    name_hash = hash_murmurhash_empty;
 }
 
 spr_db_spr::~spr_db_spr() {
@@ -51,8 +50,6 @@ spr_db_spr_set_file::~spr_db_spr_set_file() {
 
 spr_db_spr_set::spr_db_spr_set() {
     id = -1;
-    name_hash = hash_murmurhash_empty;
-    file_name_hash = hash_murmurhash_empty;
     index = -1;
 }
 
@@ -259,9 +256,7 @@ void sprite_database::add(sprite_database_file* spr_db_file) {
         spr_db_spr_set& spr_set = spr_sets.back();
         spr_set.id = i.id;
         spr_set.name.assign(i.name);
-        spr_set.name_hash = hash_string_murmurhash(spr_set.name);
         spr_set.file_name.assign(i.file_name);
-        spr_set.file_name_hash = hash_string_murmurhash(spr_set.file_name);
         spr_set.index = (uint32_t)(sprite_sets_count + i.index);
 
         spr_set_ids.push_back(spr_set.id, &spr_set);
@@ -277,7 +272,6 @@ void sprite_database::add(sprite_database_file* spr_db_file) {
             spr_db_spr& spr = sprs.back();
             spr.id = j.id;
             spr.name.assign(j.name);
-            spr.name_hash = hash_string_murmurhash(spr.name);
             //spr.info = { j.index, (uint16_t)((j.texture ? 0x1000 : 0x0000) | spr_set.index) };
             spr.info = { j.index, (uint16_t)((j.texture ? 0x4000 : 0x0000) | spr_set.index) };
             spr.load_count = 1;
@@ -334,6 +328,10 @@ void sprite_database::parse(const spr_db_spr_set_file* set_file,
 
     uint16_t set_index = (uint16_t)elem->second->index;
 
+    spr_db_spr_set* spr_set = elem->second;
+    spr_set->name.assign(set_file->name);
+    spr_set->file_name.assign(set_file->file_name);
+
     spr_set_names.push_back(set_file->name, elem->second);
 
     sprite_ids.reserve(set_file->sprite.size());
@@ -360,7 +358,6 @@ void sprite_database::parse(const spr_db_spr_set_file* set_file,
 
         spr->id = id;
         spr->name.assign(i.name);
-        spr->name_hash = hash_string_murmurhash(spr->name);
         //spr->info = { i.index, (uint16_t)((i.texture ? 0x1000 : 0x0000) | set_index) };
         spr->info = { i.index, (uint16_t)((i.texture ? 0x4000 : 0x0000) | set_index) };
         spr->load_count++;

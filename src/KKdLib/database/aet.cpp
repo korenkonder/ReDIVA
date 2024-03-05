@@ -34,7 +34,6 @@ aet_db_aet_file::~aet_db_aet_file() {
 
 aet_db_aet::aet_db_aet() : load_count() {
     id = -1;
-    name_hash = hash_murmurhash_empty;
 }
 
 aet_db_aet::~aet_db_aet() {
@@ -53,8 +52,6 @@ aet_db_aet_set_file::~aet_db_aet_set_file() {
 
 aet_db_aet_set::aet_db_aet_set() {
     id = -1;
-    name_hash = hash_murmurhash_empty;
-    file_name_hash = hash_murmurhash_empty;
     index = -1;
     sprite_set_id = -1;
 }
@@ -262,9 +259,7 @@ void aet_database::add(aet_database_file* aet_db_file) {
         aet_db_aet_set& aet_set = aet_sets.back();
         aet_set.id = i.id;
         aet_set.name.assign(i.name);
-        aet_set.name_hash = hash_string_murmurhash(aet_set.name);
         aet_set.file_name.assign(i.file_name);
-        aet_set.file_name_hash = hash_string_murmurhash(aet_set.file_name);
         aet_set.index = (uint32_t)(aet_sets_count + i.index);
         aet_set.sprite_set_id = i.sprite_set_id;
 
@@ -281,7 +276,6 @@ void aet_database::add(aet_database_file* aet_db_file) {
             aet_db_aet& aet = aets.back();
             aet.id = j.id;
             aet.name.assign(j.name);
-            aet.name_hash = hash_string_murmurhash(aet.name);
             aet.info = { j.index, (uint16_t)aet_set.index };
             aet.load_count = 1;
 
@@ -361,7 +355,6 @@ void aet_database::parse(const aet_db_aet_set_file* set_file,
 
         aet->id = id;
         aet->name.assign(i.name);
-        aet->name_hash = hash_string_murmurhash(aet->name);
         aet->info = { i.index, set_index };
         aet->load_count++;
 

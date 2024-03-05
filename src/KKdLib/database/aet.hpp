@@ -70,7 +70,6 @@ struct aet_db_aet_file {
 struct aet_db_aet {
     uint32_t id;
     std::string name;
-    uint32_t name_hash;
     aet_info info;
     int32_t load_count;
 
@@ -93,9 +92,7 @@ struct aet_db_aet_set_file {
 struct aet_db_aet_set {
     uint32_t id;
     std::string name;
-    uint32_t name_hash;
     std::string file_name;
-    uint32_t file_name_hash;
     uint32_t index;
     uint32_t sprite_set_id;
 
