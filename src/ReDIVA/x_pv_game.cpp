@@ -2357,7 +2357,6 @@ void x_pv_game_title::ctrl() {
 }
 
 void x_pv_game_title::ctrl_txt_data() {
-
     const char* comps[4] = {
         "p_txt01_c",
         "p_txt02_c",
@@ -2395,6 +2394,28 @@ void x_pv_game_title::disp() {
     }
 }
 
+bool x_pv_game_title::get_id(int8_t cloud_index, uint32_t& aet_id) {
+    switch (cloud_index) {
+    case 1:
+    default:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT01_MAIN");
+        break;
+    case 2:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT02_MAIN");
+        break;
+    case 3:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT03_MAIN");
+        break;
+    case 4:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT04_MAIN");
+        break;
+    case 5:
+        aet_id = hash_utf8_murmurhash("AET_PV_TIT05_MAIN");
+        break;
+    }
+    return true;
+}
+
 bool x_pv_game_title::get_set_ids(int8_t cloud_index, uint32_t& aet_set_id, uint32_t& spr_set_id) {
     switch (cloud_index) {
     case 1:
@@ -2419,7 +2440,7 @@ bool x_pv_game_title::get_set_ids(int8_t cloud_index, uint32_t& aet_set_id, uint
         spr_set_id = hash_utf8_murmurhash("SPR_PV_TIT05");
         break;
     }
-    return 1;
+    return true;
 }
 
 void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) {
@@ -2478,25 +2499,7 @@ void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) 
     }
 
     get_set_ids(cloud_index, aet_set_id, spr_set_id);
-
-    switch (cloud_index) {
-    case 1:
-    default:
-        aet_id = hash_utf8_murmurhash("AET_PV_TIT01_MAIN");
-        break;
-    case 2:
-        aet_id = hash_utf8_murmurhash("AET_PV_TIT02_MAIN");
-        break;
-    case 3:
-        aet_id = hash_utf8_murmurhash("AET_PV_TIT03_MAIN");
-        break;
-    case 4:
-        aet_id = hash_utf8_murmurhash("AET_PV_TIT04_MAIN");
-        break;
-    case 5:
-        aet_id = hash_utf8_murmurhash("AET_PV_TIT05_MAIN");
-        break;
-    }
+    get_id(cloud_index, aet_id);
 
     tit_layer.frame_rate_control = frame_rate_control;
     aet_manager_set_obj_frame_rate_control(tit_layer.id, frame_rate_control);
