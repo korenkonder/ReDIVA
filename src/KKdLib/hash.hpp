@@ -105,8 +105,12 @@ struct string_hash {
 
     }
 
-    inline const char* c_str() {
+    inline const char* c_str() const {
         return str.c_str();
+    }
+    
+    inline size_t size() const {
+        return str.size();
     }
 
     inline void append(const char* str) {
@@ -176,3 +180,27 @@ struct string_hash {
         hash_murmurhash = hash_murmurhash_empty;
     }
 };
+
+inline bool operator >(const string_hash& left, const string_hash& right) {
+    return left.str.compare(right.str) > 0;
+}
+
+inline bool operator <(const string_hash& left, const string_hash& right) {
+    return left.str.compare(right.str) < 0;
+}
+
+inline bool operator >=(const string_hash& left, const string_hash& right) {
+    return left.str.compare(right.str) >= 0;
+}
+
+inline bool operator <=(const string_hash& left, const string_hash& right) {
+    return left.str.compare(right.str) <= 0;
+}
+
+inline bool operator ==(const string_hash& left, const string_hash& right) {
+    return !left.str.compare(right.str);
+}
+
+inline bool operator !=(const string_hash& left, const string_hash& right) {
+    return !!left.str.compare(right.str);
+}
