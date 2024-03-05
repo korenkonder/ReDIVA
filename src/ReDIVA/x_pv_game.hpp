@@ -957,6 +957,9 @@ extern bool x_pv_game_init();
 extern x_pv_game* x_pv_game_get();
 extern bool x_pv_game_free();
 
+extern void x_pv_game_data_init();
+extern void x_pv_game_data_free();
+
 #if BAKE_X_PACK
 extern bool x_pv_game_baker_init();
 extern XPVGameBaker* x_pv_game_baker_get();

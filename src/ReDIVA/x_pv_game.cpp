@@ -21,9 +21,11 @@
 #include "../CRE/sound.hpp"
 #include "../CRE/sprite.hpp"
 #include "../KKdLib/io/file_stream.hpp"
+#include "../KKdLib/io/json.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/interpolation.hpp"
+#include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include <meshoptimizer/meshoptimizer.h>
@@ -237,6 +239,10 @@ static int32_t aet_index_table[] = { 0, 1, 2, 6, 5 };
 dof_cam dof_cam_data;
 #endif
 x_pv_game* x_pv_game_ptr;
+
+prj::vector_pair<int32_t, prj::vector_pair<int32_t, std::string>> x_pv_game_str_array;
+int32_t x_pv_game_str_array_lang_sel;
+
 #if BAKE_X_PACK
 XPVGameBaker* x_pv_game_baker_ptr;
 #else
@@ -2264,6 +2270,9 @@ void x_pv_aet_disp_string::ctrl(const char* name, aet_obj_data* aet, const aet_d
 }
 
 static const char* sub_8133DDF8(int32_t id) {
+    auto elem = x_pv_game_str_array[x_pv_game_str_array_lang_sel].second.find(id);
+    if (elem != x_pv_game_str_array[x_pv_game_str_array_lang_sel].second.end())
+        return elem->second.c_str();
     return 0;
 }
 
@@ -2418,6 +2427,7 @@ void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) 
         return;
 
     str_array.pv_id = pv_id;
+    str_array.song_name = sub_8133DDF8(20000000 + 1000 * pv_id);
 
     int32_t cloud_index = 1;
     switch (pv_id) {
@@ -8967,6 +8977,48 @@ bool x_pv_game_free() {
 
     }
     return true;
+}
+
+void x_pv_game_str_array_parse(prj::vector_pair<int32_t, std::string>& str_array, const char* path) {
+    msgpack msg;
+
+    file_stream s;
+    s.open(path, "rb");
+    io_json_read(s, &msg);
+    s.close();
+
+    if (msg.type != MSGPACK_MAP)
+        return;
+
+    msgpack* curves = msg.read_array("STRA");
+    if (curves) {
+        msgpack_array* ptr = curves->data.arr;
+        str_array.reserve(ptr->size());
+        for (msgpack& i : *ptr) {
+            msgpack& string = i;
+
+            int32_t id = string.read_int32_t("ID");
+            if (id <= 0)
+                continue;
+
+            str_array.push_back(id, string.read_string("Str"));
+        }
+    }
+
+    str_array.sort();
+}
+
+void x_pv_game_data_init() {
+    x_pv_game_str_array.push_back(0, {});
+    x_pv_game_str_array.push_back(1, {});
+    x_pv_game_str_array_parse(x_pv_game_str_array[0].second, "patch\\str_array_jp.json");
+    x_pv_game_str_array_parse(x_pv_game_str_array[1].second, "patch\\str_array_en.json");
+    x_pv_game_str_array_lang_sel = 0;
+}
+
+void x_pv_game_data_free() {
+    x_pv_game_str_array.clear();
+    x_pv_game_str_array.shrink_to_fit();
 }
 
 #if BAKE_X_PACK

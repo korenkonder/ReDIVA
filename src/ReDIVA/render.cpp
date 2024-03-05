@@ -619,6 +619,7 @@ static render_context* render_context_load() {
     motion_test_init();
     equip_test_init();
     task_data_test_glitter_particle_init();
+    x_pv_game_data_init();
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
 
@@ -1259,6 +1260,7 @@ static void render_context_dispose(render_context* rctx) {
 
     light_param_data_storage::unload();
 
+    x_pv_game_data_free();
     task_data_test_glitter_particle_free();
     equip_test_free();
     motion_test_free();
