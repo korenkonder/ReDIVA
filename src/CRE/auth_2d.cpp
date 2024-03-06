@@ -224,49 +224,6 @@ AetArgs::~AetArgs() {
 
 }
 
-AetComp::AetComp() {
-
-}
-
-AetComp::~AetComp() {
-
-}
-
-void AetComp::Add(const char* name, aet_layout_data& data) {
-    this->data.insert({ name, data });
-}
-
-void AetComp::Clear() {
-    data.clear();
-}
-
-aet_layout_data* AetComp::Find(const char* name) {
-    auto elem = data.find(name);
-    if (elem != data.end())
-        return &elem->second;
-    return 0;
-}
-
-void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
-    AetComp* comp, const char** names, const int32_t* spr_ids, spr::SprPrio prio,
-    vec2* pos, bool all_digits, const sprite_database* spr_db) {
-    if (!comp || !names || !spr_ids)
-        return;
-
-    for (int32_t i = 0; i < max_digits; i++) {
-        int32_t digit = value % 10;
-        value /= 10;
-
-        aet_layout_data* layout = comp->Find(names[i]);
-        if (layout)
-            aet_layout_data::put_sprite(spr_ids[digit],
-                spr::SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
-
-        if (!all_digits && !value)
-            break;
-    }
-}
-
 aet_layout_data::aet_layout_data() : width(), height() {
     mat = mat4_identity;
     opacity = 1.0f;
@@ -275,7 +232,7 @@ aet_layout_data::aet_layout_data() : width(), height() {
 }
 
 void aet_layout_data::put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio prio,
-    vec2* pos, aet_layout_data* layout, const sprite_database* spr_db) {
+    const vec2* pos, const aet_layout_data* layout, const sprite_database* spr_db) {
     if (!layout)
         return;
 
@@ -284,14 +241,12 @@ void aet_layout_data::put_sprite(int32_t spr_id, spr::SprAttr attr, spr::SprPrio
     args.id.id = spr_id;
     args.attr = attr;
     args.prio = prio;
-    if (pos) {
-        args.trans.x = args.trans.x + pos->x;
-        args.trans.y = args.trans.y + pos->y;
-    }
+    if (pos)
+        *(vec2*)&args.trans.x += *pos;
     spr::put_sprite(args, spr_db);
 }
 
-void aet_layout_data::set_args(aet_layout_data* layout, spr::SprArgs* args) {
+void aet_layout_data::set_args(const aet_layout_data* layout, spr::SprArgs* args) {
     if (!layout || !args)
         return;
 
@@ -300,6 +255,49 @@ void aet_layout_data::set_args(aet_layout_data* layout, spr::SprArgs* args) {
     args->scale.x = layout->mat.row0.x;
     args->scale.y = layout->mat.row1.y;
     args->scale.z = layout->mat.row2.z;
+}
+
+AetComp::AetComp() {
+
+}
+
+AetComp::~AetComp() {
+
+}
+
+void AetComp::Add(const char* name, const aet_layout_data& data) {
+    this->data.insert({ name, data });
+}
+
+void AetComp::Clear() {
+    data.clear();
+}
+
+const aet_layout_data* AetComp::Find(const char* name) {
+    auto elem = data.find(name);
+    if (elem != data.end())
+        return &elem->second;
+    return 0;
+}
+
+void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
+    AetComp* comp, const char** names, const int32_t* spr_ids, spr::SprPrio prio,
+    const vec2* pos, bool all_digits, const sprite_database* spr_db) {
+    if (!comp || !names || !spr_ids)
+        return;
+
+    for (int32_t i = 0; i < max_digits; i++) {
+        int32_t digit = value % 10;
+        value /= 10;
+
+        const aet_layout_data* layout = comp->Find(names[i]);
+        if (layout)
+            aet_layout_data::put_sprite(spr_ids[digit],
+                spr::SPR_ATTR_CTR_CC, prio, pos, layout, spr_db);
+
+        if (!all_digits && !value)
+            break;
+    }
 }
 
 void aet_manager_init() {
