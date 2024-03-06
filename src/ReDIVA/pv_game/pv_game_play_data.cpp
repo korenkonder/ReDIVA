@@ -581,7 +581,7 @@ void pv_game_play_data::disp_chance_point() {
     vec2 pos;
     target_pos_scale_offset_apply(&chance_points_pos, &pos);
 
-    aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
+    const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
     if (layout)
         aet_layout_data::put_sprite(392, spr::SPR_ATTR_CTR_CC, spr::SPR_PRIO_16, &pos, layout, aft_spr_db);
 
@@ -694,7 +694,7 @@ void pv_game_play_data::disp_max_slide_point() {
     vec2 pos;
     target_pos_scale_offset_apply(&this->max_slide_points_pos, &pos);
 
-    aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
+    const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
     if (layout) {
         vec3 position;
         position.x = pos.x + layout->position.x;
@@ -707,7 +707,7 @@ void pv_game_play_data::disp_max_slide_point() {
     int32_t max_slide_points = this->max_slide_points;
     for (int32_t i = 0; i < 7; i++) {
         max_slide_points /= 10;
-        aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[i]);
+        const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[i]);
         if (layout) {
             vec3 position;
             position.x = pos.x + layout->position.x;
@@ -760,7 +760,7 @@ void pv_game_play_data::disp_slide_point() {
 
     vec2 pos;
     target_pos_scale_offset_apply(&slide_points_pos, &pos);
-    aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
+    const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v5 / 2])[digits]);
     if (layout)
         aet_layout_data::put_sprite(34086, spr::SPR_ATTR_CTR_CC, spr::SPR_PRIO_16, &pos, layout, aft_spr_db);
     AetComp::put_number_sprite(slide_points, 7, &comp, &spr_p_chance_point_num[v5 / 2],
@@ -805,12 +805,12 @@ void pv_game_play_data::disp_song_energy() {
     AetComp::put_number_sprite(song_energy % 100, 2, &comp,
         &spr_p_energy_num[1], spr, spr::SPR_PRIO_16, &pos, 1, aft_spr_db);
 
-    aet_layout_data* spr_p_energy_num_3_layout = comp.Find(spr_p_energy_num[3]);
+    const aet_layout_data* spr_p_energy_num_3_layout = comp.Find(spr_p_energy_num[3]);
     if (spr_p_energy_num_3_layout)
         aet_layout_data::put_sprite(spr[11], spr::SPR_ATTR_CTR_CC,
             spr::SPR_PRIO_16, &pos, spr_p_energy_num_3_layout, aft_spr_db);
 
-    aet_layout_data* spr_p_energy_num_0_layout = comp.Find(spr_p_energy_num[0]);
+    const aet_layout_data* spr_p_energy_num_0_layout = comp.Find(spr_p_energy_num[0]);
     if (spr_p_energy_num_0_layout)
         aet_layout_data::put_sprite(spr[10], spr::SPR_ATTR_CTR_CC,
             spr::SPR_PRIO_16, &pos, spr_p_energy_num_0_layout, aft_spr_db);
@@ -1416,7 +1416,7 @@ void pv_game_play_data::init_aet_slide_max(int32_t slide_point, float_t pos_x, f
     vec2 pos ;
     target_pos_scale_offset_apply(&max_slide_points_pos, &pos);
 
-    aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v11 / 2])[v8]);
+    const aet_layout_data* layout = comp.Find((&spr_p_chance_point_num[v11 / 2])[v8]);
     if (layout) {
         vec2 position = pos + *(vec2*)&layout->position;
         aet_ids[PV_GAME_AET_MAX_SLIDE_NUM_PLUS] = init_aet_gam_cmn(PV_GAME_AET_MAX_SLIDE_NUM_PLUS,
@@ -1427,7 +1427,7 @@ void pv_game_play_data::init_aet_slide_max(int32_t slide_point, float_t pos_x, f
         int32_t digit = slide_point % 10;
         slide_point /= 10;
 
-        aet_layout_data* layout = comp.Find(spr_p_chance_point_num[i]);
+        const aet_layout_data* layout = comp.Find(spr_p_chance_point_num[i]);
         if (layout) {
             vec2 position = pos + *(vec2*)&layout->position;
             aet_ids[PV_GAME_AET_MAX_SLIDE_NUM + i] = init_aet_gam_cmn((pv_game_aet)(PV_GAME_AET_MAX_SLIDE_NUM + i),
@@ -2035,13 +2035,13 @@ void pv_game_play_data::sub_140135ED0() {
     aet_manager_init_aet_layout(&comp, args, aft_aet_db);
 
     for (int32_t i = 0; i < 2; i++) {
-        aet_layout_data* p_song_layout = comp.Find(spr_p_song_lt[i]);
+        const aet_layout_data* p_song_layout = comp.Find(spr_p_song_lt[i]);
         if (p_song_layout)
             song_txt[i] = *p_song_layout;
     }
 
-    aet_layout_data* p_chance_rslt_num_0_layout = comp.Find(spr_p_chance_rslt_num[0]);
-    aet_layout_data* p_chance_rslt_num_1_layout = comp.Find(spr_p_chance_rslt_num[1]);
+    const aet_layout_data* p_chance_rslt_num_0_layout = comp.Find(spr_p_chance_rslt_num[0]);
+    const aet_layout_data* p_chance_rslt_num_1_layout = comp.Find(spr_p_chance_rslt_num[1]);
     if (p_chance_rslt_num_0_layout && p_chance_rslt_num_1_layout)
         field_350 = p_chance_rslt_num_0_layout->position.x - p_chance_rslt_num_1_layout->position.x;
 
