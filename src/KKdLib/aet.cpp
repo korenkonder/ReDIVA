@@ -681,10 +681,9 @@ static void aet_set_classic_write_inner(aet_set* as, stream& s) {
         const aet_scene* scene = scenes[i];
 
         const aet_video* video = scene->video;
-        for (uint32_t j = scene->video_count; j; j--, video++) {
+        for (uint32_t j = scene->video_count; j; j--, video++)
             for (uint32_t k = 0; k < video->sources_count; k++)
                 aet_strings_push_back_check(s, strings, video->sources[k].sprite_name);
-        }
 
         const aet_comp* comp = scene->comp;
         for (uint32_t j = scene->comp_count; j; j--, comp++) {
