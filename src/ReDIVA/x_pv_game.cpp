@@ -4294,6 +4294,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
         wait_load |= camera.state && camera.state != 20;
         wait_load |= effect.state && effect.state != 20;
         wait_load |= chara_effect.state && chara_effect.state != 10 && chara_effect.state != 30;
+        wait_load |= title.state && title.state != 3 && title.state != 4;
 
         if (wait_load)
             break;
