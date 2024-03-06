@@ -610,7 +610,7 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
         uint16_t sprite_set_index = (uint16_t)(i.index & 0x0FFF);
 
         for (spr_db_spr_file& j : i.sprite) {
-            if (j.texture)
+            if (!j.texture)
                 continue;
 
             s.write_uint32_t(j.id);
@@ -620,7 +620,7 @@ static void sprite_database_file_classic_write_inner(sprite_database_file* spr_d
         }
 
         for (spr_db_spr_file& j : i.sprite) {
-            if (!j.texture)
+            if (j.texture)
                 continue;
 
             s.write_uint32_t(j.id);
