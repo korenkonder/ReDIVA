@@ -2064,8 +2064,6 @@ bool SprSet::LoadTexture() {
     for (uint32_t& i : ids)
         i = (set_index << 16) | index++;
     texture_txp_set_load(spr_set->txp, &textures, ids.data());
-    delete spr_set->txp;
-    spr_set->txp = 0;
     return !!textures;
 }
 
@@ -2080,8 +2078,6 @@ bool SprSet::LoadTextureModern(const void* data, size_t size) {
     for (uint32_t& i : ids)
         i = (set_index << 16) | index++;
     texture_txp_set_load(spr_set->txp, &textures, ids.data());
-    delete spr_set->txp;
-    spr_set->txp = 0;
     return !!textures;
 }
 
@@ -2160,6 +2156,11 @@ void SprSet::UnloadModern(sprite_database* spr_db) {
 }
 
 bool SprSet::UnloadTexture() {
+    if (spr_set->txp) {
+        delete spr_set->txp;
+        spr_set->txp = 0;
+    }
+
     if (textures) {
         texture_array_free(textures);
         textures = 0;
