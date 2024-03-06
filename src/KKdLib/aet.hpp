@@ -202,15 +202,15 @@ union aet_item {
 
     }
 
-    inline aet_item(aet_video* video) {
+    inline aet_item(const aet_video* video) {
         this->video = video;
     }
 
-    inline aet_item(aet_audio* audio) {
+    inline aet_item(const aet_audio* audio) {
         this->audio = audio;
     }
 
-    inline aet_item(aet_comp* comp) {
+    inline aet_item(const aet_comp* comp) {
         this->comp = comp;
     }
 };

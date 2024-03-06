@@ -95,7 +95,6 @@ struct spr_set {
     bool is_x;
 
     uint32_t flag;
-    uint32_t texofs;
     int32_t num_of_texture;
     int32_t num_of_sprite;
     spr::SprInfo* sprinfo;

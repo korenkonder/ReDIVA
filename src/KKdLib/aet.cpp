@@ -3,7 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
-#include <map>
+#include <unordered_map>
 #include "aet.hpp"
 #include "f2/struct.hpp"
 #include "io/path.hpp"
@@ -22,37 +22,79 @@ struct aet_scene_header {
     int64_t audio_offset;
 };
 
+static void aet_move_data_audio(aet_audio* audio_dst, const aet_audio* audio_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static aet_camera* aet_move_data_camera(const aet_camera* cam_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static void aet_move_data_comp(aet_comp* comp_dst, const aet_comp* comp_src,
+    prj::shared_ptr<prj::stack_allocator> alloc, std::unordered_map<void*, const aet_layer*>& layers);
+static void aet_move_data_fcurve(aet_fcurve* fcurve_dst, const aet_fcurve* fcurve_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static void aet_move_data_layer(aet_layer* layer_dst, const aet_layer* layer_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static aet_layer_audio* aet_move_data_layer_audio(const aet_layer_audio* layer_audio_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static aet_layer_video* aet_move_data_layer_video(const aet_layer_video* layer_video_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static aet_layer_video_3d* aet_move_data_layer_video_3d(const aet_layer_video_3d* layer_video_3d_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static void aet_move_data_marker(aet_marker* marker_dst, const aet_marker* marker_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static void aet_move_data_scene(aet_scene* scene_dst, const aet_scene* scene_src,
+    prj::shared_ptr<prj::stack_allocator> alloc,
+    std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items);
+static void aet_move_data_video(aet_video* video_dst, const aet_video* video_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+static void aet_move_data_video_src(aet_video_src* video_dst, const aet_video_src* video_src,
+    prj::shared_ptr<prj::stack_allocator> alloc);
+
 static void aet_set_classic_read_inner(aet_set* as, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void aet_set_classic_write_inner(aet_set* as, stream& s);
 static void aet_set_modern_read_inner(aet_set* as, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s);
 static void aet_set_modern_write_inner(aet_set* as, stream& s);
 
 static void aet_classic_read_audio(aet_audio* audio,
-    prj::shared_ptr<prj::stack_allocator> alloc, stream& s);
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
+    std::unordered_map<int64_t, aet_item>& items);
+static void aet_classic_write_audio(const aet_audio* audio, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
 static aet_camera* aet_classic_read_camera(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset);
+static void aet_classic_write_camera(const aet_camera* cam, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
 static void aet_classic_read_comp(aet_comp* comp,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
-    std::map<int64_t, aet_layer*>& layers,
-    std::map<int64_t, aet_item>& items);
+    std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items);
 static void aet_classic_read_fcurve(aet_fcurve* fcurve,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s);
+static void aet_classic_write_fcurve(const aet_fcurve* fcurve, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
+static void aet_classic_write_fcurve_header(const aet_fcurve* fcurve, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets, int64_t null_data_pos, uint32_t& null_data_count);
 static void aet_classic_read_layer(aet_layer* layer,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s);
+static void aet_classic_write_layer(const aet_layer* layer, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
 static aet_layer_audio* aet_classic_read_layer_audio(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset);
+static void aet_classic_write_layer_audio(const aet_layer_audio* layer_audio, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
 static aet_layer_video* aet_classic_read_layer_video(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset);
+static void aet_classic_write_layer_video(const aet_layer_video* layer_video, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
 static aet_layer_video_3d* aet_classic_read_layer_video_3d(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset);
-static void aet_classic_read_marker(aet_marker* marker,
-    prj::shared_ptr<prj::stack_allocator> alloc, stream& s);
+static void aet_classic_write_layer_video_3d(const aet_layer_video_3d* layer_video_3d, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets);
 static aet_scene* aet_classic_read_scene(prj::shared_ptr<prj::stack_allocator> alloc,
-    stream& s, int64_t offset, std::map<int64_t, aet_layer*>& layers,
-    std::map<int64_t, aet_item>& items);
+    stream& s, int64_t offset, std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items);
 static void aet_classic_read_video(aet_video* video,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
-    std::map<int64_t, aet_item>& items);
+    std::unordered_map<int64_t, aet_item>& items);
 
 static void aet_modern_read_audio(aet_audio* audio,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
@@ -63,7 +105,7 @@ static aet_camera* aet_modern_read_camera(prj::shared_ptr<prj::stack_allocator> 
 static void aet_modern_read_comp(aet_comp* comp,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     uint32_t header_length, bool is_x,
-    std::map<int64_t, aet_layer*>& layers, std::map<int64_t, aet_item>& items);
+    std::unordered_map<int64_t, const aet_layer*>& layers, std::unordered_map<int64_t, aet_item>& items);
 static void aet_modern_read_fcurve(aet_fcurve* fcurve,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     uint32_t header_length, bool is_x);
@@ -85,20 +127,26 @@ static void aet_modern_read_marker(aet_marker* marker,
 static aet_scene* aet_modern_read_scene(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset,
     uint32_t header_length, bool is_x,
-    std::map<int64_t, aet_layer*>& layers, std::map<int64_t, aet_item>& items);
+    std::unordered_map<int64_t, const aet_layer*>& layers, std::unordered_map<int64_t, aet_item>& items);
 static void aet_modern_read_video(aet_video* video,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     uint32_t header_length, bool is_x,
-    std::map<int64_t, aet_item>& items);
+    std::unordered_map<int64_t, aet_item>& items);
 
 static void aet_comp_set_item_parent(const aet_comp* comp,
-    std::map<int64_t, aet_layer*>& layers, std::map<int64_t, aet_item>& items);
+    std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items);
 
 static const char* aet_move_data_string(const char* str,
     prj::shared_ptr<prj::stack_allocator>& alloc);
 
 static const char* aet_read_utf8_string_null_terminated_offset(
     prj::shared_ptr<prj::stack_allocator>& alloc, stream& s, int64_t offset);
+
+static int64_t aet_strings_get_string_offset(
+    const std::unordered_map<std::string, int64_t>& vec, const std::string& str);
+static void aet_strings_push_back_check(stream& s,
+    std::unordered_map<std::string, int64_t>& vec, const std::string& str);
 
 aet_fcurve::aet_fcurve() : keys_count(), keys() {
 
@@ -204,7 +252,40 @@ aet_set::aet_set() : ready(), modern(), big_endian(), is_x(), scenes_count(), sc
 }
 
 void aet_set::move_data(aet_set* set_src, prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!set_src->ready) {
+        ready = false;
+        modern = false;
+        big_endian = false;
+        is_x = false;
+        return;
+    }
 
+    ready = true;
+    modern = set_src->modern;
+    big_endian = set_src->big_endian;
+    is_x = set_src->is_x;
+
+    std::unordered_map<int64_t, aet_item> items;
+    std::unordered_map<int64_t, const aet_layer*> layers;
+
+    uint32_t scenes_count = set_src->scenes_count;
+    const aet_scene** scenes_src = set_src->scenes;
+    aet_scene** scenes_dst = alloc->allocate<aet_scene*>(scenes_count);
+
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        scenes_dst[i] = alloc->allocate<aet_scene>();
+        aet_move_data_scene(scenes_dst[i], scenes_src[i], alloc, layers, items);
+    }
+
+    this->scenes = (const aet_scene**)scenes_dst;
+    this->scenes_count = scenes_count;
+
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        aet_scene* scene = scenes_dst[i];
+        const aet_comp* comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++)
+            aet_comp_set_item_parent(comp, layers, items);
+    }
 }
 
 void aet_set::pack_file(void** data, size_t* size) {
@@ -233,6 +314,219 @@ void aet_set::unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const voi
         aet_set_modern_read_inner(this, alloc, s);
 }
 
+static void aet_move_data_audio(aet_audio* audio_dst, const aet_audio* audio_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    audio_dst->sound_index = audio_src->sound_index;
+}
+
+static aet_camera* aet_move_data_camera(const aet_camera* cam_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!cam_src)
+        return 0;
+
+    aet_camera* cam_dst = alloc->allocate<aet_camera>();
+    aet_move_data_fcurve(&cam_dst->eye_x, &cam_src->eye_x, alloc);
+    aet_move_data_fcurve(&cam_dst->eye_y, &cam_src->eye_y, alloc);
+    aet_move_data_fcurve(&cam_dst->eye_z, &cam_src->eye_z, alloc);
+    aet_move_data_fcurve(&cam_dst->pos_x, &cam_src->pos_x, alloc);
+    aet_move_data_fcurve(&cam_dst->pos_y, &cam_src->pos_y, alloc);
+    aet_move_data_fcurve(&cam_dst->pos_z, &cam_src->pos_z, alloc);
+    aet_move_data_fcurve(&cam_dst->dir_x, &cam_src->dir_x, alloc);
+    aet_move_data_fcurve(&cam_dst->dir_y, &cam_src->dir_y, alloc);
+    aet_move_data_fcurve(&cam_dst->dir_z, &cam_src->dir_z, alloc);
+    aet_move_data_fcurve(&cam_dst->rot_x, &cam_src->rot_x, alloc);
+    aet_move_data_fcurve(&cam_dst->rot_y, &cam_src->rot_y, alloc);
+    aet_move_data_fcurve(&cam_dst->rot_z, &cam_src->rot_z, alloc);
+    aet_move_data_fcurve(&cam_dst->zoom, &cam_src->zoom, alloc);
+    return cam_dst;
+}
+
+static void aet_move_data_comp(aet_comp* comp_dst, const aet_comp* comp_src,
+    prj::shared_ptr<prj::stack_allocator> alloc, std::unordered_map<int64_t, const aet_layer*>& layers) {
+    uint32_t layers_count = comp_src->layers_count;
+    const aet_layer* layers_src = comp_src->layers;
+    aet_layer* layers_dst = alloc->allocate<aet_layer>(layers_count);
+
+    for (uint32_t i = 0; i < layers_count; i++) {
+        aet_move_data_layer(&layers_dst[i], &layers_src[i], alloc);
+        layers[(int64_t)&layers_src[i]] = &layers_dst[i];
+    }
+
+    comp_dst->layers = layers_dst;
+    comp_dst->layers_count = layers_count;
+}
+
+static void aet_move_data_fcurve(aet_fcurve* fcurve_dst, const aet_fcurve* fcurve_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    fcurve_dst->keys_count = fcurve_src->keys_count;
+
+    if (fcurve_src->keys_count > 1)
+        fcurve_dst->keys = alloc->allocate<float_t>(fcurve_src->keys, fcurve_src->keys_count * 3ULL);
+    else if (fcurve_src->keys_count)
+        fcurve_dst->keys = alloc->allocate<float_t>(fcurve_src->keys);
+    else
+        fcurve_dst->keys = 0;
+}
+
+static void aet_move_data_layer(aet_layer* layer_dst, const aet_layer* layer_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    layer_dst->name = aet_move_data_string(layer_src->name, alloc);
+    layer_dst->start_time = layer_src->start_time;
+    layer_dst->end_time = layer_src->end_time;
+    layer_dst->offset_time = layer_src->offset_time;
+    layer_dst->time_scale = layer_src->time_scale;
+    layer_dst->flags = layer_src->flags;
+    layer_dst->quality = layer_src->quality;
+    layer_dst->item_type = layer_src->item_type;
+    layer_dst->item.none = layer_src->item.none;
+    layer_dst->parent = layer_src->parent;
+
+    uint32_t markers_count = layer_src->markers_count;
+    const aet_marker* markers_src = layer_src->markers;
+    aet_marker* markers_dst = alloc->allocate<aet_marker>(markers_count);
+
+    for (uint32_t i = 0; i < markers_count; i++)
+        aet_move_data_marker(&markers_dst[i], &markers_src[i], alloc);
+
+    layer_dst->markers = markers_dst;
+    layer_dst->markers_count = markers_count;
+
+    layer_dst->video = aet_move_data_layer_video(layer_src->video, alloc);
+    layer_dst->audio = aet_move_data_layer_audio(layer_src->audio, alloc);
+}
+
+static aet_layer_audio* aet_move_data_layer_audio(const aet_layer_audio* layer_audio_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!layer_audio_src)
+        return 0;
+
+    aet_layer_audio* layer_audio_dst = alloc->allocate<aet_layer_audio>();
+    aet_move_data_fcurve(&layer_audio_dst->volume_l, &layer_audio_src->volume_l, alloc);
+    aet_move_data_fcurve(&layer_audio_dst->volume_r, &layer_audio_src->volume_r, alloc);
+    aet_move_data_fcurve(&layer_audio_dst->pan_l, &layer_audio_src->pan_l, alloc);
+    aet_move_data_fcurve(&layer_audio_dst->pan_r, &layer_audio_src->pan_r, alloc);
+    return layer_audio_dst;
+}
+
+static aet_layer_video* aet_move_data_layer_video(const aet_layer_video* layer_video_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!layer_video_src)
+        return 0;
+
+    aet_layer_video* layer_video_dst = alloc->allocate<aet_layer_video>();
+    layer_video_dst->transfer_mode = layer_video_src->transfer_mode;
+    aet_move_data_fcurve(&layer_video_dst->anchor_x, &layer_video_src->anchor_x, alloc);
+    aet_move_data_fcurve(&layer_video_dst->anchor_y, &layer_video_src->anchor_y, alloc);
+    aet_move_data_fcurve(&layer_video_dst->pos_x, &layer_video_src->pos_x, alloc);
+    aet_move_data_fcurve(&layer_video_dst->pos_y, &layer_video_src->pos_y, alloc);
+    aet_move_data_fcurve(&layer_video_dst->rot_z, &layer_video_src->rot_z, alloc);
+    aet_move_data_fcurve(&layer_video_dst->scale_x, &layer_video_src->scale_x, alloc);
+    aet_move_data_fcurve(&layer_video_dst->scale_y, &layer_video_src->scale_y, alloc);
+    aet_move_data_fcurve(&layer_video_dst->opacity, &layer_video_src->opacity, alloc);
+    layer_video_dst->_3d = aet_move_data_layer_video_3d(layer_video_src->_3d, alloc);
+    return layer_video_dst;
+}
+
+static aet_layer_video_3d* aet_move_data_layer_video_3d(const aet_layer_video_3d* layer_video_3d_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    if (!layer_video_3d_src)
+        return 0;
+
+    aet_layer_video_3d* layer_video_3d_dst = alloc->allocate<aet_layer_video_3d>();
+    aet_move_data_fcurve(&layer_video_3d_dst->anchor_z, &layer_video_3d_src->anchor_z, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->pos_z, &layer_video_3d_src->pos_z, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->dir_x, &layer_video_3d_src->dir_x, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->dir_y, &layer_video_3d_src->dir_y, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->dir_z, &layer_video_3d_src->dir_z, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->rot_x, &layer_video_3d_src->rot_x, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->rot_y, &layer_video_3d_src->rot_y, alloc);
+    aet_move_data_fcurve(&layer_video_3d_dst->scale_z, &layer_video_3d_src->scale_z, alloc);
+    return layer_video_3d_dst;
+}
+
+static void aet_move_data_marker(aet_marker* marker_dst, const aet_marker* marker_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    marker_dst->time = marker_src->time;
+    marker_dst->name = aet_move_data_string(marker_src->name, alloc);
+}
+
+static void aet_move_data_scene(aet_scene* scene_dst, const aet_scene* scene_src,
+    prj::shared_ptr<prj::stack_allocator> alloc,
+    std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items) {
+    scene_dst->name = aet_move_data_string(scene_src->name, alloc);
+    scene_dst->start_time = scene_src->start_time;
+    scene_dst->end_time = scene_src->end_time;
+    scene_dst->fps = scene_src->fps;
+    scene_dst->color[0] = scene_src->color[0];
+    scene_dst->color[1] = scene_src->color[1];
+    scene_dst->color[2] = scene_src->color[2];
+    scene_dst->width = scene_src->width;
+    scene_dst->height = scene_src->height;
+
+    scene_dst->camera = aet_move_data_camera(scene_src->camera, alloc);
+
+    uint32_t video_count = scene_src->video_count;
+    const aet_video* video_src = scene_src->video;
+    aet_video* video_dst = alloc->allocate<aet_video>(video_count);
+
+    for (uint32_t i = 0; i < video_count; i++) {
+        aet_move_data_video(&video_dst[i], &video_src[i], alloc);
+        items[(int64_t)&video_src[i]] = &video_dst[i];
+    }
+
+    scene_dst->video = video_dst;
+    scene_dst->video_count = video_count;
+
+    uint32_t audio_count = scene_src->audio_count;
+    const aet_audio* audio_src = scene_src->audio;
+    aet_audio* audio_dst = alloc->allocate<aet_audio>(audio_count);
+
+    for (uint32_t i = 0; i < audio_count; i++)
+        aet_move_data_audio(&audio_dst[i], &audio_src[i], alloc);
+
+    scene_dst->audio = audio_dst;
+    scene_dst->audio_count = audio_count;
+
+    uint32_t comp_count = scene_src->comp_count;
+    const aet_comp* comp_src = scene_src->comp;
+    aet_comp* comp_dst = alloc->allocate<aet_comp>(comp_count);
+
+    for (uint32_t i = 0; i < comp_count; i++) {
+        aet_move_data_comp(&comp_dst[i], &comp_src[i], alloc, layers);
+        items[(int64_t)&comp_src[i]] = &comp_dst[i];
+    }
+
+    scene_dst->comp = comp_dst;
+    scene_dst->comp_count = comp_count;
+}
+
+static void aet_move_data_video(aet_video* video_dst, const aet_video* video_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    video_dst->color[0] = video_src->color[0];
+    video_dst->color[1] = video_src->color[1];
+    video_dst->color[2] = video_src->color[2];
+    video_dst->width = video_src->width;
+    video_dst->height = video_src->height;
+    video_dst->fpf = video_src->fpf;
+
+    uint32_t sources_count = video_src->sources_count;
+    const aet_video_src* sources_src = video_src->sources;
+    aet_video_src* sources_dst = alloc->allocate<aet_video_src>(sources_count);
+
+    for (uint32_t i = 0; i < sources_count; i++)
+        aet_move_data_video_src(&sources_dst[i], &sources_src[i], alloc);
+
+    video_dst->sources = sources_dst;
+    video_dst->sources_count = sources_count;
+}
+
+static void aet_move_data_video_src(aet_video_src* video_dst, const aet_video_src* video_src,
+    prj::shared_ptr<prj::stack_allocator> alloc) {
+    video_dst->sprite_name = aet_move_data_string(video_src->sprite_name, alloc);
+    video_dst->sprite_index = video_src->sprite_index;
+}
+
 static void aet_set_classic_read_inner(aet_set* as, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
     uint32_t scenes_count = 0;
     while (s.read_uint32_t())
@@ -247,8 +541,8 @@ static void aet_set_classic_read_inner(aet_set* as, prj::shared_ptr<prj::stack_a
     for (uint32_t i = 0; i < scenes_count; i++)
         data[i] = s.read_uint32_t();
 
-    std::map<int64_t, aet_layer*> layers;
-    std::map<int64_t, aet_item> items;
+    std::unordered_map<int64_t, aet_item> items;
+    std::unordered_map<int64_t, const aet_layer*> layers;
 
     for (uint32_t i = 0; i < scenes_count; i++)
         scenes[i] = aet_classic_read_scene(alloc, s, data[i], layers, items);
@@ -269,7 +563,328 @@ static void aet_set_classic_read_inner(aet_set* as, prj::shared_ptr<prj::stack_a
 }
 
 static void aet_set_classic_write_inner(aet_set* as, stream& s) {
+    for (uint32_t i = align_val(as->scenes_count + 1, 8); i; i--)
+        s.write_uint32_t(0x90669066);
 
+    std::unordered_map<std::string, int64_t> strings;
+
+    std::unordered_map<const void*, int64_t> offsets;
+
+    uint32_t scenes_count = as->scenes_count;
+    const aet_scene** scenes = as->scenes;
+
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        const aet_scene* scene = scenes[i];
+
+        const aet_video* video = scene->video;
+        for (uint32_t j = scene->video_count; j; j--, video++) {
+            if (video->sources_count == 0) {
+                offsets[video->sources] = 0;
+                continue;
+            }
+
+            if (video->sources_count > 1)
+                s.align_write(0x20);
+            offsets[video->sources] = s.get_position();
+            s.write(0x08ULL * video->sources_count);
+        }
+
+        if (scene->video_count > 1)
+            s.align_write(0x20);
+        offsets[scene->video] = s.get_position();
+        video = scene->video;
+        for (uint32_t j = scene->video_count; j; j--, video++) {
+            offsets[video] = s.get_position();
+
+            s.write_uint8_t(video->color[0]);
+            s.write_uint8_t(video->color[1]);
+            s.write_uint8_t(video->color[2]);
+            s.write(0x01);
+            s.write_uint16_t(video->width);
+            s.write_uint16_t(video->height);
+            s.write_float_t(video->fpf);
+            s.write_uint32_t(video->sources_count);
+            s.write_uint32_t(video->sources ? (uint32_t)offsets[video->sources] : 0);
+        }
+
+        if (scene->comp_count > 1)
+            s.align_write(0x20);
+
+        offsets[scene->comp] = s.get_position();
+        const aet_comp* comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++) {
+            offsets[comp] = s.get_position();
+            s.write(0x08);
+        }
+
+        comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++) {
+            if (comp->layers_count < 1)
+                continue;
+
+            const aet_layer* layer = comp->layers;
+            for (uint32_t k = comp->layers_count; k; k--, layer++) {
+                if (layer->markers) {
+                    if (layer->markers_count > 3)
+                        s.align_write(0x20);
+                    offsets[layer->markers] = s.get_position();
+                    s.write(0x08ULL * layer->markers_count);
+                }
+
+                const aet_layer_video* layer_video = layer->video;
+                if (layer_video) {
+                    const aet_layer_video_3d* layer_video_3d = layer_video->_3d;
+                    aet_classic_write_layer_video(layer_video, s, offsets);
+
+                    if (layer_video_3d) {
+                        s.align_write(0x20);
+                        offsets[layer_video_3d] = s.get_position();
+                        s.write(0x40);
+                    }
+                }
+
+                const aet_layer_audio* layer_audio = layer->audio;
+                aet_classic_write_layer_audio(layer_audio, s, offsets);
+
+                if (layer_video) {
+                    s.align_write(0x20);
+                    offsets[layer_video] = s.get_position();
+                    s.write(0x48);
+                }
+
+                if (layer_audio) {
+                    s.align_write(0x20);
+                    offsets[layer_audio] = s.get_position();
+                    s.write(0x20);
+                }
+            }
+
+            s.align_write(0x20);
+            offsets[comp->layers] = s.get_position();
+            layer = comp->layers;
+            for (uint32_t k = comp->layers_count; k; k--, layer++) {
+                offsets[layer] = s.get_position();
+                s.write(0x30);
+            }
+        }
+
+        aet_classic_write_camera(scene->camera, s, offsets);
+
+        s.align_write(0x20);
+        offsets[scene] = s.get_position();
+        s.write(0x40);
+
+        s.align_write(0x10);
+    }
+
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        const aet_scene* scene = scenes[i];
+
+        const aet_video* video = scene->video;
+        for (uint32_t j = scene->video_count; j; j--, video++) {
+            for (uint32_t k = 0; k < video->sources_count; k++)
+                aet_strings_push_back_check(s, strings, video->sources[k].sprite_name);
+        }
+
+        const aet_comp* comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++) {
+            const aet_layer* layer = comp->layers;
+            for (uint32_t k = comp->layers_count; k; k--, layer++) {
+                const aet_marker* marker = layer->markers;
+                for (uint32_t l = layer->markers_count; l; l--, marker++)
+                    aet_strings_push_back_check(s, strings, marker->name);
+            }
+
+            layer = comp->layers;
+            for (uint32_t k = comp->layers_count; k; k--, layer++)
+                aet_strings_push_back_check(s, strings, layer->name);
+        }
+
+        aet_strings_push_back_check(s, strings, scene->name);
+        s.align_write(0x04);
+    }
+
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        const aet_scene* scene = scenes[i];
+
+        if (scene->audio) {
+            offsets[scene->audio] = s.get_position();
+            const aet_audio* audio = scene->audio;
+            for (uint32_t j = scene->audio_count; j; j--, audio++)
+                aet_classic_write_audio(&scene->audio[j], s, offsets);
+        }
+    }
+
+    int64_t null_data_pos = s.get_position();
+    uint32_t null_data_count = 0;
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        const aet_scene* scene = scenes[i];
+
+        const aet_comp* comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++) {
+            if (comp->layers_count < 1)
+                continue;
+
+            const aet_layer* layer = comp->layers;
+            for (uint32_t k = comp->layers_count; k; k--, layer++) {
+                const aet_layer_video* layer_video = layer->video;
+                const aet_layer_audio* layer_audio = layer->audio;
+                if (layer_video) {
+                    const aet_layer_video_3d* layer_video_3d = layer_video->_3d;
+                    if (layer_video_3d) {
+                        s.position_push(offsets[layer_video_3d], SEEK_SET);
+                        aet_classic_write_fcurve_header(&layer_video_3d->anchor_z,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->pos_z,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->dir_x,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->dir_y,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->dir_z,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->rot_x,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->rot_y,
+                            s, offsets, null_data_pos, null_data_count);
+                        aet_classic_write_fcurve_header(&layer_video_3d->scale_z,
+                            s, offsets, null_data_pos, null_data_count);
+                        s.position_pop();
+                    }
+
+                    s.position_push(offsets[layer_video], SEEK_SET);
+                    s.write_uint8_t((uint8_t)layer_video->transfer_mode.mode);
+                    s.write_uint8_t((uint8_t)layer_video->transfer_mode.flag);
+                    s.write_uint8_t((uint8_t)layer_video->transfer_mode.matte);
+                    s.write(0x01);
+
+                    aet_classic_write_fcurve_header(&layer_video->anchor_x,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->anchor_y,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->pos_x,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->pos_y,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->rot_z,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->scale_x,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->scale_y,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_video->opacity,
+                        s, offsets, null_data_pos, null_data_count);
+                    s.write_uint32_t(layer_video_3d ? (uint32_t)offsets[layer_video_3d] : 0);
+                    s.position_pop();
+                }
+
+                if (layer_audio) {
+                    s.position_push(offsets[layer_audio], SEEK_SET);
+                    aet_classic_write_fcurve_header(&layer_audio->volume_l,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_audio->volume_r,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_audio->pan_l,
+                        s, offsets, null_data_pos, null_data_count);
+                    aet_classic_write_fcurve_header(&layer_audio->pan_r,
+                        s, offsets, null_data_pos, null_data_count);
+                    s.position_pop();
+                }
+            }
+        }
+    }
+
+    s.write(sizeof(uint32_t) * null_data_count);
+    s.align_write(0x10);
+
+    for (uint32_t i = 0; i < scenes_count; i++) {
+        const aet_scene* scene = scenes[i];
+        const aet_comp* comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++) {
+            const aet_layer* layer = comp->layers;
+            for (uint32_t k = comp->layers_count; k; k--, layer++) {
+                s.set_position(offsets[layer], SEEK_SET);
+                s.write_uint32_t((uint32_t)aet_strings_get_string_offset(strings, layer->name));
+                s.write_float_t(layer->start_time);
+                s.write_float_t(layer->end_time);
+                s.write_float_t(layer->offset_time);
+                s.write_float_t(layer->time_scale);
+                s.write_uint16_t(*(uint16_t*)&layer->flags);
+                s.write_uint8_t((uint8_t)layer->quality);
+                s.write_uint8_t((uint8_t)layer->item_type);
+                if (layer->item_type == AET_ITEM_TYPE_VIDEO
+                    || layer->item_type == AET_ITEM_TYPE_COMPOSITION)
+                    s.write_uint32_t((uint32_t)offsets[layer->item.none]);
+                else
+                    s.write(0x04);
+
+                s.write_uint32_t(layer->parent ? (uint32_t)offsets[layer->parent] : 0);
+                s.write_uint32_t(layer->markers_count);
+                s.write_uint32_t(layer->markers ? (uint32_t)offsets[layer->markers] : 0);
+                s.write_uint32_t(layer->video ? (uint32_t)offsets[layer->video] : 0);
+                s.write_uint32_t(layer->audio ? (uint32_t)offsets[layer->audio] : 0);
+
+                if (layer->markers) {
+                    s.set_position(offsets[layer->markers], SEEK_SET);
+                    const aet_marker* marker = layer->markers;
+                    for (uint32_t l = layer->markers_count; l; l--, marker++) {
+                        s.write_float_t(marker->time);
+                        s.write_uint32_t((uint32_t)aet_strings_get_string_offset(strings, marker->name));
+                    }
+                }
+            }
+        }
+
+        const aet_video* video = scene->video;
+        for (uint32_t j = scene->video_count; j; j--, video++) {
+            if (!video->sources)
+                continue;
+
+            s.set_position(offsets[video->sources], SEEK_SET);
+            const aet_video_src* source = video->sources;
+            for (uint32_t k = video->sources_count; k; k--, source++) {
+                s.write_uint32_t((uint32_t)aet_strings_get_string_offset(strings, source->sprite_name));
+                s.write_uint32_t(source->sprite_index);
+            }
+        }
+
+        s.set_position(offsets[scene->comp], SEEK_SET);
+        comp = scene->comp;
+        for (uint32_t j = scene->comp_count; j; j--, comp++) {
+            if (comp->layers) {
+                s.write_uint32_t(comp->layers_count);
+                s.write_uint32_t((uint32_t)offsets[comp->layers]);
+            }
+            else
+                s.write(0x08);
+        }
+
+        s.set_position(offsets[scene], SEEK_SET);
+        s.write_uint32_t((uint32_t)aet_strings_get_string_offset(strings, scene->name));
+        s.write_float_t(scene->start_time);
+        s.write_float_t(scene->end_time);
+        s.write_float_t(scene->fps);
+        s.write_uint8_t(scene->color[0]);
+        s.write_uint8_t(scene->color[1]);
+        s.write_uint8_t(scene->color[2]);
+        s.write_uint8_t(0x00);
+        s.write_uint32_t(scene->width);
+        s.write_uint32_t(scene->height);
+        s.write_uint32_t(scene->camera ? (uint32_t)offsets[scene->camera] : 0);
+        s.write_uint32_t(scene->comp_count);
+        s.write_uint32_t(scene->comp ? (uint32_t)offsets[scene->comp] : 0);
+        s.write_uint32_t(scene->video_count);
+        s.write_uint32_t(scene->video ? (uint32_t)offsets[scene->video] : 0);
+        s.write_uint32_t(scene->audio_count);
+        s.write_uint32_t(scene->audio ? (uint32_t)offsets[scene->audio] : 0);
+        s.write(0x08);
+    }
+
+    s.position_push(0x00, SEEK_SET);
+    for (uint32_t i = 0; i < scenes_count; i++)
+        s.write_uint32_t((uint32_t)offsets[scenes[i]]);
+    s.write(0x04);
+    s.position_pop();
 }
 
 static void aet_set_modern_read_inner(aet_set* as, prj::shared_ptr<prj::stack_allocator>& alloc, stream& s) {
@@ -307,8 +922,8 @@ static void aet_set_modern_read_inner(aet_set* as, prj::shared_ptr<prj::stack_al
         for (uint32_t i = 0; i < scenes_count; i++)
             data[i] = s_aetc.read_int64_t_reverse_endianness();
 
-    std::map<int64_t, aet_layer*> layers;
-    std::map<int64_t, aet_item> items;
+    std::unordered_map<int64_t, aet_item> items;
+    std::unordered_map<int64_t, const aet_layer*> layers;
 
     for (uint32_t i = 0; i < scenes_count; i++)
         scenes[i] = aet_modern_read_scene(alloc, s_aetc, data[i],
@@ -361,8 +976,16 @@ static void aet_set_modern_write_inner(aet_set* as, stream& s) {
 }
 
 static void aet_classic_read_audio(aet_audio* audio,
-    prj::shared_ptr<prj::stack_allocator> alloc, stream& s) {
+    prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
+    std::unordered_map<int64_t, aet_item>& items) {
+    items[s.get_position()] = audio;
     audio->sound_index = s.read_int32_t();
+}
+
+static void aet_classic_write_audio(const aet_audio* audio, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+    offsets[audio] = s.get_position();
+    s.write_int32_t(audio->sound_index);
 }
 
 static aet_camera* aet_classic_read_camera(prj::shared_ptr<prj::stack_allocator> alloc,
@@ -389,11 +1012,36 @@ static aet_camera* aet_classic_read_camera(prj::shared_ptr<prj::stack_allocator>
     return cam;
 }
 
+static void aet_classic_write_camera(const aet_camera* cam, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+    if (!cam)
+        return;
+
+    s.align_write(0x10);
+    aet_classic_write_fcurve(&cam->eye_x, s, offsets);
+    aet_classic_write_fcurve(&cam->eye_y, s, offsets);
+    aet_classic_write_fcurve(&cam->eye_z, s, offsets);
+    aet_classic_write_fcurve(&cam->pos_x, s, offsets);
+    aet_classic_write_fcurve(&cam->pos_y, s, offsets);
+    aet_classic_write_fcurve(&cam->pos_z, s, offsets);
+    aet_classic_write_fcurve(&cam->dir_x, s, offsets);
+    aet_classic_write_fcurve(&cam->dir_y, s, offsets);
+    aet_classic_write_fcurve(&cam->dir_z, s, offsets);
+    aet_classic_write_fcurve(&cam->rot_x, s, offsets);
+    aet_classic_write_fcurve(&cam->rot_y, s, offsets);
+    aet_classic_write_fcurve(&cam->rot_z, s, offsets);
+    aet_classic_write_fcurve(&cam->zoom, s, offsets);
+
+    s.align_write(0x20);
+    offsets[cam] = s.get_position();
+    s.write(0x34);
+}
+
 static void aet_classic_read_comp(aet_comp* comp,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
-    std::map<int64_t, aet_layer*>& layers,
-    std::map<int64_t, aet_item>& items) {
-    items.insert_or_assign(s.get_position(), comp);
+    std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items) {
+    items[s.get_position()] = comp;
 
     comp->layers_count = s.read_uint32_t();
     uint32_t layers_offset = s.read_uint32_t();
@@ -404,7 +1052,7 @@ static void aet_classic_read_comp(aet_comp* comp,
 
         s.position_push(layers_offset, SEEK_SET);
         for (uint32_t i = comp->layers_count; i; i--, layer++) {
-            layers.insert_or_assign(s.get_position(), layer);
+            layers[s.get_position()] = layer;
             aet_classic_read_layer(layer, alloc, s);
         }
         s.position_pop();
@@ -434,6 +1082,49 @@ static void aet_classic_read_fcurve(aet_fcurve* fcurve,
     else
         fcurve->keys = 0;
     s.position_pop();
+}
+
+static void aet_classic_write_fcurve(const aet_fcurve* fcurve, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+    if (fcurve->keys_count < 1)
+        return;
+    else if (fcurve->keys_count == 1) {
+        const float_t* key = fcurve->keys;
+        if (*(const uint32_t*)key) {
+            offsets[fcurve] = s.get_position();
+            s.write_float_t(*key);
+        }
+    }
+    else {
+        if (fcurve->keys_count > 2)
+            s.align_write(0x20);
+
+        offsets[fcurve] = s.get_position();
+        s.write(fcurve->keys, fcurve->keys_count * 3ULL * sizeof(float_t));
+    }
+}
+
+static void aet_classic_write_fcurve_header(const aet_fcurve* fcurve, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets, int64_t null_data_pos, uint32_t& null_data_count) {
+    if (fcurve->keys_count < 1)
+        s.write(0x08);
+    else if (fcurve->keys_count == 1 && !*(const uint32_t*)fcurve->keys) {
+        int64_t offset = null_data_pos + null_data_count * sizeof(float_t);
+        offsets[fcurve] = offset;
+
+        s.write_uint32_t(fcurve->keys_count);
+        s.write_uint32_t((uint32_t)offset);
+        null_data_count++;
+    }
+    else {
+        auto elem = offsets.find(fcurve);
+        if (elem != offsets.end()) {
+            s.write_uint32_t(fcurve->keys_count);
+            s.write_uint32_t((uint32_t)elem->second);
+        }
+        else
+            s.write(0x08);
+    }
 }
 
 static void aet_classic_read_layer(aet_layer* layer,
@@ -466,15 +1157,23 @@ static void aet_classic_read_layer(aet_layer* layer,
         layer->markers = marker;
 
         s.position_push(alh.markers_offset, SEEK_SET);
-        for (uint32_t i = layer->markers_count; i; i--, marker++)
-            aet_classic_read_marker(marker, alloc, s);
+        for (uint32_t i = layer->markers_count; i; i--, marker++) {
+            marker->time = s.read_float_t();
+            marker->name = aet_read_utf8_string_null_terminated_offset(
+                alloc, s, s.read_uint32_t());
+        }
         s.position_pop();
     }
     else
-        layer->audio = 0;
+        layer->markers = 0;
 
     layer->video = aet_classic_read_layer_video(alloc, s, alh.video_offset);
     layer->audio = aet_classic_read_layer_audio(alloc, s, alh.audio_offset);
+}
+
+static void aet_classic_write_layer(const aet_layer* layer, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+
 }
 
 static aet_layer_audio* aet_classic_read_layer_audio(prj::shared_ptr<prj::stack_allocator> alloc,
@@ -490,6 +1189,17 @@ static aet_layer_audio* aet_classic_read_layer_audio(prj::shared_ptr<prj::stack_
     aet_classic_read_fcurve(&layer_audio->pan_r, alloc, s);
     s.position_pop();
     return layer_audio;
+}
+
+static void aet_classic_write_layer_audio(const aet_layer_audio* layer_audio, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+    if (!layer_audio)
+        return;
+
+    aet_classic_write_fcurve(&layer_audio->volume_l, s, offsets);
+    aet_classic_write_fcurve(&layer_audio->volume_r, s, offsets);
+    aet_classic_write_fcurve(&layer_audio->pan_l, s, offsets);
+    aet_classic_write_fcurve(&layer_audio->pan_r, s, offsets);
 }
 
 static aet_layer_video* aet_classic_read_layer_video(prj::shared_ptr<prj::stack_allocator> alloc,
@@ -516,6 +1226,23 @@ static aet_layer_video* aet_classic_read_layer_video(prj::shared_ptr<prj::stack_
     return layer_video;
 }
 
+static void aet_classic_write_layer_video(const aet_layer_video* layer_video, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+    if (!layer_video)
+        return;
+
+    aet_classic_write_layer_video_3d(layer_video->_3d, s, offsets);
+
+    aet_classic_write_fcurve(&layer_video->anchor_x, s, offsets);
+    aet_classic_write_fcurve(&layer_video->anchor_y, s, offsets);
+    aet_classic_write_fcurve(&layer_video->pos_x, s, offsets);
+    aet_classic_write_fcurve(&layer_video->pos_y, s, offsets);
+    aet_classic_write_fcurve(&layer_video->rot_z, s, offsets);
+    aet_classic_write_fcurve(&layer_video->scale_x, s, offsets);
+    aet_classic_write_fcurve(&layer_video->scale_y, s, offsets);
+    aet_classic_write_fcurve(&layer_video->opacity, s, offsets);
+}
+
 static aet_layer_video_3d* aet_classic_read_layer_video_3d(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset) {
     if (!offset)
@@ -535,16 +1262,24 @@ static aet_layer_video_3d* aet_classic_read_layer_video_3d(prj::shared_ptr<prj::
     return layer_video_3d;
 }
 
-static void aet_classic_read_marker(aet_marker* marker,
-    prj::shared_ptr<prj::stack_allocator> alloc, stream& s) {
-    marker->time = s.read_float_t();
-    marker->name = aet_read_utf8_string_null_terminated_offset(
-        alloc, s, s.read_uint32_t());
+static void aet_classic_write_layer_video_3d(const aet_layer_video_3d* layer_video_3d, stream& s,
+    std::unordered_map<const void*, int64_t>& offsets) {
+    if (!layer_video_3d)
+        return;
+
+    aet_classic_write_fcurve(&layer_video_3d->anchor_z, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->pos_z, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->dir_x, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->dir_y, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->dir_z, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->rot_x, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->rot_y, s, offsets);
+    aet_classic_write_fcurve(&layer_video_3d->scale_z, s, offsets);
 }
 
 static aet_scene* aet_classic_read_scene(prj::shared_ptr<prj::stack_allocator> alloc,
-    stream& s, int64_t offset, std::map<int64_t, aet_layer*>& layers,
-    std::map<int64_t, aet_item>& items) {
+    stream& s, int64_t offset, std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items) {
     if (!offset)
         return 0;
 
@@ -604,7 +1339,7 @@ static aet_scene* aet_classic_read_scene(prj::shared_ptr<prj::stack_allocator> a
 
         s.position_push(ash.audio_offset, SEEK_SET);
         for (uint32_t i = scene->audio_count; i; i--, audio++)
-            aet_classic_read_audio(audio, alloc, s);
+            aet_classic_read_audio(audio, alloc, s, items);
         s.position_pop();
     }
     else
@@ -614,8 +1349,8 @@ static aet_scene* aet_classic_read_scene(prj::shared_ptr<prj::stack_allocator> a
 
 static void aet_classic_read_video(aet_video* video,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
-    std::map<int64_t, aet_item>& items) {
-    items.insert_or_assign(s.get_position(), video);
+    std::unordered_map<int64_t, aet_item>& items) {
+    items[s.get_position()] = video;
 
     video->color[0] = s.read_uint8_t();
     video->color[1] = s.read_uint8_t();
@@ -677,8 +1412,8 @@ static aet_camera* aet_modern_read_camera(prj::shared_ptr<prj::stack_allocator> 
 static void aet_modern_read_comp(aet_comp* comp,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     uint32_t header_length, bool is_x,
-    std::map<int64_t, aet_layer*>& layers, std::map<int64_t, aet_item>& items) {
-    items.insert_or_assign(s.get_position(), comp);
+    std::unordered_map<int64_t, const aet_layer*>& layers, std::unordered_map<int64_t, aet_item>& items) {
+    items[s.get_position()] = comp;
 
     comp->layers_count = s.read_uint32_t();
     int64_t layers_offset = s.read_offset(header_length, is_x);
@@ -689,7 +1424,7 @@ static void aet_modern_read_comp(aet_comp* comp,
 
         s.position_push(layers_offset, SEEK_SET);
         for (uint32_t i = comp->layers_count; i; i--, layer++) {
-            layers.insert_or_assign(s.get_position(), layer);
+            layers[s.get_position()] = layer;
             aet_modern_read_layer(layer, alloc, s, header_length, is_x);
         }
         s.position_pop();
@@ -863,7 +1598,7 @@ static void aet_modern_read_marker(aet_marker* marker,
 static aet_scene* aet_modern_read_scene(prj::shared_ptr<prj::stack_allocator> alloc,
     stream& s, int64_t offset,
     uint32_t header_length, bool is_x,
-    std::map<int64_t, aet_layer*>& layers, std::map<int64_t, aet_item>& items) {
+    std::unordered_map<int64_t, const aet_layer*>& layers, std::unordered_map<int64_t, aet_item>& items) {
     if (!offset)
         return 0;
 
@@ -956,8 +1691,8 @@ static aet_scene* aet_modern_read_scene(prj::shared_ptr<prj::stack_allocator> al
 static void aet_modern_read_video(aet_video* video,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s,
     uint32_t header_length, bool is_x,
-    std::map<int64_t, aet_item>& items) {
-    items.insert_or_assign(s.get_position(), video);
+    std::unordered_map<int64_t, aet_item>& items) {
+    items[s.get_position()] = video;
 
     video->color[0] = s.read_uint8_t();
     video->color[1] = s.read_uint8_t();
@@ -993,7 +1728,8 @@ static void aet_modern_read_video(aet_video* video,
 }
 
 static void aet_comp_set_item_parent(const aet_comp* comp,
-    std::map<int64_t, aet_layer*>& layers, std::map<int64_t, aet_item>& items) {
+    std::unordered_map<int64_t, const aet_layer*>& layers,
+    std::unordered_map<int64_t, aet_item>& items) {
     aet_layer* layer = (aet_layer*)comp->layers;
     for (uint32_t i = comp->layers_count; i; i--, layer++) {
         if (layer->item_type == AET_ITEM_TYPE_VIDEO
@@ -1035,4 +1771,22 @@ inline static const char* aet_read_utf8_string_null_terminated_offset(
     s.position_pop();
     str[len] = 0;
     return str;
+}
+
+inline static int64_t aet_strings_get_string_offset(
+    const std::unordered_map<std::string, int64_t>& vec, const std::string& str) {
+    for (const auto& i : vec)
+        if (!i.first.compare(str))
+            return i.second;
+    return 0;
+}
+
+inline static void aet_strings_push_back_check(stream& s,
+    std::unordered_map<std::string, int64_t>& vec, const std::string& str) {
+    for (const auto& i : vec)
+        if (!i.first.compare(str))
+            return;
+
+    vec[str] = s.get_position();
+    s.write_string_null_terminated(str);
 }
