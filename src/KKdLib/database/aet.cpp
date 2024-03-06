@@ -331,6 +331,10 @@ void aet_database::parse(const aet_db_aet_set_file* set_file,
 
     uint16_t set_index = (uint16_t)elem->second->index;
 
+    aet_db_aet_set* aet_set = elem->second;
+    aet_set->name.assign(set_file->name);
+    aet_set->file_name.assign(set_file->file_name);
+
     aet_set_names.push_back(set_file->name, elem->second);
 
     aet_ids.reserve(set_file->aet.size());
@@ -344,6 +348,8 @@ void aet_database::parse(const aet_db_aet_set_file* set_file,
         while (j != j_end)
             if (j->id == id)
                 break;
+            else
+                j++;
 
         aet_db_aet* aet;
         if (j == j_end) {
@@ -555,7 +561,7 @@ static void aet_database_file_classic_write_inner(aet_database_file* aet_db, str
     s.align_write(0x20);
 
     int64_t aet_sets_offset = s.get_position();
-    s.write(0x10 * aet_db->aet_set.size());
+    s.write(0x14 * aet_db->aet_set.size());
     s.align_write(0x20);
 
     std::vector<string_hash> strings;
@@ -771,7 +777,7 @@ static void aet_database_file_modern_write_inner(aet_database_file* aet_db, stre
     s_aedb.align_write(0x10);
 
     int64_t aet_sets_offset = s_aedb.get_position();
-    s_aedb.write(aet_sets_count * (is_x ? 0x20ULL : 0x10ULL));
+    s_aedb.write(aet_sets_count * (is_x ? 0x20ULL : 0x14ULL));
     s_aedb.align_write(0x10);
 
     int64_t aets_offset = s_aedb.get_position();
