@@ -2463,7 +2463,7 @@ void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) 
     case 810:
     case 823:
     case 824:
-    case 825:
+    case 826:
     case 830:
         cloud_index = 1; // Classic
         break;
@@ -2472,30 +2472,30 @@ void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) 
     case 811:
     case 812:
     case 813:
-    case 826:
+    case 825:
         cloud_index = 2; // Cute
         break;
     case 801:
-    case 803:
     case 805:
     case 814:
     case 819:
+    case 820:
     case 827:
         cloud_index = 3; // Cool
         break;
     case 802:
     case 815:
     case 816:
-    case 820:
+    case 821:
     case 822:
     case 828:
         cloud_index = 4; // Elegant
         break;
+    case 803:
     case 804:
     case 806:
     case 817:
     case 818:
-    case 821:
     case 829:
         cloud_index = 5; // Chaos
         break;
