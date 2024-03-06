@@ -1774,17 +1774,16 @@ inline static const char* aet_read_utf8_string_null_terminated_offset(
 
 inline static int64_t aet_strings_get_string_offset(
     const std::unordered_map<std::string, int64_t>& vec, const std::string& str) {
-    for (const auto& i : vec)
-        if (!i.first.compare(str))
-            return i.second;
+    auto elem = vec.find(str);
+    if (elem != vec.end())
+        return elem->second;
     return 0;
 }
 
 inline static void aet_strings_push_back_check(stream& s,
     std::unordered_map<std::string, int64_t>& vec, const std::string& str) {
-    for (const auto& i : vec)
-        if (!i.first.compare(str))
-            return;
+   if (vec.find(str) != vec.end())
+       return;
 
     vec[str] = s.get_position();
     s.write_string_null_terminated(str);

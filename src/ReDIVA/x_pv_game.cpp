@@ -283,6 +283,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db);
 static void x_pv_game_write_stage_resource(pvsr* stage_resource,
     int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db);
+static void x_pv_game_write_str_array();
 static void x_pv_game_write_spr(uint32_t spr_set_id,
     const sprite_database* spr_db, sprite_database_file* x_pack_spr_db);
 #endif
@@ -4455,6 +4456,7 @@ void x_pv_game_data::stop() {
     stage->stage_effect_transition_state = 0;
     effect.stop();
     chara_effect.stop();
+    title.reset();
     pv_data.stop();
     bar_beat.reset_time();
     stage_effect_index = 0;
@@ -6538,6 +6540,59 @@ bool x_pv_game::ctrl() {
 
         auth_3d_data_load_category(light_category.c_str());
 
+#if BAKE_X_PACK
+        XPVGameBaker* baker = x_pv_game_baker_ptr;
+        if (baker->pv_tit_init) {
+            state_old = 7;
+            break;
+        }
+
+        baker->pv_tit_aet_set_ids[0] = hash_utf8_murmurhash("AET_PV_TIT01");
+        baker->pv_tit_spr_set_ids[0] = hash_utf8_murmurhash("SPR_PV_TIT01");
+        baker->pv_tit_aet_ids[0] = hash_utf8_murmurhash("AET_PV_TIT01_MAIN");
+        baker->pv_tit_aet_set_ids[1] = hash_utf8_murmurhash("AET_PV_TIT02");
+        baker->pv_tit_spr_set_ids[1] = hash_utf8_murmurhash("SPR_PV_TIT02");
+        baker->pv_tit_aet_ids[1] = hash_utf8_murmurhash("AET_PV_TIT02_MAIN");
+        baker->pv_tit_aet_set_ids[2] = hash_utf8_murmurhash("AET_PV_TIT03");
+        baker->pv_tit_spr_set_ids[2] = hash_utf8_murmurhash("SPR_PV_TIT03");
+        baker->pv_tit_aet_ids[2] = hash_utf8_murmurhash("AET_PV_TIT03_MAIN");
+        baker->pv_tit_aet_set_ids[3] = hash_utf8_murmurhash("AET_PV_TIT04");
+        baker->pv_tit_spr_set_ids[3] = hash_utf8_murmurhash("SPR_PV_TIT04");
+        baker->pv_tit_aet_ids[3] = hash_utf8_murmurhash("AET_PV_TIT04_MAIN");
+        baker->pv_tit_aet_set_ids[4] = hash_utf8_murmurhash("AET_PV_TIT05");
+        baker->pv_tit_spr_set_ids[4] = hash_utf8_murmurhash("SPR_PV_TIT05");
+        baker->pv_tit_aet_ids[4] = hash_utf8_murmurhash("AET_PV_TIT05_MAIN");
+
+        for (int32_t i = 0; i < 5; i++) {
+            sprite_manager_read_file_modern(baker->pv_tit_spr_set_ids[i],
+                &data_list[DATA_X], &baker->pv_tit_spr_db);
+            aet_manager_read_file_modern(baker->pv_tit_aet_set_ids[i],
+                &data_list[DATA_X], &baker->pv_tit_aet_db);
+        }
+        state_old = 4;
+    } break;
+    case 4: {
+        XPVGameBaker* baker = x_pv_game_baker_ptr;
+        bool wait_load = false;
+        for (int32_t i = 0; i < 5; i++) {
+            if (!aet_manager_load_file_modern(baker->pv_tit_aet_set_ids[i], &baker->pv_tit_aet_db)
+                && !sprite_manager_load_file_modern(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db)) {
+                spr_set* set = sprite_manager_get_set(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db);
+                if (set) {
+                    SpriteData* sprdata = set->sprdata;
+                    for (uint32_t i = set->num_of_sprite; i; i--, sprdata++)
+                        sprdata->resolution_mode = RESOLUTION_MODE_HD;
+                }
+            }
+            else
+                wait_load = true;
+        }
+
+        if (wait_load)
+            break;
+
+        baker->pv_tit_init = true;
+#endif
         state_old = 7;
     } break;
     case 7: {
@@ -8645,7 +8700,8 @@ void x_pv_game::stop_current_pv() {
 }
 
 #if BAKE_X_PACK
-XPVGameBaker::XPVGameBaker() : charas(), modules(), start(), exit(), next() {
+XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
+pv_tit_spr_set_ids(), pv_tit_aet_ids(), pv_tit_init(), start(), exit(), next() {
     pv_id = 800;
     stage_id = 0;
     chara_index = CHARA_MIKU;
@@ -8655,6 +8711,15 @@ XPVGameBaker::XPVGameBaker() : charas(), modules(), start(), exit(), next() {
 
     for (int32_t& i : modules)
         i = 0;
+
+    for (uint32_t& i : pv_tit_aet_set_ids)
+        i = hash_murmurhash_empty;
+    
+    for (uint32_t& i : pv_tit_spr_set_ids)
+        i = hash_murmurhash_empty;
+    
+    for (uint32_t& i : pv_tit_aet_ids)
+        i = hash_murmurhash_empty;
 
     next = true;
 }
@@ -8700,12 +8765,27 @@ bool XPVGameBaker::ctrl() {
 }
 
 bool XPVGameBaker::dest() {
+    for (int32_t i = 0; i < 5; i++) {
+        x_pv_game_write_spr(pv_tit_spr_set_ids[i], &pv_tit_spr_db, &spr_db);
+        x_pv_game_write_aet(pv_tit_aet_set_ids[i], &pv_tit_aet_db, &aet_db, &spr_db);
+    }
+
+    x_pv_game_write_str_array();
+
     aet_db.write("patch\\!temp\\2d\\mdata_aet_db");
     auth_3d_db.write("patch\\!temp\\auth_3d\\mdata_auth_3d_db");
     obj_db.write("patch\\!temp\\objset\\mdata_obj_db");
     spr_db.write("patch\\!temp\\2d\\mdata_spr_db");
     stage_data.write("patch\\!temp\\mdata_stage_data");
     tex_db.write("patch\\!temp\\objset\\mdata_tex_db");
+
+    for (int32_t i = 0; i < 5; i++) {
+        sprite_manager_unload_set_modern(pv_tit_aet_set_ids[i], &pv_tit_spr_db);
+        aet_manager_unload_set_modern(pv_tit_spr_set_ids[i], &pv_tit_aet_db);
+    }
+
+    pv_tit_aet_db.clear();
+    pv_tit_spr_db.clear();
     return true;
 }
 #else
@@ -10738,6 +10818,61 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
     s.write_int64_t(stage_effect_env_offset);
     s.write_int64_t(stage_change_effect_offset);
     s.position_pop();
+    s.close();
+}
+
+static void x_pv_game_write_str_array() {
+    file_stream s;
+    s.open("patch\\!temp\\str_array_x.bin", "wb");
+
+    size_t lang_count = x_pv_game_str_array.size();
+    size_t strings_count_total = 0;
+    for (const auto& i : x_pv_game_str_array)
+        strings_count_total += i.second.size();
+
+    const size_t lang_data_offset = 0x10;
+
+    s.write_uint32_t(reverse_endianness_uint32_t('strx'));
+    s.write_uint32_t((uint32_t)lang_count);
+    s.write_uint32_t((uint32_t)lang_data_offset);
+    s.align_write(lang_data_offset);
+
+    s.write(align_val(0x0C * lang_count, 0x10));
+
+    size_t strings_offset_offset = s.get_position();
+    s.write(align_val(0x08 * strings_count_total, 0x10));
+
+    std::unordered_map<std::string, int64_t> strings;
+
+    strings[""] = s.get_position();
+    s.write_string_null_terminated("");
+
+    size_t lang_index = 0;
+    for (const auto& i : x_pv_game_str_array) {
+        for (const auto& j : i.second)
+            if (strings.find(j.second) == strings.end()) {
+                strings[j.second] = s.get_position();
+                s.write_string_null_terminated(j.second);
+            }
+
+        s.position_push(strings_offset_offset, SEEK_SET);
+        for (const auto& j : i.second) {
+            s.write_int32_t(j.first);
+            s.write_uint32_t((uint32_t)strings[j.second]);
+        }
+        s.position_pop();
+
+        s.position_push(lang_data_offset + 0x0C * lang_index, SEEK_SET);
+        s.write_int32_t(i.first);
+        s.write_uint32_t((uint32_t)i.second.size());
+        s.write_uint32_t((uint32_t)strings_offset_offset);
+        s.position_pop();
+
+        strings_offset_offset += 0x08 * i.second.size();
+        lang_index++;
+    }
+    s.align_write(0x10);
+
     s.close();
 }
 

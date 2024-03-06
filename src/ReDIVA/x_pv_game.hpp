@@ -913,10 +913,16 @@ public:
     ::chara_index chara_index;
     ::chara_index charas[ROB_CHARA_COUNT];
     int32_t modules[ROB_CHARA_COUNT];
+    uint32_t pv_tit_aet_set_ids[5];
+    uint32_t pv_tit_spr_set_ids[5];
+    uint32_t pv_tit_aet_ids[5];
+    bool pv_tit_init;
     bool start;
     bool exit;
     bool next;
 
+    aet_database pv_tit_aet_db;
+    sprite_database pv_tit_spr_db;
     aet_database_file aet_db;
     auth_3d_database_file auth_3d_db_base;
     auth_3d_database_file auth_3d_db;
