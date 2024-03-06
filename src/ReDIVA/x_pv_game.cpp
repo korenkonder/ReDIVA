@@ -2153,7 +2153,7 @@ aet_obj_data_comp::~aet_obj_data_comp() {
 
 }
 
-aet_layout_data* aet_obj_data_comp::find_layout(const char* name) {
+const aet_layout_data* aet_obj_data_comp::find_layout(const char* name) {
     return comp.Find(name);
 }
 
@@ -2193,7 +2193,7 @@ bool aet_obj_data::check_disp() {
     return aet_manager_get_obj_end(id);
 }
 
-aet_layout_data* aet_obj_data::find_aet_layout(const char* name,
+const aet_layout_data* aet_obj_data::find_aet_layout(const char* name,
     const aet_database* aet_db, const sprite_database* spr_db) {
     if (!name)
         return 0;
@@ -2263,7 +2263,7 @@ void x_pv_aet_disp_string::ctrl(const char* name, aet_obj_data* aet, const aet_d
         return;
     }
 
-    aet_layout_data* layout = aet->find_aet_layout(name, aet_db, spr_db);
+    const aet_layout_data* layout = aet->find_aet_layout(name, aet_db, spr_db);
     if (!layout) {
         data.disp = false;
         return;

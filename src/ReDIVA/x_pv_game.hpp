@@ -475,7 +475,7 @@ struct aet_obj_data_comp {
     aet_obj_data_comp();
     ~aet_obj_data_comp();
 
-    aet_layout_data* find_layout(const char* name);
+    const aet_layout_data* find_layout(const char* name);
     bool init_comp(uint32_t aet_id, const std::string&& layer_name,
         float_t frame, const aet_database* aet_db, const sprite_database* spr_db);
 };
@@ -494,7 +494,7 @@ struct aet_obj_data {
     ~aet_obj_data();
 
     bool check_disp();
-    aet_layout_data* find_aet_layout(const char* name,
+    const aet_layout_data* find_aet_layout(const char* name,
         const aet_database* aet_db, const sprite_database* spr_db);
     uint32_t init(AetArgs& args, const aet_database* aet_db);
     void reset();
@@ -549,6 +549,7 @@ struct x_pv_game_title {
     void ctrl();
     void ctrl_txt_data();
     void disp();
+    bool get_id(int8_t cloud_index, uint32_t& aet_id);
     bool get_set_ids(int8_t cloud_index, uint32_t& aet_set_id, uint32_t& spr_set_id);
     void load(int32_t pv_id, FrameRateControl* frame_rate_control);
     void load_data();
