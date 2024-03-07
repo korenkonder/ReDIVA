@@ -5026,9 +5026,6 @@ bool x_pv_game_stage_data::check_not_loaded() {
 void x_pv_game_stage_data::ctrl(object_database* obj_db, texture_database* tex_db) {
     switch (state) {
     case 1: {
-        if (task_stage_modern_check_not_loaded())
-            break;
-
         bool wait_load = false;
 
         for (uint32_t& i : objhrc_hash)
@@ -5036,7 +5033,7 @@ void x_pv_game_stage_data::ctrl(object_database* obj_db, texture_database* tex_d
                 && object_storage_load_obj_set_check_not_read(i, obj_db, tex_db))
                 wait_load |= true;
 
-        if (wait_load)
+        if (wait_load || task_stage_modern_check_not_loaded())
             break;
 
         state = 2;
