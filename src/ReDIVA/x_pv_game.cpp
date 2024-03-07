@@ -4655,12 +4655,10 @@ void x_pv_game_stage_env::reset() {
 }
 
 void x_pv_game_stage_env::reset_env() {
-    if (env_index == -1)
-        return;
-
-    for (auto& i : data[env_index].data)
-        for (auto& j : i)
-            j.reset();
+    for (auto& i : data)
+        for (auto& j : i.data)
+            for (auto& k : j)
+                k.reset();
 
     trans_duration = 0.0f;
     trans_remain = 0.0f;
@@ -7284,8 +7282,9 @@ bool x_pv_game::ctrl() {
             for (auth_3d*& i : stage_data_change_effect_auth_3ds)
                 x_pv_game_write_auth_3d(effstgpv_farc, i, &x_pack_auth_3d_db_file, name);
 
-            x_pv_game_write_auth_3d(effstgpv_farc,
-                light_auth_3d_id.get_auth_3d(), &x_pack_auth_3d_db_file, name);
+            if (light_auth_3d_id.check_not_empty())
+                x_pv_game_write_auth_3d(effstgpv_farc,
+                    light_auth_3d_id.get_auth_3d(), &x_pack_auth_3d_db_file, name);
 
             if (effstgpv_farc->files.size())
                 effstgpv_farc->write(path, FARC_FArC, FARC_NONE, false);
