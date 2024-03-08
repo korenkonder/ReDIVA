@@ -2455,8 +2455,8 @@ void x_pv_game_title::load(int32_t pv_id, FrameRateControl* frame_rate_control) 
     if (state)
         return;
 
-    str_array.pv_id = pv_id;
-    str_array.song_name = sub_8133DDF8(20000000 + 1000 * pv_id);
+    str_array.pv_id = pv_id == 832 ? 800 : pv_id;
+    str_array.song_name = sub_8133DDF8(20000000 + 1000 * str_array.pv_id);
 
     int32_t cloud_index = 1;
     switch (pv_id) {
