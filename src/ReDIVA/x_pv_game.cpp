@@ -1526,14 +1526,14 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             else
                 category.assign(file);
 
-            x_pv_game_chara_effect_auth_3d auth_3d;
+            this->auth_3d[i].push_back({});
+            x_pv_game_chara_effect_auth_3d& auth_3d = this->auth_3d[i].back();
             auth_3d.field_0 = j.u00;
             auth_3d.src_chara = src_chara;
             auth_3d.dst_chara = dst_chara;
-            auth_3d.file = file;
-            auth_3d.category = category;
-            auth_3d.object_set = object_set;
-            this->auth_3d[i].push_back(auth_3d);
+            auth_3d.file.assign(file);
+            auth_3d.category.assign(category);
+            auth_3d.object_set.assign(object_set);
 
 #if BAKE_PV826
             if (pv_id == 826 && effchrpv_auth_3d_mot_names)
@@ -5082,12 +5082,7 @@ void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_databas
         std::string objhrc(i.name);
         objhrc.append("HRC");
         obj_hash.push_back(i.hash);
-#if BAKE_X_PACK
-        if (stage_id != 29)
-            objhrc_hash.push_back(hash_string_murmurhash(objhrc));
-#else
         objhrc_hash.push_back(hash_string_murmurhash(objhrc));
-#endif
     }
 
     data_struct* x_data = &data_list[DATA_X];
