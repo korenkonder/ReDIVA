@@ -10260,16 +10260,13 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
 
                 if (!found) {
                     uint32_t tex_id = x_pack_tex_db_base->get_texture_id(name_buf);
-                    if (tex_id != -1) {
+                    if (tex_id != -1)
                         id = tex_id;
-                        found = true;
-                    }
-                }
+                    else
+                        id = ++texture_max_id;
 
-                if (!found) {
                     x_pack_tex_db->texture.push_back({});
                     texture_info_file& tex_info = x_pack_tex_db->texture.back();
-                    id = ++texture_max_id;
                     tex_info.name.assign(name_buf);
                     tex_info.id = id;
                 }
