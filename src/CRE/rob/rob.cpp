@@ -13429,7 +13429,7 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
     if (!node || !node->mat)
         return;
 
-    mat4_mul(&mat, node->mat, &mat);
+    mat4_mul(node->mat, &mat, &mat);
     int32_t tex_pat_count = (int32_t)rob_itm_equip->texture_pattern.size();
     if (tex_pat_count)
         rctx->disp_manager->set_texture_pattern(tex_pat_count, rob_itm_equip->texture_pattern.data());
