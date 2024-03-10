@@ -6397,7 +6397,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     for (auth_3d_object_texture_transform& i : o->texture_transform) {
         if (tex_trans_count >= TEXTURE_TRANSFORM_COUNT || i.texture_id == -1
             || !texture_storage_get_texture(i.texture_id))
-            break;
+            continue;
 
         tex_trans[tex_trans_count].id = i.texture_id;
         tex_trans[tex_trans_count].mat = i.mat;
