@@ -7716,7 +7716,7 @@ bool x_pv_game::ctrl() {
             delete f;
 
             if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30
-                && stage_data.stage_id >= 25 && stage_data.stage_id <= 30)
+                && (stage_data.stage_id < 25 || stage_data.stage_id > 30))
                 sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_100", pv_data.pv_id);
             else
                 sprintf_s(buf, sizeof(buf), "DOF\\auth_3d\\CAMPV%03d_BASE", pv_data.pv_id);
@@ -7858,6 +7858,7 @@ void x_pv_game::basic() {
         float_t fuzzing_range;
         float_t ratio;
         rctx_ptr->render.get_dof_data(focus, focus_range, fuzzing_range, ratio);
+        ratio *= rctx_ptr->render.get_dof_enable() ? 1.0f : 0.0f;
 
         vec3 interest;
         vec3 view_point;
