@@ -103,7 +103,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
                         aes256_cbc_encrypt_buffer(&ctx, buf, size);
                         out_file.write(buf, size);
 
-                        length -= size;
+                        length -= min_def(length, size);
                     }
                 }
                 else {
