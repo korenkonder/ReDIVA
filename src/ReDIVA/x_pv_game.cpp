@@ -279,9 +279,9 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
 static void x_pv_game_write_object_set(ObjsetInfo* info,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
     const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db);
-static void x_pv_game_write_play_param(pvpp* play_param,
+static void x_pv_game_write_play_param(const pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db);
-static void x_pv_game_write_stage_resource(pvsr* stage_resource,
+static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
     int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db);
 static void x_pv_game_write_str_array();
 static void x_pv_game_write_spr(uint32_t spr_set_id,
@@ -4324,7 +4324,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     } break;
     case 30: {
         ctrl_stage_effect_index();
-        bar_beat.set_time(this->curr_time, this->delta_time);
+        bar_beat.set_time(curr_time, delta_time);
         pv_data.ctrl(true, curr_time, delta_time);
         frame++;
     } break;
@@ -4334,7 +4334,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
     } break;
     }
 
-    camera.ctrl(this->curr_time);
+    camera.ctrl(curr_time);
     effect.ctrl(&obj_db, &tex_db);
 #if BAKE_PV826
     chara_effect.ctrl(&obj_db, &tex_db, pv_id, effchrpv_auth_3d_mot_ids);
@@ -10384,7 +10384,7 @@ inline static bool x_pv_game_write_file_strings_push_back_check(stream& s,
     return true;
 }
 
-static void x_pv_game_write_play_param(pvpp* play_param,
+static void x_pv_game_write_play_param(const pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db) {
     char path[MAX_PATH];
     sprintf_s(path, sizeof(path), "patch\\!temp\\pv\\pv%03d.pvpp", pv_id == 832 ? 800 : pv_id);
@@ -10392,7 +10392,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
     size_t chara_count = 0;
     size_t effect_count = play_param->effect.size();
 
-    for (pvpp_chara& i : play_param->chara)
+    for (const pvpp_chara& i : play_param->chara)
         if (i.auth_3d.size() || i.glitter.size()
             || i.chara_effect_init && i.chara_effect.auth_3d.size())
             chara_count++;
@@ -10406,18 +10406,18 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
     prj::vector_pair<string_hash, int64_t> strings;
 
-    for (pvpp_chara& i : play_param->chara) {
+    for (const pvpp_chara& i : play_param->chara) {
         strings.reserve(i.auth_3d.size() + i.glitter.size());
-        for (string_hash& j : i.auth_3d)
+        for (const string_hash& j : i.auth_3d)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.str);
 
-        for (pvpp_glitter& j : i.glitter)
+        for (const pvpp_glitter& j : i.glitter)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
 
         if (i.chara_effect_init && i.chara_effect.auth_3d.size()) {
-            pvpp_chara_effect& chara_effect = i.chara_effect;
+            const pvpp_chara_effect& chara_effect = i.chara_effect;
             strings.reserve(chara_effect.auth_3d.size() * 2);
-            for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
+            for (const pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
                 x_pv_game_write_file_strings_push_back_check(s, strings, j.auth_3d.str);
 
                 if (j.has_object_set)
@@ -10426,12 +10426,12 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         }
     }
 
-    for (pvpp_effect& i : play_param->effect) {
+    for (const pvpp_effect& i : play_param->effect) {
         strings.reserve(i.auth_3d.size() + i.glitter.size());
-        for (string_hash& j : i.auth_3d)
+        for (const string_hash& j : i.auth_3d)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.str);
 
-        for (pvpp_glitter& j : i.glitter)
+        for (const pvpp_glitter& j : i.glitter)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
     }
     s.align_write(0x10);
@@ -10444,14 +10444,14 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         int64_t* glitter_offsets = force_malloc<int64_t>(chara_count);
         int64_t* chara_effect_offsets = force_malloc<int64_t>(chara_count);
 
-        for (pvpp_chara& i : play_param->chara) {
+        for (const pvpp_chara& i : play_param->chara) {
             if (!i.auth_3d.size() && !i.glitter.size() && (!i.chara_effect_init
                 || i.chara_effect_init && !i.chara_effect.auth_3d.size()))
                 continue;
 
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
-                for (string_hash& j : i.auth_3d)
+                for (const string_hash& j : i.auth_3d)
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.str));
                 s.align_write(0x08);
             }
@@ -10460,7 +10460,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
             if (i.glitter.size()) {
                 *glitter_offsets++ = s.get_position();
-                for (pvpp_glitter& j : i.glitter) {
+                for (const pvpp_glitter& j : i.glitter) {
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_uint8_t(j.unk2);
                     s.align_write(0x08);
@@ -10476,8 +10476,8 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
                 int64_t auth_3d_offset = s.get_position();
 
-                pvpp_chara_effect& chara_effect = i.chara_effect;
-                for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
+                const pvpp_chara_effect& chara_effect = i.chara_effect;
+                for (const pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.auth_3d.str));
 
                     if (j.has_object_set)
@@ -10506,7 +10506,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         chara_effect_offsets -= chara_count;
 
         s.position_push(chara_offset, SEEK_SET);
-        for (pvpp_chara& i : play_param->chara) {
+        for (const pvpp_chara& i : play_param->chara) {
             if (!i.auth_3d.size() && !i.glitter.size() && (!i.chara_effect_init
                 || i.chara_effect_init && !i.chara_effect.auth_3d.size()))
                 continue;
@@ -10535,10 +10535,10 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         int64_t* auth_3d_offsets = force_malloc<int64_t>(effect_count);
         int64_t* glitter_offsets = force_malloc<int64_t>(effect_count);
 
-        for (pvpp_effect& i : play_param->effect) {
+        for (const pvpp_effect& i : play_param->effect) {
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
-                for (string_hash& j : i.auth_3d)
+                for (const string_hash& j : i.auth_3d)
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.str));
                 s.align_write(0x08);
             }
@@ -10547,7 +10547,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
 
             if (i.glitter.size()) {
                 *glitter_offsets++ = s.get_position();
-                for (pvpp_glitter& j : i.glitter) {
+                for (const pvpp_glitter& j : i.glitter) {
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_uint8_t(j.unk2 ? 0x01 : 0x00);
                     s.align_write(0x08);
@@ -10561,7 +10561,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
         glitter_offsets -= effect_count;
 
         s.position_push(effect_offset, SEEK_SET);
-        for (pvpp_effect& i : play_param->effect) {
+        for (const pvpp_effect& i : play_param->effect) {
             s.write_int8_t(i.chara_id);
             s.write_int8_t((int8_t)i.auth_3d.size());
             s.write_int8_t((int8_t)i.glitter.size());
@@ -10589,7 +10589,7 @@ static void x_pv_game_write_play_param(pvpp* play_param,
     s.close();
 }
 
-static void x_pv_game_write_stage_resource(pvsr* stage_resource,
+static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
     int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db) {
     struct x_pack_pvsr_effect {
         char name[0x40];
@@ -10615,29 +10615,29 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
     prj::vector_pair<string_hash, int64_t> strings;
 
-    for (pvsr_effect& i : stage_resource->effect)
+    for (const pvsr_effect& i : stage_resource->effect)
         x_pv_game_write_file_strings_push_back_check(s, strings, i.name.str);
 
-    for (pvsr_stage_effect& i : stage_resource->stage_effect) {
-        for (pvsr_auth_3d& j : i.auth_3d)
+    for (const pvsr_stage_effect& i : stage_resource->stage_effect) {
+        for (const pvsr_auth_3d& j : i.auth_3d)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
 
-        for (pvsr_glitter& j : i.glitter)
+        for (const pvsr_glitter& j : i.glitter)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
     }
 
-    for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env)
-        for (pvsr_auth_2d& j : i.aet_front_low)
+    for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env)
+        for (const pvsr_auth_2d& j : i.aet_front_low)
             x_pv_game_write_file_strings_push_back_check(s, strings, j.name.str);
 
     for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
         for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
-            pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
+            const pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
 
-            for (pvsr_auth_3d& k : chg_eff.auth_3d)
+            for (const pvsr_auth_3d& k : chg_eff.auth_3d)
                 x_pv_game_write_file_strings_push_back_check(s, strings, k.name.str);
 
-            for (pvsr_glitter& k : chg_eff.glitter)
+            for (const pvsr_glitter& k : chg_eff.glitter)
                 x_pv_game_write_file_strings_push_back_check(s, strings, k.name.str);
         }
     s.align_write(0x10);
@@ -10645,7 +10645,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
     if (effect_count) {
         effect_offset = s.get_position();
 
-        for (pvsr_effect& i : stage_resource->effect) {
+        for (const pvsr_effect& i : stage_resource->effect) {
             s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, i.name.str));
             s.write_float_t(i.emission);
             s.align_write(0x08);
@@ -10660,10 +10660,10 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
         int64_t* auth_3d_offsets = force_malloc<int64_t>(stage_effect_count);
         int64_t* glitter_offsets = force_malloc<int64_t>(stage_effect_count);
 
-        for (pvsr_stage_effect& i : stage_resource->stage_effect) {
+        for (const pvsr_stage_effect& i : stage_resource->stage_effect) {
             if (i.auth_3d.size()) {
                 *auth_3d_offsets++ = s.get_position();
-                for (pvsr_auth_3d& j : i.auth_3d) {
+                for (const pvsr_auth_3d& j : i.auth_3d) {
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_uint8_t(j.flags);
                     s.align_write(0x08);
@@ -10675,7 +10675,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
             if (i.glitter.size()) {
                 *glitter_offsets++ = s.get_position();
-                for (pvsr_glitter& j : i.glitter) {
+                for (const pvsr_glitter& j : i.glitter) {
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                     s.write_int8_t(j.fade_time);
                     s.write_uint8_t(j.flags);
@@ -10690,7 +10690,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
         glitter_offsets -= stage_effect_count;
 
         s.position_push(stage_effect_offset, SEEK_SET);
-        for (pvsr_stage_effect& i : stage_resource->stage_effect) {
+        for (const pvsr_stage_effect& i : stage_resource->stage_effect) {
             s.write_int8_t((int8_t)i.auth_3d.size());
             s.write_int8_t((int8_t)i.glitter.size());
             s.align_write(0x08);
@@ -10711,10 +10711,10 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
         int64_t* aet_offsets = force_malloc<int64_t>(stage_effect_env_count);
 
-        for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+        for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
             if (i.aet_front_low.size()) {
                 *aet_offsets++ = s.get_position();
-                for (pvsr_auth_2d& j : i.aet_front_low)
+                for (const pvsr_auth_2d& j : i.aet_front_low)
                     s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, j.name.str));
                 s.align_write(0x08);
             }
@@ -10724,7 +10724,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
         aet_offsets -= stage_effect_env_count;
 
         s.position_push(stage_effect_env_offset, SEEK_SET);
-        for (pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
+        for (const pvsr_stage_effect_env& i : stage_resource->stage_effect_env) {
             s.write_int8_t((int8_t)i.aet_front_low.size());
             s.align_write(0x08);
             s.write_int64_t(*aet_offsets++);
@@ -10744,11 +10744,11 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
         for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
             for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
-                pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
+                const pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
 
                 if (chg_eff.auth_3d.size()) {
                     *auth_3d_offsets++ = s.get_position();
-                    for (pvsr_auth_3d& k : chg_eff.auth_3d) {
+                    for (const pvsr_auth_3d& k : chg_eff.auth_3d) {
                         s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, k.name.str));
                         s.write_uint8_t(k.flags);
                         s.align_write(0x08);
@@ -10760,7 +10760,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
 
                 if (chg_eff.glitter.size()) {
                     *glitter_offsets++ = s.get_position();
-                    for (pvsr_glitter& k : chg_eff.glitter) {
+                    for (const pvsr_glitter& k : chg_eff.glitter) {
                         s.write_int64_t(x_pv_game_write_strings_get_string_offset(strings, k.name.str));
                         s.write_int8_t(k.fade_time);
                         s.write_uint8_t(k.flags);
@@ -10777,7 +10777,7 @@ static void x_pv_game_write_stage_resource(pvsr* stage_resource,
         s.position_push(stage_change_effect_offset, SEEK_SET);
         for (int32_t i = 0; i < PVSR_STAGE_EFFECT_COUNT; i++)
             for (int32_t j = 0; j < PVSR_STAGE_EFFECT_COUNT; j++) {
-                pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
+                const pvsr_stage_change_effect& chg_eff = stage_resource->stage_change_effect[i][j];
 
                 s.write_uint8_t(chg_eff.enable ? 0x01 : 0x00);
                 s.write_int8_t(chg_eff.bar_count);
