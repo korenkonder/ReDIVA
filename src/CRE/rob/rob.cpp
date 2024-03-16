@@ -9,7 +9,6 @@
 #include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../../KKdLib/key_val.hpp"
-#include "../../KKdLib/msgpack.hpp"
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
@@ -284,7 +283,6 @@ struct mothead_func_data {
     rob_chara* field_18;
     rob_chara_data* field_20;
     struc_223* field_28;
-    bool is_x;
 };
 
 typedef void(*mothead_func)(mothead_func_data*, void*,
@@ -989,8 +987,6 @@ static void mothead_func_79_rob_chara_coli_ring(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
 static void mothead_func_80_adjust_get_global_trans(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db);
-
-static void mothead_mot_msgpack_read(const char* path, const char* set_name, mothead* mhd); // X
 
 static void motion_blend_mot_interpolate(motion_blend_mot* a1);
 static void motion_blend_mot_load_bone_data(motion_blend_mot* a1,
@@ -3117,7 +3113,6 @@ static void sub_14053A9C0(struc_223* a1, rob_chara* rob_chr,
 
     a1->field_330.field_0.current = v7->data.data();
     a1->field_330.field_0.data = v7->data.data();
-    a1->field_330.field_0.is_x = v7->is_x;
     a1->field_7A0 = v7->field_28.data();
     a1->motion_set_id = mot_db->get_motion_set_id_by_motion_id(motion_id);
     a1->field_0.field_10 = v7->field_0;
@@ -4642,7 +4637,6 @@ static void mothead_apply(struc_223* a1, rob_chara* rob_chr, float_t frame, cons
     v7.field_18 = rob_chr;
     v7.field_28 = &rob_chr->data.field_1588;
     v7.field_20 = &rob_chr->data;
-    v7.is_x = v4.is_x; // X
 
     int32_t frame_int = (int32_t)frame;
     while (v4.current->frame <= frame_int && v4.current->type >= MOTHEAD_DATA_TYPE_0) {
@@ -4672,7 +4666,7 @@ static void sub_1405044B0(rob_chara* rob_chr) {
         if (fabsf(rob_chr->data.field_1588.field_330.arm_adjust_duration) > 0.000001f)
             blend = (rob_chr->data.motion.frame_data.frame
                 - (float_t)rob_chr->data.field_1588.field_330.arm_adjust_start_frame)
-            / rob_chr->data.field_1588.field_330.arm_adjust_duration;
+                / rob_chr->data.field_1588.field_330.arm_adjust_duration;
 
         blend = clamp_def(blend, 0.0f, 1.0f);
         if (fabsf(blend - 1.0f) <= 0.000001f)
@@ -6340,20 +6334,22 @@ static void mothead_func_32(mothead_func_data* func_data,
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     rob_chara_data* rob_chr_data = func_data->rob_chr_data;
     struc_651& v2 = rob_chr_data->field_1588.field_330;
-    if (func_data->is_x) { // X
-        float_t value = ((float_t*)data)[0];
-        float_t duration = ((float_t*)data)[1];
+
+    float_t v8 = (float_t)((int16_t*)data)[0];
+    int32_t v5 = ((int32_t*)data)[1];
+    float_t v9 = ((float_t*)data)[2];
+    int32_t v10 = ((int32_t*)data)[3];
+
+    if (v8 == (int16_t)0xFA0C && v10 == 0xD62721C5) { // X
+        printf("");
+        float_t value = v9;
+        float_t duration = (float_t)v5;
         v2.arm_adjust_next_value = value;
         v2.arm_adjust_prev_value = rob_chr_data->arm_adjust_scale;
         v2.arm_adjust_start_frame = mhd_data->frame;
         v2.arm_adjust_duration = max_def(duration, 0.0f);
         return;
     }
-
-    float_t v8 = (float_t)((int16_t*)data)[0];
-    int32_t v5 = ((int32_t*)data)[1];
-    float_t v9 = ((float_t*)data)[2];
-    int32_t v10 = ((int32_t*)data)[3];
 
     if (rob_chr_data->motion.field_28 & 0x08)
         v5 = sub_140533440(v5);
@@ -6892,179 +6888,6 @@ static void mothead_func_80_adjust_get_global_trans(mothead_func_data* func_data
     void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
     func_data->rob_chr_data->adjust_data.get_global_trans = ((uint8_t*)data)[0];
 }
-
-static size_t mothead_data_radix_index_func_frame(mothead_data* data, size_t index) {
-    return (uint32_t)data[index].frame;
-}
-
-#pragma warning(push)
-#pragma warning(disable: 6386)
-static void mothead_mot_msgpack_read(const char* path, const char* set_name, mothead* mhd) { // X
-    char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "%s\\%s.json", path, set_name);
-    if (!path_check_file_exists(buf))
-        return;
-
-    msgpack msg;
-
-    file_stream s;
-    s.open(buf, "rb");
-    io_json_read(s, &msg);
-    s.close();
-
-    if (msg.type != MSGPACK_ARRAY)
-        return;
-
-    size_t data_x_size = 0;
-    msgpack_array* ptr = msg.data.arr;
-    for (msgpack& i : *ptr) {
-        msgpack* mot_id = i.read("MotionID");
-        msgpack* arr = i.read_array("Array");
-        if (!mot_id || !arr)
-            continue;
-
-        uint32_t motion_id = mot_id->read_int32_t();
-        if (motion_id < mhd->first_mot_id || motion_id > mhd->last_mot_id)
-            continue;
-
-        mothead_mot* mhdm = mhd->mots[(ssize_t)motion_id - mhd->first_mot_id];
-
-        msgpack_array* ptr = arr->data.arr;
-        for (msgpack& j : *ptr) {
-            msgpack* type = j.read("Type", MSGPACK_STRING);
-            msgpack* frm = j.read("Frame", MSGPACK_INT32);
-            msgpack* data = j.read("Data", MSGPACK_MAP);
-            if (!type || !frm)
-                continue;
-
-            if (!type->data.str->compare("32") && data) {
-                if (data->read("Value", MSGPACK_FLOAT32) && data->read("Duration", MSGPACK_FLOAT32))
-                    data_x_size += 0x08;
-            }
-            else if (!type->data.str->compare("RobHandAdjust") && data) {
-                msgpack* hnd = data->read("Hand", MSGPACK_INT16);
-                if (hnd) {
-                    int32_t frame = frm->read_int32_t();
-                    int16_t hand = hnd->read_int16_t();
-                    for (mothead_data& j : mhdm->data)
-                        if (j.frame == frame && j.type == MOTHEAD_DATA_ROB_HAND_ADJUST
-                            && ((int16_t*)j.data)[0] == hand) {
-                            data_x_size += 0x30;
-                            break;
-                        }
-                }
-            }
-            else if (!type->data.str->compare("RobArmAdjust") && data) {
-                msgpack* idx = data->read("Index", MSGPACK_INT16);
-                if (idx) {
-                    int32_t frame = frm->read_int32_t();
-                    int16_t index = idx->read_int16_t();
-                    for (mothead_data& j : mhdm->data)
-                        if (j.frame == frame && j.type == MOTHEAD_DATA_ROB_ARM_ADJUST
-                            && ((int16_t*)j.data)[0] == index) {
-                            data_x_size += 0x0C;
-                            break;
-                        }
-                }
-            }
-        }
-    }
-
-    size_t data_x = (size_t)malloc(data_x_size);
-    if (!data_x)
-        return;
-
-    mhd->data_x = (void*)data_x;
-
-    for (msgpack& i : *ptr) {
-        msgpack* mot_id = i.read("MotionID");
-        msgpack* arr = i.read_array("Array");
-        if (!mot_id || !arr)
-            continue;
-
-        uint32_t motion_id = mot_id->read_uint32_t();
-        if ((int32_t)motion_id < mhd->first_mot_id || (int32_t)motion_id > mhd->last_mot_id)
-            continue;
-        else if (!arr->data.arr->size())
-            continue;
-
-        mothead_mot* mhdm = mhd->mots[(ssize_t)(int32_t)motion_id - mhd->first_mot_id];
-
-        msgpack_array* ptr = arr->data.arr;
-        for (msgpack& j : *ptr) {
-            msgpack* type = j.read("Type", MSGPACK_STRING);
-            msgpack* frm = j.read("Frame", MSGPACK_INT32);
-            msgpack* data = j.read("Data", MSGPACK_MAP);
-            if (!type || !frm)
-                continue;
-
-            int32_t frame = frm->read_int32_t();
-
-            if (!type->data.str->compare("32") && data) {
-                mhdm->data.push_back({ MOTHEAD_DATA_TYPE_32, frame, (void*)data_x });
-                ((float_t*)data_x)[0] = data->read_float_t("Value");
-                ((float_t*)data_x)[1] = data->read_float_t("Duration");
-                data_x += 0x08;
-            }
-            else if (!type->data.str->compare("RobHandAdjust") && data) {
-                msgpack* hnd = data->read("Hand", MSGPACK_INT16);
-                if (hnd) {
-                    int32_t frame = frm->read_int32_t();
-                    int16_t hand = hnd->read_int16_t();
-                    for (mothead_data& j : mhdm->data) {
-                        if (j.frame != frame || j.type != MOTHEAD_DATA_ROB_HAND_ADJUST
-                            || ((int16_t*)j.data)[0] != hand)
-                            continue;
-
-                        j.data = (void*)data_x;
-                        ((int16_t*)data_x)[0] = hand;
-                        ((int16_t*)data_x)[1] = data->read_int16_t("ScaleSelect");
-                        ((float_t*)data_x)[1] = data->read_float_t("Duration");
-                        ((int16_t*)data_x)[4] = data->read_int16_t("Type");
-                        ((float_t*)data_x)[3] = data->read_float_t("Scale");
-                        ((float_t*)data_x)[4] = data->read_float_t("RotBlend");
-                        ((float_t*)data_x)[5] = data->read_float_t("OffsetX");
-                        ((float_t*)data_x)[6] = data->read_float_t("OffsetY");
-                        ((float_t*)data_x)[7] = data->read_float_t("OffsetZ");
-                        ((uint8_t*)data_x)[32] = data->read_bool("EnableScale") ? 0x01 : 0x00;
-                        ((uint8_t*)data_x)[33] = data->read_bool("DisableX") ? 0x01 : 0x00;
-                        ((uint8_t*)data_x)[34] = data->read_bool("DisableY") ? 0x01 : 0x00;
-                        ((uint8_t*)data_x)[35] = data->read_bool("DisableZ") ? 0x01 : 0x00;
-                        ((float_t*)data_x)[9] = data->read_float_t("OffsetBlend");
-                        ((float_t*)data_x)[10] = data->read_float_t("ArmLength");
-                        ((int32_t*)data_x)[11] = data->read_int32_t("i2C");
-                        data_x += 0x30;
-                        break;
-                    }
-                }
-            }
-            else if (!type->data.str->compare("RobArmAdjust") && data) {
-                msgpack* idx = data->read("Index", MSGPACK_INT16);
-                if (idx) {
-                    int32_t frame = frm->read_int32_t();
-                    int16_t index = idx->read_int16_t();
-                    for (mothead_data& j : mhdm->data) {
-                        if (j.frame != frame || j.type != MOTHEAD_DATA_ROB_ARM_ADJUST
-                            || ((int16_t*)j.data)[0] != index)
-                            continue;
-
-                        j.data = (void*)data_x;
-                        ((int16_t*)data_x)[0] = index;
-                        ((float_t*)data_x)[1] = data->read_float_t("Duration");
-                        ((float_t*)data_x)[2] = data->read_float_t("Value");
-                        data_x += 0x0C;
-                        break;
-                    }
-                }
-            }
-        }
-
-        radix_sort_custom(mhdm->data.data(), mhdm->data.size(), sizeof(mothead_data),
-            sizeof(uint32_t), (radix_index_func)mothead_data_radix_index_func_frame);
-        mhdm->is_x = true;
-    }
-}
-#pragma warning(pop)
 
 static void motion_blend_mot_interpolate(motion_blend_mot* a1) {
     vec3* keyframe_data = (vec3*)a1->mot_key_data.key_set_data.data();
@@ -14890,7 +14713,6 @@ mothead_mot::mothead_mot() {
     field_0.field_C = 0;
     field_10 = 0x04;
     field_12 = 0x04;
-    is_x = false; // X
 }
 
 mothead_mot::~mothead_mot() {
@@ -14901,7 +14723,6 @@ mothead::mothead() {
     mot_set_id = -1;
     first_mot_id = 0;
     last_mot_id = 0;
-    data_x = 0; // X
 }
 
 mothead::~mothead() {
@@ -14910,11 +14731,6 @@ mothead::~mothead() {
             delete i;
             i = 0;
         }
-
-    if (data_x) { // X
-        free(data_x);
-        data_x = 0;
-    }
 }
 
 struc_306::struc_306() : field_0(), frame(), field_8(), field_C(), field_E(),
@@ -15082,7 +14898,6 @@ field_320(), field_324(), field_328(), field_32C(), field_330(), field_334(), fi
 void struc_651::reset() {
     field_0.current = 0;
     field_0.data = 0;
-    field_0.is_x = false; // X
     field_10 = 0;
     field_14 = 0;
     field_18 = 0;
@@ -15474,27 +15289,6 @@ mothead* MhdFile::ParseMothead(mothead_file* mhdf, size_t data) {
         mots++;
         mot_offsets++;
     }
-
-    { // X
-        const char* _file = strrchr(file_path.c_str(), '\\');
-        if (!_file)
-            _file = strrchr(file_path.c_str(), '/');
-
-        if (_file) {
-            _file++;
-
-            size_t _file_len;
-            const char* _file_end = strrchr(_file, '.');
-            if (_file_end)
-                _file_len = _file_end - _file;
-            else
-                _file_len = utf8_length(_file);
-
-            std::string file(_file, _file_len);
-            mothead_mot_msgpack_read("patch\\AFT\\rob", file.c_str(), mhd);
-        }
-    }
-
     return mhd;
 }
 

@@ -2933,7 +2933,6 @@ struct mothead_mot {
     std::vector<mothead_data2> field_18;
     std::vector<mothead_data> data;
     std::vector<int64_t> field_28;
-    bool is_x;
 
     mothead_mot();
     ~mothead_mot();
@@ -2944,7 +2943,6 @@ struct mothead {
     uint32_t first_mot_id;
     uint32_t last_mot_id;
     std::vector<mothead_mot*> mots;
-    void* data_x;
 
     mothead();
     ~mothead();
