@@ -908,8 +908,7 @@ public:
 #if BAKE_X_PACK
 class XPVGameBaker : public app::Task {
 public:
-    int32_t pv_id;
-    int32_t stage_id;
+    int32_t index;
     ::chara_index chara_index;
     ::chara_index charas[ROB_CHARA_COUNT];
     int32_t modules[ROB_CHARA_COUNT];

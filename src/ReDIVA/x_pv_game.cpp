@@ -6581,6 +6581,13 @@ bool x_pv_game::ctrl() {
         if (wait_load)
             break;
 
+        for (int32_t i = 0; i < 5; i++) {
+            x_pv_game_write_spr(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db, &baker->spr_db);
+            x_pv_game_write_aet(baker->pv_tit_aet_set_ids[i], &baker->pv_tit_aet_db, &baker->aet_db, &baker->spr_db);
+        }
+
+        x_pv_game_write_str_array();
+
         baker->pv_tit_init = true;
 #endif
         state_old = 7;
@@ -8694,8 +8701,7 @@ void x_pv_game::stop_current_pv() {
 #if BAKE_X_PACK
 XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
 pv_tit_spr_set_ids(), pv_tit_aet_ids(), pv_tit_init(), start(), exit(), next() {
-    pv_id = 800;
-    stage_id = 0;
+    index = -1;
     chara_index = CHARA_MIKU;
 
     for (::chara_index& i : charas)
@@ -8744,26 +8750,17 @@ bool XPVGameBaker::ctrl() {
 
     next = false;
 
-    switch (pv_id) {
-    case 832:
+    if (index >= 31) {
         exit = true;
         return true;
     }
 
-    pv_id++;
-    stage_id++;
+    index++;
     start = true;
     return false;
 }
 
 bool XPVGameBaker::dest() {
-    for (int32_t i = 0; i < 5; i++) {
-        x_pv_game_write_spr(pv_tit_spr_set_ids[i], &pv_tit_spr_db, &spr_db);
-        x_pv_game_write_aet(pv_tit_aet_set_ids[i], &pv_tit_aet_db, &aet_db, &spr_db);
-    }
-
-    x_pv_game_write_str_array();
-
     aet_db.write("patch\\!temp\\2d\\mdata_aet_db");
     auth_3d_db.write("patch\\!temp\\auth_3d\\mdata_auth_3d_db");
     obj_db.write("patch\\!temp\\objset\\mdata_obj_db");
@@ -9930,6 +9927,8 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
             for (const dsc_data& i : dsc_chart.data)
                 switch (i.func) {
                 case DSC_X_TIME:
+                case DSC_X_MOVIE_PLAY:
+                case DSC_X_MOVIE_DISP:
                 case DSC_X_TARGET:
                 case DSC_X_TARGET_FLYING_TIME:
                     data_temp.push_back(i);

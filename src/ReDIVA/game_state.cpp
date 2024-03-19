@@ -1297,10 +1297,45 @@ bool SubGameState::Selector::Ctrl() {
 
 #if defined(CRE_DEV)
 #if BAKE_X_PACK
+    const int32_t pv_ids[] = {
+        824,
+        811,
+        820,
+        801,
+        802,
+        803,
+        804,
+        805,
+        806,
+        807,
+        808,
+        809,
+        810,
+        812,
+        813,
+        814,
+        815,
+        816,
+        817,
+        818,
+        819,
+        821,
+        822,
+        823,
+        825,
+        826,
+        827,
+        828,
+        829,
+        830,
+        831,
+        832,
+    };
+
     XPVGameBaker* baker = x_pv_game_baker_get();
     if (baker->start && x_pv_game_init()) {
         app::TaskWork::add_task(x_pv_game_get(), "PVGAME", 0);
-        x_pv_game_get()->load(baker->pv_id, baker->stage_id, baker->charas, baker->modules);
+        x_pv_game_get()->load(pv_ids[baker->index], pv_ids[baker->index] % 100, baker->charas, baker->modules);
         game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
     }
     else
