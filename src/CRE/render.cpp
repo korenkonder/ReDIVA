@@ -2086,40 +2086,40 @@ namespace rndr {
         }
     }
 
+    static float_t calc_area_tex_val(int32_t a1, int32_t a2) {
+        float_t v2 = (float_t)(-0.5 / ((float_t)a2 - 0.5));
+        float_t v3 = (float_t)a1 * v2 + 0.5f;
+        if (a1 >= a2 - 1)
+            return (v3 * 0.5f) * 0.5f;
+        else
+            return ((float_t)(a1 + 1) * v2 + 0.5f + v3) * 0.5f;
+    };
+
     static void calculate_mlaa_area_texture_data_inner(float_t* val_left,
         float_t* val_right, int32_t cross1, int32_t cross2, int32_t dleft, int32_t dright) {
-        auto calc_area_tex_val = [&](int32_t a1, int32_t a2) {
-            float_t v2 = (float_t)(-0.5 / ((float_t)a2 - 0.5));
-            float_t v3 = (float_t)a1 * v2 + 0.5f;
-            if (a1 >= a2 - 1)
-                return (v3 * 0.5f) * 0.5f;
-            else
-                return ((float_t)(a1 + 1) * v2 + 0.5f + v3) * 0.5f;
-        };
-
-        int32_t dist = dleft + dright + 1;
+        int32_t d = dleft + dright + 1;
         float_t _val_left = 0.0f;
         float_t _val_right = 0.0f;
         switch (cross2) {
         case 0:
             switch (cross1) {
             case 1:
-                _val_right = calc_area_tex_val(dleft, min_def(dist, MLAA_GRID_SIDE_LEN));
+                _val_right = calc_area_tex_val(dleft, min_def(d, MLAA_GRID_SIDE_LEN));
                 break;
             case 3:
-                _val_left = calc_area_tex_val(dleft, min_def(dist, MLAA_GRID_SIDE_LEN));
+                _val_left = calc_area_tex_val(dleft, min_def(d, MLAA_GRID_SIDE_LEN));
                 break;
             }
             break;
         case 1:
             switch (cross1) {
             case 0:
-                _val_right = calc_area_tex_val(dright, min_def(dist, MLAA_GRID_SIDE_LEN));
+                _val_right = calc_area_tex_val(dright, min_def(d, MLAA_GRID_SIDE_LEN));
                 break;
             case 1:
-                if (dist % 2) {
-                    int32_t v12 = dist / 2 + 1;
-                    int32_t v15 = dist / 2;
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
                     if (dleft < v15)
                         _val_right = calc_area_tex_val(dleft, v12);
                     else if (dright < v15)
@@ -2128,7 +2128,7 @@ namespace rndr {
                         _val_right = calc_area_tex_val(v15, v12) * 2.0f;
                 }
                 else {
-                    int32_t v12 = dist / 2;
+                    int32_t v12 = d / 2;
                     float_t v14 = -0.5f / (float_t)v12;
                     if (dleft >= v12)
                         _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
@@ -2137,10 +2137,9 @@ namespace rndr {
                 }
                 break;
             case 3:
-            case 4:
-                if (dist % 2) {
-                    int32_t v12 = dist / 2 + 1;
-                    int32_t v15 = dist / 2;
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
                     if (dleft < v15)
                         _val_left = calc_area_tex_val(dleft, v12);
                     else if (dright < v15)
@@ -2149,7 +2148,27 @@ namespace rndr {
                         _val_left = _val_right = calc_area_tex_val(v15, v12);
                 }
                 else {
-                    int32_t v12 = dist / 2;
+                    int32_t v12 = d / 2;
+                    float_t v14 = -0.5f / (float_t)v12;
+                    if (dleft < v12)
+                        _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    else
+                        _val_right = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+                }
+                break;
+            case 4:
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
+                    if (dleft < v15)
+                        _val_left = calc_area_tex_val(dleft, v12);
+                    else if (dright < v15)
+                        _val_right = calc_area_tex_val(dright, v12);
+                    else
+                        _val_left = _val_right = calc_area_tex_val(v15, v12);
+                }
+                else {
+                    int32_t v12 = d / 2;
                     float_t v14 = -0.5f / (float_t)v12;
                     if (dleft < v12)
                         _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
@@ -2162,13 +2181,12 @@ namespace rndr {
         case 3:
             switch (cross1) {
             case 0:
-                _val_left = calc_area_tex_val(dright, min_def(dist, MLAA_GRID_SIDE_LEN));
+                _val_left = calc_area_tex_val(dright, min_def(d, MLAA_GRID_SIDE_LEN));
                 break;
             case 1:
-            case 4:
-                if (dist % 2) {
-                    int32_t v12 = dist / 2 + 1;
-                    int32_t v15 = dist / 2;
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
                     if (dleft < v15)
                         _val_right = calc_area_tex_val(dleft, v12);
                     else if (dright < v15)
@@ -2177,7 +2195,7 @@ namespace rndr {
                         _val_left = _val_right = calc_area_tex_val(v15, v12);
                 }
                 else {
-                    int32_t v12 = dist / 2;
+                    int32_t v12 = d / 2;
                     float_t v14 = -0.5f / (float_t)v12;
                     if (dleft < v12)
                         _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
@@ -2186,9 +2204,9 @@ namespace rndr {
                 }
                 break;
             case 3:
-                if (dist % 2) {
-                    int32_t v12 = dist / 2 + 1;
-                    int32_t v15 = dist / 2;
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
                     if (dleft < v15)
                         _val_left = calc_area_tex_val(dleft, v12);
                     else if (dright < v15)
@@ -2197,10 +2215,30 @@ namespace rndr {
                         _val_left = calc_area_tex_val(v15, v12) * 2.0f;
                 }
                 else {
-                    int32_t v12 = dist / 2;
+                    int32_t v12 = d / 2;
                     float_t v14 = -0.5f / (float_t)v12;
                     if (dleft < v12)
                         _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
+                    else
+                        _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
+                }
+                break;
+            case 4:
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
+                    if (dleft < v15)
+                        _val_right = calc_area_tex_val(dleft, v12);
+                    else if (dright < v15)
+                        _val_left = calc_area_tex_val(dright, v12);
+                    else
+                        _val_left = _val_right = calc_area_tex_val(v15, v12);
+                }
+                else {
+                    int32_t v12 = d / 2;
+                    float_t v14 = -0.5f / (float_t)v12;
+                    if (dleft < v12)
+                        _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
                     else
                         _val_left = ((float_t)(dright * 2 + 1) * v14 + 1.0f) * 0.5f;
                 }
@@ -2210,9 +2248,9 @@ namespace rndr {
         case 4:
             switch (cross1) {
             case 1:
-                if (dist % 2) {
-                    int32_t v12 = dist / 2 + 1;
-                    int32_t v15 = dist / 2;
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
                     if (dleft < v15)
                         _val_right = calc_area_tex_val(dleft, v12);
                     else if (dright < v15)
@@ -2221,7 +2259,7 @@ namespace rndr {
                         _val_left = _val_right = calc_area_tex_val(v15, v12);
                 }
                 else {
-                    int32_t v12 = dist / 2;
+                    int32_t v12 = d / 2;
                     float_t v14 = -0.5f / (float_t)v12;
                     if (dleft < v12)
                         _val_right = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
@@ -2230,9 +2268,9 @@ namespace rndr {
                 }
                 break;
             case 3:
-                if (dist % 2) {
-                    int32_t v12 = dist / 2 + 1;
-                    int32_t v15 = dist / 2;
+                if (d % 2) {
+                    int32_t v12 = d / 2 + 1;
+                    int32_t v15 = d / 2;
                     if (dleft < v15)
                         _val_left = calc_area_tex_val(dleft, v12);
                     else if (dright < v15)
@@ -2241,7 +2279,7 @@ namespace rndr {
                         _val_left = _val_right = calc_area_tex_val(v15, v12);
                 }
                 else {
-                    int32_t v12 = dist / 2;
+                    int32_t v12 = d / 2;
                     float_t v14 = -0.5f / (float_t)v12;
                     if (dleft < v12)
                         _val_left = ((float_t)(dleft * 2 + 1) * v14 + 1.0f) * 0.5f;
