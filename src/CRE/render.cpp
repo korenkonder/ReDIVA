@@ -26,7 +26,6 @@ extern dof_pv dof_pv_data;
 #define TONE_MAP_SAT_GAMMA_SAMPLES 32
 
 namespace rndr {
-    static void generate_mlaa_area_texture(Render* rend);
     static void calculate_mlaa_area_texture_data(uint8_t* data, int32_t cross1, int32_t cross2);
     static void calculate_mlaa_area_texture_data_inner(float_t* val_left,
         float_t* val_right, int32_t cross1, int32_t cross2, int32_t dleft, int32_t dright);
@@ -142,8 +141,6 @@ namespace rndr {
 
         draw_lens_ghost();
 
-        get_frame_texture(rend_texture[0].GetColorTex(), FRAME_TEXTURE_PRE_PP);
-
         downsample();
 
         reduce_tex_draw = 0;
@@ -176,7 +173,8 @@ namespace rndr {
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
         }
 
-        get_frame_texture(taa_tex[2]->tex, FRAME_TEXTURE_POST_PP);
+        copy_to_frame_texture(rend_texture[0].GetColorTex(),
+            render_width[0], render_height[0], taa_tex[2]->tex);
 
         frame_texture_reset_capture();
 
@@ -970,7 +968,7 @@ namespace rndr {
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
         gl_state_bind_texture_2d(0);
 
-        generate_mlaa_area_texture(this);
+        generate_mlaa_area_texture();
 
         glGenQueries(3, lens_shaft_query);
         glGenQueries(3, lens_flare_query);
@@ -1818,6 +1816,31 @@ namespace rndr {
         rctx_ptr->gaussian_coef_ubo.WriteMemory(gaussian_coef);
     }
 
+    void Render::copy_to_frame_texture(GLuint pre_pp_tex, int32_t wight, int32_t height, GLuint post_pp_tex) {
+        for (Render::FrameTexture& i : frame_texture) {
+            if (!i.capture)
+                continue;
+
+            for (auto& j : i.data) {
+                if (!j.texture || j.render_texture.Bind() < 0)
+                    continue;
+
+                texture* dst_tex = j.texture;
+
+                gl_state_active_bind_texture_2d(0, j.type == FRAME_TEXTURE_PRE_PP ? pre_pp_tex : post_pp_tex);
+                gl_state_bind_sampler(0, rctx_ptr->render_samplers[0]);
+                glViewport(0, 0, dst_tex->width, dst_tex->height);
+                uniform_value[U_REDUCE] = 0;
+                shaders_ft.set(SHADER_FT_REDUCE);
+                draw_quad(dst_tex->width, dst_tex->height,
+                    1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+                gl_state_bind_framebuffer(0);
+            }
+
+            i.capture = false;
+        }
+    }
+
     static void make_ghost_quad(uint8_t flags, float_t opacity, mat4* mat, float_t*& data) {
         const float_t x0 = flags & 0x01 ? 0.5f : 0.0f;
         const float_t x1 = flags & 0x01 ? 1.0f : 0.5f;
@@ -1933,6 +1956,23 @@ namespace rndr {
                 i.capture = false;
     }
 
+    void Render::generate_mlaa_area_texture() {
+        uint8_t* data = force_malloc<uint8_t>(MLAA_SIDE_LEN * MLAA_SIDE_LEN * 2);
+        if (!data)
+            return;
+
+        for (int32_t cross2 = 0; cross2 < 5; cross2++)
+            for (int32_t cross1 = 0; cross1 < 5; cross1++)
+                calculate_mlaa_area_texture_data(data, cross1, cross2);
+
+        glGenTextures(1, &mlaa_area_texture);
+        gl_state_bind_texture_2d(mlaa_area_texture);
+        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, MLAA_SIDE_LEN, MLAA_SIDE_LEN, 0, GL_RG, GL_UNSIGNED_BYTE, data);
+        gl_state_bind_texture_2d(0);
+        free_def(data);
+    }
+
     void Render::get_blur() {
         render_context* rctx = rctx_ptr;
 
@@ -1989,29 +2029,6 @@ namespace rndr {
         reduce_tex_draw = reduce_tex[0]->tex;
     }
 
-    void Render::get_frame_texture(GLuint tex, Render::FrameTextureType type) {
-        for (Render::FrameTexture& i : frame_texture) {
-            if (!i.capture)
-                continue;
-
-            for (auto& j : i.data) {
-                if (!j.texture || j.type != type || j.render_texture.Bind() < 0)
-                    continue;
-
-                texture* dst_tex = j.texture;
-
-                gl_state_active_bind_texture_2d(0, tex);
-                gl_state_bind_sampler(0, rctx_ptr->render_samplers[0]);
-                glViewport(0, 0, dst_tex->width, dst_tex->height);
-                uniform_value[U_REDUCE] = 0;
-                shaders_ft.set(SHADER_FT_REDUCE);
-                draw_quad(dst_tex->width, dst_tex->height,
-                    1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-                gl_state_bind_framebuffer(0);
-            }
-        }
-    }
-
     void Render::update_tone_map_lut() {
         if (!update_lut)
             return;
@@ -2052,23 +2069,6 @@ namespace rndr {
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0,
                 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, GL_RG, GL_FLOAT, tex_data);
         }
-    }
-
-    static void generate_mlaa_area_texture(Render* rend) {
-        uint8_t* data = (uint8_t*)malloc(MLAA_SIDE_LEN * MLAA_SIDE_LEN * 2);
-        if (!data)
-            return;
-
-        for (int32_t cross2 = 0; cross2 < 5; cross2++)
-            for (int32_t cross1 = 0; cross1 < 5; cross1++)
-                calculate_mlaa_area_texture_data(data, cross1, cross2);
-
-        glGenTextures(1, &rend->mlaa_area_texture);
-        gl_state_bind_texture_2d(rend->mlaa_area_texture);
-        glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, MLAA_SIDE_LEN, MLAA_SIDE_LEN, 0, GL_RG, GL_UNSIGNED_BYTE, data);
-        gl_state_bind_texture_2d(0);
-        free(data);
     }
 
     static void calculate_mlaa_area_texture_data(uint8_t* data, int32_t cross1, int32_t cross2) {

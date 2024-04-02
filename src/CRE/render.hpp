@@ -263,11 +263,12 @@ namespace rndr {
         void calc_exposure(camera* cam);
         void calc_gaussian_blur(float_t start, float_t step,
             int32_t kernel_size, float_t radius_scale, float_t intensity_scale);
+        void copy_to_frame_texture(GLuint pre_pp_tex, int32_t wight, int32_t height, GLuint post_pp_tex);
         void draw_lens_ghost();
         void downsample();
         void frame_texture_reset_capture();
+        void generate_mlaa_area_texture();
         void get_blur();
-        void get_frame_texture(GLuint tex, FrameTextureType type);
         void update_tone_map_lut();
     };
 }
