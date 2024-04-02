@@ -123,27 +123,13 @@ namespace renderer {
 
         this->width = width;
         this->height = height;
+
         int32_t w20 = max_def(width / 20, 1);
         int32_t h20 = max_def(height / 20, 1);
         int32_t w2 = max_def(width / 2, 1);
         int32_t h2 = max_def(height / 2, 1);
-        glGenTextures(6, textures);
-        gl_state_bind_texture_2d(textures[0]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
-        fbo[0].init(w20, h20, &textures[0], 1, 0);
-        gl_state_bind_texture_2d(textures[1]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
-        fbo[1].init(w20, h20, &textures[1], 1, 0);
-        gl_state_bind_texture_2d(textures[2]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-        gl_state_bind_texture_2d(textures[3]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-        fbo[2].init(w2, h2, &textures[2], 2, 0);
-        gl_state_bind_texture_2d(textures[4]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-        gl_state_bind_texture_2d(textures[5]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, w2, h2);
-        fbo[3].init(w2, h2, &textures[4], 2, 0);
+
+        init_textures(width, height);
     }
 
     void DOF3::free() {
@@ -167,42 +153,25 @@ namespace renderer {
     }
 
     void DOF3::init(int32_t width, int32_t height) {
-        int32_t w20 = max_def(width / 20, 1);
-        int32_t h20 = max_def(height / 20, 1);
-        int32_t w2 = max_def(width / 2, 1);
-        int32_t h2 = max_def(height / 2, 1);
-        glGenTextures(6, textures);
-        gl_state_bind_texture_2d(textures[0]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
-        fbo[0].init(w20, h20, &textures[0], 1, 0);
-        gl_state_bind_texture_2d(textures[1]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_RG16F, w20, h20);
-        fbo[1].init(w20, h20, &textures[1], 1, 0);
-        gl_state_bind_texture_2d(textures[2]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-        gl_state_bind_texture_2d(textures[3]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-        fbo[2].init(w2, h2, &textures[2], 2, 0);
-        gl_state_bind_texture_2d(textures[4]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R11F_G11F_B10F, w2, h2);
-        gl_state_bind_texture_2d(textures[5]);
-        glTexStorage2D(GL_TEXTURE_2D, 1, GL_R8, w2, h2);
-        fbo[3].init(w2, h2, &textures[4], 2, 0);
+        free();
 
-        vec2 data[50] = {};
-        calculate_texcoords(data, 3.0f);
-        common_ubo.Create(sizeof(dof_common_shader_data));
-        texcoords_ubo.Create(sizeof(data), data);
+        init_textures(width, height);
 
         glGenSamplers(2, samplers);
         glSamplerParameteri(samplers[0], GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glSamplerParameteri(samplers[0], GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glSamplerParameteri(samplers[0], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         glSamplerParameteri(samplers[1], GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glSamplerParameteri(samplers[1], GL_TEXTURE_MIN_FILTER, GL_NEAREST_MIPMAP_NEAREST);
+        glSamplerParameteri(samplers[1], GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glSamplerParameteri(samplers[1], GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        common_ubo.Create(sizeof(dof_common_shader_data));
+
+        vec2 data[50] = {};
+        renderer::DOF3::calculate_texcoords(data, 3.0f);
+        texcoords_ubo.Create(sizeof(data), data);
 
         glGenVertexArrays(1, &vao);
     }
@@ -341,6 +310,34 @@ namespace renderer {
             GL_TEXTURE_2D, 0, 0, 0, 0, rt->GetColorTex(),
             GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
         gl_state_end_event();
+    }
+
+    void DOF3::init_textures(int32_t width, int32_t height) {
+        int32_t w20 = max_def(width / 20, 1);
+        int32_t h20 = max_def(height / 20, 1);
+        int32_t w2 = max_def(width / 2, 1);
+        int32_t h2 = max_def(height / 2, 1);
+
+        glGenTextures(6, textures);
+        gl_state_bind_texture_2d(textures[0]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, w20, h20, 0, GL_RG, GL_HALF_FLOAT, 0);
+        fbo[0].init(w20, h20, &textures[0], 1, 0);
+
+        gl_state_bind_texture_2d(textures[1]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, w20, h20, 0, GL_RG, GL_HALF_FLOAT, 0);
+        fbo[1].init(w20, h20, &textures[1], 1, 0);
+
+        gl_state_bind_texture_2d(textures[2]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, w2, h2, 0, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, 0);
+        gl_state_bind_texture_2d(textures[3]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, w2, h2, 0, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, 0);
+        fbo[2].init(w2, h2, &textures[2], 2, 0);
+
+        gl_state_bind_texture_2d(textures[4]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R11F_G11F_B10F, w2, h2, 0, GL_RGB, GL_UNSIGNED_INT_10F_11F_11F_REV, 0);
+        gl_state_bind_texture_2d(textures[5]);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_R8, w2, h2, 0, GL_RED, GL_UNSIGNED_BYTE, 0);
+        fbo[3].init(w2, h2, &textures[4], 2, 0);
     }
 
     void DOF3::update_data(float_t min_dist, float_t max_dist, float_t fov, float_t dist, float_t focal_length,
