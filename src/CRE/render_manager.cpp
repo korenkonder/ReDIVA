@@ -133,14 +133,14 @@ namespace rndr {
             gpu_time[i] = 0.0;
         }
 
-        set_pass_sw(RND_PASSID_2, 0);
-        set_pass_sw(RND_PASSID_REFLECT, 0);
-        set_pass_sw(RND_PASSID_REFRACT, 0);
-        set_pass_sw(RND_PASSID_PRE_PROCESS, 0);
-        set_pass_sw(RND_PASSID_SHOW_VECTOR, 0);
+        set_pass_sw(RND_PASSID_2, false);
+        set_pass_sw(RND_PASSID_REFLECT, false);
+        set_pass_sw(RND_PASSID_REFRACT, false);
+        set_pass_sw(RND_PASSID_PRE_PROCESS, false);
+        set_pass_sw(RND_PASSID_SHOW_VECTOR, false);
 
         shadow_ptr = 0;
-        sync_gpu = 0;
+        sync_gpu = false;
         time.get_timestamp();
 
         shadow = true;
@@ -807,8 +807,7 @@ namespace rndr {
             uniform_value[U_WATER_REFLECT] = 0;
         }
 
-        gl_state_active_bind_texture_2d(16, rctx->sss_data->textures[1].GetColorTex());
-        gl_state_active_texture(0);
+        rctx->sss_data->set_texture(1);
 
         gl_state_bind_sampler(14, rctx->render_samplers[0]);
         gl_state_bind_sampler(15, rctx->render_samplers[0]);

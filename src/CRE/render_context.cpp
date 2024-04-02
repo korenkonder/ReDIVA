@@ -71,10 +71,10 @@ void draw_state::set_fog_height(bool value) {
 }
 
 sss_data::sss_data() : init_data(), enable(), npr_contour(), param() {
-    init_data = true;
+    init_data = false;
     enable = true;
     npr_contour = true;
-    param = { 0.0f, 0.0f, 0.0f, 1.0f };
+    param = 1.0f;
 }
 
 sss_data::~sss_data() {
@@ -82,14 +82,27 @@ sss_data::~sss_data() {
 }
 
 void sss_data::free() {
-
+    if (init_data)
+        for (RenderTexture& i : textures)
+            i.Free();
 }
 
 void sss_data::init() {
+    if (init_data)
+        return;
+
     textures[0].Init(640, 360, 0, GL_RGBA16F, GL_ZERO /*GL_DEPTH_COMPONENT32F*/);
     textures[1].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
     textures[2].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
     textures[3].Init(320, 180, 0, GL_RGBA16F, GL_ZERO);
+
+    param = { 0.0f, 0.0f, 0.0f, 1.0f };
+    init_data = true;
+}
+
+void sss_data::set_texture(int32_t texture_index) {
+    gl_state_active_bind_texture_2d(16, textures[texture_index].GetColorTex());
+    gl_state_active_texture(0);
 }
 
 light_proj::light_proj(int32_t width, int32_t height) : enable(), texture_id() {

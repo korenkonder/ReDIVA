@@ -78,6 +78,7 @@ struct sss_data {
 
     void free();
     void init();
+    void set_texture(int32_t);
 };
 
 struct light_proj {

@@ -29,11 +29,10 @@ void Shadow::ctrl() {
         view_mat[0] = rctx_ptr->camera->view;
         view_mat[1] = rctx_ptr->camera->inv_view;
 
-        ::light_set* set = &rctx_ptr->light_set[LIGHT_SET_MAIN];
-        light_data* data = &set->lights[LIGHT_CHARA];
+        light_data& light_chara = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_CHARA];
 
         vec3 position;
-        data->get_position(position);
+        light_chara.get_position(position);
         float_t length = vec3::length(position);
         if (length < 0.000001f)
             direction = { 0.0f, 1.0f, 0.0f };
