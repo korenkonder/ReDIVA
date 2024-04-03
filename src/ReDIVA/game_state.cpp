@@ -1393,7 +1393,7 @@ bool SubGameState::Selector::Dest() {
         sel->del();
         return false;
     }
-    
+
     x_pv_game_selector_free();
 #endif
 #endif

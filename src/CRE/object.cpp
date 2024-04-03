@@ -945,7 +945,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             msgpack* b = color_mult->read("b");
                             if (b)
                                 _color_mult.z = b->read_float_t();
-                            
+
                             obj_vertex_data* vtx = mesh.vertex_array;
                             uint32_t num_vertex = mesh.num_vertex;
                             for (uint32_t i = num_vertex; i; i--, vtx++)
@@ -1532,7 +1532,7 @@ inline obj* object_storage_get_obj(object_info obj_info) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
-        
+
         auto elem_obj = elem_modern->second.obj_id_data.find(obj_info.id);
         if (elem_obj != elem_modern->second.obj_id_data.end())
             return set->obj_data[elem_obj->second];

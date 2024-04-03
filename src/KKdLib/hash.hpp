@@ -108,7 +108,7 @@ struct string_hash {
     inline const char* c_str() const {
         return str.c_str();
     }
-    
+
     inline size_t size() const {
         return str.size();
     }

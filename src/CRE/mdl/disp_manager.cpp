@@ -1204,7 +1204,7 @@ namespace mdl {
         data.push_back(0.0f);
         data.push_back(1.0f);
         data.push_back(0.0f);
-        
+
         data.push_back(-1.0f);
         data.push_back(0.0f);
         data.push_back(-1.0f);

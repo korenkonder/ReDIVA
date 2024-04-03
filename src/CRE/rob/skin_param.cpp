@@ -433,17 +433,17 @@ void skin_param_osage_root_parse(void* kv, const char* name,
             const char* bone1_name;
             if (_kv->read("bone.1.name", bone1_name)) {
                 c->node_idx[1] = bone_data->get_skeleton_object_bone_index(
-bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
+                    bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
 
-vec3 bone1_pos = 0.0f;
-if (!_kv->read("bone.1.posx", bone1_pos.x)
-    || !_kv->read("bone.1.posy", bone1_pos.y)
-    || !_kv->read("bone.1.posz", bone1_pos.z)) {
-    _kv->close_scope();
-    break;
-}
+                vec3 bone1_pos = 0.0f;
+                if (!_kv->read("bone.1.posx", bone1_pos.x)
+                    || !_kv->read("bone.1.posy", bone1_pos.y)
+                    || !_kv->read("bone.1.posz", bone1_pos.z)) {
+                    _kv->close_scope();
+                    break;
+                }
 
-c->pos[1] = bone1_pos;
+                c->pos[1] = bone1_pos;
             }
             _kv->close_scope();
         }

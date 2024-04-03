@@ -242,7 +242,7 @@ namespace Glitter {
             dst.random_range = 0.0;
         }
     }
-    
+
     void Curve::FitKeysIntoCurve(GLT) {
         keys_rev.clear();
 
@@ -509,7 +509,7 @@ namespace Glitter {
             dst.min_value = (float_t)src.value;
         }
     }
-    
+
     void Curve::Recalculate(GLT) {
         keys.clear();
 

@@ -124,7 +124,6 @@ namespace Glitter {
                 add_key = add_f2_key_no_random_range;
                 get_size = get_f2_size_no_random_range;
             }
-       
 
         KeyType key_type = c->keys.front().type;
 

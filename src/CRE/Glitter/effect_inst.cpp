@@ -161,7 +161,7 @@ namespace Glitter {
             if (emitter)
                 emitters.push_back(emitter);
         }
-        
+
         if (!init)
             ResetInit(GPM_VAL, GLT_VAL, sc);
     }
@@ -1115,7 +1115,7 @@ namespace Glitter {
             }
         }
     }
-    
+
     bool XEffectInst::ResetInit(GPM, Scene* sc, float_t* a3) {
         if (data.start_time < 1)
             return false;

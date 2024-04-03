@@ -2085,7 +2085,7 @@ namespace Glitter {
 
                     if (effect.read_bool("use_emission")) {
                         enum_or(eff->data.flags, EFFECT_EMISSION);
-                        
+
                         for (Emitter*& k : eff->emitters)
                             if (k)
                                 for (Particle*& l : k->particles)

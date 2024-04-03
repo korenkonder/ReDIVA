@@ -7220,7 +7220,7 @@ bool x_pv_game::ctrl() {
             char category[0x40];
             sprintf_s(category, sizeof(category), "CAMPV%03d", pv_data.pv_id);
             replace_names(category);
-            
+
             char name[0x40];
             sprintf_s(name, sizeof(name), "CAMPV%03d_BASE", pv_data.pv_id);
             replace_names(name);
@@ -7299,7 +7299,7 @@ bool x_pv_game::ctrl() {
 
         object_database x_pack_obj_db;
         x_pack_obj_db.add(&baker->obj_db);
-        
+
         texture_database x_pack_tex_db;
         x_pack_tex_db.add(&baker->tex_db);
 
@@ -7770,7 +7770,7 @@ bool x_pv_game::ctrl() {
 
             if (focus_range.joinable())
                 focus_range.join();
-            
+
             //if (focus.joinable())
             //    focus.join();
 
@@ -8712,10 +8712,10 @@ pv_tit_spr_set_ids(), pv_tit_aet_ids(), pv_tit_init(), start(), exit(), next() {
 
     for (uint32_t& i : pv_tit_aet_set_ids)
         i = hash_murmurhash_empty;
-    
+
     for (uint32_t& i : pv_tit_spr_set_ids)
         i = hash_murmurhash_empty;
-    
+
     for (uint32_t& i : pv_tit_aet_ids)
         i = hash_murmurhash_empty;
 
@@ -9799,16 +9799,15 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
         replace_names(i.parent_name);
         replace_names(i.uid_name);
     }
-    
+
     for (std::string& i : a.object_hrc_list)
         replace_names(i);
-
 
     for (std::string& i : a.object_list)
         replace_names(i);
 
     bool own_farc = !f;
-    
+
     if (own_farc)
         f = new farc;
 
