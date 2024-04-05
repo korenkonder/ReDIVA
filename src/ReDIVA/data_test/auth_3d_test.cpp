@@ -1387,7 +1387,7 @@ Auth3dTestWindow::Auth3dTestWindow() {
     trans_z->SetRound(true);
 
     rot_y = dw::Slider::Create(this, dw::HORIZONTAL, "rotY", "%4.0f", 120.0f);
-    rot_y->SetParams(0.0f, -360.0, 360.0, 180.0, 1.0f, 10.0);
+    rot_y->SetParams(0.0f, -360.0f, 360.0f, 180.0f, 1.0f, 10.0);
     rot_y->AddSelectionListener(&rot_y_listener);
     rot_y->SetRound(true);
 

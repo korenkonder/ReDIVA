@@ -302,21 +302,21 @@ LightDw::GAmbientSlider::GAmbientSlider(LightDw* light_dw, dw::Widget* parent) {
         start_point = dw::Slider::Create(comp);
         start_point->SetText(start_point_text);
         start_point->format = "%4.2f";
-        start_point->scroll_bar->SetParams(value.start_point, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
+        start_point->SetParams(value.start_point, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
         start_point->callback_data.i64 = 0;
         start_point->AddSelectionListener(this);
 
         end_point = dw::Slider::Create(comp);
         end_point->SetText(end_point_text);
         end_point->format = "%4.2f";
-        end_point->scroll_bar->SetParams(value.end_point, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
+        end_point->SetParams(value.end_point, 0.0f, 1.0f, 0.2f, 0.01f, 0.1f);
         end_point->callback_data.i64 = 1;
         end_point->AddSelectionListener(this);
 
         coefficient = dw::Slider::Create(comp);
         coefficient->SetText(coefficient_text);
         coefficient->format = "%4.2f";
-        coefficient->scroll_bar->SetParams(value.coefficient, 0.0f, 4.0f, 0.2f, 0.01f, 0.1f);
+        coefficient->SetParams(value.coefficient, 0.0f, 4.0f, 0.2f, 0.01f, 0.1f);
         coefficient->callback_data.i64 = 2;
         coefficient->AddSelectionListener(this);
     }
@@ -530,21 +530,21 @@ LightDw::AmbientSlider::AmbientSlider(LightDw* light_dw, dw::Widget* parent) {
         r = dw::Slider::Create(comp);
         r->SetText("R");
         r->format = "%4.3f";
-        r->scroll_bar->SetParams(value.x, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        r->SetParams(value.x, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         r->callback_data.i64 = 0;
         r->AddSelectionListener(this);
 
         g = dw::Slider::Create(comp);
         g->SetText("G");
         g->format = "%4.3f";
-        g->scroll_bar->SetParams(value.y, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        g->SetParams(value.y, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         g->callback_data.i64 = 1;
         g->AddSelectionListener(this);
 
         b = dw::Slider::Create(comp);
         b->SetText("B");
         b->format = "%4.3f";
-        b->scroll_bar->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        b->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         b->callback_data.i64 = 2;
         b->AddSelectionListener(this);
     }
@@ -585,21 +585,21 @@ LightDw::DiffuseSlider::DiffuseSlider(LightDw* light_dw, dw::Widget* parent) {
         r = dw::Slider::Create(comp);
         r->SetText("R");
         r->format = "%4.3f";
-        r->scroll_bar->SetParams(value.x, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        r->SetParams(value.x, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         r->callback_data.i64 = 0;
         r->AddSelectionListener(this);
 
         g = dw::Slider::Create(comp);
         g->SetText("G");
         g->format = "%4.3f";
-        g->scroll_bar->SetParams(value.y, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        g->SetParams(value.y, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         g->callback_data.i64 = 1;
         g->AddSelectionListener(this);
 
         b = dw::Slider::Create(comp);
         b->SetText("B");
         b->format = "%4.3f";
-        b->scroll_bar->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        b->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         b->callback_data.i64 = 2;
         b->AddSelectionListener(this);
     }
@@ -640,28 +640,28 @@ LightDw::SpecularSlider::SpecularSlider(LightDw* light_dw, dw::Widget* parent) {
         r = dw::Slider::Create(comp);
         r->SetText("R");
         r->format = "%4.3f";
-        r->scroll_bar->SetParams(value.x, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        r->SetParams(value.x, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         r->callback_data.i64 = 0;
         r->AddSelectionListener(this);
 
         g = dw::Slider::Create(comp);
         g->SetText("G");
         g->format = "%4.3f";
-        g->scroll_bar->SetParams(value.y, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        g->SetParams(value.y, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         g->callback_data.i64 = 1;
         g->AddSelectionListener(this);
 
         b = dw::Slider::Create(comp);
         b->SetText("B");
         b->format = "%4.3f";
-        b->scroll_bar->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        b->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         b->callback_data.i64 = 2;
         b->AddSelectionListener(this);
 
         a = dw::Slider::Create(comp);
         a->SetText("A");
         a->format = "%4.3f";
-        a->scroll_bar->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        a->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         a->callback_data.i64 = 3;
         a->AddSelectionListener(this);
     }
@@ -700,7 +700,7 @@ LightDw::PositionSlider::PositionSlider(LightDw* light_dw, dw::Widget* parent) {
         light->get_position(value);
 
         x = dw::Slider::Create(comp, (dw::Flags)(dw::FLAG_800
-            | dw::HORIZONTAL), 0.0f, 0.0f, 160.0f, 20.0f, "slider");
+            | dw::HORIZONTAL), 0.0f, 0.0f, 160.0f, 20.0f);
         x->SetText("X");
         x->format = "%6.2f";
         SetPositionSliderParams(x, value.x);
@@ -708,7 +708,7 @@ LightDw::PositionSlider::PositionSlider(LightDw* light_dw, dw::Widget* parent) {
         x->AddSelectionListener(this);
 
         y = dw::Slider::Create(comp, (dw::Flags)(dw::FLAG_800
-            | dw::HORIZONTAL), 0.0f, 0.0f, 160.0f, 20.0f, "slider");
+            | dw::HORIZONTAL), 0.0f, 0.0f, 160.0f, 20.0f);
         y->SetText("Y");
         y->format = "%6.2f";
         SetPositionSliderParams(y, value.y);
@@ -716,7 +716,7 @@ LightDw::PositionSlider::PositionSlider(LightDw* light_dw, dw::Widget* parent) {
         y->AddSelectionListener(this);
 
         z = dw::Slider::Create(comp, (dw::Flags)(dw::FLAG_800
-            | dw::HORIZONTAL), 0.0f, 0.0f, 160.0f, 20.0f, "slider");
+            | dw::HORIZONTAL), 0.0f, 0.0f, 160.0f, 20.0f);
         z->SetText("Z");
         z->format = "%6.2f";
         SetPositionSliderParams(z, value.z);
@@ -785,12 +785,12 @@ void LightDw::PositionSlider::SetPositionSliderParams(dw::Slider* slider, float_
         scale = 10.0f;
     else
         scale = 50.0f;
-    slider->scroll_bar->SetParams(value, 1.0f - scale * 200.0f,
+    slider->SetParams(value, 1.0f - scale * 200.0f,
         scale * 200.0f - 1.0f, scale * 40.0f, scale * 0.02f, scale);
 }
 
 void LightDw::PositionSlider::SetRotYParams(float_t value) {
-    rot_y->scroll_bar->SetParams(value, -180.0f, 180.0f, 0.2f, 0.01f, 0.1f);
+    rot_y->SetParams(value, -180.0f, 180.0f, 0.2f, 0.01f, 0.1f);
 }
 
 void LightDw::PositionSlider::SetRotation(float_t& x, float_t& z, float_t rot_y) {
@@ -819,21 +819,21 @@ LightDw::DirectionSlider::DirectionSlider(LightDw* light_dw, dw::Widget* parent)
         x = dw::Slider::Create(comp);
         x->SetText("R");
         x->format = "%5.2f";
-        x->scroll_bar->SetParams(value.x, -1.0f, 1.0f, 0.2f, 0.02f, 0.1f);
+        x->SetParams(value.x, -1.0f, 1.0f, 0.2f, 0.02f, 0.1f);
         x->callback_data.i64 = 0;
         x->AddSelectionListener(this);
 
         y = dw::Slider::Create(comp);
         y->SetText("G");
         y->format = "%5.2f";
-        y->scroll_bar->SetParams(value.y, -1.0f, 1.0f, 0.2f, 0.02f, 0.1f);
+        y->SetParams(value.y, -1.0f, 1.0f, 0.2f, 0.02f, 0.1f);
         y->callback_data.i64 = 1;
         y->AddSelectionListener(this);
 
         z = dw::Slider::Create(comp);
         z->SetText("B");
         z->format = "%5.2f";
-        z->scroll_bar->SetParams(value.z, -1.0f, 1.0f, 0.2f, 0.02f, 0.1f);
+        z->SetParams(value.z, -1.0f, 1.0f, 0.2f, 0.02f, 0.1f);
         z->callback_data.i64 = 2;
         z->AddSelectionListener(this);
     }
@@ -870,7 +870,7 @@ LightDw::ExponentSlider::ExponentSlider(LightDw* light_dw, dw::Widget* parent) {
         exponent = dw::Slider::Create(comp);
         exponent->SetText("EXPONENT");
         exponent->format = "%8.4f";
-        exponent->scroll_bar->SetParams(value, 0.0f, 128.0f, 12.8f, 1.0f, 10.0f);
+        exponent->SetParams(value, 0.0f, 128.0f, 12.8f, 1.0f, 10.0f);
         exponent->AddSelectionListener(this);
     }
 }
@@ -903,7 +903,7 @@ LightDw::CutoffSlider::CutoffSlider(LightDw* light_dw, dw::Widget* parent) {
         cutoff = dw::Slider::Create(comp);
         cutoff->SetText("CUTOFF");
         cutoff->format = "%8.4f";
-        cutoff->scroll_bar->SetParams(value, 0.0f, 9.0f, 9.0f, 1.0f, 5.0f);
+        cutoff->SetParams(value, 0.0f, 9.0f, 9.0f, 1.0f, 5.0f);
         cutoff->AddSelectionListener(this);
     }
 }
@@ -939,21 +939,21 @@ LightDw::AttenuationSlider::AttenuationSlider(LightDw* light_dw, dw::Widget* par
         constant = dw::Slider::Create(comp);
         constant->SetText("CONSTANT");
         constant->format = "%8.4f";
-        constant->scroll_bar->SetParams(value.constant, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        constant->SetParams(value.constant, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
         constant->callback_data.i64 = 0;
         constant->AddSelectionListener(this);
 
         linear = dw::Slider::Create(comp);
         linear->SetText("LINEAR");
         linear->format = "%8.4f";
-        linear->scroll_bar->SetParams(value.linear, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        linear->SetParams(value.linear, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
         linear->callback_data.i64 = 1;
         linear->AddSelectionListener(this);
 
         quadratic = dw::Slider::Create(comp);
         quadratic->SetText("QUADRATIC");
         quadratic->format = "%8.4f";
-        quadratic->scroll_bar->SetParams(value.quadratic, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        quadratic->SetParams(value.quadratic, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
         quadratic->callback_data.i64 = 2;
         quadratic->AddSelectionListener(this);
     }

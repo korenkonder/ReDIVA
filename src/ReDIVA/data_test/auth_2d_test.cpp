@@ -231,8 +231,8 @@ bool DtmAet::ctrl() {
             aet_manager_init_aet_object(args, aft_aet_db);
         }
 
-        dtw_aet->frame->scroll_bar->SetParams(frame,
-            start_time, end_time, (end_time - start_time) * 0.1f, 1.0f, 10.0f);
+        dtw_aet->frame->SetParams(frame, start_time, end_time,
+            (end_time - start_time) * 0.1f, 1.0f, 10.0f);
     } break;
     }
     return false;

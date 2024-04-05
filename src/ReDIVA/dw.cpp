@@ -2567,10 +2567,7 @@ namespace dw {
         size -= _glyph_size * 2.0f;
         float_t range = max - min;
         if (range > 0.0) {
-            float_t v10 = (field_94 * (1.0f / range)) * size;
-            if (v10 < 20.0f)
-                v10 = 20.0f;
-
+            float_t v10 = max_def((field_94 * (1.0f / range)) * size, 20.0f);
             float_t v11 = ((value - min) * (1.0f / range)) * (size - v10);
             return { v11, v10 };
         }
@@ -3631,6 +3628,8 @@ void dw_gui_detail::Display::RemoveShell(dw::Shell* value) {
             shells.erase(i);
             break;
         }
+        else
+            i++;
 
     if (selected_shell == value) {
         selected_shell = 0;

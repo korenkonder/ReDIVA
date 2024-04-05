@@ -91,8 +91,8 @@ DwFaceLight::DwFaceLight() {
     set_for_each_cut_button->callback_data.i64 = 0i64;
     set_for_each_cut_button->callback = DwFaceLight::SetForEachPvCutCallback;
 
-    strength = dw::Slider::Create(this, (dw::Flags)(dw::FLAG_800
-        | dw::HORIZONTAL), 0.0f, 0.0f, 128.0f, 20.0f, strength_text);
+    strength = dw::Slider::Create(this);
+    strength->SetText(strength_text);
     strength->SetParams(face_data.offset, 0.0f, 10.0f, 1.0f, 0.25f, 1.0f);
     strength->callback_data.v64 = &face_data;
     strength->format = "%5.2f";
