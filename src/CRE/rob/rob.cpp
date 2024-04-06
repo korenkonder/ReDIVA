@@ -12980,7 +12980,7 @@ bool rob_chara_item_equip_object::set_boc(
         i->data_ptr->boc.clear();
 
     bool has_boc_node = false;
-    for (const skin_param_osage_root_boc& i : skp_root.boc) {
+    for (const skin_param_osage_root_boc& i : skp_root.boc)
         for (ExOsageBlock*& j : osage_blocks) {
             if (i.ed_root.compare(j->name)
                 || i.ed_node + 1ULL >= rob_osg->nodes.size()
@@ -12993,7 +12993,6 @@ bool rob_chara_item_equip_object::set_boc(
             has_boc_node = true;
             break;
         }
-    }
     return has_boc_node;
 }
 
@@ -13106,7 +13105,7 @@ void rob_chara_item_equip_object::skp_load(void* kv, const bone_database* bone_d
         osg->rob.LoadSkinParam(_kv, osg->name, root, &obj_info, bone_data);
         set_collision_target_osage(root, osg->rob.skin_param_ptr);
         field_1B8 |= set_boc(root, osg);
-        field_1B8 |= root.coli_type != 0;
+        field_1B8 |= root.coli_type != SkinParam::RootCollisionTypeEnd;
         field_1B8 |= skp_load_normal_ref(root, 0);
     }
 
@@ -13119,7 +13118,7 @@ void rob_chara_item_equip_object::skp_load(void* kv, const bone_database* bone_d
 void rob_chara_item_equip_object::skp_load(const skin_param_osage_root& skp_root,
     std::vector<skin_param_osage_node>& vec, skin_param_file_data* skp_file_data, const bone_database* bone_data) {
     set_collision_target_osage(skp_root, &skp_file_data->skin_param);
-    skp_file_data->field_88 |= skp_file_data->skin_param.coli_type > 0;
+    skp_file_data->field_88 |= skp_file_data->skin_param.coli_type > SkinParam::RootCollisionTypeEnd;
 
     skin_param_osage_node* j = vec.data();
     size_t k = 0;
@@ -13134,14 +13133,18 @@ bool rob_chara_item_equip_object::skp_load_boc(
     const skin_param_osage_root& skp_root, std::vector<RobOsageNodeData>* node_data) {
     bool has_boc_node = false;
     for (const skin_param_osage_root_boc& i : skp_root.boc)
-        for (ExOsageBlock*& j : osage_blocks)
+        for (ExOsageBlock*& j : osage_blocks) {
             if (i.ed_root.compare(j->name)
-                && i.ed_node >= 0 && i.ed_node < node_data->size()
-                && i.st_node >= 0 && i.st_node < j->rob.nodes.size()) {
-                node_data->data()[i.ed_node].boc.push_back(j->rob.GetNode(i.st_node + 1ULL));
-                has_boc_node = true;
-                break;
-            }
+                || i.ed_node >= node_data->size()
+                || i.st_node >= j->rob.nodes.size())
+                continue;
+
+            RobOsageNodeData& ed_node = node_data->data()[i.ed_node];
+            RobOsageNode* st_node = j->rob.GetNode(i.st_node + 1ULL);
+            ed_node.boc.push_back(st_node);
+            has_boc_node = true;
+            break;
+        }
     return has_boc_node;
 }
 

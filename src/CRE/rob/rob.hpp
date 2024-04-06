@@ -837,6 +837,13 @@ namespace SkinParam {
         CollisionTypeAABB    = 0x5,
         CollisionTypeMax     = 0x6,
     };
+
+    enum RootCollisionType {
+        RootCollisionTypeEnd     = 0x0,
+        RootCollisionTypeBall    = 0x1,
+        RootCollisionTypeCapsule = 0x2,
+        RootCollisionTypeMax     = 0x3,
+    };
 }
 
 struct rob_chara;
@@ -1709,7 +1716,7 @@ struct skin_param {
         air_res = 1.0f;
         rot = 0.0f;
         init_rot = 0.0f;
-        coli_type = 0;
+        coli_type = SkinParam::RootCollisionTypeEnd;
         stiffness = 0.0f;
         move_cancel = -0.01f;
         coli_r = 0.0f;

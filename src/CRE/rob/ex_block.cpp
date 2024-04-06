@@ -679,20 +679,20 @@ int32_t OsageCollision::cls_plane_oidashi(vec3& vec,
 
 // 0x140484E10
 void OsageCollision::get_nearest_line2point(vec3& nearest, const vec3& p0, const vec3& p1, const vec3& q) {
-    vec3 v6 = p1 - p0;
-    vec3 v7 = q - p0;
+    vec3 p0p1 = p1 - p0;
+    vec3 p0q = q - p0;
 
-    float_t v8 = vec3::dot(v7, v6);
-    if (v8 < 0.0f) {
+    float_t t = vec3::dot(p0q, p0p1);
+    if (t < 0.0f) {
         nearest = p0;
         return;
     }
 
-    float_t v9 = vec3::length_squared(v6);
-    if (v9 <= 0.000001f)
+    float_t p0p1_len = vec3::length_squared(p0p1);
+    if (p0p1_len <= 0.000001f)
         nearest = p0;
-    else if (v8 <= v9)
-        nearest = p0 + v6 * (v8 / v9);
+    else if (t <= p0p1_len)
+        nearest = p0 + p0p1 * (t / p0p1_len);
     else
         nearest = p1;
 }
@@ -2912,55 +2912,62 @@ static float_t exp_tan(float_t v1) {
 }
 
 // 0x140484850
-static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& p1, const OsageCollision::Work* cls) {
-    vec3 v56 = p1 - p0;
-    vec3 v60 = vec3::cross(v56, cls->vec_center);
-    float_t v46 = vec3::length_squared(v60);
-    if (v46 <= 0.000001f) {
-        vec3 v56;
-        vec3 v57;
-        vec3 v58;
-        vec3 v59;
-        OsageCollision::get_nearest_line2point(v59, cls->pos[0], cls->pos[1], p0);
-        OsageCollision::get_nearest_line2point(v58, cls->pos[0], cls->pos[1], p1);
-        OsageCollision::get_nearest_line2point(v57, p0, p1, cls->pos[0]);
-        OsageCollision::get_nearest_line2point(v56, p0, p1, cls->pos[1]);
+static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& q0, const OsageCollision::Work* cls) {
+    const vec3& p1 = cls->pos[0];
+    const vec3& q1 = cls->pos[1];
 
-        float_t v48 = vec3::distance_squared(p1, cls->pos[0]);
-        float_t v51 = vec3::distance_squared(cls->pos[0], v57);
-        float_t v52 = vec3::distance_squared(cls->pos[1], v56);
-        float_t v55 = vec3::distance_squared(p0, v59);
+    vec3 d0 = q0 - p0;
+    vec3 d1 = cls->vec_center;
+    if (vec3::length_squared(vec3::cross(d0, d1)) <= 0.000001f) {
+        vec3 p0_proj;
+        vec3 q0_proj;
+        vec3 p1_proj;
+        vec3 q1_proj;
+        OsageCollision::get_nearest_line2point(p0_proj, p1, q1, p0);
+        OsageCollision::get_nearest_line2point(q0_proj, p1, q1, q0);
+        OsageCollision::get_nearest_line2point(p1_proj, p0, q0, p1);
+        OsageCollision::get_nearest_line2point(q1_proj, p0, q0, q1);
 
+        float_t p0_dist = vec3::distance_squared(p0, p0_proj);
+        float_t q0_dist = vec3::distance_squared(q0, q0_proj);
+        float_t p1_dist = vec3::distance_squared(p1, p1_proj);
+        float_t q1_dist = vec3::distance_squared(q1, q1_proj);
+
+        float_t dist = p0_dist;
         vec = p0;
 
-        if (v55 > v48) {
-            vec = p1;
-            v55 = v48;
+        if (dist > q0_dist) {
+            vec = q0;
+            dist = q0_dist;
         }
 
-        if (v55 > v51) {
-            vec = v57;
-            v55 = v51;
+        if (dist > p1_dist) {
+            vec = p1_proj;
+            dist = p1_dist;
         }
 
-        if (v55 > v52)
-            vec = v56;
+        if (dist > q1_dist) {
+            vec = q1_proj;
+            dist = q1_dist;
+        }
     }
     else {
-        float_t v25 = vec3::length(v56);
-        if (v25 != 0.0f)
-            v56 *= 1.0f / v25;
+        float_t d0_len = vec3::length(d0);
+        if (d0_len != 0.0f)
+            d0 *= 1.0f / d0_len;
 
-        float_t v30 = 1.0f / cls->vec_center_length;
-        vec3 v61 = cls->vec_center * v30;
-        float_t v34 = vec3::dot(v61, v56);
-        float_t v35 = vec3::dot(v61 * v34 - v56, cls->pos[0] - p0) / (v34 * v34 - 1.0f);
-        if (v35 < 0.0f)
+        float_t d1_len = cls->vec_center_length;
+        if (d1_len != 0.0f)
+            d1 *= 1.0f / d1_len;
+
+        float_t b = vec3::dot(d1, d0);
+        float_t t = vec3::dot(d1 * b - d0, p1 - p0) / (b * b - 1.0f);
+        if (t < 0.0f)
             vec = p0;
-        else if (v35 <= v25)
-            vec = p0 + v56 * v35;
+        else if (t <= d0_len)
+            vec = p0 + d0 * t;
         else
-            vec = p1;
+            vec = q0;
     }
 }
 
@@ -3822,7 +3829,7 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
             j->field_C8 += v17;
         }
 
-        if (coli_type && (coli_type != 1 || i != i_begin)) {
+        if (coli_type && (coli_type != SkinParam::RootCollisionTypeBall || i != i_begin)) {
             float_t v20 = (float_t)(
                 OsageCollision::osage_capsule_cls(coli_ring, i[0].trans, i[-1].trans, data->skp_osg_node.coli_r)
                 + OsageCollision::osage_capsule_cls(coli, i[0].trans, i[-1].trans, data->skp_osg_node.coli_r));
