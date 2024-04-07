@@ -25,6 +25,9 @@ static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic =
 static void free_index_buffer(GLuint buffer);
 static void free_vertex_buffer(GLuint buffer);
 
+static uint32_t remove_degenerate_triangle_indices(
+    uint32_t* dst_index_array, const uint32_t num_index, uint32_t* src_index_array);
+
 static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info);
 static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info);
 static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info);
@@ -79,6 +82,15 @@ void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
     uint16_t* indices = (uint16_t*)data;
     for (uint32_t i = 0; i < mesh.num_submesh; i++) {
         obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
+
+        if (sub_mesh.primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && !(sub_mesh.attrib.w & 0x80)){
+            uint32_t* index_array = force_malloc<uint32_t>(sub_mesh.num_index);
+            sub_mesh.num_index = remove_degenerate_triangle_indices(
+                index_array, sub_mesh.num_index, sub_mesh.index_array);
+            memmove(sub_mesh.index_array, index_array, sizeof(uint32_t) * sub_mesh.num_index);
+            free_def(index_array);
+        }
+
         uint32_t num_index = sub_mesh.num_index;
         uint32_t* index = sub_mesh.index_array;
         for (uint32_t j = num_index; j; j--, index++)
@@ -2216,6 +2228,65 @@ static void free_vertex_buffer(GLuint buffer) {
     rctx_ptr->disp_manager->check_vertex_buffer(buffer);
     glDeleteBuffers(1, &buffer);
     glGetError();
+}
+
+static uint32_t remove_degenerate_triangle_indices(
+    uint32_t* dst_index_array, const uint32_t num_index, uint32_t* src_index_array) {
+    if (!num_index)
+        return 0;
+
+    dst_index_array[0] = src_index_array[0];
+
+    uint32_t src_index = 1;
+    uint32_t dst_index = 1;
+    uint32_t strip_length = 1;
+    while (src_index < num_index - 4)
+        if (src_index_array[src_index] != src_index_array[src_index + 1]) {
+            dst_index_array[dst_index++] = src_index_array[src_index];
+            strip_length++;
+            src_index++;
+        }
+        else if (src_index_array[src_index + 3] == src_index_array[src_index + 4]) {
+            dst_index_array[dst_index++] = src_index_array[src_index];
+            dst_index_array[dst_index++] = 0xFFFFFFFF;
+            dst_index_array[dst_index++] = src_index_array[src_index + 4];
+
+            if (strip_length % 2) {
+                dst_index_array[dst_index++] = src_index_array[src_index + 4];
+                strip_length = 0;
+            }
+            else
+                strip_length = 1;
+            src_index += 5;
+        }
+        else if (src_index_array[src_index - 1] != src_index_array[src_index + 2]
+            || src_index_array[src_index + 1] != src_index_array[src_index + 4]) {
+            dst_index_array[dst_index++] = src_index_array[src_index];
+            dst_index_array[dst_index++] = 0xFFFFFFFF;
+            dst_index_array[dst_index++] = src_index_array[src_index + 3];
+
+            if (!(strip_length % 2)) {
+                dst_index_array[dst_index++] = src_index_array[src_index + 3];
+                strip_length = 0;
+            }
+            else
+                strip_length = 1;
+            src_index += 4;
+        }
+        else {
+            dst_index_array[dst_index++] = src_index_array[src_index];
+            strip_length++;
+            src_index += 5;
+        }
+
+    if (src_index < num_index) {
+        src_index_array += src_index;
+        dst_index_array += dst_index;
+        dst_index += num_index - src_index;
+        while (src_index++ < num_index)
+            *dst_index_array++ = *src_index_array++;
+    }
+    return dst_index;
 }
 
 static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
