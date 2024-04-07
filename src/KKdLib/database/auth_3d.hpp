@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../prj/vector_pair.hpp"
 
 enum auth_3d_database_uid_flags {
     AUTH_3D_DATABASE_UID_ORG_UID = 0x01,
@@ -70,11 +71,15 @@ struct auth_3d_database_file {
 struct auth_3d_database {
     std::vector<auth_3d_database_category> category;
     std::vector<auth_3d_database_uid> uid;
+    prj::vector_pair<uint32_t, const auth_3d_database_category*> category_names;
+    prj::vector_pair<uint32_t, const auth_3d_database_uid*> uid_names;
 
     auth_3d_database();
     ~auth_3d_database();
 
     void add(auth_3d_database_file* auth_3d_db_file, bool mdata);
+    void clear();
+    void update();
 
     int32_t get_category_index(const char* name) const;
     void get_category_uids(const char* name, std::vector<int32_t>& uid) const;

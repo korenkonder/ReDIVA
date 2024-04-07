@@ -33,6 +33,7 @@ motion_set_info_file::~motion_set_info_file() {
 motion_info::motion_info() {
     name_hash = hash_murmurhash_empty;
     id = (uint32_t)-1;
+    set_id = (uint32_t)-1;
 }
 
 motion_info::~motion_info() {
@@ -204,22 +205,83 @@ void motion_database::add(motion_database_file* mot_db_file) {
         set_info->motion.reserve(i.motion.size());
 
         for (motion_info_file& j : i.motion) {
-            motion_info info;
+            set_info->motion.push_back({});
+            motion_info& info = set_info->motion.back();
             info.id = j.id;
+            info.set_id = i.id;
             info.name.assign(j.name);
             info.name_hash = hash_string_murmurhash(info.name);
-            set_info->motion.push_back(info);
         }
     }
+
+    update();
+}
+
+void motion_database::clear() {
+    bone_name.clear();
+    bone_name.shrink_to_fit();
+    motion_set.clear();
+    motion_set.shrink_to_fit();
+    motion_set_ids.clear();
+    motion_set_ids.shrink_to_fit();
+    motion_set_names.clear();
+    motion_set_names.shrink_to_fit();
+    motion_set_motion_ids.clear();
+    motion_set_motion_ids.shrink_to_fit();
+    motion_set_motion_names.clear();
+    motion_set_motion_names.shrink_to_fit();
+    motion_ids.clear();
+    motion_ids.shrink_to_fit();
+    motion_names.clear();
+    motion_names.shrink_to_fit();
+}
+
+void motion_database::update() {
+    motion_set_ids.clear();
+    motion_set_names.clear();
+    motion_ids.clear();
+    motion_set_motion_ids.clear();
+    motion_set_motion_names.clear();
+    motion_names.clear();
+
+    size_t motion_count = 0;
+    for (motion_set_info& i : motion_set)
+        motion_count += i.motion.size();
+
+    motion_set_ids.reserve(motion_set.size());
+    motion_set_names.reserve(motion_set.size());
+    motion_set_motion_ids.reserve(motion_count);
+    motion_set_motion_names.reserve(motion_count);
+    motion_ids.reserve(motion_count);
+    motion_names.reserve(motion_count);
+
+    for (motion_set_info& i : motion_set) {
+        motion_set_ids.push_back(i.id, &i);
+        motion_set_names.push_back(i.name_hash, &i);
+
+        for (motion_info& j : i.motion) {
+            motion_set_motion_ids.push_back(j.id, &i);
+            motion_set_motion_names.push_back(j.name_hash, &i);
+            motion_ids.push_back(j.id, &j);
+            motion_names.push_back(j.name_hash, &j);
+        }
+    }
+
+    motion_set_ids.sort_unique();
+    motion_set_names.sort_unique();
+    motion_set_motion_ids.sort_unique();
+    motion_set_motion_names.sort_unique();
+    motion_ids.sort_unique();
+    motion_names.sort_unique();
 }
 
 const motion_set_info* motion_database::get_motion_set_by_id(uint32_t id) const {
     if (id == -1)
         return 0;
 
-    for (const motion_set_info& i : motion_set)
-        if (id == i.id)
-            return &i;
+    auto elem = motion_set_ids.find(id);
+    if (elem != motion_set_ids.end())
+        return elem->second;
     return 0;
 }
 
@@ -227,11 +289,9 @@ const motion_set_info* motion_database::get_motion_set_by_name(const char* name)
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const motion_set_info& i : motion_set)
-        if (name_hash == i.name_hash)
-            return &i;
+    auto elem = motion_set_names.find(hash_utf8_murmurhash(name));
+    if (elem != motion_set_names.end())
+        return elem->second;
     return 0;
 }
 
@@ -239,10 +299,9 @@ const motion_set_info* motion_database::get_motion_set_by_motion_id(uint32_t id)
     if (id == -1)
         return 0;
 
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (id == j.id)
-                return &i;
+    auto elem = motion_set_motion_ids.find(id);
+    if (elem != motion_set_motion_ids.end())
+        return elem->second;
     return 0;
 }
 
@@ -250,12 +309,9 @@ const motion_set_info* motion_database::get_motion_set_by_motion_name(const char
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (name_hash == j.name_hash)
-                return &i;
+    auto elem = motion_set_motion_names.find(hash_utf8_murmurhash(name));
+    if (elem != motion_set_motion_names.end())
+        return elem->second;
     return 0;
 }
 
@@ -263,10 +319,9 @@ uint32_t motion_database::get_motion_set_id_by_motion_id(uint32_t id) const {
     if (id == -1)
         return -1;
 
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (id == j.id)
-                return i.id;
+    auto elem = motion_ids.find(id);
+    if (elem != motion_ids.end())
+        return elem->second->set_id;
     return -1;
 }
 
@@ -274,12 +329,9 @@ uint32_t motion_database::get_motion_set_id_by_motion_name(const char* name) con
     if (!name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (name_hash == j.name_hash)
-                return i.id;
+    auto elem = motion_names.find(hash_utf8_murmurhash(name));
+    if (elem != motion_names.end())
+        return elem->second->set_id;
     return -1;
 }
 
@@ -287,11 +339,9 @@ uint32_t motion_database::get_motion_set_id(const char* name) const {
     if (!name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const motion_set_info& i : motion_set)
-        if (name_hash == i.name_hash)
-            return i.id;
+    auto elem = motion_set_names.find(hash_utf8_murmurhash(name));
+    if (elem != motion_set_names.end())
+        return elem->second->id;
     return -1;
 }
 
@@ -299,9 +349,9 @@ const char* motion_database::get_motion_set_name(uint32_t id) const {
     if (id == -1)
         return 0;
 
-    for (const motion_set_info& i : motion_set)
-        if (id == i.id)
-            return i.name.c_str();
+    auto elem = motion_set_ids.find(id);
+    if (elem != motion_set_ids.end())
+        return elem->second->name.c_str();
     return 0;
 }
 
@@ -309,10 +359,9 @@ const motion_info* motion_database::get_motion_by_id(uint32_t id) const {
     if (id == -1)
         return 0;
 
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (id == j.id)
-                return &j;
+    auto elem = motion_ids.find(id);
+    if (elem != motion_ids.end())
+        return elem->second;
     return 0;
 }
 
@@ -320,12 +369,9 @@ const motion_info* motion_database::get_motion_by_name(const char* name) const {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (name_hash == j.name_hash)
-                return &j;
+    auto elem = motion_names.find(hash_utf8_murmurhash(name));
+    if (elem != motion_names.end())
+        return elem->second;
     return 0;
 }
 
@@ -333,12 +379,9 @@ uint32_t motion_database::get_motion_id(const char* name) const {
     if (!name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (name_hash == j.name_hash)
-                return j.id;
+    auto elem = motion_names.find(hash_utf8_murmurhash(name));
+    if (elem != motion_names.end())
+        return elem->second->id;
     return -1;
 }
 
@@ -346,10 +389,9 @@ const char* motion_database::get_motion_name(uint32_t id) const {
     if (id == -1)
         return 0;
 
-    for (const motion_set_info& i : motion_set)
-        for (const motion_info& j : i.motion)
-            if (id == j.id)
-                return j.name.c_str();
+    auto elem = motion_ids.find(id);
+    if (elem != motion_ids.end())
+        return elem->second->name.c_str();
     return 0;
 }
 

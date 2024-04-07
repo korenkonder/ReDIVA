@@ -379,6 +379,8 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->effects_init = i.effects_init;
         data->auth_3d_ids.assign(i.auth_3d_ids.begin(), i.auth_3d_ids.end());
     }
+
+    update();
 }
 
 void stage_database::clear() {
@@ -386,6 +388,24 @@ void stage_database::clear() {
     stage_data.shrink_to_fit();
     stage_modern.clear();
     stage_modern.shrink_to_fit();
+    stage_data_names.clear();
+    stage_data_names.shrink_to_fit();
+    stage_modern_names.clear();
+    stage_modern_names.shrink_to_fit();
+}
+
+void stage_database::update() {
+    stage_data_names.clear();
+    stage_modern_names.clear();
+
+    for (::stage_data& i : stage_data)
+        stage_data_names.push_back(i.name_hash, &i);
+
+    for (stage_data_modern& i : stage_modern)
+        stage_modern_names.push_back(i.hash, &i);
+
+    stage_data_names.sort_unique();
+    stage_modern_names.sort_unique();
 }
 
 const ::stage_data* stage_database::get_stage_data(int32_t stage_index) const {
@@ -395,17 +415,16 @@ const ::stage_data* stage_database::get_stage_data(int32_t stage_index) const {
 }
 
 const ::stage_data_modern* stage_database::get_stage_data_modern(uint32_t stage_hash) const {
-    for (const ::stage_data_modern& i : stage_modern)
-        if (i.hash == stage_hash)
-            return &i;
+    auto elem = stage_modern_names.find(stage_hash);
+    if (elem != stage_modern_names.end())
+        return elem->second;
     return 0;
 }
 
 int32_t stage_database::get_stage_index(const char* name) const {
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const ::stage_data& i : stage_data)
-        if (name_hash == i.name_hash)
-            return (int32_t)(&i - stage_data.data());
+    auto elem = stage_data_names.find(hash_utf8_murmurhash(name));
+    if (elem != stage_data_names.end())
+        return (int32_t)(elem->second - stage_data.data());
     return -1;
 }
 
@@ -416,9 +435,9 @@ const char* stage_database::get_stage_name(int32_t stage_index) const {
 }
 
 const char* stage_database::get_stage_name_modern(uint32_t stage_hash) const {
-    for (const ::stage_data_modern& i : stage_modern)
-        if (i.hash == stage_hash)
-            return i.name.c_str();
+    auto elem = stage_modern_names.find(stage_hash);
+    if (elem != stage_modern_names.end())
+        return elem->second->name.c_str();
     return 0;
 }
 

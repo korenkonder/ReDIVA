@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../prj/vector_pair.hpp"
 
 struct motion_info_file {
     std::string name;
@@ -30,6 +31,7 @@ struct motion_info {
     std::string name;
     uint32_t name_hash;
     uint32_t id;
+    uint32_t set_id;
 
     motion_info();
     ~motion_info();
@@ -67,11 +69,19 @@ struct motion_database_file {
 struct motion_database {
     std::vector<std::string> bone_name;
     std::vector<motion_set_info> motion_set;
+    prj::vector_pair<uint32_t, const motion_set_info*> motion_set_ids;
+    prj::vector_pair<uint32_t, const motion_set_info*> motion_set_names;
+    prj::vector_pair<uint32_t, const motion_set_info*> motion_set_motion_ids;
+    prj::vector_pair<uint32_t, const motion_set_info*> motion_set_motion_names;
+    prj::vector_pair<uint32_t, const motion_info*> motion_ids;
+    prj::vector_pair<uint32_t, const motion_info*> motion_names;
 
     motion_database();
     ~motion_database();
 
     void add(motion_database_file* mot_db_file);
+    void clear();
+    void update();
 
     const motion_set_info* get_motion_set_by_id(uint32_t id) const;
     const motion_set_info* get_motion_set_by_name(const char* name) const;

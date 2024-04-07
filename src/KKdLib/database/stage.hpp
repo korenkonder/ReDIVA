@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../prj/vector_pair.hpp"
 #include "object.hpp"
 
 enum stage_data_format {
@@ -267,12 +268,15 @@ struct stage_database_file {
 struct stage_database {
     std::vector<::stage_data> stage_data;
     std::vector<stage_data_modern> stage_modern;
+    prj::vector_pair<uint32_t, const ::stage_data*> stage_data_names;
+    prj::vector_pair<uint32_t, const stage_data_modern*> stage_modern_names;
 
     stage_database();
     ~stage_database();
 
     void add(stage_database_file* stage_data_file);
     void clear();
+    void update();
 
     const ::stage_data* get_stage_data(int32_t stage_index) const;
     const ::stage_data_modern* get_stage_data_modern(uint32_t stage_hash) const;

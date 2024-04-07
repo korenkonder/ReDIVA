@@ -158,32 +158,59 @@ void auth_3d_database::add(auth_3d_database_file* auth_3d_db_file, bool mdata) {
 
     auth_3d_database_load_categories(this, auth_3d_db_file, mdata);
     auth_3d_database_load_uids(this, auth_3d_db_file, mdata);
+
+    update();
+}
+
+void auth_3d_database::clear() {
+    category.clear();
+    category.shrink_to_fit();
+    uid.clear();
+    uid.shrink_to_fit();
+    category_names.clear();
+    category_names.shrink_to_fit();
+    uid_names.clear();
+    uid_names.shrink_to_fit();
+}
+
+void auth_3d_database::update() {
+    category_names.clear();
+    uid_names.clear();
+
+    category_names.reserve(category.size());
+    uid_names.reserve(uid.size());
+
+    for (auth_3d_database_category& i : category)
+        category_names.push_back(i.name_hash, &i);
+
+    for (auth_3d_database_uid& i : uid)
+        uid_names.push_back(i.name_hash, &i);
+
+    category_names.sort_unique();
+    uid_names.sort_unique();
 }
 
 int32_t auth_3d_database::get_category_index(const char* name) const {
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const auth_3d_database_category i : category)
-        if (i.name_hash == name_hash)
-            return (int32_t)(&i - category.data());
+    auto elem = category_names.find(hash_utf8_murmurhash(name));
+    if (elem != category_names.end())
+        return (int32_t)(elem->second - category.data());
     return -1;
 }
 
 void auth_3d_database::get_category_uids(const char* name, std::vector<int32_t>& uid) const {
     uid.clear();
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const auth_3d_database_category& i : category)
-        if (i.name_hash == name_hash) {
-            uid = i.uid;
-            return;
-        }
+    auto elem = category_names.find(hash_utf8_murmurhash(name));
+    if (elem != category_names.end()) {
+        uid.assign(elem->second->uid.begin(), elem->second->uid.end());
+        return;
+    }
 }
 
 int32_t auth_3d_database::get_uid(const char* name) const {
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const auth_3d_database_uid& i : uid)
-        if (i.name_hash == name_hash)
-            return (int32_t)(&i - uid.data());
+    auto elem = uid_names.find(hash_utf8_murmurhash(name));
+    if (elem != uid_names.end())
+        return (int32_t)(elem->second - uid.data());
     return -1;
 }
 

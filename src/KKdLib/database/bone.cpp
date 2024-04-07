@@ -205,14 +205,53 @@ void bone_database::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
+void bone_database::clear() {
+    skeleton.clear();
+    skeleton.shrink_to_fit();
+    skeleton_names.clear();
+    skeleton_names.shrink_to_fit();
+}
+
+void bone_database::update() {
+    skeleton_names.clear();
+
+    skeleton_names.reserve(skeleton.size());
+
+    for (bone_database_skeleton& i : skeleton) {
+        skeleton_names.push_back(hash_string_murmurhash(i.name), &i);
+
+        i.bone_names.clear();
+        i.object_bone_names.clear();
+        i.motion_bone_names.clear();
+        
+        i.bone_names.reserve(i.bone.size());
+        i.object_bone_names.reserve(i.object_bone.size());
+        i.motion_bone_names.reserve(i.motion_bone.size());
+
+        for (bone_database_bone& j : i.bone)
+            i.bone_names.push_back(hash_string_murmurhash(j.name), &j);
+
+        for (std::string& j : i.object_bone)
+            i.object_bone_names.push_back(hash_string_murmurhash(j), &j);
+
+        for (std::string& j : i.motion_bone)
+            i.motion_bone_names.push_back(hash_string_murmurhash(j), &j);
+
+        i.bone_names.sort_unique();
+        i.object_bone_names.sort_unique();
+        i.motion_bone_names.sort_unique();
+    }
+
+    skeleton_names.sort_unique();
+}
+
 const bone_database_skeleton* bone_database::get_skeleton(const char* name) const {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : this->skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return elem->second;
     return 0;
 }
 
@@ -220,15 +259,13 @@ int32_t bone_database::get_skeleton_bone_index(const char* name, const char* bon
     if (!name || !bone_name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    uint32_t bone_name_hash = hash_utf8_murmurhash(bone_name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            for (const bone_database_bone& j : i.bone)
-                if (hash_string_murmurhash(j.name) == bone_name_hash)
-                    return (int32_t)(&j - i.bone.data());
-            return -1;
-        }
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end()) {
+        const bone_database_skeleton* skel = elem->second;
+        auto elem = skel->bone_names.find(hash_utf8_murmurhash(bone_name));
+        if (elem != skel->bone_names.end())
+            return (int32_t)(elem->second - skel->bone.data());
+    }
     return -1;
 }
 
@@ -236,10 +273,9 @@ const std::vector<bone_database_bone>* bone_database::get_skeleton_bones(const c
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i.bone;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return &elem->second->bone;
     return 0;
 }
 
@@ -247,10 +283,9 @@ const std::vector<vec3>* bone_database::get_skeleton_positions(const char* name)
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i.position;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return &elem->second->position;
     return 0;
 }
 
@@ -258,15 +293,13 @@ int32_t bone_database::get_skeleton_object_bone_index(const char* name, const ch
     if (!name || !bone_name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    uint32_t bone_name_hash = hash_utf8_murmurhash(bone_name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            for (const std::string& j : i.object_bone)
-                if (hash_string_murmurhash(j) == bone_name_hash)
-                    return (int32_t)(&j - i.object_bone.data());
-            return -1;
-        }
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end()) {
+        const bone_database_skeleton* skel = elem->second;
+        auto elem = skel->object_bone_names.find(hash_utf8_murmurhash(bone_name));
+        if (elem != skel->object_bone_names.end())
+            return (int32_t)(elem->second - skel->object_bone.data());
+    }
     return -1;
 }
 
@@ -274,10 +307,9 @@ const std::vector<std::string>* bone_database::get_skeleton_object_bones(const c
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i.object_bone;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return &elem->second->object_bone;
     return 0;
 }
 
@@ -285,15 +317,13 @@ int32_t bone_database::get_skeleton_motion_bone_index(const char* name, const ch
     if (!name || !bone_name)
         return -1;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    uint32_t bone_name_hash = hash_utf8_murmurhash(bone_name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash) {
-            for (const std::string& j : i.motion_bone)
-                if (hash_string_murmurhash(j) == bone_name_hash)
-                    return (int32_t)(&j - i.motion_bone.data());
-            return -1;
-        }
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end()) {
+        const bone_database_skeleton* skel = elem->second;
+        auto elem = skel->motion_bone_names.find(hash_utf8_murmurhash(bone_name));
+        if (elem != skel->motion_bone_names.end())
+            return (int32_t)(elem->second - skel->motion_bone.data());
+    }
     return -1;
 }
 
@@ -301,10 +331,9 @@ const std::vector<std::string>* bone_database::get_skeleton_motion_bones(const c
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i.motion_bone;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return &elem->second->motion_bone;
     return 0;
 }
 
@@ -312,10 +341,9 @@ const std::vector<std::uint16_t>* bone_database::get_skeleton_parent_indices(con
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i.parent_index;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return &elem->second->parent_index;
     return 0;
 }
 
@@ -323,10 +351,9 @@ const float_t* bone_database::get_skeleton_heel_height(const char* name) const {
     if (!name)
         return 0;
 
-    uint32_t name_hash = hash_utf8_murmurhash(name);
-    for (const bone_database_skeleton& i : skeleton)
-        if (hash_string_murmurhash(i.name) == name_hash)
-            return &i.heel_height;
+    auto elem = skeleton_names.find(hash_utf8_murmurhash(name));
+    if (elem != skeleton_names.end())
+        return &elem->second->heel_height;
     return 0;
 }
 
@@ -535,6 +562,8 @@ static void bone_database_classic_read_inner(bone_database* bone_data, stream& s
     bone_data->modern = false;
     bone_data->big_endian = false;
     bone_data->is_x = false;
+
+    bone_data->update();
 }
 
 static void bone_database_classic_write_inner(bone_database* bone_data, stream& s) {
@@ -859,6 +888,8 @@ static void bone_database_modern_read_inner(bone_database* bone_data, stream& s,
     bone_data->modern = true;
     bone_data->big_endian = big_endian;
     bone_data->is_x = is_x;
+
+    bone_data->update();
 }
 
 static void bone_database_modern_write_inner(bone_database* bone_data, stream& s) {

@@ -8,6 +8,7 @@
 #include <string>
 #include <vector>
 #include "../default.hpp"
+#include "../prj/vector_pair.hpp"
 #include "../vec.hpp"
 
 enum bone_database_bone_type {
@@ -56,6 +57,9 @@ struct bone_database_skeleton {
     std::vector<std::string> motion_bone;
     std::vector<uint16_t> parent_index;
     std::string name;
+    prj::vector_pair<uint32_t, const bone_database_bone*> bone_names;
+    prj::vector_pair<uint32_t, const std::string*> object_bone_names;
+    prj::vector_pair<uint32_t, const std::string*> motion_bone_names;
 
     bone_database_skeleton();
     ~bone_database_skeleton();
@@ -68,6 +72,7 @@ struct bone_database {
     bool is_x;
 
     std::vector<bone_database_skeleton> skeleton;
+    prj::vector_pair<uint32_t, const bone_database_skeleton*> skeleton_names;
 
     bone_database();
     ~bone_database();
@@ -78,6 +83,9 @@ struct bone_database {
     void write(const char* path);
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
+
+    void clear();
+    void update();
 
     const bone_database_skeleton* get_skeleton(const char* name) const;
     int32_t get_skeleton_bone_index(const char* name, const char* bone_name) const;
