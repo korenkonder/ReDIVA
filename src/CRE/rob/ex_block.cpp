@@ -69,9 +69,12 @@ static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3);
 static void sub_1402187D0(RobCloth* rob_cls, bool a2);
 static void sub_140219940(RobCloth* rob_cls);
 static void sub_140219D10(RobCloth* rob_cls);
-static float_t sub_14021A290(vec3& a1, vec3& a2, vec3& a3, vec2& a4, vec2& a5, vec2& a6,
+static float_t sub_14021A290(const vec3& trans_a, const vec3& trans_b, const vec3& trans_c,
+    const vec2& texcoord_a, const vec2& texcoord_b, const vec2& texcoord_c,
     vec3& tangent, vec3& binormal, vec3& normal);
-static float_t sub_14021A5E0(vec3& a1, vec3& a2, float_t a3, float_t a4, vec3& tangent, vec3& binormal, vec3& normal);
+static float_t sub_14021A5E0(const vec3& pos_a, const vec3& pos_b,
+    const float_t uv_a_y, const float_t uv_b_y,
+    vec3& tangent, vec3& binormal, vec3& normal);
 static void sub_14021A890(CLOTHNode* a1, CLOTHNode* a2, CLOTHNode* a3, CLOTHNode* a4, CLOTHNode* a5);
 static void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3);
 static void sub_14021D480(RobCloth* rob_cls);
@@ -1080,7 +1083,10 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
         v55.trans_orig = root[i].trans;
     }
 
+    std::vector<size_t> index_array(root_count * nodes_count, 0);
     uint16_t* mesh_index_array = cls_data->mesh_index_array;
+    for (size_t i = 0; i < cls_data->num_mesh_index; i++)
+        index_array.data()[mesh_index_array[i]] = i;
 
     obj_mesh* mesh = object_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->mesh_name);
     obj_vertex_format vertex_format = (obj_vertex_format)0;
@@ -1093,7 +1099,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
     if (mesh && vertex_format
         & (OBJ_VERTEX_TEXCOORD0 | OBJ_VERTEX_TANGENT | OBJ_VERTEX_NORMAL | OBJ_VERTEX_POSITION)) {
         for (size_t i = 0; i < root_count; ++i)
-            this->root.data()[i].tangent = vertex_array[mesh_index_array[i]].tangent;
+            this->root.data()[i].tangent = vertex_array[index_array.data()[i]].tangent;
     }
 
     for (size_t i = 1; i < nodes_count; i++)
@@ -1125,7 +1131,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
             v72.flags = flags;
 
             if (mesh && vertex_format & OBJ_VERTEX_TEXCOORD0)
-                v72.texcoord = vertex_array[mesh_index_array[i * root_count + j]].texcoord0;
+                v72.texcoord = vertex_array[index_array.data()[i * root_count + j]].texcoord0;
         }
 
     Init();
@@ -2984,9 +2990,9 @@ static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3) {
             mat4& mat = rob_cls->root.data()[i].field_D8;
             CLOTHNode* node = &rob_cls->nodes.data()[i + root_count];
             for (size_t j = 1; j < nodes_count; j++, node += root_count) {
-                vec3 v19;
-                mat4_transform_point(&mat, &node->reset_data.trans, &v19);
-                node->trans += (v19 - node->trans) * move_cancel;
+                vec3 trans;
+                mat4_transform_point(&mat, &node->reset_data.trans, &trans);
+                node->trans += (trans - node->trans) * move_cancel;
             }
         }
     }
@@ -3151,26 +3157,27 @@ static void sub_140219D10(RobCloth* rob_cls) {
     operator delete(v12);
 }
 
-static float_t sub_14021A290(vec3& a1, vec3& a2, vec3& a3, vec2& a4, vec2& a5, vec2& a6,
+static float_t sub_14021A290(const vec3& trans_a, const vec3& trans_b, const vec3& trans_c,
+    const vec2& texcoord_a, const vec2& texcoord_b, const vec2& texcoord_c,
     vec3& tangent, vec3& binormal, vec3& normal) {
-    vec3 v11 = a3 - a1;
-    vec3 v15 = a2 - a1;
+    vec3 pos_a = trans_b - trans_a;
+    vec3 pos_b = trans_c - trans_a;
 
-    normal = vec3::cross(v15, v11);
+    normal = vec3::cross(pos_a, pos_b);
 
-    float_t v12 = vec3::length(normal);
-    if (v12 <= 0.000001f)
+    float_t normal_length = vec3::length(normal);
+    if (normal_length <= 0.000001f)
         return 1.0f;
 
-    normal *= 1.0f / v12;
+    normal *= 1.0f / normal_length;
 
-    vec2 v37 = a5 - a4;
-    vec2 v38 = a6 - a4;
+    vec2 uv_a = texcoord_b - texcoord_a;
+    vec2 uv_b = texcoord_c - texcoord_a;
 
-    float_t v19 = 1.0f / (v38.y * v37.x - v37.y * v38.x);
+    float_t r = 1.0f / (uv_b.y * uv_a.x - uv_a.y * uv_b.x);
 
-    vec3 v20 = vec3::normalize(v15 * v38.y - v11 * v37.y * v19);
-    binormal = vec3::cross(normal, v20);
+    vec3 _tangent = vec3::normalize((pos_a * uv_b.y - pos_b * uv_a.y) * r);
+    binormal = vec3::cross(_tangent, normal);
     tangent = vec3::cross(normal, binormal);
 
     mat3 mat;
@@ -3181,11 +3188,13 @@ static float_t sub_14021A290(vec3& a1, vec3& a2, vec3& a3, vec2& a4, vec2& a5, v
     return mat3_determinant(&mat);
 }
 
-static float_t sub_14021A5E0(vec3& a1, vec3& a2, float_t a3, float_t a4, vec3& tangent, vec3& binormal, vec3& normal) {
-    normal = vec3::normalize(vec3::cross(a1, a2));
+static float_t sub_14021A5E0(const vec3& pos_a, const vec3& pos_b,
+    const float_t uv_a_y, const float_t uv_b_y,
+    vec3& tangent, vec3& binormal, vec3& normal) {
+    normal = vec3::normalize(vec3::cross(pos_a, pos_b));
 
-    vec3 v18 = vec3::normalize(a1 * a4 - a2 * a3);
-    binormal = vec3::cross(normal, v18);
+    vec3 _tangent = vec3::normalize(pos_a * uv_b_y - pos_b * uv_a_y);
+    binormal = vec3::cross(_tangent, normal);
     tangent = vec3::cross(normal, binormal);
 
     mat3 mat;
@@ -3197,23 +3206,22 @@ static float_t sub_14021A5E0(vec3& a1, vec3& a2, float_t a3, float_t a4, vec3& t
 }
 
 static void sub_14021A890(CLOTHNode* a1, CLOTHNode* a2, CLOTHNode* a3, CLOTHNode* a4, CLOTHNode* a5) {
-    vec3 v18 = a4->trans - a5->trans;
-    vec3 v17 = a3->trans - a2->trans;
+    vec3 pos_a = a4->trans - a5->trans;
+    vec3 pos_b = a3->trans - a2->trans;
 
-    float_t v5 = vec3::length(v18);
-    float_t v7 = vec3::length(v17);
-    if (v5 <= 0.000001f || v7 <= 0.000001f)
+    float_t pos_b_length = vec3::length(pos_a);
+    float_t pos_a_length = vec3::length(pos_b);
+    if (pos_b_length <= 0.000001f || pos_a_length <= 0.000001f)
         return;
 
-    vec2 v19 = a4->texcoord - a5->texcoord;
+    vec2 uv_a = a4->texcoord - a5->texcoord;
+    vec2 uv_b = a3->texcoord - a2->texcoord;
 
-    vec2 v20 = a3->texcoord - a2->texcoord;
-
-    float_t v14 = v19.x * v20.y - v19.y * v20.x;
-    if (fabsf(v14) > 0.000001f) {
-        v14 = 1.0f / v14;
-        a1->tangent_sign = sub_14021A5E0(v18, v17, v19.y * v14, v20.y * v14,
-            a1->tangent, a1->binormal, a1->normal);
+    float_t r = uv_b.y * uv_a.x - uv_a.y * uv_b.x;
+    if (fabsf(r) > 0.000001f) {
+        r = 1.0f / r;
+        a1->tangent_sign = sub_14021A5E0(pos_a, pos_b,
+            uv_a.y * r, uv_b.y * r, a1->tangent, a1->binormal, a1->normal);
     }
 }
 
