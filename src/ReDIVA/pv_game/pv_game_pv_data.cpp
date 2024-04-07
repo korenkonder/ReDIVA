@@ -1701,7 +1701,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (camera_index < 3) {
             data_camera[camera_index].enable = true;
-            data_camera[camera_index].index = index;
+            data_camera[camera_index].index = index - 1;
             data_camera[camera_index].time = dsc_time;
         }
     } break;
