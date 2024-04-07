@@ -181,10 +181,7 @@ void ExNodeBlock::InitData(bone_node* bone_node, ExNodeType type,
     const char* name, rob_chara_item_equip_object* itm_eq_obj) {
     bone_node_ptr = bone_node;
     this->type = type;
-    if (name)
-        this->name = name;
-    else
-        this->name = "(null)";
+    this->name = name ? name : "(null)";
     parent_bone_node = 0;
     item_equip_object = itm_eq_obj;
 }

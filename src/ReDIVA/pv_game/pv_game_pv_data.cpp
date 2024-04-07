@@ -170,7 +170,7 @@ void pv_play_data_motion_data::reset() {
 void pv_play_data_motion_data::set(rob_chara* rob_chr, float_t duration,
     vec3 start_pos, vec3 end_pos, float_t start_rot, float_t end_rot) {
     this->rob_chr = rob_chr;
-    this->current_time = 0.0;
+    this->current_time = 0.0f;
     this->duration = duration;
     this->start_pos = start_pos;
     this->end_pos = end_pos;
@@ -245,7 +245,7 @@ void pv_scene_fade::ctrl(float_t delta_time) {
     float_t alpha;
     bool end;
     if (duration <= time || duration <= 0.0f) {
-        alpha = this->end_alpha;
+        alpha = end_alpha;
         end = true;
     }
     else {
@@ -682,12 +682,12 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
             if (data_camera[0].index != index - 1) {
                 data_camera[0].index = index - 1;
-                data_camera[0].time = this->dsc_time;
+                data_camera[0].time = dsc_time;
                 data_camera[0].enable = 1;
             }
 
             if (dsc_time == data_camera[0].time)
-                curr_time = this->data_camera[0].time;
+                curr_time = data_camera[0].time;
 
             float_t frame = dsc_time_to_frame(curr_time - data_camera[0].time);
             float_t dsc_frame = prj::roundf(dsc_time_to_frame(dsc_time - data_camera[0].time));
@@ -701,7 +701,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         case 1: {
             if (data_camera[1].index != index - 1) {
                 data_camera[1].index = index - 1;
-                data_camera[1].time = this->dsc_time;
+                data_camera[1].time = dsc_time;
                 data_camera[1].enable = 1;
             }
 
@@ -1059,7 +1059,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             frame = fmodf((dsc_time_to_frame(curr_time - dsc_time) * frame_speed)
                 + frame_count * value, frame_count);
 
-        float_t blend_duration = playdata->motion_data.mot_smooth_len / this->anim_frame_speed;
+        float_t blend_duration = playdata->motion_data.mot_smooth_len / anim_frame_speed;
         MotionBlendType blend_type = MOTION_BLEND_CROSS;
         switch (_blend_type) {
         case 0:
@@ -1490,17 +1490,17 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             ignore_fov = false;
         }
 
-        this->min_dist = _min_dist;
+        min_dist = _min_dist;
         cam->set_ignore_min_dist(false);
         cam->set_min_distance(_min_dist);
         cam->set_ignore_min_dist(ignore_min_dist);
 
-        this->fov = _fov;
+        fov = _fov;
         cam->set_ignore_fov(false);
         cam->set_fov(_fov);
         cam->set_ignore_fov(ignore_fov);
 
-        pv_game_camera_set_fov_min_dist(fov, min_dist);
+        pv_game_camera_set_fov_min_dist(_fov, _min_dist);
     } break;
     case DSC_FT_CLOTH_WET: {
         chara_id = data[0];
@@ -1645,7 +1645,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             }
         }
         else if (v290 >= 0) {
-            pv_game->set_data_itmpv(chara_id, index, v290 != 0, this->dsc_time);
+            pv_game->set_data_itmpv(chara_id, index, v290 != 0, dsc_time);
             set_item_anim_max_frame(chara_id, index, dsc_time);
         }
 
