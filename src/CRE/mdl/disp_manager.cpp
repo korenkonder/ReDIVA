@@ -1319,6 +1319,7 @@ namespace mdl {
             float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
             float_t xz = cosf(stack_angle);
             float_t y = sinf(stack_angle);
+            y *= radius;
 
             data.reserve(6ULL * 2 * slices);
 
@@ -1342,6 +1343,7 @@ namespace mdl {
             float_t stack_angle = (float_t)((M_PI / 2.0) - (double_t)i * stack_step);
             float_t xz = cosf(stack_angle);
             float_t y = sinf(stack_angle);
+            y *= radius;
 
             data.reserve(6ULL * 2 * slices);
 

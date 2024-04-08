@@ -3821,7 +3821,7 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
     vec3 v7 = nodes.data()[0].trans;
     OsageCollision::Work* coli = rob_osg->coli;
     OsageCollision::Work* coli_ring = rob_osg->coli_ring;
-    int32_t coli_type = rob_osg->skin_param_ptr->coli_type;
+    SkinParam::RootCollisionType  coli_type = rob_osg->skin_param_ptr->coli_type;
     RobOsageNode* i_begin = nodes.data() + 1;
     RobOsageNode* i_end = nodes.data() + nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
@@ -3834,7 +3834,8 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
             j->field_C8 += v17;
         }
 
-        if (coli_type && (coli_type != SkinParam::RootCollisionTypeBall || i != i_begin)) {
+        if (coli_type != SkinParam::RootCollisionTypeEnd
+            && (coli_type != SkinParam::RootCollisionTypeBall || i != i_begin)) {
             float_t v20 = (float_t)(
                 OsageCollision::osage_capsule_cls(coli_ring, i[0].trans, i[-1].trans, data->skp_osg_node.coli_r)
                 + OsageCollision::osage_capsule_cls(coli, i[0].trans, i[-1].trans, data->skp_osg_node.coli_r));

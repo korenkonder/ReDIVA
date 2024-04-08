@@ -117,13 +117,14 @@ skin_param_osage_root_boc::~skin_param_osage_root_boc() {
 }
 
 skin_param_osage_root::skin_param_osage_root() : field_0(), force(), force_gain(),
-rot_y(), rot_z(), init_rot_y(), init_rot_z(), coli_r(), yz_order(), coli_type(), stiffness() {
+rot_y(), rot_z(), init_rot_y(), init_rot_z(), coli_r(), yz_order(), stiffness() {
     air_res = 0.5f;
     hinge_y = 90.0f;
     hinge_z = 90.0f;
-    name ="NO-PARAM";
+    name = "NO-PARAM";
     friction = 1.0f;
     wind_afc = 0.5f;
+    coli_type = SkinParam::RootCollisionTypeEnd;
     move_cancel = -0.01f;
     coli.resize(13);
 }
@@ -358,7 +359,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
 
     int32_t coli_type = 0;
     if (_kv->read("coli_type", coli_type))
-        skp_root.coli_type = coli_type;
+        skp_root.coli_type = (SkinParam::RootCollisionType)coli_type;
 
     float_t init_rot_y = 0.0f;
     float_t init_rot_z = 0.0f;

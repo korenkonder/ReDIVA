@@ -1678,7 +1678,7 @@ struct skin_param_osage_root {
     float_t wind_afc;
     int32_t yz_order;
     std::vector<skin_param_osage_root_boc> boc;
-    int32_t coli_type;
+    SkinParam::RootCollisionType coli_type;
     float_t stiffness;
     float_t move_cancel;
     std::string colli_tgt_osg;
@@ -1695,7 +1695,7 @@ struct skin_param {
     float_t air_res;
     vec3 rot;
     vec3 init_rot;
-    int32_t coli_type;
+    SkinParam::RootCollisionType coli_type;
     float_t stiffness;
     float_t move_cancel;
     float_t coli_r;

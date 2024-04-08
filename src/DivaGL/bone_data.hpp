@@ -853,6 +853,13 @@ namespace SkinParam {
         CollisionTypeAABB    = 0x5,
         CollisionTypeMax     = 0x6,
     };
+
+    enum RootCollisionType {
+        RootCollisionTypeEnd     = 0x0,
+        RootCollisionTypeBall    = 0x1,
+        RootCollisionTypeCapsule = 0x2,
+        RootCollisionTypeMax     = 0x3,
+    };
 }
 
 enum shadow_type_enum {
@@ -2964,7 +2971,7 @@ struct skin_param_osage_root {
     float_t wind_afc;
     int32_t yz_order;
     prj::vector<skin_param_osage_root_boc> boc;
-    int32_t coli_type;
+    SkinParam::RootCollisionType coli_type;
     float_t stiffness;
     float_t move_cancel;
     prj::string colli_tgt_osg;
@@ -3176,7 +3183,7 @@ struct skin_param {
     float_t air_res;
     vec3 rot;
     vec3 init_rot;
-    int32_t coli_type;
+    SkinParam::RootCollisionType coli_type;
     float_t stiffness;
     float_t move_cancel;
     float_t coli_r;
