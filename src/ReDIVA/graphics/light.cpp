@@ -9,7 +9,6 @@
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task.hpp"
-#include "../dw.hpp"
 
 extern render_context* rctx_ptr;
 
@@ -1044,16 +1043,6 @@ LightDw::LightDw() {
         position_slider = new LightDw::PositionSlider(this, comp);
         break;
     case LIGHT_SPOT:
-        break;
-    }
-    if (!( - 1)) {
-        goto LABEL_113;
-    }
-
-    if (!(type_list_box->type->list->selected_item - 2)) {
-        goto LABEL_113;
-    }
-    if (type_list_box->type->list->selected_item == 3) {
         ambient_slider = new LightDw::AmbientSlider(this, comp);
         diffuse_slider = new LightDw::DiffuseSlider(this, comp);
         specular_slider = new LightDw::SpecularSlider(this, comp);
@@ -1079,9 +1068,9 @@ LightDw::LightDw() {
         exponent_slider = new LightDw::ExponentSlider(this, comp);
         cutoff_slider = new LightDw::CutoffSlider(this, comp);
         attenuation_slider = new LightDw::AttenuationSlider(this, comp);
+        break;
     }
 
-LABEL_113:
     comp->UpdateLayout();
 
     float_t size_y = comp->rect.size.y;
@@ -1096,9 +1085,9 @@ LightDw::~LightDw() {
 }
 
 void LightDw::Hide() {
-    light_dw_rect = this->parent_shell->rect;
+    light_dw_rect = parent_shell->rect;
     dw::Shell::Hide();
-    light_dw = 0i64;
+    light_dw = 0;
     if (!light_dw_task.ready)
         light_dw_task.del();
 }

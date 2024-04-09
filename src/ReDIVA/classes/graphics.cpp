@@ -5,9 +5,9 @@
 
 #include "graphics.hpp"
 #include "../graphics/face_light.hpp"
+#include "../graphics/fog.hpp"
 #include "../graphics/light.hpp"
 #include "graphics/background_color.hpp"
-#include "graphics/fog.hpp"
 #include "graphics/glitter.hpp"
 #include "graphics/post_process.hpp"
 #include "graphics/render_settings.hpp"
@@ -58,11 +58,11 @@ classes_data graphics_classes[] = {
     {
         "Fog##Graphics",
         CLASSES_IN_CONTEXT_MENU,
-        graphics_fog_init,
-        graphics_fog_imgui,
-        graphics_fog_dispose,
+        (classes_init_func)fog_dw_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },
