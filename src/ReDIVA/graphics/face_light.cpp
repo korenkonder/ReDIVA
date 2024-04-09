@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -78,11 +78,11 @@ DwFaceLight::DwFaceLight() {
     reset->callback = DwFaceLight::ResetCallback;
 
 #if DW_TRANSLATE
-    const char* set_for_each_cut_text = "Set for each PV cut";
-    const char* strength_text = "Strength";
+    const char* set_for_each_cut_text = u8"Set for each PV cut";
+    const char* strength_text = u8"Strength";
 #else
-    const char* set_for_each_cut_text = "PVのカットごとに設定";
-    const char* strength_text = "強さ";
+    const char* set_for_each_cut_text = u8"PVのカットごとに設定";
+    const char* strength_text = u8"強さ";
 #endif
 
     set_for_each_cut_button = new dw::Button(this, dw::CHECKBOX);

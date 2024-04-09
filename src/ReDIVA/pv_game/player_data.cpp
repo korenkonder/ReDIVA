@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -168,7 +168,7 @@ void PlayerData::Reset() {
     accept_index = -1;
     start_index = -1;
 
-    player_name.assign("ＮＯ－ＮＡＭＥ");
+    player_name.assign(u8"ＮＯ－ＮＡＭＥ");
     level_name.assign("");
 
     level = 1;

@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -783,34 +783,34 @@ const char* DataTestMotA3d::GetStateText() {
     switch (state) {
 #if DW_TRANSLATE
     case 0:
-        return "A3D: Initializing...";
+        return u8"A3D: Initializing...";
     case 1:
-        return "A3D: Awaiting command...";
+        return u8"A3D: Awaiting command...";
     case 2:
-        return "A3D: Requesting data...";
+        return u8"A3D: Requesting data...";
     case 3:
-        return "A3D: Loading PV Stage...";
+        return u8"A3D: Loading PV Stage...";
     case 4:
-        return "A3D: Loading A3D Category...";
+        return u8"A3D: Loading A3D Category...";
     case 5:
-        return "A3D: Loading A3D Handle...";
+        return u8"A3D: Loading A3D Handle...";
     default:
-        return "A3D: Unknown mode";
+        return u8"A3D: Unknown mode";
 #else
     case 0:
-        return "A3D: 初期化中...";
+        return u8"A3D: 初期化中...";
     case 1:
-        return "A3D: 命令待機中...";
+        return u8"A3D: 命令待機中...";
     case 2:
-        return "A3D: データリクエスト中...";
+        return u8"A3D: データリクエスト中...";
     case 3:
-        return "A3D: PVステージ読込中...";
+        return u8"A3D: PVステージ読込中...";
     case 4:
-        return "A3D: A3Dカテゴリ読込中...";
+        return u8"A3D: A3Dカテゴリ読込中...";
     case 5:
-        return "A3D: A3Dハンドル読込中...";
+        return u8"A3D: A3Dハンドル読込中...";
     default:
-        return "A3D: 未知のモード";
+        return u8"A3D: 未知のモード";
 #endif
     }
 }
@@ -1793,10 +1793,7 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     }
 
     uint32_t face_cl_mot_id = aft_mot_db->get_motion_id(face_cl_mot.c_str());
-    if (face_cl_mot_id != -1)
-        face_cl->SetText(face_cl_mot);
-    else
-        face_cl->SetText("CLモーションなし");
+    face_cl->SetText(face_cl_mot_id != -1 ? face_cl_mot : u8"CLモーションなし");
 
     auto elem_eyelid = motion_id_mottbl_map.find(face_cl_mot_id);
     if (elem_eyelid != motion_id_mottbl_map.end())
@@ -2326,9 +2323,9 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
     dtm_mot->SetPartialMot(false);
 
 #if DW_TRANSLATE
-    const char* save_only_start_frame_button_text = "Initialize only Start Frame Osage";
+    const char* save_only_start_frame_button_text = u8"Initialize only Start Frame Osage";
 #else
-    const char* save_only_start_frame_button_text = "Startフレームだけおさげ初期化";
+    const char* save_only_start_frame_button_text = u8"Startフレームだけおさげ初期化";
 #endif
 
     dw::Button* save_only_start_frame_button = new dw::Button(this, dw::CHECKBOX);
@@ -2673,9 +2670,9 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     a3d_label->SetFont(dw::p_font_type_6x12);
 
 #if DW_TRANSLATE
-    const char* please_select_a_pv = "Please select a PV";
+    const char* please_select_a_pv = u8"Please select a PV";
 #else
-    const char* please_select_a_pv = "PVを選択して下さい";
+    const char* please_select_a_pv = u8"PVを選択して下さい";
 #endif
 
     a3d = new dw::ListBox(a3d_comp);

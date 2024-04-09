@@ -1,4 +1,4 @@
-﻿/*
+/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */

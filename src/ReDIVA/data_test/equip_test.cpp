@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -340,9 +340,9 @@ DataTestEquipDw::DataTestEquipDw() : chara_id() {
     data_test_item_array_load();
 
 #if DW_TRANSLATE
-    const char* exclusive_check_text = "Switch to exclusive check window";
+    const char* exclusive_check_text = u8"Switch to exclusive check window";
 #else
-    const char* exclusive_check_text = "排他チェック窓に切替";
+    const char* exclusive_check_text = u8"排他チェック窓に切替";
 #endif
 
     dw::Button* exclusive_check = new dw::Button(this, dw::FLAG_8);

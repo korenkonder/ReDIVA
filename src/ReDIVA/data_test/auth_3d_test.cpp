@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -817,9 +817,9 @@ Auth3dTestSubWindow::Auth3dTestSubWindow() {
     SetText("A3D STAGE");
 
 #if DW_TRANSLATE
-    const char* plane_above_floor_text = "Plane 25 cm above floor";
+    const char* plane_above_floor_text = u8"Plane 25 cm above floor";
 #else
-    const char* plane_above_floor_text = "床上25cm";
+    const char* plane_above_floor_text = u8"床上25cm";
 #endif
 
     plane_above_floor = new dw::Button(this, dw::CHECKBOX);
@@ -868,11 +868,11 @@ Auth3dTestSubWindow::Auth3dTestSubWindow() {
     stg_list->list->AddSelectionListener(&selection_list_stage);
 
 #if DW_TRANSLATE
-    const char* stage_link_change_text = "Stage Link Change";
-    const char* auth_2d_text = "2D Auth";
+    const char* stage_link_change_text = u8"Stage Link Change";
+    const char* auth_2d_text = u8"2D Auth";
 #else
-    const char* stage_link_change_text = "STG連動切り替え";
-    const char* auth_2d_text = "2Dオーサ";
+    const char* stage_link_change_text = u8"STG連動切り替え";
+    const char* auth_2d_text = u8"2Dオーサ";
 #endif
 
     stage_link_change = new dw::Button(this, dw::CHECKBOX);
@@ -1202,21 +1202,21 @@ Auth3dTestWindow::Auth3dTestWindow() {
     SetText("AUTH3D");
 
 #if DW_TRANSLATE
-    const char* nage_text = "NAGE▽";
-    const char* obj_link_text = "OBJ Link";
-    const char* left_right_reverse_text = "Left Right Reverse";
-    const char* snap_shot_text = "ss capture";
-    const char* self_shadow_off_text = "Self Shadow Off";
-    const char* black_mask_text = "Black Mask";
-    const char* offset_save_text = "Offset Save";
+    const char* nage_text = u8"NAGE▽";
+    const char* obj_link_text = u8"OBJ Link";
+    const char* left_right_reverse_text = u8"Left Right Reverse";
+    const char* snap_shot_text = u8"ss capture";
+    const char* self_shadow_off_text = u8"Self Shadow Off";
+    const char* black_mask_text = u8"Black Mask";
+    const char* offset_save_text = u8"Offset Save";
 #else
-    const char* nage_text = "投▽";
-    const char* obj_link_text = "OBJ連動";
-    const char* left_right_reverse_text = "左右逆";
-    const char* snap_shot_text = "ss画撮";
-    const char* self_shadow_off_text = "セルフ影OFF";
-    const char* black_mask_text = "黒mask";
-    const char* offset_save_text = "オフセットSave";
+    const char* nage_text = u8"投▽";
+    const char* obj_link_text = u8"OBJ連動";
+    const char* left_right_reverse_text = u8"左右逆";
+    const char* snap_shot_text = u8"ss画撮";
+    const char* self_shadow_off_text = u8"セルフ影OFF";
+    const char* black_mask_text = u8"黒mask";
+    const char* offset_save_text = u8"オフセットSave";
 #endif
 
     dw::Composite* v4 = new dw::Composite(this);
@@ -1225,15 +1225,15 @@ Auth3dTestWindow::Auth3dTestWindow() {
     (new dw::Label(v4))->SetText(" ");
 
     chara = new dw::Button(v4, dw::FLAG_8);
-    chara->SetText("CHARA▽");
+    chara->SetText(u8"CHARA▽");
     chara_menu = 0;
 
     stg = new dw::Button(v4, dw::FLAG_8);
-    stg->SetText("STG▽");
+    stg->SetText(u8"STG▽");
     stg_menu = 0;
 
     eff = new dw::Button(v4, dw::FLAG_8);
-    eff->SetText("EFF▽");
+    eff->SetText(u8"EFF▽");
     eff_menu = 0;
 
     nage = new dw::Button(v4, dw::FLAG_8);

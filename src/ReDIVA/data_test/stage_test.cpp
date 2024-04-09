@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -204,17 +204,17 @@ DtwStg::DtwStg() : Shell(0) {
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
 #if DW_TRANSLATE
-    const char* stage_display_text = "Stage display";
-    const char* ring_text = "[Ring]";
-    const char* ground_text = "[Ground]";
-    const char* sky_text = "[Sky]";
-    const char* effect_display_text = "Effects display";
+    const char* stage_display_text = u8"Stage display";
+    const char* ring_text = u8"[Ring]";
+    const char* ground_text = u8"[Ground]";
+    const char* sky_text = u8"[Sky]";
+    const char* effect_display_text = u8"Effects display";
 #else
-    const char* stage_display_text = "ステージ表示";
-    const char* ring_text = "【リング】";
-    const char* ground_text = "【地面】";
-    const char* sky_text = "【空】";
-    const char* effect_display_text = "エフェクト表示";
+    const char* stage_display_text = u8"ステージ表示";
+    const char* ring_text = u8"【リング】";
+    const char* ground_text = u8"【地面】";
+    const char* sky_text = u8"【空】";
+    const char* effect_display_text = u8"エフェクト表示";
 #endif
 
     stage_display = new dw::Button(this, dw::CHECKBOX);

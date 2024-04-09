@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -282,15 +282,15 @@ LightDw::GAmbientSlider::GAmbientSlider(LightDw* light_dw, dw::Widget* parent) {
         light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
 
 #if DW_TRANSLATE
-        const char* chara_f_tone_curve_adjustment_text = "CHARA(F) Tone Curve Adjustment";
-        const char* start_point_text = "Start Point";
-        const char* end_point_text = "End Point";
-        const char* coefficient_text = "Coefficient";
+        const char* chara_f_tone_curve_adjustment_text = u8"CHARA(F) Tone Curve Adjustment";
+        const char* start_point_text = u8"Start Point";
+        const char* end_point_text = u8"End Point";
+        const char* coefficient_text = u8"Coefficient";
 #else
-        const char* chara_f_tone_curve_adjustment_text = "CHARA(F)トーンカーブ調整";
-        const char* start_point_text = "始点";
-        const char* end_point_text = "終点";
-        const char* coefficient_text = "係数";
+        const char* chara_f_tone_curve_adjustment_text = u8"CHARA(F)トーンカーブ調整";
+        const char* start_point_text = u8"始点";
+        const char* end_point_text = u8"終点";
+        const char* coefficient_text = u8"係数";
 #endif
 
         dw::Label* label = new dw::Label(comp);
@@ -344,9 +344,9 @@ LightDw::SyncPosButton::SyncPosButton(LightDw* light_dw, dw::Widget* parent) {
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
 #if DW_TRANSLATE
-        const char* sync_pos_text = "Light 0-6 Sync Position";
+        const char* sync_pos_text = u8"Light 0-6 Sync Position";
 #else
-        const char* sync_pos_text = "Light 0-6 座標同期";
+        const char* sync_pos_text = u8"Light 0-6 座標同期";
 #endif
 
         sync_pos = new dw::Button(comp, dw::CHECKBOX);
@@ -374,9 +374,9 @@ LightDw::LightAuthEnableButton::LightAuthEnableButton(LightDw* light_dw, dw::Wid
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
 #if DW_TRANSLATE
-        const char* light_auth_enable_text = "Light Auth Enable";
+        const char* light_auth_enable_text = u8"Light Auth Enable";
 #else
-        const char* light_auth_enable_text = "ライトオーサ有効";
+        const char* light_auth_enable_text = u8"ライトオーサ有効";
 #endif
 
         light_auth_enable = new dw::Button(comp, dw::CHECKBOX);
@@ -404,9 +404,9 @@ LightDw::CutLightEnableButton::CutLightEnableButton(LightDw* light_dw, dw::Widge
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
 #if DW_TRANSLATE
-        const char* set_for_each_cut_text = "Set for each PV cut";
+        const char* set_for_each_cut_text = u8"Set for each PV cut";
 #else
-        const char* set_for_each_cut_text = "PVのカットごとに設定";
+        const char* set_for_each_cut_text = u8"PVのカットごとに設定";
 #endif
 
         set_for_each_cut = new dw::Button(comp, dw::CHECKBOX);
@@ -1065,9 +1065,9 @@ LightDw::LightDw() {
             light_dw_get_light()->get_clip_plane(clip_plane);
 
 #if DW_TRANSLATE
-            const char* reflective_surface_clip_stage_text = "Reflective Surface Clip (STAGE)";
+            const char* reflective_surface_clip_stage_text = u8"Reflective Surface Clip (STAGE)";
 #else
-            const char* reflective_surface_clip_stage_text = "反射面クリップ(STAGE)";
+            const char* reflective_surface_clip_stage_text = u8"反射面クリップ(STAGE)";
 #endif
 
             dw::Button* reflective_surface_clip_stage = new dw::Button(comp, dw::CHECKBOX);

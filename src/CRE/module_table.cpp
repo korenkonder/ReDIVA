@@ -1,4 +1,4 @@
-/*
+﻿/*
     by korenkonder
     GitHub/GitLab: korenkonder
 */
@@ -56,17 +56,17 @@ struct module_data_random {
 };
 
 module_data_random module_data_random_data[] = {
-    {  -2,  0, CHARA_MIKU  , 1935, 35031, "オール ランダム" },
-    {  -3,  1, CHARA_MIKU  , 1947, 35043, "初音ミク ランダム" },
-    {  -4,  2, CHARA_RIN   , 1951, 35047, "鏡音リン ランダム" },
-    {  -5,  3, CHARA_LEN   , 1941, 35037, "鏡音レン ランダム" },
-    {  -6,  4, CHARA_LUKA  , 1943, 35039, "巡音ルカ ランダム" },
-    {  -7,  8, CHARA_NERU  , 1949, 35045, "亞北ネル ランダム" },
-    {  -8,  7, CHARA_HAKU  , 1937, 35033, "弱音ハク ランダム" },
-    {  -9,  6, CHARA_KAITO , 1939, 35035, "カイト ランダム" },
-    { -10,  5, CHARA_MEIKO , 1945, 35041, "メイコ ランダム" },
-    { -11,  9, CHARA_SAKINE, 1953, 35049, "咲音メイコ ランダム" },
-    { -12, 10, CHARA_TETO  , 2400, 35051, "重音テト ランダム" },
+    {  -2,  0, CHARA_MIKU  , 1935, 35031, u8"オール ランダム" },
+    {  -3,  1, CHARA_MIKU  , 1947, 35043, u8"初音ミク ランダム" },
+    {  -4,  2, CHARA_RIN   , 1951, 35047, u8"鏡音リン ランダム" },
+    {  -5,  3, CHARA_LEN   , 1941, 35037, u8"鏡音レン ランダム" },
+    {  -6,  4, CHARA_LUKA  , 1943, 35039, u8"巡音ルカ ランダム" },
+    {  -7,  8, CHARA_NERU  , 1949, 35045, u8"亞北ネル ランダム" },
+    {  -8,  7, CHARA_HAKU  , 1937, 35033, u8"弱音ハク ランダム" },
+    {  -9,  6, CHARA_KAITO , 1939, 35035, u8"カイト ランダム" },
+    { -10,  5, CHARA_MEIKO , 1945, 35041, u8"メイコ ランダム" },
+    { -11,  9, CHARA_SAKINE, 1953, 35049, u8"咲音メイコ ランダム" },
+    { -12, 10, CHARA_TETO  , 2400, 35051, u8"重音テト ランダム" },
 };
 
 module_table_handler* module_table_handler_data;
