@@ -12,6 +12,7 @@
 #include "clear_color.hpp"
 #include "effect.hpp"
 #include "gl_state.hpp"
+#include "light_param.hpp"
 #include "render.hpp"
 #include "render_context.hpp"
 #include "render_texture.hpp"
@@ -45,7 +46,6 @@ static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTe
 static void render_manager_free_render_textures();
 static void render_manager_init_render_textures(int32_t multisample);
 
-extern light_param_data_storage* light_param_data_storage_data;
 extern render_context* rctx_ptr;
 
 namespace rndr {
@@ -262,18 +262,14 @@ namespace rndr {
     }
 
     void RenderManager::render_all() {
-        static const int32_t ibl_texture_index[] = {
-            9, 10, 11, 12, 13
-        };
+        light_param_data_storage_data_set_ibl();
 
-        render_context* rctx = rctx_ptr;
-        camera* cam = rctx->camera;
+        static const vec4 color_clear = 0.0f;
 
-        for (int32_t i = 0; i < 5; i++)
-            gl_state_active_bind_texture_cube_map(ibl_texture_index[i],
-                light_param_data_storage_data->textures[i]);
+        gl_state_bind_framebuffer(0);
+        glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
 
-        rctx->obj_scene.g_framebuffer_size = {
+        rctx_ptr->obj_scene.g_framebuffer_size = {
             1.0f / (float_t)render->render_width[0],
             1.0f / (float_t)render->render_height[0],
             (float_t)render->render_width[0],
@@ -300,7 +296,7 @@ namespace rndr {
             RenderManager::render_single_pass((RenderPassID)i);
         gl_state_end_event();
 
-        rctx->disp_manager->check_vertex_arrays();
+        rctx_ptr->disp_manager->check_vertex_arrays();
         gl_state_bind_vertex_array(0);
         gl_state_disable_primitive_restart();
         gl_state_bind_uniform_buffer_base(0, 0);

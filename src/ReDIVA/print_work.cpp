@@ -5,6 +5,7 @@
 
 #include "print_work.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "../CRE/data.hpp"
 #include "../CRE/shader_ft.hpp"
 
 namespace app {

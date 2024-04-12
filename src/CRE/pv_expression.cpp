@@ -9,6 +9,7 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "rob/rob.hpp"
+#include "data.hpp"
 #include "render_context.hpp"
 
 struct pv_expression_file {

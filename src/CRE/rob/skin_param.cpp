@@ -6,6 +6,7 @@
 #include "rob.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../../KKdLib/str_utils.hpp"
+#include "../data.hpp"
 #include "../mdata_manager.hpp"
 #include "skin_param.hpp"
 

@@ -925,7 +925,8 @@ static render_context* render_context_load() {
     for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
         rob_chara_array_reset_pv_data(i);
 
-    light_param_data_storage::load(aft_data);
+    light_param_data_storage_data_load();
+
     auth_3d_data_load_auth_3d_db(aft_auth_3d_db);
 
     cmn_set_id = aft_mot_db->get_motion_set_id("CMN");
@@ -1157,12 +1158,6 @@ static void render_context_disp(render_context* rctx) {
 
     glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
-    rctx->render.rend_texture[0].Bind();
-    gl_state_set_depth_mask(GL_TRUE);
-    glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
-    glClearBufferfv(GL_DEPTH, 0, &depth_clear);
-    gl_state_set_depth_mask(GL_FALSE);
-
     cam->update();
 
     rctx->disp();
@@ -1258,7 +1253,7 @@ static void render_context_dispose(render_context* rctx) {
         render_timer->end_of_cycle();
     }
 
-    light_param_data_storage::unload();
+    light_param_data_storage_data_unload();
 
     x_pv_game_data_free();
     task_data_test_glitter_particle_free();

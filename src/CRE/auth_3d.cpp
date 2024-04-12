@@ -15,6 +15,7 @@
 #include "../KKdLib/str_utils.hpp"
 #include "rob/rob.hpp"
 #include "clear_color.hpp"
+#include "data.hpp"
 #include "effect.hpp"
 #include "object.hpp"
 #include "pv_db.hpp"

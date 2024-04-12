@@ -4,6 +4,7 @@
 */
 
 #include "dw.hpp"
+#include "../CRE/data.hpp"
 #include "input_state.hpp"
 #include "print_work.hpp"
 

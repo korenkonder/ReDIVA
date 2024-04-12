@@ -4,6 +4,7 @@
 */
 
 #include "motion.hpp"
+#include "../data.hpp"
 
 struct MotFile {
     const motion_set_info* mot_set_info;

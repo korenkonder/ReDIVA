@@ -8,6 +8,7 @@
 #include <map>
 #include <vector>
 #include "../KKdLib/default.hpp"
+#include "../KKdLib/database/auth_3d.hpp"
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/texture.hpp"
 #include "../KKdLib/a3da.hpp"

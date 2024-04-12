@@ -4,6 +4,7 @@
 */
 
 #include "game_2d.hpp"
+#include "../../CRE/data.hpp"
 #include "pv_game.hpp"
 
 const char* spr_life_bonus[] = {

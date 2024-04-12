@@ -4,8 +4,10 @@
 */
 
 #include "object.hpp"
+#include "../../../CRE/object.hpp"
 #include "../../../CRE/render_context.hpp"
 #include "../../imgui_helper.hpp"
+#include <map>
 
 extern int32_t width;
 extern int32_t height;

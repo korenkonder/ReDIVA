@@ -8,6 +8,7 @@
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
 #include "../../CRE/clear_color.hpp"
+#include "../../CRE/data.hpp"
 #include "../../CRE/hand_item.hpp"
 #include "../../CRE/module_table.hpp"
 #include "../../CRE/pv_db.hpp"

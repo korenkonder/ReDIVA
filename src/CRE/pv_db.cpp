@@ -6,6 +6,7 @@
 #include "pv_db.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "data.hpp"
 #include "hand_item.hpp"
 #include "mdata_manager.hpp"
 #include "render_context.hpp"

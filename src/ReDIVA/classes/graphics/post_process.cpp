@@ -4,6 +4,7 @@
 */
 
 #include "post_process.hpp"
+#include "../../../CRE/light_param.hpp"
 #include "../../../CRE/render_context.hpp"
 #include "../../../CRE/stage.hpp"
 #include "../../imgui_helper.hpp"

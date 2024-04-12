@@ -4,6 +4,7 @@
 */
 
 #include "disp_manager.hpp"
+#include "../../KKdLib/database/stage.hpp"
 #include "../Glitter/glitter.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"

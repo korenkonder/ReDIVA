@@ -17,7 +17,6 @@
 #include "light_param/wind.hpp"
 #include "mdl/disp_manager.hpp"
 #include "camera.hpp"
-#include "light_param.hpp"
 #include "render.hpp"
 #include "render_manager.hpp"
 #include "render_texture.hpp"
@@ -367,12 +366,6 @@ struct render_context {
     void disp();
     void free();
     void init();
-    void light_param_data_light_set(light_param_light* light);
-    void light_param_data_fog_set(light_param_fog* f);
-    void light_param_data_glow_set(light_param_glow* glow);
-    void light_param_data_ibl_set(light_param_ibl* ibl, light_param_data_storage* storage);
-    void light_param_data_wind_set(light_param_wind* w);
-    void light_param_data_face_set(light_param_face* face);
     void resize(int32_t render_width, int32_t render_height,
         int32_t sprite_width, int32_t sprite_height,
         int32_t screen_width, int32_t screen_height);

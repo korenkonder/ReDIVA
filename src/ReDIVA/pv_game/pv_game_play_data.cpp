@@ -4,6 +4,7 @@
 */
 
 #include "pv_game_play_data.hpp"
+#include "../../CRE/data.hpp"
 #include "../print_work.hpp"
 #include "game_2d.hpp"
 #include "player_data.hpp"

@@ -8,6 +8,7 @@
 #if defined(ReDIVA_DEV)
 #include "../KKdLib/default.hpp"
 #include "../CRE/Glitter/glitter.hpp"
+#include "../CRE/data.hpp"
 #include "task_window.hpp"
 
 enum glitter_editor_selected_enum {

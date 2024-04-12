@@ -5,6 +5,7 @@
 
 #include "equip_test.hpp"
 #include "../../CRE/rob/rob.hpp"
+#include "../../CRE/data.hpp"
 #include "../dw.hpp"
 #include "auth_3d_test.hpp"
 #include "motion_test.hpp"
