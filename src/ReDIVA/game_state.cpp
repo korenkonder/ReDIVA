@@ -15,6 +15,7 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
+#include "data_test/rob_osage_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
 #include "information/dw_console.hpp"
@@ -1580,6 +1581,7 @@ bool SubGameState::DataTestStg::Dest() {
 
 bool SubGameState::DataTestMot::Init() {
     app::TaskWork::add_task(data_test_mot, "TASK_DATA_TEST_MOT");
+    app::TaskWork::add_task(rob_osage_test, "ROB_OSAGE_TEST");
     dtm_stg_load(0);
     dtw_stg_load(true);
     return true;
@@ -1591,6 +1593,7 @@ bool SubGameState::DataTestMot::Ctrl() {
 
 bool SubGameState::DataTestMot::Dest() {
     data_test_mot->del();
+    rob_osage_test->del();
     dtm_stg_unload();
     dtw_stg_unload();
     return true;

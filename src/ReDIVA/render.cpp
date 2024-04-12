@@ -52,6 +52,7 @@
 #include "data_test/equip_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
+#include "data_test/rob_osage_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
 #include "information/dw_console.hpp"
@@ -459,6 +460,9 @@ static bool render_init(render_init_struct* ris) {
     width = (int32_t)(width / 2.0f);
     height = (int32_t)(height / 2.0f);
 
+    width = 1280;
+    height = 720;
+
     res_window_set(RESOLUTION_MODE_HD);
 
 #if BAKE_PNG || BAKE_VIDEO
@@ -618,6 +622,7 @@ static render_context* render_context_load() {
     dtm_stg_init();
     motion_test_init();
     equip_test_init();
+    rob_osage_test_init();
     task_data_test_glitter_particle_init();
     x_pv_game_data_init();
 
@@ -1257,6 +1262,7 @@ static void render_context_dispose(render_context* rctx) {
 
     x_pv_game_data_free();
     task_data_test_glitter_particle_free();
+    rob_osage_test_free();
     equip_test_free();
     motion_test_free();
     dtm_stg_free();
