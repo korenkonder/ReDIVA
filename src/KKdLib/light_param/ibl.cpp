@@ -67,7 +67,7 @@ bool light_param_ibl::load_file(void* data, const char* path, const char* file, 
     return ibl->ready;
 }
 
-light_param_ibl_diffuse::light_param_ibl_diffuse() : data(), size() {
+light_param_ibl_diffuse::light_param_ibl_diffuse() : data(), size(), level() {
 
 }
 
@@ -195,6 +195,8 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
                     light_param_ibl_diffuse* diffuse = &ibl->diffuse[i];
                     diffuse->data = std::vector<half_t>(size * 6);
                     diffuse->size = widths[i];
+                    diffuse->level = i;
+
                     for (int32_t k = 0; k < 6; k++, dh += size)
                         memcpy(&diffuse->data[size * k], dh, sizeof(half_t) * size);
                 }

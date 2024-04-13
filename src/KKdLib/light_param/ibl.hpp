@@ -14,6 +14,7 @@
 struct light_param_ibl_diffuse {
     std::vector<half_t> data;
     int32_t size;
+    int32_t level;
 
     light_param_ibl_diffuse();
     ~light_param_ibl_diffuse();

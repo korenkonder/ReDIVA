@@ -38,7 +38,7 @@ struct light_param_data {
     static void set_glow(const light_param_glow* glow);
     static void set_fog(const light_param_fog* f);
     static void set_ibl(const light_param_ibl* ibl, const light_param_data_storage* storage);
-    static void set_ibl_diffuse(const light_param_ibl_diffuse* diffuse, const int32_t level);
+    static void set_ibl_diffuse(const light_param_ibl_diffuse* diffuse);
     static void set_ibl_specular(const light_param_ibl_specular* specular);
     static void set_light(const light_param_light* light);
     static void set_wind(const light_param_wind* w);
@@ -520,8 +520,8 @@ void light_param_data::set_ibl(const light_param_ibl* ibl, const light_param_dat
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, 1);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_NEAREST);
-            light_param_data::set_ibl_diffuse(&ibl->diffuse[0], 0);
-            light_param_data::set_ibl_diffuse(&ibl->diffuse[1], 1);
+            light_param_data::set_ibl_diffuse(&ibl->diffuse[0]);
+            light_param_data::set_ibl_diffuse(&ibl->diffuse[1]);
         }
         else {
             glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, ibl->specular[j].max_level);
@@ -559,11 +559,14 @@ void light_param_data::set_ibl(const light_param_ibl* ibl, const light_param_dat
     l->set_ibl_direction(ibl->lit_dir[1]);
 }
 
-void light_param_data::set_ibl_diffuse(const light_param_ibl_diffuse* diffuse, const int32_t level) {
+void light_param_data::set_ibl_diffuse(const light_param_ibl_diffuse* diffuse) {
+    if (!diffuse->data.size())
+        return;
+
     int32_t size = diffuse->size;
+    const int32_t level = diffuse->level;
     const half_t* data = diffuse->data.data();
-    size_t data_size = size;
-    data_size = 4 * data_size * data_size;
+    size_t data_size = diffuse->data.size() / 6;
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level, GL_RGBA16F,
         size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 0]);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, level, GL_RGBA16F,
@@ -583,8 +586,7 @@ void light_param_data::set_ibl_specular(const light_param_ibl_specular* specular
     int32_t max_level = specular->max_level;
     for (int32_t i = 0; i <= max_level; i++, size /= 2) {
         const half_t* data = specular->data[i].data();
-        size_t data_size = size;
-        data_size = 4 * data_size * data_size;
+        size_t data_size = specular->data[i].size() / 6;
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, i, GL_RGBA16F,
             size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 0]);
         glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, i, GL_RGBA16F,
