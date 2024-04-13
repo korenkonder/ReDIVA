@@ -34,14 +34,14 @@ struct light_param_data {
     static void load_file_pv_cut(std::map<int32_t, light_param_data>& tree,
         farc* f, light_param_data* default_light_param, int32_t pv_id);
 
-    static void set_face(light_param_face* face);
-    static void set_glow(light_param_glow* glow);
-    static void set_fog(light_param_fog* f);
-    static void set_ibl(light_param_ibl* ibl, light_param_data_storage* storage);
-    static void set_ibl_diffuse(light_param_ibl_diffuse* diffuse, int32_t level);
-    static void set_ibl_specular(light_param_ibl_specular* specular);
-    static void set_light(light_param_light* light);
-    static void set_wind(light_param_wind* w);
+    static void set_face(const light_param_face* face);
+    static void set_glow(const light_param_glow* glow);
+    static void set_fog(const light_param_fog* f);
+    static void set_ibl(const light_param_ibl* ibl, const light_param_data_storage* storage);
+    static void set_ibl_diffuse(const light_param_ibl_diffuse* diffuse, const int32_t level);
+    static void set_ibl_specular(const light_param_ibl_specular* specular);
+    static void set_light(const light_param_light* light);
+    static void set_wind(const light_param_wind* w);
 };
 
 struct light_param_data_storage {
@@ -70,8 +70,6 @@ struct light_param_data_storage {
         light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
     void set_stage(std::map<int32_t, light_param_data>::iterator* elem, int32_t stage_index,
         light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
-
-    static void unload();
 };
 
 static void light_param_data_get_stage_name_string(std::string& str, int32_t stage_index);
@@ -435,16 +433,16 @@ void light_param_data::load_file_pv_cut(std::map<int32_t, light_param_data>& tre
     }
 }
 
-void light_param_data::set_face(light_param_face* face) {
+void light_param_data::set_face(const light_param_face* face) {
     rctx_ptr->face.set_offset(face->offset);
     rctx_ptr->face.set_scale(face->scale);
     rctx_ptr->face.set_position(face->position);
     rctx_ptr->face.set_direction(face->direction);
 }
 
-void light_param_data::set_fog(light_param_fog* f) {
+void light_param_data::set_fog(const light_param_fog* f) {
     for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
-        light_param_fog_group* group = &f->group[i];
+        const light_param_fog_group* group = &f->group[i];
         ::fog* fog = &rctx_ptr->fog[i];
 
         if (group->has_type)
@@ -463,7 +461,7 @@ void light_param_data::set_fog(light_param_fog* f) {
     }
 }
 
-void light_param_data::set_glow(light_param_glow* glow) {
+void light_param_data::set_glow(const light_param_glow* glow) {
     rndr::Render* rend = &rctx_ptr->render;
 
     rend->set_auto_exposure(true);
@@ -509,7 +507,7 @@ void light_param_data::set_glow(light_param_glow* glow) {
         rend->set_tone_trans(glow->tone_transform_start, glow->tone_transform_end, 0);
 }
 
-void light_param_data::set_ibl(light_param_ibl* ibl, light_param_data_storage* storage) {
+void light_param_data::set_ibl(const light_param_ibl* ibl, const light_param_data_storage* storage) {
     if (!ibl->ready)
         return;
 
@@ -561,29 +559,30 @@ void light_param_data::set_ibl(light_param_ibl* ibl, light_param_data_storage* s
     l->set_ibl_direction(ibl->lit_dir[1]);
 }
 
-void light_param_data::set_ibl_diffuse(light_param_ibl_diffuse* diffuse, int32_t level) {
+void light_param_data::set_ibl_diffuse(const light_param_ibl_diffuse* diffuse, const int32_t level) {
     int32_t size = diffuse->size;
+    const half_t* data = diffuse->data.data();
     size_t data_size = size;
     data_size = 4 * data_size * data_size;
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, level, GL_RGBA16F,
-        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &diffuse->data[data_size * 0]);
+        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 0]);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_X, level, GL_RGBA16F,
-        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &diffuse->data[data_size * 1]);
+        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 1]);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Y, level, GL_RGBA16F,
-        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &diffuse->data[data_size * 2]);
+        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 2]);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, level, GL_RGBA16F,
-        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &diffuse->data[data_size * 3]);
+        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 3]);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_Z, level, GL_RGBA16F,
-        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &diffuse->data[data_size * 4]);
+        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 4]);
     glTexImage2D(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, level, GL_RGBA16F,
-        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &diffuse->data[data_size * 5]);
+        size, size, 0, GL_RGBA, GL_HALF_FLOAT, &data[data_size * 5]);
 }
 
-void light_param_data::set_ibl_specular(light_param_ibl_specular* specular) {
+void light_param_data::set_ibl_specular(const light_param_ibl_specular* specular) {
     int32_t size = specular->size;
     int32_t max_level = specular->max_level;
     for (int32_t i = 0; i <= max_level; i++, size /= 2) {
-        std::vector<half_t>& data = specular->data[i];
+        const half_t* data = specular->data[i].data();
         size_t data_size = size;
         data_size = 4 * data_size * data_size;
         glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X, i, GL_RGBA16F,
@@ -601,13 +600,13 @@ void light_param_data::set_ibl_specular(light_param_ibl_specular* specular) {
     }
 }
 
-void light_param_data::set_light(light_param_light* light) {
+void light_param_data::set_light(const light_param_light* light) {
     for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
-        light_param_light_group* group = &light->group[i];
+        const light_param_light_group* group = &light->group[i];
         ::light_set* set = &rctx_ptr->light_set[i];
 
         for (int32_t j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
-            light_param_light_data* data = &group->data[j];
+            const light_param_light_data* data = &group->data[j];
             light_data* light = &set->lights[j];
 
             if (data->has_type)
@@ -645,7 +644,7 @@ void light_param_data::set_light(light_param_light* light) {
     }
 }
 
-void light_param_data::set_wind(light_param_wind* w) {
+void light_param_data::set_wind(const light_param_wind* w) {
     ::wind* wind = task_wind->ptr;
     if (w->has_scale)
         wind->scale = w->scale;
