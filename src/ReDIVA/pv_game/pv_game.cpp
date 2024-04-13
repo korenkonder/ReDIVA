@@ -3478,7 +3478,7 @@ bool pv_game::load() {
         rndr::Render& rend = rctx_ptr->render;
         int32_t frame_texture_slot = 0;
         for (const pv_db_pv_frame_texture& i : data.pv->frame_texture) {
-            texture* tex = texture_storage_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
+            texture* tex = texture_manager_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
             if (tex)
                 rend.frame_texture_load(frame_texture_slot, (rndr::Render::FrameTextureType)i.type, tex);
             frame_texture_slot++;
@@ -4468,7 +4468,7 @@ bool pv_game::unload() {
         int32_t frame_texture_slot = 0;
         for (const pv_db_pv_frame_texture& i : data.pv->frame_texture) {
             if (i.data.size()) {
-                texture* tex = texture_storage_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
+                texture* tex = texture_manager_get_texture(aft_tex_db->get_texture_id(i.data.c_str()));
                 if (tex)
                     rend.frame_texture_unload(frame_texture_slot, tex);
             }

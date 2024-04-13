@@ -13608,20 +13608,6 @@ float_t rob_chara_item_cos_data::get_max_face_depth() {
     return max_face_depth;
 }
 
-static int32_t item_cos_tex_chg_counter = 0;
-
-static texture_id item_cos_tex_chg_counter_get(texture_id id) {
-    if (id != texture_id(0x30, 0))
-        return id;
-
-    texture_id tex_id = texture_id(0x30, item_cos_tex_chg_counter);
-    if (item_cos_tex_chg_counter < 0xFFFFFFF)
-        item_cos_tex_chg_counter++;
-    else
-        item_cos_tex_chg_counter = 0;
-    return tex_id;
-}
-
 static void sub_140526FD0(rob_chara_item_cos_data* item_cos_data,
     int32_t item_no, const item_table_item* item) {
     if (!(item->attr & 0x0C))
@@ -13631,8 +13617,8 @@ static void sub_140526FD0(rob_chara_item_cos_data* item_cos_data,
         std::vector<item_cos_texture_change_tex> tex_chg_vec;
         for (const item_table_item_data_tex& i : item->data.tex) {
             item_cos_texture_change_tex chg_tex;
-            chg_tex.org = texture_storage_get_texture(i.org);
-            chg_tex.chg = texture_storage_get_texture(i.chg);
+            chg_tex.org = texture_manager_get_texture(i.org);
+            chg_tex.chg = texture_manager_get_texture(i.chg);
             chg_tex.changed = false;
             tex_chg_vec.push_back(chg_tex);
         }
@@ -13654,7 +13640,7 @@ static void sub_140526FD0(rob_chara_item_cos_data* item_cos_data,
     size_t index = 0;
     for (int32_t& i : chg_tex_ids) {
         size_t j = &i - chg_tex_ids.data();
-        texture* tex = texture_storage_get_texture(i);
+        texture* tex = texture_manager_get_texture(i);
         if (!tex) {
             index++;
             continue;
@@ -13662,13 +13648,13 @@ static void sub_140526FD0(rob_chara_item_cos_data* item_cos_data,
 
         bool changed = false;
         if (item->data.col[j].flag & 0x01) {
-            tex = texture_copy(item_cos_tex_chg_counter_get(texture_id(0x30, 0)), tex);
+            tex = texture_copy(texture_manager_get_copy_id(0x30), tex);
             texture_apply_color_tone(tex, tex, &item->data.col[j].col_tone);
             changed = true;
         }
 
         item_cos_texture_change_tex chg_tex;
-        chg_tex.org = texture_storage_get_texture(item->data.col[j].tex_id);
+        chg_tex.org = texture_manager_get_texture(item->data.col[j].tex_id);
         chg_tex.chg = tex;
         chg_tex.changed = changed;
         tex_chg_vec.push_back(chg_tex);
@@ -14199,7 +14185,7 @@ void rob_chara_item_cos_data::texture_change_clear() {
     for (auto i : texture_change)
         for (item_cos_texture_change_tex& j : i.second)
             if (j.changed) {
-                texture_free(j.chg);
+                texture_release(j.chg);
                 j.chg = 0;
             }
     texture_change.clear();

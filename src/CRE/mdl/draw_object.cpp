@@ -459,9 +459,9 @@ namespace mdl {
             if (texture_id != -1) {
                 for (int32_t j = 0; j < args->texture_pattern_count; j++)
                     if (args->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
-                        texture* tex = texture_storage_get_texture(args->texture_pattern_array[j].dst);
+                        texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                         if (tex)
-                            tex_id = tex->tex;
+                            tex_id = tex->glid;
                         break;
                     }
 
@@ -469,7 +469,7 @@ namespace mdl {
                     tex_id = (*textures)[texdata->texture_index];
 
                 if (tex_id == -1)
-                    tex_id = 0;
+                    tex_id = rctx->empty_texture_2d;;
 
                 gl_state_active_bind_texture_2d(tex_index, tex_id);
 
@@ -489,7 +489,7 @@ namespace mdl {
                 else
                     wrap_t = 0;
 
-                texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
+                texture* tex = texture_manager_get_texture(::texture_id(0, texture_id));
                 gl_state_bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
                     + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
             }
@@ -684,9 +684,9 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
         uint32_t texture_id = texdata->tex_index;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
             if (args->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
-                texture* tex = texture_storage_get_texture(args->texture_pattern_array[j].dst);
+                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                 if (tex)
-                    tex_id = tex->tex;
+                    tex_id = tex->glid;
                 break;
             }
 
@@ -745,7 +745,7 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
             else
                 wrap_t = 0;
 
-            texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
+            texture* tex = texture_manager_get_texture(::texture_id(0, texture_id));
             gl_state_bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
                 + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
         }
@@ -755,7 +755,7 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
             if (tex_index == 1)
                 uni_type = U_TEX_1_TYPE;
 
-            texture* tex = texture_storage_get_texture(texdata->tex_index);
+            texture* tex = texture_manager_get_texture(texdata->tex_index);
             if (!tex)
                 uniform_value[uni_type] = 1;
             else if (tex->internal_format == GL_COMPRESSED_RED_RGTC1_EXT)
@@ -917,9 +917,9 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
         GLuint tex_id = -1;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
             if (args->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
-                texture* tex = texture_storage_get_texture(args->texture_pattern_array[j].dst);
+                texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                 if (tex)
-                    tex_id = tex->tex;
+                    tex_id = tex->glid;
                 break;
             }
 
@@ -927,7 +927,7 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
             tex_id = (*textures)[texdata->texture_index];
 
         if (tex_id == -1)
-            tex_id = 0;
+            tex_id = rctx->empty_texture_2d;;
 
         gl_state_active_bind_texture_2d(i, tex_id);
 
@@ -947,7 +947,7 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
         else
             wrap_t = 0;
 
-        texture* tex = texture_storage_get_texture(::texture_id(0, texture_id));
+        texture* tex = texture_manager_get_texture(::texture_id(0, texture_id));
         gl_state_bind_sampler(i, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
             + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
     }

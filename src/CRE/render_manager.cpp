@@ -789,7 +789,7 @@ namespace rndr {
         rctx->obj_scene_ubo.WriteMemory(rctx->obj_scene);
 
         if (effect_texture)
-            gl_state_active_bind_texture_2d(14, effect_texture->tex);
+            gl_state_active_bind_texture_2d(14, effect_texture->glid);
         else
             gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
 
@@ -1008,7 +1008,7 @@ namespace rndr {
         if (litproj && litproj->enable) {
             light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
             if (set->lights[LIGHT_PROJECTION].get_type() == LIGHT_SPOT
-                && texture_storage_get_texture(litproj->texture_id))
+                && texture_manager_get_texture(litproj->texture_id))
                 light_proj_tex = litproj->draw_texture.color_texture;
         }
 
@@ -1088,7 +1088,7 @@ namespace rndr {
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         if (effect_texture)
-            gl_state_active_bind_texture_2d(14, effect_texture->tex);
+            gl_state_active_bind_texture_2d(14, effect_texture->glid);
         else
             gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d);
         gl_state_bind_sampler(14, rctx->render_samplers[0]);
@@ -1403,7 +1403,7 @@ static bool draw_pass_shadow_litproj(light_proj* litproj) {
     if (!litproj)
         return false;
 
-    texture* tex = texture_storage_get_texture(litproj->texture_id);
+    texture* tex = texture_manager_get_texture(litproj->texture_id);
     if (!tex)
         return false;
 
@@ -1421,7 +1421,7 @@ static bool draw_pass_shadow_litproj(light_proj* litproj) {
 
     render_context* rctx = rctx_ptr;
     rctx->draw_state->shader_index = SHADER_FT_LITPROJ;
-    gl_state_active_bind_texture_2d(17, tex->tex);
+    gl_state_active_bind_texture_2d(17, tex->glid);
     gl_state_bind_sampler(17, rctx->render_samplers[2]);
     gl_state_active_bind_texture_2d(18, litproj->shadow_texture[0].GetColorTex());
     gl_state_bind_sampler(18, rctx->render_samplers[2]);

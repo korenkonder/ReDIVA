@@ -2409,7 +2409,7 @@ static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool bi
     texture** tex_data = info->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
         info->tex_id_data.push_back(tex_id_data[i], i);
-        info->gentex.push_back(tex_data[i]->tex);
+        info->gentex.push_back(tex_data[i]->glid);
     }
     info->tex_id_data.sort();
     return false;
@@ -2438,7 +2438,7 @@ static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
     texture** tex_data = info->tex_data;
     for (uint32_t i = 0; i < tex_num; i++) {
         info->tex_id_data.push_back(tex_id_data[i], i);
-        info->gentex.push_back(tex_data[i]->tex);
+        info->gentex.push_back(tex_data[i]->glid);
     }
     info->tex_id_data.sort();
     return false;

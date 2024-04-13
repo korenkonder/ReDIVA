@@ -567,11 +567,11 @@ static void stage_free(stage* s) {
     rndr::RenderManager* render_manager = rctx_ptr->render_manager;
     if (s->stage_data->render_texture != -1)
         rctx_ptr->render.render_texture_free(
-            texture_storage_get_texture(s->stage_data->render_texture), 0);
+            texture_manager_get_texture(s->stage_data->render_texture), 0);
 
     if (s->stage_data->movie_texture != -1)
         rctx_ptr->render.movie_texture_free(
-            texture_storage_get_texture(s->stage_data->movie_texture));
+            texture_manager_get_texture(s->stage_data->movie_texture));
 
     render_manager->set_shadow_true();
     rctx_ptr->render.set_cam_blur(0);
@@ -627,11 +627,11 @@ static void stage_load(stage* s) {
 
         if (s->stage_data->render_texture != -1)
             rctx_ptr->render.render_texture_set(
-                texture_storage_get_texture(s->stage_data->render_texture), 0);
+                texture_manager_get_texture(s->stage_data->render_texture), 0);
 
         if (s->stage_data->movie_texture != -1)
             rctx_ptr->render.movie_texture_set(
-                texture_storage_get_texture(s->stage_data->movie_texture));
+                texture_manager_get_texture(s->stage_data->movie_texture));
         s->state = 6;
     }
 }

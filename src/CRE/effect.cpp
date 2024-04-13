@@ -1261,7 +1261,7 @@ void leaf_particle_draw() {
         || !leaf_particle_enable || !stage_param_data_leaf_set)
         return;
 
-    texture* tex = texture_storage_get_texture(leaf_particle_tex_id);
+    texture* tex = texture_manager_get_texture(leaf_particle_tex_id);
     if (!tex)
         return;
 
@@ -1286,7 +1286,7 @@ void leaf_particle_draw() {
     shader_data.g_lit_luce = rctx_ptr->obj_scene.g_light_chara_luce;
     leaf_particle_scene_ubo.WriteMemory(shader_data);
 
-    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(0, tex->glid);
     shaders_ft.set(SHADER_FT_LEAF_PT);
     leaf_particle_scene_ubo.Bind(0);
     gl_state_bind_vertex_array(leaf_ptcl_vao);
@@ -1298,7 +1298,7 @@ void rain_particle_draw() {
     if (!stage_param_data_rain_current || !rain_particle_enable || !stage_param_data_rain_set)
         return;
 
-    texture* tex = texture_storage_get_texture(rain_particle_tex_id);
+    texture* tex = texture_manager_get_texture(rain_particle_tex_id);
     if (!tex)
         return;
 
@@ -1329,7 +1329,7 @@ void rain_particle_draw() {
     gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_FALSE);
-    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(0, tex->glid);
     shaders_ft.set(SHADER_FT_RAIN);
 
     float_t tangent_sign = -rain->psize.x;
@@ -1403,7 +1403,7 @@ void snow_particle_draw() {
     if (!stage_param_data_snow_current || !snow_particle_enable || !stage_param_data_snow_set)
         return;
 
-    texture* tex = texture_storage_get_texture(snow_particle_tex_id);
+    texture* tex = texture_manager_get_texture(snow_particle_tex_id);
     if (!tex)
         return;
 
@@ -1446,7 +1446,7 @@ void snow_particle_draw() {
     snow_batch.start_vertex_location.x = 0;
     snow_particle_batch_ubo.WriteMemory(snow_batch);
 
-    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(0, tex->glid);
     gl_state_active_bind_texture_2d(1, rctx_ptr->render.rend_texture[0].GetDepthTex());
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
 
@@ -3296,14 +3296,14 @@ void EffectRipple::sub_1403584A0(RenderTexture* rt) {
     if (ripple_tex_id == -1)
         return;
 
-    texture* ripple_tex = texture_storage_get_texture(ripple_tex_id);
+    texture* ripple_tex = texture_manager_get_texture(ripple_tex_id);
     if (!ripple_tex)
         return;
 
-    field_BB8.SetColorDepthTextures(ripple_tex->tex);
+    field_BB8.SetColorDepthTextures(ripple_tex->glid);
     field_BB8.Bind();
 
-    image_filter_scale(ripple_tex->tex, rt->GetColorTex(), 1.0f);
+    image_filter_scale(ripple_tex->glid, rt->GetColorTex(), 1.0f);
     gl_state_bind_framebuffer(0);
 }
 
@@ -4090,9 +4090,9 @@ void water_particle::draw(mat4* mat) {
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
     water_particle_scene_ubo.Bind(4);
     ssbo.Bind(0);
-    texture* tex = texture_storage_get_texture(splash_tex_id);
+    texture* tex = texture_manager_get_texture(splash_tex_id);
     if (tex)
-        gl_state_active_bind_texture_2d(0, tex->tex);
+        gl_state_active_bind_texture_2d(0, tex->glid);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, count * 6);
     gl_state_bind_vertex_array(0);
 
@@ -5044,7 +5044,7 @@ void star_catalog_milky_way::draw(const mat4& vp, const mat4& mat, texture* tex,
     gl_state_enable_cull_face();
     gl_state_disable_blend();
     gl_state_set_depth_mask(GL_FALSE);
-    gl_state_active_bind_texture_2d(0, tex->tex);
+    gl_state_active_bind_texture_2d(0, tex->glid);
     gl_state_bind_sampler(0, sampler);
     gl_state_enable_primitive_restart();
     gl_state_set_primitive_restart_index(restart_index);
@@ -5095,8 +5095,8 @@ void star_catalog::draw() {
     if (!stage_param_data_ptr || !enable)
         return;
 
-    texture* star_tex = texture_storage_get_texture(this->star_tex);
-    texture* star_b_tex = texture_storage_get_texture(this->star_b_tex);
+    texture* star_tex = texture_manager_get_texture(this->star_tex);
+    texture* star_b_tex = texture_manager_get_texture(this->star_b_tex);
     if (!star_tex || !star_b_tex)
         return;
 
@@ -5121,7 +5121,7 @@ void star_catalog::draw() {
     mat4 vp;
     mat4_mul(&rctx_ptr->view_mat, &proj, &vp);
 
-    texture* milky_way_tex = texture_storage_get_texture(milky_way_tex_id);
+    texture* milky_way_tex = texture_manager_get_texture(milky_way_tex_id);
     if (milky_way_tex)
         milky_way.draw(vp, model, milky_way_tex, scene_ubo);
 
@@ -5160,11 +5160,11 @@ void star_catalog::draw() {
         batch_ubo.Bind(1);
         stars_ssbo.Bind(0);
         if (i) {
-            gl_state_active_bind_texture_2d(0, star_b_tex->tex);
+            gl_state_active_bind_texture_2d(0, star_b_tex->glid);
             shaders_ft.draw_arrays(GL_TRIANGLES, 0, star_b_count * 6);
         }
         else {
-            gl_state_active_bind_texture_2d(0, star_tex->tex);
+            gl_state_active_bind_texture_2d(0, star_tex->glid);
             shaders_ft.draw_arrays(GL_TRIANGLES, 0, star_count * 6);
         }
     }
@@ -5587,9 +5587,9 @@ static void draw_fog_particle(EffectFogRing* data, mat4* mat) {
 
     shaders_ft.set(SHADER_FT_FOGPTCL);
     gl_state_enable_blend();
-    texture* tex = texture_storage_get_texture(data->tex_id);
+    texture* tex = texture_manager_get_texture(data->tex_id);
     if (tex)
-        gl_state_active_bind_texture_2d(0, tex->tex);
+        gl_state_active_bind_texture_2d(0, tex->glid);
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
     data->ssbo.Bind(0);
     shaders_ft.draw_arrays(GL_TRIANGLES, 0, data->num_vtx);

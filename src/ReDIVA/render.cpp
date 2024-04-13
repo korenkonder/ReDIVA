@@ -551,7 +551,7 @@ static render_context* render_context_load() {
 
     render_shaders_load();
 
-    texture_storage_init();
+    texture_manager_init();
 
     file_handler_storage_init();
 
@@ -1312,7 +1312,7 @@ static void render_context_dispose(render_context* rctx) {
 
     file_handler_storage_free();
 
-    texture_storage_free();
+    texture_manager_free();
 
     render_shaders_free();
 

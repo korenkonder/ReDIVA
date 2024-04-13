@@ -15,4 +15,3 @@ void clear_color_set_gl() {
         color = clear_color;
     glClearColor(color.x, color.y, color.z, color.w);
 }
-

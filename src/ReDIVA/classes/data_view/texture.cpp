@@ -48,16 +48,16 @@ void data_view_texture_imgui(class_data* data) {
         return;
     }
 
-    extern std::map<texture_id, texture> texture_storage;
-    for (auto& i : texture_storage) {
+    extern texture_manager* texture_manager_work_ptr;
+    for (auto& i : texture_manager_work_ptr->textures) {
         texture* tex = &i.second;
         if (tex->id.id)
             continue;
 
         ImGui::PushID(tex->id.index);
         char buf[0x1000];
-        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Init Count: %3d; Width: %5d; Height: %5d; Mipmap Count: %2d",
-            tex->id.index, tex->init_count, tex->width, tex->height, tex->max_mipmap_level + 1);
+        sprintf_s(buf, sizeof(buf), "ID: 0x%08X; Ref Count: %3d; Width: %5d; Height: %5d; Mipmap Count: %2d",
+            tex->id.index, tex->ref_count, tex->width, tex->height, tex->max_mipmap_level + 1);
         ImGui::Selectable(buf);
         ImGui::PopID();
     }

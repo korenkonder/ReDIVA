@@ -2933,7 +2933,7 @@ static void glitter_editor_resources(GlitterEditor* glt_edt) {
 
             ImGui::BeginTooltip();
             ImGui::Text("Tex Size: %dx%d", rtm->width, rtm->height);
-            ImGui::Image((void*)(size_t)r[i]->tex, size,
+            ImGui::Image((void*)(size_t)r[i]->glid, size,
                 { 0, 0 }, { 1, 1 }, tint_col, border_col);
             ImGui::EndTooltip();
         }
@@ -4695,7 +4695,7 @@ static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
                 ImGui::BeginTooltip();
                 ImGui::Text("Frame: %d\nUV Index %d", *tex_frame, *tex_index);
                 ImGui::Text("Tex Size: %dx%d", rtm->width, rtm->height);
-                ImGui::Image((void*)(size_t)r[n - 1]->tex, size1,
+                ImGui::Image((void*)(size_t)r[n - 1]->glid, size1,
                     { 0, 0 }, { 1, 1 }, tint_col, border_col);
                 ImGui::Text("Preview Tex Size: %gx%g",
                     particle->data.split_u > 1
@@ -4704,7 +4704,7 @@ static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
                     particle->data.split_u > 1
                     ? (float_t)rtm->height / (float_t)particle->data.split_v
                     : (float_t)rtm->height);
-                ImGui::Image((void*)(size_t)r[n - 1]->tex, size2,
+                ImGui::Image((void*)(size_t)r[n - 1]->glid, size2,
                     uv_min, uv_max, tint_col, border_col);
                 ImGui::EndTooltip();
             }
@@ -4728,7 +4728,7 @@ static bool glitter_editor_property_particle_texture(GlitterEditor* glt_edt,
 
     if (res)
         if (tex_idx) {
-            *tex = r[tex_idx - 1]->tex;
+            *tex = r[tex_idx - 1]->glid;
             *tex_hash = rh[tex_idx - 1];
         }
         else {

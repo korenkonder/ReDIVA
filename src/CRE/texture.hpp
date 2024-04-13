@@ -9,6 +9,7 @@
 #include "../KKdLib/image.hpp"
 #include "../KKdLib/txp.hpp"
 #include <glad/glad.h>
+#include <map>
 
 enum texture_flags {
     TEXTURE_BLOCK_COMPRESSION = 0x01,
@@ -55,16 +56,16 @@ inline bool operator !=(const texture_id& left, const texture_id& right) {
 }
 
 struct texture {
-    int32_t init_count;
+    int32_t ref_count;
     texture_id id;
     texture_flags flags;
     int16_t width;
     int16_t height;
-    GLuint tex;
+    GLuint glid;
     GLenum target;
     GLenum internal_format;
     int32_t max_mipmap_level;
-    int32_t size;
+    int32_t size_texmem;
 
     texture();
 
@@ -72,12 +73,26 @@ struct texture {
     uint32_t get_width_align_mip_level(uint8_t mip_level = 0);
 };
 
+struct texture_manager {
+    std::map<texture_id, texture> textures;
+    int16_t entry_count;
+    int16_t alloc_count;
+    int32_t texmem_now_size;
+    int32_t texmem_peak_size;
+    int32_t texmem_now_size_by_type[4];
+    int32_t texmem_peak_size_by_type[4];
+    int32_t copy_count;
+
+    texture_manager();
+    ~texture_manager();
+};
+
 struct texture_param {
     GLint width;
     GLint height;
 };
 
-extern texture* texture_init(texture_id id);
+extern texture* texture_alloc(texture_id id);
 extern void texture_apply_color_tone(texture* chg_tex,
     texture* org_tex, const color_tone* col_tone);
 extern texture* texture_copy(texture_id id, texture* org_tex);
@@ -87,7 +102,7 @@ extern texture* texture_load_tex_cube_map(texture_id id, GLenum internal_format,
     int32_t max_mipmap_level, void** data_ptr);
 extern texture* texture_txp_load(txp* t, texture_id id);
 extern void texture_txp_store(texture* tex, txp* t);
-extern void texture_free(texture* tex);
+extern void texture_release(texture* tex);
 
 extern void texture_array_free(texture** arr);
 
@@ -101,9 +116,8 @@ extern void texture_params_restore(texture_param* tex_0_param = 0,
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, texture_id* ids);
 
-extern void texture_storage_init();
-extern texture* texture_storage_create_texture(texture_id id);
-extern texture* texture_storage_get_texture(uint32_t id);
-extern texture* texture_storage_get_texture(texture_id id);
-extern void texture_storage_delete_texture(texture_id id);
-extern void texture_storage_free();
+extern void texture_manager_init();
+extern texture_id texture_manager_get_copy_id(uint32_t id);
+extern texture* texture_manager_get_texture(uint32_t id);
+extern texture* texture_manager_get_texture(texture_id id);
+extern void texture_manager_free();
