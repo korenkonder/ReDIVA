@@ -2375,7 +2375,11 @@ struct rob_chara_item_cos_data {
     void set_item_nos(const int32_t* item_nos);
     void set_item_zero(int32_t item_no);
     void set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
+        item_id id, bool tex_pat_for_all);
+    void set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
         uint32_t item_no, item_id id, bool tex_pat_for_all);
+    void set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
+        const std::vector<uint32_t>& item_nos, item_id id, bool tex_pat_for_all);
     void texture_change_clear();
     void texture_pattern_clear();
 };

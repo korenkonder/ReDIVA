@@ -1000,7 +1000,6 @@ static void motion_blend_mot_set_blend(motion_blend_mot* a1,
 static void motion_blend_mot_set_duration(motion_blend_mot* mot,
     float_t duration, float_t step, float_t offset);
 
-static bool pv_osage_manager_array_get_disp(int32_t* chara_id);
 static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id);
 
 static int pv_data_set_motion_quicksort_compare_func(void const* src1, void const* src2);
@@ -7268,10 +7267,6 @@ static bool opd_decode_data(const void* data, float_t** opd_decod_buf, osage_pla
     if (!*opd_decod_buf)
         return opd_decode((const osage_play_data_header*)data, opd_decod_buf, head);
     return false;
-}
-
-static bool pv_osage_manager_array_get_disp(int32_t* chara_id) {
-    return pv_osage_manager_array_get(*chara_id)->GetDisplay();
 }
 
 static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id) {
@@ -13702,37 +13697,6 @@ static void sub_140522990(rob_chara_item_cos_data* item_cos_data) {
     }
 }
 
-static void sub_14052B4C0(rob_chara_item_cos_data* item_cos_data,
-    rob_chara_item_equip* rob_itm_equip, item_id id, bool object) {
-    if (object)
-        rob_itm_equip->set_texture_pattern(0, 0);
-    else
-        rob_itm_equip->set_object_texture_pattern(id, 0, 0);
-}
-
-static void sub_14052CCC0(rob_chara_item_cos_data* item_cos_data, rob_chara_item_equip* rob_itm_equip,
-    std::vector<uint32_t>& item_nos, item_id id, bool a5) {
-    if (id < ITEM_BODY || id >= ITEM_MAX)
-        return;
-
-    for (uint32_t& i : item_nos) {
-        auto elem = item_cos_data->texture_change.find(i);
-        if (elem == item_cos_data->texture_change.end())
-            continue;
-
-        for (item_cos_texture_change_tex& j : elem->second)
-            if (j.org && j.chg)
-                item_cos_data->texture_pattern[id].push_back({ j.org->id, j.chg->id });
-    }
-
-    if (a5)
-        rob_itm_equip->set_texture_pattern(
-            item_cos_data->texture_pattern[id].data(), item_cos_data->texture_pattern[id].size());
-    else
-        rob_itm_equip->set_object_texture_pattern(id,
-            item_cos_data->texture_pattern[id].data(), item_cos_data->texture_pattern[id].size());
-}
-
 static void sub_140522A30(rob_chara_item_cos_data* item_cos_data, rob_chara_item_equip* rob_itm_equip,
     const bone_database* bone_data, void* data, const object_database* obj_db) {
     const chara_init_data* chr_init_data = chara_init_data_get(item_cos_data->chara_index);
@@ -13740,17 +13704,17 @@ static void sub_140522A30(rob_chara_item_cos_data* item_cos_data, rob_chara_item
         rob_itm_equip->load_outfit_object_info((item_id)i,
             chr_init_data->field_7E4[i - 1], false, bone_data, data, obj_db);
         auto elem = item_cos_data->item_change.find(i);
-        if (elem == item_cos_data->item_change.end())
-            sub_14052B4C0(item_cos_data, rob_itm_equip, (item_id)i, false);
+        if (elem != item_cos_data->item_change.end())
+            item_cos_data->set_texture_pattern(rob_itm_equip, elem->second, (item_id)i, false);
         else
-            sub_14052CCC0(item_cos_data, rob_itm_equip, elem->second, (item_id)i, false);
+            item_cos_data->set_texture_pattern(rob_itm_equip, (item_id)i, false);
     }
 
     for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++) {
         rob_itm_equip->load_body_parts_object_info((item_id)i, {}, bone_data, data, obj_db);
-        sub_14052B4C0(item_cos_data, rob_itm_equip, (item_id)i, false);
+        item_cos_data->set_texture_pattern(rob_itm_equip, (item_id)i, false);
     }
-    sub_14052B4C0(item_cos_data, rob_itm_equip, ITEM_NONE, true);
+    item_cos_data->set_texture_pattern(rob_itm_equip, ITEM_NONE, true);
 
     item_cos_data->field_F0.clear();
     item_cos_data->field_100.clear();
@@ -14162,6 +14126,14 @@ void rob_chara_item_cos_data::set_item_zero(int32_t item_no) {
 }
 
 void rob_chara_item_cos_data::set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
+    item_id id, bool tex_pat_for_all) {
+    if (tex_pat_for_all)
+        rob_itm_equip->set_texture_pattern(0, 0);
+    else
+        rob_itm_equip->set_object_texture_pattern(id, 0, 0);
+}
+
+void rob_chara_item_cos_data::set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
     uint32_t item_no, item_id id, bool tex_pat_for_all) {
     if (id < ITEM_BODY || id >= ITEM_MAX)
         return;
@@ -14176,6 +14148,29 @@ void rob_chara_item_cos_data::set_texture_pattern(rob_chara_item_equip* rob_itm_
 
     if (tex_pat_for_all)
         rob_itm_equip->set_texture_pattern(texture_pattern[id].data(), texture_pattern[id].size());
+    else
+        rob_itm_equip->set_object_texture_pattern(id,
+            texture_pattern[id].data(), texture_pattern[id].size());
+}
+
+void rob_chara_item_cos_data::set_texture_pattern(rob_chara_item_equip* rob_itm_equip,
+    const std::vector<uint32_t>& item_nos, item_id id, bool tex_pat_for_all) {
+    if (id < ITEM_BODY || id >= ITEM_MAX)
+        return;
+
+    for (const uint32_t& i : item_nos) {
+        auto elem = texture_change.find(i);
+        if (elem == texture_change.end())
+            continue;
+
+        for (item_cos_texture_change_tex& j : elem->second)
+            if (j.org && j.chg)
+                texture_pattern[id].push_back({ j.org->id, j.chg->id });
+    }
+
+    if (tex_pat_for_all)
+        rob_itm_equip->set_texture_pattern(
+            texture_pattern[id].data(), texture_pattern[id].size());
     else
         rob_itm_equip->set_object_texture_pattern(id,
             texture_pattern[id].data(), texture_pattern[id].size());
@@ -18580,11 +18575,7 @@ bool TaskRobDisp::dest() {
 
 void TaskRobDisp::disp() {
     for (rob_chara*& i : ctrl_chara) {
-        if (!i)
-            continue;
-
-        int32_t chara_id = i->chara_id;
-        if (pv_osage_manager_array_get_disp(&chara_id))
+        if (!i || pv_osage_manager_array_get_disp(i->chara_id))
             continue;
 
         if (i->is_visible() && !(i->data.field_3 & 0x80))
