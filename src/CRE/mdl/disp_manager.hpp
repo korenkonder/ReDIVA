@@ -74,7 +74,6 @@ namespace mdl {
         ETC_OBJ_LINE,
         ETC_OBJ_CROSS,
         ETC_OBJ_CAPSULE,  // Added
-        ETC_OBJ_ELLIPSE,  // Added
         ETC_OBJ_CYLINDER, // Added
         ETC_OBJ_MAX,
     };
@@ -270,16 +269,6 @@ namespace mdl {
         EtcObjCapsule();
     };
 
-    struct EtcObjEllipse { // Added
-        float_t radius;
-        int32_t slices;
-        int32_t stacks;
-        bool wire;
-        vec3 pos[2];
-
-        EtcObjEllipse();
-    };
-
     struct EtcObjCylinder { // Added
         float_t base;
         float_t top;
@@ -302,7 +291,6 @@ namespace mdl {
             EtcObjLine line;
             EtcObjCross cross;
             EtcObjCapsule capsule; // Added
-            EtcObjEllipse ellipse; // Added
             EtcObjCylinder cylinder; // Added
 
             Data();

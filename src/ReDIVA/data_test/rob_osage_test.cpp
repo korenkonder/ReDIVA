@@ -435,7 +435,7 @@ bool RobOsageTest::ctrl() {
         for (int32_t i = 0; i < ITEM_MAX; i++) {
             rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((::item_id)i);
             obj* obj = object_storage_get_obj(itm_eq_obj->obj_info);
-            if (obj && itm_eq_obj->osage_blocks.size()) {
+            if (obj && (itm_eq_obj->osage_blocks.size() || itm_eq_obj->cloth_blocks.size())) {
                 objects.push_back((::item_id)i, itm_eq_obj->obj_info);
                 rob_osage_test_dw->rob.object_list_box->AddItem(obj->name);
             }
@@ -490,18 +490,33 @@ void RobOsageTest::disp_coli() {
     if (!coli)
         return;
 
-    ExOsageBlock* osg = get_osage_block();
-    if (!osg)
+    rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
+    if (!itm_eq_obj)
         return;
 
-    std::vector<SkinParam::CollisionParam>* cls_list = get_cls_list(osg);
-    if (!cls_list)
-        return;
+    std::vector<SkinParam::CollisionParam>* cls_list = 0;
+    mat4* transform = 0;
 
-    mat4* transform = osg->mats;
+    ExOsageBlock* osg = get_osage_block(itm_eq_obj);
+    ExClothBlock* cls = 0;
+    if (osg) {
+        cls_list = get_cls_list(osg);
+        transform = osg->mats;
+    }
+    else {
+        cls = get_cloth_block(itm_eq_obj);
+        if (cls) {
+            cls_list = get_cls_list(cls);
+            transform = cls->mats;
+        }
+    }
+
+    if (!cls_list || !transform)
+        return;
 
     static const color4u8 selected_color = 0xCF00EF00;
-    static const color4u8 node_color = 0xCFEFEF00;
+    static const color4u8 cls_node_color = 0xCFEFEF00;
+    static const color4u8 osg_node_color = 0xCFEFEF00;
     static const color4u8 default_color = 0xCFFFFFFF;
 
     SkinParam::CollisionParam* cls_param = get_cls_param(cls_list);
@@ -564,17 +579,42 @@ void RobOsageTest::disp_coli() {
             rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
         } break;
         case SkinParam::CollisionTypeEllipse: {
-            mdl::EtcObj etc(mdl::ETC_OBJ_ELLIPSE);
+            mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
             etc.color = cls_param && &i == cls_param ? selected_color : default_color;
             etc.constant = true;
 
-            etc.data.ellipse.radius = i.radius;
-            etc.data.ellipse.slices = 16;
-            etc.data.ellipse.stacks = 16;
-            etc.data.ellipse.wire = false;
-            mat4_transform_point(&transform[i.node_idx[0]], &i.pos[0], &etc.data.ellipse.pos[0]);
-            mat4_transform_point(&transform[i.node_idx[1]], &i.pos[1], &etc.data.ellipse.pos[1]);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+            etc.data.sphere.radius = 1.0f;
+            etc.data.sphere.slices = 16;
+            etc.data.sphere.stacks = 16;
+            etc.data.sphere.wire = false;
+
+            vec3 pos[2];
+            mat4_transform_point(&transform[i.node_idx[0]], &i.pos[0], &pos[0]);
+            mat4_transform_point(&transform[i.node_idx[1]], &i.pos[1], &pos[1]);
+
+            vec3 origin = (pos[0] + pos[1]) * 0.5f;
+            mat4 mat;
+            mat4_translate(&origin, &mat);
+
+            vec3 dir = vec3::normalize(pos[1] - pos[0]);
+            vec3 up = { 0.0f, 1.0f, 0.0f };
+            vec3 axis;
+            float_t angle;
+            Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
+
+            mat4 m = mat4_identity;
+            mat4_mul_rotation(&m, &axis, angle, &m);
+            mat4_mul(&m, &mat, &mat);
+
+            const float_t length = vec3::length((pos[0] - pos[1]) * 0.5f);
+            const float_t scale_y = sqrtf(i.radius * i.radius + length * length);
+
+            mat4_scale_rot(&mat, i.radius, scale_y, i.radius, &mat);
+            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+
+            etc.color = 0xFF000000;
+            etc.data.sphere.wire = true;
+            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
         } break;
         case SkinParam::CollisionTypeAABB: {
             mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
@@ -593,12 +633,12 @@ void RobOsageTest::disp_coli() {
         } break;
         }
 
-    if (osg->rob.nodes.size() > 1) {
+    if (osg && osg->rob.nodes.size() > 1) {
         RobOsageNode* i_begin = osg->rob.nodes.data() + 1;
         RobOsageNode* i_end = osg->rob.nodes.data() + osg->rob.nodes.size();
         for (RobOsageNode* i = i_begin; i != i_end; i++) {
             mdl::EtcObj etc(mdl::ETC_OBJ_CAPSULE);
-            etc.color = node_color;
+            etc.color = osg_node_color;
             etc.constant = true;
 
             etc.data.capsule.radius = i->data_ptr->skp_osg_node.coli_r;
@@ -610,12 +650,41 @@ void RobOsageTest::disp_coli() {
             rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
         }
     }
+
+    if (cls && cls->rob.nodes.size() > 1) {
+        CLOTHNode* i_begin = cls->rob.nodes.data();
+        CLOTHNode* i_end = cls->rob.nodes.data() + cls->rob.nodes.size();
+        for (CLOTHNode* i = i_begin; i != i_end; i++) {
+            mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
+            etc.color = cls_node_color;
+            etc.constant = true;
+
+            etc.data.sphere.radius = max_def(cls->rob.skin_param_ptr->coli_r, 0.005f);
+            etc.data.sphere.slices = 16;
+            etc.data.sphere.stacks = 16;
+            etc.data.sphere.wire = false;
+
+            vec3 pos;
+            mat4_transform_point(&itm_eq_obj->item_equip->mat, &i->trans, &pos);
+
+            mat4 mat;
+            mat4_translate(&pos, &mat);
+            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+        }
+    }
 }
 
 void RobOsageTest::disp_line() {
     if (!line)
         return;
 
+}
+
+inline ExClothBlock* RobOsageTest::get_cloth_block(rob_chara_item_equip_object* itm_eq_obj) const {
+    if (itm_eq_obj && itm_eq_obj->obj_info == obj_info && osage_index >= itm_eq_obj->osage_blocks.size()
+        && osage_index - itm_eq_obj->osage_blocks.size() < itm_eq_obj->cloth_blocks.size())
+        return itm_eq_obj->cloth_blocks[osage_index - itm_eq_obj->osage_blocks.size()];
+    return 0;
 }
 
 inline rob_chara_item_equip_object* RobOsageTest::get_item_equip_object() const {
@@ -631,6 +700,12 @@ inline rob_chara_item_equip_object* RobOsageTest::get_item_equip_object() const 
 inline ExOsageBlock* RobOsageTest::get_osage_block(rob_chara_item_equip_object* itm_eq_obj) const {
     if (itm_eq_obj && itm_eq_obj->obj_info == obj_info && osage_index < itm_eq_obj->osage_blocks.size())
         return itm_eq_obj->osage_blocks[osage_index];
+    return 0;
+}
+
+inline std::vector<SkinParam::CollisionParam>* RobOsageTest::get_cls_list(ExClothBlock* cls) const {
+    if (cls)
+        return &cls->rob.skin_param_ptr->coli;
     return 0;
 }
 
@@ -753,9 +828,13 @@ void RobOsageTestDw::Rob::ObjectCallback(dw::Widget* data) {
         rob_osage_test_dw->root.list_box->ClearItems();
 
         rob_chara_item_equip_object* itm_eq_obj = rob_osage_test->get_item_equip_object();
-        if (itm_eq_obj)
+        if (itm_eq_obj) {
             for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
                 rob_osage_test_dw->root.list_box->AddItem(i->name);
+
+            for (ExClothBlock*& i : itm_eq_obj->cloth_blocks)
+                rob_osage_test_dw->root.list_box->AddItem(i->name);
+        }
     }
 }
 
@@ -1914,6 +1993,8 @@ void RobOsageTestDw::ColliElement::BoneCallback(dw::Widget* data) {
     if (list_box) {
         SkinParam::CollisionParam* cls_param = rob_osage_test->get_cls_param();
         if (cls_param) {
+            cls_param->type = (SkinParam::CollisionType)(int32_t)rob_osage_test_dw->
+                colli_element.type_list_box->list->selected_item;
             cls_param->node_idx[list_box->callback_data.i32] = (int32_t)list_box->list->selected_item;
 
             rob_osage_test->collision_update = true;
@@ -1925,8 +2006,11 @@ void RobOsageTestDw::ColliElement::BonePosXCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
         SkinParam::CollisionParam* cls_param = rob_osage_test->get_cls_param();
-        if (cls_param)
+        if (cls_param) {
+            cls_param->type = (SkinParam::CollisionType)(int32_t)rob_osage_test_dw->
+                colli_element.type_list_box->list->selected_item;
             cls_param->pos[slider->callback_data.i32].x = slider->scroll_bar->value;
+        }
     }
 }
 
@@ -1934,8 +2018,11 @@ void RobOsageTestDw::ColliElement::BonePosYCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
         SkinParam::CollisionParam* cls_param = rob_osage_test->get_cls_param();
-        if (cls_param)
+        if (cls_param) {
+            cls_param->type = (SkinParam::CollisionType)(int32_t)rob_osage_test_dw->
+                colli_element.type_list_box->list->selected_item;
             cls_param->pos[slider->callback_data.i32].y = slider->scroll_bar->value;
+        }
     }
 }
 
@@ -1943,8 +2030,11 @@ void RobOsageTestDw::ColliElement::BonePosZCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
         SkinParam::CollisionParam* cls_param = rob_osage_test->get_cls_param();
-        if (cls_param)
+        if (cls_param) {
+            cls_param->type = (SkinParam::CollisionType)(int32_t)rob_osage_test_dw->
+                colli_element.type_list_box->list->selected_item;
             cls_param->pos[slider->callback_data.i32].z = slider->scroll_bar->value;
+        }
     }
 }
 
@@ -1992,8 +2082,11 @@ void RobOsageTestDw::ColliElement::RadiusCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider) {
         SkinParam::CollisionParam* cls_param = rob_osage_test->get_cls_param();
-        if (cls_param)
+        if (cls_param) {
+            cls_param->type = (SkinParam::CollisionType)(int32_t)rob_osage_test_dw->
+                colli_element.type_list_box->list->selected_item;
             cls_param->radius = slider->scroll_bar->value;
+        }
     }
 }
 

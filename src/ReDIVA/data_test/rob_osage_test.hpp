@@ -100,18 +100,18 @@ public:
     void disp_coli();
     void disp_line();
 
+    ExClothBlock* get_cloth_block(rob_chara_item_equip_object* itm_eq_obj) const;
     rob_chara_item_equip_object* get_item_equip_object() const;
     ExOsageBlock* get_osage_block(rob_chara_item_equip_object* itm_eq_obj) const;
+    std::vector<SkinParam::CollisionParam>* get_cls_list(ExClothBlock* cls) const;
     std::vector<SkinParam::CollisionParam>* get_cls_list(ExOsageBlock* osg) const;
     SkinParam::CollisionParam* get_cls_param(std::vector<SkinParam::CollisionParam>* cls_list) const;
     void set_root(skin_param* skp);
 
-    inline ExOsageBlock* get_osage_block() const {
-        return get_osage_block(get_item_equip_object());
-    }
-
     inline std::vector<SkinParam::CollisionParam>* get_cls_list() const {
-        return get_cls_list(get_osage_block());
+        rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
+        ExOsageBlock* osg = get_osage_block(itm_eq_obj);
+        return osg ? get_cls_list(osg) : get_cls_list(get_cloth_block(itm_eq_obj));
     }
 
     inline SkinParam::CollisionParam* get_cls_param() const {
@@ -119,9 +119,15 @@ public:
     }
 
     inline skin_param* get_skin_param() const {
-        ExOsageBlock* osg = get_osage_block();
+        rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
+        ExOsageBlock* osg = get_osage_block(itm_eq_obj);
         if (osg)
             return osg->rob.skin_param_ptr;
+        else {
+            ExClothBlock* cls = get_cloth_block(itm_eq_obj);
+            if (cls)
+                return cls->rob.skin_param_ptr;
+        }
         return 0;
     }
 
