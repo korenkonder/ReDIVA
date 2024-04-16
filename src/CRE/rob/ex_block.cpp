@@ -588,57 +588,56 @@ int32_t OsageCollision::cls_capsule_oidashi(vec3& vec, const vec3& p, const Osag
 
 // 0x140483EA0
 int32_t OsageCollision::cls_ellipse_oidashi(vec3& vec, const vec3& p, const OsageCollision::Work* cls, const float_t r) {
-    if (cls->vec_center_length <= 0.000001f)
-        return OsageCollision::cls_ball_oidashi(vec, p, cls->pos[0], r);
+    const vec3& p1 = cls->pos[0];
+    const vec3& q1 = cls->pos[1];
 
-    float_t v61 = cls->vec_center_length * 0.5f;
-    float_t v13 = sqrtf(r * r + v61 * v61);
+    if (fabsf(cls->vec_center_length) <= 0.000001f)
+        return OsageCollision::cls_ball_oidashi(vec, p, p1, r);
 
-    vec3 v54 = p - cls->pos[0];
-    float_t v20 = vec3::length(v54);
+    const float_t v61 = cls->vec_center_length * 0.5f;
+    const float_t v13 = sqrtf(r * r + v61 * v61);
 
-    vec3 v57 = p - cls->pos[1];
-    float_t v21 = vec3::length(v57);
+    vec3 d0 = p - p1;
+    const float_t d0_len = vec3::length(d0);
 
-    if (v20 <= 0.000001f || v21 <= 0.000001f)
+    vec3 d1 = p - q1;
+    const float_t d1_len = vec3::length(d1);
+
+    if (fabsf(d0_len) <= 0.000001 || fabsf(d1_len) <= 0.000001f)
         return 0;
 
-    float_t v22 = v20 + v21;
-    if (v21 + v20 >= v13 * 2.0f)
+    const float_t d_len = (d0_len + d1_len) * 0.5f;
+    if (d_len >= v13)
         return 0;
 
-    float_t v25 = 1.0f / cls->vec_center_length;
+    vec3 v63 = p - (p1 + q1) * 0.5f;
 
-    vec3 v63 = p - (cls->pos[0] + cls->pos[1]) * 0.5f;
-
-    float_t v58 = vec3::length(v63);
+    const float_t v58 = vec3::length(v63);
     if (v58 != 0.0f)
         v63 *= 1.0f / v58;
 
-    float_t v36 = vec3::dot(v63, cls->vec_center) * v25;
-    float_t v37 = v36 * v36;
-    v37 = min_def(v37, 1.0f);
-    v22 *= 0.5f;
-    float_t v38 = v22 * v22 - v61;
+    const float_t v36 = vec3::dot(v63, cls->vec_center) * (1.0f / cls->vec_center_length);
+
+    const float_t v38 = d_len * d_len - v61 * v61;
     if (v38 < 0.0f)
         return 0;
 
-    float_t v39 = sqrtf(v38);
-    if (v39 <= 0.000001f)
+    const float_t v39 = sqrtf(v38);
+    if (fabsf(v39) <= 0.000001f)
         return 0;
 
-    float_t v42 = sqrtf(1.0f - v37);
-    v22 = (v13 / v22 - 1.0f) * v36 * v58;
-    v42 = (r / v39 - 1.0f) * v42 * v58;
-    float_t v43 = sqrtf(v42 * v42 + v22 * v22);
+    const float_t v40 = sqrtf(1.0f - min_def(v36 * v36, 1.0f));
+    const float_t v41 = (v13 / d_len - 1.0f) * (v36 * v58);
+    const float_t v42 = (r / v39 - 1.0f) * (v40 * v58);
+    const float_t v43 = sqrtf(v42 * v42 + v41 * v41);
 
-    if (v20 != 0.0f)
-        v54 *= 1.0f / v20;
+    if (d0_len != 0.0f)
+        d0 *= 1.0f / d0_len;
 
-    if (v21 != 0.0f)
-        v57 *= 1.0f / v21;
+    if (d1_len != 0.0f)
+        d1 *= 1.0f / d1_len;
 
-    vec = vec3::normalize(v54 + v57) * v43;
+    vec = vec3::normalize(d0 + d1) * v43;
     return 1;
 }
 
