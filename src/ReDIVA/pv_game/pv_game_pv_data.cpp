@@ -2238,8 +2238,8 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
     if (!diff)
         return;
 
-    std::vector<pv_play_data_event> v94;
-    std::vector<pv_play_data_event> v99[6];
+    std::vector<pv_play_data_event> change_field;
+    std::vector<pv_play_data_event> set_playdata[ROB_CHARA_COUNT];
 
     int32_t pv_branch_mode = 0;
     int32_t time = -1;
@@ -2260,7 +2260,7 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
         int32_t chara_id = data[0];
         int32_t motion_index = data[1];
 
-        v99[chara_id].push_back({ time, motion_index, pv_branch_mode });
+        set_playdata[chara_id].push_back({ time, motion_index, pv_branch_mode });
 
         prev_time = time;
         i++;
@@ -2285,7 +2285,7 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
         int32_t field = data[0];
 
         if (field >= 0 && field < diff->field.data.size())
-            v94.push_back({ time, diff->field.data[field].stage_index, pv_branch_mode });
+            change_field.push_back({ time, diff->field.data[field].stage_index, pv_branch_mode });
 
         prev_time = time;
         i++;
@@ -2302,30 +2302,24 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
         pv_play_data& playdata = this->playdata[i];
 
         for (pv_play_data_event& j : playdata.motion_data.set_motion) {
-            int32_t stage_index = 0;
             int32_t time = -1;
+            int32_t stage_index = 0;
 
-            pv_play_data_event* k_begin = v94.data() + v94.size();
-            pv_play_data_event* k_end = v94.data();
-            for (pv_play_data_event* k = k_begin; k != k_end; ) {
-                k--;
-
+            auto k_begin = set_playdata[i].rbegin();
+            auto k_end = set_playdata[i].rend();
+            for (auto k = k_begin; k != k_end; k++)
                 if (k->time <= j.time && k->pv_branch_mode == j.pv_branch_mode) {
-                    stage_index = k->index;
+                    time = k->index;
                     break;
                 }
-            }
 
-            pv_play_data_event* l_begin = v99[i].data() + v99[i].size();
-            pv_play_data_event* l_end = v99[i].data();
-            for (pv_play_data_event* l = l_begin; l != l_end; ) {
-                l--;
-
-                if (l->index == j.index && l->time <= j.time) {
-                    time = l->time;
+            auto l_begin = change_field.rbegin();
+            auto l_end = change_field.rend();
+            for (auto l = l_begin; l != l_end; l++)
+                if (l->time <= j.time && l->pv_branch_mode == j.pv_branch_mode) {
+                    stage_index = l->index;
                     break;
                 }
-            }
 
             if (time < 0)
                 time = j.time;
@@ -2499,6 +2493,10 @@ void pv_game_pv_data::reset() {
     pv_game = 0;
     //field_2BF80 = 0;
     music = 0;
+    dsc.data.clear();
+    dsc.data.shrink_to_fit();
+    dsc.data_buffer.clear();
+    dsc.data_buffer.shrink_to_fit();
     dsc_file_handler.reset();
     play = false;
     field_2BF50 = false;
