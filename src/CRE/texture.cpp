@@ -57,12 +57,19 @@ texture* texture_alloc(texture_id id) {
     auto elem = texture_manager_work_ptr->textures.find(id);
     if (elem != texture_manager_work_ptr->textures.end()) {
         elem->second.ref_count++;
+        texture_manager_work_ptr->entry_count++;
         return &elem->second;
     }
 
-    texture* tex = &texture_manager_work_ptr->textures.insert({ id, {} }).first->second;
+    auto ret = texture_manager_work_ptr->textures.insert({ id, {} });
+    if (!ret.second)
+        return 0;
+
+    texture* tex = &ret.first->second;
     tex->ref_count = 1;
     tex->id = id;
+    texture_manager_work_ptr->alloc_count++;
+    texture_manager_work_ptr->entry_count++;
     return tex;
 }
 
@@ -280,6 +287,10 @@ void texture_txp_store(texture* tex, txp* t) {
 }
 
 void texture_release(texture* tex) {
+    if (!texture_manager_work_ptr || !tex)
+        return;
+
+    texture_manager_work_ptr->entry_count--;
     if (tex->ref_count > 1) {
         tex->ref_count--;
         return;
@@ -290,6 +301,7 @@ void texture_release(texture* tex) {
         tex->glid = 0;
     }
 
+    texture_manager_work_ptr->alloc_count--;
     texture_manager_work_ptr->texmem_now_size -= tex->size_texmem;
     texture_manager_work_ptr->texmem_now_size_by_type[tex->id.id >> 4] -= tex->size_texmem;
     texture_manager_work_ptr->textures.erase(tex->id);
