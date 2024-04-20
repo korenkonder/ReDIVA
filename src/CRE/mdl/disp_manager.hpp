@@ -271,7 +271,6 @@ namespace mdl {
 
     struct EtcObjCylinder { // Added
         float_t base;
-        float_t top;
         float_t height;
         int32_t slices;
         int32_t stacks;

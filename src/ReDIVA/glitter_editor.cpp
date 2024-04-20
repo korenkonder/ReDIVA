@@ -2064,7 +2064,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.color = 0x8F00FF00;
         etc.constant = true;
         etc.data.cylinder.base = emit_inst->data.cylinder.radius * scale.x;
-        etc.data.cylinder.top = emit_inst->data.cylinder.radius * scale.x;
         etc.data.cylinder.height = emit_inst->data.cylinder.height * scale.y;
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 1;
@@ -2156,7 +2155,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.color = 0x8F00FF00;
         etc.constant = true;
         etc.data.cylinder.base = emit_inst->data.cylinder.radius * scale.x;
-        etc.data.cylinder.top = emit_inst->data.cylinder.radius * scale.x;
         etc.data.cylinder.height = emit_inst->data.cylinder.height * scale.y;
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 1;
@@ -2189,8 +2187,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
         etc.color = 0x8FFFFF00;
         etc.constant = true;
-        etc.data.cylinder.base = emit_inst->data.cylinder.radius * scale.x;
-        etc.data.cylinder.top = emit_inst->data.cylinder.radius * scale.x;
+        etc.data.cylinder.base = emit_inst->data.polygon.size * scale.x;
         etc.data.cylinder.height = 0.0f;
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 0;

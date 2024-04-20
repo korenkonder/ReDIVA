@@ -127,7 +127,6 @@ namespace mdl {
 
     EtcObjCylinder::EtcObjCylinder() : wire() {
         base = 1.0f;
-        top = 1.0f;
         height = 1.0f;
         slices = 8;
         stacks = 8;
@@ -1489,7 +1488,7 @@ namespace mdl {
     }
 
     static void gen_cylinder_vertices(std::vector<float_t>& data,
-        int32_t slices, int32_t stacks, float_t base, float_t top, float_t height) {
+        int32_t slices, int32_t stacks, float_t base, float_t height) {
         float_t half_height = height * 0.5f;
 
         if (slices < 2 || stacks < 0)
@@ -1498,7 +1497,7 @@ namespace mdl {
         data.reserve(6ULL * 2);
 
         data.push_back(0.0f);
-        data.push_back(half_height);
+        data.push_back(stacks ? half_height : 0.0f);
         data.push_back(0.0f);
 
         data.push_back(0.0f);
@@ -1509,8 +1508,7 @@ namespace mdl {
         double_t stack_step = M_PI / (double_t)stacks;
 
         for (int32_t i = 0; i <= stacks; i++) {
-            float_t y = lerp_def(half_height, -half_height, (float_t)i / (float_t)stacks);
-            float_t radius = lerp_def(top, base, (float_t)i / (float_t)stacks);
+            float_t y = stacks ? lerp_def(half_height, -half_height, (float_t)i / (float_t)stacks) : 0.0f;
 
             data.reserve(6ULL * 2 * slices);
 
@@ -1520,9 +1518,9 @@ namespace mdl {
                 float_t x = cosf(slice_angle);
                 float_t z = sinf(slice_angle);
 
-                data.push_back(x * radius);
+                data.push_back(x * base);
                 data.push_back(y);
-                data.push_back(z * radius);
+                data.push_back(z * base);
 
                 data.push_back(x);
                 data.push_back(0.0f);
@@ -1533,7 +1531,7 @@ namespace mdl {
         data.reserve(6ULL * 2);
 
         data.push_back(0.0f);
-        data.push_back(-half_height);
+        data.push_back(stacks ? -half_height : 0.0f);
         data.push_back(0.0f);
 
         data.push_back(0.0f);
@@ -1742,6 +1740,8 @@ namespace mdl {
         case mdl::ETC_OBJ_CYLINDER: { // Added
             EtcObjCylinder& cylinder = etc->data.cylinder;
 
+            mat4_scale_rot(&mat, cylinder.base, cylinder.height, cylinder.base, &mat);
+
             indexed = true;
             wire = cylinder.wire;
         } break;
@@ -1763,8 +1763,6 @@ namespace mdl {
                 || type == mdl::ETC_OBJ_CONE
                 && i.data.cone.slices == etc->data.cone.slices
                 && i.data.cone.stacks == etc->data.cone.stacks
-                && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
-                && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f
                 || type == mdl::ETC_OBJ_LINE
                 && fabsf(vec3::distance(i.data.line.pos[0], i.data.line.pos[1]) - length) < 0.00001f
                 || type == mdl::ETC_OBJ_CROSS
@@ -1775,10 +1773,7 @@ namespace mdl {
                 && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f
                 || type == mdl::ETC_OBJ_CYLINDER // Added
                 && i.data.cylinder.slices == etc->data.cylinder.slices
-                && i.data.cylinder.stacks == etc->data.cylinder.stacks
-                && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
-                && fabsf(i.data.cylinder.top - etc->data.cylinder.top) < 0.00001f
-                && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
+                && i.data.cylinder.stacks == etc->data.cylinder.stacks)
                 if (i.vertex_array) {
                     i.alive_time = 2;
                     if (!wire) {
@@ -1913,8 +1908,7 @@ namespace mdl {
         case mdl::ETC_OBJ_CYLINDER: { // Added
             EtcObjCylinder& cylinder = etc->data.cylinder;
 
-            gen_cylinder_vertices(vtx_data, cylinder.slices, cylinder.stacks,
-                cylinder.base, cylinder.top, cylinder.height);
+            gen_cylinder_vertices(vtx_data, cylinder.slices, cylinder.stacks, 1.0f, 1.0f);
             size_t wire_offset = gen_cylinder_indices(vtx_indices, cylinder.slices, cylinder.stacks);
 
             etc_vertex_array->offset = 0;
@@ -3141,10 +3135,7 @@ namespace mdl {
                 break;
             case mdl::ETC_OBJ_CYLINDER: // Added
                 if (i.data.cylinder.slices == etc->data.cylinder.slices
-                    && i.data.cylinder.stacks == etc->data.cylinder.stacks
-                    && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
-                    && fabsf(i.data.cylinder.top - etc->data.cylinder.top) < 0.00001f
-                    && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
+                    && i.data.cylinder.stacks == etc->data.cylinder.stacks)
                     return i.vertex_array;
                 break;
             }
