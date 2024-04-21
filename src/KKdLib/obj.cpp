@@ -3697,6 +3697,7 @@ static void obj_classic_read_vertex(obj_mesh* mesh,
     mesh->vertex_array = vtx;
     mesh->num_vertex = num_vertex;
     mesh->vertex_format = vertex_format;
+    mesh->attrib.m.compression = 0;
 }
 
 static void obj_classic_write_vertex(obj_mesh* mesh,
@@ -7699,7 +7700,7 @@ static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<prj::stack_al
     mesh->vertex_array = vtx;
     mesh->num_vertex = num_vertex;
     mesh->vertex_format = vertex_format;
-    mesh->attrib.m.compressed = 1;
+    mesh->attrib.m.compression = 1;
 }
 
 static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,

@@ -368,7 +368,7 @@ namespace mdl {
         object_data_get_vertex_attrib_buffer_bindings(args,
             texcoord_array, vertex_attrib_buffer_binding);
 
-        bool compressed = mesh->attrib.m.compressed;
+        uint32_t compression = mesh->attrib.m.compression;
         GLsizei size_vertex = (GLsizei)mesh->size_vertex;
         obj_vertex_format vertex_format = mesh->vertex_format;
 
@@ -379,7 +379,7 @@ namespace mdl {
                 && i.morph_vertex_buffer == morph_vertex_buffer
                 && i.morph_vertex_buffer_offset == morph_vertex_buffer_offset
                 && i.index_buffer == index_buffer && i.vertex_format == vertex_format
-                && i.size_vertex == size_vertex && i.compressed == compressed
+                && i.size_vertex == size_vertex && i.compression == compression
                 && !memcmp(i.vertex_attrib_buffer_binding,
                     vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
                 && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
@@ -434,7 +434,7 @@ namespace mdl {
         vertex_array->alive_time = 60;
         vertex_array->vertex_format = vertex_format;
         vertex_array->size_vertex = size_vertex;
-        vertex_array->compressed = compressed;
+        vertex_array->compression = compression;
         memcpy(&vertex_array->texcoord_array, texcoord_array, sizeof(texcoord_array));
         memcpy(&vertex_array->vertex_attrib_buffer_binding,
             vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
@@ -466,15 +466,23 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[NORMAL_INDEX] = true;
             }
 
-            if (!compressed) {
+            switch (compression) {
+            case 0:
+            default:
                 glVertexAttribPointer(NORMAL_INDEX,
                     3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 12;
-            }
-            else {
+                break;
+            case 1:
                 glVertexAttribPointer(NORMAL_INDEX,
                     3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
                 offset += 8;
+                break;
+            case 2:
+                glVertexAttribPointer(NORMAL_INDEX,
+                    4, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                offset += 4;
+                break;
             }
         }
         else if (vertex_array->vertex_attrib_array[NORMAL_INDEX]) {
@@ -488,15 +496,23 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[TANGENT_INDEX] = true;
             }
 
-            if (!compressed) {
+            switch (compression) {
+            case 0:
+            default:
                 glVertexAttribPointer(TANGENT_INDEX,
                     4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 16;
-            }
-            else {
+                break;
+            case 1:
                 glVertexAttribPointer(TANGENT_INDEX,
                     4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
                 offset += 8;
+                break;
+            case 2:
+                glVertexAttribPointer(TANGENT_INDEX,
+                    4, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                offset += 4;
+                break;
             }
         }
         else if (vertex_array->vertex_attrib_array[TANGENT_INDEX]) {
@@ -504,7 +520,7 @@ namespace mdl {
             vertex_array->vertex_attrib_array[TANGENT_INDEX] = false;
         }
 
-        if (!compressed && vertex_format & OBJ_VERTEX_BINORMAL)
+        if (!compression && (vertex_format & OBJ_VERTEX_BINORMAL))
             offset += 12;
 
         for (int32_t i = 0; i < 2; i++) {
@@ -523,16 +539,24 @@ namespace mdl {
                     vertex_array->vertex_attrib_array[TEXCOORD0_INDEX + i] = true;
                 }
 
-                if (!compressed)
+                switch (compression) {
+                case 0:
+                default:
                     glVertexAttribPointer(TEXCOORD0_INDEX + i, 2, GL_FLOAT, GL_FALSE,
                         size_vertex, (void*)(offset + 8ULL * texcoord_index));
-                else
+                    break;
+                case 1:
+                case 2:
                     glVertexAttribPointer(TEXCOORD0_INDEX + i, 2, GL_HALF_FLOAT, GL_FALSE,
                         size_vertex, (void*)(offset + 4ULL * texcoord_index));
+                    break;
+                }
             }
         }
 
-        if (!compressed) {
+        switch (compression) {
+        case 0:
+        default:
             if (vertex_format & OBJ_VERTEX_TEXCOORD0)
                 offset += 8;
             if (vertex_format & OBJ_VERTEX_TEXCOORD1)
@@ -541,8 +565,9 @@ namespace mdl {
                 offset += 8;
             if (vertex_format & OBJ_VERTEX_TEXCOORD3)
                 offset += 8;
-        }
-        else {
+            break;
+        case 1:
+        case 2:
             if (vertex_format & OBJ_VERTEX_TEXCOORD0)
                 offset += 4;
             if (vertex_format & OBJ_VERTEX_TEXCOORD1)
@@ -551,6 +576,7 @@ namespace mdl {
                 offset += 4;
             if (vertex_format & OBJ_VERTEX_TEXCOORD3)
                 offset += 4;
+            break;
         }
 
         if (vertex_format & OBJ_VERTEX_COLOR0) {
@@ -559,15 +585,19 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[COLOR0_INDEX] = true;
             }
 
-            if (!compressed) {
+            switch (compression) {
+            case 0:
+            default:
                 glVertexAttribPointer(COLOR0_INDEX,
                     4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 16;
-            }
-            else {
+                break;
+            case 1:
+            case 2:
                 glVertexAttribPointer(COLOR0_INDEX,
                     4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 8;
+                break;
             }
         }
         else if (vertex_array->vertex_attrib_array[COLOR0_INDEX]) {
@@ -575,7 +605,7 @@ namespace mdl {
             vertex_array->vertex_attrib_array[COLOR0_INDEX] = false;
         }
 
-        if (vertex_format & OBJ_VERTEX_COLOR1)
+        if (!compression && (vertex_format & OBJ_VERTEX_COLOR1))
             offset += 16;
 
         if (vertex_format & OBJ_VERTEX_BONE_DATA) {
@@ -584,15 +614,23 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[BONE_WEIGHT_INDEX] = true;
             }
 
-            if (!compressed) {
+            switch (compression) {
+            case 0:
+            default:
                 glVertexAttribPointer(BONE_WEIGHT_INDEX,
                     4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                 offset += 16;
-            }
-            else {
+                break;
+            case 1:
                 glVertexAttribPointer(BONE_WEIGHT_INDEX,
                     4, GL_UNSIGNED_SHORT, GL_TRUE, size_vertex, (void*)offset);
                 offset += 8;
+                break;
+            case 2:
+                glVertexAttribPointer(BONE_WEIGHT_INDEX,
+                    4, GL_UNSIGNED_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                offset += 4;
+                break;
             }
 
             if (!vertex_array->vertex_attrib_array[BONE_INDEX_INDEX]) {
@@ -600,9 +638,20 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[BONE_INDEX_INDEX] = true;
             }
 
-            glVertexAttribIPointer(BONE_INDEX_INDEX,
-                4, GL_SHORT, size_vertex, (void*)offset);
-            offset += 8;
+            switch (compression) {
+            case 0:
+            case 1:
+            default:
+                glVertexAttribIPointer(BONE_INDEX_INDEX,
+                    4, GL_UNSIGNED_SHORT, size_vertex, (void*)offset);
+                offset += 8;
+                break;
+            case 2:
+                glVertexAttribIPointer(BONE_INDEX_INDEX,
+                    4, GL_UNSIGNED_BYTE, size_vertex, (void*)offset);
+                offset += 4;
+                break;
+            }
         }
         else {
             if (vertex_array->vertex_attrib_array[BONE_WEIGHT_INDEX]) {
@@ -616,7 +665,7 @@ namespace mdl {
             }
         }
 
-        if (!compressed && vertex_format & OBJ_VERTEX_UNKNOWN) {
+        if (!compression && (vertex_format & OBJ_VERTEX_UNKNOWN)) {
             if (!vertex_array->vertex_attrib_array[UNKNOWN_INDEX]) {
                 glEnableVertexAttribArray(UNKNOWN_INDEX);
                 vertex_array->vertex_attrib_array[UNKNOWN_INDEX] = true;
@@ -656,15 +705,23 @@ namespace mdl {
                     vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX] = true;
                 }
 
-                if (!compressed) {
+                switch (compression) {
+                case 0:
+                default:
                     glVertexAttribPointer(MORPH_NORMAL_INDEX,
                         3, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 12;
-                }
-                else {
+                    break;
+                case 1:
                     glVertexAttribPointer(MORPH_NORMAL_INDEX,
                         3, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
                     offset += 8;
+                    break;
+                case 2:
+                    glVertexAttribPointer(MORPH_NORMAL_INDEX,
+                        3, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                    offset += 4;
+                    break;
                 }
             }
             else if (vertex_array->vertex_attrib_array[MORPH_NORMAL_INDEX]) {
@@ -678,15 +735,23 @@ namespace mdl {
                     vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX] = true;
                 }
 
-                if (!compressed) {
+                switch (compression) {
+                case 0:
+                default:
                     glVertexAttribPointer(MORPH_TANGENT_INDEX,
                         4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 16;
-                }
-                else {
+                    break;
+                case 1:
                     glVertexAttribPointer(MORPH_TANGENT_INDEX,
                         4, GL_SHORT, GL_TRUE, size_vertex, (void*)offset);
                     offset += 8;
+                    break;
+                case 2:
+                    glVertexAttribPointer(MORPH_TANGENT_INDEX,
+                        4, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                    offset += 4;
+                    break;
                 }
             }
             else if (vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX]) {
@@ -694,7 +759,7 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[MORPH_TANGENT_INDEX] = false;
             }
 
-            if (!compressed && vertex_format & OBJ_VERTEX_BINORMAL)
+            if (!compression && (vertex_format & OBJ_VERTEX_BINORMAL))
                 offset += 12;
 
             if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
@@ -703,15 +768,19 @@ namespace mdl {
                     vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX] = true;
                 }
 
-                if (!compressed) {
+                switch (compression) {
+                case 0:
+                default:
                     glVertexAttribPointer(MORPH_TEXCOORD0_INDEX,
                         2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 8;
-                }
-                else {
+                    break;
+                case 1:
+                case 2:
                     glVertexAttribPointer(MORPH_TEXCOORD0_INDEX,
                         2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 4;
+                    break;
                 }
             }
             else if (vertex_array->vertex_attrib_array[MORPH_TEXCOORD0_INDEX]) {
@@ -725,15 +794,19 @@ namespace mdl {
                     vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX] = true;
                 }
 
-                if (!compressed) {
+                switch (compression) {
+                case 0:
+                default:
                     glVertexAttribPointer(MORPH_TEXCOORD1_INDEX,
                         2, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 8;
-                }
-                else {
+                    break;
+                case 1:
+                case 2:
                     glVertexAttribPointer(MORPH_TEXCOORD1_INDEX,
                         2, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 4;
+                    break;
                 }
             }
             else if (vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX]) {
@@ -741,17 +814,21 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[MORPH_TEXCOORD1_INDEX] = false;
             }
 
-            if (!compressed) {
+            switch (compression) {
+            case 0:
+            default:
                 if (vertex_format & OBJ_VERTEX_TEXCOORD2)
                     offset += 8;
                 if (vertex_format & OBJ_VERTEX_TEXCOORD3)
                     offset += 8;
-            }
-            else {
+                break;
+            case 1:
+            case 2:
                 if (vertex_format & OBJ_VERTEX_TEXCOORD2)
                     offset += 4;
                 if (vertex_format & OBJ_VERTEX_TEXCOORD3)
                     offset += 4;
+                break;
             }
 
             if (vertex_format & OBJ_VERTEX_COLOR0) {
@@ -762,15 +839,19 @@ namespace mdl {
                     vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX] = true;
                 }
 
-                if (!compressed) {
+                switch (compression) {
+                case 0:
+                default:
                     glVertexAttribPointer(MORPH_COLOR_INDEX,
                         4, GL_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 16;
-                }
-                else {
+                    break;
+                case 1:
+                case 2:
                     glVertexAttribPointer(MORPH_COLOR_INDEX,
                         4, GL_HALF_FLOAT, GL_FALSE, size_vertex, (void*)offset);
                     offset += 8;
+                    break;
                 }
             }
             else if (vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX]) {
@@ -778,19 +859,26 @@ namespace mdl {
                 vertex_array->vertex_attrib_array[MORPH_COLOR_INDEX] = false;
             }
 
-            if (!compressed) {
+            switch (compression) {
+            case 0:
+            default:
                 if (vertex_format & OBJ_VERTEX_COLOR1)
                     offset += 16;
 
                 if (vertex_format & OBJ_VERTEX_BONE_DATA)
-                    offset += 32;
+                    offset += 24;
 
                 if (vertex_format & OBJ_VERTEX_UNKNOWN)
                     offset += 16;
-            }
-            else {
+                break;
+            case 1:
                 if (vertex_format & OBJ_VERTEX_BONE_DATA)
                     offset += 16;
+                break;
+            case 2:
+                if (vertex_format & OBJ_VERTEX_BONE_DATA)
+                    offset += 8;
+                break;
             }
         }
         else {
@@ -3052,7 +3140,7 @@ namespace mdl {
         object_data_get_vertex_attrib_buffer_bindings(args,
             texcoord_array, vertex_attrib_buffer_binding);
 
-        bool compressed = mesh->attrib.m.compressed;
+        uint32_t compression = mesh->attrib.m.compression;
         GLsizei size_vertex = (GLsizei)mesh->size_vertex;
         obj_vertex_format vertex_format = mesh->vertex_format;
 
@@ -3062,7 +3150,7 @@ namespace mdl {
                 && i.morph_vertex_buffer == morph_vertex_buffer
                 && i.morph_vertex_buffer_offset == morph_vertex_buffer_offset
                 && i.index_buffer == index_buffer && i.vertex_format == vertex_format
-                && i.size_vertex == size_vertex && i.compressed == compressed
+                && i.size_vertex == size_vertex && i.compression == compression
                 && !memcmp(i.vertex_attrib_buffer_binding,
                     vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding))
                 && !memcmp(i.texcoord_array, texcoord_array, sizeof(texcoord_array)))
@@ -3366,7 +3454,7 @@ static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshA
     GLuint vertex_buffer = args->vertex_buffer;
     GLuint morph_vertex_buffer = args->morph_vertex_buffer;
 
-    bool compressed = mesh->attrib.m.compressed;
+    uint32_t compression = mesh->attrib.m.compression;
     GLsizei size_vertex = (GLsizei)mesh->size_vertex;
     obj_vertex_format vertex_format = mesh->vertex_format;
 
@@ -3392,7 +3480,7 @@ static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshA
         vertex_attrib_buffer_binding[BONE_INDEX_INDEX] = vertex_buffer;
     }
 
-    if (!compressed && vertex_format & OBJ_VERTEX_UNKNOWN)
+    if (!compression && (vertex_format & OBJ_VERTEX_UNKNOWN))
         vertex_attrib_buffer_binding[UNKNOWN_INDEX] = vertex_buffer;
 
     if (args->morph_vertex_buffer) {
