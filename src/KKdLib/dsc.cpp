@@ -860,185 +860,185 @@ const int32_t dsc_x_func_count = DSC_X_FUNC_COUNT;
 const int32_t dsc_vrfl_func_count = DSC_VRFL_FUNC_COUNT;
 
 inline int32_t dsc_ac101_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC101_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac101_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac101_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac110_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC110_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac110_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac110_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac120_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC120_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac120_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac120_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac200_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC200_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac200_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac200_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac210_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC210_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac210_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac210_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac500_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC500_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac500_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac500_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ac510_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AC510_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ac510_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ac510_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft101_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AFT101_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_aft101_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_aft101_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft200_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AFT200_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_aft200_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_aft200_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft300_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AFT300_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_aft300_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_aft300_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft310_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AFT310_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_aft310_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_aft310_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft410_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AFT410_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_aft410_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_aft410_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_aft701_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_AFT701_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_aft701_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_aft701_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_ft_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_FT_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_ft_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_ft_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_psp_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_PSP_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_psp_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_psp_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_2nd_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_2ND_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_2nd_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_2nd_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_dt_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_DT_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_dt_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_dt_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_dt2_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_DT2_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_dt2_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_dt2_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_f_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_F_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_f_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_f_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_f2_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_F2_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_f2_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_f2_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_mgf_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_MGF_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_mgf_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_mgf_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_x_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_X_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_x_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_x_get_func_name(i)))
             return i;
     return -1;
 }
 
 inline int32_t dsc_vrfl_get_func_id(const char* name) {
-    uint64_t name_hash = hash_utf8_fnv1a64m(name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name);
     for (int32_t i = 0; i < DSC_VRFL_FUNC_COUNT; i++)
-        if (name_hash == hash_utf8_fnv1a64m(dsc_vrfl_get_func_name(i)))
+        if (name_hash == hash_utf8_xxh3_64bits(dsc_vrfl_get_func_name(i)))
             return i;
     return -1;
 }
@@ -2581,64 +2581,64 @@ void dsc::convert(dsc_type dst_type) {
     for (int32_t i = 0; i < src_func_count; i++) {
         dsc_replace_data* repl_data = &dr.replace_data[i];
         const char* src_func_name = src_get_func_name(i);
-        uint64_t src_func_name_hash = hash_utf8_fnv1a64m(src_func_name);
-        if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_MOVE"))
+        uint64_t src_func_name_hash = hash_utf8_xxh3_64bits(src_func_name);
+        if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MIKU_MOVE"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][0];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_ROT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MIKU_ROT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][1];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_DISP"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MIKU_DISP"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][2];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MIKU_SHADOW"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MIKU_SHADOW"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][3];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("TARGET"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("TARGET"))
             repl_data->func = note_convert_func_array[note_convert_src][note_convert_dst];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SET_MOTION"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("SET_MOTION"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][4];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SET_PLAYDATA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("SET_PLAYDATA"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][5];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EFFECT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("EFFECT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][6];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("CHANGE_FIELD"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("CHANGE_FIELD"))
             repl_data->func = change_field_convert_func_array
             [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EYE_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("EYE_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][7];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MOUTH_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MOUTH_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][8];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("HAND_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("HAND_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][9];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("LOOK_ANIM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("LOOK_ANIM"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][10];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EXPRESSION"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("EXPRESSION"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][11];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("LOOK_CAMERA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("LOOK_CAMERA"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][12];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("LYRIC"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("LYRIC"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][13];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MODE_SELECT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MODE_SELECT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][14];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EDIT_MOTION"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("EDIT_MOTION"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][15];
         else if (dr.bar_time_set_func_id == -1
-            && src_func_name_hash == hash_utf8_fnv1a64m("BAR_TIME_SET"))
+            && src_func_name_hash == hash_utf8_xxh3_64bits("BAR_TIME_SET"))
             dr.bar_time_set_func_id = i;
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SHADOWHEIGHT"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("SHADOWHEIGHT"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][16];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EDIT_FACE"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("EDIT_FACE"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][17];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("MOVE_CAMERA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("MOVE_CAMERA"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][18];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("SHADOWPOS"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("SHADOWPOS"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][19];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("CLOTH_WET"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("CLOTH_WET"))
             repl_data->func = dsc_convert_ac100[dsc_convert_ac100_type][20];
         else if (dr.target_flying_time_func_id == -1
-            && src_func_name_hash == hash_utf8_fnv1a64m("TARGET_FLYING_TIME"))
+            && src_func_name_hash == hash_utf8_xxh3_64bits("TARGET_FLYING_TIME"))
             dr.target_flying_time_func_id = i;
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("EDIT_CAMERA"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("EDIT_CAMERA"))
             repl_data->func = edit_camera_convert_func_array
             [note_convert_src == 2 ? 1 : 0][note_convert_dst == 2 ? 1 : 0];
-        else if (!repl_data->func && src_func_name_hash == hash_utf8_fnv1a64m("VR_LIVE_TRANSFORM"))
+        else if (!repl_data->func && src_func_name_hash == hash_utf8_xxh3_64bits("VR_LIVE_TRANSFORM"))
             repl_data->func = vr_live_transform_convert_func_array
             [type == DSC_VRFL][dst_type == DSC_VRFL];
     }
@@ -3325,9 +3325,9 @@ dsc_replace::dsc_replace(dsc_type src_type, dsc_type dst_type,
         replace_data->func = 0;
         const char* src_func_name = src_get_func_name(i);
         if (src_func_name && src_func_name[0]) {
-            uint64_t src_func_name_hash = hash_utf8_fnv1a64m(src_func_name);
+            uint64_t src_func_name_hash = hash_utf8_xxh3_64bits(src_func_name);
             for (int32_t j = 0; j < dst_func_count; j++)
-                if (src_func_name_hash == hash_utf8_fnv1a64m(dst_get_func_name(j))) {
+                if (src_func_name_hash == hash_utf8_xxh3_64bits(dst_get_func_name(j))) {
                     replace_data->name = src_func_name;
                     replace_data->func_id = j;
                     replace_data->length = dst_get_func_length(j);

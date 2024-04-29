@@ -269,7 +269,7 @@ void key_val::parse(const void* data, size_t size) {
         size_t key_length = c - s;
         size_t val_length = len - (key_length + 1);
 
-        uint64_t key_hash = hash_fnv1a64m(key_str_data, key_length);
+        uint64_t key_hash = hash_xxh3_64bits(key_str_data, key_length);
 
         key.push_back({ key_str_data, key_length });
         val.push_back({ val_str_data, val_length });
@@ -1167,7 +1167,7 @@ static int64_t key_val_get_key_index(key_val* kv, const char* str, size_t size) 
     if (curr_scope->key_hash_index.size() < 1)
         return -1;
 
-    uint64_t hash = hash_fnv1a64m(str, size);
+    uint64_t hash = hash_xxh3_64bits(str, size);
 
     auto* key = curr_scope->key_hash_index.data();
     size_t len = curr_scope->count;
@@ -1214,7 +1214,7 @@ static void key_val_sort(key_val* kv) {
     auto* key_hash_index = curr_scope->key_hash_index.data();
     for (size_t i = 0; i < count; i++) {
         key_hash_index->second = index + i;
-        key_hash_index->first = hash_fnv1a64m(key->first, key->second);
+        key_hash_index->first = hash_xxh3_64bits(key->first, key->second);
         key++;
         key_hash_index++;
     }

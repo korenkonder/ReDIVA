@@ -21,6 +21,7 @@ extern uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper = f
 extern uint32_t hash_murmurhash(const void* data, size_t size,
     uint32_t seed = 0, bool upper = false, bool big_endian = false);
 extern uint16_t hash_crc16_ccitt(const void* data, size_t size, bool make_upper = false);
+extern uint64_t hash_xxh3_64bits(const void* data, size_t size);
 
 inline uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper = false) {
     return hash_fnv1a64m(data, utf8_length(data), make_upper);
@@ -65,6 +66,71 @@ inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper = fa
 
 inline uint16_t hash_string_crc16_ccitt(const std::string& data, bool make_upper = false) {
     return hash_crc16_ccitt(data.c_str(), data.size(), make_upper);
+}
+
+inline uint64_t hash_utf8_xxh3_64bits(const char* data, bool make_upper = false) {
+    if (make_upper) { // Modification for only uppercase latin text
+        size_t size = utf8_length(data);
+        char* temp = force_malloc<char>(size + 1);;
+        memmove(temp, data, size + 1);
+
+        uint8_t* d = (uint8_t*)temp;
+        for (size_t i = size; i; i--) {
+            uint8_t a = *d++;
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+        }
+
+        uint64_t hash = hash_xxh3_64bits(temp, size);
+        free_def(temp);
+        return hash;
+    }
+    return hash_xxh3_64bits(data, utf8_length(data));
+}
+
+inline uint64_t hash_utf16_xxh3_64bits(const wchar_t* data, bool make_upper = false) {
+    if (make_upper) { // Modification for only uppercase latin text
+        char* temp = utf16_to_utf8(data);
+        size_t size = utf8_length(temp);
+
+        uint8_t* d = (uint8_t*)temp;
+        for (size_t i = size; i; i--) {
+            uint8_t a = *d++;
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+        }
+
+        uint64_t hash = hash_xxh3_64bits(temp, size);
+        free_def(temp);
+        return hash;
+    }
+
+    char* temp = utf16_to_utf8(data);
+    size_t size = utf8_length(temp);
+    uint64_t hash = hash_xxh3_64bits(temp, size);
+    free_def(temp);
+    return hash;
+}
+
+inline uint64_t hash_string_xxh3_64bits(const std::string& data, bool make_upper = false) {
+    if (make_upper) { // Modification for only uppercase latin text
+        size_t size = data.size();
+        char* temp = force_malloc<char>(size + 1);;
+        memmove(temp, data.data(), size + 1);
+
+        uint8_t* d = (uint8_t*)temp;
+        for (size_t i = size; i; i--) {
+            uint8_t a = *d++;
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+        }
+
+        uint64_t hash = hash_xxh3_64bits(temp, size);
+        free_def(temp);
+        return hash;
+    }
+
+    return hash_xxh3_64bits(data.c_str(), data.size());
 }
 
 struct string_hash {

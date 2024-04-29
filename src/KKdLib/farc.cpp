@@ -45,9 +45,9 @@ farc_file* farc::add_file(const char* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash)
             return &i;
 
     size_t files_count = files.size();
@@ -88,9 +88,9 @@ farc_file* farc::add_file(const wchar_t* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf16_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash)
             return &i;
 
     size_t files_count = files.size();
@@ -151,9 +151,9 @@ size_t farc::get_file_size(const char* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash)
             return i.size;
     return 0;
 }
@@ -162,9 +162,9 @@ size_t farc::get_file_size(const wchar_t* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf16_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash)
             return i.size;
     return 0;
 }
@@ -190,9 +190,9 @@ bool farc::has_file(const char* name) {
     if (!name)
         return false;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash)
             return true;
     return false;
 }
@@ -201,9 +201,9 @@ bool farc::has_file(const wchar_t* name) {
     if (!name)
         return false;
 
-    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf16_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash)
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash)
             return true;
     return false;
 }
@@ -283,9 +283,9 @@ farc_file* farc::read_file(const char* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash) {
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash) {
             farc_unpack_file(this, &i);
             return &i;
         }
@@ -296,9 +296,9 @@ farc_file* farc::read_file(const wchar_t* name) {
     if (!name)
         return 0;
 
-    uint64_t name_hash = hash_utf16_fnv1a64m(name, true);
+    uint64_t name_hash = hash_utf16_xxh3_64bits(name, true);
     for (farc_file& i : files)
-        if (hash_string_fnv1a64m(i.name, true) == name_hash) {
+        if (hash_string_xxh3_64bits(i.name, true) == name_hash) {
             farc_unpack_file(this, &i);
             return &i;
         }

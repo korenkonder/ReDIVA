@@ -522,8 +522,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
             strcat_s(vert_buf, sizeof(vert_buf), uniform_flags_buf);
             strcat_s(frag_buf, sizeof(frag_buf), uniform_flags_buf);
 
-            uint64_t vert_file_name_hash = hash_utf8_fnv1a64m(vert_buf);
-            uint64_t frag_file_name_hash = hash_utf8_fnv1a64m(frag_buf);
+            uint64_t vert_file_name_hash = hash_utf8_xxh3_64bits(vert_buf);
+            uint64_t frag_file_name_hash = hash_utf8_xxh3_64bits(frag_buf);
 
             char shader_cache_file_name[MAX_PATH];
             strcpy_s(shader_cache_file_name, sizeof(shader_cache_file_name), sub_table->vp);
@@ -535,8 +535,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
 
             vert_data = shader::parse_include(vert_data, f);
             frag_data = shader::parse_include(frag_data, f);
-            uint64_t vert_data_hash = hash_utf8_fnv1a64m(vert_data);
-            uint64_t frag_data_hash = hash_utf8_fnv1a64m(frag_data);
+            uint64_t vert_data_hash = hash_utf8_xxh3_64bits(vert_data);
+            uint64_t frag_data_hash = hash_utf8_xxh3_64bits(frag_data);
 
             farc_file* shader_cache_file = shader_cache_farc.read_file(shader_cache_file_name);
             program_binary* bin = 0;
@@ -551,7 +551,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                     printf_debug("Shader hash not equal: %s %s\n", vert_file_buf, frag_file_buf);
                 else {
                     bin = (program_binary*)&((uint64_t*)shader_cache_file->data)[4];
-                    if (bin->hash != hash_fnv1a64m((void*)((size_t)bin + bin->binary), bin->length)) {
+                    if (bin->hash != hash_xxh3_64bits((void*)((size_t)bin + bin->binary), bin->length)) {
                         printf_debug("Compiled binary hash could not be validated: %s %s\n", vert_file_buf, frag_file_buf);
                         bin = 0;
                     }
@@ -716,7 +716,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                     bin->length = k.length;
                     bin->binary_format = k.binary_format;
                     bin->binary = bin_data - bin_data_base;
-                    bin->hash = hash_fnv1a64m((void*)k.binary, k.length);
+                    bin->hash = hash_xxh3_64bits((void*)k.binary, k.length);
                     memcpy((void*)bin_data, (void*)k.binary, k.length);
                     bin_data_base += sizeof(program_binary);
                     bin_data += align_val(k.length, 0x04);

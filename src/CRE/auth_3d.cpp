@@ -6639,9 +6639,9 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
 
     for (auth_3d_object_node& i : oh->node) {
         i.bone_id = -1;
-        uint64_t name_hash = hash_string_fnv1a64m(i.name);
+        uint64_t name_hash = hash_string_xxh3_64bits(i.name);
         for (uint32_t j = 0; j < skin->num_bone; j++)
-            if (hash_utf8_fnv1a64m(skin->bone_array[j].name) == name_hash) {
+            if (hash_utf8_xxh3_64bits(skin->bone_array[j].name) == name_hash) {
                 i.bone_id = skin->bone_array[j].id;
                 break;
             }
@@ -6725,9 +6725,9 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     mat4* mats = oi->mats.data();
 
     for (uint32_t i = 0; i < skin->num_bone; i++) {
-        uint64_t name_hash = hash_utf8_fnv1a64m(skin->bone_array[i].name);
+        uint64_t name_hash = hash_utf8_xxh3_64bits(skin->bone_array[i].name);
         for (auth_3d_object_node& j : moh->node)
-            if (hash_string_fnv1a64m(j.name) == name_hash) {
+            if (hash_string_xxh3_64bits(j.name) == name_hash) {
                 int32_t bone_id = skin->bone_array[i].id;
                 if (!(bone_id & 0x8000))
                     object_bone_indices[bone_id] = (int32_t)(&j - moh->node.data());
@@ -7194,9 +7194,9 @@ static auth_3d_farc* auth_3d_data_struct_get_farc(
     if (!category_name || !auth_3d_data->farcs.size())
         return 0;
 
-    uint64_t name_hash = hash_utf8_fnv1a64m(category_name);
+    uint64_t name_hash = hash_utf8_xxh3_64bits(category_name);
     for (auth_3d_farc& i : auth_3d_data->farcs)
-        if (hash_string_fnv1a64m(i.name) == name_hash)
+        if (hash_string_xxh3_64bits(i.name) == name_hash)
             return &i;
     return 0;
 }

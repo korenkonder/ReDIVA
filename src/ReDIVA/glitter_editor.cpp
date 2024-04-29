@@ -3137,7 +3137,7 @@ static void glitter_editor_property(GlitterEditor* glt_edt) {
 static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
     ImGui::SetColumnSpace(2.0f / 5.0f);
 
-    uint64_t hash_before = hash_fnv1a64m(glt_edt->selected_effect, sizeof(Glitter::Effect));
+    uint64_t hash_before = hash_xxh3_64bits(glt_edt->selected_effect, sizeof(Glitter::Effect));
 
     Glitter::EffectGroup* eg = glt_edt->effect_group;
     Glitter::Effect* effect = glt_edt->selected_effect;
@@ -3313,7 +3313,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
 
         bool changed = false;
         if (eg->type == Glitter::X) {
-            uint64_t hash_before = hash_fnv1a64m(effect->data.ext_anim_x,
+            uint64_t hash_before = hash_xxh3_64bits(effect->data.ext_anim_x,
                 sizeof(Glitter::Effect::ExtAnimX));
 
             Glitter::Effect::ExtAnimX* ext_anim = effect->data.ext_anim_x;
@@ -3398,13 +3398,13 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
                 Glitter::EFFECT_EXT_ANIM_GET_THEN_UPDATE))
                 changed = true;
 
-            uint64_t hash_after = hash_fnv1a64m(effect->data.ext_anim_x,
+            uint64_t hash_after = hash_xxh3_64bits(effect->data.ext_anim_x,
                 sizeof(Glitter::Effect::ExtAnimX));
             if (hash_before != hash_after && changed)
                 glt_edt->input_reload = true;
         }
         else {
-            uint64_t hash_before = hash_fnv1a64m(effect->data.ext_anim,
+            uint64_t hash_before = hash_xxh3_64bits(effect->data.ext_anim,
                 sizeof(Glitter::Effect::ExtAnim));
 
             Glitter::Effect::ExtAnim* ext_anim = effect->data.ext_anim;
@@ -3457,13 +3457,13 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
                 Glitter::EFFECT_EXT_ANIM_TRANS_ONLY))
                 changed = true;
 
-            uint64_t hash_after = hash_fnv1a64m(effect->data.ext_anim, sizeof(Glitter::Effect::ExtAnim));
+            uint64_t hash_after = hash_xxh3_64bits(effect->data.ext_anim, sizeof(Glitter::Effect::ExtAnim));
             if (hash_before != hash_after && changed)
                 glt_edt->input_reload = true;
         }
     }
 
-    uint64_t hash_after = hash_fnv1a64m(glt_edt->selected_effect, sizeof(Glitter::Effect));
+    uint64_t hash_after = hash_xxh3_64bits(glt_edt->selected_effect, sizeof(Glitter::Effect));
     if (hash_before != hash_after && changed) {
         for (Glitter::Emitter*& i : effect->emitters) {
             if (!i)
@@ -3501,7 +3501,7 @@ static void glitter_editor_property_emitter(GlitterEditor* glt_edt) {
 
     ImGui::SetColumnSpace(2.0f / 5.0f);
 
-    uint64_t hash_before = hash_fnv1a64m(glt_edt->selected_emitter, sizeof(Glitter::Emitter));
+    uint64_t hash_before = hash_xxh3_64bits(glt_edt->selected_emitter, sizeof(Glitter::Emitter));
 
     Glitter::EffectGroup* eg = glt_edt->effect_group;
     Glitter::Emitter* emitter = glt_edt->selected_emitter;
@@ -3834,7 +3834,7 @@ static void glitter_editor_property_emitter(GlitterEditor* glt_edt) {
     } break;
     }
 
-    uint64_t hash_after = hash_fnv1a64m(glt_edt->selected_emitter, sizeof(Glitter::Emitter));
+    uint64_t hash_after = hash_xxh3_64bits(glt_edt->selected_emitter, sizeof(Glitter::Emitter));
     if (hash_before != hash_after && changed)
         glt_edt->input_reload = true;
 
@@ -3847,7 +3847,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
 
     ImGui::SetColumnSpace(2.0f / 5.0f);
 
-    uint64_t hash_before = hash_fnv1a64m(glt_edt->selected_particle, sizeof(Glitter::Particle));
+    uint64_t hash_before = hash_xxh3_64bits(glt_edt->selected_particle, sizeof(Glitter::Particle));
 
     Glitter::EffectGroup* eg = glt_edt->effect_group;
     Glitter::Particle* particle = glt_edt->selected_particle;
@@ -4541,7 +4541,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
             changed = true;*/
     }
 
-    uint64_t hash_after = hash_fnv1a64m(glt_edt->selected_particle, sizeof(Glitter::Particle));
+    uint64_t hash_after = hash_xxh3_64bits(glt_edt->selected_particle, sizeof(Glitter::Particle));
     if (hash_before != hash_after && changed)
         glt_edt->input_reload = true;
 
@@ -5757,8 +5757,8 @@ static void glitter_editor_curve_editor_property_window(GlitterEditor* glt_edt) 
             glt_edt->input_reload = true;
         }
 
-        uint64_t hash1 = hash_fnv1a64m(crv_edt->list[crv_edt->type], sizeof(Glitter::Curve));
-        uint64_t hash2 = hash_fnv1a64m(curve, sizeof(Glitter::Effect));
+        uint64_t hash1 = hash_xxh3_64bits(crv_edt->list[crv_edt->type], sizeof(Glitter::Curve));
+        uint64_t hash2 = hash_xxh3_64bits(curve, sizeof(Glitter::Effect));
         if (hash1 != hash2)
             *crv_edt->list[crv_edt->type] = *curve;
     }
