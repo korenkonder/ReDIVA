@@ -19,6 +19,16 @@
 
 extern uint32_t dbg_set_id;
 
+extern uint32_t aet_gam_loadsc_set_id;
+extern uint32_t spr_gam_loadsc_set_id;
+
+extern uint32_t aet_cmn_all_set_id;
+extern uint32_t spr_cmn_all_set_id;
+
+extern uint32_t spr_fnt_24_set_id;
+extern uint32_t spr_fnt_bold24_set_id;
+extern uint32_t spr_fnt_cmn_set_id;
+
 TaskDataInit task_data_init;
 
 TaskDataInit::TaskDataInit() : state(), field_6C() {
@@ -45,16 +55,16 @@ bool TaskDataInit::ctrl() {
     case 0: {
         // Fucks up scaling
         //sprite_manager_reset_res_data();
-        sprite_manager_read_file(4, "", aft_data, aft_spr_db);
-        sprite_manager_read_file(472, "", aft_data, aft_spr_db);
-        sprite_manager_read_file(43, "", aft_data, aft_spr_db);
+        sprite_manager_read_file(spr_fnt_24_set_id, "", aft_data, aft_spr_db);
+        sprite_manager_read_file(spr_fnt_bold24_set_id, "", aft_data, aft_spr_db);
+        sprite_manager_read_file(spr_fnt_cmn_set_id, "", aft_data, aft_spr_db);
         fontmap_data_read_file();
         state = 1;
     } break;
     case 1:
-        if (!sprite_manager_load_file(4, aft_spr_db)
-            && !sprite_manager_load_file(472, aft_spr_db)
-            && !sprite_manager_load_file(43, aft_spr_db)
+        if (!sprite_manager_load_file(spr_fnt_24_set_id, aft_spr_db)
+            && !sprite_manager_load_file(spr_fnt_bold24_set_id, aft_spr_db)
+            && !sprite_manager_load_file(spr_fnt_cmn_set_id, aft_spr_db)
             && !fontmap_data_load_file())
             state = field_6C ? 2 : 4;
         break;
@@ -67,17 +77,17 @@ bool TaskDataInit::ctrl() {
             state = 4;
         break;
     case 4: {
-        sprite_manager_read_file(32, "", aft_data, aft_spr_db);
-        aet_manager_read_file(26, "", aft_data, aft_aet_db);
-        sprite_manager_read_file(34, "", aft_data, aft_spr_db);
-        aet_manager_read_file(35, "", aft_data, aft_aet_db);
+        sprite_manager_read_file(spr_gam_loadsc_set_id, "", aft_data, aft_spr_db);
+        aet_manager_read_file(aet_gam_loadsc_set_id, "", aft_data, aft_aet_db);
+        sprite_manager_read_file(spr_cmn_all_set_id, "", aft_data, aft_spr_db);
+        aet_manager_read_file(aet_cmn_all_set_id, "", aft_data, aft_aet_db);
         state = 5;
     } break;
     case 5:
-        if (sprite_manager_load_file(32, aft_spr_db)
-            || aet_manager_load_file(26, aft_aet_db)
-            || sprite_manager_load_file(34, aft_spr_db)
-            || aet_manager_load_file(35, aft_aet_db))
+        if (sprite_manager_load_file(spr_gam_loadsc_set_id, aft_spr_db)
+            || aet_manager_load_file(aet_gam_loadsc_set_id, aft_aet_db)
+            || sprite_manager_load_file(spr_cmn_all_set_id, aft_spr_db)
+            || aet_manager_load_file(aet_cmn_all_set_id, aft_aet_db))
             break;
 
         state = 6;

@@ -386,6 +386,9 @@ const char* spr_white_fade[] = {
     "white_fade",
 };
 
+extern uint32_t aet_gam_cmn_set_id;
+extern uint32_t spr_gam_cmn_set_id;
+
 static void sub_14013AAE0(float_t pos_x, float_t pos_y, spr::SprPrio prio,
     const char* str, bool h_center, color4u8 color, rectangle* clip_rect = 0);
 
@@ -1582,8 +1585,8 @@ void pv_game_play_data::read_auth_2d_data() {
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    sprite_manager_read_file(9, "", aft_data, aft_spr_db);
-    aet_manager_read_file(3, "", aft_data, aft_aet_db);
+    sprite_manager_read_file(spr_gam_cmn_set_id, "", aft_data, aft_spr_db);
+    aet_manager_read_file(aet_gam_cmn_set_id, "", aft_data, aft_aet_db);
 
     if (pv_set) {
         std::string mdata_dir;
@@ -1957,8 +1960,8 @@ void pv_game_play_data::unload_auth_2d() {
             aet_manager_unload_set(pv_aet_set_id, aft_aet_db);
     }
 
-    sprite_manager_unload_set(9, aft_spr_db);
-    aet_manager_unload_set(3, aft_aet_db);
+    sprite_manager_unload_set(spr_gam_cmn_set_id, aft_spr_db);
+    aet_manager_unload_set(aet_gam_cmn_set_id, aft_aet_db);
 
     //game_skin_get()->unload_skin();
 }

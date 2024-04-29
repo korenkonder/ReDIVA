@@ -178,8 +178,21 @@ static const int32_t fast_loader_speed = 60;
 bool light_chara_ambient;
 vec4 npr_cloth_spec_color = 1.0f;
 
-uint32_t cmn_set_id;
-uint32_t dbg_set_id;
+uint32_t cmn_set_id;            // 2
+uint32_t dbg_set_id;            // 2
+
+uint32_t aet_gam_loadsc_set_id; // 26
+uint32_t spr_gam_loadsc_set_id; // 32
+
+uint32_t aet_cmn_all_set_id;    // 35
+uint32_t spr_cmn_all_set_id;    // 34
+
+uint32_t aet_gam_cmn_set_id;    // 3
+uint32_t spr_gam_cmn_set_id;    // 9
+
+uint32_t spr_fnt_24_set_id;     // 4
+uint32_t spr_fnt_bold24_set_id; // 472
+uint32_t spr_fnt_cmn_set_id;    // 43
 
 static bool render_init(render_init_struct* ris);
 static void render_main_loop(render_context* rctx);
@@ -937,6 +950,19 @@ static render_context* render_context_load() {
     cmn_set_id = aft_mot_db->get_motion_set_id("CMN");
     dbg_set_id = aft_obj_db->get_object_set_id("DBG");
 
+    aet_gam_loadsc_set_id = aft_aet_db->get_aet_set_id_by_name("AET_GAM_LOADSC");
+    spr_gam_loadsc_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_GAM_LOADSC");
+
+    aet_cmn_all_set_id = aft_aet_db->get_aet_set_id_by_name("AET_CMN_ALL");
+    spr_cmn_all_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_CMN_ALL");
+
+    aet_gam_cmn_set_id = aft_aet_db->get_aet_set_id_by_name("AET_GAM_CMN");
+    spr_gam_cmn_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_GAM_CMN");
+
+    spr_fnt_24_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_FNT_24");
+    spr_fnt_bold24_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_FNT_BOLD24");
+    spr_fnt_cmn_set_id = aft_spr_db->get_spr_set_id_by_name("SPR_FNT_CMN");
+
     hand_item_handler_data_init();
     module_table_handler_data_init();
     module_data_handler_data_init();
@@ -1228,13 +1254,13 @@ static void render_context_dispose(render_context* rctx) {
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
     object_storage_unload_set(dbg_set_id);
-    aet_manager_unload_set(26, aft_aet_db);
-    sprite_manager_unload_set(32, aft_spr_db);
-    aet_manager_unload_set(35, aft_aet_db);
-    sprite_manager_unload_set(34, aft_spr_db);
-    sprite_manager_unload_set(4, aft_spr_db);
-    sprite_manager_unload_set(472, aft_spr_db);
-    sprite_manager_unload_set(43, aft_spr_db);
+    aet_manager_unload_set(aet_gam_loadsc_set_id, aft_aet_db);
+    sprite_manager_unload_set(spr_gam_loadsc_set_id, aft_spr_db);
+    aet_manager_unload_set(aet_cmn_all_set_id, aft_aet_db);
+    sprite_manager_unload_set(spr_cmn_all_set_id, aft_spr_db);
+    sprite_manager_unload_set(spr_fnt_24_set_id, aft_spr_db);
+    sprite_manager_unload_set(spr_fnt_bold24_set_id, aft_spr_db);
+    sprite_manager_unload_set(spr_fnt_cmn_set_id, aft_spr_db);
 
     sprite_manager_remove_spr_sets(aft_spr_db);
     aet_manager_remove_aet_sets(aft_aet_db);
