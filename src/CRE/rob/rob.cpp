@@ -209,13 +209,13 @@ struct rob_osage_mothead {
     void init_data(const motion_database* mot_db);
     void reset();
     void reset_data();
-    void set_coli_ring(const void* data);
-    void set_disable_collision(const void* data);
+    void set_coli_ring(const mothead_data* mhd_data);
+    void set_disable_collision(const mothead_data* mhd_data);
     void set_frame(float_t value);
     void set_mothead_frame();
-    void set_rob_parts_adjust(const void* data);
-    void set_rob_adjust_global(const void* data);
-    void set_sleeve_adjust(const void* data);
+    void set_rob_parts_adjust(const mothead_data* mhd_data);
+    void set_rob_adjust_global(const mothead_data* mhd_data);
+    void set_sleeve_adjust(const mothead_data* mhd_data);
 };
 
 struct struc_567 {
@@ -16335,7 +16335,9 @@ void rob_osage_mothead::reset_data() {
     type_79 = 0;
 }
 
-void rob_osage_mothead::set_coli_ring(const void* data) {
+void rob_osage_mothead::set_coli_ring(const mothead_data* mhd_data) {
+    const void* data = mhd_data->data;
+
     //rob_chara_set_coli_ring(rob_chr, ((int8_t*)data)[0]);
 }
 
@@ -16344,7 +16346,9 @@ void rob_osage_mothead::set_frame(float_t value) {
         frame = value;
 }
 
-void rob_osage_mothead::set_disable_collision(const void* data) {
+void rob_osage_mothead::set_disable_collision(const mothead_data* mhd_data) {
+    const void* data = mhd_data->data;
+
     rob_chr->set_disable_collision((rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
 }
 
@@ -16353,7 +16357,7 @@ void rob_osage_mothead::set_mothead_frame() {
         if ((float_t)type_62_data->frame > frame)
             break;
 
-        set_rob_parts_adjust(type_62_data->data);
+        set_rob_parts_adjust(type_62_data);
 
         type_62_data = type_62->find_next_data();
     }
@@ -16362,7 +16366,7 @@ void rob_osage_mothead::set_mothead_frame() {
         if ((float_t)type_75_data->frame > frame)
             break;
 
-        set_rob_adjust_global(type_75_data->data);
+        set_rob_adjust_global(type_75_data);
 
         type_75_data = type_75->find_next_data();
     }
@@ -16371,7 +16375,7 @@ void rob_osage_mothead::set_mothead_frame() {
         if ((float_t)type_67_data->frame > frame)
             break;
 
-        set_sleeve_adjust(type_67_data->data);
+        set_sleeve_adjust(type_67_data);
 
         type_67_data = type_67->find_next_data();
     }
@@ -16380,7 +16384,7 @@ void rob_osage_mothead::set_mothead_frame() {
         if ((float_t)type_74_data->frame > frame)
             break;
 
-        set_disable_collision(type_74_data->data);
+        set_disable_collision(type_74_data);
 
         type_74_data = type_74->find_next_data();
     }
@@ -16389,22 +16393,24 @@ void rob_osage_mothead::set_mothead_frame() {
         if ((float_t)type_79_data->frame > frame)
             break;
 
-        set_coli_ring(type_79_data->data);
+        set_coli_ring(type_79_data);
 
         type_79_data = type_79->find_next_data();
     }
 }
 
-void rob_osage_mothead::set_rob_adjust_global(const void* data) {
+void rob_osage_mothead::set_rob_adjust_global(const mothead_data* mhd_data) {
+    const void* data = mhd_data->data;
+
     rob_chara_data_adjust v14;
     v14.reset();
 
     int8_t type = ((int8_t*)data)[4];
     if (type >= 0 && type < 6) {
-        float_t set_frame = (float_t)v14.set_frame;
+        float_t set_frame = (float_t)mhd_data->frame;
         v14.enable = true;
-        v14.frame = rob_chr->data.motion.frame_data.frame - set_frame;
-        v14.transition_frame = rob_chr->data.motion.frame_data.frame - set_frame;
+        v14.frame = frame - set_frame;
+        v14.transition_frame = frame - set_frame;
         v14.motion_id = rob_chr->data.motion.motion_id;
         v14.set_frame = set_frame;
         v14.transition_duration = (float_t)((int32_t*)data)[0];
@@ -16425,16 +16431,18 @@ void rob_osage_mothead::set_rob_adjust_global(const void* data) {
     rob_chara_set_adjust_global(rob_chr, &v14);
 }
 
-void rob_osage_mothead::set_rob_parts_adjust(const void* data) {
+void rob_osage_mothead::set_rob_parts_adjust(const mothead_data* mhd_data) {
+    const void* data = mhd_data->data;
+
     rob_chara_data_adjust v16;
     v16.reset();
 
     int8_t type = ((int8_t*)data)[5];
     if (type >= 0 && type < 6) {
-        float_t set_frame = (float_t)v16.set_frame;
+        float_t set_frame = (float_t)mhd_data->frame;
         v16.enable = true;
-        v16.frame = rob_chr->data.motion.frame_data.frame - set_frame;
-        v16.transition_frame = rob_chr->data.motion.frame_data.frame - set_frame;
+        v16.frame = frame - set_frame;
+        v16.transition_frame = frame - set_frame;
         v16.motion_id = rob_chr->data.motion.motion_id;
         v16.set_frame = set_frame;
         v16.transition_duration = (float_t)((int32_t*)data)[0];
@@ -16462,7 +16470,9 @@ void rob_osage_mothead::set_rob_parts_adjust(const void* data) {
     rob_chara_set_parts_adjust_by_index(rob_chr, (rob_osage_parts)((uint8_t*)data)[4], &v16);
 }
 
-void rob_osage_mothead::set_sleeve_adjust(const void* data) {
+void rob_osage_mothead::set_sleeve_adjust(const mothead_data* mhd_data) {
+    const void* data = mhd_data->data;
+
     bool v5 = false;
     bool v6 = false;
     switch (((int32_t*)data)[0]) {
