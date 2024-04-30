@@ -7096,7 +7096,7 @@ static void auth_3d_post_process_set(auth_3d_post_process* pp, render_context* r
             enum_or(pp->flags_init, AUTH_3D_POST_PROCESS_RADIUS);
         }
 
-        rctx->render.set_intensity(*(vec3*)&pp->radius.value);
+        rctx->render.set_radius(*(vec3*)&pp->radius.value);
     }
 
     if (pp->flags & AUTH_3D_POST_PROCESS_SCENE_FADE) {
