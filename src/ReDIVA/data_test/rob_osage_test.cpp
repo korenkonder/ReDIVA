@@ -611,10 +611,6 @@ void RobOsageTest::disp_coli() {
 
             mat4_scale_rot(&mat, i.radius, scale_y, i.radius, &mat);
             rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
-
-            etc.color = 0xFF000000;
-            etc.data.sphere.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
         } break;
         case SkinParam::CollisionTypeAABB: {
             mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
