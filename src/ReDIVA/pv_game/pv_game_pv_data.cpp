@@ -2308,8 +2308,8 @@ void pv_game_pv_data::find_set_motion(const pv_db_pv_difficulty* diff) {
             auto k_begin = set_playdata[i].rbegin();
             auto k_end = set_playdata[i].rend();
             for (auto k = k_begin; k != k_end; k++)
-                if (k->time <= j.time && k->pv_branch_mode == j.pv_branch_mode) {
-                    time = k->index;
+                if (k->time <= j.time && k->index == j.index) {
+                    time = k->time;
                     break;
                 }
 

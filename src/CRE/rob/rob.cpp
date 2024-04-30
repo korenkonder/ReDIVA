@@ -4864,6 +4864,34 @@ pv_data_set_motion::pv_data_set_motion(uint32_t motion_id, std::pair<float_t, in
     this->frame_stage_index = frame_stage_index;
 }
 
+inline bool operator>(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id > right.motion_id || (!(right.motion_id > left.motion_id)
+        && left.frame_stage_index > right.frame_stage_index);
+}
+
+inline bool operator<(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id < right.motion_id || (!(right.motion_id < left.motion_id)
+        && left.frame_stage_index < right.frame_stage_index);
+}
+
+inline bool operator>=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id >= right.motion_id || (!(right.motion_id >= left.motion_id)
+        && left.frame_stage_index >= right.frame_stage_index);
+}
+
+inline bool operator<=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id <= right.motion_id || (!(right.motion_id <= left.motion_id)
+        && left.frame_stage_index <= right.frame_stage_index);
+}
+
+inline bool operator ==(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id == right.motion_id && left.frame_stage_index == right.frame_stage_index;
+}
+
+inline bool operator !=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id != right.motion_id || left.frame_stage_index != right.frame_stage_index;
+}
+
 osage_init_data::osage_init_data() : rob_chr() {
     pv_id = -1;
     motion_id = -1;
@@ -7290,25 +7318,6 @@ static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id) {
     if (chara_id >= ROB_CHARA_COUNT)
         chara_id = 0;
     return &pv_osage_manager_array[chara_id];
-}
-
-static int pv_data_set_motion_quicksort_compare_func(void const* src1, void const* src2) {
-    pv_data_set_motion* pv1 = (pv_data_set_motion*)src1;
-    pv_data_set_motion* pv2 = (pv_data_set_motion*)src2;
-    if (pv1->motion_id > pv2->motion_id)
-        return 1;
-    else if (pv1->motion_id < pv2->motion_id)
-        return -1;
-    else if (pv1->frame_stage_index.first > pv2->frame_stage_index.first)
-        return 1;
-    else if (pv1->frame_stage_index.first < pv2->frame_stage_index.first)
-        return -1;
-    else if (pv1->frame_stage_index.second > pv2->frame_stage_index.second)
-        return 1;
-    else if (pv1->frame_stage_index.second < pv2->frame_stage_index.second)
-        return -1;
-    else
-        return 0;
 }
 
 static void rob_base_rob_chara_init(rob_chara* rob_chr) {
@@ -17660,8 +17669,7 @@ void PvOsageManager::SetPvSetMotion(const std::vector<pv_data_set_motion>& set_m
 }
 
 void PvOsageManager::sub_1404F77E0() {
-    quicksort_custom(pv_set_motion.data(), pv_set_motion.size(),
-        sizeof(pv_data_set_motion), pv_data_set_motion_quicksort_compare_func);
+    prj::sort_unique(pv_set_motion);
 
     pv_data_set_motion* i_begin = pv_set_motion.data();
     pv_data_set_motion* i_end = pv_set_motion.data() + pv_set_motion.size();
