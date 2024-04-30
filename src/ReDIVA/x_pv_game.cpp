@@ -9181,7 +9181,7 @@ static vec4 bright_scale_get(int32_t index, float_t value) {
 }
 
 static float_t dsc_time_to_frame(int64_t time) {
-    return prj::roundf((float_t)time / 1000000000.0f * 60.0f);
+    return (float_t)time / 1000000000.0f * 60.0f;
 }
 
 static vec3 x_pv_game_dof_callback(void* data, int32_t chara_id) {

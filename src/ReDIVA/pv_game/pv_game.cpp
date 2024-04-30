@@ -5760,7 +5760,7 @@ float_t bar_time_set_to_target_flying_time(int32_t bpm, int32_t time_signature, 
 }
 
 float_t dsc_time_to_frame(int64_t time) {
-    return prj::roundf((float_t)time / (float_t)1000000000 * 60.0f);
+    return (float_t)time / (float_t)1000000000 * 60.0f;
 }
 
 bool pv_game_init() {
