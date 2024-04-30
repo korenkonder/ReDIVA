@@ -1889,9 +1889,9 @@ void RobOsage::SetInitRot(float_t init_rot_y, float_t init_rot_z) {
 
 void RobOsage::SetMotionResetData(uint32_t motion_id, float_t frame) {
     osage_reset = true;
-    auto v6 = motion_reset_data.find({ motion_id, (int32_t)prj::roundf(frame * 1000.0f) });
-    if (v6 != motion_reset_data.end() && v6->second.size() + 1 == nodes.size())
-        reset_data_list = &v6->second;
+    auto elem = motion_reset_data.find({ motion_id, (int32_t)prj::roundf(frame * 1000.0f) });
+    if (elem != motion_reset_data.end() && elem->second.size() + 1 == nodes.size())
+        reset_data_list = &elem->second;
 }
 
 // 0x140480F40

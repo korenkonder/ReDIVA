@@ -2929,12 +2929,12 @@ struct struc_227 {
 struct mothead_data {
     mothead_data_type type;
     int32_t frame;
-    void* data;
+    const void* data;
 };
 
 struct mothead_data2 {
     int32_t type;
-    void* data;
+    const void* data;
 };
 
 struct mothead_mot {
