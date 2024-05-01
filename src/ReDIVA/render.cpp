@@ -1145,14 +1145,16 @@ static void render_context_ctrl(render_context* rctx) {
 
     rctx_ptr = rctx;
     input_state_ctrl();
-    game_state_ctrl();
+    if (!get_pause() || !game_state_get_pause())
+        game_state_ctrl();
     rctx->ctrl();
 
     if (fast_loader_speed > 1 && game_state_get_game_state() == GAME_STATE_STARTUP)
         for (int32_t i = 1; i < fast_loader_speed; i++) {
             rctx_ptr = rctx;
             input_state_ctrl();
-            game_state_ctrl();
+            if (!get_pause() || !game_state_get_pause())
+                game_state_ctrl();
             rctx->ctrl();
         }
 

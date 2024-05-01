@@ -380,7 +380,7 @@ struct GameStateData {
 
 struct SubGameStateData {
     SubGameStateEnum sub_game_state;
-    int32_t field_4;
+    bool pause;
     bool(*Init)();
     bool(*Ctrl)();
     bool(*Dest)();
@@ -529,287 +529,287 @@ GameStateData game_state_data_array[] = {
 SubGameStateData sub_game_state_data_array[] = {
     {
         SUB_GAME_STATE_DATA_INITIALIZE,
-        1,
+        true,
         SubGameState::DataInitialize::Init,
         SubGameState::DataInitialize::Ctrl,
         SubGameState::DataInitialize::Dest,
     },
     {
         SUB_GAME_STATE_SYSTEM_STARTUP,
-        1,
+        true,
         SubGameState::SystemStartup::Init,
         SubGameState::SystemStartup::Ctrl,
         SubGameState::SystemStartup::Dest,
     },
     {
         SUB_GAME_STATE_SYSTEM_STARTUP_ERROR,
-        1,
+        true,
         SubGameState::SystemStartupError::Init,
         SubGameState::SystemStartupError::Ctrl,
         SubGameState::SystemStartupError::Dest,
     },
     {
         SUB_GAME_STATE_WARNING,
-        1,
+        true,
         SubGameState::Warning::Init,
         SubGameState::Warning::Ctrl,
         SubGameState::Warning::Dest,
     },
     {
         SUB_GAME_STATE_LOGO,
-        1,
+        true,
         SubGameState::Logo::Init,
         SubGameState::Logo::Ctrl,
         SubGameState::Logo::Dest,
     },
     {
         SUB_GAME_STATE_RATING,
-        1,
+        true,
         SubGameState::Rating::Init,
         SubGameState::Rating::Ctrl,
         SubGameState::Rating::Dest,
     },
     {
         SUB_GAME_STATE_DEMO,
-        1,
+        true,
         SubGameState::Demo::Init,
         SubGameState::Demo::Ctrl,
         SubGameState::Demo::Dest,
     },
     {
         SUB_GAME_STATE_TITLE,
-        1,
+        true,
         SubGameState::Title::Init,
         SubGameState::Title::Ctrl,
         SubGameState::Title::Dest,
     },
     {
         SUB_GAME_STATE_RANKING,
-        1,
+        true,
         SubGameState::Ranking::Init,
         SubGameState::Ranking::Ctrl,
         SubGameState::Ranking::Dest,
     },
     {
         SUB_GAME_STATE_SCORE_RANKING,
-        1,
+        true,
         SubGameState::ScoreRanking::Init,
         SubGameState::ScoreRanking::Ctrl,
         SubGameState::ScoreRanking::Dest,
     },
     {
         SUB_GAME_STATE_CM,
-        1,
+        true,
         SubGameState::CM::Init,
         SubGameState::CM::Ctrl,
         SubGameState::CM::Dest,
     },
     {
         SUB_GAME_STATE_PHOTO_MODE_DEMO,
-        1,
+        true,
         SubGameState::PhotoModeDemo::Init,
         SubGameState::PhotoModeDemo::Ctrl,
         SubGameState::PhotoModeDemo::Dest,
     },
     {
         SUB_GAME_STATE_SELECTOR,
-        1,
+        true,
         SubGameState::Selector::Init,
         SubGameState::Selector::Ctrl,
         SubGameState::Selector::Dest,
     },
     {
         SUB_GAME_STATE_GAME_MAIN,
-        1,
+        true,
         SubGameState::GameMain::Init,
         SubGameState::GameMain::Ctrl,
         SubGameState::GameMain::Dest,
     },
     {
         SUB_GAME_STATE_GAME_SEL,
-        1,
+        true,
         SubGameState::GameSel::Init,
         SubGameState::GameSel::Ctrl,
         SubGameState::GameSel::Dest,
     },
     {
         SUB_GAME_STATE_STAGE_RESULT,
-        1,
+        true,
         SubGameState::StageResult::Init,
         SubGameState::StageResult::Ctrl,
         SubGameState::StageResult::Dest,
     },
     {
         SUB_GAME_STATE_SCREEN_SHOT_SEL,
-        1,
+        true,
         SubGameState::ScreenShotSel::Init,
         SubGameState::ScreenShotSel::Ctrl,
         SubGameState::ScreenShotSel::Dest,
     },
     {
         SUB_GAME_STATE_SCREEN_SHOT_RESULT,
-        1,
+        true,
         SubGameState::ScreenShotResult::Init,
         SubGameState::ScreenShotResult::Ctrl,
         SubGameState::ScreenShotResult::Dest,
     },
     {
         SUB_GAME_STATE_GAME_OVER,
-        1,
+        true,
         SubGameState::GameOver::Init,
         SubGameState::GameOver::Ctrl,
         SubGameState::GameOver::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_MAIN,
-        1,
+        true,
         SubGameState::DataTestMain::Init,
         SubGameState::DataTestMain::Ctrl,
         SubGameState::DataTestMain::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_MISC,
-        1,
+        true,
         SubGameState::DataTestMisc::Init,
         SubGameState::DataTestMisc::Ctrl,
         SubGameState::DataTestMisc::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_OBJ,
-        0,
+        false,
         SubGameState::DataTestObj::Init,
         SubGameState::DataTestObj::Ctrl,
         SubGameState::DataTestObj::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_STG,
-        0,
+        false,
         SubGameState::DataTestStg::Init,
         SubGameState::DataTestStg::Ctrl,
         SubGameState::DataTestStg::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_MOT,
-        0,
+        false,
         SubGameState::DataTestMot::Init,
         SubGameState::DataTestMot::Ctrl,
         SubGameState::DataTestMot::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_COLLISION,
-        1,
+        true,
         SubGameState::DataTestCollision::Init,
         SubGameState::DataTestCollision::Ctrl,
         SubGameState::DataTestCollision::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_SPR,
-        1,
+        true,
         SubGameState::DataTestSpr::Init,
         SubGameState::DataTestSpr::Ctrl,
         SubGameState::DataTestSpr::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_AET,
-        1,
+        true,
         SubGameState::DataTestAet::Init,
         SubGameState::DataTestAet::Ctrl,
         SubGameState::DataTestAet::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_AUTH_3D,
-        1,
+        true,
         SubGameState::DataTestAuth3d::Init,
         SubGameState::DataTestAuth3d::Ctrl,
         SubGameState::DataTestAuth3d::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_CHR,
-        1,
+        true,
         SubGameState::DataTestChr::Init,
         SubGameState::DataTestChr::Ctrl,
         SubGameState::DataTestChr::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_ITEM,
-        1,
+        true,
         SubGameState::DataTestItem::Init,
         SubGameState::DataTestItem::Ctrl,
         SubGameState::DataTestItem::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_PERF,
-        1,
+        true,
         SubGameState::DataTestPerf::Init,
         SubGameState::DataTestPerf::Ctrl,
         SubGameState::DataTestPerf::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_PVSCRIPT,
-        1,
+        true,
         SubGameState::DataTestPvScript::Init,
         SubGameState::DataTestPvScript::Ctrl,
         SubGameState::DataTestPvScript::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_PRINT,
-        1,
+        true,
         SubGameState::DataTestPrint::Init,
         SubGameState::DataTestPrint::Ctrl,
         SubGameState::DataTestPrint::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_CARD,
-        1,
+        true,
         SubGameState::DataTestCard::Init,
         SubGameState::DataTestCard::Ctrl,
         SubGameState::DataTestCard::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_OPD,
-        1,
+        true,
         SubGameState::DataTestOpd::Init,
         SubGameState::DataTestOpd::Ctrl,
         SubGameState::DataTestOpd::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_SLIDER,
-        1,
+        true,
         SubGameState::DataTestSlider::Init,
         SubGameState::DataTestSlider::Ctrl,
         SubGameState::DataTestSlider::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_GLITTER,
-        1,
+        true,
         SubGameState::DataTestGlitter::Init,
         SubGameState::DataTestGlitter::Ctrl,
         SubGameState::DataTestGlitter::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_GRAPHICS,
-        1,
+        true,
         SubGameState::DataTestGraphics::Init,
         SubGameState::DataTestGraphics::Ctrl,
         SubGameState::DataTestGraphics::Dest,
     },
     {
         SUB_GAME_STATE_DATA_TEST_COLLECTION_CARD,
-        1,
+        true,
         SubGameState::DataTestCollectionCard::Init,
         SubGameState::DataTestCollectionCard::Ctrl,
         SubGameState::DataTestCollectionCard::Dest,
     },
     {
         SUB_GAME_STATE_TEST_MODE_MAIN,
-        0,
+        false,
         SubGameState::DataTestModeMain::Init,
         SubGameState::DataTestModeMain::Ctrl,
         SubGameState::DataTestModeMain::Dest,
     },
     {
         SUB_GAME_STATE_APP_ERROR,
-        0,
+        false,
         SubGameState::DataTestAppError::Init,
         SubGameState::DataTestAppError::Ctrl,
         SubGameState::DataTestAppError::Dest,
@@ -818,7 +818,7 @@ SubGameStateData sub_game_state_data_array[] = {
 #if defined(ReDIVA_DEV)
     { // Added
         SUB_GAME_STATE_GLITTER_EDITOR,
-        0,
+        false,
         SubGameState::GlitterEditor::Init,
         SubGameState::GlitterEditor::Ctrl,
         SubGameState::GlitterEditor::Dest,
@@ -827,7 +827,7 @@ SubGameStateData sub_game_state_data_array[] = {
 #if DATA_EDIT
     { // Added
         SUB_GAME_STATE_DATA_EDIT,
-        0,
+        false,
         SubGameState::DataEdit::Init,
         SubGameState::DataEdit::Ctrl,
         SubGameState::DataEdit::Dest,
@@ -1948,6 +1948,14 @@ GameStateEnum game_state_get_game_state() {
     return game_state_get()->game_state;
 }
 
+bool game_state_get_pause() {
+    GameState* game_state = game_state_get();
+    SubGameStateData* sub_game_state_data = sub_game_state_data_array_get(game_state->sub_game_state);
+    if (sub_game_state_data)
+        return sub_game_state_data->pause;
+    return true;
+}
+
 size_t game_state_print(char* buf, size_t buf_size) {
     GameState* game_state = game_state_get();
     const char* game_state_name = game_state_names[game_state->game_state];
@@ -1981,8 +1989,8 @@ void test_mode_set(bool value) {
 }
 
 static bool game_state_call_sub(GameState* game_state) {
-    SubGameStateData* v2 = sub_game_state_data_array_get(game_state->sub_game_state);
-    if (!v2) {
+    SubGameStateData* sub_game_state_data = sub_game_state_data_array_get(game_state->sub_game_state);
+    if (!sub_game_state_data) {
         game_state->sub_call_count++;
         return false;
     }
@@ -1990,13 +1998,13 @@ static bool game_state_call_sub(GameState* game_state) {
     bool(*func)() = 0;
     switch (game_state->sub_mode) {
     case 0:
-        func = v2->Init;
+        func = sub_game_state_data->Init;
         break;
     case 1:
-        func = v2->Ctrl;
+        func = sub_game_state_data->Ctrl;
         break;
     case 2:
-        func = v2->Dest;
+        func = sub_game_state_data->Dest;
         break;
     }
 

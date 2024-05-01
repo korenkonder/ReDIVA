@@ -3406,6 +3406,9 @@ void struc_751::sub_140300A10() {
 
     if (key_input[1])
         key_input[1] |= 0x40000000;
+
+    if (get_pause())
+        key_input[1] |= 0x10000000;
 }
 
 void struc_751::sub_1403011A0() {

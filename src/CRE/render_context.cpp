@@ -616,17 +616,22 @@ render_context::~render_context() {
 }
 
 void render_context::ctrl() {
-    delta_frame_history += get_delta_frame();
-    float_t v1;
-    delta_frame_history = modff(delta_frame_history, &v1);
-    delta_frame_history_int = (int32_t)v1;
-    if (delta_frame_history < 0.001f)
-        delta_frame_history = 0.0f;
-    else if (1.0f - delta_frame_history < 0.001f)
-        delta_frame_history_int++;
+    if (!get_pause()) {
+        delta_frame_history += get_delta_frame();
+        float_t mod;
+        delta_frame_history = modff(delta_frame_history, &mod);
+        delta_frame_history_int = (int32_t)mod;
+        if (delta_frame_history < 0.001f)
+            delta_frame_history = 0.0f;
+        else if (1.0f - delta_frame_history < 0.001f)
+            delta_frame_history_int++;
+    }
 
     rctx_ptr = this;
-    app::TaskWork::ctrl();
+
+    extern bool game_state_get_pause();
+    if (!get_pause() || !game_state_get_pause())
+        app::TaskWork::ctrl();
     sound_ctrl();
     file_handler_storage_ctrl();
 }
@@ -650,7 +655,8 @@ void render_context::disp() {
     render.lens_flare_texture = 0;
     render.aet_back = 0;
     render_manager->field_31C = false;
-    app::TaskWork::basic();
+    if (!get_pause())
+        app::TaskWork::basic();
 }
 
 void render_context::free() {

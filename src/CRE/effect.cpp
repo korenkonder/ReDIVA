@@ -2744,7 +2744,7 @@ bool TaskEffectLitproj::init() {
 }
 
 bool TaskEffectLitproj::ctrl() {
-    if (!stage_param_data_litproj_current)
+    if (!stage_param_data_litproj_current || get_pause())
         return false;
 
     light_data& light = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_PROJECTION];

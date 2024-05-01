@@ -878,6 +878,8 @@ void DataTestMotA3d::Sync1pFrame() {
         return;
 
     float_t frame = dtm_mot_array->GetFrame();
+    if (get_pause())
+        frame -= dtm_mot_array->GetStep();
 
     for (auth_3d_id& i : auth_3d_ids)
         i.set_req_frame(frame);
@@ -1171,6 +1173,8 @@ bool DtmMot::ctrl() {
             state = 7;
             break;
         }
+        else if (get_pause())
+            break;
 
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
 

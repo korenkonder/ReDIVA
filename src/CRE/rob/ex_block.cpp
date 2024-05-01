@@ -3048,7 +3048,7 @@ static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3) {
         }
     }
 
-    if (step > 0.0f) {
+    if (step > 0.0f && !get_pause()) {
         sub_1402187D0(rob_cls, a3);
         sub_140219D10(rob_cls);
         sub_14021AA60(rob_cls, step, false);
@@ -3442,7 +3442,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
     mat4_transform_vector(&v130, &v113, &v128);
 
     float_t v25 = parent_scale->x;
-    if (!rob_osg->osage_reset && step <= 0.0f)
+    if (!rob_osg->osage_reset && (get_pause() || step <= 0.0f))
         return;
 
     bool stiffness = rob_osg->skin_param_ptr->stiffness > 0.0f;
@@ -3724,7 +3724,7 @@ static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length) {
 
 static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, float_t step, bool a5) {
-    if (!rob_osg->osage_reset && step <= 0.0f)
+    if (!rob_osg->osage_reset && (get_pause() || step <= 0.0f))
         return;
 
     OsageCollision::Work* coli = rob_osg->coli;
@@ -3865,7 +3865,7 @@ static void sub_14047C770(RobOsage* rob_osg, const mat4* root_matrix,
 }
 
 static void sub_14047D620(RobOsage* rob_osg, float_t step) {
-    if (step < 0.0f && rob_osg->disable_collision)
+    if (get_pause() || step <= 0.0f || rob_osg->disable_collision)
         return;
 
     std::vector<RobOsageNode>& nodes = rob_osg->nodes;
@@ -3898,7 +3898,7 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
 }
 
 static void sub_14047ECA0(RobOsage* rob_osg, float_t step) {
-    if (step <= 0.0f)
+    if (get_pause() || step <= 0.0f)
         return;
 
     OsageCollision::Work* coli_ring = rob_osg->coli_ring;

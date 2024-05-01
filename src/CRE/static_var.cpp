@@ -16,6 +16,8 @@ bool sv_anisotropy_changed = false;
 int32_t sv_old_anisotropy = 1;
 int32_t sv_anisotropy = 1;
 
+bool pause = false;
+
 size_t frame_counter = 0;
 
 bool select_frame_speed = false;
@@ -63,6 +65,10 @@ float_t get_delta_frame() {
 
 uint32_t get_frame_counter() {
     return (uint32_t)frame_counter;
+}
+
+bool get_pause() {
+    return pause;
 }
 
 float_t get_target_anim_fps() {
