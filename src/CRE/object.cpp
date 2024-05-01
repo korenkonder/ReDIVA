@@ -2326,7 +2326,7 @@ static uint32_t remove_degenerate_triangle_indices(
     uint32_t src_index = 1;
     uint32_t dst_index = 1;
     uint32_t strip_length = 1;
-    while (src_index < num_index - 4)
+    while ((int32_t)src_index < (int32_t)num_index - 4)
         if (src_index_array[src_index] != src_index_array[src_index + 1]) {
             dst_index_array[dst_index++] = src_index_array[src_index];
             strip_length++;
@@ -2365,11 +2365,11 @@ static uint32_t remove_degenerate_triangle_indices(
             src_index += 5;
         }
 
-    if (src_index < num_index) {
+    if (src_index < (int32_t)num_index) {
         src_index_array += src_index;
         dst_index_array += dst_index;
         dst_index += num_index - src_index;
-        while (src_index++ < num_index)
+        while (src_index++ < (int32_t)num_index)
             *dst_index_array++ = *src_index_array++;
     }
     return dst_index;
