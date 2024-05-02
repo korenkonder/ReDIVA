@@ -1615,7 +1615,7 @@ struct RobOsageNode {
     vec3 field_94;
     RobOsageNodeResetData reset_data;
     float_t field_C8;
-    float_t field_CC;
+    float_t friction;
     vec3 external_force;
     float_t force;
     RobOsageNodeData* data_ptr;
