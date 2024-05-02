@@ -644,8 +644,8 @@ bool GlitterEditor::ctrl() {
         eg->load_count = 1;
         Glitter::glt_particle_manager->effect_groups.insert({ hash, eg });
 
-        scene_counter = Glitter::glt_particle_manager->LoadScene(hash, eg->type != Glitter::FT
-            ? hash_murmurhash_empty : hash_fnv1a64m_empty);
+        scene_counter = Glitter::glt_particle_manager->LoadScene(hash,
+            eg->type != Glitter::FT ? hash_murmurhash_empty : hash_fnv1a64m_empty);
         effect_group = eg;
     }
 
@@ -1022,7 +1022,8 @@ bool GlitterEditor::ctrl() {
         frame_counter += get_delta_frame();
 
     if (input_reload) {
-        Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
+        scene_counter = Glitter::glt_particle_manager->LoadScene(hash,
+            effect_group->type != Glitter::FT ? hash_murmurhash_empty : hash_fnv1a64m_empty);
         effect_group->emission = Glitter::glt_particle_manager->emission;
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
             frame_counter, old_frame_counter, counter, random, true);
@@ -1607,7 +1608,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     if (!glt_edt->load_wait) {
         glitter_editor_enable = true;
         glt_edt->hash = Glitter::glt_particle_manager->LoadFile(glt_edt->load_glt_type,
-            &data_list[glt_edt->load_data_type], file, path, -1.0f, true);
+            &data_list[glt_edt->load_data_type], file, path, -1.0f, false);
         glt_edt->reset();
         glt_edt->load_wait = true;
         return;
@@ -1707,8 +1708,8 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         return;
     }
 
-    Glitter::glt_particle_manager->LoadScene(glt_edt->hash, eg->type != Glitter::FT
-        ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
+    Glitter::glt_particle_manager->LoadScene(glt_edt->hash,
+        eg->type != Glitter::FT ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
     Glitter::Scene* sc = Glitter::glt_particle_manager->GetScene(glt_edt->hash);
     if (!sc)
         goto Error;
