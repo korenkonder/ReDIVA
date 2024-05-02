@@ -5,6 +5,7 @@
 
 #include "path.hpp"
 #include "../str_utils.hpp"
+#include "file_stream.hpp"
 
 bool path_check_path_exists(const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
@@ -425,4 +426,44 @@ void path_get_full_path(std::wstring& str) {
     buf[0] = 0;
     GetFullPathNameW(str.c_str(), MAX_PATH * 2, buf, 0);
     str.assign(buf);
+}
+
+bool path_create_file(const char* path) {
+    file_stream fs;
+    fs.open(path, "wb");
+    bool ret = fs.check_not_null();
+    fs.close();
+    return ret;
+}
+
+bool path_create_file(const wchar_t* path) {
+    file_stream fs;
+    fs.open(path, L"wb");
+    bool ret = fs.check_not_null();
+    fs.close();
+    return ret;
+}
+
+bool path_delete_file(const char* path) {
+    wchar_t* path_temp = utf8_to_utf16(path);
+    bool ret = DeleteFileW(path_temp);
+    free_def(path_temp);
+    return ret;
+}
+
+bool path_delete_file(const wchar_t* path) {
+    return DeleteFileW(path);
+}
+
+bool path_rename_file(const char* old_path, const char* new_path) {
+    wchar_t* old_path_temp = utf8_to_utf16(old_path);
+    wchar_t* new_path_temp = utf8_to_utf16(new_path);
+    bool ret = !_wrename(old_path_temp, new_path_temp);
+    free_def(old_path_temp);
+    free_def(new_path_temp);
+    return ret;
+}
+
+bool path_rename_file(const wchar_t* old_path, const wchar_t* new_path) {
+    return !_wrename(old_path, new_path);
 }
