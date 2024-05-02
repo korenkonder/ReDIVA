@@ -8167,7 +8167,7 @@ static void rob_disp_rob_chara_disp(rob_chara* rob_chr) {
 }
 
 static void rob_disp_rob_chara_free(rob_chara* rob_chr) {
-    //sub_140541260(rob_chr->chara_id);
+    rob_chara_age_age_array_reset(rob_chr->chara_id);
     rob_chr->item_equip->reset();
 }
 
