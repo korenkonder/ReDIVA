@@ -74,9 +74,9 @@ struct farc {
     farc_file* read_file(const wchar_t* name);
     farc_file* read_file(uint32_t hash);
     void write(const char* path, farc_signature signature = FARC_FArC,
-        farc_flags flags = FARC_NONE, bool get_files = true);
+        farc_flags flags = FARC_NONE, bool add_extension = true, bool get_files = true);
     void write(const wchar_t* path, farc_signature signature = FARC_FArC,
-        farc_flags flags = FARC_NONE, bool get_files = true);
+        farc_flags flags = FARC_NONE, bool add_extension = true, bool get_files = true);
     void write(void** data, size_t* size, farc_signature signature = FARC_FArC,
         farc_flags flags = FARC_NONE);
 

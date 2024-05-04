@@ -324,16 +324,18 @@ farc_file* farc::read_file(uint32_t hash) {
     return 0;
 }
 
-void farc::write(const char* path, farc_signature signature, farc_flags flags, bool get_files) {
+void farc::write(const char* path, farc_signature signature,
+    farc_flags flags, bool add_extension, bool get_files) {
     if (!path)
         return;
 
     wchar_t* path_buf = utf8_to_utf16(path);
-    write(path_buf, signature, flags, get_files);
+    write(path_buf, signature, flags, add_extension, get_files);
     free_def(path_buf);
 }
 
-void farc::write(const wchar_t* path, farc_signature signature, farc_flags flags, bool get_files) {
+void farc::write(const wchar_t* path, farc_signature signature,
+    farc_flags flags, bool add_extension, bool get_files) {
     if (!path)
         return;
 
@@ -352,7 +354,8 @@ void farc::write(const wchar_t* path, farc_signature signature, farc_flags flags
     size_t dir_temp_len = utf8_length(dir_temp);
     directory_path.assign(dir_temp, dir_temp_len);
     file_path.assign(dir_temp, dir_temp_len);
-    file_path.append(".farc", 5);
+    if (add_extension)
+        file_path.append(".farc");
     free_def(dir_temp);
 
     if (!get_files || (get_files && !farc_get_files(this))) {
