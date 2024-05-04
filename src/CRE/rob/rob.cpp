@@ -63,32 +63,34 @@ struct OpdMaker {
         bool CheckOpdiFilesNotReady();
         const void* GetOpdiFileData(object_info obj_info, uint32_t motion_id);
         bool IsValidOpdiFile(rob_chara* rob_chr, uint32_t motion_id);
+        void ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& motions,
+            void* data, const object_database* obj_db, const motion_database* mot_db);
         void Reset();
     };
 
     rob_chara* rob_chr;
-    std::vector<int32_t>* motion_ids;
+    const std::vector<uint32_t>* motion_ids;
     bool waiting;
-    uint32_t index;
-    bool field_18;
+    uint32_t motion_index;
+    bool end;
     OpdMaker::Data* data;
     std::thread* thread;
     std::mutex waiting_mtx;
-    std::mutex field_38;
-    std::mutex field_40;
+    std::mutex motion_mtx;
+    std::mutex end_mtx;
 
     OpdMaker();
     virtual ~OpdMaker();
 
+    bool CheckForFinalMotion();
     void Ctrl();
-    bool InitThread(rob_chara* rob_chr, std::vector<int32_t>* motion_ids, OpdMaker::Data* data);
+    bool GetEnd();
+    bool InitThread(rob_chara* rob_chr, const std::vector<uint32_t>* motion_ids, OpdMaker::Data* data);
     bool IsWaiting();
     void Reset();
     bool SetOsagePlayInitData(uint32_t motion_id);
+    void SetEnd();
     void SetWaiting(bool value);
-
-    void sub_140475AE0();
-    bool sub_140478330();
 
     static void ThreadMain(OpdMaker* opd_maker);
 };
@@ -96,7 +98,7 @@ struct OpdMaker {
 struct OpdMakeWorker : public app::Task {
     int32_t state;
     int32_t chara_id;
-    int32_t field_70[25];
+    int32_t items[25];
     bool field_D4;
     OpdMaker::Data data;
 
@@ -146,6 +148,76 @@ struct opd_file_data {
     int32_t load_count;
 
     void unload();
+};
+
+struct opd_vec3_data_vec {
+    std::vector<float_t> x;
+    std::vector<float_t> y;
+    std::vector<float_t> z;
+
+    opd_vec3_data_vec();
+    ~opd_vec3_data_vec();
+};
+
+struct opd_farc_params {
+    size_t align;
+    bool compress;
+    bool encrypt;
+
+    opd_farc_params();
+};
+
+struct opd_farc {
+    std::string path;
+    opd_farc_params params;
+    std::string data_path;
+    file_stream* stream;
+    size_t farc_size;
+
+    opd_farc();
+    ~opd_farc();
+
+    bool add_file(const void* data, size_t size, const std::string& name);
+    bool open(const std::string& path, const opd_farc_params& data);
+    void reset();
+    bool write_file();
+};
+
+struct p_opd_farc {
+    opd_farc* ptr;
+
+    p_opd_farc();
+    ~p_opd_farc();
+
+    bool add_file(const void* data, size_t size, const std::string& file);
+    bool open(const std::string& path, const opd_farc_params& data);
+    bool open(const std::string& path, bool compress, size_t align);
+    bool write_file();
+};
+
+struct opd_chara_data {
+    int32_t chara_id;
+    bool init;
+    uint32_t frame_index;
+    uint32_t frame_count;
+    int32_t motion_id;
+    uint64_t field_18;
+    std::vector<std::vector<opd_vec3_data_vec>> opd_data[ITEM_OSAGE_COUNT];
+    p_opd_farc opd[ITEM_OSAGE_COUNT];
+    p_opd_farc opdi[ITEM_OSAGE_COUNT];
+
+    opd_chara_data();
+    ~opd_chara_data();
+
+    void add_frame_data();
+    void encode_data();
+    void encode_init_data(uint32_t motion_id);
+    void fs_copy_file();
+    void init_data(uint32_t motion_id);
+    void open_opd_file();
+    void open_opdi_file();
+    void reset();
+    void write_file();
 };
 
 class OsagePlayDataManager : public app::Task {
@@ -229,52 +301,56 @@ struct struc_568 {
     int64_t field_10;
 };
 
-struct struc_656 {
-    std::vector<uint32_t> field_0[ITEM_SUB_MAX];
-
-    struc_656();
-    ~struc_656();
-};
-
-struct struc_655 {
-    size_t count;
-    uint32_t index;
-    struc_656 field_10[CHARA_MAX];
-
-    struc_655();
-    ~struc_655();
-};
-
-struct struc_657 {
-    uint32_t mode;
-    uint32_t progress;
-    chara_index chara;
-    std::vector<uint32_t> field_10;
-
-    struc_657();
-    ~struc_657();
-};
-
-struct struc_691 {
-    uint32_t mode;
-    uint32_t count;
-    uint32_t index;
-    std::vector<struc_657> field_10;
-
-    struc_691();
-    ~struc_691();
-};
-
 struct OpdMakeManager : app::Task {
+    struct Chara {
+        uint32_t mode;
+        uint32_t progress;
+        chara_index chara;
+        std::vector<uint32_t> items;
+
+        Chara();
+        ~Chara();
+    };
+
+    struct Data {
+        uint32_t mode;
+        uint32_t count;
+        uint32_t index;
+        std::vector<Chara> charas;
+
+        Data();
+        ~Data();
+    };
+
+    struct CharaConstume {
+        std::vector<uint32_t> items[ITEM_SUB_MAX];
+
+        CharaConstume();
+        ~CharaConstume();
+    };
+
+    struct CharaConstumes {
+        size_t count;
+        uint32_t index;
+        CharaConstume chara[CHARA_MAX];
+
+        CharaConstumes();
+        ~CharaConstumes();
+
+        bool CheckNoItems(chara_index chara_index);
+        void PopItems(chara_index chara_index, int32_t items[ITEM_SUB_MAX]);
+    };
+
     int32_t mode;
-    struc_655 field_88;
+    struc_568 field_70;
+    CharaConstumes chara_costumes;
     chara_index chara;
-    std::vector<int32_t> motion_ids;
+    std::vector<uint32_t> motion_ids;
     std::vector<uint32_t> motion_set_ids;
     OpdMakeWorker* workers[4];
-    struc_691 field_1860;
+    Data data;
     bool field_1888;
-    bool field_1889;
+    bool use_opdi;
 
     OpdMakeManager();
     virtual ~OpdMakeManager() override;
@@ -1134,6 +1210,19 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
+static const char* get_ram_osage_play_data_path();
+static const char* get_ram_osage_play_data_tmp_path();
+
+static void opd_chara_data_array_add_frame_data(int32_t chara_id);
+static void opd_chara_data_array_encode_data(int32_t chara_id);
+static void opd_chara_data_array_encode_init_data(int32_t chara_id, int32_t motion_id);
+static void opd_chara_data_array_fs_copy_file(int32_t chara_id);
+static opd_chara_data* opd_chara_data_array_get(int32_t chara_id);
+static void opd_chara_data_array_init_data(int32_t chara_id, int32_t motion_id);
+static void opd_chara_data_array_open_opd_file(int32_t chara_id);
+static void opd_chara_data_array_open_opdi_file(int32_t chara_id);
+static void opd_chara_data_array_write_file(int32_t chara_id);
+
 static rob_manager_rob_impl* rob_manager_rob_impls1_get(TaskRobManager* rob_mgr);
 static rob_manager_rob_impl* rob_manager_rob_impls2_get(TaskRobManager* rob_mgr);
 
@@ -1147,6 +1236,7 @@ bool rob_manager_rob_impls1_init = false;
 rob_manager_rob_impl rob_manager_rob_impls2[7];
 bool rob_manager_rob_impls2_init = false;
 
+opd_chara_data* opd_chara_data_array;
 OpdMakeManager* opd_make_manager;
 OpdMaker* opd_maker_array;
 OsagePlayDataManager* osage_play_data_manager;
@@ -2284,6 +2374,9 @@ void pv_osage_manager_array_reset(int32_t chara_id) {
 }
 
 void rob_init() {
+    if (!opd_chara_data_array)
+        opd_chara_data_array = new opd_chara_data[ROB_CHARA_COUNT];
+
     if (!opd_make_manager)
         opd_make_manager = new OpdMakeManager;
 
@@ -2382,6 +2475,11 @@ void rob_free() {
     if (opd_make_manager) {
         delete opd_make_manager;
         opd_make_manager = 0;
+    }
+
+    if (opd_chara_data_array) {
+        delete[] opd_chara_data_array;
+        opd_chara_data_array = 0;
     }
 }
 
@@ -7255,14 +7353,14 @@ static void motion_blend_mot_set_duration(motion_blend_mot* mot,
         mot->blend->SetDuration(duration, step, offset);
 }
 
-static int16_t opd_data_encode_shift(float_t value, uint8_t shift) {
-    int32_t val = (int)(float)((float)(1 << shift) * value);
+static int16_t opd_data_encode_shift(float_t value, uint32_t shift) {
+    int32_t val = (int32_t)((float_t)(1 << (uint8_t)shift) * value);
     if (val & 0x01)
         if (val & 0x8000)
             val++;
         else
             val--;
-    return val;
+    return (int16_t)val;
 }
 
 static float_t opd_data_decode_shift(int16_t value, uint8_t shift) {
@@ -7289,10 +7387,10 @@ static void opd_data_decode(const int16_t* src_data, size_t count, uint8_t shift
     }
 }
 
-static bool opd_decode(const osage_play_data_header* file_head, float_t** opd_decod_buf, osage_play_data_header* head) {
+static bool opd_decode(const osage_play_data_header* file_head, float_t*& opd_decod_buf, osage_play_data_header& head) {
     const osage_play_data_node_header* node = (osage_play_data_node_header*)&file_head[1];
     float_t* buf = force_malloc<float_t>(3ULL * file_head->frame_count * file_head->nodes_count);
-    *opd_decod_buf = buf;
+    opd_decod_buf = buf;
     if (!buf)
         return false;
 
@@ -7304,18 +7402,224 @@ static bool opd_decode(const osage_play_data_header* file_head, float_t** opd_de
                 + sizeof(const osage_play_data_node_header) + node->count * sizeof(uint16_t));
         }
 
-    *head = *file_head;
+    head = *file_head;
     return true;
 }
 
-static bool opd_decode_data(const void* data, float_t** opd_decod_buf, osage_play_data_header* head) {
-    if (!*opd_decod_buf)
+static bool opd_decode_data(const void* data, float_t*& opd_decod_buf, osage_play_data_header& head) {
+    if (!opd_decod_buf)
         return opd_decode((const osage_play_data_header*)data, opd_decod_buf, head);
     return false;
 }
 
+struct opd_value_range {
+    float_t value;
+    float_t delta;
+    uint16_t field_8;
+    int16_t count;
+    int32_t field_C;
+    uint8_t field_10;
+    uint8_t field_11;
+
+    inline opd_value_range() : value(), delta(),
+        field_8(), count(), field_C(), field_10(), field_11() {
+    }
+
+    inline opd_value_range(float_t value, int16_t count) : delta(),
+        field_8(), field_C(), field_10(), field_11() {
+        this->value = value;
+        this->count = count;
+    }
+};
+
+struct opd_encode_struct {
+    std::vector<opd_value_range> vec;
+
+    inline opd_encode_struct() {
+
+    }
+
+    inline ~opd_encode_struct() {
+
+    }
+
+    void find_range(size_t start, size_t end, const float_t epsilon) {
+        while (true) {
+            if (end - start <= 1)
+                break;
+
+            float_t diff = 0.0f;
+            float_t start_value = vec.data()[start].value;
+            float_t delta_value = vec.data()[end].value - start_value;
+            int32_t start_count = vec.data()[start].count;
+            float_t d = (float_t)vec.data()[end].count - vec.data()[start].count;
+
+            bool v16 = false;
+            size_t count = end - start;
+            size_t _count = end - start;
+            opd_value_range* val = &vec.data()[start + 1];
+            for (size_t i = 1; i < _count; i++, val++) {
+                float_t _diff = fabsf((float_t)(val->count - start_count)
+                    * delta_value / d + start_value - val->value);
+                if (_diff > epsilon) {
+                    bool v24 = !!(val->field_10 & 0x30);
+                    if ((diff < _diff && (!v16 || v24)) || (!v16 && v24)) {
+                        diff = _diff;
+                        count = i;
+                        v16 = v24;
+                    }
+                }
+            }
+
+            if (count == _count)
+                break;
+
+            size_t _start = start + count;
+            if (count + 1 >= 4)
+                find_range(start, start + count, epsilon);
+            else if (start <= _start) {
+                opd_value_range* val = &vec.data()[start];
+                for (size_t i = count + 1; i; i--, val++)
+                    val->field_11 |= 0x01;
+            }
+
+            if (end - _start + 1 < 4) {
+                opd_value_range* val = &vec.data()[_start];
+                for (size_t i = _start; i <= end; i++, val++)
+                    val->field_11 |= 0x01;
+                return;
+            }
+            start = _start;
+        }
+
+        opd_value_range* val = &vec.data()[start];
+        for (size_t i = start; i <= end; i++, val++)
+            if (i == start || i == end)
+                val->field_11 |= 0x01;
+            else
+                val->field_11 &= ~0x01;
+    }
+
+    size_t get_next_index(size_t index) {
+        size_t count = this->vec.size();
+        if (index >= count)
+            return count;
+
+        opd_value_range* val = &vec.data()[index];
+        while (!(val->field_11 & 0x01)) {
+            index++;
+            val++;
+            if (count <= index)
+                return count;
+        }
+        return index;
+    }
+};
+
+static uint32_t opd_calculate_max_value_shift(float_t value) {
+    value = fabsf(value);
+    float_t max_value = 16384.0f;
+    uint32_t shift = 0;
+    for (; shift < 24; shift++, max_value *= 0.5f)
+        if (value >= max_value)
+            break;
+    return shift;
+}
+
+static uint32_t opd_encode_calculate_max_shift(const float_t* data, size_t size) {
+    uint32_t max_shift = 24;
+    for (size_t i = size, j = 0; i; i--, j++)
+        max_shift = min_def(max_shift, opd_calculate_max_value_shift(data[j]));
+    return (int16_t)max_shift;
+}
+
+static uint32_t opd_encode(const float_t* src_data, size_t src_size, const float_t epsilon, int16_t* dst_data, size_t& dst_size) {
+    const uint32_t shift = opd_encode_calculate_max_shift(src_data, src_size);
+    if (src_size < 4) {
+        for (size_t i = src_size, j = 0; i; i--, j++)
+            dst_data[j] = opd_data_encode_shift(src_data[j], shift);
+        dst_size = src_size;
+        return shift;
+    }
+
+    opd_encode_struct enc;
+    enc.vec.reserve(src_size);
+
+    for (size_t i = src_size, j = 0; i; i--, j++) {
+        float_t value = src_data[j];
+        opd_value_range val_range(value, (int16_t)j);
+        if (!j) {
+            val_range.delta = value;
+            val_range.field_10 = 0x01;
+            val_range.field_11 |= 0x01;
+            enc.vec.push_back(val_range);
+            continue;
+        }
+
+        opd_value_range& prev_val = enc.vec.back();
+        float_t delta = value - prev_val.value;
+        val_range.delta = delta;
+        if (j == src_size - 1) {
+            val_range.field_10 = 0x02;
+            val_range.field_11 |= 0x01;
+        }
+
+        float_t prev_end_val = prev_val.delta;
+        if (fabs(delta - prev_end_val) > 0.000001f) {
+            if (delta > prev_end_val) {
+                if (j != 1 && delta >= 0.0f && prev_end_val <= 0.0f)
+                    prev_val.field_10 |= 0x20;
+                else if (prev_val.field_10 & 0x04)
+                    prev_val.field_10 |= 0x80;
+            }
+            if (delta < prev_end_val) {
+                if (j != 1 && delta <= 0.0f && prev_end_val >= 0.0f)
+                    prev_val.field_10 |= 0x10;
+                else if (prev_val.field_10 & 0x04)
+                    prev_val.field_10 |= 0x40;
+            }
+        }
+        else {
+            val_range.field_10 |= 0x04;
+            if (!(prev_val.field_10 & 0x04))
+                prev_val.field_10 |= 0x08;
+        }
+        enc.vec.push_back(val_range);
+    }
+
+    enc.find_range(0, src_size - 1, epsilon);
+
+    size_t data_offset = 0;
+    opd_value_range* v33 = enc.vec.data();
+    for (size_t i = 0; i < src_size; ) {
+        size_t next_index = enc.get_next_index(i);
+        if (next_index == src_size)
+            break;
+
+        if (next_index <= i + 1)
+            dst_data[data_offset++] = opd_data_encode_shift(v33[next_index].value, shift);
+        else {
+            dst_data[data_offset++] = (int16_t)((v33[next_index].count * 2) | 0x0001);
+            dst_data[data_offset++] = opd_data_encode_shift(v33[next_index].value, shift);
+        }
+        i = next_index + 1;
+    }
+    dst_size = data_offset;
+    return shift;
+}
+
+static void opd_encode_data(const std::vector<float_t>& src, uint8_t*& dst, size_t& dst_size, bool higher_accuracy) {
+    const float_t epsilon = higher_accuracy ? 0.0001f : 0.001f;
+    size_t count = src.size();
+    uint32_t shift = opd_encode(src.data(), count, epsilon, (int16_t*)(dst + 4), count);
+    osage_play_data_node_header* node = (osage_play_data_node_header*)dst;
+    node->shift = (int16_t)shift;
+    node->count = (uint16_t)count;
+    dst_size = sizeof(osage_play_data_node_header) + sizeof(int16_t) * count;
+}
+
 static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id) {
-    if (chara_id >= ROB_CHARA_COUNT)
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
         chara_id = 0;
     return &pv_osage_manager_array[chara_id];
 }
@@ -10957,6 +11261,52 @@ static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
     }
 }
 
+static const char* get_ram_osage_play_data_path() {
+    return "ram/osage_play_data";
+}
+
+static const char* get_ram_osage_play_data_tmp_path() {
+    return "ram/osage_play_data_tmp";
+}
+
+static void opd_chara_data_array_add_frame_data(int32_t chara_id) {
+    opd_chara_data_array_get(chara_id)->add_frame_data();
+}
+
+static void opd_chara_data_array_encode_data(int32_t chara_id) {
+    opd_chara_data_array_get(chara_id)->encode_data();
+}
+
+static void opd_chara_data_array_encode_init_data(int32_t chara_id, int32_t motion_id) {
+    opd_chara_data_array_get(chara_id)->encode_init_data(motion_id);
+}
+
+static void opd_chara_data_array_fs_copy_file(int32_t chara_id) {
+    opd_chara_data_array_get(chara_id)->fs_copy_file();
+}
+
+static opd_chara_data* opd_chara_data_array_get(int32_t chara_id) {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        chara_id = 0;
+    return &opd_chara_data_array[chara_id];
+}
+
+static void opd_chara_data_array_init_data(int32_t chara_id, int32_t motion_id) {
+    opd_chara_data_array_get(chara_id)->init_data(motion_id);
+}
+
+static void opd_chara_data_array_open_opd_file(int32_t chara_id) {
+    opd_chara_data_array_get(chara_id)->open_opd_file();
+}
+
+static void opd_chara_data_array_open_opdi_file(int32_t chara_id) {
+    opd_chara_data_array_get(chara_id)->open_opdi_file();
+}
+
+static void opd_chara_data_array_write_file(int32_t chara_id) {
+    opd_chara_data_array_get(chara_id)->write_file();
+}
+
 static rob_manager_rob_impl* rob_manager_rob_impls1_get(TaskRobManager* rob_mgr) {
     if (!rob_manager_rob_impls1_init) {
         rob_manager_rob_impls1_init = true;
@@ -13050,7 +13400,7 @@ void rob_chara_item_equip_object::set_motion_skin_param(int8_t chara_id, uint32_
 
     std::vector<skin_param_file_data>* skp_file_data
         = skin_param_manager_get_skin_param_file_data(chara_id, obj_info, motion_id, frame);
-    //if (!skp_file_data)
+    if (!skp_file_data)
         return;
 
     field_1B8 = false;
@@ -15429,6 +15779,46 @@ bool OpdMaker::Data::IsValidOpdiFile(rob_chara* rob_chr, uint32_t motion_id) {
     return true;
 }
 
+void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& motions,
+    void* data, const object_database* obj_db, const motion_database* mot_db) {
+    if (!empty || !rob_chr)
+        return;
+
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+    for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++) {
+        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)i);
+        if (itm_eq_obj->obj_info.is_null() || !itm_eq_obj->osage_nodes_count)
+            continue;
+
+        object_info obj_info = itm_eq_obj->obj_info;
+        for (uint32_t& i : motions) {
+            auto elem = opdi_files.insert({ { obj_info, i }, 0 }).first;
+
+            const char* object_name = obj_db->get_object_name(obj_info);
+            const char* motion_name = mot_db->get_motion_name(i);
+            if (object_name && motion_name) {
+                char buf1[0x200];
+                char buf2[0x200];
+                sprintf_s(buf1, sizeof(buf1), "%s.opdi", object_name);
+                sprintf_s(buf2, sizeof(buf2), "%s_%s.opdi", object_name, motion_name);
+
+                for (char* j = buf1; *j; j++)
+                    if (*j >= 'A' && *j <= 'Z')
+                        *j += 0x20;
+
+                for (char* j = buf2; *j; j++)
+                    if (*j >= 'A' && *j <= 'Z')
+                        *j += 0x20;
+
+                p_file_handler* file_handler = new p_file_handler;
+                file_handler->read_file(data, "rom/osage_play_data/opdi", buf1, buf2, true);
+                elem->second = file_handler;
+            }
+        }
+    }
+    empty = false;
+}
+
 void OpdMaker::Data::Reset() {
     for (auto i : opdi_files)
         if (i.second) {
@@ -15454,285 +15844,178 @@ OpdMaker::~OpdMaker() {
     Reset();
 }
 
-void OpdMaker::Ctrl() {
-    /*unsigned __int64 v11; // rax
-    float_t v12; // xmm0_4
-    unsigned __int64 v13; // rdx
-    unsigned __int64 v14; // rcx
-    __int64 v15; // rbx
-    unsigned __int64 v16; // rdi
-    float_t v17; // xmm1_4
-    float_t v18; // xmm0_4
-    __int64 v19; // rbx
-    float_t v20; // xmm0_4
-    std::string* v21; // r8
-    std::string* v22; // rbx
-    std::string* i; // rbx
-    size_t v24; // rax
-    size_t v25; // rax
-    unsigned __int64 v26; // rsi
-    const char* v27; // rcx
-    const char* v28; // rdi
-    const char* v29; // rax
-    char* v30; // rdi
-    std::string* v31; // rdi
-    std::string* v32; // r9
-    std::string* v33; // r8
-    std::string* v34; // r9
-    std::string* v35; // r8
-    std::string* v36; // rdi
-    int32_t v37; // esi
-    const char* v38; // rdi
-    const char* v39; // rdi
-    __int64 v40; // rcx
-    unsigned __int8 v41; // al
-    int32_t v42; // eax
-    std::string* v43; // rax
-    ssize_t v44; // rdi
-    std::string* v45; // rdi
-    std::string* v46; // r8
-    size_t v47; // r15
-    void* v48; // rsi
-    std::string* v49; // rcx
-    FILE* v50; // rax
-    FILE* v51; // r14
-    size_t v52; // rdi
-    std::string* v53; // rcx
-    FILE* v54; // rax
-    FILE* v55; // rdi
-    std::string* v56; // rbx
-    std::string* v57; // rdi
-    std::string v58; // [rsp+48h] [rbp-B8h] BYREF
-    std::string v59; // [rsp+68h] [rbp-98h] BYREF
-    std::string v60; // [rsp+88h] [rbp-78h] BYREF
-    std::string v61; // [rsp+A8h] [rbp-58h] BYREF
-    std::string v62; // [rsp+C8h] [rbp-38h] BYREF
-    __int64 v63; // [rsp+E8h] [rbp-18h] BYREF
-    std::string v65; // [rsp+108h] [rbp+8h] BYREF
-    __int64 v66; // [rsp+128h] [rbp+28h] BYREF
-    int32_t v67[4]; // [rsp+130h] [rbp+30h] BYREF
+bool OpdMaker::CheckForFinalMotion() {
+    std::unique_lock<std::mutex> u_lock(motion_mtx);
+    return ++motion_index < motion_ids->size();
+}
 
+void OpdMaker::Ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
-    this->index = 0;
-    int32_t chara_id = rob_chr->chara_id;
-    sub_14048D9A0(chara_id);
+    motion_index = 0;
+    int32_t chara_id = this->rob_chr->chara_id;
+
+    opd_chara_data_array_open_opd_file(chara_id);
+
     do {
-        if (sub_140478330()) {
+        if (GetEnd()) {
             SetWaiting(false);
             return;
         }
 
-        uint32_t motion_id = (*motion_ids)[index];
+        uint32_t motion_id = (*motion_ids)[motion_index];
         if (motion_id == -1)
             break;
 
-        rob_chr->set_motion_id(motion_id, 0.0f, 0.0f, true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
+        rob_chr->set_motion_id(motion_id, 0.0f, 0.0f,
+            true, false, MOTION_BLEND_CROSS, aft_bone_data, aft_mot_db);
 
-        float_t v6 = (float_t)(int32_t)rob_chr->bone_data->get_frame_count() - 1.0f;
+        float_t frame_count = (float_t)(int32_t)rob_chr->bone_data->get_frame_count() - 1.0f;
         int32_t iterations = 60;
         if (rob_chr->data.field_1588.field_0.iterations > 0)
             iterations = rob_chr->data.field_1588.field_0.iterations;
 
-        float_t v8 = 0.0f;
-        bool v9 = true;
+        float_t start_frame = 0.0f;
+        bool no_opdi = true;
         if (data && data->IsValidOpdiFile(rob_chr, motion_id)) {
-            v9 = false;
-            v11 = 0;
-            v12 = v6;
-            if (v6 >= 9.223372e18) {
-                v12 = v6 - 9.223372e18;
-                if ((float_t)(v6 - 9.223372e18) < 9.223372e18)
-                    v11 = 0x8000000000000000;
-            }
-            v13 = v11 + (uint32_t)(int32_t)v12;
-            v14 = v13;
-            v8 = v6 - 1.0;
-            while (v14 < iterations) {
-                v14 += v13;
-                v8 = (float_t)((int32_t)v14 - 1);
-                if ((__int64)(v14 - 1) < 0)
-                    v8 = v8 + 1.8446744e19;
+            no_opdi = false;
+
+            int32_t frame_count_int = (int32_t)frame_count;
+            int32_t iteration = frame_count_int;
+            start_frame = frame_count - 1.0f;
+            while (iteration < iterations) {
+                iteration += frame_count_int;
+                start_frame = (float_t)(iteration - 1);
             }
         }
 
-        rob_osage_mothead v68(rob_chr, 0, motion_id, v8, aft_bone_data, aft_mot_db);
-        if (v9) {
-            v15 = 0;
-            v16 = 0;
-            while (1) {
-                v17 = (float_t)(int32_t)v15;
-                if (v15 < 0)
-                    v17 = v17 + 1.8446744e19;
-                v68.set_frame(v17);
-                v68.ctrl();
-                v15++;
-                v16++;
-                v18 = (float_t)(int32_t)v15;
-                if (v15 < 0)
-                    v18 = v18 + 1.8446744e19;
-                if (v18 >= v6) {
-                    if (v16 > iterations)
-                        goto LABEL_29;
-                    v15 = 0;
-                    v68.init_data(aft_mot_db);
+        rob_osage_mothead osg_mhd(rob_chr, 0, motion_id, start_frame, aft_bone_data, aft_mot_db);
+        if (no_opdi) {
+            int32_t frame = 0;
+            int32_t iteration = 0;
+            while (true) {
+                osg_mhd.set_frame((float_t)frame);
+                osg_mhd.ctrl();
+
+                frame++;
+                iteration++;
+                if ((float_t)frame >= frame_count) {
+                    if (iteration > iterations)
+                        break;
+
+                    frame = 0;
+                    osg_mhd.init_data(aft_mot_db);
                 }
-                Sleep(0);
             }
         }
-        v68.ctrl();
-        SetOsagePlayInitData(motion_id);
-    LABEL_29:
-        v68.init_data(aft_mot_db);
-        //sub_14048E840(chara_id, motion_id);
-        v19 = 0;
-        v20 = (float_t)0;
-        while (v20 < v6) {
-            v68.set_frame(v20);
-            v68.ctrl();
-            sub_14048E050(chara_id);
-            v20 = (float_t)(int32_t)++v19;
-            if (v19 < 0)
-                v20 = v20 + 1.8446744e19;
+        else {
+            osg_mhd.ctrl();
+            SetOsagePlayInitData(motion_id);
         }
-        sub_14048D200(chara_id);
-    } while (sub_140479610(this));
 
-    sub_14048C920(chara_id);
-    sub_140489250(&v62);
-    v22 = sprintf_s_string(&v60, "%s/%d", v62.c_str(), chara_id);
-    v62 = v60;
+        osg_mhd.init_data(aft_mot_db);
 
-    std::vector<std::string> v64;
-    if (!sub_1400AC0B0(&v62, &v64)) {
-        for (std::string& i : v64) {
-            v59.capacity = 15;
-            v59.length = 0;
-            v59.data.data[0] = 0;
-            v24 = i.size();
-            if (v24) {
-                v25 = v24 - 1;
-                v26 = i.capacity();
-                v27 = i.data();
-                for (v28 = v27 + v25; *v28 != '/'; --v28) {
-                    if (v28 == sub_140007680(&i))
-                        goto LABEL_136;
-                }
-                v29 = i.data();
-                v30 = (char*)(j - v29);
-                if (v30 != (char*)-1) {
-                    v31 = sub_1400215A0(i, &v60, (ssize_t)(v30 + 1), -1);
-                    v59 = v60;
-                    sprintf_s_string(&v65, "%s/%s", v62.c_str(), v59.c_str());
-                    sub_140489030(&v61);
-                    sprintf_s_string(&v60, "%s/%s", v61.c_str(), v59.c_str());
-                    v61 = v60;
-                    if (stat_get_no_error(&v61))
-                        sub_1400ACBE0(&v61);
-                    v37 = stat_get_file_size(&v65);
-                    if (v37 >= 0) {
-                        v63 = 0;
-                        if (v59.size() >= 5) {
-                            v38 = v59.data();
-                            for (v39 = v38 + v59.size() - 5; ; --v39) {
-                                if (*v39 == '.') {
-                                    v40 = 0;
-                                    while (1) {
-                                        v41 = v39[v40++];
-                                        if (v41 != aFarc[v40 - 1])
-                                            break;
-                                        if (v40 == 5) {
-                                            v42 = 0;
-                                            goto LABEL_101;
-                                        }
-                                    }
-                                    v42 = v41 < (uint32_t)aFarc[v40 - 1] ? -1 : 1;
-                                LABEL_101:
-                                    if (!v42)
-                                        break;
-                                }
-                                if (v39 == sub_140007680(&v59))
-                                    goto LABEL_130;
-                            }
+        opd_chara_data_array_init_data(chara_id, motion_id);
 
-                            v44 = v39 - v59.data();
-                            if (v44 != -1) {
-                                sub_1400215A0(&v59, &v60, 0, v44);
-                                v45 = string_init_to_upper(&v58, &v60);
-                                if (&v60 != v45) {
-                                    if (v60.capacity >= 0x10)
-                                        operator delete(v60.data.ptr);
-                                    v60.capacity = 15;
-                                    v60.length = 0;
-                                    v60.data.data[0] = 0;
-                                    if (v45->capacity >= 0x10) {
-                                        v60.data.ptr = v45->data.ptr;
-                                        v45->data.ptr = 0;
-                                    }
-                                    else if (v45->length != -1) {
-                                        memmove(&v60, v45, v45->length + 1);
-                                    }
-                                    v60.length = v45->length;
-                                    v60.capacity = v45->capacity;
-                                    v45->capacity = 15;
-                                    v45->length = 0;
-                                    v45->data.data[0] = 0;
-                                }
-                                if (v58.capacity >= 0x10)
-                                    operator delete(v58.data.ptr);
-                                sub_140472210((__int64*)&stru_1411A57C8, &v66, &v60);
-                                LODWORD(v63) = v66;
-                                if (v60.capacity >= 0x10)
-                                    operator delete(v60.data.ptr);
-                                v46 = &v65;
-                                if (v65.capacity >= 0x10)
-                                    v46 = (string*)v65.data.ptr;
-                                v47 = v37;
-                                v48 = HeapCMallocAllocate(HeapCMallocTemp, v37, (const char*)v46);
-                                if (v48) {
-                                    v49 = &v65;
-                                    if (v65.capacity >= 0x10)
-                                        v49 = (string*)v65.data.ptr;
-                                    v50 = fopen((const char*)v49, "rb");
-                                    v51 = v50;
-                                    if (v50) {
-                                        v52 = fread(v48, v47, 1u, v50);
-                                        fclose(v51);
-                                        if (v52) {
-                                            sub_14008E1A0((__int64)v67);
-                                            sub_14009E7A0((__int64)v67, (unsigned __int8*)v48, v47);
-                                            HIDWORD(v63) = v67[0];
-                                            HeapCMallocFree(HeapCMallocTemp, v48);
-                                            v53 = &v65;
-                                            if (v65.capacity >= 0x10)
-                                                v53 = (string*)v65.data.ptr;
-                                            v54 = fopen((const char*)v53, "ab");
-                                            v55 = v54;
-                                            if (v54) {
-                                                fwrite(&v63, 8u, 1u, v54);
-                                                fclose(v55);
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
+        int32_t frame_int = 0;
+        float_t frame = 0.0f;
+        while (frame < frame_count) {
+            osg_mhd.set_frame(frame);
+            osg_mhd.ctrl();
+            opd_chara_data_array_add_frame_data(chara_id);
+            frame = (float_t)++frame_int;
+        }
+
+        opd_chara_data_array_encode_data(chara_id);
+    } while (CheckForFinalMotion());
+
+    opd_chara_data_array_write_file(chara_id);
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s/%d", get_ram_osage_play_data_tmp_path(), chara_id);
+
+    std::vector<data_struct_file> v64;
+    aft_data->get_directory_files(buf, v64);
+    for (data_struct_file& i : v64) {
+        std::string path(i.path);
+        path.append(i.name);
+        if (!path.size())
+            continue;
+
+        char buf1[0x200];
+        char buf2[0x200];
+        sprintf_s(buf1, sizeof(buf1), "%s/%s", buf, i.name.c_str());
+        sprintf_s(buf2, sizeof(buf2), "%s/%s", get_ram_osage_play_data_path(), i.name.c_str());
+
+        if (path_check_file_exists(buf2))
+            path_delete_file(buf2);
+
+        if (!path_check_file_exists(buf1))
+            continue;
+
+        size_t pos = i.name.find(".farc");
+        if (pos == -1)
+            continue;
+
+        std::string name(i.name.substr(0, pos));
+        for (char& c : name)
+            if (c >= 'a' && c <= 'z')
+                c -= 0x20;
+
+        size_t ver = 0;
+        //osage_play_data_database->get_ver_by_name(ver, name);
+
+        uint32_t footer[2] = {};
+        footer[0] = (uint32_t)ver;
+
+        file_stream fs;
+        fs.open(buf1, "rb");
+        if (fs.check_null()) {
+            fs.close();
+            continue;
+        }
+
+        size_t file_length = fs.get_length();
+        fs.close();
+
+        void* file_data = force_malloc(file_length);
+        if (!file_data) {
+            file_stream fs;
+            fs.open(buf1, "rb");
+            if (fs.check_not_null()) {
+                size_t read_length = fs.read(file_data, file_length);
+                fs.close();
+
+                if (read_length) {
+                    adler_buf adler;
+                    adler.get_adler(file_data, file_length);
+                    footer[1] = adler.adler;
+                    free_def(file_data);
+
+                    file_stream fs;
+                    fs.open(buf1, "ab");
+                    if (fs.check_not_null()) {
+                        fs.write(footer, sizeof(footer));
+                        fs.close();
                     }
-                LABEL_130:
                 }
             }
-        LABEL_136:
-            ;
         }
     }
+
     rob_chr = 0;
-    index = 0;
-    SetWaiting(false);*/
+    motion_index = 0;
+    SetWaiting(false);
 }
 
-bool OpdMaker::InitThread(rob_chara* rob_chr, std::vector<int32_t>* motion_ids, OpdMaker::Data* data) {
+bool OpdMaker::GetEnd() {
+    std::unique_lock<std::mutex> u_lock(end_mtx);
+    return end;
+}
+
+bool OpdMaker::InitThread(rob_chara* rob_chr, const std::vector<uint32_t>* motion_ids, OpdMaker::Data* data) {
     bool waiting = IsWaiting();
     if (waiting || rob_chr)
         return waiting;
@@ -15767,8 +16050,8 @@ void OpdMaker::Reset() {
     rob_chr = 0;
     motion_ids = 0;
     waiting = false;
-    index = 0;
-    field_18 = false;
+    motion_index = 0;
+    end = false;
     data = 0;
     thread = 0;
 }
@@ -15787,26 +16070,21 @@ bool OpdMaker::SetOsagePlayInitData(uint32_t motion_id) {
     return true;
 }
 
+void OpdMaker::SetEnd() {
+    std::unique_lock<std::mutex> u_lock(end_mtx);
+    end = true;
+}
+
 void OpdMaker::SetWaiting(bool value) {
     std::unique_lock<std::mutex> u_lock(waiting_mtx);
     waiting = value;
-}
-
-void OpdMaker::sub_140475AE0() {
-    std::unique_lock<std::mutex> u_lock(field_40);
-    field_18 = true;
-}
-
-bool OpdMaker::sub_140478330() {
-    std::unique_lock<std::mutex> u_lock(field_40);
-    return field_18;
 }
 
 void OpdMaker::ThreadMain(OpdMaker* opd_maker) {
     opd_maker->Ctrl();
 }
 
-OpdMakeWorker::OpdMakeWorker() : state(), chara_id(), field_70(), field_D4() {
+OpdMakeWorker::OpdMakeWorker() : state(), chara_id(), items(), field_D4() {
 
 }
 
@@ -15817,68 +16095,6 @@ OpdMakeWorker::~OpdMakeWorker() {
 bool OpdMakeWorker::init() {
     data.Reset();
     this->state = field_D4 ? 8 : 1;
-    return true;
-}
-
-static void sub_140479950(struc_655* a1, chara_index chara_index, int32_t* a3) {
-    std::vector<uint32_t>* v4 = a1->field_10[chara_index].field_0;
-    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, v4++) {
-        a3[i] = 0;
-        if (!v4->size())
-            continue;
-
-        a3[i] = v4->back();
-        v4->pop_back();
-        a1->count--;
-    }
-}
-
-static void sub_140479AA0(OpdMaker::Data* a1, rob_chara* rob_chr, std::vector<int32_t>& motions,
-    void* data, const object_database* obj_db, const motion_database* mot_db) {
-    if (!a1->empty || !rob_chr)
-        return;
-
-    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
-    for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++) {
-        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)i);
-        if (itm_eq_obj->obj_info.is_null() || !itm_eq_obj->osage_nodes_count)
-            continue;
-
-        object_info obj_info = itm_eq_obj->obj_info;
-        for (int32_t& i : motions) {
-            std::pair<object_info, int32_t> v24 = { obj_info, i };
-            auto elem = a1->opdi_files.insert({ v24, 0 }).first;
-
-            const char* object_name = obj_db->get_object_name(obj_info);
-            const char* motion_name = mot_db->get_motion_name(i);
-            if (object_name && motion_name) {
-                char buf1[0x200];
-                char buf2[0x200];
-                sprintf_s(buf1, sizeof(buf1), "%s.opdi", object_name);
-                sprintf_s(buf2, sizeof(buf2), "%s_%s.opdi", object_name, motion_name);
-
-                for (char* j = buf1; *j; j++)
-                    if (*j >= 'A' && *j <= 'Z')
-                        *j += 0x20;
-
-                for (char* j = buf2; *j; j++)
-                    if (*j >= 'A' && *j <= 'Z')
-                        *j += 0x20;
-
-                p_file_handler* file_handler = new p_file_handler;
-                file_handler->read_file(data, "rom/osage_play_data/opdi", buf1, buf2, true);
-                elem->second = file_handler;
-            }
-        }
-    }
-    a1->empty = false;
-}
-
-static bool sub_140479090(struc_655& a1, chara_index chara_index) {
-    std::vector<uint32_t>* v4 = a1.field_10[chara_index].field_0;
-    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, v4++)
-        if (v4->size())
-            return false;
     return true;
 }
 
@@ -15893,12 +16109,11 @@ bool OpdMakeWorker::ctrl() {
     const chara_init_data* chr_init_data = chara_init_data_get(chara_index);
     switch (state) {
     case 1: {
-        sub_140479950(&opd_make_manager->field_88, chara_index, field_70);
+        opd_make_manager->chara_costumes.PopItems(chara_index, items);
 
-        int32_t* v7 = field_70;
-        for (int32_t i = 0; i < ITEM_SUB_MAX; i++, v7++) {
+        for (int32_t i = 0; i < ITEM_SUB_MAX; i++) {
             rob_chr->item_cos_data.set_chara_index(chara_index);
-            rob_chr->item_cos_data.set_item(*v7);
+            rob_chr->item_cos_data.set_item(items[i]);
         }
 
         rob_chr->item_equip->reset_init_data(rob_chara_bone_data_get_node(
@@ -15929,7 +16144,7 @@ bool OpdMakeWorker::ctrl() {
                     if (j < ITEM_KAMI)
                         continue;
 
-                    if (opd_make_manager->field_1889)
+                    if (opd_make_manager->use_opdi)
                         state = 4;
                     else
                         state = 6;
@@ -15940,7 +16155,7 @@ bool OpdMakeWorker::ctrl() {
         state = 10;
     } break;
     case 4: {
-        sub_140479AA0(&data, rob_chr, opd_make_manager->motion_ids, aft_data, aft_obj_db, aft_mot_db);
+        data.ReadOpdiFiles(rob_chr, opd_make_manager->motion_ids, aft_data, aft_obj_db, aft_mot_db);
         state = 5;
     } break;
     case 5: {
@@ -15950,7 +16165,7 @@ bool OpdMakeWorker::ctrl() {
     }
     case 6: {
         std::vector<osage_init_data> osage_init;
-        for (int32_t& i : opd_make_manager->motion_ids)
+        for (const uint32_t& i : opd_make_manager->motion_ids)
             osage_init.push_back(osage_init_data(rob_chr, i));
         skin_param_manager_add_task(chara_id, osage_init);
 
@@ -15962,10 +16177,8 @@ bool OpdMakeWorker::ctrl() {
         state = 8;
     }
     case 8: {
-        OpdMaker::Data* v28 = 0;
-        if (opd_make_manager->field_1889)
-            v28 = &data;
-        opd_maker_array[chara_id].InitThread(rob_chr, &opd_make_manager->motion_ids, v28);
+        opd_maker_array[chara_id].InitThread(rob_chr, &opd_make_manager->motion_ids,
+            opd_make_manager->use_opdi ? &data : 0);
         state = 9;
     } break;
     case 9: {
@@ -15974,8 +16187,10 @@ bool OpdMakeWorker::ctrl() {
 
         data.Reset();
 
+        const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_path();
+
         char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "ram/osage_play_data_tmp/%d", chara_id);
+        sprintf_s(buf, sizeof(buf), "%s/%d", ram_osage_play_data_tmp_path, chara_id);
 
         std::vector<std::string> files;
         for (std::string& i : files) {
@@ -15989,21 +16204,21 @@ bool OpdMakeWorker::ctrl() {
             char buf2[0x200];
             char buf3[0x200];
             sprintf_s(buf1, sizeof(buf1), "%s/%s", buf, v57);
-            sprintf_s(buf2, sizeof(buf2), "ram/osage_play_data_tmp/%s.fs_copy_file.tmp", v57);
-            sprintf_s(buf3, sizeof(buf3), "ram/osage_play_data_tmp/%s", v57);
+            sprintf_s(buf2, sizeof(buf2), "%s/%s.fs_copy_file.tmp", ram_osage_play_data_tmp_path, v57);
+            sprintf_s(buf3, sizeof(buf3), "%s/%s", ram_osage_play_data_tmp_path, v57);
 
             if (!path_check_file_exists(buf1))
                 continue;
 
-            if (path_check_directory_exists("ram/osage_play_data_tmp/") && path_check_file_exists(buf2)) {
+            if (path_check_directory_exists(ram_osage_play_data_tmp_path) && path_check_file_exists(buf2)) {
                 if (path_check_file_exists(buf3))
-                    DeleteFileA(buf3);
+                    path_delete_file(buf3);
 
-                if (!rename(buf2, buf3) && path_check_file_exists(buf2))
-                    DeleteFileA(buf2);
+                if (!path_rename_file(buf2, buf3) && path_check_file_exists(buf2))
+                    path_delete_file(buf2);
             }
 
-            DeleteFileA(buf1);
+            path_delete_file(buf1);
         }
 
         if (field_D4)
@@ -16013,15 +16228,14 @@ bool OpdMakeWorker::ctrl() {
     case 10: {
         task_rob_load_append_free_req_data_obj(chara_index, rob_chr->item_cos_data.get_cos());
 
-        int32_t* v45 = field_70;
-        for (int32_t i = 0; i < ITEM_SUB_MAX; i++, v45++) {
+        for (int32_t i = 0; i < ITEM_SUB_MAX; i++) {
             rob_chr->item_cos_data.set_chara_index(chara_index);
-            rob_chr->item_cos_data.set_item_zero(*v45);
+            rob_chr->item_cos_data.set_item_zero(items[i]);
         }
 
         rob_chr->item_cos_data.reload_items(chara_id, aft_bone_data, aft_data, aft_obj_db);
         skin_param_manager_reset(chara_id);
-        if (sub_140479090(opd_make_manager->field_88, chara_index))
+        if (opd_make_manager->chara_costumes.CheckNoItems(chara_index))
             return true;
         state = 1;
     } break;
@@ -16031,7 +16245,7 @@ bool OpdMakeWorker::ctrl() {
 
 bool OpdMakeWorker::dest() {
     if (opd_maker_array[chara_id].IsWaiting()) {
-        opd_maker_array[chara_id].sub_140475AE0();
+        opd_maker_array[chara_id].SetEnd();
         return false;
     }
     else {
@@ -16056,6 +16270,466 @@ void opd_file_data::unload() {
 
     head = {};
     free_def(data);
+}
+
+opd_vec3_data_vec::opd_vec3_data_vec() {
+
+}
+
+opd_vec3_data_vec::~opd_vec3_data_vec() {
+
+}
+
+opd_farc_params::opd_farc_params() : compress(), encrypt() {
+    align = 1;
+}
+
+opd_farc::opd_farc() : stream(), farc_size() {
+
+}
+
+opd_farc::~opd_farc() {
+
+}
+
+bool opd_farc::add_file(const void* data, size_t size, const std::string& name) {
+    if (!data || !size || !name.size() || !stream)
+        return false;
+
+    stream->write(data, size);
+    return true;
+}
+
+bool opd_farc::open(const std::string& path, const opd_farc_params& data) {
+    reset();
+    if (!path.size() || !data.align || ((data.align - 1) & data.align))
+        return 0;
+
+    this->path.assign(path);
+    data_path.assign(path);
+    data_path.append(".data");
+    stream = new file_stream;
+    stream->open(data_path.c_str(), "wb");
+    return stream->check_not_null();
+}
+
+void opd_farc::reset() {
+    path.clear();
+    params = {};
+    data_path.clear();
+    if (stream) {
+        delete stream;
+        stream = 0;
+    }
+    farc_size = 0;
+}
+
+bool opd_farc::write_file() {
+    std::string path_tmp(path);
+    path_tmp.append(".tmp");
+
+    bool ret = false;
+    if (stream) {
+        stream->close();
+        delete stream;
+
+        if (!path_delete_file(path.c_str())) {
+            file_stream data_fs;
+            data_fs.open(data_path.c_str(), "rb");
+            if (data_fs.check_not_null() && data_fs.get_length()) {
+                size_t length = data_fs.length;
+                uint8_t* data = force_malloc<uint8_t>(length);
+
+                size_t len = data_fs.read(data, length);
+                if (len) {
+                    bool compress = params.compress;
+                    bool encrypt = params.encrypt;
+
+                    farc f;
+                    farc_file* ff = f.add_file(data_path.c_str());
+                    ff->data = data;
+                    ff->size = length;
+                    ff->compressed = compress;
+                    ff->encrypted = encrypt;
+                    ff->data_changed = true;
+
+                    farc_signature signature;
+                    farc_flags flags;
+                    if (encrypt) {
+                        signature = FARC_FARC;
+                        flags = FARC_AES;
+
+                        if (compress)
+                            enum_or(flags, FARC_GZIP);
+                    }
+                    else if (compress) {
+                        signature = FARC_FArC;
+                        flags = FARC_NONE;
+                    }
+                    else {
+                        signature = FARC_FArc;
+                        flags = FARC_NONE;
+                    }
+                    f.write(path_tmp.c_str(), signature, flags, false, false);
+                    ret = true;
+                }
+                else
+                    free_def(data);
+            }
+
+            if (ret) {
+                path_delete_file(path.c_str());
+                if (path_rename_file(path_tmp.c_str(), path.c_str()))
+                    ret = false;
+            }
+        }
+    }
+
+    path_delete_file(data_path.c_str());
+    path_delete_file(path_tmp.c_str());
+    reset();
+    return ret;
+}
+
+p_opd_farc::p_opd_farc() : ptr() {
+
+}
+
+p_opd_farc::~p_opd_farc() {
+    if (ptr) {
+        delete ptr;
+        ptr = 0;
+    }
+}
+
+bool p_opd_farc::add_file(const void* data, size_t size, const std::string& file) {
+    return ptr->add_file(data, size, file);
+}
+
+bool p_opd_farc::open(const std::string& path, const opd_farc_params& data) {
+    return ptr->open(path, data);
+}
+
+bool p_opd_farc::open(const std::string& path, bool compress, size_t align) {
+    opd_farc_params farc_data;
+    farc_data.compress = compress;
+    farc_data.align = align;
+    return open(path, farc_data);
+}
+
+bool p_opd_farc::write_file() {
+    return ptr->write_file();
+}
+
+opd_chara_data::opd_chara_data() : chara_id(), init(), frame_index(), frame_count(), motion_id(), field_18() {
+    reset();
+}
+
+opd_chara_data::~opd_chara_data() {
+
+}
+
+void opd_chara_data::add_frame_data() {
+    if (!init || frame_index >= frame_count)
+        return;
+
+    rob_chara_item_equip* rob_itm_equip = rob_chara_array_get(chara_id)->item_equip;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
+        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+
+        std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
+
+
+        size_t node_index = 0;
+        for (ExOsageBlock*& j : itm_eq_obj->osage_blocks) {
+            std::vector<opd_vec3_data_vec>& opd_node_data = opd_data.data()[node_index++];
+
+            RobOsageNode* k_begin = j->rob.nodes.data() + 1;
+            RobOsageNode* k_end = j->rob.nodes.data() + j->rob.nodes.size();
+            size_t l = 0;
+            for (RobOsageNode* k = k_begin; k != k_end; k++, l++) {
+                opd_node_data.data()[l].x.data()[frame_index] = k->reset_data.trans.x;
+                opd_node_data.data()[l].y.data()[frame_index] = k->reset_data.trans.y;
+                opd_node_data.data()[l].z.data()[frame_index] = k->reset_data.trans.z;
+            }
+        }
+
+        for (ExClothBlock*& j : itm_eq_obj->cloth_blocks) {
+            std::vector<opd_vec3_data_vec>& opd_node_data = opd_data.data()[node_index++];
+
+            CLOTHNode* k_begin = j->rob.nodes.data() + j->rob.root_count;
+            CLOTHNode* k_end = j->rob.nodes.data() + j->rob.nodes.size();
+            size_t l = 0;
+            for (CLOTHNode* k = k_begin; k != k_end; k++, l++) {
+                opd_node_data.data()[l].x.data()[frame_index] = k->reset_data.trans.x;
+                opd_node_data.data()[l].y.data()[frame_index] = k->reset_data.trans.y;
+                opd_node_data.data()[l].z.data()[frame_index] = k->reset_data.trans.z;
+            }
+        }
+    }
+    frame_index++;
+}
+
+void opd_chara_data::encode_data() {
+    if (!init || frame_index != frame_count)
+        return;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+
+    const char* motion_name = aft_mot_db->get_motion_name(this->motion_id);
+    if (!motion_name)
+        return;
+
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
+
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s/%d", get_ram_osage_play_data_tmp_path(), chara_id);
+
+    p_opd_farc* opd = this->opd;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opd++) {
+        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+
+        object_info obj_info = itm_eq_obj->obj_info;
+        const char* object_name = aft_obj_db->get_object_name(obj_info);
+        if (!object_name)
+            continue;
+
+        std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
+
+        size_t total_frame_count = 0;
+        for (std::vector<opd_vec3_data_vec>& j : opd_data)
+            for (opd_vec3_data_vec& k : j)
+                total_frame_count += k.x.size();
+
+        size_t max_size = sizeof(osage_play_data_header) + (6ULL * (frame_count + 2ULL) * total_frame_count);
+        uint8_t* data = force_malloc<uint8_t>(max_size);
+
+        osage_play_data_header* opd_head = (osage_play_data_header*)data;
+        opd_head->frame_count = frame_count;
+        opd_head->motion_id = motion_id;
+        opd_head->obj_info = { (uint16_t)obj_info.id, (uint16_t)obj_info.set_id };
+        opd_head->nodes_count = (uint16_t)itm_eq_obj->osage_nodes_count;
+
+        size_t size = sizeof(osage_play_data_header);
+        uint8_t* d = data + size;
+
+        size_t osage_node_index = 0;
+        bool higher_accuracy = false;
+        for (std::vector<opd_vec3_data_vec>& j : opd_data) {
+            if (osage_node_index < itm_eq_obj->osage_blocks.size())
+                higher_accuracy = itm_eq_obj->osage_blocks.data()[osage_node_index]->has_children_node;
+
+            for (opd_vec3_data_vec& k : j) {
+                size_t size_x = 0;
+                opd_encode_data(k.x, d, size_x, higher_accuracy);
+                d += size_x;
+                size += size_x;
+
+                size_t size_y = 0;
+                opd_encode_data(k.y, d, size_y, higher_accuracy);
+                d += size_y;
+                size += size_y;
+
+                size_t size_z = 0;
+                opd_encode_data(k.z, d, size_z, higher_accuracy);
+                d += size_z;
+                size += size_z;
+            }
+            osage_node_index++;
+        }
+
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "%s_%s.opd", object_name, motion_name);
+
+        for (int32_t i = 0; buf[i]; i++) {
+            char c = buf[i];
+            if (c >= 'A' && c <= 'Z')
+                c += 0x20;
+            buf[i] = c;
+        }
+
+        opd->add_file(data, size, buf);
+        free_def(data);
+    }
+
+    reset();
+}
+
+void opd_chara_data::encode_init_data(uint32_t motion_id) {
+    if (!init || frame_index != frame_count)
+        return;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+
+    const char* motion_name = aft_mot_db->get_motion_name(this->motion_id);
+    if (!motion_name)
+        return;
+
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
+
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+
+    p_opd_farc* opdi = this->opdi;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opdi++) {
+        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+
+        object_info obj_info = itm_eq_obj->obj_info;
+        const char* object_name = aft_obj_db->get_object_name(obj_info);
+        if (!object_name)
+            continue;
+
+        size_t size = sizeof(osage_play_data_init_header) + sizeof(vec3) * 2 * itm_eq_obj->osage_nodes_count;
+        uint8_t* data = force_malloc<uint8_t>(size);
+
+        osage_play_data_init_header* opdi_head = (osage_play_data_init_header*)data;
+        opdi_head->motion_id = motion_id;
+        opdi_head->obj_info = { (uint16_t)obj_info.id, (uint16_t)obj_info.set_id };
+        opdi_head->nodes_count = (uint16_t)itm_eq_obj->osage_nodes_count;
+
+        vec3* d = (vec3*)(data + sizeof(osage_play_data_init_header));
+
+        for (ExOsageBlock*& j : itm_eq_obj->osage_blocks) {
+            if (!(j->rob.nodes.size()))
+                break;
+
+            RobOsageNode* k_begin = j->rob.nodes.data() + 1;
+            RobOsageNode* k_end = j->rob.nodes.data() + j->rob.nodes.size();
+            for (RobOsageNode* k = k_begin; k != k_end; k++) {
+                d[0] = k->trans;
+                d[1] = k->trans_diff;
+                d += 2;
+            }
+        }
+
+        for (ExClothBlock*& j : itm_eq_obj->cloth_blocks) {
+            if (!(j->rob.nodes.size()))
+                break;
+
+            CLOTHNode* k_begin = j->rob.nodes.data() + j->rob.root_count;
+            CLOTHNode* k_end = j->rob.nodes.data() + j->rob.nodes.size();
+            size_t l = 0;
+            for (CLOTHNode* k = k_begin; k != k_end; k++, l++) {
+                d[0] = k->trans;
+                d[1] = k->trans_diff;
+                d += 2;
+            }
+        }
+
+        char buf[0x200];
+        sprintf_s(buf, sizeof(buf), "%s_%s.opdi", object_name, motion_name);
+
+        for (int32_t i = 0; buf[i]; i++) {
+            char c = buf[i];
+            if (c >= 'A' && c <= 'Z')
+                c += 0x20;
+            buf[i] = c;
+        }
+
+        opdi->add_file(data, size, buf);
+        free_def(data);
+    }
+}
+
+void opd_chara_data::fs_copy_file() {
+
+}
+
+void opd_chara_data::init_data(uint32_t motion_id) {
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
+
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+    int32_t frame_count = (int32_t)rob_chr->data.field_1588.field_0.frame;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
+        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+
+        std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
+        opd_data.clear();
+        opd_data.resize(itm_eq_obj->cloth_blocks.size() + itm_eq_obj->osage_blocks.size());
+
+        size_t node_index = 0;
+        for (ExOsageBlock*& j : itm_eq_obj->osage_blocks) {
+            std::vector<opd_vec3_data_vec>& opd_node_data = opd_data.data()[node_index++];
+            opd_node_data.resize(j->rob.nodes.size() - 1);
+
+            RobOsageNode* k_begin = j->rob.nodes.data() + 1;
+            RobOsageNode* k_end = j->rob.nodes.data() + j->rob.nodes.size();
+            size_t l = 0;
+            for (RobOsageNode* k = k_begin; k != k_end; k++, l++) {
+                opd_node_data.data()[l].x.resize(frame_count);
+                opd_node_data.data()[l].y.resize(frame_count);
+                opd_node_data.data()[l].z.resize(frame_count);
+            }
+        }
+
+        for (ExClothBlock*& j : itm_eq_obj->cloth_blocks) {
+            std::vector<opd_vec3_data_vec>& opd_node_data = opd_data.data()[node_index++];
+            opd_node_data.resize(j->rob.nodes.size() - j->rob.root_count);
+
+            CLOTHNode* k_begin = j->rob.nodes.data() + j->rob.root_count;
+            CLOTHNode* k_end = j->rob.nodes.data() + j->rob.nodes.size();
+            size_t l = 0;
+            for (CLOTHNode* k = k_begin; k != k_end; k++, l++) {
+                opd_node_data.data()[l].x.resize(frame_count);
+                opd_node_data.data()[l].y.resize(frame_count);
+                opd_node_data.data()[l].z.resize(frame_count);
+            }
+        }
+    }
+
+    this->frame_index = 0;
+    this->frame_count = frame_count;
+    init = true;
+    this->motion_id = motion_id;
+}
+
+void opd_chara_data::open_opd_file() {
+
+}
+
+void opd_chara_data::open_opdi_file() {
+
+}
+
+void opd_chara_data::reset() {
+    init = false;
+    motion_id = -1;
+    frame_index = 0;
+    frame_count = 0;
+    field_18 = 0;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++)
+        opd_data[i].clear();
+}
+
+void opd_chara_data::write_file() {
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
+
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
+        if (rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i))->osage_nodes_count)
+            opd[i].write_file();
+    }
 }
 
 OsagePlayDataManager::OsagePlayDataManager() : state() {
@@ -16120,7 +16794,7 @@ void OsagePlayDataManager::AppendCharaMotionId(rob_chara* rob_chr, const std::ve
             || (!itm_eq_obj->osage_blocks.size() && !itm_eq_obj->cloth_blocks.size()))
             continue;
 
-        for (uint32_t j : motion_ids)
+        for (const uint32_t j : motion_ids)
             opd_req_data.push_back(itm_eq_obj->obj_info, j);
     }
 }
@@ -16143,7 +16817,7 @@ void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
 
 void OsagePlayDataManager::LoadOpdFile(p_file_handler* pfhndl) {
     ::opd_file_data data = {};
-    if (opd_decode_data(pfhndl->get_data(), &data.data, &data.head))
+    if (opd_decode_data(pfhndl->get_data(), data.data, data.head))
         opd_file_data.insert({ { object_info(data.head.obj_info.first,
             data.head.obj_info.second), data.head.motion_id }, data });
 }
@@ -16503,39 +17177,60 @@ void rob_osage_mothead::set_sleeve_adjust(const mothead_data* mhd_data) {
     rob_bone_data->sleeve_adjust.radius = ((float_t*)data)[1];
 }
 
-struc_656::struc_656() {
+OpdMakeManager::CharaConstume::CharaConstume() {
 
 }
 
-struc_656::~struc_656() {
+OpdMakeManager::CharaConstume::~CharaConstume() {
 
 }
 
-struc_655::struc_655() : count(), index() {
+OpdMakeManager::CharaConstumes::CharaConstumes() : count(), index() {
 
 }
 
-struc_655::~struc_655() {
+OpdMakeManager::CharaConstumes::~CharaConstumes() {
 
 }
 
-struc_657::struc_657() : mode(), progress() {
+bool OpdMakeManager::CharaConstumes::CheckNoItems(chara_index chara_index) {
+    std::vector<uint32_t>* _items = chara[chara_index].items;
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, _items++)
+        if (_items->size())
+            return false;
+    return true;
+}
+
+void OpdMakeManager::CharaConstumes::PopItems(chara_index chara_index, int32_t items[ITEM_SUB_MAX]) {
+    std::vector<uint32_t>* _items = chara[chara_index].items;
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, _items++) {
+        items[i] = 0;
+        if (!_items->size())
+            continue;
+
+        items[i] = _items->back();
+        _items->pop_back();
+        count--;
+    }
+}
+
+OpdMakeManager::Chara::Chara() : mode(), progress() {
     chara = CHARA_MAX;
 }
 
-struc_657::~struc_657() {
+OpdMakeManager::Chara::~Chara() {
 
 }
 
-struc_691::struc_691() : mode(), count(), index() {
+OpdMakeManager::Data::Data() : mode(), count(), index() {
 
 }
 
-struc_691::~struc_691() {
+OpdMakeManager::Data::~Data() {
 
 }
 
-OpdMakeManager::OpdMakeManager() : mode(), workers(), field_1888(), field_1889() {
+OpdMakeManager::OpdMakeManager() : field_70(), mode(), workers(), field_1888(), use_opdi() {
     chara = CHARA_MAX;
 }
 
@@ -16574,7 +17269,7 @@ bool OpdMakeManager::ctrl() {
         break;
     case 3:
         motion_set_ids.clear();
-        for (int32_t& i : motion_ids) {
+        for (const uint32_t& i : motion_ids) {
             uint32_t set_id = aft_mot_db->get_motion_set_id_by_motion_id(i);
             if (set_id != -1)
                 motion_set_ids.push_back(set_id);
@@ -16604,7 +17299,7 @@ bool OpdMakeManager::ctrl() {
     case 5: {
         bool v8 = false;
         for (int32_t i = 0; i < CHARA_MAX; i++)
-            if (!sub_140479090(field_88, (chara_index)i)) {
+            if (!chara_costumes.CheckNoItems((chara_index)i)) {
                 chara = (chara_index)i;
                 v8 = true;
                 break;
@@ -16671,9 +17366,9 @@ bool OpdMakeManager::ctrl() {
     default:
         break;
     }
-    field_1860.mode = mode;
-    field_1860.count = (uint32_t)field_88.count;
-    field_1860.index = field_88.index;
+    data.mode = mode;
+    data.count = (uint32_t)chara_costumes.count;
+    data.index = chara_costumes.index;
     return ret;
 }
 
@@ -17598,7 +18293,7 @@ void PvOsageManager::AddMotionFrameResetData(int32_t stage_index, uint32_t motio
 
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
 
-    rob_osage_mothead v17(rob_chr, stage_index, motion_id, frame, aft_bone_data, aft_mot_db);
+    rob_osage_mothead osg_mhd(rob_chr, stage_index, motion_id, frame, aft_bone_data, aft_mot_db);
     rob_chr->adjust_ctrl();
     rob_chr->rob_motion_modifier_ctrl();
 
@@ -17807,10 +18502,10 @@ void PvOsageManager::sub_1404F83A0(::osage_set_motion* a2) {
     if (frame_1 < 0.0f)
         frame_1 = last_frame - 1.0f;
 
-    rob_osage_mothead v42(rob_chr, a2->frames.front().second, motion_id, frame_1, aft_bone_data, aft_mot_db);
+    rob_osage_mothead osg_mhd(rob_chr, a2->frames.front().second, motion_id, frame_1, aft_bone_data, aft_mot_db);
     for (float_t& i : v34) {
-        v42.set_frame(frame);
-        v42.ctrl();
+        osg_mhd.set_frame(frame);
+        osg_mhd.ctrl();
 
         float_t frame_1 = frame;
         frame = prj::floorf(frame) + 1.0f;
@@ -17830,7 +18525,7 @@ void PvOsageManager::sub_1404F83A0(::osage_set_motion* a2) {
 
         if (frame >= last_frame) {
             frame = 0.0f;
-            v42.init_data(aft_mot_db);
+            osg_mhd.init_data(aft_mot_db);
         }
     }
 

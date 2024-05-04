@@ -22,6 +22,7 @@ extern uint32_t hash_murmurhash(const void* data, size_t size,
     uint32_t seed = 0, bool upper = false, bool big_endian = false);
 extern uint16_t hash_crc16_ccitt(const void* data, size_t size, bool make_upper = false);
 extern uint64_t hash_xxh3_64bits(const void* data, size_t size);
+extern uint32_t hash_adler32(uint32_t adler, const void* buf, size_t len);
 
 inline uint64_t hash_utf8_fnv1a64m(const char* data, bool make_upper = false) {
     return hash_fnv1a64m(data, utf8_length(data), make_upper);
@@ -35,7 +36,7 @@ inline uint64_t hash_utf16_fnv1a64m(const wchar_t* data, bool make_upper = false
 }
 
 inline uint64_t hash_string_fnv1a64m(const std::string& data, bool make_upper = false) {
-    return hash_fnv1a64m(data.c_str(), data.size(), make_upper);
+    return hash_fnv1a64m(data.data(), data.size(), make_upper);
 }
 
 inline uint32_t hash_utf8_murmurhash(const char* data, uint32_t seed = 0, bool upper = false) {
@@ -50,7 +51,7 @@ inline uint32_t hash_utf16_murmurhash(const wchar_t* data, uint32_t seed = 0, bo
 }
 
 inline uint32_t hash_string_murmurhash(const std::string& data, uint32_t seed = 0, bool upper = false) {
-    return hash_murmurhash(data.c_str(), data.size(), seed, upper);
+    return hash_murmurhash(data.data(), data.size(), seed, upper);
 }
 
 inline uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper = false) {
@@ -65,7 +66,7 @@ inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper = fa
 }
 
 inline uint16_t hash_string_crc16_ccitt(const std::string& data, bool make_upper = false) {
-    return hash_crc16_ccitt(data.c_str(), data.size(), make_upper);
+    return hash_crc16_ccitt(data.data(), data.size(), make_upper);
 }
 
 inline uint64_t hash_utf8_xxh3_64bits(const char* data, bool make_upper = false) {
@@ -130,7 +131,72 @@ inline uint64_t hash_string_xxh3_64bits(const std::string& data, bool make_upper
         return hash;
     }
 
-    return hash_xxh3_64bits(data.c_str(), data.size());
+    return hash_xxh3_64bits(data.data(), data.size());
+}
+
+inline uint64_t hash_utf8_xxh3_64bits(uint32_t adler, const char* data, bool make_upper = false) {
+    if (make_upper) { // Modification for only uppercase latin text
+        size_t size = utf8_length(data);
+        char* temp = force_malloc<char>(size + 1);;
+        memmove(temp, data, size + 1);
+
+        uint8_t* d = (uint8_t*)temp;
+        for (size_t i = size; i; i--) {
+            uint8_t a = *d++;
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+        }
+
+        uint64_t hash = hash_adler32(adler, temp, size);
+        free_def(temp);
+        return hash;
+    }
+    return hash_adler32(adler, data, utf8_length(data));
+}
+
+inline uint64_t hash_utf16_adler32(uint32_t adler, const wchar_t* data, bool make_upper = false) {
+    if (make_upper) { // Modification for only uppercase latin text
+        char* temp = utf16_to_utf8(data);
+        size_t size = utf8_length(temp);
+
+        uint8_t* d = (uint8_t*)temp;
+        for (size_t i = size; i; i--) {
+            uint8_t a = *d++;
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+        }
+
+        uint64_t hash = hash_adler32(adler, temp, size);
+        free_def(temp);
+        return hash;
+    }
+
+    char* temp = utf16_to_utf8(data);
+    size_t size = utf8_length(temp);
+    uint64_t hash = hash_adler32(adler, temp, size);
+    free_def(temp);
+    return hash;
+}
+
+inline uint64_t hash_string_adler32(uint32_t adler, const std::string& data, bool make_upper = false) {
+    if (make_upper) { // Modification for only uppercase latin text
+        size_t size = data.size();
+        char* temp = force_malloc<char>(size + 1);;
+        memmove(temp, data.data(), size + 1);
+
+        uint8_t* d = (uint8_t*)temp;
+        for (size_t i = size; i; i--) {
+            uint8_t a = *d++;
+            if (a > 0x60 && a < 0x7B)
+                a -= 0x20;
+        }
+
+        uint64_t hash = hash_adler32(adler, temp, size);
+        free_def(temp);
+        return hash;
+    }
+
+    return hash_adler32(adler, data.data(), data.size());
 }
 
 struct string_hash {
@@ -270,3 +336,18 @@ inline bool operator ==(const string_hash& left, const string_hash& right) {
 inline bool operator !=(const string_hash& left, const string_hash& right) {
     return !!left.str.compare(right.str);
 }
+
+struct adler_buf {
+    uint32_t adler;
+    size_t size;
+
+    inline adler_buf() {
+        adler = hash_adler32(0, 0, 0);
+        size = 0;
+    }
+
+    inline void get_adler(const void* data, size_t size) {
+        adler = hash_adler32(adler, (const uint8_t*)data, size);
+        size += size;
+    }
+};
