@@ -648,7 +648,7 @@ void RobOsageTest::disp_coli() {
     }
 
     if (cls && cls->rob.nodes.size() > 1) {
-        CLOTHNode* i_begin = cls->rob.nodes.data();
+        CLOTHNode* i_begin = cls->rob.nodes.data() + cls->rob.root_count;
         CLOTHNode* i_end = cls->rob.nodes.data() + cls->rob.nodes.size();
         for (CLOTHNode* i = i_begin; i != i_end; i++) {
             mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
