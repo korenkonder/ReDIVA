@@ -12,6 +12,8 @@
 #include "../../KKdLib/sort.hpp"
 #include "../../KKdLib/str_utils.hpp"
 #include "../../KKdLib/waitable_timer.hpp"
+#include "../customize_item_table.hpp"
+#include "../module_table.hpp"
 #include "../data.hpp"
 #include "../effect.hpp"
 #include "../hand_item.hpp"
@@ -63,8 +65,7 @@ struct OpdMaker {
         bool CheckOpdiFilesNotReady();
         const void* GetOpdiFileData(object_info obj_info, uint32_t motion_id);
         bool IsValidOpdiFile(rob_chara* rob_chr, uint32_t motion_id);
-        void ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& motions,
-            void* data, const object_database* obj_db, const motion_database* mot_db);
+        void ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& motions);
         void Reset();
     };
 
@@ -102,7 +103,7 @@ struct OpdMakeWorker : public app::Task {
     bool field_D4;
     OpdMaker::Data data;
 
-    OpdMakeWorker();
+    OpdMakeWorker(int32_t chara_id);
     virtual ~OpdMakeWorker() override;
 
     virtual bool init() override;
@@ -167,9 +168,20 @@ struct opd_farc_params {
     opd_farc_params();
 };
 
+struct opd_farc_file {
+    std::string name;
+    size_t offset;
+    size_t size;
+
+    opd_farc_file();
+    opd_farc_file(const std::string& name, size_t offset, size_t size);
+    ~opd_farc_file();
+};
+
 struct opd_farc {
     std::string path;
     opd_farc_params params;
+    std::vector<opd_farc_file> files;
     std::string data_path;
     file_stream* stream;
     size_t farc_size;
@@ -178,7 +190,7 @@ struct opd_farc {
     ~opd_farc();
 
     bool add_file(const void* data, size_t size, const std::string& name);
-    bool open(const std::string& path, const opd_farc_params& data);
+    bool open(const std::string& path, const opd_farc_params& params);
     void reset();
     bool write_file();
 };
@@ -190,7 +202,7 @@ struct p_opd_farc {
     ~p_opd_farc();
 
     bool add_file(const void* data, size_t size, const std::string& file);
-    bool open(const std::string& path, const opd_farc_params& data);
+    bool open(const std::string& path, const opd_farc_params& params);
     bool open(const std::string& path, bool compress, size_t align);
     bool write_file();
 };
@@ -245,6 +257,18 @@ public:
     void Reset();
 };
 
+struct osage_play_data_database_struct {
+    std::map<std::string, size_t> map;
+
+    osage_play_data_database_struct();
+    ~osage_play_data_database_struct();
+
+    size_t& find(const std::string& key);
+    size_t& get_ver_by_name(size_t& ver, const std::string& name);
+    void load(const std::string& file_path);
+    void reset();
+};
+
 struct rob_osage_mothead_data {
     bool init;
     mothead_data_type type;
@@ -290,65 +314,37 @@ struct rob_osage_mothead {
     void set_sleeve_adjust(const mothead_data* mhd_data);
 };
 
-struct struc_567 {
-    uint16_t year;
-    uint16_t month;
-    uint16_t day;
-};
-
-struct struc_568 {
-    struc_567 field_0;
-    int64_t field_10;
-};
-
 struct OpdMakeManager : app::Task {
-    struct Chara {
-        uint32_t mode;
-        uint32_t progress;
-        chara_index chara;
-        std::vector<uint32_t> items;
-
-        Chara();
-        ~Chara();
-    };
-
-    struct Data {
-        uint32_t mode;
-        uint32_t count;
-        uint32_t index;
-        std::vector<Chara> charas;
-
-        Data();
-        ~Data();
-    };
-
-    struct CharaConstume {
+    struct CharaCostume {
         std::vector<uint32_t> items[ITEM_SUB_MAX];
 
-        CharaConstume();
-        ~CharaConstume();
+        CharaCostume();
+        ~CharaCostume();
     };
 
-    struct CharaConstumes {
+    struct CharaData {
+        size_t left;
         size_t count;
-        uint32_t index;
-        CharaConstume chara[CHARA_MAX];
+        CharaCostume chara_costumes[CHARA_MAX];
 
-        CharaConstumes();
-        ~CharaConstumes();
+        CharaData();
+        ~CharaData();
 
+        void AddCostumes(const std::list<std::pair<chara_index, int32_t>>& costumes);
+        void AddObjects(const std::vector<std::string>& customize_items);
         bool CheckNoItems(chara_index chara_index);
         void PopItems(chara_index chara_index, int32_t items[ITEM_SUB_MAX]);
+        void Reset();
+        void SortUnique();
     };
 
     int32_t mode;
-    struc_568 field_70;
-    CharaConstumes chara_costumes;
+    CharaData chara_data;
     chara_index chara;
     std::vector<uint32_t> motion_ids;
     std::vector<uint32_t> motion_set_ids;
     OpdMakeWorker* workers[4];
-    Data data;
+    OpdMakeManagerData data;
     bool field_1888;
     bool use_opdi;
 
@@ -361,6 +357,9 @@ struct OpdMakeManager : app::Task {
     void disp() override;
 
     bool del();
+
+    void AddTask(const OpdMakeManagerArgs& args);
+    OpdMakeManagerData* GetData();
 };
 
 struct struc_380 {
@@ -1095,8 +1094,6 @@ static void motion_blend_mot_set_duration(motion_blend_mot* mot,
 
 static PvOsageManager* pv_osage_manager_array_get(int32_t chara_id);
 
-static int pv_data_set_motion_quicksort_compare_func(void const* src1, void const* src2);
-
 static void rob_base_rob_chara_init(rob_chara* rob_chr);
 static void rob_base_rob_chara_ctrl(rob_chara* rob_chr);
 static void rob_base_rob_chara_ctrl_thread_main(rob_chara* rob_chr);
@@ -1210,10 +1207,6 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
-static const char* get_ram_osage_play_data_dir();
-static const char* get_ram_osage_play_data_tmp_dir();
-static const char* get_rom_osage_play_data_dir();
-
 static void opd_chara_data_array_add_frame_data(int32_t chara_id);
 static void opd_chara_data_array_encode_data(int32_t chara_id);
 static void opd_chara_data_array_encode_init_data(int32_t chara_id, int32_t motion_id);
@@ -1238,8 +1231,10 @@ rob_manager_rob_impl rob_manager_rob_impls2[7];
 bool rob_manager_rob_impls2_init = false;
 
 opd_chara_data* opd_chara_data_array;
+OpdChecker* opd_checker;
 OpdMakeManager* opd_make_manager;
 OpdMaker* opd_maker_array;
+osage_play_data_database_struct* osage_play_data_database;
 OsagePlayDataManager* osage_play_data_manager;
 PvOsageManager* pv_osage_manager_array;
 rob_cmn_mottbl_header* rob_cmn_mottbl_data;
@@ -1249,6 +1244,7 @@ RobThreadHandler* rob_thread_handler;
 TaskRobLoad* task_rob_load;
 TaskRobManager* task_rob_manager;
 
+static int32_t opd_chara_data_counter = 0;
 static int32_t opd_maker_counter = 0;
 static int32_t pv_osage_manager_counter = 0;
 static int32_t rob_thread_parent_counter = 0;
@@ -2300,7 +2296,7 @@ bool check_cos_id_is_501(int32_t cos_id) {
 
 const uint32_t* get_opd_motion_set_ids() {
     static const uint32_t opd_motion_set_ids[] = {
-        51, 194, 797, (uint32_t)-1,
+        51, 194, 797, (uint32_t)-1, // EDT, EDT2, EDTF1
     };
 
     return opd_motion_set_ids;
@@ -2338,8 +2334,98 @@ void motion_set_unload_mothead(uint32_t set) {
         mothead_storage_data.erase(elem);
 }
 
+const char* get_ram_osage_play_data_dir() {
+    return "ram/osage_play_data";
+}
+
+const char* get_ram_osage_play_data_tmp_dir() {
+    return "ram/osage_play_data_tmp";
+}
+
+const char* get_rom_osage_play_data_dir() {
+    return "rom/osage_play_data";
+}
+
+const char* get_rom_osage_play_data_opdi_dir() {
+    return "rom/osage_play_data/opdi";
+}
+
+OpdChecker* opd_checker_get() {
+    return opd_checker;
+}
+
+bool opd_checker_check_state_not_3() {
+    return opd_checker_get()->CheckStateNot3();
+}
+
+bool opd_checker_has_objects() {
+    return !!opd_checker_get()->GetObjects().size();
+}
+
+void opd_checker_launch_thread() {
+    opd_checker_get()->LaunchThread();
+}
+
+void opd_checker_terminate_thread() {
+    opd_checker_get()->TerminateThread();
+}
+
+void opd_make_manager_add_task(const OpdMakeManagerArgs& args) {
+    opd_make_manager->AddTask(args);
+}
+
+bool opd_make_manager_check_task_ready() {
+    return app::TaskWork::check_task_ready(opd_make_manager);
+}
+
 bool opd_make_manager_del_task() {
     return opd_make_manager->del();
+}
+
+OpdMakeManagerData* opd_make_manager_get_data() {
+    return opd_make_manager->GetData();
+}
+
+static std::vector<int32_t> opd_make_start_get_motion_ids() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+    const uint32_t* opd_motion_set_ids = get_opd_motion_set_ids();
+    std::vector<int32_t> motion_ids;
+    while (*opd_motion_set_ids != -1) {
+        const motion_set_info* set_info = aft_mot_db->get_motion_set_by_id(*opd_motion_set_ids);
+        if (!set_info) {
+            opd_motion_set_ids++;
+            continue;
+        }
+
+        motion_ids.reserve(set_info->motion.size());
+        for (const motion_info& i : set_info->motion)
+            motion_ids.push_back(i.id);
+        opd_motion_set_ids++;
+    }
+
+    motion_ids.push_back(195); // CMN_MRA00_13_01
+    prj::sort_unique(motion_ids);
+    return motion_ids;
+}
+
+void opd_make_start() {
+    std::vector<std::string>& objects = opd_checker_get()->GetObjects();
+    std::vector<int32_t> motion_ids = opd_make_start_get_motion_ids();
+
+    OpdMakeManagerArgs args;
+    args.modules = 0;
+    args.field_18 = false;
+    args.use_opdi = true;
+    args.motion_ids = &motion_ids;
+    args.objects = &objects;
+    opd_make_manager->AddTask(args);
+}
+
+void opd_make_stop() {
+    opd_checker_terminate_thread();
+    opd_make_manager_del_task();
 }
 
 bool osage_play_data_manager_add_task() {
@@ -2370,6 +2456,20 @@ void osage_play_data_manager_reset() {
     osage_play_data_manager->Reset();
 }
 
+void osage_play_database_load() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+
+    for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
+        std::string path(get_rom_osage_play_data_dir());
+        path.append(i);
+        path.append("/");
+        path.append("opd_db.txt");
+
+        if (aft_data->check_file_exists(path.c_str()))
+            osage_play_data_database->load(path.c_str());
+    }
+}
+
 void pv_osage_manager_array_reset(int32_t chara_id) {
     pv_osage_manager_array_get(chara_id)->Reset();
 }
@@ -2378,12 +2478,18 @@ void rob_init() {
     if (!opd_chara_data_array)
         opd_chara_data_array = new opd_chara_data[ROB_CHARA_COUNT];
 
+    if (!opd_checker)
+        opd_checker = new OpdChecker;
+    
     if (!opd_make_manager)
         opd_make_manager = new OpdMakeManager;
 
     if (!opd_maker_array)
         opd_maker_array = new OpdMaker[4];
 
+    if (!osage_play_data_database)
+        osage_play_data_database = new osage_play_data_database_struct;
+    
     if (!osage_play_data_manager)
         osage_play_data_manager = new OsagePlayDataManager;
 
@@ -2466,6 +2572,11 @@ void rob_free() {
     if (osage_play_data_manager) {
         delete osage_play_data_manager;
         osage_play_data_manager = 0;
+    }
+
+    if (osage_play_data_database) {
+        delete osage_play_data_database;
+        osage_play_data_database = 0;
     }
 
     if (opd_maker_array) {
@@ -5015,6 +5126,201 @@ osage_init_data::osage_init_data(rob_chara* rob_chr, int32_t pv_id,
 
 osage_init_data::~osage_init_data() {
 
+}
+
+OpdMakeManagerData::Chara::Chara() : mode(), progress() {
+    chara = CHARA_MAX;
+}
+
+OpdMakeManagerData::Chara::~Chara() {
+
+}
+
+OpdMakeManagerData::OpdMakeManagerData() : left(), count() {
+    mode = -1;
+}
+
+OpdMakeManagerData::~OpdMakeManagerData() {
+
+}
+OpdChecker::OpdChecker() : state(), field_8(), field_10(),
+field_18(), index(), size(), terminated(), thread() {
+    SetState(0);
+    field_40 = -1;
+}
+
+OpdChecker::~OpdChecker() {
+
+}
+
+bool OpdChecker::CheckFileAdler32Checksum(const std::string& path) {
+    bool ret = false;
+    file_stream fs;
+    fs.open(path.c_str(), "rb");
+    if (fs.check_not_null()) {
+        size_t length = fs.get_length();
+        if (length) {
+            uint8_t* data = force_malloc<uint8_t>(length);
+            if (fs.read(data, length)) {
+                adler_buf adler;
+                adler.get_adler(data, length - 8);
+                ret = *(uint32_t*)&data[length - 4] == adler.adler;
+                free_def(data);
+            }
+        }
+    }
+    fs.close();
+    return ret;
+}
+
+bool OpdChecker::CheckFileVersion(const std::string& path, uint32_t version) {
+    bool ret = false;
+    file_stream fs;
+    fs.open(path.c_str(), "rb");
+    if (fs.check_not_null()) {
+        size_t length = fs.get_length();
+        if (length) {
+            uint32_t footer[2] = {};
+            if (!fs.set_position(length - 8, SEEK_SET)
+                && fs.read(footer, sizeof(footer)))
+                ret = footer[0] == version;
+        }
+    }
+    fs.close();
+    return ret;
+}
+
+bool OpdChecker::CheckStateNot3() {
+    if (GetState())
+        return GetState() != 3;
+    return false;
+}
+
+std::vector<std::string>& OpdChecker::GetObjects() {
+    GetState();
+    return objects;
+}
+
+void OpdChecker::GetIndexSize(int32_t& index, int32_t& size) {
+    std::unique_lock<std::mutex> u_lock(index_mtx);
+    index = this->index;
+    size = this->size;
+}
+
+int32_t OpdChecker::GetState() {
+    std::unique_lock<std::mutex> u_lock(state_mtx);
+    return state;
+}
+
+bool OpdChecker::GetTerminated() {
+    std::unique_lock<std::mutex> u_lock(terminated_mtx);
+    return terminated;
+}
+
+void OpdChecker::LaunchThread() {
+    SetState(1);
+
+    thread = new std::thread(OpdChecker::ThreadMain, this);
+    if (thread) {
+        std::wstring buf = swprintf_s_string(L"OPD Checker");
+        SetThreadDescription((HANDLE)thread->native_handle(), buf.c_str());
+    }
+}
+
+void OpdChecker::SetIndexSize(int32_t index, int32_t size) {
+    std::unique_lock<std::mutex> u_lock(index_mtx);
+    this->index = index;
+    this->size = size;
+}
+
+void OpdChecker::SetState(int32_t value) {
+    std::unique_lock<std::mutex> u_lock(state_mtx);
+    state = value;
+}
+
+void OpdChecker::SetTerminated() {
+    std::unique_lock<std::mutex> u_lock(terminated_mtx);
+    terminated = true;
+}
+
+void OpdChecker::TerminateThread() {
+    SetTerminated();
+
+    if (thread) {
+        thread->join();
+        delete thread;
+    }
+
+    thread = 0;
+}
+
+void OpdChecker::ThreadMain(OpdChecker* opd_checker) {
+    opd_checker->terminated = 0;
+    opd_checker->SetIndexSize(0, (int32_t)osage_play_data_database->map.size());
+    opd_checker->sub_140471020();
+}
+
+void OpdChecker::sub_140471020() {
+    data_struct* aft_data = &data_list[DATA_AFT];
+
+    //bool v63 = sub_14066CC20(1);
+    while (GetState() == 1) {
+        std::vector<std::string> files = path_get_files(get_ram_osage_play_data_dir());
+        for (std::string& i : files) {
+            if (!i.size())
+                continue;
+
+            size_t pos = i.find(".farc");
+            if (pos != -1)
+                continue;
+
+            std::string temp = string_to_upper(i.substr(0, pos));
+            auto elem = osage_play_data_database->map.find(temp);
+            if (elem != osage_play_data_database->map.end() && !temp.compare(elem->first))
+                path_delete_file(sprintf_s_string("%s/%s", get_ram_osage_play_data_dir() + i).c_str());
+        }
+
+        SetState(2);
+    }
+
+    int32_t index = 0;
+    for (auto& i : osage_play_data_database->map) {
+        if (GetTerminated())
+            break;
+
+        std::string file = string_to_lower(sprintf_s_string("/%s.farc", i.first.c_str()));
+
+        std::string rom_path(get_rom_osage_play_data_dir());
+        rom_path.append(file);
+
+        std::string ram_path(get_ram_osage_play_data_dir());
+        ram_path.append(file);
+
+        bool v54 = false;
+        if (aft_data->get_file_path(rom_path))
+            v54 = CheckFileVersion(rom_path.c_str(), (uint32_t)i.second);
+
+        if (v54) {
+            if (path_check_file_exists(ram_path.c_str()))
+                path_delete_file(ram_path.c_str());
+        }
+        else {
+            if (!path_check_file_exists(ram_path.c_str())
+                || /*!v63 && */!CheckFileAdler32Checksum(ram_path)
+                || !CheckFileVersion(ram_path, (uint32_t)i.second)) {
+                path_delete_file(ram_path.c_str());
+                objects.push_back(i.first);
+            }
+        }
+
+        SetIndexSize(++index, (int32_t)osage_play_data_database->map.size());
+    }
+
+    prj::sort_unique(objects);
+    SetState(3);
+
+    //if (!v63)
+    //    sub_14066FE10(1);
 }
 
 static float_t bone_data_limit_angle(float_t angle) {
@@ -11262,18 +11568,6 @@ static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
     }
 }
 
-static const char* get_ram_osage_play_data_dir() {
-    return "ram/osage_play_data";
-}
-
-static const char* get_ram_osage_play_data_tmp_dir() {
-    return "ram/osage_play_data_tmp";
-}
-
-static const char* get_rom_osage_play_data_dir() {
-    return "rom/osage_play_data";
-}
-
 static void opd_chara_data_array_add_frame_data(int32_t chara_id) {
     opd_chara_data_array_get(chara_id)->add_frame_data();
 }
@@ -15792,10 +16086,12 @@ bool OpdMaker::Data::IsValidOpdiFile(rob_chara* rob_chr, uint32_t motion_id) {
     return true;
 }
 
-void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& motions,
-    void* data, const object_database* obj_db, const motion_database* mot_db) {
+void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& motions) {
     if (!empty || !rob_chr)
         return;
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
     for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++) {
@@ -15804,19 +16100,25 @@ void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& mo
             continue;
 
         object_info obj_info = itm_eq_obj->obj_info;
+        const char* object_name = object_storage_get_obj_name(obj_info);
+        if (!object_name)
+            continue;
+
         for (uint32_t& i : motions) {
             auto elem = opdi_files.insert({ { obj_info, i }, 0 }).first;
 
-            const char* object_name = obj_db->get_object_name(obj_info);
-            const char* motion_name = mot_db->get_motion_name(i);
-            if (object_name && motion_name) {
-                std::string farc_file = string_to_lower(sprintf_s_string("%s.opdi", object_name));
-                std::string file = string_to_lower(sprintf_s_string("%s_%s.opdi", object_name, motion_name));
+            const char* motion_name = aft_mot_db->get_motion_name(i);
+            if (!motion_name)
+                continue;
 
-                p_file_handler* file_handler = new p_file_handler;
-                file_handler->read_file(data, "rom/osage_play_data/opdi", farc_file.c_str(), file.c_str(), true);
-                elem->second = file_handler;
-            }
+            std::string farc_path = string_to_lower(sprintf_s_string(
+                "%s_%s.opdi", get_rom_osage_play_data_opdi_dir(), object_name));
+            std::string file = string_to_lower(sprintf_s_string(
+                "%s_%s.opdi", object_name, motion_name));
+
+            p_file_handler* file_handler = new p_file_handler;
+            file_handler->read_file(aft_data, farc_path.c_str(), file.c_str(), true);
+            elem->second = file_handler;
         }
     }
     empty = false;
@@ -15941,13 +16243,13 @@ void OpdMaker::Ctrl() {
 
     std::string chara_dir = sprintf_s_string("%s/%d", ram_osage_play_data_tmp_path, chara_id);
 
-    std::vector<data_struct_file> files = aft_data->get_directory_files(chara_dir.c_str());
-    for (data_struct_file& i : files) {
-        if (!i.path.size() || !i.name.size())
+    std::vector<std::string> files = path_get_files(chara_dir.c_str());
+    for (std::string& i : files) {
+        if (!i.size())
             continue;
 
-        std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.name.c_str());
-        std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_tmp_path, i.name.c_str());
+        std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.c_str());
+        std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_tmp_path, i.c_str());
 
         if (path_check_file_exists(ram_path.c_str()))
             path_delete_file(ram_path.c_str());
@@ -15955,11 +16257,11 @@ void OpdMaker::Ctrl() {
         if (!path_check_file_exists(tmp_path.c_str()))
             continue;
 
-        size_t pos = i.name.find(".farc");
+        size_t pos = i.find(".farc");
         if (pos == -1)
             continue;
 
-        std::string name(i.name.substr(0, pos));
+        std::string name(i.substr(0, pos));
         for (char& c : name)
             if (c >= 'a' && c <= 'z')
                 c -= 0x20;
@@ -15979,28 +16281,27 @@ void OpdMaker::Ctrl() {
         fs.close();
 
         void* file_data = force_malloc(file_length);
-        if (!file_data) {
-            file_stream fs;
-            fs.open(tmp_path.c_str(), "rb");
-            if (fs.check_not_null()) {
-                size_t read_length = fs.read(file_data, file_length);
-                fs.close();
+        if (!file_data)
+            continue;
 
-                if (read_length) {
-                    adler_buf adler;
-                    adler.get_adler(file_data, file_length);
-                    footer[1] = adler.adler;
-                    free_def(file_data);
+        fs.open(tmp_path.c_str(), "rb");
+        size_t read_length = fs.read(file_data, file_length);
+        fs.close();
 
-                    file_stream fs;
-                    fs.open(tmp_path.c_str(), "ab");
-                    if (fs.check_not_null()) {
-                        fs.write(footer, sizeof(footer));
-                        fs.close();
-                    }
-                }
-            }
+        if (!read_length) {
+            free_def(file_data);
+            continue;
         }
+
+        adler_buf adler;
+        adler.get_adler(file_data, file_length);
+        footer[1] = adler.adler;
+
+        fs.open(tmp_path.c_str(), "ab");
+        if (fs.check_not_null())
+            fs.write(footer, sizeof(footer));
+        fs.close();
+        free_def(file_data);
     }
 
     rob_chr = 0;
@@ -16015,7 +16316,7 @@ bool OpdMaker::GetEnd() {
 
 bool OpdMaker::InitThread(rob_chara* rob_chr, const std::vector<uint32_t>* motion_ids, OpdMaker::Data* data) {
     bool waiting = IsWaiting();
-    if (waiting || rob_chr)
+    if (waiting || this->rob_chr)
         return waiting;
 
     if (thread) {
@@ -16082,8 +16383,8 @@ void OpdMaker::ThreadMain(OpdMaker* opd_maker) {
     opd_maker->Ctrl();
 }
 
-OpdMakeWorker::OpdMakeWorker() : state(), chara_id(), items(), field_D4() {
-
+OpdMakeWorker::OpdMakeWorker(int32_t chara_id) : state(), items(), field_D4() {
+    this->chara_id = chara_id;
 }
 
 OpdMakeWorker::~OpdMakeWorker() {
@@ -16099,7 +16400,6 @@ bool OpdMakeWorker::init() {
 bool OpdMakeWorker::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
-    motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
@@ -16107,7 +16407,7 @@ bool OpdMakeWorker::ctrl() {
     const chara_init_data* chr_init_data = chara_init_data_get(chara_index);
     switch (state) {
     case 1: {
-        opd_make_manager->chara_costumes.PopItems(chara_index, items);
+        opd_make_manager->chara_data.PopItems(chara_index, items);
 
         for (int32_t i = 0; i < ITEM_SUB_MAX; i++) {
             rob_chr->item_cos_data.set_chara_index(chara_index);
@@ -16125,40 +16425,41 @@ bool OpdMakeWorker::ctrl() {
             task_rob_load_append_load_req_data_obj(chara_index, rob_chr->item_cos_data.get_cos());
             state = 3;
         }
-    } return false;
+    } break;
     case 3: {
         if (task_rob_load_check_load_req_data())
-            return false;
+            break;
 
         rob_chr->item_cos_data.reload_items(chara_id, aft_bone_data, aft_data, aft_obj_db);
 
         for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++) {
             rob_chara_item_equip_object* itm_eq_obj = rob_chr->item_equip->get_item_equip_object((item_id)i);
-            if (aft_obj_db->get_object_name(itm_eq_obj->obj_info) && itm_eq_obj->osage_nodes_count) {
-                int32_t j = ITEM_ATAMA;
-                const object_info* k = chr_init_data->field_7E4;
-                object_info v14 = itm_eq_obj->obj_info;
-                for (; *k != v14; j++, k++) {
-                    if (j < ITEM_KAMI)
-                        continue;
+            if (!object_storage_get_obj_name(itm_eq_obj->obj_info) && itm_eq_obj->osage_nodes_count)
+                continue;
 
-                    if (opd_make_manager->use_opdi)
-                        state = 4;
-                    else
-                        state = 6;
-                    return false;
-                }
+            int32_t j = ITEM_ATAMA;
+            const object_info* k = chr_init_data->field_7E4;
+            object_info v14 = itm_eq_obj->obj_info;
+            for (; *k != v14; j++, k++) {
+                if (j < ITEM_KAMI)
+                    continue;
+
+                if (opd_make_manager->use_opdi)
+                    state = 4;
+                else
+                    state = 6;
+                return false;
             }
         }
         state = 10;
     } break;
     case 4: {
-        data.ReadOpdiFiles(rob_chr, opd_make_manager->motion_ids, aft_data, aft_obj_db, aft_mot_db);
+        data.ReadOpdiFiles(rob_chr, opd_make_manager->motion_ids);
         state = 5;
     } break;
     case 5: {
         if (data.CheckOpdiFilesNotReady())
-            return false;
+            break;
         state = 6;
     }
     case 6: {
@@ -16171,47 +16472,49 @@ bool OpdMakeWorker::ctrl() {
     } break;
     case 7: {
         if (skin_param_manager_check_task_ready(chara_id))
-            return false;
+            break;
         state = 8;
     }
     case 8: {
+        path_create_directory(get_ram_osage_play_data_tmp_dir());
         opd_maker_array[chara_id].InitThread(rob_chr, &opd_make_manager->motion_ids,
             opd_make_manager->use_opdi ? &data : 0);
         state = 9;
     } break;
     case 9: {
         if (opd_maker_array[chara_id].IsWaiting())
-            return false;
+            break;
 
         data.Reset();
 
+        const char* ram_osage_play_data_path = get_ram_osage_play_data_dir();
         const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_dir();
 
         std::string chara_dir = sprintf_s_string("%s/%d", ram_osage_play_data_tmp_path, chara_id);
 
-        std::vector<data_struct_file> files = aft_data->get_directory_files(chara_dir.c_str());
-        for (data_struct_file& i : files) {
-            if (!i.path.size() || !i.name.size())
+        std::vector<std::string> files = path_get_files(chara_dir.c_str());
+        for (std::string& i : files) {
+            if (!i.size())
                 continue;
 
-            std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.name.c_str());
-            std::string fs_copy_file_tmp_path = sprintf_s_string("%s/%s.fs_copy_file.tmp", ram_osage_play_data_tmp_path, i.name.c_str());
-            std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_tmp_path, i.name.c_str());
+            std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.c_str());
+            std::string fs_copy_file_tmp_path = sprintf_s_string(
+                "%s/%s.fs_copy_file.tmp", ram_osage_play_data_tmp_path, i.c_str());
+            std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_path, i.c_str());
 
             if (!path_check_file_exists(tmp_path.c_str()))
                 continue;
 
-            if (path_check_directory_exists(ram_osage_play_data_tmp_path)
-                && path_check_file_exists(fs_copy_file_tmp_path.c_str())) {
-                if (path_check_file_exists(ram_path.c_str()))
-                    path_delete_file(ram_path.c_str());
-
-                if (!path_rename_file(fs_copy_file_tmp_path.c_str(), ram_path.c_str())
-                    && path_check_file_exists(fs_copy_file_tmp_path.c_str()))
-                    path_delete_file(fs_copy_file_tmp_path.c_str());
+            if (!path_check_directory_exists(ram_osage_play_data_tmp_path)
+                || !path_rename_file(tmp_path.c_str(), fs_copy_file_tmp_path.c_str())) {
+                path_delete_file(tmp_path.c_str());
+                continue;
             }
 
             path_delete_file(tmp_path.c_str());
+
+            path_rename_file(fs_copy_file_tmp_path.c_str(), ram_path.c_str());
+            path_delete_file(fs_copy_file_tmp_path.c_str());
         }
 
         if (field_D4)
@@ -16228,7 +16531,7 @@ bool OpdMakeWorker::ctrl() {
 
         rob_chr->item_cos_data.reload_items(chara_id, aft_bone_data, aft_data, aft_obj_db);
         skin_param_manager_reset(chara_id);
-        if (opd_make_manager->chara_costumes.CheckNoItems(chara_index))
+        if (opd_make_manager->chara_data.CheckNoItems(chara_index))
             return true;
         state = 1;
     } break;
@@ -16249,6 +16552,14 @@ bool OpdMakeWorker::dest() {
 
 void OpdMakeWorker::disp() {
 
+}
+
+bool OpdMakeWorker::add(bool a2) {
+    if (!task_rob_manager_check_chara_loaded(chara_id))
+        return false;
+
+    field_D4 = a2;
+    return app::TaskWork::add_task(this, "OPD_MAKE_WORKER");
 }
 
 osage_play_data_header::osage_play_data_header() : frame_count(), nodes_count() {
@@ -16277,6 +16588,20 @@ opd_farc_params::opd_farc_params() : compress(), encrypt() {
     align = 1;
 }
 
+opd_farc_file::opd_farc_file() : offset(), size() {
+
+}
+
+opd_farc_file::opd_farc_file(const std::string& name, size_t offset, size_t size) {
+    this->name.assign(name);
+    this->offset = offset;
+    this->size = size;
+}
+
+opd_farc_file::~opd_farc_file() {
+
+}
+
 opd_farc::opd_farc() : stream(), farc_size() {
 
 }
@@ -16289,15 +16614,18 @@ bool opd_farc::add_file(const void* data, size_t size, const std::string& name) 
     if (!data || !size || !name.size() || !stream)
         return false;
 
+    size_t offset = stream->get_position();
     stream->write(data, size);
+    files.push_back({ name, offset, size });
     return true;
 }
 
-bool opd_farc::open(const std::string& path, const opd_farc_params& data) {
+bool opd_farc::open(const std::string& path, const opd_farc_params& params) {
     reset();
-    if (!path.size() || !data.align || ((data.align - 1) & data.align))
+    if (!path.size() || !params.align || ((params.align - 1) & params.align))
         return 0;
 
+    this->params = params;
     this->path.assign(path);
     data_path.assign(path);
     data_path.append(".data");
@@ -16309,6 +16637,7 @@ bool opd_farc::open(const std::string& path, const opd_farc_params& data) {
 void opd_farc::reset() {
     path.clear();
     params = {};
+    files.clear();
     data_path.clear();
     if (stream) {
         delete stream;
@@ -16321,63 +16650,69 @@ bool opd_farc::write_file() {
     std::string path_tmp(path);
     path_tmp.append(".tmp");
 
+    file_stream fs;
     bool ret = false;
-    if (stream) {
-        stream->close();
-        delete stream;
+    if (!stream)
+        goto End;
 
-        if (!path_delete_file(path.c_str())) {
-            file_stream data_fs;
-            data_fs.open(data_path.c_str(), "rb");
-            if (data_fs.check_not_null() && data_fs.get_length()) {
-                size_t length = data_fs.length;
-                uint8_t* data = force_malloc<uint8_t>(length);
+    stream->close();
 
-                size_t len = data_fs.read(data, length);
-                if (len) {
-                    bool compress = params.compress;
-                    bool encrypt = params.encrypt;
+    delete stream;
+    stream = 0;
 
-                    farc f;
-                    farc_file* ff = f.add_file(data_path.c_str());
-                    ff->data = data;
-                    ff->size = length;
-                    ff->compressed = compress;
-                    ff->encrypted = encrypt;
-                    ff->data_changed = true;
+    if (!path_delete_file(path.c_str()))
+        goto End;
 
-                    farc_signature signature;
-                    farc_flags flags;
-                    if (encrypt) {
-                        signature = FARC_FARC;
-                        flags = FARC_AES;
+    fs.open(data_path.c_str(), "rb");
+    if (fs.check_not_null() && fs.get_length()) {
+        bool compress = params.compress;
+        bool encrypt = params.encrypt;
+        farc f;
 
-                        if (compress)
-                            enum_or(flags, FARC_GZIP);
-                    }
-                    else if (compress) {
-                        signature = FARC_FArC;
-                        flags = FARC_NONE;
-                    }
-                    else {
-                        signature = FARC_FArc;
-                        flags = FARC_NONE;
-                    }
-                    f.write(path_tmp.c_str(), signature, flags, false, false);
-                    ret = true;
-                }
-                else
-                    free_def(data);
-            }
-
-            if (ret) {
-                path_delete_file(path.c_str());
-                if (path_rename_file(path_tmp.c_str(), path.c_str()))
-                    ret = false;
+        for (opd_farc_file& i : files) {
+            fs.set_position(i.offset, SEEK_SET);
+            uint8_t* data = force_malloc<uint8_t>(i.size);
+            size_t len = fs.read(data, i.size);
+            if (len) {
+                farc_file* ff = f.add_file(i.name.c_str());
+                ff->data = data;
+                ff->size = i.size;
+                ff->compressed = compress;
+                ff->encrypted = encrypt;
+                ff->data_changed = true;
             }
         }
+
+        farc_signature signature;
+        farc_flags flags;
+        if (encrypt) {
+            signature = FARC_FARC;
+            flags = FARC_AES;
+
+            if (compress)
+                enum_or(flags, FARC_GZIP);
+        }
+        else if (compress) {
+            signature = FARC_FArC;
+            flags = FARC_NONE;
+        }
+        else {
+            signature = FARC_FArc;
+            flags = FARC_NONE;
+        }
+        f.alignment = (uint32_t)params.align;
+        f.write(path_tmp.c_str(), signature, flags, false, false);
+        ret = true;
+    }
+    fs.close();
+
+    if (ret) {
+        path_delete_file(path.c_str());
+        if (!path_rename_file(path_tmp.c_str(), path.c_str()))
+            ret = false;
     }
 
+End:
     path_delete_file(data_path.c_str());
     path_delete_file(path_tmp.c_str());
     reset();
@@ -16385,7 +16720,7 @@ bool opd_farc::write_file() {
 }
 
 p_opd_farc::p_opd_farc() : ptr() {
-
+    ptr = new opd_farc;
 }
 
 p_opd_farc::~p_opd_farc() {
@@ -16399,8 +16734,8 @@ bool p_opd_farc::add_file(const void* data, size_t size, const std::string& file
     return ptr->add_file(data, size, file);
 }
 
-bool p_opd_farc::open(const std::string& path, const opd_farc_params& data) {
-    return ptr->open(path, data);
+bool p_opd_farc::open(const std::string& path, const opd_farc_params& params) {
+    return ptr->open(path, params);
 }
 
 bool p_opd_farc::open(const std::string& path, bool compress, size_t align) {
@@ -16415,6 +16750,7 @@ bool p_opd_farc::write_file() {
 }
 
 opd_chara_data::opd_chara_data() : chara_id(), init(), frame_index(), frame_count(), motion_id(), field_18() {
+    chara_id = opd_chara_data_counter++;
     reset();
 }
 
@@ -16428,12 +16764,12 @@ void opd_chara_data::add_frame_data() {
 
     rob_chara_item_equip* rob_itm_equip = rob_chara_array_get(chara_id)->item_equip;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
-        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
         if (!itm_eq_obj->osage_nodes_count)
             continue;
 
         std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
-
 
         size_t node_index = 0;
         for (ExOsageBlock*& j : itm_eq_obj->osage_blocks) {
@@ -16471,7 +16807,6 @@ void opd_chara_data::encode_data() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     const char* motion_name = aft_mot_db->get_motion_name(this->motion_id);
     if (!motion_name)
@@ -16487,26 +16822,30 @@ void opd_chara_data::encode_data() {
 
     p_opd_farc* opd = this->opd;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opd++) {
-        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
         if (!itm_eq_obj->osage_nodes_count)
             continue;
 
         object_info obj_info = itm_eq_obj->obj_info;
-        const char* object_name = aft_obj_db->get_object_name(obj_info);
+        const char* object_name = object_storage_get_obj_name(obj_info);
         if (!object_name)
             continue;
 
-        std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
+        const std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
 
         size_t total_frame_count = 0;
-        for (std::vector<opd_vec3_data_vec>& j : opd_data)
-            for (opd_vec3_data_vec& k : j)
+        for (const std::vector<opd_vec3_data_vec>& j : opd_data)
+            for (const opd_vec3_data_vec& k : j)
                 total_frame_count += k.x.size();
 
         size_t max_size = sizeof(osage_play_data_header) + (6ULL * (frame_count + 2ULL) * total_frame_count);
-        uint8_t* data = force_malloc<uint8_t>(max_size);
+        uint8_t* data = (uint8_t*)malloc(max_size);
+        if (!data)
+            continue;
 
         osage_play_data_header* opd_head = (osage_play_data_header*)data;
+        opd_head->signature = 0;
         opd_head->frame_count = frame_count;
         opd_head->motion_id = motion_id;
         opd_head->obj_info = { (uint16_t)obj_info.id, (uint16_t)obj_info.set_id };
@@ -16517,11 +16856,11 @@ void opd_chara_data::encode_data() {
 
         size_t osage_node_index = 0;
         bool higher_accuracy = false;
-        for (std::vector<opd_vec3_data_vec>& j : opd_data) {
+        for (const std::vector<opd_vec3_data_vec>& j : opd_data) {
             if (osage_node_index < itm_eq_obj->osage_blocks.size())
                 higher_accuracy = itm_eq_obj->osage_blocks.data()[osage_node_index]->has_children_node;
 
-            for (opd_vec3_data_vec& k : j) {
+            for (const opd_vec3_data_vec& k : j) {
                 size_t size_x = 0;
                 opd_encode_data(k.x, d, size_x, higher_accuracy);
                 d += size_x;
@@ -16554,7 +16893,6 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     const char* motion_name = aft_mot_db->get_motion_name(this->motion_id);
     if (!motion_name)
@@ -16568,12 +16906,13 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
 
     p_opd_farc* opdi = this->opdi;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opdi++) {
-        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
         if (!itm_eq_obj->osage_nodes_count)
             continue;
 
         object_info obj_info = itm_eq_obj->obj_info;
-        const char* object_name = aft_obj_db->get_object_name(obj_info);
+        const char* object_name = object_storage_get_obj_name(obj_info);
         if (!object_name)
             continue;
 
@@ -16632,7 +16971,8 @@ void opd_chara_data::init_data(uint32_t motion_id) {
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
     int32_t frame_count = (int32_t)rob_chr->data.field_1588.field_0.frame;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
-        rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i));
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
         if (!itm_eq_obj->osage_nodes_count)
             continue;
 
@@ -16677,11 +17017,63 @@ void opd_chara_data::init_data(uint32_t motion_id) {
 }
 
 void opd_chara_data::open_opd_file() {
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
 
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+
+    p_opd_farc* opd = this->opd;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opd++) {
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+
+        const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_dir();
+        path_create_directory(ram_osage_play_data_tmp_path);
+
+        std::string chara_dir = sprintf_s_string("%s/%d", ram_osage_play_data_tmp_path, chara_id);
+        if (!path_check_directory_exists(chara_dir.c_str()))
+            path_create_directory(chara_dir.c_str());
+
+        const char* object_name = object_storage_get_obj_name(itm_eq_obj->obj_info);
+        if (!object_name)
+            continue;
+
+        std::string tmp_path = sprintf_s_string("%s/%s.farc", chara_dir.c_str(), object_name);
+        opd->open(tmp_path.c_str(), true, 1);
+    }
 }
 
 void opd_chara_data::open_opdi_file() {
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
 
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+
+    p_opd_farc* opdi = this->opdi;
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opdi++) {
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+
+        const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_dir();
+        path_create_directory(ram_osage_play_data_tmp_path);
+
+        std::string chara_dir = sprintf_s_string("%s/%d", ram_osage_play_data_tmp_path, rob_chr->chara_id);
+        if (!path_check_directory_exists(chara_dir.c_str()))
+            path_create_directory(chara_dir.c_str());
+
+        const char* object_name = object_storage_get_obj_name(itm_eq_obj->obj_info);
+        if (!object_name)
+            continue;
+
+        std::string tmp_path = sprintf_s_string("%s/%s.opdi", chara_dir.c_str(), object_name);
+        opdi->open(tmp_path.c_str(), true, 1);
+    }
 }
 
 void opd_chara_data::reset() {
@@ -16700,10 +17092,9 @@ void opd_chara_data::write_file() {
         return;
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
-    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
-        if (rob_itm_equip->get_item_equip_object((item_id)(ITEM_KAMI + i))->osage_nodes_count)
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++)
+        if (rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i))->osage_nodes_count)
             opd[i].write_file();
-    }
 }
 
 OsagePlayDataManager::OsagePlayDataManager() : state() {
@@ -16743,14 +17134,6 @@ bool OsagePlayDataManager::dest() {
 
 void OsagePlayDataManager::disp() {
 
-}
-
-bool OpdMakeWorker::add(bool a2) {
-    if (!task_rob_manager_check_chara_loaded(chara_id))
-        return false;
-
-    field_D4 = a2;
-    return app::TaskWork::add_task(this, "OPD_MAKE_WORKER");
 }
 
 bool OsagePlayDataManager::add() {
@@ -16799,7 +17182,6 @@ void OsagePlayDataManager::LoadOpdFile(p_file_handler* pfhndl) {
 void OsagePlayDataManager::LoadOpdFileList() {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     prj::sort_unique(opd_req_data);
     for (const std::pair<object_info, int32_t>& i : opd_req_data) {
@@ -16807,7 +17189,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
         if (elem != opd_file_data.end())
             continue;
 
-        const char* object_name = aft_obj_db->get_object_name(i.first);
+        const char* object_name = object_storage_get_obj_name(i.first);
         if (!object_name)
             continue;
 
@@ -16818,13 +17200,23 @@ void OsagePlayDataManager::LoadOpdFileList() {
         std::string obj_name_buf = string_to_lower(object_name);
         std::string mot_name_buf = string_to_lower(motion_name);
 
-        std::string file_buf = sprintf_s_string("%s_%s.%s", obj_name_buf.c_str(), mot_name_buf.c_str(), "opd");
-        std::string farc_buf = sprintf_s_string("%s.farc", obj_name_buf.c_str());
+        std::string file_buf = sprintf_s_string("%s_%s.%s",
+            obj_name_buf.c_str(), mot_name_buf.c_str(), "opd");
 
-        if (aft_data->check_file_exists("rom/osage_play_data/", farc_buf.c_str())) {
+        std::string rom_farc_buf = sprintf_s_string("%s/%s.farc",
+            get_rom_osage_play_data_dir(), obj_name_buf.c_str());
+        if (aft_data->check_file_exists(rom_farc_buf.c_str())) {
             file_handlers.push_back(new p_file_handler);
-            file_handlers.back()->read_file(aft_data,
-                "rom/osage_play_data/", farc_buf.c_str(), file_buf.c_str(), true);
+            file_handlers.back()->read_file(aft_data, rom_farc_buf.c_str(), file_buf.c_str(), true);
+            continue;
+        }
+
+        std::string ram_farc_buf = sprintf_s_string("%s/%s.farc",
+            get_ram_osage_play_data_dir(), obj_name_buf.c_str());
+        if (path_check_file_exists(ram_farc_buf.c_str())) {
+            file_handlers.push_back(new p_file_handler);
+            file_handlers.back()->read_file(0, ram_farc_buf.c_str(), file_buf.c_str(), true);
+            continue;
         }
     }
     opd_req_data.clear();
@@ -16834,6 +17226,65 @@ void OsagePlayDataManager::Reset() {
     file_handlers.clear();
     opd_req_data.clear();
     opd_file_data.clear();
+}
+
+osage_play_data_database_struct::osage_play_data_database_struct() {
+    reset();
+}
+
+osage_play_data_database_struct::~osage_play_data_database_struct() {
+    reset();
+}
+
+size_t& osage_play_data_database_struct::find(const std::string& key) {
+    auto elem = map.find(key);
+    if (elem == map.end() || key.compare(elem->first) < 0)
+        elem = map.insert({ key, 0 }).first;
+    return elem->second;
+}
+
+size_t& osage_play_data_database_struct::get_ver_by_name(size_t& ver, const std::string& name) {
+    ver = 0;
+
+    auto elem = map.find(name);
+    if (elem == map.end())
+        ver = elem->second;
+    return ver;
+}
+
+void osage_play_data_database_struct::load(const std::string& path) {
+    data_struct* aft_data = &data_list[DATA_AFT];
+    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+
+    key_val kv;
+    aft_data->load_file(&kv, path.c_str(), key_val::load_file);
+
+    if (!kv.open_scope("file")) {
+        kv.close_scope();
+        return;
+    }
+
+    uint32_t count = 0;
+    if (!kv.read("length", count) || !count)
+        return;
+
+    for (uint32_t j = 0; j < count; j++) {
+        if (!kv.open_scope_fmt(j))
+            continue;
+
+        std::string name;
+        if (kv.read("name", name) && aft_obj_db->get_object_info(name.c_str()).not_null()) {
+            int32_t ver;
+            if (kv.read("ver", ver))
+                find(name) = ver;
+        }
+        kv.close_scope();
+    }
+    kv.close_scope();
+}
+
+void osage_play_data_database_struct::reset() {
+    map.clear();
 }
 
 inline rob_osage_mothead_data::rob_osage_mothead_data(mothead_data_type type,
@@ -17132,61 +17583,108 @@ void rob_osage_mothead::set_sleeve_adjust(const mothead_data* mhd_data) {
     rob_bone_data->sleeve_adjust.radius = ((float_t*)data)[1];
 }
 
-OpdMakeManager::CharaConstume::CharaConstume() {
+OpdMakeManager::CharaCostume::CharaCostume() {
 
 }
 
-OpdMakeManager::CharaConstume::~CharaConstume() {
+OpdMakeManager::CharaCostume::~CharaCostume() {
 
 }
 
-OpdMakeManager::CharaConstumes::CharaConstumes() : count(), index() {
+OpdMakeManager::CharaData::CharaData() : left(), count() {
+    Reset();
+}
+
+OpdMakeManager::CharaData::~CharaData() {
 
 }
 
-OpdMakeManager::CharaConstumes::~CharaConstumes() {
+void OpdMakeManager::CharaData::AddCostumes(const std::list<std::pair<chara_index, int32_t>>& costumes) {
+    for (const std::pair<chara_index, int32_t>& i : costumes) {
+        const item_cos_data* cos = item_table_handler_array_get_item_cos_data(i.first, i.second);
+        for (int32_t j = 0; j < ITEM_SUB_MAX; j++) {
+            int32_t item_no = cos->arr[j];
+            if (!item_no)
+                continue;
 
+            const item_table_item* item = item_table_handler_array_get_item(i.first, item_no);
+            if (!item)
+                continue;
+
+            if (!(item->attr & 0x0C))
+                chara_costumes[i.first].items[j].push_back(item_no);
+            else if (item->org_itm)
+                chara_costumes[i.first].items[j].push_back(item->org_itm);
+        }
+    }
 }
 
-bool OpdMakeManager::CharaConstumes::CheckNoItems(chara_index chara_index) {
-    std::vector<uint32_t>* _items = chara[chara_index].items;
-    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, _items++)
-        if (_items->size())
+void OpdMakeManager::CharaData::AddObjects(const std::vector<std::string>& customize_items) {
+    for (const std::string& i : customize_items) {
+        chara_index chara_index = CHARA_MAX;
+        int32_t item_no = 0;
+        customize_item_table_handler_data_get_chara_item(i, chara_index, item_no);
+        if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX || !item_no)
+            continue;
+
+        const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
+        if (!item)
+            continue;
+
+        if (!(item->attr & 0x0C))
+            chara_costumes[chara_index].items[item->sub_id].push_back(item_no);
+        else if (item->org_itm)
+            chara_costumes[chara_index].items[item->sub_id].push_back(item->org_itm);
+    }
+}
+
+bool OpdMakeManager::CharaData::CheckNoItems(chara_index chara_index) {
+    std::vector<uint32_t>* chara_items = chara_costumes[chara_index].items;
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, chara_items++)
+        if (chara_items->size())
             return false;
     return true;
 }
 
-void OpdMakeManager::CharaConstumes::PopItems(chara_index chara_index, int32_t items[ITEM_SUB_MAX]) {
-    std::vector<uint32_t>* _items = chara[chara_index].items;
-    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, _items++) {
+void OpdMakeManager::CharaData::PopItems(chara_index chara_index, int32_t items[ITEM_SUB_MAX]) {
+    std::vector<uint32_t>* chara_items = chara_costumes[chara_index].items;
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, chara_items++) {
         items[i] = 0;
-        if (!_items->size())
+        if (!chara_items->size())
             continue;
 
-        items[i] = _items->back();
-        _items->pop_back();
-        count--;
+        items[i] = chara_items->back();
+        chara_items->pop_back();
+        left--;
     }
 }
 
-OpdMakeManager::Chara::Chara() : mode(), progress() {
-    chara = CHARA_MAX;
+void OpdMakeManager::CharaData::Reset() {
+    for (CharaCostume& i : chara_costumes)
+        for (std::vector<uint32_t>& j : i.items)
+            j.clear();
+
+    left = 0;
+    count = 0;
 }
 
-OpdMakeManager::Chara::~Chara() {
+void OpdMakeManager::CharaData::SortUnique() {
+    for (CharaCostume& i : chara_costumes)
+        for (std::vector<uint32_t>& j : i.items) {
+            prj::sort_unique(j);
+            count += (uint32_t)j.size();
+        }
 
+    left = count;
 }
 
-OpdMakeManager::Data::Data() : mode(), count(), index() {
+OpdMakeManager::OpdMakeManager() : mode(), workers(), field_1888(), use_opdi() {
+    mode = 0;
+    chara = CHARA_MIKU;
 
-}
-
-OpdMakeManager::Data::~Data() {
-
-}
-
-OpdMakeManager::OpdMakeManager() : field_70(), mode(), workers(), field_1888(), use_opdi() {
-    chara = CHARA_MAX;
+    int32_t chara_id = 0;
+    for (OpdMakeWorker*& i : workers)
+        i = new OpdMakeWorker(chara_id++);
 }
 
 OpdMakeManager::~OpdMakeManager() {
@@ -17198,10 +17696,10 @@ bool OpdMakeManager::init() {
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, false);
 
-    if (path_check_directory_exists("ram/osage_play_data"))
-        RemoveDirectoryA("ram/osage_play_data");
+    if (path_check_directory_exists(get_ram_osage_play_data_dir()))
+        path_delete_directory(get_ram_osage_play_data_dir());
 
-    CreateDirectoryA("ram/osage_play_data", 0);
+    path_create_directory(get_ram_osage_play_data_dir());
 
     if (field_1888 || !app::TaskWork::check_task_ready(task_rob_manager)) {
         task_rob_manager_add_task();
@@ -17252,15 +17750,15 @@ bool OpdMakeManager::ctrl() {
         break;
     } break;
     case 5: {
-        bool v8 = false;
+        bool has_items = false;
         for (int32_t i = 0; i < CHARA_MAX; i++)
-            if (!chara_costumes.CheckNoItems((chara_index)i)) {
+            if (!chara_data.CheckNoItems((chara_index)i)) {
                 chara = (chara_index)i;
-                v8 = true;
+                has_items = true;
                 break;
             }
 
-        if (v8) {
+        if (has_items) {
             for (int32_t i = 0; i < 4; i++) {
                 rob_chara_pv_data pv_data;
                 pv_data.type = ROB_CHARA_TYPE_3;
@@ -17272,12 +17770,12 @@ bool OpdMakeManager::ctrl() {
             mode = 11;
     } break;
     case 6: {
-        bool v11 = false;
+        bool wait = false;
         for (int32_t i = 0; i < 4; i++)
             if (!task_rob_manager_check_chara_loaded(i))
-                v11 = true;
+                wait = true;
 
-        if (!v11) {
+        if (!wait) {
             task_rob_manager->hide();
             mode = 7;
         }
@@ -17290,12 +17788,12 @@ bool OpdMakeManager::ctrl() {
         mode = 8;
     } break;
     case 8: {
-        bool v18 = false;
+        bool wait = false;
         for (OpdMakeWorker*& i : workers)
             if (app::TaskWork::check_task_ready(i))
-                v18 = true;
+                wait = true;
 
-        if (!v18)
+        if (!wait)
             mode = field_1888 ? 12 : 9;
     } break;
     case 9:
@@ -17322,8 +17820,8 @@ bool OpdMakeManager::ctrl() {
         break;
     }
     data.mode = mode;
-    data.count = (uint32_t)chara_costumes.count;
-    data.index = chara_costumes.index;
+    data.left = (uint32_t)chara_data.left;
+    data.count = (uint32_t)chara_data.count;
     return ret;
 }
 
@@ -17349,9 +17847,8 @@ bool OpdMakeManager::dest() {
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, true);
 
-    if (path_check_directory_exists("ram/osage_play_data"))
-        RemoveDirectoryA("ram/osage_play_data");
-
+    if (path_check_directory_exists(get_ram_osage_play_data_tmp_dir()))
+        path_delete_directory(get_ram_osage_play_data_tmp_dir());
     return true;
 }
 
@@ -17363,6 +17860,36 @@ bool OpdMakeManager::del() {
     for (OpdMakeWorker*& i : workers)
         i->del();
     return app::Task::del();
+}
+
+OpdMakeManagerData* OpdMakeManager::GetData() {
+    return &data;
+}
+
+void OpdMakeManager::AddTask(const OpdMakeManagerArgs& args) {
+    if (app::TaskWork::check_task_ready(this) || !args.motion_ids)
+        return;
+
+    chara_data.Reset();
+
+    if (args.modules) {
+        const std::vector<module_data>& modules = module_data_handler_data_get_modules();
+        std::list<std::pair<chara_index, int32_t>> costumes;
+        for (const uint32_t& i : *args.modules)
+            costumes.push_back({ modules[i].chara_index, modules[i].cos });
+        chara_data.AddCostumes(costumes);
+    }
+
+    if (args.objects)
+        chara_data.AddObjects(*args.objects);
+
+    chara_data.SortUnique();
+
+    motion_ids.assign(args.motion_ids->begin(), args.motion_ids->end());
+    this->field_1888 = args.field_18;
+    this->use_opdi = args.use_opdi;
+
+    app::TaskWork::add_task(this, "OPD_MAKE_MANAGER");
 }
 
 ReqData::ReqData() : chara_index(), count() {

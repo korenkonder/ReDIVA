@@ -63,6 +63,7 @@ enum item_id {
     ITEM_ITEM16      = 0x1E,
     ITEM_MAX         = 0x1F,
 
+    ITEM_OSAGE_FIRST = ITEM_KAMI,
     ITEM_OSAGE_COUNT = (ITEM_MAX - ITEM_KAMI),
 };
 

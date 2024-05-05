@@ -298,12 +298,9 @@ bool data_struct::check_directory_exists(const char* dir) {
 
 bool data_struct::check_file_exists(const char* path) {
     const char* t = strrchr(path, '/');
-    if (t) {
-        std::string dir(path, t - path + 1);
-        return check_file_exists(dir.c_str(), t + 1);
-    }
+    if (!t)
+        t = strrchr(path, '\\');
 
-    t = strrchr(path, '\\');
     if (t) {
         std::string dir(path, t - path + 1);
         return check_file_exists(dir.c_str(), t + 1);
@@ -658,12 +655,9 @@ bool data_struct::get_file_path(const char* dir, const char* file, std::string& 
 bool data_struct::load_file(void* data, const char* path,
     bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash)) {
     const char* t = strrchr(path, '/');
-    if (t) {
-        std::string dir(path, t - path + 1);
-        return load_file(data, dir.c_str(), t + 1, load_func);
-    }
+    if (!t)
+        t = strrchr(path, '\\');
 
-    t = strrchr(path, '\\');
     if (t) {
         std::string dir(path, t - path + 1);
         return load_file(data, dir.c_str(), t + 1, load_func);

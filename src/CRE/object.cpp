@@ -1818,6 +1818,13 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
     return -1;
 }
 
+inline const char* object_storage_get_obj_name(object_info obj_info) {
+    obj* obj = object_storage_get_obj(obj_info);
+    if (obj)
+        return obj->name;
+    return 0;
+}
+
 inline obj_set* object_storage_get_obj_set(uint32_t set_id) {
     auto elem = object_storage_data.find(set_id);
     if (elem != object_storage_data.end())

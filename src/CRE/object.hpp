@@ -129,6 +129,7 @@ extern obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
 extern obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, uint32_t index);
 extern uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name);
 extern uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name);
+extern const char* object_storage_get_obj_name(object_info obj_info);
 extern obj_set* object_storage_get_obj_set(uint32_t set_id);
 extern size_t object_storage_get_obj_set_count();
 extern int32_t object_storage_get_obj_storage_load_count(uint32_t set_id);

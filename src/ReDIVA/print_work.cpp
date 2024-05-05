@@ -422,6 +422,12 @@ void PrintWork::SetResolutionMode(::resolution_mode value) {
     resolution_mode = value;
 }
 
+void PrintWork::set_text_position(float_t column, float_t line) {
+    line_origin_loc.x = (font->spacing.x + font->glyph.x * font->font_ptr->column_scale) * column;
+    line_origin_loc.y = (font->spacing.y + font->glyph.y) * line;
+    text_current_loc = line_origin_loc;
+}
+
 void PrintWork::printf(app::text_flags flags, const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);

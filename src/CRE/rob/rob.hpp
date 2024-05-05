@@ -3576,6 +3576,70 @@ struct osage_init_data {
     ~osage_init_data();
 };
 
+struct OpdMakeManagerArgs {
+    const std::vector<int32_t>* motion_ids;
+    const std::vector<uint32_t>* modules;
+    const std::vector<std::string>* objects;
+    bool field_18;
+    bool use_opdi;
+};
+
+struct OpdMakeManagerData {
+    struct Chara {
+        uint32_t mode;
+        uint32_t progress;
+        chara_index chara;
+        std::vector<uint32_t> items;
+
+        Chara();
+        ~Chara();
+    };
+
+    uint32_t mode;
+    uint32_t left;
+    uint32_t count;
+    std::vector<Chara> charas;
+
+    OpdMakeManagerData();
+    ~OpdMakeManagerData();
+};
+
+struct OpdChecker {
+    int32_t state;
+    int64_t field_8;
+    int64_t field_10;
+    int64_t field_18;
+    std::vector<std::string> objects;
+    int32_t index;
+    int32_t size;
+    int32_t field_40;
+    bool terminated;
+    std::thread* thread;
+    std::mutex state_mtx;
+    std::mutex terminated_mtx;
+    std::mutex index_mtx;
+
+    OpdChecker();
+    ~OpdChecker();
+
+    bool CheckFileAdler32Checksum(const std::string& path);
+    bool CheckFileVersion(const std::string& path, uint32_t version);
+    bool CheckStateNot3();
+    std::vector<std::string>& GetObjects();
+    void GetIndexSize(int32_t& index, int32_t& size);
+    int32_t GetState();
+    bool GetTerminated();
+    void LaunchThread();
+    void SetIndexSize(int32_t index, int32_t size);
+    void SetState(int32_t value);
+    void SetTerminated();
+    void TerminateThread();
+
+    static void ThreadMain(OpdChecker* opd_checker);
+
+    void sub_140471020();
+};
+
 #define ROB_CHARA_COUNT 6
 
 extern const chara_init_data* chara_init_data_get(chara_index chara_index);
@@ -3595,7 +3659,24 @@ extern const float_t get_osage_gravity_const();
 extern void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db);
 extern void motion_set_unload_mothead(uint32_t set);
 
+extern const char* get_ram_osage_play_data_dir();
+extern const char* get_ram_osage_play_data_tmp_dir();
+extern const char* get_rom_osage_play_data_dir();
+extern const char* get_rom_osage_play_data_opdi_dir();
+
+extern OpdChecker* opd_checker_get();
+extern bool opd_checker_check_state_not_3();
+extern bool opd_checker_has_objects();
+extern void opd_checker_launch_thread();
+extern void opd_checker_terminate_thread();
+
+extern void opd_make_manager_add_task(const OpdMakeManagerArgs& args);
+extern bool opd_make_manager_check_task_ready();
 extern bool opd_make_manager_del_task();
+extern OpdMakeManagerData* opd_make_manager_get_data();
+
+extern void opd_make_start();
+extern void opd_make_stop();
 
 extern bool osage_play_data_manager_add_task();
 extern void osage_play_data_manager_append_chara_motion_id(rob_chara* rob_chr, uint32_t motion_id);
@@ -3605,6 +3686,8 @@ extern bool osage_play_data_manager_check_task_ready();
 extern void osage_play_data_manager_get_opd_file_data(object_info obj_info,
     uint32_t motion_id, const float_t*& data, uint32_t& count);
 extern void osage_play_data_manager_reset();
+
+extern void osage_play_database_load();
 
 extern void pv_osage_manager_array_reset(int32_t chara_id);
 

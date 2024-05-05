@@ -13,6 +13,9 @@
 class MdataMgr : public app::Task {
 public:
     int32_t state;
+    int32_t inner_state;
+    int32_t pv_db_paths_count;
+    int32_t pv_db_total_paths_count;
     std::string log;
     std::list<std::string> prefixes;
 
@@ -27,6 +30,7 @@ public:
 
     void Log(const char* fmt, ...);
     const std::list<std::string>& GetPrefixes();
+    std::string GetStateString();
 };
 
 extern bool mdata_manager_add_task();

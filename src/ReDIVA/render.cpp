@@ -173,7 +173,7 @@ int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
 
-static const int32_t fast_loader_speed = 60;
+static const int32_t fast_loader_speed = 1;
 
 bool light_chara_ambient;
 vec4 npr_cloth_spec_color = 1.0f;
@@ -638,6 +638,8 @@ static render_context* render_context_load() {
     rob_osage_test_init();
     task_data_test_glitter_particle_init();
     x_pv_game_data_init();
+
+    osage_play_database_load();
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
 

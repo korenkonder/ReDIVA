@@ -86,6 +86,7 @@ struct PrintWork {
     void PutText(app::text_flags flags, const wchar_t* str_begin, const wchar_t* str_end);
     void SetFont(const font_info* value);
     void SetResolutionMode(::resolution_mode value);
+    void set_text_position(float_t column, float_t line);
 
     void printf(app::text_flags flags, const char* fmt, ...);
     void printf_align_left(const char* fmt, ...);

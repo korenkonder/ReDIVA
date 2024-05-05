@@ -5,6 +5,7 @@
 
 #include <thread>
 #include "../KKdLib/io/file_stream.hpp"
+#include "../KKdLib/io/path.hpp"
 #include "../KKdLib/hash.hpp"
 #include "file_handler.hpp"
 #include "data.hpp"
@@ -380,15 +381,24 @@ size_t p_file_handler::get_size() {
 
 bool p_file_handler::read_file(void* data, const char* path) {
     const char* t = strrchr(path, '/');
+    if (!t)
+        t = strrchr(path, '\\');
+
     if (t) {
         std::string dir(path, t - path + 1);
         return read_file(data, dir.c_str(), 0, t + 1, false);
     }
+    return false;
+}
 
-    t = strrchr(path, '\\');
+bool p_file_handler::read_file(void* data, const char* farc_path, const char* file, bool cache) {
+    const char* t = strrchr(farc_path, '/');
+    if (!t)
+        t = strrchr(farc_path, '\\');
+
     if (t) {
-        std::string dir(path, t - path + 1);
-        return read_file(data, dir.c_str(), 0, t + 1, false);
+        std::string dir(farc_path, t - farc_path + 1);
+        return read_file(data, dir.c_str(), t + 1, file, cache);
     }
     return false;
 }
@@ -404,7 +414,8 @@ bool p_file_handler::read_file(void* data, const char* dir,
         reset();
     }
 
-    if (!((data_struct*)data)->check_file_exists(dir, farc_file ? farc_file : file))
+    if (data && !((data_struct*)data)->check_file_exists(dir, farc_file ? farc_file : file)
+        || !data && !path_check_file_exists(std::string(dir).append(farc_file ? farc_file : file).c_str()))
         return false;
 
     ptr = new file_handler;
@@ -437,7 +448,7 @@ bool p_file_handler::read_file(void* data, const char* dir, const char* file) {
 }
 
 bool p_file_handler::read_file(void* data, const char* dir, uint32_t hash, const char* ext) {
-    if (!dir || !hash || hash == hash_murmurhash_empty)
+    if (!data || !dir || !hash || hash == hash_murmurhash_empty)
         return false;
 
     if (ptr) {
@@ -483,12 +494,22 @@ void p_file_handler::read_now() {
             ptr->reading = true;
             if (ptr->not_ready) {
                 bool ret;
-                if (ptr->farc_file.size())
-                    ret = ((data_struct*)ptr->ds)->load_file(
-                        ptr, ptr->dir.c_str(), ptr->farc_file.c_str(), file_handler_load_farc_file);
-                else
-                    ret = ((data_struct*)ptr->ds)->load_file(
-                        ptr, ptr->dir.c_str(), ptr->file.c_str(), file_handler_load_file);
+                if (ptr->ds) {
+                    if (ptr->farc_file.size())
+                        ret = ((data_struct*)ptr->ds)->load_file(
+                            ptr, ptr->dir.c_str(), ptr->farc_file.c_str(), file_handler_load_farc_file);
+                    else
+                        ret = ((data_struct*)ptr->ds)->load_file(
+                            ptr, ptr->dir.c_str(), ptr->file.c_str(), file_handler_load_file);
+                }
+                else {
+                    if (ptr->farc_file.size())
+                        ret = file_handler_load_farc_file(
+                            ptr, ptr->dir.c_str(), ptr->farc_file.c_str(), hash_murmurhash_empty);
+                    else
+                        ret = file_handler_load_file(
+                            ptr, ptr->dir.c_str(), ptr->file.c_str(), hash_murmurhash_empty);
+                }
 
                 if (ret)
                     ptr->not_ready = false;

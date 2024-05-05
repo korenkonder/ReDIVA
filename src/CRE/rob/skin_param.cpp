@@ -59,8 +59,8 @@ struct SkinParamManager : public app::Task {
     void AddFiles();
     bool AddTask(std::vector<osage_init_data>& vec);
     bool CtrlFiles();
-    int32_t GetExtSkpFile(const osage_init_data& osage_init, const std::string& dir,
-        std::string& file, void* data, motion_database* mot_db, object_database* obj_db);
+    int32_t GetExtSkpFile(const osage_init_data& osage_init,
+        const std::string& dir, std::string& file, void* data, motion_database* mot_db);
     std::vector<skin_param_file_data>* GetSkinParamFileData(
         object_info obj_info, uint32_t motion_id, int32_t frame);
     void Reset();
@@ -81,7 +81,7 @@ struct sp_skp_db {
 
     int32_t get_ext_skp_file(const osage_init_data& osage_init,
         const object_info obj_info, std::string& file, std::string& farc,
-        void* data, motion_database* mot_db, object_database* obj_db);
+        void* data, motion_database* mot_db);
 };
 
 static bool osage_setting_data_load_file(void* data, const char* dir, const char* file, uint32_t hash);
@@ -716,7 +716,6 @@ void SkinParamManager::AddFiles() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
-    object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     files.clear();
     for (osage_init_data& i : osage_init) {
@@ -726,7 +725,7 @@ void SkinParamManager::AddFiles() {
             if (obj_info.is_null())
                 continue;
 
-            const char* obj_name = aft_obj_db->get_object_name(obj_info);
+            const char* obj_name = object_storage_get_obj_name(obj_info);
             if (!obj_name)
                 continue;
 
@@ -769,8 +768,7 @@ void SkinParamManager::AddFiles() {
             skp_file->type = -1;
 
             if (i.dir.size()) {
-                skp_file->type = GetExtSkpFile(i, i.dir,
-                    file, aft_data, aft_mot_db, aft_obj_db);
+                skp_file->type = GetExtSkpFile(i, i.dir, file, aft_data, aft_mot_db);
                 if (skp_file->type != -1)
                     dir.assign(i.dir);
             }
@@ -778,7 +776,7 @@ void SkinParamManager::AddFiles() {
             bool read_farc = false;
             if (skp_file->type == -1) {
                 skp_file->type = sp_skp_db_data->get_ext_skp_file(i,
-                    obj_info, file, farc_file, aft_data, aft_mot_db, aft_obj_db);
+                    obj_info, file, farc_file, aft_data, aft_mot_db);
                 if (skp_file->type == -1) {
                     delete skp_file;
                     continue;
@@ -907,8 +905,8 @@ bool SkinParamManager::CtrlFiles() {
     return !!files.size();
 }
 
-int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init, const std::string& dir,
-    std::string& file, void* data, motion_database* mot_db, object_database* obj_db) {
+int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init,
+    const std::string& dir, std::string& file, void* data, motion_database* mot_db) {
     if (!dir.size())
         return -1;
 
@@ -1162,7 +1160,7 @@ void sp_skp_db::parse(key_val* kv) {
 
 int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
     const object_info obj_info, std::string& file, std::string& farc,
-    void* data, motion_database* mot_db, object_database* obj_db) {
+    void* data, motion_database* mot_db) {
     if (obj_info.is_null())
         return 2;
 
@@ -1207,7 +1205,7 @@ int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
         }
     }
 
-    const char* obj_name = obj_db->get_object_name(obj_info);
+    const char* obj_name = object_storage_get_obj_name(obj_info);
     sprintf_s(buf0, buf0_size, "ext_skp_%s.txt", obj_name);
 
     if (type == 1) {

@@ -57,6 +57,7 @@ struct p_file_handler {
     const void* get_data();
     size_t get_size();
     bool read_file(void* data, const char* path);
+    bool read_file(void* data, const char* farc_path, const char* file, bool cache);
     bool read_file(void* data, const char* dir, const char* farc_file, const char* file, bool cache);
     bool read_file(void* data, const char* dir, const char* file);
     bool read_file(void* data, const char* dir, uint32_t hash, const char* ext);
