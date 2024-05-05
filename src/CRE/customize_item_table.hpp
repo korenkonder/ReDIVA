@@ -54,6 +54,8 @@ extern void customize_item_table_handler_data_free();
 
 extern void customize_item_data_handler_data_init();
 extern void customize_item_data_handler_data_add_all_customize_items();
-bool customize_item_data_handler_data_get_customize_item(int32_t id, customize_item_data& data);
-int32_t customize_item_data_handler_data_get_customize_item_obj_id(int32_t id);
+extern void customize_item_table_handler_data_get_chara_item(
+    const std::string& name, chara_index& chara_index, int32_t& item_no);
+extern bool customize_item_data_handler_data_get_customize_item(int32_t id, customize_item_data& data);
+extern int32_t customize_item_data_handler_data_get_customize_item_obj_id(int32_t id);
 extern void customize_item_data_handler_data_free();

@@ -38,6 +38,7 @@ struct customize_item_data_handler {
     ~customize_item_data_handler();
 
     void add_all_customize_items();
+    void get_chara_item(const std::string& name, chara_index& chara_index, int32_t& item_no);
     void add_customize_items();
     bool get_customize_item(int32_t id, customize_item_data& data);
     int32_t get_customize_item_obj_id(int32_t id);
@@ -116,6 +117,11 @@ void customize_item_data_handler_data_init() {
 
 void customize_item_data_handler_data_add_all_customize_items() {
     customize_item_data_handler_data->add_all_customize_items();
+}
+
+void customize_item_table_handler_data_get_chara_item(
+    const std::string& name, chara_index& chara_index, int32_t& item_no) {
+    customize_item_data_handler_data->get_chara_item(name, chara_index, item_no);
 }
 
 bool customize_item_data_handler_data_get_customize_item(int32_t id, customize_item_data& data) {
@@ -306,6 +312,34 @@ customize_item_data_handler::~customize_item_data_handler() {
 
 void customize_item_data_handler::add_all_customize_items() {
     add_customize_items();
+}
+
+void customize_item_data_handler::get_chara_item(
+    const std::string& name, chara_index& chara_index, int32_t& item_no) {
+    size_t pos = name.find('_');
+    if (pos < 6)
+        return;
+
+    ::chara_index _chara_index = CHARA_MAX;
+    int32_t _item_no = atoi(name.substr(6, pos - 6).c_str());
+    if (!_item_no)
+        return;
+
+    item_no = _item_no;
+
+    std::string chara(name.substr(0, 3));
+    if (chara.compare("CMN"))
+        _chara_index = chara_index_get_from_chara_name(chara.c_str());
+    else
+        for (const auto& i : customize_item_table_handler_data_get_customize_items())
+            if (i.first == item_no) {
+                if (_chara_index == CHARA_MAX)
+                    _chara_index = CHARA_MIKU;
+                break;
+            }
+
+    if (_chara_index != CHARA_MAX)
+        chara_index = _chara_index;
 }
 
 void customize_item_data_handler::add_customize_items() {
