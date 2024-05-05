@@ -1206,9 +1206,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
         if (frame >= i->frame_count)
             frame = 0.0f;
 
-        frame = prj::floorf(frame);
-
-        int32_t curr_key = (int32_t)(int64_t)frame;
+        int32_t curr_key = (int32_t)(int64_t)prj::floorf(frame);
         int32_t next_key = curr_key + 1;
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
@@ -1962,9 +1960,7 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
         if (frame >= i->frame_count)
             frame = 0.0f;
 
-        frame = prj::floorf(frame);
-
-        int32_t curr_key = (int32_t)(int64_t)frame;
+        int32_t curr_key = (int32_t)(int64_t)prj::floorf(frame);
         int32_t next_key = curr_key + 1;
         if ((float_t)next_key >= i->frame_count)
             next_key = 0;
