@@ -1210,8 +1210,9 @@ static void rob_chara_set_pv_data(rob_chara* rob_chr, int8_t chara_id,
 
 static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size);
 
-static const char* get_ram_osage_play_data_path();
-static const char* get_ram_osage_play_data_tmp_path();
+static const char* get_ram_osage_play_data_dir();
+static const char* get_ram_osage_play_data_tmp_dir();
+static const char* get_rom_osage_play_data_dir();
 
 static void opd_chara_data_array_add_frame_data(int32_t chara_id);
 static void opd_chara_data_array_encode_data(int32_t chara_id);
@@ -11261,12 +11262,16 @@ static void rob_cmn_mottbl_read(void* a1, const void* data, size_t size) {
     }
 }
 
-static const char* get_ram_osage_play_data_path() {
+static const char* get_ram_osage_play_data_dir() {
     return "ram/osage_play_data";
 }
 
-static const char* get_ram_osage_play_data_tmp_path() {
+static const char* get_ram_osage_play_data_tmp_dir() {
     return "ram/osage_play_data_tmp";
+}
+
+static const char* get_rom_osage_play_data_dir() {
+    return "rom/osage_play_data";
 }
 
 static void opd_chara_data_array_add_frame_data(int32_t chara_id) {
@@ -13527,19 +13532,11 @@ void rob_chara_item_equip_object::skp_load_file(void* data,
         return;
     }
 
-    char buf[0x200];
-    const char* name = obj_db->get_object_name(obj_info);
-    sprintf_s(buf, sizeof(buf), "ext_skp_%s.txt", name);
-
-    for (int32_t i = 0; buf[i]; i++) {
-        char c = buf[i];
-        if (c >= 'A' && c <= 'Z')
-            c += 0x20;
-        buf[i] = c;
-    }
+    std::string buf = string_to_lower(sprintf_s_string(
+        "ext_skp_%s.txt", obj_db->get_object_name(obj_info)));
 
     key_val kv;
-    ((data_struct*)data)->load_file(&kv, "rom/skin_param/", buf, key_val::load_file);
+    ((data_struct*)data)->load_file(&kv, "rom/skin_param/", buf.c_str(), key_val::load_file);
     skp_load(&kv, bone_data);
 }
 
@@ -14186,10 +14183,9 @@ static void sub_14052C560(rob_chara_item_cos_data* item_sub_data,
         return;
 
     const char* chara_name = chara_index_get_chara_name(item_sub_data->chara_index);
-    char buf[0x200];
     for (int32_t i = 0; i < 9; i++) {
-        sprintf_s(buf, sizeof(buf), "%sITM%03d_ATAM_HEAD_%02d_SP__DIVSKN", chara_name, item_no, i);
-        object_info obj_info = obj_db->get_object_info(buf);
+        std::string buf = sprintf_s_string("%sITM%03d_ATAM_HEAD_%02d_SP__DIVSKN", chara_name, item_no, i);
+        object_info obj_info = obj_db->get_object_info(buf.c_str());
         if (obj_info.not_null())
             item_sub_data->head_replace.insert({ i, obj_info });
     }
@@ -15797,21 +15793,11 @@ void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& mo
             const char* object_name = obj_db->get_object_name(obj_info);
             const char* motion_name = mot_db->get_motion_name(i);
             if (object_name && motion_name) {
-                char buf1[0x200];
-                char buf2[0x200];
-                sprintf_s(buf1, sizeof(buf1), "%s.opdi", object_name);
-                sprintf_s(buf2, sizeof(buf2), "%s_%s.opdi", object_name, motion_name);
-
-                for (char* j = buf1; *j; j++)
-                    if (*j >= 'A' && *j <= 'Z')
-                        *j += 0x20;
-
-                for (char* j = buf2; *j; j++)
-                    if (*j >= 'A' && *j <= 'Z')
-                        *j += 0x20;
+                std::string farc_file = string_to_lower(sprintf_s_string("%s.opdi", object_name));
+                std::string file = string_to_lower(sprintf_s_string("%s_%s.opdi", object_name, motion_name));
 
                 p_file_handler* file_handler = new p_file_handler;
-                file_handler->read_file(data, "rom/osage_play_data/opdi", buf1, buf2, true);
+                file_handler->read_file(data, "rom/osage_play_data/opdi", farc_file.c_str(), file.c_str(), true);
                 elem->second = file_handler;
             }
         }
@@ -15841,6 +15827,7 @@ OpdMaker::~OpdMaker() {
         delete thread;
         thread = 0;
     }
+
     Reset();
 }
 
@@ -15933,26 +15920,22 @@ void OpdMaker::Ctrl() {
 
     opd_chara_data_array_write_file(chara_id);
 
-    char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "%s/%d", get_ram_osage_play_data_tmp_path(), chara_id);
+    const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_dir();
 
-    std::vector<data_struct_file> v64;
-    aft_data->get_directory_files(buf, v64);
-    for (data_struct_file& i : v64) {
-        std::string path(i.path);
-        path.append(i.name);
-        if (!path.size())
+    std::string chara_dir = sprintf_s_string("%s/%d", ram_osage_play_data_tmp_path, chara_id);
+
+    std::vector<data_struct_file> files = aft_data->get_directory_files(chara_dir.c_str());
+    for (data_struct_file& i : files) {
+        if (!i.path.size() || !i.name.size())
             continue;
 
-        char buf1[0x200];
-        char buf2[0x200];
-        sprintf_s(buf1, sizeof(buf1), "%s/%s", buf, i.name.c_str());
-        sprintf_s(buf2, sizeof(buf2), "%s/%s", get_ram_osage_play_data_path(), i.name.c_str());
+        std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.name.c_str());
+        std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_tmp_path, i.name.c_str());
 
-        if (path_check_file_exists(buf2))
-            path_delete_file(buf2);
+        if (path_check_file_exists(ram_path.c_str()))
+            path_delete_file(ram_path.c_str());
 
-        if (!path_check_file_exists(buf1))
+        if (!path_check_file_exists(tmp_path.c_str()))
             continue;
 
         size_t pos = i.name.find(".farc");
@@ -15965,17 +15948,15 @@ void OpdMaker::Ctrl() {
                 c -= 0x20;
 
         size_t ver = 0;
-        //osage_play_data_database->get_ver_by_name(ver, name);
+        osage_play_data_database->get_ver_by_name(ver, name);
 
         uint32_t footer[2] = {};
         footer[0] = (uint32_t)ver;
 
         file_stream fs;
-        fs.open(buf1, "rb");
-        if (fs.check_null()) {
-            fs.close();
+        fs.open(tmp_path.c_str(), "rb");
+        if (fs.check_null())
             continue;
-        }
 
         size_t file_length = fs.get_length();
         fs.close();
@@ -15983,7 +15964,7 @@ void OpdMaker::Ctrl() {
         void* file_data = force_malloc(file_length);
         if (!file_data) {
             file_stream fs;
-            fs.open(buf1, "rb");
+            fs.open(tmp_path.c_str(), "rb");
             if (fs.check_not_null()) {
                 size_t read_length = fs.read(file_data, file_length);
                 fs.close();
@@ -15995,7 +15976,7 @@ void OpdMaker::Ctrl() {
                     free_def(file_data);
 
                     file_stream fs;
-                    fs.open(buf1, "ab");
+                    fs.open(tmp_path.c_str(), "ab");
                     if (fs.check_not_null()) {
                         fs.write(footer, sizeof(footer));
                         fs.close();
@@ -16025,6 +16006,7 @@ bool OpdMaker::InitThread(rob_chara* rob_chr, const std::vector<uint32_t>* motio
         delete thread;
         thread = 0;
     }
+
     Reset();
 
     this->rob_chr = rob_chr;
@@ -16034,9 +16016,8 @@ bool OpdMaker::InitThread(rob_chara* rob_chr, const std::vector<uint32_t>* motio
 
     thread = new std::thread(OpdMaker::ThreadMain, this);
     if (thread) {
-        wchar_t buf[0x80];
-        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"OPD Maker #%d", opd_maker_counter++);
-        SetThreadDescription((HANDLE)thread->native_handle(), buf);
+        std::wstring buf = swprintf_s_string(L"OPD Maker #%d", opd_maker_counter++);
+        SetThreadDescription((HANDLE)thread->native_handle(), buf.c_str());
     }
     return true;
 }
@@ -16187,38 +16168,33 @@ bool OpdMakeWorker::ctrl() {
 
         data.Reset();
 
-        const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_path();
+        const char* ram_osage_play_data_tmp_path = get_ram_osage_play_data_tmp_dir();
 
-        char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "%s/%d", ram_osage_play_data_tmp_path, chara_id);
+        std::string chara_dir = sprintf_s_string("%s/%d", ram_osage_play_data_tmp_path, chara_id);
 
-        std::vector<std::string> files;
-        for (std::string& i : files) {
-            size_t v36 = i.find('/');
-            if (v36 == -1)
+        std::vector<data_struct_file> files = aft_data->get_directory_files(chara_dir.c_str());
+        for (data_struct_file& i : files) {
+            if (!i.path.size() || !i.name.size())
                 continue;
 
-            const char* v57 = i.c_str() + v36 + 1;
+            std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.name.c_str());
+            std::string fs_copy_file_tmp_path = sprintf_s_string("%s/%s.fs_copy_file.tmp", ram_osage_play_data_tmp_path, i.name.c_str());
+            std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_tmp_path, i.name.c_str());
 
-            char buf1[0x200];
-            char buf2[0x200];
-            char buf3[0x200];
-            sprintf_s(buf1, sizeof(buf1), "%s/%s", buf, v57);
-            sprintf_s(buf2, sizeof(buf2), "%s/%s.fs_copy_file.tmp", ram_osage_play_data_tmp_path, v57);
-            sprintf_s(buf3, sizeof(buf3), "%s/%s", ram_osage_play_data_tmp_path, v57);
-
-            if (!path_check_file_exists(buf1))
+            if (!path_check_file_exists(tmp_path.c_str()))
                 continue;
 
-            if (path_check_directory_exists(ram_osage_play_data_tmp_path) && path_check_file_exists(buf2)) {
-                if (path_check_file_exists(buf3))
-                    path_delete_file(buf3);
+            if (path_check_directory_exists(ram_osage_play_data_tmp_path)
+                && path_check_file_exists(fs_copy_file_tmp_path.c_str())) {
+                if (path_check_file_exists(ram_path.c_str()))
+                    path_delete_file(ram_path.c_str());
 
-                if (!path_rename_file(buf2, buf3) && path_check_file_exists(buf2))
-                    path_delete_file(buf2);
+                if (!path_rename_file(fs_copy_file_tmp_path.c_str(), ram_path.c_str())
+                    && path_check_file_exists(fs_copy_file_tmp_path.c_str()))
+                    path_delete_file(fs_copy_file_tmp_path.c_str());
             }
 
-            path_delete_file(buf1);
+            path_delete_file(tmp_path.c_str());
         }
 
         if (field_D4)
@@ -16490,8 +16466,7 @@ void opd_chara_data::encode_data() {
 
     rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
 
-    char buf[0x200];
-    sprintf_s(buf, sizeof(buf), "%s/%d", get_ram_osage_play_data_tmp_path(), chara_id);
+    std::string buf = sprintf_s_string("%s/%d", get_ram_osage_play_data_tmp_dir(), chara_id);
 
     p_opd_farc* opd = this->opd;
     for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++, opd++) {
@@ -16548,16 +16523,7 @@ void opd_chara_data::encode_data() {
             osage_node_index++;
         }
 
-        char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "%s_%s.opd", object_name, motion_name);
-
-        for (int32_t i = 0; buf[i]; i++) {
-            char c = buf[i];
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            buf[i] = c;
-        }
-
+        std::string buf = string_to_lower(sprintf_s_string("%s_%s.opd", object_name, motion_name));
         opd->add_file(data, size, buf);
         free_def(data);
     }
@@ -16631,16 +16597,7 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
             }
         }
 
-        char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "%s_%s.opdi", object_name, motion_name);
-
-        for (int32_t i = 0; buf[i]; i++) {
-            char c = buf[i];
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            buf[i] = c;
-        }
-
+        std::string buf = string_to_lower(sprintf_s_string("%s_%s.opdi", object_name, motion_name));
         opdi->add_file(data, size, buf);
         free_def(data);
     }
@@ -16841,35 +16798,16 @@ void OsagePlayDataManager::LoadOpdFileList() {
         if (!motion_name)
             continue;
 
-        char obj_name_buf[0x200];
-        strcpy_s(obj_name_buf, sizeof(obj_name_buf), object_name);
+        std::string obj_name_buf = string_to_lower(object_name);
+        std::string mot_name_buf = string_to_lower(motion_name);
 
-        for (int32_t i = 0; obj_name_buf[i]; i++) {
-            char c = obj_name_buf[i];
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            obj_name_buf[i] = c;
-        }
+        std::string file_buf = sprintf_s_string("%s_%s.%s", obj_name_buf.c_str(), mot_name_buf.c_str(), "opd");
+        std::string farc_buf = sprintf_s_string("%s.farc", obj_name_buf.c_str());
 
-        char mot_name_buf[0x200];
-        strcpy_s(mot_name_buf, sizeof(mot_name_buf), motion_name);
-
-        for (int32_t i = 0; mot_name_buf[i]; i++) {
-            char c = mot_name_buf[i];
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            mot_name_buf[i] = c;
-        }
-
-        char file_buf[0x200];
-        sprintf_s(file_buf, sizeof(file_buf), "%s_%s.%s", obj_name_buf, mot_name_buf, "opd");
-
-        char farc_buf[0x200];
-        sprintf_s(farc_buf, sizeof(farc_buf), "%s.farc", obj_name_buf);
-
-        if (aft_data->check_file_exists("rom/osage_play_data/", farc_buf)) {
+        if (aft_data->check_file_exists("rom/osage_play_data/", farc_buf.c_str())) {
             file_handlers.push_back(new p_file_handler);
-            file_handlers.back()->read_file(aft_data, "rom/osage_play_data/", farc_buf, file_buf, true);
+            file_handlers.back()->read_file(aft_data,
+                "rom/osage_play_data/", farc_buf.c_str(), file_buf.c_str(), true);
         }
     }
     opd_req_data.clear();
@@ -18238,9 +18176,8 @@ motion_index(), pv(), thread(), display(), not_reset(), exit(), field_D4() {
 
     thread = new std::thread(PvOsageManager::ThreadMain, this);
     if (thread) {
-        wchar_t buf[0x80];
-        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"PV Osage Manager #%d", pv_osage_manager_counter++);
-        SetThreadDescription((HANDLE)thread->native_handle(), buf);
+        std::wstring buf = swprintf_s_string(L"PV Osage Manager #%d", pv_osage_manager_counter++);
+        SetThreadDescription((HANDLE)thread->native_handle(), buf.c_str());
     }
 }
 
@@ -18676,9 +18613,8 @@ void PvOsageManager::ThreadMain(PvOsageManager* pv_osg_mgr) {
 RobThreadParent::RobThreadParent() : exit(), thread() {
     thread = new std::thread(RobThreadParent::ThreadMain, this);
     if (thread) {
-        wchar_t buf[0x80];
-        swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"Rob Thread Parent #%d", rob_thread_parent_counter++);
-        SetThreadDescription((HANDLE)thread->native_handle(), buf);
+        std::wstring buf = swprintf_s_string(L"Rob Thread Parent #%d", rob_thread_parent_counter++);
+        SetThreadDescription((HANDLE)thread->native_handle(), buf.c_str());
     }
 }
 

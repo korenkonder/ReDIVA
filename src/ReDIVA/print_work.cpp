@@ -451,13 +451,13 @@ void PrintWork::wprintf_align_left(const wchar_t* fmt, ...) {
 }
 
 void PrintWork::vprintf(app::text_flags flags, const char* fmt, va_list args) {
-    char buf[0x100];
-    PrintText(flags, buf, vsprintf_s(buf, sizeof(buf) / sizeof(wchar_t), fmt, args));
+    std::string buf = vsprintf_s_string(fmt, args);
+    PrintText(flags, buf.data(), buf.size());
 }
 
 void PrintWork::vwprintf(app::text_flags flags, const wchar_t* fmt, va_list args) {
-    wchar_t buf[0x100];
-    PrintText(flags, buf, buf + vswprintf_s(buf, sizeof(buf) / sizeof(wchar_t), fmt, args));
+    std::wstring buf = vswprintf_s_string(fmt, args);
+    PrintText(flags, buf.data(), buf.data() + buf.size());
 }
 
 void PrintWork::ClampPosToClipBox(float_t pos_min, float_t pos_max,

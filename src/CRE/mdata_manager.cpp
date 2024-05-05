@@ -72,12 +72,11 @@ void MdataMgr::basic() {
 }
 
 void MdataMgr::Log(const char* fmt, ...) {
-    char buf[0x400];
     va_list args;
     va_start(args, fmt);
-    size_t len = vsprintf_s(buf, sizeof(buf), fmt, args);
+    std::string buf = vsprintf_s_string(fmt, args);
     va_end(args);
-    log.append(fmt, len);
+    log.append(buf);
     log.append(1, '\n');
 }
 
