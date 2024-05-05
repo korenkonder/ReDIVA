@@ -69,7 +69,7 @@ std::vector<std::string> path_get_files(const char* path) {
 
     std::wstring dir;
     dir.assign(dir_temp, dir_len);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
     dir.push_back(L'*');
     free_def(dir_temp);
@@ -99,7 +99,7 @@ std::vector<std::wstring> path_get_files(const wchar_t* path) {
 
     std::wstring dir;
     dir.assign(path, dir_len);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
     dir.push_back(L'*');
 
@@ -129,7 +129,7 @@ std::vector<std::string> path_get_directories(
     std::wstring dir;
     std::wstring temp;
     dir.assign(dir_temp, dir_len);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
     temp.assign(dir);
     dir.push_back(L'*');
@@ -183,7 +183,7 @@ std::vector<std::wstring> path_get_directories(
     std::wstring dir;
     std::wstring temp;
     dir.assign(path, dir_len);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
     temp.assign(dir);
     dir.push_back(L'*');
@@ -235,7 +235,7 @@ std::vector<std::string> path_get_directories_recursive(
     std::wstring dir;
     std::wstring temp;
     dir.assign(dir_temp, dir_len);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
     temp.assign(dir);
     dir.push_back(L'*');
@@ -326,7 +326,7 @@ std::vector<std::wstring> path_get_directories_recursive(
     std::wstring dir;
     std::wstring temp;
     dir.assign(path, dir_len);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
     temp.assign(dir);
     dir.push_back(L'*');
@@ -445,32 +445,61 @@ bool path_create_file(const wchar_t* path) {
 }
 
 bool path_create_directory(const char* path) {
+    const char* _path = path;
+    while (true) {
+        const char* c = strchr(_path, '\\');
+        if (!c)
+            c = strchr(_path, '/');
+
+        if (!c)
+            break;
+
+        _path = c + 1;
+        std::wstring temp = utf8_to_utf16(std::string(path, c - path));
+        if (!path_check_directory_exists(temp.c_str()) && !CreateDirectoryW(temp.c_str(), 0))
+            return false;
+    }
+
     wchar_t* path_temp = utf8_to_utf16(path);
-    bool ret = !CreateDirectoryW(path_temp, 0);
+    bool ret = path_check_directory_exists(path_temp) || CreateDirectoryW(path_temp, 0);
     free_def(path_temp);
     return ret;
-   
 }
 
 bool path_create_directory(const wchar_t* path) {
-     return !CreateDirectoryW(path, 0);
+    const wchar_t* _path = path;
+    while (true) {
+        const wchar_t* c = wcschr(_path, L'\\');
+        if (!c)
+            c = wcschr(_path, L'/');
+
+        if (!c)
+            break;
+
+        _path = c + 1;
+        std::wstring temp(path, c - path);
+        if (!path_check_directory_exists(temp.c_str()) && !CreateDirectoryW(temp.c_str(), 0))
+            return false;
+    }
+
+    return path_check_directory_exists(path) || CreateDirectoryW(path, 0);
 }
 
 bool path_delete_file(const char* path) {
     wchar_t* path_temp = utf8_to_utf16(path);
-    bool ret = DeleteFileW(path_temp);
+    bool ret = !path_check_file_exists(path_temp) || DeleteFileW(path_temp);
     free_def(path_temp);
     return ret;
 }
 
 bool path_delete_file(const wchar_t* path) {
-    return DeleteFileW(path);
+    return !path_check_file_exists(path) || DeleteFileW(path);
 }
 
 bool path_delete_directory(const char* path) {
     std::string dir;
     dir.assign(path);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
 
     std::vector<std::string> files = path_get_files(path);
@@ -482,7 +511,7 @@ bool path_delete_directory(const char* path) {
         path_delete_directory((dir + i).c_str());
 
     wchar_t* path_temp = utf8_to_utf16(path);
-    bool ret = RemoveDirectoryW(path_temp);
+    bool ret = !path_check_directory_exists(path_temp) || RemoveDirectoryW(path_temp);
     free_def(path_temp);
     return ret;
 }
@@ -490,7 +519,7 @@ bool path_delete_directory(const char* path) {
 bool path_delete_directory(const wchar_t* path) {
     std::wstring dir;
     dir.assign(path);
-    if (dir.size() && dir.back() != L'\\')
+    if (dir.size() && dir.back() != L'\\' && dir.back() != L'/')
         dir.push_back(L'\\');
 
     std::vector<std::wstring> files = path_get_files(path);
@@ -501,7 +530,7 @@ bool path_delete_directory(const wchar_t* path) {
     for (std::wstring& i : directories)
         path_delete_directory((dir + i).c_str());
 
-    return RemoveDirectoryW(path);
+    return !path_check_directory_exists(path) || RemoveDirectoryW(path);
 }
 
 bool path_rename_file(const char* old_path, const char* new_path) {
