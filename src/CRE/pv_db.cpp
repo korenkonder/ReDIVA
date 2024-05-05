@@ -2273,14 +2273,12 @@ void task_pv_db_init() {
 void task_pv_db_add_paths() {
     pv_db::TaskPvDB* task_pv_db = task_pv_db_get();
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string pv_db_file;
-        pv_db_file.assign(i);
+        std::string pv_db_file(i);
         pv_db_file.append("pv_db.txt");
         if (data_list[DATA_AFT].check_file_exists("rom/", pv_db_file.c_str()))
             task_pv_db->paths.push_back({ "rom/", pv_db_file });
 
-        std::string pv_field_file;
-        pv_field_file.assign(i);
+        std::string pv_field_file(i);
         pv_field_file.append("pv_field.txt");
         if (data_list[DATA_AFT].check_file_exists("rom/", pv_field_file.c_str()))
             task_pv_db->paths.push_back({ "rom/", pv_field_file });

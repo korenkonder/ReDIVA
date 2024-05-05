@@ -80,5 +80,5 @@ struct farc {
     void write(void** data, size_t* size, farc_signature signature = FARC_FArC,
         farc_flags flags = FARC_NONE);
 
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };

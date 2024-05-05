@@ -154,8 +154,7 @@ void hand_item_handler::read() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string file;
-        file.assign(i);
+        std::string file(i);
         file.append("hand_item_data.txt");
 
         if (aft_data->check_file_exists("rom/", file.c_str())) {

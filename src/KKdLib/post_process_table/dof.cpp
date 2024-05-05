@@ -107,19 +107,18 @@ void dof::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool dof::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool dof::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     dof* d = (dof*)data;
-    d->read(s.c_str());
+    d->read(path.c_str());
 
     return d->ready;
 }

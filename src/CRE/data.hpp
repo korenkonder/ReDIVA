@@ -112,14 +112,16 @@ struct data_struct {
     bool check_file_exists(const char* path);
     bool check_file_exists(const char* dir, const char* file);
     bool check_file_exists(const char* dir, uint32_t hash);
-    void get_directory_files(const char* dir, std::vector<data_struct_file>& data_files);
+    std::vector<data_struct_file> get_directory_files(const char* dir);
     bool get_file(const char* dir, uint32_t hash, const char* ext, std::string& file);
+    bool get_file_path(std::string& path);
+    bool get_file_path(const char* dir, const char* file, std::string& path);
     bool load_file(void* data, const char* path,
-        bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
+        bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash));
     bool load_file(void* data, const char* dir, const char* file,
-        bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
+        bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash));
     bool load_file(void* data, const char* dir, uint32_t hash, const char* ext,
-        bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash));
+        bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash));
 };
 
 extern data_struct* data_list;

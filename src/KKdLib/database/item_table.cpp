@@ -274,19 +274,18 @@ void itm_table::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool itm_table::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool itm_table::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     itm_table* itm_tbl = (itm_table*)data;
-    itm_tbl->read(s.c_str());
+    itm_tbl->read(path.c_str());
 
     return itm_tbl->ready;
 }

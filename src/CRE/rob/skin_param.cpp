@@ -59,7 +59,7 @@ struct SkinParamManager : public app::Task {
     void AddFiles();
     bool AddTask(std::vector<osage_init_data>& vec);
     bool CtrlFiles();
-    int32_t GetExtSkpFile(const osage_init_data& osage_init, const std::string& path,
+    int32_t GetExtSkpFile(const osage_init_data& osage_init, const std::string& dir,
         std::string& file, void* data, motion_database* mot_db, object_database* obj_db);
     std::vector<skin_param_file_data>* GetSkinParamFileData(
         object_info obj_info, uint32_t motion_id, int32_t frame);
@@ -84,11 +84,11 @@ struct sp_skp_db {
         void* data, motion_database* mot_db, object_database* obj_db);
 };
 
-static bool osage_setting_data_load_file(void* data, const char* path, const char* file, uint32_t hash);
+static bool osage_setting_data_load_file(void* data, const char* dir, const char* file, uint32_t hash);
 
 static SkinParamManager* skin_param_manager_get(int32_t chara_id);
 
-static bool sp_skp_db_load_file(void* data, const char* path, const char* file, uint32_t hash);
+static bool sp_skp_db_load_file(void* data, const char* dir, const char* file, uint32_t hash);
 
 osage_setting* osage_setting_data;
 sp_skp_db* sp_skp_db_data;
@@ -581,11 +581,9 @@ void osage_setting::load() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string file;
-        file.assign(i);
+        std::string file(i);
         file.append("osage_setting.txt");
-        aft_data->load_file(this, "rom/skin_param/",
-            file.c_str(), osage_setting_data_load_file);
+        aft_data->load_file(this, "rom/skin_param/", file.c_str(), osage_setting_data_load_file);
     }
 }
 
@@ -750,11 +748,11 @@ void SkinParamManager::AddFiles() {
             if (!ex_data || !(osage_count + cloth_count))
                 continue;
 
-            std::string path;
+            std::string dir;
             std::string farc_file;
             std::string file;
 
-            path.assign("rom/skin_param/");
+            dir.assign("rom/skin_param/");
 
             farc_file.assign("");
 
@@ -770,11 +768,11 @@ void SkinParamManager::AddFiles() {
             skp_file->rob_chr = i.rob_chr;
             skp_file->type = -1;
 
-            if (i.path.size()) {
-                skp_file->type = GetExtSkpFile(i, i.path,
+            if (i.dir.size()) {
+                skp_file->type = GetExtSkpFile(i, i.dir,
                     file, aft_data, aft_mot_db, aft_obj_db);
                 if (skp_file->type != -1)
-                    path.assign(i.path);
+                    dir.assign(i.dir);
             }
 
             bool read_farc = false;
@@ -843,9 +841,9 @@ void SkinParamManager::AddFiles() {
 
             p_file_handler* pfhndl = new p_file_handler;
             if (read_farc)
-                pfhndl->read_file(aft_data, path.c_str(), farc_file.c_str(), file.c_str(), false);
+                pfhndl->read_file(aft_data, dir.c_str(), farc_file.c_str(), file.c_str(), false);
             else
-                pfhndl->read_file(aft_data, path.c_str(), file.c_str());
+                pfhndl->read_file(aft_data, dir.c_str(), file.c_str());
             skp_file->file_handler = pfhndl;
             files.push_back(skp_file);
         }
@@ -909,9 +907,9 @@ bool SkinParamManager::CtrlFiles() {
     return !!files.size();
 }
 
-int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init, const std::string& path,
+int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init, const std::string& dir,
     std::string& file, void* data, motion_database* mot_db, object_database* obj_db) {
-    if (!path.size())
+    if (!dir.size())
         return -1;
 
     char buf0[0x200];
@@ -945,7 +943,7 @@ int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init, const
             *i = c;
         }
 
-        if (((data_struct*)data)->check_file_exists(path.c_str(), buf0)) {
+        if (((data_struct*)data)->check_file_exists(dir.c_str(), buf0)) {
             file.assign(buf0);
             return 0;
         }
@@ -963,13 +961,13 @@ int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init, const
             *i = c;
         }
 
-        if (((data_struct*)data)->check_file_exists(path.c_str(), buf0)) {
+        if (((data_struct*)data)->check_file_exists(dir.c_str(), buf0)) {
             file.assign(buf0);
             return 1;
         }
     }
 
-    if (((data_struct*)data)->check_file_exists(path.c_str(), file.c_str()))
+    if (((data_struct*)data)->check_file_exists(dir.c_str(), file.c_str()))
         return 2;
 
     return -1;
@@ -1058,11 +1056,9 @@ void sp_skp_db::clear() {
 void sp_skp_db::load() {
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string file;
-        file.assign(i);
+        std::string file(i);
         file.append("sp_skp_db.txt");
-        aft_data->load_file(this, "rom/skin_param/",
-            file.c_str(), sp_skp_db_load_file);
+        aft_data->load_file(this, "rom/skin_param/", file.c_str(), sp_skp_db_load_file);
     }
 }
 
@@ -1250,9 +1246,9 @@ int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
     return type;
 }
 
-static bool osage_setting_data_load_file(void* data, const char* path, const char* file, uint32_t hash) {
+static bool osage_setting_data_load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     key_val kv;
-    if (key_val::load_file(&kv, path, file, hash)) {
+    if (key_val::load_file(&kv, dir, file, hash)) {
         ((osage_setting*)data)->parse(&kv);
         return true;
     }
@@ -1265,9 +1261,9 @@ static SkinParamManager* skin_param_manager_get(int32_t chara_id) {
     return &skin_param_manager[chara_id];
 }
 
-static bool sp_skp_db_load_file(void* data, const char* path, const char* file, uint32_t hash) {
+static bool sp_skp_db_load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     key_val kv;
-    if (key_val::load_file(&kv, path, file, hash)) {
+    if (key_val::load_file(&kv, dir, file, hash)) {
         ((sp_skp_db*)data)->parse(&kv);
         return true;
     }

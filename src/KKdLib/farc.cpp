@@ -378,18 +378,18 @@ void farc::write(void** data, size_t* size, farc_signature signature, farc_flags
     farc_pack_files(this, s, signature, flags);
 }
 
-bool farc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool farc::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
     if (file_len < 5 || memcmp(&file[file_len - 5], ".farc", 6))
         return false;
 
-    size_t path_len = utf8_length(path);
-    if (path_len + file_len + 2 > 0x1000)
+    size_t dir_len = utf8_length(dir);
+    if (dir_len + file_len + 2 > 0x1000)
         return false;
 
     char buf[0x1000];
-    memcpy(buf, path, path_len);
-    memcpy(buf + path_len, file, file_len + 1);
+    memcpy(buf, dir, dir_len);
+    memcpy(buf + dir_len, file, file_len + 1);
     if (!path_check_file_exists(buf))
         return false;
 

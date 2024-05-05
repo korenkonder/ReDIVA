@@ -285,8 +285,7 @@ void customize_item_table_handler::read() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string farc_file;
-        farc_file.assign(i);
+        std::string farc_file(i);
         farc_file.append("gm_customize_item_tbl.farc");
 
         if (aft_data->check_file_exists("rom/", farc_file.c_str())) {

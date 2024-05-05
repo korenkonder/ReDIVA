@@ -98,7 +98,7 @@ struct bone_database {
     const std::vector<uint16_t>* get_skeleton_parent_indices(const char* name) const;
     const float_t* get_skeleton_heel_height(const char* name) const;
 
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };
 
 extern void bone_database_bones_calculate_count(const std::vector<bone_database_bone>* bones,

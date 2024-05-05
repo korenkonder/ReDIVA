@@ -196,19 +196,18 @@ void texture_database_file::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool texture_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool texture_database_file::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     texture_database_file* tex_db = (texture_database_file*)data;
-    tex_db->read(s.c_str(), tex_db->modern);
+    tex_db->read(path.c_str(), tex_db->modern);
 
     return tex_db->ready;
 }

@@ -392,19 +392,18 @@ void a3da::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool a3da::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool a3da::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     a3da* a = (a3da*)data;
-    a->read(s.c_str());
+    a->read(path.c_str());
 
     return a->ready;
 }

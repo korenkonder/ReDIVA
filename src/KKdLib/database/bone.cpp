@@ -357,19 +357,18 @@ const float_t* bone_database::get_skeleton_heel_height(const char* name) const {
     return 0;
 }
 
-bool bone_database::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool bone_database::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     bone_database* bone_data = (bone_database*)data;
-    bone_data->read(s.c_str(), bone_data->modern);
+    bone_data->read(path.c_str(), bone_data->modern);
 
     return bone_data->ready;
 }

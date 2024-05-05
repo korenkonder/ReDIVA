@@ -212,19 +212,18 @@ void object_database_file::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool object_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool object_database_file::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     object_database_file* obj_db = (object_database_file*)data;
-    obj_db->read(s.c_str(), obj_db->modern);
+    obj_db->read(path.c_str(), obj_db->modern);
 
     return obj_db->ready;
 }

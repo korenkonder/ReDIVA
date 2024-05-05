@@ -3564,13 +3564,13 @@ struct osage_init_data {
     rob_chara* rob_chr;
     int32_t pv_id;
     uint32_t motion_id;
-    std::string path;
+    std::string dir;
     int32_t frame;
 
     osage_init_data();
     osage_init_data(rob_chara* rob_chr, uint32_t motion_id = -1);
     osage_init_data(rob_chara* rob_chr, int32_t pv_id,
-        uint32_t motion_id, std::string&& path = "", int32_t frame = -1);
+        uint32_t motion_id, const std::string& dir = "", int32_t frame = -1);
     ~osage_init_data();
 };
 

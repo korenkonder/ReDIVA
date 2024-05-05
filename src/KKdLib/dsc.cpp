@@ -3264,13 +3264,12 @@ int32_t dsc::calculate_target_flying_time(int32_t bpm, int32_t time_signature) {
     return (int32_t)((float_t)time_signature * (60.0f / (float_t)bpm) * 1000.0f);
 }
 
-bool dsc::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string s;
-    s.assign(path);
-    s.append(file);
+bool dsc::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
+    std::string path(dir);
+    path.append(file);
 
     file_stream dsc_s;
-    dsc_s.open(s.c_str(), "rb");
+    dsc_s.open(path.c_str(), "rb");
     void* dsc_data = force_malloc(dsc_s.length);
     size_t dsc_length = dsc_s.length;
     dsc_s.read(dsc_data, dsc_length);

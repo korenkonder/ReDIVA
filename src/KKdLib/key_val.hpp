@@ -84,7 +84,7 @@ struct key_val {
     bool read(const char* key0, const char* key1, vec3& value);
     bool read(std::string& key0, std::string& key1, vec3& value);
 
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };
 
 struct key_val_out {

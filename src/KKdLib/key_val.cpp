@@ -679,13 +679,12 @@ bool key_val::read(const char* key0, const char* key1, vec3& value) {
     return false;
 }
 
-bool key_val::load_file(void* data, const char* path, const char* file, uint32_t hash) {
-    std::string s;
-    s.assign(path);
-    s.append(file);
+bool key_val::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
+    std::string path(dir);
+    path.append(file);
 
     key_val* kv = (key_val*)data;
-    kv->file_read(s.c_str());
+    kv->file_read(path.c_str());
 
     return kv->buf ? true : false;
 }

@@ -55,7 +55,7 @@ struct stage_param_star {
 
     static void get_mat(mat4& mat, const float_t observer_north_latitude,
         const float_t observer_east_longitude, const stage_param_star_utc& utc, const float_t rotation_y);
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 
     stage_param_star& operator=(const stage_param_star& star);
 };

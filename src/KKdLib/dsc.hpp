@@ -308,7 +308,7 @@ struct dsc {
     void unparse(void** data, size_t* size);
 
     static int32_t calculate_target_flying_time(int32_t bpm, int32_t time_signature);
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 
     dsc& operator=(const dsc& d);
 };

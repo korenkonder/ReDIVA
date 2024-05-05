@@ -145,5 +145,5 @@ struct pvsr {
     void read(const wchar_t* path);
     void read(const void* data, size_t size);
 
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };

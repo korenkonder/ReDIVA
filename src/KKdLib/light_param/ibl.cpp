@@ -50,19 +50,18 @@ void light_param_ibl::read(const void* data, size_t size) {
     light_param_ibl_read_inner(this, s);
 }
 
-bool light_param_ibl::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool light_param_ibl::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     light_param_ibl* ibl = (light_param_ibl*)data;
-    ibl->read(s.c_str());
+    ibl->read(path.c_str());
 
     return ibl->ready;
 }

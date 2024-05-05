@@ -170,19 +170,18 @@ void stage_param_star::get_mat(mat4& mat, const float_t observer_north_latitude,
     mat4_transpose(&temp, &mat);
 }
 
-bool stage_param_star::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool stage_param_star::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     stage_param_star* star = (stage_param_star*)data;
-    star->read(s.c_str());
+    star->read(path.c_str());
 
     return star->ready;
 }

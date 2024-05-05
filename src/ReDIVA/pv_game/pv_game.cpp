@@ -4337,7 +4337,7 @@ void pv_game::set_osage_init(const pv_game_chara& chr) {
         osage_init.rob_chr = chr.rob_chr;
         osage_init.pv_id = pv->id;
         osage_init.motion_id = motion_id;
-        osage_init.path.assign(pv->mdata.dir);
+        osage_init.dir.assign(pv->mdata.dir);
         osage_init.frame = i.frame;
         vec.push_back(osage_init);
     }

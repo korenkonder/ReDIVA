@@ -325,8 +325,7 @@ void DataTestGlitterParticleDw::Init() {
     chara->SetValue(false);
     list->ClearItems();
 
-    std::vector<data_struct_file> files;
-    data_list[DATA_AFT].get_directory_files("rom/particle/", files);
+    std::vector<data_struct_file> files = data_list[DATA_AFT].get_directory_files("rom/particle/");
     for (data_struct_file& i : files) {
         size_t pos = i.name.find(".farc");
         if (pos == i.name.size() - 5)

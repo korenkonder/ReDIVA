@@ -5004,11 +5004,11 @@ osage_init_data::osage_init_data(rob_chara* rob_chr, uint32_t motion_id) {
 }
 
 osage_init_data::osage_init_data(rob_chara* rob_chr, int32_t pv_id,
-    uint32_t motion_id, std::string&& path, int32_t frame) {
+    uint32_t motion_id, const std::string& dir, int32_t frame) {
     this->rob_chr = rob_chr;
     this->pv_id = pv_id;
     this->motion_id = motion_id;
-    this->path.assign(path);
+    this->dir.assign(dir);
     this->frame = frame;
 }
 
@@ -18183,8 +18183,7 @@ void rob_sleeve_handler::read() {
 
     data_struct* aft_data = &data_list[DATA_AFT];
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-        std::string file;
-        file.assign(i);
+        std::string file(i);
         file.append("rob_sleeve_data.txt");
 
         if (aft_data->check_file_exists("rom/", file.c_str())) {

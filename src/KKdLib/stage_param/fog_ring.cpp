@@ -88,19 +88,18 @@ void stage_param_fog_ring::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool stage_param_fog_ring::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool stage_param_fog_ring::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     stage_param_fog_ring* fog_ring = (stage_param_fog_ring*)data;
-    fog_ring->read(s.c_str());
+    fog_ring->read(path.c_str());
 
     return fog_ring->ready;
 }

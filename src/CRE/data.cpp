@@ -61,8 +61,7 @@ void data_struct_load_db() {
         data_ft* d = &ds->data_ft;
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("aet_db.bin");
 
             aet_database_file aet_db_file;
@@ -73,8 +72,7 @@ void data_struct_load_db() {
         }
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("auth_3d_db.bin");
 
             auth_3d_database_file auth_3d_db_file;
@@ -92,8 +90,7 @@ void data_struct_load_db() {
         }
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("mot_db.farc");
 
             motion_database_file mot_db_file;
@@ -103,8 +100,7 @@ void data_struct_load_db() {
         }
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("obj_db.bin");
 
             object_database_file obj_db_file;
@@ -115,8 +111,7 @@ void data_struct_load_db() {
         }
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("spr_db.bin");
 
             sprite_database_file spr_db_file;
@@ -127,8 +122,7 @@ void data_struct_load_db() {
         }
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("stage_data.bin");
 
             stage_database_file stage_data_file;
@@ -139,8 +133,7 @@ void data_struct_load_db() {
         }
 
         for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
-            std::string file;
-            file.assign(i);
+            std::string file(i);
             file.append("tex_db.bin");
 
             texture_database_file tex_db_file;
@@ -447,10 +440,8 @@ bool data_struct::check_file_exists(const char* dir, uint32_t hash) {
     return false;
 }
 
-void data_struct::get_directory_files(const char* dir, std::vector<data_struct_file>& data_files) {
-    data_files.clear();
-    data_files.shrink_to_fit();
-
+std::vector<data_struct_file> data_struct::get_directory_files(const char* dir) {
+    std::vector<data_struct_file> files;
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
         dir += 2;
@@ -468,7 +459,7 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
         dir_len -= 3;
     }
     else
-        return;
+        return {};
 
     while (*dir == '/' || *dir == '\\') {
         dir++;
@@ -488,13 +479,14 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
             temp.push_back('\\');
             temp.append(dir_temp);
 
-            std::vector<std::string> files = path_get_files(temp.c_str());
-            if (!files.size())
+            std::vector<std::string> path_files = path_get_files(temp.c_str());
+            if (!path_files.size())
                 continue;
 
-            for (std::string& k : files) {
+            files.reserve(path_files.size());
+            for (std::string& k : path_files) {
                 bool found = false;
-                for (data_struct_file& l : data_files)
+                for (data_struct_file& l : files)
                     if (k == l.name) {
                         found = true;
                         break;
@@ -506,9 +498,11 @@ void data_struct::get_directory_files(const char* dir, std::vector<data_struct_f
                 data_struct_file f;
                 f.path.assign(temp);
                 f.name.assign(k);
-                data_files.push_back(f);
+                files.push_back(f);
             }
         }
+    files.shrink_to_fit();
+    return files;
 }
 
 bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std::string& file) {
@@ -575,8 +569,94 @@ bool data_struct::get_file(const char* dir, uint32_t hash, const char* ext, std:
     return false;
 }
 
+bool data_struct::get_file_path(std::string& path) {
+    size_t pos = path.find('/');
+    if (pos) {
+        std::string dir(path, 0, pos + 1);
+        std::string file(path, pos + 1);
+        return get_file_path(dir.c_str(), file.c_str(), path);
+    }
+
+    pos = path.find('\\');
+    if (pos) {
+        std::string dir(path, 0, pos + 1);
+        std::string file(path, pos + 1);
+        return get_file_path(dir.c_str(), file.c_str(), path);
+    }
+    return false;
+}
+
+bool data_struct::get_file_path(const char* dir, const char* file, std::string& path) {
+    size_t file_len = utf8_length(file);
+
+    if (path_check_directory_exists(dir)) {
+        const char* t = strrchr(file, '.');
+        size_t t_len;
+        if (t)
+            t_len = t - file;
+        else
+            t_len = file_len;
+
+        uint32_t h = hash_murmurhash(file, t_len, 0, false, false);
+        std::string _path(dir);
+        _path.append(file);
+        if (path_check_file_exists(_path.c_str())) {
+            path.assign(_path);
+            return true;
+        }
+    }
+
+    size_t dir_len = utf8_length(dir);
+    if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
+        dir += 2;
+        dir_len -= 2;
+    }
+
+    bool f2 = false;
+    if (dir_len >= 5 && !memcmp(dir, "root+", 5)) {
+        dir += 5;
+        dir_len -= 5;
+        f2 = true;
+    }
+    else if (dir_len >= 3 && !memcmp(dir, "rom", 3)) {
+        dir += 3;
+        dir_len -= 3;
+    }
+    else
+        return false;
+
+    while (*dir == '/' || *dir == '\\') {
+        dir++;
+        dir_len--;
+    }
+
+    std::string dir_temp(dir, dir_len);
+
+    char* t = (char*)dir_temp.c_str();
+    while (t = strchr(t, '/'))
+        *t = '\\';
+
+    std::string temp;
+    for (data_struct_path& i : data_paths)
+        for (data_struct_directory& j : i.data) {
+            temp.assign(j.path);
+            temp.push_back('\\');
+            temp.append(dir_temp);
+            temp.append(file, file_len);
+
+            if (path_check_file_exists(temp.c_str())) {
+                path.assign(temp);
+                return true;
+            }
+        }
+
+    if (f2)
+        return get_file_path("rom/data/", file, path);
+    return false;
+}
+
 bool data_struct::load_file(void* data, const char* path,
-    bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
+    bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash)) {
     const char* t = strrchr(path, '/');
     if (t) {
         std::string dir(path, t - path + 1);
@@ -592,7 +672,7 @@ bool data_struct::load_file(void* data, const char* path,
 }
 
 bool data_struct::load_file(void* data, const char* dir, const char* file,
-    bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
+    bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash)) {
     size_t file_len = utf8_length(file);
 
     if (path_check_directory_exists(dir)) {
@@ -670,7 +750,7 @@ bool data_struct::load_file(void* data, const char* dir, const char* file,
 }
 
 bool data_struct::load_file(void* data, const char* dir, uint32_t hash, const char* ext,
-    bool (*load_func)(void* data, const char* path, const char* file, uint32_t hash)) {
+    bool (*load_func)(void* data, const char* dir, const char* file, uint32_t hash)) {
     size_t dir_len = utf8_length(dir);
     if (dir_len >= 2 && !memcmp(dir, "./", 2)) {
         dir += 2;

@@ -241,19 +241,18 @@ void stage_database_file::write(void** data, size_t* size) {
     s.copy(data, size);
 }
 
-bool stage_database_file::load_file(void* data, const char* path, const char* file, uint32_t hash) {
+bool stage_database_file::load_file(void* data, const char* dir, const char* file, uint32_t hash) {
     size_t file_len = utf8_length(file);
 
     const char* t = strrchr(file, '.');
     if (t)
         file_len = t - file;
 
-    std::string s;
-    s.assign(path);
-    s.append(file, file_len);
+    std::string path(dir);
+    path.append(file, file_len);
 
     stage_database_file* stage_data = (stage_database_file*)data;
-    stage_data->read(s.c_str(), stage_data->modern);
+    stage_data->read(path.c_str(), stage_data->modern);
 
     return stage_data->ready;
 }

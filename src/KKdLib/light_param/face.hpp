@@ -26,5 +26,5 @@ struct light_param_face {
     void write(const wchar_t* path);
     void write(void** data, size_t* size);
 
-    static bool load_file(void* data, const char* path, const char* file, uint32_t hash);
+    static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };
