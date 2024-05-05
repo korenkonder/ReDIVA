@@ -173,7 +173,7 @@ int32_t height;
 
 static const double_t aspect = 16.0 / 9.0;
 
-static const int32_t fast_loader_speed = 1;
+static const int32_t fast_loader_speed = 60;
 
 bool light_chara_ambient;
 vec4 npr_cloth_spec_color = 1.0f;
