@@ -59,7 +59,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         outdir.push_back('\\');
 
     if (!path_check_directory_exists(outdir.c_str())
-        && !CreateDirectoryW(outdir.c_str(), 0))
+        && !path_create_directory(outdir.c_str()))
         return 0;
 
     int32_t cpuid_data[4];
@@ -128,7 +128,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         std::wstring _outdir = outdir + i + L'\\';
 
         if (!path_check_directory_exists(_outdir.c_str())
-            && !CreateDirectoryW(_outdir.c_str(), 0))
+            && !path_create_directory(_outdir.c_str()))
             continue;
 
         std::vector<std::wstring> files = path_get_files(_indir.c_str());

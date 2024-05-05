@@ -809,7 +809,7 @@ static void farc_unpack_files(farc* f, stream& s, bool save) {
 
     if (save) {
         wchar_t* dir_temp = utf8_to_utf16(f->directory_path.c_str());
-        CreateDirectoryW(dir_temp, 0);
+        path_create_directory(dir_temp);
         free_def(dir_temp);
     }
 

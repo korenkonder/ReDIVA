@@ -1283,12 +1283,12 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
 void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
     obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db) {
-    if (!path_check_directory_exists(path) && !CreateDirectoryA(path, 0))
+    if (!path_check_directory_exists(path) && !path_create_directory(path))
         return;
 
     char buf[0x200];
     sprintf_s(buf, sizeof(buf), "%s\\%s\\", path, set_name);
-    if (!path_check_directory_exists(buf) && !CreateDirectoryA(buf, 0))
+    if (!path_check_directory_exists(buf) && !path_create_directory(buf))
         return;
 
     msgpack_array objects(obj_set->obj_num);

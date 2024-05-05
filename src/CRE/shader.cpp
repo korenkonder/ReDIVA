@@ -418,7 +418,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
         return;
 
     wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
-    CreateDirectoryW(temp_buf, 0);
+    path_create_directory(temp_buf);
 
     wchar_t buf[MAX_PATH];
     swprintf_s(buf, sizeof(buf) / sizeof(wchar_t), L"\\%hs_shader_cache", name);
@@ -837,13 +837,13 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
             wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
             temp_buf[sizeof(temp_buf) / sizeof(wchar_t) - 1] = 0;
-            CreateDirectoryW(temp_buf, 0);
+            path_create_directory(temp_buf);
 
             wchar_t buf[MAX_PATH];
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
                 L"%ls\\shader_error", temp_buf);
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
-            CreateDirectoryW(buf, 0);
+            path_create_directory(buf);
 
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
                 L"%ls\\shader_error\\%hs", temp_buf, file);
@@ -895,13 +895,13 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
             wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
             temp_buf[sizeof(temp_buf) / sizeof(wchar_t) - 1] = 0;
-            CreateDirectoryW(temp_buf, 0);
+            path_create_directory(temp_buf);
 
             wchar_t buf[MAX_PATH];
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
                 L"%ls\\shader_error", temp_buf);
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
-            CreateDirectoryW(buf, 0);
+            path_create_directory(buf);
 
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
                 L"%ls\\shader_error\\%hs", temp_buf, vp);
@@ -971,13 +971,13 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
             wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
             temp_buf[sizeof(temp_buf) / sizeof(wchar_t) - 1] = 0;
-            CreateDirectoryW(temp_buf, 0);
+            path_create_directory(temp_buf);
 
             wchar_t buf[MAX_PATH];
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
                 L"%ls\\shader_error", temp_buf);
             buf[sizeof(buf) / sizeof(wchar_t) - 1] = 0;
-            CreateDirectoryW(buf, 0);
+            path_create_directory(buf);
 
             swprintf_s(buf, sizeof(buf) / sizeof(wchar_t),
                 L"%ls\\shader_error\\%hs", temp_buf, vp);
