@@ -446,14 +446,14 @@ std::wstring swprintf_s_string(const wchar_t* fmt, ...) {
 
 std::string vsprintf_s_string(const char* fmt, va_list args) {
     char _buf[0x100];
-    int32_t len = sprintf_s(_buf, sizeof(_buf), fmt, args);
+    int32_t len = vsprintf_s(_buf, sizeof(_buf), fmt, args);
     if (len < 0)
         return {};
     else if (len < sizeof(_buf))
         return std::string(_buf, len);
 
     std::string buf(len, 0);
-    if (sprintf_s((char*)buf.data(), buf.size(), fmt, args) != len)
+    if (vsprintf_s((char*)buf.data(), buf.size(), fmt, args) != len)
         return {};
     return buf;
 }
