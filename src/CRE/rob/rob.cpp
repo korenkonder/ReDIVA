@@ -11724,6 +11724,20 @@ mot_key_data::~mot_key_data() {
 
 }
 
+void mot_key_data::reset() {
+    key_sets_ready = 0;
+    skeleton_type = BONE_DATABASE_SKELETON_NONE;
+    frame = -1.0f;
+    key_set_count = 0;
+    mot_data = 0;
+    skeleton_select = 0;
+    field_68 = {};
+
+    key_set.clear();
+    key_set_data.clear();
+    motion_id = -1;
+}
+
 eyes_adjust::eyes_adjust() : xrot_adjust(), base_adjust() {
     neg = -1.0f;
     pos = -1.0f;
@@ -12324,6 +12338,7 @@ struc_240::~struc_240() {
 
 motion_blend_mot::motion_blend_mot() : bone_data(),
 mot_key_data(), mot_play_data(), field_4F8(), field_5CC(), blend() {
+    mot_key_data.reset();
     mot_play_data.reset();
     field_4F8.field_C0 = 1.0f;
     field_4F8.field_C4 = 1.0f;
@@ -12350,6 +12365,7 @@ MotionBlendType motion_blend_mot::get_type() {
 }
 
 void motion_blend_mot::reset() {
+    mot_key_data.reset();
     mot_play_data.reset();
     field_4F8.field_0 = 0;
     field_4F8.field_8 = 0;
@@ -12389,6 +12405,7 @@ mot_blend::~mot_blend() {
 }
 
 void mot_blend::reset() {
+    mot_key_data.reset();
     mot_play_data.reset();
     blend.Reset();
     field_0.bone_check_func = 0;

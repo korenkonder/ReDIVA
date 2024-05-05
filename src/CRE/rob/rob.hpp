@@ -928,6 +928,8 @@ struct mot_key_data {
 
     mot_key_data();
     ~mot_key_data();
+
+    void reset();
 };
 
 struct bone_data {
