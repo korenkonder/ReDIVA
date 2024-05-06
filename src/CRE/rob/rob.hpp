@@ -3580,7 +3580,7 @@ struct OpdMakeManagerArgs {
     const std::vector<int32_t>* motion_ids;
     const std::vector<uint32_t>* modules;
     const std::vector<std::string>* objects;
-    bool field_18;
+    bool use_current_skp;
     bool use_opdi;
 };
 

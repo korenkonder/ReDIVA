@@ -100,7 +100,7 @@ struct OpdMakeWorker : public app::Task {
     int32_t state;
     int32_t chara_id;
     int32_t items[25];
-    bool field_D4;
+    bool use_current_skp;
     OpdMaker::Data data;
 
     OpdMakeWorker(int32_t chara_id);
@@ -111,7 +111,7 @@ struct OpdMakeWorker : public app::Task {
     virtual bool dest() override;
     virtual void disp() override;
 
-    bool add_task(bool a2);
+    bool add_task(bool use_current_skp);
     bool del_task();
 };
 
@@ -346,7 +346,7 @@ struct OpdMakeManager : app::Task {
     std::vector<uint32_t> motion_set_ids;
     OpdMakeWorker* workers[4];
     OpdMakeManagerData data;
-    bool field_1888;
+    bool use_current_skp;
     bool use_opdi;
 
     OpdMakeManager();
@@ -2416,7 +2416,7 @@ void opd_make_start() {
 
     OpdMakeManagerArgs args;
     args.modules = 0;
-    args.field_18 = false;
+    args.use_current_skp = false;
     args.use_opdi = true;
     args.motion_ids = &motion_ids;
     args.objects = &objects;
@@ -16383,7 +16383,7 @@ void OpdMaker::ThreadMain(OpdMaker* opd_maker) {
     opd_maker->Ctrl();
 }
 
-OpdMakeWorker::OpdMakeWorker(int32_t chara_id) : state(), items(), field_D4() {
+OpdMakeWorker::OpdMakeWorker(int32_t chara_id) : state(), items(), use_current_skp() {
     this->chara_id = chara_id;
 }
 
@@ -16393,7 +16393,7 @@ OpdMakeWorker::~OpdMakeWorker() {
 
 bool OpdMakeWorker::init() {
     data.Reset();
-    this->state = field_D4 ? 8 : 1;
+    this->state = use_current_skp ? 8 : 1;
     return true;
 }
 
@@ -16517,7 +16517,7 @@ bool OpdMakeWorker::ctrl() {
             path_delete_file(fs_copy_file_tmp_path.c_str());
         }
 
-        if (field_D4)
+        if (use_current_skp)
             return true;
         state = 10;
     }
@@ -16554,11 +16554,11 @@ void OpdMakeWorker::disp() {
 
 }
 
-bool OpdMakeWorker::add_task(bool a2) {
+bool OpdMakeWorker::add_task(bool use_current_skp) {
     if (!task_rob_manager_check_chara_loaded(chara_id))
         return false;
 
-    field_D4 = a2;
+    this->use_current_skp = use_current_skp;
     return app::TaskWork::add_task(this, "OPD_MAKE_WORKER");
 }
 
@@ -17682,7 +17682,7 @@ void OpdMakeManager::CharaData::SortUnique() {
     left = count;
 }
 
-OpdMakeManager::OpdMakeManager() : mode(), workers(), field_1888(), use_opdi() {
+OpdMakeManager::OpdMakeManager() : mode(), workers(), use_current_skp(), use_opdi() {
     mode = 0;
     chara = CHARA_MIKU;
 
@@ -17705,7 +17705,7 @@ bool OpdMakeManager::init() {
 
     path_create_directory(get_ram_osage_play_data_dir());
 
-    if (field_1888 || !app::TaskWork::check_task_ready(task_rob_manager)) {
+    if (use_current_skp || !app::TaskWork::check_task_ready(task_rob_manager)) {
         task_rob_manager_add_task();
         return true;
     }
@@ -17788,7 +17788,7 @@ bool OpdMakeManager::ctrl() {
         int32_t j = 0;
         for (OpdMakeWorker*& i : workers)
             if (rob_chara_array_get(j++))
-                i->add_task(field_1888);
+                i->add_task(use_current_skp);
         mode = 8;
     } break;
     case 8: {
@@ -17798,7 +17798,7 @@ bool OpdMakeManager::ctrl() {
                 wait = true;
 
         if (!wait)
-            mode = field_1888 ? 12 : 9;
+            mode = use_current_skp ? 12 : 9;
     } break;
     case 9:
         for (int32_t i = 0; i < 4; i++)
@@ -17834,7 +17834,7 @@ bool OpdMakeManager::dest() {
         if (app::TaskWork::check_task_ready(i))
             return false;
 
-    if (!field_1888) {
+    if (!use_current_skp) {
         for (int32_t i = 0; i < 4; i++)
             rob_chara_array_free_chara_id(i);
 
@@ -17880,7 +17880,7 @@ void OpdMakeManager::add_task(const OpdMakeManagerArgs& args) {
     chara_data.SortUnique();
 
     motion_ids.assign(args.motion_ids->begin(), args.motion_ids->end());
-    this->field_1888 = args.field_18;
+    this->use_current_skp = args.use_current_skp;
     this->use_opdi = args.use_opdi;
 
     app::TaskWork::add_task(this, "OPD_MAKE_MANAGER");
