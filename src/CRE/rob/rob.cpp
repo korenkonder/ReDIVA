@@ -3618,10 +3618,10 @@ void rob_chara::rob_motion_modifier_ctrl() {
             right_hand_scale *= right_hand_scale_default;
 
     if (left_hand_scale > 0.0f)
-        rob_chara_bone_data_set_left_hand_scale(this->bone_data, left_hand_scale);
+        rob_chara_bone_data_set_left_hand_scale(bone_data, left_hand_scale);
 
     if (right_hand_scale > 0.0f)
-        rob_chara_bone_data_set_right_hand_scale(this->bone_data, right_hand_scale);
+        rob_chara_bone_data_set_right_hand_scale(bone_data, right_hand_scale);
 }
 
 static const rob_chara_look_anim_eye_param* rob_chara_look_anim_eye_param_array_get(chara_index chara_index) {
@@ -7805,7 +7805,7 @@ struct opd_encode_struct {
     }
 
     size_t get_next_index(size_t index) {
-        size_t count = this->vec.size();
+        size_t count = vec.size();
         if (index >= count)
             return count;
 
@@ -11997,7 +11997,7 @@ void bone_node::set_name_mat_ex_data_mat(const char* name, mat4* mat, mat4* ex_d
     if (mat)
         *mat = mat4_identity;
 
-    this->parent = 0;
+    parent = 0;
     exp_data = {};
 
     this->ex_data_mat = ex_data_mat;
@@ -13612,6 +13612,7 @@ void rob_chara_item_equip_object::load_object_info_ex_data(object_info obj_info,
     ex_bones.clear();
     ex_data_bone_mats.clear();
     clear_ex_data();
+
     obj_skin* skin = object_storage_get_obj_skin(this->obj_info);
     if (!skin)
         return;
@@ -16158,7 +16159,7 @@ void OpdMaker::Ctrl() {
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     motion_index = 0;
-    int32_t chara_id = this->rob_chr->chara_id;
+    int32_t chara_id = rob_chr->chara_id;
 
     opd_chara_data_array_open_opd_file(chara_id);
 
@@ -16390,7 +16391,7 @@ OpdMakeWorker::~OpdMakeWorker() {
 
 bool OpdMakeWorker::init() {
     data.Reset();
-    this->state = use_current_skp ? 8 : 1;
+    state = use_current_skp ? 8 : 1;
     return true;
 }
 
@@ -17011,7 +17012,7 @@ void opd_chara_data::init_data(uint32_t motion_id) {
         }
     }
 
-    this->frame_index = 0;
+    frame_index = 0;
     this->frame_count = frame_count;
     init = true;
     this->motion_id = motion_id;
@@ -17875,8 +17876,8 @@ void OpdMakeManager::add_task(const OpdMakeManagerArgs& args) {
     chara_data.SortUnique();
 
     motion_ids.assign(args.motion_ids->begin(), args.motion_ids->end());
-    this->use_current_skp = args.use_current_skp;
-    this->use_opdi = args.use_opdi;
+    use_current_skp = args.use_current_skp;
+    use_opdi = args.use_opdi;
 
     app::TaskWork::add_task(this, "OPD_MAKE_MANAGER");
 }
@@ -18439,7 +18440,7 @@ void rob_chara_age_age::ctrl_skip() {
 
 void rob_chara_age_age::disp(render_context* rctx, size_t chara_id,
     bool npr, bool reflect, const vec3& a5, bool chara_color) {
-    if (alpha >= 0.1f && this->visible)
+    if (alpha >= 0.1f && visible)
         object.disp(rctx, chara_id, npr || this->npr, reflect, a5, chara_color);
 }
 
