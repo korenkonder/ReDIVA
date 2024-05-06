@@ -111,7 +111,8 @@ struct OpdMakeWorker : public app::Task {
     virtual bool dest() override;
     virtual void disp() override;
 
-    bool add(bool a2);
+    bool add_task(bool a2);
+    bool del_task();
 };
 
 struct osage_play_data_init_header {
@@ -356,9 +357,8 @@ struct OpdMakeManager : app::Task {
     bool dest() override;
     void disp() override;
 
-    bool del();
-
-    void AddTask(const OpdMakeManagerArgs& args);
+    void add_task(const OpdMakeManagerArgs& args);
+    bool del_task();
     OpdMakeManagerData* GetData();
 };
 
@@ -2371,7 +2371,7 @@ void opd_checker_terminate_thread() {
 }
 
 void opd_make_manager_add_task(const OpdMakeManagerArgs& args) {
-    opd_make_manager->AddTask(args);
+    opd_make_manager->add_task(args);
 }
 
 bool opd_make_manager_check_task_ready() {
@@ -2379,7 +2379,7 @@ bool opd_make_manager_check_task_ready() {
 }
 
 bool opd_make_manager_del_task() {
-    return opd_make_manager->del();
+    return opd_make_manager->del_task();
 }
 
 OpdMakeManagerData* opd_make_manager_get_data() {
@@ -2420,7 +2420,7 @@ void opd_make_start() {
     args.use_opdi = true;
     args.motion_ids = &motion_ids;
     args.objects = &objects;
-    opd_make_manager->AddTask(args);
+    opd_make_manager->add_task(args);
 }
 
 void opd_make_stop() {
@@ -16554,12 +16554,16 @@ void OpdMakeWorker::disp() {
 
 }
 
-bool OpdMakeWorker::add(bool a2) {
+bool OpdMakeWorker::add_task(bool a2) {
     if (!task_rob_manager_check_chara_loaded(chara_id))
         return false;
 
     field_D4 = a2;
     return app::TaskWork::add_task(this, "OPD_MAKE_WORKER");
+}
+
+bool OpdMakeWorker::del_task() {
+    return del();
 }
 
 osage_play_data_header::osage_play_data_header() : frame_count(), nodes_count() {
@@ -17784,7 +17788,7 @@ bool OpdMakeManager::ctrl() {
         int32_t j = 0;
         for (OpdMakeWorker*& i : workers)
             if (rob_chara_array_get(j++))
-                i->add(field_1888);
+                i->add_task(field_1888);
         mode = 8;
     } break;
     case 8: {
@@ -17856,17 +17860,7 @@ void OpdMakeManager::disp() {
 
 }
 
-bool OpdMakeManager::del() {
-    for (OpdMakeWorker*& i : workers)
-        i->del();
-    return app::Task::del();
-}
-
-OpdMakeManagerData* OpdMakeManager::GetData() {
-    return &data;
-}
-
-void OpdMakeManager::AddTask(const OpdMakeManagerArgs& args) {
+void OpdMakeManager::add_task(const OpdMakeManagerArgs& args) {
     if (app::TaskWork::check_task_ready(this) || !args.motion_ids)
         return;
 
@@ -17890,6 +17884,16 @@ void OpdMakeManager::AddTask(const OpdMakeManagerArgs& args) {
     this->use_opdi = args.use_opdi;
 
     app::TaskWork::add_task(this, "OPD_MAKE_MANAGER");
+}
+
+bool OpdMakeManager::del_task() {
+    for (OpdMakeWorker*& i : workers)
+        i->del_task();
+    return app::Task::del();
+}
+
+OpdMakeManagerData* OpdMakeManager::GetData() {
+    return &data;
 }
 
 ReqData::ReqData() : chara_index(), count() {

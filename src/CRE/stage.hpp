@@ -75,20 +75,20 @@ struct task_stage_info {
 };
 
 extern void task_stage_init();
+extern bool task_stage_add_task(const char* name);
 extern bool task_stage_check_not_loaded();
 extern void task_stage_current_set_ground(bool value);
 extern void task_stage_current_set_ring(bool value);
 extern void task_stage_current_set_sky(bool value);
 extern void task_stage_current_set_stage_display(bool value, bool effect_enable);
+extern bool task_stage_del_task();
 extern void task_stage_disp_shadow();
 extern stage* task_stage_get_current_stage();
 int32_t task_stage_get_current_stage_index();
 extern task_stage_info task_stage_get_current_stage_info();
 extern void task_stage_get_loaded_stage_infos(std::vector<task_stage_info>& vec);
 extern stage* task_stage_get_stage(const task_stage_info stg_info);
-extern bool task_stage_load_task(const char* name);
 extern void task_stage_set_mat(const mat4& mat);
 extern void task_stage_set_stage_index(int32_t stage_index);
 extern void task_stage_set_stage_indices(const std::vector<int32_t>& stage_indices);
-extern bool task_stage_unload_task();
 extern void task_stage_free();

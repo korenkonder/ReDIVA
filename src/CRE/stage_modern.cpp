@@ -156,6 +156,11 @@ void task_stage_modern_init() {
     task_stage_modern = new stage_detail::TaskStageModern;
 }
 
+bool task_stage_modern_add_task(const char* name) {
+    task_stage_is_modern = true;
+    return stage_detail::TaskStageModern_LoadTask(task_stage_modern, name);
+}
+
 bool task_stage_modern_check_not_loaded() {
     return task_stage_modern->load_stage_hashes.size() || task_stage_modern->state != 6;
 }
@@ -209,11 +214,6 @@ stage_modern* task_stage_modern_get_stage(const task_stage_modern_info stg_info)
     return stage_detail::TaskStageModern_GetStage(task_stage_modern, stg_info);
 }
 
-bool task_stage_modern_load_task(const char* name) {
-    task_stage_is_modern = true;
-    return stage_detail::TaskStageModern_LoadTask(task_stage_modern, name);
-}
-
 void task_stage_modern_set_data(void* data,
     object_database* obj_db, texture_database* tex_db, stage_database* stage_data) {
     task_stage_modern->data = data;
@@ -246,7 +246,7 @@ void task_stage_modern_set_stage_hashes(std::vector<uint32_t>& stage_hashes,
         load_stage_data.begin(), load_stage_data.end());
 }
 
-bool task_stage_modern_unload_task() {
+bool task_stage_modern_del_task() {
     return task_stage_modern->del();
 }
 

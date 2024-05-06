@@ -5049,7 +5049,7 @@ void x_pv_game_stage_data::load(int32_t stage_id, FrameRateControl* frame_rate_c
     sprintf_s(buf, sizeof(buf), "pv_stgpv%03d.stg", stage_id);
     file_handler.read_file(&data_list[DATA_X], "root+/stage/", buf);
 
-    task_stage_modern_load_task("X_PV_STAGE");
+    task_stage_modern_add_task("X_PV_STAGE");
 
     size_t len = sprintf_s(buf, sizeof(buf), "STGPV%03d.stg", stage_id);
     obj_hash.push_back(hash_murmurhash(buf, len));
@@ -5152,7 +5152,7 @@ void x_pv_game_stage_data::unload() {
     for (uint32_t& i : objhrc_hash)
         object_storage_unload_set(i);
 
-    task_stage_modern_unload_task();
+    task_stage_modern_del_task();
 
     flags &= ~0x02;
     state = 0;

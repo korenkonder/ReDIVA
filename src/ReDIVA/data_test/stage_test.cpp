@@ -63,7 +63,7 @@ DtmStg::~DtmStg() {
 }
 
 bool DtmStg::init() {
-    task_stage_load_task("DATA_TEST_STG_STAGE");
+    task_stage_add_task("DATA_TEST_STG_STAGE");
     task_stage_set_stage_index(stage_index);
     return true;
 }
@@ -87,7 +87,7 @@ bool DtmStg::ctrl() {
 }
 
 bool DtmStg::dest() {
-    task_stage_unload_task();
+    task_stage_del_task();
     return true;
 }
 

@@ -156,6 +156,11 @@ void task_stage_init() {
     task_stage = new stage_detail::TaskStage;
 }
 
+bool task_stage_add_task(const char* name) {
+    task_stage_is_modern = false;
+    return stage_detail::TaskStage_LoadTask(task_stage, name);
+}
+
 bool task_stage_check_not_loaded() {
     return task_stage->load_stage_indices.size() || task_stage->state != 6;
 }
@@ -182,6 +187,10 @@ void task_stage_current_set_stage_display(bool value, bool effect_enable) {
     task_stage_info stg_info = task_stage_get_current_stage_info();
     if (stg_info.check())
         stg_info.set_stage_display(value, effect_enable);
+}
+
+bool task_stage_del_task() {
+    return task_stage->del();
 }
 
 void task_stage_disp_shadow() {
@@ -211,11 +220,6 @@ stage* task_stage_get_stage(const task_stage_info stg_info) {
     return stage_detail::TaskStage_GetStage(task_stage, stg_info);
 }
 
-bool task_stage_load_task(const char* name) {
-    task_stage_is_modern = false;
-    return stage_detail::TaskStage_LoadTask(task_stage, name);
-}
-
 void task_stage_set_mat(const mat4& mat) {
     task_stage->mat = mat;
 }
@@ -236,10 +240,6 @@ void task_stage_set_stage_index(int32_t stage_index) {
 void task_stage_set_stage_indices(const std::vector<int32_t>& stage_indices) {
     task_stage->load_stage_indices.insert(task_stage->load_stage_indices.end(),
         stage_indices.begin(), stage_indices.end());
-}
-
-bool task_stage_unload_task() {
-    return task_stage->del();
 }
 
 void task_stage_free() {

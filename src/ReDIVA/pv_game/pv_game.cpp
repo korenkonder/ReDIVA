@@ -2833,7 +2833,7 @@ bool pv_game::load() {
     } return false;
     case 6: {
         rand_state_array_4_set_seed_1393939();
-        if (task_stage_load_task("PV_STAGE"))
+        if (task_stage_add_task("PV_STAGE"))
             return false;
 
         for (const pv_db_pv_chreff& i : data.pv->chreff) {
@@ -4528,7 +4528,7 @@ bool pv_game::unload() {
     data.stage_indices.clear();
     data.stage_infos.clear();
 
-    task_stage_unload_task();
+    task_stage_del_task();
 
     if (data.field_2D7E8)
         for (uint32_t& i : data.spr_set_back_ids)

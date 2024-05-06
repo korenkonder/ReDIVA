@@ -56,8 +56,9 @@ struct SkinParamManager : public app::Task {
     virtual bool dest() override;
     virtual void disp() override;
 
+    bool add_task(std::vector<osage_init_data>& vec);
+
     void AddFiles();
-    bool AddTask(std::vector<osage_init_data>& vec);
     bool CtrlFiles();
     int32_t GetExtSkpFile(const osage_init_data& osage_init,
         const std::string& dir, std::string& file, void* data, motion_database* mot_db);
@@ -231,7 +232,7 @@ bool skin_param_manager_array_check_task_ready() {
 }
 
 bool skin_param_manager_add_task(int32_t chara_id, std::vector<osage_init_data>& vec) {
-    return skin_param_manager[chara_id].AddTask(vec);
+    return skin_param_manager[chara_id].add_task(vec);
 }
 
 bool skin_param_manager_check_task_ready(int32_t chara_id) {
@@ -710,6 +711,14 @@ void SkinParamManager::disp() {
 
 }
 
+bool SkinParamManager::add_task(std::vector<osage_init_data>& vec) {
+    if (app::TaskWork::check_task_ready(this) || !app::TaskWork::add_task(this, "SKIN_PARAM_MANAGER"))
+        return false;
+
+    osage_init.assign(vec.begin(), vec.end());
+    return true;
+}
+
 void SkinParamManager::AddFiles() {
     if (!osage_init.size())
         return;
@@ -846,14 +855,6 @@ void SkinParamManager::AddFiles() {
             files.push_back(skp_file);
         }
     }
-}
-
-bool SkinParamManager::AddTask(std::vector<osage_init_data>& vec) {
-    if (app::TaskWork::check_task_ready(this) || !app::TaskWork::add_task(this, "SKIN_PARAM_MANAGER"))
-        return false;
-
-    osage_init.assign(vec.begin(), vec.end());
-    return true;
 }
 
 bool SkinParamManager::CtrlFiles() {

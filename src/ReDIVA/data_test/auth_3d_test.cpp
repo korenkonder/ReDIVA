@@ -399,7 +399,7 @@ bool Auth3dTestTask::init() {
     shadow_ptr_get()->self_shadow = true;
     clear_color = 0x00999999;
     auth_3d_test_window_init();
-    task_stage_load_task("A3D_STAGE");
+    task_stage_add_task("A3D_STAGE");
     object_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
     return true;
 }
@@ -454,7 +454,7 @@ bool Auth3dTestTask::ctrl() {
 bool Auth3dTestTask::dest() {
     auth_3d_id.unload(rctx_ptr);
     object_storage_unload_set(effcmn_obj_set);
-    task_stage_unload_task();
+    task_stage_del_task();
     auth_3d_test_window->Hide();
     clear_color = color_black;
     shadow_ptr_get()->self_shadow = true;
