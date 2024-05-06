@@ -884,9 +884,9 @@ static float_t bone_data_limit_angle(float_t angle);
 static void bone_data_mult_0(bone_data* a1, int32_t skeleton_select);
 static void bone_data_mult_1(bone_data* a1, mat4* parent_mat, bone_data* a3, bool solve_ik);
 static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2);
-static void bone_data_mult_1_ik_hands(bone_data* a1, vec3* a2);
-static void bone_data_mult_1_ik_hands_2(bone_data* a1, vec3* a2, float_t a3);
-static void bone_data_mult_1_ik_legs(bone_data* a1, vec3* a2);
+static void bone_data_mult_1_ik_hands(bone_data* a1, const vec3& trans);
+static void bone_data_mult_1_ik_hands_2(bone_data* a1, const vec3& trans, float_t angle_scale);
+static void bone_data_mult_1_ik_legs(bone_data* a1, const vec3& trans);
 static bool bone_data_mult_1_exp_data(bone_data* a1, bone_node_expression_data* a2, bone_data* a3);
 static void bone_data_mult_ik(bone_data* a1, int32_t skeleton_select);
 
@@ -4960,8 +4960,6 @@ static void sub_1405044B0(rob_chara* rob_chr) {
             if (rob_chr->data.field_1588.field_330.field_320 > 0.0f)
                 v6 = rob_chr->data.field_1588.field_330.field_320;
             break;
-        default:
-            break;
         }
         v8 = rob_chr->data.field_1588.field_330.field_328;
     }
@@ -5481,44 +5479,42 @@ static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2) {
     switch (a1->motion_bone_index) {
     case MOTION_BONE_N_SKATA_L_WJ_CD_EX:
         mat4_get_translation(a2[MOTION_BONE_C_KATA_L].node[2].mat, &trans);
-        bone_data_mult_1_ik_hands(a1, &trans);
+        bone_data_mult_1_ik_hands(a1, trans);
         break;
     case MOTION_BONE_N_SKATA_R_WJ_CD_EX:
         mat4_get_translation(a2[MOTION_BONE_C_KATA_R].node[2].mat, &trans);
-        bone_data_mult_1_ik_hands(a1, &trans);
+        bone_data_mult_1_ik_hands(a1, trans);
         break;
     case MOTION_BONE_N_SKATA_B_L_WJ_CD_CU_EX:
         mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &trans);
-        bone_data_mult_1_ik_hands_2(a1, &trans, 0.333f);
+        bone_data_mult_1_ik_hands_2(a1, trans, 0.333f);
         break;
     case MOTION_BONE_N_SKATA_B_R_WJ_CD_CU_EX:
         mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &trans);
-        bone_data_mult_1_ik_hands_2(a1, &trans, 0.333f);
+        bone_data_mult_1_ik_hands_2(a1, trans, 0.333f);
         break;
     case MOTION_BONE_N_SKATA_C_L_WJ_CD_CU_EX:
         mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_L_EX].node[0].mat, &trans);
-        bone_data_mult_1_ik_hands_2(a1, &trans, 0.5f);
+        bone_data_mult_1_ik_hands_2(a1, trans, 0.5f);
         break;
     case MOTION_BONE_N_SKATA_C_R_WJ_CD_CU_EX:
         mat4_get_translation(a2[MOTION_BONE_N_UP_KATA_R_EX].node[0].mat, &trans);
-        bone_data_mult_1_ik_hands_2(a1, &trans, 0.5f);
+        bone_data_mult_1_ik_hands_2(a1, trans, 0.5f);
         break;
     case MOTION_BONE_N_MOMO_A_L_WJ_CD_EX:
         mat4_get_translation(a2[MOTION_BONE_CL_MOMO_L].node[2].mat, &trans);
         mat4_inverse_transform_point(a1->node[0].mat, &trans, &trans);
-        trans = -trans;
-        bone_data_mult_1_ik_legs(a1, &trans);
+        bone_data_mult_1_ik_legs(a1, -trans);
         break;
     case MOTION_BONE_N_MOMO_A_R_WJ_CD_EX:
         mat4_get_translation(a2[MOTION_BONE_CL_MOMO_R].node[2].mat, &trans);
         mat4_inverse_transform_point(a1->node[0].mat, &trans, &trans);
-        trans = -trans;
-        bone_data_mult_1_ik_legs(a1, &trans);
+        bone_data_mult_1_ik_legs(a1, -trans);
         break;
     case MOTION_BONE_N_HARA_CD_EX:
         mat4_get_translation(a2[MOTION_BONE_KL_MUNE_B_WJ].node[0].mat, &trans);
         mat4_inverse_transform_point(a1->node[0].mat, &trans, &trans);
-        bone_data_mult_1_ik_legs(a1, &trans);
+        bone_data_mult_1_ik_legs(a1, trans);
         break;
     default:
         return false;
@@ -5526,9 +5522,9 @@ static bool bone_data_mult_1_ik(bone_data* a1, bone_data* a2) {
     return true;
 }
 
-static void bone_data_mult_1_ik_hands(bone_data* a1, vec3* a2) {
+static void bone_data_mult_1_ik_hands(bone_data* a1, const vec3& trans) {
     vec3 v15;
-    mat4_inverse_transform_point(a1->node[0].mat, a2, &v15);
+    mat4_inverse_transform_point(a1->node[0].mat, &trans, &v15);
 
     float_t len;
     len = vec3::length_squared(v15);
@@ -5543,6 +5539,7 @@ static void bone_data_mult_1_ik_hands(bone_data* a1, vec3* a2) {
     v17.x = -v15.z * v15.x - v15.z;
     v17.y = -v15.y * v15.z;
     v17.z = v15.x * v15.x + v15.y * v15.y + v15.x;
+
     len = vec3::length_squared(v17);
     if (len <= 0.000001f)
         return;
@@ -5561,9 +5558,9 @@ static void bone_data_mult_1_ik_hands(bone_data* a1, vec3* a2) {
     mat4_mul(&rot_mat, a1->node[0].mat, a1->node[0].mat);
 }
 
-static void bone_data_mult_1_ik_hands_2(bone_data* a1, vec3* a2, float_t a3) {
+static void bone_data_mult_1_ik_hands_2(bone_data* a1, const vec3& trans, float_t angle_scale) {
     vec3 v8;
-    mat4_inverse_transform_point(a1->node[0].mat, a2, &v8);
+    mat4_inverse_transform_point(a1->node[0].mat, &trans, &v8);
     v8.x = 0.0f;
 
     float_t len = vec3::length(v8);
@@ -5572,11 +5569,11 @@ static void bone_data_mult_1_ik_hands_2(bone_data* a1, vec3* a2, float_t a3) {
 
     v8 *= 1.0f / len;
     float_t angle = atan2f(v8.z, v8.y);
-    mat4_mul_rotate_x(a1->node[0].mat, angle * a3, a1->node[0].mat);
+    mat4_mul_rotate_x(a1->node[0].mat, angle * angle_scale, a1->node[0].mat);
 }
 
-static void bone_data_mult_1_ik_legs(bone_data* a1, vec3* a2) {
-    vec3 v9 = *a2;
+static void bone_data_mult_1_ik_legs(bone_data* a1, const vec3& trans) {
+    vec3 v9 = trans;
 
     float_t len;
     len = vec3::length_squared(v9);
@@ -17819,8 +17816,6 @@ bool OpdMakeManager::ctrl() {
         break;
     case 12:
         ret = true;
-        break;
-    default:
         break;
     }
     data.mode = mode;
