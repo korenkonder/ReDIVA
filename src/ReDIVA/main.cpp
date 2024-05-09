@@ -389,8 +389,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                 const int32_t* vp_unival_max = sub_table->vp_unival_max;
                 const int32_t* fp_unival_max = sub_table->fp_unival_max;
                 for (size_t k = 0; k < num_uniform; k++) {
-                    const size_t unival_vp_max = shader_table->use_permut[k] ? vp_unival_max[k] : 0;
-                    const size_t unival_fp_max = shader_table->use_permut[k] ? fp_unival_max[k] : 0;
+                    const size_t unival_vp_max = shader_table->use_uniform[k].second ? vp_unival_max[k] : 0;
+                    const size_t unival_fp_max = shader_table->use_uniform[k].second ? fp_unival_max[k] : 0;
                     unival_vp_count += unival_vp_curr * unival_vp_max;
                     unival_fp_count += unival_fp_curr * unival_fp_max;
                     unival_vp_curr *= unival_vp_max + 1;
@@ -411,7 +411,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
                     for (size_t k = 0; k < unival_vp_count; k++) {
                         for (size_t l = 0, m = k; l < num_uniform; l++) {
-                            size_t unival_max = (size_t)(shader_table->use_permut[l] ? vp_unival_max[l] : 0) + 1;
+                            size_t unival_max = (size_t)(shader_table->use_uniform[l].second ? vp_unival_max[l] : 0) + 1;
                             vec_vert_data[l] = (uint32_t)(min_def(m % unival_max, vp_unival_max[l]));
                             m /= unival_max;
                             vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert_data[l]);
@@ -481,7 +481,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
                     for (size_t k = 0; k < unival_fp_count; k++) {
                         for (size_t l = 0, m = k; l < num_uniform; l++) {
-                            size_t unival_max = (size_t)(shader_table->use_permut[l] ? fp_unival_max[l] : 0) + 1;
+                            size_t unival_max = (size_t)(shader_table->use_uniform[l].second ? fp_unival_max[l] : 0) + 1;
                             vec_frag_data[l] = (uint32_t)(min_def(m % unival_max, fp_unival_max[l]));
                             m /= unival_max;
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag_data[l]);
