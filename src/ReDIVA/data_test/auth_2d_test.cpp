@@ -4,10 +4,7 @@
 */
 
 #include "auth_2d_test.hpp"
-#include "../../KKdLib/io/path.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
-#include "../../KKdLib/sort.hpp"
-#include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/auth_2d.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/effect.hpp"

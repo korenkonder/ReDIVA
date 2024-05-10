@@ -1912,7 +1912,7 @@ inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_
     return 0;
 }
 
-GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id) {
+GLuint object_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id) {
     std::vector<GLuint>* textures = object_storage_get_obj_set_textures(set);
     if (!textures)
         return 0;

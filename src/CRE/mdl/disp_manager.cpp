@@ -1717,7 +1717,7 @@ namespace mdl {
             size_t center_offset = gen_grid_vertices(vtx_data, grid.w, grid.h, grid.ws, grid.hs);
 
             etc_vertex_array->offset = 0;
-            etc_vertex_array->count = (GLsizei)(center_offset / 6);
+            etc_vertex_array->count = (GLsizei)center_offset;
         } break;
         case mdl::ETC_OBJ_CUBE: {
             EtcObjCube& cube = etc->data.cube;
@@ -1746,7 +1746,7 @@ namespace mdl {
 
             gen_plane_vertices(vtx_data, plane.w, plane.h);
 
-            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
+            etc_vertex_array->count = (GLsizei)vtx_data.size();
         } break;
         case mdl::ETC_OBJ_CONE: {
             EtcObjCone& cone = etc->data.cone;
@@ -1758,14 +1758,14 @@ namespace mdl {
 
             gen_line_vertices(vtx_data, length);
 
-            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
+            etc_vertex_array->count = (GLsizei)vtx_data.size();
         } break;
         case mdl::ETC_OBJ_CROSS: {
             EtcObjCross& cross = etc->data.cross;
 
             gen_cross_vertices(vtx_data, cross.size);
 
-            etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
+            etc_vertex_array->count = (GLsizei)vtx_data.size();
         } break;
         case mdl::ETC_OBJ_CAPSULE: { // Added
             EtcObjCapsule& capsule = etc->data.capsule;
@@ -1820,10 +1820,10 @@ namespace mdl {
         gl_state_bind_vertex_array(etc_vertex_array->vertex_array);
 
         if (etc_vertex_array->vertex_buffer.IsNull())
-            etc_vertex_array->vertex_buffer.Create(sizeof(float_t) * vtx_data.size());
+            etc_vertex_array->vertex_buffer.Create(sizeof(vec3) * 2 * vtx_data.size());
 
         etc_vertex_array->vertex_buffer.Bind(true);
-        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float_t)
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * 2
             * vtx_data.size(), vtx_data.data());
 
         if (indexed) {

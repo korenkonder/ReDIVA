@@ -4,8 +4,6 @@
 */
 
 #include "glitter_test.hpp"
-#include "../../KKdLib/io/path.hpp"
-#include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"

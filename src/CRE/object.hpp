@@ -138,7 +138,7 @@ extern obj_index_buffer* object_storage_get_obj_index_buffers(uint32_t set_id);
 extern obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_info obj_info);
 extern obj_vertex_buffer* object_storage_get_obj_vertex_buffers(uint32_t set_id);
 extern obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_info obj_info);
-extern GLuint obj_database_get_obj_set_texture(int32_t set, uint32_t tex_id);
+extern GLuint object_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id);
 extern std::vector<GLuint>* object_storage_get_obj_set_textures(int32_t set);
 extern int32_t object_storage_load_set(void* data, const object_database* obj_db, const char* name);
 extern int32_t object_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id);

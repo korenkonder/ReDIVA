@@ -4,15 +4,10 @@
 */
 
 #include "stage_test.hpp"
-#include "../../KKdLib/io/path.hpp"
-#include "../../KKdLib/sort.hpp"
-#include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/effect.hpp"
-#include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../dw.hpp"
-#include "../input.hpp"
 #include "../config.hpp"
 
 class DtwStg : public dw::Shell {

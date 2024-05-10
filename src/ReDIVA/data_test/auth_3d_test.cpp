@@ -4,10 +4,6 @@
 */
 
 #include "auth_3d_test.hpp"
-#include "../../KKdLib/io/path.hpp"
-#include "../../KKdLib/hash.hpp"
-#include "../../KKdLib/sort.hpp"
-#include "../../KKdLib/str_utils.hpp"
 #include "../../CRE/rob/rob.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
