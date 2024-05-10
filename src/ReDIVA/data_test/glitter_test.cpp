@@ -76,7 +76,6 @@ bool TaskDataTestGlitterParticle::init() {
     Glitter::glt_particle_manager->draw_all_mesh = false;
 
     camera* cam = rctx_ptr->camera;
-    cam->reset();
     cam->set_view_point({ 0.0f, 1.0f, 3.45f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
 

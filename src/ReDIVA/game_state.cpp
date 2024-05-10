@@ -1558,7 +1558,6 @@ bool SubGameState::DataTestStg::Init() {
     clear_color = 0xFF606060;
 
     camera* cam = rctx_ptr->camera;
-    cam->reset();
     cam->set_view_point({ 0.0f, 0.88f, 4.3f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
 
@@ -1810,7 +1809,6 @@ bool SubGameState::GlitterEditor::Init() { // Added
     rctx_ptr->render_manager->set_multisample(false);
 
     camera* cam = rctx_ptr->camera;
-    cam->reset();
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
     cam->set_interest({ 0.0f, 1.4f, 0.0f });
 

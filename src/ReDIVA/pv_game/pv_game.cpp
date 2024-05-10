@@ -3716,8 +3716,10 @@ bool pv_game::load() {
         view_point.x = sinf(view_point_xz_pos_angle) * 40.0f;
         view_point.y = 0.0f;
         view_point.z = cosf(view_point_xz_pos_angle) * 40.0f;
-        rctx_ptr->camera->set_view_point(view_point);
-        rctx_ptr->camera->set_interest({ 0.0f, 0.0f, 0.0f });
+
+        camera* cam = rctx_ptr->camera;
+        cam->set_view_point(view_point);
+        cam->set_interest({ 0.0f, 0.0f, 0.0f });
 
         data.change_field_branch_success_counter--;
         if (data.field_index < data.field_data.size())

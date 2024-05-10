@@ -423,9 +423,9 @@ bool DataTestMot::init() {
     set_clear_color = true;
 
     camera* cam = rctx_ptr->camera;
-    cam->reset();
     cam->set_view_point({ 0.0f, 1.0f, 3.45f });
     cam->set_interest({ 0.0f, 1.0f, 0.0f });
+    cam->set_roll(0.0f);
 
     data_test_mot_dw_array_init(0, &dtm_mot_array[0]);
     data_test_mot_dw_array_init(1, &dtm_mot_array[1]);
