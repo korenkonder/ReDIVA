@@ -1639,6 +1639,31 @@ inline obj* object_storage_get_obj(object_info obj_info) {
     return 0;
 }
 
+inline obj* object_storage_get_obj_by_index(uint32_t set_id, uint32_t index) {
+    auto elem = object_storage_data.find(set_id);
+    if (elem != object_storage_data.end()) {
+        obj_set* set = elem->second.obj_set;
+        if (!set)
+            return 0;
+
+        if (index < elem->second.obj_set->obj_num)
+            return elem->second.obj_set->obj_data[index];
+        return 0;
+    }
+
+    auto elem_modern = object_storage_data_modern.find(set_id);
+    if (elem_modern != object_storage_data_modern.end()) {
+        obj_set* set = elem_modern->second.obj_set;
+        if (!set)
+            return 0;
+
+        if (index < elem_modern->second.obj_set->obj_num)
+            return elem_modern->second.obj_set->obj_data[index];
+        return 0;
+    }
+    return 0;
+}
+
 inline ObjsetInfo* object_storage_get_objset_info(uint32_t set_id) {
     auto elem = object_storage_data.find(set_id);
     if (elem != object_storage_data.end())

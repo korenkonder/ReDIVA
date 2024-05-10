@@ -122,6 +122,7 @@ extern void object_material_msgpack_write(const char* path, const char* set_name
 
 extern void object_storage_init(const object_database* obj_db);
 extern obj* object_storage_get_obj(object_info obj_info);
+extern obj* object_storage_get_obj_by_index(uint32_t set_id, uint32_t index);
 extern ObjsetInfo* object_storage_get_objset_info(uint32_t set_id);
 extern obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name);
 extern obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index);

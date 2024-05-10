@@ -139,6 +139,7 @@ struct object_database {
     std::vector<object_set_info> object_set;
     prj::vector_pair<uint32_t, object_set_info*> obj_set_ids;
     prj::vector_pair<uint32_t, object_set_info*> obj_set_murmurhashes;
+    prj::vector_pair<std::string, object_set_info*> obj_set_names;
     prj::vector_pair<object_info, object_info_data*> obj_infos;
     prj::vector_pair<uint64_t, object_info_data*> obj_fnv1a64m_hashes;
     prj::vector_pair<uint64_t, object_info_data*> obj_fnv1a64m_hashes_upper;
@@ -167,4 +168,6 @@ struct object_database {
     object_info get_object_info_by_fnv1a64m_hash_upper(uint64_t hash) const;
     object_info get_object_info_by_murmurhash(uint32_t hash) const;
     const char* get_object_name(object_info obj_info) const;
+    uint32_t get_object_set_count() const;
+    uint32_t get_object_set_id(uint32_t set_index) const;
 };

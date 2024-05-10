@@ -288,6 +288,8 @@ void object_database::clear() {
     obj_set_ids.shrink_to_fit();
     obj_set_murmurhashes.clear();
     obj_set_murmurhashes.shrink_to_fit();
+    obj_set_names.clear();
+    obj_set_names.shrink_to_fit();
     obj_infos.clear();
     obj_infos.shrink_to_fit();
     obj_fnv1a64m_hashes.clear();
@@ -307,6 +309,7 @@ void object_database::clear() {
 void object_database::update() {
     obj_set_ids.clear();
     obj_set_murmurhashes.clear();
+    obj_set_names.clear();
     obj_infos.clear();
     obj_fnv1a64m_hashes.clear();
     obj_fnv1a64m_hashes_upper.clear();
@@ -317,10 +320,12 @@ void object_database::update() {
 
     obj_set_ids.reserve(object_set.size());
     obj_set_murmurhashes.reserve(object_set.size());
+    obj_set_names.reserve(object_set.size());
 
     for (object_set_info& i : object_set) {
         obj_set_ids.push_back(i.id, &i);
         obj_set_murmurhashes.push_back(i.name_hash, &i);
+        obj_set_names.push_back(i.name, &i);
 
         obj_infos.reserve(i.object.size());
         obj_fnv1a64m_hashes.reserve(i.object.size());
@@ -343,6 +348,7 @@ void object_database::update() {
 
     obj_set_ids.sort_unique();
     obj_set_murmurhashes.sort_unique();
+    obj_set_names.sort_unique();
     obj_infos.sort_unique();
     obj_fnv1a64m_hashes.sort_unique();
     obj_fnv1a64m_hashes_upper.sort_unique();
@@ -483,6 +489,14 @@ const char* object_database::get_object_name(object_info obj_info) const {
     if (elem != obj_infos.end())
         return elem->second->name.c_str();
     return 0;
+}
+
+uint32_t object_database::get_object_set_count() const {
+    return (uint32_t)object_set.size();
+}
+
+uint32_t object_database::get_object_set_id(uint32_t set_index) const {
+    return set_index < obj_set_names.size() ? (uint32_t)obj_set_names.data()[set_index].second->id : -1;
 }
 
 static void object_database_file_classic_read_inner(object_database_file* obj_db, stream& s) {

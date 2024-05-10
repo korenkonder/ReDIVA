@@ -15,6 +15,7 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
+#include "data_test/object_test.hpp"
 #include "data_test/rob_osage_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
@@ -1543,6 +1544,8 @@ bool SubGameState::DataTestMisc::Dest() {
 }
 
 bool SubGameState::DataTestObj::Init() {
+    app::TaskWork::add_task(task_data_test_obj, "DATA_TEST_OBJ");
+    task_stage_add_task("DATA_TEST_OBJ_STAGE");
     return true;
 }
 
@@ -1551,6 +1554,8 @@ bool SubGameState::DataTestObj::Ctrl() {
 }
 
 bool SubGameState::DataTestObj::Dest() {
+    task_data_test_obj->del();
+    task_stage_del_task();
     return true;
 }
 
