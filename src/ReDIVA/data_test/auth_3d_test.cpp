@@ -304,9 +304,6 @@ public:
     virtual void Callback(CallbackData* data) override;
 };
 
-extern int32_t width;
-extern int32_t height;
-extern float_t frame_speed;
 extern render_context* rctx_ptr;
 
 Auth3dTestTask* auth_3d_test_task;

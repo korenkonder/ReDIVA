@@ -43,9 +43,6 @@ public:
     static void TypeCallback(dw::Widget* data);
 };
 
-extern int32_t width;
-extern int32_t height;
-
 DtmAet* dtm_aet;
 DtwAet* dtw_aet;
 

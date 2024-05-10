@@ -340,8 +340,6 @@ public:
     static void StageCallback(dw::Widget* data);
 };
 
-extern int32_t width;
-extern int32_t height;
 extern render_context* rctx_ptr;
 
 DataTestMot* data_test_mot;

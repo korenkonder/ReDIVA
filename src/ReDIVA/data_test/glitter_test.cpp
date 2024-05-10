@@ -49,11 +49,7 @@ public:
 
 TaskDataTestGlitterParticle* task_data_test_glitter_particle;
 
-extern int32_t width;
-extern int32_t height;
 extern render_context* rctx_ptr;
-extern bool input_reset;
-extern bool input_locked;
 
 TaskDataTestGlitterParticle::TaskDataTestGlitterParticle() : hash(), dw(),
 frame(), auto_and_repeat(), reload(), pv_mode(), show_grid(), rebuild_geff() {

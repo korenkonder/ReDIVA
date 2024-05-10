@@ -38,9 +38,6 @@ public:
     static void StageCallback(dw::Widget* data);
 };
 
-extern int32_t width;
-extern int32_t height;
-
 DtmStg* dtm_stg;
 DtwStg* dtw_stg;
 
