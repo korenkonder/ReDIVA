@@ -919,7 +919,7 @@ namespace mdl {
             gl_state_bind_element_array_buffer(0);
     }
 
-    static size_t gen_grid_vertices(std::vector<float_t>& data,
+    static size_t gen_grid_vertices(std::vector<std::pair<vec3, vec3>>& data,
         int32_t w, int32_t h, int32_t ws, int32_t hs) {
         const int32_t ws_half = ws / 2;
         const int32_t hs_half = hs / 2;
@@ -929,134 +929,71 @@ namespace mdl {
         const float_t width = w_flt * 0.5f;
         const float_t height = h_flt * 0.5f;
 
-        data.reserve(6ULL * 2 * ws * 2);
+        data.reserve(ws * 2ULL);
         for (int32_t i = 0; i <= ws; i++) {
             if (i == ws_half)
                 continue;
 
             const float_t w = (float_t)i * (w_flt / ((float_t)ws_half * 2.0f)) - width;
-            data.push_back(w);
-            data.push_back(0.0f);
-            data.push_back(-height);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
-            data.push_back(w);
-            data.push_back(0.0f);
-            data.push_back(height);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
+            data.push_back({ { w, 0.0f, -height }, { 0.0f } });
+            data.push_back({ { w, 0.0f,  height }, { 0.0f } });
         }
 
-        data.reserve(6ULL * 2 * hs * 2);
+        data.reserve(hs * 2ULL);
         for (int32_t i = 0; i <= hs; i++) {
             if (i == hs_half)
                 continue;
 
             const float_t h = (float_t)i * (h_flt / ((float_t)hs_half * 2.0f)) - height;
-            data.push_back(-width);
-            data.push_back(0.0f);
-            data.push_back(h);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
-            data.push_back(width);
-            data.push_back(0.0f);
-            data.push_back(h);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
-            data.push_back(0.0f);
+            data.push_back({ { -width, 0.0f, h }, { 0.0f } });
+            data.push_back({ {  width, 0.0f, h }, { 0.0f } });
         }
 
         size_t center_offset = data.size();
 
-        data.reserve(6ULL * 2 * 2 * 2);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(-height);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(height);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(-width);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(width);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
+        data.reserve(2 * 2ULL);
+        data.push_back({ {   0.0f, 0.0f, -height }, { 0.0f } });
+        data.push_back({ {   0.0f, 0.0f,  height }, { 0.0f } });
+        data.push_back({ { -width, 0.0f,    0.0f }, { 0.0f } });
+        data.push_back({ {  width, 0.0f,    0.0f }, { 0.0f } });
 
         return center_offset;
     }
 
-    static void gen_cube_vertices(std::vector<float_t>& data) {
-        data.resize(6ULL * 2 * 4 * 6);
+    static void gen_cube_vertices(std::vector<std::pair<vec3, vec3>>& data, vec3 size) {
+        size *= 0.5f;
 
-        vec3* vtx = (vec3*)data.data();
-        *vtx++ = { -1.0f, -1.0f, -1.0f };
-        *vtx++ = {  0.0f,  0.0f, -1.0f };
-        *vtx++ = {  1.0f,  1.0f, -1.0f };
-        *vtx++ = {  0.0f,  0.0f, -1.0f };
-        *vtx++ = {  1.0f, -1.0f, -1.0f };
-        *vtx++ = {  0.0f,  0.0f, -1.0f };
-        *vtx++ = { -1.0f,  1.0f, -1.0f };
-        *vtx++ = {  0.0f,  0.0f, -1.0f };
+        data.reserve(4 * 6ULL);
 
-        *vtx++ = { -1.0f, -1.0f,  1.0f };
-        *vtx++ = {  0.0f,  0.0f,  1.0f };
-        *vtx++ = {  1.0f, -1.0f,  1.0f };
-        *vtx++ = {  0.0f,  0.0f,  1.0f };
-        *vtx++ = {  1.0f,  1.0f,  1.0f };
-        *vtx++ = {  0.0f,  0.0f,  1.0f };
-        *vtx++ = { -1.0f,  1.0f,  1.0f };
-        *vtx++ = {  0.0f,  0.0f,  1.0f };
+        data.push_back({ { -size.x, -size.y, -size.z }, {  0.0f,  0.0f, -1.0f } });
+        data.push_back({ {  size.x,  size.y, -size.z }, {  0.0f,  0.0f, -1.0f } });
+        data.push_back({ {  size.x, -size.y, -size.z }, {  0.0f,  0.0f, -1.0f } });
+        data.push_back({ { -size.x,  size.y, -size.z }, {  0.0f,  0.0f, -1.0f } });
 
-        *vtx++ = { -1.0f,  1.0f,  1.0f };
-        *vtx++ = { -1.0f,  0.0f,  0.0f };
-        *vtx++ = { -1.0f,  1.0f, -1.0f };
-        *vtx++ = { -1.0f,  0.0f,  0.0f };
-        *vtx++ = { -1.0f, -1.0f, -1.0f };
-        *vtx++ = { -1.0f,  0.0f,  0.0f };
-        *vtx++ = { -1.0f, -1.0f,  1.0f };
-        *vtx++ = { -1.0f,  0.0f,  0.0f };
+        data.push_back({ { -size.x, -size.y,  size.z }, {  0.0f,  0.0f,  1.0f } });
+        data.push_back({ {  size.x, -size.y,  size.z }, {  0.0f,  0.0f,  1.0f } });
+        data.push_back({ {  size.x,  size.y,  size.z }, {  0.0f,  0.0f,  1.0f } });
+        data.push_back({ { -size.x,  size.y,  size.z }, {  0.0f,  0.0f,  1.0f } });
 
-        *vtx++ = {  1.0f,  1.0f, -1.0f };
-        *vtx++ = {  1.0f,  0.0f,  0.0f };
-        *vtx++ = {  1.0f,  1.0f,  1.0f };
-        *vtx++ = {  1.0f,  0.0f,  0.0f };
-        *vtx++ = {  1.0f, -1.0f, -1.0f };
-        *vtx++ = {  1.0f,  0.0f,  0.0f };
-        *vtx++ = {  1.0f, -1.0f,  1.0f };
-        *vtx++ = {  1.0f,  0.0f,  0.0f };
+        data.push_back({ { -size.x,  size.y,  size.z }, { -1.0f,  0.0f,  0.0f } });
+        data.push_back({ { -size.x,  size.y, -size.z }, { -1.0f,  0.0f,  0.0f } });
+        data.push_back({ { -size.x, -size.y, -size.z }, { -1.0f,  0.0f,  0.0f } });
+        data.push_back({ { -size.x, -size.y,  size.z }, { -1.0f,  0.0f,  0.0f } });
 
-        *vtx++ = { -1.0f, -1.0f, -1.0f };
-        *vtx++ = {  0.0f, -1.0f,  0.0f };
-        *vtx++ = {  1.0f, -1.0f, -1.0f };
-        *vtx++ = {  0.0f, -1.0f,  0.0f };
-        *vtx++ = {  1.0f, -1.0f,  1.0f };
-        *vtx++ = {  0.0f, -1.0f,  0.0f };
-        *vtx++ = { -1.0f, -1.0f,  1.0f };
-        *vtx++ = {  0.0f, -1.0f,  0.0f };
+        data.push_back({ {  size.x,  size.y, -size.z }, {  1.0f,  0.0f,  0.0f } });
+        data.push_back({ {  size.x,  size.y,  size.z }, {  1.0f,  0.0f,  0.0f } });
+        data.push_back({ {  size.x, -size.y, -size.z }, {  1.0f,  0.0f,  0.0f } });
+        data.push_back({ {  size.x, -size.y,  size.z }, {  1.0f,  0.0f,  0.0f } });
 
-        *vtx++ = { -1.0f,  1.0f, -1.0f };
-        *vtx++ = {  0.0f,  1.0f,  0.0f };
-        *vtx++ = {  1.0f,  1.0f,  1.0f };
-        *vtx++ = {  0.0f,  1.0f,  0.0f };
-        *vtx++ = {  1.0f,  1.0f, -1.0f };
-        *vtx++ = {  0.0f,  1.0f,  0.0f };
-        *vtx++ = { -1.0f,  1.0f,  1.0f };
-        *vtx++ = {  0.0f,  1.0f,  0.0f };
+        data.push_back({ { -size.x, -size.y, -size.z }, {  0.0f, -1.0f,  0.0f } });
+        data.push_back({ {  size.x, -size.y, -size.z }, {  0.0f, -1.0f,  0.0f } });
+        data.push_back({ {  size.x, -size.y,  size.z }, {  0.0f, -1.0f,  0.0f } });
+        data.push_back({ { -size.x, -size.y,  size.z }, {  0.0f, -1.0f,  0.0f } });
+
+        data.push_back({ { -size.x,  size.y, -size.z }, {  0.0f,  1.0f,  0.0f } });
+        data.push_back({ {  size.x,  size.y,  size.z }, {  0.0f,  1.0f,  0.0f } });
+        data.push_back({ {  size.x,  size.y, -size.z }, {  0.0f,  1.0f,  0.0f } });
+        data.push_back({ { -size.x,  size.y,  size.z }, {  0.0f,  1.0f,  0.0f } });
     }
 
     static size_t gen_cube_indices(std::vector<uint32_t>& indices) {
@@ -1086,20 +1023,12 @@ namespace mdl {
         return wire_offset;
     }
 
-    static void gen_sphere_vertices(std::vector<float_t>& data,
+    static void gen_sphere_vertices(std::vector<std::pair<vec3, vec3>>& data,
         int32_t slices, int32_t stacks, float_t radius) {
         if (slices < 2 || stacks < 2)
             return;
 
-        data.reserve(6ULL * 2);
-
-        data.push_back(0.0f);
-        data.push_back(radius);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, radius, 0.0f }, { 0.0f, -1.0f, 0.0f} });
 
         double_t slice_step = (M_PI * 2.0) / (double_t)slices;
         double_t stack_step = M_PI / (double_t)stacks;
@@ -1109,7 +1038,7 @@ namespace mdl {
             float_t xz = cosf(stack_angle);
             float_t y = sinf(stack_angle);
 
-            data.reserve(6ULL * 2 * slices);
+            data.reserve(slices);
 
             for (int32_t j = 0; j < slices; j++) {
                 float_t slice_angle = (float_t)((double_t)j * slice_step);
@@ -1117,25 +1046,11 @@ namespace mdl {
                 float_t x = xz * cosf(slice_angle);
                 float_t z = xz * sinf(slice_angle);
 
-                data.push_back(x * radius);
-                data.push_back(y * radius);
-                data.push_back(z * radius);
-
-                data.push_back(x);
-                data.push_back(y);
-                data.push_back(z);
+                data.push_back({ { x * radius, y * radius, z * radius }, { x, y, z } });
             }
         }
 
-        data.reserve(6ULL * 2);
-
-        data.push_back(0.0f);
-        data.push_back(-radius);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, -radius, 0.0f }, { 0.0f, -1.0f, 0.0f} });
     }
 
     static size_t gen_sphere_indices(std::vector<uint32_t>& indices,
@@ -1257,115 +1172,39 @@ namespace mdl {
         return wire_offset;
     }
 
-    static void gen_plane_vertices(std::vector<float_t>& data) {
-        data.push_back(1.0f);
-        data.push_back(0.0f);
-        data.push_back(1.0f);
+    static void gen_plane_vertices(std::vector<std::pair<vec3, vec3>>& data, int32_t w, int32_t h) {
+        float_t width = (float_t)w * 0.5f;
+        float_t height = (float_t)h * 0.5f;
 
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
+        data.reserve(4);
 
-        data.push_back(1.0f);
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
-
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
-
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
+        data.push_back({ {  width, 0.0f,  height }, { 0.0f, 1.0f, 0.0f } });
+        data.push_back({ {  width, 0.0f, -height }, { 0.0f, 1.0f, 0.0f } });
+        data.push_back({ { -width, 0.0f,  height }, { 0.0f, 1.0f, 0.0f } });
+        data.push_back({ { -width, 0.0f, -height }, { 0.0f, 1.0f, 0.0f } });
     }
 
-    static void gen_line_vertices(std::vector<float_t>& data, float_t length) {
+    static void gen_line_vertices(std::vector<std::pair<vec3, vec3>>& data, float_t length) {
         length *= 0.5f;
 
-        data.reserve(6ULL * 2);
+        data.reserve(2);
 
-        data.push_back(0.0f);
-        data.push_back(length);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(-length);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, length, 0.0f }, { 0.0f } });
+        data.push_back({ { 0.0f, -length, 0.0f }, { 0.0f } });
     }
 
-    static void gen_cross_vertices(std::vector<float_t>& data) {
-        data.reserve(6ULL * 2 * 6);
+    static void gen_cross_vertices(std::vector<std::pair<vec3, vec3>>& data, float_t size) {
+        data.reserve(6);
 
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(1.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-
-        data.push_back(0.0f);
-        data.push_back(0.0f);
-        data.push_back(0.0f);
+        data.push_back({ { -size,  0.0f,  0.0f }, { 0.0f } });
+        data.push_back({ {  size,  0.0f,  0.0f }, { 0.0f } });
+        data.push_back({ {  0.0f, -size,  0.0f }, { 0.0f } });
+        data.push_back({ {  0.0f,  size,  0.0f }, { 0.0f } });
+        data.push_back({ {  0.0f,  0.0f, -size }, { 0.0f } });
+        data.push_back({ {  0.0f,  0.0f,  size }, { 0.0f } });
     }
 
-    static void gen_capsule_vertices(std::vector<float_t>& data,
+    static void gen_capsule_vertices(std::vector<std::pair<vec3, vec3>>& data,
         int32_t slices, int32_t stacks, float_t length, float_t radius) {
         if (slices < 2 || stacks < 2)
             return;
@@ -1379,15 +1218,7 @@ namespace mdl {
 
         length *= 0.5f;
 
-        data.reserve(6ULL * 2);
-
-        data.push_back(0.0f);
-        data.push_back(radius + length);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, radius + length, 0.0f }, { 0.0f, 1.0f, 0.0f } });
 
         double_t slice_step = (M_PI * 2.0) / (double_t)slices;
         double_t stack_step = M_PI / (double_t)stacks;
@@ -1398,7 +1229,7 @@ namespace mdl {
             float_t y = sinf(stack_angle);
             y *= radius;
 
-            data.reserve(6ULL * 2 * slices);
+            data.reserve(slices);
 
             for (int32_t j = 0; j < slices; j++) {
                 float_t slice_angle = (float_t)((double_t)j * slice_step);
@@ -1406,13 +1237,7 @@ namespace mdl {
                 float_t x = xz * cosf(slice_angle);
                 float_t z = xz * sinf(slice_angle);
 
-                data.push_back(x * radius);
-                data.push_back(y + length);
-                data.push_back(z * radius);
-
-                data.push_back(x);
-                data.push_back(y);
-                data.push_back(z);
+                data.push_back({ { x * radius, y + length, z * radius }, { x, y, z } });
             }
         }
 
@@ -1422,7 +1247,7 @@ namespace mdl {
             float_t y = sinf(stack_angle);
             y *= radius;
 
-            data.reserve(6ULL * 2 * slices);
+            data.reserve(slices);
 
             for (int32_t j = 0; j < slices; j++) {
                 float_t slice_angle = (float_t)((double_t)j * slice_step);
@@ -1430,25 +1255,11 @@ namespace mdl {
                 float_t x = xz * cosf(slice_angle);
                 float_t z = xz * sinf(slice_angle);
 
-                data.push_back(x * radius);
-                data.push_back(y - length);
-                data.push_back(z * radius);
-
-                data.push_back(x);
-                data.push_back(y);
-                data.push_back(z);
+                data.push_back({ { x * radius, y - length, z * radius }, { x, y, z } });
             }
         }
 
-        data.reserve(6ULL * 2);
-
-        data.push_back(0.0f);
-        data.push_back(-radius - length);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, -radius - length, 0.0f }, { 0.0f, -1.0f, 0.0f } });
     }
 
     static size_t gen_capsule_indices(std::vector<uint32_t>& indices,
@@ -1575,22 +1386,14 @@ namespace mdl {
         return wire_offset;
     }
 
-    static void gen_cylinder_vertices(std::vector<float_t>& data,
+    static void gen_cylinder_vertices(std::vector<std::pair<vec3, vec3>>& data,
         int32_t slices, int32_t stacks, float_t base, float_t height) {
         float_t half_height = height * 0.5f;
 
         if (slices < 2 || stacks < 0)
             return;
 
-        data.reserve(6ULL * 2);
-
-        data.push_back(0.0f);
-        data.push_back(stacks ? half_height : 0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(1.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, stacks ? half_height : 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f } });
 
         double_t slice_step = (M_PI * 2.0) / (double_t)slices;
         double_t stack_step = M_PI / (double_t)stacks;
@@ -1598,7 +1401,7 @@ namespace mdl {
         for (int32_t i = 0; i <= stacks; i++) {
             float_t y = stacks ? lerp_def(half_height, -half_height, (float_t)i / (float_t)stacks) : 0.0f;
 
-            data.reserve(6ULL * 2 * slices);
+            data.reserve(slices);
 
             for (int32_t j = 0; j < slices; j++) {
                 float_t slice_angle = (float_t)((double_t)j * slice_step);
@@ -1606,25 +1409,11 @@ namespace mdl {
                 float_t x = cosf(slice_angle);
                 float_t z = sinf(slice_angle);
 
-                data.push_back(x * base);
-                data.push_back(y);
-                data.push_back(z * base);
-
-                data.push_back(x);
-                data.push_back(0.0f);
-                data.push_back(z);
+                data.push_back({ { x * base, y, z * base }, { x, 0.0f, z } });
             }
         }
 
-        data.reserve(6ULL * 2);
-
-        data.push_back(0.0f);
-        data.push_back(stacks ? -half_height : 0.0f);
-        data.push_back(0.0f);
-
-        data.push_back(0.0f);
-        data.push_back(-1.0f);
-        data.push_back(0.0f);
+        data.push_back({ { 0.0f, stacks ? -half_height : 0.0f, 0.0f }, { 0.0f, -1.0f, 0.0f } });
     }
 
     static size_t gen_cylinder_indices(std::vector<uint32_t>& indices,
@@ -1755,29 +1544,20 @@ namespace mdl {
         case mdl::ETC_OBJ_CUBE: {
             EtcObjCube& cube = etc->data.cube;
 
-            vec3 size = cube.size * 0.5f;
-            mat4_scale_rot(&mat, &size, &mat);
-
             indexed = true;
             wire = cube.wire;
         } break;
         case mdl::ETC_OBJ_SPHERE: {
             EtcObjSphere& sphere = etc->data.sphere;
 
-            mat4_scale_rot(&mat, sphere.radius, &mat);
-
             indexed = true;
             wire = sphere.wire;
         } break;
         case mdl::ETC_OBJ_PLANE: {
             EtcObjPlane& plane = etc->data.plane;
-
-            mat4_scale_rot(&mat, (float_t)plane.w * 0.5f, 1.0f, (float_t)plane.h * 0.5f, &mat);
         } break;
         case mdl::ETC_OBJ_CONE: {
             EtcObjCone& cone = etc->data.cone;
-
-            mat4_scale_rot(&mat, cone.base, cone.height, cone.base, &mat);
 
             indexed = true;
             wire = cone.wire;
@@ -1802,8 +1582,6 @@ namespace mdl {
         } break;
         case mdl::ETC_OBJ_CROSS: {
             EtcObjCross& cross = etc->data.cross;
-
-            mat4_scale_rot(&mat, cross.size, &mat);
         } break;
         case mdl::ETC_OBJ_CAPSULE: { // Added
             EtcObjCapsule& capsule = etc->data.capsule;
@@ -1828,8 +1606,6 @@ namespace mdl {
         case mdl::ETC_OBJ_CYLINDER: { // Added
             EtcObjCylinder& cylinder = etc->data.cylinder;
 
-            mat4_scale_rot(&mat, cylinder.base, cylinder.height, cylinder.base, &mat);
-
             indexed = true;
             wire = cylinder.wire;
         } break;
@@ -1844,16 +1620,23 @@ namespace mdl {
                 || type == mdl::ETC_OBJ_GRID
                 && !memcmp(&i.data.grid, &etc->data.grid, sizeof(EtcObjGrid))
                 || type == mdl::ETC_OBJ_CUBE
+                && vec3::dot(vec3::abs(i.data.cube.size - etc->data.cube.size), 1.0f) < 0.00001f
                 || type == mdl::ETC_OBJ_SPHERE
                 && i.data.sphere.slices == etc->data.sphere.slices
                 && i.data.sphere.stacks == etc->data.sphere.stacks
+                && fabsf(i.data.sphere.radius - etc->data.sphere.radius) < 0.00001f
                 || type == mdl::ETC_OBJ_PLANE
+                && i.data.plane.w == etc->data.plane.w
+                && i.data.plane.h == etc->data.plane.h
                 || type == mdl::ETC_OBJ_CONE
                 && i.data.cone.slices == etc->data.cone.slices
                 && i.data.cone.stacks == etc->data.cone.stacks
+                && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
+                && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f
                 || type == mdl::ETC_OBJ_LINE
                 && fabsf(vec3::distance(i.data.line.pos[0], i.data.line.pos[1]) - length) < 0.00001f
                 || type == mdl::ETC_OBJ_CROSS
+                && fabsf(i.data.cross.size - etc->data.cross.size) < 0.00001f
                 || type == mdl::ETC_OBJ_CAPSULE // Added
                 && i.data.capsule.slices == etc->data.capsule.slices
                 && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
@@ -1861,7 +1644,9 @@ namespace mdl {
                 && fabsf(vec3::distance(i.data.capsule.pos[0], i.data.capsule.pos[1]) - length) < 0.00001f
                 || type == mdl::ETC_OBJ_CYLINDER // Added
                 && i.data.cylinder.slices == etc->data.cylinder.slices
-                && i.data.cylinder.stacks == etc->data.cylinder.stacks)
+                && i.data.cylinder.stacks == etc->data.cylinder.stacks
+                && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
+                && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
                 if (i.vertex_array) {
                     i.alive_time = 2;
                     if (!wire) {
@@ -1918,7 +1703,7 @@ namespace mdl {
         etc_vertex_array->data = etc->data;
         etc_vertex_array->type = type;
 
-        std::vector<float_t> vtx_data;
+        std::vector<std::pair<vec3, vec3>> vtx_data;
         std::vector<uint32_t> vtx_indices;
         switch (type) {
         case mdl::ETC_OBJ_TEAPOT: {
@@ -1937,7 +1722,7 @@ namespace mdl {
         case mdl::ETC_OBJ_CUBE: {
             EtcObjCube& cube = etc->data.cube;
 
-            gen_cube_vertices(vtx_data);
+            gen_cube_vertices(vtx_data, cube.size);
             size_t wire_offset = gen_cube_indices(vtx_indices);
 
             etc_vertex_array->offset = 0;
@@ -1948,7 +1733,7 @@ namespace mdl {
         case mdl::ETC_OBJ_SPHERE: {
             EtcObjSphere& sphere = etc->data.sphere;
 
-            gen_sphere_vertices(vtx_data, sphere.slices, sphere.stacks, 1.0f);
+            gen_sphere_vertices(vtx_data, sphere.slices, sphere.stacks, sphere.radius);
             size_t wire_offset = gen_sphere_indices(vtx_indices, sphere.slices, sphere.stacks);
 
             etc_vertex_array->offset = 0;
@@ -1959,7 +1744,7 @@ namespace mdl {
         case mdl::ETC_OBJ_PLANE: {
             EtcObjPlane& plane = etc->data.plane;
 
-            gen_plane_vertices(vtx_data);
+            gen_plane_vertices(vtx_data, plane.w, plane.h);
 
             etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
         } break;
@@ -1978,7 +1763,7 @@ namespace mdl {
         case mdl::ETC_OBJ_CROSS: {
             EtcObjCross& cross = etc->data.cross;
 
-            gen_cross_vertices(vtx_data);
+            gen_cross_vertices(vtx_data, cross.size);
 
             etc_vertex_array->count = (GLsizei)(vtx_data.size() / 6);
         } break;
@@ -1996,7 +1781,7 @@ namespace mdl {
         case mdl::ETC_OBJ_CYLINDER: { // Added
             EtcObjCylinder& cylinder = etc->data.cylinder;
 
-            gen_cylinder_vertices(vtx_data, cylinder.slices, cylinder.stacks, 1.0f, 1.0f);
+            gen_cylinder_vertices(vtx_data, cylinder.slices, cylinder.stacks, cylinder.base, cylinder.height);
             size_t wire_offset = gen_cylinder_indices(vtx_indices, cylinder.slices, cylinder.stacks);
 
             etc_vertex_array->offset = 0;
@@ -3195,17 +2980,23 @@ namespace mdl {
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_CUBE:
-                return i.vertex_array;
+                if (vec3::dot(vec3::abs(i.data.cube.size - etc->data.cube.size), 1.0f) < 0.00001f)
+                    return i.vertex_array;
             case mdl::ETC_OBJ_SPHERE:
                 if (i.data.sphere.slices == etc->data.sphere.slices
-                    && i.data.sphere.stacks == etc->data.sphere.stacks)
+                    && i.data.sphere.stacks == etc->data.sphere.stacks
+                    && fabsf(i.data.sphere.radius - etc->data.sphere.radius) < 0.00001f)
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_PLANE:
-                return i.vertex_array;
+                if (i.data.plane.w == etc->data.plane.w
+                    && i.data.plane.h == etc->data.plane.h)
+                    return i.vertex_array;
             case mdl::ETC_OBJ_CONE:
                 if (i.data.cone.slices == etc->data.cone.slices
-                    && i.data.cone.stacks == etc->data.cone.stacks)
+                    && i.data.cone.stacks == etc->data.cone.stacks
+                    && fabsf(i.data.cone.base - etc->data.cone.base) < 0.00001f
+                    && fabsf(i.data.cone.height - etc->data.cone.height) < 0.00001f)
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_LINE:
@@ -3213,7 +3004,8 @@ namespace mdl {
                     return i.vertex_array;
                 break;
             case mdl::ETC_OBJ_CROSS:
-                return i.vertex_array;
+                if (fabsf(i.data.cross.size - etc->data.cross.size) < 0.00001f)
+                    return i.vertex_array;
             case mdl::ETC_OBJ_CAPSULE: // Added
                 if (i.data.capsule.slices == etc->data.capsule.slices
                     && ((i.data.capsule.stacks + 1)) >> 1 == ((etc->data.capsule.stacks + 1) >> 1)
@@ -3223,7 +3015,9 @@ namespace mdl {
                 break;
             case mdl::ETC_OBJ_CYLINDER: // Added
                 if (i.data.cylinder.slices == etc->data.cylinder.slices
-                    && i.data.cylinder.stacks == etc->data.cylinder.stacks)
+                    && i.data.cylinder.stacks == etc->data.cylinder.stacks
+                    && fabsf(i.data.cylinder.base - etc->data.cylinder.base) < 0.00001f
+                    && fabsf(i.data.cylinder.height - etc->data.cylinder.height) < 0.00001f)
                     return i.vertex_array;
                 break;
             }
