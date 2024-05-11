@@ -133,8 +133,8 @@ void enb_get_track_data(enb_play_head* play_head, size_t track, quat_trans* data
     }
 
     if (play_head->track_mode_selector) {
-        quat_trans* qt1 = play_head->track_data[track].qt + (play_head->track_data_selector & 0x1);
-        quat_trans* qt2 = play_head->track_data[track].qt + ((play_head->track_data_selector & 0x1) ^ 1);
+        quat_trans* qt1 = play_head->track_data[track].qt + (play_head->track_data_selector & 0x01);
+        quat_trans* qt2 = play_head->track_data[track].qt + ((play_head->track_data_selector & 0x01) ^ 0x01);
         float_t blend = (play_head->requested_time - play_head->previous_sample_time)
             / (play_head->current_sample_time - play_head->previous_sample_time);
         lerp_quat_trans(qt1, qt2, data, blend);
@@ -262,7 +262,7 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
             }
 
             mode = *play_head->params_mode >> shift_table_1[play_head->params_counter++];
-            mode &= 0x3;
+            mode &= 0x03;
 
             switch (mode) {
             case 1:
@@ -295,13 +295,13 @@ void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJ
 
     while (time < play_head->previous_sample_time) {
         if (play_head->track_mode_selector == 1) {
-            if (--play_head->params_counter == 0xFF) {
+            if (--play_head->params_counter == (uint8_t)-1) {
                 play_head->params_counter = 3;
                 play_head->params_mode--;
             }
 
             mode = *play_head->params_mode >> shift_table_1[play_head->params_counter];
-            mode &= 0x3;
+            mode &= 0x03;
 
             switch (mode) {
             case 1:
@@ -341,7 +341,7 @@ static void enb_get_track_unscaled_init(enb_play_head* play_head) { // 0x08A08D3
             }
 
             mode = *play_head->track_data_init_mode >> shift_table_1[play_head->track_data_init_counter++];
-            mode &= 0x3;
+            mode &= 0x03;
 
             val = 0;
             switch (mode) {
@@ -404,7 +404,7 @@ static void enb_get_track_unscaled_forward(enb_play_head* play_head) { // 0x08A0
             }
 
             val = *play_head->track_data_mode >> shift_table_1[play_head->track_data_mode_counter++];
-            val &= 0x3;
+            val &= 0x03;
 
             if (val == 2) {
                 if (play_head->track_data_mode2_counter == 2) {
@@ -413,7 +413,7 @@ static void enb_get_track_unscaled_forward(enb_play_head* play_head) { // 0x08A0
                 }
 
                 val = *play_head->track_data_mode2 >> shift_table_2[play_head->track_data_mode2_counter++];
-                val &= 0xF;
+                val &= 0x0F;
 
                 if (val == 0) {
                     val = *play_head->track_data_i8;
@@ -424,7 +424,7 @@ static void enb_get_track_unscaled_forward(enb_play_head* play_head) { // 0x08A0
                             val = *play_head->track_data_i32++;
                     }
                     else if ((val > 0) && (val < 9))
-                        val += 0x7f;
+                        val += 0x7F;
                     else if ((val > -9) && (val < 0))
                         val -= 0x80;
                 }
@@ -468,7 +468,7 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
     enb_track* track_data = play_head->track_data;
 
     track_data += (size_t)play_head->data_header->track_count - 1;
-    for (i = play_head->data_header->track_count - 1; i != 0xFFFFFFFFU; i--, track_data--) {
+    for (i = play_head->data_header->track_count - 1; i != (uint32_t)-1; i--, track_data--) {
         if (track_data->flags == 0)
             continue;
 
@@ -476,22 +476,22 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
             if ((track_data->flags & (1 << (6 - j))) == 0)
                 continue;
 
-            if (--play_head->track_data_mode_counter == 0xFF) {
+            if (--play_head->track_data_mode_counter == (uint8_t)-1) {
                 play_head->track_data_mode_counter = 3;
                 play_head->track_data_mode--;
             }
 
             val = *play_head->track_data_mode >> shift_table_1[play_head->track_data_mode_counter];
-            val &= 0x3;
+            val &= 0x03;
 
             if (val == 2) {
-                if (--play_head->track_data_mode2_counter == 0xFF) {
+                if (--play_head->track_data_mode2_counter == (uint8_t)-1) {
                     play_head->track_data_mode2_counter = 1;
                     play_head->track_data_mode2--;
                 }
 
                 val = *play_head->track_data_mode2 >> shift_table_2[play_head->track_data_mode2_counter];
-                val &= 0xF;
+                val &= 0x0F;
 
                 if (val == 0) {
                     val = *--play_head->track_data_i8;
@@ -501,7 +501,7 @@ static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A
                             val = *--play_head->track_data_i32;
                     }
                     else if ((val > 0) && (val < 9))
-                        val += 0x7f;
+                        val += 0x7F;
                     else if ((val > -9) && (val < 0))
                         val -= 0x80;
                 }
@@ -547,7 +547,7 @@ static void enb_calc_params_init(enb_play_head* play_head) { // 0x08A0931C in UL
     }
 
     mode = *play_head->params_mode >> shift_table_1[play_head->params_counter++];
-    mode &= 0x3;
+    mode &= 0x03;
 
     val = 0;
     switch (mode) {
@@ -575,14 +575,14 @@ static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in
     while (i < track_params_count) {
         j = play_head->next_params_change;
         if (j == 0) {
-            track_data[i / 7].flags ^= 1 << (i % 7);
+            track_data[i / 7].flags ^= 0x01 << (i % 7);
             if (play_head->params_counter == 4) {
                 play_head->params_counter = 0;
                 play_head->params_mode++;
             }
 
             mode = *play_head->params_mode >> shift_table_1[play_head->params_counter++];
-            mode &= 0x3;
+            mode &= 0x03;
 
             val = 0;
             switch (mode) {
@@ -616,17 +616,17 @@ static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C i
 
     track_params_count = play_head->data_header->track_count * 7;
     i = track_params_count - 1;
-    while (i != 0xFFFFFFFFU) {
+    while (i != (uint32_t)-1) {
         j = play_head->prev_params_change;
         if (j == 0) {
-            track_data[i / 7].flags ^= 1 << (i % 7);
-            if (--play_head->params_counter == 0xFF) {
+            track_data[i / 7].flags ^= 0x01 << (i % 7);
+            if (--play_head->params_counter == (uint8_t)-1) {
                 play_head->params_counter = 3;
                 play_head->params_mode--;
             }
 
             mode = *play_head->params_mode >> shift_table_1[play_head->params_counter];
-            mode &= 0x3;
+            mode &= 0x03;
 
             val = 0;
             switch (mode) {
@@ -656,34 +656,33 @@ static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C i
 static void enb_calc_track_init(enb_play_head* play_head) { // 0x08A086CC in ULJM05681
     uint32_t i;
     uint8_t* track_flags;
-    quat C010, C100, C200; // PSP VFPU registers
-    vec3 C020, C110; // PSP VFPU registers
-    float_t S030; // PSP VFPU register
+    quat quat_delta, quat_result;
+    vec3 trans_delta, trans_result;
+    float_t scale;
 
     enb_track* track_data = play_head->track_data;
 
     track_flags = play_head->track_flags;
 
-    C200.x = C200.y = C200.z = C200.w = 0.0f;
-    S030 = play_head->data_header->scale;
+    scale = play_head->data_header->scale;
     for (i = 0; i < play_head->data_header->track_count; i++) {
-        C010 = track_data->quat;
-        C020 = track_data->trans;
+        quat_delta = track_data->quat;
+        trans_delta = track_data->trans;
 
-        C100 = C010 * S030;
-        C110 = C020 * S030;
+        quat_result = quat_delta * scale;
+        trans_result = trans_delta * scale;
 
-        C100 = quat::normalize(C100);
+        quat_result = quat::normalize(quat_result);
 
-        track_data->qt[0].quat = C100;
-        track_data->qt[0].trans = C110;
+        track_data->qt[0].quat = quat_result;
+        track_data->qt[0].trans = trans_result;
         track_data->qt[0].time = 0.0f;
-        track_data->qt[1].quat = C100;
-        track_data->qt[1].trans = C110;
+        track_data->qt[1].quat = quat_result;
+        track_data->qt[1].trans = trans_result;
         track_data->qt[1].time = 0.0f;
 
-        track_data->quat = C200;
-        (&track_data->quat)[1] = C200;
+        track_data->quat = 0.0f;
+        track_data->trans = 0.0f;
         track_data->flags = *track_flags++;
 
         track_data++;
@@ -694,36 +693,38 @@ static void enb_calc_track_init(enb_play_head* play_head) { // 0x08A086CC in ULJ
 static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward) { // 0x08A085D8 in ULJM05681
     uint8_t s0, s1;
     uint32_t i;
-    quat C010, C100, C120; // PSP VFPU registers
-    vec3 C020, C110, C130; // PSP VFPU registers
-    float_t S030; // PSP VFPU register
+    quat quat_delta, quat_result, quat_data;
+    vec3 trans_delta, trans_result, trans_data;
+    float_t scale;
 
     enb_track* track_data = play_head->track_data;
 
     if (forward) {
-        s1 = play_head->track_data_selector & 0x1;
-        play_head->track_data_selector = s0 = s1 ^ 1;
+        s1 = play_head->track_data_selector & 0x01;
+        s0 = s1 ^ 0x01;
+        play_head->track_data_selector = s0;
     }
     else {
-        s0 = play_head->track_data_selector & 0x1;
-        play_head->track_data_selector = s1 = s0 ^ 1;
+        s0 = play_head->track_data_selector & 0x01;
+        s1 = s0 ^ 0x01;
+        play_head->track_data_selector = s1;
     }
 
-    S030 = forward ? play_head->data_header->scale : -play_head->data_header->scale;
+    scale = forward ? play_head->data_header->scale : -play_head->data_header->scale;
     for (i = 0; i < play_head->data_header->track_count; i++, track_data++) {
-        C010 = track_data->quat;
-        C020 = track_data->trans;
+        quat_delta = track_data->quat;
+        trans_delta = track_data->trans;
 
-        C120 = track_data->qt[s0].quat;
-        C130 = track_data->qt[s0].trans;
+        quat_data = track_data->qt[s0].quat;
+        trans_data = track_data->qt[s0].trans;
 
-        C100 = C010 * S030 + C120;
-        C110 = C020 * S030 + C130;
+        quat_result = quat_delta * scale + quat_data;
+        trans_result = trans_delta * scale + trans_data;
 
-        C100 = quat::normalize(C100);
+        quat_result = quat::normalize(quat_result);
 
-        track_data->qt[s1].quat = C100;
-        track_data->qt[s1].trans = C110;
+        track_data->qt[s1].quat = quat_result;
+        track_data->qt[s1].trans = trans_result;
         track_data->qt[s1].time = time;
     }
 }
