@@ -6,6 +6,7 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
+#include "../../KKdLib/prj/vector_pair.hpp"
 #include "../../CRE/rob/rob.hpp"
 #include "../../CRE/task.hpp"
 

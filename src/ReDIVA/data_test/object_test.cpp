@@ -433,7 +433,7 @@ DataTestObjDw::DataTestObjDw() {
     shadow->AddItem("ON");
     shadow->SetItemIndex(obj_data->shadow);
     shadow->AddSelectionListener(new dw::SelectionListenerOnHook(DataTestObjDw::ShadowCallback));
-    
+
     (new dw::Label(this))->SetText("STAGE HDRI");
 
     dw::ListBox* stage_hdri = new dw::ListBox(this);

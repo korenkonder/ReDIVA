@@ -213,7 +213,7 @@ void FogDw::TypeListBox::Callback(dw::SelectionListener::CallbackData* data) {
 FogDw::DensitySlider::DensitySlider(FogDw* fog_dw, dw::Widget* parent) {
     this->fog_dw = fog_dw;
     density = 0;
-    
+
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
         fog* fog = fog_dw_get_fog();
@@ -314,7 +314,7 @@ FogDw::ColorSlider::ColorSlider(FogDw* fog_dw, dw::Widget* parent) {
         r->SetParams(value.y, 0.0f, 8.0f, 0.8f, 0.01f, 0.1f);
         r->callback_data.i64 = 1;
         r->AddSelectionListener(this);
-        
+
         g = dw::Slider::Create(comp);
         g->SetText("G");
         g->format = "%3.2f";
@@ -358,7 +358,7 @@ FogDw::IoButton::IoButton(FogDw* fog_dw, dw::Widget* parent) {
         save->SetText("SAVE");
         save->callback_data.v64 = fog_dw;
         save->callback = FogDw::IoButton::SaveCallback;
-        
+
         load = new dw::Button(_comp, dw::FLAG_8);
         load->SetText("LOAD");
         load->callback_data.v64 = fog_dw;

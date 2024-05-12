@@ -1019,43 +1019,41 @@ bool DtmMot::ctrl() {
 
         const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(pv_id, PV_DIFFICULTY_HARD, 0);
         if (pv_id > 0 && diff && dsc_file_handler.get_data()) {
-            if (diff) {
-                pv_data.reset();
-                pv_data.dsc.parse(dsc_file_handler.get_data(), dsc_file_handler.get_size(), DSC_FT);
+            pv_data.reset();
+            pv_data.dsc.parse(dsc_file_handler.get_data(), dsc_file_handler.get_size(), DSC_FT);
 
-                dsc_file_handler.reset();
+            dsc_file_handler.reset();
 
-                int32_t chara_id = 0;
-                for (auto& i : diff->motion)
-                    for (const pv_db_pv_motion& j : i)
-                        if (j.id == motion_id) {
-                            chara_id = (int32_t)(&i - diff->motion);
-                            break;
-                        }
+            int32_t chara_id = 0;
+            for (auto& i : diff->motion)
+                for (const pv_db_pv_motion& j : i)
+                    if (j.id == motion_id) {
+                        chara_id = (int32_t)(&i - diff->motion);
+                        break;
+                    }
 
-                pv_data.find_playdata_set_motion(chara_id);
-                pv_data.find_set_motion(diff);
-                const std::vector<pv_data_set_motion>* set_motion = pv_data.get_set_motion(chara_id);
-                if (set_motion) {
-                    this->set_motion.assign(set_motion->begin(), set_motion->end());
-                    const mothead_mot* mhdm = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db);
-                    if (mhdm)
-                        for (const mothead_data& i : mhdm->data) {
-                            if (i.type != MOTHEAD_DATA_WIND_RESET)
-                                continue;
+            pv_data.find_playdata_set_motion(chara_id);
+            pv_data.find_set_motion(diff);
+            const std::vector<pv_data_set_motion>* set_motion = pv_data.get_set_motion(chara_id);
+            if (set_motion) {
+                this->set_motion.assign(set_motion->begin(), set_motion->end());
+                const mothead_mot* mhdm = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db);
+                if (mhdm)
+                    for (const mothead_data& i : mhdm->data) {
+                        if (i.type != MOTHEAD_DATA_WIND_RESET)
+                            continue;
 
-                            auto j_begin = this->set_motion.begin();
-                            auto j_end = this->set_motion.end();
-                            for (auto j = j_begin; j != j_end; )
-                                if ((float_t)i.frame == j->frame_stage_index.first) {
-                                    std::move(j + 1, j_end, j);
-                                    this->set_motion.pop_back();
-                                    j_end = this->set_motion.end();
-                                }
-                                else
-                                    j++;
-                        }
-                }
+                        auto j_begin = this->set_motion.begin();
+                        auto j_end = this->set_motion.end();
+                        for (auto j = j_begin; j != j_end; )
+                            if ((float_t)i.frame == j->frame_stage_index.first) {
+                                std::move(j + 1, j_end, j);
+                                this->set_motion.pop_back();
+                                j_end = this->set_motion.end();
+                            }
+                            else
+                                j++;
+                    }
             }
         }
 
@@ -1090,7 +1088,6 @@ bool DtmMot::ctrl() {
 
         state = 9;
 
-        bool has_opd = false;
         const uint32_t* opd_motion_set_ids = get_opd_motion_set_ids();
         while (*opd_motion_set_ids != -1) {
             if (*opd_motion_set_ids != motion_set_id) {

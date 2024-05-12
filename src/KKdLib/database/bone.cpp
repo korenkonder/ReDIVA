@@ -223,7 +223,7 @@ void bone_database::update() {
         i.bone_names.clear();
         i.object_bone_names.clear();
         i.motion_bone_names.clear();
-        
+
         i.bone_names.reserve(i.bone.size());
         i.object_bone_names.reserve(i.object_bone.size());
         i.motion_bone_names.reserve(i.motion_bone.size());

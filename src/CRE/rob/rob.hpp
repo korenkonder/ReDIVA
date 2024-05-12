@@ -8,6 +8,7 @@
 #include "../../KKdLib/default.hpp"
 #include "../../KKdLib/database/bone.hpp"
 #include "../../KKdLib/database/motion.hpp"
+#include "../../KKdLib/prj/vector_pair.hpp"
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/mot.hpp"
 #include "../../KKdLib/vec.hpp"

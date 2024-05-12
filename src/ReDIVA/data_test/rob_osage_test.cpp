@@ -8,6 +8,10 @@
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/resolution_mode.hpp"
+#include "../../KKdLib/io/file_stream.hpp"
+#include "../../KKdLib/io/path.hpp"
+#include "../../KKdLib/prj/algorithm.hpp"
+#include "../../KKdLib/key_val.hpp"
 #include "../dw.hpp"
 
 class RobOsageTestDw : public dw::Shell {
@@ -63,7 +67,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class Gain : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -78,7 +82,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class AirRes : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -93,7 +97,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class RootYRot : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -108,7 +112,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class RootZRot : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -123,7 +127,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class Fric : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -138,7 +142,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class WindAfc : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -153,7 +157,7 @@ public:
             void SetValue(float_t value);
             void Update(bool value);
         };
-        
+
         class ColiType : public dw::SelectionAdapter {
         public:
             dw::Composite* comp;
@@ -259,6 +263,11 @@ public:
 
             void SetValue(const RobOsageTest::Node::Hinge& value);
             void Update(bool value);
+
+            static void YMinCallback(dw::Widget* data);
+            static void YMaxCallback(dw::Widget* data);
+            static void ZMinCallback(dw::Widget* data);
+            static void ZMaxCallback(dw::Widget* data);
         };
 
         class InertialCancel : public dw::SelectionAdapter {
@@ -1582,21 +1591,29 @@ void RobOsageTestDw::Node::Hinge::Update(bool value) {
         y_min_slider->SetText("   Ymin    ");
         y_min_slider->format = "% 6.0f";
         y_min_slider->SetParams(rob_osage_test->node.hinge.ymin, -179.0f, 0.0f, 89.5f, 0.5f, 5.0f);
+        y_min_slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Node::Hinge::YMinCallback));
 
         y_max_slider = dw::Slider::Create(comp);
         y_max_slider->SetText("   Ymax    ");
         y_max_slider->format = "% 6.0f";
         y_max_slider->SetParams(rob_osage_test->node.hinge.ymax, 0.0f, 179.0f, 89.5f, 0.5f, 5.0f);
+        y_max_slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Node::Hinge::YMaxCallback));
 
         z_min_slider = dw::Slider::Create(comp);
         z_min_slider->SetText("   Zmin    ");
         z_min_slider->format = "% 6.0f";
         z_min_slider->SetParams(rob_osage_test->node.hinge.zmin, -179.0f, 0.0f, 89.5f, 0.5f, 5.0f);
+        z_min_slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Node::Hinge::ZMinCallback));
 
         z_max_slider = dw::Slider::Create(comp);
         z_max_slider->SetText("   Zmax    ");
         z_max_slider->format = "% 6.0f";
         z_max_slider->SetParams(rob_osage_test->node.hinge.zmax, 0.0f, 179.0f, 89.5f, 0.5f, 5.0f);
+        z_max_slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Node::Hinge::ZMaxCallback));
     }
     else if (y_min_slider) {
         comp->controls.erase(comp->controls.begin() + comp->GetControlIndex(y_min_slider));
@@ -1612,6 +1629,34 @@ void RobOsageTestDw::Node::Hinge::Update(bool value) {
         y_max_slider = 0;
         z_min_slider = 0;
         z_max_slider = 0;
+    }
+}
+
+void RobOsageTestDw::Node::Hinge::YMinCallback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
+    }
+}
+
+void RobOsageTestDw::Node::Hinge::YMaxCallback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
+    }
+}
+
+void RobOsageTestDw::Node::Hinge::ZMinCallback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
+    }
+}
+
+void RobOsageTestDw::Node::Hinge::ZMaxCallback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
     }
 }
 
@@ -1912,7 +1957,7 @@ void RobOsageTestDw::ColliElement::Init(dw::Composite* parent) {
     bone0_x_slider->callback_data.i32 = 0;
     bone0_x_slider->AddSelectionListener(new dw::SelectionListenerOnHook(
         RobOsageTestDw::ColliElement::BonePosXCallback));
-    
+
     bone0_y_slider = dw::Slider::Create(group);
     bone0_y_slider->SetText("y");
     bone0_y_slider->format = "% 2.3f   ";
@@ -1920,7 +1965,7 @@ void RobOsageTestDw::ColliElement::Init(dw::Composite* parent) {
     bone0_y_slider->callback_data.i32 = 0;
     bone0_y_slider->AddSelectionListener(new dw::SelectionListenerOnHook(
         RobOsageTestDw::ColliElement::BonePosYCallback));
-    
+
     bone0_z_slider = dw::Slider::Create(group);
     bone0_z_slider->SetText("z");
     bone0_z_slider->format = "% 2.3f   ";
