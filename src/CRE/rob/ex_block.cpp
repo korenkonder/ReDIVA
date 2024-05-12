@@ -255,12 +255,43 @@ void ExNullBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     item_equip_object = itm_eq_obj;
 }
 
-RobOsageNodeDataNormalRef::RobOsageNodeDataNormalRef() : field_0(), n(), u(), d(), l(), r() {
+RobOsageNodeDataNormalRef::RobOsageNodeDataNormalRef() : set(), n(), u(), d(), l(), r() {
 
 }
 
+bool RobOsageNodeDataNormalRef::Check() {
+    set = false;
+    if (!n)
+        return set;
+
+    if (u && !memcmp(&u->mat, &mat4_null, sizeof(mat4)))
+        u = 0;
+
+    if (d && !memcmp(&d->mat, &mat4_null, sizeof(mat4)))
+        d = 0;
+
+    if (l && !memcmp(&l->mat, &mat4_null, sizeof(mat4)))
+        l = 0;
+
+    if (r && !memcmp(&r->mat, &mat4_null, sizeof(mat4)))
+        r = 0;
+
+    if ((u || d) && (l || r)) {
+        if (!u)
+            u = n;
+        if (!d)
+            d = n;
+        if (!l)
+            l = n;
+        if (!r)
+            r = n;
+        set = true;
+    }
+    return set;
+}
+
 void RobOsageNodeDataNormalRef::GetMat() {
-    if (!field_0)
+    if (!Check())
         return;
 
     vec3 n_trans;
@@ -326,7 +357,7 @@ RobOsageNodeData::~RobOsageNodeData() {
 void RobOsageNodeData::Reset() {
     force = 0.0f;
     boc.clear();
-    normal_ref.field_0 = 0;
+    normal_ref.set = false;
     normal_ref.n = 0;
     normal_ref.u = 0;
     normal_ref.d = 0;
@@ -1308,7 +1339,7 @@ void RobCloth::SetSkinParamOsageRoot(const skin_param_osage_root& skp_root) {
     SetSkinParamWindAfc(skp_root.wind_afc);
     SetSkinParamColiR(skp_root.coli_r);
     SetSkinParamHinge(skp_root.hinge_y, skp_root.hinge_z);
-    skin_param_ptr->coli = skp_root.coli;
+    skin_param_ptr->coli.assign(skp_root.coli.begin(), skp_root.coli.end());
 }
 
 void RobCloth::UpdateDisp() {
@@ -2067,7 +2098,7 @@ void RobOsage::SetSkinParamOsageRoot(const skin_param_osage_root& skp_root) {
     skin_param_ptr->wind_afc = skp_root.wind_afc;
     SetColiR(skp_root.coli_r);
     SetHinge(skp_root.hinge_y, skp_root.hinge_z);
-    skin_param_ptr->coli = skp_root.coli;
+    skin_param_ptr->coli.assign(skp_root.coli.begin(), skp_root.coli.end());
     skin_param_ptr->coli_type = skp_root.coli_type;
     skin_param_ptr->stiffness = skp_root.stiffness;
     skin_param_ptr->move_cancel = skp_root.move_cancel;
@@ -3585,7 +3616,7 @@ static void sub_14047E1C0(RobOsage* rob_osg, vec3* scale) {
     RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++)
-        if (i->data_ptr->normal_ref.field_0) {
+        if (i->data_ptr->normal_ref.set) {
             sub_14053CE30(&i->data_ptr->normal_ref, i->bone_node_mat);
             mat4_scale_rot(i->bone_node_mat, scale, i->bone_node_mat);
         }
@@ -4092,7 +4123,7 @@ static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3*
 }
 
 static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2) {
-    if (!normal_ref->field_0)
+    if (!normal_ref->set)
         return;
 
     vec3 n_trans;

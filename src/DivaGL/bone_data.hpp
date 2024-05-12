@@ -3098,8 +3098,7 @@ struct ExNullBlock {
 struct RobOsageNode;
 
 struct RobOsageNodeDataNormalRef {
-    bool field_0;
-    int field_4;
+    bool set;
     RobOsageNode* n;
     RobOsageNode* u;
     RobOsageNode* d;

@@ -1505,7 +1505,7 @@ public:
 struct RobOsageNode;
 
 struct RobOsageNodeDataNormalRef {
-    bool field_0;
+    bool set;
     RobOsageNode* n;
     RobOsageNode* u;
     RobOsageNode* d;
@@ -1515,6 +1515,7 @@ struct RobOsageNodeDataNormalRef {
 
     RobOsageNodeDataNormalRef();
 
+    bool Check();
     void GetMat();
 };
 
@@ -2215,7 +2216,7 @@ struct rob_chara_item_equip_object {
     bone_node* get_bone_node(int32_t bone_index);
     bone_node* get_bone_node(const char* name, const bone_database* bone_data);
     const mat4* get_ex_data_bone_node_mat(const char* name);
-    RobOsageNode* get_normal_ref_osage_node(const std::string& name, size_t* index);
+    RobOsageNode* get_normal_ref_osage_node(const std::string& str, size_t* index);
     void get_parent_bone_nodes(bone_node* bone_nodes, const bone_database* bone_data);
     void init_ex_data_bone_nodes(obj_skin_ex_data* ex_data);
     void init_members(size_t index = 0xDEADBEEF);

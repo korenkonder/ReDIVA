@@ -5275,7 +5275,7 @@ void OpdChecker::sub_140471020() {
             std::string temp = string_to_upper(i.substr(0, pos));
             auto elem = osage_play_data_database->map.find(temp);
             if (elem != osage_play_data_database->map.end() && !temp.compare(elem->first))
-                path_delete_file(sprintf_s_string("%s/%s", get_ram_osage_play_data_dir() + i).c_str());
+                path_delete_file(sprintf_s_string("%s/%s", get_ram_osage_play_data_dir(), i.c_str()).c_str());
         }
 
         SetState(2);
@@ -13341,25 +13341,25 @@ const mat4* rob_chara_item_equip_object::get_ex_data_bone_node_mat(const char* n
     return &mat4_identity;
 }
 
-RobOsageNode* rob_chara_item_equip_object::get_normal_ref_osage_node(const std::string& name, size_t* index) {
-    if (!name.size())
+RobOsageNode* rob_chara_item_equip_object::get_normal_ref_osage_node(const std::string& str, size_t* index) {
+    if (!str.size())
         return 0;
 
-    size_t v8 = name.find(',', 0);
-    if (v8 == -1)
+    size_t pos = str.find(',', 0);
+    if (pos == -1)
         return 0;
 
-    std::string v22 = name.substr(0, v8);
-    std::string v23 = name.substr(v8 + 1);
-    size_t v11 = atoi(v23.c_str());
+    std::string name = str.substr(0, pos);
+    std::string node_idx_str = str.substr(pos + 1);
+    size_t node_idx = atoi(node_idx_str.c_str());
     if (index)
-        *index = v11;
+        *index = node_idx;
 
     RobOsageNode* node = 0;
     for (ExOsageBlock*& i : osage_blocks)
-        if (!v22.compare(i->name)) {
-            if (v11 + 1 < i->rob.nodes.size())
-                node = i->rob.GetNode(v11 + 1);
+        if (!name.compare(i->name)) {
+            if (node_idx + 1 < i->rob.nodes.size())
+                node = i->rob.GetNode(node_idx + 1);
             break;
         }
     return node;
@@ -13855,23 +13855,18 @@ bool rob_chara_item_equip_object::skp_load_normal_ref(
         return false;
 
     for (const skin_param_osage_root_normal_ref& i : skp_root.normal_ref) {
-        size_t v12 = 0;
-        RobOsageNode* v8 = get_normal_ref_osage_node(i.n, &v12);
-        if (!v8)
+        size_t index = 0;
+        RobOsageNode* n = get_normal_ref_osage_node(i.n, &index);
+        if (!n)
             continue;
 
-        RobOsageNodeData* v10;
-        if (node_data)
-            v10 = &(*node_data)[v12];
-        else
-            v10 = v8->data_ptr;
-
-        v10->normal_ref.n = v8;
-        v10->normal_ref.u = get_normal_ref_osage_node(i.u, 0);
-        v10->normal_ref.d = get_normal_ref_osage_node(i.d, 0);
-        v10->normal_ref.l = get_normal_ref_osage_node(i.l, 0);
-        v10->normal_ref.r = get_normal_ref_osage_node(i.r, 0);
-        v10->normal_ref.GetMat();
+        RobOsageNodeData* data = node_data ? &(*node_data)[index] : n->data_ptr;
+        data->normal_ref.n = n;
+        data->normal_ref.u = get_normal_ref_osage_node(i.u, 0);
+        data->normal_ref.d = get_normal_ref_osage_node(i.d, 0);
+        data->normal_ref.l = get_normal_ref_osage_node(i.l, 0);
+        data->normal_ref.r = get_normal_ref_osage_node(i.r, 0);
+        data->normal_ref.GetMat();
     }
     return true;
 }

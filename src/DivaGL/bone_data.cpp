@@ -421,7 +421,7 @@ static void RobOsage__node_data_init(RobOsageNodeData *node_data) {
     node_data->skp_osg_node.inertial_cancel = 0.0f;
     node_data->skp_osg_node.hinge = { -90.0f, 90.0f, -90.0f, 90.0f };
     skin_param_hinge_limit(&node_data->skp_osg_node.hinge);
-    node_data->normal_ref.field_0 = 0;
+    node_data->normal_ref.set = false;
     node_data->normal_ref.n = 0;
     node_data->normal_ref.u = 0;
     node_data->normal_ref.d = 0;
@@ -1492,7 +1492,7 @@ static bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,
 }
 
 static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2) {
-    if (!normal_ref->field_0)
+    if (!normal_ref->set)
         return;
 
     mat4 mat;
@@ -1537,7 +1537,7 @@ static void sub_14047E1C0(RobOsage* rob_osg, vec3* parent_scale) {
     RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++) {
-        if (!i->data_ptr->normal_ref.field_0)
+        if (!i->data_ptr->normal_ref.set)
             continue;
 
         sub_14053CE30(&i->data_ptr->normal_ref, i->bone_node_mat);
