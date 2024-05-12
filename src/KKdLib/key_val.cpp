@@ -227,7 +227,7 @@ bool key_val::open_scope_fmt(uint32_t i) {
     return open_scope(buf);
 }
 
-bool key_val::open_scope_fmt(const char* fmt, ...) {
+bool key_val::open_scope_fmt(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
     char buf[0x200];
     va_list args;
     va_start(args, fmt);

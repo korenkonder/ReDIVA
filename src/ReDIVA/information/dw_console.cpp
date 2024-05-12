@@ -14,8 +14,8 @@ struct c_buff_data {
 
     void init(char* data, size_t size, size_t position);
     void move(int32_t size);
-    void printf(const char* fmt, ...);
-    void vprintf(const char* fmt, va_list args);
+    void printf(_In_z_ _Printf_format_string_ const char* const fmt, ...);
+    void vprintf(_In_z_ _Printf_format_string_ const char* const fmt, va_list args);
 };
 
 struct c_buff {
@@ -83,14 +83,16 @@ void dw_console_init() {
         dw_console->Disp();
 }
 
-void dw_console_printf(dw_console_index index, const char* fmt, ...) {
+void dw_console_printf(dw_console_index index,
+    _In_z_ _Printf_format_string_ const char* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     dw_console_vprintf(index, fmt, args);
     va_end(args);
 }
 
-void dw_console_vprintf(dw_console_index index, const char* fmt, va_list args) {
+void dw_console_vprintf(dw_console_index index,
+    _In_z_ _Printf_format_string_ const char* const fmt, va_list args) {
     /*if (!main_thread_id_check())
         return;*/
 
@@ -244,14 +246,14 @@ void c_buff_data::move(int32_t size) {
     this->position -= v5 - buf;
 }
 
-void c_buff_data::printf(const char* fmt, ...) {
+void c_buff_data::printf(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vprintf(fmt, args);
     va_end(args);
 }
 
-void c_buff_data::vprintf(const char* fmt, va_list args) {
+void c_buff_data::vprintf(_In_z_ _Printf_format_string_ const char* const fmt, va_list args) {
     char* pos = &position[vsprintf_s(position, buf_end - position, fmt, args)];
     position = min_def(pos, buf_end);
 }

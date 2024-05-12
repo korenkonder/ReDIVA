@@ -32,8 +32,10 @@ enum dw_console_index {
 };
 
 extern void dw_console_init();
-extern void dw_console_printf(dw_console_index index, const char* fmt, ...);
-extern void dw_console_vprintf(dw_console_index index, const char* fmt, va_list args);
+extern void dw_console_printf(dw_console_index index,
+    _In_z_ _Printf_format_string_ const char* const fmt, ...);
+extern void dw_console_vprintf(dw_console_index index,
+    _In_z_ _Printf_format_string_ const char* const fmt, va_list args);
 
 extern void dw_console_c_buff_array_init();
 extern void dw_console_c_buff_array_free();

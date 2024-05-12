@@ -428,7 +428,7 @@ std::string string_to_upper(const std::string& str) {
     return _str;
 }
 
-std::string sprintf_s_string(const char* fmt, ...) {
+std::string sprintf_s_string(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     std::string buf = vsprintf_s_string(fmt, args);
@@ -436,7 +436,7 @@ std::string sprintf_s_string(const char* fmt, ...) {
     return buf;
 }
 
-std::wstring swprintf_s_string(const wchar_t* fmt, ...) {
+std::wstring swprintf_s_string(_In_z_ _Printf_format_string_ const wchar_t* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     std::wstring buf = vswprintf_s_string(fmt, args);
@@ -444,7 +444,7 @@ std::wstring swprintf_s_string(const wchar_t* fmt, ...) {
     return buf;
 }
 
-std::string vsprintf_s_string(const char* fmt, va_list args) {
+std::string vsprintf_s_string(_In_z_ _Printf_format_string_ const char* const fmt, va_list args) {
     char _buf[0x100];
     int32_t len = vsprintf_s(_buf, sizeof(_buf), fmt, args);
     if (len < 0)
@@ -458,7 +458,7 @@ std::string vsprintf_s_string(const char* fmt, va_list args) {
     return buf;
 }
 
-std::wstring vswprintf_s_string(const wchar_t* fmt, va_list args) {
+std::wstring vswprintf_s_string(_In_z_ _Printf_format_string_ const wchar_t* const fmt, va_list args) {
     wchar_t _buf[0x100];
     int32_t len = vswprintf_s(_buf, sizeof(_buf) / sizeof(wchar_t), fmt, args);
     if (len < 0)

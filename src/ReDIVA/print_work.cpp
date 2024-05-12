@@ -428,40 +428,44 @@ void PrintWork::set_text_position(float_t column, float_t line) {
     text_current_loc = line_origin_loc;
 }
 
-void PrintWork::printf(app::text_flags flags, const char* fmt, ...) {
+void PrintWork::printf(app::text_flags flags,
+    _In_z_ _Printf_format_string_ const char* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vprintf(flags, fmt, args);
     va_end(args);
 }
 
-void PrintWork::printf_align_left(const char* fmt, ...) {
+void PrintWork::printf_align_left(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vprintf(app::TEXT_FLAG_ALIGN_FLAG_LEFT, fmt, args);
     va_end(args);
 }
 
-void PrintWork::wprintf(app::text_flags flags, const wchar_t* fmt, ...) {
+void PrintWork::wprintf(app::text_flags flags,
+    _In_z_ _Printf_format_string_ const wchar_t* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vwprintf(flags, fmt, args);
     va_end(args);
 }
 
-void PrintWork::wprintf_align_left(const wchar_t* fmt, ...) {
+void PrintWork::wprintf_align_left(_In_z_ _Printf_format_string_ const wchar_t* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
     vwprintf(app::TEXT_FLAG_ALIGN_FLAG_LEFT, fmt, args);
     va_end(args);
 }
 
-void PrintWork::vprintf(app::text_flags flags, const char* fmt, va_list args) {
+void PrintWork::vprintf(app::text_flags flags,
+    _In_z_ _Printf_format_string_ const char* const fmt, va_list args) {
     std::string buf = vsprintf_s_string(fmt, args);
     PrintText(flags, buf.data(), buf.size());
 }
 
-void PrintWork::vwprintf(app::text_flags flags, const wchar_t* fmt, va_list args) {
+void PrintWork::vwprintf(app::text_flags flags,
+    _In_z_ _Printf_format_string_ const wchar_t* const fmt, va_list args) {
     std::wstring buf = vswprintf_s_string(fmt, args);
     PrintText(flags, buf.data(), buf.data() + buf.size());
 }

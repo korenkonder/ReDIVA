@@ -1901,28 +1901,26 @@ namespace ImGui {
         return true;
     }
 
-    void TextCentered(const char* fmt, ...) {
+    void TextCentered(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
         ImGuiContext& g = *GImGui;
 
         va_list args;
         va_start(args, fmt);
-        vsprintf_s(g.TempBuffer.Data, g.TempBuffer.Size, fmt, args);
+        std::string tex_buf = vsprintf_s_string(fmt, args);
         va_end(args);
 
-        std::string tex_buf(g.TempBuffer.Data, g.TempBuffer.Size);
         ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
         ImGui::Text("%s", tex_buf.c_str());
     }
 
-    void TextRight(const char* fmt, ...) {
+    void TextRight(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
         ImGuiContext& g = *GImGui;
 
         va_list args;
         va_start(args, fmt);
-        vsprintf_s(g.TempBuffer.Data, g.TempBuffer.Size, fmt, args);
+        std::string tex_buf = vsprintf_s_string(fmt, args);
         va_end(args);
 
-        std::string tex_buf(g.TempBuffer.Data, g.TempBuffer.Size);
         ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
         ImGui::Text("%s", tex_buf.c_str());
     }

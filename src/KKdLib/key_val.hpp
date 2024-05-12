@@ -46,7 +46,7 @@ struct key_val {
     bool open_scope(std::string& str);
     bool open_scope_fmt(int32_t i);
     bool open_scope_fmt(uint32_t i);
-    bool open_scope_fmt(const char* fmt, ...);
+    bool open_scope_fmt(_In_z_ _Printf_format_string_ const char* const fmt, ...);
     void parse(const void* data, size_t size);
     bool read(bool& value);
     bool read(float_t& value);

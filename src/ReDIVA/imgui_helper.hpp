@@ -237,6 +237,6 @@ namespace ImGui {
     extern bool ColumnSliderVec4I(const char* label, vec4i* val,
         int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag);
 
-    extern void TextCentered(const char* fmt, ...);
-    extern void TextRight(const char* fmt, ...);
+    extern void TextCentered(_In_z_ _Printf_format_string_ const char* const fmt, ...);
+    extern void TextRight(_In_z_ _Printf_format_string_ const char* const fmt, ...);
 }

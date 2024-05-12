@@ -320,7 +320,7 @@ inline void mat4_mul_scale(const mat4* in_m1, float_t s, mat4* out_m) {
     mat4_mul_scale(in_m1, s, s, s, s, out_m);
 }
 
-inline void mat4_mul_scale(const mat4* in_m1, vec4* s, mat4* out_m) {
+inline void mat4_mul_scale(const mat4* in_m1, const vec4* s, mat4* out_m) {
     mat4_mul_scale(in_m1, s->x, s->y, s->z, s->w, out_m);
 }
 

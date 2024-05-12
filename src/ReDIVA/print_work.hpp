@@ -88,12 +88,16 @@ struct PrintWork {
     void SetResolutionMode(::resolution_mode value);
     void set_text_position(float_t column, float_t line);
 
-    void printf(app::text_flags flags, const char* fmt, ...);
-    void printf_align_left(const char* fmt, ...);
-    void wprintf(app::text_flags flags, const wchar_t* fmt, ...);
-    void wprintf_align_left(const wchar_t* fmt, ...);
-    void vprintf(app::text_flags flags, const char* fmt, va_list args);
-    void vwprintf(app::text_flags flags, const wchar_t* fmt, va_list args);
+    void printf(app::text_flags flags,
+        _In_z_ _Printf_format_string_ const char* const fmt, ...);
+    void printf_align_left(_In_z_ _Printf_format_string_ const char* const fmt, ...);
+    void wprintf(app::text_flags flags,
+        _In_z_ _Printf_format_string_ const wchar_t* const fmt, ...);
+    void wprintf_align_left(_In_z_ _Printf_format_string_ const wchar_t* const fmt, ...);
+    void vprintf(app::text_flags flags,
+        _In_z_ _Printf_format_string_ const char* const fmt, va_list args);
+    void vwprintf(app::text_flags flags,
+        _In_z_ _Printf_format_string_ const wchar_t* const fmt, va_list args);
 
     static void ClampPosToClipBox(float_t pos_min, float_t pos_max,
         float_t clip_box_min, float_t clip_box_max, float_t& clip_pos_min, float_t& clip_pos_max);

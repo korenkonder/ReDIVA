@@ -548,7 +548,7 @@ extern std::string utf16_to_utf8(const std::wstring& s);
 extern std::string string_to_lower(const std::string& str);
 extern std::string string_to_upper(const std::string& str);
 
-extern std::string sprintf_s_string(const char* fmt, ...);
-extern std::wstring swprintf_s_string(const wchar_t* fmt, ...);
-extern std::string vsprintf_s_string(const char* fmt, va_list args);
-extern std::wstring vswprintf_s_string(const wchar_t* fmt, va_list args);
+extern std::string sprintf_s_string(_In_z_ _Printf_format_string_ const char* const fmt, ...);
+extern std::wstring swprintf_s_string(_In_z_ _Printf_format_string_ const wchar_t* const fmt, ...);
+extern std::string vsprintf_s_string(_In_z_ _Printf_format_string_ const char* const fmt, va_list args);
+extern std::wstring vswprintf_s_string(_In_z_ _Printf_format_string_ const wchar_t* const fmt, va_list args);
