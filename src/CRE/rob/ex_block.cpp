@@ -1247,7 +1247,8 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
 
         for (size_t j = 0; j < root_count; j++) {
             CLOTHNode& root_node = nodes.data()[j];
-            vec3 v26 = root_node.trans;
+
+            vec3 parent_trans = root_node.trans;
             mat4 mat = root.data()[j].field_98;
             mat4_mul_translate(&mat, &root_node.trans_orig, &mat);
 
@@ -1266,40 +1267,40 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
                 const float_t* opd_y = opd->y;
                 const float_t* opd_z = opd->z;
 
-                vec3 v61;
-                v61.x = opd_x[curr_key];
-                v61.y = opd_y[curr_key];
-                v61.z = opd_z[curr_key];
+                vec3 curr_trans;
+                curr_trans.x = opd_x[curr_key];
+                curr_trans.y = opd_y[curr_key];
+                curr_trans.z = opd_z[curr_key];
 
-                vec3 v62;
-                v62.x = opd_x[next_key];
-                v62.y = opd_y[next_key];
-                v62.z = opd_z[next_key];
+                vec3 next_trans;
+                next_trans.x = opd_x[next_key];
+                next_trans.y = opd_y[next_key];
+                next_trans.z = opd_z[next_key];
 
-                mat4_transform_point(&v32, &v61, &v61);
-                mat4_transform_point(&v32, &v62, &v62);
+                mat4_transform_point(&v32, &curr_trans, &curr_trans);
+                mat4_transform_point(&v32, &next_trans, &next_trans);
 
-                vec3 v57 = v61 * inv_blend + v62 * blend;
+                vec3 _trans = curr_trans * inv_blend + next_trans * blend;
 
                 vec3 v85;
-                mat4_inverse_transform_point(&mat, &v57, &v85);
+                mat4_inverse_transform_point(&mat, &_trans, &v85);
 
                 vec3 rotation = 0.0f;
                 int32_t yz_order = 0;
                 sub_140482FF0(mat, v85, 0, &rotation, yz_order);
 
-                mat4_mul_translate(&mat, vec3::distance(v57, v26), 0.0f, 0.0f, &mat);
+                mat4_mul_translate(&mat, vec3::distance(_trans, parent_trans), 0.0f, 0.0f, &mat);
 
                 v29->opd_node_data.set_data(i, { v29->dist_top, rotation });
 
-                v26 = v61;
+                parent_trans = _trans;
             }
         }
     }
 
     for (size_t i = 0; i < root_count; i++) {
         CLOTHNode& root_node = nodes.data()[i];
-        mat4 mat = root.data()[0].field_98;
+        mat4 mat = root.data()[i].field_98;
         mat4_mul_translate(&mat, &root_node.trans_orig, &mat);
 
         CLOTHNode* v50 = &nodes.data()[i + root_count];
@@ -1983,10 +1984,6 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
     for (::opd_blend_data* i = i_begin; i != i_end; ) {
         i--;
 
-        mat4 v87 = v85;
-        vec3 v22 = nodes.data()[0].trans;
-        vec3 v25 = v22;
-
         float_t frame = i->frame;
         if (frame >= i->frame_count)
             frame = 0.0f;
@@ -1998,6 +1995,11 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
 
         float_t blend = frame - (float_t)(int64_t)frame;
         float_t inv_blend = 1.0f - blend;
+
+        mat4 v87 = v85;
+        vec3 parent_curr_trans = nodes.data()[0].trans;
+        vec3 parent_next_trans = nodes.data()[0].trans;
+
         RobOsageNode* j_begin = nodes.data() + 1;
         RobOsageNode* j_end = nodes.data() + nodes.size();
         for (RobOsageNode* j = j_begin; j != j_end; j++) {
@@ -2006,33 +2008,34 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
             const float_t* opd_y = opd->y;
             const float_t* opd_z = opd->z;
 
-            vec3 v62;
-            v62.x = opd_x[curr_key];
-            v62.y = opd_y[curr_key];
-            v62.z = opd_z[curr_key];
+            vec3 curr_trans;
+            curr_trans.x = opd_x[curr_key];
+            curr_trans.y = opd_y[curr_key];
+            curr_trans.z = opd_z[curr_key];
 
-            vec3 v77;
-            v77.x = opd_x[next_key];
-            v77.y = opd_y[next_key];
-            v77.z = opd_z[next_key];
+            vec3 next_trans;
+            next_trans.x = opd_x[next_key];
+            next_trans.y = opd_y[next_key];
+            next_trans.z = opd_z[next_key];
 
-            mat4_transform_point(root_matrix, &v62, &v62);
-            mat4_transform_point(root_matrix, &v77, &v77);
+            mat4_transform_point(root_matrix, &curr_trans, &curr_trans);
+            mat4_transform_point(root_matrix, &next_trans, &next_trans);
 
-            vec3 v82 = v62 * inv_blend + v77 * blend;
+            vec3 _trans = curr_trans * inv_blend + next_trans * blend;
 
             vec3 v86;
-            mat4_inverse_transform_point(&v87, &v82, &v86);
+            mat4_inverse_transform_point(&v87, &_trans, &v86);
 
             vec3 rotation = 0.0f;
             sub_140482FF0(v87, v86, 0, &rotation, yz_order);
-            mat4_set_translation(&v87, &v82);
+            mat4_set_translation(&v87, &_trans);
 
-            float_t length = vec3::distance(v62, v22) * inv_blend + vec3::distance(v77, v25) * blend;
+            float_t length = vec3::distance(curr_trans, parent_curr_trans) * inv_blend
+                + vec3::distance(next_trans, parent_next_trans) * blend;
             j->opd_node_data.set_data(i, { length, rotation });
 
-            v22 = v62;
-            v25 = v77;
+            parent_curr_trans = curr_trans;
+            parent_next_trans = next_trans;
         }
     }
 
