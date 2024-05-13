@@ -997,7 +997,11 @@ bool DtmMot::ctrl() {
         if (osage_play_data_manager_check_task_ready())
             break;
 
+#if OPD_PLAY
+        osage_play_data_manager_append_chara_motion_id(rob_chara_array_get(chara_id), motion_id, set_motion);
+#else
         osage_play_data_manager_append_chara_motion_id(rob_chara_array_get(chara_id), motion_id);
+#endif
         osage_play_data_manager_add_task();
         state = 6;
     } break;
@@ -1088,6 +1092,7 @@ bool DtmMot::ctrl() {
 
         state = 9;
 
+#if !OPD_PLAY
         const uint32_t* opd_motion_set_ids = get_opd_motion_set_ids();
         while (*opd_motion_set_ids != -1) {
             if (*opd_motion_set_ids != motion_set_id) {
@@ -1099,7 +1104,7 @@ bool DtmMot::ctrl() {
                 state = 5;
             break;
         }
-
+#endif
     } break;
     case 9: {
         if (skin_param_manager_check_task_ready(chara_id))
@@ -1140,7 +1145,11 @@ bool DtmMot::ctrl() {
         /*int32_t stage_index = task_stage_get_current_stage_index();
         if (stage_index != -1)
             rob_chara_array_get(chara_id)->set_stage_data_ring(stage_index);*/
+#if OPD_PLAY
+        state = use_opd ? 5 : 11;
+#else
         state = 11;
+#endif
     } break;
     case 11: {
         loaded = true;
@@ -1523,6 +1532,7 @@ void DtmMot::SetTrans(const vec3& value) {
 
 void DtmMot::SetUseOpd(bool value) {
     use_opd = value;
+    SetResetMot();
 }
 
 void DtmMot::ToggleABLoop() {
