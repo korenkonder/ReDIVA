@@ -456,7 +456,7 @@ void skin_param_osage_root_parse(void* kv, const char* name,
     if (_kv->read("boc", "length", count)) {
         std::vector<skin_param_osage_root_boc>* vb = &skp_root.boc;
 
-        vb->resize(count);
+        vb->reserve(count);
         for (int32_t i = 0; i < count; i++) {
             if (!_kv->open_scope_fmt(i))
                 continue;
@@ -469,11 +469,11 @@ void skin_param_osage_root_parse(void* kv, const char* name,
                 && _kv->read("ed_root", ed_root)
                 && _kv->read("ed_node", ed_node)
                 && ed_node < node_length) {
-                skin_param_osage_root_boc b;
+                vb->push_back({});
+                skin_param_osage_root_boc& b = vb->back();
                 b.st_node = st_node;
                 b.ed_root.assign(ed_root);
                 b.ed_node = ed_node;
-                vb->push_back(b);
             }
             _kv->close_scope();
         }
@@ -487,20 +487,20 @@ void skin_param_osage_root_parse(void* kv, const char* name,
     if (_kv->read("normal_ref", "length", count)) {
         std::vector<skin_param_osage_root_normal_ref>* vnr = &skp_root.normal_ref;
 
-        vnr->resize(count);
+        vnr->reserve(count);
         for (int32_t i = 0; i < count; i++) {
             if (!_kv->open_scope_fmt(i))
                 continue;
 
             std::string n;
             if (_kv->read("N", n)) {
-                skin_param_osage_root_normal_ref nr;
+                vnr->push_back({});
+                skin_param_osage_root_normal_ref& nr = vnr->back();
                 nr.n.assign(n);
                 _kv->read("U", nr.u);
                 _kv->read("D", nr.d);
                 _kv->read("L", nr.l);
                 _kv->read("R", nr.r);
-                vnr->push_back(nr);
             }
             _kv->close_scope();
         }
@@ -529,19 +529,11 @@ void skin_param_storage_load(std::vector<object_info>& obj_infos,
         if (!obj_name)
             continue;
 
-        char buf[0x200];
-        sprintf_s(buf, sizeof(buf), "ext_skp_%s.txt", obj_name);
+        std::string buf = string_to_lower(sprintf_s_string("ext_skp_%s.txt", obj_name));
 
-        for (int32_t i = 0; buf[i]; i++) {
-            char c = buf[i];
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            buf[i] = c;
-        }
-
-        if (((data_struct*)data)->check_file_exists("rom/skin_param/", buf)) {
+        if (((data_struct*)data)->check_file_exists("rom/skin_param/", buf.c_str())) {
             prj::shared_ptr<key_val> kv = prj::shared_ptr<key_val>(new key_val);
-            ((data_struct*)data)->load_file(kv.get(), "rom/skin_param/", buf, key_val::load_file);
+            ((data_struct*)data)->load_file(kv.get(), "rom/skin_param/", buf.c_str(), key_val::load_file);
             skin_param_storage.insert({ i, kv });
         }
     }
@@ -911,57 +903,40 @@ int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init,
     if (!dir.size())
         return -1;
 
-    char buf0[0x200];
-    char buf1[0x200];
-    char buf2[0x200];
-    size_t buf0_size = sizeof(buf0);
-    size_t buf1_size = sizeof(buf1);
-    size_t buf2_size = sizeof(buf2);
+    std::string buf1;
+    std::string buf2;
 
     if (osage_init.motion_id != -1) {
         const char* motion_name = mot_db->get_motion_name(osage_init.motion_id);
         if (!motion_name)
             return -1;
 
+        std::string buf;
         if (osage_init.frame > -1) {
-            strcpy_s(buf0, buf0_size, motion_name);
-            sprintf_s(buf1, buf1_size, "_%d", osage_init.frame);
-            strcat_s(buf0, buf0_size, buf1);
-            motion_name = buf0;
+            buf = sprintf_s_string("%s_%d_", motion_name,  osage_init.frame);
+            buf.append(file);
+        }
+        else {
+            buf = sprintf_s_string("%s_", motion_name);
+            buf.append(file);
         }
 
-        strcpy_s(buf1, buf1_size, motion_name);
-        strcat_s(buf1, buf1_size, "_");
-        strcat_s(buf1, buf1_size, file.c_str());
-        strcpy_s(buf0, buf0_size, buf1);
+        buf = string_to_lower(buf);
 
-        for (char* i = buf0; *i; i++) {
-            char c = *i;
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            *i = c;
-        }
-
-        if (((data_struct*)data)->check_file_exists(dir.c_str(), buf0)) {
-            file.assign(buf0);
+        if (((data_struct*)data)->check_file_exists(dir.c_str(), buf.c_str())) {
+            file.assign(buf);
             return 0;
         }
     }
 
     if (osage_init.pv_id > -1) {
-        sprintf_s(buf1, buf1_size, "pv%03d_", osage_init.pv_id);
-        strcat_s(buf1, buf1_size, file.c_str());
-        strcpy_s(buf0, buf0_size, buf1);
+        std::string buf = sprintf_s_string("pv%03d_", osage_init.pv_id);
+        buf.append(file);
 
-        for (char* i = buf0; *i; i++) {
-            char c = *i;
-            if (c >= 'A' && c <= 'Z')
-                c += 0x20;
-            *i = c;
-        }
+        buf = string_to_lower(buf);
 
-        if (((data_struct*)data)->check_file_exists(dir.c_str(), buf0)) {
-            file.assign(buf0);
+        if (((data_struct*)data)->check_file_exists(dir.c_str(), buf.c_str())) {
+            file.assign(buf.c_str());
             return 1;
         }
     }
