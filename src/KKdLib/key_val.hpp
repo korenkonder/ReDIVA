@@ -110,8 +110,8 @@ struct key_val_out {
     void write(stream& s, vec3&& value);
     void write(stream& s, const char* key, bool value);
     void write(stream& s, std::string& key, bool value);
-    void write(stream& s, const char* key, float_t value);
-    void write(stream& s, std::string& key, float_t value);
+    void write(stream& s, const char* key, float_t value, const char* fmt = "%g");
+    void write(stream& s, std::string& key, float_t value, const char* fmt = "%g");
     void write(stream& s, const char* key, int32_t value);
     void write(stream& s, std::string& key, int32_t value);
     void write(stream& s, const char* key, uint32_t value);

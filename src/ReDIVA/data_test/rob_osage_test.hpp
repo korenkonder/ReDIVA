@@ -78,6 +78,9 @@ public:
     size_t collision_index;
 
     prj::vector_pair<::item_id, object_info> objects;
+    prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_root_boc>> bocs;
+    prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_node>> nodes;
+    prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_root_normal_ref>> normal_refs;
 
     Root root;
     Node node;

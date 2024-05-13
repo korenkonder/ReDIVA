@@ -427,6 +427,10 @@ bool RobOsageTest::ctrl() {
         chara_id = load_chara_id;
 
         objects.clear();
+        bocs.clear();
+        nodes.clear();
+        normal_refs.clear();
+
         rob_osage_test_dw->rob.object_list_box->ClearItems();
         rob_osage_test_dw->rob.object_list_box->SetItemIndex(-1);
         rob_osage_test_dw->root.list_box->ClearItems();
@@ -439,20 +443,426 @@ bool RobOsageTest::ctrl() {
 
         rob_chara_item_equip* rob_itm_equip = rob_chara_array_get_item_equip(chara_id);
         if (!rob_itm_equip)
-            return 0;
+            return false;
+
+        data_struct* aft_data = &data_list[DATA_AFT];
+        bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
         for (int32_t i = 0; i < ITEM_MAX; i++) {
             rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((::item_id)i);
             obj* obj = object_storage_get_obj(itm_eq_obj->obj_info);
-            if (obj && (itm_eq_obj->osage_blocks.size() || itm_eq_obj->cloth_blocks.size())) {
-                objects.push_back((::item_id)i, itm_eq_obj->obj_info);
-                rob_osage_test_dw->rob.object_list_box->AddItem(obj->name);
+            if (!obj || !itm_eq_obj->osage_blocks.size() && !itm_eq_obj->cloth_blocks.size())
+                continue;
+
+            objects.push_back((::item_id)i, itm_eq_obj->obj_info);
+            rob_osage_test_dw->rob.object_list_box->AddItem(obj->name);
+
+            std::string buf = string_to_lower(sprintf_s_string(
+                "ext_skp_%s.txt", aft_obj_db->get_object_name(itm_eq_obj->obj_info)));
+
+            std::string path("ram/skin_param/");
+            path.assign(buf);
+
+            key_val kv;
+            if (path_check_file_exists(path.c_str()))
+                kv.file_read(path.c_str());
+            else
+                aft_data->load_file(&kv, "rom/skin_param/", buf.c_str(), key_val::load_file);
+            itm_eq_obj->skp_load(&kv, aft_bone_data);
+
+            std::vector<std::pair<std::string, ExNodeBlock*>> ex_nodes;
+            ex_nodes.reserve(itm_eq_obj->osage_blocks.size() + itm_eq_obj->cloth_blocks.size());
+
+            for (ExOsageBlock*& j : itm_eq_obj->osage_blocks) {
+                ExOsageBlock* osg = j;
+                ex_nodes.push_back({ osg->name, osg });
+            }
+
+            for (ExClothBlock*& j : itm_eq_obj->cloth_blocks) {
+                ExClothBlock* cls = j;
+                ex_nodes.push_back({ cls->name, cls });
+            }
+
+            prj::sort(ex_nodes);
+
+            for (ExOsageBlock*& j : itm_eq_obj->osage_blocks) {
+                ExOsageBlock* osg = j;
+                if (!kv.open_scope(osg->name))
+                    continue;
+
+                if (!kv.open_scope("node")) {
+                    kv.close_scope();
+                    continue;
+                }
+
+                nodes.push_back(osg, {});
+                std::vector<skin_param_osage_node>& vn = nodes.back().second;
+
+                int32_t node_length = 0;
+                kv.read("length", node_length);
+
+                for (int32_t k = 0; k < node_length; k++) {
+                    if (!kv.open_scope_fmt(k))
+                        continue;
+
+                    vn.push_back({});
+                    skin_param_osage_node& n = vn.back();
+
+                    float_t coli_r = 0.0f;
+                    if (kv.read("coli_r", coli_r))
+                        n.coli_r = coli_r;
+
+                    float_t weight = 0.0f;
+                    if (kv.read("weight", weight))
+                        n.weight = weight;
+
+                    float_t inertial_cancel = 0.0f;
+                    if (kv.read("inertial_cancel", inertial_cancel))
+                        n.inertial_cancel = inertial_cancel;
+
+                    n.hinge.ymin = -180.0f;
+                    n.hinge.ymax = 180.0f;
+                    n.hinge.zmin = -180.0f;
+                    n.hinge.zmax = 180.0f;
+
+                    float_t hinge_ymax = 0.0f;
+                    if (kv.read("hinge_ymax", hinge_ymax))
+                        n.hinge.ymax = hinge_ymax;
+
+                    float_t hinge_ymin = 0.0f;
+                    if (kv.read("hinge_ymin", hinge_ymin))
+                        n.hinge.ymin = hinge_ymin;
+
+                    float_t hinge_zmax = 0.0f;
+                    if (kv.read("hinge_zmax", hinge_zmax))
+                        n.hinge.zmax = hinge_zmax;
+
+                    float_t hinge_zmin = 0.0f;
+                    if (kv.read("hinge_zmin", hinge_zmin))
+                        n.hinge.zmin = hinge_zmin;
+                    kv.close_scope();
+                }
+
+                kv.close_scope();
+
+                if (!kv.open_scope("root")) {
+                    kv.close_scope();
+                    continue;
+                }
+
+                int32_t count;
+                if (kv.read("boc", "length", count) && count > 0) {
+                    bocs.push_back(osg, {});
+                    std::vector<skin_param_osage_root_boc>& vb = bocs.back().second;
+
+                    vb.reserve(count);
+                    for (int32_t k = 0; k < count; k++) {
+                        if (!kv.open_scope_fmt(k))
+                            continue;
+
+                        int32_t st_node = 0;
+                        std::string ed_root;
+                        int32_t ed_node = 0;
+                        if (kv.read("st_node", st_node)
+                            && st_node < node_length
+                            && kv.read("ed_root", ed_root)
+                            && kv.read("ed_node", ed_node)
+                            && ed_node < node_length) {
+                            vb.push_back({});
+                            skin_param_osage_root_boc& b = vb.back();
+                            b.st_node = st_node;
+                            b.ed_root.assign(ed_root);
+                            b.ed_node = ed_node;
+                        }
+                        kv.close_scope();
+                    }
+                    kv.close_scope();
+                }
+                kv.close_scope();
+
+                if (kv.read("normal_ref", "length", count)) {
+                    normal_refs.push_back(osg, {});
+                    std::vector<skin_param_osage_root_normal_ref>& vnr = normal_refs.back().second;
+
+                    vnr.reserve(count);
+                    for (int32_t k = 0; k < count; k++) {
+                        if (!kv.open_scope_fmt(k))
+                            continue;
+
+                        std::string n;
+                        if (kv.read("N", n)) {
+                            vnr.push_back({});
+                            skin_param_osage_root_normal_ref& nr = vnr.back();
+                            nr.n.assign(n);
+                            kv.read("U", nr.u);
+                            kv.read("D", nr.d);
+                            kv.read("L", nr.l);
+                            kv.read("R", nr.r);
+                        }
+                        kv.close_scope();
+                    }
+                    kv.close_scope();
+                }
+
+                kv.close_scope();
+                kv.close_scope();
             }
         }
+
+        bocs.sort();
+        nodes.sort();
+        normal_refs.sort();
     }
 
-    if (save)
+    if (save) {
         save = false;
+
+        const char* flt_fmt = "%0.6f";
+
+        rob_chara_item_equip* rob_itm_equip = rob_chara_array_get_item_equip(chara_id);
+        if (!rob_itm_equip)
+            return false;
+
+        data_struct* aft_data = &data_list[DATA_AFT];
+        bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+        object_database* aft_obj_db = &aft_data->data_ft.obj_db;
+
+        const std::vector<std::string>* object_bones = aft_bone_data->get_skeleton_object_bones(
+            bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON));
+
+        for (int32_t i = 0; i < ITEM_MAX; i++) {
+            rob_chara_item_equip_object* itm_eq_obj = rob_itm_equip->get_item_equip_object((::item_id)i);
+            obj* obj = object_storage_get_obj(itm_eq_obj->obj_info);
+            if (!obj || !itm_eq_obj->osage_blocks.size() && !itm_eq_obj->cloth_blocks.size())
+                continue;
+
+            path_create_directory("ram/skin_param/");
+
+            std::string buf = string_to_lower(sprintf_s_string(
+                "ext_skp_%s.txt", aft_obj_db->get_object_name(itm_eq_obj->obj_info)));
+
+            std::vector<std::pair<std::string, ExNodeBlock*>> ex_nodes;
+            ex_nodes.reserve(itm_eq_obj->osage_blocks.size() + itm_eq_obj->cloth_blocks.size());
+
+            for (ExOsageBlock*& i : itm_eq_obj->osage_blocks) {
+                ExOsageBlock* osg = i;
+                ex_nodes.push_back({ osg->name, osg });
+            }
+
+            for (ExClothBlock*& i : itm_eq_obj->cloth_blocks) {
+                ExClothBlock* cls = i;
+                ex_nodes.push_back({ cls->name, cls });
+            }
+
+            prj::sort(ex_nodes);
+
+            std::string path("ram/skin_param/");
+            path.append(buf);
+
+            file_stream s;
+            s.open(path.c_str(), "wb");
+
+            key_val_out kv;
+            s.write("# This file was generated automatically. DO NOT EDIT.\n", 54);
+
+            for (auto& j : ex_nodes) {
+                kv.open_scope(j.first);
+
+                skin_param* skp = j.second->type == EX_OSAGE
+                    ? ((ExOsageBlock*)j.second)->rob.skin_param_ptr
+                    : ((ExClothBlock*)j.second)->rob.skin_param_ptr;
+
+                ExOsageBlock* osg = j.second->type == EX_OSAGE
+                    ? (ExOsageBlock*)j.second : 0;
+
+                std::vector<int32_t> sort_index;
+                int32_t* sort_index_data = 0;
+
+                auto elem_node = nodes.find(osg);
+                if (elem_node != nodes.end()) {
+                    std::vector<skin_param_osage_node>& vn = elem_node->second;
+                    int32_t node_count = (int32_t)vn.size();
+
+                    key_val_out::get_lexicographic_order(sort_index, node_count);
+                    sort_index_data = sort_index.data();
+                    kv.open_scope("node");
+                    for (int32_t k = 0; k < node_count; k++) {
+                        kv.open_scope_fmt(sort_index_data[k]);
+                        skin_param_osage_node* node = &vn[sort_index_data[k]];
+
+                        kv.write(s, "coli_r", node->coli_r, flt_fmt);
+                        kv.write(s, "hinge_ymax", node->hinge.ymax, flt_fmt);
+                        kv.write(s, "hinge_ymin", node->hinge.ymin, flt_fmt);
+                        kv.write(s, "hinge_zmax", node->hinge.zmax, flt_fmt);
+                        kv.write(s, "hinge_zmin", node->hinge.zmin, flt_fmt);
+                        kv.write(s, "inertial_cancel", node->inertial_cancel, flt_fmt);
+                        kv.write(s, "weight", node->weight, flt_fmt);
+
+                        kv.close_scope();
+                    }
+
+                    kv.write(s, "length", node_count);
+                    kv.close_scope();
+                }
+                else {
+                    kv.open_scope("node");
+                    kv.write(s, "length", 0);
+                    kv.close_scope();
+                }
+
+                kv.open_scope("root");
+
+                if (skp->air_res != 1.0f)
+                    kv.write(s, "air_res", skp->air_res, flt_fmt);
+
+                auto elem_boc = bocs.find(osg);
+                if (elem_boc != bocs.end()) {
+                    std::vector<skin_param_osage_root_boc>& vb = elem_boc->second;
+                    int32_t boc_count = (int32_t)vb.size();
+
+                    key_val_out::get_lexicographic_order(sort_index, boc_count);
+                    sort_index_data = sort_index.data();
+                    kv.open_scope("boc");
+                    for (int32_t k = 0; k < boc_count; k++) {
+                        kv.open_scope_fmt(sort_index_data[k]);
+                        skin_param_osage_root_boc* boc = &vb[sort_index_data[k]];
+
+                        kv.write(s, "ed_node", boc->ed_node);
+                        kv.write(s, "ed_root", boc->ed_root);
+                        kv.write(s, "st_node", boc->st_node);
+
+                        kv.close_scope();
+                    }
+
+                    kv.write(s, "length", boc_count);
+                    kv.close_scope();
+                }
+                else {
+                    kv.open_scope("boc");
+                    kv.write(s, "length", 0);
+                    kv.close_scope();
+                }
+
+                std::vector<SkinParam::CollisionParam>& vc = skp->coli;
+
+                int32_t coli_count = 0;
+                for (SkinParam::CollisionParam& k : vc)
+                    if (k.type)
+                        coli_count++;
+                    else
+                        break;
+
+                kv.open_scope("coli");
+
+                key_val_out::get_lexicographic_order(sort_index, coli_count);
+                sort_index_data = sort_index.data();
+                for (int32_t k = 0; k < coli_count; k++) {
+                    kv.open_scope_fmt(sort_index_data[k]);
+                    SkinParam::CollisionParam* cls_param = &vc[sort_index_data[k]];
+
+                    kv.write(s, "bone.0.name", object_bones->data()[cls_param->node_idx[0]].c_str());
+                    kv.write(s, "bone.0.posx", cls_param->pos[0].x, flt_fmt);
+                    kv.write(s, "bone.0.posy", cls_param->pos[0].y, flt_fmt);
+                    kv.write(s, "bone.0.posz", cls_param->pos[0].z, flt_fmt);
+
+                    switch (cls_param->type) {
+                    case SkinParam::CollisionTypeCapsule:
+                    case SkinParam::CollisionTypePlane:
+                    case SkinParam::CollisionTypeEllipse:
+                        kv.write(s, "bone.1.name", object_bones->data()[cls_param->node_idx[1]].c_str());
+                        kv.write(s, "bone.1.posx", cls_param->pos[1].x, flt_fmt);
+                        kv.write(s, "bone.1.posy", cls_param->pos[1].y, flt_fmt);
+                        kv.write(s, "bone.1.posz", cls_param->pos[1].z, flt_fmt);
+                        break;
+                    }
+
+                    kv.write(s, "radius", cls_param->radius, flt_fmt);
+                    kv.write(s, "type", cls_param->type);
+
+                    kv.close_scope();
+                }
+
+                kv.write(s, "length", coli_count);
+                kv.close_scope();
+
+                if (skp->coli_r != 0.0f)
+                    kv.write(s, "coli_r", skp->coli_r, flt_fmt);
+
+                kv.write(s, "coli_type", skp->coli_type);
+
+                if (skp->colli_tgt_osg)
+                    for (ExOsageBlock*& k : itm_eq_obj->osage_blocks)
+                        if (skp->colli_tgt_osg == &k->rob.nodes) {
+                            kv.write(s, "colli_tgt_osg", k->name);
+                            break;
+                        }
+
+                kv.write(s, "force", skp->force, flt_fmt);
+                kv.write(s, "force_gain", skp->force_gain, flt_fmt);
+                kv.write(s, "friction", skp->friction, flt_fmt);
+
+                if (fabsf(skp->hinge.ymax * RAD_TO_DEG_FLOAT - 90.0f) > 0.0001f
+                    || fabsf(skp->hinge.zmax * RAD_TO_DEG_FLOAT - 90.0f) > 0.0001f) {
+                    kv.write(s, "hinge_y", skp->hinge.ymax, flt_fmt);
+                    kv.write(s, "hinge_z", skp->hinge.zmax, flt_fmt);
+                }
+
+                kv.write(s, "init_rot_y", skp->init_rot.y * RAD_TO_DEG_FLOAT, flt_fmt);
+                kv.write(s, "init_rot_z", skp->init_rot.z * RAD_TO_DEG_FLOAT, flt_fmt);
+
+                auto elem_normal_ref = normal_refs.find(osg);
+                if (elem_normal_ref != normal_refs.end()) {
+                    std::vector<skin_param_osage_root_normal_ref>& vnr = elem_normal_ref->second;
+                    int32_t normal_ref_count = (int32_t)vnr.size();
+
+                    key_val_out::get_lexicographic_order(sort_index, normal_ref_count);
+                    sort_index_data = sort_index.data();
+                    kv.open_scope("normal_ref");
+                    for (int32_t k = 0; k < normal_ref_count; k++) {
+                        kv.open_scope_fmt(sort_index_data[k]);
+                        skin_param_osage_root_normal_ref* normal_ref = &vnr[sort_index_data[k]];
+
+                        if (normal_ref->d.size())
+                            kv.write(s, "D", normal_ref->d);
+
+                        if (normal_ref->l.size())
+                            kv.write(s, "L", normal_ref->l);
+
+                        kv.write(s, "N", normal_ref->n);
+
+                        if (normal_ref->r.size())
+                            kv.write(s, "R", normal_ref->r);
+
+                        if (normal_ref->u.size())
+                            kv.write(s, "U", normal_ref->u);
+
+                        kv.close_scope();
+                    }
+
+                    kv.write(s, "length", normal_ref_count);
+                    kv.close_scope();
+                }
+
+                if (skp->move_cancel != -0.01f)
+                    kv.write(s, "move_cancel", skp->move_cancel, flt_fmt);
+
+                kv.write(s, "rot_y", skp->rot.y * RAD_TO_DEG_FLOAT, flt_fmt);
+                kv.write(s, "rot_z", skp->rot.z * RAD_TO_DEG_FLOAT, flt_fmt);
+
+                if (skp->stiffness != 0.0f)
+                    kv.write(s, "stiffness", skp->stiffness, flt_fmt);
+
+                kv.write(s, "wind_afc", skp->wind_afc, flt_fmt);
+
+                kv.close_scope();
+
+                kv.close_scope();
+            }
+
+            s.close();
+        }
+    }
 
     return false;
 }

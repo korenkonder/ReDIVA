@@ -845,9 +845,9 @@ void key_val_out::write(stream& s, std::string& key, bool value) {
     s.write("=1\n", 3);
 }
 
-void key_val_out::write(stream& s, const char* key, float_t value) {
+void key_val_out::write(stream& s, const char* key, float_t value, const char* fmt) {
     char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%g", value);
+    sprintf_s(val_buf, 0x100, fmt, value);
 
     if (curr_scope->size()) {
         s.write_string(*curr_scope);
@@ -859,9 +859,9 @@ void key_val_out::write(stream& s, const char* key, float_t value) {
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string& key, float_t value) {
+void key_val_out::write(stream& s, std::string& key, float_t value, const char* fmt) {
     char val_buf[0x100];
-    sprintf_s(val_buf, 0x100, "%g", value);
+    sprintf_s(val_buf, 0x100, fmt, value);
 
     if (curr_scope->size()) {
         s.write_string(*curr_scope);

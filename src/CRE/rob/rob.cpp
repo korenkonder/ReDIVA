@@ -149,6 +149,8 @@ struct opd_file_data {
     float_t* data;
     int32_t load_count;
 
+    opd_file_data();
+
     void unload();
 };
 
@@ -16565,6 +16567,10 @@ osage_play_data_header::osage_play_data_header() : frame_count(), nodes_count() 
     motion_id = -1;
 }
 
+opd_file_data::opd_file_data() : data(), load_count() {
+
+}
+
 void opd_file_data::unload() {
     if (--load_count > 0)
         return;
@@ -16831,12 +16837,11 @@ void opd_chara_data::encode_data() {
 
         const std::vector<std::vector<opd_vec3_data_vec>>& opd_data = this->opd_data[i];
 
-        size_t total_frame_count = 0;
+        size_t nodes_count = 0;
         for (const std::vector<opd_vec3_data_vec>& j : opd_data)
-            for (const opd_vec3_data_vec& k : j)
-                total_frame_count += k.x.size();
+            nodes_count += j.size();
 
-        size_t max_size = sizeof(osage_play_data_header) + (6ULL * (frame_count + 2ULL) * total_frame_count);
+        size_t max_size = sizeof(osage_play_data_header) + (6ULL * (frame_count + 2ULL) * nodes_count);
         uint8_t* data = (uint8_t*)malloc(max_size);
         if (!data)
             continue;
@@ -17116,6 +17121,7 @@ bool OsagePlayDataManager::ctrl() {
     for (auto i = file_handlers.begin(); i != file_handlers.end();) {
         if (!(*i)->check_not_ready()) {
             LoadOpdFile(*i);
+            delete (*i);
             i = file_handlers.erase(i);
         }
         else
@@ -17170,7 +17176,7 @@ void OsagePlayDataManager::GetOpdFileData(object_info obj_info,
 }
 
 void OsagePlayDataManager::LoadOpdFile(p_file_handler* pfhndl) {
-    ::opd_file_data data = {};
+    ::opd_file_data data;
     if (opd_decode_data(pfhndl->get_data(), data.data, data.head))
         opd_file_data.insert({ { object_info(data.head.obj_info.first,
             data.head.obj_info.second), data.head.motion_id }, data });
@@ -17181,7 +17187,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     prj::sort_unique(opd_req_data);
-    for (const std::pair<object_info, int32_t>& i : opd_req_data) {
+    for (const std::pair<object_info, uint32_t>& i : opd_req_data) {
         auto elem = opd_file_data.find(i);
         if (elem != opd_file_data.end())
             continue;
