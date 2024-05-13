@@ -1808,10 +1808,8 @@ struct CLOTHNode {
     float_t dist_bottom;
     float_t dist_right;
     float_t dist_left;
-    int64_t field_80;
-    int32_t field_88;
+    vec3 field_80;
     RobOsageNodeResetData reset_data;
-    int32_t field_B4;
     std::vector<opd_vec3_data> opd_data;
     opd_node_data_pair opd_node_data;
 

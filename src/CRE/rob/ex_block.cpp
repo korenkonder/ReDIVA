@@ -820,9 +820,9 @@ osage_ring_data::~osage_ring_data() {
 
 }
 
-CLOTHNode::CLOTHNode() : flags(), trans(), trans_orig(), field_1C(), trans_diff(), normal(),
-tangent(), binormal(), tangent_sign(), texcoord(), field_64(), dist_top(), dist_bottom(),
-dist_right(), dist_left(), field_80(), field_88(), reset_data(), field_B4() {
+CLOTHNode::CLOTHNode() : flags(), trans(), trans_orig(), field_1C(), trans_diff(),
+normal(), tangent(), binormal(), tangent_sign(), texcoord(), field_64(),
+dist_top(), dist_bottom(), dist_right(), dist_left(), reset_data() {
 
 }
 
