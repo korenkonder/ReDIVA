@@ -3263,18 +3263,18 @@ bool pv_game::load() {
             int32_t chara_id = -1;
             for (int32_t j = 0; j < ROB_CHARA_COUNT; j++) {
                 sprintf_s(buf, sizeof(buf), "%s_%dP", data.itmpv_string.c_str(), j + 1);
-                if (!uid_name.compare(buf)) {
+                if (!uid_name.find(buf)) {
                     chara_id = j;
                     break;
                 }
             }
 
-            if (chara_id != -1)
+            if (chara_id == -1)
                 continue;
 
             int32_t itm_index = 1;
             std::string index_str = uid_name.substr(utf8_length(buf));
-            if (!index_str.size() && index_str.size() == 4 && index_str[0] == '_'
+            if (index_str.size() && index_str.size() == 4 && index_str[0] == '_'
                 && isdigit(index_str[1]) && isdigit(index_str[2]) && isdigit(index_str[3]))
                 itm_index = atoi(index_str.c_str() + 1);
 
@@ -3351,9 +3351,9 @@ bool pv_game::load() {
                         data.obj_set_itmpv.push_back(obj_info.set_id);
                 }
 
-        object_info itmpv_obj_info = aft_obj_db->get_object_info(data.itmpv_string.c_str());
-        if (itmpv_obj_info.not_null())
-            data.obj_set_itmpv.push_back(itmpv_obj_info.set_id);
+        uint32_t itmpv_obj_set = aft_obj_db->get_object_set_id(data.itmpv_string.c_str());
+        if (itmpv_obj_set != -1)
+            data.obj_set_itmpv.push_back(itmpv_obj_set);
 
         prj::sort_unique(data.obj_set_itmpv);
         for (uint32_t& i : data.obj_set_itmpv)
