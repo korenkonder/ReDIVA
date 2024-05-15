@@ -97,7 +97,8 @@ nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_bu
 
     NV_ENC_CONFIG_HEVC& hevc_config = nvenc_config.encodeCodecConfig.hevcConfig;
     hevc_config.idrPeriod = 10;
-    hevc_config.pixelBitDepthMinus8 = 2;
+    hevc_config.inputBitDepth = NV_ENC_BIT_DEPTH_10;
+    hevc_config.outputBitDepth = NV_ENC_BIT_DEPTH_10;
     hevc_config.hevcVUIParameters.videoSignalTypePresentFlag = 1;
     hevc_config.hevcVUIParameters.videoFormat = NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED;
     hevc_config.hevcVUIParameters.videoFullRangeFlag = 1;
