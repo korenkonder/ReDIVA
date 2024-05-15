@@ -17,7 +17,7 @@
 #include "../object.hpp"
 #include "../static_var.hpp"
 
-#define OPD_PLAY (1)
+#define OPD_PLAY (0)
 
 enum ex_expression_block_stack_type {
     EX_EXPRESSION_BLOCK_STACK_NUMBER          = 0x00,
