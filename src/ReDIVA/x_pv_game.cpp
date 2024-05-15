@@ -6167,7 +6167,7 @@ bool x_pv_game::ctrl() {
             wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[next_idx]);
 
             gl_state_bind_framebuffer(d3d_gl_fbo[next_idx]);
-            gl_state_active_bind_texture_2d(0, tex->tex);
+            gl_state_active_bind_texture_2d(0, tex->glid);
             glViewport(0, 0, width, height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
@@ -6228,7 +6228,7 @@ bool x_pv_game::ctrl() {
             D3D11_MAPPED_SUBRESOURCE mapped_alpha_res = {};
             HRESULT result_alpha = d3d_device_context->Map(d3d_alpha_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res);
             if (SUCCEEDED(result) && SUCCEEDED(result_alpha)) {
-                gl_state_bind_texture_2d(tex->tex);
+                gl_state_bind_texture_2d(tex->glid);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
                 gl_state_bind_texture_2d(0);
 
@@ -6296,7 +6296,7 @@ bool x_pv_game::ctrl() {
 #else
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
             if (SUCCEEDED(d3d_device_context->Map(d3d_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
-                gl_state_bind_texture_2d(tex->tex);
+                gl_state_bind_texture_2d(tex->glid);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
                 gl_state_bind_texture_2d(0);
 
@@ -6348,7 +6348,7 @@ bool x_pv_game::ctrl() {
 #elif BAKE_PNG
         std::vector<uint8_t> temp_pixels;
         temp_pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
-        gl_state_bind_texture_2d(tex->tex);
+        gl_state_bind_texture_2d(tex->glid);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
         gl_state_bind_texture_2d(0);
 
