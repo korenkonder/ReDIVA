@@ -3134,14 +3134,18 @@ struct opd_vec3_data {
     float_t* z;
 };
 
-struct struc_477 {
+struct opd_node_data {
     float_t length;
-    vec3 angle;
+    vec3 rotation;
+
+    static void lerp(opd_node_data& dst, const opd_node_data& src0, const opd_node_data& src1, float_t blend);
 };
 
-struct struc_476 {
-    struc_477 field_0;
-    struc_477 field_10;
+struct opd_node_data_pair {
+    opd_node_data curr;
+    opd_node_data prev;
+
+    void set_data(opd_blend_data* blend_data, opd_node_data&& node_data);
 };
 
 struct RobOsageNodeResetData {
@@ -3172,7 +3176,7 @@ struct RobOsageNode {
     RobOsageNodeData* data_ptr;
     RobOsageNodeData data;
     prj::vector<opd_vec3_data> opd_data;
-    struc_476 field_1B0;
+    opd_node_data_pair opd_node_data;
 };
 
 struct skin_param {
@@ -3395,24 +3399,22 @@ struct CLOTHNode {
     uint32_t flags;
     vec3 trans;
     vec3 trans_orig;
-    vec3 field_1C;
+    vec3 prev_trans;
     vec3 trans_diff;
     vec3 normal;
     vec3 tangent;
     vec3 binormal;
     float_t tangent_sign;
     vec2 texcoord;
-    vec3 field_64;
+    vec3 direction;
     float_t dist_top;
     float_t dist_bottom;
     float_t dist_right;
     float_t dist_left;
-    __int64 field_80;
-    int field_88;
+    vec3 field_80;
     RobOsageNodeResetData reset_data;
-    int field_B4;
     prj::vector<opd_vec3_data> opd_data;
-    struc_476 field_D0;
+    opd_node_data_pair opd_node_data;
 };
 
 struct CLOTH;

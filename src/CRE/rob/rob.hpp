@@ -1798,14 +1798,14 @@ struct CLOTHNode {
     uint32_t flags;
     vec3 trans;
     vec3 trans_orig;
-    vec3 field_1C;
+    vec3 prev_trans;
     vec3 trans_diff;
     vec3 normal;
     vec3 tangent;
     vec3 binormal;
     float_t tangent_sign;
     vec2 texcoord;
-    vec3 field_64;
+    vec3 direction;
     float_t dist_top;
     float_t dist_bottom;
     float_t dist_right;

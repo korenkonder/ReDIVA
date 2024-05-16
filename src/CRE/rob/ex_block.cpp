@@ -103,7 +103,7 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, bool a4);
 static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, float_t step, bool disable_external_force);
-static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order);
+static bool sub_140482FF0(mat4& mat, vec3& direction, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order);
 static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2);
 static bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,
     vec3* u_trans, vec3* d_trans, vec3* a5, vec3* a6, vec3* a7);
@@ -820,9 +820,8 @@ osage_ring_data::~osage_ring_data() {
 
 }
 
-CLOTHNode::CLOTHNode() : flags(), trans(), trans_orig(), field_1C(), trans_diff(),
-normal(), tangent(), binormal(), tangent_sign(), texcoord(), field_64(),
-dist_top(), dist_bottom(), dist_right(), dist_left(), reset_data() {
+CLOTHNode::CLOTHNode() : flags(), tangent_sign(), dist_top(),
+dist_bottom(), dist_right(), dist_left(), reset_data() {
 
 }
 
@@ -1142,7 +1141,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
             v72.normal = { 0.0f, 0.0f, 1.0f };
             v72.tangent = { 1.0f, 0.0f, 0.0f };
             v72.trans_diff = node.trans_diff;
-            v72.field_64 = vec3::normalize(node.trans_diff);
+            v72.direction = vec3::normalize(node.trans_diff);
             v72.dist_top = node.dist_top;
             v72.dist_bottom = node.dist_bottom;
             v72.dist_right = node.dist_right;
@@ -1254,11 +1253,11 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
 
             CLOTHNode* v29 = &nodes.data()[j + root_count];
 
-            vec3 v78;
-            mat4_transform_vector(&mat, &v29->field_64, &v78);
+            vec3 direction;
+            mat4_transform_vector(&mat, &v29->direction, &direction);
 
             int32_t yz_order = 0;
-            sub_140482FF0(mat, v78, 0, 0, yz_order);
+            sub_140482FF0(mat, direction, 0, 0, yz_order);
 
             mat4 v32 = root.data()[j].field_D8;
             for (size_t k = 1; k < nodes_count; k++, v29 += root_count) {
@@ -1282,12 +1281,12 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
 
                 vec3 _trans = curr_trans * inv_blend + next_trans * blend;
 
-                vec3 v85;
-                mat4_inverse_transform_point(&mat, &_trans, &v85);
+                vec3 direction;
+                mat4_inverse_transform_point(&mat, &_trans, &direction);
 
                 vec3 rotation = 0.0f;
                 int32_t yz_order = 0;
-                sub_140482FF0(mat, v85, 0, &rotation, yz_order);
+                sub_140482FF0(mat, direction, 0, &rotation, yz_order);
 
                 mat4_mul_translate(&mat, vec3::distance(_trans, parent_trans), 0.0f, 0.0f, &mat);
 
@@ -1305,10 +1304,11 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
 
         CLOTHNode* v50 = &nodes.data()[i + root_count];
 
-        vec3 v78;
-        mat4_transform_vector(&mat, &v50->field_64, &v78);
+        vec3 direction;
+        mat4_transform_vector(&mat, &v50->direction, &direction);
+
         int32_t yz_order = 0;
-        sub_140482FF0(mat, v78, 0, 0, yz_order);
+        sub_140482FF0(mat, direction, 0, 0, yz_order);
 
         for (size_t j = 1; j < nodes_count; j++, v50 += root_count) {
             mat4_mul_rotate_z(&mat, v50->opd_node_data.curr.rotation.z, &mat);
@@ -1329,7 +1329,7 @@ const float_t* RobCloth::SetOsagePlayDataInit(const float_t* opdi_data) {
         i->trans_diff.x = *opdi_data++;
         i->trans_diff.y = *opdi_data++;
         i->trans_diff.z = *opdi_data++;
-        i->field_1C = i->trans;
+        i->prev_trans = i->trans;
     }
     return opdi_data;
 }
@@ -2023,11 +2023,11 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
 
             vec3 _trans = curr_trans * inv_blend + next_trans * blend;
 
-            vec3 v86;
-            mat4_inverse_transform_point(&v87, &_trans, &v86);
+            vec3 direction;
+            mat4_inverse_transform_point(&v87, &_trans, &direction);
 
             vec3 rotation = 0.0f;
-            sub_140482FF0(v87, v86, 0, &rotation, yz_order);
+            sub_140482FF0(v87, direction, 0, &rotation, yz_order);
             mat4_set_translation(&v87, &_trans);
 
             float_t length = vec3::distance(curr_trans, parent_curr_trans) * inv_blend
@@ -3112,7 +3112,7 @@ static void sub_1402187D0(RobCloth* rob_cls, bool a2) {
             mat4 mat = root->field_98;
 
             vec3 v37;
-            mat4_transform_vector(&mat, &node->field_64, &v37);
+            mat4_transform_vector(&mat, &node->direction, &v37);
 
             float_t v25;
             if (!a2)
@@ -3126,7 +3126,7 @@ static void sub_1402187D0(RobCloth* rob_cls, bool a2) {
             v37.y -= osage_gravity;
             node->trans_diff += v37;
 
-            node->field_1C = node->trans;
+            node->prev_trans = node->trans;
             node->trans += node->trans_diff;
         }
         force *= rob_cls->skin_param_ptr->force_gain;
@@ -3158,7 +3158,7 @@ static void sub_140219940(RobCloth* rob_cls) {
         mat4_transform_vector(&m, &root.normal, &root_node.normal);
         mat4_transform_vector(&m, (vec3*)&root.tangent, &root_node.tangent);
         root_node.tangent_sign = root.tangent.w;
-        root_node.field_1C = root_node.trans;
+        root_node.prev_trans = root_node.trans;
 
         mat4_mul_translate(&m, &root_node.trans_orig, &m);
         root.field_D8 = m;
@@ -3330,13 +3330,13 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
         for (ssize_t j = 0; j < root_count; j++, node++) {
             float_t fric = (1.0f - rob_cls->field_44) * rob_cls->skin_param_ptr->friction;
             if (step != 1.0f) {
-                vec3 v60 = node->trans - node->field_1C;
+                vec3 trans_diff = node->trans - node->prev_trans;
 
-                float_t v30 = vec3::length(v60);
-                if (v30 * step > 0.0f && v30 != 0.0f)
-                    v60 *= 1.0f / v30;
+                float_t trans_length = vec3::length(trans_diff);
+                if (trans_length * step > 0.0f && trans_length != 0.0f)
+                    trans_diff *= 1.0f / trans_length;
 
-                node->trans = node->field_1C + v60 * (v30 * step);
+                node->trans = node->prev_trans + trans_diff * (trans_length * step);
             }
             sub_140482F30(&node[0].trans, &node[-root_count].trans, node[0].dist_top);
 
@@ -3354,12 +3354,12 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             mat4_set_translation(&mat, &node[-root_count].trans);
 
             int32_t yz_order = 1;
-            sub_140482FF0(mat, node->field_64, 0, 0, yz_order);
+            sub_140482FF0(mat, node->direction, 0, 0, yz_order);
 
-            vec3 v74;
-            mat4_inverse_transform_point(&mat, &node->trans, &v74);
+            vec3 direction;
+            mat4_inverse_transform_point(&mat, &node->trans, &direction);
 
-            sub_140482FF0(mat, v74, &rob_cls->skin_param_ptr->hinge,
+            sub_140482FF0(mat, direction, &rob_cls->skin_param_ptr->hinge,
                 &node->reset_data.rotation, yz_order);
             mat4_mul_translate(&mat, node->dist_top, 0.0f, 0.0f, &mat);
             mat4_get_translation(&mat, &node->trans);
@@ -3367,7 +3367,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             if (v39)
                 node->trans_diff *= fric;
 
-            node->trans_diff = (node->trans - node->field_1C) * v10;
+            node->trans_diff = (node->trans - node->prev_trans) * v10;
 
             if (!a3) {
                 mat4& v49 = rob_cls->root.data()[j].field_118;
@@ -3405,7 +3405,7 @@ static void sub_14021D480(RobCloth* rob_cls) {
             mat4 mat = root->field_98;
 
             vec3 v38;
-            mat4_transform_vector(&mat, &node->field_64, &v38);
+            mat4_transform_vector(&mat, &node->direction, &v38);
             v38.y -= osage_gravity_const;
 
             node[0].trans = node[-root_count].trans + vec3::normalize(v38) * node->dist_top;
@@ -3419,7 +3419,7 @@ static void sub_14021D480(RobCloth* rob_cls) {
                 node->trans.y = v10;
 
             node->trans_diff = 0.0f;
-            node->field_1C = node->trans;
+            node->prev_trans = node->trans;
         }
     }
 
@@ -3531,10 +3531,10 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
 
             v126 = v55->trans + v117 + v123;
 
-            vec3 v129;
-            mat4_inverse_transform_point(&v131, &v126, &v129);
+            vec3 direction;
+            mat4_inverse_transform_point(&v131, &v126, &direction);
 
-            sub_140482FF0(v131, v129, 0, 0, rob_osg->yz_order);
+            sub_140482FF0(v131, direction, 0, 0, rob_osg->yz_order);
 
             mat4_mul_translate(&v131, vec3::distance(v111, v126), 0.0f, 0.0f, &v131);
 
@@ -3583,9 +3583,10 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
         RobOsageNode* v99_begin = rob_osg->nodes.data() + 1;
         RobOsageNode* v99_end = rob_osg->nodes.data() + rob_osg->nodes.size();
         for (RobOsageNode* v99 = v99_begin; v99 != v99_end; v99++, v100++) {
-            vec3 v129;
-            mat4_inverse_transform_point(&v130, &v99->trans, &v129);
-            bool v102 = sub_140482FF0(v130, v129,
+            vec3 direction;
+            mat4_inverse_transform_point(&v130, &v99->trans, &direction);
+
+            bool v102 = sub_140482FF0(v130, direction,
                 &v99->data_ptr->skp_osg_node.hinge,
                 &v99->reset_data.rotation, rob_osg->yz_order);
             *v99->bone_node_ptr->ex_data_mat = v130;
@@ -3677,9 +3678,10 @@ static void sub_1404803B0(RobOsage* rob_osg, const mat4* root_matrix,
     RobOsageNode* v30_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* v30_end = rob_osg->nodes.data() + rob_osg->nodes.size();
     for (RobOsageNode* v30 = v30_begin; v30 != v30_end; v29++, v30++) {
-        vec3 v45;
-        mat4_inverse_transform_point(&v47, &v30->trans, &v45);
-        bool v32 = sub_140482FF0(v47, v45, &v30->data_ptr->skp_osg_node.hinge,
+        vec3 direction;
+        mat4_inverse_transform_point(&v47, &v30->trans, &direction);
+
+        bool v32 = sub_140482FF0(v47, direction, &v30->data_ptr->skp_osg_node.hinge,
             &v30->reset_data.rotation, rob_osg->yz_order);
         *v30->bone_node_ptr->ex_data_mat = v47;
 
@@ -3830,9 +3832,10 @@ static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
         else
             sub_140482F30(&v35[0].trans, &v35[-1].trans, v35[0].length * parent_scale->x);
 
-        vec3 v63;
-        mat4_inverse_transform_point(&v64, &v35->trans, &v63);
-        bool v40 = sub_140482FF0(v64, v63, &skp_osg_node->hinge,
+        vec3 direction;
+        mat4_inverse_transform_point(&v64, &v35->trans, &direction);
+
+        bool v40 = sub_140482FF0(v64, direction, &skp_osg_node->hinge,
             &v35->reset_data.rotation, rob_osg->yz_order);
         v35->bone_node_ptr->exp_data.parent_scale = *parent_scale;
         *v35->bone_node_ptr->ex_data_mat = v64;
@@ -4006,9 +4009,11 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
         }
         j->trans = v74;
         j->trans_diff = 0.0f;
-        vec3 v77;
-        mat4_inverse_transform_point(&v78, &j->trans, &v77);
-        sub_140482FF0(v78, v77, &j->data_ptr->skp_osg_node.hinge,
+
+        vec3 direction;
+        mat4_inverse_transform_point(&v78, &j->trans, &direction);
+
+        sub_140482FF0(v78, direction, &j->data_ptr->skp_osg_node.hinge,
             &j->reset_data.rotation, rob_osg->yz_order);
         j->bone_node_ptr->exp_data.parent_scale = *parent_scale;
         *j->bone_node_ptr->ex_data_mat = v78;
@@ -4059,13 +4064,13 @@ static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
     rob_osg->root_matrix = *rob_osg->root_matrix_ptr;
 }
 
-static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order) {
+static bool sub_140482FF0(mat4& mat, vec3& direction, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order) {
     bool clipped = false;
     float_t z_rot;
     float_t y_rot;
     if (yz_order == 1) {
-        y_rot = atan2f(-trans.z, trans.x);
-        z_rot = atan2f(trans.y, sqrtf(trans.x * trans.x + trans.z * trans.z));
+        y_rot = atan2f(-direction.z, direction.x);
+        z_rot = atan2f(direction.y, sqrtf(direction.x * direction.x + direction.z * direction.z));
         if (hinge) {
             if (y_rot > hinge->ymax) {
                 y_rot = hinge->ymax;
@@ -4091,8 +4096,8 @@ static bool sub_140482FF0(mat4& mat, vec3& trans, skin_param_hinge* hinge, vec3*
         mat4_mul_rotate_z(&mat, z_rot, &mat);
     }
     else {
-        z_rot = atan2f(trans.y, trans.x);
-        y_rot = atan2f(-trans.z, sqrtf(trans.x * trans.x + trans.y * trans.y));
+        z_rot = atan2f(direction.y, direction.x);
+        y_rot = atan2f(-direction.z, sqrtf(direction.x * direction.x + direction.y * direction.y));
         if (hinge) {
             if (y_rot > hinge->ymax) {
                 y_rot = hinge->ymax;
