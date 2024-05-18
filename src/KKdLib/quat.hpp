@@ -285,8 +285,11 @@ inline quat quat::slerp(const quat& left, const quat& right, const float_t blend
     float_t dot = quat::dot(x_t, y_t);
     if (dot < 0.0f) {
         dot = -dot;
-        x_t = -x_t;
+        y_t = -y_t;
     }
+
+    if (1.0 - dot <= 0.08f)
+        return quat::lerp(x_t, y_t, blend);
 
     dot = min_def(dot, 1.0f);
 
