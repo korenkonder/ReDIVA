@@ -5,22 +5,30 @@
 
 #include "enbaya.hpp"
 
-static void enb_init(enb_play_head* play_head, enb_head* head);
-static void enb_copy_pointers(enb_play_head* play_head);
-static void enb_get_track_unscaled_init(enb_play_head* play_head);
-static void enb_get_track_unscaled_forward(enb_play_head* play_head);
-static void enb_get_track_unscaled_backward(enb_play_head* play_head);
-static void enb_calc_params_init(enb_play_head* play_head);
-static void enb_calc_params_forward(enb_play_head* play_head);
-static void enb_calc_params_backward(enb_play_head* play_head);
-static void enb_calc_track_init(enb_play_head* play_head);
-static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward);
+static void enb_init(enb_anim_context* anim_ctx, enb_anim_stream* anim_stream);
+static void enb_init_decoder(enb_anim_context* anim_ctx);
+static void enb_track_init(enb_anim_context* anim_ctx,
+    const uint32_t track_count, enb_anim_track_data_init_decoder* track_data_init);
+static void enb_track_step_forward(enb_anim_context* anim_ctx,
+    const uint32_t track_count, enb_anim_track_data_decoder* track_data);
+static void enb_track_step_backward(enb_anim_context* anim_ctx,
+    const uint32_t track_count, enb_anim_track_data_decoder* track_data);
+static void enb_state_step_init(enb_anim_state* state,
+    enb_anim_state_data_decoder* state_data);
+static void enb_state_step_forward(enb_anim_state* state,
+    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data);
+static void enb_state_step_backward(enb_anim_state* state,
+    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data);
+static void enb_track_init_apply(enb_anim_context* anim_ctx,
+    const uint32_t track_count, const uint8_t* flags, const float_t quantization_error);
+static void enb_track_apply(enb_anim_context* anim_ctx, uint32_t track_count,
+    const bool forward, const float_t quantization_error, const float_t time);
 
-inline static int32_t enb_get_track_init_data(enb_play_head* play_head);
-inline static int32_t enb_get_track_data_forward(enb_play_head* play_head);
-inline static int32_t enb_get_track_data_backward(enb_play_head* play_head);
-inline static uint32_t enb_get_params_val_forward(enb_play_head* play_head);
-inline static uint32_t enb_get_params_val_backward(enb_play_head* play_head);
+inline static int32_t enb_anim_track_data_init_decode(enb_anim_track_data_init_decoder* track_data_init);
+inline static int32_t enb_anim_track_data_forward_decode(enb_anim_track_data_decoder* track_data);
+inline static int32_t enb_anim_track_data_backward_decode(enb_anim_track_data_decoder* track_data);
+inline static uint32_t enb_anim_state_data_forward_decode(enb_anim_state_data_decoder* state_data);
+inline static uint32_t enb_anim_state_data_backward_decode(enb_anim_state_data_decoder* state_data);
 
 static const int32_t shift_table_data_i2[] = { 6, 4, 2, 0 };      // 0x08BF1CE8
 static const int32_t shift_table_data_i4[] = { 4, 0 };            // 0x08BF1CF8
@@ -31,8 +39,8 @@ static const int32_t value_table_data_i4[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -
 
 int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
     size_t* data_out_len, float_t* duration, float_t* fps, size_t* frames) {
-    enb_play_head* play_head;
-    enb_head* head;
+    enb_anim_context* anim_ctx;
+    enb_anim_stream* anim_stream;
     quat_trans* qt_data;
     size_t i, j;
     int32_t code;
@@ -50,26 +58,26 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
     else if (!frames)
         return -6;
 
-    code = enb_initialize(data_in, &play_head);
+    code = enb_initialize(data_in, &anim_ctx);
     if (code) {
         free_def(*data_out);
         return code - 0x10;
     }
 
-    head = (enb_head*)data_in;
-    *duration = head->duration;
+    anim_stream = (enb_anim_stream*)data_in;
+    *duration = anim_stream->duration;
 
     if (*fps > 600.0f)
         *fps = 600.0f;
-    else if (*fps < (float_t)head->samples)
-        *fps = (float_t)head->samples;
+    else if (*fps < (float_t)anim_stream->sample_rate)
+        *fps = (float_t)anim_stream->sample_rate;
 
     float_t frames_float = *duration * *fps;
     *frames = (size_t)frames_float + (fmodf(frames_float, 1.0f) >= 0.5f) + 1;
     if (*frames > 0x7FFFFFFFU)
         return -7;
 
-    *data_out_len = sizeof(quat_trans) * head->track_count * *frames + 0x10;
+    *data_out_len = sizeof(quat_trans) * anim_stream->track_count * *frames + 0x10;
     *data_out = force_malloc<uint8_t>(*data_out_len);
 
     if (!*data_out)
@@ -77,533 +85,535 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
 
     memset(*data_out, 0, *data_out_len);
 
-    ((uint32_t*)*data_out)[0] = head->track_count;
+    ((uint32_t*)*data_out)[0] = anim_stream->track_count;
     ((uint32_t*)*data_out)[1] = *(uint32_t*)frames;
     ((float_t*)*data_out)[2] = *fps;
     ((float_t*)*data_out)[3] = *duration;
 
     qt_data = (quat_trans*)(*data_out + 0x10);
     for (i = 0; i < *frames; i++) {
-        enb_set_time(play_head, (float_t)i / *fps);
+        float_t time = (float_t)i / *fps;
+        if (time < anim_ctx->data.previous_sample_time
+            || time > anim_ctx->data.current_sample_time)
+            enb_set_time(anim_ctx, time);
 
-        for (j = 0; j < head->track_count; j++, qt_data++)
-            enb_get_track_data(play_head, j, qt_data);
+        for (j = 0; j < anim_stream->track_count; j++, qt_data++)
+            enb_get_track_data(anim_ctx, time, j, qt_data);
     }
-    enb_free(&play_head);
+    enb_free(&anim_ctx);
     return 0;
 }
 
-int32_t enb_initialize(uint8_t* data, enb_play_head** play_head) {
+int32_t enb_initialize(uint8_t* data, enb_anim_context** anim_ctx) {
     if (!data)
         return -1;
-    else if (!play_head)
+    else if (!anim_ctx)
         return -2;
-    *play_head = 0;
+    *anim_ctx = 0;
 
-    enb_head* head = (enb_head*)data;
-    enb_play_head* ph = force_malloc<enb_play_head>();
-    if (!ph)
+    enb_anim_stream* anim_stream = (enb_anim_stream*)data;
+    enb_anim_context* ac = force_malloc<enb_anim_context>();
+    if (!ac)
         return -3;
 
-    memset(ph, 0, sizeof(enb_play_head));
+    memset(ac, 0, sizeof(enb_anim_context));
 
-    ph->data_header = head;
-    enb_init(ph, head);
+    ac->data.stream = anim_stream;
+    enb_init(ac, anim_stream);
 
-    ph->track_data = force_malloc<enb_track>(head->track_count);
+    ac->data.track = force_malloc<enb_track>(anim_stream->track_count);
 
-    if (!ph->track_data) {
-        free_def(ph);
+    if (!ac->data.track) {
+        free_def(ac);
         return -4;
     }
 
-    memset(ph->track_data, 0, sizeof(enb_track) * head->track_count);
+    memset(ac->data.track, 0, sizeof(enb_track) * anim_stream->track_count);
 
-    *play_head = ph;
+    *anim_ctx = ac;
     return 0;
 }
 
-void enb_free(enb_play_head** play_head) {
-    if (!play_head || !*play_head)
+void enb_free(enb_anim_context** anim_ctx) {
+    if (!anim_ctx || !*anim_ctx)
         return;
 
-    free_def((*play_head)->track_data);
-    free_def(*play_head);
-    *play_head = 0;
+    free_def((*anim_ctx)->data.track);
+    free_def(*anim_ctx);
+    *anim_ctx = 0;
 }
 
-void enb_get_track_data(enb_play_head* play_head, size_t track, quat_trans* data) {
+void enb_get_track_data(enb_anim_context* anim_ctx, float_t time, size_t track, quat_trans* data) {
     if (!data)
         return;
-    else if (!play_head || play_head->data_header->track_count < track) {
+    else if (!anim_ctx || anim_ctx->data.stream->track_count < track) {
         *data = quat_trans_identity;
         return;
     }
 
-    if (play_head->track_direction) {
-        quat_trans* qt1 = play_head->track_data[track].qt + (play_head->track_data_selector & 0x01);
-        quat_trans* qt2 = play_head->track_data[track].qt + ((play_head->track_data_selector & 0x01) ^ 0x01);
-        float_t blend = (play_head->requested_time - play_head->previous_sample_time)
-            / (play_head->current_sample_time - play_head->previous_sample_time);
-        lerp_quat_trans(qt1, qt2, data, blend);
-    }
-    else
-        *data = *play_head->track_data[track].qt;
+   
+    quat_trans* qt1 = anim_ctx->data.track[track].qt + (anim_ctx->track_selector & 0x01);
+    quat_trans* qt2 = anim_ctx->data.track[track].qt + ((anim_ctx->track_selector & 0x01) ^ 0x01);
+    float_t blend = (time - qt1->time) / anim_ctx->seconds_per_sample;
+    lerp_quat_trans(qt1, qt2, data, blend);
 }
 
-static void enb_init(enb_play_head* play_head, enb_head* head) { // 0x08A08050 in ULJM05681
+static void enb_init(enb_anim_context* anim_ctx, enb_anim_stream* anim_stream) { // 0x08A08050 in ULJM05681
     uint8_t* data;
     uint32_t temp;
 
-    data = (uint8_t*)head;
-    play_head->current_sample = -1;
-    play_head->current_sample_time = -1.0f;
-    play_head->previous_sample_time = -1.0f;
-    play_head->requested_time = -1.0f;
-    play_head->seconds_per_sample = 1.0f / (float_t)head->samples;
-    play_head->track_direction = 0;
+    data = (uint8_t*)anim_stream;
+    anim_ctx->data.current_sample = -1;
+    anim_ctx->data.current_sample_time = -1.0f;
+    anim_ctx->data.previous_sample_time = -1.0f;
+    anim_ctx->requested_time = -1.0f;
+    anim_ctx->seconds_per_sample = 1.0f / (float_t)anim_stream->sample_rate;
+    anim_ctx->track_direction = 0;
 
     temp = 0x50;
-    play_head->orig_track_data_init_i32 = (int32_t*)(data + temp);
+    anim_ctx->track_data_init.i32 = (int32_t*)(data + temp);
 
-    temp += head->track_data_init_i32_length;
-    play_head->orig_track_data_i32 = (int32_t*)(data + temp);
+    temp += anim_stream->track_data_init_i32_length;
+    anim_ctx->track_data.i32 = (int32_t*)(data + temp);
 
-    temp += head->track_data_i32_length;
-    play_head->orig_params_u32 = (uint32_t*)(data + temp);
+    temp += anim_stream->track_data_i32_length;
+    anim_ctx->state_data.u32 = (uint32_t*)(data + temp);
 
-    temp += head->params_u32_length;
-    play_head->orig_track_data_init_i16 = (int16_t*)(data + temp);
+    temp += anim_stream->state_data_u32_length;
+    anim_ctx->track_data_init.i16 = (int16_t*)(data + temp);
 
-    temp += head->track_data_init_i16_length;
-    play_head->orig_track_data_i16 = (int16_t*)(data + temp);
+    temp += anim_stream->track_data_init_i16_length;
+    anim_ctx->track_data.i16 = (int16_t*)(data + temp);
 
-    temp += head->track_data_i16_length;
-    play_head->orig_params_u16 = (uint16_t*)(data + temp);
+    temp += anim_stream->track_data_i16_length;
+    anim_ctx->state_data.u16 = (uint16_t*)(data + temp);
 
-    temp += head->params_u16_length;
-    play_head->orig_track_data_init_i2 = data + temp;
+    temp += anim_stream->state_data_u16_length;
+    anim_ctx->track_data_init.i2 = data + temp;
 
-    temp += head->track_data_init_i2_length;
-    play_head->orig_track_data_init_i8 = (int8_t*)(data + temp);
+    temp += anim_stream->track_data_init_i2_length;
+    anim_ctx->track_data_init.i8 = (int8_t*)(data + temp);
 
-    temp += head->track_data_init_i8_length;
-    play_head->orig_track_data_i2 = data + temp;
+    temp += anim_stream->track_data_init_i8_length;
+    anim_ctx->track_data.i2 = data + temp;
 
-    temp += head->track_data_i2_length;
-    play_head->orig_track_data_i4 = data + temp;
+    temp += anim_stream->track_data_i2_length;
+    anim_ctx->track_data.i4 = data + temp;
 
-    temp += head->track_data_i4_length;
-    play_head->orig_track_data_i8 = (int8_t*)(data + temp);
+    temp += anim_stream->track_data_i4_length;
+    anim_ctx->track_data.i8 = (int8_t*)(data + temp);
 
-    temp += head->track_data_i8_length;
-    play_head->orig_params_u2 = data + temp;
+    temp += anim_stream->track_data_i8_length;
+    anim_ctx->state_data.u2 = data + temp;
 
-    temp += head->params_u2_length;
-    play_head->orig_params_u8 = data + temp;
+    temp += anim_stream->state_data_u2_length;
+    anim_ctx->state_data.u8 = data + temp;
 
-    temp += head->params_u8_length;
-    play_head->track_flags = data + temp;
+    temp += anim_stream->state_data_u8_length;
+    anim_ctx->track_flags = data + temp;
 
-    temp += head->track_flags_length;
-    play_head->data_length = temp;
+    temp += anim_stream->track_flags_length;
+    anim_ctx->data.data_length = temp;
 
-    enb_copy_pointers(play_head);
+    enb_init_decoder(anim_ctx);
 }
 
-static void enb_copy_pointers(enb_play_head* play_head) { // 0x08A07FD0 in ULJM05681
-    play_head->track_data_init_i2 = play_head->orig_track_data_init_i2;
-    play_head->track_data_init_i8 = play_head->orig_track_data_init_i8;
-    play_head->track_data_init_i16 = play_head->orig_track_data_init_i16;
-    play_head->track_data_init_i32 = play_head->orig_track_data_init_i32;
-    play_head->track_data_init_i2_counter = 0;
+static void enb_init_decoder(enb_anim_context* anim_ctx) { // 0x08A07FD0 in ULJM05681
+    anim_ctx->track_data_init_dec.i2 = anim_ctx->track_data_init.i2;
+    anim_ctx->track_data_init_dec.i8 = anim_ctx->track_data_init.i8;
+    anim_ctx->track_data_init_dec.i16 = anim_ctx->track_data_init.i16;
+    anim_ctx->track_data_init_dec.i32 = anim_ctx->track_data_init.i32;
+    anim_ctx->track_data_init_dec.i2_counter = 0;
 
-    play_head->track_data_i2 = play_head->orig_track_data_i2;
-    play_head->track_data_i4 = play_head->orig_track_data_i4;
-    play_head->track_data_i8 = play_head->orig_track_data_i8;
-    play_head->track_data_i16 = play_head->orig_track_data_i16;
-    play_head->track_data_i32 = play_head->orig_track_data_i32;
-    play_head->track_data_i2_counter = 0;
-    play_head->track_data_i4_counter = 0;
+    anim_ctx->track_data_dec.i2 = anim_ctx->track_data.i2;
+    anim_ctx->track_data_dec.i4 = anim_ctx->track_data.i4;
+    anim_ctx->track_data_dec.i8 = anim_ctx->track_data.i8;
+    anim_ctx->track_data_dec.i16 = anim_ctx->track_data.i16;
+    anim_ctx->track_data_dec.i32 = anim_ctx->track_data.i32;
+    anim_ctx->track_data_dec.i2_counter = 0;
+    anim_ctx->track_data_dec.i4_counter = 0;
 
-    play_head->params_u2 = play_head->orig_params_u2;
-    play_head->params_u8 = play_head->orig_params_u8;
-    play_head->params_u16 = play_head->orig_params_u16;
-    play_head->params_u32 = play_head->orig_params_u32;
-    play_head->params_u2_counter = 0;
+    anim_ctx->state_data_dec.u2 = anim_ctx->state_data.u2;
+    anim_ctx->state_data_dec.u8 = anim_ctx->state_data.u8;
+    anim_ctx->state_data_dec.u16 = anim_ctx->state_data.u16;
+    anim_ctx->state_data_dec.u32 = anim_ctx->state_data.u32;
+    anim_ctx->state_data_dec.u2_counter = 0;
 }
 
-void enb_set_time(enb_play_head* play_head, float_t time) { // 0x08A0876C in ULJM05681
+void enb_set_time(enb_anim_context* anim_ctx, float_t time) { // 0x08A0876C in ULJM05681
+    uint32_t track_count;
+    float_t quantization_error;
     float_t requested_time;
     float_t sps; // seconds per sample
 
-    if (time == play_head->requested_time)
+    if (time == anim_ctx->requested_time)
         return;
 
-    requested_time = play_head->requested_time;
-    sps = play_head->seconds_per_sample;
+    track_count = anim_ctx->data.stream->track_count;
+    quantization_error = anim_ctx->data.stream->quantization_error;
+    requested_time = anim_ctx->requested_time;
+    sps = anim_ctx->seconds_per_sample;
 
     if ((requested_time == -1.0f) || (0.000001f > time) || (requested_time - time > time)
         || ((sps <= requested_time) && (sps > time))) {
-        play_head->current_sample = 0;
-        play_head->current_sample_time = 0.0f;
-        play_head->previous_sample_time = 0.0f;
-        play_head->track_direction = 0;
+        anim_ctx->data.current_sample = 0;
+        anim_ctx->data.current_sample_time = 0.0f;
+        anim_ctx->data.previous_sample_time = 0.0f;
+        anim_ctx->track_direction = 0;
 
-        enb_copy_pointers(play_head);
-        enb_calc_params_init(play_head);
-        enb_get_track_unscaled_init(play_head);
-        enb_calc_track_init(play_head);
+        enb_init_decoder(anim_ctx);
+        enb_state_step_init(&anim_ctx->state, &anim_ctx->state_data_dec);
+        enb_track_init(anim_ctx, track_count, &anim_ctx->track_data_init_dec);
+        enb_track_init_apply(anim_ctx, track_count, anim_ctx->track_flags, quantization_error);
     }
 
-    play_head->requested_time = time;
+    anim_ctx->requested_time = time;
     if (time < 0.000001f)
         return;
 
-    while ((time > play_head->current_sample_time)
-        && (play_head->data_header->duration - play_head->current_sample_time > 0.00001f)) {
-        if (play_head->track_direction == 2) {
-            enb_get_params_val_forward(play_head);
-            play_head->track_direction = 1;
+    while ((time > anim_ctx->data.current_sample_time)
+        && (anim_ctx->data.stream->duration - anim_ctx->data.current_sample_time > 0.00001f)) {
+        if (anim_ctx->track_direction == 2) {
+            enb_anim_state_data_forward_decode(&anim_ctx->state_data_dec);
+            anim_ctx->track_direction = 1;
         }
-        else if (play_head->current_sample > 0) {
-            enb_calc_params_forward(play_head);
-            play_head->track_direction = 1;
+        else if (anim_ctx->data.current_sample > 0) {
+            enb_state_step_forward(&anim_ctx->state,
+                anim_ctx->data.track, track_count, &anim_ctx->state_data_dec);
+            anim_ctx->track_direction = 1;
         }
 
-        enb_get_track_unscaled_forward(play_head);
-        requested_time = ++play_head->current_sample * sps;
+        enb_track_step_forward(anim_ctx, track_count, &anim_ctx->track_data_dec);
+        requested_time = ++anim_ctx->data.current_sample * sps;
 
-        if (play_head->data_header->duration <= requested_time)
-            requested_time = play_head->data_header->duration;
+        if (anim_ctx->data.stream->duration <= requested_time)
+            requested_time = anim_ctx->data.stream->duration;
 
-        enb_calc_track(play_head, requested_time, true);
-        play_head->current_sample_time = play_head->current_sample * sps;
-        play_head->previous_sample_time = (play_head->current_sample - 1) * sps;
+        enb_track_apply(anim_ctx, track_count, true, quantization_error, requested_time);
+        anim_ctx->data.current_sample_time = anim_ctx->data.current_sample * sps;
+        anim_ctx->data.previous_sample_time = (anim_ctx->data.current_sample - 1) * sps;
     }
 
-    while (time < play_head->previous_sample_time) {
-        if (play_head->track_direction == 1) {
-            enb_get_params_val_backward(play_head);
-            play_head->track_direction = 2;
+    while (time < anim_ctx->data.previous_sample_time) {
+        if (anim_ctx->track_direction == 1) {
+            enb_anim_state_data_backward_decode(&anim_ctx->state_data_dec);
+            anim_ctx->track_direction = 2;
         }
         else
-            enb_calc_params_backward(play_head);
+            enb_state_step_backward(&anim_ctx->state,
+                anim_ctx->data.track, track_count, &anim_ctx->state_data_dec);
 
-        play_head->current_sample--;
-        enb_get_track_unscaled_backward(play_head);
-        play_head->current_sample_time = play_head->current_sample * sps;
-        play_head->previous_sample_time = (play_head->current_sample - 1) * sps;
-        enb_calc_track(play_head, play_head->previous_sample_time, false);
+        anim_ctx->data.current_sample--;
+        enb_track_step_backward(anim_ctx, track_count, &anim_ctx->track_data_dec);
+        anim_ctx->data.current_sample_time = anim_ctx->data.current_sample * sps;
+        anim_ctx->data.previous_sample_time = (anim_ctx->data.current_sample - 1) * sps;
+        enb_track_apply(anim_ctx, track_count, false, -quantization_error, anim_ctx->data.previous_sample_time);
     }
 }
 
-static void enb_get_track_unscaled_init(enb_play_head* play_head) { // 0x08A08D3C in ULJM05681
+static void enb_track_init(enb_anim_context* anim_ctx,
+    const uint32_t track_count, enb_anim_track_data_init_decoder* track_data_init) { // 0x08A08D3C in ULJM05681
     uint32_t i, j;
     int32_t val;
 
-    enb_track* track_data = play_head->track_data;
+    enb_track* track = anim_ctx->data.track;
 
-    for (i = 0; i < play_head->data_header->track_count; i++, track_data++) {
+    for (i = 0; i < track_count; i++, track++) {
         for (j = 0; j < 7; j++) {
-            val = enb_get_track_init_data(play_head);
+            val = enb_anim_track_data_init_decode(track_data_init);
 
             switch (j) {
             case 0:
-                track_data->quat.x = (float_t)val;
+                track->quat.x = (float_t)val;
                 break;
             case 1:
-                track_data->quat.y = (float_t)val;
+                track->quat.y = (float_t)val;
                 break;
             case 2:
-                track_data->quat.z = (float_t)val;
+                track->quat.z = (float_t)val;
                 break;
             case 3:
-                track_data->quat.w = (float_t)val;
+                track->quat.w = (float_t)val;
                 break;
             case 4:
-                track_data->trans.x = (float_t)val;
+                track->trans.x = (float_t)val;
                 break;
             case 5:
-                track_data->trans.y = (float_t)val;
+                track->trans.y = (float_t)val;
                 break;
             case 6:
-                track_data->trans.z = (float_t)val;
+                track->trans.z = (float_t)val;
                 break;
             }
         }
     }
-    play_head->current_sample = 0;
+    anim_ctx->data.current_sample = 0;
 }
 
-static void enb_get_track_unscaled_forward(enb_play_head* play_head) { // 0x08A08E7C in ULJM05681
+
+static void enb_track_step_forward(enb_anim_context* anim_ctx,
+    const uint32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A08E7C in ULJM05681
     uint32_t i, j;
     int32_t val;
 
-    enb_track* track_data = play_head->track_data;
+    enb_track* track = anim_ctx->data.track;
 
-    for (i = 0; i < play_head->data_header->track_count; i++, track_data++) {
-        if (track_data->flags == 0)
+    for (i = 0; i < track_count; i++, track++) {
+        if (track->flags == 0)
             continue;
 
         for (j = 0; j < 7; j++) {
-            if ((track_data->flags & (1 << j)) == 0)
+            if ((track->flags & (1 << j)) == 0)
                 continue;
 
-            val = enb_get_track_data_forward(play_head);
+            val = enb_anim_track_data_forward_decode(track_data);
 
             switch (j) {
             case 0:
-                track_data->quat.x += val;
+                track->quat.x += val;
                 break;
             case 1:
-                track_data->quat.y += val;
+                track->quat.y += val;
                 break;
             case 2:
-                track_data->quat.z += val;
+                track->quat.z += val;
                 break;
             case 3:
-                track_data->quat.w += val;
+                track->quat.w += val;
                 break;
             case 4:
-                track_data->trans.x += val;
+                track->trans.x += val;
                 break;
             case 5:
-                track_data->trans.y += val;
+                track->trans.y += val;
                 break;
             case 6:
-                track_data->trans.z += val;
+                track->trans.z += val;
                 break;
             }
         }
     }
 }
 
-static void enb_get_track_unscaled_backward(enb_play_head* play_head) { // 0x08A090A0 in ULJM05681
+
+static void enb_track_step_backward(enb_anim_context* anim_ctx,
+    const uint32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A090A0 in ULJM05681
     uint32_t i, j;
     int32_t val;
 
-    enb_track* track_data = play_head->track_data;
+    enb_track* track = anim_ctx->data.track;
 
-    track_data += (size_t)play_head->data_header->track_count - 1;
-    for (i = play_head->data_header->track_count - 1; i != (uint32_t)-1; i--, track_data--) {
-        if (track_data->flags == 0)
+    track += (size_t)track_count - 1;
+    for (i = track_count - 1; i != (uint32_t)-1; i--, track--) {
+        if (track->flags == 0)
             continue;
 
         for (j = 0; j < 7; j++) {
-            if ((track_data->flags & (1 << (6 - j))) == 0)
+            if ((track->flags & (1 << (6 - j))) == 0)
                 continue;
 
-            val = enb_get_track_data_backward(play_head);
+            val = enb_anim_track_data_backward_decode(track_data);
 
             switch (6 - j) {
             case 0:
-                track_data->quat.x -= val;
+                track->quat.x -= val;
                 break;
             case 1:
-                track_data->quat.y -= val;
+                track->quat.y -= val;
                 break;
             case 2:
-                track_data->quat.z -= val;
+                track->quat.z -= val;
                 break;
             case 3:
-                track_data->quat.w -= val;
+                track->quat.w -= val;
                 break;
             case 4:
-                track_data->trans.x -= val;
+                track->trans.x -= val;
                 break;
             case 5:
-                track_data->trans.y -= val;
+                track->trans.y -= val;
                 break;
             case 6:
-                track_data->trans.z -= val;
+                track->trans.z -= val;
                 break;
             }
         }
     }
 }
 
-static void enb_calc_params_init(enb_play_head* play_head) { // 0x08A0931C in ULJM05681
-    play_head->next_params_change = enb_get_params_val_forward(play_head);
-    play_head->prev_params_change = 0;
+static void enb_state_step_init(enb_anim_state* state,
+    enb_anim_state_data_decoder* state_data) { // 0x08A0931C in ULJM05681
+    state->next = enb_anim_state_data_forward_decode(state_data);
+    state->prev = 0;
 }
 
-static void enb_calc_params_forward(enb_play_head* play_head) { // 0x08A09404 in ULJM05681
+static void enb_state_step_forward(enb_anim_state* state,
+    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data) { // 0x08A09404 in ULJM05681
     uint32_t i, j, temp, track_params_count;
 
-    enb_track* track_data = play_head->track_data;
-
-    track_params_count = play_head->data_header->track_count * 7;
+    track_params_count = track_count * 7;
     i = 0;
     while (i < track_params_count) {
-        j = play_head->next_params_change;
+        j = state->next;
         if (j == 0) {
-            track_data[i / 7].flags ^= 0x01 << (i % 7);
-            play_head->next_params_change = enb_get_params_val_forward(play_head);
-            play_head->prev_params_change = 0;
+            track[i / 7].flags ^= 0x01 << (i % 7);
+            state->next = enb_anim_state_data_forward_decode(state_data);
+            state->prev = 0;
             i++;
         }
         else {
             temp = j < (uint32_t)(track_params_count - i) ? j : (uint32_t)(track_params_count - i);
             i += (int32_t)temp;
-            play_head->next_params_change -= temp;
-            play_head->prev_params_change += temp;
+            state->next -= temp;
+            state->prev += temp;
         }
     }
 }
 
-static void enb_calc_params_backward(enb_play_head* play_head) { // 0x08A0968C in ULJM05681
+static void enb_state_step_backward(enb_anim_state* state,
+    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data) { // 0x08A0968C in ULJM05681
     uint32_t i, j, temp, track_params_count;
 
-    enb_track* track_data = play_head->track_data;
-
-    track_params_count = play_head->data_header->track_count * 7;
+    track_params_count = track_count * 7;
     i = track_params_count - 1;
     while (i != (uint32_t)-1) {
-        j = play_head->prev_params_change;
+        j = state->prev;
         if (j == 0) {
-            track_data[i / 7].flags ^= 0x01 << (i % 7);
-            play_head->next_params_change = 0;
-            play_head->prev_params_change = enb_get_params_val_backward(play_head);
+            track[i / 7].flags ^= 0x01 << (i % 7);
+            state->next = 0;
+            state->prev = enb_anim_state_data_backward_decode(state_data);
             i--;
         }
         else {
             temp = j < (uint32_t)(i + 1) ? j : (uint32_t)(i + 1);
             i -= (int32_t)temp;
-            play_head->next_params_change += temp;
-            play_head->prev_params_change -= temp;
+            state->next += temp;
+            state->prev -= temp;
         }
     }
 }
 
-static void enb_calc_track_init(enb_play_head* play_head) { // 0x08A086CC in ULJM05681
+static void enb_track_init_apply(enb_anim_context* anim_ctx,
+    const uint32_t track_count, const uint8_t* flags, float_t quantization_error) { // 0x08A086CC in ULJM05681
     uint32_t i;
-    uint8_t* track_flags;
     quat quat_delta, quat_result;
     vec3 trans_delta, trans_result;
-    float_t scale;
 
-    enb_track* track_data = play_head->track_data;
+    enb_track* track = anim_ctx->data.track;
 
-    track_flags = play_head->track_flags;
+    for (i = 0; i < track_count; i++, track++) {
+        quat_delta = track->quat;
+        trans_delta = track->trans;
 
-    scale = play_head->data_header->scale;
-    for (i = 0; i < play_head->data_header->track_count; i++) {
-        quat_delta = track_data->quat;
-        trans_delta = track_data->trans;
+        quat_result = quat_delta * quantization_error;
+        trans_result = trans_delta * quantization_error;
 
-        quat_result = quat_delta * scale;
-        trans_result = trans_delta * scale;
+        quat_result = quat::normalize_rcp(quat_result);
 
-        quat_result = quat::normalize(quat_result);
+        track->qt[0].quat = quat_result;
+        track->qt[0].trans = trans_result;
+        track->qt[0].time = 0.0f;
+        track->qt[1].quat = quat_result;
+        track->qt[1].trans = trans_result;
+        track->qt[1].time = 0.0f;
 
-        track_data->qt[0].quat = quat_result;
-        track_data->qt[0].trans = trans_result;
-        track_data->qt[0].time = 0.0f;
-        track_data->qt[1].quat = quat_result;
-        track_data->qt[1].trans = trans_result;
-        track_data->qt[1].time = 0.0f;
-
-        track_data->quat = 0.0f;
-        track_data->trans = 0.0f;
-        track_data->flags = *track_flags++;
-
-        track_data++;
+        track->quat = 0.0f;
+        track->trans = 0.0f;
+        track->flags = *flags++;
     }
-    play_head->track_data_selector = 0;
+    anim_ctx->track_selector = 0;
 }
 
-static void enb_calc_track(enb_play_head* play_head, float_t time, bool forward) { // 0x08A085D8 in ULJM05681
+static void enb_track_apply(enb_anim_context* anim_ctx, const uint32_t track_count,
+    const bool forward, const float_t quantization_error, const float_t time) { // 0x08A085D8 in ULJM05681
     uint8_t s0, s1;
     uint32_t i;
     quat quat_delta, quat_result, quat_data;
     vec3 trans_delta, trans_result, trans_data;
-    float_t scale;
 
-    enb_track* track_data = play_head->track_data;
+    enb_track* track = anim_ctx->data.track;
 
     if (forward) {
-        s1 = play_head->track_data_selector & 0x01;
+        s1 = anim_ctx->track_selector & 0x01;
         s0 = s1 ^ 0x01;
-        play_head->track_data_selector = s0;
+        anim_ctx->track_selector = s0;
     }
     else {
-        s0 = play_head->track_data_selector & 0x01;
+        s0 = anim_ctx->track_selector & 0x01;
         s1 = s0 ^ 0x01;
-        play_head->track_data_selector = s1;
+        anim_ctx->track_selector = s1;
     }
 
-    scale = forward ? play_head->data_header->scale : -play_head->data_header->scale;
-    for (i = 0; i < play_head->data_header->track_count; i++, track_data++) {
-        quat_delta = track_data->quat;
-        trans_delta = track_data->trans;
+    for (i = 0; i < track_count; i++, track++) {
+        quat_delta = track->quat;
+        trans_delta = track->trans;
 
-        quat_data = track_data->qt[s0].quat;
-        trans_data = track_data->qt[s0].trans;
+        quat_data = track->qt[s0].quat;
+        trans_data = track->qt[s0].trans;
 
-        quat_result = quat_delta * scale + quat_data;
-        trans_result = trans_delta * scale + trans_data;
+        quat_result = quat_delta * quantization_error + quat_data;
+        trans_result = trans_delta * quantization_error + trans_data;
 
-        quat_result = quat::normalize(quat_result);
+        quat_result = quat::normalize_rcp(quat_result);
 
-        track_data->qt[s1].quat = quat_result;
-        track_data->qt[s1].trans = trans_result;
-        track_data->qt[s1].time = time;
+        track->qt[s1].quat = quat_result;
+        track->qt[s1].trans = trans_result;
+        track->qt[s1].time = time;
     }
 }
 
-inline static int32_t enb_get_track_init_data(enb_play_head* play_head) {
+inline static int32_t enb_anim_track_data_init_decode(enb_anim_track_data_init_decoder* track_data_init) {
     int32_t val;
 
-    if (play_head->track_data_init_i2_counter == 4) {
-        play_head->track_data_init_i2_counter = 0;
-        play_head->track_data_init_i2++;
+    if (track_data_init->i2_counter == 4) {
+        track_data_init->i2_counter = 0;
+        track_data_init->i2++;
     }
 
-    val = *play_head->track_data_init_i2 >> shift_table_data_init_i2[play_head->track_data_init_i2_counter++];
+    val = *track_data_init->i2 >> shift_table_data_init_i2[track_data_init->i2_counter++];
     val &= 0x03;
 
     switch (val) {
     case 1:
-        val = *play_head->track_data_init_i8++;
+        val = *track_data_init->i8++;
         break;
     case 2:
-        val = *play_head->track_data_init_i16++;
+        val = *track_data_init->i16++;
         break;
     case 3:
-        val = *play_head->track_data_init_i32++;
+        val = *track_data_init->i32++;
         break;
     }
 
     return val;
 }
 
-inline static int32_t enb_get_track_data_forward(enb_play_head* play_head) {
+inline static int32_t enb_anim_track_data_forward_decode(enb_anim_track_data_decoder* track_data) {
     int32_t val;
 
-    if (play_head->track_data_i2_counter == 4) {
-        play_head->track_data_i2_counter = 0;
-        play_head->track_data_i2++;
+    if (track_data->i2_counter == 4) {
+        track_data->i2_counter = 0;
+        track_data->i2++;
     }
 
-    val = *play_head->track_data_i2 >> shift_table_data_i2[play_head->track_data_i2_counter++];
+    val = *track_data->i2 >> shift_table_data_i2[track_data->i2_counter++];
     val &= 0x03;
 
     if (val == 2) {
-        if (play_head->track_data_i4_counter == 2) {
-            play_head->track_data_i4_counter = 0;
-            play_head->track_data_i4++;
+        if (track_data->i4_counter == 2) {
+            track_data->i4_counter = 0;
+            track_data->i4++;
         }
 
-        val = *play_head->track_data_i4 >> shift_table_data_i4[play_head->track_data_i4_counter++];
+        val = *track_data->i4 >> shift_table_data_i4[track_data->i4_counter++];
         val &= 0x0F;
 
         if (val == 0) {
-            val = *play_head->track_data_i8++;
+            val = *track_data->i8++;
             if (val == 0) {
-                val = *play_head->track_data_i16++;
+                val = *track_data->i16++;
                 if (val == 0)
-                    val = *play_head->track_data_i32++;
+                    val = *track_data->i32++;
             }
             else if ((val > 0) && (val < 9))
                 val += 0x7F;
@@ -619,32 +629,32 @@ inline static int32_t enb_get_track_data_forward(enb_play_head* play_head) {
     return val;
 }
 
-inline static int32_t enb_get_track_data_backward(enb_play_head* play_head) {
+inline static int32_t enb_anim_track_data_backward_decode(enb_anim_track_data_decoder* track_data) {
     int32_t val;
 
-    if (--play_head->track_data_i2_counter == (uint8_t)-1) {
-        play_head->track_data_i2_counter = 3;
-        play_head->track_data_i2--;
+    if (--track_data->i2_counter == -1) {
+        track_data->i2_counter = 3;
+        track_data->i2--;
     }
 
-    val = *play_head->track_data_i2 >> shift_table_data_i2[play_head->track_data_i2_counter];
+    val = *track_data->i2 >> shift_table_data_i2[track_data->i2_counter];
     val &= 0x03;
 
     if (val == 2) {
-        if (--play_head->track_data_i4_counter == (uint8_t)-1) {
-            play_head->track_data_i4_counter = 1;
-            play_head->track_data_i4--;
+        if (--track_data->i4_counter == -1) {
+            track_data->i4_counter = 1;
+            track_data->i4--;
         }
 
-        val = *play_head->track_data_i4 >> shift_table_data_i4[play_head->track_data_i4_counter];
+        val = *track_data->i4 >> shift_table_data_i4[track_data->i4_counter];
         val &= 0x0F;
 
         if (val == 0) {
-            val = *--play_head->track_data_i8;
+            val = *--track_data->i8;
             if (val == 0) {
-                val = *--play_head->track_data_i16;
+                val = *--track_data->i16;
                 if (val == 0)
-                    val = *--play_head->track_data_i32;
+                    val = *--track_data->i32;
             }
             else if ((val > 0) && (val < 9))
                 val += 0x7F;
@@ -660,52 +670,52 @@ inline static int32_t enb_get_track_data_backward(enb_play_head* play_head) {
     return val;
 }
 
-inline static uint32_t enb_get_params_val_forward(enb_play_head* play_head) {
+inline static uint32_t enb_anim_state_data_forward_decode(enb_anim_state_data_decoder* state_data) {
     uint32_t val;
 
-    if (play_head->params_u2_counter == 4) {
-        play_head->params_u2_counter = 0;
-        play_head->params_u2++;
+    if (state_data->u2_counter == 4) {
+        state_data->u2_counter = 0;
+        state_data->u2++;
     }
 
-    val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter++];
+    val = *state_data->u2 >> shift_table_params_u2[state_data->u2_counter++];
     val &= 0x03;
 
     switch (val) {
     case 1:
-        val = *play_head->params_u8++;
+        val = *state_data->u8++;
         break;
     case 2:
-        val = *play_head->params_u16++;
+        val = *state_data->u16++;
         break;
     case 3:
-        val = *play_head->params_u32++;
+        val = *state_data->u32++;
         break;
     }
 
     return val;
 }
 
-inline static uint32_t enb_get_params_val_backward(enb_play_head* play_head) {
+inline static uint32_t enb_anim_state_data_backward_decode(enb_anim_state_data_decoder* state_data) {
     uint32_t val;
 
-    if (--play_head->params_u2_counter == (uint8_t)-1) {
-        play_head->params_u2_counter = 3;
-        play_head->params_u2--;
+    if (--state_data->u2_counter == -1) {
+        state_data->u2_counter = 3;
+        state_data->u2--;
     }
 
-    val = *play_head->params_u2 >> shift_table_params_u2[play_head->params_u2_counter];
+    val = *state_data->u2 >> shift_table_params_u2[state_data->u2_counter];
     val &= 0x03;
 
     switch (val) {
     case 1:
-        val = *--play_head->params_u8;
+        val = *--state_data->u8;
         break;
     case 2:
-        val = *--play_head->params_u16;
+        val = *--state_data->u16;
         break;
     case 3:
-        val = *--play_head->params_u32;
+        val = *--state_data->u32;
         break;
     }
 
