@@ -33,7 +33,7 @@ struct enb_head {
     uint32_t track_data_i8_length;        // 0x2C
     uint32_t track_data_i16_length;       // 0x30
     uint32_t track_data_i32_length;       // 0x44
-    uint32_t params_mode_length;          // 0x38
+    uint32_t params_u2_length;            // 0x38
     uint32_t params_u8_length;            // 0x3C
     uint32_t params_u16_length;           // 0x40
     uint32_t params_u32_length;           // 0x44
@@ -68,11 +68,11 @@ struct enb_play_head {
     uint8_t track_data_i2_counter;      // 0x5C
     uint8_t track_data_i4_counter;      // 0x5D
     uint8_t padding2[2];                // 0x5E
-    uint8_t* params_mode;               // 0x60
+    uint8_t* params_u2;                 // 0x60
     uint8_t* params_u8;                 // 0x64
     uint16_t* params_u16;               // 0x68
     uint32_t* params_u32;               // 0x6C
-    uint8_t params_counter;             // 0x70
+    uint8_t params_u2_counter;          // 0x70
     uint8_t padding3[3];                // 0x71
     uint8_t* orig_track_data_init_i2;   // 0x74
     int8_t* orig_track_data_init_i8;    // 0x78
@@ -83,11 +83,11 @@ struct enb_play_head {
     int8_t* orig_track_data_i8;         // 0x8C
     int16_t* orig_track_data_i16;       // 0x90
     int32_t* orig_track_data_i32;       // 0x94
-    uint8_t* orig_params_mode;          // 0x98
+    uint8_t* orig_params_u2;            // 0x98
     uint8_t* orig_params_u8;            // 0x9C
     uint16_t* orig_params_u16;          // 0xA0
     uint32_t* orig_params_u32;          // 0xA4
-    uint8_t track_mode_selector;        // 0xA8
+    uint8_t track_direction;            // 0xA8
     uint8_t track_data_selector;        // 0xA9
     uint8_t padding4[6];                // 0xAA
 };
