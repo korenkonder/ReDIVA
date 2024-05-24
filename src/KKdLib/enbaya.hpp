@@ -20,10 +20,10 @@ struct enb_track {
 
 struct  __declspec(align(4)) enb_anim_stream {
     uint32_t signature;                                     // 0x00
-    uint32_t track_count;                                   // 0x04
+    int32_t track_count;                                    // 0x04
     float_t quantization_error;                             // 0x08
     float_t duration;                                       // 0x0C
-    uint32_t sample_rate;                                   // 0x10
+    int32_t sample_rate;                                    // 0x10
     uint32_t track_data_init_i2_length;                     // 0x14
     uint32_t track_data_init_i8_length;                     // 0x18
     uint32_t track_data_init_i16_length;                    // 0x1C
@@ -32,18 +32,18 @@ struct  __declspec(align(4)) enb_anim_stream {
     uint32_t track_data_i4_length;                          // 0x28
     uint32_t track_data_i8_length;                          // 0x2C
     uint32_t track_data_i16_length;                         // 0x30
-    uint32_t track_data_i32_length;                         // 0x44
+    uint32_t track_data_i32_length;                         // 0x34
     uint32_t state_data_u2_length;                          // 0x38
     uint32_t state_data_u8_length;                          // 0x3C
     uint32_t state_data_u16_length;                         // 0x40
     uint32_t state_data_u32_length;                         // 0x44
     uint32_t track_flags_length;                            // 0x48
-    uint32_t data;                                          // In runtime becomes pointer to data after this uint32_t
+    uint32_t data;                                          // 0x4C // In runtime becomes pointer to data after this uint32_t
 };
 
 struct enb_anim_state {
-    int32_t next;                                           // 0x00
-    int32_t prev;                                           // 0x04
+    int32_t next_step;                                      // 0x00
+    int32_t prev_step;                                      // 0x04
 };
 
 struct enb_anim_track_data_init_decoder {
@@ -118,12 +118,11 @@ struct  __declspec(align(8)) enb_anim_context {
     enb_anim_state_data state_data;                         // 0x98
     uint8_t track_direction;                                // 0xA8
     uint8_t track_selector;                                 // 0xA9
-    uint8_t padding[6];                                     // 0xAA
 };
 
-extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
-    size_t* data_out_len, float_t* duration, float_t* fps, size_t* frames);
+extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out, size_t* data_out_len,
+    float_t* duration, float_t* fps, int32_t* frames, quat_trans_interp_method method);
 extern int32_t enb_initialize(uint8_t* data, enb_anim_context** anim_ctx);
 extern void enb_free(enb_anim_context** anim_ctx);
-extern void enb_get_track_data(enb_anim_context* anim_ctx, float_t time, size_t track, quat_trans* data);
-extern void enb_set_time(enb_anim_context* anim_ctx, float_t time);
+extern void enb_get_component_values(enb_anim_context* anim_ctx, float_t time,
+    int32_t track_id, quat_trans* data, quat_trans_interp_method method);

@@ -5,23 +5,28 @@
 
 #include "enbaya.hpp"
 
+static void enb_get_track_data(enb_anim_context* anim_ctx, int32_t track_id,
+    quat_trans** prev, quat_trans** next, float_t time);
+static quat_trans* enb_get_track_data_next(enb_anim_context* anim_ctx, int32_t track_id);
+static quat_trans* enb_get_track_data_prev(enb_anim_context* anim_ctx, int32_t track_id);
 static void enb_init(enb_anim_context* anim_ctx, enb_anim_stream* anim_stream);
 static void enb_init_decoder(enb_anim_context* anim_ctx);
+static void enb_set_time(enb_anim_context* anim_ctx, float_t time);
 static void enb_track_init(enb_anim_context* anim_ctx,
-    const uint32_t track_count, enb_anim_track_data_init_decoder* track_data_init);
+    const int32_t track_count, enb_anim_track_data_init_decoder* track_data_init);
 static void enb_track_step_forward(enb_anim_context* anim_ctx,
-    const uint32_t track_count, enb_anim_track_data_decoder* track_data);
+    const int32_t track_count, enb_anim_track_data_decoder* track_data);
 static void enb_track_step_backward(enb_anim_context* anim_ctx,
-    const uint32_t track_count, enb_anim_track_data_decoder* track_data);
+    const int32_t track_count, enb_anim_track_data_decoder* track_data);
 static void enb_state_step_init(enb_anim_state* state,
     enb_anim_state_data_decoder* state_data);
 static void enb_state_step_forward(enb_anim_state* state,
-    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data);
+    enb_track* track, const int32_t track_count, enb_anim_state_data_decoder* state_data);
 static void enb_state_step_backward(enb_anim_state* state,
-    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data);
+    enb_track* track, const int32_t track_count, enb_anim_state_data_decoder* state_data);
 static void enb_track_init_apply(enb_anim_context* anim_ctx,
-    const uint32_t track_count, const uint8_t* flags, const float_t quantization_error);
-static void enb_track_apply(enb_anim_context* anim_ctx, uint32_t track_count,
+    const int32_t track_count, const uint8_t* flags, const float_t quantization_error);
+static void enb_track_apply(enb_anim_context* anim_ctx, const int32_t track_count,
     const bool forward, const float_t quantization_error, const float_t time);
 
 inline static int32_t enb_anim_track_data_init_decode(enb_anim_track_data_init_decoder* track_data_init);
@@ -30,20 +35,19 @@ inline static int32_t enb_anim_track_data_backward_decode(enb_anim_track_data_de
 inline static uint32_t enb_anim_state_data_forward_decode(enb_anim_state_data_decoder* state_data);
 inline static uint32_t enb_anim_state_data_backward_decode(enb_anim_state_data_decoder* state_data);
 
-static const int32_t shift_table_data_i2[] = { 6, 4, 2, 0 };      // 0x08BF1CE8
-static const int32_t shift_table_data_i4[] = { 4, 0 };            // 0x08BF1CF8
-static const int32_t shift_table_data_init_i2[] = { 6, 4, 2, 0 }; // 0x08BF2160
-static const int32_t shift_table_params_u2[] = { 6, 4, 2, 0 };    // 0x08BF2170
-static const int32_t value_table_data_i2[] = { 0, 1, 0, -1 };     // 0x08BB3FC0
-static const int32_t value_table_data_i4[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
+static const int32_t shift_table_track_data_i2[] = { 6, 4, 2, 0 };      // 0x08BF1CE8
+static const int32_t shift_table_track_data_i4[] = { 4, 0 };            // 0x08BF1CF8
+static const int32_t shift_table_track_data_init_i2[] = { 6, 4, 2, 0 }; // 0x08BF2160
+static const int32_t shift_table_state_data_u2[] = { 6, 4, 2, 0 };      // 0x08BF2170
+static const int32_t value_table_track_data_i2[] = { 0, 1, 0, -1 };     // 0x08BB3FC0
+static const int32_t value_table_track_data_i4[] = { 0, 8, 2, 3, 4, 5, 6, 7, -8, -7, -6, -5, -4, -3, -2, -9 }; // 0x08BB3FD0
 
-int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
-    size_t* data_out_len, float_t* duration, float_t* fps, size_t* frames) {
+int32_t enb_process(uint8_t* data_in, uint8_t** data_out, size_t* data_out_len,
+    float_t* duration, float_t* fps, int32_t* frames, quat_trans_interp_method method) {
     enb_anim_context* anim_ctx;
     enb_anim_stream* anim_stream;
     quat_trans* qt_data;
-    size_t i, j;
-    int32_t code;
+    int32_t code, i, j;
 
     if (!data_in)
         return -1;
@@ -73,7 +77,7 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
         *fps = (float_t)anim_stream->sample_rate;
 
     float_t frames_float = *duration * *fps;
-    *frames = (size_t)frames_float + (fmodf(frames_float, 1.0f) >= 0.5f) + 1;
+    *frames = (int32_t)(int64_t)frames_float + (fmodf(frames_float, 1.0f) >= 0.5f) + 1;
     if (*frames > 0x7FFFFFFFU)
         return -7;
 
@@ -85,20 +89,16 @@ int32_t enb_process(uint8_t* data_in, uint8_t** data_out,
 
     memset(*data_out, 0, *data_out_len);
 
-    ((uint32_t*)*data_out)[0] = anim_stream->track_count;
-    ((uint32_t*)*data_out)[1] = *(uint32_t*)frames;
+    ((int32_t*)*data_out)[0] = anim_stream->track_count;
+    ((int32_t*)*data_out)[1] = *frames;
     ((float_t*)*data_out)[2] = *fps;
     ((float_t*)*data_out)[3] = *duration;
 
     qt_data = (quat_trans*)(*data_out + 0x10);
     for (i = 0; i < *frames; i++) {
         float_t time = (float_t)i / *fps;
-        if (time < anim_ctx->data.previous_sample_time
-            || time > anim_ctx->data.current_sample_time)
-            enb_set_time(anim_ctx, time);
-
         for (j = 0; j < anim_stream->track_count; j++, qt_data++)
-            enb_get_track_data(anim_ctx, time, j, qt_data);
+            enb_get_component_values(anim_ctx, time, j, qt_data, method);
     }
     enb_free(&anim_ctx);
     return 0;
@@ -143,19 +143,32 @@ void enb_free(enb_anim_context** anim_ctx) {
     *anim_ctx = 0;
 }
 
-void enb_get_track_data(enb_anim_context* anim_ctx, float_t time, size_t track, quat_trans* data) {
-    if (!data)
-        return;
-    else if (!anim_ctx || anim_ctx->data.stream->track_count < track) {
-        *data = quat_trans_identity;
-        return;
-    }
+void enb_get_component_values(enb_anim_context* anim_ctx, float_t time,
+    int32_t track_id, quat_trans* data, quat_trans_interp_method method) {
+    quat_trans* prev = 0;
+    quat_trans* next = 0;
+    enb_get_track_data(anim_ctx, track_id, &prev, &next, time);
 
-   
-    quat_trans* qt1 = anim_ctx->data.track[track].qt + (anim_ctx->track_selector & 0x01);
-    quat_trans* qt2 = anim_ctx->data.track[track].qt + ((anim_ctx->track_selector & 0x01) ^ 0x01);
-    float_t blend = (time - qt1->time) / anim_ctx->seconds_per_sample;
-    lerp_quat_trans(qt1, qt2, data, blend);
+    float_t blend = (time - prev->time) / anim_ctx->seconds_per_sample;
+    interp_quat_trans(prev, next, data, blend, method);
+}
+
+static void enb_get_track_data(enb_anim_context* anim_ctx, int32_t track_id,
+    quat_trans** prev, quat_trans** next, float_t time) { // 0x08A8C34
+    if (time < anim_ctx->data.previous_sample_time
+        || time > anim_ctx->data.current_sample_time)
+        enb_set_time(anim_ctx, time);
+
+    *next = enb_get_track_data_next(anim_ctx, track_id);
+    *prev = enb_get_track_data_prev(anim_ctx, track_id);
+}
+
+static quat_trans* enb_get_track_data_next(enb_anim_context* anim_ctx, int32_t track_id) {
+    return &anim_ctx->data.track[track_id].qt[anim_ctx->track_selector & 0x01];
+}
+
+static quat_trans* enb_get_track_data_prev(enb_anim_context* anim_ctx, int32_t track_id) {
+    return &anim_ctx->data.track[track_id].qt[(anim_ctx->track_selector & 0x01) ^ 0x01];
 }
 
 static void enb_init(enb_anim_context* anim_ctx, enb_anim_stream* anim_stream) { // 0x08A08050 in ULJM05681
@@ -240,7 +253,7 @@ static void enb_init_decoder(enb_anim_context* anim_ctx) { // 0x08A07FD0 in ULJM
     anim_ctx->state_data_dec.u2_counter = 0;
 }
 
-void enb_set_time(enb_anim_context* anim_ctx, float_t time) { // 0x08A0876C in ULJM05681
+static void enb_set_time(enb_anim_context* anim_ctx, float_t time) { // 0x08A0876C in ULJM05681
     uint32_t track_count;
     float_t quantization_error;
     float_t requested_time;
@@ -305,6 +318,7 @@ void enb_set_time(enb_anim_context* anim_ctx, float_t time) { // 0x08A0876C in U
 
         anim_ctx->data.current_sample--;
         enb_track_step_backward(anim_ctx, track_count, &anim_ctx->track_data_dec);
+
         anim_ctx->data.current_sample_time = anim_ctx->data.current_sample * sps;
         anim_ctx->data.previous_sample_time = (anim_ctx->data.current_sample - 1) * sps;
         enb_track_apply(anim_ctx, track_count, false, -quantization_error, anim_ctx->data.previous_sample_time);
@@ -312,9 +326,8 @@ void enb_set_time(enb_anim_context* anim_ctx, float_t time) { // 0x08A0876C in U
 }
 
 static void enb_track_init(enb_anim_context* anim_ctx,
-    const uint32_t track_count, enb_anim_track_data_init_decoder* track_data_init) { // 0x08A08D3C in ULJM05681
-    uint32_t i, j;
-    int32_t val;
+    const int32_t track_count, enb_anim_track_data_init_decoder* track_data_init) { // 0x08A08D3C in ULJM05681
+    int32_t i, j, val;
 
     enb_track* track = anim_ctx->data.track;
 
@@ -352,9 +365,8 @@ static void enb_track_init(enb_anim_context* anim_ctx,
 
 
 static void enb_track_step_forward(enb_anim_context* anim_ctx,
-    const uint32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A08E7C in ULJM05681
-    uint32_t i, j;
-    int32_t val;
+    const int32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A08E7C in ULJM05681
+    int32_t i, j, val;
 
     enb_track* track = anim_ctx->data.track;
 
@@ -397,14 +409,13 @@ static void enb_track_step_forward(enb_anim_context* anim_ctx,
 
 
 static void enb_track_step_backward(enb_anim_context* anim_ctx,
-    const uint32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A090A0 in ULJM05681
-    uint32_t i, j;
-    int32_t val;
+    const int32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A090A0 in ULJM05681
+    int32_t i, j, val;
 
     enb_track* track = anim_ctx->data.track;
 
-    track += (size_t)track_count - 1;
-    for (i = track_count - 1; i != (uint32_t)-1; i--, track--) {
+    track += track_count - 1LL;
+    for (i = track_count - 1; i != -1; i--, track--) {
         if (track->flags == 0)
             continue;
 
@@ -443,59 +454,59 @@ static void enb_track_step_backward(enb_anim_context* anim_ctx,
 
 static void enb_state_step_init(enb_anim_state* state,
     enb_anim_state_data_decoder* state_data) { // 0x08A0931C in ULJM05681
-    state->next = enb_anim_state_data_forward_decode(state_data);
-    state->prev = 0;
+    state->next_step = enb_anim_state_data_forward_decode(state_data);
+    state->prev_step = 0;
 }
 
 static void enb_state_step_forward(enb_anim_state* state,
-    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data) { // 0x08A09404 in ULJM05681
-    uint32_t i, j, temp, track_params_count;
+    enb_track* track, const int32_t track_count, enb_anim_state_data_decoder* state_data) { // 0x08A09404 in ULJM05681
+    int32_t i, j, temp, track_comps_count;
 
-    track_params_count = track_count * 7;
+    track_comps_count = track_count * 7;
     i = 0;
-    while (i < track_params_count) {
-        j = state->next;
+    while (i < track_comps_count) {
+        j = state->next_step;
         if (j == 0) {
             track[i / 7].flags ^= 0x01 << (i % 7);
-            state->next = enb_anim_state_data_forward_decode(state_data);
-            state->prev = 0;
+            state->next_step = enb_anim_state_data_forward_decode(state_data);
+            state->prev_step = 0;
             i++;
         }
         else {
-            temp = j < (uint32_t)(track_params_count - i) ? j : (uint32_t)(track_params_count - i);
-            i += (int32_t)temp;
-            state->next -= temp;
-            state->prev += temp;
+            temp = j < (track_comps_count - i) ? j : (track_comps_count - i);
+            i += temp;
+            state->next_step -= temp;
+            state->prev_step += temp;
         }
     }
 }
 
 static void enb_state_step_backward(enb_anim_state* state,
-    enb_track* track, const uint32_t track_count, enb_anim_state_data_decoder* state_data) { // 0x08A0968C in ULJM05681
-    uint32_t i, j, temp, track_params_count;
+    enb_track* track, const int32_t track_count, enb_anim_state_data_decoder* state_data) { // 0x08A0968C in ULJM05681
+    int32_t i, j, temp, track_comps_count;
 
-    track_params_count = track_count * 7;
-    i = track_params_count - 1;
-    while (i != (uint32_t)-1) {
-        j = state->prev;
+    track_comps_count = track_count * 7;
+    i = track_comps_count - 1;
+    while (i != -1) {
+        j = state->prev_step;
         if (j == 0) {
             track[i / 7].flags ^= 0x01 << (i % 7);
-            state->next = 0;
-            state->prev = enb_anim_state_data_backward_decode(state_data);
+            state->next_step = 0;
+            state->prev_step = enb_anim_state_data_backward_decode(state_data);
             i--;
         }
         else {
-            temp = j < (uint32_t)(i + 1) ? j : (uint32_t)(i + 1);
-            i -= (int32_t)temp;
-            state->next += temp;
-            state->prev -= temp;
+            temp = j < (i + 1) ? j : (i + 1);
+            i -= temp;
+            state->next_step += temp;
+            state->prev_step -= temp;
         }
     }
 }
 
 static void enb_track_init_apply(enb_anim_context* anim_ctx,
-    const uint32_t track_count, const uint8_t* flags, float_t quantization_error) { // 0x08A086CC in ULJM05681
-    uint32_t i;
+    const int32_t track_count, const uint8_t* flags, float_t quantization_error) { // 0x08A086CC in ULJM05681
+    int32_t i;
     quat quat_delta, quat_result;
     vec3 trans_delta, trans_result;
 
@@ -524,24 +535,24 @@ static void enb_track_init_apply(enb_anim_context* anim_ctx,
     anim_ctx->track_selector = 0;
 }
 
-static void enb_track_apply(enb_anim_context* anim_ctx, const uint32_t track_count,
+static void enb_track_apply(enb_anim_context* anim_ctx, const int32_t track_count,
     const bool forward, const float_t quantization_error, const float_t time) { // 0x08A085D8 in ULJM05681
     uint8_t s0, s1;
-    uint32_t i;
+    int32_t i;
     quat quat_delta, quat_result, quat_data;
     vec3 trans_delta, trans_result, trans_data;
 
     enb_track* track = anim_ctx->data.track;
 
     if (forward) {
-        s1 = anim_ctx->track_selector & 0x01;
-        s0 = s1 ^ 0x01;
-        anim_ctx->track_selector = s0;
-    }
-    else {
         s0 = anim_ctx->track_selector & 0x01;
         s1 = s0 ^ 0x01;
         anim_ctx->track_selector = s1;
+    }
+    else {
+        s1 = anim_ctx->track_selector & 0x01;
+        s0 = s1 ^ 0x01;
+        anim_ctx->track_selector = s0;
     }
 
     for (i = 0; i < track_count; i++, track++) {
@@ -570,7 +581,7 @@ inline static int32_t enb_anim_track_data_init_decode(enb_anim_track_data_init_d
         track_data_init->i2++;
     }
 
-    val = *track_data_init->i2 >> shift_table_data_init_i2[track_data_init->i2_counter++];
+    val = *track_data_init->i2 >> shift_table_track_data_init_i2[track_data_init->i2_counter++];
     val &= 0x03;
 
     switch (val) {
@@ -596,7 +607,7 @@ inline static int32_t enb_anim_track_data_forward_decode(enb_anim_track_data_dec
         track_data->i2++;
     }
 
-    val = *track_data->i2 >> shift_table_data_i2[track_data->i2_counter++];
+    val = *track_data->i2 >> shift_table_track_data_i2[track_data->i2_counter++];
     val &= 0x03;
 
     if (val == 2) {
@@ -605,7 +616,7 @@ inline static int32_t enb_anim_track_data_forward_decode(enb_anim_track_data_dec
             track_data->i4++;
         }
 
-        val = *track_data->i4 >> shift_table_data_i4[track_data->i4_counter++];
+        val = *track_data->i4 >> shift_table_track_data_i4[track_data->i4_counter++];
         val &= 0x0F;
 
         if (val == 0) {
@@ -621,10 +632,10 @@ inline static int32_t enb_anim_track_data_forward_decode(enb_anim_track_data_dec
                 val -= 0x80;
         }
         else
-            val = value_table_data_i4[val];
+            val = value_table_track_data_i4[val];
     }
     else
-        val = value_table_data_i2[val];
+        val = value_table_track_data_i2[val];
 
     return val;
 }
@@ -637,7 +648,7 @@ inline static int32_t enb_anim_track_data_backward_decode(enb_anim_track_data_de
         track_data->i2--;
     }
 
-    val = *track_data->i2 >> shift_table_data_i2[track_data->i2_counter];
+    val = *track_data->i2 >> shift_table_track_data_i2[track_data->i2_counter];
     val &= 0x03;
 
     if (val == 2) {
@@ -646,7 +657,7 @@ inline static int32_t enb_anim_track_data_backward_decode(enb_anim_track_data_de
             track_data->i4--;
         }
 
-        val = *track_data->i4 >> shift_table_data_i4[track_data->i4_counter];
+        val = *track_data->i4 >> shift_table_track_data_i4[track_data->i4_counter];
         val &= 0x0F;
 
         if (val == 0) {
@@ -662,10 +673,10 @@ inline static int32_t enb_anim_track_data_backward_decode(enb_anim_track_data_de
                 val -= 0x80;
         }
         else
-            val = value_table_data_i4[val];
+            val = value_table_track_data_i4[val];
     }
     else
-        val = value_table_data_i2[val];
+        val = value_table_track_data_i2[val];
 
     return val;
 }
@@ -678,7 +689,7 @@ inline static uint32_t enb_anim_state_data_forward_decode(enb_anim_state_data_de
         state_data->u2++;
     }
 
-    val = *state_data->u2 >> shift_table_params_u2[state_data->u2_counter++];
+    val = *state_data->u2 >> shift_table_state_data_u2[state_data->u2_counter++];
     val &= 0x03;
 
     switch (val) {
@@ -704,7 +715,7 @@ inline static uint32_t enb_anim_state_data_backward_decode(enb_anim_state_data_d
         state_data->u2--;
     }
 
-    val = *state_data->u2 >> shift_table_params_u2[state_data->u2_counter];
+    val = *state_data->u2 >> shift_table_state_data_u2[state_data->u2_counter];
     val &= 0x03;
 
     switch (val) {
