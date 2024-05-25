@@ -512,7 +512,7 @@ int32_t pv_db_pv::get_chrmot_motion_id(int32_t chara_id,
 const pv_db_pv_difficulty* pv_db_pv::get_difficulty(
     pv_difficulty difficulty, pv_attribute_type attribute_type) const {
     if (attribute_type == PV_ATTRIBUTE_END)
-        return 0;
+        return &this->difficulty->front();
 
     const std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
     for (const pv_db_pv_difficulty& i : diff)
@@ -1086,13 +1086,13 @@ namespace pv_db {
             pv->mdata.dir = mdata_dir;
 
         if (kv.open_scope("lyric")) {
-            for (int32_t i = 0; i < 1000; i++) {
+            for (int64_t i = 0; i < 1000; i++) {
                 if (!kv.open_scope_fmt("%03zu", i))
                     continue;
 
                 pv_db_pv_lyric lyric;
                 if (kv.read(lyric.data)) {
-                    lyric.index = i;
+                    lyric.index = (int32_t)i;
                     pv->lyric.push_back(lyric);
                 }
                 kv.close_scope();
@@ -1120,7 +1120,7 @@ namespace pv_db {
         int32_t count;
         if (kv.read("performer", "num", count)) {
             pv->performer.resize(count);
-            for (int32_t i = 0; i < count; i++) {
+            for (int64_t i = 0; i < count; i++) {
                 if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
@@ -1183,7 +1183,7 @@ namespace pv_db {
 
         if (kv.read("chrcam", "length", count)) {
             pv->chrcam.resize(count);
-            for (int32_t i = 0; i < count; i++) {
+            for (int64_t i = 0; i < count; i++) {
                 if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
@@ -1212,7 +1212,7 @@ namespace pv_db {
 
         if (kv.read("chrmot", "length", count)) {
             pv->chrmot.resize(count);
-            for (int32_t i = 0; i < count; i++) {
+            for (int64_t i = 0; i < count; i++) {
                 if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
@@ -1241,7 +1241,7 @@ namespace pv_db {
 
         if (kv.read("chreff", "length", count)) {
             pv->chreff.resize(count);
-            for (int32_t i = 0; i < count; i++) {
+            for (int64_t i = 0; i < count; i++) {
                 if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
@@ -1258,7 +1258,7 @@ namespace pv_db {
                 int32_t count;
                 if (kv.read("data", "length", count)) {
                     chreff.data.resize(count);
-                    for (int32_t j = 0; j < count; j++) {
+                    for (int64_t j = 0; j < count; j++) {
                         if (!kv.open_scope_fmt("%zu", j))
                             continue;
 
@@ -1302,7 +1302,7 @@ namespace pv_db {
                 }
 
         if (kv.read("eyes_rot_rate", "length", count)) {
-            for (int32_t i = 0; i < count; i++) {
+            for (int64_t i = 0; i < count; i++) {
                 if (!kv.open_scope_fmt("%zu", i))
                     continue;
 
