@@ -120,9 +120,13 @@ struct  __declspec(align(8)) enb_anim_context {
     uint8_t track_selector;                                 // 0xA9
 };
 
-extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out, size_t* data_out_len,
-    float_t* duration, float_t* fps, int32_t* frames, quat_trans_interp_method method);
+extern int32_t enb_process(uint8_t* data_in, uint8_t** data_out, size_t* data_out_len, float_t* duration,
+    float_t* fps, int32_t* frames, quat_trans_interp_method quat_method, quat_trans_interp_method trans_method);
 extern int32_t enb_initialize(uint8_t* data, enb_anim_context** anim_ctx);
 extern void enb_free(enb_anim_context** anim_ctx);
-extern void enb_get_component_values(enb_anim_context* anim_ctx, float_t time,
-    int32_t track_id, quat_trans* data, quat_trans_interp_method method);
+extern void enb_get_component_values(enb_anim_context* anim_ctx, float_t time, int32_t track_id,
+    quat_trans* data, quat_trans_interp_method quat_method, quat_trans_interp_method trans_method);
+extern int32_t enb_encode_data(quat_trans* track_data, int32_t* track_data_count, int32_t num_tracks,
+    int32_t num_components, float_t duration, int32_t sample_rate, float_t quantization_error,
+    quat_trans_interp_method quat_method, quat_trans_interp_method trans_method,
+    uint8_t** data_out, size_t* data_out_len);

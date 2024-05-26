@@ -13,6 +13,9 @@ struct quat_trans {
     quat quat;
     vec3 trans;
     float_t time;
+
+    quat_trans();
+    quat_trans(::quat quat, vec3 trans, float_t time);
 };
 
 enum quat_trans_interp_method {
@@ -23,5 +26,5 @@ enum quat_trans_interp_method {
 
 static const quat_trans quat_trans_identity = { { 0.0f, 0.0f, 0.0f, 1.0f }, { 0.0f, 0.0f, 0.0f }, 0.0f };
 
-extern void interp_quat_trans(quat_trans* x, quat_trans* y,
-    quat_trans* z, float_t blend, quat_trans_interp_method method);
+extern void interp_quat_trans(const quat_trans* x, const quat_trans* y, quat_trans* z, float_t blend,
+    quat_trans_interp_method quat_method, quat_trans_interp_method trans_method);
