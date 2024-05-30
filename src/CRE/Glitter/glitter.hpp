@@ -353,9 +353,7 @@ namespace Glitter {
         PARTICLE_MANAGER_NOT_DISP            = 0x02,
         PARTICLE_MANAGER_RESET_SCENE_COUNTER = 0x04,
         PARTICLE_MANAGER_READ_FILES          = 0x08,
-#if defined(CRE_DEV)
         PARTICLE_MANAGER_LOCAL               = 0x20,
-#endif
     };
 
     enum ParticleSubFlag {
@@ -388,10 +386,8 @@ namespace Glitter {
         SCENE_FLAG_1   = 0x01,
         SCENE_NOT_DISP = 0x02,
         SCENE_FLAG_3   = 0x04,
-#if defined(CRE_DEV)
         SCENE_ENDED    = 0x08,
         SCENE_EDITOR   = 0x80,
-#endif
     };
 
     enum Type {
@@ -492,9 +488,7 @@ namespace Glitter {
         Animation();
         ~Animation();
 
-#if defined(CRE_DEV)
         void AddValue(GLT, double_t val, CurveTypeFlags flags);
-#endif
 
         Animation& operator=(const Animation& anim);
     };
@@ -537,7 +531,6 @@ namespace Glitter {
                 float_t tangent1, float_t tangent2, float_t random_range);
         };
 
-#if defined(CRE_DEV)
         struct KeyRev {
             KeyType type;
             int32_t frame;
@@ -551,7 +544,6 @@ namespace Glitter {
             KeyRev(KeyType type, int32_t frame, double_t value,
                 double_t tangent1, double_t tangent2, double_t random_range);
         };
-#endif
 
         CurveType type;
         bool repeat;
@@ -560,18 +552,14 @@ namespace Glitter {
         CurveFlag flags;
         float_t random_range;
         std::vector<Key> keys;
-#if defined(CRE_DEV)
         std::vector<KeyRev> keys_rev;
-#endif
         uint32_t version;
         uint32_t keys_version;
 
         Curve(GLT);
         virtual ~Curve();
 
-#if defined(CRE_DEV)
         void AddValue(GLT, double_t val);
-#endif
         bool F2GetValue(GLT, float_t frame,
             float_t* value, int32_t random_value, Random* random);
         float_t F2Interpolate(GLT, float_t frame, const Curve::Key& curr,
@@ -582,10 +570,8 @@ namespace Glitter {
             const Curve::Key& next, float_t frame, Random* random);
         float_t F2Randomize(GLT, float_t value, Random* random);
         float_t F2RandomizeKey(GLT, const Curve::Key& key, Random* random);
-#if defined(CRE_DEV)
         void FitKeysIntoCurve(GLT);
         void Recalculate(GLT);
-#endif
         bool XGetValue(float_t frame,
             float_t* value, int32_t random_value, Random* random);
         float_t XInterpolate(float_t frame, const Curve::Key& curr,
@@ -735,10 +721,8 @@ namespace Glitter {
         std::vector<uint64_t> resource_hashes;
         txp_set resources_tex;
         texture** resources;
-#if defined(CRE_DEV)
         std::vector<Mesh> meshes;
         std::string name;
-#endif
         bool not_loaded;
         bool scene_init;
         uint32_t version;
@@ -893,9 +877,7 @@ namespace Glitter {
     class EffectInst {
     public:
         bool init;
-#if defined(CRE_DEV)
         std::string name;
-#endif
         Effect* effect;
         Effect::Data data;
         float_t frame0;
@@ -909,9 +891,7 @@ namespace Glitter {
         EffectInstFlag flags;
         size_t id;
         uint32_t random;
-#if defined(CRE_DEV)
         float_t req_frame;
-#endif
         vec4 ext_color;
         vec3 ext_anim_scale;
         float_t some_scale;
@@ -1565,9 +1545,7 @@ namespace Glitter {
 
     class Scene {
     public:
-#if defined(CRE_DEV)
         std::string name;
-#endif
         std::vector<SceneEffect> effects;
         SceneCounter counter;
         uint64_t hash;
@@ -1575,21 +1553,17 @@ namespace Glitter {
         float_t emission;
         Type type;
         EffectGroup* effect_group;
-#if defined(CRE_DEV)
         float_t fade_frame;
         float_t fade_frame_left;
         float_t delta_frame_history;
         bool skip;
         FrameRateControl* frame_rate;
-#endif
 
         Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool a5);
         virtual ~Scene();
 
         void CalcDisp(GPM);
-#if defined(CRE_DEV)
         bool CanDisp(DispType disp_type, bool a3);
-#endif
         bool Copy(EffectInst* eff_inst, Scene* dst);
         void Ctrl(GPM, float_t delta_frame);
         void Disp(GPM, DispType disp_type);
@@ -1606,10 +1580,8 @@ namespace Glitter {
         bool ResetEffect(GPM, uint64_t effect_hash, size_t* id = 0);
         bool SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
         bool SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a);
-#if defined(CRE_DEV)
         void SetFrameRate(FrameRateControl* frame_rate);
         void SetReqFrame(size_t id, float_t req_frame);
-#endif
     };
 
     class GltParticleManager : public app::Task {
@@ -1617,12 +1589,10 @@ namespace Glitter {
         std::vector<Scene*> scenes;
         std::vector<FileReader*> file_readers;
         std::map<uint64_t, EffectGroup*> effect_groups;
-#if defined(CRE_DEV)
         Scene* selected_scene;
         EffectInst* selected_effect;
         EmitterInst* selected_emitter;
         ParticleInst* selected_particle;
-#endif
         void* bone_data;
         FrameRateControl* frame_rate;
         Camera cam;
@@ -1649,14 +1619,10 @@ namespace Glitter {
         bool AppendEffectGroup(uint64_t hash, EffectGroup* eff_group, FileReader* file_read);
         void BasicEffectGroups();
         uint64_t CalculateHash(const char* str);
-#if defined(CRE_DEV)
         bool CheckHasLocalEffect();
-#endif
         bool CheckNoFileReaders(uint64_t hash);
         bool CheckSceneEnded(SceneCounter scene_counter);
-#if defined(CRE_DEV)
         void CheckSceneHasLocalEffect(Scene* sc);
-#endif
         void CtrlScenes();
         void DispScenes(DispType disp_type);
         void FreeEffects();
@@ -1680,23 +1646,17 @@ namespace Glitter {
             float_t emission, bool init_scene, object_database* obj_db = 0, texture_database* tex_db = 0);
         SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
         SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true, uint8_t load_flags = 0);
-#if defined(CRE_DEV)
         SceneCounter LoadSceneEffect(uint64_t hash, const char* name,
             bool appear_now = true, uint8_t load_flags = 0);
-#endif
         bool SceneHasNotEnded(SceneCounter load_counter);
-#if defined(CRE_DEV)
         void SetFrame(EffectGroup* effect_group,
             Scene*& scene, float_t curr_frame, float_t prev_frame,
             const Counter& counter, const Random& random, bool reset);
-#endif
         void SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
             uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a);
-#if defined(CRE_DEV)
         void SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame);
         void SetSceneFrameRate(SceneCounter scene_counter, FrameRateControl* frame_rate);
         void SetSceneName(uint64_t hash, const char* name);
-#endif
         void SetPause(bool value);
         void UnloadEffectGroup(uint64_t hash);
 

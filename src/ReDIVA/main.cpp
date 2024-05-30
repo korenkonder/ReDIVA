@@ -269,8 +269,7 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     dft_data.dof.write(buf);
 }
 
-/*#if defined(ReDIVA_DEV)
-struct program_spv {
+/*struct program_spv {
     size_t size;
     size_t spv;
 };
@@ -720,8 +719,7 @@ void compile_all_shaders(bool debug) {
     farc of;
     compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
     of.write("rom\\ft_shaders_spirv", FARC_FArC, FARC_NONE, false);
-}
-#endif*/
+}*/
 
 /*
 void decrypt_x_save_data() {
@@ -1217,12 +1215,10 @@ void process_edit_dsc() {
 }*/
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
-/*#if defined(ReDIVA_DEV)
-    if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
+    /*if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
         compile_all_shaders(argc >= 3 && !wcscmp(argv[2], L"-d"));
         return 0;
-    }
-#endif*/
+    }*/
 
     /*process_edit_dsc();
     return 0;*/

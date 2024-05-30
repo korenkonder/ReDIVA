@@ -832,7 +832,6 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
         }
         printf_debug("%s shader compile error:\nfile: %s\n%s\n", type_str, file, info_log);
 
-#if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
             wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
@@ -856,7 +855,6 @@ static GLuint shader_compile_shader(GLenum type, const char* data, const char* f
             s.write_utf8_string(info_log);
             s.write_utf8_string("*/\n");
         }
-#endif
 
         free_def(info_log);
         glDeleteShader(shader);
@@ -890,7 +888,6 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
         glGetProgramInfoLog(program, length, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
-#if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
             wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
@@ -926,7 +923,6 @@ static GLuint shader_compile(const char* vert, const char* frag, const char* vp,
             s.write_utf8_string("*/\n");
             s.close();
         }
-#endif
 
         free_def(info_log);
         glDeleteProgram(program);
@@ -966,7 +962,6 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
         glGetProgramInfoLog(program, length, 0, info_log);
         printf_debug("Program Shader Permut linking error:\nvp: %s; fp: %s\n%s\n", vp, fp, info_log);
 
-#if defined(CRE_DEV)
         wchar_t temp_buf[MAX_PATH];
         if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
             wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\ReDIVA");
@@ -1002,7 +997,6 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
             s.write_utf8_string("*/\n");
             s.close();
         }
-#endif
 
         free_def(info_log);
         glDeleteProgram(program);

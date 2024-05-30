@@ -157,7 +157,6 @@ namespace Glitter {
         disp_locus = 0;
         disp_mesh = 0;
 
-#if defined(CRE_DEV)
         F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
         F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
         F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
@@ -190,18 +189,6 @@ namespace Glitter {
                             CalcDisp(GPM_VAL, rend_group);
                 }
         }
-#else
-        for (F2RenderGroup*& i : groups) {
-            if (!i)
-                continue;
-
-            F2RenderGroup* rend_group = i;
-            if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
-                continue;
-
-            CalcDisp(GPM_VAL, rend_group);
-        }
-#endif
     }
 
     void F2RenderScene::CalcDisp(GPM, F2RenderGroup* rend_group) {
@@ -894,7 +881,6 @@ namespace Glitter {
     }
 
     void F2RenderScene::Disp(GPM, DispType disp_type) {
-#if defined(CRE_DEV)
         F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
         F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
         F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
@@ -928,19 +914,6 @@ namespace Glitter {
                             Disp(GPM_VAL, rend_group);
                 }
         }
-#else
-        for (F2RenderGroup*& i : groups) {
-            if (!i)
-                continue;
-
-            F2RenderGroup* rend_group = i;
-            if ((rend_group)->disp_type != disp_type
-                || (rend_group->CannotDisp() && !GPM_VAL->draw_all))
-                continue;
-
-            Disp(GPM_VAL, rend_group);
-        }
-#endif
     }
 
     void F2RenderScene::Disp(GPM, F2RenderGroup* rend_group) {
@@ -1118,7 +1091,6 @@ namespace Glitter {
         disp_locus = 0;
         disp_mesh = 0;
 
-#if defined(CRE_DEV)
         XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
         XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
         XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
@@ -1151,18 +1123,6 @@ namespace Glitter {
                             CalcDisp(GPM_VAL, rend_group);
                 }
         }
-#else
-        for (XRenderGroup*& i : groups) {
-            if (!i)
-                continue;
-
-            XRenderGroup* rend_group = i;
-            if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
-                continue;
-
-            CalcDisp(GPM_VAL, rend_group);
-        }
-#endif
     }
 
     void XRenderScene::CalcDisp(GPM, XRenderGroup* rend_group) {
@@ -2039,7 +1999,6 @@ namespace Glitter {
     }
 
     void XRenderScene::Disp(GPM, DispType disp_type) {
-#if defined(CRE_DEV)
         XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
         XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
         XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
@@ -2072,18 +2031,6 @@ namespace Glitter {
                             Disp(GPM_VAL, rend_group);
                 }
         }
-#else
-        for (XRenderGroup* i : groups) {
-            if (!i)
-                continue;
-
-            XRenderGroup* rend_group = i;
-            if ((rend_group)->disp_type != disp_type || rend_group->CannotDisp() && !GPM_VAL->draw_all)
-                continue;
-
-            Disp(GPM_VAL, rend_group);
-        }
-#endif
     }
 
     void XRenderScene::Disp(GPM, XRenderGroup* rend_group) {

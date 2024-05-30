@@ -5,7 +5,6 @@
 
 #pragma once
 
-#if defined(CRE_DEV)
 #include "../KKdLib/default.hpp"
 #include "shader.hpp"
 
@@ -20,4 +19,3 @@ extern const shader_table shader_dev_table[];
 extern const size_t shader_dev_table_size;
 
 extern shader_set_data shaders_dev;
-#endif

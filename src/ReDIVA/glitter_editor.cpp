@@ -5,7 +5,6 @@
     Curve Editor code based on Animation Timeline code from https://github.com/crash5band/Glitter
 */
 
-#if defined(ReDIVA_DEV)
 #include "glitter_editor.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
@@ -5304,9 +5303,7 @@ static void glitter_editor_curve_editor_curve_set(GlitterEditor* glt_edt,
     curve->flags = (Glitter::CurveFlag)0;
     curve->random_range = 0.0f;
     curve->keys.clear();
-#if defined(ReDIVA_DEV)
     curve->keys_rev.clear();
-#endif
     if (eg && eg->type == Glitter::X) {
         curve->version = 2;
         curve->keys_version = 3;
@@ -7670,4 +7667,3 @@ static bool glitter_editor_hash_input(GlitterEditor* glt_edt, const char* label,
     *hash = h;
     return true;
 }
-#endif

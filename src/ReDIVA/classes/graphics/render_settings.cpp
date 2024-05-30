@@ -39,11 +39,7 @@ void graphics_render_settings_imgui(class_data* data) {
     ImFont* font = ImGui::GetFont();
 
     float_t w = 280.0f;
-#if defined(ReDIVA_DEV)
     float_t h = 140.0f;
-#else
-    float_t h = 86.0f;
-#endif
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_Appearing);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Appearing);
@@ -72,7 +68,6 @@ void graphics_render_settings_imgui(class_data* data) {
         RENDER_SCALE_MAX - 1, buf, ImGuiSliderFlags_NoInput))
         render_set_scale_index(scale_index);
 
-#if defined(ReDIVA_DEV)
     ImGui::Separator();
 
     double_t render_freq = render_timer->get_freq();
@@ -91,7 +86,6 @@ void graphics_render_settings_imgui(class_data* data) {
     ImGui::Text("Render:   Target /  Current");
     ImGui::Text("  freq: %s / %s", render_freq_str, render_freq_hist_str);
     ImGui::Text("    ms: %s / %s", render_ms_str, render_ms_hist_str);
-#endif
 
     ImGui::Separator();
 

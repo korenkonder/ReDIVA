@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#if defined(ReDIVA_DEV)
 #pragma once
 
 #include <list>
@@ -975,5 +974,4 @@ extern bool x_pv_game_baker_free();
 extern bool x_pv_game_selector_init();
 extern XPVGameSelector* x_pv_game_selector_get();
 extern bool x_pv_game_selector_free();
-#endif
 #endif

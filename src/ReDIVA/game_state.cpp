@@ -72,7 +72,6 @@ struct GameState {
         static bool Dest();
     };
 
-#if defined(ReDIVA_DEV)
     struct GlitterEditor { // Added
         static bool Init();
         static bool Ctrl();
@@ -85,7 +84,6 @@ struct GameState {
         static bool Ctrl();
         static bool Dest();
     };
-#endif
 #endif
 
     GameStateEnum game_state;
@@ -352,7 +350,6 @@ struct SubGameState {
         static bool Dest();
     };
 
-#if defined(ReDIVA_DEV)
     struct GlitterEditor { // Added
         static bool Init();
         static bool Ctrl();
@@ -365,7 +362,6 @@ struct SubGameState {
         static bool Ctrl();
         static bool Dest();
     };
-#endif
 #endif
 };
 
@@ -496,7 +492,6 @@ GameStateData game_state_data_array[] = {
         SUB_GAME_STATE_MAX,
     },
 
-#if defined(ReDIVA_DEV)
     { // Added
         GAME_STATE_GLITTER_EDITOR,
         GameState::GlitterEditor::Init,
@@ -523,7 +518,6 @@ GameStateData game_state_data_array[] = {
         GAME_STATE_ADVERTISE,
         SUB_GAME_STATE_MAX,
     },
-#endif
 #endif
 };
 
@@ -816,7 +810,6 @@ SubGameStateData sub_game_state_data_array[] = {
         SubGameState::DataTestAppError::Dest,
     },
 
-#if defined(ReDIVA_DEV)
     { // Added
         SUB_GAME_STATE_GLITTER_EDITOR,
         false,
@@ -834,7 +827,6 @@ SubGameStateData sub_game_state_data_array[] = {
         SubGameState::DataEdit::Dest,
     },
 #endif
-#endif
 };
 
 const char* game_state_names[] = {
@@ -844,11 +836,9 @@ const char* game_state_names[] = {
     "DATA_TEST",
     "TEST_MODE",
     "APP_ERROR",
-#if defined(ReDIVA_DEV)
     "GLITTER_EDITOR",
 #if DATA_EDIT
     "DATA_EDIT",
-#endif
 #endif
     "MAX",
 };
@@ -895,11 +885,9 @@ const char* sub_game_state_names[] = {
     "DATA_TEST_COLLECTION_CARD",
     "TEST_MODE_MAIN",
     "APP_ERROR",
-#if defined(ReDIVA_DEV)
     "GLITTER_EDITOR",
 #if DATA_EDIT
     "DATA_EDIT",
-#endif
 #endif
     "MAX",
 };
@@ -1033,7 +1021,6 @@ bool GameState::AppError::Dest() {
     return true;
 }
 
-#if defined(ReDIVA_DEV)
 bool GameState::GlitterEditor::Init() { // Added
     return true;
 }
@@ -1058,7 +1045,6 @@ bool GameState::DataEdit::Ctrl() { // Added
 bool GameState::DataEdit::Dest() { // Added
     return true;
 }
-#endif
 #endif
 
 bool SubGameState::DataInitialize::Init() {
@@ -1228,7 +1214,6 @@ bool SubGameState::PhotoModeDemo::Dest() {
 }
 
 bool SubGameState::Selector::Init() {
-#if defined(CRE_DEV)
 #if PV_DEBUG
     if (!pv_x) {
         pv_game_selector_init();
@@ -1248,7 +1233,6 @@ bool SubGameState::Selector::Init() {
 #else
     x_pv_game_selector_init();
     app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
-#endif
 #endif
     return true;
 }
@@ -1297,7 +1281,6 @@ bool SubGameState::Selector::Ctrl() {
     }
 #endif
 
-#if defined(CRE_DEV)
 #if BAKE_X_PACK
     const int32_t pv_ids[] = {
         824,
@@ -1356,12 +1339,10 @@ bool SubGameState::Selector::Ctrl() {
         return true;
     }
 #endif
-#endif
     return false;
 }
 
 bool SubGameState::Selector::Dest() {
-#if defined(CRE_DEV)
 #if PV_DEBUG
     if (!pv_x) {
         PVGameSelector* sel = pv_game_selector_get();
@@ -1398,7 +1379,6 @@ bool SubGameState::Selector::Dest() {
 
     x_pv_game_selector_free();
 #endif
-#endif
     return true;
 }
 
@@ -1409,7 +1389,6 @@ bool SubGameState::GameMain::Init() {
 }
 
 bool SubGameState::GameMain::Ctrl() {
-#if defined(CRE_DEV)
 #if PV_DEBUG
     if (!pv_x) {
         if (!task_pv_game_check_task_ready())
@@ -1419,12 +1398,10 @@ bool SubGameState::GameMain::Ctrl() {
 #endif
     if (!app::TaskWork::check_task_ready(x_pv_game_get()))
         return true;
-#endif
     return false;
 }
 
 bool SubGameState::GameMain::Dest() {
-#if defined(CRE_DEV)
     bool res;
 #if PV_DEBUG
     if (!pv_x) {
@@ -1442,7 +1419,6 @@ bool SubGameState::GameMain::Dest() {
     XPVGameBaker* baker = x_pv_game_baker_get();
     if (baker)
         game_state_set_sub_game_state_next(SUB_GAME_STATE_SELECTOR);
-#endif
 #endif
 
     rctx_ptr->render_manager->set_multisample(true);
@@ -1809,7 +1785,6 @@ bool SubGameState::DataTestModeMain::Dest() {
     return true;
 }
 
-#if defined(ReDIVA_DEV)
 bool SubGameState::GlitterEditor::Init() { // Added
     rctx_ptr->render_manager->set_multisample(false);
 
@@ -1845,7 +1820,6 @@ bool SubGameState::DataEdit::Dest() { // Added
     data_edit.del();
     return true;
 }
-#endif
 #endif
 
 bool SubGameState::DataTestAppError::Init() {

@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#if defined(ReDIVA_DEV)
 #pragma once
 
 #include "config.hpp"
@@ -55,5 +54,4 @@ public:
 };
 
 extern DataEdit data_edit;
-#endif
 #endif

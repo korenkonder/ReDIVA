@@ -1890,7 +1890,6 @@ namespace Glitter {
     }
 
     bool FileWriter::UnparseCurve(f2_struct* st, Curve* c, bool big_endian) {
-#if defined(CRE_DEV)
         std::vector<Curve::Key> keys;
 
         extern bool glitter_editor_enable;
@@ -1901,7 +1900,6 @@ namespace Glitter {
             keys.assign(c->keys.begin(), c->keys.end());
             c->Recalculate(type);
         }
-#endif
 
         if (c->keys.size() < 1)
             return false;
@@ -2038,10 +2036,8 @@ namespace Glitter {
         PackCurve(&s, c, big_endian);
         st->sub_structs.push_back(s);
 
-#if defined(CRE_DEV)
         if (glitter_editor_enable)
             c->keys.assign(keys.begin(), keys.end());
-#endif
         return true;
     }
 

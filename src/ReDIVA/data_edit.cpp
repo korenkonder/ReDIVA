@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#if defined(ReDIVA_DEV)
 #include "data_edit.hpp"
 #include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/rob.hpp"
@@ -544,5 +543,4 @@ void DataEdit::reset() {
     frame = 0;
     frame_count = 0;
 }
-#endif
 #endif

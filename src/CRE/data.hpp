@@ -20,7 +20,6 @@
 
 enum data_type {
     DATA_AFT = 0,
-#if defined(CRE_DEV)
     DATA_F2LE,
     DATA_F2BE,
     DATA_FT,
@@ -28,7 +27,6 @@ enum data_type {
     DATA_VRFL,
     DATA_X,
     DATA_XHD,
-#endif
     DATA_MAX,
 };
 
@@ -56,14 +54,12 @@ struct data_struct_path {
     ~data_struct_path();
 };
 
-#if defined(CRE_DEV)
 struct data_f2 {
     bone_database bone_data;
 
     data_f2();
     ~data_f2();
 };
-#endif
 
 struct data_ft {
     aet_database aet_db;
@@ -79,31 +75,23 @@ struct data_ft {
     ~data_ft();
 };
 
-#if defined(CRE_DEV)
 struct data_x {
     bone_database bone_data;
 
     data_x();
     ~data_x();
 };
-#endif
 
 struct data_struct {
     data_type type;
     bool ready;
     std::vector<data_struct_path> data_paths;
-#if defined(CRE_DEV)
     std::vector<std::string> glitter_list_names;
     prj::vector_pair<uint64_t, const char*> glitter_list_fnv1a64m;
     prj::vector_pair<uint64_t, const char*>  glitter_list_murmurhash;
-#endif
-#if defined(CRE_DEV)
     data_f2 data_f2;
-#endif
     data_ft data_ft;
-#if defined(CRE_DEV)
     data_x data_x;
-#endif
 
     data_struct();
     ~data_struct();

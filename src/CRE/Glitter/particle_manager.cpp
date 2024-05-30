@@ -18,9 +18,7 @@ namespace Glitter {
     }
 
     GltParticleManager::GltParticleManager() :
-#if defined(CRE_DEV)
         selected_scene(), selected_effect(), selected_emitter(), selected_particle(),
-#endif
         bone_data(), frame_rate(), cam(), flags(),
         scene_load_counter(), texture_counter(), draw_selected() {
         field_D0 = 20.0f;
@@ -123,7 +121,6 @@ namespace Glitter {
             i = effect_groups.erase(i);
         }
 
-#if defined(CRE_DEV)
         bool local = false;
         for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
@@ -163,18 +160,15 @@ namespace Glitter {
             enum_or(flags, PARTICLE_MANAGER_LOCAL);
         else
             enum_and(flags, ~PARTICLE_MANAGER_LOCAL);
-#endif
     }
 
     uint64_t GltParticleManager::CalculateHash(const char* str) {
         return hash_utf8_fnv1a64m(str);
     }
 
-#if defined(CRE_DEV)
     bool GltParticleManager::CheckHasLocalEffect() {
         return!!(flags & PARTICLE_MANAGER_LOCAL);
     }
-#endif
 
     bool GltParticleManager::CheckNoFileReaders(uint64_t hash) {
         auto elem = effect_groups.find(hash);
@@ -194,14 +188,10 @@ namespace Glitter {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter) {
                 if (!scene_counter.index) {
-#if defined(CRE_DEV)
                     if (i->type == Glitter::X)
                         return !(i->flags & SCENE_ENDED) && !i->HasEnded(true);
                     else
                         return !i->HasEnded(true);
-#else
-                    return !i->HasEnded(true);
-#endif
                 }
                 else
                     return i->HasEnded(scene_counter.index, true);
@@ -209,7 +199,6 @@ namespace Glitter {
         return false;
     }
 
-#if defined(CRE_DEV)
     void GltParticleManager::CheckSceneHasLocalEffect(Scene* sc) {
         if (sc->type != Glitter::X)
             return;
@@ -219,7 +208,6 @@ namespace Glitter {
 
         sc->fade_frame = 30.0f;
     }
-#endif
 
     void GltParticleManager::CtrlScenes() {
         camera* c = rctx_ptr->camera;
@@ -233,7 +221,7 @@ namespace Glitter {
 
         for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
-    #if defined(CRE_DEV)
+
             if (!scene || scene->type != Glitter::X && scene->HasEnded(true)) {
                 delete scene;
                 i = scenes.erase(i);
@@ -250,16 +238,15 @@ namespace Glitter {
             }
             else
                 i++;
-    #else
-            if (!scene || scene->HasEnded(true)) {
+
+            /*if (!scene || scene->HasEnded(true)) {
                 delete scene;
                 i = scenes.erase(i);
             }
             else {
                 scene->Ctrl(this, delta_frame);
                 i++;
-            }
-    #endif
+            }*/
         }
     }
 
@@ -277,13 +264,9 @@ namespace Glitter {
         cam.rotation_y = c->rotation.y;
 
         for (Scene*& i : scenes) {
-            if (!i)
+            if (!i || draw_selected && selected_scene && selected_scene != i)
                 continue;
 
-    #if defined(CRE_DEV)
-            if (draw_selected && selected_scene && selected_scene != i)
-                continue;
-    #endif
             i->Disp(this, disp_type);
         }
 
@@ -316,16 +299,14 @@ namespace Glitter {
             }
 
             if (free) {
-#if defined(CRE_DEV)
                 if (!(scene->flags & SCENE_ENDED)) {
                     enum_or(scene->flags, SCENE_ENDED);
                     scene->fade_frame_left = scene->fade_frame;
                 }
                 i++;
-#else
-                delete scene;
-                i = scenes.erase(i);
-#endif
+
+                //delete scene;
+                //i = scenes.erase(i);
             }
             break;
         }
@@ -500,9 +481,7 @@ namespace Glitter {
                 size_t id = 0;
                 for (Scene*& i : scenes) {
                     if (i && i->ResetEffect(this, effect_hash, &id)) {
-#if defined(CRE_DEV)
                         CheckSceneHasLocalEffect(i);
-#endif
 
                         SceneCounter counter = i->counter;
                         if (i->type == Glitter::X)
@@ -561,9 +540,7 @@ namespace Glitter {
                         }
                         id++;
                     }
-#if defined(CRE_DEV)
                 CheckSceneHasLocalEffect(i);
-#endif
 
                 SceneCounter counter = i->counter;
                 if (i->type == Glitter::X)
@@ -599,9 +576,7 @@ namespace Glitter {
                 }
                 id++;
             }
-#if defined(CRE_DEV)
         CheckSceneHasLocalEffect(scene);
-#endif
         scenes.push_back(scene);
 
         if (scene->type == Glitter::X)
@@ -682,9 +657,7 @@ namespace Glitter {
                     for (Effect*& j : eff_group->effects)
                         if (j)
                             i->InitEffect(this, j, id++, appear_now);
-#if defined(CRE_DEV)
                     CheckSceneHasLocalEffect(i);
-#endif
 
                     SceneCounter counter = i->counter;
                     if (i->type == Glitter::X)
@@ -704,9 +677,7 @@ namespace Glitter {
         for (Effect*& i : eff_group->effects)
             if (i)
                 scene->InitEffect(this, i, id++, appear_now);
-#if defined(CRE_DEV)
         CheckSceneHasLocalEffect(scene);
-#endif
         scenes.push_back(scene);
         return counter;
     }
@@ -718,9 +689,7 @@ namespace Glitter {
         if (!(load_flags & 0x02) && scenes.size())
             for (Scene*& i : scenes)
                 if (i && i->ResetEffect(this, hash)) {
-#if defined(CRE_DEV)
                     CheckSceneHasLocalEffect(i);
-#endif
 
                     size_t id = 0;
                     for (SceneEffect& j : i->effects)
@@ -771,9 +740,7 @@ namespace Glitter {
                             }
                             id++;
                         }
-#if defined(CRE_DEV)
                         CheckSceneHasLocalEffect(j);
-#endif
 
                         SceneCounter counter = j->counter;
                         if (j->type == Glitter::X)
@@ -800,9 +767,7 @@ namespace Glitter {
                 }
                 id++;
             }
-#if defined(CRE_DEV)
             CheckSceneHasLocalEffect(scene);
-#endif
             scenes.push_back(scene);
 
             if (scene->type == Glitter::X)
@@ -812,7 +777,6 @@ namespace Glitter {
         return 0;
     }
 
-#if defined(CRE_DEV)
     SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash,
         const char* name, bool appear_now, uint8_t load_flags) {
         SceneCounter counter = LoadSceneEffect(hash, appear_now, load_flags);
@@ -829,7 +793,6 @@ namespace Glitter {
         }
         return counter;
     }
-#endif
 
     bool GltParticleManager::SceneHasNotEnded(SceneCounter counter) {
         for (Scene*& i : scenes)
@@ -845,7 +808,6 @@ namespace Glitter {
             enum_and(flags, ~PARTICLE_MANAGER_PAUSE);
     }
 
-    #if defined(CRE_DEV)
     void GltParticleManager::SetFrame(EffectGroup* effect_group,
         Scene*& scene, float_t curr_frame, float_t prev_frame,
         const Counter& counter, const Random& random, bool reset) {
@@ -893,7 +855,6 @@ namespace Glitter {
                     s->Ctrl(this, delta_frame);
         }
     }
-    #endif
 
     void GltParticleManager::SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
         uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a) {
@@ -907,7 +868,6 @@ namespace Glitter {
             }
     }
 
-    #if defined(CRE_DEV)
     void GltParticleManager::SetSceneEffectReqFrame(SceneCounter scene_counter, float_t req_frame) {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter) {
@@ -937,7 +897,6 @@ namespace Glitter {
             break;
         }
     }
-    #endif
 
     void GltParticleManager::UnloadEffectGroup(uint64_t hash) {
         for (auto i = file_readers.begin(); i != file_readers.end();)

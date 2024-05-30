@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#if defined(CRE_DEV)
 #include "shader_dev.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "gl_state.hpp"
@@ -67,4 +66,3 @@ const size_t shader_dev_table_size =
     sizeof(shader_dev_table) / sizeof(shader_table);
 
 shader_set_data shaders_dev;
-#endif

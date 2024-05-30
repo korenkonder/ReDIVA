@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#if defined(ReDIVA_DEV)
 #define BAKE_DOF (0)
 #define BAKE_PNG (0)
 #define BAKE_VIDEO (0)
@@ -28,5 +27,4 @@
 #define BAKE_VIDEO_ALPHA (0)
 #undef BAKE_PNG
 #elif BAKE_PNG
-#endif
 #endif

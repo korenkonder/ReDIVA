@@ -15,11 +15,9 @@ enum GameStateEnum {
     GAME_STATE_DATA_TEST,
     GAME_STATE_TEST_MODE,
     GAME_STATE_APP_ERROR,
-#if defined(ReDIVA_DEV)
     GAME_STATE_GLITTER_EDITOR, // Added
 #if DATA_EDIT
     GAME_STATE_DATA_EDIT, // Added
-#endif
 #endif
     GAME_STATE_MAX,
 };
@@ -66,11 +64,9 @@ enum SubGameStateEnum {
     SUB_GAME_STATE_DATA_TEST_COLLECTION_CARD,
     SUB_GAME_STATE_TEST_MODE_MAIN,
     SUB_GAME_STATE_APP_ERROR,
-#if defined(ReDIVA_DEV)
     SUB_GAME_STATE_GLITTER_EDITOR, // Added
 #if DATA_EDIT
     SUB_GAME_STATE_DATA_EDIT, // Added
-#endif
 #endif
     SUB_GAME_STATE_MAX,
 };

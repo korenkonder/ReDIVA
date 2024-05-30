@@ -17,9 +17,7 @@ static char default_config[] = "#AFT\n\n\n";
 
 static void data_free_inner(data_struct* ds);
 static void data_load_inner(stream& s);
-#if defined(CRE_DEV)
 static void data_load_glitter_list(data_struct* ds, const char* path);
-#endif
 
 void data_struct_init() {
     data_list = new data_struct[8];
@@ -144,7 +142,6 @@ void data_struct_load_db() {
         }
     }
 
-#if defined(CRE_DEV)
     if (data_list[DATA_F2BE].ready) {
         data_struct* ds = &data_list[DATA_F2BE];
     }
@@ -199,7 +196,6 @@ void data_struct_load_db() {
                 "bone_data.bon", bone_database::load_file);
         }
     }
-#endif
 }
 
 void data_struct_free() {
@@ -207,7 +203,7 @@ void data_struct_free() {
         data_struct* ds = &data_list[DATA_AFT];
         data_ft* d = &ds->data_ft;
     }
-#if defined(CRE_DEV)
+
     if (data_list[DATA_F2BE].ready) {
         data_struct* ds = &data_list[DATA_F2BE];
         data_f2* d = &ds->data_f2;
@@ -242,7 +238,6 @@ void data_struct_free() {
         data_struct* ds = &data_list[DATA_XHD];
         data_x* d = &ds->data_x;
     }
-#endif
 
     for (int32_t i = DATA_AFT; i < DATA_MAX; i++)
         data_free_inner(&data_list[i]);
@@ -839,7 +834,6 @@ data_struct_path::~data_struct_path() {
 
 }
 
-#if defined(CRE_DEV)
 data_f2::data_f2() {
 
 }
@@ -847,7 +841,6 @@ data_f2::data_f2() {
 data_f2::~data_f2() {
 
 }
-#endif
 
 data_ft::data_ft() {
 
@@ -857,7 +850,6 @@ data_ft::~data_ft() {
 
 }
 
-#if defined(CRE_DEV)
 data_x::data_x() {
 
 }
@@ -865,13 +857,11 @@ data_x::data_x() {
 data_x::~data_x() {
 
 }
-#endif
 
 static void data_free_inner(data_struct* ds) {
     ds->data_paths.clear();
     ds->data_paths.shrink_to_fit();
 
-#if defined(CRE_DEV)
     ds->glitter_list_names.clear();
     ds->glitter_list_names.shrink_to_fit();
     switch (ds->type) {
@@ -890,7 +880,6 @@ static void data_free_inner(data_struct* ds) {
         ds->glitter_list_fnv1a64m.shrink_to_fit();
         break;
     }
-#endif
     ds->ready = false;
 }
 
@@ -918,7 +907,6 @@ static void data_load_inner(stream& s) {
             ds = &data_list[DATA_AFT];
             add_data = "mdata";
         }
-#if defined(CRE_DEV)
         else if (!str_utils_compare(s, "#F2BE")) {
             ds = &data_list[DATA_F2BE];
             add_data = "dlc";
@@ -950,13 +938,11 @@ static void data_load_inner(stream& s) {
             main_rom = "cnt_rom";
             add_data_rom = "";
         }
-#endif
         else
             continue;
 
         data_free_inner(ds);
 
-#if defined(CRE_DEV)
         if (i + 2 >= count)
             continue;
 
@@ -968,16 +954,6 @@ static void data_load_inner(stream& s) {
             continue;
 
         data_load_glitter_list(ds, glitter_list);
-#else
-        char* data_paths;
-        if (i + 1 < count)
-            data_paths = lines[i + 1];
-        else if (i < count)
-            data_paths = (char*)".";
-        else
-            continue;
-        i++;
-#endif
 
         char* t = data_paths;
         size_t count = 1;
@@ -1081,7 +1057,6 @@ static void data_load_inner(stream& s) {
     free_def(lines);
 }
 
-#if defined(CRE_DEV)
 static void data_load_glitter_list(data_struct* ds, const char* path) {
     file_stream s;
     s.open(path, "rb");
@@ -1138,4 +1113,3 @@ static void data_load_glitter_list(data_struct* ds, const char* path) {
     }
     free_def(data);
 }
-#endif

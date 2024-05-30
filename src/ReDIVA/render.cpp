@@ -145,17 +145,9 @@ const double_t render_scale_table[] = {
 };
 
 #if defined(DEBUG)
-#if defined(ReDIVA_DEV)
-static const char* application_name = "ReDIVADev Debug";
-#else
 static const char* application_name = "ReDIVA Debug";
-#endif
-#else
-#if defined(ReDIVA_DEV)
-static const char* application_name = "ReDIVADev";
 #else
 static const char* application_name = "ReDIVA";
-#endif
 #endif
 
 static int32_t old_scale_index;
@@ -209,9 +201,7 @@ static void render_shaders_load();
 static void render_shaders_free();
 
 static bool render_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash);
-#if ReDIVA_DEV
 static bool render_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash);
-#endif
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
 static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
@@ -645,7 +635,6 @@ static render_context* render_context_load() {
 
     Glitter::glt_particle_manager->bone_data = aft_bone_data;
 
-#if defined(CRE_DEV)
     if (false) {
         char buf[0x200];
         std::vector<uint32_t> obj_set_ids;
@@ -929,7 +918,6 @@ static render_context* render_context_load() {
             obj_set_id_name.clear();
         }
     }
-#endif
 
     render_resize_fb(rctx, false);
 
@@ -1136,13 +1124,11 @@ static void render_context_ctrl(render_context* rctx) {
         game_state_set_game_state_next(GAME_STATE_TEST_MODE);
     else if (Input::IsKeyTapped(GLFW_KEY_F8))
         game_state_set_game_state_next(GAME_STATE_APP_ERROR);
-#if ReDIVA_DEV
     else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
         game_state_set_game_state_next(GAME_STATE_GLITTER_EDITOR); // Added
 #if DATA_EDIT
     else if (Input::IsKeyTapped(GLFW_KEY_F10)) // Added
         game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
-#endif
 #endif
 
     classes_process_ctrl(classes, classes_count);
@@ -1360,16 +1346,13 @@ struct shaders_load_struct {
 static void render_shaders_load() {
     shaders_load_struct load_ft = { &shaders_ft, "ft" };
     data_list[DATA_AFT].load_file(&load_ft, "rom/", "ft_shaders.farc", render_load_ft_shaders);
-#if ReDIVA_DEV
+
     shaders_load_struct load_dev = { &shaders_dev, "dev" };
     data_list[DATA_AFT].load_file(&load_dev, "rom/", "dev_shaders.farc", render_load_dev_shaders);
-#endif
 }
 
 static void render_shaders_free() {
-#if ReDIVA_DEV
     shaders_dev.unload();
-#endif
     shaders_ft.unload();
 }
 
@@ -1387,7 +1370,6 @@ static bool render_load_ft_shaders(void* data, const char* path, const char* fil
     return true;
 }
 
-#if ReDIVA_DEV
 static bool render_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash) {
     shaders_load_struct* load = (shaders_load_struct*)data;
     std::string s;
@@ -1400,18 +1382,15 @@ static bool render_load_dev_shaders(void* data, const char* path, const char* fi
         0, 0, 0, 0);
     return true;
 }
-#endif
 
 static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     if (!count || !paths)
         return;
 
-#if ReDIVA_DEV
     if (app::TaskWork::has_task(&glitter_editor)) {
         glitter_editor.file.assign(paths[0]);
         glitter_editor.load_popup = true;
     }
-#endif
 
     glfwFocusWindow(window);
 }

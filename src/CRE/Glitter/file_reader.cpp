@@ -77,7 +77,6 @@ namespace Glitter {
                 ret = true;
         }
 
-#if defined(CRE_DEV)
         if (type == Glitter::X)
             for (Mesh& i : effect_group->meshes)
                 if (!i.ready && i.object_set_hash != hash_murmurhash_empty && i.object_set_hash != -1)
@@ -85,7 +84,6 @@ namespace Glitter {
                         ret = true;
                     else
                         i.ready = true;
-#endif
 
         if (!ret) {
             effect_group = 0;
@@ -236,14 +234,12 @@ namespace Glitter {
                 return true;
         }
         else if (GPM_VAL->AppendEffectGroup(hash, eff_group, this)) {
-#if defined(CRE_DEV)
             if (type == Glitter::X)
                 for (Mesh& i : eff_group->meshes)
                     if (i.object_set_hash != hash_murmurhash_empty) {
                         object_storage_load_set_hash(file_handler->ptr->ds, i.object_set_hash);
                         i.load = true;
                     }
-#endif
 
             if (!init_scene)
                 return true;
@@ -776,11 +772,9 @@ namespace Glitter {
                         }
         }
 
-#if defined(CRE_DEV)
         extern bool glitter_editor_enable;
         if (glitter_editor_enable)
             c->FitKeysIntoCurve(type);
-#endif
     }
 
     bool FileReader::UnpackDivaList(f2_struct* st, EffectGroup* eff_group) {

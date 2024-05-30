@@ -6,12 +6,10 @@
 #include "glitter.hpp"
 
 namespace Glitter {
-#if defined(CRE_DEV)
     static double_t glitter_curve_add_key(bool has_error,
         bool has_error_lerp, bool has_error_hermite, double_t* a, double_t* b, int32_t frame,
         const uint8_t step, size_t i, double_t t1, double_t t2, double_t t2_old,
         std::vector<Curve::KeyRev>* keys_rev);
-#endif
 
     Curve::Key::Key() : type(), frame(), value(), tangent1(), tangent2(), random_range() {
 
@@ -35,7 +33,6 @@ namespace Glitter {
         this->random_range = random_range;
     }
 
-#if defined(CRE_DEV)
     Curve::KeyRev::KeyRev() : type(), frame(), value(), tangent1(), tangent2(), random_range() {
 
     }
@@ -57,7 +54,6 @@ namespace Glitter {
         this->tangent2 = tangent2;
         this->random_range = random_range;
     }
-#endif
 
     Curve::Curve(GLT) : type(), repeat(),
         start_time(), end_time(), flags(), random_range() {
@@ -70,13 +66,11 @@ namespace Glitter {
 
     }
 
-#if defined(CRE_DEV)
     void Curve::AddValue(GLT,  double_t val) {
         for (Curve::KeyRev& i : keys_rev)
             i.value += val;
         Recalculate(GLT_VAL);
     }
-#endif
 
     bool Curve::F2GetValue(GLT, float_t frame,
         float_t* value, int32_t random_value, Random* random) {
@@ -213,7 +207,6 @@ namespace Glitter {
             ? -key.random_range : 0.0f, key.random_range);
     }
 
-#if defined(CRE_DEV)
     inline static void key_to_key_rev(Curve::KeyRev& dst,
         const Curve::Key& src, bool baked_x = false, bool negate = false) {
         dst.type = src.type;
@@ -611,7 +604,6 @@ namespace Glitter {
                 frame, val, rand_range), baked_x, negate);
         }
     }
-#endif
 
     bool Curve::XGetValue(float_t frame,
         float_t* value, int32_t random_value, Random* random) {
@@ -756,9 +748,7 @@ namespace Glitter {
         flags = curv.flags;
         random_range = curv.random_range;
         keys.assign(curv.keys.begin(), curv.keys.end());
- #if defined(CRE_DEV)
         keys_rev.assign(curv.keys_rev.begin(), curv.keys_rev.end());
-#endif
         version = curv.version;
         keys_version = curv.keys_version;
         return *this;
@@ -800,7 +790,6 @@ namespace Glitter {
         next %= count;
     }
 
-#if defined(CRE_DEV)
     static double_t glitter_curve_add_key(bool has_error,
         bool has_error_lerp, bool has_error_hermite, double_t* a, double_t* b, int32_t frame,
         const uint8_t step, size_t i, double_t t1, double_t t2, double_t t2_old,
@@ -821,5 +810,4 @@ namespace Glitter {
             keys_rev->push_back(Curve::KeyRev(KEY_CONSTANT, frame, a[0], b[0]));
         return 0.0;
     }
-#endif
 }

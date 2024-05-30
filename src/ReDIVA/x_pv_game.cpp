@@ -3,7 +3,6 @@
     GitHub/GitLab: korenkonder
 */
 
-#if defined(ReDIVA_DEV)
 #include "x_pv_game.hpp"
 #include "../CRE/light_param/light.hpp"
 #include "../CRE/light_param.hpp"
@@ -11121,5 +11120,4 @@ static uint32_t replace_texture_id(uint32_t id,
     replace_names(name);
     return dst_tex_db->get_texture_id(name.c_str());
 }
-#endif
 #endif

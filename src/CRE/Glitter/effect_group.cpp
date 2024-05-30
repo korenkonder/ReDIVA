@@ -17,7 +17,6 @@ namespace Glitter {
     }
 
     EffectGroup::~EffectGroup() {
-#if defined(CRE_DEV)
         for (Mesh& i : meshes)
             if (i.object_set_hash != hash_murmurhash_empty) {
                 object_storage_unload_set(i.object_set_hash);
@@ -25,7 +24,6 @@ namespace Glitter {
             }
 
         meshes.clear();
-#endif
 
         if (resources) {
             texture_array_free(resources);

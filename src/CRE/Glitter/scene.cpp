@@ -13,13 +13,12 @@ namespace Glitter {
         emission = 1.0f;
         type = eff_group->type;
         effect_group = eff_group;
-#if defined(CRE_DEV)
         delta_frame_history = 0.0f;
         skip = false;
         fade_frame = -1.0f;
         fade_frame_left = -1.0f;
         frame_rate = 0;
-#endif
+
         if (eff_group) {
             effects.reserve(eff_group->effects.size());
             emission = eff_group->emission;
@@ -48,16 +47,14 @@ namespace Glitter {
     void Scene::CalcDisp(GPM) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
-#if defined(CRE_DEV)
                 if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
                     && GPM_VAL->selected_effect != i.ptr)
                     continue;
-#endif
+
                 i.ptr->CalcDisp(GPM_VAL);
             }
     }
 
-#if defined(CRE_DEV)
     bool Scene::CanDisp(DispType disp_type, bool a3) {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
@@ -67,7 +64,6 @@ namespace Glitter {
             }
         return false;
     }
-#endif
 
     void Scene::Ctrl(GPM, float_t delta_frame) {
         static int32_t call_count;
@@ -76,7 +72,6 @@ namespace Glitter {
                 continue;
 
             EffectInst* eff = i.ptr;
-#if defined(CRE_DEV)
             bool v13 = false;
             bool v14 = false;
             if (v14)
@@ -108,9 +103,8 @@ namespace Glitter {
                 _delta_frame = req_frame;
                 req_frame = -1.0f;
             }
-#else
-            eff->Ctrl(GPM_VAL, type, delta_frame, emission);
-#endif
+
+            //eff->Ctrl(GPM_VAL, type, delta_frame, emission);
         }
     }
 
@@ -120,11 +114,10 @@ namespace Glitter {
 
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
-#if defined(CRE_DEV)
                 if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
                     && GPM_VAL->selected_effect != i.ptr)
                     continue;
-#endif
+
                 i.ptr->Disp(GPM_VAL, disp_type);
             }
     }
@@ -290,10 +283,8 @@ namespace Glitter {
         effect.disp = true;
         effects.push_back(effect);
 
-#if defined(CRE_DEV)
         if (type == Glitter::X)
             enum_and(flags, ~SCENE_ENDED);
-#endif
     }
 
     bool Scene::ResetCheckInit(GPM, float_t* a2) {
@@ -307,7 +298,6 @@ namespace Glitter {
     }
 
     bool Scene::ResetEffect(GPM, uint64_t effect_hash, size_t* id) {
-#if defined(CRE_DEV)
         if (type == Glitter::X) {
             if (effect_hash == hash_murmurhash_empty) {
                 for (SceneEffect& i : effects)
@@ -334,7 +324,6 @@ namespace Glitter {
             }
             return false;
         }
-#endif
 
         if (type == Glitter::FT && effect_hash == hash_fnv1a64m_empty
             || type != Glitter::FT && effect_hash == hash_murmurhash_empty) {
@@ -348,9 +337,7 @@ namespace Glitter {
                 if (i.disp && i.ptr && i.ptr->data.name_hash == effect_hash) {
                     i.ptr->Reset(GPM_VAL, type, this);
 
-#if defined(CRE_DEV)
                     enum_and(flags, ~SCENE_ENDED);
-#endif
                     return true;
                 }
         return false;
@@ -389,7 +376,6 @@ namespace Glitter {
         return false;
     }
 
-#if defined(CRE_DEV)
     void Scene::SetFrameRate(FrameRateControl* frame_rate) {
         this->frame_rate = frame_rate;
     }
@@ -407,7 +393,6 @@ namespace Glitter {
                     break;
                 }
     }
-#endif
 
     SceneCounter::SceneCounter(uint32_t counter) {
         this->index = 0;
