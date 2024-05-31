@@ -2,9 +2,6 @@
 bin
 lib
 obj
-src/ReDIVA/imgui
-src/ReDIVA/lodepng
-src/ReDIVA/meshoptimizer
 *.aps
 *.cs
 *.rc
