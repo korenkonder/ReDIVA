@@ -521,7 +521,7 @@ bool pv_game_data::sub_140119960(bool* has_target, int64_t* dsc_time, int32_t* t
         } break;
         case DSC_FT_TARGET_FLYING_TIME: {
             int32_t _target_flying_time = data[0];
-            if (target_flying_time >= 0)
+            if (*target_flying_time >= 0)
                 *target_flying_time = 1000000LL * _target_flying_time;
         } break;
         case DSC_FT_TARGET_FLAG: {
