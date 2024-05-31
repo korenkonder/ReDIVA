@@ -116,7 +116,7 @@ namespace dw_gui_detail {
             RootKeySelection();
             virtual ~RootKeySelection() override;
 
-            virtual void Field_8(dw::Widget::KeyCallbackData data) override;
+            virtual void Field_8(const dw::Widget::KeyCallbackData& data) override;
         };
 
         dw::Shell* selected_shell;
@@ -387,15 +387,15 @@ namespace dw {
         text.assign(str);
     }
 
-    void Widget::SetSize(vec2 value) {
+    void Widget::SetSize(const vec2& value) {
         rect.size = value;
     }
 
-    int32_t Widget::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t Widget::KeyCallback(const Widget::KeyCallbackData& data) {
         return 0;
     }
 
-    int32_t Widget::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Widget::MouseCallback(const Widget::MouseCallbackData& data) {
         return 0;
     }
 
@@ -403,7 +403,7 @@ namespace dw {
         return rect.pos;
     }
 
-    bool Widget::CheckHitPos(vec2 hit_pos) {
+    bool Widget::CheckHitPos(const vec2& hit_pos) {
         rectangle rect = GetRectangle();
         return rect.pos.x <= hit_pos.x && hit_pos.x < rect.pos.x + rect.size.x
             && rect.pos.y <= hit_pos.y && hit_pos.y < rect.size.y + rect.pos.y;
@@ -488,7 +488,7 @@ namespace dw {
         Widget::Reset();
     }
 
-    int32_t Control::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t Control::KeyCallback(const Widget::KeyCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -505,7 +505,7 @@ namespace dw {
         return 0;
     }
 
-    int32_t Control::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Control::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -627,7 +627,7 @@ namespace dw {
         field_68 = !value;
     }
 
-    Widget* Control::GetHitWidget(vec2 hit_pos) {
+    Widget* Control::GetHitWidget(const vec2& hit_pos) {
         if (CheckHitPos(hit_pos))
             return this;
         return 0;
@@ -677,7 +677,7 @@ namespace dw {
         Control::Reset();
     }
 
-    int32_t Scrollable::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Scrollable::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!v_bar)
             return Control::MouseCallback(data);
 
@@ -688,16 +688,17 @@ namespace dw {
         return ret;
     }
 
-    void Scrollable::SetSize(vec2 value) {
+    void Scrollable::SetSize(const vec2& value) {
         Widget::SetSize(value);
 
+        vec2 size = value;
         if (flags & FLAG_800)
-            value -= 2.0f * 2.0f;
+            size -= 2.0f * 2.0f;
 
         if (v_bar) {
-            v_bar->rect.pos.x = value.x - v_bar->rect.size.x;
+            v_bar->rect.pos.x = size.x - v_bar->rect.size.x;
             v_bar->rect.pos.y = 0.0f;
-            v_bar->SetWidth(value.y);
+            v_bar->SetWidth(size.y);
         }
     }
 
@@ -709,7 +710,7 @@ namespace dw {
             v_bar->SetFont(value);
     }
 
-    Widget* Scrollable::GetHitWidget(vec2 hit_pos) {
+    Widget* Scrollable::GetHitWidget(const vec2& hit_pos) {
         if (!CheckHitPos(hit_pos))
             return 0;
 
@@ -772,14 +773,14 @@ namespace dw {
         Scrollable::Reset();
     }
 
-    int32_t Composite::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t Composite::KeyCallback(const Widget::KeyCallbackData& data) {
         if (current_control != -1 && current_control < controls.size())
             return controls[current_control]->KeyCallback(data);
         else
             return 0;
     }
 
-    int32_t Composite::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Composite::MouseCallback(const Widget::MouseCallbackData& data) {
         for (Control*& i : controls)
             if (i->CheckHitPos(data.pos))
                 return i->MouseCallback(data);
@@ -787,7 +788,7 @@ namespace dw {
         return Scrollable::MouseCallback(data);
     }
 
-    void Composite::SetSize(vec2 size) {
+    void Composite::SetSize(const vec2& size) {
         Scrollable::SetSize(size);
         layout->SetSize(this);
     }
@@ -809,7 +810,7 @@ namespace dw {
         return current_control == -1 && Field_C0();
     }
 
-    Widget* Composite::GetHitWidget(vec2 hit_pos) {
+    Widget* Composite::GetHitWidget(const vec2& hit_pos) {
         if (!CheckHitPos(hit_pos))
             return Scrollable::GetHitWidget(hit_pos);
 
@@ -954,7 +955,7 @@ namespace dw {
         Composite::Reset();
     }
 
-    int32_t Shell::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t Shell::KeyCallback(const Widget::KeyCallbackData& data) {
         if (!GetDisp())
             return 0;
 
@@ -966,7 +967,7 @@ namespace dw {
         return Composite::KeyCallback(data);
     }
 
-    int32_t Shell::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Shell::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!GetDisp())
             return 0;
 
@@ -1002,7 +1003,7 @@ namespace dw {
         return Composite::MouseCallback(data);
     }
 
-    void Shell::SetSize(vec2 size) {
+    void Shell::SetSize(const vec2& size) {
         Widget::SetSize(size);
         if (flags & CHECKBOX) {
             if (close_button) {
@@ -1037,7 +1038,7 @@ namespace dw {
         return this == dw_gui_detail_display->selected_shell && GetDisp();
     }
 
-    Widget* Shell::GetHitWidget(vec2 hit_pos) {
+    Widget* Shell::GetHitWidget(const vec2& hit_pos) {
         rectangle rect = GetRectangle();
         if (rect.pos.x > hit_pos.x || hit_pos.x >= rect.pos.x + rect.size.x
             || rect.pos.y > hit_pos.y || hit_pos.y >= rect.size.y + rect.pos.y)
@@ -1142,15 +1143,15 @@ namespace dw {
 
     }
 
-    void KeyAdapter::Field_8(Widget::KeyCallbackData data) {
+    void KeyAdapter::Field_8(const Widget::KeyCallbackData& data) {
 
     }
 
-    void KeyAdapter::Field_10(Widget::KeyCallbackData data) {
+    void KeyAdapter::Field_10(const Widget::KeyCallbackData& data) {
 
     }
 
-    void KeyAdapter::Field_18(Widget::KeyCallbackData data) {
+    void KeyAdapter::Field_18(const Widget::KeyCallbackData& data) {
 
     }
 
@@ -1170,19 +1171,19 @@ namespace dw {
 
     }
 
-    void MouseAdapter::Field_8(Widget::MouseCallbackData data) {
+    void MouseAdapter::Field_8(const Widget::MouseCallbackData& data) {
 
     }
 
-    void MouseAdapter::Field_10(Widget::MouseCallbackData data) {
+    void MouseAdapter::Field_10(const Widget::MouseCallbackData& data) {
 
     }
 
-    void MouseAdapter::Field_18(Widget::MouseCallbackData data) {
+    void MouseAdapter::Field_18(const Widget::MouseCallbackData& data) {
 
     }
 
-    void MouseAdapter::Field_20(Widget::MouseCallbackData data) {
+    void MouseAdapter::Field_20(const Widget::MouseCallbackData& data) {
 
     }
 
@@ -1618,7 +1619,7 @@ namespace dw {
         }
     }
 
-    int32_t Button::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t Button::KeyCallback(const Widget::KeyCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -1641,7 +1642,7 @@ namespace dw {
         return Control::KeyCallback(data);
     }
 
-    int32_t Button::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Button::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -1826,7 +1827,7 @@ namespace dw {
         Scrollable::Reset();
     }
 
-    int32_t List::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t List::KeyCallback(const Widget::KeyCallbackData& data) {
         size_t items_count = items.size();
         if (!data.input[0] || !items_count)
             return Control::KeyCallback(data);
@@ -1898,7 +1899,7 @@ namespace dw {
         return Control::KeyCallback(data);
     }
 
-    int32_t List::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t List::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!Field_A0() || !CheckHitPos(data.pos))
             return 0;
 
@@ -1972,7 +1973,7 @@ namespace dw {
         return 0;
     }
 
-    void List::SetSize(vec2 size) {
+    void List::SetSize(const vec2& size) {
         Scrollable::SetSize(size);
         SetScrollBarParams();
     }
@@ -2228,7 +2229,7 @@ namespace dw {
         Composite::Reset();
     }
 
-    int32_t ListBox::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t ListBox::KeyCallback(const Widget::KeyCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -2238,7 +2239,7 @@ namespace dw {
         return 0;
     }
 
-    int32_t ListBox::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t ListBox::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -2396,7 +2397,7 @@ namespace dw {
 
     }
 
-    int32_t ScrollBar::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t ScrollBar::KeyCallback(const Widget::KeyCallbackData& data) {
         if (!Field_60())
             return 0;
 
@@ -2407,7 +2408,7 @@ namespace dw {
         return 0;
     }
 
-    int32_t ScrollBar::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t ScrollBar::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!Field_60())
             return 0;
 
@@ -2423,7 +2424,7 @@ namespace dw {
         return 0;
     }
 
-    void ScrollBar::SetSize(vec2 size) {
+    void ScrollBar::SetSize(const vec2& size) {
         if (flags & HORIZONTAL) {
             rect.size.x = size.x;
             rect.size.y = font.GetFontGlyphHeight();
@@ -2576,7 +2577,7 @@ namespace dw {
         return { 0.0f, size };
     }
 
-    SelectionListener::CallbackData ScrollBar::sub_1402E5140(Widget::KeyCallbackData key_callback_data) {
+    SelectionListener::CallbackData ScrollBar::sub_1402E5140(const Widget::KeyCallbackData& key_callback_data) {
         SelectionListener::CallbackData callback_data;
         switch (key_callback_data.input[0]) {
         case 0x1000001:
@@ -2606,7 +2607,7 @@ namespace dw {
         return callback_data;
     }
 
-    SelectionListener::CallbackData ScrollBar::sub_1402E5380(Widget::MouseCallbackData mouse_callback_data) {
+    SelectionListener::CallbackData ScrollBar::sub_1402E5380(const Widget::MouseCallbackData& mouse_callback_data) {
         if (field_A6) {
             SelectionListener::CallbackData callback_data;
             if ((mouse_callback_data.input & 1) != 0) {
@@ -2867,7 +2868,7 @@ namespace dw {
         Control::Reset();
     }
 
-    int32_t Slider::KeyCallback(Widget::KeyCallbackData data) {
+    int32_t Slider::KeyCallback(const Widget::KeyCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -2878,7 +2879,7 @@ namespace dw {
         return 0;
     }
 
-    int32_t Slider::MouseCallback(Widget::MouseCallbackData data) {
+    int32_t Slider::MouseCallback(const Widget::MouseCallbackData& data) {
         if (!Field_A0())
             return 0;
 
@@ -2896,7 +2897,7 @@ namespace dw {
         return 0;
     }
 
-    void Slider::SetSize(vec2 value) {
+    void Slider::SetSize(const vec2& value) {
         Widget::SetSize(value);
         scroll_bar->rect.pos.x = value.x - scroll_bar->rect.size.x;
         scroll_bar->rect.pos.y = 0.0f;
@@ -3487,7 +3488,7 @@ dw_gui_detail::Display::RootKeySelection::~RootKeySelection() {
 
 }
 
-void dw_gui_detail::Display::RootKeySelection::Field_8(dw::Widget::KeyCallbackData data) {
+void dw_gui_detail::Display::RootKeySelection::Field_8(const dw::Widget::KeyCallbackData& data) {
 
 }
 

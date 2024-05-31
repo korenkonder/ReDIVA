@@ -1829,18 +1829,21 @@ struct eyes_adjust {
     float_t pos;
 };
 
-struct rob_chara_pv_data_customize_items {
-    int32_t head;
-    int32_t face;
-    int32_t chest;
-    int32_t back;
+union rob_chara_pv_data_item {
+    struct {
+        int32_t head;
+        int32_t face;
+        int32_t chest;
+        int32_t back;
+    };
+    int32_t arr[4];
 };
 
 struct rob_chara_pv_data {
     rob_chara_type type;
-    int8_t field_4;
-    int8_t field_5;
-    int8_t field_6;
+    bool field_4;
+    bool field_5;
+    bool field_6;
     vec3 field_8;
     int16_t rot_y_int16;
     int16_t field_16;
@@ -1849,11 +1852,8 @@ struct rob_chara_pv_data {
     int32_t field_70;
     int32_t motion_face_ids[10];
     int32_t chara_size_index;
-    int8_t height_adjust;
-    union {
-        rob_chara_pv_data_customize_items data;
-        int32_t arr[4];
-    } customize_items;
+    bool height_adjust;
+    rob_chara_pv_data_item item;
     eyes_adjust eyes_adjust;
 };
 

@@ -12,8 +12,8 @@
 #include <vector>
 
 namespace prj {
-    template <class T, class U>
-    class vector_pair : public std::vector<std::pair<T, U>> {
+    template <class T, class U, class Alloc = std::allocator<std::pair<T, U>>>
+    class vector_pair : public std::vector<std::pair<T, U>, Alloc> {
     public:
         using value_pair = std::pair<T, U>;
 
@@ -34,11 +34,11 @@ namespace prj {
         }
 
         inline void push_back(const value_pair& value) {
-            std::vector<std::pair<T, U>>::push_back(value);
+            std::vector<std::pair<T, U>, Alloc>::push_back(value);
         }
 
         inline void push_back(value_pair&& value) {
-            std::vector<std::pair<T, U>>::push_back(value);
+            std::vector<std::pair<T, U>, Alloc>::push_back(value);
         }
 
         inline void sort() {

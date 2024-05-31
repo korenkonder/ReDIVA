@@ -12,14 +12,14 @@
 #include <vector>
 
 namespace prj {
-    template <class T, class U>
+    template <class T, class U, class Alloc = std::allocator<std::pair<T, U>>>
     class vector_pair_combine {
     public:
         using value_pair = std::pair<T, U>;
         using iterator = typename std::vector<value_pair>::iterator;
         using const_iterator = typename std::vector<value_pair>::const_iterator;
-        std::vector<value_pair> data;
-        std::vector<value_pair> new_data;
+        std::vector<value_pair, Alloc> data;
+        std::vector<value_pair, Alloc> new_data;
 
         inline auto find(const T& key) {
             auto k = data.begin();

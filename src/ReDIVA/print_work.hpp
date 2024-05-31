@@ -40,12 +40,12 @@ struct sprite_text_mesh {
     ~sprite_text_mesh();
 
     spr::SpriteVertex* add_char();
-     void add_set_char(app::text_flags flags,
+    void add_set_char(app::text_flags flags,
         rectangle pos, rectangle uv, color4u8 color);
-     void apply_scale_offset(vec2 scale, vec2 offset);
+    void apply_scale_offset(vec2 scale, vec2 offset);
 
-     static void set_char(spr::SpriteVertex* vtx, app::text_flags flags,
-         rectangle pos, rectangle uv, color4u8 color);
+    static void set_char(spr::SpriteVertex* vtx, app::text_flags flags,
+        rectangle pos, rectangle uv, color4u8 color);
 };
 
 struct PrintWork {

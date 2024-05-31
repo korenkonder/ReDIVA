@@ -189,12 +189,12 @@ namespace dw {
         virtual void Reset();
         virtual std::wstring GetText();
         virtual void SetText(std::wstring& str);
-        virtual void SetSize(vec2 value);
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data);
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data);
+        virtual void SetSize(const vec2& value);
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data);
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data);
         virtual vec2 GetPos();
 
-        bool CheckHitPos(vec2 hit_pos);
+        bool CheckHitPos(const vec2& hit_pos);
         void Free();
         float_t GetFontGlyphHeight();
         rectangle GetRectangle();
@@ -236,8 +236,8 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
         virtual vec2 GetPos() override;
 
         virtual void UpdateLayout();
@@ -253,7 +253,7 @@ namespace dw {
         virtual bool Field_98();
         virtual bool Field_A0();
         virtual void Field_A8(bool value);
-        virtual Widget* GetHitWidget(vec2 hit_pos);
+        virtual Widget* GetHitWidget(const vec2& hit_pos);
 
         void SetParentMenu(Menu* menu);
     };
@@ -270,10 +270,10 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
-        virtual void SetSize(vec2 value) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual void SetSize(const vec2& value) override;
         virtual void SetFont(p_Font& font) override;
-        virtual Widget* GetHitWidget(vec2 hit_pos) override;
+        virtual Widget* GetHitWidget(const vec2& hit_pos) override;
 
         virtual rectangle GetBoundingBox();
 
@@ -293,15 +293,15 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
-        virtual void SetSize(vec2 size) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual void SetSize(const vec2& size) override;
 
         virtual void UpdateLayout() override;
         virtual vec2 GetSize() override;
         virtual bool Field_58() override;
         virtual bool Field_60() override;
-        virtual Widget* GetHitWidget(vec2 hit_pos) override;
+        virtual Widget* GetHitWidget(const vec2& hit_pos) override;
 
         virtual bool Field_C0();
         virtual bool SetCurrentControl(Control* control);
@@ -335,14 +335,14 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
-        virtual void SetSize(vec2 size) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual void SetSize(const vec2& size) override;
         virtual vec2 GetPos() override;
 
         virtual vec2 GetSize() override;
         virtual bool Field_58() override;
-        virtual Widget* GetHitWidget(vec2 hit_pos) override;
+        virtual Widget* GetHitWidget(const vec2& hit_pos) override;
 
         virtual rectangle GetBoundingBox() override;
 
@@ -365,9 +365,9 @@ namespace dw {
         KeyListener();
         virtual ~KeyListener();
 
-        virtual void Field_8(Widget::KeyCallbackData data) = 0;
-        virtual void Field_10(Widget::KeyCallbackData data) = 0;
-        virtual void Field_18(Widget::KeyCallbackData data) = 0;
+        virtual void Field_8(const Widget::KeyCallbackData& data) = 0;
+        virtual void Field_10(const Widget::KeyCallbackData& data) = 0;
+        virtual void Field_18(const Widget::KeyCallbackData& data) = 0;
     };
 
     class KeyAdapter : public KeyListener {
@@ -375,9 +375,9 @@ namespace dw {
         KeyAdapter();
         virtual ~KeyAdapter() override;
 
-        virtual void Field_8(Widget::KeyCallbackData data) override;
-        virtual void Field_10(Widget::KeyCallbackData data) override;
-        virtual void Field_18(Widget::KeyCallbackData data) override;
+        virtual void Field_8(const Widget::KeyCallbackData& data) override;
+        virtual void Field_10(const Widget::KeyCallbackData& data) override;
+        virtual void Field_18(const Widget::KeyCallbackData& data) override;
     };
 
     class MouseListener {
@@ -385,10 +385,10 @@ namespace dw {
         MouseListener();
         virtual ~MouseListener();
 
-        virtual void Field_8(Widget::MouseCallbackData data) = 0;
-        virtual void Field_10(Widget::MouseCallbackData data) = 0;
-        virtual void Field_18(Widget::MouseCallbackData data) = 0;
-        virtual void Field_20(Widget::MouseCallbackData data) = 0;
+        virtual void Field_8(const Widget::MouseCallbackData& data) = 0;
+        virtual void Field_10(const Widget::MouseCallbackData& data) = 0;
+        virtual void Field_18(const Widget::MouseCallbackData& data) = 0;
+        virtual void Field_20(const Widget::MouseCallbackData& data) = 0;
     };
 
     class MouseAdapter : public MouseListener {
@@ -396,10 +396,10 @@ namespace dw {
         MouseAdapter();
         virtual ~MouseAdapter() override;
 
-        virtual void Field_8(Widget::MouseCallbackData data) override;
-        virtual void Field_10(Widget::MouseCallbackData data) override;
-        virtual void Field_18(Widget::MouseCallbackData data) override;
-        virtual void Field_20(Widget::MouseCallbackData data) override;
+        virtual void Field_8(const Widget::MouseCallbackData& data) override;
+        virtual void Field_10(const Widget::MouseCallbackData& data) override;
+        virtual void Field_18(const Widget::MouseCallbackData& data) override;
+        virtual void Field_20(const Widget::MouseCallbackData& data) override;
     };
 
     class MouseMoveListener {
@@ -407,7 +407,7 @@ namespace dw {
         MouseMoveListener();
         virtual ~MouseMoveListener();
 
-        virtual void Field_8(Widget::MouseCallbackData data) = 0;
+        virtual void Field_8(const Widget::MouseCallbackData& data) = 0;
     };
 
     class Layout {
@@ -501,8 +501,8 @@ namespace dw {
         virtual ~Button() override;
 
         virtual void Draw() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
 
         virtual vec2 GetSize() override;
 
@@ -525,9 +525,9 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
-        virtual void SetSize(vec2 size) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual void SetSize(const vec2& size) override;
 
         virtual vec2 GetSize() override;
 
@@ -598,8 +598,8 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
 
         virtual vec2 GetSize() override;
         virtual void SetFont(p_Font& value) override;
@@ -728,9 +728,9 @@ namespace dw {
         virtual ~ScrollBar() override;
 
         virtual void Draw() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
-        virtual void SetSize(vec2 value) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual void SetSize(const vec2& value) override;
         virtual vec2 GetPos() override;
 
         virtual Control* GetParentControl();
@@ -751,8 +751,8 @@ namespace dw {
         void AddSelectionListener(SelectionListener* value);
 
         vec2 sub_1402E4790();
-        SelectionListener::CallbackData sub_1402E5140(Widget::KeyCallbackData key_callback_data);
-        SelectionListener::CallbackData sub_1402E5380(Widget::MouseCallbackData mouse_callback_data);
+        SelectionListener::CallbackData sub_1402E5140(const Widget::KeyCallbackData& key_callback_data);
+        SelectionListener::CallbackData sub_1402E5380(const Widget::MouseCallbackData& mouse_callback_data);
         void sub_1402F9670(float_t value);
 
         static void sub_1402E6CC0(SelectionListener::CallbackData callback_data);
@@ -782,9 +782,9 @@ namespace dw {
 
         virtual void Draw() override;
         virtual void Reset() override;
-        virtual int32_t KeyCallback(Widget::KeyCallbackData data) override;
-        virtual int32_t MouseCallback(Widget::MouseCallbackData data) override;
-        virtual void SetSize(vec2 value) override;
+        virtual int32_t KeyCallback(const Widget::KeyCallbackData& data) override;
+        virtual int32_t MouseCallback(const Widget::MouseCallbackData& data) override;
+        virtual void SetSize(const vec2& value) override;
 
         virtual void UpdateLayout() override;
         virtual vec2 GetSize() override;

@@ -873,6 +873,9 @@ bool RobOsageTest::dest() {
 }
 
 void RobOsageTest::disp() {
+    if (chara_id < 0 || chara_id >= ROB_CHARA_COUNT)
+        return;
+
     rob_chara* rob_chr = rob_chara_array_get(chara_id);
     if (rob_chr && !pv_osage_manager_array_get_disp(chara_id)
         && rob_chr->is_visible() && !(rob_chr->data.field_3 & 0x80)) {
