@@ -2383,11 +2383,7 @@ void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_count) {
     float_t last_frame = frame_count - 1.0f;
     current->SetParams(min_def(frame, last_frame), 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
-    float_t _frame = start_frame_slider->scroll_bar->value;
-    if (_frame >= 0.0)
-        _frame = 0.0;
-    else if (_frame > last_frame)
-        _frame = last_frame;
+    float_t _frame = clamp_def(start_frame_slider->scroll_bar->value, 0.0f, last_frame);
     start_frame_slider->SetParams(_frame, 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
     data_test_mot_data_get()->start_frame[start_frame_slider->callback_data.i32] = _frame;
