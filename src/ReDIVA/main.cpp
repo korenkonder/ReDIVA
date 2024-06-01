@@ -23,13 +23,13 @@
 #include <processthreadsapi.h>
 #include <timeapi.h>
 
-bool ssse3;
-bool sse41;
-bool sse42;
-bool aes_ni;
-bool avx;
-bool f16c;
-bool avx2;
+bool cpu_caps_ssse3;
+bool cpu_caps_sse41;
+bool cpu_caps_sse42;
+bool cpu_caps_aes_ni;
+bool cpu_caps_avx;
+bool cpu_caps_f16c;
+bool cpu_caps_avx2;
 
 inline static void next_rand_uint8_t_pointer(uint8_t* arr, size_t length, uint32_t* state) {
     if (!arr || length < 1)
@@ -1229,16 +1229,16 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     int32_t cpuid_data[4] = {};
     __cpuid(cpuid_data, 1);
-    ssse3 = !!(cpuid_data[2] & (1 << 9));
-    sse41 = !!(cpuid_data[2] & (1 << 19));
-    sse42 = !!(cpuid_data[2] & (1 << 20));
-    aes_ni = !!(cpuid_data[2] & (1 << 25));
-    avx = !!(cpuid_data[2] & (1 << 28));
-    f16c = !!(cpuid_data[2] & (1 << 29));
+    cpu_caps_ssse3 = !!(cpuid_data[2] & (1 << 9));
+    cpu_caps_sse41 = !!(cpuid_data[2] & (1 << 19));
+    cpu_caps_sse42 = !!(cpuid_data[2] & (1 << 20));
+    cpu_caps_aes_ni = !!(cpuid_data[2] & (1 << 25));
+    cpu_caps_avx = !!(cpuid_data[2] & (1 << 28));
+    cpu_caps_f16c = !!(cpuid_data[2] & (1 << 29));
 
     int32_t cpuidex_data[4] = {};
     __cpuidex(cpuidex_data, 7, 0);
-    avx2 = !!(cpuidex_data[1] & (1 << 5));
+    cpu_caps_avx2 = !!(cpuidex_data[1] & (1 << 5));
 
     //a3da_to_dft_dsc(269);
 

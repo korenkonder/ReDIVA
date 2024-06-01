@@ -6238,8 +6238,8 @@ bool x_pv_game::ctrl() {
                 __m128 rgb_f32;
                 vec4i rgb_u10;
 
-                extern bool f16c;
-                if (f16c)
+                extern bool cpu_caps_f16c;
+                if (cpu_caps_f16c)
                     for (size_t y = 0, i = height; i; y++, i--) {
                         uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
                         uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
@@ -6305,8 +6305,8 @@ bool x_pv_game::ctrl() {
                 __m128 rgb_f32;
                 vec4i rgb_u10;
 
-                extern bool f16c;
-                if (f16c)
+                extern bool cpu_caps_f16c;
+                if (cpu_caps_f16c)
                     for (size_t y = 0, i = height; i; y++, i--) {
                         uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
                         uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];

@@ -26,8 +26,8 @@ static const uint8_t mmplus_iv[] = {
     0xD5, 0x32, 0x08, 0x54, 0xA2, 0x26, 0x44, 0x14,
 };
 
-bool aes_ni;
-bool f16c;
+bool cpu_caps_aes_ni;
+bool cpu_caps_f16c;
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
     if (argc < 2) {
@@ -64,8 +64,8 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     int32_t cpuid_data[4];
     __cpuid(cpuid_data, 1);
-    aes_ni = (cpuid_data[2] & (1 << 25)) ? true : false;
-    f16c = (cpuid_data[2] & (1 << 29)) ? true : false;
+    cpu_caps_aes_ni = (cpuid_data[2] & (1 << 25)) ? true : false;
+    cpu_caps_f16c = (cpuid_data[2] & (1 << 29)) ? true : false;
 
     aes256_ctx ctx;
     aes256_init_ctx(&ctx, mmplus_key);

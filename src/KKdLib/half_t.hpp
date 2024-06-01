@@ -39,29 +39,29 @@ extern double_t half_to_double_convert(half_t h);
 extern half_t double_to_half_convert(double_t val);
 
 inline float_t half_to_float(half_t h) {
-    extern bool f16c;
-    if (f16c)
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c)
         return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128((uint16_t)h)));
     return half_to_float_convert(h);
 }
 
 inline half_t float_to_half(float_t val) {
-    extern bool f16c;
-    if (f16c)
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c)
         return (half_t)_mm_cvtsi128_si32(_mm_cvtps_ph(_mm_load_ss(&val), _MM_FROUND_CUR_DIRECTION));
     return float_to_half_convert(val);
 }
 
 inline double_t half_to_double(half_t h) {
-    extern bool f16c;
-    if (f16c)
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c)
         return _mm_cvtss_f32(_mm_cvtph_ps(_mm_cvtsi32_si128((uint16_t)h)));
     return half_to_double_convert(h);
 }
 
 inline half_t double_to_half(double_t val) {
-    extern bool f16c;
-    if (f16c)
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c)
         return (half_t)_mm_cvtsi128_si32(_mm_cvtps_ph(_mm_cvtpd_ps(_mm_load_sd(&val)), _MM_FROUND_CUR_DIRECTION));
     return double_to_half_convert(val);
 }

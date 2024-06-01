@@ -2186,8 +2186,8 @@ inline void vec4_to_vec4u16(const vec4& src, vec4u16& dst) {
 }
 
 inline void vec2h_to_vec2(const vec2h& src, vec2& dst) {
-    extern bool f16c;
-    if (f16c) {
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c) {
         dst = vec2::store_xmm(_mm_cvtph_ps(_mm_cvtsi32_si128(*(int32_t*)&src)));
         return;
     }
@@ -2203,8 +2203,8 @@ inline void vec3h_to_vec3(const vec3h& src, vec3& dst) {
 }
 
 inline void vec4h_to_vec4(const vec4h& src, vec4& dst) {
-    extern bool f16c;
-    if (f16c) {
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c) {
         dst = vec4::store_xmm(_mm_cvtph_ps(_mm_cvtsi64_si128(*(int64_t*)&src)));
         return;
     }
@@ -2216,8 +2216,8 @@ inline void vec4h_to_vec4(const vec4h& src, vec4& dst) {
 }
 
 inline void vec2_to_vec2h(const vec2& src, vec2h& dst) {
-    extern bool f16c;
-    if (f16c) {
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c) {
         *(int32_t*)&dst = _mm_cvtsi128_si32(_mm_cvtps_ph(vec2::load_xmm(src), _MM_FROUND_CUR_DIRECTION));
         return;
     }
@@ -2233,8 +2233,8 @@ inline void vec3_to_vec3h(const vec3& src, vec3h& dst) {
 }
 
 inline void vec4_to_vec4h(const vec4& src, vec4h& dst) {
-    extern bool f16c;
-    if (f16c) {
+    extern bool cpu_caps_f16c;
+    if (cpu_caps_f16c) {
         *(int64_t*)&dst = _mm_cvtsi128_si64(_mm_cvtps_ph(vec4::load_xmm(src), _MM_FROUND_CUR_DIRECTION));
         return;
     }
