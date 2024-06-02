@@ -313,28 +313,28 @@ struct string_hash {
     }
 };
 
-inline bool operator >(const string_hash& left, const string_hash& right) {
-    return left.str.compare(right.str) > 0;
-}
-
-inline bool operator <(const string_hash& left, const string_hash& right) {
-    return left.str.compare(right.str) < 0;
-}
-
-inline bool operator >=(const string_hash& left, const string_hash& right) {
-    return left.str.compare(right.str) >= 0;
-}
-
-inline bool operator <=(const string_hash& left, const string_hash& right) {
-    return left.str.compare(right.str) <= 0;
-}
-
-inline bool operator ==(const string_hash& left, const string_hash& right) {
+inline bool operator==(const string_hash& left, const string_hash& right) {
     return !left.str.compare(right.str);
 }
 
-inline bool operator !=(const string_hash& left, const string_hash& right) {
-    return !!left.str.compare(right.str);
+inline bool operator!=(const string_hash& left, const string_hash& right) {
+    return !(left == right);
+}
+
+inline bool operator<(const string_hash& left, const string_hash& right) {
+    return left.str.compare(right.str) < 0;
+}
+
+inline bool operator>(const string_hash& left, const string_hash& right) {
+    return right < left;
+}
+
+inline bool operator<=(const string_hash& left, const string_hash& right) {
+    return !(right < left);
+}
+
+inline bool operator>=(const string_hash& left, const string_hash& right) {
+    return !(left < right);
 }
 
 struct adler_buf {

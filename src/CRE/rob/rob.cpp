@@ -5115,32 +5115,29 @@ pv_data_set_motion::pv_data_set_motion(uint32_t motion_id, std::pair<float_t, in
     this->frame_stage_index = frame_stage_index;
 }
 
-inline bool operator>(const pv_data_set_motion& left, const pv_data_set_motion& right) {
-    return left.motion_id > right.motion_id || (!(right.motion_id > left.motion_id)
-        && left.frame_stage_index > right.frame_stage_index);
+constexpr bool operator==(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return left.motion_id == right.motion_id && left.frame_stage_index == right.frame_stage_index;
 }
 
-inline bool operator<(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+constexpr bool operator!=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return !(left == right);
+}
+
+constexpr bool operator<(const pv_data_set_motion& left, const pv_data_set_motion& right) {
     return left.motion_id < right.motion_id || (!(right.motion_id < left.motion_id)
         && left.frame_stage_index < right.frame_stage_index);
 }
 
-inline bool operator>=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
-    return left.motion_id >= right.motion_id || (!(right.motion_id >= left.motion_id)
-        && left.frame_stage_index >= right.frame_stage_index);
+constexpr bool operator>(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return right < left;
 }
 
-inline bool operator<=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
-    return left.motion_id <= right.motion_id || (!(right.motion_id <= left.motion_id)
-        && left.frame_stage_index <= right.frame_stage_index);
+constexpr bool operator<=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return !(right < left);
 }
 
-inline bool operator ==(const pv_data_set_motion& left, const pv_data_set_motion& right) {
-    return left.motion_id == right.motion_id && left.frame_stage_index == right.frame_stage_index;
-}
-
-inline bool operator !=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
-    return left.motion_id != right.motion_id || left.frame_stage_index != right.frame_stage_index;
+constexpr bool operator>=(const pv_data_set_motion& left, const pv_data_set_motion& right) {
+    return !(left < right);
 }
 
 osage_init_data::osage_init_data() : rob_chr() {

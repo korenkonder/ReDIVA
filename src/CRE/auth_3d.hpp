@@ -848,28 +848,28 @@ struct auth_3d_id {
     void unload(render_context* rctx);
 };
 
-inline bool operator >(const auth_3d_id& left, const auth_3d_id& right) {
-    return left.id > right.id;
-}
-
-inline bool operator <(const auth_3d_id& left, const auth_3d_id& right) {
-    return left.id < right.id;
-}
-
-inline bool operator >=(const auth_3d_id& left, const auth_3d_id& right) {
-    return left.id >= right.id;
-}
-
-inline bool operator <=(const auth_3d_id& left, const auth_3d_id& right) {
-    return left.id <= right.id;
-}
-
-inline bool operator ==(const auth_3d_id& left, const auth_3d_id& right) {
+constexpr bool operator==(const auth_3d_id& left, const auth_3d_id& right) {
     return left.id == right.id;
 }
 
-inline bool operator !=(const auth_3d_id& left, const auth_3d_id& right) {
-    return left.id != right.id;
+constexpr bool operator!=(const auth_3d_id& left, const auth_3d_id& right) {
+    return !(left == right);
+}
+
+constexpr bool operator<(const auth_3d_id& left, const auth_3d_id& right) {
+    return left.id < right.id;
+}
+
+constexpr bool operator>(const auth_3d_id& left, const auth_3d_id& right) {
+    return right < left;
+}
+
+constexpr bool operator<=(const auth_3d_id& left, const auth_3d_id& right) {
+    return !(right < left);
+}
+
+constexpr bool operator>=(const auth_3d_id& left, const auth_3d_id& right) {
+    return !(left < right);
 }
 
 struct auth_3d {

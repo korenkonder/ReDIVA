@@ -266,13 +266,13 @@ namespace prj {
     };
 
     template<class T, class U>
-    bool operator==(const shared_ptr<T>& left,
+    constexpr bool operator==(const shared_ptr<T>& left,
         const shared_ptr<U>& right) {
         return left.get() == right.get();
     }
 
     template<class T, class U>
-    bool operator!=(const shared_ptr<T>& left,
+    constexpr bool operator!=(const shared_ptr<T>& left,
         const shared_ptr<U>& right) {
         return !(left == right);
     }

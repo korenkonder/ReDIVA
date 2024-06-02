@@ -34,28 +34,28 @@ struct spr_info {
     }
 };
 
-inline bool operator >(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left > *(uint32_t*)&right;
-}
-
-inline bool operator <(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left < *(uint32_t*)&right;
-}
-
-inline bool operator >=(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left >= *(uint32_t*)&right;
-}
-
-inline bool operator <=(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left <= *(uint32_t*)&right;
-}
-
-inline bool operator ==(const spr_info& left, const spr_info& right) {
+constexpr bool operator==(const spr_info& left, const spr_info& right) {
     return *(uint32_t*)&left == *(uint32_t*)&right;
 }
 
-inline bool operator !=(const spr_info& left, const spr_info& right) {
-    return *(uint32_t*)&left != *(uint32_t*)&right;
+constexpr bool operator!=(const spr_info& left, const spr_info& right) {
+    return !(left == right);
+}
+
+constexpr bool operator<(const spr_info& left, const spr_info& right) {
+    return *(uint32_t*)&left < *(uint32_t*)&right;
+}
+
+constexpr bool operator>(const spr_info& left, const spr_info& right) {
+    return right < left;
+}
+
+constexpr bool operator<=(const spr_info& left, const spr_info& right) {
+    return !(right < left);
+}
+
+constexpr bool operator>=(const spr_info& left, const spr_info& right) {
+    return !(left < right);
 }
 
 struct spr_db_spr_file {

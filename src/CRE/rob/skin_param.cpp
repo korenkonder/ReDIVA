@@ -65,15 +65,15 @@ struct skin_param_key {
     }
 };
 
-inline bool operator==(const skin_param_key& left, const skin_param_key& right) {
+constexpr bool operator==(const skin_param_key& left, const skin_param_key& right) {
     return left.obj_info == right.obj_info && left.motion_id == right.motion_id && left.frame == right.frame;
 }
 
-inline bool operator!=(const skin_param_key& left, const skin_param_key& right) {
+constexpr bool operator!=(const skin_param_key& left, const skin_param_key& right) {
     return !(left == right);
 }
 
-inline bool operator<(const skin_param_key& left, const skin_param_key& right) {
+constexpr bool operator<(const skin_param_key& left, const skin_param_key& right) {
     if (left.obj_info != right.obj_info)
         return left.obj_info < right.obj_info;
     else if (left.motion_id != right.motion_id)
@@ -84,15 +84,15 @@ inline bool operator<(const skin_param_key& left, const skin_param_key& right) {
         return false;
 }
 
-inline bool operator>(const skin_param_key& left, const skin_param_key& right) {
+constexpr bool operator>(const skin_param_key& left, const skin_param_key& right) {
     return right < left;
 }
 
-inline bool operator<=(const skin_param_key& left, const skin_param_key& right) {
+constexpr bool operator<=(const skin_param_key& left, const skin_param_key& right) {
     return !(right < left);
 }
 
-inline bool operator>=(const skin_param_key& left, const skin_param_key& right) {
+constexpr bool operator>=(const skin_param_key& left, const skin_param_key& right) {
     return !(left < right);
 }
 

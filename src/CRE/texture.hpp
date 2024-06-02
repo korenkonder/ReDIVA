@@ -31,28 +31,28 @@ struct texture_id {
 
 };
 
-inline bool operator >(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) > (((uint64_t)right.id << 32) | right.index);
-}
-
-inline bool operator <(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) < (((uint64_t)right.id << 32) | right.index);
-}
-
-inline bool operator >=(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) >= (((uint64_t)right.id << 32) | right.index);
-}
-
-inline bool operator <=(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) <= (((uint64_t)right.id << 32) | right.index);
-}
-
-inline bool operator ==(const texture_id& left, const texture_id& right) {
+constexpr bool operator==(const texture_id& left, const texture_id& right) {
     return (((uint64_t)left.id << 32) | left.index) == (((uint64_t)right.id << 32) | right.index);
 }
 
-inline bool operator !=(const texture_id& left, const texture_id& right) {
-    return (((uint64_t)left.id << 32) | left.index) != (((uint64_t)right.id << 32) | right.index);
+constexpr bool operator!=(const texture_id& left, const texture_id& right) {
+    return !(left == right);
+}
+
+constexpr bool operator<(const texture_id& left, const texture_id& right) {
+    return (((uint64_t)left.id << 32) | left.index) < (((uint64_t)right.id << 32) | right.index);
+}
+
+constexpr bool operator>(const texture_id& left, const texture_id& right) {
+    return right < left;
+}
+
+constexpr bool operator<=(const texture_id& left, const texture_id& right) {
+    return !(right < left);
+}
+
+constexpr bool operator>=(const texture_id& left, const texture_id& right) {
+    return !(left < right);
 }
 
 struct texture {

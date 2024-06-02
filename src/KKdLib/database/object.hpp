@@ -46,28 +46,28 @@ struct object_info {
     }
 };
 
-inline bool operator >(const object_info& left, const object_info& right) {
-    return *(uint64_t*)&left > *(uint64_t*)&right;
-}
-
-inline bool operator <(const object_info& left, const object_info& right) {
-    return *(uint64_t*)&left < *(uint64_t*)&right;
-}
-
-inline bool operator >=(const object_info& left, const object_info& right) {
-    return *(uint64_t*)&left >= *(uint64_t*)&right;
-}
-
-inline bool operator <=(const object_info& left, const object_info& right) {
-    return *(uint64_t*)&left <= *(uint64_t*)&right;
-}
-
-inline bool operator ==(const object_info& left, const object_info& right) {
+constexpr bool operator==(const object_info& left, const object_info& right) {
     return *(uint64_t*)&left == *(uint64_t*)&right;
 }
 
-inline bool operator !=(const object_info& left, const object_info& right) {
-    return *(uint64_t*)&left != *(uint64_t*)&right;
+constexpr bool operator!=(const object_info& left, const object_info& right) {
+    return !(left == right);
+}
+
+constexpr bool operator<(const object_info& left, const object_info& right) {
+    return *(uint64_t*)&left < *(uint64_t*)&right;
+}
+
+constexpr bool operator>(const object_info& left, const object_info& right) {
+    return right < left;
+}
+
+constexpr bool operator<=(const object_info& left, const object_info& right) {
+    return !(right < left);
+}
+
+constexpr bool operator>=(const object_info& left, const object_info& right) {
+    return !(left < right);
 }
 
 struct object_info_data_file {
