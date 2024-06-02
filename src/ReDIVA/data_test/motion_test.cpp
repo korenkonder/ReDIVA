@@ -1086,7 +1086,6 @@ bool DtmMot::ctrl() {
 
             for (pv_data_set_motion& i : set_motion)
                 vec.push_back({ rob_chr, pv->id, i.motion_id, "", (int32_t)prj::roundf(i.frame_stage_index.first) });
-
         }
         skin_param_manager_add_task(chara_id, vec);
 

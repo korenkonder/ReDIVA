@@ -5,6 +5,7 @@
 
 #include "rob_osage_test.hpp"
 #include "../../CRE/Glitter/glitter.hpp"
+#include "../../CRE/rob/rob.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/resolution_mode.hpp"
@@ -66,6 +67,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class Gain : public dw::SelectionAdapter {
@@ -81,6 +84,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class AirRes : public dw::SelectionAdapter {
@@ -96,6 +101,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class RootYRot : public dw::SelectionAdapter {
@@ -111,6 +118,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class RootZRot : public dw::SelectionAdapter {
@@ -126,6 +135,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class Fric : public dw::SelectionAdapter {
@@ -141,6 +152,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class WindAfc : public dw::SelectionAdapter {
@@ -156,6 +169,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class ColiType : public dw::SelectionAdapter {
@@ -172,7 +187,7 @@ public:
             void SetItemIndex(size_t value);
             void Update(bool value);
 
-            static void ColiTypeCallback(dw::Widget* data);
+            static void Callback(dw::Widget* data);
         };
 
         class InitYRot : public dw::SelectionAdapter {
@@ -188,6 +203,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class InitZRot : public dw::SelectionAdapter {
@@ -203,6 +220,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         dw::ListBox* list_box;
@@ -245,6 +264,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class Hinge : public dw::SelectionAdapter {
@@ -283,6 +304,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         class Weight : public dw::SelectionAdapter {
@@ -298,6 +321,8 @@ public:
 
             void SetValue(float_t value);
             void Update(bool value);
+
+            static void Callback(dw::Widget* data);
         };
 
         dw::Group* group;
@@ -893,18 +918,34 @@ void RobOsageTest::basic() {
         rob_osage_test_dw->UpdateLayout();
     }
 
-    skin_param* skp = get_skin_param();
-    if (skp) {
+    rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
+    if (!itm_eq_obj)
+        return;
+
+    ExOsageBlock* osg = get_osage_block(itm_eq_obj);
+    if (osg) {
+        osg->rob.SetForce(root.force, root.gain);
+        osg->rob.SetAirRes(root.air_res);
+        osg->rob.SetRot(root.root_y_rot, root.root_z_rot);
+        osg->rob.skin_param_ptr->friction = root.fric;
+        osg->rob.skin_param_ptr->wind_afc = root.wind_afc;
+        osg->rob.skin_param_ptr->coli_type = root.coli_type;
+        osg->rob.SetInitRot(root.init_y_rot, root.init_z_rot);
+    }
+
+    ExClothBlock* cls = get_cloth_block(itm_eq_obj);
+    if (cls) {
+        skin_param* skp = cls->rob.skin_param_ptr;
         skp->force = root.force;
         skp->force_gain = root.gain;
         skp->air_res = root.air_res;
-        skp->rot.y = root.root_y_rot;
-        skp->rot.z = root.root_z_rot;
+        skp->rot.y = root.root_y_rot * DEG_TO_RAD_FLOAT;
+        skp->rot.z = root.root_z_rot * DEG_TO_RAD_FLOAT;
         skp->friction = root.fric;
         skp->wind_afc = root.wind_afc;
         skp->coli_type = root.coli_type;
-        skp->init_rot.y = root.init_y_rot;
-        skp->init_rot.z = root.init_z_rot;
+        skp->init_rot.y = root.init_y_rot * DEG_TO_RAD_FLOAT;
+        skp->init_rot.z = root.init_z_rot * DEG_TO_RAD_FLOAT;
     }
 }
 
@@ -1147,13 +1188,13 @@ void RobOsageTest::set_root(skin_param* skp) {
     root.force = skp->force;
     root.gain = skp->force_gain;
     root.air_res = skp->air_res;
-    root.root_y_rot = skp->rot.y;
-    root.root_z_rot = skp->rot.z;
+    root.root_y_rot = skp->rot.y * RAD_TO_DEG_FLOAT;
+    root.root_z_rot = skp->rot.z * RAD_TO_DEG_FLOAT;
     root.fric = skp->friction;
     root.wind_afc = skp->wind_afc;
     root.coli_type = skp->coli_type;
-    root.init_y_rot = skp->init_rot.y;
-    root.init_z_rot = skp->init_rot.z;
+    root.init_y_rot = skp->init_rot.y * RAD_TO_DEG_FLOAT;
+    root.init_z_rot = skp->init_rot.z * RAD_TO_DEG_FLOAT;
 }
 
 void rob_osage_test_init() {
@@ -1359,6 +1400,8 @@ void RobOsageTestDw::Root::Force::Update(bool value) {
         slider->SetText("");
         slider->format = "% 2.3f";
         slider->SetParams(rob_osage_test->root.force, 0.0f, 0.1f, 0.01f, 0.001f, 0.01f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::Force::Callback));
     }
     else {
         if (!slider)
@@ -1368,6 +1411,12 @@ void RobOsageTestDw::Root::Force::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::Force::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.force = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::Gain::Gain(dw::Composite* parent) : slider() {
@@ -1408,6 +1457,8 @@ void RobOsageTestDw::Root::Gain::Update(bool value) {
         slider->SetText("");
         slider->format = "% 2.3f";
         slider->SetParams(rob_osage_test->root.gain, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::Gain::Callback));
     }
     else {
         if (!slider)
@@ -1417,6 +1468,12 @@ void RobOsageTestDw::Root::Gain::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::Gain::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.gain = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::AirRes::AirRes(dw::Composite* parent) : slider() {
@@ -1457,6 +1514,8 @@ void RobOsageTestDw::Root::AirRes::Update(bool value) {
         slider->SetText("");
         slider->format = "% 2.3f";
         slider->SetParams(rob_osage_test->root.air_res, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::AirRes::Callback));
     }
     else {
         if (!slider)
@@ -1466,6 +1525,12 @@ void RobOsageTestDw::Root::AirRes::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::AirRes::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.air_res = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::RootYRot::RootYRot(dw::Composite* parent) : slider() {
@@ -1505,7 +1570,10 @@ void RobOsageTestDw::Root::RootYRot::Update(bool value) {
         slider = dw::Slider::Create(comp);
         slider->SetText("");
         slider->format = "% 6.0f";
-        slider->SetParams(rob_osage_test->root.root_y_rot, -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->SetParams(rob_osage_test->root.root_y_rot,
+            -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::RootYRot::Callback));
     }
     else {
         if (!slider)
@@ -1515,6 +1583,12 @@ void RobOsageTestDw::Root::RootYRot::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::RootYRot::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.root_y_rot = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::RootZRot::RootZRot(dw::Composite* parent) : slider() {
@@ -1554,7 +1628,10 @@ void RobOsageTestDw::Root::RootZRot::Update(bool value) {
         slider = dw::Slider::Create(comp);
         slider->SetText("");
         slider->format = "% 6.0f";
-        slider->SetParams(rob_osage_test->root.root_z_rot, -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->SetParams(rob_osage_test->root.root_z_rot,
+            -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::RootZRot::Callback));
     }
     else {
         if (!slider)
@@ -1564,6 +1641,12 @@ void RobOsageTestDw::Root::RootZRot::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::RootZRot::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.root_z_rot = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::Fric::Fric(dw::Composite* parent) : slider() {
@@ -1604,6 +1687,8 @@ void RobOsageTestDw::Root::Fric::Update(bool value) {
         slider->SetText("");
         slider->format = "% 2.3f";
         slider->SetParams(rob_osage_test->root.fric, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::Fric::Callback));
     }
     else {
         if (!slider)
@@ -1613,6 +1698,12 @@ void RobOsageTestDw::Root::Fric::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::Fric::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.fric = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::WindAfc::WindAfc(dw::Composite* parent) : slider() {
@@ -1653,6 +1744,8 @@ void RobOsageTestDw::Root::WindAfc::Update(bool value) {
         slider->SetText("");
         slider->format = "% 2.3f";
         slider->SetParams(rob_osage_test->root.wind_afc, 0.0f, 1.0f, 0.1f, 0.01f, 0.1f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::WindAfc::Callback));
     }
     else {
         if (!slider)
@@ -1662,6 +1755,12 @@ void RobOsageTestDw::Root::WindAfc::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::WindAfc::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.wind_afc = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::ColiType::ColiType(dw::Composite* parent) : list_box() {
@@ -1704,7 +1803,7 @@ void RobOsageTestDw::Root::ColiType::Update(bool value) {
         list_box->AddItem("coli_type: Capsule(+root)");
         list_box->SetItemIndex(rob_osage_test->root.coli_type);
         list_box->AddSelectionListener(new dw::SelectionListenerOnHook(
-            RobOsageTestDw::Root::ColiType::ColiTypeCallback));
+            RobOsageTestDw::Root::ColiType::Callback));
     }
     else {
         if (!list_box)
@@ -1716,13 +1815,10 @@ void RobOsageTestDw::Root::ColiType::Update(bool value) {
     }
 }
 
-void RobOsageTestDw::Root::ColiType::ColiTypeCallback(dw::Widget* data) {
+void RobOsageTestDw::Root::ColiType::Callback(dw::Widget* data) {
     dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
-    if (list_box) {
-        skin_param* skp = rob_osage_test->get_skin_param();
-        if (skp)
-            skp->coli_type = (SkinParam::RootCollisionType)(int32_t)list_box->list->selected_item;
-    }
+    if (list_box)
+        rob_osage_test->root.coli_type = (SkinParam::RootCollisionType)(int32_t)list_box->list->selected_item;
 }
 
 RobOsageTestDw::Root::InitYRot::InitYRot(dw::Composite* parent) : slider() {
@@ -1762,7 +1858,10 @@ void RobOsageTestDw::Root::InitYRot::Update(bool value) {
         slider = dw::Slider::Create(comp);
         slider->SetText("");
         slider->format = "% 6.0f";
-        slider->SetParams(rob_osage_test->root.init_y_rot, -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->SetParams(rob_osage_test->root.init_y_rot,
+            -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::InitYRot::Callback));
     }
     else {
         if (!slider)
@@ -1772,6 +1871,12 @@ void RobOsageTestDw::Root::InitYRot::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::InitYRot::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.init_y_rot = slider->scroll_bar->value;
 }
 
 RobOsageTestDw::Root::InitZRot::InitZRot(dw::Composite* parent) : slider() {
@@ -1811,7 +1916,10 @@ void RobOsageTestDw::Root::InitZRot::Update(bool value) {
         slider = dw::Slider::Create(comp);
         slider->SetText("");
         slider->format = "% 6.0f";
-        slider->SetParams(rob_osage_test->root.init_z_rot, -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->SetParams(rob_osage_test->root.init_z_rot,
+            -180.0f, 180.0f, 90.0f, 1.0f, 10.0f);
+        slider->AddSelectionListener(new dw::SelectionListenerOnHook(
+            RobOsageTestDw::Root::InitZRot::Callback));
     }
     else {
         if (!slider)
@@ -1821,6 +1929,12 @@ void RobOsageTestDw::Root::InitZRot::Update(bool value) {
         slider->Reset();
         slider = 0;
     }
+}
+
+void RobOsageTestDw::Root::InitZRot::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider)
+        rob_osage_test->root.init_z_rot = slider->scroll_bar->value;
 }
 
 void RobOsageTestDw::Root::Init(dw::Composite* parent) {
@@ -1958,6 +2072,13 @@ void RobOsageTestDw::Node::CollisionRadius::Update(bool value) {
         comp->controls.erase(comp->controls.begin() + comp->GetControlIndex(slider));
         slider->Reset();
         slider = 0;
+    }
+}
+
+void RobOsageTestDw::Node::CollisionRadius::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
     }
 }
 
@@ -2115,6 +2236,13 @@ void RobOsageTestDw::Node::InertialCancel::Update(bool value) {
     }
 }
 
+void RobOsageTestDw::Node::InertialCancel::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
+    }
+}
+
 RobOsageTestDw::Node::Weight::Weight(dw::Composite* parent) : slider() {
     comp = new dw::Composite(parent);
     comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
@@ -2154,6 +2282,13 @@ void RobOsageTestDw::Node::Weight::Update(bool value) {
         comp->controls.erase(comp->controls.begin() + comp->GetControlIndex(slider));
         slider->Reset();
         slider = 0;
+    }
+}
+
+void RobOsageTestDw::Node::Weight::Callback(dw::Widget* data) {
+    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
+    if (slider) {
+
     }
 }
 
