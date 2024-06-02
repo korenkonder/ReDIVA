@@ -79,7 +79,6 @@ public:
 
     prj::vector_pair<::item_id, object_info> objects;
     prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_root_boc>> bocs;
-    prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_node>> nodes;
     prj::vector_pair<ExOsageBlock*, std::vector<skin_param_osage_root_normal_ref>> normal_refs;
 
     Root root;
@@ -110,6 +109,7 @@ public:
     std::vector<SkinParam::CollisionParam>* get_cls_list(ExClothBlock* cls) const;
     std::vector<SkinParam::CollisionParam>* get_cls_list(ExOsageBlock* osg) const;
     SkinParam::CollisionParam* get_cls_param(std::vector<SkinParam::CollisionParam>* cls_list) const;
+    void set_node(skin_param_osage_node* skp_osg_node);
     void set_root(skin_param* skp);
 
     inline std::vector<SkinParam::CollisionParam>* get_cls_list() const {
@@ -133,6 +133,18 @@ public:
                 return cls->rob.skin_param_ptr;
         }
         return 0;
+    }
+
+    inline skin_param_osage_node* get_skin_param_osage_node() const {
+        rob_chara_item_equip_object* itm_eq_obj = get_item_equip_object();
+        ExOsageBlock* osg = get_osage_block(itm_eq_obj);
+        if (osg && osg->rob.nodes.size() > 1)
+            return &osg->rob.nodes.data()[1].data_ptr->skp_osg_node;
+        return 0;
+    }
+
+    inline void set_node() {
+        return set_node(get_skin_param_osage_node());
     }
 
     inline void set_root() {
