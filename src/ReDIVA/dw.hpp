@@ -189,9 +189,9 @@ namespace dw {
         virtual void Reset();
         virtual std::wstring GetText();
         virtual void SetText(std::wstring& str);
-        virtual void SetSize(const vec2& value);
         virtual int32_t KeyCallback(const Widget::KeyCallbackData& data);
         virtual int32_t MouseCallback(const Widget::MouseCallbackData& data);
+        virtual void SetSize(const vec2& value);
         virtual vec2 GetPos();
 
         bool CheckHitPos(const vec2& hit_pos);

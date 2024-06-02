@@ -387,16 +387,16 @@ namespace dw {
         text.assign(str);
     }
 
-    void Widget::SetSize(const vec2& value) {
-        rect.size = value;
-    }
-
     int32_t Widget::KeyCallback(const Widget::KeyCallbackData& data) {
         return 0;
     }
 
     int32_t Widget::MouseCallback(const Widget::MouseCallbackData& data) {
         return 0;
+    }
+
+    void Widget::SetSize(const vec2& value) {
+        rect.size = value;
     }
 
     vec2 Widget::GetPos() {
