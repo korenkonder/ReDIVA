@@ -1466,7 +1466,7 @@ void Auth3dTestWindow::SetAuth3dIndex(size_t index) {
 void Auth3dTestWindow::SetMaxFrame(float_t max_frame) {
     frame_slider->SetMin(0.0f);
     frame_slider->SetMax(max_frame);
-    frame_slider->sub_1402F9670(max_frame * 0.25f);
+    frame_slider->SetGrab(max_frame * 0.25f);
 
     char buf[0x20];
     sprintf_s(buf, sizeof(buf), "frame[ 0,%4.0f)", max_frame);
