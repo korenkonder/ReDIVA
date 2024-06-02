@@ -36,16 +36,73 @@ struct skin_param_file {
     ~skin_param_file();
 };
 
+struct skin_param_key {
+    object_info obj_info;
+    uint32_t motion_id;
+    int32_t frame;
+
+    inline skin_param_key() {
+        motion_id = -1;
+        frame = -1;
+    }
+
+    inline skin_param_key(object_info obj_info) {
+        this->obj_info = obj_info;
+        motion_id = -1;
+        frame = -1;
+    }
+
+    inline skin_param_key(object_info obj_info, uint32_t motion_id) {
+        this->obj_info = obj_info;
+        this->motion_id = motion_id;
+        frame = -1;
+    }
+
+    inline skin_param_key(object_info obj_info, uint32_t motion_id, int32_t frame) {
+        this->obj_info = obj_info;
+        this->motion_id = motion_id;
+        this->frame = frame;
+    }
+};
+
+inline bool operator==(const skin_param_key& left, const skin_param_key& right) {
+    return left.obj_info == right.obj_info && left.motion_id == right.motion_id && left.frame == right.frame;
+}
+
+inline bool operator!=(const skin_param_key& left, const skin_param_key& right) {
+    return !(left == right);
+}
+
+inline bool operator<(const skin_param_key& left, const skin_param_key& right) {
+    if (left.obj_info != right.obj_info)
+        return left.obj_info < right.obj_info;
+    else if (left.motion_id != right.motion_id)
+        return left.motion_id < right.motion_id;
+    else if (left.frame != right.frame)
+        return left.frame < right.frame;
+    else
+        return false;
+}
+
+inline bool operator>(const skin_param_key& left, const skin_param_key& right) {
+    return right < left;
+}
+
+inline bool operator<=(const skin_param_key& left, const skin_param_key& right) {
+    return !(right < left);
+}
+
+inline bool operator>=(const skin_param_key& left, const skin_param_key& right) {
+    return !(left < right);
+}
+
 struct SkinParamManager : public app::Task {
     int32_t state;
     uint8_t index;
     std::vector<osage_init_data> osage_init;
-    std::map<std::pair<object_info, std::pair<int32_t, int32_t>>,
-        std::vector<skin_param_file_data>*> object_motion_frame;
-    std::map<std::pair<object_info, std::pair<int32_t, int32_t>>,
-        std::vector<skin_param_file_data>*> object_motion;
-    std::map<std::pair<object_info, std::pair<int32_t, int32_t>>,
-        std::vector<skin_param_file_data>*> object;
+    std::map<skin_param_key, std::vector<skin_param_file_data>*> object_motion_frame;
+    std::map<skin_param_key, std::vector<skin_param_file_data>*> object_motion;
+    std::map<skin_param_key, std::vector<skin_param_file_data>*> object;
     std::list<skin_param_file*> files;
 
     SkinParamManager();
@@ -61,7 +118,7 @@ struct SkinParamManager : public app::Task {
     void AddFiles();
     bool CtrlFiles();
     int32_t GetExtSkpFile(const osage_init_data& osage_init,
-        const std::string& dir, std::string& file, void* data, motion_database* mot_db);
+        const std::string& dir, std::string& file, void* data, const motion_database* mot_db);
     std::vector<skin_param_file_data>* GetSkinParamFileData(
         object_info obj_info, uint32_t motion_id, int32_t frame);
     void Reset();
@@ -82,7 +139,7 @@ struct sp_skp_db {
 
     int32_t get_ext_skp_file(const osage_init_data& osage_init,
         const object_info obj_info, std::string& file, std::string& farc,
-        void* data, motion_database* mot_db);
+        void* data, const motion_database* mot_db);
 };
 
 static bool osage_setting_data_load_file(void* data, const char* dir, const char* file, uint32_t hash);
@@ -149,8 +206,8 @@ void skin_param::set_skin_param_osage_root(const skin_param_osage_root& skp_root
     friction = skp_root.friction;
     wind_afc = skp_root.wind_afc;
     air_res = skp_root.air_res;
-    rot.y = skp_root.rot_y;
-    rot.z = skp_root.rot_z;
+    rot.y = skp_root.rot_y * DEG_TO_RAD_FLOAT;
+    rot.z = skp_root.rot_z * DEG_TO_RAD_FLOAT;
     init_rot.y = skp_root.init_rot_y * DEG_TO_RAD_FLOAT;
     init_rot.z = skp_root.init_rot_z * DEG_TO_RAD_FLOAT;
     coli_type = skp_root.coli_type;
@@ -237,6 +294,12 @@ bool skin_param_manager_add_task(int32_t chara_id, std::vector<osage_init_data>&
 
 bool skin_param_manager_check_task_ready(int32_t chara_id) {
     return app::TaskWork::check_task_ready(skin_param_manager_get(chara_id));
+}
+
+int32_t skin_param_manager_get_ext_skp_file(
+    int32_t chara_id, const osage_init_data& osage_init,
+    const std::string& dir, std::string& file, void* data, const motion_database* mot_db) {
+    return skin_param_manager_get(chara_id)->GetExtSkpFile(osage_init, dir, file, data, mot_db);
 }
 
 std::vector<skin_param_file_data>* skin_param_manager_get_skin_param_file_data(
@@ -794,37 +857,37 @@ void SkinParamManager::AddFiles() {
             std::vector<skin_param_file_data>* skp_file_data = 0;
             switch (skp_file->type) {
             case 0: {
-                std::pair<object_info, std::pair<int32_t, int32_t>> v49 = { obj_info, { i.motion_id, i.frame } };
-                auto elem = object_motion_frame.find(v49);
+                skin_param_key key(obj_info, i.motion_id, i.frame);
+                auto elem = object_motion_frame.find(key);
                 if (elem != object_motion_frame.end()) {
                     delete skp_file;
                     continue;
                 }
 
                 skp_file_data = new std::vector<skin_param_file_data>;
-                object_motion_frame.insert({ v49, skp_file_data });
+                object_motion_frame.insert({ key, skp_file_data });
             } break;
             case 1: {
-                std::pair<object_info, std::pair<int32_t, int32_t>> v49 = { obj_info, { i.motion_id, -1 } };
-                auto elem = object_motion.find(v49);
+                skin_param_key key(obj_info, i.motion_id);
+                auto elem = object_motion.find(key);
                 if (elem != object_motion.end()) {
                     delete skp_file;
                     continue;
                 }
 
                 skp_file_data = new std::vector<skin_param_file_data>;
-                object_motion.insert({ v49, skp_file_data });
+                object_motion.insert({ key, skp_file_data });
             } break;
             case 2: {
-                std::pair<object_info, std::pair<int32_t, int32_t>> v49 = { obj_info, { -1, -1 } };
-                auto elem = object.find(v49);
+                skin_param_key key(obj_info);
+                auto elem = object.find(key);
                 if (elem != object.end()) {
                     delete skp_file;
                     continue;
                 }
 
                 skp_file_data = new std::vector<skin_param_file_data>;
-                object.insert({ v49, skp_file_data });
+                object.insert({ key, skp_file_data });
             } break;
             }
 
@@ -899,7 +962,7 @@ bool SkinParamManager::CtrlFiles() {
 }
 
 int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init,
-    const std::string& dir, std::string& file, void* data, motion_database* mot_db) {
+    const std::string& dir, std::string& file, void* data, const motion_database* mot_db) {
     if (!dir.size())
         return -1;
 
@@ -913,7 +976,7 @@ int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init,
 
         std::string buf;
         if (osage_init.frame > -1) {
-            buf = sprintf_s_string("%s_%d_", motion_name,  osage_init.frame);
+            buf = sprintf_s_string("%s_%d_", motion_name, osage_init.frame);
             buf.append(file);
         }
         else {
@@ -950,19 +1013,23 @@ int32_t SkinParamManager::GetExtSkpFile(const osage_init_data& osage_init,
 std::vector<skin_param_file_data>* SkinParamManager::GetSkinParamFileData(
     object_info obj_info, uint32_t motion_id, int32_t frame) {
     if (object_motion_frame.size()) {
-        auto elem = object_motion_frame.find({ obj_info, { motion_id, frame } });
+        auto elem_frame = object_motion_frame.find({ obj_info, motion_id, frame });
+        if (elem_frame != object_motion_frame.end())
+            return elem_frame->second;
+
+        auto elem = object_motion_frame.find({ obj_info, motion_id });
         if (elem != object_motion_frame.end())
             return elem->second;
     }
 
     if (object_motion.size()) {
-        auto elem = object_motion.find({ obj_info, { motion_id, -1 } });
+        auto elem = object_motion.find({ obj_info, motion_id });
         if (elem != object_motion.end())
             return elem->second;
     }
 
     if (object.size()) {
-        auto elem = object.find({ obj_info, { -1, -1 } });
+        auto elem = object.find({ obj_info });
         if (elem != object.end())
             return elem->second;
     }
@@ -1136,7 +1203,7 @@ void sp_skp_db::parse(key_val* kv) {
 
 int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
     const object_info obj_info, std::string& file, std::string& farc,
-    void* data, motion_database* mot_db) {
+    void* data, const motion_database* mot_db) {
     if (obj_info.is_null())
         return 2;
 
@@ -1153,24 +1220,14 @@ int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
         }
     }
 
-    char buf0[0x200];
-    char buf1[0x200];
-    char buf2[0x200];
-    size_t buf0_size = sizeof(buf0);
-    size_t buf1_size = sizeof(buf1);
-    size_t buf2_size = sizeof(buf2);
-
     if (osage_init.motion_id != -1) {
         const char* motion_name = mot_db->get_motion_name(osage_init.motion_id);
         if (motion_name) {
-            if (osage_init.frame > -1) {
-                strcpy_s(buf0, buf0_size, motion_name);
-                sprintf_s(buf1, buf1_size, "_%d", osage_init.frame);
-                strcat_s(buf0, buf0_size, buf1);
-                motion_name = buf0;
-            }
+            std::string buf(motion_name);
+            if (osage_init.frame > -1)
+                buf = sprintf_s_string("%s_%d", motion_name, osage_init.frame);
 
-            auto elem0 = motion.find(motion_name);
+            auto elem0 = motion.find(buf);
             if (elem0 != motion.end()) {
                 auto elem1 = elem0->second->find(obj_info);
                 if (elem1 != elem0->second->end()) {
@@ -1182,41 +1239,33 @@ int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
     }
 
     const char* obj_name = object_storage_get_obj_name(obj_info);
-    sprintf_s(buf0, buf0_size, "ext_skp_%s.txt", obj_name);
+    std::string skp_file = sprintf_s_string("ext_skp_%s.txt", obj_name);
 
-    if (type == 1) {
-        sprintf_s(buf1, buf1_size, "pv%03d_", osage_init.pv_id);
-        strcat_s(buf1, buf1_size, buf0);
-        strcpy_s(buf0, buf0_size, buf1);
-    }
-    else if (!type) {
-        const char* motion_name = mot_db->get_motion_name(osage_init.motion_id);
-        if (osage_init.frame > -1) {
-            strcpy_s(buf2, buf2_size, motion_name);
-            sprintf_s(buf1, buf1_size, "_%d", osage_init.frame);
-            strcat_s(buf2, buf2_size, buf1);
-            motion_name = buf2;
-        }
+    switch (type) {
+    case 0: {
+        std::string motion_name(mot_db->get_motion_name(osage_init.motion_id));
+        if (osage_init.frame > -1)
+            motion_name = sprintf_s_string("%s_%d", motion_name.c_str(), osage_init.frame);
 
-        strcpy_s(buf1, buf1_size, motion_name);
-        strcat_s(buf1, buf1_size, "_");
-        strcat_s(buf1, buf1_size, buf0);
-        strcpy_s(buf0, buf0_size, buf1);
+        std::string buf = sprintf_s_string("%s_", motion_name.c_str());
+        buf.append(skp_file);
+        skp_file.assign(buf);
+    } break;
+    case 1: {
+        std::string buf = sprintf_s_string("pv%03d_", osage_init.pv_id);
+        buf.append(skp_file);
+        skp_file.assign(buf);
+    } break;
     }
 
-    for (char* i = buf0; *i; i++) {
-        char c = *i;
-        if (c >= 'A' && c <= 'Z')
-            c += 0x20;
-        *i = c;
-    }
+    skp_file = string_to_lower(skp_file);
 
-    if (type == 2 && !((data_struct*)data)->check_file_exists("rom/skin_param/", buf0)) {
+    if (type == 2 && !((data_struct*)data)->check_file_exists("rom/skin_param/", skp_file.c_str())) {
         file.clear();
         type = -1;
     }
     else
-        file.assign(buf0);
+        file.assign(skp_file);
     return type;
 }
 

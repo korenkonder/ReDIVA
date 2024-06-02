@@ -2294,6 +2294,7 @@ void ExOsageBlock::SetOsageReset() {
 
 void ExOsageBlock::SetSkinParam(skin_param_file_data* skp) {
     if (skp->nodes_data.size() == rob.nodes.size() - 1) {
+        rob.skin_param_ptr = &skp->skin_param;
         size_t node_index = 0;
         RobOsageNode* i_begin = rob.nodes.data() + 1;
         RobOsageNode* i_end = rob.nodes.data() + rob.nodes.size();
