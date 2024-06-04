@@ -18,13 +18,6 @@ struct program_binary {
     uint64_t hash;
 };
 
-struct program_spv {
-    size_t size;
-    size_t spv;
-};
-
-extern bool vulkan_render;
-
 static GLuint shader_compile_shader(GLenum type, const char* data, const char* file);
 static GLuint shader_compile(const char* vert, const char* frag, const char* vp, const char* fp);
 static GLuint shader_compile_binary(const char* vert, const char* frag, const char* vp, const char* fp,

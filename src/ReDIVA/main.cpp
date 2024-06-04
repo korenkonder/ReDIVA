@@ -269,9 +269,10 @@ static void a3da_to_dft_dsc(int32_t pv_id) {
     dft_data.dof.write(buf);
 }
 
-/*struct program_spv {
+struct program_spv {
     size_t size;
     size_t spv;
+    uint64_t hash;
 };
 
 void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const size_t size, bool debug) {
@@ -353,8 +354,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                 continue;
             }
 
-            vert_data = shader::parse_include(vert_data, f);
-            frag_data = shader::parse_include(frag_data, f);
+            uint64_t vert_file_name_hash = hash_utf8_xxh3_64bits(vert_file_buf);
+            uint64_t frag_file_name_hash = hash_utf8_xxh3_64bits(frag_file_buf);
 
             vert_data = shader::parse_include(vert_data, f);
             frag_data = shader::parse_include(frag_data, f);
@@ -635,7 +636,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                         fs.read(data, size);
                         fs.close();
 
-                        program_data_frag_spv.push_back({ size,(size_t)data });
+                        program_data_frag_spv.push_back({ size, (size_t)data });
                     }
                     else {
                         printf("There was an error while compiling %.*s\n", frag_buf_len - 4, vert_buf);
@@ -650,24 +651,27 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
             if (!has_vert_bin) {
                 farc_file* shader_vert_file = of->add_file(vert_bin_buf);
                 size_t vert_spv_count = program_data_vert_spv.size();
-                size_t vert_spv_size = vert_spv_count * sizeof(program_spv);
+                size_t vert_spv_size = sizeof(uint64_t) + vert_spv_count * sizeof(program_spv);
                 for (program_spv& k : program_data_vert_spv)
-                    vert_spv_size += align_val(k.size, 0x10);
+                    vert_spv_size += align_val(k.size, 0x04);
                 shader_vert_file->data = force_malloc(vert_spv_size);
                 shader_vert_file->size = vert_spv_size;
                 shader_vert_file->compressed = true;
                 shader_vert_file->data_changed = true;
 
-                program_spv* vert_spv = (program_spv*)shader_vert_file->data;
-                size_t vert_spv_data_base = (size_t)shader_vert_file->data;
-                size_t vert_spv_data_offset = vert_spv_count * sizeof(program_spv);
+                ((uint64_t*)shader_vert_file->data)[0] = vert_file_name_hash;
+                program_spv* vert_spv = (program_spv*)&((uint64_t*)shader_vert_file->data)[1];
+                size_t vert_spv_data_base = (size_t)shader_vert_file->data + sizeof(uint64_t);
+                size_t vert_spv_data = vert_spv_data_base + vert_spv_count * sizeof(program_spv);
                 for (program_spv& k : program_data_vert_spv) {
                     vert_spv->size = k.size;
-                    vert_spv->spv = vert_spv_data_offset;
-                    memcpy((void*)(vert_spv_data_base + vert_spv_data_offset), (void*)k.spv, k.size);
-                    vert_spv_data_offset += align_val(k.size, 0x10);
-                    void* spv_data = (void*)k.spv;
-                    free_def(spv_data);
+                    vert_spv->spv = vert_spv_data - vert_spv_data_base;
+                    vert_spv->hash = hash_xxh3_64bits((void*)k.spv, k.size);
+                    memcpy((void*)vert_spv_data, (void*)k.spv, k.size);
+                    vert_spv_data_base += sizeof(program_spv);
+                    vert_spv_data += align_val(k.size, 0x04);
+                    void* spv = (void*)k.spv;
+                    free_def(spv);
                     k.spv = 0;
                     vert_spv++;
                 }
@@ -676,24 +680,27 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
             if (!has_frag_bin) {
                 farc_file* shader_frag_file = of->add_file(frag_bin_buf);
                 size_t frag_spv_count = program_data_frag_spv.size();
-                size_t frag_spv_size = frag_spv_count * sizeof(program_spv);
+                size_t frag_spv_size = sizeof(uint64_t) + frag_spv_count * sizeof(program_spv);
                 for (program_spv& k : program_data_frag_spv)
-                    frag_spv_size += align_val(k.size, 0x10);
+                    frag_spv_size += align_val(k.size, 0x04);
                 shader_frag_file->data = force_malloc(frag_spv_size);
                 shader_frag_file->size = frag_spv_size;
                 shader_frag_file->compressed = true;
                 shader_frag_file->data_changed = true;
 
-                program_spv* frag_spv = (program_spv*)shader_frag_file->data;
-                size_t frag_spv_data_base = (size_t)shader_frag_file->data;
-                size_t frag_spv_data_offset = frag_spv_count * sizeof(program_spv);
+                ((uint64_t*)shader_frag_file->data)[0] = frag_file_name_hash;
+                program_spv* frag_spv = (program_spv*)&((uint64_t*)shader_frag_file->data)[1];
+                size_t frag_spv_data_base = (size_t)shader_frag_file->data + sizeof(uint64_t);
+                size_t frag_spv_data = frag_spv_data_base + frag_spv_count * sizeof(program_spv);
                 for (program_spv& k : program_data_frag_spv) {
                     frag_spv->size = k.size;
-                    frag_spv->spv = frag_spv_data_offset;
-                    memcpy((void*)(frag_spv_data_base + frag_spv_data_offset), (void*)k.spv, k.size);
-                    frag_spv_data_offset += align_val(k.size, 0x10);
-                    void* spv_data = (void*)k.spv;
-                    free_def(spv_data);
+                    frag_spv->spv = frag_spv_data - frag_spv_data_base;
+                    frag_spv->hash = hash_xxh3_64bits((void*)k.spv, k.size);
+                    memcpy((void*)frag_spv_data, (void*)k.spv, k.size);
+                    frag_spv_data_base += sizeof(program_spv);
+                    frag_spv_data += align_val(k.size, 0x04);
+                    void* spv = (void*)k.spv;
+                    free_def(spv);
                     k.spv = 0;
                     frag_spv++;
                 }
@@ -718,8 +725,8 @@ void compile_all_shaders(bool debug) {
 
     farc of;
     compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
-    of.write("rom\\ft_shaders_spirv", FARC_FArC, FARC_NONE, false);
-}*/
+    of.write("rom\\ft_shaders_spirv.farc", FARC_FArC, FARC_NONE, false, false);
+}
 
 /*
 void decrypt_x_save_data() {
@@ -1215,10 +1222,10 @@ void process_edit_dsc() {
 }*/
 
 int32_t wmain(int32_t argc, wchar_t** argv) {
-    /*if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
+    if (argc >= 2 && !wcscmp(argv[1], L"--compile-spir-v")) {
         compile_all_shaders(argc >= 3 && !wcscmp(argv[2], L"-d"));
         return 0;
-    }*/
+    }
 
     /*process_edit_dsc();
     return 0;*/
