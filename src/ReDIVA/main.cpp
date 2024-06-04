@@ -1242,9 +1242,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     //a3da_to_dft_dsc(269);
 
-    render_init_struct ris;
-
-    render_main(&ris);
+    app_main({});
 
     timeEndPeriod(1);
     return 0;

@@ -4,7 +4,7 @@
 */
 
 #define GLFW_EXPOSE_NATIVE_WIN32
-#include "render.hpp"
+#include "app.hpp"
 #include "config.hpp"
 #include "../CRE/GL/uniform_buffer.hpp"
 #include "../CRE/Glitter/glitter.hpp"
@@ -187,9 +187,9 @@ uint32_t spr_fnt_24_set_id;     // 4
 uint32_t spr_fnt_bold24_set_id; // 472
 uint32_t spr_fnt_cmn_set_id;    // 43
 
-static bool render_init(render_init_struct* ris);
-static void render_main_loop(render_context* rctx);
-static void render_free();
+static bool app_init(const app_init_struct& ais);
+static void app_main_loop(render_context* rctx);
+static void app_free();
 
 static render_context* render_context_load();
 static void render_context_ctrl(render_context* rctx);
@@ -200,12 +200,12 @@ static void render_context_dispose(render_context* rctx);
 static void render_shaders_load();
 static void render_shaders_free();
 
-static bool render_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash);
-static bool render_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash);
+static bool app_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash);
+static bool app_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash);
 
-static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
-static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
-static void render_resize_fb(render_context* rctx, bool change_fb);
+static void app_drop_glfw(GLFWwindow* window, int32_t count, char** paths);
+static void app_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h);
+static void app_resize_fb(render_context* rctx, bool change_fb);
 
 static void render_imgui_context_menu(classes_data* classes,
     const size_t classes_count, render_context* rctx);
@@ -233,7 +233,7 @@ ID3D11DeviceContext* d3d_device_context;
 HANDLE d3d_gl_handle;
 #endif
 
-int32_t render_main(render_init_struct* ris) {
+int32_t app_main(const app_init_struct& ais) {
     render_lock = new lock_cs;
     if (!render_lock)
         return 0;
@@ -249,12 +249,12 @@ int32_t render_main(render_init_struct* ris) {
     if (!glfwInit())
         return -1;
 
-    if (render_init(ris)) {
+    if (app_init(ais)) {
         window_handle = glfwGetWin32Window(window);
         glfwShowWindow(window);
         glfwFocusWindow(window);
-        glfwSetDropCallback(window, (GLFWdropfun)render_drop_glfw);
-        glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)render_resize_fb_glfw);
+        glfwSetDropCallback(window, (GLFWdropfun)app_drop_glfw);
+        glfwSetWindowSizeCallback(window, (GLFWwindowsizefun)app_resize_fb_glfw);
         glfwSetWindowSize(window, width, height);
         glfwSetWindowSizeLimits(window, 896, 504, GLFW_DONT_CARE, GLFW_DONT_CARE);
 #if BAKE_PNG || BAKE_VIDEO
@@ -275,8 +275,8 @@ int32_t render_main(render_init_struct* ris) {
         old_height = height;
 #endif
 
-        scale_index = ris->scale_index > 0 && ris->scale_index < RENDER_SCALE_MAX
-            ? ris->scale_index : RENDER_SCALE_100;
+        scale_index = ais.scale_index > 0 && ais.scale_index < RENDER_SCALE_MAX
+            ? ais.scale_index : RENDER_SCALE_100;
         old_scale_index = scale_index;
 
 #if RENDER_DEBUG
@@ -314,7 +314,7 @@ int32_t render_main(render_init_struct* ris) {
 
             glfwSwapInterval(0);
 
-            render_main_loop(rctx);
+            app_main_loop(rctx);
 
             lock_lock(render_lock);
             render_context_dispose(rctx);
@@ -322,7 +322,7 @@ int32_t render_main(render_init_struct* ris) {
         } while (reload_render);
     }
 
-    render_free();
+    app_free();
     glfwTerminate();
 
     delete render_lock;
@@ -332,15 +332,15 @@ int32_t render_main(render_init_struct* ris) {
     return 0;
 }
 
-double_t render_get_scale() {
+double_t app_get_render_scale() {
     return render_scale_table[scale_index];
 }
 
-int32_t render_get_scale_index() {
+int32_t app_get_render_scale_index() {
     return scale_index;
 }
 
-void render_set_scale_index(int32_t index) {
+void app_set_render_scale_index(int32_t index) {
     scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
 }
 
@@ -455,11 +455,11 @@ void render_data::unload_common_data() {
     }
 }
 
-static bool render_init(render_init_struct* ris) {
+static bool app_init(const app_init_struct& ais) {
     GLFWmonitor* monitor = glfwGetPrimaryMonitor();
     const GLFWvidmode* mode = glfwGetVideoMode(monitor);
-    width = ris->res.x > 0 && ris->res.x < 8192 ? ris->res.x : mode->width;
-    height = ris->res.y > 0 && ris->res.y < 8192 ? ris->res.y : mode->height;
+    width = ais.res.x > 0 && ais.res.x < 8192 ? ais.res.x : mode->width;
+    height = ais.res.y > 0 && ais.res.y < 8192 ? ais.res.y : mode->height;
 
     width = (int32_t)(width / 2.0f);
     height = (int32_t)(height / 2.0f);
@@ -514,7 +514,7 @@ static bool render_init(render_init_struct* ris) {
     return true;
 }
 
-static void render_main_loop(render_context* rctx) {
+static void app_main_loop(render_context* rctx) {
     render_timer->reset();
     while (!close && !reload_render) {
         render_timer->start_of_cycle();
@@ -541,7 +541,7 @@ static void render_main_loop(render_context* rctx) {
     }
 }
 
-static void render_free() {
+static void app_free() {
     render->unload();
     delete render;
 
@@ -919,14 +919,14 @@ static render_context* render_context_load() {
         }
     }
 
-    render_resize_fb(rctx, false);
+    app_resize_fb(rctx, false);
 
     rctx->resize(internal_3d_res.x, internal_3d_res.y,
         internal_2d_res.x, internal_2d_res.y, width, height);
 
     rctx->camera->initialize(aspect);
 
-    render_resize_fb(rctx, true);
+    app_resize_fb(rctx, true);
 
     rctx->init();
 
@@ -1063,7 +1063,7 @@ static void render_context_ctrl(render_context* rctx) {
     lock_unlock(imgui_context_lock);
 
     if (old_width != width || old_height != height || old_scale_index != scale_index)
-        render_resize_fb(rctx, true);
+        app_resize_fb(rctx, true);
     old_width = width;
     old_height = height;
     old_scale_index = scale_index;
@@ -1345,10 +1345,10 @@ struct shaders_load_struct {
 
 static void render_shaders_load() {
     shaders_load_struct load_ft = { &shaders_ft, "ft" };
-    data_list[DATA_AFT].load_file(&load_ft, "rom/", "ft_shaders.farc", render_load_ft_shaders);
+    data_list[DATA_AFT].load_file(&load_ft, "rom/", "ft_shaders.farc", app_load_ft_shaders);
 
     shaders_load_struct load_dev = { &shaders_dev, "dev" };
-    data_list[DATA_AFT].load_file(&load_dev, "rom/", "dev_shaders.farc", render_load_dev_shaders);
+    data_list[DATA_AFT].load_file(&load_dev, "rom/", "dev_shaders.farc", app_load_dev_shaders);
 }
 
 static void render_shaders_free() {
@@ -1356,7 +1356,7 @@ static void render_shaders_free() {
     shaders_ft.unload();
 }
 
-static bool render_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash) {
+static bool app_load_ft_shaders(void* data, const char* path, const char* file, uint32_t hash) {
     shaders_load_struct* load = (shaders_load_struct*)data;
     std::string s;
     s.assign(path);
@@ -1370,7 +1370,7 @@ static bool render_load_ft_shaders(void* data, const char* path, const char* fil
     return true;
 }
 
-static bool render_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash) {
+static bool app_load_dev_shaders(void* data, const char* path, const char* file, uint32_t hash) {
     shaders_load_struct* load = (shaders_load_struct*)data;
     std::string s;
     s.assign(path);
@@ -1383,7 +1383,7 @@ static bool render_load_dev_shaders(void* data, const char* path, const char* fi
     return true;
 }
 
-static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
+static void app_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     if (!count || !paths)
         return;
 
@@ -1395,14 +1395,14 @@ static void render_drop_glfw(GLFWwindow* window, int32_t count, char** paths) {
     glfwFocusWindow(window);
 }
 
-static void render_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
+static void app_resize_fb_glfw(GLFWwindow* window, int32_t w, int32_t h) {
 #if !(BAKE_PNG || BAKE_VIDEO)
     width = w;
     height = h;
 #endif
 }
 
-static void render_resize_fb(render_context* rctx, bool change_fb) {
+static void app_resize_fb(render_context* rctx, bool change_fb) {
     internal_3d_res = vec2i::max(internal_3d_res, 20);
 
     double_t res_width = (double_t)width;

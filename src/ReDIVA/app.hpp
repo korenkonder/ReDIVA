@@ -26,18 +26,23 @@ enum render_scale {
     RENDER_SCALE_MAX,
 };
 
-struct render_init_struct {
+struct app_init_struct {
     vec2i res;
     int32_t scale_index;
 
-    inline render_init_struct() : scale_index() {
+    inline app_init_struct() : scale_index() {
 
+    }
+
+    inline app_init_struct(vec2i res, int32_t scale_index) {
+        this->res = res;
+        this->scale_index = scale_index;
     }
 };
 
 extern const double_t render_scale_table[];
 
-extern int32_t render_main(render_init_struct* ris);
-extern double_t render_get_scale();
-extern int32_t render_get_scale_index();
-extern void render_set_scale_index(int32_t index);
+extern int32_t app_main(const app_init_struct& ris);
+extern double_t app_get_render_scale();
+extern int32_t app_get_render_scale_index();
+extern void app_set_render_scale_index(int32_t index);

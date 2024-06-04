@@ -7,8 +7,8 @@
 #include "../../../CRE/lock.hpp"
 #include "../../../CRE/static_var.hpp"
 #include "../../../KKdLib/timer.hpp"
+#include "../../app.hpp"
 #include "../../imgui_helper.hpp"
-#include "../../render.hpp"
 
 extern int32_t width;
 extern int32_t height;
@@ -60,13 +60,13 @@ void graphics_render_settings_imgui(class_data* data) {
         return;
     }
 
-    double_t scale = render_get_scale() * 100.0;
-    int32_t scale_index = render_get_scale_index();
+    double_t scale = app_get_render_scale() * 100.0;
+    int32_t scale_index = app_get_render_scale_index();
     char buf[0x80];
     sprintf_s(buf, sizeof(buf), "%g%%%%", scale);
     if (ImGui::ColumnSliderIntButton("Scale", &scale_index, 0,
         RENDER_SCALE_MAX - 1, buf, ImGuiSliderFlags_NoInput))
-        render_set_scale_index(scale_index);
+        app_set_render_scale_index(scale_index);
 
     ImGui::Separator();
 
@@ -90,7 +90,7 @@ void graphics_render_settings_imgui(class_data* data) {
     ImGui::Separator();
 
     if (ImGui::ButtonEnterKeyPressed("Reset Render Settings"))
-        render_set_scale_index(6);
+        app_set_render_scale_index(6);
 
     data->imgui_focus |= ImGui::IsWindowFocused();
     ImGui::End();
