@@ -1936,16 +1936,16 @@ namespace ImGui {
         const ImGuiAxis axis = (flags & ImGuiSliderFlags_Vertical) ? ImGuiAxis_Y : ImGuiAxis_X;
         const bool is_logarithmic = (flags & ImGuiSliderFlags_Logarithmic) != 0;
         const bool is_floating_point = (data_type == ImGuiDataType_Float) || (data_type == ImGuiDataType_Double);
-        const SIGNEDTYPE v_range = (v_min < v_max ? v_max - v_min : v_min - v_max);
+        const float_t v_range_f = (float_t)(v_min < v_max ? v_max - v_min : v_min - v_max); // We don't need high precision for what we do with it.
 
         // Calculate bounds
         const float_t grab_padding = 2.0f; // FIXME: Should be part of style.
         const float_t slider_sz = (bb.Max[axis] - bb.Min[axis]) - grab_padding * 2.0f;
         float_t grab_sz = style.GrabMinSize * 1.5f;
-        // v_range < 0 may happen on integer overflows
-        if (!is_floating_point && v_range >= 0)
+        // v_range_f < 0 may happen on integer overflows
+        if (!is_floating_point && v_range_f >= 0.0f)
             // For integer sliders: if possible have the grab size represent 1 unit
-            grab_sz = ImMax((float_t)(slider_sz / (v_range + 1)), style.GrabMinSize * 1.5f);
+            grab_sz = ImMax(slider_sz / (v_range_f + 1), style.GrabMinSize);
         grab_sz = ImMin(grab_sz, slider_sz);
         const float_t slider_usable_sz = slider_sz - grab_sz;
         const float_t slider_usable_pos_min = bb.Min[axis] + grab_padding + grab_sz * 0.5f;
@@ -1987,9 +1987,8 @@ namespace ImGui {
                     }
 
                     ImRect out_grab_bb;
-                    if (slider_sz < 1.0f) {
+                    if (slider_sz < 1.0f)
                         out_grab_bb = ImRect(bb.Min, bb.Min);
-                    }
                     else {
                         float_t grab_t = ScaleRatioFromValueT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type,
                             *v, v_min, v_max, is_logarithmic, logarithmic_zero_epsilon, zero_deadzone_halfsize);
@@ -2033,9 +2032,9 @@ namespace ImGui {
                         if (tweak_slow)
                             input_delta /= 10.0f;
                     }
-                    else if ((v_range >= -100.0f && v_range <= 100.0f) || tweak_slow)
+                    else if ((v_range_f >= -100.0f && v_range_f <= 100.0f && v_range_f != 0.0f) || tweak_slow)
                         // Gamepad/keyboard tweak speeds in integer steps
-                        input_delta = ((input_delta < 0.0f) ? -1.0f : +1.0f) / (float_t)v_range;
+                        input_delta = ((input_delta < 0.0f) ? -1.0f : +1.0f) / v_range_f;
                     else
                         input_delta /= 100.0f;
 
@@ -2081,6 +2080,10 @@ namespace ImGui {
                     g.SliderCurrentAccumDirty = false;
                 }
             }
+
+            if (set_new_value)
+                if ((g.LastItemData.InFlags & ImGuiItemFlags_ReadOnly) || (flags & ImGuiSliderFlags_ReadOnly))
+                    set_new_value = false;
 
             if (set_new_value) {
                 TYPE v_new = ScaleValueFromRatioT<TYPE, SIGNEDTYPE, FLOATTYPE>(data_type,
@@ -2135,12 +2138,8 @@ namespace ImGui {
         const void* p_min, const void* p_max, const void* p_step, const char* format, ImGuiSliderFlags flags, ImRect* out_grab_bb) {
         // Read imgui.cpp "API BREAKING CHANGES" section for 1.78 if you hit this assert.
         IM_ASSERT((flags == 1 || (flags & ImGuiSliderFlags_InvalidMask_) == 0)
-            && "Invalid ImGuiSliderFlags flag!  Has the 'float_t power' argument been"
+            && "Invalid ImGuiSliderFlags flag!  Has the 'float power' argument been"
             " mistakenly cast to flags? Call function with ImGuiSliderFlags_Logarithmic flags instead.");
-
-        ImGuiContext& g = *GImGui;
-        if ((g.LastItemData.InFlags & ImGuiItemFlags_ReadOnly) || (flags & ImGuiSliderFlags_ReadOnly))
-            return false;
 
         switch (data_type) {
         case ImGuiDataType_S8: {
@@ -2273,17 +2272,16 @@ namespace ImGui {
         if (format == NULL)
             format = DataTypeGetInfo(data_type)->PrintFmt;
 
-        const bool hovered = ItemHoverable(frame_bb, id);
+        const bool hovered = ItemHoverable(frame_bb, id, g.LastItemData.InFlags);
         bool temp_input_is_active = temp_input_allowed && TempInputIsActive(id);
         if (!temp_input_is_active) {
             // Tabbing or CTRL-clicking on Slider turns it into an input box
-            const bool input_requested_by_tabbing = temp_input_allowed && (g.LastItemData.StatusFlags & ImGuiItemStatusFlags_FocusedByTabbing) != 0;
-            const bool clicked = hovered && IsMouseClicked(0, id);
-            const bool make_active = (input_requested_by_tabbing || clicked || g.NavActivateId == id);
+            const bool clicked = hovered && IsMouseClicked(0, ImGuiInputFlags_None, id);
+            const bool make_active = (clicked || g.NavActivateId == id);
             if (make_active && clicked)
                 SetKeyOwner(ImGuiKey_MouseLeft, id);
             if (make_active && temp_input_allowed)
-                if (input_requested_by_tabbing || (clicked && g.IO.KeyCtrl) || (g.NavActivateId == id && (g.NavActivateFlags & ImGuiActivateFlags_PreferInput)))
+                if ((clicked && g.IO.KeyCtrl) || (g.NavActivateId == id && (g.NavActivateFlags & ImGuiActivateFlags_PreferInput)))
                     temp_input_is_active = true;
 
             if (make_active && !temp_input_is_active) {
@@ -2302,14 +2300,14 @@ namespace ImGui {
         }
 
         // Draw frame
-        const uint32_t frame_col = GetColorU32(g.ActiveId == id
+        const ImU32 frame_col = GetColorU32(g.ActiveId == id
             ? ImGuiCol_FrameBgActive : hovered ? ImGuiCol_FrameBgHovered : ImGuiCol_FrameBg);
         RenderNavHighlight(frame_bb, id);
         RenderFrame(frame_bb.Min, frame_bb.Max, frame_col, true, g.Style.FrameRounding);
 
         // Slider behavior
         ImRect grab_bb;
-        bool value_changed = SliderBehaviorStep(frame_bb, id, data_type,
+        const bool value_changed = SliderBehaviorStep(frame_bb, id, data_type,
             p_data, p_min, p_max, p_step, format, flags, &grab_bb);
         if (value_changed)
             MarkItemEdited(id);
@@ -2334,7 +2332,8 @@ namespace ImGui {
         io.KeyRepeatDelay = key_repeat_delay;
         io.KeyRepeatRate = key_repeat_rate;
 
-        IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags);
+        IMGUI_TEST_ENGINE_ITEM_INFO(id, label, g.LastItemData.StatusFlags
+            | (temp_input_allowed ? ImGuiItemStatusFlags_Inputable : 0));
         return value_changed;
     }
 }
