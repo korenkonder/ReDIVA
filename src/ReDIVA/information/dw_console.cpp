@@ -212,13 +212,13 @@ void DwConsole::CtrlList() {
         if (v22 >= 0.0f) {
             v_bar->SetMin(0.0f);
             v_bar->SetMax(v22);
-            v_bar->sub_1402F9670(v16 / v21 * v22);
+            v_bar->SetGrab(v16 / v21 * v22);
         }
         else {
             v22 = 0.0f;
             v_bar->SetMin(0.0f);
             v_bar->SetMax(0.0f);
-            v_bar->sub_1402F9670(v21);
+            v_bar->SetGrab(v21);
         }
 
         if (equal)
