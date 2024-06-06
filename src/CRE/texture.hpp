@@ -69,18 +69,26 @@ struct texture {
 
     texture();
 
-    uint32_t get_height_align_mip_level(uint8_t mip_level = 0);
-    uint32_t get_width_align_mip_level(uint8_t mip_level = 0);
+    int32_t get_height_align_mip_level(uint8_t mip_level = 0);
+    int32_t get_size_mip_level(uint8_t mip_level = 0);
+    int32_t get_width_align_mip_level(uint8_t mip_level = 0);
+
+    inline int32_t get_height_mip_level(uint8_t mip_level) {
+        return max_def(height >> mip_level, 1);
+    }
+    inline int32_t get_width_mip_level(uint8_t mip_level) {
+        return max_def(width >> mip_level, 1);
+    }
 };
 
 struct texture_manager {
     std::map<texture_id, texture> textures;
     int16_t entry_count;
     int16_t alloc_count;
-    int32_t texmem_now_size;
-    int32_t texmem_peak_size;
-    int32_t texmem_now_size_by_type[4];
-    int32_t texmem_peak_size_by_type[4];
+    uint32_t texmem_now_size;
+    uint32_t texmem_peak_size;
+    uint32_t texmem_now_size_by_type[4];
+    uint32_t texmem_peak_size_by_type[4];
     int32_t copy_count;
 
     texture_manager();

@@ -27,28 +27,28 @@ enum txp_format {
 };
 
 struct txp_mipmap {
-    uint32_t width;
-    uint32_t height;
+    int32_t width;
+    int32_t height;
     txp_format format;
-    uint32_t size;
+    int32_t size;
     std::vector<uint8_t> data;
 
     txp_mipmap();
     ~txp_mipmap();
 
-    uint32_t get_size();
+    int32_t get_size();
 };
 
 struct txp {
     bool has_cube_map;
-    uint32_t array_size;
-    uint32_t mipmaps_count;
+    int32_t array_size;
+    int32_t mipmaps_count;
     std::vector<txp_mipmap> mipmaps;
 
     txp();
     ~txp();
 
-    static uint32_t get_size(txp_format format, uint32_t width, uint32_t height);
+    static int32_t get_size(txp_format format, int32_t width, int32_t height);
 };
 
 struct txp_set {

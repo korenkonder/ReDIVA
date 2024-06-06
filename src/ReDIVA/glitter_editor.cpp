@@ -1870,7 +1870,7 @@ static bool glitter_editor_resource_import(GlitterEditor* glt_edt) {
         uint64_t hash_f2 = hash_utf16_murmurhash(f);
 
         txp* tex;
-        uint32_t index;
+        int32_t index;
 
         Glitter::EffectGroup* eg = glt_edt->effect_group;
         int32_t rc = eg->resources_count;
@@ -1893,13 +1893,13 @@ static bool glitter_editor_resource_import(GlitterEditor* glt_edt) {
             tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
             index = 0;
             do
-                for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
+                for (int32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max_def(d.width >> i, 1u);
-                    tex_mip.height = max_def(d.height >> i, 1u);
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
                     tex_mip.format = d.format;
 
-                    uint32_t size = tex_mip.get_size();
+                    int32_t size = tex_mip.get_size();
                     tex_mip.size = size;
                     tex_mip.data.resize(size);
                     memcpy(tex_mip.data.data(), d.data[index], size);
@@ -1949,8 +1949,8 @@ static bool glitter_editor_resource_export(GlitterEditor* glt_edt) {
         txp& tex = eg->resources_tex.textures[sel_rsrc];
 
         txp_format format = tex.mipmaps[0].format;
-        uint32_t width = tex.mipmaps[0].width;
-        uint32_t height = tex.mipmaps[0].height;
+        int32_t width = tex.mipmaps[0].width;
+        int32_t height = tex.mipmaps[0].height;
 
         dds d;
         d.format = format;
@@ -1959,10 +1959,10 @@ static bool glitter_editor_resource_export(GlitterEditor* glt_edt) {
         d.mipmaps_count = tex.mipmaps_count;
         d.has_cube_map = tex.has_cube_map;
         d.data.reserve((tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
-        uint32_t index = 0;
+        int32_t index = 0;
         do
-            for (uint32_t i = 0; i < tex.mipmaps_count; i++) {
-                uint32_t size = d.get_size(i);
+            for (int32_t i = 0; i < tex.mipmaps_count; i++) {
+                int32_t size = d.get_size(i);
                 void* data = force_malloc(size);
                 memcpy(data, tex.mipmaps[index].data.data(), size);
                 d.data.push_back(data);

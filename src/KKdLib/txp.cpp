@@ -15,7 +15,7 @@ txp_mipmap::~txp_mipmap() {
 
 }
 
-uint32_t txp_mipmap::get_size() {
+int32_t txp_mipmap::get_size() {
     return txp::get_size(format, width, height);
 }
 
@@ -27,8 +27,8 @@ txp::~txp() {
 
 }
 
-uint32_t txp::get_size(txp_format format, uint32_t width, uint32_t height) {
-    uint32_t size = width * height;
+int32_t txp::get_size(txp_format format, int32_t width, int32_t height) {
+    int32_t size = width * height;
     switch (format) {
     case TXP_A8:
         return size;
@@ -302,7 +302,7 @@ bool txp_set::produce_enrs(enrs* enrs) {
         enrs->vec.push_back(ee);
         l += o = 12;
 
-        ee = { o, 1, tex->array_size * 4, tex->mipmaps_count };
+        ee = { o, 1, (uint32_t)((size_t)tex->array_size * 4), (uint32_t)tex->mipmaps_count };
         ee.append(0, tex->array_size, ENRS_DWORD);
         enrs->vec.push_back(ee);
         l += (size_t)(o = (uint32_t)((size_t)tex->array_size * tex->mipmaps_count * 4));
@@ -408,7 +408,7 @@ bool txp_set::unpack_file(const void* data, bool big_endian) {
                     tex_mipmap->size = *(uint32_t*)(mipmap_d + 20);
                 }
 
-                ssize_t size = tex_mipmap->get_size();
+                int32_t size = tex_mipmap->get_size();
                 tex_mipmap->data.resize(max_def(size, tex_mipmap->size));
                 memcpy(tex_mipmap->data.data(), (void*)(mipmap_d + 24), tex_mipmap->size);
                 size -= tex_mipmap->size;

@@ -264,8 +264,8 @@ void dds::read(const wchar_t* path) {
         data.reserve(has_cube_map ? mipmaps_count * 6ULL : mipmaps_count);
 
         do
-            for (uint32_t i = 0; i < mipmaps_count; i++) {
-                uint32_t size = get_size(i);
+            for (int32_t i = 0; i < mipmaps_count; i++) {
+                int32_t size = get_size(i);
                 void* data = force_malloc(size);
                 s.read(data, size);
                 if (reverse)
@@ -300,7 +300,7 @@ void dds::write(const wchar_t* path) {
         dds_h.flags |= DDSD_MIPMAPCOUNT;
     dds_h.height = height;
     dds_h.width = width;
-    dds_h.pitchOrLinearSize = txp::get_size(format, width, height);
+    dds_h.pitchOrLinearSize = (uint32_t)txp::get_size(format, width, height);
     dds_h.mipMapCount = mipmaps_count;
     dds_h.caps |= DDS_SURFACE_FLAGS_TEXTURE;
     if (has_cube_map)
@@ -364,10 +364,10 @@ void dds::write(const wchar_t* path) {
         s.write_uint32_t_reverse_endianness(DDS_MAGIC, true);
         s.write_data(dds_h);
 
-        uint32_t index = 0;
+        int32_t index = 0;
         do
-            for (uint32_t i = 0; i < mipmaps_count; i++) {
-                uint32_t size = get_size(i);
+            for (int32_t i = 0; i < mipmaps_count; i++) {
+                int32_t size = get_size(i);
                 void* data = force_malloc(size);
                 memcpy(data, this->data[index], size);
                 dds_reverse_rgb(format, size, (uint8_t*)data);
@@ -380,10 +380,10 @@ void dds::write(const wchar_t* path) {
     free_def(path_dds);
 }
 
-uint32_t dds::get_size(uint32_t mip_level) {
+int32_t dds::get_size(int32_t mip_level) {
     return txp::get_size(format,
-        max_def(width >> mip_level, 1u),
-        max_def(height >> mip_level, 1u));
+        max_def(width >> mip_level, 1),
+        max_def(height >> mip_level, 1));
 }
 
 static void dds_reverse_rgb(txp_format format, size_t size, uint8_t* data) {

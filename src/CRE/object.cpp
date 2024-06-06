@@ -1192,13 +1192,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
             int32_t index = 0;
             do
-                for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
+                for (int32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max_def(d.width >> i, 1u);
-                    tex_mip.height = max_def(d.height >> i, 1u);
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
                     tex_mip.format = d.format;
 
-                    uint32_t size = tex_mip.get_size();
+                    int32_t size = tex_mip.get_size();
                     tex_mip.size = size;
                     tex_mip.data.resize(size);
                     memcpy(tex_mip.data.data(), d.data[index], size);
@@ -1263,13 +1263,13 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
             int32_t index = 0;
             do
-                for (uint32_t i = 0; i < tex->mipmaps_count; i++) {
+                for (int32_t i = 0; i < tex->mipmaps_count; i++) {
                     txp_mipmap tex_mip;
-                    tex_mip.width = max_def(d.width >> i, 1u);
-                    tex_mip.height = max_def(d.height >> i, 1u);
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
                     tex_mip.format = d.format;
 
-                    uint32_t size = tex_mip.get_size();
+                    int32_t size = tex_mip.get_size();
                     tex_mip.size = size;
                     tex_mip.data.resize(size);
                     memcpy(tex_mip.data.data(), d.data[index], size);
@@ -1577,8 +1577,8 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
         txp& tex = txp_set->textures[i];
 
         txp_format format = tex.mipmaps[0].format;
-        uint32_t width = tex.mipmaps[0].width;
-        uint32_t height = tex.mipmaps[0].height;
+        int32_t width = tex.mipmaps[0].width;
+        int32_t height = tex.mipmaps[0].height;
 
         dds d;
         d.format = format;
@@ -1587,10 +1587,11 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
         d.mipmaps_count = tex.mipmaps_count;
         d.has_cube_map = tex.has_cube_map;
         d.data.reserve((tex.has_cube_map ? 6LL : 1LL) * tex.mipmaps_count);
-        uint32_t index = 0;
+        int32_t index = 0;
         do
-            for (uint32_t j = 0; j < tex.mipmaps_count; j++) {
-                uint32_t size = txp::get_size(format, max_def(width >> j, 1u), max_def(height >> j, 1u));
+            for (int32_t j = 0; j < tex.mipmaps_count; j++) {
+                int32_t size = txp::get_size(format,
+                    max_def(width >> j, 1), max_def(height >> j, 1));
                 void* data = force_malloc(size);
                 memcpy(data, tex.mipmaps[index].data.data(), size);
                 d.data.push_back(data);

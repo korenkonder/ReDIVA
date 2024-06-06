@@ -10,9 +10,9 @@
 
 struct dds {
     txp_format format;
-    uint32_t width;
-    uint32_t height;
-    uint32_t mipmaps_count;
+    int32_t width;
+    int32_t height;
+    int32_t mipmaps_count;
     bool has_cube_map;
     std::vector<void*> data;
 
@@ -24,5 +24,5 @@ struct dds {
     void write(const char* path);
     void write(const wchar_t* path);
 
-    uint32_t get_size(uint32_t mip_level = 0);
+    int32_t get_size(int32_t mip_level = 0);
 };
