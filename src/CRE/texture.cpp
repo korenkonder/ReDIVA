@@ -392,7 +392,7 @@ bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids) {
     *texs = force_malloc<texture*>(count + 1);
     texture** tex = *texs;
     for (size_t i = 0; i < count; i++)
-        tex[i] = texture_txp_load(&t->textures[i], texture_id(0, ids[i]));
+        tex[i] = texture_txp_load(&t->textures[i], texture_id(0x00, ids[i]));
     tex[count] = 0;
     return true;
 }

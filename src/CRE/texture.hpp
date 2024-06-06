@@ -28,7 +28,6 @@ struct texture_id {
         this->id = id;
         this->index = index;
     }
-
 };
 
 constexpr bool operator==(const texture_id& left, const texture_id& right) {

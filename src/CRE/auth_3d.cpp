@@ -6384,8 +6384,8 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
         sprintf_s(buf, sizeof(buf), "%.*s%03d",
             (int32_t)(i.name.size() - 3), i.name.c_str(), (int32_t)prj::roundf(i.pattern.value));
 
-        tex_pat[tex_pat_count].src = texture_id(0, i.texture_id);
-        tex_pat[tex_pat_count].dst = texture_id(0, tex_db->get_texture_id(buf));
+        tex_pat[tex_pat_count].src = texture_id(0x00, i.texture_id);
+        tex_pat[tex_pat_count].dst = texture_id(0x00, tex_db->get_texture_id(buf));
         tex_pat_count++;
     }
 

@@ -451,7 +451,7 @@ namespace mdl {
 
             if (texture_id != -1) {
                 for (int32_t j = 0; j < args->texture_pattern_count; j++)
-                    if (args->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
+                    if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
                         texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                         if (tex)
                             tex_id = tex->glid;
@@ -482,7 +482,7 @@ namespace mdl {
                 else
                     wrap_t = 0;
 
-                texture* tex = texture_manager_get_texture(::texture_id(0, texture_id));
+                texture* tex = texture_manager_get_texture(::texture_id(0x00, texture_id));
                 gl_state_bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
                     + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
             }
@@ -676,7 +676,7 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
         GLuint tex_id = -1;
         uint32_t texture_id = texdata->tex_index;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
+            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
                 texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                 if (tex)
                     tex_id = tex->glid;
@@ -738,7 +738,7 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
             else
                 wrap_t = 0;
 
-            texture* tex = texture_manager_get_texture(::texture_id(0, texture_id));
+            texture* tex = texture_manager_get_texture(texture_id);
             gl_state_bind_sampler(tex_index, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
                 + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
         }
@@ -909,7 +909,7 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
 
         GLuint tex_id = -1;
         for (int32_t j = 0; j < args->texture_pattern_count; j++)
-            if (args->texture_pattern_array[j].src == ::texture_id(0, texture_id)) {
+            if (args->texture_pattern_array[j].src == ::texture_id(0x00, texture_id)) {
                 texture* tex = texture_manager_get_texture(args->texture_pattern_array[j].dst);
                 if (tex)
                     tex_id = tex->glid;
@@ -940,7 +940,7 @@ static void draw_object_material_set_reflect(render_context* rctx, const mdl::Ob
         else
             wrap_t = 0;
 
-        texture* tex = texture_manager_get_texture(::texture_id(0, texture_id));
+        texture* tex = texture_manager_get_texture(texture_id);
         gl_state_bind_sampler(i, rctx->samplers[(wrap_t * 3 + wrap_s) * 2
             + (!tex || tex->max_mipmap_level > 0 ? 1 : 0)]);
     }
