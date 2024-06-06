@@ -100,7 +100,7 @@ void texture_apply_color_tone(texture* chg_tex,
 
             texture_bind(chg_tex->target, chg_tex->glid);
             uint32_t width = texture_get_width_mip_level(org_tex, i);
-            uint32_t height = texture_get_width_mip_level(org_tex, i);
+            uint32_t height = texture_get_height_mip_level(org_tex, i);
             glCompressedTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 chg_tex->internal_format, size, data);
         }
@@ -111,7 +111,7 @@ void texture_apply_color_tone(texture* chg_tex,
 
             texture_bind(chg_tex->target, chg_tex->glid);
             uint32_t width = texture_get_width_mip_level(org_tex, i);
-            uint32_t height = texture_get_width_mip_level(org_tex, i);
+            uint32_t height = texture_get_height_mip_level(org_tex, i);
             glTexSubImage2D(chg_tex->target, i, 0, 0, width, height,
                 GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
         }
