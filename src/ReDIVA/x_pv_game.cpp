@@ -7251,7 +7251,7 @@ bool x_pv_game::ctrl() {
             for (auth_3d*& i : song_effect_auth_3ds)
                 x_pv_game_write_auth_3d(effpv_farc, i, &x_pack_auth_3d_db_file, name);
 
-            effpv_farc->write(path, FARC_FArC, FARC_NONE, false);
+            effpv_farc->write(path, FARC_FArC, FARC_NONE, true, false);
             delete effpv_farc;
         }
 
@@ -7288,7 +7288,7 @@ bool x_pv_game::ctrl() {
                     light_auth_3d_id.get_auth_3d(), &x_pack_auth_3d_db_file, name);
 
             if (effstgpv_farc->files.size())
-                effstgpv_farc->write(path, FARC_FArC, FARC_NONE, false);
+                effstgpv_farc->write(path, FARC_FArC, FARC_NONE, true, false);
             delete effstgpv_farc;
         }
 
@@ -9819,7 +9819,7 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
         strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
         strcat_s(path, sizeof(path), name);
 
-        f->write(path, FARC_FArC, FARC_NONE, false);
+        f->write(path, FARC_FArC, FARC_NONE, true, false);
         delete f;
 
         auth_3d_db->category.push_back(name);
@@ -10351,7 +10351,7 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
     strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
     strcat_s(buf, sizeof(buf), name);
 
-    f.write(buf, FARC_FArC, FARC_NONE, false);
+    f.write(buf, FARC_FArC, FARC_NONE, true, false);
 }
 
 inline static int64_t x_pv_game_write_strings_get_string_offset(
@@ -10940,7 +10940,7 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
     strcpy_s(buf, sizeof(buf), "patch\\!temp\\2d\\");
     strncat_s(buf, sizeof(buf), spr_db_spr_set.file_name.c_str(), pos);
 
-    f.write(buf, FARC_FArC, FARC_NONE, false);
+    f.write(buf, FARC_FArC, FARC_NONE, true, false);
 
     if (set->txp) {
         delete set->txp;

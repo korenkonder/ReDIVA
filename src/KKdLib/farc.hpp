@@ -67,18 +67,18 @@ struct farc {
     bool has_file(const char* name);
     bool has_file(const wchar_t* name);
     bool has_file(uint32_t hash);
-    void read(const char* path, bool unpack = true, bool save = false);
-    void read(const wchar_t* path, bool unpack = true, bool save = false);
-    void read(const void* data, size_t size, bool unpack = true);
+    void read(const char* path, bool unpack, bool save);
+    void read(const wchar_t* path, bool unpack, bool save);
+    void read(const void* data, size_t size, bool unpack);
     farc_file* read_file(const char* name);
     farc_file* read_file(const wchar_t* name);
     farc_file* read_file(uint32_t hash);
-    void write(const char* path, farc_signature signature = FARC_FArC,
-        farc_flags flags = FARC_NONE, bool add_extension = true, bool get_files = true);
-    void write(const wchar_t* path, farc_signature signature = FARC_FArC,
-        farc_flags flags = FARC_NONE, bool add_extension = true, bool get_files = true);
-    void write(void** data, size_t* size, farc_signature signature = FARC_FArC,
-        farc_flags flags = FARC_NONE);
+    void write(const char* path, farc_signature signature,
+        farc_flags flags, bool add_extension, bool get_files);
+    void write(const wchar_t* path, farc_signature signature,
+        farc_flags flags, bool add_extension, bool get_files);
+    void write(void** data, size_t* size, farc_signature signature,
+        farc_flags flags);
 
     static bool load_file(void* data, const char* dir, const char* file, uint32_t hash);
 };

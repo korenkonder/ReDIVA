@@ -2256,7 +2256,7 @@ namespace Glitter {
             }
             free_def(list_temp);
         }
-        f.write(temp, signature, flags, false);
+        f.write(temp, signature, flags, true, false);
         free_def(temp);
     }
 }
