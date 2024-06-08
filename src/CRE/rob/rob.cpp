@@ -14360,7 +14360,7 @@ static void sub_140526FD0(rob_chara_item_cos_data* item_cos_data,
 
         bool changed = false;
         if (item->data.col[j].flag & 0x01) {
-            tex = texture_copy(texture_manager_get_copy_id(0x30), tex);
+            tex = texture_create_copy_texture(texture_manager_get_copy_id(0x30), tex);
             texture_apply_color_tone(tex, tex, &item->data.col[j].col_tone);
             changed = true;
         }
