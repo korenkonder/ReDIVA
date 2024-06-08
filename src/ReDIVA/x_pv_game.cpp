@@ -21,7 +21,9 @@
 #include "../CRE/sprite.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
+#include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
+#include "../KKdLib/dds.hpp"
 #include "../KKdLib/farc.hpp"
 #include "../KKdLib/interpolation.hpp"
 #include "../KKdLib/msgpack.hpp"
@@ -10180,6 +10182,149 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
             | Glitter::FILE_WRITER_ENCRYPT | Glitter::FILE_WRITER_NO_LIST));
 }
 
+static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
+    const char* set_name, txp_set* txp_set, const ObjsetInfo* info) {
+    if (!path_check_directory_exists(path))
+        return;
+
+    char set_name_buf[0x80];
+    for (const char* i = set_name; *i && *i != '.'; i++) {
+        char c = *i;
+        if (c >= 'a' && c <= 'z')
+            c -= 0x20;
+        set_name_buf[i - set_name] = c;
+        set_name_buf[i - set_name + 1] = 0;
+    }
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\", path, set_name_buf);
+    if (!path_check_directory_exists(buf))
+        return;
+
+    sprintf_s(buf, sizeof(buf), "%s\\%s\\config_tex.json", path, set_name_buf);
+    if (!path_check_file_exists(buf))
+        return;
+
+    msgpack msg;
+
+    file_stream s;
+    s.open(buf, "rb");
+    io_json_read(s, &msg);
+    s.close();
+
+    if (msg.type != MSGPACK_MAP)
+        return;
+
+    const obj_set* set = info->obj_set;
+
+    msgpack* add = msg.read_array("Add");
+    if (add) {
+        std::vector<uint32_t> ids;
+        msgpack_array* ptr = add->data.arr;
+        for (msgpack& i : *ptr) {
+            std::string name = i.read_string();
+            if (!name.size())
+                continue;
+
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s.dds", path, set_name_buf, name.c_str());
+            if (!path_check_file_exists(buf))
+                continue;
+
+            dds d;
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s", path, set_name_buf, name.c_str());
+            d.read(buf);
+            if (!d.width || !d.height || !d.mipmaps_count || d.data.size() < 1)
+                continue;
+
+            uint32_t id = hash_string_murmurhash(name);
+            ids.push_back(id);
+
+            txp_set->textures.push_back({});
+            txp* tex = &txp_set->textures.back();
+            tex->array_size = d.has_cube_map ? 6 : 1;
+            tex->has_cube_map = d.has_cube_map;
+            tex->mipmaps_count = d.mipmaps_count;
+
+            tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
+            int32_t index = 0;
+            do
+                for (int32_t i = 0; i < tex->mipmaps_count; i++) {
+                    txp_mipmap tex_mip;
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
+                    tex_mip.format = d.format;
+
+                    int32_t size = tex_mip.get_size();
+                    tex_mip.size = size;
+                    tex_mip.data.resize(size);
+                    memcpy(tex_mip.data.data(), d.data[index], size);
+                    tex->mipmaps.push_back(tex_mip);
+                    index++;
+                }
+            while (index / tex->mipmaps_count < tex->array_size);
+        }
+    }
+
+    msgpack* replace = msg.read_array("Replace");
+    if (replace) {
+        msgpack_array* ptr = replace->data.arr;
+        for (msgpack& i : *ptr) {
+            std::string name = i.read_string();
+            if (!name.size())
+                continue;
+
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s.dds", path, set_name_buf, name.c_str());
+            if (!path_check_file_exists(buf))
+                continue;
+
+            dds d;
+            sprintf_s(buf, sizeof(buf), "%s\\%s\\%s", path, set_name_buf, name.c_str());
+            d.read(buf);
+            if (!d.width || !d.height || !d.mipmaps_count || d.data.size() < 1)
+                continue;
+
+            uint32_t id = hash_string_murmurhash(name);
+
+            uint32_t* tex_id_data = set->tex_id_data;
+            uint32_t tex_id_num = set->tex_id_num;
+
+            txp* tex = 0;
+            for (uint32_t i = 0; i < tex_id_num; i++)
+                if (id == tex_id_data[i]) {
+                    tex = &txp_set->textures[i];
+                    break;
+                }
+
+            if (!tex)
+                continue;
+
+            tex->array_size = d.has_cube_map ? 6 : 1;
+            tex->has_cube_map = d.has_cube_map;
+            tex->mipmaps_count = d.mipmaps_count;
+
+            tex->mipmaps.clear();
+            tex->mipmaps.reserve((tex->has_cube_map ? 6LL : 1LL) * tex->mipmaps_count);
+            int32_t index = 0;
+            do
+                for (int32_t i = 0; i < tex->mipmaps_count; i++) {
+                    txp_mipmap tex_mip;
+                    tex_mip.width = max_def(d.width >> i, 1);
+                    tex_mip.height = max_def(d.height >> i, 1);
+                    tex_mip.format = d.format;
+
+                    int32_t size = tex_mip.get_size();
+                    tex_mip.size = size;
+                    tex_mip.data.resize(size);
+                    memcpy(tex_mip.data.data(), d.data[index], size);
+                    tex->mipmaps.push_back(tex_mip);
+                    index++;
+                }
+            while (index / tex->mipmaps_count < tex->array_size);
+        }
+    }
+}
+
+
 static void x_pv_game_write_object_set(ObjsetInfo* info,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
     const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db) {
@@ -10330,21 +10475,36 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
     }
 
     {
+        data_struct* x_data = &data_list[DATA_X];
+
+        farc _f;
+        x_data->load_file(&_f, "root+/objset/", hash_string_murmurhash(info->name), ".farc", farc::load_file);
+
         char buf[0x100];
-        strcpy_s(buf, sizeof(buf), name);
-        strcat_s(buf, sizeof(buf), "_tex.bin");
+        strcpy_s(buf, sizeof(buf), info->name.c_str());
+        strcat_s(buf, sizeof(buf), ".txd");
 
-        uint32_t tex_num = info->tex_num;
-        texture** tex_data = info->tex_data;
+        for (size_t j = 0; j < sizeof(buf) && buf[j]; j++) {
+            char c = buf[j];
+            if (c >= 'A' && c <= 'Z')
+                buf[j] += 0x20;
+        }
 
-        txp_set txp;
-        txp.textures.resize(tex_num);
-        for (uint32_t j = 0; j < tex_num; j++)
-            texture_txp_store(tex_data[j], &txp.textures[j]);
+        farc_file* txd = _f.read_file(buf);
+        if (txd) {
+            char buf[0x100];
+            strcpy_s(buf, sizeof(buf), name);
+            strcat_s(buf, sizeof(buf), "_tex.bin");
 
-        farc_file* ff_tex = f.add_file(buf);
-        txp.pack_file(&ff_tex->data, &ff_tex->size, false);
-        ff_tex->compressed = true;
+            txp_set txp;
+            txp.unpack_file_modern(txd->data, txd->size, 'MTXD');
+            x_pv_game_write_object_set_material_msgpack_read(
+                "patch\\AFT\\objset", info->name.c_str(), &txp, info);
+
+            farc_file* ff_tex = f.add_file(buf);
+            txp.pack_file(&ff_tex->data, &ff_tex->size, false);
+            ff_tex->compressed = true;
+        }
     }
 
     char buf[0x200];
