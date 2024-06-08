@@ -49,8 +49,8 @@ void data_view_object_imgui(class_data* data) {
         return;
     }
 
-    extern std::map<uint32_t, ObjsetInfo> object_storage_data;
-    for (auto& i : object_storage_data) {
+    extern std::map<uint32_t, ObjsetInfo> objset_info_storage_data;
+    for (auto& i : objset_info_storage_data) {
         ObjsetInfo* info = &i.second;
         if (!info->obj_set)
             continue;
@@ -63,11 +63,11 @@ void data_view_object_imgui(class_data* data) {
         ImGui::PopID();
     }
 
-    extern std::map<uint32_t, ObjsetInfo> object_storage_data_modern;
-    if (object_storage_data_modern.size())
+    extern std::map<uint32_t, ObjsetInfo> objset_info_storage_data_modern;
+    if (objset_info_storage_data_modern.size())
         ImGui::Selectable("Modern:", false, ImGuiSelectableFlags_Disabled);
 
-    for (auto& i : object_storage_data_modern) {
+    for (auto& i : objset_info_storage_data_modern) {
         ObjsetInfo* info = &i.second;
         if (!info->obj_set)
             continue;

@@ -340,7 +340,7 @@ void DataEdit::Auth3D::patch() {
 void DataEdit::Auth3D::reset() {
     auth_3d_data_unload_category(category.hash_murmurhash);
     id.unload(rctx_ptr);
-    object_storage_unload_set(object_set.hash_murmurhash);
+    objset_info_storage_unload_set(object_set.hash_murmurhash);
 
     category.clear();
     file.clear();
@@ -405,15 +405,15 @@ bool DataEdit::ctrl() {
         auth_3d.object_set.assign("EFFCHRPV826MIK001");
 
         auth_3d_data_load_category(x_data, auth_3d.category.c_str(), auth_3d.category.hash_murmurhash);
-        object_storage_load_set_hash(x_data, auth_3d.object_set.hash_murmurhash);
+        objset_info_storage_load_set_hash(x_data, auth_3d.object_set.hash_murmurhash);
     } break;
     case 3: {
         if (motion_storage_check_mot_file_not_ready(mot_set_id))
             break;
 
         if (!auth_3d_data_check_category_loaded(auth_3d.category.hash_murmurhash)
-            || (object_storage_get_objset_info(auth_3d.object_set.hash_murmurhash)
-            && object_storage_load_obj_set_check_not_read(
+            || (objset_info_storage_get_objset_info(auth_3d.object_set.hash_murmurhash)
+            && objset_info_storage_load_obj_set_check_not_read(
                 auth_3d.object_set.hash_murmurhash, &auth_3d.obj_db, &auth_3d.tex_db)))
             break;
 

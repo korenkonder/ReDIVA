@@ -257,11 +257,11 @@ bool DataTestObjectManager::init() {
     }
 
     if (object_set_id != -1) {
-        object_storage_load_set(aft_data, aft_obj_db, object_set_id);
+        objset_info_storage_load_set(aft_data, aft_obj_db, object_set_id);
         state = 1;
     }
 
-    object_storage_load_set(aft_data, aft_obj_db, aft_obj_db->get_object_set_id(object_set_index));
+    objset_info_storage_load_set(aft_data, aft_obj_db, aft_obj_db->get_object_set_id(object_set_index));
     return true;
 }
 
@@ -271,13 +271,13 @@ bool DataTestObjectManager::ctrl() {
 
     switch (state) {
     case 1:
-        if (object_set_id == -1 || !object_storage_load_obj_set_check_not_read(object_set_id))
+        if (object_set_id == -1 || !objset_info_storage_load_obj_set_check_not_read(object_set_id))
             state = 2;
         break;
     case 2: {
         uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-        if (!object_storage_load_obj_set_check_not_read(obj_set_id)) {
-            obj_num = object_storage_get_obj_set(obj_set_id)->obj_num;
+        if (!objset_info_storage_load_obj_set_check_not_read(obj_set_id)) {
+            obj_num = objset_info_storage_get_obj_set(obj_set_id)->obj_num;
             state = 3;
         }
     } break;
@@ -289,10 +289,10 @@ bool DataTestObjectManager::dest() {
     data_struct* aft_data = &data_list[DATA_AFT];
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
-    object_storage_unload_set(aft_obj_db->get_object_set_id(object_set_index));
+    objset_info_storage_unload_set(aft_obj_db->get_object_set_id(object_set_index));
 
     if (object_set_id != -1)
-        object_storage_unload_set(object_set_id);
+        objset_info_storage_unload_set(object_set_id);
     return true;
 }
 
@@ -304,7 +304,7 @@ void DataTestObjectManager::disp() {
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-    uint32_t obj_id = object_storage_get_obj_by_index(obj_set_id, obj_index)->id;
+    uint32_t obj_id = objset_info_storage_get_obj_by_index(obj_set_id, obj_index)->id;
     rctx_ptr->disp_manager->set_obj_flags((mdl::ObjFlags)(mdl::OBJ_40 | mdl::OBJ_20 | obj_flags));
 
     mat4 mat;
@@ -338,7 +338,7 @@ const obj_bounding_sphere* DataTestObjectManager::get_object_bounding_sphere(int
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-    const obj* obj = object_storage_get_obj_by_index(obj_set_id, obj_index);
+    const obj* obj = objset_info_storage_get_obj_by_index(obj_set_id, obj_index);
     if (obj)
         return &obj->bounding_sphere;
     return 0;
@@ -352,7 +352,7 @@ const char* DataTestObjectManager::get_object_name(int32_t obj_index) {
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     uint32_t obj_set_id = aft_obj_db->get_object_set_id(object_set_index);
-    const obj* obj = object_storage_get_obj_by_index(obj_set_id, obj_index);
+    const obj* obj = objset_info_storage_get_obj_by_index(obj_set_id, obj_index);
     if (obj)
         return obj->name;
     return"NULL";

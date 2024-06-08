@@ -13653,7 +13653,7 @@ void rob_chara_item_equip_object::load_object_info_ex_data(object_info obj_info,
     ex_data_bone_mats.clear();
     clear_ex_data();
 
-    obj_skin* skin = object_storage_get_obj_skin(this->obj_info);
+    obj_skin* skin = objset_info_storage_get_obj_skin(this->obj_info);
     if (!skin)
         return;
 
@@ -16133,7 +16133,7 @@ void OpdMaker::Data::ReadOpdiFiles(rob_chara* rob_chr, std::vector<uint32_t>& mo
             continue;
 
         object_info obj_info = itm_eq_obj->obj_info;
-        const char* object_name = object_storage_get_obj_name(obj_info);
+        const char* object_name = objset_info_storage_get_obj_name(obj_info);
         if (!object_name)
             continue;
 
@@ -16467,7 +16467,7 @@ bool OpdMakeWorker::ctrl() {
 
         for (int32_t i = ITEM_KAMI; i < ITEM_MAX; i++) {
             rob_chara_item_equip_object* itm_eq_obj = rob_chr->item_equip->get_item_equip_object((item_id)i);
-            if (!object_storage_get_obj_name(itm_eq_obj->obj_info) && itm_eq_obj->osage_nodes_count)
+            if (!objset_info_storage_get_obj_name(itm_eq_obj->obj_info) && itm_eq_obj->osage_nodes_count)
                 continue;
 
             int32_t j = ITEM_ATAMA;
@@ -16869,7 +16869,7 @@ void opd_chara_data::encode_data() {
             continue;
 
         object_info obj_info = itm_eq_obj->obj_info;
-        const char* object_name = object_storage_get_obj_name(obj_info);
+        const char* object_name = objset_info_storage_get_obj_name(obj_info);
         if (!object_name)
             continue;
 
@@ -16952,7 +16952,7 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
             continue;
 
         object_info obj_info = itm_eq_obj->obj_info;
-        const char* object_name = object_storage_get_obj_name(obj_info);
+        const char* object_name = objset_info_storage_get_obj_name(obj_info);
         if (!object_name)
             continue;
 
@@ -17077,7 +17077,7 @@ void opd_chara_data::open_opd_file() {
         if (!path_check_directory_exists(chara_dir.c_str()))
             path_create_directory(chara_dir.c_str());
 
-        const char* object_name = object_storage_get_obj_name(itm_eq_obj->obj_info);
+        const char* object_name = objset_info_storage_get_obj_name(itm_eq_obj->obj_info);
         if (!object_name)
             continue;
 
@@ -17107,7 +17107,7 @@ void opd_chara_data::open_opdi_file() {
         if (!path_check_directory_exists(chara_dir.c_str()))
             path_create_directory(chara_dir.c_str());
 
-        const char* object_name = object_storage_get_obj_name(itm_eq_obj->obj_info);
+        const char* object_name = objset_info_storage_get_obj_name(itm_eq_obj->obj_info);
         if (!object_name)
             continue;
 
@@ -17358,7 +17358,7 @@ void OsagePlayDataManager::LoadOpdFileList() {
         if (elem != opd_file_data.end())
             continue;
 
-        const char* object_name = object_storage_get_obj_name(i.first);
+        const char* object_name = objset_info_storage_get_obj_name(i.first);
         if (!object_name)
             continue;
 
@@ -18211,7 +18211,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
 }
 
 bool rob_chara_age_age_object::get_objset_info_obj_index(object_info obj_info) {
-    objset_info = object_storage_get_objset_info(obj_info.set_id);
+    objset_info = objset_info_storage_get_objset_info(obj_info.set_id);
     if (!objset_info)
         return false;
 
@@ -20020,7 +20020,7 @@ void TaskRobLoad::LoadCharaItem(chara_index chara_index,
 
     for (uint32_t i : *item_objset)
         if (i != (uint32_t)-1)
-            object_storage_load_set(data, obj_db, i);
+            objset_info_storage_load_set(data, obj_db, i);
 }
 
 bool TaskRobLoad::LoadCharaItemCheckNotRead(chara_index chara_index, int32_t item_no) {
@@ -20033,7 +20033,7 @@ bool TaskRobLoad::LoadCharaItemCheckNotRead(chara_index chara_index, int32_t ite
         return true;
 
     for (uint32_t i : *item_objset)
-        if (i != (uint32_t)-1 && object_storage_load_obj_set_check_not_read(i))
+        if (i != (uint32_t)-1 && objset_info_storage_load_obj_set_check_not_read(i))
             return true;
     return false;
 }
@@ -20053,20 +20053,20 @@ bool TaskRobLoad::LoadCharaItemsCheckNotRead(chara_index chara_index, item_cos_d
 
 bool TaskRobLoad::LoadCharaItemsCheckNotReadParent(chara_index chara_index, item_cos_data* cos) {
     return TaskRobLoad::LoadCharaItemsCheckNotRead(chara_index, cos)
-        || cos->data.kami == 649 && object_storage_load_obj_set_check_not_read(3291);
+        || cos->data.kami == 649 && objset_info_storage_load_obj_set_check_not_read(3291);
 }
 
 void TaskRobLoad::LoadCharaItemsParent(chara_index chara_index,
     item_cos_data* cos, void* data, const object_database* obj_db) {
     LoadCharaItems(chara_index, cos, data, obj_db);
     if (cos->data.kami == 649)
-        object_storage_load_set(data, obj_db, 3291);
+        objset_info_storage_load_set(data, obj_db, 3291);
 }
 
 void TaskRobLoad::LoadCharaObjSetMotionSet(chara_index chara_index,
     void* data, const object_database* obj_db, const motion_database* mot_db) {
     const chara_init_data* chr_init_data = chara_init_data_get(chara_index);
-    object_storage_load_set(data, obj_db, chr_init_data->object_set);
+    objset_info_storage_load_set(data, obj_db, chr_init_data->object_set);
     motion_set_load_motion(cmn_set_id, "", mot_db);
     motion_set_load_mothead(cmn_set_id, "", mot_db);
     motion_set_load_motion(chr_init_data->motion_set, "", mot_db);
@@ -20074,7 +20074,7 @@ void TaskRobLoad::LoadCharaObjSetMotionSet(chara_index chara_index,
 
 bool TaskRobLoad::LoadCharaObjSetMotionSetCheck(chara_index chara_index) {
     const chara_init_data* chr_init_data = chara_init_data_get(chara_index);
-    if (object_storage_load_obj_set_check_not_read(chr_init_data->object_set)
+    if (objset_info_storage_load_obj_set_check_not_read(chr_init_data->object_set)
         || motion_storage_check_mot_file_not_ready(cmn_set_id)
         || mothead_storage_check_mhd_file_not_ready(cmn_set_id))
         return true;
@@ -20106,7 +20106,7 @@ void TaskRobLoad::UnloadCharaItem(chara_index chara_index, int32_t item_no) {
 
     for (uint32_t i : *item_objset)
         if (i != (uint32_t)-1)
-            object_storage_unload_set(i);
+            objset_info_storage_unload_set(i);
 }
 
 void TaskRobLoad::UnloadCharaItems(chara_index chara_index, item_cos_data* cos) {
@@ -20116,13 +20116,13 @@ void TaskRobLoad::UnloadCharaItems(chara_index chara_index, item_cos_data* cos) 
 
 void TaskRobLoad::UnloadCharaItemsParent(chara_index chara_index, item_cos_data* cos) {
     if (cos->data.kami == 649)
-        object_storage_unload_set(3291);
+        objset_info_storage_unload_set(3291);
     UnloadCharaItems(chara_index, cos);
 }
 
 void TaskRobLoad::UnloadCharaObjSetMotionSet(chara_index chara_index) {
     const chara_init_data* chr_init_data = chara_init_data_get(chara_index);
-    object_storage_unload_set(chr_init_data->object_set);
+    objset_info_storage_unload_set(chr_init_data->object_set);
     motion_set_unload_motion(cmn_set_id);
     motion_set_unload_mothead(cmn_set_id);
     motion_set_unload_motion(chr_init_data->motion_set);

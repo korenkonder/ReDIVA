@@ -41,8 +41,8 @@ static uint32_t obj_vertex_format_get_vertex_size(obj_vertex_format format);
 static uint32_t obj_vertex_format_get_vertex_size_comp1(obj_vertex_format format);
 static uint32_t obj_vertex_format_get_vertex_size_comp2(obj_vertex_format format);
 
-std::map<uint32_t, ObjsetInfo> object_storage_data;
-std::map<uint32_t, ObjsetInfo> object_storage_data_modern;
+std::map<uint32_t, ObjsetInfo> objset_info_storage_data;
+std::map<uint32_t, ObjsetInfo> objset_info_storage_data_modern;
 
 obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer() {
 
@@ -1603,19 +1603,19 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
     }
 }
 
-inline void object_storage_init(const object_database* obj_db) {
+inline void objset_info_storage_init(const object_database* obj_db) {
     for (const object_set_info& i : obj_db->object_set) {
         ObjsetInfo info;
         info.set_id = i.id;
         info.name.assign(i.name);
-        object_storage_data.insert({ i.id, info });
+        objset_info_storage_data.insert({ i.id, info });
     }
-    object_storage_data_modern.clear();
+    objset_info_storage_data_modern.clear();
 }
 
-inline obj* object_storage_get_obj(object_info obj_info) {
-    auto elem = object_storage_data.find(obj_info.set_id);
-    if (elem != object_storage_data.end()) {
+inline obj* objset_info_storage_get_obj(object_info obj_info) {
+    auto elem = objset_info_storage_data.find(obj_info.set_id);
+    if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
@@ -1626,8 +1626,8 @@ inline obj* object_storage_get_obj(object_info obj_info) {
         return 0;
     }
 
-    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != object_storage_data_modern.end()) {
+    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
@@ -1640,9 +1640,9 @@ inline obj* object_storage_get_obj(object_info obj_info) {
     return 0;
 }
 
-inline obj* object_storage_get_obj_by_index(uint32_t set_id, uint32_t index) {
-    auto elem = object_storage_data.find(set_id);
-    if (elem != object_storage_data.end()) {
+inline obj* objset_info_storage_get_obj_by_index(uint32_t set_id, uint32_t index) {
+    auto elem = objset_info_storage_data.find(set_id);
+    if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
@@ -1652,8 +1652,8 @@ inline obj* object_storage_get_obj_by_index(uint32_t set_id, uint32_t index) {
         return 0;
     }
 
-    auto elem_modern = object_storage_data_modern.find(set_id);
-    if (elem_modern != object_storage_data_modern.end()) {
+    auto elem_modern = objset_info_storage_data_modern.find(set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
@@ -1665,20 +1665,20 @@ inline obj* object_storage_get_obj_by_index(uint32_t set_id, uint32_t index) {
     return 0;
 }
 
-inline ObjsetInfo* object_storage_get_objset_info(uint32_t set_id) {
-    auto elem = object_storage_data.find(set_id);
-    if (elem != object_storage_data.end())
+inline ObjsetInfo* objset_info_storage_get_objset_info(uint32_t set_id) {
+    auto elem = objset_info_storage_data.find(set_id);
+    if (elem != objset_info_storage_data.end())
         return &elem->second;
 
-    auto elem_modern = object_storage_data_modern.find(set_id);
-    if (elem_modern != object_storage_data_modern.end())
+    auto elem_modern = objset_info_storage_data_modern.find(set_id);
+    if (elem_modern != objset_info_storage_data_modern.end())
         return &elem_modern->second;
     return 0;
 }
 
-inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* mesh_name) {
-    auto elem = object_storage_data.find(obj_info.set_id);
-    if (elem != object_storage_data.end()) {
+inline obj_mesh* objset_info_storage_get_obj_mesh(object_info obj_info, const char* mesh_name) {
+    auto elem = objset_info_storage_data.find(obj_info.set_id);
+    if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
@@ -1689,8 +1689,8 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
         return 0;
     }
 
-    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != object_storage_data_modern.end()) {
+    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
@@ -1703,9 +1703,9 @@ inline obj_mesh* object_storage_get_obj_mesh(object_info obj_info, const char* m
     return 0;
 }
 
-inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index) {
-    auto elem = object_storage_data.find(obj_info.set_id);
-    if (elem != object_storage_data.end()) {
+inline obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index) {
+    auto elem = objset_info_storage_data.find(obj_info.set_id);
+    if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
@@ -1719,8 +1719,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
         return 0;
     }
 
-    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != object_storage_data_modern.end()) {
+    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
@@ -1736,8 +1736,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_index(object_info obj_info, uint
     return 0;
 }
 
-inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name) {
-    for (auto& i : object_storage_data) {
+inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name) {
+    for (auto& i : objset_info_storage_data) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
@@ -1747,7 +1747,7 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
                 return set->obj_data[j]->get_obj_mesh(mesh_name);
     }
 
-    for (auto& i : object_storage_data_modern) {
+    for (auto& i : objset_info_storage_data_modern) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
@@ -1759,8 +1759,8 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash(uint32_t hash, const
     return 0;
 }
 
-inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, uint32_t index) {
-    for (auto& i : object_storage_data) {
+inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, uint32_t index) {
+    for (auto& i : objset_info_storage_data) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
@@ -1776,7 +1776,7 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
         }
     }
 
-    for (auto& i : object_storage_data_modern) {
+    for (auto& i : objset_info_storage_data_modern) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
@@ -1794,9 +1794,9 @@ inline obj_mesh* object_storage_get_obj_mesh_by_object_hash_index(uint32_t hash,
     return 0;
 }
 
-inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name) {
-    auto elem = object_storage_data.find(obj_info.set_id);
-    if (elem != object_storage_data.end()) {
+inline uint32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name) {
+    auto elem = objset_info_storage_data.find(obj_info.set_id);
+    if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
         if (!set)
             return -1;
@@ -1807,8 +1807,8 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
         return 0;
     }
 
-    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != object_storage_data_modern.end()) {
+    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return -1;
@@ -1821,8 +1821,8 @@ inline uint32_t object_storage_get_obj_mesh_index(object_info obj_info, const ch
     return -1;
 }
 
-inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name) {
-    for (auto& i : object_storage_data) {
+inline uint32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name) {
+    for (auto& i : objset_info_storage_data) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
@@ -1832,7 +1832,7 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
                 return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
 
-    for (auto& i : object_storage_data_modern) {
+    for (auto& i : objset_info_storage_data_modern) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
@@ -1844,42 +1844,42 @@ inline uint32_t object_storage_get_obj_mesh_index_by_hash(uint32_t hash, const c
     return -1;
 }
 
-inline const char* object_storage_get_obj_name(object_info obj_info) {
-    obj* obj = object_storage_get_obj(obj_info);
+inline const char* objset_info_storage_get_obj_name(object_info obj_info) {
+    obj* obj = objset_info_storage_get_obj(obj_info);
     if (obj)
         return obj->name;
     return 0;
 }
 
-inline obj_set* object_storage_get_obj_set(uint32_t set_id) {
-    auto elem = object_storage_data.find(set_id);
-    if (elem != object_storage_data.end())
+inline obj_set* objset_info_storage_get_obj_set(uint32_t set_id) {
+    auto elem = objset_info_storage_data.find(set_id);
+    if (elem != objset_info_storage_data.end())
         return elem->second.obj_set;
 
-    auto elem_modern = object_storage_data_modern.find(set_id);
-    if (elem_modern != object_storage_data_modern.end())
+    auto elem_modern = objset_info_storage_data_modern.find(set_id);
+    if (elem_modern != objset_info_storage_data_modern.end())
         return elem_modern->second.obj_set;
     return 0;
 }
 
-inline size_t object_storage_get_obj_set_count() {
-    return object_storage_data.size() + object_storage_data_modern.size();
+inline size_t objset_info_storage_get_obj_set_count() {
+    return objset_info_storage_data.size() + objset_info_storage_data_modern.size();
 }
 
-inline int32_t object_storage_get_obj_storage_load_count(uint32_t set_id) {
-    auto elem = object_storage_data.find(set_id);
-    if (elem != object_storage_data.end())
+inline int32_t objset_info_storage_get_obj_storage_load_count(uint32_t set_id) {
+    auto elem = objset_info_storage_data.find(set_id);
+    if (elem != objset_info_storage_data.end())
         return elem->second.load_count;
 
-    auto elem_modern = object_storage_data_modern.find(set_id);
-    if (elem_modern != object_storage_data_modern.end())
+    auto elem_modern = objset_info_storage_data_modern.find(set_id);
+    if (elem_modern != objset_info_storage_data_modern.end())
         return elem_modern->second.load_count;
     return 0;
 }
 
-inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
-    auto elem = object_storage_data.find(obj_info.set_id);
-    if (elem != object_storage_data.end()) {
+inline obj_skin* objset_info_storage_get_obj_skin(object_info obj_info) {
+    auto elem = objset_info_storage_data.find(obj_info.set_id);
+    if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
         if (!set)
             return 0;
@@ -1890,8 +1890,8 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
         return 0;
     }
 
-    auto elem_modern = object_storage_data_modern.find(obj_info.set_id);
-    if (elem_modern != object_storage_data_modern.end()) {
+    auto elem_modern = objset_info_storage_data_modern.find(obj_info.set_id);
+    if (elem_modern != objset_info_storage_data_modern.end()) {
         obj_set* set = elem_modern->second.obj_set;
         if (!set)
             return 0;
@@ -1904,15 +1904,15 @@ inline obj_skin* object_storage_get_obj_skin(object_info obj_info) {
     return 0;
 }
 
-inline obj_index_buffer* object_storage_get_obj_index_buffers(uint32_t set_id) {
-    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+inline obj_index_buffer* objset_info_storage_get_obj_index_buffers(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (info && info->objib)
         return info->objib;
     return 0;
 }
 
-inline obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_info obj_info) {
-    ObjsetInfo* info = object_storage_get_objset_info(obj_info.set_id);
+inline obj_mesh_index_buffer* objset_info_storage_get_obj_mesh_index_buffer(object_info obj_info) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(obj_info.set_id);
     if (info && info->obj_set && info->objib) {
         auto elem = info->obj_id_data.find(obj_info.id);
         if (elem != info->obj_id_data.end())
@@ -1921,15 +1921,15 @@ inline obj_mesh_index_buffer* object_storage_get_obj_mesh_index_buffer(object_in
     return 0;
 }
 
-inline obj_vertex_buffer* object_storage_get_obj_vertex_buffers(uint32_t set_id) {
-    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+inline obj_vertex_buffer* objset_info_storage_get_obj_vertex_buffers(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (info && info->objvb)
         return info->objvb;
     return 0;
 }
 
-inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_info obj_info) {
-    ObjsetInfo* info = object_storage_get_objset_info(obj_info.set_id);
+inline obj_mesh_vertex_buffer* objset_info_storage_get_obj_mesh_vertex_buffer(object_info obj_info) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(obj_info.set_id);
     if (info && info->obj_set && info->objvb) {
         auto elem = info->obj_id_data.find(obj_info.id);
         if (elem != info->obj_id_data.end())
@@ -1938,12 +1938,12 @@ inline obj_mesh_vertex_buffer* object_storage_get_obj_mesh_vertex_buffer(object_
     return 0;
 }
 
-GLuint object_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id) {
-    std::vector<GLuint>* textures = object_storage_get_obj_set_textures(set);
+GLuint objset_info_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id) {
+    std::vector<GLuint>* textures = objset_info_storage_get_obj_set_textures(set);
     if (!textures)
         return 0;
 
-    ObjsetInfo* info = object_storage_get_objset_info(set);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set);
     if (!info)
         return 0;
 
@@ -1953,19 +1953,19 @@ GLuint object_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id) {
     return 0;
 }
 
-inline std::vector<GLuint>* object_storage_get_obj_set_textures(int32_t set) {
-    ObjsetInfo* info = object_storage_get_objset_info(set);
+inline std::vector<GLuint>* objset_info_storage_get_obj_set_textures(int32_t set) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set);
     if (info)
         return &info->gentex;
     return 0;
 }
 
-int32_t object_storage_load_set(void* data, const object_database* obj_db, const char* name) {
+int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, const char* name) {
     const object_set_info* set_info = obj_db->get_object_set_info(name);
     if (!set_info)
         return 1;
 
-    ObjsetInfo* info = object_storage_get_objset_info(set_info->id);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_info->id);
     if (!info)
         return 1;
 
@@ -1997,12 +1997,12 @@ int32_t object_storage_load_set(void* data, const object_database* obj_db, const
     return 0;
 }
 
-int32_t object_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id) {
+int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id) {
     const object_set_info* set_info = obj_db->get_object_set_info(set_id);
     if (!set_info)
         return 1;
 
-    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (!info)
         return 1;
 
@@ -2036,7 +2036,7 @@ int32_t object_storage_load_set(void* data, const object_database* obj_db, uint3
     return 0;
 }
 
-int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
+int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash) {
     if (!hash || hash == hash_murmurhash_empty)
         return 1;
 
@@ -2044,9 +2044,9 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     if (!((data_struct*)data)->get_file("root+/objset/", hash, ".farc", file))
         return 1;
 
-    ObjsetInfo* info = object_storage_get_objset_info(hash);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(hash);
     if (!info) {
-        info = &object_storage_data_modern.insert({ hash, {} }).first->second;
+        info = &objset_info_storage_data_modern.insert({ hash, {} }).first->second;
         info->set_id = hash;
     }
 
@@ -2065,9 +2065,9 @@ int32_t object_storage_load_set_hash(void* data, uint32_t hash) {
     return 0;
 }
 
-bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
+bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
     object_database* obj_db, texture_database* tex_db) {
-    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (!info)
         return true;
 
@@ -2226,12 +2226,12 @@ bool object_storage_load_obj_set_check_not_read(uint32_t set_id,
     return true;
 }
 
-inline void object_storage_unload_set(const object_database* obj_db, const char* name) {
+inline void objset_info_storage_unload_set(const object_database* obj_db, const char* name) {
     const object_set_info* set_info = obj_db->get_object_set_info(name);
     if (!set_info)
         return;
 
-    ObjsetInfo* info = object_storage_get_objset_info(set_info->id);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_info->id);
     if (!info || info->load_count <= 0)
         return;
 
@@ -2258,8 +2258,8 @@ inline void object_storage_unload_set(const object_database* obj_db, const char*
     info->farc_file_handler.reset();
 }
 
-inline void object_storage_unload_set(uint32_t set_id) {
-    ObjsetInfo* info = object_storage_get_objset_info(set_id);
+inline void objset_info_storage_unload_set(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (!info || info->load_count <= 0)
         return;
 
@@ -2285,12 +2285,12 @@ inline void object_storage_unload_set(uint32_t set_id) {
     info->obj_file_handler.reset();
     info->farc_file_handler.reset();
     if (info->modern)
-        object_storage_data_modern.erase(set_id);
+        objset_info_storage_data_modern.erase(set_id);
 }
 
-inline void object_storage_free() {
-    object_storage_data.clear();
-    object_storage_data_modern.clear();
+inline void objset_info_storage_free() {
+    objset_info_storage_data.clear();
+    objset_info_storage_data_modern.clear();
 }
 
 static GLuint create_index_buffer(size_t size, const void* data) {

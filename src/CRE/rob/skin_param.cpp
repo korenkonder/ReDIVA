@@ -789,11 +789,11 @@ void SkinParamManager::AddFiles() {
             if (obj_info.is_null())
                 continue;
 
-            const char* obj_name = object_storage_get_obj_name(obj_info);
+            const char* obj_name = objset_info_storage_get_obj_name(obj_info);
             if (!obj_name)
                 continue;
 
-            obj_skin* skin = object_storage_get_obj_skin(obj_info);
+            obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
             if (!skin || !skin->ex_data)
                 return;
 
@@ -1238,7 +1238,7 @@ int32_t sp_skp_db::get_ext_skp_file(const osage_init_data& osage_init,
         }
     }
 
-    const char* obj_name = object_storage_get_obj_name(obj_info);
+    const char* obj_name = objset_info_storage_get_obj_name(obj_info);
     std::string skp_file = sprintf_s_string("ext_skp_%s.txt", obj_name);
 
     switch (type) {

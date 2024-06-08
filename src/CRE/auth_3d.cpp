@@ -6630,7 +6630,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
     oh->object_info = obj_db->get_object_info(oh->uid_name.c_str());
     oh->object_hash = hash_string_murmurhash(oh->uid_name);
 
-    obj_skin* skin = object_storage_get_obj_skin(oh->object_info);
+    obj_skin* skin = objset_info_storage_get_obj_skin(oh->object_info);
     if (!skin)
         return;
 
@@ -6714,7 +6714,7 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     oi->object_info = obj_db->get_object_info(oi->uid_name.c_str());
     oi->object_hash = hash_string_murmurhash(oi->uid_name);
 
-    obj_skin* skin = object_storage_get_obj_skin(oi->object_info);
+    obj_skin* skin = objset_info_storage_get_obj_skin(oi->object_info);
     if (!skin)
         return;
 

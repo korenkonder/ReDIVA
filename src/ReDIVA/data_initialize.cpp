@@ -101,7 +101,7 @@ bool TaskDataInit::ctrl() {
         //    break;
         state = 8;
     case 8:
-        object_storage_load_set(aft_data, aft_obj_db, dbg_set_id);
+        objset_info_storage_load_set(aft_data, aft_obj_db, dbg_set_id);
         //bone_database_read();
         item_table_handler_array_read();
         sound_work_read_farc("rom/sound/se.farc");
@@ -135,7 +135,7 @@ bool TaskDataInit::ctrl() {
         state = 9;
         break;
     case 9:
-        if (!object_storage_load_obj_set_check_not_read(dbg_set_id)
+        if (!objset_info_storage_load_obj_set_check_not_read(dbg_set_id)
             //&& !bone_database_load()
             && !item_table_handler_array_load()
             && !sound_work_load_farc("rom/sound/se.farc")

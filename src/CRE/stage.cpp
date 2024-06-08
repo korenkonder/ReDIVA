@@ -514,12 +514,12 @@ static void stage_disp(stage* s) {
     if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
         int32_t object_set_id = s->stage_data->object_set_id;
         rndr::Render* rend = &rctx_ptr->render;
-        rend->lens_flare_texture = object_storage_get_obj_set_texture(
+        rend->lens_flare_texture = objset_info_storage_get_obj_set_texture(
             object_set_id, s->stage_data->lens_flare_texture);
         if (rend->lens_flare_texture) {
-            rend->lens_shaft_texture = object_storage_get_obj_set_texture(
+            rend->lens_shaft_texture = objset_info_storage_get_obj_set_texture(
                 object_set_id, s->stage_data->lens_shaft_texture);
-            rend->lens_ghost_texture = object_storage_get_obj_set_texture(
+            rend->lens_ghost_texture = objset_info_storage_get_obj_set_texture(
                 object_set_id, s->stage_data->lens_ghost_texture);
             rend->lens_ghost_count = 16;
             rend->lens_shaft_inv_scale = s->stage_data->lens_shaft_inv_scale;
@@ -588,9 +588,9 @@ static void stage_free(stage* s) {
         s->auth_3d_loaded = false;
     }
 
-    object_storage_unload_set(s->stage_data->object_set_id);
+    objset_info_storage_unload_set(s->stage_data->object_set_id);
     if (s->obj_set != -1)
-        object_storage_unload_set(s->obj_set);
+        objset_info_storage_unload_set(s->obj_set);
 
     s->obj_set = -1;
     s->index = -1;
@@ -602,17 +602,17 @@ static void stage_load(stage* s) {
     if (s->state == 1) {
         data_struct* aft_data = &data_list[DATA_AFT];
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-        object_storage_load_set(aft_data, aft_obj_db, s->obj_set);
+        objset_info_storage_load_set(aft_data, aft_obj_db, s->obj_set);
         s->state = 2;
     }
     else if (s->state == 2) {
-        if (s->obj_set == -1 || !object_storage_load_obj_set_check_not_read(s->obj_set))
+        if (s->obj_set == -1 || !objset_info_storage_load_obj_set_check_not_read(s->obj_set))
             s->state = 3;
     }
     else if (s->state == 3) {
         data_struct* aft_data = &data_list[DATA_AFT];
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
-        object_storage_load_set(aft_data, aft_obj_db, s->stage_data->object_set_id);
+        objset_info_storage_load_set(aft_data, aft_obj_db, s->stage_data->object_set_id);
 
         auth_3d_data_load_category(s->stage_data->name.c_str());
         auth_3d_data_load_category(s->stage_data->auth_3d_name.c_str());
@@ -620,7 +620,7 @@ static void stage_load(stage* s) {
         s->state = 4;
     }
     else if (s->state == 4) {
-        if (object_storage_load_obj_set_check_not_read(s->stage_data->object_set_id)
+        if (objset_info_storage_load_obj_set_check_not_read(s->stage_data->object_set_id)
             || !auth_3d_data_check_category_loaded(s->stage_data->name.c_str())
             || !auth_3d_data_check_category_loaded(s->stage_data->auth_3d_name.c_str()))
             return;

@@ -19,7 +19,7 @@ namespace Glitter {
     EffectGroup::~EffectGroup() {
         for (Mesh& i : meshes)
             if (i.object_set_hash != hash_murmurhash_empty) {
-                object_storage_unload_set(i.object_set_hash);
+                objset_info_storage_unload_set(i.object_set_hash);
                 i.load = false;
             }
 

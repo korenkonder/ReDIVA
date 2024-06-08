@@ -924,8 +924,8 @@ void x_pv_game_effect::ctrl(object_database* obj_db, texture_database* tex_db) {
                 wait_load |= true;
 
         for (string_hash& i : pv_obj_set)
-            if (object_storage_get_objset_info(i.hash_murmurhash)
-                && object_storage_load_obj_set_check_not_read(i.hash_murmurhash, obj_db, tex_db))
+            if (objset_info_storage_get_objset_info(i.hash_murmurhash)
+                && objset_info_storage_load_obj_set_check_not_read(i.hash_murmurhash, obj_db, tex_db))
                 wait_load |= true;
 
         if (wait_load)
@@ -1053,7 +1053,7 @@ void x_pv_game_effect::load_data(int32_t pv_id, object_database* obj_db, texture
     data_struct* x_data = &data_list[DATA_X];
 
     for (string_hash& i : pv_obj_set)
-        object_storage_load_set_hash(x_data, i.hash_murmurhash);
+        objset_info_storage_load_set_hash(x_data, i.hash_murmurhash);
 
     for (string_hash& i : pv_auth_3d)
         auth_3d_data_load_category(x_data, i.c_str(), i.hash_murmurhash);
@@ -1264,7 +1264,7 @@ void x_pv_game_effect::unload_data() {
         auth_3d_data_unload_category(i.hash_murmurhash);
 
     for (string_hash& i : pv_obj_set)
-        object_storage_unload_set(i.hash_murmurhash);
+        objset_info_storage_unload_set(i.hash_murmurhash);
 
     for (string_hash& i : pv_glitter)
         Glitter::glt_particle_manager->UnloadEffectGroup(i.hash_murmurhash);
@@ -1325,8 +1325,8 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
                 if (!auth_3d_data_check_category_loaded(j.category.hash_murmurhash))
                     wait_load |= true;
 
-                if (object_storage_get_objset_info(j.object_set.hash_murmurhash)
-                    && object_storage_load_obj_set_check_not_read(j.object_set.hash_murmurhash, obj_db, tex_db))
+                if (objset_info_storage_get_objset_info(j.object_set.hash_murmurhash)
+                    && objset_info_storage_load_obj_set_check_not_read(j.object_set.hash_murmurhash, obj_db, tex_db))
                     wait_load |= true;
             }
 
@@ -1564,7 +1564,7 @@ void x_pv_game_chara_effect::load_data() {
                 continue;
 
             auth_3d_data_load_category(x_data, j.category.c_str(), j.category.hash_murmurhash);
-            object_storage_load_set_hash(x_data, j.object_set.hash_murmurhash);
+            objset_info_storage_load_set_hash(x_data, j.object_set.hash_murmurhash);
         }
 
     state = 20;
@@ -1700,7 +1700,7 @@ void x_pv_game_chara_effect::unload_data() {
 
                 j.id.unload(rctx_ptr);
                 auth_3d_data_unload_category(j.category.hash_murmurhash);
-                object_storage_unload_set(j.object_set.hash_murmurhash);
+                objset_info_storage_unload_set(j.object_set.hash_murmurhash);
             }
 
         state = 10;
@@ -5028,8 +5028,8 @@ void x_pv_game_stage_data::ctrl(object_database* obj_db, texture_database* tex_d
         bool wait_load = false;
 
         for (uint32_t& i : objhrc_hash)
-            if (object_storage_get_objset_info(i)
-                && object_storage_load_obj_set_check_not_read(i, obj_db, tex_db))
+            if (objset_info_storage_get_objset_info(i)
+                && objset_info_storage_load_obj_set_check_not_read(i, obj_db, tex_db))
                 wait_load |= true;
 
         if (wait_load || task_stage_modern_check_not_loaded())
@@ -5093,7 +5093,7 @@ void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_databas
     effect_manager_set_data(x_data, obj_db, tex_db, &stg_db);
 
     for (uint32_t& i : objhrc_hash)
-        object_storage_load_set_hash(x_data, i);
+        objset_info_storage_load_set_hash(x_data, i);
 
     state = 1;
     flags |= 0x01;
@@ -5151,7 +5151,7 @@ void x_pv_game_stage_data::set_stage(uint32_t hash) {
 
 void x_pv_game_stage_data::unload() {
     for (uint32_t& i : objhrc_hash)
-        object_storage_unload_set(i);
+        objset_info_storage_unload_set(i);
 
     task_stage_modern_del_task();
 
@@ -7133,7 +7133,7 @@ bool x_pv_game::ctrl() {
         prj::sort_unique(object_set_ids);
 
         for (uint32_t& i : object_set_ids) {
-            ObjsetInfo* info = object_storage_get_objset_info(i);
+            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
             if (!info)
                 continue;
 
@@ -7194,7 +7194,7 @@ bool x_pv_game::ctrl() {
         object_set_ids.clear();
 
         for (uint32_t& i : pv_object_set_ids) {
-            ObjsetInfo* info = object_storage_get_objset_info(i);
+            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
             if (!info)
                 continue;
 
@@ -7204,7 +7204,7 @@ bool x_pv_game::ctrl() {
         }
 
         for (uint32_t& i : stage_object_set_ids) {
-            ObjsetInfo* info = object_storage_get_objset_info(i);
+            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
             if (!info)
                 continue;
 

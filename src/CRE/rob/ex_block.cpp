@@ -1001,11 +1001,11 @@ void RobCloth::ColiSet(const mat4* transform) {
 }
 
 void RobCloth::Disp(const mat4* mat, render_context* rctx) {
-    obj* obj = object_storage_get_obj(itm_eq_obj->obj_info);
+    obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
     if (!obj)
         return;
 
-    std::vector<GLuint>* tex = object_storage_get_obj_set_textures(itm_eq_obj->obj_info.set_id);
+    std::vector<GLuint>* tex = objset_info_storage_get_obj_set_textures(itm_eq_obj->obj_info.set_id);
 
     vec3 center = (nodes.data()[0].trans + nodes.data()[root_count * nodes_count - 1].trans) * 0.5f;
 
@@ -1033,11 +1033,11 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
     obj_skin_block_cloth_node* nodes, mat4* mats, int32_t a7,
     rob_chara_item_equip_object* itm_eq_obj, const bone_database* bone_data) {
     this->itm_eq_obj = itm_eq_obj;
-    obj* obj = object_storage_get_obj(itm_eq_obj->obj_info);
+    obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
     if (!obj)
         return;
 
-    obj_mesh_index_buffer* index_buffer = object_storage_get_obj_mesh_index_buffer(itm_eq_obj->obj_info);
+    obj_mesh_index_buffer* index_buffer = objset_info_storage_get_obj_mesh_index_buffer(itm_eq_obj->obj_info);
     uint32_t mesh_name_index = obj->get_obj_mesh_index(cls_data->mesh_name);
     uint32_t backface_mesh_name_index = obj->get_obj_mesh_index(cls_data->backface_mesh_name);
 
@@ -1117,7 +1117,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
     for (size_t i = 0; i < cls_data->num_mesh_index; i++)
         index_array.data()[mesh_index_array[i]] = i;
 
-    obj_mesh* mesh = object_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->mesh_name);
+    obj_mesh* mesh = objset_info_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->mesh_name);
     obj_vertex_format vertex_format = (obj_vertex_format)0;
     obj_vertex_data* vertex_array = 0;
     if (mesh) {
@@ -1351,8 +1351,8 @@ void RobCloth::UpdateDisp() {
         UpdateNormals();
 
     if (rob_cloth_update_vertices_flags & 0x02) {
-        obj_mesh* mesh = object_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->mesh_name);
-        obj_mesh* backface_mesh = object_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->backface_mesh_name);
+        obj_mesh* mesh = objset_info_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->mesh_name);
+        obj_mesh* backface_mesh = objset_info_storage_get_obj_mesh(itm_eq_obj->obj_info, cls_data->backface_mesh_name);
         if (cls_data->backface_mesh_name) {
             UpdateVertexBuffer(mesh, &vertex_buffer[0], nodes.data(),
                 1.0f, cls_data->num_mesh_index, cls_data->mesh_index_array, false);

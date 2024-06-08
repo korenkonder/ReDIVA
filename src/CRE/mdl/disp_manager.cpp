@@ -2759,19 +2759,19 @@ namespace mdl {
         if (obj_info.id == -1 && obj_info.set_id == -1)
             return false;
 
-        ::obj* object = object_storage_get_obj(obj_info);
+        ::obj* object = objset_info_storage_get_obj(obj_info);
         if (!object)
             return false;
 
-        std::vector<GLuint>* textures = object_storage_get_obj_set_textures(obj_info.set_id);
-        obj_mesh_vertex_buffer* obj_vertex_buffer = object_storage_get_obj_mesh_vertex_buffer(obj_info);
-        obj_mesh_index_buffer* obj_index_buffer = object_storage_get_obj_mesh_index_buffer(obj_info);
+        std::vector<GLuint>* textures = objset_info_storage_get_obj_set_textures(obj_info.set_id);
+        obj_mesh_vertex_buffer* obj_vertex_buffer = objset_info_storage_get_obj_mesh_vertex_buffer(obj_info);
+        obj_mesh_index_buffer* obj_index_buffer = objset_info_storage_get_obj_mesh_index_buffer(obj_info);
 
         ::obj* obj_morph = 0;
         obj_mesh_vertex_buffer* obj_morph_vertex_buffer = 0;
         if (morph.object.set_id != -1) {
-            obj_morph = object_storage_get_obj(morph.object);
-            obj_morph_vertex_buffer = object_storage_get_obj_mesh_vertex_buffer(morph.object);
+            obj_morph = objset_info_storage_get_obj(morph.object);
+            obj_morph_vertex_buffer = objset_info_storage_get_obj_mesh_vertex_buffer(morph.object);
         }
 
         return entry_obj(object, obj_vertex_buffer, obj_index_buffer,
@@ -2821,7 +2821,7 @@ namespace mdl {
         const std::vector<texture_pattern_struct>* texture_pattern,
         const texture_data_struct* texture_data, float_t alpha,
         const mat4* matrices, const mat4* ex_data_matrices, const mat4* mat, const mat4* global_mat) {
-        obj_skin* skin = object_storage_get_obj_skin(obj_info);
+        obj_skin* skin = objset_info_storage_get_obj_skin(obj_info);
         if (!skin)
             return;
 

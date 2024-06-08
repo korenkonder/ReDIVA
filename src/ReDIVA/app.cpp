@@ -599,7 +599,7 @@ static render_context* render_context_load() {
         stru_140EDA5B0.ss_alpha_mask,
         stru_140EDA5B0.screen_shot_4x == 1);*/
 
-    object_storage_init(aft_obj_db);
+    objset_info_storage_init(aft_obj_db);
     stage_param_data_storage_init();
     pv_expression_file_storage_init();
     item_table_handler_array_init();
@@ -1245,7 +1245,7 @@ static void render_context_dispose(render_context* rctx) {
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
     sprite_database* aft_spr_db = &aft_data->data_ft.spr_db;
 
-    object_storage_unload_set(dbg_set_id);
+    objset_info_storage_unload_set(dbg_set_id);
     aet_manager_unload_set(aet_gam_loadsc_set_id, aft_aet_db);
     sprite_manager_unload_set(spr_gam_loadsc_set_id, aft_spr_db);
     aet_manager_unload_set(aet_cmn_all_set_id, aft_aet_db);
@@ -1310,7 +1310,7 @@ static void render_context_dispose(render_context* rctx) {
     item_table_handler_array_free();
     pv_expression_file_storage_free();
     stage_param_data_storage_free();
-    object_storage_free();
+    objset_info_storage_free();
 
     ogg_playback_data_free();
     ogg_file_handler_storage_free();

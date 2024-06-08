@@ -393,7 +393,7 @@ bool Auth3dTestTask::init() {
     clear_color = 0x00999999;
     auth_3d_test_window_init();
     task_stage_add_task("A3D_STAGE");
-    object_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
+    objset_info_storage_load_set(aft_data, aft_obj_db, effcmn_obj_set);
     return true;
 }
 
@@ -408,7 +408,7 @@ bool Auth3dTestTask::ctrl() {
 
     //event_listener.data.sub_140247B60();
 
-    if (effcmn_obj_set_state == 1 && !object_storage_load_obj_set_check_not_read(effcmn_obj_set))
+    if (effcmn_obj_set_state == 1 && !objset_info_storage_load_obj_set_check_not_read(effcmn_obj_set))
         effcmn_obj_set_state = 4;
 
     if (state == 1 && auth_3d_id.check_loaded())
@@ -446,7 +446,7 @@ bool Auth3dTestTask::ctrl() {
 
 bool Auth3dTestTask::dest() {
     auth_3d_id.unload(rctx_ptr);
-    object_storage_unload_set(effcmn_obj_set);
+    objset_info_storage_unload_set(effcmn_obj_set);
     task_stage_del_task();
     auth_3d_test_window->Hide();
     clear_color = color_black;
@@ -458,7 +458,7 @@ bool Auth3dTestTask::dest() {
     load_category.clear();
     load_category.shrink_to_fit();
     for (uint32_t& i : obj_sets)
-        object_storage_unload_set(i);
+        objset_info_storage_unload_set(i);
     obj_sets.clear();
     obj_sets.shrink_to_fit();
     return true;
@@ -500,7 +500,7 @@ void Auth3dTestTask::SetAuth3dId() {
         if (category.size()) {
             auth_3d_data_unload_category(category.c_str());
             for (uint32_t& i : obj_sets)
-                object_storage_unload_set(i);
+                objset_info_storage_unload_set(i);
             obj_sets.clear();
         }
         auth_3d_data_load_category(load_category.c_str());
@@ -520,13 +520,13 @@ void Auth3dTestTask::SetAuth3dId() {
         auth_3d_data_get_obj_sets_from_category(category, obj_sets, aft_auth_3d_db, aft_obj_db);
 
         for (uint32_t& i : obj_sets)
-            object_storage_load_set(aft_data, aft_obj_db, i);
+            objset_info_storage_load_set(aft_data, aft_obj_db, i);
         load_state = 2;
     }
     else if (load_state == 2) {
         bool wait_load = false;
         for (uint32_t& i : obj_sets)
-            if (object_storage_load_obj_set_check_not_read(i))
+            if (objset_info_storage_load_obj_set_check_not_read(i))
                 wait_load = true;
 
         if (!wait_load)

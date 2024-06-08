@@ -4426,10 +4426,10 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
         uint32_t set_id = (uint32_t)mesh->object_set_name_hash;
         uint32_t obj_id = (uint32_t)mesh->object_name_hash;
 
-        ObjsetInfo* set_info = object_storage_get_objset_info(set_id);
-        ssize_t object_set_count = object_storage_get_obj_set_count();
+        ObjsetInfo* set_info = objset_info_storage_get_objset_info(set_id);
+        ssize_t object_set_count = objset_info_storage_get_obj_set_count();
 
-        extern std::map<uint32_t, ObjsetInfo> object_storage_data_modern;
+        extern std::map<uint32_t, ObjsetInfo> objset_info_storage_data_modern;
         ImGui::StartPropertyColumn("Object Set");
         if (ImGui::BeginCombo("##Object Set", set_info ? set_info->name.c_str() : "None", 0)) {
             ImGui::PushID(-1);
@@ -4438,7 +4438,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
                 set_info = 0;
             ImGui::PopID();
 
-            for (auto& i : object_storage_data_modern) {
+            for (auto& i : objset_info_storage_data_modern) {
                 ObjsetInfo* info = &i.second;
                 if (!info || !info->obj_set)
                     continue;

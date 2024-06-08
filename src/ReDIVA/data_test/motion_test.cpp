@@ -707,7 +707,7 @@ bool DataTestMotA3d::ctrl() {
         object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
         for (uint32_t& i : obj_sets)
-            object_storage_load_set(aft_data, aft_obj_db, i);
+            objset_info_storage_load_set(aft_data, aft_obj_db, i);
 
         state = 3;
     } break;
@@ -715,7 +715,7 @@ bool DataTestMotA3d::ctrl() {
         bool wait_load = false;
 
         for (uint32_t& i : obj_sets)
-            if (object_storage_load_obj_set_check_not_read(i))
+            if (objset_info_storage_load_obj_set_check_not_read(i))
                 return false;
 
         if (wait_load)
@@ -859,7 +859,7 @@ void DataTestMotA3d::Reset() {
     auth_3d_ids.clear();
 
     for (uint32_t& i : obj_sets)
-        object_storage_unload_set(i);
+        objset_info_storage_unload_set(i);
 
     obj_sets.clear();
 }
@@ -3000,7 +3000,7 @@ static void data_test_face_mot_dw_array_unload() {
 
 static bool motion_test_objset_check_not_read() {
     for (uint32_t i : motion_test_objset)
-        if (object_storage_load_obj_set_check_not_read(i))
+        if (objset_info_storage_load_obj_set_check_not_read(i))
             return true;
     return false;
 }
@@ -3023,11 +3023,11 @@ static void motion_test_objset_load() {
     object_database* aft_obj_db = &aft_data->data_ft.obj_db;
 
     for (uint32_t i : motion_test_objset)
-        object_storage_load_set(aft_data, aft_obj_db, i);
+        objset_info_storage_load_set(aft_data, aft_obj_db, i);
 }
 
 static void motion_test_objset_unload() {
     for (uint32_t i : motion_test_objset)
-        object_storage_unload_set(i);
+        objset_info_storage_unload_set(i);
     motion_test_objset.clear();
 }
