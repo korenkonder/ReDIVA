@@ -1644,7 +1644,7 @@ static void obj_classic_write_model(obj* obj, stream& s, int64_t base_offset) {
             for (int64_t& j : mh->vertex)
                 s.write_uint32_t((uint32_t)j);
 
-            s.write_uint32_t(mesh->attrib.w & 0x7FFFFFFF);
+            s.write_uint32_t(mesh->attrib.w & 0x3FFFFFFF);
             s.write_uint32_t(mh->vertex_format_index);
             s.write_uint32_t(mesh->reserved[0]);
             s.write_uint32_t(mesh->reserved[1]);
@@ -1713,7 +1713,7 @@ static void obj_classic_read_model_mesh(obj_mesh* mesh,
     for (int64_t& i : mh.vertex)
         i = s.read_uint32_t();
 
-    mesh->attrib.w = s.read_uint32_t() & 0x7FFFFFFF;
+    mesh->attrib.w = s.read_uint32_t() & 0x3FFFFFFF;
     mh.vertex_format_index = s.read_uint32_t();
     mesh->reserved[0] = s.read_uint32_t();
     mesh->reserved[1] = s.read_uint32_t();
@@ -4859,7 +4859,7 @@ static void obj_modern_write_model(obj* obj, stream& s,
                 for (uint32_t j = 0; j < 20; j++)
                     s.write_offset_x(mh->vertex[j]);
 
-            s.write_uint32_t_reverse_endianness(mesh->attrib.w & 0x7FFFFFFF);
+            s.write_uint32_t_reverse_endianness(mesh->attrib.w & 0x3FFFFFFF);
             s.write_uint32_t_reverse_endianness(mh->vertex_format_index);
             s.write_uint32_t_reverse_endianness(mesh->reserved[0]);
             s.write_uint32_t_reverse_endianness(mesh->reserved[1]);
@@ -4982,7 +4982,7 @@ static void obj_modern_read_model_mesh(obj_mesh* mesh,
         for (int64_t& i : mh.vertex)
             i = s.read_offset_x();
 
-    mesh->attrib.w = s.read_uint32_t_reverse_endianness() & 0x7FFFFFFF;
+    mesh->attrib.w = s.read_uint32_t_reverse_endianness() & 0x3FFFFFFF;
     mh.vertex_format_index = s.read_uint32_t_reverse_endianness();
     mesh->reserved[0] = s.read_uint32_t_reverse_endianness();
     mesh->reserved[1] = s.read_uint32_t_reverse_endianness();
