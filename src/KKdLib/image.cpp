@@ -10,8 +10,14 @@ static void rgb_to_ycc(vec3& rgb, vec3& ycc);
 static void ycc_apply_col_tone_hue(vec3& ycc, const color_tone* col_tone);
 static void ycc_to_rgb(vec3& ycc, vec3& rgb);
 
-color_tone::color_tone() : hue(), saturation(), value(), contrast(), inverse(), reserved() {
-
+color_tone::color_tone() : reserved() {
+    blend = 1.0f;
+    offset = 0.0f;
+    hue = 0.0f;
+    saturation = 1.0f;
+    value = 0.0f;
+    contrast = 1.0f;;
+    inverse = false;
 }
 
 void dxt1_image_apply_color_tone(int32_t width, int32_t height,
