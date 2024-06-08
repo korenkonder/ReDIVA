@@ -2158,7 +2158,7 @@ void SprSet::UnloadModern(sprite_database* spr_db) {
 }
 
 bool SprSet::UnloadTexture() {
-    if (spr_set->txp) {
+    if (spr_set && spr_set->txp) {
         delete spr_set->txp;
         spr_set->txp = 0;
     }
