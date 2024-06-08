@@ -90,9 +90,10 @@ void texture_apply_color_tone(texture* chg_tex,
         if (!data)
             break;
 
-        int32_t width_align = org_tex->get_width_align_mip_level(i);
-        int32_t height_align = org_tex->get_height_align_mip_level(i);
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
+            int32_t width_align = org_tex->get_width_align_mip_level(i);
+            int32_t height_align = org_tex->get_height_align_mip_level(i);
+
             texture_bind(org_tex->target, org_tex->glid);
             glGetCompressedTexImage(org_tex->target, i, data);
             if (org_tex->internal_format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
@@ -107,6 +108,9 @@ void texture_apply_color_tone(texture* chg_tex,
                 chg_tex->internal_format, size, data);
         }
         else if (org_tex->internal_format == GL_RGB5) {
+            int32_t width_align = org_tex->get_width_align_mip_level(i);
+            int32_t height_align = org_tex->get_height_align_mip_level(i);
+
             texture_bind(org_tex->target, org_tex->glid);
             glGetTexImage(org_tex->target, i, GL_RGB, GL_UNSIGNED_SHORT_5_6_5, data);
             rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
@@ -143,6 +147,59 @@ texture* texture_create_copy_texture(texture_id id, texture* org_tex) {
 
         if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION)
             glGetCompressedTexImage(org_tex->target, i, data);
+        else
+            glGetTexImage(org_tex->target, i, format, type, data);
+        gl_state_get_error();
+        vec_data.push_back(data);
+    }
+    texture_bind(org_tex->target, 0);
+
+    texture* tex = texture_load_tex_2d(id, org_tex->internal_format,
+        org_tex->width, org_tex->height, org_tex->max_mipmap_level, vec_data.data(), true);
+
+    for (void*& i : vec_data)
+        free_def(i);
+
+    return tex;
+}
+
+texture* texture_create_copy_texture_apply_color_tone(
+    texture_id id, texture* org_tex, const color_tone* col_tone) {
+    if (!org_tex || !col_tone || org_tex->target != GL_TEXTURE_2D)
+        return 0;
+
+    GLenum format = GL_ZERO;
+    GLenum type = GL_ZERO;
+    if (!(org_tex->flags & TEXTURE_BLOCK_COMPRESSION))
+        texture_get_format_type_by_internal_format(org_tex->internal_format, &format, &type);
+
+    std::vector<void*> vec_data;
+    vec_data.reserve((size_t)org_tex->max_mipmap_level + 1);
+
+    texture_bind(org_tex->target, org_tex->glid);
+    for (int32_t i = 0; i <= org_tex->max_mipmap_level; i++) {
+        int32_t size = org_tex->get_size_mip_level(i);
+        void* data = force_malloc(org_tex->get_size_mip_level(i));
+        if (!data)
+            break;
+
+        if (org_tex->flags & TEXTURE_BLOCK_COMPRESSION) {
+            int32_t width_align = org_tex->get_width_align_mip_level(i);
+            int32_t height_align = org_tex->get_height_align_mip_level(i);
+
+            glGetCompressedTexImage(org_tex->target, i, data);
+            if (org_tex->internal_format == GL_COMPRESSED_RGB_S3TC_DXT1_EXT)
+                dxt1_image_apply_color_tone(width_align, height_align, size, (dxt1_block*)data, col_tone);
+            else
+                dxt5_image_apply_color_tone(width_align, height_align, size, (dxt5_block*)data, col_tone);
+        }
+        else if (org_tex->internal_format == GL_RGB5) {
+            int32_t width_align = org_tex->get_width_align_mip_level(i);
+            int32_t height_align = org_tex->get_height_align_mip_level(i);
+
+            glGetTexImage(org_tex->target, i, format, type, data);
+            rgb565_image_apply_color_tone(width_align, height_align, size, (rgb565*)data, col_tone);
+        }
         else
             glGetTexImage(org_tex->target, i, format, type, data);
         gl_state_get_error();
