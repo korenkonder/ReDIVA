@@ -16,6 +16,7 @@ struct color_tone {
     float_t value;
     float_t contrast;
     bool inverse;
+    int32_t reserved[8];
 
     color_tone();
 };

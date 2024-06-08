@@ -10,7 +10,7 @@ static void rgb_to_ycc(vec3& rgb, vec3& ycc);
 static void ycc_apply_col_tone_hue(vec3& ycc, const color_tone* col_tone);
 static void ycc_to_rgb(vec3& ycc, vec3& rgb);
 
-color_tone::color_tone() : hue(), saturation(), value(), contrast(), inverse() {
+color_tone::color_tone() : hue(), saturation(), value(), contrast(), inverse(), reserved() {
 
 }
 
