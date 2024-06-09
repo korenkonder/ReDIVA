@@ -50,7 +50,7 @@ void file_stream::align_write(size_t align) {
     size_t temp_align = align - position % align;
     if (align != temp_align) {
             memset(buf, 0, min_def(sizeof(buf), temp_align));
-            size_t i = temp_align;
+            int64_t i = (int64_t)temp_align;
             while (i >= sizeof(buf)) {
                 fwrite(buf, 1, sizeof(buf), stream);
                 i -= sizeof(buf);
@@ -68,7 +68,7 @@ size_t file_stream::read(size_t count) {
 size_t file_stream::read(void* buf, size_t count) {
     if (!buf) {
         int64_t act_count = 0;
-        while (count > 0) {
+        while ((int64_t)count > 0) {
             act_count += fread(this->buf, 1, min_def(count, sizeof(this->buf)), stream);
             count -= sizeof(this->buf);
         }
@@ -81,7 +81,7 @@ size_t file_stream::read(void* buf, size_t count) {
 size_t file_stream::read(void* buf, size_t size, size_t count) {
     if (!buf) {
         int64_t act_count = 0;
-        while (count > 0) {
+        while ((int64_t)count > 0) {
             act_count += fread(this->buf, size, min_def(count, sizeof(this->buf) / size), stream);
             count -= sizeof(this->buf);
         }
@@ -99,7 +99,7 @@ size_t file_stream::write(const void* buf, size_t count) {
     if (!buf) {
         memset(this->buf, 0, sizeof(this->buf));
         int64_t act_count = 0;
-        while (count > 0) {
+        while ((int64_t)count > 0) {
             act_count += fwrite(this->buf, 1, min_def(count, sizeof(this->buf)), stream);
             if (count > sizeof(this->buf))
                 count -= sizeof(this->buf);
@@ -116,7 +116,7 @@ size_t file_stream::write(const void* buf, size_t size, size_t count) {
     if (!buf) {
         memset(this->buf, 0, sizeof(this->buf));
         int64_t act_count = 0;
-        while (count > 0) {
+        while ((int64_t)count > 0) {
             act_count += fwrite(this->buf, 1, min_def(count, sizeof(this->buf) / size), stream);
             if (count > sizeof(this->buf) / size)
                 count -= sizeof(this->buf) / size;
