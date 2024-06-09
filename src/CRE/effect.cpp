@@ -5640,6 +5640,7 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
     uniform_value[U_RIPPLE] = data->ripple_uniform;
     uniform_value[U_RIPPLE_EMIT] = data->ripple_emit_uniform;
 
+    gl_state_begin_event("EffectRipple::Impl::draw_ripple_particles");
     gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
 
@@ -5652,6 +5653,7 @@ static void draw_ripple_particles(ripple_struct* data, mat4* mat) {
 
     gl_state_bind_vertex_array(0);
     gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+    gl_state_end_event();
 }
 
 static void draw_water_particle(water_particle* data, mat4* mat) {
