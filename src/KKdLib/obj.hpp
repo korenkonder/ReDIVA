@@ -323,7 +323,7 @@ struct obj_material {
 };
 
 struct obj_material_data {
-    uint32_t num_of_textures;
+    int32_t num_of_textures;
     obj_material material;
 
     obj_material_data();
@@ -347,12 +347,12 @@ struct obj_sub_mesh {
     obj_bounding_sphere bounding_sphere;
     uint32_t material_index;
     uint8_t uv_index[8];
-    uint32_t num_bone_index;
+    int32_t num_bone_index;
     uint16_t* bone_index_array;
     uint32_t bones_per_vertex;
     obj_primitive_type primitive_type;
     obj_index_format index_format;
-    uint32_t num_index;
+    int32_t num_index;
     uint32_t* index_array;
     obj_sub_mesh_attrib attrib;
     union {
@@ -401,11 +401,11 @@ union obj_mesh_attrib {
 struct obj_mesh {
     uint32_t flags;
     obj_bounding_sphere bounding_sphere;
-    uint32_t num_submesh;
+    int32_t num_submesh;
     obj_sub_mesh* submesh_array;
     obj_vertex_format vertex_format;
     uint32_t size_vertex;
-    uint32_t num_vertex;
+    int32_t num_vertex;
     obj_vertex_data* vertex_array;
     obj_mesh_attrib attrib;
     uint32_t reserved[6];
@@ -491,17 +491,17 @@ struct obj_skin_block_cloth {
     const char* mesh_name;
     const char* backface_mesh_name;
     uint32_t field_8;
-    uint32_t num_root;
-    uint32_t num_node;
+    int32_t num_root;
+    int32_t num_node;
     uint32_t field_14;
     mat4* mat_array;
-    uint32_t num_mat;
+    int32_t num_mat;
     obj_skin_block_cloth_root* root_array;
     obj_skin_block_cloth_node* node_array;
     uint16_t* mesh_index_array;
-    uint32_t num_mesh_index;
+    int32_t num_mesh_index;
     uint16_t* backface_mesh_index_array;
-    uint32_t num_backface_mesh_index;
+    int32_t num_backface_mesh_index;
     obj_skin_skin_param* skin_param;
     uint32_t reserved;
 
@@ -577,7 +577,7 @@ struct obj_skin_block_constraint {
 struct obj_skin_block_expression {
     obj_skin_block_node node;
     uint32_t name_index;
-    uint32_t num_expression;
+    int32_t num_expression;
     const char* expression_array[9];
 
     obj_skin_block_expression();
@@ -597,7 +597,7 @@ struct obj_skin_block_motion {
         uint32_t name_index;
     };
     obj_skin_motion_node* node_array;
-    uint32_t num_node;
+    int32_t num_node;
 
     obj_skin_block_motion();
 };
@@ -613,9 +613,9 @@ struct obj_skin_osage_node {
 struct obj_skin_block_osage {
     obj_skin_block_node node;
     uint32_t start_index;
-    uint32_t count;
+    int32_t count;
     obj_skin_osage_node* node_array;
-    uint32_t num_node;
+    int32_t num_node;
     obj_skin_skin_param* skin_param;
     uint32_t external_name_index;
     uint32_t name_index;
@@ -648,13 +648,13 @@ struct obj_skin_osage_sibling_info {
 
 struct obj_skin_ex_data {
     obj_skin_osage_node* osage_node_array;
-    uint32_t num_osage_node;
+    int32_t num_osage_node;
     obj_skin_block* block_array;
-    uint32_t num_block;
+    int32_t num_block;
     const char** bone_name_array;
-    uint32_t num_bone_name;
+    int32_t num_bone_name;
     obj_skin_osage_sibling_info* osage_sibling_info_array;
-    uint32_t num_osage_sibling_info;
+    int32_t num_osage_sibling_info;
     int64_t reserved[7];
 
     obj_skin_ex_data();
@@ -671,7 +671,7 @@ struct obj_skin_bone {
 
 struct obj_skin {
     obj_skin_bone* bone_array;
-    uint32_t num_bone;
+    int32_t num_bone;
     obj_skin_ex_data* ex_data;
 
     obj_skin();
@@ -679,9 +679,9 @@ struct obj_skin {
 
 struct obj {
     obj_bounding_sphere bounding_sphere;
-    uint32_t num_mesh;
+    int32_t num_mesh;
     obj_mesh* mesh_array;
-    uint32_t num_material;
+    int32_t num_material;
     obj_material_data* material_array;
     uint8_t flags;
     uint32_t reserved[10];
@@ -693,7 +693,7 @@ struct obj {
     obj();
 
     obj_mesh* get_obj_mesh(const char* name);
-    uint32_t get_obj_mesh_index(const char* name);
+    int32_t get_obj_mesh_index(const char* name);
 };
 
 struct obj_set {
@@ -703,9 +703,9 @@ struct obj_set {
     bool is_x;
 
     obj** obj_data;
-    uint32_t obj_num;
+    int32_t obj_num;
     uint32_t* tex_id_data;
-    uint32_t tex_id_num;
+    int32_t tex_id_num;
     uint32_t reserved[2];
 
     obj_set();

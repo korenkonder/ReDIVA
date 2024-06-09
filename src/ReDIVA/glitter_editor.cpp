@@ -4471,7 +4471,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
         if (set_info && set_info->obj_set) {
             obj_set* set = set_info->obj_set;
             ::obj** obj_data = set->obj_data;
-            for (uint32_t i = 0; i < set->obj_num; i++)
+            for (int32_t i = 0; i < set->obj_num; i++)
                 if (obj_data[i]->id == obj_id) {
                     obj = obj_data[i];
                     break;
@@ -4484,7 +4484,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
                 obj_set* set = set_info->obj_set;
                 ::obj** obj_data = set->obj_data;
                 ssize_t obj_index = -1;
-                for (uint32_t i = 0; i < set->obj_num; i++)
+                for (int32_t i = 0; i < set->obj_num; i++)
 #pragma warning(suppress: 28182)
                     if (obj_data[i]->id == obj_id) {
                         obj_index = i;
@@ -4497,7 +4497,7 @@ static void glitter_editor_property_particle(GlitterEditor* glt_edt) {
                     obj_index = -1;
                 ImGui::PopID();
 
-                for (uint32_t i = 0; i < set->obj_num; i++) {
+                for (int32_t i = 0; i < set->obj_num; i++) {
                     ImGui::PushID(i);
                     ::obj* obj = obj_data[i];
                     if (ImGui::Selectable(obj->name, obj->id == obj_id)

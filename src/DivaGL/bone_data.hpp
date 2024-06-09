@@ -3488,12 +3488,12 @@ struct obj_sub_mesh {
     obj_bounding_sphere bounding_sphere;
     uint32_t material_index;
     uint8_t uv_index[8];
-    uint32_t bone_indices_count;
+    int32_t bone_indices_count;
     uint16_t* bone_indices;
     uint32_t bones_per_vertex;
     obj_primitive_type primitive_type;
     obj_index_format index_format;
-    uint32_t indices_count;
+    int32_t indices_count;
     uint16_t* indices;
     obj_sub_mesh_attrib attrib;
     uint32_t reserved[4];
@@ -3547,11 +3547,11 @@ union obj_mesh_attrib {
 struct obj_mesh {
     uint32_t flags;
     obj_bounding_sphere bounding_sphere;
-    uint32_t num_submesh;
+    int32_t num_submesh;
     obj_sub_mesh* submesh_array;
     obj_vertex_format vertex_format;
-    uint32_t size_vertex;
-    uint32_t num_vertex;
+    int32_t size_vertex;
+    int32_t num_vertex;
     obj_mesh_vertex_array_union vertex;
     obj_mesh_attrib attrib;
     uint32_t vertex_flags;
@@ -3704,7 +3704,7 @@ struct obj_material {
 };
 
 struct obj_material_data {
-    uint32_t num_of_textures;
+    int32_t num_of_textures;
     obj_material material;
 };
 
@@ -3712,9 +3712,9 @@ struct obj {
     uint32_t version;
     uint32_t flags;
     obj_bounding_sphere bounding_sphere;
-    uint32_t num_mesh;
+    int32_t num_mesh;
     obj_mesh* mesh_array;
-    uint32_t num_material;
+    int32_t num_material;
     obj_material_data* material_array;
     uint32_t reserved[10];
 };
@@ -3760,7 +3760,7 @@ struct obj_skin_ex_data {
     int32_t bone_names_count;
     const char** bone_names;
     obj_skin_osage_sibling_info* osage_sibling_infos;
-    uint32_t cloth_count;
+    int32_t cloth_count;
     uint32_t reserved[7];
 };
 
@@ -3769,7 +3769,7 @@ struct obj_skin {
     mat4* bone_matrices;
     const char** bone_names;
     obj_skin_ex_data* ex_data;
-    uint32_t bone_count;
+    int32_t bone_count;
     int32_t bone_parent_ids_offset;
     int32_t field_28;
     int32_t field_2C;
@@ -3798,14 +3798,14 @@ struct obj_database {
 
 struct obj_set {
     uint32_t signature;
-    uint32_t objects_count;
+    int32_t objects_count;
     uint32_t max_object_id;
     obj** objects;
     obj_skin** object_skins;
     const char** object_names;
     uint32_t* object_ids;
     uint32_t* texture_ids;
-    uint32_t texture_ids_count;
+    int32_t texture_ids_count;
     uint32_t field_3C;
     uint32_t field_40;
 };

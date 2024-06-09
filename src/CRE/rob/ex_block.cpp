@@ -1015,10 +1015,10 @@ void RobCloth::Disp(const mat4* mat, render_context* rctx) {
     o.bounding_sphere.center = center;
     o.bounding_sphere.radius *= 2.0f;
 
-    for (uint32_t i = 0; i < o.num_mesh; i++) {
+    for (int32_t i = 0; i < o.num_mesh; i++) {
         obj_mesh& mesh = this->mesh[i];
         mesh.bounding_sphere.center = center;
-        for (uint32_t j = 0; j < mesh.num_submesh; j++) {
+        for (int32_t j = 0; j < mesh.num_submesh; j++) {
             obj_sub_mesh& submesh = mesh.submesh_array[j];
             submesh.bounding_sphere.center = center;
         }
@@ -1049,7 +1049,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
 
     for (int32_t i = 0; i < 2; i++) {
         RobClothSubMeshArray& submesh = this->submesh[i];
-        for (uint32_t j = 0; j < mesh[i].num_submesh; j++) {
+        for (int32_t j = 0; j < mesh[i].num_submesh; j++) {
             obj_sub_mesh& cloth_mesh = submesh.arr[j];
             cloth_mesh = mesh[i].submesh_array[j];
             cloth_mesh.attrib.m.cloth = 0;
@@ -1744,7 +1744,7 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
     external->sibling_node = 0;
 
     bone_node* parent_bone_node = external->bone_node_ptr;
-    for (uint32_t i = 0; i < osg_data->count; i++) {
+    for (int32_t i = 0; i < osg_data->count; i++) {
         obj_skin_osage_node* v14 = &osg_nodes[i];
         RobOsageNode* node = &nodes.data()[i + 1LL];
         node->Reset();
@@ -1786,11 +1786,11 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
     if (osg_data->count) {
         RobOsageNode* v26 = &nodes.data()[1];
         size_t v33 = 0;
-        for (uint32_t i = 0; i < osg_data->count; i++) {
+        for (int32_t i = 0; i < osg_data->count; i++) {
             v26[i].mat = mat4_null;
 
             obj_skin_bone* bone = skin->bone_array;
-            for (uint32_t j = 0; j < skin->num_bone; j++, bone++)
+            for (int32_t j = 0; j < skin->num_bone; j++, bone++)
                 if (bone->id == osg_nodes->name_index) {
                     mat4_invert_fast(&bone->inv_bind_pose_mat, &v26[i].mat);
                     break;
@@ -2319,7 +2319,7 @@ void ExOsageBlock::sub_1405F3E10(obj_skin_block_osage* osg_data,
     RobOsageNode* node = rob.GetNode(0);
     a4->push_back(osg_data->external_name_index, node);
 
-    for (uint32_t i = 0; i < osg_data->count; i++) {
+    for (int32_t i = 0; i < osg_data->count; i++) {
         node = rob.GetNode(i + 1ULL);
         a4->push_back(osg_nodes[i].name_index, node);
 

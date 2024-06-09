@@ -6640,7 +6640,7 @@ static void auth_3d_object_hrc_load(auth_3d* auth, auth_3d_object_hrc* oh,
     for (auth_3d_object_node& i : oh->node) {
         i.bone_id = -1;
         uint64_t name_hash = hash_string_xxh3_64bits(i.name);
-        for (uint32_t j = 0; j < skin->num_bone; j++)
+        for (int32_t j = 0; j < skin->num_bone; j++)
             if (hash_utf8_xxh3_64bits(skin->bone_array[j].name) == name_hash) {
                 i.bone_id = skin->bone_array[j].id;
                 break;
@@ -6724,7 +6724,7 @@ static void auth_3d_object_instance_load(auth_3d* auth, auth_3d_object_instance*
     oi->mats.resize(skin->num_bone);
     mat4* mats = oi->mats.data();
 
-    for (uint32_t i = 0; i < skin->num_bone; i++) {
+    for (int32_t i = 0; i < skin->num_bone; i++) {
         uint64_t name_hash = hash_utf8_xxh3_64bits(skin->bone_array[i].name);
         for (auth_3d_object_node& j : moh->node)
             if (hash_string_xxh3_64bits(j.name) == name_hash) {

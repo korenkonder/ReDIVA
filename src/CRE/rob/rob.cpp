@@ -13417,7 +13417,7 @@ void rob_chara_item_equip_object::init_ex_data_bone_nodes(obj_skin_ex_data* ex_d
     ex_data_bone_mats.clear();
     ex_data_mats.clear();
 
-    uint32_t num_bone_name = ex_data->num_bone_name;
+    int32_t num_bone_name = ex_data->num_bone_name;
     ex_data_bone_nodes.resize(num_bone_name);
     ex_data_bone_mats.resize(num_bone_name);
     ex_data_mats.resize(num_bone_name);
@@ -13425,13 +13425,13 @@ void rob_chara_item_equip_object::init_ex_data_bone_nodes(obj_skin_ex_data* ex_d
     bone_node* bone_nodes = ex_data_bone_nodes.data();
     mat4* bone_mats = ex_data_bone_mats.data();
     mat4* mats = ex_data_mats.data();
-    for (uint32_t i = 0; i < num_bone_name; i++)
+    for (int32_t i = 0; i < num_bone_name; i++)
         bone_nodes[i].mat = &bone_mats[i];
 
     if (ex_data->bone_name_array) {
         ex_bones.clear();
         const char** bone_name_array = ex_data->bone_name_array;
-        for (uint32_t i = 0; i < num_bone_name; i++) {
+        for (int32_t i = 0; i < num_bone_name; i++) {
             bone_nodes[i].set_name_mat_ex_data_mat(bone_name_array[i], &bone_mats[i], &mats[i]);
             ex_bones.push_back(bone_name_array[i], i);
         }
@@ -13482,8 +13482,8 @@ void rob_chara_item_equip_object::load_ex_data(obj_skin_ex_data* ex_data,
     size_t null_count = 0;
     const char** bone_name_array = ex_data->bone_name_array;
     obj_skin_block* block = ex_data->block_array;
-    uint32_t num_block = ex_data->num_block;
-    for (uint32_t i = 0; i < num_block; i++, block++) {
+    int32_t num_block = ex_data->num_block;
+    for (int32_t i = 0; i < num_block; i++, block++) {
         ExNodeBlock* ex_node;
         switch (block->type) {
         case OBJ_SKIN_BLOCK_CLOTH: {
@@ -13610,7 +13610,7 @@ void rob_chara_item_equip_object::load_ex_data(obj_skin_ex_data* ex_data,
 
     if (ex_data->osage_sibling_info_array) {
         obj_skin_osage_sibling_info* sibling_info = ex_data->osage_sibling_info_array;
-        for (uint32_t i = 0; i < ex_data->num_osage_sibling_info; i++, sibling_info++) {
+        for (int32_t i = 0; i < ex_data->num_osage_sibling_info; i++, sibling_info++) {
             uint32_t name_index = sibling_info->name_index;
             uint32_t sibling_name_index = sibling_info->sibling_name_index;
 
@@ -18148,10 +18148,10 @@ void rob_chara_age_age_object::calc_vertex(rob_chara_age_age_object_vertex*& vtx
     const float_t alpha_1 = 1.0f - alpha;
 
     obj_vertex_data* vertex_array = mesh->vertex_array;
-    uint32_t num_vertex = mesh->num_vertex;
+    int32_t num_vertex = mesh->num_vertex;
     obj_vertex_data* obj_vtx = vertex_array;
     rob_chara_age_age_object_vertex* vtx = vtx_data;
-    for (uint32_t i = num_vertex; i; i--, obj_vtx++, vtx++) {
+    for (int32_t i = num_vertex; i; i--, obj_vtx++, vtx++) {
         mat4_transform_point(&mat, &obj_vtx->position, &vtx->position);
         mat4_transform_vector(&mat, &obj_vtx->normal, &vtx->normal);
         mat4_transform_vector(&mat, (vec3*)&obj_vtx->tangent, (vec3*)&vtx->tangent);
@@ -18261,10 +18261,10 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     obj_mesh* m = &o->mesh_array[0];
     obj_sub_mesh* sm = &m->submesh_array[0];
 
-    uint32_t num_vertex = m->num_vertex;
+    int32_t num_vertex = m->num_vertex;
     this->num_vertex = num_vertex;
 
-    uint32_t num_index = sm->num_index;
+    int32_t num_index = sm->num_index;
     this->num_index = num_index;
 
     size_t vertex_array_size = sizeof(rob_chara_age_age_object_vertex) * num_vertex;
@@ -18278,7 +18278,7 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
 
     obj_vertex_data* vertex_array = m->vertex_array;
     for (int32_t i = count; i > 0; i--)
-        for (uint32_t j = num_vertex, k = 0; j; j--, k++, vtx_data++) {
+        for (int32_t j = num_vertex, k = 0; j; j--, k++, vtx_data++) {
             vtx_data->position = vertex_array[k].position;
             vtx_data->normal = vertex_array[k].normal;
             vtx_data->tangent = vertex_array[k].tangent;
@@ -18288,14 +18288,14 @@ void rob_chara_age_age_object::load(object_info obj_info, int32_t count) {
     obj_vert_buf.load_data(vertex_data_size, vertex_data, 2, true);
 
     this->num_index = num_index + 1;
-    uint32_t num_idx_data = (uint32_t)(count * (num_index + 1));
+    int32_t num_idx_data = (int32_t)(count * (num_index + 1));
 
     uint16_t* idx_data = force_malloc<uint16_t>(num_idx_data);
     uint32_t* index_array = sm->index_array;
     uint32_t index_offset = 0;
     uint32_t l = 0;
     for (int32_t i = count; i > 0; i--) {
-        for (uint32_t j = num_index, k = 0; j; j--, k++)
+        for (int32_t j = num_index, k = 0; j; j--, k++)
             if (index_array[k] == 0xFFFFFFFF)
                 idx_data[l++] = 0xFFFF;
             else

@@ -25,8 +25,8 @@ static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic =
 static void free_index_buffer(GLuint buffer);
 static void free_vertex_buffer(GLuint buffer);
 
-static uint32_t remove_degenerate_triangle_indices(
-    uint32_t* dst_index_array, const uint32_t num_index, uint32_t* src_index_array);
+static int32_t remove_degenerate_triangle_indices(
+    uint32_t* dst_index_array, const int32_t num_index, uint32_t* src_index_array);
 
 static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info);
 static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info);
@@ -50,7 +50,7 @@ obj_mesh_index_buffer::obj_mesh_index_buffer() : buffer() {
 
 bool obj_mesh_index_buffer::load(obj_mesh& mesh) {
     size_t num_index = 0;
-    for (uint32_t i = 0; i < mesh.num_submesh; i++)
+    for (int32_t i = 0; i < mesh.num_submesh; i++)
         num_index += mesh.submesh_array[i].num_index;
 
     if (!num_index) {
@@ -81,7 +81,7 @@ void obj_mesh_index_buffer::unload() {
 
 void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
     uint16_t* indices = (uint16_t*)data;
-    for (uint32_t i = 0; i < mesh.num_submesh; i++) {
+    for (int32_t i = 0; i < mesh.num_submesh; i++) {
         obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
 
         if (sub_mesh.primitive_type == OBJ_PRIMITIVE_TRIANGLE_STRIP && !(sub_mesh.attrib.w & 0x80)){
@@ -92,14 +92,13 @@ void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
             free_def(index_array);
         }
 
-        uint32_t num_index = sub_mesh.num_index;
         uint32_t* index = sub_mesh.index_array;
-        for (uint32_t j = num_index; j; j--, index++)
+        for (int32_t j = sub_mesh.num_index; j > 0; j--, index++)
             *indices++ = (uint16_t)*index;
     }
 
     indices = (uint16_t*)data;
-    for (uint32_t i = 0, offset = 0; i < mesh.num_submesh; i++) {
+    for (int32_t i = 0, offset = 0; i < mesh.num_submesh; i++) {
         obj_sub_mesh& sub_mesh = mesh.submesh_array[i];
 
         sub_mesh.first_index = 0;
@@ -110,7 +109,7 @@ void* obj_mesh_index_buffer::fill_data(void* data, obj_mesh& mesh) {
 
         uint16_t first_index = 0xFFFF;
         uint16_t last_index = 0;
-        for (uint32_t j = sub_mesh.num_index; j; j--) {
+        for (int32_t j = sub_mesh.num_index; j > 0; j--) {
             uint16_t index = *indices++;
             if (index == 0xFFFF)
                 continue;
@@ -227,12 +226,12 @@ void obj_mesh_vertex_buffer::unload() {
 void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
     obj_vertex_format vertex_format = mesh.vertex_format;
     obj_vertex_data* vtx = mesh.vertex_array;
-    uint32_t num_vertex = mesh.num_vertex;
+    int32_t num_vertex = mesh.num_vertex;
     size_t d = (size_t)data;
     switch (mesh.attrib.m.compression) {
     case 0:
     default:
-        for (uint32_t i = num_vertex; i; i--, vtx++) {
+        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
             if (vertex_format & OBJ_VERTEX_POSITION) {
                 *(vec3*)d = vtx->position;
                 d += 12;
@@ -297,7 +296,7 @@ void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
         }
         break;
     case 1:
-        for (uint32_t i = num_vertex; i; i--, vtx++) {
+        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
             if (vertex_format & OBJ_VERTEX_POSITION) {
                 *(vec3*)d = vtx->position;
                 d += 12;
@@ -349,7 +348,7 @@ void* obj_mesh_vertex_buffer::fill_data(void* data, obj_mesh& mesh) {
         }
         break;
     case 2:
-        for (uint32_t i = num_vertex; i; i--, vtx++) {
+        for (int32_t i = num_vertex; i > 0; i--, vtx++) {
             if (vertex_format & OBJ_VERTEX_POSITION) {
                 *(vec3*)d = vtx->position;
                 d += 12;
@@ -439,11 +438,11 @@ bool obj_index_buffer::load(obj* obj) {
 
 #if SHARED_OBJECT_BUFFER
     size_t buffer_size = 0;
-    for (uint32_t i = 0; i < mesh_num; i++) {
+    for (int32_t i = 0; i < mesh_num; i++) {
         obj_mesh& mesh = obj->mesh_array[i];
         size_t num_index = 0;
-        for (uint32_t i = 0; i < mesh.num_submesh; i++)
-            num_index += mesh.submesh_array[i].num_index;
+        for (int32_t j = 0; j < mesh.num_submesh; i++)
+            num_index += mesh.submesh_array[j].num_index;
         buffer_size += num_index * sizeof(uint16_t);
     }
 
@@ -455,12 +454,12 @@ bool obj_index_buffer::load(obj* obj) {
     }
 
     void* data = index;
-    for (uint32_t i = 0; i < mesh_num; i++) {
+    for (int32_t i = 0; i < mesh_num; i++) {
         uint32_t offset = (uint32_t)((size_t)data - (size_t)index);
         data = obj_mesh_index_buffer::fill_data(data, obj->mesh_array[i]);
 
         obj_mesh& mesh = obj->mesh_array[i];
-        for (uint32_t j = 0; j < mesh.num_submesh; j++)
+        for (int32_t j = 0; j < mesh.num_submesh; j++)
             mesh.submesh_array[j].index_offset += offset;
     }
 
@@ -473,10 +472,10 @@ bool obj_index_buffer::load(obj* obj) {
 
     free_def(index);
 
-    for (uint32_t i = 0; i < mesh_num; i++)
+    for (int32_t i = 0; i < mesh_num; i++)
         mesh_data[i].buffer = buffer;
 #else
-    for (uint32_t i = 0; i < mesh_num; i++)
+    for (int32_t i = 0; i < mesh_num; i++)
         if (!mesh_data[i].load(obj->mesh_array[i]))
             return false;
 #endif
@@ -489,7 +488,7 @@ void obj_index_buffer::unload() {
         free_index_buffer(buffer);
         buffer = 0;
 #else
-        for (uint32_t i = 0; i < mesh_num; i++)
+        for (int32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
 #endif
         delete[] mesh_data;
@@ -521,7 +520,7 @@ bool obj_vertex_buffer::load(obj* obj) {
 #if SHARED_OBJECT_BUFFER
     size_t buffer_size = 0;
     bool double_buffer = false;
-    for (uint32_t i = 0; i < mesh_num; i++) {
+    for (int32_t i = 0; i < mesh_num; i++) {
         obj_mesh& mesh = obj->mesh_array[i];
         if (!mesh.num_vertex || !mesh.vertex_array)
             continue;
@@ -556,7 +555,7 @@ bool obj_vertex_buffer::load(obj* obj) {
     }
 
     void* data = vertex;
-    for (uint32_t i = 0; i < mesh_num; i++) {
+    for (int32_t i = 0; i < mesh_num; i++) {
         obj_mesh_vertex_buffer& mesh_buffer = mesh_data[i];
         mesh_buffer.offset = (size_t)data - (size_t)vertex;
         mesh_buffer.count = count;
@@ -576,10 +575,10 @@ bool obj_vertex_buffer::load(obj* obj) {
 
     free_def(vertex);
 
-    for (uint32_t i = 0; i < mesh_num; i++)
+    for (int32_t i = 0; i < mesh_num; i++)
         memcpy(mesh_data[i].buffers, buffers, count * sizeof(GLuint));
 #else
-    for (uint32_t i = 0; i < mesh_num; i++)
+    for (int32_t i = 0; i < mesh_num; i++)
         if (!mesh_data[i].load(obj->mesh_array[i]))
             return false;
 #endif
@@ -592,7 +591,7 @@ void obj_vertex_buffer::unload() {
         for (int32_t i = 0; i < mesh_data[0].count; i++)
             free_vertex_buffer(buffers[i]);
 #else
-        for (uint32_t i = 0; i < mesh_num; i++)
+        for (int32_t i = 0; i < mesh_num; i++)
             mesh_data[i].unload();
 #endif
         delete[] mesh_data;
@@ -673,7 +672,7 @@ void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
 
     obj_skin_bone* bone = s->bone_array;
     if (mat)
-        for (uint32_t i = 0; i < s->num_bone; i++, bone++, matrix_buffer++) {
+        for (int32_t i = 0; i < s->num_bone; i++, bone++, matrix_buffer++) {
             mat4 temp;
             if (bone->id & 0x8000)
                 mat4_mul(mat, &ex_data_matrices[bone->id & 0x7FFF], &temp);
@@ -684,7 +683,7 @@ void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
             mat4_mul(&bone->inv_bind_pose_mat, &temp, matrix_buffer);
         }
     else
-        for (uint32_t i = 0; i < s->num_bone; i++, bone++, matrix_buffer++) {
+        for (int32_t i = 0; i < s->num_bone; i++, bone++, matrix_buffer++) {
             mat4 temp;
             if (bone->id & 0x8000)
                 temp = ex_data_matrices[bone->id & 0x7FFF];
@@ -736,7 +735,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
         std::string name = object.read_string("name");
         uint32_t name_hash = hash_string_murmurhash(name);
 
-        for (uint32_t i = 0; i < obj_set->obj_num; i++) {
+        for (int32_t i = 0; i < obj_set->obj_num; i++) {
             obj* obj = obj_set->obj_data[i];
 
             if (name_hash != hash_string_murmurhash(obj->name))
@@ -1045,24 +1044,24 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 _color_mult.z = b->read_float_t();
 
                             obj_vertex_data* vtx = mesh.vertex_array;
-                            uint32_t num_vertex = mesh.num_vertex;
-                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                            int32_t num_vertex = mesh.num_vertex;
+                            for (int32_t i = num_vertex; i > 0; i--, vtx++)
                                 *(vec3*)&vtx->color0 = _color_mult;
                         }
 
                         msgpack* fix_alpha = _mesh.read("fix_alpha");
                         if (fix_alpha && fix_alpha->read_bool()) {
                             obj_vertex_data* vtx = mesh.vertex_array;
-                            uint32_t num_vertex = mesh.num_vertex;
-                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                            int32_t num_vertex = mesh.num_vertex;
+                            for (int32_t i = num_vertex; i > 0; i--, vtx++)
                                 vtx->color0.w = 1.0f;
                         }
 
                         msgpack* invert_negative_color = _mesh.read("invert_negative_color");
                         if (invert_negative_color && invert_negative_color->read_bool()) {
                             obj_vertex_data* vtx = mesh.vertex_array;
-                            uint32_t num_vertex = mesh.num_vertex;
-                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                            int32_t num_vertex = mesh.num_vertex;
+                            for (int32_t i = num_vertex; i > 0; i--, vtx++)
                                 if (vtx->color0.x < 0.0f)
                                     *(vec3*)&vtx->color0.x = -*(vec3*)&vtx->color0.x;
                         }
@@ -1084,8 +1083,8 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                 normal.z = z->read_float_t();
 
                             obj_vertex_data* vtx = mesh.vertex_array;
-                            uint32_t num_vertex = mesh.num_vertex;
-                            for (uint32_t i = num_vertex; i; i--, vtx++)
+                            int32_t num_vertex = mesh.num_vertex;
+                            for (int32_t i = num_vertex; i > 0; i--, vtx++)
                                 vtx->normal = normal;
                         }
 
@@ -1210,15 +1209,15 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
         tex_db->update();
 
-        size_t tex_id_num = txp_set->textures.size();
+        int32_t tex_id_num = (int32_t)txp_set->textures.size();
         if (set->tex_id_num != tex_id_num) {
             uint32_t* tex_id_data = info->alloc_handler->allocate<uint32_t>(tex_id_num);
             memmove(tex_id_data, set->tex_id_data, sizeof(uint32_t) * set->tex_id_num);
             memmove(&tex_id_data[set->tex_id_num], ids.data(),
-                sizeof(uint32_t) * (tex_id_num - set->tex_id_num));
+                sizeof(uint32_t) * ((size_t)tex_id_num - set->tex_id_num));
             set->tex_id_data = tex_id_data;
-            set->tex_id_num = (uint32_t)tex_id_num;
-            info->tex_num = (uint32_t)tex_id_num;
+            set->tex_id_num = tex_id_num;
+            info->tex_num = tex_id_num;
         }
     }
 
@@ -1243,10 +1242,10 @@ void object_material_msgpack_read(const char* path, const char* set_name,
             uint32_t id = hash_string_murmurhash(name);
 
             uint32_t* tex_id_data = set->tex_id_data;
-            uint32_t tex_id_num = set->tex_id_num;
+            int32_t tex_id_num = set->tex_id_num;
 
             txp* tex = 0;
-            for (uint32_t i = 0; i < tex_id_num; i++)
+            for (int32_t i = 0; i < tex_id_num; i++)
                 if (id == tex_id_data[i]) {
                     tex = &txp_set->textures[i];
                     break;
@@ -1292,7 +1291,7 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
         return;
 
     msgpack_array objects(obj_set->obj_num);
-    for (uint32_t i = 0; i < obj_set->obj_num; i++) {
+    for (int32_t i = 0; i < obj_set->obj_num; i++) {
         obj* obj = obj_set->obj_data[i];
 
         msgpack& object = objects.data()[i];
@@ -1571,7 +1570,7 @@ void object_material_msgpack_write(const char* path, const char* set_name, uint3
     io_json_write(s, &msg);
     s.close();
 
-    for (uint32_t i = 0; i < obj_set->tex_id_num; i++) {
+    for (int32_t i = 0; i < obj_set->tex_id_num; i++) {
         const char* texture_name = tex_db->get_texture_name(obj_set->tex_id_data[i]);
 
         txp& tex = txp_set->textures[i];
@@ -1640,7 +1639,7 @@ inline obj* objset_info_storage_get_obj(object_info obj_info) {
     return 0;
 }
 
-inline obj* objset_info_storage_get_obj_by_index(uint32_t set_id, uint32_t index) {
+inline obj* objset_info_storage_get_obj_by_index(uint32_t set_id, int32_t index) {
     auto elem = objset_info_storage_data.find(set_id);
     if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
@@ -1703,7 +1702,7 @@ inline obj_mesh* objset_info_storage_get_obj_mesh(object_info obj_info, const ch
     return 0;
 }
 
-inline obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index) {
+inline obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, int32_t index) {
     auto elem = objset_info_storage_data.find(obj_info.set_id);
     if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
@@ -1742,7 +1741,7 @@ inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash(uint32_t hash, 
         if (!set)
             continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
+        for (int32_t j = 0; j < set->obj_num; j++)
             if (set->obj_data[j]->hash == hash)
                 return set->obj_data[j]->get_obj_mesh(mesh_name);
     }
@@ -1752,20 +1751,20 @@ inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash(uint32_t hash, 
         if (!set)
             continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
+        for (int32_t j = 0; j < set->obj_num; j++)
             if (set->obj_data[j]->hash == hash)
                 return set->obj_data[j]->get_obj_mesh(mesh_name);
     }
     return 0;
 }
 
-inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, uint32_t index) {
+inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, int32_t index) {
     for (auto& i : objset_info_storage_data) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++) {
+        for (int32_t j = 0; j < set->obj_num; j++) {
             if (set->obj_data[j]->hash != hash)
                 continue;
 
@@ -1781,7 +1780,7 @@ inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t 
         if (!set)
             continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++) {
+        for (int32_t j = 0; j < set->obj_num; j++) {
             if (set->obj_data[j]->hash != hash)
                 continue;
 
@@ -1794,7 +1793,7 @@ inline obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t 
     return 0;
 }
 
-inline uint32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name) {
+inline int32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name) {
     auto elem = objset_info_storage_data.find(obj_info.set_id);
     if (elem != objset_info_storage_data.end()) {
         obj_set* set = elem->second.obj_set;
@@ -1821,13 +1820,13 @@ inline uint32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, con
     return -1;
 }
 
-inline uint32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name) {
+inline int32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name) {
     for (auto& i : objset_info_storage_data) {
         obj_set* set = i.second.obj_set;
         if (!set)
             continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
+        for (int32_t j = 0; j < set->obj_num; j++)
             if (set->obj_data[j]->hash == hash)
                 return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
@@ -1837,7 +1836,7 @@ inline uint32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, co
         if (!set)
             continue;
 
-        for (uint32_t j = 0; j < set->obj_num; j++)
+        for (int32_t j = 0; j < set->obj_num; j++)
             if (set->obj_data[j]->hash == hash)
                 return set->obj_data[j]->get_obj_mesh_index(mesh_name);
     }
@@ -2089,7 +2088,7 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
 
             info->obj_file_handler.reset();
             info->obj_id_data.reserve(set->obj_num);
-            for (uint32_t i = 0; i < set->obj_num; i++)
+            for (int32_t i = 0; i < set->obj_num; i++)
                 info->obj_id_data.push_back(set->obj_data[i]->id, i);
             info->obj_id_data.sort();
 
@@ -2202,7 +2201,7 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
 
         info->obj_file_handler.reset();
         info->obj_id_data.reserve(set->obj_num);
-        for (uint32_t i = 0; i < set->obj_num; i++)
+        for (int32_t i = 0; i < set->obj_num; i++)
             info->obj_id_data.push_back(set->obj_data[i]->id, i);
         info->obj_id_data.sort();
 
@@ -2349,17 +2348,17 @@ static void free_vertex_buffer(GLuint buffer) {
     glGetError();
 }
 
-static uint32_t remove_degenerate_triangle_indices(
-    uint32_t* dst_index_array, const uint32_t num_index, uint32_t* src_index_array) {
+static int32_t remove_degenerate_triangle_indices(
+    uint32_t* dst_index_array, const int32_t num_index, uint32_t* src_index_array) {
     if (!num_index)
         return 0;
 
     dst_index_array[0] = src_index_array[0];
 
-    uint32_t src_index = 1;
-    uint32_t dst_index = 1;
-    uint32_t strip_length = 1;
-    while ((int32_t)src_index < (int32_t)num_index - 4)
+    int32_t src_index = 1;
+    int32_t dst_index = 1;
+    int32_t strip_length = 1;
+    while (src_index < num_index - 4)
         if (src_index_array[src_index] != src_index_array[src_index + 1]) {
             dst_index_array[dst_index++] = src_index_array[src_index];
             strip_length++;
@@ -2398,11 +2397,11 @@ static uint32_t remove_degenerate_triangle_indices(
             src_index += 5;
         }
 
-    if (src_index < (int32_t)num_index) {
+    if (src_index < num_index) {
         src_index_array += src_index;
         dst_index_array += dst_index;
         dst_index += num_index - src_index;
-        while (src_index++ < (int32_t)num_index)
+        while (src_index++ < num_index)
             *dst_index_array++ = *src_index_array++;
     }
     return dst_index;
@@ -2410,20 +2409,20 @@ static uint32_t remove_degenerate_triangle_indices(
 
 static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
-    for (uint32_t i = 0; i < set->obj_num; i++) {
+    for (int32_t i = 0; i < set->obj_num; i++) {
         obj* obj = set->obj_data[i];
-        for (uint32_t j = 0; j < obj->num_mesh; j++) {
+        for (int32_t j = 0; j < obj->num_mesh; j++) {
             obj_mesh& mesh = obj->mesh_array[j];
-            for (uint32_t k = 0; k < mesh.num_submesh; k++) {
+            for (int32_t k = 0; k < mesh.num_submesh; k++) {
                 vec3 _min =    9999999.0f;
                 vec3 _max = -100000000.0f;
 
                 obj_sub_mesh& sub_mesh = mesh.submesh_array[k];
                 uint32_t* index = sub_mesh.index_array;
-                uint32_t num_index = sub_mesh.num_index;
+                int32_t num_index = sub_mesh.num_index;
                 obj_vertex_data* vertex_array = mesh.vertex_array;
                 if (sub_mesh.index_format == OBJ_INDEX_U16)
-                    for (uint32_t l = 0; l < num_index; l++, index++) {
+                    for (int32_t l = 0; l < num_index; l++, index++) {
                         if (*index == 0xFFFFFFFF)
                             continue;
 
@@ -2432,7 +2431,7 @@ static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
                         _max = vec3::max(_max, pos);
                     }
                 else
-                    for (uint32_t l = 0; l < num_index; l++, index++) {
+                    for (int32_t l = 0; l < num_index; l++, index++) {
                         vec3 pos = vertex_array[*index].position;
                         _min = vec3::min(_min, pos);
                         _max = vec3::max(_max, pos);
@@ -2449,10 +2448,10 @@ static void ObjsetInfo_calc_axis_aligned_bounding_box(ObjsetInfo* info) {
 
 static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
     obj_set* set = info->obj_set;
-    for (uint32_t i = 0; i < set->obj_num; i++) {
+    for (int32_t i = 0; i < set->obj_num; i++) {
         obj* obj = set->obj_data[i];
-        uint32_t num_material = obj->num_material;
-        for (uint32_t j = 0; j < num_material; j++) {
+        int32_t num_material = obj->num_material;
+        for (int32_t j = 0; j < num_material; j++) {
             obj_material_data& material_data = obj->material_array[j];
             obj_material& material = material_data.material;
 
@@ -2471,8 +2470,8 @@ static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
                 texture.texture_index = 0;
 
                 std::pair<uint32_t, uint32_t>* tex_id_data = info->tex_id_data.data();
-                uint32_t tex_id_num = (uint32_t)info->tex_id_data.size();
-                for (uint32_t l = tex_id_num; l; l--, tex_id_data++)
+                int32_t tex_id_num = (int32_t)info->tex_id_data.size();
+                for (int32_t l = tex_id_num; l >= 0; l--, tex_id_data++)
                     if (tex_id_data->first == tex_index) {
                         texture.tex_index = tex_index;
                         texture.texture_index = tex_id_data->second;
@@ -2490,7 +2489,7 @@ static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info) {
     if (!info->objib)
         return true;
 
-    for (uint32_t i = 0; i < set->obj_num; i++)
+    for (int32_t i = 0; i < set->obj_num; i++)
         if (!info->objib[i].load(set->obj_data[i]))
             return false;
     return true;
@@ -2498,7 +2497,7 @@ static bool ObjsetInfo_index_buffer_load(ObjsetInfo* info) {
 
 static void ObjsetInfo_index_buffer_free(ObjsetInfo* info) {
     if (info->objib) {
-        for (uint32_t i = 0; i < info->objib_num; i++)
+        for (int32_t i = 0; i < info->objib_num; i++)
             info->objib[i].unload();
         delete[] info->objib;
     }
@@ -2524,9 +2523,9 @@ static bool ObjsetInfo_load_textures(ObjsetInfo* info, const void* data, bool bi
     info->tex_id_data.reserve(info->tex_num);
     info->gentex.reserve(info->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
-    uint32_t tex_num = info->tex_num;
+    int32_t tex_num = info->tex_num;
     texture** tex_data = info->tex_data;
-    for (uint32_t i = 0; i < tex_num; i++) {
+    for (int32_t i = 0; i < tex_num; i++) {
         info->tex_id_data.push_back(tex_id_data[i], i);
         info->gentex.push_back(tex_data[i]->glid);
     }
@@ -2553,9 +2552,9 @@ static bool ObjsetInfo_load_textures_modern(ObjsetInfo* info,
     info->tex_id_data.reserve(info->tex_num);
     info->gentex.reserve(info->tex_num);
     uint32_t* tex_id_data = set->tex_id_data;
-    uint32_t tex_num = info->tex_num;
+    int32_t tex_num = info->tex_num;
     texture** tex_data = info->tex_data;
-    for (uint32_t i = 0; i < tex_num; i++) {
+    for (int32_t i = 0; i < tex_num; i++) {
         info->tex_id_data.push_back(tex_id_data[i], i);
         info->gentex.push_back(tex_data[i]->glid);
     }
@@ -2570,7 +2569,7 @@ static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info) {
     if (!info->objvb)
         return true;
 
-    for (uint32_t i = 0; i < set->obj_num; i++)
+    for (int32_t i = 0; i < set->obj_num; i++)
         if (!info->objvb[i].load(set->obj_data[i]))
             return false;
     return true;
@@ -2578,7 +2577,7 @@ static bool ObjsetInfo_vertex_buffer_load(ObjsetInfo* info) {
 
 static void ObjsetInfo_vertex_buffer_free(ObjsetInfo* info) {
     if (info->objvb) {
-        for (uint32_t i = 0; i < info->objvb_num; i++)
+        for (int32_t i = 0; i < info->objvb_num; i++)
             info->objvb[i].unload();
         delete[] info->objvb;
     }

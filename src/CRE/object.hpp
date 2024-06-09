@@ -54,7 +54,7 @@ struct obj_mesh_vertex_buffer {
 };
 
 struct obj_index_buffer {
-    uint32_t mesh_num;
+    int32_t mesh_num;
     obj_mesh_index_buffer* mesh_data;
 #if SHARED_OBJECT_BUFFER
     GLuint buffer;
@@ -67,7 +67,7 @@ struct obj_index_buffer {
 };
 
 struct obj_vertex_buffer {
-    uint32_t mesh_num;
+    int32_t mesh_num;
     obj_mesh_vertex_buffer* mesh_data;
 #if SHARED_OBJECT_BUFFER
     GLuint buffers[3];
@@ -87,14 +87,14 @@ struct ObjsetInfo {
     prj::shared_ptr<prj::stack_allocator> alloc_handler;
     obj_set* obj_set;
     prj::vector_pair<uint32_t, uint32_t> obj_id_data;
-    uint32_t tex_num;
+    int32_t tex_num;
     std::vector<GLuint> gentex;
     prj::vector_pair<uint32_t, uint32_t> tex_id_data;
     texture** tex_data;
     int32_t set_id;
-    uint32_t objvb_num;
+    int32_t objvb_num;
     obj_vertex_buffer* objvb;
-    uint32_t objib_num;
+    int32_t objib_num;
     obj_index_buffer* objib;
     uint32_t load_count;
     std::string name;
@@ -122,14 +122,14 @@ extern void object_material_msgpack_write(const char* path, const char* set_name
 
 extern void objset_info_storage_init(const object_database* obj_db);
 extern obj* objset_info_storage_get_obj(object_info obj_info);
-extern obj* objset_info_storage_get_obj_by_index(uint32_t set_id, uint32_t index);
+extern obj* objset_info_storage_get_obj_by_index(uint32_t set_id, int32_t index);
 extern ObjsetInfo* objset_info_storage_get_objset_info(uint32_t set_id);
 extern obj_mesh* objset_info_storage_get_obj_mesh(object_info obj_info, const char* mesh_name);
-extern obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, uint32_t index);
+extern obj_mesh* objset_info_storage_get_obj_mesh_by_index(object_info obj_info, int32_t index);
 extern obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash(uint32_t hash, const char* mesh_name);
-extern obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, uint32_t index);
-extern uint32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name);
-extern uint32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name);
+extern obj_mesh* objset_info_storage_get_obj_mesh_by_object_hash_index(uint32_t hash, int32_t index);
+extern int32_t objset_info_storage_get_obj_mesh_index(object_info obj_info, const char* mesh_name);
+extern int32_t objset_info_storage_get_obj_mesh_index_by_hash(uint32_t hash, const char* mesh_name);
 extern const char* objset_info_storage_get_obj_name(object_info obj_info);
 extern obj_set* objset_info_storage_get_obj_set(uint32_t set_id);
 extern size_t objset_info_storage_get_obj_set_count();

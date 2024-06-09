@@ -508,7 +508,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
             s.position_push(reflect_offset, SEEK_SET);
             stage->reflect = true;
             stage->reflect_data.mode = (stage_data_reflect_resolution_mode)s.read_uint32_t();
-            stage->reflect_data.blur_num = s.read_uint32_t();
+            stage->reflect_data.blur_num = s.read_int32_t();
             stage->reflect_data.blur_filter = (stage_data_blur_filter_mode)s.read_uint32_t();
             s.position_pop();
         }
@@ -696,7 +696,7 @@ static void stage_database_file_classic_write_inner(stage_database_file* stage_d
         if (i.reflect) {
             reflect_offsets.push_back(s.get_position());
             s.write_uint32_t(i.reflect_data.mode);
-            s.write_uint32_t(i.reflect_data.blur_num);
+            s.write_int32_t(i.reflect_data.blur_num);
             s.write_uint32_t(i.reflect_data.blur_filter);
         }
         else

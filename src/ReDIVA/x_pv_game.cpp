@@ -7141,27 +7141,27 @@ bool x_pv_game::ctrl() {
 
             prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
 
-            uint32_t obj_num = set->obj_num;
+            int32_t obj_num = set->obj_num;
             obj** obj_data = set->obj_data;
 
             obj_vertex_buffer* objvb = info->objvb;
-            for (uint32_t j = 0; j < obj_num; j++)
+            for (int32_t j = 0; j < obj_num; j++)
                 objvb[j].unload();
 
             obj_index_buffer* objib = info->objib;
-            for (uint32_t j = 0; j < obj_num; j++)
+            for (int32_t j = 0; j < obj_num; j++)
                 objib[j].unload();
 
-            for (uint32_t j = 0; j < obj_num; j++, obj_data++) {
+            for (int32_t j = 0; j < obj_num; j++, obj_data++) {
                 obj* obj = *obj_data;
                 obj_mesh* mesh_array = obj->mesh_array;
-                uint32_t num_mesh = obj->num_mesh;
-                for (uint32_t k = 0; k < num_mesh; k++) {
+                int32_t num_mesh = obj->num_mesh;
+                for (int32_t k = 0; k < num_mesh; k++) {
                     obj_mesh* mesh = &mesh_array[k];
 
                     obj_sub_mesh* submesh_array = mesh->submesh_array;
-                    uint32_t num_submesh = mesh->num_submesh;
-                    for (uint32_t l = 0; l < num_submesh; l++) {
+                    int32_t num_submesh = mesh->num_submesh;
+                    for (int32_t l = 0; l < num_submesh; l++) {
                         obj_sub_mesh* submesh = &submesh_array[l];
 
                         if (submesh->primitive_type != OBJ_PRIMITIVE_TRIANGLES || !submesh->num_index)
@@ -7172,7 +7172,7 @@ bool x_pv_game::ctrl() {
                         uint32_t* index_array = submesh->index_array;
                         submesh->index_array = alloc->allocate<uint32_t>(
                             meshopt_stripifyBound(submesh->num_index));
-                        submesh->num_index = (uint32_t)meshopt_stripify(submesh->index_array,
+                        submesh->num_index = (int32_t)meshopt_stripify(submesh->index_array,
                             index_array, submesh->num_index, mesh->num_vertex, 0xFFFFFFFF);
 
                         submesh->first_index = 0;
@@ -7184,10 +7184,10 @@ bool x_pv_game::ctrl() {
 
             obj_data = set->obj_data;
 
-            for (uint32_t j = 0; j < obj_num; j++)
+            for (int32_t j = 0; j < obj_num; j++)
                 objvb[j].load(obj_data[j]);
 
-            for (uint32_t j = 0; j < obj_num; j++)
+            for (int32_t j = 0; j < obj_num; j++)
                 objib[j].load(obj_data[j]);
         }
 
@@ -10286,10 +10286,10 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
             uint32_t id = hash_string_murmurhash(name);
 
             uint32_t* tex_id_data = set->tex_id_data;
-            uint32_t tex_id_num = set->tex_id_num;
+            int32_t tex_id_num = set->tex_id_num;
 
             txp* tex = 0;
-            for (uint32_t i = 0; i < tex_id_num; i++)
+            for (int32_t i = 0; i < tex_id_num; i++)
                 if (id == tex_id_data[i]) {
                     tex = &txp_set->textures[i];
                     break;
@@ -10384,9 +10384,9 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
         obj_set* set = alloc->allocate<obj_set>();
         set->move_data(info->obj_set, alloc);
 
-        uint32_t tex_id_num = set->tex_id_num;
+        int32_t tex_id_num = set->tex_id_num;
         x_pack_tex_db->texture.reserve(tex_id_num);
-        for (uint32_t i = 0; i < tex_id_num; i++) {
+        for (int32_t i = 0; i < tex_id_num; i++) {
             uint32_t& id = set->tex_id_data[i];
             const char* tex_name = tex_db->get_texture_name(id);
             if (tex_name) {
@@ -10420,9 +10420,9 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
                 id = -1;
         }
 
-        uint32_t obj_num = set->obj_num;
+        int32_t obj_num = set->obj_num;
         obj_set_info.object.reserve(obj_num);
-        for (uint32_t i = 0; i < obj_num; i++) {
+        for (int32_t i = 0; i < obj_num; i++) {
             obj* obj = set->obj_data[i];
 
             replace_names((char*)obj->name);
@@ -10432,8 +10432,8 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
             obj_set_info.object.back().id = i;
             obj_set_info.object.back().name.assign(obj->name);
 
-            uint32_t num_material = obj->num_material;
-            for (uint32_t j = 0; j < num_material; j++) {
+            int32_t num_material = obj->num_material;
+            for (int32_t j = 0; j < num_material; j++) {
                 obj_material& material = obj->material_array[j].material;
 
                 for (obj_material_texture_data& k : material.texdata) {

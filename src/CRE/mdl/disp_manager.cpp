@@ -2375,7 +2375,7 @@ namespace mdl {
         }
         culling.passed.objects++;
 
-        for (uint32_t i = 0; i < object->num_mesh; i++) {
+        for (int32_t i = 0; i < object->num_mesh; i++) {
             obj_mesh* mesh = &object->mesh_array[i];
             obj_mesh* mesh_morph = 0;
             if (obj_vertex_buf && obj_morph_vertex_buf) {
@@ -2399,7 +2399,7 @@ namespace mdl {
             ObjSubMeshArgs* translucent_priority[40];
             int32_t translucent_priority_count = 0;
 
-            for (uint32_t j = 0; j < mesh->num_submesh; j++) {
+            for (int32_t j = 0; j < mesh->num_submesh; j++) {
                 obj_sub_mesh* sub_mesh = &mesh->submesh_array[j];
                 obj_sub_mesh* sub_mesh_morph = 0;
                 if (sub_mesh->attrib.m.cloth)
