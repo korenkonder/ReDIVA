@@ -133,7 +133,7 @@ namespace rndr {
     };
 }
 
-extern void image_filter_scale(GLuint dst, GLuint src, const vec4 scale);
+extern void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale = 1.0f);
 
 extern void draw_pass_set_camera();
 

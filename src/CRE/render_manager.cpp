@@ -617,7 +617,7 @@ namespace rndr {
             for (int32_t i = reflect_blur_num, j = 0; i > 0; i--, j++) {
                 blur_filter_apply(rctx, &refl_buf_tex, &refl_tex,
                     reflect_blur_filter, 1.0f, 1.0f, 0.0f);
-                glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
+                image_filter_scale(&refl_tex, refl_buf_tex.color_texture);
             }
         }
         else {
@@ -1113,15 +1113,16 @@ namespace rndr {
     }
 }
 
-void image_filter_scale(GLuint dst, GLuint src, const vec4 scale) {
-    if (!dst || !src)
+void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
+    if (!dst || !dst->color_texture->glid || !dst->color_texture || !src || !src->glid)
         return;
 
     render_context* rctx = rctx_ptr;
 
     gl_state_begin_event("`anonymous-namespace'::Impl::apply_no_filter_sub");
-    texture_param tex_params[2];
-    texture_params_get(dst, &tex_params[0], src, &tex_params[1]);
+    glViewport(0, 0, dst->color_texture->width, dst->color_texture->height);
+
+    dst->Bind();
 
     filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -1129,7 +1130,7 @@ void image_filter_scale(GLuint dst, GLuint src, const vec4 scale) {
     rctx->filter_scene_ubo.WriteMemory(filter_scene);
 
     imgfilter_batch_shader_data imgfilter_batch = {};
-    imgfilter_batch.g_color_scale = 1.0f;
+    imgfilter_batch.g_color_scale = scale;
     imgfilter_batch.g_color_offset = 0.0f;
     imgfilter_batch.g_texture_lod = 0.0f;
     rctx->imgfilter_batch_ubo.WriteMemory(imgfilter_batch);
@@ -1138,12 +1139,10 @@ void image_filter_scale(GLuint dst, GLuint src, const vec4 scale) {
     shaders_ft.set(SHADER_FT_IMGFILT);
     rctx->filter_scene_ubo.Bind(0);
     rctx->imgfilter_batch_ubo.Bind(1);
-    gl_state_active_bind_texture_2d(0, src);
+    gl_state_active_bind_texture_2d(0, src->glid);
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    texture_params_restore(&tex_params[0], &tex_params[1]);
     gl_state_end_event();
 }
 
@@ -1261,15 +1260,15 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int
     RenderTexture& rend_buf_tex = rctx_ptr->shadow_buffer;
     rend_tex->Bind();
 
-    image_filter_scale(rend_tex->GetColorTex(),
-        shad->curr_render_textures[0]->GetColorTex(), 1.0f);
+    image_filter_scale(rend_tex,
+        shad->curr_render_textures[0]->color_texture);
 
     rend_buf_tex.Bind();
     if (shad->blur_filter_enable[index]) {
         for (int32_t i = shad->near_blur, j = 0; i > 0; i--, j++) {
             blur_filter_apply(rctx, &rend_buf_tex, rend_tex,
                 shad->blur_filter, 1.0f, 1.0f, 0.0f);
-            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, rend_buf_tex.GetWidth(), rend_buf_tex.GetHeight());
+            image_filter_scale(rend_tex, rend_buf_tex.color_texture);
         }
     }
     else {
@@ -1285,19 +1284,13 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int
 
 static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     RenderTexture* a3, float_t sigma, float_t far_texel_offset, bool enable_lit_proj) {
-    GLuint v7 = a1->GetColorTex();
-    GLuint v9 = a2->GetColorTex();
-    GLuint v11 = v7;
+    texture* v7 = a1->color_texture;
+    texture* v9 = a2->color_texture;
+    texture* v11 = v7;
     if (a3)
-        v11 = a3->GetDepthTex();
+        v11 = a3->depth_texture;
 
-    if (!v7 || !v9 || !v11)
-        return;
-
-    texture_param tex_params[2];
-    texture_params_get(v7, &tex_params[0], v9, &tex_params[1]);
-    if (tex_params[0].width != tex_params[1].width
-        || tex_params[0].height != tex_params[1].height)
+    if (!v7 || !v9 || !v11 || v7->width != v9->width || v7->height != v9->height)
         return;
 
     render_context* rctx = rctx_ptr;
@@ -1309,7 +1302,7 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     rctx->filter_scene_ubo.WriteMemory(filter_scene);
 
     esm_filter_batch_shader_data esm_filter_batch = {};
-    esm_filter_batch.g_params = { 1.0f / (float_t)tex_params[0].width, 0.0f, far_texel_offset, far_texel_offset };
+    esm_filter_batch.g_params = { 1.0f / (float_t)v7->width, 0.0f, far_texel_offset, far_texel_offset };
     double_t v6 = 1.0 / (sqrt(M_PI * 2.0) * sigma);
     double_t v8 = -1.0 / (2.0 * sigma * sigma);
     for (int32_t i = 0; i < 8; i++)
@@ -1320,11 +1313,13 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     rctx->filter_scene_ubo.Bind(0);
     rctx->esm_filter_batch_ubo.Bind(1);
 
+    glViewport(0, 0, v7->width, v7->height);
+
     a2->Bind();
-    esm_filter_batch.g_params = { 1.0f / (float_t)tex_params[0].width, 0.0f, far_texel_offset, far_texel_offset };
+    esm_filter_batch.g_params = { 1.0f / (float_t)v7->width, 0.0f, far_texel_offset, far_texel_offset };
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
-    gl_state_active_bind_texture_2d(0, v11);
+    gl_state_active_bind_texture_2d(0, v11->glid);
     if (a3) {
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
@@ -1339,25 +1334,23 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
 
     a1->Bind();
 
-    esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)tex_params[0].height, far_texel_offset, far_texel_offset };
+    esm_filter_batch.g_params = { 0.0f, 1.0f / (float_t)v7->height, far_texel_offset, far_texel_offset };
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
-    gl_state_active_bind_texture_2d(0, v9);
+    gl_state_active_bind_texture_2d(0, v9->glid);
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
     shader::unbind();
-
-    texture_params_restore(&tex_params[0], &tex_params[1]);
     gl_state_end_event();
 }
 
 static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, RenderTexture* src) {
-    GLuint dst_tex = dst->GetColorTex();
-    GLuint buf_tex = buf->GetColorTex();
-    GLuint src_tex = src->GetColorTex();
+    texture* dst_tex = dst->color_texture;
+    texture* buf_tex = buf->color_texture;
+    texture* src_tex = src->color_texture;
     gl_state_begin_event("`anonymous-namespace'::Impl::apply_esm_min_filter");
-    if (!dst_tex || !buf_tex || !src_tex) {
+    if (!dst_tex || !dst_tex->glid || !buf_tex || !buf_tex->glid || !src_tex || !src_tex->glid) {
         gl_state_end_event();
         return;
     }
@@ -1377,17 +1370,16 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
     rctx->filter_scene_ubo.Bind(0);
     rctx->esm_filter_batch_ubo.Bind(1);
 
-    texture_param tex_params[3];
-    texture_params_get(dst_tex, &tex_params[0], src_tex, &tex_params[1], buf_tex, &tex_params[2]);
+    glViewport(0, 0, dst_tex->width, dst_tex->height);
 
     buf->Bind();
-    esm_filter_batch.g_params = { 1.0f / (float_t)tex_params[1].width,
-        1.0f / (float_t)tex_params[1].height, 0.0f, 0.0f };
+    esm_filter_batch.g_params = { 1.0f / (float_t)src_tex->width,
+        1.0f / (float_t)src_tex->height, 0.0f, 0.0f };
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
     uniform_value[U_ESM_FILTER] = 0;
     shaders_ft.set(SHADER_FT_ESMFILT);
-    gl_state_active_bind_texture_2d(0, src_tex);
+    gl_state_active_bind_texture_2d(0, src_tex->glid);
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1395,18 +1387,16 @@ static void draw_pass_shadow_esm_filter(RenderTexture* dst, RenderTexture* buf, 
 
     gl_state_begin_event("erosion");
     dst->Bind();
-    esm_filter_batch.g_params = { 0.75f / (float_t)tex_params[2].width,
-        0.75f / (float_t)tex_params[2].height, 0.0f, 0.0f };
+    esm_filter_batch.g_params = { 0.75f / (float_t)buf_tex->width,
+        0.75f / (float_t)buf_tex->height, 0.0f, 0.0f };
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
     uniform_value[U_ESM_FILTER] = 1;
     shaders_ft.set(SHADER_FT_ESMFILT);
-    gl_state_active_bind_texture_2d(0, buf_tex);
+    gl_state_active_bind_texture_2d(0, buf_tex->glid);
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-
-    texture_params_restore(&tex_params[0], &tex_params[1], &tex_params[2]);
     gl_state_end_event();
     gl_state_end_event();
 }

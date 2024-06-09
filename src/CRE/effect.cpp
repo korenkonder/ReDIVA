@@ -1250,7 +1250,7 @@ static void water_particle_init();
 static void water_particle_free();
 
 static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a3, ripple_emit_params& params);
-static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params);
+static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, ripple_emit_params& params);
 
 particle_event_data::particle_event_data() : type(), count(), size(), force() {
 
@@ -3303,7 +3303,7 @@ void EffectRipple::sub_1403584A0(RenderTexture* rt) {
     field_BB8.SetColorDepthTextures(ripple_tex->glid);
     field_BB8.Bind();
 
-    image_filter_scale(ripple_tex->glid, rt->GetColorTex(), 1.0f);
+    image_filter_scale(&field_BB8, rt->color_texture);
     gl_state_bind_framebuffer(0);
 }
 
@@ -6564,19 +6564,16 @@ static void sub_1403B6ED0(RenderTexture* a1, RenderTexture* a2, RenderTexture* a
         uniform_value[U_RIPPLE] = 1;
     else
         uniform_value[U_RIPPLE] = 0;
-    sub_1403B6F60(a1->GetColorTex(), a2->GetColorTex(), a3->GetColorTex(), params);
+    sub_1403B6F60(a1->color_texture, a2->color_texture, a3->color_texture, params);
     gl_state_bind_framebuffer(0);
 }
 
-static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& params) {
-    if (!a1 || !a2 || !a3)
+static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, ripple_emit_params& params) {
+    if (!a1 || !a1->glid || !a2 || !a2->glid || !a3 || !a3->glid)
         return;
 
-    texture_param tex_params[2];
-    texture_params_get(0, 0, a1, &tex_params[0], a2, &tex_params[1]);
-
-    int32_t width = tex_params[1].width;
-    int32_t height = tex_params[1].height;
+    int32_t width = a2->width;
+    int32_t height = a2->height;
 
     GLint v43[4];
     glGetIntegerv(GL_VIEWPORT, v43);
@@ -6591,21 +6588,19 @@ static void sub_1403B6F60(GLuint a1, GLuint a2, GLuint a3, ripple_emit_params& p
     ripple_scene_ubo.WriteMemory(ripple_scene);
 
     ripple_batch_shader_data ripple_batch = {};
-    ripple_batch.g_params = { params.wake_attn, params.speed, params.field_8, params.field_C };
+    ripple_batch.g_params = { params.wake_attn, 0.0f, 0.0f, 0.0f };
     ripple_batch_ubo.WriteMemory(ripple_batch);
 
     gl_state_bind_vertex_array(rctx_ptr->common_vao);
     shaders_ft.set(SHADER_FT_RIPPLE);
     ripple_scene_ubo.Bind(0);
     ripple_batch_ubo.Bind(1);
-    gl_state_active_bind_texture_2d(0, a2);
-    gl_state_active_bind_texture_2d(1, a3);
+    gl_state_active_bind_texture_2d(0, a2->glid);
+    gl_state_active_bind_texture_2d(1, a3->glid);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
     gl_state_active_bind_texture_2d(1, 0);
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_bind_vertex_array(0);
 
     glViewport(v43[0], v43[1], v43[2], v43[3]);
-
-    texture_params_restore(&tex_params[0], &tex_params[1]);
 }
