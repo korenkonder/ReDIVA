@@ -949,7 +949,7 @@ inline void mat4_transform_vector(const mat4* in_m1, const vec4* normal, vec4* n
     *normalOut = vec4::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3)));
 }
 
-inline void mat4_transform_point(const mat4* in_m1, const vec2* point, vec2* normalOut) {
+inline void mat4_transform_point(const mat4* in_m1, const vec2* point, vec2* pointOut) {
     __m128 yt;
     __m128 zt0;
     __m128 zt1;
@@ -958,10 +958,10 @@ inline void mat4_transform_point(const mat4* in_m1, const vec2* point, vec2* nor
     zt0 = _mm_mul_ps(vec4::load_xmm(in_m1->row0), _mm_shuffle_ps(yt, yt, 0x00));
     zt1 = _mm_mul_ps(vec4::load_xmm(in_m1->row1), _mm_shuffle_ps(yt, yt, 0x55));
     zt2 = vec4::load_xmm(in_m1->row3);
-    *normalOut = vec2::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), zt2));
+    *pointOut = vec2::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), zt2));
 }
 
-inline void mat4_transform_point(const mat4* in_m1, const vec3* point, vec3* normalOut) {
+inline void mat4_transform_point(const mat4* in_m1, const vec3* point, vec3* pointOut) {
     __m128 yt;
     __m128 zt0;
     __m128 zt1;
@@ -972,7 +972,7 @@ inline void mat4_transform_point(const mat4* in_m1, const vec3* point, vec3* nor
     zt1 = _mm_mul_ps(vec4::load_xmm(in_m1->row1), _mm_shuffle_ps(yt, yt, 0x55));
     zt2 = _mm_mul_ps(vec4::load_xmm(in_m1->row2), _mm_shuffle_ps(yt, yt, 0xAA));
     zt3 = vec4::load_xmm(in_m1->row3);
-    *normalOut = vec3::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3)));
+    *pointOut = vec3::store_xmm(_mm_add_ps(_mm_add_ps(zt0, zt1), _mm_add_ps(zt2, zt3)));
 }
 
 inline void mat4_inverse_transform_vector(const mat4* in_m1, const vec2* normal, vec2* normalOut) {
