@@ -14,8 +14,8 @@ struct RenderTexture {
     int32_t binding;
     int32_t max_level;
     GLuint* fbos;
-    GLuint rbo;
-    GLuint field_2C;
+    GLuint depth_rbo;
+    GLuint stencil_rbo;
 
     RenderTexture();
     virtual ~RenderTexture();
@@ -24,6 +24,8 @@ struct RenderTexture {
     void Free();
     int32_t Init(int32_t width, int32_t height,
         int32_t max_level, GLenum color_format, GLenum depth_format);
+    /*int32_t InitDepthRenderbuffer(GLenum internal_format, int32_t width, int32_t height);
+    int32_t InitStencilRenderbuffer(GLenum internal_format, int32_t width, int32_t height);*/
     int32_t SetColorDepthTextures(GLuint color_texture,
         int32_t max_level = 0, GLuint depth_texture = 0, bool stencil = false);
 
