@@ -5,10 +5,10 @@
 
 #pragma once
 
-#include "../KKdLib/default.hpp"
-#include "../CRE/Glitter/glitter.hpp"
-#include "../CRE/data.hpp"
-#include "task_window.hpp"
+#include "../../KKdLib/default.hpp"
+#include "../../CRE/Glitter/glitter.hpp"
+#include "../../CRE/data.hpp"
+#include "../task_window.hpp"
 
 enum glitter_editor_selected_enum {
     GLITTER_EDITOR_SELECTED_NONE = 0,

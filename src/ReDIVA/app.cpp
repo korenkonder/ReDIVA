@@ -47,6 +47,8 @@
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "data_edit/glitter_editor.hpp"
+#include "data_edit/selector.hpp"
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/equip_test.hpp"
@@ -60,7 +62,6 @@
 #include "pv_game/pv_game.hpp"
 #include "classes.hpp"
 #include "game_state.hpp"
-#include "glitter_editor.hpp"
 #include "font_info.hpp"
 #include "imgui_helper.hpp"
 #include "input.hpp"
@@ -620,6 +621,7 @@ static render_context* render_context_load() {
 
     dw_init();
 
+    data_edit_sel_init();
     data_test_sel_init();
     auth_3d_test_task_init();
     dtm_aet_init();
@@ -1125,11 +1127,7 @@ static void render_context_ctrl(render_context* rctx) {
     else if (Input::IsKeyTapped(GLFW_KEY_F8))
         game_state_set_game_state_next(GAME_STATE_APP_ERROR);
     else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
-        game_state_set_game_state_next(GAME_STATE_GLITTER_EDITOR); // Added
-#if DATA_EDIT
-    else if (Input::IsKeyTapped(GLFW_KEY_F10)) // Added
         game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
-#endif
 
     classes_process_ctrl(classes, classes_count);
 
@@ -1288,6 +1286,7 @@ static void render_context_dispose(render_context* rctx) {
     dtm_aet_free();
     auth_3d_test_task_free();
     data_test_sel_free();
+    data_edit_sel_free();
 
     render_manager_free_data();
 

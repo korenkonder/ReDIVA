@@ -11,6 +11,9 @@
 #include "../CRE/pv_db.hpp"
 #include "../CRE/sound.hpp"
 #include "../CRE/task.hpp"
+#include "data_edit/face_anim.hpp"
+#include "data_edit/glitter_editor.hpp"
+#include "data_edit/selector.hpp"
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
@@ -22,9 +25,7 @@
 #include "information/dw_console.hpp"
 #include "pv_game/player_data.hpp"
 #include "pv_game/pv_game.hpp"
-#include "data_edit.hpp"
 #include "data_initialize.hpp"
-#include "glitter_editor.hpp"
 #include "system_startup.hpp"
 #include "x_pv_game.hpp"
 
@@ -72,19 +73,11 @@ struct GameState {
         static bool Dest();
     };
 
-    struct GlitterEditor { // Added
-        static bool Init();
-        static bool Ctrl();
-        static bool Dest();
-    };
-
-#if DATA_EDIT
     struct DataEdit { // Added
         static bool Init();
         static bool Ctrl();
         static bool Dest();
     };
-#endif
 
     GameStateEnum game_state;
     GameStateEnum game_state_next;
@@ -350,14 +343,20 @@ struct SubGameState {
         static bool Dest();
     };
 
-    struct GlitterEditor { // Added
+    struct DataEditMain { // Added
+        static bool Init();
+        static bool Ctrl();
+        static bool Dest();
+    };
+    
+    struct DataEditGlitterEditor { // Added
         static bool Init();
         static bool Ctrl();
         static bool Dest();
     };
 
-#if DATA_EDIT
-    struct DataEdit { // Added
+#if FACE_ANIM
+    struct DataEditFaceAnim { // Added
         static bool Init();
         static bool Ctrl();
         static bool Dest();
@@ -493,32 +492,21 @@ GameStateData game_state_data_array[] = {
     },
 
     { // Added
-        GAME_STATE_GLITTER_EDITOR,
-        GameState::GlitterEditor::Init,
-        GameState::GlitterEditor::Ctrl,
-        GameState::GlitterEditor::Dest,
-        {
-            SUB_GAME_STATE_GLITTER_EDITOR,
-            SUB_GAME_STATE_MAX,
-        },
-        GAME_STATE_ADVERTISE,
-        SUB_GAME_STATE_MAX,
-    },
-
-#if DATA_EDIT
-    { // Added
         GAME_STATE_DATA_EDIT,
         GameState::DataEdit::Init,
         GameState::DataEdit::Ctrl,
         GameState::DataEdit::Dest,
         {
-            SUB_GAME_STATE_DATA_EDIT,
+            SUB_GAME_STATE_DATA_EDIT_MAIN,
+            SUB_GAME_STATE_DATA_EDIT_GLITTER_EDITOR,
+#if FACE_ANIM
+            SUB_GAME_STATE_DATA_EDIT_FACE_ANIM,
+#endif
             SUB_GAME_STATE_MAX,
         },
         GAME_STATE_ADVERTISE,
         SUB_GAME_STATE_MAX,
     },
-#endif
 };
 
 SubGameStateData sub_game_state_data_array[] = {
@@ -811,20 +799,26 @@ SubGameStateData sub_game_state_data_array[] = {
     },
 
     { // Added
-        SUB_GAME_STATE_GLITTER_EDITOR,
+        SUB_GAME_STATE_DATA_EDIT_MAIN,
         false,
-        SubGameState::GlitterEditor::Init,
-        SubGameState::GlitterEditor::Ctrl,
-        SubGameState::GlitterEditor::Dest,
+        SubGameState::DataEditMain::Init,
+        SubGameState::DataEditMain::Ctrl,
+        SubGameState::DataEditMain::Dest,
     },
-
-#if DATA_EDIT
     { // Added
-        SUB_GAME_STATE_DATA_EDIT,
+        SUB_GAME_STATE_DATA_EDIT_GLITTER_EDITOR,
         false,
-        SubGameState::DataEdit::Init,
-        SubGameState::DataEdit::Ctrl,
-        SubGameState::DataEdit::Dest,
+        SubGameState::DataEditGlitterEditor::Init,
+        SubGameState::DataEditGlitterEditor::Ctrl,
+        SubGameState::DataEditGlitterEditor::Dest,
+    },
+#if FACE_ANIM
+    { // Added
+        SUB_GAME_STATE_DATA_EDIT_FACE_ANIM,
+        false,
+        SubGameState::DataEditFaceAnim::Init,
+        SubGameState::DataEditFaceAnim::Ctrl,
+        SubGameState::DataEditFaceAnim::Dest,
     },
 #endif
 };
@@ -836,10 +830,7 @@ const char* game_state_names[] = {
     "DATA_TEST",
     "TEST_MODE",
     "APP_ERROR",
-    "GLITTER_EDITOR",
-#if DATA_EDIT
     "DATA_EDIT",
-#endif
     "MAX",
 };
 
@@ -885,9 +876,10 @@ const char* sub_game_state_names[] = {
     "DATA_TEST_COLLECTION_CARD",
     "TEST_MODE_MAIN",
     "APP_ERROR",
-    "GLITTER_EDITOR",
-#if DATA_EDIT
-    "DATA_EDIT",
+    "DATA_EDIT_MAIN",
+    "DATA_EDIT_GLITTER_EDITOR",
+#if FACE_ANIM
+    "DATA_EDIT_FACE_ANIM",
 #endif
     "MAX",
 };
@@ -896,6 +888,7 @@ extern render_context* rctx_ptr;
 
 GameState game_state;
 
+bool data_edit_reset = false;
 bool data_test_reset = false;
 bool network_error;
 bool test_mode;
@@ -904,6 +897,7 @@ bool test_mode;
 bool pv_x;
 #endif
 
+GameStateEnum data_edit_game_state_prev;
 GameStateEnum data_test_game_state_prev;
 
 static bool game_state_call_sub(GameState* game_state);
@@ -1021,31 +1015,28 @@ bool GameState::AppError::Dest() {
     return true;
 }
 
-bool GameState::GlitterEditor::Init() { // Added
-    return true;
-}
-
-bool GameState::GlitterEditor::Ctrl() { // Added
-    return false;
-}
-
-bool GameState::GlitterEditor::Dest() { // Added
-    return true;
-}
-
-#if DATA_EDIT
 bool GameState::DataEdit::Init() { // Added
+    rctx_ptr->render_manager->set_multisample(false);
+    rctx_ptr->render_manager->set_clear(true);
+    data_edit_game_state_prev = game_state_get()->game_state_prev;
     return true;
 }
 
 bool GameState::DataEdit::Ctrl() { // Added
+    if (data_edit_reset) {
+        if (game_state_get()->sub_game_state != SUB_GAME_STATE_DATA_EDIT_MAIN)
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_DATA_EDIT_MAIN);
+        else
+            game_state_set_game_state_next(data_edit_game_state_prev);
+    }
     return false;
 }
 
 bool GameState::DataEdit::Dest() { // Added
+    rctx_ptr->render_manager->set_multisample(true);
+    rctx_ptr->render_manager->set_clear(false);
     return true;
 }
-#endif
 
 bool SubGameState::DataInitialize::Init() {
     task_data_init_add_task();
@@ -1785,9 +1776,24 @@ bool SubGameState::DataTestModeMain::Dest() {
     return true;
 }
 
-bool SubGameState::GlitterEditor::Init() { // Added
-    rctx_ptr->render_manager->set_multisample(false);
+bool SubGameState::DataEditMain::Init() { // Added
+    app::TaskWork::add_task(data_edit_sel, "DATA_TEST_EDIT");
+    return true;
+}
 
+bool SubGameState::DataEditMain::Ctrl() {
+    int32_t state = data_edit_sel_get_sub_state();
+    if (state >= 0)
+        game_state_set_sub_game_state_next((SubGameStateEnum)state);
+    return false;
+}
+
+bool SubGameState::DataEditMain::Dest() {
+    data_edit_sel->del();
+    return true;
+}
+
+bool SubGameState::DataEditGlitterEditor::Init() { // Added
     camera* cam = rctx_ptr->camera;
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
     cam->set_interest({ 0.0f, 1.4f, 0.0f });
@@ -1796,28 +1802,27 @@ bool SubGameState::GlitterEditor::Init() { // Added
     return true;
 }
 
-bool SubGameState::GlitterEditor::Ctrl() { // Added
+bool SubGameState::DataEditGlitterEditor::Ctrl() { // Added
     return false;
 }
 
-bool SubGameState::GlitterEditor::Dest() { // Added
+bool SubGameState::DataEditGlitterEditor::Dest() { // Added
     glitter_editor.del();
-    rctx_ptr->render_manager->set_multisample(true);
     return true;
 }
 
-#if DATA_EDIT
-bool SubGameState::DataEdit::Init() { // Added
-    app::TaskWork::add_task(&data_edit, "DATA EDIT", 0);
+#if FACE_ANIM
+bool SubGameState::DataEditFaceAnim::Init() { // Added
+    app::TaskWork::add_task(&face_anim, "FACE ANIM", 0);
     return true;
 }
 
-bool SubGameState::DataEdit::Ctrl() { // Added
+bool SubGameState::DataEditFaceAnim::Ctrl() { // Added
     return false;
 }
 
-bool SubGameState::DataEdit::Dest() { // Added
-    data_edit.del();
+bool SubGameState::DataEditFaceAnim::Dest() { // Added
+    face_anim.del();
     return true;
 }
 #endif

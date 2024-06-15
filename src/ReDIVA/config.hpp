@@ -11,7 +11,7 @@
 #define DW_TRANSLATE (0)
 #define PV_DEBUG (1)
 
-#define DATA_EDIT (0)
+#define FACE_ANIM (0)
 
 #if BAKE_PNG || BAKE_VIDEO
 #define BAKE_BASE_WIDTH (1920)

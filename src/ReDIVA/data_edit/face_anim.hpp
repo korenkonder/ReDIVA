@@ -5,15 +5,15 @@
 
 #pragma once
 
-#include "config.hpp"
-#include "../CRE/auth_3d.hpp"
-#include "../KKdLib/database/object.hpp"
-#include "../KKdLib/database/texture.hpp"
-#include "../KKdLib/hash.hpp"
-#include "task_window.hpp"
+#include "../config.hpp"
+#include "../../CRE/auth_3d.hpp"
+#include "../../KKdLib/database/object.hpp"
+#include "../../KKdLib/database/texture.hpp"
+#include "../../KKdLib/hash.hpp"
+#include "../task_window.hpp"
 
-#if DATA_EDIT
-class DataEdit : public app::TaskWindow {
+#if FACE_ANIM
+class FaceAnim : public app::TaskWindow {
 public:
     struct Auth3D {
         string_hash category;
@@ -42,8 +42,8 @@ public:
     int32_t frame;
     int32_t frame_count;
 
-    DataEdit();
-    virtual ~DataEdit() override;
+    FaceAnim();
+    virtual ~FaceAnim() override;
 
     virtual bool init() override;
     virtual bool ctrl() override;
@@ -53,5 +53,5 @@ public:
     void reset();
 };
 
-extern DataEdit data_edit;
+extern FaceAnim face_anim;
 #endif

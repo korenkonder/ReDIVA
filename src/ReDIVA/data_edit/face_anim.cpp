@@ -3,24 +3,26 @@
     GitHub/GitLab: korenkonder
 */
 
-#include "data_edit.hpp"
-#include "../CRE/rob/motion.hpp"
-#include "../CRE/rob/rob.hpp"
-#include "../CRE/ogg_vorbis.hpp"
-#include "../CRE/sound.hpp"
-#include "../KKdLib/vec.hpp"
-#include "imgui_helper.hpp"
+#include "face_anim.hpp"
+#include "../../CRE/rob/motion.hpp"
+#include "../../CRE/rob/rob.hpp"
+#include "../../CRE/auth_3d.hpp"
+#include "../../CRE/data.hpp"
+#include "../../CRE/ogg_vorbis.hpp"
+#include "../../CRE/sound.hpp"
+#include "../../KKdLib/vec.hpp"
+#include "../imgui_helper.hpp"
 
-#if DATA_EDIT
-DataEdit data_edit;
+#if FACE_ANIM
+FaceAnim face_anim;
 
 extern render_context* rctx_ptr;
 
-DataEdit::Auth3D::Auth3D() {
+FaceAnim::Auth3D::Auth3D() {
 
 }
 
-DataEdit::Auth3D::~Auth3D() {
+FaceAnim::Auth3D::~Auth3D() {
 
 }
 
@@ -44,7 +46,7 @@ inline static void set_data(auth_3d_object_model_transform& mt,
     set_data(mt.visibility, visibility);
 }
 
-void DataEdit::Auth3D::patch() {
+void FaceAnim::Auth3D::patch() {
     ::auth_3d* auth = id.get_auth_3d();
     auth_3d_object_hrc* objhrc = &auth->object_hrc[0];
     auth_3d_object_node* nodes = objhrc->node.data();
@@ -337,7 +339,7 @@ void DataEdit::Auth3D::patch() {
     objhrc->interpolate(0.0f);
 }
 
-void DataEdit::Auth3D::reset() {
+void FaceAnim::Auth3D::reset() {
     auth_3d_data_unload_category(category.hash_murmurhash);
     id.unload(rctx_ptr);
     objset_info_storage_unload_set(object_set.hash_murmurhash);
@@ -351,23 +353,29 @@ void DataEdit::Auth3D::reset() {
     tex_db.clear();
 }
 
-DataEdit::DataEdit() : state(), play(), sound_play(), frame(), frame_count() {
+FaceAnim::FaceAnim() : state(), play(), sound_play(), frame(), frame_count() {
     chara_id = -1;
     mot_set_id = -1;
     motion_id = -1;
 }
 
-DataEdit::~DataEdit() {
+FaceAnim::~FaceAnim() {
 
 }
 
-bool DataEdit::init() {
+bool FaceAnim::init() {
     reset();
     task_rob_manager_add_task();
+
+    camera* cam = rctx_ptr->camera;
+    cam->reset();
+    cam->set_fast_change_hist0(true);
+    cam->set_view_point({ 0.0f, 1.4f, 1.0f });
+    cam->set_interest({ 0.0f, 1.4f, 0.0f });
     return true;
 }
 
-bool DataEdit::ctrl() {
+bool FaceAnim::ctrl() {
     data_struct* aft_data = &data_list[DATA_AFT];
     bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
@@ -397,7 +405,7 @@ bool DataEdit::ctrl() {
         mot_set_id = aft_mot_db->get_motion_set_id("PV826");
         motion_id = aft_mot_db->get_motion_id("PV826_OST_P1_00");
 
-        motion_set_load_motion(mot_set_id, 0, aft_mot_db);
+        motion_set_load_motion(mot_set_id, "", aft_mot_db);
         state = 3;
 
         auth_3d.category.assign("A3D_EFFCHRPV826MIK001");
@@ -417,8 +425,7 @@ bool DataEdit::ctrl() {
                 auth_3d.object_set.hash_murmurhash, &auth_3d.obj_db, &auth_3d.tex_db)))
             break;
 
-        auth_3d.id = auth_3d_data_load_hash(
-            auth_3d.file.hash_murmurhash, x_data, &auth_3d.obj_db, &auth_3d.tex_db);
+        auth_3d.id = auth_3d_id(auth_3d.file.hash_murmurhash, x_data, &auth_3d.obj_db, &auth_3d.tex_db);
         auth_3d.id.read_file_modern();
 
         state = 4;
@@ -485,14 +492,14 @@ bool DataEdit::ctrl() {
     return false;
 }
 
-bool DataEdit::dest() {
+bool FaceAnim::dest() {
     rob_chara_array_free_chara_id(chara_id);
     task_rob_manager_del_task();
     reset();
     return true;
 }
 
-void DataEdit::window() {
+void FaceAnim::window() {
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
@@ -512,7 +519,7 @@ void DataEdit::window() {
 
     focus = false;
     bool open = true;
-    if (!ImGui::Begin("Data Edit", &open, window_flags)) {
+    if (!ImGui::Begin("Face Anim", &open, window_flags)) {
         ImGui::End();
         return;
     }
@@ -528,7 +535,7 @@ void DataEdit::window() {
     ImGui::End();
 }
 
-void DataEdit::reset() {
+void FaceAnim::reset() {
     motion_set_unload_motion(mot_set_id);
 
     chara_id = -1;
