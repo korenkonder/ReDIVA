@@ -158,37 +158,49 @@ float_t aet_fcurve::interpolate(float_t frame) const {
     else if (keys_count == 1)
         return keys[0];
 
-    size_t keys_count = this->keys_count;
-    const float_t* keys = this->keys;
+    const size_t keys_count = this->keys_count;
+    const float_t* frames = keys;
     const float_t* values = &keys[keys_count];
-    if (frame <= keys[0])
+    if (frame <= frames[0])
         return values[0];
-
-    const float_t* v6 = keys;
-    const float_t* v7 = &keys[keys_count];
-    if (frame >= keys[keys_count - 1])
+    else if (frame >= frames[keys_count - 1])
         return values[(keys_count - 1) * 2];
 
-    const float_t* v8 = &keys[keys_count / 2];
-    while (v6 < v8) {
-        if (frame >= *v8)
-            v6 = v8;
+    const float_t* f_begin = frames;
+    const float_t* f_end = &frames[keys_count];
+
+    const float_t* f = &frames[keys_count / 2];
+    while (f_begin < f) {
+        if (frame >= *f)
+            f_begin = f;
         else
-            v7 = v8;
-        v8 = &v6[(v7 - v6) / 2];
+            f_end = f;
+        f = &f_begin[(f_end - f_begin) / 2];
     }
 
-    if (values - 1 <= v8)
+    if (&frames[keys_count - 1] <= f)
         return values[(keys_count - 1) * 2];
 
-    size_t v9 = (v8 - keys) * 2;
+    values += (f - frames) * 2;
 
-    float_t df = v8[1] - v8[0];
-    float_t t = (frame - v8[0]) / df;
-    float_t t_1 = t - 1.0f;
-    return (t_1 * values[v9 + 1] + t * values[v9 + 3]) * t * t_1 * df
-        + t * t * (3.0f - 2.0f * t) * values[v9 + 2]
-        + (1.0f + 2.0f * t) * (t_1 * t_1) * values[v9];
+    float_t p1 = values[0];
+    float_t p2 = values[2];
+    float_t t1 = values[1];
+    float_t t2 = values[3];
+
+    float_t df = f[1] - f[0];
+    float_t t = (frame - f[0]) / df;
+    float_t t_2 = t * t;
+    float_t t_3 = t_2 * t;
+    float_t t_23 = 3.0f * t_2;
+    float_t t_32 = 2.0f * t_3;
+
+    float_t h00 = t_32 - t_23 + 1.0f;
+    float_t h01 = t_23 - t_32;
+    float_t h10 = t_3 - 2.0f * t_2 + t;
+    float_t h11 = t_3 - t_2;
+
+    return (h10 * t1 + h11 * t2) * df + (h01 * p2 + h00 * p1);
 }
 
 aet_layer_video_3d::aet_layer_video_3d() {
