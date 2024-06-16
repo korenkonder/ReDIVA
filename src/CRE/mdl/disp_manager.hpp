@@ -448,7 +448,7 @@ namespace mdl {
         void check_index_buffer(GLuint buffer);
         void check_vertex_arrays();
         void check_vertex_buffer(GLuint buffer);
-        void draw(mdl::ObjType type, int32_t depth_mask = 0, bool a4 = true);
+        void draw(mdl::ObjType type, int32_t depth_mask = 0, bool reflect_texture_mask = true);
         void draw_translucent(mdl::ObjType type, int32_t alpha);
         /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
         void entry_list(ObjType type, ObjData* data);
@@ -498,7 +498,7 @@ namespace mdl {
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
         float_t get_wet_param();
-        void obj_sort(const mat4* view, ObjType type, int32_t compare_func);
+        void obj_sort(const mat4* view, ObjType type, int32_t compare_func, bool a3 = false);
         void refresh();
         void set_chara_color(bool value = false);
         void set_culling_finc(bool(*func)(const obj_bounding_sphere*, const mat4*) = 0);

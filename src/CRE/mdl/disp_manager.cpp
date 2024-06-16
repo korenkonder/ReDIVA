@@ -32,6 +32,8 @@ static const GLuint      BONE_INDEX_INDEX = 15;
 static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshArgs* args,
     int32_t texcoord_array[2], GLuint vertex_attrib_buffer_binding[16]);
 
+static void sub_140436760();
+
 material_list_struct::material_list_struct() : blend_color(), has_blend_color(), emission(), has_emission() {
     hash = (uint32_t)-1;
 }
@@ -1994,7 +1996,7 @@ namespace mdl {
                 i.reset_vertex_attrib();
     }
 
-    void DispManager::draw(ObjType type, int32_t depth_mask, bool a4) {
+    void DispManager::draw(ObjType type, int32_t depth_mask, bool reflect_texture_mask) {
         if (type < 0 || type >= mdl::OBJ_TYPE_MAX || get_obj_count(type) < 1)
             return;
 
@@ -2082,7 +2084,7 @@ namespace mdl {
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
             alpha_test = 1;
-            if (!a4)
+            if (!reflect_texture_mask)
                 func = draw_sub_mesh_reflect_reflect_map;
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
@@ -3108,10 +3110,13 @@ namespace mdl {
         return wet_param;
     }
 
-    void DispManager::obj_sort(const mat4* view, ObjType type, int32_t compare_func) {
+    void DispManager::obj_sort(const mat4* view, ObjType type, int32_t compare_func, bool a3) {
         std::list<ObjData*>& list = obj[type];
         if (list.size() < 1)
             return;
+
+        if (a3 && type == mdl::OBJ_TYPE_TRANSLUCENT)
+            sub_140436760();
 
         calc_obj_radius(view, type);
 
@@ -3294,5 +3299,67 @@ static void object_data_get_vertex_attrib_buffer_bindings(const mdl::ObjSubMeshA
             vertex_attrib_buffer_binding[MORPH_TEXCOORD1_INDEX] = morph_vertex_buffer;
         if (vertex_format & OBJ_VERTEX_COLOR0)
             vertex_attrib_buffer_binding[MORPH_COLOR_INDEX] = morph_vertex_buffer;
+    }
+}
+
+static void sub_140436760() {
+    camera* cam = rctx_ptr->camera;
+    mat4* view = &cam->view;
+
+    for (auto& i : rctx_ptr->disp_manager->obj[mdl::OBJ_TYPE_TRANSLUCENT]) {
+        if (i->kind != mdl::OBJ_KIND_NORMAL)
+            continue;
+
+        const obj_mesh* mesh = i->args.sub_mesh.mesh;
+        if (!mesh)
+            continue;
+
+        const obj_sub_mesh* sub_mesh = i->args.sub_mesh.sub_mesh;
+        const obj_axis_aligned_bounding_box* aabb = &sub_mesh->axis_aligned_bounding_box;
+        if (mesh->attrib.m.billboard_y_axis && aabb->size.y > 1.0f && aabb->size.y < 1.2f) {
+            if (!strcmp(mesh->name, "STGD2NS064_EFF_WATESMOKE_A_BMZ_000"))
+                i->view_z += sub_mesh->bounding_sphere.radius;
+            continue;
+        }
+
+
+        if (i->args.sub_mesh.material->material.attrib.m.src_blend_factor == OBJ_MATERIAL_BLEND_ZERO
+            && i->args.sub_mesh.material->material.attrib.m.dst_blend_factor == OBJ_MATERIAL_BLEND_ONE
+            && aabb->size.y > 2.0f && aabb->size.y < 2.5f) {
+            if (strcmp(mesh->name, "STGD2NS064_EFF_DISPLAY_MZ_000") && strcmp(mesh->name, "STGD2NS064_EFF_RAY_B_MZ_000"))
+                continue;
+        }
+        else if (aabb->size.y > 3.0f && aabb->size.x > 3.6f && aabb->size.x < 3.7f) {
+            if (strcmp(mesh->name, "STGD2NS064_EFF_WATERFALL_A_MZ_000"))
+                continue;
+        }
+        else
+            continue;
+
+        mat4 mat;
+        mat4_mul_translate(&i->mat, &aabb->center, &mat);
+        mat4_mul(&mat, view, &mat);
+        mat4_transpose(&mat, &mat);
+
+        vec4 t;
+        *(vec3*)&t = aabb->size;
+        t.w = 1.0f;
+
+        float_t view_z = vec4::dot(t ^ vec4(  0.0f,  0.0f,  0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(  0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4(  0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(  0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
+            view_z = -t.y;
+        if (view_z < vec4::dot(t ^ vec4(  0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4(  0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4( -0.0f,  0.0f,  0.0f, 0.0f ), mat.row2))
+            view_z = -t.x;
+        if (view_z < vec4::dot(t ^ vec4( -0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4( -0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4( -0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4( -0.0f, -0.0f,  0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4( -0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4( -0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
+        i->view_z = view_z;
     }
 }

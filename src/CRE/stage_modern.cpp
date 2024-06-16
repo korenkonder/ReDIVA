@@ -574,10 +574,10 @@ static void stage_modern_free(stage_modern* s) {
     render_manager->set_shadow_true();
     rctx_ptr->render.set_cam_blur(0);
     npr_cloth_spec_color.w = 1.0f;
-    render_manager->field_31D = false;
-    render_manager->field_31E = false;
+    render_manager->reflect_texture_mask = false;
+    render_manager->reflect_tone_curve = false;
     render_manager->field_31F = false;
-    render_manager->field_320 = false;
+    render_manager->light_stage_ambient = false;
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
@@ -655,10 +655,10 @@ static void stage_modern_set(stage_modern* s, stage_modern* other) {
         render_manager->set_reflect(false);
         render_manager->set_pass_sw(rndr::RND_PASSID_REFRACT, false);
         render_manager->set_refract(true);
-        render_manager->field_31D = false;
-        render_manager->field_31E = false;
+        render_manager->reflect_texture_mask = false;
+        render_manager->reflect_tone_curve = false;
         render_manager->field_31F = false;
-        render_manager->field_320 = false;
+        render_manager->light_stage_ambient = false;
         render_manager->set_shadow_true();
         rctx_ptr->render.set_cam_blur(0);
         npr_cloth_spec_color.w = 1.0f;

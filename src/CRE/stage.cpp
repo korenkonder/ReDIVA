@@ -576,10 +576,10 @@ static void stage_free(stage* s) {
     render_manager->set_shadow_true();
     rctx_ptr->render.set_cam_blur(0);
     npr_cloth_spec_color.w = 1.0f;
-    render_manager->field_31D = false;
-    render_manager->field_31E = false;
+    render_manager->reflect_texture_mask = false;
+    render_manager->reflect_tone_curve = false;
     render_manager->field_31F = false;
-    render_manager->field_320 = false;
+    render_manager->light_stage_ambient = false;
     light_chara_ambient = false;
 
     if (s->auth_3d_loaded) {
@@ -664,10 +664,10 @@ static void stage_set(stage* s, stage* other) {
         render_manager->set_reflect(false);
         render_manager->set_pass_sw(rndr::RND_PASSID_REFRACT, false);
         render_manager->set_refract(true);
-        render_manager->field_31D = false;
-        render_manager->field_31E = false;
+        render_manager->reflect_texture_mask = false;
+        render_manager->reflect_tone_curve = false;
         render_manager->field_31F = false;
-        render_manager->field_320 = false;
+        render_manager->light_stage_ambient = false;
         render_manager->set_shadow_true();
         rctx_ptr->render.set_cam_blur(0);
         npr_cloth_spec_color.w = 1.0f;
@@ -698,16 +698,16 @@ static void stage_set(stage* s, stage* other) {
             render_manager->set_refract(true);
         }
 
-        if (other->stage_data->flags & STAGE_DATA_FLAG_1)
-            render_manager->field_31D = true;
-        if (other->stage_data->flags & STAGE_DATA_FLAG_4)
-            render_manager->field_31E = true;
-        if (other->stage_data->flags & STAGE_DATA_FLAG_8)
-            render_manager->field_320 = true;
+        if (other->stage_data->flags & STAGE_DATA_REFLECT_TEXTURE_MASK)
+            render_manager->reflect_texture_mask = true;
+        if (other->stage_data->flags & STAGE_DATA_REFLECT_TONE_CURVE)
+            render_manager->reflect_tone_curve = true;
+        if (other->stage_data->flags & STAGE_DATA_LIGHT_STAGE_AMBIENT)
+            render_manager->light_stage_ambient = true;
         if (other->stage_data->flags & STAGE_DATA_LIGHT_CHARA_AMBIENT)
             light_chara_ambient = true;
-        //if (stru_14CC92630.pv_id == 421)
-            //render_manager->field_31F = true;
+        //if (stage_param_data_coli_data.pv_id == 421)
+        //    render_manager->field_31F = true;
         //sub_14064DC10();
         effect_manager_set_current_stage_index(other->index);
     }
