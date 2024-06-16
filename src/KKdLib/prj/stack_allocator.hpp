@@ -11,7 +11,7 @@
 
 namespace prj {
     struct stack_allocator_node {
-        stack_allocator_node * next;
+        stack_allocator_node* next;
 #if !PRJ_STACK_ALLOCATOR_ORIGINAL_CODE
         size_t size;
         size_t capacity;
