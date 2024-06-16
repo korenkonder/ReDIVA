@@ -278,7 +278,7 @@ LightDw::GAmbientSlider::GAmbientSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
 #if DW_TRANSLATE
         const char* chara_f_tone_curve_adjustment_text = u8"CHARA(F) Tone Curve Adjustment";
@@ -518,7 +518,7 @@ LightDw::AmbientSlider::AmbientSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("AMBIENT");
@@ -573,7 +573,7 @@ LightDw::DiffuseSlider::DiffuseSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("DIFFUSE");
@@ -628,7 +628,7 @@ LightDw::SpecularSlider::SpecularSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("SPECULAR");
@@ -660,7 +660,7 @@ LightDw::SpecularSlider::SpecularSlider(LightDw* light_dw, dw::Widget* parent) {
         a = dw::Slider::Create(comp);
         a->SetText("A");
         a->format = "%4.3f";
-        a->SetParams(value.z, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
+        a->SetParams(value.w, 0.0f, 2.0f, 0.2f, 0.01f, 0.1f);
         a->callback_data.i64 = 3;
         a->AddSelectionListener(this);
     }
@@ -690,10 +690,10 @@ LightDw::PositionSlider::PositionSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
-        label->SetText("SPECULAR");
+        label->SetText("POSITION");
 
         vec3 value;
         light->get_position(value);
@@ -743,7 +743,7 @@ void LightDw::PositionSlider::Callback(dw::SelectionListener::CallbackData* data
         float_t pos_rot[4];
         light->get_position(*(vec3*)pos_rot);
         pos_rot[slider->callback_data.i32] = slider->scroll_bar->value;
-        if (light->get_type() == LIGHT_SPOT) {
+        if (slider->callback_data.i32 == 3) {
             SetRotYParams(slider->scroll_bar->value);
             SetRotation(pos_rot[0], pos_rot[2], pos_rot[3]);
             light->set_position(*(vec3*)pos_rot);
@@ -807,7 +807,7 @@ LightDw::DirectionSlider::DirectionSlider(LightDw* light_dw, dw::Widget* parent)
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("SPOT DIRECTION");
@@ -859,7 +859,7 @@ LightDw::ExponentSlider::ExponentSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("SPOT EXPONENT");
@@ -892,7 +892,7 @@ LightDw::CutoffSlider::CutoffSlider(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("SPOT CUTOFF");
@@ -927,7 +927,7 @@ LightDw::AttenuationSlider::AttenuationSlider(LightDw* light_dw, dw::Widget* par
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[LIGHT_TONE_CURVE];
+        light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
         dw::Label* label = new dw::Label(comp);
         label->SetText("ATTENUATION");
