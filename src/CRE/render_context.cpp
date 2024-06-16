@@ -127,7 +127,7 @@ bool light_proj::set() {
     static const GLfloat depth_clear = 1.0f;
 
     shadow_texture[0].Bind();
-    glViewport(0, 0, 2048, 512);
+    gl_state_set_viewport(0, 0, 2048, 512);
     gl_state_enable_depth_test();
     gl_state_set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);

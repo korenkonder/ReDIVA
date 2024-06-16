@@ -65,7 +65,7 @@ namespace renderer {
             GL_TEXTURE_2D, 0, 0, 0, 0, fbo.textures[0],
             GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
         gl_state_bind_framebuffer(fbo.buffer);
-        glViewport(0, 0, fbo.width, fbo.height);
+        gl_state_set_viewport(0, 0, fbo.width, fbo.height);
     }
 
     void Transparency::resize(GLuint color_texture, GLuint depth_texture, int32_t width, int32_t height) {

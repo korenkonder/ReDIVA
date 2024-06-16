@@ -233,7 +233,7 @@ namespace renderer {
     void DOF3::render_tiles(GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::render_tiles");
         gl_state_bind_framebuffer(fbo[0].buffer);
-        glViewport(0, 0, fbo[0].width, fbo[0].height);
+        gl_state_set_viewport(0, 0, fbo[0].width, fbo[0].height);
         uniform_value[U_DOF_STAGE] = 0;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
@@ -242,7 +242,7 @@ namespace renderer {
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
         gl_state_bind_framebuffer(fbo[1].buffer);
-        glViewport(0, 0, fbo[1].width, fbo[1].height);
+        gl_state_set_viewport(0, 0, fbo[1].width, fbo[1].height);
         uniform_value[U_DOF_STAGE] = 1;
         shaders_ft.set(SHADER_FT_DOF);
         gl_state_active_bind_texture_2d(0, textures[0]);
@@ -255,7 +255,7 @@ namespace renderer {
     void DOF3::downsample(GLuint color_texture, GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::downsample");
         gl_state_bind_framebuffer(fbo[2].buffer);
-        glViewport(0, 0, fbo[2].width, fbo[2].height);
+        gl_state_set_viewport(0, 0, fbo[2].width, fbo[2].height);
         uniform_value[U_DOF_STAGE] = 2;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
@@ -272,7 +272,7 @@ namespace renderer {
     void DOF3::apply_main_filter(bool f2) {
         gl_state_begin_event("renderer::DOF3::apply_main_filter");
         gl_state_bind_framebuffer(fbo[3].buffer);
-        glViewport(0, 0, fbo[3].width, fbo[3].height);
+        gl_state_set_viewport(0, 0, fbo[3].width, fbo[3].height);
         uniform_value[U_DOF_STAGE] = 3;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
@@ -290,7 +290,7 @@ namespace renderer {
     void DOF3::upsample(RenderTexture* rt, GLuint color_texture, GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::upsample");
         rctx_ptr->render_buffer.Bind();
-        glViewport(0, 0, width, height);
+        gl_state_set_viewport(0, 0, width, height);
         uniform_value[U_DOF_STAGE] = 4;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);

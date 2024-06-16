@@ -2289,7 +2289,7 @@ void EffectFogRing::draw() {
     rctx->draw_state->set_fog_height(true);
     RenderTexture& rt = rctx->render_manager->get_render_texture(8);
     rt.Bind();
-    glViewport(0, 0,
+    gl_state_set_viewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
     glClearColor(density_offset, density_offset, density_offset, 1.0f);
@@ -3140,13 +3140,12 @@ void EffectRipple::draw() {
 
         rt[(counter + 1) % 3]->Bind();
 
-        GLint v43[4];
-        glGetIntegerv(GL_VIEWPORT, v43);
+        gl_state_rect viewport_rect = gl_state_get_viewport();
 
         int32_t width = rt[0]->GetWidth();
         int32_t height = rt[0]->GetHeight();
 
-        glViewport(1, 1, width - 2, height - 2);
+        gl_state_set_viewport(1, 1, width - 2, height - 2);
 
         draw_pass_set_camera();
         glClear(GL_DEPTH_BUFFER_BIT);
@@ -3167,7 +3166,7 @@ void EffectRipple::draw() {
 
         sub_1403B6ED0(rt[(counter + 2) % 3], rt[(counter + 1) % 3], rt[counter % 3], params);
 
-        glViewport(v43[0], v43[1], v43[2], v43[3]);
+        gl_state_set_viewport(viewport_rect);
 
         sub_1403584A0(rt[(counter + 2) % 3]);
 
@@ -6575,9 +6574,8 @@ static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, ripple_emit_par
     int32_t width = a2->width;
     int32_t height = a2->height;
 
-    GLint v43[4];
-    glGetIntegerv(GL_VIEWPORT, v43);
-    glViewport(1, 1, width - 2, height - 2);
+    gl_state_rect viewport_rect = gl_state_get_viewport();
+    gl_state_set_viewport(1, 1, width - 2, height - 2);
 
     ripple_scene_shader_data ripple_scene = {};
     ripple_scene.g_transform = {
@@ -6602,5 +6600,5 @@ static void sub_1403B6F60(texture* a1, texture* a2, texture* a3, ripple_emit_par
     gl_state_active_bind_texture_2d(0, 0);
     gl_state_bind_vertex_array(0);
 
-    glViewport(v43[0], v43[1], v43[2], v43[3]);
+    gl_state_set_viewport(viewport_rect);
 }

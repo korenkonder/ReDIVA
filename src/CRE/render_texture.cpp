@@ -4,7 +4,6 @@
 */
 
 #include "render_texture.hpp"
-#include "gl_state.hpp"
 #include "render_context.hpp"
 #include "texture.hpp"
 

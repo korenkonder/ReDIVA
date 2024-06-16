@@ -6169,7 +6169,7 @@ bool x_pv_game::ctrl() {
 
             gl_state_bind_framebuffer(d3d_gl_fbo[next_idx]);
             gl_state_active_bind_texture_2d(0, tex->glid);
-            glViewport(0, 0, width, height);
+            gl_state_set_viewport(0, 0, width, height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
             glBeginQuery(GL_SAMPLES_PASSED, d3d_query[next_idx]);
@@ -6202,7 +6202,7 @@ bool x_pv_game::ctrl() {
             GLint swizzle_aaa1[] = { GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ONE };
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_aaa1);
 
-            glViewport(0, 0, width, height);
+            gl_state_set_viewport(0, 0, width, height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
             glBeginQuery(GL_SAMPLES_PASSED, d3d_alpha_query[next_alpha_idx]);

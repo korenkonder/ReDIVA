@@ -306,7 +306,7 @@ int32_t app_main(const app_init_struct& ais) {
 #if !(BAKE_PNG || BAKE_VIDEO)
             glfwGetFramebufferSize(window, &width, &height);
 #endif
-            glViewport(0, 0, width, height);
+            gl_state_set_viewport(0, 0, width, height);
             gl_state_disable_blend();
             gl_state_disable_depth_test();
             gl_state_set_depth_mask(GL_FALSE);
@@ -373,7 +373,7 @@ bool render_data::load() {
 #endif
 
     gl_state_get_error();
-    glViewport(0, 0, width, height);
+    gl_state_set_viewport(0, 0, width, height);
     return true;
 }
 
@@ -1177,7 +1177,7 @@ static void render_context_disp(render_context* rctx) {
     gl_state_set_stencil_mask(0x00);
     gl_state_set_depth_mask(GL_FALSE);
 
-    glViewport(0, 0, internal_3d_res.x, internal_3d_res.y);
+    gl_state_set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
     cam->update();
 
@@ -1194,7 +1194,7 @@ static void render_context_disp(render_context* rctx) {
         rctx->sprite_width, rctx->sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #endif
 
-    glViewport(0, 0, rctx->screen_width, rctx->screen_height);
+    gl_state_set_viewport(0, 0, rctx->screen_width, rctx->screen_height);
 
     if (draw_imgui)
         render_context_imgui(rctx);
