@@ -104,44 +104,6 @@ public:
         float_t frame, float_t opacity, const sprite_database* spr_db) override;
 };
 
-class AetSet {
-public:
-    uint32_t index;
-    ::aet_set* aet_set;
-    int32_t load_count;
-    p_file_handler file_handler;
-    bool ready;
-    prj::shared_ptr<prj::stack_allocator> alloc_handler;
-
-    std::string name;
-    std::vector<uint32_t> aet_ids;
-    uint32_t hash;
-
-    AetSet(uint32_t index);
-    virtual ~AetSet();
-
-    virtual void ReadFile(const char* dir, const char* file, void* data);
-    virtual bool LoadFile();
-    virtual void Unload();
-    virtual bool Load();
-
-    virtual void ReadFileModern(uint32_t set_hash, void* data);
-    virtual bool LoadFileModern(aet_database* aet_db);
-    virtual void UnloadModern(aet_database* aet_db);
-    virtual bool LoadModern(aet_database* aet_db);
-
-    const aet_marker* GetLayerMarker(const aet_layer* layer, const char* marker_name);
-    void GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer* layer);
-    const aet_scene* GetSceneByInfo(aet_info info);
-    void GetSceneCompLayerNames(std::vector<std::string>& vec, const aet_scene* scene);
-    float_t GetSceneEndTime(uint16_t index);
-    const aet_layer* GetSceneLayer(const aet_scene* scene, const char* layer_name);
-    const char* GetSceneName(uint16_t index);
-    resolution_mode GetSceneResolutionMode(const aet_scene* scene);
-    float_t GetSceneStartTime(uint16_t index);
-    uint32_t GetScenesCount();
-};
-
 class AetMgr : public app::Task {
 public:
     std::map<uint32_t, AetSet> sets;
@@ -300,6 +262,265 @@ void AetComp::put_number_sprite(int32_t value, int32_t max_digits,
     }
 }
 
+AetSet::AetSet(uint32_t index) : aet_set(), load_count(), ready() {
+    this->index = index;
+    hash = hash_murmurhash_empty;
+}
+
+AetSet::~AetSet() {
+
+}
+
+void AetSet::ReadFile(const char* dir, const char* file, void* data) {
+    if (load_count > 1) {
+        load_count++;
+        return;
+    }
+
+    load_count = 1;
+    file_handler.read_file(data, dir, file);
+    ready = false;
+    aet_set = 0;
+}
+
+bool AetSet::LoadFile() {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
+    else if (!Load())
+        return false;
+
+    ready = true;
+    return true;
+}
+
+void AetSet::Unload() {
+    if (load_count > 1) {
+        load_count--;
+        return;
+    }
+
+    alloc_handler.reset();
+    file_handler.reset();
+    aet_set = 0;
+
+    ready = false;
+    load_count = 0;
+}
+
+bool AetSet::Load() {
+    const void* data = file_handler.get_data();
+    size_t size = file_handler.get_size();
+    if (!data || !size)
+        return false;
+
+    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
+
+    ::aet_set* set = alloc->allocate<::aet_set>();
+    this->aet_set = set;
+    set->unpack_file(alloc_handler, data, size, false);
+    if (!set->ready)
+        return false;
+
+    file_handler.reset();
+    return true;
+}
+
+void AetSet::ReadFileModern(uint32_t set_hash, void* data) {
+    if (load_count > 1) {
+        load_count++;
+        return;
+    }
+
+    std::string file;
+    if (((data_struct*)data)->get_file("root+/2d/", set_hash, ".farc", file))
+        file_handler.read_file(data, "root+/2d/", file.c_str());
+    this->hash = set_hash;
+    ready = false;
+    aet_set = 0;
+}
+
+bool AetSet::LoadFileModern(aet_database* aet_db) {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
+    else if (!LoadModern(aet_db))
+        return false;
+
+    ready = true;
+    return true;
+}
+
+void AetSet::UnloadModern(aet_database* aet_db) {
+    if (load_count > 1) {
+        load_count--;
+        return;
+    }
+
+    aet_db->remove_aet_set(hash, index, name.c_str(), aet_ids);
+
+    if (load_count > 1) {
+        load_count--;
+        return;
+    }
+
+    alloc_handler.reset();
+    file_handler.reset();
+    aet_set = 0;
+
+    ready = false;
+    load_count = 0;
+
+    hash = hash_murmurhash_empty;
+    name.clear();
+    aet_ids.clear();
+}
+
+bool AetSet::LoadModern(aet_database* aet_db) {
+    if (ready)
+        return false;
+    else if (file_handler.check_not_ready())
+        return true;
+
+    const void* data = file_handler.get_data();
+    size_t size = file_handler.get_size();
+    if (!data || !size)
+        return false;
+
+    farc f;
+    f.read(data, size, true);
+
+    std::string& file = file_handler.ptr->file;
+
+    size_t file_len = file.size();
+    if (file_len >= 0x100 - 4)
+        return false;
+
+    const char* t = strrchr(file.c_str(), '.');
+    if (t)
+        file_len = t - file.c_str();
+
+    char buf[0x100];
+    memcpy(buf, file.c_str(), file_len);
+    char* ext = buf + file_len;
+    size_t ext_len = sizeof(buf) - file_len;
+
+    memcpy_s(ext, ext_len, ".aec", 5);
+    farc_file* aec = f.read_file(buf);
+    if (!aec)
+        return false;
+
+    memcpy_s(ext, ext_len, ".aei", 5);
+    farc_file* aei = f.read_file(buf);
+    if (!aei)
+        return false;
+
+    aet_database_file aet_db_file;
+    aet_db_file.read(aei->data, aei->size, true);
+
+    aet_db_aet_set_file* aet_set_file = 0;
+    if (aet_db_file.ready)
+        for (aet_db_aet_set_file& m : aet_db_file.aet_set)
+            if (m.id == hash) {
+                aet_set_file = &m;
+                break;
+            }
+
+    if (!aet_set_file)
+        return false;
+
+    if (aet_db_file.ready)
+        aet_db->parse(aet_set_file, name, aet_ids);
+
+    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
+    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
+
+    ::aet_set* set = alloc->allocate<::aet_set>();
+    this->aet_set = set;
+    set->unpack_file(alloc_handler, aec->data, aec->size, true);
+    if (!set->ready)
+        return false;
+
+    file_handler.reset();
+    return true;
+}
+
+const aet_marker* AetSet::GetLayerMarker(const aet_layer* layer, const char* marker_name) {
+    if (!layer->markers_count)
+        return 0;
+
+    const aet_marker* marker = layer->markers;
+    for (uint32_t i = layer->markers_count; i; i--, marker++)
+        if (!str_utils_compare(marker->name, marker_name))
+            return marker;
+    return 0;
+}
+
+void AetSet::GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer* layer) {
+    vec.reserve(layer->markers_count);
+    const aet_marker* marker = layer->markers;
+    for (uint32_t i = layer->markers_count; i; i--, marker++)
+        vec.push_back(marker->name);
+}
+
+const aet_scene* AetSet::GetSceneByInfo(aet_info info) {
+    if (index == info.set_index && ready && info.index < aet_set->scenes_count)
+        return aet_set->scenes[info.index];
+    return 0;
+}
+
+void AetSet::GetSceneCompLayerNames(std::vector<std::string>& vec, const aet_scene* scene) {
+    const aet_comp* comp = scene->comp;
+    for (uint32_t i = scene->comp_count; i; i--, comp++) {
+        vec.reserve(comp->layers_count);
+        const aet_layer* layer = comp->layers;
+        for (uint32_t j = comp->layers_count; j; j--, layer++)
+            vec.push_back(layer->name);
+    }
+}
+
+float_t AetSet::GetSceneEndTime(uint16_t index) {
+    return aet_set->scenes[index]->end_time;
+}
+
+const aet_layer* AetSet::GetSceneLayer(const aet_scene* scene, const char* layer_name) {
+    const aet_layer* ret = 0;
+    const aet_comp* comp = scene->comp;
+    for (uint32_t i = scene->comp_count; i; i--, comp++) {
+        const aet_layer* layer = comp->layers;
+        for (uint32_t j = comp->layers_count; j; j--, layer++)
+            if (!str_utils_compare(layer->name, layer_name)) {
+                ret = layer;
+                break;
+            }
+    }
+    return ret;
+}
+
+const char* AetSet::GetSceneName(uint16_t index) {
+    return aet_set->scenes[index]->name;
+}
+
+resolution_mode AetSet::GetSceneResolutionMode(const aet_scene* scene) {
+    for (int32_t i = RESOLUTION_MODE_QVGA; i < RESOLUTION_MODE_MAX; i++) {
+        resolution_struct v5((resolution_mode)i);
+        if (scene->width == v5.width && scene->height == v5.height)
+            return (resolution_mode)i;
+    }
+    return RESOLUTION_MODE_HD;
+}
+
+float_t AetSet::GetSceneStartTime(uint16_t index) {
+    return aet_set->scenes[index]->start_time;
+}
+
+uint32_t AetSet::GetScenesCount() {
+    return aet_set->scenes_count;
+}
+
 void aet_manager_init() {
     if (!aet_manager)
         aet_manager = new AetMgr;
@@ -334,6 +555,10 @@ void aet_manager_free_aet_object_reset(uint32_t* id) {
 
 void aet_manager_free_aet_set_objects(uint32_t set_id, const aet_database* aet_db) {
     aet_manager->FreeAetSetObjects(aet_db->get_aet_set_by_id(set_id)->index);
+}
+
+AetSet* aet_manager_get_aet_set(uint32_t set_id, const aet_database* aet_db) {
+    return aet_manager->GetSet(aet_db->get_aet_set_by_id(set_id)->index);
 }
 
 bool aet_manager_get_obj_end(uint32_t id) {
@@ -1232,265 +1457,6 @@ void AetLyo::DispLayer(const mat4& mat, const aet_layer* layer,
     }
     else if (layer->item_type == AET_ITEM_TYPE_COMPOSITION)
         DispComp(m, layer->item.comp, frame, opacity, spr_db);
-}
-
-AetSet::AetSet(uint32_t index) : aet_set(), load_count(), ready() {
-    this->index = index;
-    hash = hash_murmurhash_empty;
-}
-
-AetSet::~AetSet() {
-
-}
-
-void AetSet::ReadFile(const char* dir, const char* file, void* data) {
-    if (load_count > 1) {
-        load_count++;
-        return;
-    }
-
-    load_count = 1;
-    file_handler.read_file(data, dir, file);
-    ready = false;
-    aet_set = 0;
-}
-
-bool AetSet::LoadFile() {
-    if (ready)
-        return false;
-    else if (file_handler.check_not_ready())
-        return true;
-    else if (!Load())
-        return false;
-
-    ready = true;
-    return true;
-}
-
-void AetSet::Unload() {
-    if (load_count > 1) {
-        load_count--;
-        return;
-    }
-
-    alloc_handler.reset();
-    file_handler.reset();
-    aet_set = 0;
-
-    ready = false;
-    load_count = 0;
-}
-
-bool AetSet::Load() {
-    const void* data = file_handler.get_data();
-    size_t size = file_handler.get_size();
-    if (!data || !size)
-        return false;
-
-    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
-    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
-
-    ::aet_set* set = alloc->allocate<::aet_set>();
-    this->aet_set = set;
-    set->unpack_file(alloc_handler, data, size, false);
-    if (!set->ready)
-        return false;
-
-    file_handler.reset();
-    return true;
-}
-
-void AetSet::ReadFileModern(uint32_t set_hash, void* data) {
-    if (load_count > 1) {
-        load_count++;
-        return;
-    }
-
-    std::string file;
-    if (((data_struct*)data)->get_file("root+/2d/", set_hash, ".farc", file))
-        file_handler.read_file(data, "root+/2d/", file.c_str());
-    this->hash = set_hash;
-    ready = false;
-    aet_set = 0;
-}
-
-bool AetSet::LoadFileModern(aet_database* aet_db) {
-    if (ready)
-        return false;
-    else if (file_handler.check_not_ready())
-        return true;
-    else if (!LoadModern(aet_db))
-        return false;
-
-    ready = true;
-    return true;
-}
-
-void AetSet::UnloadModern(aet_database* aet_db) {
-    if (load_count > 1) {
-        load_count--;
-        return;
-    }
-
-    aet_db->remove_aet_set(hash, index, name.c_str(), aet_ids);
-
-    if (load_count > 1) {
-        load_count--;
-        return;
-    }
-
-    alloc_handler.reset();
-    file_handler.reset();
-    aet_set = 0;
-
-    ready = false;
-    load_count = 0;
-
-    hash = hash_murmurhash_empty;
-    name.clear();
-    aet_ids.clear();
-}
-
-bool AetSet::LoadModern(aet_database* aet_db) {
-    if (ready)
-        return false;
-    else if (file_handler.check_not_ready())
-        return true;
-
-    const void* data = file_handler.get_data();
-    size_t size = file_handler.get_size();
-    if (!data || !size)
-        return false;
-
-    farc f;
-    f.read(data, size, true);
-
-    std::string& file = file_handler.ptr->file;
-
-    size_t file_len = file.size();
-    if (file_len >= 0x100 - 4)
-        return false;
-
-    const char* t = strrchr(file.c_str(), '.');
-    if (t)
-        file_len = t - file.c_str();
-
-    char buf[0x100];
-    memcpy(buf, file.c_str(), file_len);
-    char* ext = buf + file_len;
-    size_t ext_len = sizeof(buf) - file_len;
-
-    memcpy_s(ext, ext_len, ".aec", 5);
-    farc_file* aec = f.read_file(buf);
-    if (!aec)
-        return false;
-
-    memcpy_s(ext, ext_len, ".aei", 5);
-    farc_file* aei = f.read_file(buf);
-    if (!aei)
-        return false;
-
-    aet_database_file aet_db_file;
-    aet_db_file.read(aei->data, aei->size, true);
-
-    aet_db_aet_set_file* aet_set_file = 0;
-    if (aet_db_file.ready)
-        for (aet_db_aet_set_file& m : aet_db_file.aet_set)
-            if (m.id == hash) {
-                aet_set_file = &m;
-                break;
-            }
-
-    if (!aet_set_file)
-        return false;
-
-    if (aet_db_file.ready)
-        aet_db->parse(aet_set_file, name, aet_ids);
-
-    prj::shared_ptr<prj::stack_allocator>& alloc = alloc_handler;
-    alloc = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
-
-    ::aet_set* set = alloc->allocate<::aet_set>();
-    this->aet_set = set;
-    set->unpack_file(alloc_handler, aec->data, aec->size, true);
-    if (!set->ready)
-        return false;
-
-    file_handler.reset();
-    return true;
-}
-
-const aet_marker* AetSet::GetLayerMarker(const aet_layer* layer, const char* marker_name) {
-    if (!layer->markers_count)
-        return 0;
-
-    const aet_marker* marker = layer->markers;
-    for (uint32_t i = layer->markers_count; i; i--, marker++)
-        if (!str_utils_compare(marker->name, marker_name))
-            return marker;
-    return 0;
-}
-
-void AetSet::GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer* layer) {
-    vec.reserve(layer->markers_count);
-    const aet_marker* marker = layer->markers;
-    for (uint32_t i = layer->markers_count; i; i--, marker++)
-        vec.push_back(marker->name);
-}
-
-const aet_scene* AetSet::GetSceneByInfo(aet_info info) {
-    if (index == info.set_index && ready && info.index < aet_set->scenes_count)
-        return aet_set->scenes[info.index];
-    return 0;
-}
-
-void AetSet::GetSceneCompLayerNames(std::vector<std::string>& vec, const aet_scene* scene) {
-    const aet_comp* comp = scene->comp;
-    for (uint32_t i = scene->comp_count; i; i--, comp++) {
-        vec.reserve(comp->layers_count);
-        const aet_layer* layer = comp->layers;
-        for (uint32_t j = comp->layers_count; j; j--, layer++)
-            vec.push_back(layer->name);
-    }
-}
-
-float_t AetSet::GetSceneEndTime(uint16_t index) {
-    return aet_set->scenes[index]->end_time;
-}
-
-const aet_layer* AetSet::GetSceneLayer(const aet_scene* scene, const char* layer_name) {
-    const aet_layer* ret = 0;
-    const aet_comp* comp = scene->comp;
-    for (uint32_t i = scene->comp_count; i; i--, comp++) {
-        const aet_layer* layer = comp->layers;
-        for (uint32_t j = comp->layers_count; j; j--, layer++)
-            if (!str_utils_compare(layer->name, layer_name)) {
-                ret = layer;
-                break;
-            }
-    }
-    return ret;
-}
-
-const char* AetSet::GetSceneName(uint16_t index) {
-    return aet_set->scenes[index]->name;
-}
-
-resolution_mode AetSet::GetSceneResolutionMode(const aet_scene* scene) {
-    for (int32_t i = RESOLUTION_MODE_QVGA; i < RESOLUTION_MODE_MAX; i++) {
-        resolution_struct v5((resolution_mode)i);
-        if (scene->width == v5.width && scene->height == v5.height)
-            return (resolution_mode)i;
-    }
-    return RESOLUTION_MODE_HD;
-}
-
-float_t AetSet::GetSceneStartTime(uint16_t index) {
-    return aet_set->scenes[index]->start_time;
-}
-
-uint32_t AetSet::GetScenesCount() {
-    return aet_set->scenes_count;
 }
 
 AetMgr::AetMgr() : load_counter(), set_counter() {

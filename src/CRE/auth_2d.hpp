@@ -103,6 +103,44 @@ struct AetComp {
         const vec2* pos, bool all_digits, const sprite_database* spr_db);
 };
 
+class AetSet {
+public:
+    uint32_t index;
+    ::aet_set* aet_set;
+    int32_t load_count;
+    p_file_handler file_handler;
+    bool ready;
+    prj::shared_ptr<prj::stack_allocator> alloc_handler;
+
+    std::string name;
+    std::vector<uint32_t> aet_ids;
+    uint32_t hash;
+
+    AetSet(uint32_t index);
+    virtual ~AetSet();
+
+    virtual void ReadFile(const char* dir, const char* file, void* data);
+    virtual bool LoadFile();
+    virtual void Unload();
+    virtual bool Load();
+
+    virtual void ReadFileModern(uint32_t set_hash, void* data);
+    virtual bool LoadFileModern(aet_database* aet_db);
+    virtual void UnloadModern(aet_database* aet_db);
+    virtual bool LoadModern(aet_database* aet_db);
+
+    const aet_marker* GetLayerMarker(const aet_layer* layer, const char* marker_name);
+    void GetLayerMarkerNames(std::vector<std::string>& vec, const aet_layer* layer);
+    const aet_scene* GetSceneByInfo(aet_info info);
+    void GetSceneCompLayerNames(std::vector<std::string>& vec, const aet_scene* scene);
+    float_t GetSceneEndTime(uint16_t index);
+    const aet_layer* GetSceneLayer(const aet_scene* scene, const char* layer_name);
+    const char* GetSceneName(uint16_t index);
+    resolution_mode GetSceneResolutionMode(const aet_scene* scene);
+    float_t GetSceneStartTime(uint16_t index);
+    uint32_t GetScenesCount();
+};
+
 extern void aet_manager_init();
 extern void aet_manager_add_aet_sets(const aet_database* aet_db);
 extern bool aet_manager_add_task();
@@ -111,6 +149,7 @@ extern bool aet_manager_del_task();
 extern void aet_manager_free_aet_object(uint32_t id);
 extern void aet_manager_free_aet_object_reset(uint32_t* id);
 extern void aet_manager_free_aet_set_objects(uint32_t set_id, const aet_database* aet_db);
+extern AetSet* aet_manager_get_aet_set(uint32_t set_id, const aet_database* aet_db);
 extern bool aet_manager_get_obj_end(uint32_t id);
 extern float_t aet_manager_get_obj_frame(uint32_t id);
 extern bool aet_manager_get_obj_visible(uint32_t id);
