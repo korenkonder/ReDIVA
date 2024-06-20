@@ -7,7 +7,7 @@
 
 #include "../default.hpp"
 
-#define PRJ_STACK_ALLOCATOR_ORIGINAL_CODE 0
+#define PRJ_STACK_ALLOCATOR_ORIGINAL_CODE (0)
 
 namespace prj {
     struct stack_allocator_node {
@@ -46,6 +46,7 @@ namespace prj {
 
         void* allocate(size_t size);
         void deallocate();
+        void reset();
 
         template <typename T>
         inline T* allocate() {

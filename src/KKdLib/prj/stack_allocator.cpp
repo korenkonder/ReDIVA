@@ -99,6 +99,33 @@ namespace prj {
             free(node);
             node = next_node;
         }
+#if PRJ_STACK_ALLOCATOR_ORIGINAL_CODE
+        begin = 0;
+#else
         next = 0;
+#endif
+    }
+
+    void stack_allocator::reset() {
+#if PRJ_STACK_ALLOCATOR_ORIGINAL_CODE
+        stack_allocator_node* node = (stack_allocator_node*)begin;
+        if (node) {
+            node = node->next;
+            while (node) {
+                stack_allocator_node* next_node = node->next;
+                free(node);
+                node = next_node;
+            }
+        }
+
+        end = begin;
+#else
+        stack_allocator_node* node = next;
+        while (node) {
+            stack_allocator_node* next_node = node->next;
+            node->size = 0;
+            node = next_node;
+        }
+#endif
     }
 }
