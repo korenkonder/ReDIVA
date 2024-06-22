@@ -66,6 +66,10 @@ void graphics_post_process_imgui(class_data* data) {
     ImGui::ColumnComboBox("MAG Filter", mag_filter_labels, rndr::Render::MAG_FILTER_MAX,
         (int32_t*)&rend->mag_filter, 0, false, &data->imgui_focus);
 
+    bool taa = !!rend->taa;
+    if (ImGui::CheckboxEnterKeyPressed("Temporal AA", &taa))
+        rend->taa = taa ? 1 : 0;
+    
     bool mlaa = !!rend->mlaa;
     if (ImGui::CheckboxEnterKeyPressed("Morphological AA", &mlaa))
         rend->mlaa = mlaa ? 1 : 0;

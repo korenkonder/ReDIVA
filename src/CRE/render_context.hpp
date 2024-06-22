@@ -95,6 +95,10 @@ struct light_proj {
     static bool set_mat(bool set_mat);
 };
 
+struct camera_blur_shader_data {
+    vec4 g_transform[4];
+};
+
 struct contour_coef_shader_data {
     vec4 g_contour;
     vec4 g_near_far;
@@ -322,6 +326,7 @@ struct render_context {
     RenderTexture screen_buffer;
     RenderTexture shadow_buffer;
 
+    GL::UniformBuffer camera_blur_ubo;
     GL::UniformBuffer contour_coef_ubo;
     GL::UniformBuffer contour_params_ubo;
     GL::UniformBuffer filter_scene_ubo;

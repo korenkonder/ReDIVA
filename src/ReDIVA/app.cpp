@@ -600,6 +600,10 @@ static render_context* render_context_load() {
         stru_140EDA5B0.ss_alpha_mask,
         stru_140EDA5B0.screen_shot_4x == 1);*/
 
+#if BAKE_PNG || BAKE_VIDEO
+    rctx_ptr->render_manager->render->set_taa(false);
+#endif
+
     objset_info_storage_init(aft_obj_db);
     stage_param_data_storage_init();
     pv_expression_file_storage_init();
