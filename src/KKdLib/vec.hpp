@@ -7,9 +7,7 @@
 
 #include "default.hpp"
 #include "half_t.hpp"
-#include <pmmintrin.h>
 #include <xmmintrin.h>
-#include <immintrin.h>
 #include <emmintrin.h>
 
 struct vec2i8 {
