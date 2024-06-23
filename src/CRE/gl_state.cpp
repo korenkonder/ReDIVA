@@ -526,7 +526,7 @@ void gl_state_set_stencil_mask(GLuint mask, bool force) {
 void gl_state_set_viewport(const gl_state_rect& rect, bool force) {
     if (force || gl_state.viewport.x != rect.x || gl_state.viewport.y != rect.y
         || gl_state.viewport.width != rect.width || gl_state.viewport.height != rect.height) {
-        glScissor(rect.x, rect.y, rect.width, rect.height);
+        glViewport(rect.x, rect.y, rect.width, rect.height);
         gl_state.viewport = rect;
     }
 }
