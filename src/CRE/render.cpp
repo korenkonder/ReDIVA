@@ -377,7 +377,7 @@ namespace rndr {
         float_t bottom = -tan_fov + tan_fov * bottom_scale;
         float_t top = tan_fov + tan_fov * top_scale;
 
-        /*if (taa) {
+        if (taa) {
             float_t offset = taa_texture_selector == 1 ? -0.25f : 0.25f;
             float_t left_right_offset = (right - left) * offset / (float_t)render_width[0];
             float_t bottom_top_offset = (top - bottom) * offset / (float_t)render_height[0];
@@ -385,7 +385,7 @@ namespace rndr {
             right += left_right_offset;
             bottom += bottom_top_offset;
             top += bottom_top_offset;
-        }*/
+        }
 
         mat4_frustrum(left, right, bottom, top, z_near, z_far, mat);
     }
