@@ -457,7 +457,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
         vec_frag.resize(shader->num_uniform);
         int32_t* vec_vert_data = vec_vert.data();
         int32_t* vec_frag_data = vec_frag.data();
-        for (size_t j = 0; j < num_sub; j++, sub++, sub_table++) {
+        for (int32_t j = 0; j < num_sub; j++, sub++, sub_table++) {
             sub->sub_index = sub_table->sub_index;
             sub->vp_unival_max = sub_table->vp_unival_max;
             sub->fp_unival_max = sub_table->fp_unival_max;
@@ -566,7 +566,7 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                 int32_t unival_shad_count = 1;
                 const int32_t* vp_unival_max = sub_table->vp_unival_max;
                 const int32_t* fp_unival_max = sub_table->fp_unival_max;
-                for (size_t k = 0; k < num_uniform; k++) {
+                for (int32_t k = 0; k < num_uniform; k++) {
                     const int32_t unival_max = shader->use_uniform[k].second
                         ? max_def(vp_unival_max[k], fp_unival_max[k]) : 0;
                     unival_shad_count += unival_shad_curr * unival_max;
@@ -594,19 +594,19 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                     frag_buf[frag_buf_pos + num_uniform] = 0;
                     strcat_s(frag_buf, sizeof(frag_buf), ".frag");
 
-                    for (size_t k = 0; k < unival_shad_count; k++) {
-                        for (size_t l = 0, m = k; l < num_uniform; l++) {
-                            size_t unival_max = (size_t)(shader->use_uniform[l].second
+                    for (int32_t k = 0; k < unival_shad_count; k++) {
+                        for (int32_t l = 0, m = k; l < num_uniform; l++) {
+                            int32_t unival_max = (shader->use_uniform[l].second
                                 ? max_def(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
-                            vec_vert_data[l] = (uint32_t)(min_def(m % unival_max, vp_unival_max[l]));
+                            vec_vert_data[l] = min_def(m % unival_max, vp_unival_max[l]);
                             m /= unival_max;
                             vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert_data[l]);
                         }
 
-                        for (size_t l = 0, m = k; l < num_uniform; l++) {
-                            size_t unival_max = (size_t)(shader->use_uniform[l].second
+                        for (int32_t l = 0, m = k; l < num_uniform; l++) {
+                            int32_t unival_max = (shader->use_uniform[l].second
                                 ? max_def(vp_unival_max[l], fp_unival_max[l]) : 0) + 1;
-                            vec_frag_data[l] = (uint32_t)(min_def(m % unival_max, fp_unival_max[l]));
+                            vec_frag_data[l] = min_def(m % unival_max, fp_unival_max[l]);
                             m /= unival_max;
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag_data[l]);
                         }
@@ -774,14 +774,14 @@ void shader_set_data::unload() {
 
         int32_t num_sub = shader->num_sub;
         shader_sub* sub = shader->sub;
-        for (size_t j = 0; j < num_sub; j++, sub++) {
+        for (int32_t j = 0; j < num_sub; j++, sub++) {
             int32_t unival_shad_count = 1;
             if (shader->num_uniform > 0) {
                 int32_t num_uniform = shader->num_uniform;
                 int32_t unival_shad_curr = 1;
                 const int32_t* vp_unival_max = sub->vp_unival_max;
                 const int32_t* fp_unival_max = sub->fp_unival_max;
-                for (size_t k = 0; k < num_uniform; k++) {
+                for (int32_t k = 0; k < num_uniform; k++) {
                     const int32_t unival_max = shader->use_uniform[k].second
                         ? max_def(vp_unival_max[k], fp_unival_max[k]) : 0;
                     unival_shad_count += unival_shad_curr * unival_max;
@@ -791,7 +791,7 @@ void shader_set_data::unload() {
 
             if (sub->shaders) {
                 shader_sub_shader* shaders = sub->shaders;
-                for (size_t k = 0; k < unival_shad_count; k++)
+                for (int32_t k = 0; k < unival_shad_count; k++)
                     glDeleteProgram(shaders[k].program);
                 free(shaders);
                 sub->shaders = 0;
