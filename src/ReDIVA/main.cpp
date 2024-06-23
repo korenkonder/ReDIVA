@@ -756,12 +756,23 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 }
 
 void compile_all_shaders(bool debug) {
-    farc f;
-    f.read("rom\\ft_shaders.farc", true, false);
+    {
+        farc f;
+        f.read("rom\\ft_shaders.farc", true, false);
 
-    farc of;
-    compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
-    of.write("rom\\ft_shaders_spirv.farc", FARC_FArC, FARC_NONE, false, false);
+        farc of;
+        compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
+        of.write("rom\\ft_shaders_spirv.farc", FARC_FArC, FARC_NONE, false, false);
+    }
+
+    {
+        farc f;
+        f.read("rom\\dev_shaders.farc", true, false);
+
+        farc of;
+        compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
+        of.write("rom\\dev_shaders_spirv.farc", FARC_FArC, FARC_NONE, false, false);
+    }
 }
 
 /*
