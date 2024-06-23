@@ -300,6 +300,18 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
     else
         options = "-O";
 
+    char vert_buf[MAX_PATH];
+    char frag_buf[MAX_PATH];
+    char vert_file_buf[MAX_PATH];
+    char frag_file_buf[MAX_PATH];
+    wchar_t cmd_temp[0x800];
+    char vert_bin_buf[MAX_PATH];
+    char frag_bin_buf[MAX_PATH];
+    wchar_t glsl_vert_file_buf[MAX_PATH];
+    wchar_t glsl_frag_file_buf[MAX_PATH];
+    wchar_t spv_vert_file_buf[MAX_PATH];
+    wchar_t spv_frag_file_buf[MAX_PATH];
+
     GLsizei buffer_size = 0x20000;
     void* spv = force_malloc(buffer_size);
     size_t temp_vert_size = 0x10000;
@@ -320,7 +332,6 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
         int32_t* vec_vert_data = vec_vert.data();
         int32_t* vec_frag_data = vec_frag.data();
         for (size_t j = 0; j < num_sub; j++, sub_table++) {
-            char vert_file_buf[MAX_PATH];
             strcpy_s(vert_file_buf, sizeof(vert_file_buf), sub_table->vp);
             strcat_s(vert_file_buf, sizeof(vert_file_buf), ".vert");
             farc_file* vert_ff = f->read_file(vert_file_buf);
@@ -334,7 +345,6 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                 }
             }
 
-            char frag_file_buf[MAX_PATH];
             strcpy_s(frag_file_buf, sizeof(frag_file_buf), sub_table->fp);
             strcat_s(frag_file_buf, sizeof(frag_file_buf), ".frag");
             farc_file* frag_ff = f->read_file(frag_file_buf);
@@ -354,21 +364,46 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                 continue;
             }
 
-            uint64_t vert_file_name_hash = hash_utf8_xxh3_64bits(vert_file_buf);
-            uint64_t frag_file_name_hash = hash_utf8_xxh3_64bits(frag_file_buf);
+            uint32_t uniform_vert_flags = 0;
+            uint32_t uniform_frag_flags = 0;
+            for (int32_t k = 0; k < shader_table->num_uniform; k++)
+                if (shader_table->use_uniform[k].second) {
+                    if (sub_table->vp_unival_max[k] > 0)
+                        uniform_vert_flags |= 1 << k;
+                    if (sub_table->fp_unival_max[k] > 0)
+                        uniform_frag_flags |= 1 << k;
+                }
+
+            char uniform_vert_flags_buf[9];
+            char uniform_frag_flags_buf[9];
+            for (int32_t k = 0, l = 7; k < 32; k += 4, l--) {
+                int32_t vert_flags_digit = (uniform_vert_flags >> k) & 0xF;
+                if (vert_flags_digit >= 0x00 && vert_flags_digit <= 0x09)
+                    uniform_vert_flags_buf[l] = (char)('0' + vert_flags_digit);
+                else
+                    uniform_vert_flags_buf[l] = (char)('A' + (vert_flags_digit - 0x0A));
+
+                int32_t frag_flags_digit = (uniform_frag_flags >> k) & 0xF;
+                if (frag_flags_digit >= 0x00 && frag_flags_digit <= 0x09)
+                    uniform_frag_flags_buf[l] = (char)('0' + frag_flags_digit);
+                else
+                    uniform_frag_flags_buf[l] = (char)('A' + (frag_flags_digit - 0x0A));
+            }
+            uniform_vert_flags_buf[8] = 0;
+            uniform_frag_flags_buf[8] = 0;
+
+            strcpy_s(vert_buf, sizeof(vert_buf), vert_file_buf);
+            strcpy_s(frag_buf, sizeof(frag_buf), frag_file_buf);
+            strcat_s(vert_buf, sizeof(vert_buf), ".");
+            strcat_s(frag_buf, sizeof(frag_buf), ".");
+            strcat_s(vert_buf, sizeof(vert_buf), uniform_vert_flags_buf);
+            strcat_s(frag_buf, sizeof(frag_buf), uniform_frag_flags_buf);
+
+            uint64_t vert_file_name_hash = hash_utf8_xxh3_64bits(vert_buf);
+            uint64_t frag_file_name_hash = hash_utf8_xxh3_64bits(frag_buf);
 
             vert_data = shader::parse_include(vert_data, f);
             frag_data = shader::parse_include(frag_data, f);
-
-            wchar_t cmd_temp[0x800];
-            char vert_buf[MAX_PATH];
-            char frag_buf[MAX_PATH];
-            char vert_bin_buf[MAX_PATH];
-            char frag_bin_buf[MAX_PATH];
-            wchar_t glsl_vert_file_buf[MAX_PATH];
-            wchar_t glsl_frag_file_buf[MAX_PATH];
-            wchar_t spv_vert_file_buf[MAX_PATH];
-            wchar_t spv_frag_file_buf[MAX_PATH];
 
             strcpy_s(vert_bin_buf, sizeof(vert_bin_buf), sub_table->vp);
             strcat_s(vert_bin_buf, sizeof(vert_bin_buf), ".vert.bin");
@@ -486,6 +521,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                             m /= unival_max;
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag_data[l]);
                         }
+
                         shader::parse_define(frag_data, num_uniform,
                             vec_frag_data, &temp_frag, &temp_frag_size);
 
