@@ -312,37 +312,37 @@ namespace mdl {
             || args->sub_mesh->attrib.m.transparent)
             || attrib.punch_through) ? 1 : 0;
 
-        uniform_value[U26] = 1;
-        bool aniso = false;
+        uniform_value[U_NPR_NORMAL] = 1;
+        bool chara = false;
         const obj_material_data* material = args->material;
         switch (material->material.shader.index) {
         case SHADER_FT_CLOTH:
             if (!rctx->render_manager->npr_param && material->material.color.ambient.w < 1.0f
                 && material->material.shader_info.m.aniso_direction == OBJ_MATERIAL_ANISO_DIRECTION_NORMAL)
-                aniso = true;
+                chara = true;
             break;
         case SHADER_FT_TIGHTS:
             if (!rctx->render_manager->npr_param)
-                aniso = true;
+                chara = true;
             break;
         //case SHADER_FT_EYEBALL:
         case SHADER_FT_GLASEYE:
-            uniform_value[U26] = 0;
-            aniso = true;
+            uniform_value[U_NPR_NORMAL] = 0;
+            chara = true;
             break;
         case SHADER_FT_SKIN:
-            aniso = true;
+            chara = true;
             break;
         }
 
-        if (aniso) {
+        if (chara) {
             rctx->obj_batch.g_sss_param = { 0.0f, 0.0f, 0.0f, 0.5f };
-            uniform_value[U37] = 1;
+            uniform_value[U_SSS_CHARA] = 1;
         }
         else {
             const vec4& sss_param = rctx->sss_data->param;
             rctx->obj_batch.g_sss_param = { sss_param.x, sss_param.y, sss_param.z, 0.5f };
-            uniform_value[U37] = 0;
+            uniform_value[U_SSS_CHARA] = 0;
         }
         draw_sub_mesh_default(rctx, args);
     }
