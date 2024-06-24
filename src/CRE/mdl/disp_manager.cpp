@@ -2367,7 +2367,6 @@ namespace mdl {
         }
 
         ::camera* cam = rctx_ptr->camera;
-        cam->update_data();
 
         if (!local && object_culling && !instances_count && !bone_mat && (!object
             || !obj_bounding_sphere_check_visibility(

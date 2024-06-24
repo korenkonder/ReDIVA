@@ -12,8 +12,8 @@ static void camera_calculate_view(camera* c);
 static void camera_calculate_forward(camera* c);
 
 camera::camera() : forward(), rotation(), view_point(), interest(), depth(), aet_depth(),
-use_up(), field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(), aspect(),
-fov(), aet_fov(), max_distance(), min_distance(), changed_view(), changed_proj(),
+use_up(), field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(),
+aspect(), fov(), aet_fov(), max_distance(), min_distance(),
 fast_change(), fast_change_hist0(), fast_change_hist1(), ignore_fov(), ignore_min_dist() {
 
 }
@@ -46,10 +46,8 @@ float_t camera::get_min_distance() {
 }
 
 void camera::set_min_distance(float_t value) {
-    if (!ignore_min_dist && min_distance != value) {
+    if (!ignore_min_dist)
         min_distance = value;
-        changed_proj = true;
-    }
 }
 
 float_t camera::get_max_distance() {
@@ -57,10 +55,7 @@ float_t camera::get_max_distance() {
 }
 
 void camera::set_max_distance(float_t value) {
-    if (max_distance != value) {
-        max_distance = value;
-        changed_proj = true;
-    }
+    max_distance = value;
 }
 
 double_t camera::get_aspect() {
@@ -68,10 +63,7 @@ double_t camera::get_aspect() {
 }
 
 void camera::set_aspect(double_t value) {
-    if (aspect != value) {
-        aspect = value;
-        changed_proj = true;
-    }
+    aspect = value;
 }
 
 float_t camera::get_fov() {
@@ -79,11 +71,7 @@ float_t camera::get_fov() {
 }
 
 void camera::set_fov(float_t value) {
-    value = clamp_def(value, 1.0f, 180.0f);
-    if (!ignore_fov && fov != value) {
-        fov = value;
-        changed_proj = true;
-    }
+    fov = clamp_def(value, 1.0f, 180.0f);
 }
 
 float_t camera::get_pitch() {
@@ -92,11 +80,7 @@ float_t camera::get_pitch() {
 
 void camera::set_pitch(float_t value) {
     value = fmodf(value, 360.0f);
-    value = clamp_def(value, -89.5f, 89.5f);
-    if (pitch != value) {
-        pitch = value;
-        changed_view = true;
-    }
+    pitch = clamp_def(value, -89.5f, 89.5f);
 }
 
 float_t camera::get_yaw() {
@@ -104,11 +88,7 @@ float_t camera::get_yaw() {
 }
 
 void camera::set_yaw(float_t value) {
-    value = fmodf(value, 360.0f);
-    if (yaw != value) {
-        yaw = value;
-        changed_view = true;
-    }
+    yaw = fmodf(value, 360.0f);
 }
 
 float_t camera::get_roll() {
@@ -116,11 +96,7 @@ float_t camera::get_roll() {
 }
 
 void camera::set_roll(float_t value) {
-    value = fmodf(value, 360.0f);
-    if (roll != value) {
-        roll = value;
-        changed_view = true;
-    }
+    roll = fmodf(value, 360.0f);
 }
 
 void camera::get_view_point(vec3& value) {
@@ -133,17 +109,11 @@ void camera::get_view_point(vec4& value) {
 }
 
 void camera::set_view_point(const vec3& value) {
-    if (view_point != value) {
-        view_point = value;
-        changed_view = true;
-    }
+    view_point = value;
 }
 
 void camera::set_view_point(const vec3&& value) {
-    if (view_point != value) {
-        view_point = value;
-        changed_view = true;
-    }
+    view_point = value;
 }
 
 void camera::get_interest(vec3& value) {
@@ -151,17 +121,11 @@ void camera::get_interest(vec3& value) {
 }
 
 void camera::set_interest(const vec3& value) {
-    if (interest != value) {
-        interest = value;
-        changed_view = true;
-    }
+    interest = value;
 }
 
 void camera::set_interest(const vec3&& value) {
-    if (interest != value) {
-        interest = value;
-        changed_view = true;
-    }
+    interest = value;
 }
 
 void camera::get_up(bool& use_up, vec3& value) {
@@ -170,27 +134,13 @@ void camera::get_up(bool& use_up, vec3& value) {
 }
 
 void camera::set_up(bool use_up, const vec3& value) {
-    if (this->use_up != use_up) {
-        this->use_up = use_up;
-        changed_view = true;
-    }
-
-    if (up != value) {
-        up = value;
-        changed_view = true;
-    }
+    this->use_up = use_up;
+    up = value;
 }
 
 void camera::set_up(bool use_up, const vec3&& value) {
-    if (this->use_up != use_up) {
-        this->use_up = use_up;
-        changed_view = true;
-    }
-
-    if (up != value) {
-        up = value;
-        changed_view = true;
-    }
+    this->use_up = use_up;
+    up = value;
 }
 
 void camera::set_fast_change(bool value) {
@@ -220,8 +170,6 @@ void camera::reset() {
     set_fov(32.2673416137695f);
     set_min_distance(0.05f);
     set_max_distance(6000.0f);
-    changed_proj = true;
-    changed_view = true;
     fast_change = false;
     fast_change_hist0 = false;
     fast_change_hist1 = false;
@@ -229,7 +177,6 @@ void camera::reset() {
     up = { 0.0f, 1.0f, 0.0f };
     camera_calculate_forward(this);
     set_position(0.0f);
-    update_data();
 }
 
 void camera::move(float_t move_x, float_t move_y) {
@@ -298,27 +245,15 @@ void camera::set_position(const vec3&& pos) {
 }
 
 void camera::update() {
-    update_data();
+    camera_calculate_projection(this);
+    camera_calculate_view(this);
+
+    mat4_mul(&view, &projection, &view_projection);
+    mat4_invert(&view_projection, &inv_view_projection);
 
     fast_change_hist1 = fast_change_hist0;
     fast_change_hist0 = fast_change;
     fast_change = false;
-}
-
-void camera::update_data() {
-    if (changed_proj)
-        camera_calculate_projection(this);
-
-    if (changed_view)
-        camera_calculate_view(this);
-
-    if (changed_proj || changed_view) {
-        mat4_mul(&view, &projection, &view_projection);
-        mat4_invert(&view_projection, &inv_view_projection);
-    }
-
-    changed_proj = false;
-    changed_view = false;
 }
 
 static void camera_calculate_forward(camera* c) {

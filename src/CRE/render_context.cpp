@@ -641,9 +641,10 @@ void render_context::ctrl() {
 void render_context::disp() {
     rctx_ptr = this;
     disp_manager->refresh();
-    sprite_manager_reset_req_list();
     draw_state->stats_prev = draw_state->stats;
     draw_state->stats.reset();
+    sprite_manager_reset_req_list();
+    camera->update();
     app::TaskWork::disp();
     shadow_ptr_get()->ctrl();
     int32_t sprite_index = sprite_manager_get_index();

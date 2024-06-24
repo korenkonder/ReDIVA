@@ -51,8 +51,6 @@ struct camera {
     vec3 forward;
     float_t yaw;
     float_t pitch;
-    bool changed_view;
-    bool changed_proj;
 
     camera();
     ~camera();
@@ -97,7 +95,6 @@ struct camera {
     void set_position(const vec3& pos);
     void set_position(const vec3&& pos);
     void update();
-    void update_data();
 };
 
 struct cam_struct {

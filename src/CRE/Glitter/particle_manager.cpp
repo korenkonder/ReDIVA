@@ -211,7 +211,6 @@ namespace Glitter {
 
     void GltParticleManager::CtrlScenes() {
         camera* c = rctx_ptr->camera;
-        c->update_data();
         cam.projection = c->projection;
         cam.view = c->view;
         cam.inv_view = c->inv_view;
@@ -255,7 +254,6 @@ namespace Glitter {
             return;
 
         camera* c = rctx_ptr->camera;
-        c->update_data();
         cam.projection = c->projection;
         cam.view = c->view;
         cam.inv_view = c->inv_view;

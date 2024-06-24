@@ -375,7 +375,6 @@ namespace rndr {
         render_context* rctx = rctx_ptr;
         gl_state_begin_event("pass_shadow");
         gl_state_begin_event("texproj");
-        rctx->camera->update_data();
         if (rctx->litproj->set()) {
             rctx->obj_scene_ubo.WriteMemory(rctx->obj_scene);
 
@@ -467,7 +466,6 @@ namespace rndr {
             return;
 
         gl_state_begin_event("pass_ss_sss");
-        rctx->camera->update_data();
         rndr::Render* rend = render;
         //if (rend->render_width > 1280.0)
         //    sss->npr_contour = false;
@@ -769,7 +767,6 @@ namespace rndr {
 
     void RenderManager::pass_3d() {
         render_context* rctx = rctx_ptr;
-        rctx->camera->update_data();
         render->bind_render_texture();
         draw_pass_set_camera();
         if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour
@@ -997,7 +994,6 @@ namespace rndr {
     void RenderManager::pass_post_process() {
         render_context* rctx = rctx_ptr;
         gl_state_begin_event("pass_post_process");
-        rctx->camera->update_data();
 
         texture* light_proj_tex = 0;
         light_proj* litproj = rctx->litproj;
@@ -1149,7 +1145,6 @@ void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
 void draw_pass_set_camera() {
     render_context* rctx = rctx_ptr;
     camera* cam = rctx->camera;
-    cam->update_data();
     rctx->view_mat = cam->view;
     rctx->proj_mat = cam->projection;
     rctx->vp_mat = cam->view_projection;

@@ -600,8 +600,6 @@ static render_context* render_context_load() {
         stru_140EDA5B0.ss_alpha_mask,
         stru_140EDA5B0.screen_shot_4x == 1);*/
 
-    rctx_ptr->render_manager->render->set_taa(false);
-
     objset_info_storage_init(aft_obj_db);
     stage_param_data_storage_init();
     pv_expression_file_storage_init();
@@ -1156,8 +1154,6 @@ static void render_context_ctrl(render_context* rctx) {
 }
 
 static void render_context_disp(render_context* rctx) {
-    camera* cam = rctx->camera;
-
     static const vec4 color_clear = 0.0f;
     static const GLfloat depth_clear = 1.0f;
     static const GLint stencil_clear = 0;
@@ -1180,8 +1176,6 @@ static void render_context_disp(render_context* rctx) {
     gl_state_set_depth_mask(GL_FALSE);
 
     gl_state_set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
-
-    cam->update();
 
     rctx->disp();
 

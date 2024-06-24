@@ -68,11 +68,11 @@ void graphics_post_process_imgui(class_data* data) {
 
     bool taa = !!rend->taa;
     if (ImGui::CheckboxEnterKeyPressed("Temporal AA", &taa))
-        rend->taa = taa ? 1 : 0;
+        rend->set_taa(taa ? 1 : 0);
     
     bool mlaa = !!rend->mlaa;
     if (ImGui::CheckboxEnterKeyPressed("Morphological AA", &mlaa))
-        rend->mlaa = mlaa ? 1 : 0;
+        rend->set_mlaa(mlaa ? 1 : 0);
 
     ImGui::SetColumnSpace(1.0f / 4.0f);
     if (ImGui::TreeNode("Tone Trans")) {

@@ -7467,6 +7467,8 @@ bool x_pv_game::ctrl() {
 #endif
 
 #if BAKE_PNG || BAKE_VIDEO
+        rctx_ptr->render_manager->render->set_taa(0);
+
         extern bool disable_cursor;
         disable_cursor = true;
 
