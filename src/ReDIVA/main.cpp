@@ -16,6 +16,7 @@
 #include "../KKdLib/pv_exp.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "../CRE/auth_3d.hpp"
+#include "../CRE/shader_dev.hpp"
 #include "../CRE/shader_ft.hpp"
 #include "main.hpp"
 #include "shared.hpp"
@@ -769,7 +770,7 @@ void compile_all_shaders(bool debug) {
         f.read("rom\\dev_shaders.farc", true, false);
 
         farc of;
-        compile_shaders(&f, &of, shader_ft_table, shader_ft_table_size, debug);
+        compile_shaders(&f, &of, shader_dev_table, shader_dev_table_size, debug);
         of.write("rom\\dev_shaders_spirv.farc", FARC_FArC, FARC_NONE, false, false);
     }
 }
