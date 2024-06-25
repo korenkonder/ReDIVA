@@ -79,8 +79,8 @@ void uniform_value_reset() {
     uniform_value[U_ANISO] = 0;
     uniform_value[U0B] = 0;
     uniform_value[U_TEXTURE_BLEND] = 0;
-    uniform_value[U_FOG_HEIGHT] = 0;
-    uniform_value[U_FOG] = 0;
+    uniform_value[U_FOG_STAGE] = 0;
+    uniform_value[U_FOG_CHARA] = 0;
     uniform_value[U_SPECULAR_IBL] = 0;
     uniform_value[U_TEX_0_TYPE] = 0;
     uniform_value[U_TEX_1_TYPE] = 0;
@@ -89,7 +89,7 @@ void uniform_value_reset() {
     uniform_value[U_TRANSLUCENCY] = 0;
     uniform_value[U_NORMAL] = 0;
     uniform_value[U_TRANSPARENCY] = 0;
-    uniform_value[U_LIGHT_0] = 0;
+    uniform_value[U_STAGE_SHADOW] = 0;
     uniform_value[U_SPECULAR] = 0;
     uniform_value[U45] = 0;
 }

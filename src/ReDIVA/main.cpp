@@ -331,7 +331,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
         vec_frag.resize(shader_table->num_uniform);
         int32_t* vec_vert_data = vec_vert.data();
         int32_t* vec_frag_data = vec_frag.data();
-        for (size_t j = 0; j < num_sub; j++, sub_table++) {
+        for (int32_t j = 0; j < num_sub; j++, sub_table++) {
             strcpy_s(vert_file_buf, sizeof(vert_file_buf), sub_table->vp);
             strcat_s(vert_file_buf, sizeof(vert_file_buf), ".vert");
             farc_file* vert_ff = f->read_file(vert_file_buf);
@@ -366,13 +366,12 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
             uint32_t uniform_vert_flags = 0;
             uint32_t uniform_frag_flags = 0;
-            for (int32_t k = 0; k < shader_table->num_uniform; k++)
-                if (shader_table->use_uniform[k].second) {
-                    if (sub_table->vp_unival_max[k] > 0)
-                        uniform_vert_flags |= 1 << k;
-                    if (sub_table->fp_unival_max[k] > 0)
-                        uniform_frag_flags |= 1 << k;
-                }
+            for (int32_t k = 0; k < shader_table->num_uniform; k++) {
+                if (sub_table->vp_unival_max[k] > 0)
+                    uniform_vert_flags |= 1 << k;
+                if (sub_table->fp_unival_max[k] > 0)
+                    uniform_frag_flags |= 1 << k;
+            }
 
             char uniform_vert_flags_buf[9];
             char uniform_frag_flags_buf[9];
@@ -417,15 +416,15 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
             if ((!has_vert_bin || !has_frag_bin) && shader_table->num_uniform > 0
                 && (sub_table->vp_unival_max[0] != -1 || sub_table->fp_unival_max[0] != -1)) {
                 int32_t num_uniform = shader_table->num_uniform;
-                size_t unival_vp_curr = 1;
-                size_t unival_vp_count = 1;
-                size_t unival_fp_curr = 1;
-                size_t unival_fp_count = 1;
+                int32_t unival_vp_curr = 1;
+                int32_t unival_vp_count = 1;
+                int32_t unival_fp_curr = 1;
+                int32_t unival_fp_count = 1;
                 const int32_t* vp_unival_max = sub_table->vp_unival_max;
                 const int32_t* fp_unival_max = sub_table->fp_unival_max;
-                for (size_t k = 0; k < num_uniform; k++) {
-                    const size_t unival_vp_max = shader_table->use_uniform[k].second ? vp_unival_max[k] : 0;
-                    const size_t unival_fp_max = shader_table->use_uniform[k].second ? fp_unival_max[k] : 0;
+                for (int32_t k = 0; k < num_uniform; k++) {
+                    const int32_t unival_vp_max = vp_unival_max[k];
+                    const int32_t unival_fp_max = fp_unival_max[k];
                     unival_vp_count += unival_vp_curr * unival_vp_max;
                     unival_fp_count += unival_fp_curr * unival_fp_max;
                     unival_vp_curr *= unival_vp_max + 1;
@@ -444,10 +443,10 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     strcat_s(vert_buf, sizeof(vert_buf), ".vert.spv");
                     int32_t vert_buf_len = (int32_t)utf8_length(vert_buf);
 
-                    for (size_t k = 0; k < unival_vp_count; k++) {
-                        for (size_t l = 0, m = k; l < num_uniform; l++) {
-                            size_t unival_max = (size_t)(shader_table->use_uniform[l].second ? vp_unival_max[l] : 0) + 1;
-                            vec_vert_data[l] = (uint32_t)(min_def(m % unival_max, vp_unival_max[l]));
+                    for (int32_t k = 0; k < unival_vp_count; k++) {
+                        for (int32_t l = 0, m = k; l < num_uniform; l++) {
+                            int32_t unival_max = vp_unival_max[l] + 1;
+                            vec_vert_data[l] = min_def(m % unival_max, vp_unival_max[l]);
                             m /= unival_max;
                             vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert_data[l]);
                         }
@@ -514,9 +513,9 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     strcat_s(frag_buf, sizeof(frag_buf), ".frag.spv");
                     int32_t frag_buf_len = (int32_t)utf8_length(frag_buf);
 
-                    for (size_t k = 0; k < unival_fp_count; k++) {
-                        for (size_t l = 0, m = k; l < num_uniform; l++) {
-                            size_t unival_max = (size_t)(shader_table->use_uniform[l].second ? fp_unival_max[l] : 0) + 1;
+                    for (int32_t k = 0; k < unival_fp_count; k++) {
+                        for (int32_t l = 0, m = k; l < num_uniform; l++) {
+                            int32_t unival_max = fp_unival_max[l] + 1;
                             vec_frag_data[l] = (uint32_t)(min_def(m % unival_max, fp_unival_max[l]));
                             m /= unival_max;
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag_data[l]);

@@ -1578,35 +1578,8 @@ namespace rndr {
 
         uniform_value[U_TONE_MAP] = (int32_t)tone_map;
         uniform_value[U_FLARE] = 0;
-        uniform_value[U_SCENE_FADE] = scene_fade_alpha[scene_fade_index] > 0.01f ? 1 : 0;
         uniform_value[U_AET_BACK] = 0;
         uniform_value[U_LIGHT_PROJ] = 0;
-        //uniform_value[U25] = 0;
-
-        gl_state_active_bind_texture_2d(0, rend_texture[0].GetColorTex());
-        gl_state_active_bind_texture_2d(1, reduce_tex_draw);
-        gl_state_active_bind_texture_2d(2, tonemap_lut_texture);
-        gl_state_active_bind_texture_2d(3, exposure_tex);
-        gl_state_active_bind_texture_2d(4, rctx->empty_texture_2d);
-        gl_state_active_bind_texture_2d(5, rctx->empty_texture_2d);
-        gl_state_active_bind_texture_2d(6, rctx->empty_texture_2d);
-        gl_state_bind_sampler(0, rctx->render_samplers[1]);
-        gl_state_bind_sampler(1, rctx->render_samplers[2]);
-        gl_state_bind_sampler(2, rctx->render_samplers[0]);
-        gl_state_bind_sampler(3, rctx->render_samplers[3]);
-        gl_state_bind_sampler(4, rctx->render_samplers[2]);
-        gl_state_bind_sampler(5, rctx->render_samplers[2]);
-        gl_state_bind_sampler(6, rctx->render_samplers[2]);
-
-        if (aet_back) {
-            gl_state_active_bind_texture_2d(6, aet_back_tex->glid);
-            uniform_value[U_AET_BACK] = 1;
-        }
-
-        if (light_proj_tex) {
-            gl_state_active_bind_texture_2d(6, light_proj_tex->glid);
-            uniform_value[U_LIGHT_PROJ] = 1;
-        }
 
         int32_t scene_fade_blend_func = this->scene_fade_blend_func[scene_fade_index];
 
@@ -1633,14 +1606,26 @@ namespace rndr {
         shader_data.g_texcoord_transforms[2] = { 1.0f, 0.0f, 0.0f, 0.0f };
         shader_data.g_texcoord_transforms[3] = { 0.0f, 1.0f, 0.0f, 0.0f };
 
-        if (lens_flare_texture) {
-            static const vec4 border_color = 0.0f;
+        gl_state_active_bind_texture_2d(0, rend_texture[0].GetColorTex());
+        gl_state_bind_sampler(0, rctx->render_samplers[1]);
+        gl_state_active_bind_texture_2d(1, reduce_tex_draw);
+        gl_state_bind_sampler(1, rctx->render_samplers[2]);
 
+        if (tone_map == TONE_MAP_YCC_EXPONENT) {
+            gl_state_active_bind_texture_2d(2, tonemap_lut_texture);
+            gl_state_bind_sampler(2, rctx->render_samplers[0]);
+        }
+
+        gl_state_active_bind_texture_2d(3, exposure_tex);
+        gl_state_bind_sampler(3, rctx->render_samplers[3]);
+
+        if (lens_flare_texture) {
             const float_t aspect = (float_t)height / (float_t)width;
 
             uniform_value[U_FLARE] = 1;
             gl_state_active_bind_texture_2d(4, lens_flare_texture);
             gl_state_bind_sampler(4, rctx->render_samplers[2]);
+
             mat4 mat;
             mat4_translate(0.5f, 0.5f, 0.0f, &mat);
             mat4_scale_rot(&mat, 0.75f, 0.75f, 1.0f, &mat);
@@ -1657,6 +1642,7 @@ namespace rndr {
                 uniform_value[U_FLARE] = 2;
                 gl_state_active_bind_texture_2d(5, lens_shaft_texture);
                 gl_state_bind_sampler(5, rctx->render_samplers[2]);
+
                 mat4_translate(0.5f, 0.5f, 0.0f, &mat);
                 mat4_scale_rot(&mat, lens_shaft_scale, lens_shaft_scale, 1.0f, &mat);
                 mat4_mul_rotate_z(&mat, (lens_flare_pos.x / (float_t)width)
@@ -1669,31 +1655,47 @@ namespace rndr {
                 shader_data.g_texcoord_transforms[7] = mat.row1;
             }
             else {
+                gl_state_active_bind_texture_2d(5, rctx->empty_texture_2d);
+                gl_state_bind_sampler(5, rctx->render_samplers[2]);
+
                 shader_data.g_texcoord_transforms[6] = { 1.0f, 0.0f, 0.0f, 0.0f };
                 shader_data.g_texcoord_transforms[7] = { 0.0f, 1.0f, 0.0f, 0.0f };
             }
         }
         else {
+            gl_state_active_bind_texture_2d(4, rctx->empty_texture_2d);
+            gl_state_bind_sampler(4, rctx->render_samplers[2]);
+            gl_state_active_bind_texture_2d(5, rctx->empty_texture_2d);
+            gl_state_bind_sampler(5, rctx->render_samplers[2]);
+
             shader_data.g_texcoord_transforms[4] = { 1.0f, 0.0f, 0.0f, 0.0f };
             shader_data.g_texcoord_transforms[5] = { 0.0f, 1.0f, 0.0f, 0.0f };
             shader_data.g_texcoord_transforms[6] = { 1.0f, 0.0f, 0.0f, 0.0f };
             shader_data.g_texcoord_transforms[7] = { 0.0f, 1.0f, 0.0f, 0.0f };
         }
 
-        if (npr_param == 1) {
-            gl_state_active_bind_texture_2d(14, rend_texture[0].GetDepthTex());
-            /*gl_state_active_bind_texture_2d(16, sss_contour_texture->GetColorTex());
-            gl_state_active_bind_texture_2d(17, sss_contour_texture->GetDepthTex());*/
-        }
-        else {
-            gl_state_active_bind_texture_2d(14, rctx_ptr->empty_texture_2d);
-            /*gl_state_active_bind_texture_2d(16, rctx_ptr->empty_texture_2d);
-            gl_state_active_bind_texture_2d(17, srctx_ptr->empty_texture_2d);*/
+        if (aet_back) {
+            gl_state_active_bind_texture_2d(6, aet_back_tex->glid);
+            gl_state_bind_sampler(6, rctx->render_samplers[2]);
+            uniform_value[U_AET_BACK] = 1;
         }
 
-        gl_state_bind_sampler(14, rctx->render_samplers[1]);
-        /*gl_state_bind_sampler(16, rctx->render_samplers[1]);
-        gl_state_bind_sampler(17, rctx->render_samplers[1]);*/
+        if (light_proj_tex) {
+            uniform_value[U_LIGHT_PROJ] = 1;
+            gl_state_active_bind_texture_2d(7, light_proj_tex->glid);
+            gl_state_bind_sampler(7, rctx->render_samplers[2]);
+
+            shader_data.g_flare_coef.z = 1.0f;
+        }
+        else {
+            gl_state_active_bind_texture_2d(7, rctx->empty_texture_2d);
+            gl_state_bind_sampler(7, rctx->render_samplers[2]);
+        }
+
+        if (aet_back && npr_param == 1) {
+            gl_state_active_bind_texture_2d(14, rend_texture[0].GetDepthTex());
+            gl_state_bind_sampler(14, rctx->render_samplers[1]);
+        }
 
         rctx->tone_map_ubo.WriteMemory(shader_data);
 

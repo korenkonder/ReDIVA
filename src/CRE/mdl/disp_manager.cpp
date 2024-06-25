@@ -2016,9 +2016,10 @@ namespace mdl {
         uniform_value_reset();
         gl_state_get();
 
-        rctx->obj_scene_ubo.Bind(0);
-        rctx->obj_batch_ubo.Bind(1);
-        rctx->obj_skinning_ubo.Bind(3);
+        rctx->obj_shader_ubo.Bind(0);
+        rctx->obj_scene_ubo.Bind(1);
+        rctx->obj_batch_ubo.Bind(2);
+        rctx->obj_skinning_ubo.Bind(4);
 
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT:
@@ -2177,9 +2178,10 @@ namespace mdl {
         uniform_value_reset();
         gl_state_get();
 
-        rctx->obj_scene_ubo.Bind(0);
-        rctx->obj_batch_ubo.Bind(1);
-        rctx->obj_skinning_ubo.Bind(3);
+        rctx->obj_shader_ubo.Bind(0);
+        rctx->obj_scene_ubo.Bind(1);
+        rctx->obj_batch_ubo.Bind(2);
+        rctx->obj_skinning_ubo.Bind(4);
 
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:

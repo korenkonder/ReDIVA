@@ -12,7 +12,6 @@
 enum shader_dev_sub_enum {
     SHADER_DEV_SUB_SHADER_FFP = 0,
     SHADER_DEV_SUB_GLITTER_PT_WIREFRAME,
-    SHADER_DEV_SUB_GRID,
     SHADER_DEV_SUB_SHADER_END,
 };
 
@@ -24,8 +23,8 @@ static const int32_t glitter_particle_wireframe_fpt_unival_max[] = {
     -1,
 };
 
-static const std::pair<uniform_name, bool> GLITTER_PT_WIREFRAME_uniform[] = {
-    { U_INVALID      , false,}
+static const uniform_name GLITTER_PT_WIREFRAME_uniform[] = {
+    U_INVALID,
 };
 
 static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
@@ -44,7 +43,7 @@ static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
     SHADER_DEV_##n, \
     sizeof(n##_table) / sizeof(shader_sub_table), \
     n##_table, \
-    sizeof(n##_uniform) / sizeof(std::pair<uniform_name, bool>), \
+    n##_uniform[0] > 0 ? sizeof(n##_uniform) / sizeof(uniform_name) : 0, \
     n##_uniform, \
 }
 

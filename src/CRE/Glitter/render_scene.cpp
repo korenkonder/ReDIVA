@@ -1002,13 +1002,13 @@ namespace Glitter {
         case PARTICLE_QUAD:
             switch (rend_group->fog_type) {
             default:
-                uniform_value[U_FOG_HEIGHT] = 0;
+                uniform_value[U_FOG_STAGE] = 0;
                 break;
             case Glitter::FOG_DEPTH:
-                uniform_value[U_FOG_HEIGHT] = 1;
+                uniform_value[U_FOG_STAGE] = 1;
                 break;
             case Glitter::FOG_HEIGHT:
-                uniform_value[U_FOG_HEIGHT] = 2;
+                uniform_value[U_FOG_STAGE] = 2;
                 break;
             }
 
@@ -1031,7 +1031,7 @@ namespace Glitter {
                 gl_state_disable_cull_face();
             break;
         case PARTICLE_LINE:
-            uniform_value[U_FOG_HEIGHT] = 0;
+            uniform_value[U_FOG_STAGE] = 0;
             uniform_value[U_ALPHA_BLEND] = 2;
 
             gl_state_enable_depth_test();
@@ -1040,7 +1040,7 @@ namespace Glitter {
             gl_state_set_cull_face_mode(GL_BACK);
             break;
         case PARTICLE_LOCUS:
-            uniform_value[U_FOG_HEIGHT] = 0;
+            uniform_value[U_FOG_STAGE] = 0;
             uniform_value[U_ALPHA_BLEND] = 2;
 
             gl_state_enable_depth_test();
@@ -1049,9 +1049,13 @@ namespace Glitter {
             break;
         }
 
+        rctx_ptr->obj_shader.set_shader_flags(uniform_value);
+        rctx_ptr->obj_shader_ubo.WriteMemory(rctx_ptr->obj_shader);
+
         shaders_ft.set(SHADER_FT_GLITTER_PT);
-        rctx_ptr->obj_scene_ubo.Bind(0);
-        rctx_ptr->glitter_batch_ubo.Bind(2);
+        rctx_ptr->obj_shader_ubo.Bind(0);
+        rctx_ptr->obj_scene_ubo.Bind(1);
+        rctx_ptr->glitter_batch_ubo.Bind(3);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
@@ -2108,13 +2112,13 @@ namespace Glitter {
 
         switch (rend_group->fog_type) {
         default:
-            uniform_value[U_FOG_HEIGHT] = 0;
+            uniform_value[U_FOG_STAGE] = 0;
             break;
         case Glitter::FOG_DEPTH:
-            uniform_value[U_FOG_HEIGHT] = 1;
+            uniform_value[U_FOG_STAGE] = 1;
             break;
         case Glitter::FOG_HEIGHT:
-            uniform_value[U_FOG_HEIGHT] = 2;
+            uniform_value[U_FOG_STAGE] = 2;
             break;
         }
 
@@ -2140,9 +2144,13 @@ namespace Glitter {
         else
             gl_state_disable_cull_face();
 
+        rctx_ptr->obj_shader.set_shader_flags(uniform_value);
+        rctx_ptr->obj_shader_ubo.WriteMemory(rctx_ptr->obj_shader);
+
         shaders_ft.set(SHADER_FT_GLITTER_PT);
-        rctx_ptr->obj_scene_ubo.Bind(0);
-        rctx_ptr->glitter_batch_ubo.Bind(2);
+        rctx_ptr->obj_shader_ubo.Bind(0);
+        rctx_ptr->obj_scene_ubo.Bind(1);
+        rctx_ptr->glitter_batch_ubo.Bind(3);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
             gl_state_bind_vertex_array(rend_group->vao);
