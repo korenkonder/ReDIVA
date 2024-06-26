@@ -502,29 +502,6 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     obj_batch_ubo.Create(sizeof(obj_batch_shader_data));
     obj_skinning_ubo.Create(sizeof(obj_skinning_shader_data));
 
-    static const uint8_t empty_texture_data[] = {
-        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    };
-
-    static const void* empty_texture_2d_array[] = {
-        empty_texture_data,
-    };
-
-    empty_texture_2d = texture_load_tex_2d(texture_id(0x2F, 0),
-        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_2d_array, false);
-
-    static const void* empty_texture_cube_map_array[] = {
-        empty_texture_data,
-        empty_texture_data,
-        empty_texture_data,
-        empty_texture_data,
-        empty_texture_data,
-        empty_texture_data,
-    };
-
-    empty_texture_cube_map = texture_load_tex_cube_map(texture_id(0x2F, 1),
-        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_cube_map_array);
-
     static const vec4 border_color = 0.0f;
 
     glGenSamplers(18, samplers);
@@ -622,9 +599,6 @@ render_context::~render_context() {
     glDeleteSamplers(3, sprite_samplers);
     glDeleteSamplers(4, render_samplers);
     glDeleteSamplers(18, samplers);
-
-    texture_release(empty_texture_cube_map);
-    texture_release(empty_texture_2d);
 
     obj_skinning_ubo.Destroy();
     obj_batch_ubo.Destroy();
@@ -743,9 +717,35 @@ void render_context::free() {
     screen_buffer.Free();
     render_buffer.Free();
     reflect_buffer.Free();
+
+    texture_release(empty_texture_cube_map);
+    texture_release(empty_texture_2d);
 }
 
 void render_context::init() {
+    static const uint8_t empty_texture_data[] = {
+        0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    };
+
+    static const void* empty_texture_2d_array[] = {
+        empty_texture_data,
+    };
+
+    empty_texture_2d = texture_load_tex_2d(texture_id(0x2F, 0),
+        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_2d_array, false);
+
+    static const void* empty_texture_cube_map_array[] = {
+        empty_texture_data,
+        empty_texture_data,
+        empty_texture_data,
+        empty_texture_data,
+        empty_texture_data,
+        empty_texture_data,
+    };
+
+    empty_texture_cube_map = texture_load_tex_cube_map(texture_id(0x2F, 1),
+        GL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4, 0, empty_texture_cube_map_array);
+
     auto init_copy_buffer = [&](RenderTexture& src, RenderTexture& dst) {
         dst.Init(src.GetWidth(),
             src.GetHeight(), 0, src.color_texture->internal_format,
