@@ -9,7 +9,6 @@
 #include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/array_buffer.hpp"
-#include "GL/element_array_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
 #include "light_param/face.hpp"
 #include "light_param/fog.hpp"
