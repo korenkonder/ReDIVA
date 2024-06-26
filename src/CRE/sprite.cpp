@@ -894,13 +894,13 @@ namespace spr {
                         gl_state_bind_sampler(1, j.sampler);
                     }
                     else if (!gl_state.texture_binding_2d[1])
-                        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
+                        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
                 }
                 else {
                     if (!gl_state.texture_binding_2d[0])
-                        gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d);
+                        gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
                     if (!gl_state.texture_binding_2d[1])
-                        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
+                        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
                 }
 
                 shaders_ft.set(j.shader);
@@ -1843,9 +1843,9 @@ namespace spr {
 
     static void draw_sprite_begin(render_context* rctx) {
         gl_state_disable_blend();
-        gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d);
+        gl_state_active_bind_texture_2d(0, rctx->empty_texture_2d->glid);
         gl_state_bind_sampler(0, 0);
-        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d);
+        gl_state_active_bind_texture_2d(1, rctx->empty_texture_2d->glid);
         gl_state_bind_sampler(1, 0);
         gl_state_bind_sampler(7, 0);
         gl_state_set_blend_func_separate(GL_ONE, GL_ZERO, GL_ONE, GL_ZERO);
