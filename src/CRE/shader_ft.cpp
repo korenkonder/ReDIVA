@@ -151,10 +151,6 @@ static const int32_t sss_filter_min_fpt_unival_max[] = {
     -1,
 };
 
-static const int32_t sss_filter_min_npr_vpt_unival_max[] = {
-    -1,
-};
-
 static const int32_t sss_filter_min_npr_fpt_unival_max[] = {
     -1,
 };
@@ -683,7 +679,7 @@ static const int32_t sprite_fpt_unival_max[] = {
     3, 3, 2,
 };
 
-static const int32_t dof_render_tile_vpt_unival_max[] = {
+static const int32_t dof_common_vpt_unival_max[] = {
     0,
 };
 
@@ -691,15 +687,7 @@ static const int32_t dof_render_tile_fpt_unival_max[] = {
     1,
 };
 
-static const int32_t dof_gather_tile_vpt_unival_max[] = {
-    0,
-};
-
 static const int32_t dof_gather_tile_fpt_unival_max[] = {
-    0,
-};
-
-static const int32_t dof_downsample_vpt_unival_max[] = {
     0,
 };
 
@@ -707,16 +695,8 @@ static const int32_t dof_downsample_fpt_unival_max[] = {
     1,
 };
 
-static const int32_t dof_main_filter_vpt_unival_max[] = {
-    0,
-};
-
 static const int32_t dof_main_filter_fpt_unival_max[] = {
     1,
-};
-
-static const int32_t dof_upsample_vpt_unival_max[] = {
-    0,
 };
 
 static const int32_t dof_upsample_fpt_unival_max[] = {
@@ -798,7 +778,7 @@ static const shader_sub_table SSS_FILT_table[] = {
     },
     {
         SHADER_FT_SUB_SSS_FILTER_MIN_NPR,
-        sss_filter_min_npr_vpt_unival_max,
+        sss_filter_min_vpt_unival_max,
         sss_filter_min_npr_fpt_unival_max,
         "sss_filter_min",
         "sss_filter_min_npr",
@@ -1400,35 +1380,35 @@ static const shader_sub_table SPRITE_table[] = {
 static const shader_sub_table DOF_table[] = {
     {
         SHADER_FT_SUB_DOF_RENDER_TILE,
-        dof_render_tile_vpt_unival_max,
+        dof_common_vpt_unival_max,
         dof_render_tile_fpt_unival_max,
         "dof_common",
         "dof_render_tile",
     },
     {
         SHADER_FT_SUB_DOF_GATHER_TILE,
-        dof_gather_tile_vpt_unival_max,
+        dof_common_vpt_unival_max,
         dof_gather_tile_fpt_unival_max,
         "dof_common",
         "dof_gather_tile",
     },
     {
         SHADER_FT_SUB_DOF_DOWNSAMPLE,
-        dof_downsample_vpt_unival_max,
+        dof_common_vpt_unival_max,
         dof_downsample_fpt_unival_max,
         "dof_common",
         "dof_downsample",
     },
     {
         SHADER_FT_SUB_DOF_MAIN_FILTER,
-        dof_main_filter_vpt_unival_max,
+        dof_common_vpt_unival_max,
         dof_main_filter_fpt_unival_max,
         "dof_common",
         "dof_main_filter",
     },
     {
         SHADER_FT_SUB_DOF_UPSAMPLE,
-        dof_upsample_vpt_unival_max,
+        dof_common_vpt_unival_max,
         dof_upsample_fpt_unival_max,
         "dof_common",
         "dof_upsample",
