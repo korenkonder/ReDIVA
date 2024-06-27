@@ -98,10 +98,11 @@ enum uniform_name {
     U_SPECULAR,
     U_TONE_MAP,
     U45,
-    U_DOF,       // Added
-    U_DOF_STAGE, // Added
     U_MAX,
     U_INVALID = -1,
+
+    U_DOF       = U_TEX_0_TYPE,
+    U_DOF_STAGE = U_TEX_1_TYPE,
 };
 
 extern int32_t sv_max_texture_buffer_size;

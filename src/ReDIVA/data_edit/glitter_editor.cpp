@@ -27,7 +27,6 @@
 #include <windows.h>
 #include <commdlg.h>
 #include <shobjidl.h>
-#include <glad/glad.h>
 
 static const float_t curve_base_values[] = {
     0.0f,
@@ -2223,13 +2222,13 @@ static void glitter_editor_disp_wireframe(GlitterEditor* glt_edt) {
     if (Glitter::glt_particle_manager->flags & Glitter::PARTICLE_MANAGER_NOT_DISP)
         return;
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_LINE);
     gl_state_disable_cull_face();
     for (Glitter::Scene*& i : Glitter::glt_particle_manager->scenes)
         if (i)
             glitter_editor_disp_wireframe_scene(glt_edt, i);
     gl_state_enable_cull_face();
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_FILL);
 }
 
 static void glitter_editor_disp_wireframe_effect_inst(

@@ -198,7 +198,7 @@ namespace rndr {
 
             taa_texture = 2;
             taa_buffer[2].Bind();
-            glViewport(0, 0, render_width[0], render_height[0]);
+            gl_state_set_viewport(0, 0, render_width[0], render_height[0]);
             gl_state_active_bind_texture_2d(0, taa_tex[taa_texture_selector]->glid);
             gl_state_bind_sampler(0, sampler);
 

@@ -9,7 +9,6 @@
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
 #include "types.hpp"
-#include <glad/glad.h>
 
 enum bone_database_bone_type {
     BONE_DATABASE_BONE_ROTATION          = 0x00,
@@ -3718,6 +3717,9 @@ struct obj {
     obj_material_data* material_array;
     uint32_t reserved[10];
 };
+
+typedef uint32_t GLuint;
+typedef uint32_t GLenum;
 
 struct obj_mesh_vertex_buffer {
     int32_t count;

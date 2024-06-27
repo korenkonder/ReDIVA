@@ -11,7 +11,6 @@
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include <imgui/imgui.h>
 #include <imgui/imgui_internal.h>
-#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 namespace ImGui {

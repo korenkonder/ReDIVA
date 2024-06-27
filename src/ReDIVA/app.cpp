@@ -69,7 +69,6 @@
 #include "shared.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
-#include <glad/glad.h>
 #if BAKE_VIDEO
 #include <glad/glad_wgl.h>
 #include <d3d11.h>
@@ -105,18 +104,11 @@ struct common_data_struct {
 };
 
 struct render_data {
-    GLuint grid_vao;
-    GL::ArrayBuffer grid_vbo;
-    GL::UniformBuffer grid_ubo;
-
     render_data();
     ~render_data();
 
     bool load();
     void unload();
-
-    void load_common_data();
-    void unload_common_data();
 };
 
 common_data_struct common_data;
@@ -347,7 +339,7 @@ void app_set_render_scale_index(int32_t index) {
 
 float_t rob_frame = 0.0f;
 
-render_data::render_data() : grid_vao() {
+render_data::render_data() {
 
 }
 
@@ -387,73 +379,6 @@ void render_data::unload() {
     d3d_device->Release();
     d3d_device = 0;
 #endif
-}
-
-void render_data::load_common_data() {
-    float_t* grid_verts = force_malloc<float_t>(3 * grid_vertex_count);
-
-    size_t v = 0;
-    for (float_t x = -grid_size; x <= grid_size; x += grid_spacing) {
-        int32_t x_color_index;
-        int32_t z_color_index;
-        if (x == 0) {
-            x_color_index = 0;
-            z_color_index = 1;
-        }
-        else {
-            x_color_index = 2;
-            z_color_index = 2;
-        }
-
-        grid_verts[v++] = x;
-        grid_verts[v++] = -grid_size;
-        *(int32_t*)&grid_verts[v++] = x_color_index;
-
-        grid_verts[v++] = x;
-        grid_verts[v++] = grid_size;
-        *(int32_t*)&grid_verts[v++] = x_color_index;
-
-        grid_verts[v++] = -grid_size;
-        grid_verts[v++] = x;
-        *(int32_t*)&grid_verts[v++] = z_color_index;
-
-        grid_verts[v++] = grid_size;
-        grid_verts[v++] = x;
-        *(int32_t*)&grid_verts[v++] = z_color_index;
-    }
-
-    glGenVertexArrays(1, &grid_vao);
-    gl_state_bind_vertex_array(grid_vao);
-
-    grid_vbo.Create(sizeof(float_t) * 3 * grid_vertex_count, grid_verts);
-    grid_vbo.Bind();
-
-    glVertexAttrib4f(0, 0.0f, 0.0f, 0.0f, 1.0f);
-    glVertexAttribI1i(1, 2);
-
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-        sizeof(float_t) * 3, (void*)0);
-    glEnableVertexAttribArray(1);
-    glVertexAttribIPointer(1, 1, GL_INT,
-        sizeof(float_t) * 3, (void*)(sizeof(float_t) * 2));
-
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_vertex_array(0);
-
-    grid_ubo.Create(sizeof(mat4));
-
-    free(grid_verts);
-}
-
-void render_data::unload_common_data() {
-    grid_ubo.Destroy();
-    grid_vbo.Destroy();
-
-    if (grid_vao) {
-        glDeleteVertexArrays(1, &grid_vao);
-        grid_vao = 0;
-    }
 }
 
 static bool app_init(const app_init_struct& ais) {
@@ -991,8 +916,6 @@ static render_context* render_context_load() {
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
     cam->set_interest({ 0.0f, 1.4f, 0.0f });
 
-    render->load_common_data();
-
     uniform_value[U16] = 1;
 
     imgui_context_lock = new lock_cs;
@@ -1213,8 +1136,6 @@ static void render_context_dispose(render_context* rctx) {
     lock_unlock(imgui_context_lock);
     delete imgui_context_lock;
     imgui_context_lock = 0;
-
-    render->unload_common_data();
 
     Glitter::glt_particle_manager_del_task();
 

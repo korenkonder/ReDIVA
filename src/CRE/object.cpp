@@ -3,15 +3,7 @@
     GitHub/GitLab: korenkonder
 */
 
-#include <list>
-#include <map>
-#include <new>
-#include <vector>
 #include "object.hpp"
-#include "data.hpp"
-#include "gl_state.hpp"
-#include "render_context.hpp"
-#include "shader_ft.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/json.hpp"
 #include "../KKdLib/io/path.hpp"
@@ -19,6 +11,14 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "data.hpp"
+#include "gl_state.hpp"
+#include "render_context.hpp"
+#include "shader_ft.hpp"
+#include <list>
+#include <map>
+#include <new>
+#include <vector>
 
 static GLuint create_index_buffer(size_t size, const void* data);
 static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic = false);

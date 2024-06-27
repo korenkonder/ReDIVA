@@ -4912,23 +4912,6 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     vtx_data[vtx].texcoord.x = 1.0f;
     vtx_data[vtx].texcoord.y = (latitude_offset_degs_10 - (1.0f / uv_rec_scale_v) * 90.0f) * rec_latitude_degs_10;
 
-    if (!vao)
-        glGenVertexArrays(1, &vao);
-
-    vbo.Create(sizeof(star_catalog_vertex) * vtx_count, vtx_data);
-    vbo.Bind();
-    free_def(vtx_data);
-
-    static const GLsizei buffer_size = sizeof(star_catalog_vertex);
-
-    gl_state_bind_vertex_array(vao);
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(star_catalog_vertex, position));
-    glEnableVertexAttribArray(1);
-    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
-        (void*)offsetof(star_catalog_vertex, texcoord));
-
     const uint16_t first_vertex = 0;
     const uint16_t last_vertex = (uint16_t)(vtx_count - 1);
     uint16_t restart_index = this->restart_index;
@@ -4960,8 +4943,29 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
         ebo_data[idx + 3] = restart_index;
     }
 
+    static const GLsizei buffer_size = sizeof(star_catalog_vertex);
+
+    if (!vao)
+        glGenVertexArrays(1, &vao);
+
+    vbo.Create((size_t)buffer_size * vtx_count, vtx_data);
+    vbo.Bind();
+
+    gl_state_bind_vertex_array(vao);
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(star_catalog_vertex, position));
+    glEnableVertexAttribArray(1);
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, buffer_size,
+        (void*)offsetof(star_catalog_vertex, texcoord));
+
     ebo.Create(sizeof(uint16_t) * ebo_count, ebo_data);
     ebo.Bind();
+
+    gl_state_bind_vertex_array(0);
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_element_array_buffer(0);
+    free_def(vtx_data);
     free_def(ebo_data);
 
     if (!sampler)
@@ -4970,10 +4974,6 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
     glSamplerParameteri(sampler, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glSamplerParameteri(sampler, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-    gl_state_bind_vertex_array(0);
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_element_array_buffer(0);
 }
 
 void star_catalog_milky_way::create_default_sphere() {
@@ -5681,10 +5681,21 @@ static void leaf_particle_init(bool change_stage) {
     for (; i < leaf_ptcl_count; i++, data++)
         data->type = 0;
 
-    if (!leaf_ptcl_vao)
-        glGenVertexArrays(1, &leaf_ptcl_vao);
+    size_t ebo_count = leaf_ptcl_vtx_count / 4 * 6;
+    uint32_t* ebo_data = force_malloc<uint32_t>(ebo_count);
+    for (size_t i = 0, j = 0; i < ebo_count; i += 6, j += 4) {
+        ebo_data[i + 0] = (uint32_t)(j + 0);
+        ebo_data[i + 1] = (uint32_t)(j + 1);
+        ebo_data[i + 2] = (uint32_t)(j + 2);
+        ebo_data[i + 3] = (uint32_t)(j + 0);
+        ebo_data[i + 4] = (uint32_t)(j + 2);
+        ebo_data[i + 5] = (uint32_t)(j + 3);
+    }
 
     static const GLsizei buffer_size = sizeof(leaf_particle_vertex_data);
+
+    if (!leaf_ptcl_vao)
+        glGenVertexArrays(1, &leaf_ptcl_vao);
 
     leaf_ptcl_vbo.Create(buffer_size * leaf_ptcl_vtx_count);
     leaf_ptcl_vbo.Bind();
@@ -5700,24 +5711,13 @@ static void leaf_particle_init(bool change_stage) {
     glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, buffer_size,
         (void*)offsetof(leaf_particle_vertex_data, normal));
 
-    size_t ebo_count = leaf_ptcl_vtx_count / 4 * 6;
-    uint32_t* ebo_data = force_malloc<uint32_t>(ebo_count);
-    for (size_t i = 0, j = 0; i < ebo_count; i += 6, j += 4) {
-        ebo_data[i + 0] = (uint32_t)(j + 0);
-        ebo_data[i + 1] = (uint32_t)(j + 1);
-        ebo_data[i + 2] = (uint32_t)(j + 2);
-        ebo_data[i + 3] = (uint32_t)(j + 0);
-        ebo_data[i + 4] = (uint32_t)(j + 2);
-        ebo_data[i + 5] = (uint32_t)(j + 3);
-    }
-
     leaf_ptcl_ebo.Create(sizeof(uint32_t) * ebo_count, ebo_data);
     leaf_ptcl_ebo.Bind();
-    free_def(ebo_data);
 
     gl_state_bind_vertex_array(0);
     gl_state_bind_array_buffer(0);
     gl_state_bind_element_array_buffer(0);
+    free_def(ebo_data);
 
     leaf_particle_scene_ubo.Create(sizeof(leaf_particle_scene_shader_data));
 }
@@ -5925,10 +5925,10 @@ static void particle_init(vec3* offset) {
     else
         particle_wind = 0.0f;
 
+    static const GLsizei buffer_size = sizeof(particle_vertex_data);
+
     if (!ptcl_vao)
         glGenVertexArrays(1, &ptcl_vao);
-
-    static const GLsizei buffer_size = sizeof(particle_vertex_data);
 
     ptcl_vbo.Create(buffer_size * ptcl_vtx_count);
     ptcl_vbo.Bind();

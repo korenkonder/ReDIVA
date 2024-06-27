@@ -27,15 +27,21 @@ static const uniform_name GLITTER_PT_WIREFRAME_uniform[] = {
     U_INVALID,
 };
 
+#define shader_sub_table_struct(sub_index, vp, fp) \
+{ \
+    SHADER_DEV_SUB_##sub_index, \
+    vp##_vpt_unival_max, \
+    fp##_fpt_unival_max, \
+    #vp, \
+    #fp, \
+}
+
 static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
-    {
-        SHADER_DEV_SUB_GLITTER_PT_WIREFRAME,
-        glitter_particle_wireframe_vpt_unival_max,
-        glitter_particle_wireframe_fpt_unival_max,
-        "glitter_particle_wireframe",
-        "glitter_particle_wireframe",
-    },
+    shader_sub_table_struct(GLITTER_PT_WIREFRAME,
+        glitter_particle_wireframe, glitter_particle_wireframe),
 };
+
+#undef shader_sub_table_struct
 
 #define shader_table_struct(n) \
 { \

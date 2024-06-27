@@ -266,8 +266,6 @@ void obj_shader_shader_data::set_shader_flags(int32_t* shader_flags) {
     g_shader_flags.w.m.specular      = shader_flags[U_SPECULAR];
     g_shader_flags.w.m.tone_map      = shader_flags[U_TONE_MAP];
     g_shader_flags.w.m.u45           = shader_flags[U45];
-    g_shader_flags.w.m.dof           = shader_flags[U_DOF]; // Added
-    g_shader_flags.w.m.dof_stage     = shader_flags[U_DOF_STAGE]; // Added
 }
 
 void obj_scene_shader_data::set_g_irradiance_r_transforms(const mat4& mat) {
@@ -605,8 +603,8 @@ render_context::~render_context() {
     obj_scene_ubo.Destroy();
     obj_shader_ubo.Destroy();
 
-    tone_map_ubo.Destroy();
     transparency_batch_ubo.Destroy();
+    tone_map_ubo.Destroy();
     sun_quad_ubo.Destroy();
     sss_filter_gaussian_coef_ubo.Destroy();
     sprite_scene_ubo.Destroy();

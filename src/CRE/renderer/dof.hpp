@@ -7,7 +7,6 @@
 
 #include "../../KKdLib/default.hpp"
 #include "../GL/uniform_buffer.hpp"
-#include "../camera.hpp"
 #include "../render_texture.hpp"
 #include "fbo.hpp"
 

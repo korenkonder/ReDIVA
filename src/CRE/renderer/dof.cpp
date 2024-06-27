@@ -124,11 +124,6 @@ namespace renderer {
         this->width = width;
         this->height = height;
 
-        int32_t w20 = max_def(width / 20, 1);
-        int32_t h20 = max_def(height / 20, 1);
-        int32_t w2 = max_def(width / 2, 1);
-        int32_t h2 = max_def(height / 2, 1);
-
         init_textures(width, height);
     }
 
@@ -138,13 +133,13 @@ namespace renderer {
             vao = 0;
         }
 
+        texcoords_ubo.Destroy();
+        common_ubo.Destroy();
+
         if (samplers[0]) {
             glDeleteSamplers(2, samplers);
             samplers[0] = 0;
         }
-
-        texcoords_ubo.Destroy();
-        common_ubo.Destroy();
 
         if (textures[0]) {
             glDeleteTextures(6, textures);
@@ -232,7 +227,7 @@ namespace renderer {
 
     void DOF3::render_tiles(GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::render_tiles");
-        gl_state_bind_framebuffer(fbo[0].buffer);
+        fbo[0].bind_buffer();
         gl_state_set_viewport(0, 0, fbo[0].width, fbo[0].height);
         uniform_value[U_DOF_STAGE] = 0;
         shaders_ft.set(SHADER_FT_DOF);
@@ -241,7 +236,7 @@ namespace renderer {
         gl_state_bind_sampler(0, samplers[1]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        gl_state_bind_framebuffer(fbo[1].buffer);
+        fbo[1].bind_buffer();
         gl_state_set_viewport(0, 0, fbo[1].width, fbo[1].height);
         uniform_value[U_DOF_STAGE] = 1;
         shaders_ft.set(SHADER_FT_DOF);
@@ -254,7 +249,7 @@ namespace renderer {
 
     void DOF3::downsample(GLuint color_texture, GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::downsample");
-        gl_state_bind_framebuffer(fbo[2].buffer);
+        fbo[2].bind_buffer();
         gl_state_set_viewport(0, 0, fbo[2].width, fbo[2].height);
         uniform_value[U_DOF_STAGE] = 2;
         shaders_ft.set(SHADER_FT_DOF);
@@ -271,7 +266,7 @@ namespace renderer {
 
     void DOF3::apply_main_filter(bool f2) {
         gl_state_begin_event("renderer::DOF3::apply_main_filter");
-        gl_state_bind_framebuffer(fbo[3].buffer);
+        fbo[3].bind_buffer();
         gl_state_set_viewport(0, 0, fbo[3].width, fbo[3].height);
         uniform_value[U_DOF_STAGE] = 3;
         shaders_ft.set(SHADER_FT_DOF);
@@ -306,9 +301,9 @@ namespace renderer {
         gl_state_bind_sampler(4, samplers[1]);
         glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        glCopyImageSubData(rctx_ptr->render_buffer.GetColorTex(),
-            GL_TEXTURE_2D, 0, 0, 0, 0, rt->GetColorTex(),
-            GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
+        glCopyImageSubData(
+            rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
+            rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
         gl_state_end_event();
     }
 
