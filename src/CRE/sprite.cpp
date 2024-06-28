@@ -278,7 +278,7 @@ namespace spr {
             while (sprite_vertex_array_count + num_vertex >= sprite_vertex_array_max_count)
                 sprite_vertex_array_max_count *= 2;
 
-            spr::SpriteVertex* _sprite_vertex_array = new spr::SpriteVertex[sprite_vertex_array_max_count * 2];
+            spr::SpriteVertex* _sprite_vertex_array = new spr::SpriteVertex[sprite_vertex_array_max_count];
             memmove(_sprite_vertex_array, sprite_vertex_array, sizeof(SpriteVertex) * sprite_vertex_array_count);
             delete[] sprite_vertex_array;
             sprite_vertex_array = _sprite_vertex_array;
