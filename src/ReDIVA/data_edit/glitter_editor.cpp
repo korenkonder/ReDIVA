@@ -1606,7 +1606,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     if (!glt_edt->load_wait) {
         glitter_editor_enable = true;
         glt_edt->hash = Glitter::glt_particle_manager->LoadFile(glt_edt->load_glt_type,
-            &data_list[glt_edt->load_data_type], file, path, -1.0f, false);
+            &data_list[glt_edt->load_data_type], file, path, -1.0f, true);
         glt_edt->reset();
         glt_edt->load_wait = true;
         return;
@@ -2304,7 +2304,7 @@ static void glitter_editor_disp_wireframe_render_scene(GlitterEditor* glt_edt,
     rctx_ptr->glitter_batch_ubo.WriteMemory(shader_data);
 
     shaders_dev.set(SHADER_DEV_GLITTER_PT_WIREFRAME);
-    rctx_ptr->glitter_batch_ubo.Bind(2);
+    rctx_ptr->glitter_batch_ubo.Bind(3);
     switch (rend_group->type) {
     case Glitter::PARTICLE_QUAD:
         gl_state_bind_vertex_array(rend_group->vao);
