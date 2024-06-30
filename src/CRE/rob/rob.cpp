@@ -33,28 +33,6 @@ enum rob_sleeve_type : uint8_t {
     ROB_SLEEVE_LR = 0x03,
 };
 
-struct MhdFile {
-    mothead* data;
-    uint32_t set;
-    std::string file_path; // Added
-    p_file_handler file_handler;
-    prj::shared_ptr<prj::stack_allocator> alloc_handler;
-    int32_t load_count;
-
-    MhdFile();
-    virtual ~MhdFile();
-
-    bool CheckNotReady();
-    void FreeData();
-    void LoadFile(const char* path, const char* file, uint32_t set);
-    void ParseFile(const void* data);
-    mothead* ParseMothead(mothead_file* mhdsf, size_t data);
-    mothead_mot* ParseMotheadMot(mothead_mot_file* mhdsf, size_t data);
-    bool Unload();
-
-    static void ParseFileParent(MhdFile* mhd, const void* file_data, size_t size);
-};
-
 struct OpdMaker {
     struct Data {
         bool empty;
@@ -1254,8 +1232,6 @@ static rob_manager_rob_impl* rob_manager_rob_impls2_get(TaskRobManager* rob_mgr)
 rob_chara* rob_chara_array;
 rob_chara_pv_data* rob_chara_pv_data_array;
 
-std::map<uint32_t, MhdFile> mothead_storage_data;
-
 rob_manager_rob_impl rob_manager_rob_impls1[2];
 bool rob_manager_rob_impls1_init = false;
 rob_manager_rob_impl rob_manager_rob_impls2[7];
@@ -1279,8 +1255,6 @@ static int32_t opd_chara_data_counter = 0;
 static int32_t opd_maker_counter = 0;
 static int32_t pv_osage_manager_counter = 0;
 static int32_t rob_thread_parent_counter = 0;
-
-static const mothead_mot mothead_mot_null;
 
 static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_0 , 1 },
@@ -2335,34 +2309,6 @@ const uint32_t* get_opd_motion_set_ids() {
 
 const float_t get_osage_gravity_const() {
     return 0.00299444468691945f;
-}
-
-void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
-    const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
-    if (!set_info)
-        return;
-
-    std::string file;
-    file.assign("mothead_");
-    file.append(set_info->name);
-    file.append(".bin");
-
-    std::string path;
-    path.assign("rom/rob/");
-    if (data_list[DATA_AFT].check_file_exists(mdata_dir.c_str(), file.c_str()))
-        path.assign(mdata_dir);
-
-    auto elem = mothead_storage_data.find(set);
-    if (elem == mothead_storage_data.end())
-        elem = mothead_storage_data.insert({ set, {} }).first;
-
-    elem->second.LoadFile(path.c_str(), file.c_str(), set);
-}
-
-void motion_set_unload_mothead(uint32_t set) {
-    auto elem = mothead_storage_data.find(set);
-    if (elem != mothead_storage_data.end() && elem->second.Unload())
-        mothead_storage_data.erase(elem);
 }
 
 const char* get_ram_osage_play_data_dir() {
@@ -15813,41 +15759,6 @@ rob_chara::~rob_chara() {
     item_equip = 0;
 }
 
-void mothead_storage_init() {
-    mothead_storage_data = {};
-}
-
-bool mothead_storage_check_mhd_file_not_ready(uint32_t set_id) {
-    auto elem = mothead_storage_data.find(set_id);
-    if (elem != mothead_storage_data.end())
-        return elem->second.CheckNotReady();
-    return false;
-}
-
-const mothead_mot* mothead_storage_get_mot_by_motion_id(
-    uint32_t motion_id, const motion_database* mot_db) {
-    uint32_t set_id = mot_db->get_motion_set_id_by_motion_id(motion_id);
-    if (set_id == -1)
-        return &mothead_mot_null;
-
-    auto elem = mothead_storage_data.find(set_id);
-    if (elem == mothead_storage_data.end() || !elem->second.data)
-        return &mothead_mot_null;
-
-    mothead* mhd = elem->second.data;
-    if ((int32_t)motion_id < mhd->first_mot_id || (int32_t)motion_id > mhd->last_mot_id)
-        return &mothead_mot_null;
-
-    mothead_mot* mot = mhd->mots[(ssize_t)(int32_t)motion_id - mhd->first_mot_id];
-    if (!mot)
-        return &mothead_mot_null;
-    return mot;
-}
-
-void mothead_storage_free() {
-    mothead_storage_data.clear();
-}
-
 int32_t expression_id_to_mottbl_index(int32_t expression_id) {
     static const int32_t expression_id_to_mottbl_index_table[] = {
          11,  15,  57,  19,  23,  25,  29,  33,
@@ -15922,146 +15833,6 @@ int32_t mouth_anim_id_to_mottbl_index(int32_t mouth_anim_id) {
         < sizeof(mouth_anim_id_to_mottbl_index_table) / sizeof(int32_t))
         return mouth_anim_id_to_mottbl_index_table[mouth_anim_id];
     return 131;
-}
-
-MhdFile::MhdFile() : data(), set(), load_count() {
-    FreeData();
-}
-
-MhdFile::~MhdFile() {
-    FreeData();
-}
-
-bool MhdFile::CheckNotReady() {
-    return file_handler.check_not_ready();
-}
-
-void MhdFile::FreeData() {
-    data = 0;
-    alloc_handler.reset();
-    set = -1;
-    file_path.clear();
-    file_handler.reset();
-    load_count = 0;
-}
-
-void MhdFile::LoadFile(const char* path, const char* file, uint32_t set) {
-    if (load_count > 0) {
-        load_count++;
-        return;
-    }
-
-    this->set = set;
-    file_path.assign(path);
-    file_path.append(file);
-    if (file_handler.read_file(&data_list[DATA_AFT], path, file))
-        file_handler.set_callback_data(0, (PFNFILEHANDLERCALLBACK*)ParseFileParent, this);
-    load_count = 1;
-}
-
-void MhdFile::ParseFile(const void* data) {
-    alloc_handler = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
-    mothead_file* mhdf = (mothead_file*)((size_t)data + ((uint32_t*)data)[1]);
-    this->data = MhdFile::ParseMothead(mhdf, (size_t)mhdf);
-}
-
-mothead* MhdFile::ParseMothead(mothead_file* mhdf, size_t data) {
-    mothead* mhd = alloc_handler->allocate<mothead>();
-    mhd->mot_set_id = mhdf->mot_set_id;
-    mhd->first_mot_id = mhdf->first_mot_id;
-    mhd->last_mot_id = mhdf->last_mot_id;
-    uint32_t* mot_offsets = (uint32_t*)(data + mhdf->mot_offsets_offset);
-    size_t mot_count = (size_t)mhdf->last_mot_id - mhdf->first_mot_id + 1;
-    mhd->mots = alloc_handler->allocate<mothead_mot*>(mot_count);
-    mothead_mot** mots = mhd->mots;
-    for (; mot_count; mot_count--) {
-        *mots = 0;
-        if (*mot_offsets)
-            *mots = ParseMotheadMot((mothead_mot_file*)(data + *mot_offsets), data);
-        mots++;
-        mot_offsets++;
-    }
-    return mhd;
-}
-
-mothead_mot* MhdFile::ParseMotheadMot(mothead_mot_file* mhdsf, size_t data) {
-    struct mothead_mot_data_file {
-        int32_t type;
-        uint32_t offset;
-    };
-
-    struct mothead_data_file {
-        mothead_data_type type;
-        int32_t frame;
-        uint32_t offset;
-    };
-
-    mothead_mot* mhdm = alloc_handler->allocate<mothead_mot>();
-    mhdm->field_0.field_0 = mhdsf->field_0;
-    mhdm->field_0.field_4 = mhdsf->field_4;
-    mhdm->field_0.field_8 = mhdsf->field_8;
-    mhdm->field_0.field_C = mhdsf->field_C;
-    mhdm->field_10 = mhdsf->field_10;
-    mhdm->field_12 = mhdsf->field_12;
-
-    if (mhdsf->mot_data_offset) {
-        mothead_mot_data_file* mot_data_file = (mothead_mot_data_file*)(data + mhdsf->mot_data_offset);
-        mothead_mot_data_file* mot_data_file_end = mot_data_file;
-        while ((mot_data_file_end++)->type >= 0);
-
-        size_t count = mot_data_file_end - mot_data_file;
-        mhdm->mot_data = alloc_handler->allocate<mothead_mot_data>(count);
-        mothead_mot_data* mot_data = mhdm->mot_data;
-        for (size_t i = count; i; i--, mot_data_file++, mot_data++) {
-            mot_data->type = mot_data_file->type;
-            mot_data->data = (void*)(data + mot_data_file->offset);
-        }
-    }
-
-    if (mhdsf->data_offset) {
-        mothead_data_file* data_file = (mothead_data_file*)(data + mhdsf->data_offset);
-        mothead_data_file* data_file_end = data_file;
-        while ((data_file_end++)->type >= 0);
-
-        size_t count = data_file_end - data_file;
-        mhdm->data = alloc_handler->allocate<mothead_data>(count);
-        mothead_data* _data = mhdm->data;
-        for (size_t i = count; i; i--, data_file++, _data++) {
-            _data->type = data_file->type;
-            _data->frame = data_file->frame;
-            _data->data = (void*)(data + data_file->offset);
-        }
-    }
-
-    if (mhdsf->field_1C) {
-        uint32_t* v29 = (uint32_t*)(data + mhdsf->field_1C);
-        uint32_t* v30 = v29;
-        while (*v30++);
-
-        size_t count = v30 - v29;
-        mhdm->field_28 = alloc_handler->allocate<int64_t>(count);
-        int64_t* v33 = mhdm->field_28;
-        for (size_t i = count; i; i--)
-            *v33++ = data + *v29++;
-    }
-    return mhdm;
-}
-
-bool MhdFile::Unload() {
-    if (--load_count < 0) {
-        load_count = 0;
-        return true;
-    }
-    else if (load_count <= 0) {
-        FreeData();
-        return true;
-    }
-    else
-        return false;
-}
-
-void MhdFile::ParseFileParent(MhdFile* mhd, const void* file_data, size_t size) {
-    mhd->ParseFile(file_data);
 }
 
 OpdMaker::Data::Data() : empty() {

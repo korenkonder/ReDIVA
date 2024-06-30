@@ -502,7 +502,6 @@ static render_context* render_context_load() {
 
     app::task_work_init();
     motion_init();
-    mothead_storage_init();
     skin_param_data_init();
 
     skin_param_data_load();
@@ -1238,7 +1237,6 @@ static void render_context_dispose(render_context* rctx) {
     input_state_free();
 
     skin_param_data_free();
-    mothead_storage_free();
     motion_free();
 
     app::task_work_free();

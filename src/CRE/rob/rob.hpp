@@ -3656,9 +3656,6 @@ extern const uint32_t* get_opd_motion_set_ids();
 
 extern const float_t get_osage_gravity_const();
 
-extern void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db);
-extern void motion_set_unload_mothead(uint32_t set);
-
 extern const char* get_ram_osage_play_data_dir();
 extern const char* get_ram_osage_play_data_tmp_dir();
 extern const char* get_rom_osage_play_data_dir();
@@ -3762,12 +3759,6 @@ extern bool task_rob_manager_hide_task();
 extern bool task_rob_manager_get_wait(int32_t chara_id);
 extern bool task_rob_manager_run_task();
 extern bool task_rob_manager_del_task();
-
-extern void mothead_storage_init();
-extern bool mothead_storage_check_mhd_file_not_ready(uint32_t set_id);
-extern const mothead_mot* mothead_storage_get_mot_by_motion_id(
-    uint32_t motion_id, const motion_database* mot_db);
-extern void mothead_storage_free();
 
 extern int32_t expression_id_to_mottbl_index(int32_t expression_id);
 extern int32_t hand_anim_id_to_mottbl_index(int32_t hand_anim_id);
