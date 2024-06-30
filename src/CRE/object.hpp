@@ -96,7 +96,7 @@ struct ObjsetInfo {
     obj_vertex_buffer* objvb;
     int32_t objib_num;
     obj_index_buffer* objib;
-    uint32_t load_count;
+    int32_t load_count;
     std::string name;
     p_file_handler farc_file_handler;
     bool modern;
