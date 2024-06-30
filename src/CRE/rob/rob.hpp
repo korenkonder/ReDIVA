@@ -2936,7 +2936,7 @@ struct mothead_data {
     const void* data;
 };
 
-struct mothead_data2 {
+struct mothead_mot_data {
     int32_t type;
     const void* data;
 };
@@ -2945,22 +2945,20 @@ struct mothead_mot {
     struc_228 field_0;
     int16_t field_10;
     int16_t field_12;
-    std::vector<mothead_data2> field_18;
-    std::vector<mothead_data> data;
-    std::vector<int64_t> field_28;
+    mothead_mot_data* mot_data;
+    mothead_data* data;
+    int64_t* field_28;
 
     mothead_mot();
-    ~mothead_mot();
 };
 
 struct mothead {
     uint32_t mot_set_id;
     uint32_t first_mot_id;
     uint32_t last_mot_id;
-    std::vector<mothead_mot*> mots;
+    mothead_mot** mots;
 
     mothead();
-    ~mothead();
 };
 
 struct mothead_file {
@@ -2984,8 +2982,8 @@ struct mothead_mot_file {
     int32_t field_C;
     int16_t field_10;
     int16_t field_12;
-    uint32_t field_14;
-    uint32_t field_18;
+    uint32_t mot_data_offset;
+    uint32_t data_offset;
     uint32_t field_1C;
 };
 
@@ -3081,7 +3079,7 @@ struct struc_652 {
     float_t field_23C;
     int32_t field_240;
     int16_t field_244;
-    const mothead_data2* field_248;
+    const mothead_mot_data* field_248;
     int64_t field_250;
     float_t field_258;
     int32_t field_25C;

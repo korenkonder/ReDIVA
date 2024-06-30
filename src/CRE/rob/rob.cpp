@@ -36,8 +36,9 @@ enum rob_sleeve_type : uint8_t {
 struct MhdFile {
     mothead* data;
     uint32_t set;
-    std::string file_path;
+    std::string file_path; // Added
     p_file_handler file_handler;
+    prj::shared_ptr<prj::stack_allocator> alloc_handler;
     int32_t load_count;
 
     MhdFile();
@@ -3224,19 +3225,19 @@ static void sub_140555B00(rob_chara* rob_chr, bool a2) {
         (float_t)((double_t)rob_chr->data.field_1588.field_0.field_274 * M_PI * (1.0 / 32768.0)));
 }
 
-static void mothead_apply2_inner(struc_380* a1, int32_t type, const mothead_data2* a3) {
-    struc_223* v19 = a1->field_10;
+static void mothead_apply_mot_inner(struc_380* a1, int32_t type, const mothead_mot_data* a3) {
+    struc_652* v19 = &a1->field_10->field_0;
     const void* v35 = a3->data;
     switch (type) {
-    case 0: {
-        if (a1->field_10->field_0.field_58 != -1)
+    case 0x00: {
+        if (v19->field_58 != -1)
             break;
 
         uint32_t v8 = 0;
         if (!a3 || a3->type < 0)
             break;
 
-        std::list<std::pair<const void*, uint32_t>> v31;
+        prj::vector_pair<const void*, uint32_t> v31; // Was std::list
         while (a3->type != 0)
             if ((a3++)->type < 0)
                 return;
@@ -3268,90 +3269,90 @@ static void mothead_apply2_inner(struc_380* a1, int32_t type, const mothead_data
                 }
         }
 
-        v19->field_0.field_58 = ((int16_t*)v35)[0];
-        v19->field_0.field_5C = ((int32_t*)v35)[1];
-        v19->field_0.field_60 = ((int32_t*)v35)[2];
-        v19->field_0.field_64 = ((int32_t*)v35)[3];
-        v19->field_0.field_68 = ((int32_t*)v35)[4];
-        v19->field_0.loop_count = ((int16_t*)v35)[5];
-        v19->field_0.loop_begin = (float_t)((int16_t*)v35)[12];
-        v19->field_0.loop_end = (float_t)((int16_t*)v35)[13];
+        v19->field_58 = ((int16_t*)v35)[0];
+        v19->field_5C = ((int32_t*)v35)[1];
+        v19->field_60 = ((int32_t*)v35)[2];
+        v19->field_64 = ((int32_t*)v35)[3];
+        v19->field_68 = ((int32_t*)v35)[4];
+        v19->loop_count = ((int16_t*)v35)[5];
+        v19->loop_begin = (float_t)((int16_t*)v35)[12];
+        v19->loop_end = (float_t)((int16_t*)v35)[13];
     } break;
-    case 1: {
-        v19->field_0.field_78 = (float_t)((int16_t*)v35)[0];
+    case 0x01: {
+        v19->field_78 = (float_t)((int16_t*)v35)[0];
         if (((int16_t*)v35)[1] >= 0)
-            v19->field_0.field_7C = (float_t)((int16_t*)v35)[1];
+            v19->field_7C = (float_t)((int16_t*)v35)[1];
         if (((int16_t*)v35)[2] >= 0)
-            v19->field_0.field_80 = (float_t)((int16_t*)v35)[2];
-        v19->field_0.field_20.field_0 |= 2;
+            v19->field_80 = (float_t)((int16_t*)v35)[2];
+        v19->field_20.field_0 |= 2;
         a1->rob_chara_data->motion.field_24 = 0;
     } break;
-    case 2: {
-        v19->field_0.field_1E8 = ((int32_t*)v35)[0];
-        v19->field_0.field_1EC = (float_t)((int16_t*)v35)[2];
-        v19->field_0.field_1F0 = (float_t)((int16_t*)v35)[3];
-        v19->field_0.field_1F4 = (float_t)((int16_t*)v35)[4];
-        v19->field_0.field_1F8 = (float_t)((int16_t*)v35)[5];
-        v19->field_0.field_1FC = ((float_t*)v35)[3];
-        v19->field_0.field_200 += ((float_t*)v35)[4];
+    case 0x02: {
+        v19->field_1E8 = ((int32_t*)v35)[0];
+        v19->field_1EC = (float_t)((int16_t*)v35)[2];
+        v19->field_1F0 = (float_t)((int16_t*)v35)[3];
+        v19->field_1F4 = (float_t)((int16_t*)v35)[4];
+        v19->field_1F8 = (float_t)((int16_t*)v35)[5];
+        v19->field_1FC = ((float_t*)v35)[3];
+        v19->field_200 += ((float_t*)v35)[4];
         a1->rob_chara_data->field_8.field_B8.field_10.y = -get_osage_gravity_const() * ((float_t*)v35)[4];
-        if (v19->field_0.field_1F4 < v19->field_0.field_1F0)
-            v19->field_0.field_1F4 = v19->field_0.field_1F0;
+        if (v19->field_1F4 < v19->field_1F0)
+            v19->field_1F4 = v19->field_1F0;
     } break;
-    case 40: {
-        v19->field_0.field_238 = ((int16_t*)v35)[0];
+    case 0x28: {
+        v19->field_238 = ((int16_t*)v35)[0];
         if (a1->rob_chara_data->motion.field_28 & 0x08)
-            v19->field_0.field_23C = -((float_t*)v35)[1];
+            v19->field_23C = -((float_t*)v35)[1];
         else
-            v19->field_0.field_23C = ((float_t*)v35)[1];
-        v19->field_0.field_240 = ((int32_t*)v35)[2];
+            v19->field_23C = ((float_t*)v35)[1];
+        v19->field_240 = ((int32_t*)v35)[2];
         a1->rob_chara_data->field_8.field_B8.field_10.y = -get_osage_gravity_const() * ((float_t*)v35)[3];
     } break;
-    case 41: {
-        if (v19->field_0.field_244 <= 0)
-            v19->field_0.field_248 = a3;
-        v19->field_0.field_244++;
+    case 0x29: {
+        if (v19->field_244 <= 0)
+            v19->field_248 = a3;
+        v19->field_244++;
     } break;
-    case 46: {
-        if (v19->field_0.field_10.field_0 & 0x100) {
+    case 0x2E: {
+        if (v19->field_10.field_0 & 0x100) {
             if (a1->rob_chara_data->motion.field_28 & 0x08)
-                v19->field_0.field_274 = -((int16_t*)v35)[0];
+                v19->field_274 = -((int16_t*)v35)[0];
             else
-                v19->field_0.field_274 = ((int16_t*)v35)[0];
+                v19->field_274 = ((int16_t*)v35)[0];
         }
     } break;
-    case 51: {
+    case 0x33: {
         if (a1->rob_chara_data->motion.field_28 & 0x08)
-            v19->field_0.field_2B8 = -((int16_t*)v35)[0];
+            v19->field_2B8 = -((int16_t*)v35)[0];
         else
-            v19->field_0.field_2B8 = ((int16_t*)v35)[0];
+            v19->field_2B8 = ((int16_t*)v35)[0];
     } break;
-    case 55: {
-        v19->field_0.field_2BC = ((int32_t*)v35)[0];
-        v19->field_0.field_2C0 = ((float_t*)v35)[1];
-        v19->field_0.field_2C4 = ((float_t*)v35)[2];
+    case 0x37: {
+        v19->field_2BC = ((int32_t*)v35)[0];
+        v19->field_2C0 = ((float_t*)v35)[1];
+        v19->field_2C4 = ((float_t*)v35)[2];
     } break;
-    case 64: {
+    case 0x40: {
         float_t v31 = ((float_t*)v35)[0];
         if (a1->rob_chara_data->motion.field_28 & 0x08)
             v31 = -v31;
-        v19->field_0.field_318.x = v31;
-        v19->field_0.field_318.y = ((float_t*)v35)[1];
-        v19->field_0.field_318.z = ((float_t*)v35)[2];
+        v19->field_318.x = v31;
+        v19->field_318.y = ((float_t*)v35)[1];
+        v19->field_318.z = ((float_t*)v35)[2];
     } break;
-    case 66: {
-        v19->field_0.field_324 = ((float_t*)v35)[0];
-        if (v19->field_0.field_324 < 0.0f)
-            v19->field_0.field_324 = -v19->field_0.field_324;
+    case 0x42: {
+        v19->field_324 = ((float_t*)v35)[0];
+        if (v19->field_324 < 0.0f)
+            v19->field_324 = -v19->field_324;
     } break;
-    case 68: {
+    case 0x44: {
         if (((int32_t*)v35)[0] > 0)
-            v19->field_0.iterations = ((int32_t*)v35)[0];
+            v19->iterations = ((int32_t*)v35)[0];
     } break;
     }
 }
 
-static void mothead_apply2(struc_223* a1, rob_chara* rob_chr, const mothead_data2* a3) {
+static void mothead_apply_mot(struc_223* a1, rob_chara* rob_chr, const mothead_mot_data* a3) {
     if (!a3 || !a3->data)
         return;
 
@@ -3361,7 +3362,7 @@ static void mothead_apply2(struc_223* a1, rob_chara* rob_chr, const mothead_data
     v5.field_10 = &rob_chr->data.field_1588;
 
     while (a3->data && a3->type >= 0) {
-        mothead_apply2_inner(&v5, a3->type, a3);
+        mothead_apply_mot_inner(&v5, a3->type, a3);
         a3++;
     }
 }
@@ -3376,30 +3377,30 @@ static void sub_14053A9C0(struc_223* a1, rob_chara* rob_chr,
     a1->field_0.field_1F0 = frame_count - 1.0f;
     a1->field_0.field_1F4 = frame_count - 1.0f;
 
-    const mothead_mot* v7 = mothead_storage_get_mot_by_motion_id(motion_id, mot_db);
-    if (!v7)
+    const mothead_mot* mot = mothead_storage_get_mot_by_motion_id(motion_id, mot_db);
+    if (!mot)
         return;
 
-    a1->field_330.field_0.current = v7->data.data();
-    a1->field_330.field_0.data = v7->data.data();
-    a1->field_7A0 = v7->field_28.data();
+    a1->field_330.field_0.current = mot->data;
+    a1->field_330.field_0.data = mot->data;
+    a1->field_7A0 = mot->field_28;
     a1->motion_set_id = mot_db->get_motion_set_id_by_motion_id(motion_id);
-    a1->field_0.field_10 = v7->field_0;
-    a1->field_0.field_20 = v7->field_0;
+    a1->field_0.field_10 = mot->field_0;
+    a1->field_0.field_20 = mot->field_0;
     a1->field_0.field_20.field_0 &= ~0x4000;
     if (a1->field_0.field_10.field_0 & 0x100)
         a1->field_0.field_274 = (int16_t)0x8000;
     if (a1->field_0.field_10.field_0 & 0x200000)
         a1->field_0.field_2B8 = (int16_t)0x8000;
 
-    a1->field_0.field_50 = v7->field_10;
-    a1->field_0.field_52 = v7->field_12;
-    if (v7->field_12 & 0x40) {
-        a1->field_0.field_52 = v7->field_12 & ~0x40;
+    a1->field_0.field_50 = mot->field_10;
+    a1->field_0.field_52 = mot->field_12;
+    if (mot->field_12 & 0x40) {
+        a1->field_0.field_52 = mot->field_12 & ~0x40;
         a1->field_0.field_54 |= 0x40;
     }
 
-    mothead_apply2(a1, rob_chr, v7->field_18.data());
+    mothead_apply_mot(a1, rob_chr, mot->mot_data);
 
     if (a1->field_0.field_58 == 1)
         a1->field_0.frame = frame_count - 1.0f;
@@ -3415,30 +3416,30 @@ static void sub_14053A9C0(struc_223* a1, rob_chara* rob_chr,
     a1->field_0.field_274 += a1->field_0.field_2B8;
     a1->field_0.field_A0 += a1->field_0.field_2B8;
 
-    const mothead_data* v11 = v7->data.data();
-    if (!v11)
+    const mothead_data* data = mot->data;
+    if (!data)
         return;
 
-    mothead_data_type v12 = v11->type;
-    if (v11->type < 0)
+    mothead_data_type type = data->type;
+    if (data->type < 0)
         return;
 
-    while (v12 != MOTHEAD_DATA_TYPE_11)
-        if ((v12 = (v11++)->type) < 0)
+    while (type != MOTHEAD_DATA_TYPE_11)
+        if ((type = (data++)->type) < 0)
             return;
 
-    const void* d = v11->data;
+    const void* d = data->data;
     while (d) {
         a1->field_0.field_C += *(int16_t*)d;
 
-        mothead_data_type v17 = (v11++)->type;
-        if (v17 < 0)
+        mothead_data_type type = (data++)->type;
+        if (type < MOTHEAD_DATA_TYPE_0)
             break;
 
-        while (v17 != MOTHEAD_DATA_TYPE_11)
-            if ((v17 = (v11++)->type) < 0)
+        while (type != MOTHEAD_DATA_TYPE_11)
+            if ((type = (data++)->type) < 0)
                 return;
-        d = v11->data;
+        d = data->data;
     }
 }
 
@@ -8134,7 +8135,7 @@ static bool sub_14054F930(uint32_t a1, uint32_t* a2) {
 
 static const void* sub_140551F60(rob_chara* rob_chr, uint32_t* a2) {
     int16_t v2 = rob_chr->data.field_1588.field_0.field_244;
-    const mothead_data2* v3 = rob_chr->data.field_1588.field_0.field_248;
+    const mothead_mot_data* v3 = rob_chr->data.field_1588.field_0.field_248;
     if (!v2)
         return 0;
 
@@ -15413,24 +15414,16 @@ mothead_mot::mothead_mot() {
     field_0.field_C = 0;
     field_10 = 0x04;
     field_12 = 0x04;
-}
-
-mothead_mot::~mothead_mot() {
-
+    mot_data = 0;
+    data = 0;
+    field_28 = 0;
 }
 
 mothead::mothead() {
     mot_set_id = -1;
     first_mot_id = 0;
     last_mot_id = 0;
-}
-
-mothead::~mothead() {
-    for (mothead_mot*& i : mots)
-        if (i) {
-            delete i;
-            i = 0;
-        }
+    mots = 0;
 }
 
 struc_306::struc_306() : field_0(), frame(), field_8(), field_C(), field_E(),
@@ -15944,10 +15937,8 @@ bool MhdFile::CheckNotReady() {
 }
 
 void MhdFile::FreeData() {
-    if (data) {
-        delete data;
-        data = 0;
-    }
+    data = 0;
+    alloc_handler.reset();
     set = -1;
     file_path.clear();
     file_handler.reset();
@@ -15969,19 +15960,20 @@ void MhdFile::LoadFile(const char* path, const char* file, uint32_t set) {
 }
 
 void MhdFile::ParseFile(const void* data) {
+    alloc_handler = prj::shared_ptr<prj::stack_allocator>(new prj::stack_allocator);
     mothead_file* mhdf = (mothead_file*)((size_t)data + ((uint32_t*)data)[1]);
     this->data = MhdFile::ParseMothead(mhdf, (size_t)mhdf);
 }
 
 mothead* MhdFile::ParseMothead(mothead_file* mhdf, size_t data) {
-    mothead* mhd = new mothead;
+    mothead* mhd = alloc_handler->allocate<mothead>();
     mhd->mot_set_id = mhdf->mot_set_id;
     mhd->first_mot_id = mhdf->first_mot_id;
     mhd->last_mot_id = mhdf->last_mot_id;
     uint32_t* mot_offsets = (uint32_t*)(data + mhdf->mot_offsets_offset);
     size_t mot_count = (size_t)mhdf->last_mot_id - mhdf->first_mot_id + 1;
-    mhd->mots.resize(mot_count);
-    mothead_mot** mots = mhd->mots.data();
+    mhd->mots = alloc_handler->allocate<mothead_mot*>(mot_count);
+    mothead_mot** mots = mhd->mots;
     for (; mot_count; mot_count--) {
         *mots = 0;
         if (*mot_offsets)
@@ -15993,18 +15985,18 @@ mothead* MhdFile::ParseMothead(mothead_file* mhdf, size_t data) {
 }
 
 mothead_mot* MhdFile::ParseMotheadMot(mothead_mot_file* mhdsf, size_t data) {
-    struct struc_335 {
+    struct mothead_mot_data_file {
         int32_t type;
         uint32_t offset;
     };
 
-    struct struc_337 {
+    struct mothead_data_file {
         mothead_data_type type;
         int32_t frame;
         uint32_t offset;
     };
 
-    mothead_mot* mhdm = new mothead_mot;
+    mothead_mot* mhdm = alloc_handler->allocate<mothead_mot>();
     mhdm->field_0.field_0 = mhdsf->field_0;
     mhdm->field_0.field_4 = mhdsf->field_4;
     mhdm->field_0.field_8 = mhdsf->field_8;
@@ -16012,36 +16004,32 @@ mothead_mot* MhdFile::ParseMotheadMot(mothead_mot_file* mhdsf, size_t data) {
     mhdm->field_10 = mhdsf->field_10;
     mhdm->field_12 = mhdsf->field_12;
 
-    if (mhdsf->field_14) {
-        struc_335* v11 = (struc_335*)(data + mhdsf->field_14);
-        struc_335* v12 = v11;
-        while ((v12++)->type >= 0);
+    if (mhdsf->mot_data_offset) {
+        mothead_mot_data_file* mot_data_file = (mothead_mot_data_file*)(data + mhdsf->mot_data_offset);
+        mothead_mot_data_file* mot_data_file_end = mot_data_file;
+        while ((mot_data_file_end++)->type >= 0);
 
-        size_t count = v12 - v11;
-        mhdm->field_18.resize(count);
-        mothead_data2* v15 = mhdm->field_18.data();
-        for (size_t i = count; i; i--) {
-            v15->type = v11->type;
-            v15->data = (void*)(data + v11->offset);
-            v11++;
-            v15++;
+        size_t count = mot_data_file_end - mot_data_file;
+        mhdm->mot_data = alloc_handler->allocate<mothead_mot_data>(count);
+        mothead_mot_data* mot_data = mhdm->mot_data;
+        for (size_t i = count; i; i--, mot_data_file++, mot_data++) {
+            mot_data->type = mot_data_file->type;
+            mot_data->data = (void*)(data + mot_data_file->offset);
         }
     }
 
-    if (mhdsf->field_18) {
-        struc_337* v20 = (struc_337*)(data + mhdsf->field_18);
-        struc_337* v21 = v20;
-        while ((v21++)->type >= 0);
+    if (mhdsf->data_offset) {
+        mothead_data_file* data_file = (mothead_data_file*)(data + mhdsf->data_offset);
+        mothead_data_file* data_file_end = data_file;
+        while ((data_file_end++)->type >= 0);
 
-        size_t count = v21 - v20;
-        mhdm->data.resize(count);
-        mothead_data* v24 = mhdm->data.data();
-        for (size_t i = count; i; i--) {
-            v24->type = v20->type;
-            v24->frame = v20->frame;
-            v24->data = (void*)(data + v20->offset);
-            v20++;
-            v24++;
+        size_t count = data_file_end - data_file;
+        mhdm->data = alloc_handler->allocate<mothead_data>(count);
+        mothead_data* _data = mhdm->data;
+        for (size_t i = count; i; i--, data_file++, _data++) {
+            _data->type = data_file->type;
+            _data->frame = data_file->frame;
+            _data->data = (void*)(data + data_file->offset);
         }
     }
 
@@ -16051,8 +16039,8 @@ mothead_mot* MhdFile::ParseMotheadMot(mothead_mot_file* mhdsf, size_t data) {
         while (*v30++);
 
         size_t count = v30 - v29;
-        mhdm->field_28.resize(count);
-        int64_t* v33 = mhdm->field_28.data();
+        mhdm->field_28 = alloc_handler->allocate<int64_t>(count);
+        int64_t* v33 = mhdm->field_28;
         for (size_t i = count; i; i--)
             *v33++ = data + *v29++;
     }
@@ -17468,7 +17456,7 @@ inline rob_osage_mothead_data::rob_osage_mothead_data(mothead_data_type type,
     uint32_t motion_id, const motion_database* mot_db) {
     data = 0;
     this->type = type;
-    data = mothead_storage_get_mot_by_motion_id(motion_id, mot_db)->data.data();
+    data = mothead_storage_get_mot_by_motion_id(motion_id, mot_db)->data;
     init = true;
 }
 
@@ -19241,26 +19229,26 @@ void PvOsageManager::sub_1404F8AA0() {
     }
     else {
         bool v12 = true;
-        const mothead_data* v13 = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data.data();
-        if (v13 && v13->type >= MOTHEAD_DATA_TYPE_0) {
-            mothead_data_type v14 = v13->type;
-            while (v14 != MOTHEAD_DATA_WIND_RESET) {
-                v13++;
-                v14 = v13->type;
-                if (v14 < MOTHEAD_DATA_TYPE_0)
+        const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
+        if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
+            mothead_data_type type = data->type;
+            while (type != MOTHEAD_DATA_WIND_RESET) {
+                data++;
+                type = data->type;
+                if (type < MOTHEAD_DATA_TYPE_0)
                     goto LABEL_1;
             }
 
-            while (v13->frame) {
-                v13++;
-                mothead_data_type v18 = v13->type;
-                if (v18 < MOTHEAD_DATA_TYPE_0)
+            while (data->frame) {
+                data++;
+                mothead_data_type type = data->type;
+                if (type < MOTHEAD_DATA_TYPE_0)
                     goto LABEL_1;
 
-                while (v18 != MOTHEAD_DATA_WIND_RESET) {
-                    v13++;
-                    v18 = v13->type;
-                    if (v18 < MOTHEAD_DATA_TYPE_0)
+                while (type != MOTHEAD_DATA_WIND_RESET) {
+                    data++;
+                    type = data->type;
+                    if (type < MOTHEAD_DATA_TYPE_0)
                         goto LABEL_1;
                 }
             }
@@ -19277,32 +19265,32 @@ void PvOsageManager::sub_1404F8AA0() {
         if (v12)
             AddMotionFrameResetData(0, motion_id, 0.0f, -1);
 
-        const mothead_data* v23 = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data.data();
-        if (v23 && v23->type >= MOTHEAD_DATA_TYPE_0) {
-            mothead_data_type v24 = v23->type;
-            while (v24 != MOTHEAD_DATA_OSAGE_RESET) {
-                v23++;
-                v24 = v23->type;
-                if (v24 < MOTHEAD_DATA_TYPE_0)
+        data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
+        if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
+            mothead_data_type type = data->type;
+            while (type != MOTHEAD_DATA_OSAGE_RESET) {
+                data++;
+                type = data->type;
+                if (type < MOTHEAD_DATA_TYPE_0)
                     return;
             }
 
             while (true) {
                 int32_t iterations = 60;
-                if (v23->data)
-                    iterations = *(int32_t*)v23->data;
+                if (data->data)
+                    iterations = *(int32_t*)data->data;
 
-                AddMotionFrameResetData(0, motion_id, (float_t)v23->frame, iterations);
+                AddMotionFrameResetData(0, motion_id, (float_t)data->frame, iterations);
 
-                v23++;
-                mothead_data_type v29 = v23->type;
-                if (v23->type < MOTHEAD_DATA_TYPE_0)
+                data++;
+                mothead_data_type type = data->type;
+                if (type < MOTHEAD_DATA_TYPE_0)
                     break;
 
-                while (v29 != MOTHEAD_DATA_OSAGE_RESET) {
-                    v23++;
-                    v29 = v23->type;
-                    if (v29 < MOTHEAD_DATA_TYPE_0)
+                while (type != MOTHEAD_DATA_OSAGE_RESET) {
+                    data++;
+                    type = data->type;
+                    if (type < MOTHEAD_DATA_TYPE_0)
                         return;
                 }
             }

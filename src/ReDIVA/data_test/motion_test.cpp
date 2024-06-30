@@ -1038,26 +1038,49 @@ bool DtmMot::ctrl() {
 
             pv_data.find_playdata_set_motion(chara_id);
             pv_data.find_set_motion(diff);
+
             const std::vector<pv_data_set_motion>* set_motion = pv_data.get_set_motion(chara_id);
             if (set_motion) {
                 this->set_motion.assign(set_motion->begin(), set_motion->end());
-                const mothead_mot* mhdm = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db);
-                if (mhdm)
-                    for (const mothead_data& i : mhdm->data) {
-                        if (i.type != MOTHEAD_DATA_WIND_RESET)
-                            continue;
+
+                const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
+                if (data && data->type >= MOTHEAD_DATA_TYPE_0) {
+                    mothead_data_type type = data->type;
+                    while (type != MOTHEAD_DATA_WIND_RESET) {
+                        data++;
+                        type = data->type;
+                        if (type < MOTHEAD_DATA_TYPE_0)
+                            break;
+                    }
+
+                    while (true) {
+                        if (type < MOTHEAD_DATA_TYPE_0)
+                            break;
 
                         auto j_begin = this->set_motion.begin();
                         auto j_end = this->set_motion.end();
                         for (auto j = j_begin; j != j_end; )
-                            if ((float_t)i.frame == j->frame_stage_index.first) {
+                            if ((float_t)data->frame == j->frame_stage_index.first) {
                                 std::move(j + 1, j_end, j);
                                 this->set_motion.pop_back();
                                 j_end = this->set_motion.end();
                             }
                             else
                                 j++;
+
+                        data++;
+                        type = data->type;
+                        if (type < MOTHEAD_DATA_TYPE_0)
+                            break;
+
+                        while (type != MOTHEAD_DATA_WIND_RESET) {
+                            data++;
+                            type = data->type;
+                            if (type < MOTHEAD_DATA_TYPE_0)
+                                break;
+                        }
                     }
+                }
             }
         }
 
