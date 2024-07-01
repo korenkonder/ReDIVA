@@ -1469,51 +1469,62 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
             dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
         }
 #endif
+
         for (pvpp_chara_effect_auth_3d& j : chara_effect.auth_3d) {
+#if BAKE_PV826
+            if (pv_id == 826 && !j.auth_3d.str.find("EFFCHRPV826")) {
+                switch (&j - chara_effect.auth_3d.data()) {
+                case 0:
+                    src_chara = CHARA_RIN;
+                    break;
+                case 1:
+                    src_chara = CHARA_LEN;
+                    break;
+                case 2:
+                    src_chara = CHARA_LUKA;
+                    break;
+                case 3:
+                    src_chara = CHARA_KAITO;
+                    break;
+                case 4:
+                    src_chara = CHARA_MEIKO;
+                    break;
+                }
+                src_chara_str = chara_index_get_auth_3d_name(src_chara);
+            }
+#endif
+
             std::string file(j.auth_3d.str);
             std::string object_set;
-#if BAKE_PV826
-            if (pv_id != 826) {
-#endif
-                if (j.has_object_set)
-                    object_set.assign(j.object_set.str);
-                else
-                    object_set.assign(file);
+            if (j.has_object_set)
+                object_set.assign(j.object_set.str);
+            else
+                object_set.assign(file);
 
-                if (src_chara != dst_chara) {
-                    if (src_chara_str) {
-                        size_t pos = object_set.find(src_chara_str);
+            if (src_chara != dst_chara) {
+                if (src_chara_str) {
+                    size_t pos = object_set.find(src_chara_str);
+                    if (pos != -1)
+                        object_set.replace(pos, 3, dst_chara_str);
+                    else if (dst_chara_mei_str) {
+                        size_t pos = object_set.find(dst_chara_mei_str);
                         if (pos != -1)
-                            object_set.replace(pos, 3, dst_chara_str);
+                            object_set.replace(pos, 3, src_chara_str);
+                    }
+                }
+
+                if (!j.u00)
+                    if (src_chara_str) {
+                        size_t pos = file.find(src_chara_str);
+                        if (pos != -1)
+                            file.replace(pos, 3, dst_chara_str);
                         else if (dst_chara_mei_str) {
-                            size_t pos = object_set.find(dst_chara_mei_str);
+                            size_t pos = file.find(dst_chara_mei_str);
                             if (pos != -1)
-                                object_set.replace(pos, 3, src_chara_str);
+                                file.replace(pos, 3, src_chara_str);
                         }
                     }
-
-                    if (!j.u00)
-                        if (src_chara_str) {
-                            size_t pos = file.find(src_chara_str);
-                            if (pos != -1)
-                                file.replace(pos, 3, dst_chara_str);
-                            else if (dst_chara_mei_str) {
-                                size_t pos = file.find(dst_chara_mei_str);
-                                if (pos != -1)
-                                    file.replace(pos, 3, src_chara_str);
-                            }
-                        }
-                }
-#if BAKE_PV826
             }
-            else {
-                if (!j.auth_3d.str.find("EFFCHRPV826"))
-                    continue;
-
-                file.assign("EFFCHRPV826MIK001");
-                object_set.assign("EFFCHRPV826MIK001");
-            }
-#endif
 
             std::string category;
             if (!file.find("EFFCHRPV")) {
@@ -8427,7 +8438,7 @@ static void mot_write_motion_set(x_pv_game* xpvgm) {
         std::string mot_farc;
         mot_farc.append("pv826\\mot_");
         mot_farc.append(bake_pv826_set_info->name);
-        f.write(mot_farc.c_str(), FARC_FArC, FARC_NONE, false);
+        f.write(mot_farc.c_str(), FARC_FArC, FARC_NONE, true, false);
     }
 
     delete[] bake_pv826_thread;
