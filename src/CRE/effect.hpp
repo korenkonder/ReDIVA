@@ -43,7 +43,7 @@ struct particle_event_data {
     float_t type;
     float_t count;
     float_t size;
-    vec3 trans;
+    vec3 pos;
     float_t force;
 
     particle_event_data();

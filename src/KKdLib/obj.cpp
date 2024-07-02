@@ -1020,7 +1020,7 @@ static obj_skin_block_cloth* obj_move_data_skin_block_cloth(const obj_skin_block
 static void obj_move_data_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root_dst,
     const obj_skin_block_cloth_root* cloth_root_src,
     prj::shared_ptr<prj::stack_allocator> alloc) {
-    cloth_root_dst->trans = cloth_root_src->trans;
+    cloth_root_dst->pos = cloth_root_src->pos;
     cloth_root_dst->normal = cloth_root_src->normal;
     cloth_root_dst->field_18 = cloth_root_src->field_18;
     cloth_root_dst->field_1C = cloth_root_src->field_1C;
@@ -2783,12 +2783,12 @@ static obj_skin_block_cloth* obj_classic_read_skin_block_cloth(
             for (int32_t j = 0; j < cls->num_root; j++) {
                 obj_skin_block_cloth_node* f = &cls->node_array[i * cls->num_root + j];
                 f->flags = s.read_uint32_t();
-                f->trans.x = s.read_float_t();
-                f->trans.y = s.read_float_t();
-                f->trans.z = s.read_float_t();
-                f->trans_diff.x = s.read_float_t();
-                f->trans_diff.y = s.read_float_t();
-                f->trans_diff.z = s.read_float_t();
+                f->pos.x = s.read_float_t();
+                f->pos.y = s.read_float_t();
+                f->pos.z = s.read_float_t();
+                f->delta_pos.x = s.read_float_t();
+                f->delta_pos.y = s.read_float_t();
+                f->delta_pos.z = s.read_float_t();
                 f->dist_top = s.read_float_t();
                 f->dist_bottom = s.read_float_t();
                 f->dist_right = s.read_float_t();
@@ -2893,12 +2893,12 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* cls,
             for (int32_t j = 0; j < num_root; j++) {
                 obj_skin_block_cloth_node* f = &node_array[i * cls->num_root + j];
                 s.write_uint32_t(f->flags);
-                s.write_float_t(f->trans.x);
-                s.write_float_t(f->trans.y);
-                s.write_float_t(f->trans.z);
-                s.write_float_t(f->trans_diff.x);
-                s.write_float_t(f->trans_diff.y);
-                s.write_float_t(f->trans_diff.z);
+                s.write_float_t(f->pos.x);
+                s.write_float_t(f->pos.y);
+                s.write_float_t(f->pos.z);
+                s.write_float_t(f->delta_pos.x);
+                s.write_float_t(f->delta_pos.y);
+                s.write_float_t(f->delta_pos.z);
                 s.write_float_t(f->dist_top);
                 s.write_float_t(f->dist_bottom);
                 s.write_float_t(f->dist_right);
@@ -2927,9 +2927,9 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* cls,
 
 static void obj_classic_read_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s, const char** str) {
-    cloth_root->trans.x = s.read_float_t();
-    cloth_root->trans.y = s.read_float_t();
-    cloth_root->trans.z = s.read_float_t();
+    cloth_root->pos.x = s.read_float_t();
+    cloth_root->pos.y = s.read_float_t();
+    cloth_root->pos.z = s.read_float_t();
     cloth_root->normal.x = s.read_float_t();
     cloth_root->normal.y = s.read_float_t();
     cloth_root->normal.z = s.read_float_t();
@@ -2945,9 +2945,9 @@ static void obj_classic_read_skin_block_cloth_root(obj_skin_block_cloth_root* cl
 
 static void obj_classic_write_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets) {
-    s.write_float_t(cloth_root->trans.x);
-    s.write_float_t(cloth_root->trans.y);
-    s.write_float_t(cloth_root->trans.z);
+    s.write_float_t(cloth_root->pos.x);
+    s.write_float_t(cloth_root->pos.y);
+    s.write_float_t(cloth_root->pos.z);
     s.write_float_t(cloth_root->normal.x);
     s.write_float_t(cloth_root->normal.y);
     s.write_float_t(cloth_root->normal.z);
@@ -6825,12 +6825,12 @@ static obj_skin_block_cloth* obj_modern_read_skin_block_cloth(
             for (int32_t j = 0; j < num_root; j++) {
                 obj_skin_block_cloth_node* f = &node_array[(size_t)i * num_root + j];
                 f->flags = s.read_uint32_t_reverse_endianness();
-                f->trans.x = s.read_float_t_reverse_endianness();
-                f->trans.y = s.read_float_t_reverse_endianness();
-                f->trans.z = s.read_float_t_reverse_endianness();
-                f->trans_diff.x = s.read_float_t_reverse_endianness();
-                f->trans_diff.y = s.read_float_t_reverse_endianness();
-                f->trans_diff.z = s.read_float_t_reverse_endianness();
+                f->pos.x = s.read_float_t_reverse_endianness();
+                f->pos.y = s.read_float_t_reverse_endianness();
+                f->pos.z = s.read_float_t_reverse_endianness();
+                f->delta_pos.x = s.read_float_t_reverse_endianness();
+                f->delta_pos.y = s.read_float_t_reverse_endianness();
+                f->delta_pos.z = s.read_float_t_reverse_endianness();
                 f->dist_top = s.read_float_t_reverse_endianness();
                 f->dist_bottom = s.read_float_t_reverse_endianness();
                 f->dist_right = s.read_float_t_reverse_endianness();
@@ -6959,12 +6959,12 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* cls,
             for (int32_t j = 0; j < num_root; j++) {
                 obj_skin_block_cloth_node* f = &node_array[(size_t)i * num_root + j];
                 s.write_uint32_t_reverse_endianness(f->flags);
-                s.write_float_t_reverse_endianness(f->trans.x);
-                s.write_float_t_reverse_endianness(f->trans.y);
-                s.write_float_t_reverse_endianness(f->trans.z);
-                s.write_float_t_reverse_endianness(f->trans_diff.x);
-                s.write_float_t_reverse_endianness(f->trans_diff.y);
-                s.write_float_t_reverse_endianness(f->trans_diff.z);
+                s.write_float_t_reverse_endianness(f->pos.x);
+                s.write_float_t_reverse_endianness(f->pos.y);
+                s.write_float_t_reverse_endianness(f->pos.z);
+                s.write_float_t_reverse_endianness(f->delta_pos.x);
+                s.write_float_t_reverse_endianness(f->delta_pos.y);
+                s.write_float_t_reverse_endianness(f->delta_pos.z);
                 s.write_float_t_reverse_endianness(f->dist_top);
                 s.write_float_t_reverse_endianness(f->dist_bottom);
                 s.write_float_t_reverse_endianness(f->dist_right);
@@ -6997,9 +6997,9 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* cls,
 
 static void obj_modern_read_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
     prj::shared_ptr<prj::stack_allocator> alloc, stream& s, uint32_t header_length, const char** str, bool is_x) {
-    cloth_root->trans.x = s.read_float_t();
-    cloth_root->trans.y = s.read_float_t();
-    cloth_root->trans.z = s.read_float_t();
+    cloth_root->pos.x = s.read_float_t();
+    cloth_root->pos.y = s.read_float_t();
+    cloth_root->pos.z = s.read_float_t();
     cloth_root->normal.x = s.read_float_t();
     cloth_root->normal.y = s.read_float_t();
     cloth_root->normal.z = s.read_float_t();
@@ -7015,9 +7015,9 @@ static void obj_modern_read_skin_block_cloth_root(obj_skin_block_cloth_root* clo
 
 static void obj_modern_write_skin_block_cloth_root(obj_skin_block_cloth_root* cloth_root,
     stream& s, std::vector<string_hash>& strings, std::vector<int64_t>& string_offsets, bool is_x) {
-    s.write_float_t(cloth_root->trans.x);
-    s.write_float_t(cloth_root->trans.y);
-    s.write_float_t(cloth_root->trans.z);
+    s.write_float_t(cloth_root->pos.x);
+    s.write_float_t(cloth_root->pos.y);
+    s.write_float_t(cloth_root->pos.z);
     s.write_float_t(cloth_root->normal.x);
     s.write_float_t(cloth_root->normal.y);
     s.write_float_t(cloth_root->normal.z);

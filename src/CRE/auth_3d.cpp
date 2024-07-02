@@ -1075,16 +1075,16 @@ namespace auth_3d_detail {
             return;
 
         auth_3d_point& point = auth->point[index];
-        vec3 trans = point.model_transform.translation_value;
+        vec3 pos = point.model_transform.translation_value;
         if (auth->left_right_reverse)
-            trans.x = -trans.x;
+            pos.x = -pos.x;
 
-        mat4_transform_point(&auth->mat, &trans, &trans);
+        mat4_transform_point(&auth->mat, &pos, &pos);
         particle_event_data event;
         event.type = 1.0f;
         event.count = point.model_transform.scale_value.x * 100.0f;
         event.size = point.model_transform.scale_value.z;
-        event.trans = trans;
+        event.pos = pos;
         event.force = point.model_transform.scale_value.y;
         effect_manager_event(EFFECT_PARTICLE, 1, &event);
     }

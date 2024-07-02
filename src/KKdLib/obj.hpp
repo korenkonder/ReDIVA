@@ -464,7 +464,7 @@ struct obj_skin_block_cloth_root_bone_weight {
 };
 
 struct obj_skin_block_cloth_root {
-    vec3 trans;
+    vec3 pos;
     vec3 normal;
     float_t field_18;
     int32_t field_1C;
@@ -477,8 +477,8 @@ struct obj_skin_block_cloth_root {
 
 struct obj_skin_block_cloth_node {
     uint32_t flags;
-    vec3 trans;
-    vec3 trans_diff;
+    vec3 pos;
+    vec3 delta_pos;
     float_t dist_top;
     float_t dist_bottom;
     float_t dist_right;

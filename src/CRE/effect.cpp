@@ -29,7 +29,7 @@ struct particle_init_data {
     float_t field_0;
     float_t field_4;
     float_t field_8;
-    vec3 trans;
+    vec3 pos;
     float_t scale_y;
 };
 
@@ -356,7 +356,7 @@ struct ripple_emit_draw_data {
 
 struct struc_192 {
     int32_t index;
-    vec3 trans;
+    vec3 pos;
 
     struc_192();
 };
@@ -511,7 +511,7 @@ struct splash_particle {
 
 struct ParticleEmitter {
     splash_particle* splash;
-    vec3 trans;
+    vec3 pos;
     int32_t field_1C;
     float_t field_20;
     int field_24;
@@ -530,7 +530,7 @@ struct ParticleEmitter {
 struct ParticleEmitterRob : ParticleEmitter {
     int32_t chara_id;
     int32_t bone_index;
-    vec3 prev_trans;
+    vec3 prev_pos;
     vec3 velocity;
     vec3 prev_velocity;
     int32_t emit_num;
@@ -2456,14 +2456,14 @@ void EffectFogRing::sub_140347B40(float_t delta_time) {
             if (!mat)
                 continue;
 
-            vec3 trans;
-            mat4_get_translation(mat, &trans);
-            v8->position = trans;
+            vec3 pos;
+            mat4_get_translation(mat, &pos);
+            v8->position = pos;
 
             if (field_124 >= 10 || field_8)
                 continue;
 
-            vec3 v23 = (trans - v8->position) * (1.0f / delta_time);
+            vec3 v23 = (pos - v8->position) * (1.0f / delta_time);
             float_t v15 = vec3::length(v23);
 
             float_t v18;
@@ -2479,7 +2479,7 @@ void EffectFogRing::sub_140347B40(float_t delta_time) {
                 v19 = 0.5f;
             }
             else {
-                if (trans.y >= 0.2f || v8->position.y < 0.2f)
+                if (pos.y >= 0.2f || v8->position.y < 0.2f)
                     continue;
 
                 v18 = 2.2f;
@@ -2489,7 +2489,7 @@ void EffectFogRing::sub_140347B40(float_t delta_time) {
 
             struc_371& v20 = field_128[field_124++];
             v20.field_0 = 1;
-            v20.position = trans;
+            v20.position = pos;
             v20.field_10 = v19;
             v20.field_14 = v19 * v19;
             v20.direction = v23;
@@ -3189,7 +3189,7 @@ void EffectRipple::reset() {
     field_4F0 = 18;
     for (struc_207& i : field_4F4)
         for (int32_t j = 0; j < field_4F0; j++)
-            i.field_0[j].trans = 0.0f;
+            i.field_0[j].pos = 0.0f;
 
     field_30 = 60;
 
@@ -3257,7 +3257,7 @@ void EffectRipple::set_stage_indices(const std::vector<int32_t>& stage_indices) 
     for (struc_207& i : field_4F4)
         for (int32_t j = 0; j < field_4F0; j++) {
             i.field_0[j].index = dword_1409E5330[j];
-            i.field_0[j].trans = 0.0f;
+            i.field_0[j].pos = 0.0f;
         }
 
     update = false;
@@ -3461,22 +3461,22 @@ void EffectRipple::sub_14035AED0() {
 
         for (int32_t j = 0; j < field_4F0; j++) {
             struc_192& v4 = i.field_0[j];
-            vec3 trans = 0.0f;
-            float_t scale = rob_chr->get_trans_scale(v4.index, trans);
-            if (trans.y - ground_y < scale) {
+            vec3 pos = 0.0f;
+            float_t scale = rob_chr->get_pos_scale(v4.index, pos);
+            if (pos.y - ground_y < scale) {
                 if (use_float_ripplemap)
-                    sub_1403587C0(trans, v4.trans, scale, v2.data, v3.data);
+                    sub_1403587C0(pos, v4.pos, scale, v2.data, v3.data);
                 else if (v2.data.count < 16) {
                     v2.data.position[v2.data.count].x = ((rand_state_array_get_float(4) - 0.5f)
-                        * 0.02f + trans.x) * emit_pos_scale + emit_pos_ofs_x;
-                    v2.data.position[v2.data.count].y = trans.y;
+                        * 0.02f + pos.x) * emit_pos_scale + emit_pos_ofs_x;
+                    v2.data.position[v2.data.count].y = pos.y;
                     v2.data.position[v2.data.count].z = ((rand_state_array_get_float(4) - 0.5f)
-                        * 0.02f + trans.z) * emit_pos_scale + emit_pos_ofs_z;
+                        * 0.02f + pos.z) * emit_pos_scale + emit_pos_ofs_z;
                     v2.data.color[v2.data.count] = { 0x00, 0x00, 0x00, 0x00 };
                     v2.data.count++;
                 }
             }
-            v4.trans = trans;
+            v4.pos = pos;
         }
 
         chara_id++;
@@ -3798,7 +3798,7 @@ void ParticleEmitter::restart() {
 
 void ParticleEmitter::reset_data() {
     splash = 0;
-    trans = 0.0f;
+    pos = 0.0f;
     field_1C = 0;
     field_20 = 1.0f;
     field_24 = 0;
@@ -3851,7 +3851,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
     if (v8 > 100.0f)
         return;
 
-    if (trans.y >= 0.3f)
+    if (pos.y >= 0.3f)
         field_60 = max_def(field_60 - delta_time * emission_ratio_attn, 0.0f);
     else
         field_60 = 1.0f;
@@ -3866,7 +3866,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
 
     vec3 prev_velocity = this->prev_velocity * emission_velocity_scale;
     vec3 velocity = this->velocity * emission_velocity_scale;;
-    vec3 trans_diff = trans - prev_trans;
+    vec3 trans_diff = pos - prev_pos;
     vec3 velocity_diff = velocity - prev_velocity;
 
     float_t v41 = flt_140C9A588;
@@ -3878,7 +3878,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
         float_t diff_scale = rand_a_get_float();
         vec3 rand_vec = rand_b_get_float();
 
-        ptcl->position = rand_vec * 0.05f + (trans_diff * diff_scale + prev_trans);
+        ptcl->position = rand_vec * 0.05f + (trans_diff * diff_scale + prev_pos);
         ptcl->direction = rand_vec * 0.65f + (velocity_diff * diff_scale + prev_velocity);
 
         float_t size_scale = rand_a_get_float();;
@@ -3886,7 +3886,7 @@ void ParticleEmitterRob::ctrl(float_t delta_time) {
         ptcl->flags = 0x01;
         ptcl->size = max_def(size_scale * size_scale * particle_size, 1.0f);
 
-        if (in_water && (trans_diff.y * diff_scale) + prev_trans.y < 0.3f) {
+        if (in_water && (trans_diff.y * diff_scale) + prev_pos.y < 0.3f) {
             ptcl->flags = 0x00;
             ptcl->size += v41;
             ptcl->direction.y += 0.8f;
@@ -3908,28 +3908,28 @@ void ParticleEmitterRob::restart() {
 }
 
 void ParticleEmitterRob::get_trans() {
-    vec3 trans;
-    rob_chara_array_get(chara_id)->get_trans_scale(bone_index, trans);
+    vec3 pos;
+    rob_chara_array_get(chara_id)->get_pos_scale(bone_index, pos);
 
     if (init_trans) {
-        prev_trans = trans;
+        prev_pos = pos;
         init_trans = false;
     }
     else
-        prev_trans = this->trans;
+        prev_pos = this->pos;
 
-    this->trans = trans;
+    this->pos = pos;
 }
 
 void ParticleEmitterRob::get_velocity(float_t delta_time) {
     prev_velocity = velocity;
-    velocity = (trans - prev_trans) * (1.0f / delta_time);
+    velocity = (pos - prev_pos) * (1.0f / delta_time);
 }
 
 void ParticleEmitterRob::reset_data() {
     bone_index = -1;
     chara_id = 0;
-    prev_trans = 0.0f;
+    prev_pos = 0.0f;
     velocity = 0.0f;
     prev_velocity = 0.0f;
     emit_num = 0;
@@ -3950,7 +3950,7 @@ void ParticleEmitterRob::set_chara(int32_t chara_id, int32_t bone_index, bool in
 
     this->chara_id = chara_id;
     this->bone_index = bone_index;
-    prev_trans = 0.0f;
+    prev_pos = 0.0f;
     velocity = 0.0f;
     prev_velocity = 0.0f;
     emit_num = 0;
@@ -6063,7 +6063,7 @@ static void particle_event(particle_event_data* event_data) {
     float_t type = event_data->type;
     int32_t count = (int32_t)event_data->count;
     float_t size = event_data->size;
-    vec3 trans = event_data->trans;
+    vec3 pos = event_data->pos;
     float_t force = event_data->force;
 
     if (type == 1.0f) {
@@ -6077,7 +6077,7 @@ static void particle_event(particle_event_data* event_data) {
             if (!data)
                 break;
 
-            data->position = trans;
+            data->position = pos;
             data->rotation.x = rand_state_array_get_float(4) * 6.28f;
             data->rotation.y = rand_state_array_get_float(4) * 6.28f;
             vec3 direction = vec3(cosf(data->rotation.x), 0.0f, sinf(data->rotation.x));
@@ -6109,7 +6109,7 @@ static void particle_event(particle_event_data* event_data) {
             if (!data)
                 break;
 
-            data->position = trans;
+            data->position = pos;
             data->normal = vec3(0.0f, 0.0f, 1.0f);
             data->rotation.x = rand_state_array_get_float(4) * 6.28f;
             data->rotation.y = rand_state_array_get_float(4) * 6.28f;

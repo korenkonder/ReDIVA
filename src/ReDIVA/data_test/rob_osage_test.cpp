@@ -1069,8 +1069,8 @@ void RobOsageTest::disp_coli() {
             etc.data.capsule.slices = 16;
             etc.data.capsule.stacks = 16;
             etc.data.capsule.wire = false;
-            etc.data.capsule.pos[0] = i[-1].trans;
-            etc.data.capsule.pos[1] = i[ 0].trans;
+            etc.data.capsule.pos[0] = i[-1].pos;
+            etc.data.capsule.pos[1] = i[ 0].pos;
             rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
         }
     }
@@ -1089,7 +1089,7 @@ void RobOsageTest::disp_coli() {
             etc.data.sphere.wire = false;
 
             vec3 pos;
-            mat4_transform_point(&itm_eq_obj->item_equip->mat, &i->trans, &pos);
+            mat4_transform_point(&itm_eq_obj->item_equip->mat, &i->pos, &pos);
 
             mat4 mat;
             mat4_translate(&pos, &mat);

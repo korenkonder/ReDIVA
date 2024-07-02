@@ -340,7 +340,7 @@ enum mothead_data_type {
     MOTHEAD_DATA_DISABLE_EYE_MOTION          = 0x4D,
     MOTHEAD_DATA_TYPE_78                     = 0x4E,
     MOTHEAD_DATA_ROB_CHARA_COLI_RING         = 0x4F,
-    MOTHEAD_DATA_ADJUST_GET_GLOBAL_TRANS     = 0x50,
+    MOTHEAD_DATA_ADJUST_GET_GLOBAL_POS       = 0x50,
     MOTHEAD_DATA_MAX                         = 0x51,
 };
 
@@ -945,12 +945,12 @@ struct bone_data {
     int32_t key_set_offset;
     int32_t key_set_count;
     float_t frame;
-    vec3 base_translation[2];
+    vec3 base_position[2];
     vec3 rotation;
     vec3 ik_target;
-    vec3 trans;
+    vec3 position;
     mat4 rot_mat[3];
-    vec3 trans_prev[2];
+    vec3 position_prev[2];
     mat4 rot_mat_prev[3][2];
     mat4* pole_target_mat;
     mat4* parent_mat;
@@ -978,7 +978,7 @@ struct bone_data_parent {
     size_t chain_pos;
     std::vector<bone_data> bones;
     std::vector<uint16_t> bone_indices;
-    vec3 global_trans;
+    vec3 global_position;
     vec3 global_rotation;
     uint32_t bone_key_set_count;
     uint32_t global_key_set_count;
@@ -1548,8 +1548,8 @@ struct skin_param_osage_node {
 };
 
 struct RobOsageNodeResetData {
-    vec3 trans;
-    vec3 trans_diff;
+    vec3 pos;
+    vec3 delta_pos;
     vec3 rotation;
     float_t length;
 
@@ -1608,19 +1608,19 @@ struct opd_node_data_pair {
 
 struct RobOsageNode {
     float_t length;
-    vec3 trans;
-    vec3 trans_orig;
-    vec3 trans_diff;
-    vec3 field_28;
+    vec3 pos;
+    vec3 fixed_pos;
+    vec3 delta_pos;
+    vec3 vel;
     float_t child_length;
     bone_node* bone_node_ptr;
     mat4* bone_node_mat;
     mat4 mat;
     RobOsageNode* sibling_node;
     float_t max_distance;
-    vec3 field_94;
+    vec3 rel_pos;
     RobOsageNodeResetData reset_data;
-    float_t field_C8;
+    float_t hit;
     float_t friction;
     vec3 external_force;
     float_t force;
@@ -1790,16 +1790,18 @@ struct osage_ring_data {
 
     osage_ring_data();
     ~osage_ring_data();
+
+    float_t get_floor_height(const vec3& pos, const float_t coli_r);
 };
 
 struct skin_param_file_data;
 
 struct CLOTHNode {
     uint32_t flags;
-    vec3 trans;
-    vec3 trans_orig;
+    vec3 pos;
+    vec3 fixed_pos;
     vec3 prev_trans;
-    vec3 trans_diff;
+    vec3 delta_pos;
     vec3 normal;
     vec3 tangent;
     vec3 binormal;
@@ -1858,7 +1860,7 @@ struct CLOTH {
 };
 
 struct RobClothRoot {
-    vec3 trans;
+    vec3 pos;
     vec3 normal;
     vec4 tangent;
     bone_node* node[4];
@@ -3215,15 +3217,15 @@ struct rob_chara_adjust_data {
     bool offset_x;
     bool offset_y;
     bool offset_z;
-    bool get_global_trans;
-    vec3 trans;
+    bool get_global_pos;
+    vec3 pos;
     mat4 mat;
     float_t left_hand_scale;
     float_t right_hand_scale;
     float_t left_hand_scale_default;
     float_t right_hand_scale_default;
     mat4 item_mat;      // X
-    vec3 item_trans;    // X
+    vec3 item_pos;      // X
     float_t item_scale; // X
 
     rob_chara_adjust_data();
@@ -3232,8 +3234,8 @@ struct rob_chara_adjust_data {
 };
 
 struct struc_195 {
-    vec3 prev_trans;
-    vec3 trans;
+    vec3 prev_pos;
+    vec3 pos;
     float_t scale;
     float_t field_1C;
     float_t field_20;
@@ -3249,7 +3251,7 @@ struct pos_scale {
     pos_scale();
 
     float_t get_screen_pos_scale(const mat4& mat,
-        const vec3& trans, float_t scale = 0.0f, bool apply_offset = false);
+        const vec3& pos, float_t scale = 0.0f, bool apply_offset = false);
 };
 
 struct struc_267 {
@@ -3470,7 +3472,7 @@ struct rob_chara {
     float_t get_frame_count();
     float_t get_max_face_depth();
     uint32_t get_rob_cmn_mottbl_motion_id(int32_t id);
-    float_t get_trans_scale(int32_t bone, vec3& trans);
+    float_t get_pos_scale(int32_t bone, vec3& pos);
     void load_body_parts_object_info(item_id item_id, object_info obj_info,
         const bone_database* bone_data, void* data, const object_database* obj_db);
     void load_motion(uint32_t motion_id, bool a3, float_t frame,
