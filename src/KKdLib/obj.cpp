@@ -464,7 +464,7 @@ obj_skin_osage_node::obj_skin_osage_node() : name_index(), length() {
 }
 
 obj_skin_block_osage::obj_skin_block_osage() : start_index(), count(), node_array(),
-num_node(), skin_param(), external_name_index(), name_index(), motion_node_name() {
+num_node(), skin_param(), name_index(), end_name_index(), motion_node_name() {
 
 }
 
@@ -1167,8 +1167,8 @@ static obj_skin_block_osage* obj_move_data_skin_block_osage(const obj_skin_block
     osg_dst->num_node = num_node;
 
     osg_dst->skin_param = obj_move_data_skin_param(osg_src->skin_param, alloc);
-    osg_dst->external_name_index = osg_src->external_name_index;
     osg_dst->name_index = osg_src->name_index;
+    osg_dst->end_name_index = osg_src->end_name_index;
     osg_dst->motion_node_name = obj_move_data_string(osg_src->motion_node_name, alloc);
     return osg_dst;
 }
@@ -2035,18 +2035,18 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
                 obj_skin_block_osage* osage = block->osage;
                 obj_skin_strings_push_back_check(strings, osage->node.parent_name);
                 obj_skin_strings_push_back_check_by_index(strings,
-                    bone_name_array, osage->name_index);
+                    bone_name_array, osage->end_name_index);
                 obj_skin_strings_push_back_check_by_index(strings,
-                    bone_name_array, osage->external_name_index);
+                    bone_name_array, osage->name_index);
                 for (int32_t j = 0; j < osage->count; j++) {
                     obj_skin_osage_node* osage_node = &ex->osage_node_array[j];
                     obj_skin_strings_push_back_check_by_index(strings,
                         bone_name_array, osage_node->name_index);
 
-                    int32_t name_index = osage->name_index;
+                    int32_t end_name_index = osage->end_name_index;
                     obj_skin_osage_sibling_info* osage_sibling_info = ex->osage_sibling_info_array;
                     for (int32_t k = 0; k < ex->num_osage_sibling_info; k++) {
-                        if (name_index == osage_sibling_info->name_index) {
+                        if (end_name_index == osage_sibling_info->name_index) {
                             obj_skin_strings_push_back_check_by_index(strings,
                                 bone_name_array, osage_sibling_info->sibling_name_index);
                             break;
@@ -2060,16 +2060,16 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
                 obj_skin_strings_push_back_check(strings, "OSG");
 
                 obj_skin_strings_push_back_check_by_index(bone_names,
-                    bone_name_array, osage->external_name_index);
+                    bone_name_array, osage->name_index);
                 for (int32_t j = 0; j < osage->count; j++) {
                     obj_skin_osage_node* osage_node = &ex->osage_node_array[j];
                     obj_skin_strings_push_back_check_by_index(bone_names,
                         bone_name_array, osage_node->name_index);
 
-                    int32_t name_index = osage->name_index;
+                    int32_t end_name_index = osage->end_name_index;
                     obj_skin_osage_sibling_info* osage_sibling_info = ex->osage_sibling_info_array;
                     for (int32_t k = 0; k < ex->num_osage_sibling_info; k++) {
-                        if (name_index == osage_sibling_info->name_index) {
+                        if (end_name_index == osage_sibling_info->name_index) {
                             obj_skin_strings_push_back_check_by_index(bone_names,
                                 bone_name_array, osage_sibling_info->sibling_name_index);
                             break;
@@ -2096,7 +2096,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
                     child_osage_node++;
                 }
                 obj_skin_strings_push_back_check_by_index(bone_names,
-                    bone_name_array, osage->name_index);
+                    bone_name_array, osage->end_name_index);
 
                 if (osage->skin_param)
                     obj_skin_strings_push_back_check(strings, osage->skin_param->name);
@@ -2416,7 +2416,7 @@ static void obj_classic_write_skin(obj_skin* sk, stream& s, int64_t base_offset)
                 else if (block->type == OBJ_SKIN_BLOCK_OSAGE) {
                     obj_skin_block_osage* osage = block->osage;
                     obj_skin_strings_push_back_check_by_index(osage_names,
-                        bone_name_array, osage->external_name_index);
+                        bone_name_array, osage->name_index);
                 }
             }
 
@@ -3378,8 +3378,8 @@ static obj_skin_block_osage* obj_classic_read_skin_block_osage(
 
     osg->start_index = s.read_uint32_t();
     osg->count = s.read_uint32_t();
-    osg->external_name_index = s.read_uint32_t();
     osg->name_index = s.read_uint32_t();
+    osg->end_name_index = s.read_uint32_t();
 
     uint32_t offset = s.read_uint32_t();
     s.read(0, 0x14);
@@ -3422,8 +3422,8 @@ static void obj_classic_write_skin_block_osage(obj_skin_block_osage* osg,
 
     s.write_int32_t(osg->start_index);
     s.write_int32_t(osg->count);
-    s.write_uint32_t(osg->external_name_index);
     s.write_uint32_t(osg->name_index);
+    s.write_uint32_t(osg->end_name_index);
 
     if (osg->skin_param)
         s.write_uint32_t((uint32_t)skin_param_offset);
@@ -5297,18 +5297,18 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
                 obj_skin_block_osage* osage = block->osage;
                 obj_skin_strings_push_back_check(strings, osage->node.parent_name);
                 obj_skin_strings_push_back_check_by_index(strings,
-                    bone_name_array, osage->name_index);
+                    bone_name_array, osage->end_name_index);
                 obj_skin_strings_push_back_check_by_index(strings,
-                    bone_name_array, osage->external_name_index);
+                    bone_name_array, osage->name_index);
                 obj_skin_osage_node* osage_node = &ex->osage_node_array[osage->start_index];
                 for (int32_t j = 0; j < osage->count; j++) {
                     obj_skin_strings_push_back_check_by_index(strings,
                         bone_name_array, osage_node->name_index);
 
-                    int32_t name_index = osage->name_index;
+                    int32_t end_name_index = osage->end_name_index;
                     obj_skin_osage_sibling_info* osage_sibling_info = ex->osage_sibling_info_array;
                     for (int32_t k = 0; k < ex->num_osage_sibling_info; k++) {
-                        if (name_index == osage_sibling_info->name_index) {
+                        if (end_name_index == osage_sibling_info->name_index) {
                             obj_skin_strings_push_back_check_by_index(strings,
                                 bone_name_array, osage_sibling_info->sibling_name_index);
                             break;
@@ -5320,16 +5320,16 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
                 obj_skin_strings_push_back_check(strings, "OSG");
 
                 obj_skin_strings_push_back_check_by_index(bone_names,
-                    bone_name_array, osage->external_name_index);
+                    bone_name_array, osage->name_index);
                 osage_node = &ex->osage_node_array[osage->start_index];
                 for (int32_t j = 0; j < osage->count; j++) {
                     obj_skin_strings_push_back_check_by_index(bone_names,
                         bone_name_array, osage_node->name_index);
 
-                    int32_t name_index = osage->name_index;
+                    int32_t end_name_index = osage->end_name_index;
                     obj_skin_osage_sibling_info* osage_sibling_info = ex->osage_sibling_info_array;
                     for (int32_t k = 0; k < ex->num_osage_sibling_info; k++) {
-                        if (name_index == osage_sibling_info->name_index) {
+                        if (end_name_index == osage_sibling_info->name_index) {
                             obj_skin_strings_push_back_check_by_index(bone_names,
                                 bone_name_array, osage_sibling_info->sibling_name_index);
                             break;
@@ -5339,7 +5339,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
                     osage_node++;
                 }
                 obj_skin_strings_push_back_check_by_index(bone_names,
-                    bone_name_array, osage->name_index);
+                    bone_name_array, osage->end_name_index);
             } break;
             }
         }
@@ -6339,7 +6339,7 @@ static void obj_modern_write_skin(obj_skin* sk, stream& s,
                 else if (block->type == OBJ_SKIN_BLOCK_OSAGE) {
                     obj_skin_block_osage* osage = block->osage;
                     obj_skin_strings_push_back_check_by_index(osage_names,
-                        bone_name_array, osage->external_name_index);
+                        bone_name_array, osage->name_index);
                 }
             }
 
@@ -7484,8 +7484,8 @@ static obj_skin_block_osage* obj_modern_read_skin_block_osage(
 
     osg->start_index = s.read_uint32_t_reverse_endianness();
     osg->count = s.read_uint32_t_reverse_endianness();
-    osg->external_name_index = s.read_uint32_t_reverse_endianness();
     osg->name_index = s.read_uint32_t_reverse_endianness();
+    osg->end_name_index = s.read_uint32_t_reverse_endianness();
 
     if (!is_x)
         s.read(0, 0x14);
@@ -7507,8 +7507,8 @@ static void obj_modern_write_skin_block_osage(obj_skin_block_osage* osg,
 
     s.write_int32_t_reverse_endianness(osg->start_index);
     s.write_int32_t_reverse_endianness(osg->count);
-    s.write_uint32_t_reverse_endianness(osg->external_name_index);
     s.write_uint32_t_reverse_endianness(osg->name_index);
+    s.write_uint32_t_reverse_endianness(osg->end_name_index);
 
     if (!is_x)
         s.write(0x14);

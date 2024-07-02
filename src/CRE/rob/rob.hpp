@@ -1974,7 +1974,7 @@ struct RobOsage {
     skin_param* skin_param_ptr;
     bone_node_expression_data exp_data;
     std::vector<RobOsageNode> nodes;
-    RobOsageNode node;
+    RobOsageNode end_node;
     skin_param skin_param;
     osage_setting_osg_cat osage_setting;
     bool field_2A0;

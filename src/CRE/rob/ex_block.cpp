@@ -1733,7 +1733,7 @@ RobOsageNode* RobOsage::GetNode(size_t index) {
     if (index < nodes.size())
         return &nodes.data()[index];
     else
-        return &node;
+        return &end_node;
 }
 
 void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
@@ -1743,37 +1743,37 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
     nodes.clear();
     nodes.resize(osg_data->count + 1ULL);
 
-    RobOsageNode* external = &nodes.data()[0];
-    nodes.data()[0].Reset();
-    external->child_length = osg_nodes->length;
-    bone_node* external_bone_node = &ex_data_bone_nodes[osg_data->external_name_index & 0x7FFF];
-    external->bone_node_ptr = external_bone_node;
-    external->bone_node_mat = external_bone_node->mat;
-    *external_bone_node->ex_data_mat = mat4_identity;
-    external->sibling_node = 0;
+    RobOsageNode* node = nodes.data();
+    node->Reset();
+    node->child_length = osg_nodes->length;
+    bone_node* node_ptr = &ex_data_bone_nodes[osg_data->name_index & 0x7FFF];
+    node->bone_node_ptr = node_ptr;
+    node->bone_node_mat = node_ptr->mat;
+    *node_ptr->ex_data_mat = mat4_identity;
+    node->sibling_node = 0;
 
-    bone_node* parent_bone_node = external->bone_node_ptr;
+    bone_node* parent_node_ptr = node->bone_node_ptr;
     for (int32_t i = 0; i < osg_data->count; i++) {
-        obj_skin_osage_node* v14 = &osg_nodes[i];
+        obj_skin_osage_node* osg_node = &osg_nodes[i];
         RobOsageNode* node = &nodes.data()[i + 1LL];
         node->Reset();
-        node->length = v14[0].length;
+        node->length = osg_node[0].length;
         if (i != osg_data->count - 1)
-            node->child_length = v14[1].length;
-        bone_node* node_bone_node = &ex_data_bone_nodes[v14->name_index & 0x7FFF];
-        node->bone_node_ptr = node_bone_node;
-        node->bone_node_mat = node_bone_node->mat;
-        node_bone_node->parent = parent_bone_node;
-        parent_bone_node = node->bone_node_ptr;
+            node->child_length = osg_node[1].length;
+        bone_node* node_ptr = &ex_data_bone_nodes[osg_node->name_index & 0x7FFF];
+        node->bone_node_ptr = node_ptr;
+        node->bone_node_mat = node_ptr->mat;
+        node_ptr->parent = parent_node_ptr;
+        parent_node_ptr = node->bone_node_ptr;
     }
 
-    node.Reset();
-    node.length = osg_nodes[osg_data->count - 1].length;
-    bone_node* v22 = &ex_data_bone_nodes[osg_data->name_index & 0x7FFF];
-    node.bone_node_ptr = v22;
-    node.bone_node_mat = v22->mat;
-    v22->parent = parent_bone_node;
-    *node.bone_node_ptr->ex_data_mat = mat4_identity;
+    end_node.Reset();
+    end_node.length = osg_nodes[osg_data->count - 1].length;
+    bone_node* end_node_ptr = &ex_data_bone_nodes[osg_data->end_name_index & 0x7FFF];
+    end_node.bone_node_ptr = end_node_ptr;
+    end_node.bone_node_mat = end_node_ptr->mat;
+    end_node_ptr->parent = parent_node_ptr;
+    *end_node.bone_node_ptr->ex_data_mat = mat4_identity;
 
     if (osg_data->count) {
         obj_skin_osage_node* node_array = osg_data->node_array;
@@ -1809,9 +1809,9 @@ void RobOsage::InitData(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg
         }
     }
 
-    RobOsageNode* v38 = &nodes.back();
-    if (memcmp(&v38->mat, &mat4_null, sizeof(mat4)))
-        mat4_mul_translate(&v38->mat, node.length, 0.0f, 0.0f, &node.mat);
+    RobOsageNode* last_node = &nodes.back();
+    if (memcmp(&last_node->mat, &mat4_null, sizeof(mat4)))
+        mat4_mul_translate(&last_node->mat, end_node.length, 0.0f, 0.0f, &end_node.mat);
 }
 
 const float_t* RobOsage::LoadOpdData(size_t node_index, const float_t* opd_data, size_t opd_count) {
@@ -1854,7 +1854,7 @@ void RobOsage::LoadSkinParam(void* kv, const char* name,
 
 void RobOsage::Reset() {
     nodes.clear();
-    node.Reset();
+    end_node.Reset();
     wind_direction = 0.0f;
     field_1EB4 = 0.0f;
     yz_order = 0;
@@ -2068,14 +2068,14 @@ void RobOsage::SetOsagePlayData(const mat4* root_matrix,
         mat4_get_translation(&v85, &j->pos);
     }
 
-    if (nodes.size() && node.bone_node_mat) {
-        mat4 v87 = *nodes.back().bone_node_ptr->ex_data_mat;
-        mat4_mul_translate(&v87, node.length * parent_scale.x, 0.0f, 0.0f, &v87);
-        *node.bone_node_ptr->ex_data_mat = v87;
+    if (nodes.size() && end_node.bone_node_mat) {
+        mat4 mat = *nodes.back().bone_node_ptr->ex_data_mat;
+        mat4_mul_translate_x(&mat, end_node.length * parent_scale.x, &mat);
+        *end_node.bone_node_ptr->ex_data_mat = mat;
 
-        mat4_scale_rot(&v87, &parent_scale, &v87);
-        *node.bone_node_mat = v87;
-        node.bone_node_ptr->exp_data.parent_scale = parent_scale;
+        mat4_scale_rot(&mat, &parent_scale, &mat);
+        *end_node.bone_node_mat = mat;
+        end_node.bone_node_ptr->exp_data.parent_scale = parent_scale;
     }
 }
 
@@ -2274,7 +2274,7 @@ void ExOsageBlock::AddMotionResetData(uint32_t motion_id, float_t frame) {
 void ExOsageBlock::InitData(rob_chara_item_equip_object* itm_eq_obj,
     obj_skin_block_osage* osg_data, const char* osg_data_name, obj_skin_osage_node* osg_nodes,
     bone_node* bone_nodes, bone_node* ex_data_bone_nodes, obj_skin* skin) {
-    ExNodeBlock::InitData(&ex_data_bone_nodes[osg_data->external_name_index & 0x7FFF],
+    ExNodeBlock::InitData(&ex_data_bone_nodes[osg_data->name_index & 0x7FFF],
         EX_OSAGE, osg_data_name, itm_eq_obj);
     rob.InitData(osg_data, osg_nodes, ex_data_bone_nodes, skin);
     field_1FF8 &= ~2;
@@ -2326,7 +2326,7 @@ void ExOsageBlock::sub_1405F3E10(obj_skin_block_osage* osg_data,
     obj_skin_osage_node* osg_nodes, prj::vector_pair<uint32_t, RobOsageNode*>* a4,
     std::map<const char*, ExNodeBlock*>* a5) {
     RobOsageNode* node = rob.GetNode(0);
-    a4->push_back(osg_data->external_name_index, node);
+    a4->push_back(osg_data->name_index, node);
 
     for (int32_t i = 0; i < osg_data->count; i++) {
         node = rob.GetNode(i + 1ULL);
@@ -2337,7 +2337,7 @@ void ExOsageBlock::sub_1405F3E10(obj_skin_block_osage* osg_data,
     }
 
     node = rob.GetNode(osg_data->count + 1ULL);
-    a4->push_back(osg_data->name_index, node);
+    a4->push_back(osg_data->end_name_index, node);
 
     if (node->bone_node_ptr && node->bone_node_ptr->name)
         a5->insert({ node->bone_node_ptr->name, this });
@@ -3459,11 +3459,10 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
     *rob_osg->nodes.data()[0].bone_node_mat = v130;
     *rob_osg->nodes.data()[0].bone_node_ptr->ex_data_mat = v130;
 
-    v113 = { 1.0f, 0.0f, 0.0f };
-    vec3 v128;
-    mat4_transform_vector(&v130, &v113, &v128);
+    vec3 v128 = { 1.0f, 0.0f, 0.0f };
+    mat4_transform_vector(&v130, &v128, &v128);
 
-    float_t v25 = parent_scale->x;
+    const float_t parent_scale_x = parent_scale->x;
     if (!rob_osg->osage_reset && (get_pause() || step <= 0.0f))
         return;
 
@@ -3512,16 +3511,16 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
         for (RobOsageNode* v55 = v55_begin; v55 != v55_end; v55++) {
             mat4_transform_point(&v131, &v55->rel_pos, &v128);
 
-            vec3 v123 = v55->delta_pos + v55->vel;
-            vec3 v126 = v55->pos + v123;
-            sub_140482F30(&v126, &v111, v25 * v55->length);
+            vec3 delta_pos = v55->delta_pos + v55->vel;
+            vec3 v126 = v55->pos + delta_pos;
+            sub_140482F30(&v126, &v111, v55->length * parent_scale_x);
 
             vec3 v117 = (v128 - v126) * rob_osg->skin_param_ptr->stiffness;
             float_t weight = v55->data_ptr->skp_osg_node.weight;
             float_t v74 = 1.0f / (weight - (weight - 1.0f) * v55->data_ptr->skp_osg_node.inertial_cancel);
             v55->vel += v117 * v74;
 
-            v126 = v55->pos + v117 + v123;
+            v126 = v55->pos + v117 + delta_pos;
 
             vec3 direction;
             mat4_inverse_transform_point(&v131, &v126, &direction);
@@ -3546,7 +3545,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
         RobOsageNode* v90_begin = rob_osg->nodes.data() + rob_osg->nodes.size() - 2;
         RobOsageNode* v90_end = rob_osg->nodes.data();
         for (RobOsageNode* v90 = v90_begin; v90 != v90_end; v90--)
-            sub_140482F30(&v90[0].pos, &v90[1].pos, v25 * v90->child_length);
+            sub_140482F30(&v90[0].pos, &v90[1].pos, v90->child_length * parent_scale_x);
     }
 
     if (ring_coli) {
@@ -3557,7 +3556,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
         RobOsageNode* v98_begin = rob_osg->nodes.data() + 1;
         RobOsageNode* v98_end = rob_osg->nodes.data() + rob_osg->nodes.size();
         for (RobOsageNode* v98 = v98_begin; v98 != v98_end; v98++) {
-            sub_140482490(v98, step, v25);
+            sub_140482490(v98, step, parent_scale_x);
             sub_140482180(v98, floor_height);
         }
     }
@@ -3576,7 +3575,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
             *v99->bone_node_ptr->ex_data_mat = v130;
 
             float_t v104 = vec3::distance_squared(v99->pos, v100->pos);
-            float_t v105 = v99->length * v25;
+            float_t v105 = v99->length * parent_scale_x;
 
             bool v106;
             if (v104 >= v105 * v105) {
@@ -3591,10 +3590,10 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
                 mat4_get_translation(&v130, &v99->pos);
         }
 
-        if (rob_osg->nodes.size() && rob_osg->node.bone_node_mat) {
-            mat4 v131 = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
-            mat4_mul_translate(&v131, v25 * rob_osg->node.length, 0.0f, 0.0f, &v131);
-            *rob_osg->node.bone_node_ptr->ex_data_mat = v131;
+        if (rob_osg->nodes.size() && rob_osg->end_node.bone_node_mat) {
+            mat4 mat = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
+            mat4_mul_translate_x(&mat, rob_osg->end_node.length * parent_scale_x, &mat);
+            *rob_osg->end_node.bone_node_ptr->ex_data_mat = mat;
         }
     }
     rob_osg->field_2A0 = false;
@@ -3685,10 +3684,10 @@ static void sub_1404803B0(RobOsage* rob_osg, const mat4* root_matrix,
             mat4_get_translation(&v47, &v30->pos);
     }
 
-    if (rob_osg->nodes.size() && rob_osg->node.bone_node_mat) {
-        mat4 v48 = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
-        mat4_mul_translate(&v48, parent_scale->x * rob_osg->node.length, 0.0f, 0.0f, &v48);
-        *rob_osg->node.bone_node_ptr->ex_data_mat = v48;
+    if (rob_osg->nodes.size() && rob_osg->end_node.bone_node_mat) {
+        mat4 mat = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
+        mat4_mul_translate_x(&mat, rob_osg->end_node.length * parent_scale->x, &mat);
+        *rob_osg->end_node.bone_node_ptr->ex_data_mat = mat;
     }
 }
 
@@ -3847,13 +3846,14 @@ static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
         mat4_inverse_transform_vector(root_matrix, &v35->delta_pos, &v35->reset_data.delta_pos);
     }
 
-    if (rob_osg->nodes.size() && rob_osg->node.bone_node_mat) {
-        mat4 v65 = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
-        mat4_mul_translate(&v65, rob_osg->node.length * parent_scale->x, 0.0f, 0.0f, &v65);
-        *rob_osg->node.bone_node_ptr->ex_data_mat = v65;
-        mat4_scale_rot(&v65, parent_scale, &v65);
-        *rob_osg->node.bone_node_mat = v65;
-        rob_osg->node.bone_node_ptr->exp_data.parent_scale = *parent_scale;
+    if (rob_osg->nodes.size() && rob_osg->end_node.bone_node_mat) {
+        mat4 mat = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
+        mat4_mul_translate_x(&mat, rob_osg->end_node.length * parent_scale->x, &mat);
+        *rob_osg->end_node.bone_node_ptr->ex_data_mat = mat;
+
+        mat4_scale_rot(&mat, parent_scale, &mat);
+        *rob_osg->end_node.bone_node_mat = mat;
+        rob_osg->end_node.bone_node_ptr->exp_data.parent_scale = *parent_scale;
     }
 }
 
@@ -3952,18 +3952,19 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
 
     mat4 v78 = *root_matrix;
     sub_14047F110(rob_osg, &v78, parent_scale, true);
+
     vec3 v60 = { 1.0f, 0.0f, 0.0f };
     mat4_transform_vector(&v78, &v60, &v60);
 
+    const float_t parent_scale_x = parent_scale->x;
+
     const OsageCollision::Work* coli = rob_osg->coli;
     const OsageCollision::Work* coli_ring = rob_osg->coli_ring;
-
-    float_t parent_scale_x = parent_scale->x;
     RobOsageNode* i = rob_osg->nodes.data();
     RobOsageNode* j_begin = rob_osg->nodes.data() + 1;
     RobOsageNode* j_end = rob_osg->nodes.data() + rob_osg->nodes.size();
     for (RobOsageNode* j = j_begin; j != j_end; i++, j++) {
-        vec3 v74 = i->pos + vec3::normalize(v60) * (parent_scale_x * j->length);
+        vec3 v74 = i->pos + vec3::normalize(v60) * (j->length * parent_scale_x);
         if (a4 && j->sibling_node)
             sub_140482F30(&v74, &j->sibling_node->pos, j->max_distance);
 
@@ -3974,7 +3975,7 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
         const float_t v39 = floor_height + v38->coli_r;
         if (v74.y < v39 && v39 < 1001.0f) {
             v74.y = v39;
-            v74 = vec3::normalize(v74 - i->pos) * (parent_scale_x * j->length) + i->pos;
+            v74 = vec3::normalize(v74 - i->pos) * (j->length * parent_scale_x) + i->pos;
         }
         j->pos = v74;
         j->delta_pos = 0.0f;
@@ -3991,7 +3992,7 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
             mat4_scale_rot(&v78, parent_scale, j->bone_node_mat);
 
         float_t v55 = vec3::distance(j->pos, i->pos);
-        float_t v56 = parent_scale_x * j->length;
+        float_t v56 = j->length * parent_scale_x;
         if (v55 >= fabsf(v56))
             v56 = v55;
         mat4_mul_translate(&v78, v56, 0.0f, 0.0f, &v78);
@@ -3999,13 +4000,14 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
         v60 = j->pos - i->pos;
     }
 
-    if (rob_osg->nodes.size() && rob_osg->node.bone_node_mat) {
-        mat4 v79 = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
-        mat4_mul_translate(&v79, parent_scale_x * rob_osg->node.length, 0.0f, 0.0f, &v79);
-        *rob_osg->node.bone_node_ptr->ex_data_mat = v79;
-        mat4_scale_rot(&v79, parent_scale, &v79);
-        *rob_osg->node.bone_node_mat = v79;
-        rob_osg->node.bone_node_ptr->exp_data.parent_scale = *parent_scale;
+    if (rob_osg->nodes.size() && rob_osg->end_node.bone_node_mat) {
+        mat4 mat = *rob_osg->nodes.back().bone_node_ptr->ex_data_mat;
+        mat4_mul_translate_x(&mat, rob_osg->end_node.length * parent_scale_x, &mat);
+        *rob_osg->end_node.bone_node_ptr->ex_data_mat = mat;
+
+        mat4_scale_rot(&mat, parent_scale, &mat);
+        *rob_osg->end_node.bone_node_mat = mat;
+        rob_osg->end_node.bone_node_ptr->exp_data.parent_scale = *parent_scale;
     }
 }
 

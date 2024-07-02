@@ -13471,7 +13471,7 @@ void rob_chara_item_equip_object::load_ex_data(obj_skin_ex_data* ex_data,
             ex_node = osg;
             osage_blocks.push_back(osg);
             osg->InitData(this, block->osage,
-                bone_name_array[block->osage->external_name_index & 0x7FFF],
+                bone_name_array[block->osage->name_index & 0x7FFF],
                 &skin_ex_data->osage_node_array[block->osage->start_index],
                 bone_nodes, ex_data_bone_nodes.data(), skin);
             osg->sub_1405F3E10(block->osage,

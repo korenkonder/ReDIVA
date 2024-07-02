@@ -617,8 +617,8 @@ struct obj_skin_block_osage {
     obj_skin_osage_node* node_array;
     int32_t num_node;
     obj_skin_skin_param* skin_param;
-    uint32_t external_name_index;
     uint32_t name_index;
+    uint32_t end_name_index;
     const char* motion_node_name;
 
     obj_skin_block_osage();
