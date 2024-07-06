@@ -1567,7 +1567,8 @@ namespace ImGui {
         std::string tex_buf = vsprintf_s_string(fmt, args);
         va_end(args);
 
-        ImGui::SetCursorPosX((ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX()
+            + (ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
         ImGui::Text("%s", tex_buf.c_str());
     }
 
@@ -1579,7 +1580,8 @@ namespace ImGui {
         std::string tex_buf = vsprintf_s_string(fmt, args);
         va_end(args);
 
-        ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX()
+            + ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
         ImGui::Text("%s", tex_buf.c_str());
     }
 
