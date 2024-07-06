@@ -689,12 +689,17 @@ namespace ImGui {
         return res;
     }
 
-    bool ColumnDragFloat(const char* label, float_t* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+        bool ColumnDragFloat(const char* label, float_t* val, float_t speed,
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[1];
         v[0] = *val;
-        StartPropertyColumn(label);
-        bool res = DragFloat("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(1, CalcItemWidth());
+        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -708,11 +713,18 @@ namespace ImGui {
     }
 
     bool ColumnDragVec2(const char* label, vec2* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[2];
         *(vec2*)v = *val;
-        StartPropertyColumn(label);
-        bool res = DragFloat2("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(2, CalcItemWidth());
+        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragFloatDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -727,11 +739,20 @@ namespace ImGui {
     }
 
     bool ColumnDragVec3(const char* label, vec3* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[3];
         *(vec3*)v = *val;
-        StartPropertyColumn(label);
-        bool res = DragFloat3("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(3, CalcItemWidth());
+        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragFloatDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragFloatDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -747,11 +768,22 @@ namespace ImGui {
     }
 
     bool ColumnDragVec4(const char* label, vec4* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[4];
         *(vec4*)v = *val;
-        StartPropertyColumn(label);
-        bool res = DragFloat4("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(4, CalcItemWidth());
+        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragFloatDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragFloatDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragFloatDisable("##W", &v[3], speed, min, max, format, flags, bit_flag & 0x08 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -768,11 +800,16 @@ namespace ImGui {
     }
 
     bool ColumnDragInt(const char* label, int32_t* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[1];
         v[0] = *val;
-        StartPropertyColumn(label);
-        bool res = DragInt("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(1, CalcItemWidth());
+        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -786,11 +823,18 @@ namespace ImGui {
     }
 
     bool ColumnDragVec2I(const char* label, vec2i* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[2];
         *(vec2i*)v = *val;
-        StartPropertyColumn(label);
-        bool res = DragInt2("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(2, CalcItemWidth());
+        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragIntDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -805,11 +849,20 @@ namespace ImGui {
     }
 
     bool ColumnDragVec3I(const char* label, vec3i* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[3];
         *(vec3i*)v = *val;
-        StartPropertyColumn(label);
-        bool res = DragInt3("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(3, CalcItemWidth());
+        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragIntDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragIntDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -825,11 +878,22 @@ namespace ImGui {
     }
 
     bool ColumnDragVec4I(const char* label, vec4i* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[4];
         *(vec4i*)v = *val;
-        StartPropertyColumn(label);
-        bool res = DragInt4("", v, speed, min, max, format, flags);
+        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(4, CalcItemWidth());
+        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragIntDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragIntDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= DragIntDisable("##W", &v[3], speed, min, max, format, flags, bit_flag & 0x08 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -853,19 +917,20 @@ namespace ImGui {
         return res;
     }
 
-    bool ColumnSliderFloat(const char* label, float_t* val, float_t step,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+    bool ColumnSliderFloat(const char* label, float_t* val,
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[1];
         v[0] = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderScalar("", ImGuiDataType_Float, v, &min, &max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(1, CalcItemWidth());
+        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
-
-        v[0] = prj::roundf(v[0] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         if (v[0] == *val)
@@ -875,20 +940,22 @@ namespace ImGui {
         return true;
     }
 
-    bool ColumnSliderVec2(const char* label, vec2* val, float_t step,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+    bool ColumnSliderVec2(const char* label, vec2* val,
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[2];
         *(vec2*)v = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderFloat2("", v, min, max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(2, CalcItemWidth());
+        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderFloatDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
-
-        v[0] = prj::roundf(v[0] / step) * step;
-        v[1] = prj::roundf(v[1] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -899,21 +966,24 @@ namespace ImGui {
         return true;
     }
 
-    bool ColumnSliderVec3(const char* label, vec3* val, float_t step,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+    bool ColumnSliderVec3(const char* label, vec3* val,
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[3];
         *(vec3*)v = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderFloat3("", v, min, max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(3, CalcItemWidth());
+        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderFloatDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderFloatDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
-
-        v[0] = prj::roundf(v[0] / step) * step;
-        v[1] = prj::roundf(v[1] / step) * step;
-        v[2] = prj::roundf(v[2] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -925,22 +995,26 @@ namespace ImGui {
         return true;
     }
 
-    bool ColumnSliderVec4(const char* label, vec4* val, float_t step,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags) {
+    bool ColumnSliderVec4(const char* label, vec4* val,
+        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         float_t v[4];
         *(vec4*)v = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderFloat4("", v, min, max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(4, CalcItemWidth());
+        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderFloatDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderFloatDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderFloatDisable("##W", &v[3], min, max, format, flags, bit_flag & 0x08 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
-
-        v[0] = prj::roundf(v[0] / step) * step;
-        v[1] = prj::roundf(v[1] / step) * step;
-        v[2] = prj::roundf(v[2] / step) * step;
-        v[3] = prj::roundf(v[3] / step) * step;
 
         v[0] = clamp_def(v[0], min, max);
         v[1] = clamp_def(v[1], min, max);
@@ -954,13 +1028,16 @@ namespace ImGui {
     }
 
     bool ColumnSliderInt(const char* label, int32_t* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[1];
         v[0] = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderScalar("", ImGuiDataType_S32, v, &min, &max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(1, CalcItemWidth());
+        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -974,13 +1051,18 @@ namespace ImGui {
     }
 
     bool ColumnSliderVec2I(const char* label, vec2i* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[2];
         *(vec2i*)v = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderInt2("", v, min, max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(2, CalcItemWidth());
+        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderIntDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -995,13 +1077,20 @@ namespace ImGui {
     }
 
     bool ColumnSliderVec3I(const char* label, vec3i* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[3];
         *(vec3i*)v = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderInt3("", v, min, max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(3, CalcItemWidth());
+        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderIntDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderIntDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -1017,13 +1106,22 @@ namespace ImGui {
     }
 
     bool ColumnSliderVec4I(const char* label, vec4i* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags) {
+        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
         int32_t v[4];
         *(vec4i*)v = *val;
-        StartPropertyColumn(label);
-        ResetIsItemAccum();
-        bool res = SliderInt4("", v, min, max, format, flags);
-        GetIsItemAccum();
+        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
+        bool res = false;
+        ImGuiStyle& style = GetStyle();
+        BeginGroup();
+        PushMultiItemsWidths(4, CalcItemWidth());
+        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderIntDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderIntDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
+        SameLine(0.0f, style.ItemInnerSpacing.x);
+        res |= SliderIntDisable("##W", &v[3], min, max, format, flags, bit_flag & 0x08 ? true : false);
+        EndGroup();
         EndPropertyColumn();
         if (!res)
             return false;
@@ -1461,446 +1559,6 @@ namespace ImGui {
         return res;
     }
 
-    bool ColumnDragFloat(const char* label, float_t* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[1];
-        v[0] = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(1, CalcItemWidth());
-        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        if (v[0] == *val)
-            return false;
-
-        *val = v[0];
-        return true;
-    }
-
-    bool ColumnDragVec2(const char* label, vec2* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[2];
-        *(vec2*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(2, CalcItemWidth());
-        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragFloatDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        if (v[0] == val->x && v[1] == val->y)
-            return false;
-
-        *val = *(vec2*)v;
-        return true;
-    }
-
-    bool ColumnDragVec3(const char* label, vec3* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[3];
-        *(vec3*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(3, CalcItemWidth());
-        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragFloatDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragFloatDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
-            return false;
-
-        *val = *(vec3*)v;
-        return true;
-    }
-
-    bool ColumnDragVec4(const char* label, vec4* val, float_t speed,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[4];
-        *(vec4*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(4, CalcItemWidth());
-        res |= DragFloatDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragFloatDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragFloatDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragFloatDisable("##W", &v[3], speed, min, max, format, flags, bit_flag & 0x08 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        v[3] = clamp_def(v[3], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
-            return false;
-
-        *val = *(vec4*)v;
-        return true;
-    }
-
-    bool ColumnDragInt(const char* label, int32_t* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[1];
-        v[0] = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(1, CalcItemWidth());
-        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        if (v[0] == *val)
-            return false;
-
-        *val = v[0];
-        return true;
-    }
-
-    bool ColumnDragVec2I(const char* label, vec2i* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[2];
-        *(vec2i*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(2, CalcItemWidth());
-        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragIntDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        if (v[0] == val->x && v[1] == val->y)
-            return false;
-
-        *val = *(vec2i*)v;
-        return true;
-    }
-
-    bool ColumnDragVec3I(const char* label, vec3i* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[3];
-        *(vec3i*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(3, CalcItemWidth());
-        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragIntDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragIntDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
-            return false;
-
-        *val = *(vec3i*)v;
-        return true;
-    }
-
-    bool ColumnDragVec4I(const char* label, vec4i* val, float_t speed,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[4];
-        *(vec4i*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(4, CalcItemWidth());
-        res |= DragIntDisable("##X", &v[0], speed, min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragIntDisable("##Y", &v[1], speed, min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragIntDisable("##Z", &v[2], speed, min, max, format, flags, bit_flag & 0x04 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= DragIntDisable("##W", &v[3], speed, min, max, format, flags, bit_flag & 0x08 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        v[3] = clamp_def(v[3], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
-            return false;
-
-        *val = *(vec4i*)v;
-        return true;
-    }
-
-    bool ColumnSliderFloat(const char* label, float_t* val,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[1];
-        v[0] = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(1, CalcItemWidth());
-        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        if (v[0] == *val)
-            return false;
-
-        *val = v[0];
-        return true;
-    }
-
-    bool ColumnSliderVec2(const char* label, vec2* val,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[2];
-        *(vec2*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(2, CalcItemWidth());
-        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderFloatDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        if (v[0] == val->x && v[1] == val->y)
-            return false;
-
-        *val = *(vec2*)v;
-        return true;
-    }
-
-    bool ColumnSliderVec3(const char* label, vec3* val,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[3];
-        *(vec3*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(3, CalcItemWidth());
-        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderFloatDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderFloatDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
-            return false;
-
-        *val = *(vec3*)v;
-        return true;
-    }
-
-    bool ColumnSliderVec4(const char* label, vec4* val,
-        float_t min, float_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        float_t v[4];
-        *(vec4*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(4, CalcItemWidth());
-        res |= SliderFloatDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderFloatDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderFloatDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderFloatDisable("##W", &v[3], min, max, format, flags, bit_flag & 0x08 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        v[3] = clamp_def(v[3], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
-            return false;
-
-        *val = *(vec4*)v;
-        return true;
-    }
-
-    bool ColumnSliderInt(const char* label, int32_t* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[1];
-        v[0] = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x01 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(1, CalcItemWidth());
-        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        if (v[0] == *val)
-            return false;
-
-        *val = v[0];
-        return true;
-    }
-
-    bool ColumnSliderVec2I(const char* label, vec2i* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[2];
-        *(vec2i*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x03 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(2, CalcItemWidth());
-        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderIntDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        if (v[0] == val->x && v[1] == val->y)
-            return false;
-
-        *val = *(vec2i*)v;
-        return true;
-    }
-
-    bool ColumnSliderVec3I(const char* label, vec3i* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[3];
-        *(vec3i*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x07 ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(3, CalcItemWidth());
-        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderIntDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderIntDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z)
-            return false;
-
-        *val = *(vec3i*)v;
-        return true;
-    }
-
-    bool ColumnSliderVec4I(const char* label, vec4i* val,
-        int32_t min, int32_t max, const char* format, ImGuiSliderFlags flags, int32_t bit_flag) {
-        int32_t v[4];
-        *(vec4i*)v = *val;
-        StartPropertyColumnDisable(label, bit_flag & 0x0F ? true : false);
-        bool res = false;
-        ImGuiStyle& style = GetStyle();
-        BeginGroup();
-        PushMultiItemsWidths(4, CalcItemWidth());
-        res |= SliderIntDisable("##X", &v[0], min, max, format, flags, bit_flag & 0x01 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderIntDisable("##Y", &v[1], min, max, format, flags, bit_flag & 0x02 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderIntDisable("##Z", &v[2], min, max, format, flags, bit_flag & 0x04 ? true : false);
-        SameLine(0.0f, style.ItemInnerSpacing.x);
-        res |= SliderIntDisable("##W", &v[3], min, max, format, flags, bit_flag & 0x08 ? true : false);
-        EndGroup();
-        EndPropertyColumn();
-        if (!res)
-            return false;
-
-        v[0] = clamp_def(v[0], min, max);
-        v[1] = clamp_def(v[1], min, max);
-        v[2] = clamp_def(v[2], min, max);
-        v[3] = clamp_def(v[3], min, max);
-        if (v[0] == val->x && v[1] == val->y && v[2] == val->z && v[3] == val->w)
-            return false;
-
-        *val = *(vec4i*)v;
-        return true;
-    }
-
     void TextCentered(_In_z_ _Printf_format_string_ const char* const fmt, ...) {
         ImGuiContext& g = *GImGui;
 
@@ -1909,7 +1567,7 @@ namespace ImGui {
         std::string tex_buf = vsprintf_s_string(fmt, args);
         va_end(args);
 
-        ImGui::SetCursorPosX((ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
+        ImGui::SetCursorPosX((ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x) * 0.5f);
         ImGui::Text("%s", tex_buf.c_str());
     }
 
@@ -1921,7 +1579,7 @@ namespace ImGui {
         std::string tex_buf = vsprintf_s_string(fmt, args);
         va_end(args);
 
-        ImGui::SetCursorPosX(ImGui::GetWindowWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
+        ImGui::SetCursorPosX(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(tex_buf.c_str()).x);
         ImGui::Text("%s", tex_buf.c_str());
     }
 
