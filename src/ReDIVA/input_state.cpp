@@ -69,7 +69,7 @@ static bool sub_140190A30(struc_794* a1, int32_t index);
 
 InputState* input_state;
 
-bool disable_input_state_update = false;
+uint8_t disable_input_state_update = 0;
 bool disable_cursor = false;
 
 extern render_context* rctx_ptr;

@@ -34,7 +34,7 @@ extern HWND window_handle;
 extern ImGuiContext* imgui_context;
 extern lock_cs imgui_context_lock;
 
-extern bool disable_input_state_update;
+extern uint8_t disable_input_state_update;
 extern bool disable_cursor;
 
 namespace Input {
@@ -214,9 +214,14 @@ namespace Input {
         input_roll = 0.0;
 
         if (IsKeyTapped(GLFW_KEY_F3))
-            disable_input_state_update ^= true;
+            disable_input_state_update ^= 0x01;
         else if (IsKeyTapped(GLFW_KEY_F3, GLFW_MOD_CONTROL))
             disable_cursor ^= true;
+
+        if (input_locked)
+            disable_input_state_update |= 0x02;
+        else
+            disable_input_state_update &= ~0x02;
 
         if (!window_handle || window_handle != GetForegroundWindow() || !disable_input_state_update)
             return;
