@@ -16969,6 +16969,15 @@ bool OsagePlayDataManager::ctrl() {
             if (obj_info.is_null())
                 continue;
 
+            int32_t load_count = 1;
+            auto elem = opd_file_data.find({ obj_info, motion_id });
+            if (elem != opd_file_data.end()) {
+                load_count = elem->second.load_count;
+                while (elem->second.load_count > 0)
+                    elem->second.unload();
+                opd_file_data.erase(elem);
+            }
+
             std::vector<std::vector<opd_vec3_data_vec>>& opd_data = opd_chr_data->opd_data[j];
 
             size_t nodes_count = 0;
@@ -16987,6 +16996,7 @@ bool OsagePlayDataManager::ctrl() {
             data.head.frame_count = (uint32_t)_frame_count;
             data.head.nodes_count = (uint16_t)nodes_count;
             data.data = buf;
+            data.load_count = load_count;
 
             for (std::vector<opd_vec3_data_vec>& k : opd_data)
                 for (opd_vec3_data_vec& l : k) {
@@ -16998,8 +17008,6 @@ bool OsagePlayDataManager::ctrl() {
                     buf += _frame_count;
                 }
 
-            if (data.data + 3ULL * _frame_count * nodes_count != buf)
-                printf("");
             opd_file_data.insert({ { obj_info, motion_id }, data });
         }
 
