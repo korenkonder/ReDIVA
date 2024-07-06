@@ -2685,33 +2685,35 @@ static void rob_chara_data_adjust_ctrl(rob_chara* rob_chr,
     adjust->curr_external_force = (adjust->external_force_cycle + cycle_val)
         * (adjust->external_force * adjust->external_force_cycle_strength) + adjust->external_force;
 
-    if (adjust->type == 1) {
+    switch (adjust->type) {
+    case 1: {
         mat4 mat = mat4_identity;
         mat4_mul_rotate_y(&mat, (float_t)((double_t)rob_chr->data.miku_rot.rot_y_int16
             * M_PI * (1.0 / 32768.0)), &mat);
         mat4_transform_vector(&mat, &adjust->curr_external_force, &adjust->curr_external_force);
     }
-    else if (adjust->type == 2) {
+    case 2: {
         mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_KL_MUNE_B_WJ)->ex_data_mat;
         if (mat)
             mat4_transform_vector(mat, &adjust->curr_external_force, &adjust->curr_external_force);
-    }
-    else if (adjust->type == 3) {
+    } break;
+    case 3: {
         mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_KL_KUBI)->ex_data_mat;
         if (mat)
             mat4_transform_vector(mat, &adjust->curr_external_force, &adjust->curr_external_force);
-    }
-    else if (adjust->type == 4) {
+    } break;
+    case 4: {
         mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_FACE_ROOT)->ex_data_mat;
         if (mat)
             mat4_transform_vector(mat, &adjust->curr_external_force, &adjust->curr_external_force);
-    }
-    else if (adjust->type == 5) {
+    } break;
+    case 5: {
         mat4* mat = rob_chara_bone_data_get_node(rob_chr->bone_data, MOT_BONE_KL_KOSI_ETC_WJ)->ex_data_mat;
         if (mat) {
             adjust->curr_external_force.z = -adjust->curr_external_force.z;
             mat4_transform_vector(mat, &adjust->curr_external_force, &adjust->curr_external_force);
         }
+    } break;
     }
 
     if (adjust->ignore_gravity)
