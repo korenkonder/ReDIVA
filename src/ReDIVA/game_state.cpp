@@ -13,6 +13,7 @@
 #include "../CRE/task.hpp"
 #include "data_edit/face_anim.hpp"
 #include "data_edit/glitter_editor.hpp"
+#include "data_edit/rob_chara_adjust.hpp"
 #include "data_edit/selector.hpp"
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
@@ -1553,6 +1554,7 @@ bool SubGameState::DataTestStg::Dest() {
 bool SubGameState::DataTestMot::Init() {
     app::TaskWork::add_task(data_test_mot, "TASK_DATA_TEST_MOT");
     app::TaskWork::add_task(rob_osage_test, "ROB_OSAGE_TEST");
+    app::TaskWork::add_task(rob_chara_adjust, "ROB_CHARA_ADJUST");
     dtm_stg_load(0);
     dtw_stg_load(true);
     return true;
@@ -1565,6 +1567,7 @@ bool SubGameState::DataTestMot::Ctrl() {
 bool SubGameState::DataTestMot::Dest() {
     data_test_mot->del();
     rob_osage_test->del();
+    rob_chara_adjust->del();
     dtm_stg_unload();
     dtw_stg_unload();
     return true;

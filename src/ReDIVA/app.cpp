@@ -48,6 +48,7 @@
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data_edit/glitter_editor.hpp"
+#include "data_edit/rob_chara_adjust.hpp"
 #include "data_edit/selector.hpp"
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
@@ -554,6 +555,7 @@ static render_context* render_context_load() {
     object_test_init();
     equip_test_init();
     rob_osage_test_init();
+    rob_chara_adjust_init();
     task_data_test_glitter_particle_init();
     x_pv_game_data_init();
 
@@ -1194,6 +1196,7 @@ static void render_context_dispose(render_context* rctx) {
 
     x_pv_game_data_free();
     task_data_test_glitter_particle_free();
+    rob_chara_adjust_free();
     rob_osage_test_free();
     equip_test_free();
     object_test_free();

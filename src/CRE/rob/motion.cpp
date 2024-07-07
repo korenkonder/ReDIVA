@@ -4,183 +4,13 @@
 */
 
 #include "motion.hpp"
+#include "../../KKdLib/io/path.hpp"
 #include "../data.hpp"
-
-struct MhdFile {
-    mothead* data;
-    uint32_t set;
-    std::string file_path; // Added
-    p_file_handler file_handler;
-    prj::shared_ptr<prj::stack_allocator> alloc_handler;
-    int32_t load_count;
-
-    MhdFile();
-    virtual ~MhdFile();
-
-    bool CheckNotReady();
-    void FreeData();
-    void LoadFile(const char* path, const char* file, uint32_t set);
-    void ParseFile(const void* data);
-    mothead* ParseMothead(mothead_file* mhdsf, size_t data);
-    mothead_mot* ParseMotheadMot(mothead_mot_file* mhdsf, size_t data);
-    bool Unload();
-
-    static void ParseFileParent(MhdFile* mhd, const void* file_data, size_t size);
-};
-
-struct MotFile {
-    const motion_set_info* mot_set_info;
-    prj::shared_ptr<prj::stack_allocator> alloc_handler;
-    mot_set* mot_set;
-    p_file_handler file_handler;
-    int32_t load_count;
-
-    MotFile();
-    virtual ~MotFile();
-
-    bool CheckNotReady();
-    void FreeData();
-    void LoadFile(std::string&& mdata_dir, uint32_t set);
-    void ParseFile(const void* data, size_t size);
-    bool Unload();
-
-    static void ParseFileParent(MotFile* mot, const void* file_data, size_t size);
-};
 
 static const mothead_mot mothead_mot_null;
 
 std::map<uint32_t, MhdFile> mothead_storage_data;
 std::map<uint32_t, MotFile> motion_storage_data;
-
-void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
-    const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
-    if (!set_info)
-        return;
-
-    std::string file;
-    file.assign("mothead_");
-    file.append(set_info->name);
-    file.append(".bin");
-
-    std::string path;
-    path.assign("rom/rob/");
-    if (data_list[DATA_AFT].check_file_exists(mdata_dir.c_str(), file.c_str()))
-        path.assign(mdata_dir);
-
-    auto elem = mothead_storage_data.find(set);
-    if (elem == mothead_storage_data.end())
-        elem = mothead_storage_data.insert({ set, {} }).first;
-
-    elem->second.LoadFile(path.c_str(), file.c_str(), set);
-}
-
-void motion_set_load_motion(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
-    const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
-    if (!set_info)
-        return;
-
-    auto elem = motion_storage_data.find(set);
-    if (elem == motion_storage_data.end())
-        elem = motion_storage_data.insert({ set, {} }).first;
-
-    elem->second.mot_set_info = set_info;
-    elem->second.LoadFile(std::string(mdata_dir), set);
-}
-
-void motion_set_unload_mothead(uint32_t set) {
-    auto elem = mothead_storage_data.find(set);
-    if (elem != mothead_storage_data.end() && elem->second.Unload())
-        mothead_storage_data.erase(elem);
-}
-
-void motion_set_unload_motion(uint32_t set) {
-    auto elem = motion_storage_data.find(set);
-    if (elem != motion_storage_data.end() && elem->second.Unload())
-        motion_storage_data.erase(elem);
-}
-
-bool mothead_storage_check_mhd_file_not_ready(uint32_t set_id) {
-    auto elem = mothead_storage_data.find(set_id);
-    if (elem != mothead_storage_data.end())
-        return elem->second.CheckNotReady();
-    return false;
-}
-
-const mothead_mot* mothead_storage_get_mot_by_motion_id(
-    uint32_t motion_id, const motion_database* mot_db) {
-    uint32_t set_id = mot_db->get_motion_set_id_by_motion_id(motion_id);
-    if (set_id == -1)
-        return &mothead_mot_null;
-
-    auto elem = mothead_storage_data.find(set_id);
-    if (elem == mothead_storage_data.end() || !elem->second.data)
-        return &mothead_mot_null;
-
-    mothead* mhd = elem->second.data;
-    if ((int32_t)motion_id < mhd->first_mot_id || (int32_t)motion_id > mhd->last_mot_id)
-        return &mothead_mot_null;
-
-    mothead_mot* mot = mhd->mots[(ssize_t)(int32_t)motion_id - mhd->first_mot_id];
-    if (!mot)
-        return &mothead_mot_null;
-    return mot;
-}
-
-bool motion_storage_check_mot_file_not_ready(uint32_t set_id) {
-    auto elem = motion_storage_data.find(set_id);
-    if (elem != motion_storage_data.end())
-        return elem->second.CheckNotReady();
-    return false;
-}
-
-const mot_data* motion_storage_get_mot_data(uint32_t motion_id, const motion_database* mot_db) {
-    uint32_t set_id = -1;
-    size_t motion_index = -1;
-    for (const motion_set_info& i : mot_db->motion_set) {
-        for (const motion_info& j : i.motion)
-            if (j.id == motion_id) {
-                set_id = i.id;
-                motion_index = &j - i.motion.data();
-
-                break;
-            }
-
-        if (set_id != -1)
-            break;
-    }
-
-    if (set_id == -1)
-        return 0;
-
-    auto elem = motion_storage_data.find(set_id);
-    if (elem != motion_storage_data.end())
-        return &elem->second.mot_set->mot_data[motion_index];
-    return 0;
-}
-
-float_t motion_storage_get_mot_data_frame_count(uint32_t motion_id, const motion_database* mot_db) {
-    const mot_data* mot = motion_storage_get_mot_data(motion_id, mot_db);
-    if (mot)
-        return mot->frame_count;
-    return 0.0f;
-}
-
-const mot_set* motion_storage_get_motion_set(uint32_t set_id) {
-    auto elem = motion_storage_data.find(set_id);
-    if (elem != motion_storage_data.end())
-        return elem->second.mot_set;
-    return 0;
-}
-
-void motion_init() {
-    mothead_storage_data = {};
-    motion_storage_data = {};
-}
-
-void motion_free() {
-    motion_storage_data.clear();
-    mothead_storage_data.clear();
-}
 
 MhdFile::MhdFile() : data(), set(), load_count() {
     FreeData();
@@ -410,4 +240,153 @@ bool MotFile::Unload() {
 
 void MotFile::ParseFileParent(MotFile* mot, const void* file_data, size_t size) {
     mot->ParseFile(file_data, size);
+}
+
+void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
+    const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
+    if (!set_info)
+        return;
+
+    std::string file;
+    file.assign("mothead_");
+    file.append(set_info->name);
+    file.append(".bin");
+
+    std::string path("ram/rob/");
+    path.append(file);
+    if (path_check_file_exists(path.c_str()))
+        path.erase(path.size() - file.size()); 
+    else {
+        path.assign("rom/rob/");
+        if (data_list[DATA_AFT].check_file_exists(mdata_dir.c_str(), file.c_str()))
+            path.assign(mdata_dir);
+    }
+
+    auto elem = mothead_storage_data.find(set);
+    if (elem == mothead_storage_data.end())
+        elem = mothead_storage_data.insert({ set, {} }).first;
+
+    elem->second.LoadFile(path.c_str(), file.c_str(), set);
+}
+
+void motion_set_load_motion(uint32_t set, std::string&& mdata_dir, const motion_database* mot_db) {
+    const motion_set_info* set_info = mot_db->get_motion_set_by_id(set);
+    if (!set_info)
+        return;
+
+    auto elem = motion_storage_data.find(set);
+    if (elem == motion_storage_data.end())
+        elem = motion_storage_data.insert({ set, {} }).first;
+
+    elem->second.mot_set_info = set_info;
+    elem->second.LoadFile(std::string(mdata_dir), set);
+}
+
+void motion_set_unload_mothead(uint32_t set) {
+    auto elem = mothead_storage_data.find(set);
+    if (elem != mothead_storage_data.end() && elem->second.Unload())
+        mothead_storage_data.erase(elem);
+}
+
+void motion_set_unload_motion(uint32_t set) {
+    auto elem = motion_storage_data.find(set);
+    if (elem != motion_storage_data.end() && elem->second.Unload())
+        motion_storage_data.erase(elem);
+}
+
+bool mothead_storage_check_mhd_file_not_ready(uint32_t set_id) {
+    auto elem = mothead_storage_data.find(set_id);
+    if (elem != mothead_storage_data.end())
+        return elem->second.CheckNotReady();
+    return false;
+}
+
+MhdFile* mothead_storage_get_mhd_file(uint32_t set_id) {
+    auto elem = mothead_storage_data.find(set_id);
+    if (elem != mothead_storage_data.end())
+        return &elem->second;
+    return 0;
+}
+
+const mothead_mot* mothead_storage_get_mot_by_motion_id(
+    uint32_t motion_id, const motion_database* mot_db) {
+    uint32_t set_id = mot_db->get_motion_set_id_by_motion_id(motion_id);
+    if (set_id == -1)
+        return &mothead_mot_null;
+
+    auto elem = mothead_storage_data.find(set_id);
+    if (elem == mothead_storage_data.end() || !elem->second.data)
+        return &mothead_mot_null;
+
+    mothead* mhd = elem->second.data;
+    if ((int32_t)motion_id < mhd->first_mot_id || (int32_t)motion_id > mhd->last_mot_id)
+        return &mothead_mot_null;
+
+    mothead_mot* mot = mhd->mots[(ssize_t)(int32_t)motion_id - mhd->first_mot_id];
+    if (!mot)
+        return &mothead_mot_null;
+    return mot;
+}
+
+bool motion_storage_check_mot_file_not_ready(uint32_t set_id) {
+    auto elem = motion_storage_data.find(set_id);
+    if (elem != motion_storage_data.end())
+        return elem->second.CheckNotReady();
+    return false;
+}
+
+MotFile* motion_storage_get_mot_file(uint32_t set_id) {
+    auto elem = motion_storage_data.find(set_id);
+    if (elem != motion_storage_data.end())
+        return &elem->second;
+    return 0;
+}
+
+const mot_data* motion_storage_get_mot_data(uint32_t motion_id, const motion_database* mot_db) {
+    uint32_t set_id = -1;
+    size_t motion_index = -1;
+    for (const motion_set_info& i : mot_db->motion_set) {
+        for (const motion_info& j : i.motion)
+            if (j.id == motion_id) {
+                set_id = i.id;
+                motion_index = &j - i.motion.data();
+
+                break;
+            }
+
+        if (set_id != -1)
+            break;
+    }
+
+    if (set_id == -1)
+        return 0;
+
+    auto elem = motion_storage_data.find(set_id);
+    if (elem != motion_storage_data.end())
+        return &elem->second.mot_set->mot_data[motion_index];
+    return 0;
+}
+
+float_t motion_storage_get_mot_data_frame_count(uint32_t motion_id, const motion_database* mot_db) {
+    const mot_data* mot = motion_storage_get_mot_data(motion_id, mot_db);
+    if (mot)
+        return mot->frame_count;
+    return 0.0f;
+}
+
+const mot_set* motion_storage_get_motion_set(uint32_t set_id) {
+    auto elem = motion_storage_data.find(set_id);
+    if (elem != motion_storage_data.end())
+        return elem->second.mot_set;
+    return 0;
+}
+
+void motion_init() {
+    mothead_storage_data = {};
+    motion_storage_data = {};
+}
+
+void motion_free() {
+    motion_storage_data.clear();
+    mothead_storage_data.clear();
 }
