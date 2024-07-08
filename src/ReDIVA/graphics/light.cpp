@@ -1062,7 +1062,7 @@ LightDw::LightDw() {
 
             dw::Button* reflective_surface_clip_stage = new dw::Button(comp, dw::CHECKBOX);
             reflective_surface_clip_stage->SetText(reflective_surface_clip_stage_text);
-            reflective_surface_clip_stage->SetValue(clip_plane.data[1]);
+            reflective_surface_clip_stage->SetValue(!!clip_plane.data[1]);
             reflective_surface_clip_stage->callback = LightDw::ReflectiveSurfaceClipStageCallback;
         }
 
@@ -1120,7 +1120,7 @@ void LightDw::ReflectiveSurfaceClipStageCallback(dw::Widget* data) {
         light_data* light = light_dw_get_light();
         light_clip_plane clip_plane;
         light->get_clip_plane(clip_plane);
-        clip_plane.data[1] = button->value;
+        clip_plane.data[1] = button->value ? 0x01 : 0x00;
         light->set_clip_plane(clip_plane);
     }
 }

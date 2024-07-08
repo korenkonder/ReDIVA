@@ -4535,13 +4535,13 @@ static void auth_3d_light_load(auth_3d* auth, auth_3d_light* l, auth_3d_light_fi
 }
 
 static void auth_3d_light_restore_prev_value(auth_3d_light* l, render_context* rctx) {
-    light_set* set_data = &rctx->light_set[LIGHT_SET_MAIN];
+    light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
 
     light_id id = l->id;
     if (id < LIGHT_CHARA || id > LIGHT_PROJECTION)
         return;
 
-    light_data* data = &set_data->lights[id];
+    light_data* data = &set->lights[id];
     if (l->flags_init & AUTH_3D_LIGHT_AMBIENT)
         data->set_ambient(l->ambient_init);
 
@@ -4556,13 +4556,13 @@ static void auth_3d_light_restore_prev_value(auth_3d_light* l, render_context* r
 }
 
 static void auth_3d_light_set(auth_3d_light* l, render_context* rctx) {
-    light_set* set_data = &rctx->light_set[LIGHT_SET_MAIN];
+    light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
 
     light_id id = l->id;
     if (id < LIGHT_CHARA || id > LIGHT_PROJECTION)
         return;
 
-    light_data* data = &set_data->lights[id];
+    light_data* data = &set->lights[id];
     if (l->flags & AUTH_3D_LIGHT_AMBIENT) {
         if (!(l->flags_init & AUTH_3D_LIGHT_AMBIENT)) {
             vec4 ambient_init;
