@@ -7,6 +7,7 @@
 #include "../../CRE/light_param/face.hpp"
 #include "../../CRE/light_param.hpp"
 #include "../../CRE/render_context.hpp"
+#include "../dw.hpp"
 
 extern render_context* rctx_ptr;
 
@@ -42,7 +43,7 @@ public:
 DwFaceLight* dw_face_light;
 DwFaceLight::SliderSelectionListener dw_face_light_slider_selection_listener;
 
-void dw_face_light_init(dw::Widget* data) {
+void dw_face_light_init() {
     if (!dw_face_light) {
         dw_face_light = new DwFaceLight;
         dw_face_light->sub_1402F38B0();

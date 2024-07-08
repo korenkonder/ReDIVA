@@ -9,6 +9,7 @@
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task.hpp"
+#include "../dw.hpp"
 
 extern render_context* rctx_ptr;
 
@@ -258,7 +259,7 @@ rectangle light_dw_rect = { 0.0f, vec2(256.0f, 610.0f) };
 static LightDw* light_dw_get();
 static light_data* light_dw_get_light();
 
-void light_dw_init(dw::Widget* data) {
+void light_dw_init() {
     if (!light_dw) {
         light_dw = new LightDw;
         light_dw->sub_1402F38B0();

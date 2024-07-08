@@ -123,7 +123,7 @@ rectangle fog_dw_rect = { 0.0f, vec2(300.0f, 320.0f) };
 static FogDw* fog_dw_get();
 static fog* fog_dw_get_fog();
 
-void fog_dw_init(dw::Widget* data) {
+void fog_dw_init() {
     if (!fog_dw) {
         fog_dw = new FogDw;
         fog_dw->sub_1402F38B0();
@@ -469,7 +469,7 @@ void FogDw::ResetData() {
     fog_dw_rect = rect;
     dw::Shell::Hide();
     fog_dw = 0;
-    fog_dw_init(0);
+    fog_dw_init();
 }
 
 static FogDw* fog_dw_get() {

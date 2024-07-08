@@ -6,7 +6,5 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
-#include "../classes.hpp"
-#include "../dw.hpp"
 
-extern void fog_dw_init();
+extern void glitter_dw_init();
