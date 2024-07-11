@@ -15,6 +15,7 @@
 #include "../../CRE/pv_db.hpp"
 #include "../../CRE/resolution_mode.hpp"
 #include "../../CRE/stage.hpp"
+#include "../../CRE/stage_param.hpp"
 #include "../config.hpp"
 #include "../dw.hpp"
 #include "../input_state.hpp"
@@ -1152,10 +1153,10 @@ bool DtmMot::ctrl() {
                 pv_osage_manager_array_set_pv_set_motion(chara_id, set_motion);
         }
 
-        /*if (pv_id >= 0) {
-            stage_param_data_coli_data_clear();
+        if (pv_id >= 0) {
+            stage_param_data_coli_data_reset();
             stage_param_data_coli_data_load(pv_id);
-        }*/
+        }
 
         pv_osage_manager_array_set_pv_id(chara_id, pv_id, 0);
         state = 10;
@@ -1164,9 +1165,9 @@ bool DtmMot::ctrl() {
         if (pv_osage_manager_array_get_disp())
             break;
 
-        /*int32_t stage_index = task_stage_get_current_stage_index();
+        int32_t stage_index = task_stage_get_current_stage_index();
         if (stage_index != -1)
-            rob_chara_array_get(chara_id)->set_stage_data_ring(stage_index);*/
+            rob_chara_array_get(chara_id)->set_stage_data_ring(stage_index);
 #if OPD_PLAY
         state = use_opd ? 5 : 11;
 #else
@@ -1295,7 +1296,7 @@ bool DtmMot::dest() {
     motion_set_unload_motion(motion_set_id);
     motion_set_unload_mothead(motion_set_id);
     skin_param_manager_reset(chara_id);
-    //stage_param_data_coli_data_clear();
+    stage_param_data_coli_data_reset();
     osage_play_data_manager_reset();
     set_motion.clear();
     set_motion_index = 0;

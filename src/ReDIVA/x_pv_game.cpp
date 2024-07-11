@@ -7378,12 +7378,12 @@ bool x_pv_game::ctrl() {
             stage_data.collision_file_path.assign("rom/STGTST_COLI.000.bin");
             stage_data.reflect_type = STAGE_DATA_REFLECT_DISABLE;
             stage_data.flags = (stage_data_flags)0;
-            stage_data.ring_rectangle_x = i.ring_rectangle_x;
-            stage_data.ring_rectangle_y = i.ring_rectangle_y;
-            stage_data.ring_rectangle_width = i.ring_rectangle_width;
-            stage_data.ring_rectangle_height = i.ring_rectangle_height;
+            stage_data.rect_x = i.rect_x;
+            stage_data.rect_y = i.rect_y;
+            stage_data.rect_width = i.rect_width;
+            stage_data.rect_height = i.rect_height;
             stage_data.ring_height = i.ring_height;
-            stage_data.ring_out_height = i.ring_out_height;
+            stage_data.out_height = i.out_height;
 
             stage_data.auth_3d_ids.reserve(i.auth_3d_ids.size());
             for (const uint32_t& j : i.auth_3d_ids) {

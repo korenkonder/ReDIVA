@@ -15,6 +15,7 @@
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
 #include "../../CRE/sound.hpp"
+#include "../../CRE/stage_param.hpp"
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../game_state.hpp"
 #include "../imgui_helper.hpp"
@@ -3135,7 +3136,7 @@ bool pv_game::load() {
             if (!data.stage_indices.size())
                 data.stage_indices.push_back(0);
 
-            //stage_param_data_coli_data_load(data.pv->id);
+            stage_param_data_coli_data_load(data.pv->id);
             task_stage_set_stage_indices(data.stage_indices);
             task_stage_current_set_stage_display(false, true);
 
@@ -4633,7 +4634,7 @@ bool pv_game::unload() {
 
     data.title_image_state = 0;
 
-    //stage_param_data_coli_data_clear();
+    stage_param_data_coli_data_reset();
 
     data.play_data.field_3B0 = -1;
     data.play_data.field_3B4 = -1;

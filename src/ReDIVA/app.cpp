@@ -526,7 +526,7 @@ static render_context* render_context_load() {
         stru_140EDA5B0.screen_shot_4x == 1);*/
 
     objset_info_storage_init(aft_obj_db);
-    stage_param_data_storage_init();
+    stage_param_data_init();
     pv_expression_file_storage_init();
     item_table_handler_array_init();
     rand_state_array_init();
@@ -1227,7 +1227,7 @@ static void render_context_dispose(render_context* rctx) {
     rand_state_array_free();
     item_table_handler_array_free();
     pv_expression_file_storage_free();
-    stage_param_data_storage_free();
+    stage_param_data_free();
     objset_info_storage_free();
 
     ogg_playback_data_free();

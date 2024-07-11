@@ -7,13 +7,13 @@
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "render_context.hpp"
+#include "stage_param.hpp"
 
 struct light_param_data_storage;
 
 struct light_param_data {
     std::string name;
     std::string paths[6];
-    std::string files[6];
     bool pv;
     light_param_light light;
     light_param_fog fog;
@@ -27,7 +27,7 @@ struct light_param_data {
 
     int32_t load_file(p_file_handler file_handlers[6]);
     void load_pv_cut_file_names(int32_t cut_id, const std::string& name);
-    void load_stage_file_names(const std::string& name);
+    void load_stage_file_names(const int32_t& stage_index, const std::string& name);
     void set(light_param_data_storage* storage,
         light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
 
@@ -61,6 +61,7 @@ struct light_param_data_storage {
     ~light_param_data_storage();
 
     void free_file_handlers();
+    std::string get_name();
     void load_stages(const std::vector<int32_t>& stage_indices);
     void load_stages(const std::vector<uint32_t>& stage_hashes, stage_database* stage_data);
     int32_t load_file(bool read_now);
@@ -86,6 +87,10 @@ int32_t light_param_data_load_file() {
 
 void light_param_data_storage_data_init() {
     light_param_data_storage_data = new light_param_data_storage;
+}
+
+std::string light_param_data_storage_data_get_name() {
+    return light_param_data_storage_data->get_name();
 }
 
 int32_t light_param_data_storage_data_get_pv_id() {
@@ -216,64 +221,49 @@ int32_t light_param_data::load_file(p_file_handler file_handlers[6]) {
 }
 
 void light_param_data::load_pv_cut_file_names(int32_t cut_id, const std::string& name) {
-    char buf[0x100];
+    this->name.assign(sprintf_s_string("%s_c%03d", name.c_str(), cut_id));
 
-    sprintf_s(buf, sizeof(buf), "%s_c%03d", name.c_str(), cut_id);
-    this->name.assign(buf);
-
-    sprintf_s(buf, sizeof(buf), "%s.ibl",  this->name.c_str());
     paths[0].assign("rom/ibl/");
-    files[0].assign(buf);
+    paths[0].append(sprintf_s_string("%s.ibl", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "light_%s.txt",  this->name.c_str());
     paths[1].assign("rom/light_param/");
-    files[1].assign(buf);
+    paths[1].append(sprintf_s_string("light_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "fog_%s.txt",  this->name.c_str());
     paths[2].assign("rom/light_param/");
-    files[2].assign(buf);
+    paths[2].append(sprintf_s_string("fog_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "glow_%s.txt",  this->name.c_str());
     paths[3].assign("rom/light_param/");
-    files[3].assign(buf);
+    paths[3].append(sprintf_s_string("glow_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "wind_%s.txt",  this->name.c_str());
     paths[4].assign("rom/light_param/");
-    files[4].assign(buf);
+    paths[4].append(sprintf_s_string("wind_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "face_%s.txt",  this->name.c_str());
     paths[5].assign("rom/light_param/");
-    files[5].assign(buf);
+    paths[5].append(sprintf_s_string("face_%s.txt", this->name.c_str()));
 }
 
-void light_param_data::load_stage_file_names(const std::string& name) {
-    char buf[0x100];
-
+void light_param_data::load_stage_file_names(const int32_t& stage_index, const std::string& name) {
     this->name.assign(name);
 
-    sprintf_s(buf, sizeof(buf), "%s.ibl",  this->name.c_str());
     paths[0].assign("rom/ibl/");
-    files[0].assign(buf);
+    paths[0].append(sprintf_s_string("%s.ibl", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "light_%s.txt",  this->name.c_str());
     paths[1].assign("rom/light_param/");
-    files[1].assign(buf);
+    paths[1].append(sprintf_s_string("light_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "fog_%s.txt",  this->name.c_str());
     paths[2].assign("rom/light_param/");
-    files[2].assign(buf);
+    paths[2].append(sprintf_s_string("fog_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "glow_%s.txt",  this->name.c_str());
     paths[3].assign("rom/light_param/");
-    files[3].assign(buf);
+    paths[3].append(sprintf_s_string("glow_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "wind_%s.txt",  this->name.c_str());
     paths[4].assign("rom/light_param/");
-    files[4].assign(buf);
+    paths[4].append(sprintf_s_string("wind_%s.txt", this->name.c_str()));
 
-    sprintf_s(buf, sizeof(buf), "face_%s.txt",  this->name.c_str());
     paths[5].assign("rom/light_param/");
-    files[5].assign(buf);
+    paths[5].append(sprintf_s_string("face_%s.txt", this->name.c_str()));
+
+    stage_param_data_coli_data_get_stage_wind_file_path(paths[4], stage_index);
 }
 
 void light_param_data::set(light_param_data_storage* storage, light_param_data_storage_flags flags) {
@@ -683,6 +673,10 @@ void light_param_data_storage::free_file_handlers() {
     farc_file_handler.reset();
 }
 
+std::string light_param_data_storage::get_name() {
+    return name;
+}
+
 void light_param_data_storage::load_stages(const std::vector<int32_t>& stage_indices) {
     if (state)
         for (int32_t i = 0; i < 6; ++i)
@@ -705,7 +699,7 @@ void light_param_data_storage::load_stages(const std::vector<int32_t>& stage_ind
         else
             light_param = &stage.insert({ i, default_light_param }).first->second;
 
-        light_param->load_stage_file_names(name);
+        light_param->load_stage_file_names(i, name);
         light_param->pv = false;
     }
     current_light_param = stage.begin();
@@ -738,7 +732,7 @@ void light_param_data_storage::load_stages(const std::vector<uint32_t>& stage_ha
         else
             light_param = &stage.insert({ i, default_light_param }).first->second;
 
-        light_param->load_stage_file_names(name);
+        light_param->load_stage_file_names(i, name);
         light_param->pv = false;
     }
     current_light_param = stage.begin();
@@ -749,9 +743,8 @@ int32_t light_param_data_storage::load_file(bool read_now) {
     if (state == 1) {
         light_param_data* light_param = &current_light_param->second;
         std::string* paths = light_param->paths;
-        std::string* files = light_param->files;
         for (int32_t i = 0; i < 6; i++)
-            file_handlers[i].read_file(&data_list[DATA_AFT], paths[i].c_str(), files[i].c_str());
+            file_handlers[i].read_file(&data_list[DATA_AFT], paths[i].c_str());
         state = 2;
         return 1;
     }

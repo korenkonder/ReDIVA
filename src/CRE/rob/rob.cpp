@@ -23,6 +23,7 @@
 #include "../random.hpp"
 #include "../resolution_mode.hpp"
 #include "../stage.hpp"
+#include "../stage_param.hpp"
 #include "motion.hpp"
 #include "skin_param.hpp"
 
@@ -4666,6 +4667,27 @@ void rob_chara::set_shadow_cast(bool value) {
         item_equip->field_A0 &= ~0x04;
 }
 
+static void rob_chara_item_equip_object_set_ring(
+    rob_chara_item_equip_object* itm_eq_obj, const osage_ring_data& ring) {
+    for (ExOsageBlock*& i : itm_eq_obj->osage_blocks)
+        i->SetRing(ring);
+
+    for (ExClothBlock*& i : itm_eq_obj->cloth_blocks)
+        i->SetRing(ring);
+}
+
+static void rob_chara_item_equip_set_ring(rob_chara_item_equip* rob_itm_eq, const osage_ring_data& ring) {
+    for (int32_t i = rob_itm_eq->first_item_equip_object; i < rob_itm_eq->max_item_equip_object; i++)
+        rob_chara_item_equip_object_set_ring(&rob_itm_eq->item_equip_object[i], ring);
+}
+
+void rob_chara::set_stage_data_ring(const int32_t& stage_index) {
+    osage_ring_data ring;
+    if (stage_index != -1)
+        stage_param_data_coli_data_get_stage_index_data(stage_index, &ring);
+    rob_chara_item_equip_set_ring(item_equip, ring);
+}
+
 void rob_chara::set_step_motion_step(float_t value) {
     data.motion.step_data.step = value;
     if (value < 0.0f)
@@ -7197,7 +7219,7 @@ static void mothead_func_74_disable_collision(mothead_func_data* func_data,
     func_data->rob_chr->set_disable_collision((rob_osage_parts)((uint8_t*)data)[0], !!((uint8_t*)data)[1]);
 }
 
-void rob_chara_set_adjust_global(rob_chara* rob_chr, rob_chara_data_adjust* a2) {
+static void rob_chara_set_adjust_global(rob_chara* rob_chr, rob_chara_data_adjust* a2) {
     rob_chara_set_adjust(rob_chr, a2,
         &rob_chr->data.motion.adjust_global, &rob_chr->data.motion.adjust_global_prev);
 }
@@ -7309,9 +7331,21 @@ static void mothead_func_78(mothead_func_data* func_data,
     v7->field_48 = v11;
 }
 
+static void rob_chara_set_coli_ring(rob_chara* rob_chr, int32_t index) {
+    osage_ring_data ring;
+    if (index >= 0)
+        stage_param_data_coli_data_get_mhd_id_data(index, &ring);
+    else {
+        int32_t stage_index = task_stage_get_current_stage_index();
+        if (stage_index != -1)
+            stage_param_data_coli_data_get_stage_index_data(stage_index, &ring);
+    }
+    rob_chara_item_equip_set_ring(rob_chr->item_equip, ring);
+}
+
 static void mothead_func_79_rob_chara_coli_ring(mothead_func_data* func_data,
     const void* data, const mothead_data* mhd_data, int32_t frame, const motion_database* mot_db) {
-    //rob_chara_set_coli_ring(func_data->rob_chr, ((int8_t*)data)[0]);
+    rob_chara_set_coli_ring(func_data->rob_chr, ((int8_t*)data)[0]);
 }
 
 static void mothead_func_80_adjust_get_global_pos(mothead_func_data* func_data,
@@ -10040,11 +10074,11 @@ static float_t sub_14064AD10(vec3* a1, float_t a2) {
         if (!v3)
             return -1000.0f;
 
-        if (a1->x < v3->ring_rectangle_x - a2
-            || a1->z < v3->ring_rectangle_y - a2
-            || a1->x > v3->ring_rectangle_x + v3->ring_rectangle_width
-            || a1->z > v3->ring_rectangle_y + v3->ring_rectangle_height)
-            return v3->ring_out_height;
+        if (a1->x < v3->rect_x - a2
+            || a1->z < v3->rect_y - a2
+            || a1->x > v3->rect_x + v3->rect_width
+            || a1->z > v3->rect_y + v3->rect_height)
+            return v3->out_height;
         return v3->ring_height;
     }
     return -1000.0f;
@@ -17295,6 +17329,7 @@ rob_osage_mothead::rob_osage_mothead(rob_chara* rob_chr, int32_t stage_index, ui
         this->frame = frame;
         this->motion_id = motion_id;
         last_frame = rob_chr->bone_data->get_frame_count() - 1.0f;
+        rob_chr->set_stage_data_ring(stage_index);
         rob_chr->reset_osage();
         rob_chr->set_bone_data_frame(frame);
         rob_chara_item_equip_ctrl_iterate_nodes(rob_chr->item_equip);
@@ -17379,7 +17414,7 @@ void rob_osage_mothead::reset_data() {
 void rob_osage_mothead::set_coli_ring(const mothead_data* mhd_data) {
     const void* data = mhd_data->data;
 
-    //rob_chara_set_coli_ring(rob_chr, ((int8_t*)data)[0]);
+    rob_chara_set_coli_ring(rob_chr, ((int8_t*)data)[0]);
 }
 
 void rob_osage_mothead::set_frame(float_t value) {

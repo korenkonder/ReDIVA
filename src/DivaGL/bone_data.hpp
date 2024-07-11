@@ -3233,12 +3233,12 @@ struct OsageCollision {
 };
 
 struct osage_ring_data {
-    float_t ring_rectangle_x;
-    float_t ring_rectangle_y;
-    float_t ring_rectangle_width;
-    float_t ring_rectangle_height;
+    float_t rect_x;
+    float_t rect_y;
+    float_t rect_width;
+    float_t rect_height;
     float_t ring_height;
-    float_t ring_out_height;
+    float_t out_height;
     bool init;
     OsageCollision coli;
     prj::vector<SkinParam::CollisionParam> skp_root_coli;

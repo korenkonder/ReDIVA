@@ -36,11 +36,11 @@ void opd_node_data_pair::set_data(opd_blend_data* blend_data, opd_node_data&& no
 }
 
 inline float_t osage_ring_data::get_floor_height(const vec3& pos, const float_t coli_r) {
-    if (pos.x < ring_rectangle_x - coli_r
-        || pos.z < ring_rectangle_y - coli_r
-        || pos.x > ring_rectangle_x + ring_rectangle_width
-        || pos.z > ring_rectangle_y + ring_rectangle_height)
-        return ring_out_height + coli_r;
+    if (pos.x < rect_x - coli_r
+        || pos.z < rect_y - coli_r
+        || pos.x > rect_x + rect_width
+        || pos.z > rect_y + rect_height)
+        return out_height + coli_r;
     else
         return ring_height + coli_r;
 }
@@ -505,12 +505,12 @@ static void RobOsage__Reset(RobOsage* rob_osg) {
     rob_osg->osage_reset = false;
     rob_osg->prev_osage_reset = false;
     rob_osg->ring.ring_height = -1000.0f;
-    rob_osg->ring.ring_rectangle_x = 0.0f;
-    rob_osg->ring.ring_rectangle_y = 0.0f;
-    rob_osg->ring.ring_rectangle_width = 0.0f;
-    rob_osg->ring.ring_out_height = -1000.0f;
+    rob_osg->ring.rect_x = 0.0f;
+    rob_osg->ring.rect_y = 0.0f;
+    rob_osg->ring.rect_width = 0.0f;
+    rob_osg->ring.out_height = -1000.0f;
     rob_osg->ring.init = false;
-    rob_osg->ring.ring_rectangle_height = 0.0f;
+    rob_osg->ring.rect_height = 0.0f;
     rob_osg->ring.coli.work_list.clear();
     rob_osg->ring.skp_root_coli.clear();
     rob_osg->disable_collision = false;

@@ -34,8 +34,8 @@ stage_effects_modern::stage_effects_modern() {
 
 stage_data_file::stage_data_file() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
 lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
-reflect(), reflect_data(), refract(), refract_data(), flags(), ring_rectangle_x(), ring_rectangle_y(),
-ring_rectangle_width(), ring_rectangle_height(), ring_height(), ring_out_height(), effects_init() {
+reflect(), reflect_data(), refract(), refract_data(), flags(), rect_x(), rect_y(),
+rect_width(), rect_height(), ring_height(), out_height(), effects_init() {
     lens_shaft_inv_scale = 1.0f;
 }
 
@@ -46,8 +46,8 @@ stage_data_file::~stage_data_file() {
 stage_data_modern_file::stage_data_modern_file() : unknown(), render_texture(),
 render_texture_flag(), movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(),
 field_05_flag(), field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
-field_10(), field_11(), field_12(), ring_rectangle_x(), ring_rectangle_y(), ring_rectangle_width(),
-ring_rectangle_height(), ring_height(), ring_out_height(), field_13(), effects_init() {
+field_10(), field_11(), field_12(), rect_x(), rect_y(), rect_width(),
+rect_height(), ring_height(), out_height(), field_13(), effects_init() {
     hash = hash_murmurhash_empty;
     lens_shaft_inv_scale = 1.0f;
 }
@@ -58,8 +58,8 @@ stage_data_modern_file::~stage_data_modern_file() {
 
 stage_data::stage_data() : id(), object_set_id(), lens_flare_texture(), lens_shaft_texture(),
 lens_ghost_texture(), unknown(), render_texture(), movie_texture(), reflect_type(), refract_enable(),
-reflect(), reflect_data(), refract(), refract_data(), flags(), ring_rectangle_x(), ring_rectangle_y(),
-ring_rectangle_width(), ring_rectangle_height(), ring_height(), ring_out_height(), effects_init() {
+reflect(), reflect_data(), refract(), refract_data(), flags(), rect_x(), rect_y(),
+rect_width(), rect_height(), ring_height(), out_height(), effects_init() {
     name_hash = hash_murmurhash_empty;
     lens_shaft_inv_scale = 1.0f;
 }
@@ -71,8 +71,8 @@ stage_data::~stage_data() {
 stage_data_modern::stage_data_modern() : unknown(), render_texture(),
 render_texture_flag(), movie_texture(), movie_texture_flag(), field_04(), field_04_flag(), field_05(),
 field_05_flag(), field_06(), field_06_flag(), field_07(), field_07_flag(), field_08(), field_09(),
-field_10(), field_11(), field_12(), ring_rectangle_x(), ring_rectangle_y(), ring_rectangle_width(),
-ring_rectangle_height(), ring_height(), ring_out_height(), field_13(), effects_init() {
+field_10(), field_11(), field_12(), rect_x(), rect_y(), rect_width(),
+rect_height(), ring_height(), out_height(), field_13(), effects_init() {
     hash = hash_murmurhash_empty;
     auth_3d_name_hash = hash_murmurhash_empty;
     lens_shaft_inv_scale = 1.0f;
@@ -313,12 +313,12 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->refract = i.refract;
         data->refract_data = i.refract_data;
         data->flags = i.flags;
-        data->ring_rectangle_x = i.ring_rectangle_x;
-        data->ring_rectangle_y = i.ring_rectangle_y;
-        data->ring_rectangle_width = i.ring_rectangle_width;
-        data->ring_rectangle_height = i.ring_rectangle_height;
+        data->rect_x = i.rect_x;
+        data->rect_y = i.rect_y;
+        data->rect_width = i.rect_width;
+        data->rect_height = i.rect_height;
         data->ring_height = i.ring_height;
-        data->ring_out_height = i.ring_out_height;
+        data->out_height = i.out_height;
         data->effects = i.effects;
         data->effects_init = i.effects_init;
         data->auth_3d_ids.assign(i.auth_3d_ids.begin(), i.auth_3d_ids.end());
@@ -367,12 +367,12 @@ void stage_database::add(stage_database_file* stage_data_file) {
         data->field_10 = i.field_10;
         data->field_11 = i.field_11;
         data->field_12 = i.field_12;
-        data->ring_rectangle_x = i.ring_rectangle_x;
-        data->ring_rectangle_y = i.ring_rectangle_y;
-        data->ring_rectangle_width = i.ring_rectangle_width;
-        data->ring_rectangle_height = i.ring_rectangle_height;
+        data->rect_x = i.rect_x;
+        data->rect_y = i.rect_y;
+        data->rect_width = i.rect_width;
+        data->rect_height = i.rect_height;
         data->ring_height = i.ring_height;
-        data->ring_out_height = i.ring_out_height;
+        data->out_height = i.out_height;
         data->field_13 = i.field_13;
         data->effects = i.effects;
         data->effects_init = i.effects_init;
@@ -528,12 +528,12 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
         if (stage_data->format > STAGE_DATA_F)
             stage->flags = (stage_data_flags)s.read_uint32_t();
 
-        stage->ring_rectangle_x = s.read_float_t();
-        stage->ring_rectangle_y = s.read_float_t();
-        stage->ring_rectangle_width = s.read_float_t();
-        stage->ring_rectangle_height = s.read_float_t();
+        stage->rect_x = s.read_float_t();
+        stage->rect_y = s.read_float_t();
+        stage->rect_width = s.read_float_t();
+        stage->rect_height = s.read_float_t();
         stage->ring_height = s.read_float_t();
-        stage->ring_out_height = s.read_float_t();
+        stage->out_height = s.read_float_t();
 
         if (stage->object_ground.id == 0xFFFF)
             stage->object_ground.id = -1;
@@ -773,12 +773,12 @@ static void stage_database_file_classic_write_inner(stage_database_file* stage_d
         if (stage_data->format > STAGE_DATA_F)
             s.write_uint32_t(stage->flags);
 
-        s.write_float_t(stage->ring_rectangle_x);
-        s.write_float_t(stage->ring_rectangle_y);
-        s.write_float_t(stage->ring_rectangle_width);
-        s.write_float_t(stage->ring_rectangle_height);
+        s.write_float_t(stage->rect_x);
+        s.write_float_t(stage->rect_y);
+        s.write_float_t(stage->rect_width);
+        s.write_float_t(stage->rect_height);
         s.write_float_t(stage->ring_height);
-        s.write_float_t(stage->ring_out_height);
+        s.write_float_t(stage->out_height);
     }
     s.position_pop();
 
@@ -877,12 +877,12 @@ static void stage_database_file_modern_read_inner(stage_database_file* stage_dat
         stage->field_11 = s.read_offset(header_length, is_x);
         stage->field_12 = s.read_offset(header_length, is_x);
 
-        stage->ring_rectangle_x = s.read_float_t_reverse_endianness();
-        stage->ring_rectangle_y = s.read_float_t_reverse_endianness();
-        stage->ring_rectangle_width = s.read_float_t_reverse_endianness();
-        stage->ring_rectangle_height = s.read_float_t_reverse_endianness();
+        stage->rect_x = s.read_float_t_reverse_endianness();
+        stage->rect_y = s.read_float_t_reverse_endianness();
+        stage->rect_width = s.read_float_t_reverse_endianness();
+        stage->rect_height = s.read_float_t_reverse_endianness();
         stage->ring_height = s.read_float_t_reverse_endianness();
-        stage->ring_out_height = s.read_float_t_reverse_endianness();
+        stage->out_height = s.read_float_t_reverse_endianness();
 
         if (is_x)
             stage->field_13 = s.read_uint32_t_reverse_endianness();

@@ -6,6 +6,7 @@
 #include "rob.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../KKdLib/str_utils.hpp"
+#include "../data.hpp"
 #include "skin_param.hpp"
 
 struct exp_func_op1 {
@@ -459,10 +460,6 @@ vec_center(), vec_center_length(), vec_center_length_squared(), friction() {
 
 }
 
-OsageCollision::Work::~Work() {
-
-}
-
 // 0x140485450
 void OsageCollision::Work::update_cls_work(OsageCollision::Work* cls,
     SkinParam::CollisionParam* cls_param, const mat4* transform) {
@@ -809,24 +806,170 @@ int32_t OsageCollision::osage_cls_work_list(vec3& p, const float_t& cls_r, const
     return 0;
 }
 
-osage_ring_data::osage_ring_data() : ring_rectangle_x(), ring_rectangle_y(),
-ring_rectangle_width(), ring_rectangle_height(), init() {
-    ring_height = -1000.0f;
-    ring_out_height = -1000.0f;
+osage_ring_data::osage_ring_data() : rect_x(), rect_y(),
+rect_width(), rect_height(), ring_height(), out_height(), init() {
+    reset();
 }
 
 osage_ring_data::~osage_ring_data() {
 
 }
 
+void osage_ring_data::reset() {
+    rect_x = 0.0f;
+    rect_y = 0.0f;
+    rect_width = 0.0f;
+    rect_height = 0.0f;
+    ring_height = -1000.0f;
+    out_height = -1000.0f;
+    init = false;
+    coli.work_list.clear();
+    skp_root_coli.clear();
+}
+
 inline float_t osage_ring_data::get_floor_height(const vec3& pos, const float_t coli_r) {
-    if (pos.x < ring_rectangle_x - coli_r
-        || pos.z < ring_rectangle_y - coli_r
-        || pos.x > ring_rectangle_x + ring_rectangle_width
-        || pos.z > ring_rectangle_y + ring_rectangle_height)
-        return ring_out_height + coli_r;
+    if (pos.x < rect_x - coli_r
+        || pos.z < rect_y - coli_r
+        || pos.x > rect_x + rect_width
+        || pos.z > rect_y + rect_height)
+        return out_height + coli_r;
     else
         return ring_height + coli_r;
+}
+
+void osage_ring_data::parse(const std::string& path, osage_ring_data& ring) {
+    ring.reset();
+
+    data_struct* aft_data = &data_list[DATA_AFT];
+    bone_database* aft_bone_data = &aft_data->data_ft.bone_data;
+
+    key_val kv;
+    if (!aft_data->load_file(&kv, path.c_str(), key_val::load_file))
+        return;
+
+    int32_t count;
+    if (kv.read("object", "length", count)) {
+        for (int32_t i = 0; i < count; i++) {
+            if (!kv.open_scope_fmt(i))
+                continue;
+
+            int32_t type;
+            if (!kv.read("type", type))
+                break;
+
+            OsageCollision::Work cls;
+            cls.type = (SkinParam::CollisionType)type;
+
+            float_t radius;
+            if (!kv.read("radius", radius))
+                break;
+
+            cls.radius = radius;
+
+            if (kv.open_scope("pos")) {
+                for (int32_t j = 0; j < 2; j++) {
+                    if (!kv.open_scope_fmt(j))
+                        continue;
+
+                    float_t x;
+                    if (kv.read("x", x))
+                        cls.pos[j].x = x;
+
+                    float_t y;
+                    if (kv.read("y", y))
+                        cls.pos[j].y = y;
+
+                    float_t z;
+                    if (kv.read("z", z))
+                        cls.pos[j].z = z;
+
+                    kv.close_scope();
+                }
+                kv.close_scope();
+            }
+
+            float_t friction;
+            if (kv.read("friction", friction))
+                cls.friction = friction;
+
+
+            int32_t node_idx0 = -1;
+            int32_t node_idx1 = -1;
+
+            const char* bone0_name;
+            const char* bone1_name;
+            if (kv.read("bone.0.name", bone0_name)) {
+                node_idx0 = aft_bone_data->get_skeleton_object_bone_index(
+                    bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone0_name);
+                if (node_idx0 >= 0 && kv.read("bone.1.name", bone1_name))
+                    node_idx1 = aft_bone_data->get_skeleton_object_bone_index(
+                        bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone1_name);
+            }
+
+            if (node_idx0 >= 0) {
+                SkinParam::CollisionParam cls_param;
+                cls_param.type = cls.type;
+                cls_param.node_idx[0] = node_idx0;
+                cls_param.node_idx[1] = node_idx1;
+                cls_param.radius = cls.radius;
+                cls_param.pos[0].x = cls.pos[0].x;
+                cls_param.pos[0].y = cls.pos[0].y;
+                cls_param.pos[0].z = cls.pos[0].z;
+                cls_param.pos[1].x = cls.pos[1].x;
+                cls_param.pos[1].y = cls.pos[1].y;
+                cls_param.pos[1].z = cls.pos[1].z;
+                ring.skp_root_coli.push_back(cls_param);
+            }
+            else {
+                if (cls.type == SkinParam::CollisionTypeCapsule || cls.type == SkinParam::CollisionTypeEllipse) {
+                    cls.vec_center = cls.pos[1] - cls.pos[0];
+                    cls.vec_center_length_squared = vec3::length_squared(cls.vec_center);
+                    cls.vec_center_length = sqrtf(cls.vec_center_length_squared);
+                }
+                ring.coli.work_list.push_back(cls);
+            }
+
+            kv.close_scope();
+        }
+        kv.close_scope();
+    }
+
+    ring.coli.work_list.push_back({});
+    ring.skp_root_coli.push_back({});
+
+    kv.open_scope("ring");
+
+    float_t rect_x;
+    float_t rect_y;
+    float_t rect_width;
+    float_t rect_height;
+    float_t ring_height;
+    float_t out_height;
+    if (kv.read("rect.x", rect_x) && kv.read("rect.y", rect_y)
+        && kv.read("rect.width", rect_width) && kv.read("rect.height", rect_height)
+        && kv.read("ring_height", ring_height) && kv.read("out_height", out_height)) {
+        ring.init = true;
+        ring.rect_x = rect_x;
+        ring.rect_y = rect_y;
+        ring.rect_width = rect_width;
+        ring.rect_height = rect_height;
+        ring.ring_height = ring_height;
+        ring.out_height = out_height;
+    }
+    kv.close_scope();
+}
+
+osage_ring_data& osage_ring_data::operator=(const osage_ring_data& ring) {
+    rect_x = ring.rect_x;
+    rect_y = ring.rect_y;
+    rect_width = ring.rect_width;
+    rect_height = ring.rect_height;
+    ring_height = ring.ring_height;
+    out_height = ring.out_height;
+    init = ring.init;
+    coli.work_list.assign(ring.coli.work_list.begin(), ring.coli.work_list.end());
+    skp_root_coli.assign(ring.skp_root_coli.begin(), ring.skp_root_coli.end());
+    return *this;
 }
 
 CLOTHNode::CLOTHNode() : flags(), tangent_sign(), dist_top(),
@@ -1343,6 +1486,10 @@ const float_t* RobCloth::SetOsagePlayDataInit(const float_t* opdi_data) {
     return opdi_data;
 }
 
+void RobCloth::SetRing(const osage_ring_data& ring) {
+    this->ring = ring;
+}
+
 void RobCloth::SetSkinParamOsageRoot(const skin_param_osage_root& skp_root) {
     SetForceAirRes(skp_root.force, skp_root.force_gain, skp_root.air_res);
     SetSkinParamFriction(skp_root.friction);
@@ -1654,6 +1801,10 @@ const float_t* ExClothBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
 
 void ExClothBlock::SetOsageReset() {
     rob.osage_reset = true;
+}
+
+void ExClothBlock::SetRing(const osage_ring_data& ring) {
+    rob.SetRing(ring);
 }
 
 void ExClothBlock::SetSkinParam(skin_param_file_data* skp) {
@@ -2094,6 +2245,10 @@ const float_t* RobOsage::SetOsagePlayDataInit(const float_t* opdi_data) {
     return opdi_data;
 }
 
+void RobOsage::SetRing(const osage_ring_data& ring) {
+    this->ring = ring;
+}
+
 void RobOsage::SetRot(float_t rot_y, float_t rot_z) {
     skin_param_ptr->rot.y = rot_y * DEG_TO_RAD_FLOAT;
     skin_param_ptr->rot.z = rot_z * DEG_TO_RAD_FLOAT;
@@ -2299,6 +2454,10 @@ const float_t* ExOsageBlock::SetOsagePlayDataInit(const float_t* opdi_data) {
 
 void ExOsageBlock::SetOsageReset() {
     rob.osage_reset = true;
+}
+
+void ExOsageBlock::SetRing(const osage_ring_data& ring) {
+    rob.SetRing(ring);
 }
 
 void ExOsageBlock::SetSkinParam(skin_param_file_data* skp) {

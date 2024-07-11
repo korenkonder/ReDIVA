@@ -11,6 +11,7 @@
 #include "../../KKdLib/prj/vector_pair.hpp"
 #include "../../KKdLib/mat.hpp"
 #include "../../KKdLib/mot.hpp"
+#include "../../KKdLib/rectangle.hpp"
 #include "../../KKdLib/vec.hpp"
 #include "../item_table.hpp"
 #include "../render_context.hpp"
@@ -811,41 +812,41 @@ enum ExNodeType {
 };
 
 enum SubActExecType {
-    SUB_ACTION_EXECUTE_NONE        = 0,
-    SUB_ACTION_EXECUTE_CRY         = 1,
-    SUB_ACTION_EXECUTE_SHAKE_HAND  = 2,
-    SUB_ACTION_EXECUTE_EMBARRASSED = 3,
-    SUB_ACTION_EXECUTE_ANGRY       = 4,
-    SUB_ACTION_EXECUTE_LAUGH       = 5,
-    SUB_ACTION_EXECUTE_COUNT_NUM   = 6,
+    SUB_ACTION_EXECUTE_NONE        = 0x00,
+    SUB_ACTION_EXECUTE_CRY         = 0x01,
+    SUB_ACTION_EXECUTE_SHAKE_HAND  = 0x02,
+    SUB_ACTION_EXECUTE_EMBARRASSED = 0x03,
+    SUB_ACTION_EXECUTE_ANGRY       = 0x04,
+    SUB_ACTION_EXECUTE_LAUGH       = 0x05,
+    SUB_ACTION_EXECUTE_COUNT_NUM   = 0x06,
 };
 
-enum SubActParamType  {
-    SUB_ACTION_PARAM_NONE        = 0x0,
-    SUB_ACTION_PARAM_CRY         = 0x1,
-    SUB_ACTION_PARAM_SHAKE_HAND  = 0x2,
-    SUB_ACTION_PARAM_EMBARRASSED = 0x3,
-    SUB_ACTION_PARAM_ANGRY       = 0x4,
-    SUB_ACTION_PARAM_LAUGH       = 0x5,
-    SUB_ACTION_PARAM_COUNT_NUM   = 0x6,
+enum SubActParamType {
+    SUB_ACTION_PARAM_NONE        = 0x00,
+    SUB_ACTION_PARAM_CRY         = 0x01,
+    SUB_ACTION_PARAM_SHAKE_HAND  = 0x02,
+    SUB_ACTION_PARAM_EMBARRASSED = 0x03,
+    SUB_ACTION_PARAM_ANGRY       = 0x04,
+    SUB_ACTION_PARAM_LAUGH       = 0x05,
+    SUB_ACTION_PARAM_COUNT_NUM   = 0x06,
 };
 
 namespace SkinParam {
     enum CollisionType {
-        CollisionTypeEnd     = 0x0,
-        CollisionTypeBall    = 0x1,
-        CollisionTypeCapsule = 0x2,
-        CollisionTypePlane   = 0x3,
-        CollisionTypeEllipse = 0x4,
-        CollisionTypeAABB    = 0x5,
-        CollisionTypeMax     = 0x6,
+        CollisionTypeEnd     = 0x00,
+        CollisionTypeBall    = 0x01,
+        CollisionTypeCapsule = 0x02,
+        CollisionTypePlane   = 0x03,
+        CollisionTypeEllipse = 0x04,
+        CollisionTypeAABB    = 0x05,
+        CollisionTypeMax     = 0x06,
     };
 
     enum RootCollisionType {
-        RootCollisionTypeEnd     = 0x0,
-        RootCollisionTypeBall    = 0x1,
-        RootCollisionTypeCapsule = 0x2,
-        RootCollisionTypeMax     = 0x3,
+        RootCollisionTypeEnd     = 0x00,
+        RootCollisionTypeBall    = 0x01,
+        RootCollisionTypeCapsule = 0x02,
+        RootCollisionTypeMax     = 0x03,
     };
 }
 
@@ -1745,7 +1746,6 @@ struct OsageCollision {
         float_t friction;
 
         Work();
-        ~Work();
 
         static void update_cls_work(OsageCollision::Work* cls,
             SkinParam::CollisionParam* cls_param, const mat4* tranform);
@@ -1778,12 +1778,12 @@ struct OsageCollision {
 };
 
 struct osage_ring_data {
-    float_t ring_rectangle_x;
-    float_t ring_rectangle_y;
-    float_t ring_rectangle_width;
-    float_t ring_rectangle_height;
+    float_t rect_x;
+    float_t rect_y;
+    float_t rect_width;
+    float_t rect_height;
     float_t ring_height;
-    float_t ring_out_height;
+    float_t out_height;
     bool init;
     OsageCollision coli;
     std::vector<SkinParam::CollisionParam> skp_root_coli;
@@ -1792,6 +1792,11 @@ struct osage_ring_data {
     ~osage_ring_data();
 
     float_t get_floor_height(const vec3& pos, const float_t coli_r);
+    void reset();
+
+    static void parse(const std::string& path, osage_ring_data& ring);
+
+    osage_ring_data& operator=(const osage_ring_data& ring);
 };
 
 struct skin_param_file_data;
@@ -1913,6 +1918,7 @@ struct RobCloth : public CLOTH {
     void SetMotionResetData(uint32_t motion_id, float_t frame);
     void SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
+    void SetRing(const osage_ring_data& ring);
     void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
     void UpdateDisp();
     void UpdateNormals();
@@ -1950,6 +1956,7 @@ public:
     void SetMotionResetData(uint32_t motion_id, float_t frame);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
+    void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetSkinParamOsageRoot(skin_param_osage_root* skp_root);
 };
@@ -2025,6 +2032,7 @@ struct RobOsage {
     void SetOsagePlayData(const mat4* parent_mat,
         const vec3& parent_scale, std::vector<opd_blend_data>& opd_blend_data);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
+    void SetRing(const osage_ring_data& ring);
     void SetRot(float_t rot_y, float_t rot_z);
     void SetSkinParamOsageRoot(const skin_param_osage_root& skp_root);
     void SetSkpOsgNodes(std::vector<skin_param_osage_node>* skp_osg_nodes);
@@ -2063,6 +2071,7 @@ public:
     void SetMotionResetData(uint32_t motion_id, float_t frame);
     const float_t* SetOsagePlayDataInit(const float_t* opdi_data);
     void SetOsageReset();
+    void SetRing(const osage_ring_data& ring);
     void SetSkinParam(skin_param_file_data* skp);
     void SetWindDirection();
     void sub_1405F3E10(obj_skin_block_osage* osg_data, obj_skin_osage_node* osg_nodes,
@@ -3540,6 +3549,7 @@ struct rob_chara {
     void set_parts_disp(item_id id, bool disp);
     void set_right_hand_scale(float_t value);
     void set_shadow_cast(bool value);
+    void set_stage_data_ring(const int32_t& stage_index);
     void set_step_motion_step(float_t value);
     void set_use_opd(bool value);
     void set_visibility(bool value);

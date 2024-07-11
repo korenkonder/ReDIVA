@@ -31,6 +31,7 @@ enum light_param_data_storage_flags {
 
 extern void light_param_data_storage_data_init();
 extern void light_param_data_storage_data_free_file_handlers();
+extern std::string light_param_data_storage_data_get_name();
 extern int32_t light_param_data_storage_data_get_pv_id();
 extern int32_t light_param_data_storage_data_get_stage_index();
 extern void light_param_data_storage_data_load();

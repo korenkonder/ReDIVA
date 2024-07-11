@@ -10,6 +10,7 @@
 #include "rob/rob.hpp"
 #include "effect.hpp"
 #include "light_param.hpp"
+#include "stage_param.hpp"
 #include "render_context.hpp"
 
 namespace stage_detail {
@@ -706,8 +707,8 @@ static void stage_set(stage* s, stage* other) {
             render_manager->light_stage_ambient = true;
         if (other->stage_data->flags & STAGE_DATA_LIGHT_CHARA_AMBIENT)
             light_chara_ambient = true;
-        //if (stage_param_data_coli_data.pv_id == 421)
-        //    render_manager->field_31F = true;
+        if (stage_param_data_coli_data_get_pv_id() == 421)
+            render_manager->field_31F = true;
         //sub_14064DC10();
         effect_manager_set_current_stage_index(other->index);
     }
@@ -721,13 +722,11 @@ static void stage_set(stage* s, stage* other) {
 
     effect_manager_set_frame(0);
 
-    //sub_140344180(0);
-
-    if (pv_osage_manager_array_get_disp() && other)
+    if (!pv_osage_manager_array_get_disp() && other)
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
             rob_chara* rob_chr = rob_chara_array_get(i);
-            //if (rob_chr)
-                //rob_chara_set_stage_data_ring(rob_chr, &other->index);
+            if (rob_chr)
+                rob_chr->set_stage_data_ring(other->index);
         }
 }
 
