@@ -464,7 +464,7 @@ namespace dw {
     }
 
     Control::Control(Composite* parent, Flags flags) : Widget(parent, flags),
-        field_68(), parent_comp(), parent_shell(), parent_menu() {
+        disabled(), parent_comp(), parent_shell(), parent_menu() {
         parent_comp = parent;
         foreground_color = colors_current.foreground;
         background_color = colors_current.background;
@@ -489,7 +489,7 @@ namespace dw {
     }
 
     int32_t Control::KeyCallback(const Widget::KeyCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         /*if ((data.field_8 & 0x20000) && data.field_10 == 0x1000013)
@@ -506,7 +506,7 @@ namespace dw {
     }
 
     int32_t Control::MouseCallback(const Widget::MouseCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         /*if (dw_gui_detail_display->field_C0.field_18 == 9 && (data.field_10 & 0x40) && !data.field_14)
@@ -613,18 +613,18 @@ namespace dw {
         return background_color;
     }
 
-    bool Control::Field_98() {
-        return !field_68;
+    bool Control::GetEnabled() {
+        return !disabled;
     }
 
-    bool Control::Field_A0() {
+    bool Control::GetParentEnabled() {
         if (parent_comp)
-            return parent_comp->Field_A0() && Field_98();
-        return Field_98();
+            return parent_comp->GetParentEnabled() && GetEnabled();
+        return GetEnabled();
     }
 
-    void Control::Field_A8(bool value) {
-        field_68 = !value;
+    void Control::SetEnabled(bool value) {
+        disabled = !value;
     }
 
     Widget* Control::GetHitWidget(const vec2& hit_pos) {
@@ -1531,7 +1531,7 @@ namespace dw {
             pos_x = rect.pos.x + (rect.size.x - text_size.x) * 0.5f;
         float_t pos_y = rect.pos.y + (rect.size.y - text_size.y) * 0.5f;
 
-        print->SetColor(Field_A0()
+        print->SetColor(GetParentEnabled()
             ? colors_current.foreground
             : colors_current.disable_foreground);
         print->SetClipData(rect);
@@ -1603,7 +1603,7 @@ namespace dw {
             v8.size.x = v8.size.x + (v5 * -2.0f);
         }
 
-        if (Field_A0()) {
+        if (GetParentEnabled()) {
             print->SetColor(colors_current.button_foreground);
             print->SetClipData(v8);
             print->PrintText(text, v8.pos.x, v8.pos.y);
@@ -1620,7 +1620,7 @@ namespace dw {
     }
 
     int32_t Button::KeyCallback(const Widget::KeyCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         if (data.input[0] != 0x0D && data.input[0] != 0x20)
@@ -1643,7 +1643,7 @@ namespace dw {
     }
 
     int32_t Button::MouseCallback(const Widget::MouseCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         field_100 &= ~0x01;
@@ -1737,7 +1737,7 @@ namespace dw {
         if (flags & FLAG_800) {
             rectangle rect;
             color4u8* v3;
-            if (Field_A0()) {
+            if (GetParentEnabled()) {
                 rect = GetRectangle();
                 v3 = 0;
             }
@@ -1790,7 +1790,7 @@ namespace dw {
                     print->FillRectangle(v22);
                     color = colors_current.selection_foreground;
                 }
-                else if (Field_A0())
+                else if (GetParentEnabled())
                     color = colors_current.foreground;
                 else
                     color = colors_current.disable_foreground;
@@ -1803,7 +1803,7 @@ namespace dw {
                 }
                 else if (field_148)
                     color = colors_current.popup_foreground;
-                else if (Field_A0())
+                else if (GetParentEnabled())
                     color = colors_current.foreground;
                 else
                     color = colors_current.disable_foreground;
@@ -1900,7 +1900,7 @@ namespace dw {
     }
 
     int32_t List::MouseCallback(const Widget::MouseCallbackData& data) {
-        if (!Field_A0() || !CheckHitPos(data.pos))
+        if (!GetParentEnabled() || !CheckHitPos(data.pos))
             return 0;
 
         if (!field_148 && (data.input & 0xF0) && !Field_60())
@@ -2178,7 +2178,7 @@ namespace dw {
     void ListBox::Draw() {
         if (!parent_shell->field_170) {
             rectangle v13 = GetRectangle();
-            sub_1402EE3C0(v13, 2.0, 4, Field_A0()
+            sub_1402EE3C0(v13, 2.0, 4, GetParentEnabled()
                 ? &colors_current.background
                 : &colors_current.disable_background);
             v13.pos = v13.pos + 2.0f;
@@ -2207,7 +2207,7 @@ namespace dw {
 
             if (list->selected_item < list->items.size()) {
                 print->SetFont(&font);
-                print->SetColor(Field_A0()
+                print->SetColor(GetParentEnabled()
                     ? colors_current.foreground
                     : colors_current.disable_foreground);
                 print->SetClipData(v14);
@@ -2230,7 +2230,7 @@ namespace dw {
     }
 
     int32_t ListBox::KeyCallback(const Widget::KeyCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         list->KeyCallback(data);
@@ -2240,7 +2240,7 @@ namespace dw {
     }
 
     int32_t ListBox::MouseCallback(const Widget::MouseCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         if ((data.input & 0xF0) && !Field_60())
@@ -2460,7 +2460,7 @@ namespace dw {
     }
 
     bool ScrollBar::Field_60() {
-        return GetParentControl()->Field_A0() && Field_58();
+        return GetParentControl()->GetParentEnabled() && Field_58();
     }
 
     void ScrollBar::Field_68(bool value) {
@@ -2836,7 +2836,7 @@ namespace dw {
         float_t pos_x = 0.0f;
         if (GetText().size()) {
             print->SetFont(&font);
-            print->SetColor(Field_A0()
+            print->SetColor(GetParentEnabled()
                 ? colors_current.foreground
                 : colors_current.disable_foreground);
             print->PrintText(GetText(), rect.pos.x, rect.pos.y);
@@ -2844,7 +2844,7 @@ namespace dw {
         }
 
         print->SetFont(&font);
-        print->SetColor(Field_A0()
+        print->SetColor(GetParentEnabled()
             ? colors_current.foreground
             : colors_current.disable_foreground);
 
@@ -2853,7 +2853,7 @@ namespace dw {
         print->PrintText(buf, rect.pos.x + pos_x, rect.pos.y);
 
         scroll_bar->UpdateDraw();
-        if (Field_A0() && Field_60()) {
+        if (GetParentEnabled() && Field_60()) {
             print->SetColor(colors_current.focus_border_color);
             print->sub_140301390(GetRectangle(), 1.0f);
         }
@@ -2869,7 +2869,7 @@ namespace dw {
     }
 
     int32_t Slider::KeyCallback(const Widget::KeyCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         SelectionListener::CallbackData v6 = scroll_bar->sub_1402E5140(data);
@@ -2880,7 +2880,7 @@ namespace dw {
     }
 
     int32_t Slider::MouseCallback(const Widget::MouseCallbackData& data) {
-        if (!Field_A0())
+        if (!GetParentEnabled())
             return 0;
 
         if ((data.input & 0xF0) && !Field_60())

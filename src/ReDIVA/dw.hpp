@@ -221,7 +221,7 @@ namespace dw {
 
     class Control : public Widget {
     public:
-        bool field_68;
+        bool disabled;
         color4u8 foreground_color;
         color4u8 background_color;
         std::vector<KeyListener*> key_listener;
@@ -250,9 +250,9 @@ namespace dw {
         virtual void SetBackgroundColor(color4u8 value);
         virtual color4u8 GetForegroundColor();
         virtual color4u8 GetBackgroundColor();
-        virtual bool Field_98();
-        virtual bool Field_A0();
-        virtual void Field_A8(bool value);
+        virtual bool GetEnabled();
+        virtual bool GetParentEnabled();
+        virtual void SetEnabled(bool value);
         virtual Widget* GetHitWidget(const vec2& hit_pos);
 
         void SetParentMenu(Menu* menu);

@@ -998,7 +998,7 @@ LightDw::File::File(LightDw* light_dw, dw::Widget* parent) {
         return;
 
     dw::Composite* comp = new dw::Composite(parent_comp);
-    comp->layout = new dw::RowLayout(dw::HORIZONTAL);
+    comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
     save = new dw::Button(comp, dw::FLAG_8);
     save->SetText("SAVE");

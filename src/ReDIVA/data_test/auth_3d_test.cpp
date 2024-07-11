@@ -431,7 +431,7 @@ bool Auth3dTestTask::ctrl() {
             auth_3d_test_window->trans_x->SetValue(trans_value.x);
             auth_3d_test_window->trans_z->SetValue(trans_value.z);
             auth_3d_test_window->rot_y->SetValue(rot_y_value);
-            auth_3d_test_window->save->Field_A8(save);
+            auth_3d_test_window->save->SetEnabled(save);
         }
 
         mat4 mat;
@@ -1481,7 +1481,7 @@ void Auth3dTestWindow::UpdatePlayButton() {
 void Auth3dTestWindow::CategoryCharaMenuInit(dw::Button* button, dw::Menu*& menu,
     std::vector<std::string>& items, dw::SelectionListener* selection_listener) {
     if (!items.size()) {
-        button->Field_A8(false);
+        button->SetEnabled(false);
         return;
     }
 
@@ -1494,7 +1494,7 @@ void Auth3dTestWindow::CategoryCharaMenuInit(dw::Button* button, dw::Menu*& menu
         menu_item->AddSelectionListener(selection_listener);
     }
 
-    button->Field_A8(true);
+    button->SetEnabled(true);
     button->SetParentMenu(menu);*/
 }
 

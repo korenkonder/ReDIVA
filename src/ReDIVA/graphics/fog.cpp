@@ -349,17 +349,17 @@ FogDw::IoButton::IoButton(FogDw* fog_dw, dw::Widget* parent) {
     save = 0;
     load = 0;
 
-    dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
-    if (comp) {
-        dw::Composite* _comp = new dw::Composite(comp);
-        _comp->layout = new dw::RowLayout(dw::HORIZONTAL);
+    dw::Composite* parent_comp = dynamic_cast<dw::Composite*>(parent);
+    if (parent_comp) {
+        dw::Composite* comp = new dw::Composite(parent_comp);
+        comp->SetLayout(new dw::RowLayout(dw::HORIZONTAL));
 
-        save = new dw::Button(_comp, dw::FLAG_8);
+        save = new dw::Button(comp, dw::FLAG_8);
         save->SetText("SAVE");
         save->callback_data.v64 = fog_dw;
         save->callback = FogDw::IoButton::SaveCallback;
 
-        load = new dw::Button(_comp, dw::FLAG_8);
+        load = new dw::Button(comp, dw::FLAG_8);
         load->SetText("LOAD");
         load->callback_data.v64 = fog_dw;
         load->callback = FogDw::IoButton::LoadCallback;
