@@ -8,8 +8,8 @@
 #include "../graphics/fog.hpp"
 #include "../graphics/glitter.hpp"
 #include "../graphics/light.hpp"
+#include "../graphics/post_process.hpp"
 #include "graphics/background_color.hpp"
-#include "graphics/post_process.hpp"
 #include "graphics/render_settings.hpp"
 
 classes_data graphics_classes[] = {
@@ -72,11 +72,11 @@ classes_data graphics_classes[] = {
     {
         "Post Process##Graphics",
         CLASSES_IN_CONTEXT_MENU,
-        graphics_post_process_init,
-        graphics_post_process_imgui,
-        graphics_post_process_dispose,
+        (classes_init_func)dw_post_process_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },

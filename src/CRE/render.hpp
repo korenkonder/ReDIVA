@@ -208,6 +208,7 @@ namespace rndr {
         vec3 get_lens();
         float_t get_lens_flare_appear_power();
         float_t get_lens_flare_power();
+        MagFilterType get_mag_filter();
         int32_t get_mlaa();
         vec3 get_radius();
         float_t get_saturate_coeff();
@@ -241,6 +242,7 @@ namespace rndr {
         void set_gamma_rate(float_t value);
         void set_intensity(const vec3& value);
         void set_lens(vec3 value);
+        void set_mag_filter(MagFilterType value);
         void set_mlaa(int32_t value);
         void set_radius(const vec3& value);
         void set_saturate_coeff(float_t value, int32_t index, bool lock);

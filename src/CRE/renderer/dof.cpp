@@ -43,6 +43,8 @@ static const dof_pv dof_pv_default = {
 dof_debug dof_debug_data = dof_debug_default;
 dof_pv dof_pv_data = dof_pv_default;
 
+bool show_face_query = false;
+
 extern render_context* rctx_ptr;
 
 namespace renderer {
@@ -414,4 +416,12 @@ void dof_debug_set(dof_debug* debug) {
         dof_debug_data = *debug;
     else
         dof_debug_data = dof_debug_default;
+}
+
+bool show_face_query_get() {
+    return show_face_query;
+}
+
+void show_face_query_set(bool value) {
+    show_face_query = value;
 }

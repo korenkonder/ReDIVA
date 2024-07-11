@@ -855,6 +855,10 @@ namespace rndr {
         return intensity;
     }
 
+    Render::MagFilterType Render::get_mag_filter() {
+        return mag_filter;
+    }
+
     int32_t Render::get_mlaa() {
         return mlaa;
     }
@@ -1271,6 +1275,11 @@ namespace rndr {
         lens_flare = value.x;
         lens_shaft = value.y;
         lens_ghost = value.z;
+        update = 1;
+    }
+
+    void Render::set_mag_filter(MagFilterType value) {
+        mag_filter = value;
         update = 1;
     }
 

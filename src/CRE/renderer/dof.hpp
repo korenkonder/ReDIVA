@@ -83,3 +83,6 @@ namespace renderer {
 
 extern void dof_debug_get(dof_debug* debug);
 extern void dof_debug_set(dof_debug* debug = 0);
+
+extern bool show_face_query_get();
+extern void show_face_query_set(bool value);
