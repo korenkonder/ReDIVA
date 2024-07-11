@@ -12,6 +12,9 @@
 enum shader_dev_sub_enum {
     SHADER_DEV_SUB_SHADER_FFP = 0,
     SHADER_DEV_SUB_GLITTER_PT_WIREFRAME,
+#if DISPLAY_IBL
+    SHADER_DEV_SUB_CUBEMAP_DISPLAY,
+#endif
     SHADER_DEV_SUB_SHADER_END,
 };
 
@@ -23,9 +26,25 @@ static const int32_t glitter_particle_wireframe_fpt_unival_max[] = {
     -1,
 };
 
+#if DISPLAY_IBL
+static const int32_t cubemap_display_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t cubemap_display_fpt_unival_max[] = {
+    -1,
+};
+#endif
+
 static const uniform_name GLITTER_PT_WIREFRAME_uniform[] = {
     U_INVALID,
 };
+
+#if DISPLAY_IBL
+static const uniform_name CUBEMAP_DISPLAY_uniform[] = {
+    U_INVALID,
+};
+#endif
 
 #define shader_sub_table_struct(sub_index, vp, fp) \
 { \
@@ -40,6 +59,13 @@ static const shader_sub_table GLITTER_PT_WIREFRAME_table[] = {
     shader_sub_table_struct(GLITTER_PT_WIREFRAME,
         glitter_particle_wireframe, glitter_particle_wireframe),
 };
+
+#if DISPLAY_IBL
+static const shader_sub_table CUBEMAP_DISPLAY_table[] = {
+    shader_sub_table_struct(CUBEMAP_DISPLAY,
+        cubemap_display, cubemap_display),
+};
+#endif
 
 #undef shader_sub_table_struct
 
@@ -63,6 +89,9 @@ const shader_table shader_dev_table[] = {
         0,
     },
     shader_table_struct(GLITTER_PT_WIREFRAME),
+#if DISPLAY_IBL
+    shader_table_struct(CUBEMAP_DISPLAY),
+#endif
 };
 
 #undef shader_table_struct

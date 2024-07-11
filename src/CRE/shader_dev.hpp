@@ -6,11 +6,15 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
+#include "config.hpp"
 #include "shader.hpp"
 
 enum shader_dev_enum {
     SHADER_DEV_FFP = 0,
     SHADER_DEV_GLITTER_PT_WIREFRAME,
+#if DISPLAY_IBL
+    SHADER_DEV_CUBEMAP_DISPLAY,
+#endif
     SHADER_DEV_END,
     SHADER_DEV_MAX,
 };

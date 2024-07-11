@@ -15,6 +15,7 @@
 #include "../KKdLib/light_param/ibl.hpp"
 #include "../KKdLib/light_param/light.hpp"
 #include "../KKdLib/light_param/wind.hpp"
+#include "config.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
 #include <glad/glad.h>
@@ -31,6 +32,9 @@ enum light_param_data_storage_flags {
 
 extern void light_param_data_storage_data_init();
 extern void light_param_data_storage_data_free_file_handlers();
+#if DISPLAY_IBL
+extern GLuint light_param_data_storage_data_get_ibl_texture(int32_t index);
+#endif
 extern std::string light_param_data_storage_data_get_name();
 extern int32_t light_param_data_storage_data_get_pv_id();
 extern int32_t light_param_data_storage_data_get_stage_index();

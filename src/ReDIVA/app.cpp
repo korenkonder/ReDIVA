@@ -15,6 +15,7 @@
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/camera.hpp"
 #include "../CRE/clear_color.hpp"
+#include "../CRE/config.hpp"
 #include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/effect.hpp"
@@ -180,6 +181,20 @@ uint32_t spr_gam_cmn_set_id;    // 9
 uint32_t spr_fnt_24_set_id;     // 4
 uint32_t spr_fnt_bold24_set_id; // 472
 uint32_t spr_fnt_cmn_set_id;    // 43
+
+#if DISPLAY_IBL
+struct cubemap_display_batch_shader_data {
+    vec4 g_vp[4];
+    vec4 g_texture_lod;
+};
+
+bool display_ibl = false;
+int32_t ibl_index = 0;
+int32_t ibl_scale = 1;
+GLuint ibl_vao;
+GL::ArrayBuffer ibl_vbo;
+GL::UniformBuffer cubemap_display_ubo;
+#endif
 
 static bool app_init(const app_init_struct& ais);
 static void app_main_loop(render_context* rctx);
@@ -367,10 +382,82 @@ bool render_data::load() {
 
     gl_state_get_error();
     gl_state_set_viewport(0, 0, width, height);
+
+#if DISPLAY_IBL
+    const float_t box_vertices[] = {
+        -1.0f,  1.0f, -1.0f,
+        -1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f, -1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+
+        -1.0f, -1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f,
+        -1.0f, -1.0f,  1.0f,
+
+        -1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f, -1.0f,
+         1.0f,  1.0f,  1.0f,
+         1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f,  1.0f,
+        -1.0f,  1.0f, -1.0f,
+
+        -1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f, -1.0f,
+         1.0f, -1.0f, -1.0f,
+        -1.0f, -1.0f,  1.0f,
+         1.0f, -1.0f,  1.0f
+    };
+
+    glGenVertexArrays(1, &ibl_vao);
+    gl_state_bind_vertex_array(ibl_vao, true);
+
+    ibl_vbo.Create(sizeof(box_vertices), box_vertices);
+    ibl_vbo.Bind(true);
+
+    glEnableVertexAttribArray(0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 3, (void*)0);
+
+    gl_state_bind_array_buffer(0);
+    gl_state_bind_vertex_array(0);
+
+    cubemap_display_ubo.Create(sizeof(cubemap_display_batch_shader_data));
+#endif
+
     return true;
 }
 
 void render_data::unload() {
+#if DISPLAY_IBL
+    cubemap_display_ubo.Destroy();
+
+    ibl_vbo.Destroy();
+
+    if (ibl_vao) {
+        glDeleteVertexArrays(1, &ibl_vao);
+        ibl_vao = 0;
+    }
+#endif
+
 #if BAKE_VIDEO
     if (GLAD_WGL_NV_DX_interop2)
         wglDXCloseDeviceNV(d3d_device);
@@ -1052,6 +1139,26 @@ static void render_context_ctrl(render_context* rctx) {
         game_state_set_game_state_next(GAME_STATE_APP_ERROR);
     else if (Input::IsKeyTapped(GLFW_KEY_F9)) // Added
         game_state_set_game_state_next(GAME_STATE_DATA_EDIT); // Added
+#if DISPLAY_IBL
+    else if (Input::IsKeyTapped(GLFW_KEY_L))
+        display_ibl ^= true;
+    else if (Input::IsKeyTapped(GLFW_KEY_1))
+        ibl_index = 0;
+    else if (Input::IsKeyTapped(GLFW_KEY_2))
+        ibl_index = 1;
+    else if (Input::IsKeyTapped(GLFW_KEY_3))
+        ibl_index = 2;
+    else if (Input::IsKeyTapped(GLFW_KEY_4))
+        ibl_index = 3;
+    else if (Input::IsKeyTapped(GLFW_KEY_5))
+        ibl_index = 4;
+    else if (Input::IsKeyTapped(GLFW_KEY_6))
+        ibl_index = 5;
+    else if (Input::IsKeyTapped(GLFW_KEY_7))
+        ibl_scale = max_def(ibl_scale - 1, 1);
+    else if (Input::IsKeyTapped(GLFW_KEY_8))
+        ibl_scale = min_def(ibl_scale + 1, 64);
+#endif
 
     classes_process_ctrl(classes, classes_count);
 
@@ -1102,6 +1209,37 @@ static void render_context_disp(render_context* rctx) {
     gl_state_set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
     rctx->disp();
+
+#if DISPLAY_IBL
+    if (display_ibl) {
+        rctx->screen_buffer.Bind();
+
+        mat4 mat;
+        mat4_translate_y(1.4f, &mat);
+        mat4_scale_rot(&mat, 1.125f, 1.125f, 1.125f, &mat);
+        mat4_mul(&mat, &rctx->camera->view, &mat);
+        //mat4_clear_trans(&mat, &mat);
+        mat4_mul(&mat, &rctx->camera->projection, &mat);
+
+        cubemap_display_batch_shader_data shader_data = {};
+        mat4_transpose(&mat, &mat);
+        shader_data.g_vp[0] = mat.row0;
+        shader_data.g_vp[1] = mat.row1;
+        shader_data.g_vp[2] = mat.row2;
+        shader_data.g_vp[3] = mat.row3;
+        shader_data.g_texture_lod.x = ibl_index == 1 ? 1.0f : 0.0f;
+        shader_data.g_texture_lod.y = 1.0f / (float_t)ibl_scale;
+        rctx_ptr->glitter_batch_ubo.WriteMemory(shader_data);
+
+        rctx_ptr->glitter_batch_ubo.Bind(3);
+        shaders_dev.set(SHADER_DEV_CUBEMAP_DISPLAY);
+        gl_state_bind_vertex_array(ibl_vao);
+        gl_state_active_bind_texture_cube_map(0,
+            light_param_data_storage_data_get_ibl_texture(max_def(ibl_index - 1, 0)));
+        shaders_dev.draw_arrays(GL_TRIANGLES, 0, 36);
+        gl_state_bind_vertex_array(0);
+    }
+#endif
 
 #if BAKE_PNG || BAKE_VIDEO
     fbo_blit(rctx->screen_buffer.fbos[0], 0,

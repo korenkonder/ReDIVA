@@ -89,6 +89,12 @@ void light_param_data_storage_data_init() {
     light_param_data_storage_data = new light_param_data_storage;
 }
 
+#if DISPLAY_IBL
+GLuint light_param_data_storage_data_get_ibl_texture(int32_t index) {
+    return light_param_data_storage_data->textures[index];
+}
+#endif
+ 
 std::string light_param_data_storage_data_get_name() {
     return light_param_data_storage_data->get_name();
 }
