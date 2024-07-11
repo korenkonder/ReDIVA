@@ -4,12 +4,17 @@
 */
 
 #include "light.hpp"
+#include "../../KKdLib/io/path.hpp"
 #include "../../CRE/light_param/light.hpp"
 #include "../../CRE/light_param.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/task.hpp"
+#include "../pv_game/pv_game.hpp"
 #include "../dw.hpp"
+#include <fstream>
+#include <iostream>
+#include <sstream>
 
 extern render_context* rctx_ptr;
 
@@ -192,14 +197,19 @@ public:
         virtual void Callback(dw::SelectionListener::CallbackData* data) override;
     };
 
-    /*struct File {
+    struct File {
         LightDw* light_dw;
         dw::Button* save;
         dw::Button* load;
         dw::Button* light0_coord_init;
 
         File(LightDw* light_dw, dw::Widget* parent);
-    };*/
+
+        static void Light0CoordinateInitializationCallback(dw::Widget* data);
+        static void LoadCallback(dw::Widget* data);
+        static void ReopenCallback(dw::Widget* data);
+        static void SaveCallback(dw::Widget* data);
+    };
 
     dw::ListBox* stage;
     GAmbientSlider* g_ambient_slider;
@@ -216,7 +226,7 @@ public:
     ExponentSlider* exponent_slider;
     CutoffSlider* cutoff_slider;
     AttenuationSlider* attenuation_slider;
-    //File* file;
+    File* file;
 
     LightDw();
     virtual ~LightDw() override;
@@ -225,6 +235,7 @@ public:
 
     virtual void ResetData();
 
+    void GetPosition();
     void ResetStage(int32_t stage_index);
 
     static void ReflectiveSurfaceClipStageCallback(dw::Widget* data);
@@ -255,6 +266,8 @@ bool light_dw_cut_light_enable = false;
 bool light_dw_sync_pos = false;
 
 rectangle light_dw_rect = { 0.0f, vec2(256.0f, 610.0f) };
+
+static std::string dev_ram_light_param_path = "dev_ram/light_param/";
 
 static LightDw* light_dw_get();
 static light_data* light_dw_get_light();
@@ -974,9 +987,301 @@ void LightDw::AttenuationSlider::Callback(dw::SelectionListener::CallbackData* d
     }
 }
 
-/*LightDw::File::File(LightDw* light_dw, dw::Widget* parent) {
+LightDw::File::File(LightDw* light_dw, dw::Widget* parent) {
+    this->light_dw = 0;
+    save = 0;
+    load = 0;
+    light0_coord_init = 0;
 
-}*/
+    dw::Composite* parent_comp = dynamic_cast<dw::Composite*>(parent);
+    if (!parent_comp)
+        return;
+
+    dw::Composite* comp = new dw::Composite(parent_comp);
+    comp->layout = new dw::RowLayout(dw::HORIZONTAL);
+
+    save = new dw::Button(comp, dw::FLAG_8);
+    save->SetText("SAVE");
+    save->callback_data.v64 = light_dw;
+    save->callback = LightDw::File::SaveCallback;
+
+    load = new dw::Button(comp, dw::FLAG_8);
+    load->SetText("LOAD");
+    load->callback_data.v64 = light_dw;
+    load->callback = LightDw::File::LoadCallback;
+
+#if DW_TRANSLATE
+    const char* light0_coord_init_text = u8"Light0 Coordinate Initialization";
+#else
+    const char* light0_coord_init_text = u8"Light0座標初期化";
+#endif
+
+    light0_coord_init = new dw::Button(comp, dw::FLAG_8);
+    light0_coord_init->SetText(light0_coord_init_text);
+    light0_coord_init->callback_data.v64 = light_dw;
+    light0_coord_init->callback = LightDw::File::Light0CoordinateInitializationCallback;
+
+    dw::Button* reopen = new dw::Button(parent_comp, dw::FLAG_8);
+    reopen->SetText("Reopen");
+    reopen->callback_data.v64 = light_dw;
+    reopen->callback = LightDw::File::ReopenCallback;
+}
+
+void LightDw::File::Light0CoordinateInitializationCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (button) {
+        LightDw* light_dw = (LightDw*)button->callback_data.v64;
+        light_set* set = &rctx_ptr->light_set[light_dw_light_set_id];
+
+        vec4 value;
+        set->lights[LIGHT_CHARA].get_ibl_direction(value);
+        set->lights[LIGHT_CHARA].set_position(value);
+
+        if (light_dw_sync_pos)
+            set->lights[LIGHT_TONE_CURVE].set_position(value);
+
+        light_dw->GetPosition();
+    }
+}
+
+void LightDw::File::LoadCallback(dw::Widget* data) {
+    dw::Button* button = dynamic_cast<dw::Button*>(data);
+    if (!button)
+        return;
+
+    LightDw* light_dw = (LightDw*)button->callback_data.v64;
+
+    std::string path(dev_ram_light_param_path);
+    if (light_dw_cut_light_enable) {
+        pv_game_get();
+
+        char buf[0x06];
+        sprintf_s(buf, sizeof(buf), "pv%03d", 0);
+        path.append(buf);
+        path_create_directory(path.c_str());
+
+        char cut_buf[0x04];
+        sprintf_s(cut_buf, sizeof(cut_buf), "%03d", 0);
+
+        path.append("/");
+        path.append("light_");
+        path.append(buf);
+        path.append("_c");
+        path.append(cut_buf);
+    }
+    else {
+        path.append(light_param_data_storage_data_get_name());
+
+        path.append("/");
+        path.append("light_");
+        path.append(light_param_data_storage_data_get_name());
+    }
+
+    path.append(".txt");
+    if (path.find("pv000") != -1)
+        return;
+
+    std::ifstream ifs(path);
+    if (!ifs.is_open())
+        return;
+
+    light_set_id set_id = LIGHT_SET_MAIN;
+    light_id id = LIGHT_CHARA;
+
+
+    do {
+        char buf[0x200];
+        ifs.get(buf, sizeof(buf), '\n');
+
+        std::stringstream ss(buf);
+
+        std::string str;
+        ss >> str;
+
+        if (!str.compare(0, 11, "group_start")) {
+            int32_t value;
+            ss >> value;
+            set_id = (light_set_id)value;
+        }
+
+        if (!str.compare(0, 8, "id_start")) {
+            int32_t value;
+            ss >> value;
+            id = (light_id)value;
+        }
+
+        if (!str.compare(0, 4, "type")) {
+            int32_t value;
+            ss >> value;
+            rctx_ptr->light_set[set_id].lights[id].set_type((light_type)value);
+        }
+
+        if (!str.compare(0, 7, "ambient")) {
+            vec4 ambient;
+            ss >> ambient.x >> ambient.y >> ambient.z >> ambient.w;
+            rctx_ptr->light_set[set_id].lights[id].set_ambient(ambient);
+        }
+
+        if (!str.compare(0, 7, "diffuse")) {
+            vec4 diffuse;
+            ss >> diffuse.x >> diffuse.y >> diffuse.z >> diffuse.w;
+            rctx_ptr->light_set[set_id].lights[id].set_diffuse(diffuse);
+        }
+
+        if (!str.compare(0, 8, "specular")) {
+            vec4 specular;
+            ss >> specular.x >> specular.y >> specular.z >> specular.w;
+            rctx_ptr->light_set[set_id].lights[id].set_specular(specular);
+        }
+
+        if (!str.compare(0, 8, "position")) {
+            vec4 position;
+            ss >> position.x >> position.y >> position.z >> position.w;
+            rctx_ptr->light_set[set_id].lights[id].set_position(*(vec3*)&position);
+        }
+
+        if (!str.compare(0, 14, "spot_direction")) {
+            vec3 spot_direction;
+            ss >> spot_direction.x >> spot_direction.y >> spot_direction.z;
+            rctx_ptr->light_set[set_id].lights[id].set_spot_direction(spot_direction);
+        }
+
+        if (!str.compare(0, 13, "spot_exponent")) {
+            float_t spot_exponent;
+            ss >> spot_exponent;
+            rctx_ptr->light_set[set_id].lights[id].set_spot_exponent(spot_exponent);
+        }
+
+        if (!str.compare(0, 11, "spot_cutoff")) {
+            float_t spot_cutoff;
+            ss >> spot_cutoff;
+            rctx_ptr->light_set[set_id].lights[id].set_spot_cutoff(spot_cutoff);
+        }
+
+        if (!str.compare(0, 11, "attenuation")) {
+            light_attenuation attenuation = {};
+            ss >> attenuation.constant >> attenuation.linear >> attenuation.quadratic;
+            rctx_ptr->light_set[set_id].lights[id].set_attenuation(attenuation);
+        }
+
+        if (!str.compare(0, 9, "clipplane")) {
+            light_clip_plane clip_plane = {};
+            ss >> clip_plane.data[0] >> clip_plane.data[1] >> clip_plane.data[2] >> clip_plane.data[3];
+            rctx_ptr->light_set[set_id].lights[id].set_clip_plane(clip_plane);
+        }
+
+        if (!str.compare(0, 9, "tonecurve")) {
+            light_tone_curve tone_curve = {};
+            ss >> tone_curve.start_point >> tone_curve.end_point >> tone_curve.coefficient;
+            rctx_ptr->light_set[set_id].lights[id].set_tone_curve(tone_curve);
+        }
+    } while (!ifs.eof());
+    light_dw->ResetData();
+}
+
+void LightDw::File::ReopenCallback(dw::Widget* data) {
+    //DwReopen::ReopenCallback(0);
+}
+
+void LightDw::File::SaveCallback(dw::Widget* data) {
+    std::string path(dev_ram_light_param_path);
+    if (light_dw_cut_light_enable) {
+        pv_game_get();
+
+        char buf[0x06];
+        sprintf_s(buf, sizeof(buf), "pv%03d", 0);
+        path.append(buf);
+        path_create_directory(path.c_str());
+
+        char cut_buf[0x04];
+        sprintf_s(cut_buf, sizeof(cut_buf), "%03d", 0);
+
+        path.append("/");
+        path.append("light_");
+        path.append(buf);
+        path.append("_c");
+        path.append(cut_buf);
+    }
+    else {
+        path.append(light_param_data_storage_data_get_name());
+        path_create_directory(path.c_str());
+
+        path.append("/");
+        path.append("light_");
+        path.append(light_param_data_storage_data_get_name());
+    }
+
+    path.append(".txt");
+    if (path.find("pv000") != -1)
+        return;
+
+    std::ofstream ofs(path, std::ios::binary);
+    if (!ofs.is_open())
+        return;
+
+    for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++) {
+        light_set* set = &rctx_ptr->light_set[LIGHT_SET_MAIN];
+        ofs << "group_start " << i << '\n' << std::flush;
+        for (int32_t j = LIGHT_CHARA; j < LIGHT_MAX; j++) {
+            light_data* light = &set->lights[j];
+            ofs << "id_start " << j << '\n' << std::flush;
+
+            light_type type = light->get_type();
+
+            vec4 ambient;
+            vec4 diffuse;
+            vec4 specular;
+            vec4 position;
+            light->get_ambient(ambient);
+            light->get_diffuse(diffuse);
+            light->get_specular(specular);
+            light->get_position(*(vec3*)&position);
+            position.w = 0.0f;
+
+            ofs << "type " << (int32_t)type << '\n' << std::flush;
+            ofs << std::showpoint << "ambient " << ambient.x << " " << ambient.y
+                << " " << ambient.z << " " << ambient.w << '\n' << std::flush;
+            ofs << std::showpoint << "diffuse " << diffuse.x << " " << diffuse.y
+                << " " << diffuse.z << " " << diffuse.w << '\n' << std::flush;
+            ofs << std::showpoint << "specular " << specular.x << " " << specular.y
+                << " " << specular.z << " " << specular.w << '\n' << std::flush;
+            ofs << std::showpoint << "position " << position.x << " " << position.y
+                << " " << position.z << " " << position.w << '\n' << std::flush;
+            if (type == LIGHT_SPOT) {
+                vec3 spot_direction;
+                light->get_spot_direction(spot_direction);
+                ofs << std::showpoint << "spot_direction " << spot_direction.x
+                    << " " << spot_direction.y << " " << spot_direction.z << '\n' << std::flush;
+
+                float_t spot_exponent = light->get_spot_exponent();
+                ofs << std::showpoint << "spot_exponent " << spot_exponent << '\n' << std::flush;
+
+                float_t spot_cutoff = light->get_spot_cutoff();
+                ofs << std::showpoint << "spot_cutoff " << spot_cutoff << '\n' << std::flush;
+
+                light_attenuation attenuation;
+                light->get_attenuation(attenuation);
+                ofs << std::showpoint << "attenuation " << attenuation.constant
+                    << " " << attenuation.linear << " " << attenuation.quadratic << '\n' << std::flush;
+            }
+
+            if (j == LIGHT_REFLECT) {
+                light_clip_plane clip_plane;
+                light->get_clip_plane(clip_plane);
+                ofs << "clipplane " << clip_plane.data[0] << " " << clip_plane.data[1]
+                    << " " << clip_plane.data[2] << " " << clip_plane.data[3] << '\n' << std::flush;
+            }
+            else if (j == LIGHT_TONE_CURVE) {
+                vec3 tone_curve;
+                ofs << std::showpoint << "tonecurve " << tone_curve.x
+                    << " " << tone_curve.y << " " << tone_curve.z << '\n' << std::flush;
+            }
+            ofs << "id_end " << j << '\n' << std::flush;
+        }
+        ofs << "group_end " << i << '\n' << std::flush;
+    }
+    ofs << "EOF" << '\n' << std::flush;
+}
 
 LightDw::LightDw() {
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -986,7 +1291,7 @@ LightDw::LightDw() {
 
     dw::Composite* comp = new dw::Composite(this, dw::VERTICAL);
 
-    //file = new LightDw::File(this, comp);
+    file = new LightDw::File(this, comp);
     cut_light_enable_button = new LightDw::CutLightEnableButton(this, comp);
 
     dw::Label* stage_label = new dw::Label(comp);
@@ -1095,6 +1400,20 @@ void LightDw::Hide() {
 
 void LightDw::ResetData() {
     ResetStage(-1);
+}
+
+void LightDw::GetPosition() {
+    if (position_slider) {
+        light_data* light = light_dw_get_light();
+
+        vec3 value;
+        light->get_position(value);
+
+        position_slider->x->SetValue(value.x);
+        position_slider->y->SetValue(value.y);
+        position_slider->z->SetValue(value.z);
+        position_slider->SetRotYParams(position_slider->GetRotY(value.x, value.z));
+    }
 }
 
 void LightDw::ResetStage(int32_t stage_index) {
