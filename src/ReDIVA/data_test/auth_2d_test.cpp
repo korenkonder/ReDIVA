@@ -514,7 +514,7 @@ void DtwAet::CenteringCallback(dw::Widget* data) {
 void DtwAet::FrameCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
-        dtm_aet->SetFrame(slider->scroll_bar->value);
+        dtm_aet->SetFrame(slider->GetValue());
 }
 
 void DtwAet::IdCallback(dw::Widget* data) {

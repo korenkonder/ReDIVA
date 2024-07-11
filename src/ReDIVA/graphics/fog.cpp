@@ -165,7 +165,7 @@ void FogDw::GroupListBox::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->scroll_bar->value);
+        fog->set_density(slider->GetValue());
     }
 }
 
@@ -237,7 +237,7 @@ void FogDw::DensitySlider::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->scroll_bar->value);
+        fog->set_density(slider->GetValue());
     }
 }
 
@@ -283,10 +283,10 @@ void FogDw::LinearSlider::Callback(dw::SelectionListener::CallbackData* data) {
 
         switch (slider->callback_data.i32) {
         case 0:
-            fog->set_start(slider->scroll_bar->value);
+            fog->set_start(slider->GetValue());
             break;
         case 1:
-            fog->set_end(slider->scroll_bar->value);
+            fog->set_end(slider->GetValue());
             break;
         }
     }
@@ -339,7 +339,7 @@ void FogDw::ColorSlider::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->scroll_bar->value);
+        fog->set_density(slider->GetValue());
     }
 }
 
@@ -374,7 +374,7 @@ void FogDw::IoButton::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         fog* fog = fog_dw_get_fog();
-        fog->set_density(slider->scroll_bar->value);
+        fog->set_density(slider->GetValue());
     }
 }
 

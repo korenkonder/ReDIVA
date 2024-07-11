@@ -989,7 +989,7 @@ void Auth3dTestWindow::SelectionSliderFrame::Callback(dw::SelectionListener::Cal
         if (test_window && auth_3d_test_task->auth_3d_id.check_not_empty()) {
             auth_3d_test_task->auth_3d_id.set_paused(true);
             test_window->UpdatePlayButton();
-            auth_3d_test_task->auth_3d_id.set_req_frame(slider->scroll_bar->value);
+            auth_3d_test_task->auth_3d_id.set_req_frame(slider->GetValue());
         }
     }
 }
@@ -1005,7 +1005,7 @@ Auth3dTestWindow::SelectionSliderTransElement::~SelectionSliderTransElement() {
 void Auth3dTestWindow::SelectionSliderTransElement::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        auth_3d_test_task->SetTransAxis(slider->scroll_bar->value, axis);
+        auth_3d_test_task->SetTransAxis(slider->GetValue(), axis);
 }
 
 Auth3dTestWindow::SelectionSliderRotY::SelectionSliderRotY() {
@@ -1019,7 +1019,7 @@ Auth3dTestWindow::SelectionSliderRotY::~SelectionSliderRotY() {
 void Auth3dTestWindow::SelectionSliderRotY::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        auth_3d_test_task->SetRotY(slider->scroll_bar->value);
+        auth_3d_test_task->SetRotY(slider->GetValue());
 }
 
 Auth3dTestWindow::SelectionButtonPlay::SelectionButtonPlay() {

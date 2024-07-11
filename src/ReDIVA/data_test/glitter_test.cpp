@@ -354,7 +354,7 @@ void DataTestGlitterParticleDw::EmissionCallback(dw::Widget* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
     if (slider)
         if (dynamic_cast<DataTestGlitterParticleDw*>(slider->parent_shell))
-            Glitter::glt_particle_manager->emission = slider->scroll_bar->value;
+            Glitter::glt_particle_manager->emission = slider->GetValue();
 }
 
 void DataTestGlitterParticleDw::ListCallback(dw::Widget* data) {

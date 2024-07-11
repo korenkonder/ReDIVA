@@ -1816,7 +1816,7 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     auto elem_face = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(face_mot.c_str()));
     if (elem_face != motion_id_mottbl_map.end())
         data.face.mottbl_index = elem_face->second;
-    data.face.frame = face_frame->scroll_bar->value;
+    data.face.frame = face_frame->GetValue();
 
     std::string face_cl_mot;
     if (face_mot.find("FACE_WINK_OLD") != -1)
@@ -1832,17 +1832,17 @@ DataTestFaceMotDw::Data DataTestFaceMotDw::GetData() {
     auto elem_eyelid = motion_id_mottbl_map.find(face_cl_mot_id);
     if (elem_eyelid != motion_id_mottbl_map.end())
         data.eyelid.mottbl_index = elem_eyelid->second;
-    data.eyelid.frame = face_cl_frame->scroll_bar->value;
+    data.eyelid.frame = face_cl_frame->GetValue();
 
     auto elem_eyes = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(eyes->GetSelectedItemStr().c_str()));
     if (elem_eyes != motion_id_mottbl_map.end())
         data.eyes.mottbl_index = elem_eyes->second;
-    data.eyes.frame = eyes_frame->scroll_bar->value;
+    data.eyes.frame = eyes_frame->GetValue();
 
     auto elem_mouth = motion_id_mottbl_map.find(aft_mot_db->get_motion_id(mouth->GetSelectedItemStr().c_str()));
     if (elem_mouth != motion_id_mottbl_map.end())
         data.mouth.mottbl_index = elem_mouth->second;
-    data.mouth.frame = mouth_frame->scroll_bar->value;
+    data.mouth.frame = mouth_frame->GetValue();
 
     return data;
 }
@@ -1877,7 +1877,7 @@ void DataTestMotDw::StepSliderProc::Callback(dw::SelectionListener::CallbackData
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        test_mot_data->step[slider->callback_data.i32].array[index] = slider->scroll_bar->value;
+        test_mot_data->step[slider->callback_data.i32].array[index] = slider->GetValue();
 }
 
 DataTestMotDw::CharaListBoxProc::CharaListBoxProc() : list_box() {
@@ -1990,7 +1990,7 @@ void DataTestMotDw::RotateSliderProc::Callback(dw::SelectionListener::CallbackDa
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        test_mot_data->rot_y[slider->callback_data.i32] = slider->scroll_bar->value * DEG_TO_RAD_FLOAT;
+        test_mot_data->rot_y[slider->callback_data.i32] = slider->GetValue() * DEG_TO_RAD_FLOAT;
 }
 
 DataTestMotDw::PositionSliderProc::PositionSliderProc() {
@@ -2005,7 +2005,7 @@ void DataTestMotDw::PositionSliderProc::Callback(dw::SelectionListener::Callback
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        test_mot_data->trans_x[slider->callback_data.i32] = slider->scroll_bar->value;
+        test_mot_data->trans_x[slider->callback_data.i32] = slider->GetValue();
 }
 
 DataTestMotDw::FrameSliderProc::FrameSliderProc() {
@@ -2020,7 +2020,7 @@ void DataTestMotDw::FrameSliderProc::Callback(dw::SelectionListener::CallbackDat
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
-        float_t frame = slider->scroll_bar->value;
+        float_t frame = slider->GetValue();
         data_test_mot_dw_array_get(slider->scroll_bar->callback_data.i32)->dtm_mot->SetFrame(frame);
         if (test_mot_data->sync_frame) {
             dtm_mot_array[0].SetFrame(frame);
@@ -2041,7 +2041,7 @@ void DataTestMotDw::StartFrameSliderProc::Callback(dw::SelectionListener::Callba
     DataTestMot::Data* test_mot_data = data_test_mot_data_get();
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        test_mot_data->start_frame[slider->callback_data.i32] = slider->scroll_bar->value;
+        test_mot_data->start_frame[slider->callback_data.i32] = slider->GetValue();
 }
 
 DataTestMotDw::DispButtonProc::DispButtonProc() {
@@ -2406,7 +2406,7 @@ void DataTestMotDw::SetFrameSlider(float_t frame, float_t frame_count) {
     float_t last_frame = frame_count - 1.0f;
     current->SetParams(min_def(frame, last_frame), 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
-    float_t _frame = clamp_def(start_frame_slider->scroll_bar->value, 0.0f, last_frame);
+    float_t _frame = clamp_def(start_frame_slider->GetValue(), 0.0f, last_frame);
     start_frame_slider->SetParams(_frame, 0.0f, last_frame, last_frame * 0.1f, 1.0f, 10.0f);
 
     data_test_mot_data_get()->start_frame[start_frame_slider->callback_data.i32] = _frame;
@@ -2501,7 +2501,7 @@ void DataTestMotDw::StartCtrlLeftRightCallback(dw::Widget* data) {
     if (!test_mot_dw)
         return;
 
-    float_t frame = test_mot_dw->start_frame_slider->scroll_bar->value;
+    float_t frame = test_mot_dw->start_frame_slider->GetValue();
 
     std::vector<pv_data_set_motion> set_motion(test_mot_dw->dtm_mot->set_motion);
 

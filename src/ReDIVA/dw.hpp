@@ -756,6 +756,10 @@ namespace dw {
         SelectionListener::CallbackData sub_1402E5380(const Widget::MouseCallbackData& mouse_callback_data);
 
         static void sub_1402E6CC0(SelectionListener::CallbackData callback_data);
+
+        inline float_t GetValue() const {
+            return value;
+        }
     };
 
     class ShellCloseButton : public Button {
@@ -798,6 +802,10 @@ namespace dw {
             Flags flags = (Flags)(FLAG_800 | HORIZONTAL),
             float_t pos_x = 0.0f, float_t pos_y = 0.0f,
             float_t width = 128.0f, float_t height = 20.0f, const char* text = "slider");
+
+        inline float_t GetValue() const {
+            return scroll_bar->GetValue();
+        }
 
         inline void SetGrab(float_t value) {
             scroll_bar->SetGrab(value);

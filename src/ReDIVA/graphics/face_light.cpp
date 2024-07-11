@@ -63,7 +63,7 @@ DwFaceLight::SliderSelectionListener::~SliderSelectionListener() {
 void DwFaceLight::SliderSelectionListener::Callback(dw::SelectionListener::CallbackData* data) {
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider)
-        ((face*)slider->callback_data.v64)->offset = slider->scroll_bar->value;
+        ((face*)slider->callback_data.v64)->offset = slider->GetValue();
 }
 
 DwFaceLight::DwFaceLight() {

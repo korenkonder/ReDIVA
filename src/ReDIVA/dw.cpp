@@ -2849,7 +2849,7 @@ namespace dw {
             : colors_current.disable_foreground);
 
         char buf[256];
-        sprintf_s(buf, sizeof(buf), format, scroll_bar->value);
+        sprintf_s(buf, sizeof(buf), format, GetValue());
         print->PrintText(buf, rect.pos.x + pos_x, rect.pos.y);
 
         scroll_bar->UpdateDraw();
@@ -2930,7 +2930,7 @@ namespace dw {
         }
 
         char buf[0x100];
-        sprintf_s(buf, sizeof(buf), format, scroll_bar->value);
+        sprintf_s(buf, sizeof(buf), format, GetValue());
         size.x += font.GetFontGlyphWidth() + print->GetTextSize(buf).x;
         return size;
     }

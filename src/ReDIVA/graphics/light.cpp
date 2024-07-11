@@ -345,7 +345,7 @@ void LightDw::GAmbientSlider::Callback(dw::SelectionListener::CallbackData* data
         light_data* light = light_dw_get_light();
         light_tone_curve value;
         light->get_tone_curve(value);
-        ((float_t*)&value)[slider->callback_data.i32] = slider->scroll_bar->value;
+        ((float_t*)&value)[slider->callback_data.i32] = slider->GetValue();
         light->set_tone_curve(value);
     }
 }
@@ -573,7 +573,7 @@ void LightDw::AmbientSlider::Callback(dw::SelectionListener::CallbackData* data)
         light_data* light = light_dw_get_light();
         vec4 value;
         light->get_ambient(value);
-        ((float_t*)&value)[slider->callback_data.i32] = slider->scroll_bar->value;
+        ((float_t*)&value)[slider->callback_data.i32] = slider->GetValue();
         light->set_ambient(value);
     }
 }
@@ -628,7 +628,7 @@ void LightDw::DiffuseSlider::Callback(dw::SelectionListener::CallbackData* data)
         light_data* light = light_dw_get_light();
         vec4 value;
         light->get_diffuse(value);
-        ((float_t*)&value)[slider->callback_data.i32] = slider->scroll_bar->value;
+        ((float_t*)&value)[slider->callback_data.i32] = slider->GetValue();
         light->set_diffuse(value);
     }
 }
@@ -690,7 +690,7 @@ void LightDw::SpecularSlider::Callback(dw::SelectionListener::CallbackData* data
         light_data* light = light_dw_get_light();
         vec4 value;
         light->get_specular(value);
-        ((float_t*)&value)[slider->callback_data.i32] = slider->scroll_bar->value;
+        ((float_t*)&value)[slider->callback_data.i32] = slider->GetValue();
         light->set_specular(value);
     }
 }
@@ -756,9 +756,9 @@ void LightDw::PositionSlider::Callback(dw::SelectionListener::CallbackData* data
 
         float_t pos_rot[4];
         light->get_position(*(vec3*)pos_rot);
-        pos_rot[slider->callback_data.i32] = slider->scroll_bar->value;
+        pos_rot[slider->callback_data.i32] = slider->GetValue();
         if (slider->callback_data.i32 == 3) {
-            SetRotYParams(slider->scroll_bar->value);
+            SetRotYParams(slider->GetValue());
             SetRotation(pos_rot[0], pos_rot[2], pos_rot[3]);
             light->set_position(*(vec3*)pos_rot);
             SetPositionSliderParams(x, pos_rot[0]);
@@ -862,7 +862,7 @@ void LightDw::DirectionSlider::Callback(dw::SelectionListener::CallbackData* dat
         light_data* light = light_dw_get_light();
         vec3 value;
         light->get_spot_direction(value);
-        ((float_t*)&value)[slider->callback_data.i32] = slider->scroll_bar->value;
+        ((float_t*)&value)[slider->callback_data.i32] = slider->GetValue();
         light->set_spot_direction(value);
     }
 }
@@ -896,7 +896,7 @@ void LightDw::ExponentSlider::Callback(dw::SelectionListener::CallbackData* data
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         light_data* light = light_dw_get_light();
-        light->set_spot_exponent(slider->scroll_bar->value);
+        light->set_spot_exponent(slider->GetValue());
     }
 }
 
@@ -929,7 +929,7 @@ void LightDw::CutoffSlider::Callback(dw::SelectionListener::CallbackData* data) 
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         light_data* light = light_dw_get_light();
-        light->set_spot_cutoff(slider->scroll_bar->value);
+        light->set_spot_cutoff(slider->GetValue());
     }
 }
 
@@ -982,7 +982,7 @@ void LightDw::AttenuationSlider::Callback(dw::SelectionListener::CallbackData* d
         light_data* light = light_dw_get_light();
         light_attenuation value;
         light->get_attenuation(value);
-        ((float_t*)&value)[slider->callback_data.i32] = slider->scroll_bar->value;
+        ((float_t*)&value)[slider->callback_data.i32] = slider->GetValue();
         light->set_attenuation(value);
     }
 }
