@@ -36,16 +36,26 @@ struct light_attenuation {
     float_t constant;
     float_t linear;
     float_t quadratic;
+
+    light_attenuation();
+    light_attenuation(float_t constant, float_t linear, float_t quadratic);
 };
 
 struct light_clip_plane {
     bool data[4];
+
+    light_clip_plane();
+    light_clip_plane(bool data[4]);
+    light_clip_plane(bool data0, bool data1, bool data2, bool data3);
 };
 
 struct light_tone_curve {
     float_t start_point;
     float_t end_point;
     float_t coefficient;
+
+    light_tone_curve();
+    light_tone_curve(float_t start_point, float_t end_point, float_t coefficient);
 };
 
 struct light_param_light_data {

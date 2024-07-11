@@ -8,12 +8,10 @@
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
 #include "../str_utils.hpp"
+#include "shared.hpp"
 
 static void light_param_glow_read_inner(light_param_glow* glow, stream& s);
 static void light_param_glow_write_inner(light_param_glow* glow, stream& s);
-static const char* light_param_glow_read_line(char* buf, int32_t size, const char* src);
-static void light_param_glow_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value);
-static void light_param_glow_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_glow::light_param_glow() : ready(), has_exposure(), exposure(), has_gamma(), gamma(),
 has_saturate_power(), saturate_power(), has_saturate_coef(), saturate_coef(), has_flare(), flare(),
@@ -113,7 +111,7 @@ static void light_param_glow_read_inner(light_param_glow* glow, stream& s) {
     char buf[0x200];
     const char* d = data;
 
-    while (d = light_param_glow_read_line(buf, sizeof(buf), d)) {
+    while (d = light_param_read_line(buf, sizeof(buf), d)) {
         if (!str_utils_compare_length(buf, sizeof(buf), "exposure", 8)) {
             if (buf[8] != ' ' || sscanf_s(buf + 9, "%f", &glow->exposure) != 1)
                 goto End;
@@ -209,64 +207,64 @@ static void light_param_glow_write_inner(light_param_glow* glow, stream& s) {
 
     if (glow->has_exposure) {
         s.write("exposure", 8);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), glow->exposure);
+        light_param_write_float_t(s, buf, sizeof(buf), glow->exposure);
         s.write_char('\n');
     }
 
     if (glow->has_gamma) {
         s.write("gamma", 5);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), glow->gamma);
+        light_param_write_float_t(s, buf, sizeof(buf), glow->gamma);
         s.write_char('\n');
     }
 
     if (glow->has_saturate_power) {
         s.write("saturate_power", 14);
-        light_param_glow_write_int32_t(s, buf, sizeof(buf), glow->saturate_power);
+        light_param_write_int32_t(s, buf, sizeof(buf), glow->saturate_power);
         s.write_char('\n');
     }
 
     if (glow->has_saturate_coef) {
         s.write("saturate_coef", 13);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), glow->saturate_coef);
+        light_param_write_float_t(s, buf, sizeof(buf), glow->saturate_coef);
         s.write_char('\n');
     }
 
     if (glow->has_flare) {
         vec3& flare = glow->flare;
         s.write("flare", 5);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), flare.x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), flare.y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), flare.z);
+        light_param_write_float_t(s, buf, sizeof(buf), flare.x);
+        light_param_write_float_t(s, buf, sizeof(buf), flare.y);
+        light_param_write_float_t(s, buf, sizeof(buf), flare.z);
         s.write_char('\n');
     }
 
     if (glow->has_sigma) {
         vec3& sigma = glow->sigma;
         s.write("sigma", 5);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma.x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma.y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), sigma.z);
+        light_param_write_float_t(s, buf, sizeof(buf), sigma.x);
+        light_param_write_float_t(s, buf, sizeof(buf), sigma.y);
+        light_param_write_float_t(s, buf, sizeof(buf), sigma.z);
         s.write_char('\n');
     }
 
     if (glow->has_intensity) {
         vec3& intensity = glow->intensity;
         s.write("intensity", 9);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity.x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity.y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), intensity.z);
+        light_param_write_float_t(s, buf, sizeof(buf), intensity.x);
+        light_param_write_float_t(s, buf, sizeof(buf), intensity.y);
+        light_param_write_float_t(s, buf, sizeof(buf), intensity.z);
         s.write_char('\n');
     }
 
     if (glow->has_auto_exposure) {
         s.write("exposure", 8);
-        light_param_glow_write_int32_t(s, buf, sizeof(buf), glow->auto_exposure ? 1 : 0);
+        light_param_write_int32_t(s, buf, sizeof(buf), glow->auto_exposure ? 1 : 0);
         s.write_char('\n');
     }
 
     if (glow->has_tone_map_method) {
         s.write("tone_map_method", 15);
-        light_param_glow_write_int32_t(s, buf, sizeof(buf), (int32_t)glow->tone_map_method);
+        light_param_write_int32_t(s, buf, sizeof(buf), (int32_t)glow->tone_map_method);
         s.write_char('\n');
     }
 
@@ -274,11 +272,11 @@ static void light_param_glow_write_inner(light_param_glow* glow, stream& s) {
         vec4& fade_color = glow->fade_color;
         int32_t blend_func = glow->fade_color_blend_func;
         s.write("fade_color", 10);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.z);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), fade_color.w);
-        light_param_glow_write_int32_t(s, buf, sizeof(buf), blend_func);
+        light_param_write_float_t(s, buf, sizeof(buf), fade_color.x);
+        light_param_write_float_t(s, buf, sizeof(buf), fade_color.y);
+        light_param_write_float_t(s, buf, sizeof(buf), fade_color.z);
+        light_param_write_float_t(s, buf, sizeof(buf), fade_color.w);
+        light_param_write_int32_t(s, buf, sizeof(buf), blend_func);
         s.write_char('\n');
     }
 
@@ -286,52 +284,15 @@ static void light_param_glow_write_inner(light_param_glow* glow, stream& s) {
         vec3& start = glow->tone_transform_start;
         vec3& end = glow->tone_transform_end;
         s.write("tone_transform", 14);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), start.x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), start.y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), start.z);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), end.x);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), end.y);
-        light_param_glow_write_float_t(s, buf, sizeof(buf), end.z);
+        light_param_write_float_t(s, buf, sizeof(buf), start.x);
+        light_param_write_float_t(s, buf, sizeof(buf), start.y);
+        light_param_write_float_t(s, buf, sizeof(buf), start.z);
+        light_param_write_float_t(s, buf, sizeof(buf), end.x);
+        light_param_write_float_t(s, buf, sizeof(buf), end.y);
+        light_param_write_float_t(s, buf, sizeof(buf), end.z);
         s.write_char('\n');
     }
 
     s.write("EOF", 3);
     s.write_char('\n');
-}
-
-static const char* light_param_glow_read_line(char* buf, int32_t size, const char* src) {
-    char* b = buf;
-    if (!src || !*src)
-        return 0;
-
-    for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = *b = *src++;
-        if (!c) {
-            b++;
-            break;
-        }
-        else if (c == '\n') {
-            *b++ = 0;
-            break;
-        }
-        else if (c == '\r' && *src == '\n') {
-            *b++ = 0;
-            src++;
-            break;
-        }
-    }
-
-    if (!str_utils_compare(buf, "EOF"))
-        return 0;
-    return src;
-}
-
-inline static void light_param_glow_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value) {
-    sprintf_s(buf, buf_size, " %d", value);
-    s.write_utf8_string(buf);
-}
-
-inline static void light_param_glow_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
-    sprintf_s(buf, buf_size, " %#.6g", value);
-    s.write_utf8_string(buf);
 }

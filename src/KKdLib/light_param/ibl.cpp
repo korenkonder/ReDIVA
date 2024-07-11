@@ -8,9 +8,9 @@
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
 #include "../str_utils.hpp"
+#include "shared.hpp"
 
 static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s);
-static const char* light_param_ibl_read_line(char* buf, int32_t size, const char* src);
 static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* specular);
 static void light_param_ibl_specular_generate_mipmap(float_t* src, float_t* dst, size_t size);
 
@@ -88,7 +88,7 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
     data[s.length] = 0;
 
     char buf[0x200];
-    const char* d = light_param_ibl_read_line(buf, sizeof(buf), data);
+    const char* d = light_param_read_line(buf, sizeof(buf), data);
     if (str_utils_compare(buf, "VF5_IBL"))
         return;
 
@@ -96,19 +96,19 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
     int32_t heights[6] = { 0 };
     while (d) {
         do
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
         while (buf[0] == '#');
 
         if (!str_utils_compare(buf, "VERSION"))
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
         else if (!str_utils_compare(buf, "LIT_DIR")) {
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             int32_t index;
             if (sscanf_s(buf, "%d", &index) != 1)
                 goto End;
 
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             vec4 dir;
             if (sscanf_s(buf, "%f %f %f", &dir.x, &dir.y, &dir.z) != 3)
@@ -118,13 +118,13 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             ibl->lit_dir[index] = dir;
         }
         else if (!str_utils_compare(buf, "LIT_COL")) {
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             int32_t index;
             if (sscanf_s(buf, "%d", &index) != 1)
                 goto End;
 
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             vec4 col;
             if (sscanf_s(buf, "%f %f %f", &col.x, &col.y, &col.z) != 3)
@@ -134,47 +134,47 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
             ibl->lit_col[index] = col;
         }
         else if (!str_utils_compare(buf, "DIFF_COEF")) {
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             int32_t index;
             if (sscanf_s(buf, "%d", &index) != 1)
                 goto End;
 
             for (int32_t i = 0; i < 3; i++) {
-                d = light_param_ibl_read_line(buf, sizeof(buf), d);
+                d = light_param_read_line(buf, sizeof(buf), d);
 
                 mat4& mat = ibl->diff_coef[index][i];
                 if (sscanf_s(buf, "%f %f %f %f", &mat.row0.x, &mat.row1.x, &mat.row2.x, &mat.row3.x) != 4)
                     goto End;
 
-                d = light_param_ibl_read_line(buf, sizeof(buf), d);
+                d = light_param_read_line(buf, sizeof(buf), d);
 
                 if (sscanf_s(buf, "%f %f %f %f", &mat.row0.y, &mat.row1.y, &mat.row2.y, &mat.row3.y) != 4)
                     goto End;
 
-                d = light_param_ibl_read_line(buf, sizeof(buf), d);
+                d = light_param_read_line(buf, sizeof(buf), d);
 
                 if (sscanf_s(buf, "%f %f %f %f", &mat.row0.z, &mat.row1.z, &mat.row2.z, &mat.row3.z) != 4)
                     goto End;
 
-                d = light_param_ibl_read_line(buf, sizeof(buf), d);
+                d = light_param_read_line(buf, sizeof(buf), d);
 
                 if (sscanf_s(buf, "%f %f %f %f", &mat.row0.w, &mat.row1.w, &mat.row2.w, &mat.row3.w) != 4)
                     goto End;
             }
         }
         else if (!str_utils_compare(buf, "LIGHT_MAP")) {
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             int32_t index;
             if (sscanf_s(buf, "%d", &index) != 1)
                 goto End;
 
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
             if (str_utils_compare(buf, "RGBA16F_CUBE"))
                 goto End;
 
-            d = light_param_ibl_read_line(buf, sizeof(buf), d);
+            d = light_param_read_line(buf, sizeof(buf), d);
 
             int32_t w;
             int32_t h;
@@ -230,33 +230,6 @@ static void light_param_ibl_read_inner(light_param_ibl* ibl, stream& s) {
 
 End:
     free_def(data);
-}
-
-static const char* light_param_ibl_read_line(char* buf, int32_t size, const char* src) {
-    char* b = buf;
-    if (!src || !*src)
-        return 0;
-
-    for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = *b = *src++;
-        if (!c) {
-            b++;
-            break;
-        }
-        else if (c == '\n') {
-            *b++ = 0;
-            break;
-        }
-        else if (c == '\r' && *src == '\n') {
-            *b++ = 0;
-            src++;
-            break;
-        }
-    }
-
-    if (!str_utils_compare(buf, "EOF"))
-        return 0;
-    return src;
 }
 
 static void light_param_ibl_specular_generate_mipmaps(light_param_ibl_specular* specular) {

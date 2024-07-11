@@ -37,6 +37,7 @@ ibl_color0(), ibl_color1(), ibl_direction(), tone_curve(), clip_plane() {
     set_ibl_color1({ 0.0f, 0.0f, 0.0f, 0.0f });
     set_ibl_direction({ 0.0f, 0.0f, 0.0f, 0.0f });
     set_tone_curve({ 0.0f, 0.0f, 0.0f });
+    set_clip_plane({ true, true, true, true });
 }
 
 light_set::light_set() : ambient_intensity(),

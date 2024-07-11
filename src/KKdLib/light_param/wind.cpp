@@ -8,12 +8,10 @@
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
 #include "../str_utils.hpp"
+#include "shared.hpp"
 
 static void light_param_wind_read_inner(light_param_wind* wind, stream& s);
 static void light_param_wind_write_inner(light_param_wind* wind, stream& s);
-static const char* light_param_wind_read_line(char* buf, int32_t size, const char* src);
-static void light_param_wind_write_size_t(stream& s, char* buf, size_t buf_size, size_t value);
-static void light_param_wind_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_wind::light_param_wind() : ready(), has_scale(), scale(), has_cycle(),
 cycle(), has_rot(), rot_y(), rot_z(), has_bias(), bias(), has_spc(), spc() {
@@ -114,7 +112,7 @@ static void light_param_wind_read_inner(light_param_wind* wind, stream& s) {
     char buf[0x200];
     const char* d = data;
 
-    while (d = light_param_wind_read_line(buf, sizeof(buf), d)) {
+    while (d = light_param_read_line(buf, sizeof(buf), d)) {
         if (!str_utils_compare_length(buf, sizeof(buf), "scale", 5)) {
             if (buf[5] != ' ' || sscanf_s(buf + 6, "%f", &wind->scale) != 1)
                 goto End;
@@ -167,73 +165,36 @@ static void light_param_wind_write_inner(light_param_wind* wind, stream& s) {
 
     if (wind->has_scale) {
         s.write("scale", 5);
-        light_param_wind_write_float_t(s, buf, sizeof(buf), wind->scale);
+        light_param_write_float_t(s, buf, sizeof(buf), wind->scale);
         s.write_char('\n');
     }
 
     if (wind->has_cycle) {
         s.write("cycle", 5);
-        light_param_wind_write_float_t(s, buf, sizeof(buf), wind->cycle);
+        light_param_write_float_t(s, buf, sizeof(buf), wind->cycle);
         s.write_char('\n');
     }
 
     if (wind->has_rot) {
         s.write("rot", 3);
-        light_param_wind_write_float_t(s, buf, sizeof(buf), wind->rot_y);
-        light_param_wind_write_float_t(s, buf, sizeof(buf), wind->rot_z);
+        light_param_write_float_t(s, buf, sizeof(buf), wind->rot_y);
+        light_param_write_float_t(s, buf, sizeof(buf), wind->rot_z);
         s.write_char('\n');
     }
 
     if (wind->has_bias) {
         s.write("bias", 4);
-        light_param_wind_write_float_t(s, buf, sizeof(buf), wind->bias);
+        light_param_write_float_t(s, buf, sizeof(buf), wind->bias);
         s.write_char('\n');
     }
 
-    for (size_t i = 0; i < 16; i++)
+    for (int32_t i = 0; i < 16; i++)
         if (wind->has_spc[i]) {
             light_param_wind_spc& spc = wind->spc[i];
             s.write("spc", 3);
-            light_param_wind_write_size_t(s, buf, sizeof(buf), i);
-            light_param_wind_write_float_t(s, buf, sizeof(buf), spc.cos);
-            light_param_wind_write_float_t(s, buf, sizeof(buf), spc.sin);
+            light_param_write_int32_t(s, buf, sizeof(buf), i);
+            light_param_write_float_t(s, buf, sizeof(buf), spc.cos);
+            light_param_write_float_t(s, buf, sizeof(buf), spc.sin);
             s.write_char('\n');
         }
-}
-
-static const char* light_param_wind_read_line(char* buf, int32_t size, const char* src) {
-    char* b = buf;
-    if (!src || !*src)
-        return 0;
-
-    for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = b[0] = *src++;
-        if (!c) {
-            b++;
-            break;
-        }
-        else if (c == '\n') {
-            *b++ = 0;
-            break;
-        }
-        else if (c == '\r' && *src == '\n') {
-            *b++ = 0;
-            src++;
-            break;
-        }
-    }
-
-    if (!str_utils_compare(buf, "EOF"))
-        return 0;
-    return src;
-}
-
-inline static void light_param_wind_write_size_t(stream& s, char* buf, size_t buf_size, size_t value) {
-    sprintf_s(buf, buf_size, " %llu", value);
-    s.write_utf8_string(buf);
-}
-
-inline static void light_param_wind_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
-    sprintf_s(buf, buf_size, " %#.6g", value);
-    s.write_utf8_string(buf);
 }

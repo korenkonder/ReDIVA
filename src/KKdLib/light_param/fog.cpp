@@ -8,12 +8,10 @@
 #include "../io/memory_stream.hpp"
 #include "../io/path.hpp"
 #include "../str_utils.hpp"
+#include "shared.hpp"
 
 static void light_param_fog_read_inner(light_param_fog* fog, stream& s);
 static void light_param_fog_write_inner(light_param_fog* fog, stream& s);
-static const char* light_param_fog_read_line(char* buf, int32_t size, const char* src);
-static void light_param_fog_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value);
-static void light_param_fog_write_float_t(stream& s, char* buf, size_t buf_size, float_t value);
 
 light_param_fog::light_param_fog() : ready() {
 
@@ -115,7 +113,7 @@ static void light_param_fog_read_inner(light_param_fog* fog, stream& s) {
     const char* d = data;
 
     int32_t group_id = -1;
-    while (d = light_param_fog_read_line(buf, sizeof(buf), d)) {
+    while (d = light_param_read_line(buf, sizeof(buf), d)) {
         light_param_fog_group* group = &fog->group[group_id];
 
         if (!str_utils_compare_length(buf, sizeof(buf), "group_start", 11)) {
@@ -189,80 +187,43 @@ static void light_param_fog_write_inner(light_param_fog* fog, stream& s) {
     for (int32_t i = FOG_DEPTH; i < FOG_MAX; i++) {
         light_param_fog_group* group = &fog->group[i];
         s.write("group_start", 11);
-        light_param_fog_write_int32_t(s, buf, sizeof(buf), i);
+        light_param_write_int32_t(s, buf, sizeof(buf), i);
         s.write_char('\n');
 
         if (group->has_type) {
             s.write("type", 4);
-            light_param_fog_write_int32_t(s, buf, sizeof(buf), (int32_t)group->type);
+            light_param_write_int32_t(s, buf, sizeof(buf), (int32_t)group->type);
             s.write_char('\n');
         }
 
         if (group->has_density) {
             s.write("density", 7);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), group->density);
+            light_param_write_float_t(s, buf, sizeof(buf), group->density);
             s.write_char('\n');
         }
 
         if (group->has_linear) {
             s.write("linear", 6);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), group->linear_start);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), group->linear_end);
+            light_param_write_float_t(s, buf, sizeof(buf), group->linear_start);
+            light_param_write_float_t(s, buf, sizeof(buf), group->linear_end);
             s.write_char('\n');
         }
 
         if (group->has_color) {
             vec4& color = group->color;
             s.write("color", 5);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color.x);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color.y);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color.z);
-            light_param_fog_write_float_t(s, buf, sizeof(buf), color.w);
+            light_param_write_float_t(s, buf, sizeof(buf), color.x);
+            light_param_write_float_t(s, buf, sizeof(buf), color.y);
+            light_param_write_float_t(s, buf, sizeof(buf), color.z);
+            light_param_write_float_t(s, buf, sizeof(buf), color.w);
             s.write_char('\n');
         }
 
         s.write("group_end", 9);
-        light_param_fog_write_int32_t(s, buf, sizeof(buf), i);
+        light_param_write_int32_t(s, buf, sizeof(buf), i);
         s.write_char('\n');
     }
 
     s.write("EOF", 3);
     s.write_char('\n');
-}
-
-static const char* light_param_fog_read_line(char* buf, int32_t size, const char* src) {
-    char* b = buf;
-    if (!src || !*src)
-        return 0;
-
-    for (int32_t i = 0; i < size - 1; i++, b++) {
-        char c = *b = *src++;
-        if (!c) {
-            b++;
-            break;
-        }
-        else if (c == '\n') {
-            *b++ = 0;
-            break;
-        }
-        else if (c == '\r' && *src == '\n') {
-            *b++ = 0;
-            src++;
-            break;
-        }
-    }
-
-    if (!str_utils_compare(buf, "EOF"))
-        return 0;
-    return src;
-}
-
-inline static void light_param_fog_write_int32_t(stream& s, char* buf, size_t buf_size, int32_t value) {
-    sprintf_s(buf, buf_size, " %d", value);
-    s.write_utf8_string(buf);
-}
-
-inline static void light_param_fog_write_float_t(stream& s, char* buf, size_t buf_size, float_t value) {
-    sprintf_s(buf, buf_size, " %#.6g", value);
-    s.write_utf8_string(buf);
 }
