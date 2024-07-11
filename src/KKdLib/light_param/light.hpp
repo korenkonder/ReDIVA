@@ -39,7 +39,7 @@ struct light_attenuation {
 };
 
 struct light_clip_plane {
-    uint8_t data[4];
+    bool data[4];
 };
 
 struct light_tone_curve {

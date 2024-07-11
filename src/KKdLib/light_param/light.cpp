@@ -252,10 +252,10 @@ static void light_param_light_read_inner(light_param_light* light, stream& s) {
                 &clip_plane[0], &clip_plane[1], &clip_plane[2], &clip_plane[3]) != 4)
                 goto End;
 
-            light->clip_plane.data[0] = (uint8_t)clip_plane[0];
-            light->clip_plane.data[1] = (uint8_t)clip_plane[1];
-            light->clip_plane.data[2] = (uint8_t)clip_plane[2];
-            light->clip_plane.data[3] = (uint8_t)clip_plane[3];
+            light->clip_plane.data[0] = !!clip_plane[0];
+            light->clip_plane.data[1] = !!clip_plane[1];
+            light->clip_plane.data[2] = !!clip_plane[2];
+            light->clip_plane.data[3] = !!clip_plane[3];
             light->has_clip_plane = true;
         }
         else if (!str_utils_compare_length(buf, sizeof(buf), "tonecurve", 9)) {

@@ -1120,7 +1120,7 @@ void LightDw::ReflectiveSurfaceClipStageCallback(dw::Widget* data) {
         light_data* light = light_dw_get_light();
         light_clip_plane clip_plane;
         light->get_clip_plane(clip_plane);
-        clip_plane.data[1] = button->value ? 0x01 : 0x00;
+        clip_plane.data[1] = button->value;
         light->set_clip_plane(clip_plane);
     }
 }

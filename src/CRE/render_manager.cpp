@@ -588,7 +588,7 @@ namespace rndr {
             light_clip_plane clip_plane;
             set->lights[LIGHT_SPOT].get_clip_plane(clip_plane);
             uniform_value[U_REFLECT] = 2;
-            uniform_value[U_CLIP_PLANE] = clip_plane.data[1];
+            uniform_value[U_CLIP_PLANE] = clip_plane.data[1] ? 1 : 0;
 
             gl_state_enable_depth_test();
             gl_state_set_depth_func(GL_LEQUAL);
@@ -604,7 +604,7 @@ namespace rndr {
 
             if (reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
                 uniform_value[U_REFLECT] = reflect_tone_curve ? 1 : 0;
-                uniform_value[U_CLIP_PLANE] = clip_plane.data[0];
+                uniform_value[U_CLIP_PLANE] = clip_plane.data[0] ? 1 : 0;
                 rctx->disp_manager->draw(mdl::OBJ_TYPE_REFLECT_CHARA_OPAQUE);
             }
             gl_state_disable_depth_test();
