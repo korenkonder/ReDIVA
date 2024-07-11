@@ -297,9 +297,9 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
     const char* options;
     if (debug)
-        options = "-O -g";
+        options = "-O -Werror -g";
     else
-        options = "-O";
+        options = "-O -Werror";
 
     char vert_buf[MAX_PATH];
     char frag_buf[MAX_PATH];
@@ -475,8 +475,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                         ZeroMemory(&si, sizeof(si));
                         si.cb = sizeof(si);
                         si.dwFlags |= STARTF_USESTDHANDLES;
-                        si.hStdError = std_output_handle;
-                        si.hStdOutput = std_error_handle;
+                        si.hStdError = std_error_handle;
+                        si.hStdOutput = std_output_handle;
                         ZeroMemory(&pi, sizeof(pi));
                         CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
                         WaitForSingleObject(pi.hProcess, INFINITE);
@@ -545,8 +545,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                         ZeroMemory(&si, sizeof(si));
                         si.cb = sizeof(si);
                         si.dwFlags |= STARTF_USESTDHANDLES;
-                        si.hStdError = std_output_handle;
-                        si.hStdOutput = std_error_handle;
+                        si.hStdError = std_error_handle;
+                        si.hStdOutput = std_output_handle;
                         ZeroMemory(&pi, sizeof(pi));
                         CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
                         WaitForSingleObject(pi.hProcess, INFINITE);
@@ -602,8 +602,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     ZeroMemory(&si, sizeof(si));
                     si.cb = sizeof(si);
                     si.dwFlags |= STARTF_USESTDHANDLES;
-                    si.hStdError = std_output_handle;
-                    si.hStdOutput = std_error_handle;
+                    si.hStdError = std_error_handle;
+                    si.hStdOutput = std_output_handle;
                     ZeroMemory(&pi, sizeof(pi));
                     CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
                     WaitForSingleObject(pi.hProcess, INFINITE);
@@ -657,8 +657,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     ZeroMemory(&si, sizeof(si));
                     si.cb = sizeof(si);
                     si.dwFlags |= STARTF_USESTDHANDLES;
-                    si.hStdError = std_output_handle;
-                    si.hStdOutput = std_error_handle;
+                    si.hStdError = std_error_handle;
+                    si.hStdOutput = std_output_handle;
                     ZeroMemory(&pi, sizeof(pi));
                     CreateProcessW(0, cmd_temp, 0, 0, FALSE, CREATE_NO_WINDOW, 0, 0, &si, &pi);
                     WaitForSingleObject(pi.hProcess, INFINITE);
