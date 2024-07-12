@@ -1088,7 +1088,6 @@ void LightDw::File::LoadCallback(dw::Widget* data) {
     light_set_id set_id = LIGHT_SET_MAIN;
     light_id id = LIGHT_CHARA;
 
-
     do {
         char buf[0x200];
         ifs.get(buf, sizeof(buf), '\n');
@@ -1159,19 +1158,19 @@ void LightDw::File::LoadCallback(dw::Widget* data) {
         }
 
         if (!str.compare(0, 11, "attenuation")) {
-            light_attenuation attenuation = {};
+            light_attenuation attenuation;
             ss >> attenuation.constant >> attenuation.linear >> attenuation.quadratic;
             rctx_ptr->light_set[set_id].lights[id].set_attenuation(attenuation);
         }
 
         if (!str.compare(0, 9, "clipplane")) {
-            light_clip_plane clip_plane = {};
+            light_clip_plane clip_plane;
             ss >> clip_plane.data[0] >> clip_plane.data[1] >> clip_plane.data[2] >> clip_plane.data[3];
             rctx_ptr->light_set[set_id].lights[id].set_clip_plane(clip_plane);
         }
 
         if (!str.compare(0, 9, "tonecurve")) {
-            light_tone_curve tone_curve = {};
+            light_tone_curve tone_curve;
             ss >> tone_curve.start_point >> tone_curve.end_point >> tone_curve.coefficient;
             rctx_ptr->light_set[set_id].lights[id].set_tone_curve(tone_curve);
         }
