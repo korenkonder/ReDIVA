@@ -220,7 +220,7 @@ void obj_shader_shader_data::set_shader_flags(int32_t* shader_flags) {
     g_shader_flags.y.m.fog_chara     = shader_flags[U_FOG_CHARA];
     g_shader_flags.y.m.u16           = shader_flags[U16];
     g_shader_flags.y.m.gauss         = shader_flags[U_GAUSS];
-    g_shader_flags.y.m.eyeball       = shader_flags[U_EYEBALL];
+    g_shader_flags.y.m.eye_lens      = shader_flags[U_EYE_LENS];
     g_shader_flags.y.m.image_filter  = shader_flags[U_IMAGE_FILTER];
     g_shader_flags.y.m.instance      = shader_flags[U_INSTANCE];
     g_shader_flags.y.m.tone_curve    = shader_flags[U_TONE_CURVE];

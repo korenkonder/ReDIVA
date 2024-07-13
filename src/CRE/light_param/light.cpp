@@ -404,10 +404,10 @@ void light_set::data_set(face& face, light_set_id id) {
     obj_scene.set_g_irradiance_g_transforms(irradiance_g_transforms);
     obj_scene.set_g_irradiance_b_transforms(irradiance_b_transforms);
 
-    float_t offset = face.get_offset();
-    float_t v28 = (float_t)(1.0 - exp(offset * -0.44999999)) * 2.0f;
-    offset = max_def(offset, 0.0f);
-    obj_scene.g_light_face_diff = { v28 * 0.1f, offset * 0.06f, 1.0f, 1.0f };
+    float_t v27 = face.get_offset();
+    float_t v28 = 1.0f - expf(v27 * -0.45f) * 2.0f;
+    v27 = max_def(v27, 0.0f);
+    obj_scene.g_light_face_diff = { v28 * 0.1f, v27 * 0.06f, 1.0f, 1.0f };
 
     if (lights[LIGHT_CHARA_COLOR].get_type() == LIGHT_PARALLEL) {
         lights[LIGHT_CHARA_COLOR].get_ambient(obj_scene.g_chara_color_rim);

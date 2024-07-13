@@ -136,16 +136,16 @@ struct glass_eye_batch_shader_data {
     vec4 g_ellipsoid_radius;
     vec4 g_ellipsoid_scale;
     vec4 g_tex_model_param;
-    vec4 g_tex_offset;
+    vec4 g_tex_offset; //xy=tex_offset, zw=highlight_tex_offset
     vec4 g_eb_radius;
     vec4 g_eb_tex_model_param;
-    vec4 g_fresnel;
-    vec4 g_refract1;
-    vec4 g_refract2;
+    vec4 g_fresnel; //x=1-((n_1-n_2)/(n_2-n_1))^2, y=((n_1-n_2)/(n_2-n_1))^2, zw=unused
+    vec4 g_refract1; //x=(n_1/n_2)^2, y=1-(n_1/n_2)^2, z=n_1/n_2, w=unused
+    vec4 g_refract2; //x=(n_2/n_1)^2, y=1-(n_2/n_1)^2, z=n_2/n_1, w=unused
     vec4 g_iris_radius;
     vec4 g_cornea_radius;
     vec4 g_pupil_radius;
-    vec4 g_tex_scale;
+    vec4 g_tex_scale; //xy=tex_scale, z=trsmit_coef, w=lens_depth
 };
 
 struct glitter_batch_shader_data {
@@ -188,7 +188,7 @@ struct obj_shader_shader_data {
                 uint32_t fog_chara     : 2; // bit 32+2:3
                 uint32_t u16           : 1; // bit 32+4
                 uint32_t gauss         : 2; // bit 32+5:6
-                uint32_t eyeball       : 1; // bit 32+7
+                uint32_t eye_lens      : 1; // bit 32+7
                 uint32_t image_filter  : 3; // bit 32+8:10
                 uint32_t instance      : 1; // bit 32+11
                 uint32_t tone_curve    : 1; // bit 32+12

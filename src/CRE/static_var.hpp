@@ -52,7 +52,7 @@ enum uniform_name {
     U_FOG_CHARA,
     U16,
     U_GAUSS,
-    U_EYEBALL,
+    U_EYE_LENS,
     U_IMAGE_FILTER,
     U_INSTANCE,
     U_TONE_CURVE,
