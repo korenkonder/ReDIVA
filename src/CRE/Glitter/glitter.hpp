@@ -730,6 +730,8 @@ namespace Glitter {
 
         EffectGroup(GLT);
         virtual ~EffectGroup();
+
+        void GetStartEndFrame(int32_t* start_frame, int32_t* end_frame);
     };
 
     struct Random {
@@ -1569,8 +1571,7 @@ namespace Glitter {
         void Disp(GPM, DispType disp_type);
         size_t GetCtrlCount(ParticleType ptcl_type);
         size_t GetDispCount(ParticleType ptcl_type);
-        float_t GeFrameLifeTime(int32_t* life_time, size_t id);
-        void GetStartEndFrame(int32_t* start_frame, int32_t* end_frame);
+        float_t GetFrameLifeTime(int32_t* life_time, size_t id);
         bool FreeEffect(GPM, uint64_t effect_hash, bool free);
         bool FreeEffectByID(GPM, size_t id, bool free);
         bool HasEnded(bool a2);
@@ -1638,16 +1639,14 @@ namespace Glitter {
         bool GetPause();
         Scene* GetScene(uint64_t hash);
         Scene* GetScene(SceneCounter scene_counter);
-        void GetSceneStartEndFrame(int32_t* start_frame, int32_t* end_frame, SceneCounter scene_counter);
         float_t GetSceneFrameLifeTime(SceneCounter scene_counter, int32_t* life_time);
         SceneCounter GetSceneCounter(uint8_t index = 0);
         SceneCounter Load(uint64_t effect_group_hash, uint64_t effect_hash, bool use_existing);
         uint64_t LoadFile(GLT, void* data, const char* file, const char* path,
             float_t emission, bool init_scene, object_database* obj_db = 0, texture_database* tex_db = 0);
-        SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now = true);
-        SceneCounter LoadSceneEffect(uint64_t hash, bool appear_now = true, uint8_t load_flags = 0);
-        SceneCounter LoadSceneEffect(uint64_t hash, const char* name,
-            bool appear_now = true, uint8_t load_flags = 0);
+        SceneCounter LoadScene(uint64_t effect_group_hash, uint64_t effect_hash);
+        SceneCounter LoadSceneEffect(uint64_t hash, uint8_t load_flags = 0);
+        SceneCounter LoadSceneEffect(uint64_t hash, const char* name, uint8_t load_flags = 0);
         bool SceneHasNotEnded(SceneCounter load_counter);
         void SetFrame(EffectGroup* effect_group,
             Scene*& scene, float_t curr_frame, float_t prev_frame,

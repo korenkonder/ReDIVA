@@ -5736,7 +5736,7 @@ void x_pv_game_stage::set_change_effect_frame_part_2(float_t frame) {
             continue;
 
         i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(
-            i.name.hash_murmurhash, i.name.c_str(), true, 0x01);
+            i.name.hash_murmurhash, i.name.c_str(), 0x01);
         if (!i.scene_counter)
             continue;
 
@@ -5843,7 +5843,7 @@ void x_pv_game_stage::set_stage_effect_glitter_frame(int32_t stage_effect, float
     std::vector<x_pv_game_stage_effect_glitter>& glitter = effect[stage_effect - 1ULL].glitter;
     for (x_pv_game_stage_effect_glitter& i : glitter) {
         i.scene_counter = Glitter::glt_particle_manager->LoadSceneEffect(
-            i.name.hash_murmurhash, i.name.c_str(), true, 0x01);
+            i.name.hash_murmurhash, i.name.c_str(), 0x01);
         if (!i.scene_counter)
             continue;
 

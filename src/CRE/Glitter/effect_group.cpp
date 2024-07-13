@@ -42,4 +42,37 @@ namespace Glitter {
             scene = 0;
         }
     }
+
+    void EffectGroup::GetStartEndFrame(int32_t* start_frame, int32_t* end_frame) {
+        if (start_frame)
+            *start_frame = 0;
+
+        if (end_frame)
+            *end_frame = 0;
+
+        for (Effect*& i : effects) {
+            if (!i)
+                continue;
+
+            Effect* effect = i;
+            int32_t life_time = effect->data.life_time;
+            if (start_frame && effect->data.appear_time < *start_frame)
+                *start_frame = effect->data.appear_time;
+
+            for (Emitter*& j : effect->emitters) {
+                if (!j)
+                    continue;
+
+                Emitter* emitter = j;
+                if (life_time < emitter->data.life_time)
+                    life_time = emitter->data.life_time;
+            }
+
+            life_time += effect->data.appear_time;
+
+            if (end_frame && life_time > *end_frame)
+                *end_frame = life_time;
+        }
+    }
+
 }

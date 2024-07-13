@@ -400,33 +400,13 @@ namespace Glitter {
         return 0;
     }
 
-    void GltParticleManager::GetSceneStartEndFrame(int32_t* start_frame,
-        int32_t* end_frame, SceneCounter scene_counter) {
-        if (start_frame)
-            *start_frame = 0;
-
-        if (end_frame)
-            *end_frame = 0;
-
-        if (!scenes.size())
-            return;
-
-        for (Scene*& i : scenes)
-            if (i && i->counter.counter == scene_counter.counter) {
-                if (start_frame)
-                    *start_frame = INT16_MAX;
-                i->GetStartEndFrame(start_frame, end_frame);
-                return;
-            }
-    }
-
     float_t GltParticleManager::GetSceneFrameLifeTime(SceneCounter scene_counter, int32_t* life_time) {
         if (life_time)
             *life_time = 0;
 
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter)
-                return i->GeFrameLifeTime(life_time, scene_counter.index);
+                return i->GetFrameLifeTime(life_time, scene_counter.index);
         return 0.0f;
     }
 
@@ -636,9 +616,9 @@ namespace Glitter {
         return effect_group_hash;
     }
 
-    SceneCounter GltParticleManager::LoadScene(uint64_t effect_group_hash, uint64_t effect_hash, bool appear_now) {
+    SceneCounter GltParticleManager::LoadScene(uint64_t effect_group_hash, uint64_t effect_hash) {
         if (effect_group_hash == hash_murmurhash_empty || effect_group_hash == hash_fnv1a64m_empty)
-            return LoadSceneEffect(effect_hash, appear_now);
+            return LoadSceneEffect(effect_hash);
 
         auto elem = effect_groups.find(effect_group_hash);
         if (elem == effect_groups.end())
@@ -654,7 +634,7 @@ namespace Glitter {
                     size_t id = 1;
                     for (Effect*& j : eff_group->effects)
                         if (j)
-                            i->InitEffect(this, j, id++, appear_now);
+                            i->InitEffect(this, j, id++, true);
                     CheckSceneHasLocalEffect(i);
 
                     SceneCounter counter = i->counter;
@@ -674,13 +654,13 @@ namespace Glitter {
         size_t id = 1;
         for (Effect*& i : eff_group->effects)
             if (i)
-                scene->InitEffect(this, i, id++, appear_now);
+                scene->InitEffect(this, i, id++, true);
         CheckSceneHasLocalEffect(scene);
         scenes.push_back(scene);
         return counter;
     }
 
-    SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash, bool appear_now, uint8_t load_flags) {
+    SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash, uint8_t load_flags) {
         if (hash == hash_fnv1a64m_empty || hash == hash_murmurhash_empty)
             return 0;
 
@@ -733,7 +713,7 @@ namespace Glitter {
                                 continue;
 
                             if (k->data.name_hash == hash) {
-                                j->InitEffect(this, k, id, appear_now, load_flags);
+                                j->InitEffect(this, k, id, true, load_flags);
                                 break;
                             }
                             id++;
@@ -760,7 +740,7 @@ namespace Glitter {
                     continue;
 
                 if (j->data.name_hash == hash) {
-                    scene->InitEffect(this, j, id, appear_now);
+                    scene->InitEffect(this, j, id, true);
                     break;
                 }
                 id++;
@@ -776,8 +756,8 @@ namespace Glitter {
     }
 
     SceneCounter GltParticleManager::LoadSceneEffect(uint64_t hash,
-        const char* name, bool appear_now, uint8_t load_flags) {
-        SceneCounter counter = LoadSceneEffect(hash, appear_now, load_flags);
+        const char* name, uint8_t load_flags) {
+        SceneCounter counter = LoadSceneEffect(hash, load_flags);
         for (Scene*& i : scenes) {
             if (!i || i->counter.counter != counter.counter)
                 continue;
@@ -818,24 +798,32 @@ namespace Glitter {
 
                 delete* i;
                 i = scenes.erase(i);
+                scene = 0;
                 break;
             }
 
             Glitter::counter = counter;
             Glitter::random = random;
 
-            LoadScene(effect_group->hash, effect_group->type != Glitter::FT
-                ? hash_murmurhash_empty : hash_fnv1a64m_empty, false);
-            scene = GetScene(effect_group->hash);
-            enum_or(scene->flags, SCENE_EDITOR);
             prev_frame = 0.0f;
         }
 
+        float_t frame = curr_frame;
         float_t delta = curr_frame - prev_frame;
         float_t delta_frame = 1.0f;
-        for (; delta > 0.0f; delta -= delta_frame) {
+        for (; delta > 0.0f; delta -= delta_frame, frame += delta_frame) {
             if (delta_frame > delta)
                 delta_frame = delta;
+
+            for (Effect*& i : effect_group->effects)
+                if ((float_t)i->data.appear_time == frame) {
+                    LoadSceneEffect(i->data.name_hash);
+
+                    if (!scene) {
+                        scene = GetScene(effect_group->hash);
+                        enum_or(scene->flags, SCENE_EDITOR);
+                    }
+                }
 
             Scene* s = scene;
             if (s && !s->HasEnded(true))

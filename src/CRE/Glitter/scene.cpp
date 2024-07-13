@@ -34,7 +34,7 @@ namespace Glitter {
 
     bool Scene::Copy(Glitter::EffectInst* eff_inst, Glitter::Scene* dst) {
         if (!(flags & SCENE_FLAG_3))
-            return flags;
+            return false;
 
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp && i.ptr->id == eff_inst->id) {
@@ -138,7 +138,7 @@ namespace Glitter {
         return disp;
     }
 
-    float_t Scene::GeFrameLifeTime(int32_t* life_time, size_t id) {
+    float_t Scene::GetFrameLifeTime(int32_t* life_time, size_t id) {
         float_t frame = 0.0f;
         if (!id)
             for (SceneEffect& i : effects) {
@@ -166,54 +166,6 @@ namespace Glitter {
                 break;
             }
         return frame;
-    }
-
-    void Scene::GetStartEndFrame(int32_t* start_frame, int32_t* end_frame) {
-        for (SceneEffect& i : effects) {
-            if (!i.ptr || !i.disp)
-                continue;
-
-            F2EffectInst* effect_f2 = dynamic_cast<F2EffectInst*>(i.ptr);
-            XEffectInst* effect_x = dynamic_cast<XEffectInst*>(i.ptr);
-            if (effect_f2) {
-                int32_t life_time = effect_f2->data.life_time;
-                if (start_frame && effect_f2->data.appear_time < *start_frame)
-                    *start_frame = effect_f2->data.appear_time;
-
-                for (F2EmitterInst*& j : effect_f2->emitters) {
-                    if (!j)
-                        continue;
-
-                    F2EmitterInst* emitter = j;
-                    if (life_time < emitter->data.life_time)
-                        life_time = emitter->data.life_time;
-                }
-
-                life_time += effect_f2->data.appear_time;
-
-                if (end_frame && life_time > *end_frame)
-                    *end_frame = life_time;
-            }
-            else if (effect_x) {
-                int32_t life_time = effect_x->data.life_time;
-                if (start_frame && effect_x->data.appear_time < *start_frame)
-                    *start_frame = effect_x->data.appear_time;
-
-                for (XEmitterInst*& j : effect_x->emitters) {
-                    if (!j)
-                        continue;
-
-                    XEmitterInst* emitter = j;
-                    if (life_time < emitter->data.life_time)
-                        life_time = emitter->data.life_time;
-                }
-
-                life_time += effect_x->data.appear_time;
-
-                if (end_frame && life_time > *end_frame)
-                    *end_frame = life_time;
-            }
-        }
     }
 
     bool Scene::FreeEffect(GPM, uint64_t effect_hash, bool free) {
