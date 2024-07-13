@@ -7636,7 +7636,7 @@ static void glitter_editor_curve_editor_window_draw_random_range(
         }
 
         if (y11 != y12 || y21 != y22)
-            draw_list->AddQuadFilled({ x1, y11 }, { x1, y21 }, { x2, y22 }, { x2, y12 }, random_range_color);
+            draw_list->AddQuadFilled({ x1, y11 }, { x2, y21 }, { x2, y22 }, { x1, y12 }, random_range_color);
     }
 }
 
