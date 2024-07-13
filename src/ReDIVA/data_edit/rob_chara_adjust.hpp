@@ -42,6 +42,8 @@ public:
     bool apply_wait;
     float_t apply_frame;
     bool save;
+    bool track_frame;
+    bool visible;
 
     int32_t chara_id;
     uint32_t motion_id;

@@ -58,7 +58,7 @@ extern bool input_locked;
 
 extern render_context* rctx_ptr;
 
-RobCharaAdjust::RobCharaAdjust() : apply(), apply_wait(), apply_frame(), save(), chara_id(), data() {
+RobCharaAdjust::RobCharaAdjust() : apply(), apply_wait(), apply_frame(), save(), track_frame(), chara_id(), data() {
     motion_id = -1;
     parts = ROB_OSAGE_PARTS_NONE;
 }
@@ -110,7 +110,7 @@ bool RobCharaAdjust::ctrl() {
         apply = false;
 
         apply_wait = true;
-        apply_frame = dtm_mot_array[chara_id].frame;
+        apply_frame = dtm_mot_array[chara_id].GetFrame();
         dtm_mot_array[chara_id].SetResetMot();
     }
     else if (apply_wait && dtm_mot_array[chara_id].state == 13) {
@@ -155,8 +155,8 @@ void RobCharaAdjust::window() {
     }
 
     w = ImGui::GetContentRegionAvailWidth();
-    if (ImGui::BeginTable("head", 4)) {
-        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.25f);
+    if (ImGui::BeginTable("head", 5)) {
+        ImGui::TableSetupColumn("", ImGuiTableColumnFlags_WidthFixed, w * 0.2f);
 
         ImGui::TableNextColumn();
         ImGui::GetContentRegionAvailSetNextItemWidth();
@@ -199,8 +199,33 @@ void RobCharaAdjust::window() {
             apply = true;
         ImGui::EndDisabled();
 
+        ImGui::TableNextColumn();
+        ImGui::Checkbox("Track", &track_frame);
+
         input_locked |= ImGui::IsWindowFocused();
         ImGui::EndTable();
+    }
+
+    if (track_frame) {
+        data_struct* aft_data = &data_list[DATA_AFT];
+        motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
+
+        float_t frame = dtm_mot_array[chara_id].GetFrame();
+        const mothead_data* data = mothead_storage_get_mot_by_motion_id(motion_id, aft_mot_db)->data;
+        if (data) {
+            mothead_data_type type = data->type;
+            while (type >= MOTHEAD_DATA_TYPE_0) {
+                if ((type == MOTHEAD_DATA_ROB_PARTS_ADJUST
+                    && ((RobCharaAdjust::PartsData*)data->data)->parts == parts
+                    || type == MOTHEAD_DATA_ROB_ADJUST_GLOBAL)
+                    && frame >= (float_t)data->frame) {
+                    this->data = (void*)data->data;
+                }
+
+                data++;
+                type = data->type;
+            }
+        }
     }
 
     ImVec2 cont_reg_avail = ImGui::GetContentRegionAvail();
@@ -218,7 +243,7 @@ void RobCharaAdjust::window() {
                     char buf[0x40];
                     sprintf_s(buf, sizeof(buf), "%d", data->frame);
                     ImGui::PushID(data);
-                    if (ImGui::Selectable(buf, this->data == data->data))
+                    if (ImGui::Selectable(buf, this->data == data->data) && !track_frame)
                         this->data = (void*)data->data;
                     ImGui::PopID();
                 }
