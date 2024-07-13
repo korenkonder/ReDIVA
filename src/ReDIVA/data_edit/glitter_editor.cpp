@@ -1632,6 +1632,8 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         glt_edt->load_error_popup = true;
         return;
     }
+    else if (eg->not_loaded)
+        goto Error;
 
     if (!Glitter::glt_particle_manager->CheckNoFileReaders(glt_edt->hash)) {
         data_struct* ds = &data_list[glt_edt->load_data_type];
