@@ -1006,7 +1006,7 @@ bool GlitterEditor::ctrl() {
     }
 
     if (eg)
-        eg->GetStartEndFrame(&start_frame, &end_frame);
+        eg->GetStartEndFrame(start_frame, end_frame);
     else {
         start_frame = 0;
         end_frame = 0;
@@ -1741,7 +1741,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
 
     GlitterEditor::reset_disp();
 
-    eg->GetStartEndFrame(&glt_edt->start_frame, &glt_edt->end_frame);
+    eg->GetStartEndFrame(glt_edt->start_frame, glt_edt->end_frame);
     glt_edt->frame_counter = 0;
     glt_edt->old_frame_counter = 0;
     glt_edt->input_pause = true;

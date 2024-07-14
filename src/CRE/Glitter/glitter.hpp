@@ -731,7 +731,7 @@ namespace Glitter {
         EffectGroup(GLT);
         virtual ~EffectGroup();
 
-        void GetStartEndFrame(int32_t* start_frame, int32_t* end_frame);
+        void GetStartEndFrame(int32_t& start_frame, int32_t& end_frame);
     };
 
     struct Random {

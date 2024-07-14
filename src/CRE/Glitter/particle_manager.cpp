@@ -808,13 +808,10 @@ namespace Glitter {
             prev_frame = 0.0f;
         }
 
-        float_t frame = curr_frame;
+        float_t frame = prev_frame;
         float_t delta = curr_frame - prev_frame;
         float_t delta_frame = 1.0f;
-        for (; delta > 0.0f; delta -= delta_frame, frame += delta_frame) {
-            if (delta_frame > delta)
-                delta_frame = delta;
-
+        while (true) {
             for (Effect*& i : effect_group->effects)
                 if ((float_t)i->data.appear_time == frame) {
                     LoadSceneEffect(i->data.name_hash);
@@ -824,6 +821,12 @@ namespace Glitter {
                         enum_or(scene->flags, SCENE_EDITOR);
                     }
                 }
+
+            if (delta <= 0.0f)
+                break;
+
+            if (delta_frame > delta)
+                delta_frame = delta;
 
             Scene* s = scene;
             if (s && !s->HasEnded(true))
@@ -839,6 +842,9 @@ namespace Glitter {
                 }
                 else
                     s->Ctrl(this, delta_frame);
+
+            delta -= delta_frame;
+            frame += delta_frame;
         }
     }
 
