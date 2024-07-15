@@ -48,24 +48,9 @@ namespace prj {
                 });
         }
 
-        inline void unique() {
-            if (this->size() <= 1)
-                return;
-
-            auto begin = this->begin();
-            auto end = this->end();
-            for (auto i = begin, j = begin + 1; i != end && j != end; )
-                if (i->first == j->first) {
-                    std::move(j + 1, end, j);
-                    end--;
-                }
-                else {
-                    i++;
-                    j++;
-                }
-
-            if (this->size() != end - begin)
-                this->resize(end - begin);
+        void unique() {
+            auto last = std::unique(this->begin(), this->end());
+            this->erase(last, this->end());
         }
 
         inline void sort_unique() {

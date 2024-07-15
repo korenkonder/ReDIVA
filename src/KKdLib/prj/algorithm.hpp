@@ -23,33 +23,18 @@ namespace prj {
     }
 
     template <class T>
-    void sort(std::vector<T>& vec) {
+    inline void sort(std::vector<T>& vec) {
         std::sort(vec.begin(), vec.end());
     }
 
     template <class T>
     void unique(std::vector<T>& vec) {
-        if (vec.size() <= 1)
-            return;
-
-        auto begin = vec.begin();
-        auto end = vec.end();
-        for (auto i = begin, j = begin + 1; i != end && j != end; )
-            if (*i == *j) {
-                std::move(j + 1, end, j);
-                end--;
-            }
-            else {
-                i++;
-                j++;
-            }
-
-        if (vec.size() != end - begin)
-            vec.resize(end - begin);
+        auto last = std::unique(vec.begin(), vec.end());
+        vec.erase(last, vec.end());
     }
 
     template <class T>
-    void sort_unique(std::vector<T>& vec) {
+    inline void sort_unique(std::vector<T>& vec) {
         sort(vec);
         unique(vec);
     }
