@@ -535,9 +535,6 @@ inline constexpr size_t utf16_to_utf8_length(const wchar_t* s, size_t length) {
     return _length;
 }
 
-extern const char string_upper_to_lower_table[0x100];
-extern const char string_lower_to_upper_table[0x100];
-
 extern wchar_t* utf8_to_utf16(const char* s);
 extern wchar_t* utf8_to_utf16(const char* s, size_t length);
 extern char* utf16_to_utf8(const wchar_t* s);
