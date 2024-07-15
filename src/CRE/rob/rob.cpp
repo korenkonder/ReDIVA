@@ -16322,23 +16322,9 @@ bool OpdMakeWorker::ctrl() {
                 continue;
 
             std::string tmp_path = sprintf_s_string("%s/%s", chara_dir.c_str(), i.c_str());
-            std::string fs_copy_file_tmp_path = sprintf_s_string(
-                "%s/%s.fs_copy_file.tmp", ram_osage_play_data_tmp_path, i.c_str());
             std::string ram_path = sprintf_s_string("%s/%s", ram_osage_play_data_path, i.c_str());
-
-            if (!path_check_file_exists(tmp_path.c_str()))
-                continue;
-
-            if (!path_check_directory_exists(ram_osage_play_data_tmp_path)
-                || !path_rename_file(tmp_path.c_str(), fs_copy_file_tmp_path.c_str())) {
-                path_delete_file(tmp_path.c_str());
-                continue;
-            }
-
+            path_fs_copy_file(tmp_path.c_str(), ram_path.c_str());
             path_delete_file(tmp_path.c_str());
-
-            path_rename_file(fs_copy_file_tmp_path.c_str(), ram_path.c_str());
-            path_delete_file(fs_copy_file_tmp_path.c_str());
         }
 
         if (use_current_skp)
@@ -16540,7 +16526,7 @@ bool opd_farc::write_file() {
 
     if (ret) {
         path_delete_file(path.c_str());
-        if (!path_rename_file(path_tmp.c_str(), path.c_str()))
+        if (!path_move_file(path_tmp.c_str(), path.c_str()))
             ret = false;
     }
 
