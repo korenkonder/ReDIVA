@@ -294,17 +294,22 @@ LightDw::GAmbientSlider::GAmbientSlider(LightDw* light_dw, dw::Widget* parent) {
     if (comp) {
         light_data* light = &rctx_ptr->light_set[light_dw_light_set_id].lights[light_dw_light_id];
 
-#if DW_TRANSLATE
-        const char* chara_f_tone_curve_adjustment_text = u8"CHARA(F) Tone Curve Adjustment";
-        const char* start_point_text = u8"Start Point";
-        const char* end_point_text = u8"End Point";
-        const char* coefficient_text = u8"Coefficient";
-#else
-        const char* chara_f_tone_curve_adjustment_text = u8"CHARA(F)トーンカーブ調整";
-        const char* start_point_text = u8"始点";
-        const char* end_point_text = u8"終点";
-        const char* coefficient_text = u8"係数";
-#endif
+        const char* chara_f_tone_curve_adjustment_text;
+        const char* start_point_text;
+        const char* end_point_text;
+        const char* coefficient_text;
+        if (dw::translate) {
+            chara_f_tone_curve_adjustment_text = u8"CHARA(F) Tone Curve Adjustment";
+            start_point_text = u8"Start Point";
+            end_point_text = u8"End Point";
+            coefficient_text = u8"Coefficient";
+        }
+        else {
+            chara_f_tone_curve_adjustment_text = u8"CHARA(F)トーンカーブ調整";
+            start_point_text = u8"始点";
+            end_point_text = u8"終点";
+            coefficient_text = u8"係数";
+        }
 
         dw::Label* label = new dw::Label(comp);
         label->SetText(chara_f_tone_curve_adjustment_text);
@@ -356,11 +361,11 @@ LightDw::SyncPosButton::SyncPosButton(LightDw* light_dw, dw::Widget* parent) {
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-#if DW_TRANSLATE
-        const char* sync_pos_text = u8"Light 0-6 Sync Position";
-#else
-        const char* sync_pos_text = u8"Light 0-6 座標同期";
-#endif
+        const char* sync_pos_text;
+        if (dw::translate)
+            sync_pos_text = u8"Light 0-6 Sync Position";
+        else
+            sync_pos_text = u8"Light 0-6 座標同期";
 
         sync_pos = new dw::Button(comp, dw::CHECKBOX);
         sync_pos->SetText(sync_pos_text);
@@ -386,11 +391,11 @@ LightDw::LightAuthEnableButton::LightAuthEnableButton(LightDw* light_dw, dw::Wid
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-#if DW_TRANSLATE
-        const char* light_auth_enable_text = u8"Light Auth Enable";
-#else
-        const char* light_auth_enable_text = u8"ライトオーサ有効";
-#endif
+        const char* light_auth_enable_text;
+        if (dw::translate)
+            light_auth_enable_text = u8"Light Auth Enable";
+        else
+            light_auth_enable_text = u8"ライトオーサ有効";
 
         light_auth_enable = new dw::Button(comp, dw::CHECKBOX);
         light_auth_enable->SetText(light_auth_enable_text);
@@ -416,11 +421,11 @@ LightDw::CutLightEnableButton::CutLightEnableButton(LightDw* light_dw, dw::Widge
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-#if DW_TRANSLATE
-        const char* set_for_each_cut_text = u8"Set for each PV cut";
-#else
-        const char* set_for_each_cut_text = u8"PVのカットごとに設定";
-#endif
+        const char* set_for_each_cut_text;
+        if (dw::translate)
+            set_for_each_cut_text = u8"Set for each PV cut";
+        else
+            set_for_each_cut_text = u8"PVのカットごとに設定";
 
         set_for_each_cut = new dw::Button(comp, dw::CHECKBOX);
         set_for_each_cut->SetText(set_for_each_cut_text);
@@ -1010,11 +1015,11 @@ LightDw::File::File(LightDw* light_dw, dw::Widget* parent) {
     load->callback_data.v64 = light_dw;
     load->callback = LightDw::File::LoadCallback;
 
-#if DW_TRANSLATE
-    const char* light0_coord_init_text = u8"Light0 Coordinate Initialization";
-#else
-    const char* light0_coord_init_text = u8"Light0座標初期化";
-#endif
+    const char* light0_coord_init_text;
+    if (dw::translate)
+        light0_coord_init_text = u8"Light0 Coordinate Initialization";
+    else
+        light0_coord_init_text = u8"Light0座標初期化";
 
     light0_coord_init = new dw::Button(comp, dw::FLAG_8);
     light0_coord_init->SetText(light0_coord_init_text);
@@ -1358,11 +1363,11 @@ LightDw::LightDw() {
             light_clip_plane clip_plane;
             light_dw_get_light()->get_clip_plane(clip_plane);
 
-#if DW_TRANSLATE
-            const char* reflective_surface_clip_stage_text = u8"Reflective Surface Clip (STAGE)";
-#else
-            const char* reflective_surface_clip_stage_text = u8"反射面クリップ(STAGE)";
-#endif
+            const char* reflective_surface_clip_stage_text;
+            if (dw::translate)
+                reflective_surface_clip_stage_text = u8"Reflective Surface Clip (STAGE)";
+            else
+                reflective_surface_clip_stage_text = u8"反射面クリップ(STAGE)";
 
             dw::Button* reflective_surface_clip_stage = new dw::Button(comp, dw::CHECKBOX);
             reflective_surface_clip_stage->SetText(reflective_surface_clip_stage_text);

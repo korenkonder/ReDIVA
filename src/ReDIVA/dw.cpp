@@ -220,6 +220,8 @@ namespace dw {
 
     dw::Colors colors_current;
 
+    bool translate = false;
+
     p_Font current_font;
 
     Font* font_type_6x12;

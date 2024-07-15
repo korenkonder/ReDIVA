@@ -193,11 +193,11 @@ dwPostProcess::dwPostProcess() {
     mlaa_button->SetValue(!!mlaa);
     mlaa_button->callback = dwPostProcess::MorphologicalAACallback;
 
-#if DW_TRANSLATE
-    const char* set_for_each_cut_text = u8"Set for each PV cut";
-#else
-    const char* set_for_each_cut_text = u8"PVのカットごとに設定";
-#endif
+    const char* set_for_each_cut_text;
+    if (dw::translate)
+        set_for_each_cut_text = u8"Set for each PV cut";
+    else
+        set_for_each_cut_text = u8"PVのカットごとに設定";
 
     set_for_each_cut_button = new dw::Button(this, dw::CHECKBOX);
     set_for_each_cut_button->SetText(set_for_each_cut_text);

@@ -856,6 +856,8 @@ namespace dw {
         virtual void Callback(SelectionListener::CallbackData* data) override;
     };
 
+    extern bool translate;
+
     extern p_Font current_font;
 
     extern p_Font p_font_type_6x12;

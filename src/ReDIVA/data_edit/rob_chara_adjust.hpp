@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "../config.hpp"
+#include "../../KKdLib/default.hpp"
 #include "../../CRE/rob/rob.hpp"
 #include "../task_window.hpp"
 

@@ -340,11 +340,11 @@ DataTestEquipDw::DataTestEquipDw() : chara_id() {
 
     data_test_item_array_load();
 
-#if DW_TRANSLATE
-    const char* exclusive_check_text = u8"Switch to exclusive check window";
-#else
-    const char* exclusive_check_text = u8"排他チェック窓に切替";
-#endif
+    const char* exclusive_check_text;
+    if (dw::translate)
+        exclusive_check_text = u8"Switch to exclusive check window";
+    else
+        exclusive_check_text = u8"排他チェック窓に切替";
 
     dw::Button* exclusive_check = new dw::Button(this, dw::FLAG_8);
     exclusive_check->SetText(exclusive_check_text);

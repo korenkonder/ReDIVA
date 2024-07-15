@@ -16,7 +16,6 @@
 #include "../../CRE/resolution_mode.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/stage_param.hpp"
-#include "../config.hpp"
 #include "../dw.hpp"
 #include "../input_state.hpp"
 #include "auth_3d_test.hpp"
@@ -781,39 +780,40 @@ void DataTestMotA3d::basic() {
 }
 
 const char* DataTestMotA3d::GetStateText() {
-    switch (state) {
-#if DW_TRANSLATE
-    case 0:
-        return u8"A3D: Initializing...";
-    case 1:
-        return u8"A3D: Awaiting command...";
-    case 2:
-        return u8"A3D: Requesting data...";
-    case 3:
-        return u8"A3D: Loading PV Stage...";
-    case 4:
-        return u8"A3D: Loading A3D Category...";
-    case 5:
-        return u8"A3D: Loading A3D Handle...";
-    default:
-        return u8"A3D: Unknown mode";
-#else
-    case 0:
-        return u8"A3D: 初期化中...";
-    case 1:
-        return u8"A3D: 命令待機中...";
-    case 2:
-        return u8"A3D: データリクエスト中...";
-    case 3:
-        return u8"A3D: PVステージ読込中...";
-    case 4:
-        return u8"A3D: A3Dカテゴリ読込中...";
-    case 5:
-        return u8"A3D: A3Dハンドル読込中...";
-    default:
-        return u8"A3D: 未知のモード";
-#endif
-    }
+    if (dw::translate)
+        switch (state) {
+        case 0:
+            return u8"A3D: Initializing...";
+        case 1:
+            return u8"A3D: Awaiting command...";
+        case 2:
+            return u8"A3D: Requesting data...";
+        case 3:
+            return u8"A3D: Loading PV Stage...";
+        case 4:
+            return u8"A3D: Loading A3D Category...";
+        case 5:
+            return u8"A3D: Loading A3D Handle...";
+        default:
+            return u8"A3D: Unknown mode";
+        }
+    else
+        switch (state) {
+        case 0:
+            return u8"A3D: 初期化中...";
+        case 1:
+            return u8"A3D: 命令待機中...";
+        case 2:
+            return u8"A3D: データリクエスト中...";
+        case 3:
+            return u8"A3D: PVステージ読込中...";
+        case 4:
+            return u8"A3D: A3Dカテゴリ読込中...";
+        case 5:
+            return u8"A3D: A3Dハンドル読込中...";
+        default:
+            return u8"A3D: 未知のモード";
+        }
 }
 
 void DataTestMotA3d::LoadAuth3d(std::string&& name) {
@@ -2356,11 +2356,11 @@ DataTestMotDw::DataTestMotDw(int32_t chara_id, DtmMot* dtm_mot) {
 
     dtm_mot->SetPartialMot(false);
 
-#if DW_TRANSLATE
-    const char* save_only_start_frame_button_text = u8"Initialize only Start Frame Osage";
-#else
-    const char* save_only_start_frame_button_text = u8"Startフレームだけおさげ初期化";
-#endif
+    const char* save_only_start_frame_button_text;
+    if (dw::translate)
+        save_only_start_frame_button_text = u8"Initialize only Start Frame Osage";
+    else
+        save_only_start_frame_button_text = u8"Startフレームだけおさげ初期化";
 
     dw::Button* save_only_start_frame_button = new dw::Button(this, dw::CHECKBOX);
     save_only_start_frame_button->SetText(save_only_start_frame_button_text);
@@ -2699,11 +2699,11 @@ DataTestMotA3dDw::DataTestMotA3dDw() {
     a3d_label->SetText("A3d");
     a3d_label->SetFont(dw::p_font_type_6x12);
 
-#if DW_TRANSLATE
-    const char* please_select_a_pv = u8"Please select a PV";
-#else
-    const char* please_select_a_pv = u8"PVを選択して下さい";
-#endif
+    const char* please_select_a_pv;
+    if (dw::translate)
+        please_select_a_pv = u8"Please select a PV";
+    else
+        please_select_a_pv = u8"PVを選択して下さい";
 
     a3d = new dw::ListBox(a3d_comp);
     a3d->SetMaxItems(20);

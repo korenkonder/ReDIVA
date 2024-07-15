@@ -8,7 +8,6 @@
 #define BAKE_VIDEO (0)
 #define BAKE_PV826 (0)
 #define BAKE_X_PACK (0)
-#define DW_TRANSLATE (0)
 #define PV_DEBUG (1)
 
 #define FACE_ANIM (0)

@@ -809,11 +809,11 @@ void Auth3dTestSubWindow::SelectionListAet::Callback(dw::SelectionListener::Call
 Auth3dTestSubWindow::Auth3dTestSubWindow() {
     SetText("A3D STAGE");
 
-#if DW_TRANSLATE
-    const char* plane_above_floor_text = u8"Plane 25 cm above floor";
-#else
-    const char* plane_above_floor_text = u8"床上25cm";
-#endif
+    const char* plane_above_floor_text;
+    if (dw::translate)
+        plane_above_floor_text = u8"Plane 25 cm above floor";
+    else
+        plane_above_floor_text = u8"床上25cm";
 
     plane_above_floor = new dw::Button(this, dw::CHECKBOX);
     plane_above_floor->SetText(plane_above_floor_text);
@@ -860,13 +860,16 @@ Auth3dTestSubWindow::Auth3dTestSubWindow() {
 
     stg_list->list->AddSelectionListener(&selection_list_stage);
 
-#if DW_TRANSLATE
-    const char* stage_link_change_text = u8"Stage Link Change";
-    const char* auth_2d_text = u8"2D Auth";
-#else
-    const char* stage_link_change_text = u8"STG連動切り替え";
-    const char* auth_2d_text = u8"2Dオーサ";
-#endif
+    const char* stage_link_change_text;
+    const char* auth_2d_text;
+    if (dw::translate) {
+        stage_link_change_text = u8"Stage Link Change";
+        auth_2d_text = u8"2D Auth";
+    }
+    else {
+        stage_link_change_text = u8"STG連動切り替え";
+        auth_2d_text = u8"2Dオーサ";
+    }
 
     stage_link_change = new dw::Button(this, dw::CHECKBOX);
     stage_link_change->SetText(stage_link_change_text);
@@ -1194,23 +1197,31 @@ void Auth3dTestWindow::SelectionButtonDebugCamera::Callback(dw::SelectionListene
 Auth3dTestWindow::Auth3dTestWindow() {
     SetText("AUTH3D");
 
-#if DW_TRANSLATE
-    const char* nage_text = u8"NAGE▽";
-    const char* obj_link_text = u8"OBJ Link";
-    const char* left_right_reverse_text = u8"Left Right Reverse";
-    const char* snap_shot_text = u8"ss capture";
-    const char* self_shadow_off_text = u8"Self Shadow Off";
-    const char* black_mask_text = u8"Black Mask";
-    const char* offset_save_text = u8"Offset Save";
-#else
-    const char* nage_text = u8"投▽";
-    const char* obj_link_text = u8"OBJ連動";
-    const char* left_right_reverse_text = u8"左右逆";
-    const char* snap_shot_text = u8"ss画撮";
-    const char* self_shadow_off_text = u8"セルフ影OFF";
-    const char* black_mask_text = u8"黒mask";
-    const char* offset_save_text = u8"オフセットSave";
-#endif
+    const char* nage_text;
+    const char* obj_link_text;
+    const char* left_right_reverse_text;
+    const char* snap_shot_text;
+    const char* self_shadow_off_text;
+    const char* black_mask_text;
+    const char* offset_save_text;
+    if (dw::translate) {
+        nage_text = u8"NAGE▽";
+        obj_link_text = u8"OBJ Link";
+        left_right_reverse_text = u8"Left Right Reverse";
+        snap_shot_text = u8"ss capture";
+        self_shadow_off_text = u8"Self Shadow Off";
+        black_mask_text = u8"Black Mask";
+        offset_save_text = u8"Offset Save";
+    }
+    else {
+        nage_text = u8"投▽";
+        obj_link_text = u8"OBJ連動";
+        left_right_reverse_text = u8"左右逆";
+        snap_shot_text = u8"ss画撮";
+        self_shadow_off_text = u8"セルフ影OFF";
+        black_mask_text = u8"黒mask";
+        offset_save_text = u8"オフセットSave";
+    }
 
     dw::Composite* v4 = new dw::Composite(this);
     v4->SetLayout(new dw::RowLayout(dw::HORIZONTAL));

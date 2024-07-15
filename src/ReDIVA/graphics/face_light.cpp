@@ -78,13 +78,16 @@ DwFaceLight::DwFaceLight() {
     reset->SetText("RESET");
     reset->callback = DwFaceLight::ResetCallback;
 
-#if DW_TRANSLATE
-    const char* set_for_each_cut_text = u8"Set for each PV cut";
-    const char* strength_text = u8"Strength";
-#else
-    const char* set_for_each_cut_text = u8"PVのカットごとに設定";
-    const char* strength_text = u8"強さ";
-#endif
+    const char* set_for_each_cut_text;
+    const char* strength_text;
+    if (dw::translate) {
+        set_for_each_cut_text = u8"Set for each PV cut";
+        strength_text = u8"Strength";
+    }
+    else {
+        set_for_each_cut_text = u8"PVのカットごとに設定";
+        strength_text = u8"強さ";
+    }
 
     set_for_each_cut_button = new dw::Button(this, dw::CHECKBOX);
     set_for_each_cut_button->SetText(set_for_each_cut_text);

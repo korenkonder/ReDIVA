@@ -392,11 +392,11 @@ FogDw::CutLightEnableButton::CutLightEnableButton(FogDw* fog_dw, dw::Widget* par
 
     dw::Composite* comp = dynamic_cast<dw::Composite*>(parent);
     if (comp) {
-#if DW_TRANSLATE
-        const char* set_for_each_cut_text = u8"Set for each PV cut";
-#else
-        const char* set_for_each_cut_text = u8"PVのカットごとに設定";
-#endif
+        const char* set_for_each_cut_text;
+        if (dw::translate)
+            set_for_each_cut_text = u8"Set for each PV cut";
+        else
+            set_for_each_cut_text = u8"PVのカットごとに設定";
 
         set_for_each_cut = new dw::Button(comp, dw::CHECKBOX);
         set_for_each_cut->SetText(set_for_each_cut_text);

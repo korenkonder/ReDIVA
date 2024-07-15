@@ -8,7 +8,6 @@
 #include "../../CRE/effect.hpp"
 #include "../../CRE/stage.hpp"
 #include "../dw.hpp"
-#include "../config.hpp"
 
 class DtwStg : public dw::Shell {
 public:
@@ -195,19 +194,25 @@ DtwStg::DtwStg() : Shell(0) {
     stage->SetItemIndex(0);
     stage->AddSelectionListener(new dw::SelectionListenerOnHook(DtwStg::StageCallback));
 
-#if DW_TRANSLATE
-    const char* stage_display_text = u8"Stage display";
-    const char* ring_text = u8"[Ring]";
-    const char* ground_text = u8"[Ground]";
-    const char* sky_text = u8"[Sky]";
-    const char* effect_display_text = u8"Effects display";
-#else
-    const char* stage_display_text = u8"ステージ表示";
-    const char* ring_text = u8"【リング】";
-    const char* ground_text = u8"【地面】";
-    const char* sky_text = u8"【空】";
-    const char* effect_display_text = u8"エフェクト表示";
-#endif
+    const char* stage_display_text;
+    const char* ring_text;
+    const char* ground_text;
+    const char* sky_text;
+    const char* effect_display_text;
+    if (dw::translate) {
+        stage_display_text = u8"Stage display";
+        ring_text = u8"[Ring]";
+        ground_text = u8"[Ground]";
+        sky_text = u8"[Sky]";
+        effect_display_text = u8"Effects display";
+    }
+    else {
+        stage_display_text = u8"ステージ表示";
+        ring_text = u8"【リング】";
+        ground_text = u8"【地面】";
+        sky_text = u8"【空】";
+        effect_display_text = u8"エフェクト表示";
+    }
 
     stage_display = new dw::Button(this, dw::CHECKBOX);
     stage_display->SetText(stage_display_text);
