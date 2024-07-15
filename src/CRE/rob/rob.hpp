@@ -3597,20 +3597,20 @@ struct OpdMakeManagerArgs {
 };
 
 struct OpdMakeManagerData {
-    struct Chara {
+    struct Worker {
         uint32_t mode;
         uint32_t progress;
         chara_index chara;
         std::vector<uint32_t> items;
 
-        Chara();
-        ~Chara();
+        Worker();
+        ~Worker();
     };
 
     uint32_t mode;
     uint32_t left;
     uint32_t count;
-    std::vector<Chara> charas;
+    std::vector<Worker> workers;
 
     OpdMakeManagerData();
     ~OpdMakeManagerData();
@@ -3664,7 +3664,10 @@ extern float_t chara_size_table_get_value(uint32_t index);
 
 extern bool check_cos_id_is_501(int32_t cos_id);
 
+extern const uint32_t* get_opd_motion_ids();
 extern const uint32_t* get_opd_motion_set_ids();
+
+const char* get_dev_ram_opdi_dir();
 
 extern const float_t get_osage_gravity_const();
 
@@ -3685,6 +3688,7 @@ extern bool opd_make_manager_del_task();
 extern OpdMakeManagerData* opd_make_manager_get_data();
 
 extern void opd_make_start();
+extern void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids);
 extern void opd_make_stop();
 
 extern bool osage_play_data_manager_add_task();

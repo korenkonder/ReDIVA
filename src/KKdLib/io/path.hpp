@@ -38,6 +38,8 @@ extern bool path_delete_directory(const char* path);
 extern bool path_delete_directory(const wchar_t* path);
 extern bool path_copy_file(const char* src, const char* dst);
 extern bool path_copy_file(const wchar_t* src, const wchar_t* dst);
+extern int32_t path_compare_files(const char* path_1, const char* path_2);
+extern int32_t path_compare_files(const wchar_t* path_1, const wchar_t* path_2);
 extern bool path_fs_copy_file(const char* src, const char* dst);
 extern bool path_fs_copy_file(const wchar_t* src, const wchar_t* dst);
 extern bool path_move_file(const char* old_path, const char* new_path);

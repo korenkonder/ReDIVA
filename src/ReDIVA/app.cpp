@@ -57,6 +57,7 @@
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/object_test.hpp"
+#include "data_test/opd_test.hpp"
 #include "data_test/rob_osage_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
@@ -640,6 +641,7 @@ static render_context* render_context_load() {
     dtm_stg_init();
     motion_test_init();
     object_test_init();
+    opd_test_init();
     equip_test_init();
     rob_osage_test_init();
     rob_chara_adjust_init();
@@ -1337,6 +1339,7 @@ static void render_context_dispose(render_context* rctx) {
     rob_chara_adjust_free();
     rob_osage_test_free();
     equip_test_free();
+    opd_test_free();
     object_test_free();
     motion_test_free();
     dtm_stg_free();

@@ -20,6 +20,7 @@
 #include "data_test/glitter_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/object_test.hpp"
+#include "data_test/opd_test.hpp"
 #include "data_test/rob_osage_test.hpp"
 #include "data_test/selector.hpp"
 #include "data_test/stage_test.hpp"
@@ -1700,14 +1701,17 @@ bool SubGameState::DataTestCard::Dest() {
 }
 
 bool SubGameState::DataTestOpd::Init() {
-    return true;
+    task_rob_manager_del_task();
+    return task_data_test_opd->add_task();
 }
 
 bool SubGameState::DataTestOpd::Ctrl() {
-    return false;
+    return !app::TaskWork::check_task_ready(task_data_test_opd);
 }
 
 bool SubGameState::DataTestOpd::Dest() {
+    task_rob_manager_add_task();
+    task_data_test_opd->del();
     return true;
 }
 

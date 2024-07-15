@@ -332,8 +332,8 @@ void customize_item_data_handler::get_chara_item(
         _chara_index = chara_index_get_from_chara_name(chara.c_str());
     else
         for (const auto& i : customize_item_table_handler_data_get_customize_items())
-            if (i.first == item_no) {
-                if (_chara_index == CHARA_MAX)
+            if (i.second.obj_id == item_no) {
+                if (i.second.chara == 10)
                     _chara_index = CHARA_MIKU;
                 break;
             }

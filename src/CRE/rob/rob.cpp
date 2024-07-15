@@ -2295,6 +2295,18 @@ bool check_cos_id_is_501(int32_t cos_id) {
     return cos_id == 501;
 }
 
+const char* get_dev_ram_opdi_dir() {
+    return "dev_ram/opdi";
+}
+
+const uint32_t* get_opd_motion_ids() {
+    static const uint32_t opd_motion_ids[] = {
+        195, (uint32_t)-1, // CMN_MRA00_13_01
+    };
+
+    return opd_motion_ids;
+}
+
 const uint32_t* get_opd_motion_set_ids() {
     static const uint32_t opd_motion_set_ids[] = {
         51, 194, 797, (uint32_t)-1, // EDT, EDT2, EDTF1
@@ -2359,12 +2371,25 @@ OpdMakeManagerData* opd_make_manager_get_data() {
     return opd_make_manager->GetData();
 }
 
-static std::vector<int32_t> opd_make_start_get_motion_ids() {
+void opd_make_start() {
+    std::vector<std::string>& objects = opd_checker_get()->GetObjects();
+    std::vector<int32_t> motion_ids;
+    opd_make_start_get_motion_ids(motion_ids);
+
+    OpdMakeManagerArgs args;
+    args.modules = 0;
+    args.use_current_skp = false;
+    args.use_opdi = true;
+    args.motion_ids = &motion_ids;
+    args.objects = &objects;
+    opd_make_manager->add_task(args);
+}
+
+void opd_make_start_get_motion_ids(std::vector<int32_t>& motion_ids) {
     data_struct* aft_data = &data_list[DATA_AFT];
     motion_database* aft_mot_db = &aft_data->data_ft.mot_db;
 
     const uint32_t* opd_motion_set_ids = get_opd_motion_set_ids();
-    std::vector<int32_t> motion_ids;
     while (*opd_motion_set_ids != -1) {
         const motion_set_info* set_info = aft_mot_db->get_motion_set_by_id(*opd_motion_set_ids);
         if (!set_info) {
@@ -2380,20 +2405,6 @@ static std::vector<int32_t> opd_make_start_get_motion_ids() {
 
     motion_ids.push_back(195); // CMN_MRA00_13_01
     prj::sort_unique(motion_ids);
-    return motion_ids;
-}
-
-void opd_make_start() {
-    std::vector<std::string>& objects = opd_checker_get()->GetObjects();
-    std::vector<int32_t> motion_ids = opd_make_start_get_motion_ids();
-
-    OpdMakeManagerArgs args;
-    args.modules = 0;
-    args.use_current_skp = false;
-    args.use_opdi = true;
-    args.motion_ids = &motion_ids;
-    args.objects = &objects;
-    opd_make_manager->add_task(args);
 }
 
 void opd_make_stop() {
@@ -5132,11 +5143,13 @@ osage_init_data::~osage_init_data() {
 
 }
 
-OpdMakeManagerData::Chara::Chara() : mode(), progress() {
-    chara = CHARA_MAX;
+OpdMakeManagerData::Worker::Worker() {
+    mode = -1;
+    progress = -1;
+    chara = CHARA_NONE;
 }
 
-OpdMakeManagerData::Chara::~Chara() {
+OpdMakeManagerData::Worker::~Worker() {
 
 }
 
@@ -16777,7 +16790,32 @@ void opd_chara_data::encode_init_data(uint32_t motion_id) {
 }
 
 void opd_chara_data::fs_copy_file() {
+    rob_chara* rob_chr = rob_chara_array_get(chara_id);
+    if (!rob_chr)
+        return;
 
+    rob_chara_item_equip* rob_itm_equip = rob_chr->item_equip;
+
+    std::string tmp_dir = sprintf_s_string("%s/%d", get_dev_ram_opdi_dir(), rob_chr->chara_id);
+
+    for (int32_t i = 0; i < ITEM_OSAGE_COUNT; i++) {
+        rob_chara_item_equip_object* itm_eq_obj
+            = rob_itm_equip->get_item_equip_object((item_id)(ITEM_OSAGE_FIRST + i));
+        if (!itm_eq_obj->osage_nodes_count)
+            continue;
+        opdi[i].write_file();
+
+        const char* object_name = objset_info_storage_get_obj_name(itm_eq_obj->obj_info);
+        if (!object_name)
+            continue;
+
+        std::string tmp_path = sprintf_s_string("%s/%s.opdi", tmp_dir.c_str(), object_name);
+        std::string ram_path = sprintf_s_string("%s/%s.opdi", get_dev_ram_opdi_dir(), object_name);
+        path_fs_copy_file(tmp_path.c_str(), ram_path.c_str());
+        path_delete_file(tmp_path.c_str());
+    }
+
+    path_delete_directory(tmp_dir.c_str());
 }
 
 void opd_chara_data::init_data(uint32_t motion_id) {
@@ -17597,7 +17635,7 @@ void OpdMakeManager::CharaData::AddObjects(const std::vector<std::string>& custo
         chara_index chara_index = CHARA_MAX;
         int32_t item_no = 0;
         customize_item_table_handler_data_get_chara_item(i, chara_index, item_no);
-        if (chara_index < CHARA_MIKU || chara_index >= CHARA_MAX || !item_no)
+        if (chara_index >= CHARA_MAX || !item_no)
             continue;
 
         const item_table_item* item = item_table_handler_array_get_item(chara_index, item_no);
@@ -17621,43 +17659,53 @@ bool OpdMakeManager::CharaData::CheckNoItems(chara_index chara_index) {
 
 void OpdMakeManager::CharaData::PopItems(chara_index chara_index, int32_t items[ITEM_SUB_MAX]) {
     std::vector<uint32_t>* chara_items = chara_costumes[chara_index].items;
-    for (int32_t i = 0; i < ITEM_SUB_MAX; i++, chara_items++) {
+    for (int32_t i = 0; i < ITEM_SUB_MAX; i++) {
         items[i] = 0;
-        if (!chara_items->size())
+        if (!chara_items[i].size())
             continue;
 
-        items[i] = chara_items->back();
-        chara_items->pop_back();
+        items[i] = chara_items[i].back();
+        chara_items[i].pop_back();
         left--;
     }
 }
 
 void OpdMakeManager::CharaData::Reset() {
-    for (CharaCostume& i : chara_costumes)
-        for (std::vector<uint32_t>& j : i.items)
-            j.clear();
+    for (int32_t i = 0; i < CHARA_MAX; i++)
+        for (int32_t j = 0; j < ITEM_SUB_MAX; j++)
+            chara_costumes[i].items[j].clear();
 
     left = 0;
     count = 0;
 }
 
 void OpdMakeManager::CharaData::SortUnique() {
-    for (CharaCostume& i : chara_costumes)
-        for (std::vector<uint32_t>& j : i.items) {
-            prj::sort_unique(j);
-            count += (uint32_t)j.size();
+    for (int32_t i = 0; i < CHARA_MAX; i++)
+        for (int32_t j = 0; j < ITEM_SUB_MAX; j++) {
+            prj::sort_unique(chara_costumes[i].items[j]);
+            count += chara_costumes[i].items[j].size();
         }
 
     left = count;
 }
 
-OpdMakeManager::OpdMakeManager() : mode(), workers(), use_current_skp(), use_opdi() {
+OpdMakeManager::OpdMakeManager() : mode(), workers() {
     mode = 0;
     chara = CHARA_MIKU;
 
     int32_t chara_id = 0;
     for (OpdMakeWorker*& i : workers)
         i = new OpdMakeWorker(chara_id++);
+
+    motion_ids.clear();
+    data.workers.resize(4);
+    for (OpdMakeManagerData::Worker& i : data.workers) {
+        i.items.resize(ITEM_SUB_MAX);
+        for (uint32_t& j : i.items)
+            j = 0;
+    }
+    use_current_skp = false;
+    use_opdi = false;
 }
 
 OpdMakeManager::~OpdMakeManager() {
@@ -17669,10 +17717,10 @@ bool OpdMakeManager::init() {
 
     rctx_ptr->render_manager->set_pass_sw(rndr::RND_PASSID_3D, false);
 
-    if (path_check_directory_exists(get_ram_osage_play_data_dir()))
-        path_delete_directory(get_ram_osage_play_data_dir());
+    if (!path_check_directory_exists(get_ram_osage_play_data_dir()))
+        path_create_directory(get_ram_osage_play_data_dir());
 
-    path_create_directory(get_ram_osage_play_data_dir());
+    path_delete_directory(get_ram_osage_play_data_tmp_dir());
 
     if (use_current_skp || !app::TaskWork::check_task_ready(task_rob_manager)) {
         task_rob_manager_add_task();

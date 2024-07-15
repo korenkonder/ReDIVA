@@ -576,6 +576,108 @@ bool path_copy_file(const wchar_t* src, const wchar_t* dst) {
     return true;
 }
 
+int32_t path_compare_files(const char* path_1, const char* path_2) {
+    wchar_t* path_1_temp = utf8_to_utf16(path_1);
+    wchar_t* path_2_temp = utf8_to_utf16(path_2);
+
+    int32_t ret;
+    if (!path_check_path_exists(path_1_temp))
+        ret = -1;
+    else if (!path_check_path_exists(path_2_temp))
+        ret = 1;
+    else if (!path_check_file_exists(path_1_temp) || !path_check_file_exists(path_2_temp))
+        ret = -1;
+    else {
+        WIN32_FILE_ATTRIBUTE_DATA fad_1;
+        WIN32_FILE_ATTRIBUTE_DATA fad_2;
+        GetFileAttributesExW(path_1_temp, GetFileExInfoStandard, &fad_1);
+        GetFileAttributesExW(path_2_temp, GetFileExInfoStandard, &fad_2);
+
+        LARGE_INTEGER size_1;
+        size_1.HighPart = fad_1.nFileSizeHigh;
+        size_1.LowPart = fad_1.nFileSizeLow;
+
+        LARGE_INTEGER size_2;
+        size_2.HighPart = fad_2.nFileSizeHigh;
+        size_2.LowPart = fad_2.nFileSizeLow;
+
+        if (size_1.QuadPart == size_2.QuadPart) {
+            ret = 0;
+
+            std::ifstream ifs_1(path_1_temp, std::ios::in | std::ios::binary);
+            std::ifstream ifs_2(path_2_temp, std::ios::in | std::ios::binary);
+            while (ifs_1.good() && ifs_2.good()) {
+                char buf_1[0x200];
+                char buf_2[0x200];
+                ifs_1.read(buf_1, sizeof(buf_1));
+                ifs_2.read(buf_2, sizeof(buf_2));
+                if (ifs_1.gcount() != ifs_2.gcount()) {
+                    ret = -1;
+                    break;
+                }
+                else if (memcmp(buf_1, buf_2, ifs_1.gcount())) {
+                    ret = 1;
+                    break;
+                }
+            }
+        }
+        else
+            ret = 1;
+    }
+
+    free_def(path_1_temp);
+    free_def(path_2_temp);
+    return ret;
+}
+
+int32_t path_compare_files(const wchar_t* path_1, const wchar_t* path_2) {
+    int32_t ret;
+    if (!path_check_path_exists(path_1))
+        ret = -1;
+    else if (!path_check_path_exists(path_2))
+        ret = 1;
+    else if (!path_check_file_exists(path_1) || !path_check_file_exists(path_2))
+        ret = -1;
+    else {
+        WIN32_FILE_ATTRIBUTE_DATA fad_1;
+        WIN32_FILE_ATTRIBUTE_DATA fad_2;
+        GetFileAttributesExW(path_1, GetFileExInfoStandard, &fad_1);
+        GetFileAttributesExW(path_2, GetFileExInfoStandard, &fad_2);
+
+        LARGE_INTEGER size_1;
+        size_1.HighPart = fad_1.nFileSizeHigh;
+        size_1.LowPart = fad_1.nFileSizeLow;
+
+        LARGE_INTEGER size_2;
+        size_2.HighPart = fad_2.nFileSizeHigh;
+        size_2.LowPart = fad_2.nFileSizeLow;
+
+        if (size_1.QuadPart == size_2.QuadPart) {
+            ret = 0;
+
+            std::ifstream ifs_1(path_1, std::ios::in | std::ios::binary);
+            std::ifstream ifs_2(path_2, std::ios::in | std::ios::binary);
+            while (ifs_1.good() && ifs_2.good()) {
+                char buf_1[0x200];
+                char buf_2[0x200];
+                ifs_1.read(buf_1, sizeof(buf_1));
+                ifs_2.read(buf_2, sizeof(buf_2));
+                if (ifs_1.gcount() != ifs_2.gcount()) {
+                    ret = -1;
+                    break;
+                }
+                else if (memcmp(buf_1, buf_2, ifs_1.gcount())) {
+                    ret = 1;
+                    break;
+                }
+            }
+        }
+        else
+            ret = 1;
+    }
+    return ret;
+}
+
 bool path_fs_copy_file(const char* src, const char* dst) {
     std::string _dst(dst);
     _dst.append(".fs_copy_file.tmp");
