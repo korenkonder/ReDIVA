@@ -2447,8 +2447,8 @@ void osage_play_database_load() {
 
     for (const std::string& i : mdata_manager_get()->GetPrefixes()) {
         std::string path(get_rom_osage_play_data_dir());
-        path.append(i);
         path.append("/");
+        path.append(i);
         path.append("opd_db.txt");
 
         if (aft_data->check_file_exists(path.c_str()))
