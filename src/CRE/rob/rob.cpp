@@ -7925,17 +7925,17 @@ static uint32_t opd_encode(const float_t* src_data, size_t src_size, const float
     enc.find_range(0, src_size - 1, epsilon);
 
     size_t data_offset = 0;
-    opd_value_range* v33 = enc.vec.data();
+    opd_value_range* range_data = enc.vec.data();
     for (size_t i = 0; i < src_size; ) {
         size_t next_index = enc.get_next_index(i);
         if (next_index == src_size)
             break;
 
         if (next_index <= i + 1)
-            dst_data[data_offset++] = opd_data_encode_shift(v33[next_index].value, shift);
+            dst_data[data_offset++] = opd_data_encode_shift(range_data[next_index].value, shift);
         else {
-            dst_data[data_offset++] = (int16_t)((v33[next_index].count * 2) | 0x0001);
-            dst_data[data_offset++] = opd_data_encode_shift(v33[next_index].value, shift);
+            dst_data[data_offset++] = (int16_t)((range_data[next_index].count << 1) | 0x0001);
+            dst_data[data_offset++] = opd_data_encode_shift(range_data[next_index].value, shift);
         }
         i = next_index + 1;
     }
