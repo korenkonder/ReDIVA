@@ -7747,21 +7747,34 @@ static bool opd_decode_data(const void* data, float_t*& opd_decod_buf, osage_pla
     return false;
 }
 
+enum opd_value_range_flag : uint16_t {
+    OPD_VALUE_RANGE_START      = 0x001,
+    OPD_VALUE_RANGE_END        = 0x002,
+    OPD_VALUE_RANGE_DIFF_SAME  = 0x004,
+    OPD_VALUE_RANGE_DIFF_CHG   = 0x008,
+    OPD_VALUE_RANGE_NEG_TO_POS = 0x010,
+    OPD_VALUE_RANGE_POS_TO_NEG = 0x020,
+    OPD_VALUE_RANGE_DIFF_LOSS  = 0x040,
+    OPD_VALUE_RANGE_DIFF_GAIN  = 0x080,
+    OPD_VALUE_RANGE_KEY        = 0x100,
+
+    OPD_VALUE_RANGE_SIGN_CROSS = OPD_VALUE_RANGE_NEG_TO_POS | OPD_VALUE_RANGE_POS_TO_NEG,
+};
+
 struct opd_value_range {
     float_t value;
     float_t delta;
     uint16_t field_8;
     int16_t count;
     int32_t field_C;
-    uint8_t field_10;
-    uint8_t field_11;
+    opd_value_range_flag flags;
 
     inline opd_value_range() : value(), delta(),
-        field_8(), count(), field_C(), field_10(), field_11() {
+        field_8(), count(), field_C(), flags() {
     }
 
     inline opd_value_range(float_t value, int16_t count) : delta(),
-        field_8(), field_C(), field_10(), field_11() {
+        field_8(), field_C(), flags() {
         this->value = value;
         this->count = count;
     }
@@ -7783,56 +7796,56 @@ struct opd_encode_struct {
             if (end - start <= 1)
                 break;
 
-            float_t diff = 0.0f;
+            float_t max_diff = 0.0f;
             float_t start_value = vec.data()[start].value;
             float_t delta_value = vec.data()[end].value - start_value;
             int32_t start_count = vec.data()[start].count;
             float_t d = (float_t)vec.data()[end].count - vec.data()[start].count;
 
-            bool v16 = false;
-            size_t count = end - start;
-            size_t _count = end - start;
+            bool sign_cross = false;
+            const size_t count = end - start;
+            size_t new_count = end - start;
             opd_value_range* val = &vec.data()[start + 1];
-            for (size_t i = 1; i < _count; i++, val++) {
-                float_t _diff = fabsf((float_t)(val->count - start_count)
+            for (size_t i = 1; i < count; i++, val++) {
+                float_t diff = fabsf((float_t)(val->count - start_count)
                     * delta_value / d + start_value - val->value);
-                if (_diff > epsilon) {
-                    bool v24 = !!(val->field_10 & 0x30);
-                    if ((diff < _diff && (!v16 || v24)) || (!v16 && v24)) {
-                        diff = _diff;
-                        count = i;
-                        v16 = v24;
+                if (diff > epsilon) {
+                    bool _sign_cross = !!(val->flags & OPD_VALUE_RANGE_SIGN_CROSS);
+                    if ((max_diff < diff && (!sign_cross || _sign_cross)) || (!sign_cross && _sign_cross)) {
+                        max_diff = diff;
+                        new_count = i;
+                        sign_cross = _sign_cross;
                     }
                 }
             }
 
-            if (count == _count)
+            if (new_count == count)
                 break;
 
-            size_t _start = start + count;
-            if (count + 1 >= 4)
-                find_range(start, start + count, epsilon);
-            else if (start <= _start) {
+            size_t new_start = start + new_count;
+            if (new_count + 1 >= 4)
+                find_range(start, new_start, epsilon);
+            else if (start <= new_start) {
                 opd_value_range* val = &vec.data()[start];
-                for (size_t i = count + 1; i; i--, val++)
-                    val->field_11 |= 0x01;
+                for (size_t i = new_count + 1; i; i--, val++)
+                    enum_or(val->flags, OPD_VALUE_RANGE_KEY);
             }
 
-            if (end - _start + 1 < 4) {
-                opd_value_range* val = &vec.data()[_start];
-                for (size_t i = _start; i <= end; i++, val++)
-                    val->field_11 |= 0x01;
+            if (end - new_start + 1 < 4) {
+                opd_value_range* val = &vec.data()[new_start];
+                for (size_t i = new_start; i <= end; i++, val++)
+                    enum_or(val->flags, OPD_VALUE_RANGE_KEY);
                 return;
             }
-            start = _start;
+            start = new_start;
         }
 
         opd_value_range* val = &vec.data()[start];
         for (size_t i = start; i <= end; i++, val++)
             if (i == start || i == end)
-                val->field_11 |= 0x01;
+                enum_or(val->flags, OPD_VALUE_RANGE_KEY);
             else
-                val->field_11 &= ~0x01;
+                enum_and(val->flags, ~OPD_VALUE_RANGE_KEY);
     }
 
     size_t get_next_index(size_t index) {
@@ -7841,7 +7854,7 @@ struct opd_encode_struct {
             return count;
 
         opd_value_range* val = &vec.data()[index];
-        while (!(val->field_11 & 0x01)) {
+        while (!(val->flags & OPD_VALUE_RANGE_KEY)) {
             index++;
             val++;
             if (count <= index)
@@ -7851,7 +7864,7 @@ struct opd_encode_struct {
     }
 };
 
-static uint32_t opd_calculate_max_value_shift(float_t value) {
+static uint32_t opd_encode_calculate_value_shift(float_t value) {
     value = fabsf(value);
     float_t max_value = 16384.0f;
     uint32_t shift = 0;
@@ -7861,15 +7874,15 @@ static uint32_t opd_calculate_max_value_shift(float_t value) {
     return shift;
 }
 
-static uint32_t opd_encode_calculate_max_shift(const float_t* data, size_t size) {
+static uint32_t opd_encode_calculate_shift(const float_t* data, size_t size) {
     uint32_t max_shift = 24;
     for (size_t i = size, j = 0; i; i--, j++)
-        max_shift = min_def(max_shift, opd_calculate_max_value_shift(data[j]));
-    return (int16_t)max_shift;
+        max_shift = min_def(max_shift, opd_encode_calculate_value_shift(data[j]));
+    return max_shift;
 }
 
 static uint32_t opd_encode(const float_t* src_data, size_t src_size, const float_t epsilon, int16_t* dst_data, size_t& dst_size) {
-    const uint32_t shift = opd_encode_calculate_max_shift(src_data, src_size);
+    const uint32_t shift = opd_encode_calculate_shift(src_data, src_size);
     if (src_size < 4) {
         for (size_t i = src_size, j = 0; i; i--, j++)
             dst_data[j] = opd_data_encode_shift(src_data[j], shift);
@@ -7885,8 +7898,8 @@ static uint32_t opd_encode(const float_t* src_data, size_t src_size, const float
         opd_value_range val_range(value, (int16_t)j);
         if (!j) {
             val_range.delta = value;
-            val_range.field_10 = 0x01;
-            val_range.field_11 |= 0x01;
+            enum_or(val_range.flags, OPD_VALUE_RANGE_START);
+            enum_or(val_range.flags, OPD_VALUE_RANGE_KEY);
             enc.vec.push_back(val_range);
             continue;
         }
@@ -7895,29 +7908,29 @@ static uint32_t opd_encode(const float_t* src_data, size_t src_size, const float
         float_t delta = value - prev_val.value;
         val_range.delta = delta;
         if (j == src_size - 1) {
-            val_range.field_10 = 0x02;
-            val_range.field_11 |= 0x01;
+            enum_or(val_range.flags, OPD_VALUE_RANGE_END);
+            enum_or(val_range.flags, OPD_VALUE_RANGE_KEY);
         }
 
-        float_t prev_end_val = prev_val.delta;
-        if (fabs(delta - prev_end_val) > 0.000001f) {
-            if (delta > prev_end_val) {
-                if (j != 1 && delta >= 0.0f && prev_end_val <= 0.0f)
-                    prev_val.field_10 |= 0x20;
-                else if (prev_val.field_10 & 0x04)
-                    prev_val.field_10 |= 0x80;
+        float_t prev_delta = prev_val.delta;
+        if (fabs(delta - prev_delta) > 0.000001f) {
+            if (delta > prev_delta) {
+                if (j != 1 && delta >= 0.0f && prev_delta <= 0.0f)
+                    enum_or(prev_val.flags, OPD_VALUE_RANGE_POS_TO_NEG);
+                else if (prev_val.flags & OPD_VALUE_RANGE_DIFF_SAME)
+                    enum_or(prev_val.flags, OPD_VALUE_RANGE_DIFF_GAIN);
             }
-            if (delta < prev_end_val) {
-                if (j != 1 && delta <= 0.0f && prev_end_val >= 0.0f)
-                    prev_val.field_10 |= 0x10;
-                else if (prev_val.field_10 & 0x04)
-                    prev_val.field_10 |= 0x40;
+            else if (delta < prev_delta) {
+                if (j != 1 && delta <= 0.0f && prev_delta >= 0.0f)
+                    enum_or(prev_val.flags, OPD_VALUE_RANGE_NEG_TO_POS);
+                else if (prev_val.flags & OPD_VALUE_RANGE_DIFF_SAME)
+                    enum_or(prev_val.flags, OPD_VALUE_RANGE_DIFF_LOSS);
             }
         }
         else {
-            val_range.field_10 |= 0x04;
-            if (!(prev_val.field_10 & 0x04))
-                prev_val.field_10 |= 0x08;
+            enum_or(val_range.flags, OPD_VALUE_RANGE_DIFF_SAME);
+            if (!(prev_val.flags & OPD_VALUE_RANGE_DIFF_SAME))
+                enum_or(prev_val.flags, OPD_VALUE_RANGE_DIFF_CHG);
         }
         enc.vec.push_back(val_range);
     }
@@ -16673,6 +16686,8 @@ void opd_chara_data::encode_data() {
         uint8_t* data = (uint8_t*)malloc(max_size);
         if (!data)
             continue;
+
+        memset(data, 0, max_size);
 
         osage_play_data_header* opd_head = (osage_play_data_header*)data;
         opd_head->signature = 0;
