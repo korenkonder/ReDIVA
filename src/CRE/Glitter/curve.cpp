@@ -379,52 +379,66 @@ namespace Glitter {
             int32_t c = 0;
             size_t i;
             for (i = reverse_min_count - 1; i < left_count; i++) {
-                double_t t1_accum = 0.0;
-                double_t t2_accum = 0.0;
-                for (size_t j = 1; j < i - 1; j++) {
-                    vec2d t = vec2d(
-                        (double_t)((j + 0) * step),
-                        (double_t)((j + 1) * step)
-                    ) / (double_t)(i * step);
-                    vec2d t_1 = t - 1.0f;
+                bool constant = true;
+                for (size_t j = 1; j <= i; j++)
+                    if (memcmp(&a[0], &a[j], sizeof(double_t))
+                        || memcmp(&b[0], &b[j], sizeof(double_t))) {
+                        constant = false;
+                        break;
+                    }
 
-                    vec2d t1_t2 = (*(vec2d*)&a[j + 0] + *(vec2d*)&b[j + 0]) - (a[0] + b[0])
-                        - (t * 2.0 - 3.0) * (t * t) * ((a[0] + b[0]) - (a[i] + b[i]));
-                    t1_t2 /= t_1 * t;
-
-                    double_t t1 = -t1_t2.x * t.y + t1_t2.y * t.x;
-                    double_t t2 = t1_t2.x * t_1.y - t1_t2.y * t_1.x;
-
-                    t1_accum += t1;
-                    t2_accum += t2;
-                }
-                t1 = t1_accum / (double_t)(i - 2);
-                t2 = t2_accum / (double_t)(i - 2);
-
-                constant = true;
+                t1 = 0.0;
+                t2 = 0.0;
                 has_error = false;
                 has_error_lerp = false;
                 has_error_hermite = false;
-                for (size_t j = 1; j < i; j++) {
-                    double_t val = InterpolateHermite(a[0] + b[0], (a[i] + b[i]) - (a[0] + b[0]), t1, t2,
-                        0.0, (double_t)(i * step), (double_t)(j * step));
-                    double_t val_lerp = InterpolateLinear(a[0] + b[0], a[i] + b[i],
-                        0.0, (double_t)(i * step), (double_t)(j * step));
-                    if (fabs(val - (a[0] + b[j])) > reverse_bias[0]) {
-                        has_error = true;
-                        constant = false;
-                        if (fabs(val_lerp - (a[j] + b[j])) > reverse_bias[1]) {
-                            has_error_lerp = true;
-                            if (fabs(val - (a[j] + b[j])) > reverse_bias[2]) {
-                                has_error_hermite = true;
-                                break;
+
+                if (!constant) {
+                    double_t t1_accum = 0.0;
+                    double_t t2_accum = 0.0;
+                    for (size_t j = 1; j < i - 1; j++) {
+                        vec2d t = vec2d(
+                            (double_t)((j + 0) * step),
+                            (double_t)((j + 1) * step)
+                        ) / (double_t)(i * step);
+                        vec2d t_1 = t - 1.0f;
+
+                        vec2d t1_t2 = (*(vec2d*)&a[j + 0] + *(vec2d*)&b[j + 0]) - (a[0] + b[0])
+                            - (t * 2.0 - 3.0) * (t * t) * ((a[0] + b[0]) - (a[i] + b[i]));
+                        t1_t2 /= t_1 * t;
+
+                        double_t t1 = -t1_t2.x * t.y + t1_t2.y * t.x;
+                        double_t t2 = t1_t2.x * t_1.y - t1_t2.y * t_1.x;
+
+                        t1_accum += t1;
+                        t2_accum += t2;
+                    }
+                    t1 = t1_accum / (double_t)(i - 2);
+                    t2 = t2_accum / (double_t)(i - 2);
+
+                    has_error = false;
+                    has_error_lerp = false;
+                    has_error_hermite = false;
+                    for (size_t j = 1; j < i; j++) {
+                        double_t val = InterpolateHermite(a[0] + b[0], (a[i] + b[i]) - (a[0] + b[0]), t1, t2,
+                            0.0, (double_t)(i * step), (double_t)(j * step));
+                        double_t val_lerp = InterpolateLinear(a[0] + b[0], a[i] + b[i],
+                            0.0, (double_t)(i * step), (double_t)(j * step));
+                        if (fabs(val - (a[0] + b[j])) > reverse_bias[0]) {
+                            has_error = true;
+                            if (fabs(val_lerp - (a[j] + b[j])) > reverse_bias[1]) {
+                                has_error_lerp = true;
+                                if (fabs(val - (a[j] + b[j])) > reverse_bias[2]) {
+                                    has_error_hermite = true;
+                                    break;
+                                }
                             }
                         }
                     }
-                }
 
-                if (fabs(t1) > 0.5 || fabs(t2) > 0.5)
-                    has_error_hermite = true;
+                    if (fabs(t1) > 0.5 || fabs(t2) > 0.5)
+                        has_error_hermite = true;
+                }
 
                 if (!has_error_hermite) {
                     t1_prev = t1;

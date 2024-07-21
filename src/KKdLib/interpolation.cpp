@@ -214,51 +214,57 @@ int32_t interpolate_chs_reverse_sequence(
                     break;
                 }
 
-            if (!fast) {
-                double_t t1_accum = 0.0;
-                double_t t2_accum = 0.0;
-
-                size_t j = 1;
-                for (; j < i - 1 && j + 3 <= i - 1; j += 3) {
-                    float_t t1a = 0.0f;
-                    float_t t2a = 0.0f;
-                    float_t t1b = 0.0f;
-                    float_t t2b = 0.0f;
-                    float_t t1c = 0.0f;
-                    float_t t2c = 0.0f;
-                    interpolate_chs_reverse_value(a, left_count, t1a, t2a, t1b, t2b, t1c, t2c, 0, i, j);
-                    t1_accum += t1a;
-                    t2_accum += t2a;
-                    t1_accum += t1b;
-                    t2_accum += t2b;
-                    t1_accum += t1c;
-                    t2_accum += t2c;
-                }
-
-                for (; j < i - 1; j++) {
-                    float_t t1 = 0.0f;
-                    float_t t2 = 0.0f;
-                    interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
-                    t1_accum += t1;
-                    t2_accum += t2;
-                }
-                t1 = (float_t)(t1_accum / (double_t)(i - 2));
-                t2 = (float_t)(t2_accum / (double_t)(i - 2));
-            }
-            else
-                interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, 1);
-
+            t1 = 0.0f;
+            t2 = 0.0f;
             has_error = false;
-            for (size_t j = 1; j < i; j++) {
-                float_t val = interpolate_chs_value(a[0], a[i], t1, t2, 0.0f, (float_t)i, (float_t)j);
-                if (fabsf(val - a[j]) > reverse_bias) {
-                    has_error = true;
-                    break;
-                }
-            }
 
-            if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
-                has_error = true;
+            if (!constant) {
+                if (!fast) {
+                    double_t t1_accum = 0.0;
+                    double_t t2_accum = 0.0;
+
+                    size_t j = 1;
+                    for (; j < i - 1 && j + 3 <= i - 1; j += 3) {
+                        float_t t1a = 0.0f;
+                        float_t t2a = 0.0f;
+                        float_t t1b = 0.0f;
+                        float_t t2b = 0.0f;
+                        float_t t1c = 0.0f;
+                        float_t t2c = 0.0f;
+                        interpolate_chs_reverse_value(a, left_count, t1a, t2a, t1b, t2b, t1c, t2c, 0, i, j);
+                        t1_accum += t1a;
+                        t2_accum += t2a;
+                        t1_accum += t1b;
+                        t2_accum += t2b;
+                        t1_accum += t1c;
+                        t2_accum += t2c;
+                    }
+
+                    for (; j < i - 1; j++) {
+                        float_t t1 = 0.0f;
+                        float_t t2 = 0.0f;
+                        interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, j);
+                        t1_accum += t1;
+                        t2_accum += t2;
+                    }
+                    t1 = (float_t)(t1_accum / (double_t)(i - 2));
+                    t2 = (float_t)(t2_accum / (double_t)(i - 2));
+                }
+                else
+                    interpolate_chs_reverse_value(a, left_count, t1, t2, 0, i, 1);
+
+                has_error = false;
+                for (size_t j = 1; j < i; j++) {
+                    float_t val = interpolate_chs_value(a[0], a[i], t1, t2, 0.0f, (float_t)i, (float_t)j);
+                    if (fabsf(val - a[j]) > reverse_bias) {
+                        has_error = true;
+                        break;
+                    }
+                }
+
+                if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
+                    has_error = true;
+            }
 
             if (!has_error) {
                 i_prev = i;

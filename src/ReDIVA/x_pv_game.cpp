@@ -9565,63 +9565,6 @@ static int x_pv_game_auth_3d_hrc_obj_bone_compare_func(void const* src1, void co
     return bone1->dst_name.compare(bone2->dst_name);
 }
 
-static void auth_3d_key_rev(auth_3d_key& k, std::vector<float_t>& values_src) {
-    std::vector<kft3> values;
-    int32_t type = interpolate_chs_reverse_sequence(values_src, values);
-
-    k = {};
-    switch (type) {
-    case A3DA_KEY_NONE:
-        k.type = AUTH_3D_KEY_NONE;
-        k.value = 0.0f;
-        return;
-    case A3DA_KEY_STATIC:
-        k.type = values[0].value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
-        k.value = values[0].value;
-        return;
-    case A3DA_KEY_LINEAR:
-        k.type = AUTH_3D_KEY_LINEAR;
-        break;
-    case A3DA_KEY_HERMITE:
-    default:
-        k.type = AUTH_3D_KEY_HERMITE;
-        break;
-    case A3DA_KEY_HOLD:
-        k.type = AUTH_3D_KEY_HOLD;
-        break;
-    }
-
-    k.max_frame = (float_t)(values_src.size() + 1);
-    k.frame_delta = k.max_frame;
-    k.value_delta = 0.0f;
-
-    size_t length = values.size();
-    if (length > 1) {
-        k.keys_vec.assign(values.begin(), values.end());
-        k.length = length;
-        k.keys = k.keys_vec.data();
-
-        kft3* first_key = &k.keys[0];
-        kft3* last_key = &k.keys[length - 1];
-        if (first_key->frame < last_key->frame
-            && last_key->frame > 0.0f && k.max_frame > first_key->frame) {
-            k.ep_type_pre = AUTH_3D_EP_NONE;
-            k.ep_type_post = AUTH_3D_EP_NONE;
-            k.frame_delta = last_key->frame - first_key->frame;
-            k.value_delta = last_key->value - first_key->value;
-        }
-    }
-    else if (length == 1) {
-        float_t value = values.front().value;
-        k.type = value != 0.0f ? AUTH_3D_KEY_STATIC : AUTH_3D_KEY_NONE;
-        k.value = value;
-    }
-    else {
-        k.type = AUTH_3D_KEY_NONE;
-        k.value = 0.0f;
-    }
-}
-
 #if BAKE_X_PACK
 static void x_pv_game_update_object_set(ObjsetInfo* info) {
     prj::shared_ptr<prj::stack_allocator> old_alloc = info->alloc_handler;
