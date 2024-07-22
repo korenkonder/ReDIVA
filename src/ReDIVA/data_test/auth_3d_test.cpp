@@ -280,6 +280,7 @@ public:
 
     void Hide() override;
 
+    void ResetData();
     void SetAuth3dCategoryIndex(size_t index);
     void SetAuth3dIndex(size_t index);
     void SetMaxFrame(float_t max_frame);
@@ -1427,6 +1428,12 @@ void Auth3dTestWindow::Hide() {
     rob_window->Hide();
 }
 
+void Auth3dTestWindow::ResetData() {
+    frame_slider->SetParams(0.0f, 0.0f, 100.0f, 10.0f, 1.0f, 10.0f);
+    category_list->SetItemIndex(-1);
+    id_list->SetItemIndex(-1);
+}
+
 void Auth3dTestWindow::SetAuth3dCategoryIndex(size_t index) {
     id_list->ClearItems();
     category_list->SetItemIndex(index);
@@ -1562,7 +1569,7 @@ static void auth_3d_test_window_init() {
         auth_3d_test_window = test_window;
     }
     else {
-        auth_3d_test_window->Reset();
+        auth_3d_test_window->ResetData();
         auth_3d_test_window->Disp();
         auth_3d_test_window->sub_window->Disp();
         auth_3d_test_window->rob_window->Disp();
