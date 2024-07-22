@@ -7344,10 +7344,10 @@ static void mothead_func_78(mothead_func_data* func_data,
     v7->field_48 = v11;
 }
 
-static void rob_chara_set_coli_ring(rob_chara* rob_chr, int32_t index) {
+static void rob_chara_set_coli_ring(rob_chara* rob_chr, int32_t mhd_id) {
     osage_ring_data ring;
-    if (index >= 0)
-        stage_param_data_coli_data_get_mhd_id_data(index, &ring);
+    if (mhd_id >= 0)
+        stage_param_data_coli_data_get_mhd_id_data(mhd_id, &ring);
     else {
         int32_t stage_index = task_stage_get_current_stage_index();
         if (stage_index != -1)
