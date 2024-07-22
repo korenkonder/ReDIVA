@@ -47,7 +47,6 @@ DataTestSel::~DataTestSel() {
 
 bool DataTestSel::init() {
     selected_index = -1;
-    item_index = 0;
     return true;
 }
 
