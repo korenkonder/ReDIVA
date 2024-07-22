@@ -4,13 +4,11 @@
 */
 
 #include "render_context.hpp"
+#include "app_system_detail.hpp"
 #include "shader_ft.hpp"
 #include "sound.hpp"
 #include "sprite.hpp"
 #include "task.hpp"
-
-float_t delta_frame_history = 0;
-int32_t delta_frame_history_int = 0;
 
 extern float_t rob_frame;
 extern render_context* rctx_ptr;
@@ -666,28 +664,20 @@ render_context::~render_context() {
 }
 
 void render_context::ctrl() {
-    if (!get_pause()) {
-        delta_frame_history += get_delta_frame();
-        float_t mod;
-        delta_frame_history = modff(delta_frame_history, &mod);
-        delta_frame_history_int = (int32_t)mod;
-        if (delta_frame_history < 0.001f)
-            delta_frame_history = 0.0f;
-        else if (1.0f - delta_frame_history < 0.001f)
-            delta_frame_history_int++;
-    }
-
     rctx_ptr = this;
+    start_frame_process();
 
     extern bool game_state_get_pause();
     if (!get_pause() || !game_state_get_pause())
         app::TaskWork::ctrl();
     sound_ctrl();
     file_handler_storage_ctrl();
+    finish_calc_process();
 }
 
 void render_context::disp() {
     rctx_ptr = this;
+    start_render_process();
     disp_manager->refresh();
     draw_state->stats_prev = draw_state->stats;
     draw_state->stats.reset();
@@ -708,6 +698,7 @@ void render_context::disp() {
     render_manager->field_31C = false;
     if (!get_pause())
         app::TaskWork::basic();
+    finish_render_process();
 }
 
 void render_context::free() {

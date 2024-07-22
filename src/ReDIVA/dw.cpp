@@ -4,6 +4,7 @@
 */
 
 #include "dw.hpp"
+#include "../CRE/app_system_detail.hpp"
 #include "../CRE/data.hpp"
 #include "input_state.hpp"
 #include "print_work.hpp"
@@ -163,10 +164,6 @@ namespace dw_gui_detail {
 }
 
 dw_gui_detail::Display* dw_gui_detail_display;
-
-int32_t dword_140EDA6B8;
-
-extern bool input_locked;
 
 static bool dw_gui_get_ctrl();
 static bool dw_gui_get_disp();
@@ -3120,17 +3117,6 @@ void dw_gui_ctrl_disp() {
     if (dw_gui_get_disp())
         dw_gui_detail_display->Draw();
 };
-
-int32_t sub_140192D00() {
-    //return dword_140EDA6B8;
-    return 1;
-}
-
-void sub_140194880(int32_t a1) {
-    if (a1 > 2)
-        a1 = 0;
-    dword_140EDA6B8 = a1;
-}
 
 PrintWorkDebug::PrintWorkDebug() {
     prio = spr::SPR_PRIO_29;

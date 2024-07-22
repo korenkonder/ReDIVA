@@ -31,7 +31,6 @@ struct timer {
     double_t get_freq();
     void set_freq(double_t freq);
     double_t get_freq_hist();
-    double_t get_freq_ratio();
     void reset();
     void sleep(double_t msec);
 };

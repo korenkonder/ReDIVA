@@ -9,6 +9,7 @@
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/skin_param.hpp"
+#include "../CRE/app_system_detail.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/effect.hpp"
 #include "../CRE/item_table.hpp"
@@ -2623,7 +2624,7 @@ void x_pv_game_title::unload_data() {
 
 x_pv_game_pv_data::x_pv_game_pv_data() : pv_game(), dsc_data_ptr(), dsc_data_ptr_end(),
 play(), chara_id(), dsc_time(), pv_end(), playdata(), scene_rot_y(), branch_mode() {
-    target_anim_fps = 60.0f;
+    measured_fps = 60.0f;
     anim_frame_speed = 1.0f;
     scene_rot_mat = mat4_identity;
 
@@ -4123,11 +4124,11 @@ void x_pv_game_pv_data::find_stage_effects(prj::vector_pair<int64_t, int32_t>& s
 
 void x_pv_game_pv_data::init(class x_pv_game* pv_game, bool music_play) {
     this->pv_game = pv_game;
-    target_anim_fps = 60.0f;
+    measured_fps = 60.0f;
     anim_frame_speed = 1.0f;
     scene_rot_mat = mat4_identity;
 
-    target_anim_fps = get_target_anim_fps();
+    measured_fps = get_measured_fps();
     anim_frame_speed = get_anim_frame_speed();
 
     pv_expression_array_reset();
@@ -7409,8 +7410,7 @@ bool x_pv_game::ctrl() {
         Glitter::glt_particle_manager->SetPause(false);
         get_data().bar_beat.reset_time();
 
-        extern float_t frame_speed;
-        frame_speed = 1.0f;
+        set_next_frame_speed(1.0f);
 
         pause = false;
         step_frame = false;
@@ -7848,8 +7848,8 @@ bool x_pv_game::dest() {
     task_rob_manager_del_task();
 
     Glitter::glt_particle_manager->SetPause(false);
-    extern float_t frame_speed;
-    frame_speed = 1.0f;
+
+    set_next_frame_speed(1.0f);
 
     extern bool close;
     //close = true;
@@ -7912,8 +7912,8 @@ void x_pv_game::basic() {
         }
 
     Glitter::glt_particle_manager->SetPause(pause);
-    extern float_t frame_speed;
-    frame_speed = pause ? 0.0f : 1.0f;
+
+    set_next_frame_speed(pause ? 0.0f : 1.0f);
 
 #if BAKE_PV826
     for (auto& i : effchrpv_auth_3d_rob_mot_ids) {

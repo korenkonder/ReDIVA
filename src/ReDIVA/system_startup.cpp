@@ -4,6 +4,7 @@
 */
 
 #include "system_startup.hpp"
+#include "../CRE/app_system_detail.hpp"
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/mdata_manager.hpp"
 #include "../CRE/sprite.hpp"
@@ -246,7 +247,7 @@ namespace system_startup_detail {
             break;
         case 1: {
             system_startup->print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, "DHCP WAIT ");
-            std::string buf = system_startup_get_wait(8, get_frame_counter() / 15);
+            std::string buf = system_startup_get_wait(8, get_main_timer() / 15);
             system_startup->print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, buf.data(), buf.size());
             system_startup->print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_LEFT, "\n");
 

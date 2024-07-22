@@ -4,11 +4,11 @@
 */
 
 #include "frame_speed.hpp"
+#include "../../../CRE/app_system_detail.hpp"
 #include "../../imgui_helper.hpp"
 
 extern int32_t width;
 extern int32_t height;
-extern float_t frame_speed;
 
 static const char* information_frame_speed_window_title = "FrameSpeedWindow##Information";
 
@@ -44,8 +44,10 @@ void information_frame_speed_imgui(class_data* data) {
         return;
     }
 
+    float_t frame_speed = get_frame_speed();
     ImGui::GetContentRegionAvailSetNextItemWidth();
     ImGui::ColumnSliderFloatButton("frame speed", &frame_speed, 0.01f, 0.0f, 3.0f, 0.1f, "%.2f", 0);
+    set_next_frame_speed(frame_speed);
 
     data->imgui_focus |= ImGui::IsWindowFocused();
     ImGui::End();

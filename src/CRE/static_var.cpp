@@ -4,9 +4,6 @@
 */
 
 #include "static_var.hpp"
-#include "../KKdLib/timer.hpp"
-
-extern timer* render_timer;
 
 int32_t sv_max_texture_buffer_size = 0x100000;
 int32_t sv_max_texture_size = 2048;
@@ -15,16 +12,6 @@ int32_t sv_max_texture_max_anisotropy = 1;
 bool sv_anisotropy_changed = false;
 int32_t sv_old_anisotropy = 1;
 int32_t sv_anisotropy = 1;
-
-bool pause = false;
-
-size_t frame_counter = 0;
-
-bool select_frame_speed = false;
-float_t frame_speed = 1.0f;
-float_t target_anim_fps = 60.0f;
-float_t target_fps = 60.0f;
-float_t current_fps = 60.0f;
 
 int32_t uniform_value[U_MAX];
 
@@ -49,30 +36,6 @@ void sv_anisotropy_set(int32_t value) {
     if (sv_anisotropy != sv_old_anisotropy)
         sv_anisotropy_changed = true;
     sv_old_anisotropy = sv_anisotropy;
-}
-
-float_t get_anim_frame_speed() {
-    return 60.0f / target_anim_fps;
-}
-
-float_t get_delta_frame() {
-    if (!select_frame_speed)
-        return frame_speed;
-
-    double_t freq_ratio = render_timer->get_freq_ratio();
-    return (float_t)(freq_ratio * frame_speed);
-}
-
-uint32_t get_frame_counter() {
-    return (uint32_t)frame_counter;
-}
-
-bool get_pause() {
-    return pause;
-}
-
-float_t get_target_anim_fps() {
-    return target_anim_fps;
 }
 
 void uniform_value_reset() {

@@ -5,7 +5,6 @@
 
 #include "render_settings.hpp"
 #include "../../../CRE/lock.hpp"
-#include "../../../CRE/static_var.hpp"
 #include "../../../KKdLib/timer.hpp"
 #include "../../app.hpp"
 #include "../../imgui_helper.hpp"

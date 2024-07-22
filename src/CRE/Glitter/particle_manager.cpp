@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../app_system_detail.hpp"
 #include "../render_context.hpp"
 
 extern render_context* rctx_ptr;

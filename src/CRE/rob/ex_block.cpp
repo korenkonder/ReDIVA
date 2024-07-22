@@ -6,6 +6,7 @@
 #include "rob.hpp"
 #include "../../KKdLib/key_val.hpp"
 #include "../../KKdLib/str_utils.hpp"
+#include "../app_system_detail.hpp"
 #include "../data.hpp"
 #include "skin_param.hpp"
 

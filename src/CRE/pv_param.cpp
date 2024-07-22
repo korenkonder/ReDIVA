@@ -4,10 +4,11 @@
 */
 
 #include "pv_param.hpp"
-#include "render.hpp"
-#include "render_context.hpp"
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/str_utils.hpp"
+#include "app_system_detail.hpp"
+#include "render.hpp"
+#include "render_context.hpp"
 
 extern render_context* rctx_ptr;
 

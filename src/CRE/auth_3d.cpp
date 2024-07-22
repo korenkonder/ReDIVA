@@ -14,6 +14,7 @@
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "rob/rob.hpp"
+#include "app_system_detail.hpp"
 #include "clear_color.hpp"
 #include "data.hpp"
 #include "effect.hpp"

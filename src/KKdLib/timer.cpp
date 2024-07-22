@@ -84,20 +84,6 @@ double_t timer::get_freq_hist() {
     return freq_hist;
 }
 
-double_t timer::get_freq_ratio() {
-    double_t freq_ratio = 0.0;
-    {
-        std::unique_lock<std::mutex> u_lock(freq_mtx);
-        freq_ratio = freq;
-    }
-
-    {
-        std::unique_lock<std::mutex> u_lock(freq_hist_mtx);
-        freq_ratio /= freq_hist;
-    }
-    return freq_ratio;
-}
-
 void timer::reset() {
     if (!QueryPerformanceCounter(&curr_time))
         curr_time.QuadPart = 0;

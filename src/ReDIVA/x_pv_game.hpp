@@ -566,7 +566,7 @@ struct x_pv_game_pv_data {
     std::vector<pv_data_set_motion> set_motion[ROB_CHARA_COUNT];
     int32_t chara_id;
     class x_pv_game* pv_game;
-    float_t target_anim_fps;
+    float_t measured_fps;
     float_t anim_frame_speed;
     int64_t dsc_time;
     bool pv_end;

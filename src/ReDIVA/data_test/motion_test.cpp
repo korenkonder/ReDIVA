@@ -7,6 +7,7 @@
 #include "../../KKdLib/prj/algorithm.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
+#include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/render_context.hpp"

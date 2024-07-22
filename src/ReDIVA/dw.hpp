@@ -878,6 +878,3 @@ extern void dw_init(dw::init_data& init_data);
 extern void dw_free();
 
 extern void dw_gui_ctrl_disp();
-
-extern int32_t sub_140192D00();
-extern void sub_140194880(int32_t a1);

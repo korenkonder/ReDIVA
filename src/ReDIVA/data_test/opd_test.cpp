@@ -4,6 +4,7 @@
 */
 
 #include "opd_test.hpp"
+#include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/module_table.hpp"
 #include "../../KKdLib/io/path.hpp"
@@ -155,7 +156,7 @@ void TaskDataTestOpd::disp() {
     print_work.text_current_loc = 10.0f;
     print_work.SetResolutionMode(RESOLUTION_MODE_MAX);
     print_work.printf_align_left("OSAGE PLAY DATA MAKE MODE \n");
-    print_work.printf_align_left("%s\n", cursor_array[get_frame_counter() % 3]);
+    print_work.printf_align_left("%s\n", cursor_array[get_main_timer() % 3]);
     print_work.printf_align_left("STATUS: ");
 
     switch (state) {

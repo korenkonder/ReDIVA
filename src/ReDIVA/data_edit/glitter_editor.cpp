@@ -14,6 +14,7 @@
 #include "../../KKdLib/txp.hpp"
 #include "../../KKdLib/vec.hpp"
 #include "../../CRE/Glitter/glitter.hpp"
+#include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/camera.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/gl_state.hpp"

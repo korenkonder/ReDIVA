@@ -8,6 +8,7 @@
 #include "../../CRE/Glitter/glitter.hpp"
 #include "../../CRE/rob/motion.hpp"
 #include "../../CRE/rob/skin_param.hpp"
+#include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/customize_item_table.hpp"
 #include "../../CRE/effect.hpp"
 #include "../../CRE/hand_item.hpp"
@@ -1799,7 +1800,7 @@ void pv_game::edit_effect_ctrl(float_t delta_time) {
     float_t end_frame = data.edit_effect.data.end_frame;
     float_t frame = 0.0f;
     if (end_frame > 0.0f) {
-        frame = get_target_anim_fps() * data.edit_effect.data.time;
+        frame = get_measured_fps() * data.edit_effect.data.time;
         if (data.edit_effect.data.loop)
             frame = fmodf(frame, end_frame + 1.0f);
         else if (frame > end_frame)
@@ -3712,7 +3713,7 @@ bool pv_game::load() {
         }
 
         float_t view_point_xz_pos_angle =
-            (float_t)(36 * get_frame_counter() % 360) * DEG_TO_RAD_FLOAT;
+            (float_t)(36 * get_main_timer() % 360) * DEG_TO_RAD_FLOAT;
         vec3 view_point;
         view_point.x = sinf(view_point_xz_pos_angle) * 40.0f;
         view_point.y = 0.0f;
@@ -5295,8 +5296,7 @@ bool TaskPvGame::dest() {
     if (!unload())
         return false;
 
-    extern float_t frame_speed;
-    frame_speed = 1.0f;
+    set_next_frame_speed(1.0f);
 
     //touch_util::touch_reaction_set_enable(true);
     return true;
@@ -5400,8 +5400,7 @@ void TaskPvGame::basic() {
     if (pause && !is_paused) {
         pv_game_time_pause();
 
-        extern float_t frame_speed;
-        frame_speed = 0.0f;
+        set_next_frame_speed(0.0f);
 
         is_paused = true;
     }
@@ -5409,8 +5408,7 @@ void TaskPvGame::basic() {
     if (!pause && is_paused) {
         pv_game_time_start();
 
-        extern float_t frame_speed;
-        frame_speed = 1.0f;
+        set_next_frame_speed(1.0f);
 
         is_paused = false;
     }

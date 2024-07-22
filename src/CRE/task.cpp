@@ -4,13 +4,8 @@
 */
 
 #include "task.hpp"
+#include "../CRE/app_system_detail.hpp"
 #include "../KKdLib/time.hpp"
-
-extern float_t get_delta_frame();
-extern uint32_t get_frame_counter();
-
-extern float_t delta_frame_history;
-extern int32_t delta_frame_history_int;
 
 namespace app {
     static void Task_add_base_calc_time(Task* t, uint32_t value);
@@ -225,7 +220,7 @@ namespace app {
             i = task_work->tasks.erase(i);
         }
 
-        int32_t frames = delta_frame_history_int;
+        int32_t frames = get_delta_frame_history_int();
         if (frames > 1)
             for (int32_t i = frames - 1; i; i--)
                 Task_do_ctrl_frames(frames, true);
@@ -375,16 +370,16 @@ namespace app {
 
     static void Task_set_calc_time(Task* t) {
         t->calc_time = t->base_calc_time;
-        uint32_t frame_counter = get_frame_counter();
-        if (frame_counter == (frame_counter / 300) * 300)
+        uint32_t main_timer = get_main_timer();
+        if (main_timer == (main_timer / 300) * 300)
             t->calc_time_max = 0;
         t->calc_time = max_def(t->calc_time, t->calc_time_max);
     }
 
     static void Task_set_disp_time(Task* t, uint32_t value) {
         t->disp_time = value;
-        uint32_t frame_counter = get_frame_counter();
-        if (frame_counter == (frame_counter / 300) * 300)
+        uint32_t main_timer = get_main_timer();
+        if (main_timer == (main_timer / 300) * 300)
             t->disp_time_max = 0;
         t->disp_time = max_def(t->disp_time, t->disp_time_max);
     }

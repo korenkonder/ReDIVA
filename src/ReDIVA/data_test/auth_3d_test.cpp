@@ -5,6 +5,7 @@
 
 #include "auth_3d_test.hpp"
 #include "../../CRE/rob/rob.hpp"
+#include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/clear_color.hpp"
 #include "../../CRE/data.hpp"
 #include "../../CRE/effect.hpp"
@@ -311,6 +312,7 @@ static SelectionButtonBool selection_button_bool;
 static bool snap_shot;
 
 static void auth_3d_test_window_init();
+static const char* get_dev_ram_ss_dir();
 
 Auth3dTestTask::Auth3dTestTask::Window::Window() {
     stage_link_change = true;
@@ -439,6 +441,31 @@ bool Auth3dTestTask::ctrl() {
         mat4_translate(&trans_value, &mat);
         mat4_mul_rotate_y(&mat, rot_y_value * DEG_TO_RAD_FLOAT, &mat);
         auth_3d_id.set_mat(mat);
+
+        if (!snap_shot_state && ::snap_shot && snap_shot)
+            snap_shot_state = 1;
+
+        if (snap_shot_state == 2) {
+            snap_shot = false;
+            sub_140194880(2);
+            snap_shot_state = 0;
+        }
+
+        if (snap_shot_state == 1) {
+            data_struct* aft_data = &data_list[DATA_AFT];
+            auth_3d_database* aft_auth_3d_db = &aft_data->data_ft.auth_3d_db;
+
+            const char* name = auth_3d_data_get_uid_name(auth_3d_id.get_uid(), aft_auth_3d_db);
+
+            std::string path(get_dev_ram_ss_dir());
+            path.append("/");
+            path.append(name);
+
+            //screen_shot_impl_ptr->capture_window_frame(path, auth_3d_id.get_frame());
+
+            if (auth_3d_id.get_ended())
+                snap_shot_state = 2;
+        }
     }
 
     sub_140244610();
@@ -1574,4 +1601,8 @@ static void auth_3d_test_window_init() {
         auth_3d_test_window->sub_window->Disp();
         auth_3d_test_window->rob_window->Disp();
     }
+}
+
+static const char* get_dev_ram_ss_dir() {
+    return "dev_ram/ss";
 }

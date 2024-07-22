@@ -5,6 +5,7 @@
 
 #include "wind.hpp"
 #include "../rob/rob.hpp"
+#include "../app_system_detail.hpp"
 
 static float_t wind_apply_spc(wind* w, float_t frame);
 static void wind_ctrl(wind* w);

@@ -285,9 +285,6 @@ namespace Input {
         speed *= frame_speed;
         speed_fast *= frame_speed;
         speed_slow *= frame_speed;
-        speed *= freq / freq_hist;
-        speed_fast *= freq / freq_hist;
-        speed_slow *= freq / freq_hist;
         speed *= 10.0;
         speed_fast *= 10.0;
         speed_slow *= 10.0;

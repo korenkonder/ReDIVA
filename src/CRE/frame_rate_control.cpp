@@ -4,7 +4,7 @@
 */
 
 #include "frame_rate_control.hpp"
-#include "static_var.hpp"
+#include "app_system_detail.hpp"
 
 SysFrameRate sys_frame_rate;
 

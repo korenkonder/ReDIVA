@@ -6,6 +6,7 @@
 #include "data_initialize.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/auth_2d.hpp"
+#include "../CRE/app_system_detail.hpp"
 #include "../CRE/customize_item_table.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/font.hpp"
@@ -69,11 +70,11 @@ bool TaskDataInit::ctrl() {
             state = field_6C ? 2 : 4;
         break;
     case 2:
-        //sub_140194800(10);
+        measure_fps_init(10);
         state = 3;
         break;
     case 3:
-        //if (sub_1401935C0()) // Measure FPS
+        if (measure_fps_check_state())
             state = 4;
         break;
     case 4: {

@@ -5,6 +5,7 @@
 
 #include "pv_game_pv_data.hpp"
 #include "../../CRE/rob/motion.hpp"
+#include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
 #include "../information/dw_console.hpp"
@@ -320,7 +321,7 @@ scene_rot_y(), field_2C550(), branch_mode(), last_challenge_note(), field_2C560(
     fov = 32.2673416137695f;
     min_dist = 0.05f;
     target_flying_time = -1.0f;
-    target_anim_fps = 60.0f;
+    measured_fps = 60.0f;
     anim_frame_speed = 1.0f;
     time_signature = -1;
     scene_rot_mat = mat4_identity;
@@ -1145,7 +1146,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             /*if (!has_perf_id) {
                 int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
                 float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
-                rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, target_anim_fps * 0.1,
+                rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, measured_fps * 0.1,
                     0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
             }*/
         }
@@ -1240,7 +1241,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             break;
 
         int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
-        blend_duration *= target_anim_fps;
+        blend_duration *= measured_fps;
 
         float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
         rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, blend_duration,
@@ -1374,14 +1375,14 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             v13 = 0;
             float_t v363 = motion_storage_get_mot_data_frame_count(rob_chr->
                 get_rob_cmn_mottbl_motion_id(mottbl_index), aft_mot_db) - 1.0f;
-            step = v533 > 0.0f ? v363 / target_anim_fps * v533 : 1.0f;
+            step = v533 > 0.0f ? v363 / measured_fps * v533 : 1.0f;
         } break;
         case 3: {
             state = 4;
             v13 = 0;
             float_t v363 = motion_storage_get_mot_data_frame_count(rob_chr->
                 get_rob_cmn_mottbl_motion_id(mottbl_index), aft_mot_db) - 1.0f;
-            step = v533 > 0.0f ? v363 / target_anim_fps * v533 : 1.0f;
+            step = v533 > 0.0f ? v363 / measured_fps * v533 : 1.0f;
         } break;
         }
 
@@ -2365,7 +2366,7 @@ void pv_game_pv_data::init(::pv_game* pv_game, bool music_play) {
     this->pv_game = pv_game;
     //field_2BF80 = sub_14013C8F0();
     music = pv_game_music_get();
-    target_anim_fps = get_target_anim_fps();
+    measured_fps = get_measured_fps();
     anim_frame_speed = get_anim_frame_speed();
 
     pv_expression_array_reset();

@@ -11,6 +11,7 @@
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/rob/motion.hpp"
 #include "../CRE/rob/skin_param.hpp"
+#include "../CRE/app_system_detail.hpp"
 #include "../CRE/auth_2d.hpp"
 #include "../CRE/auth_3d.hpp"
 #include "../CRE/camera.hpp"
@@ -233,7 +234,6 @@ GLFWwindow* window;
 ImGuiContext* imgui_context;
 lock_cs* imgui_context_lock;
 bool global_context_menu;
-extern size_t frame_counter;
 render_context* rctx_ptr;
 bool task_stage_is_modern;
 
@@ -310,8 +310,6 @@ int32_t app_main(const app_init_struct& ais) {
             rctx = render_context_load();
             lock_unlock(render_lock);
 
-            frame_counter = 0;
-
 #if !(BAKE_PNG || BAKE_VIDEO)
             glfwGetFramebufferSize(window, &width, &height);
 #endif
@@ -352,6 +350,10 @@ int32_t app_get_render_scale_index() {
 
 void app_set_render_scale_index(int32_t index) {
     scale_index = index >= 0 && index < RENDER_SCALE_MAX ? index : RENDER_SCALE_100;
+}
+
+void app_swap_buffers() {
+    glfwSwapBuffers(window);
 }
 
 float_t rob_frame = 0.0f;
@@ -547,11 +549,10 @@ static void app_main_loop(render_context* rctx) {
         render_context_disp(rctx);
 
         close |= !!glfwWindowShouldClose(window);
-        frame_counter++;
 
         Input::EndFrame();
 
-        glfwSwapBuffers(window);
+        app_swap_buffers();
         render_timer->end_of_cycle();
     }
 }
@@ -564,6 +565,11 @@ static void app_free() {
 }
 
 static render_context* render_context_load() {
+    system_work_init(13);
+
+    // Enable the dw_gui widgets
+    sub_140194880(1);
+
     data_struct_init();
     data_struct_load("ReDIVA_data.txt");
     data_struct_load_db();

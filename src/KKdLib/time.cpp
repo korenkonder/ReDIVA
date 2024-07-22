@@ -14,16 +14,38 @@ time_struct::time_struct() : timestamp() {
 
 double_t time_struct::calc_time() {
     LARGE_INTEGER timestamp;
-    if (QueryPerformanceCounter(&timestamp))
-        return (double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq;
-    return 0.0;
+    if (!QueryPerformanceCounter(&timestamp))
+        timestamp.QuadPart = 0;
+
+    return (double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq;
+}
+
+double_t time_struct::calc_time_get_timestamp() {
+    LARGE_INTEGER timestamp;
+    if (!QueryPerformanceCounter(&timestamp))
+        timestamp.QuadPart = 0;
+
+    double_t time = (double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq;
+    this->timestamp = timestamp;
+    return time;
 }
 
 int64_t time_struct::calc_time_int() {
     LARGE_INTEGER timestamp;
-    if (QueryPerformanceCounter(&timestamp))
-        return (int64_t)((double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq * 1000.0);
-    return 0;
+    if (!QueryPerformanceCounter(&timestamp))
+        timestamp.QuadPart = 0;
+
+    return (int64_t)((double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq * 1000.0);
+}
+
+int64_t time_struct::calc_time_int_get_timestamp() {
+    LARGE_INTEGER timestamp;
+    if (!QueryPerformanceCounter(&timestamp))
+        timestamp.QuadPart = 0;
+
+    int64_t time = (int64_t)((double_t)(timestamp.QuadPart - this->timestamp.QuadPart) * inv_freq * 1000.0);
+    this->timestamp = timestamp;
+    return time;
 }
 
 void time_struct::get_timestamp() {

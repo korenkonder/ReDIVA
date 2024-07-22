@@ -12,6 +12,7 @@
 #include "GL/shader_storage_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
 #include "rob/rob.hpp"
+#include "app_system_detail.hpp"
 #include "auth_3d.hpp"
 #include "data.hpp"
 #include "gl_state.hpp"

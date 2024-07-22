@@ -279,7 +279,7 @@ struct pv_game_pv_data {
     //struc_162* field_2BF80;
     struct pv_game_music* music;
     p_file_handler dsc_file_handler;
-    float_t target_anim_fps;
+    float_t measured_fps;
     float_t anim_frame_speed;
     float_t target_flying_time;
     int32_t time_signature;
