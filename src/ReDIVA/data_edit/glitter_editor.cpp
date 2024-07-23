@@ -19,7 +19,6 @@
 #include "../../CRE/data.hpp"
 #include "../../CRE/gl_state.hpp"
 #include "../../CRE/render_context.hpp"
-#include "../../CRE/shader_dev.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/static_var.hpp"
 #include "../data_test/stage_test.hpp"
@@ -104,15 +103,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
 static void glitter_editor_draw_emitter_type_emitter_inst_x(
     GlitterEditor* glt_edt, Glitter::EmitterInst* emit_inst, bool local);
 static void glitter_editor_draw_emitter_type_scene(GlitterEditor* glt_edt, Glitter::Scene* sc);
-
-static void glitter_editor_disp_wireframe(GlitterEditor* glt_edt);
-static void glitter_editor_disp_wireframe_effect_inst(
-    GlitterEditor* glt_edt, Glitter::EffectInst* eff_inst);
-static void glitter_editor_disp_wireframe_render_scene(
-    GlitterEditor* glt_edt, Glitter::XRenderScene* rend_sc);
-static void glitter_editor_disp_wireframe_render_scene(GlitterEditor* glt_edt,
-    Glitter::XRenderScene* rend_sc, GPM, Glitter::XRenderGroup* rend_group);
-static void glitter_editor_disp_wireframe_scene(GlitterEditor* glt_edt, Glitter::Scene* sc);
 
 static void glitter_editor_test_window(GlitterEditor* glt_edt);
 static void glitter_editor_effects(GlitterEditor* glt_edt);
@@ -1086,9 +1076,6 @@ bool GlitterEditor::dest() {
 }
 
 void GlitterEditor::disp() {
-    //if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME)
-        //glitter_editor_disp_wireframe(this);
-
     if (draw_flags & GLITTER_EDITOR_DISP_EMITTER_TYPE)
         glitter_editor_draw_emitter_type(this);
 
@@ -1317,8 +1304,6 @@ static void glitter_editor_windows(GlitterEditor* glt_edt) {
         }
 
         if (ImGui::BeginMenu("View", true)) {
-            ImGui::CheckboxFlagsEnterKeyPressed("Wireframe",
-                (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DISP_WIREFRAME);
             ImGui::CheckboxFlagsEnterKeyPressed("Draw Selected",
                 (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DISP_SELECTED);
             ImGui::CheckboxFlagsEnterKeyPressed("No Draw",
@@ -2048,12 +2033,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.cube.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     case Glitter::EMITTER_CYLINDER: {
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
@@ -2065,12 +2044,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.cylinder.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     case Glitter::EMITTER_SPHERE: {
         mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
@@ -2081,12 +2054,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.sphere.stacks = 16;
         etc.data.sphere.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.sphere.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     case Glitter::EMITTER_POLYGON: {
         mdl::EtcObj etc(mdl::ETC_OBJ_LINE);
@@ -2095,11 +2062,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.line.pos[0] = vec3(-emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
         etc.data.line.pos[1] = vec3(emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     }
 }
@@ -2139,12 +2101,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.cube.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     case Glitter::EMITTER_CYLINDER: {
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
@@ -2156,12 +2112,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.cylinder.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     case Glitter::EMITTER_SPHERE: {
         mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
@@ -2172,12 +2122,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.sphere.stacks = 16;
         etc.data.sphere.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.sphere.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     case Glitter::EMITTER_POLYGON: {
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
@@ -2189,12 +2133,6 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.stacks = 0;
         etc.data.cylinder.wire = false;
         rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-
-        if (glt_edt->draw_flags & GLITTER_EDITOR_DISP_WIREFRAME) {
-            etc.color = 0xFF000000;
-            etc.data.cylinder.wire = true;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
-        }
     } break;
     }
 }
@@ -2212,129 +2150,6 @@ static void glitter_editor_draw_emitter_type_scene(GlitterEditor* glt_edt, Glitt
                 continue;
 
             glitter_editor_draw_emitter_type_effect_inst(glt_edt, i.ptr);
-        }
-}
-
-static void glitter_editor_disp_wireframe(GlitterEditor* glt_edt) {
-    if (Glitter::glt_particle_manager->flags & Glitter::PARTICLE_MANAGER_NOT_DISP)
-        return;
-
-    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_LINE);
-    gl_state_disable_cull_face();
-    for (Glitter::Scene*& i : Glitter::glt_particle_manager->scenes)
-        if (i)
-            glitter_editor_disp_wireframe_scene(glt_edt, i);
-    gl_state_enable_cull_face();
-    gl_state_set_polygon_mode(GL_FRONT_AND_BACK, GL_FILL);
-}
-
-static void glitter_editor_disp_wireframe_effect_inst(
-    GlitterEditor* glt_edt, Glitter::EffectInst* eff_inst) {
-    Glitter::XEffectInst* x_eff_inst = dynamic_cast<Glitter::XEffectInst*>(eff_inst);
-    if (!x_eff_inst)
-        return;
-
-    glitter_editor_disp_wireframe_render_scene(glt_edt, &x_eff_inst->render_scene);
-}
-
-static void glitter_editor_disp_wireframe_render_scene(
-    GlitterEditor* glt_edt, Glitter::XRenderScene* rend_sc) {
-    GPM = Glitter::glt_particle_manager;
-
-    Glitter::XEffectInst* eff = dynamic_cast<Glitter::XEffectInst*>(GPM_VAL->selected_effect);
-    Glitter::XEmitterInst* emit = dynamic_cast<Glitter::XEmitterInst*>(GPM_VAL->selected_emitter);
-    Glitter::XParticleInst* ptcl = dynamic_cast<Glitter::XParticleInst*>(GPM_VAL->selected_particle);
-    for (Glitter::XRenderGroup* i : rend_sc->groups) {
-        if (!i)
-            continue;
-
-        Glitter::XRenderGroup* rend_group = i;
-        if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
-            continue;
-
-        if (!GPM_VAL->draw_selected || !eff) {
-            glitter_editor_disp_wireframe_render_scene(glt_edt, rend_sc, GPM_VAL, rend_group);
-        }
-        else if ((eff && ptcl) || (eff && !emit)) {
-            if (!ptcl || rend_group->particle == ptcl)
-                glitter_editor_disp_wireframe_render_scene(glt_edt, rend_sc, GPM_VAL, rend_group);
-        }
-        else if (emit)
-            for (Glitter::XParticleInst*& i : emit->particles) {
-                if (!i)
-                    continue;
-
-                Glitter::XParticleInst* particle = i;
-                if (rend_group->particle == particle)
-                    glitter_editor_disp_wireframe_render_scene(glt_edt, rend_sc, GPM_VAL, rend_group);
-
-                for (Glitter::XParticleInst*& j : particle->data.children)
-                    if (j && rend_group->particle == j)
-                        glitter_editor_disp_wireframe_render_scene(glt_edt, rend_sc, GPM_VAL, rend_group);
-            }
-    }
-}
-
-static void glitter_editor_disp_wireframe_render_scene(GlitterEditor* glt_edt,
-    Glitter::XRenderScene* rend_sc, GPM, Glitter::XRenderGroup* rend_group) {
-    if (rend_group->disp < 1)
-        return;
-
-    mat4 mat;
-    mat4_mul(&rend_group->mat_draw, &GPM_VAL->cam.view, &mat);
-    mat4_mul(&mat, &GPM_VAL->cam.projection, &mat);
-
-    float_t emission = 1.0f;
-    if (rend_group->flags & Glitter::PARTICLE_EMISSION
-        || rend_group->blend_mode == Glitter::PARTICLE_BLEND_TYPICAL)
-        emission = rend_group->emission;
-
-    glitter_batch_shader_data shader_data = {};
-    mat4_transpose(&mat, &mat);
-    shader_data.g_mvp[0] = mat.row0;
-    shader_data.g_mvp[1] = mat.row1;
-    shader_data.g_mvp[2] = mat.row2;
-    shader_data.g_mvp[3] = mat.row3;
-    shader_data.g_glitter_blend_color = 1.0f;
-    shader_data.g_state_material_diffuse = 0.0f;
-    shader_data.g_state_material_emission = { emission, emission, emission, 1.0f };
-    rctx_ptr->glitter_batch_ubo.WriteMemory(shader_data);
-
-    shaders_dev.set(SHADER_DEV_GLITTER_PT_WIREFRAME);
-    rctx_ptr->glitter_batch_ubo.Bind(3);
-    switch (rend_group->type) {
-    case Glitter::PARTICLE_QUAD:
-        gl_state_bind_vertex_array(rend_group->vao);
-        shaders_dev.enable_primitive_restart();
-        shaders_dev.draw_elements(GL_TRIANGLE_STRIP, (GLsizei)(5 * rend_group->disp - 1), GL_UNSIGNED_SHORT, 0);
-        shaders_dev.disable_primitive_restart();
-        break;
-    case Glitter::PARTICLE_LINE:
-    case Glitter::PARTICLE_LOCUS:
-        gl_state_bind_vertex_array(rend_group->vao);
-        if (rend_group->type == Glitter::PARTICLE_LINE)
-            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shaders_dev.draw_arrays(GL_LINE_STRIP, i.first, i.second);
-        else
-            for (std::pair<GLint, GLsizei>& i : rend_group->draw_list)
-                shaders_dev.draw_arrays(GL_TRIANGLE_STRIP, i.first, i.second);
-        break;
-    }
-}
-
-static void glitter_editor_disp_wireframe_scene(GlitterEditor* glt_edt, Glitter::Scene* sc) {
-    if (sc->flags & Glitter::SCENE_NOT_DISP)
-        return;
-
-    GPM = Glitter::glt_particle_manager;
-
-    for (Glitter::SceneEffect& i : sc->effects)
-        if (i.ptr && i.disp) {
-            if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
-                && GPM_VAL->selected_effect != i.ptr)
-                continue;
-
-            glitter_editor_disp_wireframe_effect_inst(glt_edt, i.ptr);
         }
 }
 
@@ -2415,8 +2230,6 @@ static void glitter_editor_test_window(GlitterEditor* glt_edt) {
 
     ImGui::Separator();
 
-    ImGui::CheckboxFlagsEnterKeyPressed("Wireframe",
-        (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DISP_WIREFRAME);
     ImGui::CheckboxFlagsEnterKeyPressed("Draw Selected",
         (uint32_t*)&glt_edt->draw_flags, GLITTER_EDITOR_DISP_SELECTED);
     ImGui::CheckboxFlagsEnterKeyPressed("No Draw",

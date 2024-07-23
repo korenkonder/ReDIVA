@@ -28,10 +28,9 @@ enum glitter_editor_flags {
 };
 
 enum glitter_editor_disp_flags {
-    GLITTER_EDITOR_DISP_WIREFRAME    = 0x01,
-    GLITTER_EDITOR_DISP_SELECTED     = 0x02,
-    GLITTER_EDITOR_DISP_NO_DRAW      = 0x04,
-    GLITTER_EDITOR_DISP_EMITTER_TYPE = 0x08,
+    GLITTER_EDITOR_DISP_SELECTED     = 0x01,
+    GLITTER_EDITOR_DISP_NO_DRAW      = 0x02,
+    GLITTER_EDITOR_DISP_EMITTER_TYPE = 0x04,
 };
 
 class GlitterEditor : public app::TaskWindow {
