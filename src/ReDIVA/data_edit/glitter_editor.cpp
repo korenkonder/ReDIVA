@@ -1016,7 +1016,7 @@ bool GlitterEditor::ctrl() {
         effect_group->emission = Glitter::glt_particle_manager->emission;
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
             frame_counter, old_frame_counter, counter, random, true);
-        Glitter::glt_particle_manager->selected_scene = scene;
+        Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
         old_frame_counter = frame_counter;
@@ -1033,7 +1033,7 @@ bool GlitterEditor::ctrl() {
 
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
             frame_counter, old_frame_counter, counter, random, false);
-        Glitter::glt_particle_manager->selected_scene = scene;
+        Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
         old_frame_counter = frame_counter;
@@ -1046,7 +1046,7 @@ bool GlitterEditor::ctrl() {
         frame_counter = (float_t)start_frame;
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
             frame_counter, old_frame_counter, counter, random, true);
-        Glitter::glt_particle_manager->selected_scene = scene;
+        Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
         old_frame_counter = frame_counter;
@@ -1139,114 +1139,17 @@ void GlitterEditor::reset() {
 }
 
 void GlitterEditor::reset_disp() {
-    Glitter::glt_particle_manager->selected_scene = 0;
+    Glitter::glt_particle_manager->selected_effect_group = 0;
     Glitter::glt_particle_manager->selected_effect = 0;
     Glitter::glt_particle_manager->selected_emitter = 0;
     Glitter::glt_particle_manager->selected_particle = 0;
 }
 
 static void glitter_editor_select_particle(GlitterEditor* glt_edt) {
-    Glitter::glt_particle_manager->selected_scene = 0;
-    Glitter::glt_particle_manager->selected_effect = 0;
-    Glitter::glt_particle_manager->selected_emitter = 0;
-    Glitter::glt_particle_manager->selected_particle = 0;
-    Glitter::glt_particle_manager->draw_selected = false;
-
-    Glitter::EffectGroup* eg = glt_edt->effect_group;
-    Glitter::Scene* sc = 0;
-    for (Glitter::Scene*& i : Glitter::glt_particle_manager->scenes) {
-        if (!i)
-            continue;
-
-        Glitter::Scene* scene = i;
-        if (scene->effect_group == eg) {
-            sc = scene;
-            break;
-        }
-    }
-
-    if (!sc)
-        return;
-
-    Glitter::EffectInst* eff = 0;
-    Glitter::EmitterInst* emit = 0;
-    Glitter::ParticleInst* ptcl = 0;
-    if (sc->type != Glitter::X)
-        for (Glitter::SceneEffect& i : sc->effects) {
-            if (!i.disp || !i.ptr)
-                continue;
-
-            Glitter::F2EffectInst* effect = (Glitter::F2EffectInst*)i.ptr;
-            if (effect->effect != glt_edt->selected_effect)
-                continue;
-
-            eff = effect;
-            for (Glitter::F2EmitterInst*& j : effect->emitters) {
-                if (!j)
-                    continue;
-
-                Glitter::F2EmitterInst* emitter = j;
-                if (emitter->emitter != glt_edt->selected_emitter)
-                    continue;
-
-                emit = emitter;
-                for (Glitter::F2ParticleInst*& k : emitter->particles) {
-                    if (!k)
-                        continue;
-
-                    Glitter::F2ParticleInst* particle = k;
-                    if (particle->particle == glt_edt->selected_particle) {
-                        ptcl = particle;
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-    else
-        for (Glitter::SceneEffect& i : sc->effects) {
-            if (!i.disp || !i.ptr)
-                continue;
-
-            Glitter::XEffectInst* effect = (Glitter::XEffectInst*)i.ptr;
-            if (effect->effect != glt_edt->selected_effect)
-                continue;
-
-            eff = effect;
-            for (Glitter::XEmitterInst*& j : effect->emitters) {
-                if (!j)
-                    continue;
-
-                Glitter::XEmitterInst* emitter = j;
-                if (emitter->emitter != glt_edt->selected_emitter)
-                    continue;
-
-                emit = emitter;
-                for (Glitter::XParticleInst*& k : emitter->particles) {
-                    if (!k)
-                        continue;
-
-                    Glitter::XParticleInst* particle = k;
-                    if (particle->particle == glt_edt->selected_particle) {
-                        ptcl = particle;
-                        break;
-                    }
-                }
-                break;
-            }
-        }
-
-    Glitter::glt_particle_manager->selected_scene = sc;
-    if (eff) {
-        Glitter::glt_particle_manager->selected_effect = eff;
-        Glitter::glt_particle_manager->selected_emitter = emit;
-        Glitter::glt_particle_manager->selected_particle = ptcl;
-    }
-    else {
-        Glitter::glt_particle_manager->selected_effect = 0;
-        Glitter::glt_particle_manager->selected_emitter = 0;
-        Glitter::glt_particle_manager->selected_particle = 0;
-    }
+    Glitter::glt_particle_manager->selected_effect_group = glt_edt->effect_group;
+    Glitter::glt_particle_manager->selected_effect = glt_edt->selected_effect;
+    Glitter::glt_particle_manager->selected_emitter = glt_edt->selected_emitter;
+    Glitter::glt_particle_manager->selected_particle = glt_edt->selected_particle;
     Glitter::glt_particle_manager->draw_selected = glt_edt->draw_flags & GLITTER_EDITOR_DISP_SELECTED;
 }
 
@@ -1970,7 +1873,7 @@ static void glitter_editor_draw_emitter_type(GlitterEditor* glt_edt) {
 
 static void glitter_editor_draw_emitter_type_effect_inst(
     GlitterEditor* glt_edt, Glitter::EffectInst* eff_inst) {
-    Glitter::EmitterInst* emit = Glitter::glt_particle_manager->selected_emitter;
+    Glitter::Emitter* emit = Glitter::glt_particle_manager->selected_emitter;
     if (!emit)
         return;
 
@@ -1979,7 +1882,7 @@ static void glitter_editor_draw_emitter_type_effect_inst(
         || f2_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LINE)
         || f2_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LOCUS)))
         for (Glitter::EmitterInst* i : f2_eff_inst->emitters)
-            if (i && i == emit) {
+            if (i && i->emitter == emit) {
                 glitter_editor_draw_emitter_type_emitter_inst_f2(glt_edt,
                     i, !!(f2_eff_inst->data.flags & Glitter::EFFECT_LOCAL));
                 break;
@@ -1991,7 +1894,7 @@ static void glitter_editor_draw_emitter_type_effect_inst(
         || x_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_LOCUS)
         || x_eff_inst->render_scene.GetCtrlCount(Glitter::PARTICLE_MESH)))
         for (Glitter::EmitterInst* i : x_eff_inst->emitters)
-            if (i && i == emit) {
+            if (i && i->emitter == emit) {
                 glitter_editor_draw_emitter_type_emitter_inst_x(glt_edt,
                     i, !!(x_eff_inst->data.flags & Glitter::EFFECT_LOCAL));
                 break;
@@ -2146,7 +2049,7 @@ static void glitter_editor_draw_emitter_type_scene(GlitterEditor* glt_edt, Glitt
     for (Glitter::SceneEffect& i : sc->effects)
         if (i.ptr && i.disp) {
             if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
-                && GPM_VAL->selected_effect != i.ptr)
+                && GPM_VAL->selected_effect != i.ptr->effect)
                 continue;
 
             glitter_editor_draw_emitter_type_effect_inst(glt_edt, i.ptr);

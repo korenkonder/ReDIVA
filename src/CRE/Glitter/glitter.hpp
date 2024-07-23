@@ -1598,10 +1598,10 @@ namespace Glitter {
         std::vector<Scene*> scenes;
         std::vector<FileReader*> file_readers;
         std::map<uint64_t, EffectGroup*> effect_groups;
-        Scene* selected_scene;
-        EffectInst* selected_effect;
-        EmitterInst* selected_emitter;
-        ParticleInst* selected_particle;
+        EffectGroup* selected_effect_group;
+        Effect* selected_effect;
+        Emitter* selected_emitter;
+        Particle* selected_particle;
         void* bone_data;
         FrameRateControl* frame_rate;
         Camera cam;

@@ -157,9 +157,9 @@ namespace Glitter {
         disp_locus = 0;
         disp_mesh = 0;
 
-        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
-        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
-        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
+        Effect* eff = GPM_VAL->selected_effect;
+        Emitter* emit = GPM_VAL->selected_emitter;
+        Particle* ptcl = GPM_VAL->selected_particle;
         for (F2RenderGroup*& i : groups) {
             if (!i)
                 continue;
@@ -172,21 +172,17 @@ namespace Glitter {
                 CalcDisp(GPM_VAL, rend_group);
             }
             else if ((eff && ptcl) || (eff && !emit)) {
-                if (!ptcl || rend_group->particle == ptcl)
+                if (!ptcl || rend_group->particle->particle == ptcl)
                     CalcDisp(GPM_VAL, rend_group);
             }
             else if (emit)
-                for (F2ParticleInst*& i : emit->particles) {
-                    if (!i)
+                for (Particle*& j : emit->particles) {
+                    if (!j)
                         continue;
 
-                    F2ParticleInst* particle = i;
-                    if (rend_group->particle == particle)
+                    Particle* particle = j;
+                    if (rend_group->particle->particle == particle)
                         CalcDisp(GPM_VAL, rend_group);
-
-                    for (F2ParticleInst*& j : particle->data.children)
-                        if (j && rend_group->particle == j)
-                            CalcDisp(GPM_VAL, rend_group);
                 }
         }
     }
@@ -881,9 +877,9 @@ namespace Glitter {
     }
 
     void F2RenderScene::Disp(GPM, DispType disp_type) {
-        F2EffectInst* eff = dynamic_cast<F2EffectInst*>(GPM_VAL->selected_effect);
-        F2EmitterInst* emit = dynamic_cast<F2EmitterInst*>(GPM_VAL->selected_emitter);
-        F2ParticleInst* ptcl = dynamic_cast<F2ParticleInst*>(GPM_VAL->selected_particle);
+        Effect* eff = GPM_VAL->selected_effect;
+        Emitter* emit = GPM_VAL->selected_emitter;
+        Particle* ptcl = GPM_VAL->selected_particle;
         for (F2RenderGroup*& i : groups) {
             if (!i)
                 continue;
@@ -897,21 +893,17 @@ namespace Glitter {
                 Disp(GPM_VAL, rend_group);
             }
             else if ((eff && ptcl) || (eff && !emit)) {
-                if (!ptcl || rend_group->particle == ptcl)
+                if (!ptcl || rend_group->particle->particle == ptcl)
                     Disp(GPM_VAL, rend_group);
             }
             else if (emit)
-                for (F2ParticleInst*& i : emit->particles) {
-                    if (!i)
+                for (Particle*& j : emit->particles) {
+                    if (!j)
                         continue;
 
-                    F2ParticleInst* particle = i;
-                    if (rend_group->particle == particle)
+                    Particle* particle = j;
+                    if (rend_group->particle->particle == particle)
                         Disp(GPM_VAL, rend_group);
-
-                    for (F2ParticleInst*& j : particle->data.children)
-                        if (j && rend_group->particle == j)
-                            Disp(GPM_VAL, rend_group);
                 }
         }
     }
@@ -1095,9 +1087,9 @@ namespace Glitter {
         disp_locus = 0;
         disp_mesh = 0;
 
-        XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
-        XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
-        XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
+        Effect* eff = GPM_VAL->selected_effect;
+        Emitter* emit = GPM_VAL->selected_emitter;
+        Particle* ptcl = GPM_VAL->selected_particle;
         for (XRenderGroup*& i : groups) {
             if (!i)
                 continue;
@@ -1110,21 +1102,17 @@ namespace Glitter {
                 CalcDisp(GPM_VAL, rend_group);
             }
             else if ((eff && ptcl) || (eff && !emit)) {
-                if (!ptcl || rend_group->particle == ptcl)
+                if (!ptcl || rend_group->particle->particle == ptcl)
                     CalcDisp(GPM_VAL, rend_group);
             }
             else if (emit)
-                for (XParticleInst*& i : emit->particles) {
-                    if (!i)
+                for (Particle*& j : emit->particles) {
+                    if (!j)
                         continue;
 
-                    XParticleInst* particle = i;
-                    if (rend_group->particle == particle)
+                    Particle* particle = j;
+                    if (rend_group->particle->particle == particle)
                         CalcDisp(GPM_VAL, rend_group);
-
-                    for (XParticleInst*& j : particle->data.children)
-                        if (j && rend_group->particle == j)
-                            CalcDisp(GPM_VAL, rend_group);
                 }
         }
     }
@@ -2003,9 +1991,9 @@ namespace Glitter {
     }
 
     void XRenderScene::Disp(GPM, DispType disp_type) {
-        XEffectInst* eff = dynamic_cast<XEffectInst*>(GPM_VAL->selected_effect);
-        XEmitterInst* emit = dynamic_cast<XEmitterInst*>(GPM_VAL->selected_emitter);
-        XParticleInst* ptcl = dynamic_cast<XParticleInst*>(GPM_VAL->selected_particle);
+        Effect* eff = GPM_VAL->selected_effect;
+        Emitter* emit = GPM_VAL->selected_emitter;
+        Particle* ptcl = GPM_VAL->selected_particle;
         for (XRenderGroup* i : groups) {
             if (!i)
                 continue;
@@ -2018,21 +2006,17 @@ namespace Glitter {
                 Disp(GPM_VAL, rend_group);
             }
             else if ((eff && ptcl) || (eff && !emit)) {
-                if (!ptcl || rend_group->particle == ptcl)
+                if (!ptcl || rend_group->particle->particle == ptcl)
                     Disp(GPM_VAL, rend_group);
             }
             else if (emit)
-                for (XParticleInst*& i : emit->particles) {
-                    if (!i)
+                for (Particle*& j : emit->particles) {
+                    if (!j)
                         continue;
 
-                    XParticleInst* particle = i;
-                    if (rend_group->particle == particle)
+                    Particle* particle = j;
+                    if (rend_group->particle->particle == particle)
                         Disp(GPM_VAL, rend_group);
-
-                    for (XParticleInst*& j : particle->data.children)
-                        if (j && rend_group->particle == j)
-                            Disp(GPM_VAL, rend_group);
                 }
         }
     }

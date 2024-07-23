@@ -19,7 +19,7 @@ namespace Glitter {
     }
 
     GltParticleManager::GltParticleManager() :
-        selected_scene(), selected_effect(), selected_emitter(), selected_particle(),
+        selected_effect_group(), selected_effect(), selected_emitter(), selected_particle(),
         bone_data(), frame_rate(), cam(), flags(),
         scene_load_counter(), texture_counter(), draw_selected() {
         init_buffers_base = 5;
@@ -270,7 +270,8 @@ namespace Glitter {
         cam.rotation_y = c->rotation.y;
 
         for (Scene*& i : scenes) {
-            if (!i || draw_selected && selected_scene && selected_scene != i)
+            if (!i || draw_selected && selected_effect_group
+                && selected_effect_group != i->effect_group)
                 continue;
 
             i->Disp(this, disp_type);

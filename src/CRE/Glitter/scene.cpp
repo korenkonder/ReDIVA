@@ -48,7 +48,7 @@ namespace Glitter {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
                 if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
-                    && GPM_VAL->selected_effect != i.ptr)
+                    && GPM_VAL->selected_effect != i.ptr->effect)
                     continue;
 
                 i.ptr->CalcDisp(GPM_VAL);
@@ -115,7 +115,7 @@ namespace Glitter {
         for (SceneEffect& i : effects)
             if (i.ptr && i.disp) {
                 if (GPM_VAL->draw_selected && GPM_VAL->selected_effect
-                    && GPM_VAL->selected_effect != i.ptr)
+                    && GPM_VAL->selected_effect != i.ptr->effect)
                     continue;
 
                 i.ptr->Disp(GPM_VAL, disp_type);
