@@ -239,12 +239,12 @@ namespace Glitter {
             enum_and(flags, ~SCENE_ENDED);
     }
 
-    bool Scene::ResetCheckInit(GPM, float_t* a2) {
+    bool Scene::ResetCheckInit(GPM, float_t* init_delta_frame) {
         if (!(flags & SCENE_FLAG_3) || !effects.size())
             return false;
 
         for (SceneEffect& i : effects)
-            if (i.disp && i.ptr && i.ptr->ResetCheckInit(GPM_VAL, type, this, a2))
+            if (i.disp && i.ptr && i.ptr->ResetCheckInit(GPM_VAL, type, this, init_delta_frame))
                 return true;
         return false;
     }

@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../gl_state.hpp"
 
 namespace Glitter {
     const float_t min_emission = 0.01f;
@@ -279,4 +280,56 @@ namespace Glitter {
         if (vec3::dot(*vec1, *vec2) < 0.0f)
             *angle = (float_t)M_PI - *angle;
     }
+
+    void CreateBuffer(size_t max_count, bool is_quad, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo) {
+        glGenVertexArrays(1, &vao);
+        gl_state_bind_vertex_array(vao, true);
+
+        static const GLsizei buffer_size = sizeof(Buffer);
+
+        vbo.Create(buffer_size * max_count);
+        vbo.Bind(true);
+
+        if (is_quad) {
+            size_t count = max_count / 4 * 5;
+            uint32_t* ebo_data = force_malloc<uint32_t>(count);
+            for (size_t i = 0, j = 0, k = count; k; i += 5, j += 4, k -= 5) {
+                ebo_data[i + 0] = (uint32_t)(j + 0);
+                ebo_data[i + 1] = (uint32_t)(j + 1);
+                ebo_data[i + 2] = (uint32_t)(j + 3);
+                ebo_data[i + 3] = (uint32_t)(j + 2);
+                ebo_data[i + 4] = 0xFFFFFFFF;
+            }
+
+            ebo.Create(sizeof(uint32_t) * count, ebo_data);
+            ebo.Bind(true);
+            free_def(ebo_data);
+        }
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, position));
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, uv));
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
+            (void*)offsetof(Buffer, color));
+
+        gl_state_bind_array_buffer(0);
+        gl_state_bind_vertex_array(0);
+        if (is_quad)
+            gl_state_bind_element_array_buffer(0);
+    }
+
+    void DeleteBuffer(GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo) {
+        ebo.Destroy();
+        vbo.Destroy();
+
+        if (vao) {
+            glDeleteVertexArrays(1, &vao);
+            vao = 0;
+        }
+    }
+
 }

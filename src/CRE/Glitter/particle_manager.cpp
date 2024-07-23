@@ -22,8 +22,10 @@ namespace Glitter {
         selected_scene(), selected_effect(), selected_emitter(), selected_particle(),
         bone_data(), frame_rate(), cam(), flags(),
         scene_load_counter(), texture_counter(), draw_selected() {
-        field_D0 = 20.0f;
-        field_D4 = 20.0f;
+        init_buffers_base = 5;
+        init_buffers = 5;
+        init_delta_frame_base = 20.0f;
+        init_delta_frame = 20.0f;
         emission = 1.5f;
         delta_frame = 2.0f;
         draw_all = true;
@@ -43,7 +45,8 @@ namespace Glitter {
 
     bool GltParticleManager::ctrl() {
         if (flags & PARTICLE_MANAGER_READ_FILES) {
-            field_D4 = field_D0;
+            init_delta_frame = init_delta_frame_base;
+            init_buffers = init_buffers_base;
 
             for (auto i = file_readers.begin(); i != file_readers.end();)
                 if (!*i || (*i)->ReadFarc(this)) {
@@ -248,6 +251,10 @@ namespace Glitter {
                 i++;
             }*/
         }
+    }
+
+    void GltParticleManager::DecrementInitBuffersByCount(int32_t count) {
+        init_buffers = max_def(init_buffers - count, 0);
     }
 
     void GltParticleManager::DispScenes(DispType disp_type) {
@@ -819,7 +826,8 @@ namespace Glitter {
 
                     if (!scene) {
                         scene = GetScene(effect_group->hash);
-                        enum_or(scene->flags, SCENE_EDITOR);
+                        if (scene)
+                            enum_or(scene->flags, SCENE_EDITOR);
                     }
                 }
 
@@ -847,6 +855,12 @@ namespace Glitter {
             delta -= delta_frame;
             frame += delta_frame;
         }
+    }
+
+    void GltParticleManager::SetInitDeltaFrame(float_t value) {
+        init_delta_frame = value;
+        if (value <= 0.0f)
+            init_delta_frame = -1.0f;
     }
 
     void GltParticleManager::SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
@@ -903,13 +917,6 @@ namespace Glitter {
         auto elem = effect_groups.find(hash);
         if (elem != effect_groups.end())
             elem->second->load_count--;
-    }
-
-    void GltParticleManager::sub_1403A53E0(float_t a2) {
-        if (a2 <= 0.0f)
-            field_D4 = -1.0f;
-        else
-            field_D4 = a2;
     }
 
     void glt_particle_manager_init() {

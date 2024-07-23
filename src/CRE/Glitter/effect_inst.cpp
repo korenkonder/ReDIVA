@@ -286,9 +286,9 @@ namespace Glitter {
         ResetInit(GPM_VAL, GLT_VAL, sc);
     }
 
-    bool F2EffectInst::ResetCheckInit(GPM, GLT, Scene* sc, float_t* a3) {
+    bool F2EffectInst::ResetCheckInit(GPM, GLT, Scene* sc, float_t* init_delta_frame) {
         if (init)
-            return ResetInit(GPM_VAL, GLT_VAL, sc, a3);
+            return ResetInit(GPM_VAL, GLT_VAL, sc, init_delta_frame);
         return false;
     }
 
@@ -551,7 +551,7 @@ namespace Glitter {
         }
     }
 
-    bool F2EffectInst::ResetInit(GPM, GLT, Glitter::Scene* sc, float_t* a3) {
+    bool F2EffectInst::ResetInit(GPM, GLT, Glitter::Scene* sc, float_t* init_delta_frame) {
         if (data.start_time < 1)
             return false;
 
@@ -564,14 +564,14 @@ namespace Glitter {
         float_t delta_frame = 2.0f;
         float_t start_time = (float_t)data.start_time - frame1;
         bool ret = false;
-        if (a3) {
-            if (start_time >= *a3) {
-                start_time = *a3;
-                *a3 = 0.0f;
+        if (init_delta_frame) {
+            if (start_time >= *init_delta_frame) {
+                start_time = *init_delta_frame;
+                *init_delta_frame = 0.0f;
                 ret = true;
             }
             else
-                *a3 -= start_time;
+                *init_delta_frame -= start_time;
         }
 
         const float_t emission = sc->emission;
@@ -857,9 +857,9 @@ namespace Glitter {
         ResetInit(GPM_VAL, sc);
     }
 
-    bool XEffectInst::ResetCheckInit(GPM, GLT, Scene* sc, float_t* a3) {
+    bool XEffectInst::ResetCheckInit(GPM, GLT, Scene* sc, float_t* init_delta_frame) {
         if (init)
-            return ResetInit(GPM_VAL, sc, a3);
+            return ResetInit(GPM_VAL, sc, init_delta_frame);
         return false;
     }
 
@@ -1114,7 +1114,7 @@ namespace Glitter {
         }
     }
 
-    bool XEffectInst::ResetInit(GPM, Scene* sc, float_t* a3) {
+    bool XEffectInst::ResetInit(GPM, Scene* sc, float_t* init_delta_frame) {
         if (data.start_time < 1)
             return false;
 
@@ -1127,14 +1127,14 @@ namespace Glitter {
         float_t delta_frame = 2.0f;
         float_t start_time = (float_t)data.start_time - frame1;
         bool ret = false;
-        if (a3) {
-            if (start_time >= *a3) {
-                start_time = *a3;
-                *a3 = 0.0f;
+        if (init_delta_frame) {
+            if (start_time >= *init_delta_frame) {
+                start_time = *init_delta_frame;
+                *init_delta_frame = 0.0f;
                 ret = true;
             }
             else
-                *a3 -= start_time;
+                *init_delta_frame -= start_time;
         }
 
         const float_t emission = sc->emission;

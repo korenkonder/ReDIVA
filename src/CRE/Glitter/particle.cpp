@@ -16,7 +16,7 @@ namespace Glitter {
 
     }
 
-    Particle::Particle(GLT) : data() {
+    Particle::Particle(GLT) : vao(), max_count(), buffer_used() {
         version = GLT_VAL == Glitter::X ? 0x05 : 0x03;
         data.pivot = PIVOT_MIDDLE_CENTER;
         data.scale = 1.0f;
@@ -47,6 +47,6 @@ namespace Glitter {
     }
 
     Particle::~Particle() {
-
+        Glitter::DeleteBuffer(vao, vbo, ebo);
     }
 }

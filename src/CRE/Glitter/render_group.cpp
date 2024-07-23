@@ -4,12 +4,11 @@
 */
 
 #include "glitter.hpp"
-#include "../gl_state.hpp"
 
 namespace Glitter {
     RenderGroup::RenderGroup() : flags(), type(), draw_type(), pivot(),
         z_offset(), count(), ctrl(), disp(), texture(), mask_texture(), frame(),
-        elements(), max_count(), random_ptr(), disp_type(), fog_type(), vao(), vbo(), ebo() {
+        elements(), max_count(), random_ptr(), disp_type(), fog_type(), vao() {
         split_u = 1;
         split_v = 1;
         split_uv = 1.0f;
@@ -18,6 +17,7 @@ namespace Glitter {
         mat_draw = mat4_identity;
         disp_type = DISP_NORMAL;
         emission = 1.0f;
+        use_own_buffer = true;
         blend_mode = PARTICLE_BLEND_TYPICAL;
         mask_blend_mode = PARTICLE_BLEND_TYPICAL;
     }
@@ -47,8 +47,8 @@ namespace Glitter {
         return rend_elem;
     }
 
-    F2RenderGroup::F2RenderGroup(F2ParticleInst* a1) : particle() {
-        switch (a1->data.data.type) {
+    F2RenderGroup::F2RenderGroup(F2ParticleInst* ptcl_inst) : particle() {
+        switch (ptcl_inst->data.data.type) {
         case PARTICLE_QUAD:
         case PARTICLE_LINE:
         case PARTICLE_LOCUS:
@@ -57,17 +57,17 @@ namespace Glitter {
             return;
         }
 
-        if (a1->data.data.count > 0)
-            count = a1->data.data.count;
+        if (ptcl_inst->data.data.count > 0)
+            count = ptcl_inst->data.data.count;
         else
-            count = a1->data.data.type == PARTICLE_LOCUS ? 30 : 250;
+            count = ptcl_inst->data.data.type == PARTICLE_LOCUS ? 30 : 250;
         max_count = count * 4;
 
-        random_ptr = a1->data.random_ptr;
-        particle = a1;
+        random_ptr = ptcl_inst->data.random_ptr;
+        particle = ptcl_inst;
 
         elements = new RenderElement[count];
-        if (!elements) {
+        if (!elements || !ptcl_inst) {
             count = 0;
             max_count = 0;
             return;
@@ -77,46 +77,20 @@ namespace Glitter {
         if (!max_count)
             return;
 
-        bool is_quad = a1->data.data.type == PARTICLE_QUAD;
+        bool is_quad = ptcl_inst->data.data.type == PARTICLE_QUAD;
 
-        glGenVertexArrays(1, &vao);
-        gl_state_bind_vertex_array(vao, true);
-
-        static const GLsizei buffer_size = sizeof(Buffer);
-
-        vbo.Create(buffer_size * max_count);
-        vbo.Bind(true);
-
-        if (is_quad) {
-            size_t count = max_count / 4 * 5;
-            uint32_t* ebo_data = force_malloc<uint32_t>(count);
-            for (size_t i = 0, j = 0, k = count; k; i += 5, j += 4, k -= 5) {
-                ebo_data[i + 0] = (uint32_t)(j + 0);
-                ebo_data[i + 1] = (uint32_t)(j + 1);
-                ebo_data[i + 2] = (uint32_t)(j + 3);
-                ebo_data[i + 3] = (uint32_t)(j + 2);
-                ebo_data[i + 4] = 0xFFFFFFFF;
-            }
-
-            ebo.Create(sizeof(uint32_t) * count, ebo_data);
-            ebo.Bind(true);
-            free_def(ebo_data);
+        Particle* ptcl = particle->data.particle;
+        if (ptcl && ptcl->vao && ptcl->vbo && !ptcl->buffer_used) {
+            max_count = ptcl->max_count;
+            vao = ptcl->vao;
+            vbo = ptcl->vbo;
+            ebo = ptcl->ebo;
+            use_own_buffer = false;
+            ptcl->buffer_used = true;
         }
 
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, position));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, color));
-
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
-        if (is_quad)
-            gl_state_bind_element_array_buffer(0);
+        if (use_own_buffer)
+            CreateBuffer(max_count, is_quad, vao, vbo, ebo);
 
         if (!is_quad)
             draw_list.reserve(count);
@@ -248,19 +222,18 @@ namespace Glitter {
     }
 
     void F2RenderGroup::DeleteBuffers(bool free) {
+        Particle* ptcl = 0;
         if (particle) {
+            ptcl = particle->data.particle;
             if (!free)
                 particle->data.render_group = 0;
             particle = 0;
         }
 
-        ebo.Destroy();
-        vbo.Destroy();
-
-        if (vao) {
-            glDeleteVertexArrays(1, &vao);
-            vao = 0;
-        }
+        if (use_own_buffer)
+            Glitter::DeleteBuffer(vao, vbo, ebo);
+        else if (ptcl && ptcl->vao && ptcl->vbo)
+            ptcl->buffer_used = false;
 
         if (!free && elements) {
             Free();
@@ -358,25 +331,25 @@ namespace Glitter {
         return mat;
     }
 
-    XRenderGroup::XRenderGroup(XParticleInst* a1) : particle(), use_culling() {
+    XRenderGroup::XRenderGroup(XParticleInst* ptcl_inst) : particle(), use_culling() {
         object_name_hash = hash_murmurhash_empty;
 
-        switch (a1->data.data.type) {
+        switch (ptcl_inst->data.data.type) {
         case PARTICLE_QUAD:
-            if (a1->data.data.count > 0)
-                count = a1->data.data.count;
+            if (ptcl_inst->data.data.count > 0)
+                count = ptcl_inst->data.data.count;
             else
                 count = 2500;
             max_count = 4 * count;
             break;
         case PARTICLE_LINE:
-            count = (size_t)a1->data.data.locus_history_size
-                + a1->data.data.locus_history_size_random;
+            count = (size_t)ptcl_inst->data.data.locus_history_size
+                + ptcl_inst->data.data.locus_history_size_random;
             max_count = count;
             break;
         case PARTICLE_LOCUS:
-            count = (size_t)a1->data.data.locus_history_size
-                + a1->data.data.locus_history_size_random;
+            count = (size_t)ptcl_inst->data.data.locus_history_size
+                + ptcl_inst->data.data.locus_history_size_random;
             max_count = 2 * count;
             break;
         case PARTICLE_MESH:
@@ -387,60 +360,34 @@ namespace Glitter {
             return;
         }
 
-        random_ptr = a1->data.random_ptr;
-        particle = a1;
+        random_ptr = ptcl_inst->data.random_ptr;
+        particle = ptcl_inst;
 
         elements = new RenderElement[count];
-        if (!elements) {
+        if (!elements || !ptcl_inst) {
             count = 0;
             max_count = 0;
             return;
         }
 
         memset(elements, 0, sizeof(RenderElement) * count);
-        if (!max_count || a1->data.data.type == PARTICLE_MESH)
+        if (!max_count || ptcl_inst->data.data.type == PARTICLE_MESH)
             return;
 
-        bool is_quad = a1->data.data.type == PARTICLE_QUAD;
+        bool is_quad = ptcl_inst->data.data.type == PARTICLE_QUAD;
 
-        glGenVertexArrays(1, &vao);
-        gl_state_bind_vertex_array(vao, true);
-
-        static const GLsizei buffer_size = sizeof(Buffer);
-
-        vbo.Create(buffer_size * max_count);
-        vbo.Bind(true);
-
-        if (is_quad) {
-            size_t count = max_count / 4 * 5;
-            uint32_t* ebo_data = force_malloc<uint32_t>(count);
-            for (size_t i = 0, j = 0, k = count; k; i += 5, j += 4, k -= 5) {
-                ebo_data[i + 0] = (uint32_t)(j + 0);
-                ebo_data[i + 1] = (uint32_t)(j + 1);
-                ebo_data[i + 2] = (uint32_t)(j + 3);
-                ebo_data[i + 3] = (uint32_t)(j + 2);
-                ebo_data[i + 4] = 0xFFFFFFFF;
-            }
-
-            ebo.Create(sizeof(uint32_t) * count, ebo_data);
-            ebo.Bind(true);
-            free_def(ebo_data);
+        Particle* ptcl = particle->data.particle;
+        if (ptcl && ptcl->vao && ptcl->vbo && !ptcl->buffer_used) {
+            max_count = ptcl->max_count;
+            vao = ptcl->vao;
+            vbo = ptcl->vbo;
+            ebo = ptcl->ebo;
+            use_own_buffer = false;
+            ptcl->buffer_used = true;
         }
 
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, position));
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, uv));
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
-            (void*)offsetof(Buffer, color));
-
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
-        if (is_quad)
-            gl_state_bind_element_array_buffer(0);
+        if (use_own_buffer)
+            CreateBuffer(max_count, is_quad, vao, vbo, ebo);
 
         if (!is_quad)
             draw_list.reserve(count);
@@ -590,24 +537,24 @@ namespace Glitter {
             rend_elem->frame -= rend_elem->life_time;
     }
 
-    void XRenderGroup::DeleteBuffers(bool a2) {
+    void XRenderGroup::DeleteBuffers(bool free) {
+        Particle* ptcl = 0;
         if (particle) {
-            if (!a2)
+            ptcl = particle->data.particle;
+            if (!free)
                 particle->data.render_group = 0;
             particle = 0;
         }
 
-        ebo.Destroy();
-        vbo.Destroy();
+        if (use_own_buffer)
+            Glitter::DeleteBuffer(vao, vbo, ebo);
+        else if (ptcl && ptcl->vao && ptcl->vbo)
+            ptcl->buffer_used = false;
 
-        if (vao) {
-            glDeleteVertexArrays(1, &vao);
-            vao = 0;
-        }
-
-        if (!a2 && elements) {
+        if (!free && elements) {
             Free();
-            free_def(elements);
+            delete[] elements;
+            elements = 0;
         }
     }
     void XRenderGroup::Emit(XParticleInst::Data* ptcl_inst_data,
