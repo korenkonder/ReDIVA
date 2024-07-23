@@ -72,24 +72,28 @@ namespace app {
 
     }
 
-    uint32_t Task::get_calc_time() {
+    uint32_t Task::get_calc_time() const {
         return calc_time;
     }
 
-    uint32_t Task::get_calc_time_max() {
+    uint32_t Task::get_calc_time_max() const {
         return calc_time_max;
     }
 
-    uint32_t Task::get_disp_time() {
+    uint32_t Task::get_disp_time() const {
         return disp_time;
     }
 
-    uint32_t Task::get_disp_time_max() {
+    uint32_t Task::get_disp_time_max() const {
         return disp_time_max;
     }
 
-    const char* Task::get_name() {
+    const char* Task::get_name() const {
         return name;
+    }
+
+    Task* Task::get_parent_task() const {
+        return parent_task;
     }
 
     bool Task::del() {

@@ -66,11 +66,12 @@ namespace app {
         Task();
         virtual ~Task() override;
 
-        uint32_t get_calc_time();
-        uint32_t get_calc_time_max();
-        uint32_t get_disp_time();
-        uint32_t get_disp_time_max();
-        const char* get_name();
+        uint32_t get_calc_time() const;
+        uint32_t get_calc_time_max() const;
+        uint32_t get_disp_time() const;
+        uint32_t get_disp_time_max() const;
+        const char* get_name() const;
+        Task* get_parent_task() const;
 
         bool del();
         bool hide();

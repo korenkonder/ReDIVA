@@ -6,7 +6,7 @@
 #include "information.hpp"
 #include "../information/dw_console.hpp"
 #include "information/frame_speed.hpp"
-#include "information/task.hpp"
+#include "../information/task.hpp"
 
 classes_data information_classes[] = {
     {
@@ -40,11 +40,11 @@ classes_data information_classes[] = {
     {
         "Task##Information",
         CLASSES_IN_CONTEXT_MENU,
-        information_task_init,
-        information_task_imgui,
-        information_task_dispose,
+        (classes_init_func)dw_task_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },
