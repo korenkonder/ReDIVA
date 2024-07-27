@@ -2890,7 +2890,7 @@ static void a3dc_read_a3da_key_f16(void* data, size_t size, a3da_key* value, a3d
         value->raw_data_value_list_offset = 0;
 
         int32_t len = value->raw_data_value_list_size / 4;
-        value->keys.resize(size);
+        value->keys.resize(len);
         kft3* keys = value->keys.data();
         for (int32_t i = 0; i < len; i++) {
             kft3& k = keys[i];
