@@ -452,7 +452,7 @@ static void stage_database_file_classic_read_inner(stage_database_file* stage_da
         stage_data->format = STAGE_DATA_AC;
     else if (size >= 0x6C && size < 0x70)
         stage_data->format = STAGE_DATA_F;
-    else if (size >= 0x70 && size < 0x74)
+    else if (size >= 0x70)
         stage_data->format = STAGE_DATA_FT;
     else {
         stage_data->ready = false;
