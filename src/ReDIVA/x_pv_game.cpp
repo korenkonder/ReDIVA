@@ -7726,12 +7726,12 @@ bool x_pv_game::ctrl() {
 
             if ((pv_data.pv_id % 100) >= 25 && (pv_data.pv_id % 100) <= 30
                 && stage_data.stage_id >= 25 && stage_data.stage_id <= 30)
-                sprintf_s(buf, sizeof(buf), "CAMPV%03d_100.a3da", pv_data.pv_id);
+                sprintf_s(buf, sizeof(buf), "CAMPV%03d_100", pv_data.pv_id);
             else
-                sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE.a3da", pv_data.pv_id);
+                sprintf_s(buf, sizeof(buf), "CAMPV%03d_BASE", pv_data.pv_id);
 
             a3da a;
-            farc_file* ff = f->read_file(buf);
+            farc_file* ff = f->read_file(hash_utf8_murmurhash(buf));
             if (ff)
                 a.read(ff->data, ff->size);
             delete f;
@@ -7886,11 +7886,11 @@ void x_pv_game::basic() {
         cam->get_interest(interest);
         cam->get_view_point(view_point);
 
-        interest = view_point + vec3::normalize(interest - view_point) * focus;
+        vec3 position = view_point + vec3::normalize(interest - view_point) * focus;
 
-        dof_cam_data.position_x.push_back(interest.x);
-        dof_cam_data.position_y.push_back(interest.y);
-        dof_cam_data.position_z.push_back(interest.z);
+        dof_cam_data.position_x.push_back(position.x);
+        dof_cam_data.position_y.push_back(position.y);
+        dof_cam_data.position_z.push_back(position.z);
         dof_cam_data.focus.push_back(focus);
         dof_cam_data.focus_range.push_back(focus_range);
         dof_cam_data.fuzzing_range.push_back(fuzzing_range);
