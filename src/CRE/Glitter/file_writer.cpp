@@ -771,12 +771,12 @@ namespace Glitter {
             if (big_endian) {
                 store_reverse_endianness_float_t((void*)d, eff->data.emission);
                 store_reverse_endianness_int32_t((void*)(d + 4), eff->data.seed);
-                store_reverse_endianness_float_t((void*)(d + 8), eff->data.unk);
+                store_reverse_endianness_float_t((void*)(d + 8), eff->data.ext_anim_scale_start_time);
             }
             else {
                 *(float_t*)d = eff->data.emission;
                 *(int32_t*)(d + 4) = eff->data.seed;
-                *(float_t*)(d + 8) = eff->data.unk;
+                *(float_t*)(d + 8) = eff->data.ext_anim_scale_start_time;
             }
             d += 12;
 

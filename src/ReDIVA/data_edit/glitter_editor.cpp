@@ -1015,7 +1015,7 @@ bool GlitterEditor::ctrl() {
     if (input_reload) {
         effect_group->emission = Glitter::glt_particle_manager->emission;
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
-            frame_counter, old_frame_counter, counter, random, true);
+            old_frame_counter, frame_counter, counter, random, true);
         Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
@@ -1032,7 +1032,7 @@ bool GlitterEditor::ctrl() {
             frame_counter = (float_t)start_frame;
 
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
-            frame_counter, old_frame_counter, counter, random, false);
+            old_frame_counter, frame_counter, counter, random, false);
         Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
@@ -1045,7 +1045,7 @@ bool GlitterEditor::ctrl() {
         Glitter::counter = counter;
         frame_counter = (float_t)start_frame;
         Glitter::glt_particle_manager->SetFrame(effect_group, scene,
-            frame_counter, old_frame_counter, counter, random, true);
+            old_frame_counter, frame_counter, counter, random, true);
         Glitter::glt_particle_manager->selected_effect_group = effect_group;
         if (scene)
             scene_counter = scene->counter;
@@ -1631,8 +1631,8 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     GlitterEditor::reset_disp();
 
     eg->GetStartEndFrame(glt_edt->start_frame, glt_edt->end_frame);
-    glt_edt->frame_counter = 0;
-    glt_edt->old_frame_counter = 0;
+    glt_edt->frame_counter = 0.0f;
+    glt_edt->old_frame_counter = 0.0f;
     glt_edt->input_pause = true;
     glt_edt->counter = Glitter::counter;
     glt_edt->effect_group = eg;
@@ -1641,6 +1641,10 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     glt_edt->load = false;
     glt_edt->load_wait = false;
     glt_edt->load_error_popup = false;
+    Glitter::glt_particle_manager->SetFrame(eg, glt_edt->scene, glt_edt->old_frame_counter, 
+        glt_edt->frame_counter, glt_edt->counter, glt_edt->random, true);
+    if (glt_edt->scene)
+        glt_edt->scene_counter = glt_edt->scene->counter;
     glitter_editor_enable = false;
 }
 
@@ -2979,8 +2983,8 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
-        if (ImGui::ColumnDragFloat("Unk",
-            &effect->data.unk, 0.0001f, -FLT_MAX, FLT_MAX, "%g", 0))
+        if (ImGui::ColumnDragFloat("Ext Anim Scale Start Time",
+            &effect->data.ext_anim_scale_start_time, 0.0001f, -FLT_MAX, FLT_MAX, "%g", 0))
             changed = true;
     }
 

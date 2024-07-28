@@ -671,12 +671,12 @@ namespace Glitter {
         }
 
         vec3 ext_anim_scale;
-        float_t some_scale = 0.0f;
-        if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
-            if (some_scale <= 0.0f)
-                some_scale = 1.0f;
+        float_t ext_scale = 0.0f;
+        if (rend_group->GetExtAnimScale(&ext_anim_scale, &ext_scale)) {
+            if (ext_scale <= 0.0f)
+                ext_scale = 1.0f;
 
-            ext_anim_scale += some_scale;
+            ext_anim_scale += ext_scale;
             x_vec.x *= ext_anim_scale.x;
             y_vec.y *= ext_anim_scale.y;
         }
@@ -1477,15 +1477,15 @@ namespace Glitter {
         }
 
         vec3 ext_anim_scale;
-        float_t some_scale = 0.0f;
-        if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
+        float_t ext_scale = 0.0f;
+        if (rend_group->GetExtAnimScale(&ext_anim_scale, &ext_scale)) {
             if (!has_scale) {
                 emit_scale = 1.0f;
                 has_scale = true;
             }
 
-            if (some_scale >= 0.0f)
-                emit_scale *= ext_anim_scale + some_scale;
+            if (ext_scale >= 0.0f)
+                emit_scale *= ext_anim_scale + ext_scale;
             else
                 emit_scale += ext_anim_scale;
         }
@@ -1781,12 +1781,12 @@ namespace Glitter {
         }
 
         vec3 ext_anim_scale;
-        float_t some_scale = 0.0f;
-        if (rend_group->GetExtAnimScale(&ext_anim_scale, &some_scale)) {
-            if (some_scale <= 0.0f)
-                some_scale = 1.0f;
+        float_t ext_scale = 0.0f;
+        if (rend_group->GetExtAnimScale(&ext_anim_scale, &ext_scale)) {
+            if (ext_scale <= 0.0f)
+                ext_scale = 1.0f;
 
-            ext_anim_scale += some_scale;
+            ext_anim_scale += ext_scale;
             x_vec.x *= ext_anim_scale.x;
             y_vec.y *= ext_anim_scale.y;
         }
@@ -1959,6 +1959,12 @@ namespace Glitter {
             if (!i->CannotDisp() && i->disp_type == disp_type && (!a3 || !i->HasEnded()))
                 return true;
         return false;
+    }
+
+    void XRenderScene::CheckUseCamera() {
+        for (XRenderGroup*& i : groups)
+            if (i)
+                i->CheckUseCamera();
     }
 
     void XRenderScene::Ctrl(float_t delta_frame, bool copy_mats) {

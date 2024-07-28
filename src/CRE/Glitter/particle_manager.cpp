@@ -66,6 +66,20 @@ namespace Glitter {
             else
                 delta_frame = get_delta_frame();
 
+            for (Scene*& i : scenes) {
+                if (!i || i->type != Glitter::X)
+                    continue;
+
+                float_t delta_frame = this->delta_frame;
+                if (i->frame_rate)
+                    delta_frame = i->frame_rate->get_delta_frame();
+
+                i->CheckUpdate(delta_frame);
+
+                if (i->HasEnded(true))
+                    i->SetEnded();
+            }
+
             CtrlScenes();
         }
         return false;
@@ -128,6 +142,9 @@ namespace Glitter {
         bool local = false;
         for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
+            if (scene->type != Glitter::X)
+                continue;
+
             if (!(scene->flags & SCENE_ENDED)) {
                 if (!local && scene->CanDisp(DISP_LOCAL, true))
                     local = true;
@@ -305,16 +322,13 @@ namespace Glitter {
                 free = scene->HasEnded(true);
             }
 
-            if (free) {
-                if (!(scene->flags & SCENE_ENDED)) {
-                    enum_or(scene->flags, SCENE_ENDED);
-                    scene->fade_frame_left = scene->fade_frame;
+            if (free)
+                if (scene->type == Glitter::X)
+                    scene->SetEnded(); 
+                else {
+                    delete scene;
+                    i = scenes.erase(i);
                 }
-                i++;
-
-                //delete scene;
-                //i = scenes.erase(i);
-            }
             break;
         }
     }
@@ -796,9 +810,9 @@ namespace Glitter {
     }
 
     void GltParticleManager::SetFrame(EffectGroup* effect_group,
-        Scene*& scene, float_t curr_frame, float_t prev_frame,
+        Scene*& scene, float_t curr_frame, float_t next_frame,
         const Counter& counter, const Random& random, bool reset) {
-        if (curr_frame < prev_frame || reset) {
+        if (next_frame < curr_frame || reset) {
             for (auto i = scenes.begin(); i != scenes.end();) {
                 if (!*i || *i != scene) {
                     i++;
@@ -814,15 +828,16 @@ namespace Glitter {
             Glitter::counter = counter;
             Glitter::random = random;
 
-            prev_frame = 0.0f;
+            curr_frame = 0.0f;
         }
 
-        float_t frame = prev_frame;
-        float_t delta = curr_frame - prev_frame;
+        float_t remain_frame = next_frame - curr_frame;
+        if (curr_frame == 0.0f)
+            remain_frame += 1.0f;
         float_t delta_frame = 1.0f;
         while (true) {
             for (Effect*& i : effect_group->effects)
-                if ((float_t)i->data.appear_time == frame) {
+                if ((float_t)i->data.appear_time == curr_frame) {
                     LoadSceneEffect(i->data.name_hash);
 
                     if (!scene) {
@@ -832,11 +847,11 @@ namespace Glitter {
                     }
                 }
 
-            if (delta <= 0.0f)
+            if (remain_frame <= 0.0f)
                 break;
 
-            if (delta_frame > delta)
-                delta_frame = delta;
+            if (delta_frame > remain_frame)
+                delta_frame = remain_frame;
 
             Scene* s = scene;
             if (s && !s->HasEnded(true))
@@ -853,8 +868,8 @@ namespace Glitter {
                 else
                     s->Ctrl(this, delta_frame);
 
-            delta -= delta_frame;
-            frame += delta_frame;
+            remain_frame -= delta_frame;
+            curr_frame += delta_frame;
         }
     }
 
@@ -864,14 +879,30 @@ namespace Glitter {
             init_delta_frame = -1.0f;
     }
 
-    void GltParticleManager::SetSceneEffectExtColor(SceneCounter scene_counter, bool set,
-        uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a) {
+    void GltParticleManager::SetSceneEffectExtAnimMat(SceneCounter scene_counter, mat4* mat) {
+        for (Scene*& i : scenes)
+            if (i && i->counter.counter == scene_counter.counter) {
+                i->SetExtAnimMat(mat, scene_counter.index);
+                break;
+            }
+    }
+
+    void GltParticleManager::SetSceneEffectExtColor(SceneCounter scene_counter,
+        float_t r, float_t g, float_t b, float_t a, bool set, uint64_t effect_hash) {
         for (Scene*& i : scenes)
             if (i && i->counter.counter == scene_counter.counter) {
                 if (effect_hash == hash_fnv1a64m_empty || effect_hash == hash_murmurhash_empty)
-                    i->SetExtColorByID(set, scene_counter.index, r, g, b, a);
+                    i->SetExtColorByID(r, g, b, a, set, scene_counter.index);
                 else
-                    i->SetExtColor(set, effect_hash, r, g, b, a);
+                    i->SetExtColor(r, g, b, a, set, effect_hash);
+                break;
+            }
+    }
+
+    void GltParticleManager::SetSceneEffectExtScale(SceneCounter scene_counter, float_t scale) {
+        for (Scene*& i : scenes)
+            if (i && i->counter.counter == scene_counter.counter) {
+                i->SetExtScale(scale, scene_counter.index);
                 break;
             }
     }

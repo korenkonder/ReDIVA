@@ -312,11 +312,11 @@ namespace Glitter {
             rend_elem->disp = false;
     }
 
-    bool F2ParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+    bool F2ParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (data.effect)
-            return data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+            return data.effect->GetExtAnimScale(ext_anim_scale, ext_scale);
         else if (data.parent && data.parent->data.effect)
-            return data.parent->data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+            return data.parent->data.effect->GetExtAnimScale(ext_anim_scale, ext_scale);
         else
             return false;
     }
@@ -427,6 +427,17 @@ namespace Glitter {
         return true;
     }
 
+    void F2ParticleInst::RenderGroupCtrl(GLT, float_t delta_frame) {
+        if (data.parent || !(data.flags & PARTICLE_INST_NO_CHILD)) {
+            if (data.render_group)
+                data.render_group->Ctrl(GLT_VAL, delta_frame, true);
+            return;
+        }
+
+        for (F2ParticleInst*& i : data.children)
+            i->RenderGroupCtrl(GLT_VAL, delta_frame);
+    }
+
     void F2ParticleInst::Reset() {
         data.flags = (ParticleInstFlag)0;
         if (data.render_group)
@@ -525,7 +536,7 @@ namespace Glitter {
 
         XRenderGroup* rend_group = new XRenderGroup(this);
         if (rend_group) {
-            XEffectInst* effect = (XEffectInst*)parent->data.effect;
+            XEffectInst* effect = parent->data.effect;
             rend_group->disp_type = effect->GetDispType();
             rend_group->fog_type = effect->GetFog();
 
@@ -588,6 +599,35 @@ namespace Glitter {
         rend_elem->speed = max_def(speed, 0.0f);
     }
 
+    bool XParticleInst::CheckUseCamera() {
+        Particle* ptcl = data.particle;
+        if (!ptcl)
+            return false;
+
+        switch (ptcl->data.draw_type) {
+        case DIRECTION_BILLBOARD:
+        case DIRECTION_BILLBOARD_Y_AXIS:
+            return true;
+        }
+
+        if (ptcl->data.type != PARTICLE_QUAD || fabsf(ptcl->data.z_offset) <= 0.000001f)
+            return false;
+
+        switch (ptcl->data.draw_type) {
+        case DIRECTION_BILLBOARD:
+        case DIRECTION_EMITTER_DIRECTION:
+        case DIRECTION_Y_AXIS:
+        case DIRECTION_X_AXIS:
+        case DIRECTION_Z_AXIS:
+        case DIRECTION_BILLBOARD_Y_AXIS:
+        case DIRECTION_EMITTER_ROTATION:
+        case DIRECTION_EFFECT_ROTATION:
+        case DIRECTION_PARTICLE_ROTATION:
+            return true;
+        }
+        return false;
+    }
+
     void XParticleInst::Copy(XParticleInst* dst, float_t emission) {
         dst->data.flags = data.flags;
         if (data.render_group && dst->data.render_group)
@@ -608,7 +648,7 @@ namespace Glitter {
             }
     }
 
-    void XParticleInst::Emit(int32_t dup_count, int32_t count, float_t emission) {
+    void XParticleInst::Emit(int32_t dup_count, int32_t count, float_t emission, float_t frame) {
         if (data.flags & PARTICLE_INST_ENDED)
             return;
 
@@ -626,7 +666,7 @@ namespace Glitter {
         }
 
         if (ptcl->data.render_group)
-            ptcl->data.render_group->Emit(&ptcl->data, ptcl->data.emitter, dup_count, count);
+            ptcl->data.render_group->Emit(&ptcl->data, ptcl->data.emitter, dup_count, count, frame);
     }
 
     void XParticleInst::EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
@@ -794,11 +834,11 @@ namespace Glitter {
             rend_elem->disp = false;
     }
 
-    bool XParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+    bool XParticleInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (data.effect)
-            return data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+            return data.effect->GetExtAnimScale(ext_anim_scale, ext_scale);
         else if (data.parent && data.parent->data.effect)
-            return data.parent->data.effect->GetExtAnimScale(ext_anim_scale, some_scale);
+            return data.parent->data.effect->GetExtAnimScale(ext_anim_scale, ext_scale);
         else
             return false;
     }
@@ -808,6 +848,15 @@ namespace Glitter {
             data.effect->GetExtColor(r, g, b, a);
         else if (data.parent && data.parent->data.effect)
             data.parent->data.effect->GetExtColor(r, g, b, a);
+    }
+
+    bool XParticleInst::GetUseCamera() {
+        if (data.effect)
+            return data.effect->GetUseCamera();
+        else if (data.parent && data.parent->data.effect)
+            return data.parent->data.effect->GetUseCamera();
+        else
+            return false;
     }
 
     bool XParticleInst::GetValue(RenderElement* rend_elem, float_t frame, Random* random, float_t* color_scale) {
@@ -940,6 +989,17 @@ namespace Glitter {
             if (!i->HasEnded(a2))
                 return false;
         return true;
+    }
+
+    void XParticleInst::RenderGroupCtrl(float_t delta_frame) {
+        if (data.parent || !(data.flags & PARTICLE_INST_NO_CHILD)) {
+            if (data.render_group)
+                data.render_group->Ctrl(delta_frame, true);
+            return;
+        }
+
+        for (XParticleInst*& i : data.children)
+            i->RenderGroupCtrl(delta_frame);
     }
 
     void XParticleInst::Reset() {

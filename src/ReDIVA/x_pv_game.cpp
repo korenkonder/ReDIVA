@@ -5479,14 +5479,14 @@ void x_pv_game_stage::ctrl_inner() {
                 std::vector<x_pv_game_stage_effect_glitter>& glitter = eff.glitter;
                 for (x_pv_game_stage_effect_glitter& i : glitter) {
                     if (fabsf(i.fade_time) <= 0.000001f)
-                        Glitter::glt_particle_manager->SetSceneEffectExtColor(i.scene_counter, 0,
-                            hash_murmurhash_empty, -1.0f, -1.0f, -1.0f, 0.0f);
+                        Glitter::glt_particle_manager->SetSceneEffectExtColor(i.scene_counter,
+                            -1.0f, -1.0f, -1.0f, 0.0f, false, hash_murmurhash_empty);
                     else if (i.fade_time > 0.001f) {
                         i.fade_time_left -= delta_time_bar_beat * 4.0f;
                         if (i.fade_time_left < 0.0f)
                             i.fade_time_left = 0.0f;
-                        Glitter::glt_particle_manager->SetSceneEffectExtColor(i.scene_counter, 0,
-                            hash_murmurhash_empty, -1.0f, -1.0f, -1.0f, i.fade_time_left / i.fade_time);
+                        Glitter::glt_particle_manager->SetSceneEffectExtColor(i.scene_counter,
+                            -1.0f, -1.0f, -1.0f, i.fade_time_left / i.fade_time, false, hash_murmurhash_empty);
                     }
                 }
             }
@@ -9248,7 +9248,7 @@ static void x_pv_game_item_alpha_callback(void* data, int32_t chara_id, int32_t 
 
         for (x_pv_game_song_effect_glitter& j : i.glitter)
             Glitter::glt_particle_manager->SetSceneEffectExtColor(j.scene_counter,
-                false, hash_murmurhash_empty, -1.0f, -1.0f, -1.0f, alpha);
+                -1.0f, -1.0f, -1.0f, alpha, false, hash_murmurhash_empty);
     }
 }
 

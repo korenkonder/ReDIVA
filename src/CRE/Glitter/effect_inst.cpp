@@ -28,7 +28,7 @@ namespace Glitter {
         req_frame = 0.0f;
         ext_color = 0.0f;
         ext_anim_scale = 0.0f;
-        some_scale = -1.0f;
+        ext_scale = -1.0f;
 
         if (appear_now)
             data.appear_time = 0;
@@ -40,18 +40,18 @@ namespace Glitter {
 
     }
 
-    bool EffectInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+    bool EffectInst::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (!(flags & EFFECT_INST_HAS_EXT_ANIM_SCALE))
             return false;
 
         if (ext_anim_scale)
             *ext_anim_scale = this->ext_anim_scale;
-        if (some_scale)
-            *some_scale = this->some_scale;
+        if (ext_scale)
+            *ext_scale = this->ext_scale;
         return true;
     }
 
-    void EffectInst::SetExtColor(bool set, float_t r, float_t g, float_t b, float_t a) {
+    void EffectInst::SetExtColor(float_t r, float_t g, float_t b, float_t a, bool set) {
         ext_color.x = r;
         ext_color.y = g;
         ext_color.z = b;
@@ -61,6 +61,11 @@ namespace Glitter {
         else
             enum_and(flags, ~EFFECT_INST_SET_EXT_COLOR);
         enum_or(flags, EFFECT_INST_EXT_COLOR);
+    }
+
+    void EffectInst::SetExtScale(float_t scale) {
+        ext_scale = scale;
+        enum_or(flags, EFFECT_INST_HAS_EXT_SCALE);
     }
 
     int32_t EffectInst::GetExtAnimBoneIndex(GPM, EffectExtAnimCharaNode node) {
@@ -118,7 +123,9 @@ namespace Glitter {
         ext_anim = 0;
 
         if (!init && !(eff->data.flags & EFFECT_LOCAL) && data.ext_anim) {
-            F2EffectInst::ExtAnim* inst_ext_anim = new F2EffectInst::ExtAnim;
+            InitExtAnim();
+
+            F2EffectInst::ExtAnim* inst_ext_anim = this->ext_anim;
             if (inst_ext_anim) {
                 Effect::ExtAnim* ext_anim = data.ext_anim;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -141,7 +148,7 @@ namespace Glitter {
                         inst_ext_anim->mesh_name = 0;
                 }
             }
-            ext_anim = inst_ext_anim;
+
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM);
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
             enum_or(flags, EFFECT_INST_GET_EXT_ANIM_MAT);
@@ -191,41 +198,6 @@ namespace Glitter {
             for (size_t i = 0; i < count; i++)
                 emitters.data()[i]->Copy(f2_dst->emitters.data()[i], emission);
         }
-    }
-
-    void F2EffectInst::Ctrl(GPM, GLT, float_t delta_frame, float_t emission) {
-        GetExtAnim();
-        GetValue(GLT_VAL);
-
-        mat4 mat;
-        if (GetExtAnimMat(&mat))
-            mat4_mul_translate(&mat, &translation, &mat);
-        else
-            mat4_translate(&translation, &mat);
-
-        vec3 rot = rotation;
-        vec3 scale = this->scale * scale_all;
-
-        mat4_mul_rotate_zyx(&mat, &rot, &mat);
-        mat4_scale_rot(&mat, &scale, &this->mat);
-
-        for (F2EmitterInst*& i : emitters)
-            if (i)
-                i->Ctrl(GPM_VAL, GLT_VAL, this, delta_frame);
-
-        if (frame0 >= 0.0f)
-            if (frame0 < (float_t)data.life_time) {
-                for (F2EmitterInst*& i : emitters)
-                    if (i)
-                        i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
-            }
-            else if (data.flags & EFFECT_LOOP)
-                frame0 -= (float_t)data.life_time;
-            else
-                Free(GPM_VAL, GLT_VAL, emission, false);
-
-        render_scene.Ctrl(GLT_VAL, delta_frame);
-        frame0 += delta_frame;
     }
 
     void F2EffectInst::Disp(GPM, DispType disp_type) {
@@ -292,8 +264,43 @@ namespace Glitter {
         return false;
     }
 
+    void F2EffectInst::SetExtAnimMat(const mat4* mat) {
+
+    }
+
+    void F2EffectInst::Ctrl(GPM, GLT, float_t delta_frame) {
+        GetExtAnim();
+        GetValue(GLT_VAL);
+
+        mat4 mat;
+        if (GetExtAnimMat(&mat))
+            mat4_mul_translate(&mat, &translation, &mat);
+        else
+            mat4_translate(&translation, &mat);
+
+        vec3 rot = rotation;
+        vec3 scale = this->scale * scale_all;
+
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
+        mat4_scale_rot(&mat, &scale, &this->mat);
+
+        for (F2EmitterInst*& i : emitters)
+            if (i)
+                i->Ctrl(GPM_VAL, GLT_VAL, this, delta_frame);
+    }
+
+    void F2EffectInst::CtrlInit(GPM, GLT, float_t delta_frame) {
+        if (frame0 < 0.0f)
+            return;
+
+        GetValue(GLT_VAL);
+
+        for (F2EmitterInst*& i : emitters)
+            i->CtrlInit(GPM_VAL, GLT_VAL, this, delta_frame);
+    }
+
     void F2EffectInst::CtrlMat(GPM, GLT) {
-        if (!(flags & EFFECT_INST_JUST_INIT))
+        if (!(flags & EFFECT_INST_RESET_INIT))
             return;
 
         vec3 trans = translation;
@@ -310,7 +317,42 @@ namespace Glitter {
             if (i)
                 i->CtrlMat(GPM_VAL, GLT_VAL, this);
 
-        enum_and(flags, ~EFFECT_INST_JUST_INIT);
+        enum_and(flags, ~EFFECT_INST_RESET_INIT);
+    }
+
+    void F2EffectInst::Emit(GPM, GLT, float_t delta_frame, float_t emission) {
+        if (frame0 >= 0.0f) {
+            if (frame0 < (float_t)data.life_time) {
+                for (F2EmitterInst*& i : emitters)
+                    if (i)
+                        i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
+            }
+            else if (data.flags & EFFECT_LOOP)
+                frame0 -= (float_t)data.life_time;
+            else
+                Free(GPM_VAL, GLT_VAL, emission, false);
+        }
+
+        frame0 += delta_frame;
+    }
+
+    void F2EffectInst::EmitInit(GPM, GLT, float_t delta_frame, float_t emission) {
+        if (frame0 >= 0.0f) {
+            if (frame0 < (float_t)data.life_time) {
+                for (F2EmitterInst*& i : emitters)
+                    if (i)
+                        i->EmitInit(GPM_VAL, GLT_VAL, this, delta_frame, emission);
+            }
+            else if (data.flags & EFFECT_LOOP)
+                frame0 -= (float_t)data.life_time;
+            else
+                Free(GPM_VAL, GLT_VAL, emission, false);
+
+            for (F2EmitterInst*& i : emitters)
+                i->RenderGroupCtrl(GLT_VAL, delta_frame);
+        }
+
+        frame0 += delta_frame;
     }
 
     DispType F2EffectInst::GetDispType() {
@@ -551,6 +593,15 @@ namespace Glitter {
         }
     }
 
+    void F2EffectInst::InitExtAnim() {
+        if (!ext_anim)
+            ext_anim = new F2EffectInst::ExtAnim;
+    }
+
+    void F2EffectInst::RenderSceneCtrl(GLT, float_t delta_frame) {
+        render_scene.Ctrl(GLT_VAL, delta_frame);
+    }
+
     bool F2EffectInst::ResetInit(GPM, GLT, Glitter::Scene* sc, float_t* init_delta_frame) {
         if (data.start_time < 1)
             return false;
@@ -576,42 +627,15 @@ namespace Glitter {
 
         const float_t emission = sc->emission;
         while (start_time > 0.0f) {
-            enum_or(flags, EFFECT_INST_JUST_INIT);
+            enum_or(flags, EFFECT_INST_RESET_INIT);
             if (delta_frame > start_time)
                 delta_frame -= start_time;
 
-            if (frame0 >= 0.0f) {
-                GetValue(GLT_VAL);
+            CtrlInit(GPM_VAL, GLT_VAL, delta_frame);
+            EmitInit(GPM_VAL, GLT_VAL, delta_frame, emission);
 
-                vec3 trans = translation;
-                vec3 rot = rotation;
-                vec3 scale = this->scale * scale_all;
-
-                mat4 mat;
-                mat4_translate(&trans, &mat);
-                mat4_mul_rotate_zyx(&mat, &rot, &mat);
-                mat4_scale_rot(&mat, &scale, &this->mat);
-
-                for (F2EmitterInst*& i : emitters)
-                    if (i)
-                        i->CtrlInit(GPM_VAL, GLT_VAL, this, delta_frame);
-
-                if (frame0 < (float_t)data.life_time) {
-                    for (F2EmitterInst*& i : emitters)
-                        if (i)
-                            i->Emit(GPM_VAL, GLT_VAL, delta_frame, emission);
-                }
-                else if (data.flags & EFFECT_LOOP)
-                    frame0 -= (float_t)data.life_time;
-                else
-                    Free(GPM_VAL, GLT_VAL, emission, false);
-
-                render_scene.Ctrl(GLT_VAL, delta_frame);
-            }
-
-            frame0 += delta_frame;
-            frame1 += delta_frame;
             start_time -= delta_frame;
+            frame1 += delta_frame;
         }
 
         CtrlMat(GPM_VAL, GLT_VAL);
@@ -641,6 +665,7 @@ namespace Glitter {
         mat_rot = mat4_identity;
         mat_rot_eff_rot = mat4_identity;
         random_shared.XReset();
+        flags = EFFECT_INST_JUST_INIT;
         ext_anim = 0;
         render_scene = {};
 
@@ -656,7 +681,9 @@ namespace Glitter {
         random_shared.value = random;
 
         if (!init && !(eff->data.flags & EFFECT_LOCAL) && data.ext_anim_x) {
-            XEffectInst::ExtAnim* inst_ext_anim = new XEffectInst::ExtAnim;
+            InitExtAnim();
+
+            XEffectInst::ExtAnim* inst_ext_anim = this->ext_anim;
             if (inst_ext_anim) {
                 Effect::ExtAnimX* ext_anim = data.ext_anim_x;
                 if (ext_anim->flags & EFFECT_EXT_ANIM_SET_ONCE)
@@ -688,7 +715,7 @@ namespace Glitter {
                 else
                     inst_ext_anim->mesh_name = 0;
             }
-            ext_anim = inst_ext_anim;
+
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM);
             enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
             enum_or(flags, EFFECT_INST_GET_EXT_ANIM_MAT);
@@ -738,57 +765,6 @@ namespace Glitter {
             for (size_t i = 0; i < count; i++)
                 emitters.data()[i]->Copy(x_dst->emitters.data()[i], emission);
         }
-    }
-
-    void XEffectInst::Ctrl(GPM, GLT, float_t delta_frame, float_t emission) {
-        GetExtAnim();
-        if (flags & EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE && !GPM_VAL->draw_all)
-            return;
-
-        GetValue();
-
-        vec3& rot = rotation;
-
-        mat4 mat;
-        if (GetExtAnimMat(&mat)) {
-            mat4_normalize_rotation(&mat, &mat_rot);
-            mat4_clear_trans(&mat_rot, &mat_rot);
-
-            mat_rot_eff_rot = mat_rot;
-            mat4_mul_rotate_zyx(&mat_rot, &rot, &mat_rot);
-
-            mat4_mul_translate(&mat, &translation, &mat);
-        }
-        else {
-            mat_rot = mat4_identity;
-            mat_rot_eff_rot = mat4_identity;
-            mat4_rotate_zyx(&rot, &mat_rot);
-
-            mat4_translate(&translation, &mat);
-        }
-
-        vec3 scale = this->scale * scale_all;
-
-        mat4_mul_rotate_zyx(&mat, &rot, &mat);
-        mat4_scale_rot(&mat, &scale, &this->mat);
-
-        for (XEmitterInst*& i : emitters)
-            if (i)
-                i->Ctrl(GPM_VAL, this, delta_frame);
-
-        if (frame0 >= 0.0f)
-            if (frame0 < (float_t)data.life_time) {
-                for (XEmitterInst*& i : emitters)
-                    if (i)
-                        i->Emit(delta_frame, emission);
-            }
-            else if (data.flags & EFFECT_LOOP)
-                frame0 -= (float_t)data.life_time;
-            else
-                Free(GPM_VAL, Glitter::X, emission, false);
-
-        render_scene.Ctrl(delta_frame, true);
-        frame0 += delta_frame;
     }
 
     void XEffectInst::Disp(GPM, DispType disp_type) {
@@ -863,8 +839,141 @@ namespace Glitter {
         return false;
     }
 
+    void XEffectInst::SetExtAnimMat(const mat4* mat) {
+        InitExtAnim();
+
+        if (!mat || !ext_anim)
+            return;
+        ext_anim->mat = *mat;
+        ext_anim->translation = 0.0f;
+
+        if ((flags & EFFECT_INST_HAS_EXT_ANIM_NON_INIT))
+            enum_and(flags, ~EFFECT_INST_HAS_EXT_ANIM_NON_INIT);
+        if (!(flags & EFFECT_INST_HAS_EXT_ANIM_TRANS))
+            enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_TRANS);
+
+        enum_and(flags, ~(EFFECT_INST_GET_EXT_ANIM_MAT | EFFECT_INST_CHARA_ANIM));
+        enum_or(flags, EFFECT_INST_SET_EXT_ANIM_MAT);
+    }
+
+    void XEffectInst::CheckDataDependency() {
+        bool depends_on_ext_data = false;
+        if (ext_anim)
+            if (!(flags & EFFECT_INST_SET_EXT_ANIM_MAT) && !(flags & EFFECT_INST_HAS_EXT_ANIM)
+                || (flags & EFFECT_INST_HAS_EXT_ANIM_SCALE)
+                || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE) && (flags & EFFECT_INST_HAS_EXT_ANIM_TRANS))
+                depends_on_ext_data = true;
+
+        if (!depends_on_ext_data)
+            for (XEmitterInst*& i : emitters)
+                if (i->CheckUseCamera()) {
+                    depends_on_ext_data = true;
+                    break;
+                }
+
+        if (depends_on_ext_data)
+            enum_or(flags, EFFECT_INST_DEPENDS_ON_EXT_DATA);
+        else
+            enum_and(flags, ~EFFECT_INST_DEPENDS_ON_EXT_DATA);
+    }
+
+    void XEffectInst::CheckUpdate() {
+        CheckDataDependency();
+        render_scene.CheckUseCamera();
+    }
+
+    void XEffectInst::Ctrl(GPM, float_t delta_frame) {
+        GetExtAnim();
+        if (flags & EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE && !GPM_VAL->draw_all)
+            return;
+
+        GetValue();
+
+        vec3& rot = rotation;
+
+        mat4 mat;
+        if (GetExtAnimMat(&mat)) {
+            mat4_normalize_rotation(&mat, &mat_rot);
+            mat4_clear_trans(&mat_rot, &mat_rot);
+
+            mat_rot_eff_rot = mat_rot;
+            mat4_mul_rotate_zyx(&mat_rot, &rot, &mat_rot);
+
+            mat4_mul_translate(&mat, &translation, &mat);
+        }
+        else {
+            mat_rot = mat4_identity;
+            mat_rot_eff_rot = mat4_identity;
+            mat4_rotate_zyx(&rot, &mat_rot);
+
+            mat4_translate(&translation, &mat);
+        }
+
+        vec3 scale = this->scale * scale_all;
+
+        mat4_mul_rotate_zyx(&mat, &rot, &mat);
+        mat4_scale_rot(&mat, &scale, &this->mat);
+
+        for (XEmitterInst*& i : emitters)
+            if (i)
+                i->Ctrl(GPM_VAL, this, delta_frame);
+    }
+
+    void XEffectInst::CtrlFlags(float_t delta_frame) {
+        if (flags & EFFECT_INST_NOT_ENDED)
+            enum_and(flags, ~EFFECT_INST_NOT_ENDED);
+
+        if (flags & EFFECT_INST_JUST_INIT)
+            enum_and(flags, ~EFFECT_INST_JUST_INIT);
+
+        frame0 += delta_frame;
+
+        if ((flags & EFFECT_INST_HAS_EXT_ANIM) && !(flags & EFFECT_INST_HAS_EXT_ANIM_SCALE)) {
+            if (data.ext_anim_scale_start_time >= 0.0f && (flags & EFFECT_INST_HAS_EXT_ANIM_TRANS)
+                && frame0 >= data.ext_anim_scale_start_time)
+                enum_or(flags, EFFECT_INST_HAS_EXT_ANIM_SCALE);
+        }
+
+        float_t life_time = (float_t)data.life_time;
+        if (frame0 >= life_time) {
+            enum_or(flags, EFFECT_INST_NOT_ENDED);
+            if (data.flags & EFFECT_LOOP) {
+                if (life_time <= 0.0f)
+                    frame0 = 0.0f;
+                else
+                    while (frame0 >= life_time)
+                        frame0 -= life_time;
+            }
+        }
+    }
+
+    void XEffectInst::CtrlInit(GPM, float_t delta_frame) {
+        if (frame0 < 0.0f)
+            return;
+
+        GetValue();
+
+        for (XEmitterInst*& i : emitters) {
+            if (i->data.timer != EMITTER_TIMER_BY_DISTANCE)
+                continue;
+
+            mat4 mat;
+            mat4_mul_translate(&this->mat, &translation, &mat);
+
+            vec3 rot = rotation;
+            vec3 scale = this->scale * scale_all;
+
+            mat4_mul_rotate_zyx(&mat, &rot, &mat);
+            mat4_scale_rot(&mat, &scale, &this->mat);
+            break;
+        }
+
+        for (XEmitterInst*& i : emitters)
+            i->CtrlInit(this, delta_frame);
+    }
+
     void XEffectInst::CtrlMat(GPM) {
-        if (!(flags & EFFECT_INST_JUST_INIT))
+        if (!(flags & EFFECT_INST_RESET_INIT))
             return;
 
         vec3 trans = translation;
@@ -881,7 +990,42 @@ namespace Glitter {
             if (i)
                 i->CtrlMat(GPM_VAL, this);
 
-        enum_and(flags, ~EFFECT_INST_JUST_INIT);
+        enum_and(flags, ~EFFECT_INST_RESET_INIT);
+    }
+
+    void XEffectInst::Emit(GPM, float_t delta_frame, float_t emission) {
+        if (flags & EFFECT_INST_GET_EXT_ANIM_THEN_UPDATE)
+            return;
+        else if (flags & EFFECT_INST_NOT_ENDED) {
+            if (!(data.flags & EFFECT_LOOP)) {
+                Free(GPM_VAL, Glitter::X, emission, false);
+                return;
+            }
+        }
+        else if (frame0 < 0.0f)
+            return;
+
+        for (XEmitterInst*& i : emitters)
+            i->Emit(delta_frame, emission);
+    }
+
+    void XEffectInst::EmitInit(GPM, float_t delta_frame, float_t emission) {
+        if (frame0 >= 0.0f) {
+            if (frame0 < (float_t)data.life_time) {
+                for (XEmitterInst*& i : emitters)
+                    if (i)
+                        i->EmitInit(GPM_VAL, this, delta_frame, emission);
+            }
+            else if (data.flags & EFFECT_LOOP)
+                frame0 -= (float_t)data.life_time;
+            else
+                Free(GPM_VAL, Glitter::X, emission, false);
+
+            for (XEmitterInst*& i : emitters)
+                i->RenderGroupCtrl(delta_frame);
+        }
+
+        frame0 += delta_frame;
     }
 
     DispType XEffectInst::GetDispType() {
@@ -898,8 +1042,9 @@ namespace Glitter {
         if (!ext_anim || !data.ext_anim_x)
             return;
 
-        if (!(flags & EFFECT_INST_HAS_EXT_ANIM) || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE
-                && flags & EFFECT_INST_HAS_EXT_ANIM_TRANS))
+        if (!(flags & EFFECT_INST_SET_EXT_ANIM_MAT) && !(flags & EFFECT_INST_HAS_EXT_ANIM)
+            || (flags & EFFECT_INST_HAS_EXT_ANIM_SCALE)
+            || (flags & EFFECT_INST_SET_EXT_ANIM_ONCE) && (flags & EFFECT_INST_HAS_EXT_ANIM_TRANS))
             return;
 
         bool set_flags = false;
@@ -1058,6 +1203,10 @@ namespace Glitter {
         return Glitter::FOG_NONE;
     }
 
+    bool XEffectInst::GetUseCamera() {
+        return !!(flags & EFFECT_INST_DEPENDS_ON_EXT_DATA);
+    }
+
     void XEffectInst::GetValue() {
         Animation* anim = &effect->animation;
         size_t length = anim->curves.size();
@@ -1114,6 +1263,15 @@ namespace Glitter {
         }
     }
 
+    void XEffectInst::InitExtAnim() {
+        if (!ext_anim)
+            ext_anim = new XEffectInst::ExtAnim;
+    }
+
+    void XEffectInst::RenderSceneCtrl(float_t delta_frame) {
+        render_scene.Ctrl(delta_frame, true);
+    }
+
     bool XEffectInst::ResetInit(GPM, Scene* sc, float_t* init_delta_frame) {
         if (data.start_time < 1)
             return false;
@@ -1139,40 +1297,13 @@ namespace Glitter {
 
         const float_t emission = sc->emission;
         while (start_time > 0.0f) {
-            enum_or(flags, EFFECT_INST_JUST_INIT);
+            enum_or(flags, EFFECT_INST_RESET_INIT);
             if (delta_frame > start_time)
                 delta_frame -= start_time;
 
-            if (frame0 >= 0.0f) {
-                GetValue();
+            CtrlInit(GPM_VAL, delta_frame);
+            EmitInit(GPM_VAL, delta_frame, emission);
 
-                vec3 trans = translation;
-                vec3 rot = rotation;
-                vec3 scale = this->scale * scale_all;
-
-                mat4 mat;
-                mat4_translate(&trans, &mat);
-                mat4_mul_rotate_zyx(&mat, &rot, &mat);
-                mat4_scale_rot(&mat, &scale, &this->mat);
-
-                for (XEmitterInst*& i : emitters)
-                    if (i)
-                        i->CtrlInit(this, delta_frame);
-
-                if (frame0 < (float_t)data.life_time) {
-                    for (XEmitterInst*& i : emitters)
-                        if (i)
-                            i->Emit(delta_frame, emission);
-                }
-                else if (data.flags & EFFECT_LOOP)
-                    frame0 -= (float_t)data.life_time;
-                else
-                    Free(GPM_VAL, Glitter::X, emission, false);
-
-                render_scene.Ctrl(delta_frame, false);
-            }
-
-            frame0 += delta_frame;
             frame1 += delta_frame;
             start_time -= delta_frame;
         }

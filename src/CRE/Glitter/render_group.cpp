@@ -277,9 +277,9 @@ namespace Glitter {
         DeleteBuffers(true);
     }
 
-    bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+    bool F2RenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (particle)
-            particle->GetExtAnimScale(ext_anim_scale, some_scale);
+            particle->GetExtAnimScale(ext_anim_scale, ext_scale);
         return false;
     }
 
@@ -331,7 +331,7 @@ namespace Glitter {
         return mat;
     }
 
-    XRenderGroup::XRenderGroup(XParticleInst* ptcl_inst) : particle(), use_culling() {
+    XRenderGroup::XRenderGroup(XParticleInst* ptcl_inst) : particle(), use_culling(), use_camera() {
         object_name_hash = hash_murmurhash_empty;
 
         switch (ptcl_inst->data.data.type) {
@@ -407,6 +407,13 @@ namespace Glitter {
             return (effect->flags & EFFECT_INST_HAS_EXT_ANIM_NON_INIT) != 0;
         else
             return true;
+    }
+
+    void XRenderGroup::CheckUseCamera() {
+        if (particle)
+            use_camera = particle->GetUseCamera();
+        else
+            use_camera = false;
     }
 
     void XRenderGroup::Copy(XRenderGroup* dst) {
@@ -557,8 +564,9 @@ namespace Glitter {
             elements = 0;
         }
     }
+
     void XRenderGroup::Emit(XParticleInst::Data* ptcl_inst_data,
-        XEmitterInst* emit_inst, int32_t dup_count, int32_t count) {
+        XEmitterInst* emit_inst, int32_t dup_count, int32_t count, float_t frame) {
         RenderElement* element;
         int64_t i;
         int32_t index;
@@ -573,6 +581,7 @@ namespace Glitter {
                     break;
 
                 emit_inst->RandomStepValue();
+                element->frame = frame;
                 particle->EmitParticle(element, emit_inst, ptcl_inst_data, index, step, random_ptr);
             }
     }
@@ -611,9 +620,9 @@ namespace Glitter {
         return false;
     }
 
-    bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* some_scale) {
+    bool XRenderGroup::GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale) {
         if (particle)
-            particle->GetExtAnimScale(ext_anim_scale, some_scale);
+            particle->GetExtAnimScale(ext_anim_scale, ext_scale);
         return false;
     }
 

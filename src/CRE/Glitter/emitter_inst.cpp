@@ -92,16 +92,20 @@ namespace Glitter {
             return;
 
         if (loop)
-            if (data.loop_end_time < 0.0f || frame < data.loop_end_time) {
-                if (frame >= data.life_time) {
-                    frame -= data.life_time;
+            if ((float_t)data.loop_end_time < 0.0f || frame < (float_t)data.loop_end_time) {
+                float_t life_time = (float_t)data.life_time;
+                if (frame >= life_time) {
+                    frame -= life_time;
                     if (emission == EMITTER_EMISSION_EMITTED && emission_interval > 0.0f)
                         emission = EMITTER_EMISSION_ON_TIMER;
                 }
             }
-            else
-                while (frame > data.loop_end_time)
-                    frame -= data.loop_end_time - data.loop_start_time;
+            else {
+                float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
+                float_t loop_end_time = (float_t)data.loop_end_time;
+                while (frame > loop_end_time)
+                    frame -= loop_time;
+            }
 
         GetValue(GLT_VAL);
         rotation += data.rotation_add * delta_frame;
@@ -113,13 +117,17 @@ namespace Glitter {
             return;
 
         if (loop)
-            if (data.loop_end_time < 0.0f || frame < data.loop_end_time) {
-                if (frame >= data.life_time)
-                    frame -= data.life_time;
+            if ((float_t)data.loop_end_time < 0.0f || frame < (float_t)data.loop_end_time) {
+                float_t life_time = (float_t)data.life_time;
+                if (frame >= life_time)
+                    frame -= life_time;
             }
-            else
-                while (frame > data.loop_end_time)
-                    frame -= data.loop_end_time - data.loop_start_time;
+            else {
+                float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
+                float_t loop_end_time = (float_t)data.loop_end_time;
+                while (frame > loop_end_time)
+                    frame -= loop_time;
+            }
 
         if (frame < 0.0f)
             return;
@@ -178,14 +186,16 @@ namespace Glitter {
 
         if (!(flags & EMITTER_INST_ENDED))
             if (this->emission == EMITTER_EMISSION_ON_TIMER) {
-                if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
-                    emission_timer -= delta_frame;
-                    if (emission_timer <= 0.0f) {
-                        EmitParticle(GPM_VAL, GLT_VAL, emission);
-                        if (emission_interval > 0.0f)
-                            emission_timer += emission_interval;
-                        else
-                            emission_timer = -1.0f;
+                if (data.timer == EMITTER_TIMER_BY_TIME) {
+                    if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
+                        emission_timer -= delta_frame;
+                        if (emission_timer <= 0.0f) {
+                            EmitParticle(GPM_VAL, GLT_VAL, emission);
+                            if (emission_interval > 0.0f)
+                                emission_timer += emission_interval;
+                            else
+                                emission_timer = -1.0f;
+                        }
                     }
                 }
             }
@@ -197,8 +207,43 @@ namespace Glitter {
                 }
             }
 
-        if (!loop && frame >= data.life_time)
+        if (!loop && frame >= (float_t)data.life_time)
             Free(GPM_VAL, GLT_VAL, emission, false);
+        frame += delta_frame;
+    }
+
+    void F2EmitterInst::EmitInit(GPM, GLT, F2EffectInst* eff_inst, float_t delta_frame, float_t emission) {
+        if (frame < 0.0f) {
+            frame += delta_frame;
+            return;
+        }
+
+        if (!(flags & EMITTER_INST_ENDED)) {
+            if (this->emission == EMITTER_EMISSION_ON_TIMER) {
+                if (data.timer == EMITTER_TIMER_BY_TIME) {
+                    if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
+                        emission_timer -= delta_frame;
+                        if (emission_timer <= 0.0f) {
+                            eff_inst->CtrlMat(GPM_VAL, GLT_VAL);
+                            EmitParticle(GPM_VAL, GLT_VAL, emission);
+                            if (emission_interval > 0.0f)
+                                emission_timer += emission_interval;
+                            else
+                                emission_timer = -1.0f;
+                        }
+                    }
+                }
+            }
+            else if (this->emission == EMITTER_EMISSION_ON_START) {
+                eff_inst->CtrlMat(GPM_VAL, GLT_VAL);
+                EmitParticle(GPM_VAL, GLT_VAL, emission);
+                this->emission = EMITTER_EMISSION_EMITTED;
+            }
+        }
+
+        if (!loop && frame >= (float_t)data.life_time)
+            Free(GPM_VAL, GLT_VAL, emission, false);
+
         frame += delta_frame;
     }
 
@@ -226,7 +271,7 @@ namespace Glitter {
             this->emission = EMITTER_EMISSION_EMITTED;
         }
 
-        if (loop && data.loop_end_time >= 0.0f)
+        if (loop && (float_t)data.loop_end_time >= 0.0f)
             loop = false;
 
         enum_or(flags, EMITTER_INST_ENDED);
@@ -359,6 +404,11 @@ namespace Glitter {
         }
     }
 
+    void F2EmitterInst::RenderGroupCtrl(GLT, float_t delta_frame) {
+        for (F2ParticleInst*& i : particles)
+            i->RenderGroupCtrl(GLT_VAL, delta_frame);
+    }
+
     void F2EmitterInst::Reset() {
         loop = data.flags & EMITTER_LOOP ? true : false;
         frame = -(float_t)data.start_time;
@@ -416,6 +466,22 @@ namespace Glitter {
             delete i;
     }
 
+    bool XEmitterInst::CheckUseCamera() {
+        if (!particles.size())
+            return false;
+
+        switch (data.direction) {
+        case DIRECTION_BILLBOARD:
+        case DIRECTION_BILLBOARD_Y_AXIS:
+            return true;
+        }
+
+        for (XParticleInst*& i : particles)
+            if (i->CheckUseCamera())
+                return true;
+        return false;
+    }
+
     void XEmitterInst::Copy(XEmitterInst* dst, float_t emission) {
         dst->translation = translation;
         dst->rotation = rotation;
@@ -447,11 +513,11 @@ namespace Glitter {
             if ((float_t)data.loop_end_time < 0.0f || frame < (float_t)data.loop_end_time) {
                 float_t life_time = (float_t)data.life_time;
                 if (frame >= life_time) {
-                    if (life_time <= 0.0f)
-                        frame = 0.0f;
-                    else
+                    if (life_time > 0.0f)
                         while (frame >= life_time)
                             frame -= life_time;
+                    else
+                        frame = 0.0f;
 
                     if (emission == EMITTER_EMISSION_EMITTED && emission_interval > 0.0f)
                         emission = EMITTER_EMISSION_ON_TIMER;
@@ -551,27 +617,16 @@ namespace Glitter {
             return;
 
         if (loop) {
-            if (data.loop_end_time < 0.0f || frame < data.loop_end_time) {
-                if (frame >= data.life_time) {
-                    if (data.life_time > 0.0f)
-                        while (frame >= data.life_time)
-                            frame -= data.life_time;
-                    else
-                        frame = 0.0f;
-
-                    if (emission == EMITTER_EMISSION_EMITTED && emission_interval > 0.0f)
-                        emission = EMITTER_EMISSION_ON_TIMER;
-                }
+            if ((float_t)data.loop_end_time < 0.0f || frame < (float_t)data.loop_end_time) {
+                float_t life_time = (float_t)data.life_time;
+                if (frame >= life_time)
+                    frame -= life_time;
             }
             else {
                 float_t loop_time = (float_t)(data.loop_end_time - data.loop_start_time);
-                if (loop_time > 0.0f) {
-                    float_t loop_end_time = (float_t)data.loop_end_time;
-                    while (frame >= loop_end_time)
-                        frame -= loop_time;
-                }
-                else
-                    frame = 0.0f;
+                float_t loop_end_time = (float_t)data.loop_end_time;
+                while (frame > loop_end_time)
+                    frame -= loop_time;
             }
         }
 
@@ -665,7 +720,7 @@ namespace Glitter {
                 if (data.timer == EMITTER_TIMER_BY_DISTANCE) {
                     if (emission_timer <= 0.0f || emission_interval >= 0.0f)
                         while (emission_timer <= 0.0f) {
-                            EmitParticle(emission);
+                            EmitParticle(emission, -emission_timer);
                             emission_timer += emission_interval;
                             if (emission_timer < -1000000.0f)
                                 emission_timer = -1000000.0f;
@@ -678,7 +733,7 @@ namespace Glitter {
                     if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
                         emission_timer -= delta_frame;
                         if (emission_timer <= 0.0f) {
-                            EmitParticle(emission);
+                            EmitParticle(emission, -emission_timer);
                             if (emission_interval > 0.0f)
                                 emission_timer += emission_interval;
                             else
@@ -690,18 +745,61 @@ namespace Glitter {
                 && data.timer == EMITTER_TIMER_BY_TIME) {
                 emission_timer -= delta_frame;
                 if (emission_timer <= 0.0f) {
-                    EmitParticle(emission);
+                    EmitParticle(emission, -emission_timer);
                     this->emission = EMITTER_EMISSION_EMITTED;
                 }
             }
 
-        if (!loop && frame >= data.life_time)
+        if (!loop && frame >= (float_t)data.life_time)
             Free(emission, false);
 
         frame += delta_frame;
     }
 
-    void XEmitterInst::EmitParticle(float_t emission) {
+    void XEmitterInst::EmitInit(GPM, XEffectInst* eff_inst, float_t delta_frame, float_t emission) {
+        if (frame < 0.0f) {
+            frame += delta_frame;
+            return;
+        }
+
+        if (!(flags & EMITTER_INST_ENDED)) {
+            if (this->emission == EMITTER_EMISSION_ON_TIMER) {
+                if (data.timer == EMITTER_TIMER_BY_DISTANCE) {
+                    if (emission_timer <= 0.0f) {
+                        EmitParticle(emission, -emission_timer);
+                        emission_timer += emission_timer;
+                        if (emission_timer < -1000000.0f)
+                            emission_timer = -1000000.0f;
+                    }
+                }
+                else if (data.timer == EMITTER_TIMER_BY_TIME) {
+                    if (emission_timer >= 0.0f || emission_interval >= 0.0f) {
+                        emission_timer -= delta_frame;
+                        if (emission_timer <= 0.0f) {
+                            eff_inst->CtrlMat(GPM_VAL);
+                            EmitParticle(emission, -emission_timer);
+                            if (emission_interval > 0.0f)
+                                emission_timer += emission_interval;
+                            else
+                                emission_timer = -1.0;
+                        }
+                    }
+                }
+            }
+            else if (this->emission == EMITTER_EMISSION_ON_START) {
+                eff_inst->CtrlMat(GPM_VAL);
+                EmitParticle(emission, 0.0f);
+                this->emission = EMITTER_EMISSION_EMITTED;
+            }
+        }
+
+        if (!loop && frame >= (float_t)data.life_time)
+            Free(emission, false);
+
+        frame += delta_frame;
+    }
+
+    void XEmitterInst::EmitParticle(float_t emission, float_t frame) {
         int32_t count;
         if (data.type == EMITTER_POLYGON)
             count = data.polygon.count;
@@ -710,7 +808,7 @@ namespace Glitter {
 
         for (XParticleInst*& i : particles)
             if (i)
-                i->Emit((int32_t)prj::roundf(particles_per_emission), count, emission);
+                i->Emit((int32_t)prj::roundf(particles_per_emission), count, emission, frame);
     }
 
     void XEmitterInst::Free(float_t emission, bool free) {
@@ -722,7 +820,7 @@ namespace Glitter {
         }
 
         if (this->emission == EMITTER_EMISSION_ON_END) {
-            EmitParticle(emission);
+            EmitParticle(emission, 0.0f);
             this->emission = EMITTER_EMISSION_EMITTED;
         }
 
@@ -876,6 +974,11 @@ namespace Glitter {
         counter += 11;
         counter %= 30000;
         random_ptr->SetValue(random + counter);
+    }
+
+    void XEmitterInst::RenderGroupCtrl(float_t delta_frame) {
+        for (XParticleInst*& i : particles)
+            i->RenderGroupCtrl(delta_frame);
     }
 
     void XEmitterInst::Reset() {

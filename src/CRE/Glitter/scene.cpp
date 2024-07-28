@@ -11,12 +11,12 @@ namespace Glitter {
         this->hash = hash;
         flags = SCENE_NONE;
         emission = 1.0f;
+        delta_frame_history = 0.0f;
+        fade_frame_left = -1.0f;
+        fade_frame = -1.0f;
+        skip = false;
         type = eff_group->type;
         effect_group = eff_group;
-        delta_frame_history = 0.0f;
-        skip = false;
-        fade_frame = -1.0f;
-        fade_frame_left = -1.0f;
         frame_rate = 0;
 
         if (eff_group) {
@@ -65,46 +65,74 @@ namespace Glitter {
         return false;
     }
 
+    void Scene::CheckUpdate(float_t delta_frame) {
+        if (delta_frame > 0.0f)
+            enum_and(flags, ~SCENE_PAUSE);
+        else
+            enum_or(flags, SCENE_PAUSE);
+
+        for (SceneEffect& i : effects)
+            if (i.ptr && i.disp)
+                ((XEffectInst*)i.ptr)->CheckUpdate();
+    }
+
     void Scene::Ctrl(GPM, float_t delta_frame) {
-        static int32_t call_count;
+        if (type != Glitter::X) {
+            for (SceneEffect& i : effects)
+                if (i.ptr && i.disp)
+                    ((F2EffectInst*)i.ptr)->Ctrl(GPM_VAL, type, delta_frame);
+
+            for (SceneEffect& i : effects)
+                if (i.ptr && i.disp)
+                    ((F2EffectInst*)i.ptr)->Emit(GPM_VAL, type, delta_frame, emission);
+
+            for (SceneEffect& i : effects)
+                if (i.ptr && i.disp)
+                    ((F2EffectInst*)i.ptr)->RenderSceneCtrl(type, delta_frame);
+            return;
+        }
+
+        if (delta_frame < 0.0f)
+            return;
+
         for (SceneEffect& i : effects) {
             if (!i.ptr || !i.disp)
                 continue;
 
-            EffectInst* eff = i.ptr;
-            bool v13 = false;
-            bool v14 = false;
-            if (v14)
-                v13 = true;
+            XEffectInst* eff = (XEffectInst*)i.ptr;
 
-            float_t _delta_frame = delta_frame;
-            if (v14)
-                _delta_frame = 0.0f;
+            bool step = false;
+            bool just_init = !!(eff->flags & EFFECT_INST_JUST_INIT);
+            if (!(flags & SCENE_PAUSE) || just_init)
+                step = true;
+
+            float_t _delta_frame = 0.0f;
+            if (!just_init)
+                _delta_frame = delta_frame;
 
             float_t req_frame = eff->req_frame;
             eff->req_frame = 0.0f;
 
-            req_frame -= _delta_frame;
+            float_t remain_frame = req_frame - _delta_frame;
             while (true) {
-                while (true) {
-                    if (v13 || _delta_frame > 0.0f)
-                        eff->Ctrl(GPM_VAL, type, _delta_frame, emission);
-
-                    if (req_frame <= 10.0f)
-                        break;
-
-                    _delta_frame = 10.0f;
-                    req_frame -= 10.0f;
+                if (step || _delta_frame > 0.0f) {
+                    eff->CtrlFlags(_delta_frame);
+                    eff->Ctrl(GPM_VAL, _delta_frame);
+                    eff->Emit(GPM_VAL, _delta_frame, emission);
+                    eff->RenderSceneCtrl(_delta_frame);
                 }
 
-                if (req_frame <= 0.0f)
+                if (remain_frame > 10.0f) {
+                    _delta_frame = 10.0f;
+                    remain_frame -= 10.0f;
+                }
+                else if (remain_frame > 0.0f) {
+                    _delta_frame = remain_frame;
+                    remain_frame = -1.0f;
+                }
+                else
                     break;
-
-                _delta_frame = req_frame;
-                req_frame = -1.0f;
             }
-
-            //eff->Ctrl(GPM_VAL, type, delta_frame, emission);
         }
     }
 
@@ -295,37 +323,72 @@ namespace Glitter {
         return false;
     }
 
-    bool Scene::SetExtColor(bool set, uint64_t effect_hash, float_t r, float_t g, float_t b, float_t a) {
+    void Scene::SetEnded() {
+        if (!(flags & SCENE_ENDED)) {
+            enum_and(flags, SCENE_ENDED);
+            fade_frame_left = fade_frame;
+        }
+    }
+
+    void Scene::SetExtAnimMat(mat4* mat, size_t id) {
+        if (!id) {
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr)
+                    i.ptr->SetExtAnimMat(mat);
+        }
+        else
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr && i.ptr->id == id) {
+                    i.ptr->SetExtAnimMat(mat);
+                    break;
+                }
+    }
+
+    bool Scene::SetExtColor(float_t r, float_t g, float_t b, float_t a, bool set, uint64_t effect_hash) {
         if (type == Glitter::FT && effect_hash == hash_fnv1a64m_empty
             || type != Glitter::FT && effect_hash == hash_murmurhash_empty) {
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr)
-                    i.ptr->SetExtColor(set, r, g, b, a);
+                    i.ptr->SetExtColor(r, g, b, a, set);
             return true;
         }
         else
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr && i.ptr->data.name_hash == effect_hash) {
-                    i.ptr->SetExtColor(set, r, g, b, a);
+                    i.ptr->SetExtColor(r, g, b, a, set);
                     return true;
                 }
         return false;
     }
 
-    bool Scene::SetExtColorByID(bool set, size_t id, float_t r, float_t g, float_t b, float_t a) {
+    bool Scene::SetExtColorByID(float_t r, float_t g, float_t b, float_t a, bool set, size_t id) {
         if (!id) {
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr)
-                    i.ptr->SetExtColor(set, r, g, b, a);
+                    i.ptr->SetExtColor(r, g, b, a, set);
             return true;
         }
         else
             for (SceneEffect& i : effects)
                 if (i.disp && i.ptr && i.ptr->id == id) {
-                    i.ptr->SetExtColor(set, r, g, b, a);
+                    i.ptr->SetExtColor(r, g, b, a, set);
                     return true;
                 }
         return false;
+    }
+
+    void Scene::SetExtScale(float_t scale, size_t id) {
+        if (!id) {
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr)
+                    i.ptr->SetExtScale(scale);
+        }
+        else
+            for (SceneEffect& i : effects)
+                if (i.disp && i.ptr && i.ptr->id == id) {
+                    i.ptr->SetExtScale(scale);
+                    break;
+                }
     }
 
     void Scene::SetFrameRate(FrameRateControl* frame_rate) {

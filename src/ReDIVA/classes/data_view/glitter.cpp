@@ -95,7 +95,7 @@ void data_view_glitter_imgui(class_data* data) {
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
                         eff_f2->flags & Glitter::EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
-                    ImGui::PushID(eff_index);
+                    ImGui::PushID((void*)eff_f2->data.name_hash);
                     if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
                         "Effect %d. 0x%08X: %s; Frame: %g", eff_index,
                         eff_f2->data.name_hash, eff_f2->name.c_str(), eff_f2->frame0)) {
@@ -152,7 +152,7 @@ void data_view_glitter_imgui(class_data* data) {
 
                     ImGui::PushStyleColor(ImGuiCol_Text,
                         eff_x->flags & Glitter::EFFECT_INST_FREE ? 0xFF888888 : 0xFFFFFFFF);
-                    ImGui::PushID(eff_index);
+                    ImGui::PushID((void*)eff_x->data.name_hash);
                     if (!ImGui::TreeNodeEx("##Effect", tree_node_flags,
                         "Effect %d. 0x%08X: %s; Frame: %g", eff_index,
                         eff_x->data.name_hash, eff_x->name.c_str(), eff_x->frame0)) {
