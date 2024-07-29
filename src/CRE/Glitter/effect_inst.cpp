@@ -102,7 +102,15 @@ namespace Glitter {
             bone_database_skeleton_type_to_string(BONE_DATABASE_SKELETON_COMMON), bone_names[node]);
     }
 
-    F2EffectInst::ExtAnim::ExtAnim() {
+    F2EffectInst::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(), object_is_hrc(), mesh_name() {
+
+    }
+
+    F2EffectInst::ExtAnim::~ExtAnim() {
+
+    }
+
+    void F2EffectInst::ExtAnim::Reset() {
         object_index = -1;
         mesh_index = -1;
         a3da_id = -1;
@@ -110,10 +118,6 @@ namespace Glitter {
         mesh_name = 0;
         mat = mat4_identity;
         translation = 0.0f;
-    }
-
-    F2EffectInst::ExtAnim::~ExtAnim() {
-
     }
 
     F2EffectInst::F2EffectInst(GPM, GLT, Effect* eff, size_t id,
@@ -594,8 +598,11 @@ namespace Glitter {
     }
 
     void F2EffectInst::InitExtAnim() {
-        if (!ext_anim)
+        if (!ext_anim) {
             ext_anim = new F2EffectInst::ExtAnim;
+            if (ext_anim)
+                ext_anim->Reset();
+        }
     }
 
     void F2EffectInst::RenderSceneCtrl(GLT, float_t delta_frame) {
@@ -642,7 +649,16 @@ namespace Glitter {
         return ret;
     }
 
-    XEffectInst::ExtAnim::ExtAnim() {
+    XEffectInst::ExtAnim::ExtAnim() : object_index(), mesh_index(), a3da_id(),
+        object_is_hrc(), file_name_hash(), object_hash(), instance_id(), mesh_name() {
+
+    }
+
+    XEffectInst::ExtAnim::~ExtAnim() {
+
+    }
+
+    void XEffectInst::ExtAnim::Reset() {
         object_index = -1;
         mesh_index = -1;
         a3da_id = -1;
@@ -653,10 +669,6 @@ namespace Glitter {
         mesh_name = 0;
         mat = mat4_identity;
         translation = 0.0f;
-    }
-
-    XEffectInst::ExtAnim::~ExtAnim() {
-
     }
 
     XEffectInst::XEffectInst(GPM, Effect* eff, size_t id,
@@ -1264,8 +1276,11 @@ namespace Glitter {
     }
 
     void XEffectInst::InitExtAnim() {
-        if (!ext_anim)
+        if (!ext_anim) {
             ext_anim = new XEffectInst::ExtAnim;
+            if (ext_anim)
+                ext_anim->Reset();
+        }
     }
 
     void XEffectInst::RenderSceneCtrl(float_t delta_frame) {

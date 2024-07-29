@@ -51,8 +51,15 @@ namespace Glitter {
     }
 
     FileReader::~FileReader() {
-        delete farc;
-        delete file_handler;
+        if (file_handler) {
+            delete file_handler;
+            file_handler = 0;
+        }
+
+        if (farc) {
+            farc = 0;
+            delete farc;
+        }
     }
 
     bool FileReader::CheckInit(GPM) {
@@ -891,10 +898,8 @@ namespace Glitter {
             return false;
 
         texture_id* ids = force_malloc<texture_id>(count);
-        for (size_t i = 0; i < count; i++) {
-            ids[i] = texture_id(0x2A, GPM_VAL->texture_counter);
-            GPM_VAL->texture_counter++;
-        }
+        for (size_t i = 0; i < count; i++)
+            ids[i] = texture_id(0x2A, GPM_VAL->texture_counter++);
 
         if (!texture_txp_set_load(&eff_group->resources_tex, &eff_group->resources, ids)) {
             free_def(ids);

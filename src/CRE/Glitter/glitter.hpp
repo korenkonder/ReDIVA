@@ -674,7 +674,7 @@ namespace Glitter {
                     uint32_t file_name_hash;
                     uint32_t object_hash;
                     int32_t instance_id;
-                    char mesh_name[128];
+                    char mesh_name[0x80];
                 };
                 struct {
                     int32_t chara_index;
@@ -715,20 +715,20 @@ namespace Glitter {
     struct EffectGroup {
         std::vector<Effect*> effects;
         int32_t load_count;
-        uint64_t hash;
-        Scene* scene;
-        float_t emission;
         uint32_t resources_count;
         std::vector<uint64_t> resource_hashes;
         txp_set resources_tex;
         texture** resources;
-        std::vector<Mesh> meshes;
-        std::string name;
+        Scene* scene;
+        float_t emission;
         bool not_loaded;
         bool scene_init;
         bool buffer_init;
+        uint64_t hash;
+        std::string name;
         uint32_t version;
         Type type;
+        std::vector<Mesh> meshes;
 
         EffectGroup(GLT);
         virtual ~EffectGroup();
@@ -946,6 +946,8 @@ namespace Glitter {
 
             ExtAnim();
             ~ExtAnim();
+
+            void Reset();
         };
 
         std::vector<F2EmitterInst*> emitters;
@@ -1007,6 +1009,8 @@ namespace Glitter {
 
             ExtAnim();
             ~ExtAnim();
+
+            void Reset();
         };
 
         std::vector<XEmitterInst*> emitters;

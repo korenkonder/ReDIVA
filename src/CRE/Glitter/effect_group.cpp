@@ -9,8 +9,8 @@
 #include "../texture.hpp"
 
 namespace Glitter {
-    EffectGroup::EffectGroup(GLT) : effects(), load_count(), hash(), scene(), resources_count(),
-        resources_tex(), resources(), not_loaded(), scene_init(), buffer_init() {
+    EffectGroup::EffectGroup(GLT) : load_count(), resources_count(),
+        resources(), scene(), not_loaded(), scene_init(), buffer_init(), hash() {
         emission = 1.0f;
         version = GLT_VAL == Glitter::X ? 0x0C : 0x09;
         type = GLT_VAL;
