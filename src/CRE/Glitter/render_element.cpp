@@ -37,15 +37,15 @@ namespace Glitter {
     }
 
     void RenderElement::InitMesh(GLT, F2EmitterInst* emit_inst,
-        F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random) {
-        if (ptcl_inst_data->data.flags & (PARTICLE_EMITTER_LOCAL | PARTICLE_ROTATE_BY_EMITTER))
+        Particle::Data* ptcl_data, int32_t index, Random* random) {
+        if (ptcl_data->flags & (PARTICLE_EMITTER_LOCAL | PARTICLE_ROTATE_BY_EMITTER))
             base_translation = 0.0f;
         else
             mat4_get_translation(&emit_inst->mat, &base_translation);
 
-        vec3 direction = ptcl_inst_data->data.direction;
+        vec3 direction = ptcl_data->direction;
         vec3 scale;
-        if (ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+        if (ptcl_data->flags & PARTICLE_EMITTER_LOCAL)
             scale = 1.0f;
         else
             scale = emit_inst->scale * emit_inst->scale_all;
@@ -53,7 +53,7 @@ namespace Glitter {
         vec3 position = 0.0f;
         emit_inst->InitMesh(GLT_VAL, index, scale, position, direction, random);
 
-        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
+        if (!(ptcl_data->flags & PARTICLE_EMITTER_LOCAL))
             mat4_transform_vector(&emit_inst->mat_rot, &position, &position);
 
         base_translation += position;
@@ -61,34 +61,34 @@ namespace Glitter {
         translation_prev = base_translation;
 
         direction = vec3::normalize(direction
-            + random->F2GetVec3(GLT_VAL, ptcl_inst_data->data.direction_random));
+            + random->F2GetVec3(GLT_VAL, ptcl_data->direction_random));
 
-        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
+        if (!(ptcl_data->flags & PARTICLE_EMITTER_LOCAL))
             mat4_transform_vector(&emit_inst->mat_rot, &direction, &direction);
         base_direction = direction;
         this->direction = direction;
 
         float_t speed = random->F2GetFloat(GLT_VAL,
-            ptcl_inst_data->data.speed_random) + ptcl_inst_data->data.speed;
+            ptcl_data->speed_random) + ptcl_data->speed;
         float_t deceleration = random->F2GetFloat(GLT_VAL,
-            ptcl_inst_data->data.deceleration_random) + ptcl_inst_data->data.deceleration;
+            ptcl_data->deceleration_random) + ptcl_data->deceleration;
         this->speed = speed * 60.0f;
         this->deceleration = max_def(deceleration * 60.0f, 0.0f);
 
-        this->acceleration = ptcl_inst_data->data.acceleration + ptcl_inst_data->data.gravity
-            + random->F2GetVec3(GLT_VAL, ptcl_inst_data->data.acceleration_random);
+        this->acceleration = ptcl_data->acceleration + ptcl_data->gravity
+            + random->F2GetVec3(GLT_VAL, ptcl_data->acceleration_random);
     }
 
     void RenderElement::InitMesh(XEmitterInst* emit_inst,
-        XParticleInst::Data* ptcl_inst_data, int32_t index, Random* random) {
-        if (ptcl_inst_data->data.flags & (PARTICLE_EMITTER_LOCAL | PARTICLE_ROTATE_BY_EMITTER))
+        Particle::Data* ptcl_data, int32_t index, Random* random) {
+        if (ptcl_data->flags & (PARTICLE_EMITTER_LOCAL | PARTICLE_ROTATE_BY_EMITTER))
             base_translation = 0.0f;
         else
             mat4_get_translation(&emit_inst->mat, &base_translation);
 
-        vec3 direction = ptcl_inst_data->data.direction;
+        vec3 direction = ptcl_data->direction;
         vec3 scale;
-        if (ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+        if (ptcl_data->flags & PARTICLE_EMITTER_LOCAL)
             scale = 1.0f;
         else
             scale = emit_inst->scale * emit_inst->scale_all;
@@ -96,7 +96,7 @@ namespace Glitter {
         vec3 position = 0.0f;
         emit_inst->InitMesh(index, scale, position, direction, random);
 
-        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
+        if (!(ptcl_data->flags & PARTICLE_EMITTER_LOCAL))
             mat4_transform_vector(&emit_inst->mat_rot, &position, &position);
 
         base_translation += position;
@@ -104,22 +104,22 @@ namespace Glitter {
         translation_prev = base_translation;
 
         direction = vec3::normalize(direction
-            + random->XGetVec3(ptcl_inst_data->data.direction_random));
+            + random->XGetVec3(ptcl_data->direction_random));
 
-        if (!(ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL))
+        if (!(ptcl_data->flags & PARTICLE_EMITTER_LOCAL))
             mat4_transform_vector(&emit_inst->mat_rot, &direction, &direction);
         base_direction = direction;
         this->direction = direction;
 
         float_t speed = random->XGetFloat(
-            ptcl_inst_data->data.speed_random) + ptcl_inst_data->data.speed;
+            ptcl_data->speed_random) + ptcl_data->speed;
         float_t deceleration = random->XGetFloat(
-            ptcl_inst_data->data.deceleration_random) + ptcl_inst_data->data.deceleration;
+            ptcl_data->deceleration_random) + ptcl_data->deceleration;
         base_speed = speed;
         this->speed = speed;
         this->deceleration = max_def(deceleration, 0.0f);
 
-        this->acceleration = ptcl_inst_data->data.acceleration + ptcl_inst_data->data.gravity
-            + random->XGetVec3(ptcl_inst_data->data.acceleration_random);
+        this->acceleration = ptcl_data->acceleration + ptcl_data->gravity
+            + random->XGetVec3(ptcl_data->acceleration_random);
     }
 }

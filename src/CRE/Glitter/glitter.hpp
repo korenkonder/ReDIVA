@@ -1354,6 +1354,7 @@ namespace Glitter {
             uint64_t mask_tex_hash;
             GLuint texture;
             GLuint mask_texture;
+            char name[32];
             int32_t unk0;
             float_t unk1;
             int32_t unk2;
@@ -1411,7 +1412,7 @@ namespace Glitter {
         void Copy(F2ParticleInst* dst, float_t emission);
         void Emit(GPM, GLT, int32_t dup_count, int32_t count, float_t emission);
         void EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
-            F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random);
+            Particle::Data* ptcl_data, int32_t index, Random* random);
         void GetColor(RenderElement* rend_elem);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
@@ -1451,7 +1452,7 @@ namespace Glitter {
         void Copy(XParticleInst* dst, float_t emission);
         void Emit(int32_t dup_count, int32_t count, float_t emission, float_t frame);
         void EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
-            XParticleInst::Data* ptcl_inst_data, int32_t index, uint8_t step, Random* random);
+            Particle::Data* ptcl_data, int32_t index, uint8_t step, Random* random);
         void GetColor(RenderElement* rend_elem, float_t color_scale);
         bool GetExtAnimScale(vec3* ext_anim_scale, float_t* ext_scale);
         void GetExtColor(float_t& r, float_t& g, float_t& b, float_t& a);
@@ -1467,6 +1468,7 @@ namespace Glitter {
     class F2RenderGroup : public RenderGroup {
     public:
         F2ParticleInst* particle;
+        std::string name;
 
         F2RenderGroup(F2ParticleInst* ptcl_inst);
         virtual ~F2RenderGroup();
@@ -1476,7 +1478,7 @@ namespace Glitter {
         void Ctrl(GLT, float_t delta_frame, bool copy_mats);
         void CtrlParticle(GLT, RenderElement* rend_elem, float_t delta_frame);
         void DeleteBuffers(bool free);
-        void Emit(GPM, GLT, F2ParticleInst::Data* ptcl_inst_data,
+        void Emit(GPM, GLT, Particle::Data* ptcl__data,
             F2EmitterInst* emit_inst, int32_t dup_count, int32_t count);
         void Free();
         void FreeData();
@@ -1504,7 +1506,7 @@ namespace Glitter {
         void Ctrl(float_t delta_frame, bool copy_mats);
         void CtrlParticle(RenderElement* rend_elem, float_t delta_frame);
         void DeleteBuffers(bool free);
-        void Emit(XParticleInst::Data* ptcl_inst_data,
+        void Emit(Particle::Data* ptcl_data,
             XEmitterInst* emit_inst, int32_t dup_count, int32_t count, float_t frame);
         void Free();
         void FreeData();
@@ -1563,9 +1565,9 @@ namespace Glitter {
         void InitLocusHistory(GLT, F2ParticleInst* ptcl_inst, Random* random);
         void InitLocusHistory(XParticleInst* ptcl_inst, Random* random);
         void InitMesh(GLT, F2EmitterInst* emit_inst,
-            F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random);
+            Particle::Data* ptcl_data, int32_t index, Random* random);
         void InitMesh(XEmitterInst* emit_inst,
-            XParticleInst::Data* ptcl_inst_data, int32_t index, Random* random);
+            Particle::Data* ptcl_data, int32_t index, Random* random);
     };
 
     struct SceneEffect {

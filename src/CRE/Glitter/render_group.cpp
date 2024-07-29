@@ -140,19 +140,20 @@ namespace Glitter {
         if (!particle)
             return;
 
-        F2ParticleInst::Data* data = &particle->data;
-        blend_mode = data->data.blend_mode;
-        mask_blend_mode = data->data.mask_blend_mode;
-        texture = data->data.texture;
-        mask_texture = data->data.mask_texture;
-        split_u = data->data.split_u;
-        split_v = data->data.split_v;
-        split_uv = data->data.split_uv;
-        type = data->data.type;
-        draw_type = data->data.draw_type;
-        z_offset = data->data.z_offset;
-        pivot = data->data.pivot;
-        flags = data->data.flags;
+        Particle::Data* ptcl_data = &particle->data.data;
+        blend_mode = ptcl_data->blend_mode;
+        mask_blend_mode = ptcl_data->mask_blend_mode;
+        texture = ptcl_data->texture;
+        mask_texture = ptcl_data->mask_texture;
+        split_u = ptcl_data->split_u;
+        split_v = ptcl_data->split_v;
+        split_uv = ptcl_data->split_uv;
+        type = ptcl_data->type;
+        draw_type = ptcl_data->draw_type;
+        z_offset = ptcl_data->z_offset;
+        pivot = ptcl_data->pivot;
+        flags = ptcl_data->flags;
+        name.assign(ptcl_data->name);
 
         if (copy_mats && particle->data.emitter) {
             F2EmitterInst* emitter = particle->data.emitter;
@@ -242,7 +243,7 @@ namespace Glitter {
         }
     }
 
-    void F2RenderGroup::Emit(GPM, GLT, F2ParticleInst::Data* ptcl_inst_data,
+    void F2RenderGroup::Emit(GPM, GLT, Particle::Data* ptcl_data,
         F2EmitterInst* emit_inst, int32_t dup_count, int32_t count) {
         RenderElement* element = 0;
         for (int32_t i = 0; i < dup_count; i++)
@@ -252,7 +253,7 @@ namespace Glitter {
                     break;
 
                 particle->EmitParticle(GPM_VAL, GLT_VAL,
-                    element, emit_inst, ptcl_inst_data, index, random_ptr);
+                    element, emit_inst, ptcl_data, index, random_ptr);
             }
     }
 
@@ -446,20 +447,20 @@ namespace Glitter {
         if (!particle)
             return;
 
-        XParticleInst::Data* data = &particle->data;
-        blend_mode = data->data.blend_mode;
-        mask_blend_mode = data->data.mask_blend_mode;
-        texture = data->data.texture;
-        mask_texture = data->data.mask_texture;
-        object_name_hash = data->data.mesh.object_name_hash;
-        split_u = data->data.split_u;
-        split_v = data->data.split_v;
-        split_uv = data->data.split_uv;
-        type = data->data.type;
-        draw_type = data->data.draw_type;
-        z_offset = data->data.z_offset;
-        pivot = data->data.pivot;
-        flags = data->data.flags;
+        Particle::Data* ptcl_data = &particle->data.data;
+        blend_mode = ptcl_data->blend_mode;
+        mask_blend_mode = ptcl_data->mask_blend_mode;
+        texture = ptcl_data->texture;
+        mask_texture = ptcl_data->mask_texture;
+        object_name_hash = ptcl_data->mesh.object_name_hash;
+        split_u = ptcl_data->split_u;
+        split_v = ptcl_data->split_v;
+        split_uv = ptcl_data->split_uv;
+        type = ptcl_data->type;
+        draw_type = ptcl_data->draw_type;
+        z_offset = ptcl_data->z_offset;
+        pivot = ptcl_data->pivot;
+        flags = ptcl_data->flags;
 
         if (copy_mats && particle->data.emitter) {
             XEmitterInst* emitter = particle->data.emitter;
@@ -565,7 +566,7 @@ namespace Glitter {
         }
     }
 
-    void XRenderGroup::Emit(XParticleInst::Data* ptcl_inst_data,
+    void XRenderGroup::Emit(Particle::Data* ptcl_data,
         XEmitterInst* emit_inst, int32_t dup_count, int32_t count, float_t frame) {
         RenderElement* element;
         int64_t i;
@@ -582,7 +583,7 @@ namespace Glitter {
 
                 emit_inst->RandomStepValue();
                 element->frame = frame;
-                particle->EmitParticle(element, emit_inst, ptcl_inst_data, index, step, random_ptr);
+                particle->EmitParticle(element, emit_inst, ptcl_data, index, step, random_ptr);
             }
     }
 

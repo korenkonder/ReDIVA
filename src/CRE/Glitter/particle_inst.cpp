@@ -168,33 +168,33 @@ namespace Glitter {
 
         if (ptcl->data.render_group)
             ptcl->data.render_group->Emit(GPM_VAL, GLT_VAL,
-                &ptcl->data, ptcl->data.emitter, dup_count, count);
+                &ptcl->data.data, ptcl->data.emitter, dup_count, count);
     }
 
     void F2ParticleInst::EmitParticle(GPM, GLT, RenderElement* rend_elem, F2EmitterInst* emit_inst,
-        F2ParticleInst::Data* ptcl_inst_data, int32_t index, Random* random) {
+        Particle::Data* ptcl_data, int32_t index, Random* random) {
         counter.Increment();
         random->SetValue(counter.GetValue());
         rend_elem->random = random->F2GetInt(GLT_VAL, Random::F2GetMax(GLT_VAL));
         rend_elem->frame = 0.0f;
         rend_elem->rebound_time = 0.0f;
         rend_elem->uv = 0.0f;
-        rend_elem->uv_index = ptcl_inst_data->data.uv_index;
+        rend_elem->uv_index = ptcl_data->uv_index;
 
         rend_elem->fade_in_frames = 0.0f;
         rend_elem->fade_out_frames = 0.0f;
-        rend_elem->life_time = (float_t)ptcl_inst_data->data.life_time;
+        rend_elem->life_time = (float_t)ptcl_data->life_time;
 
-        rend_elem->color = ptcl_inst_data->data.color;
-        if (ptcl_inst_data->data.draw_type == DIRECTION_PARTICLE_ROTATION) {
-            rend_elem->rotation.x = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_random.x)
-                + ptcl_inst_data->data.rotation.x;
-            rend_elem->rotation_add.x = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_add_random.x)
-                + ptcl_inst_data->data.rotation_add.x;
-            rend_elem->rotation.y = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_random.y)
-                + ptcl_inst_data->data.rotation.y;
-            rend_elem->rotation_add.y = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_add_random.y)
-                + ptcl_inst_data->data.rotation_add.y;
+        rend_elem->color = ptcl_data->color;
+        if (ptcl_data->draw_type == DIRECTION_PARTICLE_ROTATION) {
+            rend_elem->rotation.x = random->F2GetFloat(GLT_VAL, ptcl_data->rotation_random.x)
+                + ptcl_data->rotation.x;
+            rend_elem->rotation_add.x = random->F2GetFloat(GLT_VAL, ptcl_data->rotation_add_random.x)
+                + ptcl_data->rotation_add.x;
+            rend_elem->rotation.y = random->F2GetFloat(GLT_VAL, ptcl_data->rotation_random.y)
+                + ptcl_data->rotation.y;
+            rend_elem->rotation_add.y = random->F2GetFloat(GLT_VAL, ptcl_data->rotation_add_random.y)
+                + ptcl_data->rotation_add.y;
         }
         else {
             rend_elem->rotation.x = 0.0f;
@@ -204,46 +204,46 @@ namespace Glitter {
         }
         rend_elem->rot_z_cos = 1.0f;
         rend_elem->rot_z_sin = 0.0f;
-        rend_elem->rotation.z = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_random.z)
-            + ptcl_inst_data->data.rotation.z;
-        rend_elem->rotation_add.z = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.rotation_add_random.z)
-            + ptcl_inst_data->data.rotation_add.z;
+        rend_elem->rotation.z = random->F2GetFloat(GLT_VAL, ptcl_data->rotation_random.z)
+            + ptcl_data->rotation.z;
+        rend_elem->rotation_add.z = random->F2GetFloat(GLT_VAL, ptcl_data->rotation_add_random.z)
+            + ptcl_data->rotation_add.z;
         rend_elem->uv_scroll = 0.0f;
         rend_elem->uv_scroll_2nd = 0.0f;
         rend_elem->scale = 1.0f;
         rend_elem->scale_all = 1.0f;
-        rend_elem->frame_step_uv = (float_t)ptcl_inst_data->data.frame_step_uv;
+        rend_elem->frame_step_uv = (float_t)ptcl_data->frame_step_uv;
 
-        rend_elem->scale_particle.x = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.scale_random.x)
-            + ptcl_inst_data->data.scale.x;
-        if (ptcl_inst_data->data.flags & PARTICLE_SCALE_Y_BY_X)
+        rend_elem->scale_particle.x = random->F2GetFloat(GLT_VAL, ptcl_data->scale_random.x)
+            + ptcl_data->scale.x;
+        if (ptcl_data->flags & PARTICLE_SCALE_Y_BY_X)
             rend_elem->scale_particle.y = rend_elem->scale_particle.x;
         else
-            rend_elem->scale_particle.y = random->F2GetFloat(GLT_VAL, ptcl_inst_data->data.scale_random.y)
-                + ptcl_inst_data->data.scale.y;
+            rend_elem->scale_particle.y = random->F2GetFloat(GLT_VAL, ptcl_data->scale_random.y)
+                + ptcl_data->scale.y;
 
-        int32_t max_uv = ptcl_inst_data->data.split_u * ptcl_inst_data->data.split_v;
-        if (max_uv > 1 && ptcl_inst_data->data.uv_index_count > 1) {
-            switch (ptcl_inst_data->data.uv_index_type) {
+        int32_t max_uv = ptcl_data->split_u * ptcl_data->split_v;
+        if (max_uv > 1 && ptcl_data->uv_index_count > 1) {
+            switch (ptcl_data->uv_index_type) {
             case UV_INDEX_INITIAL_RANDOM_FIXED:
             case UV_INDEX_INITIAL_RANDOM_FORWARD:
             case UV_INDEX_INITIAL_RANDOM_REVERSE:
-                rend_elem->uv_index = ptcl_inst_data->data.uv_index_start
-                    + random->F2GetInt(GLT_VAL, ptcl_inst_data->data.uv_index_count);
+                rend_elem->uv_index = ptcl_data->uv_index_start
+                    + random->F2GetInt(GLT_VAL, ptcl_data->uv_index_count);
                 break;
             }
-            rend_elem->uv_index = min_def(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
+            rend_elem->uv_index = min_def(rend_elem->uv_index, ptcl_data->uv_index_end);
             rend_elem->uv.x = (float_t)(rend_elem->uv_index
-                % ptcl_inst_data->data.split_u) * ptcl_inst_data->data.split_uv.x;
+                % ptcl_data->split_u) * ptcl_data->split_uv.x;
             rend_elem->uv.y = (float_t)(rend_elem->uv_index
-                / ptcl_inst_data->data.split_u) * ptcl_inst_data->data.split_uv.y;
+                / ptcl_data->split_u) * ptcl_data->split_uv.y;
         }
 
-        rend_elem->InitMesh(GLT_VAL, emit_inst, ptcl_inst_data, index, random);
+        rend_elem->InitMesh(GLT_VAL, emit_inst, ptcl_data, index, random);
 
         bool copy_mat = false;
-        if (ptcl_inst_data->data.flags & PARTICLE_ROTATE_BY_EMITTER
-            || ptcl_inst_data->data.draw_type == DIRECTION_EMITTER_ROTATION) {
+        if (ptcl_data->flags & PARTICLE_ROTATE_BY_EMITTER
+            || ptcl_data->draw_type == DIRECTION_EMITTER_ROTATION) {
             switch (emit_inst->data.type) {
             case EMITTER_CYLINDER:
                 if (emit_inst->data.cylinder.direction != EMITTER_EMISSION_DIRECTION_NONE)
@@ -265,7 +265,7 @@ namespace Glitter {
 
         if (copy_mat) {
             rend_elem->mat = emit_inst->mat;
-            if (ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+            if (ptcl_data->flags & PARTICLE_EMITTER_LOCAL)
                 mat4_clear_trans(&rend_elem->mat, &rend_elem->mat);
         }
         else
@@ -666,46 +666,46 @@ namespace Glitter {
         }
 
         if (ptcl->data.render_group)
-            ptcl->data.render_group->Emit(&ptcl->data, ptcl->data.emitter, dup_count, count, frame);
+            ptcl->data.render_group->Emit(&ptcl->data.data, ptcl->data.emitter, dup_count, count, frame);
     }
 
     void XParticleInst::EmitParticle(RenderElement* rend_elem, XEmitterInst* emit_inst,
-        XParticleInst::Data* ptcl_inst_data, int32_t index, uint8_t step, Random* random) {
+        Particle::Data* ptcl_data, int32_t index, uint8_t step, Random* random) {
         rend_elem->random = random->GetValue();
         rend_elem->frame = 0.0f;
         rend_elem->rebound_time = 0.0f;
         rend_elem->uv = 0.0f;
-        rend_elem->uv_index = ptcl_inst_data->data.uv_index;
+        rend_elem->uv_index = ptcl_data->uv_index;
 
         rend_elem->step = step;
-        rend_elem->fade_in_frames = random->XGetFloat((float_t)ptcl_inst_data->data.fade_in_random)
-            + (float_t)ptcl_inst_data->data.fade_in;
+        rend_elem->fade_in_frames = random->XGetFloat((float_t)ptcl_data->fade_in_random)
+            + (float_t)ptcl_data->fade_in;
         if (rend_elem->fade_in_frames < 0.0f)
             rend_elem->fade_in_frames = 0.0f;
 
-        rend_elem->fade_out_frames = random->XGetFloat((float_t)ptcl_inst_data->data.fade_out_random)
-            + (float_t)ptcl_inst_data->data.fade_out;
+        rend_elem->fade_out_frames = random->XGetFloat((float_t)ptcl_data->fade_out_random)
+            + (float_t)ptcl_data->fade_out;
         if (rend_elem->fade_out_frames < 0.0f)
             rend_elem->fade_out_frames = 0.0f;
 
-        rend_elem->life_time = random->XGetFloat((float_t)ptcl_inst_data->data.life_time_random)
-            + (float_t)ptcl_inst_data->data.life_time;
+        rend_elem->life_time = random->XGetFloat((float_t)ptcl_data->life_time_random)
+            + (float_t)ptcl_data->life_time;
         if (rend_elem->life_time < 0.0f)
             rend_elem->life_time = 0.0f;
 
         rend_elem->life_time += rend_elem->fade_in_frames + rend_elem->fade_out_frames;
 
-        rend_elem->color = ptcl_inst_data->data.color;
-        if (ptcl_inst_data->data.draw_type == DIRECTION_PARTICLE_ROTATION
-            || ptcl_inst_data->data.type == PARTICLE_MESH) {
-            rend_elem->rotation.x = random->XGetFloat(ptcl_inst_data->data.rotation_random.x)
-                + ptcl_inst_data->data.rotation.x;
-            rend_elem->rotation_add.x = random->XGetFloat(ptcl_inst_data->data.rotation_add_random.x)
-                + ptcl_inst_data->data.rotation_add.x;
-            rend_elem->rotation.y = random->XGetFloat(ptcl_inst_data->data.rotation_random.y)
-                + ptcl_inst_data->data.rotation.y;
-            rend_elem->rotation_add.y = random->XGetFloat(ptcl_inst_data->data.rotation_add_random.y)
-                + ptcl_inst_data->data.rotation_add.y;
+        rend_elem->color = ptcl_data->color;
+        if (ptcl_data->draw_type == DIRECTION_PARTICLE_ROTATION
+            || ptcl_data->type == PARTICLE_MESH) {
+            rend_elem->rotation.x = random->XGetFloat(ptcl_data->rotation_random.x)
+                + ptcl_data->rotation.x;
+            rend_elem->rotation_add.x = random->XGetFloat(ptcl_data->rotation_add_random.x)
+                + ptcl_data->rotation_add.x;
+            rend_elem->rotation.y = random->XGetFloat(ptcl_data->rotation_random.y)
+                + ptcl_data->rotation.y;
+            rend_elem->rotation_add.y = random->XGetFloat(ptcl_data->rotation_add_random.y)
+                + ptcl_data->rotation_add.y;
         }
         else {
             rend_elem->rotation.x = 0.0f;
@@ -715,48 +715,48 @@ namespace Glitter {
         }
         rend_elem->rot_z_cos = 1.0f;
         rend_elem->rot_z_sin = 0.0f;
-        rend_elem->rotation.z = random->XGetFloat(ptcl_inst_data->data.rotation_random.z)
-            + ptcl_inst_data->data.rotation.z;
-        rend_elem->rotation_add.z = random->XGetFloat(ptcl_inst_data->data.rotation_add_random.z)
-            + ptcl_inst_data->data.rotation_add.z;
+        rend_elem->rotation.z = random->XGetFloat(ptcl_data->rotation_random.z)
+            + ptcl_data->rotation.z;
+        rend_elem->rotation_add.z = random->XGetFloat(ptcl_data->rotation_add_random.z)
+            + ptcl_data->rotation_add.z;
         rend_elem->uv_scroll = 0.0f;
         rend_elem->uv_scroll_2nd = 0.0f;
         rend_elem->scale = 1.0f;
         rend_elem->scale_all = 1.0f;
-        rend_elem->frame_step_uv = (float_t)ptcl_inst_data->data.frame_step_uv;
+        rend_elem->frame_step_uv = (float_t)ptcl_data->frame_step_uv;
 
-        rend_elem->scale_particle.x = random->XGetFloat(ptcl_inst_data->data.scale_random.x)
-            + ptcl_inst_data->data.scale.x;
-        if (ptcl_inst_data->data.flags & PARTICLE_SCALE_Y_BY_X) {
+        rend_elem->scale_particle.x = random->XGetFloat(ptcl_data->scale_random.x)
+            + ptcl_data->scale.x;
+        if (ptcl_data->flags & PARTICLE_SCALE_Y_BY_X) {
             rend_elem->scale_particle.y = rend_elem->scale_particle.x;
             random->XStepValue();
         }
         else
-            rend_elem->scale_particle.y = random->XGetFloat(ptcl_inst_data->data.scale_random.y)
-                + ptcl_inst_data->data.scale.y;
+            rend_elem->scale_particle.y = random->XGetFloat(ptcl_data->scale_random.y)
+                + ptcl_data->scale.y;
 
-        int32_t max_uv = ptcl_inst_data->data.split_u * ptcl_inst_data->data.split_v;
-        if (max_uv > 1 && ptcl_inst_data->data.uv_index_count > 1) {
-            switch (ptcl_inst_data->data.uv_index_type) {
+        int32_t max_uv = ptcl_data->split_u * ptcl_data->split_v;
+        if (max_uv > 1 && ptcl_data->uv_index_count > 1) {
+            switch (ptcl_data->uv_index_type) {
             case UV_INDEX_INITIAL_RANDOM_FIXED:
             case UV_INDEX_INITIAL_RANDOM_FORWARD:
             case UV_INDEX_INITIAL_RANDOM_REVERSE:
-                rend_elem->uv_index = ptcl_inst_data->data.uv_index_start
-                    + random->XGetInt(ptcl_inst_data->data.uv_index_count);
+                rend_elem->uv_index = ptcl_data->uv_index_start
+                    + random->XGetInt(ptcl_data->uv_index_count);
                 break;
             }
-            rend_elem->uv_index = min_def(rend_elem->uv_index, ptcl_inst_data->data.uv_index_end);
+            rend_elem->uv_index = min_def(rend_elem->uv_index, ptcl_data->uv_index_end);
             rend_elem->uv.x = (float_t)(rend_elem->uv_index
-                % ptcl_inst_data->data.split_u) * ptcl_inst_data->data.split_uv.x;
+                % ptcl_data->split_u) * ptcl_data->split_uv.x;
             rend_elem->uv.y = (float_t)(rend_elem->uv_index
-                / ptcl_inst_data->data.split_u) * ptcl_inst_data->data.split_uv.y;
+                / ptcl_data->split_u) * ptcl_data->split_uv.y;
         }
 
-        rend_elem->InitMesh(emit_inst, ptcl_inst_data, index, random);
+        rend_elem->InitMesh(emit_inst, ptcl_data, index, random);
 
         bool copy_mat = false;
-        if (ptcl_inst_data->data.flags & PARTICLE_ROTATE_BY_EMITTER
-            || ptcl_inst_data->data.draw_type == DIRECTION_EMITTER_ROTATION) {
+        if (ptcl_data->flags & PARTICLE_ROTATE_BY_EMITTER
+            || ptcl_data->draw_type == DIRECTION_EMITTER_ROTATION) {
             switch (emit_inst->data.type) {
             case EMITTER_CYLINDER:
                 if (emit_inst->data.cylinder.direction != EMITTER_EMISSION_DIRECTION_NONE)
@@ -778,17 +778,17 @@ namespace Glitter {
 
         if (copy_mat) {
             rend_elem->mat = emit_inst->mat;
-            if (ptcl_inst_data->data.flags & PARTICLE_EMITTER_LOCAL)
+            if (ptcl_data->flags & PARTICLE_EMITTER_LOCAL)
                 mat4_clear_trans(&rend_elem->mat, &rend_elem->mat);
         }
         else
             rend_elem->mat = mat4_identity;
 
-        if (ptcl_inst_data->data.type == PARTICLE_LOCUS) {
+        if (ptcl_data->type == PARTICLE_LOCUS) {
             uint32_t locus_history_size = random->XGetInt(
-                -ptcl_inst_data->data.locus_history_size_random,
-                ptcl_inst_data->data.locus_history_size_random)
-                + ptcl_inst_data->data.locus_history_size;
+                -ptcl_data->locus_history_size_random,
+                ptcl_data->locus_history_size_random)
+                + ptcl_data->locus_history_size;
             rend_elem->locus_history = new LocusHistory(locus_history_size);
         }
         random->XStepValue();
