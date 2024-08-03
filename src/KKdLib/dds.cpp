@@ -462,8 +462,12 @@ static void dds_reverse_rgb(txp_format format, size_t size, uint8_t* data) {
 
 static bool dds_check_is_dxt1a(int64_t size, uint8_t* data) {
     while (size > 0) {
-        if (*(uint16_t*)data <= *(uint16_t*)(data + 2))
-            return true;
+        if (*(uint16_t*)data <= *(uint16_t*)(data + 2)) {
+            uint32_t indices = *(uint32_t*)(data + 4);
+            // Check if 2 bit indices have at least one that equals to 3
+            if ((indices & ((indices & 0x55555555) << 1)))
+                return true;
+        }
         data += 8;
         size -= 8;
     }
