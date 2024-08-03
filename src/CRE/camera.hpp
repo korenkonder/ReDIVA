@@ -18,7 +18,10 @@ struct camera {
     double_t aspect;
     float_t min_distance;
     float_t max_distance;
-    vec4 projection_scale;
+    float_t proj_left_offset;
+    float_t proj_right_offset;
+    float_t proj_bottom_offset;
+    float_t proj_top_offset;
     bool use_up;
     vec3 up;
     bool ignore_fov;

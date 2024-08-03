@@ -14,6 +14,7 @@ static void camera_calculate_forward(camera* c);
 camera::camera() : forward(), rotation(), view_point(), interest(), depth(), aet_depth(),
 use_up(), field_1E4(), field_1F0(), field_1FC(), field_208(), yaw(), pitch(), roll(),
 aspect(), fov(), aet_fov(), max_distance(), min_distance(),
+proj_left_offset(), proj_right_offset(), proj_bottom_offset(), proj_top_offset(),
 fast_change(), fast_change_hist0(), fast_change_hist1(), ignore_fov(), ignore_min_dist() {
 
 }
@@ -317,8 +318,8 @@ static void camera_calculate_projection(camera* c) {
     extern render_context* rctx_ptr;
     rctx_ptr->render.calc_projection_matrix(&c->projection, c->fov,
         (float_t)c->aspect, c->min_distance, c->max_distance,
-        c->projection_scale.x, c->projection_scale.y,
-        c->projection_scale.z, c->projection_scale.w);
+        c->proj_left_offset, c->proj_right_offset,
+        c->proj_left_offset, c->proj_right_offset);
     mat4_invert(&c->projection, &c->inv_projection);
 
     float_t height = (float_t)res_wind_int->height * 0.5f;

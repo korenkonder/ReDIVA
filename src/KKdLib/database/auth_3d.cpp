@@ -440,11 +440,9 @@ static void auth_3d_database_file_write_text(auth_3d_database_file* auth_3d_db_f
             kv.close_scope();
         }
 
-        if (!uid_max)
-            uid_max = count;
-
         kv.write(s, "length", count);
-        kv.write(s, "max", uid_max);
+        if (uid_max != -1)
+            kv.write(s, "max", uid_max);
         kv.close_scope();
     }
 

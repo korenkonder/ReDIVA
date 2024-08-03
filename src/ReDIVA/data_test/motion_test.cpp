@@ -2022,7 +2022,7 @@ void DataTestMotDw::FrameSliderProc::Callback(dw::SelectionListener::CallbackDat
     dw::Slider* slider = dynamic_cast<dw::Slider*>(data->widget);
     if (slider) {
         float_t frame = slider->GetValue();
-        data_test_mot_dw_array_get(slider->scroll_bar->callback_data.i32)->dtm_mot->SetFrame(frame);
+        data_test_mot_dw_array_get(slider->callback_data.i32)->dtm_mot->SetFrame(frame);
         if (test_mot_data->sync_frame) {
             dtm_mot_array[0].SetFrame(frame);
             dtm_mot_array[1].SetFrame(frame);
