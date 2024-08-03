@@ -1753,7 +1753,7 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
 
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type) {
     rctx->disp_manager->calc_obj_radius(&rctx->view_mat, type);
-    std::list<mdl::ObjData*>& vec = rctx->disp_manager->obj[type];
+    mdl::ObjList& vec = rctx->disp_manager->obj[type];
     for (mdl::ObjData*& i : vec)
         switch (i->kind) {
         case mdl::OBJ_KIND_NORMAL: {

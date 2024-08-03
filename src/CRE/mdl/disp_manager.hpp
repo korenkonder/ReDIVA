@@ -355,6 +355,8 @@ namespace mdl {
         void init_user(const mat4* mat, UserArgsFunc func, void* data);
     };
 
+    typedef std::list<mdl::ObjData*> ObjList;
+
     struct CullingCheck {
         struct Info {
             int32_t objects;
@@ -408,7 +410,7 @@ namespace mdl {
         shadow_type_enum shadow_type;
         int32_t field_8;
         int32_t field_C;
-        std::list<mdl::ObjData*> obj[mdl::OBJ_TYPE_MAX];
+        mdl::ObjList obj[mdl::OBJ_TYPE_MAX];
         mdl::CullingCheck culling;
         int32_t put_index;
         bool show_alpha_center;
