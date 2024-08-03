@@ -2236,7 +2236,7 @@ static void glitter_editor_effects(GlitterEditor* glt_edt) {
 
         const char* eff_str;
         if (effect->data.ext_anim) {
-            if (effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM)
+            if (effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA)
                 eff_str = "%s (%08X) [C]";
             else
                 eff_str = "%s (%08X) [O]";
@@ -2423,7 +2423,7 @@ static void glitter_editor_effects_context_menu(GlitterEditor* glt_edt,
 
         const char* eff_str;
         if (effect->data.ext_anim) {
-            if (effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM)
+            if (effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA)
                 eff_str = "%s (%08X) [C]";
             else
                 eff_str = "%s (%08X) [O]";
@@ -2983,8 +2983,8 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
             ImGuiSliderFlags_NoRoundToFormat))
             changed = true;
 
-        if (ImGui::ColumnDragFloat("Ext Anim Scale Start Time",
-            &effect->data.ext_anim_scale_start_time, 0.0001f, -FLT_MAX, FLT_MAX, "%g", 0))
+        if (ImGui::ColumnDragFloat("Ext Anim End Time",
+            &effect->data.ext_anim_end_time, 0.0001f, -FLT_MAX, FLT_MAX, "%g", 0))
             changed = true;
     }
 
@@ -2992,7 +2992,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
     if (effect->data.flags & Glitter::EFFECT_LOCAL)
         type = 1;
     else if (effect->data.ext_anim)
-        type = effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM ? 2 : 3;
+        type = effect->data.ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA ? 2 : 3;
     else
         type = 0;
 
@@ -3011,9 +3011,9 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
                 if (!effect->data.ext_anim)
                     effect->data.ext_anim = force_malloc<Glitter::Effect::ExtAnim>();
                 if (type == 2)
-                    enum_or(effect->data.ext_anim->flags, Glitter::EFFECT_EXT_ANIM_CHARA_ANIM);
+                    enum_or(effect->data.ext_anim->flags, Glitter::EFFECT_EXT_ANIM_CHARA);
                 else
-                    enum_and(effect->data.ext_anim->flags, ~Glitter::EFFECT_EXT_ANIM_CHARA_ANIM);
+                    enum_and(effect->data.ext_anim->flags, ~Glitter::EFFECT_EXT_ANIM_CHARA);
             }
             else
                 if (effect->data.ext_anim) {
@@ -3033,7 +3033,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
                 sizeof(Glitter::Effect::ExtAnimX));
 
             Glitter::Effect::ExtAnimX* ext_anim = effect->data.ext_anim_x;
-            if (ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM) {
+            if (ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA) {
                 const int32_t max_chara = 4;
                 if (ImGui::ColumnComboBox("Chara Index", Glitter::effect_ext_anim_index_name,
                     max_chara, &ext_anim->chara_index, 0, false, &input_locked))
@@ -3124,7 +3124,7 @@ static void glitter_editor_property_effect(GlitterEditor* glt_edt) {
                 sizeof(Glitter::Effect::ExtAnim));
 
             Glitter::Effect::ExtAnim* ext_anim = effect->data.ext_anim;
-            if (ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM) {
+            if (ext_anim->flags & Glitter::EFFECT_EXT_ANIM_CHARA) {
                 const int32_t max_chara = eg->type == Glitter::FT ? 6 : 3;
                 if (ImGui::ColumnComboBox("Chara Index", Glitter::effect_ext_anim_index_name,
                     max_chara, &ext_anim->chara_index, 0, false, &input_locked))

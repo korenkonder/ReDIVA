@@ -1043,12 +1043,12 @@ namespace Glitter {
             if (big_endian) {
                 eff->data.emission = load_reverse_endianness_float_t((void*)d);
                 eff->data.seed = load_reverse_endianness_int32_t((void*)(d + 4));
-                eff->data.ext_anim_scale_start_time = load_reverse_endianness_float_t((void*)(d + 8));
+                eff->data.ext_anim_end_time = load_reverse_endianness_float_t((void*)(d + 8));
             }
             else {
                 eff->data.emission = *(float_t*)d;
                 eff->data.seed = *(int32_t*)(d + 4);
-                eff->data.ext_anim_scale_start_time = *(float_t*)(d + 8);
+                eff->data.ext_anim_end_time = *(float_t*)(d + 8);
             }
             d += 12;
 
@@ -1087,7 +1087,7 @@ namespace Glitter {
                         ext_anim_x->node_index = (EffectExtAnimCharaNode) * (int32_t*)(d + 8);
                     }
 
-                    enum_or(ext_anim_x->flags, EFFECT_EXT_ANIM_CHARA_ANIM);
+                    enum_or(ext_anim_x->flags, EFFECT_EXT_ANIM_CHARA);
                 }
             }
             else if (type == 3) {
@@ -1265,7 +1265,7 @@ namespace Glitter {
                         ext_anim->node_index = (EffectExtAnimCharaNode) * (int32_t*)(d + 8);
                     }
 
-                    enum_or(ext_anim->flags, EFFECT_EXT_ANIM_CHARA_ANIM);
+                    enum_or(ext_anim->flags, EFFECT_EXT_ANIM_CHARA);
                 }
             }
             else if (type == 3) {

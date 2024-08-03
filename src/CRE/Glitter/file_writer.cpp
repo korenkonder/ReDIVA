@@ -573,7 +573,7 @@ namespace Glitter {
             type = 1;
         else if (!ext_anim)
             type = 0;
-        else if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA_ANIM)
+        else if (ext_anim->flags & EFFECT_EXT_ANIM_CHARA)
             type = 2;
         else
             type = 3;
@@ -771,12 +771,12 @@ namespace Glitter {
             if (big_endian) {
                 store_reverse_endianness_float_t((void*)d, eff->data.emission);
                 store_reverse_endianness_int32_t((void*)(d + 4), eff->data.seed);
-                store_reverse_endianness_float_t((void*)(d + 8), eff->data.ext_anim_scale_start_time);
+                store_reverse_endianness_float_t((void*)(d + 8), eff->data.ext_anim_end_time);
             }
             else {
                 *(float_t*)d = eff->data.emission;
                 *(int32_t*)(d + 4) = eff->data.seed;
-                *(float_t*)(d + 8) = eff->data.ext_anim_scale_start_time;
+                *(float_t*)(d + 8) = eff->data.ext_anim_end_time;
             }
             d += 12;
 
@@ -798,7 +798,7 @@ namespace Glitter {
             Effect::ExtAnimX* ext_anim_x = eff->data.ext_anim_x;
             if (type == 2) {
                 EffectExtAnimFlag ext_anim_flag = ext_anim_x->flags;
-                enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA_ANIM);
+                enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA);
 
                 if (big_endian) {
                     store_reverse_endianness_int32_t((void*)d, ext_anim_x->chara_index);
@@ -922,7 +922,7 @@ namespace Glitter {
 
             if (type == 2) {
                 EffectExtAnimFlag ext_anim_flag = ext_anim->flags;
-                enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA_ANIM);
+                enum_and(ext_anim_flag, ~EFFECT_EXT_ANIM_CHARA);
 
                 if (big_endian) {
                     store_reverse_endianness_int32_t((void*)d, ext_anim->chara_index);
