@@ -1276,9 +1276,6 @@ bool SubGameState::Selector::Ctrl() {
 
 #if BAKE_X_PACK
     const int32_t pv_ids[] = {
-        824,
-        811,
-        820,
         801,
         802,
         803,
@@ -1289,6 +1286,7 @@ bool SubGameState::Selector::Ctrl() {
         808,
         809,
         810,
+        811,
         812,
         813,
         814,
@@ -1297,9 +1295,11 @@ bool SubGameState::Selector::Ctrl() {
         817,
         818,
         819,
+        820,
         821,
         822,
         823,
+        824,
         825,
         826,
         827,
