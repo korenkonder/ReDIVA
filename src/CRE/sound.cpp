@@ -270,7 +270,7 @@ namespace sound {
 
         void System::Reset() {
             if (thread) {
-                thread_state.set(1);
+                thread_state = 1;
                 thread->join();
                 delete thread;
                 thread = 0;
@@ -319,7 +319,7 @@ namespace sound {
             if (!system)
                 return;
 
-            while (!system->thread_state.get()) {
+            while (!system->thread_state) {
                 WaitForSingleObject(system->hEvent, -1);
                 void* data = 0;
                 if (SUCCEEDED(system->pRenderClient->GetBuffer(system->samples_count, (BYTE**)&data))) {
@@ -331,7 +331,7 @@ namespace sound {
                         break;
                 }
             }
-            system->thread_state.set(0);
+            system->thread_state = 0;
         }
 
         Mixer::Mixer(System* system) : se_channels(), se_channels_count(),
@@ -582,7 +582,7 @@ namespace sound {
 
         void SEChannel::FillBuffer(sound_buffer_data* buffer, size_t samples_count, float_t volume) {
             std::unique_lock<std::mutex> u_lock(mtx);
-            if (!play_state.get() || !buffer)
+            if (!play_state || !buffer)
                 return;
 
             float_t master_volume = this->master_volume;
@@ -676,7 +676,7 @@ namespace sound {
             this->loop_start = loop_start;
             this->loop_end = loop_end;
             current_sample = 0;
-            play_state.set(1);
+            play_state = 1;
             return true;
         }
 
@@ -686,7 +686,7 @@ namespace sound {
         }
 
         void SEChannel::ResetData() {
-            play_state.set(0);
+            play_state = 0;
             if (buffer) {
                 free(buffer);
                 buffer = 0;
@@ -701,7 +701,7 @@ namespace sound {
         }
 
         void SEChannel::ResetDataProt() {
-            if (!play_state.get())
+            if (!play_state)
                 return;
 
             std::unique_lock<std::mutex> u_lock(mtx);
@@ -734,12 +734,12 @@ namespace sound {
         }
 
         void StreamingChannel::FillBuffer(sound_buffer_data* buffer, size_t samples_count, float_t volume) {
-            if (playing_state.get() && reset_state.get()) {
+            if (playing_state && reset_state) {
                 std::unique_lock<std::mutex> u_lock(mtx);
                 ResetData();
             }
 
-            if (!playing_state.get() || !this->buffer || !buffer)
+            if (!playing_state || !this->buffer || !buffer)
                 return;
 
             float_t spk_l_volume = 0.0f;
@@ -795,7 +795,7 @@ namespace sound {
         }
 
         void StreamingChannel::Reset() {
-            reset_state.set(1);
+            reset_state = 1;
             FillBuffer(0, 0, 0.0f);
             if (buffer) {
                 free(buffer);
@@ -806,8 +806,8 @@ namespace sound {
         }
 
         void StreamingChannel::ResetData() {
-            playing_state.set(0);
-            reset_state.set(0);
+            playing_state = 0;
+            reset_state = 0;
             callback_func = 0;
             callback_data = 0;
         }
@@ -818,7 +818,7 @@ namespace sound {
             ResetData();
             callback_func = func;
             callback_data = data;
-            playing_state.set(1);
+            playing_state = 1;
             return true;
         }
 
@@ -891,7 +891,7 @@ SoundCue::SoundCue() : thread(), property(), counter(), release_time(), se_chann
 
 SoundCue::~SoundCue() {
     if (thread) {
-        thread_state.set(1);
+        thread_state = 1;
         cnd.notify_one();
         thread->join();
         delete thread;
@@ -905,19 +905,19 @@ SoundCue::~SoundCue() {
 }
 
 bool SoundCue::CanPlay() {
-    if (se_channel && se_channel->play_state.get())
+    if (se_channel && se_channel->play_state)
         return true;
-    return !!load_state.get();
+    return !!load_state;
 }
 
 void SoundCue::Ctrl() {
     std::unique_lock<std::mutex> u_lock(mtx);
-    while (!thread_state.get()) {
-        if (!data_state.get())
+    while (!thread_state) {
+        if (!data_state)
             cnd.wait(u_lock);
 
-        int32_t _data_state = data_state.get();
-        data_state.set(SOUND_CUE_DATA_STATE_NONE);
+        int32_t _data_state = data_state;
+        data_state = SOUND_CUE_DATA_STATE_NONE;
         switch (_data_state) {
         case SOUND_CUE_DATA_STATE_LOAD:
             LoadData();
@@ -927,7 +927,7 @@ void SoundCue::Ctrl() {
             break;
         }
     }
-    thread_state.set(0);
+    thread_state = 0;
 }
 
 int32_t SoundCue::Load(int32_t queue_index, const char* name, float_t volume) {
@@ -946,8 +946,8 @@ int32_t SoundCue::Load(int32_t queue_index, const char* name, float_t volume) {
     this->volume->SetValue(volume);
 
     Play();
-    load_state.set(1);
-    data_state.set(SOUND_CUE_DATA_STATE_LOAD);
+    load_state = 1;
+    data_state = SOUND_CUE_DATA_STATE_LOAD;
     cnd.notify_one();
     counter = sound_work->counter;
     if (++sound_work->counter <= -1)
@@ -958,7 +958,7 @@ int32_t SoundCue::Load(int32_t queue_index, const char* name, float_t volume) {
 void SoundCue::LoadData() {
     WaveAudio* _wave_audio = 0;
     if (!property || !property->farc) {
-        load_state.set(0);
+        load_state = 0;
         return;
     }
 
@@ -982,7 +982,7 @@ void SoundCue::LoadData() {
         _wave_audio->Reset();
         delete _wave_audio;
     }
-    load_state.set(0);
+    load_state = 0;
 }
 
 void SoundCue::Play() {
@@ -1029,7 +1029,7 @@ void SoundCue::PlayProt() {
 
 void SoundCue::Release(bool force_release) {
     if (!property || fabsf(property->release_time) <= 0.000001f || force_release) {
-        data_state.set(SOUND_CUE_DATA_STATE_RESET);
+        data_state = SOUND_CUE_DATA_STATE_RESET;
         cnd.notify_one();
         queue_index = SOUND_WORK_SE_QUEUE_COUNT;
         name.clear();
@@ -1052,7 +1052,7 @@ void SoundCue::Reset() {
     ReleaseProt(true);
 
     if (thread) {
-        thread_state.set(1);
+        thread_state = 1;
         cnd.notify_one();
         thread->join();
         delete thread;

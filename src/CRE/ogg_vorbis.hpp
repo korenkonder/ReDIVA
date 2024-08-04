@@ -74,7 +74,7 @@ struct OggFileBuffer {
 
 struct OggFile {
     std::mutex mtx;
-    lock<uint32_t> thread_state;
+    std::atomic_uint32_t thread_state;
     std::thread* thread;
     OggFileBuffer buffer;
     OggVorbis_File* file;
@@ -103,7 +103,7 @@ struct OggFile {
 
 struct OggFileHandler {
     std::mutex mtx;
-    lock<uint32_t> thread_state;
+    std::atomic_uint32_t thread_state;
     std::thread* thread;
     size_t index;
     OggFile file;
@@ -121,9 +121,9 @@ struct OggFileHandler {
     int32_t channel_pair_volume_pan[4][2][4];
     int32_t master_volume;
     int32_t channel_pair_volume[4];
-    lock<OggFileHandlerFileState> file_state;
-    lock<OggFileHandlerPlaybackState> playback_state;
-    lock<OggFileHandlerPauseState> pause_state;
+    std::atomic<OggFileHandlerFileState> file_state;
+    std::atomic<OggFileHandlerPlaybackState> playback_state;
+    std::atomic<OggFileHandlerPauseState> pause_state;
     double_t req_time;
     int32_t rate;
     bool loop;

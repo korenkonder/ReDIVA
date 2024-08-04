@@ -7,33 +7,6 @@
 
 #include "../KKdLib/default.hpp"
 
-template <typename T>
-struct lock {
-private:
-    volatile uint32_t value;
-
-public:
-    inline lock() {
-        _InterlockedExchange(&value, 0);
-    }
-
-    inline T get() {
-        _m_prefetchw(&value);
-        int32_t v3 = value;
-        while (true) {
-            int32_t v4 = v3;
-            v3 = _InterlockedCompareExchange(&value, v3, v3);
-            if (v4 == v3)
-                break;
-        }
-        return (T)v3;
-    }
-
-    inline void set(T value) {
-        _InterlockedExchange(&this->value, (uint32_t)value);
-    }
-};
-
 struct lock_cs {
     CRITICAL_SECTION cs;
     bool init;
