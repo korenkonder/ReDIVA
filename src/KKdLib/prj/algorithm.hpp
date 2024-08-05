@@ -13,7 +13,17 @@
 
 namespace prj {
     template <class T>
-    bool find(std::vector<T>& vec, T& value) {
+    bool find(std::vector<T>& vec, const T& value) {
+        auto begin = vec.begin();
+        auto end = vec.end();
+        for (auto i = begin; i != end; i++)
+            if (*i == value)
+                return true;
+        return false;
+    }
+
+    template <class T>
+    bool find(std::vector<T>& vec, const T&& value) {
         auto begin = vec.begin();
         auto end = vec.end();
         for (auto i = begin; i != end; i++)
