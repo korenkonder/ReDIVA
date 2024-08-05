@@ -31,10 +31,7 @@ public:
         void reset();
     };
 
-    int32_t chara_id;
     int32_t state;
-    uint32_t mot_set_id;
-    uint32_t motion_id;
     Auth3D auth_3d;
     std::string ogg_path;
     bool play;
