@@ -30,6 +30,9 @@
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
+#if BAKE_X_PACK
+#include "../KKdLib/waitable_timer.hpp"
+#endif
 #include <meshoptimizer/meshoptimizer.h>
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
@@ -47,6 +50,7 @@
 #include "imgui_helper.hpp"
 #include "input.hpp"
 #include "print_work.hpp"
+#include <atomic>
 
 enum dsc_x_func {
     DSC_X_END = 0,
@@ -246,7 +250,12 @@ prj::vector_pair<int32_t, prj::vector_pair<int32_t, std::string>> x_pv_game_str_
 int32_t x_pv_game_str_array_lang_sel;
 
 #if BAKE_X_PACK
+const char* x_pack_aft_out_dir = "patch\\!temp_AFT";
+const char* x_pack_mmp_out_dir = "patch\\!temp_MMp";
+
 XPVGameBaker* x_pv_game_baker_ptr;
+file_stream* x_pack_aft_bake_log_file_ptr;
+file_stream* x_pack_mmp_bake_log_file_ptr;
 #else
 XPVGameSelector* x_pv_game_selector_ptr;
 #endif
@@ -269,25 +278,85 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
 
 #if BAKE_X_PACK
+const int FARC_COMPRESS_NUM_THREADS = 4;
+
+struct FarcCompress {
+    enum State {
+        FARC_COMPRESS_STATE_WAIT = 0,
+        FARC_COMPRESS_STATE_WORKING,
+        FARC_COMPRESS_STATE_END,
+    };
+
+    struct Thread {
+        farc* f;
+        std::string path;
+        std::thread* thread;
+        std::atomic_uint32_t state;
+
+        Thread();
+        ~Thread();
+
+        void Dest();
+        void Init(int32_t index);
+    };
+
+    struct Data {
+        farc* f;
+        std::string path;
+
+        Data();
+        Data(farc* f, const std::string& path);
+        ~Data();
+    };
+
+    Thread farc_threads[FARC_COMPRESS_NUM_THREADS];
+    std::list<Data> data;
+    std::thread* main_thread;
+    std::atomic_uint32_t main_thread_state;
+    std::mutex mtx;
+
+    FarcCompress();
+    ~FarcCompress();
+
+    void AddFarc(farc* f, const std::string& path);
+    void Dest();
+    void Init();
+
+    static void FarcThreadMain(int32_t index);
+    static void MainThreadMain();
+};
+
+FarcCompress* farc_compress_ptr;
+
+static void x_pv_game_fix_txp_set(txp_set* txp_set, const char* out_dir);
 static void x_pv_game_update_object_set(ObjsetInfo* info);
 static void x_pv_game_write_aet(uint32_t aet_set_id,
     const aet_database* aet_db, aet_database_file* x_pack_aet_db,
-    const sprite_database_file* x_pack_spr_db);
-static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
-    auth_3d_database_file* auth_3d_db, const char* category);
-static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id);
+    const sprite_database_file* x_pack_spr_db, const char* out_dir);
+static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_file* auth_3d_db,
+    const char* category, std::vector<uint64_t>& avail_uids, const char* out_dir);
+static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
+    auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir);
+static void x_pv_game_write_auth_3d_category(const std::string& category,
+    auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir);
+static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id, const char* out_dir);
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_3d_database* x_pack_auth_3d_db,
-    const object_database* obj_db, const object_database* x_pack_obj_db);
-static void x_pv_game_write_object_set(ObjsetInfo* info,
+    const object_database* obj_db, const object_database* x_pack_obj_db, const char* out_dir);
+static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
-    const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db);
+    const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db,
+    prj::vector_pair<uint32_t, uint32_t>* tex_ids, const char* out_dir);
 static void x_pv_game_write_play_param(const pvpp* play_param,
-    int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db);
+    int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir);
 static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
-    int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db);
-static void x_pv_game_write_str_array();
+    int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir);
+static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db,
+    const object_database* x_stage_obj_db, const object_database* x_pack_obj_db,
+    stage_database_file* stg_db, const stage_database* x_stg_db,
+    const texture_database* x_stage_tex_db, const texture_database* x_pack_tex_db, const char* out_dir);
+static void x_pv_game_write_str_array(const char* out_dir);
 static void x_pv_game_write_spr(uint32_t spr_set_id,
-    const sprite_database* spr_db, sprite_database_file* x_pack_spr_db);
+    const sprite_database* spr_db, sprite_database_file* x_pack_spr_db, const char* out_dir);
 #endif
 
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
@@ -6595,11 +6664,22 @@ bool x_pv_game::ctrl() {
             break;
 
         for (int32_t i = 0; i < 5; i++) {
-            x_pv_game_write_spr(baker->pv_tit_spr_set_ids[i], &baker->pv_tit_spr_db, &baker->spr_db);
-            x_pv_game_write_aet(baker->pv_tit_aet_set_ids[i], &baker->pv_tit_aet_db, &baker->aet_db, &baker->spr_db);
+            x_pv_game_write_spr(baker->pv_tit_spr_set_ids[i],
+                &baker->pv_tit_spr_db, &baker->aft.spr_db, x_pack_aft_out_dir);
+            x_pv_game_write_aet(baker->pv_tit_aet_set_ids[i],
+                &baker->pv_tit_aet_db, &baker->aft.aet_db, &baker->aft.spr_db, x_pack_aft_out_dir);
         }
 
-        x_pv_game_write_str_array();
+        x_pv_game_write_str_array(x_pack_aft_out_dir);
+
+        for (int32_t i = 0; i < 5; i++) {
+            x_pv_game_write_spr(baker->pv_tit_spr_set_ids[i],
+                &baker->pv_tit_spr_db, &baker->mmp.spr_db, x_pack_mmp_out_dir);
+            x_pv_game_write_aet(baker->pv_tit_aet_set_ids[i],
+                &baker->pv_tit_aet_db, &baker->mmp.aet_db, &baker->mmp.spr_db, x_pack_mmp_out_dir);
+        }
+
+        x_pv_game_write_str_array(x_pack_mmp_out_dir);
 
         baker->pv_tit_init = true;
 #endif
@@ -6688,6 +6768,46 @@ bool x_pv_game::ctrl() {
             sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_easy.dsc", pv_id);
             dsc_easy.type = DSC_X;
             x_data->load_file(&dsc_easy, path_buf, file_buf, dsc::load_file);
+
+            if (pv_id == 826) {
+                char buf[0x200];
+                for (int32_t i = 1; i < 6; i++) {
+                    sprintf_s(buf, sizeof(buf), "pv826\\pv_826_mouth_%d.bin", i + 1);
+
+                    file_stream s;
+                    s.open(buf, "rb");
+                    size_t length = s.length;
+                    uint8_t* data = force_malloc<uint8_t>(length);
+                    s.read(data, length);
+                    s.close();
+
+                    int32_t* _d = (int32_t*)data;
+                    int32_t count = *_d++;
+
+                    for (int32_t j = count; j > 0; j--) {
+                        int32_t time = (int32_t)prj::roundf((double_t)_d[0] * (10000.0 / 6.0));
+                        int32_t mouth_anim_id = _d[2];
+                        int32_t blend_duration_int = _d[3];
+                        _d += 4;
+
+                        int32_t* time_data = dsc_mouth.add_func(dsc_x_get_func_name(DSC_X_TIME),
+                            DSC_X_TIME, dsc_x_get_func_length(DSC_X_TIME));
+                        time_data[0] = time;
+
+                        int32_t* mouth_anim_data = dsc_mouth.add_func(dsc_x_get_func_name(DSC_X_MOUTH_ANIM),
+                            DSC_X_MOUTH_ANIM, dsc_x_get_func_length(DSC_X_MOUTH_ANIM));
+                        mouth_anim_data[0] = i;
+                        mouth_anim_data[1] = 0;
+                        mouth_anim_data[2] = mouth_anim_id;
+                        mouth_anim_data[3] = blend_duration_int;
+                        mouth_anim_data[4] = 1000;
+                    }
+
+                    free_def(data);
+                }
+
+                dsc_mouth.rebuild();
+            }
 
 #if BAKE_PV826
             if (pv_id == 826) {
@@ -7019,7 +7139,8 @@ bool x_pv_game::ctrl() {
 
         XPVGameBaker* baker = x_pv_game_baker_ptr;
 
-        x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id);
+        x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id, x_pack_aft_out_dir);
+        x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id, x_pack_mmp_out_dir);
 
         std::vector<auth_3d*> chara_effect_auth_3ds;
         std::vector<auth_3d*> song_effect_auth_3ds;
@@ -7201,206 +7322,230 @@ bool x_pv_game::ctrl() {
 
             for (int32_t j = 0; j < obj_num; j++)
                 objib[j].load(obj_data[j]);
+
+            x_pv_game_update_object_set(info);
         }
 
         object_set_ids.clear();
 
         for (uint32_t& i : pv_object_set_ids) {
             ObjsetInfo* info = objset_info_storage_get_objset_info(i);
-            if (!info)
-                continue;
-
-            x_pv_game_update_object_set(info);
-            x_pv_game_write_object_set(info, &baker->obj_db,
-                &pv_data.tex_db, &baker->tex_db_base, &baker->tex_db);
+            if (info)
+                x_pv_game_write_object_set(info->obj_set, info->name, &baker->aft.obj_db,
+                    &pv_data.tex_db, &baker->aft.tex_db_base, &baker->aft.tex_db,
+                    &baker->aft.tex_ids, x_pack_aft_out_dir);
         }
 
         for (uint32_t& i : stage_object_set_ids) {
             ObjsetInfo* info = objset_info_storage_get_objset_info(i);
-            if (!info)
-                continue;
-
-            x_pv_game_update_object_set(info);
-            x_pv_game_write_object_set(info, &baker->obj_db,
-                &stage_data.tex_db, &baker->tex_db_base, &baker->tex_db);
+            if (info)
+                x_pv_game_write_object_set(info->obj_set, info->name, &baker->aft.obj_db,
+                    &stage_data.tex_db, &baker->aft.tex_db_base, &baker->aft.tex_db,
+                    &baker->aft.tex_ids, x_pack_aft_out_dir);
         }
 
-        auth_3d_database_file& x_pack_auth_3d_db_file = baker->auth_3d_db;
+        for (uint32_t& i : pv_object_set_ids) {
+            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            if (info)
+                x_pv_game_write_object_set(info->obj_set, info->name, &baker->mmp.obj_db,
+                    &pv_data.tex_db, &baker->mmp.tex_db_base, &baker->mmp.tex_db,
+                    &baker->mmp.tex_ids, x_pack_mmp_out_dir);
+        }
+
+        for (uint32_t& i : stage_object_set_ids) {
+            ObjsetInfo* info = objset_info_storage_get_objset_info(i);
+            if (info)
+                x_pv_game_write_object_set(info->obj_set, info->name, &baker->mmp.obj_db,
+                    &stage_data.tex_db, &baker->mmp.tex_db_base, &baker->mmp.tex_db,
+                    &baker->mmp.tex_ids, x_pack_mmp_out_dir);
+        }
 
         {
-            auth_3d* auth = get_data().camera.id.get_auth_3d();
+            auth_3d_database_file& auth_3d_db = baker->aft.auth_3d_db;
+            std::vector<uint64_t>& avail_uids = baker->aft.avail_auth_3d_uids;
 
-            char category[0x40];
-            sprintf_s(category, sizeof(category), "CAMPV%03d", pv_data.pv_id);
-            replace_names(category);
+            x_pv_game_write_auth_3d_camera(get_data().camera.id.get_auth_3d(),
+                pv_data.pv_id, &auth_3d_db, avail_uids, x_pack_aft_out_dir);
 
-            char name[0x40];
-            sprintf_s(name, sizeof(name), "CAMPV%03d_BASE", pv_data.pv_id);
-            replace_names(name);
+            if (song_effect_auth_3ds.size()) {
+                char name[0x40];
+                sprintf_s(name, sizeof(name), "EFFPV%03d", pv_data.pv_id);
+                replace_names(name);
 
-            x_pack_auth_3d_db_file.category.push_back(category);
+                x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_aft_out_dir);
 
-            x_pack_auth_3d_db_file.uid.push_back({});
-            auth_3d_database_uid_file& uid = x_pack_auth_3d_db_file.uid.back();
-            uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
-            uid.category.assign(category);
-            uid.org_uid = x_pack_auth_3d_db_file.uid_max++;
-            uid.size = auth->play_control.size;
-            uid.value.assign("A ");
-            uid.value.append(name);
-        }
+                farc* effpv_farc = new farc;
+                for (auth_3d*& i : song_effect_auth_3ds)
+                    x_pv_game_write_auth_3d(effpv_farc, i, &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
-        if (song_effect_auth_3ds.size()) {
-            char name[0x40];
-            sprintf_s(name, sizeof(name), "EFFPV%03d", pv_data.pv_id);
-            replace_names(name);
+                farc_compress_ptr->AddFarc(effpv_farc,
+                    sprintf_s_string("%s\\auth_3d\\%s", x_pack_aft_out_dir, name));
+            }
 
-            x_pack_auth_3d_db_file.category.push_back(name);
+            for (auth_3d*& i : chara_effect_auth_3ds)
+                x_pv_game_write_auth_3d(0, i, &auth_3d_db, 0, avail_uids, x_pack_aft_out_dir);
 
-            char path[MAX_PATH];
-            strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
-            strcat_s(path, sizeof(path), name);
-
-            farc* effpv_farc = new farc;
-            for (auth_3d*& i : song_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effpv_farc, i, &x_pack_auth_3d_db_file, name);
-
-            effpv_farc->write(path, FARC_FArC, FARC_NONE, true, false);
-            delete effpv_farc;
-        }
-
-        for (auth_3d*& i : chara_effect_auth_3ds)
-            x_pv_game_write_auth_3d(0, i, &x_pack_auth_3d_db_file, 0);
-
-        {
             char name[0x40];
             sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
             replace_names(name);
 
-            x_pack_auth_3d_db_file.category.push_back(name);
-
-            char path[MAX_PATH];
-            strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
-            strcat_s(path, sizeof(path), name);
+            x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_aft_out_dir);
 
             farc* effstgpv_farc = new farc;
             for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
                 for (uint32_t& j : i.auth_3d_ids) {
                     auth_3d* auth = auth_3d_data_get_auth_3d(j);
                     if (auth)
-                        x_pv_game_write_auth_3d(effstgpv_farc, auth, &x_pack_auth_3d_db_file, name);
+                        x_pv_game_write_auth_3d(effstgpv_farc, auth,
+                            &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
                 }
 
             for (auth_3d*& i : stage_data_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effstgpv_farc, i, &x_pack_auth_3d_db_file, name);
+                x_pv_game_write_auth_3d(effstgpv_farc, i,
+                    &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
             for (auth_3d*& i : stage_data_change_effect_auth_3ds)
-                x_pv_game_write_auth_3d(effstgpv_farc, i, &x_pack_auth_3d_db_file, name);
+                x_pv_game_write_auth_3d(effstgpv_farc, i,
+                    &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
             if (light_auth_3d_id.check_not_empty())
-                x_pv_game_write_auth_3d(effstgpv_farc,
-                    light_auth_3d_id.get_auth_3d(), &x_pack_auth_3d_db_file, name);
+                x_pv_game_write_auth_3d(effstgpv_farc, light_auth_3d_id.get_auth_3d(),
+                    &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
             if (effstgpv_farc->files.size())
-                effstgpv_farc->write(path, FARC_FArC, FARC_NONE, true, false);
-            delete effstgpv_farc;
+                farc_compress_ptr->AddFarc(effstgpv_farc,
+                    sprintf_s_string("%s\\auth_3d\\%s", x_pack_aft_out_dir, name));
+            else
+                delete effstgpv_farc;
         }
 
-        auth_3d_database x_pack_auth_3d_db;
-        x_pack_auth_3d_db.add(&baker->auth_3d_db_base, false);
-        x_pack_auth_3d_db.add(&baker->auth_3d_db, true);
+        {
+            auth_3d_database_file& auth_3d_db = baker->mmp.auth_3d_db;
+            std::vector<uint64_t>& avail_uids = baker->mmp.avail_auth_3d_uids;
 
-        object_database x_pack_obj_db;
-        x_pack_obj_db.add(&baker->obj_db);
+            x_pv_game_write_auth_3d_camera(get_data().camera.id.get_auth_3d(),
+                pv_data.pv_id, &auth_3d_db, avail_uids, x_pack_mmp_out_dir);
 
-        texture_database x_pack_tex_db;
-        x_pack_tex_db.add(&baker->tex_db);
-
-        for (Glitter::EffectGroup*& i : pv_glitter_eff_groups)
-            x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &pv_data.obj_db, &x_pack_obj_db);
-
-        for (Glitter::EffectGroup*& i : stage_glitter_eff_groups)
-            x_pv_game_write_glitter(i, &x_pack_auth_3d_db, &stage_data.obj_db, &x_pack_obj_db);
-
-        x_pv_game_write_play_param(pv_data.play_param, pv_data.pv_id, &x_pack_auth_3d_db);
-        x_pv_game_write_stage_resource(stage_data.stage_resource, stage_data.stage_id, &x_pack_auth_3d_db);
-
-        x_pv_game_write_spr(stage_data.env.spr_gam_stgpv_id_hash,
-            &stage_data.env.spr_db, &baker->spr_db);
-        x_pv_game_write_aet(stage_data.env.aet_gam_stgpv_id_hash,
-            &stage_data.env.aet_db, &baker->aet_db, &baker->spr_db);
-
-        stage_database_file& x_pack_stg_db = baker->stage_data;
-        object_database& x_stage_obj_db = stage_data.obj_db;
-        texture_database& x_stage_tex_db = stage_data.tex_db;
-        stage_database& x_stg_db = stage_data.stage_data.stg_db;
-
-        int32_t stage_max_id = -1;
-        for (stage_data_file& i : baker->stage_data.stage_data)
-            stage_max_id = max_def(stage_max_id, i.id);
-
-        for (const stage_data_modern& i : x_stg_db.stage_modern) {
-            x_pack_stg_db.stage_data.push_back({});
-            stage_data_file& stage_data = x_pack_stg_db.stage_data.back();
-            stage_data.id = ++stage_max_id;
-            stage_data.name.assign(i.name);
-            replace_names(stage_data.name);
-            stage_data.auth_3d_name.assign("EFF");
-            stage_data.auth_3d_name.append(stage_data.name);
-            stage_data.object_set_id = x_pack_obj_db.get_object_set_id(stage_data.name.c_str());
-            stage_data.object_ground = replace_object_info(i.object_ground, &x_stage_obj_db, &x_pack_obj_db);
-            stage_data.object_ring = object_info();
-            stage_data.object_sky = replace_object_info(i.object_sky, &x_stage_obj_db, &x_pack_obj_db);
-            stage_data.object_shadow = replace_object_info(i.object_shadow, &x_stage_obj_db, &x_pack_obj_db);
-            stage_data.object_reflect = replace_object_info(i.object_reflect, &x_stage_obj_db, &x_pack_obj_db);
-            stage_data.object_refract = replace_object_info(i.object_refract, &x_stage_obj_db, &x_pack_obj_db);
-            stage_data.lens_flare_texture = -1;
-            stage_data.lens_shaft_texture = -1;
-            stage_data.lens_ghost_texture = -1;
-            stage_data.lens_shaft_inv_scale = 1.0f;
-            stage_data.unknown = 0;
-
-            stage_data.render_texture = replace_texture_id(i.render_texture, &x_stage_tex_db, &x_pack_tex_db);
-            if (stage_data.render_texture == -1) {
+            if (song_effect_auth_3ds.size()) {
                 char name[0x40];
-                sprintf_s(name, sizeof(name), "F_DIVA_STGPV%03d_AM_FB05", this->stage_data.stage_id);
+                sprintf_s(name, sizeof(name), "EFFPV%03d", pv_data.pv_id);
                 replace_names(name);
-                stage_data.render_texture = x_pack_tex_db.get_texture_id(name);
+
+                x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_mmp_out_dir);
+
+                farc* effpv_farc = new farc;
+                for (auth_3d*& i : song_effect_auth_3ds)
+                    x_pv_game_write_auth_3d(effpv_farc, i, &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
+
+                farc_compress_ptr->AddFarc(effpv_farc,
+                    sprintf_s_string("%s\\auth_3d\\%s", x_pack_mmp_out_dir, name));
             }
 
-            stage_data.movie_texture = replace_texture_id(i.movie_texture, &x_stage_tex_db, &x_pack_tex_db);
-            if (stage_data.movie_texture == -1) {
-                char name[0x40];
-                sprintf_s(name, sizeof(name), "F_DIVA_STGPV%03d_AM_FB04", this->stage_data.stage_id);
-                replace_names(name);
-                stage_data.movie_texture = x_pack_tex_db.get_texture_id(name);
-            }
+            for (auth_3d*& i : chara_effect_auth_3ds)
+                x_pv_game_write_auth_3d(0, i, &auth_3d_db, 0, avail_uids, x_pack_mmp_out_dir);
 
-            stage_data.collision_file_path.assign("rom/STGTST_COLI.000.bin");
-            stage_data.reflect_type = STAGE_DATA_REFLECT_DISABLE;
-            stage_data.flags = (stage_data_flags)0;
-            stage_data.rect_x = i.rect_x;
-            stage_data.rect_y = i.rect_y;
-            stage_data.rect_width = i.rect_width;
-            stage_data.rect_height = i.rect_height;
-            stage_data.ring_height = i.ring_height;
-            stage_data.out_height = i.out_height;
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "EFFSTGPV%03d", stage_data.stage_id);
+            replace_names(name);
 
-            stage_data.auth_3d_ids.reserve(i.auth_3d_ids.size());
-            for (const uint32_t& j : i.auth_3d_ids) {
-                auth_3d* auth = auth_3d_data_get_auth_3d(j);
-                if (!auth)
-                    continue;
+            x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_mmp_out_dir);
 
-                char name[0x200];
-                if (get_replace_auth_name(name, sizeof(name), auth)) {
-                    int32_t uid = x_pack_auth_3d_db.get_uid(name);
-                    if (uid != -1)
-                        stage_data.auth_3d_ids.push_back(uid);
+            farc* effstgpv_farc = new farc;
+            for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
+                for (uint32_t& j : i.auth_3d_ids) {
+                    auth_3d* auth = auth_3d_data_get_auth_3d(j);
+                    if (auth)
+                        x_pv_game_write_auth_3d(effstgpv_farc, auth,
+                            &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
                 }
-            }
+
+            for (auth_3d*& i : stage_data_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, i,
+                    &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
+
+            for (auth_3d*& i : stage_data_change_effect_auth_3ds)
+                x_pv_game_write_auth_3d(effstgpv_farc, i,
+                    &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
+
+            if (light_auth_3d_id.check_not_empty())
+                x_pv_game_write_auth_3d(effstgpv_farc, light_auth_3d_id.get_auth_3d(),
+                    &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
+
+            if (effstgpv_farc->files.size())
+                farc_compress_ptr->AddFarc(effstgpv_farc,
+                    sprintf_s_string("%s\\auth_3d\\%s", x_pack_mmp_out_dir, name));
+            else
+                delete effstgpv_farc;
         }
 
+        {
+            auth_3d_database x_pack_auth_3d_db;
+            x_pack_auth_3d_db.add(&baker->aft.auth_3d_db_base, false);
+            x_pack_auth_3d_db.add(&baker->aft.auth_3d_db, true);
+
+            object_database x_pack_obj_db;
+            x_pack_obj_db.add(&baker->aft.obj_db);
+
+            texture_database x_pack_tex_db;
+            x_pack_tex_db.add(&baker->aft.tex_db);
+
+            for (Glitter::EffectGroup*& i : pv_glitter_eff_groups)
+                x_pv_game_write_glitter(i, &x_pack_auth_3d_db,
+                    &pv_data.obj_db, &x_pack_obj_db, x_pack_aft_out_dir);
+
+            for (Glitter::EffectGroup*& i : stage_glitter_eff_groups)
+                x_pv_game_write_glitter(i, &x_pack_auth_3d_db,
+                    &stage_data.obj_db, &x_pack_obj_db, x_pack_aft_out_dir);
+
+            x_pv_game_write_play_param(pv_data.play_param, pv_data.pv_id,
+                &x_pack_auth_3d_db, x_pack_aft_out_dir);
+            x_pv_game_write_stage_resource(stage_data.stage_resource,
+                stage_data.stage_id, &x_pack_auth_3d_db, x_pack_aft_out_dir);
+
+            x_pv_game_write_spr(stage_data.env.spr_gam_stgpv_id_hash,
+                &stage_data.env.spr_db, &baker->aft.spr_db, x_pack_aft_out_dir);
+            x_pv_game_write_aet(stage_data.env.aet_gam_stgpv_id_hash,
+                &stage_data.env.aet_db, &baker->aft.aet_db, &baker->aft.spr_db, x_pack_aft_out_dir);
+
+            x_pv_game_write_stage_data(stage_data.stage_id, &x_pack_auth_3d_db,
+                &stage_data.obj_db, &x_pack_obj_db,
+                &baker->aft.stage_data, &stage_data.stage_data.stg_db,
+                &stage_data.tex_db, &x_pack_tex_db, x_pack_aft_out_dir);
+        }
+
+        {
+            auth_3d_database x_pack_auth_3d_db = baker->mmp.auth_3d_db_base;
+            x_pack_auth_3d_db.add(&baker->mmp.auth_3d_db, true);
+
+            object_database x_pack_obj_db = baker->mmp.obj_db_base;
+            x_pack_obj_db.add(&baker->mmp.obj_db);
+
+            texture_database x_pack_tex_db = baker->mmp.tex_db_base;
+            x_pack_tex_db.add(&baker->mmp.tex_db);
+
+            for (Glitter::EffectGroup*& i : pv_glitter_eff_groups)
+                x_pv_game_write_glitter(i, &x_pack_auth_3d_db,
+                    &pv_data.obj_db, &x_pack_obj_db, x_pack_mmp_out_dir);
+
+            for (Glitter::EffectGroup*& i : stage_glitter_eff_groups)
+                x_pv_game_write_glitter(i, &x_pack_auth_3d_db,
+                    &stage_data.obj_db, &x_pack_obj_db, x_pack_mmp_out_dir);
+
+            x_pv_game_write_play_param(pv_data.play_param, pv_data.pv_id,
+                &x_pack_auth_3d_db, x_pack_mmp_out_dir);
+            x_pv_game_write_stage_resource(stage_data.stage_resource,
+                stage_data.stage_id, &x_pack_auth_3d_db, x_pack_mmp_out_dir);
+
+            x_pv_game_write_spr(stage_data.env.spr_gam_stgpv_id_hash,
+                &stage_data.env.spr_db, &baker->mmp.spr_db, x_pack_mmp_out_dir);
+            x_pv_game_write_aet(stage_data.env.aet_gam_stgpv_id_hash,
+                &stage_data.env.aet_db, &baker->mmp.aet_db, &baker->mmp.spr_db, x_pack_mmp_out_dir);
+
+            x_pv_game_write_stage_data(stage_data.stage_id, &x_pack_auth_3d_db,
+                &stage_data.obj_db, &x_pack_obj_db,
+                &baker->mmp.stage_data, &stage_data.stage_data.stg_db,
+                &stage_data.tex_db, &x_pack_tex_db, x_pack_mmp_out_dir);
+        }
 #endif
         state_old = 19;
     } break;
@@ -8118,7 +8263,7 @@ static void fix_rotation(std::vector<float_t>& vec) {
 struct mot_data_bake {
     int32_t performer;
     x_pv_game_a3da_to_mot* data;
-    lock<uint32_t> state;
+    std::atomic_uint32_t state;
 
     mot_data_bake() : performer(), data() {
 
@@ -8713,6 +8858,249 @@ void x_pv_game::stop_current_pv() {
 }
 
 #if BAKE_X_PACK
+XPVGameBaker::AFTData::AFTData() {
+
+}
+
+XPVGameBaker::AFTData::~AFTData() {
+
+}
+
+void XPVGameBaker::AFTData::Read() {
+    aet_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\2d\\mdata_aet_db", false);
+    auth_3d_db_base.read("diva\\AFT\\rom\\auth_3d\\auth_3d_db");
+    auth_3d_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\auth_3d\\mdata_auth_3d_db");
+    obj_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\objset\\mdata_obj_db", false);
+    spr_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\2d\\mdata_spr_db", false);
+    stage_data.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\mdata_stage_data", false);
+    {
+        texture_database_file tex_db_base;
+        tex_db_base.read("diva\\AFT\\rom\\objset\\tex_db", false);
+        this->tex_db_base.add(&tex_db_base);
+    }
+    tex_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\objset\\mdata_tex_db", false);
+}
+
+void XPVGameBaker::AFTData::Write(const char* out_dir) {
+    for (size_t& i : avail_auth_3d_uids)
+        x_pv_game_baker_ptr->print_log(out_dir,
+            "Unused Auth 3D UID: %d", auth_3d_db.uid.data()[i].org_uid);
+
+    auto i_begin = avail_auth_3d_uids.rbegin();
+    auto i_end = avail_auth_3d_uids.rend();
+    for (auto i = i_begin; i != i_end; i++)
+        auth_3d_db.uid.erase(auth_3d_db.uid.begin() + *i);
+
+    aet_db.write(sprintf_s_string("%s\\%s", out_dir, "2d\\mdata_aet_db").c_str());
+    auth_3d_db.write(sprintf_s_string("%s\\%s", out_dir, "auth_3d\\mdata_auth_3d_db").c_str());
+    obj_db.write(sprintf_s_string("%s\\%s", out_dir, "objset\\mdata_obj_db").c_str());
+    spr_db.write(sprintf_s_string("%s\\%s", out_dir, "2d\\mdata_spr_db").c_str());
+    stage_data.write(sprintf_s_string("%s\\%s", out_dir, "mdata_stage_data").c_str());
+    tex_db.write(sprintf_s_string("%s\\%s", out_dir, "objset\\mdata_tex_db").c_str());
+}
+
+XPVGameBaker::MMPData::MMPData() {
+
+}
+
+XPVGameBaker::MMPData::~MMPData() {
+
+}
+
+void XPVGameBaker::MMPData::Read() {
+    const std::string mmp_base_path("R:\\SteamLibrary\\steamapps\\common\\"
+        "Hatsune Miku Project DIVA Mega Mix Plus\\");
+
+    const std::pair<const char*, const char*> mmp_paths[] = {
+        {   "diva_main\\rom_steam\\",       "" },
+        {  "diva_main\\rom_switch\\",       "" },
+        { "diva_main\\rom_ps4_dlc\\", "mdata_" },
+        {   "mods\\F2nd Song Pack\\",   "mod_" },
+    };
+
+    const std::pair<const char*, const char*> mmp_x_song_pack_path = { "mods\\X Song Pack\\", "mod_" };
+
+    aet_db.read((mmp_base_path + mmp_x_song_pack_path.first
+        + "rom\\2d\\" + mmp_x_song_pack_path.second + "aet_db").c_str(), false);
+
+    for (auto& i : mmp_paths) {
+        auth_3d_database_file auth_3d_db_file;
+        auth_3d_db_file.read((mmp_base_path + i.first + "rom\\auth_3d\\" + i.second + "auth_3d_db").c_str());
+        auth_3d_db_base.add(&auth_3d_db_file, i.second[0] != 0);
+    }
+
+    auth_3d_db.read((mmp_base_path + mmp_x_song_pack_path.first
+        + "rom\\auth_3d\\" + mmp_x_song_pack_path.second + "auth_3d_db").c_str());
+
+    for (auto& i : mmp_paths) {
+        object_database_file obj_db_file;
+        obj_db_file.read((mmp_base_path + i.first + "rom\\objset\\" + i.second + "obj_db").c_str(), false);
+        obj_db_base.add(&obj_db_file);
+    }
+
+    obj_db.read((mmp_base_path + mmp_x_song_pack_path.first
+        + "rom\\objset\\" + mmp_x_song_pack_path.second + "obj_db").c_str(), false);
+
+    spr_db.read((mmp_base_path + mmp_x_song_pack_path.first
+        + "rom\\2d\\" + mmp_x_song_pack_path.second + "spr_db").c_str(), false);
+
+    for (auto& i : mmp_paths) {
+        stage_database_file stage_data_file;
+        stage_data_file.read((mmp_base_path + i.first + "rom\\" + i.second + "stage_data").c_str(), false);
+        stage_data_base.add(&stage_data_file);
+    }
+
+    stage_data.read((mmp_base_path + mmp_x_song_pack_path.first
+        + "rom\\" + mmp_x_song_pack_path.second + "stage_data").c_str(), false);
+
+    for (auto& i : mmp_paths) {
+        texture_database_file tex_db_file;
+        tex_db_file.read((mmp_base_path + i.first + "rom\\objset\\" + i.second + "tex_db").c_str(), false);
+        tex_db_base.add(&tex_db_file);
+    }
+
+    tex_db.read((mmp_base_path + mmp_x_song_pack_path.first
+        + "rom\\objset\\" + mmp_x_song_pack_path.second + "tex_db").c_str(), false);
+}
+
+void XPVGameBaker::MMPData::Write(const char* out_dir) {
+    for (size_t& i : avail_auth_3d_uids)
+        x_pv_game_baker_ptr->print_log(out_dir,
+            "Unused Auth 3D UID: %d", auth_3d_db.uid.data()[i].org_uid);
+
+    auto i_begin = avail_auth_3d_uids.rbegin();
+    auto i_end = avail_auth_3d_uids.rend();
+    for (auto i = i_begin; i != i_end; i++)
+        auth_3d_db.uid.erase(auth_3d_db.uid.begin() + *i);
+
+    aet_db.write(sprintf_s_string("%s\\%s", out_dir, "2d\\mod_aet_db").c_str());
+    auth_3d_db.write(sprintf_s_string("%s\\%s", out_dir, "auth_3d\\mod_auth_3d_db").c_str());
+    obj_db.write(sprintf_s_string("%s\\%s", out_dir, "objset\\mod_obj_db").c_str());
+    spr_db.write(sprintf_s_string("%s\\%s", out_dir, "2d\\mod_spr_db").c_str());
+    stage_data.write(sprintf_s_string("%s\\%s", out_dir, "mod_stage_data").c_str());
+    tex_db.write(sprintf_s_string("%s\\%s", out_dir, "objset\\mod_tex_db").c_str());
+}
+
+FarcCompress::Thread::Thread() : f(), thread() {
+
+}
+
+FarcCompress::Thread::~Thread() {
+
+}
+
+void FarcCompress::Thread::Dest() {
+    state = FARC_COMPRESS_STATE_END;
+    thread->join();
+    delete thread;
+}
+
+void FarcCompress::Thread::Init(int32_t index) {
+    state = FARC_COMPRESS_STATE_WAIT;
+    thread = new std::thread(FarcCompress::FarcThreadMain, index);
+    if (thread) {
+        std::wstring buf = swprintf_s_string(L"Farc Compress Farc Thread #%d", index++);
+        SetThreadDescription((HANDLE)thread->native_handle(), buf.c_str());
+    }
+}
+
+FarcCompress::Data::Data() : f() {
+
+}
+
+FarcCompress::Data::Data(farc* f, const std::string& path) : f(f), path(path) {
+
+}
+
+FarcCompress::Data::~Data() {
+
+}
+
+FarcCompress::FarcCompress() : main_thread() {
+
+}
+
+FarcCompress::~FarcCompress() {
+
+}
+
+void FarcCompress::AddFarc(farc* f, const std::string& path) {
+    {
+        std::unique_lock<std::mutex> u_lock(mtx);
+        data.push_back({ f, path });
+    }
+}
+
+void FarcCompress::Dest() {
+    main_thread_state = FARC_COMPRESS_STATE_END;
+    main_thread->join();
+    delete main_thread;
+}
+
+void FarcCompress::Init() {
+    main_thread_state = FARC_COMPRESS_STATE_WAIT;
+    main_thread = new std::thread(FarcCompress::MainThreadMain);
+    if (main_thread)
+        SetThreadDescription((HANDLE)main_thread->native_handle(), L"Farc Compress Main Thread");
+}
+
+void FarcCompress::FarcThreadMain(int32_t index) {
+    FarcCompress::Thread& thread = farc_compress_ptr->farc_threads[index];
+
+    waitable_timer timer;
+    while (true) {
+        if (thread.state == FARC_COMPRESS_STATE_WORKING) {
+            thread.f->write(thread.path.c_str(), FARC_FArC, FARC_NONE, true, false);
+            delete thread.f;
+            thread.f = 0;
+
+            if (thread.state == FARC_COMPRESS_STATE_END)
+                break;
+
+            thread.state = FARC_COMPRESS_STATE_WAIT;
+        }
+        else if (thread.state == FARC_COMPRESS_STATE_END)
+            break;
+
+        timer.sleep_float(1.0f);
+    }
+}
+
+void FarcCompress::MainThreadMain() {
+    FarcCompress& farc_compress = *farc_compress_ptr;
+
+    for (int32_t i = 0; i < FARC_COMPRESS_NUM_THREADS; i++)
+        farc_compress.farc_threads[i].Init(i);
+
+    waitable_timer timer;
+    while (true) {
+        {
+            std::unique_lock<std::mutex> u_lock(farc_compress.mtx);
+            for (int32_t i = 0; i < FARC_COMPRESS_NUM_THREADS && farc_compress.data.size(); i++) {
+                FarcCompress::Thread& thread = farc_compress.farc_threads[i];
+                if (thread.state == FARC_COMPRESS_STATE_WAIT) {
+                    thread.f = farc_compress.data.front().f;
+                    thread.path.assign(farc_compress.data.front().path);
+                    farc_compress.data.pop_front();
+                    thread.state = FARC_COMPRESS_STATE_WORKING;
+                }
+            }
+        }
+
+        {
+            std::unique_lock<std::mutex> u_lock(farc_compress.mtx);
+            size_t size = farc_compress.data.size();
+            if (!size && farc_compress_ptr->main_thread_state == FARC_COMPRESS_STATE_END)
+                break;
+        }
+
+        timer.sleep_float(1.0f);
+    }
+
+    for (int32_t i = 0; i < FARC_COMPRESS_NUM_THREADS; i++)
+        farc_compress.farc_threads[i].Dest();
+}
+
 XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
 pv_tit_spr_set_ids(), pv_tit_aet_ids(), pv_tit_init(), start(), exit(), next() {
     index = -1;
@@ -8741,20 +9129,13 @@ XPVGameBaker::~XPVGameBaker() {
 }
 
 bool XPVGameBaker::init() {
-    data_struct* aft_data = &data_list[DATA_AFT];
+    x_pack_aft_bake_log_file_ptr = new file_stream;
+    x_pack_aft_bake_log_file_ptr->open("x_pack_aft_bake_log.txt", "wb");
+    x_pack_mmp_bake_log_file_ptr = new file_stream;
+    x_pack_mmp_bake_log_file_ptr->open("x_pack_mmp_bake_log.txt", "wb");
 
-    aet_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\2d\\mdata_aet_db", false);
-    auth_3d_db_base.read("diva\\AFT\\rom\\auth_3d\\auth_3d_db");
-    auth_3d_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\auth_3d\\mdata_auth_3d_db");
-    obj_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\objset\\mdata_obj_db", false);
-    spr_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\2d\\mdata_spr_db", false);
-    stage_data.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\mdata_stage_data", false);
-    {
-        texture_database_file tex_db_base;
-        tex_db_base.read("diva\\AFT\\rom\\objset\\tex_db", false);
-        this->tex_db_base.add(&tex_db_base);
-    }
-    tex_db.read("diva\\AFT_mod\\mdata\\MPF2\\rom\\objset\\mdata_tex_db", false);
+    aft.Read();
+    mmp.Read();
     return true;
 }
 
@@ -8775,12 +9156,8 @@ bool XPVGameBaker::ctrl() {
 }
 
 bool XPVGameBaker::dest() {
-    aet_db.write("patch\\!temp\\2d\\mdata_aet_db");
-    auth_3d_db.write("patch\\!temp\\auth_3d\\mdata_auth_3d_db");
-    obj_db.write("patch\\!temp\\objset\\mdata_obj_db");
-    spr_db.write("patch\\!temp\\2d\\mdata_spr_db");
-    stage_data.write("patch\\!temp\\mdata_stage_data");
-    tex_db.write("patch\\!temp\\objset\\mdata_tex_db");
+    aft.Write(x_pack_aft_out_dir);
+    mmp.Write(x_pack_mmp_out_dir);
 
     for (int32_t i = 0; i < 5; i++) {
         sprite_manager_unload_set_modern(pv_tit_aet_set_ids[i], &pv_tit_spr_db);
@@ -8789,7 +9166,30 @@ bool XPVGameBaker::dest() {
 
     pv_tit_aet_db.clear();
     pv_tit_spr_db.clear();
+
+    x_pack_mmp_bake_log_file_ptr->close();
+    delete x_pack_mmp_bake_log_file_ptr;
+    x_pack_mmp_bake_log_file_ptr = 0;
+
+    x_pack_aft_bake_log_file_ptr->close();
+    delete x_pack_aft_bake_log_file_ptr;
+    x_pack_aft_bake_log_file_ptr = 0;
     return true;
+}
+
+void XPVGameBaker::print_log(const char* out_dir, _In_z_ _Printf_format_string_ const char* const fmt, ...) {
+    va_list args;
+    va_start(args, fmt);
+    std::string buf = vsprintf_s_string(fmt, args);
+    va_end(args);
+
+    file_stream& log_file = out_dir == x_pack_mmp_out_dir
+        ? *x_pack_mmp_bake_log_file_ptr : *x_pack_aft_bake_log_file_ptr;
+    log_file.write_string(buf);
+    log_file.write_char('\n');
+    log_file.flush();
+
+    printf("!!! %s !!! %s\n", out_dir == x_pack_mmp_out_dir ? "MM+" : "AFT", buf.c_str());
 }
 #else
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
@@ -9126,6 +9526,10 @@ void x_pv_game_data_free() {
 bool x_pv_game_baker_init() {
     if (!x_pv_game_baker_ptr)
         x_pv_game_baker_ptr = new XPVGameBaker;
+    if (!farc_compress_ptr) {
+        farc_compress_ptr = new FarcCompress;
+        farc_compress_ptr->Init();
+    }
     return true;
 }
 
@@ -9137,6 +9541,12 @@ bool x_pv_game_baker_free() {
     if (x_pv_game_baker_ptr) {
         delete x_pv_game_baker_ptr;
         x_pv_game_baker_ptr = 0;
+    }
+
+    if (farc_compress_ptr) {
+        farc_compress_ptr->Dest();
+        delete farc_compress_ptr;
+        farc_compress_ptr = 0;
     }
     return true;
 }
@@ -9566,6 +9976,14 @@ static int x_pv_game_auth_3d_hrc_obj_bone_compare_func(void const* src1, void co
 }
 
 #if BAKE_X_PACK
+static void x_pv_game_fix_txp_set(txp_set* txp_set, const char* out_dir) {
+    if (out_dir == x_pack_mmp_out_dir)
+        for (txp& i : txp_set->textures)
+            for (txp_mipmap& j : i.mipmaps)
+                if (j.format == TXP_BC1a)
+                    j.format = TXP_BC1;
+}
+
 static void x_pv_game_update_object_set(ObjsetInfo* info) {
     prj::shared_ptr<prj::stack_allocator> old_alloc = info->alloc_handler;
 
@@ -9579,7 +9997,7 @@ static void x_pv_game_update_object_set(ObjsetInfo* info) {
 
 static void x_pv_game_write_aet(uint32_t aet_set_id,
     const aet_database* aet_db, aet_database_file* x_pack_aet_db,
-    const sprite_database_file* x_pack_spr_db) {
+    const sprite_database_file* x_pack_spr_db, const char* out_dir) {
     const aet_db_aet_set* aet_set_db = aet_db->get_aet_set_by_id(aet_set_id);
 
     ::aet_set* aet_set = aet_manager_get_set(aet_set_id, aet_db);
@@ -9588,57 +10006,91 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
     ::aet_set* set = alloc->allocate<::aet_set>();
     set->move_data(aet_set, alloc);
 
+    std::string name(aet_set_db->name);
+    std::string file_name(aet_set_db->file_name);
+
+    replace_stgpv_pv(name);
+    replace_stgpv_pv(file_name);
+
+    size_t pos = file_name.rfind(".aec");
+    if (pos != -1)
+        file_name.replace(pos, 4, ".bin");
+
+    uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+    size_t set_index = -1;
     uint32_t id = -1;
     uint32_t aet_id = -1;
     for (aet_db_aet_set_file& i : x_pack_aet_db->aet_set) {
-        if ((int32_t)id < (int32_t)i.id)
-            id = i.id;
+        if (hash_string_xxh3_64bits(i.name) == name_hash)
+            set_index = &i - x_pack_aet_db->aet_set.data();
+
+        id = (uint32_t)max_def((int32_t)id, (int32_t)i.id);
 
         for (aet_db_aet_file& j : i.aet)
-            if ((int32_t)aet_id < (int32_t)j.id)
-                aet_id = i.id;
+            aet_id = (uint32_t)max_def((int32_t)aet_id, (int32_t)j.id);
     }
-    id++;
-    aet_id++;
 
+    std::vector<aet_db_aet_file> old_aet;
+    aet_db_aet_set_file* aet_db_aet_set = &x_pack_aet_db->aet_set.back();
+    if (set_index != -1) {
+        aet_db_aet_set = &x_pack_aet_db->aet_set.data()[set_index];
 
-    uint32_t index = x_pack_aet_db->aet_set.back().index + 1;
+        aet_db_aet_set->file_name.assign(file_name);
+        aet_db_aet_set->aet.swap(old_aet);
+    }
+    else {
+        uint32_t index = set_index != -1 ? x_pack_aet_db->aet_set.data()[set_index].index
+            : (x_pack_aet_db->aet_set.back().index + 1);
 
-    x_pack_aet_db->aet_set.push_back({});
-    aet_db_aet_set_file& aet_db_aet_set = x_pack_aet_db->aet_set.back();
+        x_pack_aet_db->aet_set.push_back({});
+        aet_db_aet_set = &x_pack_aet_db->aet_set.back();
 
-    aet_db_aet_set.id = id++;
-    aet_db_aet_set.name.assign(aet_set_db->name);
-    aet_db_aet_set.file_name.assign(aet_set_db->file_name);
-    aet_db_aet_set.index = index;
+        aet_db_aet_set->id = ++id;
+        aet_db_aet_set->name.assign(name);
+        aet_db_aet_set->file_name.assign(file_name);
+        aet_db_aet_set->index = index;
 
-    replace_stgpv_pv(aet_db_aet_set.name);
-    replace_stgpv_pv(aet_db_aet_set.file_name);
-
-    size_t pos = aet_db_aet_set.file_name.rfind(".aec");
-    if (pos != -1)
-        aet_db_aet_set.file_name.replace(pos, 4, ".bin");
+        x_pv_game_baker_ptr->print_log(out_dir, "New Aet Set ID: %d; Name: %s", id, name.c_str());
+    }
 
     std::string sprite_set_name("SPR_");
-    sprite_set_name.append(aet_db_aet_set.name, 4);
+    sprite_set_name.append(aet_db_aet_set->name, 4);
 
     uint32_t sprite_set_hash = hash_string_murmurhash(sprite_set_name);
     for (const spr_db_spr_set_file& i : x_pack_spr_db->sprite_set)
         if (sprite_set_hash == hash_string_murmurhash(i.name)) {
-            aet_db_aet_set.sprite_set_id = i.id;
+            aet_db_aet_set->sprite_set_id = i.id;
             break;
         }
 
-    aet_db_aet_set.aet.reserve(1);
+    aet_db_aet_set->aet.reserve(1);
 
     for (uint32_t i = 0; i < 1; i++) {
         const aet_db_aet* aet = aet_db->get_aet_by_set_id_index(aet_set_id, i);
 
-        aet_db_aet_set.aet.push_back({});
-        aet_db_aet_file& aet_file = aet_db_aet_set.aet.back();
-        aet_file.name.assign(aet->name);
-        replace_stgpv_pv(aet_file.name);
-        aet_file.id = aet_id++;
+        std::string name(aet->name);
+        replace_stgpv_pv(name);
+
+        uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+        size_t aet_index = -1;
+        for (aet_db_aet_file& j : old_aet) {
+            if (hash_string_xxh3_64bits(j.name) == name_hash)
+                aet_index = &j - old_aet.data();
+            break;
+        }
+
+        aet_db_aet_set->aet.push_back({});
+        aet_db_aet_file& aet_file = aet_db_aet_set->aet.back();
+        aet_file.name.assign(name);
+        if (aet_index != -1)
+            aet_file.id = old_aet.data()[aet_index].id;
+        else {
+            aet_file.id = ++aet_id;
+
+            x_pv_game_baker_ptr->print_log(out_dir, "New Aet ID: %d; Name: %s", aet_id, name.c_str());
+        }
         aet_file.index = i;
     }
 
@@ -9681,10 +10133,8 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
                 uint32_t hash = hash_string_murmurhash(name);
                 for (const spr_db_spr_set_file& l : x_pack_spr_db->sprite_set)
                     for (const spr_db_spr_file& m : l.sprite)
-                    if (hash == hash_string_murmurhash(m.name)) {
-                        *(uint32_t*)&source->sprite_index = m.id;
-                        break;
-                    }
+                        if (hash == hash_string_murmurhash(m.name))
+                            *(uint32_t*)&source->sprite_index = m.id;
             }
         }
 
@@ -9697,19 +10147,16 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
     size_t size = 0;
     set->pack_file(&data, &size);
 
-    char buf[0x200];
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\2d\\");
-    strcat_s(buf, sizeof(buf), aet_db_aet_set.file_name.c_str());
-
-    file_stream s_dsc;
-    s_dsc.open(buf, "wb");
-    s_dsc.write(data, size);
-    s_dsc.close();
+    file_stream s_bin;
+    s_bin.open(sprintf_s_string("%s\\2d\\%s", out_dir,
+        aet_db_aet_set->file_name.c_str()).c_str(), "wb");
+    s_bin.write(data, size);
+    s_bin.close();
     free_def(data);
 }
 
-static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
-    auth_3d_database_file* auth_3d_db, const char* category) {
+static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_file* auth_3d_db,
+    const char* category, std::vector<uint64_t>& avail_uids, const char* out_dir) {
     char name[0x200];
     if (!get_replace_auth_name(name, sizeof(name), auth))
         return false;
@@ -9773,28 +10220,141 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth,
     a.write(&ff->data, &ff->size);
 
     if (own_farc) {
-        char path[MAX_PATH];
-        strcpy_s(path, sizeof(path), "patch\\!temp\\auth_3d\\");
-        strcat_s(path, sizeof(path), name);
+        farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\auth_3d\\%s", out_dir, name));
 
-        f->write(path, FARC_FArC, FARC_NONE, true, false);
-        delete f;
-
-        auth_3d_db->category.push_back(name);
+        x_pv_game_write_auth_3d_category(name, auth_3d_db, avail_uids, out_dir);
     }
 
-    auth_3d_db->uid.push_back({});
-    auth_3d_database_uid_file& uid = auth_3d_db->uid.back();
+    uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+    size_t uid_index = -1;
+    for (auth_3d_database_uid_file& i : auth_3d_db->uid)
+        if (i.value.size() > 2 && hash_string_xxh3_64bits(i.value.substr(2)) == name_hash)
+            uid_index = &i - auth_3d_db->uid.data();
+
+
+    if (uid_index == -1)
+        if (avail_uids.size()) {
+            uid_index = avail_uids.front();
+            avail_uids.erase(avail_uids.begin());
+
+            x_pv_game_baker_ptr->print_log(out_dir, "Reusing Auth 3D UID: %d"
+                "; New Value: \"A %s\"", auth_3d_db->uid.data()[uid_index].org_uid, name);
+        }
+        else {
+            auth_3d_db->uid.push_back({});
+            auth_3d_db->uid.back().org_uid = ++auth_3d_db->uid_max;
+            uid_index = auth_3d_db->uid.size() - 1;
+
+            x_pv_game_baker_ptr->print_log(out_dir, "New Auth 3D UID: %d"
+                "; Value: \"A %s\"", auth_3d_db->uid_max, name);
+        }
+
+    auth_3d_database_uid_file& uid = auth_3d_db->uid.data()[uid_index];
     uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
     uid.category.assign(own_farc ? name : category);
-    uid.org_uid = auth_3d_db->uid_max++;
     uid.size = auth->play_control.size;
     uid.value.assign("A ");
     uid.value.append(name);
     return true;
 }
 
-static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
+static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
+    auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir) {
+    std::string category = sprintf_s_string("CAMPV%03d", pv_id);
+    replace_names(category);
+
+    x_pv_game_write_auth_3d_category(category, auth_3d_db, avail_uids, out_dir);
+
+    std::string name = sprintf_s_string("CAMPV%03d_BASE", pv_id);
+    replace_names(name);
+
+    uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+    size_t uid_index = -1;
+    for (auth_3d_database_uid_file& i : auth_3d_db->uid)
+        if (i.value.size() > 2 && hash_string_xxh3_64bits(i.value.substr(2)) == name_hash)
+            uid_index = &i - auth_3d_db->uid.data();
+
+
+    if (uid_index == -1)
+        if (avail_uids.size()) {
+            uid_index = avail_uids.front();
+            avail_uids.erase(avail_uids.begin());
+
+            x_pv_game_baker_ptr->print_log(out_dir, "Reusing Auth 3D UID: %d"
+                "; New Value: \"A %s\"", auth_3d_db->uid.data()[uid_index].org_uid, name.c_str());
+        }
+        else {
+            auth_3d_db->uid.push_back({});
+            auth_3d_db->uid.back().org_uid = ++auth_3d_db->uid_max;
+            uid_index = auth_3d_db->uid.size() - 1;
+
+            x_pv_game_baker_ptr->print_log(out_dir, "New Auth 3D UID: %d"
+                "; Value: \"A %s\"", auth_3d_db->uid_max, name.c_str());
+        }
+
+    auth_3d_database_uid_file& uid = auth_3d_db->uid.data()[uid_index];
+    uid.flags = (auth_3d_database_uid_flags)(AUTH_3D_DATABASE_UID_SIZE | AUTH_3D_DATABASE_UID_ORG_UID);
+    uid.category.assign(category);
+    uid.size = auth->play_control.size;
+    uid.value.assign("A ");
+    uid.value.append(name);
+}
+
+static void x_pv_game_write_auth_3d_category(const std::string& category,
+    auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir) {
+    std::string itmpv_name;
+    bool itmpv = false;
+    if (category.size() == 8 && !category.compare(0, 6, "EFFPV8")) {
+        itmpv_name.assign(category);
+        itmpv_name.replace(0, 3, "ITM");
+        itmpv = true;
+    }
+
+    uint64_t category_hash = hash_string_xxh3_64bits(category);
+    uint64_t itmpv_name_hash = hash_string_xxh3_64bits(itmpv_name);
+
+    size_t category_index = -1;
+    for (std::string& i : auth_3d_db->category) {
+        uint64_t hash = hash_string_xxh3_64bits(i);
+        if (hash == category_hash || hash == itmpv_name_hash) {
+            category_index = &i - auth_3d_db->category.data();
+            i.assign(category);
+        }
+    }
+
+    if (category_index == -1) {
+        auth_3d_db->category.push_back(category);
+
+        x_pv_game_baker_ptr->print_log(out_dir, "New Auth 3D Category: %s", category.c_str());
+    }
+    else {
+        size_t avail_uids_old_size = avail_uids.size();
+        for (auth_3d_database_uid_file& i : auth_3d_db->uid) {
+            size_t index = &i - auth_3d_db->uid.data();
+            if (!i.category.size() && prj::find(avail_uids, index))
+                continue;
+
+            uint64_t hash = hash_string_xxh3_64bits(i.category);
+            if (hash == category_hash || itmpv && hash == itmpv_name_hash) {
+                x_pv_game_baker_ptr->print_log(out_dir, "Clearing Auth 3D UID: %d"
+                    "; Former value: \"%s\"", i.org_uid, i.value.c_str());
+
+                i.flags = AUTH_3D_DATABASE_UID_ORG_UID;
+                i.category.clear();
+                i.size = 0.0f;
+                i.value.clear();
+                avail_uids.push_back(index);
+            }
+        }
+
+        if (avail_uids.size() != avail_uids_old_size)
+            prj::sort_unique(avail_uids);
+    }
+}
+
+static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id, const char* out_dir) {
     data_struct* aft_data = &data_list[DATA_AFT];
 
     dsc _d = d;
@@ -9905,13 +10465,9 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
         size_t dsc_length = 0;
         dsc_merge.unparse(&dsc_data, &dsc_length);
 
-        char path[MAX_PATH];
-        strcpy_s(path, sizeof(path), "patch\\!temp\\script\\");
-        sprintf_s(file_buf, sizeof(file_buf), "pv_%03d_%s.dsc", pv_id == 832 ? 800 : pv_id, i);
-        strcat_s(path, sizeof(path), file_buf);
-
         file_stream s_dsc;
-        s_dsc.open(path, "wb");
+        s_dsc.open(sprintf_s_string("%s\\script\\pv_%03d_%s.dsc",
+            out_dir, pv_id == 832 ? 800 : pv_id, i).c_str(), "wb");
         s_dsc.write(dsc_data, dsc_length);
         s_dsc.close();
 
@@ -9949,20 +10505,16 @@ static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id) {
     size_t dsc_length = 0;
     _d.unparse(&dsc_data, &dsc_length);
 
-    char path[MAX_PATH];
-    strcpy_s(path, sizeof(path), "patch\\!temp\\pv_script\\");
-    sprintf_s(file_buf, sizeof(file_buf), "pv_%03d.dsc", pv_id == 832 ? 800 : pv_id);
-    strcat_s(path, sizeof(path), file_buf);
-
     file_stream s_dsc;
-    s_dsc.open(path, "wb");
+    s_dsc.open(sprintf_s_string("%s\\pv_script\\pv_%03d.dsc",
+        out_dir, pv_id == 832 ? 800 : pv_id).c_str(), "wb");
     s_dsc.write(dsc_data, dsc_length);
     s_dsc.close();
     free_def(dsc_data);
 }
 
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_3d_database* x_pack_auth_3d_db,
-    const object_database* obj_db, const object_database* x_pack_obj_db) {
+    const object_database* obj_db, const object_database* x_pack_obj_db, const char* out_dir) {
     Glitter::EffectGroup temp_eff_group(Glitter::X);
     temp_eff_group.name.assign(eff_group->name);
     temp_eff_group.version = eff_group->version;
@@ -9980,6 +10532,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         eff_group->resource_hashes.begin(), eff_group->resource_hashes.end());
     temp_eff_group.resources_tex = eff_group->resources_tex;
     temp_eff_group.version = eff_group->version;
+
+    x_pv_game_fix_txp_set(&temp_eff_group.resources_tex, out_dir);
 
     char name[0x200];
     strcpy_s(name, sizeof(name), eff_group->name.c_str());
@@ -10007,7 +10561,7 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         replace_names(e->name);
 
         if (!e->data.ext_anim_x
-            || (e->data.ext_anim_x->flags & Glitter::EFFECT_EXT_ANIM_CHARA_ANIM))
+            || (e->data.ext_anim_x->flags & Glitter::EFFECT_EXT_ANIM_CHARA))
             continue;
 
         Glitter::Effect::ExtAnimX* ext_anim = e->data.ext_anim_x;
@@ -10133,13 +10687,14 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         }
     }
 
-    Glitter::FileWriter::Write(Glitter::X, &temp_eff_group, "patch\\!temp\\particle_x\\",
+    Glitter::FileWriter::Write(Glitter::X, &temp_eff_group,
+        sprintf_s_string("%s\\%s", out_dir, "particle_x\\").c_str(),
         name, (Glitter::FileWriterFlags)(Glitter::FILE_WRITER_COMPRESS
             | Glitter::FILE_WRITER_ENCRYPT | Glitter::FILE_WRITER_NO_LIST));
 }
 
 static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
-    const char* set_name, txp_set* txp_set, const ObjsetInfo* info) {
+    const char* set_name, obj_set* obj_set, txp_set* txp_set) {
     if (!path_check_directory_exists(path))
         return;
 
@@ -10170,8 +10725,6 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
 
     if (msg.type != MSGPACK_MAP)
         return;
-
-    const obj_set* set = info->obj_set;
 
     msgpack* add = msg.read_array("Add");
     if (add) {
@@ -10221,6 +10774,30 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
         }
     }
 
+    msgpack* remove = msg.read_array("Remove");
+    if (remove) {
+        msgpack_array* ptr = remove->data.arr;
+        for (msgpack& i : *ptr) {
+            std::string name = i.read_string();
+            if (!name.size())
+                continue;
+
+            uint32_t id = hash_string_murmurhash(name);
+
+            uint32_t* tex_id_data = obj_set->tex_id_data;
+            int32_t tex_id_num = obj_set->tex_id_num;
+
+            for (int32_t j = 0; j < tex_id_num; j++)
+                if (id == tex_id_data[j]) {
+                    txp_set->textures.erase(txp_set->textures.begin() + j);
+                    memmove(&tex_id_data[j], &tex_id_data[j + 1], sizeof(uint32_t) * (tex_id_num - (j + 1ULL)));
+                    tex_id_data[--tex_id_num] = 0;
+                    obj_set->tex_id_num = tex_id_num;
+                    break;
+                }
+        }
+    }
+
     msgpack* replace = msg.read_array("Replace");
     if (replace) {
         msgpack_array* ptr = replace->data.arr;
@@ -10241,8 +10818,8 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
 
             uint32_t id = hash_string_murmurhash(name);
 
-            uint32_t* tex_id_data = set->tex_id_data;
-            int32_t tex_id_num = set->tex_id_num;
+            uint32_t* tex_id_data = obj_set->tex_id_data;
+            int32_t tex_id_num = obj_set->tex_id_num;
 
             txp* tex = 0;
             for (int32_t i = 0; i < tex_id_num; i++)
@@ -10281,112 +10858,194 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
 }
 
 
-static void x_pv_game_write_object_set(ObjsetInfo* info,
+static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
-    const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db) {
-    char name[0x200];
-    strcpy_s(name, sizeof(name), info->name.c_str());
+    const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db,
+    prj::vector_pair<uint32_t, uint32_t>* tex_ids, const char* out_dir) {
+    std::string file_name(string_to_lower(name));
+    replace_names(file_name);
 
-    for (size_t j = 0; j < sizeof(name) && name[j]; j++) {
-        char c = name[j];
-        if (c >= 'A' && c <= 'Z')
-            name[j] += 0x20;
-    }
+    std::string set_name(string_to_upper(file_name));
 
-    replace_names(name);
-
-    if (strstr(name, "effchrpv826"))
+    if (set_name.find("EFFCHRPV826") != -1)
         return;
 
+    std::string itmpv_name;
+    bool itmpv = false;
+    if (set_name.size() == 8 && !set_name.compare(0, 6, "EFFPV8")) {
+        itmpv_name.assign(set_name);
+        itmpv_name.replace(0, 3, "ITM");
+        itmpv = true;
+    }
+
+    uint64_t set_name_hash = hash_string_xxh3_64bits(set_name);
+    uint64_t itmpv_name_hash = hash_string_xxh3_64bits(itmpv_name);
+
+    size_t set_index = -1;
     int32_t object_set_max_id = -1;
-    for (object_set_info_file& i : x_pack_obj_db->object_set)
+    for (object_set_info_file& i : x_pack_obj_db->object_set) {
+        uint64_t hash = hash_string_xxh3_64bits(i.name);
+        if (hash == set_name_hash || itmpv && hash == itmpv_name_hash)
+            set_index = &i - x_pack_obj_db->object_set.data();
+
         object_set_max_id = max_def(object_set_max_id, (int32_t)i.id);
+    }
 
     int32_t texture_max_id = -1;
     for (texture_info_file& i : x_pack_tex_db->texture)
         texture_max_id = max_def(texture_max_id, (int32_t)i.id);
 
-    for (size_t j = 0; j < sizeof(name) && name[j]; j++) {
-        char c = name[j];
-        if (c >= 'a' && c <= 'z')
-            name[j] -= 0x20;
+    object_set_info_file* obj_set_info = &x_pack_obj_db->object_set.back();
+    if (set_index != -1) {
+        obj_set_info = &x_pack_obj_db->object_set.data()[set_index];
+
+        obj_set_info->name.assign(set_name);
+        obj_set_info->object.clear();
+    }
+    else {
+        x_pack_obj_db->object_set.push_back({});
+        obj_set_info = &x_pack_obj_db->object_set.back();
+
+        obj_set_info->name.assign(set_name);
+        obj_set_info->id = ++object_set_max_id;
+
+        x_pv_game_baker_ptr->print_log(out_dir,
+            "New Object Set ID: %d; Name: %s", object_set_max_id, set_name.c_str());
     }
 
-    x_pack_obj_db->object_set.push_back({});
-    object_set_info_file& obj_set_info = x_pack_obj_db->object_set.back();
-    obj_set_info.name.assign(name);
-    obj_set_info.id = ++object_set_max_id;
+    obj_set_info->object_file_name.assign(file_name);
+    obj_set_info->object_file_name.append("_obj.bin");
+    obj_set_info->texture_file_name.assign(file_name);
+    obj_set_info->texture_file_name.append("_tex.bin");
+    obj_set_info->archive_file_name.assign(file_name);
+    obj_set_info->archive_file_name.append(".farc");
 
-    for (size_t j = 0; j < sizeof(name); j++) {
-        char c = name[j];
-        if (c >= 'A' && c <= 'Z')
-            name[j] += 0x20;
-    }
+    prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
+    ::obj_set* set = alloc->allocate<::obj_set>();
+    set->move_data(obj_set, alloc);
 
-    obj_set_info.object_file_name.assign(name);
-    obj_set_info.object_file_name.append("_obj.bin");
-    obj_set_info.texture_file_name.assign(name);
-    obj_set_info.texture_file_name.append("_tex.bin");
-    obj_set_info.archive_file_name.assign(name);
-    obj_set_info.archive_file_name.append(".farc");
-
-    farc f;
+    farc* f = new farc;
     {
-        char buf[0x100];
-        strcpy_s(buf, sizeof(buf), name);
-        strcat_s(buf, sizeof(buf), "_obj.bin");
+        data_struct* x_data = &data_list[DATA_X];
 
-        prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
-        obj_set* set = alloc->allocate<obj_set>();
-        set->move_data(info->obj_set, alloc);
+        farc _f;
+        x_data->load_file(&_f, "root+/objset/", hash_string_murmurhash(name), ".farc", farc::load_file);
 
+        farc_file* txd = _f.read_file(string_to_lower(name + ".txd").c_str());
+        if (txd) {
+            txp_set txp;
+            txp.unpack_file_modern(txd->data, txd->size, 'MTXD');
+            x_pv_game_write_object_set_material_msgpack_read(
+                "patch\\AFT\\objset", name.c_str(), set, &txp);
+
+            f->add_file((file_name + "_obj.bin").c_str());
+
+            x_pv_game_fix_txp_set(&txp, out_dir);
+
+            farc_file* ff_tex = f->add_file((file_name + "_tex.bin").c_str());
+            txp.pack_file(&ff_tex->data, &ff_tex->size, false);
+            ff_tex->compressed = true;
+        }
+    }
+
+    {
         int32_t tex_id_num = set->tex_id_num;
         x_pack_tex_db->texture.reserve(tex_id_num);
         for (int32_t i = 0; i < tex_id_num; i++) {
             uint32_t& id = set->tex_id_data[i];
+            uint32_t old_id = id;
             const char* tex_name = tex_db->get_texture_name(id);
-            if (tex_name) {
-                char name_buf[0x200];
-                strcpy_s(name_buf, sizeof(name_buf), tex_name);
-                replace_names(name_buf);
+            if (!tex_name) {
+                id = -1;
+                tex_ids->push_back(old_id, id);
+                continue;
+            }
 
-                bool found = false;
-                uint32_t hash = hash_utf8_murmurhash(name_buf);
-                for (texture_info_file& j : x_pack_tex_db->texture)
-                    if (hash == hash_string_murmurhash(j.name)) {
-                        id = j.id;
-                        found = true;
-                        break;
-                    }
+            std::string name(tex_name);
+            replace_names(name);
 
-                if (!found) {
-                    uint32_t tex_id = x_pack_tex_db_base->get_texture_id(name_buf);
-                    if (tex_id != -1)
-                        id = tex_id;
-                    else
-                        id = ++texture_max_id;
+            size_t pos;
+            do {
+                pos = name.find("STGPV31");
+                if (pos != -1)
+                    name.insert(pos + 5, "8");
+            } while (pos != -1);
 
-                    x_pack_tex_db->texture.push_back({});
-                    texture_info_file& tex_info = x_pack_tex_db->texture.back();
-                    tex_info.name.assign(name_buf);
-                    tex_info.id = id;
+            do {
+                pos = name.find("STGNS0");
+                if (pos != -1) {
+                    name[pos + 3] = 'P';
+                    name[pos + 4] = 'V';
+                    name[pos + 5] = '8';
+                }
+            } while (pos != -1);
+
+            do {
+                pos = name.find("PVITM0");
+                if (pos != -1)
+                    name[pos + 5] = '8';
+            } while (pos != -1);
+
+            do {
+                pos = name.find("_PV0");
+                if (pos != -1)
+                    name[pos + 3] = '8';
+            } while (pos != -1);
+
+            std::string itmpv_name;
+            pos = name.find("EFFPV8");
+            if (pos != -1) {
+                itmpv_name.assign(set_name);
+                itmpv_name.replace(pos, 3, "ITM");
+            }
+
+            uint32_t itmpv_hash = itmpv_name.size() ? hash_string_murmurhash(itmpv_name) : 0;
+
+            bool found = false;
+            uint32_t hash = hash_string_murmurhash(name);
+            for (texture_info_file& j : x_pack_tex_db->texture) {
+                uint32_t tex_hash = hash_string_murmurhash(j.name);
+                if (hash == tex_hash || itmpv_hash == tex_hash) {
+                    id = j.id;
+                    found = true;
                 }
             }
-            else
-                id = -1;
+
+            if (!found) {
+                uint32_t tex_id = x_pack_tex_db_base->get_texture_id(name.c_str());
+                if (tex_id == -1 && itmpv_name.size())
+                    tex_id = x_pack_tex_db_base->get_texture_id(itmpv_name.c_str());
+
+                if (tex_id != -1)
+                    id = tex_id;
+                else {
+                    id = ++texture_max_id;
+
+                    x_pv_game_baker_ptr->print_log(out_dir, "New Texture ID: %d; Name: %s", id, name.c_str());
+                }
+
+                x_pack_tex_db->texture.push_back({});
+                texture_info_file& tex_info = x_pack_tex_db->texture.back();
+                tex_info.name.assign(name);
+                tex_info.id = id;
+            }
+
+            tex_ids->push_back(old_id, id);
         }
 
+        tex_ids->sort_unique();
+
         int32_t obj_num = set->obj_num;
-        obj_set_info.object.reserve(obj_num);
+        obj_set_info->object.reserve(obj_num);
         for (int32_t i = 0; i < obj_num; i++) {
             obj* obj = set->obj_data[i];
 
             replace_names((char*)obj->name);
             obj->id = i;
 
-            obj_set_info.object.push_back({});
-            obj_set_info.object.back().id = i;
-            obj_set_info.object.back().name.assign(obj->name);
+            obj_set_info->object.push_back({});
+            obj_set_info->object.back().id = i;
+            obj_set_info->object.back().name.assign(obj->name);
 
             int32_t num_material = obj->num_material;
             for (int32_t j = 0; j < num_material; j++) {
@@ -10397,19 +11056,9 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
                     if (k.tex_index == -1)
                         continue;
 
-                    const char* tex_name = tex_db->get_texture_name(k.tex_index);
-                    if (tex_name) {
-                        char name_buf[0x200];
-                        strcpy_s(name_buf, sizeof(name_buf), tex_name);
-                        replace_names(name_buf);
-
-                        k.tex_index = -1;
-                        for (texture_info_file& i : x_pack_tex_db->texture)
-                            if (!i.name.compare(name_buf)) {
-                                k.tex_index = i.id;
-                                break;
-                            }
-                    }
+                    auto elem = tex_ids->find(k.tex_index);
+                    if (elem != tex_ids->end() && elem->first == k.tex_index)
+                        k.tex_index = elem->second;
                     else
                         k.tex_index = -1;
 
@@ -10425,49 +11074,12 @@ static void x_pv_game_write_object_set(ObjsetInfo* info,
 
         set->modern = false;
 
-        farc_file* ff_obj = f.add_file(buf);
+        farc_file* ff_obj = f->add_file((file_name + "_obj.bin").c_str());
         set->pack_file(&ff_obj->data, &ff_obj->size);
         ff_obj->compressed = true;
     }
 
-    {
-        data_struct* x_data = &data_list[DATA_X];
-
-        farc _f;
-        x_data->load_file(&_f, "root+/objset/", hash_string_murmurhash(info->name), ".farc", farc::load_file);
-
-        char buf[0x100];
-        strcpy_s(buf, sizeof(buf), info->name.c_str());
-        strcat_s(buf, sizeof(buf), ".txd");
-
-        for (size_t j = 0; j < sizeof(buf) && buf[j]; j++) {
-            char c = buf[j];
-            if (c >= 'A' && c <= 'Z')
-                buf[j] += 0x20;
-        }
-
-        farc_file* txd = _f.read_file(buf);
-        if (txd) {
-            char buf[0x100];
-            strcpy_s(buf, sizeof(buf), name);
-            strcat_s(buf, sizeof(buf), "_tex.bin");
-
-            txp_set txp;
-            txp.unpack_file_modern(txd->data, txd->size, 'MTXD');
-            x_pv_game_write_object_set_material_msgpack_read(
-                "patch\\AFT\\objset", info->name.c_str(), &txp, info);
-
-            farc_file* ff_tex = f.add_file(buf);
-            txp.pack_file(&ff_tex->data, &ff_tex->size, false);
-            ff_tex->compressed = true;
-        }
-    }
-
-    char buf[0x200];
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\objset\\");
-    strcat_s(buf, sizeof(buf), name);
-
-    f.write(buf, FARC_FArC, FARC_NONE, true, false);
+    farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\objset\\%s", out_dir, file_name.c_str()));
 }
 
 inline static int64_t x_pv_game_write_strings_get_string_offset(
@@ -10500,10 +11112,7 @@ inline static bool x_pv_game_write_file_strings_push_back_check(stream& s,
 }
 
 static void x_pv_game_write_play_param(const pvpp* play_param,
-    int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db) {
-    char path[MAX_PATH];
-    sprintf_s(path, sizeof(path), "patch\\!temp\\pv\\pv%03d.pvpp", pv_id == 832 ? 800 : pv_id);
-
+    int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir) {
     size_t chara_count = 0;
     size_t effect_count = play_param->effect.size();
 
@@ -10516,7 +11125,7 @@ static void x_pv_game_write_play_param(const pvpp* play_param,
     int64_t effect_offset = 0;
 
     file_stream s;
-    s.open(path, "wb");
+    s.open(sprintf_s_string("%s\\pv\\pv%03d.pvpp", out_dir, pv_id == 832 ? 800 : pv_id).c_str(), "wb");
     s.write(0x20);
 
     prj::vector_pair<string_hash, int64_t> strings;
@@ -10705,15 +11314,11 @@ static void x_pv_game_write_play_param(const pvpp* play_param,
 }
 
 static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
-    int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db) {
+    int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir) {
     struct x_pack_pvsr_effect {
         char name[0x40];
         float_t emission;
     };
-
-    char path[MAX_PATH];
-    sprintf_s(path, sizeof(path), "patch\\!temp\\pv_stage_rsrc\\stgpv%03d_param.pvsr",
-        800 + (stage_id == 32 ? 00 : stage_id));
 
     size_t effect_count = stage_resource->effect.size();
     size_t stage_effect_count = stage_resource->stage_effect.size();
@@ -10725,7 +11330,8 @@ static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
     int64_t stage_change_effect_offset = 0;
 
     file_stream s;
-    s.open(path, "wb");
+    s.open(sprintf_s_string("%s\\pv_stage_rsrc\\stgpv%03d_param.pvsr",
+        out_dir, 800 + (stage_id == 32 ? 00 : stage_id)).c_str(), "wb");
     s.write(0x30);
 
     prj::vector_pair<string_hash, int64_t> strings;
@@ -10925,9 +11531,106 @@ static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
     s.close();
 }
 
-static void x_pv_game_write_str_array() {
+static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db,
+    const object_database* x_stage_obj_db, const object_database* x_pack_obj_db,
+    stage_database_file* stg_db, const stage_database* x_stg_db,
+    const texture_database* x_stage_tex_db, const texture_database* x_pack_tex_db, const char* out_dir) {
+    int32_t max_stage_id = -1;
+    for (stage_data_file& i : stg_db->stage_data)
+        max_stage_id = max_def(max_stage_id, i.id);
+
+    for (const stage_data_modern& i : x_stg_db->stage_modern) {
+        std::string name(i.name);
+        replace_names(name);
+
+        uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+        size_t stage_index = -1;
+        for (stage_data_file& i : stg_db->stage_data)
+            if (hash_string_xxh3_64bits(i.name) == name_hash) {
+                stage_index = &i - stg_db->stage_data.data();
+                break;
+            }
+
+        stage_data_file* stage_data = &stg_db->stage_data.back();
+        if (stage_index != -1) {
+            stage_data = &stg_db->stage_data.data()[stage_index];
+
+            stage_data->auth_3d_ids.clear();
+        }
+        else {
+            stg_db->stage_data.push_back({});
+            stage_data = &stg_db->stage_data.back();
+            stage_data->id = ++max_stage_id;
+
+            x_pv_game_baker_ptr->print_log(out_dir, "New Stage ID: %d; Name: %s", stage_data->id, name.c_str());
+        }
+
+        stage_data->name.assign(name);
+        stage_data->auth_3d_name.assign("EFF");
+        stage_data->auth_3d_name.append(stage_data->name);
+        stage_data->object_set_id = x_pack_obj_db->get_object_set_id(stage_data->name.c_str());
+        stage_data->object_ground = replace_object_info(i.object_ground, x_stage_obj_db, x_pack_obj_db);
+        stage_data->object_ring = object_info();
+        stage_data->object_sky = replace_object_info(i.object_sky, x_stage_obj_db, x_pack_obj_db);
+        stage_data->object_shadow = replace_object_info(i.object_shadow, x_stage_obj_db, x_pack_obj_db);
+        stage_data->object_reflect = replace_object_info(i.object_reflect, x_stage_obj_db, x_pack_obj_db);
+        stage_data->object_refract = replace_object_info(i.object_refract, x_stage_obj_db, x_pack_obj_db);
+        stage_data->lens_flare_texture = -1;
+        stage_data->lens_shaft_texture = -1;
+        stage_data->lens_ghost_texture = -1;
+        stage_data->lens_shaft_inv_scale = 1.0f;
+        stage_data->unknown = 0;
+
+        stage_data->render_texture = replace_texture_id(i.render_texture, x_stage_tex_db, x_pack_tex_db);
+        if (stage_data->render_texture == -1) {
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "F_DIVA_STGPV%03d_AM_FB05", stage_id);
+            replace_names(name);
+            stage_data->render_texture = x_pack_tex_db->get_texture_id(name);
+        }
+
+        stage_data->movie_texture = replace_texture_id(i.movie_texture, x_stage_tex_db, x_pack_tex_db);
+        if (stage_data->movie_texture == -1) {
+            char name[0x40];
+            sprintf_s(name, sizeof(name), "F_DIVA_STGPV%03d_AM_FB04", stage_id);
+            replace_names(name);
+            stage_data->movie_texture = x_pack_tex_db->get_texture_id(name);
+        }
+
+        stage_data->collision_file_path.assign("rom/STGTST_COLI.000.bin");
+        stage_data->reflect_type = STAGE_DATA_REFLECT_DISABLE;
+        stage_data->flags = (stage_data_flags)0;
+        stage_data->rect_x = i.rect_x;
+        stage_data->rect_y = i.rect_y;
+        stage_data->rect_width = i.rect_width;
+        stage_data->rect_height = i.rect_height;
+        stage_data->ring_height = i.ring_height;
+        stage_data->out_height = i.out_height;
+
+        stage_data->auth_3d_ids.reserve(i.auth_3d_ids.size());
+        for (const uint32_t& j : i.auth_3d_ids) {
+            auth_3d* auth = auth_3d_data_get_auth_3d(j);
+            if (!auth) {
+                printf("");
+                continue;
+            }
+
+            char name[0x200];
+            if (get_replace_auth_name(name, sizeof(name), auth)) {
+                int32_t uid = x_pack_auth_3d_db->get_uid(name);
+                if (uid != -1)
+                    stage_data->auth_3d_ids.push_back(uid);
+                else
+                    printf("");
+            }
+        }
+    }
+}
+
+static void x_pv_game_write_str_array(const char* out_dir) {
     file_stream s;
-    s.open("patch\\!temp\\str_array_x.bin", "wb");
+    s.open(sprintf_s_string("%s\\%s", out_dir, "str_array_x.bin").c_str(), "wb");
 
     size_t lang_count = x_pv_game_str_array.size();
     size_t strings_count_total = 0;
@@ -10981,7 +11684,7 @@ static void x_pv_game_write_str_array() {
 }
 
 static void x_pv_game_write_spr(uint32_t spr_set_id,
-    const sprite_database* spr_db, sprite_database_file* x_pack_spr_db) {
+    const sprite_database* spr_db, sprite_database_file* x_pack_spr_db, const char* out_dir) {
     const spr_db_spr_set* spr_set_db = spr_db->get_spr_set_by_id(spr_set_id);
 
     ::spr_set* spr_set = sprite_manager_get_set(spr_set_id, spr_db);
@@ -10990,38 +11693,56 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
     ::spr_set* set = alloc->allocate<::spr_set>();
     set->move_data(spr_set, alloc);
 
+    std::string name(spr_set_db->name);
+    std::string file_name(spr_set_db->file_name);
+
+    replace_stgpv_pv(name);
+    replace_stgpv_pv(file_name);
+
+    size_t pos = file_name.rfind(".spr");
+    if (pos != -1)
+        file_name.replace(pos, 4, ".bin");
+
+    uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+    size_t set_index = -1;
     uint32_t id = -1;
     for (spr_db_spr_set_file& i : x_pack_spr_db->sprite_set) {
-        if ((int32_t)id < (int32_t)i.id)
-            id = i.id;
+        if (hash_string_xxh3_64bits(i.name) == name_hash)
+            set_index = &i - x_pack_spr_db->sprite_set.data();
+
+        id = (uint32_t)max_def((int32_t)id, (int32_t)i.id);
     }
-    id++;
 
-    uint32_t index = x_pack_spr_db->sprite_set.back().index + 1;
+    spr_db_spr_set_file* spr_db_spr_set = &x_pack_spr_db->sprite_set.back();
+    if (set_index != -1) {
+        spr_db_spr_set = &x_pack_spr_db->sprite_set.data()[set_index];
 
-    x_pack_spr_db->sprite_set.push_back({});
-    spr_db_spr_set_file& spr_db_spr_set = x_pack_spr_db->sprite_set.back();
+        spr_db_spr_set->file_name.assign(file_name);
+        spr_db_spr_set->sprite.clear();
+    }
+    else {
+        uint32_t index = x_pack_spr_db->sprite_set.back().index + 1;
 
-    spr_db_spr_set.id = id;
-    spr_db_spr_set.name.assign(spr_set_db->name);
-    spr_db_spr_set.file_name.assign(spr_set_db->file_name);
-    spr_db_spr_set.index = index;
+        x_pack_spr_db->sprite_set.push_back({});
+        spr_db_spr_set = &x_pack_spr_db->sprite_set.back();
 
-    replace_stgpv_pv(spr_db_spr_set.name);
-    replace_stgpv_pv(spr_db_spr_set.file_name);
+        spr_db_spr_set->id = ++id;
+        spr_db_spr_set->name.assign(name);
+        spr_db_spr_set->file_name.assign(file_name);
+        spr_db_spr_set->index = index;
 
-    size_t pos = spr_db_spr_set.file_name.rfind(".spr");
-    if (pos != -1)
-        spr_db_spr_set.file_name.replace(pos, 4, ".bin");
+        x_pv_game_baker_ptr->print_log(out_dir, "New Sprite Set ID: %d; Name: %s", id, name.c_str());
+    }
 
-    spr_db_spr_set.sprite.reserve((size_t)set->num_of_sprite + set->num_of_texture);
+    spr_db_spr_set->sprite.reserve((size_t)set->num_of_sprite + set->num_of_texture);
 
     uint32_t num_of_sprite = set->num_of_sprite;
     for (uint32_t i = 0; i < num_of_sprite; i++) {
         const spr_db_spr* spr = spr_db->get_spr_by_set_id_index(spr_set_id, i);
 
-        spr_db_spr_set.sprite.push_back({});
-        spr_db_spr_file& spr_file = spr_db_spr_set.sprite.back();
+        spr_db_spr_set->sprite.push_back({});
+        spr_db_spr_file& spr_file = spr_db_spr_set->sprite.back();
         spr_file.name.assign(spr->name);
         replace_stgpv_pv(spr_file.name);
         spr_file.id = hash_string_murmurhash(spr_file.name);
@@ -11033,8 +11754,8 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
     for (uint32_t i = 0; i < num_of_texture; i++) {
         const spr_db_spr* spr = spr_db->get_tex_by_set_id_index(spr_set_id, i);
 
-        spr_db_spr_set.sprite.push_back({});
-        spr_db_spr_file& spr_file = spr_db_spr_set.sprite.back();
+        spr_db_spr_set->sprite.push_back({});
+        spr_db_spr_file& spr_file = spr_db_spr_set->sprite.back();
         spr_file.name.assign(spr->name);
         replace_stgpv_pv(spr_file.name);
         spr_file.id = hash_string_murmurhash(spr_file.name);
@@ -11046,17 +11767,20 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
     set->big_endian = false;
     set->is_x = false;
 
-    farc f;
+    x_pv_game_fix_txp_set(set->txp, out_dir);
 
-    farc_file* ff_bin = f.add_file(spr_db_spr_set.file_name.c_str());
+    farc* f = new farc;
+
+    farc_file* ff_bin = f->add_file(spr_db_spr_set->file_name.c_str());
     set->pack_file(&ff_bin->data, &ff_bin->size);
     ff_bin->compressed = true;
 
-    char buf[0x200];
-    strcpy_s(buf, sizeof(buf), "patch\\!temp\\2d\\");
-    strncat_s(buf, sizeof(buf), spr_db_spr_set.file_name.c_str(), pos);
+    file_name.assign(spr_db_spr_set->file_name);
+    pos = file_name.rfind(".bin");
+    if (pos != -1)
+        file_name.erase(pos);
 
-    f.write(buf, FARC_FArC, FARC_NONE, true, false);
+    farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\2d\\%s", out_dir, file_name.c_str()));
 
     if (set->txp) {
         delete set->txp;
@@ -11217,6 +11941,9 @@ static void replace_stgpv_pv(std::string& str) {
 
 static object_info replace_object_info(object_info info,
     const object_database* src_obj_db, const object_database* dst_obj_db) {
+    if (info.is_null_modern())
+        return object_info();
+
     const char* _name = src_obj_db->get_object_name(info);
     if (!_name)
         return object_info();

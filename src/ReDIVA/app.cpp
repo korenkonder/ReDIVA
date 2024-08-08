@@ -722,6 +722,95 @@ static render_context* render_context_load() {
     }
 
     if (false) {
+        const std::string mmp_base_path("R:\\SteamLibrary\\steamapps\\common\\"
+            "Hatsune Miku Project DIVA Mega Mix Plus\\");
+
+        const std::pair<const char*, const char*> mmp_paths[] = {
+            {   "diva_main\\rom_steam\\",       "" },
+            { "diva_main\\rom_ps4_dlc\\", "mdata_" },
+            {   "mods\\F2nd Song Pack\\",   "mod_" },
+            {      "mods\\X Song Pack\\",   "mod_" },
+        };
+
+        const std::string mmp_x_pack_path = mmp_base_path + "mods\\X Song Pack\\rom\\objset\\";
+
+        object_database obj_db;
+        for (auto& i : mmp_paths) {
+            object_database_file obj_db_file;
+            obj_db_file.read((mmp_base_path + i.first + "rom\\objset\\" + i.second + "obj_db").c_str(), false);
+            obj_db.add(&obj_db_file);
+        }
+
+        texture_database tex_db;
+        for (auto& i : mmp_paths) {
+            texture_database_file tex_db_file;
+            tex_db_file.read((mmp_base_path + i.first + "rom\\objset\\" + i.second + "tex_db").c_str(), false);
+            tex_db.add(&tex_db_file);
+        }
+
+        char buf[0x200];
+        std::vector<uint32_t> obj_set_ids;
+        std::map<uint32_t, std::string> obj_set_id_name;
+        for (int32_t i = 800; i <= 831; i++) {
+            sprintf_s(buf, sizeof(buf), i == 815 ? "EFFPV%03d" : "ITMPV%03d", i);
+
+            const object_set_info* effpv_set_info = obj_db.get_object_set_info(buf);
+            if (effpv_set_info) {
+                obj_set_ids.push_back(effpv_set_info->id);
+                obj_set_id_name.insert({ effpv_set_info->id, buf });
+            }
+
+            sprintf_s(buf, sizeof(buf), "STGPV%03d", i);
+
+            const object_set_info* stgpv_set_info = obj_db.get_object_set_info(buf);
+            if (stgpv_set_info) {
+                obj_set_ids.push_back(stgpv_set_info->id);
+                obj_set_id_name.insert({ stgpv_set_info->id, buf });
+            }
+
+            sprintf_s(buf, sizeof(buf), "STGPV%03dHRC", i);
+
+            const object_set_info* stgpvhrc_set_info = obj_db.get_object_set_info(buf);
+            if (stgpvhrc_set_info) {
+                obj_set_ids.push_back(stgpvhrc_set_info->id);
+                obj_set_id_name.insert({ stgpvhrc_set_info->id, buf });
+            }
+
+            for (uint32_t& i : obj_set_ids) {
+                const object_set_info* set_info = obj_db.get_object_set_info(i);
+                if (!set_info)
+                    continue;
+
+                farc f;
+                if (!farc::load_file(&f, mmp_x_pack_path.c_str(), set_info->archive_file_name.c_str(), hash_murmurhash_empty))
+                    continue;
+
+                farc_file* obj_ff = f.read_file(set_info->object_file_name.c_str());
+                if (!obj_ff)
+                    continue;
+
+                farc_file* tex_ff = f.read_file(set_info->texture_file_name.c_str());
+                if (!tex_ff)
+                    continue;
+
+                prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
+
+                obj_set obj_set;
+                obj_set.unpack_file(alloc, obj_ff->data, obj_ff->size, false);
+                if (!obj_set.ready)
+                    continue;
+
+                txp_set txp_set;
+                if (!txp_set.unpack_file(tex_ff->data, false))
+                    continue;
+
+                object_material_msgpack_write("patch\\MMp_orig\\objset", obj_set_id_name[i].c_str(),
+                    i, &obj_set, &txp_set, &obj_db, &tex_db);
+            }
+        }
+    }
+
+    if (false) {
         data_struct* x_data = &data_list[DATA_X];
 
         char buf[0x200];

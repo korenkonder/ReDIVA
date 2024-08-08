@@ -907,6 +907,46 @@ public:
 #if BAKE_X_PACK
 class XPVGameBaker : public app::Task {
 public:
+    struct AFTData {
+        aet_database_file aet_db;
+        auth_3d_database_file auth_3d_db_base;
+        auth_3d_database_file auth_3d_db;
+        std::vector<size_t> avail_auth_3d_uids;
+        object_database_file obj_db;
+        sprite_database_file spr_db;
+        stage_database_file stage_data;
+        texture_database tex_db_base;
+        texture_database_file tex_db;
+        prj::vector_pair<uint32_t, uint32_t> tex_ids;
+
+        AFTData();
+        ~AFTData();
+
+        void Read();
+        void Write(const char* out_dir);
+    };
+
+    struct MMPData {
+        aet_database_file aet_db;
+        auth_3d_database auth_3d_db_base;
+        auth_3d_database_file auth_3d_db;
+        std::vector<size_t> avail_auth_3d_uids;
+        object_database obj_db_base;
+        object_database_file obj_db;
+        sprite_database_file spr_db;
+        stage_database stage_data_base;
+        stage_database_file stage_data;
+        texture_database tex_db_base;
+        texture_database_file tex_db;
+        prj::vector_pair<uint32_t, uint32_t> tex_ids;
+
+        MMPData();
+        ~MMPData();
+
+        void Read();
+        void Write(const char* out_dir);
+    };
+
     int32_t index;
     ::chara_index chara_index;
     ::chara_index charas[ROB_CHARA_COUNT];
@@ -921,14 +961,9 @@ public:
 
     aet_database pv_tit_aet_db;
     sprite_database pv_tit_spr_db;
-    aet_database_file aet_db;
-    auth_3d_database_file auth_3d_db_base;
-    auth_3d_database_file auth_3d_db;
-    object_database_file obj_db;
-    sprite_database_file spr_db;
-    stage_database_file stage_data;
-    texture_database tex_db_base;
-    texture_database_file tex_db;
+
+    AFTData aft;
+    MMPData mmp;
 
     XPVGameBaker();
     virtual ~XPVGameBaker() override;
@@ -936,6 +971,8 @@ public:
     virtual bool init() override;
     virtual bool ctrl() override;
     virtual bool dest() override;
+
+    void print_log(const char* out_dir, _In_z_ _Printf_format_string_ const char* const fmt, ...);
 };
 #else
 class XPVGameSelector : public app::TaskWindow {
