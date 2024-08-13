@@ -1028,8 +1028,6 @@ bool DtmMot::ctrl() {
             pv_data.reset();
             pv_data.dsc.parse(dsc_file_handler.get_data(), dsc_file_handler.get_size(), DSC_FT);
 
-            dsc_file_handler.reset();
-
             int32_t chara_id = 0;
             for (auto& i : diff->motion)
                 for (const pv_db_pv_motion& j : i)
