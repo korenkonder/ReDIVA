@@ -58,7 +58,8 @@ extern bool input_locked;
 
 extern render_context* rctx_ptr;
 
-RobCharaAdjust::RobCharaAdjust() : apply(), apply_wait(), apply_frame(), save(), track_frame(), chara_id(), data() {
+RobCharaAdjust::RobCharaAdjust() : apply(), apply_wait(),
+apply_frame(), save(), track_frame(), visible(), chara_id(), data() {
     motion_id = -1;
     parts = ROB_OSAGE_PARTS_NONE;
 }
@@ -164,7 +165,7 @@ void RobCharaAdjust::window() {
             input_locked |= true;
 
             for (int32_t i = 0; i < ROB_CHARA_COUNT && i < 2; i++)
-                if (ImGui::Selectable(chara_name[chara_id], chara_id == i)
+                if (ImGui::Selectable(chara_name[i], chara_id == i)
                     || ImGui::ItemKeyPressed(ImGuiKey_Enter))
                     chara_id = i;
             ImGui::EndCombo();
