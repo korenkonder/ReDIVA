@@ -126,11 +126,11 @@ namespace mdl {
             shaders_ft.draw_elements(GL_TRIANGLES, etc->count, GL_UNSIGNED_INT, 0);
             break;
         case mdl::ETC_OBJ_GRID:
-            glLineWidth(0.2f);
+            gl_state_set_line_width(0.2f);
             shaders_ft.draw_arrays(GL_LINES, 0, etc->count);
-            glLineWidth(2.0f);
+            gl_state_set_line_width(2.0f);
             shaders_ft.draw_arrays(GL_LINES, (GLint)etc->count, 4);
-            glLineWidth(1.0f);
+            gl_state_set_line_width(1.0f);
             break;
         case mdl::ETC_OBJ_CUBE:
             if (etc->data.sphere.wire)

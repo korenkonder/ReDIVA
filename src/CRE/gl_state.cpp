@@ -332,6 +332,7 @@ void gl_state_get() {
     glGetBooleanv(GL_DEPTH_TEST, &gl_state.depth_test);
     glGetIntegerv(GL_DEPTH_FUNC, (GLint*)&gl_state.depth_func);
     glGetBooleanv(GL_DEPTH_WRITEMASK, &gl_state.depth_mask);
+    glGetFloatv(GL_LINE_WIDTH, &gl_state.line_width);
     glGetBooleanv(GL_MULTISAMPLE, &gl_state.multisample);
     glGetBooleanv(GL_PRIMITIVE_RESTART, &gl_state.primitive_restart);
     glGetIntegerv(GL_PRIMITIVE_RESTART_INDEX, (GLint*)&gl_state.primitive_restart_index);
@@ -342,8 +343,7 @@ void gl_state_get() {
     glGetIntegerv(GL_VIEWPORT, (GLint*)&gl_state.viewport);
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    gl_state.polygon_front_face_mode = GL_FILL;
-    gl_state.polygon_back_face_mode = GL_FILL;
+    gl_state.polygon_mode = GL_FILL;
 }
 
 void gl_state_get_all_gl_errors() {
@@ -457,34 +457,31 @@ void gl_state_set_depth_mask(GLboolean flag, bool force) {
     }
 }
 
+void gl_state_set_line_width(GLfloat width, bool force) {
+    if (force || gl_state.line_width != width) {
+        glLineWidth(width);
+        gl_state.line_width = width;
+    }
+}
+
 void gl_state_set_polygon_mode(GLenum face, GLenum mode, bool force) {
     switch (face) {
     case GL_FRONT:
-        if (force || gl_state.polygon_front_face_mode != mode) {
+        if (force || gl_state.polygon_mode != mode) {
             glPolygonMode(GL_FRONT, mode);
-            gl_state.polygon_front_face_mode = mode;
+            gl_state.polygon_mode = mode;
         }
         break;
     case GL_BACK:
-        if (force || gl_state.polygon_back_face_mode != mode) {
+        if (force || gl_state.polygon_mode != mode) {
             glPolygonMode(GL_BACK, mode);
-            gl_state.polygon_back_face_mode = mode;
+            gl_state.polygon_mode = mode;
         }
         break;
     case GL_FRONT_AND_BACK:
-        if (force || gl_state.polygon_front_face_mode != mode
-            && gl_state.polygon_back_face_mode != mode) {
+        if (force || gl_state.polygon_mode != mode) {
             glPolygonMode(GL_FRONT_AND_BACK, mode);
-            gl_state.polygon_front_face_mode = mode;
-            gl_state.polygon_back_face_mode = mode;
-        }
-        else if (gl_state.polygon_front_face_mode != mode) {
-            glPolygonMode(GL_FRONT, mode);
-            gl_state.polygon_front_face_mode = mode;
-        }
-        else if (gl_state.polygon_back_face_mode != mode) {
-            glPolygonMode(GL_BACK, mode);
-            gl_state.polygon_back_face_mode = mode;
+            gl_state.polygon_mode = mode;
         }
         break;
     }

@@ -48,8 +48,8 @@ struct gl_state_struct {
     GLboolean depth_test;
     GLenum depth_func;
     GLboolean depth_mask;
-    GLenum polygon_front_face_mode;
-    GLenum polygon_back_face_mode;
+    GLfloat line_width;
+    GLenum polygon_mode;
     GLboolean multisample;
     GLboolean primitive_restart;
     GLuint primitive_restart_index;
@@ -122,6 +122,7 @@ extern void gl_state_set_color_mask(GLboolean red, GLboolean green,
 extern void gl_state_set_cull_face_mode(GLenum mode, bool force = false);
 extern void gl_state_set_depth_func(GLenum func, bool force = false);
 extern void gl_state_set_depth_mask(GLboolean flag, bool force = false);
+extern void gl_state_set_line_width(GLfloat width, bool force = false);
 extern void gl_state_set_polygon_mode(GLenum face, GLenum mode, bool force = false);
 extern void gl_state_set_primitive_restart_index(GLuint index, bool force = false);
 extern void gl_state_set_scissor(const gl_state_rect& rect, bool force = false);
