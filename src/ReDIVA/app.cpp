@@ -150,10 +150,8 @@ static const char* application_name = "ReDIVA";
 static int32_t old_scale_index;
 static int32_t scale_index;
 
-static vec2i old_internal_res;
 static vec2i old_internal_2d_res;
 static vec2i old_internal_3d_res;
-vec2i internal_res;
 vec2i internal_2d_res;
 vec2i internal_3d_res;
 static int32_t old_width;

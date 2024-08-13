@@ -315,10 +315,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
     GLsizei buffer_size = 0x20000;
     void* spv = force_malloc(buffer_size);
-    size_t temp_vert_size = 0x10000;
-    char* temp_vert = force_malloc<char>(temp_vert_size);
-    size_t temp_frag_size = 0x10000;
-    char* temp_frag = force_malloc<char>(temp_frag_size);
+    std::string temp_vert;
+    std::string temp_frag;
     std::vector<int32_t> vec_vert;
     std::vector<int32_t> vec_frag;
     std::vector<program_spv> program_data_vert_spv;
@@ -452,8 +450,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                             vert_buf[vert_buf_pos + l] = (char)('0' + vec_vert_data[l]);
                         }
 
-                        shader::parse_define(vert_data, num_uniform,
-                            vec_vert_data, &temp_vert, &temp_vert_size);
+                        shader::parse_define(vert_data,
+                            num_uniform, vec_vert_data, temp_vert, true);
 
                         swprintf_s(glsl_vert_file_buf, sizeof(glsl_vert_file_buf)
                             / sizeof(wchar_t), L"%s%.*S", temp_path, vert_buf_len - 4, vert_buf);
@@ -462,7 +460,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
                         file_stream fs;
                         fs.open(glsl_vert_file_buf, L"wb");
-                        fs.write_utf8_string(temp_vert);
+                        fs.write_string(temp_vert);
                         fs.close();
 
                         swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
@@ -522,8 +520,8 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                             frag_buf[frag_buf_pos + l] = (char)('0' + vec_frag_data[l]);
                         }
 
-                        shader::parse_define(frag_data, num_uniform,
-                            vec_frag_data, &temp_frag, &temp_frag_size);
+                        shader::parse_define(frag_data,
+                            num_uniform, vec_frag_data, temp_frag, true);
 
                         swprintf_s(glsl_frag_file_buf, sizeof(glsl_frag_file_buf)
                             / sizeof(wchar_t), L"%s%.*S", temp_path, frag_buf_len - 4, frag_buf);
@@ -532,7 +530,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
                         file_stream fs;
                         fs.open(glsl_frag_file_buf, L"wb");
-                        fs.write_utf8_string(temp_frag);
+                        fs.write_string(temp_frag);
                         fs.close();
 
                         swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
@@ -580,7 +578,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     strcat_s(vert_buf, sizeof(vert_buf), "..vert.spv");
                     int32_t vert_buf_len = (int32_t)utf8_length(vert_buf);
 
-                    shader::parse_define(vert_data, &temp_vert, &temp_vert_size);
+                    shader::parse_define(vert_data, temp_vert, true);
 
                     swprintf_s(glsl_vert_file_buf, sizeof(glsl_vert_file_buf)
                         / sizeof(wchar_t), L"%s%.*S", temp_path, vert_buf_len - 4, vert_buf);
@@ -589,7 +587,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
                     file_stream fs;
                     fs.open(glsl_vert_file_buf, L"wb");
-                    fs.write_utf8_string(temp_vert);
+                    fs.write_string(temp_vert);
                     fs.close();
 
                     swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
@@ -635,7 +633,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                     strcat_s(frag_buf, sizeof(frag_buf), "..frag.spv");
                     int32_t frag_buf_len = (int32_t)utf8_length(frag_buf);
 
-                    shader::parse_define(frag_data, &temp_frag, &temp_frag_size);
+                    shader::parse_define(frag_data, temp_frag, true);
 
                     swprintf_s(glsl_frag_file_buf, sizeof(glsl_frag_file_buf)
                         / sizeof(wchar_t), L"%s%.*S", temp_path, frag_buf_len - 4, frag_buf);
@@ -644,7 +642,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
 
                     file_stream fs;
                     fs.open(glsl_frag_file_buf, L"wb");
-                    fs.write_utf8_string(temp_frag);
+                    fs.write_string(temp_frag);
                     fs.close();
 
                     swprintf_s(cmd_temp, sizeof(cmd_temp) / sizeof(wchar_t),
@@ -751,8 +749,6 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
         vec_frag.clear();
     }
     free_def(spv);
-    free_def(temp_vert);
-    free_def(temp_frag);
 }
 
 void compile_all_shaders(bool debug) {
