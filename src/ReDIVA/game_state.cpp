@@ -350,7 +350,7 @@ struct SubGameState {
         static bool Ctrl();
         static bool Dest();
     };
-    
+
     struct DataEditGlitterEditor { // Added
         static bool Init();
         static bool Ctrl();

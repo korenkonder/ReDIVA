@@ -398,7 +398,7 @@ namespace Glitter {
 
         ParseAnimation(st->sub_structs.size() ? st->sub_structs.data() : 0, &ptcl->animation);
         emit->particles.push_back(ptcl);
-        
+
         int32_t count;
         if (type == Glitter::X) {
             switch (ptcl->data.type) {

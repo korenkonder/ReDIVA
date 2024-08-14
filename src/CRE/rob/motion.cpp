@@ -255,7 +255,7 @@ void motion_set_load_mothead(uint32_t set, std::string&& mdata_dir, const motion
     std::string path("ram/rob/");
     path.append(file);
     if (path_check_file_exists(path.c_str()))
-        path.erase(path.size() - file.size()); 
+        path.erase(path.size() - file.size());
     else {
         path.assign("rom/rob/");
         if (data_list[DATA_AFT].check_file_exists(mdata_dir.c_str(), file.c_str()))

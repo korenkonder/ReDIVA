@@ -2477,7 +2477,7 @@ void rob_init() {
 
     if (!opd_checker)
         opd_checker = new OpdChecker;
-    
+
     if (!opd_make_manager)
         opd_make_manager = new OpdMakeManager;
 
@@ -2486,7 +2486,7 @@ void rob_init() {
 
     if (!osage_play_data_database)
         osage_play_data_database = new osage_play_data_database_struct;
-    
+
     if (!osage_play_data_manager)
         osage_play_data_manager = new OsagePlayDataManager;
 
@@ -17007,7 +17007,7 @@ bool OsagePlayDataManager::ctrl() {
         float_t frame_count = (float_t)(int32_t)rob_chr->bone_data->get_frame_count() - 1.0f;
 
         osg_mhd.init_data(aft_mot_db);
-        
+
         opd_chara_data_array_init_data(chara_id, motion_id);
 
         int32_t set_motion_index = 0;

@@ -29,7 +29,7 @@ namespace renderer {
         this->count = count;
         flags = (Flags)0;
         if (depth_texture) {
-            this->flags = DEPTH_ATTACHMENT;
+            flags = DEPTH_ATTACHMENT;
             this->count++;
         }
 

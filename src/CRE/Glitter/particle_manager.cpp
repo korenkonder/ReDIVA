@@ -324,7 +324,7 @@ namespace Glitter {
 
             if (free)
                 if (scene->type == Glitter::X)
-                    scene->SetEnded(); 
+                    scene->SetEnded();
                 else {
                     delete scene;
                     i = scenes.erase(i);

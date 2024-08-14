@@ -236,7 +236,7 @@ namespace renderer {
         common_ubo.Bind(0);
         gl_state_active_bind_texture_2d(0, depth_texture);
         gl_state_bind_sampler(0, samplers[1]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         fbo[1].bind_buffer();
         gl_state_set_viewport(0, 0, fbo[1].width, fbo[1].height);
@@ -244,7 +244,7 @@ namespace renderer {
         shaders_ft.set(SHADER_FT_DOF);
         gl_state_active_bind_texture_2d(0, textures[0]);
         gl_state_bind_sampler(0, samplers[1]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         gl_state_end_event();
 
     }
@@ -262,7 +262,7 @@ namespace renderer {
         gl_state_bind_sampler(1, samplers[0]);
         gl_state_active_bind_texture_2d(2, textures[1]);
         gl_state_bind_sampler(2, samplers[1]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         gl_state_end_event();
     }
 
@@ -280,7 +280,7 @@ namespace renderer {
         gl_state_bind_sampler(1, samplers[1]);
         gl_state_active_bind_texture_2d(2, textures[1]);
         gl_state_bind_sampler(2, samplers[1]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         gl_state_end_event();
     }
 
@@ -301,7 +301,7 @@ namespace renderer {
         gl_state_bind_sampler(3, samplers[1]);
         gl_state_active_bind_texture_2d(4, depth_texture);
         gl_state_bind_sampler(4, samplers[1]);
-        glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         glCopyImageSubData(
             rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,

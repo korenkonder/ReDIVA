@@ -1641,7 +1641,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     glt_edt->load = false;
     glt_edt->load_wait = false;
     glt_edt->load_error_popup = false;
-    Glitter::glt_particle_manager->SetFrame(eg, glt_edt->scene, glt_edt->old_frame_counter, 
+    Glitter::glt_particle_manager->SetFrame(eg, glt_edt->scene, glt_edt->old_frame_counter,
         glt_edt->frame_counter, glt_edt->counter, glt_edt->random, true);
     if (glt_edt->scene)
         glt_edt->scene_counter = glt_edt->scene->counter;
