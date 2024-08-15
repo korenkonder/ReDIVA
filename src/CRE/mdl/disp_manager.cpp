@@ -482,7 +482,7 @@ namespace mdl {
                 break;
             case 2:
                 glVertexAttribPointer(NORMAL_INDEX,
-                    4, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                    3, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
                 offset += 4;
                 break;
             }
