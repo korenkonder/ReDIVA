@@ -5,8 +5,8 @@
 
 #include "transparency.hpp"
 #include "../../KKdLib/str_utils.hpp"
-#include "../render_context.hpp"
 #include "../gl_state.hpp"
+#include "../render_context.hpp"
 #include "../shader_ft.hpp"
 
 extern render_context* rctx_ptr;

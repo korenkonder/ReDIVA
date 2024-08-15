@@ -246,7 +246,6 @@ namespace renderer {
         gl_state_bind_sampler(0, samplers[1]);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         gl_state_end_event();
-
     }
 
     void DOF3::downsample(GLuint color_texture, GLuint depth_texture, bool f2) {
