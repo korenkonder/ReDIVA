@@ -482,7 +482,7 @@ namespace mdl {
                 break;
             case 2:
                 glVertexAttribPointer(NORMAL_INDEX,
-                    3, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                    4, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
                 offset += 4;
                 break;
             }
@@ -721,7 +721,7 @@ namespace mdl {
                     break;
                 case 2:
                     glVertexAttribPointer(MORPH_NORMAL_INDEX,
-                        3, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
+                        4, GL_INT_2_10_10_10_REV, GL_TRUE, size_vertex, (void*)offset);
                     offset += 4;
                     break;
                 }
