@@ -782,6 +782,7 @@ namespace rndr {
             glDeleteTextures(1, &tonemap_lut_texture);
             tonemap_lut_texture = 0;
         }
+
         if (mlaa_area_texture) {
             glDeleteTextures(1, &mlaa_area_texture);
             mlaa_area_texture = 0;
@@ -1719,9 +1720,6 @@ namespace rndr {
 
         bool v2 = false;
         if (!reset_exposure) {
-            for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-                exposure_chara_data[i].reset();
-
             ExposureCharaData* chara_data = exposure_chara_data;
             for (int32_t i = 0; i < ROB_CHARA_COUNT; i++, chara_data++) {
                 rob_chara* rob_chr = rob_chara_array_get(i);
