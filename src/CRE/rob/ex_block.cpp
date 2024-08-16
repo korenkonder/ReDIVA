@@ -328,7 +328,7 @@ void RobOsageNodeDataNormalRef::GetMat() {
         mat.row3.y = -vec3::dot(n_trans, v21);
         mat.row3.z = -vec3::dot(n_trans, v22);
         mat.row3.w = 1.0f;
-        mat4_mul(&n->mat, &mat, &mat);
+        mat4_mul(&n->mat, &mat, &this->mat);
     }
 }
 
