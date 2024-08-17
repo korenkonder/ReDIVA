@@ -109,6 +109,9 @@ extern void texture_release(texture* tex);
 
 extern void texture_array_free(texture** arr);
 
+extern void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
+extern int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height);
+
 extern void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
 
 extern bool texture_txp_set_load(txp_set* t, texture*** texs, uint32_t* ids);
