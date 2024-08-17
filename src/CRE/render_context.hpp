@@ -9,6 +9,7 @@
 #include "../KKdLib/time.hpp"
 #include "../KKdLib/vec.hpp"
 #include "GL/array_buffer.hpp"
+#include "GL/shader_storage_buffer.hpp"
 #include "GL/uniform_buffer.hpp"
 #include "light_param/face.hpp"
 #include "light_param/fog.hpp"
@@ -445,7 +446,7 @@ struct render_context {
     GL::UniformBuffer obj_shader_ubo;
     GL::UniformBuffer obj_scene_ubo;
     GL::UniformBuffer obj_batch_ubo;
-    GL::UniformBuffer obj_skinning_ubo;
+    GL::ShaderStorageBuffer obj_skinning_ssbo;
 
     texture* empty_texture_2d;
     texture* empty_texture_cube_map;

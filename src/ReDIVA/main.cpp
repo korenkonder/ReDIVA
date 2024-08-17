@@ -673,7 +673,7 @@ void compile_shaders(farc* f, farc* of, const shader_table* shaders_table, const
                         program_data_frag_spv.push_back({ size, (size_t)data });
                     }
                     else {
-                        printf("There was an error while compiling %.*s\n", frag_buf_len - 4, vert_buf);
+                        printf("There was an error while compiling %.*s\n", frag_buf_len - 4, frag_buf);
                         program_data_frag_spv.push_back({ 0, 0 });
                     }
 
