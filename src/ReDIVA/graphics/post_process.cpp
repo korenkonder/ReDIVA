@@ -643,9 +643,9 @@ void dwPostProcess::TemporalAACallback(dw::Widget* data) {
 }
 
 void dwPostProcess::ToneMapCallback(dw::Widget* data) {
-    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
-    if (slider) {
-        dw_post_process->tone_map = (tone_map_method)(int32_t)slider->GetValue();
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    if (list_box) {
+        dw_post_process->tone_map = (tone_map_method)(int32_t)list_box->list->selected_item;
         dw_post_process->rend->set_tone_map(dw_post_process->tone_map);
     }
 }
