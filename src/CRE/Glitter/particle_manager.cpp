@@ -142,8 +142,10 @@ namespace Glitter {
         bool local = false;
         for (auto i = scenes.begin(); i != scenes.end();) {
             Scene* scene = *i;
-            if (scene->type != Glitter::X)
+            if (scene->type != Glitter::X) {
+                i++;
                 continue;
+            }
 
             if (!(scene->flags & SCENE_ENDED)) {
                 if (!local && scene->CanDisp(DISP_LOCAL, true))
