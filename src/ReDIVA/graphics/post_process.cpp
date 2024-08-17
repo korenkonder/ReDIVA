@@ -585,9 +585,9 @@ void dwPostProcess::LoadCallback(dw::Widget* data) {
 }
 
 void dwPostProcess::MagFilterCallback(dw::Widget* data) {
-    dw::Slider* slider = dynamic_cast<dw::Slider*>(data);
-    if (slider) {
-        dw_post_process->mag_filter = (rndr::Render::MagFilterType)(int32_t)slider->GetValue();
+    dw::ListBox* list_box = dynamic_cast<dw::ListBox*>(data);
+    if (list_box) {
+        dw_post_process->mag_filter = (rndr::Render::MagFilterType)(int32_t)list_box->list->selected_item;
         dw_post_process->rend->set_mag_filter(dw_post_process->mag_filter);
     }
 }
