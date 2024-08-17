@@ -25,7 +25,6 @@
 #include "../CRE/gl_state.hpp"
 #include "../CRE/hand_item.hpp"
 #include "../CRE/light_param.hpp"
-#include "../CRE/lock.hpp"
 #include "../CRE/mdata_manager.hpp"
 #include "../CRE/module_table.hpp"
 #include "../CRE/object.hpp"
@@ -226,11 +225,9 @@ static void APIENTRY render_debug_output(GLenum source, GLenum type, uint32_t id
 
 bool close;
 bool reload_render;
-lock_cs* render_lock;
 HWND window_handle;
 GLFWwindow* window;
 ImGuiContext* imgui_context;
-lock_cs* imgui_context_lock;
 bool global_context_menu;
 render_context* rctx_ptr;
 bool task_stage_is_modern;
@@ -242,10 +239,6 @@ HANDLE d3d_gl_handle;
 #endif
 
 int32_t app_main(const app_init_struct& ais) {
-    render_lock = new lock_cs;
-    if (!render_lock)
-        return 0;
-
 #if BAKE_FAST
     render_timer = new timer(600.0);
 #else
@@ -303,10 +296,7 @@ int32_t app_main(const app_init_struct& ais) {
             close = false;
             reload_render = false;
 
-            render_context* rctx = 0;
-            lock_lock(render_lock);
-            rctx = render_context_load();
-            lock_unlock(render_lock);
+            render_context* rctx = render_context_load();
 
 #if !(BAKE_PNG || BAKE_VIDEO)
             glfwGetFramebufferSize(window, &width, &height);
@@ -322,17 +312,13 @@ int32_t app_main(const app_init_struct& ais) {
 
             app_main_loop(rctx);
 
-            lock_lock(render_lock);
             render_context_dispose(rctx);
-            lock_unlock(render_lock);
         } while (reload_render);
     }
 
     app_free();
     glfwTerminate();
 
-    delete render_lock;
-    render_lock = 0;
     delete render_timer;
     render_timer = 0;
     return 0;
@@ -541,9 +527,7 @@ static void app_main_loop(render_context* rctx) {
 
         Input::NewFrame();
 
-        lock_lock(render_lock);
         render_context_ctrl(rctx);
-        lock_unlock(render_lock);
         render_context_disp(rctx);
 
         close |= !!glfwWindowShouldClose(window);
@@ -1077,13 +1061,11 @@ static render_context* render_context_load() {
     render_timer->reset();
     for (int32_t i = 0; i < 30; i++) {
         render_timer->start_of_cycle();
-        lock_lock(render_lock);
         game_state_ctrl();
         app::TaskWork::ctrl();
         sound_ctrl();
         file_handler_storage_ctrl();
         app::TaskWork::basic();
-        lock_unlock(render_lock);
         render_timer->end_of_cycle();
     }
 
@@ -1101,8 +1083,6 @@ static render_context* render_context_load() {
 
     uniform_value[U16] = 1;
 
-    imgui_context_lock = new lock_cs;
-    lock_lock(imgui_context_lock);
     imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
     ImGuiIO& io = ImGui::GetIO();
@@ -1130,7 +1110,6 @@ static render_context* render_context_load() {
     ImGui::StyleColorsDark();
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 430");
-    lock_unlock(imgui_context_lock);
 
     clear_color = 0xFF000000;
     set_clear_color = true;
@@ -1164,11 +1143,9 @@ static void render_context_ctrl(render_context* rctx) {
     }
 
     global_context_menu = true;
-    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     app::TaskWork_window();
     classes_process_imgui(classes, classes_count);
-    lock_unlock(imgui_context_lock);
 
     if (old_width != width || old_height != height || old_scale_index != scale_index)
         app_resize_fb(rctx, true);
@@ -1176,7 +1153,6 @@ static void render_context_ctrl(render_context* rctx) {
     old_height = height;
     old_scale_index = scale_index;
 
-    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     if (global_context_menu && ImGui::IsMouseReleased(ImGuiMouseButton_Right)
         && !ImGui::IsItemHovered(0) && imgui_context->OpenPopupStack.Size < 1)
@@ -1186,7 +1162,6 @@ static void render_context_ctrl(render_context* rctx) {
         render_imgui_context_menu(classes, classes_count, rctx);
         ImGui::EndPopup();
     }
-    lock_unlock(imgui_context_lock);
 
     if (window_handle == GetForegroundWindow()) {
         if (input_reset) {
@@ -1354,10 +1329,8 @@ static void render_context_disp(render_context* rctx) {
 }
 
 static void render_context_imgui(render_context* rctx) {
-    lock_lock(imgui_context_lock);
     ImGui::SetCurrentContext(imgui_context);
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-    lock_unlock(imgui_context_lock);
 }
 
 static void render_context_dispose(render_context* rctx) {
@@ -1365,11 +1338,7 @@ static void render_context_dispose(render_context* rctx) {
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
-    lock_lock(imgui_context_lock);
     ImGui::DestroyContext(imgui_context);
-    lock_unlock(imgui_context_lock);
-    delete imgui_context_lock;
-    imgui_context_lock = 0;
 
     Glitter::glt_particle_manager_del_task();
 
@@ -1415,13 +1384,11 @@ static void render_context_dispose(render_context* rctx) {
     render_timer->reset();
     while (app::task_work->tasks.size()) {
         render_timer->start_of_cycle();
-        lock_lock(render_lock);
         game_state_ctrl();
         app::TaskWork::ctrl();
         sound_ctrl();
         file_handler_storage_ctrl();
         app::TaskWork::basic();
-        lock_unlock(render_lock);
         render_timer->end_of_cycle();
     }
 

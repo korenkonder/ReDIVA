@@ -8,7 +8,6 @@
 #include "input.hpp"
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/vec.hpp"
-#include "../CRE/lock.hpp"
 #include <map>
 #include <vector>
 #define CIMGUI_DEFINE_ENUMS_AND_STRUCTS
@@ -28,11 +27,9 @@ bool input_reset_mouse_position;
 bool input_locked;
 
 extern bool close;
-extern lock_cs render_lock;
 extern timer* render_timer;
 extern HWND window_handle;
 extern ImGuiContext* imgui_context;
-extern lock_cs imgui_context_lock;
 
 extern uint8_t disable_input_state_update;
 extern bool disable_cursor;

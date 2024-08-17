@@ -6,7 +6,6 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
-#include "../CRE/lock.hpp"
 #include "../CRE/render_context.hpp"
 
 #define CLASS_DATA_NO_DATA (0)
