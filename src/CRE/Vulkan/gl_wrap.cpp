@@ -426,7 +426,6 @@ namespace Vulkan {
         if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
             Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            vk_buf->data.clear();
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             vk_ib->working_buffer = dynamic_buffer;
@@ -527,7 +526,6 @@ namespace Vulkan {
         if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
             Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            vk_buf->data.clear();
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             vk_sb->working_buffer = dynamic_buffer;
@@ -699,7 +697,6 @@ namespace Vulkan {
         if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
             Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_uniform_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            vk_buf->data.clear();
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             vk_ub->working_buffer = dynamic_buffer;
@@ -838,7 +835,6 @@ namespace Vulkan {
         if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
             Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
-            vk_buf->data.clear();
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
             vk_vb->working_buffer = dynamic_buffer;
