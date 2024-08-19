@@ -219,7 +219,7 @@ namespace Vulkan {
         prj::shared_ptr<Vulkan::RenderPass> get_render_pass(GLenum* color_formats,
             uint32_t color_format_count, GLenum depth_format, bool stencil);
         prj::shared_ptr<Vulkan::Sampler> get_sampler(const gl_sampler& sampler_data);
-        Vulkan::Buffer get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment, bool uniform);
+        Vulkan::Buffer get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment);
         Vulkan::Buffer get_staging_buffer(VkDeviceSize size, VkDeviceSize alignment);
         void next_frame(uint32_t frame);
         void reset_descriptor_pipelines_descriptor_set_collections();
@@ -305,11 +305,7 @@ namespace Vulkan {
     }
 
     Vulkan::Buffer manager_get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment) {
-        return manager_ptr->get_dynamic_buffer(size, alignment, false);
-    }
-
-    Vulkan::Buffer manager_get_dynamic_uniform_buffer(VkDeviceSize size, VkDeviceSize alignment) {
-        return manager_ptr->get_dynamic_buffer(size, alignment, true);
+        return manager_ptr->get_dynamic_buffer(size, alignment);
     }
 
     Vulkan::Buffer manager_get_staging_buffer(VkDeviceSize size, VkDeviceSize alignment) {
@@ -678,21 +674,11 @@ namespace Vulkan {
         return sampler;
     }
 
-    Vulkan::Buffer manager::get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment, bool uniform) {
+    Vulkan::Buffer manager::get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment) {
         frame_data& frame_data = get_frame_data();
 
-        VkBufferUsageFlags usage = 0;
-        if (uniform)
-            usage |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
-        else {
-            usage |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
-            usage |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
-            usage |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
-        }
-
         for (Vulkan::DynamicBuffer& i : frame_data.dynamic_buffers)
-            if ((i.usage & usage) == usage
-                && align_val(i.curr_size, alignment) + align_val(size, alignment) <= i.GetSize()) {
+            if (align_val(i.curr_size, alignment) + align_val(size, alignment) <= i.GetSize()) {
                 i.curr_size = align_val(i.curr_size, alignment);
 
                 Vulkan::Buffer buffer = (Vulkan::Buffer)i;
@@ -702,16 +688,13 @@ namespace Vulkan {
                 return buffer;
             }
 
-        VkDeviceSize buffer_size = sv_max_uniform_buffer_size;
-        if (!uniform) {
-            buffer_size = 0x1000000;
-            while (buffer_size <= size)
-                buffer_size *= 2;
-        }
+        VkDeviceSize  buffer_size = 0x1000000;
+        while (buffer_size <= size)
+            buffer_size *= 2;
 
         frame_data.dynamic_buffers.push_back({});
         Vulkan::DynamicBuffer& dynamic_buffer = frame_data.dynamic_buffers.back();
-        dynamic_buffer.Create(Vulkan::current_allocator, buffer_size, usage);
+        dynamic_buffer.Create(Vulkan::current_allocator, buffer_size);
 
         Vulkan::Buffer buffer = (Vulkan::Buffer)dynamic_buffer;
         buffer.SetOffset(0);

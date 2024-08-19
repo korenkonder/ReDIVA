@@ -695,7 +695,7 @@ namespace Vulkan {
             vk_ub->uniform_buffer.Create(Vulkan::current_allocator, size);
 
         if (elem_buffer->second.flags & Vulkan::GL_BUFFER_FLAG_UPDATE_DATA) {
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_uniform_buffer(size, alignment);
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
