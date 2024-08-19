@@ -32,15 +32,15 @@ namespace Vulkan {
             return Create(allocator, size, usage, VK_SHARING_MODE_EXCLUSIVE, memory_usage, flags);
         }
 
-        inline bool IsNull() {
+        inline bool IsNull() const {
             return !data;
         }
 
-        inline VkDeviceSize GetOffset() {
+        inline VkDeviceSize GetOffset() const {
             return offset;
         }
 
-        inline VkDeviceSize GetSize() {
+        inline VkDeviceSize GetSize() const {
             return size;
         }
 
