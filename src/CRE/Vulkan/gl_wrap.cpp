@@ -437,7 +437,7 @@ namespace Vulkan {
             vk_ib->copy_working_buffer = true;
         }
         else if (!vk_ib->copy_working_buffer)
-            vk_ib->working_buffer.SetDefaultBuffer(vk_ib->index_buffer);
+            vk_ib->working_buffer.SetBuffer(vk_ib->index_buffer);
 
         return vk_ib;
     }
@@ -541,7 +541,7 @@ namespace Vulkan {
             vk_sb->copy_working_buffer = true;
         }
         else if (!vk_sb->copy_working_buffer)
-            vk_sb->working_buffer.SetDefaultBuffer(vk_sb->storage_buffer);
+            vk_sb->working_buffer.SetBuffer(vk_sb->storage_buffer);
 
         return vk_sb;
     }
@@ -716,7 +716,7 @@ namespace Vulkan {
             vk_ub->copy_working_buffer = true;
         }
         else if (!vk_ub->copy_working_buffer)
-            vk_ub->working_buffer.SetDefaultBuffer(vk_ub->uniform_buffer);
+            vk_ub->working_buffer.SetBuffer(vk_ub->uniform_buffer);
 
         return vk_ub;
     }
@@ -858,7 +858,7 @@ namespace Vulkan {
             vk_vb->copy_working_buffer = true;
         }
         else if (!vk_vb->copy_working_buffer)
-            vk_vb->working_buffer.SetDefaultBuffer(vk_vb->vertex_buffer);
+            vk_vb->working_buffer.SetBuffer(vk_vb->vertex_buffer);
 
         return vk_vb;
     }
