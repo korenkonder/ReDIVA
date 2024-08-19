@@ -21,6 +21,7 @@
 #include "StorageBuffer.hpp"
 #include "UniformBuffer.hpp"
 #include "VertexBuffer.hpp"
+#include "WorkingBuffer.hpp"
 
 namespace Vulkan {
     constexpr uint32_t MAX_COLOR_ATTACHMENTS = 8;
@@ -55,7 +56,7 @@ namespace Vulkan {
     struct gl_index_buffer {
         Vulkan::IndexBuffer index_buffer;
         bool copy_working_buffer;
-        Vulkan::Buffer working_buffer;
+        Vulkan::WorkingBuffer working_buffer;
 
         gl_index_buffer();
 
@@ -100,7 +101,7 @@ namespace Vulkan {
     struct gl_storage_buffer {
         Vulkan::StorageBuffer storage_buffer;
         bool copy_working_buffer;
-        Vulkan::Buffer working_buffer;
+        Vulkan::WorkingBuffer working_buffer;
 
         gl_storage_buffer();
 
@@ -129,7 +130,7 @@ namespace Vulkan {
     struct gl_uniform_buffer {
         Vulkan::UniformBuffer uniform_buffer;
         bool copy_working_buffer;
-        Vulkan::Buffer working_buffer;
+        Vulkan::WorkingBuffer working_buffer;
 
         gl_uniform_buffer();
 
@@ -184,7 +185,7 @@ namespace Vulkan {
     struct gl_vertex_buffer {
         Vulkan::VertexBuffer vertex_buffer;
         bool copy_working_buffer;
-        Vulkan::Buffer working_buffer;
+        Vulkan::WorkingBuffer working_buffer;
 
         gl_vertex_buffer();
 
