@@ -1603,8 +1603,10 @@ static void render_context_imgui(render_context* rctx) {
 }
 
 static void render_context_dispose(render_context* rctx) {
-    vkQueueWaitIdle(vulkan_graphics_queue);
-    vkQueueWaitIdle(vulkan_present_queue);
+    if (Vulkan::use) {
+        vkQueueWaitIdle(vulkan_graphics_queue);
+        vkQueueWaitIdle(vulkan_present_queue);
+    }
 
     classes_process_dispose(classes, classes_count);
 
