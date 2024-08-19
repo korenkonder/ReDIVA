@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../../KKdLib/default.hpp"
-#include <glad/glad.h>
+#include "../gl.hpp"
 
 namespace GL {
     struct UniformBuffer {

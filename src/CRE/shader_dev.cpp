@@ -27,6 +27,44 @@ static const int32_t cubemap_display_fpt_unival_max[] = {
 };
 #endif
 
+#pragma region Shader Description
+#define SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER \
+    { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_INVALID, }
+
+#define SHADER_DESCRIPTION_COMMON_SCENE \
+    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(obj_shader_shader_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(obj_scene_shader_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, 2, sizeof(obj_batch_shader_data), U_INVALID, }
+
+#define SHADER_DESCRIPTION_COMMON_SKINNING \
+    { SHADER_DESCRIPTION_VERTEX_INPUT,  1, 4, U_SKINNING, }, \
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 15, 4, U_SKINNING, }, \
+    { SHADER_DESCRIPTION_STORAGE, 0, sizeof(obj_skinning_shader_data), U_SKINNING, }
+
+#define SHADER_DESCRIPTION_COMMON_QUAD \
+    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(quad_shader_data), U_INVALID, }
+
+#if DISPLAY_IBL
+static const shader_description cubemap_display_vpt_desc[] = {
+    { SHADER_DESCRIPTION_VERTEX_INPUT, 0, 3, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(vec4) * 5, U_INVALID, },
+    { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
+};
+
+static const shader_description cubemap_display_fpt_desc[] = {
+    { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 3, sizeof(vec4) * 5, U_INVALID, },
+    { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
+    { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
+};
+#endif
+
+#undef SHADER_DESCRIPTION_COMMON_QUAD
+#undef SHADER_DESCRIPTION_COMMON_SKINNING
+#undef SHADER_DESCRIPTION_COMMON_SCENE
+#undef SHADER_DESCRIPTION_EFFECT_TEXTURE_SAMPLER
+#pragma endregion
+
 #if DISPLAY_IBL
 static const uniform_name CUBEMAP_DISPLAY_uniform[] = {
     U_INVALID,
@@ -40,6 +78,8 @@ static const uniform_name CUBEMAP_DISPLAY_uniform[] = {
     fp##_fpt_unival_max, \
     #vp, \
     #fp, \
+    vp##_vpt_desc, \
+    fp##_fpt_desc, \
 }
 
 #if DISPLAY_IBL

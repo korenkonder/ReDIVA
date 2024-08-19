@@ -7,9 +7,9 @@
 
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/vec.hpp"
+#include "gl.hpp"
 #include "render.hpp"
 #include "shadow.hpp"
-#include <glad/glad.h>
 #include <list>
 
 enum reflect_refract_resolution_mode {

@@ -1270,6 +1270,10 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
         return 0;
     }
 
+    bool vulkan = false;
+    if (argc >= 2 && !wcscmp(argv[1], L"--vulkan"))
+        vulkan = true;
+
     /*process_edit_dsc();
     return 0;*/
 
@@ -1292,7 +1296,7 @@ int32_t wmain(int32_t argc, wchar_t** argv) {
 
     //a3da_to_dft_dsc(269);
 
-    app_main({});
+    app_main({ vulkan });
 
     timeEndPeriod(1);
     return 0;

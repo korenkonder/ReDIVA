@@ -8,7 +8,7 @@
 #include "../KKdLib/default.hpp"
 #include "../KKdLib/image.hpp"
 #include "../KKdLib/txp.hpp"
-#include <glad/glad.h>
+#include "gl.hpp"
 #include <map>
 
 enum texture_flags {

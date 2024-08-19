@@ -6,7 +6,7 @@
 #pragma once
 
 #include "../KKdLib/default.hpp"
-#include <glad/glad.h>
+#include "gl.hpp"
 
 struct gl_state_rect {
     GLint x;
@@ -29,6 +29,7 @@ struct gl_state_struct {
     GLenum blend_dst_alpha;
     GLenum blend_mode_rgb;
     GLenum blend_mode_alpha;
+    GLuint framebuffer_binding;
     GLuint read_framebuffer_binding;
     GLuint draw_framebuffer_binding;
     GLuint vertex_array_binding;

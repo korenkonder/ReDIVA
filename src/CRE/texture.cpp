@@ -317,7 +317,6 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         break;
     case GL_DEPTH_COMPONENT16:
     case GL_DEPTH_COMPONENT24:
-    case GL_DEPTH_COMPONENT32:
     case GL_DEPTH_COMPONENT32F:
         _format = GL_DEPTH_COMPONENT;
         _type = GL_FLOAT;
@@ -410,7 +409,6 @@ int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) 
     case GL_RGB8:
     case GL_RGBA8:
     case GL_DEPTH_COMPONENT24:
-    case GL_DEPTH_COMPONENT32:
     case GL_R32F:
     case GL_RG16F:
     case GL_DEPTH24_STENCIL8:

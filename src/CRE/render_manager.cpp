@@ -9,6 +9,7 @@
 #include "light_param/fog.hpp"
 #include "light_param/light.hpp"
 #include "rob/rob.hpp"
+#include "Vulkan/gl_wrap.hpp"
 #include "clear_color.hpp"
 #include "effect.hpp"
 #include "gl_state.hpp"
@@ -192,20 +193,24 @@ namespace rndr {
         this->width = width;
         this->height = height;
 
-        if (!multisample_framebuffer)
-            glGenFramebuffers(1, &multisample_framebuffer);
+#ifdef USE_OPENGL
+        if (!Vulkan::use) {
+            if (!multisample_framebuffer)
+                glGenFramebuffers(1, &multisample_framebuffer);
 
-        if (!multisample_renderbuffer)
-            glGenRenderbuffers(1, &multisample_renderbuffer);
+            if (!multisample_renderbuffer)
+                glGenRenderbuffers(1, &multisample_renderbuffer);
 
-        glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
-        glBindRenderbuffer(GL_RENDERBUFFER, multisample_renderbuffer);
-        glRenderbufferStorageMultisample(GL_RENDERBUFFER, 8, GL_RGBA8, width, height);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, multisample_renderbuffer);
-        glDrawBuffer(GL_COLOR_ATTACHMENT0);
-        glReadBuffer(GL_COLOR_ATTACHMENT0);
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-        glBindRenderbuffer(GL_RENDERBUFFER, 0);
+            glBindFramebuffer(GL_FRAMEBUFFER, multisample_framebuffer);
+            glBindRenderbuffer(GL_RENDERBUFFER, multisample_renderbuffer);
+            glRenderbufferStorageMultisample(GL_RENDERBUFFER, 8, GL_RGBA8, width, height);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, multisample_renderbuffer);
+            glDrawBuffer(GL_COLOR_ATTACHMENT0);
+            glReadBuffer(GL_COLOR_ATTACHMENT0);
+            glBindFramebuffer(GL_FRAMEBUFFER, 0);
+            glBindRenderbuffer(GL_RENDERBUFFER, 0);
+        }
+#endif
     }
 
     void RenderManager::set_clear(bool value) {
@@ -1017,7 +1022,8 @@ namespace rndr {
         rndr::Render* rend = render;
         gl_state_set_viewport(0, 0, width, height);
 
-        if (multisample && multisample_framebuffer) {
+#ifdef USE_OPENGL
+        if (!Vulkan::use && multisample && multisample_framebuffer) {
             gl_state_bind_framebuffer(multisample_framebuffer);
             gl_state_enable_multisample();
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
@@ -1025,6 +1031,7 @@ namespace rndr {
         }
         else
             rctx->screen_buffer.Bind();
+#endif
 
         gl_state_disable_depth_test();
         gl_state_enable_blend();
@@ -1036,7 +1043,8 @@ namespace rndr {
         gl_state_disable_blend();
         gl_state_enable_depth_test();
 
-        if (multisample && multisample_framebuffer) {
+#ifdef USE_OPENGL
+        if (!Vulkan::use && multisample && multisample_framebuffer) {
             gl_state_bind_framebuffer(rctx->screen_buffer.fbos[0]);
             gl_state_disable_multisample();
             gl_state_bind_read_framebuffer(multisample_framebuffer);
@@ -1044,6 +1052,7 @@ namespace rndr {
                 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             gl_state_bind_read_framebuffer(0);
         }
+#endif
         gl_state_get_error();
         gl_state_bind_framebuffer(0);
         gl_state_end_event();
@@ -1807,15 +1816,20 @@ static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTe
 static void render_manager_free_render_textures() {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
-    if (render_manager.multisample_renderbuffer) {
-        glDeleteRenderbuffers(1, &render_manager.multisample_renderbuffer);
-        render_manager.multisample_renderbuffer = 0;
-    }
 
-    if (render_manager.multisample_framebuffer) {
-        glDeleteFramebuffers(1, &render_manager.multisample_framebuffer);
-        render_manager.multisample_framebuffer = 0;
+#ifdef USE_OPENGL
+    if (!Vulkan::use) {
+        if (render_manager.multisample_renderbuffer) {
+            glDeleteRenderbuffers(1, &render_manager.multisample_renderbuffer);
+            render_manager.multisample_renderbuffer = 0;
+        }
+
+        if (render_manager.multisample_framebuffer) {
+            glDeleteFramebuffers(1, &render_manager.multisample_framebuffer);
+            render_manager.multisample_framebuffer = 0;
+        }
     }
+#endif
 
     for (RenderTexture& i : render_manager.render_textures)
         i.Free();
@@ -1824,7 +1838,8 @@ static void render_manager_free_render_textures() {
 static void render_manager_init_render_textures(int32_t multisample) {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
 
-    if (multisample) {
+#ifdef USE_OPENGL
+    if (!Vulkan::use && multisample) {
         glGenFramebuffers(1, &render_manager.multisample_framebuffer);
         glGenRenderbuffers(1, &render_manager.multisample_renderbuffer);
 
@@ -1846,6 +1861,7 @@ static void render_manager_init_render_textures(int32_t multisample) {
             render_manager.multisample_framebuffer = 0;
         }
     }
+#endif
 
     for (int32_t i = 0; i < 9; i++) {
         const rndr::RenderTextureData* tex_data = &rndr::render_manager_render_texture_data_array[i];

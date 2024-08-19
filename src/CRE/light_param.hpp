@@ -18,7 +18,7 @@
 #include "config.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
-#include <glad/glad.h>
+#include "gl.hpp"
 
 enum light_param_data_storage_flags {
     LIGHT_PARAM_DATA_STORAGE_LIGHT = 0x01,

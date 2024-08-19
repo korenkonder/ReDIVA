@@ -13,12 +13,32 @@
 #include "../KKdLib/vec.hpp"
 #include "static_var.hpp"
 
+enum shader_description_type {
+    SHADER_DESCRIPTION_NONE = 0,
+    SHADER_DESCRIPTION_VERTEX_INPUT,
+    SHADER_DESCRIPTION_SAMPLER,
+    SHADER_DESCRIPTION_UNIFORM,
+    SHADER_DESCRIPTION_STORAGE,
+    SHADER_DESCRIPTION_FRAGMENT_OUTPUT,
+    SHADER_DESCRIPTION_MAX,
+    SHADER_DESCRIPTION_END = -1,
+};
+
+struct shader_description {
+    shader_description_type type;
+    int32_t binding;
+    int32_t data;
+    uniform_name use_uniform;
+};
+
 struct shader_sub_table {
     uint32_t sub_index;
     const int32_t* vp_unival_max;
     const int32_t* fp_unival_max;
     const char* vp;
     const char* fp;
+    const shader_description* vp_desc;
+    const shader_description* fp_desc;
 };
 
 struct shader_table {
@@ -48,6 +68,8 @@ struct shader_sub {
     const int32_t* vp_unival_max;
     const int32_t* fp_unival_max;
     GLuint* programs;
+    const shader_description* fp_desc;
+    const shader_description* vp_desc;
 };
 
 struct shader {
@@ -77,6 +99,10 @@ struct shader_set_data {
 
     PFNSHADERGETINDEXFUNCPROC get_index_by_name_func;
     PFNSHADERGETNAMEFUNCPROC get_name_by_index_func;
+
+    const shader_description* vp_desc;
+    const shader_description* fp_desc;
+    uint64_t unival_hash;
 
     shader_set_data();
 

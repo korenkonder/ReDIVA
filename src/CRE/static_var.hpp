@@ -10,7 +10,7 @@
 #include "../KKdLib/light_param/light.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/vec.hpp"
-#include <glad/glad.h>
+#include "gl.hpp"
 
 enum blur_filter_mode {
     BLUR_FILTER_4 = 0,
@@ -105,9 +105,10 @@ enum uniform_name {
     U_DOF_STAGE = U_TEX_1_TYPE,
 };
 
-extern int32_t sv_max_texture_buffer_size;
 extern int32_t sv_max_texture_size;
 extern int32_t sv_max_texture_max_anisotropy;
+extern int32_t sv_max_uniform_buffer_size;
+extern int32_t sv_min_uniform_buffer_alignment;
 
 extern bool sv_anisotropy_changed;
 extern int32_t sv_anisotropy;

@@ -29,14 +29,20 @@ enum render_scale {
 struct app_init_struct {
     vec2i res;
     int32_t scale_index;
+    bool vulkan;
 
-    inline app_init_struct() : scale_index() {
+    inline app_init_struct() : scale_index(), vulkan() {
 
     }
 
-    inline app_init_struct(vec2i res, int32_t scale_index) {
+    inline app_init_struct(bool vulkan) : scale_index() {
+        this->vulkan = vulkan;
+    }
+
+    inline app_init_struct(vec2i res, int32_t scale_index, bool vulkan) {
         this->res = res;
         this->scale_index = scale_index;
+        this->vulkan = vulkan;
     }
 };
 

@@ -11,9 +11,9 @@
 #include "GL/element_array_buffer.hpp"
 #include "data.hpp"
 #include "file_handler.hpp"
+#include "gl.hpp"
 #include "shader_ft.hpp"
 #include "texture.hpp"
-#include <glad/glad.h>
 
 class SprSet {
 public:

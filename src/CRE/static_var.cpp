@@ -5,9 +5,10 @@
 
 #include "static_var.hpp"
 
-int32_t sv_max_texture_buffer_size = 0x100000;
 int32_t sv_max_texture_size = 2048;
 int32_t sv_max_texture_max_anisotropy = 1;
+int32_t sv_max_uniform_buffer_size = 0x10000;
+int32_t sv_min_uniform_buffer_alignment = 0x40;
 
 bool sv_anisotropy_changed = false;
 int32_t sv_old_anisotropy = 1;
