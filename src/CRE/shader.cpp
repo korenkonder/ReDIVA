@@ -1843,7 +1843,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
     free_def(color_blend_attachments);
 
-    if (sampler_count + uniform_count + storage_count + push_constant_range_count) {
+    {
         size_t descriptor_infos_size = sizeof(VkDescriptorImageInfo) * sampler_count
             + sizeof(VkDescriptorBufferInfo) * ((size_t)uniform_count + storage_count)
             + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count)
@@ -2236,6 +2236,66 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             free_def(descriptor_writes);
         }
 
+        GLuint query = Vulkan::gl_wrap_manager_get_query_samples_passed();
+        if (query) {
+            Vulkan::end_render_pass(Vulkan::current_command_buffer);
+            Vulkan::gl_query::get(query)->query.Reset(Vulkan::current_command_buffer);
+        }
+
+        if (gl_state.draw_framebuffer_binding) {
+            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
+            if (!vk_fbo->framebuffer)
+                return false;
+
+            if (Vulkan::current_framebuffer != vk_fbo->framebuffer) {
+                Vulkan::end_render_pass(Vulkan::current_command_buffer);
+
+                VkRenderPassBeginInfo render_pass_info = {};
+                render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+                render_pass_info.renderPass = *vk_fbo->render_pass.get();
+                render_pass_info.framebuffer = vk_fbo->framebuffer;
+                render_pass_info.renderArea.offset = { 0, 0 };
+                render_pass_info.renderArea.extent = vk_fbo->framebuffer.GetExtent();
+                render_pass_info.clearValueCount = 0;
+                render_pass_info.pClearValues = 0;
+
+                for (uint32_t i = 0; i < Vulkan::MAX_DRAW_BUFFERS; i++) {
+                    GLenum draw_buffer = vk_fbo->draw_buffers[i];
+                    if (!draw_buffer || draw_buffer < GL_COLOR_ATTACHMENT0
+                        || draw_buffer >= GL_COLOR_ATTACHMENT0 + Vulkan::MAX_COLOR_ATTACHMENTS)
+                        continue;
+
+                    GLuint color_attachment = vk_fbo->color_attachments[draw_buffer - GL_COLOR_ATTACHMENT0];
+                    if (color_attachment) {
+                        Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(color_attachment);
+                        Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
+                            vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
+                            vk_tex->max_mipmap_level + 1, 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                    }
+                }
+
+                if (vk_fbo->depth_attachment) {
+                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment);
+                    Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
+                        vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
+                        vk_tex->max_mipmap_level + 1, 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                }
+
+                vkCmdBeginRenderPass(Vulkan::current_command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+                Vulkan::current_framebuffer = vk_fbo->framebuffer;
+                Vulkan::current_render_pass = *vk_fbo->render_pass.get();
+            }
+        }
+        else {
+            if (Vulkan::current_framebuffer != vulkan_swapchain_render_pass_info.framebuffer) {
+                Vulkan::end_render_pass(Vulkan::current_command_buffer);
+
+                vkCmdBeginRenderPass(Vulkan::current_command_buffer, &vulkan_swapchain_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+                Vulkan::current_framebuffer = vulkan_swapchain_render_pass_info.framebuffer;
+                Vulkan::current_render_pass = vulkan_swapchain_render_pass_info.renderPass;
+            }
+        }
+
         if (push_constant_stage_flags && push_constant_data_size)
             vkCmdPushConstants(Vulkan::current_command_buffer, pipeline_layout,
                 push_constant_stage_flags, 0, push_constant_data_size, push_constant_data);
@@ -2307,65 +2367,6 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     vkCmdBindPipeline(Vulkan::current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
     GLuint query = Vulkan::gl_wrap_manager_get_query_samples_passed();
-    if (query) {
-        Vulkan::end_render_pass(Vulkan::current_command_buffer);
-        Vulkan::gl_query::get(query)->query.Reset(Vulkan::current_command_buffer);
-    }
-
-    if (gl_state.draw_framebuffer_binding) {
-        Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
-        if (!vk_fbo->framebuffer)
-            return false;
-
-        if (Vulkan::current_framebuffer != vk_fbo->framebuffer) {
-            Vulkan::end_render_pass(Vulkan::current_command_buffer);
-
-            VkRenderPassBeginInfo render_pass_info = {};
-            render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            render_pass_info.renderPass = *vk_fbo->render_pass.get();
-            render_pass_info.framebuffer = vk_fbo->framebuffer;
-            render_pass_info.renderArea.offset = { 0, 0 };
-            render_pass_info.renderArea.extent = vk_fbo->framebuffer.GetExtent();
-            render_pass_info.clearValueCount = 0;
-            render_pass_info.pClearValues = 0;
-
-            for (uint32_t i = 0; i < Vulkan::MAX_DRAW_BUFFERS; i++) {
-                GLenum draw_buffer = vk_fbo->draw_buffers[i];
-                if (!draw_buffer || draw_buffer < GL_COLOR_ATTACHMENT0
-                    || draw_buffer >= GL_COLOR_ATTACHMENT0 + Vulkan::MAX_COLOR_ATTACHMENTS)
-                    continue;
-
-                GLuint color_attachment = vk_fbo->color_attachments[draw_buffer - GL_COLOR_ATTACHMENT0];
-                if (color_attachment) {
-                    Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(color_attachment);
-                    Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
-                        vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
-                        vk_tex->max_mipmap_level + 1, 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
-                }
-            }
-
-            if (vk_fbo->depth_attachment) {
-                Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment);
-                Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
-                    vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
-                    vk_tex->max_mipmap_level + 1, 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
-            }
-
-            vkCmdBeginRenderPass(Vulkan::current_command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-            Vulkan::current_framebuffer = vk_fbo->framebuffer;
-            Vulkan::current_render_pass = *vk_fbo->render_pass.get();
-        }
-    }
-    else {
-        if (Vulkan::current_framebuffer != vulkan_swapchain_render_pass_info.framebuffer) {
-            Vulkan::end_render_pass(Vulkan::current_command_buffer);
-
-            vkCmdBeginRenderPass(Vulkan::current_command_buffer, &vulkan_swapchain_render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-            Vulkan::current_framebuffer = vulkan_swapchain_render_pass_info.framebuffer;
-            Vulkan::current_render_pass = vulkan_swapchain_render_pass_info.renderPass;
-        }
-    }
-
     if (query)
         Vulkan::gl_query::get(query)->query.Begin(Vulkan::current_command_buffer);
     return true;

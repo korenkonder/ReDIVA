@@ -921,7 +921,7 @@ static const shader_description sss_filter_gauss_2d_vpt_desc[] = {
 static const shader_description sss_filter_gauss_2d_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     SHADER_DESCRIPTION_COMMON_QUAD,
-    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(gaussian_coef_shader_data), U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(sss_filter_gaussian_coef_shader_data), U_INVALID, },
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
