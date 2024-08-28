@@ -24,7 +24,7 @@ namespace Vulkan {
         sampler_create_info.addressModeV = address_mode_v;
         sampler_create_info.addressModeW = address_mode_w;
         sampler_create_info.mipLodBias = 0.0f;
-        sampler_create_info.anisotropyEnable = max_anisotropy > 0.0f;
+        sampler_create_info.anisotropyEnable = max_anisotropy > 1.0f;
         sampler_create_info.maxAnisotropy = min_def(max_anisotropy, 16.0f);
         sampler_create_info.compareEnable = VK_FALSE;
         sampler_create_info.compareOp = VK_COMPARE_OP_ALWAYS;
