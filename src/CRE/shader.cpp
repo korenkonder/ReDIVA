@@ -1516,7 +1516,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
                 uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
                 for (uint32_t i = 0; i < uniform_count; i++)
-                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
                         && uniform_bindings[i].binding == desc->binding) {
                         found = true;
                         break;
@@ -1524,7 +1524,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
                 if (!found) {
                     uniform_binding->binding = desc->binding;
-                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                     uniform_binding->descriptorCount = 1;
                     uniform_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
                     uniform_binding->pImmutableSamplers = 0;
@@ -1534,7 +1534,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             case SHADER_DESCRIPTION_STORAGE:
                 storage_count = (uint32_t)(storage_binding - storage_bindings);
                 for (uint32_t i = 0; i < storage_count; i++)
-                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
                         && storage_bindings[i].binding == desc->binding) {
                         found = true;
                         break;
@@ -1542,7 +1542,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
                 if (!found) {
                     storage_binding->binding = desc->binding;
-                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                     storage_binding->descriptorCount = 1;
                     storage_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
                     storage_binding->pImmutableSamplers = 0;
@@ -1601,7 +1601,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
                 uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
                 for (uint32_t i = 0; i < uniform_count; i++)
-                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
                         && uniform_bindings[i].binding == desc->binding) {
                         uniform_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
                         found = true;
@@ -1609,7 +1609,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     }
 
                 if (!found) {
-                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                     uniform_binding->binding = desc->binding;
                     uniform_binding->descriptorCount = 1;
                     uniform_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -1620,7 +1620,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             case SHADER_DESCRIPTION_STORAGE:
                 storage_count = (uint32_t)(storage_binding - storage_bindings);
                 for (uint32_t i = 0; i < storage_count; i++)
-                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
                         && storage_bindings[i].binding == desc->binding) {
                         storage_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
                         found = true;
@@ -1628,7 +1628,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     }
 
                 if (!found) {
-                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                     storage_binding->binding = desc->binding;
                     storage_binding->descriptorCount = 1;
                     storage_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
@@ -1846,7 +1846,9 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     if (sampler_count + uniform_count + storage_count + push_constant_range_count) {
         size_t descriptor_infos_size = sizeof(VkDescriptorImageInfo) * sampler_count
             + sizeof(VkDescriptorBufferInfo) * ((size_t)uniform_count + storage_count)
-            + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count);
+            + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count)
+            + sizeof(std::pair<uint32_t, uint32_t>) * ((size_t)uniform_count + storage_count)
+            + sizeof(uint32_t) * ((size_t)uniform_count + storage_count);
         void* descriptor_infos = force_malloc(descriptor_infos_size);
 
         VkDescriptorImageInfo* sampler_infos = (VkDescriptorImageInfo*)descriptor_infos;
@@ -1866,6 +1868,12 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
         uint32_t* storage_info_bindings = (uint32_t*)(uniform_info_bindings + uniform_count);
         uint32_t* storage_info_binding = storage_info_bindings;
+
+        std::pair<uint32_t, uint32_t>* dynamic_infos
+            = (std::pair<uint32_t, uint32_t>*)(storage_info_bindings + storage_count);
+        std::pair<uint32_t, uint32_t>* dynamic_info = dynamic_infos;
+
+        uint32_t* dynamic_offsets = (uint32_t*)(dynamic_infos + uniform_count + storage_count);
 
         uint8_t* push_constant_data = 0;
         uint32_t push_constant_data_size = 0;
@@ -1952,14 +1960,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     if (!vk_ub)
                         break;
 
-                    const GLintptr offset = gl_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr size = gl_state.uniform_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
+
+                    VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
+                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
 
                     uniform_info->buffer = vk_ub->working_buffer;
-                    uniform_info->offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)offset;
-                    uniform_info->range = size != -1 ? (VkDeviceSize)size : desc->data;
+                    uniform_info->offset = 0;
+                    uniform_info->range = range;
                     uniform_info++;
                     *uniform_info_binding++ = desc->binding;
+
+                    dynamic_info->first = desc->binding & 0x7FFFFFFF;
+                    dynamic_info->second = (uint32_t)offset;
+                    dynamic_info++;
                 }
                 break;
             case SHADER_DESCRIPTION_STORAGE:
@@ -1976,14 +1991,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     if (!vk_sb)
                         break;
 
-                    const GLintptr offset = gl_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr size = gl_state.shader_storage_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
+
+                    VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
+                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
 
                     storage_info->buffer = vk_sb->working_buffer;
-                    storage_info->offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)offset;
-                    storage_info->range = size != -1 ? (VkDeviceSize)size : desc->data;
+                    storage_info->offset = 0;
+                    storage_info->range = range;
                     storage_info++;
                     *storage_info_binding++ = desc->binding;
+
+                    dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
+                    dynamic_info->second = (uint32_t)offset;
+                    dynamic_info++;
                 }
                 break;
             }
@@ -2070,14 +2092,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     if (!vk_ub)
                         break;
 
-                    const GLintptr offset = gl_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr size = gl_state.uniform_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
+
+                    VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
+                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
 
                     uniform_info->buffer = vk_ub->working_buffer;
-                    uniform_info->offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)offset;
-                    uniform_info->range = size != -1 ? (VkDeviceSize)size : desc->data;
+                    uniform_info->offset = 0;
+                    uniform_info->range = range;
                     uniform_info++;
                     *uniform_info_binding++ = desc->binding;
+
+                    dynamic_info->first = desc->binding & 0x7FFFFFFF;
+                    dynamic_info->second = (uint32_t)offset;
+                    dynamic_info++;
                 }
                 break;
             case SHADER_DESCRIPTION_STORAGE:
@@ -2094,14 +2123,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     if (!vk_sb)
                         break;
 
-                    const GLintptr offset = gl_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr size = gl_state.shader_storage_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
+
+                    VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
+                    VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
 
                     storage_info->buffer = vk_sb->working_buffer;
-                    storage_info->offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)offset;
-                    storage_info->range = size != -1 ? (VkDeviceSize)size : desc->data;
+                    storage_info->offset = 0;
+                    storage_info->range = range;
                     storage_info++;
                     *storage_info_binding++ = desc->binding;
+
+                    dynamic_info->first = 0x80000000 | (desc->binding & 0x7FFFFFFF);
+                    dynamic_info->second = (uint32_t)offset;
+                    dynamic_info++;
                 }
                 break;
             }
@@ -2173,7 +2209,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 descriptor_write->dstBinding = uniform_info_bindings[i];
                 descriptor_write->dstArrayElement = 0;
                 descriptor_write->descriptorCount = 1;
-                descriptor_write->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+                descriptor_write->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
                 descriptor_write->pImageInfo = 0;
                 descriptor_write->pBufferInfo = &uniform_infos[i];
                 descriptor_write->pTexelBufferView = 0;
@@ -2187,7 +2223,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 descriptor_write->dstBinding = storage_info_bindings[i];
                 descriptor_write->dstArrayElement = 0;
                 descriptor_write->descriptorCount = 1;
-                descriptor_write->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                descriptor_write->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
                 descriptor_write->pImageInfo = 0;
                 descriptor_write->pBufferInfo = &storage_infos[i];
                 descriptor_write->pTexelBufferView = 0;
@@ -2204,10 +2240,19 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             vkCmdPushConstants(Vulkan::current_command_buffer, pipeline_layout,
                 push_constant_stage_flags, 0, push_constant_data_size, push_constant_data);
 
-        free_def(descriptor_infos);
+        std::sort(dynamic_infos, dynamic_info,
+            [](const std::pair<uint32_t, uint32_t>& left,
+                const std::pair<uint32_t, uint32_t>& right) { return left.first <= right.first; });
+
+        uint32_t dynamic_offset_count = (uint32_t)(dynamic_info - dynamic_infos);
+        for (uint32_t i = 0; i < dynamic_offset_count; i++)
+            dynamic_offsets[i] = dynamic_infos[i].second;
 
         vkCmdBindDescriptorSets(Vulkan::current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
-            pipeline_layout, 0, descriptor_set_collection->count, descriptor_set_collection->data, 0, 0);
+            pipeline_layout, 0, descriptor_set_collection->count, descriptor_set_collection->data,
+            dynamic_offset_count, dynamic_offsets);
+
+        free_def(descriptor_infos);
     }
 
     {
