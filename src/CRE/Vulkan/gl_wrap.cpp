@@ -14,29 +14,6 @@
 #include <unordered_map>
 
 namespace Vulkan {
-    enum gl_buffer_flags {
-        GL_BUFFER_FLAG_NONE                = 0x00,
-        GL_BUFFER_FLAG_MAPPED              = 0x01,
-        GL_BUFFER_FLAG_IMMUTABLE_STORAGE   = 0x02,
-        GL_BUFFER_FLAG_UPDATE_DATA         = 0x04,
-        GL_BUFFER_FLAG_MAP_READ_BIT        = 0x08,
-        GL_BUFFER_FLAG_MAP_WRITE_BIT       = 0x10,
-        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = 0x20,
-    };
-
-    struct gl_buffer {
-        GLenum target;
-        gl_buffer_flags flags;
-        std::vector<uint8_t> data;
-
-        gl_buffer();
-        ~gl_buffer();
-
-        gl_buffer& operator=(const gl_buffer& other);
-
-        static gl_buffer* get(GLuint buffer);
-    };
-
     struct gl_texture_data {
         struct tex_data {
             std::vector<uint8_t> data;
@@ -228,6 +205,31 @@ namespace Vulkan {
         GLenum type, GLsizei stride, const void* pointer);
     static void gl_wrap_manager_vertex_attrib_pointer(GLuint index, GLint size,
         GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
+
+    gl_buffer::gl_buffer() : target(), flags() {
+
+    }
+
+    gl_buffer::~gl_buffer() {
+
+    }
+
+    gl_buffer& gl_buffer::operator=(const gl_buffer& other) {
+        target = other.target;
+        flags = other.flags;
+        data.assign(other.data.begin(), other.data.end());
+        return *this;
+    }
+
+    gl_buffer* gl_buffer::get(GLuint buffer) {
+        if (!buffer)
+            return 0;
+
+        auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+        if (elem != gl_wrap_manager_ptr->gl_buffers.end())
+            return &elem->second;
+        return 0;
+    }
 
     gl_framebuffer::gl_framebuffer() : render_pass(), color_attachments(),
         color_attachment_levels(), depth_attachment(), depth_attachment_level(),
@@ -1284,31 +1286,6 @@ namespace Vulkan {
         default:
             return VK_POLYGON_MODE_MAX_ENUM;
         }
-    }
-
-    gl_buffer::gl_buffer() : target(), flags() {
-
-    }
-
-    gl_buffer::~gl_buffer() {
-
-    }
-
-    gl_buffer& gl_buffer::operator=(const gl_buffer& other) {
-        target = other.target;
-        flags = other.flags;
-        data.assign(other.data.begin(), other.data.end());
-        return *this;
-    }
-
-    gl_buffer* gl_buffer::get(GLuint buffer) {
-        if (!buffer)
-            return 0;
-
-        auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
-        if (elem != gl_wrap_manager_ptr->gl_buffers.end())
-            return &elem->second;
-        return 0;
     }
 
     gl_texture_data::tex_data::tex_data() {

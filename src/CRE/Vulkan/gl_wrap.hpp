@@ -27,6 +27,29 @@ namespace Vulkan {
     constexpr uint32_t MAX_COLOR_ATTACHMENTS = 8;
     constexpr uint32_t MAX_DRAW_BUFFERS = 8;
     constexpr uint32_t MAX_VERTEX_ATTRIB_COUNT = 16;
+    
+    enum gl_buffer_flags {
+        GL_BUFFER_FLAG_NONE                = 0x00,
+        GL_BUFFER_FLAG_MAPPED              = 0x01,
+        GL_BUFFER_FLAG_IMMUTABLE_STORAGE   = 0x02,
+        GL_BUFFER_FLAG_UPDATE_DATA         = 0x04,
+        GL_BUFFER_FLAG_MAP_READ_BIT        = 0x08,
+        GL_BUFFER_FLAG_MAP_WRITE_BIT       = 0x10,
+        GL_BUFFER_FLAG_DYNAMIC_STORAGE_BIT = 0x20,
+    };
+
+    struct gl_buffer {
+        GLenum target;
+        gl_buffer_flags flags;
+        std::vector<uint8_t> data;
+
+        gl_buffer();
+        ~gl_buffer();
+
+        gl_buffer& operator=(const gl_buffer& other);
+
+        static gl_buffer* get(GLuint buffer);
+    };
 
     struct gl_framebuffer {
         Vulkan::Framebuffer framebuffer;

@@ -32,7 +32,8 @@ namespace Vulkan {
 
     DescriptorPipeline::DescriptorPipeline(VkDevice device, VkDescriptorPool descriptor_pool,
         uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
-        const VkDescriptorSetLayoutBinding* bindings) {
+        const VkDescriptorSetLayoutBinding* bindings,
+        uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges) {
 
         this->device = device;
         this->descriptor_pool = descriptor_pool;
@@ -92,8 +93,8 @@ namespace Vulkan {
             pipeline_layout_create_info.flags = 0;
             pipeline_layout_create_info.setLayoutCount = set_layout_count;
             pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
-            pipeline_layout_create_info.pushConstantRangeCount = 0;
-            pipeline_layout_create_info.pPushConstantRanges = 0;
+            pipeline_layout_create_info.pushConstantRangeCount = push_constant_range_count;
+            pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges;
 
             if (vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline_layout) == VK_SUCCESS)
                 return;

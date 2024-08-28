@@ -708,7 +708,7 @@ static const int32_t transparency_fpt_unival_max[] = {
     { SHADER_DESCRIPTION_SAMPLER, 14, 0, U_INVALID, }
 
 #define SHADER_DESCRIPTION_COMMON_SCENE \
-    { SHADER_DESCRIPTION_UNIFORM, 0, sizeof(obj_shader_shader_data), U_INVALID, }, \
+    { SHADER_DESCRIPTION_UNIFORM, -1, sizeof(obj_shader_shader_data), U_INVALID, }, \
     { SHADER_DESCRIPTION_UNIFORM, 1, sizeof(obj_scene_shader_data), U_INVALID, }, \
     { SHADER_DESCRIPTION_UNIFORM, 2, sizeof(obj_batch_shader_data), U_INVALID, }
 

@@ -201,7 +201,8 @@ namespace Vulkan {
         prj::shared_ptr<Vulkan::DescriptorPipeline> get_descriptor_pipeline(
             uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
             uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
-            const VkDescriptorSetLayoutBinding* bindings);
+            const VkDescriptorSetLayoutBinding* bindings,
+            uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges);
         frame_data& get_frame_data();
         prj::shared_ptr<Vulkan::Pipeline> get_pipeline(uint32_t stage_count,
             const VkPipelineShaderStageCreateInfo* stages,
@@ -265,9 +266,11 @@ namespace Vulkan {
     prj::shared_ptr<Vulkan::DescriptorPipeline> manager_get_descriptor_pipeline(
         uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
         uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
-        const VkDescriptorSetLayoutBinding* bindings) {
+        const VkDescriptorSetLayoutBinding* bindings,
+        uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges) {
         return manager_ptr->get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash,
-            sampler_count, uniform_count, storage_count, bindings);
+            sampler_count, uniform_count, storage_count, bindings,
+            push_constant_range_count, push_constant_ranges);
     }
 
     uint32_t manager_get_frame() {
@@ -427,14 +430,16 @@ namespace Vulkan {
     prj::shared_ptr<Vulkan::DescriptorPipeline> manager::get_descriptor_pipeline(
         uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
         uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
-        const VkDescriptorSetLayoutBinding* bindings) {
+        const VkDescriptorSetLayoutBinding* bindings,
+        uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges) {
         auto elem = descriptor_pipelines.find({ vp_desc_hash, fp_desc_hash, unival_hash });
         if (elem != descriptor_pipelines.end())
             return elem->second;
 
         prj::shared_ptr<Vulkan::DescriptorPipeline> descriptor_pipeline(
             new Vulkan::DescriptorPipeline(Vulkan::current_device, Vulkan::current_descriptor_pool,
-                sampler_count, uniform_count, storage_count, bindings));
+                sampler_count, uniform_count, storage_count,
+                bindings, push_constant_range_count, push_constant_ranges));
         descriptor_pipelines.insert({ { vp_desc_hash, fp_desc_hash, unival_hash }, descriptor_pipeline });
         return descriptor_pipeline;
     }

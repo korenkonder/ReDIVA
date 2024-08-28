@@ -27,7 +27,8 @@ namespace Vulkan {
     extern prj::shared_ptr<Vulkan::DescriptorPipeline> manager_get_descriptor_pipeline(
         uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
         uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
-        const VkDescriptorSetLayoutBinding* bindings);
+        const VkDescriptorSetLayoutBinding* bindings,
+        uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges);
     extern uint32_t manager_get_frame();
     extern prj::shared_ptr<Vulkan::Pipeline> manager_get_pipeline(uint32_t stage_count,
         const VkPipelineShaderStageCreateInfo* stages,

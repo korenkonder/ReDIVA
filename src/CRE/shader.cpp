@@ -123,6 +123,16 @@ static void parse_define_inner(std::string& temp, bool vulkan) {
             temp.replace(pos, 11, "gl_VertexIndex");
             off = pos + 14;
         }
+
+        off = 0;
+        while (true) {
+            size_t pos = temp.find("layout(set = 1, binding = 0) uniform Shader", off);
+            if (pos == -1)
+                break;
+
+            temp.replace(pos, 43, "layout(push_constant) uniform Shader");
+            off = pos + 36;
+        }
     }
 }
 
@@ -1373,6 +1383,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     uint32_t sampler_count = 0;
     uint32_t uniform_count = 0;
     uint32_t storage_count = 0;
+    uint32_t push_constant_range_count = 0;
     uint32_t fragment_output_count = 0;
 
     bool enabled_attributes[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
@@ -1394,7 +1405,10 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             sampler_count++;
             break;
         case SHADER_DESCRIPTION_UNIFORM:
-            uniform_count++;
+            if (desc->binding == -1)
+                push_constant_range_count++;
+            else
+                uniform_count++;
             break;
         case SHADER_DESCRIPTION_STORAGE:
             storage_count++;
@@ -1414,7 +1428,10 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             sampler_count++;
             break;
         case SHADER_DESCRIPTION_UNIFORM:
-            uniform_count++;
+            if (desc->binding == -1)
+                push_constant_range_count++;
+            else
+                uniform_count++;
             break;
         case SHADER_DESCRIPTION_STORAGE:
             storage_count++;
@@ -1440,13 +1457,16 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         const uint32_t storage_max_count = storage_count;
 
         VkDescriptorSetLayoutBinding* bindings = force_malloc<VkDescriptorSetLayoutBinding>(
-            (size_t)sampler_max_count + uniform_max_count + storage_max_count);
+            (size_t)sampler_max_count + uniform_max_count + storage_max_count + push_constant_range_count);
         VkDescriptorSetLayoutBinding* sampler_bindings = bindings;
-        VkDescriptorSetLayoutBinding* uniform_bindings = bindings + sampler_max_count;
+        VkDescriptorSetLayoutBinding* uniform_bindings = sampler_bindings + sampler_max_count;
         VkDescriptorSetLayoutBinding* storage_bindings = bindings + sampler_max_count + uniform_max_count;
+        VkPushConstantRange* push_constant_ranges = (VkPushConstantRange*)(bindings
+            + sampler_max_count + uniform_max_count + storage_max_count);
         VkDescriptorSetLayoutBinding* sampler_binding = sampler_bindings;
         VkDescriptorSetLayoutBinding* uniform_binding = uniform_bindings;
         VkDescriptorSetLayoutBinding* storage_binding = storage_bindings;
+        VkPushConstantRange* push_constant_range = push_constant_ranges;
 
         vp_desc = set->vp_desc;
         while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
@@ -1476,6 +1496,24 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 }
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1) {
+                    push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
+                    for (uint32_t i = 0; i < push_constant_range_count; i++)
+                        if (push_constant_ranges[i].size == desc->data) {
+                            push_constant_ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                            found = true;
+                            break;
+                        }
+
+                    if (!found && !push_constant_range_count) {
+                        push_constant_range->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                        push_constant_range->offset = 0;
+                        push_constant_range->size = desc->data;
+                        push_constant_range++;
+                    }
+                    break;
+                }
+
                 uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
                 for (uint32_t i = 0; i < uniform_count; i++)
                     if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
@@ -1543,6 +1581,24 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 }
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1) {
+                    push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
+                    for (uint32_t i = 0; i < push_constant_range_count; i++)
+                        if (push_constant_ranges[i].size == desc->data) {
+                            push_constant_ranges[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                            found = true;
+                            break;
+                        }
+
+                    if (!found && !push_constant_range_count) {
+                        push_constant_range->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+                        push_constant_range->offset = 0;
+                        push_constant_range->size = desc->data;
+                        push_constant_range++;
+                    }
+                    break;
+                }
+
                 uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
                 for (uint32_t i = 0; i < uniform_count; i++)
                     if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
@@ -1586,6 +1642,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
         uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
         storage_count = (uint32_t)(storage_binding - storage_bindings);
+        push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
 
         if (uniform_count)
             memmove(bindings + sampler_count,
@@ -1595,10 +1652,15 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             memmove(bindings + sampler_count + uniform_count,
                 bindings + sampler_max_count + uniform_max_count,
                 storage_count * sizeof(VkDescriptorSetLayoutBinding));
+        if (push_constant_range_count)
+            memmove(bindings + sampler_count + uniform_count + storage_count,
+                bindings + sampler_max_count + uniform_max_count + storage_max_count,
+                push_constant_range_count * sizeof(VkPushConstantRange));
 
         descriptor_pipeline
             = Vulkan::manager_get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash,
-                sampler_count, uniform_count, storage_count, bindings);
+                sampler_count, uniform_count, storage_count,
+                bindings, push_constant_range_count, push_constant_ranges);
 
         free_def(bindings);
     }
@@ -1781,7 +1843,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
     free_def(color_blend_attachments);
 
-    if (sampler_count + uniform_count + storage_count) {
+    if (sampler_count + uniform_count + storage_count + push_constant_range_count) {
         size_t descriptor_infos_size = sizeof(VkDescriptorImageInfo) * sampler_count
             + sizeof(VkDescriptorBufferInfo) * ((size_t)uniform_count + storage_count)
             + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count);
@@ -1804,6 +1866,10 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
         uint32_t* storage_info_bindings = (uint32_t*)(uniform_info_bindings + uniform_count);
         uint32_t* storage_info_binding = storage_info_bindings;
+
+        uint8_t* push_constant_data = 0;
+        uint32_t push_constant_data_size = 0;
+        VkShaderStageFlags push_constant_stage_flags = 0;
 
         vp_desc = set->vp_desc;
         while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
@@ -1860,6 +1926,19 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 }
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1) {
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
+                    if (!vk_buf)
+                        break;
+
+                    if (!push_constant_data) {
+                        push_constant_data = vk_buf->data.data();
+                        push_constant_data_size = (uint32_t)vk_buf->data.size();
+                    }
+                    push_constant_stage_flags |= VK_SHADER_STAGE_VERTEX_BIT;
+                    break;
+                }
+
                 uniform_count = (uint32_t)(uniform_info - uniform_infos);
                 for (uint32_t i = 0; i < uniform_count; i++)
                     if (uniform_info_bindings[i] == desc->binding) {
@@ -1965,6 +2044,19 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 }
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1) {
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
+                    if (!vk_buf)
+                        break;
+
+                    if (!push_constant_data) {
+                        push_constant_data = vk_buf->data.data();
+                        push_constant_data_size = (uint32_t)vk_buf->data.size();
+                    }
+                    push_constant_stage_flags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                    break;
+                }
+
                 uniform_count = (uint32_t)(uniform_info - uniform_infos);
                 for (uint32_t i = 0; i < uniform_count; i++)
                     if (uniform_info_bindings[i] == desc->binding) {
@@ -2107,6 +2199,10 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
             free_def(descriptor_writes);
         }
+
+        if (push_constant_stage_flags && push_constant_data_size)
+            vkCmdPushConstants(Vulkan::current_command_buffer, pipeline_layout,
+                push_constant_stage_flags, 0, push_constant_data_size, push_constant_data);
 
         free_def(descriptor_infos);
 
