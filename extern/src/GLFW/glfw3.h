@@ -343,6 +343,7 @@ extern "C" {
  *  @ingroup input
  */
 #define GLFW_REPEAT                 2
+/*! @} */
 
 /*! @ingroup input
  */

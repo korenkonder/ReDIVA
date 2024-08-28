@@ -2107,7 +2107,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
             free_def(descriptor_writes);
         }
-;
+
         free_def(descriptor_infos);
 
         vkCmdBindDescriptorSets(Vulkan::current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
