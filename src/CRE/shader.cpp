@@ -2364,7 +2364,6 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
     vkCmdBindPipeline(Vulkan::current_command_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
-    GLuint query = Vulkan::gl_wrap_manager_get_query_samples_passed();
     if (query)
         Vulkan::gl_query::get(query)->query.Begin(Vulkan::current_command_buffer);
     return true;
