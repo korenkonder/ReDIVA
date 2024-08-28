@@ -2851,9 +2851,7 @@ static std::vector<const char*> app_get_required_extensions() {
     const char** glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
     std::vector<const char*> extensions(glfw_extensions, glfw_extensions + glfw_extension_count);
-#if RENDER_DEBUG
     extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-#endif
     return extensions;
 }
 
