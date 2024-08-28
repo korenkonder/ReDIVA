@@ -7,7 +7,7 @@
 
 #include "default.hpp"
 #include "waitable_timer.hpp"
-#include <mutex>
+#include <atomic>
 
 #define HISTORY_COUNT 0x08
 
@@ -17,10 +17,8 @@ struct timer {
     LARGE_INTEGER curr_time;
     LARGE_INTEGER prev_time;
     double_t inv_freq;
-    double_t freq;
-    double_t freq_hist;
-    std::mutex freq_mtx;
-    std::mutex freq_hist_mtx;
+    std::atomic<double_t> freq;
+    std::atomic<double_t> freq_hist;
     waitable_timer wait_timer;
 
     timer(double_t freq);
@@ -29,7 +27,7 @@ struct timer {
     void start_of_cycle();
     void end_of_cycle();
     double_t get_freq();
-    void set_freq(double_t freq);
+    void set_freq(double_t value);
     double_t get_freq_hist();
     void reset();
     void sleep(double_t msec);

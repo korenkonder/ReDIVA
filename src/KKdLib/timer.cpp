@@ -51,7 +51,6 @@ void timer::start_of_cycle() {
     if (history_counter >= HISTORY_COUNT)
         history_counter = 0;
 
-    std::unique_lock<std::mutex> u_lock(freq_mtx);
     freq_hist = 1000.0 / (freq / HISTORY_COUNT);
 }
 
@@ -70,17 +69,14 @@ void timer::end_of_cycle() {
 }
 
 double_t timer::get_freq() {
-    std::unique_lock<std::mutex> u_lock(freq_mtx);
     return freq;
 }
 
-void timer::set_freq(double_t freq) {
-    std::unique_lock<std::mutex> u_lock(freq_mtx);
-    this->freq = freq;
+void timer::set_freq(double_t value) {
+    freq = value;
 }
 
 double_t timer::get_freq_hist() {
-    std::unique_lock<std::mutex> u_lock(freq_hist_mtx);
     return freq_hist;
 }
 
