@@ -1660,8 +1660,10 @@ static void render_context_dispose(render_context* rctx) {
     module_table_handler_data_free();
     hand_item_handler_data_free();
 
-    vkQueueWaitIdle(vulkan_graphics_queue);
-    vkQueueWaitIdle(vulkan_present_queue);
+    if (Vulkan::use) {
+        vkQueueWaitIdle(vulkan_graphics_queue);
+        vkQueueWaitIdle(vulkan_present_queue);
+    }
 
     render_timer->reset();
     while (app::task_work->tasks.size()) {
