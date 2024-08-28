@@ -2183,7 +2183,8 @@ static int32_t app_end_present_vulkan() {
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = vulkan_render_finished_semaphores[vulkan_current_frame];
 
-    if (vkQueueSubmit(vulkan_graphics_queue, 1, &submit_info, vulkan_in_flight_fences[vulkan_current_frame]) != VK_SUCCESS)
+    if (vkQueueSubmit(vulkan_graphics_queue, 1, &submit_info,
+        vulkan_in_flight_fences[vulkan_current_frame]) != VK_SUCCESS)
         return -30002;
 
     VkPresentInfoKHR present_info = {};
