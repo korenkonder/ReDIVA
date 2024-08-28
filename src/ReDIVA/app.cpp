@@ -430,6 +430,7 @@ int32_t app_main(const app_init_struct& ais) {
             sv_max_texture_max_anisotropy = (int32_t)supported_limits.maxSamplerAnisotropy;
             sv_max_uniform_buffer_size = (int32_t)supported_limits.maxUniformBufferRange;
             sv_min_uniform_buffer_alignment = (int32_t)supported_limits.minUniformBufferOffsetAlignment;
+            sv_min_storage_buffer_alignment = (int32_t)supported_limits.minStorageBufferOffsetAlignment;
         }
 #ifdef USE_OPENGL
         else {
@@ -443,6 +444,7 @@ int32_t app_main(const app_init_struct& ais) {
             glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
             glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &sv_max_uniform_buffer_size);
             glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &sv_min_uniform_buffer_alignment);
+            glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
             glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         }

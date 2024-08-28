@@ -421,6 +421,7 @@ namespace Vulkan {
         gl_index_buffer* vk_ib = &elem->second;
 
         const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize alignment = 0x40;
         if (!vk_ib->index_buffer || vk_ib->index_buffer.GetSize() < size)
             vk_ib->index_buffer.Create(Vulkan::current_allocator, size);
 
@@ -429,7 +430,7 @@ namespace Vulkan {
             if (vk_ib->copy_working_buffer && vk_ib->working_buffer.FindBuffer(hash, size))
                 return vk_ib;
 
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size);
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
@@ -525,6 +526,7 @@ namespace Vulkan {
         gl_storage_buffer* vk_sb = &elem->second;
 
         const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize alignment = sv_min_storage_buffer_alignment;
         if (!vk_sb->storage_buffer || vk_sb->storage_buffer.GetSize() < size)
             vk_sb->storage_buffer.Create(Vulkan::current_allocator, size);
 
@@ -533,7 +535,7 @@ namespace Vulkan {
             if (vk_sb->copy_working_buffer && vk_sb->working_buffer.FindBuffer(hash, size))
                 return vk_sb;
 
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size);
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
@@ -594,15 +596,17 @@ namespace Vulkan {
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
             const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
+            const bool attachment = !vk_tex_data->get_tex_data(0, 0)->data.size();
+
             VkImageUsageFlags usage = 0;
             switch (format) {
             case VK_FORMAT_D24_UNORM_S8_UINT:
             case VK_FORMAT_D32_SFLOAT:
-                if (!vk_tex_data->get_tex_data(0, 0)->data.size())
+                if (attachment)
                     usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 break;
             default:
-                if (!vk_tex_data->get_tex_data(0, 0)->data.size())
+                if (attachment)
                     usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 break;
             }
@@ -618,7 +622,7 @@ namespace Vulkan {
             vk_tex->image.Create(Vulkan::current_allocator,
                 flags, vk_tex->width, vk_tex->height, level_count, layer_count, format,
                 VK_IMAGE_TILING_OPTIMAL, usage, VMA_MEMORY_USAGE_AUTO,
-                VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT);
+                attachment ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0);
             vk_tex->image_view.Create(Vulkan::current_device, 0, vk_tex->image,
                 image_view_type, format, aspect_mask, 0, level_count, 0, layer_count);
             Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
@@ -842,6 +846,7 @@ namespace Vulkan {
         gl_vertex_buffer* vk_vb = &elem->second;
 
         const VkDeviceSize size = vk_buf->data.size();
+        const VkDeviceSize alignment = 0x40;
         if (!vk_vb->vertex_buffer || vk_vb->vertex_buffer.GetSize() < size)
             vk_vb->vertex_buffer.Create(Vulkan::current_allocator, size);
 
@@ -850,7 +855,7 @@ namespace Vulkan {
             if (vk_vb->copy_working_buffer && vk_vb->working_buffer.FindBuffer(hash, size))
                 return vk_vb;
 
-            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size);
+            Vulkan::Buffer dynamic_buffer = Vulkan::manager_get_dynamic_buffer(size, alignment);
             dynamic_buffer.WriteMemory(dynamic_buffer.GetOffset(), size, vk_buf->data.data());
             enum_and(elem_buffer->second.flags, ~Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
 
@@ -1876,7 +1881,7 @@ namespace Vulkan {
                 barrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
                 barrier.pNext = 0;
                 barrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
-                barrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
+                barrier.dstAccessMask = VK_ACCESS_UNIFORM_READ_BIT;
                 barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
                 barrier.buffer = dst_buffer;
