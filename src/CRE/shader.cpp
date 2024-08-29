@@ -2164,6 +2164,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         if (sampler_count) {
             sampler_descriptor_set = *descriptor_set++;
             if (!sampler_descriptor_set) {
+                free_def(descriptor_writes);
                 free_def(descriptor_infos);
                 return false;
             }
@@ -2173,6 +2174,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         if (uniform_count) {
             uniform_descriptor_set = *descriptor_set++;
             if (!uniform_descriptor_set) {
+                free_def(descriptor_writes);
                 free_def(descriptor_infos);
                 return false;
             }
@@ -2182,6 +2184,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         if (storage_count) {
             storage_descriptor_set = *descriptor_set++;
             if (!storage_descriptor_set) {
+                free_def(descriptor_writes);
                 free_def(descriptor_infos);
                 return false;
             }
