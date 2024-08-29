@@ -1154,15 +1154,19 @@ void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
 void draw_pass_set_camera() {
     render_context* rctx = rctx_ptr;
     camera* cam = rctx->camera;
+    cam->update_data();
     rctx->view_mat = cam->view;
     rctx->proj_mat = cam->projection;
     rctx->vp_mat = cam->view_projection;
-    rctx->obj_scene.set_projection_view(cam->view, cam->projection);
+    rctx->obj_scene.set_projection_view(rctx->view_mat, rctx->proj_mat);
     cam->get_view_point(rctx->obj_scene.g_view_position);
+    rctx->obj_scene.g_view_position.w = 0.0f;
 
+    float_t max_distance = cam->max_distance;
+    float_t min_distance = cam->min_distance;
     rctx->g_near_far = {
-        (float_t)(cam->max_distance / (cam->max_distance - cam->min_distance)),
-        (float_t)(-(cam->max_distance * cam->min_distance) / (cam->max_distance - cam->min_distance)),
+        (float_t)(max_distance / (max_distance - min_distance)),
+        (float_t)(-(max_distance * min_distance) / (max_distance - min_distance)),
         0.0f, 0.0f
     };
 }

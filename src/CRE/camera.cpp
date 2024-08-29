@@ -246,15 +246,19 @@ void camera::set_position(const vec3&& pos) {
 }
 
 void camera::update() {
+    update_data();
+
+    fast_change_hist1 = fast_change_hist0;
+    fast_change_hist0 = fast_change;
+    fast_change = false;
+}
+
+void camera::update_data() {
     camera_calculate_projection(this);
     camera_calculate_view(this);
 
     mat4_mul(&view, &projection, &view_projection);
     mat4_invert(&view_projection, &inv_view_projection);
-
-    fast_change_hist1 = fast_change_hist0;
-    fast_change_hist0 = fast_change;
-    fast_change = false;
 }
 
 static void camera_calculate_forward(camera* c) {

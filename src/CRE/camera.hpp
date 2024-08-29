@@ -98,6 +98,7 @@ struct camera {
     void set_position(const vec3& pos);
     void set_position(const vec3&& pos);
     void update();
+    void update_data();
 };
 
 struct cam_struct {
