@@ -1920,11 +1920,9 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
     mat4 mat;
     mat4_normalize_rotation(&emit_inst->mat, &mat);
     if (local) {
-        GPM = Glitter::glt_particle_manager;
-
-        mat4_mul(&GPM_VAL->cam.inv_view, &emit_inst->mat, &mat);
-        mat4_mul(&GPM_VAL->cam.view, &mat, &mat);
-        mat4_mul(&mat, &GPM_VAL->cam.inv_view, &mat);
+        mat4_mul(&rctx_ptr->camera->inv_view, &emit_inst->mat, &mat);
+        mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
+        mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
         mat4_normalize_rotation(&mat, &mat);
     }
     else
@@ -1988,11 +1986,9 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
     mat4 mat;
     mat4_normalize_rotation(&emit_inst->mat, &mat);
     if (local) {
-        GPM = Glitter::glt_particle_manager;
-
-        mat4_mul(&GPM_VAL->cam.inv_view, &emit_inst->mat, &mat);
-        mat4_mul(&GPM_VAL->cam.view, &mat, &mat);
-        mat4_mul(&mat, &GPM_VAL->cam.inv_view, &mat);
+        mat4_mul(&rctx_ptr->camera->inv_view, &emit_inst->mat, &mat);
+        mat4_mul(&rctx_ptr->camera->view, &mat, &mat);
+        mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
         mat4_normalize_rotation(&mat, &mat);
     }
     else

@@ -500,17 +500,6 @@ namespace Glitter {
         vec4 color;
     };
 
-    struct Camera {
-        mat4 projection;
-        mat4 view;
-        mat4 inv_view;
-        mat3 inv_view_mat3;
-        vec3 view_point;
-        float_t rotation_y;
-
-        Camera();
-    };
-
     struct Curve {
         struct Key {
             KeyType type;
@@ -1644,7 +1633,6 @@ namespace Glitter {
         Particle* selected_particle;
         void* bone_data;
         FrameRateControl* frame_rate;
-        Camera cam;
         ParticleManagerFlag flags;
         int32_t scene_load_counter;
         int32_t init_buffers_base;
