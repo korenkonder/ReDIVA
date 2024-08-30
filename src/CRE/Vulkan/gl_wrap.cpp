@@ -32,10 +32,10 @@ namespace Vulkan {
         };
 
         GLenum target;
-        GLint max_mipmap_level;
         GLenum internal_format;
         GLsizei width;
         GLsizei height;
+        uint32_t level_count;
         std::vector<tex_data> data[6];
 
         gl_texture_data();
@@ -300,12 +300,12 @@ namespace Vulkan {
            
             for (int32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
                 gl_texture* vk_tex = gl_texture::get(vk_fbo->color_attachments[i]);
-                if (vk_tex && vk_tex->max_mipmap_level > 0) {
+                if (vk_tex && vk_tex->get_level_count() > 0) {
                     const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                     const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
                     const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
-                    const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+                    const int32_t layer_count = vk_tex->get_layer_count();
                     vk_fbo->color_attachment_image_views[i].Create(Vulkan::current_device, 0, vk_tex->image,
                         image_view_type, format, aspect_mask, 0, 1, 0, layer_count);
                 }
@@ -325,12 +325,12 @@ namespace Vulkan {
             vk_fbo->depth_attachment_image_view.Destroy();
 
             gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment);
-            if (vk_tex && vk_tex->max_mipmap_level > 0) {
+            if (vk_tex && vk_tex->get_level_count() > 0) {
                 const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                 const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
                 const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
-                const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+                const int32_t layer_count = vk_tex->get_layer_count();
                 vk_fbo->depth_attachment_image_view.Create(Vulkan::current_device, 0, vk_tex->image,
                     image_view_type, format, aspect_mask, 0, 1, 0, layer_count);
             }
@@ -550,9 +550,9 @@ namespace Vulkan {
         return vk_sb;
     }
 
-    gl_texture::gl_texture() : target(), max_mipmap_level(),
-        internal_format(), width(), height(), components() {
-
+    gl_texture::gl_texture() : target(), base_mipmap_level(),
+        internal_format(), width(), height(), level_count(), components() {
+        max_mipmap_level = 1000;
     }
 
     VkImageView gl_texture::get_image_view() {
@@ -580,19 +580,19 @@ namespace Vulkan {
             create = true;
         }
 
-        if (vk_tex_data && (vk_tex->max_mipmap_level != vk_tex_data->max_mipmap_level
-            || vk_tex->internal_format != vk_tex_data->internal_format
+        if (vk_tex_data && (vk_tex->internal_format != vk_tex_data->internal_format
             || vk_tex->width != vk_tex_data->width
-            || vk_tex->height != vk_tex_data->height))
+            || vk_tex->height != vk_tex_data->height
+            || vk_tex->level_count != vk_tex_data->level_count))
             create = true;
 
         if (create && update_data) {
             vk_tex->sample_image_view.Destroy();
 
-            vk_tex->max_mipmap_level = vk_tex_data->max_mipmap_level;
             vk_tex->internal_format = vk_tex_data->internal_format;
             vk_tex->width = vk_tex_data->width;
             vk_tex->height = vk_tex_data->height;
+            vk_tex->level_count = vk_tex_data->level_count;
 
             const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -619,8 +619,8 @@ namespace Vulkan {
 
             const VkImageCreateFlags flags = vk_tex->target == GL_TEXTURE_CUBE_MAP
                 ? VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT : 0;
-            const int32_t level_count = vk_tex->max_mipmap_level + 1;
-            const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+            const int32_t level_count = vk_tex->get_level_count();
+            const int32_t layer_count = vk_tex->get_layer_count();
             vk_tex->image.Create(Vulkan::current_allocator,
                 flags, vk_tex->width, vk_tex->height, level_count, layer_count, format,
                 VK_IMAGE_TILING_OPTIMAL, usage, VMA_MEMORY_USAGE_AUTO,
@@ -632,9 +632,8 @@ namespace Vulkan {
         }
 
         if (vk_tex_data && update_data) {
-            GLint max_mipmap_level = vk_tex_data->max_mipmap_level;
-            const int32_t level_count = vk_tex->max_mipmap_level + 1;
-            const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+            const int32_t level_count = vk_tex->get_level_count();
+            const int32_t layer_count = vk_tex->get_layer_count();
             for (int32_t i = 0; i < layer_count; i++)
                 for (int32_t j = 0; j < level_count; j++) {
                     gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(j, i);
@@ -673,10 +672,13 @@ namespace Vulkan {
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
             const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
-            const int32_t level_count = vk_tex->max_mipmap_level + 1;
-            const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
-            vk_tex->sample_image_view.Create(Vulkan::current_device, 0, vk_tex->image, image_view_type, format,
-                aspect_mask & ~VK_IMAGE_ASPECT_STENCIL_BIT, 0, level_count, 0, layer_count, vk_tex->components);
+            const uint32_t base_mipmap_level = vk_tex->base_mipmap_level;
+            const uint32_t level_count = min_def((uint32_t)(vk_tex->max_mipmap_level
+                - base_mipmap_level) + 1, vk_tex->get_level_count());
+            const uint32_t layer_count = vk_tex->get_layer_count();
+            vk_tex->sample_image_view.Create(Vulkan::current_device, 0, vk_tex->image,
+                image_view_type, format, aspect_mask & ~VK_IMAGE_ASPECT_STENCIL_BIT,
+                base_mipmap_level, level_count, 0, layer_count, vk_tex->components);
         }
 
         return vk_tex;
@@ -1528,7 +1530,7 @@ namespace Vulkan {
         return *this;
     };
 
-    gl_texture_data::gl_texture_data() : target(), max_mipmap_level(), internal_format(), width(), height() {
+    gl_texture_data::gl_texture_data() : target(), level_count(), internal_format(), width(), height() {
 
     }
     
@@ -1546,7 +1548,7 @@ namespace Vulkan {
                 return 0;
 
             data[layer].resize(level + 1ULL);
-            max_mipmap_level = level;
+            level_count = level + 1;
         }
         return &data[layer].data()[level];
     }
@@ -1557,10 +1559,10 @@ namespace Vulkan {
 
     gl_texture_data& gl_texture_data::operator=(const gl_texture_data& other) {
         target = other.target;
-        max_mipmap_level = other.max_mipmap_level;
         internal_format = other.internal_format;
         width = other.width;
         height = other.height;
+        level_count = other.level_count;
         for (uint32_t i = 0; i < 6; i++)
             data[i].assign(other.data[i].begin(), other.data[i].end());
         return *this;
@@ -2723,8 +2725,8 @@ namespace Vulkan {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
-        else if (src_level < 0 || vk_src_tex->max_mipmap_level < src_level
-            || dst_level < 0 || vk_dst_tex->max_mipmap_level < dst_level
+        else if (src_level < 0 || (int64_t)vk_src_tex->get_level_count() <= src_level
+            || dst_level < 0 || (int64_t)vk_dst_tex->get_level_count() <= dst_level
             || src_x < 0 || src_y < 0 || src_z < 0 || src_x + src_width > vk_src_tex->width
             || src_y + src_height > vk_src_tex->height || src_z + src_depth > 1
             || dst_x < 0 || dst_y < 0 || dst_z < 0 || dst_x + src_width > vk_dst_tex->width
@@ -3105,8 +3107,8 @@ namespace Vulkan {
 
         gl_texture* vk_tex = gl_texture::get(texture, false);
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
-        if (texture && (!vk_tex || level > vk_tex->max_mipmap_level && (!vk_tex_data
-            || !vk_tex_data->valid() || level > vk_tex_data->max_mipmap_level))) {
+        if (texture && (!vk_tex || level >= (int64_t)vk_tex->level_count && (!vk_tex_data
+            || !vk_tex_data->valid() || level >= (int64_t)vk_tex_data->level_count))) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
@@ -3208,7 +3210,7 @@ namespace Vulkan {
             return;
         }
 
-        const GLint max_mipmap_level = vk_tex->max_mipmap_level;
+        const uint32_t level_count = vk_tex->get_level_count();
 
         Vulkan::Image& vk_image = vk_tex->image;
         VkImage image = vk_image;
@@ -3217,7 +3219,7 @@ namespace Vulkan {
         const VkImageLayout src_new_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         const VkImageLayout dst_new_layout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 
-        for (int32_t i = 1; i <= max_mipmap_level; i++) {
+        for (uint32_t i = 1; i < level_count; i++) {
             VkImageBlit image_blit_region;
             image_blit_region.srcSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
             image_blit_region.srcSubresource.mipLevel = i - 1;
@@ -3248,7 +3250,7 @@ namespace Vulkan {
                 image, dst_new_layout, 1, &image_blit_region, VK_FILTER_LINEAR);
         }
         Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer, vk_image,
-            VK_IMAGE_ASPECT_COLOR_BIT, max_mipmap_level, 0, src_new_layout);
+            VK_IMAGE_ASPECT_COLOR_BIT, level_count - 1, 0, src_new_layout);
     }
 
     static void gl_wrap_manager_get_compressed_tex_image(GLenum target, GLint level, void* img) {
@@ -3300,34 +3302,34 @@ namespace Vulkan {
             return;
         }
 
-        GLint max_mipmap_level = 0;
         GLenum internal_format = GL_NONE;
         GLsizei width = 0;
         GLsizei height = 0;
+        uint32_t level_count = 0;
 
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
         if (vk_tex_data && vk_tex_data->valid()) {
             gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer, true);
             if (tex_data && tex_data->data.size()) {
-                max_mipmap_level = vk_tex_data->max_mipmap_level;
                 internal_format = vk_tex_data->internal_format;
                 width = vk_tex_data->width;
                 height = vk_tex_data->height;
+                level_count = vk_tex_data->level_count;
             }
         }
 
         if (!internal_format) {
-            max_mipmap_level = vk_tex->max_mipmap_level;
             internal_format = vk_tex->internal_format;
             width = vk_tex->width;
             height = vk_tex->height;
+            level_count = vk_tex->level_count;
         }
 
         if (!internal_format) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
-        else if (level < 0 || level > max_mipmap_level) {
+        else if (level < 0 || level >= (int64_t)level_count) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
@@ -3495,34 +3497,34 @@ namespace Vulkan {
             return;
         }
 
-        GLint max_mipmap_level = 0;
         GLenum internal_format = GL_NONE;
         GLsizei width = 0;
         GLsizei height = 0;
+        uint32_t level_count = 0;
 
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
         if (vk_tex_data && vk_tex_data->valid()) {
             gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer, true);
             if (tex_data && tex_data->data.size()) {
-                max_mipmap_level = vk_tex_data->max_mipmap_level;
                 internal_format = vk_tex_data->internal_format;
                 width = vk_tex_data->width;
                 height = vk_tex_data->height;
+                level_count = vk_tex_data->level_count;
             }
         }
 
         if (!internal_format) {
-            max_mipmap_level = vk_tex->max_mipmap_level;
             internal_format = vk_tex->internal_format;
             width = vk_tex->width;
             height = vk_tex->height;
+            level_count = vk_tex->level_count;
         }
 
         if (!internal_format) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
-        else if (level < 0 || level > max_mipmap_level) {
+        else if (level < 0 || level >= (int64_t)level_count) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
@@ -4174,7 +4176,7 @@ namespace Vulkan {
 
         if (vk_tex->image && (max_def(vk_tex->width >> level, 1) != width
             || max_def(vk_tex->height >> level, 1) != height
-            || level < 0 || level > vk_tex->max_mipmap_level)) {
+            || level < 0 || level >= (int64_t)vk_tex->get_level_count())) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
@@ -4267,8 +4269,16 @@ namespace Vulkan {
             vk_tex->sampler_data.wrap_r = param;
             break;
         case GL_TEXTURE_BASE_LEVEL:
+            if (vk_tex->base_mipmap_level != param) {
+                vk_tex->sample_image_view.Destroy();
+                vk_tex->base_mipmap_level = param;
+            }
             break;
         case GL_TEXTURE_MAX_LEVEL:
+            if (vk_tex->max_mipmap_level != param) {
+                vk_tex->sample_image_view.Destroy();
+                vk_tex->max_mipmap_level = param;
+            }
             break;
         case GL_TEXTURE_SWIZZLE_R: {
             VkComponentMapping components = vk_tex->components;
@@ -4416,7 +4426,7 @@ namespace Vulkan {
 
         if (vk_tex->image && (max_def(vk_tex->width >> level, 1) != width
             || max_def(vk_tex->height >> level, 1) != height)
-            || level < 0 || level > vk_tex->max_mipmap_level || xoffset || yoffset) {
+            || level < 0 || level >= (int64_t)vk_tex->get_level_count() || xoffset || yoffset) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }

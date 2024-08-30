@@ -27,7 +27,7 @@ namespace Vulkan {
         sampler_create_info.anisotropyEnable = max_anisotropy > 1.0f;
         sampler_create_info.maxAnisotropy = min_def(max_anisotropy, 16.0f);
         sampler_create_info.compareEnable = VK_FALSE;
-        sampler_create_info.compareOp = VK_COMPARE_OP_ALWAYS;
+        sampler_create_info.compareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         sampler_create_info.minLod = min_lod;
         sampler_create_info.maxLod = max_lod;
         sampler_create_info.borderColor = border_color;

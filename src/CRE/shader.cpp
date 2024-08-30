@@ -1919,8 +1919,8 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 }
 
                 const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
-                const int32_t level_count = vk_tex->max_mipmap_level + 1;
-                const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+                const int32_t level_count = vk_tex->get_level_count();
+                const int32_t layer_count = vk_tex->get_layer_count();
 
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
                     aspect_mask, level_count, layer_count, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -2051,8 +2051,8 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 }
 
                 const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
-                const int32_t level_count = vk_tex->max_mipmap_level + 1;
-                const int32_t layer_count = vk_tex->target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+                const int32_t level_count = vk_tex->get_level_count();
+                const int32_t layer_count = vk_tex->get_layer_count();
 
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
                     aspect_mask, level_count, layer_count, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
@@ -2272,7 +2272,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                     Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(color_attachment);
                     Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
                         vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
-                        vk_tex->max_mipmap_level + 1, 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
+                        vk_tex->level_count, 1, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL);
                 }
             }
 
@@ -2280,7 +2280,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment);
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
                     vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
-                    vk_tex->max_mipmap_level + 1, 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                    vk_tex->level_count, 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
             }
 
             vkCmdBeginRenderPass(Vulkan::current_command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);

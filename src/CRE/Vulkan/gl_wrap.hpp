@@ -133,6 +133,7 @@ namespace Vulkan {
 
     struct gl_texture {
         GLenum target;
+        GLint base_mipmap_level;
         GLint max_mipmap_level;
         GLenum internal_format;
         GLsizei width;
@@ -140,6 +141,7 @@ namespace Vulkan {
         Vulkan::Image image;
         Vulkan::ImageView image_view;
         Vulkan::ImageView sample_image_view;
+        uint32_t level_count;
         VkComponentMapping components;
         gl_sampler sampler_data;
 
@@ -148,6 +150,14 @@ namespace Vulkan {
         VkImageView get_image_view();
 
         static gl_texture* get(GLuint texture, bool update_data = true);
+
+        inline uint32_t get_layer_count() const {
+            return target == GL_TEXTURE_CUBE_MAP ? 6 : 1;
+        }
+
+        inline uint32_t get_level_count() const {
+            return level_count;
+        }
     };
 
     struct gl_uniform_buffer {
