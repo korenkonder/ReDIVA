@@ -1242,28 +1242,28 @@ void AetObj::DispSprite(const mat4& mat, const aet_layer* layer,
 
 void AetObj::DispSpriteSource(const mat4& mat, const aet_layer* layer,
     uint32_t source_index, float_t opacity, const sprite_database* spr_db) {
-    int32_t sprite_index = layer->item.video->sources[source_index].sprite_index;
+    int32_t spr_id = layer->item.video->sources[source_index].sprite_index;
 
-    auto elem_discard = sprite_discard.find(sprite_index);
+    auto elem_discard = sprite_discard.find(spr_id);
     if (elem_discard != sprite_discard.end())
         return;
 
     spr::SprArgs args;
-    args.id.index = sprite_index;
+    args.id.id = spr_id;
 
-    auto elem_texture = sprite_texture.find(sprite_index);
+    auto elem_texture = sprite_texture.find(spr_id);
     if (elem_texture != sprite_texture.end()) {
         args.texture = elem_texture->second;
-        args.id.index = -1;
+        args.id.id = -1;
     }
-    else if (sprite_index != -1) {
-        auto elem_replace = sprite_replace.find(sprite_index);
+    else if (spr_id != -1) {
+        auto elem_replace = sprite_replace.find(spr_id);
         if (elem_replace != sprite_replace.end() && elem_replace->second != -1) {
             const spr_db_spr* spr = spr_db->get_spr_by_id(elem_replace->second);
             //const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0x0FFF);
             const spr_db_spr_set* spr_set = spr_db->get_spr_set_by_index(spr->info.set_index & 0x3FFF);
             if (sprite_manager_get_set_ready(spr_set->id, spr_db))
-                args.id.index = elem_replace->second;
+                args.id.id = elem_replace->second;
         }
     }
 
