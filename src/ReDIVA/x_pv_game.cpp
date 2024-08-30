@@ -9192,6 +9192,41 @@ void XPVGameBaker::print_log(const char* out_dir, _In_z_ _Printf_format_string_ 
     printf("!!! %s !!! %s\n", out_dir == x_pack_mmp_out_dir ? "MM+" : "AFT", buf.c_str());
 }
 #else
+static const chara_index pv_charas[][6] = {
+    { CHARA_MIKU, },
+    { CHARA_MIKU, CHARA_LUKA, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_RIN, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, CHARA_RIN, },
+    { CHARA_MIKU, CHARA_MIKU, },
+    { CHARA_LUKA, },
+    { CHARA_LEN, },
+    { CHARA_KAITO, CHARA_MIKU, CHARA_MEIKO, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MEIKO, CHARA_RIN, CHARA_LEN, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, CHARA_RIN, CHARA_LEN, CHARA_LUKA, CHARA_KAITO, CHARA_MEIKO, },
+    { CHARA_MIKU, CHARA_RIN, CHARA_LUKA, },
+    { CHARA_MIKU, CHARA_LUKA, CHARA_MEIKO, },
+    { CHARA_MIKU, CHARA_RIN, CHARA_LEN, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+    { CHARA_MIKU, },
+};
+
 XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     pv_id = 823;
     stage_id = 23;
@@ -9205,27 +9240,12 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     pv_id = 816;
     stage_id = 16;
 
-    charas[0] = CHARA_LEN;
-
-    modules[0] = 0;
-
     pv_id = 811;
     stage_id = 11;
-
-    charas[0] = CHARA_MIKU;
-
-    modules[0] = 0;
 
 #if BAKE_PV826
     pv_id = 826;
     stage_id = 26;
-
-    charas[0] = CHARA_MIKU;
-    charas[1] = CHARA_RIN;
-    charas[2] = CHARA_LEN;
-    charas[3] = CHARA_LUKA;
-    charas[4] = CHARA_KAITO;
-    charas[5] = CHARA_MEIKO;
 
     modules[0] = 168;
     modules[1] = 46;
@@ -9235,16 +9255,40 @@ XPVGameSelector::XPVGameSelector() : charas(), modules(), start(), exit() {
     modules[5] = 31;
 #endif
 
-    const prj::vector_pair_combine<int32_t, module>& modules = module_table_handler_data_get_modules();
-    for (const auto& i : modules)
-        modules_data[i.second.chara].push_back(&i.second);
+    const prj::vector_pair_combine<int32_t, module>& modules_data = module_table_handler_data_get_modules();
+    for (const auto& i : modules_data)
+        this->modules_data[i.second.chara].push_back(&i.second);
 
-    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
-        for (const auto& j : modules_data[charas[i]])
-            if (this->modules[i] == j->cos) {
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        charas[i] = pv_charas[pv_id - 801][i];
+        modules[i] = 0;
+        module_names[i].clear();
+
+        for (const auto& j : this->modules_data[charas[i]])
+            if (modules[i] == j->cos) {
                 module_names[i].assign(j->name);
                 break;
             }
+    }
+
+    modules[0] = 0;
+
+#if BAKE_PV826
+    modules[0] = 168;
+    modules[1] = 46;
+    modules[2] = 39;
+    modules[3] = 41;
+    modules[4] = 40;
+    modules[5] = 31;
+#endif
+
+    for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+        for (const auto& j : this->modules_data[charas[i]])
+            if (modules[i] == j->cos) {
+                module_names[i].assign(j->name);
+                break;
+            }
+    }
 }
 
 XPVGameSelector::~XPVGameSelector() {
@@ -9368,7 +9412,21 @@ void XPVGameSelector::window() {
 
     pv_id -= 801;
     pv_id = max_def(pv_id, 0);
-    ImGui::ColumnComboBox("PV", pv_names, 32, &pv_id, 0, false, &focus);
+    int32_t pv_id_temp = pv_id;
+    if (ImGui::ColumnComboBox("PV", pv_names, 32, &pv_id_temp, 0, false, &focus) && pv_id != pv_id_temp) {
+        for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+            charas[i] = pv_charas[pv_id_temp][i];
+            modules[i] = 0;
+            module_names[i].clear();
+
+            for (const auto& j : modules_data[charas[i]])
+                if (modules[i] == j->cos) {
+                    module_names[i].assign(j->name);
+                    break;
+                }
+        }
+        pv_id = pv_id_temp;
+    }
     pv_id += 801;
 
     stage_id--;
