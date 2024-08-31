@@ -1594,8 +1594,6 @@ static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
 static void draw_pass_3d_shadow_reset(render_context* rctx) {
     gl_state_active_bind_texture_2d(6, 0);
     gl_state_active_bind_texture_2d(7, 0);
-    gl_state_active_bind_texture_2d(19, 0);
-    gl_state_active_bind_texture_2d(20, 0);
     rctx->draw_state->self_shadow = false;
     rctx->draw_state->shadow = false;
 }
