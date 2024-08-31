@@ -475,9 +475,9 @@ void light_set::data_set(face& face, light_set_id id) {
         clip_plane.w = -vec3::dot(*(vec3*)&position, *(vec3*)&clip_plane);
     }
     else if (lights[LIGHT_REFLECT].get_type() == LIGHT_POINT)
-        vec4 clip_plane = { 0.0f, -1.0f, 0.0f, 9999.0f };
+        clip_plane = { 0.0f, -1.0f, 0.0f, 9999.0f };
     else
-        vec4 clip_plane = { 0.0f, -1.0f, 0.0f, 0.0f };
+        clip_plane = { 0.0f, -1.0f, 0.0f, 0.0f };
 
     vec4 light_chara_ibl_direction;
     vec4 light_chara_position;
