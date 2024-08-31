@@ -117,9 +117,9 @@ struct common_data_struct {
     vec3 view_pos;
 };
 
-struct render_data {
-    render_data();
-    ~render_data();
+struct app_render_data {
+    app_render_data();
+    ~app_render_data();
 
     bool load();
     void unload();
@@ -141,7 +141,7 @@ struct vulkan_swapchain_support_details {
 
 common_data_struct common_data;
 
-render_data* render;
+app_render_data* render;
 
 ImFont* imgui_font_arial;
 
@@ -506,15 +506,15 @@ void app_swap_buffers() {
 
 float_t rob_frame = 0.0f;
 
-render_data::render_data() {
+app_render_data::app_render_data() {
 
 }
 
-render_data::~render_data() {
+app_render_data::~app_render_data() {
 
 }
 
-bool render_data::load() {
+bool app_render_data::load() {
     glfwMakeContextCurrent(window);
 
     if (Vulkan::use)
@@ -605,7 +605,7 @@ bool render_data::load() {
     return true;
 }
 
-void render_data::unload() {
+void app_render_data::unload() {
 #if DISPLAY_IBL
     cubemap_display_ubo.Destroy();
 
@@ -690,7 +690,7 @@ static bool app_init(const app_init_struct& ais) {
     if (!window)
         return false;
 
-    render = new render_data;
+    render = new app_render_data;
     if (!render->load()) {
         glfwDestroyWindow(window);
         return false;
@@ -1335,8 +1335,6 @@ static render_context* render_context_load() {
     clear_color = 0xFF000000;
     set_clear_color = true;
 
-    rctx->obj_batch.g_blend_color = 1.0f;
-    rctx->obj_batch.g_offset_color = 0.0f;
     classes_process_init(classes, classes_count, rctx);
     return rctx;
 }

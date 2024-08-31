@@ -1270,8 +1270,6 @@ void leaf_particle_draw() {
     if (!count)
         return;
 
-    const light_data& light_stage = rctx_ptr->light_set[LIGHT_SET_MAIN].lights[LIGHT_STAGE];
-
     leaf_particle_scene_shader_data shader_data = {};
     mat4 temp;
     mat4_transpose(&rctx_ptr->vp_mat, &temp);
@@ -1281,10 +1279,9 @@ void leaf_particle_draw() {
     shader_data.g_transform[3] = temp.row3;
     rctx_ptr->camera->get_view_point(shader_data.g_view_pos);
     shader_data.g_color = stage_param_data_leaf_current->color;
-    light_stage.get_diffuse(shader_data.g_light_env_stage_diffuse);
-    light_stage.get_specular(shader_data.g_light_env_stage_specular);
-    shader_data.g_lit_dir = rctx_ptr->obj_scene.g_light_chara_dir;
-    shader_data.g_lit_luce = rctx_ptr->obj_scene.g_light_chara_luce;
+    rctx_ptr->get_scene_light(&shader_data.g_light_env_stage_diffuse,
+        &shader_data.g_light_env_stage_specular,
+        &shader_data.g_lit_dir, &shader_data.g_lit_luce, 0, 0);
     leaf_particle_scene_ubo.WriteMemory(shader_data);
 
     gl_state_active_bind_texture_2d(0, tex->glid);

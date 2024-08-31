@@ -1996,7 +1996,7 @@ namespace mdl {
                 i.reset_vertex_attrib();
     }
 
-    void DispManager::draw(ObjType type, int32_t depth_mask, bool reflect_texture_mask) {
+    void DispManager::draw(ObjType type, int32_t depth_mask, bool reflect_texture_mask, int32_t alpha) {
         if (type < 0 || type >= mdl::OBJ_TYPE_MAX || get_obj_count(type) < 1)
             return;
 
@@ -2098,32 +2098,71 @@ namespace mdl {
         case OBJ_TYPE_SSS:
             func = draw_sub_mesh_sss;
             break;
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL:
+            alpha_test = 1;
+            min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
+            break;
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL:
+            gl_state_set_depth_mask(GL_FALSE);
+            alpha_test = 1;
+            min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
+            break;
         case OBJ_TYPE_USER:
             func = draw_sub_mesh_translucent;
             break;
         default:
             break;
         }
-        rctx->obj_batch.g_max_alpha = { 0.0f, 0.0f, alpha_threshold, min_alpha };
+        rctx->set_batch_alpha_threshold(alpha_threshold);
+        rctx->set_batch_min_alpha(min_alpha);
         uniform_value[U_ALPHA_TEST] = alpha_test;
 
-        for (ObjData*& i : obj[type]) {
-            switch (i->kind) {
-            case OBJ_KIND_NORMAL: {
-                draw_sub_mesh(rctx, &i->args.sub_mesh, &i->mat, func);
-            } break;
-            case OBJ_KIND_ETC: {
-                draw_etc_obj(rctx, &i->args.etc, &i->mat);
-            } break;
-            case OBJ_KIND_USER: {
-                i->args.user.func(i->args.user.data, &i->mat);
-            } break;
-            case OBJ_KIND_TRANSLUCENT: {
-                for (int32_t j = 0; j < i->args.translucent.count; j++)
-                    draw_sub_mesh(rctx, i->args.translucent.sub_mesh[j], &i->mat, func);
-            } break;
+        if (alpha < 0)
+            for (ObjData*& i : obj[type]) {
+                switch (i->kind) {
+                case OBJ_KIND_NORMAL: {
+                    draw_sub_mesh(rctx, &i->args.sub_mesh, &i->mat, func);
+                } break;
+                case OBJ_KIND_ETC: {
+                    draw_etc_obj(rctx, &i->args.etc, &i->mat);
+                } break;
+                case OBJ_KIND_USER: {
+                    i->args.user.func(i->args.user.data, &i->mat);
+                } break;
+                case OBJ_KIND_TRANSLUCENT: {
+                    for (int32_t j = 0; j < i->args.translucent.count; j++)
+                        draw_sub_mesh(rctx, i->args.translucent.sub_mesh[j], &i->mat, func);
+                } break;
+                }
             }
-        }
+        else
+            for (ObjData*& i : obj[type]) {
+                switch (i->kind) {
+                case OBJ_KIND_NORMAL: {
+                    int32_t a = (int32_t)(i->args.sub_mesh.blend_color.w * 255.0f);
+                    a = clamp_def(a, 0, 255);
+                    if (a == alpha)
+                        draw_sub_mesh(rctx, &i->args.sub_mesh, &i->mat, func);
+                } break;
+                case OBJ_KIND_TRANSLUCENT: {
+                    for (int32_t j = 0; j < i->args.translucent.count; j++) {
+                        ObjSubMeshArgs* args = i->args.translucent.sub_mesh[j];
+                        int32_t a = (int32_t)(args->blend_color.w * 255.0f);
+                        a = clamp_def(a, 0, 255);
+                        if (a == alpha)
+                            draw_sub_mesh(rctx, args, &i->mat, func);
+                    }
+                } break;
+                }
+            }
 
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT:
@@ -2143,6 +2182,16 @@ namespace mdl {
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
             gl_state_set_cull_face_mode(GL_BACK);
             break;
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
+        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
+            gl_state_set_cull_face_mode(GL_BACK);
+            break;
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
+        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
+            gl_state_set_depth_mask(GL_TRUE);
+            break;
         }
 
         uniform_value_reset();
@@ -2151,86 +2200,6 @@ namespace mdl {
         gl_state_set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
             gl_state_bind_sampler(i, 0);
-    }
-
-    void DispManager::draw_translucent(ObjType type, int32_t alpha) {
-        if (get_obj_count(type) < 1)
-            return;
-
-        render_context* rctx = rctx_ptr;
-
-        int32_t alpha_test = 0;
-        float_t min_alpha = 1.0f;
-        float_t alpha_threshold = 0.0f;
-        bool reflect = uniform_value[U_REFLECT] == 1;
-        void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
-
-        for (int32_t i = 0; i < 5; i++)
-            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_state_active_texture(0);
-        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-        uniform_value_reset();
-        gl_state_get();
-
-        switch (type) {
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL:
-            gl_state_set_depth_mask(GL_FALSE);
-            alpha_test = 1;
-            min_alpha = 0.0f;
-            alpha_threshold = 0.0f;
-            break;
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL:
-            alpha_test = 1;
-            min_alpha = 0.1f;
-            alpha_threshold = 0.5f;
-            break;
-        }
-        rctx->obj_batch.g_max_alpha = { 0.0f, 0.0f, alpha_threshold, min_alpha };
-        uniform_value[U_ALPHA_TEST] = alpha_test;
-
-        for (ObjData*& i : obj[type]) {
-            switch (i->kind) {
-            case OBJ_KIND_NORMAL: {
-                int32_t a = (int32_t)(i->args.sub_mesh.blend_color.w * 255.0f);
-                a = clamp_def(a, 0, 255);
-                if (a == alpha)
-                    draw_sub_mesh(rctx, &i->args.sub_mesh, &i->mat, func);
-            } break;
-            case OBJ_KIND_TRANSLUCENT: {
-                for (int32_t j = 0; j < i->args.translucent.count; j++) {
-                    ObjSubMeshArgs* args = i->args.translucent.sub_mesh[j];
-                    int32_t a = (int32_t)(args->blend_color.w * 255.0f);
-                    a = clamp_def(a, 0, 255);
-                    if (a == alpha)
-                        draw_sub_mesh(rctx, args, &i->mat, func);
-                }
-            } break;
-            }
-        }
-
-        switch (type) {
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-            gl_state_set_depth_mask(GL_TRUE);
-            break;
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
-            gl_state_set_cull_face_mode(GL_BACK);
-            break;
-        }
-
-        uniform_value_reset();
-        shader::unbind();
-        gl_state_set_blend_func(GL_ONE, GL_ZERO);
     }
 
     /*void DispManager::draw_show_vector(ObjType type, int32_t show_vector) {

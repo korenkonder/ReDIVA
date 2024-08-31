@@ -1041,12 +1041,8 @@ namespace Glitter {
             break;
         }
 
-        rctx_ptr->obj_shader.set_shader_flags(uniform_value);
-        rctx_ptr->obj_shader_ubo.WriteMemory(rctx_ptr->obj_shader);
-
         shaders_ft.set(SHADER_FT_GLITTER_PT);
-        rctx_ptr->obj_shader_ubo.Bind(0);
-        rctx_ptr->obj_scene_ubo.Bind(1);
+        rctx_ptr->set_glitter_render_data();
         rctx_ptr->glitter_batch_ubo.Bind(3);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
@@ -2134,12 +2130,8 @@ namespace Glitter {
         else
             gl_state_disable_cull_face();
 
-        rctx_ptr->obj_shader.set_shader_flags(uniform_value);
-        rctx_ptr->obj_shader_ubo.WriteMemory(rctx_ptr->obj_shader);
-
         shaders_ft.set(SHADER_FT_GLITTER_PT);
-        rctx_ptr->obj_shader_ubo.Bind(0);
-        rctx_ptr->obj_scene_ubo.Bind(1);
+        rctx_ptr->set_glitter_render_data();
         rctx_ptr->glitter_batch_ubo.Bind(3);
         switch (rend_group->type) {
         case PARTICLE_QUAD:
