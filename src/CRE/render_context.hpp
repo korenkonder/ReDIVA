@@ -505,7 +505,7 @@ struct render_context {
         const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
         const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
         const vec4& texture_specular_offset, const float_t shininess);
-    void set_batch_material_color_specular(const vec4& specular);
+    void set_batch_material_color_emission(const vec4& emission);
     void set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
         const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale);
     void set_batch_min_alpha(const float_t value);

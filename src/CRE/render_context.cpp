@@ -947,9 +947,9 @@ void render_context::set_batch_material_color(const vec4& diffuse, const vec4& a
     enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
 }
 
-void render_context::set_batch_material_color_specular(const vec4& specular) {
+void render_context::set_batch_material_color_emission(const vec4& emission) {
     render_data* data = &this->data;
-    data->buffer_batch_data.g_material_state_specular = specular;
+    data->buffer_batch_data.g_material_state_emission = emission;
     enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
 }
 

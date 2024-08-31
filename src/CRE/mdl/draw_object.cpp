@@ -396,7 +396,7 @@ namespace mdl {
         const obj_material_data* material = args->material;
         const std::vector<GLuint>* textures = args->textures;
         if (rctx->draw_state->shader_index != -1) {
-            rctx->set_batch_material_color_specular(args->emission);
+            rctx->set_batch_material_color_emission(args->emission);
             draw_object_material_set_uniform(material, false);
             if (material->material.attrib.m.alpha_texture)
                 uniform_value[U_TEXTURE_COUNT] = 0;
