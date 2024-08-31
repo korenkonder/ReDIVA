@@ -581,6 +581,7 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     tone_map_ubo.Create(sizeof(tone_map_shader_data));
     transparency_batch_ubo.Create(sizeof(transparency_batch_shader_data));
 
+    data = {};
     data.init();
 
     static const vec4 border_color = 0.0f;
