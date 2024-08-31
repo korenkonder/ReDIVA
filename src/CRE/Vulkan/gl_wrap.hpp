@@ -27,7 +27,7 @@ namespace Vulkan {
     constexpr uint32_t MAX_COLOR_ATTACHMENTS = 8;
     constexpr uint32_t MAX_DRAW_BUFFERS = 8;
     constexpr uint32_t MAX_VERTEX_ATTRIB_COUNT = 16;
-    
+
     enum gl_buffer_flags {
         GL_BUFFER_FLAG_NONE                = 0x00,
         GL_BUFFER_FLAG_MAPPED              = 0x01,

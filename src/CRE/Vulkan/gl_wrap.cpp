@@ -297,7 +297,7 @@ namespace Vulkan {
         if (vk_fbo->update_color_attachment) {
             for (uint32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++)
                 vk_fbo->color_attachment_image_views[i].Destroy();
-           
+  
             for (int32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
                 gl_texture* vk_tex = gl_texture::get(vk_fbo->color_attachments[i]);
                 if (vk_tex && vk_tex->get_level_count() > 0) {
@@ -1297,7 +1297,7 @@ namespace Vulkan {
     gl_texture_data::tex_data::~tex_data() {
 
     }
-    
+
     void gl_texture_data::tex_data::set_data(GLint internal_format, GLint xoffset, GLint yoffset,
         GLsizei width, GLsizei height, GLenum format, GLenum type, const void* data) {
         this->data.clear();
@@ -1533,7 +1533,7 @@ namespace Vulkan {
     gl_texture_data::gl_texture_data() : target(), level_count(), internal_format(), width(), height() {
 
     }
-    
+
     gl_texture_data::~gl_texture_data() {
 
     }
@@ -1552,7 +1552,7 @@ namespace Vulkan {
         }
         return &data[layer].data()[level];
     }
-    
+
     bool gl_texture_data::valid() {
         return width && height;
     }

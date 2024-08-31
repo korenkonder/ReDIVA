@@ -707,7 +707,7 @@ namespace Vulkan {
         dynamic_buffer.curr_size = align_val(size, alignment);
         return buffer;
     }
-    
+
     Vulkan::Buffer manager::get_staging_buffer(VkDeviceSize size, VkDeviceSize alignment) {
         frame_data& frame_data = get_frame_data();
 
