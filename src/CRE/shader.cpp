@@ -1669,6 +1669,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     VkVertexInputBindingDescription binding_descriptions[Vulkan::MAX_VERTEX_ATTRIB_COUNT];
     uint32_t attribute_description_count = 0;
     VkVertexInputAttributeDescription attribute_descriptions[Vulkan::MAX_VERTEX_ATTRIB_COUNT];
+    bool use_dummy_vertex_buffer = false;
     {
         uint32_t binding = 0;
         for (Vulkan::gl_vertex_buffer_binding_data& i : vk_vao->vertex_buffer_bindings) {
@@ -1683,7 +1684,6 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             binding++;
         }
 
-        bool use_dummy = false;
         for (uint32_t i = 0; i < Vulkan::MAX_VERTEX_ATTRIB_COUNT; i++) {
             if (!enabled_attributes[i])
                 continue;
@@ -1697,7 +1697,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 continue;
             }
 
-            use_dummy = true;
+            use_dummy_vertex_buffer = true;
 
             uint32_t offset;
             if (vk_vao->vertex_attribs[i].generic_value == vec4(0.0f, 0.0f, 0.0f, 0.0f))
@@ -1732,7 +1732,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             attribute_desc.offset = offset;
         }
 
-        if (use_dummy) {
+        if (use_dummy_vertex_buffer) {
             VkVertexInputBindingDescription& binding_desc = binding_descriptions[binding_description_count++];
             binding_desc.binding = binding;
             binding_desc.stride = 0;
@@ -2335,7 +2335,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             }
         }
 
-        if (binding_count < Vulkan::MAX_VERTEX_ATTRIB_COUNT) {
+        if (use_dummy_vertex_buffer) {
             buffers[count] = Vulkan::gl_wrap_manager_get_dummy_vertex_buffer();
             offsets[count] = 0;
             count++;
