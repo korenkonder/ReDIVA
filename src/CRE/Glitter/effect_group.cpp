@@ -14,9 +14,19 @@ namespace Glitter {
         emission = 1.0f;
         version = GLT_VAL == Glitter::X ? 0x0C : 0x09;
         type = GLT_VAL;
+#if SHARED_GLITTER_BUFFER
+        buffer = 0;
+#endif
     }
 
     EffectGroup::~EffectGroup() {
+#if SHARED_GLITTER_BUFFER
+        ebo.Destroy();
+        vbo.Destroy();
+
+        free_def(buffer);
+#endif
+
         for (Mesh& i : meshes)
             if (i.object_set_hash != hash_murmurhash_empty) {
                 objset_info_storage_unload_set(i.object_set_hash);

@@ -17,7 +17,11 @@ namespace Glitter {
         mat_draw = mat4_identity;
         disp_type = DISP_NORMAL;
         emission = 1.0f;
+#if SHARED_GLITTER_BUFFER
+        vbo_offset = 0;
+#else
         use_own_buffer = true;
+#endif
         blend_mode = PARTICLE_BLEND_TYPICAL;
         mask_blend_mode = PARTICLE_BLEND_TYPICAL;
     }
@@ -86,12 +90,18 @@ namespace Glitter {
             vao = ptcl->vao;
             vbo = ptcl->vbo;
             ebo = ptcl->ebo;
+#if SHARED_GLITTER_BUFFER
+            vbo_offset = ptcl->vbo_offset;
+#else
             use_own_buffer = false;
+#endif
             ptcl->buffer_used = true;
         }
 
+#if !SHARED_GLITTER_BUFFER
         if (use_own_buffer)
             CreateBuffer(max_count, is_quad, buffer, vao, vbo, ebo);
+#endif
 
         if (!is_quad)
             draw_list.reserve(count);
@@ -233,10 +243,15 @@ namespace Glitter {
             particle = 0;
         }
 
+#if SHARED_GLITTER_BUFFER
+        if (ptcl && ptcl->buffer)
+            ptcl->buffer_used = false;
+#else
         if (use_own_buffer)
             Glitter::DeleteBuffer(buffer, vao, vbo, ebo);
         else if (ptcl && ptcl->buffer)
             ptcl->buffer_used = false;
+#endif
 
         if (!free && elements) {
             Free();
@@ -386,12 +401,18 @@ namespace Glitter {
             vao = ptcl->vao;
             vbo = ptcl->vbo;
             ebo = ptcl->ebo;
+#if SHARED_GLITTER_BUFFER
+            vbo_offset = ptcl->vbo_offset;
+#else
             use_own_buffer = false;
+#endif
             ptcl->buffer_used = true;
         }
 
+#if !SHARED_GLITTER_BUFFER
         if (use_own_buffer)
             CreateBuffer(max_count, is_quad, buffer, vao, vbo, ebo);
+#endif
 
         if (!is_quad)
             draw_list.reserve(count);
@@ -556,10 +577,15 @@ namespace Glitter {
             particle = 0;
         }
 
+#if SHARED_GLITTER_BUFFER
+        if (ptcl && ptcl->buffer)
+            ptcl->buffer_used = false;
+#else
         if (use_own_buffer)
             Glitter::DeleteBuffer(buffer, vao, vbo, ebo);
         else if (ptcl && ptcl->buffer)
             ptcl->buffer_used = false;
+#endif
 
         if (!free && elements) {
             Free();

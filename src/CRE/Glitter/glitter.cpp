@@ -281,6 +281,7 @@ namespace Glitter {
             *angle = (float_t)M_PI - *angle;
     }
 
+#if !SHARED_GLITTER_BUFFER
     void CreateBuffer(size_t max_count, bool is_quad,
         Buffer*& buffer, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo) {
         free_def(buffer);
@@ -337,4 +338,5 @@ namespace Glitter {
 
         free_def(buffer);
     }
+#endif
 }

@@ -295,7 +295,12 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void F2RenderScene::CalcDispLocus(GPM, F2RenderGroup* rend_group) {
@@ -439,7 +444,12 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void F2RenderScene::CalcDispQuad(GPM, F2RenderGroup* rend_group) {
@@ -626,7 +636,12 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void F2RenderScene::CalcDispQuadNormal(GPM,
@@ -847,7 +862,12 @@ namespace Glitter {
             }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void F2RenderScene::Ctrl(GLT, float_t delta_frame) {
@@ -1224,7 +1244,12 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void XRenderScene::CalcDispLocus(GPM, XRenderGroup* rend_group) {
@@ -1366,7 +1391,12 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void XRenderScene::CalcDispMesh(GPM, XRenderGroup* rend_group) {
@@ -1736,7 +1766,12 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     void XRenderScene::CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat) {
@@ -1948,7 +1983,12 @@ namespace Glitter {
             }
         rend_group->disp = disp;
 
+#if SHARED_GLITTER_BUFFER
+        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
+            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#else
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
+#endif
     }
 
     bool XRenderScene::CanDisp(DispType disp_type, bool a3) {

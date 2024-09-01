@@ -27,6 +27,8 @@
 #include "../task.hpp"
 #include "../texture.hpp"
 
+#define SHARED_GLITTER_BUFFER (1)
+
 namespace Glitter {
     enum CurveFlag {
         CURVE_RANDOM_RANGE        = 0x01,
@@ -718,6 +720,11 @@ namespace Glitter {
         uint32_t version;
         Type type;
         std::vector<Mesh> meshes;
+#if SHARED_GLITTER_BUFFER
+        Buffer* buffer;
+        GL::ArrayBuffer vbo;
+        GL::ElementArrayBuffer ebo;
+#endif
 
         EffectGroup(GLT);
         virtual ~EffectGroup();
@@ -793,7 +800,11 @@ namespace Glitter {
         GL::ArrayBuffer vbo;
         GL::ElementArrayBuffer ebo;
         float_t emission;
+#if SHARED_GLITTER_BUFFER
+        size_t vbo_offset;
+#else
         bool use_own_buffer;
+#endif
         prj::vector_pair<GLint, GLsizei> draw_list;
 
         RenderGroup();
@@ -1367,6 +1378,9 @@ namespace Glitter {
         int32_t max_count;
         bool buffer_used;
         int32_t version;
+#if SHARED_GLITTER_BUFFER
+        size_t vbo_offset;
+#endif
 
         Particle(GLT);
         virtual ~Particle() override;
@@ -1710,9 +1724,11 @@ namespace Glitter {
 
     extern void axis_angle_from_vectors(vec3* axis, float_t* angle, const vec3* vec0, const vec3* vec1);
 
+#if !SHARED_GLITTER_BUFFER
     extern void CreateBuffer(size_t max_count, bool is_quad,
         Buffer*& buffer, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo);
     extern void DeleteBuffer(Buffer*& buffer, GLuint& vao, GL::ArrayBuffer& vbo, GL::ElementArrayBuffer& ebo);
+#endif
 
     extern void glt_particle_manager_init();
     extern bool glt_particle_manager_add_task();
