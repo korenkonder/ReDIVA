@@ -809,16 +809,14 @@ namespace Glitter {
             Glitter::counter = counter;
             Glitter::random = random;
 
-            curr_frame = 0.0f;
+            curr_frame = -1.0f;
         }
 
         float_t remain_frame = next_frame - curr_frame;
-        if (curr_frame == 0.0f)
-            remain_frame += 1.0f;
         float_t delta_frame = 1.0f;
         while (true) {
             for (Effect*& i : effect_group->effects)
-                if ((float_t)i->data.appear_time == curr_frame) {
+                if ((float_t)i->data.appear_time == curr_frame + delta_frame) {
                     LoadSceneEffect(i->data.name_hash);
 
                     if (!scene) {

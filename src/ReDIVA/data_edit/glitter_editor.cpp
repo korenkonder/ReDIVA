@@ -1635,7 +1635,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
 
     eg->GetStartEndFrame(glt_edt->start_frame, glt_edt->end_frame);
     glt_edt->frame_counter = 0.0f;
-    glt_edt->old_frame_counter = 0.0f;
+    glt_edt->old_frame_counter = -1.0f;
     glt_edt->input_pause = true;
     glt_edt->counter = Glitter::counter;
     glt_edt->effect_group = eg;
