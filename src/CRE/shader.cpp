@@ -1845,10 +1845,10 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
     size_t descriptor_infos_size = sizeof(VkDescriptorImageInfo) * sampler_count
         + sizeof(VkDescriptorBufferInfo) * ((size_t)uniform_count + storage_count)
-        + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count)
+        + sizeof(uint32_t) * ((size_t)sampler_count + uniform_count + storage_count);
+    void* descriptor_infos = force_malloc(descriptor_infos_size
         + sizeof(std::pair<uint32_t, uint32_t>) * ((size_t)uniform_count + storage_count)
-        + sizeof(uint32_t) * ((size_t)uniform_count + storage_count);
-    void* descriptor_infos = force_malloc(descriptor_infos_size);
+        + sizeof(uint32_t) * ((size_t)uniform_count + storage_count));
 
     VkDescriptorImageInfo* sampler_infos = (VkDescriptorImageInfo*)descriptor_infos;
     VkDescriptorImageInfo* sampler_info = sampler_infos;
