@@ -53,7 +53,7 @@ namespace Glitter {
             }
         }
         else
-            enum_or(data.flags, PARTICLE_INST_NO_CHILD);
+            enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
     F2ParticleInst::F2ParticleInst(F2ParticleInst* parent, float_t emission) {
@@ -87,7 +87,7 @@ namespace Glitter {
         }
 
         if (data.data.type == PARTICLE_LOCUS)
-            enum_or(data.flags, PARTICLE_INST_NO_CHILD);
+            enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
     F2ParticleInst::~F2ParticleInst() {
@@ -154,7 +154,7 @@ namespace Glitter {
             return;
 
         F2ParticleInst* ptcl = this;
-        while (!ptcl->data.parent && ptcl->data.flags & PARTICLE_INST_NO_CHILD) {
+        while (!ptcl->data.parent && ptcl->data.flags & PARTICLE_INST_LOCUS) {
             F2ParticleInst* particle = new F2ParticleInst(ptcl, emission);
             if (particle)
                 ptcl->data.children.push_back(particle);
@@ -415,7 +415,7 @@ namespace Glitter {
         else if (!a2)
             return true;
 
-        if (!(data.flags & PARTICLE_INST_NO_CHILD) || data.parent) {
+        if (!(data.flags & PARTICLE_INST_LOCUS) || data.parent) {
             if (data.render_group && data.render_group->ctrl > 0)
                 return false;
             return true;
@@ -428,7 +428,7 @@ namespace Glitter {
     }
 
     void F2ParticleInst::RenderGroupCtrl(GLT, float_t delta_frame) {
-        if (data.parent || !(data.flags & PARTICLE_INST_NO_CHILD)) {
+        if (data.parent || !(data.flags & PARTICLE_INST_LOCUS)) {
             if (data.render_group)
                 data.render_group->Ctrl(GLT_VAL, delta_frame, true);
             return;
@@ -520,7 +520,7 @@ namespace Glitter {
             }
         }
         else
-            enum_or(data.flags, PARTICLE_INST_NO_CHILD);
+            enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
     XParticleInst::XParticleInst(XParticleInst* parent, float_t emission) {
@@ -550,7 +550,7 @@ namespace Glitter {
         }
 
         if (data.data.type == PARTICLE_LOCUS)
-            enum_or(data.flags, PARTICLE_INST_NO_CHILD);
+            enum_or(data.flags, PARTICLE_INST_LOCUS);
     }
 
     XParticleInst::~XParticleInst() {
@@ -653,7 +653,7 @@ namespace Glitter {
             return;
 
         XParticleInst* ptcl = this;
-        while (!ptcl->data.parent && ptcl->data.flags & PARTICLE_INST_NO_CHILD) {
+        while (!ptcl->data.parent && ptcl->data.flags & PARTICLE_INST_LOCUS) {
             XParticleInst* particle = new XParticleInst(ptcl, emission);
             if (particle)
                 ptcl->data.children.push_back(particle);
@@ -979,7 +979,7 @@ namespace Glitter {
         else if (!a2)
             return true;
 
-        if (!(data.flags & PARTICLE_INST_NO_CHILD) || data.parent) {
+        if (!(data.flags & PARTICLE_INST_LOCUS) || data.parent) {
             if (data.render_group && data.render_group->ctrl > 0)
                 return false;
             return true;
@@ -992,7 +992,7 @@ namespace Glitter {
     }
 
     void XParticleInst::RenderGroupCtrl(float_t delta_frame) {
-        if (data.parent || !(data.flags & PARTICLE_INST_NO_CHILD)) {
+        if (data.parent || !(data.flags & PARTICLE_INST_LOCUS)) {
             if (data.render_group)
                 data.render_group->Ctrl(delta_frame, true);
             return;

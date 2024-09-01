@@ -362,6 +362,9 @@ bool GlitterEditor::init() {
 
     input_reset = true;
 
+    effect_group = 0;
+    scene = 0;
+
     /*const char* path_vrfl = "VRFL\\";
     std::vector<std::string> files_vrfl = path_get_files(path_vrfl);
     auto files_vrfl_begin = files_vrfl.begin();
@@ -2066,7 +2069,7 @@ static void glitter_editor_test_window(GlitterEditor* glt_edt) {
     float_t y;
 
     float_t w = 280.0f;
-    float_t h = 376.0f;
+    float_t h = 352.0f;
 
     ImGui::SetNextWindowPos({ 0, 0 }, ImGuiCond_FirstUseEver);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);

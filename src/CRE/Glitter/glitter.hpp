@@ -343,9 +343,9 @@ namespace Glitter {
     };
 
     enum ParticleInstFlag {
-        PARTICLE_INST_NONE     = 0x00,
-        PARTICLE_INST_ENDED    = 0x01,
-        PARTICLE_INST_NO_CHILD = 0x02,
+        PARTICLE_INST_NONE  = 0x00,
+        PARTICLE_INST_ENDED = 0x01,
+        PARTICLE_INST_LOCUS = 0x02,
     };
 
     enum ParticleManagerFlag {
