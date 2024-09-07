@@ -384,6 +384,11 @@ int32_t app_main(const app_init_struct& ais) {
     Vulkan::use = ais.vulkan;
 #endif
 
+#if BAKE_PNG || BAKE_VIDEO
+    if (Vulkan::use)
+        return -1;
+#endif
+
     if (app_init(ais)) {
         window_handle = glfwGetWin32Window(window);
         glfwShowWindow(window);
