@@ -41,64 +41,39 @@ namespace Vulkan {
         descriptor_set_layouts[0] = 0;
         descriptor_set_layouts[1] = 0;
         descriptor_set_layouts[2] = 0;
-        descriptor_set_layout_indices[0] = -1;
-        descriptor_set_layout_indices[1] = -1;
-        descriptor_set_layout_indices[2] = -1;
         pipeline_layout = 0;
 
-        uint32_t set_layout_count = 0;
-        if (sampler_count) {
-            VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info;
-            descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            descriptor_set_layout_create_info.pNext = 0;
-            descriptor_set_layout_create_info.flags = 0;
-            descriptor_set_layout_create_info.bindingCount = sampler_count;
-            descriptor_set_layout_create_info.pBindings = bindings;
+        VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info;
+        descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+        descriptor_set_layout_create_info.pNext = 0;
+        descriptor_set_layout_create_info.flags = 0;
 
-            vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info,
-                0, &descriptor_set_layouts[set_layout_count]);
-            descriptor_set_layout_indices[0] = set_layout_count++;
-        }
+        descriptor_set_layout_create_info.bindingCount = sampler_count;
+        descriptor_set_layout_create_info.pBindings = bindings;
 
-        if (uniform_count) {
-            VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info;
-            descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            descriptor_set_layout_create_info.pNext = 0;
-            descriptor_set_layout_create_info.flags = 0;
-            descriptor_set_layout_create_info.bindingCount = uniform_count;
-            descriptor_set_layout_create_info.pBindings = bindings + sampler_count;
+        vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info, 0, &descriptor_set_layouts[0]);
 
-            vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info,
-                0, &descriptor_set_layouts[set_layout_count]);
-            descriptor_set_layout_indices[1] = set_layout_count++;
-        }
+        descriptor_set_layout_create_info.bindingCount = uniform_count;
+        descriptor_set_layout_create_info.pBindings = bindings + sampler_count;
 
-        if (storage_count) {
-            VkDescriptorSetLayoutCreateInfo descriptor_set_layout_create_info;
-            descriptor_set_layout_create_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-            descriptor_set_layout_create_info.pNext = 0;
-            descriptor_set_layout_create_info.flags = 0;
-            descriptor_set_layout_create_info.bindingCount = storage_count;
-            descriptor_set_layout_create_info.pBindings = bindings + sampler_count + uniform_count;
+        vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info, 0, &descriptor_set_layouts[1]);
 
-            vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info,
-                0, &descriptor_set_layouts[set_layout_count]);
-            descriptor_set_layout_indices[2] = set_layout_count++;
-        }
+        descriptor_set_layout_create_info.bindingCount = storage_count;
+        descriptor_set_layout_create_info.pBindings = bindings + sampler_count + uniform_count;
 
-        if (set_layout_count) {
-            VkPipelineLayoutCreateInfo pipeline_layout_create_info;
-            pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-            pipeline_layout_create_info.pNext = 0;
-            pipeline_layout_create_info.flags = 0;
-            pipeline_layout_create_info.setLayoutCount = set_layout_count;
-            pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
-            pipeline_layout_create_info.pushConstantRangeCount = push_constant_range_count;
-            pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges;
+        vkCreateDescriptorSetLayout(device, &descriptor_set_layout_create_info, 0, &descriptor_set_layouts[2]);
 
-            if (vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline_layout) == VK_SUCCESS)
-                return;
-        }
+        VkPipelineLayoutCreateInfo pipeline_layout_create_info;
+        pipeline_layout_create_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipeline_layout_create_info.pNext = 0;
+        pipeline_layout_create_info.flags = 0;
+        pipeline_layout_create_info.setLayoutCount = 3;
+        pipeline_layout_create_info.pSetLayouts = descriptor_set_layouts;
+        pipeline_layout_create_info.pushConstantRangeCount = push_constant_range_count;
+        pipeline_layout_create_info.pPushConstantRanges = push_constant_ranges;
+
+        if (vkCreatePipelineLayout(device, &pipeline_layout_create_info, 0, &pipeline_layout) == VK_SUCCESS)
+            return;
 
         if (pipeline_layout) {
             vkDestroyPipelineLayout(device, pipeline_layout, 0);
@@ -124,9 +99,6 @@ namespace Vulkan {
             descriptor_set_layouts[0] = 0;
         }
 
-        descriptor_set_layout_indices[2] = -1;
-        descriptor_set_layout_indices[1] = -1;
-        descriptor_set_layout_indices[0] = -1;
         this->descriptor_pool = 0;
         this->device = 0;
     }
@@ -156,9 +128,6 @@ namespace Vulkan {
             descriptor_set_layouts[0] = 0;
         }
 
-        descriptor_set_layout_indices[2] = -1;
-        descriptor_set_layout_indices[1] = -1;
-        descriptor_set_layout_indices[0] = -1;
         descriptor_pool = 0;
         device = 0;
     }
@@ -181,20 +150,17 @@ namespace Vulkan {
         set_collection->frame = frame;
         set_collection->hash = hash;
 
-        for (uint32_t i = 0; i < 3; i++)
-            if (descriptor_set_layout_indices[i] != -1) {
-                VkDescriptorSetAllocateInfo descriptor_set_allocate_info;
-                descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-                descriptor_set_allocate_info.pNext = 0;
-                descriptor_set_allocate_info.descriptorPool = descriptor_pool;
-                descriptor_set_allocate_info.descriptorSetCount = 1;
-                descriptor_set_allocate_info.pSetLayouts
-                    = &descriptor_set_layouts[descriptor_set_layout_indices[i]];
+        VkDescriptorSetAllocateInfo descriptor_set_allocate_info;
+        descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+        descriptor_set_allocate_info.pNext = 0;
+        descriptor_set_allocate_info.descriptorPool = descriptor_pool;
+        descriptor_set_allocate_info.descriptorSetCount = 3;
+        descriptor_set_allocate_info.pSetLayouts = descriptor_set_layouts;
 
-                if (vkAllocateDescriptorSets(device, &descriptor_set_allocate_info,
-                    &set_collection->data[set_collection->count++]) != VK_SUCCESS)
-                    return 0;
-            }
+        if (vkAllocateDescriptorSets(device, &descriptor_set_allocate_info, set_collection->data) != VK_SUCCESS)
+            return 0;
+
+        set_collection->count = 3;
         return set_collection;
     }
 

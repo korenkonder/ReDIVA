@@ -52,8 +52,8 @@ namespace Vulkan {
     };
 
     struct gl_framebuffer {
-        Vulkan::Framebuffer framebuffer;
-        prj::shared_ptr<Vulkan::RenderPass> render_pass;
+        Vulkan::Framebuffer framebuffer[2];
+        prj::shared_ptr<Vulkan::RenderPass> render_pass[2];
 
         GLuint color_attachments[Vulkan::MAX_COLOR_ATTACHMENTS];
         GLint color_attachment_levels[Vulkan::MAX_COLOR_ATTACHMENTS];
@@ -143,13 +143,14 @@ namespace Vulkan {
         Vulkan::ImageView sample_image_view;
         uint32_t level_count;
         VkComponentMapping components;
+        bool attachment;
         gl_sampler sampler_data;
 
         gl_texture();
 
         VkImageView get_image_view();
 
-        static gl_texture* get(GLuint texture, bool update_data = true);
+        static gl_texture* get(GLuint texture, bool update_data = true, bool attachment = false);
 
         inline uint32_t get_layer_count() const {
             return target == GL_TEXTURE_CUBE_MAP ? 6 : 1;

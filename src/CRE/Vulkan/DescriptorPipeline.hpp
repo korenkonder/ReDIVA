@@ -27,7 +27,6 @@ namespace Vulkan {
         VkDevice device;
         VkDescriptorPool descriptor_pool;
         VkDescriptorSetLayout descriptor_set_layouts[3];
-        uint32_t descriptor_set_layout_indices[3];
         std::vector<DescriptorSetCollection> descriptor_sets;
         VkPipelineLayout pipeline_layout;
 

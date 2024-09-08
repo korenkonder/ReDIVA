@@ -259,8 +259,10 @@ namespace Vulkan {
     }
 
     void gl_framebuffer::release() {
-        framebuffer.Destroy();
-        render_pass.reset();
+        framebuffer[1].Destroy();
+        framebuffer[0].Destroy();
+        render_pass[1].reset();
+        render_pass[0].reset();
 
         update_framebuffer = false;
         update_depth_attachment = false;
@@ -299,7 +301,7 @@ namespace Vulkan {
                 vk_fbo->color_attachment_image_views[i].Destroy();
   
             for (int32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
-                gl_texture* vk_tex = gl_texture::get(vk_fbo->color_attachments[i]);
+                gl_texture* vk_tex = gl_texture::get(vk_fbo->color_attachments[i], true, true);
                 if (vk_tex && vk_tex->get_level_count() > 0) {
                     const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                     const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -311,12 +313,6 @@ namespace Vulkan {
                 }
             }
 
-            GLenum depth_format = GL_ZERO;
-            if (vk_fbo->depth_attachment) {
-                gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment);
-                depth_format = vk_tex ? vk_tex->internal_format : GL_ZERO;
-            }
-
             vk_fbo->update_color_attachment = false;
             vk_fbo->update_framebuffer = true;
         }
@@ -324,7 +320,7 @@ namespace Vulkan {
         if (vk_fbo->update_depth_attachment) {
             vk_fbo->depth_attachment_image_view.Destroy();
 
-            gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment);
+            gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment, true, true);
             if (vk_tex && vk_tex->get_level_count() > 0) {
                 const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                 const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -350,7 +346,7 @@ namespace Vulkan {
 
             for (uint32_t i = 0; i < Vulkan::MAX_DRAW_BUFFERS; i++) {
                 GLuint texture = vk_fbo->get_draw_buffer_texture(i);
-                gl_texture* vk_tex = gl_texture::get(texture);
+                gl_texture* vk_tex = gl_texture::get(texture, true, true);
                 if (!vk_tex)
                     continue;
 
@@ -374,7 +370,7 @@ namespace Vulkan {
 
             GLenum depth_format = GL_ZERO;
             if (vk_fbo->depth_attachment) {
-                gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment);
+                gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment, true, true);
                 if (vk_tex) {
                     depth_format = vk_tex->internal_format;
                     image_views[image_view_count] = vk_tex->image_view;
@@ -390,10 +386,14 @@ namespace Vulkan {
                 }
             }
 
-            vk_fbo->render_pass = Vulkan::manager_get_render_pass(
-                color_formats, color_format_count, depth_format);
-            vk_fbo->framebuffer.Create(Vulkan::current_device, 0,
-                *vk_fbo->render_pass.get(), image_view_count, image_views, width, height);
+            vk_fbo->render_pass[0] = Vulkan::manager_get_render_pass(
+                color_formats, color_format_count, depth_format, false);
+            vk_fbo->render_pass[1] = Vulkan::manager_get_render_pass(
+                color_formats, color_format_count, depth_format, true);
+            vk_fbo->framebuffer[0].Create(Vulkan::current_device, 0,
+                *vk_fbo->render_pass[0].get(), image_view_count, image_views, width, height);
+            vk_fbo->framebuffer[1].Create(Vulkan::current_device, 0,
+                *vk_fbo->render_pass[1].get(), image_view_count, image_views, width, height);
 
             vk_fbo->update_framebuffer = false;
         }
@@ -550,8 +550,8 @@ namespace Vulkan {
         return vk_sb;
     }
 
-    gl_texture::gl_texture() : target(), base_mipmap_level(),
-        internal_format(), width(), height(), level_count(), components() {
+    gl_texture::gl_texture() : target(), base_mipmap_level(), internal_format(),
+        width(), height(), level_count(), components(), attachment() {
         max_mipmap_level = 1000;
     }
 
@@ -559,7 +559,7 @@ namespace Vulkan {
         return sample_image_view ? sample_image_view : image_view;
     }
 
-    gl_texture* gl_texture::get(GLuint texture, bool update_data) {
+    gl_texture* gl_texture::get(GLuint texture, bool update_data, bool attachment) {
         if (!texture)
             return 0;
 
@@ -583,33 +583,48 @@ namespace Vulkan {
         if (vk_tex_data && (vk_tex->internal_format != vk_tex_data->internal_format
             || vk_tex->width != vk_tex_data->width
             || vk_tex->height != vk_tex_data->height
-            || vk_tex->level_count != vk_tex_data->level_count))
+            || vk_tex->level_count != vk_tex_data->level_count)
+            || attachment && vk_tex->attachment != attachment)
             create = true;
 
         if (create && update_data) {
             vk_tex->sample_image_view.Destroy();
 
-            vk_tex->internal_format = vk_tex_data->internal_format;
-            vk_tex->width = vk_tex_data->width;
-            vk_tex->height = vk_tex_data->height;
-            vk_tex->level_count = vk_tex_data->level_count;
+            if (vk_tex_data) {
+                vk_tex->internal_format = vk_tex_data->internal_format;
+                vk_tex->width = vk_tex_data->width;
+                vk_tex->height = vk_tex_data->height;
+                vk_tex->level_count = vk_tex_data->level_count;
+
+                gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(0, 0);
+                vk_tex->attachment = attachment || !tex_data || !tex_data->data.size();
+            }
+            else
+                vk_tex->attachment = true;
 
             const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
             const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
-            const bool attachment = !vk_tex_data->get_tex_data(0, 0)->data.size();
-
             VkImageUsageFlags usage = 0;
+            VkImageLayout layout;
             switch (format) {
             case VK_FORMAT_D24_UNORM_S8_UINT:
             case VK_FORMAT_D32_SFLOAT:
-                if (attachment)
+                if (vk_tex->attachment) {
                     usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                    layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                }
+                else
+                    layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 break;
             default:
-                if (attachment)
+                if (vk_tex->attachment) {
                     usage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                    layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+                }
+                else
+                    layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
                 break;
             }
 
@@ -624,11 +639,11 @@ namespace Vulkan {
             vk_tex->image.Create(Vulkan::current_allocator,
                 flags, vk_tex->width, vk_tex->height, level_count, layer_count, format,
                 VK_IMAGE_TILING_OPTIMAL, usage, VMA_MEMORY_USAGE_AUTO,
-                attachment ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0);
+                vk_tex->attachment ? VMA_ALLOCATION_CREATE_DEDICATED_MEMORY_BIT : 0);
             vk_tex->image_view.Create(Vulkan::current_device, 0, vk_tex->image,
                 image_view_type, format, aspect_mask, 0, level_count, 0, layer_count);
             Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
-                aspect_mask, level_count, layer_count, VK_IMAGE_LAYOUT_GENERAL);
+                aspect_mask, level_count, layer_count, layout);
         }
 
         if (vk_tex_data && update_data) {
@@ -4176,7 +4191,7 @@ namespace Vulkan {
 
         if (vk_tex->image && (max_def(vk_tex->width >> level, 1) != width
             || max_def(vk_tex->height >> level, 1) != height
-            || level < 0 || level >= (int64_t)vk_tex->get_level_count())) {
+            || level >= (int64_t)vk_tex->get_level_count())) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
@@ -4425,8 +4440,8 @@ namespace Vulkan {
         }
 
         if (vk_tex->image && (max_def(vk_tex->width >> level, 1) != width
-            || max_def(vk_tex->height >> level, 1) != height)
-            || level < 0 || level >= (int64_t)vk_tex->get_level_count() || xoffset || yoffset) {
+            || max_def(vk_tex->height >> level, 1) != height
+            || level >= (int64_t)vk_tex->get_level_count()) || xoffset || yoffset) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }

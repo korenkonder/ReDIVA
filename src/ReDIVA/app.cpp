@@ -2922,6 +2922,16 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL app_debug_callback(
         printf_debug("validation layer error: %s\n\n", pCallbackData->pMessage);
         SetConsoleTextAttribute(console, csbi.wAttributes);
     }
+    else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
+        HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(console, &csbi);
+        SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED
+            | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_RED | BACKGROUND_GREEN);
+        printf_debug("validation layer perf:  %s\n", pCallbackData->pMessage);
+        SetConsoleTextAttribute(console, csbi.wAttributes);
+    }
     else
         printf_debug("validation layer msg:   %s\n", pCallbackData->pMessage);
     return VK_FALSE;

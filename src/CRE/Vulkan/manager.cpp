@@ -105,16 +105,19 @@ constexpr bool operator==(const pipeline_data& left, const pipeline_data& right)
 struct render_pass_data {
     uint64_t color_formats_hash;
     GLenum depth_format;
+    bool depth_read_only;
     bool stencil;
-    uint8_t pad[3];
+    uint8_t pad[2];
 
-    inline render_pass_data() : color_formats_hash(), depth_format(), stencil(), pad() {
+    inline render_pass_data() : color_formats_hash(), depth_format(), depth_read_only(), stencil(), pad() {
 
     }
 
-    inline render_pass_data(uint64_t color_formats_hash, GLenum depth_format, bool stencil) : pad() {
+    inline render_pass_data(uint64_t color_formats_hash, GLenum depth_format,
+        bool depth_read_only, bool stencil) : pad() {
         this->color_formats_hash = color_formats_hash;
         this->depth_format = depth_format;
+        this->depth_read_only = depth_read_only;
         this->stencil = stencil;
     }
 };
@@ -218,7 +221,7 @@ namespace Vulkan {
             const VkPipelineColorBlendAttachmentState* color_blend_attachments,
             VkPipelineLayout layout, VkRenderPass render_pass);
         prj::shared_ptr<Vulkan::RenderPass> get_render_pass(GLenum* color_formats,
-            uint32_t color_format_count, GLenum depth_format, bool stencil);
+            uint32_t color_format_count, GLenum depth_format, bool depth_read_only, bool stencil);
         prj::shared_ptr<Vulkan::Sampler> get_sampler(const gl_sampler& sampler_data);
         Vulkan::Buffer get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment);
         Vulkan::Buffer get_staging_buffer(VkDeviceSize size, VkDeviceSize alignment);
@@ -298,9 +301,10 @@ namespace Vulkan {
     }
 
     prj::shared_ptr<Vulkan::RenderPass> manager_get_render_pass(
-        GLenum* color_formats, uint32_t color_format_count, GLenum depth_format, bool stencil) {
+        GLenum* color_formats, uint32_t color_format_count,
+        GLenum depth_format, bool depth_read_only, bool stencil) {
         return manager_ptr->get_render_pass(color_formats,
-            color_format_count, depth_format, stencil);
+            color_format_count, depth_format, depth_read_only, stencil);
     }
 
     prj::shared_ptr<Vulkan::Sampler> manager_get_sampler(const gl_sampler& sampler_data) {
@@ -513,11 +517,11 @@ namespace Vulkan {
     }
 
     prj::shared_ptr<Vulkan::RenderPass> manager::get_render_pass(GLenum* color_formats,
-        uint32_t color_format_count, GLenum depth_format, bool stencil) {
+        uint32_t color_format_count, GLenum depth_format, bool depth_read_only, bool stencil) {
         uint64_t color_formats_hash = hash_xxh3_64bits(color_formats,
             sizeof(GLenum) * color_format_count);
 
-        auto elem = render_passes.find({ color_formats_hash, depth_format, stencil });
+        auto elem = render_passes.find({ color_formats_hash, depth_format, depth_read_only, stencil });
         if (elem != render_passes.end())
             return elem->second;
 
@@ -540,7 +544,9 @@ namespace Vulkan {
 
         if (depth_format) {
             depth_attachment_reference.attachment = 1;
-            depth_attachment_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depth_attachment_reference.layout = depth_read_only
+                ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
             subpass_description.pDepthStencilAttachment = &depth_attachment_reference;
         }
@@ -562,7 +568,8 @@ namespace Vulkan {
         if (depth_format) {
             subpass_dependency.srcStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
             subpass_dependency.dstStageMask |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-            subpass_dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+            if (!depth_read_only)
+                subpass_dependency.dstAccessMask |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         }
 
         int32_t attachment_count = 0;
@@ -596,15 +603,19 @@ namespace Vulkan {
                 ? VK_ATTACHMENT_LOAD_OP_LOAD : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
             depth_attachment.stencilStoreOp = stencil
                 ? VK_ATTACHMENT_STORE_OP_STORE : VK_ATTACHMENT_STORE_OP_DONT_CARE;
-            depth_attachment.initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-            depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depth_attachment.initialLayout = depth_read_only
+                ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+            depth_attachment.finalLayout = depth_read_only
+                ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL
+                : VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
             attachment_count++;
         }
 
         prj::shared_ptr<Vulkan::RenderPass> render_pass(new Vulkan::RenderPass(Vulkan::current_device, 0,
             attachment_count, attachments, 1, &subpass_description, 1, &subpass_dependency));
-        render_passes.insert({ { color_formats_hash, depth_format, stencil }, render_pass });
+        render_passes.insert({ { color_formats_hash, depth_format, depth_read_only, stencil }, render_pass });
 
         free_def(attachments);
         free_def(color_attachment_reference);

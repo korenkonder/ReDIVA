@@ -552,11 +552,11 @@ static const int32_t star_milky_way_fpt_unival_max[] = {
 };
 
 static const int32_t floor_vpt_unival_max[] = {
-    0, 0,
+    1, 0,
 };
 
 static const int32_t floor_fpt_unival_max[] = {
-    1, 1,
+    0, 1,
 };
 
 static const int32_t puddle_vpt_unival_max[] = {
@@ -1628,6 +1628,7 @@ static const shader_description snow_particle_vpt_desc[] = {
 static const shader_description snow_particle_fpt_desc[] = {
     { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_SAMPLER, 1, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_UNIFORM, 0, 0xB0, U_INVALID, }, // sizeof(snow_particle_scene_shader_data)
     { SHADER_DESCRIPTION_UNIFORM, 1, 0x30, U_INVALID, }, // sizeof(snow_particle_batch_shader_data)
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
@@ -1813,7 +1814,6 @@ static const shader_description rain_fpt_desc[] = {
 
 static const shader_description ripple_vpt_desc[] = {
     { SHADER_DESCRIPTION_UNIFORM, 0, 0x20, U_INVALID, }, // sizeof(ripple_scene_shader_data)
-    { SHADER_DESCRIPTION_STORAGE, 0, 0, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
 

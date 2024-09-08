@@ -325,8 +325,10 @@ void shader_set_data::disable_primitive_restart() {
 }
 
 void shader_set_data::draw_arrays(GLenum mode, GLint first, GLsizei count) {
-    if (!shader_update_data(this, mode, GL_ZERO, 0))
+    if (!shader_update_data(this, mode, GL_ZERO, 0)) {
+        printf("Unable to draw!\n");
         return;
+    }
 
     if (Vulkan::use)
         vkCmdDraw(Vulkan::current_command_buffer, count, 1, first, 0);
@@ -361,8 +363,10 @@ void shader_set_data::draw_elements(GLenum mode,
         break;
     }
 
-    if (!shader_update_data(this, mode, type, indices))
+    if (!shader_update_data(this, mode, type, indices)) {
+        printf("Unable to draw!\n");
         return;
+    }
 
     if (Vulkan::use)
         vkCmdDrawIndexed(Vulkan::current_command_buffer, count, 1, 0, 0, 0);
@@ -403,8 +407,10 @@ void shader_set_data::draw_range_elements(GLenum mode,
         break;
     }
 
-    if (!shader_update_data(this, mode, type, indices))
+    if (!shader_update_data(this, mode, type, indices)) {
+        printf("Unable to draw!\n");
         return;
+    }
 
     if (Vulkan::use)
         vkCmdDrawIndexed(Vulkan::current_command_buffer, count, 1, 0, 0, 0);
@@ -1801,16 +1807,17 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     depth_stencil_state.minDepthBounds = 0.0f;
     depth_stencil_state.maxDepthBounds = 1.0f;
 
+    VkColorComponentFlags color_write_mask = 0;
+    color_write_mask |= gl_state.color_mask[0] ? VK_COLOR_COMPONENT_R_BIT : 0;
+    color_write_mask |= gl_state.color_mask[1] ? VK_COLOR_COMPONENT_G_BIT : 0;
+    color_write_mask |= gl_state.color_mask[2] ? VK_COLOR_COMPONENT_B_BIT : 0;
+    color_write_mask |= gl_state.color_mask[3] ? VK_COLOR_COMPONENT_A_BIT : 0;
+
     uint32_t color_blend_attachment_count = fragment_output_count;
     VkPipelineColorBlendAttachmentState* color_blend_attachments
         = force_malloc<VkPipelineColorBlendAttachmentState>(color_blend_attachment_count);
     for (uint32_t i = 0; i < color_blend_attachment_count; i++) {
         VkPipelineColorBlendAttachmentState& color_blend_attachment = color_blend_attachments[i];
-        VkColorComponentFlags color_write_mask = 0;
-        color_write_mask |= gl_state.color_mask[0] ? VK_COLOR_COMPONENT_R_BIT : 0;
-        color_write_mask |= gl_state.color_mask[1] ? VK_COLOR_COMPONENT_G_BIT : 0;
-        color_write_mask |= gl_state.color_mask[2] ? VK_COLOR_COMPONENT_B_BIT : 0;
-        color_write_mask |= gl_state.color_mask[3] ? VK_COLOR_COMPONENT_A_BIT : 0;
         color_blend_attachment.colorWriteMask = color_write_mask;
         color_blend_attachment.blendEnable = gl_state.blend ? VK_TRUE : VK_FALSE;
         color_blend_attachment.srcColorBlendFactor = Vulkan::get_blend_factor(gl_state.blend_src_rgb);
@@ -1826,9 +1833,12 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     VkPipelineLayout pipeline_layout = vk_descriptor_pipeline->GetPipelineLayout();
 
     extern VkRenderPassBeginInfo vulkan_swapchain_render_pass_info;
+    const uint32_t framebuffer_index = depth_stencil_state.depthWriteEnable ? 0 : 1;
     VkRenderPass render_pass;
-    if (gl_state.draw_framebuffer_binding)
-        render_pass = *Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding)->render_pass.get();
+    if (gl_state.draw_framebuffer_binding) {
+        Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
+        render_pass = *vk_fbo->render_pass[framebuffer_index].get();
+    }
     else
         render_pass = vulkan_swapchain_render_pass_info.renderPass;
 
@@ -1922,8 +1932,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 const int32_t level_count = vk_tex->get_level_count();
                 const int32_t layer_count = vk_tex->get_layer_count();
 
+                const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
+
+                VkImageLayout layout;
+                switch (format) {
+                case VK_FORMAT_D24_UNORM_S8_UINT:
+                case VK_FORMAT_D32_SFLOAT:
+                    layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                    break;
+                default:
+                    layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    break;
+                }
+
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
-                    aspect_mask, level_count, layer_count, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                    aspect_mask, level_count, layer_count, layout);
 
                 sampler_info->sampler = *Vulkan::manager_get_sampler(*sampler_data).get();
                 sampler_info->imageView = vk_tex->get_image_view();
@@ -1963,7 +1986,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
 
                 VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
+                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
 
                 uniform_info->buffer = vk_ub->working_buffer;
                 uniform_info->offset = 0;
@@ -1994,7 +2017,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
 
                 VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
+                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
 
                 storage_info->buffer = vk_sb->working_buffer;
                 storage_info->offset = 0;
@@ -2054,8 +2077,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 const int32_t level_count = vk_tex->get_level_count();
                 const int32_t layer_count = vk_tex->get_layer_count();
 
+                const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
+
+                VkImageLayout layout;
+                switch (format) {
+                case VK_FORMAT_D24_UNORM_S8_UINT:
+                case VK_FORMAT_D32_SFLOAT:
+                    layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                    break;
+                default:
+                    layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                    break;
+                }
+
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer, vk_tex->image,
-                    aspect_mask, level_count, layer_count, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+                    aspect_mask, level_count, layer_count, layout);
 
                 sampler_info->sampler = *Vulkan::manager_get_sampler(*sampler_data).get();
                 sampler_info->imageView = vk_tex->get_image_view();
@@ -2095,7 +2131,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
 
                 VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
+                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
 
                 uniform_info->buffer = vk_ub->working_buffer;
                 uniform_info->offset = 0;
@@ -2126,7 +2162,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
                 const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
 
                 VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
-                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : desc->data;
+                VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
 
                 storage_info->buffer = vk_sb->working_buffer;
                 storage_info->offset = 0;
@@ -2162,7 +2198,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         VkDescriptorSet* descriptor_set = descriptor_set_collection->data;
         VkDescriptorSet sampler_descriptor_set = 0;
         if (sampler_count) {
-            sampler_descriptor_set = *descriptor_set++;
+            sampler_descriptor_set = descriptor_set[0];
             if (!sampler_descriptor_set) {
                 free_def(descriptor_writes);
                 free_def(descriptor_infos);
@@ -2172,7 +2208,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
         VkDescriptorSet uniform_descriptor_set = 0;
         if (uniform_count) {
-            uniform_descriptor_set = *descriptor_set++;
+            uniform_descriptor_set = descriptor_set[1];
             if (!uniform_descriptor_set) {
                 free_def(descriptor_writes);
                 free_def(descriptor_infos);
@@ -2182,7 +2218,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
         VkDescriptorSet storage_descriptor_set = 0;
         if (storage_count) {
-            storage_descriptor_set = *descriptor_set++;
+            storage_descriptor_set = descriptor_set[2];
             if (!storage_descriptor_set) {
                 free_def(descriptor_writes);
                 free_def(descriptor_infos);
@@ -2246,18 +2282,20 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
     if (gl_state.draw_framebuffer_binding) {
         Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
-        if (!vk_fbo->framebuffer)
+        if (!vk_fbo->framebuffer) {
+            free_def(descriptor_infos);
             return false;
+        }
 
-        if (Vulkan::current_framebuffer != vk_fbo->framebuffer) {
+        if (Vulkan::current_framebuffer != vk_fbo->framebuffer[framebuffer_index]) {
             Vulkan::end_render_pass(Vulkan::current_command_buffer);
 
             VkRenderPassBeginInfo render_pass_info = {};
             render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-            render_pass_info.renderPass = *vk_fbo->render_pass.get();
-            render_pass_info.framebuffer = vk_fbo->framebuffer;
+            render_pass_info.renderPass = *vk_fbo->render_pass[framebuffer_index].get();
+            render_pass_info.framebuffer = vk_fbo->framebuffer[framebuffer_index];
             render_pass_info.renderArea.offset = { 0, 0 };
-            render_pass_info.renderArea.extent = vk_fbo->framebuffer.GetExtent();
+            render_pass_info.renderArea.extent = vk_fbo->framebuffer[framebuffer_index].GetExtent();
             render_pass_info.clearValueCount = 0;
             render_pass_info.pClearValues = 0;
 
@@ -2278,14 +2316,17 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
             if (vk_fbo->depth_attachment) {
                 Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment);
+                const VkImageLayout layout = depth_stencil_state.depthWriteEnable
+                    ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
+                    : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,
                     vk_tex->image, Vulkan::get_aspect_mask(vk_tex->internal_format),
-                    vk_tex->level_count, 1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL);
+                    vk_tex->level_count, 1, layout);
             }
 
             vkCmdBeginRenderPass(Vulkan::current_command_buffer, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-            Vulkan::current_framebuffer = vk_fbo->framebuffer;
-            Vulkan::current_render_pass = *vk_fbo->render_pass.get();
+            Vulkan::current_framebuffer = vk_fbo->framebuffer[framebuffer_index];
+            Vulkan::current_render_pass = *vk_fbo->render_pass[framebuffer_index].get();
         }
     }
     else {
@@ -2315,6 +2356,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         dynamic_offset_count, dynamic_offsets);
 
     free_def(descriptor_infos);
+    free_def(color_blend_attachments);
 
     {
         uint32_t binding_count = 0;
