@@ -36,18 +36,10 @@ void face::set_position(const vec3& value) {
     position = value;
 }
 
-void face::set_position(const vec3&& value) {
-    position = value;
-}
-
 void face::get_direction(vec3& value) const {
     value = direction;
 }
 
 void face::set_direction(const vec3& value) {
-    direction = value;
-}
-
-void face::set_direction(const vec3&& value) {
     direction = value;
 }

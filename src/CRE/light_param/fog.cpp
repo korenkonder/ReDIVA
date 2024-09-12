@@ -64,10 +64,6 @@ void fog::set_color(const vec4& value) {
     color = value;
 }
 
-void fog::set_color(const vec4&& value) {
-    color = value;
-}
-
 void fog::data_set(fog_id id) {
     fog_type type = get_type();
     if (type == FOG_NONE)

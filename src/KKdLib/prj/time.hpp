@@ -22,6 +22,5 @@ namespace prj {
         static prj::time get_default();
     };
 
-    prj::time strptime(std::string& str);
-    prj::time strptime(std::string&& str);
+    prj::time strptime(const std::string& str);
 }

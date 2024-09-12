@@ -32,6 +32,5 @@ struct fog {
     void set_index(int32_t value);
     void get_color(vec4& value) const;
     void set_color(const vec4& value);
-    void set_color(const vec4&& value);
     void data_set(fog_id id);
 };

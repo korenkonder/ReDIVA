@@ -34,7 +34,7 @@ struct enrs_entry {
     ~enrs_entry();
 
     void append(uint32_t skip_bytes, uint32_t repeat_count, enrs_type type);
-    void append(enrs_sub_entry&& data);
+    void append(const enrs_sub_entry& data);
 
     enrs_entry& operator=(const enrs_entry& ee);
 };

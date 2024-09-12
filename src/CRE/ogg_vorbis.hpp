@@ -148,7 +148,7 @@ struct OggFileHandler {
     void SetFileState(OggFileHandlerFileState state);
     void SetLoadTimeSeek(float_t value);
     void SetMasterVolume(int32_t value);
-    void SetPath(std::string& path);
+    void SetPath(const std::string& path);
     void SetPath(std::string&& path);
     void SetPauseState(OggFileHandlerPauseState value);
     void SetPlaybackState(OggFileHandlerPlaybackState value);
@@ -174,7 +174,7 @@ struct p_OggFileHandler {
         int32_t src_channel, int32_t dst_channel, int32_t value);
     void SetLoadTimeSeek(float_t value);
     void SetMasterVolume(int32_t value);
-    void SetPath(std::string& path);
+    void SetPath(const std::string& path);
     void SetPath(std::string&& path);
     void SetPauseState(OggFileHandlerPauseState value);
     void SetPlaybackState(OggFileHandlerPlaybackState value);
@@ -200,7 +200,7 @@ struct OggPlayback {
         int32_t src_channel, int32_t dst_channel, int32_t value);
     void SetLoadTimeSeek(float_t value);
     void SetMasterVolume(int32_t value);
-    void SetPath(std::string& path);
+    void SetPath(const std::string& path);
     void SetPath(std::string&& path);
     void SetPauseState(OggFileHandlerPauseState value);
     void SetPlaybackState(OggFileHandlerPlaybackState value);

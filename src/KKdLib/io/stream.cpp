@@ -617,15 +617,7 @@ void stream::write_string(const std::string& str) {
     write(str.c_str(), str.size());
 }
 
-void stream::write_string(const std::string&& str) {
-    write(str.c_str(), str.size());
-}
-
 void stream::write_wstring(const std::wstring& str) {
-    write(str.c_str(), sizeof(wchar_t) * str.size());
-}
-
-void stream::write_wstring(const std::wstring&& str) {
     write(str.c_str(), sizeof(wchar_t) * str.size());
 }
 
@@ -634,17 +626,7 @@ void stream::write_string_null_terminated(const std::string& str) {
     write_uint8_t(0);
 }
 
-void stream::write_string_null_terminated(const std::string&& str) {
-    write(str.c_str(), str.size());
-    write_uint8_t(0);
-}
-
 void stream::write_wstring_null_terminated(const std::wstring& str) {
-    write(str.c_str(), sizeof(wchar_t) * str.size());
-    write_uint16_t(0);
-}
-
-void stream::write_wstring_null_terminated(const std::wstring&& str) {
     write(str.c_str(), sizeof(wchar_t) * str.size());
     write_uint16_t(0);
 }

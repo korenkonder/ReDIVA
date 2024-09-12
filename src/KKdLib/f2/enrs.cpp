@@ -38,7 +38,7 @@ void enrs_entry::append(uint32_t skip_bytes, uint32_t repeat_count, enrs_type ty
     sub.push_back({ skip_bytes, repeat_count, type });
 }
 
-void enrs_entry::append(enrs_sub_entry&& data) {
+void enrs_entry::append(const enrs_sub_entry& data) {
     sub.push_back(data);
 }
 

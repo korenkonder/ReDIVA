@@ -290,9 +290,7 @@ struct vec2 {
 
     static __m128 load_xmm(const float_t data);
     static __m128 load_xmm(const vec2& data);
-    static __m128 load_xmm(const vec2&& data);
     static vec2 store_xmm(const __m128& data);
-    static vec2 store_xmm(const __m128&& data);
 
     static float_t angle(const vec2& left, const vec2& right);
     static float_t dot(const vec2& left, const vec2& right);
@@ -327,9 +325,7 @@ struct vec3 {
 
     static __m128 load_xmm(const float_t data);
     static __m128 load_xmm(const vec3& data);
-    static __m128 load_xmm(const vec3&& data);
     static vec3 store_xmm(const __m128& data);
-    static vec3 store_xmm(const __m128&& data);
 
     static float_t angle(const vec3& left, const vec3& right);
     static float_t dot(const vec3& left, const vec3& right);
@@ -366,9 +362,7 @@ struct vec4 {
 
     static __m128 load_xmm(const float_t data);
     static __m128 load_xmm(const vec4& data);
-    static __m128 load_xmm(const vec4&& data);
     static vec4 store_xmm(const __m128& data);
-    static vec4 store_xmm(const __m128&& data);
 
     static float_t angle(const vec4& left, const vec4& right);
     static float_t dot(const vec4& left, const vec4& right);
@@ -402,9 +396,7 @@ struct vec2i {
 
     static __m128i load_xmm(const int32_t data);
     static __m128i load_xmm(const vec2i& data);
-    static __m128i load_xmm(const vec2i&& data);
     static vec2i store_xmm(const __m128i& data);
-    static vec2i store_xmm(const __m128i&& data);
 
     static vec2i min(const vec2i& left, const vec2i& right);
     static vec2i max(const vec2i& left, const vec2i& right);
@@ -423,9 +415,7 @@ struct vec3i {
 
     static __m128i load_xmm(const int32_t data);
     static __m128i load_xmm(const vec3i& data);
-    static __m128i load_xmm(const vec3i&& data);
     static vec3i store_xmm(const __m128i& data);
-    static vec3i store_xmm(const __m128i&& data);
 
     static vec3i min(const vec3i& left, const vec3i& right);
     static vec3i max(const vec3i& left, const vec3i& right);
@@ -445,9 +435,7 @@ struct vec4i {
 
     static __m128i load_xmm(const int32_t data);
     static __m128i load_xmm(const vec4i& data);
-    static __m128i load_xmm(const vec4i&& data);
     static vec4i store_xmm(const __m128i& data);
-    static vec4i store_xmm(const __m128i&& data);
 
     static vec4i min(const vec4i& left, const vec4i& right);
     static vec4i max(const vec4i& left, const vec4i& right);
@@ -465,9 +453,7 @@ struct vec2d {
 
     static __m128d load_xmm(const double_t data);
     static __m128d load_xmm(const vec2d& data);
-    static __m128d load_xmm(const vec2d&& data);
     static vec2d store_xmm(const __m128d& data);
-    static vec2d store_xmm(const __m128d&& data);
 
     static double_t angle(const vec2d& left, const vec2d& right);
     static double_t dot(const vec2d& left, const vec2d& right);
@@ -524,17 +510,7 @@ inline __m128 vec2::load_xmm(const vec2& data) {
     return _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
 }
 
-inline __m128 vec2::load_xmm(const vec2&& data) {
-    return _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data));
-}
-
 inline vec2 vec2::store_xmm(const __m128& data) {
-    vec2 _data;
-    _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
-    return _data;
-}
-
-inline vec2 vec2::store_xmm(const __m128&& data) {
     vec2 _data;
     _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
     return _data;
@@ -971,18 +947,7 @@ inline __m128 vec3::load_xmm(const vec3& data) {
     return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_load_ss(&data.z));
 }
 
-inline __m128 vec3::load_xmm(const vec3&& data) {
-    return _mm_movelh_ps(_mm_castsi128_ps(_mm_loadl_epi64((const __m128i*) & data)), _mm_load_ss(&data.z));
-}
-
 inline vec3 vec3::store_xmm(const __m128& data) {
-    vec3 _data;
-    _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
-    _mm_store_ss(&_data.z, _mm_castsi128_ps(_mm_srli_si128(_mm_castps_si128(data), 8)));
-    return _data;
-}
-
-inline vec3 vec3::store_xmm(const __m128&& data) {
     vec3 _data;
     _mm_storel_epi64((__m128i*) & _data, _mm_castps_si128(data));
     _mm_store_ss(&_data.z, _mm_castsi128_ps(_mm_srli_si128(_mm_castps_si128(data), 8)));
@@ -1316,17 +1281,7 @@ inline __m128 vec4::load_xmm(const vec4& data) {
     return _mm_loadu_ps((const float*)&data);
 }
 
-inline __m128 vec4::load_xmm(const vec4&& data) {
-    return _mm_loadu_ps((const float*)&data);
-}
-
 inline vec4 vec4::store_xmm(const __m128& data) {
-    vec4 _data;
-    _mm_storeu_ps((float*)&_data, data);
-    return _data;
-}
-
-inline vec4 vec4::store_xmm(const __m128&& data) {
     vec4 _data;
     _mm_storeu_ps((float*)&_data, data);
     return _data;
@@ -1530,17 +1485,7 @@ inline __m128i vec2i::load_xmm(const vec2i& data) {
     return _mm_loadl_epi64((const __m128i*) & data);
 }
 
-inline __m128i vec2i::load_xmm(const vec2i&& data) {
-    return _mm_loadl_epi64((const __m128i*) & data);
-}
-
 inline vec2i vec2i::store_xmm(const __m128i& data) {
-    vec2i _data;
-    _mm_storel_epi64((__m128i*) & _data, data);
-    return _data;
-}
-
-inline vec2i vec2i::store_xmm(const __m128i&& data) {
     vec2i _data;
     _mm_storel_epi64((__m128i*) & _data, data);
     return _data;
@@ -1609,18 +1554,7 @@ inline __m128i vec3i::load_xmm(const vec3i& data) {
     return _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) & data), _mm_cvtsi32_si128(data.z));
 }
 
-inline __m128i vec3i::load_xmm(const vec3i&& data) {
-    return _mm_unpacklo_epi64(_mm_loadl_epi64((const __m128i*) & data), _mm_cvtsi32_si128(data.z));
-}
-
 inline vec3i vec3i::store_xmm(const __m128i& data) {
-    vec3i _data;
-    _mm_storel_epi64((__m128i*) & _data, data);
-    _data.z = _mm_cvtsi128_si32(_mm_srli_si128(data, 8));
-    return _data;
-}
-
-inline vec3i vec3i::store_xmm(const __m128i&& data) {
     vec3i _data;
     _mm_storel_epi64((__m128i*) & _data, data);
     _data.z = _mm_cvtsi128_si32(_mm_srli_si128(data, 8));
@@ -1690,17 +1624,7 @@ inline __m128i vec4i::load_xmm(const vec4i& data) {
     return _mm_loadu_si128((const __m128i*) & data);
 }
 
-inline __m128i vec4i::load_xmm(const vec4i&& data) {
-    return _mm_loadu_si128((const __m128i*) & data);
-}
-
 inline vec4i vec4i::store_xmm(const __m128i& data) {
-    vec4i _data;
-    _mm_storeu_si128((__m128i*) & _data, data);
-    return _data;
-}
-
-inline vec4i vec4i::store_xmm(const __m128i&& data) {
     vec4i _data;
     _mm_storeu_si128((__m128i*) & _data, data);
     return _data;
@@ -1745,17 +1669,7 @@ inline __m128d vec2d::load_xmm(const vec2d& data) {
     return _mm_loadu_pd((const double_t*) & data);
 }
 
-inline __m128d vec2d::load_xmm(const vec2d&& data) {
-    return _mm_loadu_pd((const double_t*) & data);
-}
-
 inline vec2d vec2d::store_xmm(const __m128d& data) {
-    vec2d _data;
-    _mm_storeu_pd((double_t*) & _data, data);
-    return _data;
-}
-
-inline vec2d vec2d::store_xmm(const __m128d&& data) {
     vec2d _data;
     _mm_storeu_pd((double_t*) & _data, data);
     return _data;

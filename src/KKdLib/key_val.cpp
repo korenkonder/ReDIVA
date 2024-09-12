@@ -804,21 +804,17 @@ void key_val_out::write(stream& s, const char* value) {
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string& value) {
+void key_val_out::write(stream& s, const std::string& value) {
     s.write_string(*curr_scope);
     s.write_char('=');
     s.write_string(value);
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, vec3& value) {
+void key_val_out::write(stream& s, const vec3& value) {
     write(s, "x", value.x);
     write(s, "y", value.y);
     write(s, "z", value.z);
-}
-
-void key_val_out::write(stream& s, vec3&& value) {
-    write(s, *(vec3*)&value);
 }
 
 void key_val_out::write(stream& s, const char* key, bool value) {
@@ -951,7 +947,7 @@ void key_val_out::write(stream& s, std::string& key, const char* value) {
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, const char* key, std::string& value) {
+void key_val_out::write(stream& s, const char* key, const std::string& value) {
     if (curr_scope->size()) {
         s.write_string(*curr_scope);
         s.write_char('.');
@@ -962,7 +958,7 @@ void key_val_out::write(stream& s, const char* key, std::string& value) {
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, std::string& key, std::string& value) {
+void key_val_out::write(stream& s, std::string& key, const std::string& value) {
     if (curr_scope->size()) {
         s.write_string(*curr_scope);
         s.write_char('.');
@@ -973,7 +969,7 @@ void key_val_out::write(stream& s, std::string& key, std::string& value) {
     s.write_char('\n');
 }
 
-void key_val_out::write(stream& s, const char* key, vec3& value) {
+void key_val_out::write(stream& s, const char* key, const  vec3& value) {
     open_scope(key);
     write(s, "x", value.x);
     write(s, "y", value.y);
@@ -981,20 +977,12 @@ void key_val_out::write(stream& s, const char* key, vec3& value) {
     close_scope();
 }
 
-void key_val_out::write(stream& s, std::string& key, vec3& value) {
+void key_val_out::write(stream& s, std::string& key, const vec3& value) {
     open_scope(key);
     write(s, "x", value.x);
     write(s, "y", value.y);
     write(s, "z", value.z);
     close_scope();
-}
-
-void key_val_out::write(stream& s, const char* key, vec3&& value) {
-    write(s, key, *(vec3*)&value);
-}
-
-void key_val_out::write(stream& s, std::string& key, vec3&& value) {
-    write(s, key, *(vec3*)&value);
 }
 
 void key_val_out::get_lexicographic_order(std::vector<int32_t>& vec, int32_t length) {

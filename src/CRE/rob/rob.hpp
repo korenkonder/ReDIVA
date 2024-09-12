@@ -1604,7 +1604,7 @@ struct opd_node_data_pair {
 
     opd_node_data_pair();
 
-    void set_data(opd_blend_data* blend_data, opd_node_data&& node_data);
+    void set_data(opd_blend_data* blend_data, const opd_node_data& node_data);
 };
 
 struct RobOsageNode {

@@ -12,7 +12,7 @@ namespace prj {
         return start_of_2005;
     }
 
-    prj::time strptime(std::string& str) {
+    prj::time strptime(const std::string& str) {
         int32_t year;
         int32_t month;
         int32_t day;
@@ -31,9 +31,5 @@ namespace prj {
             return prj::time(_mkgmtime(&time));
         }
         return {};
-    }
-
-    prj::time strptime(std::string&& str) {
-        return strptime(str);
     }
 }

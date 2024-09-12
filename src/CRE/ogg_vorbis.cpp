@@ -583,7 +583,7 @@ void OggFileHandler::SetMasterVolume(int32_t value) {
     master_volume = value;
 }
 
-void OggFileHandler::SetPath(std::string& path) {
+void OggFileHandler::SetPath(const std::string& path) {
     std::unique_lock<std::mutex> u_lock(mtx);
     file_state = OGG_FILE_HANDLER_FILE_STATE_LOADING;
     playback_state = OGG_FILE_HANDLER_PLAYBACK_STATE_LOAD;
@@ -710,7 +710,7 @@ void p_OggFileHandler::SetMasterVolume(int32_t value) {
         ptr->SetMasterVolume(value);
 }
 
-void p_OggFileHandler::SetPath(std::string& path) {
+void p_OggFileHandler::SetPath(const std::string& path) {
     if (ptr)
         ptr->SetPath(path);
 }
@@ -818,7 +818,7 @@ void OggPlayback::SetMasterVolume(int32_t value) {
         ogg_file_handler->SetMasterVolume(value);
 }
 
-void OggPlayback::SetPath(std::string& path) {
+void OggPlayback::SetPath(const std::string& path) {
     data_list[DATA_AFT].load_file(this, path.c_str(), OggPlayback::LoadFile);
 }
 

@@ -405,7 +405,7 @@ opd_node_data_pair::opd_node_data_pair() {
 
 }
 
-void opd_node_data_pair::set_data(opd_blend_data* blend_data, opd_node_data&& node_data) {
+void opd_node_data_pair::set_data(opd_blend_data* blend_data, const opd_node_data& node_data) {
     if (!blend_data->use_blend)
         curr = node_data;
     else if (blend_data->type == MOTION_BLEND_FREEZE) {

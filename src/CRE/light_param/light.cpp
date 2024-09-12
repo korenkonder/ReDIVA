@@ -68,22 +68,7 @@ void light_data::set_ambient(const vec4& value) {
     ambient = value;
 }
 
-void light_data::set_ambient(const vec4&& value) {
-    ambient = value;
-}
-
 void light_data::set_ambient(const vec4& value, bool set[4]) {
-    if (set[0])
-        ambient.x = value.x;
-    if (set[1])
-        ambient.y = value.y;
-    if (set[2])
-        ambient.z = value.z;
-    if (set[3])
-        ambient.w = value.w;
-}
-
-void light_data::set_ambient(const vec4&& value, bool set[4]) {
     if (set[0])
         ambient.x = value.x;
     if (set[1])
@@ -102,22 +87,7 @@ void light_data::set_diffuse(const vec4& value) {
     diffuse = value;
 }
 
-void light_data::set_diffuse(const vec4&& value) {
-    diffuse = value;
-}
-
 void light_data::set_diffuse(const vec4& value, bool set[4]) {
-    if (set[0])
-        diffuse.x = value.x;
-    if (set[1])
-        diffuse.y = value.y;
-    if (set[2])
-        diffuse.z = value.z;
-    if (set[3])
-        diffuse.w = value.w;
-}
-
-void light_data::set_diffuse(const vec4&& value, bool set[4]) {
     if (set[0])
         diffuse.x = value.x;
     if (set[1])
@@ -136,22 +106,7 @@ void light_data::set_specular(const vec4& value) {
     specular = value;
 }
 
-void light_data::set_specular(const vec4&& value) {
-    specular = value;
-}
-
 void light_data::set_specular(const vec4& value, bool set[4]) {
-    if (set[0])
-        specular.x = value.x;
-    if (set[1])
-        specular.y = value.y;
-    if (set[2])
-        specular.z = value.z;
-    if (set[3])
-        specular.w = value.w;
-}
-
-void light_data::set_specular(const vec4&& value, bool set[4]) {
     if (set[0])
         specular.x = value.x;
     if (set[1])
@@ -170,10 +125,6 @@ void light_data::set_position(const vec3& value) {
     *(vec3*)&position = value;
 }
 
-void light_data::set_position(const vec3&& value) {
-    *(vec3*)&position = value;
-}
-
 void light_data::get_position(vec4& value) const {
     value = position;
 }
@@ -182,19 +133,11 @@ void light_data::set_position(const vec4& value) {
     position = value;
 }
 
-void light_data::set_position(const vec4&& value) {
-    position = value;
-}
-
 void light_data::get_spot_direction(vec3& value) const {
     value = spot_direction;
 }
 
 void light_data::set_spot_direction(const vec3& value) {
-    spot_direction = value;
-}
-
-void light_data::set_spot_direction(const vec3&& value) {
     spot_direction = value;
 }
 
@@ -246,19 +189,11 @@ void light_data::set_attenuation(const light_attenuation& value) {
     attenuation = value;
 }
 
-void light_data::set_attenuation(const light_attenuation&& value) {
-    attenuation = value;
-}
-
 void light_data::get_ibl_color0(vec4& value) const {
     value = ibl_color0;
 }
 
 void light_data::set_ibl_color0(const vec4& value) {
-    ibl_color0 = value;
-}
-
-void light_data::set_ibl_color0(const vec4&& value) {
     ibl_color0 = value;
 }
 
@@ -270,19 +205,11 @@ void light_data::set_ibl_color1(const vec4& value) {
     ibl_color1 = value;
 }
 
-void light_data::set_ibl_color1(const vec4&& value) {
-    ibl_color1 = value;
-}
-
 void light_data::get_ibl_direction(vec4& value) const {
     value = ibl_direction;
 }
 
 void light_data::set_ibl_direction(const vec4& value) {
-    ibl_direction = value;
-}
-
-void light_data::set_ibl_direction(const vec4&& value) {
     ibl_direction = value;
 }
 
@@ -294,19 +221,11 @@ void light_data::set_tone_curve(const light_tone_curve& value) {
     tone_curve = value;
 }
 
-void light_data::set_tone_curve(const light_tone_curve&& value) {
-    tone_curve = value;
-}
-
 void light_data::get_clip_plane(light_clip_plane& value) const {
     value = clip_plane;
 }
 
 void light_data::set_clip_plane(const light_clip_plane& value) {
-    clip_plane = value;
-}
-
-void light_data::set_clip_plane(const light_clip_plane&& value) {
     clip_plane = value;
 }
 

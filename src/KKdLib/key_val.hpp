@@ -105,9 +105,8 @@ struct key_val_out {
     void write(stream& s, int32_t value);
     void write(stream& s, uint32_t value);
     void write(stream& s, const char* value);
-    void write(stream& s, std::string& value);
-    void write(stream& s, vec3& value);
-    void write(stream& s, vec3&& value);
+    void write(stream& s, const std::string& value);
+    void write(stream& s, const vec3& value);
     void write(stream& s, const char* key, bool value);
     void write(stream& s, std::string& key, bool value);
     void write(stream& s, const char* key, float_t value, const char* fmt = "%g");
@@ -118,12 +117,10 @@ struct key_val_out {
     void write(stream& s, std::string& key, uint32_t value);
     void write(stream& s, const char* key, const char* value);
     void write(stream& s, std::string& key, const char* value);
-    void write(stream& s, const char* key, std::string& value);
-    void write(stream& s, std::string& key, std::string& value);
-    void write(stream& s, const char* key, vec3& value);
-    void write(stream& s, std::string& key, vec3& value);
-    void write(stream& s, const char* key, vec3&& value);
-    void write(stream& s, std::string& key, vec3&& value);
+    void write(stream& s, const char* key, const std::string& value);
+    void write(stream& s, std::string& key, const std::string& value);
+    void write(stream& s, const char* key, const vec3& value);
+    void write(stream& s, std::string& key, const vec3& value);
 
     static void get_lexicographic_order(std::vector<int32_t>& vec, int32_t length);
 };

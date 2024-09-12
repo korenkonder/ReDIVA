@@ -24,8 +24,6 @@ struct face {
     void set_scale(float_t value);
     void get_position(vec3& value) const;
     void set_position(const vec3& value);
-    void set_position(const vec3&& value);
     void get_direction(vec3& value) const;
     void set_direction(const vec3& value);
-    void set_direction(const vec3&& value);
 };
