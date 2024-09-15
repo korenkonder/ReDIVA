@@ -18,6 +18,7 @@
 #include "data_test/auth_2d_test.hpp"
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/glitter_test.hpp"
+#include "data_test/misc_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/object_test.hpp"
 #include "data_test/opd_test.hpp"
@@ -1501,6 +1502,7 @@ bool SubGameState::DataTestMain::Dest() {
 }
 
 bool SubGameState::DataTestMisc::Init() {
+    app::TaskWork::add_task(task_data_test_misc, "DATA_TEST_MISC");
     return true;
 }
 
@@ -1509,6 +1511,7 @@ bool SubGameState::DataTestMisc::Ctrl() {
 }
 
 bool SubGameState::DataTestMisc::Dest() {
+    task_data_test_misc->del();
     return true;
 }
 

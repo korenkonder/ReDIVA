@@ -59,6 +59,7 @@
 #include "data_test/auth_3d_test.hpp"
 #include "data_test/equip_test.hpp"
 #include "data_test/glitter_test.hpp"
+#include "data_test/misc_test.hpp"
 #include "data_test/motion_test.hpp"
 #include "data_test/object_test.hpp"
 #include "data_test/opd_test.hpp"
@@ -834,6 +835,7 @@ static render_context* render_context_load() {
     rob_osage_test_init();
     rob_chara_adjust_init();
     task_data_test_glitter_particle_init();
+    task_data_test_misc_init();
     x_pv_game_data_init();
 
     osage_play_database_load();
@@ -1709,6 +1711,7 @@ static void render_context_dispose(render_context* rctx) {
     light_param_data_storage_data_unload();
 
     x_pv_game_data_free();
+    task_data_test_misc_free();
     task_data_test_glitter_particle_free();
     rob_chara_adjust_free();
     rob_osage_test_free();

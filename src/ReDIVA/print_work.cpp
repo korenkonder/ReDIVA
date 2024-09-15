@@ -717,6 +717,7 @@ namespace app {
 
             size_t line_length = print_work->line_length;
             for (const wchar_t* i = str_begin; i != str_end; ) {
+                size_t str_length = str_end - i;
                 size_t length = str_end - i;
                 if (line_length)
                     length = min_def(length, line_length);
@@ -755,7 +756,7 @@ namespace app {
                         }
                     }
 
-                    if (_length + 1 < line_length)
+                    if (_length + 1 < str_length)
                         i += _length + 1;
                     else
                         i = str_end;
@@ -764,7 +765,7 @@ namespace app {
                     _str_begin = i;
                     _str_end = i + length;
 
-                    if (length < line_length)
+                    if (length < str_length)
                         i += length;
                     else
                         i = str_end;
