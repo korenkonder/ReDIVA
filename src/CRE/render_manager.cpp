@@ -1538,7 +1538,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
         gl_state_bind_texture_2d(rend->rend_texture[0].GetColorTex());
-        gl_state_bind_sampler(0, rctx->render_samplers[1]);
+        gl_state_bind_sampler(0, rctx->render_samplers[0]);
         rctx->render.draw_quad(640, 360, 1.0f, 1.0f,
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
