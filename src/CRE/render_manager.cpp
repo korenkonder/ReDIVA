@@ -600,7 +600,6 @@ namespace rndr {
             uniform_value[U_REFLECT] = 0;
             rctx->draw_state->shader_index = -1;
 
-            refl_buf_tex.Bind();
             for (int32_t i = reflect_blur_num, j = 0; i > 0; i--, j++) {
                 blur_filter_apply(rctx, &refl_buf_tex, &refl_tex,
                     reflect_blur_filter, 1.0f, 1.0f, 0.0f);
@@ -1101,9 +1100,9 @@ void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
     render_context* rctx = rctx_ptr;
 
     gl_state_begin_event("`anonymous-namespace'::Impl::apply_no_filter_sub");
-    gl_state_set_viewport(0, 0, dst->color_texture->width, dst->color_texture->height);
 
     dst->Bind();
+    dst->SetViewport();
 
     filter_scene_shader_data filter_scene = {};
     filter_scene.g_transform = { 1.0f, 1.0f, 0.0f, 0.0f };
@@ -1249,7 +1248,6 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int
     image_filter_scale(rend_tex,
         shad->curr_render_textures[0]->color_texture);
 
-    rend_buf_tex.Bind();
     if (shad->blur_filter_enable[index]) {
         for (int32_t i = shad->near_blur, j = 0; i > 0; i--, j++) {
             blur_filter_apply(rctx, &rend_buf_tex, rend_tex,
@@ -1258,6 +1256,7 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int
         }
     }
     else {
+        rend_buf_tex.Bind();
         glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
     }
@@ -1773,6 +1772,10 @@ static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTe
         return;
 
     gl_state_begin_event("`anonymous-namespace'::Impl::apply_blur_filter_sub");
+
+    dst->Bind();
+    dst->SetViewport();
+
     filter_scene_shader_data filter_scene = {};
     float_t w = res_scale.x / (float_t)src->GetWidth();
     float_t h = res_scale.y / (float_t)src->GetHeight();
