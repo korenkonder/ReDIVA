@@ -1146,7 +1146,7 @@ void AetObj::CtrlLayer(const aet_layer* layer, float_t frame) {
                 path_count++;
             }
 
-        if (path_count != -1)
+        if (path_count != 1)
             path.clear();
     }
     else
