@@ -15,6 +15,8 @@ bool sv_anisotropy_changed = false;
 int32_t sv_old_anisotropy = 1;
 int32_t sv_anisotropy = 1;
 
+bool sv_better_reflect = false;
+
 int32_t uniform_value[U_MAX];
 
 const vec3 sv_rgb_to_luma = {

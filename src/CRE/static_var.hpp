@@ -114,6 +114,8 @@ extern int32_t sv_min_storage_buffer_alignment;
 extern bool sv_anisotropy_changed;
 extern int32_t sv_anisotropy;
 
+extern bool sv_better_reflect;
+
 extern int32_t uniform_value[U_MAX];
 
 extern const vec3 sv_rgb_to_luma;

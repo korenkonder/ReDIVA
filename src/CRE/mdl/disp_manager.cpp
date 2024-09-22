@@ -6,6 +6,7 @@
 #include "disp_manager.hpp"
 #include "../../KKdLib/database/stage.hpp"
 #include "../Glitter/glitter.hpp"
+#include "../config.hpp"
 #include "../render_context.hpp"
 #include "../shader_ft.hpp"
 #include "draw_object.hpp"
@@ -2055,25 +2056,31 @@ namespace mdl {
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
             gl_state_set_cull_face_mode(GL_FRONT);
-            if (reflect)
-                func = draw_sub_mesh_reflect;
-            else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                func = draw_sub_mesh_reflect_reflect_map;
+            if (!sv_better_reflect) {
+                if (reflect)
+                    func = draw_sub_mesh_reflect;
+                else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
+                    func = draw_sub_mesh_reflect_reflect_map;
+            }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
             gl_state_set_cull_face_mode(GL_FRONT);
-            if (reflect)
-                func = draw_sub_mesh_reflect;
-            else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                func = draw_sub_mesh_reflect_reflect_map;
+            if (!sv_better_reflect) {
+                if (reflect)
+                    func = draw_sub_mesh_reflect;
+                else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
+                    func = draw_sub_mesh_reflect_reflect_map;
+            }
             min_alpha = 0.0f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
             gl_state_set_cull_face_mode(GL_FRONT);
-            if (reflect)
-                func = draw_sub_mesh_reflect;
-            else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
-                func = draw_sub_mesh_reflect_reflect_map;
+            if (!sv_better_reflect) {
+                if (reflect)
+                    func = draw_sub_mesh_reflect;
+                else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
+                    func = draw_sub_mesh_reflect_reflect_map;
+            }
             alpha_test = 1;
             min_alpha = 0.1f;
             alpha_threshold = 0.5f;
@@ -2233,6 +2240,29 @@ namespace mdl {
     }*/
 
     void DispManager::entry_list(ObjType type, ObjData* data) {
+        if (sv_better_reflect && type == OBJ_TYPE_REFLECT_CHARA_OPAQUE && data->kind == OBJ_KIND_NORMAL) {
+            const obj_sub_mesh* sub_mesh = data->args.sub_mesh.sub_mesh;
+            const obj_material_data* material = data->args.sub_mesh.material;
+            obj_material_attrib_member attrib = material->material.attrib.m;
+            if (!(obj_flags & (mdl::OBJ_ALPHA_ORDER_1 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_3))
+                || data->args.sub_mesh.blend_color.w >= 1.0f) {
+                if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
+                    && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
+                    && !sub_mesh->attrib.m.transparent) {
+                    if (attrib.punch_through && (obj_flags & mdl::OBJ_CHARA_REFLECT)) {
+                        obj[OBJ_TYPE_REFLECT_CHARA_TRANSPARENT].push_back(data);
+                        return;
+                    }
+                }
+                else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
+                    if (!attrib.translucent_priority && (obj_flags & mdl::OBJ_CHARA_REFLECT)) {
+                        obj[OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT].push_back(data);
+                        return;
+                    }
+                }
+            }
+        }
+
         obj[type].push_back(data);
     }
 
