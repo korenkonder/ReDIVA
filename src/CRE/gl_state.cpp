@@ -422,6 +422,12 @@ void gl_state_get() {
     glGetIntegerv(GL_SCISSOR_BOX, (GLint*)&gl_state.scissor_box);
     glGetBooleanv(GL_SCISSOR_TEST, &gl_state.scissor_test);
     glGetBooleanv(GL_STENCIL_TEST, &gl_state.stencil_test);
+    glGetIntegerv(GL_STENCIL_FUNC, (GLint*)&gl_state.stencil_func);
+    glGetIntegerv(GL_STENCIL_VALUE_MASK, (GLint*)&gl_state.stencil_value_mask);
+    glGetIntegerv(GL_STENCIL_FAIL, (GLint*)&gl_state.stencil_fail);
+    glGetIntegerv(GL_STENCIL_PASS_DEPTH_FAIL, (GLint*)&gl_state.stencil_dpfail);
+    glGetIntegerv(GL_STENCIL_PASS_DEPTH_PASS, (GLint*)&gl_state.stencil_dppass);
+    glGetIntegerv(GL_STENCIL_REF, &gl_state.stencil_ref);
     glGetIntegerv(GL_STENCIL_WRITEMASK, (GLint*)&gl_state.stencil_mask);
     glGetIntegerv(GL_VIEWPORT, (GLint*)&gl_state.viewport);
 
@@ -642,6 +648,19 @@ void gl_state_set_scissor(GLint x, GLint y, GLsizei width, GLsizei height, bool 
     }
 }
 
+void gl_state_set_stencil_func(GLenum func, GLint ref, GLuint mask, bool force) {
+    if (force || gl_state.stencil_func != func
+        || gl_state.stencil_ref != ref || gl_state.stencil_value_mask != mask) {
+#ifdef USE_OPENGL
+        if (!Vulkan::use)
+            glStencilFunc(func, ref, mask);
+#endif
+        gl_state.stencil_func = func;
+        gl_state.stencil_ref = ref;
+        gl_state.stencil_value_mask = mask;
+    }
+}
+
 void gl_state_set_stencil_mask(GLuint mask, bool force) {
     if (force || gl_state.stencil_mask != mask) {
 #ifdef USE_OPENGL
@@ -649,6 +668,19 @@ void gl_state_set_stencil_mask(GLuint mask, bool force) {
             glStencilMask(mask);
 #endif
         gl_state.stencil_mask = mask;
+    }
+}
+
+void gl_state_set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass, bool force) {
+    if (force || gl_state.stencil_fail != sfail
+        || gl_state.stencil_dpfail != dpfail || gl_state.stencil_dppass != dppass) {
+#ifdef USE_OPENGL
+        if (!Vulkan::use)
+            glStencilOp(sfail, dpfail, dppass);
+#endif
+        gl_state.stencil_fail = sfail;
+        gl_state.stencil_dpfail = dpfail;
+        gl_state.stencil_dppass = dppass;
     }
 }
 

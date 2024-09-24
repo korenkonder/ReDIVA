@@ -57,7 +57,13 @@ struct gl_state_struct {
     gl_state_rect scissor_box;
     GLboolean scissor_test;
     GLboolean stencil_test;
+    GLenum stencil_func;
+    GLenum stencil_fail;
+    GLenum stencil_dpfail;
+    GLenum stencil_dppass;
     GLuint stencil_mask;
+    GLint stencil_ref;
+    GLuint stencil_value_mask;
     gl_state_rect viewport;
 };
 
@@ -128,7 +134,9 @@ extern void gl_state_set_polygon_mode(GLenum face, GLenum mode, bool force = fal
 extern void gl_state_set_primitive_restart_index(GLuint index, bool force = false);
 extern void gl_state_set_scissor(const gl_state_rect& rect, bool force = false);
 extern void gl_state_set_scissor(GLint x, GLint y, GLsizei width, GLsizei height, bool force = false);
+extern void gl_state_set_stencil_func(GLenum func, GLint ref, GLuint mask, bool force = false);
 extern void gl_state_set_stencil_mask(GLuint mask, bool force = false);
+extern void gl_state_set_stencil_op(GLenum sfail, GLenum dpfail, GLenum dppass, bool force = false);
 extern void gl_state_set_viewport(const gl_state_rect& rect, bool force = false);
 extern void gl_state_set_viewport(GLint x, GLint y, GLsizei width, GLsizei height, bool force = false);
 extern void gl_state_use_program(GLuint program, bool force = false);
