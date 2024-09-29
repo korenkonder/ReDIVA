@@ -24,7 +24,7 @@
 #include "static_var.hpp"
 #include "texture.hpp"
 
-#define REFLECT_STENCIL (0)
+#define REFLECT_STENCIL (1)
 
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);
@@ -499,7 +499,12 @@ namespace rndr {
             //}
 
             glClearColor(sss->param.x, sss->param.y, sss->param.z, 0.0f);
+#if REFLECT_STENCIL
+            glClearStencil(0x00);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+#else
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#endif
 
             draw_pass_set_camera();
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
@@ -688,17 +693,21 @@ namespace rndr {
                 rctx->fog[i].data_set((fog_id)i);
 
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+#if REFLECT_STENCIL
+            glClearStencil(0x00);
+#endif
             if (sv_better_reflect && rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
                 glClear(GL_COLOR_BUFFER_BIT);
             else
+#if REFLECT_STENCIL
+                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+#else
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#endif
 
 #if REFLECT_STENCIL
             if (sv_better_reflect) {
                 gl_state_set_stencil_mask(0xFF);
-
-                glClearStencil(0x00);
-                glClear(GL_STENCIL_BUFFER_BIT);
 
                 rctx->draw_state->shader_index = SHADER_FT_SIL;
 
@@ -706,15 +715,30 @@ namespace rndr {
                 gl_state_set_depth_func(GL_LEQUAL);
                 gl_state_set_depth_mask(GL_TRUE);
 
-                gl_state_enable_stencil_test();
-                gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_REPLACE);
-                gl_state_set_stencil_func(GL_ALWAYS, 0x01, 0xFF);
-
-                gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
                 draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_OPAQUE);
                 draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT);
                 draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS);
                 draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSPARENT);
+
+                fbo_blit(refl_tex.fbos[0], refl_buf_tex.fbos[0],
+                    0, 0, refl_tex.GetWidth(), refl_tex.GetHeight(),
+                    0, 0, refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(),
+                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+                refl_tex.Bind();
+                glClear(GL_COLOR_BUFFER_BIT);
+
+                gl_state_enable_stencil_test();
+                gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_REPLACE);
+                gl_state_set_stencil_func(GL_ALWAYS, 0x01, 0x01);
+
+                gl_state_bind_texture_2d(refl_buf_tex.GetColorTex());
+                gl_state_bind_sampler(0, rctx->render_samplers[0]);
+
+                gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+                shaders_ft.set(SHADER_FT_REFLECT_STENCIL);
+                rctx->render.draw_quad(refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(), 1.0f, 1.0f,
+                    0.0f, 0.0f, 6.0f, 1.0f, 1.0f, 1.0f, 1.0f);
                 gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 
                 gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_KEEP);
@@ -2066,9 +2090,7 @@ static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
             case SHADER_FT_WATER01:
             case SHADER_FT_FLOOR:
             case SHADER_FT_PUDDLE:
-                mat4 mat;
-                mat4_scale_rot(&i->mat, 1.1f, &mat);
-                draw_sub_mesh(rctx, &i->args.sub_mesh, &mat, mdl::draw_sub_mesh_default);
+                draw_sub_mesh(rctx, &i->args.sub_mesh, &i->mat, mdl::draw_sub_mesh_default);
                 break;
             }
         } break;
@@ -2078,9 +2100,7 @@ static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
                 case SHADER_FT_WATER01:
                 case SHADER_FT_FLOOR:
                 case SHADER_FT_PUDDLE:
-                    mat4 mat;
-                    mat4_scale_rot(&i->mat, 1.1f, &mat);
-                    draw_sub_mesh(rctx, i->args.translucent.sub_mesh[j], &mat, mdl::draw_sub_mesh_default);
+                    draw_sub_mesh(rctx, i->args.translucent.sub_mesh[j], &i->mat, mdl::draw_sub_mesh_default);
                     break;
                 }
         } break;

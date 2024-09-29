@@ -45,7 +45,7 @@ namespace Vulkan {
         VkPipelineLayout layout, VkRenderPass render_pass);
     extern prj::shared_ptr<Vulkan::RenderPass> manager_get_render_pass(
         GLenum* color_formats, uint32_t color_format_count,
-        GLenum depth_format, bool depth_read_only, bool stencil = false);
+        GLenum depth_format, bool depth_read_only);
     extern prj::shared_ptr<Vulkan::Sampler> manager_get_sampler(const gl_sampler& sampler_data);
     Vulkan::Buffer manager_get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment);
     Vulkan::Buffer manager_get_staging_buffer(VkDeviceSize size, VkDeviceSize alignment = 0x40);

@@ -74,6 +74,7 @@ namespace Vulkan {
 
         vec4 clear_color;
         float_t clear_depth;
+        int32_t clear_stencil;
         int32_t pack_alignment;
         int32_t unpack_alignment;
         GLuint query_samples_passed;
@@ -122,6 +123,7 @@ namespace Vulkan {
     static void gl_wrap_manager_clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value);
     static void gl_wrap_manager_clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
     static void gl_wrap_manager_clear_depth(GLfloat depth);
+    static void gl_wrap_manager_clear_stencil(GLint s);
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
         GLenum buffer, GLint drawbuffer, const GLfloat* value);
     static void gl_wrap_manager_compressed_tex_image_2d(GLenum target, GLint level,
@@ -963,7 +965,13 @@ namespace Vulkan {
         gl_state.scissor_box.height = 0;
         gl_state.scissor_test = GL_FALSE;
         gl_state.stencil_test = GL_FALSE;
-        gl_state.stencil_mask = 0xFFFFFFFF;
+        gl_state.stencil_func = GL_ALWAYS;
+        gl_state.stencil_fail = GL_KEEP;
+        gl_state.stencil_dpfail = GL_KEEP;
+        gl_state.stencil_dppass = GL_KEEP;
+        gl_state.stencil_mask = 0x01;
+        gl_state.stencil_ref = 0x00;
+        gl_state.stencil_value_mask = 0x01;
         gl_state.viewport.x = 0;
         gl_state.viewport.y = 0;
         gl_state.viewport.width = 0;
@@ -1017,6 +1025,7 @@ namespace Vulkan {
         glClearBufferfv = gl_wrap_manager_clear_buffer;
         glClearColor = gl_wrap_manager_clear_color;
         glClearDepthf = gl_wrap_manager_clear_depth;
+        glClearStencil = gl_wrap_manager_clear_stencil;
         glCompressedTexImage2D = gl_wrap_manager_compressed_tex_image_2d;
         glCompressedTexSubImage2D = gl_wrap_manager_compressed_tex_sub_image_2d;
         glCopyImageSubData = gl_wrap_manager_copy_image_sub_data;
@@ -1302,6 +1311,29 @@ namespace Vulkan {
             return VK_POLYGON_MODE_FILL;
         default:
             return VK_POLYGON_MODE_MAX_ENUM;
+        }
+    }
+
+    VkStencilOp get_stencil_op(GLenum op) {
+        switch (op) {
+        case GL_KEEP:
+            return VK_STENCIL_OP_KEEP;
+        case GL_ZERO:
+            return VK_STENCIL_OP_ZERO;
+        case GL_REPLACE:
+            return VK_STENCIL_OP_REPLACE;
+        case GL_INCR:
+            return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+        case GL_DECR:
+            return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+        case GL_INVERT:
+            return VK_STENCIL_OP_INVERT;
+        case GL_INCR_WRAP:
+            return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+        case GL_DECR_WRAP:
+            return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+        default:
+            return VK_STENCIL_OP_MAX_ENUM;
         }
     }
 
@@ -1598,6 +1630,7 @@ namespace Vulkan {
         texture_counter(), vertex_array_counter(), query_samples_passed() {
         clear_color = 0.0f;
         clear_depth = 1.0f;
+        clear_stencil = 0x00;
         pack_alignment = 4;
         unpack_alignment = 4;
     }
@@ -2295,7 +2328,7 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_clear(GLbitfield mask) {
-        if (mask & ~(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)) {
+        if (mask & ~(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT)) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
@@ -2359,7 +2392,7 @@ namespace Vulkan {
 
                 VkClearDepthStencilValue clear_depth_stencil_value;
                 clear_depth_stencil_value.depth = gl_wrap_manager_ptr->clear_depth;
-                clear_depth_stencil_value.stencil = 0;
+                clear_depth_stencil_value.stencil = gl_wrap_manager_ptr->clear_stencil;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = aspect_mask;
@@ -2394,6 +2427,10 @@ namespace Vulkan {
 
     static void gl_wrap_manager_clear_depth(GLfloat depth) {
         gl_wrap_manager_ptr->clear_depth = depth;
+    }
+
+    static void gl_wrap_manager_clear_stencil(GLint s) {
+        gl_wrap_manager_ptr->clear_stencil = s;
     }
 
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
@@ -3103,7 +3140,7 @@ namespace Vulkan {
 
     static void gl_wrap_manager_framebuffer_texture(GLenum target,
         GLenum attachment, GLuint texture, GLint level) {
-        if (target != GL_FRAMEBUFFER || attachment < GL_COLOR_ATTACHMENT0
+        if (target != GL_FRAMEBUFFER || attachment < GL_COLOR_ATTACHMENT0 && attachment != GL_DEPTH_STENCIL_ATTACHMENT
             || (attachment > GL_COLOR_ATTACHMENT0 + Vulkan::MAX_COLOR_ATTACHMENTS
                 && attachment != GL_DEPTH_ATTACHMENT)) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3128,7 +3165,7 @@ namespace Vulkan {
             return;
         }
 
-        if (attachment == GL_DEPTH_ATTACHMENT) {
+        if (attachment == GL_DEPTH_ATTACHMENT || attachment == GL_DEPTH_STENCIL_ATTACHMENT) {
             vk_fbo->depth_attachment = texture;
             vk_fbo->depth_attachment_level = texture ? level : 0;
             vk_fbo->update_depth_attachment = true;
@@ -3485,6 +3522,7 @@ namespace Vulkan {
         case GL_RGB:
         case GL_RGBA:
         case GL_DEPTH_COMPONENT:
+        case GL_DEPTH_STENCIL:
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3920,6 +3958,7 @@ namespace Vulkan {
         case GL_RGB:
         case GL_RGBA:
         case GL_DEPTH_COMPONENT:
+        case GL_DEPTH_STENCIL:
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3934,6 +3973,7 @@ namespace Vulkan {
         case GL_UNSIGNED_SHORT_5_6_5_REV:
         case GL_UNSIGNED_SHORT_4_4_4_4_REV:
         case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+        case GL_UNSIGNED_INT_24_8:
         case GL_UNSIGNED_INT_10F_11F_11F_REV:
             break;
         default:
@@ -3962,6 +4002,7 @@ namespace Vulkan {
         case GL_DEPTH_COMPONENT32F:
             break;
         default:
+            printf("e");
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
         }

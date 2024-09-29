@@ -49,7 +49,9 @@ void gl_state_active_texture(size_t index, bool force) {
 }
 
 void gl_state_bind_framebuffer(GLuint framebuffer, bool force) {
-    if (force || gl_state.framebuffer_binding != framebuffer) {
+    if (force || gl_state.framebuffer_binding != framebuffer
+        || gl_state.read_framebuffer_binding != framebuffer
+        || gl_state.draw_framebuffer_binding != framebuffer) {
 #ifdef USE_OPENGL
         if (!Vulkan::use)
             glBindFramebuffer(GL_FRAMEBUFFER, framebuffer);

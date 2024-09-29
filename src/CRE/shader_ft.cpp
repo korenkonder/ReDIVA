@@ -92,6 +92,7 @@ enum shader_ft_sub_enum {
     SHADER_FT_SUB_DOF_MAIN_FILTER,
     SHADER_FT_SUB_DOF_UPSAMPLE,
     SHADER_FT_SUB_TRANSPARENCY,
+    SHADER_FT_SUB_REFLECT_STENCIL,
     SHADER_FT_SUB_SHADER_END,
 };
 
@@ -700,6 +701,14 @@ static const int32_t transparency_vpt_unival_max[] = {
 };
 
 static const int32_t transparency_fpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t reflect_stencil_vpt_unival_max[] = {
+    -1,
+};
+
+static const int32_t reflect_stencil_fpt_unival_max[] = {
     -1,
 };
 
@@ -2006,6 +2015,17 @@ static const shader_description transparency_fpt_desc[] = {
     { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
     { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
 };
+
+static const shader_description reflect_stencil_vpt_desc[] = {
+    SHADER_DESCRIPTION_COMMON_QUAD,
+    { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
+};
+
+static const shader_description reflect_stencil_fpt_desc[] = {
+    { SHADER_DESCRIPTION_SAMPLER, 0, 0, U_INVALID, },
+    { SHADER_DESCRIPTION_FRAGMENT_OUTPUT, 0, 4, U_INVALID, },
+    { SHADER_DESCRIPTION_END, -1, -1, U_INVALID, },
+};
 #undef SHADER_DESCRIPTION_COMMON_QUAD
 #undef SHADER_DESCRIPTION_COMMON_SKINNING
 #undef SHADER_DESCRIPTION_COMMON_SCENE
@@ -2254,6 +2274,10 @@ static const shader_sub_table TRANSPARENCY_table[] = {
     shader_sub_table_struct(TRANSPARENCY, transparency, transparency),
 };
 
+static const shader_sub_table REFLECT_STENCIL_table[] = {
+    shader_sub_table_struct(REFLECT_STENCIL, reflect_stencil, reflect_stencil),
+};
+
 #undef shader_sub_table_struct
 
 static const uniform_name BLINN_uniform[] = {
@@ -2474,6 +2498,10 @@ static const uniform_name TRANSPARENCY_uniform[] = {
     U_INVALID,
 };
 
+static const uniform_name REFLECT_STENCIL_uniform[] = {
+    U_INVALID,
+};
+
 struct glass_eye_struct {
     const vec4 tex_model_param;
     const vec4 eb_tex_model_param;
@@ -2564,6 +2592,7 @@ const shader_table shader_ft_table[] = {
     shader_table_struct(SPRITE),
     shader_table_struct(DOF),
     shader_table_struct(TRANSPARENCY),
+    shader_table_struct(REFLECT_STENCIL),
 };
 
 #undef shader_table_struct

@@ -1803,7 +1803,21 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     depth_stencil_state.depthCompareOp = Vulkan::get_compare_op(
         gl_state.depth_test ? gl_state.depth_func : GL_ALWAYS);
     depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
-    depth_stencil_state.stencilTestEnable = VK_FALSE;
+    depth_stencil_state.stencilTestEnable = gl_state.stencil_test ? VK_TRUE : VK_FALSE;
+    depth_stencil_state.front.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
+    depth_stencil_state.front.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
+    depth_stencil_state.front.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
+    depth_stencil_state.front.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
+    depth_stencil_state.front.compareMask = gl_state.stencil_value_mask;
+    depth_stencil_state.front.writeMask = gl_state.stencil_mask;
+    depth_stencil_state.front.reference = gl_state.stencil_ref;
+    depth_stencil_state.back.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
+    depth_stencil_state.back.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
+    depth_stencil_state.back.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
+    depth_stencil_state.back.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
+    depth_stencil_state.back.compareMask = gl_state.stencil_value_mask;
+    depth_stencil_state.back.writeMask = gl_state.stencil_mask;
+    depth_stencil_state.back.reference = gl_state.stencil_ref;
     depth_stencil_state.minDepthBounds = 0.0f;
     depth_stencil_state.maxDepthBounds = 1.0f;
 
@@ -1833,7 +1847,8 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     VkPipelineLayout pipeline_layout = vk_descriptor_pipeline->GetPipelineLayout();
 
     extern VkRenderPassBeginInfo vulkan_swapchain_render_pass_info;
-    const uint32_t framebuffer_index = depth_stencil_state.depthWriteEnable ? 0 : 1;
+    const uint32_t framebuffer_index = depth_stencil_state.depthWriteEnable
+        || depth_stencil_state.stencilTestEnable ? 0 : 1;
     VkRenderPass render_pass;
     if (gl_state.draw_framebuffer_binding) {
         Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
@@ -2317,6 +2332,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             if (vk_fbo->depth_attachment) {
                 Vulkan::gl_texture* vk_tex = Vulkan::gl_texture::get(vk_fbo->depth_attachment);
                 const VkImageLayout layout = depth_stencil_state.depthWriteEnable
+                    || depth_stencil_state.stencilTestEnable
                     ? VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL
                     : VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
                 Vulkan::Image::PipelineBarrier(Vulkan::current_command_buffer,

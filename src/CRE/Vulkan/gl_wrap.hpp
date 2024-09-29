@@ -242,4 +242,5 @@ namespace Vulkan {
     extern VkFormat get_format(GLenum internal_format);
     extern VkImageViewType get_image_view_type(GLenum target);
     extern VkPolygonMode get_polygon_mode(GLenum mode);
+    extern VkStencilOp get_stencil_op(GLenum op);
 }

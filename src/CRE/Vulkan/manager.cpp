@@ -106,19 +106,16 @@ struct render_pass_data {
     uint64_t color_formats_hash;
     GLenum depth_format;
     bool depth_read_only;
-    bool stencil;
-    uint8_t pad[2];
+    uint8_t pad[3];
 
-    inline render_pass_data() : color_formats_hash(), depth_format(), depth_read_only(), stencil(), pad() {
+    inline render_pass_data() : color_formats_hash(), depth_format(), depth_read_only(), pad() {
 
     }
 
-    inline render_pass_data(uint64_t color_formats_hash, GLenum depth_format,
-        bool depth_read_only, bool stencil) : pad() {
+    inline render_pass_data(uint64_t color_formats_hash, GLenum depth_format, bool depth_read_only) : pad() {
         this->color_formats_hash = color_formats_hash;
         this->depth_format = depth_format;
         this->depth_read_only = depth_read_only;
-        this->stencil = stencil;
     }
 };
 
@@ -132,7 +129,7 @@ public:
 
 constexpr bool operator==(const render_pass_data& left, const render_pass_data& right) {
     return left.color_formats_hash == right.color_formats_hash
-        && left.depth_format == right.depth_format && left.stencil == right.stencil;
+        && left.depth_format == right.depth_format;
 }
 
 namespace Vulkan {
@@ -221,7 +218,7 @@ namespace Vulkan {
             const VkPipelineColorBlendAttachmentState* color_blend_attachments,
             VkPipelineLayout layout, VkRenderPass render_pass);
         prj::shared_ptr<Vulkan::RenderPass> get_render_pass(GLenum* color_formats,
-            uint32_t color_format_count, GLenum depth_format, bool depth_read_only, bool stencil);
+            uint32_t color_format_count, GLenum depth_format, bool depth_read_only);
         prj::shared_ptr<Vulkan::Sampler> get_sampler(const gl_sampler& sampler_data);
         Vulkan::Buffer get_dynamic_buffer(VkDeviceSize size, VkDeviceSize alignment);
         Vulkan::Buffer get_staging_buffer(VkDeviceSize size, VkDeviceSize alignment);
@@ -302,9 +299,9 @@ namespace Vulkan {
 
     prj::shared_ptr<Vulkan::RenderPass> manager_get_render_pass(
         GLenum* color_formats, uint32_t color_format_count,
-        GLenum depth_format, bool depth_read_only, bool stencil) {
+        GLenum depth_format, bool depth_read_only) {
         return manager_ptr->get_render_pass(color_formats,
-            color_format_count, depth_format, depth_read_only, stencil);
+            color_format_count, depth_format, depth_read_only);
     }
 
     prj::shared_ptr<Vulkan::Sampler> manager_get_sampler(const gl_sampler& sampler_data) {
@@ -517,11 +514,11 @@ namespace Vulkan {
     }
 
     prj::shared_ptr<Vulkan::RenderPass> manager::get_render_pass(GLenum* color_formats,
-        uint32_t color_format_count, GLenum depth_format, bool depth_read_only, bool stencil) {
+        uint32_t color_format_count, GLenum depth_format, bool depth_read_only) {
         uint64_t color_formats_hash = hash_xxh3_64bits(color_formats,
             sizeof(GLenum) * color_format_count);
 
-        auto elem = render_passes.find({ color_formats_hash, depth_format, depth_read_only, stencil });
+        auto elem = render_passes.find({ color_formats_hash, depth_format, depth_read_only });
         if (elem != render_passes.end())
             return elem->second;
 
@@ -593,6 +590,7 @@ namespace Vulkan {
             }
 
         if (depth_format) {
+            const bool stencil = depth_format == GL_DEPTH24_STENCIL8;
             VkAttachmentDescription& depth_attachment = attachments[attachment_count];
             depth_attachment.flags = 0;
             depth_attachment.format = Vulkan::get_format(depth_format);
@@ -615,7 +613,7 @@ namespace Vulkan {
 
         prj::shared_ptr<Vulkan::RenderPass> render_pass(new Vulkan::RenderPass(Vulkan::current_device, 0,
             attachment_count, attachments, 1, &subpass_description, 1, &subpass_dependency));
-        render_passes.insert({ { color_formats_hash, depth_format, depth_read_only, stencil }, render_pass });
+        render_passes.insert({ { color_formats_hash, depth_format, depth_read_only }, render_pass });
 
         free_def(attachments);
         free_def(color_attachment_reference);
