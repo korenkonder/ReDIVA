@@ -24,6 +24,8 @@
 #include "static_var.hpp"
 #include "texture.hpp"
 
+#define REFLECT_STENCIL (0)
+
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
@@ -42,7 +44,10 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     int32_t* alpha_array, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent);
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type);
+
+#if REFLECT_STENCIL
 static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type);
+#endif
 
 static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTexture* src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
@@ -69,7 +74,11 @@ namespace rndr {
 
     static const RenderTextureData render_manager_render_texture_data_array[] = {
         { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA8  , GL_DEPTH_COMPONENT24 },
+#if REFLECT_STENCIL
         { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8 },
+#else
+        { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24 },
+#endif
         { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
         { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
         { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
@@ -684,6 +693,7 @@ namespace rndr {
             else
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+#if REFLECT_STENCIL
             if (sv_better_reflect) {
                 gl_state_set_stencil_mask(0xFF);
 
@@ -712,6 +722,7 @@ namespace rndr {
 
                 gl_state_set_stencil_mask(0x00);
             }
+#endif
 
             rctx->draw_state->shader_index = SHADER_FT_S_REFL;
 
@@ -809,8 +820,10 @@ namespace rndr {
             uniform_value[U_REFLECT] = 0;
             rctx->draw_state->shader_index = -1;
 
+#if REFLECT_STENCIL
             if (sv_better_reflect)
                 gl_state_disable_stencil_test();
+#endif
 
             for (int32_t i = reflect_blur_num, j = 0; i > 0; i--, j++) {
                 blur_filter_apply(rctx, &refl_buf_tex, &refl_tex,
@@ -2010,6 +2023,7 @@ static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr
         }
 }
 
+#if REFLECT_STENCIL
 static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
     if (type < 0 || type >= mdl::OBJ_TYPE_MAX || rctx->disp_manager->get_obj_count(type) < 1)
         return;
@@ -2080,6 +2094,7 @@ static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
     for (int32_t i = 0; i < 5; i++)
         gl_state_bind_sampler(i, 0);
 }
+#endif
 
 static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTexture* src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset) {
