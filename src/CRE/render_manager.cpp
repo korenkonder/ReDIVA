@@ -1251,7 +1251,7 @@ namespace rndr {
         RenderTexture* contour_rt;
         if (sv_better_reflect && reflect_enable) {
             rt = &rctx->render_manager->get_render_texture(0);
-            contour_rt = &rctx->render_manager->get_render_texture(1);
+            contour_rt = &rctx->reflect_buffer;
     }
         else {
             rt = &render->rend_texture[0];
@@ -1638,7 +1638,7 @@ static bool draw_pass_shadow_litproj(light_proj* litproj) {
 
 static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
     if (sv_better_reflect && reflect_enable)
-        rctx->render_manager->get_render_texture(1).Bind();
+        rctx->reflect_buffer.Bind();
     else
         rend->sss_contour_texture->Bind();
 
