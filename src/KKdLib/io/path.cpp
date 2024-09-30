@@ -697,6 +697,7 @@ bool path_fs_copy_file(const wchar_t* src, const wchar_t* dst) {
 bool path_move_file(const char* old_path, const char* new_path) {
     wchar_t* old_path_temp = utf8_to_utf16(old_path);
     wchar_t* new_path_temp = utf8_to_utf16(new_path);
+    path_delete_file(new_path_temp);
     bool ret = MoveFileW(old_path_temp, new_path_temp);
     free_def(old_path_temp);
     free_def(new_path_temp);
@@ -704,5 +705,6 @@ bool path_move_file(const char* old_path, const char* new_path) {
 }
 
 bool path_move_file(const wchar_t* old_path, const wchar_t* new_path) {
+    path_delete_file(new_path);
     return MoveFileW(old_path, new_path);
 }
