@@ -27,6 +27,8 @@
 #include "motion.hpp"
 #include "skin_param.hpp"
 
+#define OPD_MAKE_COUNT 4
+
 enum rob_sleeve_type : uint8_t {
     ROB_SLEEVE_L  = 0x01,
     ROB_SLEEVE_R  = 0x02,
@@ -349,7 +351,7 @@ struct OpdMakeManager : app::Task {
     chara_index chara;
     std::vector<uint32_t> motion_ids;
     std::vector<uint32_t> motion_set_ids;
-    OpdMakeWorker* workers[4];
+    OpdMakeWorker* workers[OPD_MAKE_COUNT];
     OpdMakeManagerData data;
     bool use_current_skp;
     bool use_opdi;
@@ -2482,7 +2484,7 @@ void rob_init() {
         opd_make_manager = new OpdMakeManager;
 
     if (!opd_maker_array)
-        opd_maker_array = new OpdMaker[4];
+        opd_maker_array = new OpdMaker[OPD_MAKE_COUNT];
 
     if (!osage_play_data_database)
         osage_play_data_database = new osage_play_data_database_struct;
@@ -2494,7 +2496,7 @@ void rob_init() {
         pv_osage_manager_array = new PvOsageManager[ROB_CHARA_COUNT];
 
     if (!rob_chara_age_age_array)
-        rob_chara_age_age_array = new rob_chara_age_age[18];
+        rob_chara_age_age_array = new rob_chara_age_age[ROB_CHARA_COUNT * 3];
 
     if (!rob_chara_array)
         rob_chara_array = new rob_chara[ROB_CHARA_COUNT];
@@ -17713,7 +17715,7 @@ OpdMakeManager::OpdMakeManager() : mode(), workers() {
         i = new OpdMakeWorker(chara_id++);
 
     motion_ids.clear();
-    data.workers.resize(4);
+    data.workers.resize(OPD_MAKE_COUNT);
     for (OpdMakeManagerData::Worker& i : data.workers) {
         i.items.resize(ITEM_SUB_MAX);
         for (uint32_t& j : i.items)
@@ -17795,7 +17797,7 @@ bool OpdMakeManager::ctrl() {
             }
 
         if (has_items) {
-            for (int32_t i = 0; i < 4; i++) {
+            for (int32_t i = 0; i < OPD_MAKE_COUNT; i++) {
                 rob_chara_pv_data pv_data;
                 pv_data.type = ROB_CHARA_TYPE_3;
                 rob_chara_array_init_chara_index(chara, pv_data, 499, false);
@@ -17807,7 +17809,7 @@ bool OpdMakeManager::ctrl() {
     } break;
     case 6: {
         bool wait = false;
-        for (int32_t i = 0; i < 4; i++)
+        for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
             if (!task_rob_manager_check_chara_loaded(i))
                 wait = true;
 
@@ -17833,7 +17835,7 @@ bool OpdMakeManager::ctrl() {
             mode = use_current_skp ? 12 : 9;
     } break;
     case 9:
-        for (int32_t i = 0; i < 4; i++)
+        for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
             rob_chara_array_free_chara_id(i);
         task_rob_manager->run();
         mode = 10;
@@ -17865,7 +17867,7 @@ bool OpdMakeManager::dest() {
             return false;
 
     if (!use_current_skp) {
-        for (int32_t i = 0; i < 4; i++)
+        for (int32_t i = 0; i < OPD_MAKE_COUNT; i++)
             rob_chara_array_free_chara_id(i);
 
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)
