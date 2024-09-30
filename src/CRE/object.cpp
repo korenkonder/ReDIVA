@@ -2470,8 +2470,8 @@ static void ObjsetInfo_get_shader_index_texture_index(ObjsetInfo* info) {
                 texture.texture_index = 0;
 
                 std::pair<uint32_t, uint32_t>* tex_id_data = info->tex_id_data.data();
-                int32_t tex_id_num = (int32_t)info->tex_id_data.size();
-                for (int32_t l = tex_id_num; l >= 0; l--, tex_id_data++)
+                size_t tex_id_num = info->tex_id_data.size();
+                for (size_t l = tex_id_num; l; l--, tex_id_data++)
                     if (tex_id_data->first == tex_index) {
                         texture.tex_index = tex_index;
                         texture.texture_index = tex_id_data->second;
