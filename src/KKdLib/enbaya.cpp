@@ -1618,13 +1618,16 @@ static void enb_octet_stream_put_u32(enb_octet_stream* octet_stream, uint32_t va
 }
 
 static void enb_octet_stream_reset(enb_octet_stream* octet_stream) {
-    for (int32_t i = 0; i < octet_stream->stream_count; i++) {
-        if (octet_stream->stream_list[i]) {
-            enb_byte_stream_free(octet_stream->stream_list[i]);
-            free(octet_stream->stream_list[i]);
-            octet_stream->byte_stream = 0;
-        }
-        octet_stream->stream_list[i] = 0;
+    if (octet_stream->stream_list) {
+        for (int32_t i = 0; i < octet_stream->stream_count; i++)
+            if (octet_stream->stream_list[i]) {
+                enb_byte_stream_free(octet_stream->stream_list[i]);
+                free(octet_stream->stream_list[i]);
+                octet_stream->stream_list[i] = 0;
+            }
+
+        free(octet_stream->stream_list);
+        octet_stream->stream_list = 0;
     }
     octet_stream->stream_count = 0;
 
