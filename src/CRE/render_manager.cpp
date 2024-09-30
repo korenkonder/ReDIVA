@@ -128,7 +128,7 @@ namespace rndr {
 
     }
 
-    void RenderManager::add_pre_process(int32_t type, void(*func)(void*), void* data) {
+    void RenderManager::add_pre_process(int32_t type, draw_pre_process_func func, void* data) {
         pre_process.push_back({ type, func, data });
     }
 

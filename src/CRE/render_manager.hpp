@@ -19,9 +19,11 @@ enum reflect_refract_resolution_mode {
     REFLECT_REFRACT_RESOLUTION_MAX,
 };
 
+typedef void(*draw_pre_process_func)(void*);
+
 struct draw_pre_process {
     int32_t type;
-    void(*func)(void*);
+    draw_pre_process_func func;
     void* data;
 };
 
@@ -90,7 +92,7 @@ namespace rndr {
         RenderManager();
         ~RenderManager();
 
-        void add_pre_process(int32_t type, void(*func)(void*), void* data);
+        void add_pre_process(int32_t type, draw_pre_process_func func, void* data);
         void clear_pre_process(int32_t type);
         RenderTexture& get_render_texture(int32_t index);
         void reset();
