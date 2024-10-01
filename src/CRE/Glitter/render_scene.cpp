@@ -1069,6 +1069,7 @@ namespace Glitter {
 
             gl_state_enable_depth_test();
             gl_state_set_depth_mask(GL_FALSE);
+            gl_state_enable_blend();
             gl_state_enable_cull_face();
             gl_state_set_cull_face_mode(GL_BACK);
             break;
@@ -1079,6 +1080,7 @@ namespace Glitter {
 
             gl_state_enable_depth_test();
             gl_state_set_depth_mask(GL_FALSE);
+            gl_state_enable_blend();
             gl_state_disable_cull_face();
             break;
         }
