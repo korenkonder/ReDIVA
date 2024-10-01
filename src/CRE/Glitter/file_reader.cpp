@@ -115,6 +115,7 @@ namespace Glitter {
                 free_def(effect_group->buffer);
 
                 effect_group->buffer = force_malloc<Buffer>(max_count);
+                effect_group->max_count = max_count;
 
                 static const GLsizei buffer_size = sizeof(Buffer);
 
@@ -140,7 +141,7 @@ namespace Glitter {
                 Buffer* buffer = effect_group->buffer;
                 GLuint vbo = effect_group->vbo;
                 GLuint ebo = effect_group->ebo;
-                size_t vbo_offset = 0;
+                size_t offset = 0;
 
                 for (Effect*& i : effect_group->effects) {
                     if (!i)
@@ -157,9 +158,6 @@ namespace Glitter {
                                 continue;
 
                             k->buffer = buffer;
-                            k->vbo = vbo;
-                            k->ebo = ebo;
-                            k->vbo_offset = vbo_offset;
 
                             glGenVertexArrays(1, &k->vao);
                             gl_state_bind_vertex_array(k->vao, true);
@@ -169,16 +167,16 @@ namespace Glitter {
 
                             glEnableVertexAttribArray(0);
                             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
-                                (void*)(offsetof(Buffer, position) + vbo_offset));
+                                (void*)(offsetof(Buffer, position) + offset));
                             glEnableVertexAttribArray(1);
                             glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                                (void*)(offsetof(Buffer, uv) + vbo_offset));
+                                (void*)(offsetof(Buffer, uv) + offset));
                             glEnableVertexAttribArray(2);
                             glVertexAttribPointer(2, 4, GL_FLOAT, GL_FALSE, buffer_size,
-                                (void*)(offsetof(Buffer, color) + vbo_offset));
+                                (void*)(offsetof(Buffer, color) + offset));
 
                             buffer += k->max_count;
-                            vbo_offset += buffer_size * (size_t)k->max_count;
+                            offset += buffer_size * (size_t)k->max_count;
                         }
 
                         j->buffer_init = true;
@@ -191,6 +189,7 @@ namespace Glitter {
             }
             else {
                 free_def(effect_group->buffer);
+                effect_group->max_count = 0;
                 effect_group->vbo.Destroy();
                 effect_group->ebo.Destroy();
             }

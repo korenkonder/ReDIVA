@@ -215,8 +215,13 @@ namespace Glitter {
     }
 
     void F2RenderScene::CalcDispLine(F2RenderGroup* rend_group) {
+#if SHARED_GLITTER_BUFFER
+        if (!rend_group->elements || rend_group->ctrl < 1)
+            return;
+#else
         if (!rend_group->elements || rend_group->vbo.IsNull() || rend_group->ctrl < 1)
             return;
+#endif
 
         size_t count = 0;
         RenderElement* elem = rend_group->elements;
@@ -295,17 +300,19 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
     void F2RenderScene::CalcDispLocus(GPM, F2RenderGroup* rend_group) {
+#if SHARED_GLITTER_BUFFER
+        if (!rend_group->elements || rend_group->ctrl < 1)
+            return;
+#else
         if (!rend_group->elements || rend_group->vbo.IsNull() || rend_group->ctrl < 1)
             return;
+#endif
 
         size_t count = 0;
         RenderElement* elem = rend_group->elements;
@@ -444,17 +451,19 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
     void F2RenderScene::CalcDispQuad(GPM, F2RenderGroup* rend_group) {
+#if SHARED_GLITTER_BUFFER
+        if (!rend_group->elements || rend_group->ctrl < 1)
+            return;
+#else
         if (!rend_group->elements || rend_group->vbo.IsNull() || rend_group->ctrl < 1)
             return;
+#endif
 
         mat4 model_mat;
         mat4 view_mat;
@@ -636,10 +645,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
@@ -862,10 +868,7 @@ namespace Glitter {
             }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
@@ -1189,8 +1192,13 @@ namespace Glitter {
     }
 
     void XRenderScene::CalcDispLine(XRenderGroup* rend_group) {
+#if SHARED_GLITTER_BUFFER
+        if (!rend_group->elements || rend_group->ctrl < 1)
+            return;
+#else
         if (!rend_group->elements || rend_group->vbo.IsNull() || rend_group->ctrl < 1)
             return;
+#endif
 
         size_t count = 0;
         RenderElement* elem = rend_group->elements;
@@ -1268,17 +1276,19 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
 
     void XRenderScene::CalcDispLocus(GPM, XRenderGroup* rend_group) {
+#if SHARED_GLITTER_BUFFER
+        if (!rend_group->elements || rend_group->ctrl < 1)
+            return;
+#else
         if (!rend_group->elements || rend_group->vbo.IsNull() || rend_group->ctrl < 1)
             return;
+#endif
 
         size_t count = 0;
         RenderElement* elem = rend_group->elements;
@@ -1415,10 +1425,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
@@ -1614,8 +1621,13 @@ namespace Glitter {
     }
 
     void XRenderScene::CalcDispQuad(GPM, XRenderGroup* rend_group) {
+#if SHARED_GLITTER_BUFFER
+        if (!rend_group->elements || rend_group->ctrl < 1)
+            return;
+#else
         if (!rend_group->elements || rend_group->vbo.IsNull() || rend_group->ctrl < 1)
             return;
+#endif
 
         mat4 model_mat;
         mat4 view_mat;
@@ -1790,10 +1802,7 @@ namespace Glitter {
         }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }
@@ -2007,10 +2016,7 @@ namespace Glitter {
             }
         rend_group->disp = disp;
 
-#if SHARED_GLITTER_BUFFER
-        rend_group->vbo.WriteMemory(rend_group->vbo_offset,
-            (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
-#else
+#if !SHARED_GLITTER_BUFFER
         rend_group->vbo.WriteMemory(0, (buf - rend_group->buffer) * sizeof(Buffer), rend_group->buffer);
 #endif
     }

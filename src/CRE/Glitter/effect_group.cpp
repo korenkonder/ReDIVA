@@ -16,6 +16,7 @@ namespace Glitter {
         type = GLT_VAL;
 #if SHARED_GLITTER_BUFFER
         buffer = 0;
+        max_count = 0;
 #endif
     }
 

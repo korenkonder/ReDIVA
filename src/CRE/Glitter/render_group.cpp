@@ -17,9 +17,7 @@ namespace Glitter {
         mat_draw = mat4_identity;
         disp_type = DISP_NORMAL;
         emission = 1.0f;
-#if SHARED_GLITTER_BUFFER
-        vbo_offset = 0;
-#else
+#if !SHARED_GLITTER_BUFFER
         use_own_buffer = true;
 #endif
         blend_mode = PARTICLE_BLEND_TYPICAL;
@@ -88,11 +86,9 @@ namespace Glitter {
             buffer = ptcl->buffer;
             max_count = ptcl->max_count;
             vao = ptcl->vao;
+#if !SHARED_GLITTER_BUFFER
             vbo = ptcl->vbo;
             ebo = ptcl->ebo;
-#if SHARED_GLITTER_BUFFER
-            vbo_offset = ptcl->vbo_offset;
-#else
             use_own_buffer = false;
 #endif
             ptcl->buffer_used = true;
@@ -399,11 +395,9 @@ namespace Glitter {
             buffer = ptcl->buffer;
             max_count = ptcl->max_count;
             vao = ptcl->vao;
+#if !SHARED_GLITTER_BUFFER
             vbo = ptcl->vbo;
             ebo = ptcl->ebo;
-#if SHARED_GLITTER_BUFFER
-            vbo_offset = ptcl->vbo_offset;
-#else
             use_own_buffer = false;
 #endif
             ptcl->buffer_used = true;

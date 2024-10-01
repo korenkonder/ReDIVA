@@ -722,6 +722,7 @@ namespace Glitter {
         std::vector<Mesh> meshes;
 #if SHARED_GLITTER_BUFFER
         Buffer* buffer;
+        size_t max_count;
         GL::ArrayBuffer vbo;
         GL::ElementArrayBuffer ebo;
 #endif
@@ -797,12 +798,12 @@ namespace Glitter {
         DispType disp_type;
         FogType fog_type;
         GLuint vao;
+#if !SHARED_GLITTER_BUFFER
         GL::ArrayBuffer vbo;
         GL::ElementArrayBuffer ebo;
+#endif
         float_t emission;
-#if SHARED_GLITTER_BUFFER
-        size_t vbo_offset;
-#else
+#if !SHARED_GLITTER_BUFFER
         bool use_own_buffer;
 #endif
         prj::vector_pair<GLint, GLsizei> draw_list;
@@ -1373,14 +1374,13 @@ namespace Glitter {
         Data data;
         Buffer* buffer;
         GLuint vao;
+#if !SHARED_GLITTER_BUFFER
         GL::ArrayBuffer vbo;
         GL::ElementArrayBuffer ebo;
+#endif
         int32_t max_count;
         bool buffer_used;
         int32_t version;
-#if SHARED_GLITTER_BUFFER
-        size_t vbo_offset;
-#endif
 
         Particle(GLT);
         virtual ~Particle() override;

@@ -44,17 +44,10 @@ namespace Glitter {
             //data.mesh.mesh_name[0] = 0;
             //data.mesh.sub_mesh_hash = hash_murmurhash_empty;
         }
-
-#if SHARED_GLITTER_BUFFER
-        vbo_offset = 0;
-#endif
     }
 
     Particle::~Particle() {
-#if SHARED_GLITTER_BUFFER
-        ebo.Destroy();
-        vbo.Destroy();
-#else
+#if !SHARED_GLITTER_BUFFER
         Glitter::DeleteBuffer(buffer, vao, vbo, ebo);
 #endif
     }

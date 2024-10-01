@@ -53,6 +53,10 @@ namespace Glitter {
 
                 i.ptr->CalcDisp(GPM_VAL);
             }
+
+#if SHARED_GLITTER_BUFFER
+        effect_group->vbo.WriteMemory(0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
+#endif
     }
 
     bool Scene::CanDisp(DispType disp_type, bool a3) {
