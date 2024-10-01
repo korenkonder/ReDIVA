@@ -1742,7 +1742,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             VkVertexInputBindingDescription& binding_desc = binding_descriptions[binding_description_count++];
             binding_desc.binding = binding;
             binding_desc.stride = 0;
-            binding_desc.inputRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+            binding_desc.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
         }
     }
 
