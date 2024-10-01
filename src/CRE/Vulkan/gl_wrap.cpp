@@ -3806,10 +3806,13 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_pop_debug_group() {
+        end_render_pass(Vulkan::current_command_buffer);
         vkCmdEndDebugUtilsLabelEXT(Vulkan::current_command_buffer);
     }
 
     static void gl_wrap_manager_push_debug_group(GLenum source, GLuint id, GLsizei length, const GLchar* message) {
+        end_render_pass(Vulkan::current_command_buffer);
+
         VkDebugUtilsLabelEXT debug_utils_label;
         debug_utils_label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         debug_utils_label.pNext = 0;
