@@ -4281,7 +4281,7 @@ static void auth_3d_dof_set(auth_3d_dof* d, render_context* rctx) {
 
     float_t focus = vec3::distance(d->model_transform.translation_value, view_point);
 
-    rctx->render.set_dof_enable(fabsf(d->model_transform.translation_value.x) > 0.000001f);
+    rctx->render.set_dof_enable(fabsf(d->model_transform.rotation_value.z) > 0.000001f);
     rctx->render.set_dof_data(focus, d->model_transform.scale_value.x,
         d->model_transform.rotation_value.x, d->model_transform.rotation_value.y);
 }
