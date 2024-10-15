@@ -29,14 +29,3 @@
 #undef BAKE_PNG
 #elif BAKE_PNG
 #endif
-
-#ifndef USE_OPENGL
-#if BAKE_PNG
-#undef BAKE_PNG
-#define BAKE_PNG (0)
-#endif
-#if BAKE_VIDEO
-#undef BAKE_VIDEO
-#define BAKE_VIDEO (0)
-#endif
-#endif
