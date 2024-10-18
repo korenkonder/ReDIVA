@@ -843,10 +843,10 @@ namespace SkinParam {
     };
 
     enum RootCollisionType {
-        RootCollisionTypeEnd     = 0x00,
-        RootCollisionTypeBall    = 0x01,
-        RootCollisionTypeCapsule = 0x02,
-        RootCollisionTypeMax     = 0x03,
+        RootCollisionTypeEnd             = 0x00,
+        RootCollisionTypeCapsule         = 0x01,
+        RootCollisionTypeCapsuleWithRoot = 0x02,
+        RootCollisionTypeMax             = 0x03,
     };
 }
 
@@ -1805,7 +1805,7 @@ struct CLOTHNode {
     uint32_t flags;
     vec3 pos;
     vec3 fixed_pos;
-    vec3 prev_trans;
+    vec3 prev_pos;
     vec3 delta_pos;
     vec3 normal;
     vec3 tangent;

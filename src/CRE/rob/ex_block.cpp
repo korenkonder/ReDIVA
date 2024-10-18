@@ -1482,7 +1482,7 @@ const float_t* RobCloth::SetOsagePlayDataInit(const float_t* opdi_data) {
         i->delta_pos.x = *opdi_data++;
         i->delta_pos.y = *opdi_data++;
         i->delta_pos.z = *opdi_data++;
-        i->prev_trans = i->pos;
+        i->prev_pos = i->pos;
     }
     return opdi_data;
 }
@@ -3296,7 +3296,7 @@ static void sub_1402187D0(RobCloth* rob_cls, bool a2) {
             v37.y -= osage_gravity;
             node->delta_pos += v37;
 
-            node->prev_trans = node->pos;
+            node->prev_pos = node->pos;
             node->pos += node->delta_pos;
         }
         force *= rob_cls->skin_param_ptr->force_gain;
@@ -3328,7 +3328,7 @@ static void sub_140219940(RobCloth* rob_cls) {
         mat4_transform_vector(&m, &root.normal, &root_node.normal);
         mat4_transform_vector(&m, (vec3*)&root.tangent, &root_node.tangent);
         root_node.tangent_sign = root.tangent.w;
-        root_node.prev_trans = root_node.pos;
+        root_node.prev_pos = root_node.pos;
 
         mat4_mul_translate(&m, &root_node.fixed_pos, &m);
         root.field_D8 = m;
@@ -3491,13 +3491,13 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
         for (ssize_t j = 0; j < root_count; j++, node++) {
             float_t fric = (1.0f - rob_cls->field_44) * rob_cls->skin_param_ptr->friction;
             if (step != 1.0f) {
-                vec3 delta_pos = node->pos - node->prev_trans;
+                vec3 delta_pos = node->pos - node->prev_pos;
 
                 float_t trans_length = vec3::length(delta_pos);
                 if (trans_length * step > 0.0f && trans_length != 0.0f)
                     delta_pos *= 1.0f / trans_length;
 
-                node->pos = node->prev_trans + delta_pos * (trans_length * step);
+                node->pos = node->prev_pos + delta_pos * (trans_length * step);
             }
             sub_140482F30(&node[0].pos, &node[-root_count].pos, node[0].dist_top);
 
@@ -3528,7 +3528,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             if (v39)
                 node->delta_pos *= fric;
 
-            node->delta_pos = (node->pos - node->prev_trans) * v10;
+            node->delta_pos = (node->pos - node->prev_pos) * v10;
 
             if (!a3) {
                 mat4& v49 = rob_cls->root.data()[j].field_118;
@@ -3571,7 +3571,7 @@ static void sub_14021D480(RobCloth* rob_cls) {
                 node->pos.y = floor_height;
 
             node->delta_pos = 0.0f;
-            node->prev_trans = node->pos;
+            node->prev_pos = node->pos;
         }
     }
 
@@ -4052,7 +4052,7 @@ static void sub_14047D620(RobOsage* rob_osg, float_t step) {
         }
 
         if (coli_type != SkinParam::RootCollisionTypeEnd
-            && (coli_type != SkinParam::RootCollisionTypeBall || i != i_begin)) {
+            && (coli_type != SkinParam::RootCollisionTypeCapsule || i != i_begin)) {
             float_t v20 = (float_t)(
                 OsageCollision::osage_capsule_cls(coli_ring, i[0].pos, i[-1].pos, data->skp_osg_node.coli_r)
                 + OsageCollision::osage_capsule_cls(coli, i[0].pos, i[-1].pos, data->skp_osg_node.coli_r));

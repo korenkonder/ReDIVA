@@ -1251,6 +1251,7 @@ TaskRobManager* task_rob_manager;
 
 static int32_t opd_chara_data_counter = 0;
 static int32_t opd_maker_counter = 0;
+static int32_t osage_test_no_pause = 0;
 static int32_t pv_osage_manager_counter = 0;
 static int32_t rob_thread_parent_counter = 0;
 
@@ -2673,7 +2674,7 @@ static void rob_chara_item_equip_object_ctrl(rob_chara_item_equip_object* itm_eq
 }
 
 static void rob_chara_item_equip_ctrl(rob_chara_item_equip* rob_itm_equip) {
-    if (!rob_itm_equip->disable_update)
+    if (!osage_test_no_pause && !rob_itm_equip->disable_update)
         for (int32_t i = rob_itm_equip->first_item_equip_object; i < rob_itm_equip->max_item_equip_object; i++)
             rob_chara_item_equip_object_ctrl(&rob_itm_equip->item_equip_object[i]);
 }
