@@ -112,22 +112,7 @@
 #define RENDER_DEBUG 0
 #endif
 
-#define CUBE_LINE_SIZE (0.0025f)
-#define CUBE_LINE_POINT_SIZE (CUBE_LINE_SIZE * 1.5f)
-
 timer* render_timer;
-
-#define grid_size 50.0f
-#define grid_spacing 1.0f
-size_t grid_vertex_count = ((size_t)(grid_size / grid_spacing) * 2 + 1) * 4;
-
-struct common_data_struct {
-    vec4 res; //x=width, y=height, z=1/width, w=1/height
-    mat4 vp;
-    mat4 view;
-    mat4 projection;
-    vec3 view_pos;
-};
 
 struct app_render_data {
     app_render_data();
@@ -150,8 +135,6 @@ struct vulkan_swapchain_support_details {
 
     }
 };
-
-common_data_struct common_data;
 
 app_render_data* render;
 
