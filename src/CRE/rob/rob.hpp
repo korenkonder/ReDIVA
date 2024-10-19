@@ -1826,9 +1826,8 @@ struct CLOTHNode {
     ~CLOTHNode();
 };
 
-struct struc_341 {
-    size_t field_0;
-    size_t field_8;
+struct CLOTHLine {
+    size_t idx[2];
     float_t length;
 };
 
@@ -1841,7 +1840,7 @@ struct CLOTH {
     float_t field_44;
     bool set_external_force;
     vec3 external_force;
-    std::vector<struc_341> field_58;
+    std::vector<CLOTHLine> lines;
     skin_param* skin_param_ptr;
     skin_param skin_param;
     OsageCollision::Work coli[64];
@@ -1870,11 +1869,11 @@ struct RobClothRoot {
     vec4 tangent;
     bone_node* node[4];
     mat4* node_mat[4];
-    mat4* mat[4];
+    mat4* bone_mat[4];
     float_t weight[4];
-    mat4 field_98;
-    mat4 field_D8;
-    mat4 field_118;
+    mat4 mat;
+    mat4 mat_pos;
+    mat4 inv_mat_pos;
 };
 
 struct RobClothSubMeshArray {

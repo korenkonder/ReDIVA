@@ -66,6 +66,7 @@ static float_t exp_sub(float_t v1, float_t v2);
 static float_t exp_tan(float_t v1);
 
 static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& p1, const OsageCollision::Work* cls);
+static void segment_limit_distance(vec3& p0, const vec3& p1, float_t max_distance);
 
 static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3);
 static void sub_1402187D0(RobCloth* rob_cls, bool a2);
@@ -91,8 +92,7 @@ static void sub_1404803B0(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, bool has_children_node);
 static void sub_140482180(RobOsageNode* node, const float_t& floor_height);
 static void sub_140482300(vec3* a1, vec3* a2, vec3* a3, float_t osage_gravity_const, float_t weight);
-static void sub_140482490(RobOsageNode* node, float_t step, float_t a3);
-static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length);
+static void sub_140482490(RobOsageNode* node, const float_t& step, const float_t& parent_scale);
 static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, float_t step, bool ring_coli);
 static void sub_14047C750(RobOsage* rob_osg, const mat4* root_matrix,
@@ -992,33 +992,34 @@ CLOTH::~CLOTH() {
 }
 
 void CLOTH::Init() {
-    field_58.clear();
+    lines.clear();
     if (nodes_count <= 1)
         return;
 
-    struc_341 v69 = {};
+    CLOTHLine line = {};
     size_t root_count = this->root_count;
     for (size_t i = 1; i < nodes_count; i++) {
         for (size_t j = 0; j < root_count; j++) {
-            size_t v8 = (i - 1) * root_count + j;
-            size_t v7 = i * root_count + j;
-            v69.field_0 = v8;
-            v69.field_8 = v7;
-            v69.length = vec3::distance(nodes.data()[v7].pos, nodes.data()[v8].pos);
-            field_58.push_back(v69);
+            size_t top = (i - 1) * root_count + j;
+            size_t center = i * root_count + j;
+            line.idx[0] = top;
+            line.idx[1] = center;
+            line.length = vec3::distance(nodes.data()[top].pos, nodes.data()[center].pos);
+            lines.push_back(line);
+
             if (j < root_count - 1) {
-                size_t v32 = i * root_count + j + 1;
-                v69.field_0 = v7;
-                v69.field_8 = v32;
-                v69.length = vec3::distance(nodes.data()[v32].pos, nodes.data()[v7].pos);
-                field_58.push_back(v69);
+                size_t left = i * root_count + j + 1;
+                line.idx[0] = center;
+                line.idx[1] = left;
+                line.length = vec3::distance(nodes.data()[center].pos, nodes.data()[left].pos);
+                lines.push_back(line);
             }
         }
 
         if (field_8 & 0x04) {
-            v69.field_0 = i * root_count;
-            v69.field_8 = (i + 1) * root_count - 1;
-            field_58.push_back(v69);
+            line.idx[0] = i * root_count;
+            line.idx[1] = (i + 1) * root_count - 1;
+            lines.push_back(line);
         }
     }
 }
@@ -1141,8 +1142,8 @@ void RobCloth::ApplyResetData() {
     for (size_t i = 0; i < root_count; i++, root++) {
         CLOTHNode* node = &nodes.data()[i + root_count];
         for (size_t j = 1; j < nodes_count; j++, node += root_count) {
-            mat4_transform_point(&root->field_D8, &node->reset_data.pos, &node->pos);
-            mat4_transform_vector(&root->field_D8, &node->reset_data.delta_pos, &node->delta_pos);
+            mat4_transform_point(&root->mat_pos, &node->reset_data.pos, &node->pos);
+            mat4_transform_vector(&root->mat_pos, &node->reset_data.delta_pos, &node->delta_pos);
         }
     }
 }
@@ -1245,7 +1246,7 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
             obj_skin_block_cloth_root_bone_weight& bone_weight = root[i].bone_weights[j];
             v34.node[j] = 0;
             v34.node_mat[j] = 0;
-            v34.mat[j] = &mats[bone_weight.matrix_index];
+            v34.bone_mat[j] = &mats[bone_weight.matrix_index];
             if (bone_weight.bone_name) {
                 v34.node[j] = itm_eq_obj->get_bone_node(bone_weight.bone_name, bone_data);
                 if (v34.node[j])
@@ -1401,7 +1402,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
             CLOTHNode& root_node = nodes.data()[j];
 
             vec3 parent_trans = root_node.pos;
-            mat4 mat = root.data()[j].field_98;
+            mat4 mat = root.data()[j].mat;
             mat4_mul_translate(&mat, &root_node.fixed_pos, &mat);
 
             CLOTHNode* v29 = &nodes.data()[j + root_count];
@@ -1412,7 +1413,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
             int32_t yz_order = 0;
             sub_140482FF0(mat, direction, 0, 0, yz_order);
 
-            mat4 v32 = root.data()[j].field_D8;
+            const mat4& mat_pos = root.data()[j].mat_pos;
             for (size_t k = 1; k < nodes_count; k++, v29 += root_count) {
                 opd_vec3_data* opd = &v29->opd_data[i - i_end];
                 const float_t* opd_x = opd->x;
@@ -1429,8 +1430,8 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
                 next_trans.y = opd_y[next_key];
                 next_trans.z = opd_z[next_key];
 
-                mat4_transform_point(&v32, &curr_trans, &curr_trans);
-                mat4_transform_point(&v32, &next_trans, &next_trans);
+                mat4_transform_point(&mat_pos, &curr_trans, &curr_trans);
+                mat4_transform_point(&mat_pos, &next_trans, &next_trans);
 
                 vec3 _trans = curr_trans * inv_blend + next_trans * blend;
 
@@ -1452,7 +1453,7 @@ void RobCloth::SetOsagePlayData(std::vector<opd_blend_data>& opd_blend_data) {
 
     for (size_t i = 0; i < root_count; i++) {
         CLOTHNode& root_node = nodes.data()[i];
-        mat4 mat = root.data()[i].field_98;
+        mat4 mat = root.data()[i].mat;
         mat4_mul_translate(&mat, &root_node.fixed_pos, &mat);
 
         CLOTHNode* v50 = &nodes.data()[i + root_count];
@@ -3225,6 +3226,14 @@ static void closest_pt_segment_segment(vec3& vec, const vec3& p0, const vec3& q0
     }
 }
 
+// 0x140482F30
+static void segment_limit_distance(vec3& p0, const vec3& p1, float_t max_distance) {
+    const vec3 d = p0 - p1;
+    const float_t dist = vec3::length_squared(d);
+    if (dist > max_distance * max_distance)
+        p0 = p1 + d * (max_distance / sqrtf(dist));
+}
+
 static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3) {
     sub_140219940(rob_cls);
     if (rob_cls->osage_reset) {
@@ -3238,11 +3247,11 @@ static void sub_140218560(RobCloth* rob_cls, float_t step, bool a3) {
 
         float_t move_cancel = rob_cls->move_cancel;
         for (size_t i = 0; i < root_count; i++) {
-            mat4& mat = rob_cls->root.data()[i].field_D8;
+            const mat4& mat_pos = rob_cls->root.data()[i].mat_pos;
             CLOTHNode* node = &rob_cls->nodes.data()[i + root_count];
             for (size_t j = 1; j < nodes_count; j++, node += root_count) {
                 vec3 pos;
-                mat4_transform_point(&mat, &node->reset_data.pos, &pos);
+                mat4_transform_point(&mat_pos, &node->reset_data.pos, &pos);
                 node->pos += (pos - node->pos) * move_cancel;
             }
         }
@@ -3279,7 +3288,7 @@ static void sub_1402187D0(RobCloth* rob_cls, bool a2) {
     for (size_t i = 1; i < nodes_count; i++) {
         RobClothRoot* root = rob_cls->root.data();
         for (size_t j = 0; j < root_count; j++, root++, node++) {
-            mat4 mat = root->field_98;
+            mat4 mat = root->mat;
 
             vec3 v37;
             mat4_transform_vector(&mat, &node->direction, &v37);
@@ -3312,17 +3321,17 @@ static void sub_140219940(RobCloth* rob_cls) {
 
         mat4 m = mat4_null;
         for (int32_t j = 0; j < 4; j++) {
-            if (!root.mat[j] || !root.node_mat[j])
+            if (!root.bone_mat[j] || !root.node_mat[j])
                 continue;
 
             mat4 mat;
-            mat4_mul(root.mat[j], root.node_mat[j], &mat);
+            mat4_mul(root.bone_mat[j], root.node_mat[j], &mat);
 
             float_t weight = root.weight[j];
             mat4_mul_scale(&mat, weight, weight, weight, weight, &mat);
             mat4_add(&m, &mat, &m);
         }
-        root.field_98 = m;
+        root.mat = m;
 
         mat4_transform_point(&m, &root_node.fixed_pos, &root_node.pos);
         mat4_transform_vector(&m, &root.normal, &root_node.normal);
@@ -3331,9 +3340,9 @@ static void sub_140219940(RobCloth* rob_cls) {
         root_node.prev_pos = root_node.pos;
 
         mat4_mul_translate(&m, &root_node.fixed_pos, &m);
-        root.field_D8 = m;
+        root.mat_pos = m;
         mat4_invert(&m, &m);
-        root.field_118 = m;
+        root.inv_mat_pos = m;
     }
 }
 
@@ -3345,7 +3354,7 @@ static void sub_140219D10(RobCloth* rob_cls) {
     for (size_t i = nodes_count - 2; i; i--) {
         CLOTHNode* v7 = &node[root_count * i];
         for (ssize_t j = 0; j < root_count; j++, v7++)
-            sub_140482F30(&v7->pos, &v7[root_count].pos, v7->dist_bottom);
+            segment_limit_distance(v7->pos, v7[root_count].pos, v7->dist_bottom);
     }
 
     if (nodes_count <= 1)
@@ -3375,23 +3384,23 @@ static void sub_140219D10(RobCloth* rob_cls) {
             vec3* v20 = v13;
             CLOTHNode* v22 = v16 - 1;
             for (ssize_t j = root_count - 1; j > 0; j--, v20--, v22--)
-                sub_140482F30(v20, v20 + 1, v22->dist_left);
+                segment_limit_distance(v20[0], v20[1], v22->dist_left);
             v14 = v12 + 1;
         }
 
         if (rob_cls->field_8 & 0x04)
-            sub_140482F30(&v11[root_count - 1], v11, v16->dist_right);
+            segment_limit_distance(v11[root_count - 1], v11[0], v16->dist_right);
 
         if (root_count > 1) {
             vec3* v23 = v14;
             CLOTHNode* v24 = v15 + 1;
             for (ssize_t j = root_count - 1; j > 0; j--, v23++, v24++)
-                sub_140482F30(v23, v23 - 1, v24->dist_right);
+                segment_limit_distance(v23[0], v23[-1], v24->dist_right);
             v14 = v12 + 1;
         }
 
         if (rob_cls->field_8 & 0x04)
-            sub_140482F30(v12, &v12[root_count - 1], v15->dist_left);
+            segment_limit_distance(v12[0], v12[root_count - 1], v15->dist_left);
 
         if (root_count > 0) {
             vec3* v27 = v11;
@@ -3499,7 +3508,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
 
                 node->pos = node->prev_pos + delta_pos * (trans_length * step);
             }
-            sub_140482F30(&node[0].pos, &node[-root_count].pos, node[0].dist_top);
+            segment_limit_distance(node[0].pos, node[-root_count].pos, node[0].dist_top);
 
             int32_t v39 = OsageCollision::osage_cls_work_list(node->pos,
                 rob_cls->skin_param_ptr->coli_r, rob_cls->ring.coli, &fric);
@@ -3511,7 +3520,7 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
                 node->delta_pos = 0.0f;
             }
 
-            mat4 mat = root->field_98;
+            mat4 mat = root->mat;
             mat4_set_translation(&mat, &node[-root_count].pos);
 
             int32_t yz_order = 1;
@@ -3531,9 +3540,9 @@ void sub_14021AA60(RobCloth* rob_cls, float_t step, bool a3) {
             node->delta_pos = (node->pos - node->prev_pos) * v10;
 
             if (!a3) {
-                mat4& v49 = rob_cls->root.data()[j].field_118;
-                mat4_transform_point(&v49, &node->pos, &node->reset_data.pos);
-                mat4_transform_vector(&v49, &node->delta_pos, &node->reset_data.delta_pos);
+                const mat4& inv_mat_pos = rob_cls->root.data()[j].inv_mat_pos;
+                mat4_transform_point(&inv_mat_pos, &node->pos, &node->reset_data.pos);
+                mat4_transform_vector(&inv_mat_pos, &node->delta_pos, &node->reset_data.delta_pos);
             }
         }
     }
@@ -3554,7 +3563,7 @@ static void sub_14021D480(RobCloth* rob_cls) {
     for (size_t i = 1; i < nodes_count; i++) {
         RobClothRoot* root = rob_cls->root.data();
         for (ssize_t j = 0; j < root_count; j++, root++, node++) {
-            mat4 mat = root->field_98;
+            mat4 mat = root->mat;
 
             vec3 v38;
             mat4_transform_vector(&mat, &node->direction, &v38);
@@ -3673,7 +3682,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
 
             vec3 delta_pos = v55->delta_pos + v55->vel;
             vec3 v126 = v55->pos + delta_pos;
-            sub_140482F30(&v126, &v111, v55->length * parent_scale_x);
+            segment_limit_distance(v126, v111, v55->length * parent_scale_x);
 
             vec3 v117 = (v128 - v126) * rob_osg->skin_param_ptr->stiffness;
             float_t weight = v55->data_ptr->skp_osg_node.weight;
@@ -3705,7 +3714,7 @@ static void sub_14047C800(RobOsage* rob_osg, const mat4* root_matrix,
         RobOsageNode* v90_begin = rob_osg->nodes.data() + rob_osg->nodes.size() - 2;
         RobOsageNode* v90_end = rob_osg->nodes.data();
         for (RobOsageNode* v90 = v90_begin; v90 != v90_end; v90--)
-            sub_140482F30(&v90[0].pos, &v90[1].pos, v90->child_length * parent_scale_x);
+            segment_limit_distance(v90[0].pos, v90[1].pos, v90->child_length * parent_scale_x);
     }
 
     if (ring_coli) {
@@ -3875,26 +3884,19 @@ static void sub_140482300(vec3* a1, vec3* a2, vec3* a3, float_t osage_gravity_co
     *a1 = diff;
 }
 
-static void sub_140482490(RobOsageNode* node, float_t step, float_t a3) {
+static void sub_140482490(RobOsageNode* node, const float_t& step, const float_t& parent_scale) {
     if (step != 1.0f) {
-        vec3 v4 = node->pos - node->fixed_pos;
+        vec3 delta_pos = node->pos - node->fixed_pos;
 
-        float_t v9 = vec3::length(v4);
-        if (v9 != 0.0f)
-            v4 *= 1.0f / v9;
-        node->pos = node->fixed_pos + v4 * (step * v9);
+        float_t dist = vec3::length(delta_pos);
+        if (dist != 0.0f)
+            delta_pos *= 1.0f / dist;
+        node->pos = node->fixed_pos + delta_pos * (step * dist);
     }
 
-    sub_140482F30(&node[0].pos, &node[-1].pos, node->length * a3);
+    segment_limit_distance(node[0].pos, node[-1].pos, node->length * parent_scale);
     if (node->sibling_node)
-        sub_140482F30(&node->pos, &node->sibling_node->pos, node->max_distance);
-}
-
-static void sub_140482F30(vec3* pos1, vec3* pos2, float_t length) {
-    vec3 diff = *pos1 - *pos2;
-    float_t dist = vec3::length_squared(diff);
-    if (dist > length * length)
-        *pos1 = *pos2 + diff * (length / sqrtf(dist));
+        segment_limit_distance(node->pos, node->sibling_node->pos, node->max_distance);
 }
 
 static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
@@ -3964,7 +3966,7 @@ static void sub_14047D8C0(RobOsage* rob_osg, const mat4* root_matrix,
             sub_140482180(v35, floor_height);
         }
         else
-            sub_140482F30(&v35[0].pos, &v35[-1].pos, v35[0].length * parent_scale->x);
+            segment_limit_distance(v35[0].pos, v35[-1].pos, v35[0].length * parent_scale->x);
 
         vec3 direction;
         mat4_inverse_transform_point(&v64, &v35->pos, &direction);
@@ -4126,7 +4128,7 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
     for (RobOsageNode* j = j_begin; j != j_end; i++, j++) {
         vec3 v74 = i->pos + vec3::normalize(v60) * (j->length * parent_scale_x);
         if (a4 && j->sibling_node)
-            sub_140482F30(&v74, &j->sibling_node->pos, j->max_distance);
+            segment_limit_distance(v74, j->sibling_node->pos, j->max_distance);
 
         skin_param_osage_node* v38 = &j->data_ptr->skp_osg_node;
         OsageCollision::osage_cls(coli_ring, v74, v38->coli_r);
