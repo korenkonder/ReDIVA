@@ -88,6 +88,8 @@ struct pvsr_stage_effect_env_post_process {
     int16_t start1;
     int16_t trans1;
     int16_t index2;
+
+    pvsr_stage_effect_env_post_process();
 };
 
 struct pvsr_stage_effect_env {

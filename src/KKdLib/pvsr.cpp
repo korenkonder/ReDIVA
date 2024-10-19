@@ -70,12 +70,22 @@ pvsr_stage_effect::~pvsr_stage_effect() {
 
 }
 
-pvsr_stage_effect_env_light::pvsr_stage_effect_env_light() : stage_light() {
-
+pvsr_stage_effect_env_light::pvsr_stage_effect_env_light() {
+    stage_light = -1;
 }
 
 pvsr_stage_effect_env_light::~pvsr_stage_effect_env_light() {
 
+}
+
+pvsr_stage_effect_env_post_process::pvsr_stage_effect_env_post_process() {
+    index0 = -1;
+    start0 = -1;
+    trans0 = -1;
+    index1 = -1;
+    start1 = -1;
+    trans1 = -1;
+    index2 = -1;
 }
 
 pvsr_stage_effect_env::pvsr_stage_effect_env() : light(), light_init(), fog(),
