@@ -106,9 +106,8 @@ static void sub_14047F990(RobOsage* rob_osg, const mat4* root_matrix,
 static void sub_140480260(RobOsage* rob_osg, const mat4* root_matrix,
     const vec3* parent_scale, float_t step, bool disable_external_force);
 static bool sub_140482FF0(mat4& mat, vec3& direction, skin_param_hinge* hinge, vec3* rot, int32_t& yz_order);
-static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2);
-static bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,
-    vec3* u_trans, vec3* d_trans, vec3* a5, vec3* a6, vec3* a7);
+static bool sub_14053D1B0(const vec3& l_trans, const vec3& r_trans,
+    const vec3& u_trans, const vec3& d_trans, vec3& z_axis, vec3& y_axis, vec3& x_axis);
 
 static const exp_func_op1 exp_func_op1_array[] = {
     { "neg"     , exp_neg      },
@@ -292,6 +291,7 @@ bool RobOsageNodeDataNormalRef::Check() {
     return set;
 }
 
+// 0x14053CAC0
 void RobOsageNodeDataNormalRef::GetMat() {
     if (!Check())
         return;
@@ -307,28 +307,47 @@ void RobOsageNodeDataNormalRef::GetMat() {
     mat4_get_translation(&l->mat, &l_trans);
     mat4_get_translation(&r->mat, &r_trans);
 
-    vec3 v21;
-    vec3 v22;
-    vec3 v23;
-    if (sub_14053D1B0(&l_trans, &r_trans, &u_trans, &d_trans, &v22, &v21, &v23)) {
-        mat4 mat;
-        mat.row0.x = v23.x;
-        mat.row0.y = v21.x;
-        mat.row0.z = v22.x;
-        mat.row0.w = 0.0f;
-        mat.row1.x = v23.y;
-        mat.row1.y = v21.y;
-        mat.row1.z = v22.y;
-        mat.row1.w = 0.0f;
-        mat.row2.x = v23.z;
-        mat.row2.y = v21.z;
-        mat.row2.z = v22.z;
-        mat.row2.w = 0.0f;
-        mat.row3.x = -vec3::dot(n_trans, v23);
-        mat.row3.y = -vec3::dot(n_trans, v21);
-        mat.row3.z = -vec3::dot(n_trans, v22);
-        mat.row3.w = 1.0f;
-        mat4_mul(&n->mat, &mat, &this->mat);
+    vec3 z_axis;
+    vec3 y_axis;
+    vec3 x_axis;
+    if (sub_14053D1B0(l_trans, r_trans, u_trans, d_trans, z_axis, y_axis, x_axis)) {
+        mat4 temp = mat4(
+            x_axis.x, y_axis.x, z_axis.x, 0.0f,
+            x_axis.y, y_axis.y, z_axis.y, 0.0f,
+            x_axis.z, y_axis.z, z_axis.z, 0.0f,
+            -vec3::dot(n_trans, x_axis),
+            -vec3::dot(n_trans, y_axis),
+            -vec3::dot(n_trans, z_axis), 1.0f);
+        mat4_mul(&n->mat, &temp, &mat);
+    }
+}
+
+// 0x14053CE30
+void RobOsageNodeDataNormalRef::GetMatBoneNode(mat4* mat) {
+    if (!set)
+        return;
+
+    vec3 n_trans;
+    vec3 u_trans;
+    vec3 d_trans;
+    vec3 l_trans;
+    vec3 r_trans;
+    mat4_get_translation(n->bone_node_ptr->ex_data_mat, &n_trans);
+    mat4_get_translation(u->bone_node_ptr->ex_data_mat, &u_trans);
+    mat4_get_translation(d->bone_node_ptr->ex_data_mat, &d_trans);
+    mat4_get_translation(l->bone_node_ptr->ex_data_mat, &l_trans);
+    mat4_get_translation(r->bone_node_ptr->ex_data_mat, &r_trans);
+
+    vec3 z_axis;
+    vec3 y_axis;
+    vec3 x_axis;
+    if (sub_14053D1B0(l_trans, r_trans, u_trans, d_trans, z_axis, y_axis, x_axis)) {
+        mat4 temp = mat4(
+            x_axis.x, x_axis.y, x_axis.z, 0.0f,
+            y_axis.x, y_axis.y, y_axis.z, 0.0f,
+            z_axis.x, z_axis.y, z_axis.z, 0.0f,
+            n_trans.x, n_trans.y, n_trans.z, 1.0f);
+        mat4_mul(&this->mat, &temp, mat);
     }
 }
 
@@ -1239,20 +1258,20 @@ void RobCloth::InitData(size_t root_count, size_t nodes_count, obj_skin_block_cl
 
     for (size_t i = 0; i < root_count; i++) {
         this->root.push_back({});
-        RobClothRoot& v34 = this->root.back();
-        v34.pos = root[i].pos;
-        v34.normal = root[i].normal;
+        RobClothRoot& cls_root = this->root.back();
+        cls_root.pos = root[i].pos;
+        cls_root.normal = root[i].normal;
         for (int32_t j = 0; j < 4; j++) {
             obj_skin_block_cloth_root_bone_weight& bone_weight = root[i].bone_weights[j];
-            v34.node[j] = 0;
-            v34.node_mat[j] = 0;
-            v34.bone_mat[j] = &mats[bone_weight.matrix_index];
+            cls_root.node[j] = 0;
+            cls_root.node_mat[j] = 0;
+            cls_root.bone_mat[j] = &mats[bone_weight.matrix_index];
             if (bone_weight.bone_name) {
-                v34.node[j] = itm_eq_obj->get_bone_node(bone_weight.bone_name, bone_data);
-                if (v34.node[j])
-                    v34.node_mat[j] = v34.node[j]->mat;
+                cls_root.node[j] = itm_eq_obj->get_bone_node(bone_weight.bone_name, bone_data);
+                if (cls_root.node[j])
+                    cls_root.node_mat[j] = cls_root.node[j]->mat;
             }
-            v34.weight[j] = bone_weight.weight;
+            cls_root.weight[j] = bone_weight.weight;
         }
     }
 
@@ -3440,10 +3459,7 @@ static float_t sub_14021A290(const vec3& trans_a, const vec3& trans_b, const vec
     binormal = vec3::cross(_tangent, normal);
     tangent = vec3::cross(normal, binormal);
 
-    mat3 mat;
-    mat.row0 = tangent;
-    mat.row1 = binormal;
-    mat.row2 = normal;
+    mat3 mat = mat3(tangent, binormal, normal);
     mat3_transpose(&mat, &mat);
     return mat3_determinant(&mat);
 }
@@ -3457,10 +3473,7 @@ static float_t sub_14021A5E0(const vec3& pos_a, const vec3& pos_b,
     binormal = vec3::cross(_tangent, normal);
     tangent = vec3::cross(normal, binormal);
 
-    mat3 mat;
-    mat.row0 = tangent;
-    mat.row1 = binormal;
-    mat.row2 = normal;
+    mat3 mat = mat3(tangent, binormal, normal);
     mat3_transpose(&mat, &mat);
     return mat3_determinant(&mat);
 }
@@ -3773,7 +3786,7 @@ static void sub_14047E1C0(RobOsage* rob_osg, vec3* scale) {
     RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
     for (RobOsageNode* i = i_begin; i != i_end; i++)
         if (i->data_ptr->normal_ref.set) {
-            sub_14053CE30(&i->data_ptr->normal_ref, i->bone_node_mat);
+            i->data_ptr->normal_ref.GetMatBoneNode(i->bone_node_mat);
             mat4_scale_rot(i->bone_node_mat, scale, i->bone_node_mat);
         }
 }
@@ -4263,55 +4276,18 @@ static bool sub_140482FF0(mat4& mat, vec3& direction, skin_param_hinge* hinge, v
     return clipped;
 }
 
-static void sub_14053CE30(RobOsageNodeDataNormalRef* normal_ref, mat4* a2) {
-    if (!normal_ref->set)
-        return;
-
-    vec3 n_trans;
-    vec3 u_trans;
-    vec3 d_trans;
-    vec3 l_trans;
-    vec3 r_trans;
-    mat4_get_translation(normal_ref->n->bone_node_ptr->ex_data_mat, &n_trans);
-    mat4_get_translation(normal_ref->u->bone_node_ptr->ex_data_mat, &u_trans);
-    mat4_get_translation(normal_ref->d->bone_node_ptr->ex_data_mat, &d_trans);
-    mat4_get_translation(normal_ref->l->bone_node_ptr->ex_data_mat, &l_trans);
-    mat4_get_translation(normal_ref->r->bone_node_ptr->ex_data_mat, &r_trans);
-
-    vec3 v27;
-    vec3 v26;
-    vec3 v28;
-    if (sub_14053D1B0(&l_trans, &r_trans, &u_trans, &d_trans, &v27, &v26, &v28)) {
-        mat4 v34;
-        *(vec3*)&v34.row0 = v28;
-        *(vec3*)&v34.row1 = v26;
-        *(vec3*)&v34.row2 = v27;
-        *(vec3*)&v34.row3 = n_trans;
-        v34.row0.w = 0.0f;
-        v34.row1.w = 0.0f;
-        v34.row2.w = 0.0f;
-        v34.row3.w = 1.0f;
-
-        mat4 v33 = normal_ref->mat;
-        mat4_mul(&v33, &v34, a2);
-    }
-}
-
-static bool sub_14053D1B0(vec3* l_trans, vec3* r_trans,
-    vec3* u_trans, vec3* d_trans, vec3* a5, vec3* a6, vec3* a7) {
-    float_t length;
-    *a5 = *d_trans - *u_trans;
-    length = vec3::length_squared(*a5);
-    if (length <= 0.000001f)
+static bool sub_14053D1B0(const vec3& l_trans, const vec3& r_trans,
+    const vec3& u_trans, const vec3& d_trans, vec3& z_axis, vec3& y_axis, vec3& x_axis) {
+    z_axis = d_trans - u_trans;
+    if (fabsf(vec3::length_squared(z_axis)) <= 0.000001f)
         return false;
-    *a5 *= 1.0f / sqrtf(length);
 
-    *a6 = vec3::cross(*r_trans - *l_trans, *a5);
-    length = vec3::length_squared(*a6);
-    if (length <= 0.000001f)
+    z_axis = vec3::normalize(z_axis);
+    y_axis = vec3::cross(r_trans - l_trans, z_axis);
+    if (fabsf(vec3::length_squared(y_axis)) <= 0.000001f)
         return false;
-    *a6 *= 1.0f / sqrtf(length);
 
-    *a7 = vec3::normalize(vec3::cross(*a5, *a6));
+    y_axis = vec3::normalize(y_axis);
+    x_axis = vec3::normalize(vec3::cross(z_axis, y_axis));
     return true;
 }

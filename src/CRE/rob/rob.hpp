@@ -1521,6 +1521,7 @@ struct RobOsageNodeDataNormalRef {
 
     bool Check();
     void GetMat();
+    void GetMatBoneNode(mat4* mat);
 };
 
 struct skin_param_hinge {

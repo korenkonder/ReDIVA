@@ -22,6 +22,14 @@ struct mat3 {
         row0(row0), row1(row1), row2(row2) {
 
     }
+
+    inline mat3(const float_t in_m00, const float_t in_m01, const float_t in_m02,
+        const float_t in_m10, const float_t in_m11, const float_t in_m12,
+        const float_t in_m20, const float_t in_m21, const float_t in_m22) {
+        row0 = vec3(in_m00, in_m01, in_m02);
+        row1 = vec3(in_m10, in_m11, in_m12);
+        row2 = vec3(in_m20, in_m21, in_m22);
+    }
 };
 
 struct mat4 {
@@ -37,6 +45,16 @@ struct mat4 {
     inline mat4(vec4 row0, vec4 row1, vec4 row2, vec4 row3) :
         row0(row0), row1(row1), row2(row2), row3(row3) {
 
+    }
+
+    inline mat4(const float_t in_m00, const float_t in_m01, const float_t in_m02, const float_t in_m03,
+        const float_t in_m10, const float_t in_m11, const float_t in_m12, const float_t in_m13,
+        const float_t in_m20, const float_t in_m21, const float_t in_m22, const float_t in_m23,
+        const float_t in_m30, const float_t in_m31, const float_t in_m32, const float_t in_m33) {
+        row0 = vec4(in_m00, in_m01, in_m02, in_m03);
+        row1 = vec4(in_m10, in_m11, in_m12, in_m13);
+        row2 = vec4(in_m20, in_m21, in_m22, in_m23);
+        row3 = vec4(in_m30, in_m31, in_m32, in_m33);
     }
 };
 
