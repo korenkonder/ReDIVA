@@ -223,7 +223,7 @@ void skin_param::set_skin_param_osage_root(const skin_param_osage_root& skp_root
     force_gain = skp_root.force_gain;
 }
 
-skin_param_file_data::skin_param_file_data() : field_88() {
+skin_param_file_data::skin_param_file_data() : depends_on_others() {
 
 }
 

@@ -21,48 +21,45 @@ void inject_data(void* address, void* data, size_t count) {
     VirtualProtect(address, count, old_protect, &old_protect);
 }
 
-void inject_uint8_t(void* address, uint8_t data) {
+uint8_t inject_uint8_t(void* address, uint8_t data) {
     DWORD old_protect;
     VirtualProtect(address, sizeof(uint8_t), PAGE_EXECUTE_READWRITE, &old_protect);
+    uint8_t ret = *(uint8_t*)address;
     *(uint8_t*)address = data;
     VirtualProtect(address, sizeof(uint8_t), old_protect, &old_protect);
+    return ret;
 }
 
-void inject_uint16_t(void* address, uint16_t data) {
+uint16_t inject_uint16_t(void* address, uint16_t data) {
     DWORD old_protect;
     VirtualProtect(address, sizeof(uint16_t), PAGE_EXECUTE_READWRITE, &old_protect);
+    uint16_t ret = *(uint16_t*)address;
     *(uint16_t*)address = data;
     VirtualProtect(address, sizeof(uint16_t), old_protect, &old_protect);
+    return ret;
 }
 
-void inject_uint32_t(void* address, uint32_t data) {
+uint32_t inject_uint32_t(void* address, uint32_t data) {
     DWORD old_protect;
     VirtualProtect(address, sizeof(uint32_t), PAGE_EXECUTE_READWRITE, &old_protect);
+    uint32_t ret = *(uint32_t*)address;
     *(uint32_t*)address = data;
     VirtualProtect(address, sizeof(uint32_t), old_protect, &old_protect);
+    return ret;
 }
 
-void inject_uint64_t(void* address, uint64_t data) {
+uint64_t inject_uint64_t(void* address, uint64_t data) {
     DWORD old_protect;
     VirtualProtect(address, sizeof(uint64_t), PAGE_EXECUTE_READWRITE, &old_protect);
+    uint64_t ret = *(uint64_t*)address;
     *(uint64_t*)address = data;
     VirtualProtect(address, sizeof(uint64_t), old_protect, &old_protect);
+    return ret;
 }
 
 static patch_struct patch_data[] = {
     { (void*)0x00000001401D3860, (uint64_t)&printf_proxy, },
     { (void*)0x00000001400DE640, (uint64_t)&printf_proxy, },
-    { (void*)0x00000001405F39E0, (uint64_t)&ExNodeBlock__Field_10, },
-    { (void*)0x00000001405F3640, (uint64_t)&ExOsageBlock__Init, },
-    { (void*)0x00000001405F49F0, (uint64_t)&ExOsageBlock__Field_18, },
-    { (void*)0x00000001405F2140, (uint64_t)&ExOsageBlock__Field_20, },
-    { (void*)0x00000001405F2470, (uint64_t)&ExOsageBlock__SetOsagePlayData, },
-    { (void*)0x00000001405F26F0, (uint64_t)&ExOsageBlock__Disp, },
-    { (void*)0x00000001405F2640, (uint64_t)&ExOsageBlock__Reset, },
-    { (void*)0x00000001405F2860, (uint64_t)&ExOsageBlock__Field_40, },
-    { (void*)0x00000001405F4640, (uint64_t)&ExOsageBlock__Field_48, },
-    { (void*)0x00000001405F4730, (uint64_t)&ExOsageBlock__Field_50, },
-    { (void*)0x00000001405F48F0, (uint64_t)&ExOsageBlock__Field_58, },
 };
 
 void inject_patches() {
@@ -78,6 +75,29 @@ void inject_patches() {
             inject_data(patch_data[i].address, buf, 12);
         }
 
-    glutMainLoop = (void (FASTCALL*)())*(size_t*)0x0000000140966008;
-    inject_uint64_t((void*)0x0000000140966008, (uint64_t)&gl_get_func_pointers);
+    *(uint64_t*)&origExNodeBlock__CtrlBegin = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlBegin, (uint64_t)ExNodeBlock__CtrlBegin);
+    *(uint64_t*)&origExOsageBlock__Init = inject_uint64_t(
+        &ExOsageBlock_vftable->Init, (uint64_t)ExOsageBlock__Init);
+    *(uint64_t*)&origExOsageBlock__CtrlStep = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlStep, (uint64_t)ExOsageBlock__CtrlStep);
+    *(uint64_t*)&origExOsageBlock__CtrlMain = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlMain, (uint64_t)ExOsageBlock__CtrlMain);
+    *(uint64_t*)&origExOsageBlock__CtrlOsagePlayData = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlOsagePlayData, (uint64_t)ExOsageBlock__CtrlOsagePlayData);
+    *(uint64_t*)&origExOsageBlock__Disp = inject_uint64_t(
+        &ExOsageBlock_vftable->Disp, (uint64_t)ExOsageBlock__Disp);
+    *(uint64_t*)&origExOsageBlock__Reset = inject_uint64_t(
+        &ExOsageBlock_vftable->Reset, (uint64_t)ExOsageBlock__Reset);
+    *(uint64_t*)&origExOsageBlock__Field_40 = inject_uint64_t(
+        &ExOsageBlock_vftable->Field40, (uint64_t)ExOsageBlock__Field_40);
+    *(uint64_t*)&origExOsageBlock__CtrlInitBegin = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlInitBegin, (uint64_t)ExOsageBlock__CtrlInitBegin);
+    *(uint64_t*)&origExOsageBlock__CtrlInitMain = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlInitMain, (uint64_t)ExOsageBlock__CtrlInitMain);
+    *(uint64_t*)&origExOsageBlock__CtrlEnd = inject_uint64_t(
+        &ExOsageBlock_vftable->CtrlEnd, (uint64_t)ExOsageBlock__CtrlEnd);
+
+    *(uint64_t*)&glutMainLoop = inject_uint64_t(
+        (void*)0x0000000140966008, (uint64_t)&gl_get_func_pointers);
 }

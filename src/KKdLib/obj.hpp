@@ -493,7 +493,7 @@ struct obj_skin_block_cloth {
     uint32_t field_8;
     int32_t num_root;
     int32_t num_node;
-    uint32_t field_14;
+    uint32_t loop;
     mat4* mat_array;
     int32_t num_mat;
     obj_skin_block_cloth_root* root_array;

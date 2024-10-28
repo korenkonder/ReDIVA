@@ -411,7 +411,7 @@ dist_top(), dist_bottom(), dist_right(), dist_left() {
 }
 
 obj_skin_block_cloth::obj_skin_block_cloth() : mesh_name(), backface_mesh_name(), field_8(),
-num_root(), num_node(), field_14(), mat_array(), num_mat(), root_array(), node_array(), mesh_index_array(),
+num_root(), num_node(), loop(), mat_array(), num_mat(), root_array(), node_array(), mesh_index_array(),
 num_mesh_index(), backface_mesh_index_array(), num_backface_mesh_index(), skin_param(), reserved() {
 
 }
@@ -985,7 +985,7 @@ static obj_skin_block_cloth* obj_move_data_skin_block_cloth(const obj_skin_block
     int32_t num_node = cls_src->num_node;
     cls_dst->num_root = num_root;
     cls_dst->num_node = num_node;
-    cls_dst->field_14 = cls_src->field_14;
+    cls_dst->loop = cls_src->loop;
 
     int32_t num_mat = cls_src->num_mat;
     cls_dst->mat_array = alloc->allocate<mat4>(cls_src->mat_array, num_mat);
@@ -2713,7 +2713,7 @@ static obj_skin_block_cloth* obj_classic_read_skin_block_cloth(
     cls->field_8 = s.read_uint32_t();
     cls->num_root = s.read_int32_t();
     cls->num_node = s.read_int32_t();
-    cls->field_14 = s.read_uint32_t();
+    cls->loop = s.read_uint32_t();
     uint32_t mat_array_offset = s.read_uint32_t();
     uint32_t root_array_offset = s.read_uint32_t();
     uint32_t node_array_offset = s.read_uint32_t();
@@ -2838,7 +2838,7 @@ static void obj_classic_write_skin_block_cloth(obj_skin_block_cloth* cls,
     s.write_int32_t(cls->field_8);
     s.write_int32_t(cls->num_root);
     s.write_int32_t(cls->num_node);
-    s.write_int32_t(cls->field_14);
+    s.write_int32_t(cls->loop);
     s.write_uint32_t((uint32_t)*mat_array_offset);
     s.write_uint32_t((uint32_t)*root_array_offset);
     s.write_uint32_t((uint32_t)*node_array_offset);
@@ -6749,7 +6749,7 @@ static obj_skin_block_cloth* obj_modern_read_skin_block_cloth(
     cls->field_8 = s.read_uint32_t_reverse_endianness();
     cls->num_root = s.read_int32_t_reverse_endianness();
     cls->num_node = s.read_int32_t_reverse_endianness();
-    cls->field_14 = s.read_uint32_t_reverse_endianness();
+    cls->loop = s.read_uint32_t_reverse_endianness();
     int64_t mat_array_offset = s.read_offset(header_length, is_x);
     int64_t root_array_offset = s.read_offset(header_length, is_x);
     int64_t node_array_offset = s.read_offset(header_length, is_x);
@@ -6882,7 +6882,7 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* cls,
         s.write_int32_t_reverse_endianness(cls->field_8);
         s.write_int32_t_reverse_endianness(cls->num_root);
         s.write_int32_t_reverse_endianness(cls->num_node);
-        s.write_int32_t_reverse_endianness(cls->field_14);
+        s.write_int32_t_reverse_endianness(cls->loop);
         s.write_offset_f2(cls->num_node ? *mat_array_offset : 0, 0x20);
         s.write_offset_f2(cls->root_array ? *root_array_offset : 0, 0x20);
         s.write_offset_f2(cls->node_array ? *node_array_offset : 0, 0x20);
@@ -6897,7 +6897,7 @@ static void obj_modern_write_skin_block_cloth(obj_skin_block_cloth* cls,
         s.write_int32_t_reverse_endianness(cls->field_8);
         s.write_int32_t_reverse_endianness(cls->num_root);
         s.write_int32_t_reverse_endianness(cls->num_node);
-        s.write_int32_t_reverse_endianness(cls->field_14);
+        s.write_int32_t_reverse_endianness(cls->loop);
         s.write_offset_x(cls->num_node ? *mat_array_offset : 0);
         s.write_offset_x(cls->root_array ? *root_array_offset : 0);
         s.write_offset_x(cls->node_array ? *node_array_offset : 0);

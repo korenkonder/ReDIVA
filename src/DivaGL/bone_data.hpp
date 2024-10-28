@@ -854,10 +854,10 @@ namespace SkinParam {
     };
 
     enum RootCollisionType {
-        RootCollisionTypeEnd     = 0x0,
-        RootCollisionTypeBall    = 0x1,
-        RootCollisionTypeCapsule = 0x2,
-        RootCollisionTypeMax     = 0x3,
+        RootCollisionTypeEnd             = 0x00,
+        RootCollisionTypeCapsule         = 0x01,
+        RootCollisionTypeCapsuleWithRoot = 0x02,
+        RootCollisionTypeMax             = 0x03,
     };
 }
 
@@ -2864,7 +2864,7 @@ struct opd_blend_data {
     uint32_t motion_id;
     float_t frame;
     float_t frame_count;
-    bool field_C;
+    bool use_blend;
     MotionBlendType type;
     float_t blend;
 };
@@ -2980,16 +2980,16 @@ struct skin_param_osage_root {
 struct obj_skin_block_cloth {
     const char* mesh_name;
     const char* backface_mesh_name;
-    int32_t field_8;
-    uint32_t root_count;
-    uint32_t nodes_count;
-    int32_t field_14;
-    mat4* mats;
-    obj_skin_block_cloth_root* root;
-    obj_skin_block_cloth_node* nodes;
-    uint16_t* mesh_indices;
-    uint16_t* backface_mesh_indices;
-    skin_param_osage_root* skp_root;
+    uint32_t field_8;
+    int32_t num_root;
+    int32_t num_node;
+    uint32_t loop;
+    mat4* mat_array;
+    obj_skin_block_cloth_root* root_array;
+    obj_skin_block_cloth_node* node_array;
+    uint16_t* mesh_index_array;
+    uint16_t* backface_mesh_index_array;
+    skin_param_osage_root* skin_param;
     uint32_t reserved;
 };
 
@@ -3061,18 +3061,18 @@ struct rob_chara_item_equip_object;
 struct ExNodeBlock;
 
 struct ExNodeBlock_vtbl {
-    void* (*Dispose)(ExNodeBlock*, bool dispose);
-    void(*Field8)(ExNodeBlock*);
-    void(*Field10)(ExNodeBlock*);
-    void(*Field18)(ExNodeBlock*, int32_t, bool);
-    void(*Field20)(ExNodeBlock*);
-    void(*SetOsagePlayData)(ExNodeBlock*);
-    void(*Disp)(ExNodeBlock*);
-    void(*Reset)(ExNodeBlock*);
-    void(*Field40)(ExNodeBlock*);
-    void(*Field48)(ExNodeBlock*);
-    void(*Field50)(ExNodeBlock*);
-    void(*Field58)(ExNodeBlock*);
+    void* (*Dispose)(ExNodeBlock* This, uint8_t);
+    void(*Init)(ExNodeBlock* This);
+    void(*CtrlBegin)(ExNodeBlock* This);
+    void(*CtrlStep)(ExNodeBlock* This, int32_t stage, bool disable_external_force);
+    void(*CtrlMain)(ExNodeBlock* This);
+    void(*CtrlOsagePlayData)(ExNodeBlock* This);
+    void(*Disp)(ExNodeBlock* This);
+    void(*Reset)(ExNodeBlock* This);
+    void(*Field40)(ExNodeBlock* This);
+    void(*CtrlInitBegin)(ExNodeBlock* This);
+    void(*CtrlInitMain)(ExNodeBlock* This);
+    void(*CtrlEnd)(ExNodeBlock* This);
 };
 
 struct ExNodeBlock {
@@ -3084,8 +3084,8 @@ struct ExNodeBlock {
     prj::string parent_name;
     ExNodeBlock* parent_node;
     rob_chara_item_equip_object* item_equip_object;
-    bool field_58;
-    bool field_59;
+    bool is_parent;
+    bool done;
     bool has_children_node;
 };
 
@@ -3111,6 +3111,16 @@ struct skin_param_hinge {
     float_t ymax;
     float_t zmin;
     float_t zmax;
+
+    inline skin_param_hinge() {
+        ymin = -90.0f;
+        ymax = 90.0f;
+        zmin = -90.0f;
+        zmax = 90.0f;
+    }
+
+    bool clamp(float_t& y, float_t& z) const;
+    void limit();
 };
 
 struct skin_param_osage_node {
@@ -3176,6 +3186,43 @@ struct RobOsageNode {
     RobOsageNodeData data;
     prj::vector<opd_vec3_data> opd_data;
     opd_node_data_pair opd_node_data;
+
+    inline RobOsageNode& GetNextNode() {
+        return *(this + 1);
+    }
+
+    inline const RobOsageNode& GetNextNode() const {
+        return *(this + 1);
+    }
+
+    inline RobOsageNode& GetPrevNode() {
+        return *(this - 1);
+    }
+
+    inline const RobOsageNode& GetPrevNode() const {
+        return *(this - 1);
+    }
+
+    inline float_t TranslateMat(mat4& mat, const bool rot_clamped, const float_t parent_scale_x) {
+        const float_t dist = vec3::distance_squared(pos, GetPrevNode().pos);
+        const float_t len = length * parent_scale_x;
+
+        float_t length;
+        bool length_clamped;
+        if (dist >= len * len) {
+            length = sqrtf(dist);
+            length_clamped = false;
+        }
+        else {
+            length = len;
+            length_clamped = true;
+        }
+
+        mat4_mul_translate_x(&mat, length, &mat);
+        if (rot_clamped || length_clamped)
+            mat4_get_translation(&mat, &pos);
+        return length;
+    }
 };
 
 struct skin_param {
@@ -3240,7 +3287,7 @@ struct osage_ring_data {
     float_t ring_height;
     float_t out_height;
     bool init;
-    OsageCollision coli;
+    OsageCollision coli_object;
     prj::vector<SkinParam::CollisionParam> skp_root_coli;
 
     float_t get_floor_height(const vec3& pos, const float_t coli_r);
@@ -3255,24 +3302,23 @@ struct RobOsage {
     skin_param* skin_param_ptr;
     bone_node_expression_data exp_data;
     prj::vector<RobOsageNode> nodes;
-    RobOsageNode node;
+    RobOsageNode end_node;
     skin_param skin_param;
     osage_setting_osg_cat osage_setting;
-    bool field_2A0;
+    bool apply_physics;
     bool field_2A1;
     float_t field_2A4;
-    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_chara[64];
     OsageCollision::Work coli_ring[64];
     vec3 wind_direction;
-    float_t field_1EB4;
+    float_t inertia;
     int32_t yz_order;
-    int32_t field_1EBC;
-    mat4* parent_mat_ptr;
-    mat4 parent_mat;
+    mat4* root_matrix_ptr;
+    mat4 root_matrix_prev;
     float_t move_cancel;
-    bool field_1F0C;
+    bool move_cancelled;
     bool osage_reset;
-    bool prev_osage_reset;
+    bool osage_reset_done;
     bool disable_collision;
     osage_ring_data ring;
     prj::map<std::pair<int32_t, int32_t>, prj::list<RobOsageNodeResetData>> motion_reset_data;
@@ -3285,7 +3331,7 @@ struct ExOsageBlock {
     ExNodeBlock base;
     size_t index;
     RobOsage rob;
-    mat4* mat;
+    mat4* mats;
     int32_t field_1FF8;
     float_t step;
 };
@@ -3449,13 +3495,13 @@ struct CLOTH {
     size_t nodes_count;
     prj::vector<CLOTHNode> nodes;
     vec3 wind_direction;
-    float_t field_44;
+    float_t inertia;
     bool set_external_force;
     vec3 external_force;
     prj::vector<struc_341> field_58;
     skin_param* skin_param_ptr;
     skin_param skin_param;
-    OsageCollision::Work coli[64];
+    OsageCollision::Work coli_chara[64];
     OsageCollision::Work coli_ring[64];
     osage_ring_data ring;
     mat4* mats;
@@ -3897,7 +3943,7 @@ struct texture_data_struct {
 struct rob_chara_item_equip_object {
     size_t index;
     mat4* mats;
-    object_info object_info;
+    object_info obj_info;
     int32_t field_14;
     prj::vector<texture_pattern_struct> texture_pattern;
     texture_data_struct texture_data;
@@ -3905,15 +3951,15 @@ struct rob_chara_item_equip_object {
     bone_node_expression_data exp_data;
     float_t alpha;
     obj_flags obj_flags;
-    bool disp;
+    bool can_disp;
     int32_t field_A4;
     mat4* mat;
-    int32_t osage_iterations;
+    int32_t init_iterations;
     bone_node* bone_nodes;
     prj::vector<ExNodeBlock*> node_blocks;
     prj::vector<bone_node> ex_data_bone_nodes;
-    prj::vector<mat4> ex_data_matrices;
-    prj::vector<mat4> field_108;
+    prj::vector<mat4> ex_data_bone_mats;
+    prj::vector<mat4> ex_data_mats;
     prj::vector<ex_data_name_bone_index> ex_bones;
     int64_t field_138;
     prj::vector<ExNullBlock*> null_blocks;
@@ -3921,8 +3967,8 @@ struct rob_chara_item_equip_object {
     prj::vector<ExConstraintBlock*> constraint_blocks;
     prj::vector<ExExpressionBlock*> expression_blocks;
     prj::vector<ExClothBlock*> cloth_blocks;
-    int8_t field_1B8;
-    size_t frame_count;
+    bool osage_depends_on_others;
+    size_t osage_nodes_count;
     bool use_opd;
     obj_skin_ex_data* skin_ex_data;
     obj_skin* skin;
@@ -3984,15 +4030,32 @@ struct rob_chara_item_equip {
     bool parts_white_one_l;
 };
 
-extern void ExNodeBlock__Field_10(ExNodeBlock* node);
+extern ExNodeBlock_vtbl* ExNodeBlock_vftable;
+extern ExNodeBlock_vtbl* ExOsageBlock_vftable;
+extern ExNodeBlock_vtbl* ExClothBlock_vftable;
+
+extern void (*origExNodeBlock__CtrlBegin)(ExNodeBlock* node);
+
+extern void (*origExOsageBlock__Init)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__CtrlStep)(ExOsageBlock* osg, int32_t stage, bool disable_external_force);
+extern void (*origExOsageBlock__CtrlMain)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__CtrlOsagePlayData)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__Disp)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__Reset)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__Field_40)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__CtrlInitBegin)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__CtrlInitMain)(ExOsageBlock* osg);
+extern void (*origExOsageBlock__CtrlEnd)(ExOsageBlock* osg);
+
+extern void ExNodeBlock__CtrlBegin(ExNodeBlock* node);
 
 extern void ExOsageBlock__Init(ExOsageBlock* osg);
-extern void ExOsageBlock__Field_18(ExOsageBlock* osg, int32_t a2, bool a3);
-extern void ExOsageBlock__Field_20(ExOsageBlock* osg);
-extern void ExOsageBlock__SetOsagePlayData(ExOsageBlock* osg);
+extern void ExOsageBlock__CtrlStep(ExOsageBlock* osg, int32_t stage, bool disable_external_force);
+extern void ExOsageBlock__CtrlMain(ExOsageBlock* osg);
+extern void ExOsageBlock__CtrlOsagePlayData(ExOsageBlock* osg);
 extern void ExOsageBlock__Disp(ExOsageBlock* osg);
 extern void ExOsageBlock__Reset(ExOsageBlock* osg);
 extern void ExOsageBlock__Field_40(ExOsageBlock* osg);
-extern void ExOsageBlock__Field_48(ExOsageBlock* osg);
-extern void ExOsageBlock__Field_50(ExOsageBlock* osg);
-extern void ExOsageBlock__Field_58(ExOsageBlock* osg);
+extern void ExOsageBlock__CtrlInitBegin(ExOsageBlock* osg);
+extern void ExOsageBlock__CtrlInitMain(ExOsageBlock* osg);
+extern void ExOsageBlock__CtrlEnd(ExOsageBlock* osg);

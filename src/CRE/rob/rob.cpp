@@ -616,7 +616,8 @@ public:
     virtual bool dest() override;
     virtual void disp() override;
 
-    void AddMotionFrameResetData(int32_t stage_index, uint32_t motion_id, float_t frame, int32_t iterations);
+    void AddMotionFrameResetData(int32_t stage_index,
+        uint32_t motion_id, float_t frame, int32_t iterations);
     bool CheckResetFrameNotFound(uint32_t motion_id, float_t frame);
     bool GetDisplay();
     bool GetNotReset();
@@ -1254,6 +1255,7 @@ static int32_t opd_maker_counter = 0;
 static int32_t osage_test_no_pause = 0;
 static int32_t pv_osage_manager_counter = 0;
 static int32_t rob_thread_parent_counter = 0;
+static int32_t rob_chara_item_equip_object_disable_node_blocks = 0;
 
 static const mothead_func_struct mothead_func_array[] = {
     { mothead_func_0 , 1 },
@@ -2595,22 +2597,22 @@ void rob_free() {
     }
 }
 
-static void rob_chara_item_equip_object_ctrl_iterate_nodes(
-    rob_chara_item_equip_object* itm_eq_obj, int32_t osage_iterations) {
+static void rob_chara_item_equip_object_ctrl_init_iterate(
+    rob_chara_item_equip_object* itm_eq_obj, int32_t iterations) {
     if (!itm_eq_obj->node_blocks.size())
         return;
 
     for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
-        i->Field_48();
+        i->CtrlInitBegin();
 
-    for (; osage_iterations; osage_iterations--) {
-        if (itm_eq_obj->field_1B8 && itm_eq_obj->node_blocks.size())
+    for (; iterations; iterations--) {
+        if (itm_eq_obj->osage_depends_on_others && itm_eq_obj->node_blocks.size())
             for (int32_t i = 0; i < 6; i++)
                 for (ExNodeBlock*& j : itm_eq_obj->node_blocks)
-                    j->Field_18(i, true);
+                    j->CtrlStep(i, true);
 
         for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
-            i->Field_50();
+            i->CtrlInitMain();
     }
 }
 
@@ -2638,39 +2640,42 @@ static void rob_chara_item_equip_object_load_opd_data(rob_chara_item_equip_objec
 
 static void rob_chara_item_equip_ctrl_iterate_nodes(rob_chara_item_equip* rob_itm_equip, uint8_t iterations = 0) {
     for (int32_t i = ITEM_BODY; i < ITEM_MAX; i++)
-        rob_chara_item_equip_object_ctrl_iterate_nodes(&rob_itm_equip->item_equip_object[i], iterations);
+        rob_chara_item_equip_object_ctrl_init_iterate(&rob_itm_equip->item_equip_object[i], iterations);
 }
 
 static void rob_chara_item_equip_object_ctrl(rob_chara_item_equip_object* itm_eq_obj) {
-    if (itm_eq_obj->osage_iterations > 0) {
-        rob_chara_item_equip_object_ctrl_iterate_nodes(itm_eq_obj, itm_eq_obj->osage_iterations);
-        itm_eq_obj->osage_iterations = 0;
+    if (rob_chara_item_equip_object_disable_node_blocks)
+        return;
+
+    if (itm_eq_obj->init_iterations > 0) {
+        rob_chara_item_equip_object_ctrl_init_iterate(itm_eq_obj, itm_eq_obj->init_iterations);
+        itm_eq_obj->init_iterations = 0;
     }
 
     if (!itm_eq_obj->node_blocks.size()) // Added
         return;
 
     for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
-        i->Field_10();
+        i->CtrlBegin();
 
     if (itm_eq_obj->use_opd) {
         itm_eq_obj->use_opd = false;
         rob_chara_item_equip_object_load_opd_data(itm_eq_obj);
         for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
-            i->SetOsagePlayData();
+            i->CtrlOsagePlayData();
     }
     else {
-        if (itm_eq_obj->field_1B8 && itm_eq_obj->node_blocks.size())
+        if (itm_eq_obj->osage_depends_on_others && itm_eq_obj->node_blocks.size())
             for (int32_t i = 0; i < 6; i++)
                 for (ExNodeBlock*& j : itm_eq_obj->node_blocks)
-                    j->Field_18(i, false);
+                    j->CtrlStep(i, false);
 
         for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
-            i->Field_20();
+            i->CtrlMain();
     }
 
     for (ExNodeBlock*& i : itm_eq_obj->node_blocks)
-        i->Field_58();
+        i->CtrlEnd();
 }
 
 static void rob_chara_item_equip_ctrl(rob_chara_item_equip* rob_itm_equip) {
@@ -4579,8 +4584,8 @@ bool rob_chara::set_motion_id(uint32_t motion_id,
         if (set_motion_reset_data)
             rob_chara::set_motion_reset_data(motion_id, frame);
 
-        item_equip->item_equip_object[ITEM_TE_L].osage_iterations = 60;
-        item_equip->item_equip_object[ITEM_TE_R].osage_iterations = 60;
+        item_equip->item_equip_object[ITEM_TE_L].init_iterations = 60;
+        item_equip->item_equip_object[ITEM_TE_R].init_iterations = 60;
 
         if (check_for_ageageagain_module()) {
             rob_chara_age_age_array_set_skip(chara_id, 1);
@@ -11965,7 +11970,7 @@ bone_node_expression_data::bone_node_expression_data() {
     parent_scale = 1.0f;
 }
 
-void bone_node_expression_data::mat_set(vec3& parent_scale, mat4& ex_data_mat, mat4& mat) {
+void bone_node_expression_data::mat_set(const vec3& parent_scale, mat4& ex_data_mat, mat4& mat) {
     vec3 position = this->position * parent_scale;
     mat4_mul_translate(&ex_data_mat, &position, &ex_data_mat);
     mat4_mul_rotate_zyx(&ex_data_mat, &rotation, &ex_data_mat);
@@ -11992,7 +11997,7 @@ void bone_node_expression_data::set_position_rotation(
     parent_scale = 1.0f;
 }
 
-void bone_node_expression_data::set_position_rotation(vec3& position, vec3& rotation) {
+void bone_node_expression_data::set_position_rotation(const vec3& position, const vec3& rotation) {
     this->position = position;
     this->rotation = rotation;
     scale = 1.0f;
@@ -13261,10 +13266,10 @@ void rob_chara_pv_data::reset() {
     eyes_adjust = {};
 }
 
-rob_chara_item_equip_object::rob_chara_item_equip_object() : index(), mats(),
-obj_info(), field_14(), texture_data(), null_blocks_data_set(), alpha(),
-obj_flags(), can_disp(), field_A4(), mat(), osage_iterations(), bone_nodes(),
-field_138(), field_1B8(), osage_nodes_count(), use_opd(), skin_ex_data(), skin(), item_equip() {
+rob_chara_item_equip_object::rob_chara_item_equip_object() : index(), mats(), obj_info(),
+field_14(), texture_data(), null_blocks_data_set(), alpha(), obj_flags(), can_disp(),
+field_A4(), mat(), init_iterations(), bone_nodes(), field_138(), osage_depends_on_others(),
+osage_nodes_count(), use_opd(), skin_ex_data(), skin(), item_equip() {
     init_members(0x12345678);
 }
 
@@ -13273,9 +13278,9 @@ rob_chara_item_equip_object::~rob_chara_item_equip_object() {
 }
 
 void rob_chara_item_equip_object::add_motion_reset_data(
-    uint32_t motion_id, float_t frame, int32_t osage_iterations) {
-    if (osage_iterations > 0)
-        rob_chara_item_equip_object_ctrl_iterate_nodes(this, osage_iterations);
+    uint32_t motion_id, float_t frame, int32_t iterations) {
+    if (iterations > 0)
+        rob_chara_item_equip_object_ctrl_init_iterate(this, iterations);
 
     for (ExOsageBlock*& i : osage_blocks)
         i->AddMotionResetData(motion_id, frame);
@@ -13469,7 +13474,7 @@ void rob_chara_item_equip_object::init_members(size_t index) {
     ex_data_bone_mats.clear();
     ex_data_mats.clear();
     ex_bones.clear();
-    field_1B8 = false;
+    osage_depends_on_others = false;
     use_opd = false;
     osage_nodes_count = 0;
 }
@@ -13587,20 +13592,20 @@ void rob_chara_item_equip_object::load_ex_data(obj_skin_ex_data* ex_data,
         if (parent_node) {
             parent_node->has_children_node = true;
             if ((parent_node->type & ~0x03) || parent_node->type == EX_OSAGE
-                || !parent_node->field_58)
+                || !parent_node->is_parent)
                 continue;
         }
-        i->field_58 = true;
+        i->is_parent = true;
     }
 
     for (ExOsageBlock*& i : osage_blocks) {
         ExOsageBlock* osg = i;
         ExNodeBlock* parent_node = osg->parent_node;
         bone_node* parent_bone_node = 0;
-        if (!parent_node || osg->field_58)
+        if (!parent_node || osg->is_parent)
             parent_bone_node = osg->parent_bone_node;
         else {
-            while (!parent_node->field_58) {
+            while (!parent_node->is_parent) {
                 parent_node = parent_node->parent_node;
                 if (!parent_node)
                     break;
@@ -13612,7 +13617,7 @@ void rob_chara_item_equip_object::load_ex_data(obj_skin_ex_data* ex_data,
 
         if (parent_bone_node && parent_bone_node->ex_data_mat) {
             osg->rob.root_matrix_ptr = parent_bone_node->ex_data_mat;
-            osg->rob.root_matrix = *parent_bone_node->ex_data_mat;
+            osg->rob.root_matrix_prev = *parent_bone_node->ex_data_mat;
         }
     }
 
@@ -13674,7 +13679,7 @@ void rob_chara_item_equip_object::load_object_info_ex_data(object_info obj_info,
     load_ex_data(skin->ex_data, bone_data, data, obj_db);
 
     if (osage_reset && osage_blocks.size())
-        osage_iterations = 60;
+        init_iterations = 60;
 }
 
 void rob_chara_item_equip::load_outfit_object_info(item_id id, object_info obj_info,
@@ -13706,21 +13711,18 @@ void rob_chara_item_equip_object::set_alpha_obj_flags(float_t alpha, int32_t fla
 
 bool rob_chara_item_equip_object::set_boc(
     const skin_param_osage_root& skp_root, ExOsageBlock* osg) {
-    RobOsage* rob_osg = &osg->rob;
-    RobOsageNode* i_begin = rob_osg->nodes.data() + 1;
-    RobOsageNode* i_end = rob_osg->nodes.data() + rob_osg->nodes.size();
-    for (RobOsageNode* i = i_begin; i != i_end; i++)
-        i->data_ptr->boc.clear();
+    RobOsage& rob_osg = osg->rob;
+    rob_osg.ResetBoc();
 
     bool has_boc_node = false;
     for (const skin_param_osage_root_boc& i : skp_root.boc)
         for (ExOsageBlock*& j : osage_blocks) {
             if (i.ed_root.compare(j->name)
-                || i.ed_node + 1ULL >= rob_osg->nodes.size()
+                || i.ed_node + 1ULL >= rob_osg.nodes.size()
                 || i.st_node + 1ULL >= j->rob.nodes.size())
                 continue;
 
-            RobOsageNode* ed_node = rob_osg->GetNode(i.ed_node + 1ULL);
+            RobOsageNode* ed_node = rob_osg.GetNode(i.ed_node + 1ULL);
             RobOsageNode* st_node = j->rob.GetNode(i.st_node + 1ULL);
             ed_node->data_ptr->boc.push_back(st_node);
             has_boc_node = true;
@@ -13765,15 +13767,15 @@ void rob_chara_item_equip_object::set_motion_skin_param(int8_t chara_id, uint32_
     if (!skp_file_data)
         return;
 
-    field_1B8 = false;
+    osage_depends_on_others = false;
     skin_param_file_data* j = skp_file_data->data();
     for (ExOsageBlock*& i : osage_blocks) {
-        field_1B8 |= j->field_88;
+        osage_depends_on_others |= j->depends_on_others;
         i->SetSkinParam(j++);
     }
 
     for (ExClothBlock*& i : cloth_blocks) {
-        field_1B8 |= j->field_88;
+        osage_depends_on_others |= j->depends_on_others;
         i->SetSkinParam(j++);
     }
 }
@@ -13831,15 +13833,15 @@ void rob_chara_item_equip_object::skp_load(void* kv, const bone_database* bone_d
     if (_kv->key.size() < 1)
         return;
 
-    field_1B8 = false;
+    osage_depends_on_others = false;
     for (ExOsageBlock*& i : osage_blocks) {
         ExOsageBlock* osg = i;
         skin_param_osage_root root;
         osg->rob.LoadSkinParam(_kv, osg->name, root, &obj_info, bone_data);
         set_collision_target_osage(root, osg->rob.skin_param_ptr);
-        field_1B8 |= set_boc(root, osg);
-        field_1B8 |= root.coli_type != SkinParam::RootCollisionTypeEnd;
-        field_1B8 |= skp_load_normal_ref(root, 0);
+        osage_depends_on_others |= set_boc(root, osg);
+        osage_depends_on_others |= root.coli_type != SkinParam::RootCollisionTypeEnd;
+        osage_depends_on_others |= skp_load_normal_ref(root, 0);
     }
 
     for (ExClothBlock*& i : cloth_blocks) {
@@ -13851,15 +13853,15 @@ void rob_chara_item_equip_object::skp_load(void* kv, const bone_database* bone_d
 void rob_chara_item_equip_object::skp_load(const skin_param_osage_root& skp_root,
     std::vector<skin_param_osage_node>& vec, skin_param_file_data* skp_file_data, const bone_database* bone_data) {
     set_collision_target_osage(skp_root, &skp_file_data->skin_param);
-    skp_file_data->field_88 |= skp_file_data->skin_param.coli_type > SkinParam::RootCollisionTypeEnd;
+    skp_file_data->depends_on_others |= skp_file_data->skin_param.coli_type > SkinParam::RootCollisionTypeEnd;
 
     skin_param_osage_node* j = vec.data();
     size_t k = 0;
     for (RobOsageNodeData& i : skp_file_data->nodes_data)
         i.SetForce(skp_root, j++, k++);
 
-    skp_file_data->field_88 |= skp_load_boc(skp_root, &skp_file_data->nodes_data);
-    skp_file_data->field_88 |= skp_load_normal_ref(skp_root, &skp_file_data->nodes_data);
+    skp_file_data->depends_on_others |= skp_load_boc(skp_root, &skp_file_data->nodes_data);
+    skp_file_data->depends_on_others |= skp_load_normal_ref(skp_root, &skp_file_data->nodes_data);
 }
 
 bool rob_chara_item_equip_object::skp_load_boc(
@@ -13914,7 +13916,7 @@ bool rob_chara_item_equip_object::skp_load_normal_ref(
         data->normal_ref.d = get_normal_ref_osage_node(i.d, 0);
         data->normal_ref.l = get_normal_ref_osage_node(i.l, 0);
         data->normal_ref.r = get_normal_ref_osage_node(i.r, 0);
-        data->normal_ref.GetMat();
+        data->normal_ref.Load();
     }
     return true;
 }
@@ -18800,7 +18802,8 @@ void PvOsageManager::disp() {
 
 }
 
-void PvOsageManager::AddMotionFrameResetData(int32_t stage_index, uint32_t motion_id, float_t frame, int32_t iterations) {
+void PvOsageManager::AddMotionFrameResetData(int32_t stage_index,
+    uint32_t motion_id, float_t frame, int32_t iterations) {
     if (!CheckResetFrameNotFound(motion_id, frame))
         return;
 
@@ -19020,7 +19023,9 @@ void PvOsageManager::sub_1404F83A0(::osage_set_motion* a2) {
         frame_1 = last_frame - 1.0f;
 
     rob_osage_mothead osg_mhd(rob_chr, a2->frames.front().second, motion_id, frame_1, aft_bone_data, aft_mot_db);
-    for (float_t& i : v34) {
+    float_t* i_begin = v34.data();
+    float_t* i_end = v34.data() + v34.size();
+    for (float_t* i = i_begin; i != i_end; ) {
         osg_mhd.set_frame(frame);
         osg_mhd.ctrl();
 
@@ -19028,14 +19033,15 @@ void PvOsageManager::sub_1404F83A0(::osage_set_motion* a2) {
         frame = prj::floorf(frame) + 1.0f;
 
         if (iterations <= 1) {
-            if (frame_1 == i) {
+            if (frame_1 == *i) {
                 if (frame_1 == 0.0f && v32)
                     rob_chara_add_motion_reset_data(rob_chr, motion_id, last_frame, 0);
                 rob_chara_add_motion_reset_data(rob_chr, motion_id, frame_1, 0);
+                i++;
                 continue;
             }
-            if (frame_1 + 1.0f > i)
-                frame = i;
+            if (frame_1 + 1.0f > *i)
+                frame = *i;
         }
         else
             iterations--;
