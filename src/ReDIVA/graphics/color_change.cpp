@@ -858,7 +858,7 @@ void ColorChangeDw::ShowCallback(dw::Button* data) {
 }
 
 void ColorChangeDw::TextureCallback(dw::ListBox* data) {
-    size_t index = data->list->selected_item;
+    int32_t index = (int32_t)data->list->selected_item;
     ColorChangeDw* color_change_dw = (ColorChangeDw*)data->callback_data.v64;
     if (objset_info_storage_get_obj_set_textures(color_change_dw->obj_set_id)
         && index < objset_info_storage_get_obj_set_tex_num(color_change_dw->obj_set_id))

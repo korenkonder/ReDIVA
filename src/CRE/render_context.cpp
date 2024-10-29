@@ -48,21 +48,32 @@ void draw_state_stats::reset() {
     field_1C = 0;
 }
 
-draw_state::draw_state() : wireframe(), wireframe_overlay(), shadow(), self_shadow(),
-shader_debug_flag(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
-    shader = true;
-    shader_index = -1;
-    show = -1;
+global_material_struct::global_material_struct() {
     bump_depth = 1.0f;
     intensity = 1.0f;
     reflectivity = 1.0f;
     reflect_uv_scale = 0.1f;
     refract_uv_scale = 0.1f;
+}
+
+draw_state::draw_state() : wireframe(), wireframe_overlay(), shadow(), self_shadow(),
+shader_debug_flag(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
+    shader = true;
+    shader_index = -1;
+    show = -1;
     fresnel = 7.0f;
+}
+
+bool draw_state::get_use_global_material() {
+    return use_global_material;
 }
 
 void draw_state::set_fog_height(bool value) {
     fog_height = value;
+}
+
+void draw_state::set_use_global_material(bool value) {
+    use_global_material = value;
 }
 
 sss_data::sss_data() : init_data(), enable(), npr_contour(), param() {

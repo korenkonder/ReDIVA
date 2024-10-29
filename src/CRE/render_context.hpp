@@ -44,6 +44,16 @@ struct draw_state_stats {
     void reset();
 };
 
+struct global_material_struct {
+    float_t bump_depth;
+    float_t intensity;
+    float_t reflectivity;
+    float_t reflect_uv_scale;
+    float_t refract_uv_scale;
+
+    global_material_struct();
+};
+
 struct draw_state {
     draw_state_stats stats;
     draw_state_stats stats_prev;
@@ -58,17 +68,15 @@ struct draw_state {
     bool shader;
     int32_t shader_index;
     int32_t show;
-    float_t bump_depth;
-    float_t intensity;
-    float_t reflectivity;
-    float_t reflect_uv_scale;
-    float_t refract_uv_scale;
+    global_material_struct global_material;
     int32_t field_68;
     float_t fresnel;
 
     draw_state();
 
+    bool get_use_global_material();
     void set_fog_height(bool value);
+    void set_use_global_material(bool value);
 };
 
 struct sss_data {

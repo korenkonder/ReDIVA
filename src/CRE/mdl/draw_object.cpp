@@ -852,20 +852,20 @@ static void draw_object_material_set_parameter(render_context* rctx, const obj_m
     float_t inv_bump_depth;
     bool has_specular;
     if (rctx->draw_state->use_global_material) {
-        bump_depth = rctx->draw_state->bump_depth;
-        intensity = rctx->draw_state->intensity;
-        reflect_uv_scale = rctx->draw_state->reflect_uv_scale;
-        refract_uv_scale = rctx->draw_state->refract_uv_scale;
-        inv_bump_depth = (1.0f - rctx->draw_state->bump_depth) * 64.0f + 1.0f;
+        bump_depth = rctx->draw_state->global_material.bump_depth;
+        intensity = rctx->draw_state->global_material.intensity;
+        reflect_uv_scale = rctx->draw_state->global_material.reflect_uv_scale;
+        refract_uv_scale = rctx->draw_state->global_material.refract_uv_scale;
+        inv_bump_depth = (1.0f - rctx->draw_state->global_material.bump_depth) * 64.0f + 1.0f;
 
         specular = mat_data->material.color.specular;
-        specular.w = rctx->draw_state->reflectivity;
+        specular.w = rctx->draw_state->global_material.reflectivity;
         has_specular = true;
     }
     else {
         bump_depth = mat_data->material.bump_depth;
-        reflect_uv_scale = 0.1f;
         intensity = mat_data->material.color.intensity;
+        reflect_uv_scale = 0.1f;
         refract_uv_scale = 0.1f;
         inv_bump_depth = (1.0f - bump_depth) * 256.0f + 1.0f;
         has_specular = false;

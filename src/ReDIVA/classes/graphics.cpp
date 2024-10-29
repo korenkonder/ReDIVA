@@ -8,7 +8,9 @@
 #include "../graphics/face_light.hpp"
 #include "../graphics/fog.hpp"
 #include "../graphics/glitter.hpp"
+#include "../graphics/global_material.hpp"
 #include "../graphics/light.hpp"
+#include "../graphics/material.hpp"
 #include "../graphics/post_process.hpp"
 #include "../graphics/render_settings.hpp"
 #include "graphics/background_color.hpp"
@@ -88,6 +90,34 @@ classes_data graphics_classes[] = {
         "Color Change##Graphics",
         CLASSES_IN_CONTEXT_MENU,
         (classes_init_func)color_change_dw_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Global Material##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        (classes_init_func)global_material_dw_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Material##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        (classes_init_func)material_dw_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         {
