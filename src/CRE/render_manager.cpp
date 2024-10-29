@@ -501,7 +501,9 @@ namespace rndr {
             glClearColor(sss->param.x, sss->param.y, sss->param.z, 0.0f);
 #if REFLECT_STENCIL
             glClearStencil(0x00);
+            gl_state_set_stencil_mask(0xFF);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            gl_state_set_stencil_mask(0x00);
 #else
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 #endif
