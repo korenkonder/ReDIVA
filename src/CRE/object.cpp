@@ -1937,14 +1937,39 @@ inline obj_mesh_vertex_buffer* objset_info_storage_get_obj_mesh_vertex_buffer(ob
     return 0;
 }
 
-inline std::vector<GLuint>* objset_info_storage_get_obj_set_gentex(int32_t set) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set);
+inline std::vector<GLuint>* objset_info_storage_get_obj_set_gentex(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (info)
         return &info->gentex;
     return 0;
 }
 
-uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t tex_index) {
+inline bool objset_info_storage_get_obj_set_loaded(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
+    if (info)
+        return info->obj_loaded && info->tex_loaded;
+    return false;
+}
+
+inline uint32_t objset_info_storage_get_obj_set_obj_id(uint32_t set_id, int32_t obj_index) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
+    if (!info)
+        return -1;
+
+    obj_set* set = info->obj_set;
+    if (set && obj_index >= 0 && obj_index < set->obj_num)
+        return set->obj_data[obj_index]->id;
+    return -1;
+}
+
+inline int32_t objset_info_storage_get_obj_set_obj_num(uint32_t set_id) {
+    obj_set* set = objset_info_storage_get_obj_set(set_id);
+    if (set)
+        return set->obj_num;
+    return 0;
+}
+
+inline uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t tex_index) {
     ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (!info)
         return -1;
@@ -1955,19 +1980,19 @@ uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t tex_ind
     return -1;
 }
 
-int32_t objset_info_storage_get_obj_set_tex_num(int32_t set) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set);
+inline int32_t objset_info_storage_get_obj_set_tex_num(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (info)
         return info->tex_num;
     return 0;
 }
 
-GLuint objset_info_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id) {
-    std::vector<GLuint>* gentex = objset_info_storage_get_obj_set_gentex(set);
+GLuint objset_info_storage_get_obj_set_texture(uint32_t set_id, uint32_t tex_id) {
+    std::vector<GLuint>* gentex = objset_info_storage_get_obj_set_gentex(set_id);
     if (!gentex)
         return 0;
 
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set);
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (!info)
         return 0;
 
@@ -1977,8 +2002,8 @@ GLuint objset_info_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id) {
     return 0;
 }
 
-inline texture** objset_info_storage_get_obj_set_textures(int32_t set) {
-    ObjsetInfo* info = objset_info_storage_get_objset_info(set);
+inline texture** objset_info_storage_get_obj_set_textures(uint32_t set_id) {
+    ObjsetInfo* info = objset_info_storage_get_objset_info(set_id);
     if (info)
         return info->tex_data;
     return 0;

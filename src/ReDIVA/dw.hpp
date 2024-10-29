@@ -201,6 +201,10 @@ namespace dw {
         void SetText(std::string& str);
         void UpdateDraw();
 
+        inline void SetCallbackData(void* data) {
+            callback_data.v64 = data;
+        }
+        
         inline void SetText(std::wstring&& str) {
             SetText(str);
         }
@@ -811,6 +815,10 @@ namespace dw {
             scroll_bar->SetGrab(value);
         }
 
+        inline void SetFormat(const char* value) {
+            format = value;
+        }
+        
         inline void SetMax(float_t value) {
             scroll_bar->SetMax(value);
         }

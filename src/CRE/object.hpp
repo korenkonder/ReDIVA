@@ -139,11 +139,14 @@ extern obj_index_buffer* objset_info_storage_get_obj_index_buffers(uint32_t set_
 extern obj_mesh_index_buffer* objset_info_storage_get_obj_mesh_index_buffer(object_info obj_info);
 extern obj_vertex_buffer* objset_info_storage_get_obj_vertex_buffers(uint32_t set_id);
 extern obj_mesh_vertex_buffer* objset_info_storage_get_obj_mesh_vertex_buffer(object_info obj_info);
-extern std::vector<GLuint>* objset_info_storage_get_obj_set_gentex(int32_t set);
+extern std::vector<GLuint>* objset_info_storage_get_obj_set_gentex(uint32_t set_id);
+extern bool objset_info_storage_get_obj_set_loaded(uint32_t set_id);
+extern uint32_t objset_info_storage_get_obj_set_obj_id(uint32_t set_id, int32_t obj_index);
+extern int32_t objset_info_storage_get_obj_set_obj_num(uint32_t set_id);
 extern uint32_t objset_info_storage_get_obj_set_tex_id(uint32_t set_id, int32_t tex_index);
-extern int32_t objset_info_storage_get_obj_set_tex_num(int32_t set);
-extern GLuint objset_info_storage_get_obj_set_texture(uint32_t set, uint32_t tex_id);
-extern texture** objset_info_storage_get_obj_set_textures(int32_t set);
+extern int32_t objset_info_storage_get_obj_set_tex_num(uint32_t set_id);
+extern GLuint objset_info_storage_get_obj_set_texture(uint32_t set_id, uint32_t tex_id);
+extern texture** objset_info_storage_get_obj_set_textures(uint32_t set_id);
 extern int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, const char* name);
 extern int32_t objset_info_storage_load_set(void* data, const object_database* obj_db, uint32_t set_id);
 extern int32_t objset_info_storage_load_set_hash(void* data, uint32_t hash);
