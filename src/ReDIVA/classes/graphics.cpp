@@ -4,6 +4,7 @@
 */
 
 #include "graphics.hpp"
+#include "../graphics/color_change.hpp"
 #include "../graphics/face_light.hpp"
 #include "../graphics/fog.hpp"
 #include "../graphics/glitter.hpp"
@@ -73,6 +74,20 @@ classes_data graphics_classes[] = {
         "Post Process##Graphics",
         CLASSES_IN_CONTEXT_MENU,
         (classes_init_func)dw_post_process_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Color Change##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        (classes_init_func)color_change_dw_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         {

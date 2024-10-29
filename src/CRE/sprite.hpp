@@ -167,7 +167,7 @@ namespace spr {
         vec3 rot;
         vec2 skew_angle;
         mat4 mat;
-        texture* texture;
+        const texture* texture;
         int32_t shader;
 #if BREAK_SPRITE_VERTEX_LIMIT
         size_t vertex_array;

@@ -23,19 +23,19 @@ glid(), target(), internal_format(), max_mipmap_level(), size_texmem() {
 
 }
 
-int32_t texture::get_height_align_mip_level(uint8_t mip_level) {
+int32_t texture::get_height_align_mip_level(uint8_t mip_level) const {
     if (flags & TEXTURE_BLOCK_COMPRESSION)
         return max_def((uint32_t)height >> mip_level, 4u);
     else
         return max_def((uint32_t)height >> mip_level, 1u);
 }
 
-int32_t texture::get_size_mip_level(uint8_t mip_level) {
+int32_t texture::get_size_mip_level(uint8_t mip_level) const {
     return texture_get_size(internal_format,
         get_width_mip_level(mip_level), get_height_mip_level(mip_level));
 }
 
-int32_t texture::get_width_align_mip_level(uint8_t mip_level) {
+int32_t texture::get_width_align_mip_level(uint8_t mip_level) const {
     if (flags & TEXTURE_BLOCK_COMPRESSION)
         return max_def((uint32_t)width >> mip_level, 4u);
     else
@@ -71,8 +71,8 @@ texture* texture_alloc(texture_id id) {
     return tex;
 }
 
-void texture_apply_color_tone(texture* chg_tex,
-    texture* org_tex, const color_tone* col_tone) {
+void texture_apply_color_tone(const texture* chg_tex,
+    const texture* org_tex, const color_tone* col_tone) {
     if (!chg_tex || !org_tex || !col_tone
         || chg_tex->internal_format != org_tex->internal_format
         || chg_tex->width != org_tex->width
@@ -435,6 +435,62 @@ int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height) 
         return width * height;
     default:
         return 0;
+    }
+}
+
+const char* texture_get_internal_format_name(GLenum internal_format) {
+    switch (internal_format) {
+    case GL_ALPHA8:
+        return "A8";
+    case GL_LUMINANCE8:
+        return "L8";
+    case GL_LUMINANCE8_ALPHA8:
+        return "L8A8";
+    case GL_RGB5:
+        return "RGB5";
+    case GL_RGB8:
+        return "RGB8";
+    case GL_RGBA4:
+        return "RGBA4";
+    case GL_RGB5_A1:
+        return "RGB5_A1";
+    case GL_RGBA8:
+        return "RGBA8";
+    case GL_DEPTH_COMPONENT16:
+        return "DEPTH16";
+    case GL_DEPTH_COMPONENT24:
+        return "DEPTH24";
+    case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
+        return "DXT1";
+    case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT:
+        return "DXT1A";
+    case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT:
+        return "DXT3";
+    case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
+        return "DXT5";
+    case GL_DEPTH24_STENCIL8: // Added
+        return "DEPTH24_STENCIL8";
+    case GL_COMPRESSED_RED_RGTC1_EXT:
+        return "RGTC1(BC4)";
+    case GL_COMPRESSED_RED_GREEN_RGTC2_EXT:
+        return "RGTC2(BC5)";
+    case GL_DEPTH_COMPONENT32F:
+        return "DEPTH32";
+    default:
+        return "unknown";
+    }
+}
+
+const char* texture_get_target_name(GLenum target) {
+    switch (target) {
+    case GL_TEXTURE_2D:
+        return "2D";
+    case GL_TEXTURE_RECTANGLE:
+        return "RECTANGLE";
+    case GL_TEXTURE_CUBE_MAP:
+        return "CUBE_MAP";
+    default:
+        return "unknown";
     }
 }
 

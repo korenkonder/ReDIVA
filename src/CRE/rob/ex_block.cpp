@@ -1532,7 +1532,7 @@ void RobCloth::Disp(const mat4* mat, render_context* rctx) {
     if (!obj)
         return;
 
-    std::vector<GLuint>* tex = objset_info_storage_get_obj_set_textures(itm_eq_obj->obj_info.set_id);
+    std::vector<GLuint>* textures = objset_info_storage_get_obj_set_gentex(itm_eq_obj->obj_info.set_id);
 
     vec3 center = (nodes.data()[0].pos + nodes.data()[root_count * nodes_count - 1].pos) * 0.5f;
 
@@ -1552,7 +1552,7 @@ void RobCloth::Disp(const mat4* mat, render_context* rctx) {
     }
 
     rctx->disp_manager->set_texture_pattern((int32_t)itm_eq_obj->texture_pattern.size(), itm_eq_obj->texture_pattern.data());
-    rctx->disp_manager->entry_obj_by_obj(mat, &o, tex, vertex_buffer, index_buffer, 0, itm_eq_obj->alpha);
+    rctx->disp_manager->entry_obj_by_obj(mat, &o, textures, vertex_buffer, index_buffer, 0, itm_eq_obj->alpha);
     rctx->disp_manager->set_texture_pattern();
 }
 

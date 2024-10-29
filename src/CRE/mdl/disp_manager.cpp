@@ -2755,7 +2755,7 @@ namespace mdl {
         if (!object)
             return false;
 
-        std::vector<GLuint>* textures = objset_info_storage_get_obj_set_textures(obj_info.set_id);
+        std::vector<GLuint>* textures = objset_info_storage_get_obj_set_gentex(obj_info.set_id);
         obj_mesh_vertex_buffer* obj_vertex_buffer = objset_info_storage_get_obj_mesh_vertex_buffer(obj_info);
         obj_mesh_index_buffer* obj_index_buffer = objset_info_storage_get_obj_mesh_index_buffer(obj_info);
 

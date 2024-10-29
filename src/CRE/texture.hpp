@@ -68,14 +68,14 @@ struct texture {
 
     texture();
 
-    int32_t get_height_align_mip_level(uint8_t mip_level = 0);
-    int32_t get_size_mip_level(uint8_t mip_level = 0);
-    int32_t get_width_align_mip_level(uint8_t mip_level = 0);
+    int32_t get_height_align_mip_level(uint8_t mip_level = 0) const;
+    int32_t get_size_mip_level(uint8_t mip_level = 0) const;
+    int32_t get_width_align_mip_level(uint8_t mip_level = 0) const;
 
-    inline int32_t get_height_mip_level(uint8_t mip_level) {
+    inline int32_t get_height_mip_level(uint8_t mip_level) const {
         return max_def(height >> mip_level, 1);
     }
-    inline int32_t get_width_mip_level(uint8_t mip_level) {
+    inline int32_t get_width_mip_level(uint8_t mip_level) const {
         return max_def(width >> mip_level, 1);
     }
 };
@@ -95,8 +95,8 @@ struct texture_manager {
 };
 
 extern texture* texture_alloc(texture_id id);
-extern void texture_apply_color_tone(texture* chg_tex,
-    texture* org_tex, const color_tone* col_tone);
+extern void texture_apply_color_tone(const texture* chg_tex,
+    const texture* org_tex, const color_tone* col_tone);
 extern texture* texture_create_copy_texture(texture_id id, texture* org_tex);
 extern texture* texture_create_copy_texture_apply_color_tone(
     texture_id id, texture* org_tex, const color_tone* col_tone);
@@ -111,6 +111,9 @@ extern void texture_array_free(texture** arr);
 
 extern void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* format, GLenum* type);
 extern int32_t texture_get_size(GLenum internal_format, int32_t width, int32_t height);
+
+extern const char* texture_get_internal_format_name(GLenum internal_format);
+extern const char* texture_get_target_name(GLenum target);
 
 extern void texture_set_params(GLenum target, int32_t max_mipmap_level, bool use_high_anisotropy);
 

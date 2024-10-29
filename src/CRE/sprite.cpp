@@ -109,7 +109,7 @@ namespace spr {
     };
 
     struct TexParam {
-        texture* texture;
+        const texture* texture;
         TexCoord texcoord;
         //int32_t pad[2];
 
@@ -1209,7 +1209,7 @@ namespace spr {
 
     static int32_t calc_sprite_texture_param(SprArgs* args, spr::TexParam* param, vec3* vtx, bool font) {
         int32_t tex_param_count = 0;
-        texture* tex = args->texture;
+        const texture* tex = args->texture;
         while (args) {
             param->texture = args->texture;
 
