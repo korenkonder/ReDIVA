@@ -9,8 +9,8 @@
 #include "../graphics/glitter.hpp"
 #include "../graphics/light.hpp"
 #include "../graphics/post_process.hpp"
+#include "../graphics/render_settings.hpp"
 #include "graphics/background_color.hpp"
-#include "graphics/render_settings.hpp"
 
 classes_data graphics_classes[] = {
     {
@@ -100,11 +100,11 @@ classes_data graphics_classes[] = {
     {
         "Render Settings##Graphics",
         CLASSES_IN_CONTEXT_MENU,
-        graphics_render_settings_init,
-        graphics_render_settings_imgui,
-        graphics_render_settings_dispose,
+        (classes_init_func)render_settings_dw_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
         {
-            (class_flags)(CLASS_DISPOSED | CLASS_HIDDEN),
+            CLASS_DW,
             false,
             CLASS_DATA_NO_DATA,
         },
