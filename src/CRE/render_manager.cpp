@@ -788,15 +788,7 @@ namespace rndr {
                 else
                     gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
 
-                if (pass_sw[RND_PASSID_REFLECT] && reflect) {
-                    RenderTexture& refl_tex = get_render_texture(0);
-                    gl_state_active_bind_texture_2d(15, refl_tex.GetColorTex());
-                    uniform_value[U_WATER_REFLECT] = 1;
-                }
-                else {
-                    gl_state_active_bind_texture_2d(15, rctx->empty_texture_2d->glid);
-                    uniform_value[U_WATER_REFLECT] = 0;
-                }
+                uniform_value[U_WATER_REFLECT] = 0;
 
                 rctx->sss_data->set_texture(3);
 
