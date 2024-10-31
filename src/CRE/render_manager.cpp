@@ -776,7 +776,7 @@ namespace rndr {
 
                 int32_t render_width = refl_tex.GetWidth();
                 int32_t render_height = refl_tex.GetHeight();
-                rctx_ptr->set_scene_framebuffer_size(render_width, render_height, render_width, render_height);
+                rctx->set_scene_framebuffer_size(render_width, render_height, render_width, render_height);
 
                 if (shadow)
                     draw_pass_3d_shadow_set(shadow_ptr, rctx);
@@ -825,7 +825,7 @@ namespace rndr {
                 if (shadow)
                     draw_pass_3d_shadow_reset(rctx);
 
-                rctx_ptr->set_scene_framebuffer_size(render->render_width[0],
+                rctx->set_scene_framebuffer_size(render->render_width[0],
                     render->render_height[0], render->render_width[0], render->render_height[0]);
                 reflect_enable = false;
             }
@@ -1280,7 +1280,7 @@ namespace rndr {
         render_context* rctx = rctx_ptr;
         RenderTexture* rt;
         RenderTexture* contour_rt;
-        if (sv_better_reflect && reflect_enable) {
+        if (reflect_enable) {
             rt = &rctx->render_manager->get_render_texture(0);
             contour_rt = &rctx->reflect_buffer;
     }
@@ -1668,7 +1668,7 @@ static bool draw_pass_shadow_litproj(light_proj* litproj) {
 }
 
 static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
-    if (sv_better_reflect && reflect_enable)
+    if (reflect_enable)
         rctx->reflect_buffer.Bind();
     else
         rend->sss_contour_texture->Bind();
@@ -1676,7 +1676,7 @@ static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
     gl_state_enable_depth_test();
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
-    if (sv_better_reflect && reflect_enable) {
+    if (reflect_enable) {
         RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
         gl_state_set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
         gl_state_active_bind_texture_2d(0, refl_tex.GetColorTex());
@@ -1714,7 +1714,7 @@ static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
     shaders_ft.set(SHADER_FT_CONTOUR);
     rctx->contour_coef_ubo.Bind(2);
 
-    if (sv_better_reflect && reflect_enable) {
+    if (reflect_enable) {
         RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
         rctx->render.draw_quad(refl_tex.GetWidth(), refl_tex.GetHeight(), 1.0f, 1.0f,
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -1781,7 +1781,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
             mat4* mat = rob_bone_data->get_mats_mat(MOTION_BONE_N_HARA_CP);
             if (mat) {
                 mat4_get_translation(mat, &chara_position[i]);
-                if (sv_better_reflect && reflect_enable)
+                if (reflect_enable)
                     mat4_transform_point(&reflect_mat, &chara_position[i], &chara_position[i]);
                 chara_distance[i] = vec3::distance(view_point, chara_position[i]);
             }
@@ -1810,12 +1810,12 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         rndr::Render* rend = &rctx->render;
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
-        gl_state_bind_texture_2d(sv_better_reflect && reflect_enable
+        gl_state_bind_texture_2d(reflect_enable
             ? rctx->render_manager->get_render_texture(0).GetColorTex()
             : rend->rend_texture[0].GetColorTex());
         gl_state_bind_sampler(0, rctx->render_samplers[0]);
-        rctx->render.draw_quad(640, 360, 1.0f, 1.0f,
-            0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+        rctx->render.draw_quad(rt.GetWidth(), rt.GetHeight(),
+            1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
     }
     sss->textures[2].Bind();
     gl_state_set_viewport(0, 0, 320, 180);
@@ -1823,8 +1823,8 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(sss->textures[0].GetColorTex());
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
-    rctx->render.draw_quad(640, 360, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
+    rctx->render.draw_quad(sss->textures[0].GetWidth(), sss->textures[0].GetHeight(),
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
 
     sss_filter_gaussian_coef_shader_data shader_data = {};
     shader_data.g_param = { (float_t)(sss_count - 1), 0.0f, 1.0f, 1.0f };
@@ -1836,15 +1836,15 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     draw_pass_sss_filter_calc_coef(1.0, sss_count, v34, 3, a5, a6, a7, a8, shader_data.g_coef);
 
     rctx->sss_filter_gaussian_coef_ubo.WriteMemory(shader_data);
-    sss->textures[sv_better_reflect && reflect_enable ? 3 : 1].Bind();
+    sss->textures[reflect_enable ? 3 : 1].Bind();
     gl_state_set_viewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 3;
     shaders_ft.set(SHADER_FT_SSS_FILT);
     gl_state_bind_texture_2d(sss->textures[2].GetColorTex());
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
     rctx->sss_filter_gaussian_coef_ubo.Bind(1);
-    rctx->render.draw_quad(320, 180, 1.0f, 1.0f,
-        0.0f, 0.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
+    rctx->render.draw_quad(sss->textures[2].GetWidth(), sss->textures[2].GetHeight(),
+        1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.96f, 1.0f, 0.0f);
     gl_state_bind_texture_2d(0);
 }
 
