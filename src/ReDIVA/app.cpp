@@ -894,7 +894,7 @@ static render_context* render_context_load() {
                     continue;
 
                 object_material_msgpack_write("patch\\AFT_orig\\objset", obj_set_id_name[i].c_str(),
-                    i, &obj_set, &txp_set, aft_obj_db, aft_tex_db);
+                    i, &obj_set, &txp_set, aft_tex_db);
             }
         }
     }
@@ -983,7 +983,7 @@ static render_context* render_context_load() {
                     continue;
 
                 object_material_msgpack_write("patch\\MMp_orig\\objset", obj_set_id_name[i].c_str(),
-                    i, &obj_set, &txp_set, &obj_db, &tex_db);
+                    i, &obj_set, &txp_set, &tex_db);
             }
         }
     }
@@ -1092,7 +1092,7 @@ static render_context* render_context_load() {
                 tex_db.add(&tex_db_file);
 
                 object_material_msgpack_write("patch\\X_orig\\objset", obj_set_id_name[i].c_str(),
-                    i, &obj_set, &txp_set, &obj_db, &tex_db);
+                    i, &obj_set, &txp_set, &tex_db);
             }
         }
     }
@@ -1201,7 +1201,7 @@ static render_context* render_context_load() {
                 tex_db.add(&tex_db_file);
 
                 object_material_msgpack_write("patch\\XHD_orig\\objset", obj_set_id_name[i].c_str(),
-                    i, &obj_set, &txp_set, &obj_db, &tex_db);
+                    i, &obj_set, &txp_set, &tex_db);
             }
 
             obj_set_ids.clear();

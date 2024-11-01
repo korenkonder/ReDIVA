@@ -114,11 +114,11 @@ extern void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
     const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat);
 
 extern void object_material_msgpack_read(const char* path, const char* set_name,
-    obj_set* obj_set, object_database* obj_db);
+    obj_set* obj_set);
 extern void object_material_msgpack_read(const char* path, const char* set_name,
     txp_set* txp_set, texture_database* tex_db, ObjsetInfo* info);
 extern void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
-    obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db);
+    obj_set* obj_set, txp_set* txp_set, texture_database* tex_db);
 
 extern void objset_info_storage_init(const object_database* obj_db);
 extern obj* objset_info_storage_get_obj(object_info obj_info);

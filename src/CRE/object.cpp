@@ -696,7 +696,7 @@ void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
 }
 
 void object_material_msgpack_read(const char* path, const char* set_name,
-    obj_set* obj_set, object_database* obj_db) {
+    obj_set* obj_set) {
     if (!path_check_directory_exists(path))
         return;
 
@@ -995,7 +995,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 
                         msgpack* bump_depth = material.read("bump_depth");
                         if (bump_depth)
-                            mat.radius = bump_depth->read_float_t();
+                            mat.bump_depth = bump_depth->read_float_t();
 
                         msgpack* reserved = material.read_array("reserved");
                         if (reserved) {
@@ -1281,7 +1281,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
 }
 
 void object_material_msgpack_write(const char* path, const char* set_name, uint32_t set_id,
-    obj_set* obj_set, txp_set* txp_set, object_database* obj_db, texture_database* tex_db) {
+    obj_set* obj_set, txp_set* txp_set, texture_database* tex_db) {
     if (!path_check_directory_exists(path) && !path_create_directory(path))
         return;
 
@@ -2247,7 +2247,7 @@ bool objset_info_storage_load_obj_set_check_not_read(uint32_t set_id,
         if (!set->ready)
             return false;
 
-        object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set, obj_db);
+        object_material_msgpack_read("patch\\AFT\\objset", file.c_str(), set);
 
         info->obj_file_handler.reset();
         info->obj_id_data.reserve(set->obj_num);
