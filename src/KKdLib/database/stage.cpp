@@ -682,9 +682,9 @@ static void stage_database_file_classic_write_inner(stage_database_file* stage_d
             s.write_string_null_terminated(i.auth_3d_name);
         }
 
-        if (stage_database_file_strings_push_back_check(strings, i.auth_3d_name)) {
+        if (stage_database_file_strings_push_back_check(strings, i.collision_file_path)) {
             string_offsets.push_back(s.get_position());
-            s.write_string_null_terminated(i.auth_3d_name);
+            s.write_string_null_terminated(i.collision_file_path);
         }
     }
     s.align_write(0x04);
