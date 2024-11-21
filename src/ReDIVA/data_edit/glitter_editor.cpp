@@ -330,8 +330,8 @@ void GlitterEditor::CurveEditor::SetFlag(const Glitter::CurveTypeFlags type_flag
 GlitterEditor::GlitterEditor() : test(), create_popup(), load(), load_wait(), load_popup(),
 load_data_popup(), load_error_popup(), save(), save_popup(), save_compress(), save_encrypt(),
 close(), close_editor(), input_play(), input_reload(), input_pause(), input_pause_temp(), input_reset(),
-effect_group_add(), show_grid(), draw_flags(), resource_flags(), effect_flags(), emitter_flags(),
-particle_flags(), load_glt_type(), save_glt_type(), load_data_type(), frame_counter(),
+input_reset_next_frame(), effect_group_add(), show_grid(), draw_flags(), resource_flags(), effect_flags(),
+emitter_flags(), particle_flags(), load_glt_type(), save_glt_type(), load_data_type(), frame_counter(),
 old_frame_counter(), start_frame(), end_frame(), counter(), effect_group(), scene(), hash(),
 selected_type(), selected_resource(), selected_effect(), selected_emitter(), selected_particle(),
 selected_edit_resource(), selected_edit_effect(), selected_edit_emitter(), selected_edit_particle()  {
@@ -618,6 +618,11 @@ bool GlitterEditor::ctrl() {
     Glitter::Effect* sel_efct = selected_effect;
     Glitter::Emitter* sel_emit = selected_emitter;
     Glitter::Particle* sel_ptcl = selected_particle;
+
+    if (input_reset_next_frame) {
+        input_reset = true;
+        input_reset_next_frame = false;
+    }
 
     if (effect_group_add) {
         Glitter::glt_particle_manager->UnloadEffectGroup(hash);
@@ -1522,6 +1527,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
         glt_edt->load_popup = false;
         glt_edt->load_data_popup = false;
         glt_edt->load_error_popup = true;
+        glt_edt->input_reset_next_frame = true;
         return;
     }
     else if (eg->not_loaded)
@@ -1644,6 +1650,7 @@ static void glitter_editor_load_file(GlitterEditor* glt_edt, const char* path, c
     glt_edt->load = false;
     glt_edt->load_wait = false;
     glt_edt->load_error_popup = false;
+    glt_edt->input_reset_next_frame = true;
     Glitter::glt_particle_manager->SetFrame(eg, glt_edt->scene, glt_edt->old_frame_counter,
         glt_edt->frame_counter, glt_edt->counter, glt_edt->random, true);
     if (glt_edt->scene)

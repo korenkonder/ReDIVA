@@ -89,6 +89,7 @@ public:
     bool input_pause;
     bool input_pause_temp;
     bool input_reset;
+    bool input_reset_next_frame;
     bool effect_group_add;
     bool show_grid;
     glitter_editor_disp_flags draw_flags;
