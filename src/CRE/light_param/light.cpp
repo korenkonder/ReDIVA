@@ -444,10 +444,10 @@ void light_set::data_set(face& face, light_set_id id) {
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force) {
     if (force || light->get_type() == LIGHT_PARALLEL) {
         float_t length = vec3::length(*(vec3*)pos_dir);
-        if (length <= 0.000001)
-            *(vec3*)pos_dir = vec3(0.0f, 1.0f, 0.0f);
-        else
+        if (length > 0.000001f)
             *(vec3*)pos_dir *= 1.0f / length;
+        else
+            *(vec3*)pos_dir = { 0.0f, 1.0f, 0.0f };
         pos_dir->w = 0.0f;
     }
 }

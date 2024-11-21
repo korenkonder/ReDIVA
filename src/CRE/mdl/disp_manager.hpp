@@ -178,7 +178,7 @@ namespace mdl {
         bool chara_color;
         vec4 blend_color;
         vec4 emission;
-        bool self_shadow;
+        int32_t self_shadow;
         shadow_type_enum shadow;
         GLuint morph_vertex_buffer;
         size_t morph_vertex_buffer_offset;

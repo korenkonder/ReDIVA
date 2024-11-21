@@ -259,7 +259,12 @@ namespace mdl {
         args->emission = emission;
 
         args->chara_color = disp_manager->chara_color;
-        args->self_shadow = !!(disp_manager->obj_flags & (mdl::OBJ_8 | mdl::OBJ_4));
+        if (disp_manager->obj_flags & OBJ_4)
+            args->self_shadow = 1;
+        else if (disp_manager->obj_flags & mdl::OBJ_8)
+            args->self_shadow = 2;
+        else
+            args->self_shadow = 0;
         args->shadow = disp_manager->shadow_type;
         args->texture_color_coefficients = disp_manager->texture_color_coefficients;
         args->texture_color_coefficients.w = disp_manager->wet_param;
@@ -2267,7 +2272,7 @@ namespace mdl {
     }
 
     static int32_t obj_axis_aligned_bounding_box_check_visibility(
-        obj_axis_aligned_bounding_box* aabb, camera* cam, const mat4* mat) {
+        const obj_axis_aligned_bounding_box* aabb, camera* cam, const mat4* mat) {
         vec3 points[8];
         points[0] = aabb->center + (aabb->size ^ vec3( 0.0f,  0.0f,  0.0f));
         points[1] = aabb->center + (aabb->size ^ vec3(-0.0f, -0.0f, -0.0f));
@@ -2346,29 +2351,29 @@ namespace mdl {
         return 2;
     }
 
-    bool DispManager::entry_obj(const ::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
+    bool DispManager::entry_obj(const ::obj* obj, obj_mesh_vertex_buffer* obj_vertex_buf,
         obj_mesh_index_buffer* obj_index_buf, const mat4* mat, const std::vector<GLuint>* textures,
         const vec4* blend_color, const mat4* bone_mat, const ::obj* object_morph,
         obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count, const mat4* instances_mat,
         void(*func)(const ObjSubMeshArgs*), const ObjSubMeshArgs* func_data, bool enable_bone_mat, bool local) {
         if (!obj_vertex_buf || !obj_index_buf) {
             printf_debug("mdl::DispManager::entry_obj: no vertex or index object buffer to draw;\n");
-            printf_debug("    Object: %s\n", object->name);
+            printf_debug("    Object: %s\n", obj->name);
             return false;
         }
 
         ::camera* cam = rctx_ptr->camera;
 
-        if (!local && object_culling && !instances_count && !bone_mat && (!object
+        if (!local && object_culling && !instances_count && !bone_mat && (!obj
             || !obj_bounding_sphere_check_visibility(
-                &object->bounding_sphere, &culling, cam, mat))) {
+                &obj->bounding_sphere, &culling, cam, mat))) {
             culling.culled.objects++;
             return false;
         }
         culling.passed.objects++;
 
-        for (int32_t i = 0; i < object->num_mesh; i++) {
-            obj_mesh* mesh = &object->mesh_array[i];
+        for (int32_t i = 0; i < obj->num_mesh; i++) {
+            obj_mesh* mesh = &obj->mesh_array[i];
             obj_mesh* mesh_morph = 0;
             if (obj_vertex_buf && obj_morph_vertex_buf) {
                 if (obj_vertex_buf[i].get_size() != obj_morph_vertex_buf[i].get_size())
@@ -2421,7 +2426,7 @@ namespace mdl {
                                 continue;
                             }
 
-                            v32 = obj_bounding_sphere_check_visibility(
+                            int32_t v32 = obj_bounding_sphere_check_visibility(
                                 &sub_mesh_morph->bounding_sphere, &culling, cam, mat);
                             if (v32 == 2) {
                                 if (culling.func)
@@ -2441,7 +2446,7 @@ namespace mdl {
                 culling.passed.submesh_array++;
 
                 int32_t num_bone_index = sub_mesh->num_bone_index;
-                uint16_t* bone_index = sub_mesh->bone_index_array;
+                const uint16_t* bone_index = sub_mesh->bone_index_array;
 
                 mat4* mats;
                 if (num_bone_index && enable_bone_mat) {
@@ -2458,7 +2463,7 @@ namespace mdl {
                     num_bone_index = 0;
                 }
 
-                obj_material_data* material = &object->material_array[sub_mesh->material_index];
+                obj_material_data* material = &obj->material_array[sub_mesh->material_index];
                 ObjData* data = alloc_obj_data(OBJ_KIND_NORMAL);
                 if (!data)
                     continue;
@@ -2483,13 +2488,13 @@ namespace mdl {
 
                 if (!vertex_buffer || !index_buffer || obj_morph_vertex_buf && !morph_vertex_buffer) {
                     printf_debug("mdl::DispManager::entry_obj: no vertex or index mesh buffer to draw;\n");
-                    printf_debug("    Object: %s; Mesh: %s; Sub Mesh: %d\n", object->name, mesh->name, j);
+                    printf_debug("    Object: %s; Mesh: %s; Sub Mesh: %d\n", obj->name, mesh->name, j);
                     continue;
                 }
 
-                uint32_t material_hash = hash_utf8_murmurhash(material->material.name);
+                const uint32_t material_hash = hash_utf8_murmurhash(material->material.name);
 
-                material_list_struct* mat_list = 0;
+                const material_list_struct* mat_list = 0;
                 for (int32_t k = 0; k < material_list_count; k++)
                     if (material_list_array[k].hash == material_hash) {
                         mat_list = &material_list_array[k];
@@ -2558,7 +2563,7 @@ namespace mdl {
                     _emission = material->material.color.emission;
                 }
 
-                data->init_sub_mesh(this, mat, object->bounding_sphere.radius, sub_mesh, mesh, material, textures,
+                data->init_sub_mesh(this, mat, obj->bounding_sphere.radius, sub_mesh, mesh, material, textures,
                     num_bone_index, mats, vertex_buffer, vertex_buffer_offset, index_buffer, _blend_color, _emission,
                     morph_vertex_buffer, morph_vertex_buffer_offset, instances_count, instances_mat, func, func_data);
 
@@ -2570,13 +2575,26 @@ namespace mdl {
                     continue;
                 }
 
-                obj_material_attrib_member attrib = material->material.attrib.m;
+                const obj_material_attrib_member attrib = material->material.attrib.m;
                 if (obj_flags & (mdl::OBJ_ALPHA_ORDER_1 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_3)
                     && data->args.sub_mesh.blend_color.w < 1.0f) {
                     if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
-                        if (attrib.flag_28 || (attrib.punch_through
-                            || !(attrib.alpha_texture | attrib.alpha_material))
-                            && !sub_mesh->attrib.m.transparent) {
+                        bool translucent = false;
+                        if (!attrib.flag_28 && (!attrib.punch_through
+                            && (attrib.alpha_texture || attrib.alpha_material)
+                            || sub_mesh->attrib.m.transparent))
+                            translucent = true;
+
+                        if (translucent) {
+                            if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
+                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
+                            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
+                                entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
+                                    : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
+                            else
+                                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
+                        }
+                        else {
                             if (!attrib.punch_through) {
                                 if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
                                     entry_list(OBJ_TYPE_OPAQUE_ALPHA_ORDER_1, data);
@@ -2599,63 +2617,12 @@ namespace mdl {
                             if (obj_flags & mdl::OBJ_SSS)
                                 entry_list(OBJ_TYPE_SSS, data);
                         }
-
-                        if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                            entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-                        else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                            entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
-                                : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
-                        else
-                            entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
                     }
                 }
-                else {
-                    if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
-                        && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
-                        && !sub_mesh->attrib.m.transparent) {
-                        if (obj_flags & mdl::OBJ_SHADOW)
-                            entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
-
-                        if (obj_flags & mdl::OBJ_SSS)
-                            entry_list(OBJ_TYPE_SSS, data);
-
-                        if (attrib.punch_through) {
-                            if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
-                                entry_list(local ? OBJ_TYPE_TRANSPARENT_LOCAL
-                                    : OBJ_TYPE_TRANSPARENT, data);
-
-                            if (obj_flags & mdl::OBJ_CHARA_REFLECT)
-                                entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
-
-                            if (obj_flags & mdl::OBJ_REFLECT)
-                                entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
-
-                            if (obj_flags & mdl::OBJ_REFRACT)
-                                entry_list(OBJ_TYPE_REFRACT_TRANSPARENT, data);
-                        }
-                        else {
-                            if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
-                                entry_list(local ? OBJ_TYPE_OPAQUE_LOCAL
-                                    : OBJ_TYPE_OPAQUE, data);
-
-                            if (obj_flags & mdl::OBJ_20)
-                                entry_list(OBJ_TYPE_TYPE_6, data);
-
-                            if (obj_flags & mdl::OBJ_CHARA_REFLECT)
-                                entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
-
-                            if (obj_flags & mdl::OBJ_REFLECT)
-                                entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
-
-                            if (obj_flags & mdl::OBJ_REFRACT)
-                                entry_list(OBJ_TYPE_REFRACT_OPAQUE, data);
-                        }
-
-                        if (obj_flags & mdl::OBJ_USER)
-                            entry_list(OBJ_TYPE_USER, data);
-                        continue;
-                    }
-                    else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
+                else if (!attrib.flag_28 && (data->args.sub_mesh.blend_color.w < 1.0f
+                    || !attrib.punch_through && attrib.alpha_texture | attrib.alpha_material
+                    || sub_mesh->attrib.m.transparent)) {
+                    if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
                         if (!attrib.translucent_priority)
                             if (local)
                                 entry_list(OBJ_TYPE_TRANSLUCENT_LOCAL, data);
@@ -2668,6 +2635,49 @@ namespace mdl {
                         else if (translucent_priority_count < 40)
                             translucent_priority[translucent_priority_count++] = &data->args.sub_mesh;
                     }
+                }
+                else {
+                    if (obj_flags & mdl::OBJ_SHADOW)
+                        entry_list((ObjType)(OBJ_TYPE_SHADOW_CHARA + shadow_type), data);
+
+                    if (obj_flags & mdl::OBJ_SSS)
+                        entry_list(OBJ_TYPE_SSS, data);
+
+                    if (attrib.punch_through) {
+                        if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
+                            entry_list(local ? OBJ_TYPE_TRANSPARENT_LOCAL
+                                : OBJ_TYPE_TRANSPARENT, data);
+
+                        if (obj_flags & mdl::OBJ_CHARA_REFLECT)
+                            entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
+
+                        if (obj_flags & mdl::OBJ_REFLECT)
+                            entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
+
+                        if (obj_flags & mdl::OBJ_REFRACT)
+                            entry_list(OBJ_TYPE_REFRACT_TRANSPARENT, data);
+                    }
+                    else {
+                        if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY))
+                            entry_list(local ? OBJ_TYPE_OPAQUE_LOCAL
+                                : OBJ_TYPE_OPAQUE, data);
+
+                        if (obj_flags & mdl::OBJ_20)
+                            entry_list(OBJ_TYPE_TYPE_6, data);
+
+                        if (obj_flags & mdl::OBJ_CHARA_REFLECT)
+                            entry_list(OBJ_TYPE_REFLECT_CHARA_OPAQUE, data);
+
+                        if (obj_flags & mdl::OBJ_REFLECT)
+                            entry_list(OBJ_TYPE_REFLECT_OPAQUE, data);
+
+                        if (obj_flags & mdl::OBJ_REFRACT)
+                            entry_list(OBJ_TYPE_REFRACT_OPAQUE, data);
+                    }
+
+                    if (obj_flags & mdl::OBJ_USER)
+                        entry_list(OBJ_TYPE_USER, data);
+                    continue;
                 }
 
                 if (obj_flags & mdl::OBJ_SHADOW)
@@ -2689,7 +2699,7 @@ namespace mdl {
                     entry_list(OBJ_TYPE_USER, data);
             }
 
-            if (!translucent_priority_count)
+            if (translucent_priority_count <= 0)
                 continue;
 
             ObjTranslucentArgs translucent_args;
@@ -2705,20 +2715,19 @@ namespace mdl {
                 }
 
             ObjData* data = alloc_obj_data(OBJ_KIND_TRANSLUCENT);
-            if (!data)
-                continue;
-
-            data->init_translucent(mat, &translucent_args);
-            if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
-                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
-            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
-                entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
-                    : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
-            else if (obj_flags & mdl::OBJ_ALPHA_ORDER_3)
-                entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
-            else
-                entry_list(local ? OBJ_TYPE_TRANSLUCENT_LOCAL
-                    : OBJ_TYPE_TRANSLUCENT, data);
+            if (data) {
+                data->init_translucent(mat, &translucent_args);
+                if (obj_flags & mdl::OBJ_ALPHA_ORDER_1)
+                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1, data);
+                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_2)
+                    entry_list(local ? OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL
+                        : OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, data);
+                else if (obj_flags & mdl::OBJ_ALPHA_ORDER_3)
+                    entry_list(OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, data);
+                else
+                    entry_list(local ? OBJ_TYPE_TRANSLUCENT_LOCAL
+                        : OBJ_TYPE_TRANSLUCENT, data);
+            }
         }
         return true;
     }
@@ -2751,8 +2760,8 @@ namespace mdl {
         if (obj_info.id == -1 && obj_info.set_id == -1)
             return false;
 
-        ::obj* object = objset_info_storage_get_obj(obj_info);
-        if (!object)
+        ::obj* obj = objset_info_storage_get_obj(obj_info);
+        if (!obj)
             return false;
 
         std::vector<GLuint>* textures = objset_info_storage_get_obj_set_gentex(obj_info.set_id);
@@ -2766,7 +2775,7 @@ namespace mdl {
             obj_morph_vertex_buffer = objset_info_storage_get_obj_mesh_vertex_buffer(morph.object);
         }
 
-        return entry_obj(object, obj_vertex_buffer, obj_index_buffer,
+        return entry_obj(obj, obj_vertex_buffer, obj_index_buffer,
             mat, textures, blend_color, bone_mat, obj_morph, obj_morph_vertex_buffer,
             instances_count, instances_mat, func, func_data, enable_bone_mat, local);
     }

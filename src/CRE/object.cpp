@@ -738,7 +738,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
         for (int32_t i = 0; i < obj_set->obj_num; i++) {
             obj* obj = obj_set->obj_data[i];
 
-            if (name_hash != hash_string_murmurhash(obj->name))
+            if (name_hash != hash_utf8_murmurhash(obj->name))
                 continue;
 
             msgpack* materials = object.read_array("material");
@@ -753,7 +753,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                     for (size_t k = 0; k < obj->num_material; k++) {
                         obj_material& mat = obj->material_array[k].material;
 
-                        if (name_hash != hash_string_murmurhash(mat.name))
+                        if (name_hash != hash_utf8_murmurhash(mat.name))
                             continue;
 
                         msgpack* shader_compo = material.read("shader_compo");
@@ -1020,7 +1020,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                     for (size_t k = 0; k < obj->num_mesh; k++) {
                         obj_mesh& mesh = obj->mesh_array[k];
 
-                        if (name_hash != hash_string_murmurhash(mesh.name))
+                        if (name_hash != hash_utf8_murmurhash(mesh.name))
                             continue;
 
                         msgpack* color_mult = _mesh.read("color_mult");

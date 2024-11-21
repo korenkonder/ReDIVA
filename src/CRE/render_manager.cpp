@@ -1080,9 +1080,6 @@ namespace rndr {
         star_catalog_draw();
 
         draw_pass_3d_translucent(rctx,
-            draw_pass_3d[DRAW_PASS_3D_OPAQUE],
-            draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
-            draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
             mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_3,
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3);
@@ -1121,9 +1118,6 @@ namespace rndr {
 
         gl_state_set_depth_mask(GL_TRUE);
         draw_pass_3d_translucent(rctx,
-            draw_pass_3d[DRAW_PASS_3D_OPAQUE],
-            draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
-            draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
             mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2,
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2);
@@ -1136,9 +1130,6 @@ namespace rndr {
         gl_state_enable_depth_test();
         gl_state_set_depth_mask(GL_TRUE);
         draw_pass_3d_translucent(rctx,
-            draw_pass_3d[DRAW_PASS_3D_OPAQUE],
-            draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
-            draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
             mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_1,
             mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1,
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1);
@@ -1156,9 +1147,6 @@ namespace rndr {
             gl_state_disable_blend();
 
             draw_pass_3d_translucent(rctx,
-                draw_pass_3d[DRAW_PASS_3D_OPAQUE],
-                draw_pass_3d[DRAW_PASS_3D_TRANSPARENT],
-                draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT],
                 mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL,
                 mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL,
                 mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL);
@@ -1987,11 +1975,11 @@ static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
     for (int32_t i = 0; i < count; i++) {
         int32_t alpha = alpha_array[i];
         rend->transparency_copy();
-        if (opaque_enable && rctx->disp_manager->get_obj_count(opaque))
+        if (rctx->render_manager->draw_pass_3d[DRAW_PASS_3D_OPAQUE] && rctx->disp_manager->get_obj_count(opaque))
             rctx->disp_manager->draw(opaque, 0, true, alpha);
-        if (transparent_enable && rctx->disp_manager->get_obj_count(transparent))
+        if (rctx->render_manager->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT] && rctx->disp_manager->get_obj_count(transparent))
             rctx->disp_manager->draw(transparent, 0, true, alpha);
-        if (translucent_enable && rctx->disp_manager->get_obj_count(translucent)) {
+        if (rctx->render_manager->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT] && rctx->disp_manager->get_obj_count(translucent)) {
             gl_state_enable_blend();
             rctx->disp_manager->draw(translucent, 0, true, alpha);
             gl_state_disable_blend();
@@ -2003,7 +1991,7 @@ static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
 static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     int32_t* alpha_array, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent) {
-    bool arr[256] = { 0 };
+    bool arr[0x100] = { false };
 
     draw_pass_3d_translucent_has_objects(rctx, arr, opaque);
     draw_pass_3d_translucent_has_objects(rctx, arr, transparent);

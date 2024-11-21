@@ -638,10 +638,13 @@ static void draw_object_material_set_default(render_context* rctx, const mdl::Ob
     draw_object_material_set_uniform(material, false);
     if (!rctx->draw_state->shadow)
         uniform_value[U_STAGE_SHADOW] = 0;
-    else if (args->self_shadow)
-        uniform_value[U_STAGE_SHADOW] = 1;
-    else
+    else if (!args->self_shadow)
         uniform_value[U_STAGE_SHADOW] = args->sub_mesh->attrib.m.recieve_shadow ? 1 : 0;
+    else if (args->self_shadow != 1)
+        uniform_value[U_STAGE_SHADOW] = 0;
+    else
+        uniform_value[U_STAGE_SHADOW] = 1;
+
     uniform_value[U_CHARA_SHADOW2] = args->shadow > SHADOW_CHARA ? 1 : 0;
     uniform_value[U_CHARA_SHADOW] = rctx->draw_state->self_shadow ? 1 : 0;
 

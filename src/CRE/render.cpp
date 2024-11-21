@@ -185,6 +185,7 @@ namespace rndr {
         if (taa_blend < 0.0f || taa_blend >= 1.0f)
             taa_texture = taa_texture_selector;
         else {
+            gl_state_begin_event("taa_or_blur");
             bool blur;
             GLuint sampler;
             if (taa_blend > 0.99f) {
@@ -234,6 +235,7 @@ namespace rndr {
             draw_quad(render_post_width[0], render_post_height[0],
                 render_post_width_scale, render_post_height_scale,
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, taa_blend);
+            gl_state_end_event();
         }
 
         if (taa) {
@@ -427,8 +429,8 @@ namespace rndr {
         s0 -= s1;
         t0 -= t1;
 
-        float_t w = (float_t)max_def(width, 1);
-        float_t h = (float_t)max_def(height, 1);
+        const float_t w = (float_t)max_def(width, 1);
+        const float_t h = (float_t)max_def(height, 1);
         quad_shader_data quad = {};
         quad.g_texcoord_modifier = { 0.5f * s0, 0.5f * t0, 0.5f * s0 + s1, 0.5f * t0 + t1 }; // x * 0.5 * y0 + 0.5 * y0 + y1
         quad.g_texel_size = { scale / w, scale / h, w, h };
