@@ -3042,7 +3042,7 @@ bool dsc::parse(const void* data, size_t size, dsc_type type) {
     case DSC_VRFL:
         st.read(data, size);
         data_dsc = (int32_t*)st.data.data();
-        if (st.header.use_big_endian)
+        if (st.header.attrib.get_big_endian())
             for (size_t i = size / 4; i; i--, data_dsc++)
                 *data_dsc = load_reverse_endianness_uint32_t(data_dsc);
 
@@ -3248,9 +3248,8 @@ void dsc::unparse(void** data, size_t* size) {
 
         st.enrs = e;
 
-        st.header.signature = reverse_endianness_uint32_t('PVSC');
-        st.header.length = 0x40;
-        st.header.use_section_size = true;
+        new (&st.header) f2_header('PVSC');
+        st.header.set_length(F2_HEADER_EXTENDED_LENGTH);
         st.header.inner_signature = 0x13120420;
         st.write(data, size, true, false);
     }

@@ -3898,8 +3898,8 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
     if (st.header.signature != reverse_endianness_uint32_t('MOSD') || !st.data.size())
         return;
 
-    uint32_t header_length = st.header.length;
-    bool big_endian = st.header.use_big_endian;
+    uint32_t header_length = st.header.get_length();
+    bool big_endian = st.header.attrib.get_big_endian();
     bool is_x = st.pof.shift_x;
 
     memory_stream s_mosd;
@@ -4038,33 +4038,33 @@ static void obj_set_modern_read_inner(obj_set* set, prj::shared_ptr<prj::stack_a
         stream* s_ovtx_ptr = 0;
         if (oskn) {
             s_oskn.open(oskn->data);
-            s_oskn.big_endian = oskn->header.use_big_endian;
+            s_oskn.big_endian = oskn->header.attrib.get_big_endian();
             s_oskn_ptr = &s_oskn;
         }
 
         if (oidx) {
             s_oidx.open(oidx->data);
-            s_oidx.big_endian = oidx->header.use_big_endian;
+            s_oidx.big_endian = oidx->header.attrib.get_big_endian();
             s_oidx_ptr = &s_oidx;
         }
 
         if (ovtx) {
             s_ovtx.open(ovtx->data);
-            s_ovtx.big_endian = ovtx->header.use_big_endian;
+            s_ovtx.big_endian = ovtx->header.attrib.get_big_endian();
             s_ovtx_ptr = &s_ovtx;
         }
 
         obj* obj = set->obj_data[omdl_index];
         memory_stream s_omdl;
         s_omdl.open(i.data);
-        s_omdl.big_endian = i.header.use_big_endian;
+        s_omdl.big_endian = i.header.attrib.get_big_endian();
         obj_modern_read_model(obj, alloc,
-            s_omdl, 0, i.header.length, is_x, s_oidx_ptr, s_ovtx_ptr);
+            s_omdl, 0, i.header.get_length(), is_x, s_oidx_ptr, s_ovtx_ptr);
         s_omdl.close();
 
         if (s_oskn_ptr)
             obj->skin = obj_modern_read_skin(alloc,
-                *s_oskn_ptr, 0, oskn->header.length, is_x);
+                *s_oskn_ptr, 0, oskn->header.get_length(), is_x);
         omdl_index++;
     }
 
@@ -4284,10 +4284,8 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
             s_oskn.copy(oskn->data);
             s_oskn.close();
 
-            oskn->header.signature = reverse_endianness_uint32_t('OSKN');
-            oskn->header.length = 0x20;
-            oskn->header.use_big_endian = big_endian;
-            oskn->header.use_section_size = true;
+            new (&oskn->header) f2_header('OSKN');
+            oskn->header.attrib.set_big_endian(big_endian);
         }
 
         obj_modern_write_model(obj, s_omdl, 0, is_x, omdl);
@@ -4296,10 +4294,8 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
         s_omdl.copy(omdl->data);
         s_omdl.close();
 
-        omdl->header.signature = reverse_endianness_uint32_t('OMDL');
-        omdl->header.length = 0x20;
-        omdl->header.use_big_endian = big_endian;
-        omdl->header.use_section_size = true;
+        new (&omdl->header) f2_header('OMDL');
+        omdl->header.attrib.set_big_endian(big_endian);
     }
 
     s_mosd.align_write(0x10);
@@ -4309,10 +4305,8 @@ static void obj_set_modern_write_inner(obj_set* set, stream& s) {
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('MOSD');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('MOSD');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, set->is_x);
 }
@@ -4943,19 +4937,15 @@ static void obj_modern_write_model(obj* obj, stream& s,
     s_oidx.copy(oidx->data);
     s_oidx.close();
 
-    oidx->header.signature = reverse_endianness_uint32_t('OIDX');
-    oidx->header.length = 0x20;
-    oidx->header.use_big_endian = big_endian;
-    oidx->header.use_section_size = true;
+    new (&oidx->header) f2_header('OIDX');
+    oidx->header.attrib.set_big_endian(big_endian);
 
     s_ovtx.align_write(0x10);
     s_ovtx.copy(ovtx->data);
     s_ovtx.close();
 
-    ovtx->header.signature = reverse_endianness_uint32_t('OVTX');
-    ovtx->header.length = 0x20;
-    ovtx->header.use_big_endian = big_endian;
-    ovtx->header.use_section_size = true;
+    new (&ovtx->header) f2_header('OVTX');
+    ovtx->header.attrib.set_big_endian(big_endian);
 }
 
 static void obj_modern_read_model_mesh(obj_mesh* mesh,

@@ -93,8 +93,8 @@ void sprite_database_file::read(const char* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('SPDB')) {
                 memory_stream s_spdb;
                 s_spdb.open(st.data);
-                s_spdb.big_endian = st.header.use_big_endian;
-                sprite_database_file_modern_read_inner(this, s_spdb, st.header.length);
+                s_spdb.big_endian = st.header.attrib.get_big_endian();
+                sprite_database_file_modern_read_inner(this, s_spdb, st.header.get_length());
             }
         }
         free_def(path_spi);
@@ -129,8 +129,8 @@ void sprite_database_file::read(const wchar_t* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('SPDB')) {
                 memory_stream s_spdb;
                 s_spdb.open(st.data);
-                s_spdb.big_endian = st.header.use_big_endian;
-                sprite_database_file_modern_read_inner(this, s_spdb, st.header.length);
+                s_spdb.big_endian = st.header.attrib.get_big_endian();
+                sprite_database_file_modern_read_inner(this, s_spdb, st.header.get_length());
             }
         }
         free_def(path_spi);
@@ -152,8 +152,8 @@ void sprite_database_file::read(const void* data, size_t size, bool modern) {
         if (st.header.signature == reverse_endianness_uint32_t('SPDB')) {
             memory_stream s_spdb;
             s_spdb.open(st.data);
-            s_spdb.big_endian = st.header.use_big_endian;
-            sprite_database_file_modern_read_inner(this, s_spdb, st.header.length);
+            s_spdb.big_endian = st.header.attrib.get_big_endian();
+            sprite_database_file_modern_read_inner(this, s_spdb, st.header.get_length());
         }
     }
 }
@@ -931,10 +931,8 @@ static void sprite_database_file_modern_write_inner(sprite_database_file* spr_db
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('SPDB');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('SPDB');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, spr_db->is_x);
 }

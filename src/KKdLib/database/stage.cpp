@@ -118,8 +118,8 @@ void stage_database_file::read(const char* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 memory_stream s_stgc;
                 s_stgc.open(st.data);
-                s_stgc.big_endian = st.header.use_big_endian;
-                stage_database_file_modern_read_inner(this, s_stgc, st.header.length);
+                s_stgc.big_endian = st.header.attrib.get_big_endian();
+                stage_database_file_modern_read_inner(this, s_stgc, st.header.get_length());
             }
         }
         free_def(path_stg);
@@ -154,8 +154,8 @@ void stage_database_file::read(const wchar_t* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
                 memory_stream s_stgc;
                 s_stgc.open(st.data);
-                s_stgc.big_endian = st.header.use_big_endian;
-                stage_database_file_modern_read_inner(this, s_stgc, st.header.length);
+                s_stgc.big_endian = st.header.attrib.get_big_endian();
+                stage_database_file_modern_read_inner(this, s_stgc, st.header.get_length());
             }
         }
         free_def(path_stg);
@@ -177,8 +177,8 @@ void stage_database_file::read(const void* data, size_t size, bool modern) {
         if (st.header.signature == reverse_endianness_uint32_t('STGC')) {
             memory_stream s_stgc;
             s_stgc.open(st.data);
-            s_stgc.big_endian = st.header.use_big_endian;
-            stage_database_file_modern_read_inner(this, s_stgc, st.header.length);
+            s_stgc.big_endian = st.header.attrib.get_big_endian();
+            stage_database_file_modern_read_inner(this, s_stgc, st.header.get_length());
         }
     }
 }

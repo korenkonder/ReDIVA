@@ -547,10 +547,7 @@ static void a3da_write_inner(a3da* a, stream& s) {
         s_a3da.copy(st.data);
         s_a3da.close();
 
-        st.header.signature = reverse_endianness_uint32_t('A3DA');
-        st.header.length = 0x40;
-        st.header.use_big_endian = false;
-        st.header.use_section_size = true;
+        new (&st.header) f2_header('A3DA');
         st.header.inner_signature = a->format == A3DA_FORMAT_XHD ? 0x00131010 : 0x01131010;
 
         st.write(s, true, a->format == A3DA_FORMAT_X || a->format == A3DA_FORMAT_XHD);

@@ -771,15 +771,14 @@ void compile_all_shaders(bool debug) {
     }
 }
 
-/*
-void decrypt_x_save_data() {
-    uint8_t key[] = {
+/*bool decrypt_x_save_data() {
+    static const uint8_t savedata_key[] = {
         0xA4, 0xB7, 0x31, 0xD0, 0x33, 0xFB, 0x4A, 0x63, 0x9D, 0xD2, 0x46, 0xA5, 0x05, 0xCD, 0x4B, 0xE5,
         0xF2, 0x10, 0xEE, 0x05, 0xC3, 0x56, 0x45, 0x3A, 0xAF, 0x22, 0x5C, 0x88, 0xA0, 0x9F, 0xB6, 0x8A,
     };
 
     aes256_ctx aes;
-    aes256_init_ctx(&aes, key);
+    aes256_init_ctx(&aes, savedata_key);
 
     file_stream ifs;
     ifs.open("SECURE.BIN", "rb");
@@ -790,60 +789,73 @@ void decrypt_x_save_data() {
     ifs.read(data.data(), data.size());
     ifs.close();
 
-    struct savedata_header {
-        uint32_t signature;
-        uint32_t data_size;
-        uint32_t length;
-        uint32_t flags;
-        uint8_t unk10;
-        uint8_t crc8;
-        uint16_t crc16;
-        uint32_t section_size;
-        uint32_t unk18;
-        uint32_t unk1C;
-        uint8_t data[];
-    };
+    f2_header* head = (f2_header*)data.data();
 
-    savedata_header* head = (savedata_header*)data.data();
-
-    uint8_t* a1 = data.data();
-    uint8_t* v5 = a1 + head->length;
-    uint8_t* v8 = a1;
-    uint8_t* v9 = v5 + head->section_size;
-
-    uint8_t v10 = 0xA5;
-    while (v8 != a1 + 8)
-        v10 ^= *v8++;
-
-    if (!v10 || v10 == 0xFF)
-        v10 = 1;
-
-    while (v5 != v9) {
-        uint8_t v12 = *v5;
-        *v5 ^= v10;
-        v10 = v12;
-        v5++;
-    }
-
-    aes256_ecb_decrypt_buffer(&aes, data.data() + head->length, data.size() - head->length);
-
-    file_stream ofs;
-    ofs.open("SECURE.BIN_DEC", "wb");
-    ofs.write(data.data(), data.size());
-    ofs.close();
+    bool reset_flags = head->attrib.get_gzip() || head->attrib.get_xor_data();
 
     void* dst = 0;
-    size_t dst_len = head->unk1C;
-    deflate::decompress(data.data() + head->length, data.size() - head->length,
-        &dst, &dst_len, deflate::MODE_GZIP);
+    size_t dst_len = 0;
 
-    file_stream ufs;
-    ufs.open("SECURE.BIN_DEC_DEFLATE", "wb");
-    ufs.write(dst, dst_len);
-    ufs.close();
+    if (head->attrib.get_crc()) {
+        if (!head->validate_crc())
+            return false;
+
+        if (reset_flags) {
+            head->attrib.set_crc(false);
+            head->crc8 = 0x00;
+            head->crc16 = 0x00;
+        }
+    }
+
+    if (head->attrib.get_xor_data())
+        head->remove_xor();
+
+    if (head->attrib.get_aes()) {
+        uint8_t* section_data = head->get_section_data();
+        uint32_t section_size = head->get_section_size();
+        if (section_data && section_size == align_val(section_size, 0x20)) {
+            aes256_ecb_decrypt_buffer(&aes, section_data, section_size);
+            head->attrib.set_aes(false);
+        }
+    }
+
+    if (head->attrib.get_gzip()) {
+        uint8_t* section_data = head->get_section_data();
+        uint32_t section_size = head->get_section_size();
+        if (!head->custom || !section_data || !section_size)
+            return false;
+
+        dst = 0;
+        dst_len = head->custom;
+        if (deflate::decompress(section_data, section_size, &dst, &dst_len, deflate::MODE_GZIP) < 0
+            || !dst_len || dst_len < head->custom) {
+            if (dst)
+                free(dst);
+            return false;
+        }
+
+        if (reset_flags)
+            head->attrib.set_gzip(false);
+    }
+    else {
+        dst = malloc(head->custom);
+        if (dst) {
+            dst_len = head->custom;
+            memset(dst, 0, head->custom);
+            memcpy(dst, head->get_section_data(), min_def(head->custom, head->get_section_size()));
+        }
+    }
+
+    if (dst && dst_len) {
+        file_stream ofs;
+        ofs.open("SECURE.BIN_DEC", "wb");
+        ofs.write(dst, dst_len);
+        ofs.close();
+    }
 
     if (dst)
         free(dst);
+    return true;
 }*/
 
 /*void process_edit_dsc(const char* path, const char* file,

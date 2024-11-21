@@ -82,8 +82,8 @@ void bone_database::read(const char* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
                 memory_stream s_bone;
                 s_bone.open(st.data);
-                s_bone.big_endian = st.header.use_big_endian;
-                bone_database_modern_read_inner(this, s_bone, st.header.length);
+                s_bone.big_endian = st.header.attrib.get_big_endian();
+                bone_database_modern_read_inner(this, s_bone, st.header.get_length());
             }
         }
         free_def(path_bon);
@@ -118,8 +118,8 @@ void bone_database::read(const wchar_t* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
                 memory_stream s_bone;
                 s_bone.open(st.data);
-                s_bone.big_endian = st.header.use_big_endian;
-                bone_database_modern_read_inner(this, s_bone, st.header.length);
+                s_bone.big_endian = st.header.attrib.get_big_endian();
+                bone_database_modern_read_inner(this, s_bone, st.header.get_length());
             }
         }
         free_def(path_bon);
@@ -141,8 +141,8 @@ void bone_database::read(const void* data, size_t size, bool modern) {
         if (st.header.signature == reverse_endianness_uint32_t('BONE')) {
             memory_stream s_bone;
             s_bone.open(st.data);
-            s_bone.big_endian = st.header.use_big_endian;
-            bone_database_modern_read_inner(this, s_bone, st.header.length);
+            s_bone.big_endian = st.header.attrib.get_big_endian();
+            bone_database_modern_read_inner(this, s_bone, st.header.get_length());
         }
     }
 }
@@ -1418,10 +1418,9 @@ static void bone_database_modern_write_inner(bone_database* bone_data, stream& s
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('BONE');
-    st.header.length = is_x ? 0x20 : 0x40;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('BONE');
+    st.header.set_length(is_x ? F2_HEADER_DEFAULT_LENGTH : F2_HEADER_EXTENDED_LENGTH);
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, is_x);
 }

@@ -15,7 +15,7 @@ extern const uint32_t hash_murmurhash_empty;
 // "NULL" string
 extern const uint32_t hash_murmurhash_null;
 // Empty string
-extern const uint32_t hash_crc16_ccitt_empty;
+extern const uint16_t hash_crc16_ccitt_empty;
 
 extern uint64_t hash_fnv1a64m(const void* data, size_t size, bool make_upper = false);
 extern uint32_t hash_murmurhash(const void* data, size_t size,
@@ -60,7 +60,7 @@ inline uint16_t hash_utf8_crc16_ccitt(const char* data, bool make_upper = false)
 
 inline uint16_t hash_utf16_crc16_ccitt(const wchar_t* data, bool make_upper = false) {
     char* temp = utf16_to_utf8(data);
-    uint32_t hash = hash_crc16_ccitt(temp, utf8_length(temp), make_upper);
+    uint16_t hash = hash_crc16_ccitt(temp, utf8_length(temp), make_upper);
     free_def(temp);
     return hash;
 }

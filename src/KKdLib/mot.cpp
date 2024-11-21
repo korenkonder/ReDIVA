@@ -580,8 +580,8 @@ static void mot_modern_read_inner(mot_set* ms, prj::shared_ptr<prj::stack_alloca
         return;
     }
 
-    uint32_t header_length = st.header.length;
-    bool big_endian = st.header.use_big_endian;
+    uint32_t header_length = st.header.get_length();
+    bool big_endian = st.header.attrib.get_big_endian();
     bool is_x = st.pof.shift_x;
 
     memory_stream s_motc;
@@ -997,10 +997,9 @@ static void mot_modern_write_inner(mot_set* ms, stream& s) {
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('MOTC');
-    st.header.length = 0x40;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('MOTC');
+    st.header.set_length(F2_HEADER_EXTENDED_LENGTH);
+    st.header.attrib.set_big_endian(big_endian);
     st.header.murmurhash = murmurhash;
     st.header.inner_signature = 0xFF010008;
 

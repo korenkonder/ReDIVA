@@ -115,8 +115,8 @@ void pv_exp::unpack_file(prj::shared_ptr<prj::stack_allocator> alloc, const void
         if (st.header.signature == reverse_endianness_uint32_t('EXPC')) {
             memory_stream s_expc;
             s_expc.open(st.data);
-            s_expc.big_endian = st.header.use_big_endian;
-            pv_exp_modern_read_inner(this, alloc, s_expc, st.header.length);
+            s_expc.big_endian = st.header.attrib.get_big_endian();
+            pv_exp_modern_read_inner(this, alloc, s_expc, st.header.get_length());
         }
     }
 }
@@ -530,10 +530,8 @@ static void pv_exp_modern_write_inner(pv_exp* exp, stream& s) {
     s_expc.copy(st.data);
     s_expc.close();
 
-    st.header.signature = reverse_endianness_uint32_t('EXPC');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('EXPC');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, exp->is_x);
 }

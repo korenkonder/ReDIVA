@@ -904,8 +904,8 @@ static void aet_set_modern_read_inner(aet_set* as, prj::shared_ptr<prj::stack_al
     if (st.header.signature != reverse_endianness_uint32_t('AETC') || !st.data.size())
         return;
 
-    uint32_t header_length = st.header.length;
-    bool big_endian = st.header.use_big_endian;
+    uint32_t header_length = st.header.get_length();
+    bool big_endian = st.header.attrib.get_big_endian();
     bool is_x = st.pof.shift_x;
 
     memory_stream s_aetc;
@@ -978,10 +978,8 @@ static void aet_set_modern_write_inner(aet_set* as, stream& s) {
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('AETC');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('AETC');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, is_x);
 }

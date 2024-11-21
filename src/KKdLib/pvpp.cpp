@@ -324,7 +324,7 @@ static void pvpp_read_inner(pvpp* pp, stream& s) {
         return;
     }
 
-    bool big_endian = st.header.use_big_endian;
+    bool big_endian = st.header.attrib.get_big_endian();
 
     memory_stream s_pvpp;
     s_pvpp.open(st.data);

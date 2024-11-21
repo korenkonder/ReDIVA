@@ -86,10 +86,7 @@ namespace Glitter {
 
     void FileWriter::PackCurve(f2_struct* st, Curve* c, bool big_endian) {
         if (!c->keys.size()) {
-            st->header.signature = reverse_endianness_uint32_t('KEYS');
-            st->header.length = 0x20;
-            st->header.use_big_endian = false;
-            st->header.use_section_size = true;
+            new (&st->header) f2_header('KEYS');
             st->header.version = c->keys_version;
             return;
         }
@@ -449,10 +446,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('KEYS');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('KEYS');
+        st->header.attrib.set_big_endian(big_endian);
         st->header.version = c->keys_version;
     }
 
@@ -491,10 +486,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('GEFF');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('GEFF');
+        st->header.attrib.set_big_endian(big_endian);
         return true;
     }
 
@@ -507,10 +500,7 @@ namespace Glitter {
 
         eff_group->resources_tex.pack_file(st->data, false);
 
-        st->header.signature = reverse_endianness_uint32_t('TXPC');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('TXPC');
         return true;
     }
 
@@ -554,10 +544,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('DVRS');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('DVRS');
+        st->header.attrib.set_big_endian(big_endian);
         return true;
     }
 
@@ -956,10 +944,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('EFCT');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('EFCT');
+        st->header.attrib.set_big_endian(big_endian);
         st->header.version = eff->version;
         return true;
     }
@@ -1302,10 +1288,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('EMIT');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('EMIT');
+        st->header.attrib.set_big_endian(big_endian);
         st->header.version = emit->version;
         return true;
     }
@@ -1817,10 +1801,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('PTCL');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('PTCL');
+        st->header.attrib.set_big_endian(big_endian);
         st->header.version = ptcl->version;
         return true;
     }
@@ -1882,10 +1864,8 @@ namespace Glitter {
         if (st->sub_structs.size() < 1)
             return false;
 
-        st->header.signature = reverse_endianness_uint32_t('ANIM');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('ANIM');
+        st->header.attrib.set_big_endian(big_endian);
         return true;
     }
 
@@ -1924,7 +1904,7 @@ namespace Glitter {
                 st->data.resize(l);
                 d = (size_t)st->data.data();
 
-                if (st->header.use_big_endian) {
+                if (big_endian) {
                     store_reverse_endianness_uint32_t((void*)d, c->type);
                     store_reverse_endianness_uint32_t((void*)(d + 4), c->repeat ? 1 : 0);
                     store_reverse_endianness_uint32_t((void*)(d + 8), c->flags);
@@ -1954,7 +1934,7 @@ namespace Glitter {
                 st->data.resize(l);
                 d = (size_t)st->data.data();
 
-                if (st->header.use_big_endian) {
+                if (big_endian) {
                     store_reverse_endianness_uint32_t((void*)d, c->type);
                     store_reverse_endianness_uint32_t((void*)(d + 4), c->repeat ? 1 : 0);
                     store_reverse_endianness_uint32_t((void*)(d + 8), c->flags);
@@ -2026,10 +2006,8 @@ namespace Glitter {
 
         st->enrs = e;
 
-        st->header.signature = reverse_endianness_uint32_t('CURV');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('CURV');
+        st->header.attrib.set_big_endian(big_endian);
         st->header.version = c->version;
 
         f2_struct s;
@@ -2044,10 +2022,7 @@ namespace Glitter {
     bool FileWriter::UnparseDivaEffect(EffectGroup* eff_group, f2_struct* st, bool big_endian) {
         UnparseEffectGroup(eff_group, st, big_endian);
 
-        st->header.signature = reverse_endianness_uint32_t('DVEF');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('DVEF');
         st->header.version = eff_group->version;
         return true;
     }
@@ -2059,10 +2034,8 @@ namespace Glitter {
 
         st->sub_structs.push_back(s);
 
-        st->header.signature = reverse_endianness_uint32_t('LIST');
-        st->header.length = 0x20;
-        st->header.use_big_endian = big_endian;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('LIST');
+        st->header.attrib.set_big_endian(big_endian);
         return true;
     }
 
@@ -2073,10 +2046,7 @@ namespace Glitter {
 
         st->sub_structs.push_back(s);
 
-        st->header.signature = reverse_endianness_uint32_t('DVRS');
-        st->header.length = 0x20;
-        st->header.use_big_endian = false;
-        st->header.use_section_size = true;
+        new (&st->header) f2_header('DVRS');
         st->header.version = 1;
         return true;
     }
@@ -2177,6 +2147,17 @@ namespace Glitter {
             memcpy(temp, file, file_len);
             temp[file_len] = 0;
 
+            {
+                f2_struct drs_st;
+                if (fr.UnparseDivaResource(eff_group, &drs_st)) {
+                    memcpy(&temp[file_len], ".drs", 4);
+                    temp[file_len + 4] = 0;
+                    farc_file* ff_drs = f.add_file(temp);
+                    drs_st.write(&ff_drs->data, &ff_drs->size);
+                    ff_drs->compressed = compress;
+                    ff_drs->encrypted = encrypt;
+                }
+            }
 
             {
                 f2_struct dve_st;
@@ -2191,18 +2172,6 @@ namespace Glitter {
                 else {
                     free(temp);
                     return;
-                }
-            }
-
-            {
-                f2_struct drs_st;
-                if (fr.UnparseDivaResource(eff_group, &drs_st)) {
-                    memcpy(&temp[file_len], ".drs", 4);
-                    temp[file_len + 4] = 0;
-                    farc_file* ff_drs = f.add_file(temp);
-                    drs_st.write(&ff_drs->data, &ff_drs->size);
-                    ff_drs->compressed = compress;
-                    ff_drs->encrypted = encrypt;
                 }
             }
 

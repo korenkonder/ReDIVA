@@ -96,8 +96,8 @@ void aet_database_file::read(const char* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('AEDB')) {
                 memory_stream s_aedb;
                 s_aedb.open(st.data);
-                s_aedb.big_endian = st.header.use_big_endian;
-                aet_database_file_modern_read_inner(this, s_aedb, st.header.length);
+                s_aedb.big_endian = st.header.attrib.get_big_endian();
+                aet_database_file_modern_read_inner(this, s_aedb, st.header.get_length());
             }
         }
         free_def(path_aei);
@@ -132,8 +132,8 @@ void aet_database_file::read(const wchar_t* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('AEDB')) {
                 memory_stream s_aedb;
                 s_aedb.open(st.data);
-                s_aedb.big_endian = st.header.use_big_endian;
-                aet_database_file_modern_read_inner(this, s_aedb, st.header.length);
+                s_aedb.big_endian = st.header.attrib.get_big_endian();
+                aet_database_file_modern_read_inner(this, s_aedb, st.header.get_length());
             }
         }
         free_def(path_aei);
@@ -155,8 +155,8 @@ void aet_database_file::read(const void* data, size_t size, bool modern) {
         if (st.header.signature == reverse_endianness_uint32_t('AEDB')) {
             memory_stream s_aedb;
             s_aedb.open(st.data);
-            s_aedb.big_endian = st.header.use_big_endian;
-            aet_database_file_modern_read_inner(this, s_aedb, st.header.length);
+            s_aedb.big_endian = st.header.attrib.get_big_endian();
+            aet_database_file_modern_read_inner(this, s_aedb, st.header.get_length());
         }
     }
 }
@@ -869,10 +869,8 @@ static void aet_database_file_modern_write_inner(aet_database_file* aet_db, stre
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('AEDB');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('AEDB');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, aet_db->is_x);
 }

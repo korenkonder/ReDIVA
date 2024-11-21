@@ -33,8 +33,8 @@ void dof::read(const char* path) {
         if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
             memory_stream s_doft;
             s_doft.open(st.data);
-            s_doft.big_endian = st.header.use_big_endian;
-            dof_read_inner(this, s_doft, st.header.length);
+            s_doft.big_endian = st.header.attrib.get_big_endian();
+            dof_read_inner(this, s_doft, st.header.get_length());
         }
     }
     free_def(path_dft);
@@ -51,8 +51,8 @@ void dof::read(const wchar_t* path) {
         if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
             memory_stream s_doft;
             s_doft.open(st.data);
-            s_doft.big_endian = st.header.use_big_endian;
-            dof_read_inner(this, s_doft, st.header.length);
+            s_doft.big_endian = st.header.attrib.get_big_endian();
+            dof_read_inner(this, s_doft, st.header.get_length());
         }
     }
     free_def(path_dex);
@@ -67,8 +67,8 @@ void dof::read(const void* data, size_t size) {
     if (st.header.signature == reverse_endianness_uint32_t('DOFT')) {
         memory_stream s_doft;
         s_doft.open(st.data);
-        s_doft.big_endian = st.header.use_big_endian;
-        dof_read_inner(this, s_doft, st.header.length);
+        s_doft.big_endian = st.header.attrib.get_big_endian();
+        dof_read_inner(this, s_doft, st.header.get_length());
     }
 }
 
@@ -253,10 +253,9 @@ static void dof_write_inner(dof* d, stream& s) {
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('DOFT');
-    st.header.length = 0x40;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('DOFT');
+    st.header.set_length(F2_HEADER_EXTENDED_LENGTH);
+    st.header.attrib.set_big_endian(big_endian);
     st.header.murmurhash = murmurhash;
     st.header.inner_signature = 0x03;
 

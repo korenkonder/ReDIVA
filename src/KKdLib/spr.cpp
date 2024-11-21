@@ -272,8 +272,8 @@ static void spr_set_modern_read_inner(spr_set* ss,
     if (st.header.signature != reverse_endianness_uint32_t('SPRC') || !st.data.size())
         return;
 
-    uint32_t header_length = st.header.length;
-    bool big_endian = st.header.use_big_endian;
+    uint32_t header_length = st.header.get_length();
+    bool big_endian = st.header.attrib.get_big_endian();
     bool is_x = st.pof.shift_x;
 
     memory_stream s_sprc;
@@ -342,7 +342,7 @@ static void spr_set_modern_read_inner(spr_set* ss,
     }
     s_sprc.close();
 
-    texofs = st.header.data_size + 0x20;
+    texofs = st.header.get_data_size() + F2_HEADER_DEFAULT_LENGTH;
 
     ss->txp = new txp_set;
     ss->txp->unpack_file_modern((const void*)((size_t)data + texofs), size - texofs, 'TXPC');
@@ -376,10 +376,8 @@ static void spr_set_modern_write_inner(spr_set* ss, void** data, size_t* size) {
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('SPRC');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('SPRC');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(data, size, true, is_x);
 }

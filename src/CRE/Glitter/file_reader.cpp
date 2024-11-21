@@ -264,7 +264,7 @@ namespace Glitter {
     }
 
     void FileReader::ParseAnimation(f2_struct* st, Animation* anim) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('ANIM'))
             return;
 
@@ -273,7 +273,7 @@ namespace Glitter {
     }
 
     void FileReader::ParseCurve(f2_struct* st, Animation* anim) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('CURV'))
             return;
 
@@ -286,7 +286,7 @@ namespace Glitter {
         uint32_t keys_count;
         if (type == Glitter::X) {
             if (st->header.version == 1) {
-                if (st->header.use_big_endian) {
+                if (st->header.attrib.get_big_endian()) {
                     c->type = (CurveType)load_reverse_endianness_uint32_t((void*)d);
                     c->repeat = load_reverse_endianness_uint32_t((void*)(d + 4)) != 0;
                     c->flags = (CurveFlag)load_reverse_endianness_uint32_t((void*)(d + 8));
@@ -306,7 +306,7 @@ namespace Glitter {
                 }
             }
             else {
-                if (st->header.use_big_endian) {
+                if (st->header.attrib.get_big_endian()) {
                     c->type = (CurveType)load_reverse_endianness_uint32_t((void*)d);
                     c->repeat = load_reverse_endianness_uint32_t((void*)(d + 4)) != 0;
                     c->flags = (CurveFlag)load_reverse_endianness_uint32_t((void*)(d + 8));
@@ -327,7 +327,7 @@ namespace Glitter {
             }
         }
         else {
-            if (st->header.use_big_endian) {
+            if (st->header.attrib.get_big_endian()) {
                 c->type = (CurveType)load_reverse_endianness_uint32_t((void*)d);
                 c->repeat = load_reverse_endianness_uint32_t((void*)(d + 4)) != 0;
                 c->flags = (CurveFlag)load_reverse_endianness_uint32_t((void*)(d + 8));
@@ -357,16 +357,16 @@ namespace Glitter {
         }
 
         for (f2_struct& i : st->sub_structs)
-            if (i.header.data_size && i.header.signature == reverse_endianness_uint32_t('KEYS')) {
+            if (i.header.get_raw_data_size() && i.header.signature == reverse_endianness_uint32_t('KEYS')) {
                 UnpackCurve(i.data.data(), anim, c,
-                    keys_count, i.header.version, i.header.use_big_endian);
+                    keys_count, i.header.version, i.header.attrib.get_big_endian());
                 break;
             }
         anim->curves.push_back(c);
     }
 
     bool FileReader::ParseDivaEffect(GPM, f2_struct* st) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('DVEF'))
             return false;
 
@@ -416,7 +416,7 @@ namespace Glitter {
     }
 
     bool FileReader::ParseDivaList(f2_struct* st, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('LIST'))
             return false;
 
@@ -427,7 +427,7 @@ namespace Glitter {
     }
 
     bool FileReader::ParseDivaResource(GPM, f2_struct* st, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size)
+        if (!st || !st->header.get_raw_data_size())
             return false;
 
         for (f2_struct& i : st->sub_structs)
@@ -437,13 +437,13 @@ namespace Glitter {
     }
 
     bool FileReader::ParseEffect(f2_struct* st, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('EFCT'))
             return false;
 
         Effect* eff = new Effect(type);
         if (!UnpackEffect(st->data.data(), eff,
-            st->header.version, st->header.use_big_endian)) {
+            st->header.version, st->header.attrib.get_big_endian())) {
             delete eff;
             return false;
         }
@@ -457,12 +457,12 @@ namespace Glitter {
     }
 
     bool FileReader::ParseEffectGroup(f2_struct* st, std::vector<Effect*>* vec, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('DVEF'))
             return false;
 
         for (f2_struct& i : st->sub_structs) {
-            if (!i.header.data_size)
+            if (!i.header.get_raw_data_size())
                 continue;
 
             if (i.header.signature == reverse_endianness_uint32_t('EFCT')) {
@@ -477,12 +477,12 @@ namespace Glitter {
     }
 
     bool FileReader::ParseEmitter(f2_struct* st, Effect* eff, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size || st->header.signature != reverse_endianness_uint32_t('EMIT'))
+        if (!st || !st->header.get_raw_data_size() || st->header.signature != reverse_endianness_uint32_t('EMIT'))
             return false;
 
         Emitter* emit = new Emitter(type);
         if (!UnpackEmitter(st->data.data(), emit,
-            st->header.version, st->header.use_big_endian)) {
+            st->header.version, st->header.attrib.get_big_endian())) {
             delete emit;
             return false;
         }
@@ -496,12 +496,12 @@ namespace Glitter {
     }
 
     bool FileReader::ParseParticle(f2_struct* st, Emitter* emit, Effect* eff, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size || st->header.signature != reverse_endianness_uint32_t('PTCL'))
+        if (!st || !st->header.get_raw_data_size() || st->header.signature != reverse_endianness_uint32_t('PTCL'))
             return false;
 
         Particle* ptcl = new Particle(type);
         if (!UnpackParticle(st->data.data(), ptcl,
-            st->header.version, eff, st->header.use_big_endian, eff_group)) {
+            st->header.version, eff, st->header.attrib.get_big_endian(), eff_group)) {
             delete ptcl;
             return false;
         }
@@ -958,13 +958,13 @@ namespace Glitter {
     }
 
     bool FileReader::UnpackDivaList(f2_struct* st, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('GEFF'))
             return false;
 
         size_t d = (size_t)st->data.data();
         uint32_t length;
-        if (st->header.use_big_endian)
+        if (st->header.attrib.get_big_endian())
             length = load_reverse_endianness_uint32_t((void*)d);
         else
             length = *(uint32_t*)d;
@@ -993,11 +993,11 @@ namespace Glitter {
     }
 
     bool FileReader::UnpackDivaResource(GPM, f2_struct* st, EffectGroup* eff_group) {
-        if (!st || !st->header.data_size
+        if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('TXPC'))
             return false;
 
-        eff_group->resources_tex.unpack_file(st->data.data(), st->header.use_big_endian);
+        eff_group->resources_tex.unpack_file(st->data.data(), st->header.attrib.get_big_endian());
         if (!eff_group->resources_count)
             return false;
 
@@ -1051,7 +1051,7 @@ namespace Glitter {
     bool FileReader::UnpackDivaResourceHashes(f2_struct* st, EffectGroup* eff_group) {
         if (eff_group->resources_count && eff_group->resource_hashes.size() > 0)
             return true;
-        else if (!st || !st->header.data_size
+        else if (!st || !st->header.get_raw_data_size()
             || st->header.signature != reverse_endianness_uint32_t('DVRS'))
             return false;
 
@@ -1060,7 +1060,7 @@ namespace Glitter {
             return false;
 
         uint32_t count;
-        if (st->header.use_big_endian)
+        if (st->header.attrib.get_big_endian())
             count = load_reverse_endianness_uint32_t((void*)d);
         else
             count = *(int32_t*)d;
@@ -1073,7 +1073,7 @@ namespace Glitter {
             if (!resource_hashes)
                 return false;
 
-            if (st->header.use_big_endian)
+            if (st->header.attrib.get_big_endian())
                 for (size_t i = count; i; i--, resource_hashes++, d += sizeof(uint64_t))
                     *resource_hashes = load_reverse_endianness_uint64_t((void*)d);
             else

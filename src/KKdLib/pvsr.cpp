@@ -205,7 +205,7 @@ static void pvsr_read_inner(pvsr* sr, stream& s) {
         return;
     }
 
-    bool big_endian = st.header.use_big_endian;
+    bool big_endian = st.header.attrib.get_big_endian();
 
     memory_stream s_pvsr;
     s_pvsr.open(st.data);

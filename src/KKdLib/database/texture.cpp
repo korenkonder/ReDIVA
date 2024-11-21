@@ -73,8 +73,8 @@ void texture_database_file::read(const char* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 memory_stream s_mtxi;
                 s_mtxi.open(st.data);
-                s_mtxi.big_endian = st.header.use_big_endian;
-                texture_database_file_modern_read_inner(this, s_mtxi, st.header.length);
+                s_mtxi.big_endian = st.header.attrib.get_big_endian();
+                texture_database_file_modern_read_inner(this, s_mtxi, st.header.get_length());
             }
         }
         free_def(path_txi);
@@ -109,8 +109,8 @@ void texture_database_file::read(const wchar_t* path, bool modern) {
             if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
                 memory_stream s_mtxi;
                 s_mtxi.open(st.data);
-                s_mtxi.big_endian = st.header.use_big_endian;
-                texture_database_file_modern_read_inner(this, s_mtxi, st.header.length);
+                s_mtxi.big_endian = st.header.attrib.get_big_endian();
+                texture_database_file_modern_read_inner(this, s_mtxi, st.header.get_length());
             }
         }
         free_def(path_txi);
@@ -132,8 +132,8 @@ void texture_database_file::read(const void* data, size_t size, bool modern) {
         if (st.header.signature == reverse_endianness_uint32_t('MTXI')) {
             memory_stream s_mtxi;
             s_mtxi.open(st.data);
-            s_mtxi.big_endian = st.header.use_big_endian;
-            texture_database_file_modern_read_inner(this, s_mtxi, st.header.length);
+            s_mtxi.big_endian = st.header.attrib.get_big_endian();
+            texture_database_file_modern_read_inner(this, s_mtxi, st.header.get_length());
         }
     }
 }
@@ -488,10 +488,8 @@ static void texture_database_file_modern_write_inner(texture_database_file* tex_
     st.enrs = e;
     st.pof = pof;
 
-    st.header.signature = reverse_endianness_uint32_t('MTXI');
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header('MTXI');
+    st.header.attrib.set_big_endian(big_endian);
 
     st.write(s, true, tex_db->is_x);
 }

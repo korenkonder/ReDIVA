@@ -259,10 +259,8 @@ bool txp_set::pack_file_modern(void** data, size_t* size, bool big_endian, uint3
 
     produce_enrs(&st.enrs);
 
-    st.header.signature = reverse_endianness_uint32_t(signature);
-    st.header.length = 0x20;
-    st.header.use_big_endian = big_endian;
-    st.header.use_section_size = true;
+    new (&st.header) f2_header(signature);
+    st.header.attrib.set_big_endian(big_endian);
     st.write(data, size, true, false);
     return true;
 }
@@ -424,7 +422,7 @@ bool txp_set::unpack_file_modern(const void* data, size_t size, uint32_t signatu
     f2_struct st;
     st.read(data, size);
     if (st.header.signature == reverse_endianness_uint32_t(signature))
-        ret = unpack_file(st.data.data(), st.header.use_big_endian);
+        ret = unpack_file(st.data.data(), st.header.attrib.get_big_endian());
     return ret;
 }
 
