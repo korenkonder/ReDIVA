@@ -199,7 +199,7 @@ static void f2_struct_write_inner(stream& s, f2_struct* st, uint32_t depth, bool
     bool has_enrs = !!st->enrs.vec.size();
     bool has_sub_structs = !!st->sub_structs.size();
 
-    st->header.depth = use_depth ? (uint8_t)depth : 0;
+    st->header.set_depth(use_depth ? (uint8_t)depth : 0);
     st->header.write(s);
     if (st->data.size())
         s.write(st->data.data(), st->data.size());

@@ -8,7 +8,7 @@
 static uint8_t calc_crc8(uint8_t* data, uint32_t size, uint8_t seed = 0xFF);
 static uint16_t calc_crc16_ccitt(uint8_t* data, uint32_t size, uint16_t seed = 0xFFFF);
 
-f2_header::f2_header() : signature(), data_size(), length(), attrib(), depth(), crc8(), crc16(),
+f2_header::f2_header() : signature(), data_size(), length(), attrib(), depth(), crc_header(), crc_data(),
 section_size(), version(), custom(), murmurhash(), unknown1(), inner_signature(), unknown2() {
     signature = '    ';
     set_length(F2_HEADER_DEFAULT_LENGTH);
@@ -24,7 +24,7 @@ f2_header::f2_header(uint32_t signature, uint32_t size, uint32_t depth, bool ali
     attrib.m.unk0 = 0x00;
     attrib.set_align(align);
     attrib.set_big_endian(false);
-    this->depth = (uint8_t)depth;
+    set_depth(depth);
     version &= 0xFFF0FFFF;
 }
 
@@ -62,20 +62,20 @@ void f2_header::apply_xor() {
 void f2_header::calc_crc() {
     attrib.set_crc(true);
 
-    uint8_t crc8 = calc_crc8((uint8_t*)&section_size, 0x0C, calc_crc8((uint8_t*)this, 0x11));
+    uint8_t crc_header = calc_crc8((uint8_t*)&section_size, 0x0C, calc_crc8((uint8_t*)this, 0x11));
     if (attrib.get_type())
-        this->crc8 = crc8;
+        this->crc_header = crc_header;
     else
         abort();
 
-    uint16_t crc16 = calc_crc16();
+    uint16_t crc_data = calc_crc_data();
     if (attrib.get_type())
-        this->crc16 = crc16;
+        this->crc_data = crc_data;
     else
         abort();
 }
 
-uint16_t f2_header::calc_crc16() const {
+uint16_t f2_header::calc_crc_data() const {
     uint16_t hash = calc_crc16_ccitt((uint8_t*)this + F2_HEADER_DEFAULT_LENGTH,
         get_length() - F2_HEADER_DEFAULT_LENGTH);
     return calc_crc16_ccitt(get_section_data(), get_section_size(), hash);
@@ -150,24 +150,24 @@ bool f2_header::validate_crc(int32_t not_ignore_crc) {
     if (!not_ignore_crc && !attrib.get_crc())
         return true;
 
-    uint8_t crc8;
+    uint8_t crc_header;
     if (attrib.get_type())
-        crc8 = this->crc8;
+        crc_header = this->crc_header;
     else {
         abort();
-        crc8 = 0xDE;
+        crc_header = 0xDE;
     }
 
-    if (crc8 == calc_crc8((uint8_t*)&this->section_size, 0x0C, calc_crc8((uint8_t*)this, 0x11))) {
-        uint16_t crc16;
+    if (crc_header == calc_crc8((uint8_t*)&this->section_size, 0x0C, calc_crc8((uint8_t*)this, 0x11))) {
+        uint16_t crc_data;
         if (attrib.get_type())
-            crc16 = this->crc16;
+            crc_data = this->crc_data;
         else {
             abort();
-            crc16 = 0xDEAD;
+            crc_data = 0xDEAD;
         }
 
-        if (crc16 == calc_crc16())
+        if (crc_data == calc_crc_data())
             return true;
     }
     return false;

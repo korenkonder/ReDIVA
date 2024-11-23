@@ -100,9 +100,11 @@ private:
     uint32_t length;                // 0x08
 public:
     f2_header_attrib attrib;        // 0x0C
+private:
     uint8_t depth;                  // 0x10
-    uint8_t crc8;                   // 0x11
-    uint16_t crc16;                 // 0x12
+public:
+    uint8_t crc_header;             // 0x11
+    uint16_t crc_data;              // 0x12
 private:
     uint32_t section_size;          // 0x14
 public:
@@ -118,7 +120,7 @@ public:
 
     void apply_xor();
     void calc_crc();
-    uint16_t calc_crc16() const;
+    uint16_t calc_crc_data() const;
     void read(stream& s);
     void remove_xor();
     bool validate_crc(int32_t not_ignore_crc = 0);
@@ -129,6 +131,10 @@ public:
             return data_size;
         else
             return F2_HEADER_BASE_ALIGNMENT * data_size;
+    }
+
+    inline uint32_t get_depth() const {
+        return depth;
     }
 
     inline uint32_t get_length() const {
@@ -157,11 +163,24 @@ public:
             return F2_HEADER_BASE_ALIGNMENT * section_size;
     }
 
+    inline void reset_crc() {
+        attrib.set_crc(false);
+        crc_header = 0x00;
+        crc_data = 0x00;
+    }
+
     inline void set_data_size(uint32_t value, bool align = false) {
         if (attrib.get_type() < 0x02)
             data_size = value;
         else if (!(value & 0x0F) || !align)
             data_size = value / F2_HEADER_BASE_ALIGNMENT;
+        else
+            abort();
+    }
+
+    inline void set_depth(uint32_t value) {
+        if (attrib.get_type())
+            depth = value;
         else
             abort();
     }
