@@ -20,7 +20,7 @@
 #define BAKE_RES_SCALE (2)
 #endif
 
-#if BAKE_DOF || BAKE_X_PACK
+#if BAKE_DOF || BAKE_X_PACK || BAKE_PV826
 #define BAKE_FAST (1)
 #endif
 

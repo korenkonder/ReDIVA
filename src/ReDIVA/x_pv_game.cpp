@@ -8515,7 +8515,7 @@ static void mot_write_motion(mot_data_bake* bake) {
             key_set_offset += 3;
     }
 
-    bake->state.set(0);
+    bake->state = 0;
 }
 
 static bool mot_write_motion_set(void* data, const char* path, const char* file, uint32_t hash) {
@@ -8636,7 +8636,7 @@ bool x_pv_game::unload() {
             while (true) {
                 int32_t free_thread_count = 0;
                 for (int32_t i = 0; i < bake_pv826_threads_count; i++)
-                    if (!bake_pv826_mot_data[i].state.get())
+                    if (!bake_pv826_mot_data[i].state)
                         free_thread_count++;
 
                 if (free_thread_count && bake_pv826_performer < 6)
@@ -8649,7 +8649,7 @@ bool x_pv_game::unload() {
                         std::thread* thread = 0;
                         int32_t thread_index = -1;
                         for (int32_t j = 0; j < bake_pv826_threads_count; j++)
-                            if (!bake_pv826_mot_data[j].state.get()) {
+                            if (!bake_pv826_mot_data[j].state) {
                                 thread = &bake_pv826_thread[j];
                                 thread_index = j;
                                 break;
@@ -8661,7 +8661,7 @@ bool x_pv_game::unload() {
                         mot_data_bake* bake = &bake_pv826_mot_data[thread_index];
                         bake->performer = bake_pv826_performer + 1;
                         bake->data = &i.second;
-                        bake->state.set(1);
+                        bake->state = 1;
 
                         if (thread->joinable())
                             thread->join();
@@ -9914,7 +9914,7 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys) {
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_N_WAKI_R, key_set, data);
 
-        data[0] = oh->node[a2m.j_waki_l_wj].model_transform.rotation_value;
+        data[0] = oh->node[a2m.j_waki_r_wj].model_transform.rotation_value;
         set_bone_key_set_data(bone_data, a2m.bone_keys, a2m.sec_bone_keys, add_keys,
             MOTION_BONE_KL_WAKI_R_WJ, key_set, data);
 
