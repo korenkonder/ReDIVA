@@ -293,7 +293,7 @@ namespace mdl {
         obj_material_attrib_member attrib = args->material->material.attrib.m;
         uniform_value[U_ALPHA_TEST] = (!attrib.flag_28 && (args->blend_color.w < 1.0f
             || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
-            || args->sub_mesh->attrib.m.transparent)
+            || args->sub_mesh->attrib.m.translucent)
             || attrib.punch_through) ? 1 : 0;
 
         uniform_value[U_NPR_NORMAL] = 1;
@@ -380,7 +380,7 @@ namespace mdl {
         obj_material_attrib_member attrib = args->material->material.attrib.m;
         if (!attrib.flag_28 && (args->blend_color.w < 1.0f
             || (attrib.alpha_texture || attrib.alpha_material) && !attrib.punch_through
-            || args->sub_mesh->attrib.m.transparent)
+            || args->sub_mesh->attrib.m.translucent)
             || attrib.punch_through) {
             uniform_value[U_ALPHA_TEST] = 1;
             rctx->set_batch_alpha_threshold(0.5f);

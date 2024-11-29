@@ -184,7 +184,6 @@ namespace rndr {
         void calc_exposure_chara_data(camera* cam);
         void calc_projection_matrix(mat4* mat, float_t fov, float_t aspect, float_t z_near, float_t z_far,
             float_t left_offset, float_t right_offset, float_t bottom_offset, float_t top_offset);
-        void ctrl(camera* cam);
         void draw_quad(int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
             float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w);
         void draw_lens_flare(camera* cam);
@@ -225,6 +224,8 @@ namespace rndr {
         void init_tone_map_buffers();
         int32_t movie_texture_set(texture* movie_texture);
         void movie_texture_free(texture* movie_texture);
+        void post_proc();
+        void pre_proc(camera* cam);
         int32_t render_texture_set(texture* render_texture, bool task_photo);
         void render_texture_free(texture* render_texture, bool task_photo);
         void reset_saturate_coeff(int32_t index, bool lock);

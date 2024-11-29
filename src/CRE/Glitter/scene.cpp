@@ -154,6 +154,15 @@ namespace Glitter {
             }
     }
 
+    void Scene::DispMesh(GPM) {
+        if (flags & SCENE_NOT_DISP)
+            return;
+
+        for (SceneEffect& i : effects)
+            if (i.ptr && i.disp)
+                i.ptr->DispMesh(GPM_VAL);
+    }
+
     size_t Scene::GetCtrlCount(ParticleType ptcl_type) {
         size_t ctrl = 0;
         for (SceneEffect& i : effects)

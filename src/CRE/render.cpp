@@ -392,38 +392,6 @@ namespace rndr {
         mat4_frustrum(left, right, bottom, top, z_near, z_far, mat);
     }
 
-    void Render::ctrl(camera* cam) {
-        view_point_prev = view_point;
-        interest_prev = interest;
-        cam->get_view_point(view_point);
-        cam->get_interest(interest);
-
-        stage_index_prev = stage_index;
-        if (task_stage_is_modern)
-            stage_index = (int32_t)task_stage_modern_get_current_stage_hash();
-        else
-            stage_index = task_stage_get_current_stage_index();
-
-        cam_view_projection_prev = cam_view_projection;
-        cam_view_projection = cam->view_projection;
-
-        reset_exposure = cam->fast_change_hist1 && !cam->fast_change_hist0;
-        if (reset_exposure) {
-            float_t view_point_dist = vec3::distance(view_point, view_point_prev);
-
-            vec3 dir = vec3::normalize(interest - view_point);
-            vec3 dir_prev = vec3::normalize(interest_prev - view_point_prev);
-
-            float_t dir_diff_angle = vec3::dot(dir, dir_prev);
-            if (dir_diff_angle < 0.5f)
-                dir_diff_angle = 0.0f;
-            if (view_point_dist < dir_diff_angle * 0.4f)
-                reset_exposure = false;
-        }
-        else if (stage_index != stage_index_prev)
-            reset_exposure = true;
-    }
-
     void Render::draw_quad(int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
         float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w) {
         s0 -= s1;
@@ -1086,6 +1054,43 @@ namespace rndr {
 
         movie_textures_data[index] = 0;
         movie_textures[index].Free();
+    }
+
+    void Render::post_proc() {
+        lens_flare_texture = 0;
+        aet_back = 0;
+    }
+
+    void Render::pre_proc(camera* cam) {
+        view_point_prev = view_point;
+        interest_prev = interest;
+        cam->get_view_point(view_point);
+        cam->get_interest(interest);
+
+        stage_index_prev = stage_index;
+        if (task_stage_is_modern)
+            stage_index = (int32_t)task_stage_modern_get_current_stage_hash();
+        else
+            stage_index = task_stage_get_current_stage_index();
+
+        cam_view_projection_prev = cam_view_projection;
+        cam_view_projection = cam->view_projection;
+
+        reset_exposure = cam->fast_change_hist1 && !cam->fast_change_hist0;
+        if (reset_exposure) {
+            float_t view_point_dist = vec3::distance(view_point, view_point_prev);
+
+            vec3 dir = vec3::normalize(interest - view_point);
+            vec3 dir_prev = vec3::normalize(interest_prev - view_point_prev);
+
+            float_t dir_diff_angle = vec3::dot(dir, dir_prev);
+            if (dir_diff_angle < 0.5f)
+                dir_diff_angle = 0.0f;
+            if (view_point_dist < dir_diff_angle * 0.4f)
+                reset_exposure = false;
+        }
+        else if (stage_index != stage_index_prev)
+            reset_exposure = true;
     }
 
     int32_t Render::render_texture_set(texture* render_texture, bool task_photo) {

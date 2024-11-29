@@ -785,10 +785,9 @@ void render_context::disp() {
     extern void dw_gui_ctrl_disp();
     dw_gui_ctrl_disp();
     sprite_manager_set_index(sprite_index);
-    render.ctrl(camera);
+    render_manager->rndpass_pre_proc(camera);
     render_manager->render_all();
-    render.lens_flare_texture = 0;
-    render.aet_back = 0;
+    render_manager->rndpass_post_proc();
     render_manager->field_31C = false;
     if (!get_pause())
         app::TaskWork::basic();

@@ -37,8 +37,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss);
 static int32_t draw_pass_3d_get_translucent_count(render_context* rctx);
 static void draw_pass_3d_shadow_reset(render_context* rctx);
 static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx);
-extern void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
-    bool transparent_enable, bool translucent_enable, mdl::ObjType opaque,
+extern void draw_pass_3d_translucent(render_context* rctx, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent);
 static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     int32_t* alpha_array, mdl::ObjType opaque,
@@ -322,6 +321,20 @@ namespace rndr {
         gl_state_bind_uniform_buffer_base(2, 0);
         gl_state_bind_uniform_buffer_base(3, 0);
         gl_state_bind_uniform_buffer_base(4, 0);
+    }
+
+    void RenderManager::rndpass_post_proc() {
+        gl_state_begin_event("rndpass_post_proc");
+        render->post_proc();
+        field_31C = false;
+        gl_state_end_event();
+    }
+
+    void RenderManager::rndpass_pre_proc(struct camera* cam) {
+        gl_state_begin_event("rndpass_pre_proc");
+        render->pre_proc(cam);
+        Glitter::glt_particle_manager->CalcDisp();
+        gl_state_end_event();
     }
 
     void RenderManager::render_single_pass(RenderPassID id) {
@@ -1135,6 +1148,8 @@ namespace rndr {
             mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1);
 
         if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
+            gl_state_begin_event("local");
+
             camera* cam = rctx->camera;
             float_t fov = cam->get_fov();
             cam->set_fov(32.2673416137695f);
@@ -1155,6 +1170,9 @@ namespace rndr {
             Glitter::glt_particle_manager->DispScenes(Glitter::DISP_LOCAL);
             gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             cam->set_fov(fov);
+
+            gl_state_end_event();
+
             draw_pass_set_camera();
         }
 
@@ -1381,7 +1399,7 @@ void draw_pass_set_camera() {
     rctx->g_near_far = {
         (float_t)(max_distance / (max_distance - min_distance)),
         (float_t)(-(max_distance * min_distance) / (max_distance - min_distance)),
-        0.0f, 0.0f
+        min_distance, max_distance
     };
 }
 
@@ -1798,9 +1816,10 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         rndr::Render* rend = &rctx->render;
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
-        gl_state_bind_texture_2d(reflect_enable
-            ? rctx->render_manager->get_render_texture(0).GetColorTex()
-            : rend->rend_texture[0].GetColorTex());
+        RenderTexture& rt = reflect_enable
+            ? rctx->render_manager->get_render_texture(0)
+            : rend->rend_texture[0];
+        gl_state_bind_texture_2d(rt.GetColorTex());
         gl_state_bind_sampler(0, rctx->render_samplers[0]);
         rctx->render.draw_quad(rt.GetWidth(), rt.GetHeight(),
             1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f);
@@ -1959,8 +1978,7 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
     gl_state_bind_sampler(7, 0);
 }
 
-static void draw_pass_3d_translucent(render_context* rctx, bool opaque_enable,
-    bool transparent_enable, bool translucent_enable, mdl::ObjType opaque,
+static void draw_pass_3d_translucent(render_context* rctx, mdl::ObjType opaque,
     mdl::ObjType transparent, mdl::ObjType translucent) {
     if (rctx->disp_manager->get_obj_count(opaque) < 1
         && rctx->disp_manager->get_obj_count(transparent) < 1

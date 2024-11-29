@@ -90,7 +90,7 @@ namespace Glitter {
 
         for (Scene*& i : scenes)
             if (i)
-                i->CalcDisp(this);
+                i->DispMesh(this);
     }
 
     void GltParticleManager::basic() {
@@ -178,6 +178,15 @@ namespace Glitter {
             enum_or(flags, PARTICLE_MANAGER_LOCAL);
         else
             enum_and(flags, ~PARTICLE_MANAGER_LOCAL);
+    }
+
+    void GltParticleManager::CalcDisp() {
+        if (flags & PARTICLE_MANAGER_NOT_DISP)
+            return;
+
+        for (Scene*& i : scenes)
+            if (i)
+                i->CalcDisp(this);
     }
 
     uint64_t GltParticleManager::CalculateHash(const char* str) {

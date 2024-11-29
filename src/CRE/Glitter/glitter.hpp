@@ -871,7 +871,6 @@ namespace Glitter {
         void CalcDisp(GPM, XRenderGroup* rend_group);
         void CalcDispLine(XRenderGroup* rend_group);
         void CalcDispLocus(GPM, XRenderGroup* rend_group);
-        void CalcDispMesh(GPM, XRenderGroup* rend_group);
         void CalcDispQuad(GPM, XRenderGroup* rend_group);
         void CalcDispQuadDirectionRotation(XRenderGroup* rend_group, mat4* model_mat);
         void CalcDispQuadNormal(XRenderGroup* rend_group, mat4* model_mat, mat4* dir_mat);
@@ -880,6 +879,8 @@ namespace Glitter {
         void Ctrl(float_t delta_frame, bool copy_mats);
         void Disp(GPM, DispType disp_type);
         void Disp(GPM, XRenderGroup* rend_group);
+        void DispMesh(GPM);
+        void DispMesh(GPM, XRenderGroup* rend_group);
     };
 
     class EffectInst {
@@ -911,6 +912,7 @@ namespace Glitter {
         virtual void CalcDisp(GPM) = 0;
         virtual void Copy(EffectInst* dst, float_t emission) = 0;
         virtual void Disp(GPM, DispType disp_type) = 0;
+        virtual void DispMesh(GPM) = 0;
         virtual void Free(GPM, GLT, float_t emission, bool free) = 0;
         virtual size_t GetCtrlCount(ParticleType type) = 0;
         virtual size_t GetDispCount(ParticleType type) = 0;
@@ -963,6 +965,7 @@ namespace Glitter {
         virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
         virtual void Disp(GPM, DispType disp_type) override;
+        virtual void DispMesh(GPM) override;
         virtual void Free(GPM, GLT, float_t emission, bool free) override;
         virtual size_t GetCtrlCount(ParticleType type) override;
         virtual size_t GetDispCount(ParticleType type) override;
@@ -1028,6 +1031,7 @@ namespace Glitter {
         virtual void CalcDisp(GPM) override;
         virtual void Copy(EffectInst* dst, float_t emission) override;
         virtual void Disp(GPM, DispType disp_type) override;
+        virtual void DispMesh(GPM) override;
         virtual void Free(GPM, GLT, float_t emission, bool free) override;
         virtual size_t GetCtrlCount(ParticleType type) override;
         virtual size_t GetDispCount(ParticleType type) override;
@@ -1619,6 +1623,7 @@ namespace Glitter {
         bool Copy(EffectInst* eff_inst, Scene* dst);
         void Ctrl(GPM, float_t delta_frame);
         void Disp(GPM, DispType disp_type);
+        void DispMesh(GPM);
         size_t GetCtrlCount(ParticleType ptcl_type);
         size_t GetDispCount(ParticleType ptcl_type);
         float_t GetFrameLifeTime(int32_t* life_time, size_t id);
@@ -1673,6 +1678,7 @@ namespace Glitter {
 
         bool AppendEffectGroup(uint64_t hash, EffectGroup* eff_group, FileReader* file_read);
         void BasicEffectGroups();
+        void CalcDisp();
         uint64_t CalculateHash(const char* str);
         bool CheckHasLocalEffect();
         bool CheckNoFileReaders(uint64_t hash);

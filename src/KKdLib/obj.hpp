@@ -332,7 +332,7 @@ struct obj_material_data {
 struct obj_sub_mesh_attrib_member {
     uint32_t recieve_shadow : 1;
     uint32_t cast_shadow : 1;
-    uint32_t transparent : 1;
+    uint32_t translucent : 1;
     uint32_t cloth : 1;
     uint32_t dummy : 28;
 };

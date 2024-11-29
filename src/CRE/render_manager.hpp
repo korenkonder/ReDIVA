@@ -112,6 +112,8 @@ namespace rndr {
         void set_shadow_true();
 
         void render_all();
+        void rndpass_post_proc();
+        void rndpass_pre_proc(struct camera* cam);
 
         void render_single_pass(rndr::RenderPassID id);
 

@@ -2003,7 +2003,7 @@ namespace mdl {
     }
 
     void DispManager::draw(ObjType type, int32_t depth_mask, bool reflect_texture_mask, int32_t alpha) {
-        if (type < 0 || type >= mdl::OBJ_TYPE_MAX || get_obj_count(type) < 1)
+        if (type < 0 || type >= OBJ_TYPE_MAX || get_obj_count(type) < 1)
             return;
 
         render_context* rctx = rctx_ptr;
@@ -2253,7 +2253,7 @@ namespace mdl {
                 || data->args.sub_mesh.blend_color.w >= 1.0f) {
                 if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
                     && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
-                    && !sub_mesh->attrib.m.transparent) {
+                    && !sub_mesh->attrib.m.translucent) {
                     if (attrib.punch_through && (obj_flags & mdl::OBJ_CHARA_REFLECT)) {
                         obj[OBJ_TYPE_REFLECT_CHARA_TRANSPARENT].push_back(data);
                         return;
@@ -2582,7 +2582,7 @@ namespace mdl {
                         bool translucent = false;
                         if (!attrib.flag_28 && (!attrib.punch_through
                             && (attrib.alpha_texture || attrib.alpha_material)
-                            || sub_mesh->attrib.m.transparent))
+                            || sub_mesh->attrib.m.translucent))
                             translucent = true;
 
                         if (translucent) {
@@ -2621,7 +2621,7 @@ namespace mdl {
                 }
                 else if (!attrib.flag_28 && (data->args.sub_mesh.blend_color.w < 1.0f
                     || !attrib.punch_through && attrib.alpha_texture | attrib.alpha_material
-                    || sub_mesh->attrib.m.transparent)) {
+                    || sub_mesh->attrib.m.translucent)) {
                     if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
                         if (!attrib.translucent_priority)
                             if (local)

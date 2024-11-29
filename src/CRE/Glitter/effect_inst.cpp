@@ -208,6 +208,10 @@ namespace Glitter {
         render_scene.Disp(GPM_VAL, disp_type);
     }
 
+    void F2EffectInst::DispMesh(GPM) {
+
+    }
+
     void F2EffectInst::Free(GPM, GLT, float_t emission, bool free) {
         enum_or(flags, EFFECT_INST_FREE);
         for (F2EmitterInst*& i : emitters)
@@ -782,6 +786,10 @@ namespace Glitter {
 
     void XEffectInst::Disp(GPM, DispType disp_type) {
         render_scene.Disp(GPM_VAL, disp_type);
+    }
+
+    void XEffectInst::DispMesh(GPM) {
+        render_scene.DispMesh(GPM_VAL);
     }
 
     void XEffectInst::Free(GPM, GLT, float_t emission, bool free) {

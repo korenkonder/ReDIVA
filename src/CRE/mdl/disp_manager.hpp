@@ -453,7 +453,7 @@ namespace mdl {
         void draw(mdl::ObjType type, int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
         /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
         void entry_list(ObjType type, ObjData* data);
-        bool entry_obj(const ::obj* object, obj_mesh_vertex_buffer* obj_vertex_buf,
+        bool entry_obj(const ::obj* obj, obj_mesh_vertex_buffer* obj_vertex_buf,
             obj_mesh_index_buffer* obj_index_buf, const mat4* mat, const std::vector<GLuint>* textures,
             const vec4* blend_color, const mat4* bone_mat, const ::obj* object_morph,
             obj_mesh_vertex_buffer* obj_morph_vertex_buf, int32_t instances_count, const mat4* instances_mat,
