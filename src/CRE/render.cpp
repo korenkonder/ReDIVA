@@ -210,7 +210,6 @@ namespace rndr {
                 mat4 mat;
                 mat4_invert(&cam_view_projection, &mat);
                 mat4_mul(&cam_view_projection_prev, &mat, &mat);
-                mat4_transpose(&mat, &mat);
                 uniform_value[U_REDUCE] = 6;
 
                 camera_blur_shader_data shader_data = {};
