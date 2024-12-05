@@ -6314,8 +6314,11 @@ static void snow_particle_init(bool change_stage) {
         i.direction = 0.0f;
     }
 
-    if (change_stage)
+    if (change_stage) {
+        snow_ssbo.Destroy();
+        snow_ssbo.Create(sizeof(snow_particle_vertex_data) * snow->num_snow);
         return;
+    }
 
     snow_particle_free();
 
