@@ -1420,7 +1420,7 @@ void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mas
     render_manager.width = res_wind->width;
     render_manager.height = res_wind->height;
     render_manager_init_render_textures(1);
-    render_manager.render->init_tone_map_buffers();
+    render_manager.render->init_post_process_buffers();
 
     shadow_ptr_init();
     render_manager.shadow_ptr = shadow_ptr_get();

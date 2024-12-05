@@ -221,7 +221,7 @@ namespace rndr {
         void get_tone_trans(vec3& start, vec3& end);
         void init_render_buffers(int32_t width, int32_t height,
             int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mask);
-        void init_tone_map_buffers();
+        void init_post_process_buffers();
         int32_t movie_texture_set(texture* movie_texture);
         void movie_texture_free(texture* movie_texture);
         void post_proc();

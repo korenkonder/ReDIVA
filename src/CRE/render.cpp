@@ -971,7 +971,7 @@ namespace rndr {
             rend_texture[0].GetDepthTex(), render_post_width[0], render_post_height[0]);
     }
 
-    void Render::init_tone_map_buffers() {
+    void Render::init_post_process_buffers() {
         for (int32_t i = 0; i < 5; i++) {
             reduce_tex[i] = texture_load_tex_2d(texture_id(0x25, texture_counter++),
                 GL_RGBA16F, reduce_width[i], reduce_height[i], 0, 0, 0);

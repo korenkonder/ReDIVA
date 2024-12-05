@@ -55,7 +55,30 @@ namespace Glitter {
             }
 
 #if SHARED_GLITTER_BUFFER
-        effect_group->vbo.WriteMemory(0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
+        size_t disp = 0;
+        if (type != Glitter::X)
+            for (SceneEffect& i : effects) {
+                if (!i.ptr || !i.disp)
+                    continue;
+
+                F2EffectInst* eff_inst = (F2EffectInst*)i.ptr;
+                disp += eff_inst->render_scene.disp_quad;
+                disp += eff_inst->render_scene.disp_locus;
+                disp += eff_inst->render_scene.disp_line;
+            }
+        else
+            for (SceneEffect& i : effects) {
+                if (!i.ptr || !i.disp)
+                    continue;
+
+                XEffectInst* eff_inst = (XEffectInst*)i.ptr;
+                disp += eff_inst->render_scene.disp_quad;
+                disp += eff_inst->render_scene.disp_locus;
+                disp += eff_inst->render_scene.disp_line;
+            }
+
+        if (disp)
+            effect_group->vbo.WriteMemory(0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
 #endif
     }
 
