@@ -15,8 +15,9 @@ namespace deflate {
     };
 
     struct allocator {
-        void* (*malloc_callback)(size_t size);
-        void(*free_callback)(void* ptr);
+        void* data;
+        void* (*malloc_callback)(void* data, size_t size);
+        void(*free_callback)(void* data, void* ptr);
     };
 
     extern const allocator default_allocator;
