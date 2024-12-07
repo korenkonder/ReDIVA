@@ -184,7 +184,7 @@ static bool x_save_decode(std::vector<uint8_t>& data, void*& dec, size_t& dec_le
 
         dec = 0;
         dec_len = head->custom;
-        if (deflate::decompress(section_data, section_size, &dec, &dec_len, deflate::MODE_GZIP) < 0
+        if (deflate::decompress(section_data, section_size, dec, dec_len, deflate::MODE_GZIP) < 0
             || !dec_len || dec_len < head->custom) {
             if (dec)
                 free(dec);
@@ -230,7 +230,7 @@ static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, size_t& enc_le
         void* comp = 0;
         size_t comp_len = 0;
 
-        if (deflate::compress(data.data(), data.size(), &comp, &comp_len, 12, deflate::MODE_GZIP) < 0
+        if (deflate::compress(data.data(), data.size(), comp, comp_len, deflate::MODE_GZIP) < 0
             || !comp_len || head->get_section_size() < comp_len) {
             if (comp)
                 free(comp);

@@ -358,7 +358,7 @@ static unsigned zlib_decompress(unsigned char** out, size_t* outsize, size_t exp
   //if(!settings->custom_zlib) return 87; /*no custom zlib function provided */
   //(void)expected_size;
   //return settings->custom_zlib(out, outsize, in, insize, settings);
-  return (unsigned)deflate::decompress(in, insize, (void**)out, outsize, deflate::MODE_ZLIB);
+  return (unsigned)deflate::decompress(in, insize, *(void**)out, *outsize, deflate::MODE_ZLIB);
 }
 #endif /*LODEPNG_COMPILE_DECODER*/
 #ifdef LODEPNG_COMPILE_ENCODER
@@ -366,7 +366,7 @@ static unsigned zlib_compress(unsigned char** out, size_t* outsize, const unsign
                               size_t insize, const LodePNGCompressSettings* settings) {
   //if(!settings->custom_zlib) return 87; /*no custom zlib function provided */
   //return settings->custom_zlib(out, outsize, in, insize, settings);
-  return (unsigned)deflate::compress(in, insize, (void**)out, outsize, 4, deflate::MODE_ZLIB);
+  return (unsigned)deflate::compress(in, insize, *(void**)out, *outsize, deflate::MODE_ZLIB, 4);
 }
 #endif /*LODEPNG_COMPILE_ENCODER*/
 
