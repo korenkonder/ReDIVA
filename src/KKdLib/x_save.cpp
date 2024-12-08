@@ -17,7 +17,7 @@ static const uint8_t savedata_key[] = {
 static const uint32_t savedata_version = 0xE589B8;
 
 static bool x_save_decode(std::vector<uint8_t>& data, void*& dec, size_t& dec_len);
-static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, size_t& enc_len, x_save_encode_flags flags);
+static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, x_save_encode_flags flags);
 
 bool x_save_decode(const char* in_path, const char* out_path) {
     std::vector<uint8_t> data;
@@ -96,14 +96,15 @@ bool x_save_encode(const char* in_path, const char* out_path, x_save_encode_flag
     }
 
     void* enc;
-    size_t enc_len = 0;
-    if (!x_save_encode(data, enc, enc_len, flags))
+    if (!x_save_encode(data, enc, flags))
         return false;
 
-    if (enc && enc_len) {
+    if (enc) {
+        f2_header* head = (f2_header*)enc;
+
         file_stream ofs;
         ofs.open(out_path, "wb");
-        ofs.write(enc, enc_len);
+        ofs.write(enc, (size_t)head->get_length() + head->get_data_size());
         ofs.close();
     }
 
@@ -127,14 +128,15 @@ bool x_save_encode(const wchar_t* in_path, const wchar_t* out_path, x_save_encod
     }
 
     void* enc;
-    size_t enc_len = 0;
-    if (!x_save_encode(data, enc, enc_len, flags))
+    if (!x_save_encode(data, enc, flags))
         return false;
 
-    if (enc && enc_len) {
+    if (enc) {
+        f2_header* head = (f2_header*)enc;
+
         file_stream ofs;
         ofs.open(out_path, L"wb");
-        ofs.write(enc, enc_len);
+        ofs.write(enc, (size_t)head->get_length() + head->get_data_size());
         ofs.close();
     }
 
@@ -205,20 +207,20 @@ static bool x_save_decode(std::vector<uint8_t>& data, void*& dec, size_t& dec_le
     return true;
 }
 
-static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, size_t& enc_len, x_save_encode_flags flags) {
-    enc_len = align_val(data.size(), 0x20) + F2_HEADER_EXTENDED_LENGTH;
-    enc = malloc(enc_len);
+static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, x_save_encode_flags flags) {
+    size_t max_enc_len = align_val(data.size(), 0x20) + F2_HEADER_EXTENDED_LENGTH;
+    enc = malloc(max_enc_len);
 
-    if (!enc || enc_len <= F2_HEADER_EXTENDED_LENGTH) {
+    if (!enc || max_enc_len <= F2_HEADER_EXTENDED_LENGTH) {
         if (enc)
             free(enc);
         return false;
     }
 
-    memset(enc, 0, enc_len);
+    memset(enc, 0, max_enc_len);
 
     f2_header* head = new (enc) f2_header('DATA',
-        (uint32_t)(enc_len - F2_HEADER_DEFAULT_LENGTH), 0, true);
+        (uint32_t)(max_enc_len - F2_HEADER_EXTENDED_LENGTH), 0, true);
 
     uint32_t size = (uint32_t)data.size();
     if (head)
@@ -251,7 +253,6 @@ static bool x_save_encode(std::vector<uint8_t>& data, void*& enc, size_t& enc_le
             uint32_t comp_size = align_val((uint32_t)comp_len, 0x20);
             head->set_section_size(comp_size);
             head->set_data_size(comp_size);
-            enc_len = (size_t)comp_size + F2_HEADER_DEFAULT_LENGTH;
             head->attrib.set_gzip(true);
         }
     }
