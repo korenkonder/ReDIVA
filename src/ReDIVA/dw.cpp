@@ -255,25 +255,25 @@ namespace dw {
 
     }
 
-    float_t Font::GetFontGlyphHeight() {
+    float_t Font::GetFontGlyphHeight() const {
         return font.glyph.y;
     }
 
-    vec2 Font::GetFontGlyphSize() {
+    vec2 Font::GetFontGlyphSize() const {
         vec2 size;
         size.x = GetFontGlyphWidth();
         size.y = GetFontGlyphHeight();
         return size;
     }
 
-    float_t Font::GetFontGlyphWidth() {
+    float_t Font::GetFontGlyphWidth() const {
         float_t glyph_height = font.glyph.x;
         if (half_width)
             return glyph_height * 0.5f;
         return glyph_height;
     }
 
-    std::string Font::GetName() {
+    std::string Font::GetName() const {
         return name;
     }
 
@@ -291,19 +291,19 @@ namespace dw {
 
     }
 
-    float_t p_Font::GetFontGlyphHeight() {
+    float_t p_Font::GetFontGlyphHeight() const {
         return ptr->GetFontGlyphHeight();
     }
 
-    vec2 p_Font::GetFontGlyphSize() {
+    vec2 p_Font::GetFontGlyphSize() const {
         return ptr->GetFontGlyphSize();
     }
 
-    float_t p_Font::GetFontGlyphWidth() {
+    float_t p_Font::GetFontGlyphWidth() const {
         return ptr->GetFontGlyphWidth();
     }
 
-    std::string p_Font::GetName() {
+    std::string p_Font::GetName() const {
         return ptr->GetName();
     }
 
@@ -2044,11 +2044,11 @@ namespace dw {
         return items[index];
     }
 
-    size_t List::GetItemCount() {
+    size_t List::GetItemCount() const {
         return items.size();
     }
 
-    size_t List::GetMaxItemsVisible() {
+    size_t List::GetMaxItemsVisible() const {
         if (!v_bar)
             return items.size();
         else if (max_items >= items.size())

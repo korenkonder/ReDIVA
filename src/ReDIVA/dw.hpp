@@ -61,10 +61,10 @@ namespace dw {
 
         ~Font();
 
-        float_t GetFontGlyphHeight();
-        vec2 GetFontGlyphSize();
-        float_t GetFontGlyphWidth();
-        std::string GetName();
+        float_t GetFontGlyphHeight() const;
+        vec2 GetFontGlyphSize() const;
+        float_t GetFontGlyphWidth() const;
+        std::string GetName() const;
         void SetGlyphSize(float_t glyph_width, float_t glyph_height);
     };
 
@@ -79,10 +79,10 @@ namespace dw {
 
         ~p_Font();
 
-        float_t GetFontGlyphHeight();
-        vec2 GetFontGlyphSize();
-        float_t GetFontGlyphWidth();
-        std::string GetName();
+        float_t GetFontGlyphHeight() const;
+        vec2 GetFontGlyphSize() const;
+        float_t GetFontGlyphWidth() const;
+        std::string GetName() const;
         void SetGlyphSize(float_t glyph_width, float_t glyph_height);
     };
 
@@ -543,8 +543,8 @@ namespace dw {
         void ClearItems();
         std::string GetItemStr(size_t index) const;
         std::wstring GetItem(size_t index) const;
-        size_t GetItemCount();
-        size_t GetMaxItemsVisible();
+        size_t GetItemCount() const;
+        size_t GetMaxItemsVisible() const;
         void ResetSelectedItem();
         void SetMaxItems(size_t value);
         void SetScrollBarParams();
@@ -560,19 +560,19 @@ namespace dw {
             AddItem(str);
         }
 
-        inline std::string GetHoveredItemStr() {
+        inline std::string GetHoveredItemStr() const {
             return GetItemStr(hovered_item);
         }
 
-        inline std::wstring GetHoveredItem() {
+        inline std::wstring GetHoveredItem() const {
             return GetItem(hovered_item);
         }
 
-        inline std::string GetSelectedItemStr() {
+        inline std::string GetSelectedItemStr() const {
             return GetItemStr(selected_item);
         }
 
-        inline std::wstring GetSelectedItem() {
+        inline std::wstring GetSelectedItem() const {
             return GetItem(selected_item);
         }
 
@@ -630,43 +630,43 @@ namespace dw {
                 list->ClearItems();
         }
 
-        inline std::string GetItemStr(size_t index) {
+        inline std::string GetItemStr(size_t index) const {
             if (list)
                 return list->GetItemStr(index);
             return {};
         }
 
-        inline std::wstring GetItem(size_t index) {
+        inline std::wstring GetItem(size_t index) const {
             if (list)
                 return list->GetItem(index);
             return {};
         }
 
-        inline size_t GetItemCount() {
+        inline size_t GetItemCount() const {
             if (list)
                 return list->GetItemCount();
             return 0;
         }
 
-        inline std::string GetHoveredItemStr() {
+        inline std::string GetHoveredItemStr() const {
             if (list)
                 return list->GetHoveredItemStr();
             return {};
         }
 
-        inline std::wstring GetHoveredItem() {
+        inline std::wstring GetHoveredItem() const {
             if (list)
                 return list->GetHoveredItem();
             return {};
         }
 
-        inline std::string GetSelectedItemStr() {
+        inline std::string GetSelectedItemStr() const {
             if (list)
                 return list->GetSelectedItemStr();
             return {};
         }
 
-        inline std::wstring GetSelectedItem() {
+        inline std::wstring GetSelectedItem() const {
             if (list)
                 return list->GetSelectedItem();
             return {};

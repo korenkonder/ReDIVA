@@ -35,7 +35,7 @@ classes_data classes[] = {
             CLASS_DATA_NO_DATA,
         },
         graphics_classes,
-        9,
+        11,
     },
     {
         "Information",

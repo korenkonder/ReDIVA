@@ -472,12 +472,7 @@ namespace rndr {
             shad->curr_render_textures[0] = &shad->render_textures[0];
             shad->curr_render_textures[1] = &shad->render_textures[1];
             shad->curr_render_textures[2] = &shad->render_textures[2];
-
-            for (int32_t i = 1; i < 3; i++) {
-                shad->curr_render_textures[i]->Bind();
-                glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-                glClear(GL_COLOR_BUFFER_BIT);
-            }
+            shad->clear_textures();
         }
         shader::unbind();
         gl_state_bind_framebuffer(0);

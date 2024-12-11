@@ -21,6 +21,16 @@ Shadow::~Shadow() {
     free();
 }
 
+void Shadow::clear_textures() {
+    for (int32_t i = 1; i < 3; i++)
+        for (int32_t j = 0; j < 4; j++) {
+            curr_render_textures[i]->Bind(j);
+            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+        }
+    gl_state_bind_framebuffer(0);
+}
+
 void Shadow::ctrl() {
     for (int32_t i = 0; i < 2; i++)
         shadow_enable[i] = false;
@@ -293,10 +303,10 @@ int32_t Shadow::init() {
         { 0x200, 0x200, 0, GL_R32F , GL_ZERO },
     };
 
-    shadow_texture_init_params* v3 = init_params;
-    for (int32_t i = 0; i < 7; i++, v3++)
-        if (render_textures[i].Init(v3->width, v3->height,
-            v3->max_level, v3->color_format, v3->depth_format) < 0)
+    shadow_texture_init_params* init_param = init_params;
+    for (int32_t i = 0; i < 7; i++, init_param++)
+        if (render_textures[i].Init(init_param->width, init_param->height,
+            init_param->max_level, init_param->color_format, init_param->depth_format) < 0)
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
@@ -347,6 +357,13 @@ void Shadow::reset() {
     self_shadow = true;
     separate = false;
     field_208 = (z_far - z_near) * 0.5f;
+}
+
+void Shadow::set_distance(float_t value) {
+    if (fabs(value) > 0.000001f)
+        distance = value;
+    else
+        distance = 1.0f;
 }
 
 void shadow_ptr_init() {

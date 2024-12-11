@@ -13,6 +13,7 @@
 #include "../graphics/material.hpp"
 #include "../graphics/post_process.hpp"
 #include "../graphics/render_settings.hpp"
+#include "../graphics/shadow.hpp"
 #include "graphics/background_color.hpp"
 
 classes_data graphics_classes[] = {
@@ -90,6 +91,20 @@ classes_data graphics_classes[] = {
         "Color Change##Graphics",
         CLASSES_IN_CONTEXT_MENU,
         (classes_init_func)color_change_dw_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Shadow##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        (classes_init_func)shadow_dw_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         {

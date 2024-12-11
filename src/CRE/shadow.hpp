@@ -59,11 +59,13 @@ struct Shadow {
     Shadow();
     virtual ~Shadow();
 
+    void clear_textures();
     void ctrl();
     void free();
     float_t get_shadow_range();
     int32_t init();
     void reset();
+    void set_distance(float_t value);
 };
 
 extern void shadow_ptr_init();
