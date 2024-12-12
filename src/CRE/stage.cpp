@@ -689,7 +689,7 @@ static void stage_set(stage* s, stage* other) {
             reflect_refract_resolution_mode reflect_resolution_mode = REFLECT_REFRACT_RESOLUTION_512x512;
             if (other->stage_data->reflect_type != STAGE_DATA_REFLECT_REFLECT_MAP)
                 reflect_resolution_mode = (reflect_refract_resolution_mode)reflect->mode;
-            render_manager->set_refract_resolution_mode(reflect_resolution_mode);
+            render_manager->set_reflect_resolution_mode(reflect_resolution_mode);
         }
 
         if (other->stage_data->refract) {

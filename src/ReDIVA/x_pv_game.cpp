@@ -276,6 +276,8 @@ XPVGameSelector* x_pv_game_selector_ptr;
 x_pv_game_music* x_pv_game_music_ptr;
 #endif
 
+bool reflect_full;
+
 extern render_context* rctx_ptr;
 
 static vec4 bright_scale_get(int32_t index, float_t value);

@@ -13987,6 +13987,10 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
 }
 
 void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
+    extern bool reflect_full;
+    extern bool reflect_draw;
+    reflect_draw = reflect_full;
+
     mdl::ObjFlags flags = (mdl::ObjFlags)0;
     if (rctx->chara_reflect)
         enum_or(flags, mdl::OBJ_CHARA_REFLECT);
@@ -14054,6 +14058,8 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
     disp_manager.set_chara_color();
     disp_manager.set_obj_flags();
     disp_manager.set_shadow_type();
+
+    reflect_draw = false;
 }
 
 rob_chara_item_equip_object* rob_chara_item_equip::get_item_equip_object(item_id id) {

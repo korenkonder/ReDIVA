@@ -7,18 +7,14 @@
 #include <libdeflate.h>
 
 namespace deflate {
-    static void* deflate_malloc(void* data, size_t size) {
-        return malloc(size);
-    }
-
-    static void deflate_free(void* data, void* ptr) {
-        free(ptr);
-    }
-
     const allocator default_allocator = {
         0,
-        deflate_malloc,
-        deflate_free,
+        [](void* data, size_t size) {
+            return malloc(size);
+        },
+        [](void* data, void* ptr) {
+            free(ptr);
+        }
     };
 
     static int32_t compress_static(struct libdeflate_compressor* c, const void* src, size_t src_length,

@@ -236,7 +236,7 @@ static auth_3d_detail::FrameRateTimeStop frame_rate_time_stop;
 extern render_context* rctx_ptr;
 
 auth_3d::auth_3d() : uid(), id(), mat(), enable(), camera_root_update(), visible(), repeat(), ended(),
-left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), pos(), frame_rate(), frame(),
+left_right_reverse(), once(), alpha(), chara_id(), chara_item(), shadow(), reflect(), pos(), frame_rate(), frame(),
 req_frame(), max_frame(), frame_changed(), frame_offset(), last_frame(), paused(), event_time_next() {
     hash = hash_murmurhash_empty;
     src_chara = CHARA_MAX;
@@ -457,6 +457,9 @@ void auth_3d::disp(render_context* rctx) {
         spr::put_rgb_cross(mat);
 
     auth_3d_set_material_list(this, rctx);
+    extern bool reflect_full;
+    extern bool reflect_draw;
+    reflect_draw = reflect_full && reflect;
 
     for (auth_3d_point& i : point)
         auth_3d_point_disp(&i, this, rctx);
@@ -477,6 +480,7 @@ void auth_3d::disp(render_context* rctx) {
         if (i->active)
             i->Disp(this, &mat, rctx);
 
+    reflect_draw = false;
     rctx->disp_manager->set_material_list();
 }
 
@@ -754,6 +758,7 @@ void auth_3d::reset() {
     chara_id = -1;
     chara_item = false;
     shadow = false;
+    reflect = false;
     src_chara = CHARA_MAX;
     dst_chara = CHARA_MAX;
     pos = 0;
@@ -2707,6 +2712,14 @@ void auth_3d_id::set_pos(int32_t value) {
         auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
         if (auth->id == id)
             auth->pos = value;
+    }
+}
+
+void auth_3d_id::set_reflect(bool value) {
+    if (id >= 0 && ((id & 0x7FFF) < AUTH_3D_DATA_COUNT)) {
+        auth_3d* auth = &auth_3d_data->data[id & 0x7FFF];
+        if (auth->id == id)
+            auth->reflect = value;
     }
 }
 

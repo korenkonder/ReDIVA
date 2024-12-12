@@ -12,6 +12,9 @@
 
 extern render_context* rctx_ptr;
 
+extern bool reflect_draw;
+extern mat4 reflect_mat;
+
 namespace Glitter {
     RenderScene::RenderScene() : ctrl_quad(), ctrl_line(), ctrl_locus(),
         ctrl_mesh(), disp_quad(), disp_line(), disp_locus(), disp_mesh() {
@@ -1927,8 +1930,12 @@ namespace Glitter {
         if (!rend_group->vao || rend_group->disp < 1)
             return;
 
+        mat4 cam_view = rctx_ptr->camera->view;
+        if (reflect_draw)
+            mat4_mul(&reflect_mat, &cam_view, &cam_view);
+
         mat4 mat;
-        mat4_mul(&rend_group->mat_draw, &rctx_ptr->camera->view, &mat);
+        mat4_mul(&rend_group->mat_draw, &cam_view, &mat);
         mat4_mul(&mat, &rctx_ptr->camera->projection, &mat);
 
         float_t emission = 1.0f;

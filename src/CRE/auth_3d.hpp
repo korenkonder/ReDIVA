@@ -840,6 +840,7 @@ struct auth_3d_id {
     void set_max_frame(float_t value);
     void set_paused(bool value);
     void set_pos(int32_t value);
+    void set_reflect(bool value);
     void set_repeat(bool value);
     void set_req_frame(float_t value);
     void set_shadow(bool value);
@@ -888,6 +889,7 @@ struct auth_3d {
     int32_t chara_id;
     bool chara_item;
     bool shadow;
+    bool reflect;
     int32_t src_chara;
     int32_t dst_chara;
     int32_t pos;

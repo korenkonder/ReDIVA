@@ -26,6 +26,11 @@
 
 #define REFLECT_STENCIL (1)
 
+extern render_context* rctx_ptr;
+
+bool reflect_draw = false;
+mat4 reflect_mat = mat4_identity;
+
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int32_t a3);
 static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
@@ -44,8 +49,11 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
     mdl::ObjType transparent, mdl::ObjType translucent);
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type);
 
+static void draw_pass_reflect_full(rndr::RenderManager* render_manager);
 #if REFLECT_STENCIL
 static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type);
+static void draw_pass_reflect_make_stencil(render_context* rctx,
+    RenderTexture& refl_tex, RenderTexture& refl_buf_tex);
 #endif
 
 static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTexture* src,
@@ -55,11 +63,6 @@ static void render_manager_free_render_textures();
 static void render_manager_init_render_textures(int32_t multisample);
 
 static void set_reflect_mat(render_context* rctx);
-
-extern render_context* rctx_ptr;
-
-static bool reflect_enable = false;
-static mat4 reflect_mat = mat4_identity;
 
 namespace rndr {
     struct RenderTextureData {
@@ -495,10 +498,11 @@ namespace rndr {
 
         gl_state_begin_event("pass_ss_sss");
         rndr::Render* rend = render;
-        if (sv_better_reflect && reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP
-            && rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS)) {
+        extern bool reflect_full;
+        if ((reflect_full || sv_better_reflect && reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
+            && pass_sw[rndr::RND_PASSID_REFLECT] && rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS)) {
             gl_state_begin_event("reflect");
-            reflect_enable = true;
+            reflect_draw = true;
 
             rndr::Render* rend = render;
             RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
@@ -535,15 +539,11 @@ namespace rndr {
 
             set_reflect_mat(rctx);
 
-            uniform_value[U_REFLECT] = 1;
-
             rctx->draw_state->shader_index = SHADER_FT_SSS_SKIN;
             gl_state_enable_depth_test();
             gl_state_set_depth_func(GL_LEQUAL);
             gl_state_set_depth_mask(GL_TRUE);
-            gl_state_set_cull_face_mode(GL_FRONT);
             rctx->disp_manager->draw(mdl::OBJ_TYPE_SSS);
-            gl_state_set_cull_face_mode(GL_BACK);
             gl_state_disable_depth_test();
             rctx->draw_state->shader_index = -1;
             draw_pass_3d_shadow_reset(rctx);
@@ -561,9 +561,7 @@ namespace rndr {
                     rctx->draw_state->shader_index = SHADER_FT_SSS_SKIN;
                     gl_state_enable_depth_test();
                     gl_state_set_depth_mask(GL_TRUE);
-                    gl_state_set_cull_face_mode(GL_FRONT);
                     rctx->disp_manager->draw(mdl::OBJ_TYPE_SSS);
-                    gl_state_set_cull_face_mode(GL_BACK);
                     gl_state_disable_depth_test();
                     rctx->draw_state->shader_index = -1;
                     gl_state_bind_framebuffer(0);
@@ -571,8 +569,6 @@ namespace rndr {
                     draw_pass_sss_contour(rctx, rend);
                 }
             }
-
-            uniform_value[U_REFLECT] = 0;
 
             if (!sss->npr_contour) {
                 sss->textures[0].Bind();
@@ -600,7 +596,7 @@ namespace rndr {
             }
 
             draw_pass_sss_filter(rctx, sss);
-            reflect_enable = false;
+            reflect_draw = false;
             gl_state_end_event();
         }
 
@@ -690,6 +686,12 @@ namespace rndr {
     }
 
     void RenderManager::pass_reflect() {
+        extern bool reflect_full;
+        if (reflect_full) {
+            draw_pass_reflect_full(this);
+            return;
+        }
+
         render_context* rctx = rctx_ptr;
         gl_state_begin_event("pass_reflect");
         RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
@@ -716,54 +718,20 @@ namespace rndr {
 #endif
             if (sv_better_reflect && rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
                 glClear(GL_COLOR_BUFFER_BIT);
-            else
 #if REFLECT_STENCIL
+            else {
+                gl_state_set_stencil_mask(0xFF);
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+                gl_state_set_stencil_mask(0x00);
+            }
 #else
+            else
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 #endif
 
 #if REFLECT_STENCIL
-            if (sv_better_reflect) {
-                gl_state_set_stencil_mask(0xFF);
-
-                rctx->draw_state->shader_index = SHADER_FT_SIL;
-
-                gl_state_disable_depth_test();
-                gl_state_set_depth_func(GL_LEQUAL);
-                gl_state_set_depth_mask(GL_TRUE);
-
-                draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_OPAQUE);
-                draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT);
-                draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS);
-                draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSPARENT);
-
-                fbo_blit(refl_tex.fbos[0], refl_buf_tex.fbos[0],
-                    0, 0, refl_tex.GetWidth(), refl_tex.GetHeight(),
-                    0, 0, refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(),
-                    GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-                refl_tex.Bind();
-                glClear(GL_COLOR_BUFFER_BIT);
-
-                gl_state_enable_stencil_test();
-                gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_REPLACE);
-                gl_state_set_stencil_func(GL_ALWAYS, 0x01, 0x01);
-
-                gl_state_bind_texture_2d(refl_buf_tex.GetColorTex());
-                gl_state_bind_sampler(0, rctx->render_samplers[0]);
-
-                gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-                shaders_ft.set(SHADER_FT_REFLECT_STENCIL);
-                rctx->render.draw_quad(refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(), 1.0f, 1.0f,
-                    0.0f, 0.0f, 6.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-                gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-                gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_KEEP);
-                gl_state_set_stencil_func(GL_EQUAL, 0x01, 0x01);
-
-                gl_state_set_stencil_mask(0x00);
-            }
+            if (sv_better_reflect)
+                draw_pass_reflect_make_stencil(rctx, refl_tex, refl_buf_tex);
 #endif
 
             rctx->draw_state->shader_index = SHADER_FT_S_REFL;
@@ -787,7 +755,7 @@ namespace rndr {
             }
 
             if (sv_better_reflect && reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
-                reflect_enable = true;
+                reflect_draw = true;
                 rctx->draw_state->shader_index = -1;
 
                 int32_t render_width = refl_tex.GetWidth();
@@ -843,7 +811,7 @@ namespace rndr {
 
                 rctx->set_scene_framebuffer_size(render->render_width[0],
                     render->render_height[0], render->render_width[0], render->render_height[0]);
-                reflect_enable = false;
+                reflect_draw = false;
             }
             else if (reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP) {
                 uniform_value[U_REFLECT] = reflect_tone_curve ? 1 : 0;
@@ -1289,7 +1257,7 @@ namespace rndr {
         render_context* rctx = rctx_ptr;
         RenderTexture* rt;
         RenderTexture* contour_rt;
-        if (reflect_enable) {
+        if (reflect_draw) {
             rt = &rctx->render_manager->get_render_texture(0);
             contour_rt = &rctx->reflect_buffer;
     }
@@ -1677,7 +1645,7 @@ static bool draw_pass_shadow_litproj(light_proj* litproj) {
 }
 
 static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
-    if (reflect_enable)
+    if (reflect_draw)
         rctx->reflect_buffer.Bind();
     else
         rend->sss_contour_texture->Bind();
@@ -1685,7 +1653,7 @@ static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
     gl_state_enable_depth_test();
     gl_state_set_depth_func(GL_ALWAYS);
     gl_state_set_depth_mask(GL_TRUE);
-    if (reflect_enable) {
+    if (reflect_draw) {
         RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
         gl_state_set_viewport(0, 0, refl_tex.GetWidth(), refl_tex.GetHeight());
         gl_state_active_bind_texture_2d(0, refl_tex.GetColorTex());
@@ -1723,7 +1691,7 @@ static void draw_pass_sss_contour(render_context* rctx, rndr::Render* rend) {
     shaders_ft.set(SHADER_FT_CONTOUR);
     rctx->contour_coef_ubo.Bind(2);
 
-    if (reflect_enable) {
+    if (reflect_draw) {
         RenderTexture& refl_tex = rctx->render_manager->get_render_texture(0);
         rctx->render.draw_quad(refl_tex.GetWidth(), refl_tex.GetHeight(), 1.0f, 1.0f,
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
@@ -1790,7 +1758,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
             mat4* mat = rob_bone_data->get_mats_mat(MOTION_BONE_N_HARA_CP);
             if (mat) {
                 mat4_get_translation(mat, &chara_position[i]);
-                if (reflect_enable)
+                if (reflect_draw)
                     mat4_transform_point(&reflect_mat, &chara_position[i], &chara_position[i]);
                 chara_distance[i] = vec3::distance(view_point, chara_position[i]);
             }
@@ -1819,7 +1787,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
         rndr::Render* rend = &rctx->render;
         uniform_value[U_REDUCE] = 0;
         shaders_ft.set(SHADER_FT_REDUCE);
-        RenderTexture& rt = reflect_enable
+        RenderTexture& rt = reflect_draw
             ? rctx->render_manager->get_render_texture(0)
             : rend->rend_texture[0];
         gl_state_bind_texture_2d(rt.GetColorTex());
@@ -1846,7 +1814,7 @@ static void draw_pass_sss_filter(render_context* rctx, sss_data* sss) {
     draw_pass_sss_filter_calc_coef(1.0, sss_count, v34, 3, a5, a6, a7, a8, shader_data.g_coef);
 
     rctx->sss_filter_gaussian_coef_ubo.WriteMemory(shader_data);
-    sss->textures[reflect_enable ? 3 : 1].Bind();
+    sss->textures[reflect_draw ? 3 : 1].Bind();
     gl_state_set_viewport(0, 0, 320, 180);
     uniform_value[U_SSS_FILTER] = 3;
     shaders_ft.set(SHADER_FT_SSS_FILT);
@@ -2047,6 +2015,184 @@ static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr
         }
 }
 
+static void draw_pass_reflect_full(rndr::RenderManager* render_manager) {
+    render_context* rctx = rctx_ptr;
+    gl_state_begin_event("pass_reflect");
+    RenderTexture& refl_tex = render_manager->get_render_texture(0);
+    RenderTexture& refl_buf_tex = rctx->reflect_buffer;
+    refl_tex.Bind();
+    extern bool reflect_full;
+    if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_OPAQUE)
+        || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSPARENT)
+        || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS)
+        || rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT)) {
+        refl_tex.SetViewport();
+
+        draw_pass_set_camera();
+        if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour)
+            glClear(GL_DEPTH_BUFFER_BIT);
+
+        gl_state_set_depth_func(GL_LEQUAL);
+
+        for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
+            rctx->light_set[i].data_set(rctx->face, (light_set_id)i);
+        for (int32_t i = FOG_DEPTH; i < FOG_BUMP; i++)
+            rctx->fog[i].data_set((fog_id)i);
+
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+#if REFLECT_STENCIL
+        glClearStencil(0x00);
+#endif
+        if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
+            glClear(GL_COLOR_BUFFER_BIT);
+#if REFLECT_STENCIL
+        else {
+            gl_state_set_stencil_mask(0xFF);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+            gl_state_set_stencil_mask(0x00);
+        }
+#else
+        else
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+#endif
+
+#if REFLECT_STENCIL
+        draw_pass_reflect_make_stencil(rctx, refl_tex, refl_buf_tex);
+#endif
+
+        gl_state_enable_depth_test();
+        gl_state_set_depth_func(GL_LEQUAL);
+        gl_state_set_depth_mask(GL_TRUE);
+        gl_state_set_cull_face_mode(GL_FRONT);
+
+        reflect_draw = true;
+        rctx->draw_state->shader_index = -1;
+
+        int32_t render_width = refl_tex.GetWidth();
+        int32_t render_height = refl_tex.GetHeight();
+        rctx->set_scene_framebuffer_size(render_width, render_height, render_width, render_height);
+
+        if (render_manager->shadow)
+            draw_pass_3d_shadow_set(render_manager->shadow_ptr, rctx);
+        else
+            draw_pass_3d_shadow_reset(rctx);
+
+        if (render_manager->effect_texture)
+            gl_state_active_bind_texture_2d(14, render_manager->effect_texture->glid);
+        else
+            gl_state_active_bind_texture_2d(14, rctx->empty_texture_2d->glid);
+
+        uniform_value[U_WATER_REFLECT] = 0;
+
+        rctx->sss_data->set_texture(3);
+
+        gl_state_bind_sampler(14, rctx->render_samplers[0]);
+        gl_state_bind_sampler(15, rctx->render_samplers[0]);
+        gl_state_bind_sampler(16, rctx->render_samplers[0]);
+
+        uniform_value[U_STAGE_AMBIENT] = render_manager->light_stage_ambient ? 1 : 0;
+
+        set_reflect_mat(rctx);
+
+        if (render_manager->alpha_z_sort) {
+            rctx->disp_manager->obj_sort(&rctx->view_mat,
+                mdl::OBJ_TYPE_REFLECT_TRANSLUCENT, 1, render_manager->field_31F);
+            rctx->disp_manager->obj_sort(&rctx->view_mat,
+                mdl::OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS, 2);
+        }
+
+        if (render_manager->opaque_z_sort)
+            rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_REFLECT_OPAQUE, 0);
+
+        if (render_manager->draw_pass_3d[DRAW_PASS_3D_OPAQUE]) {
+            gl_state_enable_depth_test();
+            gl_state_set_depth_mask(GL_TRUE);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_REFLECT_OPAQUE);
+            gl_state_disable_depth_test();
+        }
+
+        Glitter::glt_particle_manager->DispScenes(Glitter::DISP_OPAQUE);
+
+        gl_state_enable_depth_test();
+        gl_state_set_depth_mask(GL_TRUE);
+        if (render_manager->draw_pass_3d[DRAW_PASS_3D_TRANSPARENT]) {
+            gl_state_set_cull_face_mode(GL_FRONT);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSPARENT);
+        }
+
+        if (render_manager->npr_param == 1)
+            render_manager->pass_3d_contour();
+
+        gl_state_disable_depth_test();
+
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        Glitter::glt_particle_manager->DispScenes(Glitter::DISP_ALPHA);
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        /*if (npr_param == 1) {
+            gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_TRUE);
+            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glClear(GL_COLOR_BUFFER_BIT);
+            gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        }*/
+
+        gl_state_enable_depth_test();
+
+        if (render_manager->draw_pass_3d[DRAW_PASS_3D_TRANSLUCENT]) {
+            gl_state_enable_blend();
+            gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_state_set_depth_mask(GL_FALSE);
+            gl_state_set_cull_face_mode(GL_FRONT);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_REFLECT_TRANSLUCENT);
+            gl_state_disable_blend();
+        }
+
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE); // X
+        Glitter::glt_particle_manager->DispScenes(Glitter::DISP_TYPE_2);
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+        gl_state_disable_depth_test();
+
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        Glitter::glt_particle_manager->DispScenes(Glitter::DISP_NORMAL);
+        gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+        gl_state_active_bind_texture_2d(14, 0);
+        gl_state_active_bind_texture_2d(15, 0);
+
+        if (render_manager->shadow)
+            draw_pass_3d_shadow_reset(rctx);
+
+        rndr::Render* render = render_manager->render;
+        rctx->set_scene_framebuffer_size(render->render_width[0],
+            render->render_height[0], render->render_width[0], render->render_height[0]);
+        reflect_draw = false;
+
+        gl_state_set_cull_face_mode(GL_BACK);
+        gl_state_disable_depth_test();
+
+#if REFLECT_STENCIL
+        gl_state_disable_stencil_test();
+#endif
+
+        for (int32_t i = render_manager->reflect_blur_num, j = 0; i > 0; i--, j++) {
+            blur_filter_apply(rctx, &refl_buf_tex, &refl_tex,
+                render_manager->reflect_blur_filter, 1.0f, 1.0f, 0.0f);
+            image_filter_scale(&refl_tex, refl_buf_tex.color_texture);
+        }
+    }
+    else {
+        vec4 clear_color;
+        glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
+        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        glClear(GL_COLOR_BUFFER_BIT);
+        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+    }
+    shader::unbind();
+    gl_state_bind_framebuffer(0);
+    gl_state_end_event();
+}
+
 #if REFLECT_STENCIL
 static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
     if (type < 0 || type >= mdl::OBJ_TYPE_MAX || rctx->disp_manager->get_obj_count(type) < 1)
@@ -2113,6 +2259,47 @@ static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
     gl_state_set_blend_func(GL_ONE, GL_ZERO);
     for (int32_t i = 0; i < 5; i++)
         gl_state_bind_sampler(i, 0);
+}
+
+static void draw_pass_reflect_make_stencil(render_context* rctx,
+    RenderTexture& refl_tex, RenderTexture& refl_buf_tex) {
+    gl_state_set_stencil_mask(0xFF);
+
+    rctx->draw_state->shader_index = SHADER_FT_SIL;
+
+    gl_state_disable_depth_test();
+    gl_state_set_depth_mask(GL_TRUE);
+
+    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_OPAQUE);
+    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT);
+    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS);
+    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSPARENT);
+
+    fbo_blit(refl_tex.fbos[0], refl_buf_tex.fbos[0],
+        0, 0, refl_tex.GetWidth(), refl_tex.GetHeight(),
+        0, 0, refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(),
+        GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+    refl_tex.Bind();
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    gl_state_enable_stencil_test();
+    gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_REPLACE);
+    gl_state_set_stencil_func(GL_ALWAYS, 0x01, 0x01);
+
+    gl_state_bind_texture_2d(refl_buf_tex.GetColorTex());
+    gl_state_bind_sampler(0, rctx->render_samplers[0]);
+
+    gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+    shaders_ft.set(SHADER_FT_REFLECT_STENCIL);
+    rctx->render.draw_quad(refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(), 1.0f, 1.0f,
+        0.0f, 0.0f, 6.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+
+    gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_KEEP);
+    gl_state_set_stencil_func(GL_EQUAL, 0x01, 0x01);
+
+    gl_state_set_stencil_mask(0x00);
 }
 #endif
 

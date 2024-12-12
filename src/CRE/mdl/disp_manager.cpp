@@ -13,6 +13,9 @@
 
 extern render_context* rctx_ptr;
 
+extern bool reflect_draw;
+extern bool reflect_full;
+
 static const GLuint        POSITION_INDEX =  0;
 static const GLuint     BONE_WEIGHT_INDEX =  1;
 static const GLuint          NORMAL_INDEX =  2;
@@ -1868,7 +1871,7 @@ namespace mdl {
     }
 
     ObjData* DispManager::alloc_obj_data(ObjKind kind) {
-        int32_t size = (int32_t)align_val(sizeof(ObjKind) + sizeof(mat4) + sizeof(float_t) * 2, 0x08);
+        int32_t size = (int32_t)align_val(sizeof(ObjKind) + sizeof(mat4) + sizeof(float_t), 0x08);
         switch (kind) {
         case OBJ_KIND_NORMAL:
             return (ObjData*)alloc_data(size + sizeof(ObjSubMeshArgs));
@@ -2030,6 +2033,7 @@ namespace mdl {
                 func = draw_sub_mesh_translucent;
             else
                 gl_state_set_depth_mask(GL_FALSE);
+
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
@@ -2055,13 +2059,15 @@ namespace mdl {
             func = draw_sub_mesh_translucent;
             gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx->draw_state->shader_index = SHADER_FT_SIL;
+
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.99999994f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
             gl_state_set_cull_face_mode(GL_FRONT);
-            if (!sv_better_reflect) {
+
+            if (!reflect_draw) {
                 if (reflect)
                     func = draw_sub_mesh_reflect;
                 else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
@@ -2070,39 +2076,62 @@ namespace mdl {
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
             gl_state_set_cull_face_mode(GL_FRONT);
-            if (!sv_better_reflect) {
+
+            min_alpha = 0.0f;
+
+            if (!reflect_draw) {
                 if (reflect)
                     func = draw_sub_mesh_reflect;
                 else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
                     func = draw_sub_mesh_reflect_reflect_map;
             }
-            min_alpha = 0.0f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
             gl_state_set_cull_face_mode(GL_FRONT);
-            if (!sv_better_reflect) {
+
+            alpha_test = 1;
+            min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
+
+            if (!reflect_draw) {
                 if (reflect)
                     func = draw_sub_mesh_reflect;
                 else if (rctx->render_manager->reflect_type == STAGE_DATA_REFLECT_REFLECT_MAP)
                     func = draw_sub_mesh_reflect_reflect_map;
             }
-            alpha_test = 1;
-            min_alpha = 0.1f;
-            alpha_threshold = 0.5f;
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
             alpha_test = 1;
             alpha_threshold = 0.5f;
-            if (!reflect_texture_mask)
+
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            else if (!reflect_texture_mask)
                 func = draw_sub_mesh_reflect_reflect_map;
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
+            gl_state_set_depth_mask(GL_FALSE);
+
+            min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
+
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            break;
+        case OBJ_TYPE_REFLECT_TRANSPARENT:
+            alpha_test = 1;
+            min_alpha = 0.1f;
+            alpha_threshold = 0.5f;
+
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            break;
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
             gl_state_set_depth_mask(GL_FALSE);
+
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
             break;
-        case OBJ_TYPE_REFLECT_TRANSPARENT:
         case OBJ_TYPE_REFRACT_TRANSPARENT:
             alpha_test = 1;
             min_alpha = 0.1f;
@@ -2110,6 +2139,9 @@ namespace mdl {
             break;
         case OBJ_TYPE_SSS:
             func = draw_sub_mesh_sss;
+
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
@@ -2124,6 +2156,7 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL:
             gl_state_set_depth_mask(GL_FALSE);
+
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
@@ -2131,7 +2164,17 @@ namespace mdl {
         case OBJ_TYPE_USER:
             func = draw_sub_mesh_translucent;
             break;
-        default:
+        case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
+            if (depth_mask)
+                func = draw_sub_mesh_translucent;
+            else
+                gl_state_set_depth_mask(GL_FALSE);
+
+            alpha_test = 1;
+            min_alpha = 0.0f;
+            alpha_threshold = 0.0f;
+
+            gl_state_set_cull_face_mode(GL_FRONT);
             break;
         }
         rctx->set_batch_alpha_threshold(alpha_threshold);
@@ -2180,8 +2223,6 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
-        case OBJ_TYPE_REFLECT_TRANSLUCENT:
-        case OBJ_TYPE_REFRACT_TRANSLUCENT:
             if (!depth_mask)
                 gl_state_set_depth_mask(GL_TRUE);
             break;
@@ -2195,15 +2236,35 @@ namespace mdl {
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
             gl_state_set_cull_face_mode(GL_BACK);
             break;
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
-        case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_3:
-            gl_state_set_cull_face_mode(GL_BACK);
+        case OBJ_TYPE_REFLECT_OPAQUE:
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            break;
+        case OBJ_TYPE_REFLECT_TRANSLUCENT:
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            gl_state_set_depth_mask(GL_TRUE);
+            break;
+        case OBJ_TYPE_REFLECT_TRANSPARENT:
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            break;
+        case OBJ_TYPE_REFRACT_TRANSLUCENT:
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_FRONT);
+            gl_state_set_depth_mask(GL_TRUE);
+            break;
+        case OBJ_TYPE_SSS:
+            if (reflect_draw)
+                gl_state_set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
             gl_state_set_depth_mask(GL_TRUE);
+            break;
+        case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
+            gl_state_set_cull_face_mode(GL_BACK);
             break;
         }
 
@@ -2246,29 +2307,6 @@ namespace mdl {
     }*/
 
     void DispManager::entry_list(ObjType type, ObjData* data) {
-        if (sv_better_reflect && type == OBJ_TYPE_REFLECT_CHARA_OPAQUE && data->kind == OBJ_KIND_NORMAL) {
-            const obj_sub_mesh* sub_mesh = data->args.sub_mesh.sub_mesh;
-            const obj_material_data* material = data->args.sub_mesh.material;
-            obj_material_attrib_member attrib = material->material.attrib.m;
-            if (!(obj_flags & (mdl::OBJ_ALPHA_ORDER_1 | mdl::OBJ_ALPHA_ORDER_2 | mdl::OBJ_ALPHA_ORDER_3))
-                || data->args.sub_mesh.blend_color.w >= 1.0f) {
-                if (attrib.flag_28 || data->args.sub_mesh.blend_color.w >= 1.0f
-                    && (attrib.punch_through || !(attrib.alpha_texture | attrib.alpha_material))
-                    && !sub_mesh->attrib.m.translucent) {
-                    if (attrib.punch_through && (obj_flags & mdl::OBJ_CHARA_REFLECT)) {
-                        obj[OBJ_TYPE_REFLECT_CHARA_TRANSPARENT].push_back(data);
-                        return;
-                    }
-                }
-                else if (!(obj_flags & mdl::OBJ_NO_TRANSLUCENCY)) {
-                    if (!attrib.translucent_priority && (obj_flags & mdl::OBJ_CHARA_REFLECT)) {
-                        obj[OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT].push_back(data);
-                        return;
-                    }
-                }
-            }
-        }
-
         obj[type].push_back(data);
     }
 
