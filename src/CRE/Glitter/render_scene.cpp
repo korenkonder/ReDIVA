@@ -1137,7 +1137,6 @@ namespace Glitter {
         disp_quad = 0;
         disp_line = 0;
         disp_locus = 0;
-        disp_mesh = 0;
 
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
@@ -1889,7 +1888,7 @@ namespace Glitter {
         Effect* eff = GPM_VAL->selected_effect;
         Emitter* emit = GPM_VAL->selected_emitter;
         Particle* ptcl = GPM_VAL->selected_particle;
-        for (XRenderGroup* i : groups) {
+        for (XRenderGroup*& i : groups) {
             if (!i)
                 continue;
 
@@ -2082,18 +2081,36 @@ namespace Glitter {
     void XRenderScene::DispMesh(GPM) {
         disp_mesh = 0;
 
+        Effect* eff = GPM_VAL->selected_effect;
+        Emitter* emit = GPM_VAL->selected_emitter;
+        Particle* ptcl = GPM_VAL->selected_particle;
         for (XRenderGroup*& i : groups) {
             if (!i)
                 continue;
 
             XRenderGroup* rend_group = i;
-            if (rend_group->CannotDisp())
+            if (rend_group->CannotDisp() && !GPM_VAL->draw_all)
                 continue;
 
             switch (rend_group->type) {
             case PARTICLE_MESH:
                 rend_group->disp = 0;
-                DispMesh(GPM_VAL, rend_group);
+                if (!GPM_VAL->draw_selected || !eff) {
+                    DispMesh(GPM_VAL, rend_group);
+                }
+                else if ((eff && ptcl) || (eff && !emit)) {
+                    if (!ptcl || rend_group->particle->particle == ptcl)
+                        DispMesh(GPM_VAL, rend_group);
+                }
+                else if (emit)
+                    for (Particle*& j : emit->particles) {
+                        if (!j)
+                            continue;
+
+                        Particle* particle = j;
+                        if (rend_group->particle->particle == particle)
+                            DispMesh(GPM_VAL, rend_group);
+                    }
                 disp_mesh += rend_group->disp;
                 break;
             }
