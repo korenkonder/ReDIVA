@@ -12,6 +12,7 @@
 #include "../graphics/light.hpp"
 #include "../graphics/material.hpp"
 #include "../graphics/post_process.hpp"
+#include "../graphics/reflect_refract.hpp"
 #include "../graphics/render_settings.hpp"
 #include "../graphics/shadow.hpp"
 #include "graphics/background_color.hpp"
@@ -133,6 +134,62 @@ classes_data graphics_classes[] = {
         "Material##Graphics",
         CLASSES_IN_CONTEXT_MENU,
         (classes_init_func)material_dw_init,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Ripple Effect##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Rain Effect##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Snow Effect##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        CLASSES_DATA_NO_FUNC,
+        {
+            CLASS_DW,
+            false,
+            CLASS_DATA_NO_DATA,
+        },
+        0,
+        0,
+    },
+    {
+        "Reflect/Refract##Graphics",
+        CLASSES_IN_CONTEXT_MENU,
+       (classes_init_func)reflect_refract_dw_init,
         CLASSES_DATA_NO_FUNC,
         CLASSES_DATA_NO_FUNC,
         {

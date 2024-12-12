@@ -527,7 +527,7 @@ void MaterialDw::ResetMaterialArray() {
 }
 
 void MaterialDw::SetValue(bool own) {
-    obj_material_data* material_data = MaterialDw::GetMaterial(own);
+    obj_material_data* material_data = GetMaterial(own);
     if (!material_data)
         return;
 
@@ -573,7 +573,7 @@ void MaterialDw::UpdateObjectMeshes() {
         return;
 
     object_meshes->ClearItems();
-    obj* obj = MaterialDw::GetObj();
+    obj* obj = GetObj();
     if (obj) {
         ResetMaterialArray();
         for (int32_t i = 0; i < obj->num_material; i++) {

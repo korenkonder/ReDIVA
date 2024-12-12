@@ -139,6 +139,14 @@ namespace rndr {
             }
     }
 
+    reflect_refract_resolution_mode RenderManager::get_reflect_resolution_mode() {
+        return (reflect_refract_resolution_mode)tex_index[0];
+    }
+    
+    reflect_refract_resolution_mode RenderManager::get_refract_resolution_mode() {
+        return (reflect_refract_resolution_mode)tex_index[1];
+    }
+
     RenderTexture& RenderManager::get_render_texture(int32_t index) {
         return render_textures[render_manager_render_texture_index_array[index][tex_index[index]]];
     }

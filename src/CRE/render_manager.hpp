@@ -94,6 +94,8 @@ namespace rndr {
 
         void add_pre_process(int32_t type, draw_pre_process_func func, void* data);
         void clear_pre_process(int32_t type);
+        reflect_refract_resolution_mode get_reflect_resolution_mode();
+        reflect_refract_resolution_mode get_refract_resolution_mode();
         RenderTexture& get_render_texture(int32_t index);
         void reset();
         void resize(int32_t width, int32_t height);
