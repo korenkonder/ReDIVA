@@ -4524,33 +4524,10 @@ void rob_chara::set_left_hand_scale(float_t value) {
     data.adjust_data.left_hand_scale = value;
 }
 
-static void sub_14041C950(rob_chara_bone_data* rob_bone_data, bool update_view_point, bool a3,
-    float_t head_rot_strength, float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft) {
-    rob_chara_look_anim* look_anim = &rob_bone_data->look_anim;
-
-    if (!look_anim->head_rotation && a3)
-        look_anim->init_head_rotation = true;
-    look_anim->update_view_point = update_view_point;
-    look_anim->head_rotation = a3;
-    if (!look_anim->eyes_rotation && a3)
-        look_anim->init_eyes_rotation = true;
-    look_anim->eyes_rotation = a3;
-    look_anim->head_rot_strength = head_rot_strength >= 0.0f ? head_rot_strength : 1.0f;
-    look_anim->eyes_rot_strength = eyes_rot_strength >= 0.0f ? eyes_rot_strength : 1.0f;
-    look_anim->eyes_rot_step = eyes_rot_step >= 0.0f ? eyes_rot_step : 1.0f;
-    look_anim->duration = (a3 && !look_anim->head_rotation || !a3 && look_anim->head_rotation)
-        && duration >= 0.0f ? duration : 0.0f;
-    look_anim->eyes_rot_frame = 0.0f;
-    look_anim->step = 1.0f;
-    look_anim->head_rot_frame = 0.0f;
-    look_anim->field_B0 = a8;
-    look_anim->ft = ft;
-}
-
 void rob_chara::set_look_camera(bool update_view_point, bool enable, float_t head_rot_strength,
     float_t eyes_rot_strength, float_t blend_duration, float_t eyes_rot_step, float_t a8, bool ft) {
-    sub_14041C950(bone_data, update_view_point, enable,
-        head_rot_strength, eyes_rot_strength, blend_duration, eyes_rot_step, a8, ft);
+    bone_data->set_look_anim(update_view_point, enable, head_rot_strength,
+        eyes_rot_strength, blend_duration, eyes_rot_step, a8, ft);
     if (fabsf(blend_duration) <= 0.000001f)
         data.field_2 |= 0x80;
 }
@@ -9321,7 +9298,7 @@ static void rob_chara_head_adjust(rob_chara* rob_chr) {
         if (rob_bone_data->get_look_anim_update_view_point()) {
             vec3 view_point;
             rctx_ptr->camera->get_view_point(view_point);
-            rob_bone_data->set_look_anim_target_view_point(&view_point);
+            rob_bone_data->set_look_anim_target_view_point(view_point);
         }
 
         if (rob_bone_data->check_look_anim_head_rotation()
@@ -12839,9 +12816,35 @@ void rob_chara_look_anim::reset() {
     type = 0;
 }
 
+void rob_chara_look_anim::set(bool update_view_point, bool enable, float_t head_rot_strength,
+    float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft) {
+    this->update_view_point = update_view_point;
+    const bool prev_head_rotation = head_rotation;
+    if (!prev_head_rotation && enable)
+        init_head_rotation = true;
+    head_rotation = enable;
+    if (!eyes_rotation && enable)
+        init_eyes_rotation = true;
+    eyes_rotation = enable;
+    this->head_rot_strength = head_rot_strength >= 0.0f ? head_rot_strength : 1.0f;
+    this->eyes_rot_strength = eyes_rot_strength >= 0.0f ? eyes_rot_strength : 1.0f;
+    this->eyes_rot_step = eyes_rot_step >= 0.0f ? eyes_rot_step : 1.0f;
+    this->duration = (!prev_head_rotation && enable || prev_head_rotation && !enable)
+        && duration >= 0.0f ? duration : 0.0f;
+    eyes_rot_frame = 0.0f;
+    step = 1.0f;
+    head_rot_frame = 0.0f;
+    field_B0 = a8;
+    this->ft = ft;
+}
+
 void rob_chara_look_anim::set_eyes_xrot_adjust(float_t neg, float_t pos) {
     eyes_xrot_adjust_neg = neg;
     eyes_xrot_adjust_pos = pos;
+}
+
+void rob_chara_look_anim::set_target_view_point(const vec3& value) {
+    target_view_point = value;
 }
 
 rob_chara_sleeve_adjust::rob_chara_sleeve_adjust() : sleeve_l(), sleeve_r(),
@@ -13026,8 +13029,14 @@ void rob_chara_bone_data::set_frame(float_t frame) {
     motion_loaded.front()->mot_play_data.frame_data.set_frame(frame);
 }
 
-void rob_chara_bone_data::set_look_anim_target_view_point(vec3* value) {
-    look_anim.target_view_point = *value;
+void rob_chara_bone_data::set_look_anim(bool update_view_point, bool enable, float_t head_rot_strength,
+    float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft) {
+    look_anim.set(update_view_point, enable, head_rot_strength,
+        eyes_rot_strength, duration, eyes_rot_step, a8, ft);
+}
+
+void rob_chara_bone_data::set_look_anim_target_view_point(const vec3& value) {
+    look_anim.set_target_view_point(value);
 }
 
 void rob_chara_bone_data::set_motion_frame(float_t frame, float_t step, float_t frame_count) {

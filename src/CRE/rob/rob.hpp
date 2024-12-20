@@ -1292,7 +1292,10 @@ struct rob_chara_look_anim {
     rob_chara_look_anim();
 
     void reset();
+    void set(bool update_view_point, bool enable, float_t head_rot_strength,
+        float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
     void set_eyes_xrot_adjust(float_t neg, float_t pos);
+    void set_target_view_point(const vec3& value);
 };
 
 struct rob_sleeve_data {
@@ -1379,7 +1382,9 @@ struct rob_chara_bone_data {
     void reset();
     void set_disable_eye_motion(bool value);
     void set_frame(float_t frame);
-    void set_look_anim_target_view_point(vec3* value);
+    void set_look_anim(bool update_view_point, bool enable, float_t head_rot_strength,
+        float_t eyes_rot_strength, float_t duration, float_t eyes_rot_step, float_t a8, bool ft);
+    void set_look_anim_target_view_point(const vec3& value);
     void set_motion_frame(float_t frame, float_t step, float_t frame_count);
     void set_motion_loop(float_t loop_begin, int32_t loop_count, float_t loop_end);
     void set_motion_loop_state(mot_play_frame_data_loop_state value);
