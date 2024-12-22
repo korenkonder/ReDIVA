@@ -91,13 +91,16 @@ namespace Glitter {
     }
 
     F2ParticleInst::~F2ParticleInst() {
-        for (F2ParticleInst* i : data.children)
-            delete i;
-
         if (data.render_group) {
             data.render_group->DeleteBuffers(true);
             data.render_group = 0;
         }
+
+        for (F2ParticleInst*& i : data.children)
+            if (i) {
+                delete i;
+                i = 0;
+            }
     }
 
     void F2ParticleInst::AccelerateParticle(GLT, RenderElement* rend_elem,
@@ -554,13 +557,16 @@ namespace Glitter {
     }
 
     XParticleInst::~XParticleInst() {
-        for (XParticleInst*& i : data.children)
-            delete i;
-
         if (data.render_group) {
             data.render_group->DeleteBuffers(true);
             data.render_group = 0;
         }
+
+        for (XParticleInst*& i : data.children)
+            if (i) {
+                delete i;
+                i = 0;
+            }
     }
 
     void XParticleInst::AccelerateParticle(RenderElement* rend_elem,

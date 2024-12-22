@@ -224,9 +224,8 @@ void texture_database::add(texture_database_file* tex_db_file) {
     if (!tex_db_file || !tex_db_file->ready)
         return;
 
-    texture.reserve(tex_db_file->texture.size());
-
-    std::vector< texture_info> texture_add;
+    std::vector<texture_info> texture_add;
+    texture_add.reserve(tex_db_file->texture.size());
 
     for (texture_info_file& i : tex_db_file->texture) {
         texture_info* info;

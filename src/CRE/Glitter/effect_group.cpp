@@ -41,6 +41,13 @@ namespace Glitter {
             resources = 0;
         }
 
+#if SHARED_GLITTER_BUFFER
+        if (scene) {
+            delete scene;
+            scene = 0;
+        }
+#endif
+
         for (Effect*& i : effects)
             if (i) {
                 delete i;
@@ -48,10 +55,12 @@ namespace Glitter {
             }
         effects.clear();
 
+#if !SHARED_GLITTER_BUFFER
         if (scene) {
             delete scene;
             scene = 0;
         }
+#endif
     }
 
     void EffectGroup::GetStartEndFrame(int32_t& start_frame, int32_t& end_frame) {
