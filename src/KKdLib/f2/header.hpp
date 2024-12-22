@@ -36,11 +36,11 @@ union f2_header_attrib {
     inline bool get_aes() const {
         return !!m.aes;
     }
-    
+
     inline bool get_align() const {
         return !!m.align;
     }
-    
+
     inline bool get_big_endian() const {
         return !!m.big_endian;
     }
@@ -48,35 +48,35 @@ union f2_header_attrib {
     inline bool get_crc() const {
         return !!m.crc;
     }
-    
+
     inline bool get_gzip() const {
         return !!m.gzip;
     }
-    
+
     inline uint32_t get_type() const {
         return m.type;
     }
-    
+
     inline uint32_t get_xor_data() const {
         return m.xor_data;
     }
-    
+
     inline void set_aes(bool value) {
         m.aes = value ? 0x01 : 0x00;
     }
-    
+
     inline void set_align(bool value) {
         m.align = value ? 0x01 : 0x00;
     }
-    
+
     inline void set_big_endian(bool value) {
         m.big_endian = value ? 0x01 : 0x00;
     }
-    
+
     inline void set_crc(bool value) {
         m.crc = value ? 0x01 : 0x00;
     }
-    
+
     inline void set_gzip(bool value) {
         m.gzip = value ? 0x01 : 0x00;
     }

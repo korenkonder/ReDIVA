@@ -3160,17 +3160,17 @@ namespace mdl {
 
         switch (compare_func) {
         case 0:
-            list.sort([](ObjData* left, ObjData* right) {
+            list.sort([](const ObjData* left, const ObjData* right) {
                 return left->view_z > right->view_z;
             });
             break;
         case 1:
-            list.sort([](ObjData* left, ObjData* right) {
+            list.sort([](const ObjData* left, const ObjData* right) {
                 return left->view_z < right->view_z;
             });
             break;
         case 2:
-            list.sort([](ObjData* left, ObjData* right) {
+            list.sort([](const ObjData* left, const ObjData* right) {
                 return left->radius > right->radius;
             });
             break;
@@ -3359,7 +3359,6 @@ static void sub_140436760() {
                 i->view_z += sub_mesh->bounding_sphere.radius;
             continue;
         }
-
 
         if (i->args.sub_mesh.material->material.attrib.m.src_blend_factor == OBJ_MATERIAL_BLEND_ZERO
             && i->args.sub_mesh.material->material.attrib.m.dst_blend_factor == OBJ_MATERIAL_BLEND_ONE

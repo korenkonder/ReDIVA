@@ -301,7 +301,7 @@ namespace Vulkan {
         if (vk_fbo->update_color_attachment) {
             for (uint32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++)
                 vk_fbo->color_attachment_image_views[i].Destroy();
-  
+
             for (int32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
                 gl_texture* vk_tex = gl_texture::get(vk_fbo->color_attachments[i], true, true);
                 if (vk_tex && vk_tex->get_level_count() > 0) {
@@ -1385,7 +1385,6 @@ namespace Vulkan {
             default:
                 return false;
             }
-
 
             memmove(dst_data, src_data, texture_get_size(internal_format, width, height));
             return true;
@@ -3635,7 +3634,6 @@ namespace Vulkan {
             temp = force_malloc(size);
             staging_buffer.ReadMemory(staging_buffer.GetOffset(), size, temp);
         }
-
 
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
             _type, type, temp, pixels, gl_wrap_manager_ptr->pack_alignment, false)) {

@@ -512,7 +512,6 @@ static void enb_track_init(enb_anim_context* anim_ctx,
     anim_ctx->data.current_sample = 0;
 }
 
-
 static void enb_track_step_forward(enb_anim_context* anim_ctx,
     const int32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A08E7C in ULJM05681
     enb_track* track = anim_ctx->data.track;
@@ -552,7 +551,6 @@ static void enb_track_step_forward(enb_anim_context* anim_ctx,
         }
     }
 }
-
 
 static void enb_track_step_backward(enb_anim_context* anim_ctx,
     const int32_t track_count, enb_anim_track_data_decoder* track_data) { // 0x08A090A0 in ULJM05681

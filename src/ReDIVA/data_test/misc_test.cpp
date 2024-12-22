@@ -94,7 +94,6 @@ void TaskDataTestMisc::disp() {
     print_work.SetResolutionMode(RESOLUTION_MODE_WXGA);
     print_work.PrintText(app::TEXT_FLAG_ALIGN_FLAG_RIGHT, u8"WXGA画面右隅に右詰め\n");
 
-
     /*__int64 v3[2];
     sub_1402BCBE0((__int64)v3, *color_blue_ptr);
     sub_1402BCD40((__int64)v3, 640.0, 600.0);

@@ -145,7 +145,7 @@ namespace rndr {
     reflect_refract_resolution_mode RenderManager::get_reflect_resolution_mode() {
         return (reflect_refract_resolution_mode)tex_index[0];
     }
-    
+
     reflect_refract_resolution_mode RenderManager::get_refract_resolution_mode() {
         return (reflect_refract_resolution_mode)tex_index[1];
     }
@@ -2342,7 +2342,6 @@ static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTe
 
 static void render_manager_free_render_textures() {
     rndr::RenderManager& render_manager = *rctx_ptr->render_manager;
-
 
 #ifdef USE_OPENGL
     if (!Vulkan::use) {
