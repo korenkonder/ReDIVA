@@ -2237,8 +2237,10 @@ namespace Glitter {
         io_json_read(s, &msg);
         s.close();
 
-        if (msg.type != MSGPACK_MAP)
+        if (msg.type != MSGPACK_MAP) {
+            printf("Failed to load Effect Group JSON!\nPath: %s\n", buf);
             return;
+        }
 
         msgpack* effects = msg.read_array("effect");
         if (effects) {

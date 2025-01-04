@@ -3341,8 +3341,10 @@ static void a3da_msgpack_read(const char* path, const char* file, a3da* auth_fil
     io_json_read(s, &msg);
     s.close();
 
-    if (msg.type != MSGPACK_MAP)
+    if (msg.type != MSGPACK_MAP) {
+        printf("Failed to load Auth 3D JSON!\nPath: %s\n", buf);
         return;
+    }
 
     msgpack* curves = msg.read_array("curve");
     if (curves) {

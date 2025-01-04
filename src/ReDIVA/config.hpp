@@ -9,7 +9,7 @@
 #define BAKE_PNG (0)
 #define BAKE_VIDEO (0)
 #define BAKE_PV826 (0)
-#define BAKE_X_PACK (0)
+#define BAKE_X_PACK (1)
 #define PV_DEBUG (1)
 
 #define FACE_ANIM (0)
@@ -20,7 +20,7 @@
 #define BAKE_RES_SCALE (2)
 #endif
 
-#if BAKE_DOF || BAKE_X_PACK || BAKE_PV826
+#if BAKE_DOF || BAKE_PV826
 #define BAKE_FAST (1)
 #endif
 

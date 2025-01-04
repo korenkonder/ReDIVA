@@ -43,6 +43,10 @@
 #endif
 
 #if BAKE_X_PACK
+#include "../KKdLib/f2/header.hpp"
+#include "../KKdLib/io/memory_stream.hpp"
+#include "../KKdLib/aes.hpp"
+#include "../KKdLib/deflate.hpp"
 #include "../KKdLib/waitable_timer.hpp"
 #endif
 #include <meshoptimizer/meshoptimizer.h>
@@ -262,17 +266,17 @@ prj::vector_pair<int32_t, prj::vector_pair<int32_t, std::string>> x_pv_game_str_
 int32_t x_pv_game_str_array_lang_sel;
 
 #if BAKE_X_PACK
+extern bool pv_x_bake;
+
 const char* x_pack_aft_out_dir = "patch\\!temp_AFT";
 const char* x_pack_mmp_out_dir = "patch\\!temp_MMp";
 
 XPVGameBaker* x_pv_game_baker_ptr;
-file_stream* x_pack_aft_bake_log_file_ptr;
-file_stream* x_pack_mmp_bake_log_file_ptr;
-#else
-XPVGameSelector* x_pv_game_selector_ptr;
 #endif
 
-#if !BAKE_FAST
+XPVGameSelector* x_pv_game_selector_ptr;
+
+#if !(BAKE_FAST)
 x_pv_game_music* x_pv_game_music_ptr;
 #endif
 
@@ -292,6 +296,15 @@ static void x_pv_game_map_auth_3d_to_mot(x_pv_game* xpvgm, bool add_keys);
 static void x_pv_game_reset_field(x_pv_game* xpvgm);
 
 #if BAKE_X_PACK
+enum obj_set_reflect_encode_flags {
+    OBJ_SET_REFLECT_ENCODE_GZIP    = 0x01,
+    OBJ_SET_REFLECT_ENCODE_AES     = 0x02,
+    OBJ_SET_REFLECT_ENCODE_XOR     = 0x04,
+    OBJ_SET_REFLECT_ENCODE_CRC     = 0x08,
+    OBJ_SET_REFLECT_ENCODE_DEFAULT = OBJ_SET_REFLECT_ENCODE_CRC | OBJ_SET_REFLECT_ENCODE_XOR
+        | OBJ_SET_REFLECT_ENCODE_AES | OBJ_SET_REFLECT_ENCODE_GZIP,
+};
+
 const int FARC_COMPRESS_NUM_THREADS = 4;
 
 struct FarcCompress {
@@ -340,9 +353,166 @@ struct FarcCompress {
     static void MainThreadMain();
 };
 
+enum obj_reflect_vertex_format_file {
+    OBJ_REFLECT_VERTEX_FILE_POSITION    = 0x00000001,
+    OBJ_REFLECT_VERTEX_FILE_NORMAL      = 0x00000002,
+    OBJ_REFLECT_VERTEX_FILE_TANGENT     = 0x00000004,
+    OBJ_REFLECT_VERTEX_FILE_BINORMAL    = 0x00000008,
+    OBJ_REFLECT_VERTEX_FILE_TEXCOORD0   = 0x00000010,
+    OBJ_REFLECT_VERTEX_FILE_TEXCOORD1   = 0x00000020,
+    OBJ_REFLECT_VERTEX_FILE_TEXCOORD2   = 0x00000040,
+    OBJ_REFLECT_VERTEX_FILE_TEXCOORD3   = 0x00000080,
+    OBJ_REFLECT_VERTEX_FILE_COLOR0      = 0x00000100,
+    OBJ_REFLECT_VERTEX_FILE_COLOR1      = 0x00000200,
+    OBJ_REFLECT_VERTEX_FILE_BONE_WEIGHT = 0x00000400,
+    OBJ_REFLECT_VERTEX_FILE_BONE_INDEX  = 0x00000800,
+    OBJ_REFLECT_VERTEX_FILE_UNKNOWN     = 0x00001000,
+};
+
+struct obj_sub_mesh_reflect_volume {
+    bool do_y;
+    bool do_z;
+    bool min_max_set;
+    float_t y;
+    float_t z;
+    vec3 min;
+    vec3 max;
+
+    inline obj_sub_mesh_reflect_volume() : do_y(), do_z(), min_max_set(), y(), z() {
+
+    }
+
+    inline bool check_vertex(const vec3& pos) const {
+        if (!min_max_set || pos.x >= min.x && pos.y >= min.y && pos.z >= min.z
+            && pos.x <= max.x && pos.y <= max.y && pos.z <= max.z) {
+            if (do_y)
+                return pos.y <= y || fabsf(pos.y - y) < 0.01f;
+            else if (do_z)
+                return pos.z >= z || fabsf(pos.z - z) < 0.01f;
+        }
+        return false;
+    }
+};
+
+struct obj_sub_mesh_split_reflect_data {
+    obj_bounding_sphere bounding_sphere;
+    std::vector<uint32_t> index_array;
+    bool no_reflect;
+    bool reflect;
+    bool reflect_cam_back;
+    int32_t material_index;
+
+    obj_sub_mesh_split_reflect_data();
+    ~obj_sub_mesh_split_reflect_data();
+};
+
+struct obj_sub_mesh_split_reflect {
+    bool do_split;
+    obj_index_format index_format;
+    obj_sub_mesh_split_reflect_data data[2];
+    std::vector<obj_sub_mesh_reflect_volume> volume_array;
+
+    obj_sub_mesh_split_reflect();
+    ~obj_sub_mesh_split_reflect();
+};
+
+struct obj_sub_mesh_reflect {
+    obj_bounding_sphere bounding_sphere;
+    obj_index_format index_format;
+    std::vector<uint32_t> index_array;
+    obj_sub_mesh_attrib attrib;
+    bool no_reflect;
+    bool reflect;
+    bool reflect_cam_back;
+    obj_sub_mesh_split_reflect split;
+
+    obj_sub_mesh_reflect();
+    ~obj_sub_mesh_reflect();
+
+    static void write_index(stream& s, obj_index_format index_format,
+        const std::vector<uint32_t>& index_array);
+};
+
+struct obj_mesh_reflect {
+    char name[0x40];
+    bool disable_aabb_culling;
+    bool no_reflect;
+    bool reflect;
+    bool reflect_cam_back;
+    bool do_split;
+    bool do_replace_normals;
+    bool remove;
+    bool remove_vertex_color_alpha;
+    uint8_t index;
+    vec3 replace_normals;
+    obj_mesh_attrib attrib;
+    std::vector<obj_sub_mesh_reflect> submesh_array;
+    obj_vertex_format vertex_format;
+    std::vector<obj_vertex_data> vertex_array;
+    std::vector<obj_sub_mesh_reflect_volume> remove_vertices_volume_array;
+
+    obj_mesh_reflect();
+    ~obj_mesh_reflect();
+
+    void write_vertex(stream& s, int64_t vertex[20], int32_t& num_vertex,
+        obj_reflect_vertex_format_file& vertex_format_file, int32_t& size_vertex);
+};
+
+struct obj_reflect {
+    uint32_t murmurhash;
+    uint32_t id_aft;
+    uint32_t id_mmp;
+    std::vector<obj_mesh_reflect> mesh_array;
+    prj::vector_pair<obj_material_data, obj_material_data> material_array;
+
+    obj_reflect();
+    ~obj_reflect();
+
+    void write_model(stream& s, int64_t base_offset);
+};
+
+struct obj_set_reflect {
+    uint32_t murmurhash;
+    uint32_t id_aft;
+    uint32_t id_mmp;
+    std::vector<obj_reflect> obj_data;
+
+    obj_set_reflect();
+    obj_set_reflect(uint32_t murmurhash);
+    ~obj_set_reflect();
+
+    void pack_file(void** data, size_t* size, bool mmp,
+        obj_set_reflect_encode_flags flags = OBJ_SET_REFLECT_ENCODE_DEFAULT);
+};
+
+struct x_pack_reflect {
+    std::vector<obj_set_reflect*> objset_array;
+
+    x_pack_reflect();
+    ~x_pack_reflect();
+
+    obj_set_reflect* get_obj_set_reflect(uint32_t id);
+};
+
+enum {
+    X_PACK_BAKE_FIRSTREAD_STR_ARRAY = 0,
+    X_PACK_BAKE_FIRSTREAD_AUTH_3D,
+    X_PACK_BAKE_FIRSTREAD_OBJSET,
+    X_PACK_BAKE_FIRSTREAD_STAGE_DATA,
+    X_PACK_BAKE_FIRSTREAD_MAX,
+};
+
+file_stream* x_pack_aft_bake_log_file_ptr;
+file_stream* x_pack_mmp_bake_log_file_ptr;
+
+x_pack_reflect* x_pack_reflect_ptr;
 FarcCompress* farc_compress_ptr;
 
 static void x_pv_game_fix_txp_set(txp_set* txp_set, const char* out_dir);
+static void x_pv_game_process_object(obj_set* obj_set);
+static void x_pv_game_process_object_reflect(const obj_set* obj_set, obj_set_reflect* reflect);
+static void x_pv_game_read_object_reflect(const char* path, const char* set_name,
+    const obj_set* obj_set, obj_set_reflect* reflect);
 static void x_pv_game_update_object_set(ObjsetInfo* info);
 static void x_pv_game_write_aet(uint32_t aet_set_id,
     const aet_database* aet_db, aet_database_file* x_pack_aet_db,
@@ -353,13 +523,16 @@ static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
     auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir);
 static void x_pv_game_write_auth_3d_category(const std::string& category,
     auth_3d_database_file* auth_3d_db, std::vector<uint64_t>& avail_uids, const char* out_dir);
+static void x_pv_game_write_auth_3d_reflect(stream& s, auth_3d_database_file* auth_3d_db);
 static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id, const char* out_dir);
 static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_3d_database* x_pack_auth_3d_db,
     const object_database* obj_db, const object_database* x_pack_obj_db, const char* out_dir);
 static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
     const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db,
-    prj::vector_pair<uint32_t, uint32_t>* tex_ids, const char* out_dir);
+    prj::vector_pair<uint32_t, uint32_t>* tex_ids, const char* out_dir, obj_set_reflect* reflect);
+static void x_pv_game_write_object_set_reflect(stream& s, const char* out_dir,
+    obj_set_reflect_encode_flags flags = OBJ_SET_REFLECT_ENCODE_DEFAULT);
 static void x_pv_game_write_play_param(const pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir);
 static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
@@ -368,7 +541,8 @@ static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database*
     const object_database* x_stage_obj_db, const object_database* x_pack_obj_db,
     stage_database_file* stg_db, const stage_database* x_stg_db,
     const texture_database* x_stage_tex_db, const texture_database* x_pack_tex_db, const char* out_dir);
-static void x_pv_game_write_str_array(const char* out_dir);
+static void x_pv_game_write_stage_data_reflect(stream& s, stage_database_file* stg_db);
+static void x_pv_game_write_str_array(stream& s);
 static void x_pv_game_write_spr(uint32_t spr_set_id,
     const sprite_database* spr_db, sprite_database_file* x_pack_spr_db, const char* out_dir);
 #endif
@@ -376,7 +550,7 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t time);
 static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time);
 
-#if BAKE_FAST
+#if BAKE_FAST || BAKE_X_PACK
 static void replace_pv832(char* str);
 static void replace_pv832(std::string& str);
 #endif
@@ -1402,7 +1576,7 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
         bool wait_load = false;
 
         for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d)
-            for (x_pv_game_chara_effect_auth_3d j : i) {
+            for (x_pv_game_chara_effect_auth_3d& j : i) {
                 if (!j.category.str.size())
                     continue;
 
@@ -1454,7 +1628,7 @@ void x_pv_game_chara_effect::ctrl(object_database* obj_db, texture_database* tex
         bool wait_load = false;
 
         for (std::vector<x_pv_game_chara_effect_auth_3d>& i : auth_3d)
-            for (x_pv_game_chara_effect_auth_3d j : i) {
+            for (x_pv_game_chara_effect_auth_3d& j : i) {
                 if (!j.category.str.size())
                     continue;
 
@@ -1492,9 +1666,9 @@ vec3 x_pv_game_chara_effect::get_node_translation(int32_t chara_id,
     if (!chr_eff.node_mat || chr_eff.objhrc_index != objhrc_index
         || chr_eff.node_name.compare(node_name)) {
         mat4* mat = 0;
-        uint32_t node_name_hash = hash_utf8_murmurhash(node_name);
+        const uint64_t node_name_hash = hash_utf8_xxh3_64bits(node_name);
         for (auth_3d_object_node& i : auth->object_hrc[objhrc_index].node)
-            if (hash_string_murmurhash(i.name) == node_name_hash) {
+            if (hash_string_xxh3_64bits(i.name) == node_name_hash) {
                 mat = i.mat;
                 break;
             }
@@ -1546,7 +1720,7 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
         const char* dst_chara_mei_str = chara_index_get_auth_3d_name(dst_chara_mei);
 
 #if BAKE_X_PACK
-        if (pv_id == 814) {
+        if (pv_x_bake && pv_id == 814) {
         repeat:
             dst_chara_mei = dst_chara == CHARA_SAKINE ? CHARA_MEIKO : dst_chara;
             dst_chara_str = chara_index_get_auth_3d_name(dst_chara);
@@ -1637,7 +1811,7 @@ void x_pv_game_chara_effect::load(int32_t pv_id, pvpp* play_param,
 #endif
         }
 #if BAKE_X_PACK
-        if (pv_id == 814) {
+        if (pv_x_bake && pv_id == 814) {
             dst_chara = (chara_index)((int32_t)(dst_chara + 1));
             if (dst_chara != CHARA_MAX)
                 goto repeat;
@@ -1821,7 +1995,7 @@ x_pv_game_music_ogg::~x_pv_game_music_ogg() {
     }
 }
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
 x_pv_game_music::x_pv_game_music() : flags(), pause(), channel_pair_volume(), fade_in(),
 fade_out(), no_fade(), no_fade_remain(), fade_out_time_req(), fade_out_action_req(),
 type(), start(), end(), play_on_end(), fade_in_time(), field_9C(), loaded(), ogg() {
@@ -2782,7 +2956,8 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (dsc_time > curr_time)
             return false;
 #if BAKE_X_PACK
-        pv_end = true;
+        if (pv_x_bake)
+            pv_end = true;
 #endif
     } break;
     case DSC_X_MIKU_MOVE: {
@@ -3239,7 +3414,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
     } break;
     case DSC_X_MUSIC_PLAY: {
-#if !BAKE_FAST
+#if !(BAKE_FAST)
         char buf[0x200];
         sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg",
             pv_game->get_data().pv_id == 832 ? 800 : pv_game->get_data().pv_id);
@@ -4497,7 +4672,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 
     camera.load(pv_id, stage->stage_id, frame_rate_control);
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
     sprintf_s(buf, sizeof(buf), "rom/sound/song/pv_%03d.ogg", pv_id == 832 ? 800 : pv_id);
     x_pv_game_music_ptr->ogg_reset();
     x_pv_game_music_ptr->load(4, buf, true, 0.0f, false);
@@ -4507,7 +4682,7 @@ void x_pv_game_data::load(int32_t pv_id, FrameRateControl* frame_rate_control, c
 }
 
 void x_pv_game_data::reset() {
-#if !BAKE_FAST
+#if !(BAKE_FAST)
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_volume_map(0, 0);
 #endif
@@ -4574,7 +4749,7 @@ void x_pv_game_data::unload() {
     obj_db.clear();
     tex_db.clear();
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
     x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
@@ -4600,7 +4775,7 @@ void x_pv_game_data::unload_data() {
     obj_db.clear();
     tex_db.clear();
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
     x_pv_game_music_ptr->stop();
     x_pv_game_music_ptr->set_channel_pair_volume_map(0, 100);
     x_pv_game_music_ptr->set_channel_pair_volume_map(1, 100);
@@ -5153,11 +5328,7 @@ void x_pv_game_stage_data::load(int32_t stage_id, FrameRateControl* frame_rate_c
     flags |= 0x02;
 }
 
-#if BAKE_X_PACK
-void x_pv_game_stage_data::load_objects(int32_t stage_id, object_database* obj_db, texture_database* tex_db) {
-#else
 void x_pv_game_stage_data::load_objects(object_database* obj_db, texture_database* tex_db) {
-#endif
     if (!(flags & 0x02) || file_handler.check_not_ready() || state && state != 2)
         return;
 
@@ -5301,13 +5472,8 @@ void x_pv_game_stage::ctrl(float_t delta_time) {
         if (stage_data.check_not_loaded() || stage_resource_file_handler.check_not_ready())
             break;
 
-#if BAKE_X_PACK
-        if (stage_data.flags & 0x02)
-            stage_data.load_objects(stage_id, &obj_db, &tex_db);
-#else
         if (stage_data.flags & 0x02)
             stage_data.load_objects(&obj_db, &tex_db);
-#endif
 
         const void* pvsr_data = stage_resource_file_handler.get_data();
         size_t pvsr_size = stage_resource_file_handler.get_size();
@@ -6198,7 +6364,7 @@ static int32_t frame_prev = -1;
 
 bool x_pv_game::ctrl() {
 #if BAKE_VIDEO
-    auto write_frame = [&](int32_t idx) {
+    auto write_frame = [](int32_t idx) {
         int32_t res = 0;
         glGetQueryObjectiv(d3d_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
         if (res) {
@@ -6210,7 +6376,7 @@ bool x_pv_game::ctrl() {
     };
 
 #if BAKE_VIDEO_ALPHA
-    auto write_alpha_frame = [&](int32_t idx) {
+    auto write_alpha_frame = [](int32_t idx) {
         int32_t res = 0;
         glGetQueryObjectiv(d3d_alpha_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
         if (res) {
@@ -6627,6 +6793,11 @@ bool x_pv_game::ctrl() {
         auth_3d_data_load_category(light_category.c_str());
 
 #if BAKE_X_PACK
+        if (!pv_x_bake) {
+            state_old = 7;
+            break;
+        }
+
         XPVGameBaker* baker = x_pv_game_baker_ptr;
         if (baker->pv_tit_init) {
             state_old = 7;
@@ -6684,16 +6855,12 @@ bool x_pv_game::ctrl() {
                 &baker->pv_tit_aet_db, &baker->aft.aet_db, &baker->aft.spr_db, x_pack_aft_out_dir);
         }
 
-        x_pv_game_write_str_array(x_pack_aft_out_dir);
-
         for (int32_t i = 0; i < 5; i++) {
             x_pv_game_write_spr(baker->pv_tit_spr_set_ids[i],
                 &baker->pv_tit_spr_db, &baker->mmp.spr_db, x_pack_mmp_out_dir);
             x_pv_game_write_aet(baker->pv_tit_aet_set_ids[i],
                 &baker->pv_tit_aet_db, &baker->mmp.aet_db, &baker->mmp.spr_db, x_pack_mmp_out_dir);
         }
-
-        x_pv_game_write_str_array(x_pack_mmp_out_dir);
 
         baker->pv_tit_init = true;
 #endif
@@ -7116,8 +7283,13 @@ bool x_pv_game::ctrl() {
             break;
 
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++) {
+#if BAKE_X_PACK
+            if (pv_x_bake || rob_chara_ids[i] == -1)
+                continue;
+#else
             if (rob_chara_ids[i] == -1)
                 continue;
+#endif
 
             int32_t chara_id = rob_chara_ids[i];
             rob_chara* rob_chr = rob_chara_array_get(chara_id);
@@ -7133,8 +7305,13 @@ bool x_pv_game::ctrl() {
         state_old = 10;
     } break;
     case 10: {
+#if BAKE_X_PACK
+        if (!pv_x_bake && (pv_osage_manager_array_get_disp() || osage_play_data_manager_check_task_ready()))
+            break;
+#else
         if (pv_osage_manager_array_get_disp() || osage_play_data_manager_check_task_ready())
             break;
+#endif
 
         bool wait_load = false;
 
@@ -7146,8 +7323,15 @@ bool x_pv_game::ctrl() {
             break;
 
 #if BAKE_X_PACK
-        state_old = 18;
+        if (pv_x_bake) {
+            state_old = 18;
+            break;
+        }
+#endif
+
+        state_old = 19;
     } break;
+#if BAKE_X_PACK
     case 18: {
         x_pv_game_data& pv_data = this->get_data();
 
@@ -7161,7 +7345,7 @@ bool x_pv_game::ctrl() {
         std::vector<auth_3d*> stage_data_effect_auth_3ds;
         std::vector<auth_3d*> stage_data_change_effect_auth_3ds;
 
-        auto add_auth_3d = [&](std::vector<auth_3d*>& auth_3ds, auth_3d_id id) {
+        auto add_auth_3d = [](std::vector<auth_3d*>& auth_3ds, auth_3d_id id) {
             if (!id.check_not_empty() || !id.check_loaded())
                 return;
 
@@ -7225,17 +7409,19 @@ bool x_pv_game::ctrl() {
                 stage_object_set_ids.push_back(hash_utf8_murmurhash(name));
         }
 
-        auto add_auth_3d_object_set_id = [&](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
+        auto add_auth_3d_object_set_id = [](auth_3d* auth, std::vector<uint32_t>& object_set_ids) {
             object_set_ids.reserve(auth->object.size() + auth->object_hrc.size());
 
             for (auth_3d_object& i : auth->object)
-                object_set_ids.push_back(i.object_info.set_id);
+                if (i.object_info.not_null_modern())
+                    object_set_ids.push_back(i.object_info.set_id);
 
             for (auth_3d_object_hrc& i : auth->object_hrc)
-                object_set_ids.push_back(i.object_info.set_id);
+                if (i.object_info.not_null_modern())
+                    object_set_ids.push_back(i.object_info.set_id);
         };
 
-        auto add_glitter_object_set_id = [&](uint32_t eff_group_hash,
+        auto add_glitter_object_set_id = [](uint32_t eff_group_hash,
             std::vector<Glitter::EffectGroup*>& glitter_eff_groups, std::vector<uint32_t>& object_set_ids) {
             Glitter::EffectGroup* eff_group = Glitter::glt_particle_manager->GetEffectGroup(eff_group_hash);
             if (eff_group) {
@@ -7244,7 +7430,9 @@ bool x_pv_game::ctrl() {
                 object_set_ids.reserve(eff_group->meshes.size());
 
                 for (Glitter::Mesh& i : eff_group->meshes)
-                    object_set_ids.push_back(i.object_set_hash);
+                    if (i.object_set_hash != -1 || i.object_set_hash != hash_murmurhash_empty
+                        || i.object_set_hash != hash_murmurhash_null)
+                        object_set_ids.push_back(i.object_set_hash);
             }
         };
 
@@ -7279,12 +7467,21 @@ bool x_pv_game::ctrl() {
 
         prj::sort_unique(object_set_ids);
 
-        for (uint32_t& i : object_set_ids) {
+        for (const uint32_t& i : object_set_ids) {
             ObjsetInfo* info = objset_info_storage_get_objset_info(i);
             if (!info)
                 continue;
 
             obj_set* set = info->obj_set;
+
+            x_pack_reflect_ptr->objset_array.push_back(new obj_set_reflect(i));
+            obj_set_reflect* reflect = x_pack_reflect_ptr->objset_array.back();
+
+            x_pv_game_read_object_reflect("patch\\AFT\\reflect\\objset", info->name.c_str(), set, reflect);
+            if (!reflect->obj_data.size()) {
+                x_pack_reflect_ptr->objset_array.pop_back();
+                reflect = 0;
+            }
 
             prj::shared_ptr<prj::stack_allocator>& alloc = info->alloc_handler;
 
@@ -7299,12 +7496,17 @@ bool x_pv_game::ctrl() {
             for (int32_t j = 0; j < obj_num; j++)
                 objib[j].unload();
 
+            x_pv_game_process_object(set);
+            x_pv_game_process_object_reflect(set, reflect);
+
             for (int32_t j = 0; j < obj_num; j++, obj_data++) {
                 obj* obj = *obj_data;
+
                 obj_mesh* mesh_array = obj->mesh_array;
                 int32_t num_mesh = obj->num_mesh;
                 for (int32_t k = 0; k < num_mesh; k++) {
                     obj_mesh* mesh = &mesh_array[k];
+                    uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh->name);
 
                     obj_sub_mesh* submesh_array = mesh->submesh_array;
                     int32_t num_submesh = mesh->num_submesh;
@@ -7347,7 +7549,7 @@ bool x_pv_game::ctrl() {
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->aft.obj_db,
                     &pv_data.tex_db, &baker->aft.tex_db_base, &baker->aft.tex_db,
-                    &baker->aft.tex_ids, x_pack_aft_out_dir);
+                    &baker->aft.tex_ids, x_pack_aft_out_dir, x_pack_reflect_ptr->get_obj_set_reflect(i));
         }
 
         for (uint32_t& i : stage_object_set_ids) {
@@ -7355,7 +7557,7 @@ bool x_pv_game::ctrl() {
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->aft.obj_db,
                     &stage_data.tex_db, &baker->aft.tex_db_base, &baker->aft.tex_db,
-                    &baker->aft.tex_ids, x_pack_aft_out_dir);
+                    &baker->aft.tex_ids, x_pack_aft_out_dir, x_pack_reflect_ptr->get_obj_set_reflect(i));
         }
 
         for (uint32_t& i : pv_object_set_ids) {
@@ -7363,7 +7565,7 @@ bool x_pv_game::ctrl() {
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->mmp.obj_db,
                     &pv_data.tex_db, &baker->mmp.tex_db_base, &baker->mmp.tex_db,
-                    &baker->mmp.tex_ids, x_pack_mmp_out_dir);
+                    &baker->mmp.tex_ids, x_pack_mmp_out_dir, x_pack_reflect_ptr->get_obj_set_reflect(i));
         }
 
         for (uint32_t& i : stage_object_set_ids) {
@@ -7371,7 +7573,7 @@ bool x_pv_game::ctrl() {
             if (info)
                 x_pv_game_write_object_set(info->obj_set, info->name, &baker->mmp.obj_db,
                     &stage_data.tex_db, &baker->mmp.tex_db_base, &baker->mmp.tex_db,
-                    &baker->mmp.tex_ids, x_pack_mmp_out_dir);
+                    &baker->mmp.tex_ids, x_pack_mmp_out_dir, x_pack_reflect_ptr->get_obj_set_reflect(i));
         }
 
         {
@@ -7560,9 +7762,9 @@ bool x_pv_game::ctrl() {
                 &baker->mmp.stage_data, &stage_data.stage_data.stg_db,
                 &stage_data.tex_db, &x_pack_tex_db, x_pack_mmp_out_dir);
         }
-#endif
         state_old = 19;
     } break;
+#endif
     case 19: {
         x_pv_game_change_field(this, 1, -1, -1);
 
@@ -7751,7 +7953,7 @@ bool x_pv_game::ctrl() {
         x_pv_game_map_auth_3d_to_mot(this, true);
 #endif
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
         pause = true;
 #endif
 
@@ -7764,7 +7966,7 @@ bool x_pv_game::ctrl() {
         frame = (int32_t)frame_float;
         time = (int64_t)round(frame_float * (100000.0 / 60.0) * 10000.0);
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
         x_pv_game_music_ptr->set_pause(pause ? 1 : 0);
 #endif
 
@@ -8616,9 +8818,17 @@ static void mot_write_motion_set(x_pv_game* xpvgm) {
 #endif
 
 bool x_pv_game::unload() {
+#if BAKE_X_PACK
+    if (!pv_x_bake) {
+        pv_osage_manager_array_set_not_reset_true();
+        if (pv_osage_manager_array_get_disp())
+            return false;
+    }
+#else
     pv_osage_manager_array_set_not_reset_true();
     if (pv_osage_manager_array_get_disp())
         return false;
+#endif
 
 #if BAKE_PV826
     if (get_data().pv_id == 826) {
@@ -8776,7 +8986,7 @@ bool x_pv_game::unload() {
 }
 
 void x_pv_game::ctrl(float_t curr_time, float_t delta_time) {
-#if !BAKE_FAST
+#if !(BAKE_FAST)
     x_pv_game_music_ptr->ctrl(delta_time);
 #endif
 
@@ -8895,7 +9105,8 @@ void XPVGameBaker::AFTData::Read() {
     tex_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\objset\\mdata_tex_db", false);
 }
 
-void XPVGameBaker::AFTData::Write(const char* out_dir) {
+void XPVGameBaker::AFTData::Write(const char* out_dir,
+    bool only_firstread_x, uint32_t obj_set_encode_flags) {
     for (size_t& i : avail_auth_3d_uids)
         x_pv_game_baker_ptr->print_log(out_dir,
             "Unused Auth 3D UID: %d", auth_3d_db.uid.data()[i].org_uid);
@@ -8904,6 +9115,25 @@ void XPVGameBaker::AFTData::Write(const char* out_dir) {
     auto i_end = avail_auth_3d_uids.rend();
     for (auto i = i_begin; i != i_end; i++)
         auth_3d_db.uid.erase(auth_3d_db.uid.begin() + *i);
+
+    {
+        file_stream firstread_x;
+        firstread_x.open(sprintf_s_string("%s\\%s", out_dir, "firstread_x.bin").c_str(), "wb");
+        firstread_x.write_uint32_t(reverse_endianness_uint32_t('frbx'));
+        firstread_x.align_write(0x10);
+        firstread_x.write(sizeof(uint64_t) * 2 * X_PACK_BAKE_FIRSTREAD_MAX);
+        firstread_x.align_write(0x10);
+
+        x_pv_game_write_str_array(firstread_x);
+        x_pv_game_write_auth_3d_reflect(firstread_x, &auth_3d_db);
+        x_pv_game_write_object_set_reflect(firstread_x, out_dir, (obj_set_reflect_encode_flags)obj_set_encode_flags);
+        x_pv_game_write_stage_data_reflect(firstread_x, &stage_data);
+
+        firstread_x.close();
+
+        if (only_firstread_x)
+            return;
+    }
 
     aet_db.write(sprintf_s_string("%s\\%s", out_dir, "2d\\mdata_aet_db").c_str());
     auth_3d_db.write(sprintf_s_string("%s\\%s", out_dir, "auth_3d\\mdata_auth_3d_db").c_str());
@@ -8977,7 +9207,7 @@ void XPVGameBaker::MMPData::Read() {
         + "rom\\objset\\" + mmp_x_song_pack_path.second + "tex_db").c_str(), false);
 }
 
-void XPVGameBaker::MMPData::Write(const char* out_dir) {
+void XPVGameBaker::MMPData::Write(const char* out_dir, bool only_firstread_x, uint32_t obj_set_encode_flags) {
     for (size_t& i : avail_auth_3d_uids)
         x_pv_game_baker_ptr->print_log(out_dir,
             "Unused Auth 3D UID: %d", auth_3d_db.uid.data()[i].org_uid);
@@ -8986,6 +9216,25 @@ void XPVGameBaker::MMPData::Write(const char* out_dir) {
     auto i_end = avail_auth_3d_uids.rend();
     for (auto i = i_begin; i != i_end; i++)
         auth_3d_db.uid.erase(auth_3d_db.uid.begin() + *i);
+
+    {
+        file_stream firstread_x;
+        firstread_x.open(sprintf_s_string("%s\\%s", out_dir, "firstread_x.bin").c_str(), "wb");
+        firstread_x.write_uint32_t(reverse_endianness_uint32_t('frbx'));
+        firstread_x.align_write(0x10);
+        firstread_x.write(sizeof(uint64_t) * 2 * X_PACK_BAKE_FIRSTREAD_MAX);
+        firstread_x.align_write(0x10);
+
+        x_pv_game_write_str_array(firstread_x);
+        x_pv_game_write_auth_3d_reflect(firstread_x, &auth_3d_db);
+        x_pv_game_write_object_set_reflect(firstread_x, out_dir, (obj_set_reflect_encode_flags)obj_set_encode_flags);
+        x_pv_game_write_stage_data_reflect(firstread_x, &stage_data);
+
+        firstread_x.close();
+
+        if (only_firstread_x)
+            return;
+    }
 
     aet_db.write(sprintf_s_string("%s\\%s", out_dir, "2d\\mod_aet_db").c_str());
     auth_3d_db.write(sprintf_s_string("%s\\%s", out_dir, "auth_3d\\mod_auth_3d_db").c_str());
@@ -9039,7 +9288,9 @@ FarcCompress::~FarcCompress() {
 }
 
 void FarcCompress::AddFarc(farc* f, const std::string& path) {
-    {
+    if (x_pv_game_baker_ptr->only_firstread_x)
+        delete f;
+    else {
         std::unique_lock<std::mutex> u_lock(mtx);
         data.push_back({ f, path });
     }
@@ -9115,8 +9366,637 @@ void FarcCompress::MainThreadMain() {
         farc_compress.farc_threads[i].Dest();
 }
 
-XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
-pv_tit_spr_set_ids(), pv_tit_aet_ids(), pv_tit_init(), start(), exit(), next() {
+obj_sub_mesh_split_reflect_data::obj_sub_mesh_split_reflect_data()
+    : no_reflect(), reflect(), reflect_cam_back() {
+    material_index = -1;
+}
+
+obj_sub_mesh_split_reflect_data::~obj_sub_mesh_split_reflect_data() {
+
+}
+
+obj_sub_mesh_split_reflect::obj_sub_mesh_split_reflect() : do_split(), index_format() {
+
+}
+
+obj_sub_mesh_split_reflect::~obj_sub_mesh_split_reflect() {
+
+}
+
+obj_sub_mesh_reflect::obj_sub_mesh_reflect() : index_format(), attrib(),
+no_reflect(), reflect(), reflect_cam_back() {
+
+}
+
+obj_sub_mesh_reflect::~obj_sub_mesh_reflect() {
+
+}
+
+void obj_sub_mesh_reflect::write_index(stream& s, obj_index_format index_format,
+   const std::vector<uint32_t>& index_array) {
+    const uint32_t* _index_array = index_array.data();
+    int32_t num_index = (int32_t)index_array.size();
+    switch (index_format) {
+    case OBJ_INDEX_U8:
+        for (int32_t i = 0; i < num_index; i++)
+            s.write_uint8_t((uint8_t)_index_array[i]);
+        break;
+    case OBJ_INDEX_U16:
+        for (int32_t i = 0; i < num_index; i++)
+            s.write_uint16_t((uint16_t)_index_array[i]);
+        break;
+    case OBJ_INDEX_U32:
+        for (int32_t i = 0; i < num_index; i++)
+            s.write_uint32_t(_index_array[i]);
+        break;
+    }
+    s.align_write(0x04);
+}
+
+obj_mesh_reflect::obj_mesh_reflect() : name(), attrib(), disable_aabb_culling(), no_reflect(), reflect(),
+reflect_cam_back(), do_split(), do_replace_normals(), remove(), remove_vertex_color_alpha(), vertex_format() {
+    index = (uint8_t)-1;
+}
+
+obj_mesh_reflect::~obj_mesh_reflect() {
+
+}
+
+void obj_mesh_reflect::write_vertex(stream& s, int64_t vertex[20], int32_t& num_vertex,
+    obj_reflect_vertex_format_file& vertex_format_file, int32_t& size_vertex) {
+    obj_vertex_data* vtx = vertex_array.data();
+    int32_t _num_vertex = (int32_t)vertex_array.size();
+    obj_vertex_format vertex_format = this->vertex_format;
+
+    obj_reflect_vertex_format_file _vertex_format_file = (obj_reflect_vertex_format_file)0;
+    int32_t _size_vertex = 0;
+    if (vertex_format & OBJ_VERTEX_POSITION) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_POSITION);
+        _size_vertex += 0x0C;
+    }
+
+    if (vertex_format & OBJ_VERTEX_NORMAL) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_NORMAL);
+        _size_vertex += 0x0C;
+    }
+
+    if (vertex_format & OBJ_VERTEX_TANGENT) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_TANGENT);
+        _size_vertex += 0x10;
+    }
+
+    if (vertex_format & OBJ_VERTEX_BINORMAL) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_BINORMAL);
+        _size_vertex += 0x0C;
+    }
+
+    if (vertex_format & OBJ_VERTEX_TEXCOORD0) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_TEXCOORD0);
+        _size_vertex += 0x08;
+    }
+
+    if (vertex_format & OBJ_VERTEX_TEXCOORD1) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_TEXCOORD1);
+        _size_vertex += 0x08;
+    }
+
+    if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_TEXCOORD2);
+        _size_vertex += 0x08;
+    }
+
+    if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_TEXCOORD3);
+        _size_vertex += 0x08;
+    }
+
+    if (vertex_format & OBJ_VERTEX_COLOR0) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_COLOR0);
+        _size_vertex += 0x10;
+    }
+
+    if (vertex_format & OBJ_VERTEX_COLOR1) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_COLOR1);
+        _size_vertex += 0x10;
+    }
+
+    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_BONE_WEIGHT | OBJ_REFLECT_VERTEX_FILE_BONE_INDEX);
+        _size_vertex += 0x20;
+    }
+
+    if (vertex_format & OBJ_VERTEX_UNKNOWN) {
+        enum_or(_vertex_format_file, OBJ_REFLECT_VERTEX_FILE_UNKNOWN);
+        _size_vertex += 0x10;
+    }
+    num_vertex = _num_vertex;
+    vertex_format_file = _vertex_format_file;
+    size_vertex = _size_vertex;
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_POSITION) {
+        vertex[0] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].position.x);
+            s.write_float_t(vtx[i].position.y);
+            s.write_float_t(vtx[i].position.z);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_NORMAL) {
+        vertex[1] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].normal.x);
+            s.write_float_t(vtx[i].normal.y);
+            s.write_float_t(vtx[i].normal.z);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_TANGENT) {
+        vertex[2] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].tangent.x);
+            s.write_float_t(vtx[i].tangent.y);
+            s.write_float_t(vtx[i].tangent.z);
+            s.write_float_t(vtx[i].tangent.w);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_BINORMAL) {
+        vertex[3] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].binormal.x);
+            s.write_float_t(vtx[i].binormal.y);
+            s.write_float_t(vtx[i].binormal.z);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_TEXCOORD0) {
+        vertex[4] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].texcoord0.x);
+            s.write_float_t(vtx[i].texcoord0.y);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_BONE_WEIGHT) {
+        vertex[10] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].bone_weight.x);
+            s.write_float_t(vtx[i].bone_weight.y);
+            s.write_float_t(vtx[i].bone_weight.z);
+            s.write_float_t(vtx[i].bone_weight.w);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_BONE_INDEX) {
+        vertex[11] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].bone_index.x >= 0 ? (float_t)(vtx[i].bone_index.x * 3) : -1.0f);
+            s.write_float_t(vtx[i].bone_index.y >= 0 ? (float_t)(vtx[i].bone_index.y * 3) : -1.0f);
+            s.write_float_t(vtx[i].bone_index.z >= 0 ? (float_t)(vtx[i].bone_index.z * 3) : -1.0f);
+            s.write_float_t(vtx[i].bone_index.w >= 0 ? (float_t)(vtx[i].bone_index.w * 3) : -1.0f);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_TEXCOORD1) {
+        vertex[5] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].texcoord1.x);
+            s.write_float_t(vtx[i].texcoord1.y);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_TEXCOORD2) {
+        vertex[6] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].texcoord2.x);
+            s.write_float_t(vtx[i].texcoord2.y);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_TEXCOORD3) {
+        vertex[7] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].texcoord3.x);
+            s.write_float_t(vtx[i].texcoord3.y);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_COLOR0) {
+        vertex[8] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].color0.x);
+            s.write_float_t(vtx[i].color0.y);
+            s.write_float_t(vtx[i].color0.z);
+            s.write_float_t(vtx[i].color0.w);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_COLOR1) {
+        vertex[9] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].color1.x);
+            s.write_float_t(vtx[i].color1.y);
+            s.write_float_t(vtx[i].color1.z);
+            s.write_float_t(vtx[i].color1.w);
+        }
+    }
+
+    if (_vertex_format_file & OBJ_REFLECT_VERTEX_FILE_UNKNOWN) {
+        vertex[12] = s.get_position();
+        for (int32_t i = 0; i < _num_vertex; i++) {
+            s.write_float_t(vtx[i].unknown.x);
+            s.write_float_t(vtx[i].unknown.y);
+            s.write_float_t(vtx[i].unknown.z);
+            s.write_float_t(vtx[i].unknown.w);
+        }
+    }
+}
+
+obj_reflect::obj_reflect() {
+    murmurhash = hash_murmurhash_empty;
+    id_aft = -1;
+    id_mmp = -1;
+}
+
+obj_reflect::~obj_reflect() {
+
+}
+
+void obj_reflect::write_model(stream& s, int64_t base_offset) {
+    struct obj_mesh_header {
+        int64_t submesh_array;
+        obj_reflect_vertex_format_file format;
+        int32_t num_vertex;
+        int32_t size_vertex;
+        int64_t vertex[20];
+    };
+
+    obj_mesh_header* mhs = force_malloc<obj_mesh_header>(mesh_array.size());
+    for (obj_mesh_reflect& i : mesh_array) {
+        obj_mesh_reflect* mesh = &i;
+        obj_mesh_header* mh = &mhs[&i - mesh_array.data()];
+
+        s.write_int64_t(0);
+        s.write_int32_t(0);
+        s.write_uint32_t(0);
+        s.write_int32_t(0);
+        s.write_int32_t(0);
+
+        for (int64_t& j : mh->vertex)
+            s.write_int64_t(0);
+
+        s.write_uint32_t(0);
+        s.write_uint8_t(0);
+        s.write_uint8_t((uint8_t)-1);
+        s.align_write(0x04);
+        s.write(sizeof(mesh->name));
+    }
+
+    for (obj_mesh_reflect& i : mesh_array) {
+        obj_mesh_reflect* mesh = &i;
+        obj_mesh_header* mh = &mhs[&i - mesh_array.data()];
+
+        if (mesh->submesh_array.size()) {
+            s.align_write(0x08);
+            mh->submesh_array = s.get_position();
+            for (obj_sub_mesh_reflect& j : i.submesh_array) {
+                s.write_float_t(0.0f);
+                s.write_float_t(0.0f);
+                s.write_float_t(0.0f);
+                s.write_float_t(0.0f);
+                s.write_uint32_t(0);
+                s.write_int32_t(0);
+                s.write_int64_t(0);
+                s.write_int32_t(0);
+                s.align_write(0x08);
+                s.write_int64_t(0);
+            }
+        }
+
+        mesh->write_vertex(s, mh->vertex, mh->num_vertex, mh->format, mh->size_vertex);
+
+        for (obj_sub_mesh_reflect& j : i.submesh_array) {
+            obj_sub_mesh_reflect* sub_mesh = &j;
+
+            int64_t split_offset = 0;
+            if (sub_mesh->split.do_split) {
+                int64_t index_array_split_0_offset = 0;
+                if (sub_mesh->split.data[0].index_array.size()) {
+                    index_array_split_0_offset = s.get_position();
+                    obj_sub_mesh_reflect::write_index(s, sub_mesh->split.index_format,
+                        sub_mesh->split.data[0].index_array);
+                }
+
+                int64_t index_array_split_1_offset = 0;
+                if (sub_mesh->split.data[1].index_array.size()) {
+                    index_array_split_1_offset = s.get_position();
+                    obj_sub_mesh_reflect::write_index(s, sub_mesh->split.index_format,
+                        sub_mesh->split.data[1].index_array);
+                }
+
+                s.align_write(0x08);
+                split_offset = s.get_position();
+                s.write_float_t(sub_mesh->split.data[0].bounding_sphere.center.x);
+                s.write_float_t(sub_mesh->split.data[0].bounding_sphere.center.y);
+                s.write_float_t(sub_mesh->split.data[0].bounding_sphere.center.z);
+                s.write_float_t(sub_mesh->split.data[0].bounding_sphere.radius);
+                s.write_float_t(sub_mesh->split.data[1].bounding_sphere.center.x);
+                s.write_float_t(sub_mesh->split.data[1].bounding_sphere.center.y);
+                s.write_float_t(sub_mesh->split.data[1].bounding_sphere.center.z);
+                s.write_float_t(sub_mesh->split.data[1].bounding_sphere.radius);
+                s.write_uint32_t(sub_mesh->split.data[0].material_index);
+                s.write_uint32_t(sub_mesh->split.data[1].material_index);
+                s.write_uint32_t(sub_mesh->split.index_format);
+                s.write_int32_t((int32_t)sub_mesh->split.data[0].index_array.size());
+                s.write_int32_t((int32_t)sub_mesh->split.data[1].index_array.size());
+                s.align_write(0x08);
+                s.write_int64_t(index_array_split_0_offset);
+                s.write_int64_t(index_array_split_1_offset);
+
+                uint32_t split_0_attrib = sub_mesh->attrib.w;
+                if (sub_mesh->split.data[0].no_reflect)
+                    split_0_attrib |= 0x10;
+                if (sub_mesh->split.data[0].reflect)
+                    split_0_attrib |= 0x20;
+                if (sub_mesh->split.data[0].reflect_cam_back)
+                    split_0_attrib |= 0x40;
+                s.write_uint32_t(split_0_attrib);
+
+                uint32_t split_1_attrib = sub_mesh->attrib.w;
+                if (sub_mesh->split.data[1].no_reflect)
+                    split_1_attrib |= 0x10;
+                if (sub_mesh->split.data[1].reflect)
+                    split_1_attrib |= 0x20;
+                if (sub_mesh->split.data[1].reflect_cam_back)
+                    split_1_attrib |= 0x40;
+                s.write_uint32_t(split_1_attrib);
+            }
+
+            int64_t index_array_offset = 0;
+            if (sub_mesh->index_array.size()) {
+                index_array_offset = s.get_position();
+                obj_sub_mesh_reflect::write_index(s, sub_mesh->index_format, sub_mesh->index_array);
+            }
+
+            s.position_push(mh->submesh_array + 0x30 * (&j - i.submesh_array.data()), SEEK_SET);
+            s.write_float_t(sub_mesh->bounding_sphere.center.x);
+            s.write_float_t(sub_mesh->bounding_sphere.center.y);
+            s.write_float_t(sub_mesh->bounding_sphere.center.z);
+            s.write_float_t(sub_mesh->bounding_sphere.radius);
+            s.write_uint32_t(sub_mesh->index_format);
+            s.write_int32_t((int32_t)sub_mesh->index_array.size());
+            s.write_int64_t(index_array_offset);
+            uint32_t attrib = sub_mesh->attrib.w;
+            if (sub_mesh->no_reflect)
+                attrib |= 0x10;
+            if (sub_mesh->reflect)
+                attrib |= 0x20;
+            if (sub_mesh->reflect_cam_back)
+                attrib |= 0x40;
+            s.write_uint32_t(attrib);
+            s.align_write(0x08);
+            s.write_int64_t(split_offset);
+            s.position_pop();
+        }
+    }
+
+    s.position_push(base_offset, SEEK_SET);
+    for (obj_mesh_reflect& i : mesh_array) {
+        obj_mesh_reflect* mesh = &i;
+        obj_mesh_header* mh = &mhs[&i - mesh_array.data()];
+
+        s.write_int64_t(mh->submesh_array);
+        s.write_int32_t((int32_t)mesh->submesh_array.size());
+        s.write_uint32_t(mh->format);
+        s.write_int32_t(mh->size_vertex);
+        s.write_int32_t(mh->num_vertex);
+
+        for (int64_t& i : mh->vertex)
+            s.write_int64_t(i);
+
+        uint32_t attrib = mesh->attrib.w & 0x3FFFFFFF;
+        if (mesh->no_reflect)
+            attrib |= 0x10;
+        if (mesh->reflect)
+            attrib |= 0x20;
+        if (mesh->reflect_cam_back)
+            attrib |= 0x40;
+        if (mesh->disable_aabb_culling)
+            attrib |= 0x80;
+        s.write_uint32_t(attrib);
+        s.write_uint8_t(mesh->remove ? 1 : 0);
+        s.write_uint8_t(mesh->index);
+        s.align_write(0x04);
+        s.write(mesh->name, sizeof(mesh->name) - 1);
+        s.write_char('\0');
+    }
+    s.position_pop();
+    free_def(mhs);
+}
+
+obj_set_reflect::obj_set_reflect() {
+    murmurhash = hash_murmurhash_empty;
+    id_aft = -1;
+    id_mmp = -1;
+}
+
+obj_set_reflect::obj_set_reflect(uint32_t murmurhash) {
+    this->murmurhash = murmurhash;
+    id_aft = -1;
+    id_mmp = -1;
+}
+
+obj_set_reflect::~obj_set_reflect() {
+
+}
+
+void obj_set_reflect::pack_file(void** data, size_t* size, bool mmp,
+    obj_set_reflect_encode_flags flags) {
+    if (!data)
+        return;
+
+    memory_stream s;
+    s.open();
+
+    const int64_t obj_offset = 0x10;
+    s.align_write(0x10);
+
+    const size_t obj_num = obj_data.size();
+
+    s.write_uint32_t(reverse_endianness_uint32_t('objx'));
+    s.write_int32_t((int32_t)obj_num);
+    s.write_int64_t(obj_offset);
+    s.align_write(0x10);
+
+    s.write(0x18 * obj_num);
+
+    std::vector<int64_t> mesh_offsets;
+    mesh_offsets.reserve(obj_num);
+    for (obj_reflect& i : obj_data) {
+        if (!i.mesh_array.size()) {
+            mesh_offsets.push_back(0);
+            continue;
+        }
+
+        mesh_offsets.push_back(s.get_position());
+        i.write_model(s, s.get_position());
+    }
+    s.align_write(0x10);
+
+    std::vector<int64_t> material_offsets;
+    material_offsets.reserve(obj_num);
+    for (obj_reflect& i : obj_data) {
+        if (!i.material_array.size()) {
+            material_offsets.push_back(0);
+            continue;
+        }
+
+        material_offsets.push_back(s.get_position());
+        for (auto& j : i.material_array) {
+            obj_material_data mat_data = mmp ? j.second : j.first;
+            for (obj_material_texture_data& k : mat_data.material.texdata)
+                mat4_transpose(&k.tex_coord_mat, &k.tex_coord_mat);
+            s.write_data(mat_data);
+        }
+    }
+    s.align_write(0x10);
+
+    s.position_push(obj_offset, SEEK_SET);
+    size_t index = 0;
+    for (obj_reflect& i : obj_data) {
+        s.write_uint32_t(mmp ? i.id_mmp : i.id_aft);
+        s.write_uint16_t((uint16_t)i.mesh_array.size());
+        s.write_uint16_t((uint16_t)i.material_array.size());
+        s.write_int64_t(mesh_offsets.data()[index]);
+        s.write_int64_t(material_offsets.data()[index]);
+        index++;
+    }
+    s.position_pop();
+
+    *data = 0;
+    *size = 0;
+
+    std::vector<uint8_t> objx_data;
+    s.align_write(0x10);
+    s.copy(objx_data);
+
+    size_t max_enc_len = align_val(objx_data.size(), 0x20) + F2_HEADER_EXTENDED_LENGTH + 0x30;
+    void* enc = malloc(max_enc_len);
+
+    if (!enc || max_enc_len <= F2_HEADER_EXTENDED_LENGTH + 0x30) {
+        if (enc)
+            free(enc);
+        return;
+    }
+
+    memset(enc, 0, max_enc_len);
+
+    f2_header* head = new (enc) f2_header('OBJX',
+        (uint32_t)(max_enc_len - F2_HEADER_EXTENDED_LENGTH + 0x30), 0, true);
+
+    uint32_t _size = (uint32_t)objx_data.size();
+    if (head)
+        head->custom = _size;
+
+    if (flags & OBJ_SET_REFLECT_ENCODE_GZIP) {
+        void* comp = 0;
+        size_t comp_len = 0;
+
+        if (deflate::compress(objx_data.data(), objx_data.size(), comp, comp_len, deflate::MODE_GZIP) < 0
+            || !comp_len || head->get_section_size() < comp_len) {
+            if (comp)
+                free(comp);
+
+            if (_size > head->get_section_size()) {
+                if (enc)
+                    free(enc);
+                return;
+            }
+
+            memcpy(head->get_section_data(), objx_data.data(), _size);
+        }
+        else {
+            memcpy(head->get_section_data(), comp, comp_len);
+            if (comp)
+                free(comp);
+
+            uint32_t comp_size = align_val((uint32_t)comp_len, 0x20);
+            head->set_section_size(comp_size);
+            head->set_data_size(comp_size);
+            head->attrib.set_gzip(true);
+        }
+    }
+    else {
+        if (_size > head->get_section_size()) {
+            if (enc)
+                free(enc);
+            return;
+        }
+
+        memcpy(head->get_section_data(), objx_data.data(), _size);
+    }
+
+    if (flags & OBJ_SET_REFLECT_ENCODE_AES) {
+        uint8_t* section_data = head->get_section_data();
+        uint32_t section_size = head->get_section_size();
+        if (section_data && section_size == align_val(section_size, 0x20)) {
+            static const uint32_t key_iv_size = 0x30;
+
+            const uint32_t data_size = head->get_data_size();
+            head->set_data_size(data_size + key_iv_size);
+            head->set_section_size(data_size + key_iv_size);
+
+            uint8_t* key = section_data + section_size;
+            uint8_t* iv = section_data + section_size + 0x20;
+
+            time_t t;
+            rand_state_array_set_seed((uint32_t)time(&t), 4);
+
+            for (uint32_t i = 0; i < 0x20; i += sizeof(uint32_t))
+                *(uint32_t*)(key + i) = rand_state_array_get_int(4);
+
+            for (uint32_t i = 0; i < 0x10; i += sizeof(uint32_t))
+                *(uint32_t*)(iv + i) = rand_state_array_get_int(4);
+
+            aes256_ctx aes;
+            aes256_init_ctx_iv(&aes, key, iv);
+            aes256_cbc_encrypt_buffer(&aes, section_data, section_size);
+            head->attrib.set_aes(true);
+        }
+    }
+
+    if (flags & OBJ_SET_REFLECT_ENCODE_XOR)
+        head->apply_xor();
+
+    if (flags & OBJ_SET_REFLECT_ENCODE_CRC)
+        head->calc_crc();
+
+    *data = enc;
+    *size = (size_t)head->get_length() + head->get_data_size();
+}
+
+x_pack_reflect::x_pack_reflect() {
+
+}
+
+x_pack_reflect::~x_pack_reflect() {
+    for (obj_set_reflect*& i : objset_array)
+        if (i) {
+            delete i;
+            i = 0;
+        }
+}
+
+obj_set_reflect* x_pack_reflect::get_obj_set_reflect(uint32_t id) {
+    for (obj_set_reflect*& i : objset_array)
+        if (i->murmurhash == id)
+            return i;
+    return 0;
+}
+
+XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(), pv_tit_spr_set_ids(), 
+pv_tit_aet_ids(), obj_set_encode_flags(), pv_tit_init(), wait(), start(), exit(), next(), only_firstread_x() {
     index = -1;
     chara_index = CHARA_MIKU;
 
@@ -9134,8 +10014,6 @@ pv_tit_spr_set_ids(), pv_tit_aet_ids(), pv_tit_init(), start(), exit(), next() {
 
     for (uint32_t& i : pv_tit_aet_ids)
         i = hash_murmurhash_empty;
-
-    next = true;
 }
 
 XPVGameBaker::~XPVGameBaker() {
@@ -9143,6 +10021,12 @@ XPVGameBaker::~XPVGameBaker() {
 }
 
 bool XPVGameBaker::init() {
+    wait = true;
+    next = false;
+
+    obj_set_encode_flags = OBJ_SET_REFLECT_ENCODE_DEFAULT;
+    only_firstread_x = false;
+
     x_pack_aft_bake_log_file_ptr = new file_stream;
     x_pack_aft_bake_log_file_ptr->open("x_pack_aft_bake_log.txt", "wb");
     x_pack_mmp_bake_log_file_ptr = new file_stream;
@@ -9154,7 +10038,7 @@ bool XPVGameBaker::init() {
 }
 
 bool XPVGameBaker::ctrl() {
-    if (!next)
+    if (wait || !next)
         return false;
 
     next = false;
@@ -9170,8 +10054,8 @@ bool XPVGameBaker::ctrl() {
 }
 
 bool XPVGameBaker::dest() {
-    aft.Write(x_pack_aft_out_dir);
-    mmp.Write(x_pack_mmp_out_dir);
+    aft.Write(x_pack_aft_out_dir, only_firstread_x, obj_set_encode_flags);
+    mmp.Write(x_pack_mmp_out_dir, only_firstread_x, obj_set_encode_flags);
 
     for (int32_t i = 0; i < 5; i++) {
         sprite_manager_unload_set_modern(pv_tit_aet_set_ids[i], &pv_tit_spr_db);
@@ -9191,6 +10075,62 @@ bool XPVGameBaker::dest() {
     return true;
 }
 
+void XPVGameBaker::window() {
+    if (!wait)
+        return;
+
+    ImGuiIO& io = ImGui::GetIO();
+    ImGuiStyle& style = ImGui::GetStyle();
+    ImFont* font = ImGui::GetFont();
+
+    extern int32_t height;
+    extern int32_t width;
+
+    float_t w = 240.0f;
+    float_t h = (float_t)height;
+    h = min_def(h, 196.0f);
+
+    ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
+    ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
+
+    ImGuiWindowFlags window_flags = 0;
+    window_flags |= ImGuiWindowFlags_NoResize;
+
+    focus = false;
+    bool open = true;
+    if (!ImGui::Begin("X PV Game Baker", &open, window_flags)) {
+        ImGui::End();
+        return;
+    }
+    else if (!open) {
+        exit = true;
+        ImGui::End();
+        return;
+    }
+
+    ImGui::Checkbox("Write only firstread_x.bin", &only_firstread_x);
+
+    ImGui::SeparatorText("Object Set Encode Flags");
+    ImGui::CheckboxFlags("All", &obj_set_encode_flags, OBJ_SET_REFLECT_ENCODE_DEFAULT);
+    ImGui::SameLine();
+    ImGui::BeginGroup();
+    ImGui::CheckboxFlags("GZIP", &obj_set_encode_flags, OBJ_SET_REFLECT_ENCODE_GZIP);
+    ImGui::CheckboxFlags("AES", &obj_set_encode_flags, OBJ_SET_REFLECT_ENCODE_AES);
+    ImGui::CheckboxFlags("XOR", &obj_set_encode_flags, OBJ_SET_REFLECT_ENCODE_XOR);
+    ImGui::CheckboxFlags("CRC", &obj_set_encode_flags, OBJ_SET_REFLECT_ENCODE_CRC);
+    ImGui::EndGroup();
+
+    ImGui::Separator();
+
+    if (ImGui::Button("Start")) {
+        wait = false;
+        index = 0;
+        start = true;
+    }
+
+    ImGui::End();
+}
+
 void XPVGameBaker::print_log(const char* out_dir, _In_z_ _Printf_format_string_ const char* const fmt, ...) {
     va_list args;
     va_start(args, fmt);
@@ -9205,7 +10145,8 @@ void XPVGameBaker::print_log(const char* out_dir, _In_z_ _Printf_format_string_ 
 
     printf("!!! %s !!! %s\n", out_dir == x_pack_mmp_out_dir ? "MM+" : "AFT", buf.c_str());
 }
-#else
+#endif
+
 static const chara_index pv_charas[][6] = {
     { CHARA_MIKU, },
     { CHARA_MIKU, CHARA_LUKA, },
@@ -9508,11 +10449,10 @@ void XPVGameSelector::window() {
 
     ImGui::End();
 }
-#endif
 
 bool x_pv_game_init() {
     x_pv_game_ptr = new x_pv_game;
-#if !BAKE_FAST
+#if !(BAKE_FAST)
     x_pv_game_music_ptr = new x_pv_game_music;
 #endif
     return true;
@@ -9541,7 +10481,7 @@ bool x_pv_game_free() {
         delete x_pv_game_ptr;
         x_pv_game_ptr = 0;
 
-#if !BAKE_FAST
+#if !(BAKE_FAST)
         x_pv_game_music_ptr->stop_reset_flags();
 
         delete x_pv_game_music_ptr;
@@ -9560,8 +10500,10 @@ void x_pv_game_str_array_parse(prj::vector_pair<int32_t, std::string>& str_array
     io_json_read(s, &msg);
     s.close();
 
-    if (msg.type != MSGPACK_MAP)
+    if (msg.type != MSGPACK_MAP) {
+        printf("Failed to load STR Array JSON!\nPath: %s\n", path);
         return;
+    }
 
     msgpack* curves = msg.read_array("STRA");
     if (curves) {
@@ -9598,6 +10540,8 @@ void x_pv_game_data_free() {
 bool x_pv_game_baker_init() {
     if (!x_pv_game_baker_ptr)
         x_pv_game_baker_ptr = new XPVGameBaker;
+    if (!x_pack_reflect_ptr)
+        x_pack_reflect_ptr = new x_pack_reflect;
     if (!farc_compress_ptr) {
         farc_compress_ptr = new FarcCompress;
         farc_compress_ptr->Init();
@@ -9615,6 +10559,11 @@ bool x_pv_game_baker_free() {
         x_pv_game_baker_ptr = 0;
     }
 
+    if (x_pack_reflect_ptr) {
+        delete x_pack_reflect_ptr;
+        x_pack_reflect_ptr = 0;
+    }
+
     if (farc_compress_ptr) {
         farc_compress_ptr->Dest();
         delete farc_compress_ptr;
@@ -9622,7 +10571,8 @@ bool x_pv_game_baker_free() {
     }
     return true;
 }
-#else
+#endif
+
 bool x_pv_game_selector_init() {
     if (!x_pv_game_selector_ptr)
         x_pv_game_selector_ptr = new XPVGameSelector;
@@ -9640,7 +10590,6 @@ bool x_pv_game_selector_free() {
     }
     return true;
 }
-#endif
 
 #if BAKE_DOF
 dof_cam::dof_cam() {
@@ -10056,6 +11005,1211 @@ static void x_pv_game_fix_txp_set(txp_set* txp_set, const char* out_dir) {
                     j.format = TXP_BC1;
 }
 
+static void x_pv_game_process_object(obj_set* obj_set) {
+    const int32_t obj_num = obj_set->obj_num;
+    obj** obj_data = obj_set->obj_data;
+    for (int32_t i = 0; i < obj_num; i++, obj_data++) {
+        const obj* obj = *obj_data;
+
+        obj_mesh* mesh_array = obj->mesh_array;
+        int32_t num_mesh = obj->num_mesh;
+        for (int32_t j = 0; j < num_mesh; j++) {
+            obj_mesh* mesh = &mesh_array[j];
+
+            auto find_duplicate_data = [](obj_mesh* mesh, int32_t texcoord_index) {
+                if (!(mesh->vertex_format & (OBJ_VERTEX_TEXCOORD0 << texcoord_index)))
+                    return;
+
+                bool found = false;
+                const int32_t num_vertex = mesh->num_vertex;
+                obj_vertex_data* vertex_array = mesh->vertex_array;
+                for (int32_t k = texcoord_index - 1; k >= 0; k--) {
+                    if (!(mesh->vertex_format & (OBJ_VERTEX_TEXCOORD0 << k)))
+                        continue;
+
+                    int32_t l = 0;
+                    for (; l < num_vertex; l++)
+                        if ((&vertex_array[l].texcoord0)[k] != (&vertex_array[l].texcoord0)[texcoord_index])
+                            break;
+
+                    if (l != num_vertex)
+                        continue;
+
+                    enum_and(mesh->vertex_format, ~(OBJ_VERTEX_TEXCOORD0 << texcoord_index));
+                    for (int32_t l = 0; l < num_vertex; l++)
+                        (&vertex_array[l].texcoord0)[texcoord_index] = 0.0f;
+                    mesh->size_vertex = 0;
+
+                    const int32_t num_submesh = mesh->num_submesh;
+                    obj_sub_mesh* submesh_array = mesh->submesh_array;
+                    for (int32_t l = 0; l < num_submesh; l++)
+                        for (uint8_t& m : submesh_array[l].uv_index)
+                            if (m == texcoord_index)
+                                m = k;
+                }
+            };
+
+            find_duplicate_data(mesh, 3);
+            find_duplicate_data(mesh, 2);
+            find_duplicate_data(mesh, 1);
+        }
+    }
+}
+
+static void x_pv_game_process_object_reflect(const obj_set* obj_set, obj_set_reflect* reflect) {
+    if (!reflect)
+        return;
+
+    const int32_t obj_num = obj_set->obj_num;
+    const obj** obj_data = (const obj**)obj_set->obj_data;
+    for (int32_t i = 0; i < obj_num; i++, obj_data++) {
+        const obj* obj = *obj_data;
+
+        obj_reflect* obj_refl = 0;
+        for (obj_reflect& j : reflect->obj_data)
+            if (j.murmurhash == obj->id) {
+                obj_refl = &j;
+                break;
+            }
+
+        const obj_mesh* mesh_array = obj->mesh_array;
+        int32_t num_mesh = obj->num_mesh;
+        for (int32_t j = 0; j < num_mesh; j++) {
+            const obj_mesh* mesh = &mesh_array[j];
+            uint32_t mesh_name_hash = hash_utf8_murmurhash(mesh->name);
+
+            obj_mesh_reflect* mesh_reflect = 0;
+            if (obj_refl)
+                for (obj_mesh_reflect& k : obj_refl->mesh_array)
+                    if (hash_utf8_murmurhash(k.name) == mesh_name_hash) {
+                        mesh_reflect = &k;
+                        break;
+                    }
+
+            if (mesh_reflect && (mesh_reflect->remove_vertex_color_alpha || mesh_reflect->do_replace_normals)) {
+                mesh_reflect->vertex_format = mesh->vertex_format;
+                mesh_reflect->vertex_array.assign(mesh->vertex_array, mesh->vertex_array + mesh->num_vertex);
+
+                if (mesh_reflect->remove_vertex_color_alpha)
+                    for (obj_vertex_data& k : mesh_reflect->vertex_array)
+                        k.color0.w = 1.0f;
+
+                if (mesh_reflect->do_replace_normals)
+                    for (obj_vertex_data& k : mesh_reflect->vertex_array)
+                        k.normal = mesh_reflect->replace_normals;
+
+                bool disable_normal = !!(mesh_reflect->vertex_format & OBJ_VERTEX_NORMAL);
+                bool disable_tangent = !!(mesh_reflect->vertex_format & OBJ_VERTEX_TANGENT);
+                bool disable_binormal = !!(mesh_reflect->vertex_format & OBJ_VERTEX_BINORMAL);
+                bool disable_texcoord0 = !!(mesh_reflect->vertex_format & OBJ_VERTEX_TEXCOORD0);
+                bool disable_texcoord1 = !!(mesh_reflect->vertex_format & OBJ_VERTEX_TEXCOORD1);
+                bool disable_texcoord2 = !!(mesh_reflect->vertex_format & OBJ_VERTEX_TEXCOORD2);
+                bool disable_texcoord3 = !!(mesh_reflect->vertex_format & OBJ_VERTEX_TEXCOORD3);
+                bool disable_color0 = !!(mesh_reflect->vertex_format & OBJ_VERTEX_COLOR0);
+                bool disable_color1 = !!(mesh_reflect->vertex_format & OBJ_VERTEX_COLOR1);
+                bool disable_bone_weight = !!(mesh_reflect->vertex_format & OBJ_VERTEX_BONE_DATA);
+                bool disable_bone_index = !!(mesh_reflect->vertex_format & OBJ_VERTEX_BONE_DATA);
+                bool disable_unknown = !!(mesh_reflect->vertex_format & OBJ_VERTEX_UNKNOWN);
+                for (obj_vertex_data& k : mesh_reflect->vertex_array) {
+                    if (disable_normal && k.normal != 0.0f)
+                        disable_normal = false;
+                    if (disable_tangent && k.tangent != vec4(0.0f, 0.0f, 0.0f, 1.0f))
+                        disable_tangent = false;
+                    if (disable_binormal && k.binormal != 0.0f)
+                        disable_binormal = false;
+                    if (disable_texcoord0 && k.texcoord0 != 0.0f)
+                        disable_texcoord0 = false;
+                    if (disable_texcoord1 && k.texcoord1 != 0.0f)
+                        disable_texcoord1 = false;
+                    if (disable_texcoord2 && k.texcoord2 != 0.0f)
+                        disable_texcoord2 = false;
+                    if (disable_texcoord3 && k.texcoord3 != 0.0f)
+                        disable_texcoord3 = false;
+                    if (disable_color0 && k.color0 != 1.0f)
+                        disable_color0 = false;
+                    if (disable_color1 && k.color1 != 1.0f)
+                        disable_color1 = false;
+                    if (disable_bone_weight && k.bone_weight != 0.0f)
+                        disable_bone_weight = false;
+                    if (disable_bone_index
+                        && (k.bone_index.x || k.bone_index.y || k.bone_index.z || k.bone_index.w))
+                        disable_bone_index = false;
+                    if (disable_unknown && k.color1 != 1.0f)
+                        disable_unknown = false;
+                    if (!(disable_normal || disable_tangent || disable_binormal
+                        || disable_texcoord0 || disable_texcoord1 || disable_texcoord2 || disable_texcoord3
+                        || disable_color0 || disable_color1 || disable_bone_weight || disable_bone_index || disable_unknown))
+                        break;
+                }
+
+                if (disable_normal)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_NORMAL);
+                if (disable_tangent)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_TANGENT);
+                if (disable_binormal)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_BINORMAL);
+                if (disable_texcoord0)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_TEXCOORD0);
+                if (disable_texcoord1)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_TEXCOORD1);
+                if (disable_texcoord2)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_TEXCOORD2);
+                if (disable_texcoord3)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_TEXCOORD3);
+                if (disable_color0)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_COLOR0);
+                if (disable_color1)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_COLOR1);
+                if (disable_bone_weight && disable_bone_index)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_BONE_DATA);
+                if (disable_unknown)
+                    enum_and(mesh_reflect->vertex_format, ~OBJ_VERTEX_UNKNOWN);
+            }
+
+            const int32_t num_submesh = mesh->num_submesh;
+            const obj_sub_mesh* submesh_array = mesh->submesh_array;
+            if (mesh_reflect && (mesh_reflect->remove_vertices_volume_array.size() || mesh_reflect->do_split)) {
+                const obj_vertex_data* vertex_array = mesh->vertex_array;
+
+                if (mesh_reflect->remove_vertices_volume_array.size()) {
+                    const int32_t frb_num_submesh_old = (int32_t)mesh_reflect->submesh_array.size();
+                    mesh_reflect->submesh_array.resize(num_submesh);
+                    for (int32_t k = frb_num_submesh_old; k < num_submesh; k++) {
+                        const obj_sub_mesh* submesh = &submesh_array[k];
+                        obj_sub_mesh_reflect& sub_mesh_reflect = mesh_reflect->submesh_array.data()[k];
+                        sub_mesh_reflect.attrib = submesh->attrib;
+                        sub_mesh_reflect.no_reflect = mesh_reflect->no_reflect;
+                        sub_mesh_reflect.reflect = mesh_reflect->reflect;
+                        sub_mesh_reflect.reflect_cam_back = mesh_reflect->reflect_cam_back;
+                    }
+                }
+
+                for (int32_t k = 0; k < num_submesh; k++) {
+                    const obj_sub_mesh* submesh = &submesh_array[k];
+
+                    if (submesh->primitive_type != OBJ_PRIMITIVE_TRIANGLES || !submesh->num_index)
+                        continue;
+
+                    auto check_vertex = [](std::vector<obj_sub_mesh_reflect_volume>& volume_array, const vec3& pos) {
+                        for (obj_sub_mesh_reflect_volume& i : volume_array)
+                            if (i.check_vertex(pos))
+                                return true;
+                        return false;
+                    };
+
+                    obj_sub_mesh_reflect& sub_mesh_reflect = mesh_reflect->submesh_array.data()[k];
+                    if (sub_mesh_reflect.split.do_split) {
+                        if (sub_mesh_reflect.split.volume_array.size()) {
+                            std::vector<uint32_t> index_array;
+                            std::vector<uint32_t> index_array_before;
+                            index_array.assign(submesh->index_array, submesh->index_array + submesh->num_index);
+
+                            vec3 sub_mesh_min[2] = { FLT_MAX, FLT_MAX };
+                            vec3 sub_mesh_max[2] = { -FLT_MAX, -FLT_MAX };
+
+                            uint32_t* l_begin = index_array.data();
+                            uint32_t* l_end = index_array.data() + (index_array.size() / 3 * 3);
+                            for (uint32_t* l = l_begin; l != l_end;) {
+                                const vec3& pos0 = vertex_array[l[0]].position;
+                                bool before1 = check_vertex(sub_mesh_reflect.split.volume_array, pos0);
+
+                                const vec3& pos1 = vertex_array[l[1]].position;
+                                bool before2 = check_vertex(sub_mesh_reflect.split.volume_array, pos1);
+
+                                const vec3& pos2 = vertex_array[l[2]].position;
+                                bool before3 = check_vertex(sub_mesh_reflect.split.volume_array, pos2);
+
+                                if (before1 && before2 && before3) {
+                                    sub_mesh_min[1] = vec3::min(sub_mesh_min[1], vec3::min(pos0, vec3::min(pos1, pos2)));
+                                    sub_mesh_max[1] = vec3::max(sub_mesh_max[1], vec3::max(pos0, vec3::max(pos1, pos2)));
+
+                                    size_t l_off = (l - l_begin) / 3 * 3;
+                                    l = l_begin + l_off;
+                                    index_array_before.insert(index_array_before.end(), l, l + 3);
+                                    index_array.erase(index_array.begin() + l_off, index_array.begin() + (l_off + 3));
+                                    l_end = index_array.data() + (index_array.size() / 3 * 3);
+                                }
+                                else {
+                                    sub_mesh_min[0] = vec3::min(sub_mesh_min[0], vec3::min(pos0, vec3::min(pos1, pos2)));
+                                    sub_mesh_max[0] = vec3::max(sub_mesh_max[0], vec3::max(pos0, vec3::max(pos1, pos2)));
+                                    l += 3;
+                                }
+                            }
+
+                            sub_mesh_reflect.split.index_format = submesh->index_format;
+                            sub_mesh_reflect.split.data[0].bounding_sphere.center
+                                = (sub_mesh_min[0] + sub_mesh_max[0]) / 2.0f;
+                            sub_mesh_reflect.split.data[0].bounding_sphere.radius
+                                = vec3::distance(sub_mesh_min[0], sub_mesh_max[0]) / 2.0f;
+                            sub_mesh_reflect.split.data[0].index_array.resize(
+                                meshopt_stripifyBound(index_array.size()));
+                            sub_mesh_reflect.split.data[0].index_array.resize(
+                                meshopt_stripify(sub_mesh_reflect.split.data[0].index_array.data(),
+                                    index_array.data(), index_array.size(), mesh->num_vertex, 0xFFFFFFFF));
+                            sub_mesh_reflect.split.data[1].bounding_sphere.center
+                                = (sub_mesh_min[1] + sub_mesh_max[1]) / 2.0f;
+                            sub_mesh_reflect.split.data[1].bounding_sphere.radius
+                                = vec3::distance(sub_mesh_min[1], sub_mesh_max[1]) / 2.0f;
+                            sub_mesh_reflect.split.data[1].index_array.resize(
+                                meshopt_stripifyBound(index_array_before.size()));
+                            sub_mesh_reflect.split.data[1].index_array.resize(
+                                meshopt_stripify(sub_mesh_reflect.split.data[1].index_array.data(),
+                                    index_array_before.data(), index_array_before.size(), mesh->num_vertex, 0xFFFFFFFF));
+                        }
+                    }
+                    else if (mesh_reflect->remove_vertices_volume_array.size()) {
+                        std::vector<uint32_t> index_array;
+                        index_array.assign(submesh->index_array, submesh->index_array + submesh->num_index);
+
+                        vec3 sub_mesh_min = FLT_MAX;
+                        vec3 sub_mesh_max = -FLT_MAX;
+
+                        uint32_t* l_begin = index_array.data();
+                        uint32_t* l_end = index_array.data() + (index_array.size() / 3 * 3);
+                        for (uint32_t* l = l_begin; l != l_end;) {
+                            const vec3& pos0 = vertex_array[l[0]].position;
+                            bool remove1 = check_vertex(mesh_reflect->remove_vertices_volume_array, pos0);
+
+                            const vec3& pos1 = vertex_array[l[1]].position;
+                            bool remove2 = check_vertex(mesh_reflect->remove_vertices_volume_array, pos1);
+
+                            const vec3& pos2 = vertex_array[l[2]].position;
+                            bool remove3 = check_vertex(mesh_reflect->remove_vertices_volume_array, pos2);
+
+                            if (remove1 && remove2 && remove3) {
+                                size_t l_off = (l - l_begin) / 3 * 3;
+                                l = l_begin + l_off;
+                                index_array.erase(index_array.begin() + l_off, index_array.begin() + (l_off + 3));
+                                l_end = index_array.data() + (index_array.size() / 3 * 3);
+                            }
+                            else {
+                                sub_mesh_min = vec3::min(sub_mesh_min, vec3::min(pos0, vec3::min(pos1, pos2)));
+                                sub_mesh_max = vec3::max(sub_mesh_max, vec3::max(pos0, vec3::max(pos1, pos2)));
+                                l += 3;
+                            }
+                        }
+
+                        sub_mesh_reflect.bounding_sphere.center = (sub_mesh_min + sub_mesh_max) / 2.0f;
+                        sub_mesh_reflect.bounding_sphere.radius = vec3::distance(sub_mesh_min, sub_mesh_max) / 2.0f;
+                        sub_mesh_reflect.index_format = submesh->index_format;
+                        sub_mesh_reflect.index_array.resize(meshopt_stripifyBound(index_array.size()));
+                        sub_mesh_reflect.index_array.resize(meshopt_stripify(sub_mesh_reflect.index_array.data(),
+                            index_array.data(), index_array.size(), mesh->num_vertex, 0xFFFFFFFF));
+                    }
+                }
+            }
+        }
+    }
+}
+
+static void x_pv_game_read_object_reflect(const char* path, const char* set_name,
+    const obj_set* obj_set, obj_set_reflect* reflect) {
+    if (!path_check_directory_exists(path))
+        return;
+
+    char set_name_buf[0x80];
+    for (const char* i = set_name; *i && *i != '.'; i++) {
+        char c = *i;
+        if (c >= 'a' && c <= 'z')
+            c -= 0x20;
+        set_name_buf[i - set_name] = c;
+        set_name_buf[i - set_name + 1] = 0;
+    }
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\", path);
+    if (!path_check_directory_exists(buf))
+        return;
+
+    sprintf_s(buf, sizeof(buf), "%s\\%s.json", path, set_name_buf);
+    if (!path_check_file_exists(buf))
+        return;
+
+    msgpack msg;
+
+    file_stream s;
+    s.open(buf, "rb");
+    io_json_read(s, &msg);
+    s.close();
+
+    if (msg.type != MSGPACK_ARRAY) {
+        printf("Failed to load Object Config JSON!\nPath: %s\n", buf);
+        return;
+    }
+
+    msgpack_array* ptr = msg.data.arr;
+    for (msgpack& i : *ptr) {
+        msgpack& object = i;
+
+        std::string name = object.read_string("name");
+        const uint32_t name_hash = hash_string_murmurhash(name);
+
+        for (int32_t i = 0; i < obj_set->obj_num; i++) {
+            const obj* obj = obj_set->obj_data[i];
+
+            if (name_hash != hash_utf8_murmurhash(obj->name))
+                continue;
+
+            size_t idx = -1;
+            for (obj_reflect& j : reflect->obj_data)
+                if (j.murmurhash == name_hash) {
+                    idx = &j - reflect->obj_data.data();
+                    break;
+                }
+
+            if (idx == -1) {
+                reflect->obj_data.push_back({});
+                reflect->obj_data.back().murmurhash = name_hash;
+                idx = reflect->obj_data.size() - 1;
+            }
+
+            obj_reflect& obj_reflect = reflect->obj_data.data()[idx];
+
+            msgpack* materials = object.read_array("material");
+            if (materials) {
+                msgpack_array* ptr = materials->data.arr;
+
+                std::vector<obj_material_data> material_array;
+                if (ptr->size())
+                    material_array.assign(obj->material_array, obj->material_array + obj->num_material);
+
+                for (msgpack& j : *ptr) {
+                    msgpack& material = j;
+
+                    std::string name = material.read_string("name");
+                    const uint32_t name_hash = hash_string_murmurhash(name);
+                    std::string base_name = material.read_string("base_name");
+                    const uint32_t base_name_hash = hash_string_murmurhash(base_name);
+
+                    const int32_t num_material = obj->num_material;
+                    for (int32_t k = 0; k < num_material; k++) {
+                        obj_material* mat = &material_array.data()[k].material;
+                        uint32_t mat_name_hash = hash_utf8_murmurhash(mat->name);
+                        if (base_name_hash != hash_murmurhash_empty && base_name_hash == mat_name_hash) {
+                            material_array.push_back(material_array.data()[k]);
+                            mat = &material_array.back().material;
+
+                            size_t name_length = min_def(sizeof(mat->name) - 1, name.size());
+                            memcpy_s(mat->name, sizeof(mat->name) - 1, name.c_str(), name_length);
+                            memset(mat->name + name_length, 0, sizeof(mat->name) - name_length);
+                        }
+                        else if (name_hash != mat_name_hash)
+                            continue;
+
+                        msgpack* shader_compo = material.read("shader_compo");
+                        if (shader_compo) {
+                            msgpack* color = shader_compo->read("color");
+                            if (color)
+                                mat->shader_compo.m.color = color->read_bool() ? 1 : 0;
+
+                            msgpack* color_a = shader_compo->read("color_a");
+                            if (color_a)
+                                mat->shader_compo.m.color_a = color_a->read_bool() ? 1 : 0;
+
+                            msgpack* color_l1 = shader_compo->read("color_l1");
+                            if (color_l1)
+                                mat->shader_compo.m.color_l1 = color_l1->read_bool() ? 1 : 0;
+
+                            msgpack* color_l1_a = shader_compo->read("color_l1_a");
+                            if (color_l1_a)
+                                mat->shader_compo.m.color_l1_a = color_l1_a->read_bool() ? 1 : 0;
+
+                            msgpack* color_l2 = shader_compo->read("color_l2");
+                            if (color_l2)
+                                mat->shader_compo.m.color_l2 = color_l2->read_bool() ? 1 : 0;
+
+                            msgpack* color_l2_a = shader_compo->read("color_l2_a");
+                            if (color_l2_a)
+                                mat->shader_compo.m.color_l2_a = color_l2_a->read_bool() ? 1 : 0;
+
+                            msgpack* transparency = shader_compo->read("transparency");
+                            if (transparency)
+                                mat->shader_compo.m.transparency = transparency->read_bool() ? 1 : 0;
+
+                            msgpack* specular = shader_compo->read("specular");
+                            if (specular)
+                                mat->shader_compo.m.specular = specular->read_bool() ? 1 : 0;
+
+                            msgpack* normal_01 = shader_compo->read("normal_01");
+                            if (normal_01)
+                                mat->shader_compo.m.normal_01 = normal_01->read_bool() ? 1 : 0;
+
+                            msgpack* normal_02 = shader_compo->read("normal_02");
+                            if (normal_02)
+                                mat->shader_compo.m.normal_02 = normal_02->read_bool() ? 1 : 0;
+
+                            msgpack* envmap = shader_compo->read("envmap");
+                            if (envmap)
+                                mat->shader_compo.m.envmap = envmap->read_bool() ? 1 : 0;
+
+                            msgpack* color_l3 = shader_compo->read("color_l3");
+                            if (color_l3)
+                                mat->shader_compo.m.color_l3 = color_l3->read_bool() ? 1 : 0;
+
+                            msgpack* color_l3_a = shader_compo->read("color_l3_a");
+                            if (color_l3_a)
+                                mat->shader_compo.m.color_l3_a = color_l3_a->read_bool() ? 1 : 0;
+
+                            msgpack* translucency = shader_compo->read("translucency");
+                            if (translucency)
+                                mat->shader_compo.m.translucency = translucency->read_bool() ? 1 : 0;
+
+                            msgpack* flag_14 = shader_compo->read("flag_14");
+                            if (flag_14)
+                                mat->shader_compo.m.flag_14 = flag_14->read_bool() ? 1 : 0;
+
+                            msgpack* override_ibl = shader_compo->read("override_ibl");
+                            if (override_ibl)
+                                mat->shader_compo.m.override_ibl = override_ibl->read_bool() ? 1 : 0;
+
+                            msgpack* dummy = shader_compo->read("dummy");
+                            if (dummy)
+                                mat->shader_compo.m.dummy = dummy->read_uint32_t();
+                        }
+
+                        msgpack* _shader_name = material.read("shader_name");
+                        if (_shader_name) {
+                            std::string shader_name = _shader_name->read_string();
+                            size_t name_length = min_def(sizeof(mat->shader.name) - 1, shader_name.size());
+                            memcpy_s(mat->shader.name, sizeof(mat->shader.name) - 1, shader_name.c_str(), name_length);
+                            memset(mat->shader.name + name_length, 0, sizeof(mat->shader.name) - name_length);
+                        }
+
+                        msgpack* shader_info = material.read("shader_info");
+                        if (shader_info) {
+                            msgpack* vtx_trans_type = shader_info->read("vtx_trans_type");
+                            if (vtx_trans_type)
+                                mat->shader_info.m.vtx_trans_type = (obj_material_vertex_translation_type)
+                                vtx_trans_type->read_uint32_t();
+
+                            msgpack* col_src = shader_info->read("col_src");
+                            if (col_src)
+                                mat->shader_info.m.col_src
+                                    = (obj_material_color_source_type)col_src->read_uint32_t("col_src");
+
+                            msgpack* is_lgt_diffuse = shader_info->read("is_lgt_diffuse");
+                            if (is_lgt_diffuse)
+                                mat->shader_info.m.is_lgt_diffuse = is_lgt_diffuse->read_bool() ? 1 : 0;
+
+                            msgpack* is_lgt_specular = shader_info->read("is_lgt_specular");
+                            if (is_lgt_specular)
+                                mat->shader_info.m.is_lgt_specular = is_lgt_specular->read_bool() ? 1 : 0;
+
+                            msgpack* is_lgt_per_pixel = shader_info->read("is_lgt_per_pixel");
+                            if (is_lgt_per_pixel)
+                                mat->shader_info.m.is_lgt_per_pixel = is_lgt_per_pixel->read_bool() ? 1 : 0;
+
+                            msgpack* is_lgt_double = shader_info->read("is_lgt_double");
+                            if (is_lgt_double)
+                                mat->shader_info.m.is_lgt_double = is_lgt_double->read_bool() ? 1 : 0;
+
+                            msgpack* bump_map_type = shader_info->read("bump_map_type");
+                            if (bump_map_type)
+                                mat->shader_info.m.bump_map_type = (obj_material_bump_map_type)
+                                bump_map_type->read_uint32_t();
+
+                            msgpack* fresnel_type = shader_info->read("fresnel_type");
+                            if (fresnel_type)
+                                mat->shader_info.m.fresnel_type = fresnel_type->read_uint32_t();
+
+                            msgpack* line_light = shader_info->read("line_light");
+                            if (line_light)
+                                mat->shader_info.m.line_light = line_light->read_uint32_t();
+
+                            msgpack* recieve_shadow = shader_info->read("recieve_shadow");
+                            if (recieve_shadow)
+                                mat->shader_info.m.recieve_shadow = recieve_shadow->read_bool() ? 1 : 0;
+
+                            msgpack* cast_shadow = shader_info->read("cast_shadow");
+                            if (cast_shadow)
+                                mat->shader_info.m.cast_shadow = cast_shadow->read_bool() ? 1 : 0;
+
+                            msgpack* specular_quality = shader_info->read("specular_quality");
+                            if (specular_quality)
+                                mat->shader_info.m.specular_quality = (obj_material_specular_quality)
+                                specular_quality->read_uint32_t();
+
+                            msgpack* aniso_direction = shader_info->read("aniso_direction");
+                            if (aniso_direction)
+                                mat->shader_info.m.aniso_direction = (obj_material_aniso_direction)
+                                aniso_direction->read_uint32_t();
+
+                            msgpack* dummy = shader_info->read("dummy");
+                            if (dummy)
+                                mat->shader_info.m.dummy = dummy->read_uint32_t();
+                        }
+
+                        int32_t num_of_textures = 0;
+                        msgpack* texdata = material.read("texdata");
+                        if (texdata) {
+                            for (obj_material_texture_data& l : mat->texdata) {
+                                sprintf_s(buf, sizeof(buf), "%d", (int32_t)(&l - mat->texdata));
+                                msgpack* tex = texdata->read(buf);
+
+                                if (!tex)
+                                    continue;
+
+                                msgpack* attrib = tex->read("attrib");
+                                if (attrib) {
+                                    msgpack* repeat_u = attrib->read("repeat_u");
+                                    if (repeat_u)
+                                        l.attrib.m.repeat_u = repeat_u->read_bool() ? 1 : 0;
+
+                                    msgpack* repeat_v = attrib->read("repeat_v");
+                                    if (repeat_v)
+                                        l.attrib.m.repeat_v = attrib->read_bool() ? 1 : 0;
+
+                                    msgpack* mirror_u = attrib->read("mirror_u");
+                                    if (mirror_u)
+                                        l.attrib.m.mirror_u = attrib->read_bool() ? 1 : 0;
+
+                                    msgpack* mirror_v = attrib->read("mirror_v");
+                                    if (mirror_v)
+                                        l.attrib.m.mirror_v = attrib->read_bool() ? 1 : 0;
+
+                                    msgpack* ignore_alpha = attrib->read("ignore_alpha");
+                                    if (ignore_alpha)
+                                        l.attrib.m.ignore_alpha = attrib->read_bool() ? 1 : 0;
+
+                                    msgpack* blend = attrib->read("blend");
+                                    if (blend)
+                                        l.attrib.m.blend = attrib->read_uint32_t();
+
+                                    msgpack* alpha_blend = attrib->read("alpha_blend");
+                                    if (alpha_blend)
+                                        l.attrib.m.alpha_blend = attrib->read_uint32_t();
+
+                                    msgpack* border = attrib->read("border");
+                                    if (border)
+                                        l.attrib.m.border = attrib->read_bool() ? 1 : 0;
+
+                                    msgpack* clamp2edge = attrib->read("clamp2edge");
+                                    if (clamp2edge)
+                                        l.attrib.m.clamp2edge = attrib->read_bool() ? 1 : 0;
+
+                                    msgpack* filter = attrib->read("filter");
+                                    if (filter)
+                                        l.attrib.m.filter = attrib->read_uint32_t();
+
+                                    msgpack* mipmap = attrib->read("mipmap");
+                                    if (mipmap)
+                                        l.attrib.m.mipmap = attrib->read_uint32_t();
+
+                                    msgpack* mipmap_bias = attrib->read("mipmap_bias");
+                                    if (mipmap_bias)
+                                        l.attrib.m.mipmap_bias = mipmap_bias->read_uint32_t();
+
+                                    msgpack* flag_29 = attrib->read("flag_29");
+                                    if (flag_29)
+                                        l.attrib.m.flag_29 = flag_29->read_bool() ? 1 : 0;
+
+                                    msgpack* anisotropic_filter = attrib->read("anisotropic_filter");
+                                    if (anisotropic_filter)
+                                        l.attrib.m.anisotropic_filter = anisotropic_filter->read_uint32_t();
+                                }
+
+                                msgpack* _tex_name = tex->read("tex_name");
+                                if (_tex_name) {
+                                    std::string tex_name = _tex_name->read_string();
+                                    l.tex_index = hash_string_murmurhash(tex_name);
+                                }
+
+                                msgpack* shader_info = tex->read("shader_info");
+                                if (shader_info) {
+                                    msgpack* tex_type = shader_info->read("tex_type");
+                                    if (tex_type)
+                                        l.shader_info.m.tex_type = (obj_material_texture_type)
+                                        tex_type->read_uint32_t();
+
+                                    msgpack* uv_idx = shader_info->read("uv_idx");
+                                    if (uv_idx)
+                                        l.shader_info.m.uv_idx = shader_info->read_uint32_t();
+
+                                    msgpack* texcoord_trans = shader_info->read("texcoord_trans");
+                                    if (texcoord_trans)
+                                        l.shader_info.m.texcoord_trans = (obj_material_texture_coordinate_translation_type)
+                                        texcoord_trans->read_uint32_t();
+
+                                    msgpack* dummy = shader_info->read("dummy");
+                                    if (dummy)
+                                        l.shader_info.m.dummy = dummy->read_uint32_t();
+                                }
+
+                                msgpack* _ex_shader = material.read("ex_shader");
+                                if (_ex_shader) {
+                                    std::string shader_name = _ex_shader->read_string();
+                                    size_t name_length = min_def(sizeof(l.ex_shader) - 1, shader_name.size());
+                                    memcpy_s(l.ex_shader, sizeof(l.ex_shader) - 1, shader_name.c_str(), name_length);
+                                    memset(l.ex_shader + name_length, 0, sizeof(l.ex_shader) - name_length);
+                                }
+
+                                msgpack* weight = tex->read("weight");
+                                if (weight)
+                                    l.weight = weight->read_float_t();
+
+                                msgpack* tex_coord_mat = tex->read_array("tex_coord_mat");
+                                if (tex_coord_mat) {
+                                    msgpack_array* tex_coord_mat_ptr = tex_coord_mat->data.arr;
+
+                                    {
+                                        msgpack& row0 = tex_coord_mat_ptr->data()[0];
+                                        msgpack_array* row0_ptr = row0.data.arr;
+                                        l.tex_coord_mat.row0.x = row0_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row0.y = row0_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row0.z = row0_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row0.w = row0_ptr->data()[3].read_float_t();
+                                    }
+
+                                    {
+                                        msgpack& row1 = tex_coord_mat_ptr->data()[1];
+                                        msgpack_array* row1_ptr = row1.data.arr;
+                                        l.tex_coord_mat.row1.x = row1_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row1.y = row1_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row1.z = row1_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row1.w = row1_ptr->data()[3].read_float_t();
+                                    }
+
+                                    {
+                                        msgpack& row2 = tex_coord_mat_ptr->data()[2];
+                                        msgpack_array* row2_ptr = row2.data.arr;
+                                        l.tex_coord_mat.row2.x = row2_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row2.y = row2_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row2.z = row2_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row2.w = row2_ptr->data()[3].read_float_t();
+                                    }
+
+                                    {
+                                        msgpack& row3 = tex_coord_mat_ptr->data()[3];
+                                        msgpack_array* row3_ptr = row3.data.arr;
+                                        l.tex_coord_mat.row3.x = row3_ptr->data()[0].read_float_t();
+                                        l.tex_coord_mat.row3.y = row3_ptr->data()[1].read_float_t();
+                                        l.tex_coord_mat.row3.z = row3_ptr->data()[2].read_float_t();
+                                        l.tex_coord_mat.row3.w = row3_ptr->data()[3].read_float_t();
+                                    }
+                                }
+
+                                msgpack* reserved = tex->read_array("reserved");
+                                if (reserved) {
+                                    msgpack_array* ptr = reserved->data.arr;
+                                    for (int32_t m = 0; m < 8; m++)
+                                        l.reserved[m] = ptr->data()[m].read_uint32_t();
+                                }
+                                num_of_textures++;
+                            }
+                        }
+
+                        obj->material_array[k].num_of_textures = num_of_textures;
+
+                        msgpack* attrib = material.read("attrib");
+                        if (attrib) {
+                            msgpack* alpha_texture = attrib->read("alpha_texture");
+                            if (alpha_texture)
+                                mat->attrib.m.alpha_texture = alpha_texture->read_bool() ? 1 : 0;
+
+                            msgpack* alpha_material = attrib->read("alpha_material");
+                            if (alpha_material)
+                                mat->attrib.m.alpha_material = alpha_material->read_bool() ? 1 : 0;
+
+                            msgpack* punch_through = attrib->read("punch_through");
+                            if (punch_through)
+                                mat->attrib.m.punch_through = punch_through->read_bool() ? 1 : 0;
+
+                            msgpack* double_sided = attrib->read("double_sided");
+                            if (double_sided)
+                                mat->attrib.m.double_sided = double_sided->read_bool() ? 1 : 0;
+
+                            msgpack* normal_dir_light = attrib->read("normal_dir_light");
+                            if (normal_dir_light)
+                                mat->attrib.m.normal_dir_light = normal_dir_light->read_bool() ? 1 : 0;
+
+                            msgpack* src_blend_factor = attrib->read("src_blend_factor");
+                            if (src_blend_factor)
+                                mat->attrib.m.src_blend_factor = (obj_material_blend_factor)
+                                src_blend_factor->read_uint32_t();
+
+                            msgpack* dst_blend_factor = attrib->read("dst_blend_factor");
+                            if (dst_blend_factor)
+                                mat->attrib.m.dst_blend_factor = (obj_material_blend_factor)
+                                dst_blend_factor->read_uint32_t();
+
+                            msgpack* blend_operation = attrib->read("blend_operation");
+                            if (blend_operation)
+                                mat->attrib.m.blend_operation = blend_operation->read_uint32_t();
+
+                            msgpack* zbias = attrib->read("zbias");
+                            if (zbias)
+                                mat->attrib.m.zbias = zbias->read_uint32_t();
+
+                            msgpack* no_fog = attrib->read("no_fog");
+                            if (no_fog)
+                                mat->attrib.m.no_fog = no_fog->read_bool() ? 1 : 0;
+
+                            msgpack* translucent_priority = attrib->read("translucent_priority");
+                            if (translucent_priority)
+                                mat->attrib.m.translucent_priority = translucent_priority->read_uint32_t();
+
+                            msgpack* has_fog_height = attrib->read("has_fog_height");
+                            if (has_fog_height)
+                                mat->attrib.m.has_fog_height = has_fog_height->read_bool() ? 1 : 0;
+
+                            msgpack* flag_28 = attrib->read("flag_28");
+                            if (flag_28)
+                                mat->attrib.m.flag_28 = flag_28->read_bool() ? 1 : 0;
+
+                            msgpack* fog_height = attrib->read("fog_height");
+                            if (fog_height)
+                                mat->attrib.m.fog_height = fog_height->read_bool() ? 1 : 0;
+
+                            msgpack* flag_30 = attrib->read("flag_30");
+                            if (flag_30)
+                                mat->attrib.m.flag_30 = flag_30->read_bool() ? 1 : 0;
+
+                            msgpack* flag_31 = attrib->read("flag_31");
+                            if (flag_31)
+                                mat->attrib.m.flag_31 = flag_31->read_bool() ? 1 : 0;
+                        }
+
+                        msgpack* color = material.read("color");
+                        if (color) {
+                            msgpack* diffuse = color->read("diffuse");
+                            if (diffuse) {
+                                msgpack* r = diffuse->read("r");
+                                if (r)
+                                    mat->color.diffuse.x = r->read_float_t();
+
+                                msgpack* g = diffuse->read("g");
+                                if (g)
+                                    mat->color.diffuse.y = g->read_float_t();
+
+                                msgpack* b = diffuse->read("b");
+                                if (b)
+                                    mat->color.diffuse.z = b->read_float_t();
+
+                                msgpack* a = diffuse->read("a");
+                                if (a)
+                                    mat->color.diffuse.w = a->read_float_t();
+                            }
+
+                            msgpack* ambient = color->read("ambient");
+                            if (ambient) {
+                                msgpack* r = ambient->read("r");
+                                if (r)
+                                    mat->color.ambient.x = r->read_float_t();
+
+                                msgpack* g = ambient->read("g");
+                                if (g)
+                                    mat->color.ambient.y = g->read_float_t();
+
+                                msgpack* b = ambient->read("b");
+                                if (b)
+                                    mat->color.ambient.z = b->read_float_t();
+
+                                msgpack* a = ambient->read("a");
+                                if (a)
+                                    mat->color.ambient.w = a->read_float_t();
+                            }
+
+                            msgpack* specular = color->read("specular");
+                            if (specular) {
+                                msgpack* r = specular->read("r");
+                                if (r)
+                                    mat->color.specular.x = r->read_float_t();
+
+                                msgpack* g = specular->read("g");
+                                if (g)
+                                    mat->color.specular.y = g->read_float_t();
+
+                                msgpack* b = specular->read("b");
+                                if (b)
+                                    mat->color.specular.z = b->read_float_t();
+
+                                msgpack* a = specular->read("a");
+                                if (a)
+                                    mat->color.specular.w = a->read_float_t();
+                            }
+
+                            msgpack* emission = color->read("emission");
+                            if (emission) {
+                                msgpack* r = emission->read("r");
+                                if (r)
+                                    mat->color.emission.x = r->read_float_t();
+
+                                msgpack* g = emission->read("g");
+                                if (g)
+                                    mat->color.emission.y = g->read_float_t();
+
+                                msgpack* b = emission->read("b");
+                                if (b)
+                                    mat->color.emission.z = b->read_float_t();
+
+                                msgpack* a = emission->read("a");
+                                if (a)
+                                    mat->color.emission.w = a->read_float_t();
+                            }
+
+                            msgpack* shininess = color->read("shininess");
+                            if (shininess)
+                                mat->color.shininess = shininess->read_float_t();
+
+                            msgpack* intensity = color->read("intensity");
+                            if (intensity)
+                                mat->color.intensity = intensity->read_float_t();
+                        }
+
+                        msgpack* center = material.read("center");
+                        if (center) {
+                            mat->center.x = center->read_float_t("x");
+                            mat->center.y = center->read_float_t("y");
+                            mat->center.z = center->read_float_t("z");
+                        }
+
+                        msgpack* radius = material.read("radius");
+                        if (radius)
+                            mat->radius = radius->read_float_t();
+
+                        msgpack* bump_depth = material.read("bump_depth");
+                        if (bump_depth)
+                            mat->bump_depth = bump_depth->read_float_t();
+
+                        msgpack* reserved = material.read_array("reserved");
+                        if (reserved) {
+                            msgpack_array* ptr = reserved->data.arr;
+                            for (int32_t m = 0; m < 15; m++)
+                                mat->reserved[m] = ptr->data()[m].read_uint32_t();
+                        }
+                        break;
+                    }
+                }
+
+                obj_reflect.material_array.reserve(material_array.size());
+                for (obj_material_data& j : material_array)
+                    obj_reflect.material_array.push_back(j, j);
+            }
+
+            msgpack* meshes = object.read_array("mesh");
+            if (meshes) {
+                msgpack_array* ptr = meshes->data.arr;
+                for (msgpack& j : *ptr) {
+                    msgpack& _mesh = j;
+
+                    std::string name = _mesh.read_string("name");
+                    const uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+                    msgpack* _index = _mesh.read("index");
+                    const int32_t index = _index ? _index->read_int32_t() : -1;
+
+                    int32_t index_match = -1;
+                    for (int32_t k = 0; k < obj->num_mesh; k++) {
+                        obj_mesh& mesh = obj->mesh_array[k];
+                        if (name_hash != hash_utf8_xxh3_64bits(mesh.name))
+                            continue;
+                        else if (index != -1) {
+                            if (++index_match != index)
+                                continue;
+                        }
+
+                        size_t idx = -1;
+                        for (obj_mesh_reflect& l : obj_reflect.mesh_array)
+                            if (hash_utf8_xxh3_64bits(l.name) == name_hash && l.index == (uint8_t)index) {
+                                idx = &l - obj_reflect.mesh_array.data();
+                                break;
+                            }
+
+                        if (idx == -1) {
+                            obj_reflect.mesh_array.push_back({});
+                            memcpy(obj_reflect.mesh_array.back().name, obj->mesh_array[k].name, 0x40);
+                            obj_reflect.mesh_array.back().attrib = obj->mesh_array[k].attrib;
+                            idx = obj_reflect.mesh_array.size() - 1;
+                        }
+
+                        obj_mesh_reflect& mesh_reflect = obj_reflect.mesh_array.data()[idx];
+
+                        msgpack* replace_normals = _mesh.read("replace_normals");
+                        if (replace_normals) {
+                            mesh_reflect.do_replace_normals = true;
+
+                            vec3& normal = mesh_reflect.replace_normals;
+                            normal = { 0.0f, 1.0f, 0.0f };
+
+                            msgpack* x = replace_normals->read("x");
+                            if (x)
+                                normal.x = x->read_float_t();
+
+                            msgpack* y = replace_normals->read("y");
+                            if (y)
+                                normal.y = y->read_float_t();
+
+                            msgpack* z = replace_normals->read("z");
+                            if (z)
+                                normal.z = z->read_float_t();
+                        }
+
+                        mesh_reflect.disable_aabb_culling = _mesh.read_bool("disable_aabb_culling");
+                        mesh_reflect.no_reflect = _mesh.read_bool("no_reflect");
+                        mesh_reflect.reflect = _mesh.read_bool("reflect");
+                        mesh_reflect.reflect_cam_back = _mesh.read_bool("reflect_cam_back");
+                        mesh_reflect.remove = _mesh.read_bool("remove");
+                        mesh_reflect.remove_vertex_color_alpha = _mesh.read_bool("remove_vertex_color_alpha");
+                        mesh_reflect.index = (uint8_t)index;
+
+                        msgpack* sub_meshes = _mesh.read_array("sub_mesh");
+                        if (sub_meshes) {
+                            mesh_reflect.submesh_array.resize(mesh.num_submesh);
+
+                            msgpack_array* ptr = sub_meshes->data.arr;
+                            for (int32_t l = 0; l < mesh.num_submesh; l++) {
+                                obj_sub_mesh& sub_mesh = mesh.submesh_array[l];
+                                obj_sub_mesh_reflect& sub_mesh_reflect = mesh_reflect.submesh_array.data()[l];
+                                msgpack& _sub_mesh = ptr->data()[l];
+
+                                sub_mesh_reflect.attrib = sub_mesh.attrib;
+                                sub_mesh_reflect.no_reflect = mesh_reflect.no_reflect;
+                                sub_mesh_reflect.reflect = mesh_reflect.reflect;
+                                sub_mesh_reflect.reflect_cam_back = mesh_reflect.reflect_cam_back;
+
+                                msgpack* no_reflect = _sub_mesh.read("no_reflect");
+                                if (no_reflect)
+                                    sub_mesh_reflect.no_reflect = no_reflect->read_bool();
+
+                                msgpack* reflect = _sub_mesh.read("reflect");
+                                if (sub_mesh_reflect.reflect && reflect)
+                                    sub_mesh_reflect.reflect = reflect->read_bool();
+
+                                msgpack* reflect_cam_back = _sub_mesh.read("reflect_cam_back");
+                                if (reflect_cam_back)
+                                    sub_mesh_reflect.reflect_cam_back = reflect_cam_back->read_bool();
+
+                                msgpack* split_copy = _sub_mesh.read("split_copy");
+                                msgpack* split_y = _sub_mesh.read("split_y");
+                                msgpack* split_z = _sub_mesh.read("split_z");
+                                msgpack* split_volume = _sub_mesh.read("split_volume");
+                                if (split_copy) {
+                                    mesh_reflect.do_split = true;
+                                    sub_mesh_reflect.split.do_split = true;
+                                    sub_mesh_reflect.split.volume_array.clear();
+                                }
+                                if (split_y) {
+                                    mesh_reflect.do_split = true;
+                                    sub_mesh_reflect.split.do_split = true;
+                                    sub_mesh_reflect.split.volume_array.clear();
+                                    sub_mesh_reflect.split.volume_array.push_back({});
+                                    obj_sub_mesh_reflect_volume& split_volume
+                                        = sub_mesh_reflect.split.volume_array.back();
+
+                                    split_volume.do_y = true;
+                                    split_volume.y = split_y->read_float_t();
+                                }
+                                else if (split_z) {
+                                    mesh_reflect.do_split = true;
+                                    sub_mesh_reflect.split.do_split = true;
+                                    sub_mesh_reflect.split.volume_array.clear();
+                                    sub_mesh_reflect.split.volume_array.push_back({});
+                                    obj_sub_mesh_reflect_volume& split_volume
+                                        = sub_mesh_reflect.split.volume_array.back();
+
+                                    split_volume.do_z = true;
+                                    split_volume.z = split_z->read_float_t();
+                                }
+                                else if (split_volume) {
+                                    mesh_reflect.do_split = true;
+                                    sub_mesh_reflect.split.do_split = true;
+
+                                    msgpack_array* ptr = split_volume->data.arr;
+                                    sub_mesh_reflect.split.volume_array.clear();
+                                    sub_mesh_reflect.split.volume_array.reserve(ptr->size());
+                                    for (msgpack& l : *ptr) {
+                                        msgpack& _split_volume = l;
+                                        sub_mesh_reflect.split.volume_array.push_back({});
+                                        obj_sub_mesh_reflect_volume& split_volume
+                                            = sub_mesh_reflect.split.volume_array.back();
+
+                                        msgpack* split_y = _split_volume.read("split_y");
+                                        msgpack* split_z = _split_volume.read("split_z");
+                                        if (split_y) {
+                                            split_volume.do_y = true;
+                                            split_volume.y = split_y->read_float_t();
+                                        }
+                                        else if (split_z) {
+                                            split_volume.do_z = true;
+                                            split_volume.z = split_z->read_float_t();
+                                        }
+
+                                        msgpack* min = _split_volume.read("min");
+                                        if (min) {
+                                            split_volume.min_max_set = true;
+                                            split_volume.min.x = min->read_float_t("x");
+                                            split_volume.min.y = min->read_float_t("y");
+                                            split_volume.min.z = min->read_float_t("z");
+                                        }
+
+                                        msgpack* max = _split_volume.read("max");
+                                        if (max) {
+                                            split_volume.min_max_set = true;
+                                            split_volume.max.x = max->read_float_t("x");
+                                            split_volume.max.y = max->read_float_t("y");
+                                            split_volume.max.z = max->read_float_t("z");
+                                        }
+                                    }
+                                }
+
+                                if (sub_mesh_reflect.split.do_split) {
+                                    msgpack* split_mesh_0 = _sub_mesh.read("split_mesh_0");
+                                    if (split_mesh_0) {
+                                        sub_mesh_reflect.split.data[0].no_reflect = sub_mesh_reflect.no_reflect;
+                                        sub_mesh_reflect.split.data[0].reflect = sub_mesh_reflect.reflect;
+                                        sub_mesh_reflect.split.data[0].reflect_cam_back
+                                            = sub_mesh_reflect.reflect_cam_back;
+
+                                        msgpack* material_name = split_mesh_0->read("material_name");
+                                        if (material_name) {
+                                            std::string name = material_name->read_string();
+                                            const uint32_t name_hash = hash_string_murmurhash(name);
+
+                                            if (obj_reflect.material_array.size()) {
+                                                const int32_t num_material = (int32_t)obj_reflect.material_array.size();
+                                                for (int32_t m = 0; m < num_material; m++)
+                                                    if (name_hash == hash_utf8_murmurhash(
+                                                        obj_reflect.material_array.data()[m].first.material.name)) {
+                                                        sub_mesh_reflect.split.data[0].material_index = m;
+                                                        break;
+                                                    }
+                                            }
+                                            else {
+                                                obj_material_data* material_array = obj->material_array;
+                                                const int32_t num_material = obj->num_material;
+                                                for (int32_t m = 0; m < num_material; m++)
+                                                    if (name_hash == hash_utf8_murmurhash(material_array[m].material.name)) {
+                                                        sub_mesh_reflect.split.data[0].material_index = m;
+                                                        break;
+                                                    }
+                                            }
+                                        }
+
+                                        msgpack* no_reflect = split_mesh_0->read("no_reflect");
+                                        if (no_reflect)
+                                            sub_mesh_reflect.split.data[0].no_reflect = no_reflect->read_bool();
+
+                                        msgpack* reflect = split_mesh_0->read("reflect");
+                                        if (sub_mesh_reflect.split.data[0].reflect && reflect)
+                                            sub_mesh_reflect.split.data[0].reflect = reflect->read_bool();
+
+                                        msgpack* reflect_cam_back = split_mesh_0->read("reflect_cam_back");
+                                        if (reflect_cam_back)
+                                            sub_mesh_reflect.split.data[0].reflect_cam_back
+                                                = reflect_cam_back->read_bool();
+                                    }
+
+                                    msgpack* split_mesh_1 = _sub_mesh.read("split_mesh_1");
+                                    if (split_mesh_1) {
+                                        sub_mesh_reflect.split.data[1].no_reflect = sub_mesh_reflect.no_reflect;
+                                        sub_mesh_reflect.split.data[1].reflect = sub_mesh_reflect.reflect;
+                                        sub_mesh_reflect.split.data[1].reflect_cam_back
+                                            = sub_mesh_reflect.reflect_cam_back;
+
+                                        msgpack* material_name = split_mesh_1->read("material_name");
+                                        if (material_name) {
+                                            std::string name = material_name->read_string();
+                                            const uint32_t name_hash = hash_string_murmurhash(name);
+
+                                            if (obj_reflect.material_array.size()) {
+                                                const int32_t num_material = (int32_t)obj_reflect.material_array.size();
+                                                for (int32_t m = 0; m < num_material; m++)
+                                                    if (name_hash == hash_utf8_murmurhash(
+                                                        obj_reflect.material_array.data()[m].first.material.name)) {
+                                                        sub_mesh_reflect.split.data[1].material_index = m;
+                                                        break;
+                                                    }
+                                            }
+                                            else {
+                                                obj_material_data* material_array = obj->material_array;
+                                                const int32_t num_material = obj->num_material;
+                                                for (int32_t m = 0; m < num_material; m++)
+                                                    if (name_hash == hash_utf8_murmurhash(material_array[m].material.name)) {
+                                                        sub_mesh_reflect.split.data[1].material_index = m;
+                                                        break;
+                                                    }
+                                            }
+                                        }
+
+                                        msgpack* no_reflect = split_mesh_1->read("no_reflect");
+                                        if (no_reflect)
+                                            sub_mesh_reflect.split.data[1].no_reflect = no_reflect->read_bool();
+
+                                        msgpack* reflect = split_mesh_1->read("reflect");
+                                        if (sub_mesh_reflect.split.data[1].reflect && reflect)
+                                            sub_mesh_reflect.split.data[1].reflect = reflect->read_bool();
+
+                                        msgpack* reflect_cam_back = split_mesh_1->read("reflect_cam_back");
+                                        if (reflect_cam_back)
+                                            sub_mesh_reflect.split.data[1].reflect_cam_back
+                                                = reflect_cam_back->read_bool();
+                                    }
+                                }
+
+                                msgpack* attrib = _sub_mesh.read("attrib");
+                                if (attrib) {
+                                    msgpack* recieve_shadow = attrib->read("recieve_shadow");
+                                    if (recieve_shadow)
+                                        sub_mesh_reflect.attrib.m.recieve_shadow = recieve_shadow->read_bool();
+
+                                    msgpack* cast_shadow = attrib->read("cast_shadow");
+                                    if (cast_shadow)
+                                        sub_mesh_reflect.attrib.m.cast_shadow = cast_shadow->read_bool();
+
+                                    msgpack* translucent = attrib->read("translucent");
+                                    if (translucent)
+                                        sub_mesh_reflect.attrib.m.translucent = translucent->read_bool();
+                                }
+                            }
+                        }
+
+                        msgpack* remove_vertices = _mesh.read_array("remove_vertices");
+                        if (remove_vertices) {
+                            msgpack_array* ptr = remove_vertices->data.arr;
+                            mesh_reflect.remove_vertices_volume_array.clear();
+                            mesh_reflect.remove_vertices_volume_array.reserve(ptr->size());
+                            for (msgpack& l : *ptr) {
+                                msgpack& _remove_vertices = l;
+                                mesh_reflect.remove_vertices_volume_array.push_back({});
+                                obj_sub_mesh_reflect_volume& remove_vertices
+                                    = mesh_reflect.remove_vertices_volume_array.back();
+
+                                msgpack* split_y = _remove_vertices.read("split_y");
+                                msgpack* split_z = _remove_vertices.read("split_z");
+                                if (split_y) {
+                                    remove_vertices.do_y = true;
+                                    remove_vertices.y = split_y->read_float_t();
+                                }
+                                else if (split_z) {
+                                    remove_vertices.do_z = true;
+                                    remove_vertices.z = split_z->read_float_t();
+                                }
+
+                                msgpack* min = _remove_vertices.read("min");
+                                if (min) {
+                                    remove_vertices.min_max_set = true;
+                                    remove_vertices.min.x = min->read_float_t("x");
+                                    remove_vertices.min.y = min->read_float_t("y");
+                                    remove_vertices.min.z = min->read_float_t("z");
+                                }
+
+                                msgpack* max = _remove_vertices.read("max");
+                                if (max) {
+                                    remove_vertices.min_max_set = true;
+                                    remove_vertices.max.x = max->read_float_t("x");
+                                    remove_vertices.max.y = max->read_float_t("y");
+                                    remove_vertices.max.z = max->read_float_t("z");
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            break;
+        }
+    }
+}
+
 static void x_pv_game_update_object_set(ObjsetInfo* info) {
     prj::shared_ptr<prj::stack_allocator> old_alloc = info->alloc_handler;
 
@@ -10088,7 +12242,7 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
     if (pos != -1)
         file_name.replace(pos, 4, ".bin");
 
-    uint64_t name_hash = hash_string_xxh3_64bits(name);
+    const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
     size_t set_index = -1;
     uint32_t id = -1;
@@ -10129,9 +12283,9 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
     std::string sprite_set_name("SPR_");
     sprite_set_name.append(aet_db_aet_set->name, 4);
 
-    uint32_t sprite_set_hash = hash_string_murmurhash(sprite_set_name);
+    const uint64_t sprite_set_hash = hash_string_xxh3_64bits(sprite_set_name);
     for (const spr_db_spr_set_file& i : x_pack_spr_db->sprite_set)
-        if (sprite_set_hash == hash_string_murmurhash(i.name)) {
+        if (hash_string_xxh3_64bits(i.name) == sprite_set_hash) {
             aet_db_aet_set->sprite_set_id = i.id;
             break;
         }
@@ -10144,7 +12298,7 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
         std::string name(aet->name);
         replace_stgpv_pv(name);
 
-        uint64_t name_hash = hash_string_xxh3_64bits(name);
+        const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
         size_t aet_index = -1;
         for (aet_db_aet_file& j : old_aet) {
@@ -10202,10 +12356,10 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
                 std::string name("SPR_");
                 name.append(source->sprite_name);
 
-                uint32_t hash = hash_string_murmurhash(name);
+                const uint64_t name_hash = hash_string_xxh3_64bits(name);
                 for (const spr_db_spr_set_file& l : x_pack_spr_db->sprite_set)
                     for (const spr_db_spr_file& m : l.sprite)
-                        if (hash == hash_string_murmurhash(m.name))
+                        if (hash_string_xxh3_64bits(m.name) == name_hash)
                             *(uint32_t*)&source->sprite_index = m.id;
             }
         }
@@ -10213,7 +12367,8 @@ static void x_pv_game_write_aet(uint32_t aet_set_id,
         replace_stgpv_pv((char*)scene->name);
     }
 
-    file_stream s;
+    if (x_pv_game_baker_ptr->only_firstread_x)
+        return;
 
     void* data = 0;
     size_t size = 0;
@@ -10297,13 +12452,12 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_fil
         x_pv_game_write_auth_3d_category(name, auth_3d_db, avail_uids, out_dir);
     }
 
-    uint64_t name_hash = hash_string_xxh3_64bits(name);
+    const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
     size_t uid_index = -1;
     for (auth_3d_database_uid_file& i : auth_3d_db->uid)
         if (i.value.size() > 2 && hash_string_xxh3_64bits(i.value.substr(2)) == name_hash)
             uid_index = &i - auth_3d_db->uid.data();
-
 
     if (uid_index == -1)
         if (avail_uids.size()) {
@@ -10341,13 +12495,12 @@ static void x_pv_game_write_auth_3d_camera(auth_3d* auth, int32_t pv_id,
     std::string name = sprintf_s_string("CAMPV%03d_BASE", pv_id);
     replace_names(name);
 
-    uint64_t name_hash = hash_string_xxh3_64bits(name);
+    const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
     size_t uid_index = -1;
     for (auth_3d_database_uid_file& i : auth_3d_db->uid)
         if (i.value.size() > 2 && hash_string_xxh3_64bits(i.value.substr(2)) == name_hash)
             uid_index = &i - auth_3d_db->uid.data();
-
 
     if (uid_index == -1)
         if (avail_uids.size()) {
@@ -10384,12 +12537,12 @@ static void x_pv_game_write_auth_3d_category(const std::string& category,
         itmpv = true;
     }
 
-    uint64_t category_hash = hash_string_xxh3_64bits(category);
-    uint64_t itmpv_name_hash = hash_string_xxh3_64bits(itmpv_name);
+    const uint64_t category_hash = hash_string_xxh3_64bits(category);
+    const uint64_t itmpv_name_hash = hash_string_xxh3_64bits(itmpv_name);
 
     size_t category_index = -1;
     for (std::string& i : auth_3d_db->category) {
-        uint64_t hash = hash_string_xxh3_64bits(i);
+        const uint64_t hash = hash_string_xxh3_64bits(i);
         if (hash == category_hash || hash == itmpv_name_hash) {
             category_index = &i - auth_3d_db->category.data();
             i.assign(category);
@@ -10408,7 +12561,7 @@ static void x_pv_game_write_auth_3d_category(const std::string& category,
             if (!i.category.size() && prj::find(avail_uids, index))
                 continue;
 
-            uint64_t hash = hash_string_xxh3_64bits(i.category);
+            const uint64_t hash = hash_string_xxh3_64bits(i.category);
             if (hash == category_hash || itmpv && hash == itmpv_name_hash) {
                 x_pv_game_baker_ptr->print_log(out_dir, "Clearing Auth 3D UID: %d"
                     "; Former value: \"%s\"", i.org_uid, i.value.c_str());
@@ -10426,7 +12579,226 @@ static void x_pv_game_write_auth_3d_category(const std::string& category,
     }
 }
 
+static void x_pv_game_write_auth_3d_reflect(stream& s, auth_3d_database_file* auth_3d_db) {
+    const char* path = "patch\\AFT\\reflect";
+    if (!path_check_directory_exists(path))
+        return;
+
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\", path);
+    if (!path_check_directory_exists(buf))
+        return;
+
+    sprintf_s(buf, sizeof(buf), "%s\\auth_3d.json", path);
+    if (!path_check_file_exists(buf))
+        return;
+
+    msgpack msg;
+
+    file_stream fs;
+    fs.open(buf, "rb");
+    io_json_read(fs, &msg);
+    fs.close();
+
+    if (msg.type != MSGPACK_ARRAY) {
+        printf("Failed to load Auth 3D Reflect JSON!\nPath: %s\n", buf);
+        return;
+    }
+
+    struct auth_3d_object_struct {
+        std::string name;
+        std::string uid_name;
+
+        inline auth_3d_object_struct() {
+
+        }
+
+        inline ~auth_3d_object_struct() {
+
+        }
+    };
+
+    struct auth_3d_object_list_struct {
+        std::string name;
+        bool remove;
+
+        inline auth_3d_object_list_struct() : remove() {
+
+        }
+
+        inline ~auth_3d_object_list_struct() {
+
+        }
+    };
+
+    struct auth_3d_struct {
+        int32_t uid;
+        std::vector<auth_3d_object_struct> object;
+        int64_t object_offset;
+        std::vector<auth_3d_object_list_struct> object_list;
+        int64_t object_list_offset;
+
+        inline auth_3d_struct() : object_offset(), object_list_offset() {
+            uid = -1;
+        }
+
+        inline ~auth_3d_struct() {
+
+        }
+    };
+
+    std::vector<auth_3d_struct> auth_3d;
+    msgpack_array* ptr = msg.data.arr;
+    auth_3d.resize(ptr->size());
+    for (msgpack& i : *ptr) {
+        msgpack& _auth_3d = i;
+
+        std::string name = _auth_3d.read_string("name");
+        replace_names(name);
+        const uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+        auth_3d_struct& auth_3d_reflect = auth_3d.data()[&i - ptr->data()];
+
+        for (auth_3d_database_uid_file& j : auth_3d_db->uid) {
+            if (j.value.size() > 2 && hash_string_xxh3_64bits(j.value.substr(2)) != name_hash)
+                continue;
+
+            auth_3d_reflect.uid = j.org_uid;
+
+            msgpack* object = _auth_3d.read_array("object");
+            if (object) {
+                msgpack_array* ptr = object->data.arr;
+                auth_3d_reflect.object.reserve(ptr->size());
+                for (msgpack& k : *ptr) {
+                    auth_3d_reflect.object.push_back({});
+                    auth_3d_object_struct& obj = auth_3d_reflect.object.back();
+                    obj.name.assign(k.read_string("name"));
+                    replace_names(obj.name);
+                    obj.uid_name.assign(k.read_string("uid_name"));
+                    replace_names(obj.uid_name);
+                }
+            }
+
+            msgpack* object_list = _auth_3d.read_array("object_list");
+            if (object_list) {
+                msgpack_array* ptr = object_list->data.arr;
+                auth_3d_reflect.object_list.reserve(ptr->size());
+                for (msgpack& k : *ptr) {
+                    auth_3d_reflect.object_list.push_back({});
+                    auth_3d_object_list_struct& obj_list = auth_3d_reflect.object_list.back();
+                    obj_list.name.assign(k.read_string("name"));
+                    replace_names(obj_list.name);
+                    obj_list.remove = k.read_bool("remove");
+                }
+            }
+            break;
+        }
+    }
+
+    const size_t num_auth_3d = auth_3d.size();
+
+    const int64_t auth_3d_offset = 0x10;
+
+    memory_stream ms;
+    ms.open();
+
+    ms.write_uint32_t(reverse_endianness_uint32_t('a3dx'));
+    ms.write_uint32_t((uint32_t)num_auth_3d);
+    ms.write_int64_t(auth_3d_offset);
+    ms.align_write(0x10);
+
+    ms.write(align_val(0x20 * num_auth_3d, 0x10));
+
+    prj::vector_pair<std::string, size_t> names;
+
+    for (auth_3d_struct& i : auth_3d) {
+        if (i.object.size()) {
+            i.object_offset = ms.get_position();
+            ms.write(align_val(0x10 * i.object.size(), 0x10));
+
+            for (auth_3d_object_struct& j : i.object) {
+                names.push_back(j.name, 0);
+                names.push_back(j.uid_name, 0);
+            }
+        }
+
+        if (i.object_list.size()) {
+            i.object_list_offset = ms.get_position();
+            ms.write(align_val(0x10 * i.object_list.size(), 0x10));
+
+            for (auth_3d_object_list_struct& j : i.object_list)
+                names.push_back(j.name, 0);
+        }
+    }
+
+    names.sort_unique();
+
+    for (auto& i : names) {
+        i.second = ms.get_position();
+        ms.write_string_null_terminated(i.first);
+    }
+    ms.align_write(0x10);
+
+    for (auth_3d_struct& i : auth_3d) {
+        if (i.object.size()) {
+            ms.position_push(i.object_offset, SEEK_SET);
+            for (auth_3d_object_struct& j : i.object) {
+                auto elem_name = names.find(j.name);
+                ms.write_uint64_t(elem_name != names.end() ? elem_name->second : 0);
+
+                auto elem_uid_name = names.find(j.uid_name);
+                ms.write_uint64_t(elem_uid_name != names.end() ? elem_uid_name->second : 0);
+            }
+            ms.position_pop();
+        }
+
+        if (i.object_list.size()) {
+            ms.position_push(i.object_list_offset, SEEK_SET);
+            for (auth_3d_object_list_struct& j : i.object_list) {
+                auto elem_name = names.find(j.name);
+                ms.write_uint64_t(elem_name != names.end() ? elem_name->second : 0);
+                ms.write_uint8_t(j.remove ? 1 : 0);
+                ms.align_write(0x08);
+            }
+            ms.position_pop();
+        }
+    }
+
+    ms.position_push(auth_3d_offset, SEEK_SET);
+    for (auth_3d_struct& i : auth_3d) {
+        ms.write_int32_t(i.uid);
+        ms.write_uint32_t((uint32_t)i.object.size());
+        ms.write_uint32_t((uint32_t)i.object_list.size());
+        ms.align_write(0x08);
+        ms.write_int64_t(i.object_offset);
+        ms.write_int64_t(i.object_list_offset);
+    }
+    ms.position_pop();
+
+    ms.align_write(0x10);
+
+    s.align_write(0x10);
+    const int64_t base_offset = s.get_position();
+    {
+        std::vector<uint8_t> data;
+        ms.copy(data);
+        ms.close();
+        s.write(data.data(), data.size());
+    }
+    const int64_t size = s.get_position() - base_offset;
+
+    s.position_push(0x10 + sizeof(uint64_t) * 2 * X_PACK_BAKE_FIRSTREAD_AUTH_3D, SEEK_SET);
+    s.write_int64_t(base_offset);
+    s.write_int64_t(size);
+    s.position_pop();
+
+    s.flush();
+}
+
 static void x_pv_game_write_dsc(const dsc& d, int32_t pv_id, const char* out_dir) {
+    if (x_pv_game_baker_ptr->only_firstread_x)
+        return;
+
     data_struct* aft_data = &data_list[DATA_AFT];
 
     dsc _d = d;
@@ -10759,6 +13131,9 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
         }
     }
 
+    if (x_pv_game_baker_ptr->only_firstread_x)
+        return;
+
     Glitter::FileWriter::Write(Glitter::X, &temp_eff_group,
         sprintf_s_string("%s\\%s", out_dir, "particle_x\\").c_str(),
         name, (Glitter::FileWriterFlags)(Glitter::FILE_WRITER_COMPRESS
@@ -10795,8 +13170,10 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
     io_json_read(s, &msg);
     s.close();
 
-    if (msg.type != MSGPACK_MAP)
+    if (msg.type != MSGPACK_MAP) {
+        printf("Failed to load Material Config JSON!\nPath: %s\n", buf);
         return;
+    }
 
     msgpack* add = msg.read_array("Add");
     if (add) {
@@ -10817,7 +13194,7 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
             if (!d.width || !d.height || !d.mipmaps_count || d.data.size() < 1)
                 continue;
 
-            uint32_t id = hash_string_murmurhash(name);
+            const uint32_t id = hash_string_murmurhash(name);
             ids.push_back(id);
 
             txp_set->textures.push_back({});
@@ -10854,7 +13231,7 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
             if (!name.size())
                 continue;
 
-            uint32_t id = hash_string_murmurhash(name);
+            const uint32_t id = hash_string_murmurhash(name);
 
             uint32_t* tex_id_data = obj_set->tex_id_data;
             int32_t tex_id_num = obj_set->tex_id_num;
@@ -10888,10 +13265,10 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
             if (!d.width || !d.height || !d.mipmaps_count || d.data.size() < 1)
                 continue;
 
-            uint32_t id = hash_string_murmurhash(name);
+            const uint32_t id = hash_string_murmurhash(name);
 
             uint32_t* tex_id_data = obj_set->tex_id_data;
-            int32_t tex_id_num = obj_set->tex_id_num;
+            const int32_t tex_id_num = obj_set->tex_id_num;
 
             txp* tex = 0;
             for (int32_t i = 0; i < tex_id_num; i++)
@@ -10929,11 +13306,10 @@ static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
     }
 }
 
-
 static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name,
     object_database_file* x_pack_obj_db, const texture_database* tex_db,
     const texture_database* x_pack_tex_db_base, texture_database_file* x_pack_tex_db,
-    prj::vector_pair<uint32_t, uint32_t>* tex_ids, const char* out_dir) {
+    prj::vector_pair<uint32_t, uint32_t>* tex_ids, const char* out_dir, obj_set_reflect* reflect) {
     std::string file_name(string_to_lower(name));
     replace_names(file_name);
 
@@ -10950,13 +13326,13 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
         itmpv = true;
     }
 
-    uint64_t set_name_hash = hash_string_xxh3_64bits(set_name);
-    uint64_t itmpv_name_hash = hash_string_xxh3_64bits(itmpv_name);
+    const uint64_t set_name_hash = hash_string_xxh3_64bits(set_name);
+    const uint64_t itmpv_name_hash = hash_string_xxh3_64bits(itmpv_name);
 
     size_t set_index = -1;
     int32_t object_set_max_id = -1;
     for (object_set_info_file& i : x_pack_obj_db->object_set) {
-        uint64_t hash = hash_string_xxh3_64bits(i.name);
+        const uint64_t hash = hash_string_xxh3_64bits(i.name);
         if (hash == set_name_hash || itmpv && hash == itmpv_name_hash)
             set_index = &i - x_pack_obj_db->object_set.data();
 
@@ -10991,6 +13367,13 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
     obj_set_info->texture_file_name.append("_tex.bin");
     obj_set_info->archive_file_name.assign(file_name);
     obj_set_info->archive_file_name.append(".farc");
+
+    const bool mmp = out_dir == x_pack_mmp_out_dir;
+    if (reflect)
+        if (mmp)
+            reflect->id_mmp = obj_set_info->id;
+        else
+            reflect->id_aft = obj_set_info->id;
 
     prj::shared_ptr<prj::stack_allocator> alloc(new prj::stack_allocator);
     ::obj_set* set = alloc->allocate<::obj_set>();
@@ -11071,12 +13454,12 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
                 itmpv_name.replace(pos, 3, "ITM");
             }
 
-            uint32_t itmpv_hash = itmpv_name.size() ? hash_string_murmurhash(itmpv_name) : 0;
+            const uint64_t itmpv_hash = itmpv_name.size() ? hash_string_xxh3_64bits(itmpv_name) : 0;
 
             bool found = false;
-            uint32_t hash = hash_string_murmurhash(name);
+            const uint64_t hash = hash_string_xxh3_64bits(name);
             for (texture_info_file& j : x_pack_tex_db->texture) {
-                uint32_t tex_hash = hash_string_murmurhash(j.name);
+                const uint64_t tex_hash = hash_string_xxh3_64bits(j.name);
                 if (hash == tex_hash || itmpv_hash == tex_hash) {
                     id = j.id;
                     found = true;
@@ -11112,14 +13495,28 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
         for (int32_t i = 0; i < obj_num; i++) {
             obj* obj = set->obj_data[i];
 
+            obj_reflect* obj_refl = 0;
+            if (reflect)
+                for (obj_reflect& j : reflect->obj_data)
+                    if (j.murmurhash == obj->id) {
+                        obj_refl = &j;
+                        break;
+                    }
+
             replace_names((char*)obj->name);
             obj->id = i;
+
+            if (obj_refl)
+                if (mmp)
+                    obj_refl->id_mmp = i;
+                else
+                    obj_refl->id_aft = i;
 
             obj_set_info->object.push_back({});
             obj_set_info->object.back().id = i;
             obj_set_info->object.back().name.assign(obj->name);
 
-            int32_t num_material = obj->num_material;
+            const int32_t num_material = obj->num_material;
             for (int32_t j = 0; j < num_material; j++) {
                 obj_material& material = obj->material_array[j].material;
 
@@ -11142,6 +13539,29 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
                     strcpy_s(material.shader.name, sizeof(material.shader.name), shader_name);
                 }
             }
+
+            if (obj_refl)
+                for (auto& j : obj_refl->material_array) {
+                    obj_material& material = (mmp ? j.second : j.first).material;
+                    for (obj_material_texture_data& k : material.texdata) {
+                        k.texture_index = 0;
+                        if (k.tex_index == -1)
+                            continue;
+
+                        auto elem = tex_ids->find(k.tex_index);
+                        if (elem != tex_ids->end() && elem->first == k.tex_index)
+                            k.tex_index = elem->second;
+                        else
+                            k.tex_index = -1;
+
+                    }
+
+                    if (*(int32_t*)&material.shader.name[4] == 0xDEADFF) {
+                        *(int32_t*)&material.shader.name[4] = 0;
+                        const char* shader_name = shaders_ft.get_name_by_index(material.shader.index);
+                        strcpy_s(material.shader.name, sizeof(material.shader.name), shader_name);
+                    }
+                }
         }
 
         set->modern = false;
@@ -11159,8 +13579,8 @@ inline static int64_t x_pv_game_write_strings_get_string_offset(
     std::string _str(str);
     replace_names(_str);
 
-    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(_str);
-    uint64_t hash_murmurhash = hash_string_murmurhash(_str);
+    const uint64_t hash_fnv1a64m = hash_string_fnv1a64m(_str);
+    const uint64_t hash_murmurhash = hash_string_murmurhash(_str);
     for (auto& i : vec)
         if (hash_fnv1a64m == i.first.hash_fnv1a64m && hash_murmurhash == i.first.hash_murmurhash)
             return i.second;
@@ -11172,8 +13592,8 @@ inline static bool x_pv_game_write_file_strings_push_back_check(stream& s,
     std::string _str(str);
     replace_names(_str);
 
-    uint64_t hash_fnv1a64m = hash_string_fnv1a64m(_str);
-    uint64_t hash_murmurhash = hash_string_murmurhash(_str);
+    const uint64_t hash_fnv1a64m = hash_string_fnv1a64m(_str);
+    const uint64_t hash_murmurhash = hash_string_murmurhash(_str);
     for (auto& i : vec)
         if (hash_fnv1a64m == i.first.hash_fnv1a64m && hash_murmurhash == i.first.hash_murmurhash)
             return false;
@@ -11183,8 +13603,81 @@ inline static bool x_pv_game_write_file_strings_push_back_check(stream& s,
     return true;
 }
 
+static void x_pv_game_write_object_set_reflect(stream& s, const char* out_dir,
+    obj_set_reflect_encode_flags flags) {
+    const bool mmp = out_dir == x_pack_mmp_out_dir;
+
+    const size_t num_objset = x_pack_reflect_ptr->objset_array.size();
+
+    const int64_t objset_ids_offset = 0x20;
+    const int64_t objset_offset = align_val(objset_ids_offset + 0x04 * num_objset, 0x10);
+
+    memory_stream ms;
+    ms.open();
+
+    ms.write_uint32_t(reverse_endianness_uint32_t('osdx'));
+    ms.write_uint32_t((uint32_t)num_objset);
+    ms.write_int64_t(objset_ids_offset);
+    ms.write_int64_t(objset_offset);
+    ms.align_write(0x10);
+
+    for (obj_set_reflect*& i : x_pack_reflect_ptr->objset_array)
+        ms.write_uint32_t(mmp ? i->id_mmp : i->id_aft);
+    ms.align_write(0x10);
+
+    ms.write(align_val(0x10 * num_objset, 0x10));
+
+    prj::vector_pair<int64_t, uint64_t> offsets_sizes;
+    offsets_sizes.reserve(num_objset);
+    for (obj_set_reflect*& i : x_pack_reflect_ptr->objset_array) {
+        if (!i) {
+            offsets_sizes.push_back(0, 0);
+            continue;
+        }
+
+        void* data = 0;
+        size_t size = 0;
+        i->pack_file(&data, &size, mmp, flags);
+
+        int64_t offset = ms.get_position();
+        ms.write(data, size);
+        free_def(data);
+
+        offsets_sizes.push_back(offset, size);
+    }
+
+    ms.position_push(objset_offset, SEEK_SET);
+    for (auto& i : offsets_sizes) {
+        ms.write_int64_t(i.first);
+        ms.write_uint64_t(i.second);
+    }
+    ms.position_pop();
+
+    ms.align_write(0x10);
+
+    s.align_write(0x10);
+    const int64_t base_offset = s.get_position();
+    {
+        std::vector<uint8_t> data;
+        ms.copy(data);
+        ms.close();
+        s.write(data.data(), data.size());
+    }
+    const int64_t size = s.get_position() - base_offset;
+
+    s.position_push(0x10 + sizeof(uint64_t) * 2 * X_PACK_BAKE_FIRSTREAD_OBJSET, SEEK_SET);
+    s.write_int64_t(base_offset);
+    s.write_int64_t(size);
+    s.position_pop();
+
+    s.flush();
+}
+
 static void x_pv_game_write_play_param(const pvpp* play_param,
     int32_t pv_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir) {
+    if (x_pv_game_baker_ptr->only_firstread_x)
+        return;
+
     size_t chara_count = 0;
     size_t effect_count = play_param->effect.size();
 
@@ -11387,6 +13880,9 @@ static void x_pv_game_write_play_param(const pvpp* play_param,
 
 static void x_pv_game_write_stage_resource(const pvsr* stage_resource,
     int32_t stage_id, const auth_3d_database* x_pack_auth_3d_db, const char* out_dir) {
+    if (x_pv_game_baker_ptr->only_firstread_x)
+        return;
+
     struct x_pack_pvsr_effect {
         char name[0x40];
         float_t emission;
@@ -11615,7 +14111,7 @@ static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database*
         std::string name(i.name);
         replace_names(name);
 
-        uint64_t name_hash = hash_string_xxh3_64bits(name);
+        const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
         size_t stage_index = -1;
         for (stage_data_file& i : stg_db->stage_data)
@@ -11700,59 +14196,222 @@ static void x_pv_game_write_stage_data(int32_t stage_id, const auth_3d_database*
     }
 }
 
-static void x_pv_game_write_str_array(const char* out_dir) {
-    file_stream s;
-    s.open(sprintf_s_string("%s\\%s", out_dir, "str_array_x.bin").c_str(), "wb");
+static void x_pv_game_write_stage_data_reflect(stream& s, stage_database_file* stg_db) {
+    const char* path = "patch\\AFT\\reflect";
+    if (!path_check_directory_exists(path))
+        return;
 
-    size_t lang_count = x_pv_game_str_array.size();
+    char buf[0x200];
+    sprintf_s(buf, sizeof(buf), "%s\\", path);
+    if (!path_check_directory_exists(buf))
+        return;
+
+    sprintf_s(buf, sizeof(buf), "%s\\stage_data.json", path);
+    if (!path_check_file_exists(buf))
+        return;
+
+    msgpack msg;
+
+    file_stream fs;
+    fs.open(buf, "rb");
+    io_json_read(fs, &msg);
+    fs.close();
+
+    if (msg.type != MSGPACK_ARRAY) {
+        printf("Failed to load Stage Data JSON!\nPath: %s\n", buf);
+        return;
+    }
+
+    struct stage_data_struct {
+        std::string name;
+        int64_t name_offset;
+        stage_data_reflect_type reflect_type;
+        bool reflect;
+        bool reflect_full;
+        stage_data_reflect reflect_data;
+        uint64_t reflect_data_offset;
+
+        inline stage_data_struct() : name_offset(), reflect_type(), reflect(),
+            reflect_full(), reflect_data(), reflect_data_offset() {
+
+        };
+
+        inline ~stage_data_struct() {
+
+        };
+    };
+
+    std::vector<stage_data_struct> stage_data;
+    msgpack_array* ptr = msg.data.arr;
+    stage_data.reserve(ptr->size());
+    for (msgpack& i : *ptr) {
+        msgpack& stage = i;
+
+        std::string name = stage.read_string("name");
+        replace_names(name);
+        const uint64_t name_hash = hash_string_xxh3_64bits(name);
+
+        stage_data.push_back({});
+        stage_data_struct& stage_reflect = stage_data.data()[&i - ptr->data()];
+
+        for (stage_data_file& j : stg_db->stage_data) {
+            if (hash_string_xxh3_64bits(j.name) != name_hash)
+                continue;
+
+            stage_reflect.name.assign(name);
+            stage_reflect.reflect_type = (stage_data_reflect_type)stage.read_int32_t("reflect_type");
+
+            msgpack* reflect = stage.read("reflect");
+            if (reflect) {
+                stage_reflect.reflect = true;
+                stage_reflect.reflect_data_offset = 0;
+                stage_reflect.reflect_data.mode
+                    = (stage_data_reflect_resolution_mode)reflect->read_int32_t("mode");
+                stage_reflect.reflect_data.blur_num = reflect->read_int32_t("blur_num");
+                stage_reflect.reflect_data.blur_filter
+                    = (stage_data_blur_filter_mode)reflect->read_int32_t("blur_filter");
+            }
+            stage_reflect.reflect_full = stage.read_bool("reflect_full");
+            break;
+        }
+    }
+
+    const size_t num_stage_data = stage_data.size();
+
+    const int64_t stage_data_offset = 0x10;
+
+    memory_stream ms;
+    ms.open();
+
+    ms.write_uint32_t(reverse_endianness_uint32_t('stgx'));
+    ms.write_uint32_t((uint32_t)num_stage_data);
+    ms.write_int64_t(stage_data_offset);
+    ms.align_write(0x10);
+
+    ms.write(align_val(0x18 * num_stage_data, 0x10));
+
+    for (stage_data_struct& i : stage_data) {
+        if (!i.reflect)
+            continue;
+
+        i.reflect_data_offset = ms.get_position();
+        ms.write_uint32_t(i.reflect_data.mode);
+        ms.write_int32_t(i.reflect_data.blur_num);
+        ms.write_uint32_t(i.reflect_data.blur_filter);
+    }
+    ms.align_write(0x10);
+
+    for (stage_data_struct& i : stage_data) {
+        i.name_offset = ms.get_position();
+        ms.write_string_null_terminated(i.name);
+    }
+    ms.align_write(0x10);
+
+    ms.position_push(stage_data_offset, SEEK_SET);
+    for (stage_data_struct& i : stage_data) {
+        int32_t pv_id = 0;
+        sscanf_s(i.name.c_str(), "STGPV%03d", &pv_id);
+
+        ms.write_int64_t(i.name_offset);
+        ms.write_uint32_t(pv_id);
+        ms.write_uint8_t((uint8_t)i.reflect_type);
+        ms.write_uint8_t(i.reflect_full ? 1 : 0);
+        ms.align_write(0x08);
+        ms.write_int64_t(i.reflect_data_offset);
+    }
+    ms.position_pop();
+
+    ms.align_write(0x10);
+
+    s.align_write(0x10);
+    const int64_t base_offset = s.get_position();
+    {
+        std::vector<uint8_t> data;
+        ms.copy(data);
+        ms.close();
+        s.write(data.data(), data.size());
+    }
+    const int64_t size = s.get_position() - base_offset;
+
+    s.position_push(0x10 + sizeof(uint64_t) * 2 * X_PACK_BAKE_FIRSTREAD_STAGE_DATA, SEEK_SET);
+    s.write_int64_t(base_offset);
+    s.write_int64_t(size);
+    s.position_pop();
+
+    s.flush();
+}
+
+static void x_pv_game_write_str_array(stream& s) {
+    const size_t num_lang = x_pv_game_str_array.size();
+
+    const int64_t lang_data_offset = 0x10;
+
     size_t strings_count_total = 0;
     for (const auto& i : x_pv_game_str_array)
         strings_count_total += i.second.size();
 
-    const size_t lang_data_offset = 0x10;
+    memory_stream ms;
+    ms.open();
 
-    s.write_uint32_t(reverse_endianness_uint32_t('strx'));
-    s.write_uint32_t((uint32_t)lang_count);
-    s.write_uint32_t((uint32_t)lang_data_offset);
-    s.align_write(lang_data_offset);
+    ms.write_uint32_t(reverse_endianness_uint32_t('strx'));
+    ms.write_uint32_t((uint32_t)num_lang);
+    ms.write_int64_t(lang_data_offset);
+    ms.align_write(0x10);
 
-    s.write(align_val(0x0C * lang_count, 0x10));
+    ms.write(align_val(0x10 * num_lang, 0x10));
 
-    size_t strings_offset_offset = s.get_position();
-    s.write(align_val(0x08 * strings_count_total, 0x10));
+    int64_t strings_offset_offset = ms.get_position();
+    ms.write(align_val(0x10 * strings_count_total, 0x10));
 
     std::unordered_map<std::string, int64_t> strings;
 
-    strings[""] = s.get_position();
-    s.write_string_null_terminated("");
+    strings[""] = ms.get_position();
+    ms.write_string_null_terminated("");
 
     size_t lang_index = 0;
     for (const auto& i : x_pv_game_str_array) {
         for (const auto& j : i.second)
             if (strings.find(j.second) == strings.end()) {
-                strings[j.second] = s.get_position();
-                s.write_string_null_terminated(j.second);
+                strings[j.second] = ms.get_position();
+                ms.write_string_null_terminated(j.second);
             }
 
-        s.position_push(strings_offset_offset, SEEK_SET);
+        ms.position_push(strings_offset_offset, SEEK_SET);
         for (const auto& j : i.second) {
-            s.write_int32_t(j.first);
-            s.write_uint32_t((uint32_t)strings[j.second]);
+            ms.write_int32_t(j.first);
+            ms.align_write(0x08);
+            ms.write_int64_t((uint32_t)strings[j.second]);
         }
-        s.position_pop();
+        ms.position_pop();
 
-        s.position_push(lang_data_offset + 0x0C * lang_index, SEEK_SET);
-        s.write_int32_t(i.first);
-        s.write_uint32_t((uint32_t)i.second.size());
-        s.write_uint32_t((uint32_t)strings_offset_offset);
-        s.position_pop();
+        ms.position_push(lang_data_offset + 0x10 * lang_index, SEEK_SET);
+        ms.write_int32_t(i.first);
+        ms.write_uint32_t((uint32_t)i.second.size());
+        ms.write_int64_t(strings_offset_offset);
+        ms.position_pop();
 
-        strings_offset_offset += 0x08 * i.second.size();
+        strings_offset_offset += 0x10 * i.second.size();
         lang_index++;
     }
-    s.align_write(0x10);
 
-    s.close();
+    ms.align_write(0x10);
+
+    s.align_write(0x10);
+    const int64_t base_offset = s.get_position();
+    {
+        std::vector<uint8_t> data;
+        ms.copy(data);
+        ms.close();
+        s.write(data.data(), data.size());
+    }
+    const int64_t size = s.get_position() - base_offset;
+
+    s.position_push(0x10 + sizeof(uint64_t) * 2 * X_PACK_BAKE_FIRSTREAD_STR_ARRAY, SEEK_SET);
+    s.write_int64_t(base_offset);
+    s.write_int64_t(size);
+    s.position_pop();
+
+    s.flush();
 }
 
 static void x_pv_game_write_spr(uint32_t spr_set_id,
@@ -11775,7 +14434,7 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
     if (pos != -1)
         file_name.replace(pos, 4, ".bin");
 
-    uint64_t name_hash = hash_string_xxh3_64bits(name);
+    const uint64_t name_hash = hash_string_xxh3_64bits(name);
 
     size_t set_index = -1;
     uint32_t id = -1;
@@ -11897,7 +14556,7 @@ static void print_dsc_command(dsc& dsc, dsc_data* dsc_data_ptr, int64_t* time) {
     dw_console_printf(DW_CONSOLE_PV_SCRIPT, ")\n");
 }
 
-#if BAKE_FAST
+#if BAKE_FAST || BAKE_X_PACK
 static void replace_pv832(char* str) {
     char* pv;
     pv = str;

@@ -399,7 +399,7 @@ struct x_pv_game_music_ogg {
     ~x_pv_game_music_ogg();
 };
 
-#if !BAKE_X_PACK
+#if !(BAKE_FAST)
 struct x_pv_game_music {
     x_pv_game_music_flags flags;
     bool pause;
@@ -778,11 +778,7 @@ struct x_pv_game_stage_data {
     bool check_not_loaded();
     void ctrl(object_database* obj_db, texture_database* tex_db);
     void load(int32_t stage_id, FrameRateControl* frame_rate_control);
-#if BAKE_X_PACK
-    void load_objects(int32_t stage_id, object_database* obj_db, texture_database* tex_db);
-#else
     void load_objects(object_database* obj_db, texture_database* tex_db);
-#endif
     void reset();
     void set_default_stage();
     void set_stage(uint32_t hash);
@@ -904,8 +900,7 @@ public:
     }
 };
 
-#if BAKE_X_PACK
-class XPVGameBaker : public app::Task {
+class XPVGameBaker : public app::TaskWindow {
 public:
     struct AFTData {
         aet_database_file aet_db;
@@ -923,7 +918,7 @@ public:
         ~AFTData();
 
         void Read();
-        void Write(const char* out_dir);
+        void Write(const char* out_dir, bool only_firstread_x, uint32_t obj_set_encode_flags);
     };
 
     struct MMPData {
@@ -944,7 +939,7 @@ public:
         ~MMPData();
 
         void Read();
-        void Write(const char* out_dir);
+        void Write(const char* out_dir, bool only_firstread_x, uint32_t obj_set_encode_flags);
     };
 
     int32_t index;
@@ -954,10 +949,13 @@ public:
     uint32_t pv_tit_aet_set_ids[5];
     uint32_t pv_tit_spr_set_ids[5];
     uint32_t pv_tit_aet_ids[5];
+    uint32_t obj_set_encode_flags;
     bool pv_tit_init;
+    bool wait;
     bool start;
     bool exit;
     bool next;
+    bool only_firstread_x;
 
     aet_database pv_tit_aet_db;
     sprite_database pv_tit_spr_db;
@@ -971,10 +969,11 @@ public:
     virtual bool init() override;
     virtual bool ctrl() override;
     virtual bool dest() override;
+    virtual void window() override;
 
     void print_log(const char* out_dir, _In_z_ _Printf_format_string_ const char* const fmt, ...);
 };
-#else
+
 class XPVGameSelector : public app::TaskWindow {
 public:
     int32_t pv_id;
@@ -994,7 +993,6 @@ public:
     virtual bool dest() override;
     virtual void window() override;
 };
-#endif
 
 extern bool x_pv_game_init();
 extern x_pv_game* x_pv_game_get();
@@ -1003,12 +1001,10 @@ extern bool x_pv_game_free();
 extern void x_pv_game_data_init();
 extern void x_pv_game_data_free();
 
-#if BAKE_X_PACK
 extern bool x_pv_game_baker_init();
 extern XPVGameBaker* x_pv_game_baker_get();
 extern bool x_pv_game_baker_free();
-#else
+
 extern bool x_pv_game_selector_init();
 extern XPVGameSelector* x_pv_game_selector_get();
 extern bool x_pv_game_selector_free();
-#endif

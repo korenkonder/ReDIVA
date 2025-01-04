@@ -899,6 +899,9 @@ bool test_mode;
 #if PV_DEBUG
 bool pv_x;
 #endif
+#if BAKE_X_PACK
+bool pv_x_bake;
+#endif
 
 GameStateEnum data_edit_game_state_prev;
 GameStateEnum data_test_game_state_prev;
@@ -1217,17 +1220,20 @@ bool SubGameState::Selector::Init() {
 #endif
 
 #if BAKE_X_PACK
-    XPVGameBaker* baker = x_pv_game_baker_get();
-    if (!baker) {
-        x_pv_game_baker_init();
-        app::TaskWork::add_task(x_pv_game_baker_get(), "X PVGAME BAKER", 0);
+    if (pv_x_bake) {
+        XPVGameBaker* baker = x_pv_game_baker_get();
+        if (!baker) {
+            x_pv_game_baker_init();
+            app::TaskWork::add_task(x_pv_game_baker_get(), "X PVGAME BAKER", 0);
+        }
+        else
+            baker->next = true;
+        return true;
     }
-    else
-        baker->next = true;
-#else
+#endif
+
     x_pv_game_selector_init();
     app::TaskWork::add_task(x_pv_game_selector_get(), "X PVGAME SELECTOR", 0);
-#endif
     return true;
 }
 
@@ -1276,51 +1282,57 @@ bool SubGameState::Selector::Ctrl() {
 #endif
 
 #if BAKE_X_PACK
-    const int32_t pv_ids[] = {
-        801,
-        802,
-        803,
-        804,
-        805,
-        806,
-        807,
-        808,
-        809,
-        810,
-        811,
-        812,
-        813,
-        814,
-        815,
-        816,
-        817,
-        818,
-        819,
-        820,
-        821,
-        822,
-        823,
-        824,
-        825,
-        826,
-        827,
-        828,
-        829,
-        830,
-        831,
-        832,
-    };
+    if (pv_x_bake) {
+        XPVGameBaker* baker = x_pv_game_baker_get();
+        if (baker->wait)
+            return false;
 
-    XPVGameBaker* baker = x_pv_game_baker_get();
-    if (baker->start && x_pv_game_init()) {
-        app::TaskWork::add_task(x_pv_game_get(), "PVGAME", 0);
-        x_pv_game_get()->load(pv_ids[baker->index], pv_ids[baker->index] % 100, baker->charas, baker->modules);
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
+        const int32_t pv_ids[] = {
+            801,
+            802,
+            803,
+            804,
+            805,
+            806,
+            807,
+            808,
+            809,
+            810,
+            811,
+            812,
+            813,
+            814,
+            815,
+            816,
+            817,
+            818,
+            819,
+            820,
+            821,
+            822,
+            823,
+            824,
+            825,
+            826,
+            827,
+            828,
+            829,
+            830,
+            831,
+            832,
+        };
+
+        if (baker->start && x_pv_game_init()) {
+            app::TaskWork::add_task(x_pv_game_get(), "PVGAME", 0);
+            x_pv_game_get()->load(pv_ids[baker->index], pv_ids[baker->index] % 100, baker->charas, baker->modules);
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_GAME_MAIN);
+        }
+        else
+            game_state_set_game_state_next(GAME_STATE_ADVERTISE);
+        return true;
     }
-    else
-        game_state_set_game_state_next(GAME_STATE_ADVERTISE);
-    return true;
-#else
+#endif
+
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (sel->exit) {
         if (sel->start && x_pv_game_init()) {
@@ -1332,7 +1344,6 @@ bool SubGameState::Selector::Ctrl() {
             game_state_set_game_state_next(GAME_STATE_ADVERTISE);
         return true;
     }
-#endif
     return false;
 }
 
@@ -1351,20 +1362,24 @@ bool SubGameState::Selector::Dest() {
 #endif
 
 #if BAKE_X_PACK
-    XPVGameBaker* baker = x_pv_game_baker_get();
-    if (baker && baker->start) {
-        baker->start = false;
+    if (pv_x_bake) {
+        XPVGameBaker* baker = x_pv_game_baker_get();
+        if (baker && baker->start) {
+            baker->start = false;
+            return true;
+        }
+        else if (baker && !baker->exit)
+            return false;
+        else if (app::TaskWork::check_task_ready(baker)) {
+            baker->del();
+            return false;
+        }
+
+        x_pv_game_baker_free();
         return true;
     }
-    else if (baker && !baker->exit)
-        return false;
-    else if (app::TaskWork::check_task_ready(baker)) {
-        baker->del();
-        return false;
-    }
+#endif
 
-    x_pv_game_baker_free();
-#else
     XPVGameSelector* sel = x_pv_game_selector_get();
     if (app::TaskWork::check_task_ready(sel)) {
         sel->del();
@@ -1372,7 +1387,6 @@ bool SubGameState::Selector::Dest() {
     }
 
     x_pv_game_selector_free();
-#endif
     return true;
 }
 
@@ -1409,10 +1423,13 @@ bool SubGameState::GameMain::Dest() {
 #endif
     if (!res)
         return false;
+
 #if BAKE_X_PACK
-    XPVGameBaker* baker = x_pv_game_baker_get();
-    if (baker)
-        game_state_set_sub_game_state_next(SUB_GAME_STATE_SELECTOR);
+    if (pv_x_bake) {
+        XPVGameBaker* baker = x_pv_game_baker_get();
+        if (baker)
+            game_state_set_sub_game_state_next(SUB_GAME_STATE_SELECTOR);
+    }
 #endif
 
     rctx_ptr->render_manager->set_multisample(true);

@@ -725,8 +725,10 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     io_json_read(s, &msg);
     s.close();
 
-    if (msg.type != MSGPACK_ARRAY)
+    if (msg.type != MSGPACK_ARRAY) {
+        printf("Failed to load Object Config JSON!\nPath: %s\n", buf);
         return;
+    }
 
     msgpack_array* ptr = msg.data.arr;
     for (msgpack& i : *ptr) {
@@ -782,7 +784,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             std::string shader_name = _shader_name->read_string();
                             size_t name_length = min_def(sizeof(mat.shader.name) - 1, shader_name.size());
                             memcpy_s(mat.shader.name, sizeof(mat.shader.name) - 1, shader_name.c_str(), name_length);
-                            mat.shader.name[name_length] = 0;
+                            memset(mat.shader.name + name_length, 0, sizeof(mat.shader.name) - name_length);
                         }
 
                         msgpack* shader_info = material.read("shader_info");
@@ -857,7 +859,7 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                                     std::string shader_name = _ex_shader->read_string();
                                     size_t name_length = min_def(sizeof(l.ex_shader) - 1, shader_name.size());
                                     memcpy_s(l.ex_shader, sizeof(l.ex_shader) - 1, shader_name.c_str(), name_length);
-                                    l.ex_shader[name_length] = 0;
+                                    memset(l.ex_shader + name_length, 0, sizeof(l.ex_shader) - name_length);
                                 }
 
                                 msgpack* weight = tex->read("weight");
@@ -1151,8 +1153,10 @@ void object_material_msgpack_read(const char* path, const char* set_name,
     io_json_read(s, &msg);
     s.close();
 
-    if (msg.type != MSGPACK_MAP)
+    if (msg.type != MSGPACK_MAP) {
+        printf("Failed to load Texture Config JSON!\nPath: %s\n", buf);
         return;
+    }
 
     obj_set* set = info->obj_set;
 

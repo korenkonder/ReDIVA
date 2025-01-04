@@ -1349,6 +1349,9 @@ extern bool input_reset;
 #if PV_DEBUG
 extern bool pv_x;
 #endif
+#if BAKE_X_PACK
+extern bool pv_x_bake;
+#endif
 
 static void render_context_ctrl(render_context* rctx) {
     if (Vulkan::use) {
@@ -1429,13 +1432,37 @@ static void render_context_ctrl(render_context* rctx) {
         pv_x = false;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
+#if BAKE_X_PACK
+    else if (Input::IsKeyTapped(GLFW_KEY_F5, GLFW_MOD_SHIFT)) {
+        pv_x = true;
+        pv_x_bake = true;
+        game_state_set_game_state_next(GAME_STATE_GAME);
+    }
     else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
         pv_x = true;
+        pv_x_bake = false;
+        game_state_set_game_state_next(GAME_STATE_GAME);
+    }
+#else
+    else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
+        pv_x = true;
+        game_state_set_game_state_next(GAME_STATE_GAME);
+    }
+#endif
+#else
+#if BAKE_X_PACK
+    else if (Input::IsKeyTapped(GLFW_KEY_F5, GLFW_MOD_SHIFT)) {
+        pv_x_bake = true;
+        game_state_set_game_state_next(GAME_STATE_GAME);
+    }
+    else if (Input::IsKeyTapped(GLFW_KEY_F5)) {
+        pv_x_bake = false;
         game_state_set_game_state_next(GAME_STATE_GAME);
     }
 #else
     else if (Input::IsKeyTapped(GLFW_KEY_F5))
         game_state_set_game_state_next(GAME_STATE_GAME);
+#endif
 #endif
     else if (Input::IsKeyTapped(GLFW_KEY_F6))
         game_state_set_game_state_next(GAME_STATE_DATA_TEST);
