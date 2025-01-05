@@ -666,7 +666,7 @@ inline int32_t obj_material_texture_type_get_texture_index(
 }
 
 void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
-    const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4* global_mat) {
+    const mat4* ex_data_matrices, mat4* matrix_buffer, const mat4* mat, const mat4& global_mat) {
     if (!s->num_bone)
         return;
 
@@ -679,7 +679,7 @@ void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
             else
                 mat4_mul(mat, &matrices[bone->id], &temp);
 
-            mat4_mul(&temp, global_mat, &temp);
+            mat4_mul(&temp, &global_mat, &temp);
             mat4_mul(&bone->inv_bind_pose_mat, &temp, matrix_buffer);
         }
     else
@@ -690,7 +690,7 @@ void obj_skin_set_matrix_buffer(const obj_skin* s, const mat4* matrices,
             else
                 temp = matrices[bone->id];
 
-            mat4_mul(&temp, global_mat, &temp);
+            mat4_mul(&temp, &global_mat, &temp);
             mat4_mul(&bone->inv_bind_pose_mat, &temp, matrix_buffer);
         }
 }

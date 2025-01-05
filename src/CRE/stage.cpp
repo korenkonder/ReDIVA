@@ -40,7 +40,7 @@ static bool object_bounding_sphere_check_visibility_shadow_stage(
 static bool stage_ctrl(stage* s);
 static void stage_disp(stage* s);
 static void stage_disp_shadow(stage* s);
-static void stage_disp_shadow_object(object_info object, mat4* mat);
+static void stage_disp_shadow_object(object_info object, const mat4& mat);
 static void stage_free(stage* s);
 static void stage_load(stage* s);
 static void stage_reset(stage* s);
@@ -489,27 +489,27 @@ static void stage_disp(stage* s) {
     mat4_rotate_y(s->rot_y, &mat);
 
     if (s->stage_data->object_ground.not_null() && s->ground)
-        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_ground);
+        disp_manager.entry_obj_by_object_info(mat, s->stage_data->object_ground);
 
     if (s->stage_data->object_ring.not_null() && s->ring)
-        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_ring);
+        disp_manager.entry_obj_by_object_info(mat, s->stage_data->object_ring);
 
     if (s->stage_data->object_reflect.not_null()) {
         disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFLECT));
-        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_reflect);
+        disp_manager.entry_obj_by_object_info(mat, s->stage_data->object_reflect);
         disp_manager.set_obj_flags();
     }
 
     if (s->stage_data->object_refract.not_null()) {
         disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_REFRACT));
-        disp_manager.entry_obj_by_object_info(&mat, s->stage_data->object_refract);
+        disp_manager.entry_obj_by_object_info(mat, s->stage_data->object_refract);
         disp_manager.set_obj_flags();
     }
 
     if (s->stage_data->object_sky.not_null() && s->sky) {
         mat4 t = s->mat;
         mat4_mul(&t, &mat, &t);
-        disp_manager.entry_obj_by_object_info(&t, s->stage_data->object_sky);
+        disp_manager.entry_obj_by_object_info(t, s->stage_data->object_sky);
     }
 
     if (s->stage_data->lens_flare_texture != -1 && s->lens_flare) {
@@ -535,15 +535,15 @@ static void stage_disp_shadow(stage* s) {
     mat4 mat;
     mat4_rotate_y(s->rot_y, &mat);
     if (s->stage_data->object_shadow.not_null())
-        stage_disp_shadow_object(s->stage_data->object_shadow, &mat);
+        stage_disp_shadow_object(s->stage_data->object_shadow, mat);
 }
 
-static void stage_disp_shadow_object(object_info object, mat4* mat) {
+static void stage_disp_shadow_object(object_info object, const mat4& mat) {
     mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
 
     for (int32_t i = SHADOW_CHARA; i < SHADOW_MAX; i++) {
         disp_manager.set_shadow_type((shadow_type_enum)i);
-        disp_manager.set_culling_finc(i == SHADOW_CHARA
+        disp_manager.set_culling_func(i == SHADOW_CHARA
             ? object_bounding_sphere_check_visibility_shadow_chara
             : object_bounding_sphere_check_visibility_shadow_stage);
         disp_manager.set_obj_flags((mdl::ObjFlags)(mdl::OBJ_NO_TRANSLUCENCY | mdl::OBJ_SHADOW_OBJECT));
@@ -551,7 +551,7 @@ static void stage_disp_shadow_object(object_info object, mat4* mat) {
     }
 
     disp_manager.set_obj_flags();
-    disp_manager.set_culling_finc();
+    disp_manager.set_culling_func();
     disp_manager.set_shadow_type();
 }
 

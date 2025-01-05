@@ -1094,7 +1094,7 @@ void GlitterEditor::disp() {
         etc.data.grid.h = 50;
         etc.data.grid.ws = 50;
         etc.data.grid.hs = 50;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+        rctx_ptr->disp_manager->entry_obj_etc(mat4_identity, etc);
     }
 }
 
@@ -1947,7 +1947,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.constant = true;
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     case Glitter::EMITTER_CYLINDER: {
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
@@ -1958,7 +1958,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     case Glitter::EMITTER_SPHERE: {
         mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
@@ -1968,7 +1968,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.data.sphere.slices = 16;
         etc.data.sphere.stacks = 16;
         etc.data.sphere.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     case Glitter::EMITTER_POLYGON: {
         mdl::EtcObj etc(mdl::ETC_OBJ_LINE);
@@ -1976,7 +1976,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_f2(
         etc.constant = true;
         etc.data.line.pos[0] = vec3(-emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
         etc.data.line.pos[1] = vec3(emit_inst->data.polygon.size * scale.x * 0.5f, 0.0f, 0.0f);
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     }
 }
@@ -2013,7 +2013,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.constant = true;
         etc.data.cube.size = vec3::max(emit_inst->data.box.size * scale, 0.1f);
         etc.data.cube.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     case Glitter::EMITTER_CYLINDER: {
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
@@ -2024,7 +2024,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 1;
         etc.data.cylinder.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     case Glitter::EMITTER_SPHERE: {
         mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
@@ -2034,7 +2034,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.sphere.slices = 16;
         etc.data.sphere.stacks = 16;
         etc.data.sphere.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     case Glitter::EMITTER_POLYGON: {
         mdl::EtcObj etc(mdl::ETC_OBJ_CYLINDER);
@@ -2045,7 +2045,7 @@ static void glitter_editor_draw_emitter_type_emitter_inst_x(
         etc.data.cylinder.slices = 16;
         etc.data.cylinder.stacks = 0;
         etc.data.cylinder.wire = false;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc, local);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc, local);
     } break;
     }
 }

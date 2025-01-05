@@ -170,7 +170,7 @@ void TaskDataTestGlitterParticle::disp() {
         etc.data.grid.h = 50;
         etc.data.grid.ws = 50;
         etc.data.grid.hs = 50;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+        rctx_ptr->disp_manager->entry_obj_etc(mat4_identity, etc);
     }
 
     int32_t life_time = 0;

@@ -200,7 +200,7 @@ void ExNullBlock::CtrlOsagePlayData() {
     CtrlMain();
 }
 
-void ExNullBlock::Disp(const mat4* mat, render_context* rctx) {
+void ExNullBlock::Disp(const mat4& mat, render_context* rctx) {
 
 }
 
@@ -1527,7 +1527,7 @@ void RobCloth::CtrlStep(const float_t step) {
     CollideNodes(step, true);
 }
 
-void RobCloth::Disp(const mat4* mat, render_context* rctx) {
+void RobCloth::Disp(const mat4& mat, render_context* rctx) {
     obj* obj = objset_info_storage_get_obj(itm_eq_obj->obj_info);
     if (!obj)
         return;
@@ -2133,7 +2133,7 @@ void ExClothBlock::CtrlOsagePlayData() {
     rob.CtrlOsagePlayData(item_equip_object->item_equip->opd_blend_data);
 }
 
-void ExClothBlock::Disp(const mat4* mat, render_context* rctx) {
+void ExClothBlock::Disp(const mat4& mat, render_context* rctx) {
     rob.UpdateDisp();
     rob.Disp(mat, rctx);
 }
@@ -3155,7 +3155,7 @@ void ExOsageBlock::CtrlOsagePlayData() {
         parent_bone_node->exp_data.parent_scale, item_equip_object->item_equip->opd_blend_data);
 }
 
-void ExOsageBlock::Disp(const mat4* mat, render_context* rctx) {
+void ExOsageBlock::Disp(const mat4& mat, render_context* rctx) {
 
 }
 
@@ -3334,7 +3334,7 @@ void ExConstraintBlock::CtrlOsagePlayData() {
     CtrlMain();
 }
 
-void ExConstraintBlock::Disp(const mat4* mat, render_context* rctx) {
+void ExConstraintBlock::Disp(const mat4& mat, render_context* rctx) {
 
 }
 
@@ -3584,7 +3584,7 @@ void ExExpressionBlock::CtrlOsagePlayData() {
     CtrlMain();
 }
 
-void ExExpressionBlock::Disp(const mat4* mat, render_context* rctx) {
+void ExExpressionBlock::Disp(const mat4& mat, render_context* rctx) {
 
 }
 

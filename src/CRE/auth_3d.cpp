@@ -4771,7 +4771,7 @@ static void auth_3d_m_object_hrc_disp(auth_3d_m_object_hrc* moh, auth_3d* auth, 
 
         if (i.mats.size())
             disp_manager.entry_obj_by_object_info_object_skin(
-                i.object_info, 0, 0, auth->alpha, i.mats.data(), 0, 0, &i.model_transform.mat);
+                i.object_info, 0, 0, auth->alpha, i.mats.data(), 0, 0, i.model_transform.mat);
     }
 
     disp_manager.set_obj_flags();
@@ -6428,7 +6428,7 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
     int32_t uid_name_length = (int32_t)o->uid_name.size();
 
     if (uid_name_length <= 3)
-        disp_manager.entry_obj_by_object_info(&mat, o->object_info);
+        disp_manager.entry_obj_by_object_info(mat, o->object_info);
     else if (o->morph.curve) {
         float_t morph = o->morph.value;
         int32_t morph_int = (int32_t)morph;
@@ -6443,9 +6443,9 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
             sprintf_s(buf, sizeof(buf), "%.*s%03d", uid_name_length - 3, uid_name, morph_int);
             object_info obj_info = obj_db->get_object_info(buf);
             if (auth->alpha < 0.999f)
-                disp_manager.entry_obj_by_object_info(&mat, obj_info, auth->alpha);
+                disp_manager.entry_obj_by_object_info(mat, obj_info, auth->alpha);
             else
-                disp_manager.entry_obj_by_object_info(&mat, obj_info);
+                disp_manager.entry_obj_by_object_info(mat, obj_info);
             disp_manager.set_morph({}, 0.0f);
         }
         else {
@@ -6456,17 +6456,17 @@ static void auth_3d_object_disp(auth_3d_object* o, auth_3d* auth, render_context
             object_info obj_info = obj_db->get_object_info(buf);
             if (obj_info.is_null())
                 obj_info = o->object_info;
-            disp_manager.entry_obj_by_object_info(&mat, obj_info);
+            disp_manager.entry_obj_by_object_info(mat, obj_info);
         }
     }
     else if (o->pattern.curve) {
         sprintf_s(buf, sizeof(buf), "%.*s%03d",
             uid_name_length - 3, uid_name, (int32_t)prj::roundf(o->pattern.value));
         object_info obj_info = obj_db->get_object_info(buf);
-        disp_manager.entry_obj_by_object_info(&mat, obj_info);
+        disp_manager.entry_obj_by_object_info(mat, obj_info);
     }
     else
-        disp_manager.entry_obj_by_object_info(&mat, o->object_info);
+        disp_manager.entry_obj_by_object_info(mat, o->object_info);
 
     disp_manager.set_texture_transform();
     disp_manager.set_texture_pattern();
@@ -6613,7 +6613,7 @@ static void auth_3d_object_hrc_disp(auth_3d_object_hrc* oh, auth_3d* auth, rende
 
     if (oh->mats.size())
         disp_manager.entry_obj_by_object_info_object_skin(
-            oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, &mat);
+            oh->object_info, 0, 0, auth->alpha, oh->mats.data(), 0, 0, mat);
 
     disp_manager.set_obj_flags();
     disp_manager.set_shadow_type(SHADOW_CHARA);

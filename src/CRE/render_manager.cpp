@@ -24,8 +24,6 @@
 #include "static_var.hpp"
 #include "texture.hpp"
 
-#define REFLECT_STENCIL (1)
-
 extern render_context* rctx_ptr;
 
 bool reflect_draw = false;
@@ -50,11 +48,6 @@ static int32_t draw_pass_3d_translucent_count_layers(render_context* rctx,
 static void draw_pass_3d_translucent_has_objects(render_context* rctx, bool* arr, mdl::ObjType type);
 
 static void draw_pass_reflect_full(rndr::RenderManager* render_manager);
-#if REFLECT_STENCIL
-static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type);
-static void draw_pass_reflect_make_stencil(render_context* rctx,
-    RenderTexture& refl_tex, RenderTexture& refl_buf_tex);
-#endif
 
 static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTexture* src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset);
@@ -76,11 +69,7 @@ namespace rndr {
 
     static const RenderTextureData render_manager_render_texture_data_array[] = {
         { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA8  , GL_DEPTH_COMPONENT24 },
-#if REFLECT_STENCIL
-        { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_DEPTH24_STENCIL8 },
-#else
         { GL_TEXTURE_2D, 0x200, 0x100, 0, GL_RGBA16F, GL_DEPTH_COMPONENT24 },
-#endif
         { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
         { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
         { GL_TEXTURE_2D, 0x400, 0x400, 0, GL_RGBA8  , GL_ZERO },
@@ -519,14 +508,7 @@ namespace rndr {
             //}
 
             glClearColor(sss->param.x, sss->param.y, sss->param.z, 0.0f);
-#if REFLECT_STENCIL
-            glClearStencil(0x00);
-            gl_state_set_stencil_mask(0xFF);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            gl_state_set_stencil_mask(0x00);
-#else
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#endif
 
             draw_pass_set_camera();
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
@@ -713,26 +695,10 @@ namespace rndr {
                 rctx->fog[i].data_set((fog_id)i);
 
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-#if REFLECT_STENCIL
-            glClearStencil(0x00);
-#endif
             if (sv_better_reflect && rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
                 glClear(GL_COLOR_BUFFER_BIT);
-#if REFLECT_STENCIL
-            else {
-                gl_state_set_stencil_mask(0xFF);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-                gl_state_set_stencil_mask(0x00);
-            }
-#else
             else
                 glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#endif
-
-#if REFLECT_STENCIL
-            if (sv_better_reflect)
-                draw_pass_reflect_make_stencil(rctx, refl_tex, refl_buf_tex);
-#endif
 
             rctx->draw_state->shader_index = SHADER_FT_S_REFL;
 
@@ -821,11 +787,6 @@ namespace rndr {
             gl_state_disable_depth_test();
             uniform_value[U_REFLECT] = 0;
             rctx->draw_state->shader_index = -1;
-
-#if REFLECT_STENCIL
-            if (sv_better_reflect)
-                gl_state_disable_stencil_test();
-#endif
 
             for (int32_t i = reflect_blur_num, j = 0; i > 0; i--, j++) {
                 blur_filter_apply(rctx, &refl_buf_tex, &refl_tex,
@@ -2040,25 +2001,10 @@ static void draw_pass_reflect_full(rndr::RenderManager* render_manager) {
             rctx->fog[i].data_set((fog_id)i);
 
         glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-#if REFLECT_STENCIL
-        glClearStencil(0x00);
-#endif
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
             glClear(GL_COLOR_BUFFER_BIT);
-#if REFLECT_STENCIL
-        else {
-            gl_state_set_stencil_mask(0xFF);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-            gl_state_set_stencil_mask(0x00);
-        }
-#else
         else
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-#endif
-
-#if REFLECT_STENCIL
-        draw_pass_reflect_make_stencil(rctx, refl_tex, refl_buf_tex);
-#endif
 
         gl_state_enable_depth_test();
         gl_state_set_depth_func(GL_LEQUAL);
@@ -2171,10 +2117,6 @@ static void draw_pass_reflect_full(rndr::RenderManager* render_manager) {
         gl_state_set_cull_face_mode(GL_BACK);
         gl_state_disable_depth_test();
 
-#if REFLECT_STENCIL
-        gl_state_disable_stencil_test();
-#endif
-
         for (int32_t i = render_manager->reflect_blur_num, j = 0; i > 0; i--, j++) {
             blur_filter_apply(rctx, &refl_buf_tex, &refl_tex,
                 render_manager->reflect_blur_filter, 1.0f, 1.0f, 0.0f);
@@ -2192,116 +2134,6 @@ static void draw_pass_reflect_full(rndr::RenderManager* render_manager) {
     gl_state_bind_framebuffer(0);
     gl_state_end_event();
 }
-
-#if REFLECT_STENCIL
-static void draw_pass_reflect_stencil(render_context* rctx, mdl::ObjType type) {
-    if (type < 0 || type >= mdl::OBJ_TYPE_MAX || rctx->disp_manager->get_obj_count(type) < 1)
-        return;
-
-    int32_t alpha_test = 0;
-    float_t min_alpha = 1.0f;
-    float_t alpha_threshold = 0.0f;
-
-    for (int32_t i = 0; i < 5; i++)
-        gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-    gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-    gl_state_active_texture(0);
-    gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    uniform_value_reset();
-    gl_state_get();
-
-    switch (type) {
-    case mdl::OBJ_TYPE_TRANSLUCENT:
-    case mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
-        alpha_test = 1;
-        min_alpha = 0.0f;
-        alpha_threshold = 0.0f;
-        break;
-    case mdl::OBJ_TYPE_TRANSPARENT:
-        alpha_test = 1;
-        min_alpha = 0.1f;
-        alpha_threshold = 0.5f;
-        break;
-    default:
-        break;
-    }
-    rctx->set_batch_alpha_threshold(alpha_threshold);
-    rctx->set_batch_min_alpha(min_alpha);
-    uniform_value[U_ALPHA_TEST] = alpha_test;
-
-    for (mdl::ObjData*& i : rctx->disp_manager->obj[type]) {
-        switch (i->kind) {
-        case mdl::OBJ_KIND_NORMAL: {
-            switch (i->args.sub_mesh.material->material.shader.index) {
-            case SHADER_FT_WATER01:
-            case SHADER_FT_FLOOR:
-            case SHADER_FT_PUDDLE:
-                draw_sub_mesh(rctx, &i->args.sub_mesh, &i->mat, mdl::draw_sub_mesh_default);
-                break;
-            }
-        } break;
-        case mdl::OBJ_KIND_TRANSLUCENT: {
-            for (int32_t j = 0; j < i->args.translucent.count; j++)
-                switch (i->args.translucent.sub_mesh[j]->material->material.shader.index) {
-                case SHADER_FT_WATER01:
-                case SHADER_FT_FLOOR:
-                case SHADER_FT_PUDDLE:
-                    draw_sub_mesh(rctx, i->args.translucent.sub_mesh[j], &i->mat, mdl::draw_sub_mesh_default);
-                    break;
-                }
-        } break;
-        }
-    }
-
-    uniform_value_reset();
-    gl_state_bind_vertex_array(0);
-    shader::unbind();
-    gl_state_set_blend_func(GL_ONE, GL_ZERO);
-    for (int32_t i = 0; i < 5; i++)
-        gl_state_bind_sampler(i, 0);
-}
-
-static void draw_pass_reflect_make_stencil(render_context* rctx,
-    RenderTexture& refl_tex, RenderTexture& refl_buf_tex) {
-    gl_state_set_stencil_mask(0xFF);
-
-    rctx->draw_state->shader_index = SHADER_FT_SIL;
-
-    gl_state_disable_depth_test();
-    gl_state_set_depth_mask(GL_TRUE);
-
-    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_OPAQUE);
-    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT);
-    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS);
-    draw_pass_reflect_stencil(rctx, mdl::OBJ_TYPE_TRANSPARENT);
-
-    fbo_blit(refl_tex.fbos[0], refl_buf_tex.fbos[0],
-        0, 0, refl_tex.GetWidth(), refl_tex.GetHeight(),
-        0, 0, refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(),
-        GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-    refl_tex.Bind();
-    glClear(GL_COLOR_BUFFER_BIT);
-
-    gl_state_enable_stencil_test();
-    gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_REPLACE);
-    gl_state_set_stencil_func(GL_ALWAYS, 0x01, 0x01);
-
-    gl_state_bind_texture_2d(refl_buf_tex.GetColorTex());
-    gl_state_bind_sampler(0, rctx->render_samplers[0]);
-
-    gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
-    shaders_ft.set(SHADER_FT_REFLECT_STENCIL);
-    rctx->render.draw_quad(refl_buf_tex.GetWidth(), refl_buf_tex.GetHeight(), 1.0f, 1.0f,
-        0.0f, 0.0f, 6.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-    gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-
-    gl_state_set_stencil_op(GL_KEEP, GL_KEEP, GL_KEEP);
-    gl_state_set_stencil_func(GL_EQUAL, 0x01, 0x01);
-
-    gl_state_set_stencil_mask(0x00);
-}
-#endif
 
 static void blur_filter_apply(render_context* rctx, RenderTexture* dst, RenderTexture* src,
     blur_filter_mode filter, const vec2 res_scale, const vec4 scale, const vec4 offset) {

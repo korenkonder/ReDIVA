@@ -1728,7 +1728,7 @@ namespace Glitter {
     extern Random random;
     extern Counter counter;
 
-    extern void axis_angle_from_vectors(vec3* axis, float_t* angle, const vec3* vec0, const vec3* vec1);
+    extern void axis_angle_from_vectors(vec3& axis, float_t& angle, const vec3& vec0, const vec3& vec1);
 
 #if !SHARED_GLITTER_BUFFER
     extern void CreateBuffer(size_t max_count, bool is_quad,

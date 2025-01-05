@@ -978,7 +978,7 @@ void RobOsageTest::disp_coli() {
             etc.data.capsule.wire = false;
             etc.data.capsule.pos[0] = j[-1].pos;
             etc.data.capsule.pos[1] = j[ 0].pos;
-            rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat4_identity, etc);
         }
     }
     else if (cls && cls->rob.nodes.size() >= cls->rob.root_count) {
@@ -1000,7 +1000,7 @@ void RobOsageTest::disp_coli() {
 
             mat4 mat;
             mat4_translate(&pos, &mat);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
         }
     }
 }
@@ -1044,7 +1044,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
 
             mat4 mat;
             mat4_translate(&pos, &mat);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
         } break;
         case SkinParam::CollisionTypeCapsule: {
             mdl::EtcObj etc(mdl::ETC_OBJ_CAPSULE);
@@ -1058,7 +1058,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
 
             mat4_transform_point(&transform[i.node_idx[0]], &i.pos[0], &etc.data.capsule.pos[0]);
             mat4_transform_point(&transform[i.node_idx[1]], &i.pos[1], &etc.data.capsule.pos[1]);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat4_identity, etc);
         } break;
         case SkinParam::CollisionTypePlane: {
             mdl::EtcObj etc(mdl::ETC_OBJ_PLANE);
@@ -1075,7 +1075,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 axis;
             float_t angle;
-            Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
+            Glitter::axis_angle_from_vectors(axis, angle, up, dir);
 
             mat4 mat_rot = mat4_identity;
             mat4_mul_rotation(&mat_rot, &axis, angle, &mat_rot);
@@ -1084,7 +1084,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
             mat4_translate(&pos, &mat);
             mat4_mul(&mat_rot, &mat, &mat);
             mat4_scale_rot(&mat, i.radius, &mat);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
         } break;
         case SkinParam::CollisionTypeEllipse: {
             mdl::EtcObj etc(mdl::ETC_OBJ_SPHERE);
@@ -1108,7 +1108,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
             const vec3 up = { 0.0f, 1.0f, 0.0f };
             vec3 axis;
             float_t angle;
-            Glitter::axis_angle_from_vectors(&axis, &angle, &up, &dir);
+            Glitter::axis_angle_from_vectors(axis, angle, up, dir);
 
             mat4 m = mat4_identity;
             mat4_mul_rotation(&m, &axis, angle, &m);
@@ -1118,7 +1118,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
             const float_t scale_y = sqrtf(i.radius * i.radius + length * length);
 
             mat4_scale_rot(&mat, i.radius, scale_y, i.radius, &mat);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
         } break;
         case SkinParam::CollisionTypeAABB: {
             mdl::EtcObj etc(mdl::ETC_OBJ_CUBE);
@@ -1133,7 +1133,7 @@ void RobOsageTest::disp_coli_cls_list(ExNodeBlock* ex_node, SkinParam::Collision
 
             mat4 mat;
             mat4_translate(&pos, &mat);
-            rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+            rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
         } break;
         }
     }

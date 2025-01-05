@@ -9091,18 +9091,25 @@ XPVGameBaker::AFTData::~AFTData() {
 }
 
 void XPVGameBaker::AFTData::Read() {
-    aet_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\2d\\mdata_aet_db", false);
-    auth_3d_db_base.read("diva\\AFT\\rom\\auth_3d\\auth_3d_db");
-    auth_3d_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\auth_3d\\mdata_auth_3d_db");
-    obj_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\objset\\mdata_obj_db", false);
-    spr_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\2d\\mdata_spr_db", false);
-    stage_data.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\mdata_stage_data", false);
+    data_struct* aft_data = &data_list[DATA_AFT];
+
+    aet_db.modern = false;
+    aft_data->load_file(&aet_db, "rom/2d/", "mdata_aet_db.bin", aet_database_file::load_file);
+    aft_data->load_file(&auth_3d_db_base, "rom/auth_3d/", "auth_3d_db.bin", auth_3d_database_file::load_file);
+    aft_data->load_file(&auth_3d_db, "rom/auth_3d/", "mdata_auth_3d_db.bin", auth_3d_database_file::load_file);
+    obj_db.modern = false;
+    aft_data->load_file(&obj_db, "rom/objset/", "mdata_obj_db.bin", object_database_file::load_file);
+    spr_db.modern = false;
+    aft_data->load_file(&spr_db, "rom/2d/", "mdata_spr_db.bin", sprite_database_file::load_file);
+    aft_data->load_file(&stage_data, "rom/", "mdata_stage_data.bin", stage_database_file::load_file);
     {
         texture_database_file tex_db_base;
-        tex_db_base.read("diva\\AFT\\rom\\objset\\tex_db", false);
+        tex_db_base.modern = false;
+        aft_data->load_file(&tex_db_base, "rom/objset/", "tex_db.bin", texture_database_file::load_file);
         this->tex_db_base.add(&tex_db_base);
     }
-    tex_db.read("diva\\AFT_mod\\mdata\\MPFV\\rom\\objset\\mdata_tex_db", false);
+    tex_db.modern = false;
+    aft_data->load_file(&tex_db, "rom/objset/", "mdata_tex_db.bin", texture_database_file::load_file);
 }
 
 void XPVGameBaker::AFTData::Write(const char* out_dir,
@@ -9144,7 +9151,8 @@ void XPVGameBaker::AFTData::Write(const char* out_dir,
 }
 
 XPVGameBaker::MMPData::MMPData() {
-
+    mmp_base_path.assign("R:\\SteamLibrary\\steamapps\\common\\"
+        "Hatsune Miku Project DIVA Mega Mix Plus\\");
 }
 
 XPVGameBaker::MMPData::~MMPData() {
@@ -9152,8 +9160,8 @@ XPVGameBaker::MMPData::~MMPData() {
 }
 
 void XPVGameBaker::MMPData::Read() {
-    const std::string mmp_base_path("R:\\SteamLibrary\\steamapps\\common\\"
-        "Hatsune Miku Project DIVA Mega Mix Plus\\");
+    if (mmp_base_path.back() != '\\')
+        mmp_base_path.push_back('\\');
 
     const std::pair<const char*, const char*> mmp_paths[] = {
         {   "diva_main\\rom_steam\\",       "" },
@@ -10032,8 +10040,6 @@ bool XPVGameBaker::init() {
     x_pack_mmp_bake_log_file_ptr = new file_stream;
     x_pack_mmp_bake_log_file_ptr->open("x_pack_mmp_bake_log.txt", "wb");
 
-    aft.Read();
-    mmp.Read();
     return true;
 }
 
@@ -10086,9 +10092,9 @@ void XPVGameBaker::window() {
     extern int32_t height;
     extern int32_t width;
 
-    float_t w = 240.0f;
+    float_t w = 360.0f;
     float_t h = (float_t)height;
-    h = min_def(h, 196.0f);
+    h = min_def(h, 228.0f);
 
     ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -10121,11 +10127,21 @@ void XPVGameBaker::window() {
     ImGui::EndGroup();
 
     ImGui::Separator();
+    ImGui::SetColumnSpace(1.0f / 5.0f);
+    char buf[0x400];
+    strncpy_s(buf, sizeof(buf), mmp.mmp_base_path.c_str(), mmp.mmp_base_path.size());
+    if (ImGui::ColumnInputText("MMp Path:", buf, sizeof(buf), 0, 0, 0))
+        mmp.mmp_base_path.assign(buf);
+    ImGui::SetDefaultColumnSpace();
+    ImGui::Separator();
 
     if (ImGui::Button("Start")) {
         wait = false;
         index = 0;
         start = true;
+
+        aft.Read();
+        mmp.Read();
     }
 
     ImGui::End();
@@ -12660,7 +12676,7 @@ static void x_pv_game_write_auth_3d_reflect(stream& s, auth_3d_database_file* au
         auth_3d_struct& auth_3d_reflect = auth_3d.data()[&i - ptr->data()];
 
         for (auth_3d_database_uid_file& j : auth_3d_db->uid) {
-            if (j.value.size() > 2 && hash_string_xxh3_64bits(j.value.substr(2)) != name_hash)
+            if (j.value.size() <= 2 || hash_string_xxh3_64bits(j.value.substr(2)) != name_hash)
                 continue;
 
             auth_3d_reflect.uid = j.org_uid;

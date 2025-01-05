@@ -2273,7 +2273,7 @@ void EffectFogRing::dest() {
 
 void EffectFogRing::disp() {
     if (enable && display)
-        rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
+        rctx_ptr->disp_manager->entry_obj_user(mat4_identity,
             (mdl::UserArgsFunc)draw_fog_particle, this, mdl::OBJ_TYPE_USER);
 }
 
@@ -3114,7 +3114,7 @@ void EffectRipple::disp() {
 
 void EffectRipple::disp_particles(ripple_struct* data) {
     if (data->count > 0)
-        rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
+        rctx_ptr->disp_manager->entry_obj_user(mat4_identity,
             (mdl::UserArgsFunc)draw_ripple_particles, data, mdl::OBJ_TYPE_USER);
 }
 
@@ -4045,7 +4045,7 @@ void water_particle::disp() {
     if (!splash)
         return;
 
-    rctx_ptr->disp_manager->entry_obj_user(&mat4_identity,
+    rctx_ptr->disp_manager->entry_obj_user(mat4_identity,
         (mdl::UserArgsFunc)draw_water_particle, this, mdl::OBJ_TYPE_TRANSLUCENT);
 
     if (effect_ripple && !effect_ripple->use_float_ripplemap) {

@@ -1479,7 +1479,7 @@ public:
     virtual void CtrlStep(int32_t stage, bool disable_external_force) = 0;
     virtual void CtrlMain() = 0;
     virtual void CtrlOsagePlayData() = 0;
-    virtual void Disp(const mat4* mat, render_context* rctx) = 0;
+    virtual void Disp(const mat4& mat, render_context* rctx) = 0;
     virtual void Reset();
     virtual void Field_40() = 0;
     virtual void CtrlInitBegin() = 0;
@@ -1502,7 +1502,7 @@ public:
     virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
     virtual void CtrlMain() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4* mat, render_context* rctx) override;
+    virtual void Disp(const mat4& mat, render_context* rctx) override;
     virtual void Field_40() override;
     virtual void CtrlInitBegin() override;
     virtual void CtrlInitMain() override;
@@ -1963,7 +1963,7 @@ struct RobCloth : public CLOTH {
     void CtrlMain(const float_t step, bool ignore_friction);
     void CtrlOsagePlayData(std::vector<opd_blend_data>& opd_blend_data);
     void CtrlStep(const float_t step);
-    void Disp(const mat4* mat, render_context* rctx);
+    void Disp(const mat4& mat, render_context* rctx);
     void GetRootData();
     void InitData(size_t root_count, size_t nodes_count, obj_skin_block_cloth_root* root,
         obj_skin_block_cloth_node* nodes, mat4* mats, int32_t loop,
@@ -2003,7 +2003,7 @@ public:
     virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
     virtual void CtrlMain() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4* mat, render_context* rctx) override;
+    virtual void Disp(const mat4& mat, render_context* rctx) override;
     virtual void Reset() override;
     virtual void Field_40() override;
     virtual void CtrlInitBegin() override;
@@ -2133,7 +2133,7 @@ public:
     virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
     virtual void CtrlMain() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4* mat, render_context* rctx) override;
+    virtual void Disp(const mat4& mat, render_context* rctx) override;
     virtual void Reset() override;
     virtual void Field_40() override;
     virtual void CtrlInitBegin() override;
@@ -2173,7 +2173,7 @@ public:
     virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
     virtual void CtrlMain() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4* mat, render_context* rctx) override;
+    virtual void Disp(const mat4& mat, render_context* rctx) override;
     virtual void Field_40() override;
     virtual void CtrlInitBegin() override;
     virtual void CtrlInitMain() override;
@@ -2248,7 +2248,7 @@ public:
     virtual void CtrlStep(int32_t stage, bool disable_external_force) override;
     virtual void CtrlMain() override;
     virtual void CtrlOsagePlayData() override;
-    virtual void Disp(const mat4* mat, render_context* rctx) override;
+    virtual void Disp(const mat4& mat, render_context* rctx) override;
     virtual void Field_40() override;
     virtual void CtrlInitBegin() override;
     virtual void CtrlInitMain() override;
@@ -2301,7 +2301,7 @@ struct rob_chara_item_equip_object {
     void add_motion_reset_data(uint32_t motion_id, float_t frame, int32_t iterations);
     void check_no_opd(std::vector<opd_blend_data>& opd_blend_data);
     void clear_ex_data();
-    void disp(const mat4* mat, render_context* rctx);
+    void disp(const mat4& mat, render_context* rctx);
     int32_t get_bone_index(const char* name, const bone_database* bone_data);
     bone_node* get_bone_node(int32_t bone_index);
     bone_node* get_bone_node(const char* name, const bone_database* bone_data);

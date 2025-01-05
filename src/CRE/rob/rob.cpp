@@ -13348,7 +13348,7 @@ void rob_chara_item_equip_object::clear_ex_data() {
     node_blocks.clear();
 }
 
-void rob_chara_item_equip_object::disp(const mat4* mat, render_context* rctx) {
+void rob_chara_item_equip_object::disp(const mat4& mat, render_context* rctx) {
     if (obj_info.is_null())
         return;
 
@@ -13990,7 +13990,7 @@ static void sub_140512C20(rob_chara_item_equip* rob_itm_equip, render_context* r
     int32_t tex_pat_count = (int32_t)rob_itm_equip->texture_pattern.size();
     if (tex_pat_count)
         rctx->disp_manager->set_texture_pattern(tex_pat_count, rob_itm_equip->texture_pattern.data());
-    rctx->disp_manager->entry_obj_by_object_info(&mat, rob_itm_equip->field_D0);
+    rctx->disp_manager->entry_obj_by_object_info(mat, rob_itm_equip->field_D0);
     if (tex_pat_count)
         rctx->disp_manager->set_texture_pattern();
 }
@@ -14040,7 +14040,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
 
     if (item_equip_range)
         for (int32_t i = first_item_equip_object; i < max_item_equip_object; i++)
-            item_equip_object[i].disp(&mat, rctx);
+            item_equip_object[i].disp(mat, rctx);
     else {
         for (int32_t i = ITEM_ATAMA; i < ITEM_MAX; i++) {
             mdl::ObjFlags chara_flags = (mdl::ObjFlags)0;
@@ -14059,7 +14059,7 @@ void rob_chara_item_equip::disp(int32_t chara_id, render_context* rctx) {
                 enum_and(flags, ~mdl::OBJ_SHADOW);
 
             disp_manager.set_obj_flags((mdl::ObjFlags)(chara_flags | flags | mdl::OBJ_SSS));
-            item_equip_object[i].disp(&mat, rctx);
+            item_equip_object[i].disp(mat, rctx);
         }
     }
     disp_manager.set_texture_color_coefficients(temp_texture_color_coeff);
@@ -18075,7 +18075,7 @@ void rob_chara_age_age_object::disp(render_context* rctx, size_t chara_index,
     rctx->disp_manager->set_obj_flags(flags);
     rctx->disp_manager->set_chara_color(chara_color);
     rctx->disp_manager->set_shadow_type(chara_index ? SHADOW_STAGE : SHADOW_CHARA);
-    rctx->disp_manager->entry_obj_by_obj(&mat4_identity, &obj,
+    rctx->disp_manager->entry_obj_by_obj(mat4_identity, &obj,
         &get_obj_set_texture(), &obj_vert_buf, &obj_index_buf, 0, 1.0f);
 }
 

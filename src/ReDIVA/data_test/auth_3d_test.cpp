@@ -500,7 +500,7 @@ void Auth3dTestTask::disp() {
         etc.color = 0xFFFFFFFF;
         etc.data.plane.w = 20;
         etc.data.plane.h = 20;
-        rctx_ptr->disp_manager->entry_obj_etc(&mat, &etc);
+        rctx_ptr->disp_manager->entry_obj_etc(mat, etc);
     }
 }
 

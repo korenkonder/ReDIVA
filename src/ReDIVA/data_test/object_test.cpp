@@ -206,7 +206,7 @@ void TaskDataTestObj::disp() {
     etc.data.grid.h = 40;
     etc.data.grid.ws = 40;
     etc.data.grid.hs = 40;
-    rctx_ptr->disp_manager->entry_obj_etc(&mat4_identity, &etc);
+    rctx_ptr->disp_manager->entry_obj_etc(mat4_identity, etc);
 }
 
 TaskDataTestObj::Data* TaskDataTestObj::get_data() {
@@ -314,7 +314,7 @@ void DataTestObjectManager::disp() {
     shadow_ptr_get()->field_1D0[SHADOW_CHARA].push_back(pos);
 
     rctx_ptr->disp_manager->set_shadow_type(SHADOW_CHARA);
-    rctx_ptr->disp_manager->entry_obj_by_object_info(&mat, { obj_id, obj_set_id });
+    rctx_ptr->disp_manager->entry_obj_by_object_info(mat, { obj_id, obj_set_id });
     rctx_ptr->disp_manager->set_obj_flags((mdl::ObjFlags)0);
 }
 
