@@ -60,7 +60,7 @@ namespace renderer {
 
     }
 
-    void DOF3::apply(RenderTexture* rt) {
+    void DOF3::apply(RenderTexture* rt, RenderTexture* buf_rt) {
         camera* cam = rctx_ptr->camera;
         bool use_dof_f2 = false;
         if (dof_debug_data.flags & DOF_DEBUG_USE_UI_PARAMS) {
@@ -89,13 +89,13 @@ namespace renderer {
                     }
 
                     focus = max_def(focus, (float_t)cam->min_distance);
-                    apply_physical(rt, rt->GetColorTex(), rt->GetDepthTex(),
+                    apply_physical(rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
                         cam->min_distance, cam->max_distance, focus,
                         dof_debug_data.focal_length, cam->fov * DEG_TO_RAD_FLOAT, dof_debug_data.f_number);
                 }
                 else {
                     float_t fuzzing_range = max_def(dof_debug_data.f2.fuzzing_range, 0.01f);
-                    apply_f2(rt, rt->GetColorTex(), rt->GetDepthTex(),
+                    apply_f2(rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
                         cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
                         dof_debug_data.f2.focus, dof_debug_data.f2.focus_range,
                         fuzzing_range, dof_debug_data.f2.ratio);
@@ -105,7 +105,7 @@ namespace renderer {
         }
         else if (dof_pv_data.enable && dof_pv_data.f2.ratio > 0.0f) {
             float_t fuzzing_range = max_def(dof_pv_data.f2.fuzzing_range, 0.01f);
-            apply_f2(rt, rt->GetColorTex(), rt->GetDepthTex(),
+            apply_f2(rt, buf_rt, rt->GetColorTex(), rt->GetDepthTex(),
                 cam->min_distance, cam->max_distance, cam->fov * DEG_TO_RAD_FLOAT,
                 dof_pv_data.f2.focus, dof_pv_data.f2.focus_range,
                 fuzzing_range, dof_pv_data.f2.ratio);
@@ -173,7 +173,7 @@ namespace renderer {
         glGenVertexArrays(1, &vao);
     }
 
-    void DOF3::apply_f2(RenderTexture* rt, GLuint color_texture,
+    void DOF3::apply_f2(RenderTexture* rt, RenderTexture* buf_rt, GLuint color_texture,
         GLuint depth_texture, float_t min_distance, float_t max_distance, float_t fov,
         float_t focus, float_t focus_range, float_t fuzzing_range, float_t ratio) {
         gl_state_begin_event("renderer::DOF3::apply_f2");
@@ -189,7 +189,7 @@ namespace renderer {
         render_tiles(depth_texture, true);
         downsample(color_texture, depth_texture, true);
         apply_main_filter(true);
-        upsample(rt, color_texture, depth_texture, true);
+        upsample(rt, buf_rt, color_texture, depth_texture, true);
 
         shader::unbind();
         for (int32_t i = 0; i < 8; i++) {
@@ -200,7 +200,7 @@ namespace renderer {
         gl_state_end_event();
     }
 
-    void DOF3::apply_physical(RenderTexture* rt, GLuint color_texture,
+    void DOF3::apply_physical(RenderTexture* rt, RenderTexture* buf_rt, GLuint color_texture,
         GLuint depth_texture, float_t min_distance, float_t max_distance,
         float_t focus, float_t focal_length, float_t fov, float_t f_number) {
         gl_state_begin_event("renderer::DOF3::apply_physical");
@@ -216,7 +216,7 @@ namespace renderer {
         render_tiles(depth_texture, false);
         downsample(color_texture, depth_texture, false);
         apply_main_filter(false);
-        upsample(rt, color_texture, depth_texture, false);
+        upsample(rt, buf_rt, color_texture, depth_texture, false);
 
         shader::unbind();
         for (int32_t i = 0; i < 8; i++) {
@@ -283,9 +283,10 @@ namespace renderer {
         gl_state_end_event();
     }
 
-    void DOF3::upsample(RenderTexture* rt, GLuint color_texture, GLuint depth_texture, bool f2) {
+    void DOF3::upsample(RenderTexture* rt, RenderTexture* buf_rt,
+        GLuint color_texture, GLuint depth_texture, bool f2) {
         gl_state_begin_event("renderer::DOF3::upsample");
-        rctx_ptr->render_buffer.Bind();
+        buf_rt->Bind();
         gl_state_set_viewport(0, 0, width, height);
         uniform_value[U_DOF_STAGE] = 4;
         shaders_ft.set(SHADER_FT_DOF);
@@ -303,7 +304,7 @@ namespace renderer {
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         glCopyImageSubData(
-            rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
+            buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
             rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
         gl_state_end_event();
     }

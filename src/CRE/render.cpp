@@ -137,7 +137,7 @@ namespace rndr {
         for (int32_t i = 0; i < 8; i++)
             gl_state_bind_sampler(i, 0);
 
-        dof->apply(&rend_texture[0]);
+        dof->apply(&rend_texture[0], &rctx_ptr->render_buffer);
 
         draw_lens_ghost();
 
