@@ -2346,10 +2346,8 @@ namespace mdl {
             return culling->func(&sphere, &cam->view);
 
         vec3 center;
-        mat4 _mat;
-        mat4_transpose(&mat, &_mat);
-        mat4_transform_point(&_mat, &sphere.center, &center);
-        return obj_bounding_sphere_check_visibility_default(center, cam, mat4_get_max_scale(&_mat) * sphere.radius);
+        mat4_transform_point(&mat, &sphere.center, &center);
+        return obj_bounding_sphere_check_visibility_default(center, cam, mat4_get_max_scale(&mat) * sphere.radius);
     }
 
     static int32_t obj_axis_aligned_bounding_box_check_visibility_default(
