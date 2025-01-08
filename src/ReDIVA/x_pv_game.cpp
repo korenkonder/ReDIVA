@@ -10003,8 +10003,9 @@ obj_set_reflect* x_pack_reflect::get_obj_set_reflect(uint32_t id) {
     return 0;
 }
 
-XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(), pv_tit_spr_set_ids(), 
-pv_tit_aet_ids(), obj_set_encode_flags(), pv_tit_init(), wait(), start(), exit(), next(), only_firstread_x() {
+XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
+pv_tit_spr_set_ids(), pv_tit_aet_ids(), obj_set_encode_flags(), pv_tit_init(),
+wait(), start(), exit(), next(), only_firstread_x(), write_file() {
     index = -1;
     chara_index = CHARA_MIKU;
 
@@ -10060,8 +10061,10 @@ bool XPVGameBaker::ctrl() {
 }
 
 bool XPVGameBaker::dest() {
-    aft.Write(x_pack_aft_out_dir, only_firstread_x, obj_set_encode_flags);
-    mmp.Write(x_pack_mmp_out_dir, only_firstread_x, obj_set_encode_flags);
+    if (write_file) {
+        aft.Write(x_pack_aft_out_dir, only_firstread_x, obj_set_encode_flags);
+        mmp.Write(x_pack_mmp_out_dir, only_firstread_x, obj_set_encode_flags);
+    }
 
     for (int32_t i = 0; i < 5; i++) {
         sprite_manager_unload_set_modern(pv_tit_aet_set_ids[i], &pv_tit_spr_db);
@@ -10139,6 +10142,7 @@ void XPVGameBaker::window() {
         wait = false;
         index = 0;
         start = true;
+        write_file = true;
 
         aft.Read();
         mmp.Read();

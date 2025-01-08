@@ -956,6 +956,7 @@ public:
     bool start;
     bool exit;
     bool next;
+    bool write_file;
     bool only_firstread_x;
 
     aet_database pv_tit_aet_db;
