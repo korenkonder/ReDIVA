@@ -1320,7 +1320,6 @@ void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale) {
 void draw_pass_set_camera() {
     render_context* rctx = rctx_ptr;
     camera* cam = rctx->camera;
-    cam->update_data();
     rctx->view_mat = cam->view;
     rctx->proj_mat = cam->projection;
     rctx->vp_mat = cam->view_projection;
