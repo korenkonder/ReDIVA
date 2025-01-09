@@ -1441,6 +1441,15 @@ struct struc_344 {
     int32_t swim_s_costume;
 };
 
+struct struc_870 {
+    const char* field_0;
+    int32_t field_8;
+    int32_t field_C;
+    int32_t field_10;
+    int32_t field_14;
+    int32_t field_18;
+};
+
 struct chara_init_data {
     int32_t object_set;
     bone_database_skeleton_type skeleton_type;
@@ -1449,6 +1458,7 @@ struct chara_init_data {
     uint32_t motion_set;
     const struc_218* field_828;
     const struc_218* field_830;
+    const struc_870** field_838;
     int32_t field_840;
     int32_t field_844;
     struc_344 field_848;
@@ -2584,7 +2594,7 @@ struct struc_264 {
     int32_t field_19C;
     int32_t field_1A0;
     uint8_t field_1A4;
-    char** field_1A8;
+    const struc_870* field_1A8;
     int32_t field_1B0;
     int32_t field_1B4;
     int32_t field_1B8;

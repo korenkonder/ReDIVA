@@ -1461,6 +1461,19 @@ static const struc_218 stru_140A25340[] = {
     { {  0.02f   , -0.02f   ,  0.02f    }, 0.035f, 0xB0, 0 },
 };
 
+static const struc_870 stru_140A255C8 = {
+    "COMMON_KAMAE",
+    1,
+    1,
+    1,
+    4,
+    0,
+};
+
+static const struc_870* off_140C9D068[] = {
+    &stru_140A255C8,
+};
+
 static const chara_init_data chara_init_data_array[] = {
     {
         0x0000, BONE_DATABASE_SKELETON_MIKU, object_info(0x0000, 0x0000),
@@ -1480,7 +1493,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        1, stru_140A24B50, stru_140A25090,
+        1, stru_140A24B50, stru_140A25090, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x1E, 0x1D },
         {
             object_info(0x00F7, 0x0000),
@@ -1529,7 +1542,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        9, stru_140A24B50, stru_140A25090,
+        9, stru_140A24B50, stru_140A25090, off_140C9D068,
         1, 0, { 0x02, 0x02, 0x01, 0x01 },
         {
             object_info(0x004A, 0x0107),
@@ -1578,7 +1591,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        5, stru_140A24B50, stru_140A25090,
+        5, stru_140A24B50, stru_140A25090, off_140C9D068,
         0, 0, { 0x02, 0x03, 0x01, 0x01 },
         {
             object_info(0x0040, 0x0105),
@@ -1627,7 +1640,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        6, stru_140A24E00, stru_140A25340,
+        6, stru_140A24E00, stru_140A25340, off_140C9D068,
         0, 0, { 0x01, 0x04, 0x01, 0x01 },
         {
             object_info(0x004C, 0x0106),
@@ -1676,7 +1689,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        8, stru_140A24B50, stru_140A25090,
+        8, stru_140A24B50, stru_140A25090, off_140C9D068,
         0, 0, { 0x02, 0x02, 0x02, 0x02 },
         {
             object_info(0x0019, 0x0108),
@@ -1725,7 +1738,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        3, stru_140A24E00, stru_140A25340,
+        3, stru_140A24E00, stru_140A25340, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x02, 0x02 },
         {
             object_info(0x001F, 0x0109),
@@ -1774,7 +1787,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        4, stru_140A24B50, stru_140A25090,
+        4, stru_140A24B50, stru_140A25090, off_140C9D068,
         0, 0, { 0x00, 0x00, 0x01, 0x01 },
         {
             object_info(0x003C, 0x010D),
@@ -1823,7 +1836,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        7, stru_140A24E00, stru_140A25340,
+        7, stru_140A24E00, stru_140A25340, off_140C9D068,
         1, 0, { 0x00, 0x00, 0x01, 0x01 },
         {
             object_info(0x0040, 0x010E),
@@ -1872,7 +1885,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        10, stru_140A24E00, stru_140A25340,
+        10, stru_140A24E00, stru_140A25340, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x02, 0x02 },
         {
             object_info(0x001A, 0x010F),
@@ -1921,7 +1934,7 @@ static const chara_init_data chara_init_data_array[] = {
             object_info(),
             object_info(),
         },
-        467, stru_140A24B50, stru_140A25090,
+        467, stru_140A24B50, stru_140A25090, off_140C9D068,
         1, 0, { 0x01, 0x01, 0x02, 0x02 },
         {
             object_info(0x0000, 0x063D),
@@ -3631,6 +3644,66 @@ void rob_chara::rob_motion_modifier_ctrl() {
         rob_chara_bone_data_set_right_hand_scale(bone_data, right_hand_scale);
 }
 
+static const struc_243& sub_140510550(chara_index chara_index) {
+    static const struc_243 stru_1411AD680[] = {
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+        {
+            (float_t)(-60.0 * DEG_TO_RAD), (float_t)(35.0 * DEG_TO_RAD),
+            (float_t)(60.0 * DEG_TO_RAD), (float_t)(130.0 * DEG_TO_RAD), 0.0f, 0.0f,
+            (float_t)(35.0 * DEG_TO_RAD), (float_t)(25.0 * DEG_TO_RAD), 0.3f, 0.95f,
+        },
+    };
+    return stru_1411AD680[chara_index];
+}
+
+static void sub_14041C5C0(rob_chara_bone_data* rob_bone_data, const struc_243& a2) {
+    rob_bone_data->look_anim.field_15C = a2;
+}
+
 static const rob_chara_look_anim_eye_param* rob_chara_look_anim_eye_param_array_get(chara_index chara_index) {
     static const rob_chara_look_anim_eye_param rob_chara_look_anim_eye_param_array[] = {
         {
@@ -3727,6 +3800,8 @@ void rob_chara::reset_data(rob_chara_pv_data* pv_data,
     rob_chr_data->adjust_data.item_scale = scale; // X
     rob_chr_data->adjust_data.height_adjust = this->pv_data.height_adjust;
     rob_chr_data->adjust_data.pos_adjust_y = chara_pos_adjust_y_table_get_value(this->pv_data.chara_size_index);
+    rob_chr_data->field_8.field_1A8 = chara_init_data->field_838[rob_chr_data->field_8.field_1A4];
+    sub_14041C5C0(this->bone_data, sub_140510550(chara_index));
     rob_chara_bone_data_set_look_anim_param(this->bone_data,
         rob_chara_look_anim_eye_param_array_get(chara_index), &pv_data->eyes_adjust);
     this->bone_data->sleeve_adjust.sleeve_l = pv_data->sleeve_l;
@@ -9210,7 +9285,7 @@ static void sub_140409170(rob_chara_look_anim* look_anim, mat4* adjust_mat,
 
     if (look_anim->field_B0 > 0.0f) {
         mat4 v61 = *kl_eye_l_parent_mat;
-        *(vec3*)&v61.row3 = *(vec3*)&kl_eye_l_parent_mat->row3 + *(vec3*)&kl_eye_r_parent_mat->row3;
+        *(vec3*)&v61.row3 = (*(vec3*)&kl_eye_l_parent_mat->row3 + *(vec3*)&kl_eye_r_parent_mat->row3) * 0.5f;
 
         vec3 v54;
         mat4_inverse_transform_point(&v61, &look_anim->view_point, &v54);
