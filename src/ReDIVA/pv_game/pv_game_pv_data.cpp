@@ -819,9 +819,9 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         float_t value;
         if (value_int != -1) {
-            value = (float_t)value_int * 0.001f * 60.0f;
-            if (value < 0.0f)
-                value = 0.0f;
+            value = (float_t)value_int * 0.001f;
+            if (value < 0.0f || value > 1.0f)
+                value = 1.0f;
         }
         else
             value = 1.0f;
@@ -855,9 +855,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             if (blend_duration < 0.0f)
                 blend_duration = 0.0f;
         }
-        else {
+        else
             blend_duration = 6.0f;
-        }
 
         float_t value;
         if (value_int != -1) {
@@ -889,9 +888,8 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
             if (blend_duration < 0.0f)
                 blend_duration = 0.0f;
         }
-        else {
+        else
             blend_duration = 6.0f;
-        }
 
         float_t value;
         if (value_int != -1) {
@@ -904,7 +902,9 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (rob_chr) {
             int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
-            bool v167 = dsc.signature >= 0x10000000 || pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
+            bool v167 = true;
+            if (has_perf_id)
+                v167 = pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
             rob_chr->set_face_mottbl_motion(0, mottbl_index, value, mottbl_index >= 214 && mottbl_index <= 223,
                 blend_duration / anim_frame_speed, 0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), v167, aft_mot_db);
         }
@@ -1131,24 +1131,24 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         if (func == DSC_FT_EDIT_EXPRESSION)
             blend_duration = (float_t)data[1] * 0.001f * 60.0f;
 
-        /*int32_t mouth_anim_id = -1;
+        int32_t mouth_anim_id = -1;
         if (!has_perf_id)
-            mouth_anim_id = data[1];*/
+            mouth_anim_id = data[1];
 
         if (rob_chr) {
             int32_t mottbl_index = expression_id_to_mottbl_index(expression_id);
             bool v236 = true;
-            //if (has_perf_id)
+            if (has_perf_id)
                 v236 = pv_game->data.pv->edit != 1 && pv_game->data.pv->edit != 2;
             rob_chr->set_face_mottbl_motion(0, mottbl_index, 1.0f, 0, blend_duration / anim_frame_speed,
                 0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), v236, aft_mot_db);
 
-            /*if (!has_perf_id) {
+            if (!has_perf_id) {
                 int32_t mottbl_index = mouth_anim_id_to_mottbl_index(mouth_anim_id);
                 float_t value = pv_game->data.field_2D090 && mottbl_index != 144 ? 0.0f : 1.0f;
-                rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, measured_fps * 0.1,
+                rob_chr->set_mouth_mottbl_motion(0, mottbl_index, value, 0, measured_fps * 0.1f,
                     0.0f, 1.0f, -1, pv_game->data.get_anim_offset(), aft_mot_db);
-            }*/
+            }
         }
     } break;
     case DSC_FT_MOVE_CAMERA:
