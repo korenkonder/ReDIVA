@@ -753,10 +753,10 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         int32_t blend_duration_int = data[2];
 
         float_t blend_duration;
-        if (blend_duration_int == -1)
-            blend_duration = 6.0f;
-        else
+        if (blend_duration_int != -1)
             blend_duration = (float_t)blend_duration_int * 0.001f * 60.0f;
+        else
+            blend_duration = 6.0f;
 
         if (rob_chr)
             rob_chr->set_eyelid_mottbl_motion_from_face(v114, blend_duration / anim_frame_speed,
