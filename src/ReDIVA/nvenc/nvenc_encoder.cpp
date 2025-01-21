@@ -46,8 +46,10 @@ break
     }
 }
 
-nvenc_encoder::nvenc_encoder(int32_t width, int32_t height, void* d3d_device) : init_params(),
-nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_buffer(), frame_time_stamp() {
+nvenc_encoder::nvenc_encoder(int32_t width, int32_t height, void* d3d_device,
+    void** textures, int32_t num_textures) : init_params(),
+nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_buffer(), frame_time_stamp(),
+width(), height(), registered_resources(), mapped_resources(), num_resources() {
     nvenc_dll = LoadLibraryA("nvEncodeAPI64.dll");
     if (!nvenc_dll)
         return;
@@ -92,11 +94,10 @@ nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_bu
     nvenc_config = preset_config.presetCfg;
 
     nvenc_config.profileGUID = NV_ENC_HEVC_PROFILE_MAIN10_GUID;
-    nvenc_config.gopLength = 10;
+    nvenc_config.gopLength = 60;
     nvenc_config.frameIntervalP = 1;
 
     NV_ENC_CONFIG_HEVC& hevc_config = nvenc_config.encodeCodecConfig.hevcConfig;
-    hevc_config.idrPeriod = 10;
     hevc_config.inputBitDepth = NV_ENC_BIT_DEPTH_10;
     hevc_config.outputBitDepth = NV_ENC_BIT_DEPTH_10;
     hevc_config.hevcVUIParameters.videoSignalTypePresentFlag = 1;
@@ -108,9 +109,9 @@ nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_bu
     hevc_config.hevcVUIParameters.colourMatrix = NV_ENC_VUI_MATRIX_COEFFS_BT709;
 
     nvenc_config.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CONSTQP;
-    nvenc_config.rcParams.constQP.qpIntra = 10;
-    nvenc_config.rcParams.constQP.qpInterB = 10;
-    nvenc_config.rcParams.constQP.qpIntra = 10;
+    nvenc_config.rcParams.constQP.qpInterP = 20;
+    nvenc_config.rcParams.constQP.qpInterB = 20;
+    nvenc_config.rcParams.constQP.qpIntra = 20;
     nvenc_config.rcParams.multiPass = NV_ENC_TWO_PASS_FULL_RESOLUTION;
 
     print_nvenc_status(__LINE__, nvenc_api->nvEncInitializeEncoder(encoder, &init_params));
@@ -123,9 +124,54 @@ nvenc_config(), nvenc_api(), encoder(), encoder_guid(), preset_guid(), output_bu
     print_nvenc_status(__LINE__, nvenc_api->nvEncCreateBitstreamBuffer(encoder, &bitstream_buffer_params));
 
     output_buffer = bitstream_buffer_params.bitstreamBuffer;
+
+    this->width = width;
+    this->height = height;
+
+    num_resources = num_textures;
+    registered_resources = force_malloc<NV_ENC_REGISTERED_PTR>(num_resources);
+    mapped_resources = force_malloc<NV_ENC_INPUT_PTR>(num_resources);
+
+    for (int32_t i = 0; i < num_textures; i++) {
+        const NV_ENC_BUFFER_FORMAT buffer_format = NV_ENC_BUFFER_FORMAT_ABGR;
+
+        ID3D11Texture2D* texture = (ID3D11Texture2D*)textures[i];
+
+        D3D11_TEXTURE2D_DESC desc;
+        texture->GetDesc(&desc);
+
+        NV_ENC_REGISTER_RESOURCE res_params = {};
+        res_params.version = NV_ENC_REGISTER_RESOURCE_VER;
+        res_params.resourceToRegister = texture;
+        res_params.resourceType = NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX;
+        res_params.width = desc.Width;
+        res_params.height = desc.Height;
+        res_params.pitch = desc.Width;
+        res_params.bufferFormat = buffer_format;
+        res_params.bufferUsage = NV_ENC_INPUT_IMAGE;
+
+        print_nvenc_status(__LINE__, nvenc_api->nvEncRegisterResource(encoder, &res_params));
+
+        registered_resources[i] = res_params.registeredResource;
+
+        NV_ENC_MAP_INPUT_RESOURCE map_params = {};
+        map_params.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
+        map_params.registeredResource = res_params.registeredResource;
+        print_nvenc_status(__LINE__, nvenc_api->nvEncMapInputResource(encoder, &map_params));
+
+        mapped_resources[i] = map_params.mappedResource;
+    }
 }
 
 nvenc_encoder::~nvenc_encoder() {
+    for (int32_t i = 0; i < num_resources; i++) {
+        unmap_resource(i);
+        print_nvenc_status(__LINE__, nvenc_api->nvEncUnregisterResource(encoder, registered_resources[i]));
+    }
+
+    free_def(mapped_resources);
+    free_def(registered_resources);
+
     print_nvenc_status(__LINE__, nvenc_api->nvEncDestroyBitstreamBuffer(encoder, output_buffer));
 
     print_nvenc_status(__LINE__, nvenc_api->nvEncDestroyEncoder(encoder));
@@ -133,49 +179,53 @@ nvenc_encoder::~nvenc_encoder() {
     free_def(nvenc_api);
 }
 
-void nvenc_encoder::write_frame(ID3D11Texture2D* texture, stream* s) {
-    D3D11_TEXTURE2D_DESC desc;
-    texture->GetDesc(&desc);
-
-    const NV_ENC_BUFFER_FORMAT buffer_format = NV_ENC_BUFFER_FORMAT_ABGR;
-
-    NV_ENC_REGISTER_RESOURCE res_params = {};
-    res_params.version = NV_ENC_REGISTER_RESOURCE_VER;
-    res_params.resourceToRegister = texture;
-    res_params.resourceType = NV_ENC_INPUT_RESOURCE_TYPE_DIRECTX;
-    res_params.width = desc.Width;
-    res_params.height = desc.Height;
-    res_params.pitch = desc.Width;
-    res_params.bufferFormat = buffer_format;
-    res_params.bufferUsage = NV_ENC_INPUT_IMAGE;
-
-    print_nvenc_status(__LINE__, nvenc_api->nvEncRegisterResource(encoder, &res_params));
+void nvenc_encoder::map_resource(int32_t tex_index) {
+    if (mapped_resources[tex_index])
+        return;
 
     NV_ENC_MAP_INPUT_RESOURCE map_params = {};
     map_params.version = NV_ENC_MAP_INPUT_RESOURCE_VER;
-    map_params.registeredResource = res_params.registeredResource;
-    map_params.inputResource = (void*)texture;
+    map_params.registeredResource = registered_resources[tex_index];
     print_nvenc_status(__LINE__, nvenc_api->nvEncMapInputResource(encoder, &map_params));
+
+    mapped_resources[tex_index] = map_params.mappedResource;
+}
+
+void nvenc_encoder::unmap_resource(int32_t tex_index) {
+    if (!mapped_resources[tex_index])
+        return;
+
+    print_nvenc_status(__LINE__, nvenc_api->nvEncUnmapInputResource(encoder, mapped_resources[tex_index]));
+
+    mapped_resources[tex_index] = 0;
+}
+
+void nvenc_encoder::write_frame(int32_t tex_index, stream* s) {
+    map_resource(tex_index);
+
+    const NV_ENC_BUFFER_FORMAT buffer_format = NV_ENC_BUFFER_FORMAT_ABGR;
 
     NV_ENC_PIC_PARAMS params{};
     params.version = NV_ENC_PIC_PARAMS_VER;
-    params.inputWidth = desc.Width;
-    params.inputHeight = desc.Height;
+    params.inputWidth = width;
+    params.inputHeight = height;
     params.inputPitch = params.inputWidth;
-    params.inputBuffer = map_params.mappedResource;
+    params.inputBuffer = mapped_resources[tex_index];
     params.outputBitstream = output_buffer;
     params.bufferFmt = buffer_format;
     params.pictureStruct = NV_ENC_PIC_STRUCT_FRAME;
-    print_nvenc_status(__LINE__, nvenc_api->nvEncEncodePicture(encoder, &params));
 
-    print_nvenc_status(__LINE__, nvenc_api->nvEncUnmapInputResource(encoder, map_params.mappedResource));
-    print_nvenc_status(__LINE__, nvenc_api->nvEncUnregisterResource(encoder, res_params.registeredResource));
+    NVENCSTATUS encode_status = nvenc_api->nvEncEncodePicture(encoder, &params);
 
-    NV_ENC_LOCK_BITSTREAM lock_params{};
-    lock_params.version = NV_ENC_LOCK_BITSTREAM_VER;
-    lock_params.outputBitstream = output_buffer;
+    if (encode_status == NV_ENC_SUCCESS || encode_status == NV_ENC_ERR_NEED_MORE_INPUT) {
+        NV_ENC_LOCK_BITSTREAM lock_params{};
+        lock_params.version = NV_ENC_LOCK_BITSTREAM_VER;
+        lock_params.outputBitstream = output_buffer;
 
-    print_nvenc_status(__LINE__, nvenc_api->nvEncLockBitstream(encoder, &lock_params));
-    s->write(lock_params.bitstreamBufferPtr, lock_params.bitstreamSizeInBytes);
-    print_nvenc_status(__LINE__, nvenc_api->nvEncUnlockBitstream(encoder, &output_buffer));
+        print_nvenc_status(__LINE__, nvenc_api->nvEncLockBitstream(encoder, &lock_params));
+        s->write(lock_params.bitstreamBufferPtr, lock_params.bitstreamSizeInBytes);
+        print_nvenc_status(__LINE__, nvenc_api->nvEncUnlockBitstream(encoder, &output_buffer));
+    }
+    else
+        print_nvenc_status(__LINE__, encode_status);
 }

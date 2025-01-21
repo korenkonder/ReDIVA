@@ -27,8 +27,18 @@ public:
 
     uint64_t frame_time_stamp;
 
-    nvenc_encoder(int32_t width, int32_t height, void* d3d_device);
+    int32_t width;
+    int32_t height;
+
+    NV_ENC_REGISTERED_PTR* registered_resources;
+    NV_ENC_INPUT_PTR* mapped_resources;
+    int32_t num_resources;
+
+    nvenc_encoder(int32_t width, int32_t height, void* d3d_device,
+        void** textures, int32_t num_textures);
     ~nvenc_encoder();
 
-    void write_frame(ID3D11Texture2D* texture, stream* s);
+    void map_resource(int32_t tex_index);
+    void unmap_resource(int32_t tex_index);
+    void write_frame(int32_t tex_index, stream* s);
 };

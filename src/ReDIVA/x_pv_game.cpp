@@ -6368,7 +6368,7 @@ bool x_pv_game::ctrl() {
         int32_t res = 0;
         glGetQueryObjectiv(d3d_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
         if (res) {
-            nvenc_enc->write_frame(d3d_texture[idx], nvenc_stream);
+            nvenc_enc->write_frame(idx, nvenc_stream);
             nvenc_stream->flush();
             d3d_tex_in_queue--;
             d3d_tex_write[idx] = false;
@@ -6380,7 +6380,7 @@ bool x_pv_game::ctrl() {
         int32_t res = 0;
         glGetQueryObjectiv(d3d_alpha_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
         if (res) {
-            nvenc_alpha_enc->write_frame(d3d_alpha_texture[idx], nvenc_alpha_stream);
+            nvenc_alpha_enc->write_frame(idx, nvenc_alpha_stream);
             nvenc_alpha_stream->flush();
             d3d_alpha_tex_in_queue--;
             d3d_alpha_tex_write[idx] = false;
@@ -6426,6 +6426,8 @@ bool x_pv_game::ctrl() {
                 write_frame(next_idx);
             }
 
+            nvenc_enc->unmap_resource(next_idx);
+
             wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[next_idx]);
 
             gl_state_bind_framebuffer(d3d_gl_fbo[next_idx]);
@@ -6454,6 +6456,8 @@ bool x_pv_game::ctrl() {
                 d3d_timer.sleep_float(1.0);
                 write_alpha_frame(next_alpha_idx);
             }
+
+            nvenc_alpha_enc->unmap_resource(next_idx);
 
             wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_alpha_rbo_handle[next_alpha_idx]);
 
@@ -6485,6 +6489,9 @@ bool x_pv_game::ctrl() {
         }
         else {
 #if BAKE_VIDEO_ALPHA
+            nvenc_enc->unmap_resource(0);
+            nvenc_alpha_enc->unmap_resource(0);
+
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
             HRESULT result = d3d_device_context->Map(d3d_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res);
             D3D11_MAPPED_SUBRESOURCE mapped_alpha_res = {};
@@ -6544,8 +6551,8 @@ bool x_pv_game::ctrl() {
 
                 d3d_device_context->Unmap(d3d_texture[0], 0);
                 d3d_device_context->Unmap(d3d_alpha_texture[0], 0);
-                nvenc_enc->write_frame(d3d_texture[0], nvenc_stream);
-                nvenc_alpha_enc->write_frame(d3d_alpha_texture[0], nvenc_alpha_stream);
+                nvenc_enc->write_frame(0, nvenc_stream);
+                nvenc_alpha_enc->write_frame(0, nvenc_alpha_stream);
                 nvenc_stream->flush();
                 nvenc_alpha_stream->flush();
             }
@@ -6556,6 +6563,8 @@ bool x_pv_game::ctrl() {
                     d3d_device_context->Unmap(d3d_alpha_texture[0], 0);
             }
 #else
+            nvenc_enc->unmap_resource(0);
+
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
             if (SUCCEEDED(d3d_device_context->Map(d3d_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
                 gl_state_bind_texture_2d(tex->glid);
@@ -6602,7 +6611,7 @@ bool x_pv_game::ctrl() {
                     }
 
                 d3d_device_context->Unmap(d3d_texture[0], 0);
-                nvenc_enc->write_frame(d3d_texture[0], nvenc_stream);
+                nvenc_enc->write_frame(0, nvenc_stream);
                 nvenc_stream->flush();
             }
 #endif
@@ -7924,8 +7933,10 @@ bool x_pv_game::ctrl() {
         }
 
 #if BAKE_VIDEO_ALPHA
-        nvenc_enc = new nvenc_encoder(width, height, d3d_device);
-        nvenc_alpha_enc = new nvenc_encoder(width, height, d3d_device);
+        nvenc_enc = new nvenc_encoder(width, height, d3d_device,
+            (void**)d3d_texture, d3d_in_flight_num);
+        nvenc_alpha_enc = new nvenc_encoder(width, height, d3d_device,
+            (void**)d3d_texture, d3d_in_flight_num);
 
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d_color.265", get_data().pv_id);
@@ -7938,7 +7949,8 @@ bool x_pv_game::ctrl() {
         nvenc_alpha_stream = new file_stream();
         nvenc_alpha_stream->open(buf, "wb");
 #else
-        nvenc_enc = new nvenc_encoder(width, height, d3d_device);
+        nvenc_enc = new nvenc_encoder(width, height, d3d_device,
+            (void**)d3d_texture, d3d_in_flight_num);
 
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", get_data().pv_id);
