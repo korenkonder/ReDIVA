@@ -6919,6 +6919,112 @@ bool x_pv_game::ctrl() {
         if (wait_load)
             break;
 
+        {
+            auth_3d* light_auth_3d = light_auth_3d_id.get_auth_3d();
+
+            char path_buf[0x200];
+            sprintf_s(path_buf, sizeof(path_buf), "patch\\AFT\\auth_3d\\STGPV%03d_LT_POS.txt",
+                800 + stage_data.stage_id);
+
+            auth_3d_light* light = 0;
+            for (auth_3d_light& i : light_auth_3d->light)
+                if (i.id == LIGHT_CHARA) {
+                    light = &i;
+                    break;
+                }
+
+            if (light && path_check_file_exists(path_buf)) {
+                prj::vector_pair<int32_t, vec3> values;
+                light->interpolate(0.0f);
+                values.push_back(0, light->position.translation_value);
+                light->interpolate(light_auth_3d->frame);
+
+                file_stream lt_pos_fs;
+                lt_pos_fs.open(path_buf, "rb");
+
+                char* data = force_malloc<char>(lt_pos_fs.length + 1);
+                lt_pos_fs.read(data, lt_pos_fs.length);
+                data[lt_pos_fs.length] = 0;
+
+                lt_pos_fs.close();
+
+                char buf[0x200];
+                const char* d = data;
+
+                auto read_line = [](char* buf, int32_t size, const char* src) -> const char* {
+                    char* b = buf;
+                    if (!src || !*src)
+                        return 0;
+
+                    for (int32_t i = 0; i < size - 1; i++, b++) {
+                        char c = *b = *src++;
+                        if (!c) {
+                            b++;
+                            break;
+                        }
+                        else if (c == '\n') {
+                            *b++ = 0;
+                            break;
+                        }
+                        else if (c == '\r' && *src == '\n') {
+                            *b++ = 0;
+                            src++;
+                            break;
+                        }
+                    }
+
+                    if (!str_utils_compare(buf, "EOF"))
+                        return 0;
+                    return src;
+                };
+
+                while (d = read_line(buf, sizeof(buf), d)) {
+                    int32_t frame;
+                    vec3 pos;
+                    if (sscanf_s(buf, "%d,%f,%f,%f", &frame, &pos.x, &pos.y, &pos.z) == 4) {
+                        vec2 pos_norm = vec2::normalize({ pos.x, pos.z });
+                        values.push_back(frame, { pos_norm.x, pos.y, pos_norm.y });
+                    }
+                }
+
+                free_def(data);
+
+                if (values.size() > 1) {
+                    auto auth_3d_key_load = [](auth_3d_key* k,
+                        const prj::vector_pair<int32_t, vec3>& values, const int32_t comp) {
+                        k->type = AUTH_3D_KEY_HOLD;
+                        k->value = 0.0f;
+
+                        k->ep_type_pre = AUTH_3D_EP_NONE;
+                        k->ep_type_post = AUTH_3D_EP_NONE;
+
+                        size_t length = values.size();
+                        k->keys_vec.resize(length);
+                        k->length = length;
+                        k->keys = k->keys_vec.data();
+
+                        kft3* key = k->keys_vec.data();
+                        for (size_t i = length, j = 0; i; i--, j++)
+                            *key++ = {
+                                (float_t)values.data()[j].first,
+                                ((float_t*)&values.data()[j].second)[comp]
+                            };
+
+                        kft3* first_key = &k->keys[0];
+                        kft3* last_key = &k->keys[length - 1];
+                        k->frame_delta = last_key->frame - first_key->frame;
+                        k->value_delta = last_key->value - first_key->value;
+
+                        k->interpolate(0.0f);
+                    };
+
+                    auth_3d_key_load(&light->position.translation.x, values, 0);
+                    auth_3d_key_load(&light->position.translation.y, values, 1);
+                    auth_3d_key_load(&light->position.translation.z, values, 2);
+                }
+            }
+        }
+
         x_pv_game_pv_data& pv_data = get_data().pv_data;
 
         pv_param_task::post_process_task_add_task();
