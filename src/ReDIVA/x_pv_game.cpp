@@ -6919,7 +6919,7 @@ bool x_pv_game::ctrl() {
         if (wait_load)
             break;
 
-        {
+        if (light_auth_3d_id.not_null()) {
             auth_3d* light_auth_3d = light_auth_3d_id.get_auth_3d();
 
             char path_buf[0x200];
