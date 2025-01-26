@@ -4644,7 +4644,9 @@ void x_pv_game_data::ctrl_stage_effect_index() {
 }
 
 void x_pv_game_data::disp() {
+#if !BAKE_VIDEO_ALPHA
     title.disp();
+#endif
 }
 
 #if BAKE_PV826
@@ -6289,35 +6291,59 @@ extern ID3D11Device* d3d_device;
 extern ID3D11DeviceContext* d3d_device_context;
 extern HANDLE d3d_gl_handle;
 
-const int32_t d3d_in_flight_num = 3;
-bool d3d_tex_write[d3d_in_flight_num];
-int32_t d3d_curr_tex = 0;
-int32_t d3d_tex_in_queue = 0;
+struct d3d_gl_rbo_struct {
+    GLuint glid;
+    HANDLE handle;
 
-ID3D11Texture2D* d3d_texture[d3d_in_flight_num];
+    inline d3d_gl_rbo_struct() : glid(), handle() {
 
-GLuint d3d_query[d3d_in_flight_num];
-GLuint d3d_gl_fbo[d3d_in_flight_num];
-GLuint d3d_gl_rbo[d3d_in_flight_num];
-HANDLE d3d_gl_rbo_handle[d3d_in_flight_num];
+    }
+
+    inline void init(ID3D11Texture2D* texture) {
+        glGenRenderbuffers(1, &glid);
+
+        handle = wglDXRegisterObjectNV(d3d_gl_handle, texture,
+            glid, GL_RENDERBUFFER, WGL_ACCESS_READ_WRITE_NV);
+    }
+
+    inline void free() {
+        wglDXUnregisterObjectNV(d3d_gl_handle, handle);
+        handle = 0;
+
+        glDeleteRenderbuffers(1, &glid);
+        glid = 0;
+    }
+
+    inline void lock() {
+        wglDXLockObjectsNV(d3d_gl_handle, 1, &handle);
+    }
+
+    inline void unlock() {
+        wglDXUnlockObjectsNV(d3d_gl_handle, 1, &handle);
+    }
+};
+
+ID3D11Texture2D* d3d_texture;
+
+GLuint d3d_gl_fbo;
+d3d_gl_rbo_struct d3d_gl_rbo;
 
 #if BAKE_VIDEO_ALPHA
-bool d3d_alpha_tex_write[d3d_in_flight_num];
-int32_t d3d_curr_alpha_tex = 0;
-int32_t d3d_alpha_tex_in_queue = 0;
+ID3D11Texture2D* d3d_alpha_texture;
 
-ID3D11Texture2D* d3d_alpha_texture[d3d_in_flight_num];
-
-GLuint d3d_alpha_query[d3d_in_flight_num];
-GLuint d3d_gl_alpha_fbo[d3d_in_flight_num];
-GLuint d3d_gl_alpha_rbo[d3d_in_flight_num];
-HANDLE d3d_gl_alpha_rbo_handle[d3d_in_flight_num];
+GLuint d3d_gl_alpha_fbo;
+d3d_gl_rbo_struct d3d_gl_alpha_rbo;
 #endif
 
 waitable_timer d3d_timer;
 
-const size_t nvenc_src_pixel_size = 8;
+const size_t nvenc_src_pixel_size = 4;
 const size_t nvenc_dst_pixel_size = 4;
+
+nvenc_encoder_format nvenc_format = NVENC_ENCODER_YUV420_10BIT;
+bool nvenc_lossless = false;
+
+bool nvenc_rgb;
 
 std::vector<uint8_t> nvenc_temp_pixels;
 
@@ -6363,52 +6389,6 @@ static int32_t frame_prev = -1;
 #endif
 
 bool x_pv_game::ctrl() {
-#if BAKE_VIDEO
-    auto write_frame = [](int32_t idx) {
-        int32_t res = 0;
-        glGetQueryObjectiv(d3d_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
-        if (res) {
-            nvenc_enc->write_frame(idx, nvenc_stream);
-            nvenc_stream->flush();
-            d3d_tex_in_queue--;
-            d3d_tex_write[idx] = false;
-        }
-    };
-
-#if BAKE_VIDEO_ALPHA
-    auto write_alpha_frame = [](int32_t idx) {
-        int32_t res = 0;
-        glGetQueryObjectiv(d3d_alpha_query[idx], GL_QUERY_RESULT_AVAILABLE, &res);
-        if (res) {
-            nvenc_alpha_enc->write_frame(idx, nvenc_alpha_stream);
-            nvenc_alpha_stream->flush();
-            d3d_alpha_tex_in_queue--;
-            d3d_alpha_tex_write[idx] = false;
-        }
-    };
-#endif
-
-    if (GLAD_WGL_NV_DX_interop2 && d3d_tex_in_queue) {
-        if (frame_prev == x_pv_game_ptr->frame)
-            for (int32_t i = 0; i < d3d_in_flight_num && !d3d_tex_write[d3d_curr_tex]; i++)
-                d3d_curr_tex = (d3d_curr_tex + 1) % d3d_in_flight_num;
-
-        if (d3d_tex_write[d3d_curr_tex])
-            write_frame(d3d_curr_tex);
-    }
-
-#if BAKE_VIDEO_ALPHA
-    if (GLAD_WGL_NV_DX_interop2 && d3d_alpha_tex_in_queue) {
-        if (frame_prev == x_pv_game_ptr->frame)
-            for (int32_t i = 0; i < d3d_in_flight_num && !d3d_alpha_tex_write[d3d_curr_alpha_tex]; i++)
-                d3d_curr_alpha_tex = (d3d_curr_alpha_tex + 1) % d3d_in_flight_num;
-
-        if (d3d_alpha_tex_write[d3d_curr_alpha_tex])
-            write_alpha_frame(d3d_curr_alpha_tex);
-    }
-#endif
-#endif
-
 #if BAKE_PNG || BAKE_VIDEO
     if (img_write && frame_prev != x_pv_game_ptr->frame) {
         texture* tex = rctx_ptr->screen_buffer.color_texture;
@@ -6417,52 +6397,37 @@ bool x_pv_game::ctrl() {
 
 #if BAKE_VIDEO
         if (GLAD_WGL_NV_DX_interop2) {
-            int32_t idx = (d3d_curr_tex + 1) % d3d_in_flight_num;
-            d3d_curr_tex = idx;
-            int32_t next_idx = (idx + 2) % d3d_in_flight_num;
+            d3d_gl_rbo.lock();
 
-            while (d3d_tex_write[next_idx]) {
-                d3d_timer.sleep_float(1.0);
-                write_frame(next_idx);
+            gl_state_bind_framebuffer(d3d_gl_fbo);
+            gl_state_active_bind_texture_2d(0, tex->glid);
+
+            if (nvenc_rgb) {
+                GLint swizzle_rgb1[] = { GL_RED, GL_BLUE, GL_GREEN, GL_ONE };
+                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgb1);
             }
 
-            nvenc_enc->unmap_resource(next_idx);
-
-            wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[next_idx]);
-
-            gl_state_bind_framebuffer(d3d_gl_fbo[next_idx]);
-            gl_state_active_bind_texture_2d(0, tex->glid);
             gl_state_set_viewport(0, 0, width, height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
-            glBeginQuery(GL_SAMPLES_PASSED, d3d_query[next_idx]);
             rctx_ptr->render.draw_quad(width, height,
                 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-            glEndQuery(GL_SAMPLES_PASSED);
+
+            if (nvenc_rgb) {
+                GLint swizzle_rgba[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
+            }
+
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);
 
-            wglDXUnlockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[next_idx]);
-
-            d3d_tex_in_queue++;
-            d3d_tex_write[next_idx] = true;
+            d3d_gl_rbo.unlock();
 
 #if BAKE_VIDEO_ALPHA
-            int32_t alpha_idx = (d3d_curr_alpha_tex + 1) % d3d_in_flight_num;
-            d3d_curr_alpha_tex = alpha_idx;
-            int32_t next_alpha_idx = (alpha_idx + 2) % d3d_in_flight_num;
+            d3d_gl_alpha_rbo.lock();
 
-            while (d3d_alpha_tex_write[next_alpha_idx]) {
-                d3d_timer.sleep_float(1.0);
-                write_alpha_frame(next_alpha_idx);
-            }
-
-            nvenc_alpha_enc->unmap_resource(next_idx);
-
-            wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_alpha_rbo_handle[next_alpha_idx]);
-
-            gl_state_bind_framebuffer(d3d_gl_alpha_fbo[next_alpha_idx]);
-            gl_state_active_bind_texture_2d(0, tex->tex);
+            gl_state_bind_framebuffer(d3d_gl_alpha_fbo);
+            gl_state_active_bind_texture_2d(0, tex->glid);
 
             GLint swizzle_aaa1[] = { GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ONE };
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_aaa1);
@@ -6470,10 +6435,8 @@ bool x_pv_game::ctrl() {
             gl_state_set_viewport(0, 0, width, height);
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
-            glBeginQuery(GL_SAMPLES_PASSED, d3d_alpha_query[next_alpha_idx]);
             rctx_ptr->render.draw_quad(width, height,
                 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-            glEndQuery(GL_SAMPLES_PASSED);
 
             GLint swizzle_rgba[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
@@ -6481,21 +6444,48 @@ bool x_pv_game::ctrl() {
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);
 
-            wglDXUnlockObjectsNV(d3d_gl_handle, 1, &d3d_gl_alpha_rbo_handle[next_alpha_idx]);
-
-            d3d_alpha_tex_in_queue++;
-            d3d_alpha_tex_write[next_alpha_idx] = true;
+            d3d_gl_alpha_rbo.unlock();
             #endif
         }
         else {
+            void (*conv_func)(uint8_t * src, uint8_t * dst);
+
+            conv_func = [](uint8_t* src, uint8_t* dst) {
+                const uint32_t temp = *(uint32_t*)src;
+                *(uint32_t*)dst = (temp & 0xFFFFFF) | (0xFF << 24);
+            };
+
+            if (nvenc_rgb) {
+                conv_func = [](uint8_t* src, uint8_t* dst) {
+                    const uint32_t temp = *(uint32_t*)src;
+                    *(uint32_t*)dst = (temp & 0xFF) | ((temp & 0xFF00) << 8)
+                        | ((temp & 0xFF0000) >> 8) | (0xFF << 24);
+                };
+            }
+
 #if BAKE_VIDEO_ALPHA
-            nvenc_enc->unmap_resource(0);
-            nvenc_alpha_enc->unmap_resource(0);
+            void (*conv_func_alpha)(uint8_t * src, uint8_t * dst);
+
+            conv_func_alpha = [](uint8_t* src, uint8_t* dst) {
+                const uint32_t temp = *(uint32_t*)src;
+                const uint32_t alpha = (temp >> 24) & 0xFF;
+                *(uint32_t*)dst = alpha | (alpha << 8) | (alpha << 16) | (0xFF << 24);
+            };
+
+            if (nvenc_rgb) {
+                conv_func_alpha = [](uint8_t* src, uint8_t* dst) {
+                    const uint32_t temp = *(uint32_t*)src;
+                    const uint32_t alpha = (temp >> 24) & 0xFF;
+                    *(uint32_t*)dst = alpha | (alpha << 8) | (alpha << 16) | (0xFF << 24);
+                };
+            }
 
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
-            HRESULT result = d3d_device_context->Map(d3d_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res);
+            HRESULT result = d3d_device_context->Map(d3d_texture,
+                0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res);
             D3D11_MAPPED_SUBRESOURCE mapped_alpha_res = {};
-            HRESULT result_alpha = d3d_device_context->Map(d3d_alpha_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res);
+            HRESULT result_alpha = d3d_device_context->Map(d3d_alpha_texture,
+                0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res);
             if (SUCCEEDED(result) && SUCCEEDED(result_alpha)) {
                 gl_state_bind_texture_2d(tex->glid);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
@@ -6505,117 +6495,55 @@ bool x_pv_game::ctrl() {
                 uint8_t* dst = (uint8_t*)mapped_res.pData;
                 uint8_t* dst_alpha = (uint8_t*)mapped_alpha_res.pData;
 
-                __m128 rgb_f32;
-                vec4i rgb_u10;
+                for (size_t y = 0, i = height; i; y++, i--) {
+                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+                    uint8_t* dst1_alpha = &dst_alpha[(height - y - 1) * width * nvenc_dst_pixel_size];
 
-                extern bool cpu_caps_f16c;
-                if (cpu_caps_f16c)
-                    for (size_t y = 0, i = height; i; y++, i--) {
-                        uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                        uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
-                        uint8_t* dst1_alpha = &dst_alpha[(height - y - 1) * width * nvenc_dst_pixel_size];
-
-                        for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size,
-                            dst1 += nvenc_dst_pixel_size, dst1_alpha += nvenc_dst_pixel_size) {
-                            rgb_f32 = _mm_cvtph_ps(_mm_loadl_epi64((__m128i*)src1));
-                            rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
-                            rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
-                            rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
-                            *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
-                                | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
-                            *(uint32_t*)dst1_alpha = (uint32_t)rgb_u10.w | ((uint32_t)rgb_u10.w << 10)
-                                | ((uint32_t)rgb_u10.w << 20) | (0x03 << 30);
-                        }
+                    for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size,
+                        dst1 += nvenc_dst_pixel_size, dst1_alpha += nvenc_dst_pixel_size) {
+                        conv_func(src1, dst1);
+                        conv_func_alpha(src1, dst1_alpha);
                     }
-                else
-                    for (size_t y = 0, i = height; i; y++, i--) {
-                        uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                        uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
-                        uint8_t* dst1_alpha = &dst_alpha[(height - y - 1) * width * nvenc_dst_pixel_size];
+                }
 
-                        for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size,
-                            dst1 += nvenc_dst_pixel_size, dst1_alpha += nvenc_dst_pixel_size) {
-                            rgb_f32.m128_f32[0] = half_to_float_convert(((half_t*)src1)[0]);
-                            rgb_f32.m128_f32[1] = half_to_float_convert(((half_t*)src1)[1]);
-                            rgb_f32.m128_f32[2] = half_to_float_convert(((half_t*)src1)[2]);
-                            rgb_f32.m128_f32[3] = half_to_float_convert(((half_t*)src1)[3]);
-                            rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
-                            rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
-                            rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
-                            *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
-                                | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
-                            *(uint32_t*)dst1_alpha = (uint32_t)rgb_u10.w | ((uint32_t)rgb_u10.w << 10)
-                                | ((uint32_t)rgb_u10.w << 20) | (0x03 << 30);
-                        }
-                    }
-
-                d3d_device_context->Unmap(d3d_texture[0], 0);
-                d3d_device_context->Unmap(d3d_alpha_texture[0], 0);
-                nvenc_enc->write_frame(0, nvenc_stream);
-                nvenc_alpha_enc->write_frame(0, nvenc_alpha_stream);
-                nvenc_stream->flush();
-                nvenc_alpha_stream->flush();
+                d3d_device_context->Unmap(d3d_texture, 0);
+                d3d_device_context->Unmap(d3d_alpha_texture, 0);
             }
             else {
                 if (SUCCEEDED(result))
-                    d3d_device_context->Unmap(d3d_texture[0], 0);
+                    d3d_device_context->Unmap(d3d_texture, 0);
                 if (SUCCEEDED(result_alpha))
-                    d3d_device_context->Unmap(d3d_alpha_texture[0], 0);
+                    d3d_device_context->Unmap(d3d_alpha_texture, 0);
             }
 #else
-            nvenc_enc->unmap_resource(0);
-
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
-            if (SUCCEEDED(d3d_device_context->Map(d3d_texture[0], 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
+            if (SUCCEEDED(d3d_device_context->Map(d3d_texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
                 gl_state_bind_texture_2d(tex->glid);
-                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
+                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, nvenc_temp_pixels.data());
                 gl_state_bind_texture_2d(0);
 
                 uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
                 uint8_t* dst = (uint8_t*)mapped_res.pData;
 
-                __m128 rgb_f32;
-                vec4i rgb_u10;
+                for (size_t y = 0, i = height; i; y++, i--) {
+                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
 
-                extern bool cpu_caps_f16c;
-                if (cpu_caps_f16c)
-                    for (size_t y = 0, i = height; i; y++, i--) {
-                        uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                        uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+                    for (size_t x = 0, j = width; j; x++, j--,
+                        src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size)
+                        conv_func(src1, dst1);
+                }
 
-                        for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
-                            rgb_f32 = _mm_cvtph_ps(_mm_loadl_epi64((__m128i*)src1));
-                            rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
-                            rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
-                            rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
-                            *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
-                                | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
-                        }
-                    }
-                else
-                    for (size_t y = 0, i = height; i; y++, i--) {
-                        uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                        uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
-
-                        for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size) {
-                            rgb_f32.m128_f32[0] = half_to_float_convert(((half_t*)src1)[0]);
-                            rgb_f32.m128_f32[1] = half_to_float_convert(((half_t*)src1)[1]);
-                            rgb_f32.m128_f32[2] = half_to_float_convert(((half_t*)src1)[2]);
-                            rgb_f32.m128_f32[3] = half_to_float_convert(((half_t*)src1)[3]);
-                            rgb_f32 = _mm_min_ps(_mm_max_ps(rgb_f32, vec4::load_xmm(0.0f)), vec4::load_xmm(1.0f));
-                            rgb_f32 = _mm_mul_ps(rgb_f32, vec4::load_xmm((float_t)((1 << 10) - 1)));
-                            rgb_u10 = vec4i::store_xmm(_mm_cvtps_epi32(rgb_f32));
-                            *(uint32_t*)dst1 = (uint32_t)rgb_u10.x | ((uint32_t)rgb_u10.y << 10)
-                                | ((uint32_t)rgb_u10.z << 20) | (0x03 << 30);
-                        }
-                    }
-
-                d3d_device_context->Unmap(d3d_texture[0], 0);
-                nvenc_enc->write_frame(0, nvenc_stream);
-                nvenc_stream->flush();
+                d3d_device_context->Unmap(d3d_texture, 0);
             }
 #endif
         }
+
+        nvenc_enc->encode_frame(nvenc_stream, d3d_texture);
+#if BAKE_VIDEO_ALPHA
+        nvenc_alpha_enc->encode_frame(nvenc_alpha_stream, d3d_alpha_texture);
+#endif
 #elif BAKE_PNG
         std::vector<uint8_t> temp_pixels;
         temp_pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
@@ -7963,86 +7891,68 @@ bool x_pv_game::ctrl() {
         const int32_t height = BAKE_BASE_HEIGHT * BAKE_RES_SCALE;
 
 #if BAKE_VIDEO
+        nvenc_rgb = (nvenc_format == NVENC_ENCODER_RGB
+            || nvenc_format == NVENC_ENCODER_RGB_10BIT);
+
+        {
+            D3D11_TEXTURE2D_DESC tex_desc = {};
+            tex_desc.Width = width;
+            tex_desc.Height = height;
+            tex_desc.MipLevels = 1;
+            tex_desc.ArraySize = 1;
+            tex_desc.Format = nvenc_rgb ? DXGI_FORMAT_AYUV : DXGI_FORMAT_R8G8B8A8_UNORM;
+            tex_desc.SampleDesc.Count = 1;
+            tex_desc.SampleDesc.Quality = 0;
+            if (GLAD_WGL_NV_DX_interop2) {
+                tex_desc.Usage = D3D11_USAGE_DEFAULT;
+                tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
+                tex_desc.CPUAccessFlags = 0;
+            }
+            else {
+                tex_desc.Usage = D3D11_USAGE_DYNAMIC;
+                tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+                tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+            }
+            tex_desc.MiscFlags = 0;
+
+            d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture);
+#if BAKE_VIDEO_ALPHA
+            d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_alpha_texture);
+#endif
+        }
+
         if (GLAD_WGL_NV_DX_interop2) {
-            glGenRenderbuffers(d3d_in_flight_num, d3d_gl_rbo);
-            glGenFramebuffers(d3d_in_flight_num, d3d_gl_fbo);
-            glGenQueries(d3d_in_flight_num, d3d_query);
+            d3d_gl_rbo.init(d3d_texture);
+
+            glGenFramebuffers(1, &d3d_gl_fbo);
+
+            d3d_gl_rbo.lock();
+            gl_state_bind_framebuffer(d3d_gl_fbo);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_rbo.glid);
+            gl_state_bind_framebuffer(0);
+            d3d_gl_rbo.unlock();
 
 #if BAKE_VIDEO_ALPHA
-            glGenRenderbuffers(d3d_in_flight_num, d3d_gl_alpha_rbo);
-            glGenFramebuffers(d3d_in_flight_num, d3d_gl_alpha_fbo);
-            glGenQueries(d3d_in_flight_num, d3d_alpha_query);
-#endif
+            d3d_gl_alpha_rbo.init(d3d_alpha_texture);
 
-            D3D11_TEXTURE2D_DESC tex_desc = { };
-            tex_desc.Width = width;
-            tex_desc.Height = height;
-            tex_desc.MipLevels = 1;
-            tex_desc.ArraySize = 1;
-            tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            tex_desc.SampleDesc.Count = 1;
-            tex_desc.SampleDesc.Quality = 0;
-            tex_desc.Usage = D3D11_USAGE_DEFAULT;
-            tex_desc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE;
-            tex_desc.CPUAccessFlags = 0;
-            tex_desc.MiscFlags = 0;
+            glGenFramebuffers(1, &d3d_gl_alpha_fbo);
 
-            for (int32_t i = 0; i < d3d_in_flight_num; i++)
-                d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture[i]);
-
-            for (int32_t i = 0; i < d3d_in_flight_num; i++)
-                d3d_gl_rbo_handle[i] = wglDXRegisterObjectNV(d3d_gl_handle, d3d_texture[i],
-                    d3d_gl_rbo[i], GL_RENDERBUFFER, WGL_ACCESS_READ_WRITE_NV);
-
-            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
-                wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[i]);
-                gl_state_bind_framebuffer(d3d_gl_fbo[i]);
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_rbo[i]);
-                gl_state_bind_framebuffer(0);
-                wglDXUnlockObjectsNV(d3d_gl_handle, 1, &d3d_gl_rbo_handle[i]);
-            }
-
-#if BAKE_VIDEO_ALPHA
-            for (int32_t i = 0; i < d3d_in_flight_num; i++)
-                d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_alpha_texture[i]);
-
-            for (int32_t i = 0; i < d3d_in_flight_num; i++)
-                d3d_gl_alpha_rbo_handle[i] = wglDXRegisterObjectNV(d3d_gl_handle, d3d_alpha_texture[i],
-                    d3d_gl_alpha_rbo[i], GL_RENDERBUFFER, WGL_ACCESS_READ_WRITE_NV);
-
-            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
-                wglDXLockObjectsNV(d3d_gl_handle, 1, &d3d_gl_alpha_rbo_handle[i]);
-                gl_state_bind_framebuffer(d3d_gl_alpha_fbo[i]);
-                glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_alpha_rbo[i]);
-                gl_state_bind_framebuffer(0);
-                wglDXUnlockObjectsNV(d3d_gl_handle, 1, &d3d_gl_alpha_rbo_handle[i]);
-            }
+            d3d_gl_alpha_rbo.lock();
+            gl_state_bind_framebuffer(d3d_gl_alpha_fbo);
+            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_alpha_rbo.glid);
+            gl_state_bind_framebuffer(0);
+            d3d_gl_alpha_rbo.unlock();
 #endif
         }
-        else {
-            D3D11_TEXTURE2D_DESC tex_desc = { };
-            tex_desc.Width = width;
-            tex_desc.Height = height;
-            tex_desc.MipLevels = 1;
-            tex_desc.ArraySize = 1;
-            tex_desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-            tex_desc.SampleDesc.Count = 1;
-            tex_desc.SampleDesc.Quality = 0;
-            tex_desc.Usage = D3D11_USAGE_DYNAMIC;
-            tex_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-            tex_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
-            tex_desc.MiscFlags = 0;
 
-            d3d_device->CreateTexture2D(&tex_desc, 0, &d3d_texture[0]);
-
-            nvenc_temp_pixels.resize((size_t)width* (size_t)height* nvenc_src_pixel_size);
-        }
+        if (!GLAD_WGL_NV_DX_interop2)
+            nvenc_temp_pixels.resize((size_t)width * (size_t)height * nvenc_src_pixel_size);
 
 #if BAKE_VIDEO_ALPHA
-        nvenc_enc = new nvenc_encoder(width, height, d3d_device,
-            (void**)d3d_texture, d3d_in_flight_num);
-        nvenc_alpha_enc = new nvenc_encoder(width, height, d3d_device,
-            (void**)d3d_texture, d3d_in_flight_num);
+        nvenc_enc = new nvenc_encoder(width, height,
+            d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
+        nvenc_alpha_enc = new nvenc_encoder(width, height,
+            d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
 
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d_color.265", get_data().pv_id);
@@ -8055,8 +7965,8 @@ bool x_pv_game::ctrl() {
         nvenc_alpha_stream = new file_stream();
         nvenc_alpha_stream->open(buf, "wb");
 #else
-        nvenc_enc = new nvenc_encoder(width, height, d3d_device,
-            (void**)d3d_texture, d3d_in_flight_num);
+        nvenc_enc = new nvenc_encoder(width, height,
+            d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
 
         char buf[0x100];
         sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", get_data().pv_id);
@@ -8104,28 +8014,15 @@ bool x_pv_game::ctrl() {
         extern bool disable_cursor;
         disable_cursor = false;
 
-#if BAKE_VIDEO
-        if (GLAD_WGL_NV_DX_interop2) {
-            bool wait = false;
-            for (int32_t i = 0; i < d3d_in_flight_num; i++)
-                if (d3d_tex_write[i])
-                    wait |= true;
-
 #if BAKE_VIDEO_ALPHA
-            for (int32_t i = 0; i < d3d_in_flight_num; i++)
-                if (d3d_alpha_tex_write[i])
-                    wait |= true;
-#endif
+        nvenc_alpha_enc->end_encode(nvenc_alpha_stream);
 
-            if (wait)
-                break;
-        }
-
-#if BAKE_VIDEO_ALPHA
         nvenc_alpha_stream->close();
         delete nvenc_alpha_stream;
         nvenc_alpha_stream = 0;
 #endif
+
+        nvenc_enc->end_encode(nvenc_stream);
 
         nvenc_stream->close();
         delete nvenc_stream;
@@ -8141,51 +8038,32 @@ bool x_pv_game::ctrl() {
 
         if (GLAD_WGL_NV_DX_interop2) {
 #if BAKE_VIDEO_ALPHA
-            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
-                wglDXUnregisterObjectNV(d3d_gl_handle, d3d_gl_alpha_rbo_handle[i]);
-                d3d_gl_alpha_rbo_handle[i] = 0;
-            }
+            glDeleteFramebuffers(1, &d3d_gl_alpha_fbo);
+            d3d_gl_alpha_fbo = 0;
 
-            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
-                d3d_alpha_texture[i]->Release();
-                d3d_alpha_texture[i] = 0;
-            }
-
-            glDeleteQueries(d3d_in_flight_num, d3d_alpha_query);
-
-            glDeleteFramebuffers(d3d_in_flight_num, d3d_gl_alpha_fbo);
-            memset(d3d_gl_alpha_fbo, 0, sizeof(d3d_gl_alpha_fbo));
-
-            glDeleteRenderbuffers(d3d_in_flight_num, d3d_gl_alpha_rbo);
-            memset(d3d_gl_alpha_rbo, 0, sizeof(d3d_gl_alpha_rbo));
+            d3d_gl_alpha_rbo.free();
 #endif
 
-            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
-                wglDXUnregisterObjectNV(d3d_gl_handle, d3d_gl_rbo_handle[i]);
-                d3d_gl_rbo_handle[i] = 0;
-            }
+            glDeleteFramebuffers(1, &d3d_gl_fbo);
+            d3d_gl_fbo = 0;
 
-            for (int32_t i = 0; i < d3d_in_flight_num; i++) {
-                d3d_texture[i]->Release();
-                d3d_texture[i] = 0;
-            }
-
-            glDeleteQueries(d3d_in_flight_num, d3d_query);
-
-            glDeleteFramebuffers(d3d_in_flight_num, d3d_gl_fbo);
-            memset(d3d_gl_fbo, 0, sizeof(d3d_gl_fbo));
-
-            glDeleteRenderbuffers(d3d_in_flight_num, d3d_gl_rbo);
-            memset(d3d_gl_rbo, 0, sizeof(d3d_gl_rbo));
+            d3d_gl_rbo.free();
         }
-        else {
+
+#if BAKE_VIDEO_ALPHA
+        d3d_alpha_texture->Release();
+        d3d_alpha_texture = 0;
+#endif
+
+        d3d_texture->Release();
+        d3d_texture = 0;
+
+        if (!GLAD_WGL_NV_DX_interop2) {
             nvenc_temp_pixels.clear();
             nvenc_temp_pixels.shrink_to_fit();
-
-            d3d_texture[0]->Release();
-            d3d_texture[0] = 0;
         }
-#endif
+
+        img_write = false;
 #endif
 
         for (int32_t i = 0; i < ROB_CHARA_COUNT; i++)

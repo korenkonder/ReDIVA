@@ -618,7 +618,7 @@ void app_render_data::unload() {
 #endif
 
 #if BAKE_VIDEO
-    if (GLAD_WGL_NV_DX_interop2)
+    if (!Vulkan::use && GLAD_WGL_NV_DX_interop2)
         wglDXCloseDeviceNV(d3d_device);
 
     d3d_device_context->Release();
@@ -1578,7 +1578,7 @@ static void render_context_disp(render_context* rctx) {
         Vulkan::end_render_pass(Vulkan::current_command_buffer);
 
 #if BAKE_PNG || BAKE_VIDEO
-        gl_state_set_viewport(0, 0, rctx->sprite_width, rctx->sprite_height);
+        gl_state_set_viewport(0, 0, rctx->screen_width, rctx->screen_height);
 #else
         gl_state_set_viewport(rctx->screen_x_offset, rctx->screen_y_offset,
             rctx->sprite_width, rctx->sprite_height);
