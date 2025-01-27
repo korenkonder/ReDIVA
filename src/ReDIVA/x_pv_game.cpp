@@ -6402,6 +6402,7 @@ bool x_pv_game::ctrl() {
 
             gl_state_bind_framebuffer(d3d_gl_fbo_tex.fbo);
             gl_state_active_bind_texture_2d(0, tex->glid);
+            gl_state_bind_sampler(0, rctx_ptr->render_samplers[1]);
 
             if (nvenc_rgb) {
                 GLint swizzle_rgb1[] = { GL_RED, GL_BLUE, GL_GREEN, GL_ONE };
@@ -6419,6 +6420,7 @@ bool x_pv_game::ctrl() {
                 glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
             }
 
+            gl_state_bind_sampler(0, 0);
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);
 
