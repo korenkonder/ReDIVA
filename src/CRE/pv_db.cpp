@@ -1689,7 +1689,7 @@ namespace pv_db {
                                 d.version = version;
 
                             int32_t script_format;
-                            if (kv.read("version", script_format))
+                            if (kv.read("script_format", script_format))
                                 d.script_format = script_format;
                         }
 
