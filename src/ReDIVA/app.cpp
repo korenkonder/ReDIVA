@@ -95,17 +95,6 @@
 #include <timeapi.h>
 #include <Volk/volk.h>
 
-#ifndef USE_OPENGL
-#if BAKE_PNG
-#undef BAKE_PNG
-#define BAKE_PNG (0)
-#endif
-#if BAKE_VIDEO
-#undef BAKE_VIDEO
-#define BAKE_VIDEO (0)
-#endif
-#endif
-
 #ifdef DEBUG
 #define RENDER_DEBUG 1
 #else
@@ -379,11 +368,6 @@ int32_t app_main(const app_init_struct& ais) {
     Vulkan::use = ais.vulkan;
 #endif
 
-#if BAKE_PNG || BAKE_VIDEO
-    if (Vulkan::use)
-        return -1;
-#endif
-
     if (app_init(ais)) {
         window_handle = glfwGetWin32Window(window);
         glfwShowWindow(window);
@@ -527,16 +511,14 @@ bool app_render_data::load() {
 #endif
 
 #if BAKE_VIDEO
-    if (!Vulkan::use) {
-        if (!gladLoadWGLLoader((GLADloadproc)glfwGetProcAddress, GetDC(window_handle)))
-            return false;
-
-        D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
-            D3D11_SDK_VERSION, &d3d_device, 0, &d3d_device_context);
-
-        if (GLAD_WGL_NV_DX_interop2)
-            d3d_gl_handle = wglDXOpenDeviceNV(d3d_device);
-    }
+    if (!Vulkan::use && !gladLoadWGLLoader((GLADloadproc)glfwGetProcAddress, GetDC(window_handle)))
+        return false;
+    
+    D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
+        D3D11_SDK_VERSION, &d3d_device, 0, &d3d_device_context);
+    
+    if (!Vulkan::use && GLAD_WGL_NV_DX_interop2)
+        d3d_gl_handle = wglDXOpenDeviceNV(d3d_device);
 #endif
 
     gl_state_get_error();

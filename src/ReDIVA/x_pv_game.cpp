@@ -31,17 +31,6 @@
 #include "../KKdLib/sort.hpp"
 #include "../KKdLib/str_utils.hpp"
 
-#ifndef USE_OPENGL
-#if BAKE_PNG
-#undef BAKE_PNG
-#define BAKE_PNG (0)
-#endif
-#if BAKE_VIDEO
-#undef BAKE_VIDEO
-#define BAKE_VIDEO (0)
-#endif
-#endif
-
 #if BAKE_X_PACK
 #include "../KKdLib/f2/header.hpp"
 #include "../KKdLib/io/memory_stream.hpp"
@@ -57,7 +46,8 @@
 #include <glad/glad_wgl.h>
 #include <d3d11.h>
 #include "../CRE/shader_dev.hpp"
-#include "nvenc/nvenc_encoder.hpp"
+#include "video/nvenc/nvenc_encoder.hpp"
+#include "video/video_packet.hpp"
 #endif
 #if BAKE_PV826
 #include "../KKdLib/waitable_timer.hpp"
@@ -6284,6 +6274,7 @@ bool x_pv_game::init() {
 
 #if BAKE_PNG || BAKE_VIDEO
 static bool img_write = false;
+static bool bake_image = false;
 #endif
 
 #if BAKE_VIDEO
@@ -6291,27 +6282,39 @@ extern ID3D11Device* d3d_device;
 extern ID3D11DeviceContext* d3d_device_context;
 extern HANDLE d3d_gl_handle;
 
-struct d3d_gl_rbo_struct {
-    GLuint glid;
+struct d3d_gl_fbo_tex_struct {
+    GLuint fbo;
+    GLuint tex;
     HANDLE handle;
 
-    inline d3d_gl_rbo_struct() : glid(), handle() {
+    inline d3d_gl_fbo_tex_struct() : tex(), handle() {
 
     }
 
     inline void init(ID3D11Texture2D* texture) {
-        glGenRenderbuffers(1, &glid);
+        glGenTextures(1, &tex);
 
         handle = wglDXRegisterObjectNV(d3d_gl_handle, texture,
-            glid, GL_RENDERBUFFER, WGL_ACCESS_READ_WRITE_NV);
+            tex, GL_TEXTURE_2D, WGL_ACCESS_READ_WRITE_NV);
+
+        glGenFramebuffers(1, &fbo);
+
+        lock();
+        gl_state_bind_framebuffer(fbo);
+        glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, tex, 0);
+        gl_state_bind_framebuffer(0);
+        unlock();
     }
 
     inline void free() {
+        glDeleteFramebuffers(1, &fbo);
+        fbo = 0;
+
         wglDXUnregisterObjectNV(d3d_gl_handle, handle);
         handle = 0;
 
-        glDeleteRenderbuffers(1, &glid);
-        glid = 0;
+        glDeleteTextures(1, &tex);
+        tex = 0;
     }
 
     inline void lock() {
@@ -6323,36 +6326,34 @@ struct d3d_gl_rbo_struct {
     }
 };
 
-ID3D11Texture2D* d3d_texture;
-
-GLuint d3d_gl_fbo;
-d3d_gl_rbo_struct d3d_gl_rbo;
+static ID3D11Texture2D* d3d_texture;
+static d3d_gl_fbo_tex_struct d3d_gl_fbo_tex;
 
 #if BAKE_VIDEO_ALPHA
-ID3D11Texture2D* d3d_alpha_texture;
-
-GLuint d3d_gl_alpha_fbo;
-d3d_gl_rbo_struct d3d_gl_alpha_rbo;
+static ID3D11Texture2D* d3d_alpha_texture;
+static d3d_gl_fbo_tex_struct d3d_gl_alpha_fbo_tex;
 #endif
 
 waitable_timer d3d_timer;
 
-const size_t nvenc_src_pixel_size = 4;
-const size_t nvenc_dst_pixel_size = 4;
+static const size_t nvenc_src_pixel_size = 4;
+static const size_t nvenc_dst_pixel_size = 4;
 
-nvenc_encoder_format nvenc_format = NVENC_ENCODER_YUV420_10BIT;
-bool nvenc_lossless = false;
+static nvenc_encoder_format nvenc_format;
+static bool nvenc_lossless;
 
-bool nvenc_rgb;
+static bool nvenc_rgb;
 
-std::vector<uint8_t> nvenc_temp_pixels;
+static std::vector<uint8_t> nvenc_temp_pixels;
 
-nvenc_encoder* nvenc_enc;
-file_stream* nvenc_stream;
+static nvenc_encoder* nvenc_enc;
+static file_stream* nvenc_stream;
+static video_packet_handler* nvenc_video_packets;
 
 #if BAKE_VIDEO_ALPHA
-nvenc_encoder* nvenc_alpha_enc;
-file_stream* nvenc_alpha_stream;
+static nvenc_encoder* nvenc_alpha_enc;
+static file_stream* nvenc_alpha_stream;
+static video_packet_handler* nvenc_alpha_video_packets;
 #endif
 #endif
 
@@ -6397,9 +6398,9 @@ bool x_pv_game::ctrl() {
 
 #if BAKE_VIDEO
         if (GLAD_WGL_NV_DX_interop2) {
-            d3d_gl_rbo.lock();
+            d3d_gl_fbo_tex.lock();
 
-            gl_state_bind_framebuffer(d3d_gl_fbo);
+            gl_state_bind_framebuffer(d3d_gl_fbo_tex.fbo);
             gl_state_active_bind_texture_2d(0, tex->glid);
 
             if (nvenc_rgb) {
@@ -6421,13 +6422,13 @@ bool x_pv_game::ctrl() {
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);
 
-            d3d_gl_rbo.unlock();
+            d3d_gl_fbo_tex.unlock();
 
 #if BAKE_VIDEO_ALPHA
-            d3d_gl_alpha_rbo.lock();
+            d3d_gl_alpha_fbo_tex.lock();
 
-            gl_state_bind_framebuffer(d3d_gl_alpha_fbo);
-            gl_state_active_bind_texture_2d(0, tex->glid);
+            gl_state_bind_framebuffer(d3d_gl_alpha_fbo_tex.fbo);
+            gl_state_active_bind_texture_2d(0, tex->tex);
 
             GLint swizzle_aaa1[] = { GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ONE };
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_aaa1);
@@ -6444,7 +6445,7 @@ bool x_pv_game::ctrl() {
             gl_state_bind_texture_2d(0);
             gl_state_bind_framebuffer(0);
 
-            d3d_gl_alpha_rbo.unlock();
+            d3d_gl_alpha_fbo_tex.unlock();
             #endif
         }
         else {
@@ -6487,7 +6488,7 @@ bool x_pv_game::ctrl() {
             HRESULT result_alpha = d3d_device_context->Map(d3d_alpha_texture,
                 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res);
             if (SUCCEEDED(result) && SUCCEEDED(result_alpha)) {
-                gl_state_bind_texture_2d(tex->glid);
+                gl_state_bind_texture_2d(tex->tex);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
                 gl_state_bind_texture_2d(0);
 
@@ -6540,14 +6541,19 @@ bool x_pv_game::ctrl() {
 #endif
         }
 
-        nvenc_enc->encode_frame(nvenc_stream, d3d_texture);
+        nvenc_enc->encode_frame(nvenc_video_packets, d3d_texture);
 #if BAKE_VIDEO_ALPHA
-        nvenc_alpha_enc->encode_frame(nvenc_alpha_stream, d3d_alpha_texture);
+        nvenc_alpha_enc->encode_frame(nvenc_alpha_video_packets, d3d_alpha_texture);
+#endif
+
+        nvenc_video_packets->write(nvenc_stream);
+#if BAKE_VIDEO_ALPHA
+        nvenc_alpha_video_packets->write(nvenc_alpha_stream);
 #endif
 #elif BAKE_PNG
         std::vector<uint8_t> temp_pixels;
         temp_pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
-        gl_state_bind_texture_2d(tex->glid);
+        gl_state_bind_texture_2d(tex->tex);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
         gl_state_bind_texture_2d(0);
 
@@ -7922,57 +7928,40 @@ bool x_pv_game::ctrl() {
         }
 
         if (GLAD_WGL_NV_DX_interop2) {
-            d3d_gl_rbo.init(d3d_texture);
-
-            glGenFramebuffers(1, &d3d_gl_fbo);
-
-            d3d_gl_rbo.lock();
-            gl_state_bind_framebuffer(d3d_gl_fbo);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_rbo.glid);
-            gl_state_bind_framebuffer(0);
-            d3d_gl_rbo.unlock();
-
+            d3d_gl_fbo_tex.init(d3d_texture);
 #if BAKE_VIDEO_ALPHA
-            d3d_gl_alpha_rbo.init(d3d_alpha_texture);
-
-            glGenFramebuffers(1, &d3d_gl_alpha_fbo);
-
-            d3d_gl_alpha_rbo.lock();
-            gl_state_bind_framebuffer(d3d_gl_alpha_fbo);
-            glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, d3d_gl_alpha_rbo.glid);
-            gl_state_bind_framebuffer(0);
-            d3d_gl_alpha_rbo.unlock();
+            d3d_gl_alpha_fbo_tex.init(d3d_alpha_texture);
 #endif
         }
 
         if (!GLAD_WGL_NV_DX_interop2)
             nvenc_temp_pixels.resize((size_t)width * (size_t)height * nvenc_src_pixel_size);
 
-#if BAKE_VIDEO_ALPHA
         nvenc_enc = new nvenc_encoder(width, height,
-            d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
-        nvenc_alpha_enc = new nvenc_encoder(width, height,
             d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
 
         char buf[0x100];
+#if BAKE_VIDEO_ALPHA
         sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d_color.265", get_data().pv_id);
+#else
+        sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", get_data().pv_id);
+#endif
 
         nvenc_stream = new file_stream();
         nvenc_stream->open(buf, "wb");
+
+        nvenc_video_packets = new video_packet_handler;
+
+#if BAKE_VIDEO_ALPHA
+        nvenc_alpha_enc = new nvenc_encoder(width, height,
+            d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
 
         sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d_alpha.265", get_data().pv_id);
 
         nvenc_alpha_stream = new file_stream();
         nvenc_alpha_stream->open(buf, "wb");
-#else
-        nvenc_enc = new nvenc_encoder(width, height,
-            d3d_device, d3d_device_context, nvenc_format, nvenc_lossless);
 
-        char buf[0x100];
-        sprintf_s(buf, sizeof(buf), "G:\\ReDIVA\\Videos\\ReDIVA_pv%03d.265", get_data().pv_id);
-
-        nvenc_stream = new file_stream();
-        nvenc_stream->open(buf, "wb");
+        nvenc_alpha_video_packets = new video_packet_handler;
 #endif
 #endif
 #endif
@@ -8015,14 +8004,22 @@ bool x_pv_game::ctrl() {
         disable_cursor = false;
 
 #if BAKE_VIDEO_ALPHA
-        nvenc_alpha_enc->end_encode(nvenc_alpha_stream);
+        nvenc_alpha_enc->end_encode(nvenc_alpha_video_packets);
+        nvenc_alpha_video_packets->write(nvenc_alpha_stream);
+
+        delete nvenc_alpha_video_packets;
+        nvenc_alpha_video_packets = 0;
 
         nvenc_alpha_stream->close();
         delete nvenc_alpha_stream;
         nvenc_alpha_stream = 0;
 #endif
 
-        nvenc_enc->end_encode(nvenc_stream);
+        nvenc_enc->end_encode(nvenc_video_packets);
+        nvenc_video_packets->write(nvenc_stream);
+
+        delete nvenc_video_packets;
+        nvenc_video_packets = 0;
 
         nvenc_stream->close();
         delete nvenc_stream;
@@ -8038,16 +8035,9 @@ bool x_pv_game::ctrl() {
 
         if (GLAD_WGL_NV_DX_interop2) {
 #if BAKE_VIDEO_ALPHA
-            glDeleteFramebuffers(1, &d3d_gl_alpha_fbo);
-            d3d_gl_alpha_fbo = 0;
-
-            d3d_gl_alpha_rbo.free();
+            d3d_gl_alpha_fbo_tex.free();
 #endif
-
-            glDeleteFramebuffers(1, &d3d_gl_fbo);
-            d3d_gl_fbo = 0;
-
-            d3d_gl_rbo.free();
+            d3d_gl_fbo_tex.free();
         }
 
 #if BAKE_VIDEO_ALPHA
@@ -10269,6 +10259,10 @@ XPVGameSelector::~XPVGameSelector() {
 bool XPVGameSelector::init() {
     start = false;
     exit = false;
+#if BAKE_VIDEO
+    nvenc_format = NVENC_ENCODER_YUV420_10BIT;
+    nvenc_lossless = false;
+#endif
     return true;
 }
 
@@ -10457,6 +10451,29 @@ void XPVGameSelector::window() {
             ImGui::PopFont();
         ImGui::EndPropertyColumn();
     }
+
+#if BAKE_VIDEO
+    ImGui::Checkbox("Bake Video", &bake_image);
+
+    ImGui::DisableElementPush(bake_image);
+    if (ImGui::BeginChild("Video")) {
+        const char* nvenc_format_names[] = {
+            "NV12 (YUV420)",
+            "YUV420 10 bit",
+            "YUV444",
+            "YUV444 10 bit",
+            "RGB",
+            "RGB 10 bit",
+        };
+
+        ImGui::ColumnComboBox("Format", nvenc_format_names, 6, (int32_t*)&nvenc_format, 0, false, &focus);
+        ImGui::Checkbox("Lossless", &nvenc_lossless);
+        ImGui::EndChild();
+    }
+    ImGui::DisableElementPop(bake_image);
+#elif BAKE_PNG
+    ImGui::Checkbox("Bake PNG", &bake_image);
+#endif
 
     if (ImGui::Button("Start")) {
         start = true;

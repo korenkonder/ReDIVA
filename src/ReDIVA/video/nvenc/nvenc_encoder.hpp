@@ -5,9 +5,9 @@
 
 #pragma once
 
-#include "../../KKdLib/default.hpp"
-#include "../../KKdLib/io/stream.hpp"
-#include <string>
+#include "../../../KKdLib/default.hpp"
+#include "../../../KKdLib/prj/stack_allocator.hpp"
+#include "../video_packet.hpp"
 #include <nvenc/nvEncodeAPI.h>
 
 enum nvenc_encoder_format {
@@ -56,12 +56,12 @@ public:
         int32_t num_bframes = 3, int32_t lookahead_depth = 15, int32_t extra_output_delay = 3);
     ~nvenc_encoder();
 
-    void end_encode(stream* s);
-    void encode_frame(stream* s, void* texture);
+    void end_encode(video_packet_handler* packet_handler);
+    void encode_frame(video_packet_handler* packet_handler, void* texture);
 
 private:
     int32_t get_capability_value(NV_ENC_CAPS caps_to_query);
     void map_resource(int32_t index);
     void unmap_resource(int32_t index);
-    void write_packet(stream* s, bool output_delay);
+    void write_packet(video_packet_handler* packet_handler, bool output_delay);
 };

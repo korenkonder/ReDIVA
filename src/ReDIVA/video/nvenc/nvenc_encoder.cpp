@@ -254,16 +254,16 @@ nvenc_encoder::~nvenc_encoder() {
     free_nvenc_dll();
 }
 
-void nvenc_encoder::end_encode(stream* s) {
+void nvenc_encoder::end_encode(video_packet_handler* packet_handler) {
     NV_ENC_PIC_PARAMS pic_params = {};
     pic_params.version = NV_ENC_PIC_PARAMS_VER;
     pic_params.encodePicFlags = NV_ENC_PIC_FLAG_EOS;
     print_nvenc_status(__LINE__, nvenc_api->nvEncEncodePicture(encoder, &pic_params));
 
-    write_packet(s, false);
+    write_packet(packet_handler, false);
 }
 
-void nvenc_encoder::encode_frame(stream* s, void* texture) {
+void nvenc_encoder::encode_frame(video_packet_handler* packet_handler, void* texture) {
     const int32_t index = frame % num_buffers;
 
     ((ID3D11DeviceContext*)d3d_device_context)->CopyResource(
@@ -287,7 +287,7 @@ void nvenc_encoder::encode_frame(stream* s, void* texture) {
 
     if (encode_status == NV_ENC_SUCCESS || encode_status == NV_ENC_ERR_NEED_MORE_INPUT) {
         frame++;
-        write_packet(s, true);
+        write_packet(packet_handler, true);
     }
     else
         print_nvenc_status(__LINE__, encode_status);
@@ -327,8 +327,13 @@ void nvenc_encoder::unmap_resource(int32_t index) {
     mapped_resources[index] = 0;
 }
 
-void nvenc_encoder::write_packet(stream* s, bool output_delay) {
+void nvenc_encoder::write_packet(video_packet_handler* packet_handler, bool output_delay) {
     const int32_t end_encoded_frame = output_delay ? frame - this->output_delay : frame;
+
+    packet_handler->reset();
+    packet_handler->allocate((ssize_t)end_encoded_frame - encoded_frame);
+
+    size_t packet_index = 0;
     for (; encoded_frame < end_encoded_frame; encoded_frame++) {
         const int32_t index = encoded_frame % num_buffers;
 
@@ -338,9 +343,9 @@ void nvenc_encoder::write_packet(stream* s, bool output_delay) {
         lock_params.doNotWait = false;
 
         print_nvenc_status(__LINE__, nvenc_api->nvEncLockBitstream(encoder, &lock_params));
-        s->write(lock_params.bitstreamBufferPtr, lock_params.bitstreamSizeInBytes);
+        packet_handler->set_data(packet_index++,
+            lock_params.bitstreamBufferPtr, lock_params.bitstreamSizeInBytes);
         print_nvenc_status(__LINE__, nvenc_api->nvEncUnlockBitstream(encoder, lock_params.outputBitstream));
-        s->flush();
 
         unmap_resource(index);
     }
