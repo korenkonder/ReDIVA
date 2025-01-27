@@ -1954,6 +1954,9 @@ GLAPI PFNGLCLEARPROC glad_glClear;
 typedef void (APIENTRYP PFNGLCLEARCOLORPROC)(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha);
 GLAPI PFNGLCLEARCOLORPROC glad_glClearColor;
 #define glClearColor glad_glClearColor
+typedef void (APIENTRYP PFNGLCLEARSTENCILPROC)(GLint s);
+GLAPI PFNGLCLEARSTENCILPROC glad_glClearStencil;
+#define glClearStencil glad_glClearStencil
 typedef void (APIENTRYP PFNGLFINISHPROC)(void);
 GLAPI PFNGLFINISHPROC glad_glFinish;
 #define glFinish glad_glFinish
