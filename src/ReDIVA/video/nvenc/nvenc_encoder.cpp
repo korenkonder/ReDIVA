@@ -85,7 +85,9 @@ nvenc_encoder::nvenc_encoder(int32_t width, int32_t height,
     is_10_bit &= support_10bit_encode;
     is_444 &= support_yuv444_encode;
 
-    buffer_format = is_rgb ? NV_ENC_BUFFER_FORMAT_AYUV : NV_ENC_BUFFER_FORMAT_ARGB;
+    is_10_bit &= !lossless;
+
+    buffer_format = NV_ENC_BUFFER_FORMAT_ARGB;
 
     num_bframes = clamp_def(num_bframes, 0, num_max_bframes);
     extra_output_delay = max_def(extra_output_delay, 2);
@@ -128,7 +130,7 @@ nvenc_encoder::nvenc_encoder(int32_t width, int32_t height,
     if (!lossless)
         hevc_config.useBFramesAsRef = (NV_ENC_BFRAME_REF_MODE)(support_bframe_ref_mode & NV_ENC_BFRAME_REF_MODE_MIDDLE);
     hevc_config.outputBitDepth = is_10_bit ? NV_ENC_BIT_DEPTH_10 : NV_ENC_BIT_DEPTH_8;
-    hevc_config.inputBitDepth = is_10_bit ? NV_ENC_BIT_DEPTH_10 : NV_ENC_BIT_DEPTH_8;
+    hevc_config.inputBitDepth = NV_ENC_BIT_DEPTH_8;
     hevc_config.hevcVUIParameters.videoSignalTypePresentFlag = 1;
     hevc_config.hevcVUIParameters.videoFormat = NV_ENC_VUI_VIDEO_FORMAT_UNSPECIFIED;
     hevc_config.hevcVUIParameters.videoFullRangeFlag = 1;
@@ -181,7 +183,7 @@ nvenc_encoder::nvenc_encoder(int32_t width, int32_t height,
         tex_desc.Height = height;
         tex_desc.MipLevels = 1;
         tex_desc.ArraySize = 1;
-        tex_desc.Format = is_rgb ? DXGI_FORMAT_AYUV : DXGI_FORMAT_R8G8B8A8_UNORM;
+        tex_desc.Format = DXGI_FORMAT_AYUV;
         tex_desc.SampleDesc.Count = 1;
         tex_desc.SampleDesc.Quality = 0;
         tex_desc.Usage = D3D11_USAGE_DEFAULT;

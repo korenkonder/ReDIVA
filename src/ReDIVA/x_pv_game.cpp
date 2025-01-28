@@ -6287,15 +6287,23 @@ struct d3d_gl_fbo_tex_struct {
     GLuint tex;
     HANDLE handle;
 
-    inline d3d_gl_fbo_tex_struct() : tex(), handle() {
+    inline d3d_gl_fbo_tex_struct() : fbo(), tex(), handle() {
 
     }
 
-    inline void init(ID3D11Texture2D* texture) {
+    inline void init(ID3D11Texture2D* texture = 0) {
         glGenTextures(1, &tex);
 
-        handle = wglDXRegisterObjectNV(d3d_gl_handle, texture,
-            tex, GL_TEXTURE_2D, WGL_ACCESS_READ_WRITE_NV);
+        if (GLAD_WGL_NV_DX_interop2)
+            handle = wglDXRegisterObjectNV(d3d_gl_handle, texture,
+                tex, GL_TEXTURE_2D, WGL_ACCESS_READ_WRITE_NV);
+        else {
+            gl_state_bind_texture_2d(tex);
+            ::texture* tex = rctx_ptr->screen_buffer.color_texture;
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
+                tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+            gl_state_bind_texture_2d(0);
+        }
 
         glGenFramebuffers(1, &fbo);
 
@@ -6310,19 +6318,23 @@ struct d3d_gl_fbo_tex_struct {
         glDeleteFramebuffers(1, &fbo);
         fbo = 0;
 
-        wglDXUnregisterObjectNV(d3d_gl_handle, handle);
-        handle = 0;
+        if (GLAD_WGL_NV_DX_interop2 && handle) {
+            wglDXUnregisterObjectNV(d3d_gl_handle, handle);
+            handle = 0;
+        }
 
         glDeleteTextures(1, &tex);
         tex = 0;
     }
 
     inline void lock() {
-        wglDXLockObjectsNV(d3d_gl_handle, 1, &handle);
+        if (GLAD_WGL_NV_DX_interop2 && handle)
+            wglDXLockObjectsNV(d3d_gl_handle, 1, &handle);
     }
 
     inline void unlock() {
-        wglDXUnlockObjectsNV(d3d_gl_handle, 1, &handle);
+        if (GLAD_WGL_NV_DX_interop2 && handle)
+            wglDXUnlockObjectsNV(d3d_gl_handle, 1, &handle);
     }
 };
 
@@ -6339,8 +6351,8 @@ waitable_timer d3d_timer;
 static const size_t nvenc_src_pixel_size = 4;
 static const size_t nvenc_dst_pixel_size = 4;
 
-static nvenc_encoder_format nvenc_format;
-static bool nvenc_lossless;
+static nvenc_encoder_format nvenc_format = NVENC_ENCODER_YUV420_10BIT;
+static bool nvenc_lossless = false;
 
 static bool nvenc_rgb;
 
@@ -6393,64 +6405,71 @@ bool x_pv_game::ctrl() {
 #if BAKE_PNG || BAKE_VIDEO
     if (img_write && frame_prev != x_pv_game_ptr->frame) {
         texture* tex = rctx_ptr->screen_buffer.color_texture;
-        int32_t width = tex->width;
-        int32_t height = tex->height;
+        const int32_t width = tex->width;
+        const int32_t height = tex->height;
 
 #if BAKE_VIDEO
-        if (GLAD_WGL_NV_DX_interop2) {
-            d3d_gl_fbo_tex.lock();
+        d3d_gl_fbo_tex.lock();
 
-            gl_state_bind_framebuffer(d3d_gl_fbo_tex.fbo);
-            gl_state_active_bind_texture_2d(0, tex->glid);
-            gl_state_bind_sampler(0, rctx_ptr->render_samplers[1]);
-
-            if (nvenc_rgb) {
-                GLint swizzle_rgb1[] = { GL_RED, GL_BLUE, GL_GREEN, GL_ONE };
-                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgb1);
-            }
-
-            gl_state_set_viewport(0, 0, width, height);
-            uniform_value[U_REDUCE] = 0;
-            shaders_ft.set(SHADER_FT_REDUCE);
-            rctx_ptr->render.draw_quad(width, height,
-                1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
-
-            if (nvenc_rgb) {
-                GLint swizzle_rgba[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
-                glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
-            }
-
-            gl_state_bind_sampler(0, 0);
-            gl_state_bind_texture_2d(0);
-            gl_state_bind_framebuffer(0);
-
-            d3d_gl_fbo_tex.unlock();
+        gl_state_bind_framebuffer(d3d_gl_fbo_tex.fbo);
+        gl_state_active_bind_texture_2d(0, tex->glid);
+        gl_state_bind_sampler(0, rctx_ptr->render_samplers[1]);
 
 #if BAKE_VIDEO_ALPHA
-            d3d_gl_alpha_fbo_tex.lock();
+        GLint swizzle_rgb1[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ONE };
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgb1);
+#endif
 
-            gl_state_bind_framebuffer(d3d_gl_alpha_fbo_tex.fbo);
-            gl_state_active_bind_texture_2d(0, tex->tex);
+        gl_state_set_viewport(0, 0, width, height);
+        if (nvenc_rgb)
+            shaders_dev.set(SHADER_DEV_CONVERT_RGB);
+        else
+            shaders_dev.set(SHADER_DEV_CONVERT_YCBCR_BT709);
+        rctx_ptr->render.draw_quad(width, height,
+            1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
+#if BAKE_VIDEO_ALPHA
+        GLint swizzle_rgba[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
+#endif
+
+        gl_state_bind_sampler(0, 0);
+        gl_state_bind_texture_2d(0);
+        gl_state_bind_framebuffer(0);
+
+        d3d_gl_fbo_tex.unlock();
+
+#if BAKE_VIDEO_ALPHA
+        d3d_gl_alpha_fbo_tex.lock();
+
+        gl_state_bind_framebuffer(d3d_gl_alpha_fbo_tex.fbo);
+        gl_state_active_bind_texture_2d(0, tex->glid);
+
+        if (nvenc_rgb) {
             GLint swizzle_aaa1[] = { GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ONE };
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_aaa1);
+        }
 
-            gl_state_set_viewport(0, 0, width, height);
+        gl_state_set_viewport(0, 0, width, height);
+        if (nvenc_rgb) {
             uniform_value[U_REDUCE] = 0;
             shaders_ft.set(SHADER_FT_REDUCE);
-            rctx_ptr->render.draw_quad(width, height,
-                1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+        }
+        else
+            shaders_dev.set(SHADER_DEV_CONVERT_ALPHA);
+        rctx_ptr->render.draw_quad(width, height,
+            1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
-            GLint swizzle_rgba[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
+        if (nvenc_rgb)
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
 
-            gl_state_bind_texture_2d(0);
-            gl_state_bind_framebuffer(0);
+        gl_state_bind_texture_2d(0);
+        gl_state_bind_framebuffer(0);
 
-            d3d_gl_alpha_fbo_tex.unlock();
-            #endif
-        }
-        else {
+        d3d_gl_alpha_fbo_tex.unlock();
+#endif
+
+        if (!GLAD_WGL_NV_DX_interop2) {
             void (*conv_func)(uint8_t * src, uint8_t * dst);
 
             conv_func = [](uint8_t* src, uint8_t* dst) {
@@ -6458,71 +6477,10 @@ bool x_pv_game::ctrl() {
                 *(uint32_t*)dst = (temp & 0xFFFFFF) | (0xFF << 24);
             };
 
-            if (nvenc_rgb) {
-                conv_func = [](uint8_t* src, uint8_t* dst) {
-                    const uint32_t temp = *(uint32_t*)src;
-                    *(uint32_t*)dst = (temp & 0xFF) | ((temp & 0xFF00) << 8)
-                        | ((temp & 0xFF0000) >> 8) | (0xFF << 24);
-                };
-            }
-
-#if BAKE_VIDEO_ALPHA
-            void (*conv_func_alpha)(uint8_t * src, uint8_t * dst);
-
-            conv_func_alpha = [](uint8_t* src, uint8_t* dst) {
-                const uint32_t temp = *(uint32_t*)src;
-                const uint32_t alpha = (temp >> 24) & 0xFF;
-                *(uint32_t*)dst = alpha | (alpha << 8) | (alpha << 16) | (0xFF << 24);
-            };
-
-            if (nvenc_rgb) {
-                conv_func_alpha = [](uint8_t* src, uint8_t* dst) {
-                    const uint32_t temp = *(uint32_t*)src;
-                    const uint32_t alpha = (temp >> 24) & 0xFF;
-                    *(uint32_t*)dst = alpha | (alpha << 8) | (alpha << 16) | (0xFF << 24);
-                };
-            }
-
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
-            HRESULT result = d3d_device_context->Map(d3d_texture,
-                0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res);
-            D3D11_MAPPED_SUBRESOURCE mapped_alpha_res = {};
-            HRESULT result_alpha = d3d_device_context->Map(d3d_alpha_texture,
-                0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res);
-            if (SUCCEEDED(result) && SUCCEEDED(result_alpha)) {
-                gl_state_bind_texture_2d(tex->tex);
-                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_HALF_FLOAT, nvenc_temp_pixels.data());
-                gl_state_bind_texture_2d(0);
-
-                uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
-                uint8_t* dst = (uint8_t*)mapped_res.pData;
-                uint8_t* dst_alpha = (uint8_t*)mapped_alpha_res.pData;
-
-                for (size_t y = 0, i = height; i; y++, i--) {
-                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
-                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
-                    uint8_t* dst1_alpha = &dst_alpha[(height - y - 1) * width * nvenc_dst_pixel_size];
-
-                    for (size_t x = 0, j = width; j; x++, j--, src1 += nvenc_src_pixel_size,
-                        dst1 += nvenc_dst_pixel_size, dst1_alpha += nvenc_dst_pixel_size) {
-                        conv_func(src1, dst1);
-                        conv_func_alpha(src1, dst1_alpha);
-                    }
-                }
-
-                d3d_device_context->Unmap(d3d_texture, 0);
-                d3d_device_context->Unmap(d3d_alpha_texture, 0);
-            }
-            else {
-                if (SUCCEEDED(result))
-                    d3d_device_context->Unmap(d3d_texture, 0);
-                if (SUCCEEDED(result_alpha))
-                    d3d_device_context->Unmap(d3d_alpha_texture, 0);
-            }
-#else
-            D3D11_MAPPED_SUBRESOURCE mapped_res = {};
-            if (SUCCEEDED(d3d_device_context->Map(d3d_texture, 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
-                gl_state_bind_texture_2d(tex->glid);
+            if (SUCCEEDED(d3d_device_context->Map(d3d_texture,
+                0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
+                gl_state_bind_texture_2d(d3d_gl_fbo_tex.tex);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, nvenc_temp_pixels.data());
                 gl_state_bind_texture_2d(0);
 
@@ -6539,6 +6497,29 @@ bool x_pv_game::ctrl() {
                 }
 
                 d3d_device_context->Unmap(d3d_texture, 0);
+            }
+
+#if BAKE_VIDEO_ALPHA
+            D3D11_MAPPED_SUBRESOURCE mapped_alpha_res = {};
+            if (SUCCEEDED(d3d_device_context->Map(d3d_alpha_texture,
+                0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res))) {
+                gl_state_bind_texture_2d(d3d_gl_alpha_fbo_tex.tex);
+                glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, nvenc_temp_pixels.data());
+                gl_state_bind_texture_2d(0);
+
+                uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
+                uint8_t* dst = (uint8_t*)mapped_alpha_res.pData;
+
+                for (size_t y = 0, i = height; i; y++, i--) {
+                    uint8_t* src1 = &src[y * width * nvenc_src_pixel_size];
+                    uint8_t* dst1 = &dst[(height - y - 1) * width * nvenc_dst_pixel_size];
+
+                    for (size_t x = 0, j = width; j; x++, j--,
+                        src1 += nvenc_src_pixel_size, dst1 += nvenc_dst_pixel_size)
+                        conv_func(src1, dst1);
+                }
+
+                d3d_device_context->Unmap(d3d_alpha_texture, 0);
             }
 #endif
         }
@@ -7899,8 +7880,7 @@ bool x_pv_game::ctrl() {
         const int32_t height = BAKE_BASE_HEIGHT * BAKE_RES_SCALE;
 
 #if BAKE_VIDEO
-        nvenc_rgb = (nvenc_format == NVENC_ENCODER_RGB
-            || nvenc_format == NVENC_ENCODER_RGB_10BIT);
+        nvenc_rgb = nvenc_format == NVENC_ENCODER_RGB || nvenc_format == NVENC_ENCODER_RGB_10BIT;
 
         {
             D3D11_TEXTURE2D_DESC tex_desc = {};
@@ -7908,7 +7888,7 @@ bool x_pv_game::ctrl() {
             tex_desc.Height = height;
             tex_desc.MipLevels = 1;
             tex_desc.ArraySize = 1;
-            tex_desc.Format = nvenc_rgb ? DXGI_FORMAT_AYUV : DXGI_FORMAT_R8G8B8A8_UNORM;
+            tex_desc.Format = DXGI_FORMAT_AYUV;
             tex_desc.SampleDesc.Count = 1;
             tex_desc.SampleDesc.Quality = 0;
             if (GLAD_WGL_NV_DX_interop2) {
@@ -7929,12 +7909,10 @@ bool x_pv_game::ctrl() {
 #endif
         }
 
-        if (GLAD_WGL_NV_DX_interop2) {
-            d3d_gl_fbo_tex.init(d3d_texture);
+        d3d_gl_fbo_tex.init(d3d_texture);
 #if BAKE_VIDEO_ALPHA
-            d3d_gl_alpha_fbo_tex.init(d3d_alpha_texture);
+        d3d_gl_alpha_fbo_tex.init(d3d_alpha_texture);
 #endif
-        }
 
         if (!GLAD_WGL_NV_DX_interop2)
             nvenc_temp_pixels.resize((size_t)width * (size_t)height * nvenc_src_pixel_size);
@@ -8035,12 +8013,10 @@ bool x_pv_game::ctrl() {
         delete nvenc_enc;
         nvenc_enc = 0;
 
-        if (GLAD_WGL_NV_DX_interop2) {
 #if BAKE_VIDEO_ALPHA
-            d3d_gl_alpha_fbo_tex.free();
+        d3d_gl_alpha_fbo_tex.free();
 #endif
-            d3d_gl_fbo_tex.free();
-        }
+        d3d_gl_fbo_tex.free();
 
 #if BAKE_VIDEO_ALPHA
         d3d_alpha_texture->Release();
@@ -10261,10 +10237,6 @@ XPVGameSelector::~XPVGameSelector() {
 bool XPVGameSelector::init() {
     start = false;
     exit = false;
-#if BAKE_VIDEO
-    nvenc_format = NVENC_ENCODER_YUV420_10BIT;
-    nvenc_lossless = false;
-#endif
     return true;
 }
 
@@ -10469,6 +10441,20 @@ void XPVGameSelector::window() {
         };
 
         ImGui::ColumnComboBox("Format", nvenc_format_names, 6, (int32_t*)&nvenc_format, 0, false, &focus);
+
+        switch (nvenc_format) {
+        case NVENC_ENCODER_YUV420:
+        case NVENC_ENCODER_YUV444:
+        case NVENC_ENCODER_RGB:
+            ImGui::Checkbox("Lossless", &nvenc_lossless);
+            break;
+        case NVENC_ENCODER_YUV420_10BIT:
+        case NVENC_ENCODER_YUV444_10BIT:
+        case NVENC_ENCODER_RGB_10BIT:
+            ImGui::Checkbox("Lossless (Will be saved at 8 bits!)", &nvenc_lossless);
+            break;
+        }
+
         ImGui::Checkbox("Lossless", &nvenc_lossless);
         ImGui::EndChild();
     }
