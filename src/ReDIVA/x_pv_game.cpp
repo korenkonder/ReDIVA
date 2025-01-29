@@ -1413,7 +1413,7 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
 
     x_pv_game_song_effect& song_effect = this->song_effect[index];
 
-    float_t req_frame = (float_t)((double_t)(time - song_effect.time) * 0.000000001) * 60.0f;
+    float_t req_frame = (float_t)((double_t)std::abs(time - song_effect.time) * 0.000000001) * 60.0f;
     float_t max_frame = -1.0f;
 
     if (change_fields) {
@@ -1428,8 +1428,12 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
                 length -= temp + 1;
             }
 
+        int64_t next_change_field_time = -1;
         if (key != change_fields->data() + change_fields->size())
-            max_frame = (float_t)((double_t)(*key - song_effect.time) * 0.000000001) * 60.0f - 1.0f;
+            next_change_field_time = *key;
+
+        if (next_change_field_time >= 0)
+            max_frame = (float_t)((double_t)std::abs(*key - song_effect.time) * 0.000000001) * 60.0f - 1.0f;
     }
 
     for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
@@ -1855,7 +1859,7 @@ void x_pv_game_chara_effect::set_chara_effect(int32_t chara_id, int32_t index, i
         return;
 
     if (id.get_enable())
-        id.set_req_frame((float_t)((double_t)(time - auth_3d[index].time) * 0.000000001) * 60.0f);
+        id.set_req_frame((float_t)((double_t)std::abs(time - auth_3d[index].time) * 0.000000001) * 60.0f);
     else {
         id.set_enable(true);
         id.set_paused(false);
@@ -1878,8 +1882,12 @@ void x_pv_game_chara_effect::set_chara_effect(int32_t chara_id, int32_t index, i
                 length -= temp + 1;
             }
 
+        int64_t next_change_field_time = -1;
         if (key != change_fields->data() + change_fields->size())
-            max_frame = (float_t)((double_t)(*key - auth_3d[index].time) * 0.000000001) * 60.0f - 1.0f;
+            next_change_field_time = *key;
+
+        if (next_change_field_time >= 0)
+            max_frame = (float_t)((double_t)std::abs(*key - auth_3d[index].time) * 0.000000001) * 60.0f - 1.0f;
     }
 
     id.set_max_frame(max_frame);

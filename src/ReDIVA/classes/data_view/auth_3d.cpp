@@ -113,7 +113,7 @@ void data_view_auth_3d_imgui(class_data* data) {
             ImGui::PushStyleColor(ImGuiCol_Text, 0xFF888888);
         ImGui::PushID(auth->id);
         if (!ImGui::TreeNodeEx(auth, tree_node_flags,
-            "ID: %5d; Frame: %5d; File: %s", auth->id & 0x7FFF, (int32_t)auth->frame, buf)) {
+            "ID: %5d; Frame: %5d; File: %s", auth->id & 0x7FFF, (int32_t)prj::roundf(auth->frame), buf)) {
             ImGui::PopID();
             if (!visible)
                 ImGui::PopStyleColor();
