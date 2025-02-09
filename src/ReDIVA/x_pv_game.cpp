@@ -1901,7 +1901,7 @@ void x_pv_game_chara_effect::set_chara_effect_time(int32_t chara_id, int32_t ind
         if (!i.id.check_not_empty() || !i.id.get_enable())
             continue;
 
-        i.id.set_req_frame((float_t)((double_t)(time - i.time) * 0.000000001) * 60.0f);
+        i.id.set_req_frame((float_t)((double_t)std::abs(time - i.time) * 0.000000001) * 60.0f);
         i.id.set_paused(false);
     }
 }
@@ -1915,7 +1915,7 @@ void x_pv_game_chara_effect::set_time(int64_t time) {
             if (!j.id.check_not_empty() || !j.id.get_enable())
                 continue;
 
-            j.id.set_req_frame((float_t)((double_t)(time - j.time) * 0.000000001) * 60.0f);
+            j.id.set_req_frame((float_t)((double_t)std::abs(time - j.time) * 0.000000001) * 60.0f);
             j.id.set_paused(false);
         }
 }
@@ -4582,7 +4582,7 @@ void x_pv_game_data::ctrl(float_t curr_time, float_t delta_time) {
 
         int64_t pv_end_time = pv_data.find_pv_end();
         if (pv_end_time >= 0)
-            this->pv_end_time = (float_t)((double_t)pv_end_time * 0.000000001);
+            this->pv_end_time = (float_t)((double_t)std::abs(pv_end_time) * 0.000000001);
         state = 25;
     } break;
     case 25: {
@@ -4629,7 +4629,7 @@ void x_pv_game_data::ctrl_stage_effect_index() {
 
     std::pair<int64_t, int32_t>* next_stage_effect = &stage_effects[stage_effect_index];
 
-    float_t time = (float_t)((double_t)next_stage_effect->first * 0.000000001);
+    float_t time = (float_t)((double_t)std::abs(next_stage_effect->first) * 0.000000001);
     int32_t bar = bar_beat.get_bar_beat_from_time(0, time);
     next_stage_effect_bar = --bar;
 
