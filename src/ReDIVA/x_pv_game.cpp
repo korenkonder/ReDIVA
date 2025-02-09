@@ -10463,7 +10463,6 @@ void XPVGameSelector::window() {
             break;
         }
 
-        ImGui::Checkbox("Lossless", &nvenc_lossless);
         ImGui::EndChild();
     }
     ImGui::DisableElementPop(bake_image);
