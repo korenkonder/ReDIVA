@@ -41,21 +41,26 @@ namespace sound {
         struct StreamingChannel;
 
         struct System {
+            struct Config {
+                int64_t channels;
+                int64_t sample_rate;
+                int64_t bit_depth;
+            };
+
             WAVEFORMATEXTENSIBLE wave_format;
             IMMDeviceEnumerator* pEnumerator;
             IMMDevice* pDevice;
             IAudioClient* pAudioClient;
             uint32_t samples_count;
             IAudioRenderClient* pRenderClient;
-            IAudioClockAdjustment* pClockAdjustment;
             HANDLE hEvent;
-            int32_t channels;
-            int32_t sample_rate;
-            int32_t bit_depth;
+            Config config;
             Mixer* mixer;
             std::thread* thread;
             std::atomic_uint32_t thread_state;
-            AudioFormat format;
+
+            AudioFormat format; // Added
+            IAudioClockAdjustment* pClockAdjustment; // Added
 
             System();
             virtual ~System();
@@ -122,6 +127,9 @@ namespace sound {
         };
 
         struct StreamingChannel {
+            typedef void(*CallbackFunc)(sound_buffer_data* buffer,
+                size_t samples_count, void* data);
+
             Mixer* mixer;
             sound_buffer_data* buffer;
             size_t buffer_size;
@@ -130,7 +138,7 @@ namespace sound {
             std::mutex mtx;
             float_t master_volume;
             float_t channels_volume[4];
-            void(*callback_func)(sound_buffer_data* buffer, size_t samples_count, void* data);
+            CallbackFunc callback_func;
             void* callback_data;
 
             StreamingChannel();
@@ -140,8 +148,7 @@ namespace sound {
             bool Init(Mixer* mixer, size_t samples_count);
             void Reset();
             void ResetData();
-            bool SetCallback(void(*func)(sound_buffer_data* buffer,
-                size_t samples_count, void* data), void* data);
+            bool SetCallback(CallbackFunc func, void* data);
             void SetChannelsVolume(int32_t mask, float_t value);
             void SetMasterVolume(float_t value);
         };

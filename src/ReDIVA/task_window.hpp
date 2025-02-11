@@ -21,6 +21,7 @@ namespace app {
 
         TaskWindow();
         ~TaskWindow();
+
         virtual void window() = 0;
 
         void hide_window();

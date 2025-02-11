@@ -1712,7 +1712,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         /*if (pv_game_get()->loaded && v408 && app::TaskWork::check_task_ready(task_movie_get(0))) {
             v410 = task_movie_get(0);
             task_movie_get(0)->sub_14041EF10();
-            pv_game_get()->data.field_2D0C0 = 0;
+            pv_game_get()->data.movie_index = 0;
             sub_14041F1D0(curr_time);
         }*/
     } break;
@@ -1726,7 +1726,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
                 continue;
 
             int32_t v415 = 0;
-            if (pv_game_get()->data.field_2D0C0 == i) {
+            if (pv_game_get()->data.movie_index == i) {
                 if (pv_game->data.field_2D8A0)
                     switch (v412) {
                     case 1:
@@ -1981,7 +1981,7 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
             if (v486 != -1 && app::TaskWork::check_task_ready(task_movie_get(v486))) {
                 task_movie_get(v486)->sub_14041EF10((__int64)v492);
-                pv_game_get()->data.field_2D0C0 = v486;
+                pv_game_get()->data.movie_index = v486;
                 //sub_14041F210(curr_time);
                 if (!pv_game->data.field_2D8A0)
                     v487 = 0;

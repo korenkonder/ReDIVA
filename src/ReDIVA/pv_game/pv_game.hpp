@@ -247,7 +247,7 @@ struct pv_game_data {
     bool next_stage;
     bool has_frame_texture;
     int8_t field_2D0BF;
-    int32_t field_2D0C0;
+    int32_t movie_index;
     int32_t field_2D0C4;
     pv_game_chara chara[ROB_CHARA_COUNT];
     std::vector<uint32_t> motion_set_ids;

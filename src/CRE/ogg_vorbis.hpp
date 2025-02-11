@@ -100,6 +100,12 @@ struct OggFile {
     static void ThreadMain(OggFile* of);
 };
 
+struct OggFileHandlerInfo {
+    int64_t channel_pairs_count;
+    double_t duration;
+    double_t time;
+};
+
 struct OggFileHandler {
     std::mutex mtx;
     std::atomic_uint32_t thread_state;
@@ -109,13 +115,9 @@ struct OggFileHandler {
     std::mutex file_mtx;
     std::string path;
     float_t load_time_seek;
-    int32_t channel_pairs_count;
-    double_t duration;
-    double_t time;
-    std::mutex dup_mtx;
-    int32_t channel_pairs_count_dup;
-    double_t duration_dup;
-    double_t time_dup;
+    OggFileHandlerInfo file_info;
+    std::mutex playback_mtx;
+    OggFileHandlerInfo playback_info;
     std::mutex volume_mtx;
     int32_t channel_pair_volume_pan[4][2][4];
     int32_t master_volume;

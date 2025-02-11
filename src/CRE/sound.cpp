@@ -108,9 +108,8 @@ static size_t ima_decode(int16_t* dst, size_t dst_size, uint8_t* data, size_t sa
 
 namespace sound {
     namespace wasapi {
-        System::System() : wave_format(), pEnumerator(), pDevice(), pAudioClient(),
-            samples_count(), pRenderClient(), pClockAdjustment(), hEvent(),
-            channels(), sample_rate(), bit_depth(), mixer(), thread(), format() {
+        System::System() : wave_format(), pEnumerator(), pDevice(), pAudioClient(), samples_count(),
+            pRenderClient(), pClockAdjustment(), hEvent(), config(), mixer(), thread(), format() {
 
         }
 
@@ -187,9 +186,9 @@ namespace sound {
                 return;
             }
 
-            this->channels = channels;
-            this->sample_rate = sample_rate;
-            this->bit_depth = bit_depth;
+            this->config.channels = channels;
+            this->config.sample_rate = sample_rate;
+            this->config.bit_depth = bit_depth;
 
             mixer = new Mixer(this);
             if (!mixer)
@@ -264,7 +263,7 @@ namespace sound {
                     pAudioClient->Start();
             }
 
-            if (SUCCEEDED(pAudioClient->GetService(__uuidof(IAudioClockAdjustment), (void**)&pClockAdjustment)))
+            if (SUCCEEDED(pAudioClient->GetService(__uuidof(IAudioClockAdjustment), (void**)&pClockAdjustment)))  // Added
                 pClockAdjustment->SetSampleRate((float_t)44100);
         }
 
@@ -279,7 +278,7 @@ namespace sound {
             if (pAudioClient)
                 pAudioClient->Stop();
 
-            if (pClockAdjustment) {
+            if (pClockAdjustment) { // Added
                 pClockAdjustment->Release();
                 pClockAdjustment = 0;
             }
@@ -378,7 +377,7 @@ namespace sound {
             switch (format) {
             case AUDIO_FORMAT_I16: {
                 int16_t* _buffer = (int16_t*)buffer;
-                switch (system->channels) {
+                switch (system->config.channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
                         vec2 hph = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z * (float_t)0x7FFF;
@@ -401,7 +400,7 @@ namespace sound {
             } break;
             case AUDIO_FORMAT_I24: {
                 int8_t* _buffer = (int8_t*)buffer;
-                switch (system->channels) {
+                switch (system->config.channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
                         vec2 hph = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z * (float_t)0x7FFFFF;
@@ -436,7 +435,7 @@ namespace sound {
             } break;
             case AUDIO_FORMAT_I32: {
                 int32_t* _buffer = (int32_t*)buffer;
-                switch (system->channels) {
+                switch (system->config.channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++) {
                         vec2 hph = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z;
@@ -463,7 +462,7 @@ namespace sound {
             } break;
             case AUDIO_FORMAT_F32: {
                 float_t* _buffer = (float_t*)buffer;
-                switch (system->channels) {
+                switch (system->config.channels) {
                 case 2:
                     for (size_t i = samples_count; i; i--, _mix_buffer++, _buffer += 2)
                         *(vec2*)_buffer = *(vec2*)&_mix_buffer->hph_l * *(vec2*)&spk_hph_volume.z;
@@ -812,8 +811,7 @@ namespace sound {
             callback_data = 0;
         }
 
-        bool StreamingChannel::SetCallback(void(*func)(sound_buffer_data* buffer,
-            size_t samples_count, void* data), void* data) {
+        bool StreamingChannel::SetCallback(CallbackFunc func, void* data) {
             std::unique_lock<std::mutex> u_lock(mtx);
             ResetData();
             callback_func = func;

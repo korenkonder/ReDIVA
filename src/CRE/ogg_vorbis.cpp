@@ -217,7 +217,7 @@ int32_t OggFile::GetRate() {
     std::unique_lock<std::mutex> u_lock(file_mtx);
     if (info)
         return info->rate;
-    return 0;
+    return 1;
 }
 
 bool OggFile::HasLoop() {
@@ -249,9 +249,8 @@ bool OggFile::OpenFile(const char* path, double_t time_seek) {
             goto Reset;
         }
 
-        char** user_comments = comments->user_comments;
-        while (*user_comments) {
-            std::string user_comment = *user_comments++;
+        for (char** user_comments = comments->user_comments; *user_comments; user_comments++) {
+            std::string user_comment(*user_comments);
             for (char& c : user_comment)
                 if (c >= 'A' && c <= 'Z')
                     c += 0x20;
@@ -314,9 +313,8 @@ void OggFile::ThreadMain(OggFile* of) {
     of->thread_state = 0;
 }
 
-OggFileHandler::OggFileHandler(size_t index) : load_time_seek(), channel_pairs_count(),
-duration(), time(), channel_pairs_count_dup(), duration_dup(), time_dup(),
-channel_pair_volume_pan(), master_volume(), channel_pair_volume(),  req_time(), loop() {
+OggFileHandler::OggFileHandler(size_t index) : load_time_seek(), file_info(), playback_info(),
+channel_pair_volume_pan(), master_volume(), channel_pair_volume(), req_time(), loop() {
     this->index = index;
 
     for (int32_t i = 0; i < 4; i++)
@@ -375,7 +373,7 @@ void OggFileHandler::Ctrl() {
             if (streaming_channel) {
                 switch (_playback_state) {
                 case OGG_FILE_HANDLER_PLAYBACK_STATE_LOAD:
-                    if (sound_wasapi_system->pClockAdjustment)
+                    if (sound_wasapi_system->pClockAdjustment) // Added
                         sound_wasapi_system->pClockAdjustment->SetSampleRate((float_t)rate);
 
                     streaming_channel->SetMasterVolume(1.0f);
@@ -389,22 +387,16 @@ void OggFileHandler::Ctrl() {
         }
     }
 
-    int32_t _channel_pairs_count = 0;
-    double_t _duration = 0.0;
-    double_t _time = 0.0;
+    OggFileHandlerInfo _info = {};
 
     {
         std::unique_lock<std::mutex> u_lock(file_mtx);
-        _channel_pairs_count = channel_pairs_count;
-        _duration = duration;
-        _time = time;
+        _info = file_info;
     }
 
     {
-        std::unique_lock<std::mutex> u_lock(dup_mtx);
-        channel_pairs_count_dup = _channel_pairs_count;
-        duration_dup = _duration;
-        time_dup = _time;
+        std::unique_lock<std::mutex> u_lock(playback_mtx);
+        playback_info = _info;
     }
 }
 
@@ -423,13 +415,13 @@ void OggFileHandler::FillBuffer(sound_buffer_data* buffer, size_t samples_count)
 }
 
 int32_t OggFileHandler::GetChannelPairsCount() {
-    std::unique_lock<std::mutex> u_lock(dup_mtx);
-    return channel_pairs_count_dup;
+    std::unique_lock<std::mutex> u_lock(playback_mtx);
+    return (int32_t)playback_info.channel_pairs_count;
 }
 
 float_t OggFileHandler::GetDuration() {
-    std::unique_lock<std::mutex> u_lock(dup_mtx);
-    return (float_t)duration_dup;
+    std::unique_lock<std::mutex> u_lock(playback_mtx);
+    return (float_t)playback_info.duration;
 }
 
 OggFileHandlerFileState OggFileHandler::GetFileState() {
@@ -441,16 +433,16 @@ OggFileHandlerPauseState OggFileHandler::GetPauseState() {
 }
 
 float_t OggFileHandler::GetTime() {
-    std::unique_lock<std::mutex> u_lock(dup_mtx);
-    return (float_t)time_dup;
+    std::unique_lock<std::mutex> u_lock(playback_mtx);
+    return (float_t)playback_info.time;
 }
 
 void OggFileHandler::OpenFile() {
     std::unique_lock<std::mutex> u_lock(file_mtx);
     if (file.OpenFile(path.c_str(), load_time_seek)) {
-        channel_pairs_count = file.GetChannelPairsCount();
-        duration = file.GetDuration();
-        time = 0.0;
+        file_info.channel_pairs_count = file.GetChannelPairsCount();
+        file_info.duration = file.GetDuration();
+        file_info.time = 0.0;
         rate = file.GetRate();
         loop = file.HasLoop();
     }
@@ -518,8 +510,8 @@ void OggFileHandler::ReadBufferProt(sound_buffer_data* buffer, size_t samples_co
     bool process = false;
     {
         std::unique_lock<std::mutex> u_lock(file_mtx);
-        time = req_time;
-        process = req_time < duration;
+        file_info.time = req_time;
+        process = req_time < file_info.duration;
     }
 
     if (process || loop)
@@ -532,9 +524,9 @@ void OggFileHandler::Reset(bool reset) {
     if (reset) {
         SetFileState(OGG_FILE_HANDLER_FILE_STATE_STOPPING);
         std::unique_lock<std::mutex> u_lock(file_mtx);
-        channel_pairs_count = 0;
-        duration = 0.0;
-        time = 0.0;
+        file_info.channel_pairs_count = 0;
+        file_info.duration = 0.0;
+        file_info.time = 0.0;
     }
 
     file.Reset();
@@ -591,9 +583,9 @@ void OggFileHandler::SetPath(const std::string& path) {
     {
         std::unique_lock<std::mutex> u_lock(file_mtx);
         this->path.assign(path);
-        channel_pairs_count = 0;
-        duration = 0.0;
-        time = 0.0;
+        file_info.channel_pairs_count = 0;
+        file_info.duration = 0.0;
+        file_info.time = 0.0;
     }
 }
 

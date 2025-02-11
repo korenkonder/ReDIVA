@@ -299,7 +299,7 @@ field_index(), edit_effect_index(), slidertouch_counter(), change_field_branch_s
 field_2D080(), field_2D084(), life_gauge_bonus(), life_gauge_total_bonus(), field_2D090(), no_clear(),
 disp_lyrics_now(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), success(), title_image_state(),
 field_2D09C(), use_osage_play_data(), pv_end_fadeout(), rival_percentage(), field_2D0A8(), field_2D0AC(),
-field_2D0B0(), field_2D0BC(), next_stage(), has_frame_texture(), field_2D0BF(), field_2D0C0(), field_2D0C4(),
+field_2D0B0(), field_2D0BC(), next_stage(), has_frame_texture(), field_2D0BF(), movie_index(), field_2D0C4(),
 field_2D7E8(), field_2D7EC(), field_2D808(), field_2D80C(), edit_effect(), camera_auth_3d_uid(),
 se_index(), task_effect_init(), field_2D87C(), current_field(), field_2D8A0(), field_2D8A4(),
 campv_index(), field_2D954(), field_2DAC8(), field_2DACC(), height_adjust(), field_2DB2C(), field_2DB34() {
@@ -852,7 +852,7 @@ field_4(), state(), field_C(), pv_id(), field_14(), modules(), items() {
     data.field_2D0BC = false;
     data.next_stage = false;
     data.has_frame_texture = false;
-    data.field_2D0C0 = -1;
+    data.movie_index = -1;
     data.no_fail = true;
     data.task_effect_init = false;
 
@@ -4105,7 +4105,7 @@ void pv_game::reset() {
     data.field_2D0BC = false;
     data.next_stage = false;
     data.has_frame_texture = false;
-    data.field_2D0C0 = -1;
+    data.movie_index = -1;
 
     data.field_2CE98 = 0;
 
@@ -4669,7 +4669,7 @@ bool pv_game::unload() {
     data.notes_passed = 0;
     data.field_2CFF0 = 0;
     data.field_2CFE0 = 0;
-    data.field_2D0C0 = -1;
+    data.movie_index = -1;
 
     light_param_data_storage_data_reset();
 
@@ -4885,7 +4885,7 @@ void pv_game::sub_140106640() {
     data.field_2D0BC = false;
     data.next_stage = false;
     data.has_frame_texture = false;
-    data.field_2D0C0 = -1;
+    data.movie_index = -1;
 
     for (int32_t& i : data.total_hit_count)
         i = 0;
