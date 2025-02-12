@@ -245,8 +245,10 @@ nvenc_encoder::~nvenc_encoder() {
     free_def(mapped_resources);
     free_def(registered_resources);
 
-    for (int32_t i = 0; i < num_buffers; i++)
+    for (int32_t i = 0; i < num_buffers; i++) {
         ((ID3D11Texture2D**)input_textures)[i]->Release();
+        input_textures[i] = 0;
+    }
 
     free_def(input_textures);
 

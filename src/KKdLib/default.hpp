@@ -337,6 +337,15 @@ inline void printf_debug(const char* fmt, ...) {
 #endif
 }
 
+inline void wprintf_debug(const wchar_t* fmt, ...) {
+#ifdef DEBUG
+    va_list args;
+    va_start(args, fmt);
+    vwprintf(fmt, args);
+    va_end(args);
+#endif
+}
+
 inline constexpr size_t utf8_length(const char* s) {
     if (!s)
         return 0;
