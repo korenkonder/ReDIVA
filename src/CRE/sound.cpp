@@ -794,7 +794,7 @@ namespace sound {
         }
 
         void StreamingChannel::Reset() {
-            reset_state = 1;
+            SetResetOne();
             FillBuffer(0, 0, 0.0f);
             if (buffer) {
                 free(buffer);
@@ -830,6 +830,10 @@ namespace sound {
         void StreamingChannel::SetMasterVolume(float_t value) {
             std::unique_lock<std::mutex> u_lock(mtx);
             master_volume = value;
+        }
+
+        void StreamingChannel::SetResetOne() {
+            reset_state = 1;
         }
     }
 }

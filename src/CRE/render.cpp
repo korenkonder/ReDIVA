@@ -1090,6 +1090,21 @@ namespace rndr {
         }
         else if (stage_index != stage_index_prev)
             reset_exposure = true;
+
+        if (movie_textures_data[0]) {
+            extern texture* task_movie_get_texture(int32_t index = 0);
+            texture* tex = task_movie_get_texture();
+            if (tex) {
+                movie_textures[0].Bind();
+                gl_state_active_bind_texture_2d(0, tex->glid);
+                gl_state_bind_sampler(0, rctx_ptr->render_samplers[0]);
+                gl_state_set_viewport(0, 0, movie_textures_data[0]->width, movie_textures_data[0]->height);
+                uniform_value[U_REDUCE] = 0;
+                shaders_ft.set(SHADER_FT_REDUCE);
+                draw_quad(tex->width, tex->height, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+                gl_state_bind_framebuffer(0);
+            }
+        }
     }
 
     int32_t Render::render_texture_set(texture* render_texture, bool task_photo) {

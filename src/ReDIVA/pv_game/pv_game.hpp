@@ -272,7 +272,7 @@ struct pv_game_data {
     int32_t field_2D87C;
     size_t current_field;
     std::vector<pv_game_field> field_data;
-    bool field_2D8A0;
+    bool enable_movie;
     int32_t field_2D8A4;
     std::map<int32_t, int64_t> auth_3d_time;
     std::map<int32_t, int64_t> light_time;

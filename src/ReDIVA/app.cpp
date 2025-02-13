@@ -77,8 +77,8 @@
 #include "shared.hpp"
 #include "task_window.hpp"
 #include "x_pv_game.hpp"
-#if BAKE_VIDEO
 #include <glad/glad_wgl.h>
+#if BAKE_VIDEO
 #include <d3d11.h>
 #pragma comment(lib, "d3d11.lib")
 #endif
@@ -510,13 +510,13 @@ bool app_render_data::load() {
     }
 #endif
 
-#if BAKE_VIDEO
     if (!Vulkan::use && !gladLoadWGLLoader((GLADloadproc)glfwGetProcAddress, GetDC(window_handle)))
         return false;
-    
+
+#if BAKE_VIDEO
     D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, 0, 0, 0,
         D3D11_SDK_VERSION, &d3d_device, 0, &d3d_device_context);
-    
+
     if (!Vulkan::use && GLAD_WGL_NV_DX_interop2)
         d3d_gl_handle = wglDXOpenDeviceNV(d3d_device);
 #endif
@@ -765,6 +765,10 @@ static render_context* render_context_load() {
     font_info_default_init();
     dw_console_c_buff_array_init();
     sound_init();
+
+    extern HRESULT mf_init();
+    mf_init();
+
     wave_audio_storage_init();
     ogg_file_handler_storage_init();
     ogg_playback_data_init();
@@ -1754,6 +1758,10 @@ static void render_context_dispose(render_context* rctx) {
     ogg_playback_data_free();
     ogg_file_handler_storage_free();
     wave_audio_storage_free();
+
+    extern HRESULT mf_shutdown();
+    mf_shutdown();
+
     sound_free();
     dw_console_c_buff_array_free();
     font_info_default_free();

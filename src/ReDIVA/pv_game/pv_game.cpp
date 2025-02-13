@@ -21,6 +21,7 @@
 #include "../game_state.hpp"
 #include "../imgui_helper.hpp"
 #include "../input.hpp"
+#include "../task_movie.hpp"
 #include "player_data.hpp"
 #include "pv_game_camera.hpp"
 #include "pv_game_music.hpp"
@@ -301,7 +302,7 @@ disp_lyrics_now(), field_2D093(), field_2D094(), field_2D095(), field_2D096(), s
 field_2D09C(), use_osage_play_data(), pv_end_fadeout(), rival_percentage(), field_2D0A8(), field_2D0AC(),
 field_2D0B0(), field_2D0BC(), next_stage(), has_frame_texture(), field_2D0BF(), movie_index(), field_2D0C4(),
 field_2D7E8(), field_2D7EC(), field_2D808(), field_2D80C(), edit_effect(), camera_auth_3d_uid(),
-se_index(), task_effect_init(), field_2D87C(), current_field(), field_2D8A0(), field_2D8A4(),
+se_index(), task_effect_init(), field_2D87C(), current_field(), enable_movie(), field_2D8A4(),
 campv_index(), field_2D954(), field_2DAC8(), field_2DACC(), height_adjust(), field_2DB2C(), field_2DB34() {
     disp_lyrics = true;
 }
@@ -1541,10 +1542,10 @@ int32_t pv_game::ctrl(float_t delta_time, int64_t curr_time) {
     if (data.play_data.field_64C) {
         if (!data.field_2D093)
             data.pv_data.ctrl(delta_time, curr_time, false);
-        /*else
-            for (int32_t i = 0; i < 2; i++)
+        else
+            for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
                 if (app::TaskWork::check_task_ready(task_movie_get(i)))
-                    task_movie_get(i)->sub_14041F4E0();*/
+                    task_movie_get(i)->Unload();
 
         if (!sub_14013C8C0()->sub_1400E7920()) {
             hit_state hit_state = HIT_MAX;
@@ -2553,27 +2554,28 @@ bool pv_game::load() {
     case 2: {
         const pv_db_pv_difficulty* diff = get_pv_db_pv()->get_difficulty(
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
-         /*if (diff && diff->movie_list.size()) {
+         if (diff && diff->movie_list.size()) {
             resolution_struct* res_wind = res_window_get();
             resolution_struct* res_wind_int = res_window_internal_get();
 
-            struc_15 v750;
-            v750.field_0.field_0.x = 0.0f;
-            v750.field_0.field_0.y = (float_t)(res_wind->height - res_wind_int->height) * 0.5f;
-            v750.field_0.field_8.x = (float_t)res_wind_int->width;
-            v750.field_0.field_8.y = (float_t)res_wind_int->height;
-            v750.field_0.field_10 = res_wind->resolution_mode;
-            v750.field_0.field_14 = -1.0f;
-            v750.field_0.field_1C = diff->movie_surface == PV_MOVIE_SURFACE_FRONT ? 0 : 2;
-            v750.field_20 = true;
+            TaskMovie::SprParams spr_params;
+            spr_params.disp.rect.pos.x = 0.0f;
+            spr_params.disp.rect.pos.y = (float_t)(res_wind->height - res_wind_int->height) * 0.5f;
+            spr_params.disp.rect.size.x = (float_t)res_wind_int->width;
+            spr_params.disp.rect.size.y = (float_t)res_wind_int->height;
+            spr_params.disp.resolution_mode = res_wind->resolution_mode;
+            spr_params.disp.scale = -1.0f;
+            spr_params.disp.index = diff->movie_surface == PV_MOVIE_SURFACE_FRONT ? 0 : 2;
+            spr_params.prio = spr::SPR_PRIO_01;
 
-            for (pv_db_pv_movie& i : diff->movie_list)
+            for (const pv_db_pv_movie& i : diff->movie_list)
                 if (i.name.size() && aft_data->check_file_exists(i.name.c_str())) {
-                    task_movie_get(v43->index)->sub_14041F260(v750);
-                    task_movie_get(v43->index)->sub_14041F0A0(i.name);
-                    task_movie_get(v43->index)->sub_14041F240(0.0f);
+                    task_movie_get(i.index)->Reset(spr_params);
+                    movie_external_clock_set_true();
+                    task_movie_get(i.index)->LoadWait(i.name);
+                    task_movie_get(i.index)->SetVolume(0.0f);
                 }
-        }*/
+        }
 
         if (sub_14013C8C0()->sub_1400E7910() >= 4) {
             state = 12;
@@ -2673,10 +2675,10 @@ bool pv_game::load() {
     case 3: {
         const pv_db_pv_difficulty* diff = get_pv_db_pv()->get_difficulty(
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
-        /*for (pv_db_pv_movie& i : diff->movie_list)
+        for (const pv_db_pv_movie& i : diff->movie_list)
             if (app::TaskWork::check_task_ready(task_movie_get(i.index))
-                && !task_movie_get(i.index)->sub_14041F0E0())
-                return false;*/
+                && !task_movie_get(i.index)->CheckDisp())
+                return false;
 
         for (uint32_t& i : data.motion_set_ids)
             if (motion_storage_check_mot_file_not_ready(i)
@@ -3983,7 +3985,7 @@ void pv_game::reset() {
     data.current_field = 0;
     data.field_data.clear();
 
-    data.field_2D8A0 = true;
+    data.enable_movie = true;
 
     data.camera_auth_3d_uid = -1;
     data.campv_string.clear();
@@ -4444,9 +4446,9 @@ bool pv_game::unload() {
     case 0: {
         pv_game_music_get()->stop();
 
-        /*for (int32_t i = 0; i < 2; i++)
-            if (app::TaskWork::check_task_ready(task_movie_get()))
-                sub_14041F4E0(task_movie_get());*/
+        for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
+            if (app::TaskWork::check_task_ready(task_movie_get(i)))
+                task_movie_get(i)->Unload();
 
         std::string effect_se_file_name = get_effect_se_file_name();
         if (effect_se_file_name.size())
@@ -4544,7 +4546,7 @@ bool pv_game::unload() {
     data.current_field = 0;
     data.field_data.clear();
 
-    data.field_2D8A0 = true;
+    data.enable_movie = true;
 
     for (auto& i : data.auth_3d)
         i.second.unload(rctx_ptr);
@@ -4625,13 +4627,13 @@ bool pv_game::unload() {
     data.effect_rs_list.clear();
     data.effect_rs_list_hashes.clear();
 
-    /*for (int32_t i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++) {
         if (!app::TaskWork::check_task_ready(task_movie_get(i)))
             continue;
 
-        task_movie_get(i)->sub_14041F4E0();
-        task_movie->DelTask();
-    }*/
+        task_movie_get(i)->Unload();
+        task_movie_get(i)->del();
+    }
 
     data.title_image_state = 0;
 
@@ -4845,17 +4847,18 @@ void pv_game::sub_140106640() {
         pv_game_music_get()->load(4, get_play_data_song_file_name(), true, sub_1400FCEB0(), false);
     }
 
-    /*for (int32_t i = 0; i < 2; i++) {
+    for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++) {
         if (!app::TaskWork::check_task_ready(task_movie_get(i)))
             continue;
 
-        task_movie_get(i)->sub_14041F4E0();
-        std::string name = get_pv_movie_file_name(i);
+        task_movie_get(i)->Unload();
+
+        std::string name(get_pv_movie_file_name(i));
         if (name.size()) {
-            task_movie_get(i)->sub_14041F0A0(name);
-            while (!task_movie_get(i)->sub_14041F0E0(v14));
+            task_movie_get(i)->LoadWait(name);
+            while (!task_movie_get(i)->CheckDisp());
         }
-    }*/
+    }
 
     sub_140104FB0();
 

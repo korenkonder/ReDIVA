@@ -380,7 +380,7 @@ void OggFileHandler::Ctrl() {
                     streaming_channel->SetCallback(OggFileHandler::FillBufferStatic, this);
                     break;
                 case OGG_FILE_HANDLER_PLAYBACK_STATE_UNLOAD:
-                    streaming_channel->reset_state = 1;
+                    streaming_channel->SetResetOne();
                     break;
                 }
             }

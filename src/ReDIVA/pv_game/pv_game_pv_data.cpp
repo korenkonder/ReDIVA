@@ -9,6 +9,7 @@
 #include "../../CRE/pv_expression.hpp"
 #include "../../CRE/pv_param.hpp"
 #include "../information/dw_console.hpp"
+#include "../task_movie.hpp"
 #include "pv_game.hpp"
 #include "pv_game_camera.hpp"
 #include "pv_game_music.hpp"
@@ -360,12 +361,12 @@ int64_t pv_game_pv_data::ctrl(float_t delta_time, int64_t curr_time, bool a4) {
     this->curr_time = curr_time + field_2BF38 - field_2BF30;
     curr_time_float = (float_t)((double_t)this->curr_time * 0.000000001);
 
-    /*for (int32_t i = 0; i < 2; i++)
+    for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++)
         if (app::TaskWork::check_task_ready(task_movie_get(i))) {
             if (pv_game_get()->loaded)
-                sub_14041F1B0(this->curr_time);
+                movie_current_time_set(this->curr_time);
             break;
-        }*/
+        }
 
     dsc_data* prev_dsc_data_ptr = dsc_data_ptr;
     targets_remaining = 0;
@@ -1707,39 +1708,43 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         }
     } break;
     case DSC_FT_MOVIE_PLAY: {
-        int32_t v408 = data[0];
+        int32_t play = data[0];
 
-        /*if (pv_game_get()->loaded && v408 && app::TaskWork::check_task_ready(task_movie_get(0))) {
-            v410 = task_movie_get(0);
-            task_movie_get(0)->sub_14041EF10();
-            pv_game_get()->data.movie_index = 0;
-            sub_14041F1D0(curr_time);
-        }*/
-    } break;
-    case DSC_FT_MOVIE_DISP: {
-        int32_t v412 = data[0];
         if (!pv_game_get()->loaded)
             break;
 
-        /*for (int32_t i = 0; i < 2; i++) {
+        if (play && app::TaskWork::check_task_ready(task_movie_get(0))) {
+            task_movie_get(0)->Play();
+            pv_game_get()->data.movie_index = 0;
+            movie_play_time_set_begin(curr_time);
+        }
+    } break;
+    case DSC_FT_MOVIE_DISP: {
+        int32_t state = data[0];
+        if (!pv_game_get()->loaded)
+            break;
+
+        for (int32_t i = 0; i < TASK_MOVIE_COUNT; i++) {
             if (!app::TaskWork::check_task_ready(task_movie_get(i)))
                 continue;
 
-            int32_t v415 = 0;
+            TaskMovie::DispState disp_state = TaskMovie::DispState::None;
             if (pv_game_get()->data.movie_index == i) {
-                if (pv_game->data.field_2D8A0)
-                    switch (v412) {
-                    case 1:
-                        v415 = 1;
-                        break;
-                    case 2:
-                        v415 = 2;
-                        break;
-                    }
+                if (!pv_game->data.enable_movie)
+                    state = 0;
+
+                switch (state) {
+                case 1:
+                    disp_state = TaskMovie::DispState::Disp;
+                    break;
+                case 2:
+                    disp_state = TaskMovie::DispState::Hide;
+                    break;
+                }
             }
-            task_movie_get(l)->field_88 = v415;
+            task_movie_get(i)->disp_state = disp_state;
             break;
-        }*/
+        }
     } break;
     case DSC_FT_WIND: {
         chara_id = data[0];
@@ -1971,32 +1976,35 @@ bool pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
         pv_game->set_pv_param_post_process_chara_item_alpha_data(chara_id, alpha, type, duration);
     } break;
     case DSC_FT_MOVIE_CUT_CHG: {
-        /*int32_t v486 = data[0];
-        int32_t v487 = data[1];
+        int32_t index = data[0];
+        int32_t state = data[1];
 
-        if (pv_game_get()->loaded) {
-            for (int32_t m = 0; m < 2; m++)
-                if (app::TaskWork::check_task_ready(task_movie_get(m)))
-                    task_movie_get(m)->field_88 = 0;
+        if (!pv_game_get()->loaded)
+            break;
 
-            if (v486 != -1 && app::TaskWork::check_task_ready(task_movie_get(v486))) {
-                task_movie_get(v486)->sub_14041EF10((__int64)v492);
-                pv_game_get()->data.movie_index = v486;
-                //sub_14041F210(curr_time);
-                if (!pv_game->data.field_2D8A0)
-                    v487 = 0;
-                if (v487)
-                    switch (v487) {
-                    case 1:
-                        v488 = 1;
-                        break;
-                    case 2:
-                        v488 = 2;
-                        break;
-                    }
-                task_movie_get(v486)->field_88 = v488;
+        for (int32_t m = 0; m < TASK_MOVIE_COUNT; m++)
+            if (app::TaskWork::check_task_ready(task_movie_get(m)))
+                task_movie_get(m)->disp_state = TaskMovie::DispState::None;
+
+        if (index != -1 && app::TaskWork::check_task_ready(task_movie_get(index))) {
+            task_movie_get(index)->Play();
+            pv_game_get()->data.movie_index = index;
+            movie_play_time_set(curr_time);
+
+            TaskMovie::DispState disp_state = TaskMovie::DispState::None;
+            if (!pv_game->data.enable_movie)
+                state = 0;
+
+            switch (state) {
+            case 1:
+                disp_state = TaskMovie::DispState::Disp;
+                break;
+            case 2:
+                disp_state = TaskMovie::DispState::Hide;
+                break;
             }
-        }*/
+            task_movie_get(index)->disp_state = disp_state;
+        }
     } break;
     case DSC_FT_CHARA_LIGHT: {
         int32_t id = data[0];

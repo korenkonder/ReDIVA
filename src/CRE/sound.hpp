@@ -151,6 +151,7 @@ namespace sound {
             bool SetCallback(CallbackFunc func, void* data);
             void SetChannelsVolume(int32_t mask, float_t value);
             void SetMasterVolume(float_t value);
+            void SetResetOne();
         };
     }
 }
