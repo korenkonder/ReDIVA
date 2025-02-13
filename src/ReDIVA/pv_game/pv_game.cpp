@@ -4362,14 +4362,14 @@ void pv_game::set_pv_param_post_process_chara_alpha_data(int32_t chara_id,
     float_t alpha, int32_t type, float_t duration) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
         pv_param_task::post_process_task_set_chara_alpha(
-            chara_id, type, alpha, duration * 2.0f);
+            chara_id, type, alpha, duration);
 }
 
 void pv_game::set_pv_param_post_process_chara_item_alpha_data(int32_t chara_id,
     float_t alpha, int32_t type, float_t duration) {
     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
         pv_param_task::post_process_task_set_chara_item_alpha(
-            chara_id, type, alpha, duration * 2.0f,
+            chara_id, type, alpha, duration,
             pv_game::chara_item_alpha_callback, this);
 }
 
