@@ -3817,7 +3817,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
             pv_param_task::post_process_task_set_chara_alpha(
-                chara_id, type, alpha, duration * 2.0f);
+                chara_id, type, alpha, duration);
     } break;
     case DSC_X_AUTO_CAPTURE_BEGIN: {
 
@@ -3842,7 +3842,7 @@ bool x_pv_game_pv_data::dsc_ctrl(float_t delta_time, int64_t curr_time,
 
         if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT) {
             pv_param_task::post_process_task_set_chara_item_alpha(
-                chara_id, type, alpha, duration * 2.0f,
+                chara_id, type, alpha, duration,
                 x_pv_game_item_alpha_callback, this->pv_game);
         }
     } break;
