@@ -970,6 +970,11 @@ bool DtmMot::ctrl() {
             || dsc_file_handler.check_not_ready())
             break;
 
+        size_t motion_count = aft_mot_db->motion_set[motion_set_index].motion.size();
+        for (size_t i = 0; i < motion_count; i++)
+            motion_storage_get_mot_data_frame_count(
+                aft_mot_db->motion_set[motion_set_index].motion.data()[i].id, aft_mot_db);
+
         state = 3;
     } break;
     case 3: {
