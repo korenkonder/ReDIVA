@@ -6520,7 +6520,7 @@ bool x_pv_game::ctrl() {
 #elif BAKE_PNG
         std::vector<uint8_t> temp_pixels;
         temp_pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
-        gl_state_bind_texture_2d(tex->tex);
+        gl_state_bind_texture_2d(tex->glid);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
         gl_state_bind_texture_2d(0);
 
@@ -6537,10 +6537,6 @@ bool x_pv_game::ctrl() {
                 *dst1++ = *src1++;
                 *dst1++ = *src1++;
                 *dst1++ = *src1++;
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
-                //*dst1++ = reverse_endianness_uint16_t(*src1++);
             }
         }
 
@@ -7940,6 +7936,7 @@ bool x_pv_game::ctrl() {
         extern bool disable_cursor;
         disable_cursor = false;
 
+#if BAKE_VIDEO
 #if BAKE_VIDEO_ALPHA
         nvenc_alpha_enc->end_encode(nvenc_alpha_video_packets);
         nvenc_alpha_video_packets->write(nvenc_alpha_stream);
@@ -7984,6 +7981,7 @@ bool x_pv_game::ctrl() {
             nvenc_temp_pixels.clear();
             nvenc_temp_pixels.shrink_to_fit();
         }
+#endif
 
         img_write = false;
 #endif
