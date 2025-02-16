@@ -94,8 +94,10 @@ namespace Vulkan {
     }
 
     bool CommandBuffer::End() {
-        if (vkEndCommandBuffer(data) == VK_SUCCESS)
+        if (vkEndCommandBuffer(data) == VK_SUCCESS) {
+            began = false;
             return true;
+        }
 
         return false;
     }
@@ -112,7 +114,10 @@ namespace Vulkan {
         submit_info.pCommandBuffers = &data;
 
         bool ret = vkQueueSubmit(queue, 1, &submit_info, fence) == VK_SUCCESS;
-        vkQueueWaitIdle(queue);
+        if (fence)
+            vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX);
+        else
+            vkQueueWaitIdle(queue);
 
         CommandBuffer::FreeData(data);
         return ret;

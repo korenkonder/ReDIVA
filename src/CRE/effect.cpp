@@ -5089,7 +5089,7 @@ star_catalog::~star_catalog() {
 }
 
 void star_catalog::draw() {
-    if (!stage_param_data_ptr || !enable)
+    if (!stage_param_data_ptr || !enable || scene_ubo.IsNull() || batch_ubo.IsNull())
         return;
 
     texture* star_tex = texture_manager_get_texture(this->star_tex);

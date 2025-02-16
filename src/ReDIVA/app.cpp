@@ -2406,7 +2406,7 @@ static int32_t app_create_vulkan_instance() {
 
 #if RENDER_DEBUG
 static int32_t app_setup_debug_messenger() {
-    VkDebugUtilsMessengerCreateInfoEXT create_info;
+    VkDebugUtilsMessengerCreateInfoEXT create_info = {};
     create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT
         | VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT
@@ -2595,7 +2595,7 @@ static int32_t app_create_logical_device() {
 }
 
 static int32_t app_create_allocator() {
-    VmaVulkanFunctions vma_vulkan_func{};
+    VmaVulkanFunctions vma_vulkan_func = {};
     vma_vulkan_func.vkGetInstanceProcAddr = vkGetInstanceProcAddr;
     vma_vulkan_func.vkGetDeviceProcAddr = vkGetDeviceProcAddr;
     vma_vulkan_func.vkGetPhysicalDeviceProperties = vkGetPhysicalDeviceProperties;
@@ -2611,10 +2611,10 @@ static int32_t app_create_allocator() {
     vma_vulkan_func.vkGetBufferMemoryRequirements = vkGetBufferMemoryRequirements;
     vma_vulkan_func.vkGetImageMemoryRequirements = vkGetImageMemoryRequirements;
     vma_vulkan_func.vkCreateBuffer = vkCreateBuffer;
+    vma_vulkan_func.vkDestroyBuffer = vkDestroyBuffer;
     vma_vulkan_func.vkCreateImage = vkCreateImage;
     vma_vulkan_func.vkDestroyImage = vkDestroyImage;
     vma_vulkan_func.vkCmdCopyBuffer = vkCmdCopyBuffer;
-    vma_vulkan_func.vkDestroyBuffer = vkDestroyBuffer;
 
     VmaAllocatorCreateInfo create_info = {};
     create_info.vulkanApiVersion = VK_API_VERSION_1_0;

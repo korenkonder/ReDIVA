@@ -365,7 +365,8 @@ namespace Vulkan {
 
                 if (i->empty_frame_count >= 60) {
                     i->Destroy();
-                    dynamic_buffers.erase(i);
+                    i = dynamic_buffers.erase(i);
+                    i_dyn_begin = dynamic_buffers.begin();
                     continue;
                 }
             }
@@ -385,7 +386,8 @@ namespace Vulkan {
 
                 if (i->empty_frame_count >= 60) {
                     i->Destroy();
-                    staging_buffers.erase(i);
+                    i = staging_buffers.erase(i);
+                    i_stg_begin = staging_buffers.begin();
                     continue;
                 }
             }

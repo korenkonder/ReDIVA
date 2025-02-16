@@ -1359,7 +1359,7 @@ namespace Vulkan {
 
         this->data.resize(texture_get_size(internal_format, width, height));
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            _type, type, data, this->data.data(), gl_wrap_manager_ptr->unpack_alignment, true))
+            type, _type, data, this->data.data(), gl_wrap_manager_ptr->unpack_alignment, true))
             this->data.clear();
     }
 
@@ -1390,80 +1390,41 @@ namespace Vulkan {
             return true;
         }
 
+        auto get_size_aligned = [](ssize_t size, ssize_t alignment) {
+            if (size % alignment)
+                return size + (alignment - (size % alignment));
+            return size;
+        };
+
         if (src_type == GL_UNSIGNED_BYTE && dst_type == GL_UNSIGNED_BYTE && format == GL_RGB) {
             if (unpack) {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
+                const ssize_t src_line_size = get_size_aligned(3LL * width, alignment);
+                const ssize_t dst_line_size = 4LL * width;
                 for (GLsizei y = 0; y < height; y++) {
+                    const uint8_t* src = (const uint8_t*)src_data + src_line_size * y;
+                    uint8_t* dst = (uint8_t*)dst_data + dst_line_size * y;
+
                     for (GLsizei x = 0; x < width; x++) {
                         *dst++ = *src++;
                         *dst++ = *src++;
                         *dst++ = *src++;
                         *dst++ = 0xFF;
                     }
-
-                    const int32_t src_size = width * 3;
-                    if (src_size % alignment)
-                        src += (ssize_t)alignment - src_size % alignment;
                 }
             }
             else {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
+                const ssize_t src_line_size = 4LL * width;
+                const ssize_t dst_line_size = get_size_aligned(3LL * width, alignment);
                 for (GLsizei y = 0; y < height; y++) {
+                    const uint8_t* src = (const uint8_t*)src_data + src_line_size * y;
+                    uint8_t* dst = (uint8_t*)dst_data + dst_line_size * y;
+
                     for (GLsizei x = 0; x < width; x++) {
                         *dst++ = *src++;
                         *dst++ = *src++;
                         *dst++ = *src++;
                         src++;
                     }
-
-                    const int32_t dst_size = width * 4;
-                    if (dst_size % alignment)
-                        dst += (ssize_t)alignment - dst_size % alignment;
-                }
-            }
-        }
-        else if (src_type == GL_HALF_FLOAT && dst_type == GL_FLOAT) {
-            int32_t comp_count = 1;
-            if (format == GL_RG)
-                comp_count = 2;
-            else if (format == GL_RGB)
-                comp_count = 3;
-            else if (format == GL_RGBA)
-                comp_count = 4;
-            width *= comp_count;
-
-            if (unpack) {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
-                for (GLsizei y = 0; y < height; y++) {
-                    GLsizei x = 0;
-                    for (; x < width / 4 * 4; x += 4, src += sizeof(vec4), dst += sizeof(vec4h))
-                        vec4_to_vec4h(*(vec4*)src, *(vec4h*)dst);
-
-                    for (; x < width; x++, src += sizeof(float_t), dst += sizeof(half_t))
-                        *(half_t*)dst = float_to_half(*(float_t*)src);
-
-                    const int32_t src_size = width * sizeof(half_t);
-                    if (src_size % alignment)
-                        src += (ssize_t)alignment - src_size % alignment;
-                }
-            }
-            else {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
-                for (GLsizei y = 0; y < height; y++) {
-                    GLsizei x = 0;
-                    for (; x < width / 4 * 4; x += 4, src += sizeof(vec4), dst += sizeof(vec4h))
-                        vec4_to_vec4h(*(vec4*)src, *(vec4h*)dst);
-
-                    for (; x < width; x++, src += sizeof(float_t), dst += sizeof(half_t))
-                        *(half_t*)dst = float_to_half(*(float_t*)src);
-
-                    const int32_t dst_size = width * sizeof(float_t);
-                    if (dst_size % alignment)
-                        dst += (ssize_t)alignment - dst_size % alignment;
                 }
             }
         }
@@ -1477,37 +1438,66 @@ namespace Vulkan {
                 comp_count = 4;
             width *= comp_count;
 
+            ssize_t src_line_size;
+            ssize_t dst_line_size;
             if (unpack) {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
-                for (GLsizei y = 0; y < height; y++) {
-                    GLsizei x = 0;
-                    for (; x < width / 4 * 4; x += 4, src += sizeof(vec4h), dst += sizeof(vec4))
-                        vec4h_to_vec4(*(vec4h*)src, *(vec4*)dst);
-
-                    for (; x < width; x++, src += sizeof(half_t), dst += sizeof(float_t))
-                        *(float_t*)dst = half_to_float(*(half_t*)src);
-
-                    const int32_t src_size = width * sizeof(float_t);
-                    if (src_size % alignment)
-                        src += (ssize_t)alignment - src_size % alignment;
-                }
+                src_line_size = get_size_aligned(sizeof(half_t) * width, alignment);
+                dst_line_size = sizeof(float_t) * width;
             }
             else {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
-                for (GLsizei y = 0; y < height; y++) {
-                    GLsizei x = 0;
-                    for (; x < width / 4 * 4; x += 4, src += sizeof(vec4h), dst += sizeof(vec4))
-                        vec4h_to_vec4(*(vec4h*)src, *(vec4*)dst);
+                src_line_size = sizeof(half_t) * width;
+                dst_line_size = get_size_aligned(sizeof(float_t) * width, alignment);
+            }
 
-                    for (; x < width; x++, src += sizeof(half_t), dst += sizeof(float_t))
-                        *(float_t*)dst = half_to_float(*(half_t*)src);
+            for (GLsizei y = 0; y < height; y++) {
+                const uint8_t* src = (const uint8_t*)src_data + src_line_size * y;
+                uint8_t* dst = (uint8_t*)dst_data + dst_line_size * y;
 
-                    const int32_t dst_size = width * sizeof(half_t);
-                    if (dst_size % alignment)
-                        dst += (ssize_t)alignment - dst_size % alignment;
-                }
+                GLsizei x = 0;
+                for (; x < width / 4 * 4; x += 4, src += sizeof(float_t) * 4, dst += sizeof(half_t) * 4)
+                    vec4_to_vec4h(*(vec4*)src, *(vec4h*)dst);
+
+                for (; x < width / 2 * 2; x += 2, src += sizeof(float_t) * 2, dst += sizeof(half_t) * 2)
+                    vec2_to_vec2h(*(vec2*)src, *(vec2h*)dst);
+
+                for (; x < width; x++, src += sizeof(float_t), dst += sizeof(half_t))
+                    *(half_t*)dst = float_to_half(*(float_t*)src);
+            }
+        }
+        else if (src_type == GL_HALF_FLOAT && dst_type == GL_FLOAT) {
+            int32_t comp_count = 1;
+            if (format == GL_RG)
+                comp_count = 2;
+            else if (format == GL_RGB)
+                comp_count = 3;
+            else if (format == GL_RGBA)
+                comp_count = 4;
+            width *= comp_count;
+
+            ssize_t src_line_size;
+            ssize_t dst_line_size;
+            if (unpack) {
+                src_line_size = get_size_aligned(sizeof(float_t) * width, alignment);
+                dst_line_size = sizeof(half_t) * width;
+            }
+            else {
+                src_line_size = sizeof(float_t) * width;
+                dst_line_size = get_size_aligned(sizeof(half_t) * width, alignment);
+            }
+
+            for (GLsizei y = 0; y < height; y++) {
+                const uint8_t* src = (const uint8_t*)src_data + src_line_size * y;
+                uint8_t* dst = (uint8_t*)dst_data + dst_line_size * y;
+
+                GLsizei x = 0;
+                for (; x < width / 4 * 4; x += 4, src += sizeof(half_t) * 4, dst += sizeof(float_t) * 4)
+                    vec4h_to_vec4(*(vec4h*)src, *(vec4*)dst);
+
+                for (; x < width / 2 * 2; x += 2, src += sizeof(half_t) * 2, dst += sizeof(float_t) * 2)
+                    vec2h_to_vec2(*(vec2h*)src, *(vec2*)dst);
+
+                for (; x < width; x++, src += sizeof(half_t), dst += sizeof(float_t))
+                    *(float_t*)dst = half_to_float(*(half_t*)src);
             }
         }
         else {
@@ -1541,31 +1531,23 @@ namespace Vulkan {
                 return false;
             }
 
+            ssize_t src_line_size;
+            ssize_t dst_line_size;
             if (unpack) {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
-                for (GLsizei y = 0; y < height; y++) {
-                    int32_t size = elem_size * width;
-                    memmove(dst, src, size);
-                    dst += size;
-                    src += size;
-
-                    if (size % alignment)
-                        src += (ssize_t)alignment - size % alignment;
-                }
+                src_line_size = (ssize_t)elem_size * width;
+                dst_line_size = get_size_aligned((ssize_t)elem_size * width, alignment);
             }
             else {
-                const uint8_t* src = (const uint8_t*)src_data;
-                uint8_t* dst = (uint8_t*)dst_data;
-                for (GLsizei y = 0; y < height; y++) {
-                    int32_t size = elem_size * width;
-                    memmove(dst, src, size);
-                    dst += size;
-                    src += size;
+                src_line_size = get_size_aligned((ssize_t)elem_size * width, alignment);
+                dst_line_size = (ssize_t)elem_size * width;
+            }
 
-                    if (size % alignment)
-                        dst += (ssize_t)alignment - size % alignment;
-                }
+            const ssize_t line_size = min_def(src_line_size, dst_line_size);
+
+            for (GLsizei y = 0; y < height; y++) {
+                const uint8_t* src = (const uint8_t*)src_data + src_line_size * y;
+                uint8_t* dst = (uint8_t*)dst_data + dst_line_size * y;
+                memmove(dst, src, line_size);
             }
         }
         return true;
@@ -3403,18 +3385,28 @@ namespace Vulkan {
         const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
         const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
-        Vulkan::CommandBuffer cb(Vulkan::current_device,
-            Vulkan::current_command_pool, Vulkan::current_command_buffer);
-
         const VkImageLayout old_layout = vk_tex->image.GetImageLayout(level, layer);
         const VkImageLayout new_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
-        Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
+        Vulkan::CommandBuffer cb;
+        cb.Create(Vulkan::current_device, Vulkan::current_command_pool);
+
+        cb.BeginOneTimeSubmit();
+        Vulkan::Image::PipelineBarrierSingle(cb,
             vk_tex->image, aspect_mask, level, layer, new_layout);
         cb.CopyImageToBuffer(vk_tex->image, staging_buffer, staging_buffer.GetOffset(),
             aspect_mask, level, layer, 0, 0, width, height);
-        Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
+        Vulkan::Image::PipelineBarrierSingle(cb,
             vk_tex->image, aspect_mask, level, layer, old_layout);
+        cb.End();
+
+        Vulkan::Fence fence;
+        fence.Create(Vulkan::current_device, VK_FENCE_CREATE_SIGNALED_BIT);
+        fence.Reset();
+        cb.Sumbit(Vulkan::current_graphics_queue, fence);
+        fence.Destroy();
+
+        cb.Destroy();
 
         staging_buffer.ReadMemory(staging_buffer.GetOffset(), size, img);
     }
@@ -3618,18 +3610,28 @@ namespace Vulkan {
             const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
             const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
-            Vulkan::CommandBuffer cb(Vulkan::current_device,
-                Vulkan::current_command_pool, Vulkan::current_command_buffer);
-
             const VkImageLayout old_layout = vk_tex->image.GetImageLayout(level, layer);
             const VkImageLayout new_layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
 
-            Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
+            Vulkan::CommandBuffer cb;
+            cb.Create(Vulkan::current_device, Vulkan::current_command_pool);
+
+            cb.BeginOneTimeSubmit();
+            Vulkan::Image::PipelineBarrierSingle(cb,
                 vk_tex->image, aspect_mask, level, layer, new_layout);
             cb.CopyImageToBuffer(vk_tex->image, staging_buffer, staging_buffer.GetOffset(),
                 aspect_mask, level, layer, 0, 0, width, height);
-            Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
+            Vulkan::Image::PipelineBarrierSingle(cb,
                 vk_tex->image, aspect_mask, level, layer, old_layout);
+            cb.End();
+
+            Vulkan::Fence fence;
+            fence.Create(Vulkan::current_device, VK_FENCE_CREATE_SIGNALED_BIT);
+            fence.Reset();
+            cb.Sumbit(Vulkan::current_graphics_queue, fence);
+            fence.Destroy();
+
+            cb.Destroy();
 
             temp = force_malloc(size);
             staging_buffer.ReadMemory(staging_buffer.GetOffset(), size, temp);
