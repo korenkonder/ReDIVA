@@ -378,16 +378,16 @@ namespace MoviePlayLib {
                     IMFSample* mf_sample = 0;
                     IMFMediaBuffer* mf_media_buffer = 0;
                     IDirect3DTexture9* d3d_texture = 0;
-                    HANDLE v59 = 0;
+                    HANDLE shared_handle = 0;
                     if (SUCCEEDED(hr)) {
                         hr = d3d_device->CreateTexture(frame_size_width, frame_size_height,
-                            1, 1, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &d3d_texture, &v59);
+                            1, 1, D3DFMT_A8R8G8B8, D3DPOOL_DEFAULT, &d3d_texture, &shared_handle);
                         if (SUCCEEDED(hr)) {
                             hr = DXSurfaceBuffer::Create(d3d_texture, mf_media_buffer);
                             if (SUCCEEDED(hr)) {
                                 hr = TrackedSample::Create(mf_media_buffer, video_index, mf_sample);
                                 if (SUCCEEDED(hr)) {
-                                    hr = mf_sample->SetUINT64(TextureSharedHandleGUID, (UINT64)v59);
+                                    hr = mf_sample->SetUINT64(TextureSharedHandleGUID, (UINT64)shared_handle);
                                     if (SUCCEEDED(hr))
                                         sample_list.AddSample(mf_sample, false);
                                 }

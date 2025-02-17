@@ -42,6 +42,7 @@ namespace MoviePlayLib {
         void CloseDevice();
         bool LoadTexture(Texture& gl_dx_tex, void* dxObject, HANDLE shareHandle);
         void ReleaseTexture(Texture& gl_dx_tex);
+        void UnlockCurrentTexture();
 
         static HRESULT Create(GLDXInteropTexture*& ptr);
         static void Destroy(GLDXInteropTexture* ptr);

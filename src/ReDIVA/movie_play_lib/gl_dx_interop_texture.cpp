@@ -30,24 +30,10 @@ namespace MoviePlayLib {
 
     ULONG GLDXInteropTexture::Release() {
         ULONG ref_count = --this->ref_count;
-        if (ref_count == 1) {
-            GetCurrentThreadId();
-            wglGetCurrentContext();
-
-            if (index >= 0 && index < count) {
-                wglDXUnlockObjectsNV(device, 1, &textures[index].object);
-                index = -1;
-            }
-        }
+        if (ref_count == 1)
+            UnlockCurrentTexture();
         else if (!ref_count) {
-            GetCurrentThreadId();
-            wglGetCurrentContext();
-
-            if (index >= 0 && index < count) {
-                wglDXUnlockObjectsNV(device, 1, &textures[index].object);
-                index = -1;
-            }
-
+            UnlockCurrentTexture();
             Destroy();
         }
         return ref_count;
@@ -82,13 +68,7 @@ namespace MoviePlayLib {
     }
 
     HRESULT GLDXInteropTexture::SetMFSample(IMFSample* mf_sample) {
-        GetCurrentThreadId();
-        wglGetCurrentContext();
-
-        if (index >= 0 && index < count) {
-            wglDXUnlockObjectsNV(device, 1, &textures[index].object);
-            index = -1;
-        }
+        UnlockCurrentTexture();
 
         IMFMediaBuffer* mf_media_buffer = 0;
         IDirect3DTexture9* d3d_texture = 0;
@@ -219,6 +199,16 @@ namespace MoviePlayLib {
             gl_dx_tex.tex = 0;
         }
         gl_dx_tex.share_handle = 0;
+    }
+
+    inline void GLDXInteropTexture::UnlockCurrentTexture() {
+        GetCurrentThreadId();
+        wglGetCurrentContext();
+
+        if (index >= 0 && index < count) {
+            wglDXUnlockObjectsNV(device, 1, &textures[index].object);
+            index = -1;
+        }
     }
 
     HRESULT GLDXInteropTexture::Create(GLDXInteropTexture*& ptr) {
