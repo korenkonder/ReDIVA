@@ -7721,22 +7721,22 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
         _vertex_format_index = 2;
 
     int32_t _size_vertex = 0x2C;
-    uint32_t enrs_se3_rc = 12;
+    uint32_t enrs_sub_entry3_rep_count = 12;
     if (vertex_format & OBJ_VERTEX_BONE_DATA) {
         _size_vertex += 0x0C;
-        enrs_se3_rc += 4;
+        enrs_sub_entry3_rep_count += 4;
         bone = true;
     }
 
     if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
         _size_vertex += 0x04;
-        enrs_se3_rc += 2;
+        enrs_sub_entry3_rep_count += 2;
         tex3 = true;
     }
 
     if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
         _size_vertex += 0x04;
-        enrs_se3_rc += 2;
+        enrs_sub_entry3_rep_count += 2;
         tex2 = true;
     }
 
@@ -7746,7 +7746,7 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
     bool add_enrs = true;
     if (e->vec.size() > 0) {
         off = (uint32_t)((size_t)e->vec.back().size * e->vec.back().repeat_count);
-        if (e->vec.back().sub.begin()[2].repeat_count == enrs_se3_rc) {
+        if (e->vec.back().sub.data()[2].repeat_count == enrs_sub_entry3_rep_count) {
             e->vec.back().repeat_count += _num_vertex;
             add_enrs = false;
         }
@@ -7756,7 +7756,7 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
         ee = { off, 3, (uint32_t)_size_vertex, (uint32_t)_num_vertex };
         ee.append(0, 3, ENRS_DWORD);
         ee.append(0, 3, ENRS_WORD);
-        ee.append(2, enrs_se3_rc, ENRS_WORD);
+        ee.append(2, enrs_sub_entry3_rep_count, ENRS_WORD);
         e->vec.push_back(ee);
     }
 
