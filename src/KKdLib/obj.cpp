@@ -7538,7 +7538,7 @@ static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<prj::stack_al
         break;
     case 6:
         tex2 = true;
-        bone = true;
+        break;
     case 8:
         tex2 = true;
         bone = true;
@@ -7680,7 +7680,7 @@ static void obj_modern_read_vertex(obj_mesh* mesh, prj::shared_ptr<prj::stack_al
             vtx[i].bone_index = bone_index;
         }
 
-        if (vtx[i].tangent != 0.0f)
+        if (!has_tangents && vtx[i].tangent != 0.0f)
             has_tangents = true;
     }
 
@@ -7703,41 +7703,29 @@ static void obj_modern_write_vertex(obj_mesh* mesh, stream& s, int64_t* vertex,
     bool tex3 = false;
     bool bone = false;
 
-    uint32_t _vertex_format_index;
-    if ((vertex_format & OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3 | OBJ_VERTEX_BONE_DATA)
-        == (OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3 | OBJ_VERTEX_BONE_DATA))
-        _vertex_format_index = 12;
-    else if ((vertex_format & OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3)
-        == (OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3))
-        _vertex_format_index = 10;
-    else if ((vertex_format & OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_BONE_DATA)
-        == (OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_BONE_DATA))
-        _vertex_format_index = 8;
-    else if ((vertex_format & OBJ_VERTEX_TEXCOORD2) == OBJ_VERTEX_TEXCOORD2)
-        _vertex_format_index = 6;
-    else if ((vertex_format & OBJ_VERTEX_BONE_DATA) == OBJ_VERTEX_BONE_DATA)
-        _vertex_format_index = 4;
-    else
-        _vertex_format_index = 2;
-
+    uint32_t _vertex_format_index = 2;
     int32_t _size_vertex = 0x2C;
     uint32_t enrs_sub_entry3_rep_count = 12;
-    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
-        _size_vertex += 0x0C;
-        enrs_sub_entry3_rep_count += 4;
-        bone = true;
+    if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
+        _vertex_format_index += 4;
+        _size_vertex += 0x04;
+        enrs_sub_entry3_rep_count += 2;
+        tex2 = true;
     }
 
-    if (vertex_format & OBJ_VERTEX_TEXCOORD3) {
+    if ((vertex_format & OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3)
+        == (OBJ_VERTEX_TEXCOORD2 | OBJ_VERTEX_TEXCOORD3)) {
+        _vertex_format_index += 4;
         _size_vertex += 0x04;
         enrs_sub_entry3_rep_count += 2;
         tex3 = true;
     }
 
-    if (vertex_format & OBJ_VERTEX_TEXCOORD2) {
-        _size_vertex += 0x04;
-        enrs_sub_entry3_rep_count += 2;
-        tex2 = true;
+    if (vertex_format & OBJ_VERTEX_BONE_DATA) {
+        _vertex_format_index += 2;
+        _size_vertex += 0x0C;
+        enrs_sub_entry3_rep_count += 4;
+        bone = true;
     }
 
     uint32_t off = 0;
