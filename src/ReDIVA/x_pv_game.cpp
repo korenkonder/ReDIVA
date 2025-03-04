@@ -1433,7 +1433,8 @@ void x_pv_game_effect::set_song_effect_time_inner(int32_t index, int64_t time, b
             next_change_field_time = *key;
 
         if (next_change_field_time >= 0)
-            max_frame = (float_t)((double_t)std::abs(*key - song_effect.time) * 0.000000001) * 60.0f - 1.0f;
+            max_frame = (float_t)((double_t)std::abs(next_change_field_time
+                - song_effect.time) * 0.000000001) * 60.0f - 1.0f;
     }
 
     for (x_pv_game_song_effect_auth_3d& i : song_effect.auth_3d) {
@@ -1887,7 +1888,8 @@ void x_pv_game_chara_effect::set_chara_effect(int32_t chara_id, int32_t index, i
             next_change_field_time = *key;
 
         if (next_change_field_time >= 0)
-            max_frame = (float_t)((double_t)std::abs(*key - auth_3d[index].time) * 0.000000001) * 60.0f - 1.0f;
+            max_frame = (float_t)((double_t)std::abs(next_change_field_time
+                - auth_3d[index].time) * 0.000000001) * 60.0f - 1.0f;
     }
 
     id.set_max_frame(max_frame);
