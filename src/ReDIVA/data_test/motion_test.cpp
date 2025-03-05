@@ -953,7 +953,8 @@ bool DtmMot::ctrl() {
     switch (state) {
     case 1: {
         if (pv_id >= 0) {
-            const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(pv_id, PV_DIFFICULTY_HARD, 0);
+            const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(
+                pv_id, PV_DIFFICULTY_HARD, PV_EDITION_ORIGINAL);
             if (diff) {
                 dsc_file_handler.reset();
                 dsc_file_handler.read_file(aft_data, diff->script_file_name.c_str());
@@ -1028,7 +1029,8 @@ bool DtmMot::ctrl() {
             || osage_play_data_manager_check_task_ready())
             break;
 
-        const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(pv_id, PV_DIFFICULTY_HARD, 0);
+        const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(
+            pv_id, PV_DIFFICULTY_HARD, PV_EDITION_ORIGINAL);
         if (pv_id > 0 && diff && dsc_file_handler.get_data()) {
             pv_data.reset();
             pv_data.dsc.parse(dsc_file_handler.get_data(), dsc_file_handler.get_size(), DSC_FT);

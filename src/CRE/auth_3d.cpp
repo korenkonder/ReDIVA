@@ -2951,7 +2951,8 @@ void auth_3d_data_get_obj_sets_from_category(std::string& name, std::vector<uint
 
     if (!name.find("ITMPV")) {
         int32_t pv_id = atoi(name.substr(5, 3).c_str());
-        const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(pv_id, PV_DIFFICULTY_HARD, 0);
+        const pv_db_pv_difficulty* diff = task_pv_db_get_pv_difficulty(
+            pv_id, PV_DIFFICULTY_HARD, PV_EDITION_ORIGINAL);
         if (diff)
             for (const pv_db_pv_item& i : diff->pv_item) {
                 if (i.index <= 0)

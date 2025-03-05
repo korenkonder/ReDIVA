@@ -267,7 +267,7 @@ const pv_db_pv_motion& pv_db_pv_difficulty::get_motion_or_default(int32_t chara_
 
 void pv_db_pv_difficulty::reset() {
     difficulty = PV_DIFFICULTY_MAX;
-    edition = -1;
+    edition = PV_EDITION_NONE;
     attribute.reset();
     script_file_name.clear();
     script_file_name.shrink_to_fit();
@@ -521,7 +521,7 @@ const pv_db_pv_difficulty* pv_db_pv::get_difficulty(
     return 0;
 }
 
-const pv_db_pv_difficulty* pv_db_pv::get_difficulty(pv_difficulty difficulty, int32_t edition) const {
+const pv_db_pv_difficulty* pv_db_pv::get_difficulty(pv_difficulty difficulty, pv_edition edition) const {
     const std::vector<pv_db_pv_difficulty>& diff = this->difficulty[difficulty];
     for (const pv_db_pv_difficulty& i : diff)
         if (i.edition == edition)
@@ -1365,7 +1365,7 @@ namespace pv_db {
 
                     int32_t edition;
                     if (kv.read("edition", edition))
-                        d.edition = edition;
+                        d.edition = (pv_edition)edition;
 
                     const char* _attribute_original;
                     if (!kv.read("attribute.original", _attribute_original)) {
@@ -2322,7 +2322,7 @@ const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
 }
 
 const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
-    pv_difficulty difficulty, int32_t edition) {
+    pv_difficulty difficulty, pv_edition edition) {
     const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
     if (pv)
         return pv->get_difficulty(difficulty, edition);

@@ -2402,7 +2402,7 @@ bool pv_game::load() {
     }
     case 1: {
         if (sub_14013C8C0()->sub_1400E7910() < 4) {
-            pv_id = sub_14013C8C0()->pv;
+            pv_id = sub_14013C8C0()->pv_id;
             const pv_db_pv* pv = task_pv_db_get_pv(pv_id);
             if (pv)
                 data.pv = pv;
@@ -2925,7 +2925,7 @@ bool pv_game::load() {
             sub_14013C8C0()->difficulty, sub_14013C8C0()->edition);
         if (diff) {
             data.field_data.reserve(diff->field.data.size());
-            light_param_data_storage_data_set_pv_id(sub_14013C8C0()->pv);
+            light_param_data_storage_data_set_pv_id(sub_14013C8C0()->pv_id);
 
             for (const pv_db_pv_field& i : diff->field.data) {
                 pv_game_field field;
@@ -5095,7 +5095,7 @@ life_gauge_safety_time(), life_gauge_border(), stage_index(), modules(), items()
 void pv_game_init_data::reset() {
     pv_id = 0;
     difficulty = PV_DIFFICULTY_EASY;
-    edition = 0;
+    edition = PV_EDITION_ORIGINAL;
     score_percentage_clear = 0;
     life_gauge_safety_time = 0;
     life_gauge_border = 0;
@@ -5111,10 +5111,12 @@ void pv_game_init_data::reset() {
         i = {};
 }
 
-struc_14::struc_14() : edition(), pv(), field_10(), field_11(), field_12(),
+struc_14::struc_14() : field_10(), field_11(), field_12(),
 field_13(), field_14(), field_18(), field_1C(), field_24(), field_25(), field_26() {
     type = 8;
     difficulty = PV_DIFFICULTY_NORMAL;
+    edition = PV_EDITION_ORIGINAL;
+    pv_id = 0;
     field_20 = 1.0f;
 }
 
@@ -5436,7 +5438,7 @@ void TaskPvGame::load(TaskPvGame::Data& data) {
 #endif
 
     sub_14013C8C0()->sub_1400E79E0(data.type);
-    sub_14013C8C0()->pv = data.init_data.pv_id;
+    sub_14013C8C0()->pv_id = data.init_data.pv_id;
     sub_14013C8C0()->difficulty = data.init_data.difficulty;
     sub_14013C8C0()->edition = data.init_data.edition;
 
@@ -5498,7 +5500,7 @@ PVGameSelector::PVGameSelector() : charas(), modules(), start(), exit() {
     pv_id = 600;
     pv = task_pv_db_get_pv(pv_id);
     difficulty = PV_DIFFICULTY_HARD;
-    edition = 0;
+    edition = PV_EDITION_ORIGINAL;
     success = true;
 
     reset_chara();
@@ -5579,7 +5581,7 @@ void PVGameSelector::window() {
                 pv_id = i.id;
                 pv = &i;
                 difficulty = PV_DIFFICULTY_HARD;
-                edition = 0;
+                edition = PV_EDITION_ORIGINAL;
                 success = true;
 
                 reset_chara();
@@ -5607,7 +5609,7 @@ void PVGameSelector::window() {
                 || ImGui::ItemKeyPressed(ImGuiKey_Enter)
                 || (ImGui::IsItemFocused() && difficulty != i)) {
                 difficulty = (pv_difficulty)i;
-                edition = 0;
+                edition = PV_EDITION_ORIGINAL;
                 success = true;
 
                 reset_chara();
@@ -5854,7 +5856,7 @@ void task_pv_game_init_pv() {
     TaskPvGame::Args args;
     args.init_data.pv_id = max_def(v2->field_2C.pv_id, 0);
     args.init_data.difficulty = v2->field_2C.difficulty;
-    args.init_data.edition = max_def(v2->field_2C.edition, 0);
+    args.init_data.edition = (pv_edition)max_def(v2->field_2C.edition, PV_EDITION_ORIGINAL);
     args.init_data.score_percentage_clear = v2->field_2C.score_percentage_clear / 100;
     args.init_data.life_gauge_safety_time = v2->field_2C.life_gauge_safety_time;
     args.init_data.life_gauge_border = v2->field_2C.life_gauge_border;
@@ -5986,7 +5988,7 @@ void task_pv_game_init_test_pv() {
     TaskPvGame::Args args;
     args.init_data.pv_id = 999;
     args.init_data.difficulty = PV_DIFFICULTY_NORMAL;
-    args.init_data.edition = 0;
+    args.init_data.edition = PV_EDITION_ORIGINAL;
     args.init_data.score_percentage_clear = 50;
     args.init_data.life_gauge_safety_time = 40;
     args.init_data.life_gauge_border = 30;

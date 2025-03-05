@@ -1327,7 +1327,7 @@ void pv_game_play_data::init_aet_level_info() {
     aet_manager_free_aet_object_reset(&aet_ids[PV_GAME_AET_LEVEL_INFO]);
 
     pv_difficulty difficulty = sub_14013C8C0()->difficulty;
-    int32_t edition = sub_14013C8C0()->edition;
+    pv_edition edition = sub_14013C8C0()->edition;
 
     const pv_db_pv_difficulty* diff = pv_game_get()->data.pv->get_difficulty(difficulty, edition);
     if (!diff)

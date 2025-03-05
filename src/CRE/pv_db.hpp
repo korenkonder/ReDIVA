@@ -34,11 +34,6 @@ enum pv_chreff_data_type {
     PV_CHREFF_DATA_AUTH3D_OBJ = 0x01,
 };
 
-enum pv_movie_surface {
-    PV_MOVIE_SURFACE_BACK  = 0x00,
-    PV_MOVIE_SURFACE_FRONT = 0x01,
-};
-
 enum pv_difficulty {
     PV_DIFFICULTY_EASY    = 0x00,
     PV_DIFFICULTY_NORMAL  = 0x01,
@@ -46,6 +41,12 @@ enum pv_difficulty {
     PV_DIFFICULTY_EXTREME = 0x03,
     PV_DIFFICULTY_ENCORE  = 0x04,
     PV_DIFFICULTY_MAX     = 0x05,
+};
+
+enum pv_edition {
+    PV_EDITION_NONE     = -1,
+    PV_EDITION_ORIGINAL = 0x00,
+    PV_EDITION_EXTRA    = 0x01,
 };
 
 enum pv_frame_texture_type {
@@ -77,6 +78,11 @@ enum pv_level {
     PV_LV_09_5 = 0x13,
     PV_LV_10_0 = 0x14,
     PV_LV_MAX  = 0x15,
+};
+
+enum pv_movie_surface {
+    PV_MOVIE_SURFACE_BACK  = 0x00,
+    PV_MOVIE_SURFACE_FRONT = 0x01,
 };
 
 enum pv_performer_item {
@@ -271,7 +277,7 @@ struct pv_db_pv_movie {
 
 struct pv_db_pv_difficulty {
     pv_difficulty difficulty;
-    int32_t edition;
+    pv_edition edition;
     pv_db_pv_attribute attribute;
     std::string script_file_name;
     pv_level level;
@@ -497,7 +503,7 @@ struct pv_db_pv {
         chara_index chara_index, const pv_db_pv_motion& motion) const;
     const pv_db_pv_difficulty* get_difficulty(
         pv_difficulty difficulty, pv_attribute_type attribute_type) const;
-    const pv_db_pv_difficulty* get_difficulty(pv_difficulty difficulty, int32_t edition) const;
+    const pv_db_pv_difficulty* get_difficulty(pv_difficulty difficulty, pv_edition edition) const;
     chara_index get_performer_chara(int32_t performer) const;
     int32_t get_performer_costume(int32_t performer) const;
     size_t get_performer_count() const;
@@ -563,6 +569,6 @@ extern const pv_db_pv* task_pv_db_get_pv(int32_t pv_id);
 extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
     pv_difficulty difficulty, pv_attribute_type attribute_type);
 extern const pv_db_pv_difficulty* task_pv_db_get_pv_difficulty(int32_t pv_id,
-    pv_difficulty difficulty, int32_t edition);
+    pv_difficulty difficulty, pv_edition edition);
 extern bool task_pv_db_is_paths_empty();
 extern void task_pv_db_free();

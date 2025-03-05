@@ -479,7 +479,7 @@ struct pv_game {
 struct pv_game_init_data {
     int32_t pv_id;
     pv_difficulty difficulty;
-    int32_t edition;
+    pv_edition edition;
     int32_t score_percentage_clear;
     int32_t life_gauge_safety_time;
     int32_t life_gauge_border;
@@ -496,8 +496,8 @@ struct pv_game_init_data {
 struct struc_14 {
     int32_t type;
     pv_difficulty difficulty;
-    int32_t edition;
-    int32_t pv;
+    pv_edition edition;
+    int32_t pv_id;
     int8_t field_10;
     int8_t field_11;
     int8_t field_12;
@@ -857,7 +857,7 @@ public:
     int32_t pv_id;
     const pv_db_pv* pv;
     pv_difficulty difficulty;
-    int32_t edition;
+    pv_edition edition;
     bool success;
     chara_index charas[ROB_CHARA_COUNT];
     int32_t modules[ROB_CHARA_COUNT];
