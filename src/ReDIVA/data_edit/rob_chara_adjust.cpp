@@ -12,6 +12,7 @@
 #include "../data_test/motion_test.hpp"
 #include "../dw.hpp"
 #include "../imgui_helper.hpp"
+#include "../input.hpp"
 
 static const char* chara_name[] = {
     "1P",
@@ -127,6 +128,12 @@ bool RobCharaAdjust::dest() {
 }
 
 void RobCharaAdjust::window() {
+    if (Input::IsKeyTapped(GLFW_KEY_A, GLFW_MOD_CONTROL | GLFW_MOD_SHIFT))
+        visible ^= true;
+
+    if (!visible)
+        return;
+
     ImGuiIO& io = ImGui::GetIO();
     ImGuiStyle& style = ImGui::GetStyle();
     ImFont* font = ImGui::GetFont();
@@ -151,6 +158,7 @@ void RobCharaAdjust::window() {
         return;
     }
     else if (!open) {
+        visible = false;
         ImGui::End();
         return;
     }
