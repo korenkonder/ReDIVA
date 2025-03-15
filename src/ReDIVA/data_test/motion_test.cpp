@@ -971,10 +971,10 @@ bool DtmMot::ctrl() {
             || dsc_file_handler.check_not_ready())
             break;
 
-        size_t motion_count = aft_mot_db->motion_set[motion_set_index].motion.size();
+        const motion_set_info* set_info = aft_mot_db->get_motion_set_by_id(motion_set_id);
+        const size_t motion_count = set_info->motion.size();
         for (size_t i = 0; i < motion_count; i++)
-            motion_storage_get_mot_data_frame_count(
-                aft_mot_db->motion_set[motion_set_index].motion.data()[i].id, aft_mot_db);
+            motion_storage_get_mot_data_frame_count(set_info->motion.data()[i].id, aft_mot_db);
 
         state = 3;
     } break;
