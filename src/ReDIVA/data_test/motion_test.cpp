@@ -1099,6 +1099,9 @@ bool DtmMot::ctrl() {
     case 8: {
         rob_chara* rob_chr = rob_chara_array_get(chara_id);
         rob_chr->set_use_opd(false);
+#if OPD_PLAY
+        rob_chr->set_step_motion_step(1.0f);
+#endif
 
         skin_param_manager_reset(chara_id);
 
