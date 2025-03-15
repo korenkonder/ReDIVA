@@ -198,37 +198,37 @@ InputState::~InputState() {
 }
 
 bool InputState::CheckDown(int32_t index) {
-    if (index >= 0 && index < 111)
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Down[index];
     return false;
 }
 
 bool InputState::CheckDoubleTapped(int32_t index) {
-    if (index >= 0 && index < 111)
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!DoubleTapped[index];
     return false;
 }
 
 bool InputState::CheckHold(int32_t index) {
-    if (index >= 0 && index < 111)
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Hold[index];
     return false;
 }
 
 bool InputState::CheckIntervalTapped(int32_t index) {
-    if (index >= 0 && index < 111)
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!IntervalTapped[index];
     return false;
 }
 
 bool InputState::CheckReleased(int32_t index) {
-    if (index >= 0 && index < 111)
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Released[index];
     return false;
 }
 
 bool InputState::CheckTapped(int32_t index) {
-    if (index >= 0 && index < 111)
+    if (index >= 0 && index < INPUT_BUTTON_COUNT)
         return !!Tapped[index];
     return false;
 }
