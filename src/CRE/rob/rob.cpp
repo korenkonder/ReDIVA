@@ -2959,12 +2959,12 @@ float_t rob_chara::get_max_face_depth() {
 }
 
 uint32_t rob_chara::get_rob_cmn_mottbl_motion_id(int32_t id) {
-    if (id >= 0xD6 && id <= 0xDF)
-        return pv_data.motion_face_ids[id - 0xD6];
-    else if (id == 0xE0)
+    if (id >= 214 && id <= 223)
+        return pv_data.motion_face_ids[id - 214];
+    else if (id == 224)
         return data.motion.motion_id;
-    else if (id >= 0xE2 && id <= 0xEB)
-        return pv_data.motion_face_ids[id - 0xE2];
+    else if (id >= 226 && id <= 235)
+        return pv_data.motion_face_ids[id - 226];
 
     int32_t v2 = data.field_8.field_1A4;
     if (rob_cmn_mottbl_data

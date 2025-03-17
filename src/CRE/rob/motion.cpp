@@ -343,27 +343,20 @@ MotFile* motion_storage_get_mot_file(uint32_t set_id) {
 }
 
 const mot_data* motion_storage_get_mot_data(uint32_t motion_id, const motion_database* mot_db) {
-    uint32_t set_id = -1;
-    size_t motion_index = -1;
-    for (const motion_set_info& i : mot_db->motion_set) {
-        for (const motion_info& j : i.motion)
-            if (j.id == motion_id) {
-                set_id = i.id;
-                motion_index = &j - i.motion.data();
+    const motion_set_info* set_info = mot_db->get_motion_set_by_motion_id(motion_id);
+    if (!set_info)
+        return 0;
+    
+    for (const motion_info& i : set_info->motion) {
+        if (i.id != motion_id)
+            continue;
 
-                break;
-            }
-
-        if (set_id != -1)
-            break;
+        auto elem = motion_storage_data.find(set_info->id);
+        if (elem != motion_storage_data.end())
+            return &elem->second.mot_set->mot_data[&i - set_info->motion.data()];
+        return 0;
     }
 
-    if (set_id == -1)
-        return 0;
-
-    auto elem = motion_storage_data.find(set_id);
-    if (elem != motion_storage_data.end())
-        return &elem->second.mot_set->mot_data[motion_index];
     return 0;
 }
 
