@@ -8650,7 +8650,7 @@ static void mot_write_motion(mot_data_bake* bake) {
             key_set_data_y.values = 0;
             size_t keys_y_count = 0;
             key_set_data_y.type = mot_write_motion_fit_keys_into_curve(keys.y, alloc,
-                key_set_data_y.frames, key_set_data_y.values, keys_x_count);
+                key_set_data_y.frames, key_set_data_y.values, keys_y_count);
             key_set_data_y.keys_count = (uint16_t)keys_y_count;
             key_set_data_y.data_type = MOT_KEY_SET_DATA_F32;
 
