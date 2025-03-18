@@ -43,9 +43,6 @@ namespace Vulkan {
             return false;
         }
 
-        if (*(uint64_t*)&data == 0xf448ed0000001349)
-            printf("");
-
         this->allocator = allocator;
         this->mip_levels = mip_levels;
         this->array_layers = array_layers;

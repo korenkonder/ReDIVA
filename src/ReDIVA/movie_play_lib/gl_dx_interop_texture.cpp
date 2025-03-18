@@ -184,7 +184,8 @@ namespace MoviePlayLib {
 
         wglDXSetResourceShareHandleNV(dxObject, share_handle);
         gl_dx_tex.share_handle = share_handle;
-        gl_dx_tex.object = wglDXRegisterObjectNV(device, dxObject, gl_dx_tex.tex->glid, GL_TEXTURE_2D, GL_ZERO);
+        gl_dx_tex.object = wglDXRegisterObjectNV(device, dxObject,
+            gl_dx_tex.tex->glid, GL_TEXTURE_2D, WGL_ACCESS_READ_ONLY_NV);
         return !!gl_dx_tex.object;
     }
 

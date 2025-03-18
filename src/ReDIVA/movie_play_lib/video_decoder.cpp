@@ -148,7 +148,8 @@ namespace MoviePlayLib {
             if (SUCCEEDED(hr)) {
                 hr = mf_media_buffer->QueryInterface(__uuidof(IMFGetService), (void**)&mf_get_service);
                 if (SUCCEEDED(hr))
-                    hr = mf_get_service->GetService(MR_BUFFER_SERVICE, __uuidof(IDirect3DSurface9), (void**)&src_surface);
+                    hr = mf_get_service->GetService(MR_BUFFER_SERVICE,
+                        __uuidof(IDirect3DSurface9), (void**)&src_surface);
             }
         }
 

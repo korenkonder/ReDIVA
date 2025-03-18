@@ -742,14 +742,14 @@ namespace MoviePlayLib {
             DWORD d3d_device_flags;
             if (caps.DevCaps & D3DDEVCAPS_HWTRANSFORMANDLIGHT)
                 d3d_device_flags = D3DCREATE_NOWINDOWCHANGES | D3DCREATE_HARDWARE_VERTEXPROCESSING
-                | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
+                    | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
             else
                 d3d_device_flags = D3DCREATE_NOWINDOWCHANGES | D3DCREATE_SOFTWARE_VERTEXPROCESSING
-                | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
+                    | D3DCREATE_MULTITHREADED | D3DCREATE_FPU_PRESERVE;
 
             if (SUCCEEDED(hr)) {
                 hr = d3d_device_temp->CreateDeviceEx(0, D3DDEVTYPE_HAL, present_param.hDeviceWindow,
-                    d3d_device_flags, &present_param, 0i64, &d3d_device);
+                    d3d_device_flags, &present_param, 0, &d3d_device);
                 if (SUCCEEDED(hr))
                 {
                     hr = DXVA2CreateDirect3DDeviceManager9(&reset_token, &d3d_device_manager);
