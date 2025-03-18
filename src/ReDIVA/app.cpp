@@ -2365,10 +2365,10 @@ static int32_t app_create_vulkan_instance() {
     VkApplicationInfo application_info = {};
     application_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     application_info.pApplicationName = "app";
-    application_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
+    application_info.applicationVersion = VK_MAKE_API_VERSION(0, 1, 1, 0);
     application_info.pEngineName = "app";
-    application_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 0, 0);
-    application_info.apiVersion = VK_API_VERSION_1_0;
+    application_info.engineVersion = VK_MAKE_API_VERSION(0, 1, 1, 0);
+    application_info.apiVersion = VK_API_VERSION_1_1;
 
     VkInstanceCreateInfo instance_create_info = {};
     instance_create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
@@ -2615,9 +2615,14 @@ static int32_t app_create_allocator() {
     vma_vulkan_func.vkCreateImage = vkCreateImage;
     vma_vulkan_func.vkDestroyImage = vkDestroyImage;
     vma_vulkan_func.vkCmdCopyBuffer = vkCmdCopyBuffer;
+    vma_vulkan_func.vkGetBufferMemoryRequirements2KHR = vkGetBufferMemoryRequirements2;
+    vma_vulkan_func.vkGetImageMemoryRequirements2KHR = vkGetImageMemoryRequirements2;
+    vma_vulkan_func.vkBindBufferMemory2KHR = vkBindBufferMemory2;
+    vma_vulkan_func.vkBindImageMemory2KHR = vkBindImageMemory2;
+    vma_vulkan_func.vkGetPhysicalDeviceMemoryProperties2KHR = vkGetPhysicalDeviceMemoryProperties2;
 
     VmaAllocatorCreateInfo create_info = {};
-    create_info.vulkanApiVersion = VK_API_VERSION_1_0;
+    create_info.vulkanApiVersion = VK_API_VERSION_1_1;
     create_info.physicalDevice = vulkan_physical_device;
     create_info.device = vulkan_device;
     create_info.pVulkanFunctions = &vma_vulkan_func;

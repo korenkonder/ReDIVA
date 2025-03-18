@@ -7,7 +7,7 @@
 
 #include "../../KKdLib/default.hpp"
 #include <Volk/volk.h>
-#define VMA_VULKAN_VERSION 1000000
+#define VMA_VULKAN_VERSION 1001000
 #include <vma/vk_mem_alloc.h>
 
 namespace Vulkan {
