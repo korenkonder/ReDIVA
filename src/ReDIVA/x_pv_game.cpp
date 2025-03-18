@@ -37,8 +37,8 @@
 #include "../KKdLib/aes.hpp"
 #include "../KKdLib/deflate.hpp"
 #include "../KKdLib/waitable_timer.hpp"
-#endif
 #include <meshoptimizer/meshoptimizer.h>
+#endif
 #if BAKE_PNG
 #include <lodepng/lodepng.h>
 #endif
