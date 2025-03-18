@@ -2684,7 +2684,7 @@ static int32_t app_create_sync_objects() {
 static int32_t app_create_descriptor_pool() {
     VkDescriptorPoolSize pool_sizes[2] = {};
     pool_sizes[0].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-    pool_sizes[0].descriptorCount = 8;
+    pool_sizes[0].descriptorCount = 16;
 
     pool_sizes[1].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     pool_sizes[1].descriptorCount = 4;
@@ -2939,6 +2939,16 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL app_debug_callback(
         SetConsoleTextAttribute(console, FOREGROUND_INTENSITY | FOREGROUND_RED
             | FOREGROUND_GREEN | FOREGROUND_BLUE | BACKGROUND_RED);
         printf_debug("validation layer error: %s\n\n", pCallbackData->pMessage);
+        SetConsoleTextAttribute(console, csbi.wAttributes);
+    }
+    else if (messageSeverity & VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+        HANDLE console = GetStdHandle(STD_OUTPUT_HANDLE);
+
+        CONSOLE_SCREEN_BUFFER_INFO csbi;
+        GetConsoleScreenBufferInfo(console, &csbi);
+        SetConsoleTextAttribute(console, FOREGROUND_RED
+            | BACKGROUND_RED | BACKGROUND_GREEN | BACKGROUND_BLUE);
+        printf_debug("validation layer warn: %s\n\n", pCallbackData->pMessage);
         SetConsoleTextAttribute(console, csbi.wAttributes);
     }
     else if (messageType & VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT) {
