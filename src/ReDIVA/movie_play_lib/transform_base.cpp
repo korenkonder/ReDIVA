@@ -236,8 +236,7 @@ namespace MoviePlayLib {
     BOOL TransformBase::Playback() {
         BOOL shutdown = FALSE;
         HRESULT hr = S_OK;
-        do
-        {
+        do {
             lock.Acquire();
             if (this->shutdown) {
                 hr = MF_E_SHUTDOWN;

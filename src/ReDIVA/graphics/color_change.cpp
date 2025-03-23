@@ -390,8 +390,7 @@ void ColorChangeDw::Draw() {
             spr::SprArgs args;
             args.texture = chg_tex;
             args.trans.x = (float_t)chg_tex->width;
-            if (auto_resize)
-            {
+            if (auto_resize) {
                 args.SetSpriteSize(256.0f);
                 args.trans.x = 266.0;
             }

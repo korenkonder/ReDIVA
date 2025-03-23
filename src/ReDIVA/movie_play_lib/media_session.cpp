@@ -750,8 +750,7 @@ namespace MoviePlayLib {
             if (SUCCEEDED(hr)) {
                 hr = d3d_device_temp->CreateDeviceEx(0, D3DDEVTYPE_HAL, present_param.hDeviceWindow,
                     d3d_device_flags, &present_param, 0, &d3d_device);
-                if (SUCCEEDED(hr))
-                {
+                if (SUCCEEDED(hr)) {
                     hr = DXVA2CreateDirect3DDeviceManager9(&reset_token, &d3d_device_manager);
                     if (SUCCEEDED(hr))
                         hr = d3d_device_manager->ResetDevice(d3d_device, reset_token);

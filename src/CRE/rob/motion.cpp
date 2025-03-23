@@ -346,7 +346,7 @@ const mot_data* motion_storage_get_mot_data(uint32_t motion_id, const motion_dat
     const motion_set_info* set_info = mot_db->get_motion_set_by_motion_id(motion_id);
     if (!set_info)
         return 0;
-    
+
     for (const motion_info& i : set_info->motion) {
         if (i.id != motion_id)
             continue;
