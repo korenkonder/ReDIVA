@@ -5,86 +5,79 @@
 
 #include "interpolation.hpp"
 
-void interpolate_chs_reverse_value(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f) {
-    vec2 t = vec2(
-        (float_t)(int64_t)(f - f1 + 0),
-        (float_t)(int64_t)(f - f1 + 1)
-    ) / (float_t)(int64_t)(f2 - f1);
-    vec2 t_2 = t * t;
-    vec2 t_3 = t_2 * t;
-    vec2 t_23 = 3.0f * t_2;
-    vec2 t_32 = 2.0f * t_3;
+void interpolate_chs_reverse_value(const float_t* arr, const size_t length,
+    float_t& t1, float_t& t2, const size_t f1, const size_t f2, const size_t f) {
+    const vec2 t = ((float_t)(int64_t)(f - f1) + vec2(0.0f, 1.0f)) / (float_t)(int64_t)(f2 - f1);
+    const vec2 t_2 = t * t;
+    const vec2 t_3 = t_2 * t;
+    const vec2 t_23 = 3.0f * t_2;
+    const vec2 t_32 = 2.0f * t_3;
 
-    vec2 h00 = t_32 - t_23 + 1.0f;
-    vec2 h01 = t_23 - t_32;
-    vec2 h10 = t_3 - 2.0f * t_2 + t;
-    vec2 h11 = t_3 - t_2;
+    const vec2 h00 = t_32 - t_23 + 1.0f;
+    const vec2 h01 = t_23 - t_32;
+    const vec2 h10 = t_3 - 2.0f * t_2 + t;
+    const vec2 h11 = t_3 - t_2;
 
-    vec2 t1_t2 = *(vec2*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
-    t1_t2 /= (t_2.x - t.x) * (t_2.y - t.y);
+    const vec2 t1_t2 = *(vec2*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
+    const float_t t_div = (t_2.x - t.x) * (t_2.y - t.y);
+    const vec2 t1_t2a = t1_t2 / t_div;
 
-    t1 = -h11.y * t1_t2.x + h11.x * t1_t2.y;
-    t2 = h10.y * t1_t2.x - h10.x * t1_t2.y;
+    t1 = -h11.y * t1_t2a.x + h11.x * t1_t2a.y;
+    t2 = h10.y * t1_t2a.x - h10.x * t1_t2a.y;
 }
 
-void interpolate_chs_reverse_value(float_t* arr, size_t length, float_t& t1a, float_t& t2a,
-    float_t& t1b, float_t& t2b, float_t& t1c, float_t& t2c, size_t f1, size_t f2, size_t f) {
-    vec4 t = vec4(
-        (float_t)(int64_t)(f - f1 + 0),
-        (float_t)(int64_t)(f - f1 + 1),
-        (float_t)(int64_t)(f - f1 + 2),
-        (float_t)(int64_t)(f - f1 + 3)
-    ) / (float_t)(int64_t)(f2 - f1);
-    vec4 t_2 = t * t;
-    vec4 t_3 = t_2 * t;
-    vec4 t_23 = 3.0f * t_2;
-    vec4 t_32 = 2.0f * t_3;
+void interpolate_chs_reverse_value(const float_t* arr, const size_t length, float_t& t1a, float_t& t2a,
+    float_t& t1b, float_t& t2b, float_t& t1c, float_t& t2c, const size_t f1, const size_t f2, const size_t f) {
+    const vec4 t = ((float_t)(int64_t)(f - f1) + vec4(0.0f, 1.0f, 2.0f, 3.0f)) / (float_t)(int64_t)(f2 - f1);
+    const vec4 t_2 = t * t;
+    const vec4 t_3 = t_2 * t;
+    const vec4 t_23 = 3.0f * t_2;
+    const vec4 t_32 = 2.0f * t_3;
 
-    vec4 h00 = t_32 - t_23 + 1.0f;
-    vec4 h01 = t_23 - t_32;
-    vec4 h10 = t_3 - 2.0f * t_2 + t;
-    vec4 h11 = t_3 - t_2;
+    const vec4 h00 = t_32 - t_23 + 1.0f;
+    const vec4 h01 = t_23 - t_32;
+    const vec4 h10 = t_3 - 2.0f * t_2 + t;
+    const vec4 h11 = t_3 - t_2;
 
-    vec4 t1_t2 = *(vec4*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
-    vec3 t_div = (*(vec3*)&t_2.x - *(vec3*)&t.x) * (*(vec3*)&t_2.y - *(vec3*)&t.y);
-    vec2 t1_t2a = *(vec2*)&t1_t2.x / t_div.x;
-    vec2 t1_t2b = *(vec2*)&t1_t2.y / t_div.y;
-    vec2 t1_t2c = *(vec2*)&t1_t2.z / t_div.z;
+    const vec4 t1_t2 = *(vec4*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
+    const vec3 t_div = (*(vec3*)&t_2.x - *(vec3*)&t.x) * (*(vec3*)&t_2.y - *(vec3*)&t.y);
+    const vec3 t1_t2a = *(vec3*)&t1_t2.x / t_div;
+    const vec3 t1_t2b = *(vec3*)&t1_t2.y / t_div;
 
-    t1a = -h11.y * t1_t2a.x + h11.x * t1_t2a.y;
-    t2a = h10.y * t1_t2a.x - h10.x * t1_t2a.y;
-    t1b = -h11.z * t1_t2b.x + h11.y * t1_t2b.y;
-    t2b = h10.z * t1_t2b.x - h10.y * t1_t2b.y;
-    t1c = -h11.w * t1_t2c.x + h11.z * t1_t2c.y;
-    t2c = h10.w * t1_t2c.x - h10.z * t1_t2c.y;
+    const vec3 t1 = -*(vec3*)&h11.y * t1_t2a + *(vec3*)&h11.x * t1_t2b;
+    const vec3 t2 = *(vec3*)&h10.y * t1_t2a - *(vec3*)&h10.x * t1_t2b;
+
+    t1a = t1.x;
+    t2a = t2.x;
+    t1b = t1.y;
+    t2b = t2.y;
+    t1c = t1.z;
+    t2c = t2.z;
 }
 
-void interpolate_chs_reverse_value(double_t* arr, size_t length,
-    double_t& t1, double_t& t2, size_t f1, size_t f2, size_t f) {
-    vec2d t = vec2d(
-        (double_t)(int64_t)(f - f1 + 0),
-        (double_t)(int64_t)(f - f1 + 1)
-    ) / (double_t)(int64_t)(f2 - f1);
-    vec2d t_2 = t * t;
-    vec2d t_3 = t_2 * t;
-    vec2d t_23 = 3.0 * t_2;
-    vec2d t_32 = 2.0 * t_3;
+void interpolate_chs_reverse_value(const double_t* arr, const size_t length,
+    double_t& t1, double_t& t2, const size_t f1, const size_t f2, const size_t f) {
+    const vec2d t = ((double_t)(int64_t)(f - f1) + vec2d(0.0, 1.0)) / (double_t)(int64_t)(f2 - f1);
+    const vec2d t_2 = t * t;
+    const vec2d t_3 = t_2 * t;
+    const vec2d t_23 = 3.0 * t_2;
+    const vec2d t_32 = 2.0 * t_3;
 
-    vec2d h00 = t_32 - t_23 + 1.0;
-    vec2d h01 = t_23 - t_32;
-    vec2d h10 = t_3 - 2.0 * t_2 + t;
-    vec2d h11 = t_3 - t_2;
+    const vec2d h00 = t_32 - t_23 + 1.0;
+    const vec2d h01 = t_23 - t_32;
+    const vec2d h10 = t_3 - 2.0 * t_2 + t;
+    const vec2d h11 = t_3 - t_2;
 
-    vec2d t1_t2 = *(vec2d*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
-    t1_t2 /= (t_2.x - t.x) * (t_2.y - t.y);
+    const vec2d t1_t2 = *(vec2d*)&arr[f] - h00 * arr[f1] - h01 * arr[f2];
+    const double_t t_div = (t_2.x - t.x) * (t_2.y - t.y);
+    const vec2d t1_t2a = t1_t2 / t_div;
 
-    t1 = -h11.y * t1_t2.x + h11.x * t1_t2.y;
-    t2 = h10.y * t1_t2.x - h10.x * t1_t2.y;
+    t1 = -h11.y * t1_t2a.x + h11.x * t1_t2a.y;
+    t2 = h10.y * t1_t2a.x - h10.x * t1_t2a.y;
 }
 
-void interpolate_chs_reverse(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2) {
+void interpolate_chs_reverse(const float_t* arr, const size_t length,
+    float_t& t1, float_t& t2, const size_t f1, const size_t f2) {
     t1 = 0.0f;
     t2 = 0.0f;
 
@@ -123,8 +116,8 @@ void interpolate_chs_reverse(float_t* arr, size_t length,
     t2 = (float_t)(tt2 / (double_t)(f2 - f1 - 2));
 }
 
-void interpolate_chs_reverse(double_t* arr, size_t length,
-    double_t& t1, double_t& t2, size_t f1, size_t f2) {
+void interpolate_chs_reverse(const double_t* arr, const size_t length,
+    double_t& t1, double_t& t2, const size_t f1, const size_t f2) {
     t1 = 0.0;
     t2 = 0.0;
 
@@ -144,8 +137,8 @@ void interpolate_chs_reverse(double_t* arr, size_t length,
     t2 = tt2 / (double_t)(f2 - f1 - 2);
 }
 
-int32_t interpolate_chs_reverse_sequence(
-    std::vector<float_t>& values_src, std::vector<kft3>& values, bool fast) {
+int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
+    std::vector<kft3>& values, const bool fast) {
     size_t count = values_src.size();
     if (!count)
         return 0;
@@ -158,13 +151,67 @@ int32_t interpolate_chs_reverse_sequence(
             return 0;
     }
     else {
-        float_t val = values_src.data()[0];
-        float_t* arr = &values_src.data()[1];
-        for (size_t i = count - 1; i; i--)
-            if (val != *arr++)
-                break;
+        const float_t val = values_src.data()[0];
+        const float_t* arr = &values_src.data()[1];
 
-        if (arr == values_src.data() + count)
+        bool constant = true;
+        size_t i = count;
+        if (constant) {
+            const vec4 p1[8] = { val, val, val, val, val, val, val, val };
+            for (size_t j = i / 32; j; j--, i -= 32)
+                if (memcmp(p1, arr, sizeof(vec4) * 8)) {
+                    constant = false;
+                    break;
+                }
+                else
+                    arr += 32;
+        }
+
+        if (constant) {
+            const vec4 p1[4] = { val, val, val, val };
+            for (size_t j = i / 16; j; j--, i -= 16)
+                if (memcmp(p1, arr, sizeof(vec4) * 4)) {
+                    constant = false;
+                    break;
+                }
+                else
+                    arr += 16;
+        }
+
+        if (constant) {
+            const vec4 p1[2] = { val, val };
+            for (size_t j = i / 8; j; j--, i -= 8)
+                if (memcmp(p1, arr, sizeof(vec4) * 2)) {
+                    constant = false;
+                    break;
+                }
+                else
+                    arr += 8;
+        }
+
+        if (constant) {
+            const vec4 p1 = val;
+            for (size_t j = i / 4; j; j--, i -= 4)
+                if (memcmp(&p1, arr, sizeof(vec4))) {
+                    constant = false;
+                    break;
+                }
+                else
+                    arr += 4;
+        }
+
+        if (constant) {
+            const float_t p1 = val;
+            for (size_t j = i; j; j--, i--)
+                if (memcmp(&p1, arr, sizeof(float_t))) {
+                    constant = false;
+                    break;
+                }
+                else
+                    arr++;
+        }
+
+        if (constant)
             if (values_src[0] != 0.0f) {
                 values.push_back({ 0, values_src[0] });
                 return 1;
@@ -173,12 +220,12 @@ int32_t interpolate_chs_reverse_sequence(
                 return 0;
     }
 
-    float_t* arr = values_src.data();
+    const float_t* arr = values_src.data();
 
     const float_t reverse_bias = 0.0001f;
     const int32_t reverse_min_count = 4;
 
-    float_t* a = arr;
+    const float_t* a = arr;
     size_t left_count = count;
     int32_t frame = 0;
     int32_t prev_frame = 0;
@@ -208,11 +255,51 @@ int32_t interpolate_chs_reverse_sequence(
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
             bool constant = true;
-            for (size_t j = 1; j <= i; j++)
-                if (memcmp(&a[0], &a[j], sizeof(float_t))) {
-                    constant = false;
-                    break;
-                }
+            size_t j = 1;
+            if (constant) {
+                const vec4 p1[8] = { a[0], a[0], a[0], a[0], a[0], a[0], a[0], a[0] };
+                for (; j <= i && j + 32 <= i; j += 32)
+                    if (memcmp(p1, &a[j], sizeof(vec4) * 8)) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const vec4 p1[4] = { a[0], a[0], a[0], a[0] };
+                for (; j <= i && j + 16 <= i; j += 16)
+                    if (memcmp(p1, &a[j], sizeof(vec4) * 4)) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const vec4 p1[2] = { a[0], a[0] };
+                for (; j <= i && j + 8 <= i; j += 8)
+                    if (memcmp(p1, &a[j], sizeof(vec4) * 2)) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const vec4 p1 = a[0];
+                for (; j <= i && j + 4 <= i; j += 4)
+                    if (memcmp(&p1, &a[j], sizeof(vec4))) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const float_t p1 = a[0];
+                for (; j <= i; j++)
+                    if (memcmp(&p1, &a[j], sizeof(float_t))) {
+                        constant = false;
+                        break;
+                    }
+            }
 
             t1 = 0.0f;
             t2 = 0.0f;

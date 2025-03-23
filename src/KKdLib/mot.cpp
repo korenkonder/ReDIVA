@@ -135,27 +135,6 @@ static void interpolate_mot_reverse_value(float_t* arr, size_t length,
     t2 = t_1.y * t1_t2.x - t_1.x * t1_t2.y;
 }
 
-static void interpolate_mot_reverse_value(float_t* arr, size_t length, float_t& t1a, float_t& t2a,
-    float_t& t1b, float_t& t2b, float_t& t1c, float_t& t2c, size_t f1, size_t f2, size_t f) {
-    vec4 t = vec4(
-        (float_t)(int64_t)(f - f1 + 0),
-        (float_t)(int64_t)(f - f1 + 1),
-        (float_t)(int64_t)(f - f1 + 2),
-        (float_t)(int64_t)(f - f1 + 3)
-    ) / (float_t)(int64_t)(f2 - f1);
-    vec4 t_1 = t - 1.0f;
-
-    vec4 t1_t2 = *(vec4*)&arr[f] - arr[f1] - (t * 2.0f - 3.0f) * (t * t) * (arr[f1] - arr[f2]);
-    t1_t2 /= t_1 * t;
-
-    t1a = -t.y * t1_t2.x + t.x * t1_t2.y;
-    t2a = t_1.y * t1_t2.x - t_1.x * t1_t2.y;
-    t1b = -t.z * t1_t2.y + t.y * t1_t2.z;
-    t2b = t_1.z * t1_t2.y - t_1.y * t1_t2.z;
-    t1c = -t.w * t1_t2.z + t.z * t1_t2.w;
-    t2c = t_1.w * t1_t2.z - t_1.z * t1_t2.w;
-}
-
 inline static void mot_set_add_key(uint16_t frame, float_t v, float_t t,
     std::vector<uint16_t>& frames, std::vector<float_t>& values) {
     frames.push_back(frame);
@@ -185,6 +164,8 @@ inline static float_t mot_set_add_key(bool has_error, float_t* a, int32_t frame,
         return t2;
     }
 }
+
+extern bool cpu_caps_avx;
 
 mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
     std::vector<uint16_t>& frames, std::vector<float_t>& values, bool fast) {
@@ -249,11 +230,51 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
         int32_t c = 0;
         for (i = reverse_min_count - 1, i_prev = i; i < left_count; i++) {
             bool constant = true;
-            for (size_t j = 1; j <= i; j++)
-                if (memcmp(&a[0], &a[j], sizeof(float_t))) {
-                    constant = false;
-                    break;
-                }
+            size_t j = 1;
+            if (constant) {
+                const vec4 p1[8] = { a[0], a[0], a[0], a[0], a[0], a[0], a[0], a[0] };
+                for (; j <= i && j + 32 <= i; j += 32)
+                    if (memcmp(p1, &a[j], sizeof(vec4) * 8)) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const vec4 p1[4] = { a[0], a[0], a[0], a[0] };
+                for (; j <= i && j + 16 <= i; j += 16)
+                    if (memcmp(p1, &a[j], sizeof(vec4) * 4)) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const vec4 p1[2] = { a[0], a[0] };
+                for (; j <= i && j + 8 <= i; j += 8)
+                    if (memcmp(p1, &a[j], sizeof(vec4) * 2)) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const vec4 p1 = a[0];
+                for (; j <= i && j + 4 <= i; j += 4)
+                    if (memcmp(&p1, &a[j], sizeof(vec4))) {
+                        constant = false;
+                        break;
+                    }
+            }
+
+            if (constant) {
+                const float_t p1 = a[0];
+                for (; j <= i; j++)
+                    if (memcmp(&p1, &a[j], sizeof(float_t))) {
+                        constant = false;
+                        break;
+                    }
+            }
 
             t1 = 0.0f;
             t2 = 0.0f;
@@ -261,47 +282,227 @@ mot_key_set_type mot_set::fit_keys_into_curve(std::vector<float_t>& values_src,
 
             if (!constant) {
                 if (!fast) {
-                    double_t t1_accum = 0.0;
-                    double_t t2_accum = 0.0;
+                    __m128d t1_t2_acc = vec2d::load_xmm(0.0);
 
                     size_t j = 1;
+                    if (cpu_caps_avx && j + 7 <= i - 1) {
+                        const __m256 p1 = _mm256_broadcast_ss(&a[0]);
+                        const __m256 p2 = _mm256_broadcast_ss(&a[i]);
+                        const __m256 p1_p2_diff = _mm256_sub_ps(p1, p2);
+
+                        const float_t _f2 = (float_t)(int64_t)i;
+                        const __m256 f2 = _mm256_broadcast_ss(&_f2);
+
+                        const __m256 _frame_offset = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f };
+                        const __m256 _1 = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+                        const __m256 _2 = { 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f };
+                        const __m256 _3 = { 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f };
+
+                        const __m256 vec8_neg = { -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f, -0.0f };
+
+                        auto shift256_right_32 = [](const __m256 a) -> __m256 {
+                            const __m128i lo_mask = {
+                                (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                                (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                                (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                                (char)0x00, (char)0x00, (char)0x00, (char)0x00,
+                            };
+
+                            const __m128i hi_mask = {
+                                (char)0x00, (char)0x00, (char)0x00, (char)0x00,
+                                (char)0x00, (char)0x00, (char)0x00, (char)0x00,
+                                (char)0x00, (char)0x00, (char)0x00, (char)0x00,
+                                (char)0xFF, (char)0xFF, (char)0xFF, (char)0xFF,
+                            };
+
+                            const __m256 b = _mm256_shuffle_ps(a, a, 0x39);
+                            const __m128 b_lo = _mm256_extractf128_ps(b, 0x00);
+                            const __m128 b_hi = _mm256_extractf128_ps(b, 0x01);
+                            return _mm256_set_m128(b_hi, _mm_castsi128_ps(_mm_or_si128(
+                                _mm_and_si128(_mm_castps_si128(b_lo), lo_mask),
+                                _mm_and_si128(_mm_castps_si128(b_hi), hi_mask))));
+                        };
+
+                        for (; j < i - 1 && j + 7 <= i - 1; j += 7) {
+                            const float_t f = (float_t)(int64_t)j;
+
+                            const __m256 t = _mm256_div_ps(_mm256_add_ps(
+                                _mm256_broadcast_ss(&f), _frame_offset), f2);
+                            const __m256 t_1 = _mm256_sub_ps(t, _1);
+
+                            const __m256 t1_t2 = _mm256_div_ps(_mm256_sub_ps(_mm256_sub_ps(
+                                _mm256_loadu_ps((const float*)&a[j]), p1),
+                                _mm256_mul_ps(_mm256_mul_ps(_mm256_sub_ps(_mm256_mul_ps(t, _2), _3),
+                                    _mm256_mul_ps(t, t)), p1_p2_diff)), _mm256_mul_ps(t_1, t));
+
+                            const __m256 t1 = _mm256_add_ps(_mm256_mul_ps(_mm256_xor_ps(shift256_right_32(t), vec8_neg), t1_t2),
+                                _mm256_mul_ps(t, shift256_right_32(t1_t2)));
+                            const __m256 t2 = _mm256_sub_ps(_mm256_mul_ps(shift256_right_32(t_1), t1_t2),
+                                _mm256_mul_ps(t_1, shift256_right_32(t1_t2)));
+
+                            const __m256 tmp_lo = _mm256_unpacklo_ps(t1, t2);
+                            const __m256 tmp_hi = _mm256_unpackhi_ps(t1, t2);
+
+                            const __m256d tmp_lo0 = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp_lo, 0x00));
+                            const __m256d tmp_lo1 = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp_lo, 0x01));
+                            const __m256d tmp_hi0 = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp_hi, 0x00));
+                            const __m256d tmp_hi1 = _mm256_cvtps_pd(_mm256_extractf128_ps(tmp_hi, 0x01));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_lo0, 0x00));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_lo0, 0x01));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_hi0, 0x00));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_hi0, 0x01));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_lo1, 0x00));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_lo1, 0x01));
+                            t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm256_extractf128_pd(tmp_hi1, 0x00));
+                        }
+                    }
+
+                    const __m128 p1 = vec4::load_xmm(a[0]);
+                    const __m128 p2 = vec4::load_xmm(a[i]);
+                    const __m128 p1_p2_diff = _mm_sub_ps(p1, p2);
+
+                    const __m128 f2 = vec4::load_xmm((float_t)(int64_t)i);
+
+                    const __m128 _frame_offset = { 0.0f, 1.0f, 2.0f, 3.0f };
+                    const __m128 _1 = { 1.0f, 1.0f, 1.0f, 1.0f };
+                    const __m128 _2 = { 2.0f, 2.0f, 2.0f, 2.0f };
+                    const __m128 _3 = { 3.0f, 3.0f, 3.0f, 3.0f };
+
                     for (; j < i - 1 && j + 3 <= i - 1; j += 3) {
-                        float_t t1a = 0.0f;
-                        float_t t2a = 0.0f;
-                        float_t t1b = 0.0f;
-                        float_t t2b = 0.0f;
-                        float_t t1c = 0.0f;
-                        float_t t2c = 0.0f;
-                        interpolate_mot_reverse_value(a, left_count, t1a, t2a, t1b, t2b, t1c, t2c, 0, i, j);
-                        t1_accum += t1a;
-                        t2_accum += t2a;
-                        t1_accum += t1b;
-                        t2_accum += t2b;
-                        t1_accum += t1c;
-                        t2_accum += t2c;
+                        const __m128 t = _mm_div_ps(_mm_add_ps(
+                            vec4::load_xmm((float_t)(int64_t)j), _frame_offset), f2);
+                        const __m128 t_1 = _mm_sub_ps(t, _1);
+
+                        const __m128 t1_t2 = _mm_div_ps(_mm_sub_ps(_mm_sub_ps(
+                            _mm_loadu_ps((const float*)&a[j]), p1),
+                            _mm_mul_ps(_mm_mul_ps(_mm_sub_ps(_mm_mul_ps(t, _2), _3),
+                                _mm_mul_ps(t, t)), p1_p2_diff)), _mm_mul_ps(t_1, t));
+
+                        const __m128 t1 = _mm_add_ps(_mm_mul_ps(_mm_xor_ps(_mm_shuffle_ps(t, t, 0x39), vec4_neg), t1_t2),
+                            _mm_mul_ps(t, _mm_shuffle_ps(t1_t2, t1_t2, 0x39)));
+                        const __m128 t2 = _mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(t_1, t_1, 0x39), t1_t2),
+                            _mm_mul_ps(t_1, _mm_shuffle_ps(t1_t2, t1_t2, 0x39)));
+
+                        const __m128 tmp_lo = _mm_unpacklo_ps(t1, t2);
+                        const __m128 tmp_hi = _mm_unpackhi_ps(t1, t2);
+                        t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm_cvtps_pd(tmp_lo));
+                        t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm_cvtps_pd(_mm_shuffle_ps(tmp_lo, tmp_lo, 0x4E)));
+                        t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm_cvtps_pd(tmp_hi));
                     }
 
                     for (; j < i - 1; j++) {
-                        float_t t1 = 0.0f;
-                        float_t t2 = 0.0f;
-                        interpolate_mot_reverse_value(a, left_count, t1, t2, 0, i, j);
-                        t1_accum += t1;
-                        t2_accum += t2;
+                        const __m128 t = _mm_div_ps(_mm_add_ps(
+                            vec4::load_xmm((float_t)(int64_t)j), _frame_offset), f2);
+                        const __m128 t_1 = _mm_sub_ps(t, _1);
+
+                        const __m128 t1_t2 = _mm_div_ps(_mm_sub_ps(_mm_sub_ps(
+                            _mm_castsi128_ps(_mm_loadl_epi64((const __m128i*)&a[j])), p1),
+                            _mm_mul_ps(_mm_mul_ps(_mm_sub_ps(_mm_mul_ps(t, _2), _3),
+                                _mm_mul_ps(t, t)), p1_p2_diff)), _mm_mul_ps(t_1, t));
+
+                        const __m128 t1 = _mm_add_ps(_mm_mul_ps(_mm_xor_ps(_mm_shuffle_ps(t, t, 0x39), vec4_neg), t1_t2),
+                            _mm_mul_ps(t, _mm_shuffle_ps(t1_t2, t1_t2, 0x39)));
+                        const __m128 t2 = _mm_sub_ps(_mm_mul_ps(_mm_shuffle_ps(t_1, t_1, 0x39), t1_t2),
+                            _mm_mul_ps(t_1, _mm_shuffle_ps(t1_t2, t1_t2, 0x39)));
+
+                        t1_t2_acc = _mm_add_pd(t1_t2_acc, _mm_cvtps_pd(_mm_unpacklo_ps(t1, t2)));
                     }
-                    t1 = (float_t)(t1_accum / (double_t)(i - 2));
-                    t2 = (float_t)(t2_accum / (double_t)(i - 2));
+
+                    const vec2 t1_t2 = vec2::store_xmm(_mm_cvtpd_ps(
+                        _mm_div_pd(t1_t2_acc, vec2d::load_xmm((double_t)(i - 2)))));
+                    t1 = t1_t2.x;
+                    t2 = t1_t2.y;
                 }
                 else
                     interpolate_mot_reverse_value(a, left_count, t1, t2, 0, i, 1);
 
                 has_error = false;
-                for (size_t j = 1; j < i; j++) {
-                    float_t val = interpolate_mot_value(a[0], a[i], t1, t2, 0.0f, (float_t)i, (float_t)j);
-                    if (fabsf(val - a[j]) > reverse_bias) {
-                        has_error = true;
-                        break;
+                size_t j = 1;
+                if (cpu_caps_avx && j + 8 <= i) {
+                    const __m256 _reverse_bias = _mm256_broadcast_ss(&reverse_bias);
+                    const __m256 p1 = _mm256_broadcast_ss(&a[0]);
+                    const __m256 p2 = _mm256_broadcast_ss(&a[i]);
+                    const __m256 p1_p2_diff = _mm256_sub_ps(p1, p2);
+                    const __m256 _t1 = _mm256_broadcast_ss(&t1);
+                    const __m256 _t2 = _mm256_broadcast_ss(&t2);
+
+                    const float_t _f2 = (float_t)(int64_t)i;
+                    const __m256 f2 = _mm256_broadcast_ss(&_f2);
+
+                    const __m256 _frame_offset = { 0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f };
+                    const __m256 _1 = { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f };
+                    const __m256 _2 = { 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f, 2.0f };
+                    const __m256 _3 = { 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f, 3.0f };
+
+                    const __m256i vec8i_abs = {
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                        (char)0xFF, (char)0xFF, (char)0xFF, (char)0x7F,
+                    };
+
+                    for (; j < i && j + 8 <= i; j += 8) {
+                        const float_t f = (float_t)(int64_t)j;
+
+                        const __m256 df = _mm256_add_ps(_mm256_broadcast_ss(&f), _frame_offset);
+                        const __m256 t = _mm256_div_ps(df, f2);
+                        const __m256 t_1 = _mm256_sub_ps(t, _1);
+                        const __m256 val = _mm256_add_ps(_mm256_add_ps(_mm256_mul_ps(_mm256_mul_ps(_mm256_add_ps(
+                            _mm256_mul_ps(t_1, _t1), _mm256_mul_ps(t, _t2)), t_1), df), _mm256_mul_ps(_mm256_mul_ps(
+                                _mm256_sub_ps(_mm256_mul_ps(t, _2), _3), _mm256_mul_ps(t, t)), p1_p2_diff)), p1);
+
+                        if (_mm256_movemask_ps(_mm256_cmp_ps(_mm256_and_ps(
+                            _mm256_sub_ps(val, _mm256_loadu_ps((const float*)&a[j])),
+                            _mm256_castsi256_ps(vec8i_abs)), _reverse_bias, _CMP_GT_OS))) {
+                            has_error = true;
+                            break;
+                        }
                     }
                 }
+
+                const __m128 _reverse_bias = vec4::load_xmm(reverse_bias);
+                const __m128 p1 = vec4::load_xmm(a[0]);
+                const __m128 p2 = vec4::load_xmm(a[i]);
+                const __m128 p1_p2_diff = _mm_sub_ps(p1, p2);
+                const __m128 _t1 = vec4::load_xmm(t1);
+                const __m128 _t2 = vec4::load_xmm(t2);
+
+                const __m128 f2 = vec4::load_xmm((float_t)(int64_t)i);
+
+                const __m128 _frame_offset = { 0.0f, 1.0f, 2.0f, 3.0f };
+                const __m128 _1 = { 1.0f, 1.0f, 1.0f, 1.0f };
+                const __m128 _2 = { 2.0f, 2.0f, 2.0f, 2.0f };
+                const __m128 _3 = { 3.0f, 3.0f, 3.0f, 3.0f };
+
+                if (!has_error)
+                    for (; j < i && j + 4 <= i; j += 4) {
+                        const __m128 df = _mm_add_ps(vec4::load_xmm((float_t)(int64_t)j), _frame_offset);
+                        const __m128 t = _mm_div_ps(df, f2);
+                        const __m128 t_1 = _mm_sub_ps(t, _1);
+                        const __m128 val = _mm_add_ps(_mm_add_ps(_mm_mul_ps(_mm_mul_ps(_mm_add_ps(_mm_mul_ps(t_1, _t1),
+                            _mm_mul_ps(t, _t2)), t_1), df), _mm_mul_ps(_mm_mul_ps(_mm_sub_ps(_mm_mul_ps(t, _2),
+                                _3), _mm_mul_ps(t, t)), p1_p2_diff)), p1);
+
+                        if (_mm_movemask_ps(_mm_cmpgt_ps(_mm_and_ps(_mm_sub_ps(val, _mm_loadu_ps((const float*)&a[j])),
+                            _mm_castsi128_ps(vec4i_abs)), _reverse_bias))) {
+                            has_error = true;
+                            break;
+                        }
+                    }
+
+                if (!has_error)
+                    for (; j < i; j++) {
+                        float_t val = interpolate_mot_value(a[0], a[i], t1, t2,
+                            0.0f, (float_t)(int64_t)i, (float_t)(int64_t)j);
+                        if (fabsf(val - a[j]) > reverse_bias) {
+                            has_error = true;
+                            break;
+                        }
+                    }
 
                 if (fabsf(t1) > 0.5f || fabsf(t2) > 0.5f)
                     has_error = true;

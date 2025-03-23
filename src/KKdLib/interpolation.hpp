@@ -70,7 +70,8 @@ inline vec4 interpolate_linear_value(const vec4 p1, const vec4 p2,
     return vec4::store_xmm(_mm_add_ps(_mm_mul_ps(_p1, _mm_sub_ps(_1, t)), _mm_mul_ps(_p2, t)));
 }
 
-inline std::vector<float_t> interpolate_linear(float_t p1, float_t p2, size_t f1, size_t f2) {
+inline std::vector<float_t> interpolate_linear(const float_t p1, const float_t p2,
+    const size_t f1, const size_t f2) {
     size_t length = f2 - f1 + 1;
     if (p1 == p2)
         return std::vector<float_t>(length, p1);
@@ -109,7 +110,8 @@ inline vec2d interpolate_linear_value(const vec2d p1, const vec2d p2,
     return vec2d::store_xmm(_mm_add_pd(_mm_mul_pd(_p1, _mm_sub_pd(_1, t)), _mm_mul_pd(_p2, t)));
 }
 
-inline std::vector<double_t> interpolate_linear(double_t p1, double_t p2, size_t f1, size_t f2) {
+inline std::vector<double_t> interpolate_linear(const double_t p1, const double_t p2,
+    const size_t f1, const size_t f2) {
     size_t length = f2 - f1 + 1;
     if (p1 == p2)
         return std::vector<double_t>(length, p1);
@@ -334,15 +336,13 @@ inline std::vector<double_t> interpolate_chs(const double_t p1, const double_t p
     return arr;
 }
 
-extern void interpolate_chs_reverse_value(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2, size_t f);
-extern void interpolate_chs_reverse_value(float_t* arr, size_t length, float_t& t1a, float_t& t2a,
-    float_t& t1b, float_t& t2b, float_t& t1c, float_t& t2c, size_t f1, size_t f2, size_t f);
-extern void interpolate_chs_reverse_value(double_t* arr, size_t length,
-    double_t& t1, double_t& t2, size_t f1, size_t f2, size_t f);
-extern void interpolate_chs_reverse(float_t* arr, size_t length,
-    float_t& t1, float_t& t2, size_t f1, size_t f2);
-extern void interpolate_chs_reverse(double_t* arr, size_t length,
-    double_t& t1, double_t& t2, size_t f1, size_t f2);
-extern int32_t interpolate_chs_reverse_sequence(
-    std::vector<float_t>& values_src, std::vector<kft3>& values, bool fast = false);
+extern void interpolate_chs_reverse_value(const float_t* arr, const size_t length,
+    float_t& t1, float_t& t2, const size_t f1, const size_t f2, const size_t f);
+extern void interpolate_chs_reverse_value(const double_t* arr, const size_t length,
+    double_t& t1, double_t& t2, const size_t f1, const size_t f2, const size_t f);
+extern void interpolate_chs_reverse(const float_t* arr, const size_t length,
+    float_t& t1, float_t& t2, const size_t f1, const size_t f2);
+extern void interpolate_chs_reverse(const double_t* arr, const size_t length,
+    double_t& t1, double_t& t2, const size_t f1, const size_t f2);
+extern int32_t interpolate_chs_reverse_sequence(const std::vector<float_t>& values_src,
+    std::vector<kft3>& values, const bool fast = false);
