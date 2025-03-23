@@ -5911,8 +5911,8 @@ static void glitter_editor_curve_editor_window(GlitterEditor* glt_edt) {
 
                     size_t v_length = v_arr_c.size() + v_arr_n.size() - 1;
                     double_t* v_arr = new double_t[v_length];
-                    memmove(v_arr, v_arr_c.data(), (v_arr_c.size() - 1) * sizeof(float_t));
-                    memmove(v_arr + (v_arr_c.size() - 1), v_arr_n.data(), v_arr_n.size() * sizeof(float_t));
+                    memmove(v_arr, v_arr_c.data(), (v_arr_c.size() - 1) * sizeof(*v_arr));
+                    memmove(v_arr + (v_arr_c.size() - 1), v_arr_n.data(), v_arr_n.size() * sizeof(*v_arr));
                     interpolate_chs_reverse(v_arr, v_length, c->tangent2,
                         n->tangent1, 0, (size_t)n->frame - c->frame);
                     delete[] v_arr;
