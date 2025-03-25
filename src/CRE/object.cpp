@@ -18,6 +18,7 @@
 #include <list>
 #include <map>
 #include <new>
+#include <unordered_map>
 #include <vector>
 
 static GLuint create_index_buffer(size_t size, const void* data);
@@ -1057,6 +1058,57 @@ void object_material_msgpack_read(const char* path, const char* set_name,
                             int32_t num_vertex = mesh.num_vertex;
                             for (int32_t i = num_vertex; i > 0; i--, vtx++)
                                 vtx->color0.w = 1.0f;
+                        }
+
+                        msgpack* fix_normals = _mesh.read("fix_zero_normals");
+                        if (fix_normals && fix_normals->read_bool()) {
+                            std::unordered_map<uint32_t, vec3> normals;
+
+                            obj_vertex_data* vtx = mesh.vertex_array;
+                            for (size_t l = 0; l < mesh.num_submesh; l++) {
+                                obj_sub_mesh& sub_mesh = mesh.submesh_array[l];
+                                if (sub_mesh.primitive_type != OBJ_PRIMITIVE_TRIANGLES)
+                                    continue;
+
+                                uint32_t* index = sub_mesh.index_array;
+                                int32_t num_index = sub_mesh.num_index;
+                                for (int32_t l = 0; l < num_index; l++) {
+                                    if (vtx[index[l]].normal != 0.0f)
+                                        continue;
+
+                                    const int32_t idx = l / 3 * 3;
+                                    const uint32_t v[3] = { index[idx + 0], index[idx + 1], index[idx + 2] };
+
+                                    bool found = false;
+                                    for (int32_t m = 0; m < 3; m++) {
+                                        if (vtx[v[m]].normal == 0.0f)
+                                            continue;
+
+                                        vec3 normal = vtx[v[m]].normal;
+                                        if (vtx[v[0]].normal == 0.0f)
+                                            normals[v[0]] += normal;
+                                        if (vtx[v[1]].normal == 0.0f)
+                                            normals[v[1]] += normal;
+                                        if (vtx[v[2]].normal == 0.0f)
+                                            normals[v[2]] += normal;
+
+                                        found = true;
+                                    }
+
+                                    if (!found) {
+                                        const vec3 p0 = vtx[v[0]].position;
+                                        const vec3 p1 = vtx[v[1]].position;
+                                        const vec3 p2 = vtx[v[2]].position;
+                                        const vec3 normal = vec3::cross(p1 - p0, p2 - p0);
+                                        normals[v[0]] += normal;
+                                        normals[v[1]] += normal;
+                                        normals[v[2]] += normal;
+                                    }
+                                }
+                            }
+
+                            for (auto& l : normals)
+                                vtx[l.first].normal = vec3::normalize(l.second);
                         }
 
                         msgpack* invert_negative_color = _mesh.read("invert_negative_color");
