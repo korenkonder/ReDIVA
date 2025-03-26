@@ -11617,43 +11617,43 @@ static void x_pv_game_read_object_reflect(const char* path, const char* set_name
 
                                     msgpack* repeat_v = attrib->read("repeat_v");
                                     if (repeat_v)
-                                        l.attrib.m.repeat_v = attrib->read_bool() ? 1 : 0;
+                                        l.attrib.m.repeat_v = repeat_v->read_bool() ? 1 : 0;
 
                                     msgpack* mirror_u = attrib->read("mirror_u");
                                     if (mirror_u)
-                                        l.attrib.m.mirror_u = attrib->read_bool() ? 1 : 0;
+                                        l.attrib.m.mirror_u = mirror_u->read_bool() ? 1 : 0;
 
                                     msgpack* mirror_v = attrib->read("mirror_v");
                                     if (mirror_v)
-                                        l.attrib.m.mirror_v = attrib->read_bool() ? 1 : 0;
+                                        l.attrib.m.mirror_v = mirror_v->read_bool() ? 1 : 0;
 
                                     msgpack* ignore_alpha = attrib->read("ignore_alpha");
                                     if (ignore_alpha)
-                                        l.attrib.m.ignore_alpha = attrib->read_bool() ? 1 : 0;
+                                        l.attrib.m.ignore_alpha = ignore_alpha->read_bool() ? 1 : 0;
 
                                     msgpack* blend = attrib->read("blend");
                                     if (blend)
-                                        l.attrib.m.blend = attrib->read_uint32_t();
+                                        l.attrib.m.blend = blend->read_uint32_t();
 
                                     msgpack* alpha_blend = attrib->read("alpha_blend");
                                     if (alpha_blend)
-                                        l.attrib.m.alpha_blend = attrib->read_uint32_t();
+                                        l.attrib.m.alpha_blend = alpha_blend->read_uint32_t();
 
                                     msgpack* border = attrib->read("border");
                                     if (border)
-                                        l.attrib.m.border = attrib->read_bool() ? 1 : 0;
+                                        l.attrib.m.border = border->read_bool() ? 1 : 0;
 
                                     msgpack* clamp2edge = attrib->read("clamp2edge");
                                     if (clamp2edge)
-                                        l.attrib.m.clamp2edge = attrib->read_bool() ? 1 : 0;
+                                        l.attrib.m.clamp2edge = clamp2edge->read_bool() ? 1 : 0;
 
                                     msgpack* filter = attrib->read("filter");
                                     if (filter)
-                                        l.attrib.m.filter = attrib->read_uint32_t();
+                                        l.attrib.m.filter = filter->read_uint32_t();
 
                                     msgpack* mipmap = attrib->read("mipmap");
                                     if (mipmap)
-                                        l.attrib.m.mipmap = attrib->read_uint32_t();
+                                        l.attrib.m.mipmap = mipmap->read_uint32_t();
 
                                     msgpack* mipmap_bias = attrib->read("mipmap_bias");
                                     if (mipmap_bias)
