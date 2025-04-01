@@ -48,6 +48,7 @@
 #include "../CRE/task.hpp"
 #include "../CRE/texture.hpp"
 #include "../KKdLib/database/item_table.hpp"
+#include "../KKdLib/io/path.hpp"
 #include "../KKdLib/prj/algorithm.hpp"
 #include "../KKdLib/timer.hpp"
 #include "../KKdLib/sort.hpp"
@@ -93,6 +94,7 @@
 #define IMGUI_IMPL_VULKAN_USE_VOLK
 #include <imgui/imgui_impl_vulkan.h>
 #include <timeapi.h>
+#include <shlobj_core.h>
 #include <Volk/volk.h>
 
 #ifdef DEBUG
@@ -1279,7 +1281,24 @@ static render_context* render_context_load() {
 
     io.Fonts->AddFontDefault();
 
-    const char* font_file = "C:\\Windows\\Fonts\\ArialUni.ttf";
+    const char* font_file_default_path = "rom\\ArialUni.ttf";
+    char* font_file = 0;
+    if (path_check_file_exists(font_file_default_path))
+        font_file = str_utils_copy(font_file_default_path);
+    else {
+        wchar_t temp_buf[MAX_PATH];
+        if (SUCCEEDED(SHGetFolderPathW(0, CSIDL_WINDOWS, 0, 0, temp_buf))) {
+            wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\Fonts\\ArialUni.ttf");
+            if (path_check_file_exists(temp_buf))
+                font_file = utf16_to_utf8(temp_buf);
+        }
+
+        if (!font_file && SUCCEEDED(SHGetFolderPathW(0, CSIDL_LOCAL_APPDATA, 0, 0, temp_buf))) {
+            wcscat_s(temp_buf, sizeof(temp_buf) / sizeof(wchar_t), L"\\Microsoft\\Windows\\Fonts\\ArialUni.ttf");
+            if (path_check_file_exists(temp_buf))
+                font_file = utf16_to_utf8(temp_buf);
+        }
+    }
 
     ImVector<ImWchar> ranges;
     ImFontGlyphRangesBuilder builder;
@@ -1292,7 +1311,11 @@ static render_context* render_context_load() {
     builder.AddChar((ImWchar)0x2200);
     builder.BuildRanges(&ranges);
 
-    imgui_font_arial = io.Fonts->AddFontFromFileTTF(font_file, 14.0f, 0, ranges.Data);
+    imgui_font_arial = 0;
+    if (font_file) {
+        imgui_font_arial = io.Fonts->AddFontFromFileTTF(font_file, 14.0f, 0, ranges.Data);
+        free(font_file);
+    }
     io.Fonts->Build();
 
     ImGui::StyleColorsDark();
