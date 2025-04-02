@@ -1083,26 +1083,21 @@ namespace rndr {
             gl_state_begin_event("local");
 
             if (alpha_z_sort)
-                rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_LOCAL, 1);
+                rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_LOCAL_TRANSLUCENT, 1);
 
             if (opaque_z_sort)
-                rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_OPAQUE_LOCAL, 0);
+                rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_LOCAL_OPAQUE, 0);
 
             camera* cam = rctx->camera;
             float_t fov = cam->get_fov();
             cam->set_fov(32.2673416137695f);
             draw_pass_set_camera();
 
-            rctx->disp_manager->draw(mdl::OBJ_TYPE_OPAQUE_LOCAL);
-            rctx->disp_manager->draw(mdl::OBJ_TYPE_TRANSPARENT_LOCAL);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_LOCAL_OPAQUE);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_LOCAL_TRANSPARENT);
             gl_state_enable_blend();
-            rctx->disp_manager->draw(mdl::OBJ_TYPE_TRANSLUCENT_LOCAL);
+            rctx->disp_manager->draw(mdl::OBJ_TYPE_LOCAL_TRANSLUCENT);
             gl_state_disable_blend();
-
-            draw_pass_3d_translucent(rctx,
-                mdl::OBJ_TYPE_OPAQUE_ALPHA_ORDER_2_LOCAL,
-                mdl::OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2_LOCAL,
-                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL);
 
             gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
             Glitter::glt_particle_manager->DispScenes(Glitter::DISP_LOCAL);

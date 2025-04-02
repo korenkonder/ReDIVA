@@ -2240,6 +2240,7 @@ namespace Glitter {
         if (local)
             disp_manager.object_culling = false;
         disp_manager.set_texture_pattern(0, 0);
+        disp_manager.set_obj_flags((mdl::ObjFlags)0);
 
         RenderElement* elem = rend_group->elements;
         size_t disp = 0;
@@ -2299,14 +2300,13 @@ namespace Glitter {
                     mat4_mul(&mat, &rctx_ptr->camera->inv_view, &mat);
                 elem->mat_draw = mat;
 
-                if (disp_manager.entry_obj_by_object_info(
-                    mat, object_info, &elem->color, 0, local))
+                if (local
+                    ? disp_manager.entry_obj_by_object_info_local(mat, object_info, &elem->color)
+                    : disp_manager.entry_obj_by_object_info(mat, object_info, &elem->color))
                     disp++;
-
-                disp_manager.set_texture_transform(0, 0);
             }
         }
-        disp_manager.set_texture_pattern(0, 0);
+        disp_manager.set_texture_transform(0, 0);
         rend_group->disp = disp;
         if (local)
             disp_manager.object_culling = object_culling;
