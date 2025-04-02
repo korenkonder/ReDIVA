@@ -995,8 +995,6 @@ namespace rndr {
                 mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2, 1, field_31F);
             rctx->disp_manager->obj_sort(&rctx->view_mat,
                 mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3, 1, field_31F);
-            rctx->disp_manager->obj_sort(&rctx->view_mat,
-                mdl::OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2_LOCAL, 1, field_31F);
         }
 
         if (opaque_z_sort)
@@ -1083,6 +1081,12 @@ namespace rndr {
 
         if (Glitter::glt_particle_manager->CheckHasLocalEffect()) { // X
             gl_state_begin_event("local");
+
+            if (alpha_z_sort)
+                rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_TRANSLUCENT_LOCAL, 1);
+
+            if (opaque_z_sort)
+                rctx->disp_manager->obj_sort(&rctx->view_mat, mdl::OBJ_TYPE_OPAQUE_LOCAL, 0);
 
             camera* cam = rctx->camera;
             float_t fov = cam->get_fov();
