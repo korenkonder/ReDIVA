@@ -2236,9 +2236,6 @@ namespace Glitter {
         }
 
         mdl::DispManager& disp_manager = *rctx_ptr->disp_manager;
-        const bool object_culling = disp_manager.object_culling;
-        if (local)
-            disp_manager.object_culling = false;
         disp_manager.set_texture_pattern(0, 0);
         disp_manager.set_obj_flags((mdl::ObjFlags)0);
 
@@ -2308,7 +2305,5 @@ namespace Glitter {
         }
         disp_manager.set_texture_transform(0, 0);
         rend_group->disp = disp;
-        if (local)
-            disp_manager.object_culling = object_culling;
     }
 }

@@ -205,7 +205,7 @@ void TaskDataTestGlitterParticle::disp() {
 
 }
 
-void TaskDataTestGlitterParticle::SceneFree( ){
+void TaskDataTestGlitterParticle::SceneFree() {
     Glitter::glt_particle_manager->FreeSceneEffect(scene_counter);
 }
 

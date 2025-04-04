@@ -186,7 +186,7 @@ static size_t pof_read_offsets_count(stream& s) {
         i++;
         j++;
     }
-    s.set_position( pos, SEEK_SET);
+    s.set_position(pos, SEEK_SET);
     return j;
 }
 

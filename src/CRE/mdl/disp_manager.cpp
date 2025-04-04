@@ -2615,7 +2615,7 @@ namespace mdl {
 
         ::camera* cam = rctx_ptr->camera;
 
-        if ( object_culling && !instances_count && !bone_mat && (!obj
+        if (object_culling && !instances_count && !bone_mat && (!obj
             || !obj_bounding_sphere_check_visibility(
                 obj->bounding_sphere, &culling, cam, mat))) {
             culling.culled.objects++;
@@ -3768,21 +3768,21 @@ static void sub_140436760() {
         *(vec3*)&t = aabb->size;
         t.w = 1.0f;
 
-        float_t view_z = vec4::dot(t ^ vec4(  0.0f,  0.0f,  0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4(  0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4(  0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4(  0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
+        float_t view_z = vec4::dot(t ^ vec4( 0.0f,  0.0f,  0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4( 0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4( 0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4( 0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
             view_z = -t.y;
-        if (view_z < vec4::dot(t ^ vec4(  0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4(  0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4( -0.0f,  0.0f,  0.0f, 0.0f ), mat.row2))
+        if (view_z < vec4::dot(t ^ vec4( 0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4( 0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f,  0.0f,  0.0f, 0.0f ), mat.row2))
             view_z = -t.x;
-        if (view_z < vec4::dot(t ^ vec4( -0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4( -0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4( -0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4( -0.0f, -0.0f,  0.0f, 0.0f ), mat.row2);
-        if (view_z < vec4::dot(t ^ vec4( -0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
-            view_z = vec4::dot(t ^ vec4( -0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f,  0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4(-0.0f,  0.0f, -0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f, -0.0f,  0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4(-0.0f, -0.0f,  0.0f, 0.0f ), mat.row2);
+        if (view_z < vec4::dot(t ^ vec4(-0.0f, -0.0f, -0.0f, 0.0f ), mat.row2))
+            view_z = vec4::dot(t ^ vec4(-0.0f, -0.0f, -0.0f, 0.0f ), mat.row2);
         i->view_z = view_z;
     }
 }

@@ -677,7 +677,7 @@ static void system_startup_pv_information_dest() {
 }
 
 static void system_startup_pv_information_disp() {
-    std::string buf( "PV INFORMATION    : ");
+    std::string buf("PV INFORMATION    : ");
     switch (system_startup->pv_information_state) {
     case -2:
         buf.append("NG");

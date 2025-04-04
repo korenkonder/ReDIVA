@@ -18,8 +18,8 @@
 #include <fileapi.h>
 #include <string>
 
-#pragma warning( push )
-#pragma warning( disable: 26812 )
+#pragma warning(push)
+#pragma warning(disable: 26812)
 
 template <typename T>
 inline void free_def(T& ptr) {

@@ -55,9 +55,9 @@ struct DDS_PIXELFORMAT {
 #define DDS_SURFACE_FLAGS_MIPMAP  0x00400008 // DDSCAPS_COMPLEX | DDSCAPS_MIPMAP
 #define DDS_SURFACE_FLAGS_cube_map 0x00000008 // DDSCAPS_COMPLEX
 
-#define DDS_CUBE_MAP_ALLFACES ( 0x00000400 | 0x00000800 |\
+#define DDS_CUBE_MAP_ALLFACES (0x00000400 | 0x00000800 |\
                                0x00001000 | 0x00002000 |\
-                               0x00004000 | 0x00008000 | 0x00000200 )
+                               0x00004000 | 0x00008000 | 0x00000200)
 
 #define DDS_CUBE_MAP 0x00000200 // DDSCAPS2_cube_map
 
@@ -285,7 +285,7 @@ void dds::write(const char* path) {
         return;
 
     wchar_t* path_buf = utf8_to_utf16(path);
-    write( path_buf);
+    write(path_buf);
     free_def(path_buf);
 }
 

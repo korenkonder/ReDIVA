@@ -12632,7 +12632,7 @@ void MotionBlendFreeze::Blend(bone_data* curr, bone_data* prev) {
         }
         else {
             mat4_mul(&curr->rot_mat_prev[1][field_24], &curr->rot_mat_prev[0][field_24], &prev_mat);
-            mat4_mul( &curr->rot_mat[1], &curr->rot_mat[0], &mat);
+            mat4_mul(&curr->rot_mat[1], &curr->rot_mat[0], &mat);
             mat4_blend_rotation(&prev_mat, &mat, &mat, blend);
         }
         mat4_transpose(&curr->rot_mat[0], &ik_mat);

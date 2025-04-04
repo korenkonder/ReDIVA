@@ -3394,7 +3394,7 @@ static obj_skin_block_osage* obj_classic_read_skin_block_osage(
 
     s.position_push(offset, SEEK_SET);
     if (!(s.read_uint32_t() & 0x8000))
-        osg->skin_param = obj_classic_read_skin_param( alloc, s, str);
+        osg->skin_param = obj_classic_read_skin_param(alloc, s, str);
     else {
         s.set_position(offset, SEEK_SET);
         for (int32_t i = 0; i < osg->num_node; i++) {
