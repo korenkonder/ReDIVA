@@ -1870,7 +1870,7 @@ namespace mdl {
     }
 
     ObjData* DispManager::alloc_obj_data(ObjKind kind) {
-        int32_t size = (int32_t)align_val(sizeof(ObjKind) + sizeof(mat4) + sizeof(float_t), 0x08);
+        int32_t size = (int32_t)align_val(sizeof(ObjKind) + sizeof(mat4) + sizeof(float_t) * 2, 0x08);
         switch (kind) {
         case OBJ_KIND_NORMAL:
             return (ObjData*)alloc_data(size + sizeof(ObjSubMeshArgs));
