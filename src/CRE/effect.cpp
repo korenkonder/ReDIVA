@@ -712,7 +712,7 @@ public:
     virtual void reset() override;
 };
 
-struct for_ring_vertex_data {
+struct fog_ring_vertex_data {
     vec2 position;
     vec4 color;
     float_t size;
@@ -2215,7 +2215,7 @@ void EffectFogRing::calc_vert() {
     float_t density = this->density;
     fog_ring_data* ptcl_data = this->ptcl_data;
 
-    for_ring_vertex_data* ptcl_vtx_data = (for_ring_vertex_data*)ssbo.MapMemory();
+    fog_ring_vertex_data* ptcl_vtx_data = (fog_ring_vertex_data*)ssbo.MapMemory();
     if (!ptcl_vtx_data) {
         num_vtx = 0;
         return;
@@ -2420,7 +2420,7 @@ void EffectFogRing::set_stage_indices(const std::vector<int32_t>& stage_indices)
 
     ptcl_data = new (force_malloc<fog_ring_data>(max_ptcls)) fog_ring_data[max_ptcls];
 
-    ssbo.Create(sizeof(for_ring_vertex_data) * max_ptcls);
+    ssbo.Create(sizeof(fog_ring_vertex_data) * max_ptcls);
 
     init_particle_data();
 
