@@ -316,11 +316,14 @@ namespace rndr {
         rctx_ptr->disp_manager->check_vertex_arrays();
         gl_state_bind_vertex_array(0);
         gl_state_disable_primitive_restart();
+        gl_state_bind_uniform_buffer(0);
         gl_state_bind_uniform_buffer_base(0, 0);
         gl_state_bind_uniform_buffer_base(1, 0);
         gl_state_bind_uniform_buffer_base(2, 0);
         gl_state_bind_uniform_buffer_base(3, 0);
         gl_state_bind_uniform_buffer_base(4, 0);
+        gl_state_bind_shader_storage_buffer(0);
+        gl_state_bind_shader_storage_buffer_base(0, 0);
     }
 
     void RenderManager::rndpass_post_proc() {
@@ -1802,8 +1805,8 @@ static int32_t draw_pass_3d_get_translucent_count(render_context* rctx) {
 }
 
 static void draw_pass_3d_shadow_reset(render_context* rctx) {
-    gl_state_active_bind_texture_2d(6, 0);
-    gl_state_active_bind_texture_2d(7, 0);
+    gl_state_active_bind_texture_2d(6, rctx->empty_texture_2d->glid);
+    gl_state_active_bind_texture_2d(7, rctx->empty_texture_2d->glid);
     rctx->draw_state->self_shadow = false;
     rctx->draw_state->shadow = false;
 }
