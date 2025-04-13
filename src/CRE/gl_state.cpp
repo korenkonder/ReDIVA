@@ -119,6 +119,7 @@ void gl_state_bind_uniform_buffer_base(GLuint index, GLuint buffer, bool force) 
         if (!Vulkan::use)
             glBindBufferBase(GL_UNIFORM_BUFFER, index, buffer);
 #endif
+        gl_state.uniform_buffer_binding = buffer;
         gl_state.uniform_buffer_bindings[index] = buffer;
         gl_state.uniform_buffer_offsets[index] = 0;
         gl_state.uniform_buffer_sizes[index] = -1;
@@ -134,6 +135,7 @@ void gl_state_bind_uniform_buffer_range(GLuint index,
         if (!Vulkan::use)
             glBindBufferRange(GL_UNIFORM_BUFFER, index, buffer, offset, size);
 #endif
+        gl_state.uniform_buffer_binding = buffer;
         gl_state.uniform_buffer_bindings[index] = buffer;
         gl_state.uniform_buffer_offsets[index] = offset;
         gl_state.uniform_buffer_sizes[index] = size;
@@ -153,6 +155,7 @@ void gl_state_bind_shader_storage_buffer_base(GLuint index, GLuint buffer, bool 
         if (!Vulkan::use)
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer);
 #endif
+        gl_state.shader_storage_buffer_binding = buffer;
         gl_state.shader_storage_buffer_bindings[index] = buffer;
         gl_state.shader_storage_buffer_offsets[index] = 0;
         gl_state.shader_storage_buffer_sizes[index] = -1;
@@ -168,6 +171,7 @@ void gl_state_bind_shader_storage_buffer_range(GLuint index,
         if (!Vulkan::use)
             glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, buffer, offset, size);
 #endif
+        gl_state.shader_storage_buffer_binding = buffer;
         gl_state.shader_storage_buffer_bindings[index] = buffer;
         gl_state.shader_storage_buffer_offsets[index] = offset;
         gl_state.shader_storage_buffer_sizes[index] = size;
@@ -378,7 +382,7 @@ void gl_state_get() {
         glActiveTexture((GLenum)(GL_TEXTURE0 + i));
         glGetIntegerv(GL_TEXTURE_BINDING_2D, &gl_state.texture_binding_2d[i]);
         glGetIntegerv(GL_TEXTURE_BINDING_CUBE_MAP, &gl_state.texture_binding_cube_map[i]);
-        glGetIntegeri_v(GL_SAMPLER_BINDING, i, &gl_state.sampler_binding[i]);
+        glGetIntegerv(GL_SAMPLER_BINDING, &gl_state.sampler_binding[i]);
     }
     glActiveTexture(gl_state.active_texture);
 

@@ -199,6 +199,9 @@ bool light_proj::set_mat(bool set_mat) {
 
         vec3 up = { 0.0f, 1.0f, 0.0f };
         mat4_look_at(&position, &interest, &up, &rctx->view_mat);
+
+        mat4_mul(&rctx->view_mat, &rctx->proj_mat, &rctx->vp_mat);
+
         rctx->set_scene_projection_view(rctx->view_mat, rctx->proj_mat, position);
     }
     return true;

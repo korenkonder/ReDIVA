@@ -216,11 +216,11 @@ static const int32_t glass_eye_fpt_unival_max[] = {
 };
 
 static const int32_t esm_gauss_vpt_unival_max[] = {
-    -1,
+    0,
 };
 
 static const int32_t esm_gauss_fpt_unival_max[] = {
-    -1,
+    1,
 };
 
 static const int32_t esm_filter_min_vpt_unival_max[] = {
@@ -2313,7 +2313,7 @@ static const uniform_name GLASEYE_uniform[] = {
 };
 
 static const uniform_name ESMGAUSS_uniform[] = {
-    U_INVALID,
+    U_LIGHT_PROJ,
 };
 
 static const uniform_name ESMFILT_uniform[] = {
