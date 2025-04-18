@@ -9,6 +9,7 @@
 #include "../KKdLib/prj/shared_ptr.hpp"
 #include "../KKdLib/prj/stack_allocator.hpp"
 #include "file_handler.hpp"
+#include <vector>
 
 #define FONT_COUNT 18
 

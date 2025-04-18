@@ -7,7 +7,6 @@
 
 #include <map>
 #include "../KKdLib/default.hpp"
-#include "../KKdLib/farc.hpp"
 #include "../KKdLib/mat.hpp"
 #include "../KKdLib/light_param/face.hpp"
 #include "../KKdLib/light_param/fog.hpp"

@@ -4,6 +4,7 @@
 */
 
 #include "light_param.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "render_context.hpp"

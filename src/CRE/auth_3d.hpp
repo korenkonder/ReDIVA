@@ -12,6 +12,7 @@
 #include "../KKdLib/database/object.hpp"
 #include "../KKdLib/database/texture.hpp"
 #include "../KKdLib/a3da.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/kf.hpp"
 #include "frame_rate_control.hpp"
 #include "render_context.hpp"
