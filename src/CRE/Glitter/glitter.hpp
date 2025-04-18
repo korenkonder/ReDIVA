@@ -275,6 +275,7 @@ namespace Glitter {
         FILE_WRITER_ENCRYPT    = 0x02,
         FILE_WRITER_NO_LIST    = 0x04,
         FILE_WRITER_BIG_ENDIAN = 0x08,
+        FILE_WRITER_FT         = 0x10,
     };
 
     enum FogType {

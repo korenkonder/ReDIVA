@@ -958,6 +958,7 @@ public:
     bool next;
     bool write_file;
     bool only_firstread_x;
+    bool farc;
 
     aet_database pv_tit_aet_db;
     sprite_database pv_tit_spr_db;

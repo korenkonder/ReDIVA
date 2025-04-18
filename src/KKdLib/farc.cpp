@@ -11,6 +11,7 @@
 #include "deflate.hpp"
 #include "hash.hpp"
 #include "str_utils.hpp"
+#include <time.h>
 
 static const uint8_t key[] = {
     0x70, 0x72, 0x6F, 0x6A, 0x65, 0x63, 0x74, 0x5F,
@@ -31,10 +32,14 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff,
     bool save = false, char* temp_path = 0, size_t dir_len = 0);
 static void farc_write_padding(farc* f, stream& s, size_t size, bool x = false);
 
-farc::farc() : flags(), ft() {
-    signature = FARC_FArC;
+farc::farc(farc_signature signature, farc_flags flags, bool ft)
+    : signature(signature), flags(flags), ft(ft), entry_padding(), header_padding() {
     compression_level = 12;
     alignment = 0x10;
+    if (ft) {
+        entry_size = 0x10;
+        header_size = 0x10;
+    }
 }
 
 farc::~farc() {
@@ -426,53 +431,75 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
     }
 
     if (plain)
-        signature = FARC_FArc;
+        if (signature == FARC_FARC)
+            flags = (farc_flags)0;
+        else
+            signature = FARC_FArc;
+
+    f->ft &= signature == FARC_FARC;
 
     bool compressed = false;
     bool encrypted = false;
     switch (signature) {
-    case FARC_FARC:
-        f->flags = flags;
-        compressed = !!(flags & FARC_GZIP);
-        encrypted = !!(flags & FARC_AES);
+    case FARC_FArc:
+    default:
+        f->flags = (farc_flags)0;
         break;
     case FARC_FArC:
         f->flags = (farc_flags)0;
         compressed = true;
         break;
-    default:
-        f->flags = (farc_flags)0;
-        break;
-    }
-
-    size_t header_length = 0;
-    switch (signature) {
     case FARC_FARC:
-        header_length += sizeof(int32_t) * 5;
-        break;
-    default:
-        header_length += sizeof(int32_t);
+        f->flags = flags;
+        compressed = !!(flags & FARC_GZIP);
+        encrypted = !!(flags & FARC_AES);
         break;
     }
 
-    if (signature == FARC_FArc)
-        for (farc_file& i : f->files) {
-            header_length += i.name.size() + 1;
-            header_length += sizeof(int32_t) * 2;
-        }
-    else
-        for (farc_file& i : f->files) {
-            header_length += i.name.size() + 1;
-            header_length += sizeof(int32_t) * 3;
-        }
+    size_t header_length = sizeof(int32_t);
+    for (farc_file& i : f->files)
+        header_length += i.name.size() + 1;
 
-    size_t align = header_length + 8;
-    s.set_position(align_val(align, f->alignment), SEEK_SET);
+    switch (signature) {
+    case FARC_FArc:
+        header_length += sizeof(int32_t) * 2 * f->files.size();
+        break;
+    case FARC_FArC:
+    default:
+        header_length += sizeof(int32_t) * 3 * f->files.size();
+        break;
+    case FARC_FARC:
+        if (f->ft) {
+            f->header_size = max_def(f->header_size, 0x10u);
+            f->entry_size = max_def(f->entry_size, 0x10u);
+
+            header_length += sizeof(int32_t) + f->header_size;
+            header_length += f->entry_size * f->files.size();
+
+            if (encrypted) {
+                size_t head_data_len = header_length - sizeof(int32_t) * 2;
+                head_data_len = align_val(head_data_len, 0x10);
+                if (head_data_len == header_length - sizeof(int32_t) * 2)
+                    head_data_len += 0x10;
+                header_length = head_data_len + sizeof(int32_t) * 2;
+
+                header_length += 0x10;
+            }
+        }
+        else {
+            header_length += sizeof(int32_t) * 4 + f->header_padding;
+            header_length += (sizeof(int32_t) * 3 + f->entry_padding) * f->files.size();
+        }
+        break;
+    }
+
+    size_t align = align_val(header_length + 8, max_def(f->alignment, encrypted ? 0x10u : 0x01u));
+    s.set_position(align, SEEK_SET);
     size_t dir_len = f->directory_path.size();
 
     aes128_ctx ctx;
     if (signature == FARC_FARC)
-        aes128_init_ctx(&ctx, key);
+        aes128_init_ctx(&ctx, f->ft ? key_ft : key);
 
     f->compression_level = clamp_def(f->compression_level, 0, 12);
 
@@ -511,9 +538,17 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
         free_def(temp);
     }
 
+    std::vector<size_t> size_compressed_enc;
+    if (f->ft) {
+        time_t t;
+        srand((uint32_t)_time64(&t));
+    }
+
+    if (encrypted)
+        size_compressed_enc.resize(f->files.size());
+
     for (farc_file& i : f->files) {
         i.offset = s.get_position();
-        size_t file_len = i.size;
 
         if (i.encrypted && encrypted) {
             void* t1;
@@ -521,7 +556,7 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
             if (i.compressed && compressed) {
                 if (!i.data_compressed || i.data_changed) {
                     free_def(i.data_compressed);
-                    deflate::compress_gzip(i.data, file_len, i.data_compressed,
+                    deflate::compress_gzip(i.data, i.size, i.data_compressed,
                         i.size_compressed, f->compression_level, i.name.c_str());
                 }
                 t1 = i.data_compressed;
@@ -534,21 +569,45 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
                 t1_len = i.size;
             }
 
-            size_t t2_len = align_val(t1_len, f->alignment);
-            uint8_t* t2 = (uint8_t*)force_malloc(t2_len);
-            memcpy(t2, t1, t1_len);
-            memset(t2 + t1_len, 0x78, t2_len - t1_len);
+            if (f->ft) {
+                size_t t2_len = align_val(t1_len, 0x10);
+                if (t2_len == t1_len)
+                    t2_len += 0x10;
+                t2_len += 0x10;
+                size_compressed_enc.data()[&i - f->files.data()] = t2_len;
 
-            aes128_ecb_encrypt_buffer(&ctx, t2, t2_len);
+                uint8_t* t2 = (uint8_t*)force_malloc(t2_len);
+                for (int32_t j = 0; j < 0x10; j++)
+                    t2[j] = (uint8_t)rand();
+                memcpy(t2 + 0x10, t1, t1_len);
+                const int32_t pkcs7_pad_len = (int32_t)(t2_len - t1_len - 0x10);
+                memset(t2 + 0x10 + t1_len, pkcs7_pad_len, pkcs7_pad_len); // PKCS7 Padding
 
-            s.write(t2, t2_len);
-            free_def(t2);
+                aes128_ctx_set_iv(&ctx, t2);
+                aes128_cbc_encrypt_buffer(&ctx, t2 + 0x10, t2_len - 0x10);
+
+                s.write(t2, t2_len);
+                free_def(t2);
+            }
+            else {
+                size_t t2_len = align_val(align_val(t1_len, 0x10), f->alignment);
+                size_compressed_enc.data()[&i - f->files.data()] = t2_len;
+
+                uint8_t* t2 = (uint8_t*)force_malloc(t2_len);
+                memcpy(t2, t1, t1_len);
+                memset(t2 + t1_len, 0x78, t2_len - t1_len);
+
+                aes128_ecb_encrypt_buffer(&ctx, t2, t2_len);
+
+                s.write(t2, t2_len);
+                free_def(t2);
+            }
         }
         else if (i.compressed && compressed) {
             i.encrypted = false;
             if (!i.data_compressed || i.data_changed) {
                 free_def(i.data_compressed);
-                deflate::compress_gzip(i.data, file_len, i.data_compressed,
+                deflate::compress_gzip(i.data, i.size, i.data_compressed,
                     i.size_compressed, f->compression_level, i.name.c_str());
             }
             s.write(i.data_compressed, i.size_compressed);
@@ -558,10 +617,70 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
             i.compressed = false;
             i.encrypted = false;
             free_def(i.data_compressed);
-            s.write(i.data, file_len);
+            s.write(i.data, i.size);
             farc_write_padding(f, s, i.size);
         }
         i.data_changed = false;
+    }
+
+    if (f->ft) {
+        s.set_position(0, SEEK_SET);
+        s.write_uint32_t_reverse_endianness(FARC_FARC, true);
+        s.write_uint32_t_reverse_endianness((int32_t)header_length, true);
+        s.write_uint32_t_reverse_endianness(f->flags, true);
+        s.write_uint32_t_reverse_endianness(0x00, true);
+
+        size_t head_data_len = header_length - sizeof(int32_t) * 2;
+        uint8_t* head_data = (uint8_t*)force_malloc(head_data_len);
+        if (encrypted)
+            for (int32_t i = 0; i < 0x10; i++)
+                head_data[i] = (uint8_t)rand();
+
+        uint8_t* dt = head_data;
+        if (encrypted)
+            dt += 0x10;
+
+        store_reverse_endianness_uint32_t((void*)dt, f->header_size);
+        store_reverse_endianness_uint32_t((void*)(dt + 4), f->alignment);
+        store_reverse_endianness_uint32_t((void*)(dt + 8), (uint32_t)f->files.size());
+        store_reverse_endianness_uint32_t((void*)(dt + 12), f->entry_size);
+        dt += f->header_size;
+
+        for (farc_file& i : f->files) {
+            memcpy(dt, i.name.c_str(), i.name.size());
+            dt[i.name.size()] = 0;
+            dt += i.name.size() + 1;
+
+            farc_flags flags = (farc_flags)0;
+            if (i.compressed && compressed)
+                enum_or(flags, FARC_GZIP);
+            if (i.encrypted && encrypted)
+                enum_or(flags, FARC_AES);
+
+            store_reverse_endianness_uint32_t((void*)dt, (uint32_t)i.offset);
+            if (i.encrypted && encrypted)
+                store_reverse_endianness_uint32_t((void*)(dt + 4),
+                    (uint32_t)size_compressed_enc.data()[&i - f->files.data()]);
+            else if (i.compressed && compressed)
+                store_reverse_endianness_uint32_t((void*)(dt + 4), (uint32_t)i.size_compressed);
+            else
+                store_reverse_endianness_uint32_t((void*)(dt + 4), (uint32_t)i.size);
+            store_reverse_endianness_uint32_t((void*)(dt + 8), (uint32_t)i.size);
+            store_reverse_endianness_uint32_t((void*)(dt + 12), (uint32_t)flags);
+            dt += f->entry_size;
+        }
+
+        if (encrypted) {
+            const int32_t pkcs7_pad_len = (int32_t)(head_data_len - (dt - head_data));
+            memset(dt, pkcs7_pad_len, pkcs7_pad_len); // PKCS7 Padding
+
+            aes128_ctx_set_iv(&ctx, head_data);
+            aes128_cbc_encrypt_buffer(&ctx, head_data + 0x10, head_data_len - 0x10);
+        }
+
+        s.write(head_data, head_data_len);
+        free_def(head_data);
+        return;
     }
 
     s.set_position(0, SEEK_SET);
@@ -583,8 +702,10 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
         s.write_uint32_t_reverse_endianness(f->flags, true);
         s.write_uint32_t_reverse_endianness(0x00, true);
         s.write_uint32_t_reverse_endianness(f->alignment, true);
-        s.write_uint32_t_reverse_endianness(0x00, true);
-        s.write_uint32_t_reverse_endianness(0x00, true);
+        s.write_uint32_t_reverse_endianness(f->entry_padding, true);
+        s.write_uint32_t_reverse_endianness(f->header_padding, true);
+        if (f->header_padding)
+            s.write(f->header_padding);
         break;
     }
 
@@ -614,14 +735,16 @@ static void farc_pack_files(farc* f, stream& s, farc_signature signature, farc_f
         for (farc_file& i : f->files) {
             s.write_string_null_terminated(i.name);
             s.write_int32_t_reverse_endianness((int32_t)i.offset, true);
-            if (i.compressed) {
-                s.write_int32_t_reverse_endianness((int32_t)i.size_compressed, true);
+            if (i.encrypted && encrypted)
+                s.write_int32_t_reverse_endianness(
+                    (uint32_t)size_compressed_enc.data()[&i - f->files.data()], true);
+            else if (i.compressed && compressed)
+                s.write_int32_t_reverse_endianness((uint32_t)i.size_compressed, true);
+            else
                 s.write_int32_t_reverse_endianness((int32_t)i.size, true);
-            }
-            else {
-                s.write_int32_t_reverse_endianness((int32_t)i.size, true);
-                s.write_int32_t_reverse_endianness(0x00, true);
-            }
+            s.write_int32_t_reverse_endianness((int32_t)i.size, true);
+            if (f->entry_padding)
+                s.write(f->entry_padding);
         }
         break;
     }
@@ -679,10 +802,17 @@ static errno_t farc_read_header(farc* f, stream& s) {
     }
 
     if (f->ft) {
-        f->alignment = load_reverse_endianness_uint32_t((void*)dt);
+        f->header_size = load_reverse_endianness_uint32_t((void*)dt);
+        if (header_length < f->header_size || f->header_size < 0x10)
+            return -3;
+
+        f->alignment = load_reverse_endianness_uint32_t((void*)(dt + 4));
         uint32_t files_count = load_reverse_endianness_uint32_t((void*)(dt + 8));
-        uint32_t entry_size = load_reverse_endianness_uint32_t((void*)(dt + 12));
-        dt += sizeof(uint32_t) * 4;
+        f->entry_size = load_reverse_endianness_uint32_t((void*)(dt + 12));
+        if (f->entry_size < 0x10)
+            return -4;
+
+        dt += sizeof(uint32_t) * 4 + (f->header_size - 0x10);
 
         f->files.clear();
         f->files.reserve(files_count);
@@ -691,7 +821,8 @@ static errno_t farc_read_header(farc* f, stream& s) {
             while (dt[length])
                 length++;
 
-            farc_file ff;
+            f->files.push_back({});
+            farc_file& ff = f->files.back();
             ff.name.assign((const char*)dt, length);
             dt += length + 1;
             ff.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
@@ -699,17 +830,9 @@ static errno_t farc_read_header(farc* f, stream& s) {
             ff.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 8));
             farc_flags flags = (farc_flags)load_reverse_endianness_uint32_t((void*)(dt + 12));
 
-            if (ff.size)
-                ff.compressed = true;
-            else {
-                ff.size = ff.size_compressed;
-                ff.size_compressed = 0;
-                ff.compressed = false;
-            }
-
-            ff.encrypted = ((f->flags | flags) & FARC_AES) != 0;
-            f->files.push_back(ff);
-            dt += entry_size;
+            ff.compressed = !!(flags & FARC_GZIP);
+            ff.encrypted = !!(flags & FARC_AES);
+            dt += f->entry_size;
             files_count--;
         }
 
@@ -720,11 +843,17 @@ static errno_t farc_read_header(farc* f, stream& s) {
     size_t entry_size;
     if (f->signature == FARC_FARC) {
         f->alignment = load_reverse_endianness_uint32_t((void*)dt);
-        uint32_t entry_offset = load_reverse_endianness_uint32_t((void*)(dt + 4));
-        uint32_t header_offset = load_reverse_endianness_uint32_t((void*)(dt + 8));
-        dt += sizeof(uint32_t) * 3;
+        if ((f->flags & FARC_AES) && f->alignment < 0x10)
+            return -5;
 
-        entry_size = sizeof(uint32_t) * 3 + entry_offset;
+        f->entry_padding = load_reverse_endianness_uint32_t((void*)(dt + 4));
+        f->header_padding = load_reverse_endianness_uint32_t((void*)(dt + 8));
+        dt += sizeof(uint32_t) * 3 + f->header_padding;
+
+        if (dt - d_t >= header_length)
+            return -6;
+
+        entry_size = sizeof(uint32_t) * 3 + f->entry_padding;
     }
     else if (f->signature != FARC_FArc) {
         f->alignment = load_reverse_endianness_uint32_t((void*)dt);
@@ -739,56 +868,64 @@ static errno_t farc_read_header(farc* f, stream& s) {
         entry_size = sizeof(uint32_t) * 2;
     }
 
-    size_t count = 0;
+    size_t files_count = 0;
     uint8_t* position = dt;
 
     while (dt - d_t < header_length) {
         while (*dt++);
         dt += entry_size;
-        count++;
+        files_count++;
     }
     dt = position;
 
-    bool encrypted = !!(f->flags & FARC_AES);
+    const bool encrypted = !!(f->flags & FARC_AES);
 
     f->files.clear();
-    f->files.resize(count);
+    f->files.reserve(files_count);
     if (f->signature != FARC_FArc)
-        for (farc_file& i : f->files) {
+        while (dt - d_t < header_length && files_count) {
             size_t length = 0;
             while (dt[length])
                 length++;
-            i.name.assign((const char*)dt, length);
-            dt += length + 1;
-            i.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
-            i.size_compressed = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
-            i.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 8));
 
-            if (i.size)
-                i.compressed = true;
+            f->files.push_back({});
+            farc_file& ff = f->files.back();
+            ff.name.assign((const char*)dt, length);
+            dt += length + 1;
+            ff.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
+            ff.size_compressed = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
+            ff.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 8));
+
+            if (ff.size)
+                ff.compressed = true;
             else {
-                i.size = i.size_compressed;
-                i.size_compressed = 0;
-                i.compressed = false;
+                ff.size = ff.size_compressed;
+                ff.size_compressed = 0;
+                ff.compressed = false;
             }
 
-            i.encrypted = encrypted;
+            ff.encrypted = encrypted;
             dt += entry_size;
+            files_count--;
         }
     else
-        for (farc_file& i : f->files) {
+        while (dt - d_t < header_length && files_count) {
             size_t length = 0;
             while (dt[length])
                 length++;
-            i.name.assign((const char*)dt, length);
-            dt += length + 1;
-            i.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
-            i.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
 
-            i.size_compressed = 0;
-            i.compressed = false;
-            i.encrypted = false;
+            f->files.push_back({});
+            farc_file& ff = f->files.back();
+            ff.name.assign((const char*)dt, length);
+            dt += length + 1;
+            ff.offset = (size_t)load_reverse_endianness_uint32_t((void*)dt);
+            ff.size = (size_t)load_reverse_endianness_uint32_t((void*)(dt + 4));
+
+            ff.size_compressed = 0;
+            ff.compressed = false;
+            ff.encrypted = false;
             dt += sizeof(int32_t) * 2;
+            files_count--;
         }
 
     free_def(d_t);
@@ -865,8 +1002,8 @@ static void farc_unpack_file(farc* f, stream& s, farc_file* ff, bool save, char*
         }
     }
     else if (ff->compressed || ff->encrypted) {
-        size_t temp_s = ff->compressed ? ff->size_compressed : ff->size;
-        temp_s = ff->encrypted ? align_val(temp_s, f->alignment) : temp_s;
+        size_t temp_s = ff->compressed || ff->encrypted ? ff->size_compressed : ff->size;
+        temp_s = ff->encrypted ? align_val(align_val(temp_s, 0x10), f->alignment) : temp_s;
         void* temp = force_malloc(temp_s);
         s.read(temp, temp_s);
 
