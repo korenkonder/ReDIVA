@@ -348,6 +348,7 @@ struct vec3 {
     static vec3 div_min_max(const vec3& left, const vec3& min, const vec3& max);
     static vec3 div_min_max(const vec3& left, const float_t min, const float_t max);
     static vec3 cross(const vec3& left, const vec3& right);
+    static void axis_angle_from_vectors(vec3& axis, float_t& angle, const vec3& vec1, const vec3& vec2);
 };
 
 struct vec4 {
