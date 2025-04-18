@@ -53,9 +53,17 @@ struct farc {
     farc_flags flags;
     int32_t compression_level;
     uint32_t alignment;
+    union {
+        uint32_t entry_padding;
+        uint32_t entry_size;
+    };
+    union {
+        uint32_t header_padding;
+        uint32_t header_size;
+    };
     bool ft;
 
-    farc();
+    farc(farc_signature signature = FARC_FArC, farc_flags flags = (farc_flags)0, bool ft = false);
     ~farc();
 
     farc_file* add_file(const char* name);

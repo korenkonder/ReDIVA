@@ -6855,7 +6855,7 @@ bool x_pv_game::ctrl() {
                     if (!src || !*src)
                         return 0;
 
-                    for (int32_t i = 0; i < size - 1; i++, b++) {
+                    for (int32_t i = 0; *src && i < size - 1; i++, b++) {
                         char c = *b = *src++;
                         if (!c) {
                             b++;
@@ -7354,6 +7354,9 @@ bool x_pv_game::ctrl() {
         x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id, x_pack_aft_out_dir);
         x_pv_game_write_dsc(pv_data.pv_data.dsc, pv_data.pv_id, x_pack_mmp_out_dir);
 
+        time_t t;
+        srand((uint32_t)_time64(&t));
+
         std::vector<auth_3d*> chara_effect_auth_3ds;
         std::vector<auth_3d*> song_effect_auth_3ds;
         std::vector<auth_3d*> stage_data_effect_auth_3ds;
@@ -7604,7 +7607,10 @@ bool x_pv_game::ctrl() {
 
                 x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_aft_out_dir);
 
-                farc* effpv_farc = new farc;
+                farc* effpv_farc = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, FARC_NONE);
+                effpv_farc->entry_padding = 0x01 + (rand() % 0x10);
+                effpv_farc->header_padding = 0x01 + (rand() % 0x20);
+
                 for (auth_3d*& i : song_effect_auth_3ds)
                     x_pv_game_write_auth_3d(effpv_farc, i, &auth_3d_db, name, avail_uids, x_pack_aft_out_dir);
 
@@ -7621,7 +7627,10 @@ bool x_pv_game::ctrl() {
 
             x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_aft_out_dir);
 
-            farc* effstgpv_farc = new farc;
+            farc* effstgpv_farc = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, FARC_NONE);
+            effstgpv_farc->entry_padding = 0x01 + (rand() % 0x10);
+            effstgpv_farc->header_padding = 0x01 + (rand() % 0x20);
+
             for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
                 for (uint32_t& j : i.auth_3d_ids) {
                     auth_3d* auth = auth_3d_data_get_auth_3d(j);
@@ -7663,7 +7672,10 @@ bool x_pv_game::ctrl() {
 
                 x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_mmp_out_dir);
 
-                farc* effpv_farc = new farc;
+                farc* effpv_farc = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, FARC_NONE, true);
+                effpv_farc->entry_size = 0x11 + (rand() % 0x10);
+                effpv_farc->header_size = 0x11 + (rand() % 0x20);
+
                 for (auth_3d*& i : song_effect_auth_3ds)
                     x_pv_game_write_auth_3d(effpv_farc, i, &auth_3d_db, name, avail_uids, x_pack_mmp_out_dir);
 
@@ -7680,7 +7692,10 @@ bool x_pv_game::ctrl() {
 
             x_pv_game_write_auth_3d_category(name, &auth_3d_db, avail_uids, x_pack_mmp_out_dir);
 
-            farc* effstgpv_farc = new farc;
+            farc* effstgpv_farc = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, FARC_NONE, true);
+            effstgpv_farc->entry_size = 0x11 + (rand() % 0x10);
+            effstgpv_farc->header_size = 0x11 + (rand() % 0x20);
+
             for (stage_data_modern& i : stage_data.stage_data.stg_db.stage_modern)
                 for (uint32_t& j : i.auth_3d_ids) {
                     auth_3d* auth = auth_3d_data_get_auth_3d(j);
@@ -9327,9 +9342,11 @@ void FarcCompress::FarcThreadMain(int32_t index) {
     waitable_timer timer;
     while (true) {
         if (thread.state == FARC_COMPRESS_STATE_WORKING) {
-            thread.f->write(thread.path.c_str(), FARC_FArC, FARC_NONE, true, false);
-            delete thread.f;
-            thread.f = 0;
+            if (thread.f) {
+                thread.f->write(thread.path.c_str(), thread.f->signature, thread.f->flags, true, false);
+                delete thread.f;
+                thread.f = 0;
+            }
 
             if (thread.state == FARC_COMPRESS_STATE_END)
                 break;
@@ -10009,9 +10026,10 @@ obj_set_reflect* x_pack_reflect::get_obj_set_reflect(uint32_t id) {
 
 XPVGameBaker::XPVGameBaker() : charas(), modules(), pv_tit_aet_set_ids(),
 pv_tit_spr_set_ids(), pv_tit_aet_ids(), obj_set_encode_flags(), pv_tit_init(),
-wait(), start(), exit(), next(), only_firstread_x(), write_file() {
+wait(), start(), exit(), next(), write_file(), only_firstread_x() {
     index = -1;
     chara_index = CHARA_MIKU;
+    farc = true;
 
     for (::chara_index& i : charas)
         i = CHARA_MIKU;
@@ -10101,7 +10119,7 @@ void XPVGameBaker::window() {
 
     float_t w = 360.0f;
     float_t h = (float_t)height;
-    h = min_def(h, 228.0f);
+    h = min_def(h, 250.0f);
 
     ImGui::SetNextWindowPos({ (float_t)width - w, 0.0f }, ImGuiCond_Always);
     ImGui::SetNextWindowSize({ w, h }, ImGuiCond_Always);
@@ -10121,6 +10139,7 @@ void XPVGameBaker::window() {
         return;
     }
 
+    ImGui::Checkbox("FARC", &farc);
     ImGui::Checkbox("Write only firstread_x.bin", &only_firstread_x);
 
     ImGui::SeparatorText("Object Set Encode Flags");
@@ -12500,7 +12519,16 @@ static bool x_pv_game_write_auth_3d(farc* f, auth_3d* auth, auth_3d_database_fil
     bool own_farc = !f;
 
     if (own_farc)
-        f = new farc;
+        if (out_dir == x_pack_mmp_out_dir) {
+            f = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, FARC_NONE, true);
+            f->entry_size = 0x11 + (rand() % 0x10);
+            f->header_size = 0x11 + (rand() % 0x20);
+        }
+        else {
+            f = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC);
+            f->entry_padding = 0x01 + (rand() % 0x10);
+            f->header_padding = 0x01 + (rand() % 0x20);
+        }
 
     farc_file* ff = f->add_file(name);
     ff->name.append(".a3da");
@@ -13197,7 +13225,8 @@ static void x_pv_game_write_glitter(Glitter::EffectGroup* eff_group, const auth_
     Glitter::FileWriter::Write(Glitter::X, &temp_eff_group,
         sprintf_s_string("%s\\%s", out_dir, "particle_x\\").c_str(),
         name, (Glitter::FileWriterFlags)(Glitter::FILE_WRITER_COMPRESS
-            | Glitter::FILE_WRITER_ENCRYPT | Glitter::FILE_WRITER_NO_LIST));
+            | Glitter::FILE_WRITER_ENCRYPT | Glitter::FILE_WRITER_NO_LIST
+            | (out_dir == x_pack_mmp_out_dir ? Glitter::FILE_WRITER_FT : 0)));
 }
 
 static void x_pv_game_write_object_set_material_msgpack_read(const char* path,
@@ -13439,7 +13468,18 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
     ::obj_set* set = alloc->allocate<::obj_set>();
     set->move_data(obj_set, alloc);
 
-    farc* f = new farc;
+    farc* f;
+    if (out_dir == x_pack_mmp_out_dir) {
+        f = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, (farc_flags)(FARC_AES | FARC_GZIP), true);
+        f->entry_size = 0x11 + (rand() % 0x10);
+        f->header_size = 0x11 + (rand() % 0x20);
+    }
+    else {
+        f = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, (farc_flags)(FARC_AES | FARC_GZIP));
+        f->entry_padding = 0x01 + (rand() % 0x10);
+        f->header_padding = 0x01 + (rand() % 0x20);
+    }
+
     {
         data_struct* x_data = &data_list[DATA_X];
 
@@ -13460,6 +13500,7 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
             farc_file* ff_tex = f->add_file((file_name + "_tex.bin").c_str());
             txp.pack_file(&ff_tex->data, &ff_tex->size, false);
             ff_tex->compressed = true;
+            ff_tex->encrypted = true;
         }
     }
 
@@ -13629,6 +13670,7 @@ static void x_pv_game_write_object_set(obj_set* obj_set, const std::string& name
         farc_file* ff_obj = f->add_file((file_name + "_obj.bin").c_str());
         set->pack_file(&ff_obj->data, &ff_obj->size);
         ff_obj->compressed = true;
+        ff_obj->encrypted = true;
     }
 
     farc_compress_ptr->AddFarc(f, sprintf_s_string("%s\\objset\\%s", out_dir, file_name.c_str()));
@@ -14560,11 +14602,22 @@ static void x_pv_game_write_spr(uint32_t spr_set_id,
 
     x_pv_game_fix_txp_set(set->txp, out_dir);
 
-    farc* f = new farc;
+    farc* f;
+    if (out_dir == x_pack_mmp_out_dir) {
+        f = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, (farc_flags)(FARC_AES | FARC_GZIP), true);
+        f->entry_size = 0x11 + (rand() % 0x10);
+        f->header_size = 0x11 + (rand() % 0x20);
+    }
+    else {
+        f = new farc(x_pv_game_baker_ptr->farc ? FARC_FARC : FARC_FArC, (farc_flags)(FARC_AES | FARC_GZIP));
+        f->entry_padding = 0x01 + (rand() % 0x10);
+        f->header_padding = 0x01 + (rand() % 0x20);
+    }
 
     farc_file* ff_bin = f->add_file(spr_db_spr_set->file_name.c_str());
     set->pack_file(&ff_bin->data, &ff_bin->size);
     ff_bin->compressed = true;
+    ff_bin->encrypted = true;
 
     file_name.assign(spr_db_spr_set->file_name);
     pos = file_name.rfind(".bin");

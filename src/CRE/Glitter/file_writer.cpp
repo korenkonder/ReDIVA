@@ -2137,6 +2137,7 @@ namespace Glitter {
         bool encrypt = !!(writer_flags & FILE_WRITER_ENCRYPT);
         bool save_lst = !(writer_flags & FILE_WRITER_NO_LIST);
         bool big_endian = !!(writer_flags & FILE_WRITER_BIG_ENDIAN);
+        bool ft = !!(writer_flags & FILE_WRITER_FT);
         farc f;
         {
             size_t file_len = utf8_length(file);
@@ -2198,6 +2199,7 @@ namespace Glitter {
         if (encrypt) {
             signature = FARC_FARC;
             flags = FARC_AES;
+            f.ft = ft;
 
             if (compress)
                 enum_or(flags, FARC_GZIP);
