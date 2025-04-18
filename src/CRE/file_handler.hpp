@@ -11,7 +11,6 @@
 #include <string>
 #include <thread>
 #include "../KKdLib/default.hpp"
-#include "../KKdLib/farc.hpp"
 
 typedef void (PFNFILEHANDLERCALLBACK)(void*, const void*, size_t);
 

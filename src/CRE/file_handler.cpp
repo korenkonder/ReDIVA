@@ -6,6 +6,7 @@
 #include <thread>
 #include "../KKdLib/io/file_stream.hpp"
 #include "../KKdLib/io/path.hpp"
+#include "../KKdLib/farc.hpp"
 #include "../KKdLib/hash.hpp"
 #include "file_handler.hpp"
 #include "data.hpp"
