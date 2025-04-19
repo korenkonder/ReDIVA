@@ -547,6 +547,8 @@ static void replace_pv832(std::string& str);
 
 #if BAKE_X_PACK
 static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth);
+static void remove_auth_3d_category(auth_3d_database_file& auth_3d_db,
+    std::vector<uint64_t>& avail_uids, const char* category_name, const char* out_dir);
 static void replace_names(char* str);
 static void replace_names(std::string& str);
 static size_t replace_stgpv_pv(char* str);
@@ -6755,6 +6757,15 @@ bool x_pv_game::ctrl() {
 
         if (wait_load)
             break;
+
+        remove_auth_3d_category(baker->aft.auth_3d_db,
+            baker->aft.avail_auth_3d_uids, "EFFCHRPV826", x_pack_aft_out_dir);
+        remove_auth_3d_category(baker->mmp.auth_3d_db,
+            baker->mmp.avail_auth_3d_uids, "EFFCHRPV826", x_pack_mmp_out_dir);
+        remove_auth_3d_category(baker->aft.auth_3d_db,
+            baker->aft.avail_auth_3d_uids, "PV899", x_pack_aft_out_dir);
+        remove_auth_3d_category(baker->mmp.auth_3d_db,
+            baker->mmp.avail_auth_3d_uids, "PV899", x_pack_mmp_out_dir);
 
         for (int32_t i = 0; i < 5; i++) {
             x_pv_game_write_spr(baker->pv_tit_spr_set_ids[i],
@@ -14718,6 +14729,43 @@ static bool get_replace_auth_name(char* name, size_t name_size, auth_3d* auth) {
     replace_names(name);
 
     return !strstr(name, "EFFCHRPV826");
+}
+
+static void remove_auth_3d_category(auth_3d_database_file& auth_3d_db,
+    std::vector<uint64_t>& avail_uids, const char* category_name, const char* out_dir) {
+    const size_t category_name_len = utf8_length(category_name);
+    size_t avail_uids_old_size = avail_uids.size();
+
+    for (auth_3d_database_uid_file& i : auth_3d_db.uid) {
+        if (i.category.size() < category_name_len || i.category.find(category_name) == -1)
+            continue;
+
+        x_pv_game_baker_ptr->print_log(out_dir, "Clearing Auth 3D UID: %d"
+            "; Former value: \"%s\"", i.org_uid, i.value.c_str());
+
+        i.flags = AUTH_3D_DATABASE_UID_ORG_UID;
+        i.category.clear();
+        i.size = 0.0f;
+        i.value.clear();
+        avail_uids.push_back(&i - auth_3d_db.uid.data());
+    }
+
+
+    auto i_begin = auth_3d_db.category.begin();
+    auto i_end = auth_3d_db.category.end();
+    for (auto i = i_begin; i != i_end; )
+        if (i->size() >= category_name_len && i->find(category_name) != -1) {
+            x_pv_game_baker_ptr->print_log(out_dir, "Removed Auth 3D Category: %s", i->c_str());
+
+            i = auth_3d_db.category.erase(i);
+            i_begin = auth_3d_db.category.begin();
+            i_end = auth_3d_db.category.end();
+        }
+        else
+            i++;
+
+    if (avail_uids.size() != avail_uids_old_size)
+        prj::sort_unique(avail_uids);
 }
 
 static void replace_names(char* str) {
