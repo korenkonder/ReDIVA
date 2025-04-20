@@ -2280,6 +2280,7 @@ namespace Vulkan {
                 switch (vk_tex->image ? vk_tex->internal_format : vk_tex->internal_format) {
                 case GL_R8:
                 case GL_RG8:
+                case GL_RGB8:
                 case GL_RGBA8:
                 case GL_R32F:
                 case GL_RG16F:

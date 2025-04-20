@@ -1950,7 +1950,8 @@ namespace rndr {
                 gl_state_bind_framebuffer(0);
             }
 
-            i.capture = false;
+            if (&i - frame_texture)
+                i.capture = false;
         }
     }
 
