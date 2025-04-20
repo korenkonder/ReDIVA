@@ -50,6 +50,25 @@ namespace MoviePlayLib {
         MOVIE_PLAY_LIB_PRINT_FUNC_END;
     }
 
+    void VideoDecoder::Free() {
+        if (dx_video_processor) {
+            dx_video_processor->Release();
+            dx_video_processor = 0;
+        }
+
+        if (d3d_device) {
+            d3d_device->Release();
+            d3d_device = 0;
+        }
+
+        if (d3d_device_manager) {
+            d3d_device_manager->Release();
+            d3d_device_manager = 0;
+        }
+
+        TransformBase::Free();
+    }
+
     HRESULT VideoDecoder::ProcessOutput() {
         if (sample_list.GetSamplesCount() < 3)
             return TRUE;

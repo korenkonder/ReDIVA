@@ -38,6 +38,7 @@ namespace MoviePlayLib {
             IMediaSource* media_source, IDirect3DDeviceManager9* d3d_device_manager, IDirect3DDevice9* d3d_device);
         virtual ~VideoDecoder() override;
 
+        virtual void Free() override;
         virtual HRESULT ProcessOutput() override;
         virtual void SetSampleTime(double_t value) override;
 
