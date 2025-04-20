@@ -93,7 +93,7 @@ namespace MoviePlayLib {
         if (FAILED(hr))
             goto End;
 
-        hr = mf_media_buffer->QueryInterface(__uuidof(IDirect3DTexture9), (void**)&d3d_texture);
+        hr = mf_media_buffer->QueryInterface(IID_PPV_ARGS(&d3d_texture));
         if (FAILED(hr))
             goto End;
 

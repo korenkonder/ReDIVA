@@ -73,7 +73,7 @@ namespace MoviePlayLib {
             goto End;
 
         if (cMFTs)
-            hr = CoCreateInstance(*pclsidMFT, 0, 1, __uuidof(IMFTransform), (void**)&mf_transform);
+            hr = CoCreateInstance(*pclsidMFT, 0, 1, IID_PPV_ARGS(&mf_transform));
 
         if (FAILED(hr) || !mf_transform)
             goto End;
@@ -109,7 +109,7 @@ namespace MoviePlayLib {
 
     HRESULT MFSampleSetAllocator(IMFSample* mf_sample, IMFAsyncCallback* sample_allocator) {
         IMFTrackedSample* mf_tracked_sample = 0;
-        HRESULT hr = mf_sample->QueryInterface(__uuidof(IMFTrackedSample), (void**)&mf_tracked_sample);
+        HRESULT hr = mf_sample->QueryInterface(IID_PPV_ARGS(&mf_tracked_sample));
         if (SUCCEEDED(hr))
             hr = mf_tracked_sample->SetAllocator(sample_allocator, 0);
 

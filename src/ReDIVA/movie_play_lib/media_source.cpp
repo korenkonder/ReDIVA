@@ -391,7 +391,7 @@ namespace MoviePlayLib {
             MoviePlayLib::MediaStream** media_stream = 0;
             IMediaTransform* media_transform = 0;
 
-            hr = MFMediaEventQueryInterface(mf_media_event, __uuidof(IMFMediaStream), (void**)&mf_media_stream);
+            hr = MFMediaEventQueryInterface(mf_media_event, IID_PPV_ARGS(&mf_media_stream));
             if (FAILED(hr))
                 goto MENewStreamEnd;
 
@@ -475,7 +475,7 @@ namespace MoviePlayLib {
             if (SUCCEEDED(hr)) {
                 hr = mf_source_resolver->CreateObjectFromURL(url, MF_RESOLUTION_MEDIASOURCE, 0, &object_type, &object);
                 if (SUCCEEDED(hr))
-                    hr = object->QueryInterface(__uuidof(IMFMediaSource), (void**)&mf_media_source);
+                    hr = object->QueryInterface(IID_PPV_ARGS(&mf_media_source));
             }
 
             if (object) {

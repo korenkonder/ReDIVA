@@ -156,7 +156,7 @@ namespace MoviePlayLib {
         if (FAILED(hr))
             goto End;
 
-        hr = object->QueryInterface(__uuidof(CommandArgs), (void**)&command_args);
+        hr = object->QueryInterface(IID_PPV_ARGS(&command_args));
         if (FAILED(hr))
             goto End;
 
@@ -417,7 +417,7 @@ namespace MoviePlayLib {
             if (FAILED(hr))
                 goto End;
 
-            hr = mf_media_buffer->QueryInterface(__uuidof(IDirect3DTexture9), (void**)&dx_texture);
+            hr = mf_media_buffer->QueryInterface(IID_PPV_ARGS(&dx_texture));
             if (FAILED(hr))
                 goto End;
 
@@ -472,7 +472,7 @@ namespace MoviePlayLib {
             HANDLE shared_handle = 0;
             hr = mf_sample->GetUINT64(TextureSharedHandleGUID, (UINT64*)&shared_handle);
             if (SUCCEEDED(hr))
-                hr = d3d_device->OpenSharedResource(shared_handle, __uuidof(ID3D11Texture2D), (void**)ptr);
+                hr = d3d_device->OpenSharedResource(shared_handle, IID_PPV_ARGS(ptr));
 
             if (mf_sample) {
                 mf_sample->Release();

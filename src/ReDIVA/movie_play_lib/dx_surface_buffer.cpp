@@ -83,13 +83,13 @@ namespace MoviePlayLib {
     }
 
     DXSurfaceBuffer::DXSurfaceBuffer(HRESULT& hr, IUnknown* object) : ref_count(), d3d_texture(), d3d_surface() {
-        hr = object->QueryInterface(__uuidof(IDirect3DTexture9), (void**)&d3d_texture);
+        hr = object->QueryInterface(IID_PPV_ARGS(&d3d_texture));
         if (SUCCEEDED(hr))
             hr = d3d_texture->GetSurfaceLevel(0, &d3d_surface);
         else {
-            hr = object->QueryInterface(__uuidof(IDirect3DSurface9), (void**)&d3d_surface);
+            hr = object->QueryInterface(IID_PPV_ARGS(&d3d_surface));
             if (SUCCEEDED(hr))
-                d3d_surface->GetContainer(__uuidof(IDirect3DTexture9), (void**)&d3d_texture);
+                d3d_surface->GetContainer(IID_PPV_ARGS(&d3d_texture));
         }
     }
 

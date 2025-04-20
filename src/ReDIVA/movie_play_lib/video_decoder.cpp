@@ -133,7 +133,7 @@ namespace MoviePlayLib {
         dst_surface = 0;
         hr = mf_sample->GetBufferByIndex(0, &mf_media_buffer);
         if (SUCCEEDED(hr))
-            hr = mf_media_buffer->QueryInterface(__uuidof(IDirect3DSurface9), (void**)&dst_surface);
+            hr = mf_media_buffer->QueryInterface(IID_PPV_ARGS(&dst_surface));
 
         if (mf_media_buffer) {
             mf_media_buffer->Release();
@@ -146,10 +146,9 @@ namespace MoviePlayLib {
         if (SUCCEEDED(hr)) {
             hr = output_sample.pSample->GetBufferByIndex(0, &mf_media_buffer);
             if (SUCCEEDED(hr)) {
-                hr = mf_media_buffer->QueryInterface(__uuidof(IMFGetService), (void**)&mf_get_service);
+                hr = mf_media_buffer->QueryInterface(IID_PPV_ARGS(&mf_get_service));
                 if (SUCCEEDED(hr))
-                    hr = mf_get_service->GetService(MR_BUFFER_SERVICE,
-                        __uuidof(IDirect3DSurface9), (void**)&src_surface);
+                    hr = mf_get_service->GetService(MR_BUFFER_SERVICE, IID_PPV_ARGS(&src_surface));
             }
         }
 

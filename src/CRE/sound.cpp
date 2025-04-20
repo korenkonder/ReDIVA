@@ -119,8 +119,7 @@ namespace sound {
 
         void System::Init(size_t se_channels_count, size_t streaming_channels_count,
             bool separate_speakers_headphones) {
-            if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator),
-                0, 1, __uuidof(IMMDeviceEnumerator), (LPVOID*)&pEnumerator))
+            if (FAILED(CoCreateInstance(__uuidof(MMDeviceEnumerator), 0, 1, IID_PPV_ARGS(&pEnumerator)))
                 || FAILED(pEnumerator->GetDefaultAudioEndpoint(eRender, eConsole, &pDevice)))
                 return;
 
@@ -256,14 +255,14 @@ namespace sound {
             if (FAILED(pAudioClient->SetEventHandle(hEvent)))
                 return;
 
-            if (SUCCEEDED(pAudioClient->GetService(__uuidof(IAudioRenderClient), (void**)&pRenderClient))) {
+            if (SUCCEEDED(pAudioClient->GetService(IID_PPV_ARGS(&pRenderClient)))) {
                 void* data = 0;
                 if (SUCCEEDED(pRenderClient->GetBuffer(samples_count, (BYTE**)&data))
                     && SUCCEEDED(pRenderClient->ReleaseBuffer(samples_count, AUDCLNT_BUFFERFLAGS_SILENT)))
                     pAudioClient->Start();
             }
 
-            if (SUCCEEDED(pAudioClient->GetService(__uuidof(IAudioClockAdjustment), (void**)&pClockAdjustment)))  // Added
+            if (SUCCEEDED(pAudioClient->GetService(IID_PPV_ARGS(&pClockAdjustment))))  // Added
                 pClockAdjustment->SetSampleRate((float_t)44100);
         }
 
@@ -1308,7 +1307,8 @@ bool SoundWork::ParseProperty(sound_db_farc* snd_db_farc) {
     if (!kv.read("max", max) || !kv.read("volume_bias", volume_bias))
         return false;
 
-    for (int32_t i = 0, j = 1; i < max; i++, j++) {
+    size_t j = 1;
+    for (int32_t i = 0; i < max; i++, j++) {
         if (!kv.open_scope_fmt("%zu", j))
             continue;
 
@@ -1409,7 +1409,7 @@ int32_t ratio_to_db(float_t value) {
 void sound_init() {
     IMMDeviceEnumerator* mmEnumerator;
     if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL,
-        CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&mmEnumerator))) {
+        CLSCTX_ALL, IID_PPV_ARGS(&mmEnumerator)))) {
         IMMDeviceCollection* collection;
         if (SUCCEEDED(mmEnumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection))) {
             UINT count;

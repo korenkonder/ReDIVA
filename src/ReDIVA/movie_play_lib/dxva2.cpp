@@ -18,8 +18,7 @@ namespace MoviePlayLib {
         IDirectXVideoProcessor* dx_video_processor = 0;
         UINT guid_count = 0;
         GUID* guids = 0;
-        hr = d3d_device_manager->GetVideoService(output_type_info,
-            __uuidof(IDirectXVideoProcessorService), (void**)&dx_video_processor_service);
+        hr = d3d_device_manager->GetVideoService(output_type_info, IID_PPV_ARGS(&dx_video_processor_service));
         if (FAILED(hr))
             goto End;
 
