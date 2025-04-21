@@ -328,6 +328,7 @@ namespace rndr {
 
     void RenderManager::rndpass_post_proc() {
         gl_state_begin_event("rndpass_post_proc");
+        rctx_ptr->post_proc();
         render->post_proc();
         field_31C = false;
         gl_state_end_event();
@@ -337,6 +338,7 @@ namespace rndr {
         gl_state_begin_event("rndpass_pre_proc");
         render->pre_proc(cam);
         Glitter::glt_particle_manager->CalcDisp();
+        rctx_ptr->pre_proc();
         gl_state_end_event();
     }
 

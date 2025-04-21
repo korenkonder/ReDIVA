@@ -415,6 +415,7 @@ int32_t app_main(const app_init_struct& ais) {
             sv_max_texture_size = supported_limits.maxImageDimension2D;
             sv_max_texture_max_anisotropy = (int32_t)supported_limits.maxSamplerAnisotropy;
             sv_max_uniform_buffer_size = (int32_t)supported_limits.maxUniformBufferRange;
+            sv_max_storage_buffer_size = (int32_t)supported_limits.maxStorageBufferRange;
             sv_min_uniform_buffer_alignment = (int32_t)supported_limits.minUniformBufferOffsetAlignment;
             sv_min_storage_buffer_alignment = (int32_t)supported_limits.minStorageBufferOffsetAlignment;
         }
@@ -429,8 +430,11 @@ int32_t app_main(const app_init_struct& ais) {
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
             glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
             glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &sv_max_uniform_buffer_size);
+            if (GLAD_GL_VERSION_4_3)
+                glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &sv_max_storage_buffer_size);
             glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &sv_min_uniform_buffer_alignment);
-            glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
+            if (GLAD_GL_VERSION_4_3)
+                glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
             glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
             glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         }
@@ -2252,15 +2256,6 @@ static int32_t app_end_present_vulkan() {
 }
 
 static void app_recreate_swapchain() {
-    int32_t width = 0;
-    int32_t height = 0;
-    glfwGetFramebufferSize(window, &width, &height);
-
-    while (width == 0 || height == 0) {
-        glfwWaitEvents();
-        glfwGetFramebufferSize(window, &width, &height);
-    }
-
     vkDeviceWaitIdle(vulkan_device);
 
     for (Vulkan::Framebuffer& i : vulkan_swapchain_framebuffers)
