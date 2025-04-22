@@ -284,6 +284,7 @@ namespace rndr {
 
     void RenderManager::render_all() {
         light_param_data_storage_data_set_ibl();
+        sprite_manager_pre_draw();
 
         static const vec4 color_clear = 0.0f;
 
@@ -314,6 +315,8 @@ namespace rndr {
         gl_state_end_event();
 
         rctx_ptr->disp_manager->check_vertex_arrays();
+        sprite_manager_post_draw();
+
         gl_state_bind_vertex_array(0);
         gl_state_disable_primitive_restart();
         gl_state_bind_uniform_buffer(0);
@@ -1199,7 +1202,7 @@ namespace rndr {
         gl_state_enable_blend();
         gl_state_disable_cull_face();
         sprite_manager_draw(0, true,
-            rend->temp_buffer.color_texture,
+            rctx->screen_overlay_buffer.color_texture,
             rctx->camera->view_projection_aet_2d);
         gl_state_enable_cull_face();
         gl_state_disable_blend();

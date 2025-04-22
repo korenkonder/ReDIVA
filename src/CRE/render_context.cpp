@@ -891,6 +891,7 @@ void render_context::disp() {
 
 void render_context::free() {
     shadow_buffer.Free();
+    screen_overlay_buffer.Free();
     screen_buffer.Free();
     render_buffer.Free();
     reflect_buffer.Free();
@@ -937,6 +938,7 @@ void render_context::init() {
     init_copy_buffer(shadow_buffer, this->shadow_buffer);
 
     screen_buffer.Init(sprite_width, sprite_height, 0, GL_RGBA8, 0);
+    screen_overlay_buffer.Init(sprite_width, sprite_height, 0, GL_RGBA8, 0);
 }
 
 void render_context::resize(int32_t render_width, int32_t render_height,

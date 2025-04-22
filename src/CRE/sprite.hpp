@@ -169,6 +169,7 @@ namespace spr {
         mat4 mat;
         const texture* texture;
         int32_t shader;
+        int32_t sprite_draw_param_index;
 #if BREAK_SPRITE_VERTEX_LIMIT
         size_t vertex_array;
 #else
@@ -210,7 +211,7 @@ namespace spr {
 extern void sprite_manager_init();
 extern void sprite_manager_add_spr_sets(const sprite_database* spr_db);
 extern void sprite_manager_clear();
-extern void sprite_manager_draw(int32_t index, bool font, texture* tex, const mat4& vp);
+extern void sprite_manager_draw(int32_t index, bool font, texture* overlay_tex, const mat4& vp);
 extern int32_t sprite_manager_get_index();
 extern size_t sprite_manager_get_reqlist_count(int32_t index);
 extern ::spr_set* sprite_manager_get_set(uint32_t set_id, const sprite_database* spr_db);
@@ -222,6 +223,8 @@ extern rectangle sprite_manager_get_spr_rectangle(uint32_t spr_id, const sprite_
 extern texture* sprite_manager_get_spr_texture(uint32_t spr_id, const sprite_database* spr_db);
 extern bool sprite_manager_load_file(uint32_t set_id, const sprite_database* spr_db);
 extern bool sprite_manager_load_file_modern(uint32_t set_hash, sprite_database* spr_db);
+extern void sprite_manager_post_draw();
+extern void sprite_manager_pre_draw();
 extern void sprite_manager_read_file(uint32_t set_id,
     std::string& mdata_dir, void* data, const sprite_database* spr_db);
 extern void sprite_manager_read_file(uint32_t set_id,
