@@ -100,10 +100,6 @@ struct shader_set_data {
     PFNSHADERGETINDEXFUNCPROC get_index_by_name_func;
     PFNSHADERGETNAMEFUNCPROC get_name_by_index_func;
 
-    const shader_description* vp_desc;
-    const shader_description* fp_desc;
-    uint64_t unival_hash;
-
     shader_set_data();
 
     void disable_primitive_restart();

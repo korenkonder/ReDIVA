@@ -23,9 +23,15 @@
 #include "VertexBuffer.hpp"
 #include "WorkingBuffer.hpp"
 
+struct shader_table;
+struct shader_sub_table;
+
 namespace Vulkan {
+    constexpr uint32_t MAX_COMBINED_TEXTURE_IMAGE_UNITS = 32;
     constexpr uint32_t MAX_COLOR_ATTACHMENTS = 8;
     constexpr uint32_t MAX_DRAW_BUFFERS = 8;
+    constexpr uint32_t MAX_SHADER_STORAGE_BUFFER_BINDINGS = 14;
+    constexpr uint32_t MAX_UNIFORM_BUFFER_BINDINGS = 14;
     constexpr uint32_t MAX_VERTEX_ATTRIB_COUNT = 16;
 
     enum gl_buffer_flags {
@@ -89,6 +95,8 @@ namespace Vulkan {
     struct gl_program {
         prj::shared_ptr<Vulkan::ShaderModule> vertex_shader_module;
         prj::shared_ptr<Vulkan::ShaderModule> fragment_shader_module;
+        const shader_table* shader;
+        const shader_sub_table* sub_shader;
 
         gl_program();
 
@@ -119,6 +127,72 @@ namespace Vulkan {
             const vec4& border_color, float_t max_anisotropy);
 
         static gl_sampler* get(GLuint program);
+    };
+
+    struct gl_state_rect {
+        GLint x;
+        GLint y;
+        GLsizei width;
+        GLsizei height;
+    };
+
+    struct gl_state_struct {
+        vec4 clear_color;
+        float_t clear_depth;
+        int32_t clear_stencil;
+        int32_t pack_alignment;
+        int32_t unpack_alignment;
+        GLuint query_samples_passed;
+
+        GLuint program;
+        GLuint active_texture_index;
+        GLuint texture_binding_2d[Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+        GLuint texture_binding_cube_map[Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+        GLuint sampler_binding[Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+        GLboolean blend;
+        GLenum blend_src_rgb;
+        GLenum blend_src_alpha;
+        GLenum blend_dst_rgb;
+        GLenum blend_dst_alpha;
+        GLenum blend_mode_rgb;
+        GLenum blend_mode_alpha;
+        GLuint read_framebuffer_binding;
+        GLuint draw_framebuffer_binding;
+        GLuint vertex_array_binding;
+        GLuint array_buffer_binding;
+        GLuint element_array_buffer_binding;
+        GLuint uniform_buffer_binding;
+        GLuint uniform_buffer_bindings[Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS];
+        GLintptr uniform_buffer_offsets[Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS];
+        GLsizeiptr uniform_buffer_sizes[Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS];
+        GLuint shader_storage_buffer_binding;
+        GLuint shader_storage_buffer_bindings[Vulkan::MAX_UNIFORM_BUFFER_BINDINGS];
+        GLintptr shader_storage_buffer_offsets[Vulkan::MAX_UNIFORM_BUFFER_BINDINGS];
+        GLsizeiptr shader_storage_buffer_sizes[Vulkan::MAX_UNIFORM_BUFFER_BINDINGS];
+        GLboolean color_mask[4];
+        GLboolean cull_face;
+        GLenum cull_face_mode;
+        GLboolean depth_test;
+        GLenum depth_func;
+        GLboolean depth_mask;
+        GLfloat line_width;
+        GLenum polygon_mode;
+        GLboolean multisample;
+        GLboolean primitive_restart;
+        GLuint primitive_restart_index;
+        gl_state_rect scissor_box;
+        GLboolean scissor_test;
+        GLboolean stencil_test;
+        GLenum stencil_func;
+        GLenum stencil_fail;
+        GLenum stencil_dpfail;
+        GLenum stencil_dppass;
+        GLuint stencil_mask;
+        GLint stencil_ref;
+        GLuint stencil_value_mask;
+        gl_state_rect viewport;
+
+        gl_state_struct();
     };
 
     struct gl_storage_buffer {

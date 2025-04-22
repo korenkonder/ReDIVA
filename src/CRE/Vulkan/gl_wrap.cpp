@@ -5,7 +5,6 @@
 
 #include "gl_wrap.hpp"
 #include "../../KKdLib/hash.hpp"
-#include "../gl_state.hpp"
 #include "../static_var.hpp"
 #include "../texture.hpp"
 #include "CommandBuffer.hpp"
@@ -72,13 +71,6 @@ namespace Vulkan {
         std::unordered_map<GLuint, gl_vertex_array> gl_vertex_arrays;
         std::unordered_map<GLuint, gl_vertex_buffer> gl_vertex_buffers;
 
-        vec4 clear_color;
-        float_t clear_depth;
-        int32_t clear_stencil;
-        int32_t pack_alignment;
-        int32_t unpack_alignment;
-        GLuint query_samples_passed;
-
         gl_wrap_manager();
         ~gl_wrap_manager();
 
@@ -101,11 +93,22 @@ namespace Vulkan {
         void update_buffers();
     };
 
+    gl_state_struct gl_state;
     gl_wrap_manager* gl_wrap_manager_ptr;
 
+    static void gl_wrap_manager_active_texture(GLenum texture);
     static void gl_wrap_manager_begin_query(GLenum target, GLuint id);
     static void gl_wrap_manager_bind_buffer(GLenum target, GLuint buffer);
+    static void gl_wrap_manager_bind_buffer_base(GLenum target, GLuint index, GLuint buffer);
+    static void gl_wrap_manager_bind_buffer_range(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size);
+    static void gl_wrap_manager_bind_framebuffer(GLenum target, GLuint framebuffer);
+    static void gl_wrap_manager_bind_sampler(GLuint unit, GLuint sampler);
     static void gl_wrap_manager_bind_texture(GLenum target, GLuint texture);
+    static void gl_wrap_manager_bind_vertex_array(GLuint array);
+    static void gl_wrap_manager_blend_func(GLenum sfactor, GLenum dfactor);
+    static void gl_wrap_manager_blend_func_separate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha);
+    static void gl_wrap_manager_blend_equation(GLenum mode);
+    static void gl_wrap_manager_blend_equation_separate(GLenum modeRGB, GLenum modeAlpha);
     static void gl_wrap_manager_blit_framebuffer(
         GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,
         GLint dst_x0, GLint dst_y0, GLint dst_x1, GLint dst_y1, GLbitfield mask, GLenum filter);
@@ -126,6 +129,7 @@ namespace Vulkan {
     static void gl_wrap_manager_clear_stencil(GLint s);
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
         GLenum buffer, GLint drawbuffer, const GLfloat* value);
+    static void gl_wrap_manager_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha);
     static void gl_wrap_manager_compressed_tex_image_2d(GLenum target, GLint level,
         GLenum internal_format, GLsizei width, GLsizei height, GLint border, GLsizei imageSize, const void* data);
     static void gl_wrap_manager_compressed_tex_sub_image_2d(GLenum target, GLint level,
@@ -138,6 +142,7 @@ namespace Vulkan {
         GLint xoffset, GLint yoffset, GLint x, GLint y, GLsizei width, GLsizei height);
     static void gl_wrap_manager_create_buffers(GLsizei n, GLuint* buffers);
     static GLuint gl_wrap_manager_create_program();
+    static void gl_wrap_manager_cull_face(GLenum mode);
     static void gl_wrap_manager_delete_buffers(GLsizei n, const GLuint* buffers);
     static void gl_wrap_manager_delete_framebuffers(GLsizei n, const GLuint* framebuffers);
     static void gl_wrap_manager_delete_program(GLuint program);
@@ -145,9 +150,13 @@ namespace Vulkan {
     static void gl_wrap_manager_delete_samplers(GLsizei n, const GLuint* samplers);
     static void gl_wrap_manager_delete_textures(GLsizei n, const GLuint* textures);
     static void gl_wrap_manager_delete_vertex_arrays(GLsizei n, const GLuint* arrays);
+    static void gl_wrap_manager_depth_func(GLenum func);
+    static void gl_wrap_manager_depth_mask(GLboolean flag);
+    static void gl_wrap_manager_disable(GLenum cap);
     static void gl_wrap_manager_disable_vertex_attrib_array(GLuint index);
     static void gl_wrap_manager_draw_buffer(GLenum buf);
     static void gl_wrap_manager_draw_buffers(GLsizei n, const GLenum* bufs);
+    static void gl_wrap_manager_enable(GLenum cap);
     static void gl_wrap_manager_enable_vertex_attrib_array(GLuint index);
     static void gl_wrap_manager_end_query(GLenum target);
     static void gl_wrap_manager_finish();
@@ -162,12 +171,17 @@ namespace Vulkan {
     static void gl_wrap_manager_generate_mipmap(GLenum target);
     static void gl_wrap_manager_generate_texture_mipmap(GLuint texture);
     static void gl_wrap_manager_get_compressed_tex_image(GLenum target, GLint level, void* img);
+    static void gl_wrap_manager_get_boolean(GLenum pname, GLboolean* data);
+    static void gl_wrap_manager_get_integer(GLenum pname, GLint* data);
     static GLenum gl_wrap_manager_get_error();
     static void gl_wrap_manager_get_float(GLenum pname, GLfloat* data);
-    static void gl_wrap_manager_get_query_object(GLuint id, GLenum pname, GLint* params);
-    static void gl_wrap_manager_get_query_object(GLuint id, GLenum pname, GLuint* params);
+    static void gl_wrap_manager_get_integer_ptr(GLenum target, GLuint index, GLint* data);
+    static void gl_wrap_manager_get_integer_64_ptr(GLenum target, GLuint index, GLint64* data);
+    static void gl_wrap_manager_get_query_object_int_ptr(GLuint id, GLenum pname, GLint* params);
+    static void gl_wrap_manager_get_query_object_uint_ptr(GLuint id, GLenum pname, GLuint* params);
     static void gl_wrap_manager_get_tex_image(GLenum target,
         GLint level, GLenum format, GLenum type, void* pixels);
+    static void gl_wrap_manager_line_width(GLfloat width);
     static void* gl_wrap_manager_map_buffer(GLenum target, GLenum access);
     static void* gl_wrap_manager_map_named_buffer(GLuint buffer, GLenum access);
     static void gl_wrap_manager_named_buffer_data(
@@ -177,36 +191,44 @@ namespace Vulkan {
     static void gl_wrap_manager_named_buffer_sub_data(
         GLuint buffer, GLintptr offset, GLsizeiptr size, const void* data);
     static void gl_wrap_manager_pixel_store(GLenum pname, GLint param);
+    static void gl_wrap_manager_polygon_mode(GLenum face, GLenum mode);
     static void gl_wrap_manager_pop_debug_group();
+    static void gl_wrap_manager_primitive_restart_index(GLuint index);
     static void gl_wrap_manager_push_debug_group(GLenum source, GLuint id, GLsizei length, const GLchar* message);
     static void gl_wrap_manager_read_buffer(GLenum src);
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, GLfloat param);
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, GLint param);
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, const GLfloat* params);
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, const GLint* params);
+    static void gl_wrap_manager_sampler_parameter_float(GLuint sampler, GLenum pname, GLfloat param);
+    static void gl_wrap_manager_sampler_parameter_float_ptr(GLuint sampler, GLenum pname, const GLfloat* params);
+    static void gl_wrap_manager_sampler_parameter_int(GLuint sampler, GLenum pname, GLint param);
+    static void gl_wrap_manager_sampler_parameter_int_ptr(GLuint sampler, GLenum pname, const GLint* params);
+    static void gl_wrap_manager_scissor(GLint x, GLint y, GLsizei width, GLsizei height);
+    static void gl_wrap_manager_stencil_func(GLenum func, GLint ref, GLuint mask);
+    static void gl_wrap_manager_stencil_mask(GLuint mask);
+    static void gl_wrap_manager_stencil_op(GLenum fail, GLenum zfail, GLenum zpass);
     static void gl_wrap_manager_tex_image_2d(GLenum target, GLint level, GLint internal_format,
         GLsizei width, GLsizei height, GLint border, GLenum format, GLenum type, const void* pixels);
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, GLfloat param);
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, GLint param);
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, const GLfloat* params);
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, const GLint* params);
+    static void gl_wrap_manager_tex_parameter_float(GLenum target, GLenum pname, GLfloat param);
+    static void gl_wrap_manager_tex_parameter_float_ptr(GLenum target, GLenum pname, const GLfloat* params);
+    static void gl_wrap_manager_tex_parameter_int(GLenum target, GLenum pname, GLint param);
+    static void gl_wrap_manager_tex_parameter_int_ptr(GLenum target, GLenum pname, const GLint* params);
     static void gl_wrap_manager_tex_sub_image_2d(GLenum target,
         GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
         GLenum format, GLenum type, const void* pixels);
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, GLfloat param);
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, GLint param);
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, const GLfloat* params);
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, const GLint* params);
+    static void gl_wrap_manager_texture_parameter_float(GLuint texture, GLenum pname, GLfloat param);
+    static void gl_wrap_manager_texture_parameter_float_ptr(GLuint texture, GLenum pname, const GLfloat* params);
+    static void gl_wrap_manager_texture_parameter_int(GLuint texture, GLenum pname, GLint param);
+    static void gl_wrap_manager_texture_parameter_int_ptr(GLuint texture, GLenum pname, const GLint* params);
     static void gl_wrap_manager_texture_sub_image_2d(GLuint texture,
         GLint level, GLint xoffset, GLint yoffset, GLsizei width, GLsizei height,
         GLenum format, GLenum type, const void* pixels);
     static GLboolean gl_wrap_manager_unmap_buffer(GLenum target);
     static GLboolean gl_wrap_manager_unmap_named_buffer(GLuint buffer);
+    static void gl_wrap_manager_use_program(GLuint program);
     static void gl_wrap_manager_vertex_attrib(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
     static void gl_wrap_manager_vertex_attrib_int_pointer(GLuint index, GLint size,
         GLenum type, GLsizei stride, const void* pointer);
     static void gl_wrap_manager_vertex_attrib_pointer(GLuint index, GLint size,
         GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
+    static void gl_wrap_manager_viewport(GLint x, GLint y, GLsizei width, GLsizei height);
 
     gl_buffer::gl_buffer() : target(), flags() {
 
@@ -447,7 +469,7 @@ namespace Vulkan {
         return vk_ib;
     }
 
-    gl_program::gl_program() {
+    gl_program::gl_program() : shader(), sub_shader() {
 
     }
 
@@ -505,6 +527,83 @@ namespace Vulkan {
         if (elem != gl_wrap_manager_ptr->gl_samplers.end())
             return &elem->second;
         return 0;
+    }
+
+    gl_state_struct::gl_state_struct() {
+        clear_color = 0.0f;
+        clear_depth = 1.0f;
+        clear_stencil = 0x00;
+        pack_alignment = 4;
+        unpack_alignment = 4;
+        query_samples_passed = 0;
+
+        program = 0;
+        active_texture_index = 0;
+        for (GLuint i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
+            texture_binding_2d[i] = 0;
+            texture_binding_cube_map[i] = 0;
+            sampler_binding[i] = 0;
+        }
+
+        blend = GL_FALSE;
+        blend_src_rgb = GL_ONE;
+        blend_src_alpha = GL_ONE;
+        blend_dst_rgb = GL_ZERO;
+        blend_dst_alpha = GL_ZERO;
+        blend_mode_rgb = GL_FUNC_ADD;
+        blend_mode_alpha = GL_FUNC_ADD;
+
+        read_framebuffer_binding = 0;
+        draw_framebuffer_binding = 0;
+        vertex_array_binding = 0;
+        array_buffer_binding = 0;
+        element_array_buffer_binding = 0;
+
+        uniform_buffer_binding = 0;
+        for (GLuint i = 0; i < 14; i++) {
+            uniform_buffer_bindings[i] = 0;
+            uniform_buffer_offsets[i] = 0;
+            uniform_buffer_sizes[i] = 0;
+        }
+
+        shader_storage_buffer_binding = 0;
+        for (GLuint i = 0; i < 14; i++) {
+            shader_storage_buffer_bindings[i] = 0;
+            shader_storage_buffer_offsets[i] = 0;
+            shader_storage_buffer_sizes[i] = 0;
+        }
+
+        color_mask[0] = GL_TRUE;
+        color_mask[1] = GL_TRUE;
+        color_mask[2] = GL_TRUE;
+        color_mask[3] = GL_TRUE;
+        cull_face = GL_FALSE;
+        cull_face_mode = GL_BACK;
+        depth_test = GL_FALSE;
+        depth_func = GL_LESS;
+        depth_mask = GL_TRUE;
+        line_width = 1.0f;
+        multisample = GL_FALSE;
+        primitive_restart = GL_FALSE;
+        primitive_restart_index = 0;
+        scissor_box.x = 0;
+        scissor_box.y = 0;
+        scissor_box.width = 0;
+        scissor_box.height = 0;
+        scissor_test = GL_FALSE;
+        stencil_test = GL_FALSE;
+        stencil_func = GL_ALWAYS;
+        stencil_fail = GL_KEEP;
+        stencil_dpfail = GL_KEEP;
+        stencil_dppass = GL_KEEP;
+        stencil_mask = 0x01;
+        stencil_ref = 0x00;
+        stencil_value_mask = 0x01;
+        viewport.x = 0;
+        viewport.y = 0;
+        viewport.width = 0;
+        viewport.height = 0;
+        polygon_mode = GL_FILL;
     }
 
     gl_storage_buffer::gl_storage_buffer() : copy_working_buffer() {
@@ -907,76 +1006,6 @@ namespace Vulkan {
             Vulkan::Buffer::Copy(Vulkan::current_command_buffer, staging_buffer,
                 gl_wrap_manager_ptr->dummy_vertex_buffer, staging_buffer.GetOffset(), 0, size);
         }
-
-        gl_state.program = 0;
-        gl_state.active_texture = GL_TEXTURE0;
-        gl_state.active_texture_index = 0;
-        for (GLuint i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
-            gl_state.texture_binding_2d[i] = 0;
-            gl_state.texture_binding_cube_map[i] = 0;
-            gl_state.sampler_binding[i] = 0;
-        }
-
-        gl_state.blend = GL_FALSE;
-        gl_state.blend_src_rgb = GL_ONE;
-        gl_state.blend_src_alpha = GL_ONE;
-        gl_state.blend_dst_rgb = GL_ZERO;
-        gl_state.blend_dst_alpha = GL_ZERO;
-        gl_state.blend_mode_rgb = GL_FUNC_ADD;
-        gl_state.blend_mode_alpha = GL_FUNC_ADD;
-
-        gl_state.framebuffer_binding = 0;
-        gl_state.read_framebuffer_binding = 0;
-        gl_state.draw_framebuffer_binding = 0;
-        gl_state.vertex_array_binding = 0;
-        gl_state.array_buffer_binding = 0;
-        gl_state.element_array_buffer_binding = 0;
-
-        gl_state.uniform_buffer_binding = 0;
-        for (GLuint i = 0; i < 14; i++) {
-            gl_state.uniform_buffer_bindings[i] = 0;
-            gl_state.uniform_buffer_offsets[i] = 0;
-            gl_state.uniform_buffer_sizes[i] = 0;
-        }
-
-        gl_state.shader_storage_buffer_binding = 0;
-        for (GLuint i = 0; i < 14; i++) {
-            gl_state.shader_storage_buffer_bindings[i] = 0;
-            gl_state.shader_storage_buffer_offsets[i] = 0;
-            gl_state.shader_storage_buffer_sizes[i] = 0;
-        }
-
-        gl_state.color_mask[0] = GL_TRUE;
-        gl_state.color_mask[1] = GL_TRUE;
-        gl_state.color_mask[2] = GL_TRUE;
-        gl_state.color_mask[3] = GL_TRUE;
-        gl_state.cull_face = GL_FALSE;
-        gl_state.cull_face_mode = GL_BACK;
-        gl_state.depth_test = GL_FALSE;
-        gl_state.depth_func = GL_LESS;
-        gl_state.depth_mask = GL_TRUE;
-        gl_state.line_width = 1.0f;
-        gl_state.multisample = GL_FALSE;
-        gl_state.primitive_restart = GL_FALSE;
-        gl_state.primitive_restart_index = 0;
-        gl_state.scissor_box.x = 0;
-        gl_state.scissor_box.y = 0;
-        gl_state.scissor_box.width = 0;
-        gl_state.scissor_box.height = 0;
-        gl_state.scissor_test = GL_FALSE;
-        gl_state.stencil_test = GL_FALSE;
-        gl_state.stencil_func = GL_ALWAYS;
-        gl_state.stencil_fail = GL_KEEP;
-        gl_state.stencil_dpfail = GL_KEEP;
-        gl_state.stencil_dppass = GL_KEEP;
-        gl_state.stencil_mask = 0x01;
-        gl_state.stencil_ref = 0x00;
-        gl_state.stencil_value_mask = 0x01;
-        gl_state.viewport.x = 0;
-        gl_state.viewport.y = 0;
-        gl_state.viewport.width = 0;
-        gl_state.viewport.height = 0;
-        gl_state.polygon_mode = GL_FILL;
     }
 
     VkBuffer gl_wrap_manager_get_dummy_vertex_buffer() {
@@ -984,7 +1013,7 @@ namespace Vulkan {
     }
 
     GLuint gl_wrap_manager_get_query_samples_passed() {
-        return gl_wrap_manager_ptr->query_samples_passed;
+        return gl_state.query_samples_passed;
     }
 
     void gl_wrap_manager_update_buffers() {
@@ -1012,9 +1041,19 @@ namespace Vulkan {
         GLAD_GL_VERSION_4_5 = 1;
         GLAD_GL_VERSION_4_6 = 1;
 
+        glActiveTexture = gl_wrap_manager_active_texture;
         glBeginQuery = gl_wrap_manager_begin_query;
         glBindBuffer = gl_wrap_manager_bind_buffer;
+        glBindBufferBase = gl_wrap_manager_bind_buffer_base;
+        glBindBufferRange = gl_wrap_manager_bind_buffer_range;
+        glBindFramebuffer = gl_wrap_manager_bind_framebuffer;
+        glBindSampler = gl_wrap_manager_bind_sampler;
         glBindTexture = gl_wrap_manager_bind_texture;
+        glBindVertexArray = gl_wrap_manager_bind_vertex_array;
+        glBlendFunc = gl_wrap_manager_blend_func;
+        glBlendFuncSeparate = gl_wrap_manager_blend_func_separate;
+        glBlendEquation = gl_wrap_manager_blend_equation;
+        glBlendEquationSeparate = gl_wrap_manager_blend_equation_separate;
         glBlitFramebuffer = gl_wrap_manager_blit_framebuffer;
         glBlitNamedFramebuffer = gl_wrap_manager_blit_named_framebuffer;
         glBufferData = gl_wrap_manager_buffer_data;
@@ -1026,12 +1065,14 @@ namespace Vulkan {
         glClearColor = gl_wrap_manager_clear_color;
         glClearDepthf = gl_wrap_manager_clear_depth;
         glClearStencil = gl_wrap_manager_clear_stencil;
+        glColorMask = gl_wrap_manager_color_mask;
         glCompressedTexImage2D = gl_wrap_manager_compressed_tex_image_2d;
         glCompressedTexSubImage2D = gl_wrap_manager_compressed_tex_sub_image_2d;
         glCopyImageSubData = gl_wrap_manager_copy_image_sub_data;
         glCopyTexSubImage2D = gl_wrap_manager_copy_tex_sub_image_2d;
         glCreateBuffers = gl_wrap_manager_create_buffers;
         glCreateProgram = gl_wrap_manager_create_program;
+        glCullFace = gl_wrap_manager_cull_face;
         glDeleteBuffers = gl_wrap_manager_delete_buffers;
         glDeleteFramebuffers = gl_wrap_manager_delete_framebuffers;
         glDeleteProgram = gl_wrap_manager_delete_program;
@@ -1039,9 +1080,13 @@ namespace Vulkan {
         glDeleteSamplers = gl_wrap_manager_delete_samplers;
         glDeleteTextures = gl_wrap_manager_delete_textures;
         glDeleteVertexArrays = gl_wrap_manager_delete_vertex_arrays;
+        glDepthFunc = gl_wrap_manager_depth_func;
+        glDepthMask = gl_wrap_manager_depth_mask;
+        glDisable = gl_wrap_manager_disable;
         glDisableVertexAttribArray = gl_wrap_manager_disable_vertex_attrib_array;
         glDrawBuffer = gl_wrap_manager_draw_buffer;
         glDrawBuffers = gl_wrap_manager_draw_buffers;
+        glEnable = gl_wrap_manager_enable;
         glEnableVertexAttribArray = gl_wrap_manager_enable_vertex_attrib_array;
         glEndQuery = gl_wrap_manager_end_query;
         glFinish = gl_wrap_manager_finish;
@@ -1055,40 +1100,53 @@ namespace Vulkan {
         glGenerateMipmap = gl_wrap_manager_generate_mipmap;
         glGenerateTextureMipmap = gl_wrap_manager_generate_texture_mipmap;
         glGetCompressedTexImage = gl_wrap_manager_get_compressed_tex_image;
+        glGetBooleanv = gl_wrap_manager_get_boolean;
         glGetError = gl_wrap_manager_get_error;
         glGetFloatv = gl_wrap_manager_get_float;
-        glGetQueryObjectiv = gl_wrap_manager_get_query_object;
-        glGetQueryObjectuiv = gl_wrap_manager_get_query_object;
+        glGetIntegerv = gl_wrap_manager_get_integer;
+        glGetIntegeri_v = gl_wrap_manager_get_integer_ptr;
+        glGetInteger64i_v = gl_wrap_manager_get_integer_64_ptr;
+        glGetQueryObjectiv = gl_wrap_manager_get_query_object_int_ptr;
+        glGetQueryObjectuiv = gl_wrap_manager_get_query_object_uint_ptr;
         glGetTexImage = gl_wrap_manager_get_tex_image;
+        glLineWidth = gl_wrap_manager_line_width;
         glMapBuffer = gl_wrap_manager_map_buffer;
         glMapNamedBuffer = gl_wrap_manager_map_named_buffer;
         glNamedBufferData = gl_wrap_manager_named_buffer_data;
         glNamedBufferStorage = gl_wrap_manager_named_buffer_storage;
         glNamedBufferSubData = gl_wrap_manager_named_buffer_sub_data;
         glPixelStorei = gl_wrap_manager_pixel_store;
+        glPolygonMode = gl_wrap_manager_polygon_mode;
         glPopDebugGroup = gl_wrap_manager_pop_debug_group;
+        glPrimitiveRestartIndex = gl_wrap_manager_primitive_restart_index;
         glPushDebugGroup = gl_wrap_manager_push_debug_group;
         glReadBuffer = gl_wrap_manager_read_buffer;
-        glSamplerParameterf = gl_wrap_manager_sampler_parameter;
-        glSamplerParameterfv = gl_wrap_manager_sampler_parameter;
-        glSamplerParameteri = gl_wrap_manager_sampler_parameter;
-        glSamplerParameteriv = gl_wrap_manager_sampler_parameter;
+        glSamplerParameterf = gl_wrap_manager_sampler_parameter_float;
+        glSamplerParameterfv = gl_wrap_manager_sampler_parameter_float_ptr;
+        glSamplerParameteri = gl_wrap_manager_sampler_parameter_int;
+        glSamplerParameteriv = gl_wrap_manager_sampler_parameter_int_ptr;
+        glScissor = gl_wrap_manager_scissor;
+        glStencilFunc = gl_wrap_manager_stencil_func;
+        glStencilMask = gl_wrap_manager_stencil_mask;
+        glStencilOp = gl_wrap_manager_stencil_op;
         glTexImage2D = gl_wrap_manager_tex_image_2d;
-        glTexParameterf = gl_wrap_manager_tex_parameter;
-        glTexParameterfv = gl_wrap_manager_tex_parameter;
-        glTexParameteri = gl_wrap_manager_tex_parameter;
-        glTexParameteriv = gl_wrap_manager_tex_parameter;
+        glTexParameterf = gl_wrap_manager_tex_parameter_float;
+        glTexParameterfv = gl_wrap_manager_tex_parameter_float_ptr;
+        glTexParameteri = gl_wrap_manager_tex_parameter_int;
+        glTexParameteriv = gl_wrap_manager_tex_parameter_int_ptr;
         glTexSubImage2D = gl_wrap_manager_tex_sub_image_2d;
-        glTextureParameterf = gl_wrap_manager_texture_parameter;
-        glTextureParameterfv = gl_wrap_manager_texture_parameter;
-        glTextureParameteri = gl_wrap_manager_texture_parameter;
-        glTextureParameteriv = gl_wrap_manager_texture_parameter;
+        glTextureParameterf = gl_wrap_manager_texture_parameter_float;
+        glTextureParameterfv = gl_wrap_manager_texture_parameter_float_ptr;
+        glTextureParameteri = gl_wrap_manager_texture_parameter_int;
+        glTextureParameteriv = gl_wrap_manager_texture_parameter_int_ptr;
         glTextureSubImage2D = gl_wrap_manager_texture_sub_image_2d;
         glUnmapBuffer = gl_wrap_manager_unmap_buffer;
         glUnmapNamedBuffer = gl_wrap_manager_unmap_named_buffer;
+        glUseProgram = gl_wrap_manager_use_program;
         glVertexAttrib4f = gl_wrap_manager_vertex_attrib;
         glVertexAttribIPointer = gl_wrap_manager_vertex_attrib_int_pointer;
         glVertexAttribPointer = gl_wrap_manager_vertex_attrib_pointer;
+        glViewport = gl_wrap_manager_viewport;
     }
 
     void gl_wrap_manager_free() {
@@ -1359,7 +1417,7 @@ namespace Vulkan {
 
         this->data.resize(texture_get_size(internal_format, width, height));
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            type, _type, data, this->data.data(), gl_wrap_manager_ptr->unpack_alignment, true))
+            type, _type, data, this->data.data(), gl_state.unpack_alignment, true))
             this->data.clear();
     }
 
@@ -1606,14 +1664,9 @@ namespace Vulkan {
         return 0;
     }
 
-    gl_wrap_manager::gl_wrap_manager() : buffer_counter(), framebuffer_counter(),
-        query_counter(), program_counter(), sampler_counter(),
-        texture_counter(), vertex_array_counter(), query_samples_passed() {
-        clear_color = 0.0f;
-        clear_depth = 1.0f;
-        clear_stencil = 0x00;
-        pack_alignment = 4;
-        unpack_alignment = 4;
+    gl_wrap_manager::gl_wrap_manager() : buffer_counter(), framebuffer_counter(), query_counter(),
+        program_counter(), sampler_counter(), texture_counter(), vertex_array_counter() {
+
     }
 
     gl_wrap_manager::~gl_wrap_manager() {
@@ -1814,7 +1867,7 @@ namespace Vulkan {
 
     void gl_wrap_manager::update_buffers() {
         for (auto& i : gl_index_buffers) {
-            Vulkan::gl_index_buffer* vk_ib = &i.second;
+            gl_index_buffer* vk_ib = &i.second;
             if (vk_ib->copy_working_buffer) {
                 VkBuffer src_buffer = vk_ib->working_buffer;
                 VkBuffer dst_buffer = vk_ib->index_buffer;
@@ -1844,7 +1897,7 @@ namespace Vulkan {
         }
 
         for (auto& i : gl_storage_buffers) {
-            Vulkan::gl_storage_buffer* vk_sb = &i.second;
+            gl_storage_buffer* vk_sb = &i.second;
             if (vk_sb->copy_working_buffer) {
                 VkBuffer src_buffer = vk_sb->working_buffer;
                 VkBuffer dst_buffer = vk_sb->storage_buffer;
@@ -1875,7 +1928,7 @@ namespace Vulkan {
         }
 
         for (auto& i : gl_uniform_buffers) {
-            Vulkan::gl_uniform_buffer* vk_ub = &i.second;
+            gl_uniform_buffer* vk_ub = &i.second;
             if (vk_ub->copy_working_buffer) {
                 VkBuffer src_buffer = vk_ub->working_buffer;
                 VkBuffer dst_buffer = vk_ub->uniform_buffer;
@@ -1906,7 +1959,7 @@ namespace Vulkan {
         }
 
         for (auto& i : gl_vertex_buffers) {
-            Vulkan::gl_vertex_buffer* vk_vb = &i.second;
+            gl_vertex_buffer* vk_vb = &i.second;
             if (vk_vb->copy_working_buffer) {
                 VkBuffer src_buffer = vk_vb->working_buffer;
                 VkBuffer dst_buffer = vk_vb->vertex_buffer;
@@ -1936,14 +1989,24 @@ namespace Vulkan {
         }
     }
 
+    static void gl_wrap_manager_active_texture(GLenum texture) {
+        GLuint texture_index = texture - GL_TEXTURE0;
+        if (texture_index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.active_texture_index = texture_index;
+    }
+
     static void gl_wrap_manager_begin_query(GLenum target, GLuint id) {
         if (target != GL_SAMPLES_PASSED) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
         }
 
-        gl_query* vk_que_curr = gl_query::get(gl_wrap_manager_ptr->query_samples_passed);
-        if (vk_que_curr && vk_que_curr->target == target || !id || gl_wrap_manager_ptr->query_samples_passed == id) {
+        gl_query* vk_que_curr = gl_query::get(gl_state.query_samples_passed);
+        if (vk_que_curr && vk_que_curr->target == target || !id || gl_state.query_samples_passed == id) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -1961,70 +2024,83 @@ namespace Vulkan {
             vk_que->query.Create(Vulkan::current_device, 0, VK_QUERY_TYPE_OCCLUSION);
         }
 
-        gl_wrap_manager_ptr->query_samples_passed = id;
+        gl_state.query_samples_passed = id;
     }
 
     static void gl_wrap_manager_bind_buffer(GLenum target, GLuint buffer) {
         switch (target) {
         case GL_ARRAY_BUFFER: {
-            auto elem = gl_wrap_manager_ptr->gl_vertex_buffers.find(buffer);
-            if (elem == gl_wrap_manager_ptr->gl_vertex_buffers.end()) {
-                auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
-                if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
-                    if (buffer)
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_vertex_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_vertex_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
                         gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
-                    return;
-                }
+                        return;
+                    }
 
-                elem->second.target = GL_ARRAY_BUFFER;
-                gl_wrap_manager_ptr->gl_vertex_buffers.insert({ buffer, {} });
+                    elem->second.target = GL_ARRAY_BUFFER;
+                    gl_wrap_manager_ptr->gl_vertex_buffers.insert({ buffer, {} });
+                }
             }
+
+            gl_state.array_buffer_binding = buffer;
         } break;
         case GL_ELEMENT_ARRAY_BUFFER: {
-            auto elem = gl_wrap_manager_ptr->gl_index_buffers.find(buffer);
-            if (elem == gl_wrap_manager_ptr->gl_index_buffers.end()) {
-                auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
-                if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
-                    if (buffer)
-                        gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
-                    return;
-                }
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_index_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_index_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
 
-                elem->second.target = GL_ELEMENT_ARRAY_BUFFER;
-                gl_wrap_manager_ptr->gl_index_buffers.insert({ buffer, {} });
+                        gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                        return;
+                    }
+
+                    elem->second.target = GL_ELEMENT_ARRAY_BUFFER;
+                    gl_wrap_manager_ptr->gl_index_buffers.insert({ buffer, {} });
+                }
             }
+
+            gl_state.element_array_buffer_binding = buffer;
 
             gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
             if (vk_vao)
                 vk_vao->index_buffer_binding.buffer = buffer;
         } break;
         case GL_UNIFORM_BUFFER: {
-            auto elem = gl_wrap_manager_ptr->gl_uniform_buffers.find(buffer);
-            if (elem == gl_wrap_manager_ptr->gl_uniform_buffers.end()) {
-                auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
-                if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
-                    if (buffer)
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_uniform_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_uniform_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
                         gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
-                    return;
-                }
+                        return;
+                    }
 
-                elem->second.target = GL_UNIFORM_BUFFER;
-                gl_wrap_manager_ptr->gl_uniform_buffers.insert({ buffer, {} });
+                    elem->second.target = GL_UNIFORM_BUFFER;
+                    gl_wrap_manager_ptr->gl_uniform_buffers.insert({ buffer, {} });
+                }
             }
+
+            gl_state.uniform_buffer_binding = buffer;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
-            auto elem = gl_wrap_manager_ptr->gl_storage_buffers.find(buffer);
-            if (elem == gl_wrap_manager_ptr->gl_storage_buffers.end()) {
-                auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
-                if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
-                    if (buffer)
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_storage_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_storage_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
                         gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
-                    return;
-                }
+                        return;
+                    }
 
-                elem->second.target = GL_SHADER_STORAGE_BUFFER;
-                gl_wrap_manager_ptr->gl_storage_buffers.insert({ buffer, {} });
+                    elem->second.target = GL_SHADER_STORAGE_BUFFER;
+                    gl_wrap_manager_ptr->gl_storage_buffers.insert({ buffer, {} });
+                }
             }
+
+            gl_state.shader_storage_buffer_binding = buffer;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -2032,10 +2108,201 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_bind_texture(GLenum target, GLuint texture) {
-        if (!texture)
-            return;
+    static void gl_wrap_manager_bind_buffer_base(GLenum target, GLuint index, GLuint buffer) {
+        switch (target) {
+        case GL_UNIFORM_BUFFER: {
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
 
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_uniform_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_uniform_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
+                        gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                        return;
+                    }
+
+                    elem->second.target = GL_UNIFORM_BUFFER;
+                    gl_wrap_manager_ptr->gl_uniform_buffers.insert({ buffer, {} });
+                }
+            }
+
+            gl_state.uniform_buffer_bindings[index] = buffer;
+            gl_state.uniform_buffer_offsets[index] = 0;
+            gl_state.uniform_buffer_sizes[index] = -1;
+        } break;
+        case GL_SHADER_STORAGE_BUFFER: {
+            if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_storage_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_storage_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
+                        gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                        return;
+                    }
+
+                    elem->second.target = GL_SHADER_STORAGE_BUFFER;
+                    gl_wrap_manager_ptr->gl_storage_buffers.insert({ buffer, {} });
+                }
+            }
+
+            gl_state.shader_storage_buffer_bindings[index] = buffer;
+            gl_state.shader_storage_buffer_offsets[index] = 0;
+            gl_state.shader_storage_buffer_sizes[index] = -1;
+        } break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_bind_buffer_range(GLenum target, GLuint index, GLuint buffer, GLintptr offset, GLsizeiptr size) {
+        switch (target) {
+        case GL_UNIFORM_BUFFER: {
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS || size <= 0) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_uniform_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_uniform_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
+                        gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                        return;
+                    }
+
+                    elem->second.target = GL_UNIFORM_BUFFER;
+                    gl_wrap_manager_ptr->gl_uniform_buffers.insert({ buffer, {} });
+                }
+
+                gl_buffer* vk_buf = gl_buffer::get(buffer);
+                if (!vk_buf || vk_buf->target != target || !vk_buf->data.size()
+                    || offset < 0 || (size_t)(offset + size) > vk_buf->data.size()) {
+                    gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                    return;
+                }
+            }
+            else {
+                offset = 0;
+                size = -1;
+            }
+
+            if (offset % sv_min_uniform_buffer_alignment) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            gl_state.uniform_buffer_bindings[index] = buffer;
+            gl_state.uniform_buffer_offsets[index] = offset;
+            gl_state.uniform_buffer_sizes[index] = size;
+        } break;
+        case GL_SHADER_STORAGE_BUFFER: {
+            if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS || size <= 0) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            if (buffer) {
+                auto elem = gl_wrap_manager_ptr->gl_storage_buffers.find(buffer);
+                if (elem == gl_wrap_manager_ptr->gl_storage_buffers.end()) {
+                    auto elem = gl_wrap_manager_ptr->gl_buffers.find(buffer);
+                    if (elem == gl_wrap_manager_ptr->gl_buffers.end()) {
+                        gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                        return;
+                    }
+
+                    elem->second.target = GL_SHADER_STORAGE_BUFFER;
+                    gl_wrap_manager_ptr->gl_storage_buffers.insert({ buffer, {} });
+                }
+
+                gl_buffer* vk_buf = gl_buffer::get(buffer);
+                if (!vk_buf || vk_buf->target != target || !vk_buf->data.size()
+                    || offset < 0 || (size_t)(offset + size) > vk_buf->data.size()) {
+                    gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                    return;
+                }
+            }
+            else {
+                offset = 0;
+                size = -1;
+            }
+
+            if (offset % sv_min_storage_buffer_alignment) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            gl_state.shader_storage_buffer_bindings[index] = buffer;
+            gl_state.shader_storage_buffer_offsets[index] = offset;
+            gl_state.shader_storage_buffer_sizes[index] = size;
+        } break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_bind_framebuffer(GLenum target, GLuint framebuffer) {
+        switch (target) {
+        case GL_READ_FRAMEBUFFER:
+        case GL_DRAW_FRAMEBUFFER:
+        case GL_FRAMEBUFFER:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        if (framebuffer) {
+            gl_framebuffer* vk_fbo = gl_framebuffer::get(framebuffer);
+            if (!vk_fbo) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+                return;
+            }
+        }
+
+        switch (target) {
+        case GL_READ_FRAMEBUFFER:
+            gl_state.read_framebuffer_binding = framebuffer;
+            break;
+        case GL_DRAW_FRAMEBUFFER:
+            gl_state.draw_framebuffer_binding = framebuffer;
+            break;
+        case GL_FRAMEBUFFER:
+            gl_state.read_framebuffer_binding = framebuffer;
+            gl_state.draw_framebuffer_binding = framebuffer;
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_bind_sampler(GLuint unit, GLuint sampler) {
+        if (sampler >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        if (sampler) {
+            gl_sampler* vk_samp = gl_sampler::get(sampler);
+            if (!vk_samp) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+                return;
+            }
+        }
+
+        gl_state.sampler_binding[unit] = sampler;
+    }
+
+    static void gl_wrap_manager_bind_texture(GLenum target, GLuint texture) {
         switch (target) {
         case GL_TEXTURE_2D:
         case GL_TEXTURE_CUBE_MAP:
@@ -2045,17 +2312,111 @@ namespace Vulkan {
             return;
         }
 
-        gl_texture* vk_tex = gl_texture::get(texture, false);
-        if (!vk_tex) {
-            gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
-            return;
+        if (texture) {
+            gl_texture* vk_tex = gl_texture::get(texture, false);
+            if (!vk_tex) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+            else if (!vk_tex->target)
+                vk_tex->target = target;
+            else if (vk_tex->target != target) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+                return;
+            }
         }
-        else if (vk_tex->target && vk_tex->target != target) {
-            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+
+        switch (target) {
+        case GL_TEXTURE_2D:
+            gl_state.texture_binding_2d[gl_state.active_texture_index] = texture;
+            break;
+        case GL_TEXTURE_CUBE_MAP:
+            gl_state.texture_binding_cube_map[gl_state.active_texture_index] = texture;
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_bind_vertex_array(GLuint array) {
+        if (array) {
+            gl_vertex_array* vk_vao = gl_vertex_array::get(array);
+            if (!vk_vao) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+                return;
+            }
+        }
+
+        gl_state.vertex_array_binding = array;
+    }
+
+    static void gl_wrap_manager_blend_func(GLenum sfactor, GLenum dfactor) {
+        gl_wrap_manager_blend_func_separate(sfactor, dfactor, sfactor, dfactor);
+    }
+
+    static void gl_wrap_manager_blend_func_separate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha, GLenum dfactorAlpha) {
+        auto check_func = [](GLenum func) -> bool {
+            switch (func) {
+            case GL_ZERO:
+            case GL_ONE:
+            case GL_SRC_COLOR:
+            case GL_ONE_MINUS_SRC_COLOR:
+            case GL_DST_COLOR:
+            case GL_ONE_MINUS_DST_COLOR:
+            case GL_SRC_ALPHA:
+            case GL_ONE_MINUS_SRC_ALPHA:
+            case GL_DST_ALPHA:
+            case GL_ONE_MINUS_DST_ALPHA:
+            case GL_CONSTANT_COLOR:
+            case GL_ONE_MINUS_CONSTANT_COLOR:
+            case GL_CONSTANT_ALPHA:
+            case GL_ONE_MINUS_CONSTANT_ALPHA:
+            case GL_SRC_ALPHA_SATURATE:
+            case GL_SRC1_COLOR:
+            case GL_ONE_MINUS_SRC1_COLOR:
+            case GL_SRC1_ALPHA:
+            case GL_ONE_MINUS_SRC1_ALPHA:
+                return true;
+            default:
+                return false;
+            }
+        };
+
+        if (!check_func(sfactorRGB) || !check_func(dfactorRGB)
+            || !check_func(sfactorAlpha) || !check_func(dfactorAlpha)) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
         }
 
-        vk_tex->target = target;
+        gl_state.blend_src_rgb = sfactorRGB;
+        gl_state.blend_dst_rgb = dfactorRGB;
+        gl_state.blend_src_alpha = sfactorAlpha;
+        gl_state.blend_dst_alpha = dfactorAlpha;
+    }
+
+    static void gl_wrap_manager_blend_equation(GLenum mode) {
+        gl_wrap_manager_blend_equation_separate(mode, mode);
+    }
+
+    static void gl_wrap_manager_blend_equation_separate(GLenum modeRGB, GLenum modeAlpha) {
+        auto check_op = [](GLenum op) -> bool {
+            switch (op) {
+            case GL_FUNC_ADD:
+            case GL_FUNC_SUBTRACT:
+            case GL_FUNC_REVERSE_SUBTRACT:
+            case GL_MIN:
+            case GL_MAX:
+                return true;
+            default:
+                return false;
+            }
+        };
+
+        if (!check_op(modeRGB) || !check_op(modeAlpha)) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.blend_mode_rgb = modeRGB;
+        gl_state.blend_mode_alpha = modeAlpha;
     }
 
     static void gl_wrap_manager_blit_framebuffer(
@@ -2234,13 +2595,11 @@ namespace Vulkan {
     static GLenum gl_wrap_manager_check_framebuffer_status(GLenum target) {
         GLuint framebuffer;
         switch (target) {
-        case GL_FRAMEBUFFER:
-            framebuffer = gl_state.framebuffer_binding;
-            break;
         case GL_READ_FRAMEBUFFER:
             framebuffer = gl_state.read_framebuffer_binding;
             break;
         case GL_DRAW_FRAMEBUFFER:
+        case GL_FRAMEBUFFER:
             framebuffer = gl_state.draw_framebuffer_binding;
             break;
         default:
@@ -2316,7 +2675,6 @@ namespace Vulkan {
         }
 
         if (mask & GL_COLOR_BUFFER_BIT) {
-            const vec4& clear_color = gl_wrap_manager_ptr->clear_color;
             gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding);
 
             for (uint32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
@@ -2337,10 +2695,10 @@ namespace Vulkan {
                 }
 
                 VkClearColorValue clear_color_value;
-                clear_color_value.float32[0] = clear_color.x;
-                clear_color_value.float32[1] = clear_color.y;
-                clear_color_value.float32[2] = clear_color.z;
-                clear_color_value.float32[3] = clear_color.w;
+                clear_color_value.float32[0] = gl_state.clear_color.x;
+                clear_color_value.float32[1] = gl_state.clear_color.y;
+                clear_color_value.float32[2] = gl_state.clear_color.z;
+                clear_color_value.float32[3] = gl_state.clear_color.w;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -2373,8 +2731,8 @@ namespace Vulkan {
                 const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
                 VkClearDepthStencilValue clear_depth_stencil_value;
-                clear_depth_stencil_value.depth = gl_wrap_manager_ptr->clear_depth;
-                clear_depth_stencil_value.stencil = gl_wrap_manager_ptr->clear_stencil;
+                clear_depth_stencil_value.depth = gl_state.clear_depth;
+                clear_depth_stencil_value.stencil = gl_state.clear_stencil;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = aspect_mask;
@@ -2400,19 +2758,18 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-        vec4& clear_color = gl_wrap_manager_ptr->clear_color;
-        clear_color.x = red;
-        clear_color.y = green;
-        clear_color.z = blue;
-        clear_color.w = alpha;
+        gl_state.clear_color.x = red;
+        gl_state.clear_color.y = green;
+        gl_state.clear_color.z = blue;
+        gl_state.clear_color.w = alpha;
     }
 
     static void gl_wrap_manager_clear_depth(GLfloat depth) {
-        gl_wrap_manager_ptr->clear_depth = depth;
+        gl_state.clear_depth = depth;
     }
 
     static void gl_wrap_manager_clear_stencil(GLint s) {
-        gl_wrap_manager_ptr->clear_stencil = s;
+        gl_state.clear_stencil = s;
     }
 
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
@@ -2506,6 +2863,13 @@ namespace Vulkan {
         }
         Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer, image,
             aspect_mask, 0, 0, new_layout, old_layout);
+    }
+
+    static void gl_wrap_manager_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
+        gl_state.color_mask[0] = red ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[1] = green ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[2] = blue ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[3] = alpha ? GL_TRUE : GL_FALSE;
     }
 
     static void gl_wrap_manager_compressed_tex_image_2d(GLenum target, GLint level,
@@ -2961,6 +3325,20 @@ namespace Vulkan {
         return gl_wrap_manager_ptr->create_program();
     }
 
+    static void gl_wrap_manager_cull_face(GLenum mode) {
+        switch (mode) {
+        case GL_FRONT:
+        case GL_BACK:
+        case GL_FRONT_AND_BACK:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.cull_face_mode = mode;
+    }
+
     static void gl_wrap_manager_delete_buffers(GLsizei n, const GLuint* buffers) {
         if (n < 0) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -3025,6 +3403,58 @@ namespace Vulkan {
             gl_wrap_manager_ptr->release_vertex_array(arrays[i]);
     }
 
+    static void gl_wrap_manager_depth_func(GLenum func) {
+        switch (func) {
+        case GL_NEVER:
+        case GL_LESS:
+        case GL_EQUAL:
+        case GL_LEQUAL:
+        case GL_GREATER:
+        case GL_NOTEQUAL:
+        case GL_GEQUAL:
+        case GL_ALWAYS:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.depth_func = func;
+    }
+
+    static void gl_wrap_manager_depth_mask(GLboolean flag) {
+        gl_state.depth_mask = flag ? GL_TRUE : GL_FALSE;
+    }
+
+    static void gl_wrap_manager_disable(GLenum cap) {
+        switch (cap) {
+        case GL_CULL_FACE:
+            gl_state.cull_face = GL_FALSE;
+            break;
+        case GL_DEPTH_TEST:
+            gl_state.depth_test = GL_FALSE;
+            break;
+        case GL_STENCIL_TEST:
+            gl_state.stencil_test = GL_FALSE;
+            break;
+        case GL_BLEND:
+            gl_state.blend = GL_FALSE;
+            break;
+        case GL_SCISSOR_TEST:
+            gl_state.scissor_test = GL_FALSE;
+            break;
+        case GL_MULTISAMPLE:
+            gl_state.multisample = GL_FALSE;
+            break;
+        case GL_PRIMITIVE_RESTART:
+            gl_state.primitive_restart = GL_FALSE;
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
     static void gl_wrap_manager_disable_vertex_attrib_array(GLuint index) {
         if (index >= Vulkan::MAX_VERTEX_ATTRIB_COUNT) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -3052,7 +3482,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -3082,6 +3512,35 @@ namespace Vulkan {
             }
     }
 
+    static void gl_wrap_manager_enable(GLenum cap) {
+        switch (cap) {
+        case GL_CULL_FACE:
+            gl_state.cull_face = GL_TRUE;
+            break;
+        case GL_DEPTH_TEST:
+            gl_state.depth_test = GL_TRUE;
+            break;
+        case GL_STENCIL_TEST:
+            gl_state.stencil_test = GL_TRUE;
+            break;
+        case GL_BLEND:
+            gl_state.blend = GL_TRUE;
+            break;
+        case GL_SCISSOR_TEST:
+            gl_state.scissor_test = GL_TRUE;
+            break;
+        case GL_MULTISAMPLE:
+            gl_state.multisample = GL_TRUE;
+            break;
+        case GL_PRIMITIVE_RESTART:
+            gl_state.primitive_restart = GL_TRUE;
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
     static void gl_wrap_manager_enable_vertex_attrib_array(GLuint index) {
         if (index >= Vulkan::MAX_VERTEX_ATTRIB_COUNT) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -3103,17 +3562,17 @@ namespace Vulkan {
             return;
         }
 
-        if (!gl_wrap_manager_ptr->query_samples_passed) {
+        if (!gl_state.query_samples_passed) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
 
-        gl_query* vk_que = gl_query::get(gl_wrap_manager_ptr->query_samples_passed);
+        gl_query* vk_que = gl_query::get(gl_state.query_samples_passed);
         if (!vk_que)
             return;
 
         vk_que->query.End(Vulkan::current_command_buffer);
-        gl_wrap_manager_ptr->query_samples_passed = 0;
+        gl_state.query_samples_passed = 0;
     }
 
     static void gl_wrap_manager_finish() {
@@ -3129,7 +3588,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -3412,21 +3871,40 @@ namespace Vulkan {
         staging_buffer.ReadMemory(staging_buffer.GetOffset(), size, img);
     }
 
-    static GLenum gl_wrap_manager_get_error() {
-        return gl_wrap_manager_ptr->get_error();
-    }
+    static void gl_wrap_manager_get_boolean(GLenum pname, GLboolean* data) {
+        if (!data)
+            return;
 
-    static void gl_wrap_manager_get_float(GLenum pname, GLfloat* data) {
         switch (pname) {
-        case GL_COLOR_CLEAR_VALUE: {
-            const vec4& clear_color = gl_wrap_manager_ptr->clear_color;
-            data[0] = clear_color.x;
-            data[1] = clear_color.y;
-            data[2] = clear_color.z;
-            data[3] = clear_color.w;
-        } break;
-        case GL_DEPTH_CLEAR_VALUE:
-            *data = gl_wrap_manager_ptr->clear_depth;
+        case GL_CULL_FACE:
+            *data = gl_state.cull_face;
+            break;
+        case GL_DEPTH_TEST:
+            *data = gl_state.depth_test;
+            break;
+        case GL_DEPTH_WRITEMASK:
+            *data = gl_state.depth_mask;
+            break;
+        case GL_STENCIL_TEST:
+            *data = gl_state.stencil_test;
+            break;
+        case GL_BLEND:
+            *data = gl_state.blend;
+            break;
+        case GL_SCISSOR_TEST:
+            *data = gl_state.scissor_test;
+            break;
+        case GL_COLOR_WRITEMASK:
+            data[0] = gl_state.color_mask[0];
+            data[1] = gl_state.color_mask[1];
+            data[2] = gl_state.color_mask[2];
+            data[3] = gl_state.color_mask[3];
+            break;
+        case GL_MULTISAMPLE:
+            *data = gl_state.multisample;
+            break;
+        case GL_PRIMITIVE_RESTART:
+            *data = gl_state.primitive_restart;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3434,7 +3912,250 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_get_query_object(GLuint id, GLenum pname, GLint* params) {
+    static void gl_wrap_manager_get_integer(GLenum pname, GLint* data) {
+        if (!data)
+            return;
+
+        switch (pname) {
+        case GL_CULL_FACE_MODE:
+            *data = gl_state.cull_face_mode;
+            break;
+        case GL_DEPTH_FUNC:
+            *data = gl_state.depth_func;
+            break;
+        case GL_STENCIL_FUNC:
+            *data = gl_state.stencil_func;
+            break;
+        case GL_STENCIL_VALUE_MASK:
+            *data = gl_state.stencil_value_mask;
+            break;
+        case GL_STENCIL_FAIL:
+            *data = gl_state.stencil_fail;
+            break;
+        case GL_STENCIL_PASS_DEPTH_FAIL:
+            *data = gl_state.stencil_dpfail;
+            break;
+        case GL_STENCIL_PASS_DEPTH_PASS:
+            *data = gl_state.stencil_dppass;
+            break;
+        case GL_STENCIL_REF:
+            *data = gl_state.stencil_ref;
+            break;
+        case GL_STENCIL_WRITEMASK:
+            *data = gl_state.stencil_mask;
+            break;
+        case GL_VIEWPORT:
+            data[0] = gl_state.viewport.x;
+            data[1] = gl_state.viewport.y;
+            data[2] = gl_state.viewport.width;
+            data[3] = gl_state.viewport.height;
+            break;
+        case GL_SCISSOR_BOX:
+            data[0] = gl_state.scissor_box.x;
+            data[1] = gl_state.scissor_box.y;
+            data[2] = gl_state.scissor_box.width;
+            data[3] = gl_state.scissor_box.height;
+            break;
+        case GL_BLEND_EQUATION_RGB:
+            *data = gl_state.blend_mode_rgb;
+            break;
+        case GL_BLEND_DST_RGB:
+            *data = gl_state.blend_dst_rgb;
+            break;
+        case GL_BLEND_SRC_RGB:
+            *data = gl_state.blend_src_rgb;
+            break;
+        case GL_BLEND_DST_ALPHA:
+            *data = gl_state.blend_dst_alpha;
+            break;
+        case GL_BLEND_SRC_ALPHA:
+            *data = gl_state.blend_src_alpha;
+            break;
+        case GL_ACTIVE_TEXTURE:
+            *data = GL_TEXTURE0 + gl_state.active_texture_index;
+            break;
+        case GL_TEXTURE_BINDING_2D:
+            *data = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            break;
+        case GL_TEXTURE_BINDING_CUBE_MAP:
+            *data = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            break;
+        case GL_VERTEX_ARRAY_BINDING:
+            *data = gl_state.vertex_array_binding;
+            break;
+        case GL_BLEND_EQUATION_ALPHA:
+            *data = gl_state.blend_mode_alpha;
+            break;
+        case GL_ARRAY_BUFFER_BINDING:
+            *data = gl_state.array_buffer_binding;
+            break;
+        case GL_ELEMENT_ARRAY_BUFFER_BINDING:
+            *data = gl_state.element_array_buffer_binding;
+            break;
+        case GL_SAMPLER_BINDING:
+            *data = gl_state.sampler_binding[gl_state.active_texture_index];
+            break;
+        case GL_UNIFORM_BUFFER_BINDING:
+            *data = gl_state.uniform_buffer_binding;
+            break;
+        case GL_CURRENT_PROGRAM:
+            *data = gl_state.program;
+            break;
+        case GL_DRAW_FRAMEBUFFER_BINDING:
+            *data = gl_state.draw_framebuffer_binding;
+            break;
+        case GL_READ_FRAMEBUFFER_BINDING:
+            *data = gl_state.read_framebuffer_binding;
+            break;
+        case GL_PRIMITIVE_RESTART_INDEX:
+            *data = gl_state.primitive_restart_index;
+            break;
+        case GL_SHADER_STORAGE_BUFFER_BINDING:
+            *data = gl_state.shader_storage_buffer_binding;
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static GLenum gl_wrap_manager_get_error() {
+        return gl_wrap_manager_ptr->get_error();
+    }
+
+    static void gl_wrap_manager_get_float(GLenum pname, GLfloat* data) {
+        if (!data)
+            return;
+
+        switch (pname) {
+        case GL_LINE_WIDTH:
+            *data = gl_state.line_width;
+            break;
+        case GL_COLOR_CLEAR_VALUE:
+            data[0] = gl_state.clear_color.x;
+            data[1] = gl_state.clear_color.y;
+            data[2] = gl_state.clear_color.z;
+            data[3] = gl_state.clear_color.w;
+            break;
+        case GL_DEPTH_CLEAR_VALUE:
+            *data = gl_state.clear_depth;
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_get_integer_ptr(GLenum target, GLuint index, GLint* data) {
+        switch (target) {
+        case GL_TEXTURE_BINDING_2D:
+            if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.texture_binding_2d[index];
+            break;
+        case GL_TEXTURE_BINDING_CUBE_MAP:
+            if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.texture_binding_cube_map[index];
+            break;
+        case GL_SAMPLER_BINDING:
+            if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.sampler_binding[index];
+            break;
+        case GL_UNIFORM_BUFFER_BINDING:
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.uniform_buffer_bindings[index];
+            break;
+        case GL_UNIFORM_BUFFER_START:
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = (GLint)gl_state.uniform_buffer_offsets[index];
+            break;
+        case GL_UNIFORM_BUFFER_SIZE:
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = (GLint)gl_state.uniform_buffer_sizes[index];
+            break;
+        case GL_SHADER_STORAGE_BUFFER_BINDING:
+            if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.shader_storage_buffer_bindings[index];
+            break;
+        case GL_SHADER_STORAGE_BUFFER_START:
+            if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = (GLint)gl_state.shader_storage_buffer_offsets[index];
+            break;
+        case GL_SHADER_STORAGE_BUFFER_SIZE:
+            if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = (GLint)gl_state.shader_storage_buffer_sizes[index];
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_get_integer_64_ptr(GLenum target, GLuint index, GLint64* data) {
+            switch (target) {
+        case GL_UNIFORM_BUFFER_START:
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.uniform_buffer_offsets[index];
+            break;
+        case GL_UNIFORM_BUFFER_SIZE:
+            if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.uniform_buffer_sizes[index];
+            break;
+        case GL_SHADER_STORAGE_BUFFER_START:
+            if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+                return;
+            }
+
+            *data = gl_state.shader_storage_buffer_sizes[index];
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_get_query_object_int_ptr(GLuint id, GLenum pname, GLint* params) {
         if (pname != GL_QUERY_RESULT_AVAILABLE) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
@@ -3449,7 +4170,7 @@ namespace Vulkan {
         *params = result[0] ? GL_TRUE : GL_FALSE;
     }
 
-    static void gl_wrap_manager_get_query_object(GLuint id, GLenum pname, GLuint* params) {
+    static void gl_wrap_manager_get_query_object_uint_ptr(GLuint id, GLenum pname, GLuint* params) {
         if (pname != GL_QUERY_RESULT) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
@@ -3639,12 +4360,21 @@ namespace Vulkan {
         }
 
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            _type, type, temp, pixels, gl_wrap_manager_ptr->pack_alignment, false)) {
+            _type, type, temp, pixels, gl_state.pack_alignment, false)) {
             free_def(temp);
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
         free_def(temp);
+    }
+
+    static void gl_wrap_manager_line_width(GLfloat width) {
+        if (width <= 0.0f) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+            return;
+        }
+
+        gl_state.line_width = width;
     }
 
     static void* gl_wrap_manager_map_buffer(GLenum target, GLenum access) {
@@ -3790,7 +4520,7 @@ namespace Vulkan {
                 return;
             }
 
-            gl_wrap_manager_ptr->pack_alignment = param;
+            gl_state.pack_alignment = param;
             break;
         case GL_UNPACK_ALIGNMENT:
             if (param != 1 && param != 2 && param != 4 && param != 8) {
@@ -3798,7 +4528,7 @@ namespace Vulkan {
                 return;
             }
 
-            gl_wrap_manager_ptr->unpack_alignment = param;
+            gl_state.unpack_alignment = param;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -3806,9 +4536,35 @@ namespace Vulkan {
         }
     }
 
+    static void gl_wrap_manager_polygon_mode(GLenum face, GLenum mode) {
+        switch (face) {
+        case GL_FRONT_AND_BACK:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        switch (mode) {
+        case GL_POINT:
+        case GL_LINE:
+        case GL_FILL:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.polygon_mode = mode;
+    }
+
     static void gl_wrap_manager_pop_debug_group() {
         end_render_pass(Vulkan::current_command_buffer);
         vkCmdEndDebugUtilsLabelEXT(Vulkan::current_command_buffer);
+    }
+
+    static void gl_wrap_manager_primitive_restart_index(GLuint index) {
+        gl_state.primitive_restart_index = index;
     }
 
     static void gl_wrap_manager_push_debug_group(GLenum source, GLuint id, GLsizei length, const GLchar* message) {
@@ -3828,11 +4584,11 @@ namespace Vulkan {
     static void gl_wrap_manager_read_buffer(GLenum src) {
         if (src && src < GL_COLOR_ATTACHMENT0
             || src >= GL_COLOR_ATTACHMENT0 + Vulkan::MAX_COLOR_ATTACHMENTS) {
-            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.read_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -3841,7 +4597,7 @@ namespace Vulkan {
         vk_fbo->read_buffer = src;
     }
 
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, GLfloat param) {
+    static void gl_wrap_manager_sampler_parameter_float(GLuint sampler, GLenum pname, GLfloat param) {
         gl_sampler* vk_samp = gl_sampler::get(sampler);
         if (!vk_samp) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -3855,7 +4611,25 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, GLint param) {
+    static void gl_wrap_manager_sampler_parameter_float_ptr(GLuint sampler, GLenum pname, const GLfloat* params) {
+        gl_sampler* vk_samp = gl_sampler::get(sampler);
+        if (!vk_samp) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+            return;
+        }
+
+        switch (pname) {
+        case GL_TEXTURE_BORDER_COLOR: {
+            vec4& border_color = vk_samp->border_color;
+            border_color.x = params[0];
+            border_color.y = params[1];
+            border_color.z = params[2];
+            border_color.w = params[3];
+        } break;
+        }
+    }
+
+    static void gl_wrap_manager_sampler_parameter_int(GLuint sampler, GLenum pname, GLint param) {
         gl_sampler* vk_samp = gl_sampler::get(sampler);
         if (!vk_samp) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -3881,30 +4655,74 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, const GLfloat* params) {
+    static void gl_wrap_manager_sampler_parameter_int_ptr(GLuint sampler, GLenum pname, const GLint* params) {
         gl_sampler* vk_samp = gl_sampler::get(sampler);
         if (!vk_samp) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
-        }
-
-        switch (pname) {
-        case GL_TEXTURE_BORDER_COLOR: {
-            vec4& border_color = vk_samp->border_color;
-            border_color.x = params[0];
-            border_color.y = params[1];
-            border_color.z = params[2];
-            border_color.w = params[3];
-        } break;
         }
     }
 
-    static void gl_wrap_manager_sampler_parameter(GLuint sampler, GLenum pname, const GLint* params) {
-        gl_sampler* vk_samp = gl_sampler::get(sampler);
-        if (!vk_samp) {
+    static void gl_wrap_manager_scissor(GLint x, GLint y, GLsizei width, GLsizei height) {
+        if (width < 0 || height < 0) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
             return;
         }
+
+        gl_state.scissor_box.x = x;
+        gl_state.scissor_box.y = y;
+        gl_state.scissor_box.width = width;
+        gl_state.scissor_box.height = height;
+    }
+
+    static void gl_wrap_manager_stencil_func(GLenum func, GLint ref, GLuint mask) {
+        switch (func) {
+        case GL_NEVER:
+        case GL_LESS:
+        case GL_EQUAL:
+        case GL_LEQUAL:
+        case GL_GREATER:
+        case GL_NOTEQUAL:
+        case GL_GEQUAL:
+        case GL_ALWAYS:
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.stencil_func = func;
+    }
+
+    static void gl_wrap_manager_stencil_mask(GLuint mask) {
+        gl_state.stencil_mask = mask;
+    }
+
+    static void gl_wrap_manager_stencil_op(GLenum fail, GLenum zfail, GLenum zpass) {
+        auto check_op = [](GLenum op) -> bool {
+            switch (op) {
+            case GL_KEEP:
+            case GL_ZERO:
+            case GL_REPLACE:
+            case GL_INCR:
+            case GL_DECR:
+            case GL_INVERT:
+            case GL_INCR_WRAP:
+            case GL_DECR_WRAP:
+                return true;
+            default:
+                return false;
+            }
+        };
+
+        if (!check_op(fail) || !check_op(zfail) || !check_op(zpass)) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        gl_state.stencil_fail = fail;
+        gl_state.stencil_dpfail = zfail;
+        gl_state.stencil_dppass = zpass;
     }
 
     static void gl_wrap_manager_tex_image_2d(GLenum target, GLint level, GLint internal_format,
@@ -4071,14 +4889,14 @@ namespace Vulkan {
             tex_data->set_data(internal_format, 0, 0, width, height, format, type, pixels);
     }
 
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, GLfloat param) {
+    static void gl_wrap_manager_tex_parameter_float(GLenum target, GLenum pname, GLfloat param) {
         switch (target) {
         case GL_TEXTURE_2D:
-            gl_wrap_manager_texture_parameter(
+            gl_wrap_manager_texture_parameter_float(
                 gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
             break;
         case GL_TEXTURE_CUBE_MAP:
-            gl_wrap_manager_texture_parameter(
+            gl_wrap_manager_texture_parameter_float(
                 gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
             break;
         default:
@@ -4087,30 +4905,14 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, GLint param) {
+    static void gl_wrap_manager_tex_parameter_float_ptr(GLenum target, GLenum pname, const GLfloat* params) {
         switch (target) {
         case GL_TEXTURE_2D:
-            gl_wrap_manager_texture_parameter(
-                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
-            break;
-        case GL_TEXTURE_CUBE_MAP:
-            gl_wrap_manager_texture_parameter(
-                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
-            break;
-        default:
-            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
-            break;
-        }
-    }
-
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, const GLfloat* params) {
-        switch (target) {
-        case GL_TEXTURE_2D:
-            gl_wrap_manager_texture_parameter(
+            gl_wrap_manager_texture_parameter_float_ptr(
                 gl_state.texture_binding_2d[gl_state.active_texture_index], pname, params);
             break;
         case GL_TEXTURE_CUBE_MAP:
-            gl_wrap_manager_texture_parameter(
+            gl_wrap_manager_texture_parameter_float_ptr(
                 gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, params);
             break;
         default:
@@ -4119,14 +4921,30 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_tex_parameter(GLenum target, GLenum pname, const GLint* params) {
+    static void gl_wrap_manager_tex_parameter_int(GLenum target, GLenum pname, GLint param) {
         switch (target) {
         case GL_TEXTURE_2D:
-            gl_wrap_manager_texture_parameter(
+            gl_wrap_manager_texture_parameter_int(
+                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
+            break;
+        case GL_TEXTURE_CUBE_MAP:
+            gl_wrap_manager_texture_parameter_int(
+                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
+            break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_tex_parameter_int_ptr(GLenum target, GLenum pname, const GLint* params) {
+        switch (target) {
+        case GL_TEXTURE_2D:
+            gl_wrap_manager_texture_parameter_int_ptr(
                 gl_state.texture_binding_2d[gl_state.active_texture_index], pname, params);
             break;
         case GL_TEXTURE_CUBE_MAP:
-            gl_wrap_manager_texture_parameter(
+            gl_wrap_manager_texture_parameter_int_ptr(
                 gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, params);
             break;
         default:
@@ -4278,7 +5096,7 @@ namespace Vulkan {
                 xoffset, yoffset, width, height, format, type, pixels);
     }
 
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, GLfloat param) {
+    static void gl_wrap_manager_texture_parameter_float(GLuint texture, GLenum pname, GLfloat param) {
         gl_texture* vk_tex = gl_texture::get(texture, false);
         if (!vk_tex) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
@@ -4301,7 +5119,32 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, const GLint param) {
+    static void gl_wrap_manager_texture_parameter_float_ptr(GLuint texture, GLenum pname, const GLfloat* params) {
+        gl_texture* vk_tex = gl_texture::get(texture, false);
+        if (!vk_tex) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+            return;
+        }
+        else if (vk_tex->target != GL_TEXTURE_2D && vk_tex->target != GL_TEXTURE_CUBE_MAP) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            return;
+        }
+
+        switch (pname) {
+        case GL_TEXTURE_BORDER_COLOR: {
+            vec4& border_color = vk_tex->sampler_data.border_color;
+            border_color.x = params[0];
+            border_color.y = params[1];
+            border_color.z = params[2];
+            border_color.w = params[3];
+        } break;
+        default:
+            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
+            break;
+        }
+    }
+
+    static void gl_wrap_manager_texture_parameter_int(GLuint texture, GLenum pname, const GLint param) {
         gl_texture* vk_tex = gl_texture::get(texture, false);
         if (!vk_tex) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
@@ -4382,32 +5225,7 @@ namespace Vulkan {
         }
     }
 
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, const GLfloat* params) {
-        gl_texture* vk_tex = gl_texture::get(texture, false);
-        if (!vk_tex) {
-            gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
-            return;
-        }
-        else if (vk_tex->target != GL_TEXTURE_2D && vk_tex->target != GL_TEXTURE_CUBE_MAP) {
-            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
-            return;
-        }
-
-        switch (pname) {
-        case GL_TEXTURE_BORDER_COLOR: {
-            vec4& border_color = vk_tex->sampler_data.border_color;
-            border_color.x = params[0];
-            border_color.y = params[1];
-            border_color.z = params[2];
-            border_color.w = params[3];
-        } break;
-        default:
-            gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
-            break;
-        }
-    }
-
-    static void gl_wrap_manager_texture_parameter(GLuint texture, GLenum pname, const GLint* params) {
+    static void gl_wrap_manager_texture_parameter_int_ptr(GLuint texture, GLenum pname, const GLint* params) {
         gl_texture* vk_tex = gl_texture::get(texture, false);
         if (!vk_tex) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
@@ -4554,6 +5372,18 @@ namespace Vulkan {
         enum_and(vk_buf->flags, ~Vulkan::GL_BUFFER_FLAG_MAPPED);
         enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
         return GL_TRUE;
+    }
+
+    static void gl_wrap_manager_use_program(GLuint program) {
+        if (program) {
+            gl_program* vk_prog = gl_program::get(program);
+            if (!vk_prog) {
+                gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
+                return;
+            }
+        }
+
+        gl_state.program = program;
     }
 
     static void gl_wrap_manager_vertex_attrib(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
@@ -4853,5 +5683,17 @@ namespace Vulkan {
         }
 
         vk_vao->set_vertex_attrib(index, format, stride, (uint32_t)(size_t)pointer);
+    }
+
+    static void gl_wrap_manager_viewport(GLint x, GLint y, GLsizei width, GLsizei height) {
+        if (width < 0 || height < 0) {
+            gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
+            return;
+        }
+
+        gl_state.viewport.x = x;
+        gl_state.viewport.y = y;
+        gl_state.viewport.width = width;
+        gl_state.viewport.height = height;
     }
 };

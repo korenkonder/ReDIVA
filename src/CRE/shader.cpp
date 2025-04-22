@@ -41,9 +41,6 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
 int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
     set->curr_program = 0;
-    set->vp_desc = 0;
-    set->fp_desc = 0;
-    set->unival_hash = 0;
 
     if (num_sub < 1)
         return -1;
@@ -57,30 +54,20 @@ int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
 
     int32_t unival_shad_curr = 1;
     int32_t unival_shad = 0;
-    uint64_t unival_hash = 0;
     if (num_uniform > 0) {
-        uint32_t unival_arr[0x20];
-
         const int32_t* vp_unival_max = sub_shader->vp_unival_max;
         const int32_t* fp_unival_max = sub_shader->fp_unival_max;
 
-        int32_t i = 0;
-        for (i = 0; i < num_uniform; i++) {
+        for (int32_t i = 0; i < num_uniform; i++) {
             const int32_t unival = uniform_value[use_uniform[i]];
             const int32_t unival_max = max_def(vp_unival_max[i], fp_unival_max[i]);
             unival_shad += unival_shad_curr * min_def(unival, unival_max);
             unival_shad_curr *= unival_max + 1;
-            unival_arr[i] = unival;
         }
-
-        unival_hash = hash_xxh3_64bits(unival_arr, sizeof(uint32_t) * num_uniform);
     }
 
     GLuint program = sub_shader->programs[unival_shad];
     set->curr_program = program;
-    set->vp_desc = sub_shader->vp_desc;
-    set->fp_desc = sub_shader->fp_desc;
-    set->unival_hash = unival_hash;
 
     gl_state_use_program(program);
     return 0;
@@ -505,9 +492,8 @@ void shader::unbind() {
     gl_state_use_program(0);
 }
 
-shader_set_data::shader_set_data() : size(), shaders(), curr_program(),
-primitive_restart(), primitive_restart_index(), get_index_by_name_func(),
-get_name_by_index_func(), vp_desc(), fp_desc(), unival_hash() {
+shader_set_data::shader_set_data() : size(), shaders(), curr_program(), primitive_restart(),
+primitive_restart_index(), get_index_by_name_func(), get_name_by_index_func() {
 
 }
 
@@ -856,6 +842,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                                 Vulkan::gl_program* vk_program = Vulkan::gl_program::get(programs[k]);
                                 vk_program->vertex_shader_module = elem_vp->second;
                                 vk_program->fragment_shader_module = elem_fp->second;
+                                vk_program->shader = &shaders_table[i];
+                                vk_program->sub_shader = sub_table;
                             }
                         }
                         vec_shader_module.clear();
@@ -889,6 +877,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             Vulkan::gl_program* vk_program = Vulkan::gl_program::get(programs[0]);
                             vk_program->vertex_shader_module = vp_shader_module;
                             vk_program->fragment_shader_module = fp_shader_module;
+                            vk_program->shader = &shaders_table[i];
+                            vk_program->sub_shader = sub_table;
                         }
                     }
                 }
@@ -1615,11 +1605,14 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
 
     if (!Vulkan::use)
         return true;
-    else if (!set->vp_desc || !set->fp_desc)
-        return false;
 
     Vulkan::gl_program* vk_program = Vulkan::gl_program::get(set->curr_program);
     if (!vk_program)
+        return false;
+
+    const shader_table* shader = vk_program->shader;
+    const shader_sub_table* sub_shader = vk_program->sub_shader;
+    if (!shader || !sub_shader || !sub_shader->vp_desc || !sub_shader->fp_desc)
         return false;
 
     Vulkan::gl_vertex_array* vk_vao = Vulkan::gl_vertex_array::get(gl_state.vertex_array_binding);
@@ -1649,7 +1642,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     bool enabled_attributes[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
     int32_t attribute_sizes[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
 
-    const shader_description* vp_desc = set->vp_desc;
+    const shader_description* vp_desc = sub_shader->vp_desc;
     while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
         && vp_desc->type != SHADER_DESCRIPTION_MAX) {
         const shader_description* desc = vp_desc++;
@@ -1676,7 +1669,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         }
     }
 
-    const shader_description* fp_desc = set->fp_desc;
+    const shader_description* fp_desc = sub_shader->fp_desc;
     while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
         && fp_desc->type != SHADER_DESCRIPTION_MAX) {
         const shader_description* desc = fp_desc++;
@@ -1702,11 +1695,30 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         }
     }
 
-    const uint64_t vp_desc_hash = hash_xxh3_64bits(set->vp_desc,
-        sizeof(shader_description) * (vp_desc - set->vp_desc));
-    const uint64_t fp_desc_hash = hash_xxh3_64bits(set->fp_desc,
-        sizeof(shader_description) * (fp_desc - set->fp_desc));
-    const uint64_t unival_hash = set->unival_hash;
+    auto get_unival_hash = [](const shader_table* shader, const shader_sub_table* sub_shader) -> uint64_t {
+        if (shader->num_uniform <= 0)
+            return 0;
+
+        uint32_t unival_arr[0x20];
+
+        const int32_t* vp_unival_max = sub_shader->vp_unival_max;
+        const int32_t* fp_unival_max = sub_shader->fp_unival_max;
+
+        int32_t i = 0;
+        for (i = 0; i < shader->num_uniform; i++) {
+            const int32_t unival = uniform_value[shader->use_uniform[i]];
+            const int32_t unival_max = max_def(vp_unival_max[i], fp_unival_max[i]);
+            unival_arr[i] = min_def(unival, unival_max);
+        }
+
+        return hash_xxh3_64bits(unival_arr, sizeof(uint32_t) * shader->num_uniform);
+    };
+
+    const uint64_t vp_desc_hash = hash_xxh3_64bits(sub_shader->vp_desc,
+        sizeof(shader_description) * (vp_desc - sub_shader->vp_desc));
+    const uint64_t fp_desc_hash = hash_xxh3_64bits(sub_shader->fp_desc,
+        sizeof(shader_description) * (fp_desc - sub_shader->fp_desc));
+    const uint64_t unival_hash = get_unival_hash(shader, sub_shader);
 
     prj::shared_ptr<Vulkan::DescriptorPipeline> descriptor_pipeline
         = Vulkan::manager_get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash);
@@ -1728,7 +1740,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         VkDescriptorSetLayoutBinding* storage_binding = storage_bindings;
         VkPushConstantRange* push_constant_range = push_constant_ranges;
 
-        vp_desc = set->vp_desc;
+        vp_desc = sub_shader->vp_desc;
         while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
             && vp_desc->type != SHADER_DESCRIPTION_MAX) {
             const shader_description* desc = vp_desc++;
@@ -1812,7 +1824,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
             }
         }
 
-        fp_desc = set->fp_desc;
+        fp_desc = sub_shader->fp_desc;
         while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
             && fp_desc->type != SHADER_DESCRIPTION_MAX) {
             const shader_description* desc = fp_desc++;
@@ -2157,7 +2169,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
     uint32_t push_constant_data_size = 0;
     VkShaderStageFlags push_constant_stage_flags = 0;
 
-    vp_desc = set->vp_desc;
+    vp_desc = sub_shader->vp_desc;
     while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
         && vp_desc->type != SHADER_DESCRIPTION_MAX) {
         const shader_description* desc = vp_desc++;
@@ -2302,7 +2314,7 @@ static bool shader_update_data(shader_set_data* set, GLenum mode, GLenum type, c
         }
     }
 
-    fp_desc = set->fp_desc;
+    fp_desc = sub_shader->fp_desc;
     while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
         && fp_desc->type != SHADER_DESCRIPTION_MAX) {
         const shader_description* desc = fp_desc++;
