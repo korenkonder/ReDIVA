@@ -919,12 +919,13 @@ namespace rndr {
 
         rend_texture[0].Init(render_post_width[0], render_post_height[0], 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
 
-        gl_state_bind_texture_2d(rend_texture[0].GetColorTex());
+        glBindTexture(GL_TEXTURE_2D, rend_texture[0].GetColorTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        gl_state_bind_texture_2d(rend_texture[0].GetDepthTex());
+        glBindTexture(GL_TEXTURE_2D, rend_texture[0].GetDepthTex());
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         for (int32_t i = 0; i < 3; i++) {
             taa_tex[i] = texture_load_tex_2d(texture_id(0x25, texture_counter++),
@@ -940,24 +941,26 @@ namespace rndr {
         temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
         sss_contour_texture = &mlaa_buffer;
 
-        gl_state_bind_texture_2d(mlaa_buffer.GetDepthTex());
+        glBindTexture(GL_TEXTURE_2D, mlaa_buffer.GetDepthTex());
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         for (int32_t i = 1; i < downsample_count; i++) {
             rend_texture[i].Init(render_post_width[i], render_post_height[i], 0, GL_RGBA16F, GL_ZERO);
 
-            gl_state_bind_texture_2d(rend_texture[i].GetColorTex());
+            glBindTexture(GL_TEXTURE_2D, rend_texture[i].GetColorTex());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
 
         downsample_texture.Init(reduce_width[0], reduce_height[0], 0, GL_RGBA16F, GL_ZERO);
 
-        gl_state_bind_texture_2d(downsample_texture.GetColorTex());
-
+        glBindTexture(GL_TEXTURE_2D, downsample_texture.GetColorTex());
         const vec4 border_color = 0.0f;
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         field_3E8.Init(512, 256, 0, GL_RGBA8, GL_ZERO);
 
@@ -975,13 +978,14 @@ namespace rndr {
         for (int32_t i = 0; i < 5; i++) {
             reduce_tex[i] = texture_load_tex_2d(texture_id(0x25, texture_counter++),
                 GL_RGBA16F, reduce_width[i], reduce_height[i], 0, 0, 0);
-            gl_state_bind_texture_2d(reduce_tex[i]->glid);
+            glBindTexture(GL_TEXTURE_2D, reduce_tex[i]->glid);
 
             const vec4 border_color = 0.0f;
             glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         }
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         reduce_texture[0].SetColorDepthTextures(reduce_tex[0]->glid);
 
@@ -989,18 +993,18 @@ namespace rndr {
             GL_RGBA16F, 32, 2, 0, 0, 0);
 
         glGenTextures(1, &exposure_tex);
-        gl_state_bind_texture_2d(exposure_tex);
+        glBindTexture(GL_TEXTURE_2D, exposure_tex);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, 2, 2, 0, GL_RGBA, GL_FLOAT, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-        gl_state_bind_texture_2d(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         exposure_texture.SetColorDepthTextures(exposure_tex);
 
         glGenTextures(1, &tonemap_lut_texture);
-        gl_state_bind_texture_2d(tonemap_lut_texture);
+        glBindTexture(GL_TEXTURE_2D, tonemap_lut_texture);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, 16 * TONE_MAP_SAT_GAMMA_SAMPLES, 1, 0, GL_RG, GL_HALF_FLOAT, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -1008,7 +1012,7 @@ namespace rndr {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
         const GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_GREEN };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-        gl_state_bind_texture_2d(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         generate_mlaa_area_texture();
 
@@ -1191,12 +1195,13 @@ namespace rndr {
 
         rend_texture[0].Init(render_post_width[0], render_post_height[0], 0, GL_RGBA16F, GL_DEPTH_COMPONENT24);
 
-        gl_state_bind_texture_2d(rend_texture[0].GetColorTex());
+        glBindTexture(GL_TEXTURE_2D, rend_texture[0].GetColorTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-        gl_state_bind_texture_2d(rend_texture[0].GetDepthTex());
+        glBindTexture(GL_TEXTURE_2D, rend_texture[0].GetDepthTex());
         GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         for (int32_t i = 0; i < 3; i++) {
             texture_id id = taa_tex[i]->id;
@@ -1216,15 +1221,17 @@ namespace rndr {
         temp_buffer.Init(render_post_width[0], render_post_height[0], 0, GL_RGBA8, GL_ZERO);
         sss_contour_texture = &mlaa_buffer;
 
-        gl_state_bind_texture_2d(mlaa_buffer.GetDepthTex());
+        glBindTexture(GL_TEXTURE_2D, mlaa_buffer.GetDepthTex());
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
 
         for (int32_t i = 1; i < downsample_count; i++) {
             rend_texture[i].Init(render_post_width[i], render_post_height[i], 0, GL_RGBA16F, GL_ZERO);
 
-            gl_state_bind_texture_2d(rend_texture[i].GetColorTex());
+            glBindTexture(GL_TEXTURE_2D, rend_texture[i].GetColorTex());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         }
+
+        glBindTexture(GL_TEXTURE_2D, 0);
 
         dof->resize(render_post_width[0], render_post_height[0]);
 
@@ -2074,10 +2081,10 @@ namespace rndr {
                 calculate_mlaa_area_texture_data(data, cross1, cross2);
 
         glGenTextures(1, &mlaa_area_texture);
-        gl_state_bind_texture_2d(mlaa_area_texture);
+        glBindTexture(GL_TEXTURE_2D, mlaa_area_texture);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RG8, MLAA_SIDE_LEN, MLAA_SIDE_LEN, 0, GL_RG, GL_UNSIGNED_BYTE, data);
-        gl_state_bind_texture_2d(0);
+        glBindTexture(GL_TEXTURE_2D, 0);
         free_def(data);
     }
 

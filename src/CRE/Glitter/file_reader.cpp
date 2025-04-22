@@ -160,10 +160,10 @@ namespace Glitter {
                             k->buffer = buffer;
 
                             glGenVertexArrays(1, &k->vao);
-                            gl_state_bind_vertex_array(k->vao, true);
-                            gl_state_bind_array_buffer(vbo, true);
+                            glBindVertexArray(k->vao);
+                            glBindBuffer(GL_ARRAY_BUFFER, vbo);
                             if (k->data.type == PARTICLE_QUAD)
-                                gl_state_bind_element_array_buffer(ebo, true);
+                                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
 
                             glEnableVertexAttribArray(0);
                             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -183,9 +183,11 @@ namespace Glitter {
                     }
                 }
 
-                gl_state_bind_array_buffer(0);
-                gl_state_bind_vertex_array(0);
-                gl_state_bind_element_array_buffer(0);
+                if (offset) {
+                    glBindBuffer(GL_ARRAY_BUFFER, 0);
+                    glBindVertexArray(0);
+                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+                }
             }
             else {
                 free_def(effect_group->buffer);

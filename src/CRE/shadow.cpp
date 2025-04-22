@@ -101,13 +101,18 @@ int32_t Shadow::init() {
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        gl_state_bind_texture_2d(render_textures[i].GetColorTex());
+        glBindTexture(GL_TEXTURE_2D, render_textures[i].GetColorTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
         static const vec4 border_color = 1.0f;
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
-    gl_state_bind_texture_2d(0);
+
+    glBindTexture(GL_TEXTURE_2D, render_textures[0].GetDepthTex());
+    GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
+    glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
+    glBindTexture(GL_TEXTURE_2D, 0);
     gl_state_get_error();
     return 0;
 }

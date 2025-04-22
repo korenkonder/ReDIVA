@@ -620,10 +620,10 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     };
 
     glGenVertexArrays(1, &box_vao);
-    gl_state_bind_vertex_array(box_vao);
+    glBindVertexArray(box_vao);
 
     box_vbo.Create(sizeof(box_texcoords), box_texcoords);
-    box_vbo.Bind();
+    glBindBuffer(GL_ARRAY_BUFFER, box_vbo);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)0);
@@ -635,17 +635,17 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)(sizeof(float_t) * 12));
 
     glGenVertexArrays(1, &lens_ghost_vao);
-    gl_state_bind_vertex_array(lens_ghost_vao);
+    glBindVertexArray(lens_ghost_vao);
 
     lens_ghost_vbo.Create(sizeof(float_t) * 5 * (6 * 16));
-    lens_ghost_vbo.Bind();
+    glBindBuffer(GL_ARRAY_BUFFER, lens_ghost_vbo);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)(sizeof(float_t) * 2));
-    gl_state_bind_array_buffer(0);
-    gl_state_bind_vertex_array(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    glBindVertexArray(0);
 
     glGenVertexArrays(1, &common_vao);
 

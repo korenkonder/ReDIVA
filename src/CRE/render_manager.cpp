@@ -1379,17 +1379,14 @@ void render_manager_free_data() {
 static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, int32_t a3) {
     render_context* rctx = rctx_ptr;
     shad->curr_render_textures[0]->Bind();
-    shad->curr_render_textures[0]->SetViewport();
     texture* tex = shad->curr_render_textures[0]->color_texture;
-    gl_state_set_scissor(0, 0, tex->width, tex->height);
+    gl_state_set_viewport(1, 1, tex->width - 2, tex->width - 2);
     gl_state_enable_depth_test();
-    gl_state_enable_scissor_test();
     glClearColor(1.0, 1.0, 1.0, 1.0);
     if (!a3)
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     else if (shad->separate)
         glClear(GL_COLOR_BUFFER_BIT);
-    gl_state_set_scissor(1, 1, tex->width - 2, tex->height - 2);
 
     float_t shadow_range = shad->get_shadow_range();
     float_t offset;
@@ -1406,8 +1403,10 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
         view_point = &shad->view_point_shared;
     }
 
+    const float_t scale = (float_t)(tex->width / 2) / (float_t)((tex->width - 2) / 2);
     mat4 temp;
     mat4_translate(offset, 0.0f, 0.0f, &temp);
+    mat4_scale_rot(&temp, scale, scale, 1.0f, &temp);
 
     mat4 proj;
     mat4_ortho(-shadow_range, shadow_range,
@@ -1424,7 +1423,6 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, int32_t index, i
 static void draw_pass_shadow_end_make_shadowmap(Shadow* shad, int32_t index, int32_t a3) {
     render_context* rctx = rctx_ptr;
     gl_state_disable_depth_test();
-    gl_state_disable_scissor_test();
 
     rctx->draw_state->shader_index = -1;
     if (a3 == shad->num_shadow - 1) {
@@ -1499,14 +1497,6 @@ static void draw_pass_shadow_filter(RenderTexture* a1, RenderTexture* a2,
     rctx->esm_filter_batch_ubo.WriteMemory(esm_filter_batch);
 
     gl_state_active_bind_texture_2d(0, v11->glid);
-    if (a3) {
-        GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-    }
-    else {
-        GLint swizzle[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
-        glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-    }
     gl_state_bind_sampler(0, rctx->render_samplers[0]);
     gl_state_bind_vertex_array(rctx->common_vao);
     shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
@@ -1878,7 +1868,6 @@ static void draw_pass_3d_shadow_set(Shadow* shad, render_context* rctx) {
         for (int32_t i = 0; i < 2; i++)
             if (shad->shadow_enable[i]) {
                 gl_state_active_bind_texture_2d(6 + j, shad->curr_render_textures[1 + i]->GetColorTex());
-                glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
                 j++;
             }
 

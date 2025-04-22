@@ -16,12 +16,11 @@ struct gl_state_rect {
 };
 
 struct gl_state_struct {
-    GLint program;
-    GLenum active_texture;
+    GLuint program;
     GLuint active_texture_index;
-    GLint texture_binding_2d[32];
-    GLint texture_binding_cube_map[32];
-    GLint sampler_binding[32];
+    GLuint texture_binding_2d[32];
+    GLuint texture_binding_cube_map[32];
+    GLuint sampler_binding[32];
     GLboolean blend;
     GLenum blend_src_rgb;
     GLenum blend_src_alpha;
@@ -29,7 +28,6 @@ struct gl_state_struct {
     GLenum blend_dst_alpha;
     GLenum blend_mode_rgb;
     GLenum blend_mode_alpha;
-    GLuint framebuffer_binding;
     GLuint read_framebuffer_binding;
     GLuint draw_framebuffer_binding;
     GLuint vertex_array_binding;

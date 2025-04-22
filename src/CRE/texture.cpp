@@ -581,14 +581,7 @@ inline void texture_manager_free() {
 }
 
 inline static void texture_bind(GLenum target, GLuint texture) {
-    switch (target) {
-    case GL_TEXTURE_2D:
-        gl_state_bind_texture_2d(texture);
-        break;
-    case GL_TEXTURE_CUBE_MAP:
-        gl_state_bind_texture_cube_map(texture);
-        break;
-    }
+    glBindTexture(target, texture);
 }
 
 inline static GLuint texture_get_working_internal_format(GLuint internal_format) {

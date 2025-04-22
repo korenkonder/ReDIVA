@@ -301,15 +301,15 @@ namespace mdl {
         morph_vertex_buffer = 0;
         morph_vertex_buffer_offset = 0;
 
-        gl_state_bind_vertex_array(vertex_array);
+        glBindVertexArray(vertex_array);
         for (int32_t i = 0; i < 16; i++)
             if (vertex_attrib_array[i]) {
                 glDisableVertexAttribArray(i);
                 vertex_attrib_array[i] = false;
             }
-        gl_state_bind_array_buffer(0, true);
-        gl_state_bind_element_array_buffer(0, true);
-        gl_state_bind_vertex_array(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
     }
 
     DispManager::DispManager() : obj_flags(), shadow_type(), field_8(), field_C(),
@@ -414,10 +414,11 @@ namespace mdl {
             vertex_array = &vertex_array_cache.back();
         }
 
+        bool new_vertex_array = false;
         if (!vertex_array->vertex_array) {
             glGenVertexArrays(1, &vertex_array->vertex_array);
 
-            gl_state_bind_vertex_array(vertex_array->vertex_array);
+            glBindVertexArray(vertex_array->vertex_array);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -434,6 +435,7 @@ namespace mdl {
             glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+            new_vertex_array = true;
         }
 
         vertex_array->vertex_buffer = vertex_buffer;
@@ -449,10 +451,11 @@ namespace mdl {
         memcpy(&vertex_array->vertex_attrib_buffer_binding,
             vertex_attrib_buffer_binding, sizeof(vertex_attrib_buffer_binding));
 
-        gl_state_bind_vertex_array(vertex_array->vertex_array);
-        gl_state_bind_array_buffer(vertex_buffer, true);
+        if (!new_vertex_array)
+            glBindVertexArray(vertex_array->vertex_array);
+        glBindBuffer(GL_ARRAY_BUFFER, vertex_buffer);
         if (index_buffer)
-            gl_state_bind_element_array_buffer(index_buffer, true);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, index_buffer);
 
         size_t offset = vertex_buffer_offset;
         if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -691,7 +694,7 @@ namespace mdl {
         }
 
         if (morph_vertex_buffer) {
-            gl_state_bind_array_buffer(morph_vertex_buffer, true);
+            glBindBuffer(GL_ARRAY_BUFFER, morph_vertex_buffer);
 
             size_t offset = morph_vertex_buffer_offset;
             if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -923,10 +926,10 @@ namespace mdl {
             }
         }
 
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
         if (index_buffer)
-            gl_state_bind_element_array_buffer(0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     static size_t gen_grid_vertices(std::vector<std::pair<vec3, vec3>>& data,
@@ -1687,10 +1690,11 @@ namespace mdl {
             etc_vertex_array = &etc_vertex_array_cache.back();
         }
 
+        bool new_vertex_array = false;
         if (!etc_vertex_array->vertex_array) {
             glGenVertexArrays(1, &etc_vertex_array->vertex_array);
 
-            gl_state_bind_vertex_array(etc_vertex_array->vertex_array);
+            glBindVertexArray(etc_vertex_array->vertex_array);
             glVertexAttrib4f(       POSITION_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(    BONE_WEIGHT_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
             glVertexAttrib4f(         NORMAL_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
@@ -1707,11 +1711,13 @@ namespace mdl {
             glVertexAttrib4f(MORPH_TEXCOORD0_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(MORPH_TEXCOORD1_INDEX, 0.0f, 0.0f, 0.0f, 1.0f);
             glVertexAttrib4f(     BONE_INDEX_INDEX, 0.0f, 0.0f, 0.0f, 0.0f);
+            new_vertex_array = true;
         }
 
         etc_vertex_array->alive_time = 2;
         etc_vertex_array->data = etc->data;
         etc_vertex_array->type = type;
+        etc_vertex_array->indexed = indexed;
 
         std::vector<std::pair<vec3, vec3>> vtx_data;
         std::vector<uint32_t> vtx_indices;
@@ -1827,12 +1833,13 @@ namespace mdl {
 
         GLsizei size_vertex = sizeof(vec3) * 2;
 
-        gl_state_bind_vertex_array(etc_vertex_array->vertex_array);
+        if (!new_vertex_array)
+            glBindVertexArray(etc_vertex_array->vertex_array);
 
         if (etc_vertex_array->vertex_buffer.IsNull())
             etc_vertex_array->vertex_buffer.Create(sizeof(vec3) * 2 * vtx_data.size());
 
-        etc_vertex_array->vertex_buffer.Bind(true);
+        glBindBuffer(GL_ARRAY_BUFFER, etc_vertex_array->vertex_buffer);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * 2
             * vtx_data.size(), vtx_data.data());
 
@@ -1840,7 +1847,7 @@ namespace mdl {
             if (etc_vertex_array->index_buffer.IsNull())
                 etc_vertex_array->index_buffer.Create(sizeof(uint32_t) * vtx_indices.size());
 
-            etc_vertex_array->index_buffer.Bind(true);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, etc_vertex_array->index_buffer);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
                 * vtx_indices.size(), vtx_indices.data());
         }
@@ -1853,10 +1860,10 @@ namespace mdl {
         glVertexAttribPointer(NORMAL_INDEX,
             3, GL_FLOAT, GL_FALSE, size_vertex, (void*)sizeof(vec3));
 
-        gl_state_bind_array_buffer(0);
-        gl_state_bind_vertex_array(0);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
         if (indexed)
-            gl_state_bind_element_array_buffer(0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
 
     void* DispManager::alloc_data(int32_t size) {
@@ -2068,12 +2075,13 @@ namespace mdl {
 
         for (DispManager::etc_vertex_array& i : etc_vertex_array_cache)
             if (i.alive_time > 0 && --i.alive_time <= 0) {
-                gl_state_bind_vertex_array(i.vertex_array);
+                glBindVertexArray(i.vertex_array);
                 glDisableVertexAttribArray(POSITION_INDEX);
                 glDisableVertexAttribArray(  NORMAL_INDEX);
-                gl_state_bind_array_buffer(0, true);
-                gl_state_bind_element_array_buffer(0, true);
-                gl_state_bind_vertex_array(0);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+                if (i.indexed)
+                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+                glBindVertexArray(0);
             }
     }
 

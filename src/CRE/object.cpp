@@ -2407,12 +2407,12 @@ inline void objset_info_storage_free() {
 static GLuint create_index_buffer(size_t size, const void* data) {
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);
-    gl_state_bind_element_array_buffer(buffer);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, buffer);
     if (GLAD_GL_VERSION_4_4)
         glBufferStorage(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, 0);
     else
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_STATIC_DRAW);
-    gl_state_bind_element_array_buffer(0);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
     if (glGetError()) {
         glDeleteBuffers(1, &buffer);
@@ -2424,14 +2424,14 @@ static GLuint create_index_buffer(size_t size, const void* data) {
 static GLuint create_vertex_buffer(size_t size, const void* data, bool dynamic) {
     GLuint buffer = 0;
     glGenBuffers(1, &buffer);
-    gl_state_bind_array_buffer(buffer);
+    glBindBuffer(GL_ARRAY_BUFFER, buffer);
     if (GLAD_GL_VERSION_4_4)
         glBufferStorage(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
             dynamic ? GL_DYNAMIC_STORAGE_BIT | GL_MAP_WRITE_BIT : 0);
     else
         glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data,
             dynamic ? GL_DYNAMIC_DRAW : GL_STATIC_DRAW);
-    gl_state_bind_array_buffer(0);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
 
     if (glGetError()) {
         glDeleteBuffers(1, &buffer);

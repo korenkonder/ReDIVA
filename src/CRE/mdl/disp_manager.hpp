@@ -407,6 +407,7 @@ namespace mdl {
             GLuint vertex_array;
             EtcObj::Data data;
             EtcObjType type;
+            bool indexed;
             GLsizei count;
             size_t offset;
             GLsizei wire_count;

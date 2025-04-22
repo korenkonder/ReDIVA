@@ -84,12 +84,12 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
 
         render_texture_counter++;
         color_texture = GetColorTex();
-        gl_state_bind_texture_2d(GetColorTex());
         if (color_format == GL_RGBA32F) {
+            glBindTexture(GL_TEXTURE_2D, color_texture);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glBindTexture(GL_TEXTURE_2D, 0);
         }
-        gl_state_bind_texture_2d(0);
     }
     else {
         this->color_texture = 0;
