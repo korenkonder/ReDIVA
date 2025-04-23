@@ -11,6 +11,11 @@
 #include "gl.hpp"
 #include <map>
 
+#define GL_ALPHA8 0x803C
+#define GL_LUMINANCE8 0x8040
+#define GL_LUMINANCE8_ALPHA8 0x8045
+#define GL_INTENSITY8 0x804B
+
 enum texture_flags {
     TEXTURE_BLOCK_COMPRESSION = 0x01,
 };

@@ -280,11 +280,11 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
     GLenum _type;
     switch (internal_format) {
     case GL_ALPHA8:
-        _format = GL_R;
+        _format = GL_RED;
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_LUMINANCE8:
-        _format = GL_R;
+        _format = GL_RED;
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_LUMINANCE8_ALPHA8:
@@ -292,7 +292,7 @@ void texture_get_format_type_by_internal_format(GLenum internal_format, GLenum* 
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_INTENSITY8:
-        _format = GL_R;
+        _format = GL_RED;
         _type = GL_UNSIGNED_BYTE;
         break;
     case GL_RGB5:
