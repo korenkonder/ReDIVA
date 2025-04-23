@@ -17,7 +17,7 @@
 #include "render_context.hpp"
 #include "resolution_mode.hpp"
 #include "texture.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 
 #define BREAK_SPRITE_VERTEX_LIMIT (1)
 

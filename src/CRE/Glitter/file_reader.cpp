@@ -12,7 +12,7 @@
 #include "../data.hpp"
 #include "../object.hpp"
 #if SHARED_GLITTER_BUFFER
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #endif
 
 namespace Glitter {

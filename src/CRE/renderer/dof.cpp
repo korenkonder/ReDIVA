@@ -5,7 +5,7 @@
 
 #include "dof.hpp"
 #include "../rob/rob.hpp"
-#include "../gl_state.hpp"
+#include "../gl_rend_state.hpp"
 #include "../shader_ft.hpp"
 
 struct dof_common_shader_data {
@@ -176,16 +176,16 @@ namespace renderer {
     void DOF3::apply_f2(RenderTexture* rt, RenderTexture* buf_rt, GLuint color_texture,
         GLuint depth_texture, float_t min_distance, float_t max_distance, float_t fov,
         float_t focus, float_t focus_range, float_t fuzzing_range, float_t ratio) {
-        gl_state_begin_event("renderer::DOF3::apply_f2");
-        gl_state_disable_blend();
-        gl_state_set_depth_mask(GL_FALSE);
-        gl_state_set_depth_func(GL_ALWAYS);
+        gl_rend_state.begin_event("renderer::DOF3::apply_f2");
+        gl_rend_state.disable_blend();
+        gl_rend_state.set_depth_mask(GL_FALSE);
+        gl_rend_state.set_depth_func(GL_ALWAYS);
         update_data(min_distance, max_distance,
             fov, focus, 0.0f, 1.0f, focus_range, fuzzing_range, ratio);
 
         uniform_value[U_DOF] = 1;
 
-        gl_state_bind_vertex_array(vao);
+        gl_rend_state.bind_vertex_array(vao);
         render_tiles(depth_texture, true);
         downsample(color_texture, depth_texture, true);
         apply_main_filter(true);
@@ -193,26 +193,26 @@ namespace renderer {
 
         shader::unbind();
         for (int32_t i = 0; i < 8; i++) {
-            gl_state_bind_sampler(i, 0);
-            gl_state_active_bind_texture_2d(i, 0);
+            gl_rend_state.bind_sampler(i, 0);
+            gl_rend_state.active_bind_texture_2d(i, 0);
         }
-        gl_state_bind_vertex_array(0);
-        gl_state_end_event();
+        gl_rend_state.bind_vertex_array(0);
+        gl_rend_state.end_event();
     }
 
     void DOF3::apply_physical(RenderTexture* rt, RenderTexture* buf_rt, GLuint color_texture,
         GLuint depth_texture, float_t min_distance, float_t max_distance,
         float_t focus, float_t focal_length, float_t fov, float_t f_number) {
-        gl_state_begin_event("renderer::DOF3::apply_physical");
-        gl_state_disable_blend();
-        gl_state_set_depth_mask(GL_FALSE);
-        gl_state_set_depth_func(GL_ALWAYS);
+        gl_rend_state.begin_event("renderer::DOF3::apply_physical");
+        gl_rend_state.disable_blend();
+        gl_rend_state.set_depth_mask(GL_FALSE);
+        gl_rend_state.set_depth_func(GL_ALWAYS);
         update_data(min_distance, max_distance,
             fov, focus, focal_length, f_number, 0.0f, 0.1f, 0.0f);
 
         uniform_value[U_DOF] = 0;
 
-        gl_state_bind_vertex_array(vao);
+        gl_rend_state.bind_vertex_array(vao);
         render_tiles(depth_texture, false);
         downsample(color_texture, depth_texture, false);
         apply_main_filter(false);
@@ -220,93 +220,93 @@ namespace renderer {
 
         shader::unbind();
         for (int32_t i = 0; i < 8; i++) {
-            gl_state_bind_sampler(i, 0);
-            gl_state_active_bind_texture_2d(i, 0);
+            gl_rend_state.bind_sampler(i, 0);
+            gl_rend_state.active_bind_texture_2d(i, 0);
         }
-        gl_state_bind_vertex_array(0);
-        gl_state_end_event();
+        gl_rend_state.bind_vertex_array(0);
+        gl_rend_state.end_event();
     }
 
     void DOF3::render_tiles(GLuint depth_texture, bool f2) {
-        gl_state_begin_event("renderer::DOF3::render_tiles");
+        gl_rend_state.begin_event("renderer::DOF3::render_tiles");
         fbo[0].bind_buffer();
-        gl_state_set_viewport(0, 0, fbo[0].width, fbo[0].height);
+        gl_rend_state.set_viewport(0, 0, fbo[0].width, fbo[0].height);
         uniform_value[U_DOF_STAGE] = 0;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
-        gl_state_active_bind_texture_2d(0, depth_texture);
-        gl_state_bind_sampler(0, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(0, depth_texture);
+        gl_rend_state.bind_sampler(0, samplers[1]);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         fbo[1].bind_buffer();
-        gl_state_set_viewport(0, 0, fbo[1].width, fbo[1].height);
+        gl_rend_state.set_viewport(0, 0, fbo[1].width, fbo[1].height);
         uniform_value[U_DOF_STAGE] = 1;
         shaders_ft.set(SHADER_FT_DOF);
-        gl_state_active_bind_texture_2d(0, textures[0]);
-        gl_state_bind_sampler(0, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(0, textures[0]);
+        gl_rend_state.bind_sampler(0, samplers[1]);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        gl_state_end_event();
+        gl_rend_state.end_event();
     }
 
     void DOF3::downsample(GLuint color_texture, GLuint depth_texture, bool f2) {
-        gl_state_begin_event("renderer::DOF3::downsample");
+        gl_rend_state.begin_event("renderer::DOF3::downsample");
         fbo[2].bind_buffer();
-        gl_state_set_viewport(0, 0, fbo[2].width, fbo[2].height);
+        gl_rend_state.set_viewport(0, 0, fbo[2].width, fbo[2].height);
         uniform_value[U_DOF_STAGE] = 2;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
-        gl_state_active_bind_texture_2d(0, depth_texture);
-        gl_state_bind_sampler(0, samplers[1]);
-        gl_state_active_bind_texture_2d(1, color_texture);
-        gl_state_bind_sampler(1, samplers[0]);
-        gl_state_active_bind_texture_2d(2, textures[1]);
-        gl_state_bind_sampler(2, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(0, depth_texture);
+        gl_rend_state.bind_sampler(0, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(1, color_texture);
+        gl_rend_state.bind_sampler(1, samplers[0]);
+        gl_rend_state.active_bind_texture_2d(2, textures[1]);
+        gl_rend_state.bind_sampler(2, samplers[1]);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        gl_state_end_event();
+        gl_rend_state.end_event();
     }
 
     void DOF3::apply_main_filter(bool f2) {
-        gl_state_begin_event("renderer::DOF3::apply_main_filter");
+        gl_rend_state.begin_event("renderer::DOF3::apply_main_filter");
         fbo[3].bind_buffer();
-        gl_state_set_viewport(0, 0, fbo[3].width, fbo[3].height);
+        gl_rend_state.set_viewport(0, 0, fbo[3].width, fbo[3].height);
         uniform_value[U_DOF_STAGE] = 3;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
         texcoords_ubo.Bind(1);
-        gl_state_active_bind_texture_2d(0, textures[3]);
-        gl_state_bind_sampler(0, samplers[1]);
-        gl_state_active_bind_texture_2d(1, textures[2]);
-        gl_state_bind_sampler(1, samplers[1]);
-        gl_state_active_bind_texture_2d(2, textures[1]);
-        gl_state_bind_sampler(2, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(0, textures[3]);
+        gl_rend_state.bind_sampler(0, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(1, textures[2]);
+        gl_rend_state.bind_sampler(1, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(2, textures[1]);
+        gl_rend_state.bind_sampler(2, samplers[1]);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        gl_state_end_event();
+        gl_rend_state.end_event();
     }
 
     void DOF3::upsample(RenderTexture* rt, RenderTexture* buf_rt,
         GLuint color_texture, GLuint depth_texture, bool f2) {
-        gl_state_begin_event("renderer::DOF3::upsample");
+        gl_rend_state.begin_event("renderer::DOF3::upsample");
         buf_rt->Bind();
-        gl_state_set_viewport(0, 0, width, height);
+        gl_rend_state.set_viewport(0, 0, width, height);
         uniform_value[U_DOF_STAGE] = 4;
         shaders_ft.set(SHADER_FT_DOF);
         common_ubo.Bind(0);
-        gl_state_active_bind_texture_2d(0, textures[4]);
-        gl_state_bind_sampler(0, samplers[1]);
-        gl_state_active_bind_texture_2d(1, textures[5]);
-        gl_state_bind_sampler(1, samplers[1]);
-        gl_state_active_bind_texture_2d(2, textures[1]);
-        gl_state_bind_sampler(2, samplers[1]);
-        gl_state_active_bind_texture_2d(3, color_texture);
-        gl_state_bind_sampler(3, samplers[1]);
-        gl_state_active_bind_texture_2d(4, depth_texture);
-        gl_state_bind_sampler(4, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(0, textures[4]);
+        gl_rend_state.bind_sampler(0, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(1, textures[5]);
+        gl_rend_state.bind_sampler(1, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(2, textures[1]);
+        gl_rend_state.bind_sampler(2, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(3, color_texture);
+        gl_rend_state.bind_sampler(3, samplers[1]);
+        gl_rend_state.active_bind_texture_2d(4, depth_texture);
+        gl_rend_state.bind_sampler(4, samplers[1]);
         shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         glCopyImageSubData(
             buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
             rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
-        gl_state_end_event();
+        gl_rend_state.end_event();
     }
 
     void DOF3::init_textures(int32_t width, int32_t height) {

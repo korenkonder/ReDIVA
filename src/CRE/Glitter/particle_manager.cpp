@@ -284,10 +284,10 @@ namespace Glitter {
             i->Disp(this, disp_type);
         }
 
-        gl_state_bind_vertex_array(0);
-        gl_state_disable_blend();
-        gl_state_enable_cull_face();
-        gl_state_disable_depth_test();
+        gl_rend_state.bind_vertex_array(0);
+        gl_rend_state.disable_blend();
+        gl_rend_state.enable_cull_face();
+        gl_rend_state.disable_depth_test();
     }
 
     void GltParticleManager::FreeEffects() {

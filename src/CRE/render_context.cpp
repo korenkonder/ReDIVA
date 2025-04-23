@@ -107,8 +107,8 @@ void sss_data::init() {
 }
 
 void sss_data::set_texture(int32_t texture_index) {
-    gl_state_active_bind_texture_2d(16, textures[texture_index].GetColorTex());
-    gl_state_active_texture(0);
+    gl_rend_state.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
+    gl_rend_state.active_texture(0);
 }
 
 light_proj::light_proj(int32_t width, int32_t height) : enable(), texture_id() {
@@ -136,9 +136,9 @@ bool light_proj::set() {
     static const GLfloat depth_clear = 1.0f;
 
     shadow_texture[0].Bind();
-    gl_state_set_viewport(0, 0, 2048, 512);
-    gl_state_enable_depth_test();
-    gl_state_set_depth_mask(GL_TRUE);
+    gl_rend_state.set_viewport(0, 0, 2048, 512);
+    gl_rend_state.enable_depth_test();
+    gl_rend_state.set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
 
@@ -150,8 +150,8 @@ bool light_proj::set() {
     else {
         draw_texture.Bind();
         draw_texture.SetViewport();
-        gl_state_enable_depth_test();
-        gl_state_set_depth_mask(GL_TRUE);
+        gl_rend_state.enable_depth_test();
+        gl_rend_state.set_depth_mask(GL_TRUE);
         glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
         glClearBufferfv(GL_DEPTH, 0, &depth_clear);
     }
@@ -1144,20 +1144,22 @@ void render_context::pre_proc() {
                 if (!i.offset)
                     continue;
 
-                size_t align = align_val(i.offset, sv_min_storage_buffer_alignment) - i.offset;
+                const size_t size = align_val(i.offset, sv_min_uniform_buffer_alignment);
+                const size_t align = size - i.offset;
                 if (align)
                     memset((void*)((size_t)i.data + i.offset), 0, align);
-                i.buffer.WriteMemory(0, i.size, i.data);
+                i.buffer.WriteMemory(0, size, i.data);
             }
 
         for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
             if (!i.offset)
                 continue;
 
-            size_t align = align_val(i.offset, sv_min_uniform_buffer_alignment) - i.offset;
+            const size_t size = align_val(i.offset, sv_min_uniform_buffer_alignment);
+            const size_t align = size - i.offset;
             if (align)
                 memset((void*)((size_t)i.data + i.offset), 0, align);
-            i.buffer.WriteMemory(0, i.size, i.data);
+            i.buffer.WriteMemory(0, size, i.data);
         }
     }
 }

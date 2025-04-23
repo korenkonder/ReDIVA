@@ -12,7 +12,7 @@
 #include "../KKdLib/msgpack.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "render_context.hpp"
 #include "shader_ft.hpp"
 #include <list>

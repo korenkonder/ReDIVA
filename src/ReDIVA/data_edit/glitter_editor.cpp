@@ -17,7 +17,6 @@
 #include "../../CRE/app_system_detail.hpp"
 #include "../../CRE/camera.hpp"
 #include "../../CRE/data.hpp"
-#include "../../CRE/gl_state.hpp"
 #include "../../CRE/render_context.hpp"
 #include "../../CRE/stage.hpp"
 #include "../../CRE/static_var.hpp"

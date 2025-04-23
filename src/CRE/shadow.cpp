@@ -37,7 +37,7 @@ void Shadow::clear_textures() {
             glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
         }
-    gl_state_bind_framebuffer(0);
+    gl_rend_state.bind_framebuffer(0);
 }
 
 void Shadow::ctrl() {
@@ -113,7 +113,7 @@ int32_t Shadow::init() {
     GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
     glBindTexture(GL_TEXTURE_2D, 0);
-    gl_state_get_error();
+    gl_get_error_print();
     return 0;
 }
 

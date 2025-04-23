@@ -2105,12 +2105,12 @@ namespace mdl {
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_state_active_texture(0);
-        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        gl_rend_state.active_texture(0);
+        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
-        gl_state_get();
+        gl_rend_state.get();
 
         switch (type) {
         case OBJ_TYPE_TRANSLUCENT:
@@ -2118,7 +2118,7 @@ namespace mdl {
             if (depth_mask)
                 func = draw_sub_mesh_translucent;
             else
-                gl_state_set_depth_mask(GL_FALSE);
+                gl_rend_state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
@@ -2137,12 +2137,12 @@ namespace mdl {
             break;
         case OBJ_TYPE_TYPE_6:
             func = draw_sub_mesh_translucent;
-            gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx->draw_state->shader_index = SHADER_FT_SIL;
             break;
         case OBJ_TYPE_TYPE_7:
             func = draw_sub_mesh_translucent;
-            gl_state_set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
+            gl_rend_state.set_color_mask(GL_FALSE, GL_FALSE, GL_FALSE, GL_FALSE);
             rctx->draw_state->shader_index = SHADER_FT_SIL;
 
             alpha_test = 1;
@@ -2150,7 +2150,7 @@ namespace mdl {
             alpha_threshold = 0.99999994f;
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
-            gl_state_set_cull_face_mode(GL_FRONT);
+            gl_rend_state.set_cull_face_mode(GL_FRONT);
 
             if (!reflect_draw) {
                 if (reflect)
@@ -2160,7 +2160,7 @@ namespace mdl {
             }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
-            gl_state_set_cull_face_mode(GL_FRONT);
+            gl_rend_state.set_cull_face_mode(GL_FRONT);
 
             min_alpha = 0.0f;
 
@@ -2172,7 +2172,7 @@ namespace mdl {
             }
             break;
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
-            gl_state_set_cull_face_mode(GL_FRONT);
+            gl_rend_state.set_cull_face_mode(GL_FRONT);
 
             alpha_test = 1;
             min_alpha = 0.1f;
@@ -2190,18 +2190,18 @@ namespace mdl {
             alpha_threshold = 0.5f;
 
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
             else if (!reflect_texture_mask)
                 func = draw_sub_mesh_reflect_reflect_map;
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
-            gl_state_set_depth_mask(GL_FALSE);
+            gl_rend_state.set_depth_mask(GL_FALSE);
 
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
 
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFLECT_TRANSPARENT:
             alpha_test = 1;
@@ -2209,10 +2209,10 @@ namespace mdl {
             alpha_threshold = 0.5f;
 
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
-            gl_state_set_depth_mask(GL_FALSE);
+            gl_rend_state.set_depth_mask(GL_FALSE);
 
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
@@ -2226,7 +2226,7 @@ namespace mdl {
             func = draw_sub_mesh_sss;
 
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSPARENT_ALPHA_ORDER_2:
@@ -2238,7 +2238,7 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-            gl_state_set_depth_mask(GL_FALSE);
+            gl_rend_state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
@@ -2295,53 +2295,53 @@ namespace mdl {
         case OBJ_TYPE_TRANSLUCENT:
         case OBJ_TYPE_TRANSLUCENT_SORT_BY_RADIUS:
             if (!depth_mask)
-                gl_state_set_depth_mask(GL_TRUE);
+                gl_rend_state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_TYPE_6:
         case OBJ_TYPE_TYPE_7:
             rctx_ptr->draw_state->shader_index = -1;
-            gl_state_set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+            gl_rend_state.set_color_mask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
             break;
         case OBJ_TYPE_REFLECT_CHARA_OPAQUE:
         case OBJ_TYPE_REFLECT_CHARA_TRANSLUCENT:
         case OBJ_TYPE_REFLECT_CHARA_TRANSPARENT:
-            gl_state_set_cull_face_mode(GL_BACK);
+            gl_rend_state.set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_REFLECT_OPAQUE:
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFLECT_TRANSLUCENT:
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
-            gl_state_set_depth_mask(GL_TRUE);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_REFLECT_TRANSPARENT:
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
             break;
         case OBJ_TYPE_REFRACT_TRANSLUCENT:
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_FRONT);
-            gl_state_set_depth_mask(GL_TRUE);
+                gl_rend_state.set_cull_face_mode(GL_FRONT);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             break;
         case OBJ_TYPE_SSS:
             if (reflect_draw)
-                gl_state_set_cull_face_mode(GL_BACK);
+                gl_rend_state.set_cull_face_mode(GL_BACK);
             break;
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_1:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_2:
         case OBJ_TYPE_TRANSLUCENT_ALPHA_ORDER_3:
-            gl_state_set_depth_mask(GL_TRUE);
+            gl_rend_state.set_depth_mask(GL_TRUE);
             break;
         }
 
         uniform_value_reset();
-        gl_state_bind_vertex_array(0);
+        gl_rend_state.bind_vertex_array(0);
         shader::unbind();
-        gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
-            gl_state_bind_sampler(i, 0);
+            gl_rend_state.bind_sampler(i, 0);
     }
 
     void DispManager::draw(mdl::ObjTypeLocal type, int32_t depth_mask, bool reflect_texture_mask) {
@@ -2356,19 +2356,19 @@ namespace mdl {
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_state_active_texture(0);
-        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        gl_rend_state.active_texture(0);
+        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
-        gl_state_get();
+        gl_rend_state.get();
 
         switch (type) {
         case OBJ_TYPE_LOCAL_TRANSLUCENT:
             if (depth_mask)
                 func = draw_sub_mesh_translucent;
             else
-                gl_state_set_depth_mask(GL_FALSE);
+                gl_rend_state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
@@ -2399,16 +2399,16 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_LOCAL_TRANSLUCENT:
             if (!depth_mask)
-                gl_state_set_depth_mask(GL_TRUE);
+                gl_rend_state.set_depth_mask(GL_TRUE);
             break;
         }
 
         uniform_value_reset();
-        gl_state_bind_vertex_array(0);
+        gl_rend_state.bind_vertex_array(0);
         shader::unbind();
-        gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
-            gl_state_bind_sampler(i, 0);
+            gl_rend_state.bind_sampler(i, 0);
     }
 
     void DispManager::draw(mdl::ObjTypeReflect type, int32_t depth_mask, bool reflect_texture_mask) {
@@ -2424,25 +2424,25 @@ namespace mdl {
         void(*func)(render_context * rctx, const ObjSubMeshArgs * args) = draw_sub_mesh_default;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
-        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
-        gl_state_active_texture(0);
-        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d->glid);
+        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map->glid);
+        gl_rend_state.active_texture(0);
+        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
-        gl_state_get();
+        gl_rend_state.get();
 
         switch (type) {
         case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
             if (depth_mask)
                 func = draw_sub_mesh_translucent;
             else
-                gl_state_set_depth_mask(GL_FALSE);
+                gl_rend_state.set_depth_mask(GL_FALSE);
 
             alpha_test = 1;
             min_alpha = 0.0f;
             alpha_threshold = 0.0f;
 
-            gl_state_set_cull_face_mode(GL_FRONT);
+            gl_rend_state.set_cull_face_mode(GL_FRONT);
             break;
         }
         rctx->set_batch_alpha_threshold(alpha_threshold);
@@ -2464,16 +2464,16 @@ namespace mdl {
         switch (type) {
         case OBJ_TYPE_REFLECT_TRANSLUCENT_SORT_BY_RADIUS:
             if (!depth_mask)
-                gl_state_set_cull_face_mode(GL_BACK);
+                gl_rend_state.set_cull_face_mode(GL_BACK);
             break;
         }
 
         uniform_value_reset();
-        gl_state_bind_vertex_array(0);
+        gl_rend_state.bind_vertex_array(0);
         shader::unbind();
-        gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
         for (int32_t i = 0; i < 5; i++)
-            gl_state_bind_sampler(i, 0);
+            gl_rend_state.bind_sampler(i, 0);
     }
 
     /*void DispManager::draw_show_vector(ObjType type, int32_t show_vector) {
@@ -2483,12 +2483,12 @@ namespace mdl {
         render_context* rctx = rctx_ptr;
 
         for (int32_t i = 0; i < 5; i++)
-            gl_state_active_bind_texture_2d(i, rctx->empty_texture_2d);
-        gl_state_active_bind_texture_cube_map(5, rctx->empty_texture_cube_map);
-        gl_state_active_texture(0);
-        gl_state_set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            gl_rend_state.active_bind_texture_2d(i, rctx->empty_texture_2d);
+        gl_rend_state.active_bind_texture_cube_map(5, rctx->empty_texture_cube_map);
+        gl_rend_state.active_texture(0);
+        gl_rend_state.set_blend_func(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
         uniform_value_reset();
-        gl_state_get();
+        gl_rend_state.get();
 
         for (ObjData*& i : obj[type]) {
             switch (i->type) {
@@ -2503,7 +2503,7 @@ namespace mdl {
             } break;
             }
         }
-        gl_state_set_blend_func(GL_ONE, GL_ZERO);
+        gl_rend_state.set_blend_func(GL_ONE, GL_ZERO);
     }*/
 
     void DispManager::entry_list(ObjType type, ObjData* data) {

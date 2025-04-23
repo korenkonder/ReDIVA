@@ -6,7 +6,7 @@
 #include "shader_ft.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "app_system_detail.hpp"
-#include "gl_state.hpp"
+#include "gl_rend_state.hpp"
 #include "random.hpp"
 #include "render_context.hpp"
 

@@ -129,14 +129,14 @@ namespace Vulkan {
         static gl_sampler* get(GLuint program);
     };
 
-    struct gl_state_rect {
+    struct gl_rend_state_rect {
         GLint x;
         GLint y;
         GLsizei width;
         GLsizei height;
     };
 
-    struct gl_state_struct {
+    struct gl_rend_state_struct {
         vec4 clear_color;
         float_t clear_depth;
         int32_t clear_stencil;
@@ -180,7 +180,7 @@ namespace Vulkan {
         GLboolean multisample;
         GLboolean primitive_restart;
         GLuint primitive_restart_index;
-        gl_state_rect scissor_box;
+        gl_rend_state_rect scissor_box;
         GLboolean scissor_test;
         GLboolean stencil_test;
         GLenum stencil_func;
@@ -190,9 +190,9 @@ namespace Vulkan {
         GLuint stencil_mask;
         GLint stencil_ref;
         GLuint stencil_value_mask;
-        gl_state_rect viewport;
+        gl_rend_state_rect viewport;
 
-        gl_state_struct();
+        gl_rend_state_struct();
     };
 
     struct gl_storage_buffer {

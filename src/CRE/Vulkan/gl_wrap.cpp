@@ -97,7 +97,7 @@ namespace Vulkan {
         void update_buffers();
     };
 
-    gl_state_struct gl_state;
+    gl_rend_state_struct gl_rend_state;
     gl_wrap_manager* gl_wrap_manager_ptr;
 
     static bool gl_wrap_manager_prepare_pipeline_draw(GLenum mode, GLenum type, const void* indices);
@@ -538,7 +538,7 @@ namespace Vulkan {
         return 0;
     }
 
-    gl_state_struct::gl_state_struct() {
+    gl_rend_state_struct::gl_rend_state_struct() {
         clear_color = 0.0f;
         clear_depth = 1.0f;
         clear_stencil = 0x00;
@@ -909,7 +909,7 @@ namespace Vulkan {
 
         uint32_t binding = -1;
         for (gl_vertex_buffer_binding_data& i : vertex_buffer_bindings)
-            if (i.buffer == gl_state.array_buffer_binding && i.stride == i.stride
+            if (i.buffer == gl_rend_state.array_buffer_binding && i.stride == i.stride
                 && i.offset < offset && offset < i.offset + i.stride) {
                 binding = (uint32_t)(&i - vertex_buffer_bindings);
                 offset -= i.offset;
@@ -926,7 +926,7 @@ namespace Vulkan {
             for (uint32_t i = 0; i < Vulkan::MAX_VERTEX_ATTRIB_COUNT; i++)
                 if (!binding_used[i]) {
                     binding = i;
-                    vertex_buffer_bindings[binding].buffer = gl_state.array_buffer_binding;
+                    vertex_buffer_bindings[binding].buffer = gl_rend_state.array_buffer_binding;
                     vertex_buffer_bindings[binding].offset = offset;
                     vertex_buffer_bindings[binding].stride = stride;
                     offset = 0;
@@ -1022,7 +1022,7 @@ namespace Vulkan {
     }
 
     GLuint gl_wrap_manager_get_query_samples_passed() {
-        return gl_state.query_samples_passed;
+        return gl_rend_state.query_samples_passed;
     }
 
     void gl_wrap_manager_update_buffers() {
@@ -1429,7 +1429,7 @@ namespace Vulkan {
 
         this->data.resize(texture_get_size(internal_format, width, height));
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            type, _type, data, this->data.data(), gl_state.unpack_alignment, true))
+            type, _type, data, this->data.data(), gl_rend_state.unpack_alignment, true))
             this->data.clear();
     }
 
@@ -2002,7 +2002,7 @@ namespace Vulkan {
     }
 
     static bool gl_wrap_manager_prepare_pipeline_draw(GLenum mode, GLenum type, const void* indices) {
-        Vulkan::gl_program* vk_program = Vulkan::gl_program::get(gl_state.program);
+        Vulkan::gl_program* vk_program = Vulkan::gl_program::get(gl_rend_state.program);
         if (!vk_program)
             return false;
 
@@ -2011,7 +2011,7 @@ namespace Vulkan {
         if (!shader || !sub_shader || !sub_shader->vp_desc || !sub_shader->fp_desc)
             return false;
 
-        Vulkan::gl_vertex_array* vk_vao = Vulkan::gl_vertex_array::get(gl_state.vertex_array_binding);
+        Vulkan::gl_vertex_array* vk_vao = Vulkan::gl_vertex_array::get(gl_rend_state.vertex_array_binding);
         if (!vk_vao || type && !vk_vao->index_buffer_binding.buffer)
             return false;
 
@@ -2424,7 +2424,7 @@ namespace Vulkan {
             break;
         case GL_LINE_STRIP:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-            input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
+            input_assembly_state.primitiveRestartEnable = gl_rend_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         case GL_TRIANGLES:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -2432,62 +2432,62 @@ namespace Vulkan {
             break;
         case GL_TRIANGLE_STRIP:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-            input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
+            input_assembly_state.primitiveRestartEnable = gl_rend_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         case GL_TRIANGLE_FAN:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-            input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
+            input_assembly_state.primitiveRestartEnable = gl_rend_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         default:
             return false;
         }
 
         VkRect2D viewport_scissor_rect[2];
-        viewport_scissor_rect[0] = *(VkRect2D*)&gl_state.viewport;
-        viewport_scissor_rect[1] = gl_state.scissor_test
-            ? *(VkRect2D*)&gl_state.scissor_box : *(VkRect2D*)&gl_state.viewport;
+        viewport_scissor_rect[0] = *(VkRect2D*)&gl_rend_state.viewport;
+        viewport_scissor_rect[1] = gl_rend_state.scissor_test
+            ? *(VkRect2D*)&gl_rend_state.scissor_box : *(VkRect2D*)&gl_rend_state.viewport;
 
         VkPipelineRasterizationStateCreateInfo rasterization_state = {};
         rasterization_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterization_state.depthClampEnable = VK_FALSE;
         rasterization_state.rasterizerDiscardEnable = VK_FALSE;
-        rasterization_state.polygonMode = Vulkan::get_polygon_mode(gl_state.polygon_mode);
-        rasterization_state.lineWidth = gl_state.line_width;
+        rasterization_state.polygonMode = Vulkan::get_polygon_mode(gl_rend_state.polygon_mode);
+        rasterization_state.lineWidth = gl_rend_state.line_width;
         rasterization_state.cullMode = Vulkan::get_cull_mode_flags(
-            gl_state.cull_face ? gl_state.cull_face_mode : GL_NONE);
+            gl_rend_state.cull_face ? gl_rend_state.cull_face_mode : GL_NONE);
         rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterization_state.depthBiasEnable = VK_FALSE;
 
         VkPipelineDepthStencilStateCreateInfo depth_stencil_state = {};
         depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depth_stencil_state.depthTestEnable = gl_state.depth_test ? VK_TRUE : VK_FALSE;
-        depth_stencil_state.depthWriteEnable = gl_state.depth_test && gl_state.depth_mask ? VK_TRUE : VK_FALSE;
+        depth_stencil_state.depthTestEnable = gl_rend_state.depth_test ? VK_TRUE : VK_FALSE;
+        depth_stencil_state.depthWriteEnable = gl_rend_state.depth_test && gl_rend_state.depth_mask ? VK_TRUE : VK_FALSE;
         depth_stencil_state.depthCompareOp = Vulkan::get_compare_op(
-            gl_state.depth_test ? gl_state.depth_func : GL_ALWAYS);
+            gl_rend_state.depth_test ? gl_rend_state.depth_func : GL_ALWAYS);
         depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
-        depth_stencil_state.stencilTestEnable = gl_state.stencil_test ? VK_TRUE : VK_FALSE;
-        depth_stencil_state.front.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
-        depth_stencil_state.front.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
-        depth_stencil_state.front.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
-        depth_stencil_state.front.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
-        depth_stencil_state.front.compareMask = gl_state.stencil_value_mask;
-        depth_stencil_state.front.writeMask = gl_state.stencil_mask;
-        depth_stencil_state.front.reference = gl_state.stencil_ref;
-        depth_stencil_state.back.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
-        depth_stencil_state.back.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
-        depth_stencil_state.back.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
-        depth_stencil_state.back.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
-        depth_stencil_state.back.compareMask = gl_state.stencil_value_mask;
-        depth_stencil_state.back.writeMask = gl_state.stencil_mask;
-        depth_stencil_state.back.reference = gl_state.stencil_ref;
+        depth_stencil_state.stencilTestEnable = gl_rend_state.stencil_test ? VK_TRUE : VK_FALSE;
+        depth_stencil_state.front.failOp = Vulkan::get_stencil_op(gl_rend_state.stencil_fail);
+        depth_stencil_state.front.passOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dppass);
+        depth_stencil_state.front.depthFailOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dpfail);
+        depth_stencil_state.front.compareOp = Vulkan::get_compare_op(gl_rend_state.stencil_func);
+        depth_stencil_state.front.compareMask = gl_rend_state.stencil_value_mask;
+        depth_stencil_state.front.writeMask = gl_rend_state.stencil_mask;
+        depth_stencil_state.front.reference = gl_rend_state.stencil_ref;
+        depth_stencil_state.back.failOp = Vulkan::get_stencil_op(gl_rend_state.stencil_fail);
+        depth_stencil_state.back.passOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dppass);
+        depth_stencil_state.back.depthFailOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dpfail);
+        depth_stencil_state.back.compareOp = Vulkan::get_compare_op(gl_rend_state.stencil_func);
+        depth_stencil_state.back.compareMask = gl_rend_state.stencil_value_mask;
+        depth_stencil_state.back.writeMask = gl_rend_state.stencil_mask;
+        depth_stencil_state.back.reference = gl_rend_state.stencil_ref;
         depth_stencil_state.minDepthBounds = 0.0f;
         depth_stencil_state.maxDepthBounds = 1.0f;
 
         VkColorComponentFlags color_write_mask = 0;
-        color_write_mask |= gl_state.color_mask[0] ? VK_COLOR_COMPONENT_R_BIT : 0;
-        color_write_mask |= gl_state.color_mask[1] ? VK_COLOR_COMPONENT_G_BIT : 0;
-        color_write_mask |= gl_state.color_mask[2] ? VK_COLOR_COMPONENT_B_BIT : 0;
-        color_write_mask |= gl_state.color_mask[3] ? VK_COLOR_COMPONENT_A_BIT : 0;
+        color_write_mask |= gl_rend_state.color_mask[0] ? VK_COLOR_COMPONENT_R_BIT : 0;
+        color_write_mask |= gl_rend_state.color_mask[1] ? VK_COLOR_COMPONENT_G_BIT : 0;
+        color_write_mask |= gl_rend_state.color_mask[2] ? VK_COLOR_COMPONENT_B_BIT : 0;
+        color_write_mask |= gl_rend_state.color_mask[3] ? VK_COLOR_COMPONENT_A_BIT : 0;
 
         uint32_t color_blend_attachment_count = fragment_output_count;
         VkPipelineColorBlendAttachmentState* color_blend_attachments
@@ -2495,13 +2495,13 @@ namespace Vulkan {
         for (uint32_t i = 0; i < color_blend_attachment_count; i++) {
             VkPipelineColorBlendAttachmentState& color_blend_attachment = color_blend_attachments[i];
             color_blend_attachment.colorWriteMask = color_write_mask;
-            color_blend_attachment.blendEnable = gl_state.blend ? VK_TRUE : VK_FALSE;
-            color_blend_attachment.srcColorBlendFactor = Vulkan::get_blend_factor(gl_state.blend_src_rgb);
-            color_blend_attachment.dstColorBlendFactor = Vulkan::get_blend_factor(gl_state.blend_dst_rgb);
-            color_blend_attachment.colorBlendOp = Vulkan::get_blend_op(gl_state.blend_mode_rgb);
-            color_blend_attachment.srcAlphaBlendFactor = Vulkan::get_blend_factor(gl_state.blend_src_alpha);
-            color_blend_attachment.dstAlphaBlendFactor = Vulkan::get_blend_factor(gl_state.blend_dst_alpha);
-            color_blend_attachment.alphaBlendOp = Vulkan::get_blend_op(gl_state.blend_mode_alpha);
+            color_blend_attachment.blendEnable = gl_rend_state.blend ? VK_TRUE : VK_FALSE;
+            color_blend_attachment.srcColorBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_src_rgb);
+            color_blend_attachment.dstColorBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_dst_rgb);
+            color_blend_attachment.colorBlendOp = Vulkan::get_blend_op(gl_rend_state.blend_mode_rgb);
+            color_blend_attachment.srcAlphaBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_src_alpha);
+            color_blend_attachment.dstAlphaBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_dst_alpha);
+            color_blend_attachment.alphaBlendOp = Vulkan::get_blend_op(gl_rend_state.blend_mode_alpha);
         }
 
         Vulkan::DescriptorPipeline* vk_descriptor_pipeline = descriptor_pipeline.get();
@@ -2511,8 +2511,8 @@ namespace Vulkan {
         const uint32_t framebuffer_index = depth_stencil_state.depthWriteEnable
             || depth_stencil_state.stencilTestEnable ? 0 : 1;
         VkRenderPass render_pass;
-        if (gl_state.draw_framebuffer_binding) {
-            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
+        if (gl_rend_state.draw_framebuffer_binding) {
+            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
             render_pass = *vk_fbo->render_pass[framebuffer_index].get();
         }
         else
@@ -2585,10 +2585,10 @@ namespace Vulkan {
                     GLuint texture = 0;
                     switch (desc->data) {
                     case 0:
-                        texture = gl_state.texture_binding_2d[desc->binding];
+                        texture = gl_rend_state.texture_binding_2d[desc->binding];
                         break;
                     case 1:
-                        texture = gl_state.texture_binding_cube_map[desc->binding];
+                        texture = gl_rend_state.texture_binding_cube_map[desc->binding];
                         break;
                     }
 
@@ -2597,7 +2597,7 @@ namespace Vulkan {
                         break;
 
                     Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
-                    GLuint sampler = gl_state.sampler_binding[desc->binding];
+                    GLuint sampler = gl_rend_state.sampler_binding[desc->binding];
                     if (sampler) {
                         Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
                         if (vk_samp)
@@ -2633,7 +2633,7 @@ namespace Vulkan {
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
                 if (desc->binding == -1) {
-                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_rend_state.uniform_buffer_bindings[0]);
                     if (!vk_buf)
                         break;
 
@@ -2654,12 +2654,12 @@ namespace Vulkan {
 
                 if (!found) {
                     Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
-                        gl_state.uniform_buffer_bindings[desc->binding]);
+                        gl_rend_state.uniform_buffer_bindings[desc->binding]);
                     if (!vk_ub)
                         break;
 
-                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_rend_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_rend_state.uniform_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
@@ -2684,13 +2684,13 @@ namespace Vulkan {
                     }
 
                 if (!found) {
-                    GLuint buffer = gl_state.shader_storage_buffer_bindings[desc->binding];
+                    GLuint buffer = gl_rend_state.shader_storage_buffer_bindings[desc->binding];
                     Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(buffer);
                     if (!vk_sb)
                         break;
 
-                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_rend_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_rend_state.shader_storage_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
@@ -2730,10 +2730,10 @@ namespace Vulkan {
                     GLuint texture = 0;
                     switch (desc->data) {
                     case 0:
-                        texture = gl_state.texture_binding_2d[desc->binding];
+                        texture = gl_rend_state.texture_binding_2d[desc->binding];
                         break;
                     case 1:
-                        texture = gl_state.texture_binding_cube_map[desc->binding];
+                        texture = gl_rend_state.texture_binding_cube_map[desc->binding];
                         break;
                     }
 
@@ -2742,7 +2742,7 @@ namespace Vulkan {
                         break;
 
                     Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
-                    GLuint sampler = gl_state.sampler_binding[desc->binding];
+                    GLuint sampler = gl_rend_state.sampler_binding[desc->binding];
                     if (sampler) {
                         Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
                         if (vk_samp)
@@ -2778,7 +2778,7 @@ namespace Vulkan {
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
                 if (desc->binding == -1) {
-                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_rend_state.uniform_buffer_bindings[0]);
                     if (!vk_buf)
                         break;
 
@@ -2799,12 +2799,12 @@ namespace Vulkan {
 
                 if (!found) {
                     Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
-                        gl_state.uniform_buffer_bindings[desc->binding]);
+                        gl_rend_state.uniform_buffer_bindings[desc->binding]);
                     if (!vk_ub)
                         break;
 
-                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_rend_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_rend_state.uniform_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
@@ -2829,13 +2829,13 @@ namespace Vulkan {
                     }
 
                 if (!found) {
-                    GLuint buffer = gl_state.shader_storage_buffer_bindings[desc->binding];
+                    GLuint buffer = gl_rend_state.shader_storage_buffer_bindings[desc->binding];
                     Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(buffer);
                     if (!vk_sb)
                         break;
 
-                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_rend_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_rend_state.shader_storage_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
@@ -2956,8 +2956,8 @@ namespace Vulkan {
             Vulkan::gl_query::get(query)->query.Reset(Vulkan::current_command_buffer);
         }
 
-        if (gl_state.draw_framebuffer_binding) {
-            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
+        if (gl_rend_state.draw_framebuffer_binding) {
+            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
             if (!vk_fbo->framebuffer) {
                 free_def(descriptor_infos);
                 return false;
@@ -3099,7 +3099,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.active_texture_index = texture_index;
+        gl_rend_state.active_texture_index = texture_index;
     }
 
     static void gl_wrap_manager_begin_query(GLenum target, GLuint id) {
@@ -3108,8 +3108,8 @@ namespace Vulkan {
             return;
         }
 
-        gl_query* vk_que_curr = gl_query::get(gl_state.query_samples_passed);
-        if (vk_que_curr && vk_que_curr->target == target || !id || gl_state.query_samples_passed == id) {
+        gl_query* vk_que_curr = gl_query::get(gl_rend_state.query_samples_passed);
+        if (vk_que_curr && vk_que_curr->target == target || !id || gl_rend_state.query_samples_passed == id) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -3127,7 +3127,7 @@ namespace Vulkan {
             vk_que->query.Create(Vulkan::current_device, 0, VK_QUERY_TYPE_OCCLUSION);
         }
 
-        gl_state.query_samples_passed = id;
+        gl_rend_state.query_samples_passed = id;
     }
 
     static void gl_wrap_manager_bind_buffer(GLenum target, GLuint buffer) {
@@ -3147,7 +3147,7 @@ namespace Vulkan {
                 }
             }
 
-            gl_state.array_buffer_binding = buffer;
+            gl_rend_state.array_buffer_binding = buffer;
         } break;
         case GL_ELEMENT_ARRAY_BUFFER: {
             if (buffer) {
@@ -3165,9 +3165,9 @@ namespace Vulkan {
                 }
             }
 
-            gl_state.element_array_buffer_binding = buffer;
+            gl_rend_state.element_array_buffer_binding = buffer;
 
-            gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
+            gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
             if (vk_vao)
                 vk_vao->index_buffer_binding.buffer = buffer;
         } break;
@@ -3186,7 +3186,7 @@ namespace Vulkan {
                 }
             }
 
-            gl_state.uniform_buffer_binding = buffer;
+            gl_rend_state.uniform_buffer_binding = buffer;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
             if (buffer) {
@@ -3203,7 +3203,7 @@ namespace Vulkan {
                 }
             }
 
-            gl_state.shader_storage_buffer_binding = buffer;
+            gl_rend_state.shader_storage_buffer_binding = buffer;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3233,9 +3233,9 @@ namespace Vulkan {
                 }
             }
 
-            gl_state.uniform_buffer_bindings[index] = buffer;
-            gl_state.uniform_buffer_offsets[index] = 0;
-            gl_state.uniform_buffer_sizes[index] = -1;
+            gl_rend_state.uniform_buffer_bindings[index] = buffer;
+            gl_rend_state.uniform_buffer_offsets[index] = 0;
+            gl_rend_state.uniform_buffer_sizes[index] = -1;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -3257,9 +3257,9 @@ namespace Vulkan {
                 }
             }
 
-            gl_state.shader_storage_buffer_bindings[index] = buffer;
-            gl_state.shader_storage_buffer_offsets[index] = 0;
-            gl_state.shader_storage_buffer_sizes[index] = -1;
+            gl_rend_state.shader_storage_buffer_bindings[index] = buffer;
+            gl_rend_state.shader_storage_buffer_offsets[index] = 0;
+            gl_rend_state.shader_storage_buffer_sizes[index] = -1;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3305,9 +3305,9 @@ namespace Vulkan {
                 return;
             }
 
-            gl_state.uniform_buffer_bindings[index] = buffer;
-            gl_state.uniform_buffer_offsets[index] = offset;
-            gl_state.uniform_buffer_sizes[index] = size;
+            gl_rend_state.uniform_buffer_bindings[index] = buffer;
+            gl_rend_state.uniform_buffer_offsets[index] = offset;
+            gl_rend_state.uniform_buffer_sizes[index] = size;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS || size <= 0) {
@@ -3345,9 +3345,9 @@ namespace Vulkan {
                 return;
             }
 
-            gl_state.shader_storage_buffer_bindings[index] = buffer;
-            gl_state.shader_storage_buffer_offsets[index] = offset;
-            gl_state.shader_storage_buffer_sizes[index] = size;
+            gl_rend_state.shader_storage_buffer_bindings[index] = buffer;
+            gl_rend_state.shader_storage_buffer_offsets[index] = offset;
+            gl_rend_state.shader_storage_buffer_sizes[index] = size;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3376,14 +3376,14 @@ namespace Vulkan {
 
         switch (target) {
         case GL_READ_FRAMEBUFFER:
-            gl_state.read_framebuffer_binding = framebuffer;
+            gl_rend_state.read_framebuffer_binding = framebuffer;
             break;
         case GL_DRAW_FRAMEBUFFER:
-            gl_state.draw_framebuffer_binding = framebuffer;
+            gl_rend_state.draw_framebuffer_binding = framebuffer;
             break;
         case GL_FRAMEBUFFER:
-            gl_state.read_framebuffer_binding = framebuffer;
-            gl_state.draw_framebuffer_binding = framebuffer;
+            gl_rend_state.read_framebuffer_binding = framebuffer;
+            gl_rend_state.draw_framebuffer_binding = framebuffer;
             break;
         }
     }
@@ -3402,7 +3402,7 @@ namespace Vulkan {
             }
         }
 
-        gl_state.sampler_binding[unit] = sampler;
+        gl_rend_state.sampler_binding[unit] = sampler;
     }
 
     static void gl_wrap_manager_bind_texture(GLenum target, GLuint texture) {
@@ -3431,10 +3431,10 @@ namespace Vulkan {
 
         switch (target) {
         case GL_TEXTURE_2D:
-            gl_state.texture_binding_2d[gl_state.active_texture_index] = texture;
+            gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index] = texture;
             break;
         case GL_TEXTURE_CUBE_MAP:
-            gl_state.texture_binding_cube_map[gl_state.active_texture_index] = texture;
+            gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index] = texture;
             break;
         }
     }
@@ -3448,7 +3448,7 @@ namespace Vulkan {
             }
         }
 
-        gl_state.vertex_array_binding = array;
+        gl_rend_state.vertex_array_binding = array;
     }
 
     static void gl_wrap_manager_blend_func(GLenum sfactor, GLenum dfactor) {
@@ -3489,10 +3489,10 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.blend_src_rgb = sfactorRGB;
-        gl_state.blend_dst_rgb = dfactorRGB;
-        gl_state.blend_src_alpha = sfactorAlpha;
-        gl_state.blend_dst_alpha = dfactorAlpha;
+        gl_rend_state.blend_src_rgb = sfactorRGB;
+        gl_rend_state.blend_dst_rgb = dfactorRGB;
+        gl_rend_state.blend_src_alpha = sfactorAlpha;
+        gl_rend_state.blend_dst_alpha = dfactorAlpha;
     }
 
     static void gl_wrap_manager_blend_equation(GLenum mode) {
@@ -3518,14 +3518,14 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.blend_mode_rgb = modeRGB;
-        gl_state.blend_mode_alpha = modeAlpha;
+        gl_rend_state.blend_mode_rgb = modeRGB;
+        gl_rend_state.blend_mode_alpha = modeAlpha;
     }
 
     static void gl_wrap_manager_blit_framebuffer(
         GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,
         GLint dst_x0, GLint dst_y0, GLint dst_x1, GLint dst_y1, GLbitfield mask, GLenum filter) {
-        gl_wrap_manager_blit_named_framebuffer(gl_state.read_framebuffer_binding, gl_state.draw_framebuffer_binding,
+        gl_wrap_manager_blit_named_framebuffer(gl_rend_state.read_framebuffer_binding, gl_rend_state.draw_framebuffer_binding,
             src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter);
     }
 
@@ -3625,19 +3625,19 @@ namespace Vulkan {
         switch (target) {
         case GL_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_state.array_buffer_binding, size, data, usage);
+                gl_rend_state.array_buffer_binding, size, data, usage);
             break;
         case GL_ELEMENT_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_state.element_array_buffer_binding, size, data, usage);
+                gl_rend_state.element_array_buffer_binding, size, data, usage);
             break;
         case GL_UNIFORM_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_state.uniform_buffer_binding, size, data, usage);
+                gl_rend_state.uniform_buffer_binding, size, data, usage);
             break;
         case GL_SHADER_STORAGE_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_state.shader_storage_buffer_binding, size, data, usage);
+                gl_rend_state.shader_storage_buffer_binding, size, data, usage);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3650,19 +3650,19 @@ namespace Vulkan {
         switch (target) {
         case GL_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_state.array_buffer_binding, size, data, flags);
+                gl_rend_state.array_buffer_binding, size, data, flags);
             break;
         case GL_ELEMENT_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_state.element_array_buffer_binding, size, data, flags);
+                gl_rend_state.element_array_buffer_binding, size, data, flags);
             break;
         case GL_UNIFORM_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_state.uniform_buffer_binding, size, data, flags);
+                gl_rend_state.uniform_buffer_binding, size, data, flags);
             break;
         case GL_SHADER_STORAGE_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_state.shader_storage_buffer_binding, size, data, flags);
+                gl_rend_state.shader_storage_buffer_binding, size, data, flags);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3675,19 +3675,19 @@ namespace Vulkan {
         switch (target) {
         case GL_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_state.array_buffer_binding, offset, size, data);
+                gl_rend_state.array_buffer_binding, offset, size, data);
             break;
         case GL_ELEMENT_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_state.element_array_buffer_binding, offset, size, data);
+                gl_rend_state.element_array_buffer_binding, offset, size, data);
             break;
         case GL_UNIFORM_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_state.uniform_buffer_binding, offset, size, data);
+                gl_rend_state.uniform_buffer_binding, offset, size, data);
             break;
         case GL_SHADER_STORAGE_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_state.shader_storage_buffer_binding, offset, size, data);
+                gl_rend_state.shader_storage_buffer_binding, offset, size, data);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3699,11 +3699,11 @@ namespace Vulkan {
         GLuint framebuffer;
         switch (target) {
         case GL_READ_FRAMEBUFFER:
-            framebuffer = gl_state.read_framebuffer_binding;
+            framebuffer = gl_rend_state.read_framebuffer_binding;
             break;
         case GL_DRAW_FRAMEBUFFER:
         case GL_FRAMEBUFFER:
-            framebuffer = gl_state.draw_framebuffer_binding;
+            framebuffer = gl_rend_state.draw_framebuffer_binding;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3778,7 +3778,7 @@ namespace Vulkan {
         }
 
         if (mask & GL_COLOR_BUFFER_BIT) {
-            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding);
+            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
 
             for (uint32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
                 VkImage image;
@@ -3798,10 +3798,10 @@ namespace Vulkan {
                 }
 
                 VkClearColorValue clear_color_value;
-                clear_color_value.float32[0] = gl_state.clear_color.x;
-                clear_color_value.float32[1] = gl_state.clear_color.y;
-                clear_color_value.float32[2] = gl_state.clear_color.z;
-                clear_color_value.float32[3] = gl_state.clear_color.w;
+                clear_color_value.float32[0] = gl_rend_state.clear_color.x;
+                clear_color_value.float32[1] = gl_rend_state.clear_color.y;
+                clear_color_value.float32[2] = gl_rend_state.clear_color.z;
+                clear_color_value.float32[3] = gl_rend_state.clear_color.w;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -3825,7 +3825,7 @@ namespace Vulkan {
         }
 
         if (mask & GL_DEPTH_BUFFER_BIT) {
-            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding);
+            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
             if (vk_fbo && vk_fbo->depth_attachment) {
                 gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment);
                 VkImage image = vk_tex->image;
@@ -3834,8 +3834,8 @@ namespace Vulkan {
                 const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
                 VkClearDepthStencilValue clear_depth_stencil_value;
-                clear_depth_stencil_value.depth = gl_state.clear_depth;
-                clear_depth_stencil_value.stencil = gl_state.clear_stencil;
+                clear_depth_stencil_value.depth = gl_rend_state.clear_depth;
+                clear_depth_stencil_value.stencil = gl_rend_state.clear_stencil;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = aspect_mask;
@@ -3857,22 +3857,22 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value) {
-        gl_wrap_manager_clear_named_framebuffer(gl_state.draw_framebuffer_binding, buffer, drawbuffer, value);
+        gl_wrap_manager_clear_named_framebuffer(gl_rend_state.draw_framebuffer_binding, buffer, drawbuffer, value);
     }
 
     static void gl_wrap_manager_clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-        gl_state.clear_color.x = red;
-        gl_state.clear_color.y = green;
-        gl_state.clear_color.z = blue;
-        gl_state.clear_color.w = alpha;
+        gl_rend_state.clear_color.x = red;
+        gl_rend_state.clear_color.y = green;
+        gl_rend_state.clear_color.z = blue;
+        gl_rend_state.clear_color.w = alpha;
     }
 
     static void gl_wrap_manager_clear_depth(GLfloat depth) {
-        gl_state.clear_depth = depth;
+        gl_rend_state.clear_depth = depth;
     }
 
     static void gl_wrap_manager_clear_stencil(GLint s) {
-        gl_state.clear_stencil = s;
+        gl_rend_state.clear_stencil = s;
     }
 
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
@@ -3969,10 +3969,10 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
-        gl_state.color_mask[0] = red ? GL_TRUE : GL_FALSE;
-        gl_state.color_mask[1] = green ? GL_TRUE : GL_FALSE;
-        gl_state.color_mask[2] = blue ? GL_TRUE : GL_FALSE;
-        gl_state.color_mask[3] = alpha ? GL_TRUE : GL_FALSE;
+        gl_rend_state.color_mask[0] = red ? GL_TRUE : GL_FALSE;
+        gl_rend_state.color_mask[1] = green ? GL_TRUE : GL_FALSE;
+        gl_rend_state.color_mask[2] = blue ? GL_TRUE : GL_FALSE;
+        gl_rend_state.color_mask[3] = alpha ? GL_TRUE : GL_FALSE;
     }
 
     static void gl_wrap_manager_compressed_tex_image_2d(GLenum target, GLint level,
@@ -3982,36 +3982,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4093,36 +4093,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4298,36 +4298,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4356,7 +4356,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.read_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.read_framebuffer_binding, false);
 
         VkImage src_image;
         VkImageLayout src_old_layout;
@@ -4439,7 +4439,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.cull_face_mode = mode;
+        gl_rend_state.cull_face_mode = mode;
     }
 
     static void gl_wrap_manager_delete_buffers(GLsizei n, const GLuint* buffers) {
@@ -4522,35 +4522,35 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.depth_func = func;
+        gl_rend_state.depth_func = func;
     }
 
     static void gl_wrap_manager_depth_mask(GLboolean flag) {
-        gl_state.depth_mask = flag ? GL_TRUE : GL_FALSE;
+        gl_rend_state.depth_mask = flag ? GL_TRUE : GL_FALSE;
     }
 
     static void gl_wrap_manager_disable(GLenum cap) {
         switch (cap) {
         case GL_CULL_FACE:
-            gl_state.cull_face = GL_FALSE;
+            gl_rend_state.cull_face = GL_FALSE;
             break;
         case GL_DEPTH_TEST:
-            gl_state.depth_test = GL_FALSE;
+            gl_rend_state.depth_test = GL_FALSE;
             break;
         case GL_STENCIL_TEST:
-            gl_state.stencil_test = GL_FALSE;
+            gl_rend_state.stencil_test = GL_FALSE;
             break;
         case GL_BLEND:
-            gl_state.blend = GL_FALSE;
+            gl_rend_state.blend = GL_FALSE;
             break;
         case GL_SCISSOR_TEST:
-            gl_state.scissor_test = GL_FALSE;
+            gl_rend_state.scissor_test = GL_FALSE;
             break;
         case GL_MULTISAMPLE:
-            gl_state.multisample = GL_FALSE;
+            gl_rend_state.multisample = GL_FALSE;
             break;
         case GL_PRIMITIVE_RESTART:
-            gl_state.primitive_restart = GL_FALSE;
+            gl_rend_state.primitive_restart = GL_FALSE;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -4564,7 +4564,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
         if (!vk_vao) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4590,7 +4590,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4633,25 +4633,25 @@ namespace Vulkan {
     static void gl_wrap_manager_enable(GLenum cap) {
         switch (cap) {
         case GL_CULL_FACE:
-            gl_state.cull_face = GL_TRUE;
+            gl_rend_state.cull_face = GL_TRUE;
             break;
         case GL_DEPTH_TEST:
-            gl_state.depth_test = GL_TRUE;
+            gl_rend_state.depth_test = GL_TRUE;
             break;
         case GL_STENCIL_TEST:
-            gl_state.stencil_test = GL_TRUE;
+            gl_rend_state.stencil_test = GL_TRUE;
             break;
         case GL_BLEND:
-            gl_state.blend = GL_TRUE;
+            gl_rend_state.blend = GL_TRUE;
             break;
         case GL_SCISSOR_TEST:
-            gl_state.scissor_test = GL_TRUE;
+            gl_rend_state.scissor_test = GL_TRUE;
             break;
         case GL_MULTISAMPLE:
-            gl_state.multisample = GL_TRUE;
+            gl_rend_state.multisample = GL_TRUE;
             break;
         case GL_PRIMITIVE_RESTART:
-            gl_state.primitive_restart = GL_TRUE;
+            gl_rend_state.primitive_restart = GL_TRUE;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -4665,7 +4665,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
         if (!vk_vao) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4680,17 +4680,17 @@ namespace Vulkan {
             return;
         }
 
-        if (!gl_state.query_samples_passed) {
+        if (!gl_rend_state.query_samples_passed) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
 
-        gl_query* vk_que = gl_query::get(gl_state.query_samples_passed);
+        gl_query* vk_que = gl_query::get(gl_rend_state.query_samples_passed);
         if (!vk_que)
             return;
 
         vk_que->query.End(Vulkan::current_command_buffer);
-        gl_state.query_samples_passed = 0;
+        gl_rend_state.query_samples_passed = 0;
     }
 
     static void gl_wrap_manager_finish() {
@@ -4706,7 +4706,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4801,7 +4801,7 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_generate_texture_mipmap(
-                gl_state.texture_binding_2d[gl_state.active_texture_index]);
+                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index]);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -4870,36 +4870,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4995,34 +4995,34 @@ namespace Vulkan {
 
         switch (pname) {
         case GL_CULL_FACE:
-            *data = gl_state.cull_face;
+            *data = gl_rend_state.cull_face;
             break;
         case GL_DEPTH_TEST:
-            *data = gl_state.depth_test;
+            *data = gl_rend_state.depth_test;
             break;
         case GL_DEPTH_WRITEMASK:
-            *data = gl_state.depth_mask;
+            *data = gl_rend_state.depth_mask;
             break;
         case GL_STENCIL_TEST:
-            *data = gl_state.stencil_test;
+            *data = gl_rend_state.stencil_test;
             break;
         case GL_BLEND:
-            *data = gl_state.blend;
+            *data = gl_rend_state.blend;
             break;
         case GL_SCISSOR_TEST:
-            *data = gl_state.scissor_test;
+            *data = gl_rend_state.scissor_test;
             break;
         case GL_COLOR_WRITEMASK:
-            data[0] = gl_state.color_mask[0];
-            data[1] = gl_state.color_mask[1];
-            data[2] = gl_state.color_mask[2];
-            data[3] = gl_state.color_mask[3];
+            data[0] = gl_rend_state.color_mask[0];
+            data[1] = gl_rend_state.color_mask[1];
+            data[2] = gl_rend_state.color_mask[2];
+            data[3] = gl_rend_state.color_mask[3];
             break;
         case GL_MULTISAMPLE:
-            *data = gl_state.multisample;
+            *data = gl_rend_state.multisample;
             break;
         case GL_PRIMITIVE_RESTART:
-            *data = gl_state.primitive_restart;
+            *data = gl_rend_state.primitive_restart;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5036,100 +5036,100 @@ namespace Vulkan {
 
         switch (pname) {
         case GL_CULL_FACE_MODE:
-            *data = gl_state.cull_face_mode;
+            *data = gl_rend_state.cull_face_mode;
             break;
         case GL_DEPTH_FUNC:
-            *data = gl_state.depth_func;
+            *data = gl_rend_state.depth_func;
             break;
         case GL_STENCIL_FUNC:
-            *data = gl_state.stencil_func;
+            *data = gl_rend_state.stencil_func;
             break;
         case GL_STENCIL_VALUE_MASK:
-            *data = gl_state.stencil_value_mask;
+            *data = gl_rend_state.stencil_value_mask;
             break;
         case GL_STENCIL_FAIL:
-            *data = gl_state.stencil_fail;
+            *data = gl_rend_state.stencil_fail;
             break;
         case GL_STENCIL_PASS_DEPTH_FAIL:
-            *data = gl_state.stencil_dpfail;
+            *data = gl_rend_state.stencil_dpfail;
             break;
         case GL_STENCIL_PASS_DEPTH_PASS:
-            *data = gl_state.stencil_dppass;
+            *data = gl_rend_state.stencil_dppass;
             break;
         case GL_STENCIL_REF:
-            *data = gl_state.stencil_ref;
+            *data = gl_rend_state.stencil_ref;
             break;
         case GL_STENCIL_WRITEMASK:
-            *data = gl_state.stencil_mask;
+            *data = gl_rend_state.stencil_mask;
             break;
         case GL_VIEWPORT:
-            data[0] = gl_state.viewport.x;
-            data[1] = gl_state.viewport.y;
-            data[2] = gl_state.viewport.width;
-            data[3] = gl_state.viewport.height;
+            data[0] = gl_rend_state.viewport.x;
+            data[1] = gl_rend_state.viewport.y;
+            data[2] = gl_rend_state.viewport.width;
+            data[3] = gl_rend_state.viewport.height;
             break;
         case GL_SCISSOR_BOX:
-            data[0] = gl_state.scissor_box.x;
-            data[1] = gl_state.scissor_box.y;
-            data[2] = gl_state.scissor_box.width;
-            data[3] = gl_state.scissor_box.height;
+            data[0] = gl_rend_state.scissor_box.x;
+            data[1] = gl_rend_state.scissor_box.y;
+            data[2] = gl_rend_state.scissor_box.width;
+            data[3] = gl_rend_state.scissor_box.height;
             break;
         case GL_BLEND_EQUATION_RGB:
-            *data = gl_state.blend_mode_rgb;
+            *data = gl_rend_state.blend_mode_rgb;
             break;
         case GL_BLEND_DST_RGB:
-            *data = gl_state.blend_dst_rgb;
+            *data = gl_rend_state.blend_dst_rgb;
             break;
         case GL_BLEND_SRC_RGB:
-            *data = gl_state.blend_src_rgb;
+            *data = gl_rend_state.blend_src_rgb;
             break;
         case GL_BLEND_DST_ALPHA:
-            *data = gl_state.blend_dst_alpha;
+            *data = gl_rend_state.blend_dst_alpha;
             break;
         case GL_BLEND_SRC_ALPHA:
-            *data = gl_state.blend_src_alpha;
+            *data = gl_rend_state.blend_src_alpha;
             break;
         case GL_ACTIVE_TEXTURE:
-            *data = GL_TEXTURE0 + gl_state.active_texture_index;
+            *data = GL_TEXTURE0 + gl_rend_state.active_texture_index;
             break;
         case GL_TEXTURE_BINDING_2D:
-            *data = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            *data = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_BINDING_CUBE_MAP:
-            *data = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            *data = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             break;
         case GL_VERTEX_ARRAY_BINDING:
-            *data = gl_state.vertex_array_binding;
+            *data = gl_rend_state.vertex_array_binding;
             break;
         case GL_BLEND_EQUATION_ALPHA:
-            *data = gl_state.blend_mode_alpha;
+            *data = gl_rend_state.blend_mode_alpha;
             break;
         case GL_ARRAY_BUFFER_BINDING:
-            *data = gl_state.array_buffer_binding;
+            *data = gl_rend_state.array_buffer_binding;
             break;
         case GL_ELEMENT_ARRAY_BUFFER_BINDING:
-            *data = gl_state.element_array_buffer_binding;
+            *data = gl_rend_state.element_array_buffer_binding;
             break;
         case GL_SAMPLER_BINDING:
-            *data = gl_state.sampler_binding[gl_state.active_texture_index];
+            *data = gl_rend_state.sampler_binding[gl_rend_state.active_texture_index];
             break;
         case GL_UNIFORM_BUFFER_BINDING:
-            *data = gl_state.uniform_buffer_binding;
+            *data = gl_rend_state.uniform_buffer_binding;
             break;
         case GL_CURRENT_PROGRAM:
-            *data = gl_state.program;
+            *data = gl_rend_state.program;
             break;
         case GL_DRAW_FRAMEBUFFER_BINDING:
-            *data = gl_state.draw_framebuffer_binding;
+            *data = gl_rend_state.draw_framebuffer_binding;
             break;
         case GL_READ_FRAMEBUFFER_BINDING:
-            *data = gl_state.read_framebuffer_binding;
+            *data = gl_rend_state.read_framebuffer_binding;
             break;
         case GL_PRIMITIVE_RESTART_INDEX:
-            *data = gl_state.primitive_restart_index;
+            *data = gl_rend_state.primitive_restart_index;
             break;
         case GL_SHADER_STORAGE_BUFFER_BINDING:
-            *data = gl_state.shader_storage_buffer_binding;
+            *data = gl_rend_state.shader_storage_buffer_binding;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5147,16 +5147,16 @@ namespace Vulkan {
 
         switch (pname) {
         case GL_LINE_WIDTH:
-            *data = gl_state.line_width;
+            *data = gl_rend_state.line_width;
             break;
         case GL_COLOR_CLEAR_VALUE:
-            data[0] = gl_state.clear_color.x;
-            data[1] = gl_state.clear_color.y;
-            data[2] = gl_state.clear_color.z;
-            data[3] = gl_state.clear_color.w;
+            data[0] = gl_rend_state.clear_color.x;
+            data[1] = gl_rend_state.clear_color.y;
+            data[2] = gl_rend_state.clear_color.z;
+            data[3] = gl_rend_state.clear_color.w;
             break;
         case GL_DEPTH_CLEAR_VALUE:
-            *data = gl_state.clear_depth;
+            *data = gl_rend_state.clear_depth;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5172,7 +5172,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.texture_binding_2d[index];
+            *data = gl_rend_state.texture_binding_2d[index];
             break;
         case GL_TEXTURE_BINDING_CUBE_MAP:
             if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
@@ -5180,7 +5180,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.texture_binding_cube_map[index];
+            *data = gl_rend_state.texture_binding_cube_map[index];
             break;
         case GL_SAMPLER_BINDING:
             if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
@@ -5188,7 +5188,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.sampler_binding[index];
+            *data = gl_rend_state.sampler_binding[index];
             break;
         case GL_UNIFORM_BUFFER_BINDING:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5196,7 +5196,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.uniform_buffer_bindings[index];
+            *data = gl_rend_state.uniform_buffer_bindings[index];
             break;
         case GL_UNIFORM_BUFFER_START:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5204,7 +5204,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_state.uniform_buffer_offsets[index];
+            *data = (GLint)gl_rend_state.uniform_buffer_offsets[index];
             break;
         case GL_UNIFORM_BUFFER_SIZE:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5212,7 +5212,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_state.uniform_buffer_sizes[index];
+            *data = (GLint)gl_rend_state.uniform_buffer_sizes[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_BINDING:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5220,7 +5220,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.shader_storage_buffer_bindings[index];
+            *data = gl_rend_state.shader_storage_buffer_bindings[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_START:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5228,7 +5228,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_state.shader_storage_buffer_offsets[index];
+            *data = (GLint)gl_rend_state.shader_storage_buffer_offsets[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_SIZE:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5236,7 +5236,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_state.shader_storage_buffer_sizes[index];
+            *data = (GLint)gl_rend_state.shader_storage_buffer_sizes[index];
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5252,7 +5252,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.uniform_buffer_offsets[index];
+            *data = gl_rend_state.uniform_buffer_offsets[index];
             break;
         case GL_UNIFORM_BUFFER_SIZE:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5260,7 +5260,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.uniform_buffer_sizes[index];
+            *data = gl_rend_state.uniform_buffer_sizes[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_START:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5268,7 +5268,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_state.shader_storage_buffer_sizes[index];
+            *data = gl_rend_state.shader_storage_buffer_sizes[index];
             break;
         }
     }
@@ -5310,36 +5310,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -5478,7 +5478,7 @@ namespace Vulkan {
         }
 
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            _type, type, temp, pixels, gl_state.pack_alignment, false)) {
+            _type, type, temp, pixels, gl_rend_state.pack_alignment, false)) {
             free_def(temp);
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -5492,19 +5492,19 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.line_width = width;
+        gl_rend_state.line_width = width;
     }
 
     static void* gl_wrap_manager_map_buffer(GLenum target, GLenum access) {
         switch (target) {
         case GL_ARRAY_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_state.array_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_rend_state.array_buffer_binding, access);
         case GL_ELEMENT_ARRAY_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_state.element_array_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_rend_state.element_array_buffer_binding, access);
         case GL_UNIFORM_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_state.uniform_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_rend_state.uniform_buffer_binding, access);
         case GL_SHADER_STORAGE_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_state.shader_storage_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_rend_state.shader_storage_buffer_binding, access);
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return 0;
@@ -5638,7 +5638,7 @@ namespace Vulkan {
                 return;
             }
 
-            gl_state.pack_alignment = param;
+            gl_rend_state.pack_alignment = param;
             break;
         case GL_UNPACK_ALIGNMENT:
             if (param != 1 && param != 2 && param != 4 && param != 8) {
@@ -5646,7 +5646,7 @@ namespace Vulkan {
                 return;
             }
 
-            gl_state.unpack_alignment = param;
+            gl_rend_state.unpack_alignment = param;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -5673,7 +5673,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.polygon_mode = mode;
+        gl_rend_state.polygon_mode = mode;
     }
 
     static void gl_wrap_manager_pop_debug_group() {
@@ -5682,7 +5682,7 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_primitive_restart_index(GLuint index) {
-        gl_state.primitive_restart_index = index;
+        gl_rend_state.primitive_restart_index = index;
     }
 
     static void gl_wrap_manager_push_debug_group(GLenum source, GLuint id, GLsizei length, const GLchar* message) {
@@ -5706,7 +5706,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.read_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.read_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -5787,10 +5787,10 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.scissor_box.x = x;
-        gl_state.scissor_box.y = y;
-        gl_state.scissor_box.width = width;
-        gl_state.scissor_box.height = height;
+        gl_rend_state.scissor_box.x = x;
+        gl_rend_state.scissor_box.y = y;
+        gl_rend_state.scissor_box.width = width;
+        gl_rend_state.scissor_box.height = height;
     }
 
     static void gl_wrap_manager_stencil_func(GLenum func, GLint ref, GLuint mask) {
@@ -5809,11 +5809,11 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.stencil_func = func;
+        gl_rend_state.stencil_func = func;
     }
 
     static void gl_wrap_manager_stencil_mask(GLuint mask) {
-        gl_state.stencil_mask = mask;
+        gl_rend_state.stencil_mask = mask;
     }
 
     static void gl_wrap_manager_stencil_op(GLenum fail, GLenum zfail, GLenum zpass) {
@@ -5838,9 +5838,9 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.stencil_fail = fail;
-        gl_state.stencil_dpfail = zfail;
-        gl_state.stencil_dppass = zpass;
+        gl_rend_state.stencil_fail = fail;
+        gl_rend_state.stencil_dpfail = zfail;
+        gl_rend_state.stencil_dppass = zpass;
     }
 
     static void gl_wrap_manager_tex_image_2d(GLenum target, GLint level, GLint internal_format,
@@ -5850,36 +5850,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -6011,11 +6011,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_float(
-                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
+                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, param);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_float(
-                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
+                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, param);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6027,11 +6027,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_float_ptr(
-                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, params);
+                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, params);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_float_ptr(
-                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, params);
+                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, params);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6043,11 +6043,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_int(
-                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
+                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, param);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_int(
-                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
+                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, param);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6059,11 +6059,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_int_ptr(
-                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, params);
+                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, params);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_int_ptr(
-                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, params);
+                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, params);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6079,36 +6079,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
+            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -6467,13 +6467,13 @@ namespace Vulkan {
     static GLboolean gl_wrap_manager_unmap_buffer(GLenum target) {
         switch (target) {
         case GL_ARRAY_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_state.array_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.array_buffer_binding);
         case GL_ELEMENT_ARRAY_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_state.element_array_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.element_array_buffer_binding);
         case GL_UNIFORM_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_state.uniform_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.uniform_buffer_binding);
         case GL_SHADER_STORAGE_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_state.shader_storage_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.shader_storage_buffer_binding);
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return GL_FALSE;
@@ -6501,14 +6501,14 @@ namespace Vulkan {
             }
         }
 
-        gl_state.program = program;
+        gl_rend_state.program = program;
     }
 
     static void gl_wrap_manager_vertex_attrib(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
         if (index >= Vulkan::MAX_VERTEX_ATTRIB_COUNT)
             return;
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
         if (!vk_vao)
             return;
 
@@ -6600,8 +6600,8 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
-        if (!vk_vao || !gl_state.array_buffer_binding) {
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
+        if (!vk_vao || !gl_rend_state.array_buffer_binding) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -6794,8 +6794,8 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
-        if (!vk_vao || !gl_state.array_buffer_binding) {
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
+        if (!vk_vao || !gl_rend_state.array_buffer_binding) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -6809,9 +6809,9 @@ namespace Vulkan {
             return;
         }
 
-        gl_state.viewport.x = x;
-        gl_state.viewport.y = y;
-        gl_state.viewport.width = width;
-        gl_state.viewport.height = height;
+        gl_rend_state.viewport.x = x;
+        gl_rend_state.viewport.y = y;
+        gl_rend_state.viewport.width = width;
+        gl_rend_state.viewport.height = height;
     }
 };

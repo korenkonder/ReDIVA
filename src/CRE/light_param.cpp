@@ -157,7 +157,7 @@ void light_param_data_storage_data_set_ibl() {
     };
 
     for (int32_t i = 0; i < 5; i++)
-        gl_state_active_bind_texture_cube_map(ibl_texture_index[i],
+        gl_rend_state.active_bind_texture_cube_map(ibl_texture_index[i],
             light_param_data_storage_data->textures[i]);
 }
 
