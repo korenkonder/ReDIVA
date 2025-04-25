@@ -4,7 +4,7 @@
 */
 
 #include "texture.hpp"
-#include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include "shared.hpp"
 #include "static_var.hpp"
 
@@ -582,7 +582,14 @@ inline void texture_manager_free() {
 }
 
 inline static void texture_bind(GLenum target, GLuint texture) {
-    glBindTexture(target, texture);
+    switch (target) {
+    case GL_TEXTURE_2D:
+        gl_state.bind_texture_2d(texture);
+        break;
+    case GL_TEXTURE_CUBE_MAP:
+        gl_state.bind_texture_cube_map(texture);
+        break;
+    }
 }
 
 inline static GLuint texture_get_working_internal_format(GLuint internal_format) {

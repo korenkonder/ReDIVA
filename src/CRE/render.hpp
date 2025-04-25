@@ -13,6 +13,10 @@
 #include "renderer/transparency.hpp"
 #include "camera.hpp"
 
+struct cam_data;
+struct p_gl_rend_state;
+struct render_data_context;
+
 namespace rndr {
     struct Render {
         enum MagFilterType {
@@ -179,14 +183,14 @@ namespace rndr {
         Render();
         ~Render();
 
-        void apply_post_process(camera* cam, texture* light_proj_tex, int32_t npr_param);
-        void bind_render_texture(bool aet_back = false);
-        void calc_exposure_chara_data(camera* cam);
-        void calc_projection_matrix(mat4* mat, float_t fov, float_t aspect, float_t z_near, float_t z_far,
-            float_t left_offset, float_t right_offset, float_t bottom_offset, float_t top_offset);
-        void draw_quad(int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
+        void apply_post_process(render_data_context& rend_data_ctx,
+            const cam_data& cam, texture* light_proj_tex, int32_t npr_param);
+        void bind_render_texture(p_gl_rend_state& p_gl_rend_st, bool aet_back = false);
+        void calc_exposure_chara_data(render_data_context& rend_data_ctx, const cam_data& cam);
+        void draw_quad(render_data_context& rend_data_ctx,
+            int32_t width, int32_t height, float_t s0, float_t t0, float_t s1, float_t t1,
             float_t scale, float_t param_x, float_t param_y, float_t param_z, float_t param_w);
-        void draw_lens_flare(camera* cam);
+        void draw_lens_flare(render_data_context& rend_data_ctx, const cam_data& cam);
         bool frame_texture_cont_capture_set(bool value);
         void frame_texture_free();
         int32_t frame_texture_load(int32_t slot, FrameTextureType type, texture* tex);
@@ -217,6 +221,7 @@ namespace rndr {
         int32_t get_scene_fade_blend_func();
         vec3 get_scene_fade_color();
         int32_t get_taa();
+        vec2 get_taa_offset();
         tone_map_method get_tone_map();
         void get_tone_trans(vec3& start, vec3& end);
         void init_render_buffers(int32_t width, int32_t height,
@@ -225,7 +230,7 @@ namespace rndr {
         int32_t movie_texture_set(texture* movie_texture);
         void movie_texture_free(texture* movie_texture);
         void post_proc();
-        void pre_proc(camera* cam);
+        void pre_proc(render_data_context& rend_data_ctx);
         int32_t render_texture_set(texture* render_texture, bool task_photo);
         void render_texture_free(texture* render_texture, bool task_photo);
         void reset_saturate_coeff(int32_t index, bool lock);
@@ -256,22 +261,23 @@ namespace rndr {
         void set_taa(int32_t value);
         void set_tone_map(tone_map_method value);
         void set_tone_trans(const vec3& start, const vec3& end, int32_t index);
-        void transparency_combine(float_t alpha);
-        void transparency_copy();
+        void transparency_combine(render_data_context& rend_data_ctx, float_t alpha);
+        void transparency_copy(render_data_context& rend_data_ctx);
         void update_res(bool set, int32_t base_downsample);
 
     private:
-        void apply_mlaa(int32_t destination, int32_t source, int32_t ss_alpha_mask);
-        void apply_tone_map(texture* light_proj_tex, int32_t npr_param);
-        void calc_exposure(camera* cam);
-        void calc_gaussian_blur(float_t start, float_t step,
+        void apply_mlaa(render_data_context& rend_data_ctx, int32_t destination, int32_t source, int32_t ss_alpha_mask);
+        void apply_tone_map(render_data_context& rend_data_ctx, texture* light_proj_tex, int32_t npr_param);
+        void calc_exposure(render_data_context& rend_data_ctx, const cam_data& cam);
+        void calc_gaussian_blur(render_data_context& rend_data_ctx, float_t start, float_t step,
             int32_t kernel_size, float_t radius_scale, float_t intensity_scale);
         void calc_taa_blend();
-        void copy_to_frame_texture(GLuint pre_pp_tex, int32_t wight, int32_t height, GLuint post_pp_tex);
-        void draw_lens_ghost();
-        void downsample();
+        void copy_to_frame_texture(render_data_context& rend_data_ctx,
+            GLuint pre_pp_tex, int32_t wight, int32_t height, GLuint post_pp_tex);
+        void draw_lens_ghost(render_data_context& rend_data_ctx);
+        void downsample(render_data_context& rend_data_ctx);
         void generate_mlaa_area_texture();
-        void get_blur();
+        void get_blur(render_data_context& rend_data_ctx);
         void update_tone_map_lut();
     };
 }

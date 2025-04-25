@@ -11,6 +11,7 @@
 #include "../KKdLib/vec.hpp"
 #include "color.hpp"
 #include "frame_rate_control.hpp"
+#include "file_handler.hpp"
 #include "sprite.hpp"
 
 enum AetFlags {

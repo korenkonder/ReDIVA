@@ -10,6 +10,7 @@
 #include "../../KKdLib/farc.hpp"
 #include "../../KKdLib/msgpack.hpp"
 #include "../data.hpp"
+#include "../gl_state.hpp"
 #include "../object.hpp"
 #if SHARED_GLITTER_BUFFER
 #include "../gl_rend_state.hpp"
@@ -119,7 +120,7 @@ namespace Glitter {
 
                 static const GLsizei buffer_size = sizeof(Buffer);
 
-                effect_group->vbo.Create(buffer_size * max_count);
+                effect_group->vbo.Create(gl_state, buffer_size * max_count);
 
                 if (max_count_quad) {
                     size_t count = max_count_quad / 4 * 5;
@@ -132,7 +133,7 @@ namespace Glitter {
                         ebo_data[i + 4] = 0xFFFFFFFF;
                     }
 
-                    effect_group->ebo.Create(sizeof(uint32_t) * count, ebo_data);
+                    effect_group->ebo.Create(gl_state, sizeof(uint32_t) * count, ebo_data);
                     free_def(ebo_data);
                 }
                 else
@@ -160,10 +161,10 @@ namespace Glitter {
                             k->buffer = buffer;
 
                             glGenVertexArrays(1, &k->vao);
-                            glBindVertexArray(k->vao);
-                            glBindBuffer(GL_ARRAY_BUFFER, vbo);
+                            gl_state.bind_vertex_array(k->vao);
+                            gl_state.bind_array_buffer(vbo);
                             if (k->data.type == PARTICLE_QUAD)
-                                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo);
+                                gl_state.bind_element_array_buffer(ebo, true);
 
                             glEnableVertexAttribArray(0);
                             glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -184,9 +185,9 @@ namespace Glitter {
                 }
 
                 if (offset) {
-                    glBindBuffer(GL_ARRAY_BUFFER, 0);
-                    glBindVertexArray(0);
-                    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+                    gl_state.bind_array_buffer(0);
+                    gl_state.bind_vertex_array(0);
+                    gl_state.bind_element_array_buffer(0);
                 }
             }
             else {

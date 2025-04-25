@@ -1956,6 +1956,19 @@ inline void mat4_ortho(float_t left, float_t right,
     out_m->row3.w = 1.0f;
 }
 
+inline void mat4_ortho_offset(float_t left, float_t right,
+    float_t bottom, float_t top, float_t z_near, float_t z_far,
+    const vec2* scale, const vec2* offset, mat4* out_m) {
+    *out_m = mat4_null;
+    out_m->row0.x = 2.0f / (right - left) * scale->x;
+    out_m->row1.y = 2.0f / (top - bottom) * scale->y;
+    out_m->row2.z = -2.0f / (z_far - z_near);
+    out_m->row3.x = -((right + left) / (right - left)) * scale->x + offset->x;
+    out_m->row3.y = -((top + bottom) / (top - bottom)) * scale->y + offset->y;
+    out_m->row3.z = -((z_far + z_near) / (z_far - z_near));
+    out_m->row3.w = 1.0f;
+}
+
 inline void mat4_persp(float_t fov_y, float_t aspect, float_t z_near, float_t z_far, mat4* out_m) {
     float_t tan_fov = tanf(fov_y * 0.5f);
 
@@ -1965,6 +1978,15 @@ inline void mat4_persp(float_t fov_y, float_t aspect, float_t z_near, float_t z_
     out_m->row2.z = -((z_far + z_near) / (z_far - z_near));
     out_m->row2.w = -1.0f;
     out_m->row3.z = -((2.0f * z_far * z_near) / (z_far - z_near));
+}
+
+inline void mat4_persp_offset(float_t fov_y, float_t aspect, float_t z_near, float_t z_far,
+    const vec2* scale, const vec2* offset, mat4* out_m) {
+    mat4_persp(fov_y, aspect, z_near, z_far, out_m);
+    *(vec2*)&out_m->row0.x = *(vec2*)&out_m->row0.x * *scale + out_m->row0.w * *offset;
+    *(vec2*)&out_m->row1.x = *(vec2*)&out_m->row1.x * *scale + out_m->row1.w * *offset;
+    *(vec2*)&out_m->row2.x = *(vec2*)&out_m->row2.x * *scale + out_m->row2.w * *offset;
+    *(vec2*)&out_m->row3.x = *(vec2*)&out_m->row3.x * *scale + out_m->row3.w * *offset;
 }
 
 inline void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, mat4* out_m) {

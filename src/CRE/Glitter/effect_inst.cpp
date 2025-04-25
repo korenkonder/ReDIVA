@@ -204,8 +204,8 @@ namespace Glitter {
         }
     }
 
-    void F2EffectInst::Disp(GPM, DispType disp_type) {
-        render_scene.Disp(GPM_VAL, disp_type);
+    void F2EffectInst::Disp(GPM, render_data_context& rend_data_ct, DispType disp_type) {
+        render_scene.Disp(GPM_VAL, rend_data_ct, disp_type);
     }
 
     void F2EffectInst::DispMesh(GPM) {
@@ -784,8 +784,8 @@ namespace Glitter {
         }
     }
 
-    void XEffectInst::Disp(GPM, DispType disp_type) {
-        render_scene.Disp(GPM_VAL, disp_type);
+    void XEffectInst::Disp(GPM, render_data_context& rend_data_ct, DispType disp_type) {
+        render_scene.Disp(GPM_VAL, rend_data_ct, disp_type);
     }
 
     void XEffectInst::DispMesh(GPM) {

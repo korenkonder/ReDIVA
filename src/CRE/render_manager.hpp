@@ -19,13 +19,16 @@ enum reflect_refract_resolution_mode {
     REFLECT_REFRACT_RESOLUTION_MAX,
 };
 
-typedef void(*draw_pre_process_func)(void*);
+typedef void(*draw_pre_process_func)(struct render_data_context& rend_data_ctx,
+    void* data, const struct cam_data& cam);
 
 struct draw_pre_process {
     int32_t type;
     draw_pre_process_func func;
     void* data;
 };
+
+struct render_data_context;
 
 namespace rndr {
     enum RenderPassID {
@@ -88,6 +91,7 @@ namespace rndr {
         bool field_31F;
         bool light_stage_ambient;
         bool npr;
+        cam_data cam;
 
         RenderManager();
         ~RenderManager();
@@ -115,33 +119,32 @@ namespace rndr {
 
         void render_all();
         void rndpass_post_proc();
-        void rndpass_pre_proc(struct camera* cam);
+        void rndpass_pre_proc();
 
-        void render_single_pass(rndr::RenderPassID id);
+        void render_single_pass(render_data_context& rend_data_ctx, rndr::RenderPassID id);
 
         void render_pass_begin();
         void render_pass_end(rndr::RenderPassID id);
 
-        void pass_shadow();
-        void pass_ss_sss();
-        void pass_reflect();
-        void pass_refract();
-        void pass_pre_process();
-        void pass_clear();
-        void pass_pre_sprite();
-        void pass_3d();
-        void pass_show_vector();
-        void pass_post_process();
-        void pass_sprite();
+        void pass_shadow(render_data_context& rend_data_ctx);
+        void pass_ss_sss(render_data_context& rend_data_ctx);
+        void pass_reflect(render_data_context& rend_data_ctx);
+        void pass_refract(render_data_context& rend_data_ctx);
+        void pass_pre_process(render_data_context& rend_data_ctx);
+        void pass_clear(render_data_context& rend_data_ctx);
+        void pass_pre_sprite(render_data_context& rend_data_ctx);
+        void pass_3d(render_data_context& rend_data_ctx);
+        void pass_show_vector(render_data_context& rend_data_ctx);
+        void pass_post_process(render_data_context& rend_data_ctx);
+        void pass_sprite(render_data_context& rend_data_ctx);
 
-        void pass_3d_contour();
-        void pass_sprite_surf();
+        void pass_3d_contour(render_data_context& rend_data_ctx);
+        void pass_sprite_surf(render_data_context& rend_data_ctx);
     };
 }
 
-extern void image_filter_scale(RenderTexture* dst, texture* src, const vec4& scale = 1.0f);
-
-extern void draw_pass_set_camera();
+extern void image_filter_scale(render_data_context& rend_data_ctx,
+    RenderTexture* dst, texture* src, const vec4& scale = 1.0f);
 
 extern void render_manager_init_data(int32_t ssaa, int32_t hd_res, int32_t ss_alpha_mask, bool npr);
 extern void render_manager_free_data();

@@ -59,7 +59,9 @@ struct Shadow {
     Shadow();
     virtual ~Shadow();
 
-    void clear_textures();
+    void calc_proj_view_mat(struct cam_data& cam, const vec3& view_point,
+        const vec3& interest, float_t range, float_t offset, float_t scale);
+    void clear_textures(struct p_gl_rend_state& p_gl_rend_st);
     void ctrl();
     void free();
     float_t get_shadow_range();

@@ -6,7 +6,6 @@
 #pragma once
 
 #include "shared.hpp"
-#include "gl_rend_state.hpp"
 #include "texture.hpp"
 
 struct RenderTexture {
@@ -21,14 +20,16 @@ struct RenderTexture {
     RenderTexture();
     virtual ~RenderTexture();
 
-    int32_t Bind(int32_t index = 0);
+    int32_t Bind(struct gl_state_struct& gl_st, int32_t index = 0);
+    int32_t Bind(struct p_gl_rend_state& p_gl_rend_st, int32_t index = 0);
     void Free();
     int32_t Init(int32_t width, int32_t height,
         int32_t max_level, GLenum color_format, GLenum depth_format);
-    /*int32_t InitDepthRenderbuffer(GLenum internal_format, int32_t width, int32_t height);
-    int32_t InitStencilRenderbuffer(GLenum internal_format, int32_t width, int32_t height);*/
+    /*int32_t InitDepthRenderbuffer(gl_state_struct& gl_st, GLenum internal_format, int32_t width, int32_t height);
+    int32_t InitStencilRenderbuffer(gl_state_struct& gl_st, GLenum internal_format, int32_t width, int32_t height);*/
     int32_t SetColorDepthTextures(GLuint color_texture,
         int32_t max_level = 0, GLuint depth_texture = 0, bool stencil = false);
+    void SetViewport(struct p_gl_rend_state& p_gl_rend_st);
 
     inline GLuint GetColorTex() {
         return color_texture->glid;
@@ -44,10 +45,6 @@ struct RenderTexture {
 
     inline int32_t GetWidth() {
         return color_texture->width;
-    };
-
-    inline void SetViewport() {
-        gl_rend_state.set_viewport(0, 0, GetWidth(), GetHeight());
     };
 };
 

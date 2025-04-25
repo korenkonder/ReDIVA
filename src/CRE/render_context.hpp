@@ -56,12 +56,21 @@ struct global_material_struct {
 };
 
 struct draw_state {
-    draw_state_stats stats;
+    struct render_data {
+        int32_t shader_index;
+        bool self_shadow;
+        bool shadow;
+        bool blend;
+        bool cull_front;
+        int32_t field_8;
+        draw_state_stats stats;
+
+        render_data();
+    };
+
     draw_state_stats stats_prev;
     bool wireframe;
     bool wireframe_overlay;
-    bool shadow;
-    bool self_shadow;
     bool shader_debug_flag;
     bool use_global_material;
     bool fog_height;
@@ -72,10 +81,12 @@ struct draw_state {
     global_material_struct global_material;
     int32_t field_68;
     float_t fresnel;
+    render_data rend_data[GL_REND_STATE_COUNT];
 
     draw_state();
 
     bool get_use_global_material();
+    void stats_update();
     void set_fog_height(bool value);
     void set_use_global_material(bool value);
 };
@@ -92,7 +103,7 @@ struct sss_data {
 
     void free();
     void init();
-    void set_texture(int32_t);
+    void set_texture(struct p_gl_rend_state& p_gl_rend_st, int32_t texture_index);
 };
 
 struct light_proj {
@@ -105,9 +116,9 @@ struct light_proj {
     ~light_proj();
 
     void resize(int32_t width, int32_t height);
-    bool set();
+    bool set(struct render_data_context& rend_data_ctx, cam_data& cam);
 
-    static bool set_mat(bool set_mat);
+    static bool set_mat(struct render_data_context& rend_data_ctx, cam_data& cam, bool set_mat);
 };
 
 struct camera_blur_shader_data {
@@ -206,7 +217,7 @@ struct transparency_batch_shader_data {
     vec4 g_opacity;
 };
 
-struct render_context;
+struct render_data_context;
 
 struct render_data {
     struct obj_shader_data {
@@ -396,7 +407,10 @@ struct render_data {
     };
 
     render_data_flags flags;
+    cam_data cam;
+    mat4 inv_view_mat;
     int32_t shader_index;
+    uniform_value shader_flags;
     obj_shader_data buffer_shader_data;
     obj_scene_data buffer_scene_data;
     obj_batch_data buffer_batch_data;
@@ -409,11 +423,12 @@ struct render_data {
 
     void init();
     void free();
-    void set(render_context* rctx);
+    void set_skinning_data(struct p_gl_rend_state& p_gl_rend_st, const mat4* mats, int32_t count);
+    void set_state(struct p_gl_rend_state& p_gl_rend_st);
     void set_shader(uint32_t index);
 };
 
-struct render_context {
+struct render_data_context {
     struct fog_params {
         vec4 depth_color;
         vec4 height_params;
@@ -424,6 +439,61 @@ struct render_context {
         float_t end;
     };
 
+    p_gl_rend_state state;
+    int32_t index;
+    render_data& data;
+    uniform_value& shader_flags;
+
+    render_data_context(int32_t index);
+
+    void get_scene_fog_params(render_data_context::fog_params& value);
+    void get_scene_light(vec4* light_env_stage_diffuse,
+        vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
+        vec4* light_env_chara_diffuse, vec4* light_env_chara_specular);
+    void reset_shader_flags();
+    void set_batch_alpha_threshold(const float_t value);
+    void set_batch_blend_color_offset_color(const vec4& blend_color, const vec4& offset_color);
+    void set_batch_material_color(const vec4& diffuse, const vec4& ambient,
+        const vec4& emission, const float_t material_shininess, const vec4& specular,
+        const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
+        const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
+        const vec4& texture_specular_offset, const float_t shininess);
+    void set_batch_material_color_emission(const vec4& emission);
+    void set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
+        const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale);
+    void set_batch_min_alpha(const float_t value);
+    void set_batch_morph_weight(const float_t value);
+    void set_batch_scene_camera(const cam_data& cam);
+    void set_batch_sss_param(const vec4& sss_param);
+    void set_batch_texcoord_transforms(const mat4 mats[2]);
+    void set_batch_worlds(const mat4& mat);
+    void set_glitter_render_data_state();
+    void set_render_data_state();
+    void set_scene_fog_params(const render_data_context::fog_params& value);
+    void set_scene_framebuffer_size(const int32_t width, const int32_t height,
+        const int32_t render_width, const int32_t render_height);
+    void set_scene_light(const mat4& irradiance_r_transforms, const mat4& irradiance_g_transforms,
+        const mat4& irradiance_b_transforms, const vec4& light_env_stage_diffuse,
+        const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
+        const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
+        const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
+        const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
+        const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
+        const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
+        const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
+        const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
+        const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
+        const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color);
+    void set_scene_light_projection(const mat4& light_projection);
+    void set_scene_shadow_params(const float_t esm_param,
+        const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1);
+    void set_self_shadow(bool value);
+    void set_shader(uint32_t index);
+    void set_shadow(bool value);
+    void set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* mats, int32_t count);
+};
+
+struct render_context {
     struct shared_storage_buffer {
         void* data;
         size_t offset;
@@ -469,11 +539,6 @@ struct render_context {
     bool chara_reflect;
     bool chara_refract;
 
-    mat4 view_mat;
-    mat4 proj_mat;
-    mat4 vp_mat;
-    vec4 g_near_far;
-
     mat4 matrix_buffer[MATRIX_BUFFER_COUNT];
 
     GLuint box_vao;
@@ -507,7 +572,7 @@ struct render_context {
     GL::UniformBuffer tone_map_ubo;
     GL::UniformBuffer transparency_batch_ubo;
 
-    render_data data;
+    render_data data[GL_REND_STATE_COUNT];
 
     texture* empty_texture_2d;
     texture* empty_texture_cube_map;
@@ -544,50 +609,8 @@ struct render_context {
 
     void add_shared_storage_uniform_buffer_data(size_t index,
         const void* data, size_t size, size_t max_size, bool storage = false);
-    void get_scene_fog_params(render_context::fog_params& value);
-    void get_scene_light(vec4* light_env_stage_diffuse,
-        vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
-        vec4* light_env_chara_diffuse, vec4* light_env_chara_specular);
     bool get_shared_storage_uniform_buffer_data(size_t index,
         GLuint& buffer, size_t& offset, size_t& size, bool storage = false);
     void post_proc();
     void pre_proc();
-    void set_batch_alpha_threshold(const float_t value);
-    void set_batch_blend_color_offset_color(const vec4& blend_color, const vec4& offset_color);
-    void set_batch_joint(const mat4& mat);
-    void set_batch_material_color(const vec4& diffuse, const vec4& ambient,
-        const vec4& emission, const float_t material_shininess, const vec4& specular,
-        const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
-        const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
-        const vec4& texture_specular_offset, const float_t shininess);
-    void set_batch_material_color_emission(const vec4& emission);
-    void set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
-        const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale);
-    void set_batch_min_alpha(const float_t value);
-    void set_batch_morph_weight(const float_t value);
-    void set_batch_sss_param(const vec4& sss_param);
-    void set_batch_texcoord_transforms(const mat4 mats[2]);
-    void set_batch_worlds(const mat4& mat);
-    void set_glitter_render_data();
-    void set_render_data();
-    void set_scene_fog_params(const render_context::fog_params& value);
-    void set_scene_framebuffer_size(const int32_t width, const int32_t height,
-        const int32_t render_width, const int32_t render_height);
-    void set_scene_light(const mat4& irradiance_r_transforms, const mat4& irradiance_g_transforms,
-        const mat4& irradiance_b_transforms, const vec4& light_env_stage_diffuse,
-        const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
-        const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
-        const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
-        const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
-        const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
-        const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
-        const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
-        const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
-        const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
-        const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color);
-    void set_scene_light_projection(const mat4& light_projection);
-    void set_scene_projection_view(const mat4& view, const mat4& proj, const vec3& view_position);
-    void set_scene_shadow_params(const float_t esm_param,
-        const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1);
-    void set_shader(uint32_t index);
 };

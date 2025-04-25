@@ -4,7 +4,7 @@
 */
 
 #include "clear_color.hpp"
-#include "gl_rend_state.hpp"
+#include "gl.hpp"
 
 color4u8 clear_color;
 bool set_clear_color;

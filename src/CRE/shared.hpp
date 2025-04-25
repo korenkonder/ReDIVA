@@ -18,7 +18,7 @@ enum blur_filter_mode {
     BLUR_FILTER_MAX = 0x04,
 };
 
-extern void fbo_blit(GLuint src_fbo, GLuint dst_fbo,
+extern void fbo_blit(struct p_gl_rend_state& p_gl_rend_st, GLuint src_fbo, GLuint dst_fbo,
     GLint src_x, GLint src_y, GLint src_width, GLint src_height,
     GLint dst_x, GLint dst_y, GLint dst_width, GLint dst_height, GLbitfield mask, GLenum filter);
 

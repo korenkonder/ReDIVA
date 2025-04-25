@@ -12,6 +12,7 @@
 #include "../CRE/app_system_detail.hpp"
 #include "../CRE/data.hpp"
 #include "../CRE/effect.hpp"
+#include "../CRE/gl_state.hpp"
 #include "../CRE/item_table.hpp"
 #include "../CRE/object.hpp"
 #include "../CRE/pv_expression.hpp"
@@ -6336,11 +6337,11 @@ struct d3d_gl_fbo_tex_struct {
             handle = wglDXRegisterObjectNV(d3d_gl_handle, d3d_tex,
                 gl_tex, GL_TEXTURE_2D, WGL_ACCESS_READ_WRITE_NV);
         else {
-            gl_rend_state.bind_texture_2d(gl_tex);
+            gl_state.bind_texture_2d(gl_tex);
             ::texture* tex = rctx_ptr->screen_buffer.color_texture;
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8,
                 tex->width, tex->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-            gl_rend_state.bind_texture_2d(0);
+            gl_state.bind_texture_2d(0);
         }
 
         glGenFramebuffers(1, &gl_fbo);
@@ -6348,9 +6349,9 @@ struct d3d_gl_fbo_tex_struct {
             return;
 
         lock();
-        gl_rend_state.bind_framebuffer(gl_fbo);
+        gl_state.bind_framebuffer(gl_fbo);
         glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, gl_tex, 0);
-        gl_rend_state.bind_framebuffer(0);
+        gl_state.bind_framebuffer(0);
         unlock();
     }
 
@@ -6390,7 +6391,6 @@ struct d3d_gl_fbo_tex_struct {
 static d3d_gl_fbo_tex_struct d3d_gl_fbo_tex;
 
 #if BAKE_VIDEO_ALPHA
-static ID3D11Texture2D* d3d_alpha_texture;
 static d3d_gl_fbo_tex_struct d3d_gl_alpha_fbo_tex;
 #endif
 
@@ -6468,9 +6468,9 @@ bool x_pv_game::ctrl() {
             D3D11_MAPPED_SUBRESOURCE mapped_res = {};
             if (SUCCEEDED(d3d_device_context->Map(d3d_gl_fbo_tex.d3d_tex,
                 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_res))) {
-                gl_rend_state.bind_texture_2d(d3d_gl_fbo_tex.gl_tex);
+                gl_state.bind_texture_2d(d3d_gl_fbo_tex.gl_tex);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, nvenc_temp_pixels.data());
-                gl_rend_state.bind_texture_2d(0);
+                gl_state.bind_texture_2d(0);
 
                 uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
                 uint8_t* dst = (uint8_t*)mapped_res.pData;
@@ -6491,9 +6491,9 @@ bool x_pv_game::ctrl() {
             D3D11_MAPPED_SUBRESOURCE mapped_alpha_res = {};
             if (SUCCEEDED(d3d_device_context->Map(d3d_gl_alpha_fbo_tex.d3d_tex,
                 0, D3D11_MAP_WRITE_DISCARD, 0, &mapped_alpha_res))) {
-                gl_rend_state.bind_texture_2d(d3d_gl_alpha_fbo_tex.gl_tex);
+                gl_state.bind_texture_2d(d3d_gl_alpha_fbo_tex.gl_tex);
                 glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, nvenc_temp_pixels.data());
-                gl_rend_state.bind_texture_2d(0);
+                gl_state.bind_texture_2d(0);
 
                 uint8_t* src = (uint8_t*)nvenc_temp_pixels.data();
                 uint8_t* dst = (uint8_t*)mapped_alpha_res.pData;
@@ -6524,9 +6524,9 @@ bool x_pv_game::ctrl() {
 #elif BAKE_PNG
         std::vector<uint8_t> temp_pixels;
         temp_pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
-        gl_rend_state.bind_texture_2d(tex->glid);
+        gl_state.bind_texture_2d(tex->glid);
         glGetTexImage(GL_TEXTURE_2D, 0, GL_RGBA, GL_UNSIGNED_BYTE, temp_pixels.data());
-        gl_rend_state.bind_texture_2d(0);
+        gl_state.bind_texture_2d(0);
 
         std::vector<uint8_t> pixels;
         pixels.resize((size_t)width * (size_t)height * 4 * sizeof(uint8_t));
@@ -8000,11 +8000,6 @@ bool x_pv_game::ctrl() {
 #endif
         d3d_gl_fbo_tex.free();
 
-#if BAKE_VIDEO_ALPHA
-        d3d_alpha_texture->Release();
-        d3d_alpha_texture = 0;
-#endif
-
         if (!GLAD_WGL_NV_DX_interop2) {
             nvenc_temp_pixels.clear();
             nvenc_temp_pixels.shrink_to_fit();
@@ -8183,20 +8178,23 @@ void x_pv_game::basic() {
 #if BAKE_VIDEO
         d3d_gl_fbo_tex.lock();
 
-        gl_rend_state.bind_framebuffer(d3d_gl_fbo_tex.gl_fbo);
-        gl_rend_state.active_bind_texture_2d(0, tex->glid);
-        gl_rend_state.bind_sampler(0, rctx_ptr->render_samplers[1]);
+        render_data_context rend_data_ctx(3);
+        rend_data_ctx.state.bind_framebuffer(d3d_gl_fbo_tex.gl_fbo);
+        rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
+        rend_data_ctx.state.bind_sampler(0, rctx_ptr->render_samplers[1]);
 
 #if BAKE_VIDEO_ALPHA
         GLint swizzle_rgb1[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ONE };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgb1);
 #endif
 
-        gl_rend_state.set_viewport(0, 0, width, height);
+        rend_data_ctx.state.set_viewport(0, 0, width, height);
         if (nvenc_rgb)
-            shaders_dev.set(SHADER_DEV_CONVERT_RGB);
+            shaders_dev.set(rend_data_ctx.state,
+                rend_data_ctx.shader_flags, SHADER_DEV_CONVERT_RGB);
         else
-            shaders_dev.set(SHADER_DEV_CONVERT_YCBCR_BT709);
+            shaders_dev.set(rend_data_ctx.state,
+                rend_data_ctx.shader_flags, SHADER_DEV_CONVERT_YCBCR_BT709);
 
         float_t s0 = 1.0f;
         float_t t0 = 0.0f;
@@ -8214,48 +8212,50 @@ void x_pv_game::basic() {
         quad.g_color = 1.0f;
         quad.g_texture_lod = 0.0f;
 
-        rctx_ptr->quad_ubo.WriteMemory(quad);
-        rctx_ptr->quad_ubo.Bind(0);
-        gl_rend_state.bind_vertex_array(rctx_ptr->common_vao);
-        shaders_dev.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+        rctx_ptr->quad_ubo.WriteMemory(rend_data_ctx.state, quad);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->quad_ubo);
+        rend_data_ctx.state.bind_vertex_array(rctx_ptr->common_vao);
+        rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
 #if BAKE_VIDEO_ALPHA
         GLint swizzle_rgba[] = { GL_RED, GL_GREEN, GL_BLUE, GL_ALPHA };
         glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
 #endif
 
-        gl_rend_state.bind_sampler(0, 0);
-        gl_rend_state.bind_texture_2d(0);
-        gl_rend_state.bind_framebuffer(0);
+        rend_data_ctx.state.bind_sampler(0, 0);
+        rend_data_ctx.state.bind_texture_2d(0);
+        rend_data_ctx.state.bind_framebuffer(0);
 
         d3d_gl_fbo_tex.unlock();
 
 #if BAKE_VIDEO_ALPHA
         d3d_gl_alpha_fbo_tex.lock();
 
-        gl_rend_state.bind_framebuffer(d3d_gl_alpha_fbo_tex.gl_fbo);
-        gl_rend_state.active_bind_texture_2d(0, tex->glid);
+        rend_data_ctx.state.bind_framebuffer(d3d_gl_alpha_fbo_tex.gl_fbo);
+        rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
 
         if (nvenc_rgb) {
             GLint swizzle_aaa1[] = { GL_ALPHA, GL_ALPHA, GL_ALPHA, GL_ONE };
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_aaa1);
         }
 
-        gl_rend_state.set_viewport(0, 0, width, height);
+        rend_data_ctx.state.set_viewport(0, 0, width, height);
         if (nvenc_rgb) {
-            uniform_value[U_REDUCE] = 0;
-            shaders_ft.set(SHADER_FT_REDUCE);
+            rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+            shaders_dev.set(rend_data_ctx.state,
+                rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
         }
         else
-            shaders_dev.set(SHADER_DEV_CONVERT_ALPHA);
-        rctx_ptr->render.draw_quad(width, height,
+            shaders_dev.set(rend_data_ctx.state,
+                rend_data_ctx.shader_flags, SHADER_DEV_CONVERT_ALPHA);
+        rctx_ptr->render.draw_quad(rend_data_ctx, width, height,
             1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
         if (nvenc_rgb)
             glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle_rgba);
 
-        gl_rend_state.bind_texture_2d(0);
-        gl_rend_state.bind_framebuffer(0);
+        rend_data_ctx.state.bind_texture_2d(0);
+        rend_data_ctx.state.bind_framebuffer(0);
 
         d3d_gl_alpha_fbo_tex.unlock();
 #endif

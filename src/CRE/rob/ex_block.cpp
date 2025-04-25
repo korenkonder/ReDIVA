@@ -8,6 +8,7 @@
 #include "../../KKdLib/str_utils.hpp"
 #include "../app_system_detail.hpp"
 #include "../data.hpp"
+#include "../gl_state.hpp"
 #include "skin_param.hpp"
 
 struct exp_func_op1 {
@@ -1957,7 +1958,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
 
     vertex_buffer->cycle_index();
     GL::ArrayBuffer buffer = vertex_buffer->get_buffer();
-    size_t data = (size_t)buffer.MapMemory();
+    size_t data = (size_t)buffer.MapMemory(gl_state);
     if (!data)
         return;
 
@@ -2093,7 +2094,7 @@ void RobCloth::UpdateVertexBuffer(obj_mesh* mesh, obj_mesh_vertex_buffer* vertex
         break;
     }
 
-    buffer.UnmapMemory();
+    buffer.UnmapMemory(gl_state);
 }
 
 ExClothBlock::ExClothBlock() {

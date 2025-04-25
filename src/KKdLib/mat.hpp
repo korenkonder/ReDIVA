@@ -218,7 +218,12 @@ extern void mat4_frustrum(float_t left, float_t right,
     float_t bottom, float_t top, float_t z_near, float_t z_far, mat4* out_m);
 extern void mat4_ortho(float_t left, float_t right,
     float_t bottom, float_t top, float_t z_near, float_t z_far, mat4* out_m);
+extern void mat4_ortho_offset(float_t left, float_t right,
+    float_t bottom, float_t top, float_t z_near, float_t z_far,
+    const vec2* scale, const vec2* offset, mat4* out_m);
 extern void mat4_persp(float_t fov_y, float_t aspect, float_t z_near, float_t z_far, mat4* out_m);
+extern void mat4_persp_offset(float_t fov_y, float_t aspect, float_t z_near, float_t z_far,
+    const vec2* scale, const vec2* offset, mat4* out_m);
 extern void mat4_look_at(const vec3* eye, const vec3* target, const vec3* up, mat4* out_m);
 extern void mat4_look_at(const vec3* eye, const vec3* target, mat4* out_m);
 

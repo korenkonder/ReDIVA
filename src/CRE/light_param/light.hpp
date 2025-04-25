@@ -85,5 +85,5 @@ struct light_set {
     void get_irradiance(mat4& r, mat4& g, mat4& b);
     void set_irradiance(const mat4& r, const mat4& g, const mat4& b);
     void set_irradiance(const mat4&& r, const mat4&& g, const mat4&& b);
-    void data_set(face& face, light_set_id id);
+    void data_set(struct render_data_context& rend_data_ctx, face& face, light_set_id id);
 };

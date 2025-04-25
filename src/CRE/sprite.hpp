@@ -14,7 +14,6 @@
 #include "../KKdLib/spr.hpp"
 #include "../KKdLib/vec.hpp"
 #include "color.hpp"
-#include "render_context.hpp"
 #include "resolution_mode.hpp"
 #include "texture.hpp"
 #include "gl_rend_state.hpp"
@@ -211,7 +210,8 @@ namespace spr {
 extern void sprite_manager_init();
 extern void sprite_manager_add_spr_sets(const sprite_database* spr_db);
 extern void sprite_manager_clear();
-extern void sprite_manager_draw(int32_t index, bool font, texture* overlay_tex, const mat4& vp);
+extern void sprite_manager_draw(struct render_data_context& rend_data_ctx,
+    int32_t index, bool font, texture* overlay_tex, const mat4& vp);
 extern int32_t sprite_manager_get_index();
 extern size_t sprite_manager_get_reqlist_count(int32_t index);
 extern ::spr_set* sprite_manager_get_set(uint32_t set_id, const sprite_database* spr_db);

@@ -259,7 +259,7 @@ void light_set::set_irradiance(const mat4&& r, const mat4&& g, const mat4&& b) {
     irradiance_b = b;
 }
 
-void light_set::data_set(face& face, light_set_id id) {
+void light_set::data_set(render_data_context& rend_data_ctx, face& face, light_set_id id) {
     static const float_t spec_coef = (float_t)(1.0 / (1.0 - cos(18.0 * DEG_TO_RAD)));
     static const float_t luce_coef = (float_t)(1.0 / (1.0 - cos(45.0 * DEG_TO_RAD)));
 
@@ -346,7 +346,7 @@ void light_set::data_set(face& face, light_set_id id) {
     vec4 chara_f_diffuse;
     vec4 chara_tc_param;
     if (lights[LIGHT_TONE_CURVE].get_type() == LIGHT_PARALLEL) {
-        uniform_value[U_TONE_CURVE] = 1;
+        rend_data_ctx.shader_flags.arr[U_TONE_CURVE] = 1;
         lights[LIGHT_TONE_CURVE].get_position(chara_f_dir);
         light_get_direction_from_position(&chara_f_dir, &lights[LIGHT_TONE_CURVE]);
         lights[LIGHT_TONE_CURVE].get_ambient(chara_f_ambient);
@@ -364,7 +364,7 @@ void light_set::data_set(face& face, light_set_id id) {
         chara_tc_param.w = 0.0f;
     }
     else {
-        uniform_value[U_TONE_CURVE] = 0;
+        rend_data_ctx.shader_flags.arr[U_TONE_CURVE] = 0;
         chara_f_dir = { 0.0f, 1.0f, 0.0f, 0.0f };
         chara_f_ambient = 0.0f;
         chara_f_diffuse = 0.0f;
@@ -427,8 +427,7 @@ void light_set::data_set(face& face, light_set_id id) {
         }
     }
 
-    extern render_context* rctx_ptr;
-    rctx_ptr->set_scene_light(irradiance_r_transforms, irradiance_g_transforms, irradiance_b_transforms,
+    rend_data_ctx.set_scene_light(irradiance_r_transforms, irradiance_g_transforms, irradiance_b_transforms,
         light_env_stage_diffuse, light_env_stage_specular, light_env_chara_diffuse,
         light_env_chara_ambient, light_env_chara_specular,
         light_env_reflect_diffuse, light_env_reflect_ambient,
@@ -439,6 +438,15 @@ void light_set::data_set(face& face, light_set_id id) {
         chara_color0, chara_color1, chara_f_dir, chara_f_ambient,
         chara_f_diffuse, chara_tc_param, normal_tangent_transforms,
         light_reflect_dir, clip_plane, npr_cloth_spec_color);
+
+    extern const GLuint* light_param_data_storage_data_get_ibl_textures();
+    const GLuint* textures = light_param_data_storage_data_get_ibl_textures();
+    static const int32_t ibl_texture_index[] = {
+        9, 10, 11, 12, 13
+    };
+
+    for (int32_t i = 0; i < 5; i++)
+        rend_data_ctx.state.active_bind_texture_cube_map(ibl_texture_index[i], textures[i]);
 }
 
 static void light_get_direction_from_position(vec4* pos_dir, light_data* light, bool force) {

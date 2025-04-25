@@ -39,31 +39,31 @@ namespace renderer {
         }
     }
 
-    void Transparency::combine(RenderTexture* rt, float_t alpha) {
+    void Transparency::combine(render_data_context& rend_data_ctx, RenderTexture* rt, float_t alpha) {
         transparency_batch_shader_data shader_data = {};
         shader_data.g_opacity = { alpha, 0.0f, 0.0f, 0.0f };
-        rctx_ptr->transparency_batch_ubo.WriteMemory(shader_data);
+        rctx_ptr->transparency_batch_ubo.WriteMemory(rend_data_ctx.state, shader_data);
 
-        gl_rend_state.disable_blend();
-        gl_rend_state.disable_depth_test();
-        rctx_ptr->render_buffer.Bind();
-        shaders_ft.set(SHADER_FT_TRANSPARENCY);
-        rctx_ptr->transparency_batch_ubo.Bind(0);
-        gl_rend_state.active_bind_texture_2d(0, fbo.textures[0]);
-        gl_rend_state.active_bind_texture_2d(1, rt->GetColorTex());
-        gl_rend_state.bind_vertex_array(vao);
-        shaders_ft.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
-        gl_rend_state.enable_depth_test();
+        rend_data_ctx.state.disable_blend();
+        rend_data_ctx.state.disable_depth_test();
+        rctx_ptr->render_buffer.Bind(rend_data_ctx.state);
+        shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_TRANSPARENCY);
+        rend_data_ctx.state.bind_uniform_buffer_base(0, rctx_ptr->transparency_batch_ubo);
+        rend_data_ctx.state.active_bind_texture_2d(0, fbo.textures[0]);
+        rend_data_ctx.state.active_bind_texture_2d(1, rt->GetColorTex());
+        rend_data_ctx.state.bind_vertex_array(vao);
+        rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
+        rend_data_ctx.state.enable_depth_test();
 
         glCopyImageSubData(rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
             rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
     }
 
-    void Transparency::copy(GLuint texture) {
+    void Transparency::copy(render_data_context& rend_data_ctx, GLuint texture) {
         glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0,
             fbo.textures[0], GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
-        fbo.bind_buffer();
-        gl_rend_state.set_viewport(0, 0, fbo.width, fbo.height);
+        rend_data_ctx.state.bind_framebuffer(fbo.buffer);
+        rend_data_ctx.state.set_viewport(0, 0, fbo.width, fbo.height);
     }
 
     void Transparency::resize(GLuint color_texture, GLuint depth_texture, int32_t width, int32_t height) {

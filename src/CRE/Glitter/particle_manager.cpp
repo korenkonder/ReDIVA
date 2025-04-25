@@ -272,7 +272,7 @@ namespace Glitter {
         init_buffers = max_def(init_buffers - count, 0);
     }
 
-    void GltParticleManager::DispScenes(DispType disp_type) {
+    void GltParticleManager::DispScenes(render_data_context& rend_data_ctx, DispType disp_type) {
         if (flags & PARTICLE_MANAGER_NOT_DISP)
             return;
 
@@ -281,13 +281,13 @@ namespace Glitter {
                 && selected_effect_group != i->effect_group)
                 continue;
 
-            i->Disp(this, disp_type);
+            i->Disp(this, rend_data_ctx, disp_type);
         }
 
-        gl_rend_state.bind_vertex_array(0);
-        gl_rend_state.disable_blend();
-        gl_rend_state.enable_cull_face();
-        gl_rend_state.disable_depth_test();
+        rend_data_ctx.state.bind_vertex_array(0);
+        rend_data_ctx.state.disable_blend();
+        rend_data_ctx.state.enable_cull_face();
+        rend_data_ctx.state.disable_depth_test();
     }
 
     void GltParticleManager::FreeEffects() {

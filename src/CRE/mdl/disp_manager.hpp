@@ -63,6 +63,9 @@ struct texture_data_struct {
     texture_data_struct();
 };
 
+struct cam_data;
+struct render_data_context;
+
 namespace mdl {
     struct ObjSubMeshArgs;
 
@@ -317,7 +320,7 @@ namespace mdl {
         ~EtcObj();
     };
 
-    typedef void(*UserArgsFunc)(void* data, mat4* mat);
+    typedef void(*UserArgsFunc)(render_data_context& rend_data_ctx, void* data, const cam_data& cam, mat4* mat);
 
     struct UserArgs {
         UserArgsFunc func;
@@ -458,16 +461,18 @@ namespace mdl {
         ObjData* alloc_obj_data(ObjKind kind);
         mat4* alloc_mat4_array(int32_t count);
         void buffer_reset();
-        void calc_obj_radius(const mat4* view, ObjType type);
-        void calc_obj_radius(const mat4* view, ObjTypeLocal type);
-        void calc_obj_radius(const mat4* view, ObjTypeReflect type);
+        void calc_obj_radius(const cam_data& cam, ObjType type);
+        void calc_obj_radius(const cam_data& cam, ObjTypeLocal type);
+        void calc_obj_radius(const cam_data& cam, ObjTypeReflect type);
         void check_index_buffer(GLuint buffer);
         void check_vertex_arrays();
         void check_vertex_buffer(GLuint buffer);
-        void draw(ObjType type, int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
-        void draw(ObjTypeLocal type, int32_t depth_mask = 0, bool reflect_texture_mask = true);
-        void draw(ObjTypeReflect type, int32_t depth_mask = 0, bool reflect_texture_mask = true);
-        /*void draw_show_vector(mdl::ObjType type, int32_t show_vector);*/
+        void draw(render_data_context& rend_data_ctx, ObjType type, const cam_data& cam,
+            int32_t depth_mask = 0, bool reflect_texture_mask = true, int32_t alpha = -1);
+        void draw(render_data_context& rend_data_ctx, ObjTypeLocal type, const cam_data& cam,
+            int32_t depth_mask = 0, bool reflect_texture_mask = true);
+        void draw(render_data_context& rend_data_ctx, ObjTypeReflect type, const cam_data& cam,
+            int32_t depth_mask = 0, bool reflect_texture_mask = true);
         void entry_list(ObjType type, ObjData* data);
         void entry_list(ObjTypeLocal type, ObjData* data);
         void entry_list(ObjTypeReflect type, ObjData* data);
@@ -521,9 +526,12 @@ namespace mdl {
         void get_texture_specular_offset(vec4& value);
         void get_texture_transform(int32_t& count, texture_transform_struct*& value);
         float_t get_wet_param();
-        void obj_sort(const mat4* view, ObjType type, int32_t compare_func, bool a3 = false);
-        void obj_sort(const mat4* view, ObjTypeLocal type, int32_t compare_func);
-        void obj_sort(const mat4* view, ObjTypeReflect type, int32_t compare_func);
+        void obj_sort(render_data_context& rend_data_ctx,
+            ObjType type, int32_t compare_func, const cam_data& cam, bool a3 = false);
+        void obj_sort(render_data_context& rend_data_ctx,
+            ObjTypeLocal type, int32_t compare_func, const cam_data& cam);
+        void obj_sort(render_data_context& rend_data_ctx,
+            ObjTypeReflect type, int32_t compare_func, const cam_data& cam);
         void refresh();
         void set_chara_color(bool value = false);
         void set_culling_func(bool(*func)(const obj_bounding_sphere*, const mat4*) = 0);

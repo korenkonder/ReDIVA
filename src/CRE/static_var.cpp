@@ -18,9 +18,7 @@ int32_t sv_anisotropy = 1;
 
 bool sv_better_reflect = false;
 
-bool sv_shared_storage_uniform_buffer = true;
-
-int32_t uniform_value[U_MAX];
+bool sv_shared_storage_uniform_buffer = false;
 
 const vec3 sv_rgb_to_luma = {
     0.2126f, 0.7152f, 0.0722f
@@ -43,23 +41,4 @@ void sv_anisotropy_set(int32_t value) {
     if (sv_anisotropy != sv_old_anisotropy)
         sv_anisotropy_changed = true;
     sv_old_anisotropy = sv_anisotropy;
-}
-
-void uniform_value_reset() {
-    uniform_value[U_ANISO] = 0;
-    uniform_value[U0B] = 0;
-    uniform_value[U_TEXTURE_BLEND] = 0;
-    uniform_value[U_FOG_STAGE] = 0;
-    uniform_value[U_FOG_CHARA] = 0;
-    uniform_value[U_SPECULAR_IBL] = 0;
-    uniform_value[U_TEX_0_TYPE] = 0;
-    uniform_value[U_TEX_1_TYPE] = 0;
-    uniform_value[U_TEXTURE_COUNT] = 0;
-    uniform_value[U_ENV_MAP] = 0;
-    uniform_value[U_TRANSLUCENCY] = 0;
-    uniform_value[U_NORMAL] = 0;
-    uniform_value[U_TRANSPARENCY] = 0;
-    uniform_value[U_STAGE_SHADOW] = 0;
-    uniform_value[U_SPECULAR] = 0;
-    uniform_value[U45] = 0;
 }

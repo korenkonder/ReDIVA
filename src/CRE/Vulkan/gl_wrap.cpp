@@ -423,14 +423,22 @@ namespace Vulkan {
                 }
             }
 
-            vk_fbo->render_pass[0] = Vulkan::manager_get_render_pass(
-                color_formats, color_format_count, depth_format, false);
-            vk_fbo->render_pass[1] = Vulkan::manager_get_render_pass(
-                color_formats, color_format_count, depth_format, true);
-            vk_fbo->framebuffer[0].Create(Vulkan::current_device, 0,
-                *vk_fbo->render_pass[0].get(), image_view_count, image_views, width, height);
-            vk_fbo->framebuffer[1].Create(Vulkan::current_device, 0,
-                *vk_fbo->render_pass[1].get(), image_view_count, image_views, width, height);
+            if (color_format_count || depth_format) {
+                vk_fbo->render_pass[0] = Vulkan::manager_get_render_pass(
+                    color_formats, color_format_count, depth_format, false);
+                vk_fbo->render_pass[1] = Vulkan::manager_get_render_pass(
+                    color_formats, color_format_count, depth_format, true);
+                vk_fbo->framebuffer[0].Create(Vulkan::current_device, 0,
+                    *vk_fbo->render_pass[0].get(), image_view_count, image_views, width, height);
+                vk_fbo->framebuffer[1].Create(Vulkan::current_device, 0,
+                    *vk_fbo->render_pass[1].get(), image_view_count, image_views, width, height);
+            }
+            else {
+                vk_fbo->render_pass[0].reset();
+                vk_fbo->render_pass[1].reset();
+                vk_fbo->framebuffer[0].Destroy();
+                vk_fbo->framebuffer[1].Destroy();
+            }
 
             vk_fbo->update_framebuffer = false;
         }

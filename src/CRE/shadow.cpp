@@ -4,6 +4,7 @@
 */
 
 #include "shadow.hpp"
+#include "gl_state.hpp"
 #include "render_context.hpp"
 
 Shadow* shadow_ptr;
@@ -30,14 +31,38 @@ Shadow::~Shadow() {
     free();
 }
 
-void Shadow::clear_textures() {
+void Shadow::calc_proj_view_mat(cam_data& cam, const vec3& view_point,
+    const vec3& interest, float_t range, float_t offset, float_t scale) {
+    cam.set_view_point(view_point);
+    cam.set_interest(interest);
+
+    vec3 up = { 0.0f, 1.0f, 0.0f };
+    const vec3 dir = interest - view_point;
+    if (vec3::length_squared(dir) <= 0.000001f) {
+        up.x = 0.0f;
+        up.y = 0.0f;
+        if (dir.z < 0.0f)
+            up.z = 1.0f;
+        else
+            up.z = -1.0f;
+    }
+    cam.set_up(up);
+
+    cam.calc_view_mat();
+    cam.set_min_distance(z_near);
+    cam.set_max_distance(z_far);
+    cam.calc_ortho_proj_mat(-range, range, -range, range, scale, { offset, 0.0f });
+    cam.calc_view_proj_mat();
+}
+
+void Shadow::clear_textures(p_gl_rend_state& p_gl_rend_st) {
     for (int32_t i = 1; i < 3; i++)
         for (int32_t j = 0; j < 4; j++) {
-            curr_render_textures[i]->Bind(j);
+            curr_render_textures[i]->Bind(p_gl_rend_st, j);
             glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
             glClear(GL_COLOR_BUFFER_BIT);
         }
-    gl_rend_state.bind_framebuffer(0);
+    p_gl_rend_st.bind_framebuffer(0);
 }
 
 void Shadow::ctrl() {
@@ -101,7 +126,7 @@ int32_t Shadow::init() {
             return -1;
 
     for (int32_t i = 0; i < 3; i++) {
-        glBindTexture(GL_TEXTURE_2D, render_textures[i].GetColorTex());
+        gl_state.bind_texture_2d(render_textures[i].GetColorTex());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MAX_ANISOTROPY_EXT, 16.0f);
@@ -109,10 +134,10 @@ int32_t Shadow::init() {
         glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, (GLfloat*)&border_color);
     }
 
-    glBindTexture(GL_TEXTURE_2D, render_textures[0].GetDepthTex());
+    gl_state.bind_texture_2d(render_textures[0].GetDepthTex());
     GLint swizzle[] = { GL_RED, GL_RED, GL_RED, GL_ONE };
     glTexParameteriv(GL_TEXTURE_2D, GL_TEXTURE_SWIZZLE_RGBA, swizzle);
-    glBindTexture(GL_TEXTURE_2D, 0);
+    gl_state.bind_texture_2d(0);
     gl_get_error_print();
     return 0;
 }

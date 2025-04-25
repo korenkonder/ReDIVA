@@ -5,6 +5,8 @@
 
 #include "render_context.hpp"
 #include "app_system_detail.hpp"
+#include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include "shader_ft.hpp"
 #include "sound.hpp"
 #include "sprite.hpp"
@@ -56,7 +58,11 @@ global_material_struct::global_material_struct() {
     refract_uv_scale = 0.1f;
 }
 
-draw_state::draw_state() : wireframe(), wireframe_overlay(), shadow(), self_shadow(),
+draw_state::render_data::render_data() : self_shadow(), shadow(), blend(), cull_front(), field_8() {
+    shader_index = -1;
+}
+
+draw_state::draw_state() : wireframe(), wireframe_overlay(),
 shader_debug_flag(), use_global_material(), fog_height(), ex_data_mat(), field_68() {
     shader = true;
     shader_index = -1;
@@ -66,6 +72,22 @@ shader_debug_flag(), use_global_material(), fog_height(), ex_data_mat(), field_6
 
 bool draw_state::get_use_global_material() {
     return use_global_material;
+}
+
+void draw_state::stats_update() {
+    stats_prev.reset();
+
+    for (draw_state::render_data& i : rend_data) {
+        stats_prev.object_draw_count += i.stats.object_draw_count;
+        stats_prev.object_translucent_draw_count += i.stats.object_translucent_draw_count;
+        stats_prev.object_reflect_draw_count += i.stats.object_reflect_draw_count;
+        stats_prev.field_C += i.stats.field_C;
+        stats_prev.field_10 += i.stats.field_10;
+        stats_prev.draw_count += i.stats.draw_count;
+        stats_prev.draw_triangle_count += i.stats.draw_triangle_count;
+        stats_prev.field_1C += i.stats.field_1C;
+        i.stats.reset();
+    }
 }
 
 void draw_state::set_fog_height(bool value) {
@@ -106,9 +128,9 @@ void sss_data::init() {
     init_data = true;
 }
 
-void sss_data::set_texture(int32_t texture_index) {
-    gl_rend_state.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
-    gl_rend_state.active_texture(0);
+void sss_data::set_texture(p_gl_rend_state& p_gl_rend_st, int32_t texture_index) {
+    p_gl_rend_st.active_bind_texture_2d(16, textures[texture_index].GetColorTex());
+    p_gl_rend_st.active_texture(0);
 }
 
 light_proj::light_proj(int32_t width, int32_t height) : enable(), texture_id() {
@@ -128,39 +150,59 @@ void light_proj::resize(int32_t width, int32_t height) {
     draw_texture.Init(width, height, 0, GL_RGBA8, GL_DEPTH_COMPONENT32F);
 }
 
-bool light_proj::set() {
+bool light_proj::set(render_data_context& rend_data_ctx, cam_data& cam) {
     if (!this)
         return false;
 
     static const vec4 color_clear = 0.0f;
     static const GLfloat depth_clear = 1.0f;
 
-    shadow_texture[0].Bind();
-    gl_rend_state.set_viewport(0, 0, 2048, 512);
-    gl_rend_state.enable_depth_test();
-    gl_rend_state.set_depth_mask(GL_TRUE);
+    shadow_texture[0].Bind(rend_data_ctx.state);
+    rend_data_ctx.state.set_viewport(0, 0, 2048, 512);
+    rend_data_ctx.state.enable_depth_test();
+    rend_data_ctx.state.set_depth_mask(GL_TRUE);
     glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearBufferfv(GL_DEPTH, 0, &depth_clear);
 
-    if (set_mat(false)) {
-        rctx_ptr->draw_state->shader_index = SHADER_FT_SIL;
-        uniform_value[U_DEPTH] = 1;
+    if (set_mat(rend_data_ctx, cam, false)) {
+        rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
+        rend_data_ctx.shader_flags.arr[U_DEPTH] = 1;
         return true;
     }
     else {
-        draw_texture.Bind();
-        draw_texture.SetViewport();
-        gl_rend_state.enable_depth_test();
-        gl_rend_state.set_depth_mask(GL_TRUE);
+        draw_texture.Bind(rend_data_ctx.state);
+        draw_texture.SetViewport(rend_data_ctx.state);
+        rend_data_ctx.state.enable_depth_test();
+        rend_data_ctx.state.set_depth_mask(GL_TRUE);
         glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
         glClearBufferfv(GL_DEPTH, 0, &depth_clear);
     }
     return false;
 }
 
-bool light_proj::set_mat(bool set_mat) {
-    render_context* rctx = rctx_ptr;
-    light_set* set = &rctx->light_set[LIGHT_SET_MAIN];
+static void light_proj_get_view_proj_mat(cam_data& cam, const vec3& view_point, const vec3& interest,
+    const float_t fov, const float_t aspect, const float_t min_distance, const float_t max_distance, mat4* mat) {
+    cam.set_view_point(view_point);
+    cam.set_interest(interest);
+    cam.set_up({ 0.0f, 1.0f, 0.0f });
+    cam.calc_view_mat();
+    cam.set_fov(fov * DEG_TO_RAD_FLOAT);
+    cam.set_aspect(aspect);
+    cam.set_min_distance(min_distance);
+    cam.set_max_distance(max_distance);
+    if (mat) {
+        cam.calc_persp_proj_mat_offset(0.5f, 0.5f);
+        cam.calc_view_proj_mat();
+        *mat = cam.get_view_proj_mat();
+    }
+    else {
+        cam.calc_persp_proj_mat();
+        cam.calc_view_proj_mat();
+    }
+}
+
+bool light_proj::set_mat(render_data_context& rend_data_ctx, cam_data& cam, bool set_mat) {
+    light_set* set = &rctx_ptr->light_set[LIGHT_SET_MAIN];
     light_data* data = &set->lights[LIGHT_PROJECTION];
     if (data->get_type() != LIGHT_SPOT)
         return false;
@@ -178,32 +220,14 @@ bool light_proj::set_mat(bool set_mat) {
 
     vec3 interest = position + spot_direction;
     if (set_mat) {
-        mat4 temp;
-        mat4_translate(0.5f, 0.5f, 0.5f, &temp);
-        mat4_scale_rot(&temp, 0.5f, 0.5f, 0.5f, &temp);
-
-        mat4 proj;
-        mat4_persp(fov, 4.0f, 0.1f, 10.0f, &proj);
-        mat4_mul(&proj, &temp, &proj);
-
-        mat4 view;
-        vec3 up = { 0.0f, 1.0f, 0.0f };
-        mat4_look_at(&position, &interest, &up, &view);
-
         mat4 mat;
-        mat4_mul(&view, &proj, &mat);
-        rctx->set_scene_light_projection(mat);
+        light_proj_get_view_proj_mat(cam, position, interest,
+            fov * RAD_TO_DEG_FLOAT, 4.0f, 0.1f, 10.0f, &mat);
+        rend_data_ctx.set_scene_light_projection(mat);
     }
-    else {
-        mat4_persp(fov, 4.0f, 0.1f, 10.0f, &rctx->proj_mat);
-
-        vec3 up = { 0.0f, 1.0f, 0.0f };
-        mat4_look_at(&position, &interest, &up, &rctx->view_mat);
-
-        mat4_mul(&rctx->view_mat, &rctx->proj_mat, &rctx->vp_mat);
-
-        rctx->set_scene_projection_view(rctx->view_mat, rctx->proj_mat, position);
-    }
+    else
+        light_proj_get_view_proj_mat(cam, position, interest,
+            fov * RAD_TO_DEG_FLOAT, 4.0f, 0.1f, 10.0f, 0);
     return true;
 }
 
@@ -409,13 +433,13 @@ void render_data::obj_batch_data::reset() {
 }
 
 void render_data::init() {
-    buffer_shader.Create(sizeof(obj_shader_data));
-    buffer_scene.Create(sizeof(obj_scene_data));
-    buffer_batch.Create(sizeof(obj_batch_data));
+    buffer_shader.Create(gl_state, sizeof(obj_shader_data));
+    buffer_scene.Create(gl_state, sizeof(obj_scene_data));
+    buffer_batch.Create(gl_state, sizeof(obj_batch_data));
     if (GLAD_GL_VERSION_4_3)
-        buffer_skinning.Create(sizeof(obj_skinning_data));
+        buffer_skinning.Create(gl_state, sizeof(obj_skinning_data));
     else
-        buffer_skinning_ubo.Create(sizeof(obj_skinning_data));
+        buffer_skinning_ubo.Create(gl_state, sizeof(obj_skinning_data));
 
     buffer_shader_data.reset();
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
@@ -423,6 +447,7 @@ void render_data::init() {
     enum_or(flags, RENDER_DATA_SCENE_UPDATE);
     buffer_batch_data.reset();
     enum_or(flags, RENDER_DATA_BATCH_UPDATE);
+    inv_view_mat = mat4_identity;
 }
 
 void render_data::free() {
@@ -435,16 +460,61 @@ void render_data::free() {
     buffer_shader.Destroy();
 }
 
-void render_data::set(render_context* rctx) {
-    shaders_ft.set(shader_index);
+void render_data::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* mats, int32_t count) {
+    if (count == 2) {
+        mat4 temp;
+        mat4_transpose(&mats[0], &temp);
+        if (buffer_batch_data.g_joint[0] != temp.row0
+            || buffer_batch_data.g_joint[1] != temp.row1
+            || buffer_batch_data.g_joint[2] != temp.row2) {
+            buffer_batch_data.g_joint[0] = temp.row0;
+            buffer_batch_data.g_joint[1] = temp.row1;
+            buffer_batch_data.g_joint[2] = temp.row2;
+            enum_or(flags, RENDER_DATA_BATCH_UPDATE);
+        }
+    }
+
+    if (sv_shared_storage_uniform_buffer) {
+        GLuint buffer = 0;
+        size_t offset = 0;
+        size_t size = 0;
+        if (rctx_ptr->get_shared_storage_uniform_buffer_data(
+            (size_t)mats, buffer, offset, size, !!GLAD_GL_VERSION_4_3))
+            if (GLAD_GL_VERSION_4_3)
+                p_gl_rend_st.bind_shader_storage_buffer_range(0, buffer, (GLintptr)offset, (GLsizeiptr)size);
+            else
+                p_gl_rend_st.bind_uniform_buffer_range(6, buffer, (GLintptr)offset, (GLsizeiptr)size);
+    }
+    else {
+        vec4* g_joint_transforms = buffer_skinning_data.g_joint_transforms;
+
+        mat4 mat;
+        for (int32_t i = 0; i < count; i++, mats++, g_joint_transforms += 3) {
+            mat4_transpose(mats, &mat);
+            g_joint_transforms[0] = mat.row0;
+            g_joint_transforms[1] = mat.row1;
+            g_joint_transforms[2] = mat.row2;
+        }
+
+        if (GLAD_GL_VERSION_4_3)
+            buffer_skinning.WriteMemory(p_gl_rend_st,
+                0, sizeof(vec4) * 3 * count, &buffer_skinning_data);
+        else
+            buffer_skinning_ubo.WriteMemory(p_gl_rend_st,
+                0, sizeof(vec4) * 3 * count, &buffer_skinning_data);
+    }
+}
+
+void render_data::set_state(p_gl_rend_state& p_gl_rend_st) {
+    shaders_ft.set(p_gl_rend_st, shader_flags, shader_index);
 
     if (flags & RENDER_DATA_SHADER_UPDATE) {
-        buffer_shader.WriteMemory(buffer_shader_data);
+        buffer_shader.WriteMemory(p_gl_rend_st, buffer_shader_data);
         enum_and(flags, ~RENDER_DATA_SHADER_UPDATE);
     }
 
     if (flags & RENDER_DATA_SCENE_UPDATE) {
-        buffer_scene.WriteMemory(buffer_scene_data);
+        buffer_scene.WriteMemory(p_gl_rend_st, buffer_scene_data);
         enum_and(flags, ~RENDER_DATA_SCENE_UPDATE);
     }
 
@@ -457,7 +527,7 @@ void render_data::set(render_context* rctx) {
         mat4_transpose(&worlds, &worlds);
 
         mat4 temp;
-        mat4_mul(&worlds, &rctx->vp_mat, &temp);
+        mat4_mul(&worlds, &cam.view_proj_mat, &temp);
         mat4_transpose(&temp, &temp);
         buffer_batch_data.g_transforms[0] = temp.row0;
         buffer_batch_data.g_transforms[1] = temp.row1;
@@ -470,7 +540,7 @@ void render_data::set(render_context* rctx) {
         buffer_batch_data.g_worlds_invtrans[1] = temp.row1;
         buffer_batch_data.g_worlds_invtrans[2] = temp.row2;
 
-        mat4_mul(&worlds, &rctx->view_mat, &worlds);
+        mat4_mul(&worlds, &cam.view_mat, &worlds);
         mat4_transpose(&worlds, &temp);
         buffer_batch_data.g_worldview[0] = temp.row0;
         buffer_batch_data.g_worldview[1] = temp.row1;
@@ -491,26 +561,342 @@ void render_data::set(render_context* rctx) {
         buffer_batch_data.g_joint_inverse[1] = temp.row1;
         buffer_batch_data.g_joint_inverse[2] = temp.row2;
 
-        buffer_batch.WriteMemory(buffer_batch_data);
+        buffer_batch.WriteMemory(p_gl_rend_st, buffer_batch_data);
         enum_and(flags, ~RENDER_DATA_BATCH_UPDATE);
     }
 
-    buffer_shader.Bind(0);
-    buffer_scene.Bind(1);
-    buffer_batch.Bind(2);
+    p_gl_rend_st.bind_uniform_buffer_base(0, buffer_shader);
+    p_gl_rend_st.bind_uniform_buffer_base(1, buffer_scene);
+    p_gl_rend_st.bind_uniform_buffer_base(2, buffer_batch);
 
-    if (uniform_value[U_SKINNING] && !sv_shared_storage_uniform_buffer)
+    if (shader_flags.arr[U_SKINNING] && !sv_shared_storage_uniform_buffer)
         if (GLAD_GL_VERSION_4_3)
-            buffer_skinning.Bind(0);
+            p_gl_rend_st.bind_shader_storage_buffer_base(0, buffer_skinning);
         else
-            buffer_skinning_ubo.Bind(6);
+            p_gl_rend_st.bind_uniform_buffer_base(6, buffer_skinning_ubo);
 }
 
 void render_data::set_shader(uint32_t index) {
     shader_index = index;
 
-    buffer_shader_data.set_shader_flags(uniform_value);
+    buffer_shader_data.set_shader_flags(shader_flags.arr);
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
+}
+
+render_data_context::render_data_context(int32_t index) : state(index), index(index),
+data(rctx_ptr->data[index]), shader_flags(rctx_ptr->data[index].shader_flags){
+
+}
+
+void render_data_context::get_scene_fog_params(render_data_context::fog_params& value) {
+    value.depth_color = data.buffer_scene_data.g_fog_depth_color;
+    value.height_params = data.buffer_scene_data.g_fog_height_params;
+    value.height_color = data.buffer_scene_data.g_fog_height_color;
+    value.bump_params = data.buffer_scene_data.g_fog_bump_params;
+    value.density = data.buffer_scene_data.g_fog_state_params.x;
+    value.start = data.buffer_scene_data.g_fog_state_params.y;
+    value.end = data.buffer_scene_data.g_fog_state_params.z;
+}
+
+void render_data_context::get_scene_light(vec4* light_env_stage_diffuse,
+    vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
+    vec4* light_env_chara_diffuse, vec4* light_env_chara_specular) {
+    if (light_env_stage_diffuse)
+        *light_env_stage_diffuse = data.buffer_scene_data.g_light_env_stage_diffuse;
+    if (light_env_stage_specular)
+        *light_env_stage_specular = data.buffer_scene_data.g_light_env_stage_specular;
+    if (light_chara_dir)
+        *light_chara_dir = data.buffer_scene_data.g_light_chara_dir;
+    if (light_chara_luce)
+        *light_chara_luce = data.buffer_scene_data.g_light_chara_luce;
+    if (light_env_chara_diffuse)
+        *light_env_chara_diffuse = data.buffer_scene_data.g_light_env_chara_diffuse;
+    if (light_env_chara_specular)
+        *light_env_chara_specular = data.buffer_scene_data.g_light_env_chara_specular;
+}
+
+void render_data_context::reset_shader_flags() {
+    shader_flags.arr[U_TEXTURE_COUNT] = 0;
+    shader_flags.arr[U_TEXTURE_BLEND] = 0;
+    shader_flags.arr[U_NORMAL] = 0;
+    shader_flags.arr[U_SPECULAR] = 0;
+    shader_flags.arr[U_TRANSPARENCY] = 0;
+    shader_flags.arr[U_TRANSLUCENCY] = 0;
+    shader_flags.arr[U_ENV_MAP] = 0;
+    shader_flags.arr[U0B] = 0;
+    shader_flags.arr[U_SPECULAR_IBL] = 0;
+    shader_flags.arr[U_FOG_STAGE] = 0;
+    shader_flags.arr[U_FOG_CHARA] = 0;
+    shader_flags.arr[U_ANISO] = 0;
+    shader_flags.arr[U_STAGE_SHADOW] = 0;
+    shader_flags.arr[U45] = 0;
+    shader_flags.arr[U_TEX_0_TYPE] = 0;
+    shader_flags.arr[U_TEX_1_TYPE] = 0;
+}
+
+void render_data_context::set_batch_alpha_threshold(const float_t value) {
+    data.buffer_batch_data.g_max_alpha.z = value;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_blend_color_offset_color(
+    const vec4& blend_color, const vec4& offset_color) {
+    data.buffer_batch_data.g_blend_color = blend_color;
+    data.buffer_batch_data.g_offset_color = offset_color;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_material_color(const vec4& diffuse, const vec4& ambient,
+    const vec4& emission, const float_t material_shininess, const vec4& specular,
+    const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
+    const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
+    const vec4& texture_specular_offset, const float_t shininess) {
+    data.buffer_batch_data.g_material_state_diffuse = diffuse;
+    data.buffer_batch_data.g_material_state_ambient = ambient;
+    data.buffer_batch_data.g_material_state_emission = emission;
+    data.buffer_batch_data.g_material_state_shininess = { material_shininess, 0.0f, 0.0f, 1.0f };
+    data.buffer_batch_data.g_material_state_specular = specular;
+    data.buffer_batch_data.g_fresnel_coefficients = fresnel_coefficients;
+    data.buffer_batch_data.g_texture_color_coefficients = texture_color_coefficients;
+    data.buffer_batch_data.g_texture_color_offset = texture_color_offset;
+    data.buffer_batch_data.g_texture_specular_coefficients = texture_specular_coefficients;
+    data.buffer_batch_data.g_shininess.x = shininess;
+    data.buffer_batch_data.g_texture_specular_offset = texture_specular_offset;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_material_color_emission(const vec4& emission) {
+    data.buffer_batch_data.g_material_state_emission = emission;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
+    const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale) {
+    if (specular)
+        data.buffer_batch_data.g_material_state_specular = *specular;
+    data.buffer_batch_data.g_bump_depth = bump_depth;
+    data.buffer_batch_data.g_intensity = intensity;
+    data.buffer_batch_data.g_reflect_uv_scale.x = reflect_uv_scale;
+    data.buffer_batch_data.g_reflect_uv_scale.y = reflect_uv_scale;
+    data.buffer_batch_data.g_reflect_uv_scale.z = refract_uv_scale;
+    data.buffer_batch_data.g_reflect_uv_scale.w = refract_uv_scale;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_min_alpha(const float_t value) {
+    data.buffer_batch_data.g_max_alpha.w = value;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_morph_weight(const float_t value) {
+    data.buffer_batch_data.g_morph_weight.x = value;
+    data.buffer_batch_data.g_morph_weight.y = 1.0f - value;
+    data.buffer_batch_data.g_morph_weight.z = 0.0f;
+    data.buffer_batch_data.g_morph_weight.w = 0.0f;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_scene_camera(const cam_data& cam) {
+    data.cam = cam;
+
+    mat4_invert(&data.cam.get_view_mat(), &data.inv_view_mat);
+
+    mat4 temp;
+    mat4_transpose(&data.cam.get_view_mat(), &temp);
+    data.buffer_scene_data.g_view[0] = temp.row0;
+    data.buffer_scene_data.g_view[1] = temp.row1;
+    data.buffer_scene_data.g_view[2] = temp.row2;
+
+    mat4_invert(&data.cam.get_view_mat(), &temp);
+    mat4_transpose(&temp, &temp);
+    data.buffer_scene_data.g_view_inverse[0] = temp.row0;
+    data.buffer_scene_data.g_view_inverse[1] = temp.row1;
+    data.buffer_scene_data.g_view_inverse[2] = temp.row2;
+
+    //mat4_mul(&data.cam.get_view_mat(), &data.cam.get_proj_mat(), &temp);
+    mat4_transpose(&data.cam.get_view_proj_mat(), &temp);
+    data.buffer_scene_data.g_projection_view[0] = temp.row0;
+    data.buffer_scene_data.g_projection_view[1] = temp.row1;
+    data.buffer_scene_data.g_projection_view[2] = temp.row2;
+    data.buffer_scene_data.g_projection_view[3] = temp.row3;
+
+    *(vec3*)&data.buffer_scene_data.g_view_position = cam.get_view_point();
+    data.buffer_scene_data.g_view_position.w = 0.0f;
+    //enum_or(data.flags, RENDER_DATA_BATCH_UPDATE | RENDER_DATA_SCENE_UPDATE);
+    enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
+}
+
+void render_data_context::set_batch_sss_param(const vec4& sss_param) {
+    data.buffer_batch_data.g_sss_param = sss_param;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_texcoord_transforms(const mat4 mats[2]) {
+    mat4 temp;
+    mat4_transpose(&mats[0], &temp);
+    data.buffer_batch_data.g_texcoord_transforms[0] = temp.row0;
+    data.buffer_batch_data.g_texcoord_transforms[1] = temp.row1;
+    mat4_transpose(&mats[1], &temp);
+    data.buffer_batch_data.g_texcoord_transforms[2] = temp.row0;
+    data.buffer_batch_data.g_texcoord_transforms[3] = temp.row1;
+    enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+}
+
+void render_data_context::set_batch_worlds(const mat4& mat) {
+    mat4 temp;
+    mat4_transpose(&mat, &temp);
+    if (data.buffer_batch_data.g_worlds[0] != temp.row0
+        || data.buffer_batch_data.g_worlds[1] != temp.row1
+        || data.buffer_batch_data.g_worlds[2] != temp.row2) {
+        data.buffer_batch_data.g_worlds[0] = temp.row0;
+        data.buffer_batch_data.g_worlds[1] = temp.row1;
+        data.buffer_batch_data.g_worlds[2] = temp.row2;
+        enum_or(data.flags, RENDER_DATA_BATCH_UPDATE);
+    }
+}
+
+void render_data_context::set_glitter_render_data_state() {
+    data.buffer_shader_data.set_shader_flags(data.shader_flags.arr);
+    data.buffer_shader.WriteMemory(state, data.buffer_shader_data);
+    state.bind_uniform_buffer_base(0, data.buffer_shader);
+
+    if (data.flags & RENDER_DATA_SCENE_UPDATE) {
+        data.buffer_scene.WriteMemory(state, data.buffer_scene_data);
+        enum_and(data.flags, ~RENDER_DATA_SCENE_UPDATE);
+    }
+    state.bind_uniform_buffer_base(1, data.buffer_scene);
+}
+
+void render_data_context::set_render_data_state() {
+    data.set_state(state);
+}
+
+void render_data_context::set_scene_fog_params(const render_data_context::fog_params& value) {
+    data.buffer_scene_data.g_fog_depth_color = value.depth_color;
+    data.buffer_scene_data.g_fog_height_params = value.height_params;
+    data.buffer_scene_data.g_fog_height_color = value.height_color;
+    data.buffer_scene_data.g_fog_bump_params = value.bump_params;
+    const float_t start = value.start;
+    const float_t end = value.end;
+    data.buffer_scene_data.g_fog_state_params.x = value.density;
+    data.buffer_scene_data.g_fog_state_params.y = value.start;
+    data.buffer_scene_data.g_fog_state_params.z = value.end;
+    data.buffer_scene_data.g_fog_state_params.w = end - start > 0.0f ? 1.0f / (end - start) : 0.0f;
+    enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
+}
+
+void render_data_context::set_scene_framebuffer_size(const int32_t width, const int32_t height,
+    const int32_t render_width, const int32_t render_height) {
+    enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
+    data.buffer_scene_data.g_framebuffer_size.x = 1.0f / (float_t)width;
+    data.buffer_scene_data.g_framebuffer_size.y = 1.0f / (float_t)height;
+    data.buffer_scene_data.g_framebuffer_size.w = 1.0f / (float_t)render_height;
+    data.buffer_scene_data.g_framebuffer_size.z = 1.0f / (float_t)render_width;
+}
+
+void render_data_context::set_scene_light(const mat4& irradiance_r_transforms, const mat4& irradiance_g_transforms,
+    const mat4& irradiance_b_transforms, const vec4& light_env_stage_diffuse,
+    const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
+    const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
+    const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
+    const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
+    const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
+    const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
+    const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
+    const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
+    const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
+    const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color) {
+    mat4 temp;
+    mat4_transpose(&irradiance_r_transforms, &temp);
+    data.buffer_scene_data.g_irradiance_r_transforms[0] = temp.row0;
+    data.buffer_scene_data.g_irradiance_r_transforms[1] = temp.row1;
+    data.buffer_scene_data.g_irradiance_r_transforms[2] = temp.row2;
+    data.buffer_scene_data.g_irradiance_r_transforms[3] = temp.row3;
+    mat4_transpose(&irradiance_g_transforms, &temp);
+    data.buffer_scene_data.g_irradiance_g_transforms[0] = temp.row0;
+    data.buffer_scene_data.g_irradiance_g_transforms[1] = temp.row1;
+    data.buffer_scene_data.g_irradiance_g_transforms[2] = temp.row2;
+    data.buffer_scene_data.g_irradiance_g_transforms[3] = temp.row3;
+    mat4_transpose(&irradiance_b_transforms, &temp);
+    data.buffer_scene_data.g_irradiance_b_transforms[0] = temp.row0;
+    data.buffer_scene_data.g_irradiance_b_transforms[1] = temp.row1;
+    data.buffer_scene_data.g_irradiance_b_transforms[2] = temp.row2;
+    data.buffer_scene_data.g_irradiance_b_transforms[3] = temp.row3;
+    data.buffer_scene_data.g_light_env_stage_diffuse = light_env_stage_diffuse;
+    data.buffer_scene_data.g_light_env_stage_specular = light_env_stage_specular;
+    data.buffer_scene_data.g_light_env_chara_diffuse = light_env_chara_diffuse;
+    data.buffer_scene_data.g_light_env_chara_ambient = light_env_chara_ambient;
+    data.buffer_scene_data.g_light_env_chara_specular = light_env_chara_specular;
+    data.buffer_scene_data.g_light_env_reflect_diffuse = light_env_reflect_diffuse;
+    data.buffer_scene_data.g_light_env_reflect_ambient = light_env_reflect_ambient;
+    data.buffer_scene_data.g_light_env_proj_diffuse = light_env_proj_diffuse;
+    data.buffer_scene_data.g_light_env_proj_specular = light_env_proj_specular;
+    data.buffer_scene_data.g_light_env_proj_position = light_env_proj_position;
+    data.buffer_scene_data.g_light_stage_dir = light_stage_dir;
+    data.buffer_scene_data.g_light_stage_diff = light_stage_diff;
+    data.buffer_scene_data.g_light_stage_spec = light_stage_spec;
+    data.buffer_scene_data.g_light_chara_dir = light_chara_dir;
+    data.buffer_scene_data.g_light_chara_spec = light_chara_spec;
+    data.buffer_scene_data.g_light_chara_luce = light_chara_luce;
+    data.buffer_scene_data.g_light_chara_back = light_chara_back;
+    data.buffer_scene_data.g_light_face_diff = light_face_diff;
+    data.buffer_scene_data.g_chara_color0 = chara_color0;
+    data.buffer_scene_data.g_chara_color1 = chara_color1;
+    data.buffer_scene_data.g_chara_f_dir = chara_f_dir;
+    data.buffer_scene_data.g_chara_f_ambient = chara_f_ambient;
+    data.buffer_scene_data.g_chara_f_diffuse = chara_f_diffuse;
+    data.buffer_scene_data.g_chara_tc_param = chara_tc_param;
+    mat4_transpose(&normal_tangent_transforms, &temp);
+    data.buffer_scene_data.g_normal_tangent_transforms[0] = temp.row0;
+    data.buffer_scene_data.g_normal_tangent_transforms[1] = temp.row1;
+    data.buffer_scene_data.g_normal_tangent_transforms[2] = temp.row2;
+    data.buffer_scene_data.g_light_reflect_dir = light_reflect_dir;
+    data.buffer_scene_data.g_clip_plane = clip_plane;
+    data.buffer_scene_data.g_npr_cloth_spec_color = npr_cloth_spec_color;
+    enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
+}
+
+void render_data_context::set_scene_light_projection(const mat4& light_projection) {
+    mat4 temp;
+    mat4_transpose(&light_projection, &temp);
+    data.buffer_scene_data.g_light_projection[0] = temp.row0;
+    data.buffer_scene_data.g_light_projection[1] = temp.row1;
+    data.buffer_scene_data.g_light_projection[2] = temp.row2;
+    data.buffer_scene_data.g_light_projection[3] = temp.row3;
+    enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
+}
+
+void render_data_context::set_scene_shadow_params(const float_t esm_param,
+    const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1) {
+    data.buffer_scene_data.g_esm_param = { esm_param, 0.0f, 0.0f, 0.0f };
+    mat4 temp;
+    mat4_transpose(&mats[0], &temp);
+    data.buffer_scene_data.g_self_shadow_receivers[0] = temp.row0;
+    data.buffer_scene_data.g_self_shadow_receivers[1] = temp.row1;
+    data.buffer_scene_data.g_self_shadow_receivers[2] = temp.row2;
+    mat4_transpose(&mats[1], &temp);
+    data.buffer_scene_data.g_self_shadow_receivers[3] = temp.row0;
+    data.buffer_scene_data.g_self_shadow_receivers[4] = temp.row1;
+    data.buffer_scene_data.g_self_shadow_receivers[5] = temp.row2;
+    data.buffer_scene_data.g_shadow_ambient = shadow_ambient;
+    data.buffer_scene_data.g_shadow_ambient1 = shadow_ambient1;
+    enum_or(data.flags, RENDER_DATA_SCENE_UPDATE);
+}
+
+void render_data_context::set_self_shadow(bool value) {
+    rctx_ptr->draw_state->rend_data[index].self_shadow = value;
+}
+
+void render_data_context::set_shader(uint32_t index) {
+    data.set_shader(index);
+}
+
+void render_data_context::set_shadow(bool value) {
+    rctx_ptr->draw_state->rend_data[index].shadow = value;
+}
+
+void render_data_context::set_skinning_data(p_gl_rend_state& p_gl_rend_st, const mat4* mats, int32_t count) {
+    data.set_skinning_data(p_gl_rend_st, mats, count);
 }
 
 bool render_context::shared_storage_buffer::can_fill_data(size_t size) {
@@ -523,7 +909,7 @@ void render_context::shared_storage_buffer::create(size_t size) {
 
     size = size / sv_min_storage_buffer_alignment * sv_min_storage_buffer_alignment;
 
-    buffer.Create(size);
+    buffer.Create(gl_state, size);
     data = force_malloc(size);
     memset(data, 0, size);
     offset = 0;
@@ -554,7 +940,7 @@ void render_context::shared_uniform_buffer::create(size_t size) {
 
     size = size / sv_min_uniform_buffer_alignment * sv_min_uniform_buffer_alignment;
 
-    buffer.Create(size);
+    buffer.Create(gl_state, size);
     data = force_malloc(size);
     memset(data, 0, size);
     offset = 0;
@@ -581,8 +967,10 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     camera = new ::camera;
     draw_state = new ::draw_state;
     disp_manager = new mdl::DispManager;
-    render_manager = new  rndr::RenderManager;
+    render_manager = new rndr::RenderManager;
     sss_data = new ::sss_data;
+
+    gl_state.get();
 
     static const float_t box_texcoords[] = {
          1.0f,  0.0f,  0.0f,  1.0f, -1.0f,  0.0f,  0.0f, -1.0f,
@@ -620,10 +1008,10 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     };
 
     glGenVertexArrays(1, &box_vao);
-    glBindVertexArray(box_vao);
+    gl_state.bind_vertex_array(box_vao);
 
-    box_vbo.Create(sizeof(box_texcoords), box_texcoords);
-    glBindBuffer(GL_ARRAY_BUFFER, box_vbo);
+    box_vbo.Create(gl_state, sizeof(box_texcoords), box_texcoords);
+    gl_state.bind_array_buffer(box_vbo);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)0);
@@ -635,39 +1023,41 @@ sprite_width(), sprite_height(), screen_x_offset(), screen_y_offset(), screen_wi
     glVertexAttribPointer(3, 4, GL_FLOAT, GL_FALSE, sizeof(float_t) * 16, (void*)(sizeof(float_t) * 12));
 
     glGenVertexArrays(1, &lens_ghost_vao);
-    glBindVertexArray(lens_ghost_vao);
+    gl_state.bind_vertex_array(lens_ghost_vao);
 
-    lens_ghost_vbo.Create(sizeof(float_t) * 5 * (6 * 16));
-    glBindBuffer(GL_ARRAY_BUFFER, lens_ghost_vbo);
+    lens_ghost_vbo.Create(gl_state, sizeof(float_t) * 5 * (6 * 16));
+    gl_state.bind_array_buffer(lens_ghost_vbo);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)0);
     glEnableVertexAttribArray(1);
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 5, (void*)(sizeof(float_t) * 2));
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindVertexArray(0);
+    gl_state.bind_array_buffer(0);
+    gl_state.bind_vertex_array(0);
 
     glGenVertexArrays(1, &common_vao);
 
-    camera_blur_ubo.Create(sizeof(camera_blur_shader_data));
-    contour_coef_ubo.Create(sizeof(contour_coef_shader_data));
-    contour_params_ubo.Create(sizeof(contour_params_shader_data));
-    filter_scene_ubo.Create(sizeof(filter_scene_shader_data));
-    esm_filter_batch_ubo.Create(sizeof(esm_filter_batch_shader_data));
-    imgfilter_batch_ubo.Create(sizeof(imgfilter_batch_shader_data));
-    exposure_measure_ubo.Create(sizeof(exposure_measure_shader_data));
-    gaussian_coef_ubo.Create(sizeof(gaussian_coef_shader_data));
-    glass_eye_batch_ubo.Create(sizeof(glass_eye_batch_shader_data));
-    glitter_batch_ubo.Create(sizeof(glitter_batch_shader_data));
-    quad_ubo.Create(sizeof(quad_shader_data));
-    sprite_scene_ubo.Create(sizeof(sprite_scene_shader_data));
-    sss_filter_gaussian_coef_ubo.Create(sizeof(sss_filter_gaussian_coef_shader_data));
-    sun_quad_ubo.Create(sizeof(sun_quad_shader_data));
-    tone_map_ubo.Create(sizeof(tone_map_shader_data));
-    transparency_batch_ubo.Create(sizeof(transparency_batch_shader_data));
+    camera_blur_ubo.Create(gl_state, sizeof(camera_blur_shader_data));
+    contour_coef_ubo.Create(gl_state, sizeof(contour_coef_shader_data));
+    contour_params_ubo.Create(gl_state, sizeof(contour_params_shader_data));
+    filter_scene_ubo.Create(gl_state, sizeof(filter_scene_shader_data));
+    esm_filter_batch_ubo.Create(gl_state, sizeof(esm_filter_batch_shader_data));
+    imgfilter_batch_ubo.Create(gl_state, sizeof(imgfilter_batch_shader_data));
+    exposure_measure_ubo.Create(gl_state, sizeof(exposure_measure_shader_data));
+    gaussian_coef_ubo.Create(gl_state, sizeof(gaussian_coef_shader_data));
+    glass_eye_batch_ubo.Create(gl_state, sizeof(glass_eye_batch_shader_data));
+    glitter_batch_ubo.Create(gl_state, sizeof(glitter_batch_shader_data));
+    quad_ubo.Create(gl_state, sizeof(quad_shader_data));
+    sprite_scene_ubo.Create(gl_state, sizeof(sprite_scene_shader_data));
+    sss_filter_gaussian_coef_ubo.Create(gl_state, sizeof(sss_filter_gaussian_coef_shader_data));
+    sun_quad_ubo.Create(gl_state, sizeof(sun_quad_shader_data));
+    tone_map_ubo.Create(gl_state, sizeof(tone_map_shader_data));
+    transparency_batch_ubo.Create(gl_state, sizeof(transparency_batch_shader_data));
 
-    data = {};
-    data.init();
+    for (render_data& i : data) {
+        i = {};
+        i.init();
+    }
 
     static const vec4 border_color = 0.0f;
 
@@ -788,7 +1178,8 @@ render_context::~render_context() {
     glDeleteSamplers(4, render_samplers);
     glDeleteSamplers(18, samplers);
 
-    data.free();
+    for (render_data& i : data)
+        i.free();
 
     transparency_batch_ubo.Destroy();
     tone_map_ubo.Destroy();
@@ -868,10 +1259,10 @@ void render_context::disp() {
     rctx_ptr = this;
     start_render_process();
     disp_manager->refresh();
-    draw_state->stats_prev = draw_state->stats;
-    draw_state->stats.reset();
+    draw_state->stats_update();
     sprite_manager_reset_req_list();
     camera->update();
+    render_manager->cam.get(camera);
     app::TaskWork::disp();
     shadow_ptr_get()->ctrl();
     int32_t sprite_index = sprite_manager_get_index();
@@ -880,7 +1271,7 @@ void render_context::disp() {
     extern void dw_gui_ctrl_disp();
     dw_gui_ctrl_disp();
     sprite_manager_set_index(sprite_index);
-    render_manager->rndpass_pre_proc(camera);
+    render_manager->rndpass_pre_proc();
     render_manager->render_all();
     render_manager->rndpass_post_proc();
     render_manager->field_31C = false;
@@ -1015,35 +1406,6 @@ void render_context::add_shared_storage_uniform_buffer_data(size_t index,
     }
 }
 
-void render_context::get_scene_fog_params(render_context::fog_params& value) {
-    render_data* data = &this->data;
-    value.depth_color = data->buffer_scene_data.g_fog_depth_color;
-    value.height_params = data->buffer_scene_data.g_fog_height_params;
-    value.height_color = data->buffer_scene_data.g_fog_height_color;
-    value.bump_params = data->buffer_scene_data.g_fog_bump_params;
-    value.density = data->buffer_scene_data.g_fog_state_params.x;
-    value.start = data->buffer_scene_data.g_fog_state_params.y;
-    value.end = data->buffer_scene_data.g_fog_state_params.z;
-}
-
-void render_context::get_scene_light(vec4* light_env_stage_diffuse,
-    vec4* light_env_stage_specular, vec4* light_chara_dir, vec4* light_chara_luce,
-    vec4* light_env_chara_diffuse, vec4* light_env_chara_specular) {
-    render_data* data = &this->data;
-    if (light_env_stage_diffuse)
-        *light_env_stage_diffuse = data->buffer_scene_data.g_light_env_stage_diffuse;
-    if (light_env_stage_specular)
-        *light_env_stage_specular = data->buffer_scene_data.g_light_env_stage_specular;
-    if (light_chara_dir)
-        *light_chara_dir = data->buffer_scene_data.g_light_chara_dir;
-    if (light_chara_luce)
-        *light_chara_luce = data->buffer_scene_data.g_light_chara_luce;
-    if (light_env_chara_diffuse)
-        *light_env_chara_diffuse = data->buffer_scene_data.g_light_env_chara_diffuse;
-    if (light_env_chara_specular)
-        *light_env_chara_specular = data->buffer_scene_data.g_light_env_chara_specular;
-}
-
 bool render_context::get_shared_storage_uniform_buffer_data(size_t index,
     GLuint& buffer, size_t& offset, size_t& size, bool storage) {
     if (storage) {
@@ -1087,20 +1449,21 @@ void render_context::pre_proc() {
 
             const int32_t mat_count = min_def(args->mat_count, 256);
             const mat4* mats = args->mats;
-            vec4* g_joint_transforms = rctx->data.buffer_skinning_data.g_joint_transforms;
+            vec4 g_joint_transforms[768];
+            vec4* g_joint_transform = g_joint_transforms;
 
             mat4 mat;
-            for (int32_t i = 0; i < mat_count; i++, mats++, g_joint_transforms += 3) {
+            for (int32_t i = 0; i < mat_count; i++, mats++, g_joint_transform += 3) {
                 mat4_transpose(mats, &mat);
-                g_joint_transforms[0] = mat.row0;
-                g_joint_transforms[1] = mat.row1;
-                g_joint_transforms[2] = mat.row2;
+                g_joint_transform[0] = mat.row0;
+                g_joint_transform[1] = mat.row1;
+                g_joint_transform[2] = mat.row2;
             }
 
             const size_t buffer_size = sizeof(vec4) * 3 * 256;
             const size_t size = sizeof(vec4) * 3 * mat_count;
             rctx->add_shared_storage_uniform_buffer_data((size_t)args->mats,
-                rctx->data.buffer_skinning_data.g_joint_transforms, size, buffer_size, !!GLAD_GL_VERSION_4_3);
+                g_joint_transforms, size, buffer_size, !!GLAD_GL_VERSION_4_3);
         };
 
         for (int32_t type = 0; type < mdl::OBJ_TYPE_MAX; type++)
@@ -1148,7 +1511,7 @@ void render_context::pre_proc() {
                 const size_t align = size - i.offset;
                 if (align)
                     memset((void*)((size_t)i.data + i.offset), 0, align);
-                i.buffer.WriteMemory(0, size, i.data);
+                i.buffer.WriteMemory(gl_state, 0, size, i.data);
             }
 
         for (render_context::shared_uniform_buffer& i : shared_uniform_buffers) {
@@ -1159,7 +1522,7 @@ void render_context::pre_proc() {
             const size_t align = size - i.offset;
             if (align)
                 memset((void*)((size_t)i.data + i.offset), 0, align);
-            i.buffer.WriteMemory(0, size, i.data);
+            i.buffer.WriteMemory(gl_state, 0, size, i.data);
         }
     }
 }
@@ -1178,284 +1541,4 @@ void render_context::post_proc() {
 
         shared_uniform_buffer_entries.clear();
     }
-}
-
-void render_context::set_batch_alpha_threshold(const float_t value) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_max_alpha.z = value;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_blend_color_offset_color(
-    const vec4& blend_color, const vec4& offset_color) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_blend_color = blend_color;
-    data->buffer_batch_data.g_offset_color = offset_color;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_joint(const mat4& mat) {
-    render_data* data = &this->data;
-    mat4 temp;
-    mat4_transpose(&mat, &temp);
-    if (data->buffer_batch_data.g_joint[0] != temp.row0
-        || data->buffer_batch_data.g_joint[1] != temp.row1
-        || data->buffer_batch_data.g_joint[2] != temp.row2) {
-        data->buffer_batch_data.g_joint[0] = temp.row0;
-        data->buffer_batch_data.g_joint[1] = temp.row1;
-        data->buffer_batch_data.g_joint[2] = temp.row2;
-        enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-    }
-}
-
-void render_context::set_batch_material_color(const vec4& diffuse, const vec4& ambient,
-    const vec4& emission, const float_t material_shininess, const vec4& specular,
-    const vec4& fresnel_coefficients, const vec4& texture_color_coefficients,
-    const vec4& texture_color_offset, const vec4& texture_specular_coefficients,
-    const vec4& texture_specular_offset, const float_t shininess) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_material_state_diffuse = diffuse;
-    data->buffer_batch_data.g_material_state_ambient = ambient;
-    data->buffer_batch_data.g_material_state_emission = emission;
-    data->buffer_batch_data.g_material_state_shininess = { material_shininess, 0.0f, 0.0f, 1.0f };
-    data->buffer_batch_data.g_material_state_specular = specular;
-    data->buffer_batch_data.g_fresnel_coefficients = fresnel_coefficients;
-    data->buffer_batch_data.g_texture_color_coefficients = texture_color_coefficients;
-    data->buffer_batch_data.g_texture_color_offset = texture_color_offset;
-    data->buffer_batch_data.g_texture_specular_coefficients = texture_specular_coefficients;
-    data->buffer_batch_data.g_shininess.x = shininess;
-    data->buffer_batch_data.g_texture_specular_offset = texture_specular_offset;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_material_color_emission(const vec4& emission) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_material_state_emission = emission;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_material_parameter(const vec4* specular, const vec4& bump_depth,
-    const vec4& intensity, const float_t reflect_uv_scale, const float_t refract_uv_scale) {
-    render_data* data = &this->data;
-    if (specular)
-        data->buffer_batch_data.g_material_state_specular = *specular;
-    data->buffer_batch_data.g_bump_depth = bump_depth;
-    data->buffer_batch_data.g_intensity = intensity;
-    data->buffer_batch_data.g_reflect_uv_scale.x = reflect_uv_scale;
-    data->buffer_batch_data.g_reflect_uv_scale.y = reflect_uv_scale;
-    data->buffer_batch_data.g_reflect_uv_scale.z = refract_uv_scale;
-    data->buffer_batch_data.g_reflect_uv_scale.w = refract_uv_scale;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_min_alpha(const float_t value) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_max_alpha.w = value;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_morph_weight(const float_t value) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_morph_weight.x = value;
-    data->buffer_batch_data.g_morph_weight.y = 1.0f - value;
-    data->buffer_batch_data.g_morph_weight.z = 0.0f;
-    data->buffer_batch_data.g_morph_weight.w = 0.0f;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_sss_param(const vec4& sss_param) {
-    render_data* data = &this->data;
-    data->buffer_batch_data.g_sss_param = sss_param;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_texcoord_transforms(const mat4 mats[2]) {
-    render_data* data = &this->data;
-    mat4 temp;
-    mat4_transpose(&mats[0], &temp);
-    data->buffer_batch_data.g_texcoord_transforms[0] = temp.row0;
-    data->buffer_batch_data.g_texcoord_transforms[1] = temp.row1;
-    mat4_transpose(&mats[1], &temp);
-    data->buffer_batch_data.g_texcoord_transforms[2] = temp.row0;
-    data->buffer_batch_data.g_texcoord_transforms[3] = temp.row1;
-    enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-}
-
-void render_context::set_batch_worlds(const mat4& mat) {
-    render_data* data = &this->data;
-    mat4 temp;
-    mat4_transpose(&mat, &temp);
-    if (data->buffer_batch_data.g_worlds[0] != temp.row0
-        || data->buffer_batch_data.g_worlds[1] != temp.row1
-        || data->buffer_batch_data.g_worlds[2] != temp.row2) {
-        data->buffer_batch_data.g_worlds[0] = temp.row0;
-        data->buffer_batch_data.g_worlds[1] = temp.row1;
-        data->buffer_batch_data.g_worlds[2] = temp.row2;
-        enum_or(data->flags, RENDER_DATA_BATCH_UPDATE);
-    }
-}
-
-void render_context::set_glitter_render_data() {
-    render_data* data = &this->data;
-    data->buffer_shader_data.set_shader_flags(uniform_value);
-    data->buffer_shader.WriteMemory(data->buffer_shader_data);
-    data->buffer_shader.Bind(0);
-
-    if (data->flags & RENDER_DATA_SCENE_UPDATE) {
-        data->buffer_scene.WriteMemory(data->buffer_scene_data);
-        enum_and(data->flags, ~RENDER_DATA_SCENE_UPDATE);
-    }
-    data->buffer_scene.Bind(1);
-}
-
-void render_context::set_render_data() {
-    data.set(this);
-}
-
-void render_context::set_scene_fog_params(const render_context::fog_params& value) {
-    render_data* data = &this->data;
-    data->buffer_scene_data.g_fog_depth_color = value.depth_color;
-    data->buffer_scene_data.g_fog_height_params = value.height_params;
-    data->buffer_scene_data.g_fog_height_color = value.height_color;
-    data->buffer_scene_data.g_fog_bump_params = value.bump_params;
-    const float_t start = value.start;
-    const float_t end = value.end;
-    data->buffer_scene_data.g_fog_state_params.x = value.density;
-    data->buffer_scene_data.g_fog_state_params.y = value.start;
-    data->buffer_scene_data.g_fog_state_params.z = value.end;
-    data->buffer_scene_data.g_fog_state_params.w = end - start > 0.0f ? 1.0f / (end - start) : 0.0f;
-    enum_or(data->flags, RENDER_DATA_SCENE_UPDATE);
-}
-
-void render_context::set_scene_framebuffer_size(const int32_t width, const int32_t height,
-    const int32_t render_width, const int32_t render_height) {
-    render_data* data = &this->data;
-    enum_or(data->flags, RENDER_DATA_SCENE_UPDATE);
-    data->buffer_scene_data.g_framebuffer_size.x = 1.0f / (float_t)width;
-    data->buffer_scene_data.g_framebuffer_size.y = 1.0f / (float_t)height;
-    data->buffer_scene_data.g_framebuffer_size.w = 1.0f / (float_t)render_height;
-    data->buffer_scene_data.g_framebuffer_size.z = 1.0f / (float_t)render_width;
-}
-
-void render_context::set_scene_light(const mat4& irradiance_r_transforms, const mat4& irradiance_g_transforms,
-    const mat4& irradiance_b_transforms, const vec4& light_env_stage_diffuse,
-    const vec4& light_env_stage_specular, const vec4& light_env_chara_diffuse,
-    const vec4& light_env_chara_ambient, const vec4& light_env_chara_specular,
-    const vec4& light_env_reflect_diffuse, const vec4& light_env_reflect_ambient,
-    const vec4& light_env_proj_diffuse, const vec4& light_env_proj_specular,
-    const vec4& light_env_proj_position, const vec4& light_stage_dir, const vec4& light_stage_diff,
-    const vec4& light_stage_spec, const vec4& light_chara_dir, const vec4& light_chara_spec,
-    const vec4& light_chara_luce, const vec4& light_chara_back, const vec4& light_face_diff,
-    const vec4& chara_color0, const vec4& chara_color1, const vec4& chara_f_dir, const vec4& chara_f_ambient,
-    const vec4& chara_f_diffuse, const vec4& chara_tc_param, const mat4& normal_tangent_transforms,
-    const vec4& light_reflect_dir, const vec4& clip_plane, const vec4& npr_cloth_spec_color) {
-    render_data* data = &this->data;
-    mat4 temp;
-    mat4_transpose(&irradiance_r_transforms, &temp);
-    data->buffer_scene_data.g_irradiance_r_transforms[0] = temp.row0;
-    data->buffer_scene_data.g_irradiance_r_transforms[1] = temp.row1;
-    data->buffer_scene_data.g_irradiance_r_transforms[2] = temp.row2;
-    data->buffer_scene_data.g_irradiance_r_transforms[3] = temp.row3;
-    mat4_transpose(&irradiance_g_transforms, &temp);
-    data->buffer_scene_data.g_irradiance_g_transforms[0] = temp.row0;
-    data->buffer_scene_data.g_irradiance_g_transforms[1] = temp.row1;
-    data->buffer_scene_data.g_irradiance_g_transforms[2] = temp.row2;
-    data->buffer_scene_data.g_irradiance_g_transforms[3] = temp.row3;
-    mat4_transpose(&irradiance_b_transforms, &temp);
-    data->buffer_scene_data.g_irradiance_b_transforms[0] = temp.row0;
-    data->buffer_scene_data.g_irradiance_b_transforms[1] = temp.row1;
-    data->buffer_scene_data.g_irradiance_b_transforms[2] = temp.row2;
-    data->buffer_scene_data.g_irradiance_b_transforms[3] = temp.row3;
-    data->buffer_scene_data.g_light_env_stage_diffuse = light_env_stage_diffuse;
-    data->buffer_scene_data.g_light_env_stage_specular = light_env_stage_specular;
-    data->buffer_scene_data.g_light_env_chara_diffuse = light_env_chara_diffuse;
-    data->buffer_scene_data.g_light_env_chara_ambient = light_env_chara_ambient;
-    data->buffer_scene_data.g_light_env_chara_specular = light_env_chara_specular;
-    data->buffer_scene_data.g_light_env_reflect_diffuse = light_env_reflect_diffuse;
-    data->buffer_scene_data.g_light_env_reflect_ambient = light_env_reflect_ambient;
-    data->buffer_scene_data.g_light_env_proj_diffuse = light_env_proj_diffuse;
-    data->buffer_scene_data.g_light_env_proj_specular = light_env_proj_specular;
-    data->buffer_scene_data.g_light_env_proj_position = light_env_proj_position;
-    data->buffer_scene_data.g_light_stage_dir = light_stage_dir;
-    data->buffer_scene_data.g_light_stage_diff = light_stage_diff;
-    data->buffer_scene_data.g_light_stage_spec = light_stage_spec;
-    data->buffer_scene_data.g_light_chara_dir = light_chara_dir;
-    data->buffer_scene_data.g_light_chara_spec = light_chara_spec;
-    data->buffer_scene_data.g_light_chara_luce = light_chara_luce;
-    data->buffer_scene_data.g_light_chara_back = light_chara_back;
-    data->buffer_scene_data.g_light_face_diff = light_face_diff;
-    data->buffer_scene_data.g_chara_color0 = chara_color0;
-    data->buffer_scene_data.g_chara_color1 = chara_color1;
-    data->buffer_scene_data.g_chara_f_dir = chara_f_dir;
-    data->buffer_scene_data.g_chara_f_ambient = chara_f_ambient;
-    data->buffer_scene_data.g_chara_f_diffuse = chara_f_diffuse;
-    data->buffer_scene_data.g_chara_tc_param = chara_tc_param;
-    mat4_transpose(&normal_tangent_transforms, &temp);
-    data->buffer_scene_data.g_normal_tangent_transforms[0] = temp.row0;
-    data->buffer_scene_data.g_normal_tangent_transforms[1] = temp.row1;
-    data->buffer_scene_data.g_normal_tangent_transforms[2] = temp.row2;
-    data->buffer_scene_data.g_light_reflect_dir = light_reflect_dir;
-    data->buffer_scene_data.g_clip_plane = clip_plane;
-    data->buffer_scene_data.g_npr_cloth_spec_color = npr_cloth_spec_color;
-    enum_or(data->flags, RENDER_DATA_SCENE_UPDATE);
-}
-
-void render_context::set_scene_light_projection(const mat4& light_projection) {
-    render_data* data = &this->data;
-    mat4 temp;
-    mat4_transpose(&light_projection, &temp);
-    data->buffer_scene_data.g_light_projection[0] = temp.row0;
-    data->buffer_scene_data.g_light_projection[1] = temp.row1;
-    data->buffer_scene_data.g_light_projection[2] = temp.row2;
-    data->buffer_scene_data.g_light_projection[3] = temp.row3;
-    enum_or(data->flags, RENDER_DATA_SCENE_UPDATE);
-}
-
-void render_context::set_scene_projection_view(const mat4& view, const mat4& proj, const vec3& view_position) {
-    render_data* data = &this->data;
-    mat4 temp;
-    mat4_transpose(&view, &temp);
-    data->buffer_scene_data.g_view[0] = temp.row0;
-    data->buffer_scene_data.g_view[1] = temp.row1;
-    data->buffer_scene_data.g_view[2] = temp.row2;
-
-    mat4_invert(&view, &temp);
-    mat4_transpose(&temp, &temp);
-    data->buffer_scene_data.g_view_inverse[0] = temp.row0;
-    data->buffer_scene_data.g_view_inverse[1] = temp.row1;
-    data->buffer_scene_data.g_view_inverse[2] = temp.row2;
-
-    mat4_mul(&view, &proj, &temp);
-    mat4_transpose(&temp, &temp);
-    data->buffer_scene_data.g_projection_view[0] = temp.row0;
-    data->buffer_scene_data.g_projection_view[1] = temp.row1;
-    data->buffer_scene_data.g_projection_view[2] = temp.row2;
-    data->buffer_scene_data.g_projection_view[3] = temp.row3;
-    data->buffer_scene_data.g_view_position.x = view_position.x;
-    data->buffer_scene_data.g_view_position.y = view_position.y;
-    data->buffer_scene_data.g_view_position.z = view_position.z;
-    data->buffer_scene_data.g_view_position.w = 0.0f;
-    enum_or(data->flags, RENDER_DATA_SCENE_UPDATE);
-}
-
-void render_context::set_scene_shadow_params(const float_t esm_param,
-    const mat4 mats[2], const vec4& shadow_ambient, const vec4& shadow_ambient1) {
-    render_data* data = &this->data;
-    data->buffer_scene_data.g_esm_param = { esm_param, 0.0f, 0.0f, 0.0f };
-    mat4 temp;
-    mat4_transpose(&mats[0], &temp);
-    data->buffer_scene_data.g_self_shadow_receivers[0] = temp.row0;
-    data->buffer_scene_data.g_self_shadow_receivers[1] = temp.row1;
-    data->buffer_scene_data.g_self_shadow_receivers[2] = temp.row2;
-    mat4_transpose(&mats[1], &temp);
-    data->buffer_scene_data.g_self_shadow_receivers[3] = temp.row0;
-    data->buffer_scene_data.g_self_shadow_receivers[4] = temp.row1;
-    data->buffer_scene_data.g_self_shadow_receivers[5] = temp.row2;
-    data->buffer_scene_data.g_shadow_ambient = shadow_ambient;
-    data->buffer_scene_data.g_shadow_ambient1 = shadow_ambient1;
-    enum_or(data->flags, RENDER_DATA_SCENE_UPDATE);
-}
-
-void render_context::set_shader(uint32_t index) {
-    data.set_shader(index);
 }

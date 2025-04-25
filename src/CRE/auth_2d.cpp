@@ -8,7 +8,6 @@
 #include "auth_2d.hpp"
 #include "../KKdLib/str_utils.hpp"
 #include "data.hpp"
-#include "file_handler.hpp"
 #include "sound.hpp"
 #include "task.hpp"
 

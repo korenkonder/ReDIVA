@@ -320,10 +320,10 @@ static void camera_calculate_projection(camera* c) {
     mat4_mul(&spr_3d_view, &spr_3d_proj, &c->view_projection_aet_3d);
 
     extern render_context* rctx_ptr;
-    rctx_ptr->render.calc_projection_matrix(&c->projection, c->fov,
-        (float_t)c->aspect, c->min_distance, c->max_distance,
-        c->proj_left_offset, c->proj_right_offset,
-        c->proj_left_offset, c->proj_right_offset);
+    vec2 persp_scale = 1.0f;
+    vec2 persp_offset = rctx_ptr->render.get_taa_offset();
+    mat4_persp_offset(c->fov * DEG_TO_RAD_FLOAT, (float_t)c->aspect,
+        c->min_distance, c->max_distance, &persp_scale, &persp_offset, &c->projection);
     mat4_invert(&c->projection, &c->inv_projection);
 
     float_t height = (float_t)res_wind_int->height * 0.5f;
@@ -403,4 +403,114 @@ void cam_struct::set(camera* cam) {
     cam->set_roll(roll * RAD_TO_DEG_FLOAT);
     cam->set_up(use_up, up);
     cam->set_min_distance(min_distance);
+}
+
+cam_data::cam_data() : view_point(0.0f, 0.0f, 1.0f), interest(), up(0.0f, 1.0f, 0.0f),
+    fov(30.0f * DEG_TO_RAD_FLOAT), aspect(4.0f / 3.0f), min_distance(1.0f), max_distance(200.0f),
+    view_mat(), proj_mat(), view_proj_mat(), persp_scale(), persp_offset() {
+
+}
+
+void cam_data::calc_ortho_proj_mat(float_t left, float_t right,
+    float_t bottom, float_t top, const vec2& scale, const vec2& offset) {
+    mat4_ortho_offset(left, right, bottom, top, min_distance, max_distance, &scale, &offset, &proj_mat);
+}
+
+void cam_data::calc_persp_proj_mat() {
+    mat4_persp(fov, aspect, min_distance, max_distance, &proj_mat);
+    persp_scale = 1.0f;
+    persp_offset = 0.0f;
+}
+
+void cam_data::calc_persp_proj_mat_offset(const vec2& persp_scale, const vec2& persp_offset) {
+    mat4_persp_offset(fov, aspect, min_distance, max_distance, &persp_scale, &persp_offset, &proj_mat);
+    this->persp_scale = persp_scale;
+    this->persp_offset = persp_offset;
+}
+
+void cam_data::calc_view_mat() {
+    mat4_look_at(&view_point, &interest, &up, &view_mat);
+}
+
+void cam_data::calc_view_proj_mat() {
+    mat4_mul(&view_mat, &proj_mat, &view_proj_mat);
+}
+
+void cam_data::get(const camera* cam) {
+    view_point = cam->view_point;
+    interest = cam->interest;
+    up = cam->up;
+    fov = cam->fov * DEG_TO_RAD_FLOAT;
+    aspect = (float_t)cam->aspect;
+    min_distance = cam->min_distance;
+    max_distance = cam->max_distance;
+    view_mat = cam->view;
+    proj_mat = cam->projection;
+    view_proj_mat = cam->view_projection;
+    persp_scale = 1.0f;
+    persp_offset = 0.0f;
+}
+
+float_t cam_data::get_aspect() const {
+    return aspect;
+}
+
+float_t cam_data::get_fov() const {
+    return fov;
+}
+
+const vec3& cam_data::get_interest() const {
+    return interest;
+}
+
+float_t cam_data::get_min_distance() const {
+    return min_distance;
+}
+
+float_t cam_data::get_max_distance() const {
+    return max_distance;
+}
+
+const mat4& cam_data::get_proj_mat() const {
+    return proj_mat;
+}
+
+const mat4& cam_data::get_view_mat() const {
+    return view_mat;
+}
+
+const vec3& cam_data::get_view_point() const {
+    return view_point;
+}
+
+const mat4& cam_data::get_view_proj_mat() const {
+    return view_proj_mat;
+}
+
+void cam_data::set_aspect(float_t value) {
+    aspect = value;
+}
+
+void cam_data::set_fov(float_t value) {
+    fov = value;
+}
+
+void cam_data::set_interest(const vec3& value) {
+    interest = value;
+}
+
+void cam_data::set_min_distance(float_t value) {
+    min_distance = value;
+}
+
+void cam_data::set_max_distance(float_t value) {
+    max_distance = value;
+}
+
+void cam_data::set_up(const vec3& value) {
+    up = value;
+}
+
+void cam_data::set_view_point(const vec3& value) {
+    view_point = value;
 }

@@ -64,12 +64,10 @@ void fog::set_color(const vec4& value) {
     color = value;
 }
 
-void fog::data_set(fog_id id) {
+void fog::data_set(render_data_context& rend_data_ctx, fog_id id) {
     fog_type type = get_type();
     if (type == FOG_NONE)
         return;
-
-    extern render_context* rctx_ptr;
 
     switch (id) {
     case FOG_DEPTH: {
@@ -81,13 +79,13 @@ void fog::data_set(fog_id id) {
         vec4 color;
         get_color(color);
 
-        render_context::fog_params params = {};
-        rctx_ptr->get_scene_fog_params(params);
+        render_data_context::fog_params params = {};
+        rend_data_ctx.get_scene_fog_params(params);
         params.density = density;
         params.start = start;
         params.end = end;
         params.depth_color = color;
-        rctx_ptr->set_scene_fog_params(params);
+        rend_data_ctx.set_scene_fog_params(params);
     } break;
     case FOG_HEIGHT: {
         float_t density = get_density();
@@ -98,14 +96,14 @@ void fog::data_set(fog_id id) {
         vec4 color;
         get_color(color);
 
-        render_context::fog_params params = {};
-        rctx_ptr->get_scene_fog_params(params);
+        render_data_context::fog_params params = {};
+        rend_data_ctx.get_scene_fog_params(params);
         params.height_params.x = density;
         params.height_params.y = start;
         params.height_params.z = end;
         params.height_params.w = 1.0f / (end - start);
         params.height_color = color;
-        rctx_ptr->set_scene_fog_params(params);
+        rend_data_ctx.set_scene_fog_params(params);
     } break;
     case FOG_BUMP: {
         float_t density = get_density();
@@ -114,13 +112,13 @@ void fog::data_set(fog_id id) {
         if (start >= end)
             start = end - 0.01f;
 
-        render_context::fog_params params = {};
-        rctx_ptr->get_scene_fog_params(params);
+        render_data_context::fog_params params = {};
+        rend_data_ctx.get_scene_fog_params(params);
         params.bump_params.x = density;
         params.bump_params.y = start;
         params.bump_params.z = end;
         params.bump_params.w = 1.0f / (end - start);
-        rctx_ptr->set_scene_fog_params(params);
+        rend_data_ctx.set_scene_fog_params(params);
     } break;
     }
 }

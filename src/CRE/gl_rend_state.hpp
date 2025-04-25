@@ -8,6 +8,8 @@
 #include "../KKdLib/default.hpp"
 #include "gl.hpp"
 
+constexpr int32_t GL_REND_STATE_COUNT = 4;
+
 struct gl_rend_state_rect {
     GLint x;
     GLint y;
@@ -15,58 +17,15 @@ struct gl_rend_state_rect {
     GLsizei height;
 };
 
-struct gl_rend_state_struct {
-    GLuint program;
-    GLuint active_texture_index;
-    GLuint texture_binding_2d[32];
-    GLuint texture_binding_cube_map[32];
-    GLuint sampler_binding[32];
-    GLboolean blend;
-    GLenum blend_src_rgb;
-    GLenum blend_src_alpha;
-    GLenum blend_dst_rgb;
-    GLenum blend_dst_alpha;
-    GLenum blend_mode_rgb;
-    GLenum blend_mode_alpha;
-    GLuint read_framebuffer_binding;
-    GLuint draw_framebuffer_binding;
-    GLuint vertex_array_binding;
-    GLuint array_buffer_binding;
-    GLuint element_array_buffer_binding;
-    GLuint uniform_buffer_binding;
-    GLuint uniform_buffer_bindings[14];
-    GLintptr uniform_buffer_offsets[14];
-    GLsizeiptr uniform_buffer_sizes[14];
-    GLuint shader_storage_buffer_binding;
-    GLuint shader_storage_buffer_bindings[14];
-    GLintptr shader_storage_buffer_offsets[14];
-    GLsizeiptr shader_storage_buffer_sizes[14];
-    GLboolean color_mask[4];
-    GLboolean cull_face;
-    GLenum cull_face_mode;
-    GLboolean depth_test;
-    GLenum depth_func;
-    GLboolean depth_mask;
-    GLfloat line_width;
-    GLenum polygon_mode;
-    GLboolean multisample;
-    GLboolean primitive_restart;
-    GLuint primitive_restart_index;
-    gl_rend_state_rect scissor_box;
-    GLboolean scissor_test;
-    GLboolean stencil_test;
-    GLenum stencil_func;
-    GLenum stencil_fail;
-    GLenum stencil_dpfail;
-    GLenum stencil_dppass;
-    GLuint stencil_mask;
-    GLint stencil_ref;
-    GLuint stencil_value_mask;
-    gl_rend_state_rect viewport;
+struct p_gl_rend_state {
+    struct gl_rend_state& ptr;
+
+    p_gl_rend_state(int32_t index);
 
     void active_bind_texture_2d(int32_t index, GLuint texture, bool force = false);
     void active_bind_texture_cube_map(int32_t index, GLuint texture, bool force = false);
     void active_texture(size_t index, bool force = false);
+    void begin_event(const char* message, int32_t length);
     void bind_framebuffer(GLuint framebuffer, bool force = false);
     void bind_read_framebuffer(GLuint framebuffer, bool force = false);
     void bind_draw_framebuffer(GLuint framebuffer, bool force = false);
@@ -98,6 +57,11 @@ struct gl_rend_state_struct {
     void disable_primitive_restart(bool force = false);
     void disable_scissor_test(bool force = false);
     void disable_stencil_test(bool force = false);
+    void draw_arrays(GLenum mode, GLint first, GLsizei count);
+    void draw_elements(GLenum mode,
+        GLsizei count, GLenum type, const void* indices);
+    void draw_range_elements(GLenum mode,
+        GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices);
     void enable_blend(bool force = false);
     void enable_cull_face(bool force = false);
     void enable_depth_test(bool force = false);
@@ -105,6 +69,7 @@ struct gl_rend_state_struct {
     void enable_primitive_restart(bool force = false);
     void enable_scissor_test(bool force = false);
     void enable_stencil_test(bool force = false);
+    void end_event();
     void get();
     GLuint get_program();
     gl_rend_state_rect get_scissor();
@@ -136,12 +101,6 @@ struct gl_rend_state_struct {
 
     template <size_t size>
     inline void begin_event(const char(&str)[size]) {
-        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, (GLsizei)(size - 1), str);
-    }
-
-    inline void end_event() {
-        glPopDebugGroup();
+        begin_event(str, (GLsizei)(size - 1));
     }
 };
-
-extern gl_rend_state_struct gl_rend_state;

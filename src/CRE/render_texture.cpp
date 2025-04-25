@@ -4,10 +4,9 @@
 */
 
 #include "render_texture.hpp"
-#include "render_context.hpp"
+#include "gl_rend_state.hpp"
+#include "gl_state.hpp"
 #include "texture.hpp"
-
-extern render_context* rctx_ptr;
 
 static uint32_t render_texture_counter;
 
@@ -24,11 +23,23 @@ RenderTexture::~RenderTexture() {
     Free();
 }
 
-int32_t RenderTexture::Bind(int32_t index) {
+int32_t RenderTexture::Bind(gl_state_struct& gl_st, int32_t index) {
     if (index < 0 || index > max_level)
         return -1;
 
-    gl_rend_state.bind_framebuffer(fbos[index]);
+    gl_st.bind_framebuffer(fbos[index]);
+    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+        return -1;
+
+    gl_get_error_print();
+    return 0;
+}
+
+int32_t RenderTexture::Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
+    if (index < 0 || index > max_level)
+        return -1;
+
+    p_gl_rend_st.bind_framebuffer(fbos[index]);
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         return -1;
 
@@ -85,10 +96,10 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
         render_texture_counter++;
         color_texture = GetColorTex();
         if (color_format == GL_RGBA32F) {
-            glBindTexture(GL_TEXTURE_2D, color_texture);
+            gl_state.bind_texture_2d(color_texture);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-            glBindTexture(GL_TEXTURE_2D, 0);
+            gl_state.bind_texture_2d(0);
         }
     }
     else {
@@ -122,23 +133,25 @@ int32_t RenderTexture::Init(int32_t width, int32_t height,
     return 0;
 }
 
-/*int32_t RenderTexture::InitDepthRenderbuffer(GLenum internal_format, int32_t width, int32_t height) {
-    gl_rend_state.bind_framebuffer(fbos[0]);
+/*int32_t RenderTexture::InitDepthRenderbuffer(gl_state_struct& gl_st,
+    GLenum internal_format, int32_t width, int32_t height) {
+    gl_st.bind_framebuffer(fbos[0]);
     glGenRenderbuffers(1, &depth_rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, depth_rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depth_rbo);
-    gl_rend_state.bind_framebuffer(0);
+    gl_st.bind_framebuffer(0);
     return -(glGetError() != GL_ZERO);
 }
 
-int32_t RenderTexture::InitStencilRenderbuffer(GLenum internal_format, int32_t width, int32_t height) {
-    gl_rend_state.bind_framebuffer(fbos[0]);
+int32_t RenderTexture::InitStencilRenderbuffer(gl_state_struct& gl_st,
+    GLenum internal_format, int32_t width, int32_t height) {
+    gl_st.bind_framebuffer(fbos[0]);
     glGenRenderbuffers(1, &stencil_rbo);
     glBindRenderbuffer(GL_RENDERBUFFER, stencil_rbo);
     glRenderbufferStorage(GL_RENDERBUFFER, internal_format, width, height);
     glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_STENCIL_ATTACHMENT, GL_RENDERBUFFER, stencil_rbo);
-    gl_rend_state.bind_framebuffer(0);
+    gl_st.bind_framebuffer(0);
     return -(glGetError() != GL_ZERO);
 }*/
 
@@ -150,6 +163,10 @@ int32_t RenderTexture::SetColorDepthTextures(GLuint color_texture,
         error = render_texture_init_framebuffer(this, max_level);
     render_texture_set_framebuffer_texture(this, color_texture, max_level, depth_texture, stencil);
     return error;
+}
+
+void RenderTexture::SetViewport(p_gl_rend_state& p_gl_rend_st) {
+    p_gl_rend_st.set_viewport(0, 0, GetWidth(), GetHeight());
 }
 
 void render_texture_counter_reset() {
@@ -167,7 +184,7 @@ static int32_t render_texture_set_framebuffer_texture(RenderTexture* rt,
     if (level < 0 || level > rt->max_level)
         return -1;
 
-    gl_rend_state.bind_framebuffer(rt->fbos[level]);
+    gl_state.bind_framebuffer(rt->fbos[level]);
     gl_get_error_print();
 
     if (color_texture) {
@@ -200,7 +217,7 @@ static int32_t render_texture_set_framebuffer_texture(RenderTexture* rt,
     int32_t ret = 0;
     if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         ret = -1;
-    gl_rend_state.bind_framebuffer(0);
+    gl_state.bind_framebuffer(0);
     gl_get_error_print();
     return ret;
 }

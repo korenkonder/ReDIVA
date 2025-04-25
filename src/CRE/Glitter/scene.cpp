@@ -4,6 +4,7 @@
 */
 
 #include "glitter.hpp"
+#include "../gl_state.hpp"
 
 namespace Glitter {
     Scene::Scene(SceneCounter counter, uint64_t hash, EffectGroup* eff_group, bool a5) {
@@ -78,7 +79,7 @@ namespace Glitter {
             }
 
         if (disp)
-            effect_group->vbo.WriteMemory(0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
+            effect_group->vbo.WriteMemory(gl_state, 0, effect_group->max_count * sizeof(Buffer), effect_group->buffer);
 #endif
     }
 
@@ -163,7 +164,7 @@ namespace Glitter {
         }
     }
 
-    void Scene::Disp(GPM, DispType disp_type) {
+    void Scene::Disp(GPM, render_data_context& rend_data_ctx, DispType disp_type) {
         if (flags & SCENE_NOT_DISP)
             return;
 
@@ -173,7 +174,7 @@ namespace Glitter {
                     && GPM_VAL->selected_effect != i.ptr->effect)
                     continue;
 
-                i.ptr->Disp(GPM_VAL, disp_type);
+                i.ptr->Disp(GPM_VAL, rend_data_ctx, disp_type);
             }
     }
 

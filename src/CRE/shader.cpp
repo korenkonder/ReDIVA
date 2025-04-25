@@ -14,6 +14,7 @@
 #include "Vulkan/Manager.hpp"
 #include "Vulkan/ShaderModule.hpp"
 #include "gl_rend_state.hpp"
+#include "render_context.hpp"
 #include "shared.hpp"
 #include <shlobj_core.h>
 
@@ -38,11 +39,9 @@ static GLuint shader_compile_binary(const char* vert, const char* frag, const ch
 #endif
 static bool shader_load_binary_shader(program_binary* bin, GLuint* program, const char* vp, const char* fp);
 static prj::shared_ptr<Vulkan::ShaderModule> shader_load_spv_shader(program_spv* spv, const char* shader);
-static bool shader_update_data(shader_set_data* set);
 
-int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
-    set->curr_program = 0;
-
+int32_t shader::bind(p_gl_rend_state& p_gl_rend_st,
+    const uniform_value& shader_flags, shader_set_data* set, uint32_t sub_index) {
     if (num_sub < 1)
         return -1;
 
@@ -60,7 +59,7 @@ int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
         const int32_t* fp_unival_max = sub_shader->fp_unival_max;
 
         for (int32_t i = 0; i < num_uniform; i++) {
-            const int32_t unival = uniform_value[use_uniform[i]];
+            const int32_t unival = shader_flags.arr[use_uniform[i]];
             const int32_t unival_max = max_def(vp_unival_max[i], fp_unival_max[i]);
             unival_shad += unival_shad_curr * min_def(unival, unival_max);
             unival_shad_curr *= unival_max + 1;
@@ -68,9 +67,7 @@ int32_t shader::bind(shader_set_data* set, uint32_t sub_index) {
     }
 
     GLuint program = sub_shader->programs[unival_shad];
-    set->curr_program = program;
-
-    gl_rend_state.use_program(program);
+    p_gl_rend_st.use_program(program);
     return 0;
 }
 
@@ -489,96 +486,13 @@ char* shader::parse_include(char* data, farc* f) {
     return temp_data;
 }
 
-void shader::unbind() {
-    gl_rend_state.use_program(0);
+void shader::unbind(p_gl_rend_state& p_gl_rend_st) {
+    p_gl_rend_st.use_program(0);
 }
 
-shader_set_data::shader_set_data() : size(), shaders(), curr_program(), primitive_restart(),
-primitive_restart_index(), get_index_by_name_func(), get_name_by_index_func() {
+shader_set_data::shader_set_data() : size(), shaders(),
+get_index_by_name_func(), get_name_by_index_func() {
 
-}
-
-void shader_set_data::disable_primitive_restart() {
-    primitive_restart = false;
-}
-
-void shader_set_data::draw_arrays(GLenum mode, GLint first, GLsizei count) {
-    if (shader_update_data(this))
-        glDrawArrays(mode, first, count);
-}
-
-void shader_set_data::draw_elements(GLenum mode,
-    GLsizei count, GLenum type, const void* indices) {
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        uint32_t index;
-        switch (type) {
-        case GL_UNSIGNED_BYTE:
-            index = 0xFF;
-            break;
-        case GL_UNSIGNED_SHORT:
-            index = 0xFFFF;
-            break;
-        case GL_UNSIGNED_INT:
-        default:
-            index = 0xFFFFFFFF;
-            break;
-        }
-
-        enable_primitive_restart();
-
-        if (primitive_restart_index != index)
-            primitive_restart_index = index;
-        break;
-    }
-
-    if (shader_update_data(this))
-        glDrawElements(mode, count, type, indices);
-
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        disable_primitive_restart();
-        break;
-    }
-}
-
-void shader_set_data::draw_range_elements(GLenum mode,
-    GLuint start, GLuint end, GLsizei count, GLenum type, const void* indices) {
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        uint32_t index;
-        switch (type) {
-        case GL_UNSIGNED_BYTE:
-            index = 0xFF;
-            break;
-        case GL_UNSIGNED_SHORT:
-            index = 0xFFFF;
-            break;
-        case GL_UNSIGNED_INT:
-        default:
-            index = 0xFFFFFFFF;
-            break;
-        }
-
-        enable_primitive_restart();
-
-        if (primitive_restart_index != index)
-            primitive_restart_index = index;
-        break;
-    }
-
-    if (shader_update_data(this))
-        glDrawRangeElements(mode, start, end, count, type, indices);
-
-    switch (mode) {
-    case GL_TRIANGLE_STRIP:
-        disable_primitive_restart();
-        break;
-    }
-}
-
-void shader_set_data::enable_primitive_restart() {
-    primitive_restart = true;
 }
 
 int32_t shader_set_data::get_index_by_name(const char* name) {
@@ -1120,13 +1034,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                                 if (programs[k] && samplers.size()) {
                                     GLuint program = programs[k];
 
-                                    gl_rend_state.use_program(program);
+                                    glUseProgram(program);
                                     for (auto& i : samplers) {
                                         GLint loc = glGetUniformLocation(program, i.second.c_str());
                                         if (loc != -1)
                                             glUniform1i(loc, i.first);
                                     }
-                                    gl_rend_state.use_program(0);
+                                    glUseProgram(0);
                                 }
 
                                 if (programs[k] && uniforms.size()) {
@@ -1185,13 +1099,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             if (programs[0] && samplers.size()) {
                                 GLuint program = programs[0];
 
-                                gl_rend_state.use_program(program);
+                                glUseProgram(program);
                                 for (auto& i : samplers) {
                                     GLint loc = glGetUniformLocation(program, i.second.c_str());
                                     if (loc != -1)
                                         glUniform1i(loc, i.first);
                                 }
-                                gl_rend_state.use_program(0);
+                                glUseProgram(0);
                             }
 
                             if (programs[0] && uniforms.size()) {
@@ -1271,16 +1185,16 @@ void shader_set_data::load(farc* f, bool ignore_cache,
     this->get_name_by_index_func = get_name_by_index;
 }
 
-void shader_set_data::set(uint32_t index) {
+void shader_set_data::set(p_gl_rend_state& p_gl_rend_st, uniform_value& shader_flags, uint32_t index) {
     if (this && index && index != -1) {
         shader* shader = &shaders[index];
         if (shader->bind_func)
-            shader->bind_func(this, shader);
+            shader->bind_func(p_gl_rend_st, shader_flags, this, shader);
         else
-            shader->bind(this, shader->sub[0].sub_index);
+            shader->bind(p_gl_rend_st, shader_flags, this, shader->sub[0].sub_index);
     }
     else
-        shader::unbind();
+        shader::unbind(p_gl_rend_st);
 }
 
 void shader_set_data::unload() {
@@ -1573,18 +1487,4 @@ static prj::shared_ptr<Vulkan::ShaderModule> shader_load_spv_shader(program_spv*
 
     return prj::shared_ptr<Vulkan::ShaderModule>(new Vulkan::ShaderModule(
         Vulkan::current_device, (const void*)((size_t)spv + spv->spv), spv->size));
-}
-
-static bool shader_update_data(shader_set_data* set) {
-    if (!set || !set->curr_program)
-        return false;
-
-    if (set->primitive_restart) {
-        gl_rend_state.enable_primitive_restart();
-        gl_rend_state.set_primitive_restart_index(set->primitive_restart_index);
-    }
-    else
-        gl_rend_state.disable_primitive_restart();
-
-    return true;
 }

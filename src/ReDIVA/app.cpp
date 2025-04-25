@@ -27,6 +27,7 @@
 #include "../CRE/file_handler.hpp"
 #include "../CRE/font.hpp"
 #include "../CRE/gl_rend_state.hpp"
+#include "../CRE/gl_state.hpp"
 #include "../CRE/hand_item.hpp"
 #include "../CRE/light_param.hpp"
 #include "../CRE/mdata_manager.hpp"
@@ -450,12 +451,29 @@ int32_t app_main(const app_init_struct& ais) {
 #if !(BAKE_PNG || BAKE_VIDEO)
             glfwGetFramebufferSize(window, &width, &height);
 #endif
-            gl_rend_state.set_viewport(0, 0, width, height);
-            gl_rend_state.disable_blend();
-            gl_rend_state.disable_depth_test();
-            gl_rend_state.set_depth_mask(GL_FALSE);
-            gl_rend_state.disable_cull_face();
-            gl_rend_state.disable_stencil_test();
+
+            if (Vulkan::use) {
+                Vulkan::CommandBuffer cb;
+                cb.Create(vulkan_device, vulkan_command_pool);
+                cb.BeginOneTimeSubmit();
+                Vulkan::current_command_buffer = cb;
+            }
+
+            render_data_context rend_data_ctx(0);
+            rend_data_ctx.state.set_viewport(0, 0, width, height);
+            rend_data_ctx.state.disable_blend();
+            rend_data_ctx.state.disable_depth_test();
+            rend_data_ctx.state.set_depth_mask(GL_FALSE);
+            rend_data_ctx.state.disable_cull_face();
+            rend_data_ctx.state.disable_stencil_test();
+
+            if (Vulkan::use) {
+                Vulkan::CommandBuffer cb(vulkan_device,
+                    vulkan_command_pool, Vulkan::current_command_buffer);
+                Vulkan::current_command_buffer = 0;
+                cb.Sumbit(vulkan_graphics_queue);
+                cb.Destroy();
+            }
 
             glfwSwapInterval(0);
 
@@ -528,9 +546,6 @@ bool app_render_data::load() {
         d3d_gl_handle = wglDXOpenDeviceNV(d3d_device);
 #endif
 
-    gl_get_error_print();
-    gl_rend_state.set_viewport(0, 0, width, height);
-
 #if DISPLAY_IBL
     const float_t box_vertices[] = {
         -1.0f,  1.0f, -1.0f,
@@ -577,16 +592,16 @@ bool app_render_data::load() {
     };
 
     glGenVertexArrays(1, &ibl_vao);
-    gl_rend_state.bind_vertex_array(ibl_vao, true);
+    gl_state.bind_vertex_array(ibl_vao, true);
 
     ibl_vbo.Create(sizeof(box_vertices), box_vertices);
-    ibl_vbo.Bind(true);
+    gl_state.bind_array_buffer(ibl_vbo.Bind);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(float_t) * 3, (void*)0);
 
-    gl_rend_state.bind_array_buffer(0);
-    gl_rend_state.bind_vertex_array(0);
+    gl_state.bind_array_buffer(0);
+    gl_state.bind_vertex_array(0);
 
     cubemap_display_ubo.Create(sizeof(cubemap_display_batch_shader_data));
 #endif
@@ -749,7 +764,9 @@ static render_context* render_context_load() {
     render_context* rctx = new render_context;
     rctx_ptr = rctx;
 
-    gl_rend_state.get();
+    gl_state.get();
+    render_data_context rend_data_ctx(0);
+    rend_data_ctx.state.get();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
@@ -1276,7 +1293,7 @@ static render_context* render_context_load() {
     cam->set_view_point({ 0.0f, 1.4f, 1.0f });
     cam->set_interest({ 0.0f, 1.4f, 0.0f });
 
-    uniform_value[U16] = 1;
+    rend_data_ctx.shader_flags.arr[U16] = 1;
 
     imgui_context = ImGui::CreateContext();
     ImGui::SetCurrentContext(imgui_context);
@@ -1386,14 +1403,7 @@ static void render_context_ctrl(render_context* rctx) {
 
     camera* cam = rctx->camera;
 
-    for (int32_t i = 0; i < 32; i++) {
-        if (!gl_rend_state.check_texture_binding_2d(i) && !gl_rend_state.check_texture_binding_cube_map(i))
-            continue;
-
-        gl_rend_state.active_bind_texture_2d(i, 0);
-        gl_rend_state.active_bind_texture_cube_map(i, 0);
-        gl_rend_state.bind_sampler(i, 0);
-    }
+    gl_state.get();
 
     global_context_menu = true;
     ImGui::SetCurrentContext(imgui_context);
@@ -1536,30 +1546,24 @@ static void render_context_disp(render_context* rctx) {
     static const GLfloat depth_clear = 1.0f;
     static const GLint stencil_clear = 0;
 
-    for (int32_t i = 0; i < 32; i++) {
-        if (!gl_rend_state.check_texture_binding_2d(i) && !gl_rend_state.check_texture_binding_cube_map(i))
-            continue;
-
-        gl_rend_state.active_bind_texture_2d(i, 0);
-        gl_rend_state.active_bind_texture_cube_map(i, 0);
-        gl_rend_state.bind_sampler(i, 0);
-    }
-
-    gl_rend_state.bind_framebuffer(0);
-    gl_rend_state.set_depth_mask(GL_TRUE);
-    gl_rend_state.set_stencil_mask(0xFF);
+    render_data_context pre_rend_data_ctx(0);
+    pre_rend_data_ctx.state.get();
+    pre_rend_data_ctx.state.set_depth_mask(GL_TRUE);
+    pre_rend_data_ctx.state.set_stencil_mask(0xFF);
     glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
     glClearDepthf(depth_clear);
-    gl_rend_state.set_stencil_mask(0x00);
-    gl_rend_state.set_depth_mask(GL_FALSE);
+    pre_rend_data_ctx.state.set_stencil_mask(0x00);
+    pre_rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
-    gl_rend_state.set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
+    pre_rend_data_ctx.state.set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
 
     rctx->disp();
 
+    render_data_context post_rend_data_ctx(3);
+
 #if DISPLAY_IBL
     if (display_ibl) {
-        rctx->screen_buffer.Bind();
+        rctx->screen_buffer.Bind(post_rend_data_ctx.state);
 
         mat4 mat;
         mat4_translate_y(1.4f, &mat);
@@ -1576,15 +1580,15 @@ static void render_context_disp(render_context* rctx) {
         shader_data.g_vp[3] = mat.row3;
         shader_data.g_texture_lod.x = ibl_index == 1 ? 1.0f : 0.0f;
         shader_data.g_texture_lod.y = 1.0f / (float_t)ibl_scale;
-        rctx_ptr->glitter_batch_ubo.WriteMemory(shader_data);
+        rctx_ptr->glitter_batch_ubo.WriteMemory(post_rend_data_ctx.state, shader_data);
 
-        rctx_ptr->glitter_batch_ubo.Bind(3);
-        shaders_dev.set(SHADER_DEV_CUBEMAP_DISPLAY);
-        gl_rend_state.bind_vertex_array(ibl_vao);
-        gl_rend_state.active_bind_texture_cube_map(0,
-            light_param_data_storage_data_get_ibl_texture(max_def(ibl_index - 1, 0)));
-        shaders_dev.draw_arrays(GL_TRIANGLES, 0, 36);
-        gl_rend_state.bind_vertex_array(0);
+        post_rend_data_ctx.state.bind_uniform_buffer_base(3, rctx_ptr->glitter_batch_ubo);
+        shaders_dev.set(post_rend_data_ctx.state, post_rend_data_ctx.shader_flags, SHADER_DEV_CUBEMAP_DISPLAY);
+        post_rend_data_ctx.state.bind_vertex_array(ibl_vao);
+        post_rend_data_ctx.state.active_bind_texture_cube_map(0,
+            light_param_data_storage_data_get_ibl_textures()[max_def(ibl_index - 1, 0)]);
+        post_rend_data_ctx.state.draw_arrays(GL_TRIANGLES, 0, 36);
+        post_rend_data_ctx.state.bind_vertex_array(0);
     }
 #endif
 
@@ -1592,28 +1596,28 @@ static void render_context_disp(render_context* rctx) {
         Vulkan::end_render_pass(Vulkan::current_command_buffer);
 
 #if BAKE_PNG || BAKE_VIDEO
-        gl_rend_state.set_viewport(0, 0, rctx->screen_width, rctx->screen_height);
+        post_rend_data_ctx.state.set_viewport(0, 0, rctx->screen_width, rctx->screen_height);
 #else
-        gl_rend_state.set_viewport(rctx->screen_x_offset, rctx->screen_y_offset,
+        post_rend_data_ctx.state.set_viewport(rctx->screen_x_offset, rctx->screen_y_offset,
             rctx->sprite_width, rctx->sprite_height);
 #endif
 
-        gl_rend_state.bind_framebuffer(0);
-        gl_rend_state.active_bind_texture_2d(0, rctx->screen_buffer.GetColorTex());
-        uniform_value[U_ALPHA_MASK] = 0;
-        uniform_value[U_REDUCE] = 0;
-        shaders_ft.set(SHADER_FT_REDUCE);
-        rctx->render.draw_quad(rctx->sprite_width, rctx->sprite_height,
+        post_rend_data_ctx.state.bind_framebuffer(0);
+        post_rend_data_ctx.state.active_bind_texture_2d(0, rctx->screen_buffer.GetColorTex());
+        post_rend_data_ctx.shader_flags.arr[U_ALPHA_MASK] = 0;
+        post_rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+        shaders_ft.set(post_rend_data_ctx.state, post_rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
+        rctx->render.draw_quad(post_rend_data_ctx, rctx->sprite_width, rctx->sprite_height,
             1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
 #ifdef USE_OPENGL
     else {
 #if BAKE_PNG || BAKE_VIDEO
-        fbo_blit(rctx->screen_buffer.fbos[0], 0,
+        fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.fbos[0], 0,
             0, 0, rctx->sprite_width, rctx->sprite_height,
             0, 0, rctx->screen_width, rctx->screen_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);
 #else
-        fbo_blit(rctx->screen_buffer.fbos[0], 0,
+        fbo_blit(post_rend_data_ctx.state, rctx->screen_buffer.fbos[0], 0,
             0, 0, rctx->sprite_width, rctx->sprite_height,
             rctx->screen_x_offset, rctx->screen_y_offset,
             rctx->sprite_width, rctx->sprite_height, GL_COLOR_BUFFER_BIT, GL_LINEAR);

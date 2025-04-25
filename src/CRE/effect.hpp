@@ -49,11 +49,11 @@ struct particle_event_data {
     particle_event_data();
 };
 
-extern void leaf_particle_draw();
-extern void rain_particle_draw();
-extern void particle_draw();
-extern void snow_particle_draw();
-extern void star_catalog_draw();
+extern void leaf_particle_draw(struct render_data_context& rend_data_ctx, const struct cam_data& cam);
+extern void rain_particle_draw(struct render_data_context& rend_data_ctx, const struct cam_data& cam);
+extern void particle_draw(struct render_data_context& rend_data_ctx, const struct cam_data& cam);
+extern void snow_particle_draw(struct render_data_context& rend_data_ctx, const struct cam_data& cam);
+extern void star_catalog_draw(struct render_data_context& rend_data_ctx, const struct cam_data& cam);
 
 extern void effect_init();
 extern void effect_free();

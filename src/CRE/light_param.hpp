@@ -31,9 +31,6 @@ enum light_param_data_storage_flags {
 
 extern void light_param_data_storage_data_init();
 extern void light_param_data_storage_data_free_file_handlers();
-#if DISPLAY_IBL
-extern GLuint light_param_data_storage_data_get_ibl_texture(int32_t index);
-#endif
 extern std::string light_param_data_storage_data_get_name();
 extern int32_t light_param_data_storage_data_get_pv_id();
 extern int32_t light_param_data_storage_data_get_stage_index();
@@ -47,7 +44,7 @@ extern void light_param_data_storage_data_load_stages(
 extern void light_param_data_storage_data_reset();
 extern void light_param_data_storage_data_set_default_light_param(
     light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);
-extern void light_param_data_storage_data_set_ibl();
+extern const GLuint* light_param_data_storage_data_get_ibl_textures();
 extern void light_param_data_storage_data_set_pv_id(int32_t pv_id);
 extern void light_param_data_storage_data_set_pv_cut(int32_t cut_id,
     light_param_data_storage_flags flags = LIGHT_PARAM_DATA_STORAGE_ALL);

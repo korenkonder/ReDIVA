@@ -97,6 +97,10 @@ enum uniform_name {
     U_DOF_STAGE = U_TEX_1_TYPE,
 };
 
+struct uniform_value {
+    int32_t arr[U_MAX];
+};
+
 extern int32_t sv_max_texture_size;
 extern int32_t sv_max_texture_max_anisotropy;
 extern int32_t sv_max_uniform_buffer_size;
@@ -111,11 +115,8 @@ extern bool sv_better_reflect;
 
 extern bool sv_shared_storage_uniform_buffer;
 
-extern int32_t uniform_value[U_MAX];
-
 extern const vec3 sv_rgb_to_luma;
 extern const mat3 sv_rgb_to_ypbpr;
 extern const mat3 sv_ypbpr_to_rgb;
 
 extern void sv_anisotropy_set(int32_t value);
-extern void uniform_value_reset();
