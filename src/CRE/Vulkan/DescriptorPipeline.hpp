@@ -14,7 +14,7 @@ namespace Vulkan {
         struct DescriptorSetCollection {
             VkDescriptorSet data[3];
             bool used;
-            uint32_t count;
+            uint8_t count;
             uint32_t frame;
             uint64_t hash;
 

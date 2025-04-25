@@ -9,7 +9,11 @@
 #include "../static_var.hpp"
 #include "../texture.hpp"
 #include "CommandBuffer.hpp"
+#include "DescriptorPipeline.hpp"
 #include "Manager.hpp"
+#include "Pipeline.hpp"
+#include "RenderPass.hpp"
+#include "ShaderModule.hpp"
 #include <algorithm>
 #include <list>
 #include <unordered_map>
@@ -97,7 +101,7 @@ namespace Vulkan {
         void update_buffers();
     };
 
-    gl_rend_state_struct gl_rend_state;
+    gl_state_struct gl_state;
     gl_wrap_manager* gl_wrap_manager_ptr;
 
     static bool gl_wrap_manager_prepare_pipeline_draw(GLenum mode, GLenum type, const void* indices);
@@ -478,8 +482,298 @@ namespace Vulkan {
         return vk_ib;
     }
 
-    gl_program::gl_program() : shader(), sub_shader() {
+    gl_program::gl_program() : descriptor_pipeline(), sampler_count(), uniform_count(),
+        storage_count(), push_constant_range_count(), fragment_output_count(),
+        enabled_attributes(), attribute_sizes(), shader(), sub_shader(), unival_arr() {
 
+    }
+
+    inline static bool get_use_binding(uniform_name use_uniform,
+        const shader_table* shader, const uint32_t* unival_arr) {
+        if (use_uniform == U_INVALID)
+            return true;
+
+        const int32_t num_uniform = shader->num_uniform;
+        const uniform_name* _use_uniform = shader->use_uniform;
+        for (int32_t i = 0; i < num_uniform; i++)
+            if (use_uniform == _use_uniform[i] && unival_arr[i])
+                return true;
+        return false;
+    }
+
+    void gl_program::init() {
+        sampler_count = 0;
+        uniform_count = 0;
+        storage_count = 0;
+        push_constant_range_count = 0;
+        fragment_output_count = 0;
+
+        memset(enabled_attributes, 0, sizeof(enabled_attributes));
+        memset(attribute_sizes, 0, sizeof(attribute_sizes));
+
+        const shader_description* vp_desc = sub_shader->vp_desc;
+        while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
+            && vp_desc->type != SHADER_DESCRIPTION_MAX) {
+            const shader_description* desc = vp_desc++;
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
+                continue;
+
+            switch (desc->type) {
+            case SHADER_DESCRIPTION_VERTEX_INPUT:
+                enabled_attributes[desc->binding] = true;
+                attribute_sizes[desc->binding] = desc->data;
+                break;
+            case SHADER_DESCRIPTION_SAMPLER:
+                sampler_count++;
+                break;
+            case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1)
+                    push_constant_range_count++;
+                else
+                    uniform_count++;
+                break;
+            case SHADER_DESCRIPTION_STORAGE:
+                storage_count++;
+                break;
+            }
+        }
+
+        const shader_description* fp_desc = sub_shader->fp_desc;
+        while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
+            && fp_desc->type != SHADER_DESCRIPTION_MAX) {
+            const shader_description* desc = fp_desc++;
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
+                continue;
+
+            switch (desc->type) {
+            case SHADER_DESCRIPTION_SAMPLER:
+                sampler_count++;
+                break;
+            case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1)
+                    push_constant_range_count++;
+                else
+                    uniform_count++;
+                break;
+            case SHADER_DESCRIPTION_STORAGE:
+                storage_count++;
+                break;
+            case SHADER_DESCRIPTION_FRAGMENT_OUTPUT:
+                fragment_output_count++;
+                break;
+            }
+        }
+
+        const uint32_t sampler_max_count = sampler_count;
+        const uint32_t uniform_max_count = uniform_count;
+        const uint32_t storage_max_count = storage_count;
+
+        VkDescriptorSetLayoutBinding* bindings = force_malloc<VkDescriptorSetLayoutBinding>(
+            (size_t)sampler_max_count + uniform_max_count + storage_max_count + push_constant_range_count);
+        VkDescriptorSetLayoutBinding* sampler_bindings = bindings;
+        VkDescriptorSetLayoutBinding* uniform_bindings = sampler_bindings + sampler_max_count;
+        VkDescriptorSetLayoutBinding* storage_bindings = bindings + sampler_max_count + uniform_max_count;
+        VkPushConstantRange* push_constant_ranges = (VkPushConstantRange*)(bindings
+            + sampler_max_count + uniform_max_count + storage_max_count);
+        VkDescriptorSetLayoutBinding* sampler_binding = sampler_bindings;
+        VkDescriptorSetLayoutBinding* uniform_binding = uniform_bindings;
+        VkDescriptorSetLayoutBinding* storage_binding = storage_bindings;
+        VkPushConstantRange* push_constant_range = push_constant_ranges;
+
+        vp_desc = sub_shader->vp_desc;
+        while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
+            && vp_desc->type != SHADER_DESCRIPTION_MAX) {
+            const shader_description* desc = vp_desc++;
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
+                continue;
+
+            bool found = false;
+            switch (desc->type) {
+            case SHADER_DESCRIPTION_SAMPLER:
+                sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
+                for (uint32_t i = 0; i < sampler_count; i++)
+                    if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        && sampler_bindings[i].binding == desc->binding) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    sampler_binding->binding = desc->binding;
+                    sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    sampler_binding->descriptorCount = 1;
+                    sampler_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                    sampler_binding->pImmutableSamplers = 0;
+                    sampler_binding++;
+                }
+                break;
+            case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1) {
+                    push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
+                    for (uint32_t i = 0; i < push_constant_range_count; i++)
+                        if (push_constant_ranges[i].size == desc->data) {
+                            push_constant_ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                            found = true;
+                            break;
+                        }
+
+                    if (!found && !push_constant_range_count) {
+                        push_constant_range->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                        push_constant_range->offset = 0;
+                        push_constant_range->size = desc->data;
+                        push_constant_range++;
+                    }
+                    break;
+                }
+
+                uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
+                for (uint32_t i = 0; i < uniform_count; i++)
+                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+                        && uniform_bindings[i].binding == desc->binding) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    uniform_binding->binding = desc->binding;
+                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                    uniform_binding->descriptorCount = 1;
+                    uniform_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                    uniform_binding->pImmutableSamplers = 0;
+                    uniform_binding++;
+                }
+                break;
+            case SHADER_DESCRIPTION_STORAGE:
+                storage_count = (uint32_t)(storage_binding - storage_bindings);
+                for (uint32_t i = 0; i < storage_count; i++)
+                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
+                        && storage_bindings[i].binding == desc->binding) {
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    storage_binding->binding = desc->binding;
+                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+                    storage_binding->descriptorCount = 1;
+                    storage_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+                    storage_binding->pImmutableSamplers = 0;
+                    storage_binding++;
+                }
+                break;
+            }
+        }
+
+        fp_desc = sub_shader->fp_desc;
+        while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
+            && fp_desc->type != SHADER_DESCRIPTION_MAX) {
+            const shader_description* desc = fp_desc++;
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
+                continue;
+
+            bool found = false;
+            switch (desc->type) {
+            case SHADER_DESCRIPTION_SAMPLER:
+                sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
+                for (uint32_t i = 0; i < sampler_count; i++)
+                    if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+                        && sampler_bindings[i].binding == desc->binding) {
+                        sampler_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+                    sampler_binding->binding = desc->binding;
+                    sampler_binding->descriptorCount = 1;
+                    sampler_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+                    sampler_binding->pImmutableSamplers = 0;
+                    sampler_binding++;
+                }
+                break;
+            case SHADER_DESCRIPTION_UNIFORM:
+                if (desc->binding == -1) {
+                    push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
+                    for (uint32_t i = 0; i < push_constant_range_count; i++)
+                        if (push_constant_ranges[i].size == desc->data) {
+                            push_constant_ranges[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                            found = true;
+                            break;
+                        }
+
+                    if (!found && !push_constant_range_count) {
+                        push_constant_range->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+                        push_constant_range->offset = 0;
+                        push_constant_range->size = desc->data;
+                        push_constant_range++;
+                    }
+                    break;
+                }
+
+                uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
+                for (uint32_t i = 0; i < uniform_count; i++)
+                    if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+                        && uniform_bindings[i].binding == desc->binding) {
+                        uniform_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+                    uniform_binding->binding = desc->binding;
+                    uniform_binding->descriptorCount = 1;
+                    uniform_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+                    uniform_binding->pImmutableSamplers = 0;
+                    uniform_binding++;
+                }
+                break;
+            case SHADER_DESCRIPTION_STORAGE:
+                storage_count = (uint32_t)(storage_binding - storage_bindings);
+                for (uint32_t i = 0; i < storage_count; i++)
+                    if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
+                        && storage_bindings[i].binding == desc->binding) {
+                        storage_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
+                        found = true;
+                        break;
+                    }
+
+                if (!found) {
+                    storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+                    storage_binding->binding = desc->binding;
+                    storage_binding->descriptorCount = 1;
+                    storage_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
+                    storage_binding->pImmutableSamplers = 0;
+                    storage_binding++;
+                }
+                break;
+            }
+        }
+
+        sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
+        uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
+        storage_count = (uint32_t)(storage_binding - storage_bindings);
+        push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
+
+        if (uniform_count)
+            memmove(bindings + sampler_count,
+                bindings + sampler_max_count,
+                uniform_count * sizeof(VkDescriptorSetLayoutBinding));
+        if (storage_count)
+            memmove(bindings + sampler_count + uniform_count,
+                bindings + sampler_max_count + uniform_max_count,
+                storage_count * sizeof(VkDescriptorSetLayoutBinding));
+        if (push_constant_range_count)
+            memmove(bindings + sampler_count + uniform_count + storage_count,
+                bindings + sampler_max_count + uniform_max_count + storage_max_count,
+                push_constant_range_count * sizeof(VkPushConstantRange));
+
+        descriptor_pipeline = manager_get_descriptor_pipeline(
+            sampler_count, uniform_count, storage_count,
+            bindings, push_constant_range_count, push_constant_ranges);
+
+        free_def(bindings);
     }
 
     gl_program* gl_program::get(GLuint program) {
@@ -538,7 +832,7 @@ namespace Vulkan {
         return 0;
     }
 
-    gl_rend_state_struct::gl_rend_state_struct() {
+    gl_state_struct::gl_state_struct() {
         clear_color = 0.0f;
         clear_depth = 1.0f;
         clear_stencil = 0x00;
@@ -909,7 +1203,7 @@ namespace Vulkan {
 
         uint32_t binding = -1;
         for (gl_vertex_buffer_binding_data& i : vertex_buffer_bindings)
-            if (i.buffer == gl_rend_state.array_buffer_binding && i.stride == i.stride
+            if (i.buffer == gl_state.array_buffer_binding && i.stride == i.stride
                 && i.offset < offset && offset < i.offset + i.stride) {
                 binding = (uint32_t)(&i - vertex_buffer_bindings);
                 offset -= i.offset;
@@ -926,7 +1220,7 @@ namespace Vulkan {
             for (uint32_t i = 0; i < Vulkan::MAX_VERTEX_ATTRIB_COUNT; i++)
                 if (!binding_used[i]) {
                     binding = i;
-                    vertex_buffer_bindings[binding].buffer = gl_rend_state.array_buffer_binding;
+                    vertex_buffer_bindings[binding].buffer = gl_state.array_buffer_binding;
                     vertex_buffer_bindings[binding].offset = offset;
                     vertex_buffer_bindings[binding].stride = stride;
                     offset = 0;
@@ -1022,7 +1316,7 @@ namespace Vulkan {
     }
 
     GLuint gl_wrap_manager_get_query_samples_passed() {
-        return gl_rend_state.query_samples_passed;
+        return gl_state.query_samples_passed;
     }
 
     void gl_wrap_manager_update_buffers() {
@@ -1429,7 +1723,7 @@ namespace Vulkan {
 
         this->data.resize(texture_get_size(internal_format, width, height));
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            type, _type, data, this->data.data(), gl_rend_state.unpack_alignment, true))
+            type, _type, data, this->data.data(), gl_state.unpack_alignment, true))
             this->data.clear();
     }
 
@@ -1827,6 +2121,7 @@ namespace Vulkan {
         if (elem != gl_programs.end()) {
             elem->second.vertex_shader_module.reset();
             elem->second.fragment_shader_module.reset();
+            elem->second.descriptor_pipeline.reset();
             gl_programs.erase(elem);
         }
     }
@@ -2002,18 +2297,29 @@ namespace Vulkan {
     }
 
     static bool gl_wrap_manager_prepare_pipeline_draw(GLenum mode, GLenum type, const void* indices) {
-        Vulkan::gl_program* vk_program = Vulkan::gl_program::get(gl_rend_state.program);
-        if (!vk_program)
+        Vulkan::gl_program* vk_program = Vulkan::gl_program::get(gl_state.program);
+        if (!vk_program) {
+            printf_debug("Vulkan: No Program\n");
             return false;
+        }
 
         const shader_table* shader = vk_program->shader;
         const shader_sub_table* sub_shader = vk_program->sub_shader;
-        if (!shader || !sub_shader || !sub_shader->vp_desc || !sub_shader->fp_desc)
+        const uint32_t* unival_arr = vk_program->unival_arr;
+        if (!shader || !sub_shader || !sub_shader->vp_desc || !sub_shader->fp_desc) {
+            printf_debug("Vulkan: No Shader info.\n");
             return false;
+        }
 
-        Vulkan::gl_vertex_array* vk_vao = Vulkan::gl_vertex_array::get(gl_rend_state.vertex_array_binding);
-        if (!vk_vao || type && !vk_vao->index_buffer_binding.buffer)
+        Vulkan::gl_vertex_array* vk_vao = Vulkan::gl_vertex_array::get(gl_state.vertex_array_binding);
+        if (!vk_vao) {
+            printf_debug("Vulkan: No VAO was bound.\n");
             return false;
+        }
+        else if (type && !vk_vao->index_buffer_binding.buffer) {
+            printf_debug("Vulkan: VAO has invalid EBO while draw needs it.\n");
+            return false;
+        }
 
         VkPipelineShaderStageCreateInfo shader_stages[2] = {};
 
@@ -2028,310 +2334,6 @@ namespace Vulkan {
         frag_shader_stage_info.stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         frag_shader_stage_info.module = *vk_program->fragment_shader_module.get();
         frag_shader_stage_info.pName = "main";
-
-        uint32_t sampler_count = 0;
-        uint32_t uniform_count = 0;
-        uint32_t storage_count = 0;
-        uint32_t push_constant_range_count = 0;
-        uint32_t fragment_output_count = 0;
-
-        bool enabled_attributes[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
-        int32_t attribute_sizes[Vulkan::MAX_VERTEX_ATTRIB_COUNT] = {};
-
-        const shader_description* vp_desc = sub_shader->vp_desc;
-        while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
-            && vp_desc->type != SHADER_DESCRIPTION_MAX) {
-            const shader_description* desc = vp_desc++;
-            if (desc->use_uniform != U_INVALID && !uniform_value[desc->use_uniform])
-                continue;
-
-            switch (desc->type) {
-            case SHADER_DESCRIPTION_VERTEX_INPUT:
-                enabled_attributes[desc->binding] = true;
-                attribute_sizes[desc->binding] = desc->data;
-                break;
-            case SHADER_DESCRIPTION_SAMPLER:
-                sampler_count++;
-                break;
-            case SHADER_DESCRIPTION_UNIFORM:
-                if (desc->binding == -1)
-                    push_constant_range_count++;
-                else
-                    uniform_count++;
-                break;
-            case SHADER_DESCRIPTION_STORAGE:
-                storage_count++;
-                break;
-            }
-        }
-
-        const shader_description* fp_desc = sub_shader->fp_desc;
-        while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
-            && fp_desc->type != SHADER_DESCRIPTION_MAX) {
-            const shader_description* desc = fp_desc++;
-            if (desc->use_uniform != U_INVALID && !uniform_value[desc->use_uniform])
-                continue;
-
-            switch (desc->type) {
-            case SHADER_DESCRIPTION_SAMPLER:
-                sampler_count++;
-                break;
-            case SHADER_DESCRIPTION_UNIFORM:
-                if (desc->binding == -1)
-                    push_constant_range_count++;
-                else
-                    uniform_count++;
-                break;
-            case SHADER_DESCRIPTION_STORAGE:
-                storage_count++;
-                break;
-            case SHADER_DESCRIPTION_FRAGMENT_OUTPUT:
-                fragment_output_count++;
-                break;
-            }
-        }
-
-        auto get_unival_hash = [](const shader_table* shader, const shader_sub_table* sub_shader) -> uint64_t {
-            if (shader->num_uniform <= 0)
-                return 0;
-
-            uint32_t unival_arr[0x20];
-
-            const int32_t* vp_unival_max = sub_shader->vp_unival_max;
-            const int32_t* fp_unival_max = sub_shader->fp_unival_max;
-
-            int32_t i = 0;
-            for (i = 0; i < shader->num_uniform; i++) {
-                const int32_t unival = uniform_value[shader->use_uniform[i]];
-                const int32_t unival_max = max_def(vp_unival_max[i], fp_unival_max[i]);
-                unival_arr[i] = min_def(unival, unival_max);
-            }
-
-            return hash_xxh3_64bits(unival_arr, sizeof(uint32_t) * shader->num_uniform);
-        };
-
-        const uint64_t vp_desc_hash = hash_xxh3_64bits(sub_shader->vp_desc,
-            sizeof(shader_description) * (vp_desc - sub_shader->vp_desc));
-        const uint64_t fp_desc_hash = hash_xxh3_64bits(sub_shader->fp_desc,
-            sizeof(shader_description) * (fp_desc - sub_shader->fp_desc));
-        const uint64_t unival_hash = get_unival_hash(shader, sub_shader);
-
-        prj::shared_ptr<Vulkan::DescriptorPipeline> descriptor_pipeline
-            = Vulkan::manager_get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash);
-
-        if (!descriptor_pipeline.get()) {
-            const uint32_t sampler_max_count = sampler_count;
-            const uint32_t uniform_max_count = uniform_count;
-            const uint32_t storage_max_count = storage_count;
-
-            VkDescriptorSetLayoutBinding* bindings = force_malloc<VkDescriptorSetLayoutBinding>(
-                (size_t)sampler_max_count + uniform_max_count + storage_max_count + push_constant_range_count);
-            VkDescriptorSetLayoutBinding* sampler_bindings = bindings;
-            VkDescriptorSetLayoutBinding* uniform_bindings = sampler_bindings + sampler_max_count;
-            VkDescriptorSetLayoutBinding* storage_bindings = bindings + sampler_max_count + uniform_max_count;
-            VkPushConstantRange* push_constant_ranges = (VkPushConstantRange*)(bindings
-                + sampler_max_count + uniform_max_count + storage_max_count);
-            VkDescriptorSetLayoutBinding* sampler_binding = sampler_bindings;
-            VkDescriptorSetLayoutBinding* uniform_binding = uniform_bindings;
-            VkDescriptorSetLayoutBinding* storage_binding = storage_bindings;
-            VkPushConstantRange* push_constant_range = push_constant_ranges;
-
-            vp_desc = sub_shader->vp_desc;
-            while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
-                && vp_desc->type != SHADER_DESCRIPTION_MAX) {
-                const shader_description* desc = vp_desc++;
-                if (desc->use_uniform != U_INVALID && !uniform_value[desc->use_uniform])
-                    continue;
-
-                bool found = false;
-                switch (desc->type) {
-                case SHADER_DESCRIPTION_SAMPLER:
-                    sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
-                    for (uint32_t i = 0; i < sampler_count; i++)
-                        if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                            && sampler_bindings[i].binding == desc->binding) {
-                            found = true;
-                            break;
-                        }
-
-                    if (!found) {
-                        sampler_binding->binding = desc->binding;
-                        sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                        sampler_binding->descriptorCount = 1;
-                        sampler_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                        sampler_binding->pImmutableSamplers = 0;
-                        sampler_binding++;
-                    }
-                    break;
-                case SHADER_DESCRIPTION_UNIFORM:
-                    if (desc->binding == -1) {
-                        push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
-                        for (uint32_t i = 0; i < push_constant_range_count; i++)
-                            if (push_constant_ranges[i].size == desc->data) {
-                                push_constant_ranges[i].stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                                found = true;
-                                break;
-                            }
-
-                        if (!found && !push_constant_range_count) {
-                            push_constant_range->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                            push_constant_range->offset = 0;
-                            push_constant_range->size = desc->data;
-                            push_constant_range++;
-                        }
-                        break;
-                    }
-
-                    uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
-                    for (uint32_t i = 0; i < uniform_count; i++)
-                        if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-                            && uniform_bindings[i].binding == desc->binding) {
-                            found = true;
-                            break;
-                        }
-
-                    if (!found) {
-                        uniform_binding->binding = desc->binding;
-                        uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                        uniform_binding->descriptorCount = 1;
-                        uniform_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                        uniform_binding->pImmutableSamplers = 0;
-                        uniform_binding++;
-                    }
-                    break;
-                case SHADER_DESCRIPTION_STORAGE:
-                    storage_count = (uint32_t)(storage_binding - storage_bindings);
-                    for (uint32_t i = 0; i < storage_count; i++)
-                        if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
-                            && storage_bindings[i].binding == desc->binding) {
-                            found = true;
-                            break;
-                        }
-
-                    if (!found) {
-                        storage_binding->binding = desc->binding;
-                        storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                        storage_binding->descriptorCount = 1;
-                        storage_binding->stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-                        storage_binding->pImmutableSamplers = 0;
-                        storage_binding++;
-                    }
-                    break;
-                }
-            }
-
-            fp_desc = sub_shader->fp_desc;
-            while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
-                && fp_desc->type != SHADER_DESCRIPTION_MAX) {
-                const shader_description* desc = fp_desc++;
-                if (desc->use_uniform != U_INVALID && !uniform_value[desc->use_uniform])
-                    continue;
-
-                bool found = false;
-                switch (desc->type) {
-                case SHADER_DESCRIPTION_SAMPLER:
-                    sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
-                    for (uint32_t i = 0; i < sampler_count; i++)
-                        if (sampler_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-                            && sampler_bindings[i].binding == desc->binding) {
-                            sampler_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                            found = true;
-                            break;
-                        }
-
-                    if (!found) {
-                        sampler_binding->descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
-                        sampler_binding->binding = desc->binding;
-                        sampler_binding->descriptorCount = 1;
-                        sampler_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                        sampler_binding->pImmutableSamplers = 0;
-                        sampler_binding++;
-                    }
-                    break;
-                case SHADER_DESCRIPTION_UNIFORM:
-                    if (desc->binding == -1) {
-                        push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
-                        for (uint32_t i = 0; i < push_constant_range_count; i++)
-                            if (push_constant_ranges[i].size == desc->data) {
-                                push_constant_ranges[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                                found = true;
-                                break;
-                            }
-
-                        if (!found && !push_constant_range_count) {
-                            push_constant_range->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                            push_constant_range->offset = 0;
-                            push_constant_range->size = desc->data;
-                            push_constant_range++;
-                        }
-                        break;
-                    }
-
-                    uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
-                    for (uint32_t i = 0; i < uniform_count; i++)
-                        if (uniform_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
-                            && uniform_bindings[i].binding == desc->binding) {
-                            uniform_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                            found = true;
-                            break;
-                        }
-
-                    if (!found) {
-                        uniform_binding->descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
-                        uniform_binding->binding = desc->binding;
-                        uniform_binding->descriptorCount = 1;
-                        uniform_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                        uniform_binding->pImmutableSamplers = 0;
-                        uniform_binding++;
-                    }
-                    break;
-                case SHADER_DESCRIPTION_STORAGE:
-                    storage_count = (uint32_t)(storage_binding - storage_bindings);
-                    for (uint32_t i = 0; i < storage_count; i++)
-                        if (storage_bindings[i].descriptorType == VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC
-                            && storage_bindings[i].binding == desc->binding) {
-                            storage_bindings[i].stageFlags |= VK_SHADER_STAGE_FRAGMENT_BIT;
-                            found = true;
-                            break;
-                        }
-
-                    if (!found) {
-                        storage_binding->descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
-                        storage_binding->binding = desc->binding;
-                        storage_binding->descriptorCount = 1;
-                        storage_binding->stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
-                        storage_binding->pImmutableSamplers = 0;
-                        storage_binding++;
-                    }
-                    break;
-                }
-            }
-
-            sampler_count = (uint32_t)(sampler_binding - sampler_bindings);
-            uniform_count = (uint32_t)(uniform_binding - uniform_bindings);
-            storage_count = (uint32_t)(storage_binding - storage_bindings);
-            push_constant_range_count = (uint32_t)(push_constant_range - push_constant_ranges);
-
-            if (uniform_count)
-                memmove(bindings + sampler_count,
-                    bindings + sampler_max_count,
-                    uniform_count * sizeof(VkDescriptorSetLayoutBinding));
-            if (storage_count)
-                memmove(bindings + sampler_count + uniform_count,
-                    bindings + sampler_max_count + uniform_max_count,
-                    storage_count * sizeof(VkDescriptorSetLayoutBinding));
-            if (push_constant_range_count)
-                memmove(bindings + sampler_count + uniform_count + storage_count,
-                    bindings + sampler_max_count + uniform_max_count + storage_max_count,
-                    push_constant_range_count * sizeof(VkPushConstantRange));
-
-            descriptor_pipeline
-                = Vulkan::manager_get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash,
-                    sampler_count, uniform_count, storage_count,
-                    bindings, push_constant_range_count, push_constant_ranges);
-
-            free_def(bindings);
-        }
 
         uint32_t binding_description_count = 0;
         VkVertexInputBindingDescription binding_descriptions[Vulkan::MAX_VERTEX_ATTRIB_COUNT];
@@ -2353,7 +2355,7 @@ namespace Vulkan {
             }
 
             for (uint32_t i = 0; i < Vulkan::MAX_VERTEX_ATTRIB_COUNT; i++) {
-                if (!enabled_attributes[i])
+                if (!vk_program->enabled_attributes[i])
                     continue;
                 else if (vk_vao->vertex_attribs[i].binding != -1) {
                     VkVertexInputAttributeDescription& attribute_desc
@@ -2376,7 +2378,7 @@ namespace Vulkan {
                     offset = sizeof(float_t) * 4 * 2;
 
                 VkFormat format;
-                switch (attribute_sizes[i]) {
+                switch (vk_program->attribute_sizes[i]) {
                 case 1:
                     format = VK_FORMAT_R32_SFLOAT;
                     break;
@@ -2424,7 +2426,7 @@ namespace Vulkan {
             break;
         case GL_LINE_STRIP:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-            input_assembly_state.primitiveRestartEnable = gl_rend_state.primitive_restart ? VK_TRUE : VK_FALSE;
+            input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         case GL_TRIANGLES:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
@@ -2432,87 +2434,83 @@ namespace Vulkan {
             break;
         case GL_TRIANGLE_STRIP:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
-            input_assembly_state.primitiveRestartEnable = gl_rend_state.primitive_restart ? VK_TRUE : VK_FALSE;
+            input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         case GL_TRIANGLE_FAN:
             input_assembly_state.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
-            input_assembly_state.primitiveRestartEnable = gl_rend_state.primitive_restart ? VK_TRUE : VK_FALSE;
+            input_assembly_state.primitiveRestartEnable = gl_state.primitive_restart ? VK_TRUE : VK_FALSE;
             break;
         default:
+            printf_debug("Vulkan: Invalid Primitive Type.\n");
             return false;
         }
-
-        VkRect2D viewport_scissor_rect[2];
-        viewport_scissor_rect[0] = *(VkRect2D*)&gl_rend_state.viewport;
-        viewport_scissor_rect[1] = gl_rend_state.scissor_test
-            ? *(VkRect2D*)&gl_rend_state.scissor_box : *(VkRect2D*)&gl_rend_state.viewport;
 
         VkPipelineRasterizationStateCreateInfo rasterization_state = {};
         rasterization_state.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
         rasterization_state.depthClampEnable = VK_FALSE;
         rasterization_state.rasterizerDiscardEnable = VK_FALSE;
-        rasterization_state.polygonMode = Vulkan::get_polygon_mode(gl_rend_state.polygon_mode);
-        rasterization_state.lineWidth = gl_rend_state.line_width;
+        rasterization_state.polygonMode = Vulkan::get_polygon_mode(gl_state.polygon_mode);
+        rasterization_state.lineWidth = gl_state.line_width;
         rasterization_state.cullMode = Vulkan::get_cull_mode_flags(
-            gl_rend_state.cull_face ? gl_rend_state.cull_face_mode : GL_NONE);
+            gl_state.cull_face ? gl_state.cull_face_mode : GL_NONE);
         rasterization_state.frontFace = VK_FRONT_FACE_CLOCKWISE;
         rasterization_state.depthBiasEnable = VK_FALSE;
 
         VkPipelineDepthStencilStateCreateInfo depth_stencil_state = {};
         depth_stencil_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-        depth_stencil_state.depthTestEnable = gl_rend_state.depth_test ? VK_TRUE : VK_FALSE;
-        depth_stencil_state.depthWriteEnable = gl_rend_state.depth_test && gl_rend_state.depth_mask ? VK_TRUE : VK_FALSE;
+        depth_stencil_state.depthTestEnable = gl_state.depth_test ? VK_TRUE : VK_FALSE;
+        depth_stencil_state.depthWriteEnable = gl_state.depth_test && gl_state.depth_mask ? VK_TRUE : VK_FALSE;
         depth_stencil_state.depthCompareOp = Vulkan::get_compare_op(
-            gl_rend_state.depth_test ? gl_rend_state.depth_func : GL_ALWAYS);
+            gl_state.depth_test ? gl_state.depth_func : GL_ALWAYS);
         depth_stencil_state.depthBoundsTestEnable = VK_FALSE;
-        depth_stencil_state.stencilTestEnable = gl_rend_state.stencil_test ? VK_TRUE : VK_FALSE;
-        depth_stencil_state.front.failOp = Vulkan::get_stencil_op(gl_rend_state.stencil_fail);
-        depth_stencil_state.front.passOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dppass);
-        depth_stencil_state.front.depthFailOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dpfail);
-        depth_stencil_state.front.compareOp = Vulkan::get_compare_op(gl_rend_state.stencil_func);
-        depth_stencil_state.front.compareMask = gl_rend_state.stencil_value_mask;
-        depth_stencil_state.front.writeMask = gl_rend_state.stencil_mask;
-        depth_stencil_state.front.reference = gl_rend_state.stencil_ref;
-        depth_stencil_state.back.failOp = Vulkan::get_stencil_op(gl_rend_state.stencil_fail);
-        depth_stencil_state.back.passOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dppass);
-        depth_stencil_state.back.depthFailOp = Vulkan::get_stencil_op(gl_rend_state.stencil_dpfail);
-        depth_stencil_state.back.compareOp = Vulkan::get_compare_op(gl_rend_state.stencil_func);
-        depth_stencil_state.back.compareMask = gl_rend_state.stencil_value_mask;
-        depth_stencil_state.back.writeMask = gl_rend_state.stencil_mask;
-        depth_stencil_state.back.reference = gl_rend_state.stencil_ref;
+        depth_stencil_state.stencilTestEnable = gl_state.stencil_test ? VK_TRUE : VK_FALSE;
+        depth_stencil_state.front.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
+        depth_stencil_state.front.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
+        depth_stencil_state.front.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
+        depth_stencil_state.front.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
+        depth_stencil_state.front.compareMask = gl_state.stencil_value_mask;
+        depth_stencil_state.front.writeMask = gl_state.stencil_mask;
+        depth_stencil_state.front.reference = gl_state.stencil_ref;
+        depth_stencil_state.back.failOp = Vulkan::get_stencil_op(gl_state.stencil_fail);
+        depth_stencil_state.back.passOp = Vulkan::get_stencil_op(gl_state.stencil_dppass);
+        depth_stencil_state.back.depthFailOp = Vulkan::get_stencil_op(gl_state.stencil_dpfail);
+        depth_stencil_state.back.compareOp = Vulkan::get_compare_op(gl_state.stencil_func);
+        depth_stencil_state.back.compareMask = gl_state.stencil_value_mask;
+        depth_stencil_state.back.writeMask = gl_state.stencil_mask;
+        depth_stencil_state.back.reference = gl_state.stencil_ref;
         depth_stencil_state.minDepthBounds = 0.0f;
         depth_stencil_state.maxDepthBounds = 1.0f;
 
         VkColorComponentFlags color_write_mask = 0;
-        color_write_mask |= gl_rend_state.color_mask[0] ? VK_COLOR_COMPONENT_R_BIT : 0;
-        color_write_mask |= gl_rend_state.color_mask[1] ? VK_COLOR_COMPONENT_G_BIT : 0;
-        color_write_mask |= gl_rend_state.color_mask[2] ? VK_COLOR_COMPONENT_B_BIT : 0;
-        color_write_mask |= gl_rend_state.color_mask[3] ? VK_COLOR_COMPONENT_A_BIT : 0;
+        color_write_mask |= gl_state.color_mask[0] ? VK_COLOR_COMPONENT_R_BIT : 0;
+        color_write_mask |= gl_state.color_mask[1] ? VK_COLOR_COMPONENT_G_BIT : 0;
+        color_write_mask |= gl_state.color_mask[2] ? VK_COLOR_COMPONENT_B_BIT : 0;
+        color_write_mask |= gl_state.color_mask[3] ? VK_COLOR_COMPONENT_A_BIT : 0;
 
-        uint32_t color_blend_attachment_count = fragment_output_count;
+        uint32_t color_blend_attachment_count = vk_program->fragment_output_count;
         VkPipelineColorBlendAttachmentState* color_blend_attachments
             = force_malloc<VkPipelineColorBlendAttachmentState>(color_blend_attachment_count);
         for (uint32_t i = 0; i < color_blend_attachment_count; i++) {
             VkPipelineColorBlendAttachmentState& color_blend_attachment = color_blend_attachments[i];
             color_blend_attachment.colorWriteMask = color_write_mask;
-            color_blend_attachment.blendEnable = gl_rend_state.blend ? VK_TRUE : VK_FALSE;
-            color_blend_attachment.srcColorBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_src_rgb);
-            color_blend_attachment.dstColorBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_dst_rgb);
-            color_blend_attachment.colorBlendOp = Vulkan::get_blend_op(gl_rend_state.blend_mode_rgb);
-            color_blend_attachment.srcAlphaBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_src_alpha);
-            color_blend_attachment.dstAlphaBlendFactor = Vulkan::get_blend_factor(gl_rend_state.blend_dst_alpha);
-            color_blend_attachment.alphaBlendOp = Vulkan::get_blend_op(gl_rend_state.blend_mode_alpha);
+            color_blend_attachment.blendEnable = gl_state.blend ? VK_TRUE : VK_FALSE;
+            color_blend_attachment.srcColorBlendFactor = Vulkan::get_blend_factor(gl_state.blend_src_rgb);
+            color_blend_attachment.dstColorBlendFactor = Vulkan::get_blend_factor(gl_state.blend_dst_rgb);
+            color_blend_attachment.colorBlendOp = Vulkan::get_blend_op(gl_state.blend_mode_rgb);
+            color_blend_attachment.srcAlphaBlendFactor = Vulkan::get_blend_factor(gl_state.blend_src_alpha);
+            color_blend_attachment.dstAlphaBlendFactor = Vulkan::get_blend_factor(gl_state.blend_dst_alpha);
+            color_blend_attachment.alphaBlendOp = Vulkan::get_blend_op(gl_state.blend_mode_alpha);
         }
 
-        Vulkan::DescriptorPipeline* vk_descriptor_pipeline = descriptor_pipeline.get();
+        Vulkan::DescriptorPipeline* vk_descriptor_pipeline = vk_program->descriptor_pipeline.get();
 
         VkPipelineLayout pipeline_layout = vk_descriptor_pipeline->GetPipelineLayout();
 
         const uint32_t framebuffer_index = depth_stencil_state.depthWriteEnable
             || depth_stencil_state.stencilTestEnable ? 0 : 1;
         VkRenderPass render_pass;
-        if (gl_rend_state.draw_framebuffer_binding) {
-            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
+        if (gl_state.draw_framebuffer_binding) {
+            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
             render_pass = *vk_fbo->render_pass[framebuffer_index].get();
         }
         else
@@ -2524,10 +2522,14 @@ namespace Vulkan {
         VkPipeline pipeline = *Vulkan::manager_get_pipeline(2, shader_stages,
             binding_description_count, binding_descriptions,
             attribute_description_count, attribute_descriptions, &input_assembly_state,
-            viewport_scissor_rect, &rasterization_state, &depth_stencil_state,
-            color_blend_attachment_count, color_blend_attachments, pipeline_layout, render_pass).get();
+            &rasterization_state, &depth_stencil_state, color_blend_attachment_count,
+            color_blend_attachments, pipeline_layout, render_pass).get();
 
         free_def(color_blend_attachments);
+
+        uint32_t sampler_count = vk_program->sampler_count;
+        uint32_t uniform_count = vk_program->uniform_count;
+        uint32_t storage_count = vk_program->storage_count;
 
         size_t descriptor_infos_size = sizeof(VkDescriptorImageInfo) * sampler_count
             + sizeof(VkDescriptorBufferInfo) * ((size_t)uniform_count + storage_count)
@@ -2564,11 +2566,11 @@ namespace Vulkan {
         uint32_t push_constant_data_size = 0;
         VkShaderStageFlags push_constant_stage_flags = 0;
 
-        vp_desc = sub_shader->vp_desc;
+        const shader_description* vp_desc = sub_shader->vp_desc;
         while (vp_desc->type != SHADER_DESCRIPTION_NONE && vp_desc->type != SHADER_DESCRIPTION_END
             && vp_desc->type != SHADER_DESCRIPTION_MAX) {
             const shader_description* desc = vp_desc++;
-            if (desc->use_uniform != U_INVALID && !uniform_value[desc->use_uniform])
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
                 continue;
 
             bool found = false;
@@ -2585,10 +2587,10 @@ namespace Vulkan {
                     GLuint texture = 0;
                     switch (desc->data) {
                     case 0:
-                        texture = gl_rend_state.texture_binding_2d[desc->binding];
+                        texture = gl_state.texture_binding_2d[desc->binding];
                         break;
                     case 1:
-                        texture = gl_rend_state.texture_binding_cube_map[desc->binding];
+                        texture = gl_state.texture_binding_cube_map[desc->binding];
                         break;
                     }
 
@@ -2597,7 +2599,7 @@ namespace Vulkan {
                         break;
 
                     Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
-                    GLuint sampler = gl_rend_state.sampler_binding[desc->binding];
+                    GLuint sampler = gl_state.sampler_binding[desc->binding];
                     if (sampler) {
                         Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
                         if (vk_samp)
@@ -2633,7 +2635,7 @@ namespace Vulkan {
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
                 if (desc->binding == -1) {
-                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_rend_state.uniform_buffer_bindings[0]);
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
                     if (!vk_buf)
                         break;
 
@@ -2654,12 +2656,12 @@ namespace Vulkan {
 
                 if (!found) {
                     Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
-                        gl_rend_state.uniform_buffer_bindings[desc->binding]);
+                        gl_state.uniform_buffer_bindings[desc->binding]);
                     if (!vk_ub)
                         break;
 
-                    const GLintptr gl_offset = gl_rend_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_rend_state.uniform_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
@@ -2684,13 +2686,13 @@ namespace Vulkan {
                     }
 
                 if (!found) {
-                    GLuint buffer = gl_rend_state.shader_storage_buffer_bindings[desc->binding];
+                    GLuint buffer = gl_state.shader_storage_buffer_bindings[desc->binding];
                     Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(buffer);
                     if (!vk_sb)
                         break;
 
-                    const GLintptr gl_offset = gl_rend_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_rend_state.shader_storage_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
@@ -2709,11 +2711,11 @@ namespace Vulkan {
             }
         }
 
-        fp_desc = sub_shader->fp_desc;
+        const shader_description* fp_desc = sub_shader->fp_desc;
         while (fp_desc->type != SHADER_DESCRIPTION_NONE && fp_desc->type != SHADER_DESCRIPTION_END
             && fp_desc->type != SHADER_DESCRIPTION_MAX) {
             const shader_description* desc = fp_desc++;
-            if (desc->use_uniform != U_INVALID && !uniform_value[desc->use_uniform])
+            if (!get_use_binding(desc->use_uniform, shader, unival_arr))
                 continue;
 
             bool found = false;
@@ -2730,10 +2732,10 @@ namespace Vulkan {
                     GLuint texture = 0;
                     switch (desc->data) {
                     case 0:
-                        texture = gl_rend_state.texture_binding_2d[desc->binding];
+                        texture = gl_state.texture_binding_2d[desc->binding];
                         break;
                     case 1:
-                        texture = gl_rend_state.texture_binding_cube_map[desc->binding];
+                        texture = gl_state.texture_binding_cube_map[desc->binding];
                         break;
                     }
 
@@ -2742,7 +2744,7 @@ namespace Vulkan {
                         break;
 
                     Vulkan::gl_sampler* sampler_data = &vk_tex->sampler_data;
-                    GLuint sampler = gl_rend_state.sampler_binding[desc->binding];
+                    GLuint sampler = gl_state.sampler_binding[desc->binding];
                     if (sampler) {
                         Vulkan::gl_sampler* vk_samp = Vulkan::gl_sampler::get(sampler);
                         if (vk_samp)
@@ -2778,7 +2780,7 @@ namespace Vulkan {
                 break;
             case SHADER_DESCRIPTION_UNIFORM:
                 if (desc->binding == -1) {
-                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_rend_state.uniform_buffer_bindings[0]);
+                    Vulkan::gl_buffer* vk_buf = Vulkan::gl_buffer::get(gl_state.uniform_buffer_bindings[0]);
                     if (!vk_buf)
                         break;
 
@@ -2799,12 +2801,12 @@ namespace Vulkan {
 
                 if (!found) {
                     Vulkan::gl_uniform_buffer* vk_ub = Vulkan::gl_uniform_buffer::get(
-                        gl_rend_state.uniform_buffer_bindings[desc->binding]);
+                        gl_state.uniform_buffer_bindings[desc->binding]);
                     if (!vk_ub)
                         break;
 
-                    const GLintptr gl_offset = gl_rend_state.uniform_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_rend_state.uniform_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.uniform_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.uniform_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_ub->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_ub->working_buffer.GetSize();
@@ -2829,13 +2831,13 @@ namespace Vulkan {
                     }
 
                 if (!found) {
-                    GLuint buffer = gl_rend_state.shader_storage_buffer_bindings[desc->binding];
+                    GLuint buffer = gl_state.shader_storage_buffer_bindings[desc->binding];
                     Vulkan::gl_storage_buffer* vk_sb = Vulkan::gl_storage_buffer::get(buffer);
                     if (!vk_sb)
                         break;
 
-                    const GLintptr gl_offset = gl_rend_state.shader_storage_buffer_offsets[desc->binding];
-                    const GLsizeiptr gl_size = gl_rend_state.shader_storage_buffer_sizes[desc->binding];
+                    const GLintptr gl_offset = gl_state.shader_storage_buffer_offsets[desc->binding];
+                    const GLsizeiptr gl_size = gl_state.shader_storage_buffer_sizes[desc->binding];
 
                     VkDeviceSize offset = vk_sb->working_buffer.GetOffset() + (VkDeviceSize)gl_offset;
                     VkDeviceSize range = gl_size != -1 ? (VkDeviceSize)gl_size : vk_sb->working_buffer.GetSize();
@@ -2862,6 +2864,7 @@ namespace Vulkan {
             = vk_descriptor_pipeline->GetDescriptorSetCollection(Vulkan::manager_get_frame(),
                 hash_xxh3_64bits(descriptor_infos, descriptor_infos_size));
         if (!descriptor_set_collection) {
+            printf_debug("Vulkan: No Descriptor Set Collection was found.\n");
             free_def(descriptor_infos);
             return false;
         }
@@ -2878,6 +2881,7 @@ namespace Vulkan {
                 if (!sampler_descriptor_set) {
                     free_def(descriptor_writes);
                     free_def(descriptor_infos);
+                    printf_debug("Vulkan: No Sampler Descriptor Set was found.\n");
                     return false;
                 }
             }
@@ -2888,6 +2892,7 @@ namespace Vulkan {
                 if (!uniform_descriptor_set) {
                     free_def(descriptor_writes);
                     free_def(descriptor_infos);
+                    printf_debug("Vulkan: No Uniform Descriptor Set was found.\n");
                     return false;
                 }
             }
@@ -2898,6 +2903,7 @@ namespace Vulkan {
                 if (!storage_descriptor_set) {
                     free_def(descriptor_writes);
                     free_def(descriptor_infos);
+                    printf_debug("Vulkan: No Storage Descriptor Set was found.\n");
                     return false;
                 }
             }
@@ -2956,10 +2962,11 @@ namespace Vulkan {
             Vulkan::gl_query::get(query)->query.Reset(Vulkan::current_command_buffer);
         }
 
-        if (gl_rend_state.draw_framebuffer_binding) {
-            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
+        if (gl_state.draw_framebuffer_binding) {
+            Vulkan::gl_framebuffer* vk_fbo = Vulkan::gl_framebuffer::get(gl_state.draw_framebuffer_binding);
             if (!vk_fbo->framebuffer) {
                 free_def(descriptor_infos);
+                printf_debug("Vulkan: No Framebuffer was found.\n");
                 return false;
             }
 
@@ -3099,7 +3106,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.active_texture_index = texture_index;
+        gl_state.active_texture_index = texture_index;
     }
 
     static void gl_wrap_manager_begin_query(GLenum target, GLuint id) {
@@ -3108,8 +3115,8 @@ namespace Vulkan {
             return;
         }
 
-        gl_query* vk_que_curr = gl_query::get(gl_rend_state.query_samples_passed);
-        if (vk_que_curr && vk_que_curr->target == target || !id || gl_rend_state.query_samples_passed == id) {
+        gl_query* vk_que_curr = gl_query::get(gl_state.query_samples_passed);
+        if (vk_que_curr && vk_que_curr->target == target || !id || gl_state.query_samples_passed == id) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -3127,7 +3134,7 @@ namespace Vulkan {
             vk_que->query.Create(Vulkan::current_device, 0, VK_QUERY_TYPE_OCCLUSION);
         }
 
-        gl_rend_state.query_samples_passed = id;
+        gl_state.query_samples_passed = id;
     }
 
     static void gl_wrap_manager_bind_buffer(GLenum target, GLuint buffer) {
@@ -3147,7 +3154,7 @@ namespace Vulkan {
                 }
             }
 
-            gl_rend_state.array_buffer_binding = buffer;
+            gl_state.array_buffer_binding = buffer;
         } break;
         case GL_ELEMENT_ARRAY_BUFFER: {
             if (buffer) {
@@ -3165,9 +3172,9 @@ namespace Vulkan {
                 }
             }
 
-            gl_rend_state.element_array_buffer_binding = buffer;
+            gl_state.element_array_buffer_binding = buffer;
 
-            gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
+            gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
             if (vk_vao)
                 vk_vao->index_buffer_binding.buffer = buffer;
         } break;
@@ -3186,7 +3193,7 @@ namespace Vulkan {
                 }
             }
 
-            gl_rend_state.uniform_buffer_binding = buffer;
+            gl_state.uniform_buffer_binding = buffer;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
             if (buffer) {
@@ -3203,7 +3210,7 @@ namespace Vulkan {
                 }
             }
 
-            gl_rend_state.shader_storage_buffer_binding = buffer;
+            gl_state.shader_storage_buffer_binding = buffer;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3233,9 +3240,9 @@ namespace Vulkan {
                 }
             }
 
-            gl_rend_state.uniform_buffer_bindings[index] = buffer;
-            gl_rend_state.uniform_buffer_offsets[index] = 0;
-            gl_rend_state.uniform_buffer_sizes[index] = -1;
+            gl_state.uniform_buffer_bindings[index] = buffer;
+            gl_state.uniform_buffer_offsets[index] = 0;
+            gl_state.uniform_buffer_sizes[index] = -1;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -3257,9 +3264,9 @@ namespace Vulkan {
                 }
             }
 
-            gl_rend_state.shader_storage_buffer_bindings[index] = buffer;
-            gl_rend_state.shader_storage_buffer_offsets[index] = 0;
-            gl_rend_state.shader_storage_buffer_sizes[index] = -1;
+            gl_state.shader_storage_buffer_bindings[index] = buffer;
+            gl_state.shader_storage_buffer_offsets[index] = 0;
+            gl_state.shader_storage_buffer_sizes[index] = -1;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3305,9 +3312,9 @@ namespace Vulkan {
                 return;
             }
 
-            gl_rend_state.uniform_buffer_bindings[index] = buffer;
-            gl_rend_state.uniform_buffer_offsets[index] = offset;
-            gl_rend_state.uniform_buffer_sizes[index] = size;
+            gl_state.uniform_buffer_bindings[index] = buffer;
+            gl_state.uniform_buffer_offsets[index] = offset;
+            gl_state.uniform_buffer_sizes[index] = size;
         } break;
         case GL_SHADER_STORAGE_BUFFER: {
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS || size <= 0) {
@@ -3345,9 +3352,9 @@ namespace Vulkan {
                 return;
             }
 
-            gl_rend_state.shader_storage_buffer_bindings[index] = buffer;
-            gl_rend_state.shader_storage_buffer_offsets[index] = offset;
-            gl_rend_state.shader_storage_buffer_sizes[index] = size;
+            gl_state.shader_storage_buffer_bindings[index] = buffer;
+            gl_state.shader_storage_buffer_offsets[index] = offset;
+            gl_state.shader_storage_buffer_sizes[index] = size;
         } break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3376,14 +3383,14 @@ namespace Vulkan {
 
         switch (target) {
         case GL_READ_FRAMEBUFFER:
-            gl_rend_state.read_framebuffer_binding = framebuffer;
+            gl_state.read_framebuffer_binding = framebuffer;
             break;
         case GL_DRAW_FRAMEBUFFER:
-            gl_rend_state.draw_framebuffer_binding = framebuffer;
+            gl_state.draw_framebuffer_binding = framebuffer;
             break;
         case GL_FRAMEBUFFER:
-            gl_rend_state.read_framebuffer_binding = framebuffer;
-            gl_rend_state.draw_framebuffer_binding = framebuffer;
+            gl_state.read_framebuffer_binding = framebuffer;
+            gl_state.draw_framebuffer_binding = framebuffer;
             break;
         }
     }
@@ -3402,7 +3409,7 @@ namespace Vulkan {
             }
         }
 
-        gl_rend_state.sampler_binding[unit] = sampler;
+        gl_state.sampler_binding[unit] = sampler;
     }
 
     static void gl_wrap_manager_bind_texture(GLenum target, GLuint texture) {
@@ -3431,10 +3438,10 @@ namespace Vulkan {
 
         switch (target) {
         case GL_TEXTURE_2D:
-            gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index] = texture;
+            gl_state.texture_binding_2d[gl_state.active_texture_index] = texture;
             break;
         case GL_TEXTURE_CUBE_MAP:
-            gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index] = texture;
+            gl_state.texture_binding_cube_map[gl_state.active_texture_index] = texture;
             break;
         }
     }
@@ -3448,7 +3455,7 @@ namespace Vulkan {
             }
         }
 
-        gl_rend_state.vertex_array_binding = array;
+        gl_state.vertex_array_binding = array;
     }
 
     static void gl_wrap_manager_blend_func(GLenum sfactor, GLenum dfactor) {
@@ -3489,10 +3496,10 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.blend_src_rgb = sfactorRGB;
-        gl_rend_state.blend_dst_rgb = dfactorRGB;
-        gl_rend_state.blend_src_alpha = sfactorAlpha;
-        gl_rend_state.blend_dst_alpha = dfactorAlpha;
+        gl_state.blend_src_rgb = sfactorRGB;
+        gl_state.blend_dst_rgb = dfactorRGB;
+        gl_state.blend_src_alpha = sfactorAlpha;
+        gl_state.blend_dst_alpha = dfactorAlpha;
     }
 
     static void gl_wrap_manager_blend_equation(GLenum mode) {
@@ -3518,14 +3525,14 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.blend_mode_rgb = modeRGB;
-        gl_rend_state.blend_mode_alpha = modeAlpha;
+        gl_state.blend_mode_rgb = modeRGB;
+        gl_state.blend_mode_alpha = modeAlpha;
     }
 
     static void gl_wrap_manager_blit_framebuffer(
         GLint src_x0, GLint src_y0, GLint src_x1, GLint src_y1,
         GLint dst_x0, GLint dst_y0, GLint dst_x1, GLint dst_y1, GLbitfield mask, GLenum filter) {
-        gl_wrap_manager_blit_named_framebuffer(gl_rend_state.read_framebuffer_binding, gl_rend_state.draw_framebuffer_binding,
+        gl_wrap_manager_blit_named_framebuffer(gl_state.read_framebuffer_binding, gl_state.draw_framebuffer_binding,
             src_x0, src_y0, src_x1, src_y1, dst_x0, dst_y0, dst_x1, dst_y1, mask, filter);
     }
 
@@ -3625,19 +3632,19 @@ namespace Vulkan {
         switch (target) {
         case GL_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_rend_state.array_buffer_binding, size, data, usage);
+                gl_state.array_buffer_binding, size, data, usage);
             break;
         case GL_ELEMENT_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_rend_state.element_array_buffer_binding, size, data, usage);
+                gl_state.element_array_buffer_binding, size, data, usage);
             break;
         case GL_UNIFORM_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_rend_state.uniform_buffer_binding, size, data, usage);
+                gl_state.uniform_buffer_binding, size, data, usage);
             break;
         case GL_SHADER_STORAGE_BUFFER:
             gl_wrap_manager_named_buffer_data(
-                gl_rend_state.shader_storage_buffer_binding, size, data, usage);
+                gl_state.shader_storage_buffer_binding, size, data, usage);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3650,19 +3657,19 @@ namespace Vulkan {
         switch (target) {
         case GL_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_rend_state.array_buffer_binding, size, data, flags);
+                gl_state.array_buffer_binding, size, data, flags);
             break;
         case GL_ELEMENT_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_rend_state.element_array_buffer_binding, size, data, flags);
+                gl_state.element_array_buffer_binding, size, data, flags);
             break;
         case GL_UNIFORM_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_rend_state.uniform_buffer_binding, size, data, flags);
+                gl_state.uniform_buffer_binding, size, data, flags);
             break;
         case GL_SHADER_STORAGE_BUFFER:
             gl_wrap_manager_named_buffer_storage(
-                gl_rend_state.shader_storage_buffer_binding, size, data, flags);
+                gl_state.shader_storage_buffer_binding, size, data, flags);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3675,19 +3682,19 @@ namespace Vulkan {
         switch (target) {
         case GL_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_rend_state.array_buffer_binding, offset, size, data);
+                gl_state.array_buffer_binding, offset, size, data);
             break;
         case GL_ELEMENT_ARRAY_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_rend_state.element_array_buffer_binding, offset, size, data);
+                gl_state.element_array_buffer_binding, offset, size, data);
             break;
         case GL_UNIFORM_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_rend_state.uniform_buffer_binding, offset, size, data);
+                gl_state.uniform_buffer_binding, offset, size, data);
             break;
         case GL_SHADER_STORAGE_BUFFER:
             gl_wrap_manager_named_buffer_sub_data(
-                gl_rend_state.shader_storage_buffer_binding, offset, size, data);
+                gl_state.shader_storage_buffer_binding, offset, size, data);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3699,11 +3706,11 @@ namespace Vulkan {
         GLuint framebuffer;
         switch (target) {
         case GL_READ_FRAMEBUFFER:
-            framebuffer = gl_rend_state.read_framebuffer_binding;
+            framebuffer = gl_state.read_framebuffer_binding;
             break;
         case GL_DRAW_FRAMEBUFFER:
         case GL_FRAMEBUFFER:
-            framebuffer = gl_rend_state.draw_framebuffer_binding;
+            framebuffer = gl_state.draw_framebuffer_binding;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -3778,7 +3785,7 @@ namespace Vulkan {
         }
 
         if (mask & GL_COLOR_BUFFER_BIT) {
-            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
+            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding);
 
             for (uint32_t i = 0; i < Vulkan::MAX_COLOR_ATTACHMENTS; i++) {
                 VkImage image;
@@ -3798,10 +3805,10 @@ namespace Vulkan {
                 }
 
                 VkClearColorValue clear_color_value;
-                clear_color_value.float32[0] = gl_rend_state.clear_color.x;
-                clear_color_value.float32[1] = gl_rend_state.clear_color.y;
-                clear_color_value.float32[2] = gl_rend_state.clear_color.z;
-                clear_color_value.float32[3] = gl_rend_state.clear_color.w;
+                clear_color_value.float32[0] = gl_state.clear_color.x;
+                clear_color_value.float32[1] = gl_state.clear_color.y;
+                clear_color_value.float32[2] = gl_state.clear_color.z;
+                clear_color_value.float32[3] = gl_state.clear_color.w;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -3825,7 +3832,7 @@ namespace Vulkan {
         }
 
         if (mask & GL_DEPTH_BUFFER_BIT) {
-            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding);
+            gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding);
             if (vk_fbo && vk_fbo->depth_attachment) {
                 gl_texture* vk_tex = gl_texture::get(vk_fbo->depth_attachment);
                 VkImage image = vk_tex->image;
@@ -3834,8 +3841,8 @@ namespace Vulkan {
                 const VkImageAspectFlags aspect_mask = Vulkan::get_aspect_mask(vk_tex->internal_format);
 
                 VkClearDepthStencilValue clear_depth_stencil_value;
-                clear_depth_stencil_value.depth = gl_rend_state.clear_depth;
-                clear_depth_stencil_value.stencil = gl_rend_state.clear_stencil;
+                clear_depth_stencil_value.depth = gl_state.clear_depth;
+                clear_depth_stencil_value.stencil = gl_state.clear_stencil;
 
                 VkImageSubresourceRange range;
                 range.aspectMask = aspect_mask;
@@ -3857,22 +3864,22 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_clear_buffer(GLenum buffer, GLint drawbuffer, const GLfloat* value) {
-        gl_wrap_manager_clear_named_framebuffer(gl_rend_state.draw_framebuffer_binding, buffer, drawbuffer, value);
+        gl_wrap_manager_clear_named_framebuffer(gl_state.draw_framebuffer_binding, buffer, drawbuffer, value);
     }
 
     static void gl_wrap_manager_clear_color(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha) {
-        gl_rend_state.clear_color.x = red;
-        gl_rend_state.clear_color.y = green;
-        gl_rend_state.clear_color.z = blue;
-        gl_rend_state.clear_color.w = alpha;
+        gl_state.clear_color.x = red;
+        gl_state.clear_color.y = green;
+        gl_state.clear_color.z = blue;
+        gl_state.clear_color.w = alpha;
     }
 
     static void gl_wrap_manager_clear_depth(GLfloat depth) {
-        gl_rend_state.clear_depth = depth;
+        gl_state.clear_depth = depth;
     }
 
     static void gl_wrap_manager_clear_stencil(GLint s) {
-        gl_rend_state.clear_stencil = s;
+        gl_state.clear_stencil = s;
     }
 
     static void gl_wrap_manager_clear_named_framebuffer(GLuint framebuffer,
@@ -3969,10 +3976,10 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_color_mask(GLboolean red, GLboolean green, GLboolean blue, GLboolean alpha) {
-        gl_rend_state.color_mask[0] = red ? GL_TRUE : GL_FALSE;
-        gl_rend_state.color_mask[1] = green ? GL_TRUE : GL_FALSE;
-        gl_rend_state.color_mask[2] = blue ? GL_TRUE : GL_FALSE;
-        gl_rend_state.color_mask[3] = alpha ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[0] = red ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[1] = green ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[2] = blue ? GL_TRUE : GL_FALSE;
+        gl_state.color_mask[3] = alpha ? GL_TRUE : GL_FALSE;
     }
 
     static void gl_wrap_manager_compressed_tex_image_2d(GLenum target, GLint level,
@@ -3982,36 +3989,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4093,36 +4100,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4298,36 +4305,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4356,7 +4363,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.read_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.read_framebuffer_binding, false);
 
         VkImage src_image;
         VkImageLayout src_old_layout;
@@ -4439,7 +4446,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.cull_face_mode = mode;
+        gl_state.cull_face_mode = mode;
     }
 
     static void gl_wrap_manager_delete_buffers(GLsizei n, const GLuint* buffers) {
@@ -4522,35 +4529,40 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.depth_func = func;
+        gl_state.depth_func = func;
     }
 
     static void gl_wrap_manager_depth_mask(GLboolean flag) {
-        gl_rend_state.depth_mask = flag ? GL_TRUE : GL_FALSE;
+        gl_state.depth_mask = flag ? GL_TRUE : GL_FALSE;
     }
 
     static void gl_wrap_manager_disable(GLenum cap) {
         switch (cap) {
         case GL_CULL_FACE:
-            gl_rend_state.cull_face = GL_FALSE;
+            gl_state.cull_face = GL_FALSE;
             break;
         case GL_DEPTH_TEST:
-            gl_rend_state.depth_test = GL_FALSE;
+            gl_state.depth_test = GL_FALSE;
             break;
         case GL_STENCIL_TEST:
-            gl_rend_state.stencil_test = GL_FALSE;
+            gl_state.stencil_test = GL_FALSE;
             break;
         case GL_BLEND:
-            gl_rend_state.blend = GL_FALSE;
+            gl_state.blend = GL_FALSE;
             break;
         case GL_SCISSOR_TEST:
-            gl_rend_state.scissor_test = GL_FALSE;
+            gl_state.scissor_test = GL_FALSE;
+
+            if (memcmp(&gl_state.viewport, &gl_state.scissor_box, sizeof(gl_state_rect))) {
+                VkRect2D scissor = *(VkRect2D*)&gl_state.viewport;
+                vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
+            }
             break;
         case GL_MULTISAMPLE:
-            gl_rend_state.multisample = GL_FALSE;
+            gl_state.multisample = GL_FALSE;
             break;
         case GL_PRIMITIVE_RESTART:
-            gl_rend_state.primitive_restart = GL_FALSE;
+            gl_state.primitive_restart = GL_FALSE;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -4564,7 +4576,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
         if (!vk_vao) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4590,7 +4602,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4633,25 +4645,30 @@ namespace Vulkan {
     static void gl_wrap_manager_enable(GLenum cap) {
         switch (cap) {
         case GL_CULL_FACE:
-            gl_rend_state.cull_face = GL_TRUE;
+            gl_state.cull_face = GL_TRUE;
             break;
         case GL_DEPTH_TEST:
-            gl_rend_state.depth_test = GL_TRUE;
+            gl_state.depth_test = GL_TRUE;
             break;
         case GL_STENCIL_TEST:
-            gl_rend_state.stencil_test = GL_TRUE;
+            gl_state.stencil_test = GL_TRUE;
             break;
         case GL_BLEND:
-            gl_rend_state.blend = GL_TRUE;
+            gl_state.blend = GL_TRUE;
             break;
         case GL_SCISSOR_TEST:
-            gl_rend_state.scissor_test = GL_TRUE;
-            break;
+            gl_state.scissor_test = GL_TRUE;
+
+            if (memcmp(&gl_state.viewport, &gl_state.scissor_box, sizeof(gl_state_rect))) {
+                VkRect2D scissor = *(VkRect2D*)&gl_state.scissor_box;
+                vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
+            }
+        break;
         case GL_MULTISAMPLE:
-            gl_rend_state.multisample = GL_TRUE;
+            gl_state.multisample = GL_TRUE;
             break;
         case GL_PRIMITIVE_RESTART:
-            gl_rend_state.primitive_restart = GL_TRUE;
+            gl_state.primitive_restart = GL_TRUE;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -4665,7 +4682,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
         if (!vk_vao) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4680,17 +4697,17 @@ namespace Vulkan {
             return;
         }
 
-        if (!gl_rend_state.query_samples_passed) {
+        if (!gl_state.query_samples_passed) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
 
-        gl_query* vk_que = gl_query::get(gl_rend_state.query_samples_passed);
+        gl_query* vk_que = gl_query::get(gl_state.query_samples_passed);
         if (!vk_que)
             return;
 
         vk_que->query.End(Vulkan::current_command_buffer);
-        gl_rend_state.query_samples_passed = 0;
+        gl_state.query_samples_passed = 0;
     }
 
     static void gl_wrap_manager_finish() {
@@ -4706,7 +4723,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.draw_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.draw_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -4801,7 +4818,7 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_generate_texture_mipmap(
-                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index]);
+                gl_state.texture_binding_2d[gl_state.active_texture_index]);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -4870,36 +4887,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -4995,34 +5012,34 @@ namespace Vulkan {
 
         switch (pname) {
         case GL_CULL_FACE:
-            *data = gl_rend_state.cull_face;
+            *data = gl_state.cull_face;
             break;
         case GL_DEPTH_TEST:
-            *data = gl_rend_state.depth_test;
+            *data = gl_state.depth_test;
             break;
         case GL_DEPTH_WRITEMASK:
-            *data = gl_rend_state.depth_mask;
+            *data = gl_state.depth_mask;
             break;
         case GL_STENCIL_TEST:
-            *data = gl_rend_state.stencil_test;
+            *data = gl_state.stencil_test;
             break;
         case GL_BLEND:
-            *data = gl_rend_state.blend;
+            *data = gl_state.blend;
             break;
         case GL_SCISSOR_TEST:
-            *data = gl_rend_state.scissor_test;
+            *data = gl_state.scissor_test;
             break;
         case GL_COLOR_WRITEMASK:
-            data[0] = gl_rend_state.color_mask[0];
-            data[1] = gl_rend_state.color_mask[1];
-            data[2] = gl_rend_state.color_mask[2];
-            data[3] = gl_rend_state.color_mask[3];
+            data[0] = gl_state.color_mask[0];
+            data[1] = gl_state.color_mask[1];
+            data[2] = gl_state.color_mask[2];
+            data[3] = gl_state.color_mask[3];
             break;
         case GL_MULTISAMPLE:
-            *data = gl_rend_state.multisample;
+            *data = gl_state.multisample;
             break;
         case GL_PRIMITIVE_RESTART:
-            *data = gl_rend_state.primitive_restart;
+            *data = gl_state.primitive_restart;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5036,100 +5053,100 @@ namespace Vulkan {
 
         switch (pname) {
         case GL_CULL_FACE_MODE:
-            *data = gl_rend_state.cull_face_mode;
+            *data = gl_state.cull_face_mode;
             break;
         case GL_DEPTH_FUNC:
-            *data = gl_rend_state.depth_func;
+            *data = gl_state.depth_func;
             break;
         case GL_STENCIL_FUNC:
-            *data = gl_rend_state.stencil_func;
+            *data = gl_state.stencil_func;
             break;
         case GL_STENCIL_VALUE_MASK:
-            *data = gl_rend_state.stencil_value_mask;
+            *data = gl_state.stencil_value_mask;
             break;
         case GL_STENCIL_FAIL:
-            *data = gl_rend_state.stencil_fail;
+            *data = gl_state.stencil_fail;
             break;
         case GL_STENCIL_PASS_DEPTH_FAIL:
-            *data = gl_rend_state.stencil_dpfail;
+            *data = gl_state.stencil_dpfail;
             break;
         case GL_STENCIL_PASS_DEPTH_PASS:
-            *data = gl_rend_state.stencil_dppass;
+            *data = gl_state.stencil_dppass;
             break;
         case GL_STENCIL_REF:
-            *data = gl_rend_state.stencil_ref;
+            *data = gl_state.stencil_ref;
             break;
         case GL_STENCIL_WRITEMASK:
-            *data = gl_rend_state.stencil_mask;
+            *data = gl_state.stencil_mask;
             break;
         case GL_VIEWPORT:
-            data[0] = gl_rend_state.viewport.x;
-            data[1] = gl_rend_state.viewport.y;
-            data[2] = gl_rend_state.viewport.width;
-            data[3] = gl_rend_state.viewport.height;
+            data[0] = gl_state.viewport.x;
+            data[1] = gl_state.viewport.y;
+            data[2] = gl_state.viewport.width;
+            data[3] = gl_state.viewport.height;
             break;
         case GL_SCISSOR_BOX:
-            data[0] = gl_rend_state.scissor_box.x;
-            data[1] = gl_rend_state.scissor_box.y;
-            data[2] = gl_rend_state.scissor_box.width;
-            data[3] = gl_rend_state.scissor_box.height;
+            data[0] = gl_state.scissor_box.x;
+            data[1] = gl_state.scissor_box.y;
+            data[2] = gl_state.scissor_box.width;
+            data[3] = gl_state.scissor_box.height;
             break;
         case GL_BLEND_EQUATION_RGB:
-            *data = gl_rend_state.blend_mode_rgb;
+            *data = gl_state.blend_mode_rgb;
             break;
         case GL_BLEND_DST_RGB:
-            *data = gl_rend_state.blend_dst_rgb;
+            *data = gl_state.blend_dst_rgb;
             break;
         case GL_BLEND_SRC_RGB:
-            *data = gl_rend_state.blend_src_rgb;
+            *data = gl_state.blend_src_rgb;
             break;
         case GL_BLEND_DST_ALPHA:
-            *data = gl_rend_state.blend_dst_alpha;
+            *data = gl_state.blend_dst_alpha;
             break;
         case GL_BLEND_SRC_ALPHA:
-            *data = gl_rend_state.blend_src_alpha;
+            *data = gl_state.blend_src_alpha;
             break;
         case GL_ACTIVE_TEXTURE:
-            *data = GL_TEXTURE0 + gl_rend_state.active_texture_index;
+            *data = GL_TEXTURE0 + gl_state.active_texture_index;
             break;
         case GL_TEXTURE_BINDING_2D:
-            *data = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            *data = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_BINDING_CUBE_MAP:
-            *data = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            *data = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             break;
         case GL_VERTEX_ARRAY_BINDING:
-            *data = gl_rend_state.vertex_array_binding;
+            *data = gl_state.vertex_array_binding;
             break;
         case GL_BLEND_EQUATION_ALPHA:
-            *data = gl_rend_state.blend_mode_alpha;
+            *data = gl_state.blend_mode_alpha;
             break;
         case GL_ARRAY_BUFFER_BINDING:
-            *data = gl_rend_state.array_buffer_binding;
+            *data = gl_state.array_buffer_binding;
             break;
         case GL_ELEMENT_ARRAY_BUFFER_BINDING:
-            *data = gl_rend_state.element_array_buffer_binding;
+            *data = gl_state.element_array_buffer_binding;
             break;
         case GL_SAMPLER_BINDING:
-            *data = gl_rend_state.sampler_binding[gl_rend_state.active_texture_index];
+            *data = gl_state.sampler_binding[gl_state.active_texture_index];
             break;
         case GL_UNIFORM_BUFFER_BINDING:
-            *data = gl_rend_state.uniform_buffer_binding;
+            *data = gl_state.uniform_buffer_binding;
             break;
         case GL_CURRENT_PROGRAM:
-            *data = gl_rend_state.program;
+            *data = gl_state.program;
             break;
         case GL_DRAW_FRAMEBUFFER_BINDING:
-            *data = gl_rend_state.draw_framebuffer_binding;
+            *data = gl_state.draw_framebuffer_binding;
             break;
         case GL_READ_FRAMEBUFFER_BINDING:
-            *data = gl_rend_state.read_framebuffer_binding;
+            *data = gl_state.read_framebuffer_binding;
             break;
         case GL_PRIMITIVE_RESTART_INDEX:
-            *data = gl_rend_state.primitive_restart_index;
+            *data = gl_state.primitive_restart_index;
             break;
         case GL_SHADER_STORAGE_BUFFER_BINDING:
-            *data = gl_rend_state.shader_storage_buffer_binding;
+            *data = gl_state.shader_storage_buffer_binding;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5147,16 +5164,16 @@ namespace Vulkan {
 
         switch (pname) {
         case GL_LINE_WIDTH:
-            *data = gl_rend_state.line_width;
+            *data = gl_state.line_width;
             break;
         case GL_COLOR_CLEAR_VALUE:
-            data[0] = gl_rend_state.clear_color.x;
-            data[1] = gl_rend_state.clear_color.y;
-            data[2] = gl_rend_state.clear_color.z;
-            data[3] = gl_rend_state.clear_color.w;
+            data[0] = gl_state.clear_color.x;
+            data[1] = gl_state.clear_color.y;
+            data[2] = gl_state.clear_color.z;
+            data[3] = gl_state.clear_color.w;
             break;
         case GL_DEPTH_CLEAR_VALUE:
-            *data = gl_rend_state.clear_depth;
+            *data = gl_state.clear_depth;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5172,7 +5189,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.texture_binding_2d[index];
+            *data = gl_state.texture_binding_2d[index];
             break;
         case GL_TEXTURE_BINDING_CUBE_MAP:
             if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
@@ -5180,7 +5197,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.texture_binding_cube_map[index];
+            *data = gl_state.texture_binding_cube_map[index];
             break;
         case GL_SAMPLER_BINDING:
             if (index >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
@@ -5188,7 +5205,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.sampler_binding[index];
+            *data = gl_state.sampler_binding[index];
             break;
         case GL_UNIFORM_BUFFER_BINDING:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5196,7 +5213,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.uniform_buffer_bindings[index];
+            *data = gl_state.uniform_buffer_bindings[index];
             break;
         case GL_UNIFORM_BUFFER_START:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5204,7 +5221,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_rend_state.uniform_buffer_offsets[index];
+            *data = (GLint)gl_state.uniform_buffer_offsets[index];
             break;
         case GL_UNIFORM_BUFFER_SIZE:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5212,7 +5229,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_rend_state.uniform_buffer_sizes[index];
+            *data = (GLint)gl_state.uniform_buffer_sizes[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_BINDING:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5220,7 +5237,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.shader_storage_buffer_bindings[index];
+            *data = gl_state.shader_storage_buffer_bindings[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_START:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5228,7 +5245,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_rend_state.shader_storage_buffer_offsets[index];
+            *data = (GLint)gl_state.shader_storage_buffer_offsets[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_SIZE:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5236,7 +5253,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = (GLint)gl_rend_state.shader_storage_buffer_sizes[index];
+            *data = (GLint)gl_state.shader_storage_buffer_sizes[index];
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -5252,7 +5269,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.uniform_buffer_offsets[index];
+            *data = gl_state.uniform_buffer_offsets[index];
             break;
         case GL_UNIFORM_BUFFER_SIZE:
             if (index >= Vulkan::MAX_UNIFORM_BUFFER_BINDINGS) {
@@ -5260,7 +5277,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.uniform_buffer_sizes[index];
+            *data = gl_state.uniform_buffer_sizes[index];
             break;
         case GL_SHADER_STORAGE_BUFFER_START:
             if (index >= Vulkan::MAX_SHADER_STORAGE_BUFFER_BINDINGS) {
@@ -5268,7 +5285,7 @@ namespace Vulkan {
                 return;
             }
 
-            *data = gl_rend_state.shader_storage_buffer_sizes[index];
+            *data = gl_state.shader_storage_buffer_sizes[index];
             break;
         }
     }
@@ -5310,36 +5327,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -5478,7 +5495,7 @@ namespace Vulkan {
         }
 
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            _type, type, temp, pixels, gl_rend_state.pack_alignment, false)) {
+            _type, type, temp, pixels, gl_state.pack_alignment, false)) {
             free_def(temp);
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -5492,19 +5509,19 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.line_width = width;
+        gl_state.line_width = width;
     }
 
     static void* gl_wrap_manager_map_buffer(GLenum target, GLenum access) {
         switch (target) {
         case GL_ARRAY_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_rend_state.array_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_state.array_buffer_binding, access);
         case GL_ELEMENT_ARRAY_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_rend_state.element_array_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_state.element_array_buffer_binding, access);
         case GL_UNIFORM_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_rend_state.uniform_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_state.uniform_buffer_binding, access);
         case GL_SHADER_STORAGE_BUFFER:
-            return gl_wrap_manager_map_named_buffer(gl_rend_state.shader_storage_buffer_binding, access);
+            return gl_wrap_manager_map_named_buffer(gl_state.shader_storage_buffer_binding, access);
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return 0;
@@ -5638,7 +5655,7 @@ namespace Vulkan {
                 return;
             }
 
-            gl_rend_state.pack_alignment = param;
+            gl_state.pack_alignment = param;
             break;
         case GL_UNPACK_ALIGNMENT:
             if (param != 1 && param != 2 && param != 4 && param != 8) {
@@ -5646,7 +5663,7 @@ namespace Vulkan {
                 return;
             }
 
-            gl_rend_state.unpack_alignment = param;
+            gl_state.unpack_alignment = param;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_VALUE);
@@ -5673,7 +5690,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.polygon_mode = mode;
+        gl_state.polygon_mode = mode;
     }
 
     static void gl_wrap_manager_pop_debug_group() {
@@ -5682,7 +5699,7 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_primitive_restart_index(GLuint index) {
-        gl_rend_state.primitive_restart_index = index;
+        gl_state.primitive_restart_index = index;
     }
 
     static void gl_wrap_manager_push_debug_group(GLenum source, GLuint id, GLsizei length, const GLchar* message) {
@@ -5706,7 +5723,7 @@ namespace Vulkan {
             return;
         }
 
-        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_rend_state.read_framebuffer_binding, false);
+        gl_framebuffer* vk_fbo = gl_framebuffer::get(gl_state.read_framebuffer_binding, false);
         if (!vk_fbo) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
@@ -5787,10 +5804,15 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.scissor_box.x = x;
-        gl_rend_state.scissor_box.y = y;
-        gl_rend_state.scissor_box.width = width;
-        gl_rend_state.scissor_box.height = height;
+        gl_state.scissor_box.x = x;
+        gl_state.scissor_box.y = y;
+        gl_state.scissor_box.width = width;
+        gl_state.scissor_box.height = height;
+
+        if (gl_state.scissor_test) {
+            VkRect2D scissor = *(VkRect2D*)&gl_state.scissor_box;
+            vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
+        }
     }
 
     static void gl_wrap_manager_stencil_func(GLenum func, GLint ref, GLuint mask) {
@@ -5809,11 +5831,11 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.stencil_func = func;
+        gl_state.stencil_func = func;
     }
 
     static void gl_wrap_manager_stencil_mask(GLuint mask) {
-        gl_rend_state.stencil_mask = mask;
+        gl_state.stencil_mask = mask;
     }
 
     static void gl_wrap_manager_stencil_op(GLenum fail, GLenum zfail, GLenum zpass) {
@@ -5838,9 +5860,9 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.stencil_fail = fail;
-        gl_rend_state.stencil_dpfail = zfail;
-        gl_rend_state.stencil_dppass = zpass;
+        gl_state.stencil_fail = fail;
+        gl_state.stencil_dpfail = zfail;
+        gl_state.stencil_dppass = zpass;
     }
 
     static void gl_wrap_manager_tex_image_2d(GLenum target, GLint level, GLint internal_format,
@@ -5850,36 +5872,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -6011,11 +6033,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_float(
-                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, param);
+                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_float(
-                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, param);
+                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6027,11 +6049,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_float_ptr(
-                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, params);
+                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, params);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_float_ptr(
-                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, params);
+                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, params);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6043,11 +6065,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_int(
-                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, param);
+                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, param);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_int(
-                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, param);
+                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, param);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6059,11 +6081,11 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             gl_wrap_manager_texture_parameter_int_ptr(
-                gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index], pname, params);
+                gl_state.texture_binding_2d[gl_state.active_texture_index], pname, params);
             break;
         case GL_TEXTURE_CUBE_MAP:
             gl_wrap_manager_texture_parameter_int_ptr(
-                gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index], pname, params);
+                gl_state.texture_binding_cube_map[gl_state.active_texture_index], pname, params);
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
@@ -6079,36 +6101,36 @@ namespace Vulkan {
         switch (target) {
         case GL_TEXTURE_2D:
             layer = 0;
-            texture = gl_rend_state.texture_binding_2d[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_2d[gl_state.active_texture_index];
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
             layer = 0;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
             layer = 1;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
             layer = 2;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
             layer = 3;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
             layer = 4;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
             layer = 5;
-            texture = gl_rend_state.texture_binding_cube_map[gl_rend_state.active_texture_index];
+            texture = gl_state.texture_binding_cube_map[gl_state.active_texture_index];
             target = GL_TEXTURE_CUBE_MAP;
             break;
         default:
@@ -6467,13 +6489,13 @@ namespace Vulkan {
     static GLboolean gl_wrap_manager_unmap_buffer(GLenum target) {
         switch (target) {
         case GL_ARRAY_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.array_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_state.array_buffer_binding);
         case GL_ELEMENT_ARRAY_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.element_array_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_state.element_array_buffer_binding);
         case GL_UNIFORM_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.uniform_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_state.uniform_buffer_binding);
         case GL_SHADER_STORAGE_BUFFER:
-            return gl_wrap_manager_unmap_named_buffer(gl_rend_state.shader_storage_buffer_binding);
+            return gl_wrap_manager_unmap_named_buffer(gl_state.shader_storage_buffer_binding);
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return GL_FALSE;
@@ -6501,14 +6523,14 @@ namespace Vulkan {
             }
         }
 
-        gl_rend_state.program = program;
+        gl_state.program = program;
     }
 
     static void gl_wrap_manager_vertex_attrib(GLuint index, GLfloat x, GLfloat y, GLfloat z, GLfloat w) {
         if (index >= Vulkan::MAX_VERTEX_ATTRIB_COUNT)
             return;
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
         if (!vk_vao)
             return;
 
@@ -6600,8 +6622,8 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
-        if (!vk_vao || !gl_rend_state.array_buffer_binding) {
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
+        if (!vk_vao || !gl_state.array_buffer_binding) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -6794,8 +6816,8 @@ namespace Vulkan {
             return;
         }
 
-        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_rend_state.vertex_array_binding);
-        if (!vk_vao || !gl_rend_state.array_buffer_binding) {
+        gl_vertex_array* vk_vao = gl_vertex_array::get(gl_state.vertex_array_binding);
+        if (!vk_vao || !gl_state.array_buffer_binding) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_OPERATION);
             return;
         }
@@ -6809,9 +6831,25 @@ namespace Vulkan {
             return;
         }
 
-        gl_rend_state.viewport.x = x;
-        gl_rend_state.viewport.y = y;
-        gl_rend_state.viewport.width = width;
-        gl_rend_state.viewport.height = height;
+        gl_state.viewport.x = x;
+        gl_state.viewport.y = y;
+        gl_state.viewport.width = width;
+        gl_state.viewport.height = height;
+
+        VkViewport viewport;
+        viewport.x = (float_t)gl_state.viewport.x;
+        viewport.y = (float_t)gl_state.viewport.y;
+        viewport.width = (float_t)gl_state.viewport.width;
+        viewport.height = (float_t)gl_state.viewport.height;
+        viewport.minDepth = 0.0f;
+        viewport.maxDepth = 1.0f;
+
+        vkCmdSetViewport(Vulkan::current_command_buffer, 0, 1, &viewport);
+
+        if (!gl_state.scissor_test
+            && memcmp(&gl_state.viewport, &gl_state.scissor_box, sizeof(gl_state_rect))) {
+            VkRect2D scissor = *(VkRect2D*)&gl_state.viewport;
+            vkCmdSetScissor(Vulkan::current_command_buffer, 0, 1, &scissor);
+        }
     }
 };

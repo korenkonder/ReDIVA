@@ -44,6 +44,16 @@ namespace Vulkan {
         color_blend_state.blendConstants[2] = 0.0f;
         color_blend_state.blendConstants[3] = 0.0f;
 
+        VkDynamicState dynamic_states[] = {
+            VK_DYNAMIC_STATE_VIEWPORT,
+            VK_DYNAMIC_STATE_SCISSOR,
+        };
+
+        VkPipelineDynamicStateCreateInfo dynamic_state = {};
+        dynamic_state.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamic_state.dynamicStateCount = sizeof(dynamic_states) / sizeof(VkDynamicState);
+        dynamic_state.pDynamicStates = dynamic_states;
+
         VkGraphicsPipelineCreateInfo graphics_pipeline_create_info;
         graphics_pipeline_create_info.pNext = 0;
         graphics_pipeline_create_info.flags = flags;
@@ -58,7 +68,7 @@ namespace Vulkan {
         graphics_pipeline_create_info.pMultisampleState = &multisample_state;
         graphics_pipeline_create_info.pDepthStencilState = depth_stencil_state;
         graphics_pipeline_create_info.pColorBlendState = &color_blend_state;
-        graphics_pipeline_create_info.pDynamicState = 0;
+        graphics_pipeline_create_info.pDynamicState = &dynamic_state;
         graphics_pipeline_create_info.layout = layout;
         graphics_pipeline_create_info.renderPass = render_pass;
         graphics_pipeline_create_info.subpass = 0;

@@ -6,29 +6,39 @@
 #pragma once
 
 #include "manager.hpp"
+#include "../../KKdLib/prj/algorithm.hpp"
 #include "../../KKdLib/prj/shared_ptr.hpp"
 #include "../../KKdLib/hash.hpp"
 #include "../static_var.hpp"
 #include "DescriptorPipeline.hpp"
+#include "DynamicBuffer.hpp"
 #include "Pipeline.hpp"
 #include "RenderPass.hpp"
 #include "Sampler.hpp"
+#include "StagingBuffer.hpp"
 #include <unordered_map>
 #include <vector>
 
 struct descriptor_pipeline_data {
-    uint64_t vp_desc_hash;
-    uint64_t fp_desc_hash;
-    uint64_t unival_hash;
+    uint32_t sampler_count;
+    uint32_t uniform_count;
+    uint32_t storage_count;
+    uint8_t pad[4];
+    uint64_t bindings_hash;
+    uint64_t push_constant_ranges_hash;
 
-    inline descriptor_pipeline_data() : vp_desc_hash(), fp_desc_hash(), unival_hash() {
+    inline descriptor_pipeline_data() : sampler_count(), uniform_count(),
+        storage_count(), pad(), bindings_hash(), push_constant_ranges_hash() {
 
     }
 
-    inline descriptor_pipeline_data(uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash) {
-        this->vp_desc_hash = vp_desc_hash;
-        this->fp_desc_hash = fp_desc_hash;
-        this->unival_hash = unival_hash;
+    inline descriptor_pipeline_data(uint32_t sampler_count, uint32_t uniform_count,
+        uint32_t storage_count, uint64_t bindings_hash, uint64_t push_constant_ranges_hash) : pad() {
+        this->sampler_count = sampler_count;
+        this->uniform_count = uniform_count;
+        this->storage_count = storage_count;
+        this->bindings_hash = bindings_hash;
+        this->push_constant_ranges_hash = push_constant_ranges_hash;
     }
 };
 
@@ -41,8 +51,9 @@ public:
 };
 
 constexpr bool operator==(const descriptor_pipeline_data& left, const descriptor_pipeline_data& right) {
-    return left.vp_desc_hash == right.vp_desc_hash && left.fp_desc_hash == right.fp_desc_hash
-        && left.unival_hash == right.unival_hash;
+    return left.sampler_count == right.sampler_count && left.uniform_count == right.uniform_count
+        && left.storage_count == right.storage_count && left.bindings_hash == right.bindings_hash
+        && left.push_constant_ranges_hash == right.push_constant_ranges_hash;
 }
 
 struct pipeline_data {
@@ -50,7 +61,6 @@ struct pipeline_data {
     uint64_t vertex_input_info_binding_hash;
     uint64_t vertex_input_info_attribute_hash;
     uint64_t input_assembly_state_hash;
-    uint64_t viewport_state_hash;
     uint64_t rasterization_state_hash;
     uint64_t depth_stencil_state_hash;
     uint64_t color_blend_attachmen_hash;
@@ -59,21 +69,20 @@ struct pipeline_data {
 
     inline pipeline_data() : stages_hash(), vertex_input_info_binding_hash(),
         vertex_input_info_attribute_hash(), input_assembly_state_hash(),
-        viewport_state_hash(), rasterization_state_hash(), depth_stencil_state_hash(),
+        rasterization_state_hash(), depth_stencil_state_hash(),
         color_blend_attachmen_hash(), layout(), render_pass() {
 
     }
 
     inline pipeline_data(uint64_t stages_hash,
         uint64_t vertex_input_info_binding_hash, uint64_t vertex_input_info_attribute_hash,
-        uint64_t input_assembly_state_hash, uint64_t viewport_state_hash,
-        uint64_t rasterization_state_hash, uint64_t depth_stencil_state_hash, uint64_t color_blend_attachmen_hash,
+        uint64_t input_assembly_state_hash, uint64_t rasterization_state_hash,
+        uint64_t depth_stencil_state_hash, uint64_t color_blend_attachmen_hash,
         VkPipelineLayout layout, VkRenderPass render_pass) {
         this->stages_hash = stages_hash;
         this->vertex_input_info_binding_hash = vertex_input_info_binding_hash;
         this->vertex_input_info_attribute_hash = vertex_input_info_attribute_hash;
         this->input_assembly_state_hash = input_assembly_state_hash;
-        this->viewport_state_hash = viewport_state_hash;
         this->rasterization_state_hash = rasterization_state_hash;
         this->depth_stencil_state_hash = depth_stencil_state_hash;
         this->color_blend_attachmen_hash = color_blend_attachmen_hash;
@@ -95,7 +104,6 @@ constexpr bool operator==(const pipeline_data& left, const pipeline_data& right)
         && left.vertex_input_info_binding_hash == right.vertex_input_info_binding_hash
         && left.vertex_input_info_attribute_hash == right.vertex_input_info_attribute_hash
         && left.input_assembly_state_hash == right.input_assembly_state_hash
-        && left.viewport_state_hash == right.viewport_state_hash
         && left.rasterization_state_hash == right.rasterization_state_hash
         && left.depth_stencil_state_hash == right.depth_stencil_state_hash
         && left.color_blend_attachmen_hash == right.color_blend_attachmen_hash
@@ -197,9 +205,6 @@ namespace Vulkan {
         void free_image_view(VkDevice device,
             VkImageView image_view, const VkAllocationCallbacks* allocator);
         prj::shared_ptr<Vulkan::DescriptorPipeline> get_descriptor_pipeline(
-            uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash);
-        prj::shared_ptr<Vulkan::DescriptorPipeline> get_descriptor_pipeline(
-            uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
             uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
             const VkDescriptorSetLayoutBinding* bindings,
             uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges);
@@ -211,7 +216,6 @@ namespace Vulkan {
             uint32_t vertex_input_attribute_description_count,
             const VkVertexInputAttributeDescription* vertex_input_attribute_descriptions,
             const VkPipelineInputAssemblyStateCreateInfo* input_assembly_state,
-            const VkRect2D viewport_scissor_rect[2],
             const VkPipelineRasterizationStateCreateInfo* rasterization_state,
             const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
             uint32_t color_blend_attachment_count,
@@ -259,16 +263,10 @@ namespace Vulkan {
     }
 
     prj::shared_ptr<Vulkan::DescriptorPipeline> manager_get_descriptor_pipeline(
-        uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash) {
-        return manager_ptr->get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash);
-    }
-
-    prj::shared_ptr<Vulkan::DescriptorPipeline> manager_get_descriptor_pipeline(
-        uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
         uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
         const VkDescriptorSetLayoutBinding* bindings,
         uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges) {
-        return manager_ptr->get_descriptor_pipeline(vp_desc_hash, fp_desc_hash, unival_hash,
+        return manager_ptr->get_descriptor_pipeline(
             sampler_count, uniform_count, storage_count, bindings,
             push_constant_range_count, push_constant_ranges);
     }
@@ -284,7 +282,6 @@ namespace Vulkan {
         uint32_t vertex_input_attribute_description_count,
         const VkVertexInputAttributeDescription* vertex_input_attribute_descriptions,
         const VkPipelineInputAssemblyStateCreateInfo* input_assembly_state,
-        const VkRect2D viewport_scissor_rect[2],
         const VkPipelineRasterizationStateCreateInfo* rasterization_state,
         const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
         uint32_t color_blend_attachment_count,
@@ -293,7 +290,7 @@ namespace Vulkan {
         return manager_ptr->get_pipeline(stage_count, stages,
             vertex_input_binding_description_count, vertex_input_binding_descriptions,
             vertex_input_attribute_description_count, vertex_input_attribute_descriptions,
-            input_assembly_state, viewport_scissor_rect, rasterization_state, depth_stencil_state,
+            input_assembly_state, rasterization_state, depth_stencil_state,
             color_blend_attachment_count, color_blend_attachments, layout, render_pass);
     }
 
@@ -423,19 +420,15 @@ namespace Vulkan {
     }
 
     prj::shared_ptr<Vulkan::DescriptorPipeline> manager::get_descriptor_pipeline(
-        uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash) {
-        auto elem = descriptor_pipelines.find({ vp_desc_hash, fp_desc_hash, unival_hash });
-        if (elem != descriptor_pipelines.end())
-            return elem->second;
-        return {};
-    }
-
-    prj::shared_ptr<Vulkan::DescriptorPipeline> manager::get_descriptor_pipeline(
-        uint64_t vp_desc_hash, uint64_t fp_desc_hash, uint64_t unival_hash,
         uint32_t sampler_count, uint32_t uniform_count, uint32_t storage_count,
         const VkDescriptorSetLayoutBinding* bindings,
         uint32_t push_constant_range_count, VkPushConstantRange* push_constant_ranges) {
-        auto elem = descriptor_pipelines.find({ vp_desc_hash, fp_desc_hash, unival_hash });
+        uint64_t bindings_hash = hash_xxh3_64bits(bindings,
+            sizeof(VkDescriptorSetLayoutBinding) * ((size_t)sampler_count + uniform_count + storage_count ));
+        uint64_t push_constant_ranges_hash = hash_xxh3_64bits(push_constant_ranges,
+            sizeof(VkPushConstantRange) * push_constant_range_count);
+        auto elem = descriptor_pipelines.find({ sampler_count, uniform_count,
+            storage_count, bindings_hash, push_constant_ranges_hash });
         if (elem != descriptor_pipelines.end())
             return elem->second;
 
@@ -443,7 +436,8 @@ namespace Vulkan {
             new Vulkan::DescriptorPipeline(Vulkan::current_device, Vulkan::current_descriptor_pool,
                 sampler_count, uniform_count, storage_count,
                 bindings, push_constant_range_count, push_constant_ranges));
-        descriptor_pipelines.insert({ { vp_desc_hash, fp_desc_hash, unival_hash }, descriptor_pipeline });
+        descriptor_pipelines.insert({ { sampler_count, uniform_count, storage_count,
+            bindings_hash, push_constant_ranges_hash }, descriptor_pipeline });
         return descriptor_pipeline;
     }
 
@@ -458,7 +452,6 @@ namespace Vulkan {
         uint32_t vertex_input_attribute_description_count,
         const VkVertexInputAttributeDescription* vertex_input_attribute_descriptions,
         const VkPipelineInputAssemblyStateCreateInfo* input_assembly_state,
-        const VkRect2D viewport_scissor_rect[2],
         const VkPipelineRasterizationStateCreateInfo* rasterization_state,
         const VkPipelineDepthStencilStateCreateInfo* depth_stencil_state,
         uint32_t color_blend_attachment_count,
@@ -472,8 +465,6 @@ namespace Vulkan {
             sizeof(VkVertexInputBindingDescription) * vertex_input_attribute_description_count);
         uint64_t input_assembly_state_hash = hash_xxh3_64bits(input_assembly_state,
             sizeof(VkPipelineInputAssemblyStateCreateInfo));
-        uint64_t viewport_state_hash = hash_xxh3_64bits(viewport_scissor_rect,
-            sizeof(VkRect2D) * 2);
         uint64_t rasterization_state_hash = hash_xxh3_64bits(rasterization_state,
             sizeof(VkPipelineRasterizationStateCreateInfo));
         uint64_t depth_stencil_state_hash = hash_xxh3_64bits(depth_stencil_state,
@@ -482,27 +473,15 @@ namespace Vulkan {
             sizeof(VkPipelineColorBlendAttachmentState) * color_blend_attachment_count);
 
         auto elem = pipelines.find({ stages_hash, vertex_input_info_binding_hash, vertex_input_info_attribute_hash,
-            input_assembly_state_hash, viewport_state_hash, rasterization_state_hash,
+            input_assembly_state_hash, rasterization_state_hash,
             depth_stencil_state_hash, color_blend_attachmen_hash, layout, render_pass });
         if (elem != pipelines.end())
             return elem->second;
 
-        VkViewport viewport;
-        viewport.x = (float_t)viewport_scissor_rect[0].offset.x;
-        viewport.y = (float_t)viewport_scissor_rect[0].offset.y;
-        viewport.width = (float_t)viewport_scissor_rect[0].extent.width;
-        viewport.height = (float_t)viewport_scissor_rect[0].extent.height;
-        viewport.minDepth = 0.0f;
-        viewport.maxDepth = 1.0f;
-
-        VkRect2D scissor = viewport_scissor_rect[1];
-
         VkPipelineViewportStateCreateInfo viewport_state = {};
         viewport_state.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
         viewport_state.viewportCount = 1;
-        viewport_state.pViewports = &viewport;
         viewport_state.scissorCount = 1;
-        viewport_state.pScissors = &scissor;
 
         prj::shared_ptr<Vulkan::Pipeline> pipeline(new Vulkan::Pipeline(Vulkan::current_device, 0,
             stage_count, stages, vertex_input_binding_description_count, vertex_input_binding_descriptions,
@@ -510,7 +489,7 @@ namespace Vulkan {
             input_assembly_state, &viewport_state, rasterization_state, depth_stencil_state,
             color_blend_attachment_count, color_blend_attachments, layout, render_pass));
         pipelines.insert({ { stages_hash, vertex_input_info_binding_hash, vertex_input_info_attribute_hash,
-            input_assembly_state_hash, viewport_state_hash, rasterization_state_hash,
+            input_assembly_state_hash, rasterization_state_hash,
             depth_stencil_state_hash, color_blend_attachmen_hash, layout, render_pass }, pipeline });
         return pipeline;
     }

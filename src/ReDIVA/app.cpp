@@ -10,6 +10,7 @@
 #include "../CRE/Glitter/glitter.hpp"
 #include "../CRE/Vulkan/gl_wrap.hpp"
 #include "../CRE/Vulkan/Manager.hpp"
+#include "../CRE/Vulkan/RenderPass.hpp"
 #include "../CRE/Vulkan/Semaphore.hpp"
 #include "../CRE/rob/rob.hpp"
 #include "../CRE/rob/motion.hpp"

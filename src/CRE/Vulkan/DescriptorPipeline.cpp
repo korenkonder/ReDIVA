@@ -144,12 +144,6 @@ namespace Vulkan {
                 return &i;
             }
 
-        descriptor_sets.push_back({});
-        DescriptorPipeline::DescriptorSetCollection* set_collection = &descriptor_sets.back();
-        set_collection->count = 0;
-        set_collection->frame = frame;
-        set_collection->hash = hash;
-
         VkDescriptorSetAllocateInfo descriptor_set_allocate_info;
         descriptor_set_allocate_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
         descriptor_set_allocate_info.pNext = 0;
@@ -157,10 +151,19 @@ namespace Vulkan {
         descriptor_set_allocate_info.descriptorSetCount = 3;
         descriptor_set_allocate_info.pSetLayouts = descriptor_set_layouts;
 
-        if (vkAllocateDescriptorSets(device, &descriptor_set_allocate_info, set_collection->data) != VK_SUCCESS)
+        VkDescriptorSet data[3];
+        if (vkAllocateDescriptorSets(device, &descriptor_set_allocate_info, data) != VK_SUCCESS)
             return 0;
 
+        descriptor_sets.push_back({});
+        DescriptorPipeline::DescriptorSetCollection* set_collection = &descriptor_sets.back();
+        set_collection->data[0] = data[0];
+        set_collection->data[1] = data[1];
+        set_collection->data[2] = data[2];
+        set_collection->used = false;
         set_collection->count = 3;
+        set_collection->frame = frame;
+        set_collection->hash = hash;
         return set_collection;
     }
 

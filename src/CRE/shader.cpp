@@ -801,10 +801,13 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                         for (int32_t k = 0; k < unival_shad_count; k++) {
                             uint64_t vp_hash = 0x00;
                             uint64_t fp_hash = 0x01;
+                            uint32_t unival_arr[0x20] = {};
                             for (int32_t l = 0, m = k; l < num_uniform; l++) {
-                                int32_t unival_max = max_def(vp_unival_max[l], fp_unival_max[l]) + 1;
-                                vp_hash = (vp_hash << 3) | (uint32_t)min_def(m % unival_max, vp_unival_max[l]);
-                                fp_hash = (fp_hash << 3) | (uint32_t)min_def(m % unival_max, fp_unival_max[l]);
+                                const int32_t unival_max = max_def(vp_unival_max[l], fp_unival_max[l]) + 1;
+                                const int32_t unival = m % unival_max;
+                                vp_hash = (vp_hash << 3) | (uint32_t)min_def(unival, vp_unival_max[l]);
+                                fp_hash = (fp_hash << 3) | (uint32_t)min_def(unival, fp_unival_max[l]);
+                                unival_arr[l] = unival;
                                 m /= unival_max;
                             }
 
@@ -818,6 +821,10 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                                 vk_program->fragment_shader_module = elem_fp->second;
                                 vk_program->shader = &shaders_table[i];
                                 vk_program->sub_shader = sub_table;
+                                static_assert(sizeof(vk_program->unival_arr) == sizeof(unival_arr),
+                                    "\"unival_arr\" field should be 0x80");
+                                memcpy(vk_program->unival_arr, unival_arr, sizeof(vk_program->unival_arr));
+                                vk_program->init();
                             }
                         }
                         vec_shader_module.clear();
@@ -853,6 +860,8 @@ void shader_set_data::load(farc* f, bool ignore_cache,
                             vk_program->fragment_shader_module = fp_shader_module;
                             vk_program->shader = &shaders_table[i];
                             vk_program->sub_shader = sub_table;
+                            memset(vk_program->unival_arr, 0, sizeof(vk_program->unival_arr));
+                            vk_program->init();
                         }
                     }
                 }

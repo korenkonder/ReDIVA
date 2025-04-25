@@ -15,9 +15,7 @@
 #include "ImageView.hpp"
 #include "IndexBuffer.hpp"
 #include "Query.hpp"
-#include "RenderPass.hpp"
 #include "Sampler.hpp"
-#include "ShaderModule.hpp"
 #include "StorageBuffer.hpp"
 #include "UniformBuffer.hpp"
 #include "VertexBuffer.hpp"
@@ -59,7 +57,7 @@ namespace Vulkan {
 
     struct gl_framebuffer {
         Vulkan::Framebuffer framebuffer[2];
-        prj::shared_ptr<Vulkan::RenderPass> render_pass[2];
+        prj::shared_ptr<class RenderPass> render_pass[2];
 
         GLuint color_attachments[Vulkan::MAX_COLOR_ATTACHMENTS];
         GLint color_attachment_levels[Vulkan::MAX_COLOR_ATTACHMENTS];
@@ -93,12 +91,24 @@ namespace Vulkan {
     };
 
     struct gl_program {
-        prj::shared_ptr<Vulkan::ShaderModule> vertex_shader_module;
-        prj::shared_ptr<Vulkan::ShaderModule> fragment_shader_module;
+        prj::shared_ptr<class ShaderModule> vertex_shader_module;
+        prj::shared_ptr<class ShaderModule> fragment_shader_module;
+        prj::shared_ptr<class DescriptorPipeline> descriptor_pipeline;
+        uint32_t sampler_count;
+        uint32_t uniform_count;
+        uint32_t storage_count;
+        uint32_t push_constant_range_count;
+        uint32_t fragment_output_count;
+        bool enabled_attributes[Vulkan::MAX_VERTEX_ATTRIB_COUNT];
+        int32_t attribute_sizes[Vulkan::MAX_VERTEX_ATTRIB_COUNT];
+
         const shader_table* shader;
         const shader_sub_table* sub_shader;
+        uint32_t unival_arr[0x20];
 
         gl_program();
+
+        void init();
 
         static gl_program* get(GLuint program);
     };
@@ -129,14 +139,14 @@ namespace Vulkan {
         static gl_sampler* get(GLuint program);
     };
 
-    struct gl_rend_state_rect {
+    struct gl_state_rect {
         GLint x;
         GLint y;
         GLsizei width;
         GLsizei height;
     };
 
-    struct gl_rend_state_struct {
+    struct gl_state_struct {
         vec4 clear_color;
         float_t clear_depth;
         int32_t clear_stencil;
@@ -180,7 +190,7 @@ namespace Vulkan {
         GLboolean multisample;
         GLboolean primitive_restart;
         GLuint primitive_restart_index;
-        gl_rend_state_rect scissor_box;
+        gl_state_rect scissor_box;
         GLboolean scissor_test;
         GLboolean stencil_test;
         GLenum stencil_func;
@@ -190,9 +200,9 @@ namespace Vulkan {
         GLuint stencil_mask;
         GLint stencil_ref;
         GLuint stencil_value_mask;
-        gl_rend_state_rect viewport;
+        gl_state_rect viewport;
 
-        gl_rend_state_struct();
+        gl_state_struct();
     };
 
     struct gl_storage_buffer {
