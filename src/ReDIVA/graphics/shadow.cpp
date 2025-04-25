@@ -217,7 +217,7 @@ void ShadowDw::ShowTextureCallback(dw::Widget* data) {
     dw::Button* button = dynamic_cast<dw::Button*>(data);
     if (button) {
         shadow_dw->shadow_ptr->show_texture = button->value;
-        render_data_context rend_data_ctx(0);
+        render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
         shadow_dw->shadow_ptr->clear_textures(rend_data_ctx.state);
     }
 }

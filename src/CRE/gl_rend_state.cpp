@@ -129,7 +129,7 @@ struct gl_rend_state {
 
 gl_rend_state gl_state_data[GL_REND_STATE_COUNT];
 
-p_gl_rend_state::p_gl_rend_state(int32_t index) : ptr(gl_state_data[index]) {
+p_gl_rend_state::p_gl_rend_state(gl_rend_state_index index) : ptr(gl_state_data[index]) {
 
 }
 

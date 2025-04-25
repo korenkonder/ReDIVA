@@ -459,7 +459,7 @@ int32_t app_main(const app_init_struct& ais) {
                 Vulkan::current_command_buffer = cb;
             }
 
-            render_data_context rend_data_ctx(0);
+            render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
             rend_data_ctx.state.set_viewport(0, 0, width, height);
             rend_data_ctx.state.disable_blend();
             rend_data_ctx.state.disable_depth_test();
@@ -765,7 +765,7 @@ static render_context* render_context_load() {
     rctx_ptr = rctx;
 
     gl_state.get();
-    render_data_context rend_data_ctx(0);
+    render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
     rend_data_ctx.state.get();
 
     data_struct* aft_data = &data_list[DATA_AFT];
@@ -1546,7 +1546,7 @@ static void render_context_disp(render_context* rctx) {
     static const GLfloat depth_clear = 1.0f;
     static const GLint stencil_clear = 0;
 
-    render_data_context pre_rend_data_ctx(0);
+    render_data_context pre_rend_data_ctx(GL_REND_STATE_PRE_3D);
     pre_rend_data_ctx.state.get();
     pre_rend_data_ctx.state.set_depth_mask(GL_TRUE);
     pre_rend_data_ctx.state.set_stencil_mask(0xFF);
@@ -1559,7 +1559,7 @@ static void render_context_disp(render_context* rctx) {
 
     rctx->disp();
 
-    render_data_context post_rend_data_ctx(3);
+    render_data_context post_rend_data_ctx(GL_REND_STATE_POST_2D);
 
 #if DISPLAY_IBL
     if (display_ibl) {

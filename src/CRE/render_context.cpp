@@ -583,7 +583,7 @@ void render_data::set_shader(uint32_t index) {
     enum_or(flags, RENDER_DATA_SHADER_UPDATE);
 }
 
-render_data_context::render_data_context(int32_t index) : state(index), index(index),
+render_data_context::render_data_context(gl_rend_state_index index) : state(index), index(index),
 data(rctx_ptr->data[index]), shader_flags(rctx_ptr->data[index].shader_flags){
 
 }

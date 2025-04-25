@@ -440,11 +440,11 @@ struct render_data_context {
     };
 
     p_gl_rend_state state;
-    int32_t index;
+    gl_rend_state_index index;
     render_data& data;
     uniform_value& shader_flags;
 
-    render_data_context(int32_t index);
+    render_data_context(gl_rend_state_index index);
 
     void get_scene_fog_params(render_data_context::fog_params& value);
     void get_scene_light(vec4* light_env_stage_diffuse,

@@ -8,7 +8,13 @@
 #include "../KKdLib/default.hpp"
 #include "gl.hpp"
 
-constexpr int32_t GL_REND_STATE_COUNT = 4;
+enum gl_rend_state_index {
+    GL_REND_STATE_PRE_3D = 0,
+    GL_REND_STATE_3D,
+    GL_REND_STATE_2D,
+    GL_REND_STATE_POST_2D,
+    GL_REND_STATE_COUNT,
+};
 
 struct gl_rend_state_rect {
     GLint x;
@@ -20,7 +26,7 @@ struct gl_rend_state_rect {
 struct p_gl_rend_state {
     struct gl_rend_state& ptr;
 
-    p_gl_rend_state(int32_t index);
+    p_gl_rend_state(gl_rend_state_index index);
 
     void active_bind_texture_2d(int32_t index, GLuint texture, bool force = false);
     void active_bind_texture_cube_map(int32_t index, GLuint texture, bool force = false);

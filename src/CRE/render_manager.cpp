@@ -292,7 +292,7 @@ namespace rndr {
         static const vec4 color_clear = 0.0f;
 
         {
-            render_data_context rend_data_ctx(0);
+            render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
 
             rend_data_ctx.state.get();
             rend_data_ctx.state.bind_framebuffer(0);
@@ -308,7 +308,7 @@ namespace rndr {
         }
 
         {
-            render_data_context rend_data_ctx(0);
+            render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
             rend_data_ctx.state.get();
             rend_data_ctx.state.begin_event("rndpass_render_all_pass::Caller::execute_pre3d");
             for (int32_t i = RND_PASSID_SHADOW; i <= RND_PASSID_CLEAR; i++)
@@ -317,7 +317,7 @@ namespace rndr {
         }
 
         {
-            render_data_context rend_data_ctx(1);
+            render_data_context rend_data_ctx(GL_REND_STATE_3D);
             rend_data_ctx.state.get();
             rend_data_ctx.state.begin_event("rndpass_render_all_pass::Caller::execute_3d");
             for (int32_t i = RND_PASSID_PRE_SPRITE; i <= RND_PASSID_3D; i++)
@@ -326,7 +326,7 @@ namespace rndr {
         }
 
         {
-            render_data_context rend_data_ctx(2);
+            render_data_context rend_data_ctx(GL_REND_STATE_2D);
             rend_data_ctx.state.get();
             rend_data_ctx.state.begin_event("rndpass_render_all_pass::Caller::execute_2d");
             for (int32_t i = RND_PASSID_SHOW_VECTOR; i <= RND_PASSID_12; i++)
@@ -337,7 +337,7 @@ namespace rndr {
         rctx_ptr->disp_manager->check_vertex_arrays();
         sprite_manager_post_draw();
 
-        render_data_context rend_data_ctx(3);
+        render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
         rend_data_ctx.state.get();
         rend_data_ctx.state.bind_vertex_array(0);
         rend_data_ctx.state.disable_primitive_restart();
@@ -352,7 +352,7 @@ namespace rndr {
     }
 
     void RenderManager::rndpass_post_proc() {
-        render_data_context rend_data_ctx(3);
+        render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
         rend_data_ctx.state.begin_event("rndpass_post_proc");
         rctx_ptr->post_proc();
         render->post_proc();
@@ -361,7 +361,7 @@ namespace rndr {
     }
 
     void RenderManager::rndpass_pre_proc() {
-        render_data_context rend_data_ctx(0);
+        render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
         rend_data_ctx.state.begin_event("rndpass_pre_proc");
         render->pre_proc(rend_data_ctx);
         Glitter::glt_particle_manager->CalcDisp();

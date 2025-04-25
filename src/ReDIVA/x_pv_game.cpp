@@ -8178,7 +8178,7 @@ void x_pv_game::basic() {
 #if BAKE_VIDEO
         d3d_gl_fbo_tex.lock();
 
-        render_data_context rend_data_ctx(3);
+        render_data_context rend_data_ctx(GL_REND_STATE_POST_2D);
         rend_data_ctx.state.bind_framebuffer(d3d_gl_fbo_tex.gl_fbo);
         rend_data_ctx.state.active_bind_texture_2d(0, tex->glid);
         rend_data_ctx.state.bind_sampler(0, rctx_ptr->render_samplers[1]);
