@@ -815,17 +815,22 @@ namespace Vulkan {
         wrap_t = GL_REPEAT;
         wrap_r = GL_REPEAT;
         border_color = 0.0f;
+        lod_bias = 0.0f;
+        min_lod = -1000.0f;
+        max_lod = 1000.0f;
         max_anisotropy = 1.0f;
     }
 
-    gl_sampler::gl_sampler(GLenum min_filter, GLenum mag_filter,
-        GLenum wrap_s, GLenum wrap_t, GLenum wrap_r,
-        const vec4& border_color, float_t max_anisotropy) {
+    gl_sampler::gl_sampler(GLenum min_filter, GLenum mag_filter, GLenum wrap_s, GLenum wrap_t, GLenum wrap_r,
+        const vec4& border_color, float_t lod_bias, float_t min_lod, float_t max_lod, float_t max_anisotropy) {
         this->mag_filter = mag_filter;
         this->min_filter = min_filter;
         this->wrap_s = wrap_s;
         this->wrap_t = wrap_t;
         this->wrap_r = wrap_r;
+        this->lod_bias = lod_bias;
+        this->min_lod = min_lod;
+        this->max_lod = max_lod;
         this->border_color = border_color;
         this->max_anisotropy = max_anisotropy;
     }
@@ -3404,7 +3409,7 @@ namespace Vulkan {
     }
 
     static void gl_wrap_manager_bind_sampler(GLuint unit, GLuint sampler) {
-        if (sampler >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
+        if (unit >= Vulkan::MAX_COMBINED_TEXTURE_IMAGE_UNITS) {
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);
             return;
         }
@@ -5748,8 +5753,17 @@ namespace Vulkan {
         }
 
         switch (pname) {
+        case GL_TEXTURE_MIN_LOD:
+            vk_samp->min_lod = param;
+            break;
+        case GL_TEXTURE_MAX_LOD:
+            vk_samp->max_lod = param;
+            break;
         case GL_TEXTURE_MAX_ANISOTROPY_EXT:
             vk_samp->max_anisotropy = param;
+            break;
+        case GL_TEXTURE_LOD_BIAS:
+            vk_samp->lod_bias = param;
             break;
         }
     }
@@ -6256,10 +6270,17 @@ namespace Vulkan {
         }
 
         switch (pname) {
-        case GL_TEXTURE_LOD_BIAS:
+        case GL_TEXTURE_MIN_LOD:
+            vk_tex->sampler_data.min_lod = param;
+            break;
+        case GL_TEXTURE_MAX_LOD:
+            vk_tex->sampler_data.max_lod = param;
             break;
         case GL_TEXTURE_MAX_ANISOTROPY_EXT:
             vk_tex->sampler_data.max_anisotropy = param;
+            break;
+        case GL_TEXTURE_LOD_BIAS:
+            vk_tex->sampler_data.lod_bias = param;
             break;
         default:
             gl_wrap_manager_ptr->push_error(GL_INVALID_ENUM);

@@ -14,8 +14,8 @@ namespace Vulkan {
         VkSampler data;
 
     public:
-        Sampler(VkDevice device, VkSamplerCreateFlags flags,
-            VkFilter mag_filter, VkFilter min_filter, VkSamplerMipmapMode mipmap_mode,
+        Sampler(VkDevice device, VkSamplerCreateFlags flags, VkFilter mag_filter,
+            VkFilter min_filter, VkSamplerMipmapMode mipmap_mode, float_t mip_lod_bias,
             VkSamplerAddressMode address_mode_u, VkSamplerAddressMode address_mode_v,
             VkSamplerAddressMode address_mode_w, float_t min_lod, float_t max_lod,
             float_t max_anisotropy, VkBorderColor border_color);

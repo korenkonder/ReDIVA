@@ -8,8 +8,8 @@
 #include "Sampler.hpp"
 
 namespace Vulkan {
-    Sampler::Sampler(VkDevice device, VkSamplerCreateFlags flags,
-        VkFilter mag_filter, VkFilter min_filter, VkSamplerMipmapMode mipmap_mode,
+    Sampler::Sampler(VkDevice device, VkSamplerCreateFlags flags, VkFilter mag_filter,
+        VkFilter min_filter, VkSamplerMipmapMode mipmap_mode, float_t mip_lod_bias,
         VkSamplerAddressMode address_mode_u, VkSamplerAddressMode address_mode_v,
         VkSamplerAddressMode address_mode_w, float_t min_lod, float_t max_lod,
         float_t max_anisotropy, VkBorderColor border_color) {
@@ -23,7 +23,7 @@ namespace Vulkan {
         sampler_create_info.addressModeU = address_mode_u;
         sampler_create_info.addressModeV = address_mode_v;
         sampler_create_info.addressModeW = address_mode_w;
-        sampler_create_info.mipLodBias = 0.0f;
+        sampler_create_info.mipLodBias = mip_lod_bias;
         sampler_create_info.anisotropyEnable = max_anisotropy > 1.0f;
         sampler_create_info.maxAnisotropy = min_def(max_anisotropy, 16.0f);
         sampler_create_info.compareEnable = VK_FALSE;

@@ -660,11 +660,12 @@ namespace Vulkan {
             vk_border_color = VK_BORDER_COLOR_FLOAT_TRANSPARENT_BLACK;
 
         prj::shared_ptr<Vulkan::Sampler> sampler(new Vulkan::Sampler(Vulkan::current_device, 0,
-            vk_mag_filter, vk_min_filter, vk_mipmap_mode,
+            vk_mag_filter, vk_min_filter, vk_mipmap_mode, sampler_data.lod_bias,
             get_sampler_address_mode(sampler_data.wrap_s),
             get_sampler_address_mode(sampler_data.wrap_t),
             get_sampler_address_mode(sampler_data.wrap_r),
-            -1000.0f, 1000.0f, sampler_data.max_anisotropy, vk_border_color));
+            sampler_data.min_lod, sampler_data.max_lod,
+            sampler_data.max_anisotropy, vk_border_color));
         samplers.insert({ sampler_hash, sampler });
         return sampler;
     }

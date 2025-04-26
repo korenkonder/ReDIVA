@@ -129,12 +129,14 @@ namespace Vulkan {
         GLenum wrap_t;
         GLenum wrap_r;
         vec4 border_color;
+        float_t lod_bias;
+        float_t min_lod;
+        float_t max_lod;
         float_t max_anisotropy;
 
         gl_sampler();
-        gl_sampler(GLenum min_filter, GLenum mag_filter,
-            GLenum wrap_s, GLenum wrap_t, GLenum wrap_r,
-            const vec4& border_color, float_t max_anisotropy);
+        gl_sampler(GLenum min_filter, GLenum mag_filter, GLenum wrap_s, GLenum wrap_t, GLenum wrap_r,
+            const vec4& border_color, float_t lod_bias, float_t min_lod, float_t max_lod, float_t max_anisotropy);
 
         static gl_sampler* get(GLuint program);
     };
