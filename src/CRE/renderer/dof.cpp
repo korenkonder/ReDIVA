@@ -169,7 +169,14 @@ namespace renderer {
 
         vec2 data[50] = {};
         renderer::DOF3::calculate_texcoords(data, 3.0f);
-        texcoords_ubo.Create(gl_state, sizeof(data), data);
+        if (Vulkan::use) {
+            vec4 data4[49] = {};
+            for (int32_t i = 0; i < 49; i++)
+                *(vec2*)&data4[i] = data[i];
+            texcoords_ubo.Create(gl_state, sizeof(data4), data4);
+        }
+        else
+            texcoords_ubo.Create(gl_state, sizeof(data), data);
 
         glGenVertexArrays(1, &vao);
     }
