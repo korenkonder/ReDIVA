@@ -424,10 +424,12 @@ int32_t app_main(const app_init_struct& ais) {
 #ifdef USE_OPENGL
         else {
 #if RENDER_DEBUG
-            glEnable(GL_DEBUG_OUTPUT);
-            glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-            glDebugMessageCallback(render_debug_output, 0);
-            glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+            if (GLAD_GL_VERSION_4_3) {
+                glEnable(GL_DEBUG_OUTPUT);
+                glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+                glDebugMessageCallback(render_debug_output, 0);
+                glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, 0, GL_TRUE);
+            }
 #endif
             glGetIntegerv(GL_MAX_TEXTURE_SIZE, &sv_max_texture_size);
             glGetIntegerv(GL_MAX_TEXTURE_MAX_ANISOTROPY_EXT, &sv_max_texture_max_anisotropy);
@@ -682,7 +684,7 @@ static bool app_init(const app_init_struct& ais) {
     else {
         int32_t minor = 6;
         window = 0;
-        while (!window || minor < 3) {
+        while (!window && minor >= 1) {
             glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
             glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, minor--);
 
@@ -1360,7 +1362,12 @@ static render_context* render_context_load() {
 #ifdef USE_OPENGL
     else {
         ImGui_ImplGlfw_InitForOpenGL(window, true);
-        ImGui_ImplOpenGL3_Init("#version 430");
+        if (GLAD_GL_VERSION_4_3)
+            ImGui_ImplOpenGL3_Init("#version 430");
+        else if (GLAD_GL_VERSION_4_2)
+            ImGui_ImplOpenGL3_Init("#version 420");
+        else
+            ImGui_ImplOpenGL3_Init("#version 410");
 }
 #endif
 

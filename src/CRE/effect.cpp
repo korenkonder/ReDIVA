@@ -3080,8 +3080,8 @@ void EffectRipple::clear_tex() {
             v5 = 0.5f;
         }
 
-        glClearColor(0.0f, 0.0f, 0.0f, v5);
         rt->Bind(gl_state);
+        glClearColor(0.0f, 0.0f, 0.0f, v5);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         gl_state.bind_framebuffer(0);
     }

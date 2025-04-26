@@ -454,9 +454,9 @@ namespace mdl {
 
         if (!new_vertex_array)
             gl_state.bind_vertex_array(vertex_array->vertex_array);
-        gl_state.bind_array_buffer(vertex_buffer);
+        gl_state.bind_array_buffer(vertex_buffer, true);
         if (index_buffer)
-            gl_state.bind_element_array_buffer(index_buffer);
+            gl_state.bind_element_array_buffer(index_buffer, true);
 
         size_t offset = vertex_buffer_offset;
         if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -695,7 +695,7 @@ namespace mdl {
         }
 
         if (morph_vertex_buffer) {
-            gl_state.bind_array_buffer(morph_vertex_buffer);
+            gl_state.bind_array_buffer(morph_vertex_buffer, true);
 
             size_t offset = morph_vertex_buffer_offset;
             if (vertex_format & OBJ_VERTEX_POSITION) {
@@ -1838,7 +1838,7 @@ namespace mdl {
         if (etc_vertex_array->vertex_buffer.IsNull())
             etc_vertex_array->vertex_buffer.Create(gl_state, sizeof(vec3) * 2 * vtx_data.size());
 
-        gl_state.bind_array_buffer(etc_vertex_array->vertex_buffer);
+        gl_state.bind_array_buffer(etc_vertex_array->vertex_buffer, true);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(vec3) * 2
             * vtx_data.size(), vtx_data.data());
 
@@ -1846,7 +1846,7 @@ namespace mdl {
             if (etc_vertex_array->index_buffer.IsNull())
                 etc_vertex_array->index_buffer.Create(gl_state, sizeof(uint32_t) * vtx_indices.size());
 
-            gl_state.bind_element_array_buffer(etc_vertex_array->index_buffer);
+            gl_state.bind_element_array_buffer(etc_vertex_array->index_buffer, true);
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, sizeof(uint32_t)
                 * vtx_indices.size(), vtx_indices.data());
         }
