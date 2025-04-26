@@ -308,9 +308,14 @@ namespace renderer {
         rend_data_ctx.state.bind_sampler(4, samplers[1]);
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
-        glCopyImageSubData(
-            buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
-            rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
+        if (GLAD_GL_VERSION_4_3)
+            glCopyImageSubData(
+                buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
+                rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
+        else
+            fbo_blit(rend_data_ctx.state, buf_rt->fbos[0], rt->fbos[0],
+                0, 0, width, height,
+                0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
         rend_data_ctx.state.end_event();
     }
 

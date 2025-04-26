@@ -266,11 +266,12 @@ static void parse_define_inner(std::string& temp, bool vulkan) {
     if (!vulkan) {
         size_t off = 0;
         while (true) {
-            size_t pos_set = temp.find("set = ", off);
+            size_t pos_set = temp.find("(set = ", off);
             size_t pos_binding = temp.find("binding = ", off);
             if (pos_set == -1 || pos_binding == -1)
                 break;
 
+            pos_set++;
             temp.erase(pos_set, pos_binding - pos_set);
             off = pos_set + 10;
         }

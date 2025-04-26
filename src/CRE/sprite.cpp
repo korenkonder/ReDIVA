@@ -620,7 +620,7 @@ namespace spr {
         static const GLsizei buffer_size = sizeof(sprite_draw_vertex);
 
         vbo.Create(gl_state, buffer_size * vbo_vertex_count);
-        gl_state.bind_array_buffer(vbo);
+        gl_state.bind_array_buffer(vbo, true);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, buffer_size,
@@ -635,7 +635,7 @@ namespace spr {
         ebo_index_count = 4096;
 
         ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
-        gl_state.bind_element_array_buffer(ebo);
+        gl_state.bind_element_array_buffer(ebo, true);
 
         gl_state.bind_array_buffer(0);
         gl_state.bind_vertex_array(0);
@@ -670,7 +670,7 @@ namespace spr {
             gl_state.bind_vertex_array(vao);
 
             vbo.Create(gl_state, buffer_size * vbo_vertex_count);
-            gl_state.bind_array_buffer(vbo);
+            gl_state.bind_array_buffer(vbo, true);
 
             glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(buffer_size
                 * vertex_buffer.size()), vertex_buffer.data());
@@ -700,7 +700,7 @@ namespace spr {
             gl_state.bind_vertex_array(vao);
 
             ebo.Create(gl_state, sizeof(uint32_t) * ebo_index_count);
-            gl_state.bind_element_array_buffer(ebo);
+            gl_state.bind_element_array_buffer(ebo, true);
 
             glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, (GLsizeiptr)(sizeof(uint32_t)
                 * index_buffer.size()), index_buffer.data());

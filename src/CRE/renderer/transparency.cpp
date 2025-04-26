@@ -55,15 +55,36 @@ namespace renderer {
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
         rend_data_ctx.state.enable_depth_test();
 
-        glCopyImageSubData(rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
+        (rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
             rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
+        if (GLAD_GL_VERSION_4_3)
+            glCopyImageSubData(
+                rctx_ptr->render_buffer.GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
+                rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
+        else
+            fbo_blit(rend_data_ctx.state, rctx_ptr->render_buffer.fbos[0], rt->fbos[0],
+                0, 0, fbo.width, fbo.height,
+                0, 0, fbo.width, fbo.height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
     }
 
     void Transparency::copy(render_data_context& rend_data_ctx, GLuint texture) {
-        glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0,
-            fbo.textures[0], GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
+        if (GLAD_GL_VERSION_4_3)
+            glCopyImageSubData(texture, GL_TEXTURE_2D, 0, 0, 0, 0,
+                fbo.textures[0], GL_TEXTURE_2D, 0, 0, 0, 0, fbo.width, fbo.height, 1);
+
         rend_data_ctx.state.bind_framebuffer(fbo.buffer);
         rend_data_ctx.state.set_viewport(0, 0, fbo.width, fbo.height);
+
+        if (!GLAD_GL_VERSION_4_3) {
+            rend_data_ctx.state.disable_depth_test();
+            rend_data_ctx.shader_flags.arr[U_REDUCE] = 0;
+            shaders_ft.set(rend_data_ctx.state, rend_data_ctx.shader_flags, SHADER_FT_REDUCE);
+            rend_data_ctx.state.active_bind_texture_2d(0, texture);
+            rend_data_ctx.state.bind_sampler(0, rctx_ptr->render_samplers[1]);
+            rctx_ptr->render.draw_quad(rend_data_ctx, fbo.width, fbo.height, 1.0f, 1.0f,
+                0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
+            rend_data_ctx.state.enable_depth_test();
+        }
     }
 
     void Transparency::resize(GLuint color_texture, GLuint depth_texture, int32_t width, int32_t height) {

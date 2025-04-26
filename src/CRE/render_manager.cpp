@@ -293,7 +293,6 @@ namespace rndr {
 
         {
             render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
-
             rend_data_ctx.state.get();
             rend_data_ctx.state.bind_framebuffer(0);
             glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);

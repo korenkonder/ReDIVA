@@ -855,7 +855,7 @@ namespace rndr {
     vec2 Render::get_taa_offset() {
         if (taa) {
             float_t offset = taa_texture_selector == 1 ? -0.25f : 0.25f;
-            return offset / vec2((float_t)render_width[0],  (float_t)render_height[0]);
+            return -offset / vec2((float_t)render_width[0],  (float_t)render_height[0]);
         }
         return 0.0;
     }
@@ -1855,7 +1855,6 @@ namespace rndr {
                 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
 
             rend_data_ctx.state.active_bind_texture_2d(0, exposure_history->glid);
-            rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[2]);
             if (reset_exposure)
                 glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 32, 1);
             else
