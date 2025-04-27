@@ -321,7 +321,7 @@ void light_set::data_set(render_data_context& rend_data_ctx, face& face, light_s
     get_irradiance(irradiance_r_transforms, irradiance_g_transforms, irradiance_b_transforms);
 
     float_t v27 = face.get_offset();
-    float_t v28 = 1.0f - expf(v27 * -0.45f) * 2.0f;
+    float_t v28 = (float_t)(1.0 - exp(v27 * -0.44999999)) * 2.0f;
     v27 = max_def(v27, 0.0f);
     vec4 light_face_diff = { v28 * 0.1f, v27 * 0.06f, 1.0f, 1.0f };
 
