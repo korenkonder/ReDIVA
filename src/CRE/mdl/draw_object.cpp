@@ -190,7 +190,7 @@ namespace mdl {
 
             rend_data_ctx.shader_flags.arr[U_SKINNING] = 1;
             rend_data_ctx.state.bind_vertex_array(vao);
-            rend_data_ctx.set_batch_worlds(*mat);
+            rend_data_ctx.set_batch_worlds(mat4_identity);
             func(rend_data_ctx, args, cam, mat);
             rend_data_ctx.shader_flags.arr[U_SKINNING] = 0;
         }
@@ -207,7 +207,7 @@ namespace mdl {
             rend_data_ctx.state.bind_vertex_array(vao);
             if (func != draw_sub_mesh_default || !args->instances_count) {
                 rend_data_ctx.set_batch_worlds(_mat);
-                func(rend_data_ctx, args, cam, mat);
+                func(rend_data_ctx, args, cam, &_mat);
             }
             else
                 draw_sub_mesh_default_instanced(rend_data_ctx, args, cam, &_mat);
