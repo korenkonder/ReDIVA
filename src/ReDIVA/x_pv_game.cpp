@@ -6624,7 +6624,7 @@ bool x_pv_game::ctrl() {
                     rob_chara_pv_data pv_data;
                     pv_data.chara_size_index = chara_init_data_get_chara_size_index(charas[chara_index]);
                     rob_sleeve_handler_data_get_sleeve_data(
-                        charas[chara_index], modules[chara_index] + 1, pv_data.sleeve_l, pv_data.sleeve_r);
+                        charas[chara_index], modules[chara_index], pv_data.sleeve_l, pv_data.sleeve_r);
                     int32_t chara_id = rob_chara_array_init_chara_index(
                         charas[chara_index], pv_data, modules[chara_index], true);
                     if (chara_id >= 0 && chara_id < ROB_CHARA_COUNT)
