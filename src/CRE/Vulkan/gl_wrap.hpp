@@ -203,6 +203,7 @@ namespace Vulkan {
         GLint stencil_ref;
         GLuint stencil_value_mask;
         gl_state_rect viewport;
+        bool viewport_set;
 
         gl_state_struct();
     };

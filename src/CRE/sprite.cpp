@@ -1940,7 +1940,8 @@ namespace spr {
         const int32_t height = y_max - y_min + 1;
         if (width * height > 0) {
             rend_data_ctx.state.active_texture(7);
-            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, x_min, y_min, x_min, y_min, width, height);
+            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                0, x_min, y_min, x_min, y_min, width, height);
         }
     }
 

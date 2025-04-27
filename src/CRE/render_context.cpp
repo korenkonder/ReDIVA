@@ -161,8 +161,8 @@ bool light_proj::set(render_data_context& rend_data_ctx, cam_data& cam) {
     rend_data_ctx.state.set_viewport(0, 0, 2048, 512);
     rend_data_ctx.state.enable_depth_test();
     rend_data_ctx.state.set_depth_mask(GL_TRUE);
-    glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
-    glClearBufferfv(GL_DEPTH, 0, &depth_clear);
+    rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
+    rend_data_ctx.state.clear_buffer(GL_DEPTH, 0, &depth_clear);
 
     if (set_mat(rend_data_ctx, cam, false)) {
         rctx_ptr->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SIL;
@@ -174,8 +174,8 @@ bool light_proj::set(render_data_context& rend_data_ctx, cam_data& cam) {
         draw_texture.SetViewport(rend_data_ctx.state);
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_mask(GL_TRUE);
-        glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
-        glClearBufferfv(GL_DEPTH, 0, &depth_clear);
+        rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
+        rend_data_ctx.state.clear_buffer(GL_DEPTH, 0, &depth_clear);
     }
     return false;
 }

@@ -316,7 +316,7 @@ namespace renderer {
         rend_data_ctx.state.draw_arrays(GL_TRIANGLE_STRIP, 0, 4);
 
         if (GLAD_GL_VERSION_4_3)
-            glCopyImageSubData(
+            rend_data_ctx.state.copy_image_sub_data(
                 buf_rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0,
                 rt->GetColorTex(), GL_TEXTURE_2D, 0, 0, 0, 0, width, height, 1);
         else

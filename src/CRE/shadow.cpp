@@ -59,8 +59,8 @@ void Shadow::clear_textures(p_gl_rend_state& p_gl_rend_st) {
     for (int32_t i = 1; i < 3; i++)
         for (int32_t j = 0; j < 4; j++) {
             curr_render_textures[i]->Bind(p_gl_rend_st, j);
-            glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            p_gl_rend_st.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
+            p_gl_rend_st.clear(GL_COLOR_BUFFER_BIT);
         }
     p_gl_rend_st.bind_framebuffer(0);
 }

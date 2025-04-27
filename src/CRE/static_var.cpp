@@ -18,7 +18,7 @@ int32_t sv_anisotropy = 1;
 
 bool sv_better_reflect = false;
 
-bool sv_shared_storage_uniform_buffer = false;
+bool sv_shared_storage_uniform_buffer = true;
 
 const vec3 sv_rgb_to_luma = {
     0.2126f, 0.7152f, 0.0722f

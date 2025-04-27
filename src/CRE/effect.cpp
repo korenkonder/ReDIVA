@@ -2297,8 +2297,8 @@ void EffectFogRing::draw(render_data_context& rend_data_ctx, const cam_data& cam
     rend_data_ctx.state.set_viewport(0, 0,
         rt.color_texture->get_width_align_mip_level(),
         rt.color_texture->get_height_align_mip_level());
-    glClearColor(density_offset, density_offset, density_offset, 1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    rend_data_ctx.state.clear_color(density_offset, density_offset, density_offset, 1.0f);
+    rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER))
         rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
     rend_data_ctx.state.bind_framebuffer(0);
@@ -3152,7 +3152,7 @@ void EffectRipple::draw(render_data_context& rend_data_ctx, const cam_data& cam)
 
         rend_data_ctx.state.set_viewport(1, 1, width - 2, height - 2);
 
-        glClear(GL_DEPTH_BUFFER_BIT);
+        rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_USER)) {
             rend_data_ctx.state.active_bind_texture_2d(7, rt[counter % 3]->GetColorTex());
             rctx->disp_manager->draw(rend_data_ctx, mdl::OBJ_TYPE_USER, cam);
@@ -4960,7 +4960,7 @@ void star_catalog_milky_way::create_buffers(int32_t subdivs, float_t uv_rec_scal
         (void*)offsetof(star_catalog_vertex, texcoord));
 
     ebo.Create(gl_state, sizeof(uint16_t) * ebo_count, ebo_data);
-    gl_state.bind_element_array_buffer(ebo);
+    gl_state.bind_element_array_buffer(ebo, true);
 
     gl_state.bind_vertex_array(0);
     gl_state.bind_array_buffer(0);
@@ -5716,7 +5716,7 @@ static void leaf_particle_init(bool change_stage) {
         (void*)offsetof(leaf_particle_vertex_data, normal));
 
     leaf_ptcl_ebo.Create(gl_state, sizeof(uint32_t) * ebo_count, ebo_data);
-    gl_state.bind_element_array_buffer(leaf_ptcl_ebo);
+    gl_state.bind_element_array_buffer(leaf_ptcl_ebo, true);
 
     gl_state.bind_vertex_array(0);
     gl_state.bind_array_buffer(0);

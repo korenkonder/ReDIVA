@@ -287,6 +287,7 @@ namespace rndr {
     }
 
     void RenderManager::render_all() {
+        gl_state.get();
         sprite_manager_pre_draw();
 
         static const vec4 color_clear = 0.0f;
@@ -295,7 +296,7 @@ namespace rndr {
             render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
             rend_data_ctx.state.get();
             rend_data_ctx.state.bind_framebuffer(0);
-            glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
+            rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
 
             rend_data_ctx.set_scene_framebuffer_size(render->render_width[0],
                 render->render_height[0], render->render_width[0], render->render_height[0]);
@@ -308,11 +309,11 @@ namespace rndr {
 
         {
             render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
-            rend_data_ctx.state.get();
             rend_data_ctx.state.begin_event("rndpass_render_all_pass::Caller::execute_pre3d");
             for (int32_t i = RND_PASSID_SHADOW; i <= RND_PASSID_CLEAR; i++)
                 RenderManager::render_single_pass(rend_data_ctx, (RenderPassID)i);
             rend_data_ctx.state.end_event();
+            rend_data_ctx.state.update();
         }
 
         {
@@ -322,6 +323,7 @@ namespace rndr {
             for (int32_t i = RND_PASSID_PRE_SPRITE; i <= RND_PASSID_3D; i++)
                 RenderManager::render_single_pass(rend_data_ctx, (RenderPassID)i);
             rend_data_ctx.state.end_event();
+            rend_data_ctx.state.update();
         }
 
         {
@@ -331,6 +333,7 @@ namespace rndr {
             for (int32_t i = RND_PASSID_SHOW_VECTOR; i <= RND_PASSID_12; i++)
                 RenderManager::render_single_pass(rend_data_ctx, (RenderPassID)i);
             rend_data_ctx.state.end_event();
+            rend_data_ctx.state.update();
         }
 
         rctx_ptr->disp_manager->check_vertex_arrays();
@@ -542,8 +545,8 @@ namespace rndr {
             //    rend_data_ctx.state.set_viewport(0, 0, 640, 360);
             //}
 
-            glClearColor(sss->param.x, sss->param.y, sss->param.z, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(sss->param.x, sss->param.y, sss->param.z, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
                 rctx->light_set[i].data_set(rend_data_ctx, rctx->face, (light_set_id)i);
@@ -575,7 +578,7 @@ namespace rndr {
                 else if (npr) {
                     refl_tex.Bind(rend_data_ctx.state);
                     refl_tex.SetViewport(rend_data_ctx.state);
-                    glClear(GL_DEPTH_BUFFER_BIT);
+                    rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                     rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
                     rend_data_ctx.state.enable_depth_test();
                     rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -631,8 +634,8 @@ namespace rndr {
         //    rend_data_ctx.state.set_viewport(0, 0, 640, 360);
         //}
 
-        glClearColor(sss->param.x, sss->param.y, sss->param.z, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        rend_data_ctx.state.clear_color(sss->param.x, sss->param.y, sss->param.z, 0.0f);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         for (int32_t i = LIGHT_SET_MAIN; i < LIGHT_SET_MAX; i++)
             rctx->light_set[i].data_set(rend_data_ctx, rctx->face, (light_set_id)i);
@@ -662,7 +665,7 @@ namespace rndr {
             else if (npr) {
                 rend->rend_texture[0].Bind(rend_data_ctx.state);
                 rend->rend_texture[0].SetViewport(rend_data_ctx.state);
-                glClear(GL_DEPTH_BUFFER_BIT);
+                rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                 rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_SSS_SKIN;
                 rend_data_ctx.state.enable_depth_test();
                 rend_data_ctx.state.set_depth_mask(GL_TRUE);
@@ -731,11 +734,11 @@ namespace rndr {
             for (int32_t i = FOG_DEPTH; i < FOG_BUMP; i++)
                 rctx->fog[i].data_set(rend_data_ctx, (fog_id)i);
 
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
             if (sv_better_reflect && rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
-                glClear(GL_COLOR_BUFFER_BIT);
+                rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
             else
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
             rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_S_REFL;
 
@@ -835,10 +838,10 @@ namespace rndr {
         }
         else {
             vec4 clear_color;
-            glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+            rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         }
         shader::unbind(rend_data_ctx.state);
         rend_data_ctx.state.bind_framebuffer(0);
@@ -862,10 +865,10 @@ namespace rndr {
                 rctx->fog[i].data_set(rend_data_ctx, (fog_id)i);
 
             vec4 clear_color;
-            glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+            rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
 
             rctx->draw_state->rend_data[rend_data_ctx.index].shader_index = SHADER_FT_S_REFR;
             rend_data_ctx.state.enable_depth_test();
@@ -879,10 +882,10 @@ namespace rndr {
         }
         else {
             vec4 clear_color;
-            glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
-            glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+            rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         }
         shader::unbind(rend_data_ctx.state);
         rend_data_ctx.state.bind_framebuffer(0);
@@ -904,9 +907,9 @@ namespace rndr {
         rend_data_ctx.state.begin_event("pass_clear");
         if (clear) {
             rctx->screen_buffer.Bind(rend_data_ctx.state);
-            clear_color_set_gl();
-            //glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-            glClear(GL_COLOR_BUFFER_BIT);
+            clear_color_set_gl(rend_data_ctx.state);
+            //rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
             rend_data_ctx.state.bind_framebuffer(0);
         }
 
@@ -914,32 +917,32 @@ namespace rndr {
         if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour) {
             rend->bind_render_texture(rend_data_ctx.state);
             if (sprite_manager_get_reqlist_count(2)) {
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClearDepthf(1.0f);
-                glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+                rend_data_ctx.state.clear_depth(1.0f);
+                rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 rend_data_ctx.state.bind_framebuffer(0);
             }
             else {
-                clear_color_set_gl();
-                glClearDepthf(1.0f);
+                clear_color_set_gl(rend_data_ctx.state);
+                rend_data_ctx.state.clear_depth(1.0f);
                 if (clear)
-                    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+                    rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 else
-                    glClear(GL_DEPTH_BUFFER_BIT);
+                    rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
                 rend_data_ctx.state.bind_framebuffer(0);
             }
         }
         else {
             if (sprite_manager_get_reqlist_count(2)) {
                 rend->bind_render_texture(rend_data_ctx.state);
-                glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-                glClear(GL_COLOR_BUFFER_BIT);
+                rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+                rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
                 rend_data_ctx.state.bind_framebuffer(0);
             }
             else if (clear) {
                 rend->bind_render_texture(rend_data_ctx.state);
-                clear_color_set_gl();
-                glClear(GL_COLOR_BUFFER_BIT);
+                clear_color_set_gl(rend_data_ctx.state);
+                rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
                 rend_data_ctx.state.bind_framebuffer(0);
             }
         }
@@ -957,8 +960,8 @@ namespace rndr {
         rend_data_ctx.state.begin_event("pass_pre_sprite");
         rndr::Render* rend = render;
         rend->bind_render_texture(rend_data_ctx.state, true);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
         rend_data_ctx.state.set_depth_mask(GL_FALSE);
         rend_data_ctx.state.disable_depth_test();
         rend_data_ctx.state.enable_blend();
@@ -982,7 +985,7 @@ namespace rndr {
         if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour
             || draw_pass_3d_get_translucent_count(rctx)) {
             rend_data_ctx.state.set_depth_mask(GL_TRUE);
-            glClear(GL_DEPTH_BUFFER_BIT);
+            rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
         }
 
         rend_data_ctx.state.set_depth_func(GL_LEQUAL);
@@ -1193,8 +1196,8 @@ namespace rndr {
         if (!Vulkan::use && multisample && multisample_framebuffer) {
             rend_data_ctx.state.bind_framebuffer(multisample_framebuffer);
             rend_data_ctx.state.enable_multisample();
-            glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-            glClear(GL_COLOR_BUFFER_BIT);
+            rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
         }
         else
             rctx->screen_buffer.Bind(rend_data_ctx.state);
@@ -1215,7 +1218,7 @@ namespace rndr {
             rend_data_ctx.state.bind_framebuffer(rctx->screen_buffer.fbos[0]);
             rend_data_ctx.state.disable_multisample();
             rend_data_ctx.state.bind_read_framebuffer(multisample_framebuffer);
-            glBlitFramebuffer(0, 0, width, height,
+            rend_data_ctx.state.blit_framebuffer(0, 0, width, height,
                 0, 0, width, height, GL_COLOR_BUFFER_BIT, GL_NEAREST);
             rend_data_ctx.state.bind_read_framebuffer(0);
         }
@@ -1375,11 +1378,11 @@ static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad,
     texture* tex = shad->curr_render_textures[0]->color_texture;
     rend_data_ctx.state.set_viewport(1, 1, tex->width - 2, tex->width - 2);
     rend_data_ctx.state.enable_depth_test();
-    glClearColor(1.0, 1.0, 1.0, 1.0);
+    rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
     if (!a3)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     else if (shad->separate)
-        glClear(GL_COLOR_BUFFER_BIT);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
 
     float_t shadow_range = shad->get_shadow_range();
     float_t offset;
@@ -1432,14 +1435,18 @@ static void draw_pass_shadow_end_make_shadowmap(Shadow* shad,
     }
     else {
         rend_buf_tex.Bind(rend_data_ctx.state);
-        glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        rend_data_ctx.state.clear_color(1.0f, 1.0f, 1.0f, 1.0f);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
     }
 
     rend_data_ctx.state.bind_framebuffer(0);
-    rend_data_ctx.state.bind_texture_2d(rend_tex->GetColorTex());
-    glGenerateMipmap(GL_TEXTURE_2D);
-    rend_data_ctx.state.bind_texture_2d(0);
+    if (GLAD_GL_VERSION_4_5)
+        rend_data_ctx.state.generate_texture_mipmap(rend_tex->GetColorTex());
+    else {
+        rend_data_ctx.state.bind_texture_2d(rend_tex->GetColorTex());
+        rend_data_ctx.state.generate_mipmap(GL_TEXTURE_2D);
+        rend_data_ctx.state.bind_texture_2d(0);
+    }
 }
 
 static void draw_pass_shadow_filter(render_data_context& rend_data_ctx,
@@ -1566,9 +1573,9 @@ static bool draw_pass_shadow_litproj(render_data_context& rend_data_ctx, light_p
     litproj->draw_texture.Bind(rend_data_ctx.state);
     litproj->draw_texture.SetViewport(rend_data_ctx.state);
     rend_data_ctx.state.enable_depth_test();
-    glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-    glClearDepthf(1.0f);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+    rend_data_ctx.state.clear_depth(1.0f);
+    rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     if (!light_proj::set_mat(rend_data_ctx, cam, true)) {
         rend_data_ctx.state.bind_framebuffer(0);
@@ -1977,7 +1984,7 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         refl_tex.SetViewport(rend_data_ctx.state);
 
         if (!rctx->sss_data->enable || !rctx->sss_data->npr_contour)
-            glClear(GL_DEPTH_BUFFER_BIT);
+            rend_data_ctx.state.clear(GL_DEPTH_BUFFER_BIT);
 
         rend_data_ctx.state.set_depth_func(GL_LEQUAL);
 
@@ -1986,11 +1993,11 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
         for (int32_t i = FOG_DEPTH; i < FOG_BUMP; i++)
             rctx->fog[i].data_set(rend_data_ctx, (fog_id)i);
 
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
+        rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
         if (rctx->disp_manager->get_obj_count(mdl::OBJ_TYPE_SSS))
-            glClear(GL_COLOR_BUFFER_BIT);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
         else
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         rend_data_ctx.state.enable_depth_test();
         rend_data_ctx.state.set_depth_func(GL_LEQUAL);
@@ -2113,10 +2120,10 @@ static void draw_pass_reflect_full(render_data_context& rend_data_ctx, rndr::Ren
     }
     else {
         vec4 clear_color;
-        glGetFloatv(GL_COLOR_CLEAR_VALUE, (GLfloat*)&clear_color);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-        glClear(GL_COLOR_BUFFER_BIT);
-        glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        rend_data_ctx.state.get_clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        rend_data_ctx.state.clear_color(0.0f, 0.0f, 0.0f, 0.0f);
+        rend_data_ctx.state.clear(GL_COLOR_BUFFER_BIT);
+        rend_data_ctx.state.clear_color(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
     }
     shader::unbind(rend_data_ctx.state);
     rend_data_ctx.state.bind_framebuffer(0);

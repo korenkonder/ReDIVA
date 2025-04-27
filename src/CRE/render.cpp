@@ -1466,7 +1466,8 @@ namespace rndr {
                 1.0f, 1.0f, 0.0f, 0.0f, scale, 1.0f, 1.0f, 1.0f, 1.0f);
             rend_data_ctx.state.active_bind_texture_2d(0, reduce_tex[i]->glid);
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[2]);
-            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
+            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
         }
     }
 
@@ -1856,9 +1857,11 @@ namespace rndr {
 
             rend_data_ctx.state.active_bind_texture_2d(0, exposure_history->glid);
             if (reset_exposure)
-                glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, 32, 1);
+                rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                    0, 0, 0, 0, 0, 32, 1);
             else
-                glCopyTexSubImage2D(GL_TEXTURE_2D, 0, exposure_history_counter, 0, 0, 0, 1, 1);
+                rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                    0, exposure_history_counter, 0, 0, 0, 1, 1);
             exposure_history_counter = (exposure_history_counter + 1) % 32;
         }
 
@@ -2100,7 +2103,8 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[2]);
             draw_quad(rend_data_ctx, reduce_width[i], reduce_height[i],
                 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f);
-            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
+            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
         }
 
         for (int32_t i = 1; i < 4; i++) {
@@ -2109,7 +2113,8 @@ namespace rndr {
             rend_data_ctx.state.bind_sampler(0, rctx->render_samplers[2]);
             draw_quad(rend_data_ctx, reduce_width[i], reduce_height[i],
                 1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 1.0f);
-            glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
+            rend_data_ctx.state.copy_tex_sub_image_2d(GL_TEXTURE_2D,
+                0, 0, 0, 0, 0, reduce_width[i], reduce_height[i]);
         }
 
         rend_data_ctx.shader_flags.arr[U_GAUSS] = 1;

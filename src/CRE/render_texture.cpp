@@ -40,7 +40,7 @@ int32_t RenderTexture::Bind(p_gl_rend_state& p_gl_rend_st, int32_t index) {
         return -1;
 
     p_gl_rend_st.bind_framebuffer(fbos[index]);
-    if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
+    if (p_gl_rend_st.check_framebuffer_status(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE)
         return -1;
 
     gl_get_error_print();

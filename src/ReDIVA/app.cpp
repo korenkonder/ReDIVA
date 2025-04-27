@@ -439,8 +439,6 @@ int32_t app_main(const app_init_struct& ais) {
             glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &sv_min_uniform_buffer_alignment);
             if (GLAD_GL_VERSION_4_3)
                 glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &sv_min_storage_buffer_alignment);
-            glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST);
-            glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
         }
 #endif
 
@@ -768,7 +766,6 @@ static render_context* render_context_load() {
 
     gl_state.get();
     render_data_context rend_data_ctx(GL_REND_STATE_PRE_3D);
-    rend_data_ctx.state.get();
 
     data_struct* aft_data = &data_list[DATA_AFT];
     aet_database* aft_aet_db = &aft_data->data_ft.aet_db;
@@ -1557,12 +1554,13 @@ static void render_context_disp(render_context* rctx) {
     pre_rend_data_ctx.state.get();
     pre_rend_data_ctx.state.set_depth_mask(GL_TRUE);
     pre_rend_data_ctx.state.set_stencil_mask(0xFF);
-    glClearBufferfv(GL_COLOR, 0, (float_t*)&color_clear);
-    glClearDepthf(depth_clear);
+    pre_rend_data_ctx.state.clear_buffer(GL_COLOR, 0, (float_t*)&color_clear);
+    pre_rend_data_ctx.state.clear_buffer(GL_DEPTH, 0, &depth_clear);
     pre_rend_data_ctx.state.set_stencil_mask(0x00);
     pre_rend_data_ctx.state.set_depth_mask(GL_FALSE);
 
     pre_rend_data_ctx.state.set_viewport(0, 0, internal_3d_res.x, internal_3d_res.y);
+    pre_rend_data_ctx.state.update();
 
     rctx->disp();
 
@@ -1631,6 +1629,7 @@ static void render_context_disp(render_context* rctx) {
 #endif
     }
 #endif
+    post_rend_data_ctx.state.update();
 
     if (draw_imgui)
         render_context_imgui(rctx);
