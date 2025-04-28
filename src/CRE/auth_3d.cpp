@@ -3614,74 +3614,70 @@ static bool auth_3d_key_detect_fast_change(auth_3d_key* data, float_t frame, flo
     if (!length)
         return false;
 
-    kft3* keys = data->keys;
-    kft3* key = auth_3d_key_find_keyframe(data, frame);
-    if (key == keys || key == &keys[1] || key == &keys[length])
+    const kft3* keys = data->keys;
+    const kft3* key = auth_3d_key_find_keyframe(data, frame);
+    if (key == keys || key == &keys[length] || key == &keys[1])
         return false;
 
-    kft3* next_key = &key[1];
+    const kft3* next_key = &key[1];
     if (next_key == &keys[length])
         return false;
 
-    kft3* prev_key = &key[-1];
-    float_t v18 = key->frame - prev_key->frame;
-    if (v18 >= 2.0f || v18 <= 0.0f)
-        return 0;
+    const kft3* prev_key = &key[-1];
+    float_t frame_diff = key->frame - prev_key->frame;
+    if (frame_diff >= 2.0 || frame_diff <= 0.0)
+        return false;
 
     if (fabsf(key->value - prev_key->value) <= threshold)
-        return 0;
+        return false;
 
-    kft3* v21 = &prev_key[-1];
-    if (prev_key->frame <= v21->frame) {
-        while (v21 != keys) {
-            if (prev_key->frame > v21->frame)
-                break;
-            v21++;
-        }
-        if (v21 == keys)
-            return 0;
-    }
+    const kft3* prev2_key = &prev_key[-1];
+    for (; prev_key->frame <= prev2_key->frame; prev2_key = &prev2_key[-1])
+        if (prev2_key != keys)
+            return false;
 
-    float_t v23 = key->value - (prev_key->value / v18);
+    float_t v23 = key->value - prev_key->value / frame_diff;
     float_t v25;
     float_t v30;
     if (data->type != AUTH_3D_KEY_HERMITE) {
-        v25 = (prev_key->value - v21->value) / (prev_key->frame - v21->frame);
+        v25 = (prev_key->value - prev2_key->value) / (prev_key->frame - prev2_key->frame);
         v30 = (next_key->value - key->value) / (next_key->frame - key->frame);
     }
     else {
-        if (prev_key->frame - v21->frame >= 2.0f) {
-            float_t v26;
-            if (v21->frame < prev_key->frame)
-                v26 = interpolate_chs_value(key->value, next_key->value,
-                    key->tangent2, next_key->tangent1, prev_key->frame, v21->frame, prev_key->frame - 1.0f);
+        if (prev_key->frame - prev2_key->frame >= 2.0f) {
+            float_t value;
+            if (prev2_key->frame < prev_key->frame)
+                value = interpolate_chs_value(prev2_key->value, prev_key->value,
+                    prev2_key->tangent2, prev_key->tangent1,
+                    prev_key->frame, prev2_key->frame, prev_key->frame - 1.0f);
             else
-                v26 = v21->value;
-            v25 = prev_key->value - v26;
+                value = prev2_key->value;
+            v25 = prev_key->value - value;
         }
         else
-            v25 = (prev_key->value - v21->value) / (prev_key->frame - v21->frame);
+            v25 = (prev_key->value - prev2_key->value) / (prev_key->frame - prev2_key->frame);
 
         if (next_key->frame - key->frame >= 2.0f) {
-            float_t v29;
+            float_t value;
             if (key->frame < next_key->frame)
-                v29 = interpolate_chs_value(key->value, next_key->value,
-                    key->tangent2, next_key->tangent1, key->frame, next_key->frame, 1.0f);
+                value = interpolate_chs_value(key->value, next_key->value,
+                    key->tangent2, next_key->tangent1,
+                    key->frame, next_key->frame, key->frame + 1.0f);
             else
-                v29 = key->value;
-            v30 = v29 - key->value;
+                value = key->value;
+            v30 = value - key->value;
         }
         else
             v30 = (next_key->value - key->value) / (next_key->frame - key->frame);
     }
 
-    float_t v32 = fabsf(v25);
     float_t v33 = v25 * v23;
     float_t v34 = v30 * v23;
-    float_t v35 = fabsf(v23);
-    float_t v36 = fabsf(v30);
-    return (v33 <= 0.0f || (v32 < v35 && v32 <= threshold))
-        && (v34 <= 0.0f || (v36 < v35 && v36 <= threshold));
+    const float_t v25_abs = fabsf(v25);
+    const float_t v23_abs = fabsf(v23);
+    const float_t v30_abs = fabsf(v30);
+    return (v33 <= 0.0f || (v25_abs < v23_abs && v25_abs <= threshold))
+        && (v34 <= 0.0f || (v30_abs < v23_abs && v30_abs <= threshold));
 }
 
 static float_t auth_3d_interpolate_value(auth_3d_key_type type,
