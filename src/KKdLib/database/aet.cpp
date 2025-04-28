@@ -397,8 +397,10 @@ void aet_database::remove_aet_set(uint32_t set_id, uint32_t index,
         auto i_end = aet_sets.end();
         auto i = i_begin;
         while (i != i_end)
-            if (i->id == set_id)
+            if (i->id == set_id) {
                 i = aet_sets.erase(i);
+                i_end = aet_sets.end();
+            }
             else
                 i++;
     }

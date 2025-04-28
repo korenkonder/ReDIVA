@@ -395,8 +395,10 @@ void sprite_database::remove_spr_set(uint32_t set_id, uint32_t index,
         auto i_end = spr_sets.end();
         auto i = i_begin;
         while (i != i_end)
-            if (i->id == set_id)
+            if (i->id == set_id) {
                 i = spr_sets.erase(i);
+                i_end = spr_sets.end();
+            }
             else
                 i++;
     }
