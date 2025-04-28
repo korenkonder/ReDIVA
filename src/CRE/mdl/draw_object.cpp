@@ -9,7 +9,7 @@
 #include "../static_var.hpp"
 #include "../texture.hpp"
 
-static bool draw_object_blend_set(render_data_context& rend_data_ctx, 
+static bool draw_object_blend_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type);
 static bool draw_object_blend_set_check_use_default_blend(int32_t index);
 static void draw_object_chara_color_fog_set(render_data_context& rend_data_ctx,
@@ -520,7 +520,7 @@ inline void model_mat_face_camera_view(const cam_data& cam, const mat4* src, mat
     mat4_mul(dst, src, dst);
 }
 
-static bool draw_object_blend_set(render_data_context& rend_data_ctx, 
+static bool draw_object_blend_set(render_data_context& rend_data_ctx,
     const mdl::ObjSubMeshArgs* args, obj_material_shader_lighting_type lighting_type) {
     static const GLenum blend_factor_table[] = {
         GL_ZERO,

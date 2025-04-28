@@ -23,9 +23,12 @@ extern VkRenderPassBeginInfo vulkan_swapchain_render_pass_info;
 namespace Vulkan {
     struct gl_texture_data {
         struct tex_data {
-            std::vector<uint8_t> data;
+            uint8_t* data;
+            size_t size;
+            size_t capacity;
 
             tex_data();
+            tex_data(const tex_data& other);
             ~tex_data();
 
             void set_data(GLint internal_format, GLint xoffset, GLint yoffset,
@@ -43,9 +46,11 @@ namespace Vulkan {
         GLsizei width;
         GLsizei height;
         uint32_t level_count;
+        int32_t alive_time;
         std::vector<tex_data> data[6];
 
         gl_texture_data();
+        gl_texture_data(const gl_texture_data& other);
         ~gl_texture_data();
 
         tex_data* get_tex_data(uint32_t level, uint32_t layer, bool get = false);
@@ -1017,7 +1022,7 @@ namespace Vulkan {
                 vk_tex->level_count = vk_tex_data->level_count;
 
                 gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(0, 0);
-                vk_tex->attachment = attachment || !tex_data || !tex_data->data.size();
+                vk_tex->attachment = attachment || !tex_data || !tex_data->data || !tex_data->size;
             }
             else
                 vk_tex->attachment = true;
@@ -1066,19 +1071,20 @@ namespace Vulkan {
                 aspect_mask, level_count, layer_count, layout);
         }
 
-        if (vk_tex_data && update_data) {
+        if (vk_tex_data && update_data && vk_tex_data->alive_time > 0) {
             const int32_t level_count = vk_tex->get_level_count();
             const int32_t layer_count = vk_tex->get_layer_count();
             for (int32_t i = 0; i < layer_count; i++)
                 for (int32_t j = 0; j < level_count; j++) {
                     gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(j, i);
-                    if (!tex_data || !tex_data->data.size())
+                    if (!tex_data || !tex_data->data || !tex_data->size)
                         continue;
 
-                    const void* data = tex_data->data.data();
-                    const VkDeviceSize size = tex_data->data.size();
+                    const void* data = tex_data->data;
+                    const VkDeviceSize size = tex_data->size;
                     Vulkan::Buffer staging_buffer = Vulkan::manager_get_staging_buffer(size);
                     staging_buffer.WriteMemory(staging_buffer.GetOffset(), size, data);
+                    tex_data->size = 0;
 
                     const VkImageViewType image_view_type = Vulkan::get_image_view_type(vk_tex->target);
                     const VkFormat format = Vulkan::get_format(vk_tex->internal_format);
@@ -1098,8 +1104,6 @@ namespace Vulkan {
                     Vulkan::Image::PipelineBarrierSingle(Vulkan::current_command_buffer,
                         vk_tex->image, aspect_mask, j, i, old_layout);
                 }
-
-            gl_wrap_manager_ptr->gl_texture_datas.erase(texture);
         }
 
         if (vk_tex->image && !vk_tex->sample_image_view) {
@@ -1718,17 +1722,30 @@ namespace Vulkan {
         }
     }
 
-    gl_texture_data::tex_data::tex_data() {
+    gl_texture_data::tex_data::tex_data() : data(), size(), capacity() {
 
     }
 
-    gl_texture_data::tex_data::~tex_data() {
+    gl_texture_data::tex_data::tex_data(const gl_texture_data::tex_data& other) : data(), size(), capacity() {
+        if (other.capacity) {
+            data = (uint8_t*)malloc(other.capacity);
+            if (data && other.size) {
+                memcpy(data, other.data, other.size);
+                size = other.size;
+                capacity = other.capacity;
+            }
+        }
+    }
 
+    gl_texture_data::tex_data::~tex_data() {
+        if (data) {
+            free(data);
+            data = 0;
+        }
     }
 
     void gl_texture_data::tex_data::set_data(GLint internal_format, GLint xoffset, GLint yoffset,
         GLsizei width, GLsizei height, GLenum format, GLenum type, const void* data) {
-        this->data.clear();
         if (!data)
             return;
 
@@ -1738,10 +1755,38 @@ namespace Vulkan {
         if (_format != format)
             return;
 
-        this->data.resize(texture_get_size(internal_format, width, height));
+        const int32_t size = texture_get_size(internal_format, width, height);
+
+        if (!this->data) {
+            this->data = (uint8_t*)malloc(size);
+            if (!this->data)
+                return;
+
+            capacity = size;
+        }
+        else if (capacity < size) {
+            const size_t old_capacity = capacity;
+
+            if (this->data) {
+                free(this->data);
+                this->data = 0;
+            }
+            this->size = 0;
+            capacity = 0;
+
+            const size_t new_capacity = max_def(old_capacity + old_capacity / 2, (size_t)size);
+            this->data = (uint8_t*)malloc(new_capacity);
+            if (!this->data)
+                return;
+
+            capacity = new_capacity;
+        }
+
+        this->size = size;
+
         if (!gl_texture_data::tex_data::convert(internal_format, width, height, format,
-            type, _type, data, this->data.data(), gl_state.unpack_alignment, true))
-            this->data.clear();
+            type, _type, data, this->data, gl_state.unpack_alignment, true))
+            this->size = 0;
     }
 
     bool gl_texture_data::tex_data::convert(GLenum internal_format,
@@ -1767,7 +1812,7 @@ namespace Vulkan {
                 return false;
             }
 
-            memmove(dst_data, src_data, texture_get_size(internal_format, width, height));
+            memcpy(dst_data, src_data, texture_get_size(internal_format, width, height));
             return true;
         }
 
@@ -1923,24 +1968,52 @@ namespace Vulkan {
                 dst_line_size = (ssize_t)elem_size * width;
             }
 
-            const ssize_t line_size = min_def(src_line_size, dst_line_size);
+            if (src_line_size != dst_line_size) {
+                const ssize_t line_size = min_def(src_line_size, dst_line_size);
 
-            for (GLsizei y = 0; y < height; y++) {
-                const uint8_t* src = (const uint8_t*)src_data + src_line_size * y;
-                uint8_t* dst = (uint8_t*)dst_data + dst_line_size * y;
-                memmove(dst, src, line_size);
+                const uint8_t* src = (const uint8_t*)src_data;
+                uint8_t* dst = (uint8_t*)dst_data;
+                for (GLsizei y = 0; y < height; y++, src += src_line_size, dst += dst_line_size)
+                    memcpy(dst, src, line_size);
             }
+            else
+                memcpy(dst_data, src_data, (ssize_t)elem_size * width * height);
         }
         return true;
     }
 
     gl_texture_data::tex_data& gl_texture_data::tex_data::operator=(const gl_texture_data::tex_data& other) {
-        data.assign(other.data.begin(), other.data.end());
+        if (data) {
+            free(data);
+            data = 0;
+        }
+        size = 0;
+        capacity = 0;
+
+        if (other.capacity) {
+            data = (uint8_t*)malloc(other.capacity);
+            if (data && other.size) {
+                memcpy(data, other.data, other.size);
+                size = other.size;
+                capacity = other.capacity;
+            }
+        }
         return *this;
     };
 
-    gl_texture_data::gl_texture_data() : target(), level_count(), internal_format(), width(), height() {
+    gl_texture_data::gl_texture_data() : target(), internal_format(), width(), height(), level_count(), alive_time() {
 
+    }
+
+    gl_texture_data::gl_texture_data(const gl_texture_data& other) {
+        target = other.target;
+        internal_format = other.internal_format;
+        width = other.width;
+        height = other.height;
+        level_count = other.level_count;
+        alive_time = other.alive_time;
+        for (uint32_t i = 0; i < 6; i++)
+            data[i].assign(other.data[i].begin(), other.data[i].end());
     }
 
     gl_texture_data::~gl_texture_data() {
@@ -1968,14 +2041,15 @@ namespace Vulkan {
 
     gl_texture_data& gl_texture_data::operator=(const gl_texture_data& other) {
         target = other.target;
-        internal_format = other.internal_format;
         width = other.width;
         height = other.height;
         level_count = other.level_count;
+        internal_format = other.internal_format;
+        alive_time = other.alive_time;
         for (uint32_t i = 0; i < 6; i++)
             data[i].assign(other.data[i].begin(), other.data[i].end());
         return *this;
-    };
+    }
 
     gl_texture_data* gl_texture_data::get(GLuint texture) {
         if (!texture)
@@ -2310,6 +2384,19 @@ namespace Vulkan {
                 vk_vb->copy_working_buffer = false;
             }
             vk_vb->working_buffer.Reset();
+        }
+
+        if (gl_texture_datas.size()) {
+            auto i_begin = gl_texture_datas.begin();
+            auto i_end = gl_texture_datas.begin();
+            auto i = i_begin;
+            while (i != i_end)
+                if (--i->second.alive_time < 0) {
+                    i = gl_texture_datas.erase(i);
+                    i_end = gl_texture_datas.end();
+                }
+                else
+                    i++;
         }
 
         gl_state.viewport_set = false;
@@ -4144,8 +4231,10 @@ namespace Vulkan {
         GLenum type;
         texture_get_format_type_by_internal_format(internal_format, &format, &type);
         gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer);
-        if (tex_data)
+        if (tex_data) {
             tex_data->set_data(internal_format, 0, 0, width, height, format, type, data);
+            vk_tex_data->alive_time = 2;
+        }
     }
 
     static void gl_wrap_manager_compressed_tex_sub_image_2d(GLenum target, GLint level,
@@ -4263,9 +4352,11 @@ namespace Vulkan {
         GLenum _type;
         texture_get_format_type_by_internal_format(vk_tex_data->internal_format, &_format, &_type);
         gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer);
-        if (tex_data)
+        if (tex_data) {
             tex_data->set_data(vk_tex->internal_format,
                 xoffset, yoffset, width, height, _format, _type, data);
+            vk_tex_data->alive_time = 2;
+        }
     }
 
     static void gl_wrap_manager_copy_image_sub_data(
@@ -4993,7 +5084,7 @@ namespace Vulkan {
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
         if (vk_tex_data && vk_tex_data->valid()) {
             gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer, true);
-            if (tex_data && tex_data->data.size()) {
+            if (tex_data && tex_data->data && tex_data->size) {
                 internal_format = vk_tex_data->internal_format;
                 width = vk_tex_data->width;
                 height = vk_tex_data->height;
@@ -5023,8 +5114,8 @@ namespace Vulkan {
 
         if (vk_tex_data && vk_tex_data->valid()) {
             gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer, true);
-            if (tex_data && tex_data->data.size()) {
-                memmove(img, tex_data->data.data(), size);
+            if (tex_data && tex_data->data && tex_data->size) {
+                memcpy(img, tex_data->data, size);
                 return;
             }
         }
@@ -5464,7 +5555,7 @@ namespace Vulkan {
         gl_texture_data* vk_tex_data = gl_texture_data::get(texture);
         if (vk_tex_data && vk_tex_data->valid()) {
             gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer, true);
-            if (tex_data && tex_data->data.size()) {
+            if (tex_data && tex_data->data && tex_data->size) {
                 internal_format = vk_tex_data->internal_format;
                 width = vk_tex_data->width;
                 height = vk_tex_data->height;
@@ -5512,9 +5603,9 @@ namespace Vulkan {
 
         if (vk_tex_data && vk_tex_data->valid()) {
             gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer, true);
-            if (tex_data && tex_data->data.size()) {
+            if (tex_data && tex_data->data && tex_data->size) {
                 temp = force_malloc(size);
-                memmove(temp, tex_data->data.data(), size);
+                memcpy(temp, tex_data->data, size);
             }
         }
 
@@ -5701,7 +5792,7 @@ namespace Vulkan {
             return;
         }
 
-        memmove(vk_buf->data.data() + offset, data, size);
+        memcpy(vk_buf->data.data() + offset, data, size);
         enum_or(vk_buf->flags, Vulkan::GL_BUFFER_FLAG_UPDATE_DATA);
     }
 
@@ -6092,8 +6183,10 @@ namespace Vulkan {
         }
 
         gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer);
-        if (tex_data)
+        if (tex_data) {
             tex_data->set_data(internal_format, 0, 0, width, height, format, type, pixels);
+            vk_tex_data->alive_time = 2;
+        }
     }
 
     static void gl_wrap_manager_tex_parameter_float(GLenum target, GLenum pname, GLfloat param) {
@@ -6298,9 +6391,11 @@ namespace Vulkan {
         }
 
         gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, layer);
-        if (tex_data)
+        if (tex_data) {
             tex_data->set_data(vk_tex->internal_format,
                 xoffset, yoffset, width, height, format, type, pixels);
+            vk_tex_data->alive_time = 2;
+        }
     }
 
     static void gl_wrap_manager_texture_parameter_float(GLuint texture, GLenum pname, GLfloat param) {
@@ -6555,9 +6650,11 @@ namespace Vulkan {
         }
 
         gl_texture_data::tex_data* tex_data = vk_tex_data->get_tex_data(level, 0);
-        if (tex_data)
+        if (tex_data) {
             tex_data->set_data(vk_tex_data->internal_format,
                 xoffset, yoffset, width, height, format, type, pixels);
+            vk_tex_data->alive_time = 2;
+        }
     }
 
     static GLboolean gl_wrap_manager_unmap_buffer(GLenum target) {

@@ -1371,7 +1371,7 @@ void render_manager_free_data() {
     rctx_ptr->sss_data->free();
 }
 
-static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad, 
+static void draw_pass_shadow_begin_make_shadowmap(Shadow* shad,
     render_data_context& rend_data_ctx, cam_data& cam, int32_t index, int32_t a3) {
     render_context* rctx = rctx_ptr;
     shad->curr_render_textures[0]->Bind(rend_data_ctx.state);
@@ -1651,7 +1651,7 @@ static void draw_pass_sss_contour(render_data_context& rend_data_ctx, render_con
             1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);
     }
     else
-        rctx->render.draw_quad(rend_data_ctx, 
+        rctx->render.draw_quad(rend_data_ctx,
             rend->render_post_width[0], rend->render_post_height[0],
             rend->render_post_width_scale, rend->render_post_height_scale,
             0.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f);

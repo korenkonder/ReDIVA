@@ -1212,7 +1212,7 @@ static bool effect_array_parse_stage_param_data_snow(stage_param_snow* snow, int
 static bool effect_array_parse_stage_param_data_splash(stage_param_splash* splash, int32_t stage_index);
 static bool effect_array_parse_stage_param_data_star(stage_param_star* star, int32_t stage_index);
 
-static void draw_fog_particle(render_data_context& rend_data_ctx, 
+static void draw_fog_particle(render_data_context& rend_data_ctx,
     EffectFogRing* data, const cam_data& cam, mat4* mat);
 
 static void draw_ripple_particles(render_data_context& rend_data_ctx,

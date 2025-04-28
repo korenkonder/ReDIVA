@@ -802,7 +802,7 @@ inline void gl_rend_state::clear(GLbitfield mask) {
 
     if (mask & GL_DEPTH_BUFFER_BIT)
         update_clear_depth();
-    
+
     if (mask & GL_STENCIL_BUFFER_BIT)
         update_clear_stencil();
 
